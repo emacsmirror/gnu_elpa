@@ -32,11 +32,11 @@
 ;;
 ;; (add-to-list 'load-path "~/.emacs.d/ampc")
 ;;
-;; Then add two autoload definitions:
+;; Then add one autoload definition:
 ;;
-;; (autoload 'ampc "ampc" nil t) (autoload 'ampc-quit "ampc" nil t)
+;; (autoload 'ampc "ampc" nil t)
 ;;
-;; Optionally bind keys to these functions, e.g.
+;; Optionally bind a key to this function, e.g.:
 ;;
 ;; (global-set-key (kbd "<f9>") 'ampc)
 
@@ -1569,7 +1569,6 @@ ARG defaults to 1."
     (ampc-align-point)
     nil))
 
-;;;###autoload
 (defun ampc-quit (&optional arg)
   "Quit ampc.
 If called with a prefix argument ARG, kill the mpd instance that

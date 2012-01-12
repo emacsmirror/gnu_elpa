@@ -1407,7 +1407,8 @@ otherwise disable it."
     (ampc-send-command 'play nil (1- (line-number-at-pos)))
     (ampc-send-command 'pause nil 0)))
 
-(defun ampc-toggle-play (&optional arg)
+(defun* ampc-toggle-play
+    (&optional arg &aux (state (cdr-safe (assoc "state" ampc-status))))
   "Toggle play state.
 If mpd does not play a song already, start playing the song at
 point if the current buffer is the playlist buffer, otherwise
@@ -1415,25 +1416,26 @@ start at the beginning of the playlist.
 
 If ARG is 4, stop player rather than pause if applicable."
   (interactive "P")
-  (when arg
-    (setf arg (prefix-numeric-value arg)))
-  (case (intern (cdr (assoc "state" ampc-status)))
-    (stop
-     (when (or (null arg) (> arg 0))
-       (ampc-send-command
-        'play
-        nil
-        (if (and (eq (car ampc-type) 'current-playlist) (not (eobp)))
-            (1- (line-number-at-pos))
-          0))))
-    (pause
-     (when (or (null arg) (> arg 0))
-       (ampc-send-command 'pause nil 0)))
-    (play
-     (cond ((or (null arg) (< arg 0))
-            (ampc-send-command 'pause nil 1))
-           ((eq arg 4)
-            (ampc-send-command 'stop))))))
+  (when state
+    (when arg
+      (setf arg (prefix-numeric-value arg)))
+    (ecase (intern state)
+      (stop
+       (when (or (null arg) (> arg 0))
+         (ampc-send-command
+          'play
+          nil
+          (if (and (eq (car ampc-type) 'current-playlist) (not (eobp)))
+              (1- (line-number-at-pos))
+            0))))
+      (pause
+       (when (or (null arg) (> arg 0))
+         (ampc-send-command 'pause nil 0)))
+      (play
+       (cond ((or (null arg) (< arg 0))
+              (ampc-send-command 'pause nil 1))
+             ((eq arg 4)
+              (ampc-send-command 'stop)))))))
 
 (defun ampc-next (&optional arg)
   "Play next song.

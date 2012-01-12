@@ -1190,7 +1190,8 @@ This hook is called as the first thing when ampc is started."
 (defun* ampc-configure-frame-1 (split &aux (split-type (car split)))
   (if (member split-type '(vertical horizontal))
       (let* ((sizes))
-        (loop with length = (if (eq split-type 'horizontal) (window-width)
+        (loop with length = (if (eq split-type 'horizontal)
+                                (window-width)
                               (window-height))
               with rest = length
               with rest-car
@@ -1592,8 +1593,8 @@ ampc is connected to."
         when found-window
         do (delete-window w)
         else
-        do (setf found-window t)
-        (setf (window-dedicated-p w) nil)
+        do (setf found-window t
+                 (window-dedicated-p w) nil)
         end
         end)
   (loop for b in ampc-all-buffers

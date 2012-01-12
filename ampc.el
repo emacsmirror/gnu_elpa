@@ -138,6 +138,9 @@
 ;; `r' (ampc-toggle-random): Toggle random state.
 ;; `f' (ampc-toggle-consume): Toggle consume state.
 ;;
+;; `P' (ampc-goto-current-song): Select the current playlist window and move
+;; point to the current song.
+;;
 ;; `T' (ampc-trigger-update): Trigger a database update.
 ;; `q' (ampc-quit): Quit ampc.
 
@@ -261,6 +264,7 @@ This hook is called as the first thing when ampc is started."
     (define-key map (kbd "e") 'ampc-toggle-repeat)
     (define-key map (kbd "r") 'ampc-toggle-random)
     (define-key map (kbd "f") 'ampc-toggle-consume)
+    (define-key map (kbd "P") 'ampc-goto-current-song)
     (define-key map (kbd "q") 'ampc-quit)
     (define-key map (kbd "T") 'ampc-trigger-update)
     (loop for view in ampc-views
@@ -1516,7 +1520,7 @@ If ARG is omitted, use the selected entries."
       (ampc-send-command 'playlistclear nil (ampc-playlist))
     (ampc-send-command 'clear)))
 
-(defun* ampc-add (&optional arg)
+(defun ampc-add (&optional arg)
   "Add the next ARG songs associated with the entries after point
 to the playlist.
 If ARG is omitted, use the selected entries in the current buffer."
@@ -1537,6 +1541,18 @@ If ARG is omitted, use the selected entries in the current buffer."
 Interactively, read NAME from the minibuffer."
   (interactive "MSave playlist as: ")
   (ampc-send-command 'save nil name))
+
+(defun* ampc-goto-current-song
+    (&aux (song (cdr-safe (assoc "song" ampc-status))))
+  "Select the current playlist window and move point to the current song."
+  (interactive)
+  (when song
+    (ampc-with-buffer 'current-playlist
+      no-se
+      (select-window (ampc-get-window 'current-playlist))
+      (goto-char (point-min))
+      (forward-line (string-to-number song))
+      (ampc-align-point))))
 
 (defun ampc-previous-line (&optional arg)
   "Go to previous ARG'th entry in the current buffer.

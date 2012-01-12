@@ -48,8 +48,9 @@
 ;;
 ;; ampc offers three independent views which expose different parts of the user
 ;; interface.  The current playlist view, the default view at startup, may be
-;; accessed using the `J' (that is S-j) key.  The playlist view may be accessed
-;; using the `K' key.  The outputs view may be accessed using the `L' key.
+;; accessed using the `J' (that is `S-j') key.  The playlist view may be
+;; accessed using the `K' key.  The outputs view may be accessed using the `L'
+;; key.
 
 ;;; *** current playlist view
 ;; The playlist view should look like this

@@ -598,6 +598,18 @@ This hook is called as the first thing when ampc is started."
       (loop repeat N
             until (ampc-move-impl up)))))
 
+(defun ampc-toggle-state (state arg)
+  (when (or arg ampc-status)
+    (ampc-send-command
+     state
+     nil
+     (cond ((null arg)
+            (if (equal (cdr (assoc (symbol-name state) ampc-status)) "1")
+                0
+              1))
+           ((> (prefix-numeric-value arg) 0) 1)
+           (t 0)))))
+
 (defun ampc-playlist ()
   (ampc-with-buffer 'playlists
     (if (search-forward-regexp "^* \\(.*\\)$" nil t)
@@ -1366,15 +1378,7 @@ With prefix argument ARG, set crossfading to ARG seconds."
 With prefix argument ARG, enable repeating if ARG is positive,
 otherwise disable it."
   (interactive "P")
-  (when (or arg ampc-status)
-    (ampc-send-command 'repeat
-                       nil
-                       (cond ((null arg)
-                              (if (equal (cdr (assoc "repeat" ampc-status)) "1")
-                                  0
-                                1))
-                             ((> (prefix-numeric-value arg) 0) 1)
-                             (t 0)))))
+  (ampc-toggle-state 'repeat arg))
 
 (defun ampc-toggle-consume (&optional arg)
   "Toggle MPD's consume state.
@@ -1383,32 +1387,14 @@ otherwise disable it.
 
 When consume is activated, each song played is removed from the playlist."
   (interactive "P")
-  (when (or arg ampc-status)
-    (ampc-send-command 'consume
-                       nil
-                       (cond ((null arg)
-                              (if (equal (cdr
-                                          (assoc "consume" ampc-status))
-                                         "1")
-                                  0
-                                1))
-                             ((> (prefix-numeric-value arg) 0) 1)
-                             (t 0)))))
+  (ampc-toggle-state 'consume arg))
 
 (defun ampc-toggle-random (&optional arg)
   "Toggle MPD's random state.
 With prefix argument ARG, enable random playing if ARG is positive,
 otherwise disable it."
   (interactive "P")
-  (when (or arg ampc-status)
-    (ampc-send-command 'random
-                       nil
-                       (cond ((null arg)
-                              (if (equal (cdr (assoc "random" ampc-status)) "1")
-                                  0
-                                1))
-                             ((> (prefix-numeric-value arg) 0) 1)
-                             (t 0)))))
+  (ampc-toggle-state 'random arg))
 
 (defun ampc-play-this ()
   "Play selected song."

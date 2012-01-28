@@ -1090,9 +1090,9 @@ This hook is called as the first thing when ampc is started."
      (ampc-set-dirty t)
      (ecase (car ampc-type)
        (tag
-        (let* ((data (ampc-extract (cdr ampc-type) data-buffer))
+        (let* ((data (or (ampc-extract (cdr ampc-type) data-buffer)
+                         "[Not Specified]"))
                (member (and (cdr tree) (avl-tree-member (cdr tree) data))))
-          (assert data)
           (cond (member (setf tree member))
                 ((cdr tree)
                  (setf member `(,data . nil))

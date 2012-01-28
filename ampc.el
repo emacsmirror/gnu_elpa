@@ -1653,8 +1653,8 @@ connect to.  The values default to localhost:6600."
 (provide 'ampc)
 
 ;; Local Variables:
-;; eval: (outline-minor-mode 1);
-;; outline-regexp: ";;; \\*+";
+;; eval: (outline-minor-mode 1)
+;; outline-regexp: ";;; \\*+"
 ;; lexical-binding: t
 ;; fill-column: 80
 ;; indent-tabs-mode: nil

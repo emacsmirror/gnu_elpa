@@ -386,10 +386,10 @@ This hook is called as the first thing when ampc is started."
        (with-current-buffer b
          (let ((buffer-read-only))
            ,@(if (eq (car body) 'no-se)
-                (cdr body)
-              `((save-excursion
-                  (goto-char (point-min))
-                  ,@body))))))))
+                 (cdr body)
+               `((save-excursion
+                   (goto-char (point-min))
+                   ,@body))))))))
 
 (defmacro ampc-fill-skeleton (tag &rest body)
   (declare (indent 1) (debug t))

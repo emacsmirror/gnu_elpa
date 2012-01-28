@@ -425,11 +425,11 @@ This hook is called as the first thing when ampc is started."
                 (goto-char (point-min))
                 (search-forward-regexp "^* " nil t)))
          (loop initially (goto-char (point-min))
+               finally (ampc-align-point)
                while (search-forward-regexp "^* " nil t)
                for index from 0
                do (save-excursion
-                    ,@body)
-               (ampc-next-line))
+                    ,@body))
        (loop until (eobp)
              for index from 0 to (1- (prefix-numeric-value arg-))
              do (save-excursion

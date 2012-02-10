@@ -29,8 +29,9 @@
 ;; ampc is a controller for the Music Player Daemon.
 
 ;;; ** installation
-;; Put this file somewhere in your load-path or add the directory the file is in
-;; to it, e.g.:
+;; If you use GNU ELPA, install ampc via M-x package-list-packages RET or
+;; (package-install 'ampc).  Otherwise, grab this file and put it somewhere in
+;; your load-path or add the directory the file is in to it, e.g.:
 ;;
 ;; (add-to-list 'load-path "~/.emacs.d/ampc")
 ;;

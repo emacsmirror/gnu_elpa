@@ -23,6 +23,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;; Commentary:
 ;;; * description
 ;; ampc is a controller for the Music Player Daemon.
 
@@ -144,6 +145,7 @@
 ;; `T' (ampc-trigger-update): Trigger a database update.
 ;; `q' (ampc-quit): Quit ampc.
 
+;;; Code:
 ;;; * code
 (eval-when-compile
   (require 'easymenu)

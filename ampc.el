@@ -246,6 +246,7 @@ This hook is called as the first thing when ampc is started."
 (make-variable-buffer-local 'ampc-dirty)
 
 (defvar ampc-internal-db nil)
+(defvar ampc-internal-db-format nil)
 (defvar ampc-status nil)
 
 ;;; *** mode maps
@@ -716,7 +717,7 @@ This hook is called as the first thing when ampc is started."
                  (playlist
                   (ampc-update-playlist))
                  ((tag song)
-                  (if ampc-internal-db
+                  (if (equal ampc-internal-db-format (ampc-tags))
                       (ampc-fill-tag-song)
                     (ampc-send-command 'listallinfo)))
                  (status
@@ -1046,7 +1047,7 @@ This hook is called as the first thing when ampc is started."
         when (string-match "^changed: \\(.*\\)$" subsystem)
         do (case (intern (match-string 1 subsystem))
              (database
-              (setf ampc-internal-db nil)
+              (setf ampc-internal-db-format nil)
               (ampc-set-dirty 'tag t)
               (ampc-set-dirty 'song t))
              (output
@@ -1077,12 +1078,22 @@ This hook is called as the first thing when ampc is started."
                    "ampc supports MPD 0.15.0 and later"))))
 
 (defun ampc-fill-internal-db ()
-  (setf ampc-internal-db (ampc-create-tree))
+  (setf ampc-internal-db (ampc-create-tree)
+        ampc-internal-db-format (ampc-tags))
   (loop while (search-forward-regexp "^file: " nil t)
         do (save-restriction
              (ampc-narrow-entry)
              (ampc-fill-internal-db-entry)))
   (ampc-fill-tag-song))
+
+(defun ampc-tags ()
+  (loop for w in (ampc-windows)
+        for tag = (with-current-buffer (window-buffer w)
+                    (when (eq (car ampc-type) 'tag)
+                      (plist-get (cdr ampc-type) :tag)))
+        when tag
+        collect tag
+        end))
 
 (defun ampc-fill-internal-db-entry ()
   (loop
@@ -1612,7 +1623,7 @@ ampc is connected to."
   (setf ampc-connection nil
         ampc-buffers nil
         ampc-all-buffers nil
-        ampc-internal-db nil
+        ampc-internal-db-format nil
         ampc-working-timer nil
         ampc-outstanding-commands nil
         ampc-status nil)

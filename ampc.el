@@ -4,7 +4,7 @@
 
 ;; Author: Christopher Schmidt <christopher@ch.ristopher.com>
 ;; Maintainer: Christopher Schmidt <christopher@ch.ristopher.com>
-;; Version: 0.1
+;; Version: 0.1.1
 ;; Created: 2011-12-06
 ;; Keywords: mpc
 ;; Compatibility: GNU Emacs: 24.x

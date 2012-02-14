@@ -158,6 +158,20 @@
 ;;
 ;; `T' (ampc-trigger-update): Trigger a database update.
 ;; `q' (ampc-quit): Quit ampc.
+;;
+;; The keymap of ampc is designed to fit the QWERTY United States keyboard
+;; layout.  If you use another keyboard layout, feel free to modify
+;; ampc-mode-map.  For example, I use a regular QWERTZ German keyboard (layout),
+;; so I modify ampc-mode-map in my init.el like this:
+;;
+;; (require 'ampc)
+;; (flet ((substitute-ampc-key
+;;         (from to)
+;;         (define-key ampc-mode-map to (lookup-key ampc-mode-map from))
+;;         (define-key ampc-mode-map from nil)))
+;;   (substitute-ampc-key (kbd "y") (kbd "z"))
+;;   (substitute-ampc-key (kbd "M-y") (kbd "M-z"))
+;;   (substitute-ampc-key (kbd "<") (kbd ";")))
 
 ;;; Code:
 ;;; * code

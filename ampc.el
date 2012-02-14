@@ -47,7 +47,7 @@
 ;; To invoke ampc, call the command `ampc', e.g. via M-x ampc RET.  Once ampc is
 ;; connected to the daemon, it creates its window configuration in the selected
 ;; window.  To make ampc use the full frame rather than the selected window,
-;; customize `ampc-use-full-frame'.
+;; customise `ampc-use-full-frame'.
 ;;
 ;; ampc offers three independent views which expose different parts of the user
 ;; interface.  The current playlist view, the default view at startup, may be

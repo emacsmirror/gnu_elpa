@@ -96,6 +96,14 @@
 ;; five.  To add the selected song to the playlist, press `a' (ampc-add).  This
 ;; key binding works in tag browsers as well.  Calling ampc-add in a tag browser
 ;; adds all songs filtered up to the selected browser to the playlist.
+;;
+;; The tag browsers of the (default) current playlist view (accessed via `J')
+;; are `Genre' (window 3), `Artist' (window 4) and `Album' (window 5).  The key
+;; `M' may be used to fire up a slightly modified current playlist view.  There
+;; is no difference to the default current playlist view other than that the tag
+;; browsers filter to `Genre' (window 3), `Album' (window 4) and `Artist'
+;; (window 5).  Metaphorically speaking, the order of the `grep' filters defined
+;; by the tag browsers is different.
 
 ;;; *** playlist view
 ;; The playlist view resembles the current playlist view.  The window, which
@@ -106,6 +114,9 @@
 ;; current playlist now modify the selected (stored) playlist.  The list of
 ;; stored playlists is the only view in ampc that may have only one marked
 ;; entry.
+;;
+;; Again, the key `;' may be used to setup a playlist view with a different
+;; order of tag browsers.
 
 ;;; *** outputs view
 ;; The outputs view contains a single list which shows the configured outputs of
@@ -113,8 +124,9 @@
 ;; (ampc-toggle-output-enabled).
 
 ;;; *** global keys
-;; ampc defines the following global keys, which may be used in every window
-;; associated with ampc:
+;; Aside from `J', `M', `K', `;' and `L', which may be used to select different
+;; views, ampc defines the following global keys, which may be used in every
+;; window associated with ampc:
 ;;
 ;; `k' (ampc-toggle-play): Toggle play state.  If mpd does not play a song
 ;; already, start playing the song at point if the current buffer is the
@@ -200,24 +212,37 @@ This hook is called as the first thing when ampc is started."
 
 ;;; *** internal variables
 (defvar ampc-views
-  (let ((rs '(1.0 vertical
-                  (0.7 horizontal
-                       (0.33 tag :tag "Genre" :id 1)
-                       (0.33 tag :tag "Artist" :id 2)
-                       (1.0 tag :tag "Album" :id 3))
-                  (1.0 song :properties (("Track" :title "#")
-                                         ("Title" :offset 6)
-                                         ("Time" :offset 26)))))
-        (pl-prop '(("Title")
-                   ("Artist" :offset 20)
-                   ("Album" :offset 40)
-                   ("Time" :offset 60))))
+  (let* ((songs '(1.0 song :properties (("Track" :title "#")
+                                        ("Title" :offset 6)
+                                        ("Time" :offset 26))))
+         (rs_a `(1.0 vertical
+                   (0.7 horizontal
+                        (0.33 tag :tag "Genre" :id 1)
+                        (0.33 tag :tag "Artist" :id 2)
+                        (1.0 tag :tag "Album" :id 3))
+                   ,songs))
+         (rs_b `(1.0 vertical
+                     (0.7 horizontal
+                          (0.33 tag :tag "Genre" :id 1)
+                          (0.33 tag :tag "Album" :id 2)
+                          (1.0 tag :tag "Artist" :id 3))
+                   ,songs))
+         (pl-prop '(("Title")
+                    ("Artist" :offset 20)
+                    ("Album" :offset 40)
+                    ("Time" :offset 60))))
     `((,(kbd "J")
        horizontal
        (0.4 vertical
             (6 status)
             (1.0 current-playlist :properties ,pl-prop))
-       ,rs)
+       ,rs_a)
+      (,(kbd "M")
+       horizontal
+       (0.4 vertical
+            (6 status)
+            (1.0 current-playlist :properties ,pl-prop))
+       ,rs_b)
       (,(kbd "K")
        horizontal
        (0.4 vertical
@@ -225,7 +250,15 @@ This hook is called as the first thing when ampc is started."
             (1.0 vertical
                  (0.8 playlist :properties ,pl-prop)
                  (1.0 playlists)))
-       ,rs)
+       ,rs_a)
+      (,(kbd "<")
+       horizontal
+       (0.4 vertical
+            (6 status)
+            (1.0 vertical
+                 (0.8 playlist :properties ,pl-prop)
+                 (1.0 playlists)))
+       ,rs_b)
       (,(kbd "L")
        outputs :properties (("outputname" :title "Name")
                             ("outputenabled" :title "Enabled" :offset 10))))))

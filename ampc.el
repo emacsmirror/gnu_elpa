@@ -157,6 +157,7 @@
 ;; point to the current song.
 ;;
 ;; `T' (ampc-trigger-update): Trigger a database update.
+;; `Z' (ampc-suspend): Suspend ampc.
 ;; `q' (ampc-quit): Quit ampc.
 ;;
 ;; The keymap of ampc is designed to fit the QWERTY United States keyboard
@@ -169,6 +170,7 @@
 ;;         (from to)
 ;;         (define-key ampc-mode-map to (lookup-key ampc-mode-map from))
 ;;         (define-key ampc-mode-map from nil)))
+;;   (substitute-ampc-key (kbd "z") (kbd "Z"))
 ;;   (substitute-ampc-key (kbd "y") (kbd "z"))
 ;;   (substitute-ampc-key (kbd "M-y") (kbd "M-z"))
 ;;   (substitute-ampc-key (kbd "<") (kbd ";")))
@@ -207,6 +209,9 @@ This hook is called as the first thing when ampc is started."
   :type 'hook)
 (defcustom ampc-connected-hook nil
   "A hook called after ampc connected to MPD."
+  :type 'hook)
+(defcustom ampc-suspend-hook nil
+  "A hook called when suspending ampc."
   :type 'hook)
 (defcustom ampc-quit-hook nil
   "A hook called when exiting ampc."
@@ -278,6 +283,8 @@ This hook is called as the first thing when ampc is started."
                             ("outputenabled" :title "Enabled" :offset 10))))))
 
 (defvar ampc-connection nil)
+(defvar ampc-host nil)
+(defvar ampc-port nil)
 (defvar ampc-outstanding-commands nil)
 
 (defvar ampc-working-timer nil)
@@ -317,6 +324,7 @@ This hook is called as the first thing when ampc is started."
     (define-key map (kbd "f") 'ampc-toggle-consume)
     (define-key map (kbd "P") 'ampc-goto-current-song)
     (define-key map (kbd "q") 'ampc-quit)
+    (define-key map (kbd "z") 'ampc-suspend)
     (define-key map (kbd "T") 'ampc-trigger-update)
     (loop for view in ampc-views
           do (define-key map (car view)
@@ -1254,7 +1262,7 @@ This hook is called as the first thing when ampc is started."
 (defun ampc-windows (&optional unordered)
   (loop for f being the frame
         thereis (loop for w being the windows of f
-                      when (eq (window-buffer w) (car ampc-buffers))
+                      when (eq (window-buffer w) (car-safe ampc-buffers))
                       return (loop for b in (if unordered
                                                 ampc-buffers-unordered
                                               ampc-buffers)
@@ -1634,6 +1642,34 @@ ARG defaults to 1."
     (ampc-align-point)
     nil))
 
+(defun* ampc-suspend (&optional (run-hook t))
+  "Suspend ampc.
+This function resets the window configuration, but does not close
+the connection to mpd or destroy the internal cache of ampc.
+This means subsequent startups of ampc will be faster."
+  (interactive)
+  (when ampc-working-timer
+    (cancel-timer ampc-working-timer))
+  (loop with found-window
+        for w in (nreverse (ampc-windows t))
+        when (window-live-p w)
+        when found-window
+        do (delete-window w)
+        else
+        do (setf found-window t
+                 (window-dedicated-p w) nil)
+        end
+        end)
+  (loop for b in ampc-all-buffers
+        when (buffer-live-p b)
+        do (kill-buffer b)
+        end)
+  (setf ampc-buffers nil
+        ampc-all-buffers nil
+        ampc-working-timer nil)
+  (when run-hook
+    (run-hooks 'ampc-suspend-hook)))
+
 (defun ampc-quit (&optional arg)
   "Quit ampc.
 If called with a prefix argument ARG, kill the mpd instance that
@@ -1651,25 +1687,9 @@ ampc is connected to."
     (ampc-send-command-impl (if arg "kill" "close")))
   (when ampc-working-timer
     (cancel-timer ampc-working-timer))
-  (loop with found-window
-        for w in (nreverse (ampc-windows t))
-        when (window-live-p w)
-        when found-window
-        do (delete-window w)
-        else
-        do (setf found-window t
-                 (window-dedicated-p w) nil)
-        end
-        end)
-  (loop for b in ampc-all-buffers
-        when (buffer-live-p b)
-        do (kill-buffer b)
-        end)
+  (ampc-suspend nil)
   (setf ampc-connection nil
-        ampc-buffers nil
-        ampc-all-buffers nil
         ampc-internal-db nil
-        ampc-working-timer nil
         ampc-outstanding-commands nil
         ampc-status nil)
   (run-hooks 'ampc-quit-hook))
@@ -1682,30 +1702,37 @@ This function is the main entry point for ampc.
 Non-interactively, HOST and PORT specify the MPD instance to
 connect to.  The values default to localhost:6600."
   (interactive "MHost (localhost): \nMPort (6600): ")
-  (when ampc-connection
-    (ampc-quit))
   (run-hooks 'ampc-before-startup-hook)
-  (when (equal host "")
-    (setf host nil))
-  (when (equal port "")
-    (setf port nil))
-  (let ((connection (open-network-stream "ampc"
-                                         (with-current-buffer
-                                             (get-buffer-create " *mpc*")
-                                           (delete-region (point-min)
-                                                          (point-max))
-                                           (current-buffer))
-                                         (or host "localhost")
-                                         (or port 6600)
-                                         :type 'plain :return-list t)))
-    (unless (car connection)
-      (error "Failed connecting to server: %s"
-             (plist-get ampc-connection :error)))
-    (setf ampc-connection (car connection)))
-  (setf ampc-outstanding-commands '((setup)))
-  (set-process-coding-system ampc-connection 'utf-8-unix 'utf-8-unix)
-  (set-process-filter ampc-connection 'ampc-filter)
-  (set-process-query-on-exit-flag ampc-connection nil)
+  (when (or (not host) (equal host ""))
+    (setf host "localhost"))
+  (when (or (not port) (equal port ""))
+    (setf port 6600))
+  (when (and ampc-connection
+             (or (not (equal host ampc-host))
+                 (not (equal port ampc-port))
+                 (not (member (process-status ampc-connection)
+                              '(open run)))))
+    (ampc-quit))
+  (unless ampc-connection
+    (let ((connection (open-network-stream "ampc"
+                                           (with-current-buffer
+                                               (get-buffer-create " *mpc*")
+                                             (delete-region (point-min)
+                                                            (point-max))
+                                             (current-buffer))
+                                           host
+                                           port
+                                           :type 'plain :return-list t)))
+      (unless (car connection)
+        (error "Failed connecting to server: %s"
+               (plist-get ampc-connection :error)))
+      (setf ampc-connection (car connection)
+            ampc-host host
+            ampc-port port))
+    (set-process-coding-system ampc-connection 'utf-8-unix 'utf-8-unix)
+    (set-process-filter ampc-connection 'ampc-filter)
+    (set-process-query-on-exit-flag ampc-connection nil)
+    (setf ampc-outstanding-commands '((setup))))
   (ampc-configure-frame (cdar ampc-views))
   (run-hooks 'ampc-connected-hook)
   (ampc-filter (process-buffer ampc-connection) nil))

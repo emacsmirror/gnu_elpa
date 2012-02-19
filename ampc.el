@@ -293,7 +293,6 @@ This hook is called as the first thing when ampc is started."
 (make-variable-buffer-local 'ampc-dirty)
 
 (defvar ampc-internal-db nil)
-(defvar ampc-internal-db-format nil)
 (defvar ampc-status nil)
 
 ;;; *** mode maps
@@ -764,7 +763,7 @@ This hook is called as the first thing when ampc is started."
                  (playlist
                   (ampc-update-playlist))
                  ((tag song)
-                  (if (equal ampc-internal-db-format (ampc-tags))
+                  (if (assoc (ampc-tags) ampc-internal-db)
                       (ampc-fill-tag-song)
                     (ampc-send-command 'listallinfo)))
                  (status
@@ -1066,7 +1065,7 @@ This hook is called as the first thing when ampc is started."
 
 (defun ampc-fill-tag-song ()
   (loop
-   with trees = `(,ampc-internal-db)
+   with trees = `(,(cdr (assoc (ampc-tags) ampc-internal-db)))
    for w in (ampc-windows)
    do
    (ampc-with-buffer w
@@ -1094,7 +1093,7 @@ This hook is called as the first thing when ampc is started."
         when (string-match "^changed: \\(.*\\)$" subsystem)
         do (case (intern (match-string 1 subsystem))
              (database
-              (setf ampc-internal-db-format nil)
+              (setf ampc-internal-db nil)
               (ampc-set-dirty 'tag t)
               (ampc-set-dirty 'song t))
              (output
@@ -1125,8 +1124,7 @@ This hook is called as the first thing when ampc is started."
                    "ampc supports MPD 0.15.0 and later"))))
 
 (defun ampc-fill-internal-db ()
-  (setf ampc-internal-db (ampc-create-tree)
-        ampc-internal-db-format (ampc-tags))
+  (push `(,(ampc-tags) . ,(ampc-create-tree)) ampc-internal-db)
   (loop while (search-forward-regexp "^file: " nil t)
         do (save-restriction
              (ampc-narrow-entry)
@@ -1145,7 +1143,7 @@ This hook is called as the first thing when ampc is started."
 (defun ampc-fill-internal-db-entry ()
   (loop
    with data-buffer = (current-buffer)
-   with tree = `(nil . ,ampc-internal-db)
+   with tree = `(nil . ,(cdr (assoc (ampc-tags) ampc-internal-db)))
    for w in (ampc-windows)
    do
    (with-current-buffer (window-buffer w)
@@ -1670,7 +1668,7 @@ ampc is connected to."
   (setf ampc-connection nil
         ampc-buffers nil
         ampc-all-buffers nil
-        ampc-internal-db-format nil
+        ampc-internal-db nil
         ampc-working-timer nil
         ampc-outstanding-commands nil
         ampc-status nil)

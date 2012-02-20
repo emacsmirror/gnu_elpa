@@ -115,7 +115,7 @@
 ;; stored playlists is the only view in ampc that may have only one marked
 ;; entry.
 ;;
-;; Again, the key `;' may be used to setup a playlist view with a different
+;; Again, the key `<' may be used to setup a playlist view with a different
 ;; order of tag browsers.
 
 ;;; *** outputs view
@@ -124,7 +124,7 @@
 ;; (ampc-toggle-output-enabled).
 
 ;;; *** global keys
-;; Aside from `J', `M', `K', `;' and `L', which may be used to select different
+;; Aside from `J', `M', `K', `<' and `L', which may be used to select different
 ;; views, ampc defines the following global keys, which may be used in every
 ;; window associated with ampc:
 ;;
@@ -163,7 +163,7 @@
 ;; The keymap of ampc is designed to fit the QWERTY United States keyboard
 ;; layout.  If you use another keyboard layout, feel free to modify
 ;; ampc-mode-map.  For example, I use a regular QWERTZ German keyboard (layout),
-;; so I modify ampc-mode-map in my init.el like this:
+;; so I modify `ampc-mode-map' in my init.el like this:
 ;;
 ;; (require 'ampc)
 ;; (flet ((substitute-ampc-key

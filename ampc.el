@@ -174,6 +174,12 @@
 ;;   (substitute-ampc-key (kbd "y") (kbd "z"))
 ;;   (substitute-ampc-key (kbd "M-y") (kbd "M-z"))
 ;;   (substitute-ampc-key (kbd "<") (kbd ";")))
+;;
+;; If ampc is suspended, you can still use every interactive command that does
+;; not directly operate on or with the user interace of ampc.  For example it is
+;; perfectly fine to call `ampc-increase-volume' or `ampc-toggle-play' via M-x
+;; RET.  To display the information that is displayed by the status window of
+;; ampc, call `ampc-status'.
 
 ;;; Code:
 ;;; * code
@@ -539,6 +545,14 @@ This hook is called as the first thing when ampc is started."
               (2 'ampc-current-song-marked-face)))))
 
 ;;; *** internal functions
+(defun ampc-on-p ()
+  (and ampc-connection
+       (member (process-status ampc-connection) '(open run))))
+
+(defun ampc-in-ampc-p ()
+  (when (ampc-on-p)
+    ampc-type))
+
 (defun ampc-add-impl (&optional data)
   (cond ((null data)
          (loop for d in (get-text-property (line-end-position) 'data)
@@ -767,25 +781,28 @@ This hook is called as the first thing when ampc is started."
                  (ampc-set-dirty dirty))))))
 
 (defun ampc-update ()
-  (loop for b in ampc-buffers
-        do (with-current-buffer b
-             (when ampc-dirty
-               (ecase (car ampc-type)
-                 (outputs
-                  (ampc-send-command 'outputs))
-                 (playlist
-                  (ampc-update-playlist))
-                 ((tag song)
-                  (if (assoc (ampc-tags) ampc-internal-db)
-                      (ampc-fill-tag-song)
-                    (ampc-send-command 'listallinfo)))
-                 (status
-                  (ampc-send-command 'status)
-                  (ampc-send-command 'currentsong))
-                 (playlists
-                  (ampc-send-command 'listplaylists))
-                 (current-playlist
-                  (ampc-send-command 'playlistinfo)))))))
+  (if ampc-status
+      (loop for b in ampc-buffers
+            do (with-current-buffer b
+                 (when ampc-dirty
+                   (ecase (car ampc-type)
+                     (outputs
+                      (ampc-send-command 'outputs))
+                     (playlist
+                      (ampc-update-playlist))
+                     ((tag song)
+                      (if (assoc (ampc-tags) ampc-internal-db)
+                          (ampc-fill-tag-song)
+                        (ampc-send-command 'listallinfo)))
+                     (status
+                      (ampc-send-command 'status)
+                      (ampc-send-command 'currentsong))
+                     (playlists
+                      (ampc-send-command 'listplaylists))
+                     (current-playlist
+                      (ampc-send-command 'playlistinfo))))))
+    (ampc-send-command 'status)
+    (ampc-send-command 'currentsong)))
 
 (defun ampc-update-playlist ()
   (ampc-with-buffer 'playlists
@@ -1042,39 +1059,9 @@ This hook is called as the first thing when ampc is started."
   (ampc-with-buffer 'status
     (delete-region (point-min) (point-max))
     (funcall (or (plist-get (cadr ampc-type) :filler)
-                 'ampc-fill-status-default))
+                 (lambda ()
+                   (insert (ampc-status) "\n"))))
     (ampc-set-dirty nil)))
-
-(defun ampc-fill-status-default ()
-  (let ((flags (mapconcat
-                'identity
-                (loop for (f . n) in '(("repeat" . "Repeat")
-                                       ("random" . "Random")
-                                       ("consume" . "Consume"))
-                      when (equal (cdr (assoc f ampc-status)) "1")
-                      collect n
-                      end)
-                "|"))
-        (state (cdr (assoc "state" ampc-status))))
-    (insert (concat "State:     " state
-                    (when ampc-yield
-                      (concat (make-string (- 10 (length state)) ? )
-                              (ecase (% ampc-yield 4)
-                                (0 "|")
-                                (1 "/")
-                                (2 "-")
-                                (3 "\\"))))
-                    "\n"
-                    (when (equal state "play")
-                      (concat "Playing:   "
-                              (cdr (assoc "Artist" ampc-status))
-                              " - "
-                              (cdr (assoc "Title" ampc-status))
-                              "\n"))
-                    "Volume:    " (cdr (assoc "volume" ampc-status)) "\n"
-                    "Crossfade: " (cdr (assoc "xfade" ampc-status)) "\n"
-                    (unless (equal flags "")
-                      (concat flags "\n"))))))
 
 (defun ampc-fill-tag-song ()
   (loop
@@ -1375,6 +1362,7 @@ This hook is called as the first thing when ampc is started."
 (defun* ampc-unmark-all (&aux buffer-read-only)
   "Remove all marks."
   (interactive)
+  (assert (ampc-in-ampc-p))
   (save-excursion
     (goto-char (point-min))
     (loop while (search-forward-regexp "^\\* " nil t)
@@ -1384,11 +1372,13 @@ This hook is called as the first thing when ampc is started."
 (defun ampc-trigger-update ()
   "Trigger a database update."
   (interactive)
+  (assert (ampc-on-p))
   (ampc-send-command 'update))
 
 (defun* ampc-toggle-marks (&aux buffer-read-only)
   "Toggle marks.  Marked entries become unmarked, and vice versa."
   (interactive)
+  (assert (ampc-in-ampc-p))
   (save-excursion
     (loop for (a . b) in '(("* " . "T ")
                            ("  " . "* ")
@@ -1405,6 +1395,7 @@ This hook is called as the first thing when ampc is started."
 With optional prefix ARG, move the next ARG entries after point
 rather than the selection."
   (interactive "P")
+  (assert (ampc-in-ampc-p))
   (ampc-move t arg))
 
 (defun ampc-down (&optional arg)
@@ -1412,42 +1403,49 @@ rather than the selection."
 With optional prefix ARG, move the next ARG entries after point
 rather than the selection."
   (interactive "P")
+  (assert (ampc-in-ampc-p))
   (ampc-move nil arg))
 
 (defun ampc-mark (&optional arg)
   "Mark the next ARG'th entries.
 ARG defaults to 1."
   (interactive "p")
+  (assert (ampc-in-ampc-p))
   (ampc-mark-impl t arg))
 
 (defun ampc-unmark (&optional arg)
   "Unmark the next ARG'th entries.
 ARG defaults to 1."
   (interactive "p")
+  (assert (ampc-in-ampc-p))
   (ampc-mark-impl nil arg))
 
 (defun ampc-increase-volume (&optional arg)
   "Decrease volume.
 With prefix argument ARG, set volume to ARG percent."
   (interactive "P")
+  (assert (ampc-on-p))
   (ampc-set-volume arg '+))
 
 (defun ampc-decrease-volume (&optional arg)
   "Decrease volume.
 With prefix argument ARG, set volume to ARG percent."
   (interactive "P")
+  (assert (ampc-on-p))
   (ampc-set-volume arg '-))
 
 (defun ampc-increase-crossfade (&optional arg)
   "Increase crossfade.
 With prefix argument ARG, set crossfading to ARG seconds."
   (interactive "P")
+  (assert (ampc-on-p))
   (ampc-set-crossfade arg '+))
 
 (defun ampc-decrease-crossfade (&optional arg)
   "Decrease crossfade.
 With prefix argument ARG, set crossfading to ARG seconds."
   (interactive "P")
+  (assert (ampc-on-p))
   (ampc-set-crossfade arg '-))
 
 (defun ampc-toggle-repeat (&optional arg)
@@ -1455,6 +1453,7 @@ With prefix argument ARG, set crossfading to ARG seconds."
 With prefix argument ARG, enable repeating if ARG is positive,
 otherwise disable it."
   (interactive "P")
+  (assert (ampc-on-p))
   (ampc-toggle-state 'repeat arg))
 
 (defun ampc-toggle-consume (&optional arg)
@@ -1464,6 +1463,7 @@ otherwise disable it.
 
 When consume is activated, each song played is removed from the playlist."
   (interactive "P")
+  (assert (ampc-on-p))
   (ampc-toggle-state 'consume arg))
 
 (defun ampc-toggle-random (&optional arg)
@@ -1476,6 +1476,7 @@ otherwise disable it."
 (defun ampc-play-this ()
   "Play selected song."
   (interactive)
+  (assert (ampc-in-ampc-p))
   (unless (eobp)
     (ampc-send-command 'play nil (1- (line-number-at-pos)))
     (ampc-send-command 'pause nil 0)))
@@ -1489,6 +1490,7 @@ start at the beginning of the playlist.
 
 If ARG is 4, stop player rather than pause if applicable."
   (interactive "P")
+  (assert (ampc-on-p))
   (when state
     (when arg
       (setf arg (prefix-numeric-value arg)))
@@ -1514,18 +1516,21 @@ If ARG is 4, stop player rather than pause if applicable."
   "Play next song.
 With prefix argument ARG, skip ARG songs."
   (interactive "p")
+  (assert (ampc-on-p))
   (ampc-skip (or arg 1)))
 
 (defun ampc-previous (&optional arg)
   "Play previous song.
 With prefix argument ARG, skip ARG songs."
   (interactive "p")
+  (assert (ampc-on-p))
   (ampc-skip (- (or arg 1))))
 
 (defun ampc-rename-playlist (new-name)
   "Rename selected playlist to NEW-NAME.
 Interactively, read NEW-NAME from the minibuffer."
   (interactive "MNew name: ")
+  (assert (ampc-in-ampc-p))
   (if (ampc-playlist)
       (ampc-send-command 'rename nil (ampc-playlist) new-name)
     (error "No playlist selected")))
@@ -1533,6 +1538,7 @@ Interactively, read NEW-NAME from the minibuffer."
 (defun ampc-load ()
   "Load selected playlist in the current playlist."
   (interactive)
+  (assert (ampc-in-ampc-p))
   (if (ampc-playlist)
       (ampc-send-command 'load nil (ampc-playlist))
     (error "No playlist selected")))
@@ -1541,6 +1547,7 @@ Interactively, read NEW-NAME from the minibuffer."
   "Toggle the next ARG outputs.
 If ARG is omitted, use the selected entries."
   (interactive "P")
+  (assert (ampc-in-ampc-p))
   (ampc-with-selection arg
     (let ((data (get-text-property (point) 'data)))
       (ampc-send-command (if (equal (cdr (assoc "outputenabled" data)) "1")
@@ -1553,6 +1560,7 @@ If ARG is omitted, use the selected entries."
   "Delete the next ARG songs from the playlist.
 If ARG is omitted, use the selected entries."
   (interactive "P")
+  (assert (ampc-in-ampc-p))
   (let ((point (point)))
     (ampc-with-selection arg
       (let ((val (1- (- (line-number-at-pos) index))))
@@ -1565,6 +1573,7 @@ If ARG is omitted, use the selected entries."
 (defun ampc-shuffle ()
   "Shuffle playlist."
   (interactive)
+  (assert (ampc-on-p))
   (if (not (ampc-playlist))
       (ampc-send-command 'shuffle)
     (ampc-with-buffer 'playlist
@@ -1586,6 +1595,7 @@ If ARG is omitted, use the selected entries."
 (defun ampc-clear ()
   "Clear playlist."
   (interactive)
+  (assert (ampc-on-p))
   (if (ampc-playlist)
       (ampc-send-command 'playlistclear nil (ampc-playlist))
     (ampc-send-command 'clear)))
@@ -1595,12 +1605,51 @@ If ARG is omitted, use the selected entries."
 to the playlist.
 If ARG is omitted, use the selected entries in the current buffer."
   (interactive "P")
+  (assert (ampc-in-ampc-p))
   (ampc-with-selection arg
     (ampc-add-impl)))
+
+(defun ampc-status ()
+  "Display the information that is displayed in the status window."
+  (interactive)
+  (assert (ampc-on-p))
+  (let* ((flags (mapconcat
+                'identity
+                (loop for (f . n) in '(("repeat" . "Repeat")
+                                       ("random" . "Random")
+                                       ("consume" . "Consume"))
+                      when (equal (cdr (assoc f ampc-status)) "1")
+                      collect n
+                      end)
+                "|"))
+         (state (cdr (assoc "state" ampc-status)))
+         (status (concat "State:     " state
+                         (when ampc-yield
+                           (concat (make-string (- 10 (length state)) ? )
+                                   (ecase (% ampc-yield 4)
+                                     (0 "|")
+                                     (1 "/")
+                                     (2 "-")
+                                     (3 "\\"))))
+                         "\n"
+                         (when (equal state "play")
+                           (concat "Playing:   "
+                                   (cdr (assoc "Artist" ampc-status))
+                                   " - "
+                                   (cdr (assoc "Title" ampc-status))
+                                   "\n"))
+                         "Volume:    " (cdr (assoc "volume" ampc-status)) "\n"
+                         "Crossfade: " (cdr (assoc "xfade" ampc-status))
+                         (unless (equal flags "")
+                           (concat "\n" flags)))))
+    (when (called-interactively-p 'interactive)
+      (message "%s" status))
+    status))
 
 (defun ampc-delete-playlist ()
   "Delete selected playlist."
   (interactive)
+  (assert (ampc-in-ampc-p))
   (ampc-with-selection nil
     (let ((name (get-text-property (point) 'data)))
       (when (y-or-n-p (concat "Delete playlist " name "?"))
@@ -1610,12 +1659,14 @@ If ARG is omitted, use the selected entries in the current buffer."
   "Store current playlist as NAME.
 Interactively, read NAME from the minibuffer."
   (interactive "MSave playlist as: ")
+  (assert (ampc-in-ampc-p))
   (ampc-send-command 'save nil name))
 
 (defun* ampc-goto-current-song
     (&aux (song (cdr-safe (assoc "song" ampc-status))))
   "Select the current playlist window and move point to the current song."
   (interactive)
+  (assert (ampc-in-ampc-p))
   (when song
     (ampc-with-buffer 'current-playlist
       no-se
@@ -1628,12 +1679,14 @@ Interactively, read NAME from the minibuffer."
   "Go to previous ARG'th entry in the current buffer.
 ARG defaults to 1."
   (interactive "p")
+  (assert (ampc-in-ampc-p))
   (ampc-next-line (* (or arg 1) -1)))
 
 (defun ampc-next-line (&optional arg)
   "Go to next ARG'th entry in the current buffer.
 ARG defaults to 1."
   (interactive "p")
+  (assert (ampc-in-ampc-p))
   (forward-line arg)
   (if (eobp)
       (progn (forward-line -1)
@@ -1675,8 +1728,7 @@ This means subsequent startups of ampc will be faster."
 If called with a prefix argument ARG, kill the mpd instance that
 ampc is connected to."
   (interactive "P")
-  (when (and ampc-connection (member (process-status ampc-connection)
-                                     '(open run)))
+  (when (ampc-on-p)
     (set-process-filter ampc-connection nil)
     (when (equal (car-safe ampc-outstanding-commands) '(idle))
       (ampc-send-command-impl "noidle")
@@ -1710,8 +1762,7 @@ connect to.  The values default to localhost:6600."
   (when (and ampc-connection
              (or (not (equal host ampc-host))
                  (not (equal port ampc-port))
-                 (not (member (process-status ampc-connection)
-                              '(open run)))))
+                 (not (ampc-on-p))))
     (ampc-quit))
   (unless ampc-connection
     (let ((connection (open-network-stream "ampc"

@@ -715,6 +715,11 @@ This hook is called as the first thing when ampc is started."
            end)
      (ampc-fill-tag-song))))
 
+(defun ampc-align-point ()
+  (unless (eobp)
+    (move-beginning-of-line nil)
+    (forward-char 2)))
+
 (defun ampc-pad (alist)
   (loop for (offset . data) in alist
         with first = t
@@ -1556,11 +1561,6 @@ If ARG is omitted, use the selected entries."
           (ampc-send-command 'delete t val))))
     (goto-char point)
     (ampc-align-point)))
-
-(defun ampc-align-point ()
-  (unless (eobp)
-    (move-beginning-of-line nil)
-    (forward-char 2)))
 
 (defun ampc-shuffle ()
   "Shuffle playlist."

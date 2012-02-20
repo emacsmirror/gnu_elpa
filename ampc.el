@@ -1,6 +1,6 @@
 ;;; ampc.el --- Asynchronous Music Player Controller
 
-;; Copyright (C) 2011-2012  Free Software Foundation, Inc.
+;; Copyright (C) 2011-2012 Free Software Foundation, Inc.
 
 ;; Author: Christopher Schmidt <christopher@ch.ristopher.com>
 ;; Maintainer: Christopher Schmidt <christopher@ch.ristopher.com>

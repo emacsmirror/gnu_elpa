@@ -26,7 +26,7 @@
 
 ;;; Commentary:
 ;;; * description
-;; ampc is a controller for the Music Player Daemon.
+;; ampc is a controller for the Music Player Daemon (http://mpd.wikia.com/).
 
 ;;; ** installation
 ;; If you use GNU ELPA, install ampc via M-x package-list-packages RET or

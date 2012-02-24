@@ -1634,9 +1634,11 @@ If ARG is omitted, use the selected entries in the current buffer."
                          "\n"
                          (when (equal state "play")
                            (concat "Playing:   "
-                                   (cdr (assoc "Artist" ampc-status))
+                                   (or (cdr-safe (assoc "Artist" ampc-status))
+                                       "[Not Specified]")
                                    " - "
-                                   (cdr (assoc "Title" ampc-status))
+                                   (or (cdr-safe (assoc "Title" ampc-status))
+                                       "[Not Specified]")
                                    "\n"))
                          "Volume:    " (cdr (assoc "volume" ampc-status)) "\n"
                          "Crossfade: " (cdr (assoc "xfade" ampc-status))

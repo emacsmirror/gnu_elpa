@@ -201,26 +201,58 @@
 (defcustom ampc-debug nil
   "Non-nil means log communication between ampc and MPD."
   :type 'boolean)
+
 (defcustom ampc-use-full-frame nil
   "If non-nil, ampc will use the entire Emacs screen."
   :type 'boolean)
+
 (defcustom ampc-truncate-lines t
   "If non-nil, truncate lines in ampc buffers."
   :type 'boolean)
 
+(defcustom ampc-status-tags nil
+  "List of additional tags of the current song that are added to
+the internal status of ampc and thus are passed to the functions
+in `ampc-status-changed-hook'.  Each element may be a string that
+specifies a tag that is returned by MPD's `currentsong'
+command.")
+
 ;;; **** hooks
 (defcustom ampc-before-startup-hook nil
-  "A hook called before startup.
+  "A hook run before startup.
 This hook is called as the first thing when ampc is started."
   :type 'hook)
+
 (defcustom ampc-connected-hook nil
-  "A hook called after ampc connected to MPD."
+  "A hook run after ampc connected to MPD."
   :type 'hook)
+
 (defcustom ampc-suspend-hook nil
-  "A hook called when suspending ampc."
+  "A hook run when suspending ampc."
   :type 'hook)
+
 (defcustom ampc-quit-hook nil
-  "A hook called when exiting ampc."
+  "A hook run when exiting ampc."
+  :type 'hook)
+
+(defcustom ampc-status-changed-hook nil
+  "A hook run whenever the status of the daemon (that is volatile
+properties such as volume or current song) changes.  The hook is
+run with one arg, an alist that contains the new status.  The car
+of each entry is a symbol, the cdr is a string.  Valid keys are:
+
+    volume
+    repeat
+    random
+    consume
+    xfade
+    state
+    song
+    Artist
+    Title
+
+and the keys in `ampc-status-tags'.  Not all keys may be present
+all the time!"
   :type 'hook)
 
 ;;; *** faces
@@ -1059,8 +1091,9 @@ This hook is called as the first thing when ampc is started."
   (ampc-with-buffer 'status
     (delete-region (point-min) (point-max))
     (funcall (or (plist-get (cadr ampc-type) :filler)
-                 (lambda ()
-                   (insert (ampc-status) "\n"))))
+                 (lambda (_)
+                   (insert (ampc-status) "\n")))
+             ampc-status)
     (ampc-set-dirty nil)))
 
 (defun ampc-fill-tag-song ()
@@ -1173,12 +1206,13 @@ This hook is called as the first thing when ampc is started."
         (return))))))
 
 (defun ampc-handle-current-song ()
-  (loop for k in '("Artist" "Title")
+  (loop for k in (append ampc-status-tags '("Artist" "Title"))
         for s = (ampc-extract k)
         when s
         do (push `(,(intern k) . ,s) ampc-status)
         end)
-  (ampc-fill-status))
+  (ampc-fill-status)
+  (run-hook-with-args ampc-status-changed-hook ampc-status))
 
 (defun ampc-handle-status ()
   (loop for k in '("volume" "repeat" "random" "consume" "xfade" "state" "song")

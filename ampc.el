@@ -392,10 +392,10 @@ This hook is called as the first thing when ampc is started."
   '("ampc"
     ["Play" ampc-toggle-play
      :visible (and ampc-status
-                   (not (equal (cdr (assoc "state" ampc-status))"play")))]
+                   (not (equal (cdr (assq 'state ampc-status)) "play")))]
     ["Pause" ampc-toggle-play
      :visible (and ampc-status
-                   (equal (cdr (assoc "state" ampc-status)) "play"))]
+                   (equal (cdr (assq 'state ampc-status)) "play"))]
     "--"
     ["Clear playlist" ampc-clear]
     ["Shuffle playlist" ampc-shuffle]
@@ -567,12 +567,12 @@ This hook is called as the first thing when ampc is started."
          (loop for d in data
                do (ampc-add-impl (cdr (assoc "file" d)))))))
 
-(defun* ampc-skip (N &aux (song (cdr-safe (assoc "song" ampc-status))))
+(defun* ampc-skip (N &aux (song (cdr-safe (assq 'song ampc-status))))
   (when song
     (ampc-send-command 'play nil (max 0 (+ (string-to-number song) N)))))
 
 (defun* ampc-find-current-song
-    (limit &aux (point (point)) (song (cdr-safe (assoc "song" ampc-status))))
+    (limit &aux (point (point)) (song (cdr-safe (assq 'song ampc-status))))
   (when (and song
              (<= (1- (line-number-at-pos (point)))
                  (setf song (string-to-number song)))
@@ -591,7 +591,7 @@ This hook is called as the first thing when ampc is started."
      (or (and arg (prefix-numeric-value arg))
          (max (min (funcall func
                             (string-to-number
-                             (cdr (assoc "volume" ampc-status)))
+                             (cdr (assq 'volume ampc-status)))
                             5)
                    100)
               0)))))
@@ -603,7 +603,7 @@ This hook is called as the first thing when ampc is started."
      nil
      (or (and arg (prefix-numeric-value arg))
          (max (funcall func
-                       (string-to-number (cdr (assoc "xfade" ampc-status)))
+                       (string-to-number (cdr (assq 'xfade ampc-status)))
                        5)
               0)))))
 
@@ -681,7 +681,7 @@ This hook is called as the first thing when ampc is started."
      state
      nil
      (cond ((null arg)
-            (if (equal (cdr (assoc (symbol-name state) ampc-status)) "1")
+            (if (equal (cdr (assq state ampc-status)) "1")
                 0
               1))
            ((> (prefix-numeric-value arg) 0) 1)
@@ -1176,7 +1176,7 @@ This hook is called as the first thing when ampc is started."
   (loop for k in '("Artist" "Title")
         for s = (ampc-extract k)
         when s
-        do (push `(,k . ,s) ampc-status)
+        do (push `(,(intern k) . ,s) ampc-status)
         end)
   (ampc-fill-status))
 
@@ -1184,7 +1184,7 @@ This hook is called as the first thing when ampc is started."
   (loop for k in '("volume" "repeat" "random" "consume" "xfade" "state" "song")
         for v = (ampc-extract k)
         when v
-        do (push `(,k . ,v) ampc-status)
+        do (push `(,(intern k) . ,v) ampc-status)
         end)
   (ampc-with-buffer 'current-playlist
     (when ampc-highlight-current-song-mode
@@ -1482,7 +1482,7 @@ otherwise disable it."
     (ampc-send-command 'pause nil 0)))
 
 (defun* ampc-toggle-play
-    (&optional arg &aux (state (cdr-safe (assoc "state" ampc-status))))
+    (&optional arg &aux (state (cdr-safe (assq 'state ampc-status))))
   "Toggle play state.
 If mpd does not play a song already, start playing the song at
 point if the current buffer is the playlist buffer, otherwise
@@ -1615,14 +1615,14 @@ If ARG is omitted, use the selected entries in the current buffer."
   (assert (ampc-on-p))
   (let* ((flags (mapconcat
                 'identity
-                (loop for (f . n) in '(("repeat" . "Repeat")
-                                       ("random" . "Random")
-                                       ("consume" . "Consume"))
-                      when (equal (cdr (assoc f ampc-status)) "1")
+                (loop for (f . n) in '((repeat . "Repeat")
+                                       (random . "Random")
+                                       (consume . "Consume"))
+                      when (equal (cdr (assq f ampc-status)) "1")
                       collect n
                       end)
                 "|"))
-         (state (cdr (assoc "state" ampc-status)))
+         (state (cdr (assq 'state ampc-status)))
          (status (concat "State:     " state
                          (when ampc-yield
                            (concat (make-string (- 10 (length state)) ? )
@@ -1634,14 +1634,14 @@ If ARG is omitted, use the selected entries in the current buffer."
                          "\n"
                          (when (equal state "play")
                            (concat "Playing:   "
-                                   (or (cdr-safe (assoc "Artist" ampc-status))
+                                   (or (cdr-safe (assq 'Artist ampc-status))
                                        "[Not Specified]")
                                    " - "
-                                   (or (cdr-safe (assoc "Title" ampc-status))
+                                   (or (cdr-safe (assq 'Title ampc-status))
                                        "[Not Specified]")
                                    "\n"))
-                         "Volume:    " (cdr (assoc "volume" ampc-status)) "\n"
-                         "Crossfade: " (cdr (assoc "xfade" ampc-status))
+                         "Volume:    " (cdr (assq 'volume ampc-status)) "\n"
+                         "Crossfade: " (cdr (assq 'xfade ampc-status))
                          (unless (equal flags "")
                            (concat "\n" flags)))))
     (when (called-interactively-p 'interactive)
@@ -1665,7 +1665,7 @@ Interactively, read NAME from the minibuffer."
   (ampc-send-command 'save nil name))
 
 (defun* ampc-goto-current-song
-    (&aux (song (cdr-safe (assoc "song" ampc-status))))
+    (&aux (song (cdr-safe (assq 'song ampc-status))))
   "Select the current playlist window and move point to the current song."
   (interactive)
   (assert (ampc-in-ampc-p))

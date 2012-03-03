@@ -1154,7 +1154,8 @@ all the time!"
                  (or (> version-a 0)
                      (>= version-b 15))))
     (error (concat "Your version of MPD is not supported.  "
-                   "ampc supports MPD 0.15.0 and later"))))
+                   "ampc supports MPD (protocol version) 0.15.0 "
+                   "and later"))))
 
 (defun ampc-fill-internal-db ()
   (push `(,(ampc-tags) . ,(ampc-create-tree)) ampc-internal-db)

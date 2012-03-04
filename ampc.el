@@ -1012,7 +1012,8 @@ all the time!"
                                                        :offset)
                                             2)
                                         2)
-                                    . ,(ampc-extract tag))))))
+                                    . ,(or (ampc-extract tag)
+                                           "[Not Specified]"))))))
               (ampc-with-buffer 'playlist
                 (ampc-insert text
                              `(("file" . ,file)
@@ -1065,7 +1066,8 @@ all the time!"
                           collect `(,(- (or (plist-get tag-properties :offset)
                                             2)
                                         2)
-                                    . ,(ampc-extract tag))))))
+                                    . ,(or (ampc-extract tag)
+                                           "[Not Specified]"))))))
               (ampc-with-buffer 'current-playlist
                 (ampc-insert text
                              `(("file" . ,file)

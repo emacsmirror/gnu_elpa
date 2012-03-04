@@ -577,6 +577,9 @@ all the time!"
               (2 'ampc-current-song-marked-face)))))
 
 ;;; *** internal functions
+(defun ampc-quote (string)
+  (concat "\"" (replace-regexp-in-string "\"" "\\\"" string) "\""))
+
 (defun ampc-on-p ()
   (and ampc-connection
        (member (process-status ampc-connection) '(open run))))
@@ -593,8 +596,11 @@ all the time!"
          (avl-tree-mapc (lambda (e) (ampc-add-impl (cdr e))) data))
         ((stringp data)
          (if (ampc-playlist)
-             (ampc-send-command 'playlistadd t (ampc-playlist) data)
-           (ampc-send-command 'add t data)))
+             (ampc-send-command 'playlistadd
+                                t
+                                (ampc-quote (ampc-playlist))
+                                data)
+           (ampc-send-command 'add t (ampc-quote data))))
         (t
          (loop for d in data
                do (ampc-add-impl (cdr (assoc "file" d)))))))
@@ -659,7 +665,7 @@ all the time!"
     (if (ampc-playlist)
         (ampc-send-command 'playlistmove
                            nil
-                           (ampc-playlist)
+                           (ampc-quote (ampc-playlist))
                            line
                            (funcall (if up '1- '1+)
                                     line))
@@ -1575,7 +1581,7 @@ Interactively, read NEW-NAME from the minibuffer."
   (interactive)
   (assert (ampc-in-ampc-p))
   (if (ampc-playlist)
-      (ampc-send-command 'load nil (ampc-playlist))
+      (ampc-send-command 'load nil (ampc-quote (ampc-playlist)))
     (error "No playlist selected")))
 
 (defun ampc-toggle-output-enabled (&optional arg)
@@ -1600,7 +1606,10 @@ If ARG is omitted, use the selected entries."
     (ampc-with-selection arg
       (let ((val (1- (- (line-number-at-pos) index))))
         (if (ampc-playlist)
-            (ampc-send-command 'playlistdelete t (ampc-playlist) val)
+            (ampc-send-command 'playlistdelete
+                               t
+                               (ampc-quote (ampc-playlist))
+                               val)
           (ampc-send-command 'delete t val))))
     (goto-char point)
     (ampc-align-point)))
@@ -1632,7 +1641,7 @@ If ARG is omitted, use the selected entries."
   (interactive)
   (assert (ampc-on-p))
   (if (ampc-playlist)
-      (ampc-send-command 'playlistclear nil (ampc-playlist))
+      (ampc-send-command 'playlistclear nil (ampc-quote (ampc-playlist)))
     (ampc-send-command 'clear)))
 
 (defun ampc-add (&optional arg)
@@ -1690,14 +1699,14 @@ If ARG is omitted, use the selected entries in the current buffer."
   (ampc-with-selection nil
     (let ((name (get-text-property (point) 'data)))
       (when (y-or-n-p (concat "Delete playlist " name "?"))
-        (ampc-send-command 'rm nil name)))))
+        (ampc-send-command 'rm nil (ampc-quote name))))))
 
 (defun ampc-store (name)
   "Store current playlist as NAME.
 Interactively, read NAME from the minibuffer."
   (interactive "MSave playlist as: ")
   (assert (ampc-in-ampc-p))
-  (ampc-send-command 'save nil name))
+  (ampc-send-command 'save nil (ampc-quote name)))
 
 (defun* ampc-goto-current-song
     (&aux (song (cdr-safe (assq 'song ampc-status))))

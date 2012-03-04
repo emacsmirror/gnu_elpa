@@ -43,6 +43,9 @@
 ;;
 ;; (global-set-key (kbd "<f9>") 'ampc)
 
+;; Byte-compile ampc (M-x byte-compile-file RET /path/to/ampc.el RET) to improve
+;; its performance!
+
 ;;; ** usage
 ;; To invoke ampc, call the command `ampc', e.g. via M-x ampc RET.  Once ampc is
 ;; connected to the daemon, it creates its window configuration in the selected

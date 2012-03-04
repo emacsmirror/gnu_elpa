@@ -168,15 +168,15 @@
 ;; ampc-mode-map.  For example, I use a regular QWERTZ German keyboard (layout),
 ;; so I modify `ampc-mode-map' in my init.el like this:
 ;;
-;; (require 'ampc)
-;; (flet ((substitute-ampc-key
-;;         (from to)
-;;         (define-key ampc-mode-map to (lookup-key ampc-mode-map from))
-;;         (define-key ampc-mode-map from nil)))
-;;   (substitute-ampc-key (kbd "z") (kbd "Z"))
-;;   (substitute-ampc-key (kbd "y") (kbd "z"))
-;;   (substitute-ampc-key (kbd "M-y") (kbd "M-z"))
-;;   (substitute-ampc-key (kbd "<") (kbd ";")))
+;; (eval-after-load 'ampc
+;;   '(flet ((substitute-ampc-key
+;;            (from to)
+;;            (define-key ampc-mode-map to (lookup-key ampc-mode-map from))
+;;            (define-key ampc-mode-map from nil)))
+;;      (substitute-ampc-key (kbd "z") (kbd "Z"))
+;;      (substitute-ampc-key (kbd "y") (kbd "z"))
+;;      (substitute-ampc-key (kbd "M-y") (kbd "M-z"))
+;;      (substitute-ampc-key (kbd "<") (kbd ";"))))
 ;;
 ;; If ampc is suspended, you can still use every interactive command that does
 ;; not directly operate on or with the user interace of ampc.  For example it is

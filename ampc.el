@@ -6,7 +6,7 @@
 ;; Maintainer: Christopher Schmidt <christopher@ch.ristopher.com>
 ;; Version: 0.1.1
 ;; Created: 2011-12-06
-;; Keywords: mpc
+;; Keywords: ampc, mpc, mpd
 ;; Compatibility: GNU Emacs: 24.x
 
 ;; This file is part of GNU Emacs.

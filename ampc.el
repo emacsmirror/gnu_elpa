@@ -276,17 +276,17 @@ all the time!"
                                         ("Title" :offset 6)
                                         ("Time" :offset 26))))
          (rs_a `(1.0 vertical
-                   (0.7 horizontal
-                        (0.33 tag :tag "Genre" :id 1)
-                        (0.33 tag :tag "Artist" :id 2)
-                        (1.0 tag :tag "Album" :id 3))
-                   ,songs))
+                     (0.7 horizontal
+                          (0.33 tag :tag "Genre" :id 1)
+                          (0.33 tag :tag "Artist" :id 2)
+                          (1.0 tag :tag "Album" :id 3))
+                     ,songs))
          (rs_b `(1.0 vertical
                      (0.7 horizontal
                           (0.33 tag :tag "Genre" :id 1)
                           (0.33 tag :tag "Album" :id 2)
                           (1.0 tag :tag "Artist" :id 3))
-                   ,songs))
+                     ,songs))
          (pl-prop '(("Title")
                     ("Artist" :offset 20)
                     ("Album" :offset 40)
@@ -1663,14 +1663,14 @@ If ARG is omitted, use the selected entries in the current buffer."
   (interactive)
   (assert (ampc-on-p))
   (let* ((flags (mapconcat
-                'identity
-                (loop for (f . n) in '((repeat . "Repeat")
-                                       (random . "Random")
-                                       (consume . "Consume"))
-                      when (equal (cdr (assq f ampc-status)) "1")
-                      collect n
-                      end)
-                "|"))
+                 'identity
+                 (loop for (f . n) in '((repeat . "Repeat")
+                                        (random . "Random")
+                                        (consume . "Consume"))
+                       when (equal (cdr (assq f ampc-status)) "1")
+                       collect n
+                       end)
+                 "|"))
          (state (cdr (assq 'state ampc-status)))
          (status (concat "State:     " state
                          (when ampc-yield

@@ -834,6 +834,8 @@ all the time!"
                      ((tag song)
                       (if (assoc (ampc-tags) ampc-internal-db)
                           (ampc-fill-tag-song)
+                        (push `(,(ampc-tags) . ,(ampc-create-tree))
+                              ampc-internal-db)
                         (ampc-send-command 'listallinfo)))
                      (status
                       (ampc-send-command 'status)
@@ -1168,13 +1170,23 @@ all the time!"
                    "ampc supports MPD (protocol version) 0.15.0 "
                    "and later"))))
 
-(defun ampc-fill-internal-db ()
-  (push `(,(ampc-tags) . ,(ampc-create-tree)) ampc-internal-db)
-  (loop while (search-forward-regexp "^file: " nil t)
+(defun ampc-fill-internal-db (running)
+  (loop for origin = (and (search-forward-regexp "^file: " nil t)
+                          (line-beginning-position))
+        then next
+        while origin
+        for next  = (progn
+                      (forward-char)
+                      (and (search-forward-regexp "^file: " nil t)
+                           (move-beginning-of-line nil)))
+        while next
         do (save-restriction
-             (ampc-narrow-entry)
-             (ampc-fill-internal-db-entry)))
-  (ampc-fill-tag-song))
+             (narrow-to-region origin next)
+             (ampc-fill-internal-db-entry))
+        (goto-char origin)
+        (when running
+          (delete-region origin next)
+          (setf next origin))))
 
 (defun ampc-tags ()
   (loop for w in (ampc-windows)
@@ -1240,8 +1252,13 @@ all the time!"
   (message "Database update started"))
 
 (defun ampc-handle-command (status)
-  (if (eq status 'error)
-      (pop ampc-outstanding-commands)
+  (cond
+   ((eq status 'error)
+    (pop ampc-outstanding-commands))
+   ((eq status 'running)
+    (case (caar ampc-outstanding-commands)
+      (listallinfo (ampc-fill-internal-db t))))
+   (t
     (case (car (pop ampc-outstanding-commands))
       (idle
        (ampc-handle-idle))
@@ -1260,12 +1277,11 @@ all the time!"
       (playlistinfo
        (ampc-fill-current-playlist))
       (listallinfo
-       (ampc-fill-internal-db))
+       (ampc-fill-internal-db nil))
       (outputs
-       (ampc-fill-outputs))))
-  (unless ampc-outstanding-commands
-    (ampc-update))
-  (ampc-send-next-command))
+       (ampc-fill-outputs)))
+    (unless ampc-outstanding-commands
+      (ampc-update)))))
 
 (defun ampc-filter (_process string)
   (assert (buffer-live-p (process-buffer ampc-connection)))
@@ -1279,22 +1295,25 @@ all the time!"
     (save-excursion
       (goto-char (point-min))
       (let ((success))
-        (when (or (and (search-forward-regexp
-                        "^ACK \\[\\(.*\\)\\] {.*} \\(.*\\)\n\\'"
-                        nil
-                        t)
-                       (message "ampc command error: %s (%s)"
-                                (match-string 2)
-                                (match-string 1))
-                       t)
-                  (and (search-forward-regexp "^OK\\(.*\\)\n\\'" nil t)
-                       (setf success t)))
-          (let ((match-end (match-end 0)))
-            (save-restriction
-              (narrow-to-region (point-min) match-end)
-              (goto-char (point-min))
-              (ampc-handle-command (if success (match-string 1) 'error)))
-            (delete-region (point-min) match-end)))))))
+        (if (or (and (search-forward-regexp
+                      "^ACK \\[\\(.*\\)\\] {.*} \\(.*\\)\n\\'"
+                      nil
+                      t)
+                     (message "ampc command error: %s (%s)"
+                              (match-string 2)
+                              (match-string 1))
+                     t)
+                (and (search-forward-regexp "^OK\\(.*\\)\n\\'" nil t)
+                     (setf success t)))
+            (progn
+              (let ((match-end (match-end 0)))
+                (save-restriction
+                  (narrow-to-region (point-min) match-end)
+                  (goto-char (point-min))
+                  (ampc-handle-command (if success (match-string 1) 'error)))
+                (delete-region (point-min) match-end))
+              (ampc-send-next-command))
+          (ampc-handle-command 'running))))))
 
 ;;; **** window management
 (defun ampc-windows (&optional unordered)

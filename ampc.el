@@ -1694,11 +1694,7 @@ If ARG is omitted, use the selected entries in the current buffer."
          (status (concat "State:     " state
                          (when ampc-yield
                            (concat (make-string (- 10 (length state)) ? )
-                                   (ecase (% ampc-yield 4)
-                                     (0 "|")
-                                     (1 "/")
-                                     (2 "-")
-                                     (3 "\\"))))
+                                   (nth (% ampc-yield 4) '("|" "/" "-" "\\"))))
                          "\n"
                          (when (equal state "play")
                            (concat "Playing:   "

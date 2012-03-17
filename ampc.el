@@ -1174,18 +1174,16 @@ all the time!"
                           (line-beginning-position))
         then next
         while origin
-        for next  = (progn
-                      (forward-char)
-                      (and (search-forward-regexp "^file: " nil t)
-                           (move-beginning-of-line nil)))
-        while next
+        do (goto-char (1+ origin))
+        for next = (and (search-forward-regexp "^file: " nil t)
+                        (line-beginning-position))
+        while (or (not running) next)
         do (save-restriction
-             (narrow-to-region origin next)
+             (narrow-to-region origin (or next (point-max)))
              (ampc-fill-internal-db-entry))
-        (goto-char origin)
-        (when running
-          (delete-region origin next)
-          (setf next origin))))
+        do (when running
+             (delete-region origin next)
+             (setf next origin))))
 
 (defun ampc-tags ()
   (loop for w in (ampc-windows)

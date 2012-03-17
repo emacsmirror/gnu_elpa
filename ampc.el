@@ -956,11 +956,10 @@ all the time!"
          (insert element "\n")
          (put-text-property start (point) 'data (if (eq cmp t)
                                                     `(,data)
-                                                  data)))
-       nil)
-      (update t
-              (remove-text-properties (point) (1+ (point)) '(updated))
-              (equal (buffer-substring (point) (1+ (point))) "*")))))
+                                                  data))))
+      (update
+       (remove-text-properties (point) (1+ (point)) '(updated))
+       (equal (buffer-substring (point) (1+ (point))) "*")))))
 
 (defun ampc-fill-tag (trees)
   (put-text-property (point-min) (point-max) 'data nil)

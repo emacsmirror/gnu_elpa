@@ -97,8 +97,8 @@
 ;;
 ;; Window six shows the songs that match the filters defined by windows three to
 ;; five.  To add the selected song to the playlist, press `a' (ampc-add).  This
-;; key binding works in tag browsers as well.  Calling ampc-add in a tag browser
-;; adds all songs filtered up to the selected browser to the playlist.
+;; key binding works in tag browsers as well.  Calling `ampc-add' in a tag
+;; browser adds all songs filtered up to the selected browser to the playlist.
 ;;
 ;; The tag browsers of the (default) current playlist view (accessed via `J')
 ;; are `Genre' (window 3), `Artist' (window 4) and `Album' (window 5).  The key
@@ -165,8 +165,8 @@
 ;;
 ;; The keymap of ampc is designed to fit the QWERTY United States keyboard
 ;; layout.  If you use another keyboard layout, feel free to modify
-;; ampc-mode-map.  For example, I use a regular QWERTZ German keyboard (layout),
-;; so I modify `ampc-mode-map' in my init.el like this:
+;; `ampc-mode-map'.  For example, I use a regular QWERTZ German keyboard
+;; (layout), so I modify `ampc-mode-map' in my init.el like this:
 ;;
 ;; (eval-after-load 'ampc
 ;;   '(flet ((substitute-ampc-key
@@ -1666,7 +1666,7 @@ If ARG is omitted, use the selected entries."
     (ampc-send-command 'clear)))
 
 (defun ampc-add (&optional arg)
-  "Add the next ARG songs associated with the entries after point
+  "Add the songs associated with the next ARG entries after point
 to the playlist.
 If ARG is omitted, use the selected entries in the current buffer."
   (interactive "P")

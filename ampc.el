@@ -607,7 +607,7 @@ all the time!"
                                 data)
            (ampc-send-command 'add t (ampc-quote data))))
         (t
-         (loop for d in data
+         (loop for d in (reverse data)
                do (ampc-add-impl (cdr (assoc "file" d)))))))
 
 (defun* ampc-skip (N &aux (song (cdr-safe (assq 'song ampc-status))))
@@ -836,8 +836,7 @@ all the time!"
                      ((tag song)
                       (if (assoc (ampc-tags) ampc-internal-db)
                           (ampc-fill-tag-song)
-                        (push `(,(ampc-tags) . ,(ampc-create-tree))
-                              ampc-internal-db)
+                        (push `(,(ampc-tags) . nil) ampc-internal-db)
                         (ampc-send-command 'listallinfo)))
                      (status
                       (ampc-send-command 'status)
@@ -896,7 +895,7 @@ all the time!"
                                                      (t a))))))
 
 (defun ampc-tree< (a b)
-  (not (string< (if (listp a) (car a) a) (if (listp b) (car b) b))))
+  (string< (car a) (car b)))
 
 (defun ampc-create-tree ()
   (avl-tree-create 'ampc-tree<))
@@ -968,10 +967,12 @@ all the time!"
   (loop with new-trees
         finally return new-trees
         for tree in trees
+        when tree
         do (avl-tree-mapc (lambda (e)
                             (when (ampc-insert (car e) (cdr e) t)
                               (push (cdr e) new-trees)))
-                          tree)))
+                          tree)
+        end))
 
 (defun ampc-fill-song (trees)
   (loop
@@ -1199,25 +1200,21 @@ all the time!"
 (defun ampc-fill-internal-db-entry ()
   (loop
    with data-buffer = (current-buffer)
-   with tree = `(nil . ,(cdr (assoc (ampc-tags) ampc-internal-db)))
+   with tree = (assoc (ampc-tags) ampc-internal-db)
    for w in (ampc-windows)
    do
    (with-current-buffer (window-buffer w)
      (ampc-set-dirty t)
      (ecase (car ampc-type)
        (tag
-        (let* ((data (or (ampc-extract (cdr ampc-type) data-buffer)
-                         "[Not Specified]"))
-               (member (and (cdr tree) (avl-tree-member (cdr tree) data))))
-          (cond (member (setf tree member))
-                ((cdr tree)
-                 (setf member `(,data . nil))
-                 (avl-tree-enter (cdr tree) member)
-                 (setf tree member))
-                (t
-                 (setf (cdr tree) (ampc-create-tree) member`(,data . nil))
-                 (avl-tree-enter (cdr tree) member)
-                 (setf tree member)))))
+        (let ((data (or (ampc-extract (cdr ampc-type) data-buffer)
+                        "[Not Specified]")))
+          (unless (cdr tree)
+            (setf (cdr tree) (ampc-create-tree)))
+          (setf tree (avl-tree-enter (cdr tree)
+                                     `(,data . nil)
+                                     (lambda (data match)
+                                       match)))))
        (song
         (push (loop for p in `(("file")
                                ,@(plist-get (cdr ampc-type) :properties))

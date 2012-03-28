@@ -371,7 +371,9 @@ all the time!"
           do (define-key map (car view)
                `(lambda ()
                   (interactive)
-                  (ampc-configure-frame ',(cdr view)))))
+                  (if (equal ampc-outstanding-commands '((idle)))
+                      (ampc-configure-frame ',(cdr view))
+                    (message "ampc is busy, cannot change window layout")))))
     map))
 
 (defvar ampc-item-mode-map

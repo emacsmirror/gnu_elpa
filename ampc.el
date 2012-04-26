@@ -456,6 +456,7 @@ all the time!"
      :selected (equal (cdr-safe (assq 'consume ampc-status)) "1")]
     "--"
     ["Trigger update" ampc-trigger-update]
+    ["Suspend" ampc-suspend]
     ["Quit" ampc-quit]))
 
 (easy-menu-define ampc-selection-menu ampc-item-mode-map

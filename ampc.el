@@ -291,19 +291,22 @@ all the time!"
                     ("Artist" :offset 20)
                     ("Album" :offset 40)
                     ("Time" :offset 60))))
-    `((,(kbd "J")
+    `(("Current playlist view (Genre|Artist|Album)"
+       ,(kbd "J")
        horizontal
        (0.4 vertical
             (6 status)
             (1.0 current-playlist :properties ,pl-prop))
        ,rs_a)
-      (,(kbd "M")
+      ("Current playlist view (Genre|Album|Artist)"
+       ,(kbd "M")
        horizontal
        (0.4 vertical
             (6 status)
             (1.0 current-playlist :properties ,pl-prop))
        ,rs_b)
-      (,(kbd "K")
+      ("Playlist view (Genre|Artist|Album)"
+       ,(kbd "K")
        horizontal
        (0.4 vertical
             (6 status)
@@ -311,7 +314,8 @@ all the time!"
                  (0.8 playlist :properties ,pl-prop)
                  (1.0 playlists)))
        ,rs_a)
-      (,(kbd "<")
+      ("Playlist view (Genre|Album|Artist)"
+       ,(kbd "<")
        horizontal
        (0.4 vertical
             (6 status)
@@ -319,7 +323,8 @@ all the time!"
                  (0.8 playlist :properties ,pl-prop)
                  (1.0 playlists)))
        ,rs_b)
-      (,(kbd "L")
+      ("Outputs view"
+       ,(kbd "L")
        outputs :properties (("outputname" :title "Name")
                             ("outputenabled" :title "Enabled" :offset 10))))))
 
@@ -368,12 +373,10 @@ all the time!"
     (define-key map (kbd "z") 'ampc-suspend)
     (define-key map (kbd "T") 'ampc-trigger-update)
     (loop for view in ampc-views
-          do (define-key map (car view)
+          do (define-key map (cadr view)
                `(lambda ()
                   (interactive)
-                  (if (equal ampc-outstanding-commands '((idle)))
-                      (ampc-configure-frame ',(cdr view))
-                    (message "ampc is busy, cannot change window layout")))))
+                  (ampc-change-view ',view))))
     map))
 
 (defvar ampc-item-mode-map
@@ -424,9 +427,14 @@ all the time!"
     map))
 
 ;;; **** menu
-(easy-menu-define nil ampc-mode-map
-  nil
-  '("ampc"
+(easy-menu-define nil ampc-mode-map nil
+  `("ampc"
+    ("Change view" ,@(loop for view in ampc-views
+                           collect (vector (car view)
+                                           `(lambda ()
+                                              (interactive)
+                                              (ampc-change-view ',view)))))
+    "--"
     ["Play" ampc-toggle-play
      :visible (and ampc-status
                    (not (equal (cdr (assq 'state ampc-status)) "play")))]
@@ -589,6 +597,11 @@ all the time!"
               (2 'ampc-current-song-marked-face)))))
 
 ;;; *** internal functions
+(defun ampc-change-view (view)
+  (if (equal ampc-outstanding-commands '((idle)))
+      (ampc-configure-frame (cddr view))
+    (message "ampc is busy, cannot change window layout")))
+
 (defun ampc-quote (string)
   (concat "\"" (replace-regexp-in-string "\"" "\\\"" string) "\""))
 
@@ -1853,7 +1866,7 @@ connect to.  The values default to localhost:6600."
     (set-process-filter ampc-connection 'ampc-filter)
     (set-process-query-on-exit-flag ampc-connection nil)
     (setf ampc-outstanding-commands '((setup))))
-  (ampc-configure-frame (cdar ampc-views))
+  (ampc-configure-frame (cddar ampc-views))
   (run-hooks 'ampc-connected-hook)
   (ampc-filter (process-buffer ampc-connection) nil))
 

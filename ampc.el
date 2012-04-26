@@ -42,7 +42,7 @@
 ;; Optionally bind a key to this function, e.g.:
 ;;
 ;; (global-set-key (kbd "<f9>") 'ampc)
-
+;;
 ;; Byte-compile ampc (M-x byte-compile-file RET /path/to/ampc.el RET) to improve
 ;; its performance!
 
@@ -424,8 +424,8 @@ all the time!"
     map))
 
 ;;; **** menu
-(easy-menu-define ampc-menu ampc-mode-map
-  "Main Menu for ampc"
+(easy-menu-define nil ampc-mode-map
+  nil
   '("ampc"
     ["Play" ampc-toggle-play
      :visible (and ampc-status
@@ -445,9 +445,15 @@ all the time!"
     ["Decrease volume" ampc-decrease-volume]
     ["Increase crossfade" ampc-increase-crossfade]
     ["Decrease crossfade" ampc-decrease-crossfade]
-    ["Toggle repeat" ampc-toggle-repeat]
-    ["Toggle random" ampc-toggle-random]
-    ["Toggle consume" ampc-toggle-consume]
+    ["Toggle repeat" ampc-toggle-repeat
+     :style toggle
+     :selected (equal (cdr-safe (assq 'repeat ampc-status)) "1")]
+    ["Toggle random" ampc-toggle-random
+     :style toggle
+     :selected (equal (cdr-safe (assq 'random ampc-status)) "1")]
+    ["Toggle consume" ampc-toggle-consume
+     :style toggle
+     :selected (equal (cdr-safe (assq 'consume ampc-status)) "1")]
     "--"
     ["Trigger update" ampc-trigger-update]
     ["Quit" ampc-quit]))

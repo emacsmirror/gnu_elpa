@@ -9,7 +9,7 @@
 ;; Keywords: ampc, mpc, mpd
 ;; Compatibility: GNU Emacs: 24.x
 
-;; This file is part of GNU Emacs.
+;; This file is part of ampc.
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

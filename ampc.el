@@ -450,6 +450,11 @@ all the time!"
     ["Pause" ampc-toggle-play
      :visible (and ampc-status
                    (equal (cdr (assq 'state ampc-status)) "play"))]
+    ["Stop" (lambda () (interactive) (ampc-toggle-play 4))
+     :visible (and ampc-status
+                   (equal (cdr (assq 'state ampc-status)) "play"))]
+    ["Next" ampc-next]
+    ["Previous" ampc-previous]
     "--"
     ["Clear playlist" ampc-clear]
     ["Shuffle playlist" ampc-shuffle]

@@ -87,15 +87,19 @@
 ;;
 ;; To mark an entry, move the point to the entry and press `m' (ampc-mark).  To
 ;; unmark an entry, press `u' (ampc-unmark).  To unmark all entries, press `U'
-;; (ampc-unmark-all).  To toggle marks, press `t' (ampc-toggle-marks).  To
-;; navigate to the next entry, press `n' (ampc-next-line).  Analogous, pressing
-;; `p' (ampc-previous-line) moves the point to the previous entry.
+;; (ampc-unmark-all).  To toggle marks, press `t' (ampc-toggle-marks).  Pressing
+;; `<down-mouse-1>' with the mouse mouse cursor on a list entry will move point
+;; to the entry and toggle the mark.  To navigate to the next entry, press `n'
+;; (ampc-next-line).  Analogous, pressing `p' (ampc-previous-line) moves the
+;; point to the previous entry.
 ;;
 ;; Window two shows the current playlist.  The song that is currently played by
 ;; the daemon, if any, is highlighted.  To delete the selected songs from the
-;; playlist, press `d' (ampc-delete).  To move the selected songs up, press
-;; `<up>' (ampc-up).  Analogous, press `<down>' (ampc-down) to move the selected
-;; songs down.
+;; playlist, press `d' (ampc-delete).  Pressing `<down-mouse-3>' will move the
+;; point to the entry under cursor and delete it from the playlist.  To move the
+;; selected songs up, press `<up>' (ampc-up).  Analogous, press `<down>'
+;; (ampc-down) to move the selected songs down.  Pressing `<return>'
+;; (ampc-play-this) or `<down-mouse-2>' will play the song at point/cursor.
 ;;
 ;; Windows three to five are tag browsers.  You use them to narrow the song
 ;; database to certain songs.  Think of tag browsers as filters, analogous to
@@ -103,9 +107,11 @@
 ;; songs that is filtered is displayed in the header line of the window.
 ;;
 ;; Window six shows the songs that match the filters defined by windows three to
-;; five.  To add the selected song to the playlist, press `a' (ampc-add).  This
-;; key binding works in tag browsers as well.  Calling `ampc-add' in a tag
-;; browser adds all songs filtered up to the selected browser to the playlist.
+;; five.  To add the selected song to the playlist, press `a' (ampc-add).
+;; Pressing `<down-mouse-3>' will move the point to the entry under the cursor
+;; and execute `ampc-add'.  These key bindings works in tag browsers as well.
+;; Calling `ampc-add' in a tag browser adds all songs filtered up to the
+;; selected browser to the playlist.
 ;;
 ;; The tag browsers of the (default) current playlist view (accessed via `J')
 ;; are `Genre' (window 3), `Artist' (window 4) and `Album' (window 5).  The key
@@ -131,7 +137,7 @@
 ;;; *** outputs view
 ;; The outputs view contains a single list which shows the configured outputs of
 ;; mpd.  To toggle the enabled property of the selected outputs, press `a'
-;; (ampc-toggle-output-enabled).
+;; (ampc-toggle-output-enabled) or `<mouse-3>'.
 
 ;;; *** global keys
 ;; Aside from `J', `M', `K', `<' and `L', which may be used to select different
@@ -396,12 +402,17 @@ all the time!"
     (define-key map (kbd "p") 'ampc-previous-line)
     (define-key map [remap next-line] 'ampc-next-line)
     (define-key map [remap previous-line] 'ampc-previous-line)
+    (define-key map (kbd "<down-mouse-1>") 'ampc-mouse-toggle-mark)
+    (define-key map (kbd "<mouse-1>") 'ampc-mouse-align-point)
     map))
 
 (defvar ampc-current-playlist-mode-map
   (let ((map (make-sparse-keymap)))
     (suppress-keymap map)
     (define-key map (kbd "<return>") 'ampc-play-this)
+    (define-key map (kbd "<down-mouse-2>") 'ampc-mouse-play-this)
+    (define-key map (kbd "<mouse-2>") 'ampc-mouse-align-point)
+    (define-key map (kbd "<down-mouse-3>") 'ampc-mouse-delete)
     map))
 
 (defvar ampc-playlist-mode-map
@@ -411,6 +422,7 @@ all the time!"
     (define-key map (kbd "d") 'ampc-delete)
     (define-key map (kbd "<up>") 'ampc-up)
     (define-key map (kbd "<down>") 'ampc-down)
+    (define-key map (kbd "<down-mouse-3>") 'ampc-mouse-delete)
     map))
 
 (defvar ampc-playlists-mode-map
@@ -426,6 +438,8 @@ all the time!"
     (suppress-keymap map)
     (define-key map (kbd "t") 'ampc-toggle-marks)
     (define-key map (kbd "a") 'ampc-add)
+    (define-key map (kbd "<down-mouse-3>") 'ampc-mouse-add)
+    (define-key map (kbd "<mouse-3>") 'ampc-mouse-align-point)
     map))
 
 (defvar ampc-outputs-mode-map
@@ -433,6 +447,8 @@ all the time!"
     (suppress-keymap map)
     (define-key map (kbd "t") 'ampc-toggle-marks)
     (define-key map (kbd "a") 'ampc-toggle-output-enabled)
+    (define-key map (kbd "<down-mouse-3>") 'ampc-mouse-toggle-output-enabled)
+    (define-key map (kbd "<mouse-3>") 'ampc-mouse-align-point)
     map))
 
 ;;; **** menu
@@ -591,7 +607,9 @@ all the time!"
                do (save-excursion
                     ,@body))
        (loop until (eobp)
-             for index from 0 to (1- (prefix-numeric-value arg-))
+             for index from 0 to (1- (if (numberp arg-)
+                                         arg-
+                                       (prefix-numeric-value arg-)))
              do (save-excursion
                   (goto-char (line-end-position))
                   ,@body)
@@ -1482,6 +1500,47 @@ all the time!"
                                         (lambda (a b) (< (car a) (car b))))))
   (ampc-update))
 
+(defun ampc-mouse-play-this (event)
+  (interactive "e")
+  (select-window (posn-window (event-end event)))
+  (goto-char (posn-point (event-end event)))
+  (ampc-play-this))
+
+(defun ampc-mouse-delete (event)
+  (interactive "e")
+  (select-window (posn-window (event-end event)))
+  (goto-char (posn-point (event-end event)))
+  (ampc-delete 1))
+
+(defun ampc-mouse-add (event)
+  (interactive "e")
+  (select-window (posn-window (event-end event)))
+  (goto-char (posn-point (event-end event)))
+  (ampc-add-impl))
+
+(defun ampc-mouse-toggle-output-enabled (event)
+  (interactive "e")
+  (select-window (posn-window (event-end event)))
+  (goto-char (posn-point (event-end event)))
+  (ampc-toggle-output-enabled 1))
+
+(defun* ampc-mouse-toggle-mark (event &aux buffer-read-only)
+  (interactive "e")
+  (let ((window (posn-window (event-end event))))
+    (when (with-selected-window window
+            (goto-char (posn-point (event-end event)))
+            (unless (eobp)
+              (move-beginning-of-line nil)
+              (ampc-mark-impl (not (eq (char-after) ?*)) 1)
+              t))
+      (select-window window))))
+
+(defun ampc-mouse-align-point (event)
+  (interactive "e")
+  (select-window (posn-window (event-end event)))
+  (goto-char (posn-point (event-end event)))
+  (ampc-align-point))
+
 ;;; *** interactives
 (defun* ampc-unmark-all (&aux buffer-read-only)
   "Remove all marks."
@@ -1682,7 +1741,8 @@ If ARG is omitted, use the selected entries."
 
 (defun ampc-delete (&optional arg)
   "Delete the next ARG songs from the playlist.
-If ARG is omitted, use the selected entries."
+If ARG is omitted, use the selected entries.  If ARG is non-nil,
+all marks after point are removed nontheless."
   (interactive "P")
   (assert (ampc-in-ampc-p))
   (let ((point (point)))

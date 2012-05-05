@@ -43,14 +43,21 @@
 ;;
 ;; (global-set-key (kbd "<f9>") 'ampc)
 ;;
+;; or
+;;
+;; (global-set-key (kbd "<f9>") (lambda () (interactive) (ampc "host" "port")))
+;;
 ;; Byte-compile ampc (M-x byte-compile-file RET /path/to/ampc.el RET) to improve
 ;; its performance!
 
 ;;; ** usage
-;; To invoke ampc, call the command `ampc', e.g. via M-x ampc RET.  Once ampc is
-;; connected to the daemon, it creates its window configuration in the selected
-;; window.  To make ampc use the full frame rather than the selected window,
-;; customise `ampc-use-full-frame'.
+;; To invoke ampc, call the command `ampc', e.g. via M-x ampc RET.  When called
+;; interactively, `ampc' reads host address and port from the minibuffer.  If
+;; called non-interactively, the first argument to `ampc' is the host, the
+;; second is the port.  Both values default to nil, which will make ampc connect
+;; to localhost:6600.  Once ampc is connected to the daemon, it creates its
+;; window configuration in the selected window.  To make ampc use the full frame
+;; rather than the selected window, customise `ampc-use-full-frame'.
 ;;
 ;; ampc offers three independent views which expose different parts of the user
 ;; interface.  The current playlist view, the default view at startup, may be

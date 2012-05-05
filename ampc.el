@@ -394,6 +394,8 @@ all the time!"
     (define-key map (kbd "U") 'ampc-unmark-all)
     (define-key map (kbd "n") 'ampc-next-line)
     (define-key map (kbd "p") 'ampc-previous-line)
+    (define-key map [remap next-line] 'ampc-next-line)
+    (define-key map [remap previous-line] 'ampc-previous-line)
     map))
 
 (defvar ampc-current-playlist-mode-map

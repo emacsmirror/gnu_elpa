@@ -565,7 +565,11 @@ all the time!"
                when (get-text-property (point) 'updated)
                do (delete-region (point) (1+ (line-end-position)))
                else
-               do (forward-line nil)
+               do (add-text-properties
+                   (+ (point) 2)
+                   (progn (forward-line nil)
+                          (1- (point)))
+                   '(mouse-face highlight))
                end)
          (goto-char point)
          (ampc-align-point))

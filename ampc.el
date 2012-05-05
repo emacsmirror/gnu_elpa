@@ -497,6 +497,31 @@ all the time!"
     ["Toggle marks" ampc-toggle-marks
      :visible (not (eq (car ampc-type) 'playlists))]))
 
+(defvar ampc-tool-bar-map
+  (let ((map (make-sparse-keymap)))
+    (tool-bar-local-item
+     "mpc/prev" 'ampc-previous 'previous map
+     :help "Previous")
+    (tool-bar-local-item
+     "mpc/play" 'ampc-toggle-play 'play map
+     :help "Play"
+     :visible '(and ampc-status
+                    (not (equal (cdr (assq 'state ampc-status)) "play"))))
+    (tool-bar-local-item
+     "mpc/pause" 'ampc-toggle-play 'pause map
+     :help "Pause"
+     :visible '(and ampc-status
+                    (equal (cdr (assq 'state ampc-status)) "play")))
+    (tool-bar-local-item
+     "mpc/stop" (lambda () (interactive) (ampc-toggle-play 4)) 'stop map
+     :help "Stop"
+     :visible '(and ampc-status
+                    (equal (cdr (assq 'state ampc-status)) "play")))
+    (tool-bar-local-item
+     "mpc/next" 'ampc-next 'next map
+     :help "Next")
+    map))
+
 ;;; ** code
 ;;; *** macros
 (defmacro ampc-with-buffer (type &rest body)
@@ -587,11 +612,11 @@ all the time!"
 (define-derived-mode ampc-item-mode ampc-mode ""
   nil)
 
-(define-derived-mode ampc-mode fundamental-mode "ampc"
+(define-derived-mode ampc-mode special-mode "ampc"
   nil
   (buffer-disable-undo)
-  (setf buffer-read-only t
-        truncate-lines ampc-truncate-lines
+  (set (make-local-variable 'tool-bar-map) ampc-tool-bar-map)
+  (setf truncate-lines ampc-truncate-lines
         font-lock-defaults '((("^\\(\\*\\)\\(.*\\)$"
                                (1 'ampc-mark-face)
                                (2 'ampc-marked-face))

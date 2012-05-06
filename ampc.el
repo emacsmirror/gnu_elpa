@@ -1952,7 +1952,7 @@ connect to.  The values default to localhost:6600."
   (unless ampc-connection
     (let ((connection (open-network-stream "ampc"
                                            (with-current-buffer
-                                               (get-buffer-create " *mpc*")
+                                               (get-buffer-create " *ampc*")
                                              (delete-region (point-min)
                                                             (point-max))
                                              (current-buffer))

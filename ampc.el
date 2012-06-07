@@ -545,13 +545,12 @@ all the time!"
   `(let* ((type- ,type)
           (b (loop for b in ampc-buffers
                    when (with-current-buffer b
-                          (cond ((windowp type-)
-                                 (eq (window-buffer type-)
-                                     (current-buffer)))
-                                ((symbolp type-)
-                                 (eq (car ampc-type) type-))
-                                (t
-                                 (equal ampc-type type-))))
+                          (etypecase type-
+                            (window
+                             (eq (window-buffer type-)
+                                 (current-buffer)))
+                            (symbol
+                             (eq (car ampc-type) type-))))
                    return b
                    end)))
      (when b

@@ -1970,6 +1970,8 @@ This function is the main entry point for ampc.
 Non-interactively, HOST and PORT specify the MPD instance to
 connect to.  The values default to localhost:6600."
   (interactive "MHost (localhost): \nMPort (6600): ")
+  (unless (byte-code-function-p (symbol-function 'ampc))
+    (message "You should byte-compile ampc"))
   (run-hooks 'ampc-before-startup-hook)
   (when (or (not host) (equal host ""))
     (setf host "localhost"))

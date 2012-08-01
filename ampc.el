@@ -285,9 +285,9 @@ all the time!"
 
 ;;; *** internal variables
 (defvar ampc-views
-  (let* ((songs '(1.0 song :properties (("Track" :title "#")
-                                        ("Title" :offset 6)
-                                        ("Time" :offset 26))))
+  (let* ((songs '(1.0 song :properties (("Track" :title "#" :width 4)
+                                        ("Title" :min 15 :max 40)
+                                        ("Time" :width 6))))
          (rs_a `(1.0 vertical
                      (0.7 horizontal
                           (0.33 tag :tag "Genre" :id 1)
@@ -300,23 +300,23 @@ all the time!"
                           (0.33 tag :tag "Album" :id 2)
                           (1.0 tag :tag "Artist" :id 3))
                      ,songs))
-         (pl-prop '(("Title")
-                    ("Artist" :offset 20)
-                    ("Album" :offset 40)
-                    ("Time" :offset 60))))
+         (pl-prop '(:properties (("Title" :min 15 :max 40)
+                                 ("Artist" :min 15 :max 40)
+                                 ("Album" :min 15 :max 40)
+                                 ("Time" :width 6)))))
     `(("Current playlist view (Genre|Artist|Album)"
        ,(kbd "J")
        horizontal
        (0.4 vertical
             (6 status)
-            (1.0 current-playlist :properties ,pl-prop))
+            (1.0 current-playlist ,@pl-prop))
        ,rs_a)
       ("Current playlist view (Genre|Album|Artist)"
        ,(kbd "M")
        horizontal
        (0.4 vertical
             (6 status)
-            (1.0 current-playlist :properties ,pl-prop))
+            (1.0 current-playlist ,@pl-prop))
        ,rs_b)
       ("Playlist view (Genre|Artist|Album)"
        ,(kbd "K")
@@ -324,7 +324,7 @@ all the time!"
        (0.4 vertical
             (6 status)
             (1.0 vertical
-                 (0.8 playlist :properties ,pl-prop)
+                 (0.8 playlist ,@pl-prop)
                  (1.0 playlists)))
        ,rs_a)
       ("Playlist view (Genre|Album|Artist)"
@@ -333,13 +333,13 @@ all the time!"
        (0.4 vertical
             (6 status)
             (1.0 vertical
-                 (0.8 playlist :properties ,pl-prop)
+                 (0.8 playlist ,@pl-prop)
                  (1.0 playlists)))
        ,rs_b)
       ("Outputs view"
        ,(kbd "L")
-       outputs :properties (("outputname" :title "Name")
-                            ("outputenabled" :title "Enabled" :offset 10))))))
+       outputs :properties (("outputname" :title "Name" :min 10 :max 30)
+                            ("outputenabled" :title "Enabled" :width 9))))))
 
 (defvar ampc-connection nil)
 (defvar ampc-host nil)
@@ -352,6 +352,9 @@ all the time!"
 (defvar ampc-buffers nil)
 (defvar ampc-buffers-unordered nil)
 (defvar ampc-all-buffers nil)
+
+(defvar ampc-tab-offsets nil)
+(make-variable-buffer-local 'ampc-tab-offsets)
 
 (defvar ampc-type nil)
 (make-variable-buffer-local 'ampc-type)
@@ -857,8 +860,10 @@ all the time!"
     (move-beginning-of-line nil)
     (forward-char 2)))
 
-(defun ampc-pad (alist)
-  (loop for (offset . data) in alist
+(defun* ampc-pad (tabs &optional (sub 0))
+  (loop for tab in tabs
+        for offset in ampc-tab-offsets
+        do (setf offset (- offset sub))
         with first = t
         with current-offset = 0
         when (<= current-offset offset)
@@ -871,15 +876,16 @@ all the time!"
         concat " "
         and do (incf current-offset)
         end
-        concat data
-        do (setf current-offset (+ current-offset (length data))
+        concat tab
+        do (setf current-offset (+ current-offset (length tab))
                  first nil)))
 
 (defun ampc-update-header ()
-  (if (eq (car ampc-type) 'status)
-      (setf header-line-format nil)
-    (setf header-line-format
+  (setf header-line-format
+        (unless (eq (car ampc-type) 'status)
           (concat
+           (when ampc-dirty
+             "  [ Updating... ]")
            (make-string (floor (fringe-columns 'left t)) ? )
            (ecase (car ampc-type)
              (tag
@@ -888,11 +894,8 @@ all the time!"
               "  Playlists")
              (t
               (ampc-pad (loop for p in (plist-get (cdr ampc-type) :properties)
-                              collect `(,(or (plist-get (cdr p) :offset) 2) .
-                                        ,(or (plist-get (cdr p) :title)
-                                             (car p)))))))
-           (when ampc-dirty
-             " [ Updating... ]")))))
+                              collect (or (plist-get (cdr p) :title)
+                                          (car p))))))))))
 
 (defun ampc-set-dirty (tag-or-dirty &optional dirty)
   (if (or (null tag-or-dirty) (eq tag-or-dirty t))
@@ -1061,8 +1064,8 @@ all the time!"
             do (ampc-insert
                 (ampc-pad
                  (loop for (p . v) in (plist-get (cdr ampc-type) :properties)
-                       collect `(,(- (or (plist-get v :offset) 2) 2)
-                                 . ,(or (cdr-safe (assoc p song)) ""))))
+                       collect (or (cdr-safe (assoc p song)) ""))
+                 2)
                 `((,song))))))
 
 (defun* ampc-narrow-entry (&optional (delimiter "file"))
@@ -1092,15 +1095,10 @@ all the time!"
        do (save-restriction
             (ampc-narrow-entry)
             (let ((file (ampc-extract "file"))
-                  (text
-                   (ampc-pad
-                    (loop for (tag . tag-properties) in properties
-                          collect `(,(- (or (plist-get tag-properties
-                                                       :offset)
-                                            2)
-                                        2)
-                                    . ,(or (ampc-extract tag)
-                                           "[Not Specified]"))))))
+                  (text (ampc-pad (loop for (tag . tag-properties) in properties
+                                        collect (or (ampc-extract tag)
+                                                    "[Not Specified]"))
+                                  2)))
               (ampc-with-buffer 'playlist
                 (ampc-insert text
                              `(("file" . ,file)
@@ -1125,17 +1123,15 @@ all the time!"
        do (save-restriction
             (ampc-narrow-entry "outputid")
             (let ((outputid (ampc-extract "outputid"))
-                  (outputenabled (ampc-extract "outputenabled"))
-                  (text
-                   (ampc-pad
-                    (loop for (tag . tag-properties) in properties
-                          collect `(,(- (or (plist-get tag-properties :offset)
-                                            2)
-                                        2)
-                                    . ,(ampc-extract tag))))))
+                  (outputenabled (ampc-extract "outputenabled")))
               (ampc-with-buffer 'outputs
-                (ampc-insert text `(("outputid" . ,outputid)
-                                    ("outputenabled" . ,outputenabled))))))))))
+                (ampc-insert (ampc-pad
+                              (loop for (tag . tag-properties) in properties
+                                    collect (with-current-buffer data-buffer
+                                              (ampc-extract tag)))
+                              2)
+                             `(("outputid" . ,outputid)
+                               ("outputenabled" . ,outputenabled))))))))))
 
 (defun* ampc-fill-current-playlist (&aux properties)
   (ampc-fill-skeleton 'current-playlist
@@ -1146,29 +1142,27 @@ all the time!"
        do (save-restriction
             (ampc-narrow-entry)
             (let ((file (ampc-extract "file"))
-                  (pos (ampc-extract "Pos"))
-                  (text
-                   (ampc-pad
-                    (loop for (tag . tag-properties) in properties
-                          collect `(,(- (or (plist-get tag-properties :offset)
-                                            2)
-                                        2)
-                                    . ,(or (ampc-extract tag)
-                                           "[Not Specified]"))))))
+                  (pos (ampc-extract "Pos")))
               (ampc-with-buffer 'current-playlist
-                (ampc-insert text
-                             `(("file" . ,file)
-                               ("Pos" . ,(string-to-number pos)))
-                             (lambda (a b)
-                               (let ((p1 (cdr (assoc "Pos" a)))
-                                     (p2 (cdr (assoc "Pos" b))))
-                                 (cond ((< p1 p2) 'insert)
-                                       ((eq p1 p2)
-                                        (if (equal (cdr (assoc "file" a))
-                                                   (cdr (assoc "file" b)))
-                                            'update
-                                          'insert))
-                                       (t (- p1 p2)))))))))))))
+                (ampc-insert
+                 (ampc-pad
+                  (loop for (tag . tag-properties) in properties
+                        collect (or (with-current-buffer data-buffer
+                                      (ampc-extract tag))
+                                    "[Not Specified]"))
+                  2)
+                 `(("file" . ,file)
+                   ("Pos" . ,(string-to-number pos)))
+                 (lambda (a b)
+                   (let ((p1 (cdr (assoc "Pos" a)))
+                         (p2 (cdr (assoc "Pos" b))))
+                     (cond ((< p1 p2) 'insert)
+                           ((eq p1 p2)
+                            (if (equal (cdr (assoc "file" a))
+                                       (cdr (assoc "file" b)))
+                                'update
+                              'insert))
+                           (t (- p1 p2)))))))))))))
 
 (defun ampc-fill-playlists ()
   (ampc-fill-skeleton 'playlists
@@ -1405,6 +1399,32 @@ all the time!"
                                                           b)
                                                       w))))))
 
+(defun* ampc-set-tab-offsets
+    (&rest properties &aux (min 2) (optional-padding 0))
+  (loop for (title . props) in properties
+        for min- = (plist-get props :min)
+        do (setf min (+ min (or (plist-get props :width) min-)))
+        when min-
+        do (setf optional-padding (+ optional-padding
+                                     (- (plist-get props :max) min-)))
+        end)
+  (setf ampc-tab-offsets nil)
+  (loop for (title . props) in properties
+        with offset = 2
+        do (add-to-list 'ampc-tab-offsets offset t)
+        (setf offset
+              (+ offset (or (plist-get props :width)
+                            (let ((min- (plist-get props :min))
+                                  (max (plist-get props :max)))
+                              (if (>= min (window-width))
+                                  min-
+                                (min max
+                                     (+ min-
+                                        (floor (* (/ (float (- max min-))
+                                                     optional-padding)
+                                                  (- (window-width)
+                                                     min))))))))))))
+
 (defun* ampc-configure-frame-1 (split &aux (split-type (car split)))
   (if (member split-type '(vertical horizontal))
       (let* ((sizes))
@@ -1465,12 +1485,16 @@ all the time!"
       (status
        (pop-to-buffer-same-window (get-buffer-create "*ampc Status*"))
        (ampc-mode)))
-    (destructuring-bind (&key (dedicated t) (mode-line t) &allow-other-keys)
+    (destructuring-bind
+        (&key (properties nil) (dedicated t) (mode-line t) &allow-other-keys)
         (cdr split)
-      (setf (window-dedicated-p (selected-window)) dedicated)
-      (unless mode-line
-        (setf mode-line-format nil)))
-    (setf ampc-type split)
+      (if properties
+          (apply 'ampc-set-tab-offsets properties)
+        (setf ampc-tab-offsets '(2)))
+      (setf ampc-type split
+            (window-dedicated-p (selected-window)) dedicated
+            mode-line-format (when mode-line
+                               (default-value 'mode-line-format))))
     (add-to-list 'ampc-all-buffers (current-buffer))
     (push `(,(or (plist-get (cdr split) :id)
                  (if (eq (car ampc-type) 'song) 9998 9999))
@@ -1497,7 +1521,15 @@ all the time!"
   (setf ampc-buffers-unordered (mapcar 'cdr ampc-buffers)
         ampc-buffers (mapcar 'cdr (sort ampc-buffers
                                         (lambda (a b) (< (car a) (car b))))))
-  (ampc-update))
+  (ampc-update)
+  ;; fill the song, current-playlist and outputs buffer again as the tab offsets
+  ;; might have changed
+  (ampc-with-buffer 'song
+    (delete-region (point-min) (point-max)))
+  (ampc-with-buffer 'current-playlist
+    (delete-region (point-min) (point-max)))
+  (ampc-with-buffer 'outputs
+    (delete-region (point-min) (point-max))))
 
 (defun ampc-mouse-play-this (event)
   (interactive "e")

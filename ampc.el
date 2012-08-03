@@ -160,6 +160,7 @@
 ;; `C-M-y' (ampc-set-volume): Set volume.
 ;; `h' (ampc-increase-crossfade): Increase crossfade.
 ;; `M-h' (ampc-decrease-crossfade): Decrease crossfade.
+;; `C-M-h' (ampc-set-crossfade): Set crossfade.
 ;;
 ;; `e' (ampc-toggle-repeat): Toggle repeat state.
 ;; `r' (ampc-toggle-random): Toggle random state.
@@ -270,7 +271,12 @@ command."
 
 (defcustom ampc-volume-step 5
   "Default step of `ampc-increase-volume' and
-`ampc-decrease-volume' to change the volume."
+`ampc-decrease-volume' for changing the volume."
+  :type 'integer)
+
+(defcustom ampc-crossfade-step 5
+  "Default step of `ampc-increase-crossfade' and
+`ampc-decrease-crossfade' for changing the crossfade."
   :type 'integer)
 
 ;;; **** hooks
@@ -423,6 +429,7 @@ all the time!"
     (define-key map (kbd "C-M-y") 'ampc-set-volume)
     (define-key map (kbd "h") 'ampc-increase-crossfade)
     (define-key map (kbd "M-h") 'ampc-decrease-crossfade)
+    (define-key map (kbd "C-M-h") 'ampc-set-crossfade)
     (define-key map (kbd "e") 'ampc-toggle-repeat)
     (define-key map (kbd "r") 'ampc-toggle-random)
     (define-key map (kbd "f") 'ampc-toggle-consume)
@@ -536,6 +543,7 @@ all the time!"
     ["Set volume" ampc-set-volume]
     ["Increase crossfade" ampc-increase-crossfade]
     ["Decrease crossfade" ampc-decrease-crossfade]
+    ["Set crossfade" ampc-set-crossfade]
     ["Toggle repeat" ampc-toggle-repeat
      :style toggle
      :selected (equal (cdr-safe (assq 'repeat ampc-status)) "1")]
@@ -741,13 +749,13 @@ all the time!"
 
 (defun* ampc-skip (N)
   (ampc-send-command 'play
-                       nil
-                       (let ((N N))
-                         (lambda ()
-                           (let ((song (cdr-safe (assq 'song ampc-status))))
-                             (unless song
-                               (throw 'skip nil))
-                             (max 0 (+ (string-to-number song) N))))))
+                     nil
+                     (let ((N N))
+                       (lambda ()
+                         (let ((song (cdr-safe (assq 'song ampc-status))))
+                           (unless song
+                             (throw 'skip nil))
+                           (max 0 (+ (string-to-number song) N))))))
   (ampc-send-command 'currentsong))
 
 (defun* ampc-find-current-song
@@ -762,7 +770,7 @@ all the time!"
       (narrow-to-region (max point (point)) (min limit (line-end-position)))
       (search-forward-regexp "\\(?1:\\(\\`\\*\\)?\\)\\(?2:.*\\)$"))))
 
-(defun ampc-setvol (arg &optional func)
+(defun ampc-set-volume-impl (arg &optional func)
   (when ampc-status
     (when arg
       (setf arg (prefix-numeric-value arg)))
@@ -779,16 +787,21 @@ all the time!"
           0))
     (ampc-send-command 'status)))
 
-(defun ampc-set-crossfade (arg func)
-  (when (or arg ampc-status)
+(defun ampc-set-crossfade-impl (arg &optional func)
+  (when ampc-status
+    (when arg
+      (setf arg (prefix-numeric-value arg)))
     (ampc-send-command
      'crossfade
      nil
-     (or (and arg (prefix-numeric-value arg))
-         (max (funcall func
-                       (string-to-number (cdr (assq 'xfade ampc-status)))
-                       5)
-              0)))))
+     (max (if func
+              (funcall func
+                       (string-to-number
+                        (cdr (assq 'xfade ampc-status)))
+                       (or arg ampc-crossfade-step))
+            arg)
+          0))
+    (ampc-send-command 'status)))
 
 (defun* ampc-fix-pos (f &aux buffer-read-only)
   (save-excursion
@@ -1503,7 +1516,7 @@ all the time!"
                 (delete-region (point-min) match-end))
               (unless ampc-no-implicit-next-dispatch
                 (ampc-send-next-command))))
-          (ampc-handle-command 'running)))))
+        (ampc-handle-command 'running)))))
 
 ;;; **** window management
 (defun ampc-windows (&optional unordered)
@@ -1765,35 +1778,42 @@ ARG defaults to 1."
 If ARG is nil, read ARG from minibuffer."
   (interactive "P")
   (assert (ampc-on-p))
-  (ampc-setvol (or arg (read-number "Volume: "))))
+  (ampc-set-volume-impl (or arg (read-number "Volume: "))))
 
 (defun ampc-increase-volume (&optional arg)
   "Increase volume by prefix argument ARG or, if ARG is nil,
 `ampc-volume-step'."
   (interactive "P")
   (assert (ampc-on-p))
-  (ampc-setvol arg '+))
+  (ampc-set-volume-impl arg '+))
 
 (defun ampc-decrease-volume (&optional arg)
   "Decrease volume by prefix argument ARG or, if ARG is nil,
 `ampc-volume-step'."
   (interactive "P")
   (assert (ampc-on-p))
-  (ampc-setvol arg '-))
+  (ampc-set-volume-impl arg '-))
+
+(defun ampc-set-crossfade (&optional arg)
+  "Set crossfade to ARG seconds.
+If ARG is nil, read ARG from minibuffer."
+  (interactive "P")
+  (assert (ampc-on-p))
+  (ampc-set-crossfade-impl (or arg (read-number "Crossfade: "))))
 
 (defun ampc-increase-crossfade (&optional arg)
-  "Increase crossfade.
-With prefix argument ARG, set crossfading to ARG seconds."
+  "Increase crossfade by prefix argument ARG or, if ARG is nil,
+`ampc-crossfade-step'."
   (interactive "P")
   (assert (ampc-on-p))
-  (ampc-set-crossfade arg '+))
+  (ampc-set-crossfade-impl arg '+))
 
 (defun ampc-decrease-crossfade (&optional arg)
-  "Decrease crossfade.
-With prefix argument ARG, set crossfading to ARG seconds."
+  "Decrease crossfade by prefix argument ARG or, if ARG is nil,
+`ampc-crossfade-step'."
   (interactive "P")
   (assert (ampc-on-p))
-  (ampc-set-crossfade arg '-))
+  (ampc-set-crossfade-impl arg '-))
 
 (defun ampc-toggle-repeat (&optional arg)
   "Toggle MPD's repeat state.

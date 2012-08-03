@@ -214,7 +214,6 @@
 ;;; Code:
 ;;; * code
 (eval-when-compile
-  (require 'easymenu)
   (require 'cl))
 (require 'network-stream)
 (require 'avl-tree)

@@ -1979,13 +1979,13 @@ Interactively, read NAME from the minibuffer."
   "Select the current playlist window and move point to the current song."
   (interactive)
   (assert (ampc-in-ampc-p))
-  (when song
-    (ampc-with-buffer 'current-playlist
-      no-se
-      (select-window (ampc-get-window 'current-playlist))
+  (ampc-with-buffer 'current-playlist
+    no-se
+    (select-window (ampc-get-window 'current-playlist))
+    (when song
       (goto-char (point-min))
-      (forward-line (string-to-number song))
-      (ampc-align-point))))
+      (forward-line (string-to-number song)))
+    (ampc-align-point)))
 
 (defun ampc-previous-line (&optional arg)
   "Go to previous ARG'th entry in the current buffer.

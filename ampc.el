@@ -195,8 +195,23 @@
 ;; If ampc is suspended, you can still use every interactive command that does
 ;; not directly operate on or with the user interace of ampc.  For example it is
 ;; perfectly fine to call `ampc-increase-volume' or `ampc-toggle-play' via M-x
-;; RET.  To display the information that is displayed by the status window of
-;; ampc, call `ampc-status'.
+;; RET.  Especially the commands `ampc-status' and `ampc-mini' are predestinated
+;; to be bound in the global keymap.  `ampc-status' messages the information
+;; that is displayed by the status window of ampc.  `ampc-mini' lets you select
+;; a song to play via `completing-read'.
+;;
+;; (global-set-key (kbd "<f7>")
+;;                 (lambda ()
+;;                   (interactive)
+;;                   (unless (ampc-on-p)
+;;                     (ampc nil nil t))
+;;                   (ampc-status)))
+;; (global-set-key (kbd "<f8>")
+;;                 (lambda ()
+;;                   (interactive)
+;;                   (unless (ampc-on-p)
+;;                     (ampc nil nil t))
+;;                   (ampc-mini)))
 
 ;;; Code:
 ;;; * code
@@ -1218,7 +1233,7 @@ all the time!"
     (delete-region (point-min) (point-max))
     (funcall (or (plist-get (cadr ampc-type) :filler)
                  (lambda (_)
-                   (insert (ampc-status) "\n")))
+                   (insert (ampc-status t) "\n")))
              ampc-status)
     (ampc-set-dirty nil)))
 
@@ -1385,6 +1400,8 @@ all the time!"
        (ampc-fill-current-playlist))
       (mini-playlistinfo
        (ampc-mini-impl))
+      (mini-currentsong
+       (ampc-status))
       (listallinfo
        (ampc-fill-internal-db nil))
       (outputs
@@ -1871,10 +1888,17 @@ If ARG is omitted, use the selected entries in the current buffer."
   (ampc-with-selection arg
     (ampc-add-impl)))
 
-(defun ampc-status ()
-  "Display the information that is displayed in the status window."
+(defun* ampc-status (&optional no-print)
+  "Display and return the information that is displayed in the status window.
+If optional argument NO-PRINT is non-nil, just return the text.
+If NO-PRINT is nil, the display may be delayed if ampc does not
+have enough information yet."
   (interactive)
   (assert (ampc-on-p))
+  (unless (or ampc-status no-print)
+    (ampc-send-command 'status t)
+    (ampc-send-command 'mini-currentsong t)
+    (return-from ampc-status))
   (let* ((flags (mapconcat
                  'identity
                  (loop for (f . n) in '((repeat . "Repeat")
@@ -1886,7 +1910,7 @@ If ARG is omitted, use the selected entries in the current buffer."
                  "|"))
          (state (cdr (assq 'state ampc-status)))
          (status (concat "State:     " state
-                         (when ampc-yield
+                         (when (and ampc-yield no-print)
                            (concat (make-string (- 10 (length state)) ? )
                                    (nth (% ampc-yield 4) '("|" "/" "-" "\\"))))
                          "\n"
@@ -1902,7 +1926,7 @@ If ARG is omitted, use the selected entries in the current buffer."
                          "Crossfade: " (cdr (assq 'xfade ampc-status))
                          (unless (equal flags "")
                            (concat "\n" flags)))))
-    (when (called-interactively-p 'interactive)
+    (unless no-print
       (message "%s" status))
     status))
 
@@ -2013,7 +2037,8 @@ ampc is connected to."
   (run-hooks 'ampc-quit-hook))
 
 ;;;###autoload
-(defun ampc (&optional host port)
+;;;###autoload
+(defun ampc (&optional host port suspend)
   "ampc is an asynchronous client for the MPD media player.
 This function is the main entry point for ampc.
 
@@ -2052,8 +2077,12 @@ connect to.  The values default to localhost:6600."
     (set-process-filter ampc-connection 'ampc-filter)
     (set-process-query-on-exit-flag ampc-connection nil)
     (setf ampc-outstanding-commands '((setup))))
-  (ampc-configure-frame (cddar ampc-views))
+  (if suspend
+      (ampc-update)
+    (ampc-configure-frame (cddar ampc-views)))
   (run-hooks 'ampc-connected-hook)
+  (when suspend
+    (ampc-suspend))
   (ampc-filter (process-buffer ampc-connection) nil))
 
 (provide 'ampc)

@@ -217,7 +217,6 @@
 (require 'avl-tree)
 
 ;;; ** declarations
-;;; *** variables
 (defgroup ampc ()
   "Asynchronous client for the Music Player Daemon."
   :prefix "ampc-"
@@ -237,12 +236,21 @@
   "If non-nil, truncate lines in ampc buffers."
   :type 'boolean)
 
+(defcustom ampc-synchronous-commands '(t status currentsong)
+  "List of MPD commands that should be executed synchronously.
+Executing commands that print lots of output synchronously will
+result in massive performance improvements of ampc.  If the car
+of this list is `t', execute all commands synchronously other
+than the ones specified by the rest of the list."
+  :type '(repeat symbol))
+
 (defcustom ampc-status-tags nil
   "List of additional tags of the current song that are added to
 the internal status of ampc and thus are passed to the functions
 in `ampc-status-changed-hook'.  Each element may be a string that
 specifies a tag that is returned by MPD's `currentsong'
-command.")
+command."
+  :type '(list symbol))
 
 ;;; **** hooks
 (defcustom ampc-before-startup-hook nil
@@ -357,6 +365,7 @@ all the time!"
 (defvar ampc-port nil)
 (defvar ampc-outstanding-commands nil)
 
+(defvar ampc-no-implicit-next-dispatch nil)
 (defvar ampc-working-timer nil)
 (defvar ampc-yield nil)
 
@@ -374,8 +383,6 @@ all the time!"
 
 (defvar ampc-internal-db nil)
 (defvar ampc-status nil)
-
-(defconst ampc-synchronous-commands '(listallinfo current-playlist))
 
 ;;; *** mode maps
 (defvar ampc-mode-map
@@ -709,9 +716,16 @@ all the time!"
          (loop for d in (reverse data)
                do (ampc-add-impl (cdr (assoc "file" d)))))))
 
-(defun* ampc-skip (N &aux (song (cdr-safe (assq 'song ampc-status))))
-  (when song
-    (ampc-send-command 'play nil (max 0 (+ (string-to-number song) N)))))
+(defun* ampc-skip (N)
+  (ampc-send-command 'play
+                       nil
+                       (let ((N N))
+                         (lambda ()
+                           (let ((song (cdr-safe (assq 'song ampc-status))))
+                             (unless song
+                               (throw 'skip nil))
+                             (max 0 (+ (string-to-number song) N))))))
+  (ampc-send-command 'currentsong))
 
 (defun* ampc-find-current-song
     (limit &aux (point (point)) (song (cdr-safe (assq 'song ampc-status))))
@@ -960,7 +974,7 @@ all the time!"
 
 (defun ampc-send-command-impl (command)
   (when ampc-debug
-    (message (concat "ampc: " command)))
+    (message "ampc: -> %s" command))
   (process-send-string ampc-connection (concat command "\n")))
 
 (defun ampc-send-command (command &optional unique &rest args)
@@ -980,24 +994,40 @@ all the time!"
   (setf ampc-outstanding-commands
         (nconc (if unique
                    ampc-outstanding-commands
-                 (remove command ampc-outstanding-commands))
+                 (delete command ampc-outstanding-commands))
                `(,command))))
 
 (defun ampc-send-next-command ()
+  (loop while ampc-outstanding-commands
+        for command = (replace-regexp-in-string
+                       "^.*?-" ""
+                       (symbol-name (caar ampc-outstanding-commands)))
+        do
+        (loop until (catch 'skip
+                      (ampc-send-command-impl
+                       (concat command
+                               (loop for a in (cdar ampc-outstanding-commands)
+                                     concat " "
+                                     do (when (functionp a)
+                                          (setf a (funcall a)))
+                                     concat (typecase a
+                                              (integer (number-to-string a))
+                                              (t a)))))
+                      t)
+              do (pop ampc-outstanding-commands))
+        while (and ampc-outstanding-commands (not (eq (intern command) 'idle)))
+        while
+        (let ((member (member (intern command) ampc-synchronous-commands)))
+          (when (or (and (not (eq (car ampc-synchronous-commands) t)) member)
+                    (and (eq (car ampc-synchronous-commands) t) (not member)))
+            (loop with head = ampc-outstanding-commands
+                  with ampc-no-implicit-next-dispatch = t
+                  while (eq head ampc-outstanding-commands)
+                  do (accept-process-output ampc-connection 0 100))
+            t)))
   (unless ampc-outstanding-commands
-    (ampc-send-command 'idle))
-  (let ((command (replace-regexp-in-string
-                  "^.*-" "" (symbol-name (caar ampc-outstanding-commands)))))
-    (ampc-send-command-impl
-     (concat command
-             (loop for a in (cdar ampc-outstanding-commands)
-                   concat " "
-                   concat (cond ((integerp a) (number-to-string a))
-                                (t a)))))
-    (when (member (intern command) ampc-synchronous-commands)
-      (loop with head = ampc-outstanding-commands
-            while (eq head ampc-outstanding-commands)
-            do (accept-process-output nil 0 100)))))
+    (ampc-send-command 'idle)
+    (ampc-send-next-command)))
 
 (defun ampc-tree< (a b)
   (string< (car a) (car b)))
@@ -1230,7 +1260,8 @@ all the time!"
 
 (defun ampc-yield ()
   (incf ampc-yield)
-  (ampc-fill-status))
+  (ampc-fill-status)
+  (redisplay t))
 
 (defun ampc-fill-status ()
   (ampc-with-buffer 'status
@@ -1418,21 +1449,22 @@ all the time!"
   (with-current-buffer (process-buffer ampc-connection)
     (when string
       (when ampc-debug
-        (message "ampc: -> %s" string))
+        (message "ampc: <- %s" string))
       (goto-char (process-mark ampc-connection))
       (insert string)
       (set-marker (process-mark ampc-connection) (point)))
     (save-excursion
       (goto-char (point-min))
       (let ((success))
-        (if (or (and (search-forward-regexp
-                      "^ACK \\[\\(.*\\)\\] {.*} \\(.*\\)\n\\'"
-                      nil
-                      t)
-                     (message "ampc command error: %s (%s)"
-                              (match-string 2)
-                              (match-string 1))
-                     t)
+        (if (or (progn
+                  (when (search-forward-regexp
+                         "^ACK \\[\\(.*\\)\\] {.*} \\(.*\\)\n\\'"
+                         nil
+                         t)
+                    (message "ampc command error: %s (%s)"
+                             (match-string 2)
+                             (match-string 1))
+                    t))
                 (and (search-forward-regexp "^OK\\(.*\\)\n\\'" nil t)
                      (setf success t)))
             (progn
@@ -1442,8 +1474,9 @@ all the time!"
                   (goto-char (point-min))
                   (ampc-handle-command (if success (match-string 1) 'error)))
                 (delete-region (point-min) match-end))
-              (ampc-send-next-command))
-          (ampc-handle-command 'running))))))
+              (unless ampc-no-implicit-next-dispatch
+                (ampc-send-next-command))))
+          (ampc-handle-command 'running)))))
 
 ;;; **** window management
 (defun ampc-windows (&optional unordered)

@@ -922,34 +922,47 @@ modified."
 
 (defmacro ampc-iterate-source (data-buffer delimiter bindings &rest body)
   (declare (indent 3) (debug t))
-  `(when (,@(if data-buffer `(with-current-buffer ,data-buffer) '(progn))
-          (search-forward-regexp
+  (when (memq (intern delimiter) bindings)
+    (callf2 delq (intern delimiter) bindings)
+    (push (list (intern delimiter)
+                '(buffer-substring (point) (line-end-position)))
+          bindings))
+  `(,@(if data-buffer `(with-current-buffer ,data-buffer) '(progn))
+    (when (search-forward-regexp
            ,(concat "^" (regexp-quote delimiter) ": ")
-           nil t))
-     (loop with next
-           do (,@(if data-buffer `(with-current-buffer ,data-buffer) '(progn))
-               (save-restriction
-                 (setf next (ampc-narrow-entry ,delimiter))
+           nil t)
+      (loop with next
+            do (save-restriction
+                 (setf next (ampc-narrow-entry
+                             ,(concat "^" (regexp-quote delimiter) ": ")))
                  (let ,(loop for binding in bindings
                              if (consp binding)
                              collect binding
                              else
                              collect `(,binding (ampc-extract
-                                                 ,(symbol-name binding)))
+                                                 (ampc-extract-regexp
+                                                  ,(symbol-name binding))))
                              end)
-                   ,@body)))
-           while next
-           do (,@(if data-buffer `(with-current-buffer ,data-buffer) '(progn))
-               (goto-char next)))))
+                   ,@body))
+            while next
+            do (goto-char next)))))
 
 (defmacro ampc-iterate-source-output (delimiter bindings pad-data &rest body)
   (declare (indent 2) (debug t))
   `(let ((output-buffer (current-buffer))
-         (properties (plist-get (cdr ampc-type) :properties)))
+         (tags (loop for (tag . props) in
+                     (plist-get (cdr ampc-type) :properties)
+                     collect (cons tag (ampc-extract-regexp tag)))))
      (ampc-iterate-source
          data-buffer ,delimiter ,bindings
-       (with-current-buffer output-buffer
-         (ampc-insert (ampc-pad ,pad-data) ,@body)))))
+       (let ((pad-data ,pad-data))
+         (with-current-buffer output-buffer
+           (ampc-insert (ampc-pad pad-data) ,@body))))))
+
+(defmacro ampc-extract-regexp (tag)
+  (if (stringp tag)
+      (concat "^" (regexp-quote tag) ": \\(.*\\)$")
+    `(concat "^" (regexp-quote ,tag) ": \\(.*\\)$")))
 
 (defmacro ampc-tagger-log (&rest what)
   (declare (indent 0) (debug t))
@@ -1573,21 +1586,19 @@ modified."
 (defun ampc-create-tree ()
   (avl-tree-create 'ampc-tree<))
 
-(defun ampc-extract (tag)
-  (save-excursion
-    (goto-char (point-min))
-    (when (search-forward-regexp
-           (concat "^" (regexp-quote tag) ": \\(.*\\)$")
-           nil
-           t)
-      (let ((result (match-string 1)))
-        (let ((func (cdr (assoc tag ampc-tag-transform-funcs))))
-          (when func
-            (setf result (funcall func result))))
-        result))))
+(defsubst ampc-extract (regexp)
+  (goto-char (point-min))
+  (when (search-forward-regexp regexp nil t)
+    (match-string 1)))
 
-(defun ampc-clean-tag (tag value)
-  (or value (unless (member tag '("Track" 'Track)) "[Not Specified]")))
+(defsubst ampc-clean-tag (tag value)
+  (if value
+      (let ((func (cdr (assoc tag ampc-tag-transform-funcs))))
+        (if func
+            (funcall func value)
+          value))
+    (unless (equal tag "Track")
+      "[Not Specified]")))
 
 (defun ampc-insert (element data &optional cmp cmp-data)
   (goto-char (point-min))
@@ -1685,28 +1696,24 @@ modified."
                        collect (cdr (assoc p song))))
                 `((,song))))))
 
-(defun* ampc-narrow-entry (&optional (delimiter "file") &aux result)
-  (narrow-to-region
-   (move-beginning-of-line nil)
-   (or (progn (goto-char (line-end-position))
-              (when (search-forward-regexp
-                     (concat "^" (regexp-quote delimiter) ": ")
-                     nil
-                     t)
-                (move-beginning-of-line nil)
-                (setf result (point))
-                (1- (point))))
-       (point-max)))
-  result)
+(defsubst ampc-narrow-entry (delimiter-regexp)
+  (let ((result))
+    (narrow-to-region
+     (line-beginning-position)
+     (or (save-excursion
+           (goto-char (line-end-position))
+           (when (search-forward-regexp delimiter-regexp nil t)
+             (setf result (point))
+             (1- (line-beginning-position))))
+         (point-max)))
+    result))
 
 (defun ampc-fill-playlist ()
   (ampc-fill-skeleton 'playlist
     (let ((index 0))
       (ampc-iterate-source-output "file" (file)
-        (loop for (tag . tag-properties) in properties
-              collect (ampc-clean-tag tag (with-current-buffer
-                                              data-buffer
-                                            (ampc-extract tag))))
+        (loop for (tag . tag-regexp) in tags
+              collect (ampc-clean-tag tag (ampc-extract tag-regexp)))
         `(("file" . ,file)
           (index . ,(1- (incf index))))
         'ampc-int-insert-cmp
@@ -1715,9 +1722,8 @@ modified."
 (defun ampc-fill-outputs ()
   (ampc-fill-skeleton 'outputs
     (ampc-iterate-source-output "outputid" (outputid outputenabled)
-      (loop for (tag . tag-properties) in properties
-            collect (ampc-clean-tag tag (with-current-buffer data-buffer
-                                          (ampc-extract tag))))
+      (loop for (tag . tag-regexp) in tags
+            collect (ampc-clean-tag tag (ampc-extract tag-regexp)))
       `(("outputid" . ,outputid)
         ("outputenabled" . ,outputenabled)))))
 
@@ -1725,7 +1731,9 @@ modified."
   (ampc-iterate-source
       nil
       "file"
-      (Title Artist (Pos (string-to-number (ampc-extract "Pos"))))
+      (Title
+       Artist
+       (Pos (string-to-number (ampc-extract (ampc-extract-regexp "Pos")))))
     (let ((entry (cons (concat Title
                                (when Artist
                                  (concat " - " Artist)))
@@ -1752,10 +1760,10 @@ modified."
   (ampc-fill-skeleton 'current-playlist
     (ampc-iterate-source-output
         "file"
-        (file (pos (string-to-number (ampc-extract "Pos"))))
-      (loop for (tag . tag-properties) in properties
-            collect (ampc-clean-tag tag (with-current-buffer data-buffer
-                                          (ampc-extract tag))))
+        (file (pos (string-to-number (ampc-extract
+                                      (ampc-extract-regexp "Pos")))))
+      (loop for (tag . tag-regexp) in tags
+            collect (ampc-clean-tag tag (ampc-extract tag-regexp)))
       `(("file" . ,file)
         ("Pos" . ,pos))
       'ampc-int-insert-cmp
@@ -1901,16 +1909,18 @@ modified."
 
 (defun ampc-fill-internal-db-entry (tree tags song-props)
   (loop for tag in tags
-        for data = (ampc-clean-tag tag (ampc-extract tag))
+        for data = (ampc-clean-tag tag (ampc-extract (ampc-extract-regexp tag)))
         do (unless (cdr tree)
              (setf (cdr tree) (ampc-create-tree)))
         (setf tree (avl-tree-enter (cdr tree)
                                    (cons data nil)
                                    (lambda (_ match)
                                      match))))
-  (push (cons (cons "file" (ampc-extract "file"))
+  (push (cons (cons "file" (ampc-extract (ampc-extract-regexp "file")))
               (loop for p in song-props
-                    for data = (ampc-clean-tag (car p) (ampc-extract (car p)))
+                    for data = (ampc-clean-tag (car p)
+                                               (ampc-extract
+                                                (ampc-extract-regexp (car p))))
                     when data
                     collect (cons (car p) data)
                     end))
@@ -2779,7 +2789,8 @@ FILES should be a list of absolute file names, the files to tag."
                          file
                          (loop for tag in ampc-tagger-tags
                                collect
-                               (cons tag (or (ampc-extract (symbol-name tag))
+                               (cons tag (or (ampc-extract (ampc-extract-regexp
+                                                            (symbol-name tag)))
                                              ""))))))
           (run-hook-with-args 'ampc-tagger-grabbed-hook file)
           (progress-reporter-update reporter i))

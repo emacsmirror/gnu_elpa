@@ -55,9 +55,11 @@
 ;; interactively, `ampc' reads host address and port from the minibuffer.  If
 ;; called non-interactively, the first argument to `ampc' is the host, the
 ;; second is the port.  Both values default to nil, which will make ampc connect
-;; to localhost:6600.  Once ampc is connected to the daemon, it creates its
-;; window configuration in the selected window.  To make ampc use the full frame
-;; rather than the selected window, customise `ampc-use-full-frame'.
+;; to localhost:6600.  If the optional third argument is non-nil and ampc is
+;; connected to the daemon, it creates its window configuration in the selected
+;; window.  To make ampc use the full frame rather than the selected window,
+;; customise `ampc-use-full-frame'.  To check whether ampc is connected to the
+;; daemon, call `ampc-is-on-p'.
 ;;
 ;; ampc offers three independent views which expose different parts of the user
 ;; interface.  The current playlist view, the default view at startup, may be
@@ -684,10 +686,6 @@ all the time!"
 
 (defun ampc-quote (string)
   (concat "\"" (replace-regexp-in-string "\"" "\\\"" string) "\""))
-
-(defun ampc-on-p ()
-  (and ampc-connection
-       (member (process-status ampc-connection) '(open run))))
 
 (defun ampc-in-ampc-p ()
   (when (ampc-on-p)
@@ -2037,6 +2035,11 @@ ampc is connected to."
   (run-hooks 'ampc-quit-hook))
 
 ;;;###autoload
+(defun ampc-on-p ()
+  "Return non-nil if ampc is connected to the daemon."
+  (interactive)
+  (and ampc-connection (memq (process-status ampc-connection) '(open run))))
+
 ;;;###autoload
 (defun ampc (&optional host port suspend)
   "ampc is an asynchronous client for the MPD media player.

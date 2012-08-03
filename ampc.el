@@ -1977,7 +1977,8 @@ modified."
                           "song" "playlistlength"))
   (ampc-with-buffer 'current-playlist
     (when ampc-highlight-current-song-mode
-      (font-lock-fontify-buffer))))
+      (font-lock-fontify-buffer)))
+  (run-hook-with-args ampc-status-changed-hook ampc-status))
 
 (defun ampc-handle-update ()
   (message "Database update started"))

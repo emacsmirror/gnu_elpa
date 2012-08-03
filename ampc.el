@@ -1107,7 +1107,7 @@ modified."
         finally return found-changed))
 
 (defun ampc-change-view (view)
-  (if (equal ampc-outstanding-commands '((idle)))
+  (if (equal ampc-outstanding-commands '((idle nil)))
       (ampc-configure-frame (cddr view))
     (message "ampc is busy, cannot change window layout")))
 
@@ -1124,10 +1124,10 @@ modified."
   (ampc-on-files (lambda (file)
                    (if (ampc-playlist)
                        (ampc-send-command 'playlistadd
-                                          t
+                                          '(:keep-prev t)
                                           (ampc-quote (ampc-playlist))
                                           file)
-                     (ampc-send-command 'add t (ampc-quote file)))
+                     (ampc-send-command 'add '(:keep-prev t) (ampc-quote file)))
                    data)))
 
 (defun ampc-on-files (func &optional data)
@@ -1143,15 +1143,17 @@ modified."
                do (ampc-on-files func (cdr (assoc "file" d)))))))
 
 (defun ampc-skip (N)
-  (ampc-send-command 'play
-                     nil
-                     (let ((N N))
-                       (lambda ()
-                         (let ((song (cdr-safe (assq 'song ampc-status))))
-                           (unless song
-                             (throw 'skip nil))
-                           (max 0 (+ (string-to-number song) N))))))
-  (ampc-send-command 'status t))
+  (ampc-send-command
+   'play
+   `(:callback ,(lambda ()
+                  (ampc-send-command 'status '(:front t))))
+   (lambda ()
+     (let ((song (cdr (assq 'song ampc-status)))
+           (playlist-length (cdr (assq 'playlistlength ampc-status))))
+       (unless (and song playlist-length)
+         (throw 'skip nil))
+       (max 0 (min (+ (string-to-number song) N)
+                   (1- (string-to-number playlist-length))))))))
 
 (defun* ampc-find-current-song
     (limit &aux (point (point)) (song (cdr (assq 'song ampc-status))))
@@ -1170,7 +1172,8 @@ modified."
     (setf arg (prefix-numeric-value arg)))
   (ampc-send-command
    'setvol
-   t
+   `(:callback ,(lambda ()
+                  (ampc-send-command 'status '(:front t))))
    (lambda ()
      (unless ampc-status
        (throw 'skip nil))
@@ -1181,15 +1184,15 @@ modified."
                             (or arg ampc-volume-step))
                  arg)
                100)
-          0)))
-  (ampc-send-command 'status t))
+          0))))
 
 (defun ampc-set-crossfade-impl (arg &optional func)
   (when arg
     (setf arg (prefix-numeric-value arg)))
   (ampc-send-command
    'crossfade
-   t
+   `(:callback ,(lambda ()
+                  (ampc-send-command 'status '(:front t))))
    (lambda ()
      (unless ampc-status
        (throw 'skip nil))
@@ -1199,8 +1202,7 @@ modified."
                         (cdr (assq 'xfade ampc-status)))
                        (or arg ampc-crossfade-step))
             arg)
-          0)))
-  (ampc-send-command 'status t))
+          0))))
 
 (defun* ampc-tagger-make-backup (file)
   (unless ampc-tagger-backup-directory
@@ -1254,11 +1256,11 @@ modified."
           do (if (and (not (eq (car ampc-type) 'current-playlist))
                       (ampc-playlist))
                  (ampc-send-command 'playlistmove
-                                    t
+                                    '(:keep-prev t)
                                     (ampc-quote (ampc-playlist))
                                     line
                                     (+ line N))
-               (ampc-send-command 'move t line (+ line N))))
+               (ampc-send-command 'move '(:keep-prev t) line (+ line N))))
     (if with-marks
         (loop for p in (nreverse entries-to-move)
               do (goto-char p)
@@ -1527,58 +1529,85 @@ modified."
     (message "ampc: -> %s" command))
   (process-send-string ampc-connection (concat command "\n")))
 
-(defun ampc-send-command (command &optional unique &rest args)
-  (if (equal command 'idle)
-      (when ampc-working-timer
+(defun* ampc-send-command (command &optional props &rest args)
+  (destructuring-bind (&key (front nil) (callback nil) (keep-prev nil)
+                            (full-remove nil) (remove-other nil)
+                            &aux idle)
+      props
+    (when (and (not keep-prev)
+               (eq (caar ampc-outstanding-commands) command)
+               (equal (cddar ampc-outstanding-commands) args))
+      (return-from ampc-send-command))
+    (unless ampc-working-timer
+      (setf ampc-yield 0
+            ampc-working-timer (run-at-time nil 0.1 'ampc-yield)))
+    (when (equal (caar ampc-outstanding-commands) 'idle)
+      (pop ampc-outstanding-commands)
+      (setf idle t))
+    (when (and (not keep-prev) (cdr ampc-outstanding-commands))
+      (setf (cdr ampc-outstanding-commands)
+            (loop for other-cmd in (cdr ampc-outstanding-commands)
+                  unless (and (memq (car other-cmd) (list command remove-other))
+                              (or (not full-remove)
+                                  (progn
+                                    (assert (null remove-other))
+                                    (equal (cddr other-cmd) args))))
+                  collect other-cmd
+                  end)))
+    (setf command (apply 'list command (list :callback callback) args))
+    (if front
+        (push command ampc-outstanding-commands)
+      (setf ampc-outstanding-commands
+            (nconc ampc-outstanding-commands
+                   (list command))))
+    (when idle
+      (push '(noidle nil) ampc-outstanding-commands)
+      (ampc-send-command-impl "noidle"))))
+
+(defun ampc-send-next-command ()
+  (loop while ampc-outstanding-commands
+        for command =
+        (loop for command = (car ampc-outstanding-commands)
+              for command-id = (replace-regexp-in-string
+                                "^.*?-" ""
+                                (symbol-name (car command)))
+              thereis
+              (catch 'skip
+                (ampc-send-command-impl
+                 (concat command-id
+                         (loop for a in (cddr command)
+                               concat " "
+                               do (when (functionp a)
+                                    (callf funcall a))
+                               concat (etypecase a
+                                        (integer (number-to-string a))
+                                        (string a)))))
+                (let ((callback (plist-get (cadar ampc-outstanding-commands)
+                                           :callback))
+                      (old-head (pop ampc-outstanding-commands)))
+                  (when callback (funcall callback))
+                  (push old-head ampc-outstanding-commands))
+                command-id)
+              do (pop ampc-outstanding-commands)
+              while ampc-outstanding-commands)
+        while command
+        while (let ((member (memq (intern command) ampc-synchronous-commands)))
+                (if member
+                    (not (eq (car ampc-synchronous-commands) t))
+                  (eq (car ampc-synchronous-commands) t)))
+        do (loop with head = ampc-outstanding-commands
+                 with ampc-no-implicit-next-dispatch = t
+                 with ampc-yield-redisplay = t
+                 while (eq head ampc-outstanding-commands)
+                 do (accept-process-output ampc-connection 0 100)))
+  (unless ampc-outstanding-commands
+    (when ampc-working-timer
         (cancel-timer ampc-working-timer)
         (setf ampc-yield nil
               ampc-working-timer nil)
         (ampc-fill-status))
-    (unless ampc-working-timer
-      (setf ampc-yield 0
-            ampc-working-timer (run-at-time nil 0.1 'ampc-yield))))
-  (setf command (apply 'list command args))
-  (when (equal (car-safe ampc-outstanding-commands) '(idle))
-    (setf (car ampc-outstanding-commands) '(noidle))
-    (ampc-send-command-impl "noidle"))
-  (setf ampc-outstanding-commands
-        (nconc (if unique
-                   ampc-outstanding-commands
-                 (delete command ampc-outstanding-commands))
-               (list command))))
-
-(defun ampc-send-next-command ()
-  (loop while ampc-outstanding-commands
-        for command = (replace-regexp-in-string
-                       "^.*?-" ""
-                       (symbol-name (caar ampc-outstanding-commands)))
-        do
-        (loop until (catch 'skip
-                      (ampc-send-command-impl
-                       (concat command
-                               (loop for a in (cdar ampc-outstanding-commands)
-                                     concat " "
-                                     do (when (functionp a)
-                                          (setf a (funcall a)))
-                                     concat (typecase a
-                                              (integer (number-to-string a))
-                                              (t a)))))
-                      t)
-              do (pop ampc-outstanding-commands))
-        while (and ampc-outstanding-commands (not (eq (intern command) 'idle)))
-        while
-        (let ((member (memq (intern command) ampc-synchronous-commands)))
-          (when (or (and (not (eq (car ampc-synchronous-commands) t)) member)
-                    (and (eq (car ampc-synchronous-commands) t) (not member)))
-            (loop with head = ampc-outstanding-commands
-                  with ampc-no-implicit-next-dispatch = t
-                  with ampc-yield-redisplay = t
-                  while (eq head ampc-outstanding-commands)
-                  do (accept-process-output ampc-connection 0 100))
-            t)))
-  (unless ampc-outstanding-commands
-    (ampc-send-command 'idle)
-    (ampc-send-next-command)))
+    (setf ampc-outstanding-commands '((idle nil)))
+    (ampc-send-command-impl "idle")))
 
 (defun ampc-tree< (a b)
   (string< (car a) (car b)))
@@ -1926,19 +1955,24 @@ modified."
                     end))
         (cdr tree)))
 
+(defun ampc-fill-status-var (tags)
+  (loop for k in tags
+        for v = (ampc-extract (ampc-extract-regexp k))
+        for s = (intern k)
+        do (if v
+               (setf (cdr (or (assq s ampc-status)
+                              (car (push (cons s nil) ampc-status))))
+                     v)
+             (callf2 assq-delete-all s ampc-status))))
+
 (defun ampc-handle-current-song ()
-  (loop for k in (append ampc-status-tags '("Artist" "Title" "file"))
-        for s = (ampc-extract k)
-        do (when s
-             (push (cons (intern k) s) ampc-status)))
+  (ampc-fill-status-var (append ampc-status-tags '("Artist" "Title" "file")))
   (ampc-fill-status)
   (run-hook-with-args ampc-status-changed-hook ampc-status))
 
 (defun ampc-handle-status ()
-  (loop for k in '("volume" "repeat" "random" "consume" "xfade" "state" "song")
-        for v = (ampc-extract k)
-        do (when v
-             (push (cons (intern k) v) ampc-status)))
+  (ampc-fill-status-var '("volume" "repeat" "random" "consume" "xfade" "state"
+                          "song" "playlistlength"))
   (ampc-with-buffer 'current-playlist
     (when ampc-highlight-current-song-mode
       (font-lock-fontify-buffer))))
@@ -2577,16 +2611,16 @@ If ARG is 4, stop player rather than pause if applicable."
      (when (or (null arg) (> arg 0))
        (ampc-send-command
         'play
-        nil
+        '(:remove-other (pause))
         (if (and (eq (car ampc-type) 'current-playlist) (not (eobp)))
             (1- (line-number-at-pos))
           0))))
     (pause
      (when (or (null arg) (> arg 0))
-       (ampc-send-command 'pause nil 0)))
+       (ampc-send-command 'pause '(:remove-other (play)) 0)))
     (play
      (cond ((or (null arg) (< arg 0))
-            (ampc-send-command 'pause nil 1))
+            (ampc-send-command 'pause '(:remove-other (play)) 1))
            ((eq arg 4)
             (ampc-send-command 'stop))))))
 
@@ -2614,7 +2648,7 @@ If NEW-NAME is nil, read NEW-NAME from the minibuffer."
                                                  ": "))))
   (assert (ampc-in-ampc-p))
   (if (ampc-playlist)
-      (ampc-send-command 'rename nil (ampc-playlist) new-name)
+      (ampc-send-command 'rename '(:full-remove t) (ampc-quote new-name))
     (message "No playlist selected")))
 
 (defun ampc-load (&optional at-point)
@@ -2624,7 +2658,9 @@ selected), use playlist at point rather than the selected one."
   (interactive)
   (assert (ampc-in-ampc-p))
   (if (ampc-playlist at-point)
-      (ampc-send-command 'load nil (ampc-quote (ampc-playlist at-point)))
+      (ampc-send-command
+       'load '(:keep-prev t)
+       (ampc-quote (ampc-playlist at-point)))
     (if at-point
         (message "No playlist at point")
       (message "No playlist selected"))))
@@ -2639,7 +2675,7 @@ If ARG is omitted, use the selected entries."
       (ampc-send-command (if (equal (cdr (assoc "outputenabled" data)) "1")
                              'disableoutput
                            'enableoutput)
-                         nil
+                         '(:full-remove t)
                          (cdr (assoc "outputid" data))))))
 
 (defun ampc-delete (&optional arg)
@@ -2648,17 +2684,22 @@ If ARG is omitted, use the selected entries.  If ARG is non-nil,
 all marks after point are removed nontheless."
   (interactive "P")
   (assert (ampc-in-ampc-p))
-  (let ((point (point)))
+  (let ((first-del nil))
     (ampc-with-selection arg
-      (let ((val (1- (- (line-number-at-pos) index))))
+      (unless (or first-del (when arg (< arg 0)))
+        (setf first-del (point)))
+      (let ((val (1- (- (line-number-at-pos) (if (or (not arg) (> arg 0))
+                                                 index
+                                               0)))))
         (if (and (not (eq (car ampc-type) 'current-playlist)) (ampc-playlist))
             (ampc-send-command 'playlistdelete
-                               t
+                               '(:keep-prev t)
                                (ampc-quote (ampc-playlist))
                                val)
-          (ampc-send-command 'delete t val))))
-    (goto-char point)
-    (ampc-align-point)))
+          (ampc-send-command 'delete '(:keep-prev t) val))
+        (ampc-mark-impl nil nil)))
+    (when first-del
+      (goto-char first-del))))
 
 (defun ampc-shuffle ()
   "Shuffle playlist."
@@ -2687,7 +2728,8 @@ all marks after point are removed nontheless."
   (interactive)
   (assert (ampc-on-p))
   (if (and (not (eq (car ampc-type) 'current-playlist)) (ampc-playlist))
-      (ampc-send-command 'playlistclear nil (ampc-quote (ampc-playlist)))
+      (ampc-send-command 'playlistclear '(:full-remove t)
+                         (ampc-quote (ampc-playlist)))
     (ampc-send-command 'clear)))
 
 (defun ampc-add (&optional arg)
@@ -2707,8 +2749,8 @@ have enough information yet."
   (interactive)
   (assert (ampc-on-p))
   (unless (or ampc-status no-print)
-    (ampc-send-command 'status t)
-    (ampc-send-command 'mini-currentsong t)
+    (ampc-send-command 'status)
+    (ampc-send-command 'mini-currentsong)
     (return-from ampc-status))
   (let* ((flags (mapconcat
                  'identity
@@ -2751,7 +2793,8 @@ selected), use playlist at point rather than the selected one."
   (assert (ampc-in-ampc-p))
   (if (ampc-playlist at-point)
       (when (y-or-n-p (concat "Delete playlist " (ampc-playlist at-point) "?"))
-        (ampc-send-command 'rm nil (ampc-quote (ampc-playlist at-point))))
+        (ampc-send-command 'rm '(:full-remove t)
+                           (ampc-quote (ampc-playlist at-point))))
     (if at-point
         (message "No playlist at point")
       (message "No playlist selected"))))
@@ -2898,7 +2941,7 @@ playlist name from the minibuffer."
   (unless name-or-append
     (setf name-or-append (read-from-minibuffer "Save playlist as: ")))
   (if (stringp name-or-append)
-      (ampc-send-command 'save nil (ampc-quote name-or-append))
+      (ampc-send-command 'save '(:full-remove t) (ampc-quote name-or-append))
     (if (not (ampc-playlist))
         (message "No playlist selected")
       (ampc-with-buffer 'current-playlist
@@ -2909,7 +2952,7 @@ playlist name from the minibuffer."
                                nil)
           (ampc-send-command
            'playlistadd
-           t
+           '(:keep-prev t)
            (ampc-quote (ampc-playlist))
            (ampc-quote (cdr (assoc "file"
                                    (get-text-property (point) 'data))))))))))
@@ -2969,7 +3012,7 @@ This means subsequent startups of ampc will be faster."
   "Select song to play via `completing-read'."
   (interactive)
   (assert (ampc-on-p))
-  (ampc-send-command 'mini-playlistinfo t))
+  (ampc-send-command 'mini-playlistinfo))
 
 (defun ampc-quit (&optional arg)
   "Quit ampc.
@@ -2978,13 +3021,14 @@ ampc is connected to."
   (interactive "P")
   (when (ampc-on-p)
     (set-process-filter ampc-connection nil)
-    (when (equal (car-safe ampc-outstanding-commands) '(idle))
+    (when (equal (car-safe ampc-outstanding-commands) '(idle nil))
       (ampc-send-command-impl "noidle")
       (with-current-buffer (process-buffer ampc-connection)
         (loop do (goto-char (point-min))
               until (search-forward-regexp "^\\(ACK\\)\\|\\(OK\\).*\n\\'" nil t)
               do (accept-process-output ampc-connection nil 50))))
-    (ampc-send-command-impl (if arg "kill" "close")))
+    (ampc-send-command-impl (if arg "kill" "close"))
+    (delete-process ampc-connection))
   (when ampc-working-timer
     (cancel-timer ampc-working-timer))
   (ampc-suspend nil)

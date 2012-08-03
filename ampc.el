@@ -59,7 +59,7 @@
 ;; connected to the daemon, it creates its window configuration in the selected
 ;; window.  To make ampc use the full frame rather than the selected window,
 ;; customise `ampc-use-full-frame'.  To check whether ampc is connected to the
-;; daemon, call `ampc-is-on-p'.
+;; daemon, call `ampc-is-on-p' and `ampc-suspended-p'.
 ;;
 ;; ampc offers three independent views which expose different parts of the user
 ;; interface.  The current playlist view, the default view at startup, may be
@@ -2033,6 +2033,13 @@ ampc is connected to."
         ampc-outstanding-commands nil
         ampc-status nil)
   (run-hooks 'ampc-quit-hook))
+
+;;;###autoload
+(defun ampc-suspended-p ()
+  "Return non-nil if ampc is suspended."
+  (interactive)
+  (and (ampc-on-p)
+       (not ampc-buffers)))
 
 ;;;###autoload
 (defun ampc-on-p ()

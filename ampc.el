@@ -1486,13 +1486,12 @@ all the time!"
                               (window-height))
               with rest = length
               with rest-car
-              for subsplit in (cdr split)
-              for s = (car subsplit)
-              if (equal s 1.0)
+              for (size . subsplit) in (cdr split)
+              if (equal size 1.0)
               do (push t sizes)
               and do (setf rest-car sizes)
               else
-              do (let ((l (if (integerp s) s (floor (* s length)))))
+              do (let ((l (if (integerp size) size (floor (* size length)))))
                    (setf rest (- rest l))
                    (push l sizes))
               finally do (setf (car rest-car) rest))

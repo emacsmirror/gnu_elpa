@@ -1567,28 +1567,25 @@ all the time!"
              (delete-other-windows))
     (loop with live-window = nil
           for w in (nreverse (ampc-windows t))
-          if (window-live-p w)
-          if (not live-window)
-          do (setf live-window w)
-          else
-          do (delete-window w)
-          end
-          end
+          do (when (window-live-p w)
+               (if (not live-window)
+                   (setf live-window w)
+                 (delete-window w)))
           finally do (if live-window (select-window live-window))))
   (setf ampc-buffers nil)
   (ampc-configure-frame-1 split)
   (setf ampc-buffers-unordered (mapcar 'cdr ampc-buffers)
         ampc-buffers (mapcar 'cdr (sort ampc-buffers
                                         (lambda (a b) (< (car a) (car b))))))
-  (ampc-update)
-  ;; fill the song, current-playlist and outputs buffer again as the tab offsets
-  ;; might have changed
+  ;; fill the song, current-playlist and outputs buffers again as the tab
+  ;; offsets might have changed
   (ampc-with-buffer 'song
     (delete-region (point-min) (point-max)))
   (ampc-with-buffer 'current-playlist
     (delete-region (point-min) (point-max)))
   (ampc-with-buffer 'outputs
-    (delete-region (point-min) (point-max))))
+    (delete-region (point-min) (point-max)))
+  (ampc-update))
 
 (defun ampc-mouse-play-this (event)
   (interactive "e")

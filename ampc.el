@@ -1531,8 +1531,8 @@ modified."
     (process-send-string ampc-connection (concat command "\n"))))
 
 (defun* ampc-send-command (command &optional props &rest args)
-  (destructuring-bind (&key (front nil) (callback nil) (keep-prev nil)
-                            (full-remove nil) (remove-other nil)
+  (destructuring-bind (&key (front nil) (keep-prev nil) (full-remove nil)
+                            (remove-other nil) &allow-other-keys
                             &aux idle)
       props
     (when (and (not keep-prev)
@@ -1555,7 +1555,7 @@ modified."
                                     (equal (cddr other-cmd) args))))
                   collect other-cmd
                   end)))
-    (setf command (apply 'list command (list :callback callback) args))
+    (setf command (apply 'list command props args))
     (if front
         (push command ampc-outstanding-commands)
       (setf ampc-outstanding-commands
@@ -1990,33 +1990,48 @@ modified."
     (case (caar ampc-outstanding-commands)
       (listallinfo (ampc-fill-internal-db t))))
    (t
-    (case (car (pop ampc-outstanding-commands))
-      (idle
-       (ampc-handle-idle))
-      (setup
-       (ampc-handle-setup status))
-      (currentsong
-       (ampc-handle-current-song))
-      (status
-       (ampc-handle-status))
-      (update
-       (ampc-handle-update))
-      (listplaylistinfo
-       (ampc-fill-playlist))
-      (listplaylists
-       (ampc-fill-playlists))
-      (playlistinfo
-       (ampc-fill-current-playlist))
-      (mini-playlistinfo
-       (ampc-mini-impl))
-      (mini-currentsong
-       (ampc-status))
-      (listallinfo
-       (ampc-handle-listallinfo))
-      (outputs
-       (ampc-fill-outputs)))
+    (let ((command (pop ampc-outstanding-commands)))
+      (case (car command)
+        (idle
+         (ampc-handle-idle))
+        (setup
+         (ampc-handle-setup status))
+        (currentsong
+         (ampc-handle-current-song))
+        (status
+         (ampc-handle-status))
+        (update
+         (ampc-handle-update))
+        (listplaylistinfo
+         (ampc-fill-playlist))
+        (listplaylists
+         (ampc-fill-playlists))
+        (playlistinfo
+         (ampc-fill-current-playlist))
+        (mini-playlistinfo
+         (ampc-mini-impl))
+        (mini-currentsong
+         (ampc-status))
+        (shuffle-listplaylistinfo
+         (ampc-shuffle-playlist (plist-get (cadr command) :playlist)))
+        (listallinfo
+         (ampc-handle-listallinfo))
+        (outputs
+         (ampc-fill-outputs))))
     (unless ampc-outstanding-commands
       (ampc-update)))))
+
+(defun* ampc-shuffle-playlist (playlist &aux songs)
+  (ampc-iterate-source nil "file" (file)
+    (push (cons file (random)) songs))
+  (ampc-send-command 'playlistclear '(:full-remove t) (ampc-quote playlist))
+  (loop for file in (mapcar 'car (sort songs
+                                       (lambda (a b) (< (cdr a) (cdr b)))))
+        do (ampc-send-command 'playlistadd
+                              '(:keep-prev t)
+                              (ampc-quote playlist)
+                              file)))
+
 
 (defun ampc-handle-listallinfo ()
   (ampc-fill-internal-db nil)
@@ -2707,23 +2722,11 @@ all marks after point are removed nontheless."
   "Shuffle playlist."
   (interactive)
   (assert (ampc-on-p))
-  (if (not (and (not (eq (car ampc-type) 'current-playlist)) (ampc-playlist)))
-      (ampc-send-command 'shuffle)
-    (ampc-with-buffer 'playlist
-      (let ((shuffled
-             (mapcar 'car
-                     (sort (loop
-                            until (eobp)
-                            collect (cons (cdr (assoc "file" (get-text-property
-                                                              (+ 2 (point))
-                                                              'data)))
-                                          (random))
-                            do (forward-line))
-                           (lambda (a b)
-                             (< (cdr a) (cdr b)))))))
-        (ampc-clear)
-        (loop for s in shuffled
-              do (ampc-add-impl s))))))
+  (if (and (not (eq (car ampc-type) 'current-playlist)) (ampc-playlist))
+      (ampc-send-command 'shuffle-listplaylistinfo
+                         `(:playlist ,(ampc-playlist))
+                         (ampc-quote (ampc-playlist)))
+    (ampc-send-command 'shuffle)))
 
 (defun ampc-clear ()
   "Clear playlist."

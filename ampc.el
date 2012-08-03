@@ -908,8 +908,8 @@ all the time!"
         and do (incf current-offset)
         end
         concat tab
-        do (setf current-offset (+ current-offset (length tab))
-                 first nil)))
+        do (incf current-offset (length tab))
+        (setf first nil)))
 
 (defun ampc-update-header ()
   (setf header-line-format
@@ -1496,27 +1496,25 @@ all the time!"
     (&rest properties &aux (min 2) (optional-padding 0))
   (loop for (title . props) in properties
         for min- = (plist-get props :min)
-        do (setf min (+ min (or (plist-get props :width) min-)))
+        do (incf min (or (plist-get props :width) min-))
         when min-
-        do (setf optional-padding (+ optional-padding
-                                     (- (plist-get props :max) min-)))
+        do (incf optional-padding (- (plist-get props :max) min-))
         end)
   (setf ampc-tab-offsets nil)
   (loop for (title . props) in properties
         with offset = 2
         do (add-to-list 'ampc-tab-offsets offset t)
-        (setf offset
-              (+ offset (or (plist-get props :width)
-                            (let ((min- (plist-get props :min))
-                                  (max (plist-get props :max)))
-                              (if (>= min (window-width))
-                                  min-
-                                (min max
-                                     (+ min-
-                                        (floor (* (/ (float (- max min-))
-                                                     optional-padding)
-                                                  (- (window-width)
-                                                     min))))))))))))
+        (incf offset (or (plist-get props :width)
+                         (let ((min- (plist-get props :min))
+                               (max (plist-get props :max)))
+                           (if (>= min (window-width))
+                               min-
+                             (min max
+                                  (+ min-
+                                     (floor (* (/ (float (- max min-))
+                                                  optional-padding)
+                                               (- (window-width)
+                                                  min)))))))))))
 
 (defun* ampc-configure-frame-1 (split &aux (split-type (car split)))
   (if (member split-type '(vertical horizontal))

@@ -983,7 +983,7 @@ all the time!"
                            nil
                            (get-text-property (point) 'data))
       (ampc-with-buffer 'playlist
-        (delete-region (point-min) (point-max))
+        (erase-buffer)
         (ampc-set-dirty nil)))))
 
 (defun ampc-send-command-impl (command)
@@ -1279,7 +1279,7 @@ all the time!"
 
 (defun ampc-fill-status ()
   (ampc-with-buffer 'status
-    (delete-region (point-min) (point-max))
+    (erase-buffer)
     (funcall (or (plist-get (cadr ampc-type) :filler)
                  (lambda (_)
                    (insert (ampc-status t) "\n")))
@@ -1625,11 +1625,11 @@ all the time!"
   ;; fill the song, current-playlist and outputs buffers again as the tab
   ;; offsets might have changed
   (ampc-with-buffer 'song
-    (delete-region (point-min) (point-max)))
+    (erase-buffer))
   (ampc-with-buffer 'current-playlist
-    (delete-region (point-min) (point-max)))
+    (erase-buffer))
   (ampc-with-buffer 'outputs
-    (delete-region (point-min) (point-max)))
+    (erase-buffer))
   (ampc-update))
 
 (defun ampc-mouse-play-this (event)
@@ -2136,8 +2136,7 @@ default to the ones specified in `ampc-default-server'."
     (let ((connection (open-network-stream "ampc"
                                            (with-current-buffer
                                                (get-buffer-create " *ampc*")
-                                             (delete-region (point-min)
-                                                            (point-max))
+                                             (erase-buffer)
                                              (current-buffer))
                                            host
                                            port

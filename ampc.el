@@ -112,13 +112,14 @@
 
 ;;; *** playlist view
 ;; The playlist view resembles the current playlist view.  The window, which
-;; exposes the playlist content, is split, though.  The bottom half shows a list
-;; of stored playlists.  The upper half does not expose the current playlist
-;; anymore.  Instead, the content of the selected (stored) playlist is shown.
-;; All commands that used to work in the current playlist view and modify the
-;; current playlist now modify the selected (stored) playlist.  The list of
-;; stored playlists is the only view in ampc that may have only one marked
-;; entry.
+;; exposes the playlist content, is replaced by three windows, vertically
+;; arragned, though.  The top one still shows the current playlist.  The bottom
+;; one shows a list of stored playlists.  The middle window exposes the content
+;; of the selected (stored) playlist.  All commands that used to work in the
+;; current playlist view and modify the current playlist now modify the selected
+;; (stored) playlist unless the point is within the current playlist buffer.
+;; The list of stored playlists is the only view in ampc that may have only one
+;; marked entry.
 ;;
 ;; To queue a playlist, press `l' (ampc-load) or `<down-mouse-2>'.  To delete a
 ;; playlist, press `d' (ampc-delete-playlist) or `<down-mouse-3>'.  The command
@@ -384,7 +385,8 @@ all the time!"
        (0.4 vertical
             (6 status)
             (1.0 vertical
-                 (0.8 playlist ,@pl-prop)
+                 (0.4 current-playlist ,@pl-prop)
+                 (0.4 playlist ,@pl-prop)
                  (1.0 playlists)))
        ,rs_a)
       ("Playlist view (Genre|Album|Artist)"
@@ -393,7 +395,8 @@ all the time!"
        (0.4 vertical
             (6 status)
             (1.0 vertical
-                 (0.8 playlist ,@pl-prop)
+                 (0.4 current-playlist ,@pl-prop)
+                 (0.4 playlist ,@pl-prop)
                  (1.0 playlists)))
        ,rs_b)
       ("Outputs view"
@@ -2017,12 +2020,16 @@ With prefix argument ARG, skip ARG songs."
 
 (defun ampc-rename-playlist (new-name)
   "Rename selected playlist to NEW-NAME.
-Interactively, read NEW-NAME from the minibuffer."
-  (interactive "MNew name: ")
+If NEW-NAME is nil, read NEW-NAME from the minibuffer."
+  (interactive "M")
+  (unless new-name
+    (setf new-name (read-from-minibuffer (concat "New name for playlist "
+                                                 (ampc-playlist)
+                                                 ": "))))
   (assert (ampc-in-ampc-p))
   (if (ampc-playlist)
       (ampc-send-command 'rename nil (ampc-playlist) new-name)
-    (error "No playlist selected")))
+    (message "No playlist selected")))
 
 (defun ampc-load (&optional at-point)
   "Load selected playlist in the current playlist.
@@ -2033,8 +2040,8 @@ selected), use playlist at point rather than the selected one."
   (if (ampc-playlist at-point)
       (ampc-send-command 'load nil (ampc-quote (ampc-playlist at-point)))
     (if at-point
-        (error "No playlist at point")
-      (error "No playlist selected"))))
+        (message "No playlist at point")
+      (message "No playlist selected"))))
 
 (defun ampc-toggle-output-enabled (&optional arg)
   "Toggle the next ARG outputs.
@@ -2058,7 +2065,7 @@ all marks after point are removed nontheless."
   (let ((point (point)))
     (ampc-with-selection arg
       (let ((val (1- (- (line-number-at-pos) index))))
-        (if (ampc-playlist)
+        (if (and (not (eq (car ampc-type) 'current-playlist)) (ampc-playlist))
             (ampc-send-command 'playlistdelete
                                t
                                (ampc-quote (ampc-playlist))
@@ -2071,7 +2078,7 @@ all marks after point are removed nontheless."
   "Shuffle playlist."
   (interactive)
   (assert (ampc-on-p))
-  (if (not (ampc-playlist))
+  (if (not (and (not (eq (car ampc-type) 'current-playlist)) (ampc-playlist)))
       (ampc-send-command 'shuffle)
     (ampc-with-buffer 'playlist
       (let ((shuffled
@@ -2093,7 +2100,7 @@ all marks after point are removed nontheless."
   "Clear playlist."
   (interactive)
   (assert (ampc-on-p))
-  (if (ampc-playlist)
+  (if (and (not (eq (car ampc-type) 'current-playlist)) (ampc-playlist))
       (ampc-send-command 'playlistclear nil (ampc-quote (ampc-playlist)))
     (ampc-send-command 'clear)))
 
@@ -2163,12 +2170,34 @@ selected), use playlist at point rather than the selected one."
         (message "No playlist at point")
       (message "No playlist selected"))))
 
-(defun ampc-store (name)
-  "Store current playlist as NAME.
-Interactively, read NAME from the minibuffer."
-  (interactive "MSave playlist as: ")
+(defun ampc-store (&optional name-or-append)
+  "Store current playlist as NAME-OR-APPEND.
+If NAME is non-nil and not a string, append selected entries
+within the current playlist buffer to the selected playlist.  If
+NAME-OR-APPEND is a negative integer, append the next (-
+NAME-OR-APPEND) entries after point within the current playlist
+buffer to the selected playlist.  If NAME-OR-APPEND is nil, read
+playlist name from the minibuffer."
+  (interactive "P")
   (assert (ampc-in-ampc-p))
-  (ampc-send-command 'save nil (ampc-quote name)))
+  (unless name-or-append
+    (setf name-or-append (read-from-minibuffer "Save playlist as: ")))
+  (if (stringp name-or-append)
+      (ampc-send-command 'save nil (ampc-quote name-or-append))
+    (if (not (ampc-playlist))
+        (message "No playlist selected")
+      (ampc-with-buffer 'current-playlist
+        (when name-or-append
+          (callf prefix-numeric-value name-or-append))
+        (ampc-with-selection (if (and name-or-append (< name-or-append 0))
+                                 (- name-or-append)
+                               nil)
+          (ampc-send-command
+           'playlistadd
+           t
+           (ampc-quote (ampc-playlist))
+           (ampc-quote (cdr (assoc "file"
+                                   (get-text-property (point) 'data))))))))))
 
 (defun* ampc-goto-current-song (&aux (song (cdr (assq 'song ampc-status))))
   "Select the current playlist window and move point to the current song."

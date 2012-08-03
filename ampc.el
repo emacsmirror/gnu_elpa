@@ -157,6 +157,7 @@
 ;;
 ;; `y' (ampc-increase-volume): Increase volume.
 ;; `M-y' (ampc-decrease-volume): Decrease volume.
+;; `C-M-y' (ampc-set-volume): Set volume.
 ;; `h' (ampc-increase-crossfade): Increase crossfade.
 ;; `M-h' (ampc-decrease-crossfade): Decrease crossfade.
 ;;
@@ -185,6 +186,7 @@
 ;;      (substitute-ampc-key (kbd "z") (kbd "Z"))
 ;;      (substitute-ampc-key (kbd "y") (kbd "z"))
 ;;      (substitute-ampc-key (kbd "M-y") (kbd "M-z"))
+;;      (substitute-ampc-key (kbd "C-M-y") (kbd "C-M-z"))
 ;;      (substitute-ampc-key (kbd "<") (kbd ";"))))
 ;;
 ;; If ampc is suspended, you can still use every interactive command that does
@@ -265,6 +267,11 @@ in `ampc-status-changed-hook'.  Each element may be a string that
 specifies a tag that is returned by MPD's `currentsong'
 command."
   :type '(list symbol))
+
+(defcustom ampc-volume-step 5
+  "Default step of `ampc-increase-volume' and
+`ampc-decrease-volume' to change the volume."
+  :type 'integer)
 
 ;;; **** hooks
 (defcustom ampc-before-startup-hook nil
@@ -413,6 +420,7 @@ all the time!"
     (define-key map (kbd "D") 'ampc-delete-playlist)
     (define-key map (kbd "y") 'ampc-increase-volume)
     (define-key map (kbd "M-y") 'ampc-decrease-volume)
+    (define-key map (kbd "C-M-y") 'ampc-set-volume)
     (define-key map (kbd "h") 'ampc-increase-crossfade)
     (define-key map (kbd "M-h") 'ampc-decrease-crossfade)
     (define-key map (kbd "e") 'ampc-toggle-repeat)
@@ -525,6 +533,7 @@ all the time!"
     "--"
     ["Increase volume" ampc-increase-volume]
     ["Decrease volume" ampc-decrease-volume]
+    ["Set volume" ampc-set-volume]
     ["Increase crossfade" ampc-increase-crossfade]
     ["Decrease crossfade" ampc-decrease-crossfade]
     ["Toggle repeat" ampc-toggle-repeat
@@ -753,18 +762,22 @@ all the time!"
       (narrow-to-region (max point (point)) (min limit (line-end-position)))
       (search-forward-regexp "\\(?1:\\(\\`\\*\\)?\\)\\(?2:.*\\)$"))))
 
-(defun ampc-set-volume (arg func)
-  (when (or arg ampc-status)
+(defun ampc-setvol (arg &optional func)
+  (when ampc-status
+    (when arg
+      (setf arg (prefix-numeric-value arg)))
     (ampc-send-command
      'setvol
      nil
-     (or (and arg (prefix-numeric-value arg))
-         (max (min (funcall func
+     (max (min (if func
+                   (funcall func
                             (string-to-number
                              (cdr (assq 'volume ampc-status)))
-                            5)
-                   100)
-              0)))))
+                            (or arg ampc-volume-step))
+                 arg)
+               100)
+          0))
+    (ampc-send-command 'status)))
 
 (defun ampc-set-crossfade (arg func)
   (when (or arg ampc-status)
@@ -1747,19 +1760,26 @@ ARG defaults to 1."
   (assert (ampc-in-ampc-p))
   (ampc-mark-impl nil arg))
 
-(defun ampc-increase-volume (&optional arg)
-  "Decrease volume.
-With prefix argument ARG, set volume to ARG percent."
+(defun ampc-set-volume (&optional arg)
+  "Set volume to ARG percent.
+If ARG is nil, read ARG from minibuffer."
   (interactive "P")
   (assert (ampc-on-p))
-  (ampc-set-volume arg '+))
+  (ampc-setvol (or arg (read-number "Volume: "))))
+
+(defun ampc-increase-volume (&optional arg)
+  "Increase volume by prefix argument ARG or, if ARG is nil,
+`ampc-volume-step'."
+  (interactive "P")
+  (assert (ampc-on-p))
+  (ampc-setvol arg '+))
 
 (defun ampc-decrease-volume (&optional arg)
-  "Decrease volume.
-With prefix argument ARG, set volume to ARG percent."
+  "Decrease volume by prefix argument ARG or, if ARG is nil,
+`ampc-volume-step'."
   (interactive "P")
   (assert (ampc-on-p))
-  (ampc-set-volume arg '-))
+  (ampc-setvol arg '-))
 
 (defun ampc-increase-crossfade (&optional arg)
   "Increase crossfade.

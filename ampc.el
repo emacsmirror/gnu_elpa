@@ -402,8 +402,7 @@ all the time!"
 (defvar ampc-yield nil)
 (defvar ampc-yield-redisplay nil)
 
-(defvar ampc-buffers nil)
-(defvar ampc-buffers-unordered nil)
+(defvar ampc-windows nil)
 (defvar ampc-all-buffers nil)
 
 (defvar ampc-type nil)
@@ -608,24 +607,24 @@ all the time!"
 (defmacro ampc-with-buffer (type &rest body)
   (declare (indent 1) (debug t))
   `(let* ((type- ,type)
-          (b (loop for b in ampc-buffers
-                   when (with-current-buffer b
-                          (etypecase type-
-                            (window
-                             (eq (window-buffer type-)
-                                 (current-buffer)))
-                            (symbol
-                             (eq (car ampc-type) type-))))
-                   return b
-                   end)))
-     (when b
-       (with-current-buffer b
-         (let ((buffer-read-only))
-           ,@(if (eq (car body) 'no-se)
-                 (cdr body)
-               `((save-excursion
-                   (goto-char (point-min))
-                   ,@body))))))))
+          (w (if (windowp type-)
+                 type-
+               (loop for w in (ampc-normalize-windows)
+                     thereis (when (with-current-buffer
+                                       (window-buffer w)
+                                     (etypecase type-
+                                       (symbol (eq (car ampc-type) type-))
+                                       (cons (equal ampc-type type-))))
+                               w)))))
+     (when w
+       (with-selected-window w
+         (with-current-buffer (window-buffer w)
+           (let ((inhibit-read-only t))
+             ,@(if (eq (car body) 'no-se)
+                   (cdr body)
+                 `((save-excursion
+                     (goto-char (point-min))
+                     ,@body)))))))))
 
 (defmacro ampc-fill-skeleton (tag &rest body)
   (declare (indent 1) (debug t))
@@ -722,6 +721,35 @@ all the time!"
               (2 'ampc-current-song-marked-face)))))
 
 ;;; *** internal functions
+(defun ampc-normalize-windows ()
+  (setf ampc-windows
+        (loop for (window . buffer) in ampc-windows
+              collect (cons (if (and (window-live-p window)
+                                     (eq (window-buffer window) buffer))
+                                window
+                              (get-buffer-window buffer))
+                            buffer)))
+  (delq nil (mapcar 'car ampc-windows)))
+
+(defun ampc-restore-window-configuration ()
+  (let ((windows
+          (sort (delq nil
+                      (mapcar (lambda (w)
+                                (when (eq (window-frame w)
+                                          (selected-frame))
+                                  w))
+                              (ampc-normalize-windows)))
+                (lambda (w1 w2)
+                  (loop for w in (window-list nil nil (frame-first-window))
+                        do (when (eq w w1)
+                             (return t))
+                        (when (eq w w2)
+                          (return nil)))))))
+    (when windows
+      (setf (window-dedicated-p (car windows)) nil)
+      (loop for w in (cdr windows)
+            do (delete-window w)))))
+
 (defun ampc-change-view (view)
   (if (equal ampc-outstanding-commands '((idle)))
       (ampc-configure-frame (cddr view))
@@ -924,17 +952,20 @@ all the time!"
     (playlists
      (ampc-update-playlist))
     ((song tag)
-     (loop for w in (ampc-windows)
-           with found
-           when found
-           do (with-current-buffer (window-buffer w)
-                (when (member (car ampc-type) '(song tag))
-                  (ampc-set-dirty t)))
-           end
-           if (eq w (selected-window))
-           do (setf found t)
-           end)
-     (ampc-fill-tag-song))))
+     (loop
+      for w in
+      (loop for w on (ampc-normalize-windows)
+            thereis (when (or (eq (car w) (selected-window))
+                              (and (eq (car ampc-type) 'tag)
+                                   (eq (with-current-buffer
+                                           (window-buffer (car w))
+                                         (car ampc-type))
+                                       'song)))
+                      (cdr w)))
+      do (with-current-buffer (window-buffer w)
+           (when (memq (car ampc-type) '(song tag))
+             (ampc-set-dirty t))))
+     (ampc-fill-tag-song))
 
 (defun ampc-align-point ()
   (unless (eobp)
@@ -1018,9 +1049,9 @@ all the time!"
 
 (defun ampc-update ()
   (if ampc-status
-      (loop for b in ampc-buffers
-            do (with-current-buffer b
-                 (when ampc-dirty
+      (loop for w in (ampc-normalize-windows)
+            do (with-current-buffer (window-buffer w)
+                 (when (and ampc-dirty (not (eq ampc-dirty 'keep-dirty)))
                    (ecase (car ampc-type)
                      (outputs
                       (ampc-send-command 'outputs))
@@ -1417,7 +1448,20 @@ all the time!"
                    "and later"))))
 
 (defun ampc-fill-internal-db (running)
-  (loop for origin = (and (search-forward-regexp "^file: " nil t)
+  (loop with tree = (assoc (ampc-tags) ampc-internal-db)
+        with tags =
+        (loop for w in (ampc-normalize-windows)
+              for props = (with-current-buffer (window-buffer w)
+                            (when (eq (car ampc-type) 'tag)
+                              (ampc-set-dirty t)
+                              (plist-get (cdr ampc-type) :tag)))
+              when props
+              collect props
+              end)
+        with song-props = (ampc-with-buffer 'song
+                            (ampc-set-dirty t)
+                            (plist-get (cdr ampc-type) :properties))
+        for origin = (and (search-forward-regexp "^file: " nil t)
                           (line-beginning-position))
         then next
         while origin
@@ -1427,13 +1471,13 @@ all the time!"
         while (or (not running) next)
         do (save-restriction
              (narrow-to-region origin (or next (point-max)))
-             (ampc-fill-internal-db-entry))
-        do (when running
-             (delete-region origin next)
-             (setf next origin))))
+             (ampc-fill-internal-db-entry tree tags song-props))
+        (when running
+          (delete-region origin next)
+          (setf next origin))))
 
 (defun ampc-tags ()
-  (loop for w in (ampc-windows)
+  (loop for w in (ampc-normalize-windows)
         for tag = (with-current-buffer (window-buffer w)
                     (when (eq (car ampc-type) 'tag)
                       (plist-get (cdr ampc-type) :tag)))
@@ -1441,33 +1485,22 @@ all the time!"
         collect tag
         end))
 
-(defun ampc-fill-internal-db-entry ()
-  (loop
-   with data-buffer = (current-buffer)
-   with tree = (assoc (ampc-tags) ampc-internal-db)
-   for w in (ampc-windows)
-   do
-   (with-current-buffer (window-buffer w)
-     (ampc-set-dirty t)
-     (ecase (car ampc-type)
-       (tag
-        (let ((data (or (ampc-extract (cdr ampc-type) data-buffer)
-                        "[Not Specified]")))
-          (unless (cdr tree)
-            (setf (cdr tree) (ampc-create-tree)))
-          (setf tree (avl-tree-enter (cdr tree)
-                                     `(,data . nil)
-                                     (lambda (data match)
-                                       match)))))
-       (song
-        (push (loop for p in `(("file")
-                               ,@(plist-get (cdr ampc-type) :properties))
-                    for data = (ampc-extract (car p) data-buffer)
+(defun ampc-fill-internal-db-entry (tree tags song-props)
+  (loop for tag in tags
+        for data = (ampc-clean-tag tag (ampc-extract tag))
+        do (unless (cdr tree)
+             (setf (cdr tree) (ampc-create-tree)))
+        (setf tree (avl-tree-enter (cdr tree)
+                                   (cons data nil)
+                                   (lambda (_ match)
+                                     match))))
+  (push (cons (cons "file" (ampc-extract "file"))
+              (loop for p in song-props
+                    for data = (ampc-clean-tag (car p) (ampc-extract (car p)))
                     when data
-                    collect `(,(car p) . ,data)
-                    end)
-              (cdr tree))
-        (return))))))
+                    collect (cons (car p) data)
+                    end))
+        (cdr tree)))
 
 (defun ampc-handle-current-song ()
   (loop for k in (append ampc-status-tags '("Artist" "Title" "file"))
@@ -1566,20 +1599,6 @@ all the time!"
                 (ampc-send-next-command))))
         (ampc-handle-command 'running)))))
 
-;;; **** window management
-(defun ampc-windows (&optional unordered)
-  (loop for f being the frame
-        thereis (loop for w being the windows of f
-                      when (eq (window-buffer w) (car-safe ampc-buffers))
-                      return (loop for b in (if unordered
-                                                ampc-buffers-unordered
-                                              ampc-buffers)
-                                   collect
-                                   (loop for w being the windows of f
-                                         thereis (and (eq (window-buffer w)
-                                                          b)
-                                                      w))))))
-
 (defun* ampc-set-tab-offsets
     (&rest properties &aux (min 2) (optional-padding 0))
   (unless properties
@@ -1610,15 +1629,15 @@ all the time!"
   (if (memq split-type '(vertical horizontal))
       (let* ((sizes))
         (loop with length = (if (eq split-type 'horizontal)
-                                (window-width)
-                              (window-height))
+                                (window-total-width)
+                              (window-total-height))
               with rest = length
               with rest-car
               for (size . subsplit) in (cdr split)
               do (if (equal size 1.0)
                      (progn (push t sizes)
                             (setf rest-car sizes))
-                   (let ((l (if (integerp size) size (floor (* size length)))))
+                   (let ((l (if (integerp size) size (round (* size length)))))
                      (decf rest l)
                      (push l sizes)))
               finally do (setf (car rest-car) rest))
@@ -1674,37 +1693,50 @@ all the time!"
                      result))))
     (ampc-update-header)
     (add-to-list 'ampc-all-buffers (current-buffer))
-    (push `(,(or (plist-get (cdr split) :id)
-                 (if (eq (car ampc-type) 'song) 9998 9999))
-            . ,(current-buffer))
-          ampc-buffers)
-    (ampc-set-dirty t)))
+    (push (cons (or (plist-get (cdr split) :id) 9999) (selected-window))
+          ampc-windows)
+    (ampc-set-dirty t)
+    (when (plist-get (cdr split) :select)
+      (selected-window))))
 
-(defun ampc-configure-frame (split)
-  (if ampc-use-full-frame
-      (progn (setf (window-dedicated-p (selected-window)) nil)
-             (delete-other-windows))
-    (loop with live-window = nil
-          for w in (nreverse (ampc-windows t))
-          do (when (window-live-p w)
-               (if (not live-window)
-                   (setf live-window w)
-                 (delete-window w)))
-          finally do (if live-window (select-window live-window))))
-  (setf ampc-buffers nil)
-  (ampc-configure-frame-1 split)
-  (setf ampc-buffers-unordered (mapcar 'cdr ampc-buffers)
-        ampc-buffers (mapcar 'cdr (sort ampc-buffers
-                                        (lambda (a b) (< (car a) (car b))))))
-  ;; fill the song, current-playlist and outputs buffers again as the tab
-  ;; offsets might have changed
-  (ampc-with-buffer 'song
-    (erase-buffer))
-  (ampc-with-buffer 'current-playlist
-    (erase-buffer))
-  (ampc-with-buffer 'outputs
-    (erase-buffer))
-  (ampc-update))
+(defun* ampc-configure-frame
+    (split &optional no-update &aux (old-selection ampc-type) old-window-starts)
+  (loop for w in (ampc-normalize-windows)
+        do (with-selected-window w
+             (with-current-buffer (window-buffer w)
+               (push (cons (current-buffer) (window-start))
+                     old-window-starts))))
+  (if (not ampc-use-full-frame)
+      (ampc-restore-window-configuration)
+    (setf (window-dedicated-p (selected-window)) nil)
+    (delete-other-windows))
+  (setf ampc-windows nil)
+  (let ((select-window (ampc-configure-frame-1 split)))
+    (setf ampc-windows
+          (mapcar (lambda (window)
+                    (cons window (window-buffer window)))
+                  (mapcar 'cdr (sort ampc-windows
+                                     (lambda (a b) (< (car a) (car b)))))))
+    (loop for w in (ampc-normalize-windows)
+          do (with-selected-window w
+               (let ((old-window-start (cdr (assq (current-buffer)
+                                                  old-window-starts))))
+                 (when old-window-start
+                   (set-window-start nil old-window-start)))
+               (when (and (derived-mode-p 'ampc-item-mode)
+                          (> (length tab-stop-list) 1))
+                 (ampc-set-dirty 'erase))))
+    (select-window (or (loop for w in (ampc-normalize-windows)
+                             thereis
+                             (when (equal (with-current-buffer (window-buffer w)
+                                            ampc-type)
+                                          old-selection)
+                               w))
+                       select-window
+                       (selected-window))))
+  (unless no-update
+    (ampc-update)))
+
 (defun ampc-move-to-tab ()
   "Move point to next logical tab stop."
   (interactive)
@@ -2150,17 +2182,11 @@ This means subsequent startups of ampc will be faster."
   (interactive)
   (when ampc-working-timer
     (cancel-timer ampc-working-timer))
-  (loop with found-window
-        for w in (nreverse (ampc-windows t))
-        do (when (window-live-p w)
-             (if found-window
-                 (delete-window w)
-               (setf found-window t
-                     (window-dedicated-p w) nil))))
+  (ampc-restore-window-configuration)
   (loop for b in ampc-all-buffers
         do (when (buffer-live-p b)
              (kill-buffer b)))
-  (setf ampc-buffers nil
+  (setf ampc-windows nil
         ampc-all-buffers nil
         ampc-working-timer nil)
   (when run-hook
@@ -2199,8 +2225,7 @@ ampc is connected to."
 (defun ampc-suspended-p ()
   "Return non-nil if ampc is suspended."
   (interactive)
-  (and (ampc-on-p)
-       (not ampc-buffers)))
+  (and (ampc-on-p) (not ampc-windows)))
 
 ;;;###autoload
 (defun ampc-on-p ()

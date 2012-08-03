@@ -1222,7 +1222,7 @@ all the time!"
                  (ampc-insert playlist playlist))))))
 
 (defun ampc-yield ()
-  (setf ampc-yield (1+ ampc-yield))
+  (incf ampc-yield)
   (ampc-fill-status))
 
 (defun ampc-fill-status ()

@@ -406,9 +406,6 @@ all the time!"
 (defvar ampc-buffers-unordered nil)
 (defvar ampc-all-buffers nil)
 
-(defvar ampc-tab-offsets nil)
-(make-variable-buffer-local 'ampc-tab-offsets)
-
 (defvar ampc-type nil)
 (make-variable-buffer-local 'ampc-type)
 (defvar ampc-dirty nil)
@@ -459,10 +456,11 @@ all the time!"
     (define-key map (kbd "U") 'ampc-unmark-all)
     (define-key map (kbd "n") 'ampc-next-line)
     (define-key map (kbd "p") 'ampc-previous-line)
-    (define-key map [remap next-line] 'ampc-next-line)
-    (define-key map [remap previous-line] 'ampc-previous-line)
     (define-key map (kbd "<down-mouse-1>") 'ampc-mouse-toggle-mark)
     (define-key map (kbd "<mouse-1>") 'ampc-mouse-align-point)
+    (define-key map [remap next-line] 'ampc-next-line)
+    (define-key map [remap previous-line] 'ampc-previous-line)
+    (define-key map [remap tab-to-tab-stop] 'ampc-move-to-tab)
     map))
 
 (defvar ampc-current-playlist-mode-map
@@ -941,28 +939,55 @@ all the time!"
 (defun ampc-align-point ()
   (unless (eobp)
     (move-beginning-of-line nil)
-(defun* ampc-pad (tabs &optional (sub 0))
-  (loop for tab in tabs
-        for offset in ampc-tab-offsets
-        do (setf offset (- offset sub))
     (forward-char 2)
     (re-search-forward " *" nil t)))
 
+(defun* ampc-pad (tabs &optional dont-honour-item-mode)
+  (loop with new-tab-stop-list
+        with offset-dec = (if (and (not dont-honour-item-mode)
+                                   (derived-mode-p 'ampc-item-mode))
+                              2
+                            0)
+        for tab in tabs
+        for offset-cell on (if (derived-mode-p 'ampc-item-mode)
+                               tab-stop-list
+                             (cons 0 tab-stop-list))
+        for offset = (car offset-cell)
+        for props in (or (plist-get (cdr ampc-type) :properties)
+                         '(nil . nil))
+        by (lambda (cell) (or (cdr cell) '(nil . nil)))
+        do (decf offset offset-dec)
         with first = t
         with current-offset = 0
         when (<= current-offset offset)
-        when (and (not first) (eq (- offset current-offset) 0))
-        do (incf offset)
-        end
-        and concat (make-string (- offset current-offset) ? )
+        do (when (and (not first) (eq (- offset current-offset) 0))
+             (incf offset))
+        and concat (make-string (- offset current-offset) ? ) into result
         and do (setf current-offset offset)
         else
-        concat " "
+        concat " " into result
         and do (incf current-offset)
         end
-        concat tab
-        do (incf current-offset (length tab))
-        (setf first nil)))
+        do (unless tab
+             (setf tab ""))
+        (when (and (plist-get (cdr props) :shrink)
+                   (cadr offset-cell)
+                   (>= (+ current-offset (length tab) 1) (- (cadr offset-cell)
+                                                            offset-dec)))
+          (setf tab (concat (substring tab 0 (max (- (cadr offset-cell)
+                                                     offset-dec
+                                                     current-offset
+                                                     4)
+                                                  3))
+                            "...")))
+        concat tab into result
+        do (push (+ current-offset offset-dec) new-tab-stop-list)
+        (incf current-offset (length tab))
+        (setf first nil)
+        finally return
+        (if (equal (callf nreverse new-tab-stop-list) tab-stop-list)
+            result
+          (propertize result 'tab-stop-list new-tab-stop-list))))
 
 (defun ampc-update-header ()
   (setf header-line-format
@@ -977,9 +1002,10 @@ all the time!"
              (playlists
               "  Playlists")
              (t
-              (ampc-pad (loop for p in (plist-get (cdr ampc-type) :properties)
-                              collect (or (plist-get (cdr p) :title)
-                                          (car p))))))))))
+              (ampc-pad (loop for (name . props) in
+                              (plist-get (cdr ampc-type) :properties)
+                              collect (or (plist-get props :title) name))
+                        t)))))))
 
 (defun ampc-set-dirty (tag-or-dirty &optional dirty)
   (if (or (null tag-or-dirty) (eq tag-or-dirty t))
@@ -1170,8 +1196,7 @@ all the time!"
             do (ampc-insert
                 (ampc-pad
                  (loop for (p . v) in (plist-get (cdr ampc-type) :properties)
-                       collect (or (cdr (assoc p song)) ""))
-                 2)
+                       collect (cdr (assoc p song))))
                 `((,song))))))
 
 (defun* ampc-narrow-entry (&optional (delimiter "file") &aux result)
@@ -1557,16 +1582,17 @@ all the time!"
 
 (defun* ampc-set-tab-offsets
     (&rest properties &aux (min 2) (optional-padding 0))
+  (unless properties
+    (return-from ampc-set-tab-offsets))
+  (set (make-local-variable 'tab-stop-list) nil)
   (loop for (title . props) in properties
         for min- = (plist-get props :min)
         do (incf min (or (plist-get props :width) min-))
-        when min-
-        do (incf optional-padding (- (plist-get props :max) min-))
-        end)
-  (setf ampc-tab-offsets nil)
+        (when min-
+          (incf optional-padding (- (plist-get props :max) min-))))
   (loop for (title . props) in properties
         with offset = 2
-        do (add-to-list 'ampc-tab-offsets offset t)
+        do (push offset tab-stop-list)
         (incf offset (or (plist-get props :width)
                          (let ((min- (plist-get props :min))
                                (max (plist-get props :max)))
@@ -1577,7 +1603,8 @@ all the time!"
                                      (floor (* (/ (float (- max min-))
                                                   optional-padding)
                                                (- (window-width)
-                                                  min)))))))))))
+                                                  min))))))))))
+  (callf nreverse tab-stop-list))
 
 (defun* ampc-configure-frame-1 (split &aux (split-type (car split)))
   (if (memq split-type '(vertical horizontal))
@@ -1645,6 +1672,7 @@ all the time!"
                    (if (< (length result) 12)
                        (concat result (make-string (- 12 (length result)) ? ))
                      result))))
+    (ampc-update-header)
     (add-to-list 'ampc-all-buffers (current-buffer))
     (push `(,(or (plist-get (cdr split) :id)
                  (if (eq (car ampc-type) 'song) 9998 9999))
@@ -1677,6 +1705,15 @@ all the time!"
   (ampc-with-buffer 'outputs
     (erase-buffer))
   (ampc-update))
+(defun ampc-move-to-tab ()
+  "Move point to next logical tab stop."
+  (interactive)
+  (let ((tab (loop for tab in
+                   (or (get-text-property (point) 'tab-stop-list) tab-stop-list)
+                   while (>= (current-column) tab)
+                   finally return tab)))
+    (when tab
+      (goto-char (min (+ (line-beginning-position) tab) (line-end-position))))))
 
 (defun ampc-mouse-play-this (event)
   (interactive "e")

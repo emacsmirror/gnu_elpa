@@ -1,4 +1,4 @@
-;;; ampc.el --- Asynchronous Music Player Controller
+;;; ampc.el --- Asynchronous Music Player Controller -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2011-2012 Free Software Foundation, Inc.
 
@@ -2204,7 +2204,6 @@ default to the ones specified in `ampc-default-server'."
 ;; Local Variables:
 ;; eval: (outline-minor-mode 1)
 ;; outline-regexp: ";;; \\*+"
-;; lexical-binding: t
 ;; fill-column: 80
 ;; indent-tabs-mode: nil
 ;; End:

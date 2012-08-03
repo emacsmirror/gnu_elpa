@@ -171,6 +171,7 @@
 ;;
 ;; `P' (ampc-goto-current-song): Select the current playlist window and move
 ;; point to the current song.
+;; `G' (ampc-mini): Select song to play via `completing-read'.
 ;;
 ;; `T' (ampc-trigger-update): Trigger a database update.
 ;; `Z' (ampc-suspend): Suspend ampc.
@@ -385,6 +386,7 @@ all the time!"
     (define-key map (kbd "r") 'ampc-toggle-random)
     (define-key map (kbd "f") 'ampc-toggle-consume)
     (define-key map (kbd "P") 'ampc-goto-current-song)
+    (define-key map (kbd "G") 'ampc-mini)
     (define-key map (kbd "q") 'ampc-quit)
     (define-key map (kbd "z") 'ampc-suspend)
     (define-key map (kbd "T") 'ampc-trigger-update)
@@ -969,13 +971,13 @@ all the time!"
 (defun ampc-send-next-command ()
   (unless ampc-outstanding-commands
     (ampc-send-command 'idle))
-  (ampc-send-command-impl (concat (symbol-name (caar ampc-outstanding-commands))
-                                  (loop for a in
-                                        (cdar ampc-outstanding-commands)
-                                        concat " "
-                                        concat (cond ((integerp a)
-                                                      (number-to-string a))
-                                                     (t a))))))
+  (ampc-send-command-impl
+   (concat (replace-regexp-in-string
+            "^.*-" "" (symbol-name (caar ampc-outstanding-commands)))
+           (loop for a in (cdar ampc-outstanding-commands)
+                 concat " "
+                 concat (cond ((integerp a) (number-to-string a))
+                              (t a))))))
 
 (defun ampc-tree< (a b)
   (string< (car a) (car b)))
@@ -1139,14 +1141,43 @@ all the time!"
                              `(("outputid" . ,outputid)
                                ("outputenabled" . ,outputenabled))))))))))
 
+(defun* ampc-mini-impl (&aux songs)
+  (loop with next
+        while (or (when next (goto-char next) t)
+                  (search-forward-regexp "^file: " nil t))
+        for entry = (save-restriction
+                      (setf next (ampc-narrow-entry))
+                      `(,(concat (ampc-extract "Title") " - "
+                                 (ampc-extract "Artist"))
+                        . ,(string-to-number (ampc-extract "Pos"))))
+        do (loop with mentry = `(,(car entry) . ,(cdr entry))
+                 for index from 2
+                 while (assoc (car mentry) songs)
+                 do (setf (car mentry) (concat (car entry)
+                                               " (" (int-to-string index) ")"))
+                 finally do (push mentry songs)))
+  (unless songs
+    (message "No song in the playlist")
+    (return-from ampc-mini-impl))
+  (let ((song (assoc (let ((inhibit-quit t))
+                       (prog1
+                           (with-local-quit
+                             (completing-read "Song to play: " songs nil t))
+                         (setf quit-flag nil)))
+                     songs)))
+    (when song
+      (ampc-play-this (cdr song)))))
+
 (defun* ampc-fill-current-playlist (&aux properties)
   (ampc-fill-skeleton 'current-playlist
     (setf properties (plist-get (cdr ampc-type) :properties))
     (with-current-buffer data-buffer
       (loop
-       while (search-forward-regexp "^file: " nil t)
+       with next
+       while (or (when next (goto-char next) t)
+                 (search-forward-regexp "^file: " nil t))
        do (save-restriction
-            (ampc-narrow-entry)
+            (setf next (ampc-narrow-entry))
             (let ((file (ampc-extract "file"))
                   (pos (ampc-extract "Pos")))
               (ampc-with-buffer 'current-playlist
@@ -1352,6 +1383,8 @@ all the time!"
        (ampc-fill-playlists))
       (playlistinfo
        (ampc-fill-current-playlist))
+      (mini-playlistinfo
+       (ampc-mini-impl))
       (listallinfo
        (ampc-fill-internal-db nil))
       (outputs
@@ -1693,12 +1726,17 @@ otherwise disable it."
   (interactive "P")
   (ampc-toggle-state 'random arg))
 
-(defun ampc-play-this ()
-  "Play selected song."
-  (interactive)
-  (assert (ampc-in-ampc-p))
-  (unless (eobp)
-    (ampc-send-command 'play nil (1- (line-number-at-pos)))
+(defun ampc-play-this (&optional arg)
+  "Play selected song.
+With prefix argument ARG, play the ARG'th song located at the
+zero-indexed position of the current playlist."
+  (interactive "P")
+  (assert (and (ampc-on-p) (or arg (ampc-in-ampc-p))))
+  (if (not arg)
+      (unless (eobp)
+        (ampc-send-command 'play nil (1- (line-number-at-pos)))
+        (ampc-send-command 'pause nil 0))
+    (ampc-send-command 'play nil arg)
     (ampc-send-command 'pause nil 0)))
 
 (defun* ampc-toggle-play
@@ -1944,6 +1982,12 @@ This means subsequent startups of ampc will be faster."
         ampc-working-timer nil)
   (when run-hook
     (run-hooks 'ampc-suspend-hook)))
+
+(defun ampc-mini ()
+  "Select song to play via `completing-read'."
+  (interactive)
+  (assert (ampc-on-p))
+  (ampc-send-command 'mini-playlistinfo t))
 
 (defun ampc-quit (&optional arg)
   "Quit ampc.

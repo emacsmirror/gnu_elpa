@@ -40,6 +40,31 @@
 ;; Byte-compile ampc (M-x byte-compile-file RET /path/to/ampc.el RET) to improve
 ;; its performance!
 
+;;; *** tagger
+;; ampc is not only a frontend to MPD but also a full-blown audio file tagger.
+;; To use this feature you have to build the backend application, `ampc_tagger',
+;; which in turn uses TagLib (http://taglib.github.com/), a dual-licended
+;; (LGPL/MPL) audio meta-data library written in C++.  TagLib has no
+;; dependencies on its own.
+;;
+;; To build `ampc_tagger', locate ampc_tagger.cpp.  The file can be found in the
+;; directory in which this file, ampc.el, is located.  Compile the file and
+;; either customize `ampc-tagger-executable' to point to the binary file or move
+;; the executable in a suitable directory so Emacs finds it via consulting
+;; `exec-path'.
+;;
+;; g++ -O2 ampc_tagger.cpp -oampc_tagger -ltag && sudo cp ampc_tagger /usr/local/bin && rm ampc_tagger
+;;
+;; You have to customize `ampc-tagger-music-directories' in order to use the
+;; tagger.  This variable should be a list of directories in which your music
+;; files are located.  Usually this list should have only one entry, the value
+;; of your mpd.conf's `music_directory'.
+;;
+;; If `ampc-tagger-backup-directory' is non-nil, the tagger saved copies of all
+;; files that are about to be modified to this directory.  Emacs's regular
+;; numeric backup filename syntax is used for the backup file names.  By default
+;; `ampc-tagger-backup-directory' is set to "~/.emacs.d/ampc-backups/".
+
 ;;; ** usage
 ;; To invoke ampc call the command `ampc', e.g. via M-x ampc RET.  The first
 ;; argument to `ampc' is the host, the second is the port.  Both values default
@@ -133,10 +158,87 @@
 ;; MPD.  To toggle the enabled property of the selected outputs, press `a'
 ;; (ampc-toggle-output-enabled) or `<mouse-3>'.
 
-;;; *** global keys
+;;; ** tagger
+;; To start the tagging subsystem, press `I' (ampc-tagger).  This key binding
+;; works in every buffer associated with ampc.  First, the command tries to
+;; determine which files you want to tag.  The files are collected using either
+;; the selected entries within the current buffer, the file associated with the
+;; entry at point, or, if both sources did not provide any files, the audio file
+;; that is currently played by MPD.  Next, the tagger view is created.  On the
+;; right there is the buffer that contain the tag data.  Each line in this
+;; buffer represents a tag with a value.  Tag and value are separated by a
+;; colon.  Valid tags are "Title", "Artist", "Album", "Comment", "Genre", "Year"
+;; and "Track".  The value can be an arbitrary string.  Whitespaces in front and
+;; at the end of the value are ignored.  If the value is "<keep>", the tag line
+;; is ignored.
+;;
+;; To save the specified tag values back to the files, press `C-c C-c'
+;; (ampc-tagger-save).  To exit the tagger and restore the previous window
+;; configuration, press `C-c C-q'.  `C-u C-c C-c' saved the tags and exits the
+;; tagger.  Only tags that are actually specified within the tagger buffer
+;; written back to the file.  Other tags will not be touched by ampc.  For
+;; example, to clear the "Commentary" tag, you need to specify the line
+;;
+;; Commentary:
+;;
+;; In the tagger buffer.  Omitting this line will make the tagger not touch the
+;; "Commentary" tag at all.
+;;
+;; On the right there is the files list buffer.  The selection of this buffer
+;; specifies which files the command `ampc-tag-save' will write to.  If no file
+;; is selected, the file at point in the file list buffer is used.
+;;
+;; To reset the values of the tags specified in the tagger buffer to the common
+;; values of all selected files specified by the selection of the files list
+;; buffer, press `C-c C-r' (ampc-tagger-reset).  With a prefix argument,
+;; `ampc-tagger-reset' restores missing tags as well.
+;;
+;; You can use tab-completion within the tagger buffer for both tags and tag
+;; values.
+;;
+;; You can also use the tagging subsystem on its own without a running ampc
+;; instance.  To start the tagger, call `ampc-tag-files'.  This function accepts
+;; one argument, a list of absolute file names which are the files to tag.  ampc
+;; provides a minor mode for dired, `ampc-tagger-dired-mode'.  If this mode is
+;; enabled within a dired buffer, pressing `C-c C-t' (ampc-tagger-dired) will
+;; start the tagger on the current selection.
+;;
+;; The following ampc-specific hooks are run during tagger usage:
+;;
+;; `ampc-tagger-grab-hook': Run by the tagger before grabbing tags of a file.
+;; Each function is called with one argument, the file name.
+;;
+;; `ampc-tagger-grabbed-hook': Run by the tagger after grabbing tags of a file.
+;; Each function is called with one argument, the file name.
+;;
+;; `ampc-tagger-store-hook': Run by the tagger before writing tags back to a
+;; file.  Each function is called with two arguments, FOUND-CHANGED and DATA.
+;; FOUND-CHANGED is non-nil if the tags that are about to be written differ from
+;; the ones in the file.  DATA is a cons.  The car specifies the full file name
+;; of the file that is about to be written to, the cdr is an alist that
+;; specifies the tags that are about to be (over-)written.  The car of each
+;; entry in this list is a symbol specifying the tag (one of the ones in
+;; `ampc-tagger-tags'), the cdr a string specifying the value.  The cdr of DATA
+;; may be modified.  If FOUND-CHANGED is nil and the cdr of DATA is not modified
+;; throughout the hook is run, the file is not touched.
+;; `ampc-tagger-stored-hook' is still run, though.
+;;
+;; `ampc-tagger-stored-hook': Run by the tagger after writing tags back to a
+;; file.  Each function is called with two arguments, FOUND-CHANGED and DATA.
+;; These are the same arguments that were already passed to
+;; `ampc-tagger-store-hook'.  The car of DATA, the file name, may be modified.
+;;
+;; These hooks can be used to handle vc locking and unlocking of files.  For
+;; renaming files according to their (new) tag values, ampc provides the
+;; function `ampc-tagger-rename-artist-title' which may be added to
+;; `ampc-tagger-stored-hook'.  The new file name generated by this function is
+;; "Artist"_-_"Title"."extension".  Characters within "Artist" and "Title" that
+;; are not alphanumeric are substituted with underscores.
+
+;;; ** global keys
 ;; Aside from `J', `M', `K', `<' and `L', which may be used to select different
-;; views, ampc defines the following global keys, which may be used in every
-;; window associated with ampc:
+;; views, and `I' which starts the tagger, ampc defines the following global
+;; keys.  These binding are available in every buffer associated with ampc:
 ;;
 ;; `k' (ampc-toggle-play): Toggle play state.  If MPD does not play a song,
 ;; start playing the song at point if the current buffer is the playlist buffer,
@@ -292,6 +394,23 @@ used by ampc.  The function is called with one string argument,
 the tag value, and should return the treated value."
   :type '(alist :key-type string :value-type function))
 
+(defcustom ampc-tagger-music-directories nil
+  "List of base directories in which your music files are located.
+Usually this list should have only one entry, the value of your
+mpd.conf's `music_directory'"
+  :type '(list directory))
+
+(defcustom ampc-tagger-executable "ampc_tagger"
+  "The name or full path to ampc's tagger executable."
+  :type 'string)
+
+(defcustom ampc-tagger-backup-directory
+  (file-name-directory (locate-user-emacs-file "ampc-backups/"))
+  "The directory in which the tagger copies files before modifying.
+If nil, disable backups."
+  :type '(choice (const :tag "Disable backups" nil)
+                 (directory :tag "Directory")))
+
 ;;; **** hooks
 (defcustom ampc-before-startup-hook nil
   "A hook run before startup.
@@ -330,6 +449,37 @@ and the keys in `ampc-status-tags'.  Not all keys may be present
 all the time!"
   :type 'hook)
 
+(defcustom ampc-tagger-grab-hook nil
+  "Hook run by the tagger before grabbing tags of a file.
+Each function is called with one argument, the file name."
+  :type 'hook)
+(defcustom ampc-tagger-grabbed-hook nil
+  "Hook run by the tagger after grabbing tags of a file.
+Each function is called with one argument, the file name."
+  :type 'hook)
+
+(defcustom ampc-tagger-store-hook nil
+  "Hook run by the tagger before writing tags back to a file.
+Each function is called with two arguments, FOUND-CHANGED and
+DATA.  FOUND-CHANGED is non-nil if the tags that are about to be
+written differ from the ones in the file.  DATA is a cons.  The
+car specifies the full file name of the file that is about to be
+written to, the cdr is an alist that specifies the tags that are
+about to be (over-)written.  The car of each entry in this list
+is a symbol specifying the tag (one of the ones in
+`ampc-tagger-tags'), the cdr a string specifying the value.  The
+cdr of DATA may be modified.  If FOUND-CHANGED is nil and the cdr
+of DATA is not modified throughout the hook is run, the file is
+not touched.  `ampc-tagger-stored-hook' is still run, though."
+  :type 'hook)
+(defcustom ampc-tagger-stored-hook nil
+  "Hook run by the tagger after writing tags back to a file.
+Each function is called with two arguments, FOUND-CHANGED and
+DATA.  These are the same arguments that were already passed to
+`ampc-tagger-store-hook'.  The car of DATA, the file name, may be
+modified."
+  :type 'hook)
+
 ;;; *** faces
 (defface ampc-mark-face '((t (:inherit font-lock-constant-face)))
   "Face of the mark.")
@@ -341,6 +491,11 @@ all the time!"
   "Face of mark of the current song.")
 (defface ampc-current-song-marked-face '((t (:inherit region)))
   "Face of the current song if marked.")
+
+(defface ampc-tagger-tag-face '((t (:inherit font-lock-constant-face)))
+  "Face of tags within the tagger.")
+(defface ampc-tagger-keyword-face '((t (:inherit font-lock-keyword-face)))
+  "Face of tags within the tagger.")
 
 ;;; *** internal variables
 (defvar ampc-views
@@ -365,7 +520,20 @@ all the time!"
                                  ("Artist" :min 15 :max 40)
                                  ("Album" :min 15 :max 40)
                                  ("Time" :width 6)))))
-    `(("Current playlist view (Genre|Artist|Album)"
+    `((tagger
+       horizontal
+       (0.65 files-list
+             :properties ((filename :shrink t :title "File" :min 20 :max 40)
+                          ("Title" :min 15 :max 40)
+                          ("Artist" :min 15 :max 40)
+                          ("Album" :min 15 :max 40)
+                          ("Genre" :min 15 :max 40)
+                          ("Year" :width 5)
+                          ("Track" :title "#" :width 4)
+                          ("Comment" :min 15 :max 40))
+             :dedicated nil)
+       (1.0 tagger))
+      ("Current playlist view (Genre|Artist|Album)"
        ,(kbd "J")
        horizontal
        (0.4 vertical
@@ -425,6 +593,14 @@ all the time!"
 (defvar ampc-internal-db nil)
 (defvar ampc-status nil)
 
+(defvar ampc-tagger-previous-configuration nil)
+(defvar ampc-tagger-version-verified nil)
+(defvar ampc-tagger-completion-all-files nil)
+(defvar ampc-tagger-genres nil)
+
+(defconst ampc-tagger-version "0.1")
+(defconst ampc-tagger-tags '(Title Artist Album Comment Genre Year Track))
+
 ;;; *** mode maps
 (defvar ampc-mode-map
   (let ((map (make-sparse-keymap)))
@@ -452,11 +628,13 @@ all the time!"
     (define-key map (kbd "q") 'ampc-quit)
     (define-key map (kbd "z") 'ampc-suspend)
     (define-key map (kbd "T") 'ampc-trigger-update)
+    (define-key map (kbd "I") 'ampc-tagger)
     (loop for view in ampc-views
-          do (define-key map (cadr view)
-               `(lambda ()
-                  (interactive)
-                  (ampc-change-view ',view))))
+          do (when (stringp (car view))
+               (define-key map (cadr view)
+                 `(lambda ()
+                    (interactive)
+                    (ampc-change-view ',view)))))
     map))
 
 (defvar ampc-item-mode-map
@@ -525,14 +703,44 @@ all the time!"
     (define-key map (kbd "<mouse-3>") 'ampc-mouse-align-point)
     map))
 
+(defvar ampc-files-list-mode-map
+  (let ((map (make-sparse-keymap)))
+    (suppress-keymap map)
+    (define-key map (kbd "t") 'ampc-toggle-marks)
+    (define-key map (kbd "C-c C-q") 'ampc-tagger-quit)
+    (define-key map (kbd "C-c C-c") 'ampc-tagger-save)
+    (define-key map (kbd "C-c C-r") 'ampc-tagger-reset)
+    (define-key map [remap ampc-tagger] nil)
+    (define-key map [remap ampc-quit] 'ampc-tagger-quit)
+    (loop for view in ampc-views
+          do (when (stringp (car view))
+               (define-key map (cadr view) nil)))
+    map))
+
+(defvar ampc-tagger-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c C-q") 'ampc-tagger-quit)
+    (define-key map (kbd "C-c C-c") 'ampc-tagger-save)
+    (define-key map (kbd "C-c C-r") 'ampc-tagger-reset)
+    (define-key map (kbd "<tab>") 'ampc-tagger-completion-at-point)
+    map))
+
+(defvar ampc-tagger-dired-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c C-t") 'ampc-tagger-dired)
+    map))
+
 ;;; **** menu
 (easy-menu-define nil ampc-mode-map nil
   `("ampc"
     ("Change view" ,@(loop for view in ampc-views
+                           when (stringp (car view))
                            collect (vector (car view)
                                            `(lambda ()
                                               (interactive)
-                                              (ampc-change-view ',view)))))
+                                              (ampc-change-view ',view)))
+                           end))
+    ["Run tagger" ampc-tagger]
     "--"
     ["Play" ampc-toggle-play
      :visible (and ampc-status
@@ -707,12 +915,10 @@ all the time!"
        (setf arg- (prefix-numeric-value arg-))
        (ampc-align-point)
        (loop until (eobp)
-             for index from 0 to (1- (if (numberp arg-)
-                                         arg-
-                                       (prefix-numeric-value arg-)))
+             for index from 0 to (1- (abs arg-))
              do (save-excursion
                   ,@body)
-             until (ampc-next-line)))))
+             until (if (< arg- 0) (ampc-previous-line) (ampc-next-line))))))
 
 (defmacro ampc-iterate-source (data-buffer delimiter bindings &rest body)
   (declare (indent 3) (debug t))
@@ -745,6 +951,18 @@ all the time!"
        (with-current-buffer output-buffer
          (ampc-insert (ampc-pad ,pad-data) ,@body)))))
 
+(defmacro ampc-tagger-log (&rest what)
+  (declare (indent 0) (debug t))
+  `(with-current-buffer (get-buffer-create "*Tagger Log*")
+     (ampc-tagger-log-mode)
+     (save-excursion
+       (goto-char (point-max))
+       (let ((inhibit-read-only t)
+             (what (concat ,@what)))
+         (when ampc-debug
+           (message "ampc: %s" what))
+         (insert what)))))
+
 ;;; *** modes
 (define-derived-mode ampc-outputs-mode ampc-item-mode "ampc-o")
 
@@ -757,10 +975,32 @@ all the time!"
 
 (define-derived-mode ampc-playlists-mode ampc-item-mode "ampc-pls")
 
+(define-derived-mode ampc-files-list-mode ampc-item-mode "ampc-files-list")
 
+(define-derived-mode ampc-tagger-mode nil "ampc-tagger"
   (set (make-local-variable 'tool-bar-map) ampc-tool-bar-map)
+  (set (make-local-variable 'tab-stop-list)
+       (list (+ (loop for tag in ampc-tagger-tags
+                      maximize (length (symbol-name tag)))
+                2)))
+  (set (make-local-variable 'completion-at-point-functions)
+       '(ampc-tagger-complete-tag ampc-tagger-complete-value))
   (setf truncate-lines ampc-truncate-lines
-        font-lock-defaults '((("^\\(\\*\\)\\(.*\\)$"
+        font-lock-defaults
+        `(((,(concat "^\\([ \t]*\\(?:"
+                     (mapconcat 'symbol-name ampc-tagger-tags "\\|")
+                     "\\)[ \t]*:\\)"
+                     "\\(\\(?:[ \t]*"
+                     "\\(?:"
+                     (mapconcat 'identity ampc-tagger-genres "\\|") "\\|<keep>"
+                     "\\)"
+                     "[ \t]*$\\)?\\)")
+            (1 'ampc-tagger-tag-face)
+            (2 'ampc-tagger-keyword-face)))
+          t)))
+
+(define-derived-mode ampc-tagger-log-mode nil "ampc-tagger-log")
+
 (define-derived-mode ampc-item-mode ampc-mode "ampc-item"
   (setf font-lock-defaults '((("^\\(\\*\\)\\(.*\\)$"
                                (1 'ampc-mark-face)
@@ -786,7 +1026,30 @@ all the time!"
               (1 'ampc-current-song-mark-face)
               (2 'ampc-current-song-marked-face)))))
 
+;;;###autoload
+(define-minor-mode ampc-tagger-dired-mode
+  "Minor mode that adds a audio file meta data tagging key binding to dired."
+  nil
+  " ampc-tagger"
+  nil
+  (assert (derived-mode-p 'dired-mode)))
+
 ;;; *** internal functions
+(defun ampc-tagger-report (args status)
+  (unless (zerop status)
+    (let ((message (format (concat "ampc_tagger (%s %s) returned with a "
+                                   "non-zero exit status (%s)")
+                           ampc-tagger-executable
+                           (mapconcat 'identity args " ")
+                           status)))
+      (ampc-tagger-log message "\n")
+      (error message))))
+
+(defun ampc-tagger-call (&rest args)
+  (ampc-tagger-report
+   args
+   (apply 'call-process ampc-tagger-executable nil t nil args)))
+
 (defun ampc-int-insert-cmp (p1 p2)
   (cond ((< p1 p2) 'insert)
         ((eq p1 p2) 'overwrite)
@@ -821,6 +1084,15 @@ all the time!"
       (loop for w in (cdr windows)
             do (delete-window w)))))
 
+(defun ampc-tagger-tags-modified (tags new-tags)
+  (loop with found-changed
+        for (tag . value) in new-tags
+        for prop = (assq tag tags)
+        do (unless (equal (cdr prop) value)
+             (setf (cdr prop) value
+                   found-changed t))
+        finally return found-changed))
+
 (defun ampc-change-view (view)
   (if (equal ampc-outstanding-commands '((idle)))
       (ampc-configure-frame (cddr view))
@@ -829,9 +1101,11 @@ all the time!"
 (defun ampc-quote (string)
   (concat "\"" (replace-regexp-in-string "\"" "\\\"" string) "\""))
 
-(defun ampc-in-ampc-p ()
-  (when (ampc-on-p)
-    ampc-type))
+(defun ampc-in-ampc-p (&optional or-in-tagger)
+  (or (when (ampc-on-p)
+        ampc-type)
+      (when or-in-tagger
+        (memq (car ampc-type) '(files-list tagger)))))
 
 (defun ampc-add-impl (&optional data)
   (ampc-on-files (lambda (file)
@@ -914,6 +1188,34 @@ all the time!"
             arg)
           0)))
   (ampc-send-command 'status t))
+
+(defun* ampc-tagger-make-backup (file)
+  (unless ampc-tagger-backup-directory
+    (return-from ampc-tagger-make-backup))
+  (when (functionp ampc-tagger-backup-directory)
+    (funcall ampc-tagger-backup-directory file)
+    (return-from ampc-tagger-make-backup))
+  (unless (file-directory-p ampc-tagger-backup-directory)
+    (make-directory ampc-tagger-backup-directory t))
+  (let* ((real-file
+          (loop with real-file = file
+                for target = (file-symlink-p real-file)
+                while target
+                do (setf real-file (expand-file-name
+                                    target (file-name-directory real-file)))
+                finally return real-file))
+         (target
+          (loop with base = (file-name-nondirectory real-file)
+                for i from 1
+                for file = (expand-file-name
+                            (concat base ".~"
+                                    (int-to-string i)
+                                    "~")
+                            ampc-tagger-backup-directory)
+                while (file-exists-p file)
+                finally return file)))
+    (ampc-tagger-log "\tBackup file: " (abbreviate-file-name target) "\n")
+    (copy-file real-file target nil t)))
 
 (defun* ampc-move (N &aux with-marks entries-to-move (up (< N 0)))
   (save-excursion
@@ -1013,6 +1315,86 @@ all the time!"
            (when (memq (car ampc-type) '(song tag))
              (ampc-set-dirty t))))
      (ampc-fill-tag-song))
+    (files-list
+     (ampc-tagger-update))))
+
+(defun* ampc-tagger-get-values (tag all-files &aux result)
+  (ampc-with-buffer 'files-list
+    no-se
+    (save-excursion
+      (macrolet
+          ((add-file
+            ()
+            `(let ((value (cdr (assq tag (get-text-property (point) 'data)))))
+               (unless (member value result)
+                 (push value result)))))
+        (if all-files
+            (loop until (eobp)
+                  initially do (goto-char (point-min))
+                  (ampc-align-point)
+                  do (add-file)
+                  until (ampc-next-line))
+          (ampc-with-selection nil
+            (add-file))))))
+  result)
+
+(defun ampc-tagger-update ()
+  (ampc-with-buffer 'tagger
+    (loop
+     while (search-forward-regexp (concat "^[ \t]*\\("
+                                          (mapconcat 'symbol-name
+                                                     ampc-tagger-tags
+                                                     "\\|")
+                                          "\\)[ \t]*:"
+                                          "[ \t]*\\(<keep>[ \t]*?\\)"
+                                          "\\(?:\n\\)?$")
+                                  nil
+                                  t)
+     for tag = (intern (match-string 1))
+     do (when (memq tag ampc-tagger-tags)
+          (let ((values (save-match-data (ampc-tagger-get-values tag nil))))
+            (when (eq (length values) 1)
+              (replace-match (car values) nil t nil 2)))))))
+
+(defun ampc-tagger-complete-tag ()
+  (save-excursion
+    (save-restriction
+      (narrow-to-region (line-beginning-position) (line-end-position))
+      (unless (search-backward-regexp "^.*:" nil t)
+        (when (search-backward-regexp "\\(^\\|[ \t]\\).*" nil t)
+          (when (looking-at "[ \t]")
+            (forward-char 1))
+          (list (point)
+                (search-forward-regexp ":\\|$")
+                (mapcar (lambda (tag) (concat (symbol-name tag) ":"))
+                        ampc-tagger-tags)))))))
+
+(defun* ampc-tagger-complete-value (&aux tag)
+  (save-excursion
+    (save-restriction
+      (narrow-to-region (line-beginning-position) (line-end-position))
+      (save-excursion
+        (unless (search-backward-regexp (concat "^[ \t]*\\("
+                                                (mapconcat 'symbol-name
+                                                           ampc-tagger-tags
+                                                           "\\|")
+                                                "\\)[ \t]*:")
+                                        nil t)
+          (return-from ampc-tagger-complete-tag))
+        (setf tag (intern (match-string 1))))
+      (save-excursion
+        (search-backward-regexp "[: \t]")
+        (forward-char 1)
+        (list (point)
+              (search-forward-regexp "[ \t]\\|$")
+              (let ((values (cons "<keep>" (ampc-tagger-get-values
+                                            tag
+                                            ampc-tagger-completion-all-files))))
+                (when (eq tag 'Genre)
+                  (loop for g in ampc-tagger-genres
+                        do (unless (member g values)
+                             (push g values))))
+                values))))))
 
 (defun ampc-align-point ()
   (unless (eobp)
@@ -1769,6 +2151,200 @@ all the time!"
   (unless no-update
     (ampc-update)))
 
+(defun ampc-tagger-rename-artist-title (_changed-tags data)
+  "Rename music file according to its tags.
+This function is meant to be inserted into
+`ampc-tagger-stored-hook'.  The new file name is
+`Artist'_-_`Title'.`extension'.  Characters within `Artist' and
+`Title' that are not alphanumeric are substituted with underscore."
+  (let* ((artist (replace-regexp-in-string
+                  "[^a-zA-Z0-9]" "_"
+                  (or (cdr (assq 'Artist (cdr data))) "")))
+         (title (replace-regexp-in-string
+                 "[^a-zA-Z0-9]" "_"
+                 (or (cdr (assq 'Title (cdr data))) "")))
+         (new-file
+          (expand-file-name (replace-regexp-in-string
+                             "_\\(_\\)+"
+                             "_"
+                             (concat artist
+                                     (when (and (> (length artist) 0)
+                                                (> (length title) 0))
+                                       "_-_")
+                                     title
+                                     (file-name-extension (car data) t)))
+                            (file-name-directory (car data)))))
+    (unless (equal (car data) new-file)
+      (ampc-tagger-log "Renaming file " (abbreviate-file-name (car data))
+                       " to " (abbreviate-file-name new-file) "\n")
+      (rename-file (car data) new-file)
+      (setf (car data) new-file))))
+
+;;; *** interactives
+(defun ampc-tagger-completion-at-point (&optional all-files)
+  "Perform completion at point via `completion-at-point'.
+If optional prefix argument ALL-FILES is non-nil, use all files
+within the files list buffer as source for completion.  The
+default behaviour is to use only the selected ones."
+  (interactive "P")
+  (let ((ampc-tagger-completion-all-files all-files))
+    (completion-at-point)))
+
+(defun ampc-tagger-reset (&optional reset-all-tags)
+  "Reset all tag values within the tagger, based on the selection of files.
+If optional prefix argument RESET-ALL-TAGS is non-nil, restore
+all tags."
+  (interactive "P")
+  (when reset-all-tags
+    (ampc-with-buffer 'tagger
+      no-se
+      (erase-buffer)
+      (loop for tag in ampc-tagger-tags
+            do (insert (ampc-pad (list (concat (symbol-name tag) ":") "dummy"))
+                       "\n"))
+      (goto-char (point-min))
+      (re-search-forward ":\\( \\)+")))
+  (ampc-with-buffer 'tagger
+    (loop while (search-forward-regexp
+                 (concat "^\\([ \t]*\\)\\("
+                         (mapconcat 'symbol-name ampc-tagger-tags "\\|")
+                         "\\)\\([ \t]*\\):\\([ \t]*.*\\)$")
+                 nil
+                 t)
+          do (replace-match "" nil nil nil 1)
+          (replace-match "" nil nil nil 3)
+          (replace-match (concat (make-string (- (car tab-stop-list)
+                                                 (1+ (length (match-string 2))))
+                                              ?  )
+                                 "<keep>")
+                         nil nil nil 4)))
+  (ampc-tagger-update)
+  (ampc-with-buffer 'tagger
+    no-se
+    (when (looking-at "[ \t]+")
+      (goto-char (match-end 0)))))
+
+(defun* ampc-tagger-save (&optional quit &aux tags)
+  "Save tags.
+If optional prefix argument QUIT is non-nil, quit tagger
+afterwards.  If the numeric value of QUIT is 16, quit tagger and
+do not trigger a database update"
+  (interactive "P")
+  (ampc-with-buffer 'tagger
+    (loop do (loop until (eobp)
+                   while (looking-at "^[ \t]*$")
+                   do (forward-line))
+          until (eobp)
+          do (unless (and (looking-at
+                           (concat "^[ \t]*\\("
+                                   (mapconcat 'symbol-name
+                                              ampc-tagger-tags
+                                              "\\|")
+                                   "\\)[ \t]*:"
+                                   "[ \t]*\\(.*\\)[ \t]*$"))
+                          (not (assq (intern (match-string 1)) tags)))
+               (error "Malformed line \"%s\""
+                      (buffer-substring (line-beginning-position)
+                                        (line-end-position))))
+          (push (cons (intern (match-string 1))
+                      (let ((val (match-string 2)))
+                        (if (string= "<keep>" val)
+                            t
+                          (set-text-properties 0 (length val) nil val)
+                          val)))
+                tags)
+          (forward-line)))
+  (callf2 rassq-delete-all t tags)
+  (with-temp-buffer
+    (loop for (tag . value) in tags
+          do (insert (symbol-name tag) "\n"
+                     value "\n"))
+    (let ((input-buffer (current-buffer)))
+      (ampc-with-buffer 'files-list
+        no-se
+        (let ((reporter
+               (make-progress-reporter "Storing tags"
+                                       0
+                                       (let ((count (count-matches "^\\* ")))
+                                         (if (zerop count)
+                                             1
+                                           count))))
+              (step 0))
+          (ampc-with-selection nil
+            (let* ((data (get-text-property (point) 'data))
+                   (old-tags (loop for (tag . data) in (cdr data)
+                                   collect (cons tag data)))
+                   (found-changed (ampc-tagger-tags-modified (cdr data) tags)))
+              (let ((pre-hook-tags (cdr data)))
+                (run-hook-with-args 'ampc-tagger-store-hook found-changed data)
+                (setf found-changed
+                      (or found-changed
+                          (ampc-tagger-tags-modified pre-hook-tags
+                                                     (cdr data)))))
+              (when found-changed
+                (ampc-tagger-log
+                  "Storing tags for file "
+                  (abbreviate-file-name (car data)) "\n"
+                  "\tOld tags:\n"
+                  (loop for (tag . value) in old-tags
+                        concat (concat "\t\t"
+                                       (symbol-name tag) ": "
+                                       value "\n"))
+                  "\tNew tags:\n"
+                  (loop for (tag . value) in (cdr data)
+                        concat (concat "\t\t"
+                                       (symbol-name tag) ": "
+                                       value "\n")))
+                (ampc-tagger-make-backup (car data))
+                (ampc-tagger-report
+                 (list "--set" (car data))
+                 (with-temp-buffer
+                   (insert-buffer-substring input-buffer)
+                   (prog1
+                       (call-process-region (point-min) (point-max)
+                                            ampc-tagger-executable
+                                            nil t nil
+                                            "--set" (car data))
+                     (when ampc-debug
+                       (message "ampc-tagger: %s"
+                                (buffer-substring
+                                 (point-min) (point))))))))
+              (run-hook-with-args 'ampc-tagger-stored-hook found-changed data)
+              (let ((inhibit-read-only t))
+                (move-beginning-of-line nil)
+                (forward-char 2)
+                (kill-line 1)
+                (insert
+                 (ampc-pad (loop for p in (plist-get (cdr ampc-type)
+                                                     :properties)
+                                 when (eq (car p) 'filename)
+                                 collect (file-name-nondirectory (car data))
+                                 else
+                                 collect (cdr (assq (intern (car p))
+                                                    (cdr data)))
+                                 end))
+                 "\n")
+                (forward-line -1)
+                (put-text-property (line-beginning-position)
+                                   (1+ (line-end-position))
+                                   'data data))
+              (progress-reporter-update reporter (incf step))))
+          (progress-reporter-done reporter)))))
+  (when quit
+    (ampc-tagger-quit (eq (prefix-numeric-value quit) 16))))
+
+(defun ampc-tagger-quit (&optional no-update)
+  "Quit tagger and restore previous window configuration.
+With optional prefix NO-UPDATE, do not trigger a database update."
+  (interactive "P")
+  (set-window-configuration (or (car-safe ampc-tagger-previous-configuration)
+                                ampc-tagger-previous-configuration))
+  (when (car-safe ampc-tagger-previous-configuration)
+    (unless no-update
+      (ampc-trigger-update))
+    (setf ampc-windows (cadr ampc-tagger-previous-configuration)))
+  (setf ampc-tagger-previous-configuration nil))
+
 (defun ampc-move-to-tab ()
   "Move point to next logical tab stop."
   (interactive)
@@ -1835,7 +2411,7 @@ all the time!"
 (defun* ampc-unmark-all (&aux (inhibit-read-only t))
   "Remove all marks."
   (interactive)
-  (assert (ampc-in-ampc-p))
+  (assert (ampc-in-ampc-p t))
   (save-excursion
     (goto-char (point-min))
     (loop while (search-forward-regexp "^\\* " nil t)
@@ -1852,7 +2428,7 @@ all the time!"
   "Toggle marks.
 Marked entries become unmarked, and vice versa."
   (interactive)
-  (assert (ampc-in-ampc-p))
+  (assert (ampc-in-ampc-p t))
   (save-excursion
     (loop for (a . b) in '(("* " . "T ")
                            ("  " . "* ")
@@ -1882,14 +2458,14 @@ ARG defaults to one."
   "Mark the next ARG'th entries.
 ARG defaults to 1."
   (interactive "p")
-  (assert (ampc-in-ampc-p))
+  (assert (ampc-in-ampc-p t))
   (ampc-mark-impl t arg))
 
 (defun ampc-unmark (&optional arg)
   "Unmark the next ARG'th entries.
 ARG defaults to 1."
   (interactive "p")
-  (assert (ampc-in-ampc-p))
+  (assert (ampc-in-ampc-p t))
   (ampc-mark-impl nil arg))
 
 (defun ampc-set-volume (&optional arg)
@@ -2170,6 +2746,134 @@ selected), use playlist at point rather than the selected one."
         (message "No playlist at point")
       (message "No playlist selected"))))
 
+;;;###autoload
+(defun ampc-tagger-dired (&optional arg)
+  "Start the tagging subsystem on dired's marked files.
+With optional prefix argument ARG, use the next ARG files."
+  (interactive "P")
+  (assert (derived-mode-p 'dired-mode))
+  (ampc-tag-files
+   (loop for file in (dired-map-over-marks (dired-get-filename) arg)
+         unless (file-directory-p file)
+         collect file
+         end)))
+
+;;;###autoload
+(defun ampc-tag-files (files)
+  "Start the tagging subsystem.
+FILES should be a list of absolute file names, the files to tag."
+  (unless files
+    (message "No files specified")
+    (return-from ampc-tagger-files t))
+  (when (memq (car ampc-type) '(files-list tagger))
+    (message "You are already within the tagger")
+    (return-from ampc-tagger-files t))
+  (let ((reporter (make-progress-reporter "Grabbing tags" 0 (length files))))
+    (loop for file in-ref files
+          for i from 1
+          do (run-hook-with-args 'ampc-tagger-grab-hook file)
+          (with-temp-buffer
+            (ampc-tagger-call "--get" file)
+            (setf file
+                  (apply 'list
+                         file
+                         (loop for tag in ampc-tagger-tags
+                               collect
+                               (cons tag (or (ampc-extract (symbol-name tag))
+                                             ""))))))
+          (run-hook-with-args 'ampc-tagger-grabbed-hook file)
+          (progress-reporter-update reporter i))
+    (progress-reporter-done reporter))
+  (unless ampc-tagger-previous-configuration
+    (setf ampc-tagger-previous-configuration (current-window-configuration)))
+  (ampc-configure-frame (cdr (assq 'tagger ampc-views)) t)
+  (ampc-with-buffer 'files-list
+    (erase-buffer)
+    (loop for (file . props) in files
+          do (insert (propertize
+                      (concat
+                       "  "
+                       (ampc-pad
+                        (loop for p in (plist-get (cdr ampc-type) :properties)
+                              when (eq (car p) 'filename)
+                              collect (file-name-nondirectory file)
+                              else
+                              collect (cdr (assq (intern (car p)) props))
+                              end))
+                       "\n")
+                      'data (cons file props))))
+    (ampc-set-dirty nil)
+    (ampc-toggle-marks))
+  (ampc-with-buffer 'tagger
+    no-se
+    (ampc-tagger-reset t)
+    (goto-char (point-min))
+    (search-forward-regexp ": *")
+    (ampc-set-dirty nil))
+  nil)
+
+(defun* ampc-tagger (&optional arg &aux files)
+  "Start the tagging subsystem.
+The files to tag are collected by using either the selected
+entries within the current buffer or the next ARG entries at
+point if numeric perfix argument ARG is non-nil, the file
+associated with the entry at point, or, if both sources did not
+provide any files, the audio file that is currently played by
+MPD."
+  (interactive "P")
+  (assert (ampc-in-ampc-p))
+  (unless ampc-tagger-version-verified
+    (with-temp-buffer
+      (ampc-tagger-call "--version")
+      (goto-char (point-min))
+      (let ((version (buffer-substring (line-beginning-position)
+                                       (line-end-position))))
+        (unless (equal version ampc-tagger-version)
+          (message (concat "The reported version of %s is not supported - "
+                           "got \"%s\", want \"%s\"")
+                   ampc-tagger-executable
+                   version
+                   ampc-tagger-version)
+          (return-from ampc-tagger))))
+    (setf ampc-tagger-version-verified t))
+  (unless ampc-tagger-genres
+    (with-temp-buffer
+      (ampc-tagger-call "--genres")
+      (loop while (search-backward-regexp "^\\(.+\\)$" nil t)
+            do (push (match-string 1) ampc-tagger-genres))))
+  (unless ampc-tagger-music-directories
+    (message (concat "ampc-tagger-music-directories is nil.  Fill it via "
+                     "M-x customize-variable RET ampc-tagger-music-directories "
+                     "RET"))
+    (return-from ampc-tagger))
+  (case (car ampc-type)
+    (current-playlist
+     (save-excursion
+       (ampc-with-selection arg
+         (callf nconc files (list (cdr (assoc "file" (get-text-property
+                                                      (line-end-position)
+                                                      'data))))))))
+    ((playlist tag song)
+     (save-excursion
+       (ampc-with-selection arg
+         (ampc-on-files (lambda (file) (push file files)))))
+     (callf nreverse files))
+    (t
+     (let ((file (cdr (assoc 'file ampc-status))))
+       (when file
+         (setf files (list file))))))
+  (loop for file in-ref files
+        for read-file = (locate-file file ampc-tagger-music-directories)
+        do (unless read-file
+             (error "Cannot locate file %s in ampc-tagger-music-directories"
+                    file)
+             (return-from ampc-tagger))
+        (setf file (expand-file-name read-file)))
+  (setf ampc-tagger-previous-configuration
+        (list (current-window-configuration) ampc-windows))
+  (when (ampc-tag-files files)
+    (setf ampc-tagger-previous-configuration nil)))
+
 (defun ampc-store (&optional name-or-append)
   "Store current playlist as NAME-OR-APPEND.
 If NAME is non-nil and not a string, append selected entries
@@ -2216,14 +2920,14 @@ playlist name from the minibuffer."
   "Go to previous ARG'th entry in the current buffer.
 ARG defaults to 1."
   (interactive "p")
-  (assert (ampc-in-ampc-p))
+  (assert (ampc-in-ampc-p t))
   (ampc-next-line (* (or arg 1) -1)))
 
 (defun ampc-next-line (&optional arg)
   "Go to next ARG'th entry in the current buffer.
 ARG defaults to 1."
   (interactive "p")
-  (assert (ampc-in-ampc-p))
+  (assert (ampc-in-ampc-p t))
   (forward-line arg)
   (if (eobp)
       (progn (forward-line -1)
@@ -2332,7 +3036,7 @@ default to the ones specified in `ampc-default-server'."
     (setf ampc-outstanding-commands '((setup))))
   (if suspend
       (ampc-update)
-    (ampc-configure-frame (cddar ampc-views)))
+    (ampc-configure-frame (cddadr ampc-views)))
   (run-hooks 'ampc-connected-hook)
   (when suspend
     (ampc-suspend))

@@ -131,7 +131,7 @@
 
 ;;; *** outputs view
 ;; The outputs view contains a single list which shows the configured outputs of
-;; mpd.  To toggle the enabled property of the selected outputs, press `a'
+;; MPD.  To toggle the enabled property of the selected outputs, press `a'
 ;; (ampc-toggle-output-enabled) or `<mouse-3>'.
 
 ;;; *** global keys
@@ -139,7 +139,7 @@
 ;; views, ampc defines the following global keys, which may be used in every
 ;; window associated with ampc:
 ;;
-;; `k' (ampc-toggle-play): Toggle play state.  If mpd does not play a song
+;; `k' (ampc-toggle-play): Toggle play state.  If MPD does not play a song
 ;; already, start playing the song at point if the current buffer is the
 ;; playlist buffer, otherwise start at the beginning of the playlist.  With
 ;; prefix argument 4, stop player rather than pause if applicable.
@@ -235,6 +235,20 @@
 (defcustom ampc-truncate-lines t
   "If non-nil, truncate lines in ampc buffers."
   :type 'boolean)
+
+(defcustom ampc-default-server '("localhost" . 6600)
+  "The MPD server to connect to if the arguments to `ampc' are nil.
+This variable is a cons cell, with the car specifying the
+hostname and the cdr specifiying the port.  Both values can be
+nil, which will make ampc query the user for values on each
+invocation."
+  :type '(cons (choice :tag "Hostname"
+                       (string)
+                       (const :tag "Ask" nil))
+               (choice :tag "Port"
+                       (string)
+                       (integer)
+                       (const :tag "Ask" nil))))
 
 (defcustom ampc-synchronous-commands '(t status currentsong)
   "List of MPD commands that should be executed synchronously.
@@ -1802,7 +1816,7 @@ zero-indexed position of the current playlist."
 (defun* ampc-toggle-play
     (&optional arg &aux (state (cdr-safe (assq 'state ampc-status))))
   "Toggle play state.
-If mpd does not play a song already, start playing the song at
+If MPD does not play a song already, start playing the song at
 point if the current buffer is the playlist buffer, otherwise
 start at the beginning of the playlist.
 
@@ -2033,25 +2047,21 @@ ARG defaults to 1."
 (defun* ampc-suspend (&optional (run-hook t))
   "Suspend ampc.
 This function resets the window configuration, but does not close
-the connection to mpd or destroy the internal cache of ampc.
+the connection to MPD or destroy the internal cache of ampc.
 This means subsequent startups of ampc will be faster."
   (interactive)
   (when ampc-working-timer
     (cancel-timer ampc-working-timer))
   (loop with found-window
         for w in (nreverse (ampc-windows t))
-        when (window-live-p w)
-        when found-window
-        do (delete-window w)
-        else
-        do (setf found-window t
-                 (window-dedicated-p w) nil)
-        end
-        end)
+        do (when (window-live-p w)
+             (if found-window
+                 (delete-window w)
+               (setf found-window t
+                     (window-dedicated-p w) nil))))
   (loop for b in ampc-all-buffers
-        when (buffer-live-p b)
-        do (kill-buffer b)
-        end)
+        do (when (buffer-live-p b)
+             (kill-buffer b)))
   (setf ampc-buffers nil
         ampc-all-buffers nil
         ampc-working-timer nil)
@@ -2066,7 +2076,7 @@ This means subsequent startups of ampc will be faster."
 
 (defun ampc-quit (&optional arg)
   "Quit ampc.
-If called with a prefix argument ARG, kill the mpd instance that
+If called with a prefix argument ARG, kill the MPD instance that
 ampc is connected to."
   (interactive "P")
   (when (ampc-on-p)
@@ -2105,16 +2115,18 @@ ampc is connected to."
   "ampc is an asynchronous client for the MPD media player.
 This function is the main entry point for ampc.
 
-Non-interactively, HOST and PORT specify the MPD instance to
-connect to.  The values default to localhost:6600."
-  (interactive "MHost (localhost): \nMPort (6600): ")
+HOST and PORT specify the MPD instance to connect to.  The values
+default to the ones specified in `ampc-default-server'."
+  (interactive)
   (unless (byte-code-function-p (symbol-function 'ampc))
     (message "You should byte-compile ampc"))
   (run-hooks 'ampc-before-startup-hook)
-  (when (or (not host) (equal host ""))
-    (setf host "localhost"))
-  (when (or (not port) (equal port ""))
-    (setf port 6600))
+  (unless host
+    (setf host (or (car ampc-default-server)
+                   (read-string  "Host: "))))
+  (unless port
+    (setf port (or (cdr ampc-default-server)
+                   (read-string "Port: "))))
   (when (and ampc-connection
              (or (not (equal host ampc-host))
                  (not (equal port ampc-port))

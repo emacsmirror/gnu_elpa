@@ -34,18 +34,7 @@
 ;; your load-path or add the directory the file is in to it, e.g.:
 ;;
 ;; (add-to-list 'load-path "~/.emacs.d/ampc")
-;;
-;; Then add one autoload definition:
-;;
 ;; (autoload 'ampc "ampc" nil t)
-;;
-;; Optionally bind a key to this function, e.g.:
-;;
-;; (global-set-key (kbd "<f9>") 'ampc)
-;;
-;; or
-;;
-;; (global-set-key (kbd "<f9>") (lambda () (interactive) (ampc "host" "port")))
 ;;
 ;; Byte-compile ampc (M-x byte-compile-file RET /path/to/ampc.el RET) to improve
 ;; its performance!
@@ -1126,8 +1115,8 @@ all the time!"
             (setf next (ampc-narrow-entry))
             (let ((file (ampc-extract "file"))
                   (pad-data (loop for (tag . tag-properties) in properties
-                                   collect (or (ampc-extract tag)
-                                               "[Not Specified]"))))
+                                  collect (or (ampc-extract tag)
+                                              "[Not Specified]"))))
               (ampc-with-buffer 'playlist
                 (ampc-insert (ampc-pad pad-data 2)
                              `(("file" . ,file)

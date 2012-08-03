@@ -1068,16 +1068,18 @@ all the time!"
                  2)
                 `((,song))))))
 
-(defun* ampc-narrow-entry (&optional (delimiter "file"))
-  (narrow-to-region (move-beginning-of-line nil)
-                    (or (progn (goto-char (line-end-position))
-                               (when (search-forward-regexp
-                                      (concat "^" (regexp-quote delimiter) ": ")
-                                      nil
-                                      t)
-                                 (move-beginning-of-line nil)
-                                 (1- (point))))
-                        (point-max))))
+(defun* ampc-narrow-entry (&optional (delimiter "file") &aux result)
+  (narrow-to-region
+   (move-beginning-of-line nil)
+   (or (progn (goto-char (line-end-position))
+              (when (setf result (search-forward-regexp
+                                  (concat "^" (regexp-quote delimiter) ": ")
+                                  nil
+                                  t))
+                (move-beginning-of-line nil)
+                (1- (point))))
+       (point-max)))
+  result)
 
 (defun ampc-get-window (type)
   (loop for w in (ampc-windows)
@@ -1091,9 +1093,11 @@ all the time!"
     (with-current-buffer data-buffer
       (loop
        for i from 0
-       while (search-forward-regexp "^file: " nil t)
+       with next
+       while (or (when next (goto-char next) t)
+                 (search-forward-regexp "^file: " nil t))
        do (save-restriction
-            (ampc-narrow-entry)
+            (setf next (ampc-narrow-entry))
             (let ((file (ampc-extract "file"))
                   (text (ampc-pad (loop for (tag . tag-properties) in properties
                                         collect (or (ampc-extract tag)
@@ -1119,9 +1123,11 @@ all the time!"
     (setf properties (plist-get (cdr ampc-type) :properties))
     (with-current-buffer data-buffer
       (loop
-       while (search-forward-regexp "^outputid: " nil t)
+       with next
+       while (or (when next (goto-char next) t)
+                 (search-forward-regexp "^outputid: " nil t))
        do (save-restriction
-            (ampc-narrow-entry "outputid")
+            (setf next (ampc-narrow-entry "outputid"))
             (let ((outputid (ampc-extract "outputid"))
                   (outputenabled (ampc-extract "outputenabled")))
               (ampc-with-buffer 'outputs

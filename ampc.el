@@ -852,51 +852,52 @@ modified."
          (data-buffer (current-buffer)))
      (ampc-with-buffer tag-
        no-se
-       (let ((old-point-data (get-text-property (point) 'cmp-data))
-             (old-window-start-offset
-              (1- (count-lines (window-start) (point)))))
-         (put-text-property (point-min) (point-max) 'not-updated t)
-         (when (eq ampc-dirty 'erase)
-           (put-text-property (point-min) (point-max) 'data nil))
-         (goto-char (point-min))
-         ,@body
-         (goto-char (point-min))
-         (loop until (eobp)
-               do (if (get-text-property (point) 'not-updated)
-                      (kill-line 1)
-                    (add-text-properties (+ (point) 2)
-                                         (progn (forward-line nil)
-                                                (1- (point)))
-                                         '(mouse-face highlight))))
-         (remove-text-properties (point-min) (point-max) '(not-updated))
-         (goto-char (point-min))
-         (when old-point-data
+       (unless (eq ampc-dirty 'keep-dirty)
+         (let ((old-point-data (get-text-property (point) 'cmp-data))
+               (old-window-start-offset
+                (1- (count-lines (window-start) (point)))))
+           (put-text-property (point-min) (point-max) 'not-updated t)
+           (when (eq ampc-dirty 'erase)
+             (put-text-property (point-min) (point-max) 'data nil))
+           (goto-char (point-min))
+           ,@body
+           (goto-char (point-min))
            (loop until (eobp)
-                 do (when (equal (get-text-property (point) 'cmp-data)
-                                 old-point-data)
-                      (set-window-start
-                       nil
-                       (save-excursion
-                         (forward-line (- old-window-start-offset))
-                         (point))
-                       t)
-                      (return))
-                 (forward-line)
-                 finally do (goto-char (point-min)))))
-       (let ((effective-height (- (window-height)
-                                  (if mode-line-format 1 0)
-                                  (if header-line-format 1 0))))
-         (when (< (- (1- (line-number-at-pos (point-max)))
-                     (line-number-at-pos (window-start)))
-                  effective-height)
-           (set-window-start nil
-                             (save-excursion
-                               (goto-char (point-max))
-                               (forward-line (- (1+ effective-height)))
-                               (point))
-                             t)))
-       (ampc-align-point)
-       (ampc-set-dirty nil))))
+                 do (if (get-text-property (point) 'not-updated)
+                        (kill-line 1)
+                      (add-text-properties (+ (point) 2)
+                                           (progn (forward-line nil)
+                                                  (1- (point)))
+                                           '(mouse-face highlight))))
+           (remove-text-properties (point-min) (point-max) '(not-updated))
+           (goto-char (point-min))
+           (when old-point-data
+             (loop until (eobp)
+                   do (when (equal (get-text-property (point) 'cmp-data)
+                                   old-point-data)
+                        (set-window-start
+                         nil
+                         (save-excursion
+                           (forward-line (- old-window-start-offset))
+                           (point))
+                         t)
+                        (return))
+                   (forward-line)
+                   finally do (goto-char (point-min)))))
+         (let ((effective-height (- (window-height)
+                                    (if mode-line-format 1 0)
+                                    (if header-line-format 1 0))))
+           (when (< (- (1- (line-number-at-pos (point-max)))
+                       (line-number-at-pos (window-start)))
+                    effective-height)
+             (set-window-start nil
+                               (save-excursion
+                                 (goto-char (point-max))
+                                 (forward-line (- (1+ effective-height)))
+                                 (point))
+                               t)))
+         (ampc-align-point)
+         (ampc-set-dirty nil)))))
 
 (defmacro ampc-with-selection (arg &rest body)
   (declare (indent 1) (debug t))
@@ -1482,7 +1483,7 @@ modified."
                         t)))))))
 
 (defun ampc-set-dirty (tag-or-dirty &optional dirty)
-  (if (or (null tag-or-dirty) (memq tag-or-dirty '(t erase)))
+  (if (or (null tag-or-dirty) (memq tag-or-dirty '(t erase keep-dirty)))
       (setf ampc-dirty tag-or-dirty)
     (loop for w in (ampc-normalize-windows)
           do (with-current-buffer (window-buffer w)
@@ -1503,6 +1504,8 @@ modified."
                       (if (assoc (ampc-tags) ampc-internal-db)
                           (ampc-fill-tag-song)
                         (push (cons (ampc-tags) nil) ampc-internal-db)
+                        (ampc-set-dirty 'tag 'keep-dirty)
+                        (ampc-set-dirty 'song 'keep-dirty)
                         (ampc-send-command 'listallinfo)))
                      (status
                       (ampc-send-command 'status)
@@ -1836,7 +1839,7 @@ modified."
     (with-current-buffer (window-buffer w)
       (when (eq (car ampc-type) type)
         (if ampc-dirty
-            (if (not trees)
+            (if (and (not trees) (not (eq ampc-dirty 'keep-dirty)))
                 (progn
                   (let ((inhibit-read-only t))
                     (erase-buffer))

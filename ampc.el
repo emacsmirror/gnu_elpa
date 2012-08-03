@@ -30,8 +30,9 @@
 
 ;;; ** installation
 ;; If you use GNU ELPA, install ampc via M-x package-list-packages RET or
-;; (package-install 'ampc).  Otherwise, grab this file and put it somewhere in
-;; your load-path or add the directory the file is in to it, e.g.:
+;; (package-install 'ampc).  Otherwise, grab the files in this repository and
+;; put the emacs lisp ones somewhere in your load-path or add the directory the
+;; files are in to it, e.g.:
 ;;
 ;; (add-to-list 'load-path "~/.emacs.d/ampc")
 ;; (autoload 'ampc "ampc" nil t)
@@ -40,24 +41,21 @@
 ;; its performance!
 
 ;;; ** usage
-;; To invoke ampc, call the command `ampc', e.g. via M-x ampc RET.  When called
-;; interactively, `ampc' reads host address and port from the minibuffer.  If
-;; called non-interactively, the first argument to `ampc' is the host, the
-;; second is the port.  Both values default to nil, which will make ampc connect
-;; to localhost:6600.  If the optional third argument is non-nil and ampc is
-;; connected to the daemon, it creates its window configuration in the selected
-;; window.  To make ampc use the full frame rather than the selected window,
-;; customise `ampc-use-full-frame'.  To check whether ampc is connected to the
-;; daemon, call `ampc-is-on-p' and `ampc-suspended-p'.
+;; To invoke ampc call the command `ampc', e.g. via M-x ampc RET.  The first
+;; argument to `ampc' is the host, the second is the port.  Both values default
+;; to nil.  If nil, ampc will use the value specified in `ampc-default-server',
+;; by default localhost:6600.  To make ampc use the full frame rather than the
+;; selected window for its window setup, customise `ampc-use-full-frame' to a
+;; non-nil value.
 ;;
 ;; ampc offers three independent views which expose different parts of the user
 ;; interface.  The current playlist view, the default view at startup, may be
-;; accessed using the `J' (that is `S-j') key.  The playlist view may be
-;; accessed using the `K' key.  The outputs view may be accessed using the `L'
-;; key.
+;; accessed using the `J' key (that is `S-j').  The playlist view may be
+;; accessed using the `K' key.  The outputs view may be accessed by pressing
+;; `L'.
 
 ;;; *** current playlist view
-;; The playlist view should look like this
+;; The playlist view looks like this:
 ;;
 ;; .........................
 ;; . 1      . 3  . 4  . 5  .
@@ -71,7 +69,7 @@
 ;; .........................
 ;;
 ;; Window one exposes basic information about the daemon, such as the current
-;; state (stop/play/pause), the song currently playing, or the volume.
+;; state (stop/play/pause), the song currently playing or the volume.
 ;;
 ;; All windows, except the status window, contain a tabular list of items.  Each
 ;; item may be selected/marked.  There may be multiple selections.
@@ -104,10 +102,10 @@
 ;; Calling `ampc-add' in a tag browser adds all songs filtered up to the
 ;; selected browser to the playlist.
 ;;
-;; The tag browsers of the (default) current playlist view (accessed via `J')
-;; are `Genre' (window 3), `Artist' (window 4) and `Album' (window 5).  The key
-;; `M' may be used to fire up a slightly modified current playlist view.  There
-;; is no difference to the default current playlist view other than that the tag
+;; The tag browsers of the current playlist view (accessed via `J') are `Genre'
+;; (window 3), `Artist' (window 4) and `Album' (window 5).  The key `M' may be
+;; used to fire up a slightly modified current playlist view.  There is no
+;; difference to the default current playlist view other than that the tag
 ;; browsers filter to `Genre' (window 3), `Album' (window 4) and `Artist'
 ;; (window 5).  Metaphorically speaking, the order of the `grep' filters defined
 ;; by the tag browsers is different.
@@ -139,10 +137,10 @@
 ;; views, ampc defines the following global keys, which may be used in every
 ;; window associated with ampc:
 ;;
-;; `k' (ampc-toggle-play): Toggle play state.  If MPD does not play a song
-;; already, start playing the song at point if the current buffer is the
-;; playlist buffer, otherwise start at the beginning of the playlist.  With
-;; prefix argument 4, stop player rather than pause if applicable.
+;; `k' (ampc-toggle-play): Toggle play state.  If MPD does not play a song,
+;; start playing the song at point if the current buffer is the playlist buffer,
+;; otherwise start at the beginning of the playlist.  With numeric prefix
+;; argument 4, stop player rather than pause if applicable.
 ;;
 ;; `l' (ampc-next): Play next song.
 ;; `j' (ampc-previous): Play previous song
@@ -151,7 +149,7 @@
 ;; `s' (ampc-shuffle): Shuffle playlist.
 ;;
 ;; `S' (ampc-store): Store playlist.
-;; `O' (ampc-load): Load selected playlist in the current playlist.
+;; `O' (ampc-load): Load selected playlist into the current playlist.
 ;; `R' (ampc-rename-playlist): Rename selected playlist.
 ;; `D' (ampc-delete-playlist): Delete selected playlist.
 ;;
@@ -193,10 +191,13 @@
 ;; If ampc is suspended, you can still use every interactive command that does
 ;; not directly operate on or with the user interace of ampc.  For example it is
 ;; perfectly fine to call `ampc-increase-volume' or `ampc-toggle-play' via M-x
-;; RET.  Especially the commands `ampc-status' and `ampc-mini' are predestinated
-;; to be bound in the global keymap.  `ampc-status' messages the information
-;; that is displayed by the status window of ampc.  `ampc-mini' lets you select
-;; a song to play via `completing-read'.
+;; RET.  Especially the commands `ampc-status' and `ampc-mini' are predesignated
+;; to be bound in the global keymap and called when ampc is suspended.
+;; `ampc-status' messages the information that is displayed by the status window
+;; of ampc.  `ampc-mini' lets you select a song to play via `completing-read'.
+;; To start ampc suspended, call `ampc' with the third argument being non-nil.
+;; To check whether ampc is connected to the daemon and/or suspended, call
+;; `ampc-is-on-p' or `ampc-suspended-p'.
 ;;
 ;; (global-set-key (kbd "<f7>")
 ;;                 (lambda ()
@@ -227,8 +228,11 @@
 
 ;;; *** customs
 (defcustom ampc-debug nil
-  "Non-nil means log communication between ampc and MPD."
-  :type 'boolean)
+  "Non-nil means log outgoing communication between ampc and MPD.
+If the value is neither t nor nil, also log incoming data."
+  :type '(choice (const :tag "Disable" nil)
+                 (const :tag "Outgoing" t)
+                 (const :tag "Incoming and outgoing" full)))
 
 (defcustom ampc-use-full-frame nil
   "If non-nil, ampc will use the entire Emacs screen."
@@ -241,7 +245,7 @@
 (defcustom ampc-default-server '("localhost" . 6600)
   "The MPD server to connect to if the arguments to `ampc' are nil.
 This variable is a cons cell, with the car specifying the
-hostname and the cdr specifiying the port.  Both values can be
+hostname and the cdr specifying the port.  Both values can be
 nil, which will make ampc query the user for values on each
 invocation."
   :type '(cons (choice :tag "Hostname"
@@ -252,7 +256,7 @@ invocation."
                        (integer)
                        (const :tag "Ask" nil))))
 
-(defcustom ampc-synchronous-commands '(t status currentsong)
+(defcustom ampc-synchronous-commands '(t status currentsong play)
   "List of MPD commands that should be executed synchronously.
 Executing commands that print lots of output synchronously will
 result in massive performance improvements of ampc.  If the car
@@ -321,7 +325,7 @@ all the time!"
   "Face of the mark.")
 (defface ampc-marked-face '((t (:inherit warning)))
   "Face of marked entries.")
-(defface ampc-face '((t (:inerhit default)))
+(defface ampc-unmarked-face '((t (:inerhit default)))
   "Face of unmarked entries.")
 (defface ampc-current-song-mark-face '((t (:inherit region)))
   "Face of mark of the current song.")
@@ -332,16 +336,18 @@ all the time!"
 (defvar ampc-views
   (let* ((songs '(1.0 song :properties (("Track" :title "#" :width 4)
                                         ("Title" :min 15 :max 40)
-                                        ("Time" :width 6))))
+                                        ("Time" :width 6)
+                                        ("Artist" :min 15 :max 40)
+                                        ("Album" :min 15 :max 40))))
          (rs_a `(1.0 vertical
                      (0.7 horizontal
-                          (0.33 tag :tag "Genre" :id 1)
+                          (0.33 tag :tag "Genre" :id 1 :select t)
                           (0.33 tag :tag "Artist" :id 2)
                           (1.0 tag :tag "Album" :id 3))
                      ,songs))
          (rs_b `(1.0 vertical
                      (0.7 horizontal
-                          (0.33 tag :tag "Genre" :id 1)
+                          (0.33 tag :tag "Genre" :id 1 :select t)
                           (0.33 tag :tag "Album" :id 2)
                           (1.0 tag :tag "Artist" :id 3))
                      ,songs))
@@ -394,6 +400,7 @@ all the time!"
 (defvar ampc-no-implicit-next-dispatch nil)
 (defvar ampc-working-timer nil)
 (defvar ampc-yield nil)
+(defvar ampc-yield-redisplay nil)
 
 (defvar ampc-buffers nil)
 (defvar ampc-buffers-unordered nil)
@@ -545,13 +552,13 @@ all the time!"
     ["Set crossfade" ampc-set-crossfade]
     ["Toggle repeat" ampc-toggle-repeat
      :style toggle
-     :selected (equal (cdr-safe (assq 'repeat ampc-status)) "1")]
+     :selected (equal (cdr (assq 'repeat ampc-status)) "1")]
     ["Toggle random" ampc-toggle-random
      :style toggle
-     :selected (equal (cdr-safe (assq 'random ampc-status)) "1")]
+     :selected (equal (cdr (assq 'random ampc-status)) "1")]
     ["Toggle consume" ampc-toggle-consume
      :style toggle
-     :selected (equal (cdr-safe (assq 'consume ampc-status)) "1")]
+     :selected (equal (cdr (assq 'consume ampc-status)) "1")]
     "--"
     ["Trigger update" ampc-trigger-update]
     ["Suspend" ampc-suspend]
@@ -655,10 +662,11 @@ all the time!"
 (defmacro ampc-with-selection (arg &rest body)
   (declare (indent 1) (debug t))
   `(let ((arg- ,arg))
-     (if (and (not arg-)
-              (save-excursion
-                (goto-char (point-min))
-                (search-forward-regexp "^* " nil t)))
+     (if (or (and (not arg-)
+                  (save-excursion
+                    (goto-char (point-min))
+                    (search-forward-regexp "^* " nil t)))
+             (and arg- (symbolp arg-)))
          (loop initially (goto-char (point-min))
                finally (ampc-align-point)
                while (search-forward-regexp "^* " nil t)
@@ -675,34 +683,33 @@ all the time!"
              until (ampc-next-line)))))
 
 ;;; *** modes
-(define-derived-mode ampc-outputs-mode ampc-item-mode "ampc-o"
-  nil)
+(define-derived-mode ampc-outputs-mode ampc-item-mode "ampc-o")
 
-(define-derived-mode ampc-tag-song-mode ampc-item-mode "ampc-ts"
-  nil)
+(define-derived-mode ampc-tag-song-mode ampc-item-mode "ampc-ts")
 
 (define-derived-mode ampc-current-playlist-mode ampc-playlist-mode "ampc-cpl"
-  nil)
+  (ampc-highlight-current-song-mode))
 
-(define-derived-mode ampc-playlist-mode ampc-item-mode "ampc-pl"
-  nil)
+(define-derived-mode ampc-playlist-mode ampc-item-mode "ampc-pl")
 
-(define-derived-mode ampc-playlists-mode ampc-item-mode "ampc-pls"
-  nil)
+(define-derived-mode ampc-playlists-mode ampc-item-mode "ampc-pls")
 
-(define-derived-mode ampc-item-mode ampc-mode ""
-  nil)
 
-(define-derived-mode ampc-mode special-mode "ampc"
-  nil
-  (buffer-disable-undo)
   (set (make-local-variable 'tool-bar-map) ampc-tool-bar-map)
   (setf truncate-lines ampc-truncate-lines
         font-lock-defaults '((("^\\(\\*\\)\\(.*\\)$"
+(define-derived-mode ampc-item-mode ampc-mode "ampc-item"
+  (setf font-lock-defaults '((("^\\(\\*\\)\\(.*\\)$"
                                (1 'ampc-mark-face)
                                (2 'ampc-marked-face))
-                              ("^ .*$" 0 'ampc-face))
+                              ("" 0 'ampc-unmarked-face))
                              t)))
+
+(define-derived-mode ampc-mode special-mode "ampc"
+  (buffer-disable-undo)
+  (set (make-local-variable 'tool-bar-map) ampc-tool-bar-map)
+  (setf truncate-lines ampc-truncate-lines
+        mode-line-modified "--"))
 
 (define-minor-mode ampc-highlight-current-song-mode ""
   nil
@@ -746,7 +753,7 @@ all the time!"
          (loop for d in (reverse data)
                do (ampc-add-impl (cdr (assoc "file" d)))))))
 
-(defun* ampc-skip (N)
+(defun ampc-skip (N)
   (ampc-send-command 'play
                      nil
                      (let ((N N))
@@ -755,10 +762,10 @@ all the time!"
                            (unless song
                              (throw 'skip nil))
                            (max 0 (+ (string-to-number song) N))))))
-  (ampc-send-command 'currentsong))
+  (ampc-send-command 'status t))
 
 (defun* ampc-find-current-song
-    (limit &aux (point (point)) (song (cdr-safe (assq 'song ampc-status))))
+    (limit &aux (point (point)) (song (cdr (assq 'song ampc-status))))
   (when (and song
              (<= (1- (line-number-at-pos (point)))
                  (setf song (string-to-number song)))
@@ -770,12 +777,14 @@ all the time!"
       (search-forward-regexp "\\(?1:\\(\\`\\*\\)?\\)\\(?2:.*\\)$"))))
 
 (defun ampc-set-volume-impl (arg &optional func)
-  (when ampc-status
-    (when arg
-      (setf arg (prefix-numeric-value arg)))
-    (ampc-send-command
-     'setvol
-     nil
+  (when arg
+    (setf arg (prefix-numeric-value arg)))
+  (ampc-send-command
+   'setvol
+   t
+   (lambda ()
+     (unless ampc-status
+       (throw 'skip nil))
      (max (min (if func
                    (funcall func
                             (string-to-number
@@ -783,25 +792,10 @@ all the time!"
                             (or arg ampc-volume-step))
                  arg)
                100)
-          0))
-    (ampc-send-command 'status)))
+          0)))
+  (ampc-send-command 'status t))
 
 (defun ampc-set-crossfade-impl (arg &optional func)
-  (when ampc-status
-    (when arg
-      (setf arg (prefix-numeric-value arg)))
-    (ampc-send-command
-     'crossfade
-     nil
-     (max (if func
-              (funcall func
-                       (string-to-number
-                        (cdr (assq 'xfade ampc-status)))
-                       (or arg ampc-crossfade-step))
-            arg)
-          0))
-    (ampc-send-command 'status)))
-
 (defun* ampc-fix-pos (f &aux buffer-read-only)
   (save-excursion
     (move-beginning-of-line nil)
@@ -817,6 +811,23 @@ all the time!"
   (when (or (and up (eq line 0))
             (and (not up) (eq (1+ line) (line-number-at-pos (1- (point-max))))))
     (return-from ampc-move-impl t))
+  (when arg
+    (setf arg (prefix-numeric-value arg)))
+  (ampc-send-command
+   'crossfade
+   t
+   (lambda ()
+     (unless ampc-status
+       (throw 'skip nil))
+     (max (if func
+              (funcall func
+                       (string-to-number
+                        (cdr (assq 'xfade ampc-status)))
+                       (or arg ampc-crossfade-step))
+            arg)
+          0)))
+  (ampc-send-command 'status t))
+
   (save-excursion
     (move-beginning-of-line nil)
     (if (ampc-playlist)
@@ -886,13 +897,15 @@ all the time!"
   (ampc-with-buffer 'playlists
     (if (and (not at-point)
              (search-forward-regexp "^* \\(.*\\)$" nil t))
-        (match-string 1)
+        (let ((result (match-string 1)))
+          (set-text-properties 0 (length result) nil result)
+          result)
       (unless (eobp)
         (buffer-substring-no-properties
          (+ (line-beginning-position) 2)
          (line-end-position))))))
 
-(defun* ampc-mark-impl (select N &aux result buffer-read-only)
+(defun* ampc-mark-impl (select N &aux result (inhibit-read-only t))
   (when (eq (car ampc-type) 'playlists)
     (assert (or (not select) (null N) (eq N 1)))
     (ampc-with-buffer 'playlists
@@ -928,12 +941,13 @@ all the time!"
 (defun ampc-align-point ()
   (unless (eobp)
     (move-beginning-of-line nil)
-    (forward-char 2)))
-
 (defun* ampc-pad (tabs &optional (sub 0))
   (loop for tab in tabs
         for offset in ampc-tab-offsets
         do (setf offset (- offset sub))
+    (forward-char 2)
+    (re-search-forward " *" nil t)))
+
         with first = t
         with current-offset = 0
         when (<= current-offset offset)
@@ -989,7 +1003,7 @@ all the time!"
                      ((tag song)
                       (if (assoc (ampc-tags) ampc-internal-db)
                           (ampc-fill-tag-song)
-                        (push `(,(ampc-tags) . nil) ampc-internal-db)
+                        (push (cons (ampc-tags) nil) ampc-internal-db)
                         (ampc-send-command 'listallinfo)))
                      (status
                       (ampc-send-command 'status)
@@ -1026,7 +1040,7 @@ all the time!"
     (unless ampc-working-timer
       (setf ampc-yield 0
             ampc-working-timer (run-at-time nil 0.1 'ampc-yield))))
-  (setf command `(,command ,@args))
+  (setf command (apply 'list command args))
   (when (equal (car-safe ampc-outstanding-commands) '(idle))
     (setf (car ampc-outstanding-commands) '(noidle))
     (ampc-send-command-impl "noidle"))
@@ -1034,7 +1048,7 @@ all the time!"
         (nconc (if unique
                    ampc-outstanding-commands
                  (delete command ampc-outstanding-commands))
-               `(,command))))
+               (list command))))
 
 (defun ampc-send-next-command ()
   (loop while ampc-outstanding-commands
@@ -1056,11 +1070,12 @@ all the time!"
               do (pop ampc-outstanding-commands))
         while (and ampc-outstanding-commands (not (eq (intern command) 'idle)))
         while
-        (let ((member (member (intern command) ampc-synchronous-commands)))
+        (let ((member (memq (intern command) ampc-synchronous-commands)))
           (when (or (and (not (eq (car ampc-synchronous-commands) t)) member)
                     (and (eq (car ampc-synchronous-commands) t) (not member)))
             (loop with head = ampc-outstanding-commands
                   with ampc-no-implicit-next-dispatch = t
+                  with ampc-yield-redisplay = t
                   while (eq head ampc-outstanding-commands)
                   do (accept-process-output ampc-connection 0 100))
             t)))
@@ -1139,14 +1154,14 @@ all the time!"
 (defun ampc-fill-tag (trees)
   (put-text-property (point-min) (point-max) 'data nil)
   (loop with new-trees
-        finally return new-trees
         for tree in trees
-        when tree
-        do (avl-tree-mapc (lambda (e)
-                            (when (ampc-insert (car e) (cdr e) t)
-                              (push (cdr e) new-trees)))
-                          tree)
-        end))
+        do (when tree
+             (avl-tree-mapc
+              (lambda (e)
+                (when (ampc-insert (car e) (cdr e) t (car e))
+                  (push (cdr e) new-trees)))
+              tree))
+        finally return new-trees))
 
 (defun ampc-fill-song (trees)
   (loop
@@ -1155,7 +1170,7 @@ all the time!"
             do (ampc-insert
                 (ampc-pad
                  (loop for (p . v) in (plist-get (cdr ampc-type) :properties)
-                       collect (or (cdr-safe (assoc p song)) ""))
+                       collect (or (cdr (assoc p song)) ""))
                  2)
                 `((,song))))))
 
@@ -1163,11 +1178,12 @@ all the time!"
   (narrow-to-region
    (move-beginning-of-line nil)
    (or (progn (goto-char (line-end-position))
-              (when (setf result (search-forward-regexp
-                                  (concat "^" (regexp-quote delimiter) ": ")
-                                  nil
-                                  t))
+              (when (search-forward-regexp
+                     (concat "^" (regexp-quote delimiter) ": ")
+                     nil
+                     t)
                 (move-beginning-of-line nil)
+                (setf result (point))
                 (1- (point))))
        (point-max)))
   result)
@@ -1295,12 +1311,15 @@ all the time!"
       (loop while (search-forward-regexp "^playlist: \\(.*\\)$" nil t)
             for playlist = (match-string 1)
             do (ampc-with-buffer 'playlists
-                 (ampc-insert playlist playlist))))))
+                 (ampc-insert playlist playlist)))))
+  (ampc-set-dirty 'playlist t)
+  (ampc-update))
 
 (defun ampc-yield ()
   (incf ampc-yield)
   (ampc-fill-status)
-  (redisplay t))
+  (when ampc-yield-redisplay
+    (redisplay t)))
 
 (defun ampc-fill-status ()
   (ampc-with-buffer 'status
@@ -1369,7 +1388,7 @@ all the time!"
                  (or (> version-a 0)
                      (>= version-b 15))))
     (error (concat "Your version of MPD is not supported.  "
-                   "ampc supports MPD (protocol version) 0.15.0 "
+                   "ampc supports MPD protocol version 0.15.0 "
                    "and later"))))
 
 (defun ampc-fill-internal-db (running)
@@ -1426,20 +1445,18 @@ all the time!"
         (return))))))
 
 (defun ampc-handle-current-song ()
-  (loop for k in (append ampc-status-tags '("Artist" "Title"))
+  (loop for k in (append ampc-status-tags '("Artist" "Title" "file"))
         for s = (ampc-extract k)
-        when s
-        do (push `(,(intern k) . ,s) ampc-status)
-        end)
+        do (when s
+             (push (cons (intern k) s) ampc-status)))
   (ampc-fill-status)
   (run-hook-with-args ampc-status-changed-hook ampc-status))
 
 (defun ampc-handle-status ()
   (loop for k in '("volume" "repeat" "random" "consume" "xfade" "state" "song")
         for v = (ampc-extract k)
-        when v
-        do (push `(,(intern k) . ,v) ampc-status)
-        end)
+        do (when v
+             (push (cons (intern k) v) ampc-status)))
   (ampc-with-buffer 'current-playlist
     (when ampc-highlight-current-song-mode
       (font-lock-fontify-region (point-min) (point-max)))))
@@ -1477,17 +1494,22 @@ all the time!"
       (mini-currentsong
        (ampc-status))
       (listallinfo
-       (ampc-fill-internal-db nil))
+       (ampc-handle-listallinfo))
       (outputs
        (ampc-fill-outputs)))
     (unless ampc-outstanding-commands
       (ampc-update)))))
 
+(defun ampc-handle-listallinfo ()
+  (ampc-fill-internal-db nil)
+  (ampc-set-dirty 'tag t)
+  (ampc-set-dirty 'song t))
+
 (defun ampc-filter (_process string)
   (assert (buffer-live-p (process-buffer ampc-connection)))
   (with-current-buffer (process-buffer ampc-connection)
     (when string
-      (when ampc-debug
+      (when (and ampc-debug (not (eq ampc-debug t)))
         (message "ampc: <- %s" string))
       (goto-char (process-mark ampc-connection))
       (insert string)
@@ -1500,12 +1522,14 @@ all the time!"
                          "^ACK \\[\\(.*\\)\\] {.*} \\(.*\\)\n\\'"
                          nil
                          t)
-                    (message "ampc command error: %s (%s)"
+                    (message "ampc command error: %s (%s; %s)"
                              (match-string 2)
-                             (match-string 1))
+                             (match-string 1)
+                             (funcall (if ampc-debug 'identity 'car)
+                                      (car ampc-outstanding-commands)))
                     t))
-                (and (search-forward-regexp "^OK\\(.*\\)\n\\'" nil t)
-                     (setf success t)))
+                (when (search-forward-regexp "^OK\\(.*\\)\n\\'" nil t)
+                  (setf success t)))
             (progn
               (let ((match-end (match-end 0)))
                 (save-restriction
@@ -1556,7 +1580,7 @@ all the time!"
                                                   min)))))))))))
 
 (defun* ampc-configure-frame-1 (split &aux (split-type (car split)))
-  (if (member split-type '(vertical horizontal))
+  (if (memq split-type '(vertical horizontal))
       (let* ((sizes))
         (loop with length = (if (eq split-type 'horizontal)
                                 (window-width)
@@ -1564,66 +1588,63 @@ all the time!"
               with rest = length
               with rest-car
               for (size . subsplit) in (cdr split)
-              if (equal size 1.0)
-              do (push t sizes)
-              and do (setf rest-car sizes)
-              else
-              do (let ((l (if (integerp size) size (floor (* size length)))))
-                   (setf rest (- rest l))
-                   (push l sizes))
+              do (if (equal size 1.0)
+                     (progn (push t sizes)
+                            (setf rest-car sizes))
+                   (let ((l (if (integerp size) size (floor (* size length)))))
+                     (decf rest l)
+                     (push l sizes)))
               finally do (setf (car rest-car) rest))
         (let ((first-window (selected-window)))
-          (setf sizes (nreverse sizes))
-          (loop for size in (loop for s in sizes
-                                  collect s)
+          (callf nreverse sizes)
+          (loop for size in (copy-sequence sizes)
                 for window on (cdr sizes)
                 do (select-window
                     (setf (car window)
-                          (split-window nil
-                                        size
-                                        (eq split-type 'horizontal)))))
+                          (split-window nil size (eq split-type 'horizontal)))))
           (setf (car sizes) first-window))
         (loop for subsplit in (cdr split)
               for window in sizes
+              with result
               do (with-selected-window window
-                   (ampc-configure-frame-1 (cdr subsplit)))
-              if (plist-get (cddr subsplit) :point)
-              do (select-window window)
-              end))
+                   (setf result
+                         (or (ampc-configure-frame-1 (cdr subsplit)) result)))
+              finally return result))
     (setf (window-dedicated-p (selected-window)) nil)
-    (ecase split-type
-      ((tag song)
-       (pop-to-buffer-same-window
-        (get-buffer-create (concat "*ampc "
-                                   (or (plist-get (cdr split) :tag) "Song")
-                                   "*")))
-       (ampc-tag-song-mode))
-      (outputs
-       (pop-to-buffer-same-window (get-buffer-create "*ampc Outputs*"))
-       (ampc-outputs-mode))
-      (current-playlist
-       (pop-to-buffer-same-window (get-buffer-create "*ampc Current Playlist*"))
-       (ampc-current-playlist-mode)
-       (ampc-highlight-current-song-mode 1))
-      (playlist
-       (pop-to-buffer-same-window (get-buffer-create "*ampc Playlist*"))
-       (ampc-playlist-mode))
-      (playlists
-       (pop-to-buffer-same-window (get-buffer-create "*ampc Playlists*"))
-       (ampc-playlists-mode))
-      (status
-       (pop-to-buffer-same-window (get-buffer-create "*ampc Status*"))
-       (ampc-mode)))
+    (pop-to-buffer-same-window
+     (get-buffer-create
+      (concat "*"
+              (mapconcat (lambda (s) (concat (upcase (substring s 0 1))
+                                             (substring s 1)))
+                         (if (memq split-type '(tag song))
+                             (list (or (plist-get (cdr split) :tag) "song"))
+                           (split-string (symbol-name split-type) "-"))
+                         " ")
+              "*")))
+    (if (memq split-type '(tag song))
+        (ampc-tag-song-mode)
+      (let ((mode (intern (concat "ampc-" (symbol-name split-type) "-mode"))))
+        (unless (fboundp mode)
+          (setf mode 'ampc-mode))
+        (unless (eq major-mode 'mode)
+          (funcall mode))))
     (destructuring-bind
         (&key (properties nil) (dedicated t) (mode-line t) &allow-other-keys)
         (cdr split)
-      (if properties
-          (apply 'ampc-set-tab-offsets properties)
-        (setf ampc-tab-offsets '(2)))
+      (apply 'ampc-set-tab-offsets properties)
       (setf ampc-type split
             (window-dedicated-p (selected-window)) dedicated
             mode-line-format (when mode-line
                                (default-value 'mode-line-format))))
+    (set (make-local-variable 'mode-line-buffer-identification)
+         '(:eval (let ((result
+                        (concat (car-safe (propertized-buffer-identification
+                                           (buffer-name)))
+                                (when ampc-dirty
+                                  " [Updating...]"))))
+                   (if (< (length result) 12)
+                       (concat result (make-string (- 12 (length result)) ? ))
+                     result))))
     (add-to-list 'ampc-all-buffers (current-buffer))
     (push `(,(or (plist-get (cdr split) :id)
                  (if (eq (car ampc-type) 'song) 9998 9999))
@@ -1693,7 +1714,7 @@ all the time!"
   (goto-char (posn-point (event-end event)))
   (ampc-toggle-output-enabled 1))
 
-(defun* ampc-mouse-toggle-mark (event &aux buffer-read-only)
+(defun* ampc-mouse-toggle-mark (event &aux (inhibit-read-only t))
   (interactive "e")
   (let ((window (posn-window (event-end event))))
     (when (with-selected-window window
@@ -1710,8 +1731,7 @@ all the time!"
   (goto-char (posn-point (event-end event)))
   (ampc-align-point))
 
-;;; *** interactives
-(defun* ampc-unmark-all (&aux buffer-read-only)
+(defun* ampc-unmark-all (&aux (inhibit-read-only t))
   "Remove all marks."
   (interactive)
   (assert (ampc-in-ampc-p))
@@ -1727,8 +1747,9 @@ all the time!"
   (assert (ampc-on-p))
   (ampc-send-command 'update))
 
-(defun* ampc-toggle-marks (&aux buffer-read-only)
-  "Toggle marks.  Marked entries become unmarked, and vice versa."
+(defun* ampc-toggle-marks (&aux (inhibit-read-only t))
+  "Toggle marks.
+Marked entries become unmarked, and vice versa."
   (interactive)
   (assert (ampc-in-ampc-p))
   (save-excursion
@@ -1853,7 +1874,7 @@ zero-indexed position of the current playlist."
     (ampc-send-command 'pause nil 0)))
 
 (defun* ampc-toggle-play
-    (&optional arg &aux (state (cdr-safe (assq 'state ampc-status))))
+    (&optional arg &aux (state (cdr (assq 'state ampc-status))))
   "Toggle play state.
 If MPD does not play a song already, start playing the song at
 point if the current buffer is the playlist buffer, otherwise
@@ -1862,26 +1883,27 @@ start at the beginning of the playlist.
 If ARG is 4, stop player rather than pause if applicable."
   (interactive "P")
   (assert (ampc-on-p))
-  (when state
-    (when arg
-      (setf arg (prefix-numeric-value arg)))
-    (ecase (intern state)
-      (stop
-       (when (or (null arg) (> arg 0))
-         (ampc-send-command
-          'play
-          nil
-          (if (and (eq (car ampc-type) 'current-playlist) (not (eobp)))
-              (1- (line-number-at-pos))
-            0))))
-      (pause
-       (when (or (null arg) (> arg 0))
-         (ampc-send-command 'pause nil 0)))
-      (play
-       (cond ((or (null arg) (< arg 0))
-              (ampc-send-command 'pause nil 1))
-             ((eq arg 4)
-              (ampc-send-command 'stop)))))))
+  (unless state
+    (return-from ampc-toggle-play))
+  (when arg
+    (setf arg (prefix-numeric-value arg)))
+  (ecase (intern state)
+    (stop
+     (when (or (null arg) (> arg 0))
+       (ampc-send-command
+        'play
+        nil
+        (if (and (eq (car ampc-type) 'current-playlist) (not (eobp)))
+            (1- (line-number-at-pos))
+          0))))
+    (pause
+     (when (or (null arg) (> arg 0))
+       (ampc-send-command 'pause nil 0)))
+    (play
+     (cond ((or (null arg) (< arg 0))
+            (ampc-send-command 'pause nil 1))
+           ((eq arg 4)
+            (ampc-send-command 'stop))))))
 
 (defun ampc-next (&optional arg)
   "Play next song.
@@ -1957,16 +1979,16 @@ all marks after point are removed nontheless."
       (ampc-send-command 'shuffle)
     (ampc-with-buffer 'playlist
       (let ((shuffled
-             (mapcar
-              'car
-              (sort (loop until (eobp)
-                          collect `(,(cdr (assoc "file" (get-text-property
-                                                         (+ 2 (point))
-                                                         'data)))
-                                    . ,(random))
-                          do (forward-line))
-                    (lambda (a b)
-                      (< (cdr a) (cdr b)))))))
+             (mapcar 'car
+                     (sort (loop
+                            until (eobp)
+                            collect (cons (cdr (assoc "file" (get-text-property
+                                                              (+ 2 (point))
+                                                              'data)))
+                                          (random))
+                            do (forward-line))
+                           (lambda (a b)
+                             (< (cdr a) (cdr b)))))))
         (ampc-clear)
         (loop for s in shuffled
               do (ampc-add-impl s))))))
@@ -2016,10 +2038,10 @@ have enough information yet."
                          "\n"
                          (when (equal state "play")
                            (concat "Playing:   "
-                                   (or (cdr-safe (assq 'Artist ampc-status))
+                                   (or (cdr (assq 'Artist ampc-status))
                                        "[Not Specified]")
                                    " - "
-                                   (or (cdr-safe (assq 'Title ampc-status))
+                                   (or (cdr (assq 'Title ampc-status))
                                        "[Not Specified]")
                                    "\n"))
                          "Volume:    " (cdr (assq 'volume ampc-status)) "\n"
@@ -2040,8 +2062,8 @@ selected), use playlist at point rather than the selected one."
       (when (y-or-n-p (concat "Delete playlist " (ampc-playlist at-point) "?"))
         (ampc-send-command 'rm nil (ampc-quote (ampc-playlist at-point))))
     (if at-point
-        (error "No playlist at point")
-      (error "No playlist selected"))))
+        (message "No playlist at point")
+      (message "No playlist selected"))))
 
 (defun ampc-store (name)
   "Store current playlist as NAME.
@@ -2050,18 +2072,18 @@ Interactively, read NAME from the minibuffer."
   (assert (ampc-in-ampc-p))
   (ampc-send-command 'save nil (ampc-quote name)))
 
-(defun* ampc-goto-current-song
-    (&aux (song (cdr-safe (assq 'song ampc-status))))
+(defun* ampc-goto-current-song (&aux (song (cdr (assq 'song ampc-status))))
   "Select the current playlist window and move point to the current song."
   (interactive)
   (assert (ampc-in-ampc-p))
-  (ampc-with-buffer 'current-playlist
-    no-se
-    (select-window (ampc-get-window 'current-playlist))
-    (when song
-      (goto-char (point-min))
-      (forward-line (string-to-number song)))
-    (ampc-align-point)))
+  (let ((window (ampc-with-buffer 'current-playlist
+                  (selected-window))))
+    (when window
+      (select-window window)
+      (when song
+        (goto-char (point-min))
+        (forward-line (string-to-number song)))
+      (ampc-align-point))))
 
 (defun ampc-previous-line (&optional arg)
   "Go to previous ARG'th entry in the current buffer.
@@ -2115,7 +2137,7 @@ This means subsequent startups of ampc will be faster."
 
 (defun ampc-quit (&optional arg)
   "Quit ampc.
-If called with a prefix argument ARG, kill the MPD instance that
+If prefix argument ARG is non-nil, kill the MPD instance that
 ampc is connected to."
   (interactive "P")
   (when (ampc-on-p)
@@ -2161,11 +2183,9 @@ default to the ones specified in `ampc-default-server'."
     (message "You should byte-compile ampc"))
   (run-hooks 'ampc-before-startup-hook)
   (unless host
-    (setf host (or (car ampc-default-server)
-                   (read-string  "Host: "))))
+    (setf host (or (car ampc-default-server) (read-string  "Host: "))))
   (unless port
-    (setf port (or (cdr ampc-default-server)
-                   (read-string "Port: "))))
+    (setf port (or (cdr ampc-default-server) (read-string "Port: "))))
   (when (and ampc-connection
              (or (not (equal host ampc-host))
                  (not (equal port ampc-port))

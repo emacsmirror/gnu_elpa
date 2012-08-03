@@ -375,6 +375,8 @@ all the time!"
 (defvar ampc-internal-db nil)
 (defvar ampc-status nil)
 
+(defconst ampc-synchronous-commands '(listallinfo current-playlist))
+
 ;;; *** mode maps
 (defvar ampc-mode-map
   (let ((map (make-sparse-keymap)))
@@ -984,13 +986,18 @@ all the time!"
 (defun ampc-send-next-command ()
   (unless ampc-outstanding-commands
     (ampc-send-command 'idle))
-  (ampc-send-command-impl
-   (concat (replace-regexp-in-string
-            "^.*-" "" (symbol-name (caar ampc-outstanding-commands)))
-           (loop for a in (cdar ampc-outstanding-commands)
-                 concat " "
-                 concat (cond ((integerp a) (number-to-string a))
-                              (t a))))))
+  (let ((command (replace-regexp-in-string
+                  "^.*-" "" (symbol-name (caar ampc-outstanding-commands)))))
+    (ampc-send-command-impl
+     (concat command
+             (loop for a in (cdar ampc-outstanding-commands)
+                   concat " "
+                   concat (cond ((integerp a) (number-to-string a))
+                                (t a)))))
+    (when (member (intern command) ampc-synchronous-commands)
+      (loop with head = ampc-outstanding-commands
+            while (eq head ampc-outstanding-commands)
+            do (accept-process-output nil 0 100)))))
 
 (defun ampc-tree< (a b)
   (string< (car a) (car b)))

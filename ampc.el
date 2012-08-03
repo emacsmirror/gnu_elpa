@@ -1527,7 +1527,8 @@ modified."
 (defun ampc-send-command-impl (command)
   (when ampc-debug
     (message "ampc: -> %s" command))
-  (process-send-string ampc-connection (concat command "\n")))
+  (when (ampc-on-p)
+    (process-send-string ampc-connection (concat command "\n"))))
 
 (defun* ampc-send-command (command &optional props &rest args)
   (destructuring-bind (&key (front nil) (callback nil) (keep-prev nil)
@@ -1598,6 +1599,7 @@ modified."
         do (loop with head = ampc-outstanding-commands
                  with ampc-no-implicit-next-dispatch = t
                  with ampc-yield-redisplay = t
+                 while (ampc-on-p)
                  while (eq head ampc-outstanding-commands)
                  do (accept-process-output ampc-connection 0 100)))
   (unless ampc-outstanding-commands
@@ -3026,6 +3028,7 @@ ampc is connected to."
       (with-current-buffer (process-buffer ampc-connection)
         (loop do (goto-char (point-min))
               until (search-forward-regexp "^\\(ACK\\)\\|\\(OK\\).*\n\\'" nil t)
+              while (ampc-on-p)
               do (accept-process-output ampc-connection nil 50))))
     (ampc-send-command-impl (if arg "kill" "close"))
     (delete-process ampc-connection))

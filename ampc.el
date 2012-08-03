@@ -133,6 +133,10 @@
 ;; stored playlists is the only view in ampc that may have only one marked
 ;; entry.
 ;;
+;; To queue a playlist, press `l' (ampc-load) or `<down-mouse-2>'.  To delete a
+;; playlist, press `d' (ampc-delete-playlist) or `<down-mouse-3>'.  The command
+;; `ampc-rename-playlist', bound to `r', can be used to rename a playlist.
+;;
 ;; Again, the key `<' may be used to setup a playlist view with a different
 ;; order of tag browsers.
 
@@ -435,6 +439,7 @@ all the time!"
     (define-key map (kbd "<down-mouse-2>") 'ampc-mouse-play-this)
     (define-key map (kbd "<mouse-2>") 'ampc-mouse-align-point)
     (define-key map (kbd "<down-mouse-3>") 'ampc-mouse-delete)
+    (define-key map (kbd "<mouse-3>") 'ampc-mouse-align-point)
     map))
 
 (defvar ampc-playlist-mode-map
@@ -445,6 +450,7 @@ all the time!"
     (define-key map (kbd "<up>") 'ampc-up)
     (define-key map (kbd "<down>") 'ampc-down)
     (define-key map (kbd "<down-mouse-3>") 'ampc-mouse-delete)
+    (define-key map (kbd "<mouse-3>") 'ampc-mouse-align-point)
     map))
 
 (defvar ampc-playlists-mode-map
@@ -453,6 +459,10 @@ all the time!"
     (define-key map (kbd "l") 'ampc-load)
     (define-key map (kbd "r") 'ampc-rename-playlist)
     (define-key map (kbd "d") 'ampc-delete-playlist)
+    (define-key map (kbd "<down-mouse-2>") 'ampc-mouse-load)
+    (define-key map (kbd "<mouse-2>") 'ampc-mouse-align-point)
+    (define-key map (kbd "<down-mouse-3>") 'ampc-mouse-delete-playlist)
+    (define-key map (kbd "<mouse-3>") 'ampc-mouse-align-point)
     map))
 
 (defvar ampc-tag-song-mode-map
@@ -828,9 +838,10 @@ all the time!"
            ((> (prefix-numeric-value arg) 0) 1)
            (t 0)))))
 
-(defun ampc-playlist ()
+(defun ampc-playlist (&optional at-point)
   (ampc-with-buffer 'playlists
-    (if (search-forward-regexp "^* \\(.*\\)$" nil t)
+    (if (and (not at-point)
+             (search-forward-regexp "^* \\(.*\\)$" nil t))
         (match-string 1)
       (unless (eobp)
         (buffer-substring-no-properties
@@ -1114,12 +1125,11 @@ all the time!"
        do (save-restriction
             (setf next (ampc-narrow-entry))
             (let ((file (ampc-extract "file"))
-                  (text (ampc-pad (loop for (tag . tag-properties) in properties
-                                        collect (or (ampc-extract tag)
-                                                    "[Not Specified]"))
-                                  2)))
+                  (pad-data (loop for (tag . tag-properties) in properties
+                                   collect (or (ampc-extract tag)
+                                               "[Not Specified]"))))
               (ampc-with-buffer 'playlist
-                (ampc-insert text
+                (ampc-insert (ampc-pad pad-data 2)
                              `(("file" . ,file)
                                (index . ,i))
                              (lambda (a b)
@@ -1603,6 +1613,18 @@ all the time!"
   (goto-char (posn-point (event-end event)))
   (ampc-add-impl))
 
+(defun ampc-mouse-delete-playlist (event)
+  (interactive "e")
+  (select-window (posn-window (event-end event)))
+  (goto-char (posn-point (event-end event)))
+  (ampc-delete-playlist t))
+
+(defun ampc-mouse-load (event)
+  (interactive "e")
+  (select-window (posn-window (event-end event)))
+  (goto-char (posn-point (event-end event)))
+  (ampc-load t))
+
 (defun ampc-mouse-toggle-output-enabled (event)
   (interactive "e")
   (select-window (posn-window (event-end event)))
@@ -1808,13 +1830,17 @@ Interactively, read NEW-NAME from the minibuffer."
       (ampc-send-command 'rename nil (ampc-playlist) new-name)
     (error "No playlist selected")))
 
-(defun ampc-load ()
-  "Load selected playlist in the current playlist."
+(defun ampc-load (&optional at-point)
+  "Load selected playlist in the current playlist.
+If optional argument AT-POINT is non-nil (or if no playlist is
+selected), use playlist at point rather than the selected one."
   (interactive)
   (assert (ampc-in-ampc-p))
-  (if (ampc-playlist)
-      (ampc-send-command 'load nil (ampc-quote (ampc-playlist)))
-    (error "No playlist selected")))
+  (if (ampc-playlist at-point)
+      (ampc-send-command 'load nil (ampc-quote (ampc-playlist at-point)))
+    (if at-point
+        (error "No playlist at point")
+      (error "No playlist selected"))))
 
 (defun ampc-toggle-output-enabled (&optional arg)
   "Toggle the next ARG outputs.
@@ -1928,14 +1954,18 @@ have enough information yet."
       (message "%s" status))
     status))
 
-(defun ampc-delete-playlist ()
-  "Delete selected playlist."
+(defun ampc-delete-playlist (&optional at-point)
+  "Delete selected playlist.
+If optional argument AT-POINT is non-nil (or if no playlist is
+selected), use playlist at point rather than the selected one."
   (interactive)
   (assert (ampc-in-ampc-p))
-  (ampc-with-selection nil
-    (let ((name (get-text-property (point) 'data)))
-      (when (y-or-n-p (concat "Delete playlist " name "?"))
-        (ampc-send-command 'rm nil (ampc-quote name))))))
+  (if (ampc-playlist at-point)
+      (when (y-or-n-p (concat "Delete playlist " (ampc-playlist at-point) "?"))
+        (ampc-send-command 'rm nil (ampc-quote (ampc-playlist at-point))))
+    (if at-point
+        (error "No playlist at point")
+      (error "No playlist selected"))))
 
 (defun ampc-store (name)
   "Store current playlist as NAME.

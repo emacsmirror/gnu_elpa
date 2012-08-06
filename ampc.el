@@ -4,7 +4,7 @@
 
 ;; Author: Christopher Schmidt <christopher@ch.ristopher.com>
 ;; Maintainer: Christopher Schmidt <christopher@ch.ristopher.com>
-;; Version: 0.1.3
+;; Version: 0.2
 ;; Created: 2011-12-06
 ;; Keywords: ampc, mpc, mpd
 ;; Compatibility: GNU Emacs: 24.x

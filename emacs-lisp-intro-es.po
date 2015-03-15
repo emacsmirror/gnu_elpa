@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2014-08-12 21:14+0200\n"
-"PO-Revision-Date: 2015-03-14 17:39+0100\n"
+"PO-Revision-Date: 2015-03-15 20:59+0100\n"
 "Last-Translator: David Arroyo Men@'endez <davidam@es.gnu.org>\n"
 "Language-Team: Spanish <elisp-es-traductores@nongnu.org>\n"
 "Language: Spanish\n"
@@ -6888,7 +6888,7 @@ msgid ""
 "(setq trees '(pine fir oak maple)\n"
 "      herbivores '(gazelle antelope zebra))\n"
 msgstr ""
-"(setq arboles '(pino abeto encina roble)\n"
+"(setq arboles '(pino abeto roble arce)\n"
 "      herbivoros '(gacela antilope cebra))\n"
 
 #. type: Plain text
@@ -9890,10 +9890,10 @@ msgstr ""
 "(let ((abedul 3)\n"
 "      pino\n"
 "      abeto\n"
-"      (encina 'algo))\n"
+"      (roble 'algo))\n"
 "  (message\n"
 "   \"Aqu@'{@dotless{i}} est@'an %d variables con %s, %s, y el valor %s.\"\n"
-"   abedul pino abeto encina))"
+"   abedul pino abeto roble))"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3840
@@ -16000,7 +16000,8 @@ msgid ""
 msgstr ""
 "En Lisp, @code{car}, @code{cdr}, y @code{cons} son funciones\n"
 "fundamentales. La funci@'on @code{cons} es usada para construir\n"
-"listas, y las funciones @code{car} y @code{cdr} son usadas tomarlas aparte."
+"listas, y las funciones @code{car} y @code{cdr} son usadas para\n"
+"tomarlas aparte."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6894
@@ -16009,9 +16010,10 @@ msgid ""
 "@code{cons} as well as two variants on @code{cdr}, namely, @code{setcdr} and "
 "@code{nthcdr}.  (@xref{copy-region-as-kill}.)"
 msgstr ""
-"En el paseo a trav@'es de la funci@'on @code{copy-region-as-kill}, se\n"
-"ver@'a @code{cons} tan bien como dos variantes de @code{cdr}, llamadas\n"
-"@code{setcdr} y @code{nthcdr}. (@xref{copy-region-as-kill}.)"
+"En el paseo guiado a trav@'es de la funci@'on\n"
+"@code{copy-region-as-kill}, se ver@'a @code{cons} tan bien como dos\n"
+"variantes de @code{cdr}, llamadas @code{setcdr} y\n"
+"@code{nthcdr}. (@xref{copy-region-as-kill}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6925
@@ -16033,9 +16035,9 @@ msgstr ""
 "El nombre de la funci@'on @code{cons} es razonable: es una\n"
 "abreviaci@'on de la palabra `constructo'. Los or@'{@dotless{i}}genes\n"
 "de los nombres @code{car} y @code{cdr}, por otro lado, son\n"
-"esot@'ericos: @code{car} es un acr@'onimo desde la frase `Contenidos\n"
-"de la parte de la Direcci@'on del Registro'; y @code{cdr} (pronunciado\n"
-"`could-er') es un acr@'onimo desde la frase `Contenidos del Decremento\n"
+"esot@'ericos: @code{car} es un acr@'onimo de la frase `Contenidos de\n"
+"la parte de la Direcci@'on del Registro'; y @code{cdr} (pronunciado\n"
+"`could-er') es un acr@'onimo de la frase `Contenidos del Decremento\n"
 "del Registro'. Estas frases se refieren a piezas\n"
 "espec@'{@dotless{i}}ficas de hardware en el ordenador en el que el\n"
 "Lisp original fu@'e desarrollado. El resto de frases han sido\n"
@@ -16058,9 +16060,9 @@ msgid ""
 "The @sc{car} of a list is, quite simply, the first item in the list.  Thus "
 "the @sc{car} of the list @code{(rose violet daisy buttercup)} is @code{rose}."
 msgstr ""
-"El @sc{car} de una lista es, bastatante simple, el primer\n"
+"El @sc{car} de una lista es, bastante simple, el primer\n"
 "@'{@dotless{i}}tem en la lista. De este modo, el @sc{car} de la lista\n"
-"@code{(roer violet daisy buttercup)} es @code{rose}."
+"@code{(rosa violeta margarita mantequilla)} es @code{rosa}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6936
@@ -16075,14 +16077,14 @@ msgstr ""
 #: emacs-lisp-intro.texi:6939
 #, no-wrap
 msgid "(car '(rose violet daisy buttercup))\n"
-msgstr "(car '(rose violet daisy buttercup))\n"
+msgstr "(car '(rosa violeta margarita mantequilla))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6944
 msgid ""
 "After evaluating the expression, @code{rose} will appear in the echo area."
 msgstr ""
-"Despu@'es de evaluar la expresi@'on, @code{rose} aparecer@'a en el\n"
+"Despu@'es de evaluar la expresi@'on, @code{rosa} aparecer@'a en el\n"
 "@'area echo."
 
 #. type: Plain text
@@ -16103,9 +16105,9 @@ msgid ""
 "the same as it was.  In the jargon, @code{car} is `non-destructive'.  This "
 "feature turns out to be important."
 msgstr ""
-"@code{car} no elimina el primer @'{@dotless{i}}tem desde la lista; eso\n"
-"solo informa que eso es. Despu@'es @code{car} ha sido aplicado a una\n"
-"lista, la lista es todav@'{@dotless{i}}a la misma que era. En la\n"
+"@code{car} no elimina el primer @'{@dotless{i}}tem de la lista; solo\n"
+"se informa de lo que hay. Despu@'es de que @code{car} se haya aplicado a\n"
+"una lista, la lista es todav@'{@dotless{i}}a la misma que era. En la\n"
 "jerga, @code{car} es `no-destructiva'. Esta funcionalidad deja de ser\n"
 "importante."
 
@@ -16120,10 +16122,10 @@ msgid ""
 msgstr ""
 "El @sc{cdr} de una lista es el resto de la lista, que es, la funci@'on\n"
 "@code{cdr} que devuelve la parte de la lista que sigue el primer\n"
-"@'{@dotless{i}}tem. De este modo, mientra el @sc{car} de la lista\n"
-"@code{'(rose violet daisy buttercup)} es @code{rose}, el resto\n"
+"@'{@dotless{i}}tem. De este modo, mientras el @sc{car} de la lista\n"
+"@code{'(rosa violeta margarita mantequilla)} es @code{rosa}, el resto\n"
 "de la lista, el valor devuelto por la funci@'on @code{cdr}, es\n"
-"@code{(violet daisy buttercup)}."
+"@code{(violeta margarita mantequilla)}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6962
@@ -16134,7 +16136,7 @@ msgstr "Se puede ver esto evaluando lo siguiente del modo usual:"
 #: emacs-lisp-intro.texi:6965
 #, no-wrap
 msgid "(cdr '(rose violet daisy buttercup))\n"
-msgstr "(cdr '(rose violet daisy buttercup))\n"
+msgstr "(cdr '(rosa violeta margarita mantequilla))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6970
@@ -16142,7 +16144,7 @@ msgid ""
 "When you evaluate this, @code{(violet daisy buttercup)} will appear in the "
 "echo area."
 msgstr ""
-"Cuando se eval@'ua esto, @code{(violet daisy buttercup)}\n"
+"Cuando se eval@'ua esto, @code{(violeta margarita mantequilla)}\n"
 "aparecer@'a en el @'area echo."
 
 #. type: Plain text
@@ -16163,7 +16165,7 @@ msgid ""
 "@code{rose} as a function.  In this example, we do not want to do that."
 msgstr ""
 "En el ejemplo, la lista de flores se cita. Si no, el int@'erprete Lisp\n"
-"intentar@'{@dotless{i}}a evaluar la lista llamando a @code{rose} como\n"
+"intentar@'{@dotless{i}}a evaluar la lista llamando a @code{rosa} como\n"
 "una funci@'on. En este ejemplo, no queremos hacer esto."
 
 #. type: Plain text
@@ -16187,11 +16189,11 @@ msgstr ""
 "(Hay una lecci@'on aqu@'{@dotless{i}}: cuando se nombran nuevas\n"
 "funciones, considere muy cuidadosamente lo que se est@'a haciendo, ya\n"
 "que puede estar pegadas con los nombres largos que se esperan. La\n"
-"raz@'on es que este doucumento perpet@'ua estos nombres que el\n"
+"raz@'on es que este documento perpet@'ua estos nombres que el\n"
 "c@'odigo fuente de Emacs Lisp usa, y si no los usaba, se \n"
 "estar@'{@dotless{i}}a un duro rato leyendo el c@'odigo; pero, por\n"
-"favor, intente evitar usar estos t@'erminos por s@'{@dotless{i}}\n"
-"mismo. Las personas quienes vienen despu@'es se lo agradecer@'an."
+"favor, se debe intentar evitar usar estos t@'erminos por uno\n"
+"mismo. Las personas que vengan despu@'es se lo agradecer@'an."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6996
@@ -16204,12 +16206,12 @@ msgid ""
 "as you can see by evaluating the following expressions in the usual way:"
 msgstr ""
 "Cuando @code{car} y @code{cdr} se aplica a una lista hecha de\n"
-"s@'{@dotless{i}}mbolos, tal como la lista @code{(pine fir oak maple)},\n"
-"el elemento de la lista devuelta por la funci@'on @code{car} es el\n"
-"s@'{@dotless{i}}mbolo @code{pine} sin cualquier par@'entesis\n"
-"alrededor. @code{pine} es el primer elemento en la lista. Sin embargo,\n"
+"s@'{@dotless{i}}mbolos, tal como la lista @code{(pino roble abeto\n"
+"arce)}, el elemento de la lista devuelta por la funci@'on @code{car}\n"
+"es el s@'{@dotless{i}}mbolo @code{pino} sin cualquier par@'entesis\n"
+"alrededor. @code{pino} es el primer elemento en la lista. Sin embargo,\n"
 "el @sc{cdr} de la lista es una lista por s@'{@dotless{i}} misma,\n"
-"@code{(fir oak maple)}, como se puede ver evaluando las siguientes\n"
+"@code{(roble abeto arce)}, como se puede ver evaluando las siguientes\n"
 "expresiones en el modo usual:"
 
 #. type: group
@@ -16218,13 +16220,13 @@ msgstr ""
 msgid ""
 "(car '(pine fir oak maple))\n"
 "\n"
-msgstr "(car '(pine fir oak maple))\n\n"
+msgstr "(car '(pino roble abeto arce))\n\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7002
 #, no-wrap
 msgid "(cdr '(pine fir oak maple))\n"
-msgstr "(cdr '(pine fir oak maple))\n"
+msgstr "(cdr '(pino roble abeto arce))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7009
@@ -16260,9 +16262,9 @@ msgid ""
 "@code{((gazelle antelope zebra) (whale dolphin seal))}."
 msgstr ""
 "En este ejemplo, el primer elemento de @sc{car} de la lista es la\n"
-"lista de carn@'{@dotless{i}}voros, @code{(lion tiger cheetah)}, y el\n"
-"resto de la lista es @code{((gazelle antelope zebra)\n"
-"(whale dolphin seal))}."
+"lista de carn@'{@dotless{i}}voros, @code{(leon tigre leopardo)}, y el\n"
+"resto de la lista es @code{((gacela antilope cebra)\n"
+"(ballena delfin foca))}."
 
 #. type: group
 #: emacs-lisp-intro.texi:7028
@@ -16332,7 +16334,7 @@ msgstr ""
 "La funci@'on @code{cons} construye listas; eso es lo inverso de\n"
 "@code{car} y @code{cdr}. Por ejemplo, @code{cons} puede usarse para\n"
 "crear una lista de cuatro elementos desde los tres elementos de la\n"
-"lista, @code{(fir oak maple)}:"
+"lista, @code{(abeto roble arce)}:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:7058
@@ -16410,7 +16412,7 @@ msgstr ""
 "que construyen una lista de flores. Si est@'a leyendo esto en Info en\n"
 "GNU Emacs, se puede evaluar cada una de las expresiones en el camino\n"
 "usual; el valor es impreso en este texto despu@'es de @samp{@result{}},\n"
-"que puede leer como `evaluas para'."
+"que puede leer como `eval@'uas para'."
 
 #. type: group
 #: emacs-lisp-intro.texi:7105
@@ -16419,8 +16421,8 @@ msgid ""
 "(cons 'buttercup ())\n"
 "     @result{} (buttercup)\n"
 msgstr ""
-"(cons 'buttercup ())\n"
-"     @result{} (buttercup)\n"
+"(cons 'mantequilla ())\n"
+"     @result{} (mantequilla)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7110
@@ -16429,8 +16431,8 @@ msgid ""
 "(cons 'daisy '(buttercup))\n"
 "     @result{} (daisy buttercup)\n"
 msgstr ""
-"(cons 'daisy '(buttercup))\n"
-"     @result{} (daisy buttercup)\n"
+"(cons 'margarita '(mantequilla))\n"
+"     @result{} (margarita mantequilla)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7115
@@ -16439,8 +16441,8 @@ msgid ""
 "(cons 'violet '(daisy buttercup))\n"
 "     @result{} (violet daisy buttercup)\n"
 msgstr ""
-"(cons 'violet '(daisy buttercup))\n"
-"     @result{} (violet daisy buttercup)\n"
+"(cons 'violeta '(margarita mantequilla))\n"
+"     @result{} (violeta margarita mantequilla)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7120
@@ -16479,11 +16481,11 @@ msgid ""
 "third example constructs a three element list by putting @code{violet} in "
 "front of @code{daisy} and @code{buttercup}."
 msgstr ""
-"El segundo ejemplo, @code{(cons 'daisy '(buttercup))} construye\n"
-"una nueva lista de dos elemento poniendo @code{daisy} en frente de\n"
-"@code{buttercup}; y el tercer ejemplo construye una lista de tres\n"
-"elementos poniendo @code{violet} en frente de @code{daisy} y\n"
-"@code{buttercup}."
+"El segundo ejemplo, @code{(cons 'margarita '(mantequilla))} construye\n"
+"una nueva lista de dos elemento poniendo @code{margarita} en frente de\n"
+"@code{mantequilla}; y el tercer ejemplo construye una lista de tres\n"
+"elementos poniendo @code{violeta} en frente de @code{margarita} y\n"
+"@code{mantequilla}."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:7137
@@ -16507,7 +16509,7 @@ msgid ""
 "(length '(buttercup))\n"
 "     @result{} 1\n"
 msgstr ""
-"(length '(buttercup))\n"
+"(length '(mantequilla))\n"
 "     @result{} 1\n"
 
 #. type: group
@@ -16517,7 +16519,7 @@ msgid ""
 "(length '(daisy buttercup))\n"
 "     @result{} 2\n"
 msgstr ""
-"(length '(daisy buttercup))\n"
+"(length '(margarita mantequilla))\n"
 "     @result{} 2\n"
 
 #. type: group
@@ -16527,7 +16529,7 @@ msgid ""
 "(length (cons 'violet '(daisy buttercup)))\n"
 "     @result{} 3\n"
 msgstr ""
-"(length (cons 'violet '(daisy buttercup)))\n"
+"(length (cons 'violeta '(margarita mantequilla)))\n"
 "     @result{} 3\n"
 
 #. type: Plain text
@@ -16642,10 +16644,10 @@ msgid ""
 "you will be returned an empty list, which in this case, instead of being "
 "shown as @code{()} is shown as @code{nil}."
 msgstr ""
-"Si se toma el @sc{cdr} de la lista @code{(pine fir oak maple)},\n"
-"ser@'a devuelta la lista @code{(fir oak maple)}. Si se repite esto en\n"
-"lo que se devolvi@'o, se devolver@'a lista lista @code{(oak\n"
-"maple)}. (De acuerdo, se repite @sc{cdr} en la lista original solo se\n"
+"Si se toma el @sc{cdr} de la lista @code{(pino roble abeto arce)},\n"
+"ser@'a devuelta la lista @code{(roble abeto arce)}. Si se repite esto en\n"
+"lo que se devolvi@'o, se devolver@'a lista lista @code{(abeto\n"
+"arce)}. (De acuerdo, se repite @sc{cdr} en la lista original solo se\n"
 "dar@'a @sc{cdr} desde la funci@'on que no cambia la lista. Se necesita\n"
 "evaluar el @sc{cdr} del @sc{cdr} y as@'{@dotless{i}}.) Si se conti@'ua\n"
 "esto, finalmente ser@'a devuelta una lista vac@'{@dotless{i}}a, que en\n"
@@ -16658,7 +16660,7 @@ msgid ""
 "@samp{@result{}} shows what is returned."
 msgstr ""
 "Para revisar, aqu@'{@dotless{i}} hay una serie de @sc{cdr}s repetidos,\n"
-"el siguiente @samp{@result{}} muestra que se devuelve."
+"el siguiente @samp{@result{}} muestra lo que se devuelve."
 
 #. type: group
 #: emacs-lisp-intro.texi:7242
@@ -16667,8 +16669,8 @@ msgid ""
 "(cdr '(pine fir oak maple))\n"
 "     @result{}(fir oak maple)\n"
 msgstr ""
-"(cdr '(pine fir oak maple))\n"
-"     @result{}(fir oak maple)\n"
+"(cdr '(pino roble abeto arce))\n"
+"     @result{}(roble abeto arce)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7247
@@ -16677,8 +16679,8 @@ msgid ""
 "(cdr '(fir oak maple))\n"
 "     @result{} (oak maple)\n"
 msgstr ""
-"(cdr '(fir oak maple))\n"
-"     @result{} (oak maple)\n"
+"(cdr '(roble abeto arce))\n"
+"     @result{} (abeto arce)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7252
@@ -16687,8 +16689,8 @@ msgid ""
 "(cdr '(oak maple))\n"
 "     @result{}(maple)\n"
 msgstr ""
-"(cdr '(oak maple))\n"
-"     @result{}(maple)\n"
+"(cdr '(abeto arce))\n"
+"     @result{}(arce)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7257
@@ -16697,7 +16699,7 @@ msgid ""
 "(cdr '(maple))\n"
 "     @result{} nil\n"
 msgstr ""
-"(cdr '(maple))\n"
+"(cdr '(arce))\n"
 "     @result{} nil\n"
 
 #. type: group
@@ -16726,7 +16728,7 @@ msgid ""
 "You can also do several @sc{cdr}s without printing the values in between, "
 "like this:"
 msgstr ""
-"Tambi@'es se pueden hacer varios @sc{cdr}s sin imprimir los valores\n"
+"Tambi@'en se pueden hacer varios @sc{cdr}s sin imprimir los valores\n"
 "as@'{@dotless{i}}:"
 
 #. type: group
@@ -16736,8 +16738,8 @@ msgid ""
 "(cdr (cdr '(pine fir oak maple)))\n"
 "     @result{} (oak maple)\n"
 msgstr ""
-"(cdr (cdr '(pine fir oak maple)))\n"
-"     @result{} (oak maple)\n"
+"(cdr (cdr '(pino roble abeto arce)))\n"
+"     @result{} (abeto arce)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7290
@@ -16782,8 +16784,8 @@ msgid ""
 "(nthcdr 2 '(pine fir oak maple))\n"
 "     @result{} (oak maple)\n"
 msgstr ""
-"(nthcdr 2 '(pine fir oak maple))\n"
-"     @result{} (oak maple)\n"
+"(nthcdr 2 '(pino roble abeto arce))\n"
+"     @result{} (abeto arce)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7308
@@ -16925,7 +16927,7 @@ msgstr ""
 "N@'otese que los elementos son numerados desde cero, no desde uno. Es\n"
 "decir, el primer elemento de una lista, su @sc{car} es el elemento\n"
 "cero. Esto se llama contar en `base cero' y con frecuencia las\n"
-"personas tienes la costumbre del que el primer elemento en una lista\n"
+"personas tienen la costumbre del que el primer elemento en una lista\n"
 "sea el n@'umero uno, eso es `basado en uno'."
 
 #. type: table
@@ -17017,14 +17019,13 @@ msgid ""
 msgstr ""
 "Si est@'a leyendo esto en Info dentro de GNU Emacs, se puede evaluar\n"
 "esta expresi@'on del modo usual, posicionando el cursor despu@'es de\n"
-"la expresi@'on y escribiendo @kbd{C-x C-e}. (Esto haciendo esto tan bien\n"
-"aqu@'{@dotless{i}} como yo escribo esto. Esto es una de las ventajas\n"
-"de tener el int@'erprete construido dentro del entorno de\n"
+"la expresi@'on y escribiendo @kbd{C-x C-e}. Esto es una de las\n"
+"ventajas de tener el int@'erprete construido dentro del entorno de\n"
 "computaci@'on. Incidentalmente, cuando no hay nada en la\n"
 "l@'{@dotless{i}}nea despu@'es del par@'entesis final, tal como un\n"
 "comentario, el punto puede estar en la siguiente\n"
 "l@'{@dotless{i}}nea. De este modo, si tu cursor est@'a en la primera\n"
-"columna de la siguiente l@'{@dotless{i}}nea, no necesitas moverlo. En\n"
+"columna de la siguiente l@'{@dotless{i}}nea, no se necesita mover. En\n"
 "realidad, Emacs permite cualquier cantidad de espacio en blanco\n"
 "despu@'es del par@'entesis final.)"
 
@@ -17044,8 +17045,8 @@ msgid ""
 "animals\n"
 "     @result{} (antelope giraffe lion tiger)\n"
 msgstr ""
-"animals\n"
-"     @result{} (antelope giraffe lion tiger)\n"
+"animales\n"
+"     @result{} (antilope jirafa leon tigre)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7437
@@ -17053,7 +17054,7 @@ msgid ""
 "Put another way, the variable @code{animals} points to the list "
 "@code{(antelope giraffe lion tiger)}."
 msgstr ""
-"Pon otro camino, la variable @code{animales} apunta a la lista\n"
+"Por otro lado, la variable @code{animales} apunta a la lista\n"
 "@code{(antilope jirafa leon tigre)}."
 
 #. type: Plain text
@@ -17066,7 +17067,7 @@ msgid ""
 msgstr ""
 "Lo siguiente, es evaluar la funci@'on @code{setcar} mientras le pasa\n"
 "dos argumentos, la variable @code{animales} y el s@'{@dotless{i}}mbolo\n"
-"citado @code{hipopotamo}; esto es hecho escribiendo la lista de tres\n"
+"citado @code{hipopotamo}; esto se hace escribiendo la lista de tres\n"
 "elementos @code{(setcar animales 'hipopotamo)} y entonces evaluando\n"
 "en el modo usual:"
 
@@ -17152,7 +17153,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:7486
 #, no-wrap
 msgid "(setq domesticated-animals '(horse cow sheep goat))\n"
-msgstr "(setq domesticated-animals '(horse cow sheep goat))\n"
+msgstr "(setq animales-domesticos '(caballo vaca oveja cabra))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7492
@@ -17160,8 +17161,8 @@ msgid ""
 "If you now evaluate the list, you will be returned the list @code{(horse cow "
 "sheep goat)}:"
 msgstr ""
-"Si ahora se eval@'ua la lista, ser@'a devuelta la lista @code{(horse\n"
-"cow sheep goat)}:"
+"Si ahora se eval@'ua la lista, lo que se devuelve es @code{(caballo\n"
+"vaca oveja cabra)}:"
 
 #. type: group
 #: emacs-lisp-intro.texi:7497
@@ -17170,8 +17171,8 @@ msgid ""
 "domesticated-animals\n"
 "     @result{} (horse cow sheep goat)\n"
 msgstr ""
-"domesticated-animals\n"
-"     @result{} (horse cow sheep goat)\n"
+"animales-domesticos\n"
+"     @result{} (caballo vaca oveja cabra)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7504
@@ -17188,7 +17189,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:7507
 #, no-wrap
 msgid "(setcdr domesticated-animals '(cat dog))\n"
-msgstr "(setcdr domesticated-animals '(cat dog))\n"
+msgstr "(setcdr animales-domesticos '(gato perro))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7514
@@ -17210,8 +17211,8 @@ msgid ""
 "domesticated-animals\n"
 "     @result{} (horse cat dog)\n"
 msgstr ""
-"domesticated-animals\n"
-"     @result{} (horse cat dog)\n"
+"animales-domesticos\n"
+"     @result{} (caballo gato perro)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7526
@@ -17220,9 +17221,9 @@ msgid ""
 "@code{(horse cat dog)}.  The @sc{cdr} of the list is changed from @code{(cow "
 "sheep goat)} to @code{(cat dog)}."
 msgstr ""
-"En realidad, la lista es cambiada desde @code{(horse cow sheep goat)}\n"
-"a @code{(horse cat dog)}. El @sc{cdr} de la lista es cambiada desde\n"
-"@code{(cow sheep goat)} a @code{(cat dog)}."
+"En realidad, la lista es cambiada desde @code{(caballo vaca oveja cabra)}\n"
+"a @code{(caballo gato perro)}. El @sc{cdr} de la lista es cambiada desde\n"
+"@code{(vaca oveja cabra)} a @code{(gato perro)}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7534

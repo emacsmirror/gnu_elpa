@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2014-08-12 21:14+0200\n"
-"PO-Revision-Date: 2015-03-16 15:37+0100\n"
+"PO-Revision-Date: 2015-03-17 11:30+0100\n"
 "Last-Translator: David Arroyo Men@'endez <davidam@es.gnu.org>\n"
 "Language-Team: Spanish <elisp-es-traductores@nongnu.org>\n"
 "Language: Spanish\n"
@@ -21798,7 +21798,7 @@ msgstr ""
 #, no-wrap
 msgid "(\"some text\" \"a different piece of text\" \"yet more text\")\n"
 msgstr ""
-"(\"algun texto\" \"una pieza diferente pieza de texto\"\n"
+"(\"alg@'un texto\" \"una pieza diferente pieza de texto\"\n"
 "\"todav@'{@dotless{i}}a m@'as texto\")\n"
 
 #. type: Plain text
@@ -22218,8 +22218,8 @@ msgid ""
 "(while @var{true-or-false-test}\n"
 "  @var{body}@dots{})\n"
 msgstr ""
-"(while @var{true-or-false-test}\n"
-"  @var{body}@dots{})\n"
+"(while @var{test-verdadero-o-falso}\n"
+"  @var{cuerpo}@dots{})\n"
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:10341
@@ -22264,7 +22264,7 @@ msgstr ""
 "cierto, las expresiones en el cuerpo nunca ser@'an evaluadas. La\n"
 "fortaleza de escribir un bucle @code{while} consiste de elegir un\n"
 "mecanismo tal que el true-or-false-test devuelva cierto solo el\n"
-"n@'umero de veces que se quieren las subsiguientes expresiones para\n"
+"n@'umero de veces que requieren las subsiguientes expresiones para\n"
 "ser evaluadas, y entonces tener el test devuelto a falso."
 
 #. type: Plain text
@@ -22309,8 +22309,9 @@ msgid ""
 msgstr ""
 "Un camino com@'un para controlar un bucle @code{while} es chequear si\n"
 "una lista tiene cualquier elemento. Si eso se hace, el bucle se\n"
-"repite; pero si no, la repetici@'on se finaliza. Desde esto es una\n"
-"t@'ecnica importante, crear@'a un corto ejemplo para ilustrarlo."
+"repite; pero si no, la repetici@'on se finaliza. Puesto que esto es\n"
+"una t@'ecnica importante, se crear@'a un breve ejemplo para\n"
+"ilustrarlo."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10388
@@ -22324,7 +22325,7 @@ msgid ""
 msgstr ""
 "Un camino simple para chequear si una lista tiene elementos es evaluar\n"
 "la lista: si eso no tiene elementos, si es una lista\n"
-"vac@'{@dotless{i}}a y devolver@'a la lista vac@'{@dotless{i}}a,\n"
+"vac@'{@dotless{i}}a y devuelve la lista vac@'{@dotless{i}}a,\n"
 "@code{()}, que es un sin@'onimo para @code{nil} o falso. Por otro\n"
 "lado, una lista con elementos devolver@'a estos elementos cuando eso\n"
 "se eval@'ua. Puesto que Emacs Lisp considera como cierto cualquier\n"
@@ -22344,7 +22345,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:10395
 #, no-wrap
 msgid "(setq empty-list ())\n"
-msgstr "(setq empty-list ())\n"
+msgstr "(setq lista-vacia ())\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10402
@@ -22354,7 +22355,7 @@ msgid ""
 "and typing @kbd{C-x C-e}; @code{nil} will appear in your echo area:"
 msgstr ""
 "Despu@'es de evaluar la expresi@'on @code{setq}, se puede evaluar la\n"
-"variable @code{empty-list} es el camino normal, posicionando el cursor\n"
+"variable @code{lista-vacia} es el camino normal, posicionando el cursor\n"
 "despu@'es del s@'{@dotless{i}}mbolo y escribiendo @kbd{C-x C-e};\n"
 "@code{nil} aparecer@'a en tu @'area echo:"
 
@@ -22362,7 +22363,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:10405
 #, no-wrap
 msgid "empty-list\n"
-msgstr "empty-list\n"
+msgstr "lista-vacia\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10410
@@ -22519,7 +22520,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:10478
 #, no-wrap
 msgid "An Example: @code{print-elements-of-list}"
-msgstr "Un ejemplo: @code{print-elements-of-list}"
+msgstr "Un ejemplo: @code{imprimir-elementos-de-la-lista}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10483
@@ -22527,7 +22528,7 @@ msgid ""
 "The @code{print-elements-of-list} function illustrates a @code{while} loop "
 "with a list."
 msgstr ""
-"La funci@'on @code{print-elements-of-list} ilustra un bucle\n"
+"La funci@'on @code{imprimir-elementos-de-la-lista} ilustra un bucle\n"
 "@code{while} con una lista."
 
 #. type: cindex
@@ -22593,8 +22594,8 @@ msgid ""
 msgstr ""
 "Despu@'es de haber copiado las expresiones al b@'uffer\n"
 "@file{*scratch*}, se eval@'ua cada expresi@'on en orden. Aseg@'urese\n"
-"de evaluar la @'ultima expresi@'on, @code{(print-elements-of-list\n"
-"animals)}, escribiendo @kbd{C-u C-x C-e}, que es, dando un argumento\n"
+"de evaluar la @'ultima expresi@'on, @code{(imprimir-elementos-de-la-lista\n"
+"animales)}, escribiendo @kbd{C-u C-x C-e}, que es, dando un argumento\n"
 "para @code{eval-last-sexp}. Esto causar@'a el resultado de la\n"
 "evaluaci@'on para ser impreso en el b@'uffer @file{*scratch*} en vez\n"
 "de siendo impreso en el @'area echo. (De otro modo se ver@'a alguna\n"
@@ -22623,7 +22624,7 @@ msgid ""
 "    (setq list (cdr list))))\n"
 "\n"
 msgstr ""
-"(defun print-elements-of-list (list)\n"
+"(defun imprimir-elementos-de-la-lista (list)\n"
 "  \"Imprime cada elemento de LIST en una l@'{@dotless{i}}nea.\"\n"
 "  (while list\n"
 "    (print (car list))\n"
@@ -22634,7 +22635,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:10529
 #, no-wrap
 msgid "(print-elements-of-list animals)\n"
-msgstr "(print-elements-of-list animales)\n"
+msgstr "(imprimir-elementos-de-la-lista animales)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10536
@@ -22739,15 +22740,15 @@ msgid ""
 "@w{@code{(+ count 1)}}, but is easier for a human to read.)"
 msgstr ""
 "El test para un bucle con un contador de incremento puede ser una\n"
-"expresi@'on tal como @code{(< count desired-numberj)} que devuelve\n"
-"@code{t} para verdad si el valor de @code{count} es menor que el\n"
-"@code{desired-number} de repeticiones y @code{nil} para falso si el\n"
-"valor de @code{count} es igual a o es mayor que el\n"
-"@code{desired-number}. La expresi@'on que incrementa el contador puede\n"
-"ser un simple @code{setq} tal como @code{(setq count (1+ count))},\n"
+"expresi@'on tal como @code{(< contador numero-deseado)} que devuelve\n"
+"@code{t} para verdad si el valor de @code{contador} es menor que el\n"
+"@code{numero-deseado} de repeticiones y @code{nil} para falso si el\n"
+"valor de @code{contador} es igual a o es mayor que el\n"
+"@code{numero-deseado}. La expresi@'on que incrementa el contador puede\n"
+"ser un simple @code{setq} tal como @code{(setq contador (1+ contador))},\n"
 "donde @code{1+} es una funci@'on construida en Emacs Lisp que a@~nade\n"
-"1 a su argumento. (La expresi@'on @w{@code{(1+ count)}} tiene el mismo\n"
-"resultado que @w{@code{(+ count 1)}}, que es f@'acil de leer para un\n"
+"1 a su argumento. (La expresi@'on @w{@code{(1+ contador)}} tiene el mismo\n"
+"resultado que @w{@code{(+ contador 1)}}, que es f@'acil de leer para un\n"
 "humano.)"
 
 #. type: Plain text
@@ -22768,10 +22769,10 @@ msgid ""
 "  @var{body}@dots{}\n"
 "  (setq count (1+ count)))              ; @r{incrementer}\n"
 msgstr ""
-"@var{set-count-to-initial-value}\n"
-"(while (< count desired-number)         ; @r{true-or-false-test}\n"
+"@var{asignar-contador-al-valor-inicial}\n"
+"(while (< contador numero-deseado)         ; @r{true-or-false-test}\n"
 "  @var{body}@dots{}\n"
-"  (setq count (1+ count)))              ; @r{incrementer}\n"
+"  (setq contador (1+ contador)))              ; @r{incremento}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10598
@@ -22779,7 +22780,7 @@ msgid ""
 "Note that you need to set the initial value of @code{count}; usually it is "
 "set to 1."
 msgstr ""
-"Note que se necesita asignar el valor inicial de @code{count};\n"
+"Note que se necesita asignar el valor inicial de @code{contador};\n"
 "normalmente asignado a 1."
 
 #. type: unnumberedsubsubsec
@@ -22892,7 +22893,7 @@ msgid ""
 "3.  Then you can add the number in the fourth row, 4, to the total of the "
 "first three rows; and so on."
 msgstr ""
-"Por ejemplo, en vez de a@~nadir todas los asteriscos a la vez, lo que\n"
+"Por ejemplo, en vez de a@~nadir todos los asteriscos a la vez, lo que\n"
 "se puede hacer es a@~nadir el n@'umero de asteriscos en la primera\n"
 "fila, 1, para el n@'umero en la segunda fila, 2, y entonces a@~nadir\n"
 "el total de estas dos filas a la tercera fila, 3. Entonces se puede\n"
@@ -23388,8 +23389,8 @@ msgid ""
 "argument."
 msgstr ""
 "El test ser@'a una expresi@'on tal como @code{(> counter 0)} que\n"
-"devuelve @code{t} para cierto si el valor de @code{counter} es mayor\n"
-"que cero, y @code{nil} para falso si el valor de @code{counter} es\n"
+"devuelve @code{t} @emph{cierto} si el valor de @code{counter} es mayor\n"
+"que cero, y @code{nil} @emph{falso} si el valor de @code{counter} es\n"
 "igual a o menor que cero. La expresi@'on hace que el n@'umero menor y\n"
 "menor puede ser un simple @code{setq} tal como @code{(setq counter (1-\n"
 "counter)}, donde @code{1-} es una funci@'on construida en Emacs Lisp\n"
@@ -23410,7 +23411,7 @@ msgid ""
 "  @var{body}@dots{}\n"
 "  (setq counter (1- counter)))          ; @r{decrementer}\n"
 msgstr ""
-"(while (> counter 0)                    ; @r{true-or-false-test}\n"
+"(while (> counter 0)                    ; @r{test-verdadero-o-falso}\n"
 "  @var{body}@dots{}\n"
 "  (setq counter (1- counter)))          ; @r{decremento}\n"
 
@@ -23443,7 +23444,7 @@ msgstr ""
 "caso, para encontrar cu@'antos asteriscos son necesarios para crear un\n"
 "tri@'angulo con 3 filas, a@~nade el n@'umero de asteriscos en la\n"
 "tercera fila, 3, para el n@'umero en la fila precedente, 2, y entonces\n"
-"a@~nade el total de estas dos filas a la fila que lo precede, que es 1."
+"a@~nade el total de estas dos filas a la fila que lo precede, 1."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10932
@@ -23519,7 +23520,7 @@ msgid ""
 "this:"
 msgstr ""
 "Esto significa que el principio de la expresi@'on @code{let} se ver@'a\n"
-"como esto:"
+"as@'{@dotless{i}}:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10964
@@ -23637,7 +23638,7 @@ msgid ""
 msgstr ""
 ";;; @r{Primero la versi@'on substractiva.}\n"
 "(defun triangle (number-of-rows)\n"
-"  \"Add up the number of pebbles in a triangle.\"\n"
+"  \"A@~nade el n@'umero de asteriscos en un tri@'angulo.\"\n"
 "  (let ((total 0)\n"
 "        (number-of-pebbles-in-row number-of-rows))\n"
 "    (while (> number-of-pebbles-in-row 0)\n"
@@ -23702,8 +23703,8 @@ msgid ""
 "      (setq number (1- number)))\n"
 "    total))\n"
 msgstr ""
-"(defun triangle (number)                ; @r{Second version.}\n"
-"  \"Return sum of numbers 1 through NUMBER inclusive.\"\n"
+"(defun triangle (number)                ; @r{Segunda versi@'on.}\n"
+"  \"Devuelve la suma de n@'umeros 1 a trav@'es de NUMBER inclusive.\"\n"
 "  (let ((total 0))\n"
 "    (while (> number 0)\n"
 "      (setq total (+ total number))\n"
@@ -24034,8 +24035,8 @@ msgid ""
 "number is 1, and the third number is 2; this makes a total of three numbers "
 "in all, starting with zero as the first number.)"
 msgstr ""
-"Por ejemplo, lo siguiente asocia los n@'umeros desde 0 a, pero no\n"
-"incluyendo, el n@'umero 3 al primer argumento, @var{n@'umero}, y\n"
+"Por ejemplo, lo siguiente asocia los n@'umeros de 0 en adelante, pero\n"
+"no incluyendo, el n@'umero 3 al primer argumento, @var{n@'umero}, y\n"
 "entonces construye una lista de los tres n@'umeros. (El primer\n"
 "n@'umero es 0, el segundo n@'umero es 1, y el tercer n@'umero es 2;\n"
 "esto crea un total de tres n@'umeros en todo, empezando con cero como\n"
@@ -24130,9 +24131,9 @@ msgid ""
 "arguments' will become sufficiently different from the first arguments that "
 "the final instance will stop."
 msgstr ""
-"Finalmente, si el programa es escrito correctamente, los `argumentos\n"
+"Finalmente, si el programa se escribe correctamente, los `argumentos\n"
 "ligeramente diferentes' llegan a ser suficientemente diferentes puesto\n"
-"los primeros argumentos de la instancia final se parar@'an."
+"que los primeros argumentos de la instancia final se parar@'an."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:11273
@@ -24165,7 +24166,7 @@ msgstr ""
 "robot que hace un trabajo. Haciendo su trabajo, una funci@'on\n"
 "recursiva llama a un segundo robot para que le ayude. El segundo robot es\n"
 "id@'entico al primero en cada paso, excepto que el segundo robot\n"
-"ayuda al primero y ha sido pasado diferentes argumentos que el primero."
+"ayuda al primero y se han pasado diferentes argumentos en vez del primero."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11286
@@ -24225,9 +24226,9 @@ msgid ""
 msgstr ""
 "Nosotros con frecuencia decimos que una funci@'on recursiva `se llama\n"
 "as@'{@dotless{i}} misma'. Esto significa que las instrucciones en una\n"
-"funci@'on recursiva causa el int@'erprete de Lisp para ejecutar una\n"
+"funci@'on recursiva causa que el int@'erprete de Lisp ejecute una\n"
 "funci@'on diferente que tiene el mismo nombre y hace el mismo trabajo\n"
-"como el primer, pero con diferentes argumentos."
+"que el primero, pero con diferentes argumentos."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11308
@@ -24235,7 +24236,7 @@ msgid ""
 "It is important that the arguments differ from one instance to the next; "
 "otherwise, the process will never stop."
 msgstr ""
-"Eso es importante que los argumentos difieren desde una instancia a la\n"
+"Es importante que los argumentos difieran desde una instancia a la\n"
 "siguiente; de otro modo, el proceso nunca parar@'a."
 
 #. type: subsection
@@ -24292,8 +24293,8 @@ msgstr ""
 "funci@'on se llama, aqu@'{@dotless{i}} llamada la\n"
 "@dfn{next-step-expression}. Consecuentemente, el argumento (o\n"
 "argumentos) pasados a la nueva instancia de la funci@'on ser@'an\n"
-"diferentes desde que se pasa a la instancia previa. Esto causa la\n"
-"expresi@'on condicional, que el @dfn{do-again-test}, para devuelva\n"
+"diferentes puesto que se pasa a la instancia previa. Esto causa la\n"
+"expresi@'on condicional, que el @dfn{do-again-test}, devuelva\n"
 "falso despu@'es del n@'umero correcto de repeticiones."
 
 #. type: Plain text
@@ -24375,7 +24376,7 @@ msgstr ""
 "instancias de la funci@'on, que lo eval@'ua (o alguna transformaci@'on\n"
 "de eso) para determinar si continuar o parar. El next-step-expression\n"
 "est@'a dise@~nado as@'{@dotless{i}} que el do-again-test devuelve\n"
-"falso cuando la funci@'on no ser@'{@dotless{i}}a largamente repetida."
+"falso cuando la funci@'on no se repetir@'{@dotless{i}}a mucho."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11372
@@ -24384,7 +24385,7 @@ msgid ""
 "stops the repetitions when it tests false."
 msgstr ""
 "El do-again-test es algunas veces llamado la @dfn{condici@'on de\n"
-"parar}, puesto que sirve para parar las repeticiones cuando devuelve\n"
+"parar}, puesto que sirve para parar las repeticiones cuando se devuelve\n"
 "falso."
 
 #. type: subsection
@@ -24458,9 +24459,8 @@ msgid ""
 "\n"
 msgstr ""
 "(defun print-elements-recursively (list)\n"
-"  \"Imprime cada elemento de LISTA en una l@'{@dotless{i}}nea de\n"
-"  s@'{@dotless{i}}.\n"
-"Usa recursi@'on.\"\n"
+"  \"Imprime cada elemento de la LISTA de la l@'{@dotless{i}}nea en\n"
+"  s@'{@dotless{i}}. Usa recursi@'on.\"\n"
 "  (when list                            ; @r{do-again-test}\n"
 "        (print (car list))              ; @r{body}\n"
 "        (print-elements-recursively     ; @r{recursive call}\n"
@@ -24653,7 +24653,7 @@ msgid ""
 "argument."
 msgstr ""
 "Para comprender c@'omo funciona la funci@'on, hay que considerar qu@'e\n"
-"ocurre en los varios casos cuando la funci@'on se le pasa 1, 2, 3, o 4\n"
+"ocurre en varios casos cuando la funci@'on se le pasa 1, 2, 3, o 4\n"
 "como el valor a su argumento."
 
 #. type: node
@@ -24671,7 +24671,7 @@ msgstr "Un argumento de 1 o 2"
 #. type: Plain text
 #: emacs-lisp-intro.texi:11509
 msgid "First, what happens if the value of the argument is 1?"
-msgstr "Primero, veamos qu@'e ocurre si el valor del argumento es 1"
+msgstr "Primero, veamos qu@'e ocurre si el valor del argumento es 1."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11515
@@ -24765,7 +24765,7 @@ msgid ""
 "of 1.  This means that this evaluation of @code{triangle-recursively} "
 "returns 1."
 msgstr ""
-"En este caso, Emacs eval@'ua @code{triangle-recusrively} con un\n"
+"En este caso, Emacs eval@'ua @code{triangle-recursively} con un\n"
 "argumento de 1. Esto significa que esta evaluaci@'on de\n"
 "@code{triangle-recursively} devuelve 1."
 
@@ -24858,8 +24858,8 @@ msgid ""
 "The innermost expression of the else-part is evaluated, which decrements 3 "
 "to 2.  This is the next-step-expression."
 msgstr ""
-"La expresi@'on propia de la parte es evaluada, decrementa 3 a 2. Esta\n"
-"la next-step-expression."
+"La expresi@'on propia de la parte que es evaluada, decrementa 3 a\n"
+"2. Esta la next-step-expression."
 
 #. type: item
 #: emacs-lisp-intro.texi:11586
@@ -24913,7 +24913,7 @@ msgid ""
 "an argument of 4:"
 msgstr ""
 "Ahora que sabemos qu@'e ocurrir@'a cuando @code{triangle-recursively}\n"
-"llama con un argumento 3, es evidente lo que ocurrir@'a si se llamado\n"
+"llama con un argumento 3, es evidente lo que ocurrir@'a si se llama\n"
 "con el argumento 4:"
 
 #. type: quotation
@@ -24963,7 +24963,7 @@ msgstr ""
 "una versi@'on de s@'{@dotless{i}} misma --- una instancia diferente en\n"
 "s@'{@dotless{i}} --- con un peque@~no argumento, hasta que el\n"
 "argumento es suficientemente peque@~no as@'{@dotless{i}} que no se\n"
-"eval@'ua por s@'{@dotless{i}}."
+"eval@'ua en s@'{@dotless{i}}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11638
@@ -25263,12 +25263,12 @@ msgid ""
 "     (square-each (cdr numbers-list))))) ; next-step-expression\n"
 msgstr ""
 "(defun square-each (numbers-list)\n"
-"  \"Square each of a NUMBERS LIST, recursively.\"\n"
-"  (if (not numbers-list)                ; do-again-test\n"
+"  \"El cuadrado de cada LISTA DE NUMEROS, recursivamente.\"\n"
+"  (if (not numbers-list)                ; test-hazlo-de-nuevo\n"
 "      nil\n"
 "    (cons\n"
 "     (* (car numbers-list) (car numbers-list))\n"
-"     (square-each (cdr numbers-list))))) ; next-step-expression\n"
+"     (square-each (cdr numbers-list))))) ; expresion-siguiente-paso\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11789
@@ -25348,7 +25348,7 @@ msgstr ""
 "Pero cuando la lista tiene al menos un elemento, \n"
 "@itemize \n"
 "@item act@'ua al principio de la lista (el @sc{car} de la lista), \n"
-"@item y crea una llamada recursiva en el resto (el @sc{cdr} de la lista.\n"
+"@item y crea una llamada recursiva en el resto (el @sc{cdr} de la lista).\n"
 "@end itemize\n"
 
 #. type: node
@@ -25395,7 +25395,7 @@ msgid ""
 "@code{cons} is not used, but some other combiner."
 msgstr ""
 "Esto es como `cada' patr@'on usando @code{cons}, excepto que este\n"
-"@code{cons} no se est@'e usando, pero alg@'un otro combine."
+"@code{cons} no se est@'e usando, pero que alg@'un otro combine."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11860
@@ -25608,8 +25608,8 @@ msgid ""
 "It goes without saying that you need not use @code{nil} as the test for when "
 "to stop; and you can, of course, combine these patterns."
 msgstr ""
-"Eso va sin decir que no se necesita usar @code{nil} como el test para\n"
-"cuando para; y se puede, de acuerdo, combinar estos patrones."
+"Eso va sin decir que no se necesita usar @code{nil} como si el test\n"
+"para cuando para; y se puede, de acuerdo, combinar estos patrones."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11966 emacs-lisp-intro.texi:11968
@@ -25632,7 +25632,7 @@ msgid ""
 msgstr ""
 "Permita considerar de nuevo qu@'e ocurre con la funci@'on\n"
 "@code{triangle-recursively}. Nosotros encontraremos que los c@'alculos\n"
-"se difieran hasta que todo pueda ser hecho."
+"difieran hasta que todo pueda ser hecho."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11976
@@ -25823,7 +25823,7 @@ msgid ""
 "The `initialization' function sets up the job; the `helper' function does "
 "the work."
 msgstr ""
-"La funci@'on `inicializacti@'on' configura el trabajo; la funci@'on\n"
+"La funci@'on `inicializacion' configura el trabajo; la funci@'on\n"
 "`ayudante' hace el trabajo."
 
 #. type: Plain text
@@ -25846,8 +25846,8 @@ msgid ""
 "  (triangle-recursive-helper 0 0 number))\n"
 msgstr ""
 "(defun triangle-initialization (number)\n"
-"  \"Devuelve la suma de los n@'umero 1 a trav@'es de NUMBER inclusive.\n"
-"Este es el componenete de `inicializaci@'on' de una funci@'on duo que \n"
+"  \"Devuelve la suma de los n@'umeros 1 a trav@'es de NUMBER inclusive.\n"
+"Este es el componente de `inicializaci@'on' de una funci@'on d@'uo que \n"
 "usa recursi@'on\"\n"
 "  (triangle-recursive-helper 0 0 number))\n"
 
@@ -26148,7 +26148,7 @@ msgid ""
 "Write a function similar to @code{triangle} that multiplies instead of adds "
 "the values."
 msgstr ""
-"Escribe una funci@'on similar para @code{triangle} multiplica en vez\n"
+"Escribe una funci@'on similar para @code{triangle} que multiplique en vez\n"
 "de a@~nadir los valores."
 
 #. type: itemize
@@ -26288,8 +26288,8 @@ msgstr ""
 "@ref{B@'usqueda de Regexp, , B@'usqueda de Expresi@'on Regular, emacs,\n"
 "El Manual de GNU Emacs}, tan bien como en @ref{Expresiones Regulares,\n"
 ", , elisp, El Manual de Referencia de GNU Emacs Lisp}. Escribiendo\n"
-"este cap@'{@dotless{i}}tulo, estoy presumiendo que tienes al menos una\n"
-"intimidad con ellos. El mayor punto para recordar es que las\n"
+"este cap@'{@dotless{i}}tulo, estoy presuponiendo que tiene al menos una\n"
+"familiaridad con esto. El mayor punto para recordar es que las\n"
 "expresiones regulares te permiten buscar patrones tan bien como para\n"
 "cadenas literales de caracteres. Por ejemplo, el c@'odigo en\n"
 "@code{forward-sentence} busca para el patr@'on de posibles caracteres\n"
@@ -44952,7 +44952,7 @@ msgid ""
 "ill afford to lose manuals this way."
 msgstr ""
 "Debido a que escribir buen ingl@'es es una habilidad rara entre\n"
-"programadores, se pueden perder manuales por esto."
+"programadores, se pueden perder manuales por este motivo."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:21978
@@ -45233,11 +45233,11 @@ msgid ""
 msgstr ""
 "Robert J. Chassell ha trabajado con GNU Emacs desde 1985. @'El\n"
 "escribe, edita y ense@~na Emacs y Emacs Lisp, y habla alrededor del\n"
-"mundo acerca de la libertad del software. Chassell estuvo fu@'e un\n"
-"Director fundador y Tesorero de la Fundaci@'on por el Software Libre,\n"
-"Inc. @'El se gradu@'o la Universidad de Cambridge, en Inglaterra. @'El\n"
-"tiene un inter@'es cont@'inuo en historia econ@'omica y social y vuela\n"
-"su propio aeroplano"
+"mundo acerca de la libertad del software. Chassell es Director\n"
+"fundador y Tesorero de la Fundaci@'on por el Software Libre (FSF). @'El\n"
+"se gradu@'o la Universidad de Cambridge, en Inglaterra. @'El tiene un\n"
+"inter@'es cont@'inuo en historia econ@'omica y social y vuela su\n"
+"propio aeroplano"
 
 #~ msgid "Emacs"
 #~ msgstr "Emacs"

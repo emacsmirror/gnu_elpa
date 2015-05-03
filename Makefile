@@ -74,7 +74,7 @@ emacs-lisp-intro.html: $(INFO_SOURCES_ES)
 	$(DVIPS) $< -o $@
 
 mostlyclean:
-	rm -f  *.log *.cp *.fn *.ky *.pg *.vr *.tp *.tmp* 
+	rm -f  *.log *.cp *.fn *.ky *.pg *.vr *.tp *.tmp* *.aux *.cps *.toc
 
 clean: mostlyclean
 	rm -f *.dvi *.html 

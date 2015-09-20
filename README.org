@@ -14,8 +14,15 @@ $ sudo apt-get install texlive make texi2html po4a texinfo
 * Create object files
 
 #+BEGIN_SRC bash
+$ ./dotexi.sh 
 $ make emacs-lisp-intro-es.html
 $ make emacs-lisp-intro-es.pdf
+#+END_SRC
+
+* Clean files
+
+#+BEGIN_SRC bash
+$ make clean
 #+END_SRC
 
 * License

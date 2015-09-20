@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2014-08-12 21:14+0200\n"
-"PO-Revision-Date: 2015-09-19 16:01+0200\n"
+"PO-Revision-Date: 2015-09-20 23:22+0200\n"
 "Last-Translator: David Arroyo Men@'endez <davidam@es.gnu.org>\n"
 "Language-Team: Spanish <elisp-es-traductores@nongnu.org>\n"
 "Language: Spanish\n"
@@ -4055,7 +4055,7 @@ msgid ""
 "be familiar with:"
 msgstr ""
 "En Lisp, una lista como esta: @code{'(rosa violeta margarita\n"
-"mantequilla)}. Esta lista es precedida por un ap@'ostrofe\n"
+"bot@'ondeoro)}. Esta lista es precedida por un ap@'ostrofe\n"
 "simple. Podr@'{@dotless{i}}a estar bien escrita como sigue, que mira\n"
 "m@'as como el tipo de lista con la que se est@'a familiarizado:"
 
@@ -4071,7 +4071,7 @@ msgstr ""
 "'(rosa\n"
 "  violeta\n"
 "  margarita\n"
-"  mantequilla)\n"
+"  bot@'ondeoro)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1149
@@ -6678,7 +6678,7 @@ msgid ""
 "the cursor after the expression and typing @kbd{C-x C-e}."
 msgstr ""
 "Para asignar el valor del s@'{@dotless{i}}mbolo @code{flores} a la\n"
-"lista @code{'(rosa violeta margarita mantequilla)}, eval@'ua la\n"
+"lista @code{'(rosa violeta margarita bot@'ondeoro)}, eval@'ua la\n"
 "siguiente expresi@'on posicionando el cursor despu@'es de la\n"
 "expresi@'on y escribiendo @kbd{C-x C-e}."
 
@@ -6686,7 +6686,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:2384
 #, no-wrap
 msgid "(set 'flowers '(rose violet daisy buttercup))\n"
-msgstr "(set 'flores '(rosa violeta margarita mantequilla))\n"
+msgstr "(set 'flores '(rosa violeta margarita bot@'ondeoro))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2396
@@ -6701,7 +6701,7 @@ msgid ""
 "it does not get an error, but it will only have a side effect if it is "
 "designed to have one.)"
 msgstr ""
-"La lista @code{(rosa violeta margarita mantequilla)} aparecer@'a en el\n"
+"La lista @code{(rosa violeta margarita bot@'ondeoro)} aparecer@'a en el\n"
 "@'area echo. Esto es lo que est@'a @emph{devuelto} por la funci@'on\n"
 "@code{set}. Como efecto lateral, el s@'{@dotless{i}}mbolo\n"
 "@code{flores} est@'a asociado a la lista; esto es, el\n"
@@ -6738,7 +6738,7 @@ msgid ""
 "buttercup)} appears in the echo area."
 msgstr ""
 "Cuando se eval@'ua @code{flores}, la lista @code{(rosa violeta margarita\n"
-"mantequilla)} aparece en el @'area echo."
+"bot@'ondeoro)} aparece en el @'area echo."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2412
@@ -6779,7 +6779,7 @@ msgstr ""
 "ambos argumentos a @code{set}, a menos que se quiera evaluar. Puesto\n"
 "que nosotros no queremos argumentos evaluados, ni la variable\n"
 "@code{flores}, ni la lista @code{(rosa violeta margarita\n"
-"mantequilla)}, se citan. (Cuando se usa @code{set} sin citar su primer\n"
+"bot@'ondeoro)}, se citan. (Cuando se usa @code{set} sin citar su primer\n"
 "argumento, el primer argumento se eval@'ua antes que cualquier cosa\n"
 "se haga. Si se hizo esto y @code{flores} no ten@'{@dotless{i}}a\n"
 "un valor ya, se tendr@'{@dotless{i}}a un mensaje de error que el\n"
@@ -16059,7 +16059,7 @@ msgid ""
 msgstr ""
 "El @sc{car} de una lista es, bastante simple, el primer\n"
 "@'{@dotless{i}}tem en la lista. De este modo, el @sc{car} de la lista\n"
-"@code{(rosa violeta margarita mantequilla)} es @code{rosa}."
+"@code{(rosa violeta margarita bot@'ondeoro)} es @code{rosa}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6936
@@ -16074,7 +16074,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:6939
 #, no-wrap
 msgid "(car '(rose violet daisy buttercup))\n"
-msgstr "(car '(rosa violeta margarita mantequilla))\n"
+msgstr "(car '(rosa violeta margarita bot@'ondeoro))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6944
@@ -16120,9 +16120,9 @@ msgstr ""
 "El @sc{cdr} de una lista es el resto de la lista, que es, la funci@'on\n"
 "@code{cdr} que devuelve la parte de la lista que sigue el primer\n"
 "@'{@dotless{i}}tem. De este modo, mientras el @sc{car} de la lista\n"
-"@code{'(rosa violeta margarita mantequilla)} es @code{rosa}, el resto\n"
+"@code{'(rosa violeta margarita bot@'ondeoro)} es @code{rosa}, el resto\n"
 "de la lista, el valor devuelto por la funci@'on @code{cdr}, es\n"
-"@code{(violeta margarita mantequilla)}."
+"@code{(violeta margarita bot@'ondeoro)}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6962
@@ -16133,7 +16133,7 @@ msgstr "Se puede ver esto evaluando lo siguiente del modo usual:"
 #: emacs-lisp-intro.texi:6965
 #, no-wrap
 msgid "(cdr '(rose violet daisy buttercup))\n"
-msgstr "(cdr '(rosa violeta margarita mantequilla))\n"
+msgstr "(cdr '(rosa violeta margarita bot@'ondeoro))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6970
@@ -16141,7 +16141,7 @@ msgid ""
 "When you evaluate this, @code{(violet daisy buttercup)} will appear in the "
 "echo area."
 msgstr ""
-"Cuando se eval@'ua esto, @code{(violeta margarita mantequilla)}\n"
+"Cuando se eval@'ua esto, @code{(violeta margarita bot@'ondeoro)}\n"
 "aparecer@'a en el @'area echo."
 
 #. type: Plain text
@@ -16418,8 +16418,8 @@ msgid ""
 "(cons 'buttercup ())\n"
 "     @result{} (buttercup)\n"
 msgstr ""
-"(cons 'mantequilla ())\n"
-"     @result{} (mantequilla)\n"
+"(cons 'bot@'ondeoro ())\n"
+"     @result{} (bot@'ondeoro)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7110
@@ -16428,8 +16428,8 @@ msgid ""
 "(cons 'daisy '(buttercup))\n"
 "     @result{} (daisy buttercup)\n"
 msgstr ""
-"(cons 'margarita '(mantequilla))\n"
-"     @result{} (margarita mantequilla)\n"
+"(cons 'margarita '(bot@'ondeoro))\n"
+"     @result{} (margarita bot@'ondeoro)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7115
@@ -16438,8 +16438,8 @@ msgid ""
 "(cons 'violet '(daisy buttercup))\n"
 "     @result{} (violet daisy buttercup)\n"
 msgstr ""
-"(cons 'violeta '(margarita mantequilla))\n"
-"     @result{} (violeta margarita mantequilla)\n"
+"(cons 'violeta '(margarita bot@'ondeoro))\n"
+"     @result{} (violeta margarita bot@'ondeoro)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7120
@@ -16448,8 +16448,8 @@ msgid ""
 "(cons 'rose '(violet daisy buttercup))\n"
 "     @result{} (rose violet daisy buttercup)\n"
 msgstr ""
-"(cons 'rosa '(violeta margarita mantequilla))\n"
-"     @result{} (rosa violeta margarita mantequilla)\n"
+"(cons 'rosa '(violeta margarita bot@'ondeoro))\n"
+"     @result{} (rosa violeta margarita bot@'ondeoro)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7130
@@ -16462,10 +16462,10 @@ msgid ""
 "speaking, an empty list is invisible."
 msgstr ""
 "En el primer ejemplo, la lista vac@'{@dotless{i}}a se muestra como\n"
-"@code{()} y despu@'es se construye una lista de @code{mantequilla}\n"
+"@code{()} y despu@'es se construye una lista de @code{bot@'ondeoro}\n"
 "seguida por la lista vac@'{@dotless{i}}a. Como se puede ver, la lista\n"
 "vac@'{@dotless{i}}a no se muestra en la lista que fu@'e\n"
-"construida. Todo lo que se ve es @code{(mantequilla)}. La lista\n"
+"construida. Todo lo que se ve es @code{(bot@'ondeoro)}. La lista\n"
 "vac@'{@dotless{i}}a no cuenta como un elemento de una lista porque\n"
 "no hay nada en una lista vac@'{@dotless{i}}a. Generalmente hablando,\n"
 "una lista vac@'{@dotless{i}}a es invisible."
@@ -16478,11 +16478,11 @@ msgid ""
 "third example constructs a three element list by putting @code{violet} in "
 "front of @code{daisy} and @code{buttercup}."
 msgstr ""
-"El segundo ejemplo, @code{(cons 'margarita '(mantequilla))} construye\n"
+"El segundo ejemplo, @code{(cons 'margarita '(bot@'ondeoro))} construye\n"
 "una nueva lista de dos elemento poniendo @code{margarita} en frente de\n"
-"@code{mantequilla}; y el tercer ejemplo construye una lista de tres\n"
+"@code{bot@'ondeoro}; y el tercer ejemplo construye una lista de tres\n"
 "elementos poniendo @code{violeta} en frente de @code{margarita} y\n"
-"@code{mantequilla}."
+"@code{bot@'ondeoro}."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:7137
@@ -16506,7 +16506,7 @@ msgid ""
 "(length '(buttercup))\n"
 "     @result{} 1\n"
 msgstr ""
-"(length '(mantequilla))\n"
+"(length '(bot@'ondeoro))\n"
 "     @result{} 1\n"
 
 #. type: group
@@ -16516,7 +16516,7 @@ msgid ""
 "(length '(daisy buttercup))\n"
 "     @result{} 2\n"
 msgstr ""
-"(length '(margarita mantequilla))\n"
+"(length '(margarita bot@'ondeoro))\n"
 "     @result{} 2\n"
 
 #. type: group
@@ -16526,7 +16526,7 @@ msgid ""
 "(length (cons 'violet '(daisy buttercup)))\n"
 "     @result{} 3\n"
 msgstr ""
-"(length (cons 'violeta '(margarita mantequilla)))\n"
+"(length (cons 'violeta '(margarita bot@'ondeoro)))\n"
 "     @result{} 3\n"
 
 #. type: Plain text
@@ -21097,14 +21097,14 @@ msgid ""
 "@samp{violet} is located) is kept along with an address that tells where the "
 "address for the atom @samp{buttercup} is located."
 msgstr ""
-"Por ejemplo, la lista @code{(rosa violeta mantequilla)} tiene tres\n"
-"elementos, @samp{rosa}, @samp{violeta}, y @samp{mantequilla}. En el\n"
+"Por ejemplo, la lista @code{(rosa violeta bot@'ondeoro)} tiene tres\n"
+"elementos, @samp{rosa}, @samp{violeta}, y @samp{bot@'ondeoro}. En el\n"
 "ordenador, la direcci@'on electr@'onica de @samp{rosa} se graba en un\n"
 "segmento de memoria del ordenador a trav@'es de la direcci@'on que da\n"
 "la direcci@'on electr@'onica de donde el @'atomo @samp{violeta} est@'a\n"
 "localizado; y esta direcci@'on (la que cuenta donde @samp{violeta}\n"
 "est@'a se localiza) se guarda con una direcci@'on que cuenta donde la\n"
-"direcci@'on para el @'atomo @samp{mantequilla} se localiza."
+"direcci@'on para el @'atomo @samp{bot@'ondeoro} se localiza."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9601
@@ -21128,7 +21128,7 @@ msgstr ""
 "   |___|___|--> |___|___|--> |___|___|--> nil\n"
 "     |            |            |\n"
 "     |            |            |\n"
-"     ---> rosa    ---> violeta ---> mantequilla\n"
+"     ---> rosa    ---> violeta ---> bot@'ondeoro\n"
 
 #. type: center
 #: emacs-lisp-intro.texi:9618
@@ -21190,7 +21190,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:9658
 #, no-wrap
 msgid "(setq bouquet '(rose violet buttercup))\n"
-msgstr "(setq ramo '(rosa violeta mantequilla))\n"
+msgstr "(setq ramo '(rosa violeta bot@'ondeoro))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9663
@@ -21215,7 +21215,7 @@ msgstr ""
 "      --> |___|___|--> |___|___|--> |___|___|--> nil\n"
 "            |            |            |\n"
 "            |            |            |\n"
-"             --> rosa     --> violeta   --> mantequilla\n"
+"             --> rosa     --> violeta   --> bot@'ondeoro\n"
 
 #. type: center
 #: emacs-lisp-intro.texi:9681
@@ -21271,7 +21271,7 @@ msgstr ""
 " |\n"
 " |    --------------       ----------------       --------------------\n"
 " |   | car   | cdr  |     | car     | cdr  |     | car         | cdr  |\n"
-"  -->| rosa  |   o------->| violeta |   o------->| mantequilla |  nil |\n"
+"  -->| rosa  |   o------->| violeta |   o------->| bot@'ondeoro |  nil |\n"
 "     |       |      |     |         |      |     |             |      |\n"
 "      --------------       ----------------       --------------------\n"
 
@@ -21315,7 +21315,7 @@ msgstr ""
 "es la direcci@'on de una definici@'on de funci@'on adjunta al\n"
 "s@'{@dotless{i}}mbolo, si cualquiera, un tercero del que es la\n"
 "direcci@'on del primer par de cajas-de-direccion para la lista\n"
-"@code{(rosa violeta mantequilla)}, y\n"
+"@code{(rosa violeta bot@'ondeoro)}, y\n"
 "as@'{@dotless{i}}. Aqu@'{@dotless{i}} se est@'a mostrando que la\n"
 "tercera caja de direcci@'on del s@'{@dotless{i}}mbolo apunta al primer\n"
 "par de cajas-de-direccion para la lista.)"
@@ -21365,7 +21365,7 @@ msgstr ""
 "       |___|___|----> |___|___|--> |___|___|--> nil\n"
 "         |              |            |\n"
 "         |              |            |\n"
-"          --> rosa       --> violeta  --> mantequilla\n"
+"          --> rosa       --> violeta  --> bot@'ondeoro\n"
 
 #. type: center
 #: emacs-lisp-intro.texi:9797
@@ -21395,11 +21395,11 @@ msgid ""
 "the first of which holds the address of @code{violet}, and the second of "
 "which holds the address of @code{buttercup}."
 msgstr ""
-"El valor de @code{flores} es @code{(violeta mantequilla)}, esto es\n"
+"El valor de @code{flores} es @code{(violeta bot@'ondeoro)}, esto es\n"
 "decir que el s@'{@dotless{i}}mbolo @code{flores} maneja la direcci@'on\n"
 "del par address-boxes el primero que maneja la direcci@'on de\n"
 "@code{violeta}, y el segundo que maneja la direcci@'on de\n"
-"@code{mantequilla}."
+"@code{bot@'ondeoro}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9835
@@ -21459,7 +21459,7 @@ msgstr ""
 "       |___|___|----> |___|___|----> |___|___|---->|___|___|--> nil\n"
 "         |              |              |             |\n"
 "         |              |              |             |\n"
-"          --> lila      --> rosa       --> violeta    --> mantequilla\n"
+"          --> lila      --> rosa       --> violeta    --> bot@'ondeoro\n"
 
 #. type: center
 #: emacs-lisp-intro.texi:9869
@@ -21510,7 +21510,7 @@ msgid ""
 "existing cons cells; they are all still there."
 msgstr ""
 "Hasta que se resetea, @code{flores} todav@'{@dotless{i}}a tiene el\n"
-"valor de @code{(violeta mantequilla)}; que es, eso tiene la\n"
+"valor de @code{(violeta bot@'ondeoro)}; que es, eso tiene la\n"
 "direcci@'on de la celula cons cuya primera direcci@'on es\n"
 "@code{violeta}. Tambi@'en, esto no altera cualquier c@'elula\n"
 "prexistente cons; ellas est@'a todav@'{@dotless{i}}a all@'{@dotless{i}}."
@@ -21666,7 +21666,7 @@ msgstr ""
 "        |    simbolo          |\n"
 "        +---------------------+\n"
 "        |    direcciones al   |            [mapeo a]\n"
-"        |   valor de variable |       (rosa violeta mantequilla)\n"
+"        |   valor de variable |       (rosa violeta bot@'ondeoro)\n"
 "        |                     |\n"
 "        +---------------------+\n"
 "        |    direcciones a la |\n"
@@ -21703,9 +21703,9 @@ msgid ""
 "the @sc{car} of @code{flowers} to a fish.  What does the @code{more-flowers} "
 "list now contain?"
 msgstr ""
-"Asignar @code{flores} a @code{violeta} y @code{mantequilla}. Asigna\n"
+"Asignar @code{flores} a @code{violeta} y @code{bot@'ondeoro}. Asigna\n"
 "dos flores m@'as en esta lista y asigna esta nueva lista a\n"
-"@code{more-flowers}. Asigna el @sc{car} de @code{flores} a un\n"
+"@code{mas-flores}. Asigna el @sc{car} de @code{flores} a un\n"
 "pez. @questiondown{}Qu@'e lista contiene ahora @code{mas-flores}?"
 
 #. type: cindex

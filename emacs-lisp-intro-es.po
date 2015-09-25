@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2014-08-12 21:14+0200\n"
-"PO-Revision-Date: 2015-09-21 00:14+0200\n"
+"PO-Revision-Date: 2015-09-25 23:02+0200\n"
 "Last-Translator: David Arroyo Men@'endez <davidam@es.gnu.org>\n"
 "Language-Team: Spanish <elisp-es-traductores@nongnu.org>\n"
 "Language: Spanish\n"
@@ -3621,8 +3621,8 @@ msgstr ""
 "entorno de programaci@'on Lisp. GNU Emacs soporta programaci@'on y\n"
 "provee herramientas que llegar@'an a usarse c@'omodamente con cosas\n"
 "como @kbd{M-.} (la clave que invoca el comando\n"
-"@code{find-tag}). Tambi@'en se aprender@'s acerca de b@'uffers y otros\n"
-"objetos que son parte del entorno. Aprendiendo acerca estas\n"
+"@code{find-tag}). Tambi@'en se aprende acerca de b@'uffers y otros\n"
+"objetos que son parte del entorno. Aprender acerca de estas\n"
 "funcionalidades de Emacs es como aprender nuevas rutas alrededor de tu\n"
 "hogar."
 
@@ -3658,7 +3658,7 @@ msgstr ""
 "personas que no son programadoras. Quien ya programa, puede no\n"
 "estar satisfecho con este libro. La raz@'on es que puede tener que\n"
 "llegar a ser experto leyendo manuales de referencia y ese no es el\n"
-"camino para el que este texto est@'a organizado."
+"modo en el que este texto est@'a organizado."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:935
@@ -3672,8 +3672,8 @@ msgid ""
 "I prefer to learn from reference manuals.  I ``dive into'' each paragraph, "
 "and ``come up for air'' between paragraphs."
 msgstr ""
-"Yo prefiero aprender desde manuales de referencia. Yo ``escarbo'' cada\n"
-"p@'arrafo, y ``vienen por aire'' entre p@'arrafos."
+"Prefiero aprender desde manuales de referencia. Yo ``me sumerjo'' en\n"
+"cada p@'arrafo y ``subo a por aire'' entre p@'arrafos."
 
 #. type: i{#1}
 #: emacs-lisp-intro.texi:946
@@ -3688,9 +3688,10 @@ msgstr ""
 "Cuando llego al fin de un p@'arrafo, asumo que este asunto est@'a\n"
 "hecho, finalizado, que conozco cada cosa que necesito (con la posible\n"
 "excepci@'on del caso en el que el siguiente p@'arrafo empieza hablando\n"
-"acerca de eso en m@'as detalle). Yo espero que un manual de referencia\n"
-"bien escrito no tendr@'a un mont@'on de redundancia, y tendr@'a\n"
-"excelentes punteros a (un) lugar donde la informaci@'on que quiero."
+"acerca de eso mismo en m@'as detalle). Yo espero que un manual de\n"
+"referencia bien escrito no tendr@'a un mont@'on de redundancia, y\n"
+"tendr@'a excelentes punteros a (un) lugar donde est@'a la\n"
+"informaci@'on que quiero."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:949

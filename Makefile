@@ -22,7 +22,6 @@
 SHELL = /bin/sh
 
 srcdir = .
-VPATH = .
 
 infodir = .
 # Directory with the (customized) texinfo.tex file.
@@ -51,6 +50,9 @@ dvi: $(DVI_TARGETS)
 
 ${infodir}/eintr: ${INFO_SOURCES_ES}
 	cd $(srcdir); $(MAKEINFO) emacs-lisp-intro-es.texi -o $(infodir)/eintr
+
+emacs-lisp-intro-es.texi: ${INFO_SOURCES}
+	cd $(srcdir); ./$(PO2TEXI)
 
 emacs-lisp-intro-es.dvi: ${INFO_SOURCES_ES}
 	$(TEXI2DVI) -I $(srcdir) -I $(texinfodir) $(srcdir)/emacs-lisp-intro-es.texi

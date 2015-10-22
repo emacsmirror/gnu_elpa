@@ -87,6 +87,15 @@ maintainer-clean: distclean
 	rm -f *.aux *.cps *.fns *.kys *.pgs *.vrs *.toc *.tmp* 
 	cd $(infodir); rm -f eintr eintr-[1-9]
 
+install: emacs-lisp-intro-es.html emacs-lisp-intro-es.pdf
+	mkdir -p $(DESTDIR)/usr/share/doc/elisp-es/html
+	mkdir -p $(DESTDIR)/usr/share/doc/elisp-es/pdf
+	cp emacs-lisp-intro-es.html $(DESTDIR)/usr/share/doc/elisp-es/html
+	cp emacs-lisp-intro-es.pdf $(DESTDIR)/usr/share/doc/elisp-es/pdf
+
+uninstall:
+	rm -rf $(DESTDIR)/usr/share/doc/elisp-es/
+
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

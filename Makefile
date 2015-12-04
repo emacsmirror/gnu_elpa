@@ -79,7 +79,7 @@ mostlyclean:
 	rm -f  *.log *.cp *.fn *.ky *.pg *.vr *.tp *.tmp* *.aux *.cps *.toc
 
 clean: mostlyclean
-	rm -f *.dvi *.html 
+	rm -f *.dvi *.html emacs-lisp-intro-es.pdf
 
 distclean: clean
 

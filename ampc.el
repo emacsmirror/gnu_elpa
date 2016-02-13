@@ -1,9 +1,12 @@
 ;;; ampc.el --- Asynchronous Music Player Controller -*- lexical-binding: t -*-
 
-;; Copyright (C) 2011-2012 Free Software Foundation, Inc.
+;; Copyright (C) 2011-2012, 2016 Free Software Foundation, Inc.
 
 ;; Author: Christopher Schmidt <christopher@ch.ristopher.com>
-;; Maintainer: Christopher Schmidt <christopher@ch.ristopher.com>
+;; Comment: On Jan 2016, I couldn't get hold of Christopher Schmidt
+;;   nor could I find ampc anywhere, so I re-instated GNU ELPA's old version
+;;   and marked it as "maintainerless".
+;; Maintainer: emacs-devel@gnu.org
 ;; Version: 0.2
 ;; Created: 2011-12-06
 ;; Keywords: ampc, mpc, mpd
@@ -112,7 +115,7 @@
 ;; playlist, press `d' (ampc-delete).  Pressing `<down-mouse-3>' will move the
 ;; point to the entry under cursor and delete it from the playlist.  To move the
 ;; selected songs up, press `<up>' (ampc-up).  Analogous, press `<down>'
-;; (ampc-down) to move the selected songs down.  Pressing `<return>'
+;; (ampc-down) to move the selected songs down.  Pressing `RET'
 ;; (ampc-play-this) or `<down-mouse-2>' will play the song at point/cursor.
 ;;
 ;; Windows three to five are tag browsers.  You use them to narrow the song
@@ -317,8 +320,7 @@
 
 ;;; Code:
 ;;; * code
-(eval-when-compile
-  (require 'cl))
+(eval-when-compile (require 'cl-lib))
 (require 'network-stream)
 (require 'avl-tree)
 
@@ -629,12 +631,12 @@ modified."
     (define-key map (kbd "z") 'ampc-suspend)
     (define-key map (kbd "T") 'ampc-trigger-update)
     (define-key map (kbd "I") 'ampc-tagger)
-    (loop for view in ampc-views
-          do (when (stringp (car view))
-               (define-key map (cadr view)
-                 `(lambda ()
-                    (interactive)
-                    (ampc-change-view ',view)))))
+    (cl-loop for view in ampc-views
+             do (when (stringp (car view))
+                  (define-key map (cadr view)
+                    `(lambda ()
+                       (interactive)
+                       (ampc-change-view ',view)))))
     map))
 
 (defvar ampc-item-mode-map
@@ -655,7 +657,7 @@ modified."
 (defvar ampc-current-playlist-mode-map
   (let ((map (make-sparse-keymap)))
     (suppress-keymap map)
-    (define-key map (kbd "<return>") 'ampc-play-this)
+    (define-key map (kbd "RET") 'ampc-play-this)
     (define-key map (kbd "<down-mouse-2>") 'ampc-mouse-play-this)
     (define-key map (kbd "<mouse-2>") 'ampc-mouse-align-point)
     (define-key map (kbd "<down-mouse-3>") 'ampc-mouse-delete)
@@ -712,9 +714,9 @@ modified."
     (define-key map (kbd "C-c C-r") 'ampc-tagger-reset)
     (define-key map [remap ampc-tagger] nil)
     (define-key map [remap ampc-quit] 'ampc-tagger-quit)
-    (loop for view in ampc-views
-          do (when (stringp (car view))
-               (define-key map (cadr view) nil)))
+    (cl-loop for view in ampc-views
+             do (when (stringp (car view))
+                  (define-key map (cadr view) nil)))
     map))
 
 (defvar ampc-tagger-mode-map
@@ -722,7 +724,7 @@ modified."
     (define-key map (kbd "C-c C-q") 'ampc-tagger-quit)
     (define-key map (kbd "C-c C-c") 'ampc-tagger-save)
     (define-key map (kbd "C-c C-r") 'ampc-tagger-reset)
-    (define-key map (kbd "<tab>") 'ampc-tagger-completion-at-point)
+    (define-key map (kbd "TAB") 'ampc-tagger-completion-at-point)
     map))
 
 (defvar ampc-tagger-dired-mode-map
@@ -733,13 +735,13 @@ modified."
 ;;; **** menu
 (easy-menu-define nil ampc-mode-map nil
   `("ampc"
-    ("Change view" ,@(loop for view in ampc-views
-                           when (stringp (car view))
-                           collect (vector (car view)
-                                           `(lambda ()
-                                              (interactive)
-                                              (ampc-change-view ',view)))
-                           end))
+    ("Change view" ,@(cl-loop for view in ampc-views
+                              when (stringp (car view))
+                              collect (vector (car view)
+                                              `(lambda ()
+                                                 (interactive)
+                                                 (ampc-change-view ',view)))
+                              end))
     ["Run tagger" ampc-tagger]
     "--"
     ["Play" ampc-toggle-play
@@ -829,13 +831,13 @@ modified."
   `(let* ((type- ,type)
           (w (if (windowp type-)
                  type-
-               (loop for w in (ampc-normalize-windows)
-                     thereis (when (with-current-buffer
-                                       (window-buffer w)
-                                     (etypecase type-
-                                       (symbol (eq (car ampc-type) type-))
-                                       (cons (equal ampc-type type-))))
-                               w)))))
+               (cl-loop for w in (ampc-normalize-windows)
+                        thereis (when (with-current-buffer
+                                          (window-buffer w)
+                                        (cl-etypecase type-
+                                          (symbol (eq (car ampc-type) type-))
+                                          (cons (equal ampc-type type-))))
+                                  w)))))
      (when w
        (with-selected-window w
          (with-current-buffer (window-buffer w)
@@ -850,6 +852,7 @@ modified."
   (declare (indent 1) (debug t))
   `(let ((tag- ,tag)
          (data-buffer (current-buffer)))
+     (ignore data-buffer)               ;Don't warn if `body' doesn't use it.
      (ampc-with-buffer tag-
        no-se
        (unless (eq ampc-dirty 'keep-dirty)
@@ -862,28 +865,28 @@ modified."
            (goto-char (point-min))
            ,@body
            (goto-char (point-min))
-           (loop until (eobp)
-                 do (if (get-text-property (point) 'not-updated)
-                        (kill-line 1)
-                      (add-text-properties (+ (point) 2)
-                                           (progn (forward-line nil)
-                                                  (1- (point)))
-                                           '(mouse-face highlight))))
+           (cl-loop until (eobp)
+                    do (if (get-text-property (point) 'not-updated)
+                           (kill-line 1)
+                         (add-text-properties (+ (point) 2)
+                                              (progn (forward-line nil)
+                                                     (1- (point)))
+                                              '(mouse-face highlight))))
            (remove-text-properties (point-min) (point-max) '(not-updated))
            (goto-char (point-min))
            (when old-point-data
-             (loop until (eobp)
-                   do (when (equal (get-text-property (point) 'cmp-data)
-                                   old-point-data)
-                        (set-window-start
-                         nil
-                         (save-excursion
-                           (forward-line (- old-window-start-offset))
-                           (point))
-                         t)
-                        (return))
-                   (forward-line)
-                   finally do (goto-char (point-min)))))
+             (cl-loop until (eobp)
+                      do (when (equal (get-text-property (point) 'cmp-data)
+                                      old-point-data)
+                           (set-window-start
+                            nil
+                            (save-excursion
+                              (forward-line (- old-window-start-offset))
+                              (point))
+                            t)
+                           (cl-return))
+                      (forward-line)
+                      finally do (goto-char (point-min)))))
          (let ((effective-height (- (window-height)
                                     (if mode-line-format 1 0)
                                     (if header-line-format 1 0))))
@@ -907,24 +910,24 @@ modified."
                     (goto-char (point-min))
                     (search-forward-regexp "^* " nil t)))
              (and arg- (symbolp arg-)))
-         (loop initially do (goto-char (point-min))
-               finally do (ampc-align-point)
-               while (search-forward-regexp "^* " nil t)
-               for index from 0
-               do (save-excursion
-                    ,@body))
+         (cl-loop initially do (goto-char (point-min))
+                  finally do (ampc-align-point)
+                  while (search-forward-regexp "^* " nil t)
+                  for index from 0
+                  do (save-excursion
+                       ,@body))
        (setf arg- (prefix-numeric-value arg-))
        (ampc-align-point)
-       (loop until (eobp)
-             for index from 0 to (1- (abs arg-))
-             do (save-excursion
-                  ,@body)
-             until (if (< arg- 0) (ampc-previous-line) (ampc-next-line))))))
+       (cl-loop until (eobp)
+                for index from 0 to (1- (abs arg-))
+                do (save-excursion
+                     ,@body)
+                until (if (< arg- 0) (ampc-previous-line) (ampc-next-line))))))
 
 (defmacro ampc-iterate-source (data-buffer delimiter bindings &rest body)
   (declare (indent 3) (debug t))
   (when (memq (intern delimiter) bindings)
-    (callf2 delq (intern delimiter) bindings)
+    (cl-callf2 delq (intern delimiter) bindings)
     (push (list (intern delimiter)
                 '(buffer-substring (point) (line-end-position)))
           bindings))
@@ -932,28 +935,28 @@ modified."
     (when (search-forward-regexp
            ,(concat "^" (regexp-quote delimiter) ": ")
            nil t)
-      (loop with next
-            do (save-restriction
-                 (setf next (ampc-narrow-entry
-                             ,(concat "^" (regexp-quote delimiter) ": ")))
-                 (let ,(loop for binding in bindings
-                             if (consp binding)
-                             collect binding
-                             else
-                             collect `(,binding (ampc-extract
-                                                 (ampc-extract-regexp
-                                                  ,(symbol-name binding))))
-                             end)
-                   ,@body))
-            while next
-            do (goto-char next)))))
+      (cl-loop with next
+               do (save-restriction
+                    (setf next (ampc-narrow-entry
+                                ,(concat "^" (regexp-quote delimiter) ": ")))
+                    (let ,(cl-loop for binding in bindings
+                                   if (consp binding)
+                                   collect binding
+                                   else
+                                   collect `(,binding (ampc-extract
+                                                       (ampc-extract-regexp
+                                                        ,(symbol-name binding))))
+                                   end)
+                      ,@body))
+               while next
+               do (goto-char next)))))
 
 (defmacro ampc-iterate-source-output (delimiter bindings pad-data &rest body)
   (declare (indent 2) (debug t))
   `(let ((output-buffer (current-buffer))
-         (tags (loop for (tag . props) in
-                     (plist-get (cdr ampc-type) :properties)
-                     collect (cons tag (ampc-extract-regexp tag)))))
+         (tags (cl-loop for (tag . props) in
+                        (plist-get (cdr ampc-type) :properties)
+                        collect (cons tag (ampc-extract-regexp tag)))))
      (ampc-iterate-source
          data-buffer ,delimiter ,bindings
        (let ((pad-data ,pad-data))
@@ -994,19 +997,19 @@ modified."
 (define-derived-mode ampc-tagger-mode nil "ampc-tagger"
   (set (make-local-variable 'tool-bar-map) ampc-tool-bar-map)
   (set (make-local-variable 'tab-stop-list)
-       (list (+ (loop for tag in ampc-tagger-tags
-                      maximize (length (symbol-name tag)))
+       (list (+ (cl-loop for tag in ampc-tagger-tags
+                         maximize (length (symbol-name tag)))
                 2)))
   (set (make-local-variable 'completion-at-point-functions)
        '(ampc-tagger-complete-tag ampc-tagger-complete-value))
   (setf truncate-lines ampc-truncate-lines
         font-lock-defaults
         `(((,(concat "^\\([ \t]*\\(?:"
-                     (mapconcat 'symbol-name ampc-tagger-tags "\\|")
+                     (mapconcat #'symbol-name ampc-tagger-tags "\\|")
                      "\\)[ \t]*:\\)"
                      "\\(\\(?:[ \t]*"
                      "\\(?:"
-                     (mapconcat 'identity ampc-tagger-genres "\\|") "\\|<keep>"
+                     (mapconcat #'identity ampc-tagger-genres "\\|") "\\|<keep>"
                      "\\)"
                      "[ \t]*$\\)?\\)")
             (1 'ampc-tagger-tag-face)
@@ -1029,12 +1032,13 @@ modified."
         mode-line-modified "--"))
 
 (define-minor-mode ampc-highlight-current-song-mode ""
+  ;; FIXME: The "" above looks bogus!
   nil
   nil
   nil
   (funcall (if ampc-highlight-current-song-mode
-               'font-lock-add-keywords
-             'font-lock-remove-keywords)
+               #'font-lock-add-keywords
+             #'font-lock-remove-keywords)
            nil
            '((ampc-find-current-song
               (1 'ampc-current-song-mark-face)
@@ -1043,10 +1047,8 @@ modified."
 ;;;###autoload
 (define-minor-mode ampc-tagger-dired-mode
   "Minor mode that adds a audio file meta data tagging key binding to dired."
-  nil
-  " ampc-tagger"
-  nil
-  (assert (derived-mode-p 'dired-mode)))
+  :lighter " ampc-tagger"
+  (cl-assert (derived-mode-p 'dired-mode)))
 
 ;;; *** internal functions
 (defun ampc-tagger-report (args status)
@@ -1054,7 +1056,7 @@ modified."
     (let ((message (format (concat "ampc_tagger (%s %s) returned with a "
                                    "non-zero exit status (%s)")
                            ampc-tagger-executable
-                           (mapconcat 'identity args " ")
+                           (mapconcat #'identity args " ")
                            status)))
       (ampc-tagger-log message "\n")
       (error message))))
@@ -1062,7 +1064,7 @@ modified."
 (defun ampc-tagger-call (&rest args)
   (ampc-tagger-report
    args
-   (apply 'call-process ampc-tagger-executable nil t nil args)))
+   (apply #'call-process ampc-tagger-executable nil t nil args)))
 
 (defun ampc-int-insert-cmp (p1 p2)
   (cond ((< p1 p2) 'insert)
@@ -1071,13 +1073,13 @@ modified."
 
 (defun ampc-normalize-windows ()
   (setf ampc-windows
-        (loop for (window . buffer) in ampc-windows
-              collect (cons (if (and (window-live-p window)
-                                     (eq (window-buffer window) buffer))
-                                window
-                              (get-buffer-window buffer))
-                            buffer)))
-  (delq nil (mapcar 'car ampc-windows)))
+        (cl-loop for (window . buffer) in ampc-windows
+                 collect (cons (if (and (window-live-p window)
+                                        (eq (window-buffer window) buffer))
+                                   window
+                                 (get-buffer-window buffer))
+                               buffer)))
+  (delq nil (mapcar #'car ampc-windows)))
 
 (defun ampc-restore-window-configuration ()
   (let ((windows
@@ -1088,24 +1090,24 @@ modified."
                                   w))
                               (ampc-normalize-windows)))
                 (lambda (w1 w2)
-                  (loop for w in (window-list nil nil (frame-first-window))
-                        do (when (eq w w1)
-                             (return t))
-                        (when (eq w w2)
-                          (return nil)))))))
+                  (cl-loop for w in (window-list nil nil (frame-first-window))
+                           do (when (eq w w1)
+                                (cl-return t))
+                           (when (eq w w2)
+                             (cl-return nil)))))))
     (when windows
       (setf (window-dedicated-p (car windows)) nil)
-      (loop for w in (cdr windows)
-            do (delete-window w)))))
+      (cl-loop for w in (cdr windows)
+               do (delete-window w)))))
 
 (defun ampc-tagger-tags-modified (tags new-tags)
-  (loop with found-changed
-        for (tag . value) in new-tags
-        for prop = (assq tag tags)
-        do (unless (equal (cdr prop) value)
-             (setf (cdr prop) value
-                   found-changed t))
-        finally return found-changed))
+  (cl-loop with found-changed
+           for (tag . value) in new-tags
+           for prop = (assq tag tags)
+           do (unless (equal (cdr prop) value)
+                (setf (cdr prop) value
+                      found-changed t))
+           finally return found-changed))
 
 (defun ampc-change-view (view)
   (if (equal ampc-outstanding-commands '((idle nil)))
@@ -1133,15 +1135,15 @@ modified."
 
 (defun ampc-on-files (func &optional data)
   (cond ((null data)
-         (loop for d in (get-text-property (line-end-position) 'data)
-               do (ampc-on-files func d)))
+         (cl-loop for d in (get-text-property (line-end-position) 'data)
+                  do (ampc-on-files func d)))
         ((avl-tree-p data)
          (avl-tree-mapc (lambda (e) (ampc-on-files func (cdr e))) data))
         ((stringp data)
          (funcall func data))
         (t
-         (loop for d in (reverse data)
-               do (ampc-on-files func (cdr (assoc "file" d)))))))
+         (cl-loop for d in (reverse data)
+                  do (ampc-on-files func (cdr (assoc "file" d)))))))
 
 (defun ampc-skip (N)
   (ampc-send-command
@@ -1156,7 +1158,7 @@ modified."
        (max 0 (min (+ (string-to-number song) N)
                    (1- (string-to-number playlist-length))))))))
 
-(defun* ampc-find-current-song
+(cl-defun ampc-find-current-song
     (limit &aux (point (point)) (song (cdr (assq 'song ampc-status))))
   (when (and song
              (<= (1- (line-number-at-pos (point)))
@@ -1205,70 +1207,70 @@ modified."
             arg)
           0))))
 
-(defun* ampc-tagger-make-backup (file)
+(cl-defun ampc-tagger-make-backup (file)
   (unless ampc-tagger-backup-directory
-    (return-from ampc-tagger-make-backup))
+    (cl-return-from ampc-tagger-make-backup))
   (when (functionp ampc-tagger-backup-directory)
     (funcall ampc-tagger-backup-directory file)
-    (return-from ampc-tagger-make-backup))
+    (cl-return-from ampc-tagger-make-backup))
   (unless (file-directory-p ampc-tagger-backup-directory)
     (make-directory ampc-tagger-backup-directory t))
   (let* ((real-file
-          (loop with real-file = file
-                for target = (file-symlink-p real-file)
-                while target
-                do (setf real-file (expand-file-name
-                                    target (file-name-directory real-file)))
-                finally return real-file))
+          (cl-loop with real-file = file
+                   for target = (file-symlink-p real-file)
+                   while target
+                   do (setf real-file (expand-file-name
+                                       target (file-name-directory real-file)))
+                   finally return real-file))
          (target
-          (loop with base = (file-name-nondirectory real-file)
-                for i from 1
-                for file = (expand-file-name
-                            (concat base ".~"
-                                    (int-to-string i)
-                                    "~")
-                            ampc-tagger-backup-directory)
-                while (file-exists-p file)
-                finally return file)))
+          (cl-loop with base = (file-name-nondirectory real-file)
+                   for i from 1
+                   for file = (expand-file-name
+                               (concat base ".~"
+                                       (int-to-string i)
+                                       "~")
+                               ampc-tagger-backup-directory)
+                   while (file-exists-p file)
+                   finally return file)))
     (ampc-tagger-log "\tBackup file: " (abbreviate-file-name target) "\n")
     (copy-file real-file target nil t)))
 
-(defun* ampc-move (N &aux with-marks entries-to-move (up (< N 0)))
+(cl-defun ampc-move (N &aux with-marks entries-to-move (up (< N 0)))
   (save-excursion
     (goto-char (point-min))
-    (loop while (search-forward-regexp "^* " nil t)
-          do (push (point) entries-to-move)))
+    (cl-loop while (search-forward-regexp "^* " nil t)
+             do (push (point) entries-to-move)))
   (if entries-to-move
       (setf with-marks t)
     (push (point) entries-to-move))
   (when (save-excursion
-          (loop with max = (1- (count-lines (point-min) (point-max)))
-                for p in entries-to-move
-                do (goto-char p)
-                for line = (+ (1- (line-number-at-pos)) N)
-                always (and (>= line 0) (<= line max))))
+          (cl-loop with max = (1- (count-lines (point-min) (point-max)))
+                   for p in entries-to-move
+                   do (goto-char p)
+                   for line = (+ (1- (line-number-at-pos)) N)
+                   always (and (>= line 0) (<= line max))))
     (when up
       (setf entries-to-move (nreverse entries-to-move)))
     (when with-marks
       (ampc-unmark-all))
-    (loop for p in entries-to-move
-          do  (goto-char p)
-          for line = (1- (line-number-at-pos))
-          do (if (and (not (eq (car ampc-type) 'current-playlist))
-                      (ampc-playlist))
-                 (ampc-send-command 'playlistmove
-                                    '(:keep-prev t)
-                                    (ampc-quote (ampc-playlist))
-                                    line
-                                    (+ line N))
-               (ampc-send-command 'move '(:keep-prev t) line (+ line N))))
+    (cl-loop for p in entries-to-move
+             do  (goto-char p)
+             for line = (1- (line-number-at-pos))
+             do (if (and (not (eq (car ampc-type) 'current-playlist))
+                         (ampc-playlist))
+                    (ampc-send-command 'playlistmove
+                                       '(:keep-prev t)
+                                       (ampc-quote (ampc-playlist))
+                                       line
+                                       (+ line N))
+                  (ampc-send-command 'move '(:keep-prev t) line (+ line N))))
     (if with-marks
-        (loop for p in (nreverse entries-to-move)
-              do (goto-char p)
-              (forward-line N)
-              (save-excursion
-                (ampc-mark-impl t 1))
-              (ampc-align-point))
+        (cl-loop for p in (nreverse entries-to-move)
+                 do (goto-char p)
+                 (forward-line N)
+                 (save-excursion
+                   (ampc-mark-impl t 1))
+                 (ampc-align-point))
       (forward-line N)
       (ampc-align-point))))
 
@@ -1296,37 +1298,37 @@ modified."
          (+ (line-beginning-position) 2)
          (line-end-position))))))
 
-(defun* ampc-mark-impl (select N &aux result (inhibit-read-only t))
+(cl-defun ampc-mark-impl (select N &aux result (inhibit-read-only t))
   (when (eq (car ampc-type) 'playlists)
-    (assert (or (not select) (null N) (eq N 1)))
+    (cl-assert (or (not select) (null N) (eq N 1)))
     (ampc-with-buffer 'playlists
-      (loop while (search-forward-regexp "^\\* " nil t)
-            do (replace-match "  " nil nil))))
-  (loop repeat (or N 1)
-        until (eobp)
-        do (move-beginning-of-line nil)
-        (delete-char 1)
-        (insert (if select "*" " "))
-        (setf result (ampc-next-line nil)))
+      (cl-loop while (search-forward-regexp "^\\* " nil t)
+               do (replace-match "  " nil nil))))
+  (cl-loop repeat (or N 1)
+           until (eobp)
+           do (move-beginning-of-line nil)
+           (delete-char 1)
+           (insert (if select "*" " "))
+           (setf result (ampc-next-line nil)))
   (ampc-post-mark-change-update)
   result)
 
 (defun ampc-post-mark-change-update ()
-  (ecase (car ampc-type)
+  (cl-ecase (car ampc-type)
     ((current-playlist playlist outputs))
     (playlists
      (ampc-update-playlist))
     ((song tag)
-     (loop
+     (cl-loop
       for w in
-      (loop for w on (ampc-normalize-windows)
-            thereis (when (or (eq (car w) (selected-window))
-                              (and (eq (car ampc-type) 'tag)
-                                   (eq (with-current-buffer
-                                           (window-buffer (car w))
-                                         (car ampc-type))
-                                       'song)))
-                      (cdr w)))
+      (cl-loop for w on (ampc-normalize-windows)
+               thereis (when (or (eq (car w) (selected-window))
+                                 (and (eq (car ampc-type) 'tag)
+                                      (eq (with-current-buffer
+                                              (window-buffer (car w))
+                                            (car ampc-type))
+                                          'song)))
+                         (cdr w)))
       do (with-current-buffer (window-buffer w)
            (when (memq (car ampc-type) '(song tag))
              (ampc-set-dirty t))))
@@ -1334,31 +1336,31 @@ modified."
     (files-list
      (ampc-tagger-update))))
 
-(defun* ampc-tagger-get-values (tag all-files &aux result)
+(cl-defun ampc-tagger-get-values (tag all-files &aux result)
   (ampc-with-buffer 'files-list
     no-se
     (save-excursion
-      (macrolet
+      (cl-macrolet
           ((add-file
             ()
             `(let ((value (cdr (assq tag (get-text-property (point) 'data)))))
                (unless (member value result)
                  (push value result)))))
         (if all-files
-            (loop until (eobp)
-                  initially do (goto-char (point-min))
-                  (ampc-align-point)
-                  do (add-file)
-                  until (ampc-next-line))
+            (cl-loop until (eobp)
+                     initially do (goto-char (point-min))
+                     (ampc-align-point)
+                     do (add-file)
+                     until (ampc-next-line))
           (ampc-with-selection nil
             (add-file))))))
   result)
 
 (defun ampc-tagger-update ()
   (ampc-with-buffer 'tagger
-    (loop
+    (cl-loop
      while (search-forward-regexp (concat "^[ \t]*\\("
-                                          (mapconcat 'symbol-name
+                                          (mapconcat #'symbol-name
                                                      ampc-tagger-tags
                                                      "\\|")
                                           "\\)[ \t]*:"
@@ -1385,18 +1387,18 @@ modified."
                 (mapcar (lambda (tag) (concat (symbol-name tag) ":"))
                         ampc-tagger-tags)))))))
 
-(defun* ampc-tagger-complete-value (&aux tag)
+(cl-defun ampc-tagger-complete-value (&aux tag)
   (save-excursion
     (save-restriction
       (narrow-to-region (line-beginning-position) (line-end-position))
       (save-excursion
         (unless (search-backward-regexp (concat "^[ \t]*\\("
-                                                (mapconcat 'symbol-name
+                                                (mapconcat #'symbol-name
                                                            ampc-tagger-tags
                                                            "\\|")
                                                 "\\)[ \t]*:")
                                         nil t)
-          (return-from ampc-tagger-complete-tag))
+          (cl-return-from ampc-tagger-complete-tag))
         (setf tag (intern (match-string 1))))
       (save-excursion
         (search-backward-regexp "[: \t]")
@@ -1407,9 +1409,9 @@ modified."
                                             tag
                                             ampc-tagger-completion-all-files))))
                 (when (eq tag 'Genre)
-                  (loop for g in ampc-tagger-genres
-                        do (unless (member g values)
-                             (push g values))))
+                  (cl-loop for g in ampc-tagger-genres
+                           do (unless (member g values)
+                                (push g values))))
                 values))))))
 
 (defun ampc-align-point ()
@@ -1418,52 +1420,52 @@ modified."
     (forward-char 2)
     (re-search-forward " *" nil t)))
 
-(defun* ampc-pad (tabs &optional dont-honour-item-mode)
-  (loop with new-tab-stop-list
-        with offset-dec = (if (and (not dont-honour-item-mode)
-                                   (derived-mode-p 'ampc-item-mode))
-                              2
-                            0)
-        for tab in tabs
-        for offset-cell on (if (derived-mode-p 'ampc-item-mode)
-                               tab-stop-list
-                             (cons 0 tab-stop-list))
-        for offset = (car offset-cell)
-        for props in (or (plist-get (cdr ampc-type) :properties)
-                         '(nil . nil))
-        by (lambda (cell) (or (cdr cell) '(nil . nil)))
-        do (decf offset offset-dec)
-        with first = t
-        with current-offset = 0
-        when (<= current-offset offset)
-        do (when (and (not first) (eq (- offset current-offset) 0))
-             (incf offset))
-        and concat (make-string (- offset current-offset) ? ) into result
-        and do (setf current-offset offset)
-        else
-        concat " " into result
-        and do (incf current-offset)
-        end
-        do (unless tab
-             (setf tab ""))
-        (when (and (plist-get (cdr props) :shrink)
-                   (cadr offset-cell)
-                   (>= (+ current-offset (length tab) 1) (- (cadr offset-cell)
-                                                            offset-dec)))
-          (setf tab (concat (substring tab 0 (max (- (cadr offset-cell)
-                                                     offset-dec
-                                                     current-offset
-                                                     4)
-                                                  3))
-                            "...")))
-        concat tab into result
-        do (push (+ current-offset offset-dec) new-tab-stop-list)
-        (incf current-offset (length tab))
-        (setf first nil)
-        finally return
-        (if (equal (callf nreverse new-tab-stop-list) tab-stop-list)
-            result
-          (propertize result 'tab-stop-list new-tab-stop-list))))
+(cl-defun ampc-pad (tabs &optional dont-honour-item-mode)
+  (cl-loop with new-tab-stop-list
+           with offset-dec = (if (and (not dont-honour-item-mode)
+                                      (derived-mode-p 'ampc-item-mode))
+                                 2
+                               0)
+           for tab in tabs
+           for offset-cell on (if (derived-mode-p 'ampc-item-mode)
+                                  tab-stop-list
+                                (cons 0 tab-stop-list))
+           for offset = (car offset-cell)
+           for props in (or (plist-get (cdr ampc-type) :properties)
+                            '(nil . nil))
+           by (lambda (cell) (or (cdr cell) '(nil . nil)))
+           do (cl-decf offset offset-dec)
+           with first = t
+           with current-offset = 0
+           when (<= current-offset offset)
+           do (when (and (not first) (eq (- offset current-offset) 0))
+                (cl-incf offset))
+           and concat (make-string (- offset current-offset) ? ) into result
+           and do (setf current-offset offset)
+           else
+           concat " " into result
+           and do (cl-incf current-offset)
+           end
+           do (unless tab
+                (setf tab ""))
+           (when (and (plist-get (cdr props) :shrink)
+                      (cadr offset-cell)
+                      (>= (+ current-offset (length tab) 1) (- (cadr offset-cell)
+                                                               offset-dec)))
+             (setf tab (concat (substring tab 0 (max (- (cadr offset-cell)
+                                                        offset-dec
+                                                        current-offset
+                                                        4)
+                                                     3))
+                               "...")))
+           concat tab into result
+           do (push (+ current-offset offset-dec) new-tab-stop-list)
+           (cl-incf current-offset (length tab))
+           (setf first nil)
+           finally return
+           (if (equal (cl-callf nreverse new-tab-stop-list) tab-stop-list)
+               result
+             (propertize result 'tab-stop-list new-tab-stop-list))))
 
 (defun ampc-update-header ()
   (when (or (memq (car ampc-type) '(tag playlists))
@@ -1471,49 +1473,49 @@ modified."
     (setf header-line-format
           (concat
            (make-string (floor (fringe-columns 'left t)) ? )
-           (ecase (car ampc-type)
+           (cl-ecase (car ampc-type)
              (tag
               (concat "  " (plist-get (cdr ampc-type) :tag)))
              (playlists
               "  Playlists")
              (t
-              (ampc-pad (loop for (name . props) in
-                              (plist-get (cdr ampc-type) :properties)
-                              collect (or (plist-get props :title) name))
+              (ampc-pad (cl-loop for (name . props) in
+                                 (plist-get (cdr ampc-type) :properties)
+                                 collect (or (plist-get props :title) name))
                         t)))))))
 
 (defun ampc-set-dirty (tag-or-dirty &optional dirty)
   (if (or (null tag-or-dirty) (memq tag-or-dirty '(t erase keep-dirty)))
       (setf ampc-dirty tag-or-dirty)
-    (loop for w in (ampc-normalize-windows)
-          do (with-current-buffer (window-buffer w)
-               (when (eq (car ampc-type) tag-or-dirty)
-                 (ampc-set-dirty dirty))))))
+    (cl-loop for w in (ampc-normalize-windows)
+             do (with-current-buffer (window-buffer w)
+                  (when (eq (car ampc-type) tag-or-dirty)
+                    (ampc-set-dirty dirty))))))
 
 (defun ampc-update ()
   (if ampc-status
-      (loop for w in (ampc-normalize-windows)
-            do (with-current-buffer (window-buffer w)
-                 (when (and ampc-dirty (not (eq ampc-dirty 'keep-dirty)))
-                   (ecase (car ampc-type)
-                     (outputs
-                      (ampc-send-command 'outputs))
-                     (playlist
-                      (ampc-update-playlist))
-                     ((tag song)
-                      (if (assoc (ampc-tags) ampc-internal-db)
-                          (ampc-fill-tag-song)
-                        (push (cons (ampc-tags) nil) ampc-internal-db)
-                        (ampc-set-dirty 'tag 'keep-dirty)
-                        (ampc-set-dirty 'song 'keep-dirty)
-                        (ampc-send-command 'listallinfo)))
-                     (status
-                      (ampc-send-command 'status)
-                      (ampc-send-command 'currentsong))
-                     (playlists
-                      (ampc-send-command 'listplaylists))
-                     (current-playlist
-                      (ampc-send-command 'playlistinfo))))))
+      (cl-loop for w in (ampc-normalize-windows)
+               do (with-current-buffer (window-buffer w)
+                    (when (and ampc-dirty (not (eq ampc-dirty 'keep-dirty)))
+                      (cl-ecase (car ampc-type)
+                        (outputs
+                         (ampc-send-command 'outputs))
+                        (playlist
+                         (ampc-update-playlist))
+                        ((tag song)
+                         (if (assoc (ampc-tags) ampc-internal-db)
+                             (ampc-fill-tag-song)
+                           (push (cons (ampc-tags) nil) ampc-internal-db)
+                           (ampc-set-dirty 'tag 'keep-dirty)
+                           (ampc-set-dirty 'song 'keep-dirty)
+                           (ampc-send-command 'listallinfo)))
+                        (status
+                         (ampc-send-command 'status)
+                         (ampc-send-command 'currentsong))
+                        (playlists
+                         (ampc-send-command 'listplaylists))
+                        (current-playlist
+                         (ampc-send-command 'playlistinfo))))))
     (ampc-send-command 'status)
     (ampc-send-command 'currentsong)))
 
@@ -1533,15 +1535,15 @@ modified."
   (when (ampc-on-p)
     (process-send-string ampc-connection (concat command "\n"))))
 
-(defun* ampc-send-command (command &optional props &rest args)
-  (destructuring-bind (&key (front nil) (keep-prev nil) (full-remove nil)
-                            (remove-other nil) &allow-other-keys
-                            &aux idle)
+(cl-defun ampc-send-command (command &optional props &rest args)
+  (cl-destructuring-bind (&key (front nil) (keep-prev nil) (full-remove nil)
+                               (remove-other nil) &allow-other-keys
+                               &aux idle)
       props
     (when (and (not keep-prev)
                (eq (caar ampc-outstanding-commands) command)
-               (equal (cddar ampc-outstanding-commands) args))
-      (return-from ampc-send-command))
+               (equal (cl-cddar ampc-outstanding-commands) args))
+      (cl-return-from ampc-send-command))
     (unless ampc-working-timer
       (setf ampc-yield 0
             ampc-working-timer (run-at-time nil 0.1 'ampc-yield)))
@@ -1550,15 +1552,15 @@ modified."
       (setf idle t))
     (when (and (not keep-prev) (cdr ampc-outstanding-commands))
       (setf (cdr ampc-outstanding-commands)
-            (loop for other-cmd in (cdr ampc-outstanding-commands)
-                  unless (and (memq (car other-cmd) (list command remove-other))
-                              (or (not full-remove)
-                                  (progn
-                                    (assert (null remove-other))
-                                    (equal (cddr other-cmd) args))))
-                  collect other-cmd
-                  end)))
-    (setf command (apply 'list command props args))
+            (cl-loop for other-cmd in (cdr ampc-outstanding-commands)
+                     unless (and (memq (car other-cmd) (list command remove-other))
+                                 (or (not full-remove)
+                                     (progn
+                                       (cl-assert (null remove-other))
+                                       (equal (cddr other-cmd) args))))
+                     collect other-cmd
+                     end)))
+    (setf command (apply #'list command props args))
     (if front
         (push command ampc-outstanding-commands)
       (setf ampc-outstanding-commands
@@ -1569,42 +1571,42 @@ modified."
       (ampc-send-command-impl "noidle"))))
 
 (defun ampc-send-next-command ()
-  (loop while ampc-outstanding-commands
-        for command =
-        (loop for command = (car ampc-outstanding-commands)
-              for command-id = (replace-regexp-in-string
-                                "^.*?-" ""
-                                (symbol-name (car command)))
-              thereis
-              (catch 'skip
-                (ampc-send-command-impl
-                 (concat command-id
-                         (loop for a in (cddr command)
-                               concat " "
-                               do (when (functionp a)
-                                    (callf funcall a))
-                               concat (etypecase a
-                                        (integer (number-to-string a))
-                                        (string a)))))
-                (let ((callback (plist-get (cadar ampc-outstanding-commands)
-                                           :callback))
-                      (old-head (pop ampc-outstanding-commands)))
-                  (when callback (funcall callback))
-                  (push old-head ampc-outstanding-commands))
-                command-id)
-              do (pop ampc-outstanding-commands)
-              while ampc-outstanding-commands)
-        while command
-        while (let ((member (memq (intern command) ampc-synchronous-commands)))
-                (if member
-                    (not (eq (car ampc-synchronous-commands) t))
-                  (eq (car ampc-synchronous-commands) t)))
-        do (loop with head = ampc-outstanding-commands
-                 with ampc-no-implicit-next-dispatch = t
-                 with ampc-yield-redisplay = t
-                 while (ampc-on-p)
-                 while (eq head ampc-outstanding-commands)
-                 do (accept-process-output ampc-connection 0 100)))
+  (cl-loop while ampc-outstanding-commands
+           for command =
+           (cl-loop for command = (car ampc-outstanding-commands)
+                    for command-id = (replace-regexp-in-string
+                                      "^.*?-" ""
+                                      (symbol-name (car command)))
+                    thereis
+                    (catch 'skip
+                      (ampc-send-command-impl
+                       (concat command-id
+                               (cl-loop for a in (cddr command)
+                                        concat " "
+                                        do (when (functionp a)
+                                             (cl-callf funcall a))
+                                        concat (cl-etypecase a
+                                                 (integer (number-to-string a))
+                                                 (string a)))))
+                      (let ((callback (plist-get (cl-cadar ampc-outstanding-commands)
+                                                 :callback))
+                            (old-head (pop ampc-outstanding-commands)))
+                        (when callback (funcall callback))
+                        (push old-head ampc-outstanding-commands))
+                      command-id)
+                    do (pop ampc-outstanding-commands)
+                    while ampc-outstanding-commands)
+           while command
+           while (let ((member (memq (intern command) ampc-synchronous-commands)))
+                   (if member
+                       (not (eq (car ampc-synchronous-commands) t))
+                     (eq (car ampc-synchronous-commands) t)))
+           do (cl-loop with head = ampc-outstanding-commands
+                       with ampc-no-implicit-next-dispatch = t
+                       with ampc-yield-redisplay = t
+                       while (ampc-on-p)
+                       while (eq head ampc-outstanding-commands)
+                       do (accept-process-output ampc-connection 0 100)))
   (unless ampc-outstanding-commands
     (when ampc-working-timer
         (cancel-timer ampc-working-timer)
@@ -1640,50 +1642,51 @@ modified."
     (setf cmp-data data))
   (let ((action
          (if (functionp cmp)
-             (loop until (eobp)
-                   for tp = (get-text-property (+ (point) 2) 'cmp-data)
-                   thereis (let ((r (funcall cmp cmp-data tp)))
-                             (if (symbolp r)
-                                 r
-                               (forward-line r)
-                               nil))
-                   finally return 'insert)
-           (loop with stringp-cmp-data = (stringp cmp-data)
-                 with min = 1
-                 with max = (1+ (count-lines (point-min) (point-max)))
-                 with at-min = t
-                 do (when (< (- max min) 20)
-                      (unless at-min
-                        (forward-line (- min max)))
-                      (return (loop repeat (- max min)
-                                    for tp = (get-text-property (+ (point) 2)
-                                                                'cmp-data)
-                                    thereis
-                                    (if (equal tp cmp-data)
-                                        'update
-                                      (unless (if stringp-cmp-data
-                                                  (string< tp cmp-data)
-                                                (string<
-                                                 (buffer-substring-no-properties
-                                                  (+ (point) 2)
-                                                  (line-end-position))
-                                                 element))
-                                        'insert))
-                                    do (forward-line)
-                                    finally return 'insert)))
-                 do (forward-line (funcall (if at-min '+ '-) (/ (- max min) 2)))
-                 for tp = (get-text-property (+ (point) 2) 'cmp-data)
-                 thereis (when (equal tp cmp-data) 'update)
-                 do (if (setf at-min (if stringp-cmp-data
-                                         (string< tp cmp-data)
-                                       (string< (buffer-substring-no-properties
-                                                 (+ (point) 2)
-                                                 (line-end-position))
-                                                element)))
-                        (incf min (floor (/ (- max min) 2.0)))
-                      (decf max (floor (/ (- max min) 2.0))))
-                 finally return 'insert))))
-    (ecase action
+             (cl-loop until (eobp)
+                      for tp = (get-text-property (+ (point) 2) 'cmp-data)
+                      thereis (let ((r (funcall cmp cmp-data tp)))
+                                (if (symbolp r)
+                                    r
+                                  (forward-line r)
+                                  nil))
+                      finally return 'insert)
+           (cl-loop with stringp-cmp-data = (stringp cmp-data)
+                    with min = 1
+                    with max = (1+ (count-lines (point-min) (point-max)))
+                    with at-min = t
+                    do (when (< (- max min) 20)
+                         (unless at-min
+                           (forward-line (- min max)))
+                         (cl-return (cl-loop repeat (- max min)
+                                          for tp = (get-text-property (+ (point) 2)
+                                                                      'cmp-data)
+                                          thereis
+                                          (if (equal tp cmp-data)
+                                              'update
+                                            (unless (if stringp-cmp-data
+                                                        (string< tp cmp-data)
+                                                      (string<
+                                                       (buffer-substring-no-properties
+                                                        (+ (point) 2)
+                                                        (line-end-position))
+                                                       element))
+                                              'insert))
+                                          do (forward-line)
+                                          finally return 'insert)))
+                    do (forward-line (funcall (if at-min #'+ #'-)
+                                              (/ (- max min) 2)))
+                    for tp = (get-text-property (+ (point) 2) 'cmp-data)
+                    thereis (when (equal tp cmp-data) 'update)
+                    do (if (setf at-min (if stringp-cmp-data
+                                            (string< tp cmp-data)
+                                          (string< (buffer-substring-no-properties
+                                                    (+ (point) 2)
+                                                    (line-end-position))
+                                                   element)))
+                           (cl-incf min (floor (/ (- max min) 2.0)))
+                         (cl-decf max (floor (/ (- max min) 2.0))))
+                    finally return 'insert))))
+    (cl-ecase action
       (insert
        (insert (propertize (concat "  " element "\n")
                            'data (if (eq cmp t) (list data) data)
@@ -1710,25 +1713,25 @@ modified."
 
 (defun ampc-fill-tag (trees)
   (put-text-property (point-min) (point-max) 'data nil)
-  (loop with new-trees
-        for tree in trees
-        do (when tree
-             (avl-tree-mapc
-              (lambda (e)
-                (when (ampc-insert (car e) (cdr e) t (car e))
-                  (push (cdr e) new-trees)))
-              tree))
-        finally return new-trees))
+  (cl-loop with new-trees
+           for tree in trees
+           do (when tree
+                (avl-tree-mapc
+                 (lambda (e)
+                   (when (ampc-insert (car e) (cdr e) t (car e))
+                     (push (cdr e) new-trees)))
+                 tree))
+           finally return new-trees))
 
 (defun ampc-fill-song (trees)
-  (loop
+  (cl-loop
    for songs in trees
-   do (loop for song in songs
-            do (ampc-insert
-                (ampc-pad
-                 (loop for (p . v) in (plist-get (cdr ampc-type) :properties)
-                       collect (cdr (assoc p song))))
-                `((,song))))))
+   do (cl-loop for song in songs
+               do (ampc-insert
+                   (ampc-pad
+                    (cl-loop for (p . v) in (plist-get (cdr ampc-type) :properties)
+                             collect (cdr (assoc p song))))
+                   `((,song))))))
 
 (defsubst ampc-narrow-entry (delimiter-regexp)
   (let ((result))
@@ -1746,22 +1749,22 @@ modified."
   (ampc-fill-skeleton 'playlist
     (let ((index 0))
       (ampc-iterate-source-output "file" (file)
-        (loop for (tag . tag-regexp) in tags
-              collect (ampc-clean-tag tag (ampc-extract tag-regexp)))
+        (cl-loop for (tag . tag-regexp) in tags
+                 collect (ampc-clean-tag tag (ampc-extract tag-regexp)))
         `(("file" . ,file)
-          (index . ,(1- (incf index))))
+          (index . ,(1- (cl-incf index))))
         'ampc-int-insert-cmp
         index))))
 
 (defun ampc-fill-outputs ()
   (ampc-fill-skeleton 'outputs
     (ampc-iterate-source-output "outputid" (outputid outputenabled)
-      (loop for (tag . tag-regexp) in tags
-            collect (ampc-clean-tag tag (ampc-extract tag-regexp)))
+      (cl-loop for (tag . tag-regexp) in tags
+               collect (ampc-clean-tag tag (ampc-extract tag-regexp)))
       `(("outputid" . ,outputid)
         ("outputenabled" . ,outputenabled)))))
 
-(defun* ampc-mini-impl (&aux songs)
+(cl-defun ampc-mini-impl (&aux songs)
   (ampc-iterate-source
       nil
       "file"
@@ -1772,15 +1775,15 @@ modified."
                                (when Artist
                                  (concat " - " Artist)))
                        Pos)))
-      (loop with mentry = (cons (car entry) (cdr entry))
-            for index from 2
-            while (assoc (car mentry) songs)
-            do (setf (car mentry) (concat (car entry)
-                                          " (" (int-to-string index) ")"))
-            finally do (push mentry songs))))
+      (cl-loop with mentry = (cons (car entry) (cdr entry))
+               for index from 2
+               while (assoc (car mentry) songs)
+               do (setf (car mentry) (concat (car entry)
+                                             " (" (int-to-string index) ")"))
+               finally do (push mentry songs))))
   (unless songs
     (message "No song in the playlist")
-    (return-from ampc-mini-impl))
+    (cl-return-from ampc-mini-impl))
   (let ((song (assoc (let ((inhibit-quit t))
                        (prog1
                            (with-local-quit
@@ -1796,8 +1799,8 @@ modified."
         "file"
         (file (pos (string-to-number (ampc-extract
                                       (ampc-extract-regexp "Pos")))))
-      (loop for (tag . tag-regexp) in tags
-            collect (ampc-clean-tag tag (ampc-extract tag-regexp)))
+      (cl-loop for (tag . tag-regexp) in tags
+               collect (ampc-clean-tag tag (ampc-extract tag-regexp)))
       `(("file" . ,file)
         ("Pos" . ,pos))
       'ampc-int-insert-cmp
@@ -1806,15 +1809,15 @@ modified."
 (defun ampc-fill-playlists ()
   (ampc-fill-skeleton 'playlists
     (with-current-buffer data-buffer
-      (loop while (search-forward-regexp "^playlist: \\(.*\\)$" nil t)
-            for playlist = (match-string 1)
-            do (ampc-with-buffer 'playlists
-                 (ampc-insert playlist playlist)))))
+      (cl-loop while (search-forward-regexp "^playlist: \\(.*\\)$" nil t)
+               for playlist = (match-string 1)
+               do (ampc-with-buffer 'playlists
+                                    (ampc-insert playlist playlist)))))
   (ampc-set-dirty 'playlist t)
   (ampc-update))
 
 (defun ampc-yield ()
-  (incf ampc-yield)
+  (cl-incf ampc-yield)
   (ampc-fill-status)
   (when ampc-yield-redisplay
     (redisplay t)))
@@ -1829,11 +1832,11 @@ modified."
     (ampc-set-dirty nil)))
 
 (defun ampc-fill-tag-song ()
-  (loop
+  (cl-loop
    with trees = (list (cdr (assoc (ampc-tags) ampc-internal-db)))
    for type in '(tag song)
    do
-   (loop
+   (cl-loop
     for w in (ampc-normalize-windows)
     do
     (with-current-buffer (window-buffer w)
@@ -1845,22 +1848,22 @@ modified."
                     (erase-buffer))
                   (ampc-set-dirty nil))
               (ampc-fill-skeleton w
-                (if (eq type 'tag)
-                    (setf trees (ampc-fill-tag trees))
-                  (ampc-fill-song trees))))
+                                  (if (eq type 'tag)
+                                      (setf trees (ampc-fill-tag trees))
+                                    (ampc-fill-song trees))))
           (setf trees nil)
           (save-excursion
             (goto-char (point-min))
-            (loop while (search-forward-regexp "^* " nil t)
-                  do (callf append trees
-                       (get-text-property (point) 'data))))))))))
+            (cl-loop while (search-forward-regexp "^* " nil t)
+                     do (cl-callf append trees
+                          (get-text-property (point) 'data))))))))))
 
 (defun ampc-transform-track (track)
   (when (eq (length track) 1)
     (setf track (concat "0" track)))
   track)
 
-(defun* ampc-transform-time (data &aux (time (string-to-number data)))
+(cl-defun ampc-transform-time (data &aux (time (string-to-number data)))
   (concat (number-to-string (/ time 60))
           ":"
           (when (< (% time 60) 10)
@@ -1868,26 +1871,26 @@ modified."
           (number-to-string (% time 60))))
 
 (defun ampc-handle-idle ()
-  (loop until (eobp)
-        for subsystem = (buffer-substring (point) (line-end-position))
-        do (when (string-match "^changed: \\(.*\\)$" subsystem)
-             (case (intern (match-string 1 subsystem))
-               (database
-                (setf ampc-internal-db (list (cons (ampc-tags) nil)))
-                (ampc-set-dirty 'tag 'keep-dirty)
-                (ampc-set-dirty 'song 'keep-dirty)
-                (ampc-send-command 'listallinfo))
-               (output
-                (ampc-set-dirty 'outputs t))
-               ((player options mixer)
-                (setf ampc-status nil)
-                (ampc-set-dirty 'status t))
-               (stored_playlist
-                (ampc-set-dirty 'playlists t))
-               (playlist
-                (ampc-set-dirty 'current-playlist t)
-                (ampc-set-dirty 'status t))))
-        (forward-line))
+  (cl-loop until (eobp)
+           for subsystem = (buffer-substring (point) (line-end-position))
+           do (when (string-match "^changed: \\(.*\\)$" subsystem)
+                (cl-case (intern (match-string 1 subsystem))
+                  (database
+                   (setf ampc-internal-db (list (cons (ampc-tags) nil)))
+                   (ampc-set-dirty 'tag 'keep-dirty)
+                   (ampc-set-dirty 'song 'keep-dirty)
+                   (ampc-send-command 'listallinfo))
+                  (output
+                   (ampc-set-dirty 'outputs t))
+                  ((player options mixer)
+                   (setf ampc-status nil)
+                   (ampc-set-dirty 'status t))
+                  (stored_playlist
+                   (ampc-set-dirty 'playlists t))
+                  (playlist
+                   (ampc-set-dirty 'current-playlist t)
+                   (ampc-set-dirty 'status t))))
+           (forward-line))
   (ampc-update))
 
 (defun ampc-handle-setup (status)
@@ -1904,71 +1907,71 @@ modified."
                    "and later"))))
 
 (defun ampc-fill-internal-db (running)
-  (loop with tree = (assoc (ampc-tags) ampc-internal-db)
-        with tags =
-        (loop for w in (ampc-normalize-windows)
-              for props = (with-current-buffer (window-buffer w)
-                            (when (eq (car ampc-type) 'tag)
-                              (ampc-set-dirty t)
-                              (plist-get (cdr ampc-type) :tag)))
-              when props
-              collect props
-              end)
-        with song-props = (ampc-with-buffer 'song
-                            (ampc-set-dirty t)
-                            (plist-get (cdr ampc-type) :properties))
-        for origin = (and (search-forward-regexp "^file: " nil t)
-                          (line-beginning-position))
-        then next
-        while origin
-        do (goto-char (1+ origin))
-        for next = (and (search-forward-regexp "^file: " nil t)
-                        (line-beginning-position))
-        while (or (not running) next)
-        do (save-restriction
-             (narrow-to-region origin (or next (point-max)))
-             (ampc-fill-internal-db-entry tree tags song-props))
-        (when running
-          (delete-region origin next)
-          (setf next origin))))
+  (cl-loop with tree = (assoc (ampc-tags) ampc-internal-db)
+           with tags =
+           (cl-loop for w in (ampc-normalize-windows)
+                    for props = (with-current-buffer (window-buffer w)
+                                  (when (eq (car ampc-type) 'tag)
+                                    (ampc-set-dirty t)
+                                    (plist-get (cdr ampc-type) :tag)))
+                    when props
+                    collect props
+                    end)
+           with song-props = (ampc-with-buffer 'song
+                                               (ampc-set-dirty t)
+                                               (plist-get (cdr ampc-type) :properties))
+           for origin = (and (search-forward-regexp "^file: " nil t)
+                             (line-beginning-position))
+           then next
+           while origin
+           do (goto-char (1+ origin))
+           for next = (and (search-forward-regexp "^file: " nil t)
+                           (line-beginning-position))
+           while (or (not running) next)
+           do (save-restriction
+                (narrow-to-region origin (or next (point-max)))
+                (ampc-fill-internal-db-entry tree tags song-props))
+           (when running
+             (delete-region origin next)
+             (setf next origin))))
 
 (defun ampc-tags ()
-  (loop for w in (ampc-normalize-windows)
-        for tag = (with-current-buffer (window-buffer w)
-                    (when (eq (car ampc-type) 'tag)
-                      (plist-get (cdr ampc-type) :tag)))
-        when tag
-        collect tag
-        end))
+  (cl-loop for w in (ampc-normalize-windows)
+           for tag = (with-current-buffer (window-buffer w)
+                       (when (eq (car ampc-type) 'tag)
+                         (plist-get (cdr ampc-type) :tag)))
+           when tag
+           collect tag
+           end))
 
 (defun ampc-fill-internal-db-entry (tree tags song-props)
-  (loop for tag in tags
-        for data = (ampc-clean-tag tag (ampc-extract (ampc-extract-regexp tag)))
-        do (unless (cdr tree)
-             (setf (cdr tree) (ampc-create-tree)))
-        (setf tree (avl-tree-enter (cdr tree)
-                                   (cons data nil)
-                                   (lambda (_ match)
-                                     match))))
+  (cl-loop for tag in tags
+           for data = (ampc-clean-tag tag (ampc-extract (ampc-extract-regexp tag)))
+           do (unless (cdr tree)
+                (setf (cdr tree) (ampc-create-tree)))
+           (setf tree (avl-tree-enter (cdr tree)
+                                      (cons data nil)
+                                      (lambda (_ match)
+                                        match))))
   (push (cons (cons "file" (ampc-extract (ampc-extract-regexp "file")))
-              (loop for p in song-props
-                    for data = (ampc-clean-tag (car p)
-                                               (ampc-extract
-                                                (ampc-extract-regexp (car p))))
-                    when data
-                    collect (cons (car p) data)
-                    end))
+              (cl-loop for p in song-props
+                       for data = (ampc-clean-tag (car p)
+                                                  (ampc-extract
+                                                   (ampc-extract-regexp (car p))))
+                       when data
+                       collect (cons (car p) data)
+                       end))
         (cdr tree)))
 
 (defun ampc-fill-status-var (tags)
-  (loop for k in tags
-        for v = (ampc-extract (ampc-extract-regexp k))
-        for s = (intern k)
-        do (if v
-               (setf (cdr (or (assq s ampc-status)
-                              (car (push (cons s nil) ampc-status))))
-                     v)
-             (callf2 assq-delete-all s ampc-status))))
+  (cl-loop for k in tags
+           for v = (ampc-extract (ampc-extract-regexp k))
+           for s = (intern k)
+           do (if v
+                  (setf (cdr (or (assq s ampc-status)
+                                 (car (push (cons s nil) ampc-status))))
+                        v)
+                (cl-callf2 assq-delete-all s ampc-status))))
 
 (defun ampc-handle-current-song ()
   (ampc-fill-status-var (append ampc-status-tags '("Artist" "Title" "file")))
@@ -1991,11 +1994,11 @@ modified."
    ((eq status 'error)
     (pop ampc-outstanding-commands))
    ((eq status 'running)
-    (case (caar ampc-outstanding-commands)
+    (cl-case (caar ampc-outstanding-commands)
       (listallinfo (ampc-fill-internal-db t))))
    (t
     (let ((command (pop ampc-outstanding-commands)))
-      (case (car command)
+      (cl-case (car command)
         (idle
          (ampc-handle-idle))
         (setup
@@ -2025,16 +2028,16 @@ modified."
     (unless ampc-outstanding-commands
       (ampc-update)))))
 
-(defun* ampc-shuffle-playlist (playlist &aux songs)
+(cl-defun ampc-shuffle-playlist (playlist &aux songs)
   (ampc-iterate-source nil "file" (file)
     (push (cons file (random)) songs))
   (ampc-send-command 'playlistclear '(:full-remove t) (ampc-quote playlist))
-  (loop for file in (mapcar 'car (sort songs
-                                       (lambda (a b) (< (cdr a) (cdr b)))))
-        do (ampc-send-command 'playlistadd
-                              '(:keep-prev t)
-                              (ampc-quote playlist)
-                              file)))
+  (cl-loop for file in (mapcar #'car (sort songs
+                                          (lambda (a b) (< (cdr a) (cdr b)))))
+           do (ampc-send-command 'playlistadd
+                                 '(:keep-prev t)
+                                 (ampc-quote playlist)
+                                 file)))
 
 
 (defun ampc-handle-listallinfo ()
@@ -2043,7 +2046,7 @@ modified."
   (ampc-set-dirty 'song t))
 
 (defun ampc-filter (_process string)
-  (assert (buffer-live-p (process-buffer ampc-connection)))
+  (cl-assert (buffer-live-p (process-buffer ampc-connection)))
   (with-current-buffer (process-buffer ampc-connection)
     (when string
       (when (and ampc-debug (not (eq ampc-debug t)))
@@ -2062,7 +2065,7 @@ modified."
                     (message "ampc command error: %s (%s; %s)"
                              (match-string 2)
                              (match-string 1)
-                             (funcall (if ampc-debug 'identity 'car)
+                             (funcall (if ampc-debug #'identity #'car)
                                       (car ampc-outstanding-commands)))
                     t))
                 (when (search-forward-regexp "^OK\\(.*\\)\n\\'" nil t)
@@ -2078,63 +2081,63 @@ modified."
                 (ampc-send-next-command))))
         (ampc-handle-command 'running)))))
 
-(defun* ampc-set-tab-offsets
+(cl-defun ampc-set-tab-offsets
     (&rest properties &aux (min 2) (optional-padding 0))
   (unless properties
-    (return-from ampc-set-tab-offsets))
+    (cl-return-from ampc-set-tab-offsets))
   (set (make-local-variable 'tab-stop-list) nil)
-  (loop for (title . props) in properties
-        for min- = (plist-get props :min)
-        do (incf min (or (plist-get props :width) min-))
-        (when min-
-          (incf optional-padding (- (plist-get props :max) min-))))
-  (loop for (title . props) in properties
-        with offset = 2
-        do (push offset tab-stop-list)
-        (incf offset (or (plist-get props :width)
-                         (let ((min- (plist-get props :min))
-                               (max (plist-get props :max)))
-                           (if (>= min (window-width))
-                               min-
-                             (min max
-                                  (+ min-
-                                     (floor (* (/ (float (- max min-))
-                                                  optional-padding)
-                                               (- (window-width)
-                                                  min))))))))))
-  (callf nreverse tab-stop-list))
+  (cl-loop for (_title . props) in properties
+           for min- = (plist-get props :min)
+           do (cl-incf min (or (plist-get props :width) min-))
+           (when min-
+             (cl-incf optional-padding (- (plist-get props :max) min-))))
+  (cl-loop for (_title . props) in properties
+           with offset = 2
+           do (push offset tab-stop-list)
+           (cl-incf offset (or (plist-get props :width)
+                            (let ((min- (plist-get props :min))
+                                  (max (plist-get props :max)))
+                              (if (>= min (window-width))
+                                  min-
+                                (min max
+                                     (+ min-
+                                        (floor (* (/ (float (- max min-))
+                                                     optional-padding)
+                                                  (- (window-width)
+                                                     min))))))))))
+  (cl-callf nreverse tab-stop-list))
 
-(defun* ampc-configure-frame-1 (split &aux (split-type (car split)))
+(cl-defun ampc-configure-frame-1 (split &aux (split-type (car split)))
   (if (memq split-type '(vertical horizontal))
       (let* ((sizes))
-        (loop with length = (if (eq split-type 'horizontal)
-                                (window-total-width)
-                              (window-total-height))
-              with rest = length
-              with rest-car
-              for (size . subsplit) in (cdr split)
-              do (if (equal size 1.0)
-                     (progn (push t sizes)
-                            (setf rest-car sizes))
-                   (let ((l (if (integerp size) size (round (* size length)))))
-                     (decf rest l)
-                     (push l sizes)))
-              finally do (setf (car rest-car) rest))
+        (cl-loop with length = (if (eq split-type 'horizontal)
+                                   (window-total-width)
+                                 (window-total-height))
+                 with rest = length
+                 with rest-car
+                 for (size . subsplit) in (cdr split)
+                 do (if (equal size 1.0)
+                        (progn (push t sizes)
+                               (setf rest-car sizes))
+                      (let ((l (if (integerp size) size (round (* size length)))))
+                        (cl-decf rest l)
+                        (push l sizes)))
+                 finally do (setf (car rest-car) rest))
         (let ((first-window (selected-window)))
-          (callf nreverse sizes)
-          (loop for size in (copy-sequence sizes)
-                for window on (cdr sizes)
-                do (select-window
-                    (setf (car window)
-                          (split-window nil size (eq split-type 'horizontal)))))
+          (cl-callf nreverse sizes)
+          (cl-loop for size in (copy-sequence sizes)
+                   for window on (cdr sizes)
+                   do (select-window
+                       (setf (car window)
+                             (split-window nil size (eq split-type 'horizontal)))))
           (setf (car sizes) first-window))
-        (loop for subsplit in (cdr split)
-              for window in sizes
-              with result
-              do (with-selected-window window
-                   (setf result
-                         (or (ampc-configure-frame-1 (cdr subsplit)) result)))
-              finally return result))
+        (cl-loop for subsplit in (cdr split)
+                 for window in sizes
+                 with result
+                 do (with-selected-window window
+                      (setf result
+                            (or (ampc-configure-frame-1 (cdr subsplit)) result)))
+                 finally return result))
     (setf (window-dedicated-p (selected-window)) nil)
     (pop-to-buffer-same-window
      (get-buffer-create
@@ -2151,12 +2154,12 @@ modified."
       (let ((mode (intern (concat "ampc-" (symbol-name split-type) "-mode"))))
         (unless (fboundp mode)
           (setf mode 'ampc-mode))
-        (unless (eq major-mode 'mode)
+        (unless (eq major-mode 'mode)   ;FIXME: This quote looks spurious!
           (funcall mode))))
-    (destructuring-bind
+    (cl-destructuring-bind
         (&key (properties nil) (dedicated t) (mode-line t) &allow-other-keys)
         (cdr split)
-      (apply 'ampc-set-tab-offsets properties)
+      (apply #'ampc-set-tab-offsets properties)
       (setf ampc-type split
             (window-dedicated-p (selected-window)) dedicated
             mode-line-format (when mode-line
@@ -2178,13 +2181,13 @@ modified."
     (when (plist-get (cdr split) :select)
       (selected-window))))
 
-(defun* ampc-configure-frame
+(cl-defun ampc-configure-frame
     (split &optional no-update &aux (old-selection ampc-type) old-window-starts)
-  (loop for w in (ampc-normalize-windows)
-        do (with-selected-window w
-             (with-current-buffer (window-buffer w)
-               (push (cons (current-buffer) (window-start))
-                     old-window-starts))))
+  (cl-loop for w in (ampc-normalize-windows)
+           do (with-selected-window w
+                (with-current-buffer (window-buffer w)
+                  (push (cons (current-buffer) (window-start))
+                        old-window-starts))))
   (if (not ampc-use-full-frame)
       (ampc-restore-window-configuration)
     (setf (window-dedicated-p (selected-window)) nil)
@@ -2194,23 +2197,23 @@ modified."
     (setf ampc-windows
           (mapcar (lambda (window)
                     (cons window (window-buffer window)))
-                  (mapcar 'cdr (sort ampc-windows
+                  (mapcar #'cdr (sort ampc-windows
                                      (lambda (a b) (< (car a) (car b)))))))
-    (loop for w in (ampc-normalize-windows)
-          do (with-selected-window w
-               (let ((old-window-start (cdr (assq (current-buffer)
-                                                  old-window-starts))))
-                 (when old-window-start
-                   (set-window-start nil old-window-start)))
-               (when (and (derived-mode-p 'ampc-item-mode)
-                          (> (length tab-stop-list) 1))
-                 (ampc-set-dirty 'erase))))
-    (select-window (or (loop for w in (ampc-normalize-windows)
-                             thereis
-                             (when (equal (with-current-buffer (window-buffer w)
-                                            ampc-type)
-                                          old-selection)
-                               w))
+    (cl-loop for w in (ampc-normalize-windows)
+             do (with-selected-window w
+                  (let ((old-window-start (cdr (assq (current-buffer)
+                                                     old-window-starts))))
+                    (when old-window-start
+                      (set-window-start nil old-window-start)))
+                  (when (and (derived-mode-p 'ampc-item-mode)
+                             (> (length tab-stop-list) 1))
+                    (ampc-set-dirty 'erase))))
+    (select-window (or (cl-loop for w in (ampc-normalize-windows)
+                                thereis
+                                (when (equal (with-current-buffer (window-buffer w)
+                                               ampc-type)
+                                             old-selection)
+                                  w))
                        select-window
                        (selected-window))))
   (unless no-update
@@ -2264,66 +2267,66 @@ all tags."
     (ampc-with-buffer 'tagger
       no-se
       (erase-buffer)
-      (loop for tag in ampc-tagger-tags
-            do (insert (ampc-pad (list (concat (symbol-name tag) ":") "dummy"))
-                       "\n"))
+      (cl-loop for tag in ampc-tagger-tags
+               do (insert (ampc-pad (list (concat (symbol-name tag) ":") "dummy"))
+                          "\n"))
       (goto-char (point-min))
       (re-search-forward ":\\( \\)+")))
   (ampc-with-buffer 'tagger
-    (loop while (search-forward-regexp
-                 (concat "^\\([ \t]*\\)\\("
-                         (mapconcat 'symbol-name ampc-tagger-tags "\\|")
-                         "\\)\\([ \t]*\\):\\([ \t]*.*\\)$")
-                 nil
-                 t)
-          do (replace-match "" nil nil nil 1)
-          (replace-match "" nil nil nil 3)
-          (replace-match (concat (make-string (- (car tab-stop-list)
-                                                 (1+ (length (match-string 2))))
-                                              ?  )
-                                 "<keep>")
-                         nil nil nil 4)))
+    (cl-loop while (search-forward-regexp
+                    (concat "^\\([ \t]*\\)\\("
+                            (mapconcat #'symbol-name ampc-tagger-tags "\\|")
+                            "\\)\\([ \t]*\\):\\([ \t]*.*\\)$")
+                    nil
+                    t)
+             do (replace-match "" nil nil nil 1)
+             (replace-match "" nil nil nil 3)
+             (replace-match (concat (make-string (- (car tab-stop-list)
+                                                    (1+ (length (match-string 2))))
+                                                 ?  )
+                                    "<keep>")
+                            nil nil nil 4)))
   (ampc-tagger-update)
   (ampc-with-buffer 'tagger
     no-se
     (when (looking-at "[ \t]+")
       (goto-char (match-end 0)))))
 
-(defun* ampc-tagger-save (&optional quit &aux tags)
+(cl-defun ampc-tagger-save (&optional quit &aux tags)
   "Save tags.
 If optional prefix argument QUIT is non-nil, quit tagger
 afterwards.  If the numeric value of QUIT is 16, quit tagger and
 do not trigger a database update"
   (interactive "P")
   (ampc-with-buffer 'tagger
-    (loop do (loop until (eobp)
-                   while (looking-at "^[ \t]*$")
-                   do (forward-line))
-          until (eobp)
-          do (unless (and (looking-at
-                           (concat "^[ \t]*\\("
-                                   (mapconcat 'symbol-name
-                                              ampc-tagger-tags
-                                              "\\|")
-                                   "\\)[ \t]*:"
-                                   "[ \t]*\\(.*\\)[ \t]*$"))
-                          (not (assq (intern (match-string 1)) tags)))
-               (error "Malformed line \"%s\""
-                      (buffer-substring (line-beginning-position)
-                                        (line-end-position))))
-          (push (cons (intern (match-string 1))
-                      (let ((val (match-string 2)))
-                        (if (string= "<keep>" val)
-                            t
-                          (set-text-properties 0 (length val) nil val)
-                          val)))
-                tags)
-          (forward-line)))
-  (callf2 rassq-delete-all t tags)
+    (cl-loop do (cl-loop until (eobp)
+                         while (looking-at "^[ \t]*$")
+                         do (forward-line))
+             until (eobp)
+             do (unless (and (looking-at
+                              (concat "^[ \t]*\\("
+                                      (mapconcat #'symbol-name
+                                                 ampc-tagger-tags
+                                                 "\\|")
+                                      "\\)[ \t]*:"
+                                      "[ \t]*\\(.*\\)[ \t]*$"))
+                             (not (assq (intern (match-string 1)) tags)))
+                  (error "Malformed line \"%s\""
+                         (buffer-substring (line-beginning-position)
+                                           (line-end-position))))
+             (push (cons (intern (match-string 1))
+                         (let ((val (match-string 2)))
+                           (if (string= "<keep>" val)
+                               t
+                             (set-text-properties 0 (length val) nil val)
+                             val)))
+                   tags)
+             (forward-line)))
+  (cl-callf2 rassq-delete-all t tags)
   (with-temp-buffer
-    (loop for (tag . value) in tags
-          do (insert (symbol-name tag) "\n"
-                     value "\n"))
+    (cl-loop for (tag . value) in tags
+             do (insert (symbol-name tag) "\n"
+                        value "\n"))
     (let ((input-buffer (current-buffer)))
       (ampc-with-buffer 'files-list
         no-se
@@ -2337,8 +2340,8 @@ do not trigger a database update"
               (step 0))
           (ampc-with-selection nil
             (let* ((data (get-text-property (point) 'data))
-                   (old-tags (loop for (tag . data) in (cdr data)
-                                   collect (cons tag data)))
+                   (old-tags (cl-loop for (tag . data) in (cdr data)
+                                      collect (cons tag data)))
                    (found-changed (ampc-tagger-tags-modified (cdr data) tags)))
               (let ((pre-hook-tags (cdr data)))
                 (run-hook-with-args 'ampc-tagger-store-hook found-changed data)
@@ -2351,15 +2354,15 @@ do not trigger a database update"
                   "Storing tags for file "
                   (abbreviate-file-name (car data)) "\n"
                   "\tOld tags:\n"
-                  (loop for (tag . value) in old-tags
-                        concat (concat "\t\t"
-                                       (symbol-name tag) ": "
-                                       value "\n"))
+                  (cl-loop for (tag . value) in old-tags
+                           concat (concat "\t\t"
+                                          (symbol-name tag) ": "
+                                          value "\n"))
                   "\tNew tags:\n"
-                  (loop for (tag . value) in (cdr data)
-                        concat (concat "\t\t"
-                                       (symbol-name tag) ": "
-                                       value "\n")))
+                  (cl-loop for (tag . value) in (cdr data)
+                           concat (concat "\t\t"
+                                          (symbol-name tag) ": "
+                                          value "\n")))
                 (ampc-tagger-make-backup (car data))
                 (ampc-tagger-report
                  (list "--set" (car data))
@@ -2380,20 +2383,20 @@ do not trigger a database update"
                 (forward-char 2)
                 (kill-line 1)
                 (insert
-                 (ampc-pad (loop for p in (plist-get (cdr ampc-type)
-                                                     :properties)
-                                 when (eq (car p) 'filename)
-                                 collect (file-name-nondirectory (car data))
-                                 else
-                                 collect (cdr (assq (intern (car p))
-                                                    (cdr data)))
-                                 end))
+                 (ampc-pad (cl-loop for p in (plist-get (cdr ampc-type)
+                                                        :properties)
+                                    when (eq (car p) 'filename)
+                                    collect (file-name-nondirectory (car data))
+                                    else
+                                    collect (cdr (assq (intern (car p))
+                                                       (cdr data)))
+                                    end))
                  "\n")
                 (forward-line -1)
                 (put-text-property (line-beginning-position)
                                    (1+ (line-end-position))
                                    'data data))
-              (progress-reporter-update reporter (incf step))))
+              (progress-reporter-update reporter (cl-incf step))))
           (progress-reporter-done reporter)))))
   (when quit
     (ampc-tagger-quit (eq (prefix-numeric-value quit) 16))))
@@ -2413,10 +2416,11 @@ With optional prefix NO-UPDATE, do not trigger a database update."
 (defun ampc-move-to-tab ()
   "Move point to next logical tab stop."
   (interactive)
-  (let ((tab (loop for tab in
-                   (or (get-text-property (point) 'tab-stop-list) tab-stop-list)
-                   while (>= (current-column) tab)
-                   finally return tab)))
+  (let ((tab (cl-loop for tab in
+                      (or (get-text-property (point) 'tab-stop-list)
+                          tab-stop-list)
+                      while (>= (current-column) tab)
+                      finally return tab)))
     (when tab
       (goto-char (min (+ (line-beginning-position) tab) (line-end-position))))))
 
@@ -2456,7 +2460,7 @@ With optional prefix NO-UPDATE, do not trigger a database update."
   (goto-char (posn-point (event-end event)))
   (ampc-toggle-output-enabled 1))
 
-(defun* ampc-mouse-toggle-mark (event &aux (inhibit-read-only t))
+(cl-defun ampc-mouse-toggle-mark (event &aux (inhibit-read-only t))
   (interactive "e")
   (let ((window (posn-window (event-end event))))
     (when (with-selected-window window
@@ -2473,106 +2477,106 @@ With optional prefix NO-UPDATE, do not trigger a database update."
   (goto-char (posn-point (event-end event)))
   (ampc-align-point))
 
-(defun* ampc-unmark-all (&aux (inhibit-read-only t))
+(cl-defun ampc-unmark-all (&aux (inhibit-read-only t))
   "Remove all marks."
   (interactive)
-  (assert (ampc-in-ampc-p t))
+  (cl-assert (ampc-in-ampc-p t))
   (save-excursion
     (goto-char (point-min))
-    (loop while (search-forward-regexp "^\\* " nil t)
-          do (replace-match "  " nil nil)))
+    (cl-loop while (search-forward-regexp "^\\* " nil t)
+             do (replace-match "  " nil nil)))
   (ampc-post-mark-change-update))
 
 (defun ampc-trigger-update ()
   "Trigger a database update."
   (interactive)
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (ampc-send-command 'update))
 
-(defun* ampc-toggle-marks (&aux (inhibit-read-only t))
+(cl-defun ampc-toggle-marks (&aux (inhibit-read-only t))
   "Toggle marks.
 Marked entries become unmarked, and vice versa."
   (interactive)
-  (assert (ampc-in-ampc-p t))
+  (cl-assert (ampc-in-ampc-p t))
   (save-excursion
-    (loop for (a . b) in '(("* " . "T ")
-                           ("  " . "* ")
-                           ("T " . "  "))
-          do (goto-char (point-min))
-          (loop while (search-forward-regexp (concat "^" (regexp-quote a))
-                                             nil
-                                             t)
-                do (replace-match b nil nil))))
+    (cl-loop for (a . b) in '(("* " . "T ")
+                              ("  " . "* ")
+                              ("T " . "  "))
+             do (goto-char (point-min))
+             (cl-loop while (search-forward-regexp (concat "^" (regexp-quote a))
+                                                   nil
+                                                   t)
+                      do (replace-match b nil nil))))
   (ampc-post-mark-change-update))
 
 (defun ampc-up (&optional arg)
   "Move selected entries ARG positions upwards.
 ARG defaults to one."
   (interactive "p")
-  (assert (ampc-in-ampc-p))
+  (cl-assert (ampc-in-ampc-p))
   (ampc-move (- (or arg 1))))
 
 (defun ampc-down (&optional arg)
   "Move selected entries ARG positions downwards.
 ARG defaults to one."
   (interactive "p")
-  (assert (ampc-in-ampc-p))
+  (cl-assert (ampc-in-ampc-p))
   (ampc-move (or arg 1)))
 
 (defun ampc-mark (&optional arg)
   "Mark the next ARG'th entries.
 ARG defaults to 1."
   (interactive "p")
-  (assert (ampc-in-ampc-p t))
+  (cl-assert (ampc-in-ampc-p t))
   (ampc-mark-impl t arg))
 
 (defun ampc-unmark (&optional arg)
   "Unmark the next ARG'th entries.
 ARG defaults to 1."
   (interactive "p")
-  (assert (ampc-in-ampc-p t))
+  (cl-assert (ampc-in-ampc-p t))
   (ampc-mark-impl nil arg))
 
 (defun ampc-set-volume (&optional arg)
   "Set volume to ARG percent.
 If ARG is nil, read ARG from minibuffer."
   (interactive "P")
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (ampc-set-volume-impl (or arg (read-number "Volume: "))))
 
 (defun ampc-increase-volume (&optional arg)
   "Increase volume by prefix argument ARG or, if ARG is nil,
 `ampc-volume-step'."
   (interactive "P")
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (ampc-set-volume-impl arg '+))
 
 (defun ampc-decrease-volume (&optional arg)
   "Decrease volume by prefix argument ARG or, if ARG is nil,
 `ampc-volume-step'."
   (interactive "P")
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (ampc-set-volume-impl arg '-))
 
 (defun ampc-set-crossfade (&optional arg)
   "Set crossfade to ARG seconds.
 If ARG is nil, read ARG from minibuffer."
   (interactive "P")
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (ampc-set-crossfade-impl (or arg (read-number "Crossfade: "))))
 
 (defun ampc-increase-crossfade (&optional arg)
   "Increase crossfade by prefix argument ARG or, if ARG is nil,
 `ampc-crossfade-step'."
   (interactive "P")
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (ampc-set-crossfade-impl arg '+))
 
 (defun ampc-decrease-crossfade (&optional arg)
   "Decrease crossfade by prefix argument ARG or, if ARG is nil,
 `ampc-crossfade-step'."
   (interactive "P")
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (ampc-set-crossfade-impl arg '-))
 
 (defun ampc-toggle-repeat (&optional arg)
@@ -2580,7 +2584,7 @@ If ARG is nil, read ARG from minibuffer."
 With prefix argument ARG, enable repeating if ARG is positive,
 otherwise disable it."
   (interactive "P")
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (ampc-toggle-state 'repeat arg))
 
 (defun ampc-toggle-consume (&optional arg)
@@ -2590,7 +2594,7 @@ otherwise disable it.
 
 When consume is activated, each song played is removed from the playlist."
   (interactive "P")
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (ampc-toggle-state 'consume arg))
 
 (defun ampc-toggle-random (&optional arg)
@@ -2605,7 +2609,7 @@ otherwise disable it."
 With prefix argument ARG, play the ARG'th song located at the
 zero-indexed position of the current playlist."
   (interactive "P")
-  (assert (and (ampc-on-p) (or arg (ampc-in-ampc-p))))
+  (cl-assert (and (ampc-on-p) (or arg (ampc-in-ampc-p))))
   (if (not arg)
       (unless (eobp)
         (ampc-send-command 'play nil (1- (line-number-at-pos)))
@@ -2613,7 +2617,7 @@ zero-indexed position of the current playlist."
     (ampc-send-command 'play nil arg)
     (ampc-send-command 'pause nil 0)))
 
-(defun* ampc-toggle-play
+(cl-defun ampc-toggle-play
     (&optional arg &aux (state (cdr (assq 'state ampc-status))))
   "Toggle play state.
 If MPD does not play a song already, start playing the song at
@@ -2622,12 +2626,12 @@ start at the beginning of the playlist.
 
 If ARG is 4, stop player rather than pause if applicable."
   (interactive "P")
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (unless state
-    (return-from ampc-toggle-play))
+    (cl-return-from ampc-toggle-play))
   (when arg
     (setf arg (prefix-numeric-value arg)))
-  (ecase (intern state)
+  (cl-ecase (intern state)
     (stop
      (when (or (null arg) (> arg 0))
        (ampc-send-command
@@ -2649,14 +2653,14 @@ If ARG is 4, stop player rather than pause if applicable."
   "Play next song.
 With prefix argument ARG, skip ARG songs."
   (interactive "p")
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (ampc-skip (or arg 1)))
 
 (defun ampc-previous (&optional arg)
   "Play previous song.
 With prefix argument ARG, skip ARG songs."
   (interactive "p")
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (ampc-skip (- (or arg 1))))
 
 (defun ampc-rename-playlist (new-name)
@@ -2667,7 +2671,7 @@ If NEW-NAME is nil, read NEW-NAME from the minibuffer."
     (setf new-name (read-from-minibuffer (concat "New name for playlist "
                                                  (ampc-playlist)
                                                  ": "))))
-  (assert (ampc-in-ampc-p))
+  (cl-assert (ampc-in-ampc-p))
   (if (ampc-playlist)
       (ampc-send-command 'rename '(:full-remove t) (ampc-quote new-name))
     (message "No playlist selected")))
@@ -2677,7 +2681,7 @@ If NEW-NAME is nil, read NEW-NAME from the minibuffer."
 If optional argument AT-POINT is non-nil (or if no playlist is
 selected), use playlist at point rather than the selected one."
   (interactive)
-  (assert (ampc-in-ampc-p))
+  (cl-assert (ampc-in-ampc-p))
   (if (ampc-playlist at-point)
       (ampc-send-command
        'load '(:keep-prev t)
@@ -2690,7 +2694,7 @@ selected), use playlist at point rather than the selected one."
   "Toggle the next ARG outputs.
 If ARG is omitted, use the selected entries."
   (interactive "P")
-  (assert (ampc-in-ampc-p))
+  (cl-assert (ampc-in-ampc-p))
   (ampc-with-selection arg
     (let ((data (get-text-property (point) 'data)))
       (ampc-send-command (if (equal (cdr (assoc "outputenabled" data)) "1")
@@ -2704,7 +2708,7 @@ If ARG is omitted, use the selected entries."
 If ARG is omitted, use the selected entries.  If ARG is non-nil,
 all marks after point are removed nontheless."
   (interactive "P")
-  (assert (ampc-in-ampc-p))
+  (cl-assert (ampc-in-ampc-p))
   (let ((first-del nil))
     (ampc-with-selection arg
       (unless (or first-del (when arg (< arg 0)))
@@ -2725,7 +2729,7 @@ all marks after point are removed nontheless."
 (defun ampc-shuffle ()
   "Shuffle playlist."
   (interactive)
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (if (and (not (eq (car ampc-type) 'current-playlist)) (ampc-playlist))
       (ampc-send-command 'shuffle-listplaylistinfo
                          `(:playlist ,(ampc-playlist))
@@ -2735,7 +2739,7 @@ all marks after point are removed nontheless."
 (defun ampc-clear ()
   "Clear playlist."
   (interactive)
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (if (and (not (eq (car ampc-type) 'current-playlist)) (ampc-playlist))
       (ampc-send-command 'playlistclear '(:full-remove t)
                          (ampc-quote (ampc-playlist)))
@@ -2746,7 +2750,7 @@ all marks after point are removed nontheless."
 to the playlist.
 If ARG is omitted, use the selected entries in the current buffer."
   (interactive "P")
-  (assert (ampc-in-ampc-p))
+  (cl-assert (ampc-in-ampc-p))
   (ampc-with-selection arg
     (ampc-add-impl)))
 
@@ -2756,19 +2760,19 @@ If optional argument NO-PRINT is non-nil, just return the text.
 If NO-PRINT is nil, the display may be delayed if ampc does not
 have enough information yet."
   (interactive)
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (unless (or ampc-status no-print)
     (ampc-send-command 'status)
     (ampc-send-command 'mini-currentsong)
-    (return-from ampc-status))
+    (cl-return-from ampc-status))
   (let* ((flags (mapconcat
-                 'identity
-                 (loop for (f . n) in '((repeat . "Repeat")
-                                        (random . "Random")
-                                        (consume . "Consume"))
-                       when (equal (cdr (assq f ampc-status)) "1")
-                       collect n
-                       end)
+                 #'identity
+                 (cl-loop for (f . n) in '((repeat . "Repeat")
+                                           (random . "Random")
+                                           (consume . "Consume"))
+                          when (equal (cdr (assq f ampc-status)) "1")
+                          collect n
+                          end)
                  "|"))
          (state (cdr (assq 'state ampc-status)))
          (status (concat "State:     " state
@@ -2799,7 +2803,7 @@ have enough information yet."
 If optional argument AT-POINT is non-nil (or if no playlist is
 selected), use playlist at point rather than the selected one."
   (interactive)
-  (assert (ampc-in-ampc-p))
+  (cl-assert (ampc-in-ampc-p))
   (if (ampc-playlist at-point)
       (when (y-or-n-p (concat "Delete playlist " (ampc-playlist at-point) "?"))
         (ampc-send-command 'rm '(:full-remove t)
@@ -2808,17 +2812,18 @@ selected), use playlist at point rather than the selected one."
         (message "No playlist at point")
       (message "No playlist selected"))))
 
+(require 'dired)               ;Needed to properly compile dired-map-over-marks.
 ;;;###autoload
 (defun ampc-tagger-dired (&optional arg)
   "Start the tagging subsystem on dired's marked files.
 With optional prefix argument ARG, use the next ARG files."
   (interactive "P")
-  (assert (derived-mode-p 'dired-mode))
+  (cl-assert (derived-mode-p 'dired-mode))
   (ampc-tag-files
-   (loop for file in (dired-map-over-marks (dired-get-filename) arg)
-         unless (file-directory-p file)
-         collect file
-         end)))
+   (cl-loop for file in (dired-map-over-marks (dired-get-filename) arg)
+            unless (file-directory-p file)
+            collect file
+            end)))
 
 ;;;###autoload
 (defun ampc-tag-files (files)
@@ -2826,45 +2831,45 @@ With optional prefix argument ARG, use the next ARG files."
 FILES should be a list of absolute file names, the files to tag."
   (unless files
     (message "No files specified")
-    (return-from ampc-tagger-files t))
+    (cl-return-from ampc-tagger-files t))
   (when (memq (car ampc-type) '(files-list tagger))
     (message "You are already within the tagger")
-    (return-from ampc-tagger-files t))
+    (cl-return-from ampc-tagger-files t))
   (let ((reporter (make-progress-reporter "Grabbing tags" 0 (length files))))
-    (loop for file in-ref files
-          for i from 1
-          do (run-hook-with-args 'ampc-tagger-grab-hook file)
-          (with-temp-buffer
-            (ampc-tagger-call "--get" file)
-            (setf file
-                  (apply 'list
-                         file
-                         (loop for tag in ampc-tagger-tags
-                               collect
-                               (cons tag (or (ampc-extract (ampc-extract-regexp
-                                                            (symbol-name tag)))
-                                             ""))))))
-          (run-hook-with-args 'ampc-tagger-grabbed-hook file)
-          (progress-reporter-update reporter i))
+    (cl-loop for file in-ref files
+             for i from 1
+             do (run-hook-with-args 'ampc-tagger-grab-hook file)
+             (with-temp-buffer
+               (ampc-tagger-call "--get" file)
+               (setf file
+                     (apply #'list
+                            file
+                            (cl-loop for tag in ampc-tagger-tags
+                                     collect
+                                     (cons tag (or (ampc-extract (ampc-extract-regexp
+                                                                  (symbol-name tag)))
+                                                   ""))))))
+             (run-hook-with-args 'ampc-tagger-grabbed-hook file)
+             (progress-reporter-update reporter i))
     (progress-reporter-done reporter))
   (unless ampc-tagger-previous-configuration
     (setf ampc-tagger-previous-configuration (current-window-configuration)))
   (ampc-configure-frame (cdr (assq 'tagger ampc-views)) t)
   (ampc-with-buffer 'files-list
     (erase-buffer)
-    (loop for (file . props) in files
-          do (insert (propertize
-                      (concat
-                       "  "
-                       (ampc-pad
-                        (loop for p in (plist-get (cdr ampc-type) :properties)
-                              when (eq (car p) 'filename)
-                              collect (file-name-nondirectory file)
-                              else
-                              collect (cdr (assq (intern (car p)) props))
-                              end))
-                       "\n")
-                      'data (cons file props))))
+    (cl-loop for (file . props) in files
+             do (insert (propertize
+                         (concat
+                          "  "
+                          (ampc-pad
+                           (cl-loop for p in (plist-get (cdr ampc-type) :properties)
+                                    when (eq (car p) 'filename)
+                                    collect (file-name-nondirectory file)
+                                    else
+                                    collect (cdr (assq (intern (car p)) props))
+                                    end))
+                          "\n")
+                         'data (cons file props))))
     (ampc-set-dirty nil)
     (ampc-toggle-marks))
   (ampc-with-buffer 'tagger
@@ -2875,7 +2880,7 @@ FILES should be a list of absolute file names, the files to tag."
     (ampc-set-dirty nil))
   nil)
 
-(defun* ampc-tagger (&optional arg &aux files)
+(cl-defun ampc-tagger (&optional arg &aux files)
   "Start the tagging subsystem.
 The files to tag are collected by using either the selected
 entries within the current buffer or the next ARG entries at
@@ -2884,7 +2889,7 @@ associated with the entry at point, or, if both sources did not
 provide any files, the audio file that is currently played by
 MPD."
   (interactive "P")
-  (assert (ampc-in-ampc-p))
+  (cl-assert (ampc-in-ampc-p))
   (unless ampc-tagger-version-verified
     (with-temp-buffer
       (ampc-tagger-call "--version")
@@ -2897,41 +2902,41 @@ MPD."
                    ampc-tagger-executable
                    version
                    ampc-tagger-version)
-          (return-from ampc-tagger))))
+          (cl-return-from ampc-tagger))))
     (setf ampc-tagger-version-verified t))
   (unless ampc-tagger-genres
     (with-temp-buffer
       (ampc-tagger-call "--genres")
-      (loop while (search-backward-regexp "^\\(.+\\)$" nil t)
-            do (push (match-string 1) ampc-tagger-genres))))
+      (cl-loop while (search-backward-regexp "^\\(.+\\)$" nil t)
+               do (push (match-string 1) ampc-tagger-genres))))
   (unless ampc-tagger-music-directories
     (message (concat "ampc-tagger-music-directories is nil.  Fill it via "
                      "M-x customize-variable RET ampc-tagger-music-directories "
                      "RET"))
-    (return-from ampc-tagger))
-  (case (car ampc-type)
+    (cl-return-from ampc-tagger))
+  (cl-case (car ampc-type)
     (current-playlist
      (save-excursion
        (ampc-with-selection arg
-         (callf nconc files (list (cdr (assoc "file" (get-text-property
+         (cl-callf nconc files (list (cdr (assoc "file" (get-text-property
                                                       (line-end-position)
                                                       'data))))))))
     ((playlist tag song)
      (save-excursion
        (ampc-with-selection arg
          (ampc-on-files (lambda (file) (push file files)))))
-     (callf nreverse files))
+     (cl-callf nreverse files))
     (t
      (let ((file (cdr (assoc 'file ampc-status))))
        (when file
          (setf files (list file))))))
-  (loop for file in-ref files
-        for read-file = (locate-file file ampc-tagger-music-directories)
-        do (unless read-file
-             (error "Cannot locate file %s in ampc-tagger-music-directories"
-                    file)
-             (return-from ampc-tagger))
-        (setf file (expand-file-name read-file)))
+  (cl-loop for file in-ref files
+           for read-file = (locate-file file ampc-tagger-music-directories)
+           do (unless read-file
+                (error "Cannot locate file %s in ampc-tagger-music-directories"
+                       file)
+                (cl-return-from ampc-tagger))
+           (setf file (expand-file-name read-file)))
   (setf ampc-tagger-previous-configuration
         (list (current-window-configuration) ampc-windows))
   (when (ampc-tag-files files)
@@ -2946,7 +2951,7 @@ NAME-OR-APPEND) entries after point within the current playlist
 buffer to the selected playlist.  If NAME-OR-APPEND is nil, read
 playlist name from the minibuffer."
   (interactive "P")
-  (assert (ampc-in-ampc-p))
+  (cl-assert (ampc-in-ampc-p))
   (unless name-or-append
     (setf name-or-append (read-from-minibuffer "Save playlist as: ")))
   (if (stringp name-or-append)
@@ -2955,7 +2960,7 @@ playlist name from the minibuffer."
         (message "No playlist selected")
       (ampc-with-buffer 'current-playlist
         (when name-or-append
-          (callf prefix-numeric-value name-or-append))
+          (cl-callf prefix-numeric-value name-or-append))
         (ampc-with-selection (if (and name-or-append (< name-or-append 0))
                                  (- name-or-append)
                                nil)
@@ -2966,10 +2971,10 @@ playlist name from the minibuffer."
            (ampc-quote (cdr (assoc "file"
                                    (get-text-property (point) 'data))))))))))
 
-(defun* ampc-goto-current-song (&aux (song (cdr (assq 'song ampc-status))))
+(cl-defun ampc-goto-current-song (&aux (song (cdr (assq 'song ampc-status))))
   "Select the current playlist window and move point to the current song."
   (interactive)
-  (assert (ampc-in-ampc-p))
+  (cl-assert (ampc-in-ampc-p))
   (let ((window (ampc-with-buffer 'current-playlist
                   (selected-window))))
     (when window
@@ -2983,14 +2988,14 @@ playlist name from the minibuffer."
   "Go to previous ARG'th entry in the current buffer.
 ARG defaults to 1."
   (interactive "p")
-  (assert (ampc-in-ampc-p t))
+  (cl-assert (ampc-in-ampc-p t))
   (ampc-next-line (* (or arg 1) -1)))
 
 (defun ampc-next-line (&optional arg)
   "Go to next ARG'th entry in the current buffer.
 ARG defaults to 1."
   (interactive "p")
-  (assert (ampc-in-ampc-p t))
+  (cl-assert (ampc-in-ampc-p t))
   (forward-line arg)
   (if (eobp)
       (progn (forward-line -1)
@@ -2999,7 +3004,7 @@ ARG defaults to 1."
     (ampc-align-point)
     nil))
 
-(defun* ampc-suspend (&optional (run-hook t))
+(cl-defun ampc-suspend (&optional (run-hook t))
   "Suspend ampc.
 This function resets the window configuration, but does not close
 the connection to MPD or destroy the internal cache of ampc.
@@ -3008,9 +3013,9 @@ This means subsequent startups of ampc will be faster."
   (when ampc-working-timer
     (cancel-timer ampc-working-timer))
   (ampc-restore-window-configuration)
-  (loop for b in ampc-all-buffers
-        do (when (buffer-live-p b)
-             (kill-buffer b)))
+  (cl-loop for b in ampc-all-buffers
+           do (when (buffer-live-p b)
+                (kill-buffer b)))
   (setf ampc-windows nil
         ampc-all-buffers nil
         ampc-working-timer nil)
@@ -3020,7 +3025,7 @@ This means subsequent startups of ampc will be faster."
 (defun ampc-mini ()
   "Select song to play via `completing-read'."
   (interactive)
-  (assert (ampc-on-p))
+  (cl-assert (ampc-on-p))
   (ampc-send-command 'mini-playlistinfo))
 
 (defun ampc-quit (&optional arg)
@@ -3033,10 +3038,10 @@ ampc is connected to."
     (when (equal (car-safe ampc-outstanding-commands) '(idle nil))
       (ampc-send-command-impl "noidle")
       (with-current-buffer (process-buffer ampc-connection)
-        (loop do (goto-char (point-min))
-              until (search-forward-regexp "^\\(ACK\\)\\|\\(OK\\).*\n\\'" nil t)
-              while (ampc-on-p)
-              do (accept-process-output ampc-connection nil 50))))
+        (cl-loop do (goto-char (point-min))
+                 until (search-forward-regexp "^\\(ACK\\)\\|\\(OK\\).*\n\\'" nil t)
+                 while (ampc-on-p)
+                 do (accept-process-output ampc-connection nil 50))))
     (ampc-send-command-impl (if arg "kill" "close"))
     (delete-process ampc-connection))
   (when ampc-working-timer
@@ -3101,7 +3106,7 @@ default to the ones specified in `ampc-default-server'."
     (setf ampc-outstanding-commands '((setup))))
   (if suspend
       (ampc-update)
-    (ampc-configure-frame (cddadr ampc-views)))
+    (ampc-configure-frame (cl-cddadr ampc-views)))
   (run-hooks 'ampc-connected-hook)
   (when suspend
     (ampc-suspend))

@@ -22,7 +22,7 @@
 
 ;;; Commentary:
 
-;; Tests for sequences.el
+;; Tests for seq.el
 
 ;;; Code:
 
@@ -91,6 +91,16 @@ Evaluate BODY for each created sequence.
     (should (equal (seq-take-while #'numberp seq) seq)))
   (with-test-sequences (seq '())
     (should (seq-empty-p (seq-take-while #'test-sequences-oddp seq)))))
+
+(ert-deftest test-seq-map-indexed ()
+  (should (equal (seq-map-indexed (lambda (elt i)
+                                    (list elt i))
+                                  nil)
+                 nil))
+  (should (equal (seq-map-indexed (lambda (elt i)
+                                    (list elt i))
+                                  '(a b c d))
+                 '((a 0) (b 1) (c 2) (d 3)))))
 
 (ert-deftest test-seq-filter ()
   (with-test-sequences (seq '(6 7 8 9 10))
@@ -321,6 +331,19 @@ Evaluate BODY for each created sequence.
     (should (null (seq-position seq 'd #'eq)))
     (should (= (seq-position seq 'a #'eq) 0))
     (should (null (seq-position seq (make-symbol "a") #'eq)))))
+
+(ert-deftest test-seq-mapn ()
+  (should-error (seq-mapn #'identity))
+  (with-test-sequences (seq '(1 2 3 4 5 6 7))
+    (should (equal (append seq nil)
+                   (seq-mapn #'identity seq)))
+    (should (equal (seq-mapn #'1+ seq)
+                   (seq-map #'1+ seq)))
+
+    (with-test-sequences (seq-2 '(10 20 30 40 50))
+      (should (equal (seq-mapn #'+ seq seq-2)
+                     '(11 22 33 44 55)))
+      (should (equal (seq-mapn #'+ seq seq-2 nil) nil)))))
 
 (provide 'seq-tests)
 ;;; seq-tests.el ends here

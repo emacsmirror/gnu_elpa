@@ -986,7 +986,11 @@ modified."
 (define-derived-mode ampc-tag-song-mode ampc-item-mode "ampc-ts")
 
 (define-derived-mode ampc-current-playlist-mode ampc-playlist-mode "ampc-cpl"
-  (ampc-highlight-current-song-mode))
+  (setq font-lock-defaults `(((ampc-find-current-song
+                               (1 'ampc-current-song-mark-face)
+                               (2 'ampc-current-song-marked-face))
+                              . ,(car font-lock-defaults))
+                             . (cdr font-lock-defaults))))
 
 (define-derived-mode ampc-playlist-mode ampc-item-mode "ampc-pl")
 
@@ -1022,7 +1026,9 @@ modified."
   (setf font-lock-defaults '((("^\\(\\*\\)\\(.*\\)$"
                                (1 'ampc-mark-face)
                                (2 'ampc-marked-face))
-                              ("" 0 'ampc-unmarked-face))
+                              ;; FIXME: Why do this?
+                              ;; ("" 0 'ampc-unmarked-face)
+                              )
                              t)))
 
 (define-derived-mode ampc-mode special-mode "ampc"
@@ -1030,19 +1036,6 @@ modified."
   (set (make-local-variable 'tool-bar-map) ampc-tool-bar-map)
   (setf truncate-lines ampc-truncate-lines
         mode-line-modified "--"))
-
-(define-minor-mode ampc-highlight-current-song-mode ""
-  ;; FIXME: The "" above looks bogus!
-  nil
-  nil
-  nil
-  (funcall (if ampc-highlight-current-song-mode
-               #'font-lock-add-keywords
-             #'font-lock-remove-keywords)
-           nil
-           '((ampc-find-current-song
-              (1 'ampc-current-song-mark-face)
-              (2 'ampc-current-song-marked-face)))))
 
 ;;;###autoload
 (define-minor-mode ampc-tagger-dired-mode
@@ -1982,8 +1975,9 @@ modified."
   (ampc-fill-status-var '("volume" "repeat" "random" "consume" "xfade" "state"
                           "song" "playlistlength"))
   (ampc-with-buffer 'current-playlist
-    (when ampc-highlight-current-song-mode
-      (font-lock-fontify-buffer)))
+    (if (fboundp 'font-lock-flush)
+        (font-lock-flush)
+      (with-no-warnings (font-lock-fontify-buffer))))
   (run-hook-with-args ampc-status-changed-hook ampc-status))
 
 (defun ampc-handle-update ()

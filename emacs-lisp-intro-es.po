@@ -121,7 +121,7 @@ msgid ""
 "Free Software Foundation, Inc.    Tel: +1 (617) 542-5942\n"
 "51 Franklin Street, Fifth Floor   Fax: +1 (617) 542-2652\n"
 "Boston, MA 02110-1301 USA\n"
-msgstr "Libremanuals,                     @hfill @uref{http://www.libremanuals.net/}@* "
+msgstr "Libremanuals,                     @hfill @uref{http://www.libremanuals.net/}@* \n"
 
 #. type: copying
 #: emacs-lisp-intro.texi:260
@@ -215,7 +215,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:319
 #, no-wrap
 msgid "Top"
-msgstr "Arriba"
+msgstr "Top"
 
 #. type: top
 #: emacs-lisp-intro.texi:320
@@ -9887,7 +9887,7 @@ msgstr ""
 "      (roble 'algo))\n"
 "  (message\n"
 "   \"Aqu@'{@dotless{i}} est@'an %d variables con %s, %s, y el valor %s.\"\n"
-"   abedul pino abeto roble))"
+"   abedul pino abeto roble))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3840
@@ -37427,8 +37427,10 @@ msgstr ""
 "defecto. Si se odia tal ocultaci@'on se escribe lo siguiente en mi\n"
 "fichero @file{.emacs}@footnote{Cuando se empiezan las instancias de\n"
 "Emacs que no cargan mi fichero @file{.emacs} o cualquier fichero,\n"
-"tambi@'en se puede deshabilitar la ocultaci@'on: @smallexample emacs\n"
-"-q --no-site-file -eval '(blink-cursor-mode nil)' @exdent O ahora,\n"
+"tambi@'en se puede deshabilitar la ocultaci@'on:\n"
+"@smallexample\n"
+"emacs -q --no-site-file -eval '(blink-cursor-mode nil)'\n"
+"@exdent O ahora,\n"
 "usando un conjunto m@'as sofisticado de opciones, emacs -Q - D \n"
 "@end smallexample\n"
 " }:"
@@ -40049,7 +40051,7 @@ msgstr ""
 "\"Rota el punto de pegue por N lugares, y entonces devuelve lo cortado.\n"
 "Si N es cero, `interprogram-paste-function' se asigna, y si se llama\n"
 "devuelve una cadena, entonces esta cadena se a@~nade al frente del\n"
-"anillo de la muerte @emph{kill ring} y devuelve el @'ultimo corte.  "
+"anillo de la muerte @emph{kill ring} y devuelve el @'ultimo corte.\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19145
@@ -44321,7 +44323,7 @@ msgid ""
 msgstr ""
 "Opcionalmente, VERTICAL-STEP, un entero positivo, especifica cuanto un\n"
 "eje Y se incrementa por cada l@'{@dotless{i}}nea. Por ejemplo, un paso\n"
-"de 5 significa que cada fila es de cinco unidades."
+"de 5 significa que cada fila es de cinco unidades.\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21352 emacs-lisp-intro.texi:21853

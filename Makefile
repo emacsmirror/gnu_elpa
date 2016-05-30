@@ -79,12 +79,12 @@ mostlyclean:
 	rm -f  *.log *.cp *.fn *.ky *.pg *.vr *.tp *.tmp* *.aux *.cps *.toc
 
 clean: mostlyclean
-	rm -f *.dvi *.html emacs-lisp-intro-es.pdf
+	rm -f *.dvi *.html emacs-lisp-intro-es.texi emacs-lisp-intro-es.pdf
 
 distclean: clean
 
 maintainer-clean: distclean
-	rm -f *.aux *.cps *.fns *.kys *.pgs *.vrs *.toc *.tmp* 
+	rm -f *.aux *.cps *.fns *.kys *.pgs *.vrs *.toc *.tmp*
 	cd $(infodir); rm -f eintr eintr-[1-9]
 
 install: emacs-lisp-intro-es.html emacs-lisp-intro-es.pdf

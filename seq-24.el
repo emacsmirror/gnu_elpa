@@ -374,10 +374,7 @@ SEQUENCE must be a sequence of numbers or markers."
 (defun seq--drop-list (list n)
   "Return a list from LIST without its first N elements.
 This is an optimization for lists in `seq-drop'."
-  (while (and list (> n 0))
-    (setq list (cdr list)
-          n (1- n)))
-  list)
+  (nthcdr n list))
 
 (defun seq--take-list (list n)
   "Return a list from LIST made of its first N elements.

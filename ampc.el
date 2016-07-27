@@ -76,11 +76,11 @@
 ;; selected window for its window setup, customise `ampc-use-full-frame' to a
 ;; non-nil value.
 ;;
-;; ampc offers three independent views which expose different parts of the user
+;; ampc offers independent views which expose different parts of the user
 ;; interface.  The current playlist view, the default view at startup, may be
 ;; accessed using the `J' key (that is `S-j').  The playlist view may be
 ;; accessed using the `K' key.  The outputs view may be accessed by pressing
-;; `L'.
+;; `L'. The search view may be accessed using the `F' key (find).
 
 ;;; *** current playlist view
 ;; The playlist view looks like this:
@@ -160,6 +160,11 @@
 ;; The outputs view contains a single list which shows the configured outputs of
 ;; MPD.  To toggle the enabled property of the selected outputs, press `a'
 ;; (ampc-toggle-output-enabled) or `<mouse-3>'.
+
+;;; *** search view
+;; The search view contains the result of the last performed search. You can
+;; start a new search with the `s' key while in the search view or use M-x
+;; ampc-start-search. Use the `a' key to add a song displayed in result list.
 
 ;;; ** tagger
 ;; To start the tagging subsystem, press `I' (ampc-tagger).  This key binding
@@ -521,7 +526,11 @@ modified."
          (pl-prop '(:properties (("Title" :min 15 :max 40)
                                  ("Artist" :min 15 :max 40)
                                  ("Album" :min 15 :max 40)
-                                 ("Time" :width 6)))))
+                                 ("Time" :width 6))))
+         (search-view '(1.0 search :properties (("Track" :title "#" :width 4)
+                                                ("Title" :min 15 :max 40)
+                                                ("Artist" :min 15 :max 40)
+                                                ("Album" :min 15 :max 40)))))
     `((tagger
        horizontal
        (0.65 files-list
@@ -569,6 +578,13 @@ modified."
                  (0.4 playlist ,@pl-prop)
                  (1.0 playlists)))
        ,rs_b)
+      ("Search view"
+       ,(kbd "F")
+       horizontal
+       (0.4 vertical
+            (6 status)
+            (1.0 current-playlist ,@pl-prop))
+       ,search-view)
       ("Outputs view"
        ,(kbd "L")
        outputs :properties (("outputname" :title "Name" :min 10 :max 30)
@@ -602,6 +618,7 @@ modified."
 
 (defconst ampc-tagger-version "0.1")
 (defconst ampc-tagger-tags '(Title Artist Album Comment Genre Year Track))
+(defconst ampc-buffer-name " *ampc*")
 
 ;;; *** mode maps
 (defvar ampc-mode-map
@@ -696,6 +713,16 @@ modified."
     (define-key map (kbd "<mouse-3>") 'ampc-mouse-align-point)
     map))
 
+(defvar ampc-search-mode-map
+  (let ((map (make-sparse-keymap)))
+    (suppress-keymap map)
+    (define-key map (kbd "a") 'ampc-add)
+    (define-key map (kbd "s") 'ampc-start-search)
+    (define-key map (kbd "<down-mouse-3>") 'ampc-mouse-add)
+    (define-key map (kbd "<mouse-3>") 'ampc-mouse-align-point)
+    map)
+  "Key map for search view")
+
 (defvar ampc-outputs-mode-map
   (let ((map (make-sparse-keymap)))
     (suppress-keymap map)
@@ -731,6 +758,10 @@ modified."
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c C-t") 'ampc-tagger-dired)
     map))
+
+(defvar ampc-search-keywords
+  nil
+  "Ampc last performed search")
 
 ;;; **** menu
 (easy-menu-define nil ampc-mode-map nil
@@ -952,6 +983,7 @@ modified."
                do (goto-char next)))))
 
 (defmacro ampc-iterate-source-output (delimiter bindings pad-data &rest body)
+  "DELIMITER is the field that delimit command results in mpd response"
   (declare (indent 2) (debug t))
   `(let ((output-buffer (current-buffer))
          (tags (cl-loop for (tag . props) in
@@ -984,6 +1016,8 @@ modified."
 (define-derived-mode ampc-outputs-mode ampc-item-mode "ampc-o")
 
 (define-derived-mode ampc-tag-song-mode ampc-item-mode "ampc-ts")
+
+(define-derived-mode ampc-search-mode ampc-item-mode "ampc-search")
 
 (define-derived-mode ampc-current-playlist-mode ampc-playlist-mode "ampc-cpl"
   (setq font-lock-defaults `(((ampc-find-current-song
@@ -1311,6 +1345,8 @@ modified."
     ((current-playlist playlist outputs))
     (playlists
      (ampc-update-playlist))
+    (search
+     (message "Don't know what to do here"))
     ((song tag)
      (cl-loop
       for w in
@@ -1507,6 +1543,10 @@ modified."
                          (ampc-send-command 'currentsong))
                         (playlists
                          (ampc-send-command 'listplaylists))
+                        (search
+                         (when ampc-search-keywords
+                           (ampc-send-command 'search nil "any"
+                                              (ampc-quote ampc-search-keywords))))
                         (current-playlist
                          (ampc-send-command 'playlistinfo))))))
     (ampc-send-command 'status)
@@ -1983,6 +2023,27 @@ modified."
 (defun ampc-handle-update ()
   (message "Database update started"))
 
+(defun ampc-handle-search ()
+  "Uses mpd search result to fill search view"
+  (ampc-fill-skeleton 'search
+    (ampc-iterate-source-output
+        "file"
+        (file)
+      (cl-loop for (tag . tag-regexp) in tags
+               collect (ampc-clean-tag tag (ampc-extract tag-regexp)))
+      `(,file)
+      )))
+
+(defun ampc-start-search ()
+  "Ask mpd to search for songs matching keywords"
+  (interactive)
+  (cl-assert (ampc-in-ampc-p))
+  (let ((search (read-string "Keywords: ")))
+    (setq ampc-search-keywords (unless (string= "" search) search))
+    (when ampc-search-keywords
+      (ampc-send-command 'search nil "any"
+                         (ampc-quote ampc-search-keywords)))))
+
 (defun ampc-handle-command (status)
   (cond
    ((eq status 'error)
@@ -2018,7 +2079,9 @@ modified."
         (listallinfo
          (ampc-handle-listallinfo))
         (outputs
-         (ampc-fill-outputs))))
+         (ampc-fill-outputs))
+        (search
+         (ampc-handle-search))))
     (unless ampc-outstanding-commands
       (ampc-update)))))
 
@@ -3082,7 +3145,7 @@ default to the ones specified in `ampc-default-server'."
   (unless ampc-connection
     (let ((connection (open-network-stream "ampc"
                                            (with-current-buffer
-                                               (get-buffer-create " *ampc*")
+                                               (get-buffer-create ampc-buffer-name)
                                              (erase-buffer)
                                              (current-buffer))
                                            host

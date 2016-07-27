@@ -548,21 +548,21 @@ modified."
        ,(kbd "J")
        horizontal
        (0.4 vertical
-            (6 status)
+            (10 status)
             (1.0 current-playlist ,@pl-prop))
        ,rs_a)
       ("Current playlist view (Genre|Album|Artist)"
        ,(kbd "M")
        horizontal
        (0.4 vertical
-            (6 status)
+            (10 status)
             (1.0 current-playlist ,@pl-prop))
        ,rs_b)
       ("Playlist view (Genre|Artist|Album)"
        ,(kbd "K")
        horizontal
        (0.4 vertical
-            (6 status)
+            (10 status)
             (1.0 vertical
                  (0.4 current-playlist ,@pl-prop)
                  (0.4 playlist ,@pl-prop)
@@ -572,7 +572,7 @@ modified."
        ,(kbd "<")
        horizontal
        (0.4 vertical
-            (6 status)
+            (10 status)
             (1.0 vertical
                  (0.4 current-playlist ,@pl-prop)
                  (0.4 playlist ,@pl-prop)
@@ -582,7 +582,7 @@ modified."
        ,(kbd "F")
        horizontal
        (0.4 vertical
-            (6 status)
+            (10 status)
             (1.0 current-playlist ,@pl-prop))
        ,search-view)
       ("Outputs view"
@@ -610,6 +610,7 @@ modified."
 
 (defvar ampc-internal-db nil)
 (defvar ampc-status nil)
+(defvar ampc-status-timer nil)
 
 (defvar ampc-tagger-previous-configuration nil)
 (defvar ampc-tagger-version-verified nil)
@@ -1860,7 +1861,8 @@ modified."
     (erase-buffer)
     (funcall (or (plist-get (cadr ampc-type) :filler)
                  (lambda (_)
-                   (insert (ampc-status t) "\n")))
+                   (insert (ampc-status t (window-width (get-buffer-window)))
+                           "\n")))
              ampc-status)
     (ampc-set-dirty nil)))
 
@@ -2007,13 +2009,14 @@ modified."
                 (cl-callf2 assq-delete-all s ampc-status))))
 
 (defun ampc-handle-current-song ()
-  (ampc-fill-status-var (append ampc-status-tags '("Artist" "Title" "file")))
+  (ampc-fill-status-var (append ampc-status-tags
+                                '("Artist" "Title" "file" "Time")))
   (ampc-fill-status)
   (run-hook-with-args ampc-status-changed-hook ampc-status))
 
 (defun ampc-handle-status ()
   (ampc-fill-status-var '("volume" "repeat" "random" "consume" "xfade" "state"
-                          "song" "playlistlength"))
+                          "song" "playlistlength" "elapsed"))
   (ampc-with-buffer 'current-playlist
     (if (fboundp 'font-lock-flush)
         (font-lock-flush)
@@ -2811,7 +2814,71 @@ If ARG is omitted, use the selected entries in the current buffer."
   (ampc-with-selection arg
     (ampc-add-impl)))
 
-(defun ampc-status (&optional no-print)
+(defun ampc-restart-status-timer ()
+  (when ampc-status-timer
+    (cancel-timer ampc-status-timer)
+    (setq ampc-status-timer nil))
+  (setq ampc-status-timer
+        (run-at-time
+         nil
+         0.9
+         (lambda ()
+           (when (ampc-on-p)
+             (ampc-send-command 'status))))))
+
+
+(defun ampc-time-to-progress-bar (elapsed total width)
+  "Creates a progess bar like this: |=========>----|
+ELAPSED is the number of seconds represented by '=' signs
+TOTAL is the number of seconds represented by the entire bar
+WIDTH is the max width of the bar. If < 2, 2 characters will be used anyway"
+  (setq width (- width 2)) ;; 2 characters for '||'
+
+  (let ((result "|"))
+    (when (> width 0)
+      (let* ((e (/ (* elapsed width) total)) ;; number of '=' signs
+             (r (- width e))) ;; number of '-' signs
+        (setq result (concat result
+                             (make-string (max 0 (1- e)) ?=)
+                             ">"
+                             (make-string r ?-)))))
+
+    (concat result "|")))
+
+(defun ampc-current-song-time (elapsed total width)
+  "Creates an ASCII representation of elapsed time of the current song.
+ELAPSED is the current time of the song in seconds
+TOTAL is the total time of the song in seconds
+WIDTH is the max desired length of the result"
+  (setq elapsed (truncate elapsed))
+  (when (> elapsed total)
+    (setq elapsed total))
+
+  (let* ((hours (/ elapsed 3600))
+         (minutes (- (/ elapsed 60) (* 60 hours)))
+         (seconds (mod elapsed 60))
+         (result ""))
+    (when (> hours 0)
+      (setq result (format "%d:%s"
+                           hours
+                           (if (< minutes 10)
+                               "0"
+                             "")
+                           )))
+    (setq result (format "%s%d:%s%d"
+                         result
+                         minutes
+                         (if (< seconds 10)
+                             "0"
+                           "")
+                         seconds))
+
+    (concat (ampc-time-to-progress-bar elapsed total
+                                       (1- (- width (length result))))
+            " "
+            result)))
+
+(cl-defun ampc-status (&optional no-print (width 50))
   "Display and return the information that is displayed in the status window.
 If optional argument NO-PRINT is non-nil, just return the text.
 If NO-PRINT is nil, the display may be delayed if ampc does not
@@ -2846,6 +2913,13 @@ have enough information yet."
                                    (ampc-clean-tag
                                     'Title
                                     (cdr (assq 'Title ampc-status)))
+                                   "\n"
+                                   (ampc-current-song-time
+                                    (string-to-number (cdr (assq 'elapsed
+                                                                 ampc-status)))
+                                    (string-to-number (cdr (assq 'Time
+                                                                 ampc-status)))
+                                    width)
                                    "\n"))
                          "Volume:    " (cdr (assq 'volume ampc-status)) "\n"
                          "Crossfade: " (cdr (assq 'xfade ampc-status))
@@ -3103,6 +3177,9 @@ ampc is connected to."
     (delete-process ampc-connection))
   (when ampc-working-timer
     (cancel-timer ampc-working-timer))
+  (when ampc-status-timer
+    (cancel-timer ampc-status-timer)
+    (setq ampc-status-timer nil))
   (ampc-suspend nil)
   (setf ampc-connection nil
         ampc-internal-db nil
@@ -3167,7 +3244,8 @@ default to the ones specified in `ampc-default-server'."
   (run-hooks 'ampc-connected-hook)
   (when suspend
     (ampc-suspend))
-  (ampc-filter (process-buffer ampc-connection) nil))
+  (ampc-filter (process-buffer ampc-connection) nil)
+  (ampc-restart-status-timer))
 
 (provide 'ampc)
 

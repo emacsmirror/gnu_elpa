@@ -9345,7 +9345,7 @@ msgid ""
 "definition again."
 msgstr ""
 "Cuando instalas una definici@'on de funci@'on evaluada por ti,\n"
-"premanecera instalada hasta que salgas de Emacs. La\n"
+"permanecera instalada hasta que salgas de Emacs. La\n"
 "proxima vez que inicies una nueva sesi@'on de Emacs, la\n"
 "funci@'on no ser@'a instalada a menos que eval@'ues de nuevo la definici@'on."
 
@@ -9655,11 +9655,11 @@ msgid ""
 "element list is bound to the value that is returned when the Lisp "
 "interpreter evaluates the second element."
 msgstr ""
-"Los s@'{@dotless{i}}mbolos en la varlist son las variables que son\n"
-"valores iniciales dados por la forma especial @code{let}. Los\n"
-"s@'{@dotless{i}}mbolos por s@'{@dotless{i}} mismos son dados por el\n"
+"Los s@'{@dotless{i}}mbolos en la varlist son las variables que dan\n"
+"los valores iniciales para la forma especial @code{let}. Los\n"
+"s@'{@dotless{i}}mbolos por s@'{@dotless{i}} solos reciven el\n"
 "valor inicial de @code{nil}; y cada s@'{@dotless{i}}mbolo que es el\n"
-"primer elemento de una lista de dos elementos es emparejado al valor\n"
+"primer elemento de una lista de dos elementos es unido al valor\n"
 "que el devuelto cuando el int@'erprete Lisp eval@'ua el segundo elemento."
 
 #. type: Plain text
@@ -9670,10 +9670,10 @@ msgid ""
 "initial value of @code{nil}, and binds the symbol @code{needles} to an "
 "initial value of 3."
 msgstr ""
-"De este modo, una varlist podr@'{@dotless{i}}a verse como esto:\n"
-"@code{(thread (needles 3))}. En este caso, es una expresi@'on\n"
-"@code{let}, Emacs asocia el s@'{@dotless{i}}mbolo @code{thread} a un\n"
-"valor inicial de @code{nil}, y empareja el s@'{@dotless{i}}mbolo\n"
+"De este modo, una varlist como:\n"
+"@code{(thread (needles 3))}. En este caso, dentro una expresi@'on\n"
+"@code{let}, Emacs une el s@'{@dotless{i}}mbolo @code{thread} a un\n"
+"valor inicial de @code{nil}, y une el s@'{@dotless{i}}mbolo\n"
 "@code{needles} a un valor inicial de 3."
 
 #. type: Plain text
@@ -9682,8 +9682,8 @@ msgid ""
 "When you write a @code{let} expression, what you do is put the appropriate "
 "expressions in the slots of the @code{let} expression template."
 msgstr ""
-"Cuando escribes una expresi@'on @code{let}, qu@'e hacer es poner las\n"
-"expresiones apropiadas en las cajas de la plantilla de expresi@'on\n"
+"Cuando escribes una expresi@'on @code{let}, lo que haces es poner las\n"
+"expresiones apropiadas en los huecos de la plantilla de expresi@'on\n"
 "@code{let}."
 
 #. type: Plain text
@@ -9692,9 +9692,9 @@ msgid ""
 "If the varlist is composed of two-element lists, as is often the case, the "
 "template for the @code{let} expression looks like this:"
 msgstr ""
-"Si la lista de variables est@'a compuesta de listas de 2 elementos,\n"
-"como es frecuente el caso, la plantillas para la expresi@'on\n"
-"@code{let} mira como esto:"
+"Si la varlist est@'a compuesta de listas de 2 elementos,\n"
+"como suele ser el caso, la plantilla de la expresi@'on\n"
+"@code{let} es la siguiente:"
 
 #. type: group
 #: emacs-lisp-intro.texi:3764
@@ -9708,7 +9708,7 @@ msgstr ""
 "(let ((@var{variable} @var{valor})\n"
 "      (@var{variable} @var{valor})\n"
 "      @dots{})\n"
-"  @var{body}@dots{})\n"
+"  @var{cuerpo}@dots{})\n"
 
 #. type: node
 #: emacs-lisp-intro.texi:3767
@@ -9720,13 +9720,13 @@ msgstr "Ejemplo de expresi@'on let"
 #: emacs-lisp-intro.texi:3768
 #, no-wrap
 msgid "Sample @code{let} Expression"
-msgstr "Expresi@'on simple @code{let}"
+msgstr "Ejemplo de Expresi@'on @code{let}"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:3769
 #, no-wrap
 msgid "Sample @code{let} expression"
-msgstr "Expresi@'on Simple @code{let}"
+msgstr "Ejemplo de Expresi@'on @code{let}"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:3770
@@ -9741,8 +9741,8 @@ msgid ""
 "variables @code{zebra} and @code{tiger}.  The body of the @code{let} "
 "expression is a list which calls the @code{message} function."
 msgstr ""
-"La expresi@'on siguiente crea y da valores dados iniciales para las\n"
-"dos variables @code{zebra} y @code{tiger}. El cuerpo de la expresi@'on\n"
+"La siguiente expresi@'on crea y da valores iniciales a las\n"
+"dos variables @code{cebra} y @code{tigre}. El cuerpo de la expresi@'on\n"
 "@code{let} es una lista que llama a la funci@'on @code{message}."
 
 #. type: group
@@ -9754,16 +9754,16 @@ msgid ""
 "  (message \"One kind of animal has %s and another is %s.\"\n"
 "           zebra tiger))\n"
 msgstr ""
-"(let ((zebra 'rayas)\n"
-"      (tiger 'fiero))\n"
+"(let ((cebra 'rayas)\n"
+"      (tigre 'fiero))\n"
 "  (message \"Un tipo de animal tiene %s y otro es %s.\"\n"
-"           zebra tiger))\n"
+"           cebra tigre))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3786
 msgid "Here, the varlist is @code{((zebra 'stripes) (tiger 'fierce))}."
 msgstr ""
-"Aqu@'{@dotless{i}}, la varlist es @code{((zebra 'rayas) (tiger\n"
+"Aqu@'{@dotless{i}}, la varlist es @code{((cebra 'rayas) (tigre\n"
 "'fiero))}."
 
 #. type: Plain text
@@ -9786,17 +9786,16 @@ msgstr ""
 "Las dos variables son @code{cebra} y @code{tigre}. Cada variable es el\n"
 "primer elemento de una lista de dos elementos y cada valor es el\n"
 "segundo elemento de su lista de dos elementos. En la varlist, Emacs\n"
-"asocia la variable @code{cebra} al valor @code{rayas}@footnote{De\n"
-"acuerdo a Jared Diamond en @cite{Guns, Germs, y Steel}, ``@dots{} las\n"
-"cebras llegan a ser muy peligrosas a medida que crecen'' pero el\n"
-"clamor aqu@'{@dotless{i}} son que ellos no llegan a ser fieros como un\n"
-"tigre. (1997, W. W. Norton and Co., ISBN 0-393-03894-2, page 171)}, y\n"
-"asocia la variable @code{tigre} al valor @code{fiero}. En este\n"
+"une la variable @code{cebra} al valor @code{rayas}@footnote{De\n"
+"acuerdo con Jared Diamond en @cite{Guns, Germs, and Steel}, ``@dots{} las\n"
+"cebras se vuelven increiblemente peligrosas a medida que envejecen'' pero la\n"
+"demanda aqu@'{@dotless{i}} es que no llegan a ser fieras como un\n"
+"tigre. (1997, W. W. Norton and Co., ISBN 0-393-03894-2, pagina 171)}, y\n"
+"une la variable @code{tigre} al valor @code{fiero}. En este\n"
 "ejemplo, ambos valores son s@'{@dotless{i}}mbolos precedidos por una\n"
-"comilla. Los valores podr@'{@dotless{i}}an ser precedidos por una\n"
-"comilla. Los valores podr@'{@dotless{i}}an tambi@'en haber sido otra\n"
-"lista o cadena. El cuerpo de @code{let} sigue despu@'es de la lista\n"
-"manejando las variables. En este ejemplo, el cuerpo es una lista que\n"
+"cita. Los valores podr@'{@dotless{i}}an muy bien haber sido otra\n"
+"lista o una cadena. El cuerpo de @code{let} sigue despu@'es de la lista\n"
+"que contiene las variables. En este ejemplo, el cuerpo es una lista que\n"
 "usa la funci@'on @code{message} para imprimir una cadena en el @'area\n"
 "echo."
 
@@ -9807,15 +9806,15 @@ msgid ""
 "after the last parenthesis and typing @kbd{C-x C-e}.  When you do this, the "
 "following will appear in the echo area:"
 msgstr ""
-"Se puede evaluar el ejemplo en el modo usual, emplazando el cursor\n"
-"despu@'es de los @'ultimos par@'entesis y escribiendo @kbd{C-x\n"
-"C-e}. Cuando se hace esto lo siguiente aparecer@'a en el @'area echo:"
+"Puedes evaluar el ejemplo de la forma habitual, coloca el cursor\n"
+"despu@'es del @'ultimo par@'entesis y presiona @kbd{C-x\n"
+"C-e}. Al hacer esto, aparecer@'a lo siguiente en el @'area echo:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:3809
 #, no-wrap
 msgid "\"One kind of animal has stripes and another is fierce.\"\n"
-msgstr "\"Un tipo de animal tiene rayas y otro es fiero\"\n"
+msgstr "\"Un tipo de animal tiene rayas y otro es fiero.\"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3816
@@ -9826,17 +9825,17 @@ msgid ""
 "of the variable @code{tiger} is printed at the location of the second "
 "@samp{%s}."
 msgstr ""
-"Como se ha visto antes, la funci@'on @code{message} imprime su primer\n"
+"Como hemos visto antes, la funci@'on @code{message} imprime su primer\n"
 "argumento, excepto por @samp{%s}. En este ejemplo, el valor de la\n"
-"variable @code{zebra} es impreso en la posici@'on del primer @samp{%s}\n"
-"y el valor de la variable @code{tigre} es impreso en la posici@'on del\n"
+"variable @code{cebra} se imprime en la posici@'on del primer @samp{%s}\n"
+"y el valor de la variable @code{tigre} se imprime en la posici@'on del\n"
 "segundo @samp{%s}."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:3818
 #, no-wrap
 msgid "Uninitialized Variables in a @code{let} Statement"
-msgstr "Variables no inicializadas en un sentencia @code{let}"
+msgstr "Variables sin inicializar en un sentencia @code{let}"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:3819
@@ -9857,8 +9856,8 @@ msgid ""
 "initial values, they will automatically be bound to an initial value of "
 "@code{nil}, as in the following expression:"
 msgstr ""
-"Si no asocia las variables en una frase @code{let} para valores\n"
-"espec@'{@dotless{i}}ficos iniciales, ellos autom@'aticamente emparejan\n"
+"Si no se une a las variables en una sentencia @code{let} con valores\n"
+"iniciales espec@'{@dotless{i}}ficos, autom@'aticamente seran unidos\n"
 "a un valor inicial de @code{nil}, como en la siguiente expresi@'on:\n"
 
 #. type: group
@@ -9876,7 +9875,7 @@ msgstr ""
 "(let ((abedul 3)\n"
 "      pino\n"
 "      abeto\n"
-"      (roble 'algo))\n"
+"      (roble 'algunos))\n"
 "  (message\n"
 "   \"Aqu@'{@dotless{i}} est@'an %d variables con %s, %s, y el valor %s.\"\n"
 "   abedul pino abeto roble))\n"
@@ -9884,7 +9883,7 @@ msgstr ""
 #. type: Plain text
 #: emacs-lisp-intro.texi:3840
 msgid "Here, the varlist is @code{((birch 3) pine fir (oak 'some))}."
-msgstr "Aqu@'{@dotless{i}}, la varlist es @code{((abeto 3) pino roble (encina 'otro))}."
+msgstr "Aqu@'{@dotless{i}}, la varlist es @code{((abedul 3) pino abeto (roble 'algunos))}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3844
@@ -9892,7 +9891,7 @@ msgid ""
 "If you evaluate this expression in the usual way, the following will appear "
 "in your echo area:"
 msgstr ""
-"Si se eval@'ua esta expresi@'on en el modo usual, aparecer@'a lo\n"
+"Si eval@'uas esta expresi@'on de la forma habitual, aparecer@'a lo\n"
 "siguiente en el @'area echo:"
 
 #. type: smallexample
@@ -9900,8 +9899,7 @@ msgstr ""
 #, no-wrap
 msgid "\"Here are 3 variables with nil, nil, and some value.\"\n"
 msgstr ""
-"\"Aqu@'{@dotless{i}} est@'an 3 variables con nil, nil, y alg@'un\n"
-"valor\".\n"
+"\"Aqu@'i est@'an 3 variables con nil, nil, y el valor algunos.\"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3853
@@ -9910,10 +9908,10 @@ msgid ""
 "the symbols @code{pine} and @code{fir} to @code{nil}, and binds the symbol "
 "@code{oak} to the value @code{some}."
 msgstr ""
-"En este ejemplo, Emacs empareja el s@'{@dotless{i}}mbolo @code{abedul}\n"
-"al n@'umero 3, empareja los s@'{@dotless{i}}mbolos\n"
-"@code{pino} y @code{abeto} a @code{nil}, y empareja el\n"
-"s@'{@dotless{i}}mbolo @code{encina} al valor @code{otro}."
+"En este ejemplo, Emacs une el s@'{@dotless{i}}mbolo @code{abedul}\n"
+"al n@'umero 3, une los s@'{@dotless{i}}mbolos\n"
+"@code{pino} y @code{abeto} a @code{nil}, y une el\n"
+"s@'{@dotless{i}}mbolo @code{roble} al valor @code{algunos}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3864
@@ -9928,18 +9926,18 @@ msgid ""
 "@samp{%d} rather than a @samp{%s}.)  The four variables as a group are put "
 "into a list to delimit them from the body of the @code{let}."
 msgstr ""
-"Note que en la primera parte del @code{let}, las variables @code{pine}\n"
-"y @code{fir} se aloja solo como @'atomos que no est@'an rodeados por\n"
-"par@'entesis; esto es porque est@'an siendo emparejados a @code{nil},\n"
-"la lista vac@'{@dotless{i}}a. Pero @code{oak} es emparejado a\n"
-"@code{otro} y as@'{@dotless{i}} es una parte de la lista @code{(oak\n"
-"'otro)}. De manera similar, @code{birch} se empareja al n@'umero 3 y\n"
-"as@'{@dotless{i}} es una lista con este n@'umero. (Desde que un\n"
-"n@'umero se eval@'ua por s@'{@dotless{i}} mismo, el n@'umero no\n"
-"necesita ser citado. Tambi@'en, el n@'umero es impreso en el mensaje\n"
-"usando @samp{%d} en vez de un @samp{%s}.) Las cuatro variables como un\n"
-"grupo son puestas dentro de una lista para delimitarlos desde el\n"
-"cuerpo del @code{let}."
+"Observe que en la primera parte de @code{let}, las variables @code{pino}\n"
+"y @code{abeto} son unicamente @'atomos que no est@'an rodeados por\n"
+"par@'entesis; esto se debe a que est@'an siendo unidos a @code{nil},\n"
+"la lista vac@'{@dotless{i}}a. Pero @code{roble} se une a\n"
+"@code{algunos} por ello es parte de la lista @code{(roble\n"
+"'algunos)}. De manera similar, @code{abedul} se une al n@'umero 3 en\n"
+"una lista con este n@'umero. (Ya que un\n"
+"n@'umero se eval@'ua a s@'{@dotless{i}} mismo, el n@'umero no\n"
+"necesita ser citado. Ademas, el n@'umero se imprime en el mensaje\n"
+"usando un @samp{%d} en lugar de un @samp{%s}.) Las cuatro variables como un\n"
+"grupo son puestas dentro de una lista para delimitarla de el\n"
+"cuerpo de @code{let}."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:3868
@@ -9957,12 +9955,12 @@ msgid ""
 "is used, for example, in the code for the function @code{beginning-of-"
 "buffer}."
 msgstr ""
-"Una tercera forma especial, adem@'as de @code{defun} y @code{let}, es\n"
-"el condicional @code{if}. Esta forma es usada para instruir el\n"
-"ordenador para crear decisiones. Se puede escribir definiciones de\n"
-"funci@'on usando @code{if}, pero eso es usado con suficiente\n"
-"frecuencia, y es suficientemente importante para ser incluido\n"
-"aqu@'{@dotless{i}}. Eso es usado, por ejemplo, en el c@'odigo para la\n"
+"Adem@'as de @code{let} y @code{defun}, esta la forma especial\n"
+"condicional @code{if}. Esta forma se utiliza para indicar al\n"
+"computador que tome decisiones. Puedes escribir definiciones de\n"
+"funci@'on sin necesidad de utilizar @code{if}, pero se usa con bastante\n"
+"frecuencia, y es lo suficientemente importante como para incluirse\n"
+"aqu@'{@dotless{i}}. Se utiliza, por ejemplo, en el c@'odigo para la\n"
 "funci@'on @code{beginning-of-buffer}."
 
 #. type: Plain text
@@ -9973,11 +9971,11 @@ msgid ""
 "expression is not evaluated.  For example, you might make a decision such "
 "as, ``if it is warm and sunny, then go to the beach!''"
 msgstr ""
-"La idea b@'asica de un @code{if}, es que ``@emph{if} un test es verdad\n"
-"@emph{then} una expresi@'on es evaluado.'' Si el test no es verdad, la\n"
-"expresi@'on no est@'a evaluada. Por ejemplo, podr@'{@dotless{i}}a\n"
-"crear una decisi@'on tal y como, ``@exclamdown{}si es c@'alido y\n"
-"soleado, entonces a la playa!''"
+"La idea b@'asica detras de @code{if}, es que ``@emph{if} (si) una prueba es verdad\n"
+"@emph{then} (entonces) se evalua la expresi@'on.'' Si la prueba no es verdad, la\n"
+"expresi@'on no se evalua. Por ejemplo, podr@'{@dotless{i}}a\n"
+"tomar una decisi@'on como, ``exclamdown{}si es c@'alido y\n"
+"soleado, entonces ir a la playa!''"
 
 #. type: node
 #: emacs-lisp-intro.texi:3888
@@ -10012,12 +10010,12 @@ msgid ""
 "expression is often called the @dfn{if-part} and the second argument is "
 "often called the @dfn{then-part}."
 msgstr ""
-"Una expresi@'on @code{if} expresi@'on escrita en Lisp no usa la\n"
-"palabra `then'; el test y la acci@'on son el segundo y tercer\n"
-"elementos de la lista cuyo primer elemento es @code{if}\n"
-"(@emph{si}). Ninguno menos, la parte de test de una expresi@'on\n"
-"@code{if} (@emph{si}) es con frecuencia llamada la @dfn{if-part}\n"
-"(@emph{parte-si}) y el segundo argumento es con frecuencia llamada la\n"
+"Al escribir una expresi@'on @code{if} en Lisp no se utiliza la\n"
+"palabra `then'; la prueba y la acci@'on son el segundo y tercer\n"
+"elementos de la lista cuyo primer elemento es @code{if}.\n"
+"No obstante, la parte de la prueba en una expresi@'on\n"
+"@code{if} a menudo se llamada @dfn{if-part}\n"
+"(@emph{parte-si}) y el segundo argumento a menudo se llamada\n"
 "@dfn{then-part} (@emph{parte-entonces})."
 
 #. type: Plain text
@@ -10028,13 +10026,13 @@ msgid ""
 "carry out if the test is true, the ``then-part'', is written on the second "
 "and subsequent lines.  This makes the @code{if} expression easier to read."
 msgstr ""
-"Tambi@'en, cuando una expresi@'on @code{if} es escrita, el\n"
-"test-verdadero-o-falso es normalmente escrito en la misma\n"
-"l@'{@dotless{i}}nea como el s@'{@dotless{i}}mbolo @code{if}, pero la\n"
-"acci@'on para traer si el test es verdadero, el ``then-part''\n"
-"@emph{parte-entonces}, es escrita en la segunda y subsiguientes\n"
-"l@'{@dotless{i}}neas. Esto hace que la expresi@'on @code{if} @emph{si}\n"
-"sea f@'acil de leer."
+"Adembas, cuando se escribe una expresi@'on @code{if}, la\n"
+"prueba-verdadero-o-falso normalmente se escribe en la misma\n"
+"l@'{@dotless{i}}nea que el s@'{@dotless{i}}mbolo @code{if}, pero la\n"
+"acci@'on a llevar a cabo si la prueba es verdadera, ``then-part''\n"
+"(@emph{parte-entonces}), se escribe en la segunda y siguientes\n"
+"l@'{@dotless{i}}neas. Esto hace que la expresi@'on @code{if}\n"
+"sea mas f@'acil de leer."
 
 #. type: group
 #: emacs-lisp-intro.texi:3910
@@ -10043,7 +10041,7 @@ msgid ""
 "(if @var{true-or-false-test}\n"
 "    @var{action-to-carry-out-if-test-is-true})\n"
 msgstr ""
-"(if @var{test-verdadero-o-falso}\n"
+"(if @var{prueba-verdadero-o-falso}\n"
 "    @var{accion-a-realizar-si-el-test-es-cierto})\n"
 
 #. type: Plain text
@@ -10052,7 +10050,7 @@ msgid ""
 "The true-or-false-test will be an expression that is evaluated by the Lisp "
 "interpreter."
 msgstr ""
-"El test-verdadero-o-falso ser@'a una expresi@'on que es evaluado por el\n"
+"La prueba-verdadero-o-falso es una expresi@'on que evalua el\n"
 "int@'erprete Lisp."
 
 #. type: Plain text
@@ -10062,10 +10060,9 @@ msgid ""
 "whether the number 5 is greater than the number 4.  Since it is, the message "
 "@samp{5 is greater than 4!} will be printed."
 msgstr ""
-"Aqu@'{@dotless{i}} hay un ejemplo que se puede evaluar en la manera\n"
-"normal. El test es si el n@'umero 5 es mayor que el n@'umero 4. Desde\n"
-"eso, el mensaje @samp{@exclamdown{}5 es m@'as grande que 4!} ser@'a\n"
-"impreso."
+"Aqu@'{@dotless{i}} hay un ejemplo que puedes evaluar.\n"
+"La prueba consiste en si el n@'umero 5 es mayor que el n@'umero 4. Ya que es as@'i,\n"
+"se imprime el mensaje @samp{@exclamdown{}5 es mayor que 4!}."
 
 #. type: group
 #: emacs-lisp-intro.texi:3925
@@ -10074,7 +10071,7 @@ msgid ""
 "(if (> 5 4)                             ; @r{if-part}\n"
 "    (message \"5 is greater than 4!\"))   ; @r{then-part}\n"
 msgstr ""
-"(if (> 5 4)                             ; @r{parte-si}\n"
+"(if (> 5 4)                           ; @r{parte-si}\n"
 "    (message \"@exclamdown{}5 es mayor que 4!\"))   ; @r{parte-entonces}\n"
 
 #. type: Plain text
@@ -10083,8 +10080,8 @@ msgid ""
 "(The function @code{>} tests whether its first argument is greater than its "
 "second argument and returns true if it is.)"
 msgstr ""
-"(La funci@'on @code{>} chequea si su primer argumento es mayor que su\n"
-"segundo argumento y devuelve cierto si lo es.)"
+"(La funci@'on @code{>} comprueba si su primer argumento es mayor que su\n"
+"segundo argumento y devuelve verdadero si lo es.)"
 
 #. type: findex
 #: emacs-lisp-intro.texi:3931
@@ -10101,12 +10098,12 @@ msgid ""
 "not known ahead of time.  (If the value were known ahead of time, we would "
 "not need to run the test!)"
 msgstr ""
-"De acuerdo, al uso actual, el test en una expresi@'on @code{if} no\n"
-"ser@'a corregido todo el tiempo, ya que eso es por la expresi@'on\n"
-"@code{(> 5 4)}. En vez, al menos una de las variables usadas en el\n"
-"test ser@'a asociada a un valor que no es conocido en frente del\n"
-"tiempo. (Si el valor fuera conocido en el tiempo, @exclamdown{}no\n"
-"necesitar@'{@dotless{i}}amos ejecutar el test!)"
+"Por supuesto, en un caso real, la prueba en una expresi@'on @code{if} no\n"
+"ser@'a siempre la misma, como en la expresi@'on\n"
+"@code{(> 5 4)}. En su lugar, al menos una de las variables utilizadas en la\n"
+"prueba estara unida a un valor de antemano desconocido.\n"
+"(Si el valor se conoce de antemano, @exclamdown{}no\n"
+"necesitamos realizar la prueba!)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3944
@@ -10117,12 +10114,12 @@ msgid ""
 "@code{characteristic} is @code{fierce}, then the message, @samp{It's a "
 "tiger!} will be printed; otherwise, @code{nil} will be returned."
 msgstr ""
-"Por ejemplo, el valor puede ser asociado a un argumento de una\n"
+"Por ejemplo, el valor puede estar unido a un argumento de una\n"
 "definici@'on de funci@'on. En la siguiente definici@'on de funci@'on,\n"
-"el car@'acter del animal es un valor que es pasado a la funci@'on. Si\n"
-"el valor asociado a @code{caracter@'{@dotless{i}}stico} es\n"
-"@code{fiero}, entonces el mensaje, @samp{@exclamdown{}Es un tigre!}\n"
-"ser@'a impreso; de otro modo, @code{nil} ser@'a devuelto."
+"el tipo de animal es un valor que se pasa a la funci@'on. Si\n"
+"el valor unido a @code{caracteristica} es\n"
+"@code{fiero}, entonces se imprime el mensaje, @samp{@exclamdown{}Es un tigre!};\n"
+"de otro modo, se devolvera @code{nil}."
 
 #. type: group
 #: emacs-lisp-intro.texi:3953
@@ -10137,8 +10134,8 @@ msgid ""
 msgstr ""
 "(defun tipo-de-animal (caracteristica)\n"
 "  \"Imprime el mensaje en el @'area echo dependiendo de CARACTERISTICA.\n"
-"Si la CARACTERISTICA es el s@'{@dotless{i}}mbolo `fiera',\n"
-"entonces avisa de un tigre.\"\n"
+"Si la CARACTERISTICA es el s@'{@dotless{i}}mbolo `fiero',\n"
+"entonces advierte que es un tigre.\"\n"
 "  (if (equal caracteristica 'fiera)\n"
 "      (message \"@exclamdown{}Es un tigre!\")))\n"
 
@@ -10149,9 +10146,9 @@ msgid ""
 "definition in the usual way to install it in Emacs, and then you can "
 "evaluate the following two expressions to see the results:"
 msgstr ""
-"Si est@'a leyendo esto dentro de GNU Emacs, se puede evaluar la\n"
-"definici@'on funci@'on en el modo usual para instalarlo en Emacs, y\n"
-"entonces se puede evaluar las siguientes dos expresiones para ver los resultados:"
+"Si est@'as leyendo esto dentro de GNU Emacs, puedes evaluar la\n"
+"definici@'on de funci@'on de la forma habitual para instalarlo en Emacs, y\n"
+"luego puedes evaluar las dos expresiones siguientes para ver los resultados:"
 
 #. type: group
 #: emacs-lisp-intro.texi:3965 emacs-lisp-intro.texi:4134
@@ -10159,7 +10156,7 @@ msgstr ""
 msgid ""
 "(type-of-animal 'fierce)\n"
 "\n"
-msgstr "(tipo-de-animal 'fiera)\n"
+msgstr "(tipo-de-animal 'fiero)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:3967 emacs-lisp-intro.texi:4136
@@ -10177,7 +10174,7 @@ msgid ""
 "when you evaluate @code{(type-of-animal 'zebra)} you will see @code{nil} "
 "printed in the echo area."
 msgstr ""
-"Cuando se eval@'ua @code{(tipo-de-animal 'fiero)}, se ver@'a el siguiente\n"
+"Al evaluar @code{(tipo-de-animal 'fiero)}, veras el siguiente\n"
 "mensaje impreso en el @'area echo: @code{\"@exclamdown{}Es un tigre!\"};\n"
 "y cuando se eval@'ua @code{(tipo-de-animal 'cebra)} ver@'as @code{nil}\n"
 "impreso en el @'area echo."
@@ -10191,7 +10188,7 @@ msgstr "La funci@'on @code{tipo-de-animal} en detalle"
 #. type: Plain text
 #: emacs-lisp-intro.texi:3982
 msgid "Let's look at the @code{type-of-animal} function in detail."
-msgstr "Mira la funci@'on @code{tipo-de-animal} en detalle."
+msgstr "Veamos la funci@'on @code{tipo-de-animal} en detalle."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3986
@@ -10200,15 +10197,14 @@ msgid ""
 "slots of two templates, one for a function definition as a whole, and a "
 "second for an @code{if} expression."
 msgstr ""
-"La definici@'on de funci@'on para @code{tipo-de-animal} fu@'e escrito\n"
-"para rellenar los slots de dos plantillas, uno para una definici@'on\n"
-"de funci@'on como un todo, y un segundo para una expresi@'on @code{if}\n"
-"(@emph{si})."
+"La definici@'on de funci@'on @code{tipo-de-animal} se escribio\n"
+"llenando los espacios de dos plantillas, la primera para la definici@'on\n"
+"de funci@'on como un todo, y la seguanda para una expresi@'on @code{if}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3989
 msgid "The template for every function that is not interactive is:"
-msgstr "La plantilla para cada funci@'on que no es interactiva es:"
+msgstr "La plantilla para cada funci@'on no interactiva es:"
 
 #. type: group
 #: emacs-lisp-intro.texi:3995
@@ -10225,7 +10221,7 @@ msgstr ""
 #. type: Plain text
 #: emacs-lisp-intro.texi:4000
 msgid "The parts of the function that match this template look like this:"
-msgstr "Las partes de la funci@'on asociada a esta plantilla es:"
+msgstr "Las partes de la funci@'on que encajan con esta plantilla se ven asi:"
 
 #. type: group
 #: emacs-lisp-intro.texi:4008
@@ -10239,9 +10235,9 @@ msgid ""
 msgstr ""
 "(defun tipo-de-animal (caracteristica)\n"
 "  \"Imprime el mensaje en el @'area echo dependiendo de CARACTERISTICA.\n"
-"Si la CARACTERISTICA es el s@'{@dotless{i}}mbolo `fiera',\n"
-"entonces avisa de que es un tigre.\"\n"
-"  @var{body: the} @code{if} @var{expression})\n"
+"Si la CARACTERISTICA es el s@'{@dotless{i}}mbolo `fiero',\n"
+"entonces advierte que es un tigre.\"\n"
+"  @var{cuerpo: la expresi@'on} @code{if})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4017
@@ -10253,11 +10249,11 @@ msgid ""
 "body of the function definition consists of the @code{if} expression."
 msgstr ""
 "El nombre de funci@'on es @code{tipo-de-animal}; se pasa al valor de\n"
-"un argumento. La lista de argumentos es seguida por una cadena de\n"
+"un argumento. A la lista de argumentos se sigue una cadena de\n"
 "documentaci@'on multi-l@'{@dotless{i}}nea. La cadena de\n"
-"documentaci@'on es incluida en el ejemplo porque es un buen h@'abito\n"
-"para escribir documentaci@'on para cada definici@'on de funci@'on. El\n"
-"cuerpo de la definici@'on de funci@'on consiste de la expresi@'on\n"
+"documentaci@'on se incluye en el ejemplo porque es un buen h@'abito\n"
+"escribir la cadena de documentaci@'on para cada definici@'on de funci@'on. El\n"
+"cuerpo de la definici@'on de funci@'on consiste en la expresi@'on\n"
 "@code{if}. "
 
 #. type: Plain text
@@ -10272,8 +10268,8 @@ msgid ""
 "(if @var{true-or-false-test}\n"
 "    @var{action-to-carry-out-if-the-test-returns-true})\n"
 msgstr ""
-"(if @var{test-verdadero-o-falso}\n"
-"    @var{accion-a-realizar-si-el-test-es-cierto})\n"
+"(if @var{prueba-verdadero-o-falso}\n"
+"    @var{accion-a-realizar-si-la-prueba-devuelve-verdadero})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4031
@@ -10281,8 +10277,8 @@ msgid ""
 "In the @code{type-of-animal} function, the code for the @code{if} looks like "
 "this:"
 msgstr ""
-"En la funci@'on @code{tipo-de-animal}, el c@'odigo para el @code{if}\n"
-"(@emph{si}) se ve as@'{@dotless{i}}:"
+"En la funci@'on @code{tipo-de-animal}, el c@'odigo para @code{if}\n"
+"se ve as@'{@dotless{i}}:"
 
 #. type: group
 #: emacs-lisp-intro.texi:4036
@@ -10297,7 +10293,7 @@ msgstr ""
 #. type: Plain text
 #: emacs-lisp-intro.texi:4041
 msgid "Here, the true-or-false-test is the expression:"
-msgstr "Aqu@'{@dotless{i}}, est@'a la expresi@'on test-verdadero-o-falso"
+msgstr "Aqu@'{@dotless{i}}, est@'a la expresi@'on prueba-verdadero-o-falso"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:4044
@@ -10314,9 +10310,9 @@ msgid ""
 "@code{characteristic}---in other words, the argument passed to this function."
 msgstr ""
 "En Lisp, @code{equal} es una funci@'on que determina si su primer\n"
-"argumento es igual para su segundo argumento. El segundo argumento es\n"
+"argumento es igual a su segundo argumento. El segundo argumento es\n"
 "el s@'{@dotless{i}}mbolo citado @code{'fiero} y el primer argumento es\n"
-"el valor del s@'{@dotless{i}}mbolo @code{caracter@'{@dotless{i}}stico}\n"
+"el valor del s@'{@dotless{i}}mbolo @code{caracteristico}\n"
 "--- en otras palabras, el argumento pasado a esta funci@'on."
 
 #. type: Plain text
@@ -10329,12 +10325,12 @@ msgid ""
 "second argument or then-part of the @code{if}: @code{(message \"It's tiger!"
 "\")}."
 msgstr ""
-"En el primer ejercicio de @code{tipo-de-animal}, el argumento\n"
-"@code{fiera} es pasado a @code{tipo-de-animal}. Desde que @code{fiera}\n"
-"es igual a @code{fiera}, la expresi@'on, @code{(equal caracteristica\n"
-"'fiera)}, devuelve un valor de verdad. Cuando esto ocurre, el\n"
-"@code{if} (@emph{si}) eval@'ua el segundo argumento o parte-entonces\n"
-"del @code{if} (@emph{si}): @code{(message \"@exclamdown{}Es un tigre!\")}."
+"En la primer prueba de @code{tipo-de-animal}, el argumento\n"
+"@code{fiero} se pasa a @code{tipo-de-animal}. Ya que @code{fiero}\n"
+"es igual a @code{fiero}, la expresi@'on, @code{(equal caracteristica\n"
+"'fiero)}, devuelve el valor verdadero. Cuando esto sucede,\n"
+"@code{if} eval@'ua el segundo argumento o la parte-entonces\n"
+"del @code{if}: @code{(message \"@exclamdown{}Es un tigre!\")}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4064
@@ -10344,17 +10340,17 @@ msgid ""
 "not equal to @code{fierce}, so the then-part is not evaluated and @code{nil} "
 "is returned by the @code{if} expression."
 msgstr ""
-"Por otro lado, en el segundo ejercicio de @code{tipo-de-animal}, el\n"
-"argumento @code{cebra} es pasado a @code{tipo-de-animal}. @code{cebra}\n"
-"no es igual a @code{fiera}, as@'{@dotless{i}} la parte-entonces no\n"
-"est@'a evaluada y se devuelve @code{nil} por la expresi@'on\n"
+"Por otro lado, en la segunda prueba de @code{tipo-de-animal}, se\n"
+"pasa el argumento @code{cebra} a @code{tipo-de-animal}. @code{cebra}\n"
+"no es igual a @code{fiero}, por lo que la parte-entonces no\n"
+"se evalua y se devuelve @code{nil} por la expresi@'on\n"
 "@code{if} (@emph{si})."
 
 #. type: section
 #: emacs-lisp-intro.texi:4066
 #, no-wrap
 msgid "If--then--else Expressions"
-msgstr "Expresiones Si--entonces--resto"
+msgstr "Expresiones if--then--else"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:4067
@@ -10373,14 +10369,14 @@ msgid ""
 "decision ``if it is warm and sunny, then go to the beach, else read a "
 "book!''."
 msgstr ""
-"Una expresi@'on @code{if} @emph{si} puede tener un tercer argumento\n"
-"opcional, llamado la @dfn{parte-resto}, para el caso en el que\n"
-"test-verdadero-o-falso devuelve falso. Cuando esto ocurre, el segundo\n"
-"argumento o la parte-entonces sobre todo la expresi@'on @code{if}\n"
-"(@emph{si}), @emph{no} se eval@'ua, pero el tercero o la parte-resto\n"
-"@emph{se} eval@'ua. Se podr@'{@dotless{i}}a pensar en esto como la\n"
-"alternativa del d@'{@dotless{i}}a nublado para la decisi@'on ``si eso\n"
-"es c@'alido y soleado, ve a la playa, sino @exclamdown{}lee un\n"
+"Una expresi@'on @code{if} puede tener un tercer argumento\n"
+"opcional, llamado la @dfn{parte-de_otro_modo}, en caso de que\n"
+"la prueba-verdadero-o-falso devuelva falso. Cuando esto sucede, el segundo\n"
+"argumento o then-part de la expresi@'on @code{if}\n"
+"global, @emph{no} se eval@'ua, pero el tercer argumento o la parte-de_otro_modo\n"
+"@emph{se} eval@'ua. Podr@'{@dotless{i}}a pensar en esto como la\n"
+"alternativa del d@'{@dotless{i}}a nublado para la decisi@'on ``si es\n"
+"c@'alido y soleado, entonces ir a la playa, de otro modo @exclamdown{}leer un\n"
 "libro!''"
 
 #. type: Plain text
@@ -10391,12 +10387,12 @@ msgid ""
 "else-part is usually written to start on a line of its own and is indented "
 "less than the then-part:"
 msgstr ""
-"La palabra ``else'' @emph{resto} no est@'a escrita en el c@'odigo\n"
-"Lisp; la parte else @emph{resto} de una expresi@'on @code{if}\n"
-"@emph{si} viene despu@'es de la parte then @emph{entonces}. En el Lisp\n"
-"escrito, la parte else @emph{resto} normalmente se escribe para\n"
-"empezar en la l@'{@dotless{i}}nea siguiente y est@'a menos indentada\n"
-"que la parte then @emph{entonces}:"
+"La palabra ``else'' (``de otro modo''} no se escribe en el c@'odigo\n"
+"Lisp; la parte-de_otro_modo de una expresi@'on @code{if}\n"
+"viene despu@'es de la parte-entonces. En Lisp,\n"
+"la parte-de_otro_modo suele escribirse al inicio\n"
+"de una nueva l@'{@dotless{i}}nea y se indenta menos\n"
+"que la parte-entonces:"
 
 #. type: group
 #: emacs-lisp-intro.texi:4087
@@ -10406,9 +10402,9 @@ msgid ""
 "    @var{action-to-carry-out-if-the-test-returns-true}\n"
 "  @var{action-to-carry-out-if-the-test-returns-false})\n"
 msgstr ""
-"(if @var{test-verdadero-o-falso}\n"
-"    @var{accion-a-realizar-si-el-test-es-cierto}\n"
-"  @var{accion-a-realizar-si-el-test-es-falso})\n"
+"(if @var{prueba-verdadero-o-falso}\n"
+"    @var{accion-a-realizar-si-la-prueva-devuelve-verdadero}\n"
+"  @var{accion-a-realizar-si-la-prueba-devuelve-falso})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4092
@@ -10417,8 +10413,8 @@ msgid ""
 "is not greater than 5!} when you evaluate it in the usual way:"
 msgstr ""
 "Por ejemplo, la siguiente expresi@'on @code{if} imprime el mensaje\n"
-"@samp{@exclamdown{}4 no es mayor que 5!} cuando se eval@'ua eso en el\n"
-"camino usual:"
+"@samp{@exclamdown{}4 no es mayor que 5!} al evaluarse en la forma\n"
+"habitual:"
 
 #. type: group
 #: emacs-lisp-intro.texi:4098
@@ -10428,9 +10424,9 @@ msgid ""
 "    (message \"4 falsely greater than 5!\") ; @r{then-part}\n"
 "  (message \"4 is not greater than 5!\"))   ; @r{else-part}\n"
 msgstr ""
-"(if (> 4 5)                               ; @r{parte-si}\n"
-"    (message \"@exclamdown{}4 no es m@'as grande que 5!\") ; @r{parte-entonces}\n"
-"  (message \"@exclamdown{}4 no es m@'as grande que 5!\"))   ; @r{parte-resto}\n"
+"(if (> 4 5)                                   ; @r{parte-si}\n"
+"    (message \"@exclamdown{}4 falsamente es mayor que 5!\") ; @r{parte-entonces}\n"
+"  (message \"@exclamdown{}4 no es mayor que 5!\"))          ; @r{parte-resto}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4106

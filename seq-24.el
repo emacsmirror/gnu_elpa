@@ -373,7 +373,7 @@ SEQUENCE must be a sequence of numbers or markers."
 
 (defun seq-random-elt (sequence)
   "Return a random element from SEQUENCE.
-Return nil if SEQUENCE is nil."
+Signal an error if SEQUENCE is empty."
   (if (seq-empty-p sequence)
       (error "Sequence cannot be empty")
     (seq-elt sequence (random (seq-length sequence)))))

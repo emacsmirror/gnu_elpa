@@ -371,6 +371,13 @@ SEQUENCE must be a sequence of numbers or markers."
 SEQUENCE must be a sequence of numbers or markers."
   (apply #'max (seq-into sequence 'list)))
 
+(defun seq-random-elt (sequence)
+  "Return a random element from SEQUENCE.
+Return nil if SEQUENCE is nil."
+  (if (seq-empty-p sequence)
+      (error "Sequence cannot be empty")
+    (seq-elt sequence (random (seq-length sequence)))))
+
 (defun seq--drop-list (list n)
   "Return a list from LIST without its first N elements.
 This is an optimization for lists in `seq-drop'."

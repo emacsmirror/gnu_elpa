@@ -286,7 +286,10 @@ Return a list of the results.
 
 \(fn FUNCTION SEQS...)"
   (let ((result nil)
-        (seqs (seq-map (lambda (s) (seq-into s 'list))
+        (seqs (seq-map (lambda (s)
+                         (if (listp s)
+                             s
+                           (seq-into s 'list)))
                        (cons sequence seqs))))
     (while (not (memq nil seqs))
       (push (apply function (seq-map #'car seqs)) result)

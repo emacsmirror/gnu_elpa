@@ -172,9 +172,7 @@ Return a list of the results.
 \(fn FUNCTION SEQUENCES...)"
   (let ((result nil)
         (sequences (seq-map (lambda (s)
-                              (if (listp s)
-                                  s
-                                (seq-into s 'list)))
+                              (seq-into s 'list))
                             (cons sequence sequences))))
     (while (not (memq nil sequences))
       (push (apply function (seq-map #'car sequences)) result)
@@ -268,9 +266,9 @@ of sequence."
 TYPE can be one of the following symbols: vector, string or
 list."
   (pcase type
-    (`vector (vconcat sequence))
-    (`string (concat sequence))
-    (`list (append sequence nil))
+    (`vector (seq--into-vector sequence))
+    (`string (seq--into-string sequence))
+    (`list (seq--into-list sequence))
     (_ (error "Not a sequence type name: %S" type))))
 
 (cl-defgeneric seq-filter (pred sequence)
@@ -464,6 +462,24 @@ SEQUENCE must be a sequence of numbers or markers."
   (null list))
 
 
+(defun seq--into-list (sequence)
+  "Concatenate the elements of SEQUENCE into a list."
+  (if (listp sequence)
+      sequence
+    (append sequence nil)))
+
+(defun seq--into-vector (sequence)
+  "Concatenate the elements of SEQUENCE into a vector."
+  (if (vectorp sequence)
+      sequence
+    (vconcat sequence)))
+
+(defun seq--into-string (sequence)
+  "Concatenate the elements of SEQUENCE into a string."
+  (if (stringp sequence)
+      sequence
+    (concat sequence)))
+
 (defun seq--make-pcase-bindings (args)
   "Return a list of bindings of the variables in ARGS to the elements of a sequence."
   (let ((bindings '())

@@ -287,9 +287,7 @@ Return a list of the results.
 \(fn FUNCTION SEQS...)"
   (let ((result nil)
         (seqs (seq-map (lambda (s)
-                         (if (listp s)
-                             s
-                           (seq-into s 'list)))
+                         (seq-into s 'list))
                        (cons sequence seqs))))
     (while (not (memq nil seqs))
       (push (apply function (seq-map #'car seqs)) result)
@@ -359,9 +357,9 @@ See also the function `nreverse', which is used more often."
   "Convert the sequence SEQUENCE into a sequence of type TYPE.
 TYPE can be one of the following symbols: vector, string or list."
   (pcase type
-    (`vector (vconcat sequence))
-    (`string (concat sequence))
-    (`list (append sequence nil))
+    (`vector (seq--into-vector sequence))
+    (`string (seq--into-string sequence))
+    (`list (seq--into-list sequence))
     (_ (error "Not a sequence type name: %S" type))))
 
 (defun seq-min (sequence)
@@ -464,6 +462,24 @@ If no element is found, return nil."
 (defalias 'seq-each #'seq-do)
 (defalias 'seq-map #'mapcar)
 (defalias 'seqp #'sequencep)
+
+(defun seq--into-list (sequence)
+  "Concatenate the elements of SEQUENCE into a list."
+  (if (listp sequence)
+      sequence
+    (append sequence nil)))
+
+(defun seq--into-vector (sequence)
+  "Concatenate the elements of SEQUENCE into a vector."
+  (if (vectorp sequence)
+      sequence
+    (vconcat sequence)))
+
+(defun seq--into-string (sequence)
+  "Concatenate the elements of SEQUENCE into a string."
+  (if (stringp sequence)
+      sequence
+    (concat sequence)))
 
 (unless (fboundp 'elisp--font-lock-flush-elisp-buffers)
   ;; In Emacs≥25, (via elisp--font-lock-flush-elisp-buffers and a few others)

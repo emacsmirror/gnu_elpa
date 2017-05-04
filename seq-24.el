@@ -219,6 +219,12 @@ Equality is defined by TESTFN if non-nil or by `equal' if nil."
                 (funcall (or testfn #'equal) elt e))
               sequence))
 
+(defun seq-set-equal-p (sequence1 sequence2 &optional testfn)
+  "Return non-nil if SEQUENCE1 and SEQUENCE2 contain the same elements, regardless of order.
+Equality is defined by TESTFN if non-nil or by `equal' if nil."
+  (and (seq-every-p (lambda (item1) (seq-contains sequence2 item1 testfn)) sequence1)
+       (seq-every-p (lambda (item2) (seq-contains sequence1 item2 testfn)) sequence2)))
+
 (defun seq-position (sequence elt &optional testfn)
   "Return the index of the first element in SEQUENCE that is equal to ELT.
 Equality is defined by TESTFN if non-nil or by `equal' if nil."

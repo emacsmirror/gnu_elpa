@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2014-08-12 21:14+0200\n"
-"PO-Revision-Date: 2016-06-02 22:43+0200\n"
-"Last-Translator: David Arroyo Men@'endez <davidam@es.gnu.org>\n"
+"PO-Revision-Date: 2018-05-22 17:56+0200\n"
+"Last-Translator: David Arroyo Men@'endez <davidam@gnu.org>\n"
 "Language-Team: Spanish <elisp-es-traductores@nongnu.org>\n"
 "Language: Spanish\n"
 "MIME-Version: 1.0\n"
@@ -105,7 +105,11 @@ msgid ""
 "division of the @hfill email: @email{sales@@fsf.org}@* Free Software "
 "Foundation, Inc.  @hfill Tel: +1 (617) 542-5942@* 51 Franklin Street, Fifth "
 "Floor @hfill Fax: +1 (617) 542-2652@* Boston, MA 02110-1301 USA"
-msgstr "Libremanuals,                     @hfill @uref{http://www.libremanuals.net/}@* "
+msgstr ""
+"Libremanuals,                     @hfill\n"
+"@uref{http://www.libremanuals.net/}@*\n"
+"Puede descargar una copia de las fuentes desde\n"
+"https://savannah.nongnu.org/git/?group=elisp-es"
 
 #. type: ifnottex
 #: emacs-lisp-intro.texi:247
@@ -126,7 +130,7 @@ msgstr "Libremanuals,                     @hfill @uref{http://www.libremanuals.n
 #. type: copying
 #: emacs-lisp-intro.texi:260
 msgid "ISBN 1-882114-43-4"
-msgstr " "
+msgstr "ISBN: 978-84-608-5935-2"
 
 #. type: copying
 #: emacs-lisp-intro.texi:268

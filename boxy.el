@@ -1,4 +1,4 @@
-;;; boxy.el --- Frontend for creating 3D diagrams -*- lexical-binding: t -*-
+;;; boxy.el --- A boxy layout framework -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2021 Free Software Foundation, Inc.
 
@@ -100,11 +100,14 @@
 ;;   The expansion slots will be called when the user toggles the
 ;;   box's visibility.
 ;;
+;;   To display a box in a popup buffer, use the function `boxy-pp'.
+;;
 ;;   The methods `boxy-merge' and `boxy-merge-into' should be
 ;;   used to merge boxes together.  `boxy-merge' takes a list of
 ;;   boxes and merges them into one box.  `boxy-merge-into' takes
 ;;   two boxes and merges the first into the second.
 ;;
+
 ;;; Code:
 
 ;;;; Requirements

@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021 Free Software Foundation, Inc.
 
 ;; Author: Tyler Grinn <tylergrinn@gmail.com>
-;; Version: 1.0.0
+;; Version: 1.0.1
 ;; File: boxy.el
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: tools
@@ -112,6 +112,7 @@
 
 ;;;; Requirements
 
+(require 'easy-mmode)
 (require 'eieio)
 (require 'cl-lib)
 
@@ -123,58 +124,47 @@
 
 (defcustom boxy-default-margin-x 2
   "Default horizontal margin to be used when displaying boxes."
-  :type 'number
-  :group 'boxy)
+  :type 'number)
 
 (defcustom boxy-default-margin-y 1
   "Default vertical margin to be used when displaying boxes."
-  :type 'number
-  :group 'boxy)
+  :type 'number)
 
 (defcustom boxy-default-padding-x 2
   "Default horizontal padding to be used when displaying boxes."
-  :type 'number
-  :group 'boxy)
+  :type 'number)
 
 (defcustom boxy-default-padding-y 1
   "Default vertical padding to be used when displaying boxes."
-  :type 'number
-  :group 'boxy)
+  :type 'number)
 
 (defcustom boxy-flex-width 80
   "When flexibly displaying boxes, try to keep width below this."
-  :type 'number
-  :group 'boxy)
+  :type 'number)
 
 (defcustom boxy-default-visibility 2
   "Default level to display boxes."
-  :type 'number
-  :group 'boxy)
+  :type 'number)
 
 (defcustom boxy-tooltips t
   "Show tooltips in a boxy diagram."
-  :type 'boolean
-  :group 'boxy)
+  :type 'boolean)
 
 (defcustom boxy-tooltip-timeout 0.5
   "Idle time before showing tooltip in a boxy diagram."
-  :type 'number
-  :group 'boxy)
+  :type 'number)
 
 (defcustom boxy-tooltip-max-width 30
   "Maximum width of all tooltips."
-  :type 'number
-  :group 'boxy)
+  :type 'number)
 
 ;;;; Faces
 
 (defface boxy-default nil
-  "Default face used in Boxy mode."
-  :group 'boxy)
+  "Default face used in Boxy mode.")
 
 (defface boxy-primary nil
-  "Face for highlighting the name of a box."
-  :group 'boxy)
+  "Face for highlighting the name of a box.")
 
 (face-spec-set
  'boxy-primary
@@ -183,8 +173,7 @@
  'face-defface-spec)
 
 (defface boxy-selected nil
-  "Face for the current box border under cursor."
-  :group 'boxy)
+  "Face for the current box border under cursor.")
 
 (face-spec-set
  'boxy-selected
@@ -192,8 +181,7 @@
  'face-defface-spec)
 
 (defface boxy-rel nil
-  "Face for the box which is related to the box under the cursor."
-  :group 'boxy)
+  "Face for the box which is related to the box under the cursor.")
 
 (face-spec-set
  'boxy-rel
@@ -201,8 +189,7 @@
  'face-defface-spec)
 
 (defface boxy-tooltip nil
-  "Face for tooltips in a boxy diagram."
-  :group 'boxy)
+  "Face for tooltips in a boxy diagram.")
 
 (face-spec-set
  'boxy-tooltip
@@ -393,11 +380,11 @@
   "Recalculate the position of all boxes in `boxy--boxes'."
   (setq boxy--box-ring
         (seq-sort
-         '<
+         #'<
          (seq-filter
-          'identity
+          #'identity
           (mapcar
-           'boxy--get-position
+           #'boxy--get-position
            (seq-filter
             (lambda (box) (boxy-is-visible box t))
             boxy--boxes))))))
@@ -418,37 +405,33 @@
      (if (slot-boundp box :height) (slot-makeunbound box :height)))
    boxy--boxes))
 
+(defvar boxy-mode-map
+  (easy-mmode-define-keymap
+    (mapcar (lambda (key) (cons (kbd (car key)) (cdr key)))
+            '(("TAB"       . boxy-mode-cycle)
+              ("<right>"   . boxy-mode-cycle)
+              ("C-f"       . boxy-mode-cycle)
+              ("M-f"       . boxy-mode-cycle)
+              ("f"         . boxy-mode-cycle)
+              ("<left>"    . boxy-mode-uncycle)
+              ("C-b"       . boxy-mode-uncycle)
+              ("M-b"       . boxy-mode-uncycle)
+              ("b"         . boxy-mode-uncycle)
+              ("<up>"      . boxy-mode-cycle-up)
+              ("C-p"       . boxy-mode-cycle-up)
+              ("p"         . boxy-mode-cycle-up)
+              ("<down>"    . boxy-mode-cycle-down)
+              ("C-n"       . boxy-mode-cycle-down)
+              ("n"         . boxy-mode-cycle-down)
+              ("<backtab>" . boxy-mode-cycle-visibility)))))
+
 (define-derived-mode boxy-mode special-mode
   "Boxy"
-  "Mode for viewing an boxy diagram.
-
-The following commands are available:
-
-\\{boxy-mode-map}"
-  (let ((inhibit-message t))
+  "Mode for viewing an boxy diagram."
+  (let ((inhibit-message t))     ;FIXME: Please report the message as an error.
     (setq indent-tabs-mode nil)
     (cursor-sensor-mode t)
     (toggle-truncate-lines t)))
-
-(mapc
- (lambda (key) (define-key boxy-mode-map (kbd (car key)) (cdr key)))
- '(("TAB"       . boxy-mode-cycle)
-   ("<right>"   . boxy-mode-cycle)
-   ("C-f"       . boxy-mode-cycle)
-   ("M-f"       . boxy-mode-cycle)
-   ("f"         . boxy-mode-cycle)
-   ("<left>"    . boxy-mode-uncycle)
-   ("C-b"       . boxy-mode-uncycle)
-   ("M-b"       . boxy-mode-uncycle)
-   ("b"         . boxy-mode-uncycle)
-   ("<up>"      . boxy-mode-cycle-up)
-   ("C-p"       . boxy-mode-cycle-up)
-   ("p"         . boxy-mode-cycle-up)
-   ("<down>"    . boxy-mode-cycle-down)
-   ("C-n"       . boxy-mode-cycle-down)
-   ("n"         . boxy-mode-cycle-down)
-   ("<backtab>" . boxy-mode-cycle-visibility)))
-
 
 (cl-defun boxy-pp (box
                    &key
@@ -528,7 +511,7 @@ diagram."
       (setq boxy--selected-face selected-face)
       (boxy-mode-update-visibility)
       (boxy-mode-redraw)
-      (let* ((width (apply 'max (mapcar 'length (split-string (buffer-string) "\n"))))
+      (let* ((width (apply #'max (mapcar #'length (split-string (buffer-string) "\n"))))
              (height (count-lines (point-min) (point-max)))
              (window (or (get-buffer-window buffer)
                          (display-buffer buffer
@@ -674,7 +657,7 @@ is currently at.")
 flexibly added to its parent.  Should not be set manually."))
   "A representation of a box in 3D space.")
 
-(cl-defmethod boxy-merge (boxes)
+(defun boxy-merge (boxes)
   "Merge BOXES into a single box."
   (if (< (length boxes) 2)
       (if (= 0 (length boxes))
@@ -685,7 +668,7 @@ flexibly added to its parent.  Should not be set manually."))
         (boxy-merge-into (pop boxes) world))
       world)))
 
-(cl-defmethod boxy-merge-into ((from boxy-box) (to boxy-box))
+(defun boxy-merge-into (from to)
   "Merge FROM box into TO box."
   (let (match-found)
     (mapc
@@ -707,7 +690,7 @@ flexibly added to its parent.  Should not be set manually."))
           (oset from :flex t)
           (boxy--add-child to from))))))
 
-(cl-defmethod boxy-is-visible ((box boxy-box) &optional calculate)
+(defun boxy-is-visible (box &optional calculate)
   "Determine if BOX is visible according to `boxy--visibility'.
 
 If CALCULATE, determine if the box has been expanded manually."
@@ -723,7 +706,7 @@ If CALCULATE, determine if the box has been expanded manually."
           (<= level boxy--visibility)))))
 
 
-(cl-defmethod boxy-jump-to-box ((box boxy-box))
+(defun boxy-jump-to-box (box)
   "Jump cursor to the first character in the label of BOX."
   (if (not (boxy-is-visible box t))
       (let ((top (with-slots (parent) box parent)))
@@ -748,7 +731,7 @@ If CALCULATE, determine if the box has been expanded manually."
       (move-to-column (+ (cdr boxy--offset) left 1 (boxy--padding-x box))))))
     
   
-(cl-defmethod boxy-find-matching ((search-box boxy-box) (world boxy-box))
+(defun boxy-find-matching (search-box world)
   "Find a box in WORLD with a matching name as SEARCH-BOX."
   (when (slot-boundp search-box :name)
     (with-slots ((search-name name)) search-box
@@ -759,9 +742,7 @@ If CALCULATE, determine if the box has been expanded manually."
                        (with-slots (name) box name))))
        (boxy--expand world)))))
 
-(cl-defmethod boxy-add-next ((next boxy-box)
-                             (prev boxy-box)
-                             &optional force-visible skip-next)
+(defun boxy-add-next (next prev &optional force-visible skip-next)
   "Add NEXT to world according to its relationship to PREV.
 
 If FORCE-VISIBLE, show the box regardless of
@@ -884,7 +865,7 @@ NEXT."
 
 ;;;; Drawing
 
-(cl-defmethod boxy-draw ((box boxy-box) &optional border-face)
+(defun boxy-draw (box &optional border-face)
   "Insert an ascii drawing of BOX into the current buffer.
 
 If BORDER-FACE is non-nil, skip drawing children boxes and only
@@ -1001,75 +982,77 @@ Uses `boxy--offset' to determine row and column offsets."
                 (setq r (+ r 1))))))))
     (if border-face
         (if box-coords (list box-coords) nil)
-      (apply 'append
+      (apply #'append
              (if box-coords (list box-coords) nil)
              (mapcar
-              'boxy-draw
+              #'boxy-draw
               (boxy--get-children box))))))
 
-(cl-defmethod boxy--get-width ((box boxy-box))
+(defun boxy--get-width (box)
   "Get the width of BOX."
   (with-slots ((stored-width width)) box
     (if (slot-boundp box :width)
         stored-width
       (let* ((margin (boxy--margin-x box))
              (padding (boxy--padding-x box))
-             (base-width (+ 2 ; box walls
+             (base-width (+ 2           ; box walls
                             (* 2 padding)))
              (width (+ base-width
                        (if (slot-boundp box :name)
                            (with-slots (name) box (length name))
                          0)))
              (children (boxy--get-children box)))
-        (if (not children)
-            (setq stored-width width)
-          (let* ((row-indices (cl-delete-duplicates
-                               (mapcar
-                                (lambda (child) (with-slots (y-order) child y-order))
-                                children)))
-                 (rows (mapcar
-                        (lambda (r)
-                          (cl-delete-duplicates
-                           (seq-filter
-                            (lambda (child) (with-slots (y-order) child (= r y-order)))
-                            children)
-                           :test #'(lambda (a b)
-                                     (and (slot-boundp a :name)
-                                          (slot-boundp b :name)
-                                          (string= (with-slots (name) a name)
-                                                   (with-slots (name) b name))))))
-                        row-indices))
-                 (children-width (apply 'max
-                                        (mapcar
-                                         (lambda (row)
-                                           (seq-reduce
-                                            (lambda (sum width)
-                                              (+ sum width margin))
-                                            (mapcar 'boxy--get-width row)
-                                            (* -1 margin)))
-                                         rows))))
-            (if (> width (+ (* 2 padding) children-width))
-                (setq stored-width width)
-              (setq stored-width (+ base-width children-width)))))))))
+        (setq stored-width
+              (if (not children)
+                  width
+                (let* ((row-indices (cl-delete-duplicates
+                                     (mapcar
+                                      (lambda (child) (with-slots (y-order) child y-order))
+                                      children)))
+                       (rows (mapcar
+                              (lambda (r)
+                                (cl-delete-duplicates
+                                 (seq-filter
+                                  (lambda (child) (with-slots (y-order) child (= r y-order)))
+                                  children)
+                                 :test #'(lambda (a b)
+                                           (and (slot-boundp a :name)
+                                                (slot-boundp b :name)
+                                                (string= (with-slots (name) a name)
+                                                         (with-slots (name) b name))))))
+                              row-indices))
+                       (children-width (apply #'max
+                                              (mapcar
+                                               (lambda (row)
+                                                 (seq-reduce
+                                                  (lambda (sum width)
+                                                    (+ sum width margin))
+                                                  (mapcar #'boxy--get-width row)
+                                                  (* -1 margin)))
+                                               rows))))
+                  (if (> width (+ (* 2 padding) children-width))
+                      width
+                    (+ base-width children-width)))))))))
 
-(cl-defmethod boxy--get-on-top-height ((box boxy-box))
+(defun boxy--get-on-top-height (box)
   "Get the height of any boxes on top of BOX."
-  (apply 'max 0
+  (apply #'max 0
          (mapcar
-          'boxy--get-on-top-height-helper
+          #'boxy--get-on-top-height-helper
           (seq-filter
-           (lambda (child) (with-slots (rel) child (and (slot-boundp child :rel)
-                                                        (string= rel "on top of"))))
+           (lambda (child) (with-slots (rel) child
+                        (and (slot-boundp child :rel)
+                             (string= rel "on top of"))))
            (boxy--get-children box)))))
 
-(cl-defmethod boxy--get-on-top-height-helper ((child boxy-box))
+(defun boxy--get-on-top-height-helper (child)
   "Get the height of any boxes on top of CHILD, including child."
   (with-slots (rel) child
     (+
      (boxy--get-height child)
-     (apply 'max 0
+     (apply #'max 0
             (mapcar
-             'boxy--get-on-top-height-helper
+             #'boxy--get-on-top-height-helper
              (seq-filter
               (lambda (grandchild)
                 (with-slots ((grandchild-rel rel)) grandchild
@@ -1077,7 +1060,7 @@ Uses `boxy--offset' to determine row and column offsets."
                        (string= "on top of" grandchild-rel))))
               (boxy--get-children child)))))))
 
-(cl-defmethod boxy--get-height ((box boxy-box) &optional include-on-top)
+(defun boxy--get-height (box &optional include-on-top)
   "Get the height of BOX.
 
 If INCLUDE-ON-TOP is non-nil, also include height on top of box."
@@ -1106,7 +1089,7 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
                                        (+ sum margin row))
                                      (mapcar
                                       (lambda (r)
-                                        (apply 'max 0
+                                        (apply #'max 0
                                                (mapcar
                                                 (lambda (child) (boxy--get-height child t))
                                                 (seq-filter
@@ -1119,7 +1102,7 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
               (setq stored-height (+ height children-height))
               (+ stored-height on-top-height))))))))
 
-(cl-defmethod boxy--get-top ((box boxy-box))
+(defun boxy--get-top (box)
   "Get the top row index of BOX."
   (with-slots ((stored-top top) on-top parent x-order y-order rel rel-box) box
     (cond ((slot-boundp box :top) stored-top)
@@ -1153,7 +1136,7 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
                                             siblings
                                             '()))
                            (above-bottom (+ margin
-                                             (apply 'max
+                                             (apply #'max
                                                     (mapcar
                                                      (lambda (sibling)
                                                        (+ (boxy--get-top sibling)
@@ -1162,7 +1145,7 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
                      (setq stored-top (+ on-top-height above-bottom))
                    (setq stored-top top)))))))))
 
-(cl-defmethod boxy--get-left ((box boxy-box))
+(defun boxy--get-left (box)
   "Get the left column index of BOX."
   (with-slots ((stored-left left) parent x-order y-order) box
     (if (slot-boundp box :left)
@@ -1203,7 +1186,7 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
 
 ;;;; Boxy mode buttons
 
-(cl-defmethod boxy-button-cursor-sensor ((box boxy-box))
+(defun boxy-button-cursor-sensor (box)
   "Create cursor functions for entering and leaving BOX."
   (let (tooltip-timer)
     (lambda (_window _oldpos dir)
@@ -1239,7 +1222,7 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
              (when tooltip-timer
                (cancel-timer tooltip-timer))))))))
 
-(cl-defmethod boxy-button-jump-other-window ((box boxy-box))
+(defun boxy-button-jump-other-window (box)
   "Jump to location of link for BOX in other window."
   (with-slots (markers) box
     (lambda ()
@@ -1254,7 +1237,7 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
           (switch-to-buffer-other-window buffer)
           (goto-char pos))))))
 
-(cl-defmethod boxy-button-jump-to ((box boxy-box))
+(defun boxy-button-jump-to (box)
   "Jump to the first occurrence of a link for BOX in the same window."
   (with-slots (markers) box
     (lambda ()
@@ -1267,7 +1250,7 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
           (switch-to-buffer buffer))
         (goto-char pos)))))
 
-(cl-defmethod boxy-button-jump-all ((box boxy-box))
+(defun boxy-button-jump-all (box)
   "View all occurrences of links from BOX in the same window."
   (with-slots (markers) box
     (lambda ()
@@ -1283,7 +1266,7 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
           (switch-to-buffer (marker-buffer marker))
           (goto-char (marker-position marker)))))))
 
-(cl-defmethod boxy-button-jump-rel ((box boxy-box))
+(defun boxy-button-jump-rel (box)
   "Jump to the box directly related to BOX."
   (with-slots (rel-box display-rel-box) box
     (if (not (slot-boundp box :rel-box))
@@ -1296,7 +1279,7 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
           (interactive)
           (boxy-jump-to-box rel-box))))))
 
-(cl-defmethod boxy-button-cycle-children ((box boxy-box))
+(defun boxy-button-cycle-children (box)
   "Cycle visibility of children of BOX."
   (lambda ()
     (interactive)
@@ -1307,7 +1290,7 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
     (boxy-mode-redraw)
     (boxy-jump-to-box box)))
 
-(cl-defmethod boxy-button-create-keymap ((box boxy-box))
+(defun boxy-button-create-keymap (box)
   "Create a keymap for a button in Boxy mode.
 
 BOX is the box the button is being made for."
@@ -1329,7 +1312,7 @@ BOX is the box the button is being made for."
 
 ;;;; Private class methods
 
-(cl-defmethod boxy--expand-box ((box boxy-box))
+(defun boxy--expand-box (box)
   "Expand all siblings and children of BOX."
   (with-slots (children hidden-children expand-children) box
     (let (fully-expanded)
@@ -1347,28 +1330,28 @@ BOX is the box the button is being made for."
                (funcall (pop expand-siblings) child))))
          children)))))
 
-(cl-defmethod boxy--cycle-children ((box boxy-box))
+(defun boxy--cycle-children (box)
   "Cycle visibility of children of BOX."
   (with-slots (children hidden-children expand-children expanded parent) box
     (if (or children hidden-children)
         (cl-rotatef children hidden-children)
       (boxy--expand-box box))))
 
-(cl-defmethod boxy--update-visibility ((box boxy-box))
+(defun boxy--update-visibility (box)
   "Update visibility of BOX based on `boxy--visibility'."
   (with-slots (level children hidden-children expand-children) box
     (if (not (boxy-is-visible box))
         (if children (cl-rotatef children hidden-children))
       (boxy--expand-box box))
-    (mapc 'boxy--update-visibility children)))
+    (mapc #'boxy--update-visibility children)))
 
-(cl-defmethod boxy--get-position ((box boxy-box))
+(defun boxy--get-position (box)
   "Get the buffer position of the names of BOX and its children."
   (when (slot-boundp box :name)
     (boxy-jump-to-box box)
     (point)))
 
-(cl-defmethod boxy--margin-x ((box boxy-box))
+(defun boxy--margin-x (box)
   "Get the inherited property :margin-x from BOX."
   (if (slot-boundp box :margin-x)
       (with-slots (margin-x) box margin-x)
@@ -1376,7 +1359,7 @@ BOX is the box the button is being made for."
         (boxy--margin-x (with-slots (parent) box parent))
       boxy--default-margin-x)))
 
-(cl-defmethod boxy--margin-y ((box boxy-box))
+(defun boxy--margin-y (box)
   "Get the inherited property :margin-y from BOX."
   (if (slot-boundp box :margin-y)
       (with-slots (margin-y) box margin-y)
@@ -1384,7 +1367,7 @@ BOX is the box the button is being made for."
         (boxy--margin-y (with-slots (parent) box parent))
       boxy--default-margin-y)))
 
-(cl-defmethod boxy--padding-x ((box boxy-box))
+(defun boxy--padding-x (box)
   "Get the inherited property :padding-x from BOX."
   (if (slot-boundp box :padding-x)
       (with-slots (padding-x) box padding-x)
@@ -1392,7 +1375,7 @@ BOX is the box the button is being made for."
         (boxy--padding-x (with-slots (parent) box parent))
       boxy--default-padding-x)))
 
-(cl-defmethod boxy--padding-y ((box boxy-box))
+(defun boxy--padding-y (box)
   "Get the inherited property :padding-y from BOX."
   (if (slot-boundp box :padding-y)
       (with-slots (padding-y) box padding-y)
@@ -1400,7 +1383,7 @@ BOX is the box the button is being made for."
         (boxy--padding-y (with-slots (parent) box parent))
       boxy--default-padding-y)))
 
-(cl-defmethod boxy--get-children ((box boxy-box) &optional arg)
+(defun boxy--get-children (box &optional arg)
   "Get all visible children of BOX.
 
 If optional ARG is 'all, include hidden children.
@@ -1415,9 +1398,7 @@ If optional ARG is 'hidden, only return hidden children"
      (t
       children))))
 
-(cl-defmethod boxy--add-child ((parent boxy-box)
-                               (child boxy-box)
-                               &optional force-visible)
+(defun boxy--add-child (parent child &optional force-visible)
   "Add CHILD to PARENT according to its visibility.
 
 If FORCE-VISIBLE, always make CHILD visible in PARENT."
@@ -1432,32 +1413,32 @@ If FORCE-VISIBLE, always make CHILD visible in PARENT."
           (object-add-to-list parent :children child t)
         (object-add-to-list parent :hidden-children child t)))))
 
-(cl-defmethod boxy--get-world ((box boxy-box))
+(defun boxy--get-world (box)
   "Get the top most box related to BOX."
   (with-slots (parent) box
     (if (slot-boundp box :parent)
         (boxy--get-world parent)
       box)))
 
-(cl-defmethod boxy--primary-boxes ((box boxy-box))
+(defun boxy--primary-boxes (box)
   "Get a list of boxes from BOX which have no further relatives."
   (if (slot-boundp box :parent)
       (if-let ((next-boxes (boxy--next box)))
-          (apply 'append (mapcar 'boxy--primary-boxes next-boxes))
+          (apply #'append (mapcar #'boxy--primary-boxes next-boxes))
         (list box))
-    (apply 'append (mapcar 'boxy--primary-boxes (boxy--get-children box 'all)))))
+    (apply #'append (mapcar #'boxy--primary-boxes (boxy--get-children box 'all)))))
 
-(cl-defmethod boxy--expand ((box boxy-box))
+(defun boxy--expand (box)
   "Get a list of all boxes, including BOX, that are related to BOX."
   (if (slot-boundp box :parent)
-      (apply 'append (list box) (mapcar 'boxy--expand (boxy--next box)))
-    (apply 'append (mapcar 'boxy--expand (boxy--get-children box 'all)))))
+      (apply #'append (list box) (mapcar #'boxy--expand (boxy--next box)))
+    (apply #'append (mapcar #'boxy--expand (boxy--get-children box 'all)))))
 
-(cl-defmethod boxy--get-all ((box boxy-box))
+(defun boxy--get-all (box)
   "Get all boxes, including BOX, that are children of BOX."
-  (apply 'append (list box) (mapcar 'boxy--get-all (boxy--get-children box 'all))))
+  (apply #'append (list box) (mapcar #'boxy--get-all (boxy--get-children box 'all))))
 
-(cl-defmethod boxy--next ((box boxy-box) &optional exclude-children)
+(defun boxy--next (box &optional exclude-children)
   "Retrieve any boxes for which the :rel-box slot is BOX.
 
 If EXCLUDE-CHILDREN, only retrieve sibling boxes."
@@ -1473,14 +1454,14 @@ If EXCLUDE-CHILDREN, only retrieve sibling boxes."
               (eq rel-box box))))
      relatives)))
 
-(cl-defmethod boxy--apply-level ((box boxy-box) level)
+(defun boxy--apply-level (box level)
   "Apply LEVEL to BOX and update all of its children."
   (oset box :level level)
   (mapc
    (lambda (child) (boxy--apply-level child (+ 1 level)))
    (boxy--get-children box 'all)))
 
-(cl-defmethod boxy--add-matching ((box boxy-box) (match boxy-box))
+(defun boxy--add-matching (box match)
   "Add relatives of BOX to MATCH."
   (oset match :primary (or (with-slots (primary) match primary)
                            (with-slots (primary) box primary)))
@@ -1500,7 +1481,7 @@ If EXCLUDE-CHILDREN, only retrieve sibling boxes."
   (oset match :expand-children (append (with-slots (expand-children) match expand-children)
                                        (with-slots (expand-children) box expand-children))))
 
-(cl-defmethod boxy--position-box ((box boxy-box))
+(defun boxy--position-box (box)
   "Adjust BOX's position."
   (with-slots (rel-box rel parent x-order y-order on-top in-front parent) box
     (with-slots ((rel-y y-order) (rel-x x-order)) rel-box
@@ -1536,10 +1517,10 @@ If EXCLUDE-CHILDREN, only retrieve sibling boxes."
                                         (not (or in-front on-top))))
                                     (boxy--get-children parent)))))
             (if (string= rel "above")
-                (setq y-order (- (apply 'min 0 sibling-y-orders) 1))
-              (setq y-order (+ 1 (apply 'max 0 sibling-y-orders))))))
+                (setq y-order (- (apply #'min 0 sibling-y-orders) 1))
+              (setq y-order (+ 1 (apply #'max 0 sibling-y-orders))))))
          ((or on-top in-front)
-          (setq x-order (+ 1 (apply 'max 0
+          (setq x-order (+ 1 (apply #'max 0
                                     (mapcar
                                      (lambda (child) (with-slots (x-order) child x-order))
                                      (seq-filter
@@ -1551,9 +1532,7 @@ If EXCLUDE-CHILDREN, only retrieve sibling boxes."
         (boxy--add-child parent box t)))))
 
 
-(cl-defmethod boxy--flex-add ((box boxy-box)
-                                  (parent boxy-box)
-                                  (world boxy-box))
+(defun boxy--flex-add (box parent world)
   "Add BOX to a PARENT box flexibly.
 
 This function ignores the :rel slot and adds BOX in such a way
@@ -1597,7 +1576,7 @@ characters if possible."
                 (oset box :x-order 0)
                 (boxy--flex-adjust box world)))))))))
 
-(cl-defmethod boxy--flex-adjust ((box boxy-box) (world boxy-box))
+(defun boxy--flex-adjust (box world)
   "Adjust BOX x and y orders to try to fit WORLD within `boxy--flex-width'."
   (with-slots (children) box
     (let* ((partitioned (seq-group-by
@@ -1656,7 +1635,7 @@ characters if possible."
          (rows (split-string content "\n"))
          (height (length rows))
          (width (+ 2 (min boxy--tooltip-max-width
-                          (apply 'max 0 (mapcar 'length rows)))))
+                          (apply #'max 0 (mapcar #'length rows)))))
          (top (if (< (- cur-line 2 height) min-line)
                   (+ cur-line 2)
                 (- cur-line 1 height)))
@@ -1689,7 +1668,7 @@ characters if possible."
         (setq top (+ top 1))))
     (save-excursion (boxy-mode-recalculate-box-ring))
     (push (read-event nil) unread-command-events)
-    (mapc 'delete-overlay overlays)))
+    (mapc #'delete-overlay overlays)))
 
 (provide 'boxy)
 

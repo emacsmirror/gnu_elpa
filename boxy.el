@@ -163,39 +163,23 @@
 (defface boxy-default nil
   "Default face used in Boxy mode.")
 
-(defface boxy-primary nil
-  "Face for highlighting the name of a box.")
+(defface boxy-primary
+   '((((background dark)) (:foreground "turquoise"))
+     (t (:foreground "dark cyan")))
+   "Face for highlighting the name of a box.")
 
-(face-spec-set
- 'boxy-primary
- '((((background dark)) (:foreground "turquoise"))
-   (t (:foreground "dark cyan")))
- 'face-defface-spec)
-
-(defface boxy-selected nil
+(defface boxy-selected
+   '((t :foreground "light slate blue"))
   "Face for the current box border under cursor.")
 
-(face-spec-set
- 'boxy-selected
- '((t :foreground "light slate blue"))
- 'face-defface-spec)
-
-(defface boxy-rel nil
+(defface boxy-rel
+  '((t :foreground "hot pink"))
   "Face for the box which is related to the box under the cursor.")
 
-(face-spec-set
- 'boxy-rel
- '((t :foreground "hot pink"))
- 'face-defface-spec)
-
-(defface boxy-tooltip nil
-  "Face for tooltips in a boxy diagram.")
-
-(face-spec-set
- 'boxy-tooltip
+(defface boxy-tooltip
  '((((background dark)) (:background "gray30" :foreground "gray"))
    (t (:background "gainsboro" :foreground "dim gray")))
- 'face-defface-spec)
+ "Face for tooltips in a boxy diagram.")
 
 ;;;; Constants
 

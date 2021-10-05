@@ -6,7 +6,7 @@
 
 ;;; Code:
 
-(load-file "boxy.el")
+(require 'boxy "boxy.el")
 
 (setq boxy-default-margin-x 0)
 (setq boxy-default-margin-y 1)
@@ -16,4 +16,3 @@
 (provide 'boxy-test-setup)
 
 ;;; boxy-test-setup.el ends here
-

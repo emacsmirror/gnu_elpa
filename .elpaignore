@@ -1,4 +1,4 @@
-/tests
-/.gitignore
-/.gitlab-ci.yml
-/Eldev
+tests
+.gitignore
+.gitlab-ci.yml
+Eldev

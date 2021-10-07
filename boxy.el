@@ -412,10 +412,10 @@
 (define-derived-mode boxy-mode special-mode
   "Boxy"
   "Mode for viewing an boxy diagram."
-  (let ((inhibit-message t))     ;FIXME: Please report the message as an error.
-    (setq indent-tabs-mode nil)
-    (cursor-sensor-mode t)
-    (toggle-truncate-lines t)))
+  (visual-line-mode -1)
+  (setq indent-tabs-mode nil)
+  (cursor-sensor-mode t)
+  (setq truncate-lines t))
 
 (cl-defun boxy-pp (box
                    &key

@@ -915,7 +915,7 @@ Uses `boxy--offset' to determine row and column offsets."
                                   (let ((remaining-chars (- (save-excursion (end-of-line)
                                                                             (current-column))
                                                             (current-column))))
-                                    (delete-char (min (length str) remaining-chars))))))
+                                    (delete-char (min (string-width str) remaining-chars))))))
             (draw (cons top left)
                   (concat (cond ((and double dashed) "┏")
                                 (double "╔")
@@ -983,7 +983,7 @@ Uses `boxy--offset' to determine row and column offsets."
                             (* 2 padding)))
              (width (+ base-width
                        (if (slot-boundp box :name)
-                           (with-slots (name) box (length name))
+                           (with-slots (name) box (string-width name))
                          0)))
              (children (boxy--get-children box)))
         (setq stored-width
@@ -1014,7 +1014,7 @@ Uses `boxy--offset' to determine row and column offsets."
                                                   (mapcar #'boxy--get-width row)
                                                   (* -1 margin)))
                                                rows))))
-                  (if (> width (+ (* 2 padding) children-width))
+                  (if (> width (+ 1 (* 2 padding) children-width))
                       width
                     (+ base-width children-width)))))))))
 

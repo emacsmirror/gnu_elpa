@@ -115,6 +115,7 @@
 (require 'easy-mmode)
 (require 'eieio)
 (require 'cl-lib)
+(require 'subr-x)
 
 ;;;; Options
 

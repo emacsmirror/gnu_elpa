@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021 Free Software Foundation, Inc.
 
 ;; Author: Tyler Grinn <tylergrinn@gmail.com>
-;; Version: 1.0.2
+;; Version: 1.0.3
 ;; File: boxy.el
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: tools
@@ -115,11 +115,12 @@
 (require 'easy-mmode)
 (require 'eieio)
 (require 'cl-lib)
+(require 'subr-x)
 
 ;;;; Options
 
 (defgroup boxy nil
-  "Customization options for boxy"
+  "Customization options for boxy."
   :group 'applications)
 
 (defcustom boxy-default-margin-x 2
@@ -163,39 +164,23 @@
 (defface boxy-default nil
   "Default face used in Boxy mode.")
 
-(defface boxy-primary nil
-  "Face for highlighting the name of a box.")
+(defface boxy-primary
+   '((((background dark)) (:foreground "turquoise"))
+     (t (:foreground "dark cyan")))
+   "Face for highlighting the name of a box.")
 
-(face-spec-set
- 'boxy-primary
- '((((background dark)) (:foreground "turquoise"))
-   (t (:foreground "dark cyan")))
- 'face-defface-spec)
-
-(defface boxy-selected nil
+(defface boxy-selected
+   '((t :foreground "light slate blue"))
   "Face for the current box border under cursor.")
 
-(face-spec-set
- 'boxy-selected
- '((t :foreground "light slate blue"))
- 'face-defface-spec)
-
-(defface boxy-rel nil
+(defface boxy-rel
+  '((t :foreground "hot pink"))
   "Face for the box which is related to the box under the cursor.")
 
-(face-spec-set
- 'boxy-rel
- '((t :foreground "hot pink"))
- 'face-defface-spec)
-
-(defface boxy-tooltip nil
-  "Face for tooltips in a boxy diagram.")
-
-(face-spec-set
- 'boxy-tooltip
+(defface boxy-tooltip
  '((((background dark)) (:background "gray30" :foreground "gray"))
    (t (:background "gainsboro" :foreground "dim gray")))
- 'face-defface-spec)
+ "Face for tooltips in a boxy diagram.")
 
 ;;;; Constants
 
@@ -428,10 +413,10 @@
 (define-derived-mode boxy-mode special-mode
   "Boxy"
   "Mode for viewing an boxy diagram."
-  (let ((inhibit-message t))     ;FIXME: Please report the message as an error.
-    (setq indent-tabs-mode nil)
-    (cursor-sensor-mode t)
-    (toggle-truncate-lines t)))
+  (visual-line-mode -1)
+  (setq indent-tabs-mode nil)
+  (cursor-sensor-mode t)
+  (setq truncate-lines t))
 
 (cl-defun boxy-pp (box
                    &key
@@ -931,7 +916,7 @@ Uses `boxy--offset' to determine row and column offsets."
                                   (let ((remaining-chars (- (save-excursion (end-of-line)
                                                                             (current-column))
                                                             (current-column))))
-                                    (delete-char (min (length str) remaining-chars))))))
+                                    (delete-char (min (string-width str) remaining-chars))))))
             (draw (cons top left)
                   (concat (cond ((and double dashed) "┏")
                                 (double "╔")
@@ -999,7 +984,7 @@ Uses `boxy--offset' to determine row and column offsets."
                             (* 2 padding)))
              (width (+ base-width
                        (if (slot-boundp box :name)
-                           (with-slots (name) box (length name))
+                           (with-slots (name) box (string-width name))
                          0)))
              (children (boxy--get-children box)))
         (setq stored-width
@@ -1030,7 +1015,7 @@ Uses `boxy--offset' to determine row and column offsets."
                                                   (mapcar #'boxy--get-width row)
                                                   (* -1 margin)))
                                                rows))))
-                  (if (> width (+ (* 2 padding) children-width))
+                  (if (> width (+ 1 (* 2 padding) children-width))
                       width
                     (+ base-width children-width)))))))))
 

@@ -120,7 +120,7 @@
 ;;;; Options
 
 (defgroup boxy nil
-  "Customization options for boxy"
+  "Customization options for boxy."
   :group 'applications)
 
 (defcustom boxy-default-margin-x 2

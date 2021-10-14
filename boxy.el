@@ -1462,7 +1462,7 @@ If EXCLUDE-CHILDREN, only retrieve sibling boxes."
                                         (with-slots (markers) match markers))
                                    (and (slot-boundp box :markers)
                                         (with-slots (markers) box markers)))))
-  (if (not (slot-boundp match :action)) (slot-boundp box :action)
+  (if (and (not (slot-boundp match :action)) (slot-boundp box :action))
     (oset match :action (with-slots (action) box action)))
   (mapc
    (lambda (next) (boxy-add-next next match))

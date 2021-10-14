@@ -159,6 +159,11 @@
   "Maximum width of all tooltips."
   :type 'number)
 
+;;;; Variables
+
+(defvar boxy-tooltip-show-function #'boxy--tooltip-show
+  "A function which takes a multi-line string and displays it immediately.")
+
 ;;;; Faces
 
 (defface boxy-default nil
@@ -1607,7 +1612,7 @@ characters if possible."
                       (current-buffer))
                   (eq (marker-position marker)
                       (point)))
-             (boxy--tooltip-show content)))))))
+             (funcall boxy-tooltip-show-function content)))))))
 
 (defun boxy--tooltip-show (content)
   "Show tooltip with CONTENT at point immediately."

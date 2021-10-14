@@ -1217,15 +1217,16 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
   (with-slots (markers) box
     (lambda ()
       (interactive)
-      (let ((first (car markers)))
-        (object-remove-from-list box :markers first)
-        (object-add-to-list box :markers first t))
       (let* ((marker (car markers))
              (buffer (marker-buffer marker))
              (pos (marker-position marker)))
         (save-selected-window
           (switch-to-buffer-other-window buffer)
-          (goto-char pos))))))
+          (goto-char pos)))
+      (let ((first (car markers)))
+        (object-remove-from-list box :markers first)
+        (object-add-to-list box :markers first t)))))
+
 
 (defun boxy-button-jump-to (box)
   "Jump to the first occurrence of a link for BOX in the same window."

@@ -1581,6 +1581,7 @@ characters if possible."
           (overlay-put overlay 'after-string (make-string right-margin ?\s))
           (push overlay overlays))
         (setq top (+ top 1))))
+    (boxy--make-dirty boxy--world)
     (save-excursion (boxy-mode-recalculate-box-ring))
     (push (read-event nil) unread-command-events)
     (mapc #'delete-overlay overlays)))

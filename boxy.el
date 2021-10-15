@@ -219,9 +219,6 @@
 (defvar-local boxy--world nil
   "Current top-level box the buffer is displaying.")
 
-(defvar-local boxy--boxes '()
-  "All boxes currently in a boxy diagram.")
-
 (defvar-local boxy--header '()
   "Current containers the buffer is displaying.")
 
@@ -362,12 +359,8 @@
     (insert "\n")
     (goto-char (point-min))))
 
-(defun boxy-mode-reset-boxes ()
-  "Set `boxy--boxes' to be a list of all boxes in the current boxy diagram."
-  (setq boxy--boxes (boxy--get-all boxy--world)))
-
 (defun boxy-mode-recalculate-box-ring ()
-  "Recalculate the position of all boxes in `boxy--boxes'."
+  "Recalculate the position of all boxes in `boxy--world'."
   (setq boxy--box-ring
         (seq-sort
          #'<
@@ -377,23 +370,16 @@
            #'boxy--get-position
            (seq-filter
             (lambda (box) (boxy-is-visible box t))
-            boxy--boxes))))))
+            (boxy--get-all boxy--world)))))))
 
 (defun boxy-mode-update-visibility ()
-  "Update visibility of all boxes in `boxy--boxes'."
+  "Update visibility of all boxes in `boxy--world'."
   (boxy--update-visibility boxy--world)
-  (boxy-mode-reset-boxes)
   (boxy--flex-adjust boxy--world boxy--world))
 
 (defun boxy-mode-make-dirty ()
-  "Clear all TOP LEFT WIDTH and HEIGHT coordinates from `boxy--boxes'."
-  (mapc
-   (lambda (box)
-     (if (slot-boundp box :top) (slot-makeunbound box :top))
-     (if (slot-boundp box :left) (slot-makeunbound box :left))
-     (if (slot-boundp box :width) (slot-makeunbound box :width))
-     (if (slot-boundp box :height) (slot-makeunbound box :height)))
-   boxy--boxes))
+  "Clear all TOP LEFT WIDTH and HEIGHT coordinates from `boxy--world'."
+  (boxy--make-dirty boxy--world))
 
 (defvar boxy-mode-map
   (easy-mmode-define-keymap
@@ -1303,6 +1289,13 @@ BOX is the box the button is being made for."
 
 ;;;; Private class methods
 
+(defun boxy--make-dirty (box)
+  (if (slot-boundp box :top) (slot-makeunbound box :top))
+  (if (slot-boundp box :left) (slot-makeunbound box :left))
+  (if (slot-boundp box :width) (slot-makeunbound box :width))
+  (if (slot-boundp box :height) (slot-makeunbound box :height))
+  (mapc #'boxy--make-dirty (oref box children)))
+
 (defun boxy--expand-box (box)
   "Expand all siblings and children of BOX."
   (with-slots (children hidden-children expand-children) box
@@ -1329,7 +1322,9 @@ BOX is the box the button is being made for."
       (boxy--expand-box box))))
 
 (defun boxy--update-visibility (box)
-  "Update visibility of BOX based on `boxy--visibility'."
+  "Update visibility of BOX based on `boxy--visibility'.
+
+Also applies to children."
   (with-slots (level children hidden-children expand-children) box
     (if (not (boxy-is-visible box))
         (if children (cl-rotatef children hidden-children))

@@ -210,7 +210,7 @@
   (setq-local font-lock-defaults '(a68-font-lock-keywords))
   (setq-local indent-line-function #'a68-indent-line)
   (setq-local comment-start "#")
-  (setq-local comment-stop "#"))
+  (setq-local comment-end "#"))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.a68\\'" . a68-mode))

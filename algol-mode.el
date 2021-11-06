@@ -45,9 +45,6 @@
     map)
   "Keymap for Algol 68 major mode.")
 
-;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.a68\\'" . a68-mode))
-
 (defconst a68-font-lock-keywords
   (list
    (cons (concat "\\<\\("

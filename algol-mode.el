@@ -40,8 +40,8 @@
 (defvar a68-mode-map
   (let ((map (make-keymap)))
     (define-key map "\C-j" #'newline-and-indent)
-    (define-key map "\r"   #'electric-a68-terminate-line)
-    (define-key map "\t"   #'electric-a68-tab)
+    (define-key map "\r"   #'a68-electric-terminate-line)
+    (define-key map "\t"   #'a68-electric-tab)
     map)
   "Keymap for Algol 68 major mode.")
 
@@ -177,7 +177,7 @@
 (defconst a68-autoindent-lines-re
   "\\<\\(BEGIN\\|END\\|ELSE\\|ELIF\\|DO\\|OD\\|CASE\\|ESAC\\|IN\\|OUT\\)\\>")
 
-(defun electric-a68-terminate-line ()
+(defun a68-electric-terminate-line ()
   "Terminate line and indent next line."
   (interactive)
   ;; First, check if current line should be indented
@@ -193,7 +193,7 @@
     (unless in-string
       (a68-indent-line))))
 
-(defun electric-a68-tab ()
+(defun a68-electric-tab ()
   "Function called when TAB is pressed in Algol68 mode."
   (interactive)
   (unless (save-excursion

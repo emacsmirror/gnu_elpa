@@ -33,7 +33,7 @@
 (require 'font-lock)
 
 (defvar a68-indent-step 3
-  "Indentation step for Algol 68")
+  "Indentation step for Algol 68.")
 
 (defvar a68-mode-hook nil)
 
@@ -43,7 +43,7 @@
     (define-key map "\r"   'electric-a68-terminate-line)
     (define-key map "\t"   'electric-a68-tab)
     map)
-  "Keymap for Algol 68 major mode")
+  "Keymap for Algol 68 major mode.")
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.a68\\'" . a68-mode))
@@ -76,12 +76,14 @@
 
    (cons "\\('\\w*'\\)"
          font-lock-variable-name-face))
-  "Highlighting expressions for Algol 68 mode")
+  "Highlighting expressions for Algol 68 mode.")
 
 (defun a68-within-string ()
+  "Check if inside a string."
   (nth 3 (syntax-ppss)))
 
 (defun a68-within-comment ()
+  "Check if inside a comment."
   (nth 4 (syntax-ppss)))
 
 ;; Indentation rules:
@@ -105,7 +107,7 @@
 ;; - If none of the above apply, then do not indent at all.
 
 (defun a68-indent-line ()
-  "Indent current line as Algol 68 code"
+  "Indent current line as Algol 68 code."
   (interactive)
   (let ((case-fold-search nil))
     (save-excursion
@@ -217,3 +219,4 @@
   (run-hooks 'a68-mode-hooks))
 
 (provide 'algol-mode)
+;;; algol-mode.el ends here

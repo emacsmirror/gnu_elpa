@@ -39,9 +39,9 @@
 
 (defvar a68-mode-map
   (let ((map (make-keymap)))
-    (define-key map "\C-j" 'newline-and-indent)
-    (define-key map "\r"   'electric-a68-terminate-line)
-    (define-key map "\t"   'electric-a68-tab)
+    (define-key map "\C-j" #'newline-and-indent)
+    (define-key map "\r"   #'electric-a68-terminate-line)
+    (define-key map "\t"   #'electric-a68-tab)
     map)
   "Keymap for Algol 68 major mode.")
 

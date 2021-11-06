@@ -35,7 +35,8 @@
 (defvar a68-indent-step 3
   "Indentation step for Algol 68.")
 
-(defvar a68-mode-hook nil)
+(defvar a68-mode-hook '()
+  "Hook run when entering Algol68 mode.")
 
 (defvar a68-mode-map
   (let ((map (make-keymap)))

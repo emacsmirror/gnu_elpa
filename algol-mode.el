@@ -212,5 +212,8 @@
   (setq-local comment-start "#")
   (setq-local comment-stop "#"))
 
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.a68\\'" . a68-mode))
+
 (provide 'algol-mode)
 ;;; algol-mode.el ends here

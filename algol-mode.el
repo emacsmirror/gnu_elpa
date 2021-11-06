@@ -204,19 +204,13 @@
             (a68-within-string))
     (a68-indent-line)))
 
-(defun algol-mode ()
-  "Major mode for editing Algol 68 files."
-  (interactive)
-  (kill-all-local-variables)
-  (set-syntax-table a68-mode-syntax-table)
-  (use-local-map a68-mode-map)
-  (set (make-local-variable 'font-lock-defaults)
-       '(a68-font-lock-keywords))
-  (set (make-local-variable 'indent-line-function)
-       'a68-indent-line)
-  (setq major-mode 'a68-mode)
-  (setq mode-name "Algol68")
-  (run-hooks 'a68-mode-hooks))
+;;;###autoload
+(define-derived-mode a68-mode prog-mode "Algol68"
+  "Major mode for editing Alogl68 files."
+  (setq-local font-lock-defaults '(a68-font-lock-keywords))
+  (setq-local indent-line-function #'a68-indent-line)
+  (setq-local comment-start "#")
+  (setq-local comment-stop "#"))
 
 (provide 'algol-mode)
 ;;; algol-mode.el ends here

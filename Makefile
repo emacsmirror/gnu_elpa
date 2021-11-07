@@ -4,7 +4,7 @@ EMACS =		emacs
 
 all: compile
 
-compile: algol-mode.elc
+compile: a68-mode.elc
 
 clean:
 	rm -f *.elc

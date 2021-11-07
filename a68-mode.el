@@ -222,5 +222,5 @@
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.a68\\'" . a68-mode))
 
-(provide 'algol-mode)
-;;; algol-mode.el ends here
+(provide 'a68-mode)
+;;; a68-mode.el ends here

@@ -188,11 +188,10 @@
     (when (looking-at a68-autoindent-lines-re)
       (a68-indent-line)))
   (delete-horizontal-space) ; Removes triling whitespaces
+  (newline)
   ;; Indent next line if we are not in a string
-  (let ((in-string (a68-within-string)))
-    (newline)
-    (unless in-string
-      (a68-indent-line))))
+  (unless (a68-within-string)
+    (a68-indent-line)))
 
 (defun a68-electric-tab ()
   "Function called when TAB is pressed in Algol68 mode."

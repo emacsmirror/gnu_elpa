@@ -181,8 +181,8 @@
     (modify-syntax-entry ?# "<" st)
     (modify-syntax-entry ?# ">" st)
     (modify-syntax-entry ?\\ "." st)
-;;    (modify-syntax-entry ?C "< 13" st)
-;;    (modify-syntax-entry ?O "> 24" st)
+    (modify-syntax-entry ?C "< 13" st)
+    (modify-syntax-entry ?O "> 24" st)
     ;; define parentheses to match
     (modify-syntax-entry ?\( "()" st)
     (modify-syntax-entry ?\) ")(" st)

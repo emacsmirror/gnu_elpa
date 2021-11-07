@@ -57,6 +57,13 @@
   :type 'integer
   :safe #'integerp)
 
+(defcustom a68-comment-style '("#" . "#")
+  "Default comment style used by e.g. `comment-dwim'."
+  :type '(choice (const :tag "#" ("#" . "#"))
+                 (const :tag "CO" ("CO" . "CO"))
+                 (const :tag "COMMENT" ("COMMENT" . "COMMENT")))
+  :safe #'consp)
+
 (defvar a68-mode-hook '()
   "Hook run when entering Algol68 mode.")
 
@@ -218,8 +225,8 @@
   :abbrev-table a68-mode-abbrev-table
   (setq-local font-lock-defaults '(a68-font-lock-keywords))
   (setq-local indent-line-function #'a68-indent-line)
-  (setq-local comment-start "#")
-  (setq-local comment-end "#")
+  (setq-local comment-start (car a68-comment-style))
+  (setq-local comment-end (cdr a68-comment-style))
   (setq-local syntax-propertize-function
               (syntax-propertize-rules ((rx (group bow "COMMENT" eow)
                                             (group (*? anychar))

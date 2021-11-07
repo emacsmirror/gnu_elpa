@@ -211,9 +211,16 @@
             (a68-within-string))
     (a68-indent-line)))
 
+(defvar a68-mode-abbrev-table nil
+  "Abbreviation table used in `a68-mode' buffers.")
+
+(define-abbrev-table 'a68-mode-abbrev-table
+  '())
+
 ;;;###autoload
 (define-derived-mode a68-mode prog-mode "Algol68"
   "Major mode for editing Alogl68 files."
+  :abbrev-table a68-mode-abbrev-table
   (setq-local font-lock-defaults '(a68-font-lock-keywords))
   (setq-local indent-line-function #'a68-indent-line)
   (setq-local comment-start "#")

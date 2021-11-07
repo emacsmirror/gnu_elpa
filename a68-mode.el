@@ -32,6 +32,11 @@
 
 ;; A major mode for editing Algol 68 code.
 ;;
+;; This is an improved and modernized version of the a68-mode written
+;; by Jose E. Marchesi.  The original code was taken from
+;;
+;; https://github.com/lachrymology/me/blob/master/.emacs.d/extras/algol-mode.el
+;;
 ;; TODO: support quote and dot stropping.
 
 ;;; Code:

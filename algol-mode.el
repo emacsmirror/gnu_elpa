@@ -1,8 +1,9 @@
 ;;; a68-mode.el --- Major mode for editing Algol 68 code
 
 ;; Copyright (C) 2011 Jose E. Marchesi
+;; Copyright (C) 2021 Omar Polo
 
-;; Maintainer: Jose E. Marchesi
+;; Maintainer: Omar Polo
 
 ;; This file is NOT part of GNU Emacs.
 

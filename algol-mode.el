@@ -32,6 +32,9 @@
 (require 'syntax)
 (require 'font-lock)
 
+(eval-when-compile
+  (require 'rx))
+
 (defvar a68-indent-step 3
   "Indentation step for Algol 68.")
 
@@ -48,32 +51,30 @@
 
 (defconst a68-font-lock-keywords
   (list
-   (cons (concat "\\<\\("
-                 "DECS\\|PROGRAM\\|CONTEXT\\|USE\\|FINISH\\|KEEP"
-                 "\\|ALIEN"
-                 "\\|MODE\\|OP\\|PRIO\\|PROC"
-                 "\\|PROC"
-                 "\\|OF\\|AT\\|IS\\|ISNT\\|EMPTY\\|SKIP"
-                 "\\|PR\\|PRAGMAT"
-                 "\\|CASE\\|IN\\|OUSE\\|OUT\\|ESAC\\|"
-                 "\\|FOR\\|FORALL\\|FROM\\|TO\\|BY\\|WHILE\\|DO\\|OD"
-                 "\\|IF\\|THEN\\|ELIF\\|THEN\\|ELSE\\|FI"
-                 "\\|PAR\\|BEGIN\\|END\\|GOTO\\|EXIT"
-                 "\\|LWB\\|UPB\\|NOT\\|ABS\\|BIN\\|REPR\\|LENG\\|SHORTEN\\|ODD\\|SIGN\\|ROUND\\ENTIER"
-                 "\\|AND\\|OR\\|DIV\\|OVER\\|MOD\\|ELEM\\|SHL\\|SHR\\|IS\\|ISNT"
-                 "\\|OVERAB\\|DIVAB\\|MODAB"
-                 "\\|REF"
-                 "\\)\\>")
+   (cons (rx word-start
+             (or "DECS" "PROGRAM" "CONTEXT" "USE" "FINISH" "KEEP"
+                 "ALIEN"
+                 "MODE" "OP" "PRIO" "PROC"
+                 "OF" "AT" "IS" "ISNT" "EMPTY" "SKIP"
+                 "PR" "PRAGMAT"
+                 "CASE" "IN" "OUSE" "OUT" "ESAC"
+                 "FOR" "FORALL" "FROM" "TO" "BY" "WHILE" "DO" "OD"
+                 "IF" "THEN" "ELIF" "THEN" "ELSE" "FI"
+                 "PAR" "BEGIN" "END" "GOTO" "EXIT"
+                 "LWB" "UPB" "NOT" "ABS" "BIN" "REPR" "LENG"
+                 "SHORTEN" "ODD" "SIGN" "ROUND" "ENTIER" "AND" "OR"
+                 "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"
+                 "REF")
+             word-end)
          'font-lock-keyword-face)
-   (cons (concat "\\<\\("
-                 "TRUE\\|\\FALSE"
-                 "\\)\\>")
+   (cons (rx word-start
+             (or "TRUE" "FALSE")
+             word-end)
          'font-lock-constant-face)
-   ;; Note that the following rule is only valid for bold stropping.
+   ;; only valid for bold stropping
    (cons (concat "\\<[A-Z]+\\>") 'font-lock-type-face)
-
    (cons "\\('\\w*'\\)"
-         font-lock-variable-name-face))
+         'font-lock-variable-name-face))
   "Highlighting expressions for Algol 68 mode.")
 
 (defsubst a68-within-string ()
@@ -176,7 +177,9 @@
 ;;;
 
 (defconst a68-autoindent-lines-re
-  "\\<\\(BEGIN\\|END\\|ELSE\\|ELIF\\|DO\\|OD\\|CASE\\|ESAC\\|IN\\|OUT\\)\\>")
+  (rx word-start
+      (or "BEGIN" "END" "ELSE" "ELIF" "DO" "OD" "CASE" "ESAC" "IN" "OUT")
+      word-end))
 
 (defun a68-electric-terminate-line ()
   "Terminate line and indent next line."

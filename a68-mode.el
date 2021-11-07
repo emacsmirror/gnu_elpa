@@ -47,7 +47,7 @@
 (eval-when-compile
   (require 'rx))
 
-(defvar a68-indent-step 3
+(defvar a68-indent-level 3
   "Indentation step for Algol 68.")
 
 (defvar a68-mode-hook '()
@@ -145,7 +145,7 @@
                   (progn
                     (save-excursion
                       (forward-line -1)
-                      (setq cur-indent (- (current-indentation) a68-indent-step)))
+                      (setq cur-indent (- (current-indentation) a68-indent-level)))
                     (when (< cur-indent 0)
                       (setq cur-indent 0)))
                 (save-excursion
@@ -158,7 +158,7 @@
                       ;; Check for rule 4
                       (if (looking-at begin-indent-re)
                           (progn
-                            (setq cur-indent (+ (current-indentation) a68-indent-step))
+                            (setq cur-indent (+ (current-indentation) a68-indent-level))
                             (setq not-indented nil))
                         (when (bobp) ; Check for rule 5
                           (setq not-indented nil))))))))

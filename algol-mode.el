@@ -76,11 +76,11 @@
          font-lock-variable-name-face))
   "Highlighting expressions for Algol 68 mode.")
 
-(defun a68-within-string ()
+(defsubst a68-within-string ()
   "Check if inside a string."
   (nth 3 (syntax-ppss)))
 
-(defun a68-within-comment ()
+(defsubst a68-within-comment ()
   "Check if inside a comment."
   (nth 4 (syntax-ppss)))
 

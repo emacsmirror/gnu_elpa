@@ -1,9 +1,15 @@
 ;;; a68-mode.el --- Major mode for editing Algol 68 code
 
 ;; Copyright (C) 2011 Jose E. Marchesi
-;; Copyright (C) 2021 Omar Polo
+;; Copyright (C) 2021 Omar Polo <op@omarpolo.com>
 
+;; Author: Jose E. Marchesi
+;;         Omar Polo <op@omarpolo.com>
 ;; Maintainer: Omar Polo
+;; URL: https://git.omarpolo.com/a68-mode
+;; Keywords: languages
+;; Version: 0
+;; Package-Requires: ((emacs "24.3"))
 
 ;; This file is NOT part of GNU Emacs.
 

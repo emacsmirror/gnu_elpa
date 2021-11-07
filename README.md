@@ -1,6 +1,6 @@
 # a68-mode -- Algol68 major mode
 
-This is an improved and modernised version of algol68 mode by Jose
+This is an improved and modernised version of the Algol68 mode by Jose
 E. Marchesi.  It fully supports automatic indentation and font locking
 (i.e. syntax highlighting -- comments included).
 

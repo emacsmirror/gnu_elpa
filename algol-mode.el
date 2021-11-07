@@ -133,8 +133,8 @@
                     (save-excursion
                       (forward-line -1)
                       (setq cur-indent (- (current-indentation) a68-indent-step)))
-                    (if (< cur-indent 0)
-                        (setq cur-indent 0)))
+                    (when (< cur-indent 0)
+                      (setq cur-indent 0)))
                 (save-excursion
                   (while not-indented
                     (forward-line -1)
@@ -147,8 +147,8 @@
                           (progn
                             (setq cur-indent (+ (current-indentation) a68-indent-step))
                             (setq not-indented nil))
-                        (if (bobp) ; Check for rule 5
-                            (setq not-indented nil))))))))
+                        (when (bobp) ; Check for rule 5
+                          (setq not-indented nil))))))))
             (if cur-indent
                 (indent-line-to cur-indent)
               ;; If we didn't see an indentation hint, then allow no
@@ -185,8 +185,8 @@
   (save-excursion
     (beginning-of-line)
     (skip-chars-forward " \t")
-    (if (looking-at a68-autoindent-lines-re)
-        (a68-indent-line)))
+    (when (looking-at a68-autoindent-lines-re)
+      (a68-indent-line)))
   (delete-horizontal-space) ; Removes triling whitespaces
   ;; Indent next line if we are not in a string
   (let ((in-string (a68-within-string)))

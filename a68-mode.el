@@ -47,8 +47,15 @@
 (eval-when-compile
   (require 'rx))
 
-(defvar a68-indent-level 3
-  "Indentation step for Algol 68.")
+(defgroup a68 nil
+  "Major mode for editing Algol68 code."
+  :prefix "a68-"
+  :group 'languages)
+
+(defcustom a68-indent-level 3
+  "Indentation step for Algol 68."
+  :type 'integer
+  :safe #'integerp)
 
 (defvar a68-mode-hook '()
   "Hook run when entering Algol68 mode.")

@@ -64,7 +64,6 @@
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-j") #'newline-and-indent)
     (define-key map (kbd "RET") #'a68-electric-terminate-line)
-    (define-key map (kbd "C-i") #'a68-electric-tab)
     map)
   "Keymap for Algol 68 major mode.")
 
@@ -213,14 +212,6 @@
   (newline)
   ;; Indent next line if we are not in a string
   (unless (a68-within-string)
-    (a68-indent-line)))
-
-(defun a68-electric-tab ()
-  "Function called when TAB is pressed in Algol68 mode."
-  (interactive)
-  (unless (save-excursion
-            (beginning-of-line)
-            (a68-within-string))
     (a68-indent-line)))
 
 (defvar a68-mode-abbrev-table nil

@@ -144,7 +144,6 @@
                 (looking-at "^[ \t]*\\<\\(KEEP\\|FINISH\\|DECS\\|USE\\|PROGRAM\\)\\>"))
             (indent-line-to 0)
           (let ((not-indented t)
-                (prev-indent (current-indentation))
                 (begin-indent-re "^[ \t]*\\<\\(PAR\\|BEGIN\\|KEEP\\|IF\\|DO\\|ELSE\\|ELIF\\|THEN\\)")
                 (deindent-line-re "^[ \t]*\\<\\(END\\|FI\\|OD\\|ELSE\\|ELIF\\)\\>")
                 (eqindent-line-re "^[ \t]*\\<\\(THEN\\)\\>")

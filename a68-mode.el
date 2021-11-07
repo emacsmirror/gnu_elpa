@@ -178,9 +178,7 @@
 
 (defvar a68-mode-syntax-table
   (let ((st (make-syntax-table)))
-    (modify-syntax-entry ?{ "<" st)
     (modify-syntax-entry ?# "<" st)
-    (modify-syntax-entry ?} ">" st)
     (modify-syntax-entry ?# ">" st)
     (modify-syntax-entry ?\\ "." st)
 ;;    (modify-syntax-entry ?C "< 13" st)

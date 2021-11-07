@@ -190,10 +190,6 @@
     (modify-syntax-entry ?\) ")(" st)
     st))
 
-;;;
-;;; Electric functions
-;;;
-
 (defconst a68-autoindent-lines-re
   (rx word-start
       (or "BEGIN" "END" "ELSE" "ELIF" "DO" "OD" "CASE" "ESAC" "IN" "OUT")

@@ -61,7 +61,7 @@
   "Hook run when entering Algol68 mode.")
 
 (defvar a68-mode-map
-  (let ((map (make-keymap)))
+  (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-j") #'newline-and-indent)
     (define-key map (kbd "RET") #'a68-electric-terminate-line)
     (define-key map (kbd "C-i") #'a68-electric-tab)

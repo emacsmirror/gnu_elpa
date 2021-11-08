@@ -104,7 +104,7 @@
   "Highlighting expressions for Algol 68 mode.")
 
 (defvar a68--keywords-regexp
-  (regexp-opt '("+" "*" ";" ">" "<" ":=" "=" ",")))
+  (regexp-opt '("+" "*" ";" ">" "<" ":=" "=" "," ":")))
 
 (defvar a68--smie-grammar
   (smie-prec2->grammar
@@ -126,8 +126,9 @@
                             ("CASE" exprs "IN" exprs "OUT" exprs "ESAC"))
                       (exprs (exprs "," exprs)
                              (exprs ";" exprs)
+                             (exprs ":" exprs)
                              (expr)))
-                    '((assoc ";" ","))
+                    '((assoc ";" "," ":"))
                     '((assoc "=" "/=" ":=" ":=:" ":/=:"
                              "+" "-" "*" "/")))))
 
@@ -173,6 +174,7 @@
     (modify-syntax-entry ?# ">" st)
     (modify-syntax-entry ?\\ "." st)
     (modify-syntax-entry ?, "." st)
+    (modify-syntax-entry ?: "." st)
     ;; define parentheses to match
     (modify-syntax-entry ?\( "()" st)
     (modify-syntax-entry ?\) ")(" st)

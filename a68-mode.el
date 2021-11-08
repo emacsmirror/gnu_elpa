@@ -127,7 +127,15 @@
                       (exprs (exprs "," exprs)
                              (exprs ";" exprs)
                              (exprs ":" exprs)
-                             (expr)))
+                             (expr))
+                      (loop ("FOR" exprs "FROM" exprs "TO" exprs
+                             "BY" exprs "DO" exprs "OD")
+                            ("FOR" exprs "FROM" exprs "TO" exprs
+                             "DO" exprs "OD")
+                            ("FOR" exprs "BY" exprs "TO" exprs
+                             "DO" exprs "OD")
+                            ;; ("TO" exprs "DO" exprs "OD")
+                            ("WHILE" exprs "DO" exprs "OD")))
                     '((assoc ";" "," ":"))
                     '((assoc "=" "/=" ":=" ":=:" ":/=:"
                              "+" "-" "*" "/")))))

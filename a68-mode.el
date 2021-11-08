@@ -103,14 +103,6 @@
          'font-lock-variable-name-face))
   "Highlighting expressions for Algol 68 mode.")
 
-(defsubst a68-within-string ()
-  "Check if inside a string."
-  (nth 3 (syntax-ppss)))
-
-(defsubst a68-within-comment ()
-  "Check if inside a comment."
-  (nth 4 (syntax-ppss)))
-
 (defvar a68--keywords-regexp
   (regexp-opt '("+" "*" ";" ">" "<" ":=" "=")))
 

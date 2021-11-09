@@ -120,8 +120,19 @@
                             (expr ":/=:" expr)
                             ("BEGIN" exprs "END")
                             ("(" exprs ")")
+                            ;; why all the repetitions?  copied from
+                            ;; sh-script.el
                             ("IF" exprs "THEN" exprs "FI")
                             ("IF" exprs "THEN" exprs "ELSE" exprs "FI")
+                            ("IF" exprs "THEN" exprs
+                             "ELIF" exprs "THEN" exprs "FI")
+                            ("IF" exprs "THEN" exprs
+                             "ELIF" exprs "THEN" exprs
+                             "ELSE" exprs "FI")
+                            ("IF" exprs "THEN" exprs
+                             "ELIF" exprs "THEN" exprs
+                             "ELIF" exprs "THEN" exprs
+                             "ELSE" exprs "FI")
                             ("CASE" exprs "IN" exprs "ESAC")
                             ("CASE" exprs "IN" exprs "OUT" exprs "ESAC"))
                       (exprs (exprs "," exprs)

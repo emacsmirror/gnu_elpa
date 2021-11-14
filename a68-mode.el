@@ -227,12 +227,14 @@
                     (group bow "CO" eow))
                 (1 "<")
                 (3 ">"))
-               ;; ((rx (group "#\\[^!\\]")
-               ;;      (group (*? anychar))
-               ;;      (group "#"))
-               ;;  (1 "<")
-               ;;  (3 ">"))
-               )))
+               ;; a comment is # ... #, but I don't want the
+               ;; (eventual) shebang #! to be considered the start of
+               ;; the comment.
+               ((rx (group "#" (not "!"))
+                    (group (*? anychar))
+                    (group "#"))
+                (1 "<")
+                (3 ">")))))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.a68\\'" . a68-mode))

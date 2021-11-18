@@ -109,46 +109,60 @@
 (defvar a68--smie-grammar
   (smie-prec2->grammar
    (smie-bnf->prec2 '((id)
-                      (expr ("-" expr)
-                            (expr "+" expr)
-                            (expr "*" expr)
-                            (expr "/" expr)
-                            (expr "=" expr)
-                            (expr "/=" expr)
-                            (expr ":=" expr)
-                            (expr ":=:" expr)
-                            (expr ":/=:" expr)
-                            ("BEGIN" exprs "END")
-                            ("(" exprs ")")
-                            ;; why all the repetitions?  copied from
-                            ;; sh-script.el
-                            ("IF" exprs "THEN" exprs "FI")
-                            ("IF" exprs "THEN" exprs "ELSE" exprs "FI")
-                            ("IF" exprs "THEN" exprs
-                             "ELIF" exprs "THEN" exprs "FI")
-                            ("IF" exprs "THEN" exprs
-                             "ELIF" exprs "THEN" exprs
-                             "ELSE" exprs "FI")
-                            ("IF" exprs "THEN" exprs
-                             "ELIF" exprs "THEN" exprs
-                             "ELIF" exprs "THEN" exprs
-                             "ELSE" exprs "FI")
-                            ("CASE" exprs "IN" exprs "ESAC")
-                            ("CASE" exprs "IN" exprs "OUT" exprs "ESAC"))
-                      (exprs (exprs "," exprs)
-                             (exprs ";" exprs)
-                             (exprs ":" exprs)
-                             (expr))
-                      (loop ("FOR" exprs "FROM" exprs "TO" exprs
-                             "BY" exprs "DO" exprs "OD")
-                            ("FOR" exprs "FROM" exprs "TO" exprs
-                             "DO" exprs "OD")
-                            ("FOR" exprs "BY" exprs "TO" exprs
-                             "DO" exprs "OD")
-                            ;; ("TO" exprs "DO" exprs "OD")
-                            ("WHILE" exprs "DO" exprs "OD")))
-                    '((assoc ";" "," ":"))
-                    '((assoc "=" "/=" ":=" ":=:" ":/=:"
+                      (ids (id "-anchor-" id))
+                      (fields (fields "," fields)
+                              (ids))
+                      (args ("(" fargs ")"))
+                      (fargs (fargs "," fargs)
+                             (exp))
+                      (exp (ids)
+                           (exp "OF" exp)
+                           (exp "[" exp "]")
+                           ("(" exp ")")
+                           ("BEGIN" exp "END"))
+                      (type-decl ("MODE" type-decl*))
+                      (type-decl* (type-decl* "," type-decl*)
+                                  (id "=" type-decl**))
+                      (type-decl** ("STRUCT" args)
+                                   ("UNION" args)
+                                   ("PROC" args "-archor-" ids))
+                      (op-decl (op-decl "," op-decl)
+                               ("OP" ids "=" args ids ":" exp))
+                      (proc-decl (proc-decl "," proc-decl)
+                                 ("OP" ids "=" args ids ":" exp)
+                                 ("PROC" ids "=" ids ":" exp))
+                      ;; TODO: this don't cover all the loop
+                      ;; possibilities.
+                      (loop ("FOR" exp "FROM" exp "TO" exp "BY" exp
+                             "DO" exp "OD")
+                            ("FOR" exp "FROM" exp "TO" exp
+                             "DO" exp "OD")
+                            ("FOR" exp "BY" exp "TO" exp
+                             "DO" exp "OD")
+                            ("-to-" "TO" exp "DO" exp "OD")
+                            ("WHILE" exp "DO" exp "OD"))
+                      (insts (insts ";" insts)
+                             (id ":=" exp)
+                             ("IF" exp "THEN" insts "FI")
+                             ("IF" exp "THEN" insts "ELSE" insts "FI")
+                             ("IF" exp "THEN" insts
+                              "ELSIF" exp "THEN" insts "ELSE" insts "FI")
+                             ("IF" exp "THEN" insts
+                              "ELSIF" exp "THEN" insts
+                              "ELSIF" exp "THEN" insts "ELSE" insts "FI")
+                             ;; TODO OUSE for both case and conformity case
+                             ("CASE" exp "IN" fargs "ESAC")
+                             ("CASE" exp "IN" conformity-cases "ESAC")
+                             ("CASE" exp "IN" fargs "OUT" exp "ESAC")
+                             (op-decl)
+                             (type-decl)
+                             (proc-decl)
+                             (loop)))
+                    '((assoc "OF" "[")
+                      (assoc ";")
+                      (assoc "|" "|:")
+                      (assoc ","))
+                    '((assoc "=" "/" ":=" ":=:" ":/=:"
                              "+" "-" "*" "/")))))
 
 (defun a68--smie-rules (kind token)

@@ -26,3 +26,9 @@ The following variables are available for customization:
    by e.g. `comment-dwim`.
 
 see `M-x customize-group a68 RET` for more info.
+
+
+### Known issues
+
+It doesn't handle well shebangs: `#!` is taken as the start of the
+comment up to the next `#`.

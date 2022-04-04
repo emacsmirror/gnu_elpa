@@ -7,7 +7,7 @@ package:
   image: silex/emacs:27
   before_script:
     - curl -fsSL https://raw.github.com/doublep/eldev/master/webinstall/eldev | sh
-    - export PATH=$PATH:/root/.eldev/bin
+    - export PATH="/root/.local/bin:$PATH"
   script:
     - eldev lint
     - eldev compile -W

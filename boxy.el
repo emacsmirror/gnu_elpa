@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021 Free Software Foundation, Inc.
 
 ;; Author: Tyler Grinn <tylergrinn@gmail.com>
-;; Version: 1.0.4
+;; Version: 1.0.5
 ;; File: boxy.el
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: tools
@@ -1255,7 +1255,15 @@ BOX is the box the button is being made for."
   "Cycle visibility of children of BOX."
   (with-slots (children hidden-children) box
     (if (or children hidden-children)
-        (cl-rotatef children hidden-children)
+        (progn
+          (cl-rotatef children hidden-children)
+          (when hidden-children
+            (mapc
+             (lambda (child)
+               (with-slots ((grandchildren children)) child
+                 (if grandchildren
+                     (boxy--cycle-children child))))
+             hidden-children)))
       (boxy--expand-box box))))
 
 (defun boxy--update-visibility (box)

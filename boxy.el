@@ -7,7 +7,7 @@
 ;; File: boxy.el
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: tools
-;; URL: https://gitlab.com/tygrdev/boxy.el
+;; URL: https://gitlab.com/tygrdev/boxy
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

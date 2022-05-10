@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021 Free Software Foundation, Inc.
 
 ;; Author: Tyler Grinn <tylergrinn@gmail.com>
-;; Version: 1.0.5
+;; Version: 1.0.6
 ;; File: boxy.el
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: tools
@@ -1149,7 +1149,8 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
     (let ((marker (car (oref box markers))))
       (save-selected-window
         (switch-to-buffer-other-window (marker-buffer marker))
-        (goto-char (marker-position marker)))
+        (goto-char (marker-position marker))
+        (org-reveal))
       (object-remove-from-list box :markers marker)
       (object-add-to-list box :markers marker t))))
 
@@ -1163,7 +1164,9 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
       (if-let ((window (get-buffer-window buffer)))
             (select-window window)
           (switch-to-buffer buffer))
-        (goto-char (marker-position marker)))))
+      (goto-char (marker-position marker))
+      (org-reveal))))
+  
 
 (defun boxy-button-jump-all (box)
   "View all occurrences of links from BOX in the same window."
@@ -1176,10 +1179,12 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
           (error "To many buffers to visit simultaneously"))
       (switch-to-buffer (marker-buffer marker))
       (goto-char (marker-position marker))
+      (org-reveal)
       (dolist (marker (cdr markers))
         (select-window (split-window nil size))
         (switch-to-buffer (marker-buffer marker))
-        (goto-char (marker-position marker))))))
+        (goto-char (marker-position marker))
+        (org-reveal)))))
 
 (defun boxy-button-jump-rel (box)
   "Jump to the box directly related to BOX."

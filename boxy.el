@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021 Free Software Foundation, Inc.
 
 ;; Author: Tyler Grinn <tylergrinn@gmail.com>
-;; Version: 1.0.5
+;; Version: 1.1.0
 ;; File: boxy.el
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: tools
@@ -521,6 +521,10 @@ clicked.  If not set, use :markers.")
             :type list
             :documentation "A list of buffer markers that this
 box should link back to when clicked.")
+   (post-jump-hook :initarg :post-jump-hook
+                   :type function
+                   :documentation "A hook which is called after
+jumping to a marker.")
    (tooltip :initarg :tooltip
             :type string
             :documentation "A tooltip to be displayed when the
@@ -1146,30 +1150,37 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
   "Jump to location of link for BOX in other window."
   (lambda ()
     (interactive)
-    (let ((marker (car (oref box markers))))
+    (let ((marker (car (oref box markers)))
+          (post-jump-hook (if (slot-boundp box :post-jump-hook)
+                              (oref box post-jump-hook))))
       (save-selected-window
         (switch-to-buffer-other-window (marker-buffer marker))
-        (goto-char (marker-position marker)))
+        (goto-char (marker-position marker))
+        (if post-jump-hook (funcall post-jump-hook)))
       (object-remove-from-list box :markers marker)
       (object-add-to-list box :markers marker t))))
-
 
 (defun boxy-button-jump-to (box)
   "Jump to the first occurrence of a link for BOX in the same window."
   (lambda ()
     (interactive)
     (let* ((marker (car (oref box markers)))
+           (post-jump-hook (if (slot-boundp box :post-jump-hook)
+                               (oref box post-jump-hook)))
            (buffer (marker-buffer marker)))
       (if-let ((window (get-buffer-window buffer)))
             (select-window window)
           (switch-to-buffer buffer))
-        (goto-char (marker-position marker)))))
+      (goto-char (marker-position marker))
+      (if post-jump-hook (funcall post-jump-hook)))))
 
 (defun boxy-button-jump-all (box)
   "View all occurrences of links from BOX in the same window."
   (lambda ()
     (interactive)
     (let* ((markers (oref box markers))
+           (post-jump-hook (if (slot-boundp box :post-jump-hook)
+                               (oref box post-jump-hook)))
            (size (/ (window-height) (length markers)))
            (marker (car markers)))
       (or (<= window-min-height size)
@@ -1179,7 +1190,8 @@ If INCLUDE-ON-TOP is non-nil, also include height on top of box."
       (dolist (marker (cdr markers))
         (select-window (split-window nil size))
         (switch-to-buffer (marker-buffer marker))
-        (goto-char (marker-position marker))))))
+        (goto-char (marker-position marker))
+        (if post-jump-hook (funcall post-jump-hook))))))
 
 (defun boxy-button-jump-rel (box)
   "Jump to the box directly related to BOX."

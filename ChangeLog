@@ -1,0 +1,28 @@
+2022-03-09  Amin Bandali  <bandali@gnu.org>
+
+	* ffsanim.el: Rename from ffs.el to ffsanim.el.  Revision 0.1.5.
+
+2022-03-06  Amin Bandali  <bandali@gnu.org>
+
+	* ffs.el (ffs-new-slide): Merge function into `ffs-edit-slide'.
+	Revision 0.1.4.
+
+2022-03-05  Amin Bandali  <bandali@gnu.org>
+
+	* ffs.el: Implement insertion of new slide before or after the
+	current slide.  Revision 0.1.3.
+
+2022-03-05  Amin Bandali  <bandali@gnu.org>
+
+	* ffs.el (ffs-edit-mode): Change to a minor mode, and use the
+	source buffer's `major-mode' for the edit buffer.  Revision 0.1.2.
+
+2022-03-05  Amin Bandali  <bandali@gnu.org>
+
+	* ffs.el: Add `ffs-edit-mode' (derived from `text-mode') for the
+	new ffs-edit buffer for editing slides.  Revision 0.1.1.
+
+2022-03-04  Amin Bandali  <bandali@gnu.org>
+
+	* ffs.el: Initial revision 0.1.0.
+

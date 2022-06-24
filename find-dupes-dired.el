@@ -1,20 +1,25 @@
 (defcustom find-dupes-separator-file
   (concat "/tmp/-" (make-string 40 ?-))
-  "Path and name of the separator file that will be created (and deleted) for making search results easier to discern."
+  "Path and name of the separator file used for making search
+results easier to discern. It will be created immediately before
+and deleted as soon as possible after the search operation
+finishes."
   :group 'find-dupes-dired
-  :tag "Dummy separator file. It will be created immediately before and deleted as soon as possible after the search operation finishes."
+  :tag "Dummy separator file"
   :type 'string)
 
 (defcustom find-dupes-checksum-exec
   "sha256sum"
-  "Name of the executable used for creating file checksums for comparison."
+  "Name of the executable used for creating file checksums for
+comparison."
   :group 'find-dupes-dired
   :tag "Checksum executable"
   :type 'string)
 
 (defcustom find-dupes-size-comparison-function
   #'>
-  "The comparison function used for sorting grouped results in ascending or descending order."
+  "The comparison function used for sorting grouped results in
+ascending or descending order."
   :group 'find-dupes-dired
   :tag "Ascending or descending file size sort order"
   :type '(choice (const :tag "Ascending" #'<)

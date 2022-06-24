@@ -99,6 +99,7 @@ separator file specified by `find-dupes-separator-file'."
   (dired-revert)
   (find-dupes--remove-separator-file))
 
+;;;###autoload
 (defun find-dupes-dired (directories)
   "Find a list of duplicate files inside one or more directories
 and show them in a dired buffer."
@@ -123,3 +124,5 @@ and show them in a dired buffer."
       (message "No duplicate files found in %s." truncated-dirs))))
 
 (provide 'find-dupes-dired)
+
+;;; find-dupes-dired.el ends here

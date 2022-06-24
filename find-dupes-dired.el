@@ -17,13 +17,13 @@ comparison."
   :type 'string)
 
 (defcustom find-dupes-size-comparison-function
-  #'>
+  '<
   "The comparison function used for sorting grouped results in
 ascending or descending order."
   :group 'find-dupes-dired
   :tag "Ascending or descending file size sort order"
-  :type '(choice (const :tag "Ascending" #'<)
-                 (const :tag "Descending" #'>)))
+  :type '(choice (const :tag "Ascending" :value <)
+                 (const :tag "Descending" :value >)))
 
 (defvar find-dupes-directories nil
   "List of directories that will be searched for duplicate files.")

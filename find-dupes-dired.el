@@ -122,9 +122,4 @@ and show them in a dired buffer."
           (find-dupes--remove-separator-file))
       (message "No duplicate files found in %s." truncated-dirs))))
 
-;;;; Tests
-;; (find-dupes-checksum-file "~/tmp/my-file")
-;; (find-dupes--duplicate-files "~/my-dir")
-;; (find-dupes-dired "~/my-dir")
-
 (provide 'find-dupes-dired)

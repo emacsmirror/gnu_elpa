@@ -88,12 +88,7 @@ and show them in a dired buffer."
                                                nil
                                                default-directory)))
   (let ((default-directory "/")
-        (truncated-dirs (truncate-string-to-width
-                         (string-join directories ", ")
-                         40
-                         0
-                         nil
-                         t)))
+        (truncated-dirs (truncate-string-to-width (string-join directories ", ") 40 0 nil t)))
     (message "Finding duplicate files in %s..." truncated-dirs)
     (if-let ((results (find-dupes--generate-dired-list directories)))
         (progn

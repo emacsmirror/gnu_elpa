@@ -80,13 +80,27 @@ separator file specified by `find-dupes-separator-file'."
 (defun find-dupes-dired (directories)
   "Find a list of duplicate files inside one or more directories
 and show them in a dired buffer."
-  (interactive "f")
-  (let ((default-directory "/"))
+  (interactive (list (completing-read-multiple "Directories: "
+                                               #'read-file-name-internal
+                                               #'file-directory-p
+                                               t
+                                               nil
+                                               nil
+                                               default-directory)))
+  (let ((default-directory "/")
+        (truncated-dirs (truncate-string-to-width
+                         (string-join directories ", ")
+                         40
+                         0
+                         nil
+                         t)))
+    (message "Finding duplicate files in %s..." truncated-dirs)
     (find-dupes--ensure-separator-file)
     (dired (cons "/" (find-dupes--generate-dired-list directories)))
     (setq-local find-dupes-directories directories)
     (setq-local revert-buffer-function 'find-dupes-revert-function)
-    (find-dupes--remove-separator-file)))
+    (find-dupes--remove-separator-file)
+    (message "Finding duplicate files in %s completed." truncated-dirs)))
 
 ;;;; Tests
 ;; (find-dupes-checksum-file "~/tmp/my-file")

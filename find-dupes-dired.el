@@ -95,12 +95,15 @@ and show them in a dired buffer."
                          nil
                          t)))
     (message "Finding duplicate files in %s..." truncated-dirs)
-    (find-dupes--ensure-separator-file)
-    (dired (cons "/" (find-dupes--generate-dired-list directories)))
-    (setq-local find-dupes-directories directories)
-    (setq-local revert-buffer-function 'find-dupes-revert-function)
-    (find-dupes--remove-separator-file)
-    (message "Finding duplicate files in %s completed." truncated-dirs)))
+    (if-let ((results (find-dupes--generate-dired-list directories)))
+        (progn
+          (message "Finding duplicate files in %s completed." truncated-dirs)
+          (find-dupes--ensure-separator-file)
+          (dired (cons "/" results))
+          (setq-local find-dupes-directories directories)
+          (setq-local revert-buffer-function 'find-dupes-revert-function)
+          (find-dupes--remove-separator-file))
+      (message "No duplicate files found in %s." truncated-dirs))))
 
 ;;;; Tests
 ;; (find-dupes-checksum-file "~/tmp/my-file")

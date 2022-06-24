@@ -12,6 +12,14 @@
   :tag "Checksum executable"
   :type 'string)
 
+(defcustom find-dupes-size-comparison-function
+  #'>
+  "The comparison function used for sorting grouped results in ascending or descending order."
+  :group 'find-dupes-dired
+  :tag "Ascending or descending file size sort order"
+  :type '(choice (const :tag "Ascending" #'<)
+                 (const :tag "Descending" #'>)))
+
 (defvar find-dupes-directories nil
   "List of directories that will be searched for duplicate files.")
 
@@ -74,7 +82,7 @@ separator file specified by `find-dupes-separator-file'."
            with sorted-sums = (cl-sort
                                (cl-loop for k being the hash-key in dupes-table using (hash-value v)
                                         collect (list k (first v)))
-                               #'>
+                               find-dupes-size-comparison-function
                                :key #'second)
            for (checksum) in sorted-sums
            append (rest (gethash checksum dupes-table))

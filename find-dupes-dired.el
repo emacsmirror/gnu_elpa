@@ -67,10 +67,9 @@ ascending or descending order."
        (find-dupes--remove-separator-file))))
 
 (defun find-dupes--duplicate-files (directories)
-  "Given one or more root directories, search inside below the
-directories for duplicate files. Returns a hash-table with the
-checksums as keys and a list of size and duplicate files as
-values."
+  "Given one or more root directories, search below the directories
+for duplicate files. Returns a hash-table with the checksums as
+keys and a list of size and duplicate files as values."
   (cl-loop with files = (mapcan #'(lambda (d) (directory-files-recursively d ".*"))
                                 (ensure-list directories))
            and same-size-table = (make-hash-table)

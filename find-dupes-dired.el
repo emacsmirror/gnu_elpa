@@ -1,3 +1,5 @@
+(require 'cl-lib)
+
 (defgroup find-dupes-dired
   nil
   "Find duplicate files on local and/or remote filesystems."

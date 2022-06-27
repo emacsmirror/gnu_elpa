@@ -47,7 +47,15 @@ ascending or descending order."
 
 (defun find-dupes--remove-separator-file ()
   "Remove the separator file specified by `find-dupes-separator-file'."
-  (delete-file find-dupes-separator-file nil))
+  (when (file-exists-p find-dupes-separator-file)
+    (delete-file find-dupes-separator-file nil)))
+
+(defmacro find-dupes-with-separator-file (&rest rest)
+  `(unwind-protect
+         (progn
+           (find-dupes--ensure-separator-file)
+           ,@rest)
+     (find-dupes--remove-separator-file)))
 
 (defun find-dupes--duplicate-files (directories)
   "Given one or more root directories, search inside below the
@@ -100,9 +108,8 @@ separator file specified by `find-dupes-separator-file'."
               (append (list (first dired-directory))
                       (find-dupes--generate-dired-list)))
   (message "Reverting buffer complete.")
-  (find-dupes--ensure-separator-file)
-  (dired-revert)
-  (find-dupes--remove-separator-file))
+  (find-dupes-with-separator-file
+   (dired-revert)))
 
 ;;;###autoload
 (defun find-dupes-dired (directories)
@@ -121,11 +128,10 @@ and show them in a dired buffer."
     (if-let ((results (find-dupes--generate-dired-list directories)))
         (progn
           (message "Finding duplicate files in %s completed." truncated-dirs)
-          (find-dupes--ensure-separator-file)
-          (dired (cons "/" results))
-          (setq-local find-dupes-directories directories)
-          (setq-local revert-buffer-function 'find-dupes-revert-function)
-          (find-dupes--remove-separator-file))
+          (find-dupes-with-separator-file
+           (dired (cons "/" results))
+           (setq-local find-dupes-directories directories)
+           (setq-local revert-buffer-function 'find-dupes-revert-function)))
       (message "No duplicate files found in %s." truncated-dirs))))
 
 (provide 'find-dupes-dired)

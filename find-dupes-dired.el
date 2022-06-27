@@ -1,3 +1,9 @@
+(defgroup find-dupes-dired
+  nil
+  "Find duplicate files on local and/or remote filesystems."
+  :tag "Find Dupes"
+  :group 'dired)
+
 (defcustom find-dupes-use-separator-file
   t
   "Whether to use a separator dummy file or not."

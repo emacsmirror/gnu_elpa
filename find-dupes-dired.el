@@ -32,6 +32,15 @@ ascending or descending order."
   :type '(choice (const :tag "Ascending" :value <)
                  (const :tag "Descending" :value >)))
 
+(defcustom find-dupes-file-filter-functions
+  nil
+  "Filter functions applied to all files found in a directory. A
+filter function must accept as its single argument the file and
+return boolean t if the file matches a criteria, otherwise nil."
+  :group 'find-dupes-dired
+  :tag "File filter functions"
+  :type 'hook)
+
 (defvar find-dupes-directories nil
   "List of directories that will be searched for duplicate files.")
 
@@ -66,12 +75,20 @@ ascending or descending order."
      (when find-dupes-use-separator-file
        (find-dupes--remove-separator-file))))
 
+(defun find-dupes--apply-file-filter-functions (files)
+  (if (and find-dupes-file-filter-functions files)
+      (dolist (filter-func find-dupes-file-filter-functions files)
+        (setf files (delete-if-not filter-func files)))
+    files))
+
 (defun find-dupes--duplicate-files (directories)
   "Given one or more root directories, search below the directories
 for duplicate files. Returns a hash-table with the checksums as
 keys and a list of size and duplicate files as values."
-  (cl-loop with files = (mapcan #'(lambda (d) (directory-files-recursively d ".*"))
-                                (ensure-list directories))
+  (cl-loop with files = (find-dupes--apply-file-filter-functions
+                         (mapcan #'(lambda (d)
+                                     (directory-files-recursively d ".*"))
+                                       (ensure-list directories)))
            and same-size-table = (make-hash-table)
            and checksum-table = (make-hash-table :test 'equal)
            for f in files

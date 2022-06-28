@@ -1,6 +1,7 @@
 ;; -*- lexical-binding: t; -*-
 
 (require 'cl-lib)
+(require 'dired)
 
 (defgroup find-duplicates
   nil

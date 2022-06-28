@@ -71,20 +71,21 @@ return boolean t if the file matches a criteria, otherwise nil."
 (defun find-duplicates--ensure-separator-file ()
   "Ensure that the separator file specified by
 `find-duplicates-separator-file' exists."
-    (unless (file-exists-p find-duplicates-separator-file)
-      (make-empty-file find-duplicates-separator-file)))
+  (unless (file-exists-p find-duplicates-separator-file)
+    (make-empty-file find-duplicates-separator-file)))
 
 (defun find-duplicates--remove-separator-file ()
   "Remove the separator file specified by `find-duplicates-separator-file'."
   (when (file-exists-p find-duplicates-separator-file)
     (delete-file find-duplicates-separator-file nil)))
 
-(defmacro find-duplicates-with-separator-file (&rest rest)
+(defmacro find-duplicates-with-separator-file (&rest body)
+  "Ensure separator file gets created and cleaned up before and after BODY."
   `(unwind-protect
-         (progn
-           (when find-duplicates-use-separators
-             (find-duplicates--ensure-separator-file))
-           ,@rest)
+       (progn
+         (when find-duplicates-use-separators
+           (find-duplicates--ensure-separator-file))
+         ,@body)
      (when find-duplicates-use-separators
        (find-duplicates--remove-separator-file))))
 

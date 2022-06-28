@@ -109,14 +109,13 @@ keys and a list of size and duplicate files as values."
            do (setf (gethash size same-size-table)
                     (append (gethash size same-size-table) (list f)))
            finally
-           (cl-loop for size being the hash-key in same-size-table using (hash-value same-size-files)
+           (cl-loop for same-size-files being the hash-values in same-size-table
                     if (> (length same-size-files) 1) do
                     (cl-loop for f in same-size-files
                              for checksum = (find-duplicates-checksum-file f)
                              do (setf (gethash checksum checksum-table)
                                       (append (gethash checksum checksum-table) (list f)))))
-           (cl-loop with size
-                    for same-files being the hash-value in checksum-table using (hash-key checksum)
+           (cl-loop for same-files being the hash-value in checksum-table using (hash-key checksum)
                     do
                     (if (> (length same-files) 1)
                         (setf (gethash checksum checksum-table)

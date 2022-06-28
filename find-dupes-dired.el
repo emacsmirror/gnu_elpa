@@ -1,4 +1,4 @@
-;; -*- lexical-binding: t; -*-
+;;; find-duplicates.el --- Find duplicate files locally and remotely  -*- lexical-binding: t; -*-
 
 (require 'cl-lib)
 (require 'dired)

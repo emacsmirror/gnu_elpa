@@ -1,61 +1,61 @@
 (require 'cl-lib)
 
-(defgroup find-dupes-dired
+(defgroup find-duplicates
   nil
   "Find duplicate files on local and/or remote filesystems."
-  :tag "Find Dupes"
+  :tag "Find Duplicate Files"
   :group 'dired)
 
-(defcustom find-dupes-use-separators
+(defcustom find-duplicates-use-separators
   t
   "Whether to use a separator dummy file for separating search results."
-  :group 'find-dupes-dired
+  :group 'find-duplicates
   :tag "Separate search results"
   :type 'boolean)
 
-(defcustom find-dupes-separator-file
+(defcustom find-duplicates-separator-file
   (concat "/tmp/-" (make-string 40 ?-))
   "Path and name of the separator file used for making search
 results easier to discern. It will be created immediately before
 and deleted as soon as possible after the search operation
 finishes."
-  :group 'find-dupes-dired
+  :group 'find-duplicates
   :tag "Separator dummy file"
   :type 'string)
 
-(defcustom find-dupes-checksum-exec
+(defcustom find-duplicates-checksum-exec
   "sha256sum"
   "Name of the executable used for creating file checksums for
 comparison."
-  :group 'find-dupes-dired
+  :group 'find-duplicates
   :tag "Checksum executable"
   :type 'string)
 
-(defcustom find-dupes-size-comparison-function
+(defcustom find-duplicates-size-comparison-function
   '<
   "The comparison function used for sorting grouped results in
 ascending or descending order."
-  :group 'find-dupes-dired
+  :group 'find-duplicates
   :tag "Ascending or descending file size sort order"
   :type '(choice (const :tag "Ascending" :value <)
                  (const :tag "Descending" :value >)))
 
-(defcustom find-dupes-file-filter-functions
+(defcustom find-duplicates-file-filter-functions
   nil
   "Filter functions applied to all files found in a directory. A
 filter function must accept as its single argument the file and
 return boolean t if the file matches a criteria, otherwise nil."
-  :group 'find-dupes-dired
+  :group 'find-duplicates
   :tag "File filter functions"
   :type 'hook)
 
-(defvar find-dupes-directories nil
+(defvar find-duplicates-directories nil
   "List of directories that will be searched for duplicate files.")
 
-(defun find-dupes-checksum-file (file)
-  "Create a checksum for `file', using executable defined by `find-dupes-checksum-exec'."
+(defun find-duplicates-checksum-file (file)
+  "Create a checksum for `file', using executable defined by `find-duplicates-checksum-exec'."
   (let* ((default-directory (file-name-directory (expand-file-name file)))
-         (exec (executable-find find-dupes-checksum-exec t)))
+         (exec (executable-find find-duplicates-checksum-exec t)))
     (unless exec
       (error "Checksum program %s not found in exec-path!" exec))
     (first (split-string
@@ -64,36 +64,36 @@ return boolean t if the file matches a criteria, otherwise nil."
             nil
             t))))
 
-(defun find-dupes--ensure-separator-file ()
-  "Ensure that the separator file specified by `find-dupes-separator-file' exists."
-    (unless (file-exists-p find-dupes-separator-file)
-      (make-empty-file find-dupes-separator-file)))
+(defun find-duplicates--ensure-separator-file ()
+  "Ensure that the separator file specified by `find-duplicates-separator-file' exists."
+    (unless (file-exists-p find-duplicates-separator-file)
+      (make-empty-file find-duplicates-separator-file)))
 
-(defun find-dupes--remove-separator-file ()
-  "Remove the separator file specified by `find-dupes-separator-file'."
-  (when (file-exists-p find-dupes-separator-file)
-    (delete-file find-dupes-separator-file nil)))
+(defun find-duplicates--remove-separator-file ()
+  "Remove the separator file specified by `find-duplicates-separator-file'."
+  (when (file-exists-p find-duplicates-separator-file)
+    (delete-file find-duplicates-separator-file nil)))
 
-(defmacro find-dupes-with-separator-file (&rest rest)
+(defmacro find-duplicates-with-separator-file (&rest rest)
   `(unwind-protect
          (progn
-           (when find-dupes-use-separators
-             (find-dupes--ensure-separator-file))
+           (when find-duplicates-use-separators
+             (find-duplicates--ensure-separator-file))
            ,@rest)
-     (when find-dupes-use-separators
-       (find-dupes--remove-separator-file))))
+     (when find-duplicates-use-separators
+       (find-duplicates--remove-separator-file))))
 
-(defun find-dupes--apply-file-filter-functions (files)
-  (if (and find-dupes-file-filter-functions files)
-      (dolist (filter-func find-dupes-file-filter-functions files)
+(defun find-duplicates--apply-file-filter-functions (files)
+  (if (and find-duplicates-file-filter-functions files)
+      (dolist (filter-func find-duplicates-file-filter-functions files)
         (setf files (delete-if-not filter-func files)))
     files))
 
-(defun find-dupes--duplicate-files (directories)
+(defun find-duplicates--find-and-filter-files (directories)
   "Given one or more root directories, search below the directories
 for duplicate files. Returns a hash-table with the checksums as
 keys and a list of size and duplicate files as values."
-  (cl-loop with files = (find-dupes--apply-file-filter-functions
+  (cl-loop with files = (find-duplicates--apply-file-filter-functions
                          (mapcan #'(lambda (d)
                                      (directory-files-recursively d ".*"))
                                        (ensure-list directories)))
@@ -107,7 +107,7 @@ keys and a list of size and duplicate files as values."
            (cl-loop for size being the hash-key in same-size-table using (hash-value same-size-files)
                     if (> (length same-size-files) 1) do
                     (cl-loop for f in same-size-files
-                             for checksum = (find-dupes-checksum-file f)
+                             for checksum = (find-duplicates-checksum-file f)
                              do (setf (gethash checksum checksum-table)
                                       (append (gethash checksum checksum-table) (list f)))))
            (cl-loop with size
@@ -120,53 +120,54 @@ keys and a list of size and duplicate files as values."
                       (remhash checksum checksum-table)))
            (cl-return checksum-table)))
 
-(defun find-dupes--generate-dired-list (&optional directories)
-  "Generate a list of grouped duplicate files, separated by a
-separator file specified by `find-dupes-separator-file'."
-  (cl-loop with dupes-table = (find-dupes--duplicate-files (or directories
-                                                               find-dupes-directories))
+(defun find-duplicates--generate-dired-list (&optional directories)
+  "Generate a list of grouped duplicate files, optionally separated
+by a separator file specified by `find-duplicates-separator-file'."
+  (cl-loop with dupes-table = (find-duplicates--find-and-filter-files
+                               (or directories
+                                   find-duplicates-directories))
            with sorted-sums = (cl-sort
                                (cl-loop for k being the hash-key in dupes-table using (hash-value v)
                                         collect (list k (first v)))
-                               find-dupes-size-comparison-function
+                               find-duplicates-size-comparison-function
                                :key #'second)
            for (checksum) in sorted-sums
            append (rest (gethash checksum dupes-table))
-           when find-dupes-use-separators append (list find-dupes-separator-file)))
+           when find-duplicates-use-separators append (list find-duplicates-separator-file)))
 
-(defun find-dupes-revert-function (&optional arg noconfirm)
-  "Revert function used instead of `dired-revert' for dired buffers generated by find-dupes."
+(defun find-duplicates-revert-function (&optional arg noconfirm)
+  "Revert function used instead of `dired-revert' for dired buffers generated by find-duplicates."
   (message "Looking for remaining duplicate files...")
   (setq-local dired-directory
               (append (list (first dired-directory))
-                      (find-dupes--generate-dired-list)))
+                      (find-duplicates--generate-dired-list)))
   (message "Reverting buffer complete.")
-  (find-dupes-with-separator-file
+  (find-duplicates-with-separator-file
    (dired-revert)))
 
 ;;;###autoload
-(defun find-dupes-dired (directories)
+(defun find-duplicates-dired (directories)
   "Find a list of duplicate files inside one or more directories
 and show them in a dired buffer."
   (interactive (list (completing-read-multiple "Directories: "
                                                #'read-file-name-internal
                                                #'file-directory-p
                                                t
-                                               nil
+                                               default-directory
                                                nil
                                                default-directory)))
   (let ((default-directory "/")
         (truncated-dirs (truncate-string-to-width (string-join directories ", ") 40 0 nil t)))
     (message "Finding duplicate files in %s..." truncated-dirs)
-    (if-let ((results (find-dupes--generate-dired-list directories)))
+    (if-let ((results (find-duplicates--generate-dired-list directories)))
         (progn
           (message "Finding duplicate files in %s completed." truncated-dirs)
-          (find-dupes-with-separator-file
+          (find-duplicates-with-separator-file
            (dired (cons "/" results))
-           (setq-local find-dupes-directories directories)
-           (setq-local revert-buffer-function 'find-dupes-revert-function)))
+           (setq-local find-duplicates-directories directories)
+           (setq-local revert-buffer-function 'find-duplicates-revert-function)))
       (message "No duplicate files found in %s." truncated-dirs))))
 
-(provide 'find-dupes-dired)
+(provide 'find-duplicates)
 
-;;; find-dupes-dired.el ends here
+;;; find-duplicates.el ends here

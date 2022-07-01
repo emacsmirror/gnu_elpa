@@ -1,0 +1,40 @@
+#+title: find-duplicates - Find duplicate files on local and remote filesystems
+
+* Description
+This Emacs package helps to find duplicate files on local and remote
+filesystems.  It is similar to the fdupes command-line utility but written in
+Emacs Lisp and should also work on every remote filesystem that TRAMP supports
+and where executable commands can be called remotely.
+
+find-duplicates works by first searching files of the same size, then invoking
+the calculation of the checksum for these files, and finally presenting the
+grouped results in a Dired buffer that the user can work with similarly to a
+regular Dired buffer.  It might be even possible to combine this with other
+Dired extension packages, like =dired-narrow=.  The results will be grouped
+visually by using a temporary file serving as a separator.
+
+* Requirements
+For performance reasons, a checksum program like =md5= or =sha256sum= will be
+used for generating checksums of file contents and therefore needs to be
+available and executable on the local and/or remote hosts. The name of the
+checksum program can be customized.
+
+* Installation
+The package can be installed via the Emacs package manager,
+e.g. ~package-install~.  Or you use the following use-package snippet:
+#+BEGIN_SRC emacs-lisp
+(use-package find-duplicates)
+#+END_SRC
+
+* Usage
+Call ~find-duplicates-dired~ interactively and provide one or more directories
+(usually separated by commas) to search in recursively.
+
+* Configuration
+You can find all available customization options with ~customize-group~,
+entering =find-duplicates= for the desired group.  These options are described
+extensively there.
+
+* License
+This package is licensed under GPL-3. See the =LICENSE= file for more
+information.

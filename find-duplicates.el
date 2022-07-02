@@ -94,6 +94,13 @@ return boolean t if the file matches a criteria, otherwise nil."
   :tag "File filter functions"
   :type 'hook)
 
+(defcustom find-duplicates-search-directories-recursively
+  t
+  "Search directories recursively."
+  :group 'find-duplicates
+  :tag "Search directories recursively"
+  :type 'boolean)
+
 (defvar find-duplicates-directories nil
   "List of directories that will be searched for duplicate files.")
 
@@ -143,9 +150,12 @@ return boolean t if the file matches a criteria, otherwise nil."
 for duplicate files.  Returns a hash-table with the checksums as
 keys and a list of size and duplicate files as values."
   (cl-loop with files = (find-duplicates--apply-file-filter-functions
-                         (mapcan #'(lambda (d)
-                                     (directory-files-recursively d ".*"))
-                                 (ensure-list directories)))
+                         (mapcan
+                          #'(lambda (d)
+                              (if find-duplicates-search-directories-recursively
+                                  (directory-files-recursively d ".*")
+                                (cl-remove-if #'file-directory-p (directory-files d t nil t))))
+                          (ensure-list directories)))
            and same-size-table = (make-hash-table)
            and checksum-table = (make-hash-table :test 'equal)
            for f in files

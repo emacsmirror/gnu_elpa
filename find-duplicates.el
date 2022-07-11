@@ -160,7 +160,7 @@ a hash-table with the checksums as keys and a list of size and
 duplicate files as values."
   (cl-loop with files = (find-duplicates--apply-file-filter-functions
                          (mapcan
-                          #'(lambda (d)
+                          (lambda (d)
                               (if find-duplicates-search-directories-recursively
                                   (directory-files-recursively d ".*")
                                 (cl-remove-if #'file-directory-p (directory-files d t nil t))))

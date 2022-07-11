@@ -59,7 +59,7 @@
   :type 'boolean)
 
 (defcustom find-duplicates-separator-file
-  (concat "/tmp/-" (make-string 40 ?-))
+  (concat (temporary-file-directory) (make-string 40 ?-))
   "Path and name of the separator file.
 
 This file is used for making search results easier to discern.

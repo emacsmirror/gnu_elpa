@@ -116,7 +116,7 @@ The executable used is defined by `find-duplicates-checksum-exec'."
   (let* ((default-directory (file-name-directory (expand-file-name file)))
          (exec (executable-find find-duplicates-checksum-exec t)))
     (unless exec
-      (error "Checksum program %s not found in exec-path!" exec))
+      (user-error "Checksum program %s not found in exec-path!" exec))
     (car (split-string
           (shell-command-to-string
            (concat exec " \"" (expand-file-name (file-local-name file)) "\""))

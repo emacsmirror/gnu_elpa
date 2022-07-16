@@ -6,7 +6,7 @@
 ;; Maintainer: Harald Judt <h.judt@gmx.at>
 ;; Created: 2022
 ;; Version: 0.1
-;; Package-Requires: ((emacs "28.1"))
+;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: files
 ;; Homepage: https://codeberg.org/hjudt/find-duplicates
 
@@ -164,7 +164,9 @@ duplicate files as values."
                               (if find-duplicates-search-directories-recursively
                                   (directory-files-recursively d ".*")
                                 (cl-remove-if #'file-directory-p (directory-files d t nil t))))
-                          (ensure-list directories)))
+                          (if (listp directories)
+                              directories
+                            (list directories))))
            and same-size-table = (make-hash-table)
            and checksum-table = (make-hash-table :test 'equal)
            for f in files

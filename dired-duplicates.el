@@ -51,24 +51,6 @@
   :tag "Dired Duplicates"
   :group 'dired)
 
-(defcustom dired-duplicates-use-separators
-  t
-  "Whether to use a separator dummy file for separating search results."
-  :group 'dired-duplicates
-  :tag "Separate search results"
-  :type 'boolean)
-
-(defcustom dired-duplicates-separator-file
-  (concat (temporary-file-directory) (make-string 40 ?-))
-  "Path and name of the separator file.
-
-This file is used for making search results easier to discern.
-It will be created immediately before and deleted as soon as
-possible after the search operation finishes."
-  :group 'dired-duplicates
-  :tag "Separator dummy file"
-  :type 'string)
-
 (defcustom dired-duplicates-checksum-exec
   "sha256sum"
   "Name of the executable used for creating file checksums.
@@ -123,28 +105,6 @@ The executable used is defined by `dired-duplicates-checksum-exec'."
           nil
           t))))
 
-(defun dired-duplicates--ensure-separator-file ()
-  "Ensure that the separator file exists.
-
-The file is specified by `dired-duplicates-separator-file'."
-  (unless (file-exists-p dired-duplicates-separator-file)
-    (make-empty-file dired-duplicates-separator-file)))
-
-(defun dired-duplicates--remove-separator-file ()
-  "Remove the separator file specified by `dired-duplicates-separator-file'."
-  (when (file-exists-p dired-duplicates-separator-file)
-    (delete-file dired-duplicates-separator-file nil)))
-
-(defmacro dired-duplicates-with-separator-file (&rest body)
-  "Ensure separator file gets created and cleaned up before and after BODY."
-  `(unwind-protect
-       (progn
-         (when dired-duplicates-use-separators
-           (dired-duplicates--ensure-separator-file))
-         ,@body)
-     (when dired-duplicates-use-separators
-       (dired-duplicates--remove-separator-file))))
-
 (defun dired-duplicates--apply-file-filter-functions (files)
   "Apply file filter functions to FILES, returning the resulting list."
   (if (and dired-duplicates-file-filter-functions files)
@@ -190,10 +150,7 @@ duplicate files as values."
            (cl-return checksum-table)))
 
 (defun dired-duplicates--generate-dired-list (&optional directories)
-  "Generate a list of grouped duplicate files in DIRECTORIES.
-
-Optionally they can be separated by a separator file specified by
-`dired-duplicates-separator-file'."
+  "Generate a list of grouped duplicate files in DIRECTORIES."
   (cl-loop with dupes-table = (dired-duplicates--find-and-filter-files
                                (or directories
                                    dired-duplicates-directories))
@@ -203,8 +160,7 @@ Optionally they can be separated by a separator file specified by
                                dired-duplicates-size-comparison-function
                                :key #'cl-second)
            for (checksum) in sorted-sums
-           append (cdr (gethash checksum dupes-table))
-           when dired-duplicates-use-separators append (list dired-duplicates-separator-file)))
+           append (cdr (gethash checksum dupes-table))))
 
 (defun dired-duplicates-dired-revert (&optional arg noconfirm)
   "Revert function used instead of `dired-revert' for Dired buffers.
@@ -216,8 +172,7 @@ The args ARG and NOCONFIRM are passed through from
               (append (list (car dired-directory))
                       (dired-duplicates--generate-dired-list)))
   (message "Reverting buffer complete.")
-  (dired-duplicates-with-separator-file
-   (dired-revert arg noconfirm)))
+  (dired-revert arg noconfirm))
 
 ;;;###autoload
 (defun dired-duplicates (directories)
@@ -237,10 +192,9 @@ The results will be shown in a Dired buffer."
     (if-let ((results (dired-duplicates--generate-dired-list directories)))
         (progn
           (message "Finding duplicate files in %s completed." truncated-dirs)
-          (dired-duplicates-with-separator-file
-           (dired (cons "/" results))
-           (setq-local dired-duplicates-directories directories)
-           (setq-local revert-buffer-function 'dired-duplicates-dired-revert)))
+          (dired (cons "/" results))
+          (setq-local dired-duplicates-directories directories)
+          (setq-local revert-buffer-function 'dired-duplicates-dired-revert))
       (message "No duplicate files found in %s." truncated-dirs))))
 
 (provide 'dired-duplicates)

@@ -149,7 +149,7 @@ duplicate files as values."
                       (remhash checksum checksum-table)))
            (cl-return checksum-table)))
 
-(defun dired-duplicates--generate-dired-list (&optional directories)
+(defun dired-duplicates--generate-grouped-results (&optional directories)
   "Generate a list of grouped duplicate files in DIRECTORIES."
   (cl-loop with dupes-table = (dired-duplicates--find-and-filter-files
                                (or directories
@@ -160,7 +160,26 @@ duplicate files as values."
                                dired-duplicates-size-comparison-function
                                :key #'cl-second)
            for (checksum) in sorted-sums
-           append (cdr (gethash checksum dupes-table))))
+           collect (cdr (gethash checksum dupes-table))))
+
+(defun dired-duplicates--post-process-dired-buffer (results)
+  "Post process the duplicate results buffer using RESULTS.
+
+This adds a new-line after each results group."
+  (save-mark-and-excursion
+    (goto-char (point-min))
+    (forward-line)
+    ;; add a new-line after each group
+    (cl-loop with lengths = (mapcar #'length results)
+             for len in lengths
+             do
+             (forward-line len)
+             ;; (forward-line len)
+             (let ((inhibit-read-only t))
+               (beginning-of-line)
+               (unless (= (point) (point-max))
+                 (insert "\n"))))))
+Currently, this simply adds a new-line after each results group."
 
 (defun dired-duplicates-dired-revert (&optional arg noconfirm)
   "Revert function used instead of `dired-revert' for Dired buffers.
@@ -168,11 +187,13 @@ duplicate files as values."
 The args ARG and NOCONFIRM are passed through from
 `revert-buffer' to `dired-revert'."
   (message "Looking for remaining duplicate files...")
-  (setq-local dired-directory
-              (append (list (car dired-directory))
-                      (dired-duplicates--generate-dired-list)))
-  (message "Reverting buffer complete.")
-  (dired-revert arg noconfirm))
+  (let ((results (dired-duplicates--generate-grouped-results dired-duplicates-directories)))
+    (setq-local dired-directory
+                (append (list (car dired-directory))
+                        (flatten-list results)))
+    (dired-revert arg noconfirm)
+    (dired-duplicates--post-process-dired-buffer results))
+  (message "Reverting buffer complete."))
 
 ;;;###autoload
 (defun dired-duplicates (directories)
@@ -189,12 +210,13 @@ The results will be shown in a Dired buffer."
   (let ((default-directory "/")
         (truncated-dirs (truncate-string-to-width (string-join directories ", ") 40 0 nil t)))
     (message "Finding duplicate files in %s..." truncated-dirs)
-    (if-let ((results (dired-duplicates--generate-dired-list directories)))
+    (if-let ((results (dired-duplicates--generate-grouped-results directories)))
         (progn
           (message "Finding duplicate files in %s completed." truncated-dirs)
-          (dired (cons "/" results))
+          (dired (cons "/" (flatten-list results)))
           (setq-local dired-duplicates-directories directories)
-          (setq-local revert-buffer-function 'dired-duplicates-dired-revert))
+          (setq-local revert-buffer-function 'dired-duplicates-dired-revert)
+          (dired-duplicates--post-process-dired-buffer results))
       (message "No duplicate files found in %s." truncated-dirs))))
 
 (provide 'dired-duplicates)

@@ -51,6 +51,13 @@
   :tag "Dired Duplicates"
   :group 'dired)
 
+(defcustom dired-duplicates-separate-results
+  t
+  "Boolean value indicating whether to separate results with new-lines."
+  :group 'dired-duplicates
+  :tag "Separate results"
+  :type 'boolean)
+
 (defcustom dired-duplicates-checksum-exec
   "sha256sum"
   "Name of the executable used for creating file checksums.
@@ -165,21 +172,21 @@ duplicate files as values."
 (defun dired-duplicates--post-process-dired-buffer (results)
   "Post process the duplicate results buffer using RESULTS.
 
-This adds a new-line after each results group."
-  (save-mark-and-excursion
-    (goto-char (point-min))
-    (forward-line)
-    ;; add a new-line after each group
-    (cl-loop with lengths = (mapcar #'length results)
-             for len in lengths
-             do
-             (forward-line len)
-             ;; (forward-line len)
-             (let ((inhibit-read-only t))
-               (beginning-of-line)
-               (unless (= (point) (point-max))
-                 (insert "\n"))))))
 Currently, this simply adds a new-line after each results group."
+  (when dired-duplicates-separate-results
+    (save-mark-and-excursion
+      (goto-char (point-min))
+      (forward-line)
+      ;; add a new-line after each group
+      (cl-loop with lengths = (mapcar #'length results)
+               for len in lengths
+               do
+               (forward-line len)
+               ;; (forward-line len)
+               (let ((inhibit-read-only t))
+                 (beginning-of-line)
+                 (unless (= (point) (point-max))
+                   (insert "\n")))))))
 
 (defun dired-duplicates-dired-revert (&optional arg noconfirm)
   "Revert function used instead of `dired-revert' for Dired buffers.

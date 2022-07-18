@@ -215,7 +215,12 @@ The results will be shown in a Dired buffer."
                                                nil
                                                default-directory)))
   (let ((default-directory "/")
-        (truncated-dirs (truncate-string-to-width (string-join directories ", ") 40 0 nil t)))
+        (truncated-dirs (truncate-string-to-width
+                         (string-join (if (listp directories)
+                                          directories
+                                        (list directories))
+                                      ", ")
+                         40 0 nil t)))
     (message "Finding duplicate files in %s..." truncated-dirs)
     (if-let ((results (dired-duplicates--generate-grouped-results directories)))
         (progn

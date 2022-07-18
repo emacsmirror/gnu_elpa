@@ -131,9 +131,7 @@ duplicate files as values."
                             (if dired-duplicates-search-directories-recursively
                                 (directory-files-recursively d ".*")
                               (cl-remove-if #'file-directory-p (directory-files d t nil t))))
-                          (if (listp directories)
-                              directories
-                            (list directories))))
+                          directories))
            and same-size-table = (make-hash-table)
            and checksum-table = (make-hash-table :test 'equal)
            for f in files
@@ -214,15 +212,13 @@ The results will be shown in a Dired buffer."
                                                default-directory
                                                nil
                                                default-directory)))
-  (let ((default-directory "/")
-        (truncated-dirs (truncate-string-to-width
-                         (string-join (if (listp directories)
-                                          directories
-                                        (list directories))
-                                      ", ")
-                         40 0 nil t)))
+  (unless directories
+    (user-error "Specify one or more directories to search in"))
+  (let* ((directories (if (listp directories) directories (list directories)))
+         (truncated-dirs (truncate-string-to-width (string-join directories ", ") 40 0 nil t)))
     (message "Finding duplicate files in %s..." truncated-dirs)
-    (if-let ((results (dired-duplicates--generate-grouped-results directories)))
+    (if-let ((default-directory "/")
+             (results (dired-duplicates--generate-grouped-results directories)))
         (progn
           (message "Finding duplicate files in %s completed." truncated-dirs)
           (dired (cons "/" (flatten-list results)))

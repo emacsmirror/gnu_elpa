@@ -207,7 +207,7 @@
 
 ;;;; Custom types
 
-(defun boxy-relationshipp (str)
+(defun boxy-relationship-p (str)
   "Return t if STR is a boxy relationship, nil otherwise."
   (member str boxy-relationships))
 

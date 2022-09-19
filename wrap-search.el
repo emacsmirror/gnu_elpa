@@ -5,7 +5,7 @@
 ;; Keywords: matching
 ;; License: GPL3+
 ;; URL: https://dataswamp.org/~incal/emacs-init/wrap-search.el
-;; Version: 4.9.10
+;; Version: 4.10.10
 ;;
 ;;; Commentary:
 ;;
@@ -76,30 +76,34 @@ Do \\[wrap-search-again] to repeat, with `wrap-search-again'."
        ,(member current-prefix-arg '((16) (64)))
        ,@(when (use-region-p)
            (list (region-beginning) (region-end)) )))
-    (or beg (setq beg (point-min)))
-    (or end (setq end (point-max)))
-    (if (string= "" str)
-        (wrap-search-again)
-      (setq prev-str  str)
-      (setq prev-case case)
-      (setq prev-rev  rev)
-      (setq prev-beg  beg)
-      (setq prev-end  end)
-      (pcase-let ((case-fold-search (not case))
-                  (pos (point))
-                  (`(,search-f ,search-beg ,search-end)
-                   (if rev
-                       (list #'search-backward end beg)
-                     (list #'search-forward beg end) )))
-        (if (funcall search-f str search-end t)
-            (message "hit: %s" (point))
-          (goto-char search-beg)
-          (if (funcall search-f str (+ pos (if rev 0 (length str))) t)
-              (if (= pos (point))
-                  (message "this is the one occurrence")
-                (message "hit: %s (wrap)" (point)) )
-            (goto-char pos)
-            (message "no hit") ))) ))
+    (let ((pos (point)))
+      (when (or (not beg)
+                (and rev (< pos beg)) )
+        (setq beg (point-min)) )
+      (when (or (not end)
+                (and (not rev) (> pos end)) )
+        (setq end (point-max)) )
+      (if (string= "" str)
+          (wrap-search-again)
+        (setq prev-str  str)
+        (setq prev-case case)
+        (setq prev-rev  rev)
+        (setq prev-beg  beg)
+        (setq prev-end  end)
+        (pcase-let ((case-fold-search (not case))
+                    (`(,search-f ,search-beg ,search-end)
+                     (if rev
+                         (list #'search-backward end beg)
+                       (list #'search-forward beg end) )))
+          (if (funcall search-f str search-end t)
+              (message "hit: %s" (point))
+            (goto-char search-beg)
+            (if (funcall search-f str (+ pos (if rev 0 (length str))) t)
+                (if (= pos (point))
+                    (message "this is the one occurrence")
+                  (message "hit: %s (wrap)" (point)) )
+              (goto-char pos)
+              (message "no hit") ))) )))
   (declare-function wrap-search nil) )
 
 (provide 'wrap-search)

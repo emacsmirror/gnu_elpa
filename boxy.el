@@ -2,8 +2,8 @@
 
 ;; Copyright (C) 2021 Free Software Foundation, Inc.
 
-;; Author: Tyler Grinn <tylergrinn@gmail.com>
-;; Version: 1.1.1
+;; Author: Taylor Grinn <grinntaylor@gmail.com>
+;; Version: 1.1.2
 ;; File: boxy.el
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: tools

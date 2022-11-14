@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2021 Free Software Foundation, Inc.
 
-;; Author: Tyler Grinn <tylergrinn@gmail.com>
+;; Author: Taylor Grinn <grinntaylor@gmail.com>
 
 ;;; Code:
 

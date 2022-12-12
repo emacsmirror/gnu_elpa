@@ -300,7 +300,7 @@
 ;;      (substitute-ampc-key (kbd "<") (kbd ";"))))
 ;;
 ;; If ampc is suspended, you can still use every interactive command that does
-;; not directly operate on or with the user interace of ampc.  For example it is
+;; not directly operate on or with the user interface of ampc.  For example it is
 ;; perfectly fine to call `ampc-increase-volume' or `ampc-toggle-play' via M-x
 ;; RET.  Especially the commands `ampc-status' and `ampc-mini' are predesignated
 ;; to be bound in the global keymap and called when ampc is suspended.
@@ -2766,7 +2766,7 @@ If ARG is omitted, use the selected entries."
 (defun ampc-delete (&optional arg)
   "Delete the next ARG songs from the playlist.
 If ARG is omitted, use the selected entries.  If ARG is non-nil,
-all marks after point are removed nontheless."
+all marks after point are removed nonetheless."
   (interactive "P")
   (cl-assert (ampc-in-ampc-p))
   (let ((first-del nil))
@@ -2828,7 +2828,7 @@ If ARG is omitted, use the selected entries in the current buffer."
 
 
 (defun ampc-time-to-progress-bar (elapsed total width)
-  "Creates a progess bar like this: |=========>----|
+  "Creates a progress bar like this: |=========>----|
 ELAPSED is the number of seconds represented by '=' signs
 TOTAL is the number of seconds represented by the entire bar
 WIDTH is the max width of the bar. If < 2, 2 characters will be used anyway"
@@ -3015,7 +3015,7 @@ FILES should be a list of absolute file names, the files to tag."
   "Start the tagging subsystem.
 The files to tag are collected by using either the selected
 entries within the current buffer or the next ARG entries at
-point if numeric perfix argument ARG is non-nil, the file
+point if numeric prefix argument ARG is non-nil, the file
 associated with the entry at point, or, if both sources did not
 provide any files, the audio file that is currently played by
 MPD."

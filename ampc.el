@@ -1,6 +1,6 @@
 ;;; ampc.el --- Asynchronous Music Player Controller -*- lexical-binding: t -*-
 
-;; Copyright (C) 2011-2012, 2016 Free Software Foundation, Inc.
+;; Copyright (C) 2011-2022 Free Software Foundation, Inc.
 
 ;; Author: Christopher Schmidt <christopher@ch.ristopher.com>
 ;; Comment: On Jan 2016, I couldn't get hold of Christopher Schmidt
@@ -625,139 +625,139 @@ modified."
 (defvar ampc-mode-map
   (let ((map (make-sparse-keymap)))
     (suppress-keymap map)
-    (define-key map (kbd "k") 'ampc-toggle-play)
-    (define-key map (kbd "l") 'ampc-next)
-    (define-key map (kbd "j") 'ampc-previous)
-    (define-key map (kbd "c") 'ampc-clear)
-    (define-key map (kbd "s") 'ampc-shuffle)
-    (define-key map (kbd "S") 'ampc-store)
-    (define-key map (kbd "O") 'ampc-load)
-    (define-key map (kbd "R") 'ampc-rename-playlist)
-    (define-key map (kbd "D") 'ampc-delete-playlist)
-    (define-key map (kbd "y") 'ampc-increase-volume)
-    (define-key map (kbd "M-y") 'ampc-decrease-volume)
-    (define-key map (kbd "C-M-y") 'ampc-set-volume)
-    (define-key map (kbd "h") 'ampc-increase-crossfade)
-    (define-key map (kbd "M-h") 'ampc-decrease-crossfade)
-    (define-key map (kbd "C-M-h") 'ampc-set-crossfade)
-    (define-key map (kbd "e") 'ampc-toggle-repeat)
-    (define-key map (kbd "r") 'ampc-toggle-random)
-    (define-key map (kbd "f") 'ampc-toggle-consume)
-    (define-key map (kbd "P") 'ampc-goto-current-song)
-    (define-key map (kbd "G") 'ampc-mini)
-    (define-key map (kbd "q") 'ampc-quit)
-    (define-key map (kbd "z") 'ampc-suspend)
-    (define-key map (kbd "T") 'ampc-trigger-update)
-    (define-key map (kbd "I") 'ampc-tagger)
-    (cl-loop for view in ampc-views
-             do (when (stringp (car view))
-                  (define-key map (cadr view)
-                    `(lambda ()
-                       (interactive)
-                       (ampc-change-view ',view)))))
+    (define-key map (kbd "k") #'ampc-toggle-play)
+    (define-key map (kbd "l") #'ampc-next)
+    (define-key map (kbd "j") #'ampc-previous)
+    (define-key map (kbd "c") #'ampc-clear)
+    (define-key map (kbd "s") #'ampc-shuffle)
+    (define-key map (kbd "S") #'ampc-store)
+    (define-key map (kbd "O") #'ampc-load)
+    (define-key map (kbd "R") #'ampc-rename-playlist)
+    (define-key map (kbd "D") #'ampc-delete-playlist)
+    (define-key map (kbd "y") #'ampc-increase-volume)
+    (define-key map (kbd "M-y") #'ampc-decrease-volume)
+    (define-key map (kbd "C-M-y") #'ampc-set-volume)
+    (define-key map (kbd "h") #'ampc-increase-crossfade)
+    (define-key map (kbd "M-h") #'ampc-decrease-crossfade)
+    (define-key map (kbd "C-M-h") #'ampc-set-crossfade)
+    (define-key map (kbd "e") #'ampc-toggle-repeat)
+    (define-key map (kbd "r") #'ampc-toggle-random)
+    (define-key map (kbd "f") #'ampc-toggle-consume)
+    (define-key map (kbd "P") #'ampc-goto-current-song)
+    (define-key map (kbd "G") #'ampc-mini)
+    (define-key map (kbd "q") #'ampc-quit)
+    (define-key map (kbd "z") #'ampc-suspend)
+    (define-key map (kbd "T") #'ampc-trigger-update)
+    (define-key map (kbd "I") #'ampc-tagger)
+    (dolist (view ampc-views)
+      (when (stringp (car view))
+        (define-key map (cadr view)
+                    (lambda ()
+                      (interactive)
+                      (ampc-change-view view)))))
     map))
 
 (defvar ampc-item-mode-map
   (let ((map (make-sparse-keymap)))
     (suppress-keymap map)
-    (define-key map (kbd "m") 'ampc-mark)
-    (define-key map (kbd "u") 'ampc-unmark)
-    (define-key map (kbd "U") 'ampc-unmark-all)
-    (define-key map (kbd "n") 'ampc-next-line)
-    (define-key map (kbd "p") 'ampc-previous-line)
-    (define-key map (kbd "<down-mouse-1>") 'ampc-mouse-toggle-mark)
-    (define-key map (kbd "<mouse-1>") 'ampc-mouse-align-point)
-    (define-key map [remap next-line] 'ampc-next-line)
-    (define-key map [remap previous-line] 'ampc-previous-line)
-    (define-key map [remap tab-to-tab-stop] 'ampc-move-to-tab)
+    (define-key map (kbd "m") #'ampc-mark)
+    (define-key map (kbd "u") #'ampc-unmark)
+    (define-key map (kbd "U") #'ampc-unmark-all)
+    (define-key map (kbd "n") #'ampc-next-line)
+    (define-key map (kbd "p") #'ampc-previous-line)
+    (define-key map (kbd "<down-mouse-1>") #'ampc-mouse-toggle-mark)
+    (define-key map (kbd "<mouse-1>") #'ampc-mouse-align-point)
+    (define-key map [remap next-line] #'ampc-next-line)
+    (define-key map [remap previous-line] #'ampc-previous-line)
+    (define-key map [remap tab-to-tab-stop] #'ampc-move-to-tab)
     map))
 
 (defvar ampc-current-playlist-mode-map
   (let ((map (make-sparse-keymap)))
     (suppress-keymap map)
-    (define-key map (kbd "RET") 'ampc-play-this)
-    (define-key map (kbd "<down-mouse-2>") 'ampc-mouse-play-this)
-    (define-key map (kbd "<mouse-2>") 'ampc-mouse-align-point)
-    (define-key map (kbd "<down-mouse-3>") 'ampc-mouse-delete)
-    (define-key map (kbd "<mouse-3>") 'ampc-mouse-align-point)
+    (define-key map (kbd "RET") #'ampc-play-this)
+    (define-key map (kbd "<down-mouse-2>") #'ampc-mouse-play-this)
+    (define-key map (kbd "<mouse-2>") #'ampc-mouse-align-point)
+    (define-key map (kbd "<down-mouse-3>") #'ampc-mouse-delete)
+    (define-key map (kbd "<mouse-3>") #'ampc-mouse-align-point)
     map))
 
 (defvar ampc-playlist-mode-map
   (let ((map (make-sparse-keymap)))
     (suppress-keymap map)
-    (define-key map (kbd "t") 'ampc-toggle-marks)
-    (define-key map (kbd "d") 'ampc-delete)
-    (define-key map (kbd "<up>") 'ampc-up)
-    (define-key map (kbd "<down>") 'ampc-down)
-    (define-key map (kbd "<down-mouse-3>") 'ampc-mouse-delete)
-    (define-key map (kbd "<mouse-3>") 'ampc-mouse-align-point)
+    (define-key map (kbd "t") #'ampc-toggle-marks)
+    (define-key map (kbd "d") #'ampc-delete)
+    (define-key map (kbd "<up>") #'ampc-up)
+    (define-key map (kbd "<down>") #'ampc-down)
+    (define-key map (kbd "<down-mouse-3>") #'ampc-mouse-delete)
+    (define-key map (kbd "<mouse-3>") #'ampc-mouse-align-point)
     map))
 
 (defvar ampc-playlists-mode-map
   (let ((map (make-sparse-keymap)))
     (suppress-keymap map)
-    (define-key map (kbd "l") 'ampc-load)
-    (define-key map (kbd "r") 'ampc-rename-playlist)
-    (define-key map (kbd "d") 'ampc-delete-playlist)
-    (define-key map (kbd "<down-mouse-2>") 'ampc-mouse-load)
-    (define-key map (kbd "<mouse-2>") 'ampc-mouse-align-point)
-    (define-key map (kbd "<down-mouse-3>") 'ampc-mouse-delete-playlist)
-    (define-key map (kbd "<mouse-3>") 'ampc-mouse-align-point)
+    (define-key map (kbd "l") #'ampc-load)
+    (define-key map (kbd "r") #'ampc-rename-playlist)
+    (define-key map (kbd "d") #'ampc-delete-playlist)
+    (define-key map (kbd "<down-mouse-2>") #'ampc-mouse-load)
+    (define-key map (kbd "<mouse-2>") #'ampc-mouse-align-point)
+    (define-key map (kbd "<down-mouse-3>") #'ampc-mouse-delete-playlist)
+    (define-key map (kbd "<mouse-3>") #'ampc-mouse-align-point)
     map))
 
 (defvar ampc-tag-song-mode-map
   (let ((map (make-sparse-keymap)))
     (suppress-keymap map)
-    (define-key map (kbd "t") 'ampc-toggle-marks)
-    (define-key map (kbd "a") 'ampc-add)
-    (define-key map (kbd "<down-mouse-3>") 'ampc-mouse-add)
-    (define-key map (kbd "<mouse-3>") 'ampc-mouse-align-point)
+    (define-key map (kbd "t") #'ampc-toggle-marks)
+    (define-key map (kbd "a") #'ampc-add)
+    (define-key map (kbd "<down-mouse-3>") #'ampc-mouse-add)
+    (define-key map (kbd "<mouse-3>") #'ampc-mouse-align-point)
     map))
 
 (defvar ampc-search-mode-map
   (let ((map (make-sparse-keymap)))
     (suppress-keymap map)
-    (define-key map (kbd "a") 'ampc-add)
-    (define-key map (kbd "s") 'ampc-start-search)
-    (define-key map (kbd "<down-mouse-3>") 'ampc-mouse-add)
-    (define-key map (kbd "<mouse-3>") 'ampc-mouse-align-point)
+    (define-key map (kbd "a") #'ampc-add)
+    (define-key map (kbd "s") #'ampc-start-search)
+    (define-key map (kbd "<down-mouse-3>") #'ampc-mouse-add)
+    (define-key map (kbd "<mouse-3>") #'ampc-mouse-align-point)
     map)
   "Key map for search view")
 
 (defvar ampc-outputs-mode-map
   (let ((map (make-sparse-keymap)))
     (suppress-keymap map)
-    (define-key map (kbd "t") 'ampc-toggle-marks)
-    (define-key map (kbd "a") 'ampc-toggle-output-enabled)
-    (define-key map (kbd "<down-mouse-3>") 'ampc-mouse-toggle-output-enabled)
-    (define-key map (kbd "<mouse-3>") 'ampc-mouse-align-point)
+    (define-key map (kbd "t") #'ampc-toggle-marks)
+    (define-key map (kbd "a") #'ampc-toggle-output-enabled)
+    (define-key map (kbd "<down-mouse-3>") #'ampc-mouse-toggle-output-enabled)
+    (define-key map (kbd "<mouse-3>") #'ampc-mouse-align-point)
     map))
 
 (defvar ampc-files-list-mode-map
   (let ((map (make-sparse-keymap)))
     (suppress-keymap map)
-    (define-key map (kbd "t") 'ampc-toggle-marks)
-    (define-key map (kbd "C-c C-q") 'ampc-tagger-quit)
-    (define-key map (kbd "C-c C-c") 'ampc-tagger-save)
-    (define-key map (kbd "C-c C-r") 'ampc-tagger-reset)
+    (define-key map (kbd "t") #'ampc-toggle-marks)
+    (define-key map (kbd "C-c C-q") #'ampc-tagger-quit)
+    (define-key map (kbd "C-c C-c") #'ampc-tagger-save)
+    (define-key map (kbd "C-c C-r") #'ampc-tagger-reset)
     (define-key map [remap ampc-tagger] nil)
-    (define-key map [remap ampc-quit] 'ampc-tagger-quit)
-    (cl-loop for view in ampc-views
-             do (when (stringp (car view))
-                  (define-key map (cadr view) nil)))
+    (define-key map [remap ampc-quit] #'ampc-tagger-quit)
+    (dolist (view ampc-views)
+      (when (stringp (car view))
+        (define-key map (cadr view) nil)))
     map))
 
 (defvar ampc-tagger-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c C-q") 'ampc-tagger-quit)
-    (define-key map (kbd "C-c C-c") 'ampc-tagger-save)
-    (define-key map (kbd "C-c C-r") 'ampc-tagger-reset)
-    (define-key map (kbd "TAB") 'ampc-tagger-completion-at-point)
+    (define-key map (kbd "C-c C-q") #'ampc-tagger-quit)
+    (define-key map (kbd "C-c C-c") #'ampc-tagger-save)
+    (define-key map (kbd "C-c C-r") #'ampc-tagger-reset)
+    (define-key map (kbd "TAB") #'ampc-tagger-completion-at-point)
     map))
 
 (defvar ampc-tagger-dired-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c C-t") 'ampc-tagger-dired)
+    (define-key map (kbd "C-c C-t") #'ampc-tagger-dired)
     map))
 
 (defvar ampc-search-keywords
@@ -767,13 +767,13 @@ modified."
 ;;; **** menu
 (easy-menu-define nil ampc-mode-map nil
   `("ampc"
-    ("Change view" ,@(cl-loop for view in ampc-views
-                              when (stringp (car view))
-                              collect (vector (car view)
-                                              `(lambda ()
-                                                 (interactive)
-                                                 (ampc-change-view ',view)))
-                              end))
+    ("Change view" ,@(mapcan (lambda (view)
+                               (when (stringp (car view))
+                                 (list (vector (car view)
+                                               (lambda ()
+                                                  (interactive)
+                                                  (ampc-change-view view))))))
+                              ampc-views))
     ["Run tagger" ampc-tagger]
     "--"
     ["Play" ampc-toggle-play
@@ -897,13 +897,13 @@ modified."
            (goto-char (point-min))
            ,@body
            (goto-char (point-min))
-           (cl-loop until (eobp)
-                    do (if (get-text-property (point) 'not-updated)
-                           (kill-line 1)
-                         (add-text-properties (+ (point) 2)
-                                              (progn (forward-line nil)
-                                                     (1- (point)))
-                                              '(mouse-face highlight))))
+           (while (not (eobp))
+             (if (get-text-property (point) 'not-updated)
+                 (kill-line 1)
+               (add-text-properties (+ (point) 2)
+                                    (progn (forward-line nil)
+                                           (1- (point)))
+                                    '(mouse-face highlight))))
            (remove-text-properties (point-min) (point-max) '(not-updated))
            (goto-char (point-min))
            (when old-point-data
@@ -1342,13 +1342,13 @@ modified."
   result)
 
 (defun ampc-post-mark-change-update ()
-  (cl-ecase (car ampc-type)
-    ((current-playlist playlist outputs))
-    (playlists
+  (pcase-exhaustive (car ampc-type)
+    ((or 'current-playlist 'playlist 'outputs))
+    ('playlists
      (ampc-update-playlist))
-    (search
+    ('search
      (message "Don't know what to do here"))
-    ((song tag)
+    ((or 'song 'tag)
      (cl-loop
       for w in
       (cl-loop for w on (ampc-normalize-windows)
@@ -1363,7 +1363,7 @@ modified."
            (when (memq (car ampc-type) '(song tag))
              (ampc-set-dirty t))))
      (ampc-fill-tag-song))
-    (files-list
+    ('files-list
      (ampc-tagger-update))))
 
 (cl-defun ampc-tagger-get-values (tag all-files &aux result)
@@ -1503,12 +1503,12 @@ modified."
     (setf header-line-format
           (concat
            (make-string (floor (fringe-columns 'left t)) ? )
-           (cl-ecase (car ampc-type)
-             (tag
+           (pcase (car ampc-type)
+             ('tag
               (concat "  " (plist-get (cdr ampc-type) :tag)))
-             (playlists
+             ('playlists
               "  Playlists")
-             (t
+             (_
               (ampc-pad (cl-loop for (name . props) in
                                  (plist-get (cdr ampc-type) :properties)
                                  collect (or (plist-get props :title) name))
@@ -1527,28 +1527,28 @@ modified."
       (cl-loop for w in (ampc-normalize-windows)
                do (with-current-buffer (window-buffer w)
                     (when (and ampc-dirty (not (eq ampc-dirty 'keep-dirty)))
-                      (cl-ecase (car ampc-type)
-                        (outputs
+                      (pcase-exhaustive (car ampc-type)
+                        ('outputs
                          (ampc-send-command 'outputs))
-                        (playlist
+                        ('playlist
                          (ampc-update-playlist))
-                        ((tag song)
+                        ((or 'tag 'song)
                          (if (assoc (ampc-tags) ampc-internal-db)
                              (ampc-fill-tag-song)
                            (push (cons (ampc-tags) nil) ampc-internal-db)
                            (ampc-set-dirty 'tag 'keep-dirty)
                            (ampc-set-dirty 'song 'keep-dirty)
                            (ampc-send-command 'listallinfo)))
-                        (status
+                        ('status
                          (ampc-send-command 'status)
                          (ampc-send-command 'currentsong))
-                        (playlists
+                        ('playlists
                          (ampc-send-command 'listplaylists))
-                        (search
+                        ('search
                          (when ampc-search-keywords
                            (ampc-send-command 'search nil "any"
                                               (ampc-quote ampc-search-keywords))))
-                        (current-playlist
+                        ('current-playlist
                          (ampc-send-command 'playlistinfo))))))
     (ampc-send-command 'status)
     (ampc-send-command 'currentsong)))
@@ -1580,7 +1580,7 @@ modified."
       (cl-return-from ampc-send-command))
     (unless ampc-working-timer
       (setf ampc-yield 0
-            ampc-working-timer (run-at-time nil 0.1 'ampc-yield)))
+            ampc-working-timer (run-at-time nil 0.1 #'ampc-yield)))
     (when (equal (caar ampc-outstanding-commands) 'idle)
       (pop ampc-outstanding-commands)
       (setf idle t))
@@ -1654,7 +1654,7 @@ modified."
   (string< (car a) (car b)))
 
 (defun ampc-create-tree ()
-  (avl-tree-create 'ampc-tree<))
+  (avl-tree-create #'ampc-tree<))
 
 (defsubst ampc-extract (regexp)
   (goto-char (point-min))
@@ -1720,12 +1720,12 @@ modified."
                            (cl-incf min (floor (/ (- max min) 2.0)))
                          (cl-decf max (floor (/ (- max min) 2.0))))
                     finally return 'insert))))
-    (cl-ecase action
-      (insert
+    (pcase-exhaustive action
+      ('insert
        (insert (propertize (concat "  " element "\n")
                            'data (if (eq cmp t) (list data) data)
                            'cmp-data cmp-data)))
-      ((update overwrite)
+      ((or 'update 'overwrite)
        (remove-text-properties (point) (1+ (point)) '(not-updated))
        (when (or (eq ampc-dirty 'erase) (eq action 'overwrite))
          (let ((origin (point)))
@@ -1909,20 +1909,20 @@ modified."
   (cl-loop until (eobp)
            for subsystem = (buffer-substring (point) (line-end-position))
            do (when (string-match "^changed: \\(.*\\)$" subsystem)
-                (cl-case (intern (match-string 1 subsystem))
-                  (database
+                (pcase (intern (match-string 1 subsystem))
+                  ('database
                    (setf ampc-internal-db (list (cons (ampc-tags) nil)))
                    (ampc-set-dirty 'tag 'keep-dirty)
                    (ampc-set-dirty 'song 'keep-dirty)
                    (ampc-send-command 'listallinfo))
-                  (output
+                  ('output
                    (ampc-set-dirty 'outputs t))
-                  ((player options mixer)
+                  ((or 'player 'options 'mixer)
                    (setf ampc-status nil)
                    (ampc-set-dirty 'status t))
-                  (stored_playlist
+                  ('stored_playlist
                    (ampc-set-dirty 'playlists t))
-                  (playlist
+                  ('playlist
                    (ampc-set-dirty 'current-playlist t)
                    (ampc-set-dirty 'status t))))
            (forward-line))
@@ -2052,38 +2052,38 @@ modified."
    ((eq status 'error)
     (pop ampc-outstanding-commands))
    ((eq status 'running)
-    (cl-case (caar ampc-outstanding-commands)
-      (listallinfo (ampc-fill-internal-db t))))
+    (pcase (caar ampc-outstanding-commands)
+      ('listallinfo (ampc-fill-internal-db t))))
    (t
     (let ((command (pop ampc-outstanding-commands)))
-      (cl-case (car command)
-        (idle
+      (pcase (car command)
+        ('idle
          (ampc-handle-idle))
-        (setup
+        ('setup
          (ampc-handle-setup status))
-        (currentsong
+        ('currentsong
          (ampc-handle-current-song))
-        (status
+        ('status
          (ampc-handle-status))
-        (update
+        ('update
          (ampc-handle-update))
-        (listplaylistinfo
+        ('listplaylistinfo
          (ampc-fill-playlist))
-        (listplaylists
+        ('listplaylists
          (ampc-fill-playlists))
-        (playlistinfo
+        ('playlistinfo
          (ampc-fill-current-playlist))
-        (mini-playlistinfo
+        ('mini-playlistinfo
          (ampc-mini-impl))
-        (mini-currentsong
+        ('mini-currentsong
          (ampc-status))
-        (shuffle-listplaylistinfo
+        ('shuffle-listplaylistinfo
          (ampc-shuffle-playlist (plist-get (cadr command) :playlist)))
-        (listallinfo
+        ('listallinfo
          (ampc-handle-listallinfo))
-        (outputs
+        ('outputs
          (ampc-fill-outputs))
-        (search
+        ('search
          (ampc-handle-search))))
     (unless ampc-outstanding-commands
       (ampc-update)))))
@@ -2691,8 +2691,8 @@ If ARG is 4, stop player rather than pause if applicable."
     (cl-return-from ampc-toggle-play))
   (when arg
     (setf arg (prefix-numeric-value arg)))
-  (cl-ecase (intern state)
-    (stop
+  (pcase-exhaustive (intern state)
+    ('stop
      (when (or (null arg) (> arg 0))
        (ampc-send-command
         'play
@@ -2700,10 +2700,10 @@ If ARG is 4, stop player rather than pause if applicable."
         (if (and (eq (car ampc-type) 'current-playlist) (not (eobp)))
             (1- (line-number-at-pos))
           0))))
-    (pause
+    ('pause
      (when (or (null arg) (> arg 0))
        (ampc-send-command 'pause '(:remove-other (play)) 0)))
-    (play
+    ('play
      (cond ((or (null arg) (< arg 0))
             (ampc-send-command 'pause '(:remove-other (play)) 1))
            ((eq arg 4)
@@ -3045,19 +3045,19 @@ MPD."
                      "M-x customize-variable RET ampc-tagger-music-directories "
                      "RET"))
     (cl-return-from ampc-tagger))
-  (cl-case (car ampc-type)
-    (current-playlist
+  (pcase (car ampc-type)
+    ('current-playlist
      (save-excursion
        (ampc-with-selection arg
          (cl-callf nconc files (list (cdr (assoc "file" (get-text-property
-                                                      (line-end-position)
-                                                      'data))))))))
-    ((playlist tag song)
+                                                         (line-end-position)
+                                                         'data))))))))
+    ((or 'playlist 'tag 'song)
      (save-excursion
        (ampc-with-selection arg
          (ampc-on-files (lambda (file) (push file files)))))
      (cl-callf nreverse files))
-    (t
+    (_
      (let ((file (cdr (assoc 'file ampc-status))))
        (when file
          (setf files (list file))))))
@@ -3235,7 +3235,7 @@ default to the ones specified in `ampc-default-server'."
             ampc-host host
             ampc-port port))
     (set-process-coding-system ampc-connection 'utf-8-unix 'utf-8-unix)
-    (set-process-filter ampc-connection 'ampc-filter)
+    (set-process-filter ampc-connection #'ampc-filter)
     (set-process-query-on-exit-flag ampc-connection nil)
     (setf ampc-outstanding-commands '((setup))))
   (if suspend

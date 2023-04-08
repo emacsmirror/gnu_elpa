@@ -407,7 +407,8 @@
   (visual-line-mode -1)
   (setq indent-tabs-mode nil)
   (cursor-sensor-mode t)
-  (setq truncate-lines t))
+  (setq truncate-lines t)
+  (buffer-face-set 'fixed-pitch))
 
 (cl-defun boxy-pp (box
                    &key

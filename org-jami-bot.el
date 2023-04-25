@@ -121,13 +121,13 @@ by sending '!done'."
          (lines (string-lines body))
          ;; use inactive timestamps
          (timefmt (concat "[" (substring (cdr org-time-stamp-formats) 1 -1) "]")))
-(with-current-buffer (get-buffer-create buf)
-    (insert (if (string-empty-p buf)
-            (format "* Multi-message note capture %s\n:PROPERTIES:\n:CREATED: %s\n:END:\n"
-                    (format-time-string timefmt) (format-time-string timefmt))
-            (format "* %s\n:PROPERTIES:\n:CREATED: %s\n:END:\n%s"
-                    (car lines) (format-time-string timefmt) (string-join (cdr lines) "\n"))))
-    "Multi-message capture started. Finish capture with \"!done\"")))
+    (with-current-buffer (get-buffer-create buf)
+      (insert (if (string-empty-p buf)
+                  (format "* Multi-message note capture %s\n:PROPERTIES:\n:CREATED: %s\n:END:\n"
+                          (format-time-string timefmt) (format-time-string timefmt))
+                (format "* %s\n:PROPERTIES:\n:CREATED: %s\n:END:\n%s"
+                        (car lines) (format-time-string timefmt) (string-join (cdr lines) "\n"))))
+      "Multi-message capture started. Finish capture with \"!done\"")))
 
 (defun org-jami-bot--command-function-done (account conversation msg)
   "Finish multi-message capture and return a confirmation string.
@@ -146,7 +146,7 @@ by sending '!done'."
                    (kill-buffer buf))
               "capture finished!"
             "error during org-capture :("))
-    "No capture to finish. Start multi-message capture with \"!start\"")))
+      "No capture to finish. Start multi-message capture with \"!start\"")))
 
 (defun org-jami-bot--capture-file (account conversation msg dlname)
   "Capture downloaded file and reply to original message.

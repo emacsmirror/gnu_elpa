@@ -68,9 +68,10 @@
 
 (require 'jami-bot)
 (require 'org)
+(require 'org-capture)
 
 (defvar org-jami-bot-capture-key "J"
-  "Key for the org-capture template to call for Jami messages")
+  "Key for the `org-capture' template to call for Jami messages.")
 
 (defun org-jami-bot--capture-plain-messsage (account conversation msg)
   "Capture body in MSG and replies to original message.
@@ -129,15 +130,14 @@ by sending '!done'."
                         (car lines) (format-time-string timefmt) (string-join (cdr lines) "\n"))))
       "Multi-message capture started. Finish capture with \"!done\"")))
 
-(defun org-jami-bot--command-function-done (account conversation msg)
+(defun org-jami-bot--command-function-done (account conversation _msg)
   "Finish multi-message capture and return a confirmation string.
 
         Requires a capture buffer set up for CONVERSATION and
         ACCOUNT, for example through
         `org-jami-bot--command-function-start'."
   (let* ((buf (format "*jami-capture-%s-%s*" account conversation))
-         (continue (get-buffer buf))
-         (body (cadr (assoc-string "body" msg))))
+         (continue (get-buffer buf)))
     (if continue
         (with-current-buffer (get-buffer-create buf)
           (if (and (org-capture-string
@@ -184,7 +184,7 @@ CONVERSATION for jami ACCOUNT."
              "captured!"
            "error during org-capture :("))))))
 
-(defun org-jami-bot--command-function-today (account conversation msg)
+(defun org-jami-bot--command-function-today (_account _conversation msg)
   "Capture body of message as todo entry scheduled today.
 
  Returns a reply string as confirmation. MSG is the full message
@@ -204,7 +204,7 @@ CONVERSATION for jami ACCOUNT."
            "captured and scheduled!"
         "error during org-capture :(")))
 
-(defun org-jami-bot--command-function-schedule (account conversation msg)
+(defun org-jami-bot--command-function-schedule (_account _conversation msg)
   "Capture body as todo entry and schedule it on the date given after the command.
 
 The entry will be scheduled according to the first line of the

@@ -1,0 +1,61 @@
+calibre.el TODO list -*-outline-*-
+
+Copyright (C) 2001-2023 Free Software Foundation, Inc.
+See the end of the file for license conditions.
+
+Since calibre.el is an FSF-copyrighted package, please be prepared to
+sign legal papers to transfer the copyright on your work to the FSF.
+Copyright assignment is a simple process.  Residents of some countries
+can do it entirely electronically.  We can help you get started, and
+answer any questions you may have (or point you to the people with the
+answers), at the emacs-devel@gnu.org mailing list.
+
+* Decide what to do about metadata edit buffers when library is switched
+The current implementation of metadata editing relies on the
+assumption that the active library is not changed while a metadata
+editing buffer is open.  If changes to metadata are applied after such
+a switch the book with the same ID in the new library will be
+modified.  This is far from desirable but it is not clear what the
+best course of action in this scenario is.
+
+* Allow exporting catalogues
+Calibre allows exporting a catalogue of a library, or some subset of
+the library, in various formats.  calibre.el should be able to do this
+to.
+
+* Allow converting between formats
+It should be possible to convert a book, or multiple books, between
+formats from the *Library* buffer.
+
+* Make calibre-library prompt for the library when called with a prefix argument
+
+* Allow mass editing of metadata
+It should be possible to mark a set of books and apply a change, such
+as adding tags or setting a publisher, to to all of them.
+
+* Add a defcustom specifying automerge policy
+calibredb add's --automerge option allows specifying how to handle
+books already in the library.  The user should be allowed to control
+this in calibre.el.
+
+* Allow modifying publication date
+
+
+This file is part of calibre.el.
+
+calibre.el is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+calibre.el is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with calibre.el.  If not, see <https://www.gnu.org/licenses/>.
+
+;; Local Variables:
+;; coding: utf-8
+;; End:

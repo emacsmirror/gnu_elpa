@@ -1,0 +1,134 @@
+calibre.el NEWS -*- outline -*-
+
+Copyright (C) 2023 Free Software Foundation, Inc.
+See the end of the file for license conditions.
+
+This file is about changes in calibre.el, the Emacs client for
+Calibre.
+
+
+* Changes in calibre.el 1.3.3
+
+** Fix series widget in metadata editing
+The series widget was erroneously defined twice, causing the editing
+buffer to display an error.
+
+** Correctly handle multiple authors in when the CLI interface is used
+When using the CLI interface to get book data calibre.el used the
+wrong separator to identify different authors.
+
+** Add missing function to the CLI interface
+The CLI interface lacked the ability to search by title.
+
+
+* Changes in calibre.el 1.3.2
+
+** Add a manual
+This release includes a texinfo manual.
+
+
+* Changes in calibre.el 1.3.1
+
+** Allow title filters in virtual libraries
+The customization interface for calibre-virtual-libraries lacked the
+ability to filter by title.
+
+** Return no books when no books match inclusive filters
+Previously the search mechanism erroneously returned all books when no
+books matched the applied inclusive filters.
+
+
+* Changes in calibre.el 1.3.0
+
+** Capture the output of calibredb processes
+If a calibredb command fails, its output is captured in the *calibre*
+buffer.
+
+** Require exact matching when using the CLI interface
+The CLI interface previously used substring matching when searching.
+This is inconsistent with the SQLite interface.
+
+** Allow searching by title
+It is now possible to search by title in the *Library* buffer.
+
+
+* Changes in calibre.el 1.2.2
+
+** Correctly handle multiple authors
+Metadata editing now correctly handles books with multiple authors.
+
+** Sort in ascending order by series index
+Sorting by series now sorts in ascending order by series index within
+a series, i.e. book 1 of a series comes before book 2.
+
+** Pick some format if no preferred format is available
+When none of the formats a book is available in is present in
+calibre-format-preferences one of the available ones is picked.
+
+** Allow overriding format preferences
+Calling calibre-library-open-book with a prefix argument now allows
+the user to select the format to open the book in.
+
+
+* Changes in calibre.el 1.2.0
+
+** Modified and marked books are highlighted
+Modified and marked books are now highlighted with faces in
+the *Library* buffer.
+
+** Enable using Calibre's CLI interface instead of SQLite
+It is now possible to make use of Calibre's CLI interface to get book
+data when SQLite support is not available.  This requires an Emacs
+compiled with JSON support.
+
+** Lower required Emacs version
+The ability to use Calibre's CLI interface and the compat library
+reduce the required Emacs version to 27.
+
+
+* Changes in calibre.el 1.1.0
+
+** Support editing book metadata
+It is now possible to edit the metadata of books.
+
+** Marks are preserved when refreshing library
+Deletion and modification marks are preserved when the *Library*
+buffer is refreshed.
+
+** Each book can only have one publisher
+Calibre itself seems to only support a book having a single publisher,
+so calibre.el does as well.
+
+** Allow displaying publication date
+calibre-library-columns now allows displaying the publication dates of
+books.  The user option calibre-library-time-format controls the
+format of the displayed time.
+
+** Only prompt the user for library if more than one is defined
+The user is only prompted to select a library when opening
+the *Library* buffer if more than one library is defined.
+
+** Allow searching the library
+It is now possible to search the library, and to define virtual
+libraries (named, predefined searches).
+
+** Correctly handle adding directories
+Adding a directory now recurses into that directory.
+
+
+----------------------------------------------------------------------
+This file is part of calibre.el.
+
+calibre.el is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+calibre.el is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with calibre.el.  If not, see <https://www.gnu.org/licenses/>.
+

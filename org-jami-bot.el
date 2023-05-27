@@ -159,16 +159,17 @@ CONVERSATION for jami ACCOUNT."
          ;; use inactive timestamps
          (timefmt (concat "[" (substring (cdr org-time-stamp-formats) 1 -1) "]")))
     (with-current-buffer (get-buffer-create buf)
-      (insert (if continue
-                  ;; multi message capture
-                  (concat
-                   "#+ATTR_ORG: :width 400\n"
-                   (org-link-make-string (file-relative-name dlname)) "\n")
-                ;; single message capture
-                (format "* FILE %s :FILE:\n:PROPERTIES:\n:CREATED: %s\n:END:\n\n#+ATTR_ORG: :width 400\n%s\n"
-                        (org-link-make-string (file-relative-name dlname) displayname)
-                        (format-time-string timefmt)
-                        (org-link-make-string (file-relative-name dlname)))))
+      (let ((link (concat "file:" (file-relative-name dlname))))
+        (insert (if continue
+                    ;; multi message capture
+                    (concat
+                     "#+ATTR_ORG: :width 400\n"
+                     (org-link-make-string link) "\n")
+                  ;; single message capture
+                  (format "* FILE %s :FILE:\n:PROPERTIES:\n:CREATED: %s\n:END:\n\n#+ATTR_ORG: :width 400\n%s\n"
+                          (org-link-make-string link displayname)
+                          (format-time-string timefmt)
+                          (org-link-make-string link)))))
       ;; store link for easy linking
       (push (list dlname displayname) org-stored-links)
       (jami-bot-reply-to-message

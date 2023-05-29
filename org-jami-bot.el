@@ -159,7 +159,19 @@ CONVERSATION for jami ACCOUNT."
          ;; use inactive timestamps
          (timefmt (concat "[" (substring (cdr org-time-stamp-formats) 1 -1) "]")))
     (with-current-buffer (get-buffer-create buf)
-      (let ((link (concat "file:" (file-relative-name dlname))))
+      (let ((link
+             ;; link to downloaded file
+             (concat "file:"
+                     (condition-case nil
+                         ;; try to create a link relative to the target capture file
+                         (file-relative-name dlname
+                                             (file-name-directory
+                                              (org-capture-expand-file
+                                               (cadr (nth 3 (assoc
+                                                             org-jami-bot-capture-key
+                                                             org-capture-templates))))))
+                       ;; if this fails, use the absolute path instead
+                       (error dlname)))))
         (insert (if continue
                     ;; multi message capture
                     (concat

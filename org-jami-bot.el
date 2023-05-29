@@ -249,8 +249,8 @@ confirmation. ACCOUNT and CONVERSATION are not used."
              ("!done" . org-jami-bot--command-function-done)))
     (add-to-list 'jami-bot-command-function-alist cmd))
 
-  (add-hook 'jami-bot-text-message-functions 'org-jami-bot--capture-plain-messsage)
-  (add-hook 'jami-bot-data-transfer-functions 'org-jami-bot--capture-file))
+  (add-hook 'jami-bot-text-message-functions #'org-jami-bot--capture-plain-messsage)
+  (add-hook 'jami-bot-data-transfer-functions #'org-jami-bot--capture-file))
 
 (provide 'org-jami-bot)
 ;;; org-jami-bot.el ends here

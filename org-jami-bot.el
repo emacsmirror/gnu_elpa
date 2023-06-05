@@ -83,7 +83,7 @@ message belongs to."
          (body (cadr (assoc-string "body" msg)))
          (lines (string-lines body))
          ;; use inactive timestamps
-         (timefmt (concat "[" (substring (cdr org-time-stamp-formats) 1 -1) "]")))
+         (timefmt (org-time-stamp-format 't 't)))
     (with-current-buffer (get-buffer-create buf)
       (insert (if continue
                   ;; multi message capture
@@ -121,7 +121,7 @@ by sending '!done'."
          (body (cadr (assoc-string "body" msg)))
          (lines (string-lines body))
          ;; use inactive timestamps
-         (timefmt (concat "[" (substring (cdr org-time-stamp-formats) 1 -1) "]")))
+         (timefmt (org-time-stamp-format 't 't)))
     (with-current-buffer (get-buffer-create buf)
       (insert (if (string-empty-p buf)
                   (format "* Multi-message note capture %s\n:PROPERTIES:\n:CREATED: %s\n:END:\n"
@@ -157,7 +157,7 @@ CONVERSATION for jami ACCOUNT."
          (continue (get-buffer buf))
          (displayname (cadr (assoc-string "displayName" msg)))
          ;; use inactive timestamps
-         (timefmt (concat "[" (substring (cdr org-time-stamp-formats) 1 -1) "]")))
+         (timefmt (org-time-stamp-format 't 't)))
     (with-current-buffer (get-buffer-create buf)
       (let ((link
              ;; link to downloaded file
@@ -205,8 +205,7 @@ CONVERSATION for jami ACCOUNT."
   (let* ((body (cadr (assoc-string "body" msg)))
          (lines (string-lines body))
          ;; use inactive timestamps
-         (timefmt (concat "[" (substring (cdr org-time-stamp-formats) 1 -1) "]")))
-
+         (timefmt (org-time-stamp-format 't 't)))
           (if (org-capture-string
                (format "* TODO %s\nSCHEDULED: %s\n:PROPERTIES:\n:CREATED: %s\n:END:\n%s"
                        (car lines)
@@ -229,7 +228,7 @@ confirmation. ACCOUNT and CONVERSATION are not used."
          (lines (string-lines body))
          (swhen (org-read-date nil nil (car lines)))
          ;; inactive timestamp
-         (timefmt (concat "[" (substring (cdr org-time-stamp-formats) 1 -1) "]")))
+                  (timefmt (org-time-stamp-format 't 't)))
     (if (org-capture-string
          (format "* TODO %s\nSCHEDULED: %s\n:PROPERTIES:\n:CREATED: %s\n:END:\n%s"
                  (cadr lines)

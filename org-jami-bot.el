@@ -156,6 +156,7 @@ CONVERSATION for jami ACCOUNT."
   (let* ((buf (format "*jami-capture-%s-%s*" account conversation))
          (continue (get-buffer buf))
          (displayname (cadr (assoc-string "displayName" msg)))
+         (timestamp (string-to-number (cadr (assoc-string "timestamp" msg))))
          ;; use inactive timestamps
          (timefmt (org-time-stamp-format 't 't)))
     (with-current-buffer (get-buffer-create buf)
@@ -178,9 +179,11 @@ CONVERSATION for jami ACCOUNT."
                      "#+ATTR_ORG: :width 400\n"
                      (org-link-make-string link) "\n")
                   ;; single message capture
-                  (format "* FILE %s :FILE:\n:PROPERTIES:\n:CREATED: %s\n:END:\n\n#+ATTR_ORG: :width 400\n%s\n"
+                  (format "* FILE %s :FILE:\n:PROPERTIES:\n\
+:CREATED: %s\n:JAMI_TIMESTAMP: %s\n:END:\n\n#+ATTR_ORG: :width 400\n%s\n"
                           (org-link-make-string link displayname)
                           (format-time-string timefmt)
+                          (format-time-string timefmt timestamp)
                           (org-link-make-string link)))))
       ;; store link for easy linking
       (push (list dlname displayname) org-stored-links)

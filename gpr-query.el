@@ -754,7 +754,7 @@ FILE is from gpr-query."
     ;; WORKAROUND: in emacs 28 xref-location changed from defclass to
     ;; cl-defstruct.
     (require 'eieio)
-    (with-suppressed-warnings ;; "unknown slot" in emacs 28
+    (with-no-warnings ;; "unknown slot" in emacs 28
 	(progn
 	  (defun xref-item-summary (item) (oref item summary))
 	  (defun xref-item-location (item) (oref item location))

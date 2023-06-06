@@ -1,4 +1,4 @@
-4# For compiling gpr-query Ada code in elpa or devel worktree
+# For compiling gpr-query Ada code in elpa or devel worktree
 
 #export Standard_Common_Build := Debug
 

@@ -4,10 +4,6 @@
 # See build.sh for build (must be run before install).
 
 # $1 : optional <install dir>
-#
-# If you don't have write permission in the GNAT installation
-# directory, you need to use --prefix=<dir>, or run with root
-# privileges.
 
 if [ x$1 = x ]; then
     PREFIX=$HOME/.local        
@@ -19,7 +15,7 @@ fi
 echo "installing gpr-query executables to" $PREFIX/bin
 
 if type alr; then
-    cp emacs_gpr_query/bin/* $PREFIX/bin
+    cp emacs_gpr_query*/bin/* $PREFIX/bin
 
 elif type gprbuild; then
     cp bin/* $PREFIX/bin

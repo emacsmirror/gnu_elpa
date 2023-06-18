@@ -1,6 +1,6 @@
 ;;; blist.el --- Display bookmarks in an ibuffer way  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021  Free Software Foundation, Inc.
+;; Copyright (C) 2021, 2022, 2023  Free Software Foundation, Inc.
 
 ;; Author: Durand <durand@jsdurand.xyz>
 ;; Keywords: convenience
@@ -123,6 +123,12 @@ Used by `ilist-dag' to define an automatic filter group."
   (save-match-data
     (let* ((handler (bookmark-get-handler element))
            (handler-name (and handler (format "%S" handler)))
+           (handler-type
+            (cond
+             ;; This is added in Emacs 29, so we test if this function
+             ;; is defined.
+             ((functionp #'bookmark-type-from-full-record)
+              (bookmark-type-from-full-record element))))
            (location (bookmark-location element)))
       ;; replace repeating parts
       (cond
@@ -138,6 +144,8 @@ Used by `ilist-dag' to define an automatic filter group."
              (string-match "\\.\\([^.]+\\)\\'" location))
         (setq handler-name (match-string 1 location))))
       (cond
+       ;; If the type is available, we use it as the group header.
+       (handler-type)
        (handler-name
         (cond
          ;; Some special cases
@@ -146,7 +154,21 @@ Used by `ilist-dag' to define an automatic filter group."
          ((<= (length handler-name) 3) (upcase handler-name))
          ((capitalize handler-name))))))))
 
-;; the function defined above
+;;;;; An alternative, type-only, automatic grouping
+
+;; An alternative automatic group that only uses types of handlers as
+;; group headers.
+
+;; NOTE: bookmark-type-from-full-record is added in Emacs 29, so it is
+;; unavailable before this version, and hence this automatic filter
+;; group would always use the default group.
+
+(ilist-dag "blist-type-only" "Default" #'blist-filter-sorter-default
+  (cond
+   ((functionp #'bookmark-type-from-full-record)
+    (bookmark-type-from-full-record element))))
+
+;; For discoverability
 (defalias 'blist-automatic-filter-groups-default
   #'ilist-automatic-group-blist-default)
 
@@ -1279,7 +1301,8 @@ progress."
                  bookmark-alist))
          (name-len (length names))
          (new-len (length new-list))
-         (table (make-hash-table :test 'equal :size name-len))
+         (table (make-hash-table
+                 :test 'equal :size (+ name-len new_len)))
          (count 0))
     ;; use a hash table so that testing for membership is a constant
     ;; time operation

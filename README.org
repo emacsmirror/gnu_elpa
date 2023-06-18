@@ -30,8 +30,10 @@ how the list of bookmarks looks like on my end:
 
 ** Example configuration
 
-An example configuration is included so that it is easier to begin
-configuring the package.
+Some examples of configurations are included so that it is easier to
+begin configuring the package.
+
+*** Example of manual grouping
 
 #+begin_src emacs-lisp :eval no :exports code
   (setq blist-filter-groups
@@ -62,6 +64,51 @@ configuring the package.
   (blist-define-criterion "info" "Info"
     (eq (bookmark-get-handler bookmark)
         #'Info-bookmark-jump))
+#+end_src
+
+*** Example of automatic grouping
+
+#+begin_src emacs-lisp
+  (setq blist-filter-features (list 'auto))
+
+  ;; Either this
+  (setq blist-automatic-filter-groups
+        #'ilist-automatic-group-blist-default)
+
+  ;; Or this
+  (setq blist-automatic-filter-groups
+        #'ilist-automatic-group-blist-type-only)
+
+  ;; Or define ones own grouping function
+#+end_src
+
+*** Example of combining the two groupings
+
+#+begin_src emacs-lisp
+  ;; The order matters not.
+  (setq blist-filter-features (list 'manual 'auto))
+
+  ;; We can use manual groups to place certain important categories of
+  ;; bookmarks at the top of the list.
+  ;;
+  ;; Make sure not to include a default group, otherwise tha automatic
+  ;; grouping functions would have no chance of being run.
+  (setq blist-filter-groups
+        (list
+         (cons "Eshell" #'blist-eshell-p)
+         (cons "ELisp" #'blist-elisp-p)
+         (cons "PDF" #'blist-pdf-p)
+         (cons "Info" #'blist-info-p)))
+
+  ;; Either this
+  (setq blist-automatic-filter-groups
+        #'ilist-automatic-group-blist-default)
+
+  ;; Or this
+  (setq blist-automatic-filter-groups
+        #'ilist-automatic-group-blist-type-only)
+
+;; Or define ones own grouping function
 #+end_src
 
 See the following subsections for more details.
@@ -162,6 +209,28 @@ If you want to define your own automatic filter group, then the macro
 =ilist-define-automatic-group=, or =ilist-dag=, defined in "ilist",
 might come in handy.  The default automatic filter group is defined by
 that macro, for your information.
+
+*** Two default automatic groups
+
+There are two pre-defined automatic groups in the package: the default
+one and the /type-only/ one.
+
+**** Default group
+
+In Emacs 29 or later, if a bookmark handler function symbol has a
+property called =bookmark-handler-type=, it will be recognized as the
+type of the bookmark, which can be retrieved by the function
+=bookmark-type-from-full-record=.
+
+The default group will use the type of a bookmark as the group header,
+if the type is available, otherwise it falls back to use file name
+extensions.
+
+**** Type-only group
+
+This automatic group only uses the type of a bookmark as the group
+header.  If the type is not available, it always uses the default
+group.
 
 *** Combine fixed and automatic filter groups
 

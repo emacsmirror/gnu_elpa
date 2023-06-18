@@ -671,6 +671,8 @@ used as a `revert-buffer-function'."
   (define-key map (vector 'backtab) #'blist-prev-group)
   (define-key map (vector 'return) #'blist-return)
   (define-key map (vector 'S-return) #'blist-toggle-other-groups)
+  (define-key map (vector ?\C-m) #'blist-return)
+  (define-key map (vector ?\C-\S-m) #'blist-toggle-other-groups)
   (define-key map (vector ?o) #'blist-open-other-window)
   (define-key map (vector ?v) #'blist-select)
   (define-key map (vector ?r) #'blist-rename)

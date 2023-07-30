@@ -37,8 +37,6 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'inline))
-
 (defgroup typo nil
   "Completion style using typo analysis."
   :group 'minibuffer)

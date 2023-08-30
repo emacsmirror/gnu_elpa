@@ -40,6 +40,8 @@
 ;; use `do-at-point-local-actions' to add additional things and/or
 ;; actions.
 
+;; Inspired by Embark and `isearch-forward-thing-at-point'.
+
 ;;; Code:
 
 (eval-when-compile (require 'pcase))

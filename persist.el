@@ -5,7 +5,7 @@
 ;; Author: Phillip Lord <phillip.lord@russet.org.uk>
 ;; Maintainer: Joseph Turner <persist-el@breatheoutbreathe.in>
 ;; Package-Type: multi
-;; Version: 0.5
+;; Version: 0.6
 
 ;; The contents of this file are subject to the GPL License, Version 3.0.
 

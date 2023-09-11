@@ -23,21 +23,13 @@ developing GNU and promoting software freedom.''
 * gpr-query: (gpr-query).         Minor mode providing cross-reference information from the GNAT compiler.
 @end direntry
 
-@titlepage
-@sp 10
-@title gpr-query Version 1.0.2
-@page
-@vskip 0pt plus 1filll
-@insertcopying
-@end titlepage
-
 @contents
 
 @ifnottex
 @node Top, Overview, (dir), (dir)
 @top Top
 
-gpr-query Version 1.0.2
+gpr-query Version 1.0.3
 @end ifnottex
 
 @menu

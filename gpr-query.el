@@ -8,7 +8,7 @@
 ;; Author: Stephen Leake <stephen_leake@member.fsf.org>
 ;; Maintainer: Stephen Leake <stephen_leake@member.fsf.org>
 ;; Version: 1.0.3
-;; package-requires: ((emacs "25.3") (wisi "4.2.2") (gnat-compiler "1.0.2"))
+;; package-requires: ((emacs "25.3") (wisi "4.2.0") (gnat-compiler "1.0.1"))
 
 ;; This file is part of GNU Emacs.
 

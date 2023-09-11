@@ -13,61 +13,14 @@ o.e.gpr-query: release, in use
  current work
 
  release process
-keep status in ~/projects.text
-
-check for ELPA patches by others
-    (dvc-state-one "/Projects/elpa/packages/gpr-query")
-    (dvc-pull "/Projects/elpa")
-    (dvc-sync-review "/Projects/elpa")
-        update
-        clean, quit sync
-    cd c:/Projects/elpa
-    git log -2 -- packages/gpr-query
-    if changes:
-        (dvc-log "/Projects/elpa/packages/<dir>/<file>")
-        apply changes to current
-
-check emacs buglist
-    https://debbugs.gnu.org/cgi/pkgreport.cgi?package=gpr-query
-    to update a bug: nnn@debbugs.gnu.org
-        subject: from bug title, for people who rely on that.
-    if fixed in devel sources, add 'pending' tag:
-        control@debbugs.gnu.org
-        tags nnn + pending
+See ada-mode notes; only gpr-query specific details listed here.
 
 tested in ada-mode; it uses the same test sources for multiple xref backends.
 
-compare:
-    (ediff-directories "/Projects/elpa_release/gpr-query" "/Projects/elpa/packages/gpr-query" nil)
-        NEWS
-            copyright date
-            add release date
-            add new features
-
-ELPA.make all
-
-Check copyright on files in elpa
-    ../../GNUMakefile check/gpr-query
-    if any gpr-query files added to output, fix them (add or change to FSF)
-
 bump version
-    Gnu ELPA requires single digits between dots in versions
-
-    bump if _any_ changes other than autoloads, so ELPA package handler knows to update
-        bump third digit for bug fixes, minor features, no user-incompatible changes
-        bump second digit for major features, mostly backward-compatible
-            or if third digit gets to 10
-
-        bump first digit for really major elisp user-visible changes:
-
     gpr-query.el
-        Version:
-
     NEWS
-        if not done above
-
     gpr-query.texi
-        @title
         @node top
 
     README

@@ -11,6 +11,8 @@ Please send gpr-query bug reports to bug-gnu-emacs@gnu.org, with
 
 ** Fix Alire build
 
+** ELPA packaging fix.
+
 * gpr-query 1.0.2
 5 Jan 2023
 

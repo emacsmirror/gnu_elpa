@@ -193,7 +193,7 @@
  (dbus-codegen		:url "https://github.com/ueno/dbus-codegen-el.git"
   :ignored-files ("COPYING"))
  (debbugs		:url nil :doc ("debbugs.texi" "debbugs-ug.texi"))
- (delight		:url "https://git.savannah.gnu.org/r/delight.git")
+ (delight		:url "https://git.savannah.gnu.org/git/delight.git")
  (denote		:url "https://git.sr.ht/~protesilaos/denote"
   :doc "README.org"
   :news "CHANGELOG.org"
@@ -353,7 +353,7 @@
   :merge t
   :ignored-files ("lv.el")
   :news "doc/Changelog.org")
- (hyperbole           	:url "https://git.savannah.gnu.org/r/hyperbole.git"
+ (hyperbole           	:url "https://git.savannah.gnu.org/git/hyperbole.git"
   :make ("kotl/kotl-autoloads.el")
   :news "HY-NEWS")
  (ilist			:url "https://gitlab.com/mmemmew/ilist"
@@ -492,7 +492,7 @@
   :shell-command "make autoloads info; mv doc/org.info org.info; mv doc/orgguide.info orgguide.info"
   :doc ("org.info" "orgguide.info"))
  (org-contacts		:url "https://repo.or.cz/org-contacts.git")
- (org-edna		:url "bzr::https://bzr.savannah.gnu.org/r/org-edna-el"
+ (org-edna		:url "bzr::https://bzr.savannah.gnu.org/git/org-edna-el"
   ;; The Bzr<->Git bridge wasn't working well enough last time I tried.
   :manual-sync t)
  ;; FIXME: Waiting for copyright paperwork from Brandon Webster.
@@ -564,7 +564,7 @@
  ;;         --index-filter "git read-tree --empty;                  \
  ;;                         git reset \$GIT_COMMIT -- pspp-mode.el" \
  ;;         -- -- pspp-mode.el
- (pspp-mode		:url nil) ;; Was "https://git.sv.gnu.org/r/pspp.git"
+ (pspp-mode		:url nil) ;; Was "https://git.sv.gnu.org/git/pspp.git"
  (pulsar		:url "https://git.sr.ht/~protesilaos/pulsar"
   :doc "README.org"
   :news "CHANGELOG.org"

@@ -1,7 +1,7 @@
  release process
 tested by ada-mode
 
-(ediff-directories "/Projects/elpa_release/gnat-compiler" "/Projects/elpa/packages/gnat-compiler" nil)
+(ediff-directories "/Projects/elpa_release/packages/gnat-compiler" "/Projects/elpa/packages/gnat-compiler" nil)
     NEWS
         copyright date
         add release date
@@ -16,4 +16,7 @@ bump versions
     NEWS
         if not done above
 
+(dvc-status ".")
+(dvc-propagate-one "/Projects/elpa/packages/wisi" "/Projects/elpa_release/packages/wisi")
+(dvc-sync-run "/Projects/elpa/packages/wisi")
 # end of file

@@ -6,6 +6,11 @@ Please send gnat-compiler bug reports to bug-gnu-emacs@gnu.org, with
 'gnat-compiler' in the subject. If possible, use M-x report-emacs-bug.
 
 
+* gnat compiler 1.0.3
+15 Sep 2023
+
+* Minor improvements, depend on wisi 4.3.0.
+
 * gnat compiler 1.0.2
 24 Jan 2023
 

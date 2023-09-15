@@ -1,11 +1,12 @@
-;;; gnat-xref.el --- cross-reference functionality provided by 'gnat xref'  -*- lexical-binding:t -*-
+;;; gnat-xref.el --- cross-reference functionality provided by 'gnat find'  -*- lexical-binding:t -*-
 ;;
 ;; These tools are all Ada-specific; see gpr-query for multi-language
-;; GNAT cross-reference tools.
+;; GNAT cross-reference tools. gpr-query replaces 'gnat xref'; this
+;; file is named gnat-xref for historical reasons.
 ;;
 ;; GNAT is provided by AdaCore; see https://libre.adacore.com/
 ;;
-;;; Copyright (C) 2012 - 2022  Free Software Foundation, Inc.
+;;; Copyright (C) 2012 - 2023  Free Software Foundation, Inc.
 ;;
 ;; Author: Stephen Leake <stephen_leake@member.fsf.org>
 ;; Maintainer: Stephen Leake <stephen_leake@member.fsf.org>
@@ -110,7 +111,7 @@
 
 (defun gnat-xref-common-cmd (project)
   "Returns the gnatfind command to run to find cross-references."
-  (format "%sgnatfind" (or (gnat-compiler-target (wisi-prj-xref project)) "")))
+  (format "%sgnat find" (or (gnat-compiler-target (wisi-prj-xref project)) "")))
 
 (defun gnat-xref-common-args (project identifier file line col)
   "Returns a list of arguments to pass to gnatfind.  Some

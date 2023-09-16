@@ -415,6 +415,7 @@
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
+ (llm			:url "https://github.com/ahyatt/llm")
  (lmc			:url nil)
  (load-dir		:url nil)
  (load-relative		:url "https://github.com/rocky/emacs-load-relative")

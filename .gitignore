@@ -1,6 +1,7 @@
 *.elc
 *.orig
 .dir-locals?.el
+/*.tar
 *~
 \#*\#
 ChangeLog

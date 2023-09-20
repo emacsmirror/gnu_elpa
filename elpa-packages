@@ -528,6 +528,7 @@
   ;; The Bzr<->Git bridge wasn't working well enough last time I tried.
   :manual-sync t)
  (package-fixes		:url nil)
+ (pam			:url "https://github.com/owinebar/emacs-table-allocation-manager")
  (parsec              	:url "https://github.com/cute-jumper/parsec.el.git")
  (parser-generator	:url "https://github.com/cjohansson/emacs-parser-generator")
  (path-iterator		:url nil)

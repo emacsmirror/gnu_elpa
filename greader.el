@@ -350,6 +350,8 @@ This only happens if the variables `greader-start-region' and
     (remove-hook 'greader-before-finish-functions #'greader-widen)
     (remove-hook 'greader-after-stop-hook #'greader-widen)))
 
+
+
 (defun greader-set-register ()
   "Set the `?G' register to the point in current buffer."
   (when greader-use-prefix
@@ -1223,5 +1225,76 @@ So you can use this command like a player, if you press <left> you
   (greader-set-register)
   (greader-read))
 
+;; greader-queue-mode
+;; This minor mode enables an alternative reading mode, which
+;; works with blocks of text instead of the buffer in a linear fashion.
+(defvar greader-queue nil
+  "This is the variable that contains the queue.
+each element is formed by a cons, whose form is 'start-position
+. end-position'.")
+(defvar greader-queue-current-element nil
+"Represent the current item in the queue (as index).")
+;; Questa funzione aggiunge un elemento alla coda.
+(defun greader-queue-add-element (&optional start end)
+  "Add an item to the queue.
+If START and END are nil, check if the region is active.
+If the region is not active either, then it throws an error."
+  (interactive)
+  (unless (and start end)
+    (if (region-active-p)
+	(setq start (region-beginning) end (region-end))
+      (user-error "Nothing to add")))
+  (add-to-list 'greader-queue (cons start end) t)
+  (unless greader-queue-current-element
+    (setq greader-queue-current-element 0)))
+
+;; This function removes an item from the queue.
+(defun greader-queue-remove-element (&optional index)
+  "Remove the item in INDEX.
+Se INDEX è nil, usa la variabile `greader-queue-current-element'."
+  (interactive)
+  (unless index
+    (setq index greader-queue-current-element))
+  (when (>= index (length greader-queue))
+    (user-error "Index out of range"))
+  (setq greader-queue (seq-remove-at-position greader-queue index)))
+
+;; This function gets the text linked to an element of the
+;; queue.
+(defun greader-queue-get-element (&optional index)
+  "return the text associated with a queue item.
+If INDEX is nil, use `greader-queue-current-element'."
+  (unless index
+    (setq index greader-queue-current-element))
+  (when (>= index (length greader-queue))
+    (user-error "Index out of range"))
+  (buffer-substring (car (elt greader-queue index)) (cdr (elt
+							  greader-queue
+							  index))))
+
+;; This function returns the next item in the queue. If
+;; the current element is the last one, then it returns nil.
+(defun greader-queue-get-next-element ()
+  "return the next item in the queue.
+If the current element is the last one, then return nil."
+  (unless greader-queue-current-element
+    (setq greader-queue-current-element 0))
+  (if (equal (1+ greader-queue-current-element) (length
+						 greader-queue))
+      nil
+    (setq greader-queue-current-element (1+ greader-queue-current-element))
+    (greader-queue-get-element)))
+
+;; This function returns the previous item in the queue, if it is
+;; the first one, returns it.
+(defun greader-queue-get-prev-element ()
+  "Return the previous item in the queue.
+If the current element is the first, it returns it."
+  (unless greader-queue-current-element
+    (setq greader-queue-current-element 0))
+  (if (> greader-queue-current-element 0)
+      (setq greader-queue-current-element (1-
+					   greader-queue-current-element)))
+  (greader-queue-get-element))
 (provide 'greader)
 ;;; greader.el ends here

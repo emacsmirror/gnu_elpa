@@ -41,7 +41,7 @@
 ;; 'C-r SPC'
 
 ;;; Code:
-
+(require 'view)
 (defvar-local greader-timer-flag nil)
 
 (defvar greader-auto-tired-timer nil)

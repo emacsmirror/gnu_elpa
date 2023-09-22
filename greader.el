@@ -277,12 +277,7 @@ if set to t, when you call function `greader-read', that function sets a
   nil
   :interactive nil
   :keymap greader-reading-map
-  :lighter "reading..."
-  (cond
-   ((and greader-reading-mode view-mode)
-    (setq-local view-mode nil))
-   ((and (not greader-reading-mode) (not view-mode))
-    (setq-local view-mode t))))
+  :lighter "reading...")
 
 (defun set-bookmark-for-greader ()
   "Imposta il segnalibro ad ogni interruzione della lettura."

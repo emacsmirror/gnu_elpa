@@ -271,6 +271,8 @@ if set to t, when you call function `greader-read', that function sets a
   :group 'greader
   (cond
    (greader-mode
+    (when greader-queue-mode
+      (greader-queue-mode -1))
     (greader-load-backends))))
 ;;;###autoload
 (define-minor-mode greader-reading-mode

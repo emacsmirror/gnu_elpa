@@ -30,6 +30,13 @@
 		 (const :tag "No wrap"))
   :group 'gnome-c-style)
 
+(defcustom gnome-c-align-arglist t
+  "Align function parameters when reformatting function
+declarations with \\[gnome-c-align-decls-region]."
+  :type 'boolean
+  :group 'gnome-c-style)
+(put 'gnome-c-align-arglist 'safe-local-variable t)
+
 (defvar gnome-c-align-identifier-start-column nil)
 (make-variable-buffer-local 'gnome-c-align-identifier-start-column)
 
@@ -213,7 +220,8 @@
 	    (let ((column (if (bobp) 0 start-column)))
 	      (when (not (bobp))
 		(gnome-c-align--indent-to-column start-column))
-	      (when (gnome-c-align--argument-identifier-start argument)
+	      (when (and gnome-c-align-arglist
+			 (gnome-c-align--argument-identifier-start argument))
 		(setq column (+ column identifier-start-column))
 		(goto-char (gnome-c-align--argument-identifier-start argument))
 		(gnome-c-align--indent-to-column column)))))))))

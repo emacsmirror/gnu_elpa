@@ -91,7 +91,7 @@
   :doc "README.org"
   :readme "README.md"
   :ignored-files ("COPYING" "doclicense.texi"))
- (bind-key		:core "lisp/use-package/bind-key.el")
+ (bind-key		:core "lisp/bind-key.el")
  (blist			:url "https://gitlab.com/mmemmew/blist"
   :doc "blist.texinfo"
   :readme "README.org")

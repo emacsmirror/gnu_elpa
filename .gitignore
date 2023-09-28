@@ -11,3 +11,6 @@ greader-autoloads.el
 #greader.el#
 .#greader.el
 
+/greader-loaddefs.el
+/project.org
+/src/

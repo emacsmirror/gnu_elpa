@@ -6,7 +6,7 @@
 
 all : build byte-compile autoloads docs
 
-docs : gpr-query.info
+docs : gpr-query.info gpr-query.html
 
 build : config/emacs_gpr_query_config.gpr force
 	gprbuild -p -j8 emacs_gpr_query.gpr
@@ -37,6 +37,9 @@ autoloads : force
 
 %.info : %.texi
 	makeinfo $< -o $@
+
+%.html : %.texi
+	makeinfo --html --no-split $< -o $@
 
 clean : force
 	rm -rf gpr-query.info obj gpr_query$(EXE_EXT)

@@ -5,3 +5,5 @@ bin/
 config/
 *.elc
 obj/
+gpr-query.html
+gpr-query.info

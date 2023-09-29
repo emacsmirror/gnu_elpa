@@ -1,1 +1,8 @@
 alire.toml
+Alire.make
+ELPA.make
+emacs_gpr_query_config_devel.gpr
+emacs_gpr_query_config_release.gpr
+gpr-query.prj
+prj.el
+notes.text

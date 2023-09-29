@@ -38,7 +38,7 @@ check emacs buglist
 tested in ada-mode; it uses the same test sources for multiple xref backends.
 
 compare:
-    (ediff-directories "/Projects/elpa_release/gpr-query" "/Projects/elpa/packages/gpr-query" nil)
+    (ediff-directories "/Projects/elpa_release/packages/gpr-query" "/Projects/elpa/packages/gpr-query" nil)
         NEWS
             copyright date
             add release date
@@ -62,6 +62,7 @@ bump version
 
     gpr-query.el
         Version:
+        package-requires:
 
     NEWS
         if not done above
@@ -74,8 +75,11 @@ bump version
         first line
 
     alire.toml
+        bump only if Ada code changed
         version
         depends-on versions
+
+    build.sh 'alr get' version ; must match alire.toml.
 
 (dvc-state-one ".")
 

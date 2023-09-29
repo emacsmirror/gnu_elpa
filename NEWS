@@ -1,11 +1,16 @@
 GNU Emacs gpr-query NEWS -- history of user-visible changes.
 
-Copyright (C) 2022 Free Software Foundation, Inc.
+Copyright (C) 2023 Free Software Foundation, Inc.
 
 Please send gpr-query bug reports to bug-gnu-emacs@gnu.org, with
 'gpr-query' in the subject. If possible, use M-x report-emacs-bug.
 
 
+* gpr-query 1.0.4
+15 Sep 2023
+
+** Minor fixes, require wisi 4.3.0.
+
 * gpr-query 1.0.3
 28 Jan 2023
 

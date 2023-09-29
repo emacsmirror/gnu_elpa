@@ -25,7 +25,7 @@ developing GNU and promoting software freedom.''
 
 @titlepage
 @sp 10
-@title gpr-query Version 1.0.2
+@title gpr-query Version 1.0.4
 @page
 @vskip 0pt plus 1filll
 @insertcopying
@@ -37,7 +37,7 @@ developing GNU and promoting software freedom.''
 @node Top, Overview, (dir), (dir)
 @top Top
 
-gpr-query Version 1.0.2
+gpr-query Version 1.0.4
 @end ifnottex
 
 @menu

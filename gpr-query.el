@@ -7,8 +7,8 @@
 
 ;; Author: Stephen Leake <stephen_leake@member.fsf.org>
 ;; Maintainer: Stephen Leake <stephen_leake@member.fsf.org>
-;; Version: 1.0.3
-;; package-requires: ((emacs "25.3") (wisi "4.2.2") (gnat-compiler "1.0.2"))
+;; Version: 1.0.4
+;; package-requires: ((emacs "25.3") (wisi "4.3.0") (gnat-compiler "1.0.3"))
 
 ;; This file is part of GNU Emacs.
 
@@ -754,7 +754,7 @@ FILE is from gpr-query."
     ;; WORKAROUND: in emacs 28 xref-location changed from defclass to
     ;; cl-defstruct.
     (require 'eieio)
-    (with-suppressed-warnings ;; "unknown slot" in emacs 28
+    (with-no-warnings ;; "unknown slot" in emacs 28
 	(progn
 	  (defun xref-item-summary (item) (oref item summary))
 	  (defun xref-item-location (item) (oref item location))

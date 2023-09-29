@@ -11,8 +11,9 @@ docs : gpr-query.info
 build : config/emacs_gpr_query_config.gpr force
 	gprbuild -p -j8 emacs_gpr_query.gpr
 
+INSTALL_DIR := $(wildcard ~/.local)
 install : bin/gpr_query$(EXE_EXT)
-	gprinstall -f -p -P emacs_gpr_query.gpr --prefix=~/.local --install-name=gpr_query
+	gprinstall -v -f -p -P emacs_gpr_query.gpr --prefix=$(INSTALL_DIR) --install-name=gpr_query
 
 ifeq ($(shell uname),Linux)
 EMACS_EXE ?= emacs

@@ -5,7 +5,7 @@
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <~pkal/public-inbox@lists.sr.ht>
 ;; Package-Requires: ((emacs "25.1"))
-;; Version: 0.1.1
+;; Version: 0.1.2
 ;; URL: https://git.sr.ht/~pkal/site-lisp
 ;; Keywords: lisp, local
 

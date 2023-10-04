@@ -94,6 +94,7 @@ primitive. See `(elisp)Magic File Names'."
           ((eq op 'file-attributes) nil)
           ((eq op 'make-auto-save-file-name) nil)
           ((eq op 'abbreviate-file-name) uri)
+          ((eq op 'file-name-as-directory) (file-name-as-directory jar-path))
 
           ;; Predicates
           ((eq op 'file-directory-p) nil)

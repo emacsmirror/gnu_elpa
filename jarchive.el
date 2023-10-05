@@ -163,14 +163,19 @@ handle it. If it is not a jar call ORIGINAL-FN."
 
 ;;;###autoload
 (defun jarchive-patch-eglot ()
-  "Patch old versions of Eglot to work with Jarchive."
+  "This should no longer be used.
+Recent versions of Eglot take care of this."
   (interactive) ;; TODO, remove when eglot is updated in melpa
   (unless (or (and (advice-member-p #'jarchive--wrap-legacy-eglot--path-to-uri 'eglot--path-to-uri)
                    (advice-member-p #'jarchive--wrap-legacy-eglot--uri-to-path 'eglot--uri-to-path))
               (<= 29 emacs-major-version))
     (advice-add 'eglot--path-to-uri :around #'jarchive--wrap-legacy-eglot--path-to-uri)
     (advice-add 'eglot--uri-to-path :around #'jarchive--wrap-legacy-eglot--uri-to-path)
-    (message "[jarchive] Eglot successfully patched.")))
+    (message "[jarchive] Eglot successfully patched."))
+  (warn "`jarchive-patch-eglot' is obsolete and should not be needed with
+recent versions of Eglot (including the version shipped in Emacs 29+)"))
+
+(make-obsolete 'jarchive-patch-eglot nil "0.11.0")
 
 (defvar jarchive--file-name-handler
   (cons jarchive--uri-regex #'jarchive--file-name-handler))

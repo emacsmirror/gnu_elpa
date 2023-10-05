@@ -172,13 +172,29 @@ handle it. If it is not a jar call ORIGINAL-FN."
     (advice-add 'eglot--uri-to-path :around #'jarchive--wrap-legacy-eglot--uri-to-path)
     (message "[jarchive] Eglot successfully patched.")))
 
+(defvar jarchive--file-name-handler
+  (cons jarchive--uri-regex #'jarchive--file-name-handler))
+
 ;;;###autoload
-(defun jarchive-setup ()
-  "Setup jarchive, enabling Emacs to open files inside jar archives.
-the files can be identified with the `jar' uri scheme."
-  (interactive)
-  (add-to-list 'file-name-handler-alist (cons jarchive--uri-regex #'jarchive--file-name-handler))
-  (add-to-list 'find-file-not-found-functions #'jarchive--find-file-not-found))
+(define-minor-mode jarchive-mode
+  "Teach Emacs to work with jar URIs.
+Opening a jar URI via Emacs functions like `find-file' will
+automatically extract the contents of a file contained in the jar
+and open them in a buffer."
+  :global t
+  :lighter " Jar"
+  (if jarchive-mode
+      (progn
+        (add-to-list 'file-name-handler-alist jarchive--file-name-handler)
+        (add-to-list 'find-file-not-found-functions #'jarchive--find-file-not-found))
+    (setq file-name-handler-alist
+          (remove jarchive--file-name-handler file-name-handler-alist)
+          find-file-not-found-functions
+          (remove #'jarchive--find-file-not-found find-file-not-found-functions))))
+
+;;;###autoload
+(define-obsolete-function-alias
+  'jarchive-setup 'jarchive-mode "0.11.0" "Obsolete. Set up Jarchive to open jar URIs.")
 
 (provide 'jarchive)
 ;;; jarchive.el ends here

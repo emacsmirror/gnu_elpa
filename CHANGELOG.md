@@ -1,5 +1,14 @@
 # Change Log
 
+## 2023-MM-DD 0.11.0 Release Notes
+- Fixes a bug when `file-relative-name` is called on a buffer opened by jarchive.
+  - See [bug#2](https://todo.sr.ht/~dannyfreeman/jarchive/2) for more details.
+  - Thank you lassemaatta for the bug report
+- Allow jarchive to be disabled via a new global minor mode
+  - `jarchive-setup` is now obsolete. Please use `jarchive-mode` instead.
+- `jarchive-patch-eglot` is now marked as obsolete.
+  - If you are still using this, please update to a more recent version of Eglot
+
 ## 2023-01-18 0.10.0 Release Notes
 - Thank you Robert Brown for the following contributions:
   - Handle opening archives with the .zip extension

@@ -1747,6 +1747,12 @@ MERGED is the list of bugs merged with this one."
 	 (format "Re: bug#%d: %s" id (alist-get 'subject status)))
     (debbugs-gnu-summary-mode 1)))
 
+(defcustom debbugs-gnu-summary-keep-subject
+  (rx "[PATCH" (? (0+ (not (any digit "/]"))) (1+ digit) "/" (1+ digit)) "]")
+  "Regular expression which keeps the original message subject in replies."
+  :version "29.1"
+  :type 'regexp)
+
 (defvar debbugs-gnu-summary-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map "C" #'debbugs-gnu-send-control-message)
@@ -1778,6 +1784,8 @@ MERGED is the list of bugs merged with this one."
 			    (cons new new))
 			address))))))
 	  ,@(and debbugs-gnu-subject
+                 (not (string-match-p debbugs-gnu-summary-keep-subject
+                                      debbugs-gnu-subject))
 		 `((subject ,debbugs-gnu-subject)))))))
 
 (defun debbugs-gnu-guess-current-id ()

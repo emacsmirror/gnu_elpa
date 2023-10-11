@@ -1,6 +1,6 @@
 # Change Log
 
-## 2023-MM-DD 0.11.0 Release Notes
+## 2023-10-10 0.11.0 Release Notes
 - Fixes a bug when `file-relative-name` is called on a buffer opened by jarchive.
   - See [bug#2](https://todo.sr.ht/~dannyfreeman/jarchive/2) for more details.
   - Thank you lassemaatta for the bug report

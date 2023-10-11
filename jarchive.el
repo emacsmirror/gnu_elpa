@@ -3,7 +3,7 @@
 ;; Copyright (C) 2022 Free Software Foundation, Inc.
 ;; Authors: Danny Freeman <danny@dfreeman.email>
 ;; Maintainer: Danny Freeman <danny@dfreeman.email>
-;; Version: 0.10.0
+;; Version: 0.11.0
 ;; Keywords: tools, languages, jvm, java, clojure
 ;; URL: https://git.sr.ht/~dannyfreeman/jarchive
 ;; Package-Requires: ((emacs "26.1"))

@@ -472,8 +472,9 @@
  (nlinum		:url nil)
  (notes-mode		:url nil)
  (notmuch-indicator	:url "https://git.sr.ht/~protesilaos/notmuch-indicator"
+  :doc "README.org"
   :readme "README.md"
-  :ignored-files ("COPYING"))
+  :ignored-files ("COPYING" "doclicense.texi"))
  (ntlm			:core "lisp/net/ntlm.el")
  (num3-mode		:url nil)
  (oauth2		:url nil)

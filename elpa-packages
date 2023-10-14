@@ -478,6 +478,8 @@
  (ntlm			:core "lisp/net/ntlm.el")
  (num3-mode		:url nil)
  (oauth2		:url nil)
+ (ob-asymptote		:url "https://github.com/hurrja/ob-asymptote"
+  :ignored-files ("LICENSE"))
  (ob-haxe		:url "https://github.com/ianxm/ob-haxe.el")
  (objed        		:url "https://github.com/clemera/objed")
  (omn-mode            	:url nil)

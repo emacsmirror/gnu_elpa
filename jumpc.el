@@ -1,9 +1,9 @@
-;;; jumpc.el --- jump to previous insertion points  -*- coding: utf-8; lexical-binding: t -*-
+;;; jumpc.el --- jump to previous insertion points  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2013  Free Software Foundation, Inc.
+;; Copyright (C) 2013-2023  Free Software Foundation, Inc.
 
 ;; Author: Ivan Kanis <ivan@kanis.fr>
-;; Version: 3.0
+;; Version: 3.1
 
 ;; This file is part of GNU Emacs.
 
@@ -125,33 +125,31 @@
       (when (re-search-forward "# Jumplist (newest first):" nil t)
         (while (re-search-forward
                 "-'  \\([0-9]*\\)  \\([0-9]*\\)  \\(.*\\)" nil t)
-          (add-to-list 'jumpc-list
-                       (list (string-to-number (match-string 1))
-                             (string-to-number (match-string 2))
-                             (expand-file-name (match-string 3)))
-                       jumpc-list)))))
+          (push (list (string-to-number (match-string 1))
+                      (string-to-number (match-string 2))
+                      (expand-file-name (match-string 3)))
+                jumpc-list))))
+    (setq jumpc-list (delete-dups jumpc-list)))
   jumpc-list)
 
 (defun jumpc-write-list ()
   "Write jump list to file."
-  (let (bgn end)
-    (jumpc-remove-deleted-file)
-    (find-file jumpc-file)
+  (jumpc-remove-deleted-file)
+  (with-current-buffer (find-file-noselect jumpc-file)
     (goto-char (point-min))
-    (setq bgn (re-search-forward "# Jumplist (newest first):" nil t))
-    (if bgn
-        (progn
-          (setq end (re-search-forward "^$"))
-          (delete-region bgn end))
-      ;; looks like the entry doesn't exist, tack it at the end
-      (goto-char (point-max))
-      (insert "# Jumplist (newest first):"))
-    (insert "\n")
-    (dolist (line jumpc-list)
-      (insert (format "-'  %d  %d  %s\n"
-                      (nth 0 line) (nth 1 line)
-                      (abbreviate-file-name (nth 2 line)))))
-    (save-buffer)))
+    (let ((bgn (re-search-forward "# Jumplist (newest first):" nil t)))
+      (if bgn
+          (let ((end (re-search-forward "^$")))
+            (delete-region bgn end))
+        ;; looks like the entry doesn't exist, tack it at the end
+        (goto-char (point-max))
+        (insert "# Jumplist (newest first):"))
+      (insert "\n")
+      (dolist (line jumpc-list)
+        (insert (format "-'  %d  %d  %s\n"
+                        (nth 0 line) (nth 1 line)
+                        (abbreviate-file-name (nth 2 line)))))
+      (save-buffer))))
 
 (defun jumpc-jump-backward ()
   "Jump backward in list of jumps."
@@ -189,41 +187,33 @@
   "Insert jump location."
   ;; It means we are going back to the top of the list
   (setq jumpc-index 0)
-  (when buffer-file-name
-    (when (not (= (line-number-at-pos) (nth 0 (car jumpc-list))))
-      (setq jumpc-list
-            (cons (list (line-number-at-pos) (current-column) buffer-file-name)
-                  jumpc-list)))))
+  (when (and buffer-file-name
+             (not (= (line-number-at-pos) (nth 0 (car jumpc-list)))))
+    (push (list (line-number-at-pos) (current-column) buffer-file-name)
+          jumpc-list)))
 
 (defun jumpc-remove-deleted-file ()
   "Remove deleted file in the list.
 Returns list minus deleted files."
-  (let ((length (length jumpc-list))
-        (index 0)
-        reduced-list element)
-    (while (< index length)
-      (setq element (nth index jumpc-list))
+  (let (reduced-list)
+    (dolist (element jumpc-list)
       (when (file-exists-p (nth 2 element))
-        (setq reduced-list (cons element reduced-list)))
-      (setq index (1+ index)))
-    (setq jumpc-list reduced-list)))
+        (push element reduced-list)))
+    (setq jumpc-list (nreverse reduced-list))))
 
 (defun jumpc-bind-vim-key ()
-  "Bind keys just like vim."
-  (global-set-key (kbd "C-o") 'jumpc-jump-backward)
+  "Bind keys just like Vim."
+  (global-set-key (kbd "C-o") #'jumpc-jump-backward)
   (define-key input-decode-map [?\C-i] [control-i])
-  (global-set-key [control-i] 'jumpc-jump-forward))
+  (global-set-key [control-i] #'jumpc-jump-forward))
 
 ;;;###autoload
 (defun jumpc ()
   "Initialize jump cursor."
   (interactive)
-  (setq jumpc-list (jumpc-read-list))
-  (defadvice self-insert-command
-    (after jumpc-insert activate)
-    "Insert jump position after insertion."
-    (jumpc-insert))
-  (add-hook 'kill-emacs-hook 'jumpc-write-list))
+  (jumpc-read-list)
+  (add-hook 'post-self-insert-hook #'jumpc-insert)
+  (add-hook 'kill-emacs-hook #'jumpc-write-list))
 
 
 ;; vi:et:sw=4:ts=4:

@@ -5,8 +5,12 @@
 ;; Created: Jan 2013
 ;; Keywords: syntax
 
+;; WORKAROUND: We don't use any EBNF in this file, but this works
+;; around a bug in WisiToken 4.2.0.
+%meta_syntax EBNF
+
 %code copyright_license %{
---  Copyright (C) 2013 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2013 - 2023 Free Software Foundation, Inc.
 
 --  This program is free software; you can redistribute it and/or
 --  modify it under the terms of the GNU General Public License as

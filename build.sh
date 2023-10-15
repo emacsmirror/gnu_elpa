@@ -9,14 +9,14 @@
 
 if type alr; then
     echo "building gpr-mode executables via Alire"
-    alr get emacs_gpr_mode~1.0.1
+    alr get emacs_gpr_mode~1.0.4
     cd emacs_gpr_mode_*; alr build --release
 
 elif type gprbuild; then
     echo "building gpr-mode executables via gnat compiler"
     
-    if [ -d ../wisi-4.2.? ]; then
-        WISI_DIR=`ls -d ../wisi-4.2.?`
+    if [ -d ../wisi-4.3.? ]; then
+        WISI_DIR=`ls -d ../wisi-4.3.?`
     fi
 
     args=`echo -DELPA="yes" $WISI_DIR/wisi.gpr.gp $WISI_DIR/wisi.gpr`

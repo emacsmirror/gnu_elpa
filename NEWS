@@ -6,6 +6,11 @@ Please send gpr-mode bug reports to bug-gnu-emacs@gnu.org, with
 'gpr-mode' in the subject. If possible, use M-x report-emacs-bug.
 
 
+* gpr mode 1.0.4
+20 Sep 2023
+
+** Build with WisiToken 4.1.0
+
 * gpr mode 1.0.3
 18 Jan 2023
 

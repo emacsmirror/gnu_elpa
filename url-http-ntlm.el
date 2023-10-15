@@ -1,13 +1,13 @@
-;;; url-http-ntlm.el --- NTLM authentication for the url library
+;;; url-http-ntlm.el --- NTLM authentication for the url library  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2008, 2016 Free Software Foundation, Inc.
+;; Copyright (C) 2008-2023  Free Software Foundation, Inc.
 
 ;; Author: Tom Schutzer-Weissmann <tom.weissmann@gmail.com>
 ;; Maintainer: Thomas Fitzsimmons <fitzsim@fitzsim.org>
 ;; Version: 2.0.4
 ;; Keywords: comm, data, processes, hypermedia
 ;; Homepage: https://code.google.com/p/url-http-ntlm/
-;; Package-Requires: ((cl-lib "0.5") (ntlm "2.1.0"))
+;; Package-Requires: ((cl-lib "0.5") (ntlm "2.1.0") (nadvice "0.3"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -46,18 +46,27 @@
 (require 'cl-lib)
 (require 'ntlm)
 
+(defmacro url-http-ntlm--if-when-compile (cond &rest body)
+  (declare (debug t) (indent 1))
+  (when (eval cond t)
+    `(progn ,@body)))
+
 ;; Remove authorization after redirect.
-(when (and (boundp 'emacs-major-version)
-	   (< emacs-major-version 25))
+(url-http-ntlm--if-when-compile (< emacs-major-version 25)
   (defvar url-http-ntlm--parsing-headers nil)
-  (defadvice url-http-parse-headers (around clear-authorization activate)
+  (advice-add 'url-http-parse-headers :around #'url-http-ntlm--parsing-headers)
+  (defun url-http-ntlm--parsing-headers (orig-fun &rest args)
     (let ((url-http-ntlm--parsing-headers t))
-      ad-do-it))
-  (defadvice url-http-handle-authentication (around clear-authorization
-						    activate)
+      (apply orig-fun args)))
+  (advice-add 'url-http-handle-authentication
+	      :around #'url-http-ntlm--not-parsing-headers)
+  (defun url-http-ntlm--not-parsing-headers  (orig-fun &rest args)
     (let ((url-http-ntlm--parsing-headers nil))
-      ad-do-it))
-  (defadvice url-retrieve-internal (before clear-authorization activate)
+      (apply orig-fun args)))
+  (advice-add 'url-retrieve-internal
+              :before #'url-http-ntlm--clear-authorization)
+  (defun url-http-ntlm--clear-authorization (&rest _)
+    (defvar url-http-extra-headers)
     (when (and url-http-ntlm--parsing-headers
 	       (eq url-request-extra-headers url-http-extra-headers))
       ;; This retrieval is presumably in response to a redirect.
@@ -250,7 +259,7 @@ Return nil if the NTLM Type-2 message is not present."
 
 (defun url-http-ntlm--rmssoc (key alist)
   "Remove all elements whose `car' match KEY from ALIST."
-  (cl-remove key alist :key 'car :test 'equal))
+  (cl-remove key alist :key #'car :test #'equal))
 
 (defun url-http-ntlm--string (data)
   "Return DATA encoded as an NTLM string."

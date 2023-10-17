@@ -1,0 +1,3 @@
+*.elc
+/eldoc-eval-autoloads.el
+/eldoc-eval-pkg.el

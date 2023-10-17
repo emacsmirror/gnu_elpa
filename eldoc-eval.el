@@ -1,6 +1,6 @@
 ;;; eldoc-eval.el --- Enable eldoc support when minibuffer is in use. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2011-2022  Free Software Foundation, Inc.
+;; Copyright (C) 2011-2023  Free Software Foundation, Inc.
 
 ;; Author: Thierry Volpiatto <thievol@posteo.net>
 ;; Version: 0.2
@@ -108,12 +108,12 @@ Should take one arg: the string to display"
 
 (defvar eldoc-in-minibuffer-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map [remap eval-expression] 'eldoc-eval-expression)
+    (define-key map [remap eval-expression] #'eldoc-eval-expression)
     map))
 
 ;;;###autoload
 (define-minor-mode eldoc-in-minibuffer-mode
-    "Show eldoc for current minibuffer input."
+  "Show eldoc for current minibuffer input."
   :global t
   :group 'eldoc-eval
   (if eldoc-in-minibuffer-mode
@@ -121,29 +121,31 @@ Should take one arg: the string to display"
         (add-hook 'minibuffer-exit-hook
                   (lambda ()
                     (setq eldoc-mode-line-rolling-flag nil)))
-        (when (boundp 'eldoc-post-insert-mode)
-          (setq eldoc-message-function 'message)
+        (when (fboundp 'eldoc-post-insert-mode)
+          (setq eldoc-message-function #'message)
           (remove-hook 'eval-expression-minibuffer-setup-hook
-                       'eldoc-post-insert-mode))
+                       #'eldoc-post-insert-mode))
         (define-key minibuffer-local-map (kbd "C-@")
-          'eldoc-mode-line-toggle-rolling)
+                    #'eldoc-mode-line-toggle-rolling)
         (setq eldoc-minor-mode-string eldoc-in-minibuffer-mode-lighter))
       (setq eldoc-minor-mode-string " Eldoc")
-      (when (boundp 'eldoc-post-insert-mode)
+      (when (fboundp 'eldoc-post-insert-mode)
         (setq eldoc-message-function eldoc-eval--old-message-function)
         (add-hook 'eval-expression-minibuffer-setup-hook
-                  'eldoc-post-insert-mode))
-      (define-key minibuffer-local-map (kbd "C-@") 'set-mark-command)))
+                  #'eldoc-post-insert-mode))
+      (define-key minibuffer-local-map (kbd "C-@") #'set-mark-command)))
 
-(defadvice eldoc-display-message-no-interference-p
-    (after eldoc-eval activate)
-  (when eldoc-in-minibuffer-mode
-    (setq ad-return-value
-          (and ad-return-value
-               ;; Having this mode operate in an active minibuffer/echo area
-               ;; causes interference with what's going on there.
-               (not cursor-in-echo-area)
-               (not (eq (selected-window) (minibuffer-window)))))))
+(advice-add 'eldoc-display-message-no-interference-p
+            :around #'eldoc-eval--adjust-interference)
+(defun eldoc-eval--adjust-interference (orig-fun &rest args)
+  (let ((ret (apply orig-fun args)))
+    (if eldoc-in-minibuffer-mode
+        (and ret
+             ;; Having this mode operate in an active minibuffer/echo area
+             ;; causes interference with what's going on there.
+             (not cursor-in-echo-area)
+             (not (eq (selected-window) (minibuffer-window))))
+      ret)))
 
 (defun eldoc-store-minibuffer ()
   "Store minibuffer buffer name in `eldoc-active-minibuffers-list'.

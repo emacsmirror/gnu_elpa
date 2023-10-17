@@ -1,2 +1,6 @@
 *.elc
 *~
+
+# ELPA-generated files
+/vlf-autoloads.el
+/vlf-pkg.el

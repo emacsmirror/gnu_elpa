@@ -1,6 +1,6 @@
 ;;; vlf-write.el --- Saving functionality for VLF  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2014-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2014-2023 Free Software Foundation, Inc.
 
 ;; Keywords: large files, saving
 ;; Author: Andrey Kotlarski <m00naticus@gmail.com>
@@ -33,7 +33,7 @@
   "Should VLF save in place when additional adjustment of file content\
 is needed."
   :group 'vlf :type '(choice (const :tag "Always when applicable" t)
-                             (const :tag "Ask when applicable" 'ask)
+                             (const :tag "Ask when applicable" ask)
                              (const :tag "Never" nil)))
 
 (defun vlf-write ()
@@ -128,8 +128,7 @@ FILE if given is filename to be used, otherwise `buffer-file-name'."
     (progress-reporter-done reporter)))
 
 (defun vlf-shift-batch (read-pos write-pos file)
-  "Read `vlf-batch-size' bytes from READ-POS and write them \
-back at WRITE-POS using FILE.
+  "Shift `vlf-batch-size' bytes from READ-POS to WRITE-POS in FILE.
 Return nil if EOF is reached, t otherwise."
   (erase-buffer)
   (vlf-verify-size t file)

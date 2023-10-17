@@ -1,6 +1,6 @@
 ;;; vlf-occur.el --- Occur-like functionality for VLF  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2014-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2014-2023 Free Software Foundation, Inc.
 
 ;; Keywords: large files, indexing, occur
 ;; Author: Andrey Kotlarski <m00naticus@gmail.com>
@@ -49,19 +49,19 @@
 
 (defvar vlf-occur-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "n" 'vlf-occur-next-match)
-    (define-key map "p" 'vlf-occur-prev-match)
-    (define-key map "\C-m" 'vlf-occur-visit)
-    (define-key map "\M-\r" 'vlf-occur-visit-new-buffer)
-    (define-key map [mouse-1] 'vlf-occur-visit)
-    (define-key map "o" 'vlf-occur-show)
-    (define-key map [remap save-buffer] 'vlf-occur-save)
+    (define-key map "n" #'vlf-occur-next-match)
+    (define-key map "p" #'vlf-occur-prev-match)
+    (define-key map "\C-m" #'vlf-occur-visit)
+    (define-key map "\M-\r" #'vlf-occur-visit-new-buffer)
+    (define-key map [mouse-1] #'vlf-occur-visit)
+    (define-key map "o" #'vlf-occur-show)
+    (define-key map [remap save-buffer] #'vlf-occur-save)
     map)
   "Keymap for command `vlf-occur-mode'.")
 
 (define-derived-mode vlf-occur-mode special-mode "VLF[occur]"
   "Major mode for showing occur matches of VLF opened files."
-  (add-hook 'write-file-functions 'vlf-occur-save nil t))
+  (add-hook 'write-file-functions #'vlf-occur-save nil t))
 
 (defun vlf-occur-next-match ()
   "Move cursor to next match."
@@ -82,9 +82,8 @@
                    (point-max)))))
 
 (defun vlf-occur-show (&optional event)
-  "Visit current `vlf-occur' link in a vlf buffer but stay in the \
-occur buffer.  If original VLF buffer has been killed,
-open new VLF session each time.
+  "Visit current `vlf-occur' link in a vlf buffer but stay in the occur buffer.
+If original VLF buffer has been killed, open new VLF session each time.
 EVENT may hold details of the invocation."
   (interactive (list last-nonmenu-event))
   (let ((occur-buffer (if event

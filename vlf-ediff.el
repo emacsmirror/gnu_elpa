@@ -1,6 +1,6 @@
 ;;; vlf-ediff.el --- VLF ediff functionality  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2014-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2014-2023 Free Software Foundation, Inc.
 
 ;; Keywords: large files, compare, ediff
 ;; Author: Andrey Kotlarski <m00naticus@gmail.com>
@@ -86,7 +86,7 @@ respectively of difference list, runs ediff over the adjacent chunks."
                                            ediff-last-dir-B
                                          (file-name-directory f)))
                                  (progn
-                                   (ediff-add-to-history
+                                   (add-to-history
                                     'file-name-history
                                     (ediff-abbreviate-file-name
                                      (expand-file-name
@@ -100,18 +100,16 @@ respectively of difference list, runs ediff over the adjacent chunks."
     (let ((buffer-B (vlf file-B t)))
       (vlf-ediff-buffers buffer-A buffer-B))))
 
-(defadvice ediff-next-difference (around vlf-ediff-next-difference
-                                         compile activate)
-  "Move to the next VLF chunk and search for difference if at the end\
-of difference list."
+(advice-add 'ediff-next-difference :around #'vlf--ediff-next-difference)
+(defun vlf--ediff-next-difference (orig-fun &rest args)
+  "Move to the next VLF chunk if needed."
   (if (and vlf-ediff-session
            (<= (1- ediff-number-of-differences)
                ediff-current-difference))
       (let ((buffer-A ediff-buffer-A)
             (buffer-B ediff-buffer-B)
             (ediff-buffer (current-buffer)))
-        (save-excursion
-          (set-buffer buffer-A)
+        (with-current-buffer buffer-A
           (vlf-next-chunk)
           (set-buffer buffer-B)
           (vlf-next-chunk)
@@ -119,19 +117,17 @@ of difference list."
                           'vlf-next-chunk))
         (or (zerop ediff-number-of-differences)
             (ediff-jump-to-difference 1)))
-    ad-do-it))
+    (apply orig-fun args)))
 
-(defadvice ediff-previous-difference (around vlf-ediff-prev-difference
-                                             compile activate)
-  "Move to the previous VLF chunk and search for difference if at the\
-beginning of difference list."
+(advice-add 'ediff-previous-difference :around #'vlf--ediff-prev-difference)
+(defun vlf--ediff-prev-difference (orig-fun &rest args)
+  "Move to the previous VLF chunk if needed."
   (if (and vlf-ediff-session
            (<= ediff-current-difference 0))
       (let ((buffer-A ediff-buffer-A)
             (buffer-B ediff-buffer-B)
             (ediff-buffer (current-buffer)))
-        (save-excursion
-          (set-buffer buffer-A)
+        (with-current-buffer buffer-A
           (vlf-prev-chunk)
           (set-buffer buffer-B)
           (vlf-prev-chunk)
@@ -139,7 +135,7 @@ beginning of difference list."
                           'vlf-prev-chunk))
         (or (zerop ediff-number-of-differences)
             (ediff-jump-to-difference -1)))
-    ad-do-it))
+    (apply orig-fun args)))
 
 (defun vlf-next-chunk ()
   "Move to next chunk."
@@ -151,8 +147,9 @@ beginning of difference list."
 
 (defun vlf-ediff-next (buffer-A buffer-B ediff-buffer
                                 &optional next-func)
-  "Find next pair of chunks that differ in BUFFER-A and BUFFER-B\
-governed by EDIFF-BUFFER.  NEXT-FUNC is used to jump to the next
+  "Find next pair of chunks that differ in BUFFER-A and BUFFER-B.
+The buffers are summed to be governed by EDIFF-BUFFER.
+NEXT-FUNC is used to jump to the next
 logical chunks in case there is no difference at the current ones."
   (set-buffer buffer-A)
   (run-hook-with-args 'vlf-before-batch-functions 'ediff)

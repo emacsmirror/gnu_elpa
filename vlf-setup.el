@@ -1,6 +1,6 @@
 ;;; vlf-setup.el --- VLF integration with other packages  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2014-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2014-2023 Free Software Foundation, Inc.
 
 ;; Keywords: large files, integration
 ;; Author: Andrey Kotlarski <m00naticus@gmail.com>
@@ -31,7 +31,7 @@
 
 (defcustom vlf-batch-size 1000000
   "Defines how large each batch of file data initially is (in bytes)."
-  :group 'vlf :type 'integer)
+  :type 'integer)
 
 (defcustom vlf-application 'ask
   "Determines when `vlf' will be offered on opening files.
@@ -39,24 +39,19 @@ Possible values are: nil to never use it;
 `ask' offer `vlf' when file size is beyond `large-file-warning-threshold';
 `dont-ask' automatically use `vlf' for large files;
 `always' use `vlf' for all files."
-  :group 'vlf :type '(radio (const :format "%v " nil)
-                            (const :format "%v " ask)
-                            (const :format "%v " dont-ask)
-                            (const :format "%v" always)))
+  :type '(radio (const :format "%v " nil)
+                (const :format "%v " ask)
+                (const :format "%v " dont-ask)
+                (const :format "%v " always)))
 
 (defcustom vlf-forbidden-modes-list
   '(archive-mode tar-mode jka-compr git-commit-mode image-mode
                  doc-view-mode doc-view-mode-maybe ebrowse-tree-mode)
   "Major modes which VLF will not be automatically applied to."
-  :group 'vlf :type '(list symbol))
+  :type '(list symbol))
 
 (defvar dired-mode-map)
 (declare-function dired-get-file-for-visit "dired")
-
-(unless (fboundp 'file-size-human-readable)
-  (defun file-size-human-readable (file-size)
-    "Print FILE-SIZE in MB."
-    (format "%.3fMB" (/ file-size 1048576.0))))
 
 (defun vlf-determine-major-mode (filename)
   "Determine major mode from FILENAME."
@@ -73,26 +68,26 @@ Possible values are: nil to never use it;
           (if (memq system-type '(windows-nt cygwin))
               ;; System is case-insensitive.
               (let ((case-fold-search t))
-                (assoc-default name auto-mode-alist 'string-match))
+                (assoc-default name auto-mode-alist #'string-match))
             ;; System is case-sensitive.
             (or ;; First match case-sensitively.
              (let ((case-fold-search nil))
-               (assoc-default name auto-mode-alist 'string-match))
+               (assoc-default name auto-mode-alist #'string-match))
              ;; Fallback to case-insensitive match.
              (and auto-mode-case-fold
                   (let ((case-fold-search t))
                     (assoc-default name auto-mode-alist
-                                   'string-match))))))
+                                   #'string-match))))))
     (if (and mode (consp mode))
         (cadr mode)
       mode)))
 
 (autoload 'vlf "vlf" "View Large FILE in batches." t)
 
-(defadvice abort-if-file-too-large (around vlf-if-file-too-large
-                                           compile activate)
-  "If file SIZE larger than `large-file-warning-threshold', \
-allow user to view file with `vlf', open it normally, or abort.
+(advice-add 'abort-if-file-too-large :around #'vlf--if-file-too-large)
+(defun vlf--if-file-too-large (orig-fun size op-type filename &rest args)
+  "If file is too large, prompt user to view file with `vlf'.
+\"Too large\" is defined by `large-file-warning-threshold'.
 OP-TYPE specifies the file operation being performed over FILENAME."
   (cond
    ((or (not size) (zerop size)))
@@ -100,7 +95,7 @@ OP-TYPE specifies the file operation being performed over FILENAME."
         (not filename)
         (memq (vlf-determine-major-mode filename)
               vlf-forbidden-modes-list))
-    ad-do-it)
+    (apply orig-fun size op-type filename args))
    ((eq vlf-application 'always)
     (vlf filename)
     (error ""))
@@ -131,29 +126,23 @@ OP-TYPE specifies the file operation being performed over FILENAME."
                (error "Aborted"))))))))
 
 ;; disable for some functions
-(defmacro vlf-disable-for-function (func file)
-  "Build advice to disable VLF during execution of FUNC\
-defined in FILE."
-  `(eval-after-load ,file
-     '(defadvice ,func (around ,(intern (concat "vlf-"
-                                                (symbol-name func)))
-                               compile activate)
-        "Temporarily disable `vlf-mode'."
-        (let ((vlf-application nil))
-          ad-do-it))))
+(defun vlf--disabled (orig-fun &rest args)
+  "Temporarily disable `vlf-mode'."
+  (let ((vlf-application nil))
+    (apply orig-fun args)))
 
-(vlf-disable-for-function tags-verify-table "etags")
-(vlf-disable-for-function tag-find-file-of-tag-noselect "etags")
-(vlf-disable-for-function helm-etags-create-buffer "helm-tags")
+(dolist (func '(tags-verify-table
+                tag-find-file-of-tag-noselect
+                helm-etags-create-buffer))
+  (advice-add func :around #'vlf--disabled))
 
-;; dired
 (defun dired-vlf ()
   "In Dired, visit the file on this line in VLF mode."
   (interactive)
   (vlf (dired-get-file-for-visit)))
 
 (eval-after-load "dired"
-  '(define-key dired-mode-map "V" 'dired-vlf))
+  '(define-key dired-mode-map "V" #'dired-vlf))
 
 (provide 'vlf-setup)
 

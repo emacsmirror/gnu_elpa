@@ -1,6 +1,6 @@
 ;;; vlf-follow.el --- VLF chunk follows point functionality  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2014-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2014-2023 Free Software Foundation, Inc.
 
 ;; Keywords: large files, follow, recenter
 ;; Author: Andrey Kotlarski <m00naticus@gmail.com>
@@ -67,9 +67,9 @@
 (defun vlf-start-follow (interval)
   "Continuously recenter chunk around point every INTERVAL seconds."
   (setq vlf-follow-timer (run-with-idle-timer interval interval
-                                              'vlf-recenter
+                                              #'vlf-recenter
                                               (current-buffer)))
-  (add-hook 'kill-buffer-hook 'vlf-stop-follow nil t))
+  (add-hook 'kill-buffer-hook #'vlf-stop-follow nil t))
 
 (defun vlf-toggle-follow ()
   "Toggle continuous chunk recenter around current point."

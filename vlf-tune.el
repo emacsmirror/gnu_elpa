@@ -1,6 +1,6 @@
 ;;; vlf-tune.el --- VLF tuning operations  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2014-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2014-2023 Free Software Foundation, Inc.
 
 ;; Keywords: large files, batch size, performance
 ;; Author: Andrey Kotlarski <m00naticus@gmail.com>
@@ -32,16 +32,16 @@
 
 (defcustom vlf-batch-size 1000000
   "Defines how large each batch of file data initially is (in bytes)."
-  :group 'vlf :type 'integer)
+  :type 'integer)
 (put 'vlf-batch-size 'permanent-local t)
 
 (defcustom vlf-tune-enabled t
   "Whether to allow automatic change of batch size.
 If nil, completely disable.  If `stats', maintain measure statistics,
 but don't change batch size.  If t, measure and change."
-  :group 'vlf :type '(choice (const :tag "Enabled" t)
-                             (const :tag "Just statistics" stats)
-                             (const :tag "Disabled" nil)))
+  :type '(choice (const :tag "Enabled" t)
+                 (const :tag "Just statistics" stats)
+                 (const :tag "Disabled" nil)))
 
 (defvar vlf-file-size 0 "Total size in bytes of presented file.")
 (make-variable-buffer-local 'vlf-file-size)
@@ -65,16 +65,16 @@ but don't change batch size.  If t, measure and change."
                                                  'standard-value)))))
   "Maximum batch size in bytes when auto tuning.
 Avoid increasing this after opening file with VLF."
-  :group 'vlf :type 'integer)
+  :type 'integer)
 
 (defcustom vlf-tune-step (/ vlf-tune-max 10000)
   "Step used for tuning in bytes.
 Avoid decreasing this after opening file with VLF."
-  :group 'vlf :type 'integer)
+  :type 'integer)
 
 (defcustom vlf-tune-load-time 1.0
   "How many seconds should batch take to load for best user experience."
-  :group 'vlf :type 'float)
+  :type 'float)
 
 (defvar vlf-tune-insert-bps nil
   "Vector of bytes per second insert measurements.")
@@ -351,8 +351,8 @@ INDEX if given, specifies search independent of current batch size."
           (setq vlf-batch-size (* (1+ idx) vlf-tune-step))))))
 
 (defun vlf-tune-binary (types min max)
-  "Adjust `vlf-batch-size' to optimal value using binary search, \
-optimizing over TYPES.
+  "Adjust `vlf-batch-size' to optimal value using binary search.
+Optimizes over TYPES.
 MIN and MAX specify interval of indexes to search."
   (let ((sum (+ min max)))
     (if (< (- max min) 3)

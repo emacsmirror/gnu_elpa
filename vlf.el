@@ -1,15 +1,15 @@
 ;;; vlf.el --- View Large Files  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2006-2020 Free Software Foundation, Inc.
+;; Copyright (C) 2006-2023 Free Software Foundation, Inc.
 
-;; Maintainer: Andrey Kotlarski <m00naticus@gmail.com>
 ;; Version: 1.7.2
+;; Package-Requires: ((emacs "24.4"))
 ;; Keywords: large files, utilities
 ;; Maintainer: Andrey Kotlarski <m00naticus@gmail.com>
 ;; Authors: 2006 Mathias Dahl <mathias.dahl@gmail.com>
 ;;          2012 Sam Steingold <sds@gnu.org>
 ;;          2013-2017 Andrey Kotlarski <m00naticus@gmail.com>
-;; URL: https://github.com/m00natic/vlfi
+;; Old-URL: https://github.com/m00natic/vlfi
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -78,25 +78,25 @@ values are: `write', `ediff', `occur', `search', `goto-line'."
 
 (defvar vlf-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "n" 'vlf-next-batch)
-    (define-key map "p" 'vlf-prev-batch)
-    (define-key map " " 'vlf-next-batch-from-point)
-    (define-key map "+" 'vlf-change-batch-size)
+    (define-key map "n" #'vlf-next-batch)
+    (define-key map "p" #'vlf-prev-batch)
+    (define-key map " " #'vlf-next-batch-from-point)
+    (define-key map "+" #'vlf-change-batch-size)
     (define-key map "-"
       (lambda () "Decrease vlf batch size by factor of 2."
         (interactive)
         (vlf-change-batch-size t)))
-    (define-key map "s" 'vlf-re-search-forward)
-    (define-key map "r" 'vlf-re-search-backward)
-    (define-key map "%" 'vlf-query-replace)
-    (define-key map "o" 'vlf-occur)
-    (define-key map "[" 'vlf-beginning-of-file)
-    (define-key map "]" 'vlf-end-of-file)
-    (define-key map "j" 'vlf-jump-to-chunk)
-    (define-key map "l" 'vlf-goto-line)
-    (define-key map "e" 'vlf-ediff-buffers)
-    (define-key map "f" 'vlf-toggle-follow)
-    (define-key map "g" 'vlf-revert)
+    (define-key map "s" #'vlf-re-search-forward)
+    (define-key map "r" #'vlf-re-search-backward)
+    (define-key map "%" #'vlf-query-replace)
+    (define-key map "o" #'vlf-occur)
+    (define-key map "[" #'vlf-beginning-of-file)
+    (define-key map "]" #'vlf-end-of-file)
+    (define-key map "j" #'vlf-jump-to-chunk)
+    (define-key map "l" #'vlf-goto-line)
+    (define-key map "e" #'vlf-ediff-buffers)
+    (define-key map "f" #'vlf-toggle-follow)
+    (define-key map "g" #'vlf-revert)
     map)
   "Keymap for `vlf-mode'.")
 
@@ -115,9 +115,9 @@ values are: `write', `ediff', `occur', `search', `goto-line'."
                           (file-size-human-readable vlf-file-size)))
   (cond (vlf-mode
          (set (make-local-variable 'require-final-newline) nil)
-         (add-hook 'write-file-functions 'vlf-write nil t)
+         (add-hook 'write-file-functions #'vlf-write nil t)
          (set (make-local-variable 'revert-buffer-function)
-              'vlf-revert)
+              #'vlf-revert)
          (make-local-variable 'vlf-batch-size)
          (setq vlf-file-size (vlf-get-file-size buffer-file-truename)
                vlf-start-pos 0
@@ -126,7 +126,7 @@ values are: `write', `ediff', `occur', `search', `goto-line'."
                 (start (* (/ pos vlf-batch-size) vlf-batch-size)))
            (goto-char (byte-to-position (- pos start)))
            (vlf-move-to-batch start))
-         (add-hook 'after-change-major-mode-hook 'vlf-keep-alive t t)
+         (add-hook 'after-change-major-mode-hook #'vlf-keep-alive t t)
          (vlf-keep-alive))
         ((or (not large-file-warning-threshold)
              (< vlf-file-size large-file-warning-threshold)
@@ -136,9 +136,9 @@ values are: `write', `ediff', `occur', `search', `goto-line'."
          (kill-local-variable 'revert-buffer-function)
          (vlf-stop-follow)
          (kill-local-variable 'require-final-newline)
-         (remove-hook 'write-file-functions 'vlf-write t)
+         (remove-hook 'write-file-functions #'vlf-write t)
          (remove-hook 'after-change-major-mode-hook
-                      'vlf-keep-alive t)
+                      #'vlf-keep-alive t)
          (if (derived-mode-p 'hexl-mode)
              (let ((line (/ (1+ vlf-start-pos) hexl-bits))
                    (pos (point)))
@@ -163,7 +163,7 @@ values are: `write', `ediff', `occur', `search', `goto-line'."
 (defun vlf-keep-alive ()
   "Keep `vlf-mode' on major mode change."
   (if (derived-mode-p 'hexl-mode)
-      (set (make-local-variable 'revert-buffer-function) 'vlf-revert))
+      (set (make-local-variable 'revert-buffer-function) #'vlf-revert))
   (setq vlf-mode t))
 
 ;;;###autoload
@@ -225,60 +225,58 @@ When prefix argument is negative
     (vlf-move-to-chunk start end)))
 
 ;; scroll auto batching
-(defadvice scroll-up (around vlf-scroll-up
-                             activate compile)
+(advice-add 'scroll-up :around #'vlf--scroll-up)
+(defun vlf--scroll-up (orig-fun &rest args)
   "Slide to next batch if at end of buffer in `vlf-mode'."
   (if (and vlf-mode (pos-visible-in-window-p (point-max)))
       (progn (vlf-next-batch 1)
              (goto-char (point-min)))
-    ad-do-it))
+    (apply orig-fun args)))
 
-(defadvice scroll-down (around vlf-scroll-down
-                               activate compile)
+(advice-add 'scroll-down :around #'vlf--scroll-down)
+(defun vlf--scroll-down (orig-fun &rest args)
   "Slide to previous batch if at beginning of buffer in `vlf-mode'."
   (if (and vlf-mode (pos-visible-in-window-p (point-min)))
       (progn (vlf-prev-batch 1)
              (goto-char (point-max)))
-    ad-do-it))
+    (apply orig-fun args)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; hexl mode integration
 
-(eval-after-load "hexl"
-  '(progn
-     (defadvice hexl-save-buffer (around vlf-hexl-save
-                                         activate compile)
-       "Prevent hexl save if `vlf-mode' is active."
-       (if vlf-mode
-           (vlf-write)
-         ad-do-it))
+(advice-add 'hexl-save-buffer :around #'vlf--hexl-save)
+(defun vlf--hexl-save (orig-fun &rest args)
+  "Prevent hexl save if `vlf-mode' is active."
+  (if vlf-mode
+      (vlf-write)
+    (apply orig-fun args)))
 
-     (defadvice hexl-scroll-up (around vlf-hexl-scroll-up
-                                       activate compile)
-       "Slide to next batch if at end of buffer in `vlf-mode'."
-       (if (and vlf-mode (pos-visible-in-window-p (point-max))
-                (or (not (numberp arg)) (< 0 arg)))
-           (progn (vlf-next-batch 1)
-                  (goto-char (point-min)))
-         ad-do-it))
+(advice-add 'hexl-scroll-up :around #'vlf--hexl-scroll-up)
+(defun vlf--hexl-scroll-up (orig-fun &rest args)
+  "Slide to next batch if at end of buffer in `vlf-mode'."
+  (if (and vlf-mode (pos-visible-in-window-p (point-max))
+           (or (not (numberp (car args))) (< 0 (car args))))
+      (progn (vlf-next-batch 1)
+             (goto-char (point-min)))
+    (apply orig-fun args)))
 
-     (defadvice hexl-scroll-down (around vlf-hexl-scroll-down
-                                         activate compile)
-       "Slide to previous batch if at beginning of buffer in `vlf-mode'."
-       (if (and vlf-mode (pos-visible-in-window-p (point-min)))
-           (progn (vlf-prev-batch 1)
-                  (goto-char (point-max)))
-         ad-do-it))
+(advice-add 'hexl-scroll-down :around #'vlf--hexl-scroll-down)
+(defun vlf--hexl-scroll-down (orig-fun &rest args)
+  "Slide to previous batch if at beginning of buffer in `vlf-mode'."
+  (if (and vlf-mode (pos-visible-in-window-p (point-min)))
+      (progn (vlf-prev-batch 1)
+             (goto-char (point-max)))
+    (apply orig-fun args)))
 
-     (defadvice hexl-mode-exit (around vlf-hexl-mode-exit
-                                       activate compile)
-       "Exit `hexl-mode' gracefully in case `vlf-mode' is active."
-       (if (and vlf-mode (not (buffer-modified-p)))
-           (vlf-with-undo-disabled
-            (erase-buffer)
-            ad-do-it
-            (vlf-move-to-chunk-2 vlf-start-pos vlf-end-pos))
-         ad-do-it))))
+(advice-add 'hexl-mode-exit :around #'vlf--hexl-mode-exit)
+(defun vlf--hexl-mode-exit (orig-fun &rest args)
+  "Exit `hexl-mode' gracefully in case `vlf-mode' is active."
+  (if (and vlf-mode (not (buffer-modified-p)))
+      (vlf-with-undo-disabled
+       (erase-buffer)
+       (apply orig-fun args)
+       (vlf-move-to-chunk-2 vlf-start-pos vlf-end-pos))
+    (apply orig-fun args)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; utilities

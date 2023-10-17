@@ -1,6 +1,6 @@
 ;;; vlf-base.el --- VLF primitive operations  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2014-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2014-2023 Free Software Foundation, Inc.
 
 ;; Keywords: large files, chunk
 ;; Author: Andrey Kotlarski <m00naticus@gmail.com>
@@ -264,8 +264,8 @@ bytes added to the end."
 
 (defun vlf-insert-file-contents (start end adjust-start adjust-end
                                        &optional position)
-  "Adjust chunk at absolute START to END till content can be\
-properly decoded.  ADJUST-START determines if trying to prepend bytes
+  "Adjust chunk at absolute START to END so it can be properly decoded.
+ADJUST-START determines if trying to prepend bytes
 to the beginning, ADJUST-END - append to the end.
 Use buffer POSITION as start if given.
 Return number of bytes moved back for proper decoding and number of
@@ -302,8 +302,8 @@ bytes added to the end."
       (vlf-tune-insert-file-contents start end))))
 
 (defun vlf-adjust-start (start end position adjust-end)
-  "Adjust chunk beginning at absolute START to END till content can\
-be properly decoded.  Use buffer POSITION as start.
+  "Adjust chunk beginning at absolute START to END so it can be properly decoded.
+Use buffer POSITION as start.
 ADJUST-END is non-nil if end would be adjusted later.
 Return number of bytes moved back for proper decoding."
   (let* ((safe-start (max 0 (- start 4)))

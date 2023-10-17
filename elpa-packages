@@ -205,9 +205,7 @@
   :news "CHANGELOG.org"
   :readme "README.md")
  (devdocs		:url "https://github.com/astoff/devdocs.el")
- (dict-tree		:url "http://www.dr-qubit.org/git/predictive.git"
-  :manual-sync t ;; The upstream doesn't exist any more!
-  )
+ (dict-tree		:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
  (diff-hl		:url "https://github.com/dgutov/diff-hl.git")
  (diffview            	:url "https://github.com/mgalgs/diffview-mode.git")
  (diminish            	:url "https://github.com/myrjola/diminish.el.git"
@@ -252,7 +250,8 @@
                         :news "EGLOT-NEWS")
  (el-search		:url nil)
  (eldoc			:core "lisp/emacs-lisp/eldoc.el")
- (eldoc-eval		:url "https://github.com/thierryvolpiatto/eldoc-eval.git")
+ ;; `eldoc-eval' is obsoleted by core support for eldoc in minibuffer (2013).
+ ;;(eldoc-eval		:url "https://github.com/thierryvolpiatto/eldoc-eval.git")
  (electric-spacing	:url nil)
  (elisp-benchmarks	:url nil)
  (emacs-gc-stats	:url "https://git.sr.ht/~yantar92/emacs-gc-stats"
@@ -338,9 +337,7 @@
  (gtags-mode		:url "https://github.com/Ergus/gtags-mode")
  (guess-language	:url "https://github.com/tmalsburg/guess-language.el")
  (hcel			:url "https://g.ypei.me/hc.el.git")
- (heap			:url "http://www.dr-qubit.org/git/predictive.git"
-  :manual-sync t ;; The upstream doesn't exist any more!
-  )
+ (heap			:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
  (hiddenquote		:url "https://gitlab.com/mauroaranda/hiddenquote/hiddenquote")
  (highlight-escape-sequences
   			:url "https://github.com/dgutov/highlight-escape-sequences/")
@@ -530,7 +527,8 @@
  (paced			:url "bzr::bzr://bzr.savannah.nongnu.org/paced-el/trunk"
   ;; The Bzr<->Git bridge wasn't working well enough last time I tried.
   :manual-sync t)
- (package-fixes		:url nil)
+ ;; `package-fixes` is obsolete and was never released.
+ ;; (package-fixes		:url nil)
  (parsec              	:url "https://github.com/cute-jumper/parsec.el.git")
  (parser-generator	:url "https://github.com/cjohansson/emacs-parser-generator")
  (path-iterator		:url nil)
@@ -577,9 +575,7 @@
  (pyim-basedict		:url "https://github.com/tumashu/pyim-basedict.git")
  (python		:core "lisp/progmodes/python.el")
  (quarter-plane		:url nil)
- (queue			:url "http://www.dr-qubit.org/git/predictive.git"
-  :manual-sync t ;; The upstream doesn't exist any more!
-  )
+ (queue			:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
  ;; (rails-routes	:url "https://github.com/otavioschwanck/emacs-rails-routes")
  (rainbow-mode		:url nil)
  (rbit			:url nil)
@@ -666,9 +662,7 @@
   :ignored-files ("COPYING"))
  (system-packages	:url "https://gitlab.com/jabranham/system-packages")
  (systemd		:url nil)
- (tNFA			:url "http://www.dr-qubit.org/git/predictive.git"
-  :manual-sync t ;; The upstream doesn't exist any more!
-  )
+ (tNFA			:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
  (tam			:url "https://github.com/owinebar/emacs-table-allocation-manager")
  (taxy                	:url "https://github.com/alphapapa/taxy.el.git"
   :doc "taxy.info"
@@ -711,17 +705,15 @@
   :doc "docs/transient.texi")
  (transient-cycles    	:url nil)
  (tree-inspector        :url "https://github.com/mmontone/emacs-tree-inspector")
- (trie			:url "http://www.dr-qubit.org/git/predictive.git"
-  :manual-sync t ;; The upstream doesn't exist any more!
-  )
+ (trie			:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
  (trinary		:url "https://github.com/emacs-elsa/trinary-logic")
  (triples		:url "https://github.com/ahyatt/triples"
   :readme "README.org")
+ (typo                  :url "https://git.sr.ht/~pkal/typo")
+ (ulisp-repl		:url "https://git.sr.ht/~fitzsim/ulisp-repl")
  ;; FIXME: The upstream of `undo-tree' has diverged.  I tried to
  ;; contact Toby but he's quite busy.  He mentioned thinking of using the
  ;; `elpa.git` branch as the official upstream.
- (typo                  :url "https://git.sr.ht/~pkal/typo")
- (ulisp-repl		:url "https://git.sr.ht/~fitzsim/ulisp-repl")
  (undo-tree		:url "https://gitlab.com/tsc25/undo-tree")
  (uni-confusables 	:url nil
   :readme "README.md")
@@ -761,7 +753,7 @@
  (vigenere 		:url nil)
  (visual-filename-abbrev :url nil)
  (visual-fill		:url nil)
- (vlf			:url "https://github.com/m00natic/vlfi")
+ (vlf			:url "https://github.com/m00natic/vlfi") ;FIXME:Dead?
  (vundo			:url "https://github.com/casouri/vundo"
   :ignored-files ("test")
   :news "NEWS.txt")

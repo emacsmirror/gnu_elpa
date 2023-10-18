@@ -53,14 +53,13 @@ bump version
 
 On Debian (alr publish --tar broken on Windows (alr version 1.2.1))
     cd /Projects/org.emacs.gpr-query
-    alr publish --tar
-    # at "upload and enter url" prompt; in mys2
-    cd alire/archives
-    gpg -b *.tgz
-    scp *.tgz* stephen_leake@dl.sv.nongnu.org:/releases/ada-mode/
-    # wait until http download actually works; took 0.5 days
-    cd ~/Downloads; wget https://download.savannah.nongnu.org/releases/ada-mode/emacs_gpr_query-1.0.0.tgz
-    # link is https://download.savannah.nongnu.org/releases/ada-mode/emacs_gpr_query-i.j.k.tgz
+    # not ~/bin/alire-publish-git.sh; that hard-codes ada-mode.git
+    git push
+    # edit ~/.gitconfig to set fsckObjects false
+    /Projects/alire-main/bin/alr publish --skip-build https://git.savannah.gnu.org/git/emacs/elpa.git `git rev-parse HEAD`
+
+after alire pull accepted:
+    git tag gpr-query-alire-<version>
 
 test install from GNU ELPA
     (add-to-list 'package-archives (cons "test" "/Projects/elpa/archive-devel"))

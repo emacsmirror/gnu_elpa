@@ -707,7 +707,7 @@ depend on PHRASE being a string, or nil.  See Info node
     (debbugs-gnu debbugs-gnu-applicable-severities packages)))
 
 (defun debbugs-gnu-package-tabulated-list-print ()
-  "Print the tabulated list for `tramp-gnu-package'."
+  "Print the tabulated list for `debbugs-gnu-package'."
   (let ((inhibit-read-only t)
 	(entries tabulated-list-entries)
 	(packages
@@ -729,7 +729,7 @@ depend on PHRASE being a string, or nil.  See Info node
 			    x))
 		     entries)))
 	(when tabulated-list-entries
-	  (narrow-to-region (point-min) (point-max))
+	  (narrow-to-region (point-min) (point-min))
 	  (tabulated-list-print nil 'update)
 	  (goto-char (point-min))
 	  (insert
@@ -1566,7 +1566,8 @@ interesting to you."
 		     debbugs-gnu-local-filter
 		     (debbugs-gnu-current-status)))
   (switch-to-buffer "*Bug Status*")
-  (let ((inhibit-read-only t))
+  (let ((inhibit-read-only t)
+        (pp-default-function 'pp-29))
     (erase-buffer)
     (when query
       (insert ";; Query\n")
@@ -1579,6 +1580,16 @@ interesting to you."
     (when status
       (insert ";; Status\n")
       (pp status (current-buffer)))
+    (goto-char (point-min))
+    (while
+        (re-search-forward
+         (rx "("
+             (| "cache_time" "last_modified" "fixed_date" "date" "log_modified")
+             " . " (group (1+ (any "." digit))) ")")
+         nil t)
+      (put-text-property
+       (match-beginning 1) (match-end 1)
+       'help-echo (current-time-string (read (match-string 1)))))
     (goto-char (point-min)))
   (set-buffer-modified-p nil)
   (special-mode))
@@ -1859,7 +1870,7 @@ returned by `debbugs-gnu-bugs'."
   '("serious" "important" "normal" "minor" "wishlist"
     "done" "donenotabug" "donewontfix" "doneunreproducible"
     "invalid" ; done+notabug+wontfix
-    "unarchive" "unmerge" "reopen" "close"
+    "archive" "unarchive" "unmerge" "reopen" "close"
     "merge" "forcemerge"
     "block" "unblock"
     "owner" "noowner"
@@ -2021,7 +2032,8 @@ removed instead."
     (insert
      (save-excursion             ; Point can change while prompting!
        (cond
-        ((member message '("unarchive" "unmerge" "noowner" "notforwarded"))
+        ((member
+          message '("archive" "unarchive" "unmerge" "noowner" "notforwarded"))
          (format "%s %d\n" message bugid))
         ((equal message "reopen")
          (format "reopen %d\ntags %d - fixed patch\n" bugid bugid))

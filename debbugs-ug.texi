@@ -746,8 +746,9 @@ The new bug title is read interactively.
 @itemx wishlist
 "severity 12345 serious|important|normal|minor|wishlist"
 
-@item unarchive
-"unarchive 12345"
+@item archive
+@itemx unarchive
+"archive|unarchive 12345"
 
 @item unmerge
 "unmerge 12345"

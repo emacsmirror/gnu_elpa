@@ -71,8 +71,7 @@
  (aumix-mode		:url nil)
  (auto-correct		:url nil)
  (auto-header           :url "https://git.sr.ht/~pkal/auto-header")
- (auto-overlays		:url "http://www.dr-qubit.org/git/predictive.git"
-  :manual-sync t ;; The upstream doesn't exist any more!
+ (auto-overlays		:url nil ;"http://www.dr-qubit.org/git/predictive.git"
   :doc "docs/auto-overlay-manual.texinfo")
  (autocrypt             :url "https://git.sr.ht/~pkal/autocrypt")
  (avy			:url "https://github.com/abo-abo/avy"

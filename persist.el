@@ -41,6 +41,7 @@
 ;; variables.
 
 ;;; Code:
+
 (defvar persist--directory-location
   (locate-user-emacs-file "persist")
   "The location of persist directory.")

@@ -1,8 +1,8 @@
 ;;; boxy.el --- A boxy layout framework -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021 Free Software Foundation, Inc.
+;; Copyright (C) 2021-2023 Free Software Foundation, Inc.
 
-;; Author: Taylor Grinn <grinntaylor@gmail.com>
+;; Author: Amy Grinn <grinn.amy@gmail.com>
 ;; Version: 1.1.3
 ;; File: boxy.el
 ;; Package-Requires: ((emacs "26.1"))

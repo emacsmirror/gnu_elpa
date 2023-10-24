@@ -1,8 +1,8 @@
 ;;; boxy-test-padding.el -- Padding tests for boxy -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021 Free Software Foundation, Inc.
+;; Copyright (C) 2021-2023 Free Software Foundation, Inc.
 
-;; Author: Taylor Grinn <grinntaylor@gmail.com>
+;; Author: Amy Grinn <grinn.amy@gmail.com>
 
 ;;; Code:
 

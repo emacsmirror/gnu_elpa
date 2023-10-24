@@ -4,7 +4,7 @@
 
 ;; Author: Tom Schutzer-Weissmann <tom.weissmann@gmail.com>
 ;; Maintainer: Thomas Fitzsimmons <fitzsim@fitzsim.org>
-;; Version: 2.0.4
+;; Version: 2.0.5
 ;; Keywords: comm, data, processes, hypermedia
 ;; Homepage: https://code.google.com/p/url-http-ntlm/
 ;; Package-Requires: ((cl-lib "0.5") (ntlm "2.1.0") (nadvice "0.3"))

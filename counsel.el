@@ -3,6 +3,7 @@
 ;; Copyright (C) 2015-2023 Free Software Foundation, Inc.
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
+;; Maintainer: Basil L. Contovounesios <contovob@tcd.ie>
 ;; URL: https://github.com/abo-abo/swiper
 ;; Version: 0.14.2
 ;; Package-Requires: ((emacs "24.5") (ivy "0.14.2") (swiper "0.14.2"))
@@ -6872,7 +6873,7 @@ Additional actions:\\<ivy-minibuffer-map>
      "https://duckduckgo.com/html/?q="
      counsel--search-request-data-ddg))
   "Search engine parameters for `counsel-search'."
-  :type '(list))
+  :type '(alist :key-type symbol :value-type (list string string function)))
 
 (defun counsel--search-request-data-google (data)
   (mapcar #'identity (aref data 1)))

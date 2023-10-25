@@ -644,7 +644,7 @@ If at end of buffer, nil is returned."
 	  (when (not (eobp))
 	    (forward-sentence))
 	  (if (> (point) sentence-start)
-	      (string-trim (buffer-substring-no-properties sentence-start (point)) "[ \t\n\r]+")
+	      (string-trim (buffer-substring sentence-start (point)) "[ \t\n\r]+")
 	    nil))))))
 
 (defun greader-sentence-at-point ()

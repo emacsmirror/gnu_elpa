@@ -279,7 +279,7 @@ if set to t, when you call function `greader-read', that function sets a
   nil
   :interactive nil
   :keymap greader-reading-map
-  :lighter "reading...")
+  :lighter " reading...")
 
 (defun set-bookmark-for-greader ()
   "Imposta il segnalibro ad ogni interruzione della lettura."
@@ -291,7 +291,7 @@ if set to t, when you call function `greader-read', that function sets a
   "Enable automatic bookmarking.
 Each time the reading of the buffer is stopped a bookmark is saved
 when the buffer is visiting a file."
-  :lighter "bk"
+  :lighter " bk"
   :global t
   (if greader-auto-bookmark-mode
       (add-hook 'greader-after-stop-hook #'set-bookmark-for-greader)
@@ -1431,7 +1431,7 @@ before.")
 normally greader reads the text of a buffer sequentially; in queue-mode you add blocks of text to a queue, so you can choose only certain parts of the buffer.
 As reading progresses, further blocks can be added,
 or you can add the blocks and then start reading."
-  :lighter "greader-q"
+  :lighter " greader-q"
   (cond
    (greader-queue-mode
     (when greader-mode
@@ -1480,7 +1480,6 @@ If it is a function, it must return a string."
   "This mode causes greader to announce clickable objects.
 To configure the message with which it must be announced
 the element, configure the `greader-enriched-tag' variable."
-  :global t
   :lighter "rich"
   (if greader-enriched-mode
       (progn

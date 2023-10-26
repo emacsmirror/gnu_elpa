@@ -166,6 +166,12 @@ Quick bindings allow for the user to operate on a selection
 without having to have confirmed the first."
   :type 'boolean)
 
+(defcustom do-at-point-quick-confirm-key (kbd "<return>")
+  "The key to bind the quick confirm command to.
+See `do-at-point-quick-bindings' for the meaning of quick
+confirm."
+  :type 'key-sequence)
+
 (defcustom do-at-point-selection-face 'highlight
   "Face to use to highlight the selected thing."
   :type 'face)
@@ -286,7 +292,7 @@ value of the function is always the new \"thing\"."
       (when do-at-point-quick-bindings
         (dolist (key (mapcar #'car (do-at-point--actions thing)))
           (define-key do-at-point--quick-map (vector key) #'do-at-point-confirm))
-        (define-key do-at-point--quick-map (kbd "<return>")
+        (define-key do-at-point--quick-map do-at-point-quick-confirm-key
                     #'do-at-point-confirm-quick))
       (let ((default (cadar (do-at-point--actions thing))))
         (message

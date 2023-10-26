@@ -7,7 +7,7 @@
 --  [dragon] "Compilers Principles, Techniques, and Tools" by Aho,
 --  Sethi, and Ullman (aka: "The [Red] Dragon Book").
 --
---  Copyright (C) 2017 - 2020, 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2017 - 2020, 2022, 2023 Free Software Foundation, Inc.
 --
 --  This file is part of the WisiToken package.
 --
@@ -30,6 +30,7 @@ package WisiToken.Generate.LR.LR1_Generate is
 
    function Generate
      (Grammar               : in out WisiToken.Productions.Prod_Arrays.Vector;
+      Precedence_Lists      : in     WisiToken.Precedence_Lists_Arrays.Vector;
       Descriptor            : in     WisiToken.Descriptor;
       Grammar_File_Name     : in     String;
       Error_Recover         : in     Boolean;

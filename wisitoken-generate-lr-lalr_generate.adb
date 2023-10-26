@@ -2,7 +2,7 @@
 --
 --  See spec.
 --
---  Copyright (C) 2002 - 2005, 2008 - 2015, 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2002 - 2005, 2008 - 2015, 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This file is part of the WisiToken package.
 --
@@ -446,6 +446,7 @@ package body WisiToken.Generate.LR.LALR_Generate is
    procedure Add_Actions
      (Kernels                 : in     LR1_Items.Item_Set_List;
       Grammar                 : in     WisiToken.Productions.Prod_Arrays.Vector;
+      Precedence_Lists        : in     WisiToken.Precedence_Lists_Arrays.Vector;
       Has_Empty_Production    : in     Token_ID_Set;
       First_Terminal_Sequence : in     Token_Sequence_Arrays.Vector;
       First_Nonterm_Set       : in     Token_Array_Token_Set;
@@ -466,7 +467,8 @@ package body WisiToken.Generate.LR.LALR_Generate is
          Closure := LR1_Items.Closure (Kernel, Has_Empty_Production, First_Terminal_Sequence, Grammar, Descriptor);
 
          Add_Actions
-           (Closure, Table, Grammar, Descriptor, Declared_Conflicts, Unknown_Conflicts, First_Nonterm_Set, File_Name,
+           (Closure, Table, Grammar, Precedence_Lists, Descriptor, Declared_Conflicts, Unknown_Conflicts,
+            First_Nonterm_Set, File_Name,
             Ignore_Conflicts);
       end loop;
 
@@ -477,17 +479,18 @@ package body WisiToken.Generate.LR.LALR_Generate is
 
    function Generate
      (Grammar               : in out WisiToken.Productions.Prod_Arrays.Vector;
+      Precedence_Lists      : in     WisiToken.Precedence_Lists_Arrays.Vector;
       Descriptor            : in     WisiToken.Descriptor;
       Grammar_File_Name     : in     String;
       Error_Recover         : in     Boolean;
-      Known_Conflicts       : in     Conflict_Lists.Tree := Conflict_Lists.Empty_Tree;
-      McKenzie_Param        : in     McKenzie_Param_Type := Default_McKenzie_Param;
-      Max_Parallel          : in     SAL.Base_Peek_Type  := 15;
-      Parse_Table_File_Name : in     String              := "";
-      Include_Extra         : in     Boolean             := False;
-      Ignore_Conflicts      : in     Boolean             := False;
+      Known_Conflicts       : in     Conflict_Lists.Tree          := Conflict_Lists.Empty_Tree;
+      McKenzie_Param        : in     McKenzie_Param_Type          := Default_McKenzie_Param;
+      Max_Parallel          : in     SAL.Base_Peek_Type           := 15;
+      Parse_Table_File_Name : in     String                       := "";
+      Include_Extra         : in     Boolean                      := False;
+      Ignore_Conflicts      : in     Boolean                      := False;
       Recursion_Strategy    : in     WisiToken.Recursion_Strategy := Full;
-      Use_Cached_Recursions : in     Boolean             := False;
+      Use_Cached_Recursions : in     Boolean                      := False;
       Recursions            : in out WisiToken.Generate.Recursions)
      return Parse_Table_Ptr
    is
@@ -506,12 +509,6 @@ package body WisiToken.Generate.LR.LALR_Generate is
 
       Recursions_Time : Ada.Calendar.Time;
 
-      Minimal_Terminal_Sequences : constant Minimal_Sequence_Array :=
-        Compute_Minimal_Terminal_Sequences (Descriptor, Grammar, Grammar_File_Name);
-
-      Minimal_Terminal_First : constant Token_Array_Token_ID :=
-        Compute_Minimal_Terminal_First (Descriptor, Minimal_Terminal_Sequences);
-
       First_Nonterm_Set : constant Token_Array_Token_Set := WisiToken.Generate.First
         (Grammar, Has_Empty_Production, Descriptor.First_Terminal);
 
@@ -524,7 +521,7 @@ package body WisiToken.Generate.LR.LALR_Generate is
       Known_Conflicts_Edit : Conflict_Lists.Tree := Known_Conflicts;
 
    begin
-      if not Use_Cached_Recursions or Recursions = Empty_Recursions then
+      if Error_Recover and then (not Use_Cached_Recursions or Recursions = Empty_Recursions) then
          case Recursion_Strategy is
          when None =>
             null;
@@ -537,6 +534,7 @@ package body WisiToken.Generate.LR.LALR_Generate is
 
          end case;
       end if;
+
       Set_Grammar_Recursions (Recursions, Grammar);
       Recursions_Time := Ada.Calendar.Clock;
 
@@ -603,8 +601,8 @@ package body WisiToken.Generate.LR.LALR_Generate is
       Table.Max_Parallel := Max_Parallel;
 
       Add_Actions
-        (Kernels, Grammar, Has_Empty_Production, First_Terminal_Sequence, First_Nonterm_Set, Table.all,
-         Descriptor, Known_Conflicts_Edit, Unknown_Conflicts, Grammar_File_Name, Ignore_Conflicts);
+        (Kernels, Grammar, Precedence_Lists, Has_Empty_Production, First_Terminal_Sequence, First_Nonterm_Set,
+         Table.all, Descriptor, Known_Conflicts_Edit, Unknown_Conflicts, Grammar_File_Name, Ignore_Conflicts);
 
       if Trace_Time then
          Table_Time := Ada.Calendar.Clock;
@@ -612,20 +610,30 @@ package body WisiToken.Generate.LR.LALR_Generate is
            ("compute parse table time:" & Duration'Image (Ada.Calendar."-" (Table_Time, Recursions_Time)));
       end if;
 
-      for State in Table.States'Range loop
-         if Trace_Generate_Minimal_Complete > Extra then
-            Ada.Text_IO.Put_Line ("Set_Minimal_Complete_Actions:" & State_Index'Image (State));
-         end if;
-         WisiToken.Generate.LR.Set_Minimal_Complete_Actions
-           (Table.States (State), Kernels (State), Descriptor, Grammar, Nullable, Minimal_Terminal_Sequences,
-            Minimal_Terminal_First);
-      end loop;
+      if Table.Error_Recover_Enabled then
+         declare
+            Minimal_Terminal_Sequences : constant Minimal_Sequence_Array :=
+              Compute_Minimal_Terminal_Sequences (Descriptor, Grammar, Grammar_File_Name);
 
-      if Trace_Time then
-         Minimal_Actions_Time := Ada.Calendar.Clock;
-         Ada.Text_IO.Put_Line
-           ("compute minimal actions time:" & Duration'Image
-              (Ada.Calendar."-" (Minimal_Actions_Time, Table_Time)));
+            Minimal_Terminal_First : constant Token_Array_Token_ID :=
+              Compute_Minimal_Terminal_First (Descriptor, Minimal_Terminal_Sequences);
+
+         begin
+            for State in Table.States'Range loop
+               if Trace_Generate_Minimal_Complete > Extra then
+                  Ada.Text_IO.Put_Line ("Set_Minimal_Complete_Actions:" & State_Index'Image (State));
+               end if;
+               WisiToken.Generate.LR.Set_Minimal_Complete_Actions
+                 (Table.States (State), Kernels (State), Descriptor, Grammar, Nullable, Minimal_Terminal_Sequences,
+                  Minimal_Terminal_First);
+            end loop;
+         end;
+         if Trace_Time then
+            Minimal_Actions_Time := Ada.Calendar.Clock;
+            Ada.Text_IO.Put_Line
+              ("compute minimal actions time:" & Duration'Image
+                 (Ada.Calendar."-" (Minimal_Actions_Time, Table_Time)));
+         end if;
       end if;
 
       if Parse_Table_File_Name /= "" then

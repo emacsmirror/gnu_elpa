@@ -2,7 +2,7 @@
 --
 --  Common utilities for Gen_Emacs_Wisi_*_Parse
 --
---  Copyright (C) 2018 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2018 - 2023 Free Software Foundation, Inc.
 --
 --  This program is free software; you can redistribute it and/or
 --  modify it under terms of the GNU General Public License as
@@ -37,10 +37,10 @@ package Emacs_Wisi_Common_Parse is
    --  the implementation of the protocol.
    --
    --  Only changes once per wisi release. Increment as soon as required,
-   --  record new version in NEWS-wisi.text. If working on a branch and
-   --  main has already incremented, increment again, in case main is
-   --  released before branch is merged; leave two "increment protocol"
-   --  lines in NEWS-wisi.text to indicate the issue.
+   --  record new version in NEWS. If working on a branch and main has
+   --  already incremented, increment again, in case main is released
+   --  before branch is merged; leave two "increment protocol" lines in
+   --  NEWS to indicate the issue.
 
    Prompt : constant String := ";;> ";
 

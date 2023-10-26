@@ -2,7 +2,7 @@
 --
 --  Utilities for generating source code from BNF source files
 --
---  Copyright (C) 2012, 2013, 2015, 2017, 2018 Free Software Foundation, Inc.
+--  Copyright (C) 2012, 2013, 2015, 2017, 2018, 2023 Free Software Foundation, Inc.
 --
 --  The WisiToken package is free software; you can redistribute it
 --  and/or modify it under terms of the GNU General Public License as
@@ -21,7 +21,7 @@ pragma License (Modified_GPL);
 package WisiToken.BNF.Utils is
 
    function Strip_Quotes (Item : in String) return String;
-   --  Remove leading and trailing '"', if any.
+   --  Remove leading and trailing '"' and ''', if any.
 
    function Strip_Parens (Item : in String) return String;
    --  Remove leading and trailing '()', if any.

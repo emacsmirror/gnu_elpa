@@ -29,7 +29,7 @@ developing GNU and promoting software freedom.''
 @node Top
 @top Top
 
-Wisi Version 4.2
+Wisi Version 4.3
 @end ifnottex
 
 @menu
@@ -304,9 +304,9 @@ amount. When all productions in a parse tree have been processed, the
 indent has been computed for all lines.
 
 Indent actions specify a delta indent for each token in a
-production. If the token is a nonterminal, it can contain multiple
-lines of text; the delta indent applies to the lines where the first
-token on the line is contained by the nonterminal.
+production. If the token is a nonterminal that contains multiple lines
+of text, the delta indent applies to the lines where the first token
+on the line is contained by the nonterminal.
 
 When a delta indent is applied to the indent for a line, it is either
 added or ignored. We call the token whose delta indent is being
@@ -396,7 +396,7 @@ thus all tokens in the production must be labeled. This
 can improve readability in a long production.
 
 When the grammar file uses EBNF meta-syntax, implicit labels are
-automatically generated for all tokens, unless they are explicitly
+automatically generated for all tokens that are not explicitly
 labeled; this allows keeping track of which optional tokens are left
 out when the production is converted to BNF internally.
 

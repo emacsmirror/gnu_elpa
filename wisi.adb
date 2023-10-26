@@ -2,7 +2,7 @@
 --
 --  See spec.
 --
---  Copyright (C) 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -859,7 +859,7 @@ package body Wisi is
    overriding
    function Copy_Augmented
      (User_Data : in Parse_Data_Type;
-      Augmented : in Syntax_Trees.Augmented_Class_Access)
+      Augmented : in not null Syntax_Trees.Augmented_Class_Access)
      return Syntax_Trees.Augmented_Class_Access
    is
       Old_Aug : constant Augmented_Access := Augmented_Access (Augmented);
@@ -1970,6 +1970,15 @@ package body Wisi is
                         return;
                      end if;
 
+                     if Query.Label = Ancestor then
+                        --  Handle LR list; return list root.
+                        loop
+                           exit when Tree.Parent (Result) = Invalid_Node_Access or else
+                             Tree.ID (Tree.Parent (Result)) /= Tree.ID (Result);
+                           Result := Tree.Parent (Result);
+                        end loop;
+                     end if;
+
                      Char_Region := Tree.Char_Region (Result, Trailing_Non_Grammar => False);
 
                   when Containing_Statement =>
@@ -2197,8 +2206,12 @@ package body Wisi is
                     (case Item.Status.Label is
                      when WisiToken.Syntax_Trees.In_Parse_Actions.Ok => "",
                      when WisiToken.Syntax_Trees.In_Parse_Actions.Error =>
-                        Safe_Pos (Tree.Child (Error_Node, Item.Status.Begin_Name))'Image &
-                          Safe_Pos (Tree.Child (Error_Node, Item.Status.End_Name))'Image & " """ &
+                       (if Item.Status.Begin_Name = 0
+                        then " 0"
+                        else Safe_Pos (Tree.Child (Error_Node, Item.Status.Begin_Name))'Image) &
+                          (if Item.Status.End_Name = 0
+                           then " 0"
+                           else Safe_Pos (Tree.Child (Error_Node, Item.Status.End_Name))'Image) & " """ &
                           (case WisiToken.Syntax_Trees.In_Parse_Actions.Error'(Item.Status.Label) is
                            when Missing_Name_Error => "missing",
                            when Extra_Name_Error => "extra",

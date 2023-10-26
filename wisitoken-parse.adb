@@ -2,7 +2,7 @@
 --
 --  See spec.
 --
---  Copyright (C) 2018 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2018 - 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -218,7 +218,7 @@ package body WisiToken.Parse is
          when Insert =>
            (if Item.Ins_Node = Invalid_Node_Access
             then Image (Item.Ins_ID, Tree.Lexer.Descriptor.all)
-            else Tree.Image (Item.Ins_Node)) &
+            else Tree.Image (Item.Ins_Node, Node_Numbers => True)) &
               "," & Item.Ins_Before'Image,
          when Delete =>
            (if Item.Del_Node = Invalid_Node_Access

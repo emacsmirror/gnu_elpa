@@ -2,7 +2,7 @@
 --  command line: wisitoken-bnf-generate.exe  --generate LALR Ada re2c PROCESS wisitoken_grammar.wy
 --
 
---  Copyright (C) 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2017 - 2023 Free Software Foundation, Inc.
 --
 --  Author: Stephen Leake <stephe-leake@stephe-leake.org>
 --
@@ -19,7 +19,7 @@
 --  GNU General Public License for more details.
 --
 --  You should have received a copy of the GNU General Public License
---  along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+--  along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 with WisiToken.Syntax_Trees;
 package Wisitoken_Grammar_Actions is
@@ -28,8 +28,8 @@ package Wisitoken_Grammar_Actions is
      (First_Terminal    => 3,
       Last_Terminal       => 42,
       First_Nonterminal   => 43,
-      Last_Nonterminal    => 66,
-      SOI_ID              => 67,
+      Last_Nonterminal    => 68,
+      SOI_ID              => 69,
       EOI_ID              => 42,
       Accept_ID           => 43,
       Case_Insensitive    => False,
@@ -77,8 +77,8 @@ package Wisitoken_Grammar_Actions is
          new String'("STAR"),
          new String'("NUMERIC_LITERAL"),
          new String'("IDENTIFIER"),
-         new String'("STRING_LITERAL_1"),
-         new String'("STRING_LITERAL_2"),
+         new String'("STRING_LITERAL_DOUBLE"),
+         new String'("STRING_LITERAL_SINGLE"),
          new String'("Wisi_EOI"),
          new String'("wisitoken_accept"),
          new String'("regexp_string"),
@@ -94,7 +94,8 @@ package Wisitoken_Grammar_Actions is
          new String'("semicolon_opt"),
          new String'("rhs_list"),
          new String'("rhs"),
-         new String'("rhs_attribute"),
+         new String'("attribute"),
+         new String'("attribute_list"),
          new String'("rhs_element"),
          new String'("rhs_item_list"),
          new String'("rhs_item"),
@@ -102,11 +103,12 @@ package Wisitoken_Grammar_Actions is
          new String'("rhs_optional_item"),
          new String'("rhs_multiple_item"),
          new String'("rhs_alternative_list"),
+         new String'("rhs_alternative_list_1"),
          new String'("compilation_unit"),
          new String'("compilation_unit_list"),
          new String'("Wisi_SOI")),
-      Terminal_Image_Width => 19,
-      Image_Width          => 21,
+      Terminal_Image_Width => 21,
+      Image_Width          => 22,
       Last_Lookahead       => 43);
 
    type Token_Enum_ID is
@@ -150,8 +152,8 @@ package Wisitoken_Grammar_Actions is
       STAR_ID,
       NUMERIC_LITERAL_ID,
       IDENTIFIER_ID,
-      STRING_LITERAL_1_ID,
-      STRING_LITERAL_2_ID,
+      STRING_LITERAL_DOUBLE_ID,
+      STRING_LITERAL_SINGLE_ID,
       Wisi_EOI_ID,
       wisitoken_accept_ID,
       regexp_string_ID,
@@ -167,7 +169,8 @@ package Wisitoken_Grammar_Actions is
       semicolon_opt_ID,
       rhs_list_ID,
       rhs_ID,
-      rhs_attribute_ID,
+      attribute_ID,
+      attribute_list_ID,
       rhs_element_ID,
       rhs_item_list_ID,
       rhs_item_ID,
@@ -175,6 +178,7 @@ package Wisitoken_Grammar_Actions is
       rhs_optional_item_ID,
       rhs_multiple_item_ID,
       rhs_alternative_list_ID,
+      rhs_alternative_list_1_ID,
       compilation_unit_ID,
       compilation_unit_list_ID,
       Wisi_SOI_ID);
@@ -251,11 +255,23 @@ package Wisitoken_Grammar_Actions is
      (User_Data : in out WisiToken.Syntax_Trees.User_Data_Type'Class;
       Tree      : in out WisiToken.Syntax_Trees.Tree;
       Nonterm   : in     WisiToken.Syntax_Trees.Valid_Node_Access);
+   procedure declaration_16
+     (User_Data : in out WisiToken.Syntax_Trees.User_Data_Type'Class;
+      Tree      : in out WisiToken.Syntax_Trees.Tree;
+      Nonterm   : in     WisiToken.Syntax_Trees.Valid_Node_Access);
    procedure nonterminal_0
      (User_Data : in out WisiToken.Syntax_Trees.User_Data_Type'Class;
       Tree      : in out WisiToken.Syntax_Trees.Tree;
       Nonterm   : in     WisiToken.Syntax_Trees.Valid_Node_Access);
    procedure nonterminal_1
+     (User_Data : in out WisiToken.Syntax_Trees.User_Data_Type'Class;
+      Tree      : in out WisiToken.Syntax_Trees.Tree;
+      Nonterm   : in     WisiToken.Syntax_Trees.Valid_Node_Access);
+   procedure nonterminal_2
+     (User_Data : in out WisiToken.Syntax_Trees.User_Data_Type'Class;
+      Tree      : in out WisiToken.Syntax_Trees.Tree;
+      Nonterm   : in     WisiToken.Syntax_Trees.Valid_Node_Access);
+   procedure nonterminal_3
      (User_Data : in out WisiToken.Syntax_Trees.User_Data_Type'Class;
       Tree      : in out WisiToken.Syntax_Trees.Tree;
       Nonterm   : in     WisiToken.Syntax_Trees.Valid_Node_Access);
@@ -272,10 +288,6 @@ package Wisitoken_Grammar_Actions is
       Tree      : in out WisiToken.Syntax_Trees.Tree;
       Nonterm   : in     WisiToken.Syntax_Trees.Valid_Node_Access);
    procedure rhs_item_4
-     (User_Data : in out WisiToken.Syntax_Trees.User_Data_Type'Class;
-      Tree      : in out WisiToken.Syntax_Trees.Tree;
-      Nonterm   : in     WisiToken.Syntax_Trees.Valid_Node_Access);
-   procedure rhs_item_5
      (User_Data : in out WisiToken.Syntax_Trees.User_Data_Type'Class;
       Tree      : in out WisiToken.Syntax_Trees.Tree;
       Nonterm   : in     WisiToken.Syntax_Trees.Valid_Node_Access);

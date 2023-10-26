@@ -2,7 +2,7 @@
 --
 --  Common utilities for LR parser table generators.
 --
---  Copyright (C) 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -122,6 +122,7 @@ package WisiToken.Generate.LR is
       Action             : in     Parse_Action_Rec;
       Action_List        : in out Action_Arrays.Vector;
       Grammar            : in     WisiToken.Productions.Prod_Arrays.Vector;
+      Precedence_Lists   : in     WisiToken.Precedence_Lists_Arrays.Vector;
       Descriptor         : in     WisiToken.Descriptor;
       Declared_Conflicts : in out WisiToken.Generate.LR.Conflict_Lists.Tree;
       Unknown_Conflicts  : in out WisiToken.Generate.LR.Conflict_Lists.Tree;
@@ -135,6 +136,7 @@ package WisiToken.Generate.LR is
      (Closure            : in     LR1_Items.Item_Set;
       Table              : in out Parse_Table;
       Grammar            : in     WisiToken.Productions.Prod_Arrays.Vector;
+      Precedence_Lists   : in     WisiToken.Precedence_Lists_Arrays.Vector;
       Descriptor         : in     WisiToken.Descriptor;
       Declared_Conflicts : in out WisiToken.Generate.LR.Conflict_Lists.Tree;
       Unknown_Conflicts  : in out WisiToken.Generate.LR.Conflict_Lists.Tree;
@@ -148,6 +150,7 @@ package WisiToken.Generate.LR is
       Item               : in     LR1_Items.Item;
       Action_List        : in out Action_Arrays.Vector;
       Grammar            : in     WisiToken.Productions.Prod_Arrays.Vector;
+      Precedence_Lists   : in     WisiToken.Precedence_Lists_Arrays.Vector;
       Descriptor         : in     WisiToken.Descriptor;
       Declared_Conflicts : in out WisiToken.Generate.LR.Conflict_Lists.Tree;
       Unknown_Conflicts  : in out WisiToken.Generate.LR.Conflict_Lists.Tree;

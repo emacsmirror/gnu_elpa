@@ -2,7 +2,7 @@
 --
 --  See spec.
 --
---  Copyright (C) 2002 - 2005, 2008 - 2015, 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2002 - 2005, 2008 - 2015, 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This file is part of the WisiToken package.
 --
@@ -224,7 +224,6 @@ package body WisiToken.Parse.LR.Parser_No_Recover is
 
       use all type KMN_Lists.List;
       use all type WisiToken.Syntax_Trees.Terminal_Ref;
-      use all type Syntax_Trees.User_Data_Access;
 
       Trace : WisiToken.Trace'Class renames Shared_Parser.Tree.Lexer.Trace.all;
 
@@ -251,10 +250,6 @@ package body WisiToken.Parse.LR.Parser_No_Recover is
    begin
       if Edits /= KMN_Lists.Empty_List then
          raise SAL.Programmer_Error;
-      end if;
-
-      if Shared_Parser.User_Data /= null then
-         Shared_Parser.User_Data.Reset;
       end if;
 
       Shared_Parser.Tree.Clear;

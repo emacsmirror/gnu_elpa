@@ -2,7 +2,7 @@
 --
 --  see spec.
 --
---  Copyright (C) 2002 - 2005, 2008 - 2015, 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2002 - 2005, 2008 - 2015, 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -32,10 +32,6 @@ is
 begin
    if Trace_Time then
       Trace.Put_Clock ("start");
-   end if;
-
-   if Shared_Parser.User_Data /= null then
-      Shared_Parser.User_Data.Reset;
    end if;
 
    Shared_Parser.Tree.Lexer.Errors.Clear;

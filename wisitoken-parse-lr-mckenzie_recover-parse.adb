@@ -2,7 +2,7 @@
 --
 --  See spec
 --
---  Copyright (C) 2018 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2018 - 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -791,7 +791,7 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Parse is
                   if Trace_McKenzie > Outline then
                      Put_Line (Tree, Super.Stream (Parser_Index),
                                Trace_Prefix & ": too many conflicts; abandoning");
-                     raise Bad_Config;
+                     raise Invalid_Case;
                   end if;
                else
                   if Trace_McKenzie > Detail then

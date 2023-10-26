@@ -2,7 +2,7 @@
 --
 --  see spec
 --
---  Copyright (C) 2013, 2014, 2015, 2017 - 2020, 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2013, 2014, 2015, 2017 - 2020, 2022, 2023 Free Software Foundation, Inc.
 --
 --  This file is part of the WisiToken package.
 --
@@ -47,17 +47,20 @@ package body WisiToken.Wisi_Ada is
 
    function "+" (Tokens : in Token_ID_Arrays.Vector; Action : in Syntax_Trees.Post_Parse_Action) return Right_Hand_Side
    is begin
-      return (Tokens, Recursion => <>, Post_Parse_Action => Action, In_Parse_Action => null);
+      return (Tokens, Post_Parse_Action => Action, In_Parse_Action => null,
+              Recursion => <>, Associativity => <>, Precedence => <>);
    end "+";
 
    function "+" (Tokens : in Token_ID; Action : in Syntax_Trees.Post_Parse_Action) return Right_Hand_Side
    is begin
-      return (Only (Tokens), Recursion => <>, Post_Parse_Action => Action, In_Parse_Action => null);
+      return (Only (Tokens), Post_Parse_Action => Action, In_Parse_Action => null,
+              Recursion => <>, Associativity => <>, Precedence => <>);
    end "+";
 
    function "+" (Action : in Syntax_Trees.Post_Parse_Action) return Right_Hand_Side
    is begin
-      return (Tokens => <>, Recursion => <>, Post_Parse_Action => Action, In_Parse_Action => null);
+      return (Tokens => <>, Post_Parse_Action => Action, In_Parse_Action => null,
+              Recursion => <>, Associativity => <>, Precedence => <>);
    end "+";
 
    function Only (Item : in WisiToken.Productions.Right_Hand_Side) return WisiToken.Productions.RHS_Arrays.Vector
@@ -79,7 +82,7 @@ package body WisiToken.Wisi_Ada is
 
    function "<=" (LHS : in Token_ID; RHSs : in WisiToken.Productions.RHS_Arrays.Vector) return Instance
    is begin
-      return (LHS, Optimized_List => False, RHSs => RHSs);
+      return (LHS, Optimized_List => False, RHSs => RHSs, Precedence => <>);
    end "<=";
 
    function Only (Subject : in Instance) return Prod_Arrays.Vector

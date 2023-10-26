@@ -6,7 +6,7 @@
 --
 --  See wisitoken-parse-packrat.ads.
 --
---  Copyright (C) 2018, 2020 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2018, 2020 - 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -213,7 +213,7 @@ is
             end Finish;
 
          begin
-            Indent_Wrap_Comment (Productions.Image (Prod.LHS, RHS_Index, RHS.Tokens, Descriptor), Ada_Comment);
+            Indent_Wrap_Comment (Productions.Image (Prod.LHS, RHS_Index, RHS, Descriptor), Ada_Comment);
             Indent_Line ("Pos := Last_Pos;");
             Indent_Line ("Next_Pos := Tree.Stream_Next (Tree.Shared_Stream, Pos);");
 

@@ -12,7 +12,7 @@
 --  If run in an Emacs dynamically loaded module, the parser actions
 --  call the elisp actions directly.
 --
---  Copyright (C) 2012 - 2015, 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2012 - 2015, 2017 - 2023 Free Software Foundation, Inc.
 --
 --  The WisiToken package is free software; you can redistribute it
 --  and/or modify it under terms of the GNU General Public License as
@@ -28,6 +28,7 @@
 
 pragma License (Modified_GPL);
 
+with Ada.Assertions;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Maps;
@@ -39,15 +40,16 @@ with WisiToken.BNF.Output_Elisp_Common; use WisiToken.BNF.Output_Elisp_Common;
 with WisiToken.Generate.Packrat;
 with WisiToken_Grammar_Runtime;
 procedure WisiToken.BNF.Output_Ada_Emacs
-  (Input_Data            :         in WisiToken_Grammar_Runtime.User_Data_Type;
-   Grammar_File_Name     :         in String;
-   Output_File_Name_Root :         in String;
-   Generate_Data         : aliased in WisiToken.BNF.Generate_Utils.Generate_Data;
-   Packrat_Data          :         in WisiToken.Generate.Packrat.Data;
-   Tuple                 :         in Generate_Tuple;
-   Test_Main             :         in Boolean;
-   Multiple_Tuples       :         in Boolean;
-   Language_Name         :         in String)
+  (Input_Data                   :         in WisiToken_Grammar_Runtime.User_Data_Type;
+   Grammar_File_Name            :         in String;
+   Output_File_Name_Root        :         in String;
+   Generate_Data                : aliased in WisiToken.BNF.Generate_Utils.Generate_Data;
+   Packrat_Data                 :         in WisiToken.Generate.Packrat.Data_Access;
+   Tuple                        :         in Generate_Tuple;
+   Test_Main                    :         in Boolean;
+   Multiple_Tuples              :         in Boolean;
+   Need_Gen_Alg_In_Actions_Name :         in Boolean;
+   Language_Name                :         in String)
 is
    use all type Ada.Containers.Count_Type;
 
@@ -56,8 +58,8 @@ is
    Blank_Set : constant Ada.Strings.Maps.Character_Set := Ada.Strings.Maps.To_Set (" ");
    Numeric   : constant Ada.Strings.Maps.Character_Set := Ada.Strings.Maps.To_Set ("0123456789");
 
-   Common_Data : Output_Ada_Common.Common_Data := WisiToken.BNF.Output_Ada_Common.Initialize
-     (Input_Data, Tuple, Grammar_File_Name, Output_File_Name_Root, Check_Interface => True);
+   Common_Data : constant Output_Ada_Common.Common_Data := WisiToken.BNF.Output_Ada_Common.Initialize
+     (Input_Data, Tuple, Grammar_File_Name, Check_Interface => True);
 
    Gen_Alg_Name : constant String :=
      (if Test_Main or Multiple_Tuples
@@ -159,17 +161,23 @@ is
    end Split_Sexp;
 
    procedure Create_Ada_Action
-     (Name          : in     String;
-      RHS           : in     RHS_Type;
-      Prod_ID       : in     WisiToken.Production_ID;
-      Unsplit_Lines : in     Ada.Strings.Unbounded.Unbounded_String;
-      Labels        : in     String_Arrays.Vector;
-      Empty         :    out Boolean;
-      Check         : in     Boolean)
+     (Name            : in     String;
+      RHS             : in     RHS_Type;
+      Prod_ID         : in     WisiToken.Production_ID;
+      Unsplit_Lines   : in     Ada.Strings.Unbounded.Unbounded_String;
+      Rule            : in     BNF.Rule_Type;
+      Empty           :    out Boolean;
+      In_Parse_Action : in     Boolean)
    is
-      --  Create Action (if Check = False; Lines must be RHS.Action) or
-      --  Check (if Check = True; Lines must be RHS.Check) subprogram named
-      --  Name for RHS.
+      use all type SAL.Base_Peek_Type;
+
+      --  Create Post_Parse_Action (if In_Parse_Action = False; Lines must
+      --  be RHS.Action) or In_Parse_Action (if In_Parse_Action = True;
+      --  Lines must be RHS.In_Parse_Action) subprogram named Name for RHS.
+      --
+      --  Labels is collection of all labels used in any RHS in the nonterm;
+      --  _not_ in RHS token order. RHS.Tokens(I).Label contains explicit
+      --  and automatic token labels.
 
       use Ada.Strings;
       use Ada.Strings.Fixed;
@@ -184,38 +192,72 @@ is
       Space_Paren_Set : constant Ada.Strings.Maps.Character_Set :=
         Ada.Strings.Maps.To_Set ("])") or Blank_Set;
 
-      Navigate_Lines     : String_Lists.List;
-      Face_Line          : Unbounded_String;
-      Indent_Action_Line : Unbounded_String;
-      Check_Line         : Unbounded_String;
+      Navigate_Lines       : String_Lists.List;
+      Face_Line            : Unbounded_String;
+      Indent_Action_Line   : Unbounded_String;
+      In_Parse_Action_Line : Unbounded_String;
 
-      Label_Needed   : array (Labels.First_Index .. Labels.Last_Index) of Boolean := (others => False);
+      Label_Needed   : array (Rule.Labels.First_Index .. Rule.Labels.Last_Index) of Boolean := (others => False);
       Nonterm_Needed : Boolean := False;
 
-      Last_Token_Index : Base_Identifier_Index := 0;
-      function Next_Token_Label return String
-      is begin
-         --  Only called from Indent_Params when RHS.Auto_Token_Labels is True.
-         Last_Token_Index := @ + 1;
-         return "T" & Trimmed_Image (Last_Token_Index);
-      end Next_Token_Label;
+      function Find_RHS (RHS_Index : in Natural) return RHS_Lists.Cursor
+      is
+         use RHS_Lists;
+         Result : Cursor := Rule.Right_Hand_Sides.First;
+      begin
+         for I in 1 .. RHS_Index loop
+            Next (Result);
+         end loop;
+         return Result;
+      end Find_RHS;
+
+      EBNF_RHS : RHS_Type renames RHS_Lists.Element (Find_RHS (RHS.EBNF_RHS_Index));
 
       function Get_Label (Token_Param : in String; Integer : in Boolean := False) return String
-      is begin
+      is
+         function Finish (Label : in String; Force_Integer : in Boolean) return String
+         is (if Force_Integer
+             then "Integer (" & Label & ")"
+             else Label);
+
+      begin
          if RHS.Auto_Token_Labels then
-            return
-              (if Integer
-               then "Integer (T" & Token_Param & ")"
-               else "T" & Token_Param);
+            if 0 = Index (Token_Param, Numeric, Outside) then
+               --  Token_param is an integer token index, not a label
+               begin
+                  declare
+                     Index : constant Positive_Index_Type := Positive_Index_Type'Value (Token_Param);
+                     Label : constant String := -EBNF_RHS.Tokens (Index).Label;
+                  begin
+                     if Label'Length = 0 then
+                        return Finish (Token_Param, Force_Integer => False);
+                     else
+                        return Finish (Label, Force_Integer => Integer);
+                     end if;
+                  end;
+               exception
+               when Ada.Assertions.Assertion_Error | Constraint_Error =>
+                  Put_Error
+                    (Error_Message
+                       (Grammar_File_Name, RHS.Source_Line,
+                        "token index '" & Token_Param & "' not in range" & EBNF_RHS.Tokens.First_Index'Image &
+                          " .." & EBNF_RHS.Tokens.Last_Index'Image));
+                  return "";
+               end;
+            else
+               --  Token_Param is a label
+               return Finish (Token_Param, Force_Integer => Integer);
+            end if;
          else
-            return Token_Param;
+            return Finish
+              (Token_Param, Force_Integer => Integer and then (0 /= Index (Token_Param, Numeric, Outside)));
          end if;
       end Get_Label;
 
       procedure Mark_Label_Used (Label : in String)
       is begin
-         for I in Labels.First_Index .. Labels.Last_Index loop
-            if Label = Labels (I) then
+         for I in Rule.Labels.First_Index .. Rule.Labels.Last_Index loop
+            if Label = Rule.Labels (I) then
                Label_Needed (I) := True;
             end if;
          end loop;
@@ -241,8 +283,8 @@ is
             return False;
          end if;
 
-         for I in Labels.First_Index .. Labels.Last_Index loop
-            if Label = Labels (I) then
+         for I in Rule.Labels.First_Index .. Rule.Labels.Last_Index loop
+            if Label = Rule.Labels (I) then
                Label_Needed (I) := True;
                return True;
             end if;
@@ -252,7 +294,7 @@ is
 
       function Find_Token_Index (I : in Base_Identifier_Index) return SAL.Base_Peek_Type
       is
-         Rule_Label : constant String := -Labels (I);
+         Rule_Label : constant String := -Rule.Labels (I);
       begin
          for I in RHS.Tokens.First_Index .. RHS.Tokens.Last_Index loop
             if Length (RHS.Tokens (I).Label) > 0 and then
@@ -585,7 +627,7 @@ is
       is
          --  If N is non-empty, it is the first arg in wisi-indent-action*, followed by ','.
          --
-         --  Params is a vector, one item for each token in Tokens. Each item is one of:
+         --  Params is a vector, one item for each token in EBNF tokens. Each item is one of:
          --
          --  - an integer; copy to output
          --
@@ -596,6 +638,11 @@ is
          --  - a vector with two elements [code_indent comment_indent]; convert to Indent_Pair.
          --
          --  - a cons of a token label with any of the above.
+         --
+         --  When EBNF is converted to BNF, one ENBF RHS is typically expanded
+         --  to several RHS, each missing some tokens. However, the action
+         --  still has indent parameters for all of the original tokens. They
+         --  are matched by the token labels.
 
          use Ada.Strings.Maps;
          use Ada.Containers;
@@ -777,7 +824,7 @@ is
                            Declared_Args_Last := Declared_Args'Last;
                         end if;
 
-                        Declared_Arg_Count  := Count_Type'Value
+                        Declared_Arg_Count := Count_Type'Value
                           (Declared_Args (Declared_Args_First .. Declared_Args_Last));
 
                         Get_Next_Token_Arg;
@@ -900,16 +947,25 @@ is
             end if;
          end Ensure_Indent_Param;
 
-         Param_Label_Count : Ada.Containers.Count_Type := 0;
+         RHS_Token_Index : SAL.Base_Peek_Type := RHS.Tokens.First_Index; -- Index of current token in current RHS.
 
-         procedure One_Param (Label : in String := "")
+         Param_Index : SAL.Base_Peek_Type := 1; -- Index of current indent parameter.
+
+         procedure One_Param (Skip : in Boolean; Label : in String := "")
+         --  If not Skip, current indent param is for a token actually in RHS; add it to
+         --  Param_List.
+         --
+         --  If Skip, current indent param is not in RHS; parse the param but
+         --  don't add it.
+         --
+         --  Label is non-"" only for recursive calls.
          is
             Pair : String_Pair_Type;
          begin
-            if Label = "" then
-               if RHS.Auto_Token_Labels then
-                  Pair.Name := +Next_Token_Label;
-               end if;
+            if Skip then
+               Pair.Name := +"";
+            elsif Label = "" then
+               Pair.Name := RHS.Tokens (RHS_Token_Index).Label;
             else
                Pair.Name := +Label;
             end if;
@@ -922,14 +978,12 @@ is
                begin
                   if Label_Last > 0 then
                      --  cons; manual label
-                     pragma Assert (not RHS.Auto_Token_Labels);
                      declare
                         Label : constant String := Params (Last + 1 .. Label_Last);
                      begin
                         Last := Index_Non_Blank (Params, Label_Last + 3);
-                        One_Param (Label);
+                        One_Param (Skip, Label);
                      end;
-                     Param_Label_Count := @ + 1;
 
                      if Params (Last) /= ')' then
                         Put_Error
@@ -941,7 +995,9 @@ is
                   else
                      --  function
                      Pair.Value := +"(False, " & Ensure_Indent_Param (Expression (Last)) & ')';
-                     Param_List.Append (Pair);
+                     if not Skip then
+                        Param_List.Append (Pair);
+                     end if;
                   end if;
                end;
 
@@ -950,8 +1006,9 @@ is
                Pair.Value := +"(True, " & Ensure_Indent_Param (Expression (Last + 1));
                Pair.Value := @ & ", " & Ensure_Indent_Param (Expression (Last + 1)) & ')';
 
-               Param_List.Append (Pair);
-
+               if not Skip then
+                  Param_List.Append (Pair);
+               end if;
                if Params (Last) /= ']' then
                   Put_Error
                     (Error_Message
@@ -962,7 +1019,9 @@ is
             when others =>
                --  integer or symbol
                Pair.Value := +"(False, " & Ensure_Indent_Param (Expression (Last)) & ')';
-               Param_List.Append (Pair);
+               if not Skip then
+                  Param_List.Append (Pair);
+               end if;
             end case;
          end One_Param;
 
@@ -978,25 +1037,51 @@ is
 
             exit when Params (Last) = ']';
 
-            One_Param;
+            if RHS_Token_Index > EBNF_RHS.Tokens.Last_Index then
+               Put_Error
+                 (Error_Message
+                    (Grammar_File_Name, RHS.Source_Line, Image (Prod_ID, Generate_Data.Descriptor.all)) &
+                    " extra indent parameters");
+               exit;
+            end if;
+            if RHS.Orig_EBNF_RHS or else
+              (RHS_Token_Index <= RHS.Tokens.Last_Index and then
+                 RHS.Tokens (RHS_Token_Index).Orig_Token_Index = Param_Index)
+            then
+               One_Param (Skip => False);
+               RHS_Token_Index := @ + 1;
+            else
+               One_Param (Skip => True);
+            end if;
+            Param_Index := @ + 1;
+
          end loop;
 
-         --  Now we have Param_List; match it against RHS.Tokens and create Result.
+         if RHS.Orig_EBNF_RHS and Param_Index < EBNF_RHS.Tokens.Last_Index then
+            Put_Error
+              (Error_Message
+                 (Grammar_File_Name, RHS.Source_Line, Image (Prod_ID, Generate_Data.Descriptor.all)) &
+                 " missing indent parameters");
+         end if;
 
-         if RHS.Auto_Token_Labels or Param_Label_Count = Param_List.Length then
-            --  All tokens are either manually or automatically labeled, and if
-            --  manual then all parameters are manually labeled, and we can detect
-            --  extra params in edited RHS.
+         if RHS.Auto_Token_Labels then
+            --  If the original RHS had any EBNF, all tokens are either manually
+            --  or automatically labeled and RHS.Auto_Token_Labels is true.
+            --  Otherwise RHS.Auto_Token_Labels is False.
             declare
                use String_Pair_Lists;
-               use all type SAL.Base_Peek_Type;
 
                Token_I   : Positive_Index_Type      := RHS.Tokens.First_Index;
                Param_Cur : String_Pair_Lists.Cursor := Param_List.First;
-               Param_I   : Positive_Index_Type      := RHS.Tokens.First_Index;
-
-               Nil_Indent : constant String := "(False, (Simple, (Label => None)))";
             begin
+               if not Has_Element (Param_Cur) then
+                  Put_Error
+                    (Error_Message
+                       (Grammar_File_Name,
+                        RHS.Source_Line, "empty param_list"));
+                  raise SAL.Programmer_Error;
+               end if;
+
                loop
                   exit when Token_I > RHS.Tokens.Last_Index or not Has_Element (Param_Cur);
 
@@ -1004,59 +1089,36 @@ is
                      Token_Label : constant String := -RHS.Tokens (Token_I).Label;
                      Param_Label : constant String := -Element (Param_Cur).Name;
                   begin
-                     if Token_Label = Param_Label then
-                        Result := Result & (if Need_Comma then ", " else "") & Param_Label & " => " &
-                          Element (Param_Cur).Value;
-
-                        Mark_Label_Used (Token_Label);
-
-                        Need_Comma := True;
-
-                        Token_I := @ + 1;
-                        Next (Param_Cur);
-                        Param_I := @ + 1;
-
-                     elsif RHS.Auto_Token_Labels and
-                       (Token_Label'Length > 0 and then Token_Label (1) /= 'T') and
-                       Token_I = Param_I
-                     then
-                        Result := Result & (if Need_Comma then ", " else "") & Token_Label & " => " & Nil_Indent;
-                        Mark_Label_Used (Token_Label);
-                        Need_Comma := True;
-
-                        Token_I := @ + 1;
-                        Next (Param_Cur);
-                        Param_I := @ + 1;
-
-                     else
-                        Next (Param_Cur);
-                        Param_I := @ + 1;
+                     if Token_Label'Length = 0 and then Param_Label'Length = 0 then
+                        Put_Error
+                          (Error_Message
+                             (Grammar_File_Name, RHS.Source_Line, Image (Prod_ID, Generate_Data.Descriptor.all)) &
+                             " missing or misplaced indent label");
                      end if;
+
+                     --  IMPROVEME: if there is a manual param label, verify that there is
+                     --  a matching token label.
+                     Result := Result &
+                       (if Need_Comma then ", " else "") &
+                       (if Token_Label'Length > 0 then Token_Label else Param_Label) & " => " &
+                       Element (Param_Cur).Value;
+
+                     Mark_Label_Used (Token_Label);
+
+                     Need_Comma := True;
+
+                     Token_I := @ + 1;
+                     Next (Param_Cur);
                   end;
                end loop;
-
-               if (not RHS.Edited_Token_List or Prod_ID.RHS = 0) and then
-                 (Token_I /= RHS.Tokens.Last_Index + 1 or Has_Element (Param_Cur))
-               then
-                  --  We don't check 'Has_Element (Param_Cur)' when edited_token_list
-                  --  and RHS_Index /= 0, because we expect to have more params than
-                  --  tokens. RHS_Index = 0 always has all optional tokens.
-                  if RHS.Auto_Token_Labels then
-                     Put_Error
-                       (Error_Message
-                          (Grammar_File_Name, RHS.Source_Line, Image (Prod_ID, Generate_Data.Descriptor.all)) &
-                          (if Token_I <= RHS.Tokens.Last_Index then " missing" else " extra") & " indent parameters");
-                  else
-                     Put_Error
-                       (Error_Message
-                          (Grammar_File_Name, RHS.Source_Line, Image (Prod_ID, Generate_Data.Descriptor.all) &
-                             ": missing or extra indent parameter, or missing token label"));
-                  end if;
-               end if;
             end;
 
          else
-            --  No labels; assume Param_List is correct.
+            --  No auto labels; ignore manual labels and assume Param_List is
+            --  correct. IMPROVEME: We could check that manual labels match
+            --  between the RHS and the action. IMPROVEME: if all specified params
+            --  have manual labels, allow indent for remaining tokens to default
+            --  to nil.
             for Pair of Param_List loop
                Result := Result & (if Need_Comma then ", " else "") & Pair.Value;
                Need_Comma := True;
@@ -1065,7 +1127,7 @@ is
 
          Nonterm_Needed := True;
          if Param_List.Length = 1 then
-            Result := Prefix & "1 => " & Result;
+            Result := Prefix & (if RHS.Auto_Token_Labels then "" else "1 => ") & Result;
          else
             Result := Prefix & Result;
          end if;
@@ -1108,16 +1170,33 @@ is
          Label_Second      : constant String  := Get_Label (Params (Second + 1 .. Params'Last - 1));
          Label_Used_First  : constant Boolean := Label_Used (Label_First);
          Label_Used_Second : constant Boolean := Label_Used (Label_Second);
+
+         Result : Unbounded_String := +" (Tree, Tokens, ";
       begin
-         if Label_Used_First and Label_Used_Second then
-            return " (Tree, Tokens, " &
-              Label_First & ", " & Label_Second & ", " &
-              (if Length (Input_Data.Language_Params.End_Names_Optional_Option) > 0
-               then -Input_Data.Language_Params.End_Names_Optional_Option
-               else "False") & ")";
+         --  Match_Names accepts 0 for absent token
+
+         if Label_Used_First then
+            Append (Result, Label_First);
          else
-            return "";
+            Append (Result, "0");
          end if;
+         Append (Result, ", ");
+
+         if Label_Used_Second then
+            Append (Result, Label_Second);
+         else
+            Append (Result, "0");
+         end if;
+         Append (Result, ", ");
+
+         if Length (Input_Data.Language_Params.End_Names_Optional_Option) > 0 then
+            Append (Result, -Input_Data.Language_Params.End_Names_Optional_Option);
+         else
+            Append (Result, "False");
+         end if;
+         Append (Result, ")");
+
+         return -Result;
       end Match_Names_Params;
 
       function Language_Action_Params (Params : in String; Action_Name : in String) return String
@@ -1185,18 +1264,18 @@ is
             end if;
          end Assert_Indent_Empty;
 
-         procedure Assert_Check_Empty
+         procedure Assert_In_Parse_Action_Empty
          is begin
-            if Length (Check_Line) > 0 then
+            if Length (In_Parse_Action_Line) > 0 then
                Put_Error
                  (Error_Message
-                    (Grammar_File_Name, RHS.Source_Line, "multiple check actions"));
+                    (Grammar_File_Name, RHS.Source_Line, "multiple in_parse actions"));
             end if;
-         end Assert_Check_Empty;
+         end Assert_In_Parse_Action_Empty;
 
       begin
          --  wisi action/check functions, in same order as typically used in
-         --  .wy files; Navigate, Face, Indent, Check.
+         --  .wy files; Navigate, Face, Indent, actions.
          if Elisp_Name = "wisi-statement-action" then
             declare
                Params : constant String := Statement_Params (Line (Last + 1 .. Line'Last));
@@ -1286,16 +1365,16 @@ is
                Label : constant String := Get_Label (Line (Last + 1 .. Line'Last - 1));
             begin
                if Label_Used (Label) then
-                  Assert_Check_Empty;
+                  Assert_In_Parse_Action_Empty;
                   Nonterm_Needed := True;
-                  Check_Line := +"return " & Elisp_Name_To_Ada (Elisp_Name, False, Trim => 5) &
+                  In_Parse_Action_Line := +"return " & Elisp_Name_To_Ada (Elisp_Name, False, Trim => 5) &
                     " (Tree, Nonterm, Tokens, " & Label & ");";
                end if;
             end;
 
          elsif Elisp_Name = "wisi-merge-names" then
-            Assert_Check_Empty;
-            Check_Line := +"return " & Elisp_Name_To_Ada (Elisp_Name, False, Trim => 5) &
+            Assert_In_Parse_Action_Empty;
+            In_Parse_Action_Line := +"return " & Elisp_Name_To_Ada (Elisp_Name, False, Trim => 5) &
               Merge_Names_Params (Line (Last + 1 .. Line'Last)) & ";";
 
          elsif Elisp_Name = "wisi-match-names" then
@@ -1303,16 +1382,17 @@ is
                Params : constant String := Match_Names_Params (Line (Last + 1 .. Line'Last));
             begin
                if Params'Length > 0 then
-                  Assert_Check_Empty;
-                  Check_Line := +"return " & Elisp_Name_To_Ada (Elisp_Name, False, Trim => 5) &
+                  Assert_In_Parse_Action_Empty;
+                  In_Parse_Action_Line := +"return " & Elisp_Name_To_Ada (Elisp_Name, False, Trim => 5) &
                     Params & ";";
                end if;
             end;
 
          elsif Elisp_Name = "wisi-terminate-partial-parse" then
-            Assert_Check_Empty;
+            Assert_In_Parse_Action_Empty;
             Nonterm_Needed := True;
-            Check_Line := +"return Terminate_Partial_Parse (Tree, Partial_Parse_Active, Partial_Parse_Byte_Goal, " &
+            In_Parse_Action_Line :=
+              +"return Terminate_Partial_Parse (Tree, Partial_Parse_Active, Partial_Parse_Byte_Goal, " &
               "Recover_Active, Nonterm);";
 
          elsif Input_Data.Tokens.Actions.Contains (+Elisp_Name) then
@@ -1370,12 +1450,23 @@ is
             Put_Error
               (Error_Message
                  (Grammar_File_Name, RHS.Source_Line, Ada.Exceptions.Exception_Message (E)));
+
+         when E : others =>
+            Put_Error
+              (Error_Message
+                 (Grammar_File_Name, RHS.Source_Line, "RHS: '" & Image (RHS.Tokens)));
+            Put_Error
+              (Error_Message
+                 (Grammar_File_Name, RHS.Source_Line, "... Sexp: '" & Sexp));
+            Put_Error
+              (Error_Message
+                 (Grammar_File_Name, RHS.Source_Line, "... " & Ada.Exceptions.Exception_Message (E)));
+            raise;
          end;
       end loop;
 
-      if Check then
-         --  In an in-parse check action
-         if Length (Check_Line) = 0 then
+      if In_Parse_Action then
+         if Length (In_Parse_Action_Line) = 0 then
             Empty := True; -- don't output a spec for this.
 
          else
@@ -1388,10 +1479,10 @@ is
             Indent_Line ("  Recover_Active : in     Boolean)");
             Indent_Line (" return WisiToken.Syntax_Trees.In_Parse_Actions.Status");
             declare
-               Unref_Tree    : constant Boolean := 0 = Index (Check_Line, "Tree");
-               Unref_Nonterm : constant Boolean := 0 = Index (Check_Line, "Nonterm");
-               Unref_Tokens  : constant Boolean := 0 = Index (Check_Line, "Tokens");
-               Unref_Recover : constant Boolean := 0 = Index (Check_Line, "Recover_Active");
+               Unref_Tree    : constant Boolean := 0 = Index (In_Parse_Action_Line, "Tree");
+               Unref_Nonterm : constant Boolean := 0 = Index (In_Parse_Action_Line, "Nonterm");
+               Unref_Tokens  : constant Boolean := 0 = Index (In_Parse_Action_Line, "Tokens");
+               Unref_Recover : constant Boolean := 0 = Index (In_Parse_Action_Line, "Recover_Active");
                Need_Comma    : Boolean          := False;
             begin
                if Unref_Tree or Unref_Nonterm or Unref_Tokens or Unref_Recover or
@@ -1425,7 +1516,7 @@ is
                   for I in Label_Needed'Range loop
                      if Label_Needed (I) then
                         Indent_Line
-                          (-Labels (I) & " : constant SAL.Peek_Type :=" &
+                          (-Rule.Labels (I) & " : constant SAL.Peek_Type :=" &
                              SAL.Peek_Type'Image (Find_Token_Index (I)) & ";");
                      end if;
                   end loop;
@@ -1437,7 +1528,7 @@ is
                end if;
             end;
             Indent := Indent + 3;
-            Indent_Line (-Check_Line);
+            Indent_Line (-In_Parse_Action_Line);
          end if;
       else
          --  In an action
@@ -1460,7 +1551,7 @@ is
          for I in Label_Needed'Range loop
             if Label_Needed (I) then
                Indent_Line
-                 (-Labels (I) & " : constant SAL.Peek_Type :=" &
+                 (-Rule.Labels (I) & " : constant SAL.Peek_Type :=" &
                     SAL.Peek_Type'Image (Find_Token_Index (I)) & ";");
             end if;
          end loop;
@@ -1513,7 +1604,7 @@ is
    is begin
       for Rule of Input_Data.Tokens.Rules loop
          for RHS of Rule.Right_Hand_Sides loop
-            for Sexp of Split_Sexp (-RHS.Action, Grammar_File_Name, RHS.Source_Line) loop
+            for Sexp of Split_Sexp (-RHS.Post_Parse_Action, Grammar_File_Name, RHS.Source_Line) loop
                declare
                   Last       : constant Integer := Ada.Strings.Fixed.Index (Sexp, Blank_Set);
                   Elisp_Name : constant String  := Sexp (Sexp'First + 1 .. Last - 1);
@@ -1529,20 +1620,16 @@ is
    end Any_Motion_Actions;
 
    procedure Create_Ada_Actions_Body
-     (Action_Names : not null access WisiToken.Names_Array_Array;
-      Check_Names  : not null access WisiToken.Names_Array_Array;
-      Label_Count  : in              Ada.Containers.Count_Type;
-      Package_Name : in              String)
+     (Post_Parse_Action_Names : not null access WisiToken.Names_Array_Array;
+      In_Parse_Action_Names   : not null access WisiToken.Names_Array_Array;
+      Label_Count             : in              Ada.Containers.Count_Type;
+      Package_Name            : in              String)
    is
       use Ada.Strings.Unbounded;
       use Generate_Utils;
       use WisiToken.Generate;
 
-      File_Name : constant String := Output_File_Name_Root &
-        (case Common_Data.Interface_Kind is
-         when Process => "_process_actions",
-         when Module  => "_module_actions") &
-        ".adb";
+      File_Name : constant String := To_Lower (Package_Name) & ".adb";
 
       Motion_Actions : constant Boolean := Any_Motion_Actions;
 
@@ -1573,7 +1660,7 @@ is
          end;
       end if;
 
-      if Input_Data.Check_Count > 0 then
+      if Input_Data.In_Parse_Action_Count > 0 then
          Indent_Line ("with WisiToken.In_Parse_Actions; use WisiToken.In_Parse_Actions;"); -- Match_Names etc.
       end if;
       case Common_Data.Interface_Kind is
@@ -1590,7 +1677,7 @@ is
       Indent := Indent + 3;
       New_Line;
 
-      if Input_Data.Check_Count > 0 then
+      if Input_Data.In_Parse_Action_Count > 0 then
          Indent_Line ("use WisiToken.Syntax_Trees.In_Parse_Actions;");
       end if;
       if Motion_Actions then
@@ -1598,35 +1685,43 @@ is
       end if;
       New_Line;
 
-      --  generate Action and Check subprograms.
+      --  generate Post_Parse_Action and In_Parse_Action subprograms.
 
       for Rule of Input_Data.Tokens.Rules loop
          --  No need for a Token_Cursor here, since we only need the
          --  nonterminals.
          declare
             LHS_ID    : constant WisiToken.Token_ID := Find_Token_ID (Generate_Data, -Rule.Left_Hand_Side);
-            RHS_Index : Integer                     := 0; -- Semantic_Action defines RHS_Index as zero-origin
+            RHS_Index : Integer                     := 0;
             Empty     : Boolean;
          begin
             for RHS of Rule.Right_Hand_Sides loop
-               if Length (RHS.Action) > 0 then
+               if Length (RHS.Post_Parse_Action) > 0 then
                   declare
-                     Name : constant String := Action_Names (LHS_ID)(RHS_Index).all;
+                     Name : constant String := Post_Parse_Action_Names (LHS_ID)(RHS_Index).all;
                   begin
-                     Create_Ada_Action (Name, RHS, (LHS_ID, RHS_Index), RHS.Action, Rule.Labels, Empty, Check => False);
+                     Create_Ada_Action
+                       (Name, RHS, (LHS_ID, RHS_Index), RHS.Post_Parse_Action, Rule, Empty,
+                        In_Parse_Action => False);
                      if Empty then
-                        Action_Names (LHS_ID)(RHS_Index) := null;
+                        Post_Parse_Action_Names (LHS_ID)(RHS_Index) := null;
                      end if;
+                  exception
+                  when others =>
+                     Put_Error (Error_Message (Grammar_File_Name, RHS.Source_Line, "fatal internal error"));
+                     raise;
                   end;
                end if;
 
-               if Length (RHS.Check) > 0 then
+               if Length (RHS.In_Parse_Action) > 0 then
                   declare
-                     Name  : constant String := Check_Names (LHS_ID)(RHS_Index).all;
+                     Name  : constant String := In_Parse_Action_Names (LHS_ID)(RHS_Index).all;
                   begin
-                     Create_Ada_Action (Name, RHS, (LHS_ID, RHS_Index), RHS.Check, Rule.Labels, Empty, Check => True);
+                     Create_Ada_Action
+                       (Name, RHS, (LHS_ID, RHS_Index), RHS.In_Parse_Action, Rule, Empty,
+                        In_Parse_Action => True);
                      if Empty then
-                        Check_Names (LHS_ID)(RHS_Index) := null;
+                        In_Parse_Action_Names (LHS_ID)(RHS_Index) := null;
                      end if;
                   end;
                end if;
@@ -1649,10 +1744,9 @@ is
       use WisiToken.Generate;
       use Generate_Utils;
 
-      File_Name : constant String := To_Lower (Main_Package_Name) & ".adb";
       Body_File : File_Type;
    begin
-      Create (Body_File, Out_File, File_Name);
+      Create (Body_File, Out_File, To_Lower (Main_Package_Name) & ".adb");
       Set_Output (Body_File);
       Indent := 1;
 
@@ -1708,13 +1802,13 @@ is
          LR_Create_Create_Parser (Actions_Package_Name, Common_Data, Generate_Data);
 
       when Packrat_Gen =>
-         WisiToken.BNF.Generate_Packrat (Packrat_Data, Generate_Data);
+         WisiToken.BNF.Generate_Packrat (Packrat_Data.all, Generate_Data);
          Create_Create_Productions (Generate_Data);
-         Packrat_Create_Create_Parser (Actions_Package_Name, Common_Data, Generate_Data, Packrat_Data);
+         Packrat_Create_Create_Parser (Actions_Package_Name, Common_Data, Generate_Data, Packrat_Data.all);
 
       when Packrat_Proc =>
          Create_Create_Productions (Generate_Data);
-         Packrat_Create_Create_Parser (Actions_Package_Name, Common_Data, Generate_Data, Packrat_Data);
+         Packrat_Create_Create_Parser (Actions_Package_Name, Common_Data, Generate_Data, Packrat_Data.all);
 
       when External =>
          External_Create_Create_Grammar (Generate_Data);
@@ -1796,24 +1890,32 @@ is
 
       File : File_Type;
 
+      File_Name_Root : constant String := Output_File_Name_Root &
+        "-process" &
+        (if Need_Gen_Alg_In_Actions_Name
+         then "-" & To_Lower (Tuple.Gen_Alg'Image)
+         else "");
+
+      File_Name : constant String := File_Name_Root & ".el";
+
       Paren_1_Done : Boolean := False;
    begin
-      Create (File, Out_File, Output_File_Name_Root & "-process.el");
+      Create (File, Out_File, File_Name);
+
       Set_Output (File);
       Indent := 1;
 
       --  We can't use Put_File_Header here because it does not output the
       --  file name.
       Put_Line
-        (";;; " & Output_File_Name_Root &
-           "-process.el --- Generated parser support file  -*- buffer-read-only:t lexical-binding:t -*-");
+        (";;; " & File_Name & " --- Generated parser support file  -*- buffer-read-only:t lexical-binding:t -*-");
       Put_Command_Line (Elisp_Comment & "  ", Use_Tuple => True, Tuple => Tuple);
       Put_Raw_Code (Elisp_Comment, Input_Data.Raw_Code (Copyright_License));
       New_Line;
       Put_Line ("(require 'wisi-process-parse)");
       New_Line;
 
-      Indent_Line  ("(defconst " & Output_File_Name_Root & "-process-token-table");
+      Indent_Line  ("(defconst " & File_Name_Root & "-token-table");
       Indent_Start ("  [");
       Indent := Indent + 3;
       for Cursor in All_Tokens (Generate_Data).Iterate loop
@@ -1829,15 +1931,14 @@ is
       Indent := Indent - 3;
       New_Line;
 
-      Output_Elisp_Common.Indent_Name_Table
-        (Output_File_Name_Root, "process-face-table", Input_Data.Tokens.Faces);
+      Output_Elisp_Common.Indent_Name_Table (File_Name_Root, "face-table", Input_Data.Tokens.Faces);
 
       --  We need -repair-image for wisi-repair-error
       New_Line;
-      Output_Elisp_Common.Indent_Repair_Image (Output_File_Name_Root, "process", Input_Data.Tokens);
+      Output_Elisp_Common.Indent_Repair_Image (File_Name_Root, "", Input_Data.Tokens);
 
       New_Line;
-      Put_Line ("(provide '" & Output_File_Name_Root & "-process)");
+      Put_Line ("(provide '" & File_Name_Root & ")");
       Set_Output (Standard_Output);
       Close (File);
 
@@ -1848,8 +1949,6 @@ is
       use Ada.Strings.Unbounded;
       use Generate_Utils;
       use WisiToken.Generate;
-
-      Lower_Package_Name_Root : constant String := To_Lower (File_Name_To_Ada (Output_File_Name_Root));
 
       function To_ID_Image (Name : in Ada.Strings.Unbounded.Unbounded_String) return String
       is begin
@@ -1894,30 +1993,30 @@ is
       New_Line;
 
       Indent_Line
-        ("(cl-defstruct (" & Lower_Package_Name_Root &
+        ("(cl-defstruct (" & Output_File_Name_Root &
            "-wisi-module-parser (:include wisi-parser)))");
       New_Line;
-      Indent_Line ("(defun " & Lower_Package_Name_Root & "-wisi-module-parser-make (dll-name)");
+      Indent_Line ("(defun " & Output_File_Name_Root & "-wisi-module-parser-make (dll-name)");
       Indent_Line ("  (module-load dll-name)");
-      Indent_Line ("  (make-" & Lower_Package_Name_Root & "-wisi-module-parser))");
+      Indent_Line ("  (make-" & Output_File_Name_Root & "-wisi-module-parser))");
       New_Line;
 
-      Indent_Line ("(defvar " & Lower_Package_Name_Root & "-module-lexer nil)");
+      Indent_Line ("(defvar " & Output_File_Name_Root & "-module-lexer nil)");
       Indent_Line
         ("(declare-function " &
-           Lower_Package_Name_Root &
+           Output_File_Name_Root &
            "-wisi-module-parse """ &
-           Lower_Package_Name_Root &
+           Output_File_Name_Root &
            "-wisi-module-parse.c"")");
       New_Line;
 
       Indent_Line
         ("(cl-defmethod wisi-parse-current ((parser " &
-           Lower_Package_Name_Root &
+           Output_File_Name_Root &
            "-wisi-module-parser))");
       Indent := Indent + 2;
-      Indent_Line ("(let* ((wisi-lexer " & Lower_Package_Name_Root & "-module-lexer)");
-      Indent_Line ("       (result (" & Lower_Package_Name_Root & "-wisi-module-parse)))");
+      Indent_Line ("(let* ((wisi-lexer " & Output_File_Name_Root & "-module-lexer)");
+      Indent_Line ("       (result (" & Output_File_Name_Root & "-wisi-module-parse)))");
       --  Result is nil for no errors, a string for some error.
       --  Ada code has already added line:column, but not file name
       Indent_Line ("  (when result");
@@ -1935,8 +2034,7 @@ is
    is
       use WisiToken.Generate;
 
-      Package_Name_Root       : constant String := File_Name_To_Ada (Output_File_Name_Root);
-      Lower_Package_Name_Root : constant String := To_Lower (Package_Name_Root);
+      Package_Name_Root : constant String := File_Name_To_Ada (Output_File_Name_Root);
 
       File : File_Type;
    begin
@@ -1960,13 +2058,13 @@ is
       Indent_Line ("""emacs_module_h.ads"",");
       Indent_Line ("""fasttoken-lexer-wisi_elisp.adb"",");
       Indent_Line ("""fasttoken-lexer-wisi_elisp.ads"",");
-      Indent_Line ("""" & Lower_Package_Name_Root & "_module.adb"",");
-      Indent_Line ("""" & Lower_Package_Name_Root & "_module.ads""");
+      Indent_Line ("""" & Output_File_Name_Root & "_module.adb"",");
+      Indent_Line ("""" & Output_File_Name_Root & "_module.ads""");
       Indent := Indent - 3;
       Indent_Line ("  );");
       New_Line;
       Indent_Line ("for Object_Dir use ""libobjsjlj"";");
-      Indent_Line ("for Library_Name use """ & Lower_Package_Name_Root & "_wisi_module_parse"";");
+      Indent_Line ("for Library_Name use """ & Output_File_Name_Root & "_wisi_module_parse"";");
       Indent_Line ("for Library_Dir use ""libsjlj"";");
       --  This library is linked with *_wisi_module_parse_wrapper.c to
       --  make a dynamic library
@@ -1982,12 +2080,12 @@ is
       --  'Wisi_Module_Parse_Common.Compiler'Default_Switches' includes 'gnatn', but that hangs
       Indent_Line ("case Wisi_Module_Parse_Common.Build is");
       Indent_Line ("when ""Debug"" =>");
-      Indent_Line ("   for Switches (""" & Lower_Package_Name_Root & "_module.adb"") use");
+      Indent_Line ("   for Switches (""" & Output_File_Name_Root & "_module.adb"") use");
       Indent_Line ("     Wisi_Module_Parse_Common.Compiler.Common_Switches &");
       Indent_Line ("     Wisi_Module_Parse_Common.Compiler.Standard_Style &");
       Indent_Line ("     (""-O0"");");
       Indent_Line ("when ""Normal"" =>");
-      Indent_Line ("   for Switches (""" & Lower_Package_Name_Root & "_module.adb"") use");
+      Indent_Line ("   for Switches (""" & Output_File_Name_Root & "_module.adb"") use");
       Indent_Line ("     Wisi_Module_Parse_Common.Compiler.Common_Switches &");
       Indent_Line ("     Wisi_Module_Parse_Common.Compiler.Standard_Style &");
       Indent_Line ("     (""-O2"");");
@@ -2013,7 +2111,7 @@ is
       Put_Command_Line ("-- ", Use_Tuple => True, Tuple => Tuple);
       Indent_Line ("aggregate project " & Package_Name_Root & "_Wisi_Module_Parse_Agg is");
       Indent_Line ("   for Project_Path use (external (""WISI_FASTTOKEN""));");
-      Indent_Line ("   for Project_files use (""" & Lower_Package_Name_Root & "_wisi_module_parse.gpr"");");
+      Indent_Line ("   for Project_files use (""" & Output_File_Name_Root & "_wisi_module_parse.gpr"");");
       Indent_Line ("end " & Package_Name_Root & "_Wisi_Module_Parse_Agg;");
       Set_Output (Standard_Output);
       Close (File);
@@ -2028,22 +2126,22 @@ is
       Indent_Line ("#include <emacs_module.h>");
       Indent_Line ("int plugin_is_GPL_compatible;");
       Indent_Line ("extern void adainit(void);");
-      Indent_Line ("extern int " & Lower_Package_Name_Root & "_wisi_module_parse_init (emacs_env *env);");
+      Indent_Line ("extern int " & Output_File_Name_Root & "_wisi_module_parse_init (emacs_env *env);");
       Indent_Line ("/* Parse current buffer, using parser in current module. */");
-      Indent_Line ("extern emacs_value " & Lower_Package_Name_Root & "_wisi_module_parse (emacs_env *env);");
+      Indent_Line ("extern emacs_value " & Output_File_Name_Root & "_wisi_module_parse (emacs_env *env);");
       Indent_Line ("static emacs_value Fparse (emacs_env *env, int nargs, emacs_value args[])");
       Indent_Line ("{");
-      Indent_Line ("  return " & Lower_Package_Name_Root & "_wisi_module_parse (env);");
+      Indent_Line ("  return " & Output_File_Name_Root & "_wisi_module_parse (env);");
       Indent_Line ("}");
       New_Line;
       Indent_Line ("int emacs_module_init (struct emacs_runtime *ert)");
       Indent_Line ("{");
       Indent_Line ("  emacs_env *env = ert->get_environment (ert);");
       Indent_Line
-        ("  env->bind_function (env, """ & Lower_Package_Name_Root &
+        ("  env->bind_function (env, """ & Output_File_Name_Root &
            "-wisi-module-parse"", env->make_function (env, 1, 1, Fparse));");
       Indent_Line ("  adainit();");
-      Indent_Line ("  return " & Lower_Package_Name_Root & "_wisi_module_parse_init (env);");
+      Indent_Line ("  return " & Output_File_Name_Root & "_wisi_module_parse_init (env);");
       Indent_Line ("}");
       Set_Output (Standard_Output);
       Close (File);
@@ -2053,8 +2151,12 @@ begin
    declare
       Actions_Package_Name : constant String := File_Name_To_Ada (Output_File_Name_Root) &
         (case Common_Data.Interface_Kind is
-         when Process => "_Process_Actions",
-         when Module  => "_Module_Actions");
+         when Process => "_Process",
+         when Module  => "_Module") &
+        (if Need_Gen_Alg_In_Actions_Name
+         then "_" & Generate_Algorithm_Image (Tuple.Gen_Alg).all
+         else "") &
+        "_Actions";
 
       Main_Package_Name : constant String := File_Name_To_Ada (Output_File_Name_Root) &
         (case Common_Data.Interface_Kind is
@@ -2062,21 +2164,18 @@ begin
          when Module  => "_Module") &
         Gen_Alg_Name & "_Main";
    begin
-      if Input_Data.Action_Count > 0 or Input_Data.Check_Count > 0 then
+      if Input_Data.Post_Parse_Action_Count > 0 or Input_Data.In_Parse_Action_Count > 0 then
          --  We typically have no actions when just getting started with a new language.
          Create_Ada_Actions_Body
-           (Generate_Data.Action_Names, Generate_Data.Check_Names, Input_Data.Label_Count, Actions_Package_Name);
+           (Generate_Data.Post_Parse_Action_Names, Generate_Data.In_Parse_Action_Names, Input_Data.Label_Count,
+            Actions_Package_Name);
       end if;
 
       Create_Ada_Actions_Spec
-        (Output_File_Name => Output_File_Name_Root &
-           (case Common_Data.Interface_Kind is
-            when Process  => "_process_actions.ads",
-            when Module   => "_module_actions.ads"),
-         Package_Name     => Actions_Package_Name,
-         Input_Data       => Input_Data,
-         Common_Data      => Common_Data,
-         Generate_Data    => Generate_Data);
+        (Package_Name  => Actions_Package_Name,
+         Input_Data    => Input_Data,
+         Common_Data   => Common_Data,
+         Generate_Data => Generate_Data);
 
       if Tuple.Gen_Alg = External then
          Create_External_Main_Spec (Main_Package_Name, Tuple, Input_Data);
@@ -2086,13 +2185,13 @@ begin
          Create_Ada_Main_Body (Actions_Package_Name, Main_Package_Name);
 
          Create_Ada_Main_Spec
-           (Output_File_Name  => Output_File_Name_Root & "_" &
-              To_Lower (Interface_Type'Image (Common_Data.Interface_Kind)) &
-              To_Lower (Gen_Alg_Name) & "_main.ads",
-            Main_Package_Name => Main_Package_Name,
+           (Main_Package_Name => Main_Package_Name,
             Common_Data       => Common_Data,
             Input_Data        => Input_Data);
       end if;
+
+      --  We can't create a test_main here, because we don't have the wisi
+      --  package for the actions.
    end;
 
    case Common_Data.Interface_Kind is

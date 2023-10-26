@@ -7,7 +7,7 @@
 ;; Keywords: parser
 ;;  indentation
 ;;  navigation
-;; Version: 4.2.2
+;; Version: 4.3.2
 ;; package-requires: ((emacs "25.3") (seq "2.20"))
 ;; URL: https://stephe-leake.org/ada/wisitoken.html
 ;;
@@ -883,7 +883,7 @@ Run the parser first if needed."
 	  (when (get-buffer-window wisi-error-buffer)
 	    (delete-window (get-buffer-window wisi-error-buffer)))))
 
-      (condition-case err
+      (condition-case-unless-debug err
 	  (save-excursion
 	    (cond
 	     (partial-parse-p

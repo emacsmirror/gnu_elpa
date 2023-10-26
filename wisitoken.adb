@@ -2,7 +2,7 @@
 --
 --  See spec
 --
---  Copyright (C) 2009, 2014-2015, 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2009, 2014-2015, 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This file is part of the WisiToken package.
 --
@@ -349,21 +349,6 @@ package body WisiToken is
       Trace.New_Line;
    end Report_Memory;
 
-   function Error_Message
-     (File_Name : in String;
-      Line      : in Base_Line_Number_Type;
-      Column    : in Ada.Text_IO.Count;
-      Message   : in String)
-     return String
-   is
-      use all type Ada.Text_IO.Count;
-   begin
-      return File_Name & ":" &
-        Trimmed_Image (if Line = Invalid_Line_Number then Integer'(0) else Integer (Line)) & ":" &
-        Trimmed_Image (Integer (Column + 1)) & ": " &
-        Message;
-   end Error_Message;
-
    function Image (Item : in Buffer_Region) return String
    is begin
       return "(" & Trimmed_Image (Item.First) & " ." & Base_Buffer_Pos'Image (Item.Last) & ")";
@@ -519,6 +504,83 @@ package body WisiToken is
       Put_Line (Current_Error, "test=n - verbosity during unit tests");
       Put_Line (Current_Error, "time=n - output times of various operations");
    end Enable_Trace_Help;
+
+   procedure Put
+     (Lists : in Precedence_Lists_Arrays.Vector;
+      Map   : in Precedence_Maps.Map)
+   is
+      use Ada.Text_IO;
+      use Precedence_Maps;
+   begin
+      Put_Line ("Precedence_IDs:");
+      for Cur in Map.Iterate loop
+         Put_Line (Element (Cur)'Image & ": " & Key (Cur));
+      end loop;
+
+      Put_Line ("Precedence relations:");
+      for List of Lists loop
+         for P of List loop
+            Put (P'Image & " ");
+         end loop;
+         New_Line;
+      end loop;
+   end Put;
+
+   function Compare
+     (Left        : in Precedence_ID;
+      Right       : in Precedence_ID;
+      Precedences : in Precedence_Lists_Arrays.Vector)
+     return Precedence_Compare_Result
+   is
+   begin
+      if Left = Right then
+         return None;
+      end if;
+
+      for List of Precedences loop
+         declare
+            I           : Integer := 0;
+            Left_Index  : Integer := 0;
+            Right_Index : Integer := 0;
+         begin
+            for Prec of List loop
+               I := @ + 1;
+               if Left = Prec then
+                  Left_Index := I;
+               end if;
+               if Right = Prec then
+                  Right_Index := I;
+               end if;
+            end loop;
+
+            if Left_Index /= 0 and Right_Index /= 0 then
+               if Left_Index < Right_Index then
+                  return WisiToken.Left;
+               elsif Left_Index > Right_Index then
+                  return WisiToken.Right;
+               else
+                  return WisiToken.None;
+               end if;
+            end if;
+         end;
+      end loop;
+      return None;
+   end Compare;
+
+   function Error_Message
+     (File_Name : in String;
+      Line      : in Base_Line_Number_Type;
+      Column    : in Ada.Text_IO.Count;
+      Message   : in String)
+     return String
+   is
+      use all type Ada.Text_IO.Count;
+   begin
+      return File_Name & ":" &
+        Trimmed_Image (if Line = Invalid_Line_Number then Integer'(0) else Integer (Line)) & ":" &
+        Trimmed_Image (Integer (Column + 1)) & ": " &
+        Message;
+   end Error_Message;
 
    function Next_Value
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;

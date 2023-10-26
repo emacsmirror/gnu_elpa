@@ -3,7 +3,7 @@
 --  Utilities for translating input file structures to WisiToken
 --  structures needed for LALR.Generate.
 --
---  Copyright (C) 2014, 2015, 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2014, 2015, 2017 - 2023 Free Software Foundation, Inc.
 --
 --  The WisiToken package is free software; you can redistribute it
 --  and/or modify it under terms of the GNU General Public License as
@@ -40,12 +40,11 @@ package WisiToken.BNF.Generate_Utils is
       Descriptor : WisiToken.Descriptor_Access;
       Grammar    : WisiToken.Productions.Prod_Arrays.Vector;
 
-      Action_Names : Names_Array_Array_Access;
-      Check_Names  : Names_Array_Array_Access;
-      --  Names of subprograms for each grammar semantic action and check;
-      --  non-null only if there is an action or check in the grammar.
+      Post_Parse_Action_Names : Names_Array_Array_Access;
+      In_Parse_Action_Names   : Names_Array_Array_Access;
+      --  Names of subprograms for each grammar post_parse and in_parse
+      --  action; non-null only if there is an action in the grammar.
 
-      Start_ID        : WisiToken.Token_ID;
       Source_Line_Map : WisiToken.Productions.Source_Line_Maps.Vector;
 
       --  The following fields are LR specific; so far, it's not worth
@@ -56,6 +55,7 @@ package WisiToken.BNF.Generate_Utils is
       LR_Parse_Table     : WisiToken.Parse.LR.Parse_Table_Ptr;
       Parser_State_Count : WisiToken.Unknown_State_Index := 0;
    end record;
+   type Generate_Data_Access is access Generate_Data;
 
    function Initialize
      (Input_Data        : in WisiToken_Grammar_Runtime.User_Data_Access;

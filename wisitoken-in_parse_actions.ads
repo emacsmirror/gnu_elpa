@@ -2,7 +2,7 @@
 --
 --  Grammar in parse action routines.
 --
---  Copyright (C) 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -29,13 +29,17 @@ package WisiToken.In_Parse_Actions is
    function Match_Names
      (Tree         : in Syntax_Trees.Tree;
       Tokens       : in Syntax_Trees.Recover_Token_Array;
-      Start_Index  : in Positive_Index_Type;
-      End_Index    : in Positive_Index_Type;
+      Start_Index  : in SAL.Base_Peek_Type;
+      End_Index    : in SAL.Base_Peek_Type;
       End_Optional : in Boolean)
      return Syntax_Trees.In_Parse_Actions.Status;
    --  Check that buffer text at Tokens (Start_Index).Name matches buffer
    --  text at Tokens (End_Index).Name. Comparison is controlled by
    --  Descriptor.Case_Insensitive.
+   --
+   --  Start_, End_Index may be 0; in that case the corresponding token
+   --  is absent in the production; Match_Names treats it as an empty
+   --  name.
 
    function Propagate_Name
      (Tree       : in     Syntax_Trees.Tree;

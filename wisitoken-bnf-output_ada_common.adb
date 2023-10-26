@@ -2,7 +2,7 @@
 --
 --  See spec.
 --
---  Copyright (C) 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -86,11 +86,10 @@ package body WisiToken.BNF.Output_Ada_Common is
    --  Public subprograms in alphabetical order
 
    procedure Create_Ada_Actions_Spec
-     (Output_File_Name :         in String;
-      Package_Name     :         in String;
-      Input_Data       :         in WisiToken_Grammar_Runtime.User_Data_Type;
-      Common_Data      :         in Output_Ada_Common.Common_Data;
-      Generate_Data    : aliased in WisiToken.BNF.Generate_Utils.Generate_Data)
+     (Package_Name  :         in String;
+      Input_Data    :         in WisiToken_Grammar_Runtime.User_Data_Type;
+      Common_Data   :         in Output_Ada_Common.Common_Data;
+      Generate_Data : aliased in WisiToken.BNF.Generate_Utils.Generate_Data)
    is
       use Generate_Utils;
 
@@ -99,7 +98,7 @@ package body WisiToken.BNF.Output_Ada_Common is
       Paren_Done : Boolean      := False;
       Cursor     : Token_Cursor := First (Generate_Data);
    begin
-      Create (Spec_File, Out_File, Output_File_Name);
+      Create (Spec_File, Out_File, To_Lower (Package_Name) & ".ads");
       Set_Output (Spec_File);
       Indent := 1;
 
@@ -110,10 +109,10 @@ package body WisiToken.BNF.Output_Ada_Common is
       Put_Raw_Code (Ada_Comment, Input_Data.Raw_Code (Copyright_License));
       New_Line;
 
-      if not (Input_Data.Action_Count > 0 or Input_Data.Check_Count > 0) then
+      if not (Input_Data.Post_Parse_Action_Count > 0 or Input_Data.In_Parse_Action_Count > 0) then
          Put_Line ("with WisiToken;");
       end if;
-      if Input_Data.Action_Count > 0 or Input_Data.Check_Count > 0 then
+      if Input_Data.Post_Parse_Action_Count > 0 or Input_Data.In_Parse_Action_Count > 0 then
          Put_Line ("with WisiToken.Syntax_Trees;");
       end if;
       Put_Raw_Code (Ada_Comment, Input_Data.Raw_Code (Actions_Spec_Context));
@@ -200,7 +199,7 @@ package body WisiToken.BNF.Output_Ada_Common is
 
       end if;
 
-      for Name_List of Generate_Data.Action_Names.all loop
+      for Name_List of Generate_Data.Post_Parse_Action_Names.all loop
          if Name_List /= null then
             for Name of Name_List.all loop
                if Name /= null then
@@ -213,7 +212,7 @@ package body WisiToken.BNF.Output_Ada_Common is
          end if;
       end loop;
 
-      for Name_List of Generate_Data.Check_Names.all loop
+      for Name_List of Generate_Data.In_Parse_Action_Names.all loop
          if Name_List /= null then
             for Name of Name_List.all loop
                if Name /= null then
@@ -240,8 +239,7 @@ package body WisiToken.BNF.Output_Ada_Common is
    end Create_Ada_Actions_Spec;
 
    procedure Create_Ada_Main_Spec
-     (Output_File_Name  : in String;
-      Main_Package_Name : in String;
+     (Main_Package_Name : in String;
       Input_Data        : in WisiToken_Grammar_Runtime.User_Data_Type;
       Common_Data       : in Output_Ada_Common.Common_Data)
    is
@@ -300,7 +298,7 @@ package body WisiToken.BNF.Output_Ada_Common is
          raise SAL.Programmer_Error;
       end if;
 
-      Create (Spec_File, Out_File, Output_File_Name);
+      Create (Spec_File, Out_File, To_Lower (Main_Package_Name) & ".ads");
       Set_Output (Spec_File);
       Indent := 1;
 
@@ -383,10 +381,9 @@ package body WisiToken.BNF.Output_Ada_Common is
       Tuple                : in Generate_Tuple;
       Input_Data           : in WisiToken_Grammar_Runtime.User_Data_Type)
    is
-      File_Name : constant String := To_Lower (Main_Package_Name) & ".ads";
       Spec_File : File_Type;
    begin
-      Create (Spec_File, Out_File, File_Name);
+      Create (Spec_File, Out_File, To_Lower (Main_Package_Name) & ".ads");
       Set_Output (Spec_File);
       Indent := 1;
 
@@ -648,9 +645,9 @@ package body WisiToken.BNF.Output_Ada_Common is
    end Create_LR_Parser_Table;
 
    procedure LR_Create_Create_Parse_Table
-     (Input_Data    :         in     WisiToken_Grammar_Runtime.User_Data_Type;
-      Common_Data   :         in out Output_Ada_Common.Common_Data;
-      Generate_Data : aliased in     WisiToken.BNF.Generate_Utils.Generate_Data)
+     (Input_Data    :         in WisiToken_Grammar_Runtime.User_Data_Type;
+      Common_Data   :         in Output_Ada_Common.Common_Data;
+      Generate_Data : aliased in WisiToken.BNF.Generate_Utils.Generate_Data)
    is
       Table : WisiToken.Parse.LR.Parse_Table_Ptr renames Generate_Data.LR_Parse_Table;
    begin
@@ -706,9 +703,9 @@ package body WisiToken.BNF.Output_Ada_Common is
    end LR_Create_Create_Parse_Table;
 
    procedure LR_Create_Create_Parser
-     (Actions_Package_Name :         in     String;
-      Common_Data          :         in out Output_Ada_Common.Common_Data;
-      Generate_Data        : aliased in     WisiToken.BNF.Generate_Utils.Generate_Data)
+     (Actions_Package_Name :         in String;
+      Common_Data          :         in Output_Ada_Common.Common_Data;
+      Generate_Data        : aliased in WisiToken.BNF.Generate_Utils.Generate_Data)
    is
       Parser_Type : constant String :=
         "WisiToken.Parse.LR.Parser" &
@@ -765,10 +762,10 @@ package body WisiToken.BNF.Output_Ada_Common is
    end LR_Create_Create_Parser;
 
    procedure Packrat_Create_Create_Parser
-     (Actions_Package_Name :         in     String;
-      Common_Data          :         in out Output_Ada_Common.Common_Data;
-      Generate_Data        : aliased in     WisiToken.BNF.Generate_Utils.Generate_Data;
-      Packrat_Data         :         in     WisiToken.Generate.Packrat.Data)
+     (Actions_Package_Name :         in String;
+      Common_Data          :         in Output_Ada_Common.Common_Data;
+      Generate_Data        : aliased in WisiToken.BNF.Generate_Utils.Generate_Data;
+      Packrat_Data         :         in WisiToken.Generate.Packrat.Data)
    is
       Descriptor : WisiToken.Descriptor renames Generate_Data.Descriptor.all;
 
@@ -841,7 +838,7 @@ package body WisiToken.BNF.Output_Ada_Common is
          Indent := Indent - 3;
          Indent_Line ("begin");
          Indent := Indent + 3;
-         WisiToken.BNF.Generate_Grammar (Generate_Data.Grammar, Generate_Data.Action_Names.all);
+         WisiToken.BNF.Generate_Grammar (Generate_Data.Grammar, Generate_Data.Post_Parse_Action_Names.all);
 
          Indent_Line
            ("return Parser : WisiToken.Parse.Packrat.Procedural.Parser (" &
@@ -873,7 +870,7 @@ package body WisiToken.BNF.Output_Ada_Common is
       Indent := Indent + 3;
       Indent_Line ("return Grammar : WisiToken.Productions.Prod_Arrays.Vector do");
       Indent := Indent + 3;
-      WisiToken.BNF.Generate_Grammar (Generate_Data.Grammar, Generate_Data.Action_Names.all);
+      WisiToken.BNF.Generate_Grammar (Generate_Data.Grammar, Generate_Data.Post_Parse_Action_Names.all);
       Indent := Indent - 3;
       Indent_Line ("end return;");
       Indent := Indent - 3;
@@ -906,8 +903,8 @@ package body WisiToken.BNF.Output_Ada_Common is
                Actions_Present := True;
             end if;
 
-            if Generate_Data.Check_Names (P.LHS) /= null or
-              Generate_Data.Action_Names (P.LHS) /= null
+            if Generate_Data.In_Parse_Action_Names (P.LHS) /= null or
+              Generate_Data.Post_Parse_Action_Names (P.LHS) /= null
             then
                Indent_Line
                  ("Result (" & Trimmed_Image (P.LHS) & ").RHSs.Set_First_Last (" &
@@ -915,7 +912,7 @@ package body WisiToken.BNF.Output_Ada_Common is
                     Trimmed_Image (P.RHSs.Last_Index) & ");");
 
                for J in P.RHSs.First_Index .. P.RHSs.Last_Index loop
-                  if Generate_Data.Check_Names (P.LHS) = null then
+                  if Generate_Data.In_Parse_Action_Names (P.LHS) = null then
                      Indent_Line
                        ("Result (" & Trimmed_Image (P.LHS) & ").RHSs (" & Trimmed_Image (J) &
                           ").In_Parse_Action := null;");
@@ -923,11 +920,11 @@ package body WisiToken.BNF.Output_Ada_Common is
                      Actions_Present := True;
                      Indent_Line
                        ("Result (" & Trimmed_Image (P.LHS) & ").RHSs (" & Trimmed_Image (J) & ").In_Parse_Action := " &
-                          (if Generate_Data.Check_Names (P.LHS)(J) = null then "null"
-                           else Generate_Data.Check_Names (P.LHS)(J).all & "'Access") &
+                          (if Generate_Data.In_Parse_Action_Names (P.LHS)(J) = null then "null"
+                           else Generate_Data.In_Parse_Action_Names (P.LHS)(J).all & "'Access") &
                           ";");
                   end if;
-                  if Generate_Data.Action_Names (P.LHS) = null then
+                  if Generate_Data.Post_Parse_Action_Names (P.LHS) = null then
                      Indent_Line
                        ("Result (" & Trimmed_Image (P.LHS) & ").RHSs (" & Trimmed_Image (J) &
                           ").Post_Parse_Action := null;");
@@ -936,8 +933,8 @@ package body WisiToken.BNF.Output_Ada_Common is
                      Indent_Line
                        ("Result (" & Trimmed_Image (P.LHS) & ").RHSs (" & Trimmed_Image (J) &
                           ").Post_Parse_Action := " &
-                          (if Generate_Data.Action_Names (P.LHS)(J) = null then "null"
-                           else Generate_Data.Action_Names (P.LHS)(J).all & "'Access") &
+                          (if Generate_Data.Post_Parse_Action_Names (P.LHS)(J) = null then "null"
+                           else Generate_Data.Post_Parse_Action_Names (P.LHS)(J).all & "'Access") &
                           ";");
                   end if;
                end loop;
@@ -1349,9 +1346,8 @@ package body WisiToken.BNF.Output_Ada_Common is
       Close (File);
 
       declare
+         --  This is lowercase to match the C file.
          Ada_Name : constant String := Output_File_Name_Root & "_re2c_c";
-         --  Output_File_Name_Root is the file name of the grammar file -
-         --  assume it is a legal Ada name.
       begin
          Create (File, Out_File, Output_File_Name_Root & "_re2c_c.ads");
          Set_Output (File);
@@ -1447,7 +1443,7 @@ package body WisiToken.BNF.Output_Ada_Common is
            Kind (Generate_Data, I) = "comment-one-line" or
            Kind (Generate_Data, I) = "string-double-one-line" or
            Kind (Generate_Data, I) = "string-single-one-line"
-           --  comment-one-line, strings do not always contain a new_line, but
+           --  comment-one-line strings do not always contain a new_line, but
            --  the preconditions in WisiToken.Lexer guarantee it does if we ask
            --  for Line_Begin_Char_Pos from one.
          then
@@ -2105,7 +2101,6 @@ package body WisiToken.BNF.Output_Ada_Common is
      (Input_Data        : in WisiToken_Grammar_Runtime.User_Data_Type;
       Tuple             : in Generate_Tuple;
       Grammar_File_Name : in String;
-      Output_File_Root  : in String;
       Check_Interface   : in Boolean)
      return Common_Data
    is begin
@@ -2132,8 +2127,6 @@ package body WisiToken.BNF.Output_Ada_Common is
          end if;
 
          Data.Text_Rep := Tuple.Text_Rep;
-
-         Data.Lower_File_Name_Root := +To_Lower (Output_File_Root);
       end return;
    end Initialize;
 

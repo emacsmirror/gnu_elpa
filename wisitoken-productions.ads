@@ -2,7 +2,7 @@
 --
 --  Type and operations for building grammar productions.
 --
---  Copyright (C) 2018 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2018 - 2023 Free Software Foundation, Inc.
 --
 --  This file is part of the WisiToken package.
 --
@@ -39,6 +39,9 @@ package WisiToken.Productions is
 
       Post_Parse_Action : Syntax_Trees.Post_Parse_Action := null;
       In_Parse_Action   : Syntax_Trees.In_Parse_Actions.In_Parse_Action := null;
+
+      Associativity : WisiToken.Associativity      := WisiToken.None;
+      Precedence    : WisiToken.Base_Precedence_ID := WisiToken.No_Precedence;
    end record
    with Dynamic_Predicate =>
      (Tokens.Length = 0 or Tokens.First_Index = 1) and
@@ -49,9 +52,10 @@ package WisiToken.Productions is
      (Natural, Right_Hand_Side, Default_Element => (others => <>));
 
    type Instance is record
-      LHS            : Token_ID := Invalid_Token_ID;
-      Optimized_List : Boolean  := False;
+      LHS            : Token_ID                     := Invalid_Token_ID;
+      Optimized_List : Boolean                      := False;
       RHSs           : RHS_Arrays.Vector;
+      Precedence     : WisiToken.Base_Precedence_ID := WisiToken.No_Precedence;
    end record;
 
    package Prod_Arrays is new SAL.Gen_Unbounded_Definite_Vectors
@@ -63,15 +67,30 @@ package WisiToken.Productions is
      return RHS_Arrays.Constant_Reference_Type;
 
    function Image
-     (LHS        : in Token_ID;
-      RHS_Index  : in Natural;
-      RHS        : in Token_ID_Arrays.Vector;
-      Descriptor : in WisiToken.Descriptor)
+     (LHS           : in Token_ID;
+      RHS_Index     : in Natural;
+      RHS           : in Right_Hand_Side;
+      Descriptor    : in WisiToken.Descriptor)
      return String;
    --  For comments in generated code, diagnostic messages.
 
    procedure Put (Grammar : Prod_Arrays.Vector; Descriptor : in WisiToken.Descriptor);
    --  Put Image of each production to Ada.Text_IO.Current_Output, for parse_table.
+
+   function Get_Associativity
+     (Grammar : in Prod_Arrays.Vector;
+      ID      : in Production_ID)
+     return WisiToken.Associativity
+   with Pre => not Grammar.Is_Empty;
+   --  Return the associativity that applies to ID.
+
+   function Get_Precedence
+     (Grammar : in Prod_Arrays.Vector;
+      ID      : in Production_ID)
+     return Base_Precedence_ID
+   with Pre => not Grammar.Is_Empty;
+   --  Return the precedence that applies to ID; the RHS precedence if
+   --  not No_Precedence, else the LHS precedence.
 
    package Line_Number_Arrays is new SAL.Gen_Unbounded_Definite_Vectors
      (Natural, Line_Number_Type, Default_Element => Line_Number_Type'First);

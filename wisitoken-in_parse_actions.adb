@@ -2,7 +2,7 @@
 --
 --  See spec.
 --
---  Copyright (C) 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -34,14 +34,23 @@ package body WisiToken.In_Parse_Actions is
          return Syntax_Trees.In_Parse_Actions.Status_Label'Image (Item.Label);
       when Syntax_Trees.In_Parse_Actions.Error =>
          declare
-            Begin_Node : constant Valid_Node_Access := Tree.Child (Error_Node, Item.Begin_Name);
-            End_Node   : constant Valid_Node_Access := Tree.Child (Error_Node, Item.End_Name);
+            use all type SAL.Base_Peek_Type;
+            Begin_Node : constant Node_Access :=
+              (if Item.Begin_Name = 0
+               then Invalid_Node_Access
+               else Tree.Child (Error_Node, Item.Begin_Name));
+            End_Node   : constant Node_Access :=
+              (if Item.End_Name = 0
+               then Invalid_Node_Access
+               else Tree.Child (Error_Node, Item.End_Name));
          begin
             return '(' & Syntax_Trees.In_Parse_Actions.Status_Label'Image (Item.Label) & ", " &
-              Tree.Image (Begin_Node) & "'" & Tree.Lexer.Buffer_Text
-                (Tree.Byte_Region (Begin_Node, Trailing_Non_Grammar => False)) & "'," &
-              Tree.Image (End_Node) & "'" & Tree.Lexer.Buffer_Text
-                (Tree.Byte_Region (End_Node, Trailing_Non_Grammar => False)) & "')";
+              (if Item.Begin_Name = 0 then "<absent>"
+               else Tree.Image (Begin_Node) & "'" & Tree.Lexer.Buffer_Text
+                (Tree.Byte_Region (Begin_Node, Trailing_Non_Grammar => False))) & "'," &
+              (if Item.End_Name = 0 then "<absent>"
+               else Tree.Image (End_Node) & "'" & Tree.Lexer.Buffer_Text
+                (Tree.Byte_Region (End_Node, Trailing_Non_Grammar => False))) & "')";
          end;
       end case;
    end Image;
@@ -49,22 +58,25 @@ package body WisiToken.In_Parse_Actions is
    function Match_Names
      (Tree         : in Syntax_Trees.Tree;
       Tokens       : in Syntax_Trees.Recover_Token_Array;
-      Start_Index  : in Positive_Index_Type;
-      End_Index    : in Positive_Index_Type;
+      Start_Index  : in SAL.Base_Peek_Type;
+      End_Index    : in SAL.Base_Peek_Type;
       End_Optional : in Boolean)
      return Syntax_Trees.In_Parse_Actions.Status
    is
+      use all type SAL.Base_Peek_Type;
       use Syntax_Trees;
    begin
-      if Tree.Contains_Virtual_Terminal (Tokens (Start_Index)) or
-        Tree.Contains_Virtual_Terminal (Tokens (End_Index))
+      if (Start_Index > 0 and then Tree.Contains_Virtual_Terminal (Tokens (Start_Index))) or
+        (End_Index > 0 and then Tree.Contains_Virtual_Terminal (Tokens (End_Index)))
       then
          return (Label => Syntax_Trees.In_Parse_Actions.Ok);
       end if;
 
       declare
-         Start_Name_Region : constant Buffer_Region := Tree.Name (Tokens (Start_Index));
-         End_Name_Region   : constant Buffer_Region := Tree.Name (Tokens (End_Index));
+         Start_Name_Region : constant Buffer_Region :=
+           (if Start_Index > 0 then Tree.Name (Tokens (Start_Index)) else Null_Buffer_Region);
+         End_Name_Region   : constant Buffer_Region :=
+           (if End_Index > 0 then Tree.Name (Tokens (End_Index)) else Null_Buffer_Region);
 
          function Equal return Boolean
          is

@@ -2,7 +2,7 @@
 --
 --  See spec
 --
---  Copyright (C) 2012, 2013, 2015, 2017 - 2019, 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2012, 2013, 2015, 2017 - 2019, 2022, 2023 Free Software Foundation, Inc.
 --
 --  This program is free software; you can redistribute it and/or
 --  modify it under terms of the GNU General Public License as
@@ -190,7 +190,7 @@ package body WisiToken.BNF.Output_Elisp_Common is
       end re2c_To_Elisp;
 
    begin
-      Indent_Line ("(defconst " & Output_File_Root & "-" & Label & "-repair-image");
+      Indent_Line ("(defconst " & Output_File_Root & (if Label'Length > 0 then "-" & Label else "") & "-repair-image");
       Indent_Line ("  '(");
       Indent := Indent + 3;
       for Pair of Tokens.Keywords loop

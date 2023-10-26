@@ -2,7 +2,7 @@
 --
 --  See spec.
 --
---  Copyright (C) 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -240,7 +240,7 @@ package body WisiToken.Lexer is
      return Base_Buffer_Pos
    is begin
       for I in To_Buffer_Index (Source, Region.First) .. To_Buffer_Index (Source, Region.Last) loop
-         if Source.Buffer (I) = ASCII.LF then
+         if Buffer (Source)(I) = ASCII.LF then
             return From_Buffer_Index (Source, I);
          end if;
       end loop;

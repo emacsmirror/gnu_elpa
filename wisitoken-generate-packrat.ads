@@ -10,7 +10,7 @@
 --
 --  See wisitoken-parse-packrat.ads.
 --
---  Copyright (C) 2018, 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2018, 2022, 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -43,6 +43,7 @@ package WisiToken.Generate.Packrat is
       Involved              : Token_Array_Token_Set
         (First_Nonterminal .. Last_Nonterminal, First_Nonterminal .. Last_Nonterminal);
    end record;
+   type Data_Access is access Data;
 
    function Initialize
      (Source_File_Name : in String;

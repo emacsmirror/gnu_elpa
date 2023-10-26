@@ -2,7 +2,7 @@
 --
 --  See spec.
 --
---  Copyright (C) 2002 - 2005, 2008 - 2015, 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2002 - 2005, 2008 - 2015, 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This file is part of the WisiToken package.
 --
@@ -989,14 +989,22 @@ package body WisiToken.Parse.LR.Parser is
 
       if Debug_Mode then
          declare
-            I : Integer := 1;
+            Error_Reported : WisiToken.Syntax_Trees.Node_Sets.Set;
          begin
-            for Node of Parser_State.Recover_Insert_Delete loop
-               if not Parser.Tree.In_Tree (Node) then
-                  raise SAL.Programmer_Error with "recover_insert_delete node" & I'Image & " not in tree";
-               end if;
-               I := @ + 1;
-            end loop;
+            if Parser.User_Data = null then
+               Parser.Tree.Validate_Tree
+                 (null, Error_Reported,
+                  Node_Index_Order => not Incremental_Parse,
+                  Validate_Node    => Syntax_Trees.Mark_In_Tree'Access);
+               Parser.Tree.Clear_Augmented;
+            else
+               Parser.Tree.Validate_Tree
+                 (Parser.User_Data, Error_Reported, Node_Index_Order => not Incremental_Parse);
+            end if;
+
+            if Error_Reported.Count /= 0 then
+               raise WisiToken.Validate_Error with "pre execute_actions: validate_tree failed";
+            end if;
          end;
       end if;
 
@@ -1009,6 +1017,19 @@ package body WisiToken.Parse.LR.Parser is
          Parser.Tree.Lexer.Trace.Put_Line
            ("recover_insert_delete: " & Parser_Lists.Recover_Image (Parser_State, Parser.Tree));
          Parser.Tree.Lexer.Trace.New_Line;
+      end if;
+
+      if Debug_Mode then
+         declare
+            I : Integer := 1;
+         begin
+            for Node of Parser_State.Recover_Insert_Delete loop
+               if not Parser.Tree.In_Tree (Node) then
+                  raise SAL.Programmer_Error with "recover_insert_delete node" & I'Image & " not in tree";
+               end if;
+               I := @ + 1;
+            end loop;
+         end;
       end if;
 
       --  ada-mode-recover_33.adb requires calling Insert_Token,
@@ -1066,22 +1087,18 @@ package body WisiToken.Parse.LR.Parser is
             Error_Reported : WisiToken.Syntax_Trees.Node_Sets.Set;
          begin
             if Parser.User_Data = null then
-               declare
-                  Dummy : User_Data_Type;
-               begin
-                  Parser.Tree.Validate_Tree
-                    (Dummy, Error_Reported,
-                     Node_Index_Order => not Incremental_Parse,
-                     Validate_Node    => Syntax_Trees.Mark_In_Tree'Access);
-               end;
+               Parser.Tree.Validate_Tree
+                 (null, Error_Reported,
+                  Node_Index_Order => not Incremental_Parse,
+                  Validate_Node    => Syntax_Trees.Mark_In_Tree'Access);
                Parser.Tree.Clear_Augmented;
             else
                Parser.Tree.Validate_Tree
-                 (Parser.User_Data.all, Error_Reported, Node_Index_Order => not Incremental_Parse);
+                 (Parser.User_Data, Error_Reported, Node_Index_Order => not Incremental_Parse);
             end if;
 
             if Error_Reported.Count /= 0 then
-               raise WisiToken.Validate_Error with "parser: validate_tree failed";
+               raise WisiToken.Validate_Error with "post execute_actions: validate_tree failed";
             end if;
          end;
       end if;
@@ -3442,7 +3459,7 @@ package body WisiToken.Parse.LR.Parser is
          declare
             Error_Reported : WisiToken.Syntax_Trees.Node_Sets.Set;
          begin
-            Parser.Tree.Validate_Tree (Parser.User_Data.all, Error_Reported, Node_Index_Order => False);
+            Parser.Tree.Validate_Tree (Parser.User_Data, Error_Reported, Node_Index_Order => False);
             if Error_Reported.Count /= 0 then
                if Trace_Incremental_Parse > Outline then
                   Tree.Lexer.Trace.New_Line;

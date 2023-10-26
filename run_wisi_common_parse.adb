@@ -2,7 +2,7 @@
 --
 --  See spec.
 --
---  Copyright (C) 2018 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2018 - 2023 Free Software Foundation, Inc.
 --
 --  This program is free software; you can redistribute it and/or
 --  modify it under terms of the GNU General Public License as
@@ -94,7 +94,7 @@ package body Run_Wisi_Common_Parse is
       Put_Line ("          <action_begin_byte> <action_end_byte> [options]");
       Put_Line ("   or: refactor <refactor_action> <file_name> <edit_begin> [options]");
       Put_Line ("   or: command_file <command_file_name> [source_file_name]");
-      Put_Line ("post_parse_action: {Navigate | Face | Indent}");
+      Put_Line ("post_parse_action: {None | Navigate | Face | Indent}");
       New_Line;
 
       Put_Line ("partial parse params: begin_byte_pos end_byte_pos goal_byte_pos begin_char_pos end_char_pos" &
@@ -496,7 +496,6 @@ package body Run_Wisi_Common_Parse is
          --  Force a dispatching call.
          Wisi.Parse_Data_Type'Class (Parse_Context.Parser.User_Data.all).Initialize;
 
-         Parse_Context.Parser.User_Data.Reset;
          Parse_Context.Parser.Tree.Lexer.Reset;
          begin
             Parse_Context.Parser.Parse (Log_File);
@@ -782,7 +781,6 @@ package body Run_Wisi_Common_Parse is
 
             for I in 1 .. Cl_Params.Repeat_Count loop
                begin
-                  Parse_Data.Reset;
                   Parser.Tree.Lexer.Reset;
 
                   Parser.Parse (Log_File);

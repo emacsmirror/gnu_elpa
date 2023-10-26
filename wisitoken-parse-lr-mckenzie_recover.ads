@@ -11,7 +11,7 @@
 --  [Grune 2008] Parsing Techniques, A Practical Guide, Second
 --  Edition. Dick Grune, Ceriel J.H. Jacobs.
 --
---  Copyright (C) 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -40,9 +40,10 @@ package WisiToken.Parse.LR.McKenzie_Recover is
    --  programming bug can easily be ignored by abandoning the config.
 
    Invalid_Case : exception;
-   --  Raised to abandon error recover cases that don't apply, when they
-   --  are not easily abandoned by 'if' or 'case'. We don't use
-   --  Bad_Config for that, because it is not a programmer error.
+   --  Raised to abandon error recover cases that don't apply or violate
+   --  some design constraint like Config.Ops full, when they are not
+   --  easily abandoned by 'if' or 'case'. We don't use Bad_Config for
+   --  that, because it is not a programmer error.
 
    type Recover_Status is (Fail_Check_Delta, Fail_Enqueue_Limit, Fail_No_Configs_Left, Fail_Programmer_Error, Success);
 
@@ -317,8 +318,8 @@ private
       Shared_Parser         : in out LR.Parser.Parser;
       Config                : in out Configuration;
       Push_Back_Undo_Reduce : in     Boolean);
-   --  If not Push_Back_Valid, raise Invalid_Case. Otherwise do
-   --  Push_Back.
+   --  If not Push_Back_Valid, or if Config.Ops full, raise Invalid_Case.
+   --  Otherwise do Push_Back.
    --
    --  Normally Push_Back_Valid forbids push_back of an entire
    --  Undo_Reduce; Language_Fixes may override that by setting

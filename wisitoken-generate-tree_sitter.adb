@@ -1,12 +1,12 @@
 --  Abstract :
 --
---  Translate a wisitoken grammar file to a tree-sitter grammar file.
+--  See spec.
 --
 --  References:
 --
 --  [1] tree-sitter grammar: https://tree-sitter.github.io/tree-sitter/creating-parsers#the-grammar-dsl
 --
---  Copyright (C) 2020 - 2022 Stephen Leake All Rights Reserved.
+--  Copyright (C) 2020 - 2023 Stephen Leake All Rights Reserved.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -17,6 +17,7 @@
 
 pragma License (GPL);
 
+with Ada.Strings.Fixed;
 with Ada.Text_IO; use Ada.Text_IO;
 with SAL.Gen_Unbounded_Definite_Vectors;
 with WisiToken.BNF.Output_Ada_Common;
@@ -26,16 +27,28 @@ with Wisitoken_Grammar_Actions; use Wisitoken_Grammar_Actions;
 package body WisiToken.Generate.Tree_Sitter is
    use WisiToken.Syntax_Trees;
 
+   function Is_Possibly_Empty_ID (Tree : in Syntax_Trees.Tree; Node : in Valid_Node_Access) return Boolean
+   is (To_Token_Enum (Tree.ID (Node)) in rhs_ID | rhs_item_list_ID | rhs_item_ID);
+
    procedure Eliminate_Empty_Productions
-     (Data : in out WisiToken_Grammar_Runtime.User_Data_Type;
-      Tree : in out WisiToken.Syntax_Trees.Tree)
+     (Data     : in out WisiToken_Grammar_Runtime.User_Data_Type;
+      Tree     : in out WisiToken.Syntax_Trees.Tree;
+      No_Empty : in     Boolean)
    is
-      Ignore_Lines    : Boolean := False;
+      use all type Ada.Containers.Count_Type;
+
+      Ignore_Lines : Boolean := False;
 
       type Empty_Nonterm is record
-         Name       : Ada.Strings.Unbounded.Unbounded_String;
+         Name : Ada.Strings.Unbounded.Unbounded_String;
+         --  The nonterm name, for trace messages.
+
          Empty_Node : WisiToken.Syntax_Trees.Node_Access := WisiToken.Syntax_Trees.Invalid_Node_Access;
-      end record;
+         --  The first element of an RHS that can be empty.
+      end record
+      with Dynamic_Predicate =>
+        Empty_Node = Invalid_Node_Access or else
+        Is_Possibly_Empty_ID (Tree, Empty_Node);
 
       package Empty_Nonterm_Lists is new SAL.Gen_Unbounded_Definite_Vectors
         (Positive_Index_Type, Empty_Nonterm, Default_Element => (others => <>));
@@ -61,14 +74,16 @@ package body WisiToken.Generate.Tree_Sitter is
          case To_Token_Enum (Tree.ID (Node)) is
          when rhs_list_ID =>
             declare
+               use all type SAL.Base_Peek_Type;
                RHS_List : constant Constant_List := Creators.Create_List (Tree, Node, +rhs_list_ID, +rhs_ID);
             begin
                for RHS of RHS_List loop
-                  if Tree.RHS_Index (RHS) = 0 then
+                  if Tree.Child_Count (RHS) = 0 then
                      return RHS;
                   end if;
                   declare
-                     Empty_Node : constant Node_Access := Can_Be_Empty (Tree.Child (RHS, 1));
+                     Empty_Node : constant Node_Access := Can_Be_Empty
+                       (Tree.Child (RHS, (if Tree.ID (Tree.Child (RHS, 1)) = +rhs_item_list_ID then 1 else 2)));
                   begin
                      if Empty_Node /= Invalid_Node_Access then
                         return Empty_Node;
@@ -99,34 +114,51 @@ package body WisiToken.Generate.Tree_Sitter is
 
          when rhs_element_ID =>
             declare
-               Item : constant Valid_Node_Access := Tree.Find_Descendant (Node, +rhs_item_ID);
+               Item : constant Valid_Node_Access := Tree.Child (Tree.Find_Descendant (Node, +rhs_item_ID), 1);
             begin
-               case Tree.RHS_Index (Item) is
-               when 0 | 1 =>
+               case To_Token_Enum (Tree.ID (Item)) is
+               when IDENTIFIER_ID | STRING_LITERAL_SINGLE_ID =>
                   return Invalid_Node_Access;
 
-               when 2 =>
+               when attribute_ID =>
                   --  If the only elements in an rhs_item_list are attributes, the list
                   --  is empty for LR generation purposes.
                   return Item;
 
-               when 3 =>
+               when rhs_optional_item_ID =>
                   return Item;
 
-               when 4 =>
-                  case Tree.RHS_Index (Tree.Child (Item, 1)) is
-                  when 0 | 3 | 5 =>
-                     return Item;
-                  when 1 | 2 =>
-                     return Can_Be_Empty (Tree.Child (Tree.Child (Item, 1), 2));
-                  when 4 =>
-                     return Invalid_Node_Access;
-                  when others =>
-                     raise SAL.Programmer_Error;
-                  end case;
+               when rhs_multiple_item_ID =>
+                  declare
+                     use all type SAL.Base_Peek_Type;
+                     First_Child : constant Valid_Node_Access := Tree.Child (Item, 1);
+                  begin
+                     case To_Token_Enum (Tree.ID (First_Child)) is
+                     when LEFT_BRACE_ID =>
+                        return
+                          (if Tree.Child_Count (Item) = 3
+                           then Item
+                           else Invalid_Node_Access);
 
-               when 5 =>
-                  return Can_Be_Empty (Tree.Child (Tree.Child (Item, 1), 2));
+                     when LEFT_PAREN_ID =>
+                        return
+                          (if To_Token_Enum (Tree.ID (Tree.Child (Item, 4))) = STAR_ID
+                           then Item
+                           else Invalid_Node_Access);
+
+                     when IDENTIFIER_ID =>
+                        return
+                          (if To_Token_Enum (Tree.ID (Tree.Child (Item, 2))) = STAR_ID
+                           then Item
+                           else Invalid_Node_Access);
+
+                     when others =>
+                        raise SAL.Programmer_Error;
+                     end case;
+                  end;
+
+               when rhs_group_item_ID =>
+                  return Can_Be_Empty (Tree.Child (Item, 2));
 
                when others =>
                   raise SAL.Programmer_Error;
@@ -135,10 +167,10 @@ package body WisiToken.Generate.Tree_Sitter is
 
          when rhs_alternative_list_ID =>
             declare
-               RHS_Alt_List : constant Constant_List := Creators.Create_List
-                 (Tree, Node, +rhs_alternative_list_ID, +rhs_item_list_ID);
+               RHS_Alt_List_1 : constant Constant_List := Creators.Create_List
+                 (Tree, Tree.Child (Node, Tree.Child_Count (Node)), +rhs_alternative_list_1_ID, +rhs_item_list_ID);
             begin
-               for Item_List of RHS_Alt_List loop
+               for Item_List of RHS_Alt_List_1 loop
                   declare
                      Empty_Node : constant Node_Access := Can_Be_Empty (Item_List);
                   begin
@@ -221,8 +253,11 @@ package body WisiToken.Generate.Tree_Sitter is
                   end case;
                end;
 
+            when rhs_list_ID =>
+               Generate.Put_Error
+                 (Tree.Error_Message (Node, "%if in rhs_list not supported with tree_sitter."));
+
             when others =>
-               --  FIXME tree-sitter: handle rhs_list %if, %end if
                null;
             end case;
             return;
@@ -274,7 +309,7 @@ package body WisiToken.Generate.Tree_Sitter is
 
                   if Ignore_Lines and Trace_Generate_EBNF > Outline then
                      Ada.Text_IO.Put_Line
-                       ("ignore lines true line" &
+                       ("ignore lines TRUE line" &
                           Tree.Line_Region (Tree.Child (Node, 1), Trailing_Non_Grammar => True).First'Image);
                   end if;
 
@@ -289,14 +324,9 @@ package body WisiToken.Generate.Tree_Sitter is
             end case;
 
          when nonterminal_ID =>
-            --  FIXME tree-sitter: handle %if in rhs_list; need test case
-
-            --  tree-sitter allows the start nonterm of the grammar to be empty.
-            --  For WisiToken, that's always wisitoken_accept_ID, which is not in
-            --  the grammar file. So we ignore that case.
-
             declare
-               Empty_Node : constant Node_Access := Can_Be_Empty (Tree.Child (Node, 3));
+               Empty_Node : constant Node_Access := Can_Be_Empty
+                 (Tree.Child (Node, (if Tree.ID (Tree.Child (Node, 3)) = +rhs_list_ID then 3 else 4)));
             begin
                if Empty_Node /= Invalid_Node_Access then
                   Empty_Nonterms.Append
@@ -309,7 +339,7 @@ package body WisiToken.Generate.Tree_Sitter is
             Find_Empty_Nodes (Tree.Child (Node, 2));
 
          when others =>
-            raise SAL.Not_Implemented with Image (Tree.ID (Node), Wisitoken_Grammar_Actions.Descriptor);
+            raise SAL.Not_Implemented with Tree.Image (Node, Node_Numbers => True);
          end case;
       end Find_Empty_Nodes;
 
@@ -338,7 +368,7 @@ package body WisiToken.Generate.Tree_Sitter is
 
          when rhs_list_ID =>
             --  %if in an rhs_list is not a canonical list element, so we can't
-            --  use LR_Utils.Delete.
+            --  use LR_Utils.Delete. Which is why it's not supported.
             raise SAL.Not_Implemented;
 
          when rhs_ID =>
@@ -356,27 +386,30 @@ package body WisiToken.Generate.Tree_Sitter is
       end Delete_Node;
 
       procedure Make_Non_Empty (Empty_Node : in Valid_Node_Access)
-      with Pre => To_Token_Enum (Tree.ID (Empty_Node)) in
-                  rhs_ID | rhs_item_list_ID | rhs_item_ID
+      with Pre => Is_Possibly_Empty_ID (Tree, Empty_Node)
+      --  Empty_Node is the first item in an RHS that can be empty; change
+      --  the RHS to be non-empty.
       is
          use WisiToken.Syntax_Trees.LR_Utils;
          use all type SAL.Base_Peek_Type;
 
          procedure Make_Non_Empty_RHS_Item (Item : in Valid_Node_Access)
-         with Pre => Tree.ID (Item) = +rhs_item_ID
+         with Pre =>
+           Tree.ID (Item) = +rhs_item_ID and
+           To_Token_Enum (Tree.ID (Tree.Child (Item, 1))) in rhs_optional_item_ID | rhs_multiple_item_ID
+         --  Edit Item so it cannot be empty. Higher level code promotes the
+         --  empty case to a higher level nonterm.
          is
             Item_Var : Valid_Node_Access := Item;
          begin
-            case Tree.RHS_Index (Item) is
-            when 0 | 1 | 2 =>
-               raise SAL.Programmer_Error;
-
-            when 3 => -- rhs_optional_item
+            case To_Token_Enum (Tree.ID (Tree.Child (Item, 1))) is
+            when rhs_optional_item_ID =>
                declare
                   Optional_Item :  Valid_Node_Access := Tree.Child (Item, 1);
                begin
-                  case Tree.RHS_Index (Optional_Item) is
-                  when 0         =>
+                  case To_Token_Enum (Tree.ID (Tree.Child (Optional_Item, 1))) is
+                  when LEFT_BRACKET_ID =>
+
                      Tree.Set_Children
                        (Node     => Optional_Item,
                         New_ID   => (+rhs_group_item_ID, 0),
@@ -387,11 +420,12 @@ package body WisiToken.Generate.Tree_Sitter is
 
                      Tree.Set_Children
                        (Node     => Item_Var,
-                        New_ID   => (+rhs_item_ID, 5),
+                        New_ID   => (+rhs_item_ID, 4),
                         Children =>
                           (1     => Optional_Item));
 
-                  when 1         =>
+                  when LEFT_PAREN_ID =>
+
                      Tree.Set_Children
                        (Node     => Optional_Item,
                         New_ID   => (+rhs_group_item_ID, 0),
@@ -399,17 +433,19 @@ package body WisiToken.Generate.Tree_Sitter is
 
                      Tree.Set_Children
                        (Node     => Item_Var,
-                        New_ID   => (+rhs_item_ID, 5),
+                        New_ID   => (+rhs_item_ID, 4),
                         Children =>
                           (1     => Optional_Item));
 
-                  when 2         =>
+                  when IDENTIFIER_ID =>
+
                      Tree.Set_Children
                        (Node     => Item_Var,
                         New_ID   => (+rhs_item_ID, 0),
                         Children => (1 => Tree.Child (Optional_Item, 1)));
 
-                  when 3         =>
+                  when STRING_LITERAL_SINGLE_ID =>
+
                      Tree.Set_Children
                        (Node     => Item_Var,
                         New_ID   => (+rhs_item_ID, 1),
@@ -420,36 +456,41 @@ package body WisiToken.Generate.Tree_Sitter is
                   end case;
                end;
 
-            when 4 =>
+            when rhs_multiple_item_ID =>
                declare
-                  Multiple_Item : Valid_Node_Access := Tree.Child (Item, 1);
+                  Multiple_Item  : Valid_Node_Access          := Tree.Child (Item, 1);
+                  First_Child    : constant Valid_Node_Access := Tree.Child (Multiple_Item, 1);
+                  First_Child_ID : constant Token_Enum_ID     := To_Token_Enum (Tree.ID (First_Child));
                begin
-                  case Tree.RHS_Index (Multiple_Item) is
-                  when 0 | 3 | 5 =>
-                     Tree.Set_Children
-                       (Multiple_Item,
-                        (+rhs_multiple_item_ID,
-                         (case Tree.RHS_Index (Multiple_Item) is
-                          when 0 => 1,
-                          when 3 => 2,
-                          when 5 => 4,
-                          when others => raise SAL.Programmer_Error)),
-                        (case Tree.RHS_Index (Multiple_Item) is
-                         when 0 | 3 =>
-                           (1 => Tree.Child (Multiple_Item, 1),
-                            2 => Tree.Child (Multiple_Item, 2),
-                            3 => Tree.Child (Multiple_Item, 3),
-                            4 => (case Tree.RHS_Index (Multiple_Item) is
-                                  when 0 => Tree.Add_Terminal (+MINUS_ID),
-                                  when 3 => Tree.Add_Terminal (+PLUS_ID),
-                                  when others => raise SAL.Programmer_Error)),
-                         when 5 => (1 => Tree.Child (Multiple_Item, 1)),
-                         when others => raise SAL.Programmer_Error));
+                  pragma Assert
+                    (case First_Child_ID is
+                     when LEFT_BRACE_ID => Tree.Child_Count (Multiple_Item) = 3,
+                     when LEFT_PAREN_ID => Tree.ID (Tree.Child (Multiple_Item, 4)) = +STAR_ID,
+                     when IDENTIFIER_ID => Tree.ID (Tree.Child (Multiple_Item, 2)) = +STAR_ID,
+                     when others => raise SAL.Programmer_Error);
 
-                  when others =>
-                     raise SAL.Programmer_Error with "make_non_empty_rhs_item " & Tree.Image
-                       (Multiple_Item, RHS_Index => True, Node_Numbers => True);
-                  end case;
+                  Tree.Set_Children
+                    (Node => Multiple_Item,
+                     New_ID =>
+                       (LHS => +rhs_multiple_item_ID,
+                        RHS =>
+                          (case Tree.RHS_Index (Multiple_Item) is
+                           when 0 => 1,
+                           when 3 => 2,
+                           when 5 => 4,
+                           when others => raise SAL.Programmer_Error)),
+                     Children =>
+                       (case Tree.RHS_Index (Multiple_Item) is
+                        when 0 | 3 =>
+                          (1 => Tree.Child (Multiple_Item, 1),
+                           2 => Tree.Child (Multiple_Item, 2),
+                           3 => Tree.Child (Multiple_Item, 3),
+                           4 => (case Tree.RHS_Index (Multiple_Item) is
+                                 when 0 => Tree.Add_Terminal (+MINUS_ID),
+                                 when 3 => Tree.Add_Terminal (+PLUS_ID),
+                                 when others => raise SAL.Programmer_Error)),
+                        when 5 => (1 => Tree.Child (Multiple_Item, 1)),
+                        when others => raise SAL.Programmer_Error));
                end;
 
             when others =>
@@ -459,23 +500,22 @@ package body WisiToken.Generate.Tree_Sitter is
 
       begin
          case To_Token_Enum (Tree.ID (Empty_Node)) is
-         when rhs_item_ID =>
-            Make_Non_Empty_RHS_Item (Empty_Node);
+         when rhs_ID =>
+            --  An empty RHS.
+            Delete_Node (Empty_Node);
 
          when rhs_item_list_ID =>
-            --  Entire item_list can be empty
             declare
-               Item_List : constant Constant_List := Creators.Create_List
+               Item_List  : constant Constant_List     := Creators.Create_List
                  (Tree, Empty_Node, +rhs_item_list_ID, +rhs_element_ID);
+               First_Item : constant Valid_Node_Access := Element (Item_List.First);
+               Item       : constant Valid_Node_Access := Tree.Find_Descendant (First_Item, +rhs_item_ID);
             begin
-               --  If there is more than one item in the rhs_item_list, we can
-               --  arbitrarily make the first non-empty. See ada_lite_ebnf.wy
-               --  handled_sequence_of_statements.
-               Make_Non_Empty_RHS_Item (Tree.Find_Descendant (Element (Item_List.First), +rhs_item_ID));
+               Make_Non_Empty_RHS_Item (Item);
             end;
 
-         when rhs_ID =>
-            Delete_Node (Empty_Node);
+         when rhs_item_ID =>
+            Make_Non_Empty_RHS_Item (Empty_Node);
 
          when others =>
             raise SAL.Programmer_Error;
@@ -483,8 +523,12 @@ package body WisiToken.Generate.Tree_Sitter is
       end Make_Non_Empty;
 
       procedure Make_Optional (Name : in String)
+      --  Convert all occurences of Name in RHS to optional, because it used
+      --  to be possibly empty. Add edited nonterms to Node_To_Check; they
+      --  may now be possibly empty.
       is
          procedure Find_Nodes (Node : in Valid_Node_Access)
+         --  Search subtree at Node for Name
          is
             use all type SAL.Base_Peek_Type;
             Node_Var : Node_Access := Node;
@@ -495,30 +539,25 @@ package body WisiToken.Generate.Tree_Sitter is
             when wisitoken_accept_ID =>
                Find_Nodes (Tree.Child (Node, 2));
 
+            when rhs_alternative_list_ID =>
+               Find_Nodes (Tree.Child (Node, Tree.Child_Count (Node)));
+
             when compilation_unit_ID =>
                Find_Nodes (Tree.Child (Node, 1));
 
-            when compilation_unit_list_ID | rhs_alternative_list_ID | rhs_item_list_ID | rhs_list_ID =>
+            when compilation_unit_list_ID | rhs_alternative_list_1_ID | rhs_item_list_ID | rhs_list_ID =>
                declare
                   Children : constant Node_Access_Array := Tree.Children (Node);
                begin
-                  case Tree.RHS_Index (Node) is
-                  when 0 =>
-                     Find_Nodes (Children (1));
-
-                  when 1 =>
-                     Find_Nodes (Children (1));
+                  Find_Nodes (Children (1));
+                  if Tree.Child_Count (Node) > 1 then
                      Find_Nodes
                        (Children
-                          ((if To_Token_Enum (Tree.ID (Node)) in rhs_list_ID | rhs_alternative_list_ID then 3 else 2)));
-
-                  when others =>
-                     --  rhs_list can have other rhs_index, but those nodes should have been
-                     --  deleted by now.
-                     raise SAL.Programmer_Error with "Make_Optional.Find_Nodes list: rhs_index" &
-                       Tree.RHS_Index (Node)'Image & " node " & Tree.Image
-                         (Node, Node_Numbers => True);
-                  end case;
+                          (case To_Token_Enum (Tree.ID (Node)) is
+                           when compilation_unit_list_ID  | rhs_item_list_ID => 2,
+                           when rhs_alternative_list_1_ID | rhs_list_ID      => 3,
+                           when others => raise SAL.Programmer_Error));
+                  end if;
                end;
 
             when declaration_ID =>
@@ -538,24 +577,29 @@ package body WisiToken.Generate.Tree_Sitter is
                Find_Nodes (Tree.Child (Node, 2));
 
             when rhs_item_ID =>
-               case Tree.RHS_Index (Node) is
-               when 0 | 1 =>
+               case To_Token_Enum (Tree.ID (Tree.Child (Node, 1))) is
+               when IDENTIFIER_ID =>
                   if Name = Get_Text (Tree.Child (Node, 1)) then
+                     --  IMPROVEME: could check if already optional (ie parent is single
+                     --  rhs_item_list contained in single rhs_alternative_list contained
+                     --  in rhs_optional_item), which means the source grammar should be
+                     --  changed.
+
                      Nodes_To_Check.Append (Node);
                      declare
                         Child : constant Valid_Node_Access := WisiToken_Grammar_Editing.Add_RHS_Optional_Item
                           (Tree,
-                           RHS_Index => (if Tree.RHS_Index (Node) = 0 then 2 else 3),
+                           RHS_Index => 2, -- IDENTIFIER QUESTION
                            Content   => Tree.Child (Node, 1));
                      begin
-                        Tree.Set_Children (Node_Var, (+rhs_item_ID, 3), (1 => Child));
+                        Tree.Set_Children (Node_Var, (+rhs_item_ID, 2), (1 => Child));
                      end;
                   end if;
 
-               when 2 =>
+               when STRING_LITERAL_SINGLE_ID =>
                   null;
 
-               when 3 | 4 | 5 =>
+               when attribute_ID | rhs_optional_item_ID | rhs_multiple_item_ID | rhs_group_item_ID =>
                   Find_Nodes (Tree.Child (Node, 1));
 
                when others =>
@@ -563,19 +607,18 @@ package body WisiToken.Generate.Tree_Sitter is
                end case;
 
             when rhs_multiple_item_ID =>
-               case Tree.RHS_Index (Node) is
-               when 0 | 1 | 2 | 3 =>
+               case To_Token_Enum (Tree.ID (Tree.Child (Node, 1))) is
+               when LEFT_BRACE_ID | LEFT_PAREN_ID =>
                   Find_Nodes (Tree.Child (Node, 2));
 
-               when 4 =>
-                  Nodes_To_Check.Append (Node);
+               when IDENTIFIER_ID =>
+                  if Name = Get_Text (Tree.Child (Node, 1)) and
+                    To_Token_Enum (Tree.ID (Tree.Child (Node, 2))) = STAR_ID
+                  then
+                     Generate.Put_Error
+                       (Tree.Error_Message (Node, "'" & Name & "' is both optional and possibly empty."));
+                  end if;
 
-                  Tree.Set_Children
-                    (Node_Var, (+rhs_multiple_item_ID, 5), (Tree.Child (Node, 1), Tree.Add_Terminal (+STAR_ID)));
-
-               when 5 =>
-                  --  already optional
-                  null;
                when others =>
                   raise SAL.Programmer_Error;
                end case;
@@ -610,16 +653,32 @@ package body WisiToken.Generate.Tree_Sitter is
       end Make_Optional;
 
    begin
+      WisiToken_Grammar_Editing.EBNF_Allowed := True;
+
       if Trace_Generate_EBNF > Outline then
          Ada.Text_IO.New_Line;
          Ada.Text_IO.Put_Line ("tree_sitter eliminate empty productions start");
          if Trace_Generate_EBNF > Detail then
             Tree.Print_Tree (Tree.Root);
+            Ada.Text_IO.New_Line;
          end if;
       end if;
 
       Find_Empty_Nodes (Tree.Root);
       --  Also finds %if etc, adds them to Nodes_To_Delete.
+
+      if No_Empty and Empty_Nonterms.Length > 0 then
+         declare
+            use Ada.Strings.Unbounded;
+            Empty_Image : Unbounded_String;
+         begin
+            for Nonterm of Empty_Nonterms loop
+               Append (Empty_Image, Nonterm.Name);
+               Append (Empty_Image, " ");
+            end loop;
+            raise Grammar_Error with "Tree_Sitter forbids possibly empty nonterms: " & (-Empty_Image);
+         end;
+      end if;
 
       if Trace_Generate_EBNF > Outline then
          Ada.Text_IO.Put_Line ("nodes to delete:" & Nodes_To_Delete.Length'Image);
@@ -628,14 +687,18 @@ package body WisiToken.Generate.Tree_Sitter is
       for Node of Nodes_To_Delete loop
          Delete_Node (Node);
       end loop;
+      Nodes_To_Delete.Clear;
 
       Data.Error_Reported.Clear;
 
-      Tree.Validate_Tree
-        (Data, Data.Error_Reported,
-         Root             => Tree.Root,
-         Validate_Node    => WisiToken_Grammar_Editing.Validate_Node'Access,
-         Node_Index_Order => True);
+      if Debug_Mode then
+         Tree.Validate_Tree
+           (Data'Unchecked_Access, Data.Error_Reported,
+            Root              => Tree.Root,
+            Validate_Node     => WisiToken_Grammar_Editing.Validate_Node'Access,
+            Node_Index_Order  => True,
+            Line_Number_Order => False);
+      end if;
 
       if Trace_Generate_EBNF > Outline then
          Ada.Text_IO.Put_Line ("empty nonterms:");
@@ -646,6 +709,8 @@ package body WisiToken.Generate.Tree_Sitter is
       end if;
 
       for Nonterm of Empty_Nonterms loop
+         --  IMPROVEME: tree-sitter allows the start nonterm of the grammar to be empty,
+         --  but no other nonterms may be empty. But we don't find Start_Node until we are in Print_Tree_Sitter.
          Make_Non_Empty (Nonterm.Empty_Node);
       end loop;
 
@@ -654,11 +719,13 @@ package body WisiToken.Generate.Tree_Sitter is
          Ada.Text_IO.New_Line;
       end if;
 
-      Tree.Validate_Tree
-        (Data, Data.Error_Reported,
-         Root             => Tree.Root,
-         Validate_Node    => WisiToken_Grammar_Editing.Validate_Node'Access,
-         Node_Index_Order => False);
+      if Debug_Mode then
+         Tree.Validate_Tree
+           (Data'Unchecked_Access, Data.Error_Reported,
+            Root             => Tree.Root,
+            Validate_Node    => WisiToken_Grammar_Editing.Validate_Node'Access,
+            Node_Index_Order => False); --  Implies Line_Number_Order = False
+      end if;
 
       for Nonterm of Empty_Nonterms loop
          Make_Optional (-Nonterm.Name);
@@ -669,11 +736,13 @@ package body WisiToken.Generate.Tree_Sitter is
          Ada.Text_IO.New_Line;
       end if;
 
-      Tree.Validate_Tree
-        (Data, Data.Error_Reported,
-         Root             => Tree.Root,
-         Validate_Node    => WisiToken_Grammar_Editing.Validate_Node'Access,
-         Node_Index_Order => False);
+      if Debug_Mode then
+         Tree.Validate_Tree
+           (Data'Unchecked_Access, Data.Error_Reported,
+            Root             => Tree.Root,
+            Validate_Node    => WisiToken_Grammar_Editing.Validate_Node'Access,
+            Node_Index_Order => False);
+      end if;
 
       declare
          use Valid_Node_Access_Lists;
@@ -712,16 +781,18 @@ package body WisiToken.Generate.Tree_Sitter is
          Ada.Text_IO.New_Line;
       end if;
 
-      Tree.Validate_Tree
-        (Data, Data.Error_Reported,
-         Root             => Tree.Root,
-         Validate_Node    => WisiToken_Grammar_Editing.Validate_Node'Access,
-         Node_Index_Order => False);
+      if Debug_Mode then
+         Tree.Validate_Tree
+           (Data'Unchecked_Access, Data.Error_Reported,
+            Root             => Tree.Root,
+            Validate_Node    => WisiToken_Grammar_Editing.Validate_Node'Access,
+            Node_Index_Order => False);
+      end if;
 
       if Trace_Generate_EBNF > Detail then
-         Ada.Text_IO.New_Line;
          Ada.Text_IO.Put_Line ("tree_sitter eliminate empty productions end");
          Tree.Print_Tree (Tree.Root);
+         Ada.Text_IO.New_Line;
       end if;
    end Eliminate_Empty_Productions;
 
@@ -734,7 +805,24 @@ package body WisiToken.Generate.Tree_Sitter is
    is
       use all type Ada.Containers.Count_Type;
 
-      File : File_Type;
+      --  We process the EBNF tree, not the grammar description in Data, to
+      --  take advantage of the higher-level tree_sitter grammar
+      --  descriptions like 'optional' and 'repeat'.
+
+      --  'hidden rules'
+      --  (https://tree-sitter.github.io/tree-sitter/creating-parsers#hiding-rules)
+      --  are different from 'inline'
+      --  (https://tree-sitter.github.io/tree-sitter/creating-parsers#the-grammar-dsl);
+      --  hidden rules are in the parse table, inline are not. The parse
+      --  action for hidden rules does not create a syntax tree node. We
+      --  don't support them in the wisi parser generator, because that
+      --  would mean Undo_Reduce cannot be implemented, which is required
+      --  for our error recover algorithm. (IMPROVEME: maybe undo_reduce
+      --  is just more complicated?).
+      --
+      --  For now, we don't use them in the generated tree-sitter grammar,
+      --  so client code doesn't care whether it's a wisi or tree-sitter
+      --  parser.
 
       Extras    : WisiToken.BNF.String_Lists.List;
       Conflicts : WisiToken.BNF.String_Lists.List;
@@ -747,6 +835,13 @@ package body WisiToken.Generate.Tree_Sitter is
       with Pre => Tree.ID (Node) = +rhs_item_list_ID;
 
       --  Local bodies
+
+      procedure Put_Commented (Text : in WisiToken.BNF.String_Lists.List)
+      is begin
+         for Line of Text loop
+            Put_Line ("// " & Line);
+         end loop;
+      end Put_Commented;
 
       function Get_Text (Tree_Index : in Valid_Node_Access) return String
       is
@@ -796,15 +891,15 @@ package body WisiToken.Generate.Tree_Sitter is
 
       procedure Not_Translated (Label : in String; Node : in Valid_Node_Access)
       is begin
-         New_Line (File);
-         Put (File, "// " & Label & ": not translated: " & Node_Access'Image (Node) & ":" &
+         New_Line;
+         Put ("// " & Label & ": not translated: " & Node_Access'Image (Node) & ":" &
                 Tree.Image (Node, Children => True));
 
          Put_Line
            (Current_Error,
             Tree.Error_Message
               (Node,
-               "not translated: " &
+               Label & ": not translated: " &
                  Tree.Image
                    (Node,
                     RHS_Index    => True,
@@ -812,50 +907,85 @@ package body WisiToken.Generate.Tree_Sitter is
                     Node_Numbers => True)));
       end Not_Translated;
 
-      procedure Put_RHS_Alternative_List (Node : in Valid_Node_Access; First : in Boolean)
-      with Pre => Tree.ID (Node) = +rhs_alternative_list_ID
+      procedure Put_Attr_List (Attr_List : in Valid_Node_Access)
+      is
+         Prec  : constant WisiToken.Base_Precedence_ID := WisiToken_Grammar_Runtime.Get_Precedence
+           (Data, Tree, Attr_List);
+         Assoc : constant WisiToken.Associativity      := WisiToken_Grammar_Runtime.Get_Associativity
+           (Data, Tree, Attr_List);
+      begin
+         case Assoc is
+         when Left =>
+            Put ("prec.left(");
+
+         when Right =>
+            Put ("prec.right(");
+
+         when None =>
+            pragma Assert (Prec /= No_Precedence);
+            Put ("prec(");
+         end case;
+         if Prec /= No_Precedence then
+            Put ("'" & (-Data.Precedence_Inverse_Map (Prec)) & "', ");
+         end if;
+      end Put_Attr_List;
+
+      procedure Put_RHS_Alternative_List_1 (Node : in Valid_Node_Access; First : in Boolean)
+      with Pre => Tree.ID (Node) = +rhs_alternative_list_1_ID
       is begin
-         case Tree.RHS_Index (Node) is
-         when 0 =>
-            --  If only alternative, don't need "choice()".
+         case To_Token_Enum (Tree.ID (Tree.Child (Node, 1))) is
+         when rhs_item_list_ID =>
+            --  Only one alternative, don't need "choice()".
             Put_RHS_Item_List (Tree.Child (Node, 1), First => True);
 
-         when 1 =>
+         when rhs_alternative_list_1_ID =>
             if First then
-               Put (File, "choice(");
+               Put ("choice(");
             end if;
 
-            Put_RHS_Alternative_List (Tree.Child (Node, 1), First => False);
-            Put (File, ", ");
+            Put_RHS_Alternative_List_1 (Tree.Child (Node, 1), First => False);
+            Put (", ");
             Put_RHS_Item_List (Tree.Child (Node, 3), First => True);
 
             if First then
-               Put (File, ")");
+               Put (")");
             end if;
 
          when others =>
-            Not_Translated ("Put_RHS_Alternative_List", Node);
+            Not_Translated ("Put_RHS_Alternative_List_1", Node);
          end case;
+      end Put_RHS_Alternative_List_1;
+
+      procedure Put_RHS_Alternative_List (Node : in Valid_Node_Access)
+      with Pre => Tree.ID (Node) = +rhs_alternative_list_ID
+      is
+         RHS_Alt_List_1 : Valid_Node_Access := Tree.Child (Node, 1);
+      begin
+         if Tree.ID (Tree.Child (Node, 1)) = +attribute_list_ID then
+            Put_Attr_List (Tree.Child (Node, 1));
+            RHS_Alt_List_1 := Tree.Child (Node, 2);
+         end if;
+
+         Put_RHS_Alternative_List_1 (RHS_Alt_List_1, First => True);
       end Put_RHS_Alternative_List;
 
       procedure Put_RHS_Optional_Item (Node : in Valid_Node_Access)
       with Pre => Tree.ID (Node) = +rhs_optional_item_ID
       is begin
-         Put (File, "optional(");
+         Put ("optional(");
 
-         case Tree.RHS_Index (Node) is
-         when 0 | 1 =>
-            Put_RHS_Alternative_List (Tree.Child (Node, 2), First => True);
-         when 2 =>
-            Put (File, "$." & Get_Text (Tree.Child (Node, 1)));
-         when 3 =>
-            --  STRING_LITERAL_2
-            Put (File, Get_Text (Tree.Child (Node, 1)));
+         case To_Token_Enum (Tree.ID (Tree.Child (Node, 1))) is
+         when LEFT_BRACKET_ID | LEFT_PAREN_ID =>
+            Put_RHS_Alternative_List (Tree.Child (Node, 2));
+         when IDENTIFIER_ID =>
+            Put ("$." & Get_Text (Tree.Child (Node, 1)));
+         when STRING_LITERAL_SINGLE_ID =>
+            Put (Get_Text (Tree.Child (Node, 1)));
          when others =>
-            Not_Translated ("Put_RHS_Optional_Item", Node);
+            raise SAL.Programmer_Error;
          end case;
 
-         Put (File, ")");
+         Put (")");
       end Put_RHS_Optional_Item;
 
       procedure Put_RHS_Multiple_Item (Node : in Valid_Node_Access)
@@ -863,24 +993,24 @@ package body WisiToken.Generate.Tree_Sitter is
       is begin
          case Tree.RHS_Index (Node) is
          when 0 | 3 =>
-            Put (File, "repeat(");
-            Put_RHS_Alternative_List (Tree.Child (Node, 2), First => True);
-            Put (File, ")");
+            Put ("repeat(");
+            Put_RHS_Alternative_List (Tree.Child (Node, 2));
+            Put (")");
 
          when 1 | 2 =>
-            Put (File, "repeat1(");
-            Put_RHS_Alternative_List (Tree.Child (Node, 2), First => True);
-            Put (File, ")");
+            Put ("repeat1(");
+            Put_RHS_Alternative_List (Tree.Child (Node, 2));
+            Put (")");
 
          when 4 =>
-            Put (File, "repeat1(");
-            Put (File, "$." & Get_Text (Tree.Child (Node, 1)));
-            Put (File, ")");
+            Put ("repeat1(");
+            Put ("$." & Get_Text (Tree.Child (Node, 1)));
+            Put (")");
 
          when 5 =>
-            Put (File, "repeat(");
-            Put (File, "$." & Get_Text (Tree.Child (Node, 1)));
-            Put (File, ")");
+            Put ("repeat(");
+            Put ("$." & Get_Text (Tree.Child (Node, 1)));
+            Put (")");
 
          when others =>
             Not_Translated ("Put_RHS_Multiple_Item", Node);
@@ -890,84 +1020,63 @@ package body WisiToken.Generate.Tree_Sitter is
       procedure Put_RHS_Group_Item (Node : in Valid_Node_Access)
       with Pre => Tree.ID (Node) = +rhs_group_item_ID
       is begin
-         Put_RHS_Alternative_List (Tree.Child (Node, 2), First => True);
+         Put_RHS_Alternative_List (Tree.Child (Node, 2));
       end Put_RHS_Group_Item;
 
       procedure Put_RHS_Item (Node : in Valid_Node_Access)
       with Pre => Tree.ID (Node) = +rhs_item_ID
-      is begin
-         case Tree.RHS_Index (Node) is
-         when 0 =>
+      is
+         function Keyword_Name (Decl : in Valid_Node_Access) return String
+         with Pre => KEYWORD_ID = To_Token_Enum (Tree.ID (Tree.Child (Decl, 2)))
+         is begin
+            return Get_Text (Tree.Child (Decl, 3));
+         end Keyword_Name;
+
+      begin
+         case To_Token_Enum (Tree.ID (Tree.Child (Node, 1))) is
+         when IDENTIFIER_ID =>
+            Put ("$." & Get_Text (Node));
+
+         when STRING_LITERAL_SINGLE_ID =>
+            --  Case insensitive
             declare
-               Ident : constant String     := Get_Text (Node);
-               Decl  : constant Node_Access := WisiToken_Grammar_Editing.Find_Declaration (Data, Tree, Ident);
+               Text : constant String := Get_Text (Node);
+
+               --  Token may be declared with "...", but referenced with '...'.
+               Decl : constant Node_Access := WisiToken_Grammar_Editing.Find_Declaration_By_Value
+                 (Data, Tree, Text (Text'First + 1 .. Text'Last - 1), Strip_Quotes => True);
             begin
                if Decl = Invalid_Node_Access then
-                  Generate.Put_Error (Tree.Error_Message (Node, "decl for '" & Ident & "' not found"));
-
-               elsif Tree.ID (Decl) = +nonterminal_ID then
-                  Put (File, "$." & Get_Text (Tree.Child (Decl, 1)));
-
+                  Put ("caseInsensitive(" & Text & ")");
                else
-                  case Tree.RHS_Index (Decl) is
-                  when 0 =>
-                     case To_Token_Enum (Tree.ID (Tree.Child (Tree.Child (Decl, 2), 1))) is
-                     when KEYWORD_ID =>
-                        Put (File, Get_Text (Tree.Child (Decl, 4)));
+                  case To_Token_Enum (Tree.ID (Tree.Child (Decl, 2))) is
+                  when Wisitoken_Grammar_Actions.TOKEN_ID =>
+                     --  Assume it's punctuation or similar where case doesn't matter.
+                     Put (Text);
 
-                     when NON_GRAMMAR_ID =>
-                        Not_Translated ("put_rhs_item", Node);
-
-                     when Wisitoken_Grammar_Actions.TOKEN_ID =>
-                        declare
-                           use WisiToken.Syntax_Trees.LR_Utils;
-                           List : constant Constant_List := Creators.Create_List
-                             (Tree, Tree.Child (Decl, 4), +declaration_item_list_ID, +declaration_item_ID);
-                           Item : constant Valid_Node_Access := Tree.Child (Element (List.First), 1);
-                        begin
-                           case To_Token_Enum (Tree.ID (Item)) is
-                           when REGEXP_ID =>
-                              Put (File, "$." & Ident);
-
-                           when STRING_LITERAL_1_ID | STRING_LITERAL_2_ID =>
-                              --  FIXME tree-sitter: STRING_LITERAL_1_ID in regexp is case insensitive; not
-                              --  clear how to do that in tree-sitter.
-                              Put (File, Get_Text (Item));
-
-                           when others =>
-                              Not_Translated ("put_rhs_item ident token", Node);
-                           end case;
-                        end;
-
-                     when others =>
-                        Not_Translated ("put_rhs_item ident", Node);
-                     end case;
+                  when KEYWORD_ID =>
+                     Put ("$." & Keyword_Name (Decl));
 
                   when others =>
-                     Not_Translated ("put_rhs_item 0", Node);
+                     raise SAL.Programmer_Error;
                   end case;
                end if;
             end;
 
-         when 1 =>
-            --  STRING_LITERAL_2
-            Put (File, Get_Text (Node));
-
-         when 2 =>
-            --  ignore attribute
+         when attribute_ID =>
             null;
 
-         when 3 =>
+         when rhs_optional_item_ID =>
             Put_RHS_Optional_Item (Tree.Child (Node, 1));
 
-         when 4 =>
+         when rhs_multiple_item_ID =>
             Put_RHS_Multiple_Item (Tree.Child (Node, 1));
 
-         when 5 =>
+         when rhs_group_item_ID =>
             Put_RHS_Group_Item (Tree.Child (Node, 1));
 
          when others =>
-            Not_Translated ("Put_RHS_Item", Node);
+            raise SAL.Programmer_Error with "node: " & Trimmed_Image (Node);
          end case;
       end Put_RHS_Item;
 
@@ -979,11 +1088,12 @@ package body WisiToken.Generate.Tree_Sitter is
             Put_RHS_Item (Tree.Child (Node, 1));
 
          when 1 =>
-            --  Ignore the label
+            Put ("field('" & Get_Text (Tree.Child (Node, 1)) & "', ");
             Put_RHS_Item (Tree.Child (Node, 3));
+            Put (")");
 
          when others =>
-            Not_Translated ("Put_RHS_Element", Node);
+            raise SAL.Programmer_Error;
          end case;
       end Put_RHS_Element;
 
@@ -995,14 +1105,14 @@ package body WisiToken.Generate.Tree_Sitter is
             Put_RHS_Element (Children (1));
          else
             if First then
-               Put (File, "seq(");
+               Put ("seq(");
             end if;
             Put_RHS_Item_List (Children (1), First => False);
-            Put (File, ", ");
+            Put (", ");
             Put_RHS_Element (Children (2));
 
             if First then
-               Put (File, ")");
+               Put (")");
             end if;
          end if;
       end Put_RHS_Item_List;
@@ -1022,12 +1132,21 @@ package body WisiToken.Generate.Tree_Sitter is
                        when others => Tree.Child (RHS_List, 2))),
                   "empty RHS forbidden by tree-sitter"));
 
-         when 1 .. 3 =>
-            Put_RHS_Item_List (Tree.Child (Node, 1), First => True);
-            --  tree-sitter does not have actions in the grammar
+         when 1 .. 6 =>
+            if Tree.ID (Tree.Child (Node, 1)) = +attribute_list_ID then
+               Put_Attr_List (Tree.Child (Node, 1));
+               Put_RHS_Item_List (Tree.Child (Node, 2), First => True);
+               Put (')');
+            else
+               Put_RHS_Item_List (Tree.Child (Node, 1), First => True);
+            end if;
+
+            --  tree-sitter does not have actions in the grammar. FIXME: output
+            --  actions map to separate file for Emacs wisi with tree-sitter
+            --  parser.
 
          when others =>
-            Not_Translated ("put_rhs", Node);
+            raise SAL.Programmer_Error;
          end case;
       end Put_RHS;
 
@@ -1042,26 +1161,45 @@ package body WisiToken.Generate.Tree_Sitter is
 
          when 1 =>
             if First then
-               Put (File, "choice(");
+               Put ("choice(");
+               Indent := @ + 2;
             end if;
 
             Put_RHS_List (Children (1), First => False);
-            Put (File, ",");
+            Put (", ");
             Put_RHS (Children (3));
 
             if First then
-               Put (File, ")");
+               Put (")");
+               Indent := @ - 2;
             end if;
 
-         when 2 .. 4 =>
-            --  Should have been eliminated by Eliminate_Empty_Productions
-            raise SAL.Programmer_Error with "Print_Tree_Sitter rhs_list %if " &
-              Tree.Image (Node, Node_Numbers => True);
+         when 2 .. 6 =>
+            --  Could have been eliminated by Eliminate_Empty_Productions, but that's hard.
+            Generate.Put_Error
+              (Tree.Error_Message (Node, "%if in rhs_list not supported with tree_sitter."));
 
          when others =>
                raise SAL.Programmer_Error;
          end case;
       end Put_RHS_List;
+
+      function String_Regexp (Value : in Valid_Node_Access) return String
+      with Pre => To_Token_Enum (Tree.ID (Value)) in STRING_LITERAL_DOUBLE_ID | STRING_LITERAL_SINGLE_ID | REGEXP_ID
+      --  Return a javascript expression for Value
+      is
+         use Ada.Strings, Ada.Strings.Fixed;
+      begin
+         return
+         (case To_Token_Enum (Tree.ID (Value)) is
+            when STRING_LITERAL_DOUBLE_ID | STRING_LITERAL_SINGLE_ID => Get_Text (Value),
+
+            when REGEXP_ID =>
+               --  Value must be '/.../' or 'new RegExp("...")' as needed; not checked here.
+               Trim (Get_Text (Value), Both),
+
+            when others => raise SAL.Programmer_Error);
+      end String_Regexp;
 
       procedure Process_Node (Node : in Valid_Node_Access)
       is begin
@@ -1079,143 +1217,224 @@ package body WisiToken.Generate.Tree_Sitter is
             Process_Node (Tree.Child (Node, 1));
 
          when compilation_unit_list_ID =>
-            declare
-               Children : constant Node_Access_Array := Tree.Children (Node);
-            begin
-               case To_Token_Enum (Tree.ID (Children (1))) is
-               when compilation_unit_list_ID =>
-                  Process_Node (Children (1));
-                  Process_Node (Children (2));
-               when compilation_unit_ID =>
-                  Process_Node (Children (1));
-               when others =>
-                  raise SAL.Programmer_Error;
-               end case;
-            end;
+            raise SAL.Programmer_Error;
 
          when declaration_ID =>
-            raise SAL.Not_Implemented with "FIXME: match current wisitoken_grammar.wy";
-            --  case To_Token_Enum (Tree.ID (Tree.Child (Node, 2))) is
-            --  when Wisitoken_Grammar_Actions.TOKEN_ID | NON_GRAMMAR_ID =>
-            --     --  We need tokens with 'regexp' values because they are not defined
-            --     --  elsewhere, 'punctuation' tokens for consistent names, and
-            --     --  'line-comment' to allow comments. tree-sitter default 'extras'
-            --     --  handles whitespace and newline, but if we define 'comment', we
-            --     --  also need 'new-line' and 'whitespace'.
-            --     declare
-            --        use Ada.Strings;
-            --        use Ada.Strings.Fixed;
-            --        use WisiToken.Syntax_Trees.LR_Utils;
-            --        Name  : constant String        := Get_Text (Tree.Child (Node, 3));
-            --        Class : constant Token_Enum_ID := To_Token_Enum (Tree.ID (Tree.Child (Tree.Child (Node, 2), 1)));
-            --        Kind  : constant String        :=
-            --          (if Class in NON_GRAMMAR_ID | Wisitoken_Grammar_Actions.TOKEN_ID
-            --           then Get_Text (Tree.Child (Tree.Child (Node, 2), 3))
-            --           else "keyword");
-            --        List  : constant Constant_List    := Creators.Create_List
-            --          (Tree, Tree.Child (Node, 4), +declaration_item_list_ID, +declaration_item_ID);
-            --        Value : constant Valid_Node_Access := Tree.Child (Element (List.First), 1);
-            --        --  We are ignoring any repair image
-            --     begin
-            --        if Class = NON_GRAMMAR_ID then
-            --           if Kind = "line-comment" then
-            --              --  WORKAROUND: tree-sitter 0.16.6 treats rule "token(seq('--',
-            --              --  /.*/))" correctly for an Ada comment, but not extra "/--.*/". See
-            --              --  github tree-sitter issue 651 - closed without resolving this
-            --              --  question, but it does provide a workaround.
-            --              Put_Line (File, Name & ": $ => token(seq(" & Get_Text (Value) & ", /.*/)),");
-            --              Extras.Append ("$." & Name);
-            --           else
-            --              Extras.Append ("/" & Trim (Get_Text (Value), Both) & "/");
-            --           end if;
+            case To_Token_Enum (Tree.ID (Tree.Child (Node, 2))) is
+            when Wisitoken_Grammar_Actions.TOKEN_ID | NON_GRAMMAR_ID =>
+               declare
+                  Kind  : constant String      := Get_Text (Tree.Child (Node, 4));
+                  Name  : constant String      := Get_Text (Tree.Child (Node, 6));
+                  Regexp_String : constant Node_Access := Tree.Child (Node, 7);
+                  Value : constant Node_Access :=
+                    (if Regexp_String = Invalid_Node_Access
+                     then Invalid_Node_Access
+                     else Tree.Child (Regexp_String, 1));
+                  --  We are ignoring any repair image; tree_sitter grammar does not
+                  --  support that.
+               begin
 
-            --        elsif Kind = "punctuation" then
-            --           Put_Line (File, Name & ": $ => " & Get_Text (Value) & ",");
+                  if Kind = "comment-new-line" then
+                     if not (To_Token_Enum (Tree.ID (Value)) in
+                               STRING_LITERAL_DOUBLE_ID | STRING_LITERAL_SINGLE_ID)
+                     then
+                        Generate.Put_Error
+                          (Tree.Error_Message
+                             (Node, "string literal required for comment-new-line; found " &
+                                Image (Tree.ID (Value), Tree.Lexer.Descriptor.all)));
+                     else
 
-            --        elsif To_Token_Enum (Tree.ID (Value)) = REGEXP_ID then
-            --           Put_Line (File, Name & ": $ => /" & Trim (Get_Text (Value), Both) & "/,");
+                        --  WORKAROUND: tree-sitter 0.16.6 treats rule "token(seq('--',
+                        --  /.*/))" correctly for an Ada comment, but not extra "/--.*/". See
+                        --  github tree-sitter issue 651 - closed without resolving this
+                        --  question, but it does provide a workaround.
+                        Indent_Line (Name & ": $ => token(seq(" & Get_Text (Value) & ", /.*/)),");
+                        New_Line;
+                        Extras.Append ("$." & Name);
+                     end if;
 
-            --        end if;
-            --     end;
+                  elsif Kind = "comment-one-line" then
+                     --  FIXME: We need to provide an external scanner for this.
+                     raise SAL.Not_Implemented with "comment-one-line not implemented in tree_sitter";
 
-            --  when 1 =>
-            --     --  new-line with no regexp; tree-sitter defaults to DOS, Unix newline.
-            --     null;
+                  elsif Kind = "delimited-text" then
+                     --  FIXME: We need to provide an external scanner for this.
+                     raise SAL.Not_Implemented with "comment-one-line not implemented in tree_sitter";
 
-            --  when 2 =>
-            --     --  FIXME tree-sitter: CODE copyright_license
-            --     null;
+                  elsif Value = Invalid_Node_Access then
+                     --  new-line with no regexp; tree-sitter defaults to DOS and Unix newline.
+                     null;
 
-            --  when 3 =>
-            --     declare
-            --        Kind : constant String := Get_Text (Tree.Child (Node, 2));
-            --     begin
-            --        --  FIXME tree-sitter: lexer_regexp
-            --        if Kind = "conflict" then
-            --           --  .wy LR format:
-            --           --  %conflict action LHS [| action LHS]* 'on token' on
-            --           --            I      I+1
-            --           --
-            --           --  .wy Tree_Sitter format:
-            --           --  %conflict LHS (LHS)*
-            --           --
-            --           --  .js format:
-            --           --  [$.LHS, $.LHS, ...]
+                  else
+                     --  If the source grammar uses string literals in the nonterminal
+                     --  RHSs, we don't need to define this token. However, some code using
+                     --  this parser may rely on the token names, so we define them to
+                     --  ensure they are the same for wisi and tree-sitter parsers.
+                     Indent_Line (Name & ": $ => " & String_Regexp (Value) & ",");
+                     New_Line;
+                  end if;
+               end;
 
-            --           declare
-            --              use Ada.Strings.Unbounded;
+            when KEYWORD_ID =>
+               declare
+                  Name  : constant String      := Get_Text (Tree.Child (Node, 3));
+                  Value : constant Node_Access := Tree.Child (Tree.Child (Node, 4), 1);
+               begin
+                  --  Value is a string or regular expression.
+                  case To_Token_Enum (Tree.ID (Value)) is
+                  when STRING_LITERAL_DOUBLE_ID | STRING_LITERAL_SINGLE_ID =>
 
-            --            Tree_Indices : constant Valid_Node_Access_Array := Tree.Get_Terminals (Tree.Child (Node, 3));
-            --              Result       : Unbounded_String                := +"[";
-            --           begin
-            --              if Tree_Indices'Length < 3 or else Tree.ID (Tree_Indices (3)) /= +BAR_ID then
-            --                 --  Tree_Sitter format
-            --                 for LHS of Tree_Indices loop
-            --                    Result := @ & "$." & Get_Text (LHS) & ", ";
-            --                 end loop;
+                     if To_Token_Enum (Tree.ID (Value)) = STRING_LITERAL_SINGLE_ID or
+                       Data.Language_Params.Case_Insensitive
+                     then
+                        Indent_Line (Name & ": $ => reservedInsensitive(" & Get_Text (Value) & "),");
 
-            --              else
-            --                 --  LR format
-            --                 declare
-            --                    use all type SAL.Base_Peek_Type;
-            --                    I : SAL.Peek_Type := Tree_Indices'First;
-            --                 begin
-            --                    loop
-            --                       Result := @ & "$." & Get_Text (Tree_Indices (I + 1)) & ", ";
+                     else
+                        --  Case sensitive
+                        --
+                        --  Wisitoken follows the re2c convention; single quoted strings are
+                        --  case insensitive. See comment at definition of
+                        --  'reservedInsenstive' below for 'reserved' use.
+                        Indent_Line (Name & ": $ => reserved(" & Get_Text (Value) & "),");
+                     end if;
 
-            --                       I := I + 2;
-            --                       exit when Tree.ID (Tree_Indices (I)) /= +BAR_ID;
-            --                       I := I + 1;
-            --                    end loop;
-            --                 end;
-            --              end if;
-            --              Conflicts.Append (-Result & ']');
-            --           end;
-            --        end if;
-            --     end;
+                  when REGEXP_ID =>
+                     Indent_Line (Name & ": $ => " & String_Regexp (Value) & ",");
 
-            --  when 4 =>
-            --     --  %case_insensitive
-            --     null;
+                  when others =>
+                     raise SAL.Programmer_Error with "node: " & Trimmed_Image (Node)'Image;
+                  end case;
+                  New_Line;
+               end;
 
-            --  when 5 .. 9 =>
-            --     --  Should have been eliminated by Eliminate_Empty_Productions
-            --     raise SAL.Programmer_Error with "Print_Tree_Sitter declaration %if " &
-            --       Tree.Image (Node, Node_Numbers => True);
+            when CODE_ID =>
+               declare
+                  Loc_List : constant Syntax_Trees.Valid_Node_Access_Array :=
+                    WisiToken_Grammar_Runtime.Get_Code_Location_List (Tree, Node);
+               begin
+                  if Get_Text (Loc_List (Loc_List'First)) = "copyright_license" then
+                     --  handled in Print_Tree_Sitter top level
+                     null;
+                  else
+                     Generate.Put_Error (Tree.Error_Message (Node, "%code with tree-sitter not supported."));
+                  end if;
+               end;
 
-            --  when others =>
-            --     raise SAL.Programmer_Error;
-            --  end case;
+            when CONFLICT_ID =>
+               --  .wy LR format:
+               --  %conflict action LHS (| action LHS)* 'on token' on
+               --            I      I+1
+               --
+               --  .wy Tree_Sitter format:
+               --  %conflict LHS (LHS)*
+               --
+               --  .js format:
+               --  [$.LHS, $.LHS, ...]
+
+               declare
+                  use Ada.Strings.Unbounded;
+
+                  Tree_Indices : constant Valid_Node_Access_Array := Tree.Get_Terminals (Tree.Child (Node, 3));
+                  Result       : Unbounded_String                := +"[";
+               begin
+                  if Tree_Indices'Length < 3 or else Tree.ID (Tree_Indices (3)) /= +BAR_ID then
+                     --  Tree_Sitter format
+                     for LHS of Tree_Indices loop
+                        Result := @ & "$." & Get_Text (LHS) & ", ";
+                     end loop;
+
+                  else
+                     --  LR format
+                     declare
+                        use all type SAL.Base_Peek_Type;
+                        I : SAL.Peek_Type := Tree_Indices'First;
+                     begin
+                        loop
+                           Result := @ & "$." & Get_Text (Tree_Indices (I + 1)) & ", ";
+
+                           I := I + 3;
+                           exit when I > Tree_Indices'Last;
+                        end loop;
+                     end;
+                  end if;
+                  Conflicts.Append (-Result & ']');
+               end;
+
+            when CONFLICT_RESOLUTION_ID =>
+               null;
+
+            when IDENTIFIER_ID =>
+               declare
+                  Kind : constant String := Get_Text (Tree.Child (Node, 2));
+               begin
+                  if Kind = "case_insensitive" then
+                     --  The meta phase grammar file parse sets
+                     --  Data.Language_Params.Case_Insensitive.
+                     null;
+
+                  elsif Kind = "elisp_action" then
+                     --  Used in generating Action code
+                     null;
+
+                  elsif Kind = "elisp_face" then
+                     --  Used in generating Action code
+                     null;
+
+                  elsif Kind = "elisp_indent" then
+                     --  Used in generating Action code
+                     null;
+
+                  elsif Kind = "generate" then
+                     --  Handled in meta phase grammar parser.
+                     null;
+
+                  elsif Kind = "lexer_regexp" then
+                     --  Handled in Print_Tree_Sitter top level
+                     null;
+
+                  elsif Kind = "meta_syntax" then
+                     --  Handled in meta phase grammar parser.
+                     null;
+
+                  elsif Kind = "precedence" then
+                     --  Handled in Print_Tree_Sitter top level
+                     null;
+
+                  elsif Kind = "start" then
+                     --  Handled in Print_Tree_Sitter top level.
+                     null;
+
+                  else
+                     Generate.Put_Error
+                       (Tree.Error_Message (Node, "declaration not supported with tree_sitter."));
+                  end if;
+               end;
+
+            when IF_ID | ELSIF_ID | END_ID =>
+               --  Should have been eliminated by Eliminate_Empty_Productions
+               raise SAL.Programmer_Error with "Print_Tree_Sitter declaration %if " &
+                 Tree.Image (Node, Node_Numbers => True);
+
+            when others =>
+               raise SAL.Programmer_Error;
+            end case;
 
          when nonterminal_ID =>
             declare
                Children : constant Node_Access_Array := Tree.Children (Node);
             begin
-               Put (File, Get_Text (Children (1)) & ": $ => ");
+               Indent_Start (Get_Text (Children (1)) & ": $ => ");
 
-               Put_RHS_List (Children (3), First => True);
+               if Tree.ID (Tree.Child (Node, 2)) = +attribute_list_ID then
+                  Put_Attr_List (Tree.Child (Node, 2));
+                  Put_RHS_List (Children (4), First => True);
+                  Put (')');
+               else
+                  Put_RHS_List (Children (3), First => True);
+               end if;
 
-               Put_Line (File, ",");
+               Put_Line (",");
+               New_Line;
             end;
 
          when wisitoken_accept_ID =>
@@ -1226,58 +1445,176 @@ package body WisiToken.Generate.Tree_Sitter is
             raise SAL.Not_Implemented with Image (Tree.ID (Node), Wisitoken_Grammar_Actions.Descriptor);
          end case;
       end Process_Node;
+
+      use Syntax_Trees.LR_Utils;
+      Compilation_Unit_List : constant Constant_List := Creators.Create_List
+        (Tree, Tree.Find_Descendant (Tree.Root, +compilation_unit_list_ID),
+         +compilation_unit_list_ID, +compilation_unit_ID);
+
    begin
       if Trace_Generate_EBNF > Outline then
-         Ada.Text_IO.Put_Line ("translate to tree_sitter");
+         Put_Line ("translate to tree_sitter");
       end if;
 
-      Create (File, Out_File, Output_File_Name);
-      Put_Line (File, "// generated from " & Tree.Lexer.File_Name & " -*- buffer-read-only:t -*-");
+      declare
+         File : File_Type;
+      begin
+         Create (File, Out_File, Output_File_Name);
+         Set_Output (File);
 
-      Put_Line (File, "module.exports = grammar({");
-      Put_Line (File, "  name: '" & Language_Name & "',");
+         Indent := 1;
+         Indent_Line ("// generated from " & Tree.Lexer.File_Name & " -*- buffer-read-only:t js-indent-level:3 -*-");
+         New_Line;
 
-      Put_Line (File, "  rules: {");
-
-      --  Start symbol must be the first rule; that's how tree-sitter knows
-      --  it's the start symbol. accept rule with wisi-eoi is implicit in
-      --  tree-sitter (as in .wy).
-      if -Data.Language_Params.Start_Token = "" then
-         Generate.Put_Error (Generate.Error_Message (Tree.Lexer.File_Name, 1, "%start not specified"));
-      else
-         declare
-            Temp : constant Node_Access := WisiToken_Grammar_Editing.Find_Declaration
-              (Data, Tree, -Data.Language_Params.Start_Token);
-         begin
-            Process_Node (Temp);
-            Start_Node := Temp;
-         end;
-      end if;
-
-      Process_Node (Tree.Root);
-      Put (File, "  }");
-
-      if Conflicts.Length > 0 then
-         Put_Line (File, ",");
-         Put_Line (File, "  conflicts: $ => [");
-         for Item of Conflicts loop
-            Put_Line (File, "    " & Item & ",");
+         for Unit of Compilation_Unit_List loop
+            declare
+               Node : constant Valid_Node_Access := Tree.Child (Unit, 1);
+            begin
+               if To_Token_Enum (Tree.ID (Node)) = declaration_ID and then
+                 To_Token_Enum (Tree.ID (Tree.Child (Node, 2))) = CODE_ID
+               then
+                  declare
+                     Loc_List : constant Syntax_Trees.Valid_Node_Access_Array :=
+                       WisiToken_Grammar_Runtime.Get_Code_Location_List (Tree, Node);
+                  begin
+                     if Get_Text (Loc_List (Loc_List'First)) = "copyright_license" then
+                        Put_Commented (WisiToken.BNF.Split_Lines (Get_Text (Tree.Child (Node, 4))));
+                     else
+                        Generate.Put_Error (Tree.Error_Message (Node, "%code with tree-sitter not supported."));
+                     end if;
+                  end;
+                  exit;
+               end if;
+            end;
          end loop;
-         Put (File, "  ]");
-      end if;
 
-      if Extras.Length > 0 then
-         Put_Line (File, ",");
-         Put_Line (File, "  extras: $ => [");
-         for Item of Extras loop
-            Put_Line (File, "    " & Item & ",");
+         --  First some useful functions
+
+         --  'word' is reserved in tree-sitter;
+         --  https://tree-sitter.github.io/tree-sitter/creating-parsers#keywords.
+         --
+         --  However, since we support case insensitive keywords, we can't rely
+         --  on that mechanism to ignore keywords that are not bounded by word
+         --  separators. So we use precedence. The only way we can tell if a
+         --  STRING_LITERAL_SINGLE token in an RHS needs this is to find the
+         --  declaration for it, and check if it is %keyword. So all reserved
+         --  keywords must be declared.
+
+         Indent_Line ("const reserved = regex => token(prec(2, new RegExp(regex)));");
+         Indent_Line
+           ("const caseInsensitive = word => word.split('')" &
+              " .map(letter => `[${letter}${letter.toUpperCase()}]`) .join('');");
+         Indent_Line ("const reservedInsensitive = word => alias(reserved(caseInsensitive(word)), word) ;");
+         New_Line;
+
+         --  Now any lexer_regexp
+         for Unit of Compilation_Unit_List loop
+            declare
+               Node : constant Valid_Node_Access := Tree.Child (Unit, 1);
+            begin
+               if To_Token_Enum (Tree.ID (Node)) = declaration_ID and then
+                 To_Token_Enum (Tree.ID (Tree.Child (Node, 2))) = IDENTIFIER_ID and then
+                 Get_Text (Tree.Child (Node, 2)) = "lexer_regexp"
+               then
+                  declare
+                     Terminals : constant Valid_Node_Access_Array := Tree.Get_Terminals (Tree.Child (Node, 3));
+
+                     Name  : constant String      := Get_Text (Terminals (1));
+                     Value : constant Node_Access := Terminals (2);
+                  begin
+                     Put_Line ("const " & Name & " = " & String_Regexp (Value) & ";");
+                  end;
+               end if;
+            end;
          end loop;
-         Put_Line (File, "  ],");
-      end if;
-      Put (File, "  }");
 
-      Put_Line (File, ");");
-      Close (File);
+         Indent_Line ("module.exports = grammar({");
+         Indent := @ + 3;
+
+         Indent_Line ("name: '" & Language_Name & "',");
+         New_Line;
+
+         if not Data.Precedence_Lists.Is_Empty then
+            Indent_Line ("precedences: () => [");
+            Indent := @ + 2;
+            for List of Data.Precedence_Lists loop
+               Indent_Line ("[");
+               Indent := @ + 2;
+               for ID of List loop
+                  Indent_Line ("'" & (-Data.Precedence_Inverse_Map (ID)) & "',");
+               end loop;
+               Indent := @ - 2;
+               Indent_Line ("],");
+            end loop;
+            Indent := @ - 2;
+
+            Indent_Line ("],");
+            New_Line;
+         end if;
+
+         Indent_Line ("rules: {");
+         Indent := @ + 3;
+
+         --  Start symbol must be the first rule; that's how tree-sitter knows
+         --  it's the start symbol. accept rule with wisi-eoi is implicit in
+         --  tree-sitter (as in .wy).
+         if -Data.Language_Params.Start_Token = "" then
+            Generate.Put_Error (Generate.Error_Message (Tree.Lexer.File_Name, 1, "%start not specified"));
+         else
+            declare
+               Temp : constant Node_Access := WisiToken_Grammar_Editing.Find_Declaration
+                 (Data, Tree, -Data.Language_Params.Start_Token);
+            begin
+               Process_Node (Temp);
+               Start_Node := Temp;
+            end;
+         end if;
+
+         --  A grammar typically consists of a large number of
+         --  compilation_units, each one fairly short. Process_Node is
+         --  recursive; if we use that to process the compilation_Units, it can
+         --  overflow the stack (it did for ada_full.wy). So we handle the
+         --  compilation_Units as a list here, and use recursion for the
+         --  declarations and nonterms.
+         for Unit of Compilation_Unit_List loop
+            Process_Node (Unit);
+         end loop;
+
+         Put ("  }");
+         Indent := @ - 3;
+
+         if Conflicts.Length > 0 then
+            Put_Line (",");
+            Put_Line ("  conflicts: $ => [");
+            Indent := @ + 3;
+            for Item of Conflicts loop
+               Indent_Line (Item & ",");
+            end loop;
+            Put ("  ]");
+            Indent := @ - 3;
+         end if;
+
+         if Extras.Length > 0 then
+            --  Since we have an explicit 'extras', we need to specify space and newline.
+            Extras.Append ("/\s|\\\r?\n/");
+            Put_Line (",");
+            Put_Line ("  extras: $ => [");
+            Indent := @ + 3;
+            for Item of Extras loop
+               Indent_Line (Item & ",");
+            end loop;
+            Put_Line ("  ],");
+            Indent := @ - 3;
+         end if;
+         Put ("}");
+         Indent := @ - 3;
+         pragma Assert (Indent = 1);
+
+         Indent_Line (");");
+         Set_Output (Standard_Output);
+
+         Close (File);
+      end;
    end Print_Tree_Sitter;
 
    procedure Create_Test_Main (Output_File_Name_Root : in String)

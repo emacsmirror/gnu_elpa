@@ -2,7 +2,7 @@
 --
 --  See spec.
 --
---  Copyright (C) 2018 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2018 - 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -47,7 +47,7 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Explore is
 
       if Is_Full (Config.Ops) then
          Super.Config_Full (Shared, "do_shift ops", Parser_Index);
-         raise Bad_Config;
+         raise Invalid_Case;
       else
          Append (Config.Ops, Op);
       end if;
@@ -70,7 +70,7 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Explore is
 
       if Config.Stack.Is_Full then
          Super.Config_Full (Shared, "do_shift stack", Parser_Index);
-         raise Bad_Config;
+         raise Invalid_Case;
       else
          Config.Stack.Push ((State, (Virtual => True, ID => ID, others => <>)));
       end if;
@@ -290,7 +290,7 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Explore is
 
                   if Is_Full (Item.Config.Ops) then
                      Super.Config_Full (Shared, "fast_forward 1", Parser_Index);
-                     raise Bad_Config;
+                     raise Invalid_Case;
                   else
                      declare
                         Next_Node : constant Syntax_Trees.Valid_Node_Access :=
@@ -361,7 +361,7 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Explore is
          else
             if Is_Full (Item.Config.Ops) then
                Super.Config_Full (Shared, "check 1", Parser_Index);
-               raise Bad_Config;
+               raise Invalid_Case;
             else
                declare
                   Next_Node : constant Syntax_Trees.Node_Access := Parse.Peek_Current_First_Sequential_Terminal
@@ -456,7 +456,11 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Explore is
                if Item.Shift_Count = 0 then
                   --  Parse did not process any Deletes from Insert_Delete; Fast_Forward
                   --  did that. So the very first token caused an error, and Config is
-                  --  unchanged. Just set the error.
+                  --  unchanged. Just set the error. FIXME:
+                  --  ada_mode-recover_repair_2.adb language_fixes solution is pure
+                  --  delete; we get here, and should enqueue for another Language_Fixes
+                  --  try. But in other cases fast_forward was a pure no-op. Enqueue in
+                  --  fast_forward if pure delete?
                   Config.Error_Token  := Item.Config.Error_Token;
                   Config.In_Parse_Action_Status := (Label => Ok);
                   return Continue;
@@ -590,7 +594,7 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Explore is
 
       if Is_Full (New_Config.Ops) then
          Super.Config_Full (Shared, "push_back 1", Parser_Index);
-         raise Bad_Config;
+         raise Invalid_Case;
       end if;
 
       Do_Push_Back (Shared.Tree, New_Config);
@@ -693,7 +697,7 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Explore is
 
       if Is_Full (New_Config.Ops) then
          Super.Config_Full (Shared, "undo_reduce 1", Parser_Index);
-         raise Bad_Config;
+         raise Invalid_Case;
       end if;
 
       Unchecked_Undo_Reduce (Super, Shared, New_Config);
@@ -866,7 +870,7 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Explore is
       is begin
          if Is_Full (Work) then
             Super.Config_Full (Shared, "Minimal_Complete_Actions " & Label, Parser_Index);
-            raise Bad_Config;
+            raise Invalid_Case;
          else
             Add (Work, Item);
          end if;
@@ -894,7 +898,7 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Explore is
                Inserted (Inserted_Last)      := Action.ID;
             else
                Super.Config_Full (Shared, "minimal_do_shift Inserted", Parser_Index);
-               raise Bad_Config;
+               raise Invalid_Case;
             end if;
 
             Do_Shift
@@ -1343,7 +1347,7 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Explore is
                      --  Parser to delete it.
                      if Is_Full (Config.Ops) then
                         Super.Config_Full (Shared, "insert quote 2 a " & Label, Parser_Index);
-                        raise Bad_Config;
+                        raise Invalid_Case;
                      end if;
 
                      Append (Config.Ops, (Delete, Shared.Tree.ID (Node), Index));
@@ -1378,7 +1382,7 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Explore is
          begin
             if Is_Full (Config.Ops) then
                Super.Config_Full (Shared, "insert quote 2 b " & Label, Parser_Index);
-               raise Bad_Config;
+               raise Invalid_Case;
             end if;
 
             pragma Assert (Is_Terminal (Shared.Tree.ID (Stream (To_Delete)), Shared.Tree.Lexer.Descriptor.all));
@@ -1480,7 +1484,7 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Explore is
 
          if not Has_Space (Config.Ops, Ada.Containers.Count_Type (Matching)) then
             Super.Config_Full (Shared, "insert quote 1 " & Label, Parser_Index);
-            raise Bad_Config;
+            raise Invalid_Case;
          end if;
          for I in 1 .. Matching loop
             if not Push_Back_Valid (Super, Shared, Config, Push_Back_Undo_Reduce => False) then
@@ -1552,7 +1556,7 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Explore is
 
             if Is_Full (Config.Ops) then
                Super.Config_Full (Shared, Full_Label, Parser_Index);
-               raise Bad_Config;
+               raise Invalid_Case;
             end if;
 
             Item  := Config.Stack.Peek;
@@ -1600,7 +1604,7 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Explore is
       begin
          if not Has_Space (Config.Ops, Ada.Containers.Count_Type (Last - First + 1)) then
             Super.Config_Full (Shared, "insert quote 3 " & Label, Parser_Index);
-            raise Bad_Config;
+            raise Invalid_Case;
          end if;
 
          Find_First;
@@ -2085,7 +2089,7 @@ package body WisiToken.Parse.LR.McKenzie_Recover.Explore is
 
          if Is_Full (New_Config.Ops) then
             Super.Config_Full (Shared, "delete", Parser_Index);
-            raise Bad_Config;
+            raise Invalid_Case;
          else
             Append (New_Config.Ops, (Delete, Next_ID, Next_Index));
          end if;

@@ -2,7 +2,7 @@
 --
 --  see spec
 --
---  Copyright (C) 2012 - 2015, 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2012 - 2015, 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This program is free software; you can redistribute it and/or
 --  modify it under terms of the GNU General Public License as
@@ -71,11 +71,11 @@ package body WisiToken.BNF is
 
    function From_Generate_Env_Var return Generate_Algorithm_Set
    is
-      Gen_String : constant String := Ada.Environment_Variables.Value ("GENERATE", "BNF_EBNF");
+      Gen_String : constant String := Ada.Environment_Variables.Value ("GENERATE", "");
    begin
       --  GENERATE env var defined in wisitoken_test.gpr
       if Gen_String = "" then
-         return (Tree_Sitter => False, others => True);
+         return (others => True);
       elsif Gen_String = "BNF_EBNF_Tree_Sitter" then
          return (others => True);
       elsif Gen_String = "BNF_EBNF" or
@@ -203,6 +203,13 @@ package body WisiToken.BNF is
       Put_Command_Line  (Comment_Syntax & "  ", Use_Tuple, Tuple);
       Put_Line (Comment_Syntax);
    end Put_File_Header;
+
+   function Image (Item : in Labeled_Token) return String
+   is
+      use Ada.Strings.Unbounded;
+   begin
+      return (if Length (Item.Label) > 0 then -Item.Label & "=" else "") & (-Item.Identifier);
+   end Image;
 
    function Is_Present (List : in WisiToken.BNF.String_Pair_Lists.List; Name : in String) return Boolean
    is

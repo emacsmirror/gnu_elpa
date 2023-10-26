@@ -2,7 +2,7 @@
 --
 --  See spec.
 --
---  Copyright (C) 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -320,7 +320,7 @@ package body WisiToken.Generate.LR is
 
    function Apply_Optimized_List_Conflict
      (Conflict          : in out Parse.LR.Action_Node;
-      Conflict_Count    : in     Integer;
+      Conflict_Count    : in out Integer;
       Grammar           : in     WisiToken.Productions.Prod_Arrays.Vector;
       Descriptor        : in     WisiToken.Descriptor;
       First_Nonterm_Set : in     WisiToken.Token_Array_Token_Set;
@@ -328,9 +328,9 @@ package body WisiToken.Generate.LR is
      return Boolean
    with Pre => Conflict_Count /= 0
    --  If Conflict is due to an optimized_list, it is modified to
-   --  implement the appropriate conflict resolution, and the function
-   --  returns True. Otherwize, Conflict is not modified, and the
-   --  function returns False.
+   --  implement the appropriate conflict resolution, Conflict_Count is
+   --  decremented, and the function returns True. Otherwise, Conflict,
+   --  Conflict_Count are not modified, and the function returns False.
    is
       use all type Ada.Containers.Count_Type;
 
@@ -533,11 +533,14 @@ package body WisiToken.Generate.LR is
                      end if;
                   end if;
                end loop;
+
                if Delete_Count = 0 then
                   return False;
+
                elsif Delete_Count + 1 = Conflict_Count then
                   --  Fully resolved; a pure optimized_list conflict. Do deletes below.
                   null;
+
                else
                   --  Mixed optimized_list and grammar conflicts. FIXME: need test case.
                   --  FIXME: also apply declared resolutions to this conflict.
@@ -609,6 +612,7 @@ package body WisiToken.Generate.LR is
          for I in 1 .. Conflict_Count loop
             if Delete (I) then
                Parse.LR.Delete (Conflict, Prev, Temp);
+               Conflict_Count := @ - 1;
             else
                Prev := Temp;
                Temp := Temp.Next;
@@ -707,20 +711,17 @@ package body WisiToken.Generate.LR is
 
    end Check_Conflicts;
 
-   ----------
-   --  Build parse table
-
    function Apply_Declared_Resolution
      (Conflict           : in out Parse.LR.Action_Node;
       Found              : in     Conflict_Lists.Cursor;
-      Conflict_Count     : in     Integer;
+      Conflict_Count     : in out Integer;
       Declared_Conflicts : in out WisiToken.Generate.LR.Conflict_Lists.Tree)
      return Boolean
    with Pre => Conflict.Actions.Next /= null and Found /= Conflict_Lists.No_Element
-   --  If Conflict is matches a declared %conflict_resolution, it is
-   --  modified to implement the conflict resolution, and the function
-   --  returns True. Otherwize, Conflict is not modified, and the
-   --  function returns False.
+   --  If Conflict matches a declared %conflict_resolution, it is
+   --  modified to implement the conflict resolution, conflict_Count is
+   --  decremented, and the function returns True. Otherwise, Conflict,
+   --  Conflict_Count are not modified, and the function returns False.
    is
       use Conflict_Lists;
       Declared : WisiToken.Generate.LR.Conflict renames Declared_Conflicts (Found);
@@ -754,6 +755,7 @@ package body WisiToken.Generate.LR is
       for I in 1 .. Conflict_Count loop
          if Delete (I) then
             Parse.LR.Delete (Conflict, Prev, Temp);
+            Conflict_Count := @ - 1;
          else
             Prev := Temp;
             Temp := Temp.Next;
@@ -763,12 +765,140 @@ package body WisiToken.Generate.LR is
       return True;
    end Apply_Declared_Resolution;
 
+   function Apply_Precedence
+     (Conflict         : in out Parse.LR.Action_Node;
+      Conflict_Count   : in out Integer;
+      Grammar          : in     WisiToken.Productions.Prod_Arrays.Vector;
+      Precedence_Lists : in     WisiToken.Precedence_Lists_Arrays.Vector)
+     return Boolean
+   with Pre => Conflict.Actions.Next /= null and Conflict_Count > 1
+   --  If a precedence relation applies to Conflict, it is modified to
+   --  implement the precedence resolution, Conflict_Count is
+   --  decremented, and the function returns True. Otherwise, Conflict,
+   --  Conflict_Count are not modified, and the function returns False.
+   is
+      Found_Precedence : array (1 .. Conflict_Count) of Base_Precedence_ID := (others => No_Precedence);
+      Delete           : array (1 .. Conflict_Count) of Boolean            := (others => False);
+
+      Temp : Parse_Action_Node_Ptr := Conflict.Actions;
+      Prev : Parse_Action_Node_Ptr := null;
+
+      Non_None_Count : Integer := 0;
+   begin
+      for I in 1 .. Conflict_Count loop
+         Found_Precedence (I) := WisiToken.Productions.Get_Precedence (Grammar, Temp.Item.Production);
+         if Found_Precedence (I) /= No_Precedence then
+            Non_None_Count := @ + 1;
+         end if;
+
+         Temp := Temp.Next;
+      end loop;
+
+      if Non_None_Count <= 1 then
+         return False;
+      end if;
+
+      if Conflict_Count > 2 then
+         raise SAL.Not_Implemented with "generate apply_precedence conflict_count > 2; must do all combinations.";
+      end if;
+
+      declare
+         Relation : constant Precedence_Compare_Result := Compare
+           (Found_Precedence (1), Found_Precedence (2), Precedence_Lists);
+      begin
+         case Relation is
+         when None =>
+            return False;
+
+         when Left =>
+            Delete (2) := True;
+
+         when Right =>
+            Delete (1) := True;
+         end case;
+      end;
+
+      Temp := Conflict.Actions;
+      for I in 1 .. Conflict_Count loop
+         if Delete (I) then
+            Parse.LR.Delete (Conflict, Prev, Temp);
+            Conflict_Count := @ - 1;
+         else
+            Prev := Temp;
+            Temp := Temp.Next;
+         end if;
+      end loop;
+
+      return True;
+   end Apply_Precedence;
+
+   function Apply_Associativity
+     (Conflict         : in out Parse.LR.Action_Node;
+      Conflict_Count   : in out Integer;
+      Grammar          : in     WisiToken.Productions.Prod_Arrays.Vector)
+     return Boolean
+   with Pre => Conflict.Actions.Next /= null and Conflict_Count > 1
+   --  If an associativity attribute applies to Conflict, it is modified to
+   --  implement the associativity, Conflict_Count is
+   --  decremented, and the function returns True. Otherwise, Conflict,
+   --  Conflict_Count are not modified, and the function returns False.
+   is
+      Temp : Parse_Action_Node_Ptr := Conflict.Actions;
+      Prev : Parse_Action_Node_Ptr := null;
+
+      Delete : array (1 .. Conflict_Count) of Boolean := (others => False);
+   begin
+      --  See precedence.wy
+      if Conflict_Count > 2 then
+         return False;
+      end if;
+
+      if Temp.Item.Verb /= Shift then
+         return False;
+      end if;
+
+      Temp := Temp.Next;
+
+      declare
+         List_Production    : constant Production_ID := Temp.Item.Production;
+         List_Associativity : constant Associativity := WisiToken.Productions.Get_Associativity
+           (Grammar, List_Production);
+      begin
+         case List_Associativity is
+         when None =>
+            return False;
+
+         when Left =>
+            --  Keep the reduce production; always second
+            Delete (1) := True;
+
+         when Right =>
+            --  Keep the shift production; always first
+            Delete (2) := True;
+         end case;
+      end;
+
+      Temp := Conflict.Actions;
+      for I in 1 .. Conflict_Count loop
+         if Delete (I) then
+            Parse.LR.Delete (Conflict, Prev, Temp);
+            Conflict_Count := @ - 1;
+         else
+            Prev := Temp;
+            Temp := Temp.Next;
+         end if;
+      end loop;
+
+      return True;
+   end Apply_Associativity;
+
    procedure Add_Action
      (State              : in     State_Index;
       Symbol             : in     Token_ID;
       Action             : in     Parse_Action_Rec;
       Action_List        : in out Action_Arrays.Vector;
       Grammar            : in     WisiToken.Productions.Prod_Arrays.Vector;
+      Precedence_Lists   : in     WisiToken.Precedence_Lists_Arrays.Vector;
       Descriptor         : in     WisiToken.Descriptor;
       Declared_Conflicts : in out WisiToken.Generate.LR.Conflict_Lists.Tree;
       Unknown_Conflicts  : in out WisiToken.Generate.LR.Conflict_Lists.Tree;
@@ -835,14 +965,12 @@ package body WisiToken.Generate.LR is
                      Conflict_Count := @ + 1;
                      Temp := Temp.Next;
                   end loop;
-                  pragma Assert (Conflict_Count > 0);
+                  pragma Assert (Conflict_Count > 1);
 
                   if Trace_Generate_Conflicts > Detail then
                      if Trace_Generate_Conflicts > Extra or Conflict_Count > 2 then
                         Ada.Text_IO.Put_Line
-                          ("conflict on " & Image (Matching_Action_Node.Symbol, Descriptor) &
-                             ", length :" & Conflict_Count'Image);
-                        Ada.Text_IO.Put_Line (Image (WY_Conflict, Descriptor));
+                          ("state" & State'Image & ": " & Image (WY_Conflict, Descriptor));
                         Put (Ada.Text_IO.Current_Output, Matching_Action_Node.Actions, Descriptor);
                         Ada.Text_IO.New_Line;
                         if Found_Declared /= Conflict_Lists.No_Element then
@@ -859,9 +987,9 @@ package body WisiToken.Generate.LR is
                         Put (Ada.Text_IO.Current_Output, Matching_Action_Node.Actions, Descriptor);
                         Ada.Text_IO.New_Line;
                      end if;
+                  end if;
 
-                     --  FIXME: apply both resolutions to one conflict. Need test case. must update Conflct_Count.
-                  elsif Apply_Optimized_List_Conflict
+                  if Conflict_Count > 1 and then Apply_Optimized_List_Conflict
                     (Matching_Action_Node, Conflict_Count, Grammar, Descriptor, First_Nonterm_Set, File_Name)
                   then
                      if Trace_Generate_Conflicts > Detail then
@@ -869,8 +997,28 @@ package body WisiToken.Generate.LR is
                         Put (Ada.Text_IO.Current_Output, Matching_Action_Node.Actions, Descriptor);
                         Ada.Text_IO.New_Line;
                      end if;
+                  end if;
 
-                  else
+                  if Conflict_Count > 1 and then Apply_Precedence
+                    (Matching_Action_Node, Conflict_Count, Grammar, Precedence_Lists)
+                  then
+                     if Trace_Generate_Conflicts > Detail then
+                        Ada.Text_IO.Put_Line ("... precedence resolved:");
+                        Put (Ada.Text_IO.Current_Output, Matching_Action_Node.Actions, Descriptor);
+                        Ada.Text_IO.New_Line;
+                     end if;
+                  end if;
+
+                  if Conflict_Count > 1 and then Apply_Associativity (Matching_Action_Node, Conflict_Count, Grammar)
+                  then
+                     if Trace_Generate_Conflicts > Detail then
+                        Ada.Text_IO.Put_Line ("... associativity resolved:");
+                        Put (Ada.Text_IO.Current_Output, Matching_Action_Node.Actions, Descriptor);
+                        Ada.Text_IO.New_Line;
+                     end if;
+                  end if;
+
+                  if Conflict_Count > 1 then
                      if Found_Declared = Conflict_Lists.No_Element then
                         declare
                            Found_Unknown : constant Conflict_Lists.Cursor :=
@@ -916,6 +1064,7 @@ package body WisiToken.Generate.LR is
      (Closure            : in     LR1_Items.Item_Set;
       Table              : in out Parse_Table;
       Grammar            : in     WisiToken.Productions.Prod_Arrays.Vector;
+      Precedence_Lists   : in     WisiToken.Precedence_Lists_Arrays.Vector;
       Descriptor         : in     WisiToken.Descriptor;
       Declared_Conflicts : in out WisiToken.Generate.LR.Conflict_Lists.Tree;
       Unknown_Conflicts  : in out WisiToken.Generate.LR.Conflict_Lists.Tree;
@@ -938,8 +1087,8 @@ package body WisiToken.Generate.LR is
          begin
             if Item.Dot not in Item_Tokens.First_Index .. Item_Tokens.Last_Index then
                Add_Lookahead_Actions
-                 (State, Item, Table.States (State).Action_List, Grammar, Descriptor, Declared_Conflicts,
-                  Unknown_Conflicts, First_Nonterm_Set, File_Name, Ignore_Conflicts);
+                 (State, Item, Table.States (State).Action_List, Grammar, Precedence_Lists, Descriptor,
+                  Declared_Conflicts, Unknown_Conflicts, First_Nonterm_Set, File_Name, Ignore_Conflicts);
 
             elsif Item_Tokens (Item.Dot) in Descriptor.First_Terminal .. Descriptor.Last_Terminal
             then
@@ -965,7 +1114,8 @@ package body WisiToken.Generate.LR is
                            --  EOF is not pushed on stack in parser, because the action for EOF
                            --  is Accept, not Shift.
                            Table.States (State).Action_List,
-                           Grammar, Descriptor, Declared_Conflicts, Unknown_Conflicts, First_Nonterm_Set, File_Name,
+                           Grammar, Precedence_Lists, Descriptor, Declared_Conflicts, Unknown_Conflicts,
+                           First_Nonterm_Set, File_Name,
                            Ignore_Conflicts);
                      end;
                   else
@@ -974,7 +1124,8 @@ package body WisiToken.Generate.LR is
                           (State, Dot_ID,
                            (Shift, P_ID, Goto_State),
                            Table.States (State).Action_List,
-                           Grammar, Descriptor, Declared_Conflicts, Unknown_Conflicts, First_Nonterm_Set, File_Name,
+                           Grammar, Precedence_Lists, Descriptor, Declared_Conflicts, Unknown_Conflicts,
+                           First_Nonterm_Set, File_Name,
                            Ignore_Conflicts);
                      end if;
                   end if;
@@ -1007,6 +1158,7 @@ package body WisiToken.Generate.LR is
       Item               : in     LR1_Items.Item;
       Action_List        : in out Action_Arrays.Vector;
       Grammar            : in     WisiToken.Productions.Prod_Arrays.Vector;
+      Precedence_Lists   : in     WisiToken.Precedence_Lists_Arrays.Vector;
       Descriptor         : in     WisiToken.Descriptor;
       Declared_Conflicts : in out WisiToken.Generate.LR.Conflict_Lists.Tree;
       Unknown_Conflicts  : in out WisiToken.Generate.LR.Conflict_Lists.Tree;
@@ -1029,7 +1181,7 @@ package body WisiToken.Generate.LR is
                null;
             else
                Add_Action
-                 (State, Lookahead, Action, Action_List, Grammar, Descriptor, Declared_Conflicts,
+                 (State, Lookahead, Action, Action_List, Grammar, Precedence_Lists, Descriptor, Declared_Conflicts,
                   Unknown_Conflicts, First_Nonterm_Set, File_Name, Ignore_Conflicts);
             end if;
          end if;
@@ -1113,7 +1265,7 @@ package body WisiToken.Generate.LR is
                   Error_Message
                     (File_Name => Grammar_File_Name,
                      File_Line => Line_Number_Type'First,
-                     Message   => "terminal sequences not resolved:"));
+                     Message   => "Compute_Minimal_Terminal_Sequences: terminal sequences not resolved:"));
 
                Ada.Text_IO.Put_Line
                  (Ada.Text_IO.Current_Error,
@@ -1325,7 +1477,7 @@ package body WisiToken.Generate.LR is
                --  considering recursion.
                --
                --  Insert_Minimal_Complete_Actions does not need any recursion
-               --  information at runtim, because we elminate all cases where it
+               --  information at runtime, because we elminate all cases where it
                --  might here.
                --
                --  The strategy in Insert_Minimal_Complete_Actions when
@@ -1400,7 +1552,7 @@ package body WisiToken.Generate.LR is
                --  the true Length_After_Dot must be computed at runtime. Recursion
                --  is not considered, because any other McKensie operation would also
                --  need to do a reduce to the LHS here. Label is Keep_Always,
-               --  Minimal_Action is Reduce_Production.
+               --  Minimal_Action is Reduce.
                --
                --  In state 68 production 115.0, Length_After_Dot is 0 because
                --  parameter_profile_opt is nullable. We don't ignore recursion in
@@ -1931,7 +2083,7 @@ package body WisiToken.Generate.LR is
          end if;
       end;
 
-      if Include_Extra then
+      if Include_Extra and Recursions.Recursions.Length > 0 then
          New_Line;
          Put_Line ((if Recursions.Full then "Recursions:" else "Partial recursions:"));
          for I in Recursions.Recursions.First_Index .. Recursions.Recursions.Last_Index loop

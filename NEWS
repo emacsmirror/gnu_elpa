@@ -6,6 +6,16 @@ Please send wisi bug reports to bug-gnu-emacs@gnu.org, with
 'wisi' in the subject. If possible, use M-x report-emacs-bug.
 
 
+* wisi 4.3.2
+21 Oct 2023
+
+** wisi-incremental-parse-enable is now t by default.
+
+* wisi 4.3.0
+15 Sep 2023
+
+** Use WisiToken 4.2.0.
+
 * wisi 4.2.3
 26 Jan 2023
 

@@ -2,7 +2,7 @@
 --
 --  See spec.
 --
---  Copyright (C) 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This file is part of the WisiToken package.
 --
@@ -202,6 +202,7 @@ package body WisiToken.Generate.LR.LR1_Generate is
      (Item_Sets          : in     LR1_Items.Item_Set_List;
       Table              : in out Parse_Table;
       Grammar            : in     WisiToken.Productions.Prod_Arrays.Vector;
+      Precedence_Lists   : in     WisiToken.Precedence_Lists_Arrays.Vector;
       Descriptor         : in     WisiToken.Descriptor;
       Declared_Conflicts : in out WisiToken.Generate.LR.Conflict_Lists.Tree;
       Unknown_Conflicts  : in out WisiToken.Generate.LR.Conflict_Lists.Tree;
@@ -213,8 +214,8 @@ package body WisiToken.Generate.LR.LR1_Generate is
    begin
       for Item_Set of Item_Sets loop
          Add_Actions
-           (Item_Set, Table, Grammar, Descriptor, Declared_Conflicts, Unknown_Conflicts, First_Nonterm_Set, File_Name,
-            Ignore_Conflicts);
+           (Item_Set, Table, Grammar, Precedence_Lists, Descriptor, Declared_Conflicts, Unknown_Conflicts,
+            First_Nonterm_Set, File_Name, Ignore_Conflicts);
       end loop;
 
       if Trace_Generate_Table > Outline then
@@ -224,24 +225,24 @@ package body WisiToken.Generate.LR.LR1_Generate is
 
    function Generate
      (Grammar               : in out WisiToken.Productions.Prod_Arrays.Vector;
+      Precedence_Lists      : in     WisiToken.Precedence_Lists_Arrays.Vector;
       Descriptor            : in     WisiToken.Descriptor;
       Grammar_File_Name     : in     String;
       Error_Recover         : in     Boolean;
-      Known_Conflicts       : in     Conflict_Lists.Tree              := Conflict_Lists.Empty_Tree;
-      McKenzie_Param        : in     McKenzie_Param_Type              := Default_McKenzie_Param;
-      Max_Parallel          : in     SAL.Base_Peek_Type               := 15;
-      Parse_Table_File_Name : in     String                           := "";
-      Include_Extra         : in     Boolean                          := False;
-      Ignore_Conflicts      : in     Boolean                          := False;
-      Recursion_Strategy    : in     WisiToken.Recursion_Strategy     := Full;
-      Use_Cached_Recursions : in     Boolean                          := False;
+      Known_Conflicts       : in     Conflict_Lists.Tree          := Conflict_Lists.Empty_Tree;
+      McKenzie_Param        : in     McKenzie_Param_Type          := Default_McKenzie_Param;
+      Max_Parallel          : in     SAL.Base_Peek_Type           := 15;
+      Parse_Table_File_Name : in     String                       := "";
+      Include_Extra         : in     Boolean                      := False;
+      Ignore_Conflicts      : in     Boolean                      := False;
+      Recursion_Strategy    : in     WisiToken.Recursion_Strategy := Full;
+      Use_Cached_Recursions : in     Boolean                      := False;
       Recursions            : in out WisiToken.Generate.Recursions)
      return Parse_Table_Ptr
    is
-      Time_Start            : constant Ada.Calendar.Time := Ada.Calendar.Clock;
-      Add_Actions_Time      : Ada.Calendar.Time;
-      Minimal_Actions_Time  : Ada.Calendar.Time;
-      Collect_Conflict_Time : Ada.Calendar.Time;
+      Time_Start           : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+      Add_Actions_Time     : Ada.Calendar.Time;
+      Minimal_Actions_Time : Ada.Calendar.Time;
 
       Ignore_Unused_Tokens     : constant Boolean := WisiToken.Trace_Generate_Table > Detail;
       Ignore_Unknown_Conflicts : constant Boolean := Ignore_Conflicts or WisiToken.Trace_Generate_Table > Detail;
@@ -253,12 +254,6 @@ package body WisiToken.Generate.LR.LR1_Generate is
       Has_Empty_Production : constant Token_ID_Set := WisiToken.Generate.Has_Empty_Production (Nullable);
 
       Recursions_Time : Ada.Calendar.Time := Ada.Calendar.Clock;
-
-      Minimal_Terminal_Sequences : constant Minimal_Sequence_Array :=
-        Compute_Minimal_Terminal_Sequences (Descriptor, Grammar, Grammar_File_Name);
-
-      Minimal_Terminal_First : constant Token_Array_Token_ID :=
-        Compute_Minimal_Terminal_First (Descriptor, Minimal_Terminal_Sequences);
 
       First_Nonterm_Set : constant Token_Array_Token_Set := WisiToken.Generate.First
         (Grammar, Has_Empty_Production, Descriptor.First_Terminal);
@@ -275,7 +270,7 @@ package body WisiToken.Generate.LR.LR1_Generate is
       Initial_Item_Sets_Time : constant Ada.Calendar.Time := Ada.Calendar.Clock;
 
    begin
-      if not Use_Cached_Recursions or Recursions = Empty_Recursions then
+      if Error_Recover and then (not Use_Cached_Recursions or Recursions = Empty_Recursions) then
          case Recursion_Strategy is
          when None =>
             null;
@@ -285,6 +280,7 @@ package body WisiToken.Generate.LR.LR1_Generate is
 
          when Full =>
             Recursions := WisiToken.Generate.Compute_Full_Recursion (Grammar, Descriptor);
+
          end case;
       end if;
 
@@ -345,8 +341,8 @@ package body WisiToken.Generate.LR.LR1_Generate is
       Table.Max_Parallel := Max_Parallel;
 
       Add_Actions
-        (Item_Sets, Table.all, Grammar, Descriptor, Known_Conflicts_Edit, Unknown_Conflicts, First_Nonterm_Set,
-         Grammar_File_Name, Ignore_Conflicts);
+        (Item_Sets, Table.all, Grammar, Precedence_Lists, Descriptor, Known_Conflicts_Edit, Unknown_Conflicts,
+         First_Nonterm_Set, Grammar_File_Name, Ignore_Conflicts);
 
       if Trace_Time then
          Add_Actions_Time := Ada.Calendar.Clock;
@@ -354,49 +350,52 @@ package body WisiToken.Generate.LR.LR1_Generate is
            ("add_actions time:" & Duration'Image (Ada.Calendar."-" (Add_Actions_Time, Initial_Item_Sets_Time)));
       end if;
 
-      for State in Table.States'Range loop
-         if Trace_Generate_Minimal_Complete > Extra then
-            Ada.Text_IO.Put_Line ("Set_Minimal_Complete_Actions:" & State_Index'Image (State));
-         end if;
-         WisiToken.Generate.LR.Set_Minimal_Complete_Actions
-           (Table.States (State),
-            LR1_Items.Filter (Item_Sets (State), Grammar, Descriptor, LR1_Items.In_Kernel'Access),
-            Descriptor, Grammar, Nullable, Minimal_Terminal_Sequences, Minimal_Terminal_First);
-      end loop;
+      if Table.Error_Recover_Enabled then
+         declare
+            Minimal_Terminal_Sequences : constant Minimal_Sequence_Array :=
+              Compute_Minimal_Terminal_Sequences (Descriptor, Grammar, Grammar_File_Name);
 
-      if Trace_Time then
-         Minimal_Actions_Time := Ada.Calendar.Clock;
-         Ada.Text_IO.Put_Line
-           ("compute minimal actions time:" & Duration'Image
-              (Ada.Calendar."-" (Minimal_Actions_Time, Add_Actions_Time)));
-      end if;
+            Minimal_Terminal_First : constant Token_Array_Token_ID :=
+              Compute_Minimal_Terminal_First (Descriptor, Minimal_Terminal_Sequences);
+         begin
+            for State in Table.States'Range loop
+               if Trace_Generate_Minimal_Complete > Extra then
+                  Ada.Text_IO.Put_Line ("Set_Minimal_Complete_Actions:" & State_Index'Image (State));
+               end if;
+               WisiToken.Generate.LR.Set_Minimal_Complete_Actions
+                 (Table.States (State),
+                  LR1_Items.Filter (Item_Sets (State), Grammar, Descriptor, LR1_Items.In_Kernel'Access),
+                  Descriptor, Grammar, Nullable, Minimal_Terminal_Sequences, Minimal_Terminal_First);
+            end loop;
 
-      if Trace_Time then
-         Collect_Conflict_Time := Ada.Calendar.Clock;
-         Ada.Text_IO.Put_Line
-           ("compute conflicts time:" & Duration'Image
-              (Ada.Calendar."-" (Collect_Conflict_Time, Minimal_Actions_Time)));
+            if Trace_Time then
+               Minimal_Actions_Time := Ada.Calendar.Clock;
+               Ada.Text_IO.Put_Line
+                 ("compute minimal actions time:" & Duration'Image
+                    (Ada.Calendar."-" (Minimal_Actions_Time, Add_Actions_Time)));
+            end if;
+
+            if Trace_Generate_Table > Detail then
+               Ada.Text_IO.New_Line;
+               Ada.Text_IO.Put_Line ("Has_Empty_Production: " & Image (Has_Empty_Production, Descriptor));
+
+               Ada.Text_IO.New_Line;
+               Ada.Text_IO.Put_Line ("Minimal_Terminal_First:");
+               for ID in Minimal_Terminal_First'Range loop
+                  Ada.Text_IO.Put_Line
+                    (Image (ID, Descriptor) & " =>" &
+                       (if Minimal_Terminal_First (ID) = Invalid_Token_ID
+                        then ""
+                        else ' ' & Image (Minimal_Terminal_First (ID), Descriptor)));
+               end loop;
+            end if;
+         end;
       end if;
 
       if Parse_Table_File_Name /= "" then
          WisiToken.Generate.LR.Put_Parse_Table
            (Table, Parse_Table_File_Name, "LR1", Grammar, Recursions, Item_Sets, Known_Conflicts_Edit,
             Unknown_Conflicts, Descriptor, Include_Extra);
-      end if;
-
-      if Trace_Generate_Table > Detail then
-         Ada.Text_IO.New_Line;
-         Ada.Text_IO.Put_Line ("Has_Empty_Production: " & Image (Has_Empty_Production, Descriptor));
-
-         Ada.Text_IO.New_Line;
-         Ada.Text_IO.Put_Line ("Minimal_Terminal_First:");
-         for ID in Minimal_Terminal_First'Range loop
-            Ada.Text_IO.Put_Line
-              (Image (ID, Descriptor) & " =>" &
-                 (if Minimal_Terminal_First (ID) = Invalid_Token_ID
-                  then ""
-                  else ' ' & Image (Minimal_Terminal_First (ID), Descriptor)));
-         end loop;
       end if;
 
       Check_Conflicts

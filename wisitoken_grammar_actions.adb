@@ -2,7 +2,7 @@
 --  command line: wisitoken-bnf-generate.exe  --generate LALR Ada re2c wisitoken_grammar.wy
 --
 
---  Copyright (C) 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2017 - 2023 Free Software Foundation, Inc.
 --
 --  Author: Stephen Leake <stephe-leake@stephe-leake.org>
 --
@@ -19,7 +19,7 @@
 --  GNU General Public License for more details.
 --
 --  You should have received a copy of the GNU General Public License
---  along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+--  along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 with WisiToken_Grammar_Runtime; use WisiToken_Grammar_Runtime;
 
@@ -130,7 +130,7 @@ package body Wisitoken_Grammar_Actions is
      Nonterm   : in     WisiToken.Syntax_Trees.Valid_Node_Access)
    is
    begin
-      Start_If (User_Data, Tree, Nonterm);
+      Add_Declaration (User_Data, Tree, Nonterm);
    end declaration_11;
 
    procedure declaration_12
@@ -165,10 +165,19 @@ package body Wisitoken_Grammar_Actions is
      Tree      : in out WisiToken.Syntax_Trees.Tree;
      Nonterm   : in     WisiToken.Syntax_Trees.Valid_Node_Access)
    is
+   begin
+      Start_If (User_Data, Tree, Nonterm);
+   end declaration_15;
+
+   procedure declaration_16
+    (User_Data : in out WisiToken.Syntax_Trees.User_Data_Type'Class;
+     Tree      : in out WisiToken.Syntax_Trees.Tree;
+     Nonterm   : in     WisiToken.Syntax_Trees.Valid_Node_Access)
+   is
       pragma Unreferenced (Tree, Nonterm);
    begin
       End_If (User_Data);
-   end declaration_15;
+   end declaration_16;
 
    procedure nonterminal_0
     (User_Data : in out WisiToken.Syntax_Trees.User_Data_Type'Class;
@@ -187,6 +196,24 @@ package body Wisitoken_Grammar_Actions is
    begin
       Add_Nonterminal (User_Data, Tree, Nonterm);
    end nonterminal_1;
+
+   procedure nonterminal_2
+    (User_Data : in out WisiToken.Syntax_Trees.User_Data_Type'Class;
+     Tree      : in out WisiToken.Syntax_Trees.Tree;
+     Nonterm   : in     WisiToken.Syntax_Trees.Valid_Node_Access)
+   is
+   begin
+      Add_Nonterminal (User_Data, Tree, Nonterm);
+   end nonterminal_2;
+
+   procedure nonterminal_3
+    (User_Data : in out WisiToken.Syntax_Trees.User_Data_Type'Class;
+     Tree      : in out WisiToken.Syntax_Trees.Tree;
+     Nonterm   : in     WisiToken.Syntax_Trees.Valid_Node_Access)
+   is
+   begin
+      Add_Nonterminal (User_Data, Tree, Nonterm);
+   end nonterminal_3;
 
    procedure rhs_item_1
     (User_Data : in out WisiToken.Syntax_Trees.User_Data_Type'Class;
@@ -223,15 +250,6 @@ package body Wisitoken_Grammar_Actions is
    begin
       Check_EBNF (User_Data, Tree, Nonterm, 1);
    end rhs_item_4;
-
-   procedure rhs_item_5
-    (User_Data : in out WisiToken.Syntax_Trees.User_Data_Type'Class;
-     Tree      : in out WisiToken.Syntax_Trees.Tree;
-     Nonterm   : in     WisiToken.Syntax_Trees.Valid_Node_Access)
-   is
-   begin
-      Check_EBNF (User_Data, Tree, Nonterm, 1);
-   end rhs_item_5;
 
    procedure rhs_optional_item_3
     (User_Data : in out WisiToken.Syntax_Trees.User_Data_Type'Class;

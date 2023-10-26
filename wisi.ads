@@ -10,7 +10,7 @@
 --
 --  [3] wisi-process-parse.el - defines elisp/process API
 --
---  Copyright (C) 2017 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2017 - 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -122,7 +122,7 @@ package Wisi is
    overriding
    function Copy_Augmented
      (User_Data : in Parse_Data_Type;
-      Augmented : in WisiToken.Syntax_Trees.Augmented_Class_Access)
+      Augmented : in not null WisiToken.Syntax_Trees.Augmented_Class_Access)
      return WisiToken.Syntax_Trees.Augmented_Class_Access;
 
    overriding
@@ -170,7 +170,7 @@ package Wisi is
       --
       --  If ID is Invalid_Token_ID, and the token at Index is a
       --  nonterminal, the first token in that nonterminal must have a
-      --  navigate cache; an error is reported by Motion_Action if not.
+      --  navigate cache; Motion_Action silently fails if not.
    end record;
 
    package Index_ID_Vectors is new Ada.Containers.Vectors (Ada.Containers.Count_Type, Index_ID);

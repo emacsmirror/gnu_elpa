@@ -2,7 +2,7 @@
 --
 --  See spec.
 --
---  Copyright (C) 2018 - 2022 Free Software Foundation, Inc.
+--  Copyright (C) 2018 - 2023 Free Software Foundation, Inc.
 --
 --  This library is free software;  you can redistribute it and/or modify it
 --  under terms of the  GNU General Public License  as published by the Free
@@ -26,7 +26,6 @@ package body WisiToken.Parse.Packrat.Generated is
       Pre_Edited : in     Boolean        := False)
    is
       pragma Unreferenced (Log_File, Pre_Edited);
-      use all type WisiToken.Syntax_Trees.User_Data_Access;
       use all type Ada.Containers.Count_Type;
       Trace      : WisiToken.Trace'Class renames Parser.Tree.Lexer.Trace.all;
       Result     : Memo_Entry;
@@ -42,9 +41,6 @@ package body WisiToken.Parse.Packrat.Generated is
       Clear (Parser.Derivs);
       Parser.Tree.Clear;
 
-      if Parser.User_Data /= null then
-         Parser.User_Data.Reset;
-      end if;
       Parser.Lex_All; -- Creates Tree.Shared_Stream
 
       --  FIXME: ref_count fails in this usage; works in procedural.

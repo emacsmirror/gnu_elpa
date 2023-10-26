@@ -1,6 +1,6 @@
 ;;; wisi-parse-common.el --- declarations used by wisi-parse.el, wisi-ada-parse.el, and wisi.el -*- lexical-binding:t -*-
 ;;
-;; Copyright (C) 2014, 2015, 2017 - 2022  Free Software Foundation, Inc.
+;; Copyright (C) 2014, 2015, 2017 - 2023  Free Software Foundation, Inc.
 ;;
 ;; Author: Stephen Leake <stephen_leake@member.fsf.org>
 ;;
@@ -22,7 +22,7 @@
 ;;; Code:
 (require 'cl-lib)
 
-(defcustom wisi-incremental-parse-enable nil
+(defcustom wisi-incremental-parse-enable t
   "If non-nil, use incremental parse when possible."
   :type 'boolean
   :group 'wisi
@@ -69,7 +69,7 @@ can be dumped to a file via the tree query dump-prev."
   )
 
 (cl-defstruct (wisi--parse-error-repair)
-  pos ;; position (integer) in buffer where insert/delete is done.
+  pos ;; position (integer or marker) in buffer where insert/delete is done.
   inserted ;; list of token IDs that were inserted before pos
   deleted  ;; list of token IDs that were deleted after pos
   deleted-region ;; buffer (cons FIRST LAST) region deleted
@@ -240,6 +240,11 @@ The value is a list (source-buffer (font-lock-begin
 region font-lock attempted to fontify while the parser was
 busy.")
 
+(defvar wisi-parse-full-read-only nil
+  ;; Only one buffer can be doing a full parse.
+  "Non-nil if `wisi-parse-full-active is t and the buffer was
+originally read-only.")
+
 (cl-defgeneric wisi-parse-incremental (parser parser-action &key full nowait)
   "Incrementally parse current buffer.
 PARSER-ACTION (one of `wisi-post-parse-actions') is used to
@@ -291,8 +296,12 @@ have been previously parsed by `wisi-parse-current' or
   backend.
 
 - ancestor: ARGS are a buffer position and a list of ids. Return
-  the wisi-tree-node for the ancestor of the terminal at that pos
-  that is one of the ids, or nil if no such ancestor.
+  the wisi-tree-node for the first ancestor of the terminal at
+  that pos that is one of the ids, or nil if no such ancestor. To
+  handle LR lists, if the parent of the result is the same as the
+  result, return the parent (iteratively); this returns the root
+  of the list. The char-region does not contain trailing
+  non-grammar.
 
 - parent: ARGS are (node-address n). Return the wisi-tree-node
   for the nth parent of the node, or nil if no such parent.

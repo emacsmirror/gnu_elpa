@@ -2,7 +2,7 @@
 --
 --  See spec
 --
---  Copyright (C) 2012, 2013, 2015, 2017, 2018 Free Software Foundation, Inc.
+--  Copyright (C) 2012, 2013, 2015, 2017, 2018, 2023 Free Software Foundation, Inc.
 --
 --  This program is free software; you can redistribute it and/or
 --  modify it under terms of the GNU General Public License as
@@ -26,8 +26,8 @@ package body WisiToken.BNF.Utils is
          return Item;
       else
          return Item
-           ((if Item (Item'First) = '"' then Item'First + 1 else Item'First) ..
-              (if Item (Item'Last) = '"' then Item'Last - 1 else Item'Last));
+           ((if Item (Item'First) in '"' | ''' then Item'First + 1 else Item'First) ..
+              (if Item (Item'Last) in '"' | ''' then Item'Last - 1 else Item'Last));
       end if;
    end Strip_Quotes;
 

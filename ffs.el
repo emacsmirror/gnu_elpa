@@ -1,6 +1,6 @@
 ;;; ffs.el --- Form Feed Slides mode       -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2022  Amin Bandali <bandali@gnu.org>
+;; Copyright (c) 2022-2023 Amin Bandali <bandali@gnu.org>
 
 ;; Author: Amin Bandali <bandali@gnu.org>
 ;; Version: 0.1.0
@@ -57,6 +57,16 @@ during the ffs presentation."
   :group 'ffs
   :type '(choice (const nil)
                  (integer :value 300)))
+
+(defcustom ffs-start-hook nil
+  "Hooks to perform when starting presenting."
+  :group 'ffs
+  :type 'hook)
+
+(defcustom ffs-quit-hook nil
+  "Hooks to perform when quitting presenting."
+  :group 'ffs
+  :type 'hook)
 
 (defcustom ffs-edit-buffer-name "*ffs-edit*"
   "The name of the ffs-edit buffer used when editing a slide."
@@ -206,17 +216,13 @@ speaker notes buffer (if any)."
   "Start the presentation."
   (interactive)
   (ffs-minor-mode 1)
-  (ffs--no-mode-line-minor-mode 1)
-  (ffs--no-cursor-minor-mode 1)
   (when (integerp ffs-default-face-height)
     (setq-local
      ffs--old-default-face-height
      (face-attribute 'default :height))
     (face-remap-add-relative
      'default :height ffs-default-face-height))
-  (show-paren-local-mode -1)
-  (display-battery-mode -1)
-  (flyspell-mode -1)
+  (run-hooks 'ffs-start-hook)
   (narrow-to-page))
 
 (defun ffs-quit ()
@@ -227,11 +233,7 @@ speaker notes buffer (if any)."
     (when (integerp ffs-default-face-height)
       (face-remap-add-relative
        'default :height ffs--old-default-face-height))
-    (show-paren-local-mode 1)
-    (display-battery-mode 1)
-    (flyspell-mode 1)
-    (ffs--no-mode-line-minor-mode -1)
-    (ffs--no-cursor-minor-mode -1)
+    (run-hooks 'ffs-quit-hook)
     (if n
         (progn
           (goto-char (point-min))
@@ -248,6 +250,7 @@ slide will be added above/before the current slide, and if it is
 current slide.  The logic is implemented in `ffs-edit-done'."
   (interactive)
   (let* ((b (current-buffer))
+         (fc fill-column)
          (m major-mode)
          (n (buffer-narrowed-p))
          (s (if add-above-or-below      ; if we are adding a new slide
@@ -264,7 +267,8 @@ current slide.  The logic is implemented in `ffs-edit-done'."
     (set-buffer-modified-p nil)
     (setq-local
      ffs--edit-source-buffer b
-     ffs--new-location add-above-or-below)
+     ffs--new-location add-above-or-below
+     fill-column fc)
     (message
      (substitute-command-keys "Edit, then use `\\[ffs-edit-done]' \
 to apply your changes or `\\[ffs-edit-discard]' to discard them."))))
@@ -302,11 +306,11 @@ to apply your changes or `\\[ffs-edit-discard]' to discard them."))))
            ((eq l 'add-above)
             (backward-page)
             (insert (format "\n%s" s))
-            (setq f #'ffs-previous-slide))
+            (setq f #'ffs-goto-previous))
            ((eq l 'add-below)
             (forward-page)
             (insert (format "\n%s" s))
-            (setq f #'ffs-next-slide))
+            (setq f #'ffs-goto-next))
            ((null l)
             (narrow-to-page)
             (delete-region (point-min) (point-max))

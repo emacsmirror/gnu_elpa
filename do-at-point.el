@@ -237,22 +237,25 @@ action is selected."
          (choice (cond
                   (quick (car options))
                   ((assq last-command-event options))
-                  ((read-multiple-choice
-                    (format "Action on %s" thing)
-                    (mapcar
-                     (pcase-lambda (`(,key ,short ,_func ,long))
-                       (list key short long))
-                     options)))))
+                  ((condition-case nil
+                       (read-multiple-choice
+                        (format "Action on %s" thing)
+                        (mapcar
+                         (pcase-lambda (`(,key ,short ,_func ,long))
+                           (list key short long))
+                         options))
+                     (quit nil)))))
          (func (cadr (alist-get (car choice) options)))
          (bound (cons (overlay-start do-at-point--overlay)
                       (overlay-end do-at-point--overlay))))
     (do-at-point--mode -1)
-    (message nil)               ;clear mini buffer
-    (pcase (car (func-arity func))
-      (0 (funcall func))
-      (1 (funcall func (buffer-substring (car bound) (cdr bound))))
-      (2 (funcall func (car bound) (cdr bound)))
-      (_ (error "Unsupported signature: %S" func)))))
+    (when func
+      (message nil)               ;clear mini buffer
+      (pcase (car (func-arity func))
+        (0 (funcall func))
+        (1 (funcall func (buffer-substring (car bound) (cdr bound))))
+        (2 (funcall func (car bound) (cdr bound)))
+        (_ (error "Unsupported signature: %S" func))))))
 
 ;; We add an alias for to avoid confusing `substitute-key-definition'
 ;; later on.

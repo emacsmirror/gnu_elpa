@@ -4,6 +4,8 @@
 
 ;; This file is part of calibre.el.
 
+;; Author: Kjartan Oli Agustsson <kjartanoli@disroot.org>
+
 ;; calibre.el is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
@@ -16,6 +18,10 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with calibre.el.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+;; This file contains the code required to edit the metadata of books
+;; in a calibre library.
 
 ;;; Code:
 (require 'compat) ; for defvar-keymap

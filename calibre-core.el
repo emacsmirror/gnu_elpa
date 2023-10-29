@@ -208,12 +208,15 @@ BOOK is a `calibre-book'."
   "Return the id's of books matching FILTER."
   (if (calibre-composite-filter-p filter)
       (seq-let (op filters) filter
-        (cl-reduce (if (eq op '+)
-                       #'cl-union
-                     #'cl-intersection)
-                    (mapcar (lambda (f)
+        (seq-reduce (if (eq op '+)
+                       #'seq-union
+                     #'seq-intersection)
+                   (mapcar (lambda (f)
                              (calibre--get-filter-items (vconcat `[,op] f)))
-                           filters)))
+                           filters)
+                   (if (eq op '+)
+                       '()
+                     (calibre--books))))
     (seq-let (_ field value) filter
       (cl-case field
         (title (calibre-core--interface get-title-books value))
@@ -227,23 +230,25 @@ BOOK is a `calibre-book'."
   "Return those books in BOOKS that match FILTERS.
 FILTERS should be a list of vectors, for the exact contents see
 `calibre-virtual-libraries'."
-  (let* ((include (cl-remove-if-not (lambda (f) (eq (elt f 0) '+)) filters))
-         (exclude (cl-remove-if-not (lambda (f) (eq (elt f 0) '-)) filters))
+  (let* ((include (seq-filter (lambda (f) (eq (elt f 0) '+)) filters))
+         (exclude (seq-filter (lambda (f) (eq (elt f 0) '-)) filters))
          (include-ids (when include
-                        (cl-reduce #'cl-intersection
-                                   (mapcar #'calibre--get-filter-items include))))
+                        (seq-reduce #'seq-intersection
+                                    (mapcar #'calibre--get-filter-items include)
+                                    (mapcar #'calibre-book-id calibre--books))))
          (exclude-ids (when exclude
-                        (cl-reduce #'cl-union
-                                   (mapcar #'calibre--get-filter-items exclude)))))
-    (cl-remove-if (lambda (b)
-                    (seq-find (lambda (id)
-                                (= id (calibre-book-id b)))
-                              exclude-ids))
+                        (seq-reduce #'seq-union
+                                    (mapcar #'calibre--get-filter-items exclude)
+                                    '()))))
+    (seq-filter (lambda (b)
+                  (not (seq-find (lambda (id)
+                                   (= id (calibre-book-id b)))
+                                 exclude-ids)))
                   (if include-ids
-                      (cl-remove-if-not (lambda (b)
-                                      (seq-find (lambda (id)
-                                                  (= id (calibre-book-id b)))
-                                                include-ids))
+                      (seq-filter (lambda (b)
+                                    (seq-find (lambda (id)
+                                                (= id (calibre-book-id b)))
+                                              include-ids))
                                         books)
                     (if include
                         nil

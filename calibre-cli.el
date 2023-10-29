@@ -132,9 +132,11 @@ AUTHORS should be a comma separated string."
 (defun calibre-cli--get-authors ()
   "Return a list of the authors in the active library."
   (cl-remove-duplicates
-   (cl-reduce #'cl-union (mapcar (lambda (b)
-                                  (calibre-cli--parse-authors (alist-get 'authors b)))
-                                 (calibre-cli--list "authors")))
+   (seq-reduce #'seq-union
+               (mapcar (lambda (b)
+                         (calibre-cli--parse-authors (alist-get 'authors b)))
+                       (calibre-cli--list "authors"))
+               '())
    :test #'string=))
 
 (defun calibre-cli--get-publishers ()
@@ -155,17 +157,19 @@ AUTHORS should be a comma separated string."
 
 (defun calibre-cli--get-tags ()
   "Return a list of the tags in the active library."
-  (cl-remove-duplicates
-   (cl-reduce #'cl-union (mapcar (lambda (b)
-                                  (alist-get 'tags b))
-                                 (calibre-cli--list "tags")))
-   :test #'string=))
+  (seq-reduce #'seq-union
+               (mapcar (lambda (b)
+                         (alist-get 'tags b))
+                       (calibre-cli--list "tags"))
+               '()))
 
 (defun calibre-cli--get-formats ()
   "Return a list of the file formats stored in the active library."
-  (cl-reduce #'cl-union (mapcar (lambda (b)
-                                  (calibre-cli--parse-formats (alist-get 'formats b)))
-                                (calibre-cli--list "formats"))))
+  (seq-reduce #'seq-union
+              (mapcar (lambda (b)
+                        (calibre-cli--parse-formats (alist-get 'formats b)))
+                      (calibre-cli--list "formats"))
+              '()))
 
 (provide 'calibre-cli)
 ;;; calibre-cli.el ends here

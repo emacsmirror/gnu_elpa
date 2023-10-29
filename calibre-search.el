@@ -55,7 +55,9 @@ will not be appended to the calibre-db--get-FIELD function's name."
 (defun calibre-search--operation (args)
   "Return the appropriate symbol for a filter operation.
 ARGS is the argument list of a transient command."
-  (if (cl-find "--exclude" args :test #'string=) '- '+))
+  (if (seq-contains-p args "--exclude")
+      '-
+    '+))
 
 (defmacro calibre-library--search-function (field)
   "Create a function adding a filter for FIELD."

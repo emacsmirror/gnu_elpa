@@ -1221,6 +1221,9 @@ Interactively, it is non-nil with the prefix argument."
 
 (define-derived-mode debbugs-gnu-mode tabulated-list-mode "Debbugs"
   "Major mode for listing bug reports.
+The bugs are taken from the cache when the list is refreshed.
+In order to retrieve the actual bug status after it has been
+modified on the debbugs server, consider typing \\`C-u g'.
 
 \\{debbugs-gnu-mode-map}"
   (set (make-local-variable 'debbugs-gnu-sort-state) 'number)
@@ -1581,12 +1584,12 @@ interesting to you."
       (insert ";; Status\n")
       (pp status (current-buffer)))
     (goto-char (point-min))
-    (while
-        (re-search-forward
-         (rx "("
-             (| "cache_time" "last_modified" "fixed_date" "date" "log_modified")
-             " . " (group (1+ (any "." digit))) ")")
-         nil t)
+    (while (re-search-forward
+            (rx "("
+                (| "cache_time" "date" "fixed_date" "found_date"
+                   "last_modified" "log_modified" "unarchived")
+                " . " (group (1+ digit) (? "." (1+ digit))) ")")
+            nil t)
       (put-text-property
        (match-beginning 1) (match-end 1)
        'help-echo (current-time-string (read (match-string 1)))))

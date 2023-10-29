@@ -91,6 +91,7 @@
   (tabulated-list-clear-all-tags))
 
 (defun calibre-library-revert (&rest _IGNORED)
+  "Revert the *LIBRARY* buffer."
   (let ((pos (tabulated-list-get-id)))
     (calibre-library--refresh t)
     (if (not pos)

@@ -322,7 +322,7 @@
  (gnu-elpa-keyring-update :url nil)
  (gnugo			:url nil)
  (gnus-mock		:url nil)
- (gpastel		:url "https://gitlab.petton.fr/DamienCassou/gpastel")
+ (gpastel		:url "https://github.com/DamienCassou/gpastel")
  (gpr-mode		:url nil
   :release-branch t
   :doc ("gpr-mode.texi"))

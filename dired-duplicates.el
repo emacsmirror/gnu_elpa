@@ -54,7 +54,6 @@
 (defcustom dired-duplicates-separate-results
   t
   "Boolean value indicating whether to separate results with new-lines."
-  :group 'dired-duplicates
   :tag "Separate results"
   :type 'boolean)
 
@@ -64,7 +63,6 @@
 
 The checksums will be used for comparison of files of the same
 size."
-  :group 'dired-duplicates
   :tag "Checksum executable"
   :type 'string)
 
@@ -73,7 +71,6 @@ size."
   "The comparison function used for sorting grouped results.
 
 The sorting can be in ascending (<) or descending (>) order."
-  :group 'dired-duplicates
   :tag "Ascending or descending file size sort order"
   :type '(choice (const :tag "Ascending" :value <)
                  (const :tag "Descending" :value >)))
@@ -84,14 +81,12 @@ The sorting can be in ascending (<) or descending (>) order."
 
 A filter function must accept as its single argument the file and
 return boolean t if the file matches a criteria, otherwise nil."
-  :group 'dired-duplicates
   :tag "File filter functions"
   :type 'hook)
 
 (defcustom dired-duplicates-search-directories-recursively
   t
   "Search directories recursively."
-  :group 'dired-duplicates
   :tag "Search directories recursively"
   :type 'boolean)
 

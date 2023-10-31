@@ -253,7 +253,7 @@ The results will be shown in a Dired buffer."
           (message "Finding duplicate files in %s completed." truncated-dirs)
           (dired (cons "/" (flatten-list results)))
           (set-keymap-parent dired-duplicates-map (current-local-map))
-          (setf (current-local-map) dired-duplicates-map)
+          (use-local-map dired-duplicates-map)
           (setq-local dired-duplicates-directories directories)
           (setq-local revert-buffer-function 'dired-duplicates-dired-revert)
           (dired-duplicates--post-process-dired-buffer results))

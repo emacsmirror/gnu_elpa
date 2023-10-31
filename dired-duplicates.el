@@ -1,6 +1,6 @@
 ;;; dired-duplicates.el --- Find duplicate files locally and remotely  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2022 Harald Judt
+;; Copyright (C) 2022-2023 Free Software Foundation, Inc.
 
 ;; Author: Harald Judt <h.judt@gmx.at>
 ;; Maintainer: Harald Judt <h.judt@gmx.at>
@@ -10,7 +10,7 @@
 ;; Keywords: files
 ;; Homepage: https://codeberg.org/hjudt/dired-duplicates
 
-;; This file is not part of GNU Emacs.
+;; This file is part of GNU Emacs.
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 

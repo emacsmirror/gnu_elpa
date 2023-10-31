@@ -98,14 +98,17 @@ return boolean t if the file matches a criteria, otherwise nil."
 
 The executable used is defined by `dired-duplicates-checksum-exec'."
   (let* ((default-directory (file-name-directory (expand-file-name file)))
-         (exec (executable-find dired-duplicates-checksum-exec t)))
+         (exec (executable-find dired-duplicates-checksum-exec t))
+         (file (expand-file-name (file-local-name file))))
     (unless exec
-      (user-error "Checksum program %s not found in exec-path" exec))
-    (car (split-string
-          (shell-command-to-string
-           (concat exec " \"" (expand-file-name (file-local-name file)) "\""))
-          nil
-          t))))
+      (user-error "Checksum program %s not found in `exec-path'" exec))
+    (with-temp-buffer
+      (unless (zerop (call-process exec nil t nil file))
+        (error "Failed to start checksum program %s" exec))
+      (goto-char (point-min))
+      (if (looking-at "\\`[[:alnum:]]+")
+          (match-string 0)
+        (error "Unexpected output from checksum program %s" exec)))))
 
 (defun dired-duplicates--apply-file-filter-functions (files)
   "Apply file filter functions to FILES, returning the resulting list."

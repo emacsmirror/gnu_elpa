@@ -112,10 +112,8 @@ The executable used is defined by `dired-duplicates-checksum-exec'."
 
 (defun dired-duplicates--apply-file-filter-functions (files)
   "Apply file filter functions to FILES, returning the resulting list."
-  (if (and dired-duplicates-file-filter-functions files)
-      (dolist (filter-func dired-duplicates-file-filter-functions files)
-        (setf files (cl-delete-if-not filter-func files)))
-    files))
+  (dolist (filter-func dired-duplicates-file-filter-functions files)
+    (setf files (cl-delete-if-not filter-func files))))
 
 (defun dired-duplicates--find-and-filter-files (directories)
   "Search below DIRECTORIES for duplicate files.

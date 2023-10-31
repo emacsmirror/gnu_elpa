@@ -135,15 +135,15 @@ duplicate files as values."
            do (setf (gethash size same-size-table)
                     (append (gethash size same-size-table) (list f)))
            finally
-           (cl-loop for same-size-files being the hash-values in same-size-table
-                    if (> (length same-size-files) 1) do
+           (cl-loop for same-size-files being the hash-value in same-size-table
+                    if (cdr same-size-files) do
                     (cl-loop for f in same-size-files
                              for checksum = (dired-duplicates-checksum-file f)
                              do (setf (gethash checksum checksum-table)
                                       (append (gethash checksum checksum-table) (list f)))))
            (cl-loop for same-files being the hash-value in checksum-table using (hash-key checksum)
                     do
-                    (if (> (length same-files) 1)
+                    (if (cdr same-files)
                         (setf (gethash checksum checksum-table)
                               (cons (file-attribute-size (file-attributes (car same-files)))
                                     (sort same-files #'string<)))

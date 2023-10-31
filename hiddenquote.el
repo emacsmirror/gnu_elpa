@@ -559,7 +559,12 @@ Returns the `hiddenquote-grid' widget created."
              markers opoint)
         (dolist (def defs)
           (setq opoint (point))
-          (insert (format "%d. %s." (setq i (1+ i)) def))
+          ;; Used to be "%d. %s." (notice the dot), but that looked weird
+          ;; when definitions already had a full stop.
+          (insert (format "%d. %s" (setq i (1+ i)) def))
+          ;; So insert "." conditionally.
+          (unless (char-equal (char-before) ?.)
+            (insert "."))
           (fill-region opoint (point))
           (push (cons (copy-marker opoint) (point-marker)) markers)
           (insert "\n\n"))

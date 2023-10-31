@@ -176,7 +176,6 @@ Currently, this simply adds a new-line after each results group."
                for len in lengths
                do
                (forward-line len)
-               ;; (forward-line len)
                (let ((inhibit-read-only t))
                  (beginning-of-line)
                  (unless (= (point) (point-max))

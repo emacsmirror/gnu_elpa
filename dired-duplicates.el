@@ -72,8 +72,8 @@ size."
 
 The sorting can be in ascending (<) or descending (>) order."
   :tag "Ascending or descending file size sort order"
-  :type '(choice (const :tag "Ascending" :value <)
-                 (const :tag "Descending" :value >)))
+  :type '(choice (const :tag "Ascending" <)
+                 (const :tag "Descending" >)))
 
 (defcustom dired-duplicates-file-filter-functions
   nil

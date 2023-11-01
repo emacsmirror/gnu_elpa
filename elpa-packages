@@ -547,6 +547,8 @@
  (plz                 	:url "https://github.com/alphapapa/plz.el.git"
   :ignored-files ("LICENSE")
   :doc "README.org")
+ (plz-see		:url "https://github.com/astoff/plz-see.el"
+  :readme "README.org")
  (poke			:url "https://git.savannah.gnu.org/git/poke/poke-el.git"
   :doc "poke-el.texi"
   :ignored-files ("COPYING"))

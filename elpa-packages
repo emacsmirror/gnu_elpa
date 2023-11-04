@@ -210,6 +210,7 @@
  (diminish            	:url "https://github.com/myrjola/diminish.el.git"
   :ignored-files ("LICENSE"))
  (dired-du		:url nil)
+ (dired-duplicates	:url "https://codeberg.org/hjudt/dired-duplicates")
  (dired-git-info	:url "https://github.com/clemera/dired-git-info")
  (dired-preview		:url "https://git.sr.ht/~protesilaos/dired-preview"
   :doc "README.org"

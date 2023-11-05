@@ -103,7 +103,7 @@ The executable used is defined by `dired-duplicates-checksum-exec'."
     (unless exec
       (user-error "Checksum program %s not found in `exec-path'" exec))
     (with-temp-buffer
-      (unless (zerop (call-process exec nil t nil file))
+      (unless (zerop (process-file exec nil t nil file))
         (error "Failed to start checksum program %s" exec))
       (goto-char (point-min))
       (if (looking-at "\\`[[:alnum:]]+")

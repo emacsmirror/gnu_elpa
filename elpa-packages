@@ -103,8 +103,7 @@
  (buffer-env		:url "https://github.com/astoff/buffer-env")
  (buffer-expose		:url "https://github.com/clemera/buffer-expose")
  (bufferlo		:url "https://github.com/florommel/bufferlo"
-  :readme "README.org"
-  :ignored-files ("COPYING"))
+  :readme "README.org")
  ;; FIXME: https://github.com/Malabarba/elisp-bug-hunter/issues/31
  (bug-hunter		:url "https://github.com/Malabarba/elisp-bug-hunter")
  ;; (cc-mode		:core ("lisp/progmodes/cc-align.el"

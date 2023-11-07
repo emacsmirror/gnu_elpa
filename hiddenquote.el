@@ -1692,9 +1692,11 @@ With a prefix argument NOPROMPT non-nil, doesn't prompt."
   "Stop playing hiddenquote, without saving the progress.
 
 Prompts the user and kills the buffer if the answer is \"yes\".
-With a prefix argument NOPROMPT non-nil, doesn't prompt."
+Kills the buffer unconditionally With a prefix argument NOPROMPT non-nil,
+or if the puzzle is complete."
   (interactive "P")
-  (when (or noprompt (yes-or-no-p "Really quit playing Hiddenquote? "))
+  (when (or noprompt (hiddenquote-puzzle-complete-p)
+            (yes-or-no-p "Really quit playing Hiddenquote? "))
     (hiddenquote-timer-stop-timer)
     (let ((name (buffer-name)))
       (dolist (buff (mapcar (lambda (suffix)

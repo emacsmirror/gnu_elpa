@@ -229,6 +229,7 @@
  ;;(dtache		:url "https://git.sr.ht/~niklaseklund/dtache"
  ;; :news "CHANGELOG.org"
  ;; :readme "README.md")
+ (drepl                 :url "https://github.com/astoff/drepl")
  (dts-mode		:url nil) ;; Was "https://github.com/bgamari/dts-mode.git"
  (easy-escape		:url "https://github.com/cpitclaudel/easy-escape")
  (easy-kill		:url "https://github.com/leoliu/easy-kill")

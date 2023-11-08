@@ -305,8 +305,8 @@ The results will be shown in a Dired buffer."
           (set-keymap-parent dired-duplicates-map dired-mode-map)
           (use-local-map dired-duplicates-map)
           (setq-local dired-duplicates-directories directories)
-          (setq-local revert-buffer-function 'dired-duplicates-dired-revert)
-          (dired-duplicates--post-process-dired-buffer results))
+          (dired-duplicates--post-process-dired-buffer results)
+          (setq-local revert-buffer-function 'dired-duplicates-dired-revert))
       (message "No duplicate files found."))))
 
 (provide 'dired-duplicates)

@@ -82,6 +82,25 @@ found."
   :tag "Checksum exec to internal algo mappings."
   :type 'list)
 
+(defcustom dired-duplicates-internal-checksumming-size-limit
+  (let ((mb (* 1024 1024)))
+    ;; 1024MiB for 64-bit systems, 512MiB for 32-bit
+    (if (or (< most-positive-fixnum (* 2.0 1024 mb))
+            ;; 32-bit system with wide ints
+            (string-match-p "--with-wide-int" system-configuration-options))
+        (* 512 mb)
+      (* 1024 mb)))
+  "File size in bytes above which internal checksumming will not be used.
+
+If the size of a file exceeds this limit, a warning will be
+issued and checksumming using internal functions will not be
+done, resulting in ignoring the file.  It has no effect on
+checksumming using an executable.  This limit exists to prevent
+out-of-memory situations, where the Emacs process becomes
+unresponsive or gets killed."
+  :tag "Internal checksumming file size limit"
+  :type 'integer)
+
 (defcustom dired-duplicates-size-comparison-function
   '<
   "The comparison function used for sorting grouped results.
@@ -186,13 +205,19 @@ duplicate files as values."
                                    (setf (gethash (file-remote-p d) checksum-exec-availability) exec)
                                  (message "Checksum program %s not found in exec-path, falling back to internal routines" exec))))
 
-                    for same-size-files being the hash-value in same-size-table
+                    for same-size-files being the hash-value in same-size-table using (hash-key size)
                     if (cdr same-size-files) do
                     (cl-loop for f in same-size-files
-                             for checksum = (dired-duplicates--checksum-file f (gethash (file-remote-p f)
-                                                                                        checksum-exec-availability))
-                             do (setf (gethash checksum checksum-table)
-                                      (append (gethash checksum checksum-table) (list f)))))
+                             for checksum-path = (gethash (file-remote-p f) checksum-exec-availability)
+                             for checksum = (if checksum-path
+                                                  (dired-duplicates--checksum-file f checksum-path)
+                                                (if (<= size dired-duplicates-internal-checksumming-size-limit)
+                                                    (dired-duplicates--checksum-file f nil)
+                                                  (warn "File %s is too big to checksum using internal functions, skipping." f)
+                                                  nil))
+                             when checksum do
+                               (setf (gethash checksum checksum-table)
+                                     (append (gethash checksum checksum-table) (list f)))))
            (cl-loop for same-files being the hash-value in checksum-table using (hash-key checksum)
                     do
                     (if (cdr same-files)

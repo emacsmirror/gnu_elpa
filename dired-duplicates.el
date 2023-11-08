@@ -66,6 +66,22 @@ size."
   :tag "Checksum executable"
   :type 'string)
 
+(defcustom dired-duplicates-external-internal-algo-mapping
+  '(("sha512sum" . sha512)
+    ("sha384sum" . sha384)
+    ("sha256sum" . sha256)
+    ("sha224sum" . sha224)
+    ("sha1sum" . sha1)
+    ("md5sum" . md5))
+  "Mappings of checksum execs to internal secure hash algorithms.
+
+These mappings will be used in fallback cases to determine the
+secure hash function to use when the desired checksum
+executable (see `dired-duplicates-checksum-exec') cannot be
+found."
+  :tag "Checksum exec to internal algo mappings."
+  :type 'list)
+
 (defcustom dired-duplicates-size-comparison-function
   '<
   "The comparison function used for sorting grouped results.
@@ -93,22 +109,46 @@ return boolean t if the file matches a criteria, otherwise nil."
 (defvar dired-duplicates-directories nil
   "List of directories that will be searched for duplicate files.")
 
-(defun dired-duplicates-checksum-file (file)
-  "Create a checksum for FILE.
 
-The executable used is defined by `dired-duplicates-checksum-exec'."
-  (let* ((default-directory (file-name-directory (expand-file-name file)))
-         (exec (executable-find dired-duplicates-checksum-exec t))
-         (file (expand-file-name (file-local-name file))))
-    (unless exec
-      (user-error "Checksum program %s not found in `exec-path'" exec))
-    (with-temp-buffer
-      (unless (zerop (process-file exec nil t nil file))
-        (error "Failed to start checksum program %s" exec))
-      (goto-char (point-min))
-      (if (looking-at "\\`[[:alnum:]]+")
-          (match-string 0)
-        (error "Unexpected output from checksum program %s" exec)))))
+(defun dired-duplicates--checksum-file (file &optional exec)
+  "Create a checksum for FILE, optionally using EXEC.
+
+EXEC needs to be specified with its full path.  If nil, use the
+internal function `secure-hash' with the appropriate algorithm,
+which will be deduced from `dired-duplicates-checksum-exec' via
+the `dired-duplicates-external-internal-algo-mapping'.  Using
+`secure-hash' instead of spawning a process can be faster for
+very small files and will work even when the TRAMP method used
+does not provide a shell, but is usually slower and could cause
+memory issues for files bigger than the Emacs process or the
+machine can handle because they have to be loaded into a
+temporary buffer for the hash calculation."
+  (if (not exec)
+      (let ((message-log-max nil)
+            (hash-algo (alist-get dired-duplicates-checksum-exec
+                                  dired-duplicates-external-internal-algo-mapping
+                                  nil nil #'string=)))
+        (unless hash-algo
+          (user-error "Could not determine the correct hash algorithm for %s via %s"
+                      dired-duplicates-checksum-exec
+                      "`dired-duplicates-external-internal-algo-mapping'"))
+        (message "Internal checksumming of %s" file)
+        (with-temp-buffer
+          (let ((inhibit-message t))
+            (insert-file-contents-literally file))
+          (secure-hash hash-algo
+                       (current-buffer))))
+    (let* ((default-directory (file-name-directory (expand-file-name file)))
+           (file (expand-file-name (file-local-name file)))
+           (message-log-max nil))
+      (with-temp-buffer
+        (message "External checksumming of %s" file)
+        (unless (zerop (process-file exec nil t nil file))
+          (error "Failed to start checksum program %s" exec))
+        (goto-char (point-min))
+        (if (looking-at "\\`[[:alnum:]]+")
+            (match-string 0)
+          (error "Unexpected output from checksum program %s" exec))))))
 
 (defun dired-duplicates--apply-file-filter-functions (files)
   "Apply file filter functions to FILES, returning the resulting list."
@@ -132,13 +172,25 @@ duplicate files as values."
            and checksum-table = (make-hash-table :test 'equal)
            for f in files
            for size = (file-attribute-size (file-attributes f))
+           initially do
+           (message "Collecting sizes of %d files..." (length files))
            do (setf (gethash size same-size-table)
                     (append (gethash size same-size-table) (list f)))
            finally
-           (cl-loop for same-size-files being the hash-value in same-size-table
+           (cl-loop with checksum-exec-availability = (make-hash-table :test 'equal)
+                    initially do
+                    (cl-loop for d in directories do
+                             (let* ((default-directory (file-name-directory (expand-file-name d)))
+                                    (exec (executable-find dired-duplicates-checksum-exec t)))
+                               (if exec
+                                   (setf (gethash (file-remote-p d) checksum-exec-availability) exec)
+                                 (message "Checksum program %s not found in exec-path, falling back to internal routines" exec))))
+
+                    for same-size-files being the hash-value in same-size-table
                     if (cdr same-size-files) do
                     (cl-loop for f in same-size-files
-                             for checksum = (dired-duplicates-checksum-file f)
+                             for checksum = (dired-duplicates--checksum-file f (gethash (file-remote-p f)
+                                                                                        checksum-exec-availability))
                              do (setf (gethash checksum checksum-table)
                                       (append (gethash checksum checksum-table) (list f)))))
            (cl-loop for same-files being the hash-value in checksum-table using (hash-key checksum)

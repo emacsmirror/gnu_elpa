@@ -302,7 +302,7 @@ The results will be shown in a Dired buffer."
         (progn
           (message "Found %d files having duplicates." (length results))
           (dired (cons "/" (flatten-list results)))
-          (set-keymap-parent dired-duplicates-map (current-local-map))
+          (set-keymap-parent dired-duplicates-map dired-mode-map)
           (use-local-map dired-duplicates-map)
           (setq-local dired-duplicates-directories directories)
           (setq-local revert-buffer-function 'dired-duplicates-dired-revert)

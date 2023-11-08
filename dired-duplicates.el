@@ -295,9 +295,8 @@ The results will be shown in a Dired buffer."
                                                default-directory)))
   (unless directories
     (user-error "Specify one or more directories to search in"))
-  (let* ((directories (if (listp directories) directories (list directories)))
-         (truncated-dirs (truncate-string-to-width (string-join directories ", ") 40 0 nil t)))
-    (message "Finding duplicate files in %s..." truncated-dirs)
+  (let* ((directories (if (listp directories) directories (list directories))))
+    (message "Finding duplicate files in %s..." (string-join directories ", "))
     (if-let ((default-directory "/")
              (results (dired-duplicates--generate-grouped-results directories)))
         (progn
@@ -308,7 +307,7 @@ The results will be shown in a Dired buffer."
           (setq-local dired-duplicates-directories directories)
           (setq-local revert-buffer-function 'dired-duplicates-dired-revert)
           (dired-duplicates--post-process-dired-buffer results))
-      (message "No duplicate files found in %s." truncated-dirs))))
+      (message "No duplicate files found."))))
 
 (provide 'dired-duplicates)
 

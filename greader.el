@@ -1490,5 +1490,96 @@ the element, configure the `greader-enriched-tag' variable."
     (remove-hook 'greader-after-get-sentence-functions
 		 #'greader-scrap-links)))
 
+;;greader-continuous-mode
+;; In this mode, greader will try to "guess" the function in the
+;; current major mode that allows you to scroll the page
+;; next one.
+;;To do this, it assumes that, usually, the command to switch to
+;; next page or section in a buffer is associated with the space key.
+;; However, it will be possible to specify via the variable
+;; customizable `greader-continuous-modes' functions associated with
+;; particular major modes.
+(defcustom greader-continuous-modes
+  (if (package-installed-p 'nov)
+      (progn
+	(require 'nov)
+	'((nov-mode . nov-next-document)))
+    ())
+  "Alist mapping major modes to functions for greader-continuous
+guessing."
+  :type '(alist :key-type (symbol :tag "mode-name") 
+                :value-type (function :tag "Scroll function")))
+
+(defcustom greader-continuous-excluded-modes ()
+  "Alist mapping major modes to functions for greader-continuous guessing."
+  :type '(list (symbol :tag "modes")))
+
+(defcustom greader-continuous-key "SPC"
+  "The key or key sequence from which the scroll function is to be derived."
+  :type 'string)
+
+(defun greader-continuous-guess-function ()
+  "Guess the function for greader-continuous mode based on GREADER-CONTINUOUS-KEY.
+If GREADER-CONTINUOUS-KEY is nil, checks against `greader-continuous-excluded-modes'
+and `greader-continuous-modes' to determine the appropriate function."
+  (cond
+   ((member major-mode greader-continuous-excluded-modes)
+    ;; If the current major mode is excluded, return nil.
+    nil)
+   ((assoc major-mode greader-continuous-modes)
+    ;; If the current major mode is included, return the associated function.
+    (cdr (assoc major-mode greader-continuous-modes)))
+   ;; If a key sequence is provided, get the corresponding command.
+   (greader-continuous-key
+    (let ((command (key-binding (kbd greader-continuous-key))))
+      ;; Return nil if the command is `self-insert-command',
+      ;; otherwise return the command itself.
+      (unless (eq command 'self-insert-command)
+        command)))
+   (t
+    ;; If the major mode is not mentioned in any list, return nil.
+    nil)))
+
+;; The following is the function that will be added to
+;; `greader-before-finish-functions', just in case
+;; `greader-continuous-mode' is enabled.
+(defun greader-continuous-call-function ()
+  "Call the function returned by `greader-continuous-guess-key'.
+If the `greader-continuous-guess-key` function returns nil, then
+this function will return nil, otherwise it returns t. It also handles
+any errors that occur during the execution of the command or
+the reading process, returning nil in such cases."
+  (condition-case nil
+      ;; The condition-case block here is to handle any errors
+      ;; that might occur in any part of the following code.
+      (let ((command (greader-continuous-guess-function)))
+        ;; Check if a valid command is returned.
+        (when command
+          ;; Calls the function returned by greader-continuous-guess-function.
+          (funcall command)
+          (greader-read))
+        t)  ; Returns t if no error occurs.
+    ((debug error) nil)))  ; Returns nil in case of an error.
+
+;; greader-continuous-mode
+;; This minor-mode will take care of adding to the hook
+;; `greader-before-finish-functions' the function
+;; `greader-continuous-call-function'.
+;; If minor-mode is deactivated, the function will be removed
+;; from the hook.
+(define-minor-mode greader-continuous-mode
+  "This minor-mode enables autoscrolling in buffers that support it
+require.
+Examples are `info-mode', `nov-mode', to some extent `man-mode' etc...
+When this minor-mode is active, say in `info-mode', it will be
+called the `info-scroll-up' function instead of finishing reading."
+  :lighter " continuous"
+  (if greader-continuous-mode
+      (add-hook 'greader-before-finish-functions
+		#'greader-continuous-call-function 0 t)
+    (remove-hook 'greader-before-finish-functions
+		 #'greader-continuous-call-function t)))
+    
+
 (provide 'greader)
 ;;; greader.el ends here

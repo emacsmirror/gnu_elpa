@@ -3,9 +3,9 @@
 * Description
 This Emacs package helps to find duplicate files on local and remote
 filesystems.  It is similar to the fdupes command-line utility but written in
-Emacs Lisp and should also work on every remote filesystem that TRAMP supports
-and where executable commands can be called remotely.  The most common use case
-for this is probably finding and deleting unneeded duplicate files.
+Emacs Lisp and should also work on every remote filesystem that TRAMP supports.
+The most common use case for this is probably finding and deleting unneeded
+duplicate files.
 
 dired-duplicates works by first searching files of the same size, then invoking
 the calculation of the checksum for these files, and finally presenting the
@@ -19,15 +19,20 @@ lines, but this grouping can also be deactivated by setting the custom variable
 
 * Requirements
 For performance reasons, a checksum program like =md5= or =sha256sum= will be
-used for generating checksums of file contents and therefore needs to be
-available and executable on the local and/or remote hosts.  That way, no files
-need to be read over possibly slow networks, thus calculating the checksum will
-be much faster when directly executed on remote hosts.  The name of the
-checksum program can be customized.
+used for generating checksums of file contents if available and executable on
+the local and/or remote hosts.  That way, no files need to be read over
+possibly slow networks, thus calculating the checksum will be much faster when
+directly executed on remote hosts.  The name of the checksum program can be
+customized.  If unavailable, the file contents will be inserted into a temp
+buffer and the checksum will be calculated using the =secure-hash= functions
+with an appropriate algorithm.  While this works everywhere, it is generally
+slower and could cause out-of-memory problems so there is a customizable
+=dired-duplicates-internal-checksumming-size-limit= setting.  Files bigger than
+this setting will not be processed, and a warning will be issued instead.
 
 * Installation
-The package can be installed from MELPA via the Emacs package manager,
-e.g. ~package-install~.  Or you use the following use-package snippet:
+The package can be installed from MELPA or GNU ELPA via the Emacs package
+manager, e.g. ~package-install~.  Or you use the following use-package snippet:
 #+BEGIN_SRC emacs-lisp
 (use-package dired-duplicates)
 #+END_SRC

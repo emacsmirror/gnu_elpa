@@ -17,6 +17,8 @@ By default, the results will be grouped visually by separating them using empty
 lines, but this grouping can also be deactivated by setting the custom variable
 =dired-duplicates-separate-result= to =nil=.
 
+dired-duplicates will silently ignore unreadable directories and files.
+
 * Requirements
 For performance reasons, a checksum program like =md5= or =sha256sum= will be
 used for generating checksums of file contents if available and executable on

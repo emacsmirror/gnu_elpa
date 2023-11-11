@@ -347,6 +347,7 @@ allow running the command after exiting Isearch."
     (define-key map "e" #'hiddenquote-end-of-line-syllable)
     (define-key map "\C-e" #'hiddenquote-end-of-line-syllable)
     (define-key map "\M->" #'hiddenquote-goto-last-syllable)
+    (define-key map "\C-x u" #'hiddenquote-undo)
     map)
   "Keymap for the Syllables buffer.")
 
@@ -810,7 +811,7 @@ values."
   :value-create #'hiddenquote-syllable-value-create
   :button-face-get #'hiddenquote-syllable-button-face-get
   :mouse-face 'hiddenquote-highlight-syllable
-  :action #'widget-toggle-action
+  :action #'hiddenquote-syllable-action
   :notify #'hiddenquote-syllable-notify)
 
 (defun hiddenquote-grid-convert-widget (widget)
@@ -1139,7 +1140,30 @@ Return `hiddenquote-used-syllable' if WIDGET's value is non-nil,
     (hiddenquote-timer-stop-timer)
     (message "Congratulations, you won!")))
 
+(defun hiddenquote-syllable-undo (widget value)
+  "Undo function, that sets WIDGET to VALUE and records an entry to redo it.
+
+Redo it means setting WIDGET to the opposite of VALUE."
+  (let ((undo-entry
+         (list 'apply #'hiddenquote-syllable-undo widget (not value))))
+    (widget-value-set widget value)
+    (push undo-entry buffer-undo-list)))
+
+(defun hiddenquote-syllable-action (widget &optional event)
+  "Action the hiddenquote-syllable WIDGET upon EVENT, recording an undo entry."
+  (let ((undo-entry
+         (list 'apply #'hiddenquote-syllable-undo
+               widget (widget-value widget))))
+    (widget-toggle-action widget event)
+    (push undo-entry buffer-undo-list)))
+
 ;; Functions.
+(defun hiddenquote-undo ()
+  "Simple undo for hiddenquote, binding `buffer-read-only' to non-nil."
+  (interactive)
+  (let ((buffer-read-only nil))
+    (undo)))
+
 (defun hiddenquote--get-quote-length ()
   "Return the quote length, by looking each word in the widget."
   ;; We have to do this when the qquote slot is empty.

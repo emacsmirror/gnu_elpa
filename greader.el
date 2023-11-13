@@ -1556,6 +1556,9 @@ the reading process, returning nil in such cases."
         ;; Check if a valid command is returned.
         (when command
           ;; Calls the function returned by greader-continuous-guess-function.
+;; We check that the point is not at the end of the buffer.
+	  (when (eobp)
+	    (goto-char (- (point-max) 1)))
           (funcall command)
           (greader-read))
         t)  ; Returns t if no error occurs.

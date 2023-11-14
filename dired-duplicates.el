@@ -5,7 +5,7 @@
 ;; Author: Harald Judt <h.judt@gmx.at>
 ;; Maintainer: Harald Judt <h.judt@gmx.at>
 ;; Created: 2022
-;; Version: 0.2
+;; Version: 0.3
 ;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: files
 ;; Homepage: https://codeberg.org/hjudt/dired-duplicates

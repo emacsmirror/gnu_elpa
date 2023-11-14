@@ -1,0 +1,16 @@
+* dired-duplicates-0.3  [2023-11-14 Di]
+
+- Silently ignore subdirectories that cannot be read, so that finding files
+  will not abort on directories the user does not have permissions to read like
+  lost+found.
+- Silently ignore files that cannot be read.
+- Add NEWS.org file.
+
+* dired-duplicates-0.2  [2023-11-09 Do]
+
+- Use internal hash functions when remote shell or the external checksumming
+  command is not available.
+- Improve status update messages.
+- First release on GNU ELPA.
+
+* dired-duplicates-0.1  (only released on MELPA)

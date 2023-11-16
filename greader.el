@@ -675,6 +675,16 @@ buffer, so if you want to set it globally, please use
   "Set punctuation to FLAG."
   (greader-call-backend 'punctuation flag))
 
+(defun greader--get-local-language ()
+  "Returns the language code from the system's locale."
+  (let ((locale (or (getenv "LANG") ; First try with the LANG environment variable
+                    (getenv "LC_ALL") ; Then with LC_ALL
+                    "en"))) ; Default to "en" if nothing is found
+    ;; Extracts the language code from the locale (e.g., "en_US.UTF-8" becomes "en")
+    (if (string-match "\\([a-z]+\\)_" locale)
+        (match-string 1 locale)
+      "en"))) ; Default to "en" if the locale format is unrecognized
+
 (defun greader-get-language ()
   "return language set in current back-end."
   (greader-call-backend 'get-language))

@@ -686,9 +686,15 @@ buffer, so if you want to set it globally, please use
       "en"))) ; Default to "en" if the locale format is unrecognized
 
 (defun greader-get-language ()
-  "return language set in current back-end."
-  (greader-call-backend 'get-language))
-
+  "return language set in current back-end.
+if `current-backend' does not implement `get-language' command, try to
+get the language from the environment."
+  (let ((lang nil))
+    (if (equal (greader-call-backend 'get-language)
+	       'not-implemented)
+	(setq lang (greader--get-local-language))
+      (setq lang (greader-call-backend 'get-language)))
+    lang))
 (defun greader-toggle-punctuation ()
   "Toggle punctuation locally for current buffer."
   (interactive)

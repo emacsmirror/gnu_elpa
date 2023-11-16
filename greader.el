@@ -1578,11 +1578,20 @@ When this minor-mode is active, say in `info-mode', it will be
 called the `info-scroll-up' function instead of finishing reading."
   :lighter " continuous"
   (if greader-continuous-mode
-      (add-hook 'greader-before-finish-functions
-		#'greader-continuous-call-function 0 t)
+      (progn
+	(unless (greader-continuous-guess-function)
+	  (let ((error-string
+		 (concat
+		  "I can't determine the function for
+scroll in " (symbol-name major-mode) ".\nPlease add
+this major mode to the variable `greader-continuous-modes'")))
+	    (greader-continuous-mode -1)
+	    (user-error "%s" error-string)))
+	(add-hook 'greader-before-finish-functions
+		  #'greader-continuous-call-function 0 t))
     (remove-hook 'greader-before-finish-functions
 		 #'greader-continuous-call-function t)))
-    
+
 
 (provide 'greader)
 ;;; greader.el ends here

@@ -6,7 +6,7 @@
 ;; Author: Michelangelo Rodriguez <michelangelo.rodriguez@gmail.com>
 ;; Keywords: tools, accessibility
 
-;; Version: 0.6.0
+;; Version: 0.7.0
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -695,6 +695,7 @@ get the language from the environment."
 	(setq lang (greader--get-local-language))
       (setq lang (greader-call-backend 'get-language)))
     lang))
+
 (defun greader-toggle-punctuation ()
   "Toggle punctuation locally for current buffer."
   (interactive)
@@ -1607,7 +1608,6 @@ this major mode to the variable `greader-continuous-modes'")))
 		  #'greader-continuous-call-function 0 t))
     (remove-hook 'greader-before-finish-functions
 		 #'greader-continuous-call-function t)))
-
 
 (provide 'greader)
 ;;; greader.el ends here

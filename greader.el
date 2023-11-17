@@ -1573,7 +1573,7 @@ the reading process, returning nil in such cases."
         ;; Check if a valid command is returned.
         (when command
           ;; Calls the function returned by greader-continuous-guess-function.
-;; We check that the point is not at the end of the buffer.
+	  ;; We check that the point is not at the end of the buffer.
 	  (when (eobp)
 	    (goto-char (- (point-max) 1)))
           (funcall command)
@@ -1596,6 +1596,7 @@ called the `info-scroll-up' function instead of finishing reading."
   :lighter " continuous"
   (if greader-continuous-mode
       (progn
+	(greader-study-mode -1)
 	(unless (greader-continuous-guess-function)
 	  (let ((error-string
 		 (concat
@@ -1608,6 +1609,34 @@ this major mode to the variable `greader-continuous-modes'")))
 		  #'greader-continuous-call-function 0 t))
     (remove-hook 'greader-before-finish-functions
 		 #'greader-continuous-call-function t)))
+;; greader-study-mode
+;; This is the complementary mode of "greader-continuous-mode", and
+;; is used to repeatedly read the contents of a buffer or part of
+;; it.
+
+;; greader-study-restart is the function that will be added to the hook
+;; `greader-before-finish-functions'.
+;; The function simply returns to the beginning of the buffer or the
+;; active region and runs `greader-read'.
+(defun greader-study-restart ()
+  "restart reading of buffer or region."
+  (if greader-region-mode
+      (goto-char (region-beginning))
+    (goto-char (point-min)))
+  (greader-read) t)
+
+;; greader-study-mode
+(define-minor-mode greader-study-mode
+  "In study-mode, reading of buffer will restart continuously.
+If `greader-region-mode' is enabled, restart will behave accordingly."
+  :lighter " study"
+  (if greader-study-mode
+      (progn
+	(greader-continuous-mode -1)
+	(add-hook 'greader-before-finish-functions
+		  #'greader-study-restart 0 t))
+    (remove-hook 'greader-before-finish-functions
+		 #'greader-study-restart t)))
 
 (provide 'greader)
 ;;; greader.el ends here

@@ -6,7 +6,7 @@
 ;; Maintainer: Antoine Kalmbach <ane@iki.fi>
 ;; URL: https://www.gnu.org/software/recutils/
 ;; Package-Requires: ((emacs "25"))
-;; Version: 1.9.2
+;; Version: 1.9.3
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -515,9 +515,9 @@ then nil is returned."
 Return nil if the pointer is not on a field."
   (save-excursion
     (beginning-of-line)
-    (while (and (not (= (line-beginning-position) 1))
+    (while (and (not (= (line-beginning-position) (point-min)))
                 (or (looking-at "\\+")
-                    (and (> (point) 1)
+                    (and (not (bobp))
                          (save-excursion
                            (backward-char 2)
                            (looking-at "\\\\\n")))))

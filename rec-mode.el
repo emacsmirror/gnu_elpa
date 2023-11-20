@@ -30,11 +30,11 @@
 ;; Rec Mode is a mode for browsing and editing recfiles, which are text files
 ;; containing data structured in fields and records.  It is part of the GNU
 ;; recutils suite, for more information visit http://www.gnu.org/software/recutils.
-;; 
+;;
 ;; Recfiles are text-based databases which are easy to read and write manually
 ;; using a text editor.  At the same time they feature enough structure so they can
 ;; be read, edited and processed automatically by programs.
-;; 
+;;
 ;; Rec Mode offers convenience commands for navigation, edition, record statistics,
 ;; syntax highlighting, and more.  Rec mode comes with a manual, see Info node
 ;; `(rec-mode)Introduction'.
@@ -515,19 +515,16 @@ then nil is returned."
 Return nil if the pointer is not on a field."
   (save-excursion
     (beginning-of-line)
-    (let (res)
-      (while
-          (cond
-           ((and (not (= (line-beginning-position) 1))
-                 (or (looking-at "\\+")
-                     (looking-back "\\\\\n" 2)))
-            (forward-line -1)
-            t) ;;Continue
-           ((looking-at rec-field-name-re)
-            (setq res (point))
-            nil)     ;;Exit
-           (t nil))) ;;Exit
-      res)))
+    (while (and (not (= (line-beginning-position) 1))
+                (or (looking-at "\\+")
+                    (and (> (point) 1)
+                         (save-excursion
+                           (backward-char 2)
+                           (looking-at "\\\\\n")))))
+      (forward-line -1))
+    (if (looking-at rec-field-name-re)
+        (point)
+      nil)))
 
 (defun rec-end-of-field-pos ()
   "Return the position of the end of the current field.
@@ -947,11 +944,11 @@ Return nil if the point is not on a record."
              for index from 0
              for curr in descriptors and
              next in next-descriptors
-             
+
              if (and (>= point (rec-record-descriptor-position curr))
                      (or (= index (- count 1))
                          (< point (rec-record-descriptor-position next))))
-             
+
              return curr)))
 
 (defun rec-summary-fields ()
@@ -1288,7 +1285,7 @@ If `rec-selection-mode' is active, that string is displayed instead."
                          (if rec-selection-mode
                              (format "Edit %s / %s" rec-edit-mode-type selection-format)
                            (format "Edit %s" (symbol-name rec-edit-mode-type))))
-                        
+
                         (rec-selection-mode
                          (rec-selection-stringify rec-selection-current-selection))
 
@@ -1509,7 +1506,7 @@ Optional argument NO-SEXPS when non-nil, returns the results in rec format.
 
 Optional argument DESCRIPTOR when non-nil, includes the record descriptor.
 
-Optional argument VALUES when non-nil, returns only the values of the fields. 
+Optional argument VALUES when non-nil, returns only the values of the fields.
 Requires NO-SEXPS with non-nil value to work properly."
   (let ((buffer (generate-new-buffer "Rec Sel "))
         args status)
@@ -1890,7 +1887,7 @@ Optionally select only the fields in FEX.")
             (setq rec-current-selection results)
             (when rec-selection-mode
               (rec-cmd-exit-selection))
-            
+
             (setq rec-selection-previous-mode-line mode-line-buffer-identification)
             (setq rec-selection-current-selection selection)
             (rec-selection-mode)
@@ -2009,7 +2006,7 @@ Prefix arguments N moves next by N records."
          (heading (concat (propertize type 'face 'font-lock-type-face)
                           " at line "
                           line-number)))
-    
+
     (add-face-text-property 0 (length heading) 'bold nil heading)
     (format "%s\n%s"
             heading
@@ -2019,7 +2016,7 @@ Prefix arguments N moves next by N records."
   "Make an xref object out of a record structure.
 
 If TYPE is nil, the summary line will show just 'Record'.  BUFFER is the buffer
-from which to display results.  The KIND determines" 
+from which to display results.  The KIND determines"
   (xref-make
    (rec--xref-summary-for-record record type kind)
    (rec-xref-make-location buffer (or (byte-to-position (rec-record-position record)) 0))))
@@ -2444,7 +2441,7 @@ Optional argument N specifies number of records to skip."
 
 Interactive version of `rec-goto-previous-rec'.
 Optional argument N specifies number of records to skip."
-  
+
   (interactive "P")
   (when (null n) (setq n 1))
   (widen)
@@ -2855,7 +2852,7 @@ active selection in `rec-selection-current-selection'."
                            pop-up-windows
                            (not pop-up-frames))
                       (progn
-                        
+
                         (split-window (selected-window) rec-summary-window-height)
                         (select-window (next-window (frame-first-window)))
                         (pop-to-buffer buf)
@@ -3068,7 +3065,7 @@ onto the chosen record."
     ["Append field"       rec-cmd-append-field t]
     ["Toggle field visibility" rec-cmd-toggle-field-visibility t]
     ["Trim field value"   rec-cmd-trim-field-value t]
-    
+
     "---"
     ("Restrict navigation"
      ["Matching selection expression..." rec-cmd-navigate-current-type-by-sex
@@ -3083,12 +3080,12 @@ onto the chosen record."
      ["New buffer from fast string search..." rec-cmd-new-buffer-from-fast-string
       :help "Run a fast string search on the file and copy the results to a new buffer."])
     ("Cross reference"
-     
+
      ["For selection expression..." rec-cmd-xref-sex
       :help "Run a selection expression on the buffer and make an XREF list out of it."]
      ["For fast string search..." rec-cmd-xref-fast-string
       :help "Run a fast string search and copy the matching lines into a new buffer."])
-    
+
     "---"
     ["Edit field"         rec-cmd-edit-field t]
     ["Edit record"        rec-edit-record  (not (derived-mode-p 'rec-edit-mode))]

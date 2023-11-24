@@ -683,6 +683,7 @@
   :news "CHANGELOG.org"
   :ignored-files ("LICENSE"))
  (test-simple         	:url "https://github.com/rocky/emacs-test-simple")
+ (theme-buffet		:url "https://git.sr.ht/~bboal/theme-buffet")
  (timerfunctions	:url nil)
  (tiny			:url "https://github.com/abo-abo/tiny")
  (tmr			:url "https://git.sr.ht/~protesilaos/tmr"

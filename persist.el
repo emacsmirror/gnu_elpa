@@ -86,7 +86,9 @@ DOCSTRING need to be given."
 
   ;; Don't support 2-arity calls either because we are lazy and
   ;; because if you want to persist it, you want to doc it.
-  (declare (debug (symbolp form stringp &optional form)) (doc-string 3))
+  (declare (debug (symbolp form stringp &optional form))
+           (doc-string 3)
+           (indent defun))
   ;; Define inside progn so the byte compiler sees defvar
   `(progn
      (defvar ,symbol ,initvalue ,docstring)

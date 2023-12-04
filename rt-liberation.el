@@ -5,7 +5,7 @@
 ;; Author: Yoni Rabkin <yrk@gnu.org>
 ;; Authors: Aaron S. Hawley <aaron.s.hawley@gmail.com>, John Sullivan <johnsu01@wjsullivan.net>
 ;; Maintainer: Yoni Rabkin <yrk@gnu.org>
-;; Version: 5
+;; Version: 6
 ;; Keywords: rt, tickets
 ;; Package-Type: multi
 ;; url: http://www.nongnu.org/rtliber/
@@ -254,15 +254,15 @@ The ticket's priority is compared to the variable
 (defun rt-liber-ticketlist-browser-redraw-f (ticket)
   "Display TICKET."
   (insert (rt-liber-format "[%c %i %S]" ticket))
-  (add-text-properties (point-at-bol)
-		       (point-at-eol)
+  (add-text-properties (line-beginning-position)
+		       (line-end-position)
 		       '(face rt-liber-ticket-face))
   (when (rt-liber-high-priority-p ticket)
     (let ((p (point)))
       (insert (format " HIGH PRIORITY (%d)"
 		      (rt-liber-ticket-priority-only ticket)))
       (add-text-properties p
-			   (point-at-eol)
+			   (line-end-position)
 			   '(face rt-liber-priority-ticket-face))))
 
   (newline)
@@ -831,14 +831,14 @@ returned as no associated text properties."
 	  (mapcar
 	   (lambda (field-symbol)
 	     (re-search-forward (format "^%s:" (symbol-name field-symbol)) end nil)
-	     (cons field-symbol (buffer-substring (1+ (point)) (point-at-eol))))
+	     (cons field-symbol (buffer-substring (1+ (point)) (line-end-position))))
 	   rt-field-list))
     ;; content
     (goto-char start)
     (let ((content-start (re-search-forward "^Content: " end nil))
 	  (content-end (progn
 			 (re-search-forward "^Creator: " end nil)
-			 (point-at-bol))))
+			 (line-beginning-position))))
       (append section-field-alist
 	      `(,(cons 'Content
 		       (buffer-substring content-start
@@ -860,7 +860,7 @@ returned as no associated text properties."
 	  section-list)
       (while (re-search-forward rt-liber-viewer-section-header-regexp (point-max) t)
 	(setq section-point-list (append section-point-list
-					 (list (point-at-bol)))))
+					 (list (line-beginning-position)))))
       (when (not section-point-list)
 	(error "no history detail sections found"))
       (setq section-point-list (append section-point-list
@@ -1048,7 +1048,7 @@ ASSOC-BROWSER if non-nil should be a ticket browser."
 	   (message "no next section"))
 	  (t
 	   (recenter rt-liber-viewer-recenter)))
-    (goto-char (point-at-bol))))
+    (goto-char (line-beginning-position))))
 
 (defun rt-liber-viewer-last-communicate-in ()
   (interactive)
@@ -1061,7 +1061,7 @@ ASSOC-BROWSER if non-nil should be a ticket browser."
     (if (not last)
 	(error "no communcations found")
       (recenter rt-liber-viewer-recenter)
-      (goto-char (point-at-bol)))))
+      (goto-char (line-beginning-position)))))
 
 (defun rt-liber-viewer-previous-section-in ()
   (interactive)
@@ -1075,7 +1075,7 @@ ASSOC-BROWSER if non-nil should be a ticket browser."
 	   (message "no previous section"))
 	  (t
 	   (recenter rt-liber-viewer-recenter)))
-    (goto-char (point-at-bol))))
+    (goto-char (line-beginning-position))))
 
 
 (defconst rt-liber-viewer-mode-map

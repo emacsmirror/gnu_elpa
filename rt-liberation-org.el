@@ -28,8 +28,8 @@
 
 (defun rt-org-open (link)
   "Opens the rt LINK.
-	Open the rt ticket (for links starting with 'id:') or run
-	the query (for links starting with 'query:')."
+	Open the rt ticket (for links starting with `id:') or run
+	the query (for links starting with `query:')."
   (cond
    ((string-match "^id:\\([^/]+\\)\\(/\\(.+\\)\\)?" link)
     (let ((id (match-string 1 link))

@@ -139,19 +139,19 @@ OPTIONS association list of options.
 (defun rt-liber-gnus-content-to-string ()
   "Return the current content section as a string"
   (rt-liber-gnus-with-ticket-buffer
-   (goto-char (point-at-eol))
+   (goto-char (line-end-position))
    (when
        (not
 	(or (re-search-backward rt-liber-content-regexp (point-min) t)
 	    (re-search-forward rt-liber-content-regexp (point-max) t)))
      (error "no content sections found"))
    (save-excursion
-     (goto-char (point-at-bol))
-     (re-search-forward "^Content: " (point-at-eol) nil)
+     (goto-char (line-beginning-position))
+     (re-search-forward "^Content: " (line-end-position) nil)
      (let ((start (point))
 	   text)
        (re-search-forward "^[[:alpha:]]+:" (point-max) t)
-       (goto-char (point-at-bol))
+       (goto-char (line-beginning-position))
        (when (= 0 (length (buffer-substring-no-properties start (point))))
 	 (error "empty content section"))
        (setq text (buffer-substring-no-properties start (point)))
@@ -230,8 +230,8 @@ OPTIONS association list of options.
   "Display the ticket at point."
   (interactive)
   (save-excursion
-    (goto-char (point-at-bol))
-    (re-search-forward rt-liber-gnus-subject-regexp (point-at-eol) nil))
+    (goto-char (line-beginning-position))
+    (re-search-forward rt-liber-gnus-subject-regexp (line-end-position) nil))
   (let ((match (match-string-no-properties 1)))
     (when (not match)
       (error "no ticket number found in subject line"))

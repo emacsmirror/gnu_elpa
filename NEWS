@@ -1,3 +1,13 @@
+New in version 6
+
+    * Code cleanup and fix compilation warnings.
+
+
+New in version 5
+
+    * Minor bug fix.
+
+
 New in version 4
 
     * "N" in viewer now reverts buffer before jumping to latest.

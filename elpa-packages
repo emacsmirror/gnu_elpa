@@ -188,6 +188,7 @@
   :ignored-files ("COPYING" "doclicense.texi"))
  (cycle-quotes		:url nil)
  (darkroom            	:url "https://github.com/capitaomorte/darkroom.git")
+ (dape                  :url "https://github.com/svaante/dape")
  (dash			:url "https://github.com/magnars/dash.el.git"
   :doc "dash.texi"
   :news "NEWS.md")

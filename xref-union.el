@@ -37,6 +37,8 @@
 ;;; Code:
 
 (eval-when-compile (require 'subr-x))
+(eval-when-compile (require 'cl-lib))
+(require 'seq)
 (require 'xref)
 
 (defgroup xref-union '()

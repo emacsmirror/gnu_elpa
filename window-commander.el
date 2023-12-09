@@ -351,15 +351,14 @@ When it's non-nil, allow the minibuffer to be selected by
 
 For more information, see info node `(window-commander) Window Commands'.
 
-\(fn NAME (WINDOW [PREFIX]) [DOCSTRING] [KEYWORD-ARG...] BODY...)"
-  (declare (debug (&define name listp [&optional stringp]
-                           def-body keywordp t))
+\(fn NAME (WINDOW [PREFIX]) [DOCSTRING] [KEYWORD ARG]... BODY...)"
+  (declare (debug (&define name lambda-list [&optional stringp]
+                           [&rest (gate keywordp form)] def-body))
            (doc-string 3) (indent defun))
   (let* ((window (car args)) (prefix (cadr args))
-         (docstring (car body)) minibuffer)
-    (and (stringp docstring) (pop body))
-    (while-let (((keywordp (car body))) (form (pop body)))
-      (and (eq form :minibuffer) (setq minibuffer (car body))))
+         (docstring (car body))
+         (kargs (if (keywordp (car body)) body (cdr body)))
+         (minibuffer (plist-get kargs :minibuffer)))
     `(defun ,name ,(and prefix `(,prefix))
        ,(when (stringp docstring) (format "%s
 
@@ -378,7 +377,21 @@ window command is chosen.
        (interactive ,(and prefix "P"))
        (if-let ((f (lambda (,window)
                      ,@body))
-                ((>= wincom-window-count wincom-minimum)))
+                ((>= wincom-window-count
+                     ;; Raise the minimum by one if the current
+                     ;; command excludes the minibuffer and it's in scope.
+                     (if-let (((not ,minibuffer))
+                              (m (active-minibuffer-window))
+                              (c (window-frame m))
+                              (s wincom-scope)
+                              (v (or (frame-visible-p c) (eq s t)))
+                              ((or (eq s t)
+                                   (equal c (selected-frame))
+                                   (and (eq v 'icon) (eq s 0))
+                                   (and (eq v t)
+                                        (or (eq s 'visible) (eq s 0))))))
+                         (1+ wincom-minimum)
+                       wincom-minimum))))
            (wincom-run-window-command f)
          (funcall f (next-window nil (unless ,minibuffer 'exclude)
                                  (wincom--get-scope)))))))

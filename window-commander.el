@@ -320,11 +320,22 @@ This display function respects `wincom-id-format'."
 Run `wincom-before-command-hook', set `this-command' to FUN and set a
 transient map for ID selection which runs `wincom-after-command-hook' on
 exit."
-  (run-hooks 'wincom-before-command-hook)
-  (setq this-command fun)
-  (set-transient-map wincom--id-map
-                     (lambda ()
-                       (run-hooks 'wincom-after-command-hook))))
+  (let* ((set 'set-text-conversion-style)
+         (set (and (fboundp set) set))
+         (s text-conversion-style)
+         (overriding-text-conversion-style nil)
+         (b (current-buffer)))
+    (when set
+      (funcall set nil)
+      (frame-toggle-on-screen-keyboard nil nil))
+    (run-hooks 'wincom-before-command-hook)
+    (setq this-command fun)
+    (set-transient-map wincom--id-map
+                       (lambda ()
+                         (and set (buffer-live-p b)
+                              (with-current-buffer b
+                                (set-text-conversion-style s)))
+                         (run-hooks 'wincom-after-command-hook)))))
 
 (defmacro wincom-define-window-command (name args &rest body)
   "Define NAME as a window command with DOCSTRING as its documentation string.

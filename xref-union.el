@@ -70,7 +70,7 @@ Same in this context means they reference the same object."
   "Collect the results of multiple Xref BACKENDS."
   (lambda (string pred _action)
     (cl-loop for backend in (cdr backends)
-	     append (let ((b (xref-backend-identifier-at-point backend)))
+             append (let ((b (xref-backend-identifier-completion-table backend)))
                       (all-completions string b pred)))))
 
 (cl-defmethod xref-backend-definitions ((backends (head union)) ident)

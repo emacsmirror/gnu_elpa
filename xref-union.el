@@ -50,6 +50,11 @@ a non-nil value is returned, the backend will not be added to the
 union backend, otherwise it will be."
   :type 'function)
 
+(defcustom xref-union-hook-depth -95    ;-100 has the highest priority
+  "Priority of the xref-union Xref backend.
+Consult `add-hook' for the interpretation of DEPTH."
+  :type 'number)
+
 
 ;;;; Xref interface
 
@@ -61,10 +66,9 @@ Same in this context means they reference the same object."
 
 (cl-defmethod xref-backend-identifier-at-point ((backends (head union)))
   "Collect the results of multiple Xref BACKENDS."
-  (seq-uniq
-   (cl-loop for backend in (cdr backends)
-	    append (xref-backend-identifier-at-point backend))
-   #'xref-union-same-p))
+  (cl-loop for backend in (cdr backends)
+           when (xref-backend-identifier-at-point backend)
+           return it))
 
 (cl-defmethod xref-backend-identifier-completion-table ((backends (head union)))
   "Collect the results of multiple Xref BACKENDS."

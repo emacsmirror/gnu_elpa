@@ -30,9 +30,9 @@
 ;; exclude certain modes, take a look at the user option
 ;; `xref-union-excluded-backends'.
 
-;; You can also manually make use of `xref-union' by adding an object
-;; of the form (union XREF-BACKEND-1 XREF-BACKEND-2 ...) to
-;; `xref-backend-functions'
+;; You can also manually make use of `xref-union' by adding an
+;; function that returns an object of the form (union XREF-BACKEND-1
+;; XREF-BACKEND-2 ...) to `xref-backend-functions'.
 
 ;;; Code:
 

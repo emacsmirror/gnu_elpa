@@ -59,21 +59,21 @@ Same in this context means they reference the same object."
   (= (xref-location-marker (xref-item-location l1))
      (xref-location-marker (xref-item-location l2))))
 
-(cl-defmethod xref-backend-identifier-at-point ((backends (head 'union)))
+(cl-defmethod xref-backend-identifier-at-point ((backends (head union)))
   "Collect the results of multiple Xref BACKENDS."
   (seq-uniq
    (cl-loop for backend in (cdr backends)
 	    append (xref-backend-identifier-at-point backend))
    #'xref-union-same-p))
 
-(cl-defmethod xref-backend-identifier-completion-table ((backends (head 'union)))
+(cl-defmethod xref-backend-identifier-completion-table ((backends (head union)))
   "Collect the results of multiple Xref BACKENDS."
   (lambda (string pred _action)
     (cl-loop for backend in (cdr backends)
 	     append (let ((b (xref-backend-identifier-at-point backend)))
                       (all-completions string b pred)))))
 
-(cl-defmethod xref-backend-definitions ((backends (head 'union)) ident)
+(cl-defmethod xref-backend-definitions ((backends (head union)) ident)
   "Collect the results of multiple Xref BACKENDS.
 IDENT is specified in `xref-backend-definitions'."
   (seq-uniq
@@ -81,7 +81,7 @@ IDENT is specified in `xref-backend-definitions'."
 	    append (xref-backend-definitions backend ident))
    #'xref-union-same-p))
 
-(cl-defmethod xref-backend-references ((backends (head 'union)) ident)
+(cl-defmethod xref-backend-references ((backends (head union)) ident)
   "Collect the results of multiple Xref BACKENDS.
 IDENT is specified in `xref-backend-references'."
   (seq-uniq
@@ -89,7 +89,7 @@ IDENT is specified in `xref-backend-references'."
 	    append (xref-backend-references backend ident))
    #'xref-union-same-p))
 
-(cl-defmethod xref-backend-apropos ((backends (head 'union)) pattern)
+(cl-defmethod xref-backend-apropos ((backends (head union)) pattern)
   "Collect the results of multiple Xref BACKENDS.
 PATTERN is specified in `xref-backend-apropos'."
   (seq-uniq

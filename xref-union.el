@@ -82,7 +82,7 @@ Same in this context means they reference the same object."
 IDENT is specified in `xref-backend-definitions'."
   (seq-uniq
    (cl-loop for backend in (cdr backends)
-	    append (xref-backend-definitions backend ident))
+            append (xref-backend-definitions backend ident))
    #'xref-union-same-p))
 
 (cl-defmethod xref-backend-references ((backends (head union)) ident)
@@ -90,7 +90,7 @@ IDENT is specified in `xref-backend-definitions'."
 IDENT is specified in `xref-backend-references'."
   (seq-uniq
    (cl-loop for backend in (cdr backends)
-	    append (xref-backend-references backend ident))
+            append (xref-backend-references backend ident))
    #'xref-union-same-p))
 
 (cl-defmethod xref-backend-apropos ((backends (head union)) pattern)
@@ -98,7 +98,7 @@ IDENT is specified in `xref-backend-references'."
 PATTERN is specified in `xref-backend-apropos'."
   (seq-uniq
    (cl-loop for backend in (cdr backends)
-	    append (xref-backend-apropos backend pattern))
+            append (xref-backend-apropos backend pattern))
    #'xref-union-same-p))
 
 

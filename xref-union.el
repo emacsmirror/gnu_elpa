@@ -100,27 +100,32 @@ PATTERN is specified in `xref-backend-apropos'."
 
 ;;;; Minor mode
 
-(defvar-local xref-union--current nil
-  "Reference to the current union backend.")
+(defun xref-union--backend ()
+  "Generate a Xref backend unifying others."
+  (let (backends)
+    (run-hook-wrapped
+     'xref-backend-functions
+     (lambda (b)
+       (unless (or (funcall xref-union-excluded-backends b)
+                   (eq b #'xref-union--backend))
+         (let ((hook (gensym)))
+           (add-hook hook b)
+           (let ((b (run-hook-with-args-until-success hook)))
+             (when b (push b backends)))))
+       nil))
+    (and backends (cons 'union (delete-dups backends)))))
 
 (define-minor-mode xref-union-mode
   "Enable a Xref backend that combines all others."
   :global nil
-  (when xref-union--current
-    (remove-hook 'xref-backend-functions xref-union--current))
-  (when xref-union-mode
-    (let (backends)
-      ;; Collect all (local and global) functions in
-      ;; `xref-backend-functions' into a local list.
-      (run-hook-wrapped
-       'xref-backend-functions
-       (lambda (b)
-         (setq b (funcall b))
-         (when (and b (funcall xref-union-excluded-backends b))
-           (push b backends))
-         nil))
-      (setq xref-union--current (cons 'union backends))
-      (add-hook 'xref-backend-functions xref-union--current))))
+  (if xref-union-mode
+      (add-hook 'xref-backend-functions
+                #'xref-union--backend
+                xref-union-hook-depth
+                t)
+    (remove-hook 'xref-backend-functions
+                 #'xref-union--backend
+                 t)))
 
 ;; LocalWords: backend backends
 

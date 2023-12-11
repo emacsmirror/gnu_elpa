@@ -330,12 +330,11 @@ exit."
       (frame-toggle-on-screen-keyboard nil nil))
     (run-hooks 'wincom-before-command-hook)
     (setq this-command fun)
-    (set-transient-map wincom--id-map
-                       (lambda ()
-                         (and set (buffer-live-p b)
-                              (with-current-buffer b
-                                (set-text-conversion-style s)))
-                         (run-hooks 'wincom-after-command-hook)))))
+    (set-transient-map wincom--id-map nil
+                       `(lambda ()
+                          (and ',set (buffer-live-p ,b)
+                               (with-current-buffer ,b (funcall ',set ',s)))
+                          (run-hooks 'wincom-after-command-hook)))))
 
 (defmacro wincom-define-window-command (name args &rest body)
   "Define NAME as a window command with DOCSTRING as its documentation string.

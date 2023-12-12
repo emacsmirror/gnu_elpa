@@ -129,6 +129,7 @@ ARGS is the argument list of a transient command."
      (setf calibre-search-composing-filter
            (cons (vector ',(intern field) (,(intern (format "calibre-search-chose-%s" field)))) calibre-search-composing-filter))))
 
+(calibre-search--composition-function "title")
 (calibre-search--composition-function "author")
 (calibre-search--composition-function "publisher")
 (calibre-search--composition-function "tag")
@@ -141,6 +142,7 @@ ARGS is the argument list of a transient command."
   ["Arguments"
    ("-e" "Exclude" "--exclude")]
   ["Compose"
+   ("T" "Title" calibre-search-compose-title)
    ("a" "Author" calibre-search-compose-author)
    ("p" "Publisher" calibre-search-compose-publisher)
    ("t" "Tag" calibre-search-compose-tag)

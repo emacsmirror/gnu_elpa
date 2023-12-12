@@ -4,7 +4,7 @@
 
 ;; Author: Kjartan Oli Agustsson <kjartanoli@disroot.org>
 ;; Maintainer: Kjartan Oli Agustsson <kjartanoli@disroot.org>
-;; Version: 1.3.3
+;; Version: 1.3.4
 ;; Package-Requires: ((emacs "27.1") (compat "29.1.4.1"))
 ;; URL: https://git.disroot.org/kjartanoli/calibre.el
 

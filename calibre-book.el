@@ -72,7 +72,7 @@
 
 (defcustom calibre-format-preferences '(pdf epub)
   "The preference order of file formats."
-  :type '(repeat symbol :tag "Format")
+  :type '(repeat :tag "Format" symbol)
   :package-version '("calibre" . "0.1.0")
   :group 'calibre)
 

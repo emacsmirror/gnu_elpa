@@ -189,7 +189,9 @@ BOOK is a `calibre-book'."
                                (series-index (if (calibre-book-series book) (format "%.1f" (calibre-book-series-index book)) ""))
                                (tags (string-join (calibre-book-tags book) ", "))
                                (formats (string-join (mapcar (lambda (f) (upcase (symbol-name f))) (calibre-book-formats book)) ", "))
-                               (pubdate (format-time-string calibre-library-time-format (calibre-book-pubdate book))))))
+                               (pubdate (if (calibre-book-pubdate book)
+                                            (format-time-string calibre-library-time-format (calibre-book-pubdate book))
+                                          "Invalid")))))
                          calibre-library-columns))))
 
 (defun calibre-book--file (book format)

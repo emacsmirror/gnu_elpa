@@ -34,7 +34,7 @@
 (defun calibre-db--parse-timestamp (timestamp)
   "Return a Lisp timestamp from TIMESTAMP.
 TIMESTAMP is a string of the form YYYY-MM-DD HH:MM:SS.xxxxxx+00:00."
-  (parse-iso8601-time-string (string-replace " " "T" timestamp)))
+  (ignore-errors (parse-iso8601-time-string (string-replace " " "T" timestamp))))
 
 (defun calibre-db--make-book (entry)
   "Create a `calibre-book' from ENTRY.

@@ -7,6 +7,11 @@ This file is about changes in calibre.el, the Emacs client for
 Calibre.
 
 
+* Changes in calibre.el 1.3.4
+** Fix a timestamp parsing bug on Windows
+Some timestamps signalled errors when parsed on Windows.
+
+
 * Changes in calibre.el 1.3.3
 
 ** Fix series widget in metadata editing

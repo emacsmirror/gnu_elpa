@@ -118,6 +118,26 @@
    '((ERROR) @font-lock-warning-face))
   "Tree-sitter font-lock settings.")
 
+(defun devicetree-ts-mode--node-address (node)
+  "Return unit addresses for NODE concanated with @."
+  (mapconcat (lambda (children)
+               (if (string-equal (treesit-node-field-name children)
+                                 "address")
+                   (treesit-node-text children t)
+                 ""))
+             (treesit-node-children node)
+             ""))
+
+(defun devicetree-ts--mode--name-function (node)
+  "Return name of NODE to use for in imenu."
+  (let ((name (treesit-node-child-by-field-name node "name"))
+        (address (treesit-node-child-by-field-name node "address")))
+    (if address
+        (concat (treesit-node-text name t)
+                (devicetree-ts-mode--node-address node))
+      (treesit-node-text name t))))
+
+
 ;;;###autoload
 (define-derived-mode devicetree-ts-mode prog-mode "DTS"
   "Major mode for editing devicetree, powered by tree-sitter."
@@ -132,18 +152,24 @@
     (setq-local comment-end " */")
 
     ;; Imenu.
-    ;; (setq-local imenu-create-index-function
-    ;;             #'devicetree-ts-mode--imenu)
+    (setq-local treesit-simple-imenu-settings
+                `((nil "\\`node\\'"
+                       nil devicetree-ts--mode--name-function)))
     (setq-local which-func-functions nil)
 
     ;; Indent.
     ;; (setq-local treesit-simple-indent-rules
     ;;             devicetree-ts-mode--indent-rules)
+    ;; (setq-local indent-tabs-mode t)
+
+    ;; Electric
+    (setq-local electric-indent-chars
+                (append "{}<>[]" electric-indent-chars))
 
     ;; Navigation
     (setq-local treesit-thing-settings
                 `((devicetree
-                   (sexp (not ,(rx (or "{" "}" "<" ">" "(" ")" "," ";")))))))
+                   (sexp (not ,(rx (or "{" "}" "<" ">" "[" "]" "," ";")))))))
 
     ;; Font-lock.
     (setq-local treesit-font-lock-settings

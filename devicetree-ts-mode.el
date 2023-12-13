@@ -1,9 +1,12 @@
-;;; devicetree-ts-mode.el --- tree-sitter support for DTS   -*- lexical-binding: t; -*-
+;;; devicetree-ts-mode.el --- Tree-sitter support for DTS   -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2023  Aleksandr Vityazev
 
 ;; Author: Aleksandr Vityazev <avityazew@gmail.com>
-;; Keywords: devicetree tree-sitter
+;; Keywords: languages devicetree tree-sitter
+;; Version: 0.1
+;; Homepage: https://sr.ht/~akagi/devicetree-ts-mode
+;; Package-Requires: ((emacs "29.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -35,6 +38,13 @@
 ;; (declare-function treesit-node-start "treesit.c")
 ;; (declare-function treesit-node-type "treesit.c")
 
+(defcustom devicetree-ts-mode-indent-offset 4
+  "Number of spaces for each indentation step in `devicetree-ts-mode'."
+  :version "29.1"
+  :type 'natnum
+  :safe 'natnump
+  :group 'devicetree)
+
 ;; Taken from the dts-mode
 (defvar devicetree-ts-mode--syntax-table
   (let ((table (make-syntax-table)))
@@ -62,6 +72,21 @@
 
     table)
   "Syntax table for `devicetree-ts-mode'.")
+
+(defvar devicetree-ts-mode--indent-rules
+  (let ((offset devicetree-ts-mode-indent-offset))
+    `((devicetree
+       ((node-is ">") parent-bol 0)
+       ((node-is "]") parent-bol 0)
+       ((node-is "}") standalone-parent 0)
+       ((node-is "]") parent-bol 0)
+       ((and (parent-is "comment") c-ts-common-looking-at-star)
+        c-ts-common-comment-start-after-first-star -1)
+       ((parent-is "node") parent-bol ,offset)
+       ((parent-is "property") parent-bol ,offset)
+       ((parent-is "integer_cells") parent-bol ,offset)
+       (no-node parent-bol 0))))
+  "Tree-sitter indent rules for `devicetree-ts-mode'.")
 
 (defvar devicetree-ts-mode--treesit-keywords
   '("/delete-node/" "/delete-property/" "#define" "#include"
@@ -158,8 +183,8 @@
     (setq-local which-func-functions nil)
 
     ;; Indent.
-    ;; (setq-local treesit-simple-indent-rules
-    ;;             devicetree-ts-mode--indent-rules)
+    (setq-local treesit-simple-indent-rules
+                devicetree-ts-mode--indent-rules)
     ;; (setq-local indent-tabs-mode t)
 
     ;; Electric

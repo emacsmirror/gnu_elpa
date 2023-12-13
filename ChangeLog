@@ -1,3 +1,18 @@
+2023-06-19  Durand  <durand@jsdurand.xyz>
+
+	* blist.el:
+	* README.org: Use the newly available `bookmark-handler-type`
+	information to make an automatic group that recognizes a lot of
+	bookmark types out of the box, thanks to this new feature in Emacs
+	29.  Also update the readme file.  The info file is not updated
+	yet, though.
+	* blist.texinfo: Update the info file about the use of the newly
+	available `bookmark-handler-type` information for automatic
+	groups.
+
+	* blist.el: Fix an issue in key-binding not considering 'C-m' and
+	'C-S-m' keys.
+
 2022-09-14  Durand  <mmemmew@gmail.com>
 
 	* README.org:

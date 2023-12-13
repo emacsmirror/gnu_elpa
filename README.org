@@ -108,7 +108,7 @@ begin configuring the package.
   (setq blist-automatic-filter-groups
         #'ilist-automatic-group-blist-type-only)
 
-;; Or define ones own grouping function
+  ;; Or define ones own grouping function
 #+end_src
 
 See the following subsections for more details.

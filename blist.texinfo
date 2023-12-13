@@ -6,7 +6,7 @@
 @copying
 Display bookmarks in an Ibuffer way.
 
-Copyright @copyright{} 2021  Durand
+Copyright @copyright{} 2021, 2022, 2023  Durand
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -76,11 +76,23 @@ Usage
 * Annotations::
 * Others::
 
+Example configuration
+
+* Example of manual grouping::
+* Example of automatic grouping::
+* Example of combining the two groupings::
+
 Groups
 
 * Fixed filter groups::
 * Automatic filter groups::
+* Two default automatic groups::
 * Combine fixed and automatic filter groups::
+
+Two default automatic groups
+
+* Default group::
+* Type-only group::
 
 @end detailmenu
 @end menu
@@ -149,10 +161,22 @@ how the list of bookmarks looks like on my end:
 @section Example configuration
 @cindex example
 @cindex config
-@cindex fixed filter groups
 
-An example configuration is included so that it is easier to begin
-configuring the package.
+Some examples of configurations are included so that it is easier to
+begin configuring the package.
+
+See the following subsections for more details.
+
+@menu
+* Example of manual grouping::
+* Example of automatic grouping::
+* Example of combining the two groupings::
+@end menu
+
+@node Example of manual grouping, Example of automatic grouping, Example configuration, Example configuration
+@comment  node-name,  next,  previous,  up
+@subsection Example of manual grouping
+@cindex fixed filter groups
 
 @vindex blist-filter-groups
 @vindex blist-use-header-p
@@ -190,7 +214,71 @@ configuring the package.
       #'Info-bookmark-jump))
 @end lisp
 
-See the following subsections for more details.
+@node Example of automatic grouping, Example of combining the two groupings, Example of manual grouping, Example configuration
+@comment  node-name,  next,  previous,  up
+@subsection Example of automatic grouping
+@cindex automatic filter groups
+
+@vindex blist-automatic-filter-groups
+@vindex blist-filter-features
+@findex ilist-automatic-group-blist-default
+@findex ilist-automatic-group-blist-type-only
+
+@lisp
+(setq blist-filter-features (list 'auto))
+
+;; This falls back to use file names to determine the type.
+(setq blist-automatic-filter-groups
+      #'ilist-automatic-group-blist-default)
+
+;; This only considers the types of bookmarks.
+(setq blist-automatic-filter-groups
+      #'ilist-automatic-group-blist-type-only)
+
+;; Or define ones own grouping function
+@end lisp
+
+@node Example of combining the two groupings,  , Example of automatic grouping, Example configuration
+@comment  node-name,  next,  previous,  up
+@subsection Example of combining the two groupings
+@cindex combined filter groups
+
+@vindex blist-filter-features
+@vindex blist-filter-groups
+@vindex blist-automatic-filter-groups
+@findex ilist-automatic-group-blist-default
+@findex ilist-automatic-group-blist-type-only
+@findex blist-eshell-p
+@findex blist-elisp-p
+@findex blist-pdf-p
+@findex blist-info-p
+
+@lisp
+;; The order matters not.
+(setq blist-filter-features (list 'manual 'auto))
+
+;; We can use manual groups to place certain important categories of
+;; bookmarks at the top of the list.
+;;
+;; Make sure not to include a default group, otherwise tha automatic
+;; grouping functions would have no chance of being run.
+(setq blist-filter-groups
+      (list
+       (cons "Eshell" #'blist-eshell-p)
+       (cons "ELisp" #'blist-elisp-p)
+       (cons "PDF" #'blist-pdf-p)
+       (cons "Info" #'blist-info-p)))
+
+;; Either this
+(setq blist-automatic-filter-groups
+      #'ilist-automatic-group-blist-default)
+
+;; Or this
+(setq blist-automatic-filter-groups
+      #'ilist-automatic-group-blist-type-only)
+
+;; Or define ones own grouping function
+@end lisp
 
 @node Header, Columns, Example configuration, Usage
 @comment  node-name,  next,  previous,  up
@@ -256,6 +344,7 @@ automatic filter groups.
 @menu
 * Fixed filter groups::
 * Automatic filter groups::
+* Two default automatic groups::
 * Combine fixed and automatic filter groups::
 @end menu
 
@@ -302,7 +391,7 @@ given by @code{blist-filter-default-label}.
 Note that this is a feature of ``blist'', and not of ``ilist'': you can
 display a list without default groups.
 
-@node Automatic filter groups, Combine fixed and automatic filter groups, Fixed filter groups, Groups
+@node Automatic filter groups, Two default automatic groups, Fixed filter groups, Groups
 @comment  node-name,  next,  previous,  up
 @subsection Automatic filter groups
 
@@ -350,7 +439,45 @@ If you want to define your own automatic filter group, then the macro
 ``ilist'', might come in handy.  The default automatic filter group is
 defined by that macro, for your information.
 
-@node Combine fixed and automatic filter groups,  , Automatic filter groups, Groups
+@node Two default automatic groups, Combine fixed and automatic filter groups, Automatic filter groups, Groups
+@comment  node-name,  next,  previous,  up
+@subsection Two default automatic groups
+@cindex default automatic groups
+
+There are two pre-defined automatic groups in the package: the default
+one and the @emph{type-only} one.
+
+@menu
+* Default group::
+* Type-only group::
+@end menu
+
+@node Default group, Type-only group, Two default automatic groups, Two default automatic groups
+@comment  node-name,  next,  previous,  up
+@subsubsection Default group
+
+@cindex Emacs 29
+
+In Emacs 29 or later, if a bookmark handler function symbol has a
+property called @code{bookmark-handler-type}, it will be recognized as
+the type of the bookmark, which can be retrieved by the function
+@code{bookmark-type-from-full-record}.
+
+The default group will use the type of a bookmark as the group header,
+if the type is available, otherwise it falls back to use file name
+extensions.
+
+@node Type-only group,  , Default group, Two default automatic groups
+@comment  node-name,  next,  previous,  up
+@subsubsection Type-only group
+
+@cindex Emacs 29
+
+This automatic group only uses the type of a bookmark as the group
+header.  If the type is not available, it always uses the default
+group.
+
+@node Combine fixed and automatic filter groups,  , Two default automatic groups, Groups
 @comment  node-name,  next,  previous,  up
 @subsection Combine fixed and automatic filter groups
 

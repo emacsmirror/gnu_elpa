@@ -6,7 +6,7 @@
 ;; Keywords: convenience
 ;; URL: https://gitlab.com/mmemmew/blist
 ;; Package-Requires: ((ilist "0.1") (emacs "24"))
-;; Version: 0.2
+;; Version: 0.3
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1969,6 +1969,10 @@ stop at."
   (interactive "p")
   (blist-assert-mode)
   (ilist-forward-line arg blist-movement-cycle nil))
+
+;;;; blist-show-info
+
+;; TODO: Display counts about each groups.
 
 (provide 'blist)
 ;;; blist.el ends here

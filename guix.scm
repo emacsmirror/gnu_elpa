@@ -39,6 +39,14 @@
 
 (define %source-dir (dirname (current-filename)))
 
+(define-public tree-sitter-devicetree
+  ((@@ (gnu packages tree-sitter) tree-sitter-grammar)
+   "devicetree" "Devicetree"
+   "0igkwrlgbwphn8dwj91fy2film2mxz4kjdjnc141kmwi4czglwbq"
+   "0.8.0"
+   #:repository-url "https://github.com/joelspadin/tree-sitter-devicetree"
+   #:license license:expat))
+
 (define-public emacs-devicetree-ts-mode
   (let ((commit (last-commit-hash))
         (revision "0")
@@ -54,6 +62,7 @@
        (list
         #:emacs emacs-next
         #:tests? #f))
+      (propagated-inputs (list tree-sitter-devicetree))
       (home-page "https://git.sr.ht/~akagi/devicetree-ts-mode")
       (synopsis "Interact with sourcehut")
       (description #f)

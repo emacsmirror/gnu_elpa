@@ -30,6 +30,7 @@
 
 (require 'treesit)
 (eval-when-compile (require 'rx))
+(require 'c-ts-common)
 
 (declare-function treesit-parser-create "treesit.c")
 ;; (declare-function treesit-induce-sparse-tree "treesit.c")

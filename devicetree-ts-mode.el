@@ -85,7 +85,7 @@
         c-ts-common-comment-start-after-first-star -1)
        ((parent-is "node") parent-bol ,offset)
        ((parent-is "property") parent-bol ,offset)
-       ((parent-is "integer_cells") parent-bol ,offset)
+       ((parent-is "integer_cells") first-sibling 1)
        (no-node parent-bol 0))))
   "Tree-sitter indent rules for `devicetree-ts-mode'.")
 
@@ -203,8 +203,8 @@
     (setq-local treesit-font-lock-feature-list
                 '((comment)
                   (keyword string)
-                  (image-spec number)
-                  (bracket delimiter error operator)))
+                  (bracket delimiter error operator)
+                  (label)))
 
     (treesit-major-mode-setup)))
 

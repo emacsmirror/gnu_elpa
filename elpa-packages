@@ -550,6 +550,7 @@
   :manual-sync t)
  (pinentry		:url "https://github.com/ueno/pinentry-el.git")
  (plz                 	:url "https://github.com/alphapapa/plz.el.git"
+  :release-branch "stable"
   :ignored-files ("LICENSE")
   :doc "README.org")
  (plz-see		:url "https://github.com/astoff/plz-see.el"

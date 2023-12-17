@@ -258,6 +258,7 @@
  ;;(eldoc-eval		:url "https://github.com/thierryvolpiatto/eldoc-eval.git")
  (electric-spacing	:url nil)
  (elisp-benchmarks	:url nil)
+ (ellama		:url "https://github.com/s-kostyaev/ellama")
  (emacs-gc-stats	:url "https://git.sr.ht/~yantar92/emacs-gc-stats"
   :ignored-files ("COPYING"))
  ;; FIXME: Work in progress.  The copyright paperwork is ready.

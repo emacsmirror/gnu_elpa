@@ -140,25 +140,25 @@
    '((ERROR) @font-lock-warning-face))
   "Tree-sitter font-lock settings.")
 
-(defun devicetree-ts-mode--node-address (node)
-  "Return unit addresses for NODE concanated with @."
-  (mapconcat (lambda (children)
-               (if (string-equal (treesit-node-field-name children)
-                                 "address")
-                   (treesit-node-text children t)
-                 ""))
-             (treesit-node-children node)
-             ""))
+(defun devicetree-ts-mode--node-addresses (node)
+  "List of addresses for NODE."
+  (reverse
+   (seq-reduce
+    (lambda (acc children)
+      (if (string-equal (treesit-node-field-name children)
+                        "address")
+          (cons (treesit-node-text children t) acc)
+        acc))
+    (treesit-node-children node)
+    '())))
 
 (defun devicetree-ts--mode--name-function (node)
   "Return name of NODE to use for in imenu."
-  (let ((name (treesit-node-child-by-field-name node "name"))
-        (address (treesit-node-child-by-field-name node "address")))
-    (if address
-        (concat (treesit-node-text name t)
-                (devicetree-ts-mode--node-address node))
-      (treesit-node-text name t))))
-
+  (let ((name (treesit-node-child-by-field-name node "name")))
+    (concat (treesit-node-text name t)
+            (apply #'concat
+                   (seq-take (devicetree-ts-mode--node-addresses node)
+                             2)))))
 
 ;;;###autoload
 (define-derived-mode devicetree-ts-mode prog-mode "DTS"

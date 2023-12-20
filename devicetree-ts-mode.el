@@ -115,20 +115,24 @@
    `([,@devicetree-ts-mode--treesit-operators]
      @font-lock-operator-face)
 
-   ;; FIXME
    :language 'devicetree
    :override t
+   :feature 'node
+   `((node name: (identifier) @font-lock-type-face)
+     (node name: (reference "&" (identifier)) @font-lock-type-face))
+
+   :language 'devicetree
    :feature 'label
-   `(;; (labeled_item label: (identifier) @font-lock-type-face)
-     (labeled_item
-      item:
-      (node name: (identifier) @font-lock-type-face))
-     (node
-      name: (reference label: (identifier) @font-lock-type-face)))
+   `((labeled_item label: (identifier) @font-lock-constant-face))
+
+   :language 'devicetree
+   :override t
+   :feature 'reference
+   `(((reference "&" (identifier)) @font-lock-property-use-face))
 
    :language 'devicetree
    :feature 'bracket
-   '((["(" ")" "<" ">" "{" "}"]) @font-lock-bracket-face)
+   '((["[" "]" "<" ">" "{" "}"]) @font-lock-bracket-face)
 
    :language 'devicetree
    :feature 'delimiter
@@ -197,10 +201,10 @@
     (setq-local treesit-font-lock-settings
                 devicetree-ts-mode--font-lock-settings)
     (setq-local treesit-font-lock-feature-list
-                '((comment)
+                '((comment node)
                   (keyword string)
                   (bracket delimiter error operator)
-                  (label)))
+                  (label reference)))
 
     (treesit-major-mode-setup)))
 

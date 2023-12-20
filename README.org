@@ -1,15 +1,15 @@
 #+OPTIONS: toc:nil
 
-*** Version 0.1
+*** Version 0.2
 
 * About
 
 Major mode for editing [[http://www.devicetree.org/][Devicetree]] files.
 
 Features:
-- highlighting;
-- indentation;
-- imenu;
+- Font Lock
+- Indent
+- IMenu
 
 * Installation
 

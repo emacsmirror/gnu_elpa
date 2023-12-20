@@ -1,5 +1,5 @@
 ;;; GNU Guix --- Functional package management for GNU
-;;; Copyright © 2022 Aleksandr Vityazev <avityazev@posteo.org>
+;;; Copyright © 2023 Aleksandr Vityazev <avityazev@posteo.org>
 ;;;
 ;;; This file is NOT part of GNU Guix.
 ;;;

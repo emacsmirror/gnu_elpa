@@ -1,12 +1,14 @@
 ;;; devicetree-ts-mode.el --- Tree-sitter support for DTS   -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2023  Aleksandr Vityazev
+;; Copyright © 2023  Free Software Foundation, Inc.
 
 ;; Author: Aleksandr Vityazev <avityazew@gmail.com>
 ;; Keywords: languages devicetree tree-sitter
-;; Version: 0.1
+;; Version: 0.2
 ;; Homepage: https://sr.ht/~akagi/devicetree-ts-mode
 ;; Package-Requires: ((emacs "29.1"))
+
+;; This file is part of GNU Emacs.
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -19,12 +21,18 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 ;; A grammar for Devicetree can be found at
 ;; https://github.com/joelspadin/tree-sitter-devicetree
+
+;; Features
 ;;
+;; * Indent
+;; * IMenu
+;; * Font Lock
+
 
 ;;; Code:
 

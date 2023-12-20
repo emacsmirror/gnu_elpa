@@ -1,6 +1,6 @@
 
 
-### Version 0.1
+### Version 0.2
 
 
 # About
@@ -9,9 +9,9 @@ Major mode for editing [Devicetree](http://www.devicetree.org/) files.
 
 Features:
 
--   highlighting;
--   indentation;
--   imenu;
+-   Font Lock
+-   Indent
+-   IMenu
 
 
 # Installation

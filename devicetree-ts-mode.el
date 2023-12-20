@@ -22,6 +22,7 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
+;; A grammar for Devicetree can be found at
 ;; https://github.com/joelspadin/tree-sitter-devicetree
 ;;
 
@@ -29,15 +30,11 @@
 
 
 (require 'treesit)
-(eval-when-compile (require 'rx))
 (require 'c-ts-common)
+(eval-when-compile (require 'rx))
 
 (declare-function treesit-parser-create "treesit.c")
-;; (declare-function treesit-induce-sparse-tree "treesit.c")
-;; (declare-function treesit-node-child "treesit.c")
-;; (declare-function treesit-node-child-by-field-name "treesit.c")
-;; (declare-function treesit-node-start "treesit.c")
-;; (declare-function treesit-node-type "treesit.c")
+(declare-function treesit-node-child-by-field-name "treesit.c")
 
 (defcustom devicetree-ts-mode-indent-offset 4
   "Number of spaces for each indentation step in `devicetree-ts-mode'."
@@ -80,7 +77,6 @@
        ((node-is ">") parent-bol 0)
        ((node-is "]") parent-bol 0)
        ((node-is "}") standalone-parent 0)
-       ((node-is "]") parent-bol 0)
        ((and (parent-is "comment") c-ts-common-looking-at-star)
         c-ts-common-comment-start-after-first-star -1)
        ((parent-is "node") parent-bol ,offset)

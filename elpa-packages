@@ -638,8 +638,10 @@
  (sokoban		:url nil)
  (sotlisp		:url "https://github.com/Malabarba/speed-of-thought-lisp")
  (spacious-padding		:url "https://git.sr.ht/~protesilaos/spacious-padding"
+  :doc "README.org"
   :readme "README.md"
-  :ignored-files ("COPYING"))
+  :news "CHANGELOG.org"
+  :ignored-files ("COPYING" "doclicense.texi"))
  (spinner		:url "https://github.com/Malabarba/spinner.el")
  (sql-beeline		:url nil)
  (sql-cassandra		:url nil)

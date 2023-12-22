@@ -4,7 +4,7 @@
 
 ;; Author: Aleksandr Vityazev <avityazew@gmail.com>
 ;; Keywords: languages devicetree tree-sitter
-;; Version: 0.2
+;; Version: 0.3
 ;; Homepage: https://sr.ht/~akagi/devicetree-ts-mode
 ;; Package-Requires: ((emacs "29.1"))
 
@@ -24,8 +24,17 @@
 ;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
+;;
+;; The "Open Firmware Device Tree", or simply Devicetree, is a
+;; data structure and language for describing hardware.  More
+;; specifically, it is a description of hardware that is readable by
+;; an operating system so that the operating system doesn't need to
+;; hard code details of the machine.
+;;
 ;; A grammar for Devicetree can be found at
 ;; https://github.com/joelspadin/tree-sitter-devicetree
+;;
+;; Thist package provides tree-sitter major mode for Devicetree files.
 
 ;; Features
 ;;
@@ -44,15 +53,18 @@
 (declare-function treesit-parser-create "treesit.c")
 (declare-function treesit-node-child-by-field-name "treesit.c")
 
+(defgroup devicetree ()
+  "Tree-sitter support for DTS."
+  :prefix "devicetree-ts-"
+  :group 'languages)
+
 (defcustom devicetree-ts-mode-indent-offset 4
   "Number of spaces for each indentation step in `devicetree-ts-mode'."
-  :version "29.1"
   :type 'natnum
-  :safe 'natnump
-  :group 'devicetree)
+  :safe 'natnump)
 
 ;; Taken from the dts-mode
-(defvar devicetree-ts-mode--syntax-table
+(defvar devicetree-ts-syntax-mode-table
   (let ((table (make-syntax-table)))
 
     (modify-syntax-entry ?<  "(>" table)
@@ -79,7 +91,8 @@
     table)
   "Syntax table for `devicetree-ts-mode'.")
 
-(defvar devicetree-ts-mode--indent-rules
+(defun devicetree-ts-mode--indent-rules ()
+  "Tree-sitter indent rules for `devicetree-ts-mode'."
   (let ((offset devicetree-ts-mode-indent-offset))
     `((devicetree
        ((node-is ">") parent-bol 0)
@@ -90,16 +103,15 @@
        ((parent-is "node") parent-bol ,offset)
        ((parent-is "property") parent-bol ,offset)
        ((parent-is "integer_cells") first-sibling 1)
-       (no-node parent-bol 0))))
-  "Tree-sitter indent rules for `devicetree-ts-mode'.")
+       (no-node parent-bol 0)))))
 
-(defvar devicetree-ts-mode--treesit-keywords
+(defconst devicetree-ts-mode--treesit-keywords
   '("/delete-node/" "/delete-property/" "#define" "#include"
     "/omit-if-no-ref/" "/dts-v1/"))
 
-(defvar devicetree-ts-mode--treesit-operators
-  '( "!" "~" "-" "+" "*" "/" "%" "||" "&&" "|"
-     "^" "&" "==" "!=" ">" ">=" "<=" ">" "<<" ">>"))
+(defconst devicetree-ts-mode--treesit-operators
+  '("!" "~" "-" "+" "*" "/" "%" "||" "&&" "|"
+    "^" "&" "==" "!=" ">" ">=" "<=" ">" "<<" ">>"))
 
 (defvar devicetree-ts-mode--font-lock-settings
   (treesit-font-lock-rules
@@ -164,7 +176,7 @@
     (treesit-node-children node)
     '())))
 
-(defun devicetree-ts--mode--name-function (node)
+(defun devicetree-ts-mode--name-function (node)
   "Return name of NODE to use for in imenu."
   (let ((name (treesit-node-child-by-field-name node "name")))
     (concat (treesit-node-text name t)
@@ -175,8 +187,6 @@
 ;;;###autoload
 (define-derived-mode devicetree-ts-mode prog-mode "DTS"
   "Major mode for editing devicetree, powered by tree-sitter."
-  :group 'devicetree
-  :syntax-table devicetree-ts-mode--syntax-table
 
   (when (treesit-ready-p 'devicetree)
     (treesit-parser-create 'devicetree)
@@ -187,13 +197,14 @@
 
     ;; Imenu.
     (setq-local treesit-simple-imenu-settings
-                `((nil "\\`node\\'"
-                       nil devicetree-ts--mode--name-function)))
+                `((nil ,(rx bos "node" eos)
+                       nil devicetree-ts-mode--name-function)))
     (setq-local which-func-functions nil)
 
     ;; Indent.
     (setq-local treesit-simple-indent-rules
-                devicetree-ts-mode--indent-rules)
+                (devicetree-ts-mode--indent-rules))
+
     ;; (setq-local indent-tabs-mode t)
 
     ;; Electric
@@ -216,9 +227,8 @@
 
     (treesit-major-mode-setup)))
 
-(if (treesit-ready-p 'devicetree)
-    (add-to-list 'auto-mode-alist
-                 '("\\.dtsi?\\'" . devicetree-ts-mode)))
+(when (treesit-ready-p 'devicetree)
+  (add-to-list 'auto-mode-alist '("\\.dtsi?\\'" . devicetree-ts-mode)))
 
 (provide 'devicetree-ts-mode)
 ;;; devicetree-ts-mode.el ends here

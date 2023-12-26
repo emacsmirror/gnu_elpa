@@ -82,7 +82,7 @@ ARGS is the argument list of a transient command."
   "Clear the last applied search filter."
   (interactive)
   (when calibre-library--filters
-    (setf calibre-library--filters (cdr calibre-library--filters)))
+    (pop calibre-library--filters))
   (calibre-library--refresh))
 
 (transient-define-prefix calibre-search ()

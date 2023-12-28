@@ -1,6 +1,6 @@
 ;;; org-jami-bot.el --- Capture GNU Jami messages as notes and todos in Org mode -*- lexical-binding: t; -*-
 ;;
-;; Copyright (C) 2023 Hanno Perrey
+;; Copyright (C) 2023 Free Software Foundation, Inc.
 ;;
 ;; Author: Hanno Perrey <http://gitlab.com/hperrey>
 ;; Maintainer: Hanno Perrey <hanno@hoowl.se>

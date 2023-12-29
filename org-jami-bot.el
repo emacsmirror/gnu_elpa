@@ -1,7 +1,7 @@
 ;;; org-jami-bot.el --- Capture GNU Jami messages as notes and todos in Org mode -*- lexical-binding: t; -*-
-;;
+
 ;; Copyright (C) 2023 Free Software Foundation, Inc.
-;;
+
 ;; Author: Hanno Perrey <http://gitlab.com/hperrey>
 ;; Maintainer: Hanno Perrey <hanno@hoowl.se>
 ;; Created: April 16, 2023
@@ -10,36 +10,36 @@
 ;; Keywords: comm, outlines, org-capture, jami
 ;; Homepage: https://gitlab.com/hperrey/org-jami-bot
 ;; Package-Requires: ((emacs "28.1") (jami-bot "0.0.1"))
-;;
+
 ;; This file is not part of GNU Emacs.
 ;;
-;;    This program is free software: you can redistribute it and/or modify
-;;    it under the terms of the GNU General Public License as published by
-;;    the Free Software Foundation, either version 3 of the License, or
-;;    (at your option) any later version.
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
 ;;
-;;    This program is distributed in the hope that it will be useful,
-;;    but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;    GNU General Public License for more details.
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
 ;;
-;;    You should have received a copy of the GNU General Public License
-;;    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 ;;; Commentary:
 ;;
 ;; `org-jami-bot' builds upon `jami-bot' and extends it with Org mode capture
-;; functionality for text messages and images. It allows to schedule agenda
+;; functionality for text messages and images.  It allows to schedule agenda
 ;; items at specific dates, compose multi-measure captures and capture images --
 ;; all by sending a message via the GNU Jami messenger.
 ;;
 ;; `org-jami-bot' provides multi-message capture from within the Jami messenger
 ;; app -- that is, a capture process that consists of several messages and can
-;; include even images and other files. The process is started by sending the
+;; include even images and other files.  The process is started by sending the
 ;; command "!start" followed by the title of the capture and finished by sending
-;; "!done". Once the multi-message capture session is started, every following
-;; message is simply added. This includes images which will be downloaded and
-;; stored locally. A reference in the form of a link will be included in the
+;; "!done".  Once the multi-message capture session is started, every following
+;; message is simply added.  This includes images which will be downloaded and
+;; stored locally.  A reference in the form of a link will be included in the
 ;; notes.
 ;;
 ;; Every command consists of an exclamation mark and a single word, for example:
@@ -48,8 +48,8 @@
 ;; treated as a normal message (and captured verbatim).
 ;;
 ;; Files sent separately as a single message are captured as links to the
-;; locally downloaded file and tagged as =FILE=. In principle, further automatic
-;; processing (e.g. OCR) could easily be integrated. Any received file will also
+;; locally downloaded file and tagged as =FILE=.  In principle, further automatic
+;; processing (e.g. OCR) could easily be integrated.  Any received file will also
 ;; be added to the variable =org-stored-links= and can then be easily inserted
 ;; as link in any Org mode document using =C-c C-l=.
 ;;
@@ -113,8 +113,8 @@ CONVERSATION and ACCOUNT.
 Further plain text messages processed by
 `org-jami-bot--capture-plain-messsage' or files received by
 `org-jami-bot--capture-file' will be added to this capture
-buffer. The actual capture needs to happen through a separate
-function, e.g. `org-jami-bot--command-function-done'. Return a
+buffer.  The actual capture needs to happen through a separate
+function, e.g. `org-jami-bot--command-function-done'.  Return a
 reply string informing correspondent about how to finish capture
 by sending '!done'."
   (let* ((buf (format "*jami-capture-%s-%s*" account conversation))
@@ -133,9 +133,8 @@ by sending '!done'."
 (defun org-jami-bot--command-function-done (account conversation _msg)
   "Finish multi-message capture and return a confirmation string.
 
-        Requires a capture buffer set up for CONVERSATION and
-        ACCOUNT, for example through
-        `org-jami-bot--command-function-start'."
+Requires a capture buffer set up for CONVERSATION and ACCOUNT,
+for example through `org-jami-bot--command-function-start'."
   (let* ((buf (format "*jami-capture-%s-%s*" account conversation))
          (continue (get-buffer buf)))
     (if continue
@@ -203,8 +202,8 @@ CONVERSATION for jami ACCOUNT."
 (defun org-jami-bot--command-function-today (_account _conversation msg)
   "Capture body of message as todo entry scheduled today.
 
- Returns a reply string as confirmation. MSG is the full message
- in CONVERSATION id for ACCOUNT id."
+Returns a reply string as confirmation.  MSG is the full message
+in CONVERSATION id for ACCOUNT id."
   (let* ((body (cadr (assoc-string "body" msg)))
          (lines (string-lines body))
          ;; use inactive timestamps
@@ -223,10 +222,10 @@ CONVERSATION for jami ACCOUNT."
   "Capture body as todo entry and schedule it on the date given after the command.
 
 The entry will be scheduled according to the first line of the
-MSG body immediately following the command string. The date will
+MSG body immediately following the command string.  The date will
 be parsed through `org-read-date' and supports the same
-string-to-date conversations. Returns a reply string as
-confirmation. ACCOUNT and CONVERSATION are not used."
+string-to-date conversations.  Returns a reply string as
+confirmation.  ACCOUNT and CONVERSATION are not used."
   (let* ((body (cadr (assoc-string "body" msg)))
          (lines (string-lines body))
          (swhen (org-read-date nil nil (car lines)))
@@ -245,9 +244,8 @@ confirmation. ACCOUNT and CONVERSATION are not used."
 (defun org-jami-bot-default-setup ()
   "Set up `org-jami-bot' with default values.
 
-        Create a capture template, extend `jami-bot' commands via
-        `jami-bot-command-function-alist' and add hooks to
-        `jami-bot'."
+Create a capture template, extend `jami-bot' commands via
+`jami-bot-command-function-alist' and add hooks to `jami-bot'."
   (if (assoc org-jami-bot-capture-key org-capture-templates)
       (message "Capture template referred to by \"%s\" key already defined!"
                org-jami-bot-capture-key)

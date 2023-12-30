@@ -705,7 +705,7 @@
   :branch "externals/tramp"
   :main-file "trampver.el"
   :make ("autoloads" "info")
-  :doc "tramp.texi")
+  :doc "texi/tramp.texi")
  (tramp-nspawn		:url "https://github.com/bjc/tramp-nspawn"
   :ignored-files ("COPYING"))
  (tramp-theme		:url nil)

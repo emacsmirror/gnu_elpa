@@ -1,6 +1,6 @@
 ;;; sm-c-mode.el --- C major mode based on SMIE  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2015-2020  Free Software Foundation, Inc.
+;; Copyright (C) 2015-2024  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
 ;; Version: 1.1
@@ -888,15 +888,15 @@ Past this column, we do not try to align the backslashes."
        "\\)"))))
 
 (defconst sm-c-font-lock-keywords
-  `((,sm-c--cpp-regexp (1 font-lock-preprocessor-face))
-    ("\\_<\\(?:true\\|false\\)\\_>" (0 font-lock-constant-face))
+  `((,sm-c--cpp-regexp (1 'font-lock-preprocessor-face))
+    ("\\_<\\(?:true\\|false\\)\\_>" (0 'font-lock-constant-face))
     ("\\_<\\(case\\)\\_>[ \t]*\\([^: \t]+\\)"
-     (1 font-lock-keyword-face)
-     (2 font-lock-constant-face))
+     (1 'font-lock-keyword-face)
+     (2 'font-lock-constant-face))
     ("\\(?:[{};]\\(\\)\\|^\\)[ \t]*\\([[:alpha:]_][[:alnum:]_]*\\)[ \t]*:"
      (2 (if (or (match-beginning 1)
                 (save-excursion (equal ":label" (sm-c-smie-backward-token))))
-            font-lock-constant-face)))
+            'font-lock-constant-face)))
     (,(let ((kws (delq nil (mapcar (lambda (x)
                                      (setq x (car x))
                                      (and (stringp x)
@@ -913,10 +913,10 @@ Past this column, we do not try to align the backslashes."
                          ;; "case" already handled above.
                          (delete "case" kws)))
                 "\\_>"))
-     (0 font-lock-keyword-face))
+     (0 'font-lock-keyword-face))
     (,sm-c--defun-regexp
      (1
-      (prog1 font-lock-function-name-face
+      (prog1 'font-lock-function-name-face
         (if (< (match-beginning 0) (line-beginning-position))
             (put-text-property (match-beginning 0) (match-end 0)
                                'font-lock-multiline t)))))))

@@ -114,9 +114,9 @@ Customization,,,Emacs}, or Emacs 29's @code{setopt}
 
 @node Reading books
 @section Reading books
-To read a book simply press @kbd{@key{RET}}
 @findex calibre-library-open-book
 @findex calibre-library-open-book-other-window
+To read a book simply press @kbd{@key{RET}}
 (@code{calibre-library-open-book}) with point on a particular book in
 the @file{*Library*} buffer.  This will open a new buffer containing the
 book at point in the current window.  Alternatively you can also press

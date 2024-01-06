@@ -198,9 +198,9 @@ BOOK is a `calibre-book'."
   "Return the path to BOOK in FORMAT."
   (let ((path (calibre-book-path book))
         (file-name (calibre-book-file-name book)))
-    (file-name-concat (calibre--library)
-                      path
-                      (format "%s.%s" file-name format))))
+    (expand-file-name (file-name-concat (calibre--library)
+                                        path
+                                        (format "%s.%s" file-name format)))))
 
 (defun calibre-composite-filter-p (object)
   "Return t if OBJECT is a composite filter."

@@ -64,14 +64,14 @@ variable is not set to the value.")
        persist--directory-location)))
 
 (defun persist--defvar-1 (symbol location)
-  "Set symbol up for persistance."
+  "Set symbol up for persistence."
   (when location
     (persist-location symbol location))
   (persist-symbol symbol (symbol-value symbol))
   (persist-load symbol))
 
 (defmacro persist-defvar (symbol initvalue docstring &optional location)
-  "Define SYMBOL as a persistant variable and return SYMBOL.
+  "Define SYMBOL as a persistent variable and return SYMBOL.
 
 This form is nearly equivalent to `defvar', except that the
 variable persists between Emacs sessions.
@@ -106,7 +106,7 @@ to persist a variable, you will normally need to call
   (put symbol 'persist-location (expand-file-name directory)))
 
 (defun persist-symbol (symbol &optional initvalue)
-  "Make SYMBOL a persistant variable.
+  "Make SYMBOL a persistent variable.
 
 If non-nil, INITVALUE is the value to which SYMBOL will be set if
 `persist-reset' is called.  Otherwise, the INITVALUE will be the
@@ -126,7 +126,7 @@ to load a previously saved location."
       (put symbol 'persist-default (persist-copy-tree initvalue t)))))
 
 (defun persist--persistant-p (symbol)
-  "Return non-nil if SYMBOL is a persistant variable."
+  "Return non-nil if SYMBOL is a persistent variable."
   (get symbol 'persist))
 
 (defun persist-save (symbol)
@@ -136,7 +136,7 @@ Normally, it should not be necessary to call this explicitly, as
 variables persist automatically when Emacs exits."
   (unless (persist--persistant-p symbol)
     (error (format
-            "Symbol %s is not persistant" symbol)))
+            "Symbol %s is not persistent" symbol)))
   (let ((symbol-file-loc (persist--file-location symbol)))
     (if (persist-equal (symbol-value symbol)
                        (persist-default symbol))
@@ -185,7 +185,7 @@ This does not remove any saved value of SYMBOL."
         (remove symbol persist--symbols)))
 
 (defun persist--save-all ()
-  "Save all persistant symbols."
+  "Save all persistent symbols."
   (mapc 'persist-save persist--symbols))
 
 ;; Save on kill-emacs-hook anyway

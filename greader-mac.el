@@ -1,7 +1,7 @@
 ;;; greader.el --- gnamù reader, send buffer contents to a speech engine. -*- lexical-binding: t; -*-
 ;; FIXME: The above line is not right for this file :-(
 
-;; Copyright (C) 2017-2023  Free Software Foundation, Inc.
+;; Copyright (C) 2017-2024  Free Software Foundation, Inc.
 
 ;;; Code:
 

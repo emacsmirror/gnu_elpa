@@ -31,6 +31,17 @@
 (require 'calibre-virtual-library)
 (require 'calibre-edit)
 
+(defcustom calibre-external-programs nil
+  "A mapping of formats to external programs used to read them.
+
+This is an alist, where each entry is of the form (FORMAT
+. PROGRAM).  FORMAT is a symbol identifying a book format and
+PROGRAM is a string naming an external program to use when
+opening books in that format."
+  :type '(repeat (cons (symbol :tag "Format") (string :tag "Program")))
+  :group 'calibre
+  :package-version '("calibre" . "1.4.0"))
+
 ;;;###autoload
 (defun calibre-library-add-book (file)
   "Add FILE to the Calibre library."
@@ -107,7 +118,10 @@ If called with a prefix argument prompt the user for the format."
   (let ((format (if arg
                     (completing-read "Format: " (calibre-book-formats book) nil t)
                   (calibre-book--pick-format book))))
-    (find-file (calibre-book--file book format))))
+    (let ((program (alist-get format calibre-external-programs)))
+      (if program
+          (calibre-library-open-book-external book program)
+        (find-file (calibre-book--file book format))))))
 
 (defun calibre-library-open-book-other-window (book &optional arg)
   "Open BOOK in its preferred format, in another window.
@@ -119,6 +133,24 @@ If called with a prefix argument prompt the user for the format."
                     (completing-read "Format: " (calibre-book-formats book) nil t)
                   (calibre-book--pick-format book))))
     (find-file-other-window (calibre-book--file book format))))
+
+(defun calibre-library-open-book-external (book &optional command arg)
+  "Open BOOK in an external program.
+If called with a prefix argument prompt the user for the format."
+  (interactive (list (tabulated-list-get-id)
+                     nil
+                     current-prefix-arg)
+               calibre-library-mode)
+  (let* ((format (if arg
+                    (completing-read "Format: " (calibre-book-formats book) nil t)
+                  (calibre-book--pick-format book)))
+         (command (if command
+                      command
+                    (read-shell-command "Open with: " (alist-get format calibre-external-programs)))))
+    (start-process (format "%s-external" (calibre-book-title book))
+                   nil
+                   command
+                   (calibre-book--file book format))))
 
 (defvar-keymap calibre-library-mode-map
   :doc "Local keymap for Calibre Library buffers."

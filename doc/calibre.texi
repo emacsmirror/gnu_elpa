@@ -121,10 +121,20 @@ To read a book simply press @kbd{@key{RET}}
 the @file{*Library*} buffer.  This will open a new buffer containing the
 book at point in the current window.  Alternatively you can also press
 @kbd{o} (@code{calibre-library-open-book-other-window}), which will open
-the book in a different window.  To actually read a book Emacs must of
-course be able to display the file format in which the book is stored,
-which may require the presence of additional tools on your system
-@xref{Document View,,,Emacs}.
+the book in a different window.
+
+@findex calibre-library-open-book-external
+@vindex calibre-external-formats
+To actually read a book Emacs must of course be able to display the file
+format in which the book is stored, which may require the presence of
+additional tools on your system @xref{Document View,,,Emacs}.  If Emacs
+is not able to display your chosen format, or you simply prefer using
+another program, you can also open the book in an external program using
+@code{calibre-library-open-book-external} or customize
+@code{calibre-external-formats}.  If an entry for a particular format
+exists en @code{calibre-external-formats}
+@code{calibre-library-open-book} will use the specified program instead
+of opening the file in Emacs.
 
 @menu
 * Choosing formats::

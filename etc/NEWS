@@ -7,6 +7,16 @@ This file is about changes in calibre.el, the Emacs client for
 Calibre.
 
 
+* Changes in calibre.el 1.4.0
+** Allow opening books in external programs
+The new calibre-library-open-book-external command allows opening
+books using an external program.
+
+The new calibre-external-programs user option allows specifying
+external programs to use for specific formats instead of opening the
+file in Emacs.
+
+
 * Changes in calibre.el 1.3.4
 ** Allow searching by title in composite filters
 The filter composition interface lacked the ability to filter by

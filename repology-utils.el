@@ -43,6 +43,11 @@
     "incorrect" "untrusted" "ignored")
   "List of known status values.")
 
+(defconst repology-request-delay 1.0
+  "Number of seconds between two requests to Repology API.
+The value is defined according to its terms of use.  See URL
+`https://repology.org/api'.")
+
 
 ;;; Packages
 (defun repology-package-p (object)
@@ -324,6 +329,10 @@ Raise an error if REPOSITORY is unknown to Repology."
 
 
 ;;; Requests
+(defvar repology--last-request-time nil
+  "Time for last request to the Repology API, or nil.
+It is updated each time `repology-request' is called.")
+
 (defun repology-request (url &optional extra-headers)
   "Perform a raw HTTP request on URL.
 
@@ -335,6 +344,14 @@ Return a property list with `:code', `:reason', `:header' and
 a string explaining the issue."
   (let* ((url-request-method "GET")
          (url-request-extra-headers extra-headers))
+    ;; Make sure to wait at least for `repology-request-delay' seconds
+    ;; between queries.
+    (when (and repology--last-request-time
+               (< (float-time (time-subtract (current-time)
+                                             repology--last-request-time))
+                  repology-request-delay))
+      (sleep-for repology-request-delay))
+    (setq repology--last-request-time (current-time))
     (pcase (condition-case err
                (url-retrieve-synchronously url t)
              (error (error-message-string err)))

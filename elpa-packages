@@ -44,7 +44,7 @@
  (advice-patch		:url nil)
  (aggressive-completion :url nil)
  (aggressive-indent	:url "https://github.com/Malabarba/aggressive-indent-mode")
- (agitate		:url "https://git.sr.ht/~protesilaos/agitate"
+ (agitate		:url "https://github.com/protesilaos/agitate"
   :doc "README.org"
   :readme "README.md"
   :ignored-files ("COPYING" "doclicense.texi"))
@@ -53,7 +53,7 @@
   :ignored-files ("README" "COPYING")
   :readme ignore)
  (all			:url nil)
- (altcaps		:url "https://git.sr.ht/~protesilaos/altcaps"
+ (altcaps		:url "https://github.com/protesilaos/altcaps"
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
@@ -86,7 +86,7 @@
  (beacon		:url "https://github.com/Malabarba/beacon")
  (beardbolt		:url "https://github.com/joaotavora/beardbolt"
   :readme "README.md")
- (beframe		:url "https://git.sr.ht/~protesilaos/beframe"
+ (beframe		:url "https://github.com/protesilaos/beframe"
   :doc "README.org"
   :readme "README.md"
   :ignored-files ("COPYING" "doclicense.texi"))
@@ -182,7 +182,7 @@
  (csharp-mode		:url "https://github.com/emacs-csharp/csharp-mode"
   :readme "README.org")
  (csv-mode		:url nil)
- (cursory		:url "https://git.sr.ht/~protesilaos/cursory"
+ (cursory		:url "https://github.com/protesilaos/cursory"
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
@@ -196,7 +196,7 @@
   :ignored-files ("COPYING"))
  (debbugs		:url nil :doc ("debbugs.texi" "debbugs-ug.texi"))
  (delight		:url "https://git.savannah.gnu.org/git/delight.git")
- (denote		:url "https://git.sr.ht/~protesilaos/denote"
+ (denote		:url "https://github.com/protesilaos/denote"
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
@@ -215,7 +215,7 @@
  (dired-du		:url nil)
  (dired-duplicates	:url "https://codeberg.org/hjudt/dired-duplicates")
  (dired-git-info	:url "https://github.com/clemera/dired-git-info")
- (dired-preview		:url "https://git.sr.ht/~protesilaos/dired-preview"
+ (dired-preview		:url "https://github.com/protesilaos/dired-preview"
   :doc "README.org"
   :readme "README.md"
   :ignored-files ("COPYING" "doclicense.texi"))
@@ -241,7 +241,7 @@
   :readme "README.md")
  (eev			:url "https://github.com/edrx/eev.git"
   :branch "UTF-8")
- (ef-themes		:url "https://git.sr.ht/~protesilaos/ef-themes"
+ (ef-themes		:url "https://github.com/protesilaos/ef-themes"
   :doc "README.org"
   :readme "README.md"
   :news "CHANGELOG.org"
@@ -310,7 +310,7 @@
  (flymake-codespell	:url "https://github.com/skangas/flymake-codespell"
   :readme "README.org")
  (flymake-proselint	:url "https://git.sr.ht/~manuel-uberti/flymake-proselint")
- (fontaine		:url "https://git.sr.ht/~protesilaos/fontaine"
+ (fontaine		:url "https://github.com/protesilaos/fontaine"
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
@@ -415,7 +415,7 @@
  ;; (lentic-server	:url "https://github.com/phillord/lentic-server")
  (let-alist		:core "lisp/emacs-lisp/let-alist.el")
  (lex			:url nil)
- (lin			:url "https://git.sr.ht/~protesilaos/lin"
+ (lin			:url "https://github.com/protesilaos/lin"
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
@@ -425,7 +425,7 @@
  (load-relative		:url "https://github.com/rocky/emacs-load-relative")
  (loc-changes		:url "https://github.com/rocky/emacs-loc-changes")
  (loccur		:url "https://github.com/fourier/loccur")
- (logos			:url "https://git.sr.ht/~protesilaos/logos"
+ (logos			:url "https://github.com/protesilaos/logos"
   :doc "README.org"
   :readme "README.md"
   :news "CHANGELOG.org"
@@ -456,7 +456,7 @@
  (minimap		:url nil)
  (mmm-mode		:url "https://github.com/purcell/mmm-mode.git"
   :doc "mmm.texi")
- (modus-themes		:url "https://git.sr.ht/~protesilaos/modus-themes"
+ (modus-themes		:url "https://github.com/protesilaos/modus-themes"
   :doc "doc/modus-themes.org"
   :readme "README.md"
   :news "CHANGELOG.org"
@@ -475,7 +475,7 @@
  (nhexl-mode		:url nil)
  (nlinum		:url nil)
  (notes-mode		:url nil)
- (notmuch-indicator	:url "https://git.sr.ht/~protesilaos/notmuch-indicator"
+ (notmuch-indicator	:url "https://github.com/protesilaos/notmuch-indicator"
   :doc "README.org"
   :readme "README.md"
   :ignored-files ("COPYING" "doclicense.texi"))
@@ -577,7 +577,7 @@
  ;;                         git reset \$GIT_COMMIT -- pspp-mode.el" \
  ;;         -- -- pspp-mode.el
  (pspp-mode		:url nil) ;; Was "https://git.sv.gnu.org/git/pspp.git"
- (pulsar		:url "https://git.sr.ht/~protesilaos/pulsar"
+ (pulsar		:url "https://github.com/protesilaos/pulsar"
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
@@ -637,7 +637,7 @@
  (soap-client		:core ("lisp/net/soap-client.el" "lisp/net/soap-inspect.el"))
  (sokoban		:url nil)
  (sotlisp		:url "https://github.com/Malabarba/speed-of-thought-lisp")
- (spacious-padding		:url "https://git.sr.ht/~protesilaos/spacious-padding"
+ (spacious-padding		:url "https://github.com/protesilaos/spacious-padding"
   :doc "README.org"
   :readme "README.md"
   :news "CHANGELOG.org"
@@ -651,12 +651,12 @@
   :ignored-files ("LICENSE")
   :lisp-dir "lisp")
  (ssh-deploy		:url "https://github.com/cjohansson/emacs-ssh-deploy")
- (standard-themes		:url "https://git.sr.ht/~protesilaos/standard-themes"
+ (standard-themes		:url "https://github.com/protesilaos/standard-themes"
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
  (stream		:url nil)
- (substitute		:url "https://git.sr.ht/~protesilaos/substitute"
+ (substitute		:url "https://github.com/protesilaos/substitute"
   :doc "README.org"
   :readme "README.md"
   :ignored-files ("COPYING" "doclicense.texi"))
@@ -669,7 +669,7 @@
   )
  (switchy-window	:url "https://git.sr.ht/~tsdh/switchy-window"
   :readme "README.md")
- (sxhkdrc-mode		:url "https://git.sr.ht/~protesilaos/sxhkdrc-mode"
+ (sxhkdrc-mode		:url "https://github.com/protesilaos/sxhkdrc-mode"
   :readme "README.md"
   :ignored-files ("COPYING"))
  (system-packages	:url "https://gitlab.com/jabranham/system-packages")
@@ -691,7 +691,7 @@
  (theme-buffet		:url "https://git.sr.ht/~bboal/theme-buffet")
  (timerfunctions	:url nil)
  (tiny			:url "https://github.com/abo-abo/tiny")
- (tmr			:url "https://git.sr.ht/~protesilaos/tmr"
+ (tmr			:url "https://github.com/protesilaos/tmr"
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi" "Makefile"))

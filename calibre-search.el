@@ -36,7 +36,7 @@ the user to select an FIELD, otherwise it will read: Prompt the
 user to select a FIELD.
 
 If PLURAL is non-nil FIELD is assumed to be a plural word, and an s
-will not be appended to the calibre-db--get-FIELD function's name."
+will not be appended to the calibre-core--get-FIELD function's name."
   `(defun ,(intern (format "calibre-search-chose-%s" field)) ()
      ,(format "Prompt the user to select %s %s" (if an "an" "a") field)
      (interactive)

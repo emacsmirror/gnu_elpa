@@ -300,7 +300,7 @@
  (expand-region		:url "https://github.com/magnars/expand-region.el")
  (expreg                :url "https://github.com/casouri/expreg.git")
  (external-completion   :core "lisp/external-completion.el")
- (exwm			:url "https://github.com/ch11ng/exwm.git")
+ (exwm			:url "https://github.com/emacs-exwm/exwm.git")
  (f90-interface-browser :url nil) ;; Was "https://github.com/wence-/f90-iface"
  (face-shift            :url "https://git.sr.ht/~pkal/face-shift")
  (filladapt		:url nil)
@@ -793,7 +793,7 @@
  (xclip			:url nil)
  (xeft                  :url "https://git.sr.ht/~casouri/xeft"
   :ignored-files ("*.gif"))
- (xelb			:url "https://github.com/ch11ng/xelb.git")
+ (xelb			:url "https://github.com/emacs-exwm/xelb.git")
  (xpm			:url nil)
  (xr			:url "https://github.com/mattiase/xr"
   :ignored-files ("Makefile" ".github" "*-test.el*"))

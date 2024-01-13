@@ -5,6 +5,7 @@
 ;; Author: Per Abrahamsen <per.abrahamsen@gmail.com>
 ;; Version: 1.0
 ;; Keywords: matching
+;; Package-Requires: ((emacs "24.1"))
 
 ;; LCD Archive Entry:
 ;; all|Per Abrahamsen|abraham@dina.kvl.dk|

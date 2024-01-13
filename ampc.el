@@ -8,9 +8,9 @@
 ;;   and marked it as "maintainerless".
 ;; Maintainer: emacs-devel@gnu.org
 ;; Version: 0.2
+;; Package-Requires: ((emacs "24.3"))
 ;; Created: 2011-12-06
 ;; Keywords: ampc, mpc, mpd
-;; Compatibility: GNU Emacs: 24.x
 
 ;; This file is part of ampc.
 

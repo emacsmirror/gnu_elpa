@@ -25,11 +25,11 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 ;;; * description
-;; ampc is a controller for the Music Player Daemon (http://mpd.wikia.com/).
+;; ampc is a controller for the Music Player Daemon (https://mpd.wikia.com/).
 
 ;;; ** installation
 ;; If you use GNU ELPA, install ampc via M-x package-list-packages RET or
@@ -46,7 +46,7 @@
 ;;; *** tagger
 ;; ampc is not only a frontend to MPD but also a full-blown audio file tagger.
 ;; To use this feature you have to build the backend application, `ampc_tagger',
-;; which in turn uses TagLib (http://taglib.github.com/), a dual-licended
+;; which in turn uses TagLib (https://taglib.github.com/), a dual-licended
 ;; (LGPL/MPL) audio meta-data library written in C++.  TagLib has no
 ;; dependencies on its own.
 ;;

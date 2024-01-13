@@ -40,7 +40,7 @@ and modified without restriction.
 @node Top
 @top Persist -- Persistent Variables for Emacs
 
-Perist is a library for making variables persistent; that it, their
+Persist is a library for making variables persistent; that it, their
 state can be changed from the default and the new value will remain even
 after Emacs has been closed and restarted.
 

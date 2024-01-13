@@ -195,7 +195,7 @@ This does not remove any saved value of SYMBOL."
 (defun persist-equal (a b)
   "Return non-nil when the values of A and B are equal.
 A and B are compared using `equal' unless they are both hash
-tables. In that case, the following are compared:
+tables.  In that case, the following are compared:
 
 - hash table count
 - hash table predicate

@@ -208,15 +208,15 @@ in CONVERSATION id for ACCOUNT id."
          (lines (string-lines body))
          ;; use inactive timestamps
          (timefmt (org-time-stamp-format 't 't)))
-          (if (org-capture-string
-               (format "* TODO %s\nSCHEDULED: %s\n:PROPERTIES:\n:CREATED: %s\n:END:\n%s"
-                       (car lines)
-                       (format-time-string (car org-time-stamp-formats))
-                       (format-time-string timefmt)
-                       (string-join (cdr lines) "\n"))
-            org-jami-bot-capture-key)
-           "captured and scheduled!"
-        "error during org-capture :(")))
+    (if (org-capture-string
+         (format "* TODO %s\nSCHEDULED: %s\n:PROPERTIES:\n:CREATED: %s\n:END:\n%s"
+                 (car lines)
+                 (format-time-string (car org-time-stamp-formats))
+                 (format-time-string timefmt)
+                 (string-join (cdr lines) "\n"))
+         org-jami-bot-capture-key)
+        "captured and scheduled!"
+      "error during org-capture :(")))
 
 (defun org-jami-bot--command-function-schedule (_account _conversation msg)
   "Capture body as todo entry and schedule it on the date given after the command.
@@ -230,16 +230,16 @@ confirmation.  ACCOUNT and CONVERSATION are not used."
          (lines (string-lines body))
          (swhen (org-read-date nil nil (car lines)))
          ;; inactive timestamp
-                  (timefmt (org-time-stamp-format 't 't)))
+         (timefmt (org-time-stamp-format 't 't)))
     (if (org-capture-string
          (format "* TODO %s\nSCHEDULED: %s\n:PROPERTIES:\n:CREATED: %s\n:END:\n%s"
                  (cadr lines)
                  swhen
                  (format-time-string timefmt)
                  (string-join (cdr lines) "\n"))
-            org-jami-bot-capture-key)
-           (format "captured and scheduled on %s!" swhen)
-        "error during org-capture :(")))
+         org-jami-bot-capture-key)
+        (format "captured and scheduled on %s!" swhen)
+      "error during org-capture :(")))
 
 (defun org-jami-bot-default-setup ()
   "Set up `org-jami-bot' with default values.

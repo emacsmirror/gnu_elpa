@@ -5,6 +5,7 @@
 ;; Author: Phillip Lord <phillip.lord@russet.org.uk>
 ;; Maintainer: Joseph Turner <persist-el@breatheoutbreathe.in>
 ;; Package-Type: multi
+;; Package-Requires: ((emacs "26.1"))
 ;; Version: 0.6
 
 ;; The contents of this file are subject to the GPL License, Version 3.0.

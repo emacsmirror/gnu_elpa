@@ -70,8 +70,10 @@
 (require 'org)
 (require 'org-capture)
 
-(defvar org-jami-bot-capture-key "J"
-  "Key for the `org-capture' template to call for Jami messages.")
+(defcustom org-jami-bot-capture-key "J"
+  "Key for the `org-capture' template to call for Jami messages."
+  :group 'jami-bot
+  :type 'string)
 
 (defun org-jami-bot--capture-plain-messsage (account conversation msg)
   "Capture body in MSG and replies to original message.

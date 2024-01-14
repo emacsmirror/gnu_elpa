@@ -5,11 +5,11 @@
 ;; Author: Hanno Perrey <http://gitlab.com/hperrey>
 ;; Maintainer: Hanno Perrey <hanno@hoowl.se>
 ;; Created: April 16, 2023
-;; Modified: June 05, 2023
-;; Version: 0.0.3
+;; Modified: January 14, 2024
+;; Version: 0.0.4
 ;; Keywords: comm, outlines, org-capture, jami
 ;; Homepage: https://gitlab.com/hperrey/org-jami-bot
-;; Package-Requires: ((emacs "28.1") (jami-bot "0.0.1"))
+;; Package-Requires: ((emacs "28.1") (jami-bot "0.0.2"))
 
 ;; This file is not part of GNU Emacs.
 ;;

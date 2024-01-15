@@ -1,6 +1,6 @@
 ;; -*- lisp-data -*-
 
-;; Copyright (C) 2020-2023 Free Software Foundation, Inc.
+;; Copyright (C) 2020-2024 Free Software Foundation, Inc.
 
 ;; List of packages that are maintained externally.
 ;; The list is made of elements of the form (NAME KIND URL OPTS...).
@@ -90,6 +90,8 @@
   :doc "README.org"
   :readme "README.md"
   :ignored-files ("COPYING" "doclicense.texi"))
+ (bicep-ts-mode		:url "https://github.com/josteink/bicep-ts-mode"
+  :ignored-files ("LICENSE"))
  (bind-key		:core "lisp/bind-key.el")
  (blist			:url "https://gitlab.com/mmemmew/blist"
   :doc "blist.texinfo"

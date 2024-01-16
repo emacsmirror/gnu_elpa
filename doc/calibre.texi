@@ -242,7 +242,7 @@ it must be one of:
 @var{VALUE} is the string to compare @var{FIELD} to.
 
 @cindex composite filter
-A composite filter, which is a vector @code{[@var{OP} @var{FILTERS}]}.
+A composite filter, which is a vector @code{[@var{OP} @var{FILTERS}]},
 @var{OP} has the same meaning as for basic filters and @var{FILTERS} is
 a list of vectors @code{[@var{FIELD} @var{FILTERS}]}.  In each such
 vector @var{FIELD} and @var{VALUE} have the same meaning as for a basic

@@ -1,6 +1,6 @@
 ;;; debbugs-gnu.el --- interface for the GNU bug tracker  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2011-2023 Free Software Foundation, Inc.
+;; Copyright (C) 2011-2024 Free Software Foundation, Inc.
 
 ;; Author: Lars Magne Ingebrigtsen <larsi@gnus.org>
 ;;         Michael Albinus <michael.albinus@gmx.de>
@@ -300,7 +300,7 @@ If nil, the value of `send-mail-function' is used instead."
 	      (const "adns")
 	      (const "anubis")
 	      (const "auctex")
-	      ;(const "autoconf")
+	      (const "autoconf")
 	      (const "automake")
 	      (const "automake-patches")
 	      (const "cc-mode")
@@ -309,6 +309,7 @@ If nil, the value of `send-mail-function' is used instead."
 	      (const "debbugs.gnu.org")
 	      (const "dejagnu")
 	      (const "diffutils")
+	      (const "elpa")
 	      (const "emacs")
 	      (const "emacs-xwidgets")
 	      (const "fm")
@@ -338,7 +339,7 @@ If nil, the value of `send-mail-function' is used instead."
 		      'help-echo "This is a pseudo package for test."))
 	      (const "vc-dwim")
 	      (const "woodchuck"))
-  :version "28.1")
+  :version "29.2")
 
 (defconst debbugs-gnu-all-packages
   (mapcar #'cadr (cdr (get 'debbugs-gnu-default-packages 'custom-type)))

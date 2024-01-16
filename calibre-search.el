@@ -1,5 +1,5 @@
 ;;; calibre-search.el --- Filter books based on search criteria.  -*- lexical-binding: t; -*-
-;; Copyright (C) 2023  Free Software Foundation, Inc.
+;; Copyright (C) 2023,2024  Free Software Foundation, Inc.
 
 ;; This file is part of calibre.el.
 
@@ -59,16 +59,32 @@ ARGS is the argument list of a transient command."
       '-
     '+))
 
+(defun calibre-search--fuzzy-search-p (args)
+  "Return t if the filter operation should use fuzzy matching.
+ARGS is the argument list of a transient command."
+  (seq-contains-p args "--fuzzy"))
+
+(defun calibre-search--make-filter (op field val fuzzy)
+  "Create a search filter.
+
+OP is a symbol, either + or - for inclusive or exclusive.  FIELD
+is a symbol identifying the field to search.  VAL is the value to
+search for.  If FUZZY is non-nil create a fuzzy filter."
+  (if fuzzy
+      `[,op ,field ,val ~]
+    `[,op ,field ,val]))
+
 (defmacro calibre-library--search-function (field)
   "Create a function adding a filter for FIELD."
   `(defun ,(intern (format "calibre-library-search-%s" field)) (val &optional args)
      (interactive (list (,(intern (format "calibre-search-chose-%s" field)))
                         (transient-args 'calibre-search)))
-     (setf calibre-library--filters (cons
-                                     (vector (calibre-search--operation args)
-                                             (quote ,(intern field))
-                                             val)
-                                     calibre-library--filters))
+     (push (calibre-search--make-filter
+            (calibre-search--operation args)
+            (quote ,(intern field))
+            val
+            (calibre-search--fuzzy-search-p args))
+           calibre-library--filters)
      (calibre-library--refresh)))
 
 (calibre-library--search-function "title")
@@ -89,7 +105,8 @@ ARGS is the argument list of a transient command."
   "Filter the library view."
   :transient-suffix 'transient--do-call
   ["Arguments"
-   ("-e" "Exclude" "--exclude")]
+   ("e" "Exclude" "--exclude")
+   ("~" "Fuzzy" "--fuzzy")]
   ["Search"
    ("T" "Title" calibre-library-search-title)
    ("a" "Author" calibre-library-search-author)
@@ -121,13 +138,26 @@ ARGS is the argument list of a transient command."
   (interactive)
   (setf calibre-search-composing-filter nil))
 
+(defun calibre-search--make-composite-filter-component (field val fuzzy)
+  "Create a component of a composite search filter.
+
+FIELD is a symbol identifying the field to search.  VAL is the
+value to search for.  If FUZZY is non-nil create a fuzzy filter."
+  (if fuzzy
+      `[,field ,val ~]
+    `[,field ,val]))
+
 (defmacro calibre-search--composition-function (field)
   "Create a function adding a filter for FIELD to a composite filter."
-  `(defun ,(intern (format "calibre-search-compose-%s" field)) ()
+  `(defun ,(intern (format "calibre-search-compose-%s" field)) (val &optional args)
      ,(format "Add a filter for %s to the composite filter under construction." field)
-     (interactive)
-     (setf calibre-search-composing-filter
-           (cons (vector ',(intern field) (,(intern (format "calibre-search-chose-%s" field)))) calibre-search-composing-filter))))
+     (interactive (list (,(intern (format "calibre-search-chose-%s" field)))
+                        (transient-args 'calibre-search-compose)))
+     (push (calibre-search--make-composite-filter-component
+            (quote ,(intern field))
+            val
+            (calibre-search--fuzzy-search-p args))
+           calibre-search-composing-filter)))
 
 (calibre-search--composition-function "title")
 (calibre-search--composition-function "author")
@@ -140,7 +170,8 @@ ARGS is the argument list of a transient command."
   "Create a composite filter."
   :transient-suffix 'transient--do-call
   ["Arguments"
-   ("-e" "Exclude" "--exclude")]
+   ("-e" "Exclude" "--exclude")
+   ("~" "Fuzzy" "--fuzzy")]
   ["Compose"
    ("T" "Title" calibre-search-compose-title)
    ("a" "Author" calibre-search-compose-author)

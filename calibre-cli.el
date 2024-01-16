@@ -1,6 +1,6 @@
 ;;; calibre-cli.el --- Fallback CLI interface when SQLite is not available  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2023  Free Software Foundation, Inc.
+;; Copyright (C) 2023,2024  Free Software Foundation, Inc.
 
 ;; This file is part of calibre.el.
 
@@ -97,9 +97,12 @@ AUTHORS should be a comma separated string."
   "Return the File Name of the book whose files are FILES."
   (file-name-base (car files)))
 
-(defmacro calibre-cli--search-operation (field)
-  "Create a function to search for books matching FIELD."
-  `(defun ,(intern (format "calibre-cli--get-%s-books" field)) (,field)
+(defmacro calibre-cli--search-operation (field docstring)
+  "Create a function to search for books matching FIELD.
+
+DOCSTRING is the docstring of the created function."
+  `(defun ,(intern (format "calibre-cli--get-%s-books" field)) (,field &optional fuzzy-match)
+     ,docstring
      (with-temp-buffer
        (call-process calibre-calibredb-executable
                      nil
@@ -108,18 +111,18 @@ AUTHORS should be a comma separated string."
                      "search"
                      "--with-library"
                      (calibre--library)
-                     (format ,(format "%s:=%%s" field) ,field))
+                     (format ,(format "%s%%s%%s" field ) (if fuzzy-match ":" ":=") ,field))
        (mapcar #'cl-parse-integer
                (string-split
                 (buffer-substring-no-properties (point-min) (point-max))
                 ",")))))
 
-(calibre-cli--search-operation title)
-(calibre-cli--search-operation series)
-(calibre-cli--search-operation publisher)
-(calibre-cli--search-operation format)
-(calibre-cli--search-operation tag)
-(calibre-cli--search-operation author)
+(calibre-cli--search-operation title "Return the id's of books whose title is TITLE.")
+(calibre-cli--search-operation series "Return the id's of books that are part of SERIES.")
+(calibre-cli--search-operation publisher "Return the id's of books published by PUBLISHER.")
+(calibre-cli--search-operation format "Return the id's of books available in FORMAT.")
+(calibre-cli--search-operation tag "Return the id's of books tagged with TAG.")
+(calibre-cli--search-operation author "Return the id's of books written by AUTHOR.")
 
 (defun calibre-cli--get-titles ()
   "Return a list of the titles in the active library."

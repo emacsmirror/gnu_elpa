@@ -1,6 +1,6 @@
 ;;; calibre-db.el --- Interact with the Calibre database -*- lexical-binding:t -*-
 
-;; Copyright (C) 2023  Free Software Foundation, Inc.
+;; Copyright (C) 2023,2024  Free Software Foundation, Inc.
 
 ;; Author: Kjartan Oli Agustsson <kjartanoli@disroot.org>
 ;; Maintainer: Kjartan Oli Agustsson <kjartanoli@disroot.org>
@@ -151,50 +151,70 @@ FROM books
 LEFT JOIN books_series_link sl ON books.id = sl.book
 LEFT JOIN series ON sl.series = series.id;"))))
 
-(defun calibre-db--get-title-books (title)
-  "Return the id's of books whose title is TITLE."
-  (flatten-list (sqlite-select (calibre--db)
-                               "SELECT id FROM books WHERE title = ?"
-                               `[,title])))
+(defmacro calibre-db--query (query arg fuzzy)
+  "Run QUERY on the Calibre database.
 
-(defun calibre-db--get-author-books (author)
+ARG is a value to passed to a WHERE clause in QUERY.  FUZZY
+determines whether the WHERE clause matches using LIKE or exact
+matching.  If FUZZY is non-nil LIKE will be used.  QUERY must contain exactly one %s where the matching against ARG should be substituted.
+
+This means QUERY should probably end:
+WHERE column %s
+with column being the name of some column."
+  `(flatten-list (sqlite-select (calibre--db)
+                                (format ,query (if ,fuzzy "LIKE ?" "= ?"))
+                                (if fuzzy-match
+                                    (vector (format "%%%s%%" ,arg))
+                                  (vector ,arg)))))
+
+(defmacro calibre-db--search-function (field docstring query)
+  "Create a search function for FIELD with DOCSTRING as docstring.
+
+QUERY is the SQL query used to perform the search, suitable as an
+argument to `calibre-db--query'."
+  (declare (indent 1))
+  `(defun ,(intern (format "calibre-db--get-%s-books" field))
+       (,field &optional fuzzy-match)
+     ,docstring
+     (calibre-db--query ,query ,field fuzzy-match)))
+
+(calibre-db--search-function title
+  "Return the id's of books whose title is TITLE."
+  "SELECT id FROM books WHERE title %s")
+
+(calibre-db--search-function author
   "Return the id's of books written by AUTHOR."
-  (flatten-list (sqlite-select (calibre--db)
-                               "SELECT book
+  "SELECT book
 FROM books_authors_link al
 LEFT JOIN authors a ON al.author = a.id
-WHERE a.name = ?" `[,author])))
+WHERE a.name %s")
 
-(defun calibre-db--get-tag-books (tag)
+(calibre-db--search-function tag
   "Return the id's of books tagged with TAG."
-  (flatten-list (sqlite-select (calibre--db)
-                               "SELECT book
+  "SELECT book
 FROM books_tags_link tl
 LEFT JOIN tags t ON tl.tag = t.id
-WHERE t.name = ?" `[,tag])))
+WHERE t.name %s")
 
-(defun calibre-db--get-publisher-books (publisher)
+(calibre-db--search-function publisher
   "Return the id's of books published by PUBLISHER."
-  (flatten-list (sqlite-select (calibre--db)
-                               "SELECT book
+  "SELECT book
 FROM books_publishers_link pl
 LEFT JOIN publishers p ON pl.publisher = p.id
-WHERE p.name = ?" `[,publisher])))
+WHERE p.name %s")
 
-(defun calibre-db--get-series-books (series)
+(calibre-db--search-function series
   "Return the id's of books that are part of SERIES."
-  (flatten-list (sqlite-select (calibre--db)
-                               "SELECT book
+  "SELECT book
 FROM books_series_link sl
 LEFT JOIN series s ON sl.series = s.id
-WHERE s.name = ?" `[,series])))
+WHERE s.name %s")
 
-(defun calibre-db--get-format-books (format)
+(calibre-db--search-function format
   "Return the id's of books available in FORMAT."
-  (flatten-list (sqlite-select (calibre--db)
-                               "SELECT book
+  "SELECT book
 FROM data
-WHERE format = ?" `[,format])))
+WHERE format %s")
 
 (provide 'calibre-db)
 ;;; calibre-db.el ends here

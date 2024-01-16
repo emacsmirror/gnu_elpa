@@ -9,7 +9,7 @@ This manual is for calibre.el (version @value{VERSION},
 @value{UPDATED}), a package for interacting with Calibre libraries from
 Emacs.
 
-Copyright @copyright{} 2023  Free Software Foundation, Inc.
+Copyright @copyright{} 2023,2024  Free Software Foundation, Inc.
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -241,11 +241,24 @@ it must be one of:
 @end itemize
 @var{VALUE} is the string to compare @var{FIELD} to.
 
+@cindex fuzzy filter
+For a given book to match against a basic filter the value of
+@var{FIELD} for that book must be exactly equal to @var{VALUE}.
+Sometimes this exact matching is undesirable and you would like to find
+all books where @var{FIELD} contains @var{VALUE} instead.  This is
+exactly what fuzzy filters do.
+
+A fuzzy filter is a vector @code{[@var{OP} @var{FIELD} @var{VALUE} ~]}.
+@var{OP}, @var{FIELD}, and @var{VALUE} have the same meaning as in a
+basic filter.  The @code{~} is what identifies the filter as fuzzy.
+
 @cindex composite filter
 A composite filter, is a vector @code{[@var{OP} @var{FILTERS}]} where
 @var{OP} has the same meaning as for basic filters and @var{FILTERS} is
-a list of vectors @code{[@var{FIELD} @var{VALUE}]}.  In each such vector
-@var{FIELD} and @var{VALUE} have the same meaning as for a basic filter.
+a list of vectors @code{[@var{FIELD} @var{VALUE}]} or @code{[@var{FIELD}
+@var{VALUE} ~]}.  In each such vector @var{FIELD} and @var{VALUE} have
+the same meaning as for a basic filter and a @code{~} at the end marks
+that particular component as fuzzy.
 
 @node Modifying your library
 @chapter Modifying your library

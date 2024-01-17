@@ -3,6 +3,7 @@
 ;; Copyright © 2023  Free Software Foundation, Inc.
 
 ;; Author: Aleksandr Vityazev <avityazev@disroot.org>
+;; Maintainer: Devicetree-ts Development <~akagi/devicetree-ts-mode@lists.sr.ht>
 ;; Keywords: languages devicetree tree-sitter
 ;; Version: 0.3
 ;; Homepage: https://sr.ht/~akagi/devicetree-ts-mode

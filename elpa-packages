@@ -384,6 +384,7 @@
   :manual-sync t
   )
  (ivy-posframe		:url "https://github.com/tumashu/ivy-posframe")
+ (jami-bot              :url "https://gitlab.com/hperrey/jami-bot")
  (jarchive		:url "https://git.sr.ht/~dannyfreeman/jarchive"
   :readme "README.md"
   :news "CHANGELOG.md"

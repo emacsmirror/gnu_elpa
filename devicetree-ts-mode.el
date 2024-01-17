@@ -2,10 +2,11 @@
 
 ;; Copyright © 2023  Free Software Foundation, Inc.
 
-;; Author: Aleksandr Vityazev <avityazew@gmail.com>
+;; Author: Aleksandr Vityazev <avityazev@disroot.org>
 ;; Keywords: languages devicetree tree-sitter
 ;; Version: 0.3
 ;; Homepage: https://sr.ht/~akagi/devicetree-ts-mode
+;; Mailing-list: https://lists.sr.ht/~akagi/devicetree-ts-mode
 ;; Package-Requires: ((emacs "29.1"))
 
 ;; This file is part of GNU Emacs.

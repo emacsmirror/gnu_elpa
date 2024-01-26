@@ -35,6 +35,9 @@
 
 ((ace-window		:url "https://github.com/abo-abo/ace-window")
  (ack			:url "https://github.com/leoliu/ack-el")
+ (activities           	:url "https://github.com/alphapapa/activities.el.git"
+   :release-branch "stable"
+   :doc "README.org")
  (ada-mode		:url nil
   :doc ("ada-mode.texi")
   :release-branch t)

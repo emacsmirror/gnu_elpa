@@ -156,7 +156,9 @@ LEFT JOIN series ON sl.series = series.id;"))))
 
 ARG is a value to passed to a WHERE clause in QUERY.  FUZZY
 determines whether the WHERE clause matches using LIKE or exact
-matching.  If FUZZY is non-nil LIKE will be used.  QUERY must contain exactly one %s where the matching against ARG should be substituted.
+matching.  If FUZZY is non-nil LIKE will be used.  QUERY must
+contain exactly one %s where the matching against ARG should be
+substituted.
 
 This means QUERY should probably end:
 WHERE column %s

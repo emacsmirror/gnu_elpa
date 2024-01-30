@@ -234,7 +234,7 @@ to the dictionary."
      ((region-active-p)
       (when (= (count-words(region-beginning) (region-end)) 1)
 	(setq key (concat (read-string "Original word to substitute:" nil nil
-			       (thing-at-point 'word)) greader-dict-match-indicator))
+				       (thing-at-point 'word)) greader-dict-match-indicator))
 	(setq value (read-string (concat "substitute match " key
 					 "with:")))
 	(greader-dict-add key value)))
@@ -282,7 +282,7 @@ as a word definition."
 	      #'greader-dict--replace-wrapper))
    (t
     (remove-hook 'greader-after-get-sentence-functions
-		 #'greader-dict--replace-wrapper t))))
+		 #'greader-dict--replace-wrapper))))
 
 (provide 'greader-dict)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

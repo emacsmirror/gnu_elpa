@@ -1497,7 +1497,8 @@ If it is a function, it must return a string."
   "This mode causes greader to announce clickable objects.
 To configure the message with which it must be announced
 the element, configure the `greader-enriched-tag' variable."
-  :lighter "rich"
+  :lighter " rich"
+  :global t
   (if greader-enriched-mode
       (progn
 	(unless greader-mode

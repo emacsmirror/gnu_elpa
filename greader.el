@@ -1490,7 +1490,7 @@ If it is a function, it must return a string."
 	;; Update the search position taking into account the "link: " string we just entered.
         (setq pos (+ pos 6))))
     ;; Return the modified string if links were found.
-    (if modified result nil)))
+    (if modified result input-string)))
 
 ;;;###autoload
 (define-minor-mode greader-enriched-mode

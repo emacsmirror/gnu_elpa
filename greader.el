@@ -72,7 +72,7 @@ Functions in this variable don't receive arguments.")
   "Hook run after getting a sentence.
 Functions in this hook take a string as argument, and should modify
   that string that contains the sentence that will be read.
-the function should return modified sentence, or nil if no operation
+the function should return modified sentence, or original text if no operation
   was needed.")
 
 (defun greader--call-functions-after-get-of-sentence (sentence)

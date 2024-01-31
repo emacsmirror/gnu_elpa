@@ -6,7 +6,7 @@
 ;; Author: Michelangelo Rodriguez <michelangelo.rodriguez@gmail.com>
 ;; Keywords: tools, accessibility
 
-;; Version: 0.8.1
+;; Version: 0.8.2
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -82,8 +82,8 @@ Return SENTENCE, eventually modified by the functions."
     (run-hook-wrapped 'greader-after-get-sentence-functions
                       (lambda (func)
                         (when (fboundp func)
-	                  (setq result (or (funcall func result)
-	                                   sentence)))))
+	                  (setq result (funcall func result))
+			  nil)))
     result))
 
 (defvar greader-before-read-hook nil

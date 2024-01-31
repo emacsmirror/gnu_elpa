@@ -279,7 +279,7 @@ as a word definition."
     (when (hash-table-empty-p greader-dictionary)
       (greader-dict-read-from-dict-file))
     (add-hook 'greader-after-get-sentence-functions
-	      #'greader-dict--replace-wrapper))
+	      #'greader-dict--replace-wrapper 1))
    (t
     (remove-hook 'greader-after-get-sentence-functions
 		 #'greader-dict--replace-wrapper))))

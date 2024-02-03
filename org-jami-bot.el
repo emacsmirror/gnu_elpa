@@ -5,11 +5,11 @@
 ;; Author: Hanno Perrey <hanno@hoowl.se>
 ;; Maintainer: Hanno Perrey <hanno@hoowl.se>
 ;; Created: April 16, 2023
-;; Modified: January 14, 2024
-;; Version: 0.0.4
+;; Modified: February 4, 2024
+;; Version: 0.0.5
 ;; Keywords: comm, outlines, org-capture, jami
 ;; Homepage: https://gitlab.com/hperrey/org-jami-bot
-;; Package-Requires: ((emacs "28.1") (jami-bot "0.0.2"))
+;; Package-Requires: ((emacs "28.1") (jami-bot "0.0.4"))
 
 ;; This file is not part of GNU Emacs.
 ;;
@@ -44,8 +44,10 @@
 ;;
 ;; Every command consists of an exclamation mark and a single word, for example:
 ;; "!help" which shows the available commands or "!today" which captures the
-;; remainder of the message as a todo entry scheduled today. Everything else is
-;; treated as a normal message (and captured verbatim).
+;; remainder of the message as a todo entry scheduled today.  "!schedule", on
+;; the other hand, allows to schedule a captured entry to a arbitrary day given
+;; by the date on the first line of the message.  Everything else is treated as
+;; a normal message (and captured verbatim).
 ;;
 ;; Files sent separately as a single message are captured as links to the
 ;; locally downloaded file and tagged as =FILE=.  In principle, further automatic
@@ -55,7 +57,7 @@
 ;;
 ;; To get started with `org-jami-bot':
 ;;  - install jamid, the GNU Jami daemon
-;;  - set up a Jami account
+;;  - set up a local Jami account using e.g. Jami's GUI client
 ;;  - configure a key to be used for org-capture templates:
 ;;    (setq org-jami-bot-capture-key "J")
 ;;  - set up `org-jami-bot' using default values:
@@ -63,6 +65,11 @@
 ;;  - register `jami-bot' to react to received messages:
 ;;    (jami-bot-register)
 ;;
+;; `org-jami-bot-default-setup' contains everything needed to set up
+;; `org-jami-bot': it creates a suitable capture template, makes the above
+;; mentioned commands available via Jami messages to local accounts and adds
+;; hooks to capture other plain text messages and file transfers.  Copy and
+;; modify `org-jami-bot-default-setup' to customize this setup to your needs.
 
 ;;; Code:
 
@@ -75,11 +82,15 @@
   :group 'jami-bot
   :type 'string)
 
-(defun org-jami-bot--capture-plain-messsage (account conversation msg)
-  "Capture body in MSG and replies to original message.
+(defun org-jami-bot--capture-plain-message (account conversation msg)
+  "Capture body in MSG and replies with acknowledgement to original message.
 
 CONVERSATION and ACCOUNT specify the corresponding ids that the
-message belongs to."
+message belongs to.
+
+See documentation for the `jami-bot' message handler function,
+`jami-bot--messageReceived-handler' for details on key/value
+pairs typically present in MSG."
   (let* ((buf (format "*jami-capture-%s-%s*" account conversation))
          (continue (get-buffer buf))
          (body (cadr (assoc-string "body" msg)))
@@ -107,18 +118,21 @@ message belongs to."
            "error during org-capture :("))))))
 
 (defun org-jami-bot--command-function-start (account conversation msg)
-  "Initiate a multi-message capture.
+  "Initiate a multi-message capture with the body of the current MSG.
 
-It starts with body in MSG by creating a capture buffer for
-CONVERSATION and ACCOUNT.
-
-Further plain text messages processed by
-`org-jami-bot--capture-plain-messsage' or files received by
+This function creates a capture buffer for CONVERSATION and
+ACCOUNT.  Further plain text messages processed by
+`org-jami-bot--capture-plain-message' or files received by
 `org-jami-bot--capture-file' will be added to this capture
 buffer.  The actual capture needs to happen through a separate
 function, e.g. `org-jami-bot--command-function-done'.  Return a
 reply string informing correspondent about how to finish capture
-by sending '!done'."
+by sending '!done'.
+
+This function is intended to be mapped to the `jami-bot' command
+string \"!start\" by adding both to
+`jami-bot-command-function-alist' or by calling
+`org-jami-bot-default-setup'."
   (let* ((buf (format "*jami-capture-%s-%s*" account conversation))
          (body (cadr (assoc-string "body" msg)))
          (lines (string-lines body))
@@ -136,7 +150,12 @@ by sending '!done'."
   "Finish multi-message capture and return a confirmation string.
 
 Requires a capture buffer set up for CONVERSATION and ACCOUNT,
-for example through `org-jami-bot--command-function-start'."
+for example through `org-jami-bot--command-function-start'.
+
+This function is intended to be mapped to the `jami-bot' command
+string \"!done\" by adding both to
+`jami-bot-command-function-alist' or by calling
+`org-jami-bot-default-setup'."
   (let* ((buf (format "*jami-capture-%s-%s*" account conversation))
          (continue (get-buffer buf)))
     (if continue
@@ -153,7 +172,17 @@ for example through `org-jami-bot--command-function-start'."
   "Capture downloaded file and reply to original message.
 
 DLNAME specifies local file name downloaded from MSG in
-CONVERSATION for jami ACCOUNT."
+CONVERSATION for jami ACCOUNT.
+
+This function will add a link to the file and store meta
+information such as the timestamp in a PROPERTIES drawer.
+
+See documentation for the `jami-bot' message handler function,
+`jami-bot--messageReceived-handler' for details on key/value
+pairs typically present in MSG.
+
+This function is intended to be added as hook to
+`jami-bot-data-transfer-functions'."
   (let* ((buf (format "*jami-capture-%s-%s*" account conversation))
          (continue (get-buffer buf))
          (displayname (cadr (assoc-string "displayName" msg)))
@@ -204,8 +233,13 @@ CONVERSATION for jami ACCOUNT."
 (defun org-jami-bot--command-function-today (_account _conversation msg)
   "Capture body of message as todo entry scheduled today.
 
-Returns a reply string as confirmation.  MSG is the full message
-in CONVERSATION id for ACCOUNT id."
+Returns a reply string as confirmation.  MSG is the full message alist
+in CONVERSATION id for ACCOUNT id.
+
+This function is intended to be mapped to a `jami-bot' command
+string, e.g. \"!today\" by adding both to
+`jami-bot-command-function-alist' or by calling
+`org-jami-bot-default-setup'."
   (let* ((body (cadr (assoc-string "body" msg)))
          (lines (string-lines body))
          ;; use inactive timestamps
@@ -227,7 +261,12 @@ The entry will be scheduled according to the first line of the
 MSG body immediately following the command string.  The date will
 be parsed through `org-read-date' and supports the same
 string-to-date conversations.  Returns a reply string as
-confirmation.  ACCOUNT and CONVERSATION are not used."
+confirmation.  ACCOUNT and CONVERSATION are not used.
+
+This function is intended to be mapped to a `jami-bot' command
+string, e.g. \"!schedule\" by adding both to
+`jami-bot-command-function-alist' or by calling
+`org-jami-bot-default-setup'."
   (let* ((body (cadr (assoc-string "body" msg)))
          (lines (string-lines body))
          (swhen (org-read-date nil nil (car lines)))
@@ -246,8 +285,26 @@ confirmation.  ACCOUNT and CONVERSATION are not used."
 (defun org-jami-bot-default-setup ()
   "Set up `org-jami-bot' with default values.
 
-Create a capture template, extend `jami-bot' commands via
-`jami-bot-command-function-alist' and add hooks to `jami-bot'."
+This function creates a capture template on the key given by
+`org-jami-bot-capture-key' for the file `org-default-notes-file'
+that is used by all `org-jami-bot' captures.  It also extends the
+list of `jami-bot' commands, `jami-bot-command-function-alist',
+with the following commands:
+
+\"!today\"     Capture a TODO item scheduled for today, see
+               `org-jami-bot--command-function-today'.
+\"!schedule\"  Capture a TODO item scheduled on the day specified by the first
+               line of the message body, see
+               `org-jami-bot--command-function-schedule'.
+\"!start\"     Initiate a multi-message capture.  All following mesages will
+               be appended, see `org-jami-bot--command-function-start'.
+\"!done\"      Finish a multi-message capture, see
+               `org-jami-bot--command-function-done'.
+
+Additionally, the function sets up the necessary `jami-bot' hooks
+to capture other text messages not containing commands as well as
+file transfers.  See `org-jami-bot--capture-plain-message' and
+`org-jami-bot--capture-file', respectively."
   (if (assoc org-jami-bot-capture-key org-capture-templates)
       (message "Capture template referred to by \"%s\" key already defined!"
                org-jami-bot-capture-key)
@@ -263,7 +320,7 @@ Create a capture template, extend `jami-bot' commands via
              ("!done" . org-jami-bot--command-function-done)))
     (add-to-list 'jami-bot-command-function-alist cmd))
 
-  (add-hook 'jami-bot-text-message-functions #'org-jami-bot--capture-plain-messsage)
+  (add-hook 'jami-bot-text-message-functions #'org-jami-bot--capture-plain-message)
   (add-hook 'jami-bot-data-transfer-functions #'org-jami-bot--capture-file))
 
 (provide 'org-jami-bot)

@@ -186,6 +186,7 @@ offset and limit."
 	  (setq dbquery (concat "SELECT * FROM (" dbquery
 				(format " ORDER BY time DESC LIMIT %s) ORDER BY time ASC"
 					rcirc-sqlite-rows)))))
+      (message "%s" dbquery)
       (sqlite-execute db dbquery (reverse dbdata)))))
 
 (defun rcirc-sqlite-db-search-log (arg-list)
@@ -259,29 +260,34 @@ Build a vector from the data, converting numbers to text, because
 		(list "Data" 0 t)))
   (tabulated-list-init-header))
 
-(defun rcirc-sqlite-display-tabulation-list (with-function &optional arg-list)
+(defun rcirc-sqlite-display-tabulation-list (identstr with-function
+						      &optional arg-list)
   "Display data in tabulated format in a new buffer.
-Retreive data using WITH-FUNCTION, optionally with additional
-arguments in ARG-LIST,"
+Retreive data using WITH-FUNCTION, optionally with additional arguments
+in ARG-LIST, IDENTSTR explains the current query through the mode-line."
   (with-current-buffer (get-buffer-create "*rcirc log*")
-  (rcirc-sqlite-list-mode)
-  (setq tabulated-list-entries
+    (rcirc-sqlite-list-mode)
+    (setq tabulated-list-entries
           (rcirc-sqlite-convert-tabulation-list (funcall with-function arg-list)))
-  (tabulated-list-print t)
-  (display-buffer (current-buffer))))
+    (tabulated-list-print t)
+    (display-buffer (current-buffer))
+    (setq mode-line-buffer-identification identstr)
+    (force-mode-line-update)))
 
 (defun rcirc-sqlite-display-two-column-tabulation-list
-    (with-function &optional arg-list)
+    (identstr with-function &optional arg-list)
   "Display data in tabulated format in a new buffer.
 Retreive data using WITH-FUNCTION, optionally with additional
-arguments in ARG-LIST,"
+arguments in ARG-LIST.  IDENTSTR explains which stat is shown."
   (with-current-buffer (get-buffer-create "*rcirc log*")
     (rcirc-sqlite-two-column-mode)
     (setq tabulated-list-entries
           (rcirc-sqlite-convert-two-column-tabulation-list
 	   (funcall with-function arg-list)))
     (tabulated-list-print t)
-    (display-buffer (current-buffer))))
+    (display-buffer (current-buffer))
+    (setq mode-line-buffer-identification identstr)
+    (force-mode-line-update)))
 
 (defun rcirc-sqlite-select-channel ()
   "Provide completion to select a channel."
@@ -317,6 +323,7 @@ and limit have to be provided."
 		     (rcirc-sqlite-select-month (list "Anytime"))))
   (let ((searcharg-list (list channel when unlimited offset limit)))
     (rcirc-sqlite-display-tabulation-list
+     (format "View log (%s %s)" channel when)
      #'rcirc-sqlite-db-query-log searcharg-list)))
 
 (defun rcirc-sqlite-text-search (query channel when nick)
@@ -330,6 +337,7 @@ The results are displayed a new buffer."
 		     (rcirc-sqlite-select-nick (list "All nicks"))))
   (let ((searcharg-list (list query channel when nick)))
     (rcirc-sqlite-display-tabulation-list
+     (format "Search %s (%s %s %s)" query channel when nick)
      #'rcirc-sqlite-db-search-log searcharg-list)))
 
 (defun rcirc-sqlite-stats (nick)
@@ -341,6 +349,7 @@ The results are displayed a new buffer."
 						     "Channels per nick"))))
   (let ((searcharg-list (list nick)))
     (rcirc-sqlite-display-two-column-tabulation-list
+     (format "Stats (%s)" nick)
      #'rcirc-sqlite-db-query-stats searcharg-list)))
 
 ;;;###autoload

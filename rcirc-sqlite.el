@@ -1,6 +1,6 @@
 ;;; rcirc-sqlite.el --- rcirc logging in SQLite      -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024  Matto Fransen
+;; Copyright (C) 2024 Free Software Foundation, Inc.
 
 ;; Author: Matto Fransen <matto@matto.nl>
 ;; Version: 0.1
@@ -138,7 +138,7 @@ FROM rcirclogs")))
 ARG-LIST is a list with the requested nick."
   (let ((db (rcirc-sqlite--conn))
 	(column "channel")
-	(dimension "")
+	(dimension "messages")
 	(from "")
 	(dbdata ()))
     (cond ((string= (car arg-list) "Nicks per channel")
@@ -149,8 +149,7 @@ ARG-LIST is a list with the requested nick."
 	   (setq dimension "channels")
 	   (setq from "(SELECT nick, channel FROM rcirclogs GROUP BY nick, channel)"))
 	  ((string= (car arg-list) "All nicks")
-	   (setq from "rcirclogs")
-	   (setq dimension "lines"))
+	   (setq from "rcirclogs"))
 	  (t
 	   (setq from "rcirclogs where nick = ?")
 	   (push (car arg-list) dbdata)

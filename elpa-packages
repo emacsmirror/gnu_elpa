@@ -192,8 +192,8 @@
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
  (cycle-quotes		:url nil)
- (darkroom            	:url "https://github.com/capitaomorte/darkroom.git")
  (dape                  :url "https://github.com/svaante/dape")
+ (darkroom            	:url "https://github.com/capitaomorte/darkroom.git")
  (dash			:url "https://github.com/magnars/dash.el.git"
   :doc "dash.texi"
   :news "NEWS.md")
@@ -387,7 +387,8 @@
   :manual-sync t
   )
  (ivy-posframe		:url "https://github.com/tumashu/ivy-posframe")
- (jami-bot              :url "https://gitlab.com/hperrey/jami-bot")
+ (jami-bot              :url "https://gitlab.com/hperrey/jami-bot"
+  :ignored-files ("LICENSE"))
  (jarchive		:url "https://git.sr.ht/~dannyfreeman/jarchive"
   :readme "README.md"
   :news "CHANGELOG.md"
@@ -510,6 +511,8 @@
  (org-edna		:url "bzr::https://bzr.savannah.gnu.org/git/org-edna-el"
   ;; The Bzr<->Git bridge wasn't working well enough last time I tried.
   :manual-sync t)
+ (org-jami-bot		:url "https://gitlab.com/hperrey/org-jami-bot"
+  :ignored-files ("LICENSE"))
  ;; FIXME: Waiting for copyright paperwork from Brandon Webster.
  ;;(org-drill		:url "https://gitlab.com/phillord/org-drill")
  (org-modern		:url "https://github.com/minad/org-modern"

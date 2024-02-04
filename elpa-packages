@@ -165,6 +165,8 @@
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("LICENSE"))
+ (consult-hoogle	:url "https://codeberg.org/rahguzar/consult-hoogle"
+  :ignored-files ("LICENSE"))
  (consult-recoll	:url "https://codeberg.org/jao/consult-recoll"
   :ignored-files ("license")
   :readme "readme.org")
@@ -309,6 +311,8 @@
  (exwm			:url "https://github.com/emacs-exwm/exwm.git")
  (f90-interface-browser :url nil) ;; Was "https://github.com/wence-/f90-iface"
  (face-shift            :url "https://git.sr.ht/~pkal/face-shift")
+ (filechooser		:url "https://codeberg.org/rahguzar/filechooser"
+  :ignored-files ("LICENSE"))
  (filladapt		:url nil)
  (firefox-javascript-repl	:url "https://git.sr.ht/~fitzsim/firefox-javascript-repl")
  (flylisp		:url nil)

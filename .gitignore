@@ -9,3 +9,7 @@
 
 # Undo-tree save-files
 *.~undo-tree
+
+# ELPA-generated files
+/org-jami-bot-autoloads.el
+/org-jami-bot-pkg.el

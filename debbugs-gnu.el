@@ -324,6 +324,7 @@ If nil, the value of `send-mail-function' is used instead."
 	      (const "idutils")
 	      (const "libtool")
 	      (const "mh-e")
+	      (const "mumi")
 	      (const "oo-browser")
 	      (const "org-mode")
 	      (const "parted")

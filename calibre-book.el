@@ -88,12 +88,12 @@
       t
     (if (not (calibre-book-series b))
         nil
-      (cl-case (compare-strings (calibre-book-series a) nil nil
-                                  (calibre-book-series b) nil nil)
-          (-1 t)
-          ((eq t) (< (calibre-book-series-index a)
-                     (calibre-book-series-index b)))
-          (1 nil)))))
+      (let ((v (compare-strings (calibre-book-series a) nil nil
+                                (calibre-book-series b) nil nil)))
+        (if (numberp v)
+            (< v 0)
+          (< (calibre-book-series-index a)
+             (calibre-book-series-index b)))))))
 
 (provide 'calibre-book)
 ;;; calibre-book.el ends here

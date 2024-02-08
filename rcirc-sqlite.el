@@ -45,6 +45,9 @@
 
 ;;; Code:
 
+(defvar rcirc-log-alist)
+(defvar rcirc-log-time-format)
+
 (defgroup rcirc-sqlite nil
   "Rcirc logging in SQLite."
   :prefix "rcirc-sqlite-"
@@ -186,7 +189,6 @@ offset and limit."
 	  (setq dbquery (concat "SELECT * FROM (" dbquery
 				(format " ORDER BY time DESC LIMIT %s) ORDER BY time ASC"
 					rcirc-sqlite-rows)))))
-      (message "%s" dbquery)
       (sqlite-execute db dbquery (reverse dbdata)))))
 
 (defun rcirc-sqlite-db-search-log (arg-list)

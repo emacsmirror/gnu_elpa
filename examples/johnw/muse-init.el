@@ -1,6 +1,6 @@
-;;; muse-init.el ---
+;;; muse-init.el ---  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2004-2020 Free Software Foundation, Inc.
+;; Copyright (C) 2004-2024 Free Software Foundation, Inc.
 
 ;; This file is part of Emacs Muse.  It is not part of GNU Emacs.
 
@@ -31,7 +31,7 @@
 
 (require 'muse-journal)
 (require 'muse-poem)
-(require 'muse-message "experimental/muse-message")
+(require 'muse-message "../experimental/muse-message")
 
 (require 'muse-http)
 

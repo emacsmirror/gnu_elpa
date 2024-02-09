@@ -1,6 +1,6 @@
-;;; htmlize-hack.el ---
+;;; htmlize-hack.el ---  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2004-2020 Free Software Foundation, Inc.
+;; Copyright (C) 2004-2024 Free Software Foundation, Inc.
 
 ;; This file is part of Emacs Muse.  It is not part of GNU Emacs.
 
@@ -25,7 +25,7 @@
 
 ;;; Code:
 
-(require 'cl)
+(require 'cl-lib)
 (if t (require 'htmlize))               ; Don't load during compilation.
 
 (when (equal htmlize-version "1.34")
@@ -33,11 +33,11 @@
     ;; The size (height) of FACE, taking inheritance into account.
     ;; Only works in Emacs 21 and later.
     (let ((size-list
-           (loop
+           (cl-loop
             for f = face then (face-attribute f :inherit)
             until (or (null f) (eq f 'unspecified))
             for h = (face-attribute f :height)
             collect (if (eq h 'unspecified) nil h))))
-      (reduce 'htmlize-merge-size (cons nil size-list)))))
+      (cl-reduce #'htmlize-merge-size (cons nil size-list)))))
 
 (provide 'htmlize-hack)

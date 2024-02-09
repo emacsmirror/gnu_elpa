@@ -2,6 +2,7 @@
 
 *~
 /muse-autoloads.el
+/lisp/muse-autoloads.el
 /muse-pkg.el
 /++xgit-log-edit
 *.elc

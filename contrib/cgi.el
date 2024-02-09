@@ -1,6 +1,6 @@
-;;; cgi.el -- Using Emacs for CGI scripting
+;;; cgi.el -- Using Emacs for CGI scripting  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2000, 2006, 2012, 2014 Free Software Foundation, Inc.
+;; Copyright (C) 2000-2024 Free Software Foundation, Inc.
 
 ;; Author: Eric Marsden  <emarsden@laas.fr>
 ;;         Michael Olson <mwolson@gnu.org> (slight modifications)
@@ -22,9 +22,10 @@
 ;;     License along with this program; if not, write to the Free
 ;;     Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 ;;     MA 02111-1307, USA.
-
+;;
+;;
 ;;; Commentary:
-
+;;
 ;; People who like this sort of thing will find this the sort of
 ;; thing they like.                           -- Abraham Lincoln
 ;;
@@ -68,7 +69,7 @@
 ;;; Code:
 
 (eval-when-compile
-  (require 'cl)
+  (require 'cl-lib)
   (require 'calendar))
 
 (defconst cgi-url-unreserved-chars '(
@@ -90,23 +91,23 @@
 
 ;; decode %xx to the corresponding character and + to ' '
 (defun cgi-decode-string (str)
-  (do ((i 0)
-       (len (length str))
-       (decoded '()))
+  (cl-do ((i 0)
+          (len (length str))
+          (decoded '()))
       ((>= i len) (concat (nreverse decoded)))
     (let ((ch (aref str i)))
       (cond ((eq ?+ ch)
 	     (push ?\  decoded)
-	     (incf i))
+	     (cl-incf i))
 	    ((and (eq ?% ch)
 		  (< (+ i 2) len)
 		  (cgi-hex-char-p (aref str (+ i 1)))
 		  (cgi-hex-char-p (aref str (+ i 2))))
 	     (let ((hex (string-to-number (substring str (+ i 1) (+ i 3)) 16)))
 	       (push (cgi-int-char hex) decoded)
-	       (incf i 3)))
+	       (cl-incf i 3)))
 	    (t (push ch decoded)
-	       (incf i))))))
+	       (cl-incf i))))))
 
 (defun cgi-position (item seq &optional start end)
   (or start (setq start 0))
@@ -158,8 +159,8 @@
 	   (setq buf (get-buffer-create " *cgi*"))
 	   (set-buffer buf)
 	   (erase-buffer)
-	   (loop for i from 1 to (string-to-number req)
-		 do (insert (read-event)))
+	   (cl-loop for i from 1 to (string-to-number req)
+		    do (insert (read-event)))
 	   (cgi-decode (buffer-string)))
 	  (t
 	   (cgi-lose "Can't handle request method %s" method)))))
@@ -178,18 +179,16 @@
 ;; your web server's error_log.
 ;; ====================================================================
 
-(eval-and-compile
+(defalias 'cgi-calendar-extract-month
   (if (fboundp 'calendar-extract-month)
-      (defalias 'cgi-calendar-extract-month 'calendar-extract-month)
-    (defalias 'cgi-calendar-extract-month 'extract-calendar-month))
+      #'calendar-extract-month 'extract-calendar-month))
 
+(defalias 'cgi-calendar-extract-year
   (if (fboundp 'calendar-extract-year)
-      (defalias 'cgi-calendar-extract-year 'calendar-extract-year)
-    (defalias 'cgi-calendar-extract-year 'extract-calendar-year))
+      #'calendar-extract-year 'extract-calendar-year))
 
-  (if (fboundp 'calendar-generate)
-      (defalias 'cgi-calendar-generate 'calendar-generate)
-    (defalias 'cgi-calendar-generate 'generate-calendar)))
+(defalias 'cgi-calendar-generate
+  (if (fboundp 'calendar-generate) #'calendar-generate #'generate-calendar))
 
 (defun cgi-calendar-string ()
   (require 'calendar)

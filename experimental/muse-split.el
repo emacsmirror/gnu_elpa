@@ -1,6 +1,6 @@
-;;; muse-split.el --- split published Muse files
+;;; muse-split.el --- split published Muse files  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2006 Free Software Foundation, Inc.
+;; Copyright (C) 2006-2024 Free Software Foundation, Inc.
 
 ;; Author: Phillip Lord <phillip.lord@newcastle.ac.uk>
 
@@ -23,7 +23,7 @@
 
 ;;; Commentary:
 
-;;; Status:
+;;;; Status:
 
 ;; This works now, except that anchors will get broken, as they may
 ;; well point to the wrong thing.
@@ -37,9 +37,10 @@
 ;; These functions directly over-write the original versions in
 ;; muse-publish.
 
+;;; Code:
+
+(require 'cl-lib)
 (require 'muse-publish)
-(eval-when-compile
-  (require 'cl))
 
 ;; this code duplicates that in muse-publish-markup-regexps and should
 ;; be factored out. I use this style to pull directives from the front
@@ -54,6 +55,30 @@
 (defvar muse-publish-presplit-functions
   '((directive . muse-publish-presplit-directive)
     (anchor . muse-publish-presplit-anchor)))
+
+;; we currently have to store a lot of state to get this to work,
+;; which is rather dissatisfying. All of it is let bound from
+;; muse-publish-file. Wey hey for dynamic scoping.
+(defvar muse-publish-presplit-directive-store nil
+  "Stores directives from main file during splitting")
+
+(defvar muse-publish-presplit-anchor-location nil
+  "Stores anchors during publishing.")
+
+(defvar muse-publish-split-file-split-values nil
+  "Cache the values of split locations in files, during publish")
+
+(defvar muse-publishing-targets-alist nil
+  "Stores the targets to be published to.
+
+Changing this will cause bad things to happen. ")
+
+(defvar muse-publishing-style-in-use nil
+  "Stores the style currently being published")
+
+(defvar muse-publish-presplit-splitting-file nil
+  "The file that we are current publishing for presplit")
+
 
 ;; oh dear, this function used to be so simple and now has got so
 ;; nasty. I'm sure I can amalgamate some of the let bindings and
@@ -111,8 +136,7 @@ the file is published no matter what."
              (lambda(elem)
                (muse-with-temp-buffer
                  ;; not handling the directives yet.
-                 (save-excursion
-                   (set-buffer mainbuffer)
+                (with-current-buffer mainbuffer
                    (setq subcontents
                          (buffer-substring-no-properties
                           (cadr elem) (caddr elem))))
@@ -176,30 +200,6 @@ the file is published no matter what."
 
 ;; these are support functions
 
-;; we currently have to store a lot of state to get this to work,
-;; which is rather dissatisfying. All of it is let bound from
-;; muse-publish-file. Wey hey for dynamic scoping.
-(defvar muse-publish-presplit-directive-store nil
-  "Stores directives from main file during splitting")
-
-(defvar muse-publish-presplit-anchor-location nil
-  "Stores anchors during publishing.")
-
-(defvar muse-publish-split-file-split-values nil
-  "Cache the values of split locations in files, during publish")
-
-(defvar muse-publishing-targets-alist nil
-  "Stores the targets to be published to.
-
-Changing this will cause bad things to happen. ")
-
-(defvar muse-publishing-style-in-use nil
-  "Stores the style currently being published")
-
-(defvar muse-publish-presplit-splitting-file nil
-  "The file that we are current publishing for presplit")
-
-
 (defun muse-publish-no-split-function (file)
   (muse-with-temp-buffer
     (muse-insert-file-contents file)
@@ -232,14 +232,11 @@ where position is the last position that should appear in output-file"
                 name value)))
 
 (defun muse-publish-presplit-anchor()
-  "Stores the location and names of anchors"
-  (let ((alist (cdr (assoc muse-publish-presplit-splitting-file
-                           muse-publish-presplit-anchor-location))))
-
-    (add-to-list 'alist
-                 `(,(match-string 2) . ,(match-beginning 2)))
-    (push (cons muse-publish-presplit-splitting-file alist)
-          muse-publish-presplit-anchor-location)))
+  "Store the location and names of anchors."
+  (cl-pushnew `(,(match-string 2) . ,(match-beginning 2))
+              (alist-get muse-publish-presplit-splitting-file
+                         muse-publish-presplit-anchor-location)
+              :test #'equal))
 
 
 ;; ;;(setq muse-publish-split-file-split-values nil)
@@ -271,7 +268,7 @@ where position is the last position that should appear in output-file"
 
 ;;          (muse-publish-split-file file))
 
-(defun test1()
+(defun test1() ;; FIXME: Namespace!
   (interactive)
   (message "%s" (muse-publish-split-file-for-anchor
                  "d:/home/src/ht/home_website/journal-split/journal.muse"
@@ -325,10 +322,10 @@ the anchor will be output"
 
 ;; this is an example of why I would want to use the code.
 (muse-derive-style "journal-html-by-day" "journal-html"
-                   :split 'muse-journal-split-by-entry)
+                   :split #'muse-journal-split-by-entry)
 
 (muse-derive-style "journal-html-by-month" "journal-html"
-                   :split 'muse-journal-split-by-month)
+                   :split #'muse-journal-split-by-month)
 
 
 (defun muse-journal-split-by-entry (file)
@@ -345,29 +342,29 @@ the anchor will be output"
            (entry-location (match-beginning 0)))
       (while (re-search-forward split-regexp nil t)
         (setq entry-location (match-beginning 0))
-        (add-to-list 'split-alist
-                     `(,(concat root-name "-" entry-name)
-                       ,current-position
-                       ,(- entry-location 1)))
+        (cl-pushnew `(,(concat root-name "-" entry-name)
+                      ,current-position
+                      ,(- entry-location 1))
+                    split-alist :test #'equal)
         (setq current-position entry-location
               entry-name (match-string 1)))
+      (setq split-alist (nreverse split-alist))
 
-      (add-to-list 'split-alist
-                   `(,(concat root-name "-" entry-name)
-                     ,current-position
-                     ,(point-max))
-                   t)
+      (cl-pushnew `(,(concat root-name "-all")
+                    ,(point-min) ,(point-max))
+                  split-alist :test #'equal)
 
-      (add-to-list 'split-alist
-                   `(,root-name
-                     ,(cadr (car (last split-alist)))
-                     ,(caddr (car (last split-alist))))
-                   t)
+      (cl-pushnew `(,root-name
+                    ,(cadr (car (last split-alist)))
+                    ,(caddr (car (last split-alist))))
+                  split-alist :test #'equal)
 
-      (add-to-list 'split-alist
-                   `(,(concat root-name "-all")
-                     1 ,(point-max))
-                   t))))
+      (cl-pushnew `(,(concat root-name "-" entry-name)
+                    ,current-position
+                    ,(point-max))
+                  split-alist :test #'equal)
+
+      (setq split-alist (nreverse split-alist)))))
 
 (defun muse-journal-split-by-month (file)
   "Split a muse journal file into months.
@@ -391,43 +388,46 @@ it isn't then it some of the entries will appear not to be published."
                   (not (equal entry-name
                               (muse-journal-split-by-month-name))))
         (setq entry-location (match-beginning 0))
-        (add-to-list 'split-alist
-                     `(,(concat root-name "-" entry-name)
-                       ,current-position
-                       ,(- entry-location 1)))
+        (cl-pushnew `(,(concat root-name "-" entry-name)
+                      ,current-position
+                      ,(- entry-location 1))
+                    split-alist :test #'equal)
 
         (setq current-position entry-location
               entry-name (muse-journal-split-by-month-name)))
 
       ;; add last entry
-      (add-to-list 'split-alist
-                   `(,(concat root-name "-" entry-name)
-                     ,current-position
-                     ,(point-max)))
+      (cl-pushnew `(,(concat root-name "-" entry-name)
+                    ,current-position
+                    ,(point-max))
+                  split-alist :test #'equal)
 
       ;; add some duplicate entries in. Add these last, so that
       ;; anchors go to one of the others.
       ;;
-
-      ;; duplicate last entry as current
-      (add-to-list 'split-alist
-                   `(,root-name
-                     ,(cadr (car (last split-alist)))
-                     ,(caddr (car (last split-alist))))
-                   t)
+      (setq split-alist (nreverse split-alist))
 
       ;; add all entry
-      (add-to-list 'split-alist
-                   `(,(concat root-name "-all")
-                     1 ,(point-max))
-                   t))))
+      (cl-pushnew `(,(concat root-name "-all")
+                    ,(point-min) ,(point-max))
+                  split-alist :test #'equal)
+
+      ;; duplicate last entry as current
+      (cl-pushnew `(,root-name
+                    ,(cadr (car (last split-alist)))
+                    ,(caddr (car (last split-alist))))
+                  split-alist
+                  :test #'equal)
+
+      (setq split-alist (nreverse split-alist))
+      )))
 
 (defun muse-journal-split-by-month-name()
   (concat (match-string 1)
           (match-string 2)))
 
 
-(defun test2()
+(defun test2() ;; FIXME: Namespace!
   (interactive)
   (message "%s" (muse-journal-split-by-entry "journal.muse")))
 

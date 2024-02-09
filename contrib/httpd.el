@@ -1,6 +1,6 @@
-;;; httpd.el -- A web server in Emacs Lisp
+;;; httpd.el -- A web server in Emacs Lisp  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2001, 2003, 2006, 2012 Free Software Foundation, Inc.
+;; Copyright (C) 2001-2024 Free Software Foundation, Inc.
 
 ;; Author: Eric Marsden <emarsden@laas.fr>
 ;;         John Wiegley <johnw@gnu.org>
@@ -133,7 +133,7 @@ content.")
       (save-excursion
 	(goto-char (point-max))
 	(with-current-buffer (get-buffer-create "*httpd access_log*")
-	  (mapc 'insert strings)))))
+	  (mapc #'insert strings)))))
 
 (defun httpd-send-data (&rest strings)
   (dolist (s strings)
@@ -143,7 +143,7 @@ content.")
 
 (defun httpd-send (code msg &rest strings)
   (httpd-log (number-to-string code) " ")
-  (apply 'httpd-send-data
+  (apply #'httpd-send-data
 	 "HTTP/1.0 " (number-to-string code) " " msg httpd-endl
 	 strings))
 
@@ -167,7 +167,7 @@ content.")
 	      "</body></html>" httpd-endl)
   (httpd-send-eof))
 
-(defun httpd-handle-redirect (req where)
+(defun httpd-handle-redirect (_req where)
   "Redirect the client to new location WHERE."
   (httpd-send 301 "Moved permanently"
 	      "Location: " where httpd-endl
@@ -192,7 +192,7 @@ content.")
 	   (let ((attrs (file-attributes filename)))
 	     (if (and (string-match "^If-Modified-Since:\\s-+\\(.+\\)" req)
 		      (setq modified-since
-			    (apply 'encode-time
+			    (apply #'encode-time
 				   (parse-time-string (match-string 1 req))))
 		      (time-less-p (nth 5 attrs) modified-since))
 		   (httpd-send 304 "Not modified"
@@ -267,7 +267,7 @@ content.")
 				  :buffer (generate-new-buffer "httpd")
 				  :host 'local :service port
 				  :server t :noquery t
-				  :filter 'httpd-serve)
+				  :filter #'httpd-serve)
 	  (and (fboundp 'open-network-stream-server)
 	       (open-network-stream-server "httpd"
 					   (generate-new-buffer "httpd")

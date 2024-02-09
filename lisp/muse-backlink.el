@@ -1,7 +1,6 @@
-;;; muse-backlink.el --- backlinks for Muse
+;;; muse-backlink.el --- backlinks for Muse  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2014
-;;   Free Software Foundation, Inc.
+;; Copyright (C) 2005-2024  Free Software Foundation, Inc.
 
 ;; Author: Jim Ottaway <j.ottaway@lse.ac.uk>
 ;; Keywords:
@@ -83,10 +82,10 @@ that for the default value of SEPARATORS leading and trailing whitespace
 are effectively trimmed).  If nil, all zero-length substrings are retained,
 which correctly parses CSV format, for example.
 
-Note that the effect of (split-string STRING) is the same as
-(split-string STRING split-string-default-separators t).  In the rare
+Note that the effect of `(split-string STRING)' is the same as
+`(split-string STRING split-string-default-separators t)').  In the rare
 case that you wish to retain zero-length substrings when splitting on
-whitespace, use (split-string STRING split-string-default-separators).
+whitespace, use `(split-string STRING split-string-default-separators)'.
 
 Modifies the match data; use `save-match-data' if necessary."
         (let ((keep-nulls (not (if separators omit-nulls t)))
@@ -111,7 +110,7 @@ Modifies the match data; use `save-match-data' if necessary."
                     (cons (substring string start)
                           list)))
           (nreverse list))))
-    (defalias 'muse-backlink-split-string 'split-string)))
+    (defalias 'muse-backlink-split-string #'split-string)))
 
 (defgroup muse-backlink nil
   "Hierarchical backlinking for Muse."
@@ -122,51 +121,43 @@ Modifies the match data; use `save-match-data' if necessary."
 For control over which pages will receive backlinks, see
 `muse-backlink-exclude-backlink-parent-regexp' and
 `muse-backlink-exclude-backlink-regexp'."
-  :type 'boolean
-  :group 'muse-backlink)
+  :type 'boolean)
 
 (defcustom muse-backlink-avoid-bad-links t
   "When non-nil, avoid bad links when backlinking."
-  :type 'boolean
-  :group 'muse-backlink)
+  :type 'boolean)
 
 ;; The default for exclusion stops backlinks from being added to and
 ;; from planner day pages.
 (defcustom muse-backlink-exclude-backlink-parent-regexp
   "^[0-9][0-9][0-9][0-9]\\.[0-9][0-9]\\.[0-9][0-9]$"
   "Regular expression matching pages whose children should not have backlinks."
-  :type 'regexp
-  :group 'muse-backlink)
+  :type 'regexp)
 
 (defcustom muse-backlink-exclude-backlink-regexp
   "^[0-9][0-9][0-9][0-9]\\.[0-9][0-9]\\.[0-9][0-9]$"
   "Regular expression matching pages that should not have backlinks."
-  :type 'regexp
-  :group 'muse-backlink)
+  :type 'regexp)
 
 (defcustom muse-backlink-separator "/"
   "String that separates backlinks.
 Should be something that will not appear as a substring in an explicit
 link that has no description."
-  :type 'string
-  :group 'muse-backlink)
+  :type 'string)
 
 (defcustom muse-backlink-before-string "backlinks: "
   "String to come before the backlink list."
-  :type 'string
-  :group 'muse-backlink)
+  :type 'string)
 
 (defcustom muse-backlink-after-string ""
   "String to come after the backlink list."
-  :type 'string
-  :group 'muse-backlink)
+  :type 'string)
 
 (defcustom muse-backlink-separator "/"
   "String that separates backlinks.
 Should be something that will not appear as a substring in an explicit
 link that has no description."
-  :type 'string
-  :group 'muse-backlink)
+  :type 'string)
 
 (defcustom muse-backlink-regexp
   (concat "^"
@@ -184,8 +175,7 @@ link that has no description."
   "Regular expression to match backlinks in a buffer.
 Match 1 is the list of backlinks without `muse-backlink-before-string'
 and `muse-backlink-after-string'."
-  :type 'regexp
-  :group 'muse-backlink)
+  :type 'regexp)
 
 (defun muse-backlink-goto-insertion-point ()
   "Find the right place to add backlinks."

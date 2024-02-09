@@ -1,6 +1,6 @@
-;;; muse-ipc.el --- publish Muse documents from other processes
+;;; muse-ipc.el --- publish Muse documents from other processes  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2009, 2010  Free Software Foundation, Inc.
+;; Copyright (C) 2009-2024  Free Software Foundation, Inc.
 
 ;; This file is part of Emacs Muse.  It is not part of GNU Emacs.
 
@@ -33,7 +33,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-lib))
 
 (require 'muse)
 (require 'muse-publish)
@@ -77,7 +77,7 @@
   (when (eq (process-status proc) 'open)
     (delete-process proc)))
 
-(defun* muse-ipc-server-filter (proc string)
+(cl-defun muse-ipc-server-filter (proc string)
   "Handle data from a client after it connects."
   ;; Authenticate
   (unless (process-get proc :authenticated)
@@ -90,7 +90,7 @@
           (process-send-string proc "ok\n"))
       (process-send-string proc "nok\n")
       (delete-process proc))
-    (return-from muse-ipc-server-filter))
+    (cl-return-from muse-ipc-server-filter))
 
   ;; Handle case where the client is sending data to be published
   (when (process-get proc :sending-data)
@@ -103,7 +103,7 @@
               ((> buf-len expected-len)
                (process-send-string proc "nok\n")
                (muse-ipc-delete-client proc)))))
-    (return-from muse-ipc-server-filter))
+    (cl-return-from muse-ipc-server-filter))
 
   ;; Dispatch commands
   (cond

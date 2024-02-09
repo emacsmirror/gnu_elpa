@@ -1,7 +1,6 @@
-;;; muse.el --- Authoring and publishing tool for Emacs
+;;; muse.el --- Authoring and publishing tool for Emacs  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
-;;   Free Software Foundation, Inc.
+;; Copyright (C) 2004-2024  Free Software Foundation, Inc.
 
 ;; Emacs Lisp Archive Entry
 ;; Filename: muse.el
@@ -283,6 +282,7 @@ The undo feature will be disabled in the new buffer.
 
 If `debug-on-error' is set to t, keep the buffer around for
 debugging purposes rather than removing it."
+  (declare (indent 0) (debug t))
   (let ((temp-buffer (make-symbol "temp-buffer")))
     `(let ((,temp-buffer (generate-new-buffer " *muse-temp*")))
        (buffer-disable-undo ,temp-buffer)
@@ -309,9 +309,6 @@ debugging purposes rather than removing it."
            (with-current-buffer ,temp-buffer
              (set-buffer-modified-p nil))
            (unless debug-on-error (kill-buffer ,temp-buffer)))))))
-
-(put 'muse-with-temp-buffer 'lisp-indent-function 0)
-(put 'muse-with-temp-buffer 'edebug-form-spec '(body))
 
 (defun muse-insert-file-contents (filename &optional visit)
   "Insert the contents of file FILENAME after point.

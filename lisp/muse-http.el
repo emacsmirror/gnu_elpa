@@ -1,7 +1,6 @@
-;;; muse-http.el --- publish HTML files over HTTP
+;;; muse-http.el --- publish HTML files over HTTP  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
-;;   Free Software Foundation, Inc.
+;; Copyright (C) 2004-2024  Free Software Foundation, Inc.
 
 ;; This file is part of Emacs Muse.  It is not part of GNU Emacs.
 
@@ -34,8 +33,8 @@
 
 (require 'muse-html)
 (require 'muse-project)
-(require 'httpd)
-(require 'cgi)
+(require 'httpd "../contrib/httpd")
+(require 'cgi "../contrib/cgi")
 
 (defgroup muse-http nil
   "Options controlling the behavior of Emacs Muse over HTTP."

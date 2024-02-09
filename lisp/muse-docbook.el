@@ -1,7 +1,6 @@
-;;; muse-docbook.el --- publish DocBook files
+;;; muse-docbook.el --- publish DocBook files  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
-;;   Free Software Foundation, Inc.
+;; Copyright (C) 2004-2024  Free Software Foundation, Inc.
 
 ;; This file is part of Emacs Muse.  It is not part of GNU Emacs.
 
@@ -46,8 +45,7 @@ See `muse-docbook' for more information."
 
 (defcustom muse-docbook-extension ".xml"
   "Default file extension for publishing DocBook XML files."
-  :type 'string
-  :group 'muse-docbook)
+  :type 'string)
 
 (defcustom muse-docbook-header
   "<?xml version=\"1.0\" encoding=\"<lisp>
@@ -64,16 +62,14 @@ See `muse-docbook' for more information."
   <!-- Page published by Emacs Muse begins here -->\n"
   "Header used for publishing DocBook XML files.
 This may be text or a filename."
-  :type 'string
-  :group 'muse-docbook)
+  :type 'string)
 
 (defcustom muse-docbook-footer "
   <!-- Page published by Emacs Muse ends here -->
 <lisp>(muse-docbook-bibliography)</lisp></article>\n"
   "Footer used for publishing DocBook XML files.
 This may be text or a filename."
-  :type 'string
-  :group 'muse-docbook)
+  :type 'string)
 
 (defcustom muse-docbook-markup-regexps
   `(;; Beginning of doc, end of doc, or plain paragraph separator
@@ -89,8 +85,7 @@ For more on the structure of this list, see `muse-publish-markup-regexps'."
                         (choice regexp symbol)
                         integer
                         (choice string function symbol))
-                  function))
-  :group 'muse-docbook)
+                  function)))
 
 (defcustom muse-docbook-markup-functions
   '((anchor . muse-xml-markup-anchor)
@@ -98,8 +93,7 @@ For more on the structure of this list, see `muse-publish-markup-regexps'."
   "An alist of style types to custom functions for that kind of text.
 For more on the structure of this list, see
 `muse-publish-markup-functions'."
-  :type '(alist :key-type symbol :value-type function)
-  :group 'muse-docbook)
+  :type '(alist :key-type symbol :value-type function))
 
 (defcustom muse-docbook-markup-strings
   '((image-with-desc . "<mediaobject>
@@ -190,20 +184,17 @@ For more on the structure of this list, see
   "Strings used for marking up text.
 These cover the most basic kinds of markup, the handling of which
 differs little between the various styles."
-  :type '(alist :key-type symbol :value-type string)
-  :group 'muse-docbook)
+  :type '(alist :key-type symbol :value-type string))
 
 (defcustom muse-docbook-encoding-default 'utf-8
   "The default Emacs buffer encoding to use in published files.
 This will be used if no special characters are found."
-  :type 'symbol
-  :group 'muse-docbook)
+  :type 'symbol)
 
 (defcustom muse-docbook-charset-default "utf-8"
   "The default DocBook XML charset to use if no translation is
 found in `muse-docbook-encoding-map'."
-  :type 'string
-  :group 'muse-docbook)
+  :type 'string)
 
 (defun muse-docbook-encoding ()
   (muse-xml-transform-content-type
@@ -230,7 +221,8 @@ found in `muse-docbook-encoding-map'."
                             (and
                              (not (string= (match-string 1) "/"))
                              ;; don't mess up nested lists
-                             (not (and (muse-looking-back "<listitem>")
+                             (not (and (muse-looking-back "<listitem>"
+                                                          (- (point) 10))
                                        (throw 'bail-out t)))))
                            ((string= (match-string 2) "footnote")
                             (string= (match-string 1) "/"))
@@ -277,7 +269,7 @@ and anything after `Firstname' is optional."
              (setq author (nreverse (cdr author)))
              (concat "<firstname>" first "</firstname>"
                      "<othername>"
-                     (mapconcat 'identity author " ")
+                     (mapconcat #'identity author " ")
                      "</othername>"
                      "<surname>" last "</surname>"))))))
 

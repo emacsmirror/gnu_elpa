@@ -477,7 +477,7 @@
  (multishell		:url "https://github.com/kenmanheimer/EmacsMultishell")
  (muse			:url "https://github.com/alexott/muse" ;FIXME: Not nearly in-sync
   :lisp-dir "lisp"
-  :manual "texi/muse.texi")
+  :doc "texi/muse.texi")
  (myers			:url nil)
  (nadvice		:url nil)
  (nameless		:url "https://github.com/Malabarba/Nameless")

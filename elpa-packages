@@ -68,13 +68,9 @@
  ;;  :doc "assess-doc.org")
  (async			:url "https://github.com/jwiegley/emacs-async"
   :ignored-files ("COPYING"))
- ( auctex		:url "https://git.savannah.gnu.org/git/auctex.git"
-   ;; AUCTeX is currently sync'd manually and elpa.git isn't quite a mirror :-(
-   :manual-sync t
-   ;; Hopefully fix auctex 14.x installation issues.  The tex-site.el
-   ;; autoloads must come first in the autoloads file but ELPA
-   ;; generates them in alphabetical file name order.
-   :shell-command "(echo \"(require 'tex-site)\"; if [ -f auctex-autoloads.el ]; then cat auctex-autoloads.el; fi) > _tmp_.el; mv _tmp_.el auctex-autoloads.el")
+ (auctex		:url "https://git.savannah.gnu.org/git/auctex.git"
+  ;; AUCTeX is currently sync'd manually and elpa.git isn't quite a mirror :-(
+  :manual-sync t)
  (aumix-mode		:url nil)
  (auto-correct		:url nil)
  (auto-header           :url "https://git.sr.ht/~pkal/auto-header")

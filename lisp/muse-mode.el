@@ -360,6 +360,10 @@ the line if point is on a blank line."
                (call-interactively cmd))
       (message "Not inserting anything"))))
 
+(defun muse-get-new-line-character ()
+  "Returns newline character that is needed, dependent on mode"
+  (if longlines-mode hard-newline "\n"))
+
 ;;;###autoload
 (defun muse-insert-list-item ()
   "Insert a list item at the current point, taking into account
@@ -391,7 +395,7 @@ your current list type and indentation level."
                            (number-to-string itemno)
                            nil nil newitem))))))
     ;; insert the new item
-    (insert (concat "\n" newitem))))
+    (insert (concat (muse-get-new-line-character) newitem))))
 
 (defun muse-alter-list-item-indentation (operation)
   "Alter the indentation of the current list item.
@@ -559,6 +563,28 @@ Do not rename the page originally referred to."
          t t))
     (error "There is no valid link at point")))
 
+(defcustom muse-add-extension-p t
+  "If nil, open file link as-is
+If non-nil, append muse-file-extension to file name if it has none."
+  :type 'boolean
+  :group 'muse)
+
+(defun muse-get-link-filename (link)
+  "Generates correct file name for given link, when source file doesn't belong to any
+project. Creates directory if link contains directory part, and it doesn't exists"
+  (if muse-add-extension-p
+      (let ((directory (file-name-directory link))
+	    (filename (file-name-nondirectory link)))
+	(when (and (not (file-name-extension filename))
+		   muse-file-extension
+		   (not (string= muse-file-extension ""))
+		   (not (file-exists-p link)))
+	  (setq filename (concat filename "." muse-file-extension)))
+	(when (and directory (not (file-exists-p directory)))
+	  (make-directory directory t))    
+	(expand-file-name filename directory))
+    link))
+
 (defun muse-visit-link-default (link &optional other-window)
   "Visit the URL or link named by LINK.
 If ANCHOR is specified, search for it after opening LINK.
@@ -591,8 +617,8 @@ in `muse-project-alist'."
                                         (and other-window
                                              'find-file-other-window))
               (if other-window
-                  (find-file-other-window link)
-                (find-file link))))))
+                  (find-file-other-window (muse-get-link-filename link))
+                (find-file (muse-get-link-filename link)))))))
       (when anchor
         (let ((pos (point))
               (regexp (concat "^\\W*" (regexp-quote anchor) "\\b"))
@@ -901,7 +927,8 @@ function, you might want to set this manually.")
     ;; Insert the tag, closing if necessary
     (when tag (insert (concat "<" tag options ">")))
     (when (nth 1 tag-entry)
-      (insert (concat "\n\n</" tag ">\n"))
+      (insert (concat (muse-get-new-line-character) (muse-get-new-line-character)
+		      "</" tag ">" (muse-get-new-line-character)))
       (forward-line -2))))
 
 ;;; Muse list edit minor mode

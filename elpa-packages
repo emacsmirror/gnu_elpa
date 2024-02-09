@@ -74,7 +74,7 @@
    ;; Hopefully fix auctex 14.x installation issues.  The tex-site.el
    ;; autoloads must come first in the autoloads file but ELPA
    ;; generates them in alphabetical file name order.
-   :shell-command "(echo \"(require 'tex-site)\"; if [ -f auctex-autoloads.el ]; then cat auctex-autoloads.el; fi) > _tmp_.el; mv _tmp_.el auctex-autoloads.el"
+   :shell-command "(echo \"(require 'tex-site)\"; if [ -f auctex-autoloads.el ]; then cat auctex-autoloads.el; fi) > _tmp_.el; mv _tmp_.el auctex-autoloads.el")
  (aumix-mode		:url nil)
  (auto-correct		:url nil)
  (auto-header           :url "https://git.sr.ht/~pkal/auto-header")

@@ -276,8 +276,10 @@ If nil, the value of `send-mail-function' is used instead."
 
 (defcustom debbugs-gnu-compile-command "make -k"
   "Command to run to compile Emacs."
-  :type 'string
-  :version "28.1")
+  :type '(choice
+          (const :tag "Do not compile automatically" nil)
+          (string :tag "Compile command"))
+  :version "30.1")
 
 (defcustom debbugs-gnu-suppress-closed t
   "If non-nil, don't show closed bugs."
@@ -1572,7 +1574,7 @@ interesting to you."
 		     (debbugs-gnu-current-status)))
   (switch-to-buffer "*Bug Status*")
   (let ((inhibit-read-only t)
-        (pp-default-function 'pp-29))
+        (pp-default-function #'pp-29))
     (erase-buffer)
     (when query
       (insert ";; Query\n")
@@ -2612,12 +2614,13 @@ If SELECTIVELY, query the user before applying the patch."
       (insert-file-contents-literally rej))
     (goto-char (point-max))
     (save-some-buffers t)
-    (require 'compile)
-    (mapc #'kill-process compilation-in-progress)
-    (compile
-     (format "cd %s; %s"
-	     debbugs-gnu-current-directory
-	     debbugs-gnu-compile-command))
+    (when debbugs-gnu-compile-command
+      (require 'compile)
+      (mapc #'kill-process compilation-in-progress)
+      (compile
+       (format "cd %s; %s"
+	       debbugs-gnu-current-directory
+	       debbugs-gnu-compile-command)))
     (let (buf)
       (if (debbugs-gnu-apply-patch-prefers-magit)
           (progn
@@ -2637,11 +2640,12 @@ If SELECTIVELY, query the user before applying the patch."
       (delete-other-windows)
       (switch-to-buffer output-buffer)
       (split-window)
-      (split-window)
-      (other-window 1)
-      (switch-to-buffer "*compilation*")
-      (goto-char (point-max))
-      (other-window 1)
+      (when debbugs-gnu-compile-command
+       (split-window)
+       (other-window 1)
+       (switch-to-buffer "*compilation*")
+       (goto-char (point-max))
+       (other-window 1))
       (switch-to-buffer buf)
       (goto-char (point-min)))))
 

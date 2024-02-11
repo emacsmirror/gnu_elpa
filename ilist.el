@@ -4,6 +4,7 @@
 
 ;; Author: Durand <mmemmew@gmail.com>
 ;; Keywords: convenience
+;; URL: https://gitlab.com/mmemmew/ilist
 ;; Version: 0.1
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -178,6 +179,7 @@ trailing spaces."
   (let ((column-len (length columns))
         (column-mins (mapcar #'ilist-column-min columns))
         (column-aligns (mapcar #'ilist-column-align columns))
+        (space-width (string-pixel-width (string #x20)))
         result column-widths)
     ;; result will be a list each of whose elements corresponds to an
     ;; element in LS.  Each element corresponds to a list, each of
@@ -187,7 +189,16 @@ trailing spaces."
     ;; truncated.  So result is of the form
     ;;
     ;; (((LEN11 . STR11) (LEN12 . STR12) ...)
-    ;;  ((LEN21 . STR21) (LEN22 . STR22) ...))
+    ;;  ((LEN21 . STR21) (LEN22 . STR22) ...)
+    ;;  ...)
+    ;;
+    ;; NOTE: I was using the function `string-width' to measure the
+    ;; widths of strings, but as it turns out, this function is only
+    ;; an approximation of the real width for non-Latin letters, as is
+    ;; correctly pointed out by the documentation string.  As a
+    ;; consequence I now turn to the function `string-pixel-width' to
+    ;; correctly measure the widths, but this function measures in
+    ;; pixels, so I need to deal with alignment using "hacky hacks".
     (setq
      result
      (mapcar
@@ -213,7 +224,7 @@ trailing spaces."
                       ((truncate-string-to-width str max-len))))
                     (str))
                    ))
-             (cons (string-width str) str)))
+             (cons (string-pixel-width str) str)))
          columns))
       ls))
     ;; The list column-widths has a special convention: if a width is
@@ -239,8 +250,8 @@ trailing spaces."
      (mapcar
       (lambda (element)
         ;; we loop from the end of the columns, so that we can keep
-        ;; pushing elements to the front, without having to reverse the
-        ;; list afterwards.
+        ;; pushing elements to the front, without having to reverse
+        ;; the list afterwards.
         (let ((index (1- column-len))
               temp temp-width temp-align row)
           (while (>= index 0)
@@ -250,10 +261,12 @@ trailing spaces."
             ;; min-width.
             (cond
              ((< (abs (nth index column-widths))
-                 (nth index column-mins))
-              (setq temp-width (nth index column-mins))
+                 (* space-width (nth index column-mins)))
+              (setq temp-width
+                    (* space-width (nth index column-mins)))
               (setcar (nthcdr index column-widths)
                       (* temp-width
+                         ;; plus or minus
                          (floor (nth index column-widths)
                                 (abs (nth index column-widths))))))
              ((setq temp-width (abs (nth index column-widths)))))
@@ -267,8 +280,9 @@ trailing spaces."
                  ((>= (nth index column-widths) 0)
                   (concat (cdr temp)
                           (make-string
-                           (- temp-width
-                              (car temp))
+                           (round
+                            (- temp-width (car temp))
+                            space-width)
                            #x20)))
                  ((cdr temp)))
                 row)))
@@ -277,24 +291,29 @@ trailing spaces."
                row
                (cons
                 (concat (make-string
-                         (- temp-width
-                            (car temp))
+                         (round
+                          (- temp-width (car temp))
+                          space-width)
                          #x20)
                         (cdr temp))
                 row)))
              ((setq
                row
                (cons
-                (let ((pad-left-len (floor (- temp-width
-                                              (car temp))
-                                           2)))
+                (let ((pad-left-len
+                       (floor (- temp-width (car temp))
+                              2)))
                   (concat
-                   (make-string pad-left-len #x20)
+                   (make-string
+                    (round pad-left-len space-width)
+                    #x20)
                    (cdr temp)
                    (cond
                     ((>= (nth index column-widths) 0)
-                     (make-string (- temp-width pad-left-len
-                                     (car temp))
+                     (make-string (round
+                                   (- temp-width pad-left-len
+                                      (car temp))
+                                   space-width)
                                   #x20))
                     (""))))
                 row))))
@@ -459,6 +478,7 @@ matched data, the cursor position, etc."
               "GROUPS should be either a list or a function, "
               "but got %S")
              (type-of groups)))))
+         (space-width (string-pixel-width (string #x20)))
          column-widths temp-group group-results group-strs
          all-cols all-cols-indices header title-sep)
     ;; If we want to operate on the displayed list, then we should
@@ -610,7 +630,7 @@ matched data, the cursor position, etc."
           (let* ((width (nth index column-widths))
                  (alignment (ilist-column-align col))
                  (name (ilist-column-name col))
-                 (complement (- width (string-width name)))
+                 (complement (- width (string-pixel-width name)))
                  (floor-len (floor complement 2)))
             ;; we increase the index before the end of the form
             (setq index (1+ index))
@@ -620,19 +640,21 @@ matched data, the cursor position, etc."
                ((< index column-len)
                 (concat
                  name
-                 (make-string complement #x20)))
+                 (make-string (round complement space-width) #x20)))
                (name)))
              ((eq alignment :right)
               (concat
-               (make-string complement #x20)
+               (make-string (round complement space-width) #x20)
                name))
              ;; :center
              ((concat
-               (make-string floor-len #x20)
+               (make-string (round floor-len space-width) #x20)
                name
                (cond
                 ((< index column-len)
-                 (make-string (- complement floor-len) #x20))
+                 (make-string
+                  (round (- complement floor-len) space-width)
+                  #x20))
                 ("")))))))
         columns
         (string #x20)))
@@ -646,8 +668,10 @@ matched data, the cursor position, etc."
           (let* ((width (nth index column-widths))
                  (alignment (ilist-column-align col))
                  (name (ilist-column-name col))
-                 (name-len (string-width name))
-                 (name-sep (make-string name-len ?-))
+                 (name-len (string-pixel-width name))
+                 (name-sep (make-string
+                            (round name-len space-width)
+                            ?-))
                  (complement (- width name-len))
                  (floor-len (floor complement 2)))
             (setq index (1+ index))
@@ -657,18 +681,20 @@ matched data, the cursor position, etc."
                ((< index column-len)
                 (concat
                  name-sep
-                 (make-string complement #x20)))
+                 (make-string (round complement space-width) #x20)))
                (name-sep)))
              ((eq alignment :right)
               (concat
-               (make-string complement #x20)
+               (make-string (round complement space-width) #x20)
                name-sep))
              ((concat
-               (make-string floor-len #x20)
+               (make-string (round floor-len space-width) #x20)
                name-sep
                (cond
                 ((< index column-len)
-                 (make-string (- complement floor-len) #x20))
+                 (make-string
+                  (round (- complement floor-len) space-width)
+                  #x20))
                 ("")))))))
         columns
         (string #x20))))

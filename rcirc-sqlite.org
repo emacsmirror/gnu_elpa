@@ -392,13 +392,12 @@ the following fields.
 - message:
   The actual chat message.
 
-
 * GNU Free Documentation License
 :PROPERTIES:
   :APPENDIX: t
   :END:
-
-  #+INCLUDE: fdl.org
+#+cindex: FDL, GNU Free Documentation License
+#+texinfo: @include fdl.texi
 
 * Command and Function Index
 :PROPERTIES:

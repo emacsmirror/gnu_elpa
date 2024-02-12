@@ -468,6 +468,13 @@ indirectly called by the latter."
   (select-window (or (active-minibuffer-window)
                      (user-error "There is no active minibuffer window"))))
 
+(defun wincom-select-most-recently-used ()
+  "Select the most recently used window."
+  (declare (modes wincom-mode))
+  (interactive)
+  (when-let ((w (get-mru-window (wincom--get-scope) t t)))
+    (select-window w)))
+
 (defvar wincom-command-map
   (let ((map (make-sparse-keymap)))
     (define-key map [?o] #'wincom-select)
@@ -479,6 +486,7 @@ indirectly called by the latter."
       (define-key map [?4] #'wincom-selected-window-prefix))
     (define-key map [?t] #'wincom-swap)
     (define-key map [?m] #'wincom-select-minibuffer)
+    (define-key map [?r] #'wincom-select-most-recently-used)
     map)
   "Key map for window commands.
 This key map is set as the parent of `wincom--id-map' during ID

@@ -609,7 +609,7 @@
  (rcirc-menu		:url nil)
  (rcirc-sqlite		:url "https://codeberg.org/mattof/rcirc-sqlite"
   :ignored-files ("LICENSE")
-  :manual "rcirc-sqlite.org")
+  :doc "rcirc-sqlite.org")
  (realgud             	:url "https://github.com/realgud/realgud")
  (realgud-ipdb        	:url "https://github.com/realgud/realgud-ipdb")
  (realgud-jdb         	:url "https://github.com/realgud/realgud-jdb")

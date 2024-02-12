@@ -3,7 +3,8 @@
 ;; Copyright (C) 2024 Free Software Foundation, Inc.
 
 ;; Author: Matto Fransen <matto@matto.nl>
-;; Version: 0.1
+;; Url: https://codeberg.org/mattof/rcirc-sqlite
+;; Version: 0.1.1
 ;; Keywords: comm
 ;; Package-Requires: ((emacs "30.0"))
 
@@ -26,7 +27,7 @@
 ;; rcirc-sqlite overrides the rcirc-log-write function.
 ;;
 ;; rcirc is a default, simple IRC client in Emacs.
-;; rcirc can be enable to log the IRC chats, it logs to files.
+;; rcirc can be enabled to log the IRC chats, it logs to files.
 ;; This minor mode, when activated, diverts the rcirc
 ;; logs to a SQLite database.
 ;;
@@ -40,7 +41,8 @@
 ;;
 ;;;; Customization:
 ;;
-;; To customize the file to hold the SQLite database:
+;; To customize various options, including the file to hold the
+;; SQLite database:
 ;;   M-x customize-group rcirc-sqlite RET
 
 ;;; Code:
@@ -74,6 +76,9 @@
   "Variable to store the current database connection.
 If non-nil, it will designate a object satisfying `sqlitep',
 otherwise no connection has been opened.")
+
+(defvar rcirc-sqlite-drill-down-method nil
+  "Variable to store how to drill down from the stats.")
 
 (defun rcirc-sqlite--conn ()
   "Return an open database connection, or open one up."
@@ -138,25 +143,36 @@ FROM rcirclogs")))
 
 (defun rcirc-sqlite-db-query-stats (arg-list)
   "List the number of rows per channel.
-ARG-LIST is a list with the requested nick."
+ARG-LIST is a list with the requested nick and/or channel.
+`rcirc-sqlite-drill-down-method' defines the next step (drilldown)."
   (let ((db (rcirc-sqlite--conn))
 	(column "channel")
 	(dimension "messages")
 	(from "")
 	(dbdata ()))
+    (setq rcirc-sqlite-drill-down-method arg-list)
     (cond ((string= (car arg-list) "Nicks per channel")
 	   (setq dimension "nicks")
+	   (push "channel" rcirc-sqlite-drill-down-method)
 	   (setq from "(SELECT channel, nick FROM rcirclogs GROUP BY channel,nick)"))
 	  ((string= (car arg-list) "Channels per nick")
 	   (setq column "nick")
 	   (setq dimension "channels")
+	   (push "nick" rcirc-sqlite-drill-down-method)
 	   (setq from "(SELECT nick, channel FROM rcirclogs GROUP BY nick, channel)"))
+	  ((string= (car arg-list) "Channel")
+	   (setq column "nick")
+	   (setq dimension "messages")
+	   (setq from "rcirclogs where channel = ?")
+	   (setq dbdata (cdr arg-list)))
 	  ((string= (car arg-list) "All nicks")
+	   (push "channel" rcirc-sqlite-drill-down-method)
 	   (setq from "rcirclogs"))
 	  (t
 	   (setq from "rcirclogs where nick = ?")
+	   (push "channel" rcirc-sqlite-drill-down-method)
 	   (push (car arg-list) dbdata)
-	   (setq dimension "lines")))
+	   (setq dimension "messages")))
     (let ((dbquery (format "SELECT %s, COUNT() || ' %s' FROM %s GROUP BY %s ORDER BY %s"
 			   column dimension from column column)))
       (sqlite-select db dbquery dbdata))))
@@ -212,6 +228,26 @@ channel, month and/or nick to narrow the search to."
 	(sqlite-execute db dbquery
 			(reverse dbdata))))))
 
+(defun rcirc-sqlite-db-drilldown (arg-list)
+  "Drill down to messages per nick or channel.
+ARG-LIST defines which records to select."
+  (let ((db (rcirc-sqlite--conn))
+	(dbquery "SELECT * FROM rcirclogs WHERE ")
+	(dbdata ()))
+    (pcase-let ((`(,what ,where ,nick) arg-list))
+      (cond
+       ((string= nick "Channels per nick")
+	(setq dbquery (concat dbquery "nick=?"))
+	(push what dbdata))
+       ((string= nick "All nicks")
+	(setq dbquery (concat dbquery "channel=?"))
+	(push what dbdata))
+       (t
+	(setq dbquery (concat dbquery (format "%s=? and nick=?" where)))
+	(push nick dbdata)
+	(push what dbdata)))
+      (sqlite-execute db dbquery dbdata))))
+    
 (defun rcirc-sqlite-convert-tabulation-list (list-to-convert)
   "Convert LIST-TO-CONVERT to format for `tabulated-list-mode'.
 Build a vector from the data in LIST-TO-CONVERT and format the
@@ -232,14 +268,14 @@ Build a vector from the data, converting numbers to text, because
 `tabulated-list-mode' can't handle numbers."
   (unless (listp list-to-convert)
     (error "No data available"))
-   (if (numberp (cadr (car list-to-convert)))
-  (mapcar (lambda (cell)
-            (list  nil (vector (car cell)
-                               (number-to-string (cadr cell)))))
-          list-to-convert)
-  (mapcar (lambda (cell)
-                    (list  nil (vector (car cell) (cadr cell))))
-          list-to-convert)))
+  (if (numberp (cadr (car list-to-convert)))
+      (mapcar (lambda (cell)
+		(list (car cell) (vector (car cell)
+					 (number-to-string (cadr cell)))))
+              list-to-convert)
+    (mapcar (lambda (cell)
+              (list (car cell) (vector (car cell) (cadr cell))))
+            list-to-convert)))
 
 (define-derived-mode rcirc-sqlite-list-mode tabulated-list-mode
   "rcirc-sqlite-list-mode"
@@ -253,6 +289,10 @@ Build a vector from the data, converting numbers to text, because
 		;; see also https://modern.ircdocs.horse/#userlen-parameter
 		(list "Message" 0 t)))
   (tabulated-list-init-header))
+
+(defvar-keymap rcirc-sqlite-two-column-mode-map
+  "RET" #'rcirc-sqlite-view-drill-down
+  "<down-mouse-1>" #'rcirc-sqlite-view-drill-down)
 
 (define-derived-mode rcirc-sqlite-two-column-mode tabulated-list-mode
   "rcirc-sqlite-two-column-mode"
@@ -290,6 +330,34 @@ arguments in ARG-LIST.  IDENTSTR explains which stat is shown."
     (display-buffer (current-buffer))
     (setq mode-line-buffer-identification identstr)
     (force-mode-line-update)))
+
+(defun rcirc-sqlite-view-drill-down-final ()
+  "Last step in drill-down, query individual messages."
+    (rcirc-sqlite-display-tabulation-list
+     (format "Drill-down (%s %s)"
+	     (nth 0 rcirc-sqlite-drill-down-method)
+	     (nth 2 rcirc-sqlite-drill-down-method))
+     #'rcirc-sqlite-db-drilldown rcirc-sqlite-drill-down-method))
+
+(defun rcirc-sqlite-view-drill-down ()
+  "Show messages per nick or channel.
+Called from `rcirc-sqlite-two-column-mode'."
+(interactive nil rcirc-sqlite-two-column-mode)
+(cond
+ ((string= (nth 1 rcirc-sqlite-drill-down-method) "Nicks per channel")
+  (let ((arg-list (list "Channel" (tabulated-list-get-id))))
+    (rcirc-sqlite-display-two-column-tabulation-list
+     (format "Stats (%s)" (tabulated-list-get-id))
+     #'rcirc-sqlite-db-query-stats arg-list)))
+ ((string= (nth 0 rcirc-sqlite-drill-down-method) "Channel")
+  (setq rcirc-sqlite-drill-down-method
+	(list (nth 1 rcirc-sqlite-drill-down-method)
+	      "channel"
+	      (tabulated-list-get-id)))
+  (rcirc-sqlite-view-drill-down-final))
+ (t
+  (push (tabulated-list-get-id) rcirc-sqlite-drill-down-method)
+  (rcirc-sqlite-view-drill-down-final))))
 
 (defun rcirc-sqlite-select-channel ()
   "Provide completion to select a channel."

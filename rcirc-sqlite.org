@@ -264,6 +264,7 @@ The buffer ~*rcirc log*~ displays the search results.
 :ID:       0d1bc484-bc81-11ee-a315-5cff350aad6a
 :END:
 #+findex: rcirc-sqlite-stats
+#+findex: rcirc-sqlite-view-drill-down
 
 - Function: rcirc-sqlite-stats nick ::
   Create overview with some stats
@@ -286,6 +287,18 @@ each channel the number of uniq nicks.
 When ~Channels per nick~ is chosen, the buffer shows for
 each nick the number of channels with messages from this nick.
 
+- Function: rcirc-sqlite-view-drill-down ::
+  Drill-down to more details
+   
+Use drill-down in the buffer showing the stats.  This will show more
+details.
+
+- Key: RET ::
+  Drill-down
+
+- Key: mouse-1 ::
+  Drill-down
+  
 * The buffer ~*rcirc log*~
 :PROPERTIES:
 :ID:       126b1bec-bc81-11ee-a315-5cff350aad6a

@@ -49,6 +49,7 @@ The document was typeset with
 @menu
 * About::
 * Entry point::
+* Pixel precision::
 * Mapping over lines::
 * Moving::
 * Packages using IList::
@@ -74,7 +75,7 @@ that can accept a list, and produce a string showing the contents of
 the list according to the specifications of columns, groups, and
 sorters.
 
-@node Entry point, Mapping over lines, About, Top
+@node Entry point, Pixel precision, About, Top
 @comment  node-name,  next,  previous,  up
 @chapter Entry point
 
@@ -282,7 +283,33 @@ value if and only if the group labelled by the first argument should be
 displayed before the group labelled by the second argument.
 @end table
 
-@node Mapping over lines, Moving, Entry point, Top
+@node Pixel precision, Mapping over lines, Entry point, Top
+@comment  node-name,  next,  previous,  up
+@chapter Pixel precision
+
+Emacs is old, and its age shows from time to time.
+
+As an example, Emacs usually measures lengths of strings by the numbers
+of characters contained in the strings.  In most situations this is not
+a problem, but in some cases, for example when the string contains
+Chinese characters, this measurement is insufficient for the correct
+alignment inside tables.
+
+In the beginning, I used the function @code{string-width} to measure the
+widths of strings, but as its documentation says, this function only
+returns an approximation to the actual width.  This is changed in the
+version @emph{0.2} of the package.
+
+Now the package uses the function @code{string-pixel-width} to measure
+the widths of strings in pixels.  Since working with actual pixels
+requires more computation, and as it does not improve the user
+experience for users who are fine with the approximation provided by
+@code{string-width}, I decide to let the users control whether or not to
+work with pixels by the variable: @samp{ilist-pixel-precision}.  If this
+variable is not @code{nil}, the package works with pixels rather than
+characters, and should provide better alignment and truncation.
+
+@node Mapping over lines, Moving, Pixel precision, Top
 @comment  node-name,  next,  previous,  up
 @chapter Mapping over lines
 

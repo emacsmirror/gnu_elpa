@@ -1,0 +1,513 @@
+\input texinfo    @c -*- texinfo -*-
+@c %**start of header
+@setfilename rcirc-sqlite.info
+@settitle rcirc logging in SQLite
+@documentencoding UTF-8
+@documentlanguage en
+@c %**end of header
+
+@dircategory Emacs misc features
+@direntry
+* rcirc-sqlite: (rcirc-sqlite). rcirc logging in SQLite.
+@end direntry
+
+@finalout
+@titlepage
+@title rcirc logging in SQLite
+@author Matto Fransen
+@end titlepage
+
+@contents
+
+@ifnottex
+@node Top
+@top rcirc logging in SQLite
+@end ifnottex
+
+@menu
+* Introduction::
+* Requirements::
+* Installation and activation::
+* Customization::
+* Commands::
+* The buffer @code{*rcirc log*}::
+* Inner workings::
+* Database schema::
+* GNU Free Documentation License::
+* Command and Function Index::   Command names and some internal functions.
+* Variable Index::               Variables mentioned in the manual.
+
+@detailmenu
+--- The Detailed Node Listing ---
+
+Installation and activation
+
+* Installation::
+* Activation::
+
+Commands
+
+* Summery of the commands::
+* View the logs::
+* Full text search and load the result in a buffer::
+* Stats::
+
+Inner workings
+
+* Delay::
+
+@end detailmenu
+@end menu
+
+@node Introduction
+@chapter Introduction
+
+@code{rcirc} is a default, simple IRC client in Emacs. @code{rcirc} can be enabled to
+log the IRC chats, it logs to files.
+
+This minor mode, when activated, diverts the rcirc logs to a SQLite
+database.
+
+It also comes with some functionality to query the SQLite database.
+
+@node Requirements
+@chapter Requirements
+
+@code{rcirc-sqlite} relies on the capability of Emacs to work together
+with SQLite. 
+
+@itemize
+@item
+Emacs must be compiled with this capability.
+@item
+SQLite 3 must be installed on the system.
+@end itemize
+
+@node Installation and activation
+@chapter Installation and activation
+
+@findex Installation
+
+@menu
+* Installation::
+* Activation::
+@end menu
+
+@node Installation
+@section Installation
+
+Create a directory for the package.
+
+@code{mkdir ~/.emacs.d/manualpackages}
+
+Add this directory as a load path to your init file:
+
+@lisp
+(add-to-list 'load-path "~/.emacs.d/manualpackages")
+@end lisp
+
+Re-evaluate your init file or restart Emacs, whatever you prefer.
+
+@ref{Requirements} describes the requirements.
+
+@node Activation
+@section Activation
+@findex Activation
+@findex rcirc-sqlite-log-mode
+
+@deffn Command rcirc-sqlite-log-mode
+Activates or deactivates @code{rcirc-sqlite}.
+@end deffn
+
+Issue the command @code{rcirc-sqlite-log-mode} to manually start
+@code{rcirc-sqlite}. This command toggles between activation
+and deactivation of @code{rcirc-sqlite}. 
+
+To start @code{rcirc-sqlite} automatically when @code{rcirc}
+is started, add the following to your init file:
+
+@lisp
+(require 'rcirc-sqlite)
+(add-hook 'rcirc-mode-hook #'rcirc-sqlite-log-mode)
+@end lisp
+
+While @code{rcirc-sqlite} is activated, @code{rcirc} will no longer
+write the logs to files, until @code{rcirc-sqlite} is deactivated.
+Deactivate @code{rcirc-sqlite} using the command
+@code{rcirc-sqlite-log-mode} again.
+
+The logging must be enabled in @code{rcirc}.
+To do this, add for example the following to your init file:
+
+@lisp
+(setq rcirc-log-flag t)
+@end lisp
+
+@node Customization
+@chapter Customization
+
+To customize @code{rcirc-sqlite} run @code{M-x customize-group rcirc-sqlite},
+or use @code{(setopt ...)} in your init file, like @code{/.emacs}.
+For example:
+
+@lisp
+(setopt rcirc-sqlite-rows 100)
+@end lisp
+
+The user may custimize the following options.
+
+@defopt rcirc-sqlite-database
+The file in which SQLite stores the database.
+@end defopt
+
+@vindex rcirc-sqlite-database
+
+The file in which SQLite stores the database can be customized.
+
+The default file is @file{ricirc-log.db}, located in the default Emacs
+directory (e.g., @file{~/.emacs.d/ricirc-log.db}).
+
+Set this option to use a different file.
+
+@defopt rcirc-sqlite-time-format
+The format for the date and time in the buffer @code{*rcirc log*}.
+@end defopt
+
+@vindex rcirc-sqlite-time-format
+
+The variable @code{rcirc-sqlite-time-format} describes the date and
+time format which is used when displaying the chat messages.
+
+This variable only influences how the date and time is formatted
+in the buffer @code{*rcirc log*}.
+
+The default format is @code{%Y-%m-%d %H:%M}.
+
+Set this option to use a different time format in the buffer
+@code{*rcirc log*}.
+
+@defopt rcirc-sqlite-rows
+The default maximum number of rows when viewing logs.
+@end defopt
+@vindex rcirc-sqlite-rows
+
+The variable @code{rcirc-sqlite-rows} describes the maximum number
+of rows to display when viewing the chat logs.
+
+This only affects when viewing the chat logs. Search results are
+always shown unabridged.
+
+@ref{View the logs} describes the command to view the logs.
+
+The default value is 200 rows.
+
+Set this option to change the default number of lines.
+
+@defopt rcirc-sqlite-channel-column-width
+The default column width of the channel column in the buffer
+@code{*rcirc log*}.
+@end defopt
+@vindex rcirc-sqlite-channel-column-width
+
+The variable @code{rcirc-sqlite-channel-column-width} describes the
+default width of the column that displays the channel names.
+
+The default value is 40 chars.
+
+Change this option to let the channel names be shown in a smaller or
+wider column in the buffer @code{*rcirc log*}.
+
+@ref{The buffer @code{*rcirc log*}} has more information on this buffer.
+
+@node Commands
+@chapter Commands
+
+@menu
+* Summery of the commands::
+* View the logs::
+* Full text search and load the result in a buffer::
+* Stats::
+@end menu
+
+@node Summery of the commands
+@section Summery of the commands
+
+@vindex command summary
+
+@itemize
+@item
+@code{M-x rcirc-sqlite-view-log}: display the logs.
+@item
+@code{M-x rcirc-sqlite-text-search}: perform full text search in the logs.
+@item
+@code{M-x rcirc-sqlite-stats}: displays some stats.
+@end itemize
+
+@node View the logs
+@section View the logs
+@findex rcirc-sqlite-view-log
+
+@defun rcirc-sqlite-view-log channel &optional unlimited offset limit
+Display the logs in a new buffer.
+@end defun
+
+Issue the command @code{M-x rcirc-sqlite-view-log} to view the logs
+of a specific channel. Default this command shows the last 200
+lines. This number can be changed by setting the variable
+@code{rcirc-sqlite-rows}. 
+
+This command prompts the user for the channel and provides a list
+of available channels. Choose a channel using completion. 
+Choose the option @code{All channels} to show the last 200 lines of the
+chat log of @strong{all} channels.
+
+Next, the user is prompted for a month, choose a month using
+completion.  When a month is chosen, the last 200 lines the chat log
+from that month are shown.  Choose the option @code{Anytime} or the
+latest month to get the most recent 200 lines.
+
+The buffer @code{*rcirc log*} displays the chat logs.
+
+@subheading Optional arguments
+
+This function has three optional arguments, @code{unlimited},
+@code{offset}, and @code{limit}.
+
+@itemize
+@item
+@code{unlimited}
+When non nil, @code{rcirc-sqlite-view-log} will show @strong{all}
+log lines in the database of the channel.
+@item
+@code{offset} and @code{limit}
+Use @code{offset} and @code{limit} to select a number of lines from
+the log lines in the database of the channel.
+@end itemize
+
+@node Full text search and load the result in a buffer
+@section Full text search and load the result in a buffer
+@findex rcirc-sqlite-text-search
+
+@defun rcirc-sqlite-text-search query channel nick
+Perform full text search.
+@end defun
+
+Issue the command @code{M-x rcirc-sqlite-text-search} to perform
+full text search in the logs.
+
+When this command is issued:
+
+@itemize
+@item
+The user is prompted for a search string.
+@item
+The user is prompted to choose a channel (through completion).
+@item
+The user is prompted to choose a specific month (through completion).
+@item
+The user is prompted to choose a nick (through completion).
+@end itemize
+
+When a channel is chosen, the search is performed within the
+chat logs of that specific channel. Choose @code{All channels} to
+search everywhere.
+
+When a month is chosen, the search is performed within the
+messages that were send in that specific month. Choose @code{Anytime}
+to search everywhere.
+
+When a nick is chosen, the search is performed within the
+chats of that specific nick. Choose @code{All nicks} to search
+independent of the sender.
+
+The search string is used to do a full text search in the SQLite
+database. When the search string is @code{foo}, chat messages
+containing the word @code{foo} will be found, but chat messages
+containing the word @code{foobar} will not be found.
+
+To search for both @code{foo} and @code{foobar}, use the search
+string @code{foo*}.
+
+Likewise, to search for URLs, use something like @code{"http://*"} or
+@code{"https://*"} as search string, or for example
+@code{"gopher://*"}. Because of the colon (@code{:}), the double
+quotes (@code{"}) here are required.
+
+For more formatting of the search see the chapter
+@code{Full-text Query Syntax} of the SQLite documentation (see
+@uref{https://www.sqlite.org/fts5.html}).
+
+The buffer @code{*rcirc log*} displays the search results.
+
+@node Stats
+@section Stats
+@findex rcirc-sqlite-stats
+@findex rcirc-sqlite-view-drill-down
+
+@defun rcirc-sqlite-stats nick
+Create overview with some stats
+@end defun
+
+Issue the command @code{M-x rcirc-sqlite-stats} to get an overview
+of the number of rows (messages) in the database.
+
+The user is prompted for a nick. Choose a nick through completion.
+
+When a nick is chosen, the buffer @code{*rcirc log*} is opened where
+each channel with one or more chat messages from that nick is listed,
+together with the number of chat messages from that nick.
+
+When @code{All nicks} is chosen, the buffer shows the row count
+for each channel in the database.
+
+When @code{Nicks per channel} is chosen, the buffer shows for
+each channel the number of unique nicks.
+
+When @code{Channels per nick} is chosen, the buffer shows for
+each nick the number of channels with messages from this nick.
+
+
+@defun rcirc-sqlite-view-drill-down
+Drill-down to more details
+@end defun
+
+Use drill-down in the buffer showing the stats.  This will show more
+details.
+
+@table @asis
+@item @kbd{RET}
+@kindex RET
+Drill-down
+
+@item @kbd{mouse-1}
+@kindex mouse-1
+Drill-down
+@end table
+
+@node The buffer @code{*rcirc log*}
+@chapter The buffer @code{*rcirc log*}
+
+The buffer @code{*rcirc log*} is used to show the output of the
+database queries. This buffer uses a derived mode from the
+@code{tabulated-list-mode}.  The default key bindings of the
+@code{tabulated-list-mode} are available in this buffer.
+
+Some key binding examples:
+
+@table @asis
+@item @kbd{S} (@code{Sort})
+@kindex S
+@findex Sort
+Sort the buffer according to the values of the column of point.
+
+Use a numeric prefix argument @var{n} to sort the buffer according to the
+values of the @var{n}-th column from point. Repeat to sort in the alternate
+order (ascending or descending).
+
+@item @kbd{@}}
+@kindex @}
+Widen the current column by @var{n} (the prefix numeric
+argument) characters,
+
+@item @kbd{@{}
+@kindex @{
+Narrow the current column by @var{n} (the prefix numeric
+argument) characters.
+
+@item @kbd{SPACE}
+@kindex SPACE
+Scroll the buffer up.
+
+@item @kbd{BACKSPACE}
+@kindex BACKSPACE
+Scroll the buffer down.
+
+@item @kbd{n}
+@kindex n
+Move down one screen line (next line).
+
+@item @kbd{p}
+@kindex p
+Move up one screen line (previous line).
+
+@item @kbd{q}
+@kindex q
+Close the buffer.
+@end table
+
+@node Inner workings
+@chapter Inner workings
+
+@findex rcirc-log-write
+@findex rcirc-sqlite-store-log
+
+@code{rcirc} caches the IRC messages in a list, and periodically
+writes the contents of this cache to the log files.
+@code{rcirc-sqlite} collects the contents of this cache.
+
+@code{rcirc-sqlite} overrides the @code{rcirc}-function
+@code{rcirc-log-write} with the @code{rcirc-sqlite}-function
+@code{rcirc-sqlite-store-log} for this.
+
+To be able to easy parse the timestamp, @code{rcirc-sqlite} changes
+the @code{rcirc-log-time-format}. It does this by advising around the
+@code{rcirc}-function rcirc-log.
+
+@menu
+* Delay::
+@end menu
+
+@node Delay
+@section Delay
+
+There is some delay between the arrival of chat messages in the chat
+buffer and the storage of the logs in the database.
+
+@code{rcirc} uses the auto-save functionality to trigger the flushing
+of the cache to the log file. Hence, the storage of the chat logs to
+the SQLite database by @code{rcirc-sqlite} is also triggered by the
+auto-save functionality.
+
+@node Database schema
+@chapter Database schema
+
+The SQLite database is created at the first time @code{rcirc-sqlite}
+flushes the cache. The SQLite database is populated with a virtual
+table, using the SQLite FTS5 Extension. The schema of this table has
+the following fields.
+
+@itemize
+@item
+channel:
+This is the channel name in the format @code{rcirc} uses to
+determine the log file. This format is
+@code{channelname@@servername.log}, for example
+@code{#rcirc@@LiberaChat.log}.
+@item
+time:
+The timestamp, stored in the unix timestamp format.
+@item
+nick:
+The nick name of the sender.
+@item
+message:
+The actual chat message.
+@end itemize
+
+@node GNU Free Documentation License
+@appendix GNU Free Documentation License
+
+@cindex FDL, GNU Free Documentation License
+@include fdl.texi
+
+@node Command and Function Index
+@chapter Command and Function Index
+
+@printindex fn
+
+@node Variable Index
+@chapter Variable Index
+
+@printindex vr
+
+@bye

@@ -3,12 +3,11 @@
 Find here the source for ~rcirc-sqlite.el~, that stores the logging from
 ~rcirc~ into a SQLite database.
 
-~rcirc~ is a default, simple IRC client in Emacs. rcirc can be enable to
-log the IRC chats, it logs to files.
+~rcirc~ is a default, simple IRC client in Emacs. rcirc can be enabled
+to log the IRC chats, it logs to files.
 
 This minor mode, when activated, diverts the rcirc logs to a SQLite
 database.
-
 
 * Installation and activation
 ** Installation
@@ -106,6 +105,9 @@ each channel the number of uniq nicks.
 
 When ~Channels per nick~ is chosen, the buffer shows for
 each nick the number of channels with messages from this nick.
+
+Use drill-down in the stats buffer to get more details, either by the
+"RET" key, or the left mouse button.
 
 * Contribute
 A copyright assignment to the FSF is required for all non-trivial code

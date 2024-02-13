@@ -1,3 +1,15 @@
+2024-02-13  李俊緯  <mmemmew@gmail.com>
+
+	* Now the user can set the variable `ilist-pixel-precision` to
+	control whether the package calculates the lengths of strings by
+	pixels, which is more accurate but more expensive.
+
+	Since this does almost nothing to users who do not use non-Latin
+	letters and is more expensive than the previous algorithms in
+	order to correctly measure widths of strings, the user should
+	intentionally set this variable to non-nil, should the user want
+	to do so.
+
 2021-12-29  Stefan Monnier <monnier@iro.umontreal.ca>
 
 	Use the built-in function invisible-p to replace a hand-made

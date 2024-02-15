@@ -11,6 +11,27 @@ database.
 
 * Installation and activation
 ** Installation
+
+** Install from GNU ELPA
+The GNU ELPA package name is: ~rcirc-sqlite~
+
+To install the package:
+
+- ~M-x package-refresh-contents~
+- ~M-x package-install~
+
+and search for ~rcirc-sqlite~.
+
+Or use ~use-package~
+
+#+begin_src emacs-lisp
+(use-package rcirc-sqlite
+    :ensure t
+    :config
+    (add-hook 'rcirc-mode-hook #'rcirc-sqlite-log-mode))
+#+end_src
+
+** Manual installation
 Create a directory for the package.
 
 #+begin_src sh

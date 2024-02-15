@@ -96,6 +96,32 @@ SQLite 3 must be installed on the system.
 @node Installation
 @section Installation
 
+@node Install from GNU ELPA
+@subsection Install from GNU ELPA
+The GNU ELPA package name is: ~rcirc-sqlite~
+
+To install the package:
+
+@itemize
+@item
+@code{M-x package-refresh-contents}
+@item
+@code{M-x package-install}
+@end itemize
+
+and search for ~rcirc-sqlite~.
+
+Or use ~use-package~
+
+@lisp
+(use-package rcirc-sqlite
+    :ensure t
+    :config
+    (add-hook 'rcirc-mode-hook #'rcirc-sqlite-log-mode))
+@end lisp
+
+@node Manual installation
+@subsection Manual installation
 Create a directory for the package.
 
 @code{mkdir ~/.emacs.d/manualpackages}

@@ -428,6 +428,7 @@ Please use `greader-dict-save' for that purpose."
 (defvar-keymap greader-dict-mode-map
   :doc "keymap for `greader-dict-mode'."
   "C-r d a" #'greader-dict-add-entry
+  "C-r d k" #'greader-dict-remove-entry
   "C-r d c" #'greader-dict-change-dictionary
   "C-r d s" #'greader-dict-save)
 (defun greader-dict--replace-wrapper (text)

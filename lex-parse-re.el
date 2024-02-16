@@ -1,6 +1,6 @@
-;;; lex-parse-re.el --- Parse Emacs regexps using Lex
+;;; lex-parse-re.el --- Parse Emacs regexps using Lex  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2008,2013  Free Software Foundation, Inc.
+;; Copyright (C) 2008-2024  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
 ;; Keywords:

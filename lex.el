@@ -1,10 +1,10 @@
 ;;; lex.el --- Lexical analyser construction  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2008,2013,2014,2015  Free Software Foundation, Inc.
+;; Copyright (C) 2008-2024  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
 ;; Keywords:
-;; Version: 1.1
+;; Version: 1.2
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -49,14 +49,14 @@
 ;; (join CONT . EXIT)
 ;; Note: we call those things "NFA"s but they're not really NFAs.
 
-;;; Bugs:
+;;;; Bugs:
 
 ;; - `inter' doesn't work right.  Matching `join' to the corresponding `and'
 ;;   is done incorrectly in some cases.
 ;; - since `negate' uses intersections, it doesn't work right either.
 ;; - "(\<)*" leads to a DFA that gets stuck in a cycle.
 
-;;; Todo:
+;;;; Todo:
 
 ;; - dfa "no-fail" simplifier
 ;; - dfa minimization
@@ -71,9 +71,9 @@
 ;;   - match(&search?) backward
 ;;   - agrep
 
+;;; News:
+
 ;;; Notes
-
-
 
 ;; Search
 ;; ------
@@ -268,6 +268,12 @@ TABLE can be `down', `up', `eqv' or `canon'."
 
 (defvar lex--states)
 (defvar lex--memoize)
+
+(defvar lex--debug-level 0)
+
+(defun lex--debug (level fmt &rest args)
+  (when (<= level lex--debug-level)
+    (apply #'message fmt args)))
 
 (defun lex--set-eq (l1 l2)
   (let ((len (length l2)))
@@ -581,8 +587,8 @@ or (check (not (PREDICATE . ARG))).")
    ((stringp re)
     (if (null lex--char-equiv-table)
         ;; (Very) minor optimization.
-        (nconc (mapcar 'identity re) state)
-      (lex--nfa `(seq ,@(mapcar 'identity re)) state)))
+        (nconc (mapcar #'identity re) state)
+      (lex--nfa `(seq ,@(mapcar #'identity re)) state)))
    (t
     (pcase (or (car-safe re) re)
       ((or `: `seq `sequence
@@ -698,10 +704,10 @@ or (check (not (PREDICATE . ARG))).")
       (`not-word-boundary `(check (lex--match-not-word-boundary) ,state))
       (`word-boundary `(check (lex--match-not-word-boundary) nil . ,state))
       (`syntax `(check (lex--match-syntax
-                        . ,(apply 'lex--compile-syntax (cdr re)))
+                        . ,(apply #'lex--compile-syntax (cdr re)))
                        ,(lex--nfa 'anything state)))
       (`not-syntax `(check (lex--match-syntax
-                            . ,(apply 'lex--compile-syntax (cdr re)))
+                            . ,(apply #'lex--compile-syntax (cdr re)))
                            nil . ,(lex--nfa 'anything state)))
       (`category `(check (lex--match-category
                           . ,(lex--compile-category (cadr re)))
@@ -802,7 +808,7 @@ or (check (not (PREDICATE . ARG))).")
 
       ((or `bre `re `ere)
        (lex--nfa (lex-parse-re (nth 1 re) (car re)) state))
-      (elem (error "lex.el: unknown RE element %S" elem))))))
+      (elem (error "lex.el: Unknown RE element %S" elem))))))
 
 (defun lex--negate-inftail (state howmany)
   ;; We hashcons the infinite tails and store them in the memoize table.
@@ -890,7 +896,7 @@ Returns a new NFA."
 
     (while lex--states
       (dolist (state (prog1 lex--states (setq lex--states nil)))
-        (let ((merged (apply 'lex--merge-now state)))
+        (let ((merged (apply #'lex--merge-now state)))
           (if (memq (car merged) '(and or orelse))
               ;; The merge could not be performed for some reason:
               ;; let's re-schedule it.
@@ -1051,7 +1057,7 @@ Commentary section."
 (defun lex-optimize (lexer)
   (let ((lex--memoize (make-hash-table :test 'eq)))
     (prog1 (car (lex--optimize lexer))
-      (message "Visited %d states" (hash-table-count lex--memoize)))))
+      (lex--debug 2 "Visited %d states" (hash-table-count lex--memoize)))))
 
 (defmacro lex-case (object posvar &rest cases)
   (declare (indent 2))
@@ -1172,7 +1178,7 @@ state of the engine at STOP, which can be passed back to
           (when (eq (car lex) 'stop)
             ;; Don't stop yet, we're looking for the longest match.
             (setq match (list (cadr lex) start))
-            (message "Found match: %s" match)
+            (lex--debug 1 "Found match: %s" match)
             (setq lex (cddr lex)))
           (cl-assert (not (eq (car lex) 'stop)))
           (and lex (< start stop)))
@@ -1182,7 +1188,7 @@ state of the engine at STOP, which can be passed back to
                    ((eq (car lex) 'table) (aref (cdr lex) c))
                    ((integerp (car lex)) (if (eq c (car lex)) (cdr lex)))))
         (setq lastlex lex)))
-    (message "Final search pos considered: %s" start)
+    (lex--debug 1 "Final search pos considered: %s" start)
     ;; The difference between `lex' and `lastlex' is basically that `lex'
     ;; may depend on data after `stop' (if there was an `end-of-file' or
     ;; `word-boundary' or basically any `check').  So let's return `lastlex'
@@ -1247,7 +1253,7 @@ continue the match elsewhere."
           (when (eq (car lex) 'stop)
             ;; Don't stop yet, we're looking for the longest match.
             (setq match (list (cadr lex) start))
-            (message "Found match: %s" match)
+            (lex--debug 1 "Found match: %s" match)
             (setq lex (cddr lex)))
           (cl-assert (not (eq (car lex) 'stop)))
           (and lex (< start stop)))
@@ -1257,7 +1263,7 @@ continue the match elsewhere."
                    ((eq (car lex) 'table) (aref (cdr lex) c))
                    ((integerp (car lex)) (if (eq c (car lex)) (cdr lex)))))
         (setq lastlex lex)))
-    (message "Final search pos considered: %s" start)
+    (lex--debug 1 "Final search pos considered: %s" start)
     ;; The difference between `lex' and `lastlex' is basically that `lex'
     ;; may depend on data after `stop' (if there was an `end-of-file' or
     ;; `word-boundary' or basically any `check').  So let's return `lastlex'

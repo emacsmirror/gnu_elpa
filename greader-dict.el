@@ -169,7 +169,7 @@ A value of 0 indicates saving immediately."
   "Add the WORD REPLACEMent pair to `greader-dictionary'.
 If you want to add a partial replacement, you should
 add `\*'to the end of the WORD string parameter."
-  (puthash (downcase word) replacement greader-dictionary)
+  (puthash word replacement greader-dictionary)
   (setq greader-dict--saved-flag nil)
   (cond
    ((> greader-dict-save-after-time 0)
@@ -223,20 +223,6 @@ Return nil if KEY is not present in `greader-dictionary'."
   "Return key related to WORD, nil otherwise."
   (setq word (string-trim word))
   (let ((key nil))
-    (maphash (lambda (k v)
-	       (when (string-match (string-remove-suffix
-				    greader-dict-match-indicator k)
-				   word)
-		 (setq key k)))
-	     greader-dictionary)
-    key))
-
-;; This function checks that, in the string you pass to it, there are
-;; effectively words to be replaced. If so, use apis
-;; previously defined to adequately replace the words that
-;; could need it.
-;; This is the function to add to
-;; `greader-after-get-sentence-functions'.
 (defun greader-dict-check-and-replace (text)
   "Return the TEXT passed to it, eventually modified according to
 `greader-dictionary' and variants."
@@ -267,89 +253,147 @@ Return nil if KEY is not present in `greader-dictionary'."
 	(re-search-forward "\\W*\\w" nil 1))
       (buffer-string))))
 
-;; This function saves the contents of the hash table.
-(defvar greader-dict-directory (concat user-emacs-directory
-				       ".greader-dict/")
-  "The directory containing greader-dict files.")
-(defvar-local greader-dict-filename "greader-dict.global"
-  "File name where dictionary definitions are stored.")
-(defvar greader-dict--current-reading-buffer (current-buffer))
-;; We use this variable to know if greader-dictionary is saved after
-;; the last modification.
-(defvar-local greader-dict--saved-flag t)
-
-(defun greader-dict-write-file ()
-  "Save greader-dictionary stored in `greader-dict-filename'."
-  (unless (file-exists-p greader-dict-directory)
-    (make-directory greader-dict-directory t))
-  (with-temp-buffer
-    (setq greader-dictionary (buffer-local-value 'greader-dictionary
-						 greader-dict--current-reading-buffer))
-    (setq greader-dict-filename (buffer-local-value
-				 'greader-dict-filename
-				 greader-dict--current-reading-buffer))
     (maphash
      (lambda (k v)
-       (insert (concat k "=" v "\n")))
+       (let* ((result (string-remove-suffix
+		       greader-dict-match-indicator k))
+	      (candidate-matches (string-split result "\\W" t)))
+	 (setq candidate-matches (sort candidate-matches
+				       (lambda (s1 s2) (> (length s1)
+							  (length
+							   s2)))))
+	 (catch 'matched
+	   (dolist (candidate candidate-matches)
+	   ;; (message "%s" (concat "matching " candidate " against " word "..."))
+	   (when (string-match candidate word)
+	     ;; (message "Matched!")
+	     (unless key
+	       (setq key k)
+	       (throw 'matched key)))))))
      greader-dictionary)
-    (write-region (point-min) (point-max)
-		  (greader-dict--get-file-name)))
-  (setq greader-dict--saved-flag t))
+    key))
 
-(defun greader-dict-read-from-dict-file (&optional force)
-  "populate `greader-dictionary' with the contents of
+    ;; This function checks that, in the string you pass to it, there are
+    ;; effectively words to be replaced. If so, use apis
+    ;; previously defined to adequately replace the words that
+    ;; could need it.
+    ;; This is the function to add to
+    ;; `greader-after-get-sentence-functions'.
+    (defun greader-dict-check-and-replace (text)
+      "Return the TEXT passed to it, eventually modified according to
+`greader-dictionary' and variants."
+      (with-temp-buffer
+	(setq greader-dictionary (buffer-local-value 'greader-dictionary
+						     greader-dict--current-reading-buffer))
+	(insert text)
+	(goto-char (point-min))
+	(let ((inhibit-read-only t))
+	  (re-search-forward "\\w" nil t)
+	  (while (not (eobp))
+	    (let*
+		((key (greader-dict--get-key-from-word (downcase
+							(thing-at-point
+							 'word))))
+		 (modified-word
+		  (concat (downcase (thing-at-point 'word))
+			  greader-dict-match-indicator)))
+	      (save-excursion
+		(cond
+		 ((equal (greader-dict-item-type key) 'word)
+		  (greader-dict-substitute-word (string-remove-suffix
+						 greader-dict-match-indicator
+						 key)) (goto-char (point-min)))
+		 ((equal (greader-dict-item-type key) 'match)
+		  (greader-dict-substitute-match key)
+		  (goto-char (point-min)))
+		 ((not (greader-dict-item-type key))
+		  nil))))
+	    (re-search-forward "\\W*\\w" nil 1))
+	  (buffer-string))))
+
+    ;; This function saves the contents of the hash table.
+    (defvar greader-dict-directory (concat user-emacs-directory
+					   ".greader-dict/")
+      "The directory containing greader-dict files.")
+    (defvar-local greader-dict-filename "greader-dict.global"
+      "File name where dictionary definitions are stored.")
+    (defvar greader-dict--current-reading-buffer (current-buffer))
+    ;; We use this variable to know if greader-dictionary is saved after
+    ;; the last modification.
+    (defvar-local greader-dict--saved-flag t)
+
+    (defun greader-dict-write-file ()
+      "Save greader-dictionary stored in `greader-dict-filename'."
+      (unless (file-exists-p greader-dict-directory)
+	(make-directory greader-dict-directory t))
+      (with-temp-buffer
+	(setq greader-dictionary (buffer-local-value 'greader-dictionary
+						     greader-dict--current-reading-buffer))
+	(setq greader-dict-filename (buffer-local-value
+				     'greader-dict-filename
+				     greader-dict--current-reading-buffer))
+	(maphash
+	 (lambda (k v)
+	   (insert (concat k "=" v "\n")))
+	 greader-dictionary)
+	(write-region (point-min) (point-max)
+		      (greader-dict--get-file-name)))
+      (setq greader-dict--saved-flag t))
+
+    (defun greader-dict-read-from-dict-file (&optional force)
+      "populate `greader-dictionary' with the contents of
 `greader-dict-filename'.
 If FORCE is non-nil, reading happens even if there are definitions not
   yet saved.
 If FORCE is nil \(the default\) then this function generates an
   user-error and aborts the reading process."
-  ;; This code is to provide a variable
-  ;; `greader-dictionary' by default usable in the buffer
-  ;; temporary where the replacements defined in `greader-after-get-sentence-functions' occur.
-  (when (and (not greader-dict--saved-flag) (not force))
-    (user-error "Dictionary has been modified and not yet saved"))
-  (when (file-exists-p (greader-dict--get-file-name))
-    (with-temp-buffer
-      (setq greader-dictionary (buffer-local-value 'greader-dictionary
-						   greader-dict--current-reading-buffer))
-      (setq greader-dict-filename (buffer-local-value
-				   'greader-dict-filename
-				   greader-dict--current-reading-buffer))
-      (insert-file-contents (greader-dict--get-file-name))
-      (when-let ((lines (string-lines (buffer-string) t)))
-	(dolist (line lines)
-	  (setq line (split-string line "="))
-	  (let ((greader-dict-save-after-time -1))
-	    (greader-dict-add (car line) (car (cdr line)))))
-	(setq greader-dict--saved-flag t))))
-  (add-hook 'buffer-list-update-hook #'greader-dict--update))
+      ;; This code is to provide a variable
+      ;; `greader-dictionary' by default usable in the buffer
+      ;; temporary where the replacements defined in `greader-after-get-sentence-functions' occur.
+      (when (and (not greader-dict--saved-flag) (not force))
+	(user-error "Dictionary has been modified and not yet saved"))
+      (when (file-exists-p (greader-dict--get-file-name))
+	(with-temp-buffer
+	  (setq greader-dictionary (buffer-local-value 'greader-dictionary
+						       greader-dict--current-reading-buffer))
+	  (setq greader-dict-filename (buffer-local-value
+				       'greader-dict-filename
+				       greader-dict--current-reading-buffer))
+	  (insert-file-contents (greader-dict--get-file-name))
+	  (when-let ((lines (string-lines (buffer-string) t)))
+	    (dolist (line lines)
+	      (setq line (split-string line "="))
+	      (let ((greader-dict-save-after-time -1))
+		(greader-dict-add (car line) (car (cdr line)))))
+	    (setq greader-dict--saved-flag t))))
+      (add-hook 'buffer-list-update-hook #'greader-dict--update))
 
-;; Command for saving interactively dictionary data.
-(defun greader-dict-save ()
-  "Save dictionary data.
+    ;; Command for saving interactively dictionary data.
+    (defun greader-dict-save ()
+      "Save dictionary data.
 You should use this command when you want to save your dictionary and
 `greader-dict-save-after-time' is set to a negative number.
 Otherwise, data saving is done automatically when you add a definition
 to the dictionary."
-  (interactive)
-  (greader-dict-write-file))
+      (interactive)
+      (greader-dict-write-file))
 
-;; This command Adds a definition to `greader-dictionary'.
-;; If the region is active and it does not constitute more than one word,
-;; the command will propose the selected word as the original word to
-;; substitute.
-;; The selected word will be added to `greader-dictionary' as
-;; "match", then the definition thus obtained can be applied to
-;; any character sequence that includes it.
-;; However, if the region is not active, this function will try to
-;; determine the word to add through the function
-;; `thing-at-point'. In case this function returns a word,
-;; it will be used to propose it as the original word to be replaced.
-;; In this last case, the word will be added to
-;; `greader-dictionary' as "word", so it must constitute itself
-;; a word to be replaced.
-(defun greader-dict-add-entry (arg)
-  "Add an entry to the dictionary.
+    ;; This command Adds a definition to `greader-dictionary'.
+    ;; If the region is active and it does not constitute more than one word,
+    ;; the command will propose the selected word as the original word to
+    ;; substitute.
+    ;; The selected word will be added to `greader-dictionary' as
+    ;; "match", then the definition thus obtained can be applied to
+    ;; any character sequence that includes it.
+    ;; However, if the region is not active, this function will try to
+    ;; determine the word to add through the function
+    ;; `thing-at-point'. In case this function returns a word,
+    ;; it will be used to propose it as the original word to be replaced.
+    ;; In this last case, the word will be added to
+    ;; `greader-dictionary' as "word", so it must constitute itself
+    ;; a word to be replaced.
+    (defun greader-dict-add-entry (arg)
+      "Add an entry to the dictionary.
 If point is on a word, this function proposes to add that word as
 default.
 In this case, you can also use history commands to modify key already
@@ -364,112 +408,112 @@ If called with prefix argument, ask for a match.
 In this case you can type a regular expression.
 You can use regular expressions to, for example, craft filters instead
 of pronunciation rules."
-  (interactive "P")
-  (let (key value)
-    (cond
-     (arg
-      (setq key (read-regexp "match to add or modify: "
-			     (greader-dict--get-matches 'match)))
-      (unless key
-	(user-error "Input is empty: aborting"))
-      (setq key (concat key greader-dict-match-indicator))
-      (setq value (read-string (concat "substitute regexp " key "with:
+      (interactive "P")
+      (let (key value)
+	(cond
+	 (arg
+	  (setq key (read-regexp "match to add or modify: "
+				 (greader-dict--get-matches 'match)))
+	  (unless key
+	    (user-error "Input is empty: aborting"))
+	  (setq key (concat key greader-dict-match-indicator))
+	  (setq value (read-string (concat "substitute regexp " key "with:
 ")))
-      (greader-dict-add key value))
-     ((region-active-p)
-      (when (= (count-words(region-beginning) (region-end)) 1)
-	(setq key (concat (read-string "Original word to substitute:"
-				       nil nil
-				       (buffer-substring
-					(region-beginning)
-					(region-end)))
-			  greader-dict-match-indicator))
-	(setq value (read-string (concat "substitute match " key
-					 "with:")))
-	(greader-dict-add key value)))
-     ((not (region-active-p))
-      (if-let ((default-word (thing-at-point 'word)))
-	  (progn
-	    (setq key (read-string "Original word to substitute or
+	  (greader-dict-add key value))
+	 ((region-active-p)
+	  (when (= (count-words(region-beginning) (region-end)) 1)
+	    (setq key (concat (read-string "Original word to substitute:"
+					   nil nil
+					   (buffer-substring
+					    (region-beginning)
+					    (region-end)))
+			      greader-dict-match-indicator))
+	    (setq value (read-string (concat "substitute match " key
+					     "with:")))
+	    (greader-dict-add key value)))
+	 ((not (region-active-p))
+	  (if-let ((default-word (thing-at-point 'word)))
+	      (progn
+		(setq key (read-string "Original word to substitute or
 modify: " nil
 nil
 (append (list default-word)(greader-dict--get-matches 'word))))
-	    (setq value (read-string (concat "substitute word " key
-					     " with:")))
-	    (greader-dict-add key value))
-	(setq key (read-string "Word to add or modify: " nil nil
-			       (greader-dict--get-matches 'word)))
-	(setq value (read-string (concat "substitute " key " with:")))
-	(greader-dict-add key value))))))
+		(setq value (read-string (concat "substitute word " key
+						 " with:")))
+		(greader-dict-add key value))
+	    (setq key (read-string "Word to add or modify: " nil nil
+				   (greader-dict--get-matches 'word)))
+	    (setq value (read-string (concat "substitute " key " with:")))
+	    (greader-dict-add key value))))))
 
-(defun greader-dict-remove-entry (key)
-  "Remove KEY from the dictionary.
+    (defun greader-dict-remove-entry (key)
+      "Remove KEY from the dictionary.
 If KEY is not present, signal an user-error."
-  (interactive
-   (list
-    (read-string "key to remove: "nil nil
-		 (sort (hash-table-keys greader-dictionary)
-		       (lambda (s1 s2)
-			 (string-greaterp s2 s1))))))
-  (unless (greader-dict-remove key)
-    (user-error "Key not found.")))
+      (interactive
+       (list
+	(read-string "key to remove: "nil nil
+		     (sort (hash-table-keys greader-dictionary)
+			   (lambda (s1 s2)
+			     (string-greaterp s2 s1))))))
+      (unless (greader-dict-remove key)
+	(user-error "Key not found.")))
 
-(defun greader-dict-clear ()
-  "Clean the definition table.
+    (defun greader-dict-clear ()
+      "Clean the definition table.
 It does'nt save cleaned table in the definitions file automatically,
   instead you should save it manually if you want.
 Please use `greader-dict-save' for that purpose."
-  (interactive)
-  (clrhash greader-dictionary)
-  (setq greader-dict--saved-flag nil)
-  (message "Cleaned."))
+      (interactive)
+      (clrhash greader-dictionary)
+      (setq greader-dict--saved-flag nil)
+      (message "Cleaned."))
 
-;; greader-dict-mode.
-(defvar-keymap greader-dict-mode-map
-  :doc "keymap for `greader-dict-mode'."
-  "C-r d a" #'greader-dict-add-entry
-  "C-r d k" #'greader-dict-remove-entry
-  "C-r d c" #'greader-dict-change-dictionary
-  "C-r d s" #'greader-dict-save)
-(defun greader-dict--replace-wrapper (text)
-  "Function to add to `greader-after-get-sentence-functions'.
+    ;; greader-dict-mode.
+    (defvar-keymap greader-dict-mode-map
+      :doc "keymap for `greader-dict-mode'."
+      "C-r d a" #'greader-dict-add-entry
+      "C-r d k" #'greader-dict-remove-entry
+      "C-r d c" #'greader-dict-change-dictionary
+      "C-r d s" #'greader-dict-save)
+    (defun greader-dict--replace-wrapper (text)
+      "Function to add to `greader-after-get-sentence-functions'.
 It simply calls `greader-dict-check-and-replace' with TEXT as its
 argument, only if `greader-dict-mode' is enabled."
-  (if greader-dict-mode
-      (greader-dict-check-and-replace text)
-    text))
+      (if greader-dict-mode
+	  (greader-dict-check-and-replace text)
+	text))
 
-(defun greader-dict--get-file-name ()
-  "Return the absolute path of current dictionary file."
-  (concat greader-dict-directory (greader-get-language) "/"
-	  (buffer-local-value 'greader-dict-filename
-			      greader-dict--current-reading-buffer)))
+    (defun greader-dict--get-file-name ()
+      "Return the absolute path of current dictionary file."
+      (concat greader-dict-directory (greader-get-language) "/"
+	      (buffer-local-value 'greader-dict-filename
+				  greader-dict--current-reading-buffer)))
 
-(defun greader-dict--set-file (type)
-  "Set `greader-dict-filename' according to TYPE.
+    (defun greader-dict--set-file (type)
+      "Set `greader-dict-filename' according to TYPE.
 TYPE Must be a symbol, and accepted symbols are:
 `buffer', `mode', and `global'.
 See also the documentation of `greader-dict--file-type' For
 technicalities."
-  (cond
-   ((not greader-dict--saved-flag)
-    (greader-dict-write-file)))
-  (cond
-   ;; We use `setq-local' only for clarity.
-   ((equal type 'buffer)
-    (setq-local greader-dict-filename (concat (buffer-name) ".dict")))
-   ((equal type 'mode)
-    (setq-local greader-dict-filename
-		(concat (symbol-name major-mode) ".dict")))
-   ((equal type 'global)
-    (setq-local greader-dict-filename "greader-dict.global"))
-   (t
-    (error (concat "type " (symbol-name type) " not valid as "
-		   (symbol-name (type-of type)))))))
+      (cond
+       ((not greader-dict--saved-flag)
+	(greader-dict-write-file)))
+      (cond
+       ;; We use `setq-local' only for clarity.
+       ((equal type 'buffer)
+	(setq-local greader-dict-filename (concat (buffer-name) ".dict")))
+       ((equal type 'mode)
+	(setq-local greader-dict-filename
+		    (concat (symbol-name major-mode) ".dict")))
+       ((equal type 'global)
+	(setq-local greader-dict-filename "greader-dict.global"))
+       (t
+	(error (concat "type " (symbol-name type) " not valid as "
+		       (symbol-name (type-of type)))))))
 
 
-(defcustom greader-dict-ask-before-change t
-  "Ask before changing the dictionary in current buffer.
+    (defcustom greader-dict-ask-before-change t
+      "Ask before changing the dictionary in current buffer.
 If toggled on, when you attempt to change the dictionary and current
   dictionary table as data not yet saved,
   `greader-dict-change-dictionary will ask you if you want to save
@@ -477,10 +521,10 @@ If toggled on, when you attempt to change the dictionary and current
 If you answer no, you will loose that data.
 If you answer yes, instead, data will be saved in the current
   dictionary before setting the dictionary at newone."
-  :type 'boolean)
+      :type 'boolean)
 
-(defun greader-dict--file-type ()
-  "Return the file type of dictionary for the current buffer.
+    (defun greader-dict--file-type ()
+      "Return the file type of dictionary for the current buffer.
 The `file type' refers to the scope in a given context:
 `buffer'
 Means that it exists a file named `(concat buffer-file-name \".dict\")
@@ -491,80 +535,80 @@ Means it exists a file called `(concat major-mode \".dict\")' in
 `global'
 Means it exists a file called \"greader-dict.global\" in
 `greader-dict-directory'."
-  (let ((default-directory (concat greader-dict-directory
-				   (greader-get-language) "/")))
-    (cond
-     ((string-equal (concat (buffer-name) ".dict")
-		    greader-dict-filename)
-      'buffer)
-     ((string-equal (concat (symbol-name major-mode) ".dict")
-		    greader-dict-filename)
-      'mode)
-     ((string-equal "greader-dict.global" greader-dict-filename)
-      'global)
-     (t 'global))))
+      (let ((default-directory (concat greader-dict-directory
+				       (greader-get-language) "/")))
+	(cond
+	 ((string-equal (concat (buffer-name) ".dict")
+			greader-dict-filename)
+	  'buffer)
+	 ((string-equal (concat (symbol-name major-mode) ".dict")
+			greader-dict-filename)
+	  'mode)
+	 ((string-equal "greader-dict.global" greader-dict-filename)
+	  'global)
+	 (t 'global))))
 
-(defvar greader-dict--type-file-alternatives '(buffer mode global))
-(defun greader-dict--type-alternatives ()
-  "Return the list of currently valid alternatives for dictionary."
-  (let ((alternatives nil))
-    (dolist (alternative greader-dict--type-file-alternatives)
-      (unless (equal alternative (greader-dict--file-type))
-	(push (symbol-name alternative) alternatives)))
-    alternatives))
+    (defvar greader-dict--type-file-alternatives '(buffer mode global))
+    (defun greader-dict--type-alternatives ()
+      "Return the list of currently valid alternatives for dictionary."
+      (let ((alternatives nil))
+	(dolist (alternative greader-dict--type-file-alternatives)
+	  (unless (equal alternative (greader-dict--file-type))
+	    (push (symbol-name alternative) alternatives)))
+	alternatives))
 
-(defun greader-dict-change-dictionary (new-dict)
-  "change the current dictionary.
+    (defun greader-dict-change-dictionary (new-dict)
+      "change the current dictionary.
 You can choose between the alternatives by using the arrow keys when
 asked."
-  (interactive
-   (list
-    (read-string (concat "Change dictionary from "
-			 (symbol-name
-			  (greader-dict--file-type))
-			 " to: ")
-		 nil nil
-		 (greader-dict--type-alternatives))))
-  (unless greader-dict-mode
-    (user-error "Please enable `greader-dict-mode' first."))
-  (let ((old-dict (greader-dict--file-type))
-	(response nil))
-    (unless (equal new-dict old-dict)
-      (cond
-       ((and greader-dict-ask-before-change (not
-					     greader-dict--saved-flag))
-	(setq response (yes-or-no-p "There are definitions not yet
+      (interactive
+       (list
+	(read-string (concat "Change dictionary from "
+			     (symbol-name
+			      (greader-dict--file-type))
+			     " to: ")
+		     nil nil
+		     (greader-dict--type-alternatives))))
+      (unless greader-dict-mode
+	(user-error "Please enable `greader-dict-mode' first."))
+      (let ((old-dict (greader-dict--file-type))
+	    (response nil))
+	(unless (equal new-dict old-dict)
+	  (cond
+	   ((and greader-dict-ask-before-change (not
+						 greader-dict--saved-flag))
+	    (setq response (yes-or-no-p "There are definitions not yet
   saved; Do you want to save them before changing?"))
-	(if response (greader-dict-write-file)
-	  (setq
-	   greader-dict--saved-flag
-	   t))))
-      (clrhash greader-dictionary)
-      (greader-dict--set-file (intern new-dict))
-      (unless (file-exists-p (greader-dict--get-file-name))
-	(shell-command-to-string
-	 (concat "touch " greader-dict-filename)))
-      (greader-dict-read-from-dict-file))))
-;; (remove-hook 'buffer-list-update-hook #'greader-dict--update)))))
+	    (if response (greader-dict-write-file)
+	      (setq
+	       greader-dict--saved-flag
+	       t))))
+	  (clrhash greader-dictionary)
+	  (greader-dict--set-file (intern new-dict))
+	  (unless (file-exists-p (greader-dict--get-file-name))
+	    (shell-command-to-string
+	     (concat "touch " greader-dict-filename)))
+	  (greader-dict-read-from-dict-file))))
+    ;; (remove-hook 'buffer-list-update-hook #'greader-dict--update)))))
 
-(defun greader-dict--update ()
-  (when greader-dict-mode
-    (setq greader-dict--current-reading-buffer (current-buffer))
-    (unless greader-dict--saved-flag
-      (greader-dict-write-file))
-    ;; I decided to keep the following code for historical reasons and
-    ;; memento.
-    ;;   Indeed it is superfluous as it is, because "buffer-locality", so
-    ;; the following conditional is not necessary.
-    (unless greader-reading-mode
-      (clrhash
-       (buffer-local-value 'greader-dictionary
-			   greader-dict--current-reading-buffer))
-      (greader-dict-read-from-dict-file t))))
+    (defun greader-dict--update ()
+      (when greader-dict-mode
+	(setq greader-dict--current-reading-buffer (current-buffer))
+	(unless greader-dict--saved-flag
+	  (greader-dict-write-file))
+	;; I decided to keep the following code for historical reasons and
+	;; memento.
+	;;   Indeed it is superfluous as it is, because "buffer-locality", so
+	;; the following conditional is not necessary.
+	(unless greader-reading-mode
+	  (clrhash
+	   (buffer-local-value 'greader-dictionary
+			       greader-dict--current-reading-buffer))
+	  (greader-dict-read-from-dict-file t))))
 
 ;;;###autoload
-(define-minor-mode greader-dict-mode
-  "Dictionary module for greader.
+    (define-minor-mode greader-dict-mode
+      "Dictionary module for greader.
 With this mode it is possible to instruct greader to pronounce in an 
 alternative way the words that the tts mispronounces in a given language.
 There are two types of definitions understood by greader-dict-mode:
@@ -578,56 +622,56 @@ the entire word, and greader-dict-mode will understand that you want
 to add a match definition.
 If instead you add simply the word under the point, it will be added
 as a word definition."
-  :lighter " gr-dictionary"
-  (cond
-   (greader-dict-mode
-    (setq greader-dictionary (make-hash-table :test 'equal))
-    (setq greader-dict--current-reading-buffer (current-buffer))
-    (greader-dict-read-from-dict-file)
-    (add-hook 'greader-after-get-sentence-functions
-	      #'greader-dict--replace-wrapper 1)
+      :lighter " gr-dictionary"
+      (cond
+       (greader-dict-mode
+	(setq greader-dictionary (make-hash-table :test 'equal))
+	(setq greader-dict--current-reading-buffer (current-buffer))
+	(greader-dict-read-from-dict-file)
+	(add-hook 'greader-after-get-sentence-functions
+		  #'greader-dict--replace-wrapper 1)
 					; (add-hook 'greader-reading-mode-hook #'greader-dict--update))))
 
-    (add-hook 'buffer-list-update-hook #'greader-dict--update))))
-;; Questa funzione è solo di utilità e potrebbe essere rimossa o
-;; modificata in qualsiasi momento.
-(defun greader-dict-beep ()
-  (beep))
+	(add-hook 'buffer-list-update-hook #'greader-dict--update))))
+    ;; Questa funzione è solo di utilità e potrebbe essere rimossa o
+    ;; modificata in qualsiasi momento.
+    (defun greader-dict-beep ()
+      (beep))
 
-(defun greader-dict-info ()
-  "Print some information about current dictionary."
-  (interactive)
-  (let ((message
-	 (concat "Current dictionary is " (symbol-name (greader-dict--file-type))
-		 " in file " greader-dict-filename " it has "
-		 (number-to-string (hash-table-count
-				    greader-dictionary)) " entries.")))
-    (message "%s" message)))
+    (defun greader-dict-info ()
+      "Print some information about current dictionary."
+      (interactive)
+      (let ((message
+	     (concat "Current dictionary is " (symbol-name (greader-dict--file-type))
+		     " in file " greader-dict-filename " it has "
+		     (number-to-string (hash-table-count
+					greader-dictionary)) " entries.")))
+	(message "%s" message)))
 
-(defun greader-dict--get-matches (type &optional decorate)
-  "Return a list with keys classified as TYPE.
+    (defun greader-dict--get-matches (type &optional decorate)
+      "Return a list with keys classified as TYPE.
 If TYPE is `all', all items in the current dictionary will be included."
-  (let ((matches nil))
-    (maphash
-     (lambda (k v)
-       (cond ((equal (greader-dict-item-type k) type)
-	      (let ((match (string-remove-suffix
-			    greader-dict-match-indicator k)))
-		(when decorate
-		  (setq match (concat match " \(" (gethash k greader-dictionary) "\)")))
-		(push match matches)))
-	     ((equal type 'all)
-	      (let ((match (string-remove-suffix
-			    greader-dict-match-indicator k)))
-		(when decorate
-		  (setq match (concat match " \(" (gethash k greader-dictionary) "\)")))
-		(push match matches))))) greader-dictionary)
-    (sort
-     matches
-     (lambda (s1 s2)
-       (string-greaterp s2 s1)))))
+      (let ((matches nil))
+	(maphash
+	 (lambda (k v)
+	   (cond ((equal (greader-dict-item-type k) type)
+		  (let ((match (string-remove-suffix
+				greader-dict-match-indicator k)))
+		    (when decorate
+		      (setq match (concat match " \(" (gethash k greader-dictionary) "\)")))
+		    (push match matches)))
+		 ((equal type 'all)
+		  (let ((match (string-remove-suffix
+				greader-dict-match-indicator k)))
+		    (when decorate
+		      (setq match (concat match " \(" (gethash k greader-dictionary) "\)")))
+		    (push match matches))))) greader-dictionary)
+	(sort
+	 matches
+	 (lambda (s1 s2)
+	   (string-greaterp s2 s1)))))
 
 
-(provide 'greader-dict)
+    (provide 'greader-dict)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; greader-dict.el ends here

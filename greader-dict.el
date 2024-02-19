@@ -234,26 +234,31 @@ Return nil if KEY is not present in `greader-dictionary'."
 (defun greader-dict--get-key-from-word (word)
   "Return key related to WORD, nil otherwise."
   (setq word (string-trim word))
-  (let ((key nil))
-    (maphash
-     (lambda (k v)
-       (let* ((result (string-remove-suffix
-		       greader-dict-match-indicator k))
-	      (candidate-matches (string-split result "\\W" t)))
-	 (setq candidate-matches (sort candidate-matches
-				       (lambda (s1 s2) (> (length s1)
-							  (length
-							   s2)))))
-	 (catch 'matched
-	   (dolist (candidate candidate-matches)
-	     ;; (message "%s" (concat "matching " candidate " against " word "..."))
-	     (when (string-match candidate word)
-	       ;; (message "Matched!")
-	       (unless key
-		 (setq key k)
-		 (throw 'matched key)))))))
-     greader-dictionary)
-    key))
+  (cond
+   ((gethash word greader-dictionary)
+    word)
+   (t
+    (let ((reduced-dictionary (make-hash-table :test 'ignore-case)))
+      (dolist (item (greader-dict--get-matches 'match))
+	(puthash item (gethash item greader-dictionary) reduced-dictionary))
+      (let ((key nil))
+	(catch 'matched
+	  (maphash
+	   (lambda (k v)
+	     (let* ((result (string-remove-suffix
+			     greader-dict-match-indicator k))
+		    (candidate-matches (string-split result "\\W" t)))
+	       (setq candidate-matches (sort candidate-matches
+					     (lambda (s1 s2) (> (length s1)
+								(length
+								 s2)))))
+	       (dolist (candidate candidate-matches)
+		 ;; (message "%s" (concat "matching " candidate " against " word "..."))
+		 (when (string-match candidate word)
+		   ;; (message "Matched!")
+		   (setq key (concat k greader-dict-match-indicator))
+		   (throw 'matched key)))))
+	   reduced-dictionary)))))))
 
 ;; This function checks that, in the string you pass to it, there are
 ;; effectively words to be replaced. If so, use apis
@@ -273,11 +278,10 @@ Return nil if KEY is not present in `greader-dictionary'."
       (re-search-forward "\\w" nil t)
       (while (not (eobp))
 	(let*
-	    ((key (greader-dict--get-key-from-word (downcase
-						    (thing-at-point
-						     'word))))
+	    ((key (greader-dict--get-key-from-word (thing-at-point
+						    'word)))
 	     (modified-word
-	      (concat (downcase (thing-at-point 'word))
+	      (concat (thing-at-point 'word)
 		      greader-dict-match-indicator)))
 	  (cond
 	   ((equal (greader-dict-item-type key) 'word)

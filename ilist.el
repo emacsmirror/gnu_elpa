@@ -139,6 +139,12 @@ but got %S" align)))
 will perform pixel-level calculations.  If nil, they will use
 `truncate-string-to-width' and `string-width' as approximations.
 
+Also, if this is the symbol `precise', then the the padding will
+use display properties to produce spaces that occupy as many
+pixels as exactly needed, so that the alignment will be perfect
+at the level of pixels.  For any other non-nil value, the padding
+will use `round' to produce approximate paddings.
+
 Pixel-level calculations are more accurate but more expensive, so
 users should intentionally decide to enable this feature, in
 order not to hang Emacs unexpectedly.")
@@ -177,18 +183,21 @@ In all other cases, produce a string consisting of X many spaces,
 where X is given by the form (round WIDTH S) and S is the pixel
 width of a space character.
 
-If the optional argument SPACE-WIDTH is non-nil, it should be an
-integer specifying the pixel width of a space character, so that
-this function does not need to calculate that width repeatedly."
+If the optional argument SPACE-WIDTH is a positive integer, it is
+interpreted as the pixel width of a space character, otherwise
+the function will calculate the width of the space character on
+each call."
   (cond
-   ((null ilist-pixel-precision) (make-string width 32))
+   ((and (integerp space-width)
+         (> space-width 0)))
+   ((setq space-width (string-pixel-width (string #x20)))))
+  (cond
+   ((null ilist-pixel-precision) (make-string width #x20))
    ((eq ilist-pixel-precision 'precise)
     (propertize
-     (string 32)
+     (string #x20)
      'display (list 'space :width (list width))))
-   ((make-string
-     (round width (or space-width (string-pixel-width (string 32))))
-     32))))
+   ((make-string (round width space-width) #x20))))
 
 ;;; Correctly truncate strings
 

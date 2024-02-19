@@ -110,6 +110,14 @@
 ;; 
 ;;; Code:
 (require 'greader)
+
+;; THanks to the loved and alwais useful elisp reference.
+(defun string-hash-ignore-case (a)
+  (sxhash-equal (upcase a)))
+
+(define-hash-table-test 'ignore-case
+			'string-equal-ignore-case 'string-hash-ignore-case)
+
 (defvar-local  greader-dictionary nil)
 (defvar greader-dict-match-indicator "\%\*"
   "Regexp that will be used for match delimiter.")
@@ -625,7 +633,7 @@ as a word definition."
   :lighter " gr-dictionary"
   (cond
    (greader-dict-mode
-    (setq greader-dictionary (make-hash-table :test 'equal))
+    (setq greader-dictionary (make-hash-table :test 'ignore-case))
     (setq greader-dict--current-reading-buffer (current-buffer))
     (greader-dict-read-from-dict-file)
     (add-hook 'greader-after-get-sentence-functions

@@ -177,6 +177,10 @@ A value of 0 indicates saving immediately."
   "Add the WORD REPLACEMent pair to `greader-dictionary'.
 If you want to add a partial replacement, you should
 add `\*'to the end of the WORD string parameter."
+  ;; We prevent an infinite loop if disallowing that key and values
+  ;; are the same.
+  (when (string-equal-ignore-case word replacement)
+    (user-error "key and value are the same, aborting"))
   (puthash word replacement greader-dictionary)
   (setq greader-dict--saved-flag nil)
   (cond

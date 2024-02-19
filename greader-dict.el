@@ -235,36 +235,6 @@ Return nil if KEY is not present in `greader-dictionary'."
   "Return key related to WORD, nil otherwise."
   (setq word (string-trim word))
   (let ((key nil))
-    (defun greader-dict-check-and-replace (text)
-      "Return the TEXT passed to it, eventually modified according to
-`greader-dictionary' and variants."
-      (with-temp-buffer
-	(setq greader-dictionary (buffer-local-value 'greader-dictionary
-						     greader-dict--current-reading-buffer))
-	(insert text)
-	(goto-char (point-min))
-	(let ((inhibit-read-only t))
-	  (re-search-forward "\\w" nil t)
-	  (while (not (eobp))
-	    (let*
-		((key (greader-dict--get-key-from-word (downcase
-							(thing-at-point
-							 'word))))
-		 (modified-word
-		  (concat (downcase (thing-at-point 'word))
-			  greader-dict-match-indicator)))
-	      (cond
-	       ((equal (greader-dict-item-type key) 'word)
-		(greader-dict-substitute-word (string-remove-suffix
-					       greader-dict-match-indicator
-					       key)))
-	       ((equal (greader-dict-item-type key) 'match)
-		(greader-dict-substitute-match key))
-	       ((not (greader-dict-item-type key))
-		nil)))
-	    (re-search-forward "\\W*\\w" nil 1))
-	  (buffer-string))))
-
     (maphash
      (lambda (k v)
        (let* ((result (string-remove-suffix
@@ -309,17 +279,15 @@ Return nil if KEY is not present in `greader-dictionary'."
 	     (modified-word
 	      (concat (downcase (thing-at-point 'word))
 		      greader-dict-match-indicator)))
-	  (save-excursion
-	    (cond
-	     ((equal (greader-dict-item-type key) 'word)
-	      (greader-dict-substitute-word (string-remove-suffix
-					     greader-dict-match-indicator
-					     key)) (goto-char (point-min)))
-	     ((equal (greader-dict-item-type key) 'match)
-	      (greader-dict-substitute-match key)
-	      (goto-char (point-min)))
-	     ((not (greader-dict-item-type key))
-	      nil))))
+	  (cond
+	   ((equal (greader-dict-item-type key) 'word)
+	    (greader-dict-substitute-word (string-remove-suffix
+					   greader-dict-match-indicator
+					   key)))
+	   ((equal (greader-dict-item-type key) 'match)
+	    (greader-dict-substitute-match key))
+	   ((not (greader-dict-item-type key))
+	    nil)))
 	(re-search-forward "\\W*\\w" nil 1))
       (buffer-string))))
 

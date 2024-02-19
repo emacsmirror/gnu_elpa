@@ -666,18 +666,17 @@ If TYPE is `all', all items in the current dictionary will be included."
   (let ((matches nil))
     (maphash
      (lambda (k v)
-       (cond ((equal (greader-dict-item-type k) type)
-	      (let ((match (string-remove-suffix
-			    greader-dict-match-indicator k)))
-		(when decorate
-		  (setq match (concat match " \(" (gethash k greader-dictionary) "\)")))
-		(push match matches)))
-	     ((equal type 'all)
-	      (let ((match (string-remove-suffix
-			    greader-dict-match-indicator k)))
-		(when decorate
-		  (setq match (concat match " \(" (gethash k greader-dictionary) "\)")))
-		(push match matches))))) greader-dictionary)
+       (cond
+	((equal (greader-dict-item-type k) type)
+	 (let ((match (string-remove-suffix greader-dict-match-indicator k)))
+	   (when decorate
+	     (setq match (concat match " \(" (gethash k greader-dictionary) "\)")))
+	   (push match matches)))
+	((equal type 'all)
+	 (let ((match (string-remove-suffix greader-dict-match-indicator k)))
+	   (when decorate
+	     (setq match (concat match " \(" (gethash k greader-dictionary) "\)")))
+	   (push match matches))))) greader-dictionary)
     (sort
      matches
      (lambda (s1 s2)

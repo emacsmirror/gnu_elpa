@@ -1,3 +1,10 @@
+2024-02-19  李俊緯  <mmemmew@gmail.com>
+
+	* Now the variable `ilist-pixel-precision` has special meaning if
+	its value is the symbol 'precise': the package will then use
+	display properties to produce pixel-exact paddings.  This produces
+	perfect alignment on graphical interfaces.
+
 2024-02-13  李俊緯  <mmemmew@gmail.com>
 
 	* Now the user can set the variable `ilist-pixel-precision` to

@@ -149,7 +149,7 @@
   "Substitute MATCH only if it constitutes an entire word."
   (save-excursion
     (goto-char (point-min))
-    (let ((word (concat "\\(\\W+\\)" "\\(" match "\\)" "\\(\\W+\\)"))
+    (let ((word (concat "\\(\\W?\\)" "\\(" match "\\)" "\\(\\W+\\)"))
 	  (alternative-word
 	   (concat "\\(^\\)" "\\(" match "\\)" "\\(\\W+\\)"))
 	  (end-word

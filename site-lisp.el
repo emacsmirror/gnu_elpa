@@ -56,6 +56,10 @@
   "List of sub-directory names to traverse for code."
   :type '(repeat string))
 
+(defcustom site-lisp-collect-recursivly nil
+  "Non-nil means that all files should be recursively scraped."
+  :type 'boolean)
+
 (defmacro site-lisp-generate-autoloads (dir file)
   "Generate autoloads for DIR as appropriate for the current version.
 The result should be stored in FILE."
@@ -85,7 +89,9 @@ of the list."
                       site-lisp-fixed-subdirectories)
               (site-lisp-prepare dir)
             (add-to-list 'load-path dir)
-            (site-lisp-generate-autoloads dir autoload-file))))
+            (site-lisp-generate-autoloads dir autoload-file)
+            (when site-lisp-collect-recursivly
+              (site-lisp-prepare dir)))))
       (byte-recompile-directory dir)
       (load autoload-file nil t))))
 

@@ -1,6 +1,6 @@
 ;;; site-lisp.el --- Manage site-lisp directories  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021, 2022, 2023  Free Software Foundation, Inc.
+;; Copyright (C) 2021, 2022, 2023, 2024  Free Software Foundation, Inc.
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <~pkal/public-inbox@lists.sr.ht>
@@ -52,6 +52,10 @@
   "Name of file to store autoload forms in."
   :type 'string)
 
+(defcustom site-lisp-fixed-subdirectories '("progmode")
+  "List of sub-directory names to traverse for code."
+  :type '(repeat string))
+
 (defmacro site-lisp-generate-autoloads (dir file)
   "Generate autoloads for DIR as appropriate for the current version.
 The result should be stored in FILE."
@@ -77,9 +81,11 @@ of the list."
           (autoload-file (expand-file-name site-lisp-autoload-file dir)))
       (dolist (dir (cons dir (directory-files dir t "^[^.]")))
         (when (file-directory-p dir)
-          (message "Site-lisp: %s" dir)
-          (add-to-list 'load-path dir)
-          (site-lisp-generate-autoloads dir autoload-file)))
+          (if (member (directory-file-name dir)
+                      site-lisp-fixed-subdirectories)
+              (site-lisp-prepare dir)
+            (add-to-list 'load-path dir)
+            (site-lisp-generate-autoloads dir autoload-file))))
       (byte-recompile-directory dir)
       (load autoload-file nil t))))
 

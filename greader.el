@@ -561,7 +561,7 @@ mindfullness!)."
 (defun greader-read (&optional goto-marker)
   "Start reading of current buffer.
 if `GOTO-MARKER' is t and if you pass a prefix to this
-  function, point jumps at the last position you called command `greader-read'."
+function, point jumps at the last position you called command `greader-read'."
 
   (interactive "P")
   (when goto-marker
@@ -622,13 +622,24 @@ Argument ARG is not used."
     (get-buffer-create greader-debug-buffer)
     (set-buffer greader-debug-buffer)
     (insert arg)))
+(defvar greader-sentence-regexp "[.?!]+[[:space:]]"
+  "Regexp to indicate the end of a sentence in terms of greader.")
 
 (defun greader-forward-sentence ()
   "Move the point to next sentence."
   (let ((result (greader-call-backend 'next-text)))
     (if (not (equal result 'not-implemented))
 	result
-      (forward-sentence))))
+      (let ((sentence-end greader-sentence-regexp))
+	(forward-sentence)))))
+
+(defun greader-backward-sentence ()
+  "Move back by a sentence in terms of greader."
+  (let ((result (greader-call-backend 'next-text)))
+    (if (not (equal result 'not-implemented))
+	result
+      (let ((sentence-end greader-sentence-regexp))
+	(backward-sentence)))))
 
 (defun greader-get-sentence ()
   "Get current sentence.
@@ -642,7 +653,7 @@ If at end of buffer, nil is returned."
 	(setq sentence-start (point))
 	(save-excursion
 	  (when (not (eobp))
-	    (forward-sentence))
+	    (greader-forward-sentence))
 	  (if (> (point) sentence-start)
 	      (string-trim (buffer-substring sentence-start (point)) "[ \t\n\r]+")
 	    nil))))))
@@ -1205,7 +1216,7 @@ When called from a function, you should specify SRC and DST, even if
 (defun greader--forward ()
   (when (equal
 	 (point) greader--marker-backward)
-    (forward-sentence)
+    (greader-forward-sentence)
     (backward-char 2)
     (when greader-backward-acoustic-feedback
       (beep))))
@@ -1216,11 +1227,11 @@ When called from a function, you should specify SRC and DST, even if
 (defun greader-backward ()
   "Restart reading from start of sentence.
 When at start of sentence, this function sets a timer for
-  `greader--set-forward-timer' seconds, and, if the cursor is yet at
-  start of sentence, puts the point at the end.
+`greader--set-forward-timer' seconds, and, if the cursor is yet at
+start of sentence, puts the point at the end.
 So you can use this command like a player, if you press <left> you
-  will ear the start of last read sentence, and if you press again
-  while timer is in effect, you go back by one sentence."
+will ear the start of last read sentence, and if you press again
+while timer is in effect, you go back by one sentence."
   (interactive)
   (when (bobp)
     (signal 'beginning-of-buffer ()))
@@ -1228,7 +1239,7 @@ So you can use this command like a player, if you press <left> you
     (cancel-timer greader--timer-backward)
     (setq greader--timer-backward nil))
   (greader-tts-stop)
-  (backward-sentence)
+  (greader-backward-sentence)
   (greader-set-register)
   (setq greader--marker-backward (point))
   (greader--set-forward-timer)

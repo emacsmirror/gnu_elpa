@@ -202,6 +202,10 @@ dd {
   margin: 0 auto;
 }
 
+.invisible {
+    display: none;
+}
+
 header {
   color: white;
   text-align: center;

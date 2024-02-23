@@ -402,7 +402,8 @@ of pronunciation rules."
 	(user-error "Input is empty: aborting"))
       (setq key (concat key greader-dict-match-indicator))
       (setq value (read-string (concat "substitute regexp " key "with:
-")))
+")
+			       nil nil(gethash key greader-dictionary)))
       (greader-dict-add key value))
      ((region-active-p)
       (when (= (count-words(region-beginning) (region-end)) 1)
@@ -413,7 +414,8 @@ of pronunciation rules."
 					(region-end)))
 			  greader-dict-match-indicator))
 	(setq value (read-string (concat "substitute match " key
-					 "with:")))
+					 "with: ")
+				 nil nil (gethash key greader-dictionary)))
 	(greader-dict-add key value)))
      ((not (region-active-p))
       (if-let ((default-word (thing-at-point 'word)))
@@ -423,11 +425,13 @@ modify: " nil
 nil
 (append (list default-word)(greader-dict--get-matches 'word))))
 	    (setq value (read-string (concat "substitute word " key
-					     " with:")))
+					     " with: ")
+				     (gethash key greader-dictionary)))
 	    (greader-dict-add key value))
 	(setq key (read-string "Word to add or modify: " nil nil
 			       (greader-dict--get-matches 'word)))
-	(setq value (read-string (concat "substitute " key " with:")))
+	(setq value (read-string (concat "substitute " key " with: ")
+				 nil nil (gethash key greader-dictionary)))
 	(greader-dict-add key value))))))
 
 (defun greader-dict-remove-entry (key)

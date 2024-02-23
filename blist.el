@@ -1,6 +1,6 @@
 ;;; blist.el --- Display bookmarks in an ibuffer way  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021, 2022, 2023  Free Software Foundation, Inc.
+;; Copyright (C) 2021, 2022, 2023, 2024  Free Software Foundation, Inc.
 
 ;; Author: Durand <durand@jsdurand.xyz>
 ;; Keywords: convenience
@@ -149,7 +149,7 @@ Used by `ilist-dag' to define an automatic filter group."
        (handler-name
         (cond
          ;; Some special cases
-         ((string-match-p "pdf" handler-name) "PDF") ; to handle pdf-view.
+         ((string-match-p "pdf" handler-name) "PDF")
          ((string-match-p "^el$" handler-name) "ELisp")
          ((<= (length handler-name) 3) (upcase handler-name))
          ((capitalize handler-name))))))))
@@ -405,7 +405,9 @@ list; they are simply ignored."
            (const :tag "Vertically" vertical)
            (const :tag "Horizontally" horizontal)
            (const :tag "Spirally" spiral)
-           (const :tag "A main window along with side splits" main-side)
+           (const
+            :tag "A main window along with side splits"
+            main-side)
            (const :tag "Towards Left" left)
            (const :tag "Towards Right" right)
            (const :tag "Towards Up" up)
@@ -414,7 +416,8 @@ list; they are simply ignored."
 
 ;;;; Edit bookmark annotation buffer name
 
-(defcustom blist-edit-annotation-buffer-name "*Edit Bookmark Annotation*"
+(defcustom blist-edit-annotation-buffer-name
+  "*Edit Bookmark Annotation*"
   "The name of the buffer used for editing bookmark annotation."
   :type 'string)
 
@@ -706,6 +709,7 @@ used as a `revert-buffer-function'."
   (define-key map (vector ?% ?l) #'blist-mark-by-location)
   (define-key map (vector ?j) #'blist-jump-to-line)
   (define-key map (vector ?J) #'blist-jump-to-group)
+  (define-key map (vector ?i) #'blist-show-info)
   (define-key map (vector ?\M-j) #'blist-jump-to-group)
   (define-key map (vector ?\M-g) #'blist-jump-to-line)
   (define-key map (vector ?\M-G) #'blist-jump-to-group))
@@ -722,7 +726,11 @@ used as a `revert-buffer-function'."
 
 ;;;; The range of operation
 
-(defun blist-operate-range (arg &optional use-default-p default-start default-end)
+(defun blist-operate-range (arg
+                            &optional
+                            use-default-p
+                            default-start
+                            default-end)
   "Return the range for the operation.
 If region is active, use the region.
 
@@ -1972,7 +1980,87 @@ stop at."
 
 ;;;; blist-show-info
 
+;; TODO: Some information should be inserted first, with outstanding
+;; faces, and the rest should be inserted at the end.
+
+(defun blist-show-info (&optional arg)
+  "Pop a buffer showing detailed information about the bookmarks.
+If there are marked bookmarks, show the information of those
+bookmarks.
+
+Otherwise, if the point is at a bookmark, show the information of
+that bookmark.  If, and only if, ARG is an integer, show ARG many
+following bookmarks; if ARG is negative, show minus ARG many
+preceding bookmarks instead.
+
+Otherwise, if the point is at a group header, show the
+information of the bookmarks of that group."
+  (interactive "p")
+  (blist-assert-mode)
+  (let* ((marked-items (ilist-map-lines #'ilist-get-index
+                                        #'ilist-is-marked))
+         (items
+          (cond
+           (marked-items)
+           ((ilist-get-group)
+            (let ((start (point))
+                  (end (save-excursion
+                         (ilist-forward-group-header 1)
+                         (point))))
+              (ilist-map-lines
+               #'ilist-get-index #'ilist-get-index start end)))
+           ;; HACK: if not on a normal line, it will return nil, so
+           ;; that this clause is skipped
+           ((delq nil (list (ilist-get-index))))
+           ((user-error "No bookmarks to open"))))
+         (items (mapcar
+                 (lambda (index) (nth index bookmark-alist))
+                 items))
+         (items-len (length items))
+         (seperator (make-string (1- (window-body-width)) ?-))
+         (buffer (get-buffer-create "*blist-info*"))
+         (durand-window-max-height 0.5))
+    (with-current-buffer buffer
+      (erase-buffer)
+      (let ((count 0) temp)
+        (while (consp items)
+          (setq count (1+ count))
+          (setq temp (car items))
+          (setq items (cdr items))
+          (insert "name: " (car temp))
+          (newline)
+          (mapc
+           (lambda (cell)
+             (cond
+              ((and
+                (consp cell)
+                (cdr cell)
+                (eq (car cell) 'last-modified))
+               (insert
+                (format
+                 "%S: [%s]"
+                 (car cell)
+                 (format-time-string "%F %a %R" (cdr cell))))
+               (newline))
+              ((and (consp cell) (cdr cell))
+               (insert (format "%S: %S" (car cell) (cdr cell)))
+               (newline))))
+           temp)
+          (cond ((< count items-len)
+                 (insert seperator)
+                 (newline))))
+        (goto-char (point-min))))
+    (display-buffer
+     buffer
+     (list (list #'display-buffer-in-side-window)
+           (cons 'side 'bottom)
+           (cons 'window-height
+                 #'durand-fit-window-to-buffer-with-max)))))
+
 ;; TODO: Display counts about each groups.
+
+;; TODO: Navigate between each fields.
+
 
 (provide 'blist)
 ;;; blist.el ends here

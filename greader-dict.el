@@ -318,7 +318,7 @@ Return nil if KEY is not present in `greader-dictionary'."
 				 greader-dict--current-reading-buffer))
     (maphash
      (lambda (k v)
-       (insert (concat k "=" v "\n")))
+       (insert (concat "\"" k "\"" "=" v "\n")))
      greader-dictionary)
     (write-region (point-min) (point-max)
 		  (greader-dict--get-file-name)))
@@ -328,9 +328,9 @@ Return nil if KEY is not present in `greader-dictionary'."
   "populate `greader-dictionary' with the contents of
 `greader-dict-filename'.
 If FORCE is non-nil, reading happens even if there are definitions not
-  yet saved.
+yet saved.
 If FORCE is nil \(the default\) then this function generates an
-  user-error and aborts the reading process."
+user-error and aborts the reading process."
   ;; This code is to provide a variable
   ;; `greader-dictionary' by default usable in the buffer
   ;; temporary where the replacements defined in `greader-after-get-sentence-functions' occur.
@@ -346,7 +346,8 @@ If FORCE is nil \(the default\) then this function generates an
       (insert-file-contents (greader-dict--get-file-name))
       (when-let ((lines (string-lines (buffer-string) t)))
 	(dolist (line lines)
-	  (setq line (split-string line "="))
+	  (setq line (split-string line "=" ))
+	  (setf (car line) (car (split-string (car line) "\"" t)))
 	  (let ((greader-dict-save-after-time -1))
 	    (greader-dict-add (car line) (car (cdr line)))))
 	(setq greader-dict--saved-flag t))))

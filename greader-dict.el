@@ -361,7 +361,8 @@ You should use this command when you want to save your dictionary and
 Otherwise, data saving is done automatically when you add a definition
 to the dictionary."
   (interactive)
-  (greader-dict-write-file))
+  (let ((greader-dict--saved-flag nil))
+    (greader-dict-write-file)))
 
 ;; This command Adds a definition to `greader-dictionary'.
 ;; If the region is active and it does not constitute more than one word,

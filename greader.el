@@ -668,11 +668,13 @@ Optional argument STRING contains the string passed to
 `greader-read-asynchronous'."
   (if greader-filter-enabled
       (message string)))
-
+(defvar greader-after-change-language-hook nil
+  "The functions stored in this variable are executed just after new
+language is set.")
 (defun greader-set-language (lang)
   "Set language of tts.
 LANG must be in ISO code, for example `en' for English or `fr' for
-French.  This function sets the language of tts local for current
+French.  This function sets the language of tts locally for current
 buffer, so if you want to set it globally, please use
 `M-x customize-option RET greader-language RET'."
   (interactive
@@ -681,7 +683,9 @@ buffer, so if you want to set it globally, please use
       (if (equal result 'not-implemented)
 	  (read-string "Set language to: ")
 	result))))
-  (greader-call-backend 'lang lang))
+  (greader-call-backend 'lang lang)
+  (run-hooks greader-after-change-language-hook))
+
 (defun greader-set-punctuation (flag)
   "Set punctuation to FLAG."
   (greader-call-backend 'punctuation flag))

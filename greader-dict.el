@@ -618,9 +618,10 @@ as a word definition."
     (greader-dict-read-from-dict-file)
     (add-hook 'greader-after-get-sentence-functions
 	      #'greader-dict--replace-wrapper 1)
-					; (add-hook 'greader-reading-mode-hook #'greader-dict--update))))
-
-    (add-hook 'buffer-list-update-hook #'greader-dict--update))))
+    (add-hook 'buffer-list-update-hook #'greader-dict--update)
+    (add-hook 'greader-after-change-language-hook
+	      (lambda ()
+		(when greader-dict-mode (greader-dict-read-from-dict-file)))))))
 ;; Questa funzione è solo di utilità e potrebbe essere rimossa o
 ;; modificata in qualsiasi momento.
 (defun greader-dict-beep ()

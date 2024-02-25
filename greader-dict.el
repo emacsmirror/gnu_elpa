@@ -676,7 +676,7 @@ are classified as matches."
 	(new-key nil))
     (unless key
       (user-error "Key not valid"))
-    (if-let ((backup-value (gethash key)))
+    (if-let ((backup-value (gethash key greader-dictionary)))
 	(progn
 	  (setq new-key (read-string (concat "substitute key " key "
   with:") nil nil key))

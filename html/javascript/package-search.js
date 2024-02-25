@@ -14,6 +14,12 @@
 
 "use strict";
 
+function parse_pattern(pattern) { // ala `apropos-parse-pattern'
+	const words = pattern.split(/\s+/);
+	const parts = words.map(s => `(${s.replace(/([^a-zA-Z0-9])/g, "\\$1")})`);
+	return new RegExp(`((${parts.join("|")}).*)+`, "i");
+}
+
 window.addEventListener("load", function (event) {
 	const table = document.getElementById("packages");
 
@@ -26,7 +32,7 @@ window.addEventListener("load", function (event) {
 		if (tid) clearTimeout(tid);
 
 		tid = setTimeout(function (query) {
-			const pattern = new RegExp(query);
+			const pattern = parse_pattern(query);
 			for (let i = 1; i < table.rows.length; i++) {
 				const row = table.rows.item(i);
 

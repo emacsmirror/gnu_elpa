@@ -110,7 +110,8 @@
 ;; 
 ;;; Code:
 (require 'greader)
-
+(defgroup greader-dict nil "String substitution module for greader"
+  :group 'greader)
 ;; THanks to the loved and alwais useful elisp reference.
 (defun string-hash-ignore-case (a)
   (sxhash-equal (upcase a)))
@@ -244,7 +245,7 @@ Return nil if KEY is not present in `greader-dictionary'."
       (let ((key nil))
 	(catch 'matched
 	  (maphash
-	   (lambda (k v)
+	   (lambda (k _v)
 	     (let* ((result (string-remove-suffix
 			     greader-dict-match-indicator k))
 		    (candidate-matches (string-split result "\\W" t)))
@@ -279,10 +280,7 @@ Return nil if KEY is not present in `greader-dictionary'."
       (while (not (eobp))
 	(let*
 	    ((key (greader-dict--get-key-from-word (thing-at-point
-						    'word)))
-	     (modified-word
-	      (concat (thing-at-point 'word)
-		      greader-dict-match-indicator)))
+						    'word))))
 	  (cond
 	   ((equal (greader-dict-item-type key) 'word)
 	    (greader-dict-substitute-word (string-remove-suffix
@@ -644,7 +642,7 @@ as a word definition."
 If TYPE is `all', all items in the current dictionary will be included."
   (let ((matches nil))
     (maphash
-     (lambda (k v)
+     (lambda (k _v)
        (cond
 	((equal (greader-dict-item-type k) type)
 	 (let ((match (string-remove-suffix greader-dict-match-indicator k)))
@@ -676,7 +674,7 @@ are classified as matches."
 	(new-key nil))
     (unless key
       (user-error "Key not valid"))
-    (if-let ((backup-value (gethash key)))
+    (if-let ((backup-value (gethash key greader-dictionary)))
 	(progn
 	  (setq new-key (read-string (concat "substitute key " key "
   with:") nil nil key))

@@ -1,6 +1,4 @@
-;;; greader.el --- gnamù reader, send buffer contents to a speech engine. -*- lexical-binding: t; -*-
-;; FIXME: The above line is not right for this file :-(
-
+;;; greader-mac.el --- a back-end for Mac-Os tts. -*- lexical-binding: t; -*-
 ;; Copyright (C) 2017-2024  Free Software Foundation, Inc.
 
 ;;; Code:

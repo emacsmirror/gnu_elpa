@@ -6,7 +6,7 @@
 ;; Author: Michelangelo Rodriguez <michelangelo.rodriguez@gmail.com>
 ;; Keywords: tools, accessibility
 
-;; Version: 0.9.8
+;; Version: 0.9.9
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -1269,7 +1269,7 @@ while timer is in effect, you go back by one sentence."
 
 (defvar-local greader-queue nil
   "This is the variable that contains the queue.
-each element is formed by a cons, whose form is 'start-position
+each element is formed by a cons, whose form is `start-position
 . end-position'.")
 
 (defvar-local greader-queue-current-element nil
@@ -1391,7 +1391,7 @@ If the current element is the first, it returns it."
 
 ;; This function will act as a sentinel for the tts when invoked
 ;; by the `greader-queue-read' function.
-(defun greader-queue-next-action (&optional process string)
+(defun greader-queue-next-action (&optional _process _string)
   "Sentinel process for greader-queue-mode."
   (setq greader-queue-current-element (1+
 				       greader-queue-current-element))
@@ -1463,10 +1463,12 @@ before.")
 
 ;;;###autoload
 (define-minor-mode greader-queue-mode
-  "In this mode, text reading occurs via blocks.
-normally greader reads the text of a buffer sequentially; in queue-mode you add blocks of text to a queue, so you can choose only certain parts of the buffer.
-As reading progresses, further blocks can be added,
-or you can add the blocks and then start reading."
+  "Read buffers as blocks of text.
+In this mode, text reading occurs via blocks.  normally greader
+reads the text of a buffer sequentially; in queue-mode you add blocks
+of text to a queue, so you can choose only certain parts of the
+buffer.  As reading progresses, further blocks can be added, or you
+can add the blocks and then start reading."
   :lighter " greader-q"
   (cond
    (greader-queue-mode
@@ -1488,12 +1490,12 @@ If it is a function, it must return a string."
   "Return the value of `greader-enriched-tag'."
   (pcase greader-enriched-tag
     ((pred functionp)
-     (funcall #'greader-enriched-tag))
+     (with-no-warnings (funcall #'greader-enriched-tag)))
     ((pred stringp)
      greader-enriched-tag)))
 
 (defun greader-scrap-links (input-string)
-  "Modify the INPUT-STRING string to precede each link with 'link: '"
+  "Modify the INPUT-STRING string to precede each link with `link: '"
   (let ((pos 0)
         (modified nil)
         (result (copy-sequence input-string)))
@@ -1556,8 +1558,10 @@ guessing."
   :type 'string)
 
 (defun greader-continuous-guess-function ()
-  "Guess the function for greader-continuous mode based on GREADER-CONTINUOUS-KEY.
-If GREADER-CONTINUOUS-KEY is nil, checks against `greader-continuous-excluded-modes'
+  "Guess the function for greader-continuous mode.
+this guessing is based on GREADER-CONTINUOUS-KEY.
+If GREADER-CONTINUOUS-KEY is nil, checks against
+`greader-continuous-excluded-modes'
 and `greader-continuous-modes' to determine the appropriate function."
   (cond
    ((member major-mode greader-continuous-excluded-modes)

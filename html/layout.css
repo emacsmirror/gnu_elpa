@@ -1,4 +1,4 @@
-/* Copyright (C) 2010-2022, 2024 Free Software Foundation, Inc.
+l/* Copyright (C) 2010-2022, 2024 Free Software Foundation, Inc.
 
 This file is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -74,7 +74,7 @@ html, body {
   height: 100%;
   margin: 0 auto -50px; /* the bottom margin is the negative value of the footer's height */
 }
-footer, .push {
+footer, .push, .footer {
   height: 90px; /* .push must be the same height as .footer */
 }
 
@@ -206,7 +206,7 @@ dd {
     display: none;
 }
 
-header {
+header, .header {
   color: white;
   text-align: center;
   background-color: #bb3955;
@@ -214,27 +214,27 @@ header {
   border-bottom: 6px solid #691240;
 }
 
-header p {
+header p, .header p {
   margin: 0;
 }
 
-header a {
+header a, .header a {
   color: rgb(240, 255, 135);
   text-decoration: none;
 }
 
-header a:hover {
+header a:hover, .header a:hover {
   color: rgb(240, 255, 135);
   text-decoration: underline;
   background: transparent;
 }
 
-header.small {
+header.small, .header.small {
   text-align: left;
   border-width: 3px;
 }
 
-header.small h1 {
+header.small h1, .header.small h1 {
   display: inline;
   font-size: 1.5em;
   margin: 0;
@@ -243,7 +243,7 @@ header.small h1 {
   padding-left: 120px;
 }
 
-header.small .container {
+header.small .container, .header.small .container {
   padding: 20px;
 }
 
@@ -283,7 +283,7 @@ td {
   border-bottom: 1px solid #ddd;
 }
 
-footer {
+footer, .footer {
   border-top: 1px solid #999;
   text-align:center;
   font-size: 0.9em;
@@ -291,11 +291,11 @@ footer {
   color: #666;
 }
 
-footer .container {
+footer .container, .footer .container {
   padding: 15px 0;
 }
 
-footer p {
+footer p, .footer p {
   margin: 0;
   font-size: .8em;
   padding: 0;
@@ -326,7 +326,7 @@ footer p {
     font-size: 1.4em;
   }
 
-  header img {
+  header img, .header img {
     width: 300px;
   }
 
@@ -341,7 +341,7 @@ footer p {
 
 @media screen and (max-width: 439px) {
 
-  header img {
+  header img, .header img {
     width: 250px;
   }
   

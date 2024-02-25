@@ -20,30 +20,39 @@ window.addEventListener("load", function (event) {
 	const search = document.createElement("input");
 	search.setAttribute("placeholder", "Search packages...");
 	search.setAttribute("type", "search");
+
+	let tid = false;			// timeout ID
 	search.addEventListener("input", function(event) {
-		const query = new RegExp(event.target.value, "i");
+		if (tid) clearTimeout(tid);
 
-		for (let i = 1; i < table.rows.length; i++) {
-			const row = table.rows.item(i);
-			row.classList.remove("invisible");
+		tid = setTimeout(function (query) {
+			const pattern = new RegExp(query);
+			for (let i = 1; i < table.rows.length; i++) {
+				const row = table.rows.item(i);
 
-			const name = row.childNodes.item(0);
-			const name_matches = name.innerText.match(query);
-			name.classList.remove("alt");
+				const name = row.childNodes.item(0);
+				name.classList.remove("alt");
 
-			const desc = row.childNodes.item(2);
-			const desc_matches = desc.innerText.match(query);
-			desc.classList.remove("alt");
+				const desc = row.childNodes.item(2);
+				desc.classList.remove("alt");
 
-			if (query) { // avoid matching the empty string
-				if (name_matches || desc_matches) {
-					if (name_matches) { name.classList.add("alt"); }
-					if (desc_matches) { desc.classList.add("alt"); }
+				if (query) {
+					const name_matches = name.innerText.match(pattern);
+					const desc_matches = desc.innerText.match(pattern);
+					if (name_matches || desc_matches) {
+						row.classList.remove("invisible");
+						if (name_matches) { name.classList.add("alt"); }
+						if (desc_matches) { desc.classList.add("alt"); }
+					} else {
+						row.classList.add("invisible");
+					}
 				} else {
-					row.classList.add("invisible");
+					row.classList.remove("invisible");
 				}
 			}
-		}
+
+			tid = false;
+		}, 100, event.target.value.trim());
 	});
 
 	const main = document.querySelector("main");

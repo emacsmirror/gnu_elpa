@@ -1,4 +1,4 @@
-; greader-espeak.el
+;; greader-espeak.el  -*- lexical-binding: t; -*-
 ;; Copyright (C) 2017-2024  Free Software Foundation, Inc.
 (defgroup greader-espeak
   nil
@@ -20,7 +20,10 @@ type in a terminal: espeak --list-languages"
 
 (defcustom greader-espeak-executable-name "espeak"
   "File name of espeak executable.
-this variable determines authomatically if espeak is present in your PATH environment, then if this variable is nil, it means that you must first install espeak."
+this variable determines authomatically if espeak is present in your
+PATH
+environment, then if this variable is nil,
+it means that you must first install espeak."
   :tag "espeak executable"
   :type 'string)
 

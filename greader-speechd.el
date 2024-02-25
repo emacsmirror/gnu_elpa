@@ -94,7 +94,7 @@ or >2 for all punctuation."
 (defun greader-speechd-stop ()
   "Stops speech-dispatcher client."
   (start-process "speechd-client" nil greader-speechd-executable "-S")
-  (sleep-for 0 100))
+  (sleep-for 0.100))
 ;;;###autoload
 (defun greader-speechd (command &optional arg &rest _)
   "greader speech-dispatcher back-end."

@@ -81,6 +81,10 @@ otherwise no connection has been opened.")
 (defvar rcirc-sqlite-drill-down-method nil
   "Variable to store how to drill down from the stats.")
 
+(defconst rcirc-sqlite-all-channels "All channels")
+(defconst rcirc-sqlite-all-nicks "All nicks")
+(defconst rcirc-sqlite-anytime "Anytime")
+
 (defun rcirc-sqlite--conn ()
   "Return an open database connection, or open one up."
   (or rcirc-sqlite--conn
@@ -166,7 +170,7 @@ ARG-LIST is a list with the requested nick and/or channel.
 	   (setq dimension "messages")
 	   (setq from "rcirclogs where channel = ?")
 	   (setq dbdata (cdr arg-list)))
-	  ((string= (car arg-list) "All nicks")
+	  ((string= (car arg-list) rcirc-sqlite-all-nicks)
 	   (push "channel" rcirc-sqlite-drill-down-method)
 	   (setq from "rcirclogs"))
 	  (t
@@ -188,11 +192,11 @@ offset and limit."
 	(dbquery "SELECT * FROM rcirclogs")
 	(dbdata ()))
     (pcase-let ((`(,channel ,when ,unlimited ,offset ,limit) arg-list))
-      (unless (string= channel "All channels")
+      (unless (string= channel rcirc-sqlite-all-channels)
 	(setq dbquery (concat dbquery " WHERE channel=?"))
 	(push channel dbdata))
-      (unless (string= when "Anytime")
-	(if (string= channel "All channels")
+      (unless (string= when rcirc-sqlite-anytime)
+	(if (string= channel rcirc-sqlite-all-channels)
 	    (setq dbquery (concat dbquery " WHERE "))
 	  (setq dbquery (concat dbquery " AND ")))
 	(setq dbquery (concat dbquery "strftime('%Y-%m', time, 'unixepoch')=?"))
@@ -216,13 +220,13 @@ channel, month and/or nick to narrow the search to."
 	(dbquery "SELECT * FROM rcirclogs WHERE rcirclogs=?"))
     (pcase-let ((`(,query ,channel ,when ,nick) arg-list))
       (let ((dbdata (list query)))
-	(unless (string= channel "All channels")
+	(unless (string= channel rcirc-sqlite-all-channels)
 	  (setq dbquery (concat dbquery " AND channel=?"))
 	  (push channel dbdata))
-	(unless (string= when "Anytime")
+	(unless (string= when rcirc-sqlite-anytime)
 	  (setq dbquery (concat dbquery " AND strftime('%Y-%m', time, 'unixepoch')=?"))
 	  (push when dbdata))
-	(unless (string= nick "All nicks")
+	(unless (string= nick rcirc-sqlite-all-nicks)
 	  (setq dbquery (concat dbquery " AND nick=?"))
 	  (push nick dbdata))
 	(setq dbquery (concat dbquery " ORDER BY rank"))
@@ -240,7 +244,7 @@ ARG-LIST defines which records to select."
        ((string= nick "Channels per nick")
 	(setq dbquery (concat dbquery "nick=?"))
 	(push what dbdata))
-       ((string= nick "All nicks")
+       ((string= nick rcirc-sqlite-all-nicks)
 	(setq dbquery (concat dbquery "channel=?"))
 	(push what dbdata))
        (t
@@ -362,25 +366,30 @@ Called from `rcirc-sqlite-two-column-mode'."
 
 (defun rcirc-sqlite-select-channel ()
   "Provide completion to select a channel."
-  (completing-read
-   "Select a channel (use completion): "
-   (append (list "All channels") (rcirc-sqlite-db-query-channels))))
+  (let ((default (or (bound-and-true-p rcirc-target)
+		     rcirc-sqlite-all-channels)))
+    (completing-read
+     (format-prompt "Select a channel" default)
+     (cons rcirc-sqlite-all-channels (rcirc-sqlite-db-query-channels))
+     nil nil nil nil default)))
 
-(defun rcirc-sqlite-select-nick (wild-card-values)
+(defun rcirc-sqlite-select-nick (wild-card-value)
   "Provide completion to select a nick.
-Extend the list of nicks with WILD-CARD-VALUES to offer the
-user more choices."
+Extend the list of nicks with WILD-CARD-VALUE to offer the user more
+choices.  This will also be used as the default choice."
   (completing-read
-   "Select a nick (use completion): "
-   (append wild-card-values (rcirc-sqlite-db-query-nicks))))
+   (format-prompt "Select a nick" wild-card-value)
+   (append wild-card-value (rcirc-sqlite-db-query-nicks))
+   nil nil nil nil wild-card-value))
 
-(defun rcirc-sqlite-select-month (wild-card-values)
+(defun rcirc-sqlite-select-month (wild-card-value)
   "Provide completion to select a year and month.
-Extend the list of months with WILD-CARD-VALUES to offer the
-user more choices."
+Extend the list of months with WILD-CARD-VALUE to offer the user more
+choices.  This will also be used as the default choice."
   (completing-read
-   "Select a month (use completion): "
-   (append wild-card-values (rcirc-sqlite-db-query-months))))
+   (format-prompt "Select a month" wild-card-value)
+   (cons wild-card-value (rcirc-sqlite-db-query-months))
+   nil nil nil nil wild-card-value))
 
 (defun rcirc-sqlite-view-log (channel when &optional unlimited offset limit)
   "View the logs of a specific CHANNEL.
@@ -391,7 +400,7 @@ When called with non-nil UNLIMITED, show all the rows.
 Otherwise offset and limit are used; in that case  both offset
 and limit have to be provided."
   (interactive (list (rcirc-sqlite-select-channel)
-		     (rcirc-sqlite-select-month (list "Anytime"))))
+		     (rcirc-sqlite-select-month rcirc-sqlite-anytime)))
   (let ((searcharg-list (list channel when unlimited offset limit)))
     (rcirc-sqlite-display-tabulation-list
      (format "View log (%s %s)" channel when)
@@ -404,8 +413,8 @@ Optional narrow search in a specific CHANNEL and/or with a specific NICK.
 The results are displayed a new buffer."
   (interactive (list (read-string "Search for: ")
                      (rcirc-sqlite-select-channel)
-		     (rcirc-sqlite-select-month (list "Anytime"))
-		     (rcirc-sqlite-select-nick (list "All nicks"))))
+		     (rcirc-sqlite-select-month rcirc-sqlite-anytime)
+		     (rcirc-sqlite-select-nick rcirc-sqlite-all-nicks)))
   (let ((searcharg-list (list query channel when nick)))
     (rcirc-sqlite-display-tabulation-list
      (format "Search %s (%s %s %s)" query channel when nick)
@@ -415,7 +424,7 @@ The results are displayed a new buffer."
   "Display overview of the number of rows per channel.
 Optionally narrow to a specific NICK.
 The results are displayed a new buffer."
-  (interactive (list (rcirc-sqlite-select-nick (list "All nicks"
+  (interactive (list (rcirc-sqlite-select-nick (list rcirc-sqlite-all-nicks
 						     "Nicks per channel"
 						     "Channels per nick"))))
   (let ((searcharg-list (list nick)))

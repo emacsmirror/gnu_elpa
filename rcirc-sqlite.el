@@ -83,6 +83,8 @@ otherwise no connection has been opened.")
 
 (defconst rcirc-sqlite-all-channels "All channels")
 (defconst rcirc-sqlite-all-nicks "All nicks")
+(defconst rcirc-sqlite-nicks-per-channel "Nicks per channel")
+(defconst rcirc-sqlite-channels-per-nick "Channels per nick")
 (defconst rcirc-sqlite-anytime "Anytime")
 
 (defun rcirc-sqlite--conn ()
@@ -156,11 +158,11 @@ ARG-LIST is a list with the requested nick and/or channel.
 	(from "")
 	(dbdata ()))
     (setq rcirc-sqlite-drill-down-method arg-list)
-    (cond ((string= (car arg-list) "Nicks per channel")
+    (cond ((string= (car arg-list) rcirc-sqlite-nicks-per-channel)
 	   (setq dimension "nicks")
 	   (push "channel" rcirc-sqlite-drill-down-method)
 	   (setq from "(SELECT channel, nick FROM rcirclogs GROUP BY channel,nick)"))
-	  ((string= (car arg-list) "Channels per nick")
+	  ((string= (car arg-list) rcirc-sqlite-channels-per-nick)
 	   (setq column "nick")
 	   (setq dimension "channels")
 	   (push "nick" rcirc-sqlite-drill-down-method)
@@ -241,7 +243,7 @@ ARG-LIST defines which records to select."
 	(dbdata ()))
     (pcase-let ((`(,what ,where ,nick) arg-list))
       (cond
-       ((string= nick "Channels per nick")
+       ((string= nick rcirc-sqlite-channels-per-nick)
 	(setq dbquery (concat dbquery "nick=?"))
 	(push what dbdata))
        ((string= nick rcirc-sqlite-all-nicks)
@@ -349,7 +351,7 @@ arguments in ARG-LIST.  IDENTSTR explains which stat is shown."
 Called from `rcirc-sqlite-two-column-mode'."
 (interactive nil rcirc-sqlite-two-column-mode)
 (cond
- ((string= (nth 1 rcirc-sqlite-drill-down-method) "Nicks per channel")
+ ((string= (nth 1 rcirc-sqlite-drill-down-method) rcirc-sqlite-nicks-per-channel)
   (let ((arg-list (list "Channel" (tabulated-list-get-id))))
     (rcirc-sqlite-display-two-column-tabulation-list
      (format "Stats (%s)" (tabulated-list-get-id))
@@ -425,8 +427,8 @@ The results are displayed a new buffer."
 Optionally narrow to a specific NICK.
 The results are displayed a new buffer."
   (interactive (list (rcirc-sqlite-select-nick (list rcirc-sqlite-all-nicks
-						     "Nicks per channel"
-						     "Channels per nick"))))
+						     rcirc-sqlite-nicks-per-channel
+						     rcirc-sqlite-channels-per-nick))))
   (let ((searcharg-list (list nick)))
     (rcirc-sqlite-display-two-column-tabulation-list
      (format "Stats (%s)" nick)

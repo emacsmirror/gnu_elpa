@@ -5,7 +5,7 @@
 ;; Author: Matto Fransen <matto@matto.nl>
 ;; Maintainer: Matto Fransen <matto@matto.nl>
 ;; Url: https://codeberg.org/mattof/rcirc-sqlite
-;; Version: 0.1.3
+;; Version: 0.1.4
 ;; Keywords: comm
 ;; Package-Requires: ((emacs "30.0"))
 

@@ -684,7 +684,7 @@ buffer, so if you want to set it globally, please use
 	  (read-string "Set language to: ")
 	result))))
   (greader-call-backend 'lang lang)
-  (run-hooks greader-after-change-language-hook))
+  (run-hooks 'greader-after-change-language-hook))
 
 (defun greader-set-punctuation (flag)
   "Set punctuation to FLAG."

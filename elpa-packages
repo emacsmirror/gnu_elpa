@@ -431,6 +431,8 @@
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
+ (listen		:url "https://github.com/alphapapa/listen.el"
+  :doc "README.org")
  (llm			:url "https://github.com/ahyatt/llm")
  (lmc			:url nil)
  (load-dir		:url nil)

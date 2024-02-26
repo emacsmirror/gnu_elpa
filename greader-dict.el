@@ -462,6 +462,7 @@ Please use `greader-dict-save' for that purpose."
   "C-r d a" #'greader-dict-add-entry
   "C-r d k" #'greader-dict-remove-entry
   "C-r d c" #'greader-dict-change-dictionary
+  "C-r d l" #'greader-dict-pronounce-in-other-language
   "C-r d s" #'greader-dict-save)
 (defun greader-dict--replace-wrapper (text)
   "Function to add to `greader-after-get-sentence-functions'.
@@ -683,6 +684,51 @@ are classified as matches."
 	  (greader-dict-remove key)
 	  (greader-dict-add new-key backup-value))
       (user-error "Key not found"))))
+
+(defcustom greader-dict-include-sentences-in-defaults nil
+  "Includi le parole della frase come alternative.
+When active, the constituent words of the sentence currently in
+reading will be added to the list of defaults (where it makes sense
+to do it).
+In this way anyone who wishes can search for the word to manipulate
+using a menu instead of navigating the buffer."
+  :type 'boolean)
+
+(defun greader-dict--get-word-alternatives (text)
+  "Return a list with a set of words in TEXT."
+  (if-let ((alternatives text))
+      (progn
+	(setq alternatives nil)
+	(dolist (word (split-string text "\\W" t))
+	  (unless (member word alternatives)
+	    (push word alternatives)))
+	(reverse alternatives))
+    (user-error "No text")))
+
+(defvar greader-dict-lang-history nil)
+
+;;;###autoload
+(defun greader-dict-pronounce-in-other-language (word new-lang)
+  "pronounce WORD in the language specified by NEW-LANG.
+The currently configured backend will be used for the voice.
+NEW-LANG should be an ISO code, compatible with the back-end you are
+using.
+If the variable `greader-dict-include-sentences-in-defaults is enabled, when
+asked about the word to pronounce, the defaults will be a set of words
+in the current sentence."
+
+  (interactive
+   (list
+    (read-string "Word to pronounce: " nil t
+		 (when greader-dict-include-sentences-in-defaults
+		   (greader-dict--get-word-alternatives (greader-get-sentence))))
+    (read-string (concat "language in which you wish to listen:") nil
+		 'greader-dict-lang-history)))
+  (unless new-lang (user-error "No language specified"))
+  (let ((old-lang (greader-get-language)))
+    (greader-set-language new-lang)
+    (greader-read-asynchronous word)
+    (greader-set-language old-lang)))
 
 (provide 'greader-dict)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

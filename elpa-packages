@@ -63,9 +63,9 @@
  (ampc			:url nil)
  (arbitools		:url nil)
  (ascii-art-to-unicode 	:url nil)
- ;; FIXME: Need to fix the manual's build problem.
- ;; (assess		:url "https://github.com/phillord/assess"
- ;;  :doc "assess-doc.org")
+ (assess		:url "https://github.com/phillord/assess"
+  ;; :doc "assess-doc.org"  ;; FIXME: Fix build of `assess.org'!
+  )
  (async			:url "https://github.com/jwiegley/emacs-async"
   :ignored-files ("COPYING"))
  (auctex		:url "https://git.savannah.gnu.org/git/auctex.git"
@@ -214,7 +214,8 @@
   :news "CHANGELOG.org"
   :readme "README.md")
  (devdocs		:url "https://github.com/astoff/devdocs.el")
- (devicetree-ts-mode    :url "https://git.sr.ht/~akagi/devicetree-ts-mode")
+ (devicetree-ts-mode	:url "https://git.sr.ht/~akagi/devicetree-ts-mode"
+  :ignored-files ("LICENSE"))
  (dict-tree		:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
  (diff-hl		:url "https://github.com/dgutov/diff-hl.git")
  (diffview            	:url "https://github.com/mgalgs/diffview-mode.git")
@@ -421,9 +422,10 @@
  (latex-table-wizard    :url "https://github.com/enricoflor/latex-table-wizard"
   :doc "latex-table-wizard.texi")
  (leaf			:url "https://github.com/conao3/leaf.el")
- ;; FIXME: In preparation (depends on `f` and `s`).
- ;; (lentic		:url "https://github.com/phillord/lentic")
- ;; FIXME: In preparation (depends on `lentic`).
+ (lentic		:url "https://github.com/phillord/lentic"
+  ;; :doc ;; FIXME!!
+  )
+ ;; FIXME: Fix copyright headers
  ;; (lentic-server	:url "https://github.com/phillord/lentic-server")
  (let-alist		:core "lisp/emacs-lisp/let-alist.el")
  (lex			:url nil)
@@ -448,9 +450,9 @@
   :readme "README.org")
  (lv			:url "https://github.com/abo-abo/hydra"
   :ignored-files ("hydra*" "README.md" "doc" "targets"))
- ;; FIXME: Need to fix the manual's build problem.
- ;; (m-buffer		:url "https://github.com/phillord/m-buffer-el"
- ;;  :doc "m-buffer-doc.org")
+ (m-buffer		:url "https://github.com/phillord/m-buffer-el"
+  ;; :doc "m-buffer-doc.org" ;; FIXME: Need to fix the manual's build problem!
+  )
  (map			:core "lisp/emacs-lisp/map.el")
  (marginalia		:url "https://github.com/minad/marginalia"
   :doc "README.org"

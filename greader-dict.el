@@ -148,6 +148,7 @@
 
 (defun greader-dict-substitute-word (match)
   "Substitute MATCH only if it constitutes an entire word."
+
   (save-excursion
     (goto-char (point-min))
     (let ((word (concat "\\(\\W?\\)" "\\(" match "\\)" "\\(\\W+\\)"))
@@ -159,7 +160,6 @@
 						 alternative-word nil
 						 t)
 		 (re-search-forward end-word nil t))
-	;; (edebug)
 	(let ((replacement
 	       (concat (match-string 1)
 		       (gethash match greader-dictionary)
@@ -275,6 +275,10 @@ Return nil if KEY is not present in `greader-dictionary'."
 						 greader-dict--current-reading-buffer))
     (insert text)
     (goto-char (point-min))
+    ;; We check if text is actually just one word, and in that case
+    ;; insert a new line at end of temp buffer.
+    (unless (re-search-forward "\\W" nil t)
+      (save-excursion (goto-char (point-max)) (newline)))
     (let ((inhibit-read-only t))
       (re-search-forward "\\w" nil t)
       (while (not (eobp))

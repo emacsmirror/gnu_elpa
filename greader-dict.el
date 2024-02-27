@@ -277,8 +277,8 @@ Return nil if KEY is not present in `greader-dictionary'."
     (goto-char (point-min))
     ;; We check if text is actually just one word, and in that case
     ;; insert a new line at end of temp buffer.
-    (unless (re-search-forward "\\W" nil t)
-      (save-excursion (goto-char (point-max)) (newline)))
+    (when (= (count-words (point-min) (point-max)) 1)
+      (save-excursion (goto-char (point-max)) (newline))
     (let ((inhibit-read-only t))
       (re-search-forward "\\w" nil t)
       (while (not (eobp))

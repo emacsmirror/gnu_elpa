@@ -1,4 +1,4 @@
-;;; lentic-server.el --- Web Server for Emacs Literate Source
+;;; lentic-server.el --- Web Server for Emacs Literate Source  -*- lexical-binding:t -*-
 
 ;;; Header:
 
@@ -11,7 +11,7 @@
 
 ;; The contents of this file are subject to the GPL License, Version 3.0.
 
-;; Copyright (C) 2015, Phillip Lord, Newcastle University
+;; Copyright (C) 2015-2024  Free Software Foundation, Inc.
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -40,6 +40,21 @@
 
 (defvar lentic-server--server nil)
 
+(defun lentic-server--split (filename)
+  (cl-assert filename)
+  (let ((parts ()))
+    (while
+        (let* ((file (directory-file-name filename))
+               (dir (file-name-directory file)))
+          (if (and dir (< (length dir) (length file)))
+              (progn
+                (push (file-name-nondirectory file) parts)
+                (setq filename dir))
+            (push file parts)
+            nil)))
+    parts))
+  
+
 ;;;###autoload
 (defun lentic-server-start ()
   (interactive)
@@ -48,7 +63,7 @@
          (lambda (request)
            (with-slots (process headers) request
              (-let* (((_ package . _)
-                      (f-split (cdr (assoc :GET headers))))
+                      (lentic-server--split (cdr (assoc :GET headers))))
                      )
                (cond
                 ((not package)
@@ -62,7 +77,7 @@
                 ((-contains? lentic-doc-allowed-files package)
                  (ws-send-file process (locate-file package load-path)))
                 (t
-                 (ws-send-404))))))
+                 (ws-send-404 process))))))
          9010)))
 
 ;; this needs to go to web-server!

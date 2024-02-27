@@ -425,8 +425,7 @@
  (lentic		:url "https://github.com/phillord/lentic"
   ;; :doc ;; FIXME!!
   )
- ;; FIXME: Fix copyright headers
- ;; (lentic-server	:url "https://github.com/phillord/lentic-server")
+ (lentic-server		:url "https://github.com/phillord/lentic-server")
  (let-alist		:core "lisp/emacs-lisp/let-alist.el")
  (lex			:url nil)
  (lin			:url "https://github.com/protesilaos/lin"

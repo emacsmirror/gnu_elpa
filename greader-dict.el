@@ -427,7 +427,9 @@ of pronunciation rules."
 	    (setq key (read-string "Original word to substitute or
 modify: " nil
 nil
-(append (list default-word)(greader-dict--get-matches 'word))))
+(append (list default-word)(when
+			       greader-dict-include-sentences-in-defaults
+			     (greader-dict--get-word-alternatives (greader-get-sentence))) (greader-dict--get-matches 'word))))
 	    (setq value (read-string (concat "substitute word " key
 					     " with: ")
 				     (gethash key greader-dictionary)))

@@ -395,7 +395,11 @@ for definition and substitution, without defaults.
 If called with prefix argument, ask for a match.
 In this case you can type a regular expression.
 You can use regular expressions to, for example, craft filters instead
-of pronunciation rules."
+of pronunciation rules.
+If the customizable variable
+`greader-dict-include-sentences-in-defaults' is enabled, when adding
+an entry the defaults will include also the set of words that makes up
+the current sentence."
   (interactive "P")
   (let (key value)
     (cond

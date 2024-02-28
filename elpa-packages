@@ -371,6 +371,7 @@
  (hyperbole           	:url "https://git.savannah.gnu.org/git/hyperbole.git"
   :make ("kotl/kotl-autoloads.el")
   :news "HY-NEWS")
+ ;; (idlwave		:url "https://github.com/jdtsmith/idlwave")
  (ilist			:url "https://gitlab.com/mmemmew/ilist"
   :doc "ilist.texinfo"
   :readme "README.org")
@@ -450,7 +451,9 @@
  (lv			:url "https://github.com/abo-abo/hydra"
   :ignored-files ("hydra*" "README.md" "doc" "targets"))
  (m-buffer		:url "https://github.com/phillord/m-buffer-el"
-  ;; :doc "m-buffer-doc.org" ;; FIXME: Need to fix the manual's build problem!
+  ;; This is fairly ugly, let's hope it works.
+  :shell-command "make doc-gen CASK=\"\" EMACS=\"emacs -L $(pwd)/../lentic -L $(pwd)/../dash\""
+  :doc "m-buffer-doc.org" ;; FIXME: Need to fix the manual's build problem!
   )
  (map			:core "lisp/emacs-lisp/map.el")
  (marginalia		:url "https://github.com/minad/marginalia"
@@ -655,6 +658,7 @@
  (smalltalk-mode	:url nil) ;; Was "git://git.sv.gnu.org/smalltalk"
  (smart-yank		:url nil)
  (sml-mode		:url nil)
+ ;; (snippet		:url "https://github.com/joaotavora/snippet")
  (so-long		:core "lisp/so-long.el")
  (soap-client		:core ("lisp/net/soap-client.el" "lisp/net/soap-inspect.el"))
  (sokoban		:url nil)

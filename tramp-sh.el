@@ -544,6 +544,7 @@ shell from reading its init file."
     (tramp-terminal-prompt-regexp tramp-action-terminal)
     (tramp-antispoof-regexp tramp-action-confirm-message)
     (tramp-security-key-confirm-regexp tramp-action-show-and-confirm-message)
+    (tramp-security-key-pin-regexp tramp-action-otp-password)
     (tramp-process-alive-regexp tramp-action-process-alive))
   "List of pattern/action pairs.
 Whenever a pattern matches, the corresponding action is performed.
@@ -563,6 +564,7 @@ corresponding PATTERN matches, the ACTION function is called.")
     (tramp-wrong-passwd-regexp tramp-action-permission-denied)
     (tramp-copy-failed-regexp tramp-action-permission-denied)
     (tramp-security-key-confirm-regexp tramp-action-show-and-confirm-message)
+    (tramp-security-key-pin-regexp tramp-action-otp-password)
     (tramp-process-alive-regexp tramp-action-out-of-band))
   "List of pattern/action pairs.
 This list is used for copying/renaming with out-of-band methods.
@@ -2520,6 +2522,12 @@ The method used must be an out-of-band method."
 	    ;; still running, so let's clear everything (but the
 	    ;; cached password).
 	    (tramp-cleanup-connection v 'keep-debug 'keep-password))))
+
+      ;; The cached file properties might be wrong if NEWNAME didn't
+      ;; exist.  Flush them.
+      (when v2
+	(with-parsed-tramp-file-name newname v2
+	  (tramp-flush-file-properties v2 v2-localname)))
 
       ;; Handle KEEP-DATE argument.
       (when (and keep-date (not copy-keep-date))

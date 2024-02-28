@@ -224,7 +224,7 @@ pair of the form (KEY VALUE).  The following KEYs are defined:
     set this to any value other than \"/bin/sh\": Tramp wants to
     use a shell which groks tilde expansion, but it can search
     for it.  Also note that \"/bin/sh\" exists on all Unixen
-    except Andtoid, this might not be true for the value that you
+    except Android, this might not be true for the value that you
     decide to use.  You Have Been Warned.
 
   * `tramp-remote-shell-login'
@@ -332,8 +332,8 @@ pair of the form (KEY VALUE).  The following KEYs are defined:
     chosen port for the remote listener.
 
   * `tramp-copy-keep-date'
-    This specifies whether the copying program when the preserves the
-    timestamp of the original file.
+    This specifies whether the copying program preserves the timestamp
+    of the original file.
 
   * `tramp-copy-keep-tmpfile'
     This specifies whether a temporary local file shall be kept
@@ -763,9 +763,8 @@ The regexp should match at end of buffer."
 
 ;; A security key requires the user physically to touch the device
 ;; with their finger.  We must tell it to the user.
-;; Added in OpenSSH 8.2.  I've tested it with yubikey.  Nitrokey and
-;; Titankey, which have also passed the tests, do not show such a
-;; message.
+;; Added in OpenSSH 8.2.  I've tested it with Nitrokey, Titankey, and
+;; Yubikey.
 (defcustom tramp-security-key-confirm-regexp
   (rx bol (* "\r") "Confirm user presence for key " (* nonl) (* (any "\r\n")))
   "Regular expression matching security key confirmation message.
@@ -786,6 +785,14 @@ The regexp should match at end of buffer."
   "Regular expression matching security key timeout message.
 The regexp should match at end of buffer."
   :version "28.1"
+  :type 'regexp)
+
+;; Needed only for FIDO2 (residential) keys.  Tested with Nitrokey and Yubikey.
+(defcustom tramp-security-key-pin-regexp
+  (rx bol (* "\r") (group "Enter PIN for " (* nonl)) (* (any "\r\n")))
+  "Regular expression matching security key PIN prompt.
+The regexp should match at end of buffer."
+  :version "29.3"
   :type 'regexp)
 
 (defcustom tramp-operation-not-permitted-regexp
@@ -5589,7 +5596,7 @@ of."
 	  prompt)
       (goto-char (point-min))
       (tramp-check-for-regexp proc tramp-process-action-regexp)
-      (setq prompt (concat (match-string 1) " "))
+      (setq prompt (concat (string-trim (match-string 1)) " "))
       (tramp-message vec 3 "Sending %s" (match-string 1))
       ;; We don't call `tramp-send-string' in order to hide the
       ;; password from the debug buffer and the traces.
@@ -5665,14 +5672,17 @@ Wait, until the connection buffer changes."
       (ignore set-message-function clear-message-function)
       (tramp-message vec 6 "\n%s" (buffer-string))
       (tramp-check-for-regexp proc tramp-process-action-regexp)
-      (with-temp-message
-	  (replace-regexp-in-string (rx (any "\r\n")) "" (match-string 0))
+      (with-temp-message (concat (string-trim (match-string 0)) " ")
 	;; Hide message in buffer.
 	(narrow-to-region (point-max) (point-max))
 	;; Wait for new output.
 	(while (not (tramp-compat-ignore-error file-error
 		      (tramp-wait-for-regexp
-		       proc 0.1 tramp-security-key-confirmed-regexp)))
+		       proc 0.1
+		       (tramp-compat-rx
+			(| (regexp tramp-security-key-confirmed-regexp)
+			   (regexp tramp-security-key-pin-regexp)
+			   (regexp tramp-security-key-timeout-regexp))))))
 	  (when (tramp-check-for-regexp proc tramp-security-key-timeout-regexp)
 	    (throw 'tramp-action 'timeout))
 	  (redisplay 'force)))
@@ -6726,12 +6736,13 @@ Consults the auth-source package."
 		   (tramp-get-connection-property key "login-as")))
 	 (host (tramp-file-name-host-port vec))
 	 (pw-prompt
-	  (or prompt
-	      (with-current-buffer (process-buffer proc)
-		(tramp-check-for-regexp proc tramp-password-prompt-regexp)
-		(if (string-match-p "passphrase" (match-string 1))
-		    (match-string 0)
-		  (format "%s for %s " (capitalize (match-string 1)) key)))))
+	  (string-trim-left
+	   (or prompt
+	       (with-current-buffer (process-buffer proc)
+		 (tramp-check-for-regexp proc tramp-password-prompt-regexp)
+		 (if (string-match-p "passphrase" (match-string 1))
+		     (match-string 0)
+		   (format "%s for %s " (capitalize (match-string 1)) key))))))
 	 (auth-source-creation-prompts `((secret . ,pw-prompt)))
 	 ;; Use connection-local value.
 	 (auth-sources (buffer-local-value 'auth-sources (process-buffer proc)))

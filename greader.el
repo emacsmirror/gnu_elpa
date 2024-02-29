@@ -1222,8 +1222,8 @@ When called from a function, you should specify SRC and DST, even if
   :type 'boolean)
 
 (defun greader--forward ()
-  (when (equal
-	 (point) greader--marker-backward)
+  (when (and (equal
+	 (point) greader--marker-backward) greader-reading-mode)
     (greader-forward-sentence)
     (backward-char 2)
     (when greader-backward-acoustic-feedback

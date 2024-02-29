@@ -215,22 +215,29 @@ add `\*'to the end of the WORD string parameter."
    (t
     (setq greader-dict--saved-flag t)
     nil)))
+(defvar greader-dict--item-type-alist '((match
+					 . "\%\*")
+					(filter
+					 . "\%f") (word . ""))
+  "item types and relative prefixes.")
 
 (defun greader-dict-item-type (key)
   "Return the type of KEY.
 Possible return values are:
 `word' for a wole word,
-`match' for partial matches.
+`match' for partial matches,
+`filter' for filters.
 There may be more in the future.
 Return nil if KEY is not present in `greader-dictionary'."
-  (cond
-   ((not key)
-    nil)
-   ((not (string-suffix-p greader-dict-match-indicator key))
-    'word)
-   ((string-suffix-p greader-dict-match-indicator key)
-    'match)
-   (t nil)))
+
+  (let (result)
+    (catch 'key-found
+      (dolist (type greader-dict--item-type-alist)
+	(if (gethash (concat key (cdr type)) greader-dictionary)
+	    (progn
+	      (setq result (car type))
+	      (throw 'key-found result))
+	  nil)))))
 
 (defun greader-dict--get-key-from-word (word)
   "Return key related to WORD, nil otherwise."
@@ -275,26 +282,31 @@ Return nil if KEY is not present in `greader-dictionary'."
 						 greader-dict--current-reading-buffer))
     (insert text)
     (goto-char (point-min))
-    ;; We check if text is actually just one word, and in that case
-    ;; insert a new line at end of temp buffer.
-    (when (= (count-words (point-min) (point-max)) 1)
-      (save-excursion (goto-char (point-max)) (newline)))
-    (let ((inhibit-read-only t))
-      (re-search-forward "\\w" nil t)
-      (while (not (eobp))
-	(let*
-	    ((key (greader-dict--get-key-from-word (thing-at-point
-						    'word))))
-	  (cond
-	   ((equal (greader-dict-item-type key) 'word)
-	    (greader-dict-substitute-word (string-remove-suffix
-					   greader-dict-match-indicator
-					   key)))
-	   ((equal (greader-dict-item-type key) 'match)
-	    (greader-dict-substitute-match key))
-	   ((not (greader-dict-item-type key))
-	    nil)))
-	(re-search-forward "\\W*\\w" nil 1))
+    (when greader-dict-enable-filters
+      (greader-dict-filters-apply))
+    (if greader-dict-mode
+	(progn
+	  ;; We check if text is actually just one word, and in that case
+	  ;; insert a new line at end of temp buffer.
+	  (when (= (count-words (point-min) (point-max)) 1)
+	    (save-excursion (goto-char (point-max)) (newline)))
+	  (let ((inhibit-read-only t))
+	    (re-search-forward "\\w" nil t)
+	    (while (not (eobp))
+	      (let*
+		  ((key (greader-dict--get-key-from-word (thing-at-point
+							  'word))))
+		(cond
+		 ((equal (greader-dict-item-type key) 'word)
+		  (greader-dict-substitute-word (string-remove-suffix
+						 greader-dict-match-indicator
+						 key)))
+		 ((equal (greader-dict-item-type key) 'match)
+		  (greader-dict-substitute-match key))
+		 ((not (greader-dict-item-type key))
+		  nil)))
+	      (re-search-forward "\\W*\\w" nil 1))
+	    (buffer-string)))
       (buffer-string))))
 
 ;; This function saves the contents of the hash table.
@@ -352,8 +364,9 @@ user-error and aborts the reading process."
 	  (setf (car line) (car (split-string (car line) "\"" t)))
 	  (let ((greader-dict-save-after-time -1))
 	    (greader-dict-add (car line) (car (cdr line)))))
-	(setq greader-dict--saved-flag t))))
-  (add-hook 'buffer-list-update-hook #'greader-dict--update))
+	(greader-dict--filter-init)
+	(setq greader-dict--saved-flag t)))
+    (add-hook 'buffer-list-update-hook #'greader-dict--update)))
 
 ;; Command for saving interactively dictionary data.
 (defun greader-dict-save ()
@@ -739,6 +752,74 @@ in the current sentence."
     (greader-set-language new-lang)
     (greader-read-asynchronous word)
     (greader-set-language old-lang)))
+
+;; filters.
+;; filters allow users to define arbitrary regexps to be replaced
+;; either with empty strings or by another string.
+;; It is necessary to conceptually abstract filters from other types of
+;; match because the filters allow the use of any character and in any case, being applied as they are,
+;; the user can better exploit the expressive power of regexps.
+;; so filters are a separate feature, which we can consider an
+;; "advanced" use case of greader-dict.
+
+(defvar-local greader-filters (make-hash-table :test 'ignore-case)
+  "Hash table containing our filters.")
+
+(defvar greader-dict-filter-indicator "\%f")
+
+(define-minor-mode greader-dict-toggle-filters
+  "Filters allow you to replace every regexp you wish with something
+  you wish.
+While matches and words are conceived as entities to help who have
+difficulties in writing a regexp, with filters you can unleash all
+your expressiveness!
+Filters and dictionary are considered independent features for now, so
+  you can enable filters without the extra payload given by
+  `greader-dict-mode'.
+To use a filter you must first enable this mode, and, eventually, add
+a filter.
+So use `greader-dict-filter-add' to do that.
+When you are prompted for the filter, you should insert the regexp
+that must match to have the associated replacement.
+You can use the usual `\\\\' expressions, shy groups and all the power
+  of regexps."
+  :global t
+  :lighter " gr-filters"
+  (greader-dict-read-from-dict-file))
+
+(defun greader-dict--is-filter-p (key)
+  "Return t if KEY is a filter based on
+`greader-dict-filter-indicator'."
+  (string-suffix-p greader-dict-filter-indicator key))
+
+(defun greader-dict-filter-add (key value)
+  "Add KEY as a filter with associated VALUE."
+  (interactive "Madd filter: \nMreplace with: ")
+  (greader-dict-add (concat key greader-dict-filter-indicator) value))
+
+(defun greader-dict--filter-init ()
+  "Initialize filters hash table.
+It works by subtracting from `greader-dictionary' the entries that are
+classified as filters and, eventually, adding them to the filters
+hash table."
+  (maphash
+   (lambda (k v)
+     ;; (debug)
+     (when (and greader-dict-enable-filters (string-suffix-p
+					     greader-dict-filter-indicator k))
+       (puthash k v greader-filters)
+       (message "%s" (concat "filter" k " found.")))) greader-dictionary))
+
+(defun greader-dict-filters-apply ()
+  "Apply filters defined in sequence to the current buffer."
+  (maphash
+   (lambda (k v)
+     (save-excursion
+       (goto-char (point-min))
+       (while (re-search-forward (string-remove-suffix
+				  greader-dict-filter-indicator k) nil t)
+	 (replace-match v))))
+   greader-filters))
 
 (provide 'greader-dict)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

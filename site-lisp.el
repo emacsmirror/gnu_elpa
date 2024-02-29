@@ -73,7 +73,7 @@ The result should be stored in FILE."
 
 (defvar generated-autoload-file)
 
-(defvar site-lisp-autoload-file)
+(defvar site-lisp--autoload-file)
 
 ;;;###autoload
 (defun site-lisp-prepare (dir)
@@ -85,8 +85,8 @@ of the list."
       (mapc #'site-lisp-prepare dir)
     (let ((backup-inhibited t)
           (start dir)
-          (site-lisp-autoload-file
-           (or (bound-and-true-p site-lisp-autoload-file)
+          (site-lisp--autoload-file
+           (or (bound-and-true-p site-lisp--autoload-file)
                (expand-file-name site-lisp-autoload-file dir))))
       (dolist (dir (cons dir (directory-files dir t "^[^.]")))
         (when (file-directory-p dir)
@@ -95,12 +95,12 @@ of the list."
               (site-lisp-prepare dir)
             (add-to-list 'load-path dir)
             (site-lisp-generate-autoloads
-             dir site-lisp-autoload-file)
+             dir site-lisp--autoload-file)
             (when (and site-lisp-collect-recursivly
                        (not (eq dir start)))
               (site-lisp-prepare dir)))))
       (byte-recompile-directory dir)
-      (load site-lisp-autoload-file nil t))))
+      (load site-lisp--autoload-file nil t))))
 
 (defun site-lisp-unprepare (dir)
   "Remove every directory in DIR from `load-path'.

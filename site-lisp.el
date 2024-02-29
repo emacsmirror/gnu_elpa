@@ -90,7 +90,7 @@ of the list."
                (expand-file-name site-lisp-autoload-file dir))))
       (dolist (dir (cons dir (directory-files dir t "^[^.]")))
         (when (file-directory-p dir)
-          (if (member (directory-file-name dir)
+          (if (member (file-name-nondirectory dir)
                       site-lisp-fixed-subdirectories)
               (site-lisp-prepare dir)
             (add-to-list 'load-path dir)

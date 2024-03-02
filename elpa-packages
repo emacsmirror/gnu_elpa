@@ -64,7 +64,8 @@
  (arbitools		:url nil)
  (ascii-art-to-unicode 	:url nil)
  (assess		:url "https://github.com/phillord/assess"
-  ;; :doc "assess-doc.org"  ;; FIXME: Fix build of `assess.org'!
+  :shell-command "emacs --batch -L . -L ../lentic -L ../m-buffer -L ../dash -l lentic-doc --eval '(lentic-doc-orgify-package `assess)'"
+  :doc "assess-doc.org"
   )
  (async			:url "https://github.com/jwiegley/emacs-async"
   :ignored-files ("COPYING"))

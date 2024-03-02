@@ -64,6 +64,7 @@
  (arbitools		:url nil)
  (ascii-art-to-unicode 	:url nil)
  (assess		:url "https://github.com/phillord/assess"
+  ;; FIXME: This is fairly ugly, we should clean it up.
   :shell-command "emacs --batch -L . -L ../lentic -L ../m-buffer -L ../dash -l lentic-doc --eval '(lentic-doc-orgify-package `assess)'"
   :doc "assess-doc.org"
   )
@@ -425,6 +426,7 @@
   :doc "latex-table-wizard.texi")
  (leaf			:url "https://github.com/conao3/leaf.el")
  (lentic		:url "https://github.com/phillord/lentic"
+  ;; FIXME: This is fairly ugly, we should clean it up.
   :shell-command "emacs --batch -L . -L ../m-buffer -L ../dash -l lentic-doc --eval '(lentic-doc-orgify-package `lentic)'"
   :doc "lenticular.org"
   )
@@ -453,8 +455,8 @@
  (lv			:url "https://github.com/abo-abo/hydra"
   :ignored-files ("hydra*" "README.md" "doc" "targets"))
  (m-buffer		:url "https://github.com/phillord/m-buffer-el"
-  ;; This is fairly ugly, let's hope it works.
-  :shell-command "make doc-gen CASK=\"\" EMACS=\"emacs -L $(pwd)/../lentic -L $(pwd)/../dash\""
+  ;; FIXME: This is fairly ugly, we should clean it up.
+  :shell-command "emacs --batch -L . -L ../lentic -L ../dash -l lentic-doc --eval '(lentic-doc-orgify-package `m-buffer)'"
   :doc "m-buffer-doc.org" ;; FIXME: Need to fix the manual's build problem!
   )
  (map			:core "lisp/emacs-lisp/map.el")

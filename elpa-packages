@@ -424,7 +424,8 @@
   :doc "latex-table-wizard.texi")
  (leaf			:url "https://github.com/conao3/leaf.el")
  (lentic		:url "https://github.com/phillord/lentic"
-  ;; :doc ;; FIXME!!
+  :shell-command "emacs --batch -L . -L ../m-buffer -L ../dash -l lentic-doc --eval '(lentic-doc-orgify-package `lentic)'"
+  :doc "lenticular.org"
   )
  (lentic-server		:url "https://github.com/phillord/lentic-server")
  (let-alist		:core "lisp/emacs-lisp/let-alist.el")
@@ -663,7 +664,7 @@
  (soap-client		:core ("lisp/net/soap-client.el" "lisp/net/soap-inspect.el"))
  (sokoban		:url nil)
  (sotlisp		:url "https://github.com/Malabarba/speed-of-thought-lisp")
- (spacious-padding		:url "https://github.com/protesilaos/spacious-padding"
+ (spacious-padding	:url "https://github.com/protesilaos/spacious-padding"
   :doc "README.org"
   :readme "README.md"
   :news "CHANGELOG.org"

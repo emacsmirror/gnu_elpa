@@ -229,15 +229,15 @@ Possible return values are:
 `filter' for filters.
 There may be more in the future.
 Return nil if KEY is not present in `greader-dictionary'."
-
+(when key
   (let (result)
     (catch 'key-found
       (dolist (type greader-dict--item-type-alist)
-	(if (gethash (concat key (cdr type)) greader-dictionary)
+	(if (gethash (concat key (unless (string-suffix-p (cdr type) key) (cdr type))) greader-dictionary)
 	    (progn
 	      (setq result (car type))
 	      (throw 'key-found result))
-	  nil)))))
+	  nil))))))
 
 (defun greader-dict--get-key-from-word (word)
   "Return key related to WORD, nil otherwise."
@@ -282,9 +282,9 @@ Return nil if KEY is not present in `greader-dictionary'."
 						 greader-dict--current-reading-buffer))
     (insert text)
     (goto-char (point-min))
-    (when greader-dict-enable-filters
+    (when greader-dict-toggle-filters
       (greader-dict-filters-apply))
-    (if greader-dict-mode
+    (if (buffer-local-value 'greader-dict-mode greader-dict--current-reading-buffer)
 	(progn
 	  ;; We check if text is actually just one word, and in that case
 	  ;; insert a new line at end of temp buffer.
@@ -491,7 +491,7 @@ Please use `greader-dict-save' for that purpose."
   "Function to add to `greader-after-get-sentence-functions'.
 It simply calls `greader-dict-check-and-replace' with TEXT as its
 argument, only if `greader-dict-mode' is enabled."
-  (if greader-dict-mode
+  (if (or greader-dict-mode greader-dict-toggle-filters)
       (greader-dict-check-and-replace text)
     text))
 
@@ -604,6 +604,12 @@ asked."
 ;; (remove-hook 'buffer-list-update-hook #'greader-dict--update)))))
 
 (defun greader-dict--update ()
+  (when greader-dict-toggle-filters
+    (let ((dict-mode-state greader-dict-mode))
+      (greader-dict-mode 1)
+      (greader-dict-read-from-dict-file)
+      (unless dict-mode-state
+	(greader-dict-mode -1))))
   (when greader-dict-mode
     (setq greader-dict--current-reading-buffer (current-buffer))
     (unless greader-dict--saved-flag
@@ -669,7 +675,10 @@ If TYPE is `all', all items in the current dictionary will be included."
      (lambda (k _v)
        (cond
 	((equal (greader-dict-item-type k) type)
-	 (let ((match (string-remove-suffix greader-dict-match-indicator k)))
+	 (let ((match (and (string-remove-suffix
+			    greader-dict-match-indicator k) (string-remove-suffix
+							    greader-dict-filter-indicator
+							    k))))
 	   (when decorate
 	     (setq match (concat match " \(" (gethash k greader-dictionary) "\)")))
 	   (push match matches)))
@@ -766,26 +775,30 @@ in the current sentence."
   "Hash table containing our filters.")
 
 (defvar greader-dict-filter-indicator "\%f")
-
+;;;###autoload
 (define-minor-mode greader-dict-toggle-filters
   "Filters allow you to replace every regexp you wish with something
-  you wish.
+you wish.
 While matches and words are conceived as entities to help who have
 difficulties in writing a regexp, with filters you can unleash all
 your expressiveness!
 Filters and dictionary are considered independent features for now, so
-  you can enable filters without the extra payload given by
-  `greader-dict-mode'.
+you can enable filters without the extra payload given by
+`greader-dict-mode'.
 To use a filter you must first enable this mode, and, eventually, add
 a filter.
 So use `greader-dict-filter-add' to do that.
 When you are prompted for the filter, you should insert the regexp
 that must match to have the associated replacement.
 You can use the usual `\\\\' expressions, shy groups and all the power
-  of regexps."
+of regexps."
   :global t
   :lighter " gr-filters"
-  (greader-dict-read-from-dict-file))
+  (let ((dict-mode-state greader-dict-mode))
+    (greader-dict-mode 1)
+    (greader-dict-read-from-dict-file)
+    (unless dict-mode-state
+      (greader-dict-mode -1))))
 
 (defun greader-dict--is-filter-p (key)
   "Return t if KEY is a filter based on
@@ -805,10 +818,9 @@ hash table."
   (maphash
    (lambda (k v)
      ;; (debug)
-     (when (and greader-dict-enable-filters (string-suffix-p
+     (when (and greader-dict-toggle-filters (string-suffix-p
 					     greader-dict-filter-indicator k))
-       (puthash k v greader-filters)
-       (message "%s" (concat "filter" k " found.")))) greader-dictionary))
+       (puthash k v greader-filters))) greader-dictionary))
 
 (defun greader-dict-filters-apply ()
   "Apply filters defined in sequence to the current buffer."

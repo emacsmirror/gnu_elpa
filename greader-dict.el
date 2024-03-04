@@ -229,15 +229,15 @@ Possible return values are:
 `filter' for filters.
 There may be more in the future.
 Return nil if KEY is not present in `greader-dictionary'."
-(when key
-  (let (result)
-    (catch 'key-found
-      (dolist (type greader-dict--item-type-alist)
-	(if (gethash (concat key (unless (string-suffix-p (cdr type) key) (cdr type))) greader-dictionary)
-	    (progn
-	      (setq result (car type))
-	      (throw 'key-found result))
-	  nil))))))
+  (when key
+    (let (result)
+      (catch 'key-found
+	(dolist (type greader-dict--item-type-alist)
+	  (if (gethash (concat key (unless (string-suffix-p (cdr type) key) (cdr type))) greader-dictionary)
+	      (progn
+		(setq result (car type))
+		(throw 'key-found result))
+	    nil))))))
 
 (defun greader-dict--get-key-from-word (word)
   "Return key related to WORD, nil otherwise."
@@ -677,8 +677,8 @@ If TYPE is `all', all items in the current dictionary will be included."
 	((equal (greader-dict-item-type k) type)
 	 (let ((match (and (string-remove-suffix
 			    greader-dict-match-indicator k) (string-remove-suffix
-							    greader-dict-filter-indicator
-							    k))))
+			    greader-dict-filter-indicator
+			    k))))
 	   (when decorate
 	     (setq match (concat match " \(" (gethash k greader-dictionary) "\)")))
 	   (push match matches)))

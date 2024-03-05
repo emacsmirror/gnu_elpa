@@ -807,12 +807,18 @@ in the current sentence."
   "Hash table containing our filters.")
 
 (defvar greader-dict-filter-indicator "\%f")
+(defvar-keymap greader-dict-filter-map
+  :doc "key bindings for greader-dict filter feature."
+  "C-r d f a" #'greader-dict-filter-add
+  "C-r d f k" #'greader-dict-filter-remove)
+
 ;;;###autoload
 (define-minor-mode greader-dict-toggle-filters
-  "Filters allow you to replace every regexp you wish with something
-you wish.
-While matches and words are conceived as entities to help who have
-difficulties in writing a regexp, with filters you can unleash all
+  "enable or disable filters.
+Filters allow you to replace every regexp you wish with something
+else you wish.
+While matches and words are conceived as facilities that are
+designated to be user-friendly interfaces to regexps, with filters you can unleash all
 your expressiveness!
 Filters and dictionary are considered independent features for now, so
 you can enable filters without the extra payload given by
@@ -823,7 +829,10 @@ So use `greader-dict-filter-add' to do that.
 When you are prompted for the filter, you should insert the regexp
 that must match to have the associated replacement.
 You can use the usual `\\\\' expressions, shy groups and all the power
-of regexps."
+of regexps.
+If you are interested in how to write a regexp please consult the info
+node `(emacs) Regexps'."
+  :keymap greader-dict-filter-map
   :global t
   :lighter " gr-filters"
   (let ((dict-mode-state greader-dict-mode))
@@ -843,18 +852,24 @@ of regexps."
    (let*
        ((key (read-string "filter (regexp) to add or modify: " nil nil
 			  (greader-dict--get-matches 'filter)))
-	(value (read-string (concat "substitute regexp " key " with: ") nil nil
-			    (gethash key greader-dictionary))))
+	(value (read-string
+		(concat "substitute regexp " key " with: ") nil nil
+			    (gethash (concat key greader-dict-filter-indicator) greader-dictionary))))
      (list key value)))
-  (greader-dict-add (concat key greader-dict-filter-indicator) value))
+  (greader-dict-add (concat key greader-dict-filter-indicator) value)
+  (greader-dict--filter-init))
 
 (defun greader-dict-filter-remove (key)
   "Remove KEY from the hash-table."
   (interactive
    (let ((key (read-string "filter to remove: " nil nil
 			   (greader-dict--get-matches 'filter))))
-     key))
-  (when (gethash key greader-dictionary) (greader-dict-remove key)))
+     (list key)))
+  (when (gethash (concat key greader-dict-filter-indicator)
+		 greader-dictionary)
+    (greader-dict-remove (concat key
+								  greader-dict-filter-indicator))
+		 (greader-dict--filter-init)))
 
 (defun greader-dict--filter-init ()
   "Initialize filters hash table.

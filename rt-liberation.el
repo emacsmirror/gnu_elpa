@@ -649,6 +649,13 @@ returned as no associated text properties."
    (rt-liber-get-field-string 'owner)
    new-owner))
 
+(defun rt-liber-command-set-subject (id new-subject)
+  "Set the subject of ticket in TICKET-ALIST to NEW-SUBJECT."
+  (rt-liber-rest-command-set
+   id
+   (rt-liber-get-field-string 'subject)
+   new-subject))
+
 (defun rt-liber-browser-prioritize (n)
   "Assigng current ticket priority N."
   (interactive "nPriority (number): ")

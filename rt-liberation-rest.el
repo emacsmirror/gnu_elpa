@@ -64,6 +64,7 @@
   '((owner   . "Owner")
     (queue   . "Queue")
     (status  . "Status")
+    (subject  . "Subject")
     (priority  . "Priority"))
   "Mapping between field symbols and RT field strings.
 The field symbols provide the programmer with a consistent way of

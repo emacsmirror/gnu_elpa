@@ -1,3 +1,8 @@
+New in version 7
+
+    * Add the ability to set the subject of a ticket.
+
+
 New in version 6
 
     * Code cleanup and fix compilation warnings.

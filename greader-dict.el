@@ -85,6 +85,39 @@
 ;; (greader-dict-mode 1)
 ;; (greader-dict--set-file 'mode)))
 ;;
+;; filters
+;; Filters are an alternative way of implementing your pronunciation
+;; rules.
+;; Word and match abstractions exist to make simpler daily tasks, or,
+;; put in other words, matches and words are regexp presets.
+;; Matches in particular have the limitation that you must define a
+;; rule in terms of human language entities, matches must have
+;; necessarily an alphabetic part.
+;; You cannot use matches to define rules for character substitution.
+;; Filters instead allow you to use whatever you want in terms of
+;; regexps, and to substitute them with all the constructs that the
+;; regexp matcher of emacs allow.
+;; filters however can become fastly inefficent, because the algoritm
+;; used is crude when applying filters: take every filter and cycle
+;; over the buffer until you have applied all the filters.
+;; the dictionary feature, instead, can handle thousands of
+;; definitions with a small decrease of performance.
+;; I suggest that you should use word definitions when possible, even
+;; if those are similar.
+;; Use matches when you individuate a pattern that can work with a
+;; common set of characters, using `shy groups'.
+;; See the emacs manual for more information about regexp syntax and
+;; related.
+;; Use `greader-dict-filter-add' to add a new filter to the database,
+;; `greader-dict-filter-remove' to remove an existing filter from the
+;; database,
+;; `greader-dict-filter-modify' to modify a key preserving its old
+;; value.
+;; to enable filters, use the command `greader-dict-toggle-filters',
+;; it is also a customizable variable.
+;; This module offers a command
+;; `greader-dict-pronounce-in-other-language' that can be used for
+;; earing how the tts pronounces a word in another language.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 
 ;;; Change Log:
@@ -269,8 +302,8 @@ Return nil if KEY is not present in `greader-dictionary'."
 					     (lambda (s1 s2) (>
 							      (length
 							       s1)
-								(length
-								 s2)))))
+							      (length
+							       s2)))))
 	       (dolist (candidate candidate-matches)
 		 ;; (message "%s" (concat "matching " candidate " against " word "..."))
 		 (when (string-match candidate word)
@@ -459,12 +492,13 @@ the current sentence."
 	    (setq key (read-string "Original word to substitute or
 modify: "
 				   nil
-nil
-(append (list default-word)(when
-			       greader-dict-include-sentences-in-defaults
-			     (greader-dict--get-word-alternatives
-			      (greader-get-sentence)))
-	(greader-dict--get-matches 'word))))
+				   nil
+				   (append (list default-word)(when
+								  greader-dict-include-sentences-in-defaults
+								(greader-dict--get-word-alternatives
+								 (greader-get-sentence)))
+					   (greader-dict--get-matches
+					    'word))))
 	    (setq value (read-string (concat "substitute word " key
 					     " with: ")
 				     (gethash key greader-dictionary)))
@@ -807,9 +841,12 @@ in the current sentence."
   "Hash table containing our filters.")
 
 (defvar greader-dict-filter-indicator "\%f")
+
 (defvar-keymap greader-dict-filter-map
   :doc "key bindings for greader-dict filter feature."
   "C-r d f a" #'greader-dict-filter-add
+  "C-r d f m" #'greader-dict-filter-modify
+  "C-r r" #'isearch-backward
   "C-r d f k" #'greader-dict-filter-remove)
 
 ;;;###autoload
@@ -818,7 +855,8 @@ in the current sentence."
 Filters allow you to replace every regexp you wish with something
 else you wish.
 While matches and words are conceived as facilities that are
-designated to be user-friendly interfaces to regexps, with filters you can unleash all
+designated to be user-friendly interfaces to regexps, with filters
+you can unleash all
 your expressiveness!
 Filters and dictionary are considered independent features for now, so
 you can enable filters without the extra payload given by
@@ -854,7 +892,8 @@ node `(emacs) Regexps'."
 			  (greader-dict--get-matches 'filter)))
 	(value (read-string
 		(concat "substitute regexp " key " with: ") nil nil
-			    (gethash (concat key greader-dict-filter-indicator) greader-dictionary))))
+		(gethash (concat key greader-dict-filter-indicator)
+			 greader-dictionary))))
      (list key value)))
   (greader-dict-add (concat key greader-dict-filter-indicator) value)
   (greader-dict--filter-init))
@@ -868,17 +907,40 @@ node `(emacs) Regexps'."
   (when (gethash (concat key greader-dict-filter-indicator)
 		 greader-dictionary)
     (greader-dict-remove (concat key
-								  greader-dict-filter-indicator))
-		 (greader-dict--filter-init)))
+				 greader-dict-filter-indicator))
+    (greader-dict--filter-init)))
+
+(defun greader-dict-filter-modify (key new-key)
+  "Modify _Only_ KEY.
+KEY must be an existing filter key, this command provides a list of
+them accessible using the history commands.
+NEW-KEY must not be empty, if empty, this command will signal an error."
+
+  (interactive
+   (let* ((key (read-string "key to modify: " nil nil
+			       (greader-dict--get-matches 'filter)))
+	  (new-key (read-string "new value: " nil nil key)))
+     (unless
+	 (gethash (concat key greader-dict-filter-indicator)
+		  greader-dictionary)
+       (user-error "Invalid key"))
+     (when (string-empty-p new-key)
+       (user-error "Invalid replacement, string is empty"))
+     (list key new-key)))
+  (let ((old-value (gethash (concat key greader-dict-filter-indicator)
+			    greader-dictionary)))
+    (greader-dict-filter-remove key)
+    (greader-dict-filter-add new-key old-value))
+  (greader-dict--filter-init))
 
 (defun greader-dict--filter-init ()
   "Initialize filters hash table.
 It works by subtracting from `greader-dictionary' the entries that are
 classified as filters and, eventually, adding them to the filters
 hash table."
+  (clrhash greader-filters)
   (maphash
    (lambda (k v)
-     ;; (debug)
      (when (and greader-dict-toggle-filters (string-suffix-p
 					     greader-dict-filter-indicator
 					     k))

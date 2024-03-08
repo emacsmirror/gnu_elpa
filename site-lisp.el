@@ -52,10 +52,6 @@
   "Name of file to store autoload forms in."
   :type 'string)
 
-(defcustom site-lisp-fixed-subdirectories '("progmode")
-  "List of sub-directory names to traverse for code."
-  :type '(repeat string))
-
 (defcustom site-lisp-collect-recursivly nil
   "Non-nil means that all files should be recursively scraped."
   :type 'boolean)
@@ -83,22 +79,30 @@ of the list."
   (interactive "DPrepare: ")
   (if (listp dir)
       (mapc #'site-lisp-prepare dir)
-    (let ((backup-inhibited t)
-          (start dir)
-          (site-lisp--autoload-file
-           (or (bound-and-true-p site-lisp--autoload-file)
-               (expand-file-name site-lisp-autoload-file dir))))
-      (dolist (dir (cons dir (directory-files dir t "^[^.]")))
+    (let* ((backup-inhibited t)
+           (site-lisp--autoload-file
+            (or (bound-and-true-p site-lisp--autoload-file)
+                (expand-file-name site-lisp-autoload-file dir)))
+           (old-modtime
+            ;; we check whatever the mtime of the autoload file was
+            ;; before we touched anything...
+            (file-attribute-modification-time
+             (file-attributes site-lisp--autoload-file))))
+      (dolist (dir (directory-files dir t "^[^.]"))
         (when (file-directory-p dir)
-          (if (member (file-name-nondirectory dir)
-                      site-lisp-fixed-subdirectories)
-              (site-lisp-prepare dir)
-            (add-to-list 'load-path dir)
-            (site-lisp-generate-autoloads
-             dir site-lisp--autoload-file)
-            (when (and site-lisp-collect-recursivly
-                       (not (eq dir start)))
-              (site-lisp-prepare dir)))))
+          (add-to-list 'load-path dir)
+          (site-lisp-generate-autoloads
+           dir site-lisp--autoload-file)
+          (when (and site-lisp-collect-recursivly)
+            (site-lisp-prepare dir))))
+      (add-to-list 'load-path dir)
+      ;; ... and reset that after returning from a possible recursive
+      ;; descent through the file system, so that we don't ignore
+      ;; files that are now "accidentally" older than the just updated
+      ;; auto-load file.
+      (set-file-times site-lisp--autoload-file old-modtime)
+      (site-lisp-generate-autoloads
+       dir site-lisp--autoload-file)
       (byte-recompile-directory dir)
       (load site-lisp--autoload-file nil t))))
 

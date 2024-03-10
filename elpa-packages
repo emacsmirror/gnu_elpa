@@ -483,6 +483,7 @@
   :readme "README.md"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
+ (mpdired	:url "https://ledu-giraud.fr/mpdired.git")
  (multi-mode		:url nil)
  (multishell		:url "https://github.com/kenmanheimer/EmacsMultishell")
  (muse			:url "https://github.com/alexott/muse" ;FIXME: Not nearly in-sync

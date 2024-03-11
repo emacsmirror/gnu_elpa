@@ -463,14 +463,12 @@ indirectly called by the latter."
 
 (defun wincom-select-minibuffer ()
   "Select the active minibuffer window (if it exists)."
-  (declare (modes wincom-mode))
   (interactive)
   (select-window (or (active-minibuffer-window)
                      (user-error "There is no active minibuffer window"))))
 
 (defun wincom-select-most-recently-used ()
   "Select the most recently used window."
-  (declare (modes wincom-mode))
   (interactive)
   (when-let ((w (get-mru-window (wincom--get-scope) t t)))
     (select-window w)))

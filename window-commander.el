@@ -82,6 +82,7 @@
 (eval-when-compile
   (require 'subr-x)
   ;; Avoid byte-compilation warnings.
+  (defvar overriding-text-conversion-style)
   (defvar wincom-mode)
   (defvar wincom-command-map)
   (declare-function wincom-selected-window-prefix nil))

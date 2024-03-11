@@ -6,7 +6,7 @@
 
 @copying
 @quotation
-Copyright @copyright{} 2023 Free Software Foundation, Inc.
+Copyright @copyright{} 2023-2024 Free Software Foundation, Inc.
 
 You can redistribute this document and/or modify it under the terms
 of the GNU General Public License as published by the Free Software
@@ -103,15 +103,21 @@ enable it through the customize interface.
 
 When @code{wincom-mode} is enabled, window IDs are shown as mode line
 lighters of the form @code{<ID>} (by default, @xref{ID display}), and
-@code{other-window} (@kbd{C-x o}) is remapped to @code{wincom-select}.
+@code{other-window} (@kbd{C-x o}) is remapped to @code{wincom-select}
+(it is also available, alongside all other window commands, through
+the ``Windows'' menu added by the minor mode).
 
 @code{wincom-select}, and any other window command, starts window
-selection (provided there are more than @code{wincom-minimum} windows,
-@xref{Window commands}).  During window selection, any window in the
-current @code{wincom-scope} (@xref{Customization}) can be selected by
-pressing the sequence of keys corresponding to its displayed ID.
-Alternatively, you can use any binding in @code{wincom-command-map},
-unless it is shadowed by a window ID.
+selection.  When there are less than @code{wincom-minimum} (3 by
+default) tracked windows in the current @code{wincom-scope} (all
+frames by default), the ``next'' window is selected.  Otherwise, any
+window in scope can be selected by pressing the sequence of keys
+corresponding to its displayed ID.  Alternatively, any binding in
+@code{wincom-command-map} can be used (unless it is overwritten by a
+window ID).
+
+The following window commands are available in
+@code{wincom-command-map} by default:
 
 @table @asis
 @kindex C-x o
@@ -119,7 +125,7 @@ unless it is shadowed by a window ID.
 @cindex wincom-select
 @item @kbd{C-x o ID}, @kbd{C-x o o ID}
 Select the window corresponding to ID in the current scope
-(@xref{Customization}) (@code{wincom-select}).
+(@code{wincom-select}).
 
 @kindex C-x o 0
 @cindex wincom-delete
@@ -161,13 +167,21 @@ window command is only available when
 Swap the states of the current window and the window corresponding to
 ID in the current scope (@code{wincom-swap}).
 
+@xref{Window commands} for information regarding defining new commands.
+
+The following commands are available in @code{wincom-command-map} by
+default, but are not window commands:
+
 @kindex C-x o m
 @cindex wincom-select-minibuffer
 @item @kbd{C-x o m}
 Switch to the minibuffer if it's active (@code{wincom-select-minibuffer}).
-@end table
 
-@xref{Window commands} for information regarding defining new commands.
+@kindex C-x o r
+@cindex wincom-select-most-recently-used
+@item @kbd{C-x o r}
+Select the most recently used window. (@code{wincom-select-most-recently-used}).
+@end table
 
 @node Customization
 @chapter Customization
@@ -303,19 +317,15 @@ active). It can be used to change the behavior of window commands (or
 display functions, @xref{ID display}).
 @end defvar
 
-@defmac wincom-define-window-command name (window [prefix]) [docstring] [keyword-arg...] body...
+@defmac wincom-define-window-command name (window [prefix]) [docstring] [keyword arg...] body...
 Define NAME as a window command with DOCSTRING as its documentation
-string.  PREFIX (a symbol) is passed as an argument to the command
-(when not omitted or nil), with its value being the raw prefix
-argument.
-
-BODY is used as the body of an anonymous function which receives
-WINDOW (a symbol) as an argument, with its value being a selected
-window.  If there are less than @code{wincom-minimum} (3 by default)
-windows in the current scope (@xref{Customization}), the function is
-called with the window returned by @code{next-window}.  In this case,
-if MINIBUFFER is non-nil, it can be selected if it's active.
-Otherwise, the function is run using @code{wincom-run-window-command}.
+string. Inside @var{body}, @var{window} and @var{prefix} (symbols)
+are bound to the selected window and the raw prefix argument,
+respectively.  If @var{prefix} is omitted or nil, the resulting
+command will not accept a prefix argument. Currently, only a single
+@var{KEYWORD} @var{ARG} is recognized, @code{:minibuffer}: When it's
+non-nil, allow the minibuffer to be selected by @code{next-window}
+(when there are less than @code{wincom-minimum} tracked windows).
 @end defmac
 
 @defun wincom-run-window-command fun

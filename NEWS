@@ -1,6 +1,15 @@
 Window Commander NEWS -- history of user-visible changes. -*- mode: outline -*-
 See the end of the file for an explanation of the versioning scheme.
 
+* 3.0.3 (wip)
+
+** Add support for software keyboards which use 'text-conversion'.
+Full functionality should now be available using software keyboards on
+Android (if they have modifier keys).
+** Add minor mode menu for window commands.
+** Add command for selecting the most recently used window.
+** Fix window selection when less than 'wincom-minimum' windows are tracked.
+
 * 3.0.2
 
 ** Fix info manual.

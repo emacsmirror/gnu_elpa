@@ -496,21 +496,25 @@ selection.")
 (defvar wincom-mode-menu
   (let ((map (make-sparse-keymap "Windows")))
     (define-key map [swap]
-                '("Swap with current..." . wincom-swap))
+                '("Select Window to Swap with the Current Window..."
+                  . wincom-swap))
     (when (fboundp 'display-buffer-override-next-command)
       (define-key map [prefix]
-                  '("Redirect buffer of next command..."
+                  '("Select Window to Show Buffer of Next Command in..."
                     . wincom-selected-window-prefix)))
     (define-key map [split-right]
-                '("New on right..." . wincom-split-window-right))
+                '("Select Window to Split Vertically..."
+                  . wincom-split-window-right))
     (define-key map [split-below]
-                '("New below..." . wincom-split-window-below))
+                '("Select Window to Split Horizontally..."
+                  . wincom-split-window-below))
     (define-key map [delete-other]
-                '("Remove others..." . wincom-delete-other))
+                '("Select Window to Occupy Whole Frame..."
+                  . wincom-delete-other))
     (define-key map [delete]
-                '("Remove..." . wincom-delete))
+                '("Select Window to Delete..." . wincom-delete))
     (define-key map [select]
-                '("Select..." . wincom-select))
+                '("Select Window..." . wincom-select))
     map)
   "Menu for window commands.")
 

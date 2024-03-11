@@ -1,6 +1,6 @@
 ;;; window-commander.el --- Simply execute commands on windows -*- lexical-binding: t -*-
 
-;; Copyright (C) 2023 Free Software Foundation, Inc.
+;; Copyright (C) 2023-2024 Free Software Foundation, Inc.
 
 ;; Author: Daniel Semyonov <daniel@dsemy.com>
 ;; Maintainer: Daniel Semyonov <daniel@dsemy.com>
@@ -337,7 +337,7 @@ exit."
                                (with-current-buffer ,b (funcall ',set ',s)))
                           (run-hooks 'wincom-after-command-hook)))))
 
-(defmacro wincom-define-window-command (name args &rest body)
+(defmacro wincom-define-window-command (name arg &rest body)
   "Define NAME as a window command with DOCSTRING as its documentation string.
 
 Inside BODY, WINDOW and PREFIX (symbols) are bound to the selected
@@ -345,9 +345,9 @@ window and the raw prefix argument, respectively.
 If PREFIX is omitted or nil, the resulting command will not accept a
 prefix argument.
 
-Currently, only a single KEYWORD-ARG is recognized, `:minibuffer':
-When it's non-nil, allow the minibuffer to be selected by
-`next-window' (when there are less than `wincom-minimum' tracked windows).
+Currently, only a single KEYWORD ARG pair is recognized, `:minibuffer':
+When it's non-nil, allow the minibuffer to be selected by `next-window'
+\(when there are less than `wincom-minimum' tracked windows).
 
 For more information, see info node `(window-commander) Window Commands'.
 
@@ -355,7 +355,7 @@ For more information, see info node `(window-commander) Window Commands'.
   (declare (debug (&define name lambda-list [&optional stringp]
                            [&rest (gate keywordp form)] def-body))
            (doc-string 3) (indent defun))
-  (let* ((window (car args)) (prefix (cadr args))
+  (let* ((window (car arg)) (prefix (cadr arg))
          (docstring (car body))
          (kargs (if (keywordp (car body)) body (cdr body)))
          (minibuffer (plist-get kargs :minibuffer)))

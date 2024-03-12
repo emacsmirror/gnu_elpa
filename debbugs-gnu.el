@@ -228,6 +228,7 @@
 (defvar mail-extr-ignore-realname-equals-mailbox-name)
 (defvar mail-extr-ignore-single-names)
 (defvar message-sent-message-via)
+(defvar pp-default-function)
 (defvar rmail-current-message)
 (defvar rmail-mode-map)
 (defvar rmail-summary-mode-map)

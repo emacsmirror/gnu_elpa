@@ -789,6 +789,11 @@ included in the message, applies them, runs @command{make -k} in the
 @file{lisp} subdirectory, and shows a @samp{*vc-dir*} buffer of the
 Emacs repository with the changed file(s).
 
+@vindex debbugs-gnu-compile-command
+The exact make command used is controlled by the user option
+@code{debbugs-gnu-compile-command}.  This option can also be set to
+@code{nil} to skip the compilation step.
+
 @vindex debbugs-gnu-trunk-directory
 @vindex debbugs-gnu-branch-directory
 The Emacs repository is determined via the user options
@@ -804,6 +809,7 @@ creates a ChangeLog entry with all needed information.  A final
 @kbd{M-m} in the @samp{ChangeLog} buffer commits the patch via
 @samp{*vc-log*}.
 
+@vindex debbugs-gnu-apply-patch-prefers-magit
   If the user option @code{debbugs-gnu-apply-patch-prefers-magit} is
 non-@code{nil}, the third-party package Magit will be used instead of
 VC when you hit @kbd{M-m} in the GNUS ephemeral group.  Note that the

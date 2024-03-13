@@ -1,6 +1,6 @@
 ;;; shell-command+.el --- An extended shell-command -*- lexical-binding: t -*-
 
-;; Copyright (C) 2020-2023  Free Software Foundation, Inc.
+;; Copyright (C) 2020-2024  Free Software Foundation, Inc.
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <~pkal/public-inbox@lists.sr.ht>
@@ -164,22 +164,6 @@ For PARSE, FORM and CONTEXT see `shell-command+-features'."
 
 
 ;;;; % (file name) expansion
-
-(defcustom shell-command+-enable-file-substitution t
-  "Enable the substitution of \"%s\" with the current file name."
-  :set (lambda (_sym val)
-         (if val
-             (unless (member 'shell-command+-expand-%
-                             shell-command+-features)
-               (push 'shell-command+-expand-%
-                     shell-command+-features))
-           (setq shell-command+-features
-                 (delete 'shell-command+-expand-%
-                         shell-command+-features))))
-  :type 'boolean)
-(make-obsolete-variable 'shell-command+-enable-file-substitution
-                        'shell-command+-features
-                        "2.4.0")
 
 (defun shell-command+-expand-% (parse form context)
   "Replace occurrences of \"%\" in the command.

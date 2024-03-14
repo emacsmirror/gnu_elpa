@@ -534,7 +534,6 @@ selection:
 \\{wincom-command-map}"
   :global t
   :lighter (:eval (and wincom-display-lighter
-                       (not (functionp wincom-display-lighter))
                        (wincom-format-id (selected-window))))
   :keymap (let ((map (make-sparse-keymap)))
             (define-key map [remap other-window] #'wincom-select)
@@ -544,15 +543,11 @@ selection:
   (if wincom-mode
       (progn
         (wincom--update)
-        (when (functionp wincom-display-lighter)
-          (funcall wincom-display-lighter))
         (add-hook 'window-configuration-change-hook #'wincom--update)
         (add-hook 'window-state-change-hook #'wincom--update-frame)
         (add-hook 'minibuffer-setup-hook #'wincom--update)
         (add-hook 'minibuffer-exit-hook #'wincom--update)
         (add-hook 'after-delete-frame-functions #'wincom--update))
-    (when (functionp wincom-display-lighter)
-      (funcall wincom-display-lighter))
     (remove-hook 'window-configuration-change-hook #'wincom--update)
     (remove-hook 'window-state-change-hook #'wincom--update-frame)
     (remove-hook 'minibuffer-setup-hook #'wincom--update)

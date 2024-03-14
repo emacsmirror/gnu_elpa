@@ -1,4 +1,4 @@
-Window Commander NEWS -- history of user-visible changes. -*- mode: outline -*-
+Window Commander NEWS -- history of user-visible changes. -*- mode: emacs-news -*-
 See the end of the file for an explanation of the versioning scheme.
 
 * 3.0.3 (wip)
@@ -9,6 +9,9 @@ Android (if they have modifier keys).
 ** Add minor mode menu for window commands.
 ** Add command for selecting the most recently used window.
 ** Fix window selection when less than 'wincom-minimum' windows are tracked.
+** Remove legacy display function support which was left in by accident.
+Setting 'wincom-display-lighter' to a function is now equivalent to
+setting it to any other non-nil value.
 
 * 3.0.2
 

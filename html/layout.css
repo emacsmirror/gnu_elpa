@@ -72,7 +72,7 @@ html, body {
   height: 100%;
   margin: 0 auto -50px; /* the bottom margin is the negative value of the footer's height */
 }
-footer, .push, .footer {
+.push {
   height: 90px; /* .push must be the same height as .footer */
 }
 
@@ -295,6 +295,10 @@ footer p, .footer p {
   line-height: 1.4em;
 }
 
+table {
+  width: 100%;
+}
+
 @media screen and (max-width: 999px) {
   .container {
     width: 600px;
@@ -306,10 +310,6 @@ footer p, .footer p {
     font-size: 1em;
   }
 
-  table {
-    width: 100%;
-  }
-  
   .container {
     width: 90%;
     padding: 40px 5%;

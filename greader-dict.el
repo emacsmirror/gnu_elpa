@@ -326,7 +326,11 @@ Return nil if KEY is not present in `greader-dictionary'."
 						 greader-dict--current-reading-buffer))
     (insert text)
     (goto-char (point-min))
-    (when greader-dict-toggle-filters
+    (when
+	(buffer-local-value 'greader-dict-toggle-filters
+			    greader-dict--current-reading-buffer) 
+      (setq greader-filters (buffer-local-value 'greader-filters
+						greader-dict--current-reading-buffer))
       (greader-dict-filters-apply))
     (if
 	(buffer-local-value 'greader-dict-mode
@@ -658,9 +662,10 @@ asked."
 
 (defun greader-dict--update ()
   (when greader-dict-toggle-filters
+    (setq greader-dict--current-reading-buffer (current-buffer))
     (let ((dict-mode-state greader-dict-mode))
       (greader-dict-mode 1)
-      (greader-dict-read-from-dict-file)
+      (greader-dict-read-from-dict-file t)
       (unless dict-mode-state
 	(greader-dict-mode -1))))
   (when greader-dict-mode
@@ -837,7 +842,7 @@ in the current sentence."
 ;; so filters are a separate feature, which we can consider an
 ;; "advanced" use case of greader-dict.
 
-(defvar-local greader-filters (make-hash-table :test 'ignore-case)
+(defvar-local greader-filters nil
   "Hash table containing our filters.")
 
 (defvar greader-dict-filter-indicator "\%f")
@@ -871,13 +876,14 @@ of regexps.
 If you are interested in how to write a regexp please consult the info
 node `(emacs) Regexps'."
   :keymap greader-dict-filter-map
-  :global t
   :lighter " gr-filters"
-  (let ((dict-mode-state greader-dict-mode))
-    (greader-dict-mode 1)
-    (greader-dict-read-from-dict-file)
-    (unless dict-mode-state
-      (greader-dict-mode -1))))
+  (when greader-dict-toggle-filters
+    (setq greader-filters (make-hash-table :test 'ignore-case))
+    (setq greader-dict--current-reading-buffer (current-buffer))
+    (unless greader-dictionary
+      (greader-dict-mode 1)
+      (greader-dict-mode -1))
+    (greader-dict--filter-init)))
 
 (defun greader-dict--is-filter-p (key)
   "Return t if KEY is a filter based on
@@ -918,7 +924,7 @@ NEW-KEY must not be empty, if empty, this command will signal an error."
 
   (interactive
    (let* ((key (read-string "key to modify: " nil nil
-			       (greader-dict--get-matches 'filter)))
+			    (greader-dict--get-matches 'filter)))
 	  (new-key (read-string "new value: " nil nil key)))
      (unless
 	 (gethash (concat key greader-dict-filter-indicator)
@@ -938,7 +944,7 @@ NEW-KEY must not be empty, if empty, this command will signal an error."
 It works by subtracting from `greader-dictionary' the entries that are
 classified as filters and, eventually, adding them to the filters
 hash table."
-  (clrhash greader-filters)
+  (when greader-filters (clrhash greader-filters))
   (maphash
    (lambda (k v)
      (when (and greader-dict-toggle-filters (string-suffix-p

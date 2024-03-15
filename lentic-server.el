@@ -6,7 +6,7 @@
 
 ;; Author: Phillip Lord <phillip.lord@newcastle.ac.uk>
 ;; Maintainer: Phillip Lord <phillip.lord@newcastle.ac.uk>
-;; Version: 0.1
+;; Version: 0.2
 ;; Package-Requires: ((lentic "0.8")(web-server "0.1.1"))
 
 ;; The contents of this file are subject to the GPL License, Version 3.0.
@@ -29,6 +29,13 @@
 ;;; Commentary:
 
 ;; Serves up lentic files as web documents.
+
+;;; News:
+
+;; Since 2016:
+
+;; - Activate `lexical-binding', and remove dependency on `f'.
+;; - Distribute on GNU ELPA.
 
 ;;; Code:
 
@@ -53,7 +60,6 @@
             (push file parts)
             nil)))
     parts))
-  
 
 ;;;###autoload
 (defun lentic-server-start ()

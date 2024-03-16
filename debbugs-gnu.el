@@ -1575,7 +1575,7 @@ interesting to you."
 		     (debbugs-gnu-current-status)))
   (switch-to-buffer "*Bug Status*")
   (let ((inhibit-read-only t)
-        (pp-default-function #'pp-29))
+        (pp-default-function 'pp-29))
     (erase-buffer)
     (when query
       (insert ";; Query\n")

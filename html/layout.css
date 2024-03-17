@@ -168,24 +168,13 @@ p.centered {
 }
 
 dl {
-  margin: 30px 0;
-  font-size: .8em;
+  margin: 30px 2em;
 }
 
 dt {
-  font-weight: bold;
-  width: 300px;
-  display: inline-block;
-  vertical-align: top;
-}
-
-dd {
-  /* We should reduce vertical space use in the "header".
-     Yuan Fu <casouri@gmail.com> suggested to do that simply by
-     commenting this out:
-     margin-bottom: 10px; */
-  width: 460px;
-  display: inline-block;
+    font-weight: bold;
+    margin: 0.25em 0 0 0;
+    vertical-align: top;
 }
 
 .button {

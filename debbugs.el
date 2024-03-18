@@ -113,8 +113,8 @@ This corresponds to the Debbugs server to be accessed, either
 (defcustom debbugs-cache-expiry (* 60 60)
   "How many seconds debbugs query results are cached.
 t or 0 disables caching, nil disables expiring."
-  :type '(choice (const :tag "Always" t)
-		 (const :tag "Never" nil)
+  :type '(choice (const :tag "Never" t)
+		 (const :tag "Forever" nil)
 		 (integer :tag "Seconds")))
 
 (defvar debbugs-soap-invoke-async-object nil

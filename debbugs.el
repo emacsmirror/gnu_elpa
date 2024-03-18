@@ -259,7 +259,8 @@ patch:
 	debbugs-progress-reporter-buffers url-show-status vec kw key val)
     (when debbugs-show-progress
       (add-function
-       :override (symbol-function debbugs-url-display-message-or-percentage-function)
+       :override
+       (symbol-function debbugs-url-display-message-or-percentage-function)
        #'debbugs-url-display-message-or-percentage
        '((name . "debbugs-url-display-message-or-percentage"))))
 
@@ -488,7 +489,8 @@ Example:
 	    debbugs-progress-reporter-buffers url-show-status results res)
 	(when debbugs-show-progress
 	  (add-function
-	   :override (symbol-function debbugs-url-display-message-or-percentage-function)
+	   :override
+           (symbol-function debbugs-url-display-message-or-percentage-function)
 	   #'debbugs-url-display-message-or-percentage
 	   '((name . "debbugs-url-display-message-or-percentage"))))
 
@@ -805,7 +807,8 @@ Examples:
     (when debbugs-create-progress-reporter
       (setq debbugs-progress-reporter (make-progress-reporter "Query bugs..."))
       (add-function
-       :override (symbol-function debbugs-url-display-message-or-percentage-function)
+       :override
+       (symbol-function debbugs-url-display-message-or-percentage-function)
        #'debbugs-url-display-message-or-percentage
        '((name . "debbugs-url-display-message-or-percentage"))))
 
@@ -976,7 +979,8 @@ BUG-OR-MESSAGE must be list element returned by either
 Example: Return the originator of last submitted bug.
 
 \(debbugs-get-attribute
-  \(car \(apply #\\='debbugs-get-status \(debbugs-newest-bugs 1))) \\='originator)"
+  \(car \(apply #\\='debbugs-get-status \(debbugs-newest-bugs 1)))
+  \\='originator)"
   (alist-get attribute bug-or-message))
 
 (defun debbugs-get-message-numbers (messages)

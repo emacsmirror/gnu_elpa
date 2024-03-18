@@ -233,7 +233,7 @@ Valid keywords are:
   :affects -- With this keyword it is possible to find bugs which
   affect the package with the given name.  The bugs are chosen by
   the value of field `affects' in bug's status.  The returned bugs
-  do not necessary belong to this package.
+  usually do not belong to this package.
 
   :status -- Status of bug.  Valid values are \"open\",
   \"forwarded\" and \"done\".

@@ -82,7 +82,7 @@ servers: \"gnu.org\" and \"debian.org\"."
 				   (string :tag "Bugreport URL")))))))
 
 (defcustom debbugs-port "gnu.org"
-  "The port instance to be applied from `debbugs-wsdl'.
+  "The port instance to be applied from `debbugs-servers'.
 This corresponds to the Debbugs server to be accessed, either
 \"gnu.org\", or \"debian.org\", or user defined port name."
   ;; Maybe we should create an own group?

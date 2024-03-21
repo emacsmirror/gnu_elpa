@@ -1,11 +1,11 @@
 ;;; brief.el --- Brief Editor Emulator (Brief Mode)  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2018-2023  Free Software Foundation, Inc.
+;; Copyright (C) 2018-2024  Free Software Foundation, Inc.
 
 ;; Author:       Luke Lee <luke.yx.lee@gmail.com>
 ;; Maintainer:   Luke Lee <luke.yx.lee@gmail.com>
 ;; Keywords:     brief, emulations, crisp
-;; Version:      5.88.22.2
+;; Version:      5.90
 ;; Package-Requires: ((nadvice "0.3") (cl-lib "0.5"))
 
 ;; GNU Emacs is free software: you can redistribute it and/or modify
@@ -78,8 +78,8 @@
 ;; missing Brief features on a per-need basis.
 ;;
 ;; After 17+ years of intermittent development (as the release of
-;; version 5.80), the code is almost completely rewritten compare to
-;; the original XEmacs CRiSP mode code.
+;; version 5.80 in 2018), the code is almost completely rewritten
+;; compare to the original XEmacs CRiSP mode code.
 ;;
 ;; The original Emacs version of "crisp.el" is now obsolete but still
 ;; (temporarily) exists in the Emacs source code repository at
@@ -93,6 +93,10 @@
 ;; if lacking of it git will only give you the history "after" the
 ;; directory structure changed, which was introduced when moving
 ;; CRiSP from Emacs source repository to ELPA.
+;;
+;; In early 2024, the Brief-style window merge on deletion (the [F4]
+;; [<arrows>] commands) is finally supported, a task I had postponed
+;; for over 20 years due to not finding time to implement it.
 ;;
 
 ;;; Brief Extension:
@@ -458,7 +462,7 @@
 ;; backward compatibility issues.
 ;;(require 'replace)
 
-(defconst brief-version "5.88.22.2"
+(defconst brief-version "5.90"
   "Current version of this Brief editor mode/emulator.")
 
 ;;
@@ -823,7 +827,7 @@ use either M-x customize or the function `brief-mode'."
 
 (defcustom brief-search-replace-using-regexp t
   "Determine if search & replace commands using regular expression or string.
-This is a buffer local variable with default value 't, which means
+This is a buffer local variable with default value \\='t, which means
 regular expression is used for search & replace commands by default."
   :type  'boolean)
 
@@ -977,7 +981,7 @@ This is useful when multiple editors are sharing the external clipboard."
   "Use external clipboard program helper to read clipboard whenever possible.
 Emacs internal clipboard function has certain limitations, especially
 when processing huge clipboard contents.  With this flag enabled Brief
-will always use external clipboard program like 'xclip' to read
+will always use external clipboard program like `xclip' to read
 clipboard data.  Notice when Brief is running in terminal mode it
 always use external clipboard program no matter if this flag is on
 or off."
@@ -1001,13 +1005,13 @@ progress."
 
 (defcustom brief-external-clipboard-coding-system 'utf-8 ;; 'buffer
   "Customized coding system for external clipboard, default UTF-8.
-When set to 'buffer, it will apply current `buffer-file-coding-system'.
+When set to \\='buffer, it will apply current `buffer-file-coding-system'.
 This sounds safe but actually it might still cause issues.  For example,
 when current buffer is of coding system `utf-8-with-signature-unix'.
 When copy and paste strings it sometimes will insert BOM (byte order
 mark) into the beginning of the pasted text.
 
-Set this variable to any other fixed coding system symbol like 'utf-16le
+Set this variable to any other fixed coding system symbol like \\='utf-16le
 is also possible, but might also lead to some unexpected result if the
 coding system does not match your buffer.  For a complete list of
 available coding system symbols, check the completion list (press
@@ -1118,15 +1122,15 @@ it won't stick on `xclip'."
   (brief-xclipboard-cmd-search))
 
 (defcustom brief-in-favor-of-xsel brief-in-favor-of-xsel-default
-  "When both 'xclip' and 'xsel' exist, choose 'xsel'.
+  "When both `xclip' and `xsel' exist, choose `xsel'.
 This is an empirical value.  My original personal experiemnts shows
-that 'xsel' seems to respond faster than 'xclip'.  However, on Ubuntu
-18, the associated 'xsel' is buggy and tend to return extra garbage at
+that `xsel' seems to respond faster than `xclip'.  However, on Ubuntu
+18, the associated `xsel' is buggy and tend to return extra garbage at
 the end of the pasted data, sigh.  Considering the wide acceptance of
-Ubuntu, this force me to set the default setting to use 'xclip'
+Ubuntu, this force me to set the default setting to use `xclip'
 instead.
-For Ubuntu 18 users that would like to use 'xsel' and set this option
-as non-nil, please rebuild the 'xsel' from author's git repository:
+For Ubuntu 18 users that would like to use `xsel' and set this option
+as non-nil, please rebuild the `xsel' from author's git repository:
 \"https://github.com/kfish/xsel.git\" and checkout at least commit id
 \"9bfc13d\"."
   :type  'boolean
@@ -1239,6 +1243,46 @@ as the last line of the previous page.  By default the boundary line is
 excluded (non-NIL), to include the boundary line set this to NIL."
   :type  'boolean)
 
+(defcustom brief-merge-deleted-window 't
+  "Brief style window deletion, neighbor window is merged upon deletion.
+Notice that not all Brief window layouts can be displayed by Emacs.  The legacy
+DOS Brief editor allows more flexible window merging as long as their edges
+aligned.  However, due to the restriction how Emacs windows are split, there
+are certain situations that Emacs windows management functions cannot (?)
+handle.  Specifically, any window arrangement that does not have at least one
+vertical or horizontal splitter line spanning the entire frame cannot be
+displayed.  A typical window layout that Emacs cannot display is:
+    _______
+   |_____| |
+   | |   | |
+   | |___|_|
+   |_|_____|
+
+This applies to sub-windows contained in a frame as there must still be vertical
+or horizontal splitters across the whole container sub-window.
+
+((?): Note that there probably exist more sophisticated ways to display such a
+window layout using special windows, but implementing such complexity may not
+be worth it for regular use.  Until a simpler method is found, this will not
+be supported.)"
+  :type 'boolean)
+
+(defcustom brief-delete-window-on-merge-failure nil
+  "Emacs style window deletion on fail merging, just delete the target window.
+This option is effective only if `brief-merge-deleted-window' is non-NIL.  Also
+see its description for layouts that are not supported."
+  :type 'boolean)
+
+(defcustom brief-window-adjustment-timeout 30
+  "Brief window edge adjustment loop timeout.
+In the window edge adjustment loop, Brief waits only for arrow keys, Enter,
+Escape, and the Emacs keyboard quit command `C-g'.  Typically, this process is
+completed quickly, but a user may become interrupted and attend to other matters
+before returning, possibly forgetting about this task.  This timeout feature
+ensures that the user can exit this waiting loop.  The default setting is 30
+seconds."
+  :type 'integer)
+
 ;;
 ;; End of customization variables
 ;;
@@ -1279,7 +1323,6 @@ slowdown factor; otherwise, return 1.0."
 (defvar brief-orig-query-replace-to-history-variable nil)
 (defvar brief-query-replace-from-history nil)
 (defvar brief-query-replace-to-history nil)
-;;(defvar c-basic-offset nil)
 ;;(defvar brief-c-tabs-always-indent nil)
 ;;(defvar brief-c-insert-tab-function nil)
 
@@ -2003,21 +2046,10 @@ compilation won't be counted in."
 (defun brief-switch-to-window (window)
   "Switch to the specified window in the current frame."
   (interactive)
-  (if window
-      (let (;;(top (selected-window))
-            (curr (next-window))
-            (count 1))
-        (ignore-errors
-          (run-hook-with-args 'brief-before-switch-to-window-hook window))
-        (catch 'break
-          ;; Repeat no more than the number of exinsting windows
-          (dolist (_ (window-list))
-            (if (eq window curr)
-                (throw 'break nil))
-            (cl-incf count 1)
-            (setf curr (next-window curr))))
-        (if (eq window curr)
-            (other-window count)))))
+  (when window
+    (ignore-errors
+      (run-hook-with-args 'brief-before-switch-to-window-hook window))
+    (select-window window)))
 
 ;; Window:
 ;; (x0,y0)*------------+
@@ -2116,8 +2148,17 @@ mode, as well as hidden texts."
             ;;                   (caddr text-scale-mode-remapping))
             ;;              1)))
                     (brief-text-scaled-width (window-hscroll)))
-           (x       (- currcol begcol hscroll))) ;; hscroll will be nonzero
-      ;;                                         ;;  only if in truncation mode
+           ;; Indentation using line-prefix property need to be considered
+           (lprefix  (length (get-text-property (point) 'line-prefix)))
+           ;; In modes like org-mode with auto-indentation ON, we need to
+           ;; distinguish which prefix we're currently with.
+           (prefix   (if (or truncate-lines
+                             ;; In the first line when auto wrapping is on
+                             (<= (+ lprefix currcol 1) (window-width)))
+                         lprefix
+                       (length (get-text-property (point) 'wrap-prefix))))
+           ;; hscroll will be nonzero only if in truncation mode
+           (x       (+ (- currcol begcol hscroll) prefix)))
       (if (not (brief-is-crlf c))
           (if (not (minibufferp))
               x
@@ -2439,8 +2480,7 @@ out the internal delta value of the current window."
 (defun brief-window-cursor-ypos-pixel ()
   "Get the relative Y pixel coordinate of cursor comparing to `window-start'."
   (+ (cadr (window-inside-pixel-edges))
-     (* (+ (brief-current-row-visual) (cadr (brief-window-pos-delta))
-           )
+     (* (+ (brief-current-row-visual) (cadr (brief-window-pos-delta)))
         ;;(or (and (boundp 'text-scale-mode-remapping)
         ;;         (caddr text-scale-mode-remapping))
         ;;    1)
@@ -2453,6 +2493,7 @@ If more than one window there, choose the window located right above
 the cursor."
   (let* ((edges (window-edges))
          ;;(x0 (brief-window-cursor-xpos))
+         ;;(x0 (brief-current-column-visual))
          (x0 (round (/ (* 1.0 (brief-window-cursor-xpos-pixel))
                        (frame-char-width)))) ; consider font rescaling
          (y0 (cadr edges))
@@ -2469,6 +2510,7 @@ If more than one window there, choose the window located right below
 the cursor."
   (let* ((edges (window-edges))
          ;;(x0 (brief-window-cursor-xpos))
+         ;;(x0 (brief-current-column-visual))
          (x0 (round (/ (* 1.0 (brief-window-cursor-xpos-pixel))
                        (frame-char-width)))) ; consider font rescaling
          (y1 (cadddr edges))
@@ -2539,33 +2581,837 @@ from cursor."
   (interactive)
   (brief-switch-to-window (brief-rightside-window)))
 
-(defun brief-split-window-up ()
-  "Split window vertically to be the upper neighbor of current window."
+(defun brief-split-window-vertically ()
+  "Call `split-window-vertically' with `split-window-keep-point' enabled."
   (interactive)
-  (split-window-vertically)
+  (let ((split-window-keep-point t))
+    (split-window-vertically)))
+
+(defun brief-split-window-horizontally ()
+  "Call `split-window-horizontally' with `split-window-keep-point' enabled."
+  (interactive)
+  (let ((split-window-keep-point t))
+    (split-window-horizontally)))
+
+(defun brief-split-window-up ()
+  "Vertically split to the top of the selected window."
+  (interactive)
+  (brief-split-window-vertically)
   (other-window 1))
 
 (defun brief-split-window-left ()
-  "Split window horizontally to be the left neighbor of current window."
+  "Horizontally split to the left of the selected window."
   (interactive)
-  (split-window-horizontally)
+  (brief-split-window-horizontally)
   (other-window 1))
 
-(defun brief-delete-window-up ()
+(defun brief-adjust-window-edge-loop (direction)
+  "Window edge adjustment loop for the edge in DIRECTION."
+  (let* ((horiz (or (eq direction 'left) (eq direction 'right)))
+         (window (window-in-direction direction))
+         (edge (format "%s" (pcase direction
+                              ((or 'left 'right) direction)
+                              ('above 'top)
+                              ('below 'bottom))))
+         (prompt0 (format "Move %s edge to new position and press Enter" edge))
+         (nextprompt prompt0)
+         prompt
+         (delta 0)
+         maxwidth) ;; max width of a prompt string, see the long comments below
+    (if (and window
+             (member direction '(right below)))
+        (setq window (selected-window)))
+    (if (not window)
+        (user-error (format "Brief: the %s edge is not adjustable" edge))
+      ;;
+      ;; The length of the prompt of `read-key' could cause problems.
+      ;; For small windows this message could span into two lines in
+      ;; the minibuffer which cause a temporarily raise of the window
+      ;; bottom edge.  If at this moment we adjust the bottom edge
+      ;; upwards at the same time, it will fail because the
+      ;; temporarily window bottom edge raising will be gone when the
+      ;; next prompt is displayed.  It will first restore the bottom
+      ;; edge position from the temporarily position and thus ignored
+      ;; our change.  User in this case will find that edge cannot be
+      ;; moved upwards.  Every attempt will be pulled back when the
+      ;; prompt disappear at the end of the `read-key' function call.
+      ;; When the prompt reappear again in the next call the same
+      ;; syndrome repeats again.
+      ;;
+      (while
+          (progn
+            (setq maxwidth (with-selected-window
+                               (minibuffer-window) (window-body-width)))
+            (setq prompt (if (<= (length nextprompt) maxwidth)
+                             nextprompt
+                           (concat (subseq nextprompt 0 (- maxwidth 3))
+                                   "..."))
+                  nextprompt prompt0)
+            (condition-case nil
+                (with-timeout (brief-window-adjustment-timeout
+                               (error "timeout"))
+                  ;; `read-key' is portable between terminal and X-window
+                  (pcase (read-key prompt)
+                    ((or 27 7) ;; Escape or C-g,
+                     (prog1 nil
+                       ;; Restore this edge and let alone changes on
+                       ;; other edges caused by the side effect
+                       (message "Command canceled")
+                       (adjust-window-trailing-edge window (- delta) horiz)))
+                    (13
+                     (prog1 nil (message "Command done"))) ;; Enter, done
+                    ('left
+                     (prog1 t
+                       (when horiz
+                         (adjust-window-trailing-edge window -1 t)
+                         (cl-decf delta))))
+                    ('right
+                     (prog1 t
+                       (when horiz
+                         (adjust-window-trailing-edge window 1 t)
+                         (cl-incf delta))))
+                    ('up
+                     (prog1 t
+                       (unless horiz
+                         (adjust-window-trailing-edge window -1)
+                         (cl-decf delta))))
+                    ('down
+                     (prog1 t
+                       (unless horiz
+                         (adjust-window-trailing-edge window 1)
+                         (cl-incf delta))))
+                    (_  ;; other keys, help and continue
+                     (setq nextprompt
+"Press Arrow keys to adjust edge, Enter to confirm or Escape to cancel."))))
+              (user-error
+               ;; boundary reached, continue
+               (setq nextprompt (concat (capitalize edge)
+                                        " edge reach boundary")))
+              (error (prog1 nil ;; error, cancel operation and pass up error
+                       (adjust-window-trailing-edge window (- delta) horiz)
+                       (error "Brief: Window edge adjustment timeout")))))))))
+
+(defun brief-adjust-window-edge-up ()
+  "Adjust the top edge of the selected window."
   (interactive)
-  (delete-window (brief-upside-window)))
+  (brief-adjust-window-edge-loop 'above))
+
+(defun brief-adjust-window-edge-down ()
+  "Adjust the bottom edge of the selected window."
+  (interactive)
+  (brief-adjust-window-edge-loop 'below))
+
+(defun brief-adjust-window-edge-left ()
+  "Adjust the left edge of the selected window."
+  (interactive)
+  (brief-adjust-window-edge-loop 'left))
+
+(defun brief-adjust-window-edge-right ()
+  "Adjust the right edge of the selected window."
+  (interactive)
+  (brief-adjust-window-edge-loop 'right))
+
+
+;; Support functions for `brief-merge-neighbor-window'
+;; In the following, each `w' represent a brief-window (a window or a group)
+;; and `#' represents an integer as the id
+;; for window:
+;;  w# = (x0 y0 x1 y1 &winf), edges of window #
+;; group format: ((dir wg &winf) grouplist)
+;;    ((dir gx0 gy0 gx1 gy1 &winf) (w0x0 w0y0 w0x1 w0y1) (w1x0 w1y0 w1x1 w1y1)
+;;     ...)
+;;  where
+;;   dir: nil:vertical, non-nil:horizontal
+;;   wg: (x0 y0 x1 y1): window edges of this group
+;;   &winf: optional Emacs window information:
+;;          (buf start point dedicated wid)
+;;   grouplist: (w0 w1...)
+;;   w#: (x0 y0 x1 y1 &winf): edges of window #
+;;   . Each group are of the same width or height in `dir'ection
+;;   . Group can be multi-level, meaning it can contain sub-groups and windows
+;;   . A single window must not be formed as a group, hence group should contain
+;;     at least two sub-groups or windows and its length is thus always >= 3 of
+;;     the above format (gi w0 w1 ...) where gi=(dir wg &winf)
+
+(defconst brief-merge-window-tolerance 1
+  "Delete and merge neighboring windows without exact matching sides.
+To merge neighboring windows, it was expected to merge only those with
+exactly identical sides (same width or height).  With this setting, it
+allows the user to merge neighboring windows with a slight difference on
+the adjacent side.  Sometimes, it's difficult to adjust the window size
+to be exactly identical for merging (especially when using small fonts),
+and this setting makes it a lot easier.  The empirical value is 1 (more
+or less) characters in width or height.  Values other than 1 are found
+to be overly relaxed and will cause a higher window merging failure
+rate.  Notice that this value must not be negative.")
+
+;; Notice that with `tolerance' in mind, `not brief<' is not
+;; equivalent to `brief>=' and vice versa; so does `not brief>'
+;; is not equivalent to `brief<=' and vice versa.
+
+(defmacro brief-tolerant (v1 v2)
+  ;; v1 and v2 and are within the tolerance in difference
+  `(<= (abs (- ,v1 ,v2)) brief-merge-window-tolerance))
+
+(defalias 'brief= #'brief-tolerant)
+
+(defmacro brief< (l r)
+  ;; tolerance considered
+  `(> (- ,r ,l) brief-merge-window-tolerance))
+
+(defmacro brief<= (l r)
+  `(or (brief< ,l ,r)
+       (brief= ,l ,r)))
+
+(defmacro brief> (a b)
+  ;; tolerance considered
+  `(> (- ,a ,b) brief-merge-window-tolerance))
+
+(defmacro brief>= (a b)
+  ;; tolerance considered
+  `(or (brief> ,a ,b)
+       (brief= ,a ,b)))
+
+(defmacro brief-between (v l r)
+  `(and (brief>= ,v ,l)
+        (brief<= ,v ,r)))
+
+(defmacro brief/2 (v)
+  `(ash ,v -1))
+
+(defmacro brief-group-dir (g)
+  `(caar ,g))
+
+(defun brief-group-p (g)
+  ;; is a brief-window group
+  (and (listp (car g))
+       (booleanp (brief-group-dir g))))
+
+(defun brief-win-edges (w)
+  (cl-subseq
+   (if (brief-group-p w)
+       (cdar w)
+     w)
+   0 4))
+
+(defmacro brief-win-left   (w) `(first  (brief-win-edges ,w)))
+(defmacro brief-win-right  (w) `(third  (brief-win-edges ,w)))
+(defmacro brief-win-top    (w) `(second (brief-win-edges ,w)))
+(defmacro brief-win-bottom (w) `(fourth (brief-win-edges ,w)))
+
+(defun brief-merge-edges (w1 w2)
+  ;; w1 and w2 must be either vertically or horizontally aligned
+  (list (min (brief-win-left   w1) (brief-win-left   w2))
+        (min (brief-win-top    w1) (brief-win-top    w2))
+        (max (brief-win-right  w1) (brief-win-right  w2))
+        (max (brief-win-bottom w1) (brief-win-bottom w2))))
+
+(defun brief-win-width (w)
+  ;; Used only for comparing window width
+  (- (brief-win-right w) (brief-win-left w)))
+
+(defun brief-win-height (w)
+  ;; Used only for comparing window height
+  (- (brief-win-bottom w) (brief-win-top w)))
+
+(defun brief-aligned-p (w1 w2 horizontal)
+  "Examine whether two brief windows are aligned in the HORIZONTAL direction.
+Only aligned windows can be grouped together in the specified direction.
+Matching is determined by a tolerance value to make window merging easier for
+the users."
+  (if horizontal
+      ;; y coordinate match
+      (and (brief-tolerant (brief-win-top w1) (brief-win-top w2))
+           (brief-tolerant (brief-win-bottom w1) (brief-win-bottom w2)))
+    ;; x coordinate match
+    (and (brief-tolerant (brief-win-left w1) (brief-win-left w2))
+         (brief-tolerant (brief-win-right w1) (brief-win-right w2)))))
+
+(defun brief-win-followed (w1 w2 &optional horiz)
+  ;; Note that W1 W2 must be aligned in the direction first,
+  ;; check if W1 is followed by W2
+  (if horiz
+      ;; horizontally mergeable, w2 follows w1
+      (brief-tolerant (brief-win-left w2) (brief-win-right w1))
+    ;; vertical mergeable
+    (brief-tolerant (brief-win-top w2) (brief-win-bottom w1))))
+
+(defun brief-win-mergeable (w1 w2 &optional horiz)
+  "Check if two Brief windows W1 and W2 can be merged in direction HORIZ.
+Notice that aligned windows may be far away; mergeable windows need to be
+both aligned and neighboring."
+  (let (tmp)
+    (when (brief-aligned-p w1 w2 horiz) ; mergeable only if aligned
+      (if (or (and horiz
+                   (> (brief-win-left w1) (brief-win-left w2)))
+              (and (not horiz)
+                   (> (brief-win-top w1) (brief-win-top w2))))
+          ;; Make sure X/Y ordering is incremental
+          (setq tmp w1
+                w1 w2
+                w2 tmp))
+      (brief-win-followed w1 w2 horiz))))
+
+(defun brief-sort-winpos (wlist &optional horiz descending)
+  "Sort Brief windows according to their coordinates."
+  ;; Destructive operation on the WLIST
+  (if horiz
+      ;; x ordering
+      (if descending
+          (sort wlist (lambda (a b) (> (brief-win-left a) (brief-win-left b))))
+        (sort wlist (lambda (a b) (< (brief-win-left a) (brief-win-left b)))))
+    ;; y ordering
+    (if descending
+        (sort wlist (lambda (a b) (> (brief-win-top a) (brief-win-top b))))
+      (sort wlist (lambda (a b) (< (brief-win-top a) (brief-win-top b)))))))
+
+(defun brief-window-bufinfo (wid)
+  "Window associated buffer information to be restored upon reconstruction."
+  ;; WID is Emacs window object
+  (list (window-buffer wid)
+        (window-start wid)
+        (window-point wid)
+        (window-dedicated-p wid)
+        (window-hscroll wid)
+        wid))
+
+(defun brief-ancestor-p (anc win)
+  (while (and win
+              (not (eq anc (setq win (window-parent win))))))
+  win)
+
+(defun brief-ancestors (win)
+  (let ((p (window-parent win)))
+    (if p (cons p (brief-ancestors p)))))
+
+(defun brief-first-common-ancestor (w1 w2)
+  (let ((a1 (brief-ancestors w1))
+        (p (window-parent w2)))
+    (catch 'found
+      (while p
+        (if (member p a1)
+            (throw 'found p)
+          (setq p (window-parent p))))
+      nil)))
+
+(defun brief-win-match (w1 w2)
+  (and (brief-tolerant (brief-win-left   w1) (brief-win-left   w2))
+       (brief-tolerant (brief-win-right  w1) (brief-win-right  w2))
+       (brief-tolerant (brief-win-top    w1) (brief-win-top    w2))
+       (brief-tolerant (brief-win-bottom w1) (brief-win-bottom w2))))
+
+(defun brief-win-exact-match (w1 w2)
+  (and (= (brief-win-left   w1) (brief-win-left   w2))
+       (= (brief-win-right  w1) (brief-win-right  w2))
+       (= (brief-win-top    w1) (brief-win-top    w2))
+       (= (brief-win-bottom w1) (brief-win-bottom w2))))
+
+(defun brief-split-win (dir brw)
+  "Split selected window according to BRW spec, return newly created window."
+  ;; Split direction and window is embedded in node
+  ;;  where DIR: Split direction
+  ;;        BRW: Brief window (window or group)
+  (let* ((wid (selected-window))
+         (delta 0)
+         (delta2 0)
+         (nwid wid)) ; newly created window ID
+    (if dir
+        (progn
+          (if (> (setq delta (- (window-total-width wid) (brief-win-width brw)))
+                 (+ brief-merge-window-tolerance brief-merge-window-tolerance))
+              (setq nwid (split-window wid (brief-win-width brw) dir))
+            (ignore-errors
+              (window-resize wid (- delta) t)))
+          (setq delta2 (- (window-total-width wid) (brief-win-width brw))))
+
+      (if (> (setq delta (- (window-total-height wid) (brief-win-height brw)))
+             (+ brief-merge-window-tolerance brief-merge-window-tolerance))
+          (setq nwid (split-window wid (brief-win-height brw) dir))
+        (ignore-errors
+          (window-resize wid (- delta) nil)))
+      (setq delta2 (- (window-total-height wid) (brief-win-height brw))))
+
+    ;; Adjust window width/height if differs from BRW spec (off by one)
+    (unless (zerop delta2)
+      ;; This rarely happens but it did, at least on Emacs28.
+      (ignore-errors
+        (window-resize wid delta2 dir)))
+    nwid))
+
+(defun brief-traverse-layout (node)
+  "DFS traversal of the layout tree to reconstruct windows."
+  ;; Recursive DFS traversal of the NODE.  The number of windows is usually
+  ;; not significant therefore the recursion depth is usually shallow.
+  ;; NODE: brief window group
+  (if (brief-group-p node)
+      ;; Brief window group, split and restore recursively
+      (let ((gdir (caar node))    ; group direction
+            (children (cdr node)) ; list of grouped windows
+            (currwin (selected-window))
+            wid)
+        (dolist (bw children)
+          (setq wid
+                (brief-split-win gdir bw))
+          (brief-traverse-layout bw)
+          (select-window wid))
+        (select-window currwin t))
+    ;; Restore window buffer info (cursor position...) on leaf node
+    (let ((w (selected-window))
+          (winf (car (nthcdr 4 node))))
+      (when winf
+        ;; Refers to `brief-window-bufinfo'
+        (let* ((buf   (first  winf))
+               (start (second winf))
+               (point (third  winf))
+               (dedic (fourth winf))
+               (hscr  (fifth  winf))
+               (we    (window-edges))
+               delta)
+          (unless (brief-win-exact-match we node)
+            ;; Resize window to adjust sides
+            (if (/= 0 (setq we (window-edges)
+                            delta (- (brief-win-width node)
+                                     (- (third we) (first we)))))
+                (ignore-errors
+                  (window-resize w delta t t)))
+            (if (/= 0 (setq we (window-edges)
+                            delta (- (brief-win-height node)
+                                     (- (fourth we) (second we)))))
+                (ignore-errors
+                  (window-resize w delta nil t))))
+          (set-window-buffer-start-and-point w buf start point)
+          (set-window-dedicated-p w dedic)
+          (set-window-hscroll w hscr))))))
+
+(defun brief-window-layout (root from &optional reconstruct)
+  "Resplit windows of current frame and re-split according to ROOT"
+  ;; ROOT is of brief window format (window or group)
+  ;; Successfully merged into an unique ROOT, start re-spliting windows
+  (let ((efrom (window-edges from))
+        (fded (window-dedicated-p from))
+        ;; [2024-03-13 Wed] Setting `split-window-keep-point' nil
+        ;; should enhance the performance of re-displaying.  This is
+        ;; okay as in the end we'll always restore window point.
+        (split-window-keep-point nil)
+        ;; prevent special settings get into the way
+        (ignore-window-parameters t)
+        ;; prevent customized settings
+        (window-combination-limit 'window-size))
+    ;; Close all windows
+    (if reconstruct
+        (dolist (w reconstruct)
+          (if (not (eq w from)) (delete-window w)))
+      (walk-windows (lambda (w)
+                      (if (not (eq w from)) (delete-window w)))))
+    ;; After closing windows, the sole window is FROM
+    (set-window-dedicated-p from nil)
+    ;; Re-split windows
+    (brief-traverse-layout root)
+    ;; Jump back to the merged win where we FROM
+    (select-window (window-at ;; center of FROM
+                    (+ (brief-win-left efrom)
+                       (brief/2 (brief-win-width efrom)))
+                    (+ (brief-win-top efrom)
+                       (brief/2 (brief-win-height efrom)))))
+    (set-window-dedicated-p nil fded)))
+
+(defun brief-window-tree (win)
+  ;; Traverse the whole subtree of WIN
+  (if (window-live-p win)
+      (list win) ;; leaf, return itself
+    ;; WIN is a Emacs internal window
+    (let (subt)
+      ;; Walk through all windows in the selected frame
+      (walk-windows
+       (lambda (w)
+         (if (brief-ancestor-p win w)
+             (setq subt (cons w subt)))))
+      subt)))
+
+(defun brief-merge-win (src target &optional dir)
+  ;; TARGET is a Brief window, return the merged group
+  (cl-assert (brief-aligned-p src target dir)
+             t "SRC and TARGET must be aligned in DIRection")
+  (cl-assert (not (equal (brief-win-edges src) (brief-win-edges target)))
+             t "SRC and TARGET must be different")
+  (let* ((gsrc (brief-group-p src))
+         (gtgt (brief-group-p target))
+         dsrc dtgt win grp)
+    (cons (cons dir (brief-merge-edges src target))
+          (brief-sort-winpos
+           (if (eq gsrc gtgt) ; (not (xor gsrc gtgt))
+               ;; Both are windows or groups
+               (if (not gsrc)
+                   ;; Both are windows
+                   (list src target)
+                 ;; Both are groups, check their directions
+                 (setq dsrc (brief-group-dir src)
+                       dtgt (brief-group-dir target))
+                 (if (xor dsrc dtgt)
+                     ;; Both groups are of different direction
+                     (if (eq dsrc dir)
+                         ;; Same direction as src, merge target into src
+                         (cons target (cdr src))
+                       ;; Same direction as target, merge src into target
+                       (cons src (cdr target)))
+                   ;; Both groups are of the same direction
+                   (if (eq dir dsrc) ; dir=dsrc=dtgt
+                       ;; merge all brief windows in both groups
+                       (append (cdr src) (cdr target))
+                     ;; dir /= dsrc=dtgt
+                     (list src target))))
+             ;; One window and one group
+             (if gsrc
+                 (setq grp src
+                       win target)
+               (setq grp target
+                     win src))
+             (if (eq dir (brief-group-dir grp))
+                 ;; Same direction as DIR, merge into
+                 (cons win (cdr grp))
+               ;; Different direction, construct
+               (list win grp)))
+           dir))))
+
+;; A support macro for `brief-split-merge'
+(defmacro brief-next-node (curr pcurr pprev ls)
+  `(setq ,pprev ,pcurr
+         ,pcurr ,ls
+         ,curr  (car ,ls)
+         ,ls    (cdr ,ls)))
+
+;; A divide and conquer algorithm by splitting windows recursively.
+
+(defun brief-split-merge (bwinlist range)
+  "Find a window layout within RANGE to match Brief windows listed in BWINLIST."
+
+  ;; In early 2024, this algorithm took me sometime to figure out.
+  ;; Before this, five algorithms (e.g. flood-fill merge, maze-like
+  ;; search and merge ...) were developed but always failed in some
+  ;; cases and were very inefficient in both time and space complexity.
+  ;; Finally this algorithm came up to me and proved to work well
+  ;; matching Emacs internal window management mechanism.
+
+  ;; Actually this problem arose for me ~20 years ago but I never had
+  ;; time to dig into it until recently.  After some basic analysis
+  ;; this algorithm should be no more than O(N(log2(N))^2) where N is
+  ;; the number of windows.  In practice it's not likely to have more
+  ;; than 64 windows within a frame therefore the depth of recursion
+  ;; here should be quite shallow.  There are still restrictions due
+  ;; to how Emacs split windows (also refer to the doc-string of the
+  ;; customized variable `brief-merge-deleted-window' defined earlier).
+  ;; A typical window layout that has no solution is:
+  ;;    ______
+  ;;   |____| |
+  ;;   | |__|_|
+  ;;   |_|____|
+  ;;
+  ;; Any such structure within any sub-window of a frame has no
+  ;; solution.  Despite of these corner cases, this is already quite
+  ;; adequate for most regular use.
+
+  ;; Input: a list of Brief windows to merge within the RANGE.
+  ;; Output: if successful, return merged unique window containing all
+  ;;         the input windows; return nil if fail.
+  ;; This function take a shortcut, on traversing all possible
+  ;; solutions it will throw the first solution found and cut the rest
+  ;; search tree just like the cut `!' operator in Prologue language.
+
+  ;; Note: This operation is non-destructive to BWINLIST
+
+  (if (or (null bwinlist)
+          (= 1 (length bwinlist)))
+      ;; Only one window (or none) remains, return it
+      (progn
+        ;; Accumulated tolerance could make this assertion fail, but
+        ;; it's safe.
+        ;;(cl-assert (or (null bwinlist)
+        ;;               (brief-win-match (car bwinlist) range))
+        ;;           t "Leaf window does not match its range")
+        (car bwinlist))
+    ;; Several windows within
+    (let (slist slist0 ;; split list
+          slen    ; split length (width/height, according to current direction)
+          rangelim ; left/top side limit of current range
+          curr    ; current window
+          pcurr   ; pointer to current window
+          pprev   ; pointer to previous window
+          limit   ; current left/top side coordinate limit
+          acculen ; current accumulated length (width/height)
+          accuerr ; accumulated tolerance
+          splitpoints ; a set of split points {(curr prev horiz)...}
+          group0 group1) ; half split left/right top/bottom window groups
+
+      (catch 'conquer
+        ;; Notice the direction here means the "resulting" two split
+        ;; groups are aligned in that direction after the split; not
+        ;; the direction how we cut the groups.  For example, the
+        ;; resulting two horizontally aligned groups are cut/split in
+        ;; the vertical direction.  The line of cutting/ splitting is
+        ;; always perpendicular to the aligned direction of the
+        ;; groups.
+        (dolist (horiz (if (> (brief-win-width range) (brief-win-height range))
+                           '(t nil) ; Wider? horizontal split first
+                         '(nil t))) ; Thinner? vertical split first
+          (setq rangelim (if horiz
+                             (brief-win-left range)
+                           (brief-win-top range))
+                splitpoints nil)
+          ;; Sort windows according to X/Y coordinate ordering, in
+          ;; descending order (right to left / bottom to top), attempt
+          ;; to split horizontally/vertically.
+          (setq slist (brief-sort-winpos (copy-sequence bwinlist) horiz t)
+                slist0 slist
+                ;; Need to copy sequence as we may later having a
+                ;; splitting of another direction, and sort will
+                ;; corrupt the original list.
+                slen (if horiz
+                         (brief-win-height range)
+                       (brief-win-width range))
+                pprev slist)
+
+          ;; Try to find a vertical/horizontal line with length SLEN
+          ;; that can vertically/horizontally split the whole window
+          ;; RANGE into two horizontal/vertical groups.
+          (brief-next-node curr pcurr pprev slist) ; start node
+          ;; Start searching for a split line.
+          ;; The ending edge is always a full split line (left or top
+          ;; boundary of the range).
+          (while (and curr slist
+                      ;; Not reaching the range start
+                      (not (brief= rangelim
+                                   (if horiz
+                                       (brief-win-left curr)
+                                     (brief-win-top curr)))))
+            (setq limit (if horiz
+                            (brief-win-left curr)
+                          (brief-win-top curr))
+                  acculen (if horiz
+                              (brief-win-height curr)
+                            (brief-win-width curr))
+                  accuerr brief-merge-window-tolerance)
+
+            (brief-next-node curr pcurr pprev slist)
+            (while (and curr
+                        (brief= limit
+                                (if horiz
+                                    (brief-win-left curr)
+                                  (brief-win-top curr))))
+              (setq acculen (+ acculen
+                               (if horiz
+                                   (brief-win-height curr)
+                                 (brief-win-width curr)))
+                    ;; The total accumulated tolerance should not
+                    ;; exceed minimum window width/height, which is a
+                    ;; valid window.
+                    accuerr (min (+ accuerr brief-merge-window-tolerance)
+                                 (1- (if horiz
+                                         window-min-width
+                                       window-min-height))))
+              (brief-next-node curr pcurr pprev slist))
+            (cl-assert (not (brief> (- acculen slen) acculen)) t
+"Internal error: current total height does not match range height")
+
+            ;; New left/top edge start, test if current edge leads to a proper
+            ;; vertical/horizontal line first.
+            (if (brief-between (- acculen slen) 0 accuerr)
+                ;; If accumulated length is longer or equal to range
+                ;; limit but not exceeding accumulated tolerance,
+                ;; then a split line is found.
+                ;; Every node in SLIST after PCURR are at the left/top
+                ;; side, and PPREV is the split point
+                (push (list pcurr pprev horiz) splitpoints))) ; while
+
+          ;; Split points found, for each split point (divide), try to
+          ;; find a solution (conquer).
+          (when splitpoints
+            (if (> (length splitpoints) 1)
+                ;; Sort by the distance to the center so that the
+                ;; split point is generally closer to the center.
+                ;; This makes the window splitting more visually
+                ;; balance (not tree-balancing).
+                (setq splitpoints
+                      (let ((center (if horiz
+                                        (brief/2 (+ (brief-win-left range)
+                                                    (brief-win-right range)))
+                                      (brief/2 (+ (brief-win-top range)
+                                                  (brief-win-bottom range))))))
+                        (sort splitpoints
+                              (if horiz
+                                  (lambda (a b)
+                                    (< (abs (- (brief-win-left (caadr a))
+                                               center))
+                                       (abs (- (brief-win-left (caadr b))
+                                               center))))
+                                (lambda (a b)
+                                  (< (abs (- (brief-win-top (caadr a))
+                                             center))
+                                     (abs (- (brief-win-top (caadr b))
+                                             center)))))))))
+
+            (dolist (splitinfo splitpoints)
+              (setq pcurr (first splitinfo)
+                    pprev (second splitinfo)
+                    horiz (third splitinfo))
+              (cl-assert (equal (cdr pprev) pcurr) t
+"Node arrangement of the list cutting point is not as expected") ; DBG
+              ;; Cut SLIST0 into two groups
+              (setcdr pprev nil)
+
+              (when (and
+                     (setq group0
+                           (brief-split-merge
+                            pcurr ; left/top group
+                            (list (brief-win-left range)
+                                  (brief-win-top range)
+                                  (if horiz
+                                      (brief-win-left (car pprev))
+                                    (brief-win-right range))
+                                  (if horiz
+                                      (brief-win-bottom range)
+                                    (brief-win-top (car pprev))))))
+                     (setq group1
+                           (brief-split-merge
+                            slist0 ; right/bottom group
+                            (list (if horiz
+                                      (brief-win-left (car pprev))
+                                    (brief-win-left range))
+                                  (if horiz
+                                      (brief-win-top range)
+                                    (brief-win-top (car pprev)))
+                                  (brief-win-right range)
+                                  (brief-win-bottom range)))))
+                ;; Return only one result, cut the remaining search tree
+                (throw 'conquer
+                       (brief-merge-win group0 group1 horiz)))
+               ;; Link back SLIST0 for next split tuple
+              (setcdr pprev pcurr))))))))
+
+(defun brief-merge-neighbor-window (to &optional horiz)
+  "Brief style window deletion and merge.
+This behavior is enabled by custom variable `brief-merge-deleted-window'
+which is by default enabled.  Also check its documentation string for
+more detail and restriction on emulating this Brief editor behavior on
+Emacs."
+  (when (and to (not (eq (selected-window) to)))
+    (let* ((from  (selected-window))
+           (pfrom (window-parent from))
+           (pto   (window-parent to))
+           (wfrom (window-edges from))
+           (wto   (window-edges to))
+           (window-combination-limit 'window-size))
+      ;; Check if edges match
+      (if (brief-aligned-p wfrom wto horiz)
+          (if (eq pfrom pto)
+              ;; Same parent, merge two windows directly
+              ;; Edges match and same parent, saving all edges of siblings
+              (let (siblis ;; siblings list, associated with size
+                    (sib (window-child (window-parent))))
+                ;; Record all edges except TO
+                (while sib
+                  (unless (eq sib to)
+                    ;; siblis: (x0 y0 x1 y1 window) ...
+                    (setq siblis
+                          (cons (append (if (eq sib from)
+                                            ;; merge FROM and TO
+                                            (brief-merge-edges wfrom wto)
+                                          (window-edges sib))
+                                        (list sib))
+                                siblis)))
+                  (setq sib (window-next-sibling sib)))
+                ;; Delete TO
+                (delete-window to)
+                ;; Sort windows according to X/Y ordering
+                (setq siblis (brief-sort-winpos siblis horiz))
+                ;; Restore all sibling windows in sorted X/Y ordering
+                ;; otherwise some earlier window sizes will be changed
+                ;; by latter ones.
+                (dolist (sib siblis)
+                  ;; x0 y0 x1 y1 w
+                  (let* ((win   (fifth sib))
+                         (delta (if horiz
+                                    (- (- (brief-win-right sib)
+                                          (brief-win-left sib))
+                                       (window-total-width win))
+                                  (- (- (brief-win-bottom sib)
+                                        (brief-win-top sib))
+                                     (window-total-height win)))))
+                    (unless (or (zerop delta)
+                                (frame-root-window-p win))
+                      (ignore-errors
+                        (window-resize win delta horiz))))))
+
+            ;; Different parents, combining windows belongs to
+            ;; different parents and then reconstruct windows
+            ;; accordingly.  w/ bottom-up re-construction
+            (let* ((cmnanc (brief-first-common-ancestor from to))
+                   (range   (window-edges cmnanc))
+                   ;; Emacs window list to be constructed
+                   (ewinlis (brief-window-tree cmnanc))
+                   ;; Target range merging FROM and TO (x0 y0 x1 y1)
+                   (target  (append (brief-merge-edges wfrom wto)
+                                    (list (brief-window-bufinfo from))))
+                   ;; Brief window list to be constructed
+                   (bwinlis (list target)))
+              ;; Build brief window list BWINLIS from Emacs window list EWINLIS
+              (dolist (w ewinlis)
+                (if (not (or (eq w from) (eq w to)))
+                    (setq bwinlis
+                          (cons (append (window-edges w)
+                                        (list (brief-window-bufinfo w)))
+                                bwinlis))))
+
+              (setq target
+                    (catch 'unified
+                      (brief-split-merge bwinlis range)))
+
+              (if target
+                  (brief-window-layout target from ewinlis)
+                (if brief-delete-window-on-merge-failure
+                    (delete-window to)
+                  (message
+"Fail combining windows; fail to split such a window layout.")))))
+
+        ;; Can't combine, go backward compatibility to delete TO
+        (message "Window edges not match, cannot merge")
+        (if brief-delete-window-on-merge-failure
+            (delete-window to))))))
+
+(defun brief-delete-window-up ()
+  "Merge or delete the top side neighboring window.
+Default operation is whether merging or deletion depends on the
+customized variable `brief-merge-deleted-window'.  When prefixed,
+execute the other operation specified by `brief-merge-deleted-window'.
+Before Brief v5.90 the only operation supported is deletion."
+  (interactive)
+  (if (xor brief-merge-deleted-window
+           current-prefix-arg)
+      (brief-merge-neighbor-window (brief-upside-window))
+    (delete-window (brief-upside-window))))
 
 (defun brief-delete-window-down ()
+  "Merge or delete the bottom side neighboring window."
   (interactive)
-  (delete-window (brief-downside-window)))
+  (if (xor brief-merge-deleted-window
+           current-prefix-arg)
+      (brief-merge-neighbor-window (brief-downside-window))
+    (delete-window (brief-downside-window))))
 
 (defun brief-delete-window-left ()
+  "Merge or delete the left side neighboring window."
   (interactive)
-  (delete-window (brief-leftside-window)))
+  (if (xor brief-merge-deleted-window
+           current-prefix-arg)
+      (brief-merge-neighbor-window (brief-leftside-window) 'horizontal)
+    (delete-window (brief-leftside-window))))
 
 (defun brief-delete-window-right ()
+  "Merge or delete the right side neighboring window."
   (interactive)
-  (delete-window (brief-rightside-window)))
+  (if (xor brief-merge-deleted-window
+           current-prefix-arg)
+      (brief-merge-neighbor-window (brief-rightside-window) 'horizontal)
+    (delete-window (brief-rightside-window))))
 
 (defun brief-delete-current-window ()
   (interactive)
@@ -3135,7 +3981,9 @@ The \"key-up\" is actually emulated by running an idle timer."
             #'brief-postpone-gui-set-selection 't)
   (add-hook 'deactivate-mark-hook
             #'brief-resume-gui-set-selection)
-  (add-hook 'brief-before-switch-to-window-hook
+  (add-hook (if (boundp 'window-selection-change-functions)
+                'window-selection-change-functions
+              'brief-before-switch-to-window-hook)
             #'brief-run-postponed-immediately)
   (add-hook 'kill-buffer-hook
             #'brief-run-postponed-immediately))
@@ -3148,7 +3996,9 @@ The \"key-up\" is actually emulated by running an idle timer."
   ;; In case any terminal mode frame in work
   (remove-hook 'post-command-hook
                #'brief-terminal-mode-activate-gui-selection-idle-timer)
-  (remove-hook 'brief-before-switch-to-window-hook
+  (remove-hook (if (boundp 'window-selection-change-functions)
+                   'window-selection-change-functions
+                 'brief-before-switch-to-window-hook)
                #'brief-run-postponed-immediately)
   (remove-hook 'kill-buffer-hook
                #'brief-run-postponed-immediately))
@@ -5836,8 +6686,8 @@ Replace string/regexp PATTERN in a rectangle."
         ;;undo-before
         )
     ;;(and
-    (assert (and (equal pattern (car brief-query-replace-from-history))
-                 (equal to-string (car brief-query-replace-to-history))))
+    (cl-assert (and (equal pattern (car brief-query-replace-from-history))
+                    (equal to-string (car brief-query-replace-to-history))))
     (funcall (or (and ;;(brief-use-region)
                   (brief-rectangle-active)
                   #'brief-query-replace-rectangle)
@@ -6916,21 +7766,20 @@ Unlike [return] key, this command does not split current line."
 (define-key brief-prefix-F1 [(right)]      #'brief-switch-window-right)
 
 ;; Defining F2 keymap bindings
-;; TODO: enlarge/shrink according to current window position and layouts
 (brief-key                  [(f2)]  brief-prefix-F2)
 
-(define-key brief-prefix-F2 [(down)]       #'enlarge-window)
-(define-key brief-prefix-F2 [(left)]       #'shrink-window-horizontally)
-(define-key brief-prefix-F2 [(right)]      #'enlarge-window-horizontally)
-(define-key brief-prefix-F2 [(up)]         #'shrink-window)
+(define-key brief-prefix-F2 [(up)]         #'brief-adjust-window-edge-up)
+(define-key brief-prefix-F2 [(down)]       #'brief-adjust-window-edge-down)
+(define-key brief-prefix-F2 [(left)]       #'brief-adjust-window-edge-left)
+(define-key brief-prefix-F2 [(right)]      #'brief-adjust-window-edge-right)
 
 ;; Defining F3 keymap bindings
 
 (brief-key                  [(f3)]  brief-prefix-F3)
 
-(define-key brief-prefix-F3 [(down)]       #'split-window-vertically)
+(define-key brief-prefix-F3 [(down)]       #'brief-split-window-vertically)
 (define-key brief-prefix-F3 [(up)]         #'brief-split-window-up)
-(define-key brief-prefix-F3 [(right)]      #'split-window-horizontally)
+(define-key brief-prefix-F3 [(right)]      #'brief-split-window-horizontally)
 (define-key brief-prefix-F3 [(left)]       #'brief-split-window-left)
 
 (brief-key [(meta f3)]              #'brief-create-frame)
@@ -7558,8 +8407,6 @@ toggle brief-mode."
                         brief-search-forward
                         brief-search-forward-currword
                         brief-repeat-search-forward
-                        brief-fixed-cursor-page-up
-                        brief-fixed-cursor-page-down
                         brief-call-last-kbd-macro
                         brief-open-new-line-next
                         brief-mark-line-up-with-<up>
@@ -7600,8 +8447,14 @@ toggle brief-mode."
                         brief-switch-window-down
                         brief-switch-window-left
                         brief-switch-window-right
+                        brief-split-window-vertically
+                        brief-split-window-horizontally
                         brief-split-window-up
                         brief-split-window-left
+                        brief-adjust-window-edge-left
+                        brief-adjust-window-edge-right
+                        brief-adjust-window-edge-up
+                        brief-adjust-window-edge-down
                         brief-delete-window-up
                         brief-delete-window-down
                         brief-delete-window-left
@@ -7640,7 +8493,10 @@ toggle brief-mode."
                         brief-end-of-window
                         brief-mark-line-up-with-<M-home>
                         brief-mark-line-down-with-<M-end>
-                        brief-version)))))
+                        brief-fixed-cursor-page-up
+                        brief-fixed-cursor-page-down
+                        brief-version
+                        brief-undo)))))
 
      ;; Non-brief commands, but mapped in brief keymap
 
@@ -7723,8 +8579,7 @@ matter if brief-mode is enabled or not."
   :type  'boolean
   :set   #'brief-set:brief-replace-emacs-func:line-number-at-pos)
 
-(when (and (>= emacs-major-version 27)  ;FIXME: Why?
-           brief-replace-emacs-func:line-number-at-pos)
+(when brief-replace-emacs-func:line-number-at-pos
   ;; Global replacement, no matter if Brief mode is enabled or not.
   ;; Notice that it dynamically overrides the `line-number-at-pos' function
   ;; according to `brief-replace-emacs-func:line-number-at-pos'.

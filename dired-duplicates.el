@@ -163,7 +163,7 @@ temporary buffer for the hash calculation."
       (with-temp-buffer
         (message "External checksumming of %s" file)
         (unless (zerop (process-file exec nil t nil file))
-          (error "Failed to start checksum program %s" exec))
+          (error "Failed to start checksum program %s for file %s" exec file))
         (goto-char (point-min))
         (if (looking-at "\\`[[:alnum:]]+")
             (match-string 0)

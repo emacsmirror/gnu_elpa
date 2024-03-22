@@ -322,7 +322,7 @@ The results will be shown in a Dired buffer."
                                                nil
                                                default-directory)))
   (unless directories
-    (user-error "Specify one or more directories to search in"))
+    (user-error "Please specify one or more directories to search in"))
   (let* ((directories (if (listp directories) directories (list directories))))
     (message "Finding duplicate files in %s..." (string-join directories ", "))
     (if-let ((default-directory "/")

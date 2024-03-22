@@ -333,7 +333,10 @@ The results will be shown in a Dired buffer."
   (interactive (list (dired-duplicates--prompt-for-directories)))
   (unless directories
     (user-error "Please specify one or more directories to search in"))
-  (let* ((directories (if (listp directories) directories (list directories))))
+  (let* ((directories (if (listp directories)
+                          (cl-remove-duplicates (mapcar #'expand-file-name directories)
+                                                :test #'string=)
+                        (list directories))))
     (message "Finding duplicate files in %s..." (string-join directories ", "))
     (if-let ((default-directory "/")
              (results (dired-duplicates--generate-grouped-results directories)))

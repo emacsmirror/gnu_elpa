@@ -111,7 +111,7 @@ The sorting can be in ascending (<) or descending (>) order."
                  (const :tag "Descending" >)))
 
 (defcustom dired-duplicates-file-filter-functions
-  nil
+  '(dired-duplicates--file-filter-readable-and-regular)
   "Filter functions applied to all files found in a directory.
 
 A filter function must accept as its single argument the file and
@@ -169,27 +169,33 @@ temporary buffer for the hash calculation."
             (match-string 0)
           (error "Unexpected output from checksum program %s" exec))))))
 
+(defun dired-duplicates--file-filter-readable-and-regular (file)
+  "Check whether FILE is readable and regular."
+  (and (file-readable-p file)
+       (file-regular-p file)))
+
 (defun dired-duplicates--apply-file-filter-functions (files)
   "Apply file filter functions to FILES, returning the resulting list."
   (dolist (filter-func dired-duplicates-file-filter-functions files)
     (setf files (cl-delete-if-not filter-func files))))
 
+(defun dired-duplicates--find-files (directories)
+  "Search below DIRECTORIES for files."
+  (mapcan (lambda (d)
+            (if dired-duplicates-search-directories-recursively
+                (directory-files-recursively d ".*" nil t)
+              (seq-remove #'file-directory-p (directory-files d t nil t))))
+          directories))
+
 (defun dired-duplicates--find-and-filter-files (directories)
   "Search below DIRECTORIES for duplicate files.
 
-It is possible to provide one or more root DIRECTORIES.  Returns
-a hash-table with the checksums as keys and a list of size and
-duplicate files as values.  Subdirectories and files that cannot
-be read will be silently ignored."
+It is possible to provide one or more root DIRECTORIES.  Any file
+filter functions will be applied before checking for duplicates.
+Return a hash-table with the checksums as keys and a list of size
+and duplicate files as values."
   (cl-loop with files = (dired-duplicates--apply-file-filter-functions
-                         (mapcan
-                          (lambda (d)
-                            (seq-remove (lambda (f)
-                                          (not (file-readable-p f)))
-                                        (if dired-duplicates-search-directories-recursively
-                                            (directory-files-recursively d ".*" nil t)
-                                          (seq-remove #'file-directory-p (directory-files d t nil t)))))
-                          directories))
+                         (dired-duplicates--find-files directories))
            and same-size-table = (make-hash-table)
            and checksum-table = (make-hash-table :test 'equal)
            for f in files

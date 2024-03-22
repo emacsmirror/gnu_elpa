@@ -309,18 +309,22 @@ This is the same as `dired-do-flagged-delete', but calls
 
 It will be local to the `dired-duplicates' buffer.")
 
+(defun dired-duplicates--prompt-for-directories ()
+  "Prompt the user for directories until an empty string is returned."
+  (let ((dirs nil))
+    (while (let ((dir (if (not dirs)
+                       (read-file-name "Directory: " nil default-directory nil nil #'file-directory-p)
+                     (read-file-name "Another directory (or RET to start): " nil "" nil nil #'file-directory-p))))
+             (unless (string= dir "")
+                 (push dir dirs))))
+    (nreverse dirs)))
+
 ;;;###autoload
 (defun dired-duplicates (directories)
   "Find a list of duplicate files inside one or more DIRECTORIES.
 
 The results will be shown in a Dired buffer."
-  (interactive (list (completing-read-multiple "Directories: "
-                                               #'read-file-name-internal
-                                               #'file-directory-p
-                                               t
-                                               default-directory
-                                               nil
-                                               default-directory)))
+  (interactive (list (dired-duplicates--prompt-for-directories)))
   (unless directories
     (user-error "Please specify one or more directories to search in"))
   (let* ((directories (if (listp directories) directories (list directories))))

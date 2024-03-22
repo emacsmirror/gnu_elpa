@@ -1,3 +1,13 @@
+* dired-duplicates-0.4  [2024-03-28 Do]
+
+- New feature: Inverse search. Find files that have no duplicates.
+- Show checksumming progress in more detail.
+- Use read-file-name instead of internal completion function.
+- Use multiple prompts for directories instead of completing-read-multiple.
+- Expand and deduplicate dir names before starting comparison.
+- Only compare and checksum regular files, e.g. prevent checksumming sockets
+  which will not work and would be useless anyway.
+
 * dired-duplicates-0.3  [2023-11-14 Di]
 
 - Silently ignore subdirectories that cannot be read, so that finding files

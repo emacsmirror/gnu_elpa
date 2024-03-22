@@ -203,7 +203,7 @@ and duplicate files as values."
            initially do
            (message "Collecting sizes of %d files..." (length files))
            do (setf (gethash size same-size-table)
-                    (append (gethash size same-size-table) (list f)))
+                    (push f (gethash size same-size-table)))
            finally
            (cl-loop with checksum-exec-availability = (make-hash-table :test 'equal)
                     initially do
@@ -226,7 +226,7 @@ and duplicate files as values."
                                                   nil))
                              when checksum do
                                (setf (gethash checksum checksum-table)
-                                     (append (gethash checksum checksum-table) (list f)))))
+                                     (push f (gethash checksum checksum-table)))))
            (cl-loop for same-files being the hash-value in checksum-table using (hash-key checksum)
                     do
                     (if (cdr same-files)

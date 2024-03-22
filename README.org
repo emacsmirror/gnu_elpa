@@ -17,7 +17,8 @@ By default, the results will be grouped visually by separating them using empty
 lines, but this grouping can also be deactivated by setting the custom variable
 =dired-duplicates-separate-result= to =nil=.
 
-dired-duplicates will silently ignore unreadable directories and files.
+dired-duplicates will silently ignore unreadable directories and files, and
+also unregular files, such as sockets.
 
 * Requirements
 For performance reasons, a checksum program like =md5= or =sha256sum= will be
@@ -40,26 +41,30 @@ manager, e.g. ~package-install~.  Or you use the following use-package snippet:
 #+END_SRC
 
 * Usage
-Call ~dired-duplicates~ interactively and provide one or more directories
-(usually separated by commas) to search in recursively.
+Call ~dired-duplicates~ interactively using M-x and provide one or more
+directories to search in recursively.  If not customized otherwise, the key
+shortcut M-n usually gets you the default directory in the minibuffer prompt.
+For some completion systems like vertico and depending on how it is set up,
+remember to hit M-RET to confirm the completion if you are not at the end of
+the line.
+
+If you provide a prefix, using C-u M-x ~dired-duplicates~, then this behaves
+similar but will search for files which do _NOT_ have any duplicates.  This
+might be more helpful than listing all the duplicate files when comparing
+directories that have mostly the same contents except a few files.
 
 * Configuration
 You can find all available customization options with ~customize-group~,
 entering =dired-duplicates= for the desired group.  These options are described
 extensively there.
 
-* Known issues and reporting bugs
-** Known issue with completing-multiple-read
-At the moment, there is a problem in Emacs 28.1 and perhaps other versions with
-~completing-read-multiple~ that makes auto-completion fail.  When you try to
-specify more than one directory separated by commas (e.g. =/tmp/1,/tmp/2=), an
-error /may/ occur depending on the completing system.  In such a case, you
-might just do without auto-completion and ignore that error, dired-duplicates
-will still function properly if you provide valid directories.
+* Reporting bugs
+If checksumming or accessing a file fails, it should be reported in the
+minibuffer (interrupting the operation), or in the *Messages* buffer.
 
-** Reporting bugs
-Just open an issue at the homepage of this project in case you hit an error,
-and provide proper steps to reproduce the problem.
+Just open an issue at the homepage of this project in case you hit an error
+that you think should not happen, but please provide proper steps to reproduce
+the problem.
 
 * License
 This package is licensed under GPL-3.  See the =LICENSE= file for more

@@ -438,6 +438,7 @@
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
  (listen		:url "https://github.com/alphapapa/listen.el"
+  :release-branch "stable"
   :doc "README.org")
  (llm			:url "https://github.com/ahyatt/llm")
  (lmc			:url nil)

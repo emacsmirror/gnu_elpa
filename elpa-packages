@@ -512,7 +512,7 @@
   :ignored-files ("LICENSE"))
  (ob-haxe		:url "https://github.com/ianxm/ob-haxe.el")
  (objed        		:url "https://github.com/clemera/objed")
- (omn-mode            	:url nil)
+ (omn-mode            	:url "https://github.com/phillord/omn-mode")
  (on-screen           	:url "https://github.com/michael-heerdegen/on-screen.el.git")
  (openpgp               :url "https://git.sr.ht/~pkal/openpgp")
  (orderless		:url "https://github.com/oantolin/orderless"

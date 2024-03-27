@@ -294,7 +294,7 @@ This is the same as `dired-do-delete', but calls
 `dired-duplicates-dired-revert' afterwards."
     (interactive)
     (dired-do-delete arg)
-    (dired-duplicates-dired-revert)))
+    (apply revert-buffer-function nil nil)))
 
 (when (< emacs-major-version 29)
   (defun dired-duplicates--do-flagged-delete (&optional nomessage)
@@ -307,7 +307,7 @@ This is the same as `dired-do-flagged-delete', but calls
 `dired-duplicates-dired-revert' afterwards."
     (interactive)
     (dired-do-flagged-delete nomessage)
-    (dired-duplicates-dired-revert)))
+    (apply revert-buffer-function nil nil)))
 
 (defvar dired-duplicates-map
   (let ((map (make-sparse-keymap)))

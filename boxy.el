@@ -3,11 +3,11 @@
 ;; Copyright (C) 2021-2023 Free Software Foundation, Inc.
 
 ;; Author: Amy Grinn <grinn.amy@gmail.com>
-;; Version: 1.1.3
+;; Version: 1.1.4
 ;; File: boxy.el
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: tools
-;; URL: https://gitlab.com/tygrdev/boxy
+;; URL: https://gitlab.com/grinn.amy/boxy
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

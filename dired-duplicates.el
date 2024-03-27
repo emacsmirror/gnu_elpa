@@ -187,15 +187,28 @@ temporary buffer for the hash calculation."
               (seq-remove #'file-directory-p (directory-files d t nil t))))
           directories))
 
-(defun dired-duplicates--find-and-filter-files (directories)
-  "Search below DIRECTORIES for duplicate files.
+(defun dired-duplicates--find-checksum-exec (file table)
+  "Detect whether checksum exec is available for FILE location.
 
-It is possible to provide one or more root DIRECTORIES.  Any file
-filter functions will be applied before checking for duplicates.
-Return a hash-table with the checksums as keys and a list of size
-and duplicate files as values."
-  (cl-loop with files = (dired-duplicates--apply-file-filter-functions
-                         (dired-duplicates--find-files directories))
+The results will be cached in the hash TABLE for faster access."
+  (let* ((key (file-remote-p file))
+         (path (gethash key table 'does-not-exist)))
+    (if (eq path 'does-not-exist)
+        (let* ((default-directory (file-name-directory (expand-file-name file)))
+               (exec (executable-find dired-duplicates-checksum-exec t)))
+          (setf (gethash key table) exec)
+          (unless exec
+            (message "Checksum program %s not found in exec-path, falling back to internal routines" exec))
+          exec)
+      path)))
+
+(defun dired-duplicates--detect-duplicates (files)
+  "Find duplicates given a list of FILES.
+
+Any file filter functions will be applied before checking for
+duplicates.  Return a hash-table with the checksums as keys and a
+list of size and duplicate files as values."
+  (cl-loop with files = (dired-duplicates--apply-file-filter-functions files)
            and same-size-table = (make-hash-table)
            and checksum-table = (make-hash-table :test 'equal)
            for f in files
@@ -205,28 +218,20 @@ and duplicate files as values."
            do (setf (gethash size same-size-table)
                     (push f (gethash size same-size-table)))
            finally
-           (cl-loop with checksum-exec-availability = (make-hash-table :test 'equal)
-                    initially do
-                    (cl-loop for d in directories do
-                             (let* ((default-directory (file-name-directory (expand-file-name d)))
-                                    (exec (executable-find dired-duplicates-checksum-exec t)))
-                               (if exec
-                                   (setf (gethash (file-remote-p d) checksum-exec-availability) exec)
-                                 (message "Checksum program %s not found in exec-path, falling back to internal routines" exec))))
-
+           (cl-loop with checksum-exec-paths = (make-hash-table :test 'equal)
                     for same-size-files being the hash-value in same-size-table using (hash-key size)
                     if (cdr same-size-files) do
                     (cl-loop for f in same-size-files
-                             for checksum-path = (gethash (file-remote-p f) checksum-exec-availability)
-                             for checksum = (if checksum-path
-                                                  (dired-duplicates--checksum-file f checksum-path)
-                                                (if (<= size dired-duplicates-internal-checksumming-size-limit)
-                                                    (dired-duplicates--checksum-file f nil)
-                                                  (warn "File %s is too big to checksum using internal functions, skipping." f)
-                                                  nil))
+                             for exec = (dired-duplicates--find-checksum-exec f checksum-exec-paths)
+                             for checksum = (if exec
+                                                (dired-duplicates--checksum-file f exec)
+                                              (if (<= size dired-duplicates-internal-checksumming-size-limit)
+                                                  (dired-duplicates--checksum-file f nil)
+                                                (warn "File %s is too big to checksum using internal functions, skipping." f)
+                                                nil))
                              when checksum do
-                               (setf (gethash checksum checksum-table)
-                                     (push f (gethash checksum checksum-table)))))
+                             (setf (gethash checksum checksum-table)
+                                   (push f (gethash checksum checksum-table)))))
            (cl-loop for same-files being the hash-value in checksum-table using (hash-key checksum)
                     do
                     (if (cdr same-files)
@@ -238,9 +243,9 @@ and duplicate files as values."
 
 (defun dired-duplicates--generate-grouped-results (&optional directories)
   "Generate a list of grouped duplicate files in DIRECTORIES."
-  (cl-loop with dupes-table = (dired-duplicates--find-and-filter-files
-                               (or directories
-                                   dired-duplicates-directories))
+  (cl-loop with directories = (or directories dired-duplicates-directories)
+           with dupes-table = (dired-duplicates--detect-duplicates
+                               (dired-duplicates--find-files directories))
            with sorted-sums = (cl-sort
                                (cl-loop for k being the hash-key in dupes-table using (hash-value v)
                                         collect (list k (car v)))

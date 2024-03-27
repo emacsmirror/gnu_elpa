@@ -202,8 +202,8 @@ The results will be cached in the hash TABLE for faster access."
           exec)
       path)))
 
-(defun dired-duplicates--detect-duplicates (files)
-  "Find duplicates given a list of FILES.
+(defun dired-duplicates--detect-duplicates (files &optional inversep)
+  "Find duplicates (non-duplicates when INVERSEP is t), given a list of FILES.
 
 Any file filter functions will be applied before checking for
 duplicates.  Return a hash-table with the checksums as keys and a
@@ -211,12 +211,14 @@ list of size and duplicate files as values."
   (cl-loop with files = (dired-duplicates--apply-file-filter-functions files)
            and same-size-table = (make-hash-table)
            and checksum-table = (make-hash-table :test 'equal)
+           and inverse-table = (make-hash-table :test 'equal)
            for f in files
            for size = (file-attribute-size (file-attributes f))
            initially do
            (message "Collecting sizes of %d files..." (length files))
            do (setf (gethash size same-size-table)
                     (push f (gethash size same-size-table)))
+           when inversep do (setf (gethash f inverse-table) t)
            finally
            (cl-loop with checksum-exec-paths = (make-hash-table :test 'equal)
                     for same-size-files being the hash-value in same-size-table using (hash-key size)
@@ -235,11 +237,18 @@ list of size and duplicate files as values."
            (cl-loop for same-files being the hash-value in checksum-table using (hash-key checksum)
                     do
                     (if (cdr same-files)
-                        (setf (gethash checksum checksum-table)
-                              (cons (file-attribute-size (file-attributes (car same-files)))
-                                    (sort same-files #'string<)))
+                        (progn
+                          (setf (gethash checksum checksum-table)
+                                (cons (file-attribute-size (file-attributes (car same-files)))
+                                      (sort same-files #'string<)))
+                          (when inversep
+                            (dolist (f same-files)
+                              (remhash f inverse-table))))
                       (remhash checksum checksum-table)))
-           (cl-return checksum-table)))
+           (cl-return
+            (if inversep
+                (sort (cl-loop for k being the hash-keys in inverse-table collect k) #'string<)
+              checksum-table))))
 
 (defun dired-duplicates--generate-grouped-results (&optional directories)
   "Generate a list of grouped duplicate files in DIRECTORIES."
@@ -341,19 +350,33 @@ The results will be shown in a Dired buffer."
   (let* ((directories (if (listp directories)
                           (cl-remove-duplicates (mapcar #'expand-file-name directories)
                                                 :test #'string=)
-                        (list directories))))
-    (message "Finding duplicate files in %s..." (string-join directories ", "))
-    (if-let ((default-directory "/")
-             (results (dired-duplicates--generate-grouped-results directories)))
+                        (list directories)))
+         (inversep current-prefix-arg))
+    (if (not inversep)
         (progn
-          (message "Found %d files having duplicates." (length results))
-          (dired (cons "/" (flatten-list results)))
-          (set-keymap-parent dired-duplicates-map dired-mode-map)
-          (use-local-map dired-duplicates-map)
-          (setq-local dired-duplicates-directories directories)
-          (dired-duplicates--post-process-dired-buffer results)
-          (setq-local revert-buffer-function 'dired-duplicates-dired-revert))
-      (message "No duplicate files found."))))
+          (message "Finding duplicate files in %s..." (string-join directories ", "))
+          (if-let ((default-directory "/")
+                   (results (dired-duplicates--generate-grouped-results directories)))
+              (progn
+                (message "Found %d files having duplicates." (length results))
+                (dired (cons "/" (flatten-list results)))
+                (set-keymap-parent dired-duplicates-map dired-mode-map)
+                (use-local-map dired-duplicates-map)
+                (setq-local dired-duplicates-directories directories)
+                (dired-duplicates--post-process-dired-buffer results)
+                (setq-local revert-buffer-function 'dired-duplicates-dired-revert))
+            (message "No duplicate files found.")))
+      (message "Finding non-duplicate files in %s..." (string-join directories ", "))
+      (if-let ((default-directory "/")
+               (results (dired-duplicates--detect-duplicates
+                         (dired-duplicates--find-files directories)
+                         t)))
+          (progn
+            (message "Found %d files having no duplicates." (length results))
+            (dired (cons "/" results))
+            (set-keymap-parent dired-duplicates-map dired-mode-map)
+            (use-local-map dired-duplicates-map))
+        (message "No non-duplicate files found.")))))
 
 (provide 'dired-duplicates)
 

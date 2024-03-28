@@ -129,7 +129,7 @@ return boolean t if the file matches a criteria, otherwise nil."
   "List of directories that will be searched for duplicate files.")
 
 
-(defun dired-duplicates--checksum-file (file &optional exec)
+(defun dired-duplicates--checksum-file (file &optional exec current total)
   "Create a checksum for FILE, optionally using EXEC.
 
 EXEC needs to be specified with its full path.  If nil, use the
@@ -141,33 +141,40 @@ very small files and will work even when the TRAMP method used
 does not provide a shell, but is usually slower and could cause
 memory issues for files bigger than the Emacs process or the
 machine can handle because they have to be loaded into a
-temporary buffer for the hash calculation."
-  (if (not exec)
-      (let ((message-log-max nil)
-            (hash-algo (alist-get dired-duplicates-checksum-exec
-                                  dired-duplicates-external-internal-algo-mapping
-                                  nil nil #'string=)))
-        (unless hash-algo
-          (user-error "Could not determine the correct hash algorithm for %s via %s"
-                      dired-duplicates-checksum-exec
-                      "`dired-duplicates-external-internal-algo-mapping'"))
-        (message "Internal checksumming of %s" file)
+temporary buffer for the hash calculation.
+
+When provided, CURRENT and TOTAL are optionally used for printing
+the progress in more detail.  CURRENT is the number of the file
+currently being processed out of a TOTAL number of files."
+  (let ((progress (if (and current total)
+                      (format "(%i/%i) " current total)
+                    "")))
+    (if (not exec)
+        (let ((message-log-max nil)
+              (hash-algo (alist-get dired-duplicates-checksum-exec
+                                    dired-duplicates-external-internal-algo-mapping
+                                    nil nil #'string=)))
+          (unless hash-algo
+            (user-error "Could not determine the correct hash algorithm for %s via %s"
+                        dired-duplicates-checksum-exec
+                        "`dired-duplicates-external-internal-algo-mapping'"))
+          (message "%sInternal checksumming of %s" progress file)
+          (with-temp-buffer
+            (let ((inhibit-message t))
+              (insert-file-contents-literally file))
+            (secure-hash hash-algo
+                         (current-buffer))))
+      (let* ((default-directory (file-name-directory (expand-file-name file)))
+             (file (expand-file-name (file-local-name file)))
+             (message-log-max nil))
         (with-temp-buffer
-          (let ((inhibit-message t))
-            (insert-file-contents-literally file))
-          (secure-hash hash-algo
-                       (current-buffer))))
-    (let* ((default-directory (file-name-directory (expand-file-name file)))
-           (file (expand-file-name (file-local-name file)))
-           (message-log-max nil))
-      (with-temp-buffer
-        (message "External checksumming of %s" file)
-        (unless (zerop (process-file exec nil t nil file))
-          (error "Failed to start checksum program %s for file %s" exec file))
-        (goto-char (point-min))
-        (if (looking-at "\\`[[:alnum:]]+")
-            (match-string 0)
-          (error "Unexpected output from checksum program %s" exec))))))
+          (message "%sExternal checksumming of %s" progress file)
+          (unless (zerop (process-file exec nil t nil file))
+            (error "Failed to start checksum program %s for file %s" exec file))
+          (goto-char (point-min))
+          (if (looking-at "\\`[[:alnum:]]+")
+              (match-string 0)
+            (error "Unexpected output from checksum program %s" exec)))))))
 
 (defun dired-duplicates--file-filter-readable-and-regular (file)
   "Check whether FILE is readable and regular."
@@ -221,19 +228,25 @@ list of size and duplicate files as values."
            when inversep do (setf (gethash f inverse-table) t)
            finally
            (cl-loop with checksum-exec-paths = (make-hash-table :test 'equal)
+                    and current = 1
+                    and total = (cl-loop for same-size-files being the hash-value in same-size-table
+                                         when (cdr same-size-files)
+                                         sum (length same-size-files))
                     for same-size-files being the hash-value in same-size-table using (hash-key size)
-                    if (cdr same-size-files) do
+                    when (cdr same-size-files) do
                     (cl-loop for f in same-size-files
                              for exec = (dired-duplicates--find-checksum-exec f checksum-exec-paths)
                              for checksum = (if exec
-                                                (dired-duplicates--checksum-file f exec)
+                                                (dired-duplicates--checksum-file f exec current total)
                                               (if (<= size dired-duplicates-internal-checksumming-size-limit)
-                                                  (dired-duplicates--checksum-file f nil)
+                                                  (dired-duplicates--checksum-file f nil current total)
                                                 (warn "File %s is too big to checksum using internal functions, skipping." f)
                                                 nil))
                              when checksum do
                              (setf (gethash checksum checksum-table)
-                                   (push f (gethash checksum checksum-table)))))
+                                   (push f (gethash checksum checksum-table)))
+                             do
+                             (cl-incf current)))
            (cl-loop for same-files being the hash-value in checksum-table using (hash-key checksum)
                     do
                     (if (cdr same-files)

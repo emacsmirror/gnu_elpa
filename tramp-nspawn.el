@@ -4,9 +4,9 @@
 
 ;; Author: Brian Cully <bjc@kublai.com>
 ;; Maintainer: Brian Cully <bjc@kublai.com>
-;; URL: https://github.com/bjc/tramp-nspawn
+;; URL: https://git.spork.org/tramp-nspawn.git
 ;; Keywords: tramp, nspawn, machinectl, systemd, systemd-nspawn
-;; Version: 1.0.1
+;; Version: 1.0.2
 ;; Package-Requires: ((emacs "23"))
 
 ;;; License:

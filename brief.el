@@ -5,7 +5,7 @@
 ;; Author:       Luke Lee <luke.yx.lee@gmail.com>
 ;; Maintainer:   Luke Lee <luke.yx.lee@gmail.com>
 ;; Keywords:     brief, emulations, crisp
-;; Version:      5.90
+;; Version:      5.91
 ;; Package-Requires: ((nadvice "0.3") (cl-lib "0.5"))
 
 ;; GNU Emacs is free software: you can redistribute it and/or modify
@@ -95,7 +95,7 @@
 ;; CRiSP from Emacs source repository to ELPA.
 ;;
 ;; In early 2024, the Brief-style window merge on deletion (the [F4]
-;; [<arrows>] commands) is finally supported, a task I had postponed
+;; [<arrows>] commands) are finally supported, a task I had postponed
 ;; for over 20 years due to not finding time to implement it.
 ;;
 
@@ -462,7 +462,7 @@
 ;; backward compatibility issues.
 ;;(require 'replace)
 
-(defconst brief-version "5.90"
+(defconst brief-version "5.91"
   "Current version of this Brief editor mode/emulator.")
 
 ;;
@@ -1271,6 +1271,18 @@ be supported.)"
   "Emacs style window deletion on fail merging, just delete the target window.
 This option is effective only if `brief-merge-deleted-window' is non-NIL.  Also
 see its description for layouts that are not supported."
+  :type 'boolean)
+
+(defcustom brief-merge-window-respect-atomicity nil
+  "Respect Emacs atomic window settings when attempted to merge a window.
+Emacs atomic windows are treated as a atomic group that can't be deleted
+separately, therefore any window merge attempt on an atomic window is
+not allowed.  When this flag is set to NIL (default) Brief is allow to
+break their atomicity.  Also notice that when this flag is set to
+non-NIL, the probability of window merge failure might become higher as
+Brief need to keep the atomic windows intact and hence more likely to
+fail on finding a suitable new layout for the merging operation.  This
+option is effective only if `brief-merge-deleted-window' is non-NIL."
   :type 'boolean)
 
 (defcustom brief-window-adjustment-timeout 30
@@ -2711,27 +2723,30 @@ from cursor."
   (interactive)
   (brief-adjust-window-edge-loop 'right))
 
+;;; Support functions for `brief-merge-neighbor-window'
 
-;; Support functions for `brief-merge-neighbor-window'
-;; In the following, each `w' represent a brief-window (a window or a group)
-;; and `#' represents an integer as the id
-;; for window:
-;;  w# = (x0 y0 x1 y1 &winf), edges of window #
-;; group format: ((dir wg &winf) grouplist)
-;;    ((dir gx0 gy0 gx1 gy1 &winf) (w0x0 w0y0 w0x1 w0y1) (w1x0 w1y0 w1x1 w1y1)
-;;     ...)
-;;  where
-;;   dir: nil:vertical, non-nil:horizontal
+;;
+;; In the following, each `w' represent a Brief-window (a window or a group)
+;; and `#' represents an integer as the id.
+;; For Brief windows:
+;;   w# = (x0 y0 x1 y1 &winf), edges of window #
+;; Brief group format: ((dir wg &winf) grouplist)
+;;   ex: ((dir gx0 gy0 gx1 gy1 &winf) (w0x0 w0y0 w0x1 w0y1) ; win0 edges
+;;                                    (w1x0 w1y0 w1x1 w1y1) ; win1 edges
+;;                                    ...)
+;; where
+;;   dir: group direction, nil:vertical, non-nil:horizontal
 ;;   wg: (x0 y0 x1 y1): window edges of this group
-;;   &winf: optional Emacs window information:
-;;          (buf start point dedicated wid)
-;;   grouplist: (w0 w1...)
-;;   w#: (x0 y0 x1 y1 &winf): edges of window #
+;;   &winf: optional Emacs window information (see also `brief-window-bufinfo'):
+;;          (start point hscroll state overlay atomicity wid)
+;;   grouplist: w0 w1 ..., the brief window list of this group
+;;   . w#: (x0 y0 x1 y1 &winf): edges of window #
 ;;   . Each group are of the same width or height in `dir'ection
 ;;   . Group can be multi-level, meaning it can contain sub-groups and windows
 ;;   . A single window must not be formed as a group, hence group should contain
 ;;     at least two sub-groups or windows and its length is thus always >= 3 of
 ;;     the above format (gi w0 w1 ...) where gi=(dir wg &winf)
+;;
 
 (defconst brief-merge-window-tolerance 1
   "Delete and merge neighboring windows without exact matching sides.
@@ -2749,11 +2764,9 @@ rate.  Notice that this value must not be negative.")
 ;; equivalent to `brief>=' and vice versa; so does `not brief>'
 ;; is not equivalent to `brief<=' and vice versa.
 
-(defmacro brief-tolerant (v1 v2)
+(defmacro brief= (v1 v2)
   ;; v1 and v2 and are within the tolerance in difference
   `(<= (abs (- ,v1 ,v2)) brief-merge-window-tolerance))
-
-(defalias 'brief= #'brief-tolerant)
 
 (defmacro brief< (l r)
   ;; tolerance considered
@@ -2794,10 +2807,10 @@ rate.  Notice that this value must not be negative.")
      w)
    0 4))
 
-(defmacro brief-win-left   (w) `(first  (brief-win-edges ,w)))
-(defmacro brief-win-right  (w) `(third  (brief-win-edges ,w)))
-(defmacro brief-win-top    (w) `(second (brief-win-edges ,w)))
-(defmacro brief-win-bottom (w) `(fourth (brief-win-edges ,w)))
+(defmacro brief-win-left   (w) `(cl-first  (brief-win-edges ,w)))
+(defmacro brief-win-right  (w) `(cl-third  (brief-win-edges ,w)))
+(defmacro brief-win-top    (w) `(cl-second (brief-win-edges ,w)))
+(defmacro brief-win-bottom (w) `(cl-fourth (brief-win-edges ,w)))
 
 (defun brief-merge-edges (w1 w2)
   ;; w1 and w2 must be either vertically or horizontally aligned
@@ -2821,20 +2834,20 @@ Matching is determined by a tolerance value to make window merging easier for
 the users."
   (if horizontal
       ;; y coordinate match
-      (and (brief-tolerant (brief-win-top w1) (brief-win-top w2))
-           (brief-tolerant (brief-win-bottom w1) (brief-win-bottom w2)))
+      (and (brief= (brief-win-top w1) (brief-win-top w2))
+           (brief= (brief-win-bottom w1) (brief-win-bottom w2)))
     ;; x coordinate match
-    (and (brief-tolerant (brief-win-left w1) (brief-win-left w2))
-         (brief-tolerant (brief-win-right w1) (brief-win-right w2)))))
+    (and (brief= (brief-win-left w1) (brief-win-left w2))
+         (brief= (brief-win-right w1) (brief-win-right w2)))))
 
 (defun brief-win-followed (w1 w2 &optional horiz)
   ;; Note that W1 W2 must be aligned in the direction first,
   ;; check if W1 is followed by W2
   (if horiz
       ;; horizontally mergeable, w2 follows w1
-      (brief-tolerant (brief-win-left w2) (brief-win-right w1))
+      (brief= (brief-win-left w2) (brief-win-right w1))
     ;; vertical mergeable
-    (brief-tolerant (brief-win-top w2) (brief-win-bottom w1))))
+    (brief= (brief-win-top w2) (brief-win-bottom w1))))
 
 (defun brief-win-mergeable (w1 w2 &optional horiz)
   "Check if two Brief windows W1 and W2 can be merged in direction HORIZ.
@@ -2865,15 +2878,111 @@ both aligned and neighboring."
         (sort wlist (lambda (a b) (> (brief-win-top a) (brief-win-top b))))
       (sort wlist (lambda (a b) (< (brief-win-top a) (brief-win-top b)))))))
 
+(defun brief-window-atomic-p (wid)
+  ;; Check if Emacs window WID is atomic
+  (cdr (assoc 'window-atom (window-parameters wid))))
+
+(defun brief-force-delete-window (wid)
+  ;; For atomic windows, clear its window-atom property and delete it
+  (if (brief-window-atomic-p wid)
+      (set-window-parameter wid 'window-atom nil))
+  (delete-window wid))
+
 (defun brief-window-bufinfo (wid)
   "Window associated buffer information to be restored upon reconstruction."
   ;; WID is Emacs window object
-  (list (window-buffer wid)
-        (window-start wid)
-        (window-point wid)
-        (window-dedicated-p wid)
-        (window-hscroll wid)
-        wid))
+  (if (window-live-p wid)
+      ;; Restoring the window state alone does not guarantee restore the window
+      ;; start/point and hscroll even if window states do contain these values
+      (list (window-start wid)
+            (window-point wid)
+            (window-hscroll wid)
+            ;; Whole window state
+            (window-state-get wid)
+            ;; Window only overlays
+            (let (ov)
+              ;; Atomicity: need search the whole buffer even it's huge
+              (with-current-buffer (window-buffer wid)
+                (dolist (o (overlays-in (point-min) (point-max)) ov)
+                  (when (eq (overlay-get o 'window) wid)
+                    (overlay-put o 'window nil)
+                    (push o ov))))
+              (nreverse ov))
+            ;; Atomicity
+            (brief-window-atomic-p wid)
+            ;; Emacs window ID, mainly for debug
+            wid)
+    ;; internal window
+    (list nil nil nil nil nil (brief-window-atomic-p wid) wid)))
+
+(defun brief-win-add-winfo (bw ew)
+  ;; Extract &winf from Emacs window EW into Brief window BW
+  (append bw (list (brief-window-bufinfo ew))))
+
+(defun brief-atomic-window-group (ew)
+  ;; EW is an Atomic Emacs window
+  ;; return (brief-group ewlist) where ewlist is the list of live windows
+  (cl-assert (window-valid-p ew) t "not a valid Emacs window")
+  (if (window-live-p ew)
+      ;; Leaf
+      (list (brief-win-add-winfo (window-edges ew) ew) ew)
+    ;; Internal windows
+    (let (bg res ech dir ewlist)
+      (if (setq ech (window-left-child ew))
+          ;; horizontal combination
+          (setq dir t)
+        ;; vertical combination
+        (setq ech (window-top-child ew)
+              dir nil))
+      (setq ewlist (brief-atomic-window-group ech)
+            bg (car ewlist)
+            ewlist (cdr ewlist))
+      (while (setq ech (window-next-sibling ech))
+        (setq res (brief-atomic-window-group ech))
+        (setq bg (brief-merge-win bg (car res) dir)
+              ewlist (append ewlist (cdr res))))
+      (cl-assert (brief-group-p bg) t "bg must be a Brief group")
+      (cl-assert (brief-win-match (brief-win-edges bg) (window-edges ew))
+                 t "bg does not match ew edges")
+      (cons (cons (brief-win-add-winfo (car bg) ew)
+                  (cdr bg))
+            ewlist))))
+
+(defun brief-window-list (ewinlis)
+  ;; Convert Emacs window list to Brief window list,
+  ;; and a list of Brief atomic window groups
+  (let (w bwinlis bawinlis ; bawinlis: brief atomic tree list
+          eawinlis ar) ; Emacs atomic tree list, atomic root
+    (while ewinlis
+      (setq w (car ewinlis)
+            ewinlis (cdr ewinlis))
+
+      (if (setq ar (brief-window-atomic-p w)) ; also clear AR to NIL
+          (if (setq ar (window-atom-root w))
+              (if (member ar eawinlis)
+                  (setq ar nil) ; already processed
+                (setq eawinlis (cons ar eawinlis)
+                      bawinlis (cons (brief-win-add-winfo (window-edges ar) ar)
+                                     bawinlis)))))
+
+      (if (and ar brief-merge-window-respect-atomicity)
+          ;; Construct the atomic window tree and remove them from EWINLIS.
+          (let (bg ewlist)
+            (setq ewlist (brief-atomic-window-group ar)
+                  bg (car ewlist)
+                  ewlist (cdr ewlist))
+            ;; Remove all windows in ewlist from ewinlis
+            (dolist (aw ewlist)
+              (unless (eq aw w)
+                ;; If the following assertion is violated, the construction of the
+                ;; input list EWINLIS is problematic.
+                (cl-assert (member aw ewinlis) t
+                           "internal error: AW must be contained in EWINLIS") ; DBG
+                (setq ewinlis (delete aw ewinlis))))
+            (setq bwinlis (cons bg bwinlis)))
+        (setq bwinlis
+              (cons (brief-win-add-winfo (window-edges w) w) bwinlis))))
+    (list bwinlis bawinlis)))
 
 (defun brief-ancestor-p (anc win)
   (while (and win
@@ -2890,15 +2999,21 @@ both aligned and neighboring."
     (catch 'found
       (while p
         (if (member p a1)
-            (throw 'found p)
+            ;; For atomic windows, if `brief-merge-window-respect-atomicity'
+            ;; is non-NIL, choose the `window-atom-root' if common ancestor
+            ;; found is the child of the `window-atom-root'.
+            (if (and brief-merge-window-respect-atomicity
+                     (brief-window-atomic-p p))
+                (throw 'found (window-atom-root p))
+              (throw 'found p))
           (setq p (window-parent p))))
       nil)))
 
 (defun brief-win-match (w1 w2)
-  (and (brief-tolerant (brief-win-left   w1) (brief-win-left   w2))
-       (brief-tolerant (brief-win-right  w1) (brief-win-right  w2))
-       (brief-tolerant (brief-win-top    w1) (brief-win-top    w2))
-       (brief-tolerant (brief-win-bottom w1) (brief-win-bottom w2))))
+  (and (brief= (brief-win-left   w1) (brief-win-left   w2))
+       (brief= (brief-win-right  w1) (brief-win-right  w2))
+       (brief= (brief-win-top    w1) (brief-win-top    w2))
+       (brief= (brief-win-bottom w1) (brief-win-bottom w2))))
 
 (defun brief-win-exact-match (w1 w2)
   (and (= (brief-win-left   w1) (brief-win-left   w2))
@@ -2960,55 +3075,100 @@ both aligned and neighboring."
           (winf (car (nthcdr 4 node))))
       (when winf
         ;; Refers to `brief-window-bufinfo'
-        (let* ((buf   (first  winf))
-               (start (second winf))
-               (point (third  winf))
-               (dedic (fourth winf))
-               (hscr  (fifth  winf))
+        (let* ((start (cl-first  winf))
+               (point (cl-second winf))
+               (hscr  (cl-third  winf))
+               (state (cl-fourth winf))
+               (ovr   (cl-fifth  winf))
                (we    (window-edges))
                delta)
           (unless (brief-win-exact-match we node)
             ;; Resize window to adjust sides
             (if (/= 0 (setq we (window-edges)
                             delta (- (brief-win-width node)
-                                     (- (third we) (first we)))))
+                                     (- (cl-third we) (cl-first we)))))
                 (ignore-errors
                   (window-resize w delta t t)))
             (if (/= 0 (setq we (window-edges)
                             delta (- (brief-win-height node)
-                                     (- (fourth we) (second we)))))
+                                     (- (cl-fourth we) (cl-second we)))))
                 (ignore-errors
                   (window-resize w delta nil t))))
-          (set-window-buffer-start-and-point w buf start point)
-          (set-window-dedicated-p w dedic)
+          ;; Restore all window states
+          (window-state-put state w)
+          ;; Restore window specific overlays
+          (dolist (o ovr)
+            (overlay-put o 'window w))
+          (set-window-buffer-start-and-point w (window-buffer w)
+                                             start point)
           (set-window-hscroll w hscr))))))
 
-(defun brief-window-layout (root from &optional reconstruct)
+(defun brief-win-search (aw node)
+  ;; Search Brief window AW within NODE
+  (if (brief-group-p node)
+      ;; Brief window group
+      (catch 'found
+        (dolist (bw (cdr node)) ; children
+          (if (setq node (brief-win-search aw bw))
+              (throw 'found node))))
+    ;; Brief window
+    (when (brief-win-match aw node)
+      node)))
+
+(defun brief-window-layout (root from &optional reconstruct bawinlis)
   "Resplit windows of current frame and re-split according to ROOT"
   ;; ROOT is of brief window format (window or group)
   ;; Successfully merged into an unique ROOT, start re-spliting windows
-  (let ((efrom (window-edges from))
-        (fded (window-dedicated-p from))
-        ;; [2024-03-13 Wed] Setting `split-window-keep-point' nil
-        ;; should enhance the performance of re-displaying.  This is
-        ;; okay as in the end we'll always restore window point.
-        (split-window-keep-point nil)
-        ;; prevent special settings get into the way
-        (ignore-window-parameters t)
-        ;; prevent customized settings
-        (window-combination-limit 'window-size))
+  (let* ((efrom (window-edges from))
+         (fded (window-dedicated-p from))
+         ;; [2024-03-13 Wed] Setting `split-window-keep-point' nil
+         ;; should enhance the performance of re-displaying.  This is
+         ;; okay as in the end we'll always restore window point.
+         (split-window-keep-point nil)
+         ;; prevent special settings get into the way
+         (ignore-window-parameters t)
+         ;; prevent customized settings
+         (window-combination-limit 'window-size))
+
+    ;; Check if atomic window still valid within this layout
+    (if (and bawinlis brief-merge-window-respect-atomicity)
+        (dolist (aw bawinlis)
+          (if (not (brief-win-search aw root))
+              ;; any possibility not able to restore atomicity, abort.
+              (user-error (format
+"Merge aborted due to breaking atomic window at text coordinate (%d,%d)."
+                           (brief-win-left aw) (brief-win-top aw))))))
+
     ;; Close all windows
     (if reconstruct
         (dolist (w reconstruct)
-          (if (not (eq w from)) (delete-window w)))
+          (if (not (eq w from)) (brief-force-delete-window w)))
       (walk-windows (lambda (w)
-                      (if (not (eq w from)) (delete-window w)))))
+                      (if (not (eq w from))
+                          (brief-force-delete-window w)))))
     ;; After closing windows, the sole window is FROM
+    ;; TODO: restore other window parameters. No need to restore the whole
+    ;; window state for FROM as it's the only one window not deleted.
+    (if (brief-window-atomic-p from)
+        (set-window-parameter from 'window-atom nil))
     (set-window-dedicated-p from nil)
+
     ;; Re-split windows
     (brief-traverse-layout root)
+
+    ;; Restore window atomicity if feasible, according to BAWINLIS.
+    ;; Notice that this restoration may restore FROM's as well, because its
+    ;; sibling atomic window's parent should be saved in BAWINLIS already.
+    (dolist (aw bawinlis)
+      (catch 'atomic-window
+        (dolist (paw (brief-ancestors (window-at (brief-win-left aw)
+                                                 (brief-win-top aw))))
+          (if (brief-win-match aw (window-edges paw))
+              ;; Atomicity intact, restore
+              (throw 'atomic-window (window-make-atom paw))))))
+
     ;; Jump back to the merged win where we FROM
-    (select-window (window-at ;; center of FROM
+    (select-window (window-at  ; center of FROM
                     (+ (brief-win-left efrom)
                        (brief/2 (brief-win-width efrom)))
                     (+ (brief-win-top efrom)
@@ -3047,7 +3207,7 @@ both aligned and neighboring."
                  ;; Both are groups, check their directions
                  (setq dsrc (brief-group-dir src)
                        dtgt (brief-group-dir target))
-                 (if (xor dsrc dtgt)
+                 (if (not (eq dsrc dtgt))
                      ;; Both groups are of different direction
                      (if (eq dsrc dir)
                          ;; Same direction as src, merge target into src
@@ -3115,7 +3275,7 @@ both aligned and neighboring."
   ;;         the input windows; return nil if fail.
   ;; This function take a shortcut, on traversing all possible
   ;; solutions it will throw the first solution found and cut the rest
-  ;; search tree just like the cut `!' operator in Prologue language.
+  ;; search tree just like the cut `!' operator in the Prolog language.
 
   ;; Note: This operation is non-destructive to BWINLIST
 
@@ -3250,9 +3410,9 @@ both aligned and neighboring."
                                              center)))))))))
 
             (dolist (splitinfo splitpoints)
-              (setq pcurr (first splitinfo)
-                    pprev (second splitinfo)
-                    horiz (third splitinfo))
+              (setq pcurr (cl-first splitinfo)
+                    pprev (cl-second splitinfo)
+                    horiz (cl-third splitinfo))
               (cl-assert (equal (cdr pprev) pcurr) t
 "Node arrangement of the list cutting point is not as expected") ; DBG
               ;; Cut SLIST0 into two groups
@@ -3294,18 +3454,28 @@ which is by default enabled.  Also check its documentation string for
 more detail and restriction on emulating this Brief editor behavior on
 Emacs."
   (when (and to (not (eq (selected-window) to)))
+
+    ;; Check if `to' is a atomic window, if yes, when
+    ;; `brief-merge-window-respect-atomicity' is non-NIL we indicate
+    ;; the user that merging failed due to atomicity.
+    (if (and brief-merge-window-respect-atomicity
+             (brief-window-atomic-p to))
+        (user-error
+         "Cannot merge atomic windows; prefix with C-u to delete them."))
+
     (let* ((from  (selected-window))
            (pfrom (window-parent from))
            (pto   (window-parent to))
            (wfrom (window-edges from))
            (wto   (window-edges to))
+           ;; Dynamically bind system variable
            (window-combination-limit 'window-size))
       ;; Check if edges match
       (if (brief-aligned-p wfrom wto horiz)
           (if (eq pfrom pto)
               ;; Same parent, merge two windows directly
               ;; Edges match and same parent, saving all edges of siblings
-              (let (siblis ;; siblings list, associated with size
+              (let (siblis ; siblings list, associated with size
                     (sib (window-child (window-parent))))
                 ;; Record all edges except TO
                 (while sib
@@ -3320,7 +3490,21 @@ Emacs."
                                 siblis)))
                   (setq sib (window-next-sibling sib)))
                 ;; Delete TO
-                (delete-window to)
+                (if (brief-window-atomic-p to)
+                    ;; Only if `brief-merge-window-respect-atomicity'
+                    ;; is NIL we are able to reach here, thus that setting
+                    ;; choose merging outweighs atomicity here.
+                    (let ((patom (window-atom-root to)))
+                      ;; Window deletion under the same parent, allow merge
+                      (set-window-parameter to 'window-atom nil)
+                      ;; This deletion will destroy the atomicity of the
+                      ;; whole atomic tree, re-enable it after merge
+                      (delete-window to)
+                      ;; Restore atomicity if there are still atomic windows
+                      (if (window-valid-p patom)
+                          (window-make-atom patom)))
+                  ;; Not atomic, just delete it
+                  (delete-window to))
                 ;; Sort windows according to X/Y ordering
                 (setq siblis (brief-sort-winpos siblis horiz))
                 ;; Restore all sibling windows in sorted X/Y ordering
@@ -3328,7 +3512,7 @@ Emacs."
                 ;; by latter ones.
                 (dolist (sib siblis)
                   ;; x0 y0 x1 y1 w
-                  (let* ((win   (fifth sib))
+                  (let* ((win   (cl-fifth sib))
                          (delta (if horiz
                                     (- (- (brief-win-right sib)
                                           (brief-win-left sib))
@@ -3343,7 +3527,7 @@ Emacs."
 
             ;; Different parents, combining windows belongs to
             ;; different parents and then reconstruct windows
-            ;; accordingly.  w/ bottom-up re-construction
+            ;; accordingly.
             (let* ((cmnanc (brief-first-common-ancestor from to))
                    (range   (window-edges cmnanc))
                    ;; Emacs window list to be constructed
@@ -3352,21 +3536,19 @@ Emacs."
                    (target  (append (brief-merge-edges wfrom wto)
                                     (list (brief-window-bufinfo from))))
                    ;; Brief window list to be constructed
-                   (bwinlis (list target)))
+                   bwinlis bawinlis)
               ;; Build brief window list BWINLIS from Emacs window list EWINLIS
-              (dolist (w ewinlis)
-                (if (not (or (eq w from) (eq w to)))
-                    (setq bwinlis
-                          (cons (append (window-edges w)
-                                        (list (brief-window-bufinfo w)))
-                                bwinlis))))
+              (setq bawinlis (brief-window-list
+                              (remove from (remove to ewinlis)))
+                    bwinlis (cons target (car bawinlis))
+                    bawinlis (cadr bawinlis)) ; atomic groups to be restored
 
               (setq target
                     (catch 'unified
                       (brief-split-merge bwinlis range)))
 
               (if target
-                  (brief-window-layout target from ewinlis)
+                  (brief-window-layout target from ewinlis bawinlis)
                 (if brief-delete-window-on-merge-failure
                     (delete-window to)
                   (message
@@ -3384,34 +3566,34 @@ customized variable `brief-merge-deleted-window'.  When prefixed,
 execute the other operation specified by `brief-merge-deleted-window'.
 Before Brief v5.90 the only operation supported is deletion."
   (interactive)
-  (if (xor brief-merge-deleted-window
-           current-prefix-arg)
-      (brief-merge-neighbor-window (brief-upside-window))
-    (delete-window (brief-upside-window))))
+  (if (eq brief-merge-deleted-window
+          (not (null current-prefix-arg)))
+      (delete-window (brief-upside-window))
+    (brief-merge-neighbor-window (brief-upside-window))))
 
 (defun brief-delete-window-down ()
   "Merge or delete the bottom side neighboring window."
   (interactive)
-  (if (xor brief-merge-deleted-window
-           current-prefix-arg)
-      (brief-merge-neighbor-window (brief-downside-window))
-    (delete-window (brief-downside-window))))
+  (if (eq brief-merge-deleted-window
+          (not (null current-prefix-arg)))
+      (delete-window (brief-downside-window))
+    (brief-merge-neighbor-window (brief-downside-window))))
 
 (defun brief-delete-window-left ()
   "Merge or delete the left side neighboring window."
   (interactive)
-  (if (xor brief-merge-deleted-window
-           current-prefix-arg)
-      (brief-merge-neighbor-window (brief-leftside-window) 'horizontal)
-    (delete-window (brief-leftside-window))))
+  (if (eq brief-merge-deleted-window
+          (not (null current-prefix-arg)))
+      (delete-window (brief-leftside-window))
+    (brief-merge-neighbor-window (brief-leftside-window) 'horizontal)))
 
 (defun brief-delete-window-right ()
   "Merge or delete the right side neighboring window."
   (interactive)
-  (if (xor brief-merge-deleted-window
-           current-prefix-arg)
-      (brief-merge-neighbor-window (brief-rightside-window) 'horizontal)
-    (delete-window (brief-rightside-window))))
+  (if (eq brief-merge-deleted-window
+          (not (null current-prefix-arg)))
+      (delete-window (brief-rightside-window))
+    (brief-merge-neighbor-window (brief-rightside-window) 'horizontal)))
 
 (defun brief-delete-current-window ()
   (interactive)
@@ -4706,10 +4888,8 @@ replaced by the marking texts; when operation canceled we will not be
 able to restore it back if we have no backups.")
 
 ;; The core modification that prevent Windows X server failure
-;; due to too much flooding message as clipboard change
-;;
-;; `advice-add' defined
-;;
+;; due to too much flooding message as clipboard change.
+
 ;; When external helper is enabled but neither 'xsel' nor 'xclip' is
 ;; installed, reenter will occur.
 (defvar brief-gui-get-selection-reentry nil

@@ -1,9 +1,11 @@
 ;;; notes-mode.el --- Indexing system for on-line note-taking
 
-;; Copyright (C) 1994-2007,2012  Free Software Foundation, Inc.
+;; Copyright (C) 1994-2007,2012,2024  Free Software Foundation, Inc.
 
-;; Author: <johnh@isi.edu>.
-;; Version: 1.30
+;; Author: John Heidemann <johnh@isi.edu>
+;; Maintainer: John Heidemann <johnh@isi.edu>
+;; URL: https://ant.isi.edu/~johnh/SOFTWARE/NOTES_MODE/
+;; Version: 1.31
 
 ;; This file is part of GNU Emacs.
 
@@ -22,7 +24,11 @@
 
 
 ;;; Commentary:
-;;
+
+;; Notes-mode is an indexing system for on-line note-taking.
+;; Notes-mode is composed of two parts, the visible part, a major-mode
+;; for Emacs to aid note-taking; and the invisible part, scripts which
+;; periodically index your notes for you.
 
 ;;; Code:
 

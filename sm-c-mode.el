@@ -3,7 +3,7 @@
 ;; Copyright (C) 2015-2024  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
-;; Version: 1.1
+;; Version: 1.2
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -90,6 +90,12 @@
 ;; benchmark).
 ;; All this says, is that sm-c-mode's indentation might actually be usable if
 ;; you use it on C code that is sufficiently similar to Emacs's.
+
+;;; News:
+
+;; Since 1.1:
+;;
+;; - Declare it as a kind of `c-mode' for the benefit of Eglot/YASnippet/...
 
 ;;; Code:
 
@@ -955,6 +961,9 @@ Past this column, we do not try to align the backslashes."
   (add-hook 'post-command-hook #'sm-c--bs-realign nil t)
   (setq-local add-log-current-defun-header-regexp sm-c--def-regexp)
   (setq-local imenu-generic-expression `((nil ,sm-c--def-regexp 1))))
+
+(when (fboundp 'derived-mode-add-parents)
+  (derived-mode-add-parents 'sm-c-mode '(c-mode)))
 
 (defun sm-c--cpp-is-not-really-a-comment (&rest args)
   ;; Without this, placing the region around a CPP directive and hitting

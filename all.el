@@ -1,11 +1,11 @@
 ;;; all.el --- Edit all lines matching a given regexp  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 1985-2020  Free Software Foundation, Inc.
+;; Copyright (C) 1985-2024  Free Software Foundation, Inc.
 
 ;; Author: Per Abrahamsen <per.abrahamsen@gmail.com>
-;; Version: 1.0
+;; Version: 1.1
 ;; Keywords: matching
-;; Package-Requires: ((emacs "24.1"))
+;; Package-Requires: ((emacs "24.3"))
 
 ;; LCD Archive Entry:
 ;; all|Per Abrahamsen|abraham@dina.kvl.dk|
@@ -51,8 +51,7 @@
     (define-key map "\C-c\C-c" #'all-mode-goto)
     map))
 
-(defvar all-buffer nil)
-(make-variable-buffer-local 'all-buffer)
+(defvar-local all-buffer nil)
 
 (define-derived-mode all-mode fundamental-mode "All"
   "Major mode for output from \\[all].

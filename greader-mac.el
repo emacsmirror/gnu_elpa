@@ -71,6 +71,8 @@ COMMAND must be a string suitable for `make-process'."
        (greader-mac-set-rate arg))))
     ('punctuation
      nil)
+    ('get-rate
+     greader-mac-rate)
     (_
      'not-implemented)))
 (put 'greader-mac 'greader-backend-name "greader-mac")

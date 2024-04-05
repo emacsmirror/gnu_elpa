@@ -77,6 +77,8 @@ COMMAND must be a string suitable for `make-process'."
 	  nil))))
     ('get-language
      greader-espeak-language)
+    ('get-rate
+     greader-espeak-rate)
     (_
      'not-implemented)))
 (put 'greader-espeak 'greader-backend-name "greader-espeak")

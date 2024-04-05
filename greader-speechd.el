@@ -127,6 +127,8 @@ or >2 for all punctuation."
      (greader-speechd-stop))
     ('extra
      "-w")
+    ('get-rate
+     greader-speechd-rate)
     (_
      'not-implemented)))
 (put 'greader-speechd 'greader-backend-name "greader-speechd")

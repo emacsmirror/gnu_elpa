@@ -103,7 +103,7 @@
   :readme "README.org")
  (bluetooth		:url "https://gitlab.com/rstocker/emacs-bluetooth")
  (bnf-mode		:url "https://github.com/sergeyklay/bnf-mode")
- (boxy			:url "https://gitlab.com/grinn.amy/boxy")
+ (boxy			:url "https://gitlab.com/grinn.amy/boxy.git")
  (boxy-headings		:url "https://gitlab.com/grinn.amy/boxy-headings")
  (breadcrumb		:url "https://github.com/joaotavora/breadcrumb")
  (brief			:url nil)

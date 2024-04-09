@@ -7,7 +7,7 @@
 ;; Keywords: matching
 ;; License: GPL3+
 ;; URL: https://dataswamp.org/~incal/emacs-init/wrap-search.el
-;; Version: 4.12.10
+;; Version: 4.14.10
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -45,6 +45,27 @@
 ;;
 ;;   (global-set-key "\C-s" #'wrap-search)
 ;;   (global-set-key "\C-r" #'wrap-search-again)
+;;
+;; One can use the `universal-argument' key, which is
+;; typically C-u, before those functions to set two search
+;; options before the search. If we assume the above keys are
+;; used, then, for `wrap-search', here are the keys and what
+;; they do,
+;;
+;;         C-u C-s  do case-sensitive search
+;;     C-u C-u C-s  do revere search, direction north from point
+;; C-u C-u C-u C-s  do case-sensitive, reverse search
+;;
+;; and for `wrap-search-again', using a corresponding interface
+;;
+;;         C-u C-r  reverse previous search case-sensitive setting
+;;     C-u C-u C-r  reverse previous search reverse setting
+;; C-u C-u C-u C-r  reverse previous search case-sensitive and reverse settings
+;;
+;; and the search is done again, with those settings.
+;;
+;; See the docstrings for `wrap-search' and
+;; `wrap-search-again'.
 ;;
 ;;; Code:
 

@@ -48,6 +48,13 @@ LANG must be recognized by espeak or espeak-ng."
     (progn
       (setq-local greader-espeak-language lang)
       (concat "-v " lang))))
+
+(defvar greader-espeak--punctuation-ring (make-ring 2))
+(ring-insert greader-espeak--punctuation-ring "yes")
+(ring-insert greader-espeak--punctuation-ring "no")
+(defvar greader-espeak--ring-item (if greader-espeak-punctuation "yes"
+				    "no"))
+
 ;;;###autoload
 (defun greader-espeak (command &optional arg &rest _)
   "Back-end main function of greader-espeak.
@@ -65,12 +72,19 @@ COMMAND must be a string suitable for `make-process'."
        (greader-espeak-set-rate arg))))
     ('punctuation
      (pcase arg
-       ('yes
-	(setq-local greader-espeak-punctuation t)
-	"--punct")
-       ('no
-	(setq-local greader-espeak-punctuation nil)
-	nil)
+       ((or 'toggle 'yes 'no)
+	(setq greader-espeak--ring-item (ring-next
+					 greader-espeak--punctuation-ring
+					 greader-espeak--ring-item))
+	(pcase greader-espeak--ring-item
+	  ("yes"
+	   (setq-local greader-espeak-punctuation t)
+	   (message "Punctuation enabled in current buffer.")
+	   "--punct")
+	  ("no"
+	   (setq-local greader-espeak-punctuation nil)
+	   (message "punctuation disabled in current buffer.")
+	   nil)))
        ('nil
 	(if greader-espeak-punctuation
 	    "--punct"

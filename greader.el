@@ -6,7 +6,7 @@
 ;; Author: Michelangelo Rodriguez <michelangelo.rodriguez@gmail.com>
 ;; Keywords: tools, accessibility
 
-;; Version: 0.9.19
+;; Version: 0.9.20
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -714,17 +714,9 @@ get the language from the environment."
 (defun greader-toggle-punctuation ()
   "Toggle punctuation locally for current buffer."
   (interactive)
-  (if (not (greader-call-backend 'punctuation))
-      (progn
-	(greader-tts-stop)
-	(greader-set-punctuation 'yes)
-	(message "punctuation enabled in current buffer")
-	(greader-read))
-    (progn
-      (greader-tts-stop)
-      (greader-set-punctuation 'no)
-      (message "punctuation disabled in current buffer")
-      (greader-read))))
+  (greader-stop)
+  (greader-call-backend 'punctuation 'toggle)
+  (greader-read))
 
 (defun greader-toggle-timer-flag ()
   "Not yet documented."

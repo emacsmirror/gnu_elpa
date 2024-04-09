@@ -84,17 +84,34 @@ PUNCT must be a numeric value, 0 for no punctuation, 1 for some and 2
 or >2 for all punctuation."
   (setq-local greader-speechd-punctuation
               (pcase punct
-               ('t "all")
-               ('0 "none")
-               ('1 "some")
-               ((and (pred numberp) (pred (<= 2))) "all")
-               (_ (error "Unknown punctuation: %S" punct))))
+		('t "all")
+		('0 "none")
+		('1 "some")
+		((and (pred numberp) (pred (<= 2))) "all")
+		(_ (error "Unknown punctuation: %S" punct))))
   (concat "-m" greader-speechd-punctuation))
 
 (defun greader-speechd-stop ()
   "Stops speech-dispatcher client."
   (start-process "speechd-client" nil greader-speechd-executable "-S")
   (sleep-for 0.100))
+(defvar greader-speechd--punctuation-ring (make-ring 3))
+(ring-insert greader-speechd--punctuation-ring 0)
+(ring-insert greader-speechd--punctuation-ring 1)
+(ring-insert greader-speechd--punctuation-ring 2)
+
+(defvar greader-speechd--ring-item
+  (cond
+   ((equal greader-speechd-punctuation "none") 0)
+   ((equal greader-speechd-punctuation "some") 1)
+   ((= greader-speechd-punctuation "all") 2)))
+
+(defun greader-speechd--ring-next ()
+  "Return the next element in the `greader-speechd--punctuation-ring'
+based on `greader-speechd--ring-item'"
+  (setq greader-speechd--ring-item (ring-next greader-speechd--punctuation-ring
+	     greader-speechd--ring-item)))
+
 ;;;###autoload
 (defun greader-speechd (command &optional arg &rest _)
   "greader speech-dispatcher back-end."
@@ -114,15 +131,15 @@ or >2 for all punctuation."
 	   greader-speechd-rate)))
     ('punctuation
      (cond
-      ((equal arg 'no)
-       (greader-speechd-set-punctuation 0)
-       nil)
-      ((equal arg 'yes)
-       (greader-speechd-set-punctuation 2))
+      ((equal arg 'toggle)
+       (prog1
+	   (greader-speechd-set-punctuation (greader-speechd--ring-next))		 
+	 (message (concat "punctuation set to " greader-speechd-punctuation))))
       ((not arg)
-       (if (equal (greader-speechd-set-punctuation) "all")
-"-mall"
-	 nil))))
+       (cond
+	((equal greader-speechd--ring-item 0) "-mnone")
+	((equal greader-speechd--ring-item 1) "-msome")
+	((>= greader-speechd--ring-item 2) "-mall")))))
     ('stop
      (greader-speechd-stop))
     ('extra

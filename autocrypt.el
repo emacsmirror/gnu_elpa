@@ -1,10 +1,10 @@
 ;;; autocrypt.el --- Autocrypt implementation -*- lexical-binding:t -*-
 
-;; Copyright (C) 2020-2023  Free Software Foundation, Inc.
+;; Copyright (C) 2020-2024  Free Software Foundation, Inc.
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <~pkal/public-inbox@lists.sr.ht>
-;; Version: 0.4.1
+;; Version: 0.4.2
 ;; Keywords: comm
 ;; Package-Requires: ((emacs "24.3"))
 ;; URL: https://git.sr.ht/~pkal/autocrypt

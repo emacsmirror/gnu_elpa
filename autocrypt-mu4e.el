@@ -1,6 +1,6 @@
 ;;; autocrypt-mu4e.el --- Autocrypt for mu4e -*- lexical-binding:t -*-
 
-;; Copyright (C) 2020-2023  Free Software Foundation, Inc.
+;; Copyright (C) 2020-2024  Free Software Foundation, Inc.
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 
@@ -29,7 +29,7 @@
 
 (declare-function mu4e-view-raw-message "mu4e" ())
 
-;;;###autocrypt
+;;;###autoload
 (defun autocrypt-mu4e--install ()
   "Install autocrypt hooks for mu4e."
   (add-hook (if (boundp 'mu4e-view-rendered-hook)

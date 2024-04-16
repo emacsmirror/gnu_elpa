@@ -100,6 +100,25 @@ the label number as a string, or nil if the label cannot be found."
     (when cache
       (gethash label cache))))
 
+(defun tex-numbers-label-annotation-function (label)
+  "Return context for LABEL, augmented by the corresponding label number."
+  (concat
+   (LaTeX-completion-label-annotation-function label)
+   (when-let ((number (tex-numbers-label-to-number label)))
+     (format " (%s)" number))))
+
+(defvar tex-numbers-mode)
+
+(defun tex-numbers-completion-at-point ()
+  "Complete a label at point, with label numbers."
+  (if tex-numbers-mode
+      (when-let ((completion (TeX--completion-at-point)))
+        (let ((props (nthcdr 3 completion)))
+          (plist-put props :annotation-function
+                     #'tex-numbers-label-annotation-function))
+        completion)
+    (TeX--completion-at-point)))
+
 (defcustom tex-numbers-label-to-number-function nil
   "Function to retrieve label numbers.
 If non-nil, `tex-numbers-label-to-number' delegates to this function.
@@ -190,6 +209,11 @@ There should be a corresponding function `tex-numbers-MACRO-display'
 that returns a fold display string for that macro."
   :type '(repeat string))
 
+(defun tex-numbers--capf-install ()
+  "Install `completion-at-point' function for label numbers."
+  (add-hook 'completion-at-point-functions #'tex-numbers-completion-at-point nil t)
+  (remove-hook 'completion-at-point-functions #'TeX--completion-at-point t))
+
 ;;;###autoload
 (define-minor-mode tex-numbers-mode
   "Toggle `tex-numbers' mode."
@@ -198,6 +222,7 @@ that returns a fold display string for that macro."
   (cond
    (tex-numbers-mode
     (setq preview-preprocess-function #'tex-numbers-preview-preprocessor)
+    (add-hook 'LaTeX-mode-hook #'tex-numbers--capf-install)
     (require 'tex-fold)
     (dolist (macro tex-numbers-macro-list)
       (let ((func (intern (format "tex-numbers-%s-display" macro))))
@@ -211,6 +236,7 @@ that returns a fold display string for that macro."
       (TeX-fold-mode 1)))
    (t
     (setq preview-preprocess-function nil)
+    (remove-hook 'LaTeX-mode-hook #'tex-numbers--capf-install)
     (dolist (macro tex-numbers-macro-list)
       (let ((func (intern (format "tex-numbers-%s-display" macro))))
         (setq TeX-fold-macro-spec-list

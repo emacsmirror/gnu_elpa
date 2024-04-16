@@ -65,12 +65,25 @@ Use the following commands to query the database.
 
 - ~M-x rcirc-sqlite-view-log~: display the logs.
 - ~M-x rcirc-sqlite-text-search~ perform full text search in the logs.
+- ~M-x rcirc-sqlite-logs-from-nick~ display the logs from a specific nick.
 - ~M-x rcirc-sqlite-stats~ displays some stats.
 
 ** ~rcirc-sqlite-view-log~
 Default this commands shows the last 200 messages, optionally narrowed
 to a specific channel, or month.
 
+** ~rcirc-sqlite-logs-from-nick~
+Display the logs from a specific nick.
+
+Prompts:
+
+- for a nick
+- for a time range
+
+Completion is used to choose a nick and a time range.
+
+When a time range is chosen, only show the messages that were send in
+that specific range.  Choose ~All channels~ to display everything.
 
 ** ~rcirc-sqlite-text-search~
 Perform full text searches in the database.
@@ -79,21 +92,21 @@ Prompts:
 
 - for a search string
 - for a channel
-- for a month
+- for a time range
 - for a nick
 
-Completion is used to choose a channel, month, or nick.
+Completion is used to choose a channel, a time range, or nick.
 
 When a channel is chosen, the search is performed within the
-chat logs of that specific channel. Choose ~All channels~ to
+chat logs of that specific channel.  Choose ~All channels~ to
 search everywhere.
 
-When a month is chosen, the search is performed within the
-messages that were send in that specific month. Choose ~Anytime~
+When a time range is chosen, the search is performed within the
+messages that were send in that specific range. Choose ~Anytime~
 to search everywhere.
 
 When a nick is chosen, the search is performed within the
-chats of that specific nick. Choose ~All nicks~ to search
+chats of that specific nick.  Choose ~All nicks~ to search
 independent of the sender.
 
 The search string is used to do a full text search in the SQLite

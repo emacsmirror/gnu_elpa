@@ -111,7 +111,7 @@ To install the package:
 
 and search for ~rcirc-sqlite~.
 
-Or use ~use-package~
+Or use ~use-package~:
 
 @lisp
 (use-package rcirc-sqlite
@@ -146,7 +146,7 @@ Activates or deactivates @code{rcirc-sqlite}.
 @end deffn
 
 Issue the command @code{rcirc-sqlite-log-mode} to manually start
-@code{rcirc-sqlite}. This command toggles between activation
+@code{rcirc-sqlite}.  This command toggles between activation
 and deactivation of @code{rcirc-sqlite}. 
 
 To start @code{rcirc-sqlite} automatically when @code{rcirc}
@@ -180,7 +180,7 @@ For example:
 (setopt rcirc-sqlite-rows 100)
 @end lisp
 
-The user may custimize the following options.
+The user may customize the following options.
 
 @defopt rcirc-sqlite-database
 The file in which SQLite stores the database.
@@ -252,6 +252,7 @@ wider column in the buffer @code{*rcirc log*}.
 * Summery of the commands::
 * View the logs::
 * Full text search and load the result in a buffer::
+* Logs from a specific nick::
 * Stats::
 @end menu
 
@@ -266,6 +267,8 @@ wider column in the buffer @code{*rcirc log*}.
 @item
 @code{M-x rcirc-sqlite-text-search}: perform full text search in the logs.
 @item
+@code{M-x rcirc-sqlite-logs-from-nick}: display the logs from a specific nick.
+@item
 @code{M-x rcirc-sqlite-stats}: displays some stats.
 @end itemize
 
@@ -278,19 +281,19 @@ Display the logs in a new buffer.
 @end defun
 
 Issue the command @code{M-x rcirc-sqlite-view-log} to view the logs
-of a specific channel. Default this command shows the last 200
-lines. This number can be changed by setting the variable
+of a specific channel.  Default this command shows the last 200
+lines.  This number can be changed by setting the variable
 @code{rcirc-sqlite-rows}. 
 
 This command prompts the user for the channel and provides a list
-of available channels. Choose a channel using completion. 
+of available channels.  Choose a channel using completion. 
 Choose the option @code{All channels} to show the last 200 lines of the
 chat log of @strong{all} channels.
 
-Next, the user is prompted for a month, choose a month using
-completion.  When a month is chosen, the last 200 lines the chat log
-from that month are shown.  Choose the option @code{Anytime} or the
-latest month to get the most recent 200 lines.
+Next, the user is prompted to choose a time range, using
+completion.  When a range is chosen, the last 200 lines the chat log
+from that range are shown.  Choose the option @code{Anytime} or the
+last 90, 60, 30, or 7 days to get the most recent 200 lines.
 
 The buffer @code{*rcirc log*} displays the chat logs.
 
@@ -329,25 +332,25 @@ The user is prompted for a search string.
 @item
 The user is prompted to choose a channel (through completion).
 @item
-The user is prompted to choose a specific month (through completion).
+The user is prompted to choose a time range (through completion).
 @item
 The user is prompted to choose a nick (through completion).
 @end itemize
 
 When a channel is chosen, the search is performed within the
-chat logs of that specific channel. Choose @code{All channels} to
-search everywhere.
+chat logs of that specific channel.  Choose @code{All channels} to
+search independent of the channel.
 
-When a month is chosen, the search is performed within the
-messages that were send in that specific month. Choose @code{Anytime}
-to search everywhere.
+When a time range is chosen, the search is performed within the
+chat messages that were send during the chosen range.  When
+@code{Anytime} is chosen, no filtering on date/time takes place.
 
 When a nick is chosen, the search is performed within the
-chats of that specific nick. Choose @code{All nicks} to search
+chats send by a specific nick.  Choose @code{All nicks} to search
 independent of the sender.
 
 The search string is used to do a full text search in the SQLite
-database. When the search string is @code{foo}, chat messages
+database.  When the search string is @code{foo}, chat messages
 containing the word @code{foo} will be found, but chat messages
 containing the word @code{foobar} will not be found.
 
@@ -356,7 +359,7 @@ string @code{foo*}.
 
 Likewise, to search for URLs, use something like @code{"http://*"} or
 @code{"https://*"} as search string, or for example
-@code{"gopher://*"}. Because of the colon (@code{:}), the double
+@code{"gopher://*"}.  Because of the colon (@code{:}), the double
 quotes (@code{"}) here are required.
 
 For more formatting of the search see the chapter
@@ -364,6 +367,47 @@ For more formatting of the search see the chapter
 @uref{https://www.sqlite.org/fts5.html}).
 
 The buffer @code{*rcirc log*} displays the search results.
+
+@node Logs from a specific nick
+@section  Logs from a specific nick
+@findex rcirc-sqlite-logs-from-nick
+
+@defun rcirc-sqlite-logs-from-nick
+Display the logs from a specific nick
+@end defun
+
+Issue the command @code{rcirc-sqlite-logs-from-nick} to request the
+logs of a specific nick.
+
+The user is prompted to select a nick, using completion.
+
+Next, the user is prompted to select a time range, using completion.
+The options are:
+
+@itemize
+@item
+Anytime
+@item
+Last 90 days
+@item
+Last 60 days
+@item
+Last 30 days
+@item
+Last 7 days
+@item
+Manually select range
+@end itemize
+
+When the option @code{Anytime} is chosen, no filtering takes
+place.
+
+When the latest 90, 60, 30, or 7 days is chosen, the logs from that
+time range are shown.
+
+The option @code{manually select range} prompts the user to select a
+start and a end of a time range, using the org date picker.  Use the
+org calendar commands to select a date and time.
 
 @node Stats
 @section Stats
@@ -377,10 +421,10 @@ Create overview with some stats
 Issue the command @code{M-x rcirc-sqlite-stats} to get an overview
 of the number of rows (messages) in the database.
 
-The user is prompted for a nick. Choose a nick through completion.
+The user is prompted for a nick.  Choose a nick through completion.
 
-When a nick is chosen, the buffer @code{*rcirc log*} is opened where
-each channel with one or more chat messages from that nick is listed,
+When a nick is chosen, the buffer @code{*rcirc log*} is opened and
+lists each channel with one or more chat messages from that nick,
 together with the number of chat messages from that nick.
 
 When @code{All nicks} is chosen, the buffer shows the row count
@@ -391,7 +435,6 @@ each channel the number of unique nicks.
 
 When @code{Channels per nick} is chosen, the buffer shows for
 each nick the number of channels with messages from this nick.
-
 
 @defun rcirc-sqlite-view-drill-down
 Drill-down to more details
@@ -426,9 +469,9 @@ Some key binding examples:
 @findex Sort
 Sort the buffer according to the values of the column of point.
 
-Use a numeric prefix argument @var{n} to sort the buffer according to the
-values of the @var{n}-th column from point. Repeat to sort in the alternate
-order (ascending or descending).
+Use a numeric prefix argument @var{n} to sort the buffer according to
+the values of the @var{n}-th column from point.  Repeat to sort in the
+alternate order (ascending or descending).
 
 @item @kbd{@}}
 @kindex @}
@@ -490,7 +533,7 @@ There is some delay between the arrival of chat messages in the chat
 buffer and the storage of the logs in the database.
 
 @code{rcirc} uses the auto-save functionality to trigger the flushing
-of the cache to the log file. Hence, the storage of the chat logs to
+of the cache to the log file.  Hence, the storage of the chat logs to
 the SQLite database by @code{rcirc-sqlite} is also triggered by the
 auto-save functionality.
 
@@ -498,8 +541,8 @@ auto-save functionality.
 @chapter Database schema
 
 The SQLite database is created at the first time @code{rcirc-sqlite}
-flushes the cache. The SQLite database is populated with a virtual
-table, using the SQLite FTS5 Extension. The schema of this table has
+flushes the cache.  The SQLite database is populated with a virtual
+table, using the SQLite FTS5 Extension.  The schema of this table has
 the following fields.
 
 @itemize

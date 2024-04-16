@@ -5,7 +5,7 @@
 ;; Author: Paul D. Nelson <nelson.paul.david@gmail.com>
 ;; Version: 0.0
 ;; URL: https://github.com/ultronozm/tex-numbers.el
-;; Package-Requires: ((emacs "26.1") (auctex))
+;; Package-Requires: ((emacs "27.1") (auctex "14.0.5"))
 ;; Keywords: tex
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -59,6 +59,7 @@
 (require 'latex)
 (require 'tex-fold)
 (require 'preview)
+(require 'reftex)
 
 (defgroup tex-numbers nil
   "Numbering for LaTeX previews and folds."
@@ -88,10 +89,9 @@ Return the updated cache, or nil if the aux file does not exist."
         cache))))
 
 (defun tex-numbers-label-to-number-helper (label aux-file)
-  "Get the number of LABEL from the aux file AUX-FILE.
-Check the cache first, and update it if the aux file has changed.
-Return the label number as a string, or nil if the label cannot be
-found."
+  "Get the number of LABEL from the AUX-FILE.
+Check the cache first, and update it if AUX-FILE has changed.  Return
+the label number as a string, or nil if the label cannot be found."
   (let ((cache (gethash aux-file tex-numbers-cache)))
     (if (or (not cache)
             (time-less-p (gethash 'timestamp cache)
@@ -106,8 +106,10 @@ If non-nil, `tex-numbers-label-to-number' delegates to this function.
 The function should take a label string as its argument and return the
 corresponding label number as a string, or nil if that number cannot be
 retrieved."
-  :type '(choice (const :tag "Default" nil) function)
-  :group 'tex-numbers)
+  :type '(choice (const :tag "Default" nil) function))
+
+(defconst tex-numbers--external-document-regexp
+  "\\\\external\\(?:cite\\)?document\\(?:\\[[^]]+\\]\\)\\{0,2\\}{\\([^}]+\\)}")
 
 (defun tex-numbers-label-to-number (label)
   "Get number of LABEL for current tex buffer.
@@ -138,20 +140,23 @@ with \"X\"."
 (defun tex-numbers-preview-preprocessor (str)
   "Preprocess STR for preview by adding tags to labels.
 Uses `tex-numbers-label-to-number-function' to retrieve label numbers."
-  (let ((buf (current-buffer)))
+  (let ((buf (current-buffer))
+        (label-re
+         (concat "\\(?:" (mapconcat #'identity reftex-label-regexps "\\|") "\\)")))
     (with-temp-buffer
       (insert str)
       (goto-char (point-min))
-      (while (re-search-forward "\\\\label{\\([^}]+\\)}" nil t)
+      (while (re-search-forward label-re nil t)
         (let ((label (match-string 1)))
           (when-let ((number
                       (with-current-buffer buf
                         (tex-numbers-label-to-number label))))
             (when (let ((comment-start-skip
-                         "\\(\\(^\\|[^\\
-]\\)\\(\\\\\\\\\\)*\\)\\(%+[ 	]*\\)"))
-                    ;; HACK: texmathp expects to be run in LaTeX-mode,
-                    ;; but here we are in a temporary buffer.
+                         (concat
+                          "\\(\\(^\\|[^\\\n]\\)\\("
+                          (regexp-quote TeX-esc)
+                          (regexp-quote TeX-esc)
+                          "\\)*\\)\\(%+ *\\)")))
                     (texmathp))
               (insert (format "\\tag{%s}" number))))))
       (buffer-substring-no-properties (point-min) (point-max)))))
@@ -183,8 +188,7 @@ be retrieved."
 Each element describes a LaTeX macro that takes a label as its argument.
 There should be a corresponding function `tex-numbers-MACRO-display'
 that returns a fold display string for that macro."
-  :type '(repeat string)
-  :group 'tex-numbers)
+  :type '(repeat string))
 
 ;;;###autoload
 (define-minor-mode tex-numbers-mode

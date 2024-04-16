@@ -4,7 +4,7 @@
 
 ;; Author: Paul D. Nelson <nelson.paul.david@gmail.com>
 ;; Version: 0.0
-;; URL: https://github.com/ultronozm/czm-preview.el
+;; URL: https://github.com/ultronozm/tex-numbers.el
 ;; Package-Requires: ((emacs "26.1") (auctex))
 ;; Keywords: tex
 

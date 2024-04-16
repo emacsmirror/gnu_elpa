@@ -40,6 +40,11 @@
 ;; to your init file:
 ;;   (add-hook 'rcirc-mode-hook #'rcirc-sqlite-log-mode)
 ;;
+;; Full instructions can be found in the rcirc-sqlite info manual.
+;; Evaluate:
+;;
+;;   (info "(rcirc-sqlite) Top")
+;;
 ;;;; Customization:
 ;;
 ;; To customize various options, including the file to hold the
@@ -53,6 +58,10 @@
 ;; * Narrow queries to time range
 ;;   Use completion to narrow queries to last 90 days, 60 days,
 ;;   30 days, 7 days or a manually selected time range.
+;;
+;; * Show logs from a specific nick
+;;   New command: M-x rcirc-sqlite-logs-from-nick
+;;   Show the logs from a specific nick
 
 ;;; Code:
 
@@ -202,6 +211,27 @@ ARG-LIST is a list with the requested nick and/or channel.
     (let ((dbquery (format "SELECT %s, COUNT() || ' %s' FROM %s GROUP BY %s ORDER BY %s"
 			   column dimension from column column)))
       (sqlite-select db dbquery dbdata))))
+
+(defun rcirc-sqlite-db-query-nick (arg-list)
+  "Fetch the logs from a specific nick.
+ARG-LIST is a list build from the nick and start-time."
+  (let ((db (rcirc-sqlite--conn))
+	(dbquery "SELECT * FROM rcirclogs")
+	(dbdata ()))
+    (pcase-let ((`(,nick ,when) arg-list))
+      (unless (string= nick "All nicks")
+	(setq dbquery (concat dbquery " WHERE nick=?"))
+	(push nick dbdata))
+      (unless (= (car when) 0)
+	(if (string= nick "All nicks")
+	    (setq dbquery (concat dbquery " WHERE "))
+	  (setq dbquery (concat dbquery " AND ")))
+	(setq dbquery (concat dbquery
+			      (rcirc-sqlite-create-period-selectstring when)))
+	(push (car when) dbdata)
+	(when (> (cdr when) 0)
+	  (push (cdr when) dbdata)))
+      (sqlite-execute db dbquery (reverse dbdata)))))
 
 (defun rcirc-sqlite-db-query-log (arg-list)
   "Fetch the last N rows of the logs from a specific channel.
@@ -458,6 +488,18 @@ WHEN is a cons of starttime and endtime."
 	(setq range-string
 	      (concat range-string
 		      (format-time-string "%F %R" (cdr when)))))) range-string))
+
+(defun rcirc-sqlite-logs-from-nick (nick when)
+  "View the logs from a specific NICK.
+WHEN is a cons of starttime and endtime.
+The results are displayed a new buffer."
+  (interactive (list
+		(rcirc-sqlite-select-nick nil)
+		(rcirc-sqlite-select-time-range)))
+  (let ((searcharg-list (list nick when)))
+     (rcirc-sqlite-display-tabulation-list
+     (format "<%s> %s" nick (rcirc-sqlite-format-period-string when))
+     #'rcirc-sqlite-db-query-nick searcharg-list)))
 
 (defun rcirc-sqlite-view-log (channel when &optional unlimited offset limit)
   "View the logs of a specific CHANNEL.

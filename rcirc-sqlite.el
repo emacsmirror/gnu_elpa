@@ -5,7 +5,7 @@
 ;; Author: Matto Fransen <matto@matto.nl>
 ;; Maintainer: Matto Fransen <matto@matto.nl>
 ;; Url: https://codeberg.org/mattof/rcirc-sqlite
-;; Version: 0.1.4
+;; Version: 1.0.0
 ;; Keywords: comm
 ;; Package-Requires: ((emacs "30.0"))
 
@@ -46,7 +46,17 @@
 ;; SQLite database:
 ;;   M-x customize-group rcirc-sqlite RET
 
+;;; News:
+
+;; Version 1.0.0 - 2024-04-16
+
+;; * Narrow queries to time range
+;;   Use completion to narrow queries to last 90 days, 60 days,
+;;   30 days, 7 days or a manually selected time range.
+
 ;;; Code:
+
+(require 'org) ;; needed for org-read-date
 
 (defvar rcirc-log-alist)
 (defvar rcirc-log-time-format)
@@ -86,6 +96,11 @@ otherwise no connection has been opened.")
 (defconst rcirc-sqlite-nicks-per-channel "Nicks per channel")
 (defconst rcirc-sqlite-channels-per-nick "Channels per nick")
 (defconst rcirc-sqlite-anytime "Anytime")
+(defconst rcirc-sqlite-last-90-days "Last 90 days")
+(defconst rcirc-sqlite-last-60-days "Last 60 days")
+(defconst rcirc-sqlite-last-30-days "Last 30 days")
+(defconst rcirc-sqlite-last-07-days "Last 7 days")
+(defconst rcirc-sqlite-manually-select "manually select range")
 
 (defun rcirc-sqlite--conn ()
   "Return an open database connection, or open one up."
@@ -142,11 +157,15 @@ VALUES (?,?,?,?)"
   (let ((db (rcirc-sqlite--conn)))
     (sqlite-select db "SELECT DISTINCT nick FROM rcirclogs")))
 
-(defun rcirc-sqlite-db-query-months ()
-  "List the year/months from the SQLite database."
-  (let ((db (rcirc-sqlite--conn)))
-    (sqlite-select db "SELECT DISTINCT strftime('%Y-%m', time, 'unixepoch')
-FROM rcirclogs")))
+(defun rcirc-sqlite-create-period-selectstring (when)
+  "Create a select string for the query.
+WHEN is a cons of start-time and end-time."
+  (let ((subquery ""))
+   (unless (= (car when) 0)
+     (setq subquery (concat subquery " time+0 > ?"))
+     (when (> (cdr when) 0)
+       (setq subquery (concat subquery " AND time+0 < ?"))))
+   subquery))
 
 (defun rcirc-sqlite-db-query-stats (arg-list)
   "List the number of rows per channel.
@@ -188,7 +207,7 @@ ARG-LIST is a list with the requested nick and/or channel.
   "Fetch the last N rows of the logs from a specific channel.
 N is defined in `rcirc-sqlite-rows' and is default 200.
 The user can opt for no limit, or a different limit and offset.
-ARG-LIST is a list build from channel, period (year-month), unlimited,
+ARG-LIST is a list build from channel, time range, unlimited,
 offset and limit."
   (let ((db (rcirc-sqlite--conn))
 	(dbquery "SELECT * FROM rcirclogs")
@@ -197,12 +216,15 @@ offset and limit."
       (unless (string= channel rcirc-sqlite-all-channels)
 	(setq dbquery (concat dbquery " WHERE channel=?"))
 	(push channel dbdata))
-      (unless (string= when rcirc-sqlite-anytime)
+      (unless (= (car when) 0)
 	(if (string= channel rcirc-sqlite-all-channels)
 	    (setq dbquery (concat dbquery " WHERE "))
 	  (setq dbquery (concat dbquery " AND ")))
-	(setq dbquery (concat dbquery "strftime('%Y-%m', time, 'unixepoch')=?"))
-	(push when dbdata))
+	(setq dbquery (concat dbquery
+			      (rcirc-sqlite-create-period-selectstring when)))
+	(push (car when) dbdata)
+	(when (> (cdr when) 0)
+	  (push (cdr when) dbdata)))
       (unless unlimited
 	(if limit
 	    (progn
@@ -217,7 +239,7 @@ offset and limit."
 (defun rcirc-sqlite-db-search-log (arg-list)
   "Perform a full text search.
 ARG-LIST describes the search argument and possibly a specific
-channel, month and/or nick to narrow the search to."
+channel, time range, and/or nick to narrow the search to."
   (let ((db (rcirc-sqlite--conn))
 	(dbquery "SELECT * FROM rcirclogs WHERE rcirclogs=?"))
     (pcase-let ((`(,query ,channel ,when ,nick) arg-list))
@@ -225,13 +247,17 @@ channel, month and/or nick to narrow the search to."
 	(unless (string= channel rcirc-sqlite-all-channels)
 	  (setq dbquery (concat dbquery " AND channel=?"))
 	  (push channel dbdata))
-	(unless (string= when rcirc-sqlite-anytime)
-	  (setq dbquery (concat dbquery " AND strftime('%Y-%m', time, 'unixepoch')=?"))
-	  (push when dbdata))
+	(unless (= (car when) 0)
+	    (setq dbquery (concat dbquery " AND "))
+	  (setq dbquery (concat dbquery
+				(rcirc-sqlite-create-period-selectstring when)))
+	  (push (car when) dbdata)
+	  (when (> (cdr when) 0)
+	    (push (cdr when) dbdata)))
 	(unless (string= nick rcirc-sqlite-all-nicks)
 	  (setq dbquery (concat dbquery " AND nick=?"))
 	  (push nick dbdata))
-	(setq dbquery (concat dbquery " ORDER BY rank"))
+	(setq dbquery (concat dbquery " ORDER BY rank, time"))
 	(sqlite-execute db dbquery
 			(reverse dbdata))))))
 
@@ -254,7 +280,7 @@ ARG-LIST defines which records to select."
 	(push nick dbdata)
 	(push what dbdata)))
       (sqlite-execute db dbquery dbdata))))
-    
+
 (defun rcirc-sqlite-convert-tabulation-list (list-to-convert)
   "Convert LIST-TO-CONVERT to format for `tabulated-list-mode'.
 Build a vector from the data in LIST-TO-CONVERT and format the
@@ -384,42 +410,85 @@ choices.  This will also be used as the default choice."
    (append wild-card-value (rcirc-sqlite-db-query-nicks))
    nil nil nil nil wild-card-value))
 
-(defun rcirc-sqlite-select-month (wild-card-value)
-  "Provide completion to select a year and month.
-Extend the list of months with WILD-CARD-VALUE to offer the user more
-choices.  This will also be used as the default choice."
-  (completing-read
-   (format-prompt "Select a month" wild-card-value)
-   (cons wild-card-value (rcirc-sqlite-db-query-months))
-   nil nil nil nil wild-card-value))
+(defun rcirc-sqlite-select-time-range ()
+  "Select the start and end in epochseconds of a time range.
+When end is before start, exchange them."
+  (let ((chperiod (completing-read
+		   (format-prompt "Select the search period (use completion): "
+				  rcirc-sqlite-anytime)
+		   (list rcirc-sqlite-anytime rcirc-sqlite-manually-select
+		     rcirc-sqlite-last-90-days rcirc-sqlite-last-60-days
+		     rcirc-sqlite-last-30-days rcirc-sqlite-last-07-days)
+		   nil nil nil nil rcirc-sqlite-anytime))
+	(end-time 0)
+	(start-time (time-convert (current-time) 'integer)))
+    (cond
+     ((string= chperiod rcirc-sqlite-anytime) (setq start-time 0))
+     ((string= chperiod rcirc-sqlite-last-90-days)
+      (setq start-time (- start-time (* 90 86400))))
+     ((string= chperiod rcirc-sqlite-last-60-days)
+      (setq start-time (- start-time (* 60 86400))))
+     ((string= chperiod rcirc-sqlite-last-30-days)
+      (setq start-time (- start-time (* 30 86400))))
+     ((string= chperiod rcirc-sqlite-last-07-days)
+      (setq start-time (- start-time (* 7 86400))))
+     ((string= chperiod rcirc-sqlite-manually-select)
+      (setq start-time
+	    (1- (time-convert
+		(org-read-date t t nil
+			       "Range starts" nil nil) 'integer))
+	    end-time
+	    (1+ (time-convert
+		(org-read-date t t nil
+			       "Range ends" nil nil) 'integer)))
+      (when (< end-time start-time)
+	(let ((tmp-time end-time))
+	  (setq end-time start-time)
+	  (setq start-time tmp-time)))))
+    (cons start-time end-time)))
+
+(defun rcirc-sqlite-format-period-string (when)
+  "Create a human readable string from a time range.
+WHEN is a cons of starttime and endtime."
+  (let ((range-string rcirc-sqlite-anytime))
+    (unless (= (car when) 0)
+      (setq range-string (format-time-string "%F %R - " (car when)))
+      (if (= (cdr when) 0)
+	  (setq range-string (concat range-string "now"))
+	(setq range-string
+	      (concat range-string
+		      (format-time-string "%F %R" (cdr when)))))) range-string))
 
 (defun rcirc-sqlite-view-log (channel when &optional unlimited offset limit)
   "View the logs of a specific CHANNEL.
-WHEN is either `Anytime' or a specific month.
+WHEN is a cons of start time and end time, each possible zero.
 Shows the result in a new buffer.
 When called without OFFSET and LIMIT, show the last 200 rows.
 When called with non-nil UNLIMITED, show all the rows.
 Otherwise offset and limit are used; in that case  both offset
 and limit have to be provided."
   (interactive (list (rcirc-sqlite-select-channel)
-		     (rcirc-sqlite-select-month rcirc-sqlite-anytime)))
+		     (rcirc-sqlite-select-time-range)))
   (let ((searcharg-list (list channel when unlimited offset limit)))
     (rcirc-sqlite-display-tabulation-list
-     (format "View log (%s %s)" channel when)
+     (format "View log (%s %s)" channel
+	     (rcirc-sqlite-format-period-string when))
      #'rcirc-sqlite-db-query-log searcharg-list)))
 
 (defun rcirc-sqlite-text-search (query channel when nick)
   "Perform full text search for QUERY.
-WHEN is either `Anytime' or a specific month, to narrow the search.
+WHEN is a cons of start time and end time, each possible zero.
 Optional narrow search in a specific CHANNEL and/or with a specific NICK.
 The results are displayed a new buffer."
   (interactive (list (read-string "Search for: ")
                      (rcirc-sqlite-select-channel)
-		     (rcirc-sqlite-select-month rcirc-sqlite-anytime)
-		     (rcirc-sqlite-select-nick rcirc-sqlite-all-nicks)))
+		     (rcirc-sqlite-select-time-range)
+		     (rcirc-sqlite-select-nick (list rcirc-sqlite-all-nicks))))
   (let ((searcharg-list (list query channel when nick)))
     (rcirc-sqlite-display-tabulation-list
-     (format "Search %s (%s %s %s)" query channel when nick)
+     (format "Search %s (%s %s %s)" query channel
+	     (rcirc-sqlite-format-period-string when)
+	     nick)
      #'rcirc-sqlite-db-search-log searcharg-list)))
 
 (defun rcirc-sqlite-stats (nick)
@@ -447,7 +516,7 @@ The results are displayed a new buffer."
     (progn
       (advice-remove 'rcirc-log-write #'rcirc-sqlite-store-log)
       (advice-remove 'rcirc-log #'rcirc-sqlite-set-log-time-format))))
-  
+
 (provide 'rcirc-sqlite)
 
 ;;; rcirc-sqlite.el ends here

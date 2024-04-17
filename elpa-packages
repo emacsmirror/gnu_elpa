@@ -733,6 +733,7 @@
  (topspace		:url "https://github.com/trevorpogue/topspace"
   :ignored-files ("LICENSE")
   :news "NEWS.md")
+ (track-changes		:core "lisp/emacs-lisp/track-changes.el")
  (tramp			:url "https://git.savannah.gnu.org/git/tramp.git"
   :branch "externals/tramp"
   :main-file "trampver.el"

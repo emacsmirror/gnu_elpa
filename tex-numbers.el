@@ -35,9 +35,8 @@
 ;;   \\eqref include equation numbers.
 ;;
 ;; TEMPORARY NOTE: this package currently only works with the master
-;; branch of AUCTeX.  The more elaborate package
-;; https://github.com/ultronozm/czm-tex-fold.el works with released
-;; versions, but relies on advice, etc.
+;; branch of AUCTeX.  Its release is intended to be synchronized with
+;; the next release of AUCTeX.
 ;;
 ;; Activate via M-x tex-numbers-mode, or by adding to your init file:
 ;;

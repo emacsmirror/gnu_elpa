@@ -24,11 +24,15 @@
 ;;; Commentary:
 
 ;; This package augments the preview and folding features of AUCTeX:
-;; previews of labeled equations are numbered as in the compiled
-;; document, and the the macros \\ref, \\eqref, and \\label are folded
-;; with the corresponding numbers.
 ;;
-;; Install via TODO.
+;; - Previews of labeled equations are numbered as in the compiled
+;;   document.
+;;
+;; - The the macros \\ref, \\eqref, and \\label are folded with the
+;;   corresponding numbers.
+;;
+;; - completion-at-point annotations for the contents of \\ref and
+;;   \\eqref include equation numbers.
 ;;
 ;; TEMPORARY NOTE: this package currently only works with the master
 ;; branch of AUCTeX.  The more elaborate package
@@ -88,6 +92,17 @@ Return the updated cache, or nil if the aux file does not exist."
         (puthash aux-file cache tex-numbers-cache)
         cache))))
 
+(defcustom tex-numbers-label-to-number-function nil
+  "Function to retrieve label numbers.
+If non-nil, `tex-numbers-label-to-number' delegates to this function.
+The function should take a label string as its argument and return the
+corresponding label number as a string, or nil if that number cannot be
+retrieved."
+  :type '(choice (const :tag "Default" nil) function))
+
+(defconst tex-numbers--external-document-regexp
+  "\\\\external\\(?:cite\\)?document\\(?:\\[[^]]+\\]\\)\\{0,2\\}{\\([^}]+\\)}")
+
 (defun tex-numbers-label-to-number-helper (label aux-file)
   "Get the number of LABEL from the AUX-FILE.
 Check the cache first, and update it if AUX-FILE has changed.  Return
@@ -99,36 +114,6 @@ the label number as a string, or nil if the label cannot be found."
         (setq cache (tex-numbers-update-cache aux-file)))
     (when cache
       (gethash label cache))))
-
-(defun tex-numbers-label-annotation-function (label)
-  "Return context for LABEL, augmented by the corresponding label number."
-  (concat
-   (LaTeX-completion-label-annotation-function label)
-   (when-let ((number (tex-numbers-label-to-number label)))
-     (format " (%s)" number))))
-
-(defvar tex-numbers-mode)
-
-(defun tex-numbers-completion-at-point ()
-  "Complete a label at point, with label numbers."
-  (if tex-numbers-mode
-      (when-let ((completion (TeX--completion-at-point)))
-        (let ((props (nthcdr 3 completion)))
-          (plist-put props :annotation-function
-                     #'tex-numbers-label-annotation-function))
-        completion)
-    (TeX--completion-at-point)))
-
-(defcustom tex-numbers-label-to-number-function nil
-  "Function to retrieve label numbers.
-If non-nil, `tex-numbers-label-to-number' delegates to this function.
-The function should take a label string as its argument and return the
-corresponding label number as a string, or nil if that number cannot be
-retrieved."
-  :type '(choice (const :tag "Default" nil) function))
-
-(defconst tex-numbers--external-document-regexp
-  "\\\\external\\(?:cite\\)?document\\(?:\\[[^]]+\\]\\)\\{0,2\\}{\\([^}]+\\)}")
 
 (defun tex-numbers-label-to-number (label)
   "Get number of LABEL for current tex buffer.
@@ -150,7 +135,8 @@ with \"X\"."
          (goto-char (point-min))
          (let (found)
            (while (and (null found)
-                       (re-search-forward "\\\\externaldocument{\\([^}]+\\)}" nil t))
+                       (re-search-forward tex-numbers--external-document-regexp
+                                          nil t))
              (let* ((filename (concat (match-string 1) ".aux")))
                (setq found (tex-numbers-label-to-number-helper label filename))))
            (when found
@@ -209,10 +195,12 @@ There should be a corresponding function `tex-numbers-MACRO-display'
 that returns a fold display string for that macro."
   :type '(repeat string))
 
-(defun tex-numbers--capf-install ()
-  "Install `completion-at-point' function for label numbers."
-  (add-hook 'completion-at-point-functions #'tex-numbers-completion-at-point nil t)
-  (remove-hook 'completion-at-point-functions #'TeX--completion-at-point t))
+(defun tex-numbers-label-annotation-advice (orig-fun label)
+  "Return context for LABEL, augmented by the corresponding label number."
+  (concat
+   (funcall orig-fun label)
+   (when-let ((number (tex-numbers-label-to-number label)))
+     (format " (%s)" number))))
 
 ;;;###autoload
 (define-minor-mode tex-numbers-mode
@@ -222,7 +210,8 @@ that returns a fold display string for that macro."
   (cond
    (tex-numbers-mode
     (setq preview-preprocess-function #'tex-numbers-preview-preprocessor)
-    (add-hook 'LaTeX-mode-hook #'tex-numbers--capf-install)
+    (advice-add 'LaTeX-completion-label-annotation-function
+                :around #'tex-numbers-label-annotation-advice)
     (require 'tex-fold)
     (dolist (macro tex-numbers-macro-list)
       (let ((func (intern (format "tex-numbers-%s-display" macro))))
@@ -236,7 +225,8 @@ that returns a fold display string for that macro."
       (TeX-fold-mode 1)))
    (t
     (setq preview-preprocess-function nil)
-    (remove-hook 'LaTeX-mode-hook #'tex-numbers--capf-install)
+    (advice-remove 'LaTeX-completion-label-annotation-function
+                   #'tex-numbers-label-annotation-advice)
     (dolist (macro tex-numbers-macro-list)
       (let ((func (intern (format "tex-numbers-%s-display" macro))))
         (setq TeX-fold-macro-spec-list

@@ -72,7 +72,8 @@
   :ignored-files ("COPYING"))
  (auctex		:url "https://git.savannah.gnu.org/git/auctex.git"
   ;; AUCTeX is currently sync'd manually and elpa.git isn't quite a mirror :-(
-  :manual-sync t)
+  :manual-sync t
+  :news "NEWS.org")
  (aumix-mode		:url nil)
  (auto-correct		:url nil)
  (auto-header           :url "https://git.sr.ht/~pkal/auto-header")

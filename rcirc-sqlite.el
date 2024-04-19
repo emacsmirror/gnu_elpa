@@ -80,6 +80,7 @@
   (locate-user-emacs-file "rcirc-log.db")
   "Path to the SQLite database used for logging messages."
   :type 'file)
+
 (defcustom rcirc-sqlite-time-format "%Y-%m-%d %H:%M"
   "Describes how timestamps are displayed in the log buffer."
   :type 'string)
@@ -156,6 +157,17 @@ VALUES (?,?,?,?)"
 				       (match-string 3 logline))))))))
     (setq rcirc-log-alist nil)))
 
+(defun rcirc-sqlite-db-row-data (rowid)
+  "Select the key data from the database.
+ROWID defines the record. Use SQLite start of day to prevent time
+zone errors during time conversions and calculations."
+  (let ((db (rcirc-sqlite--conn)))
+    (sqlite-select db
+                   "SELECT channel, time, nick, message,
+unixepoch(datetime(time, 'unixepoch','start of day'))
+FROM rcirclogs WHERE rowid=?"
+		   (list rowid))))
+  
 (defun rcirc-sqlite-db-query-channels ()
   "List the channels from the SQLite database."
   (let ((db (rcirc-sqlite--conn)))
@@ -171,7 +183,7 @@ VALUES (?,?,?,?)"
 WHEN is a cons of start-time and end-time."
   (let ((subquery ""))
    (unless (= (car when) 0)
-     (setq subquery (concat subquery " time+0 > ?"))
+     (setq subquery (concat subquery "time+0 > ?"))
      (when (> (cdr when) 0)
        (setq subquery (concat subquery " AND time+0 < ?"))))
    subquery))
@@ -219,7 +231,7 @@ The user can opt for no limit, or a different limit and offset.
 ARG-LIST is a list build from channel, time range, unlimited,
 offset and limit."
   (let ((db (rcirc-sqlite--conn))
-	(dbquery "SELECT * FROM rcirclogs")
+	(dbquery "SELECT rowid, channel, time, nick, message FROM rcirclogs")
 	(dbdata ()))
     (pcase-let ((`(,channel ,when ,unlimited ,offset ,limit) arg-list))
       (unless (string= channel rcirc-sqlite-all-channels)
@@ -276,7 +288,7 @@ channel, time range, and/or nick to narrow the search to."
         (setq dbquery (concat dbquery "nick=?"))
 	(push nick dbdata))
       (setq dbquery (concat
-                     "SELECT channel, time, nick, message FROM rcirclogs WHERE "
+                     "SELECT rowid, channel, time, nick, message FROM rcirclogs WHERE "
                      dbquery))
       (setq dbquery (concat dbquery " ORDER BY rank, time"))
       (sqlite-execute db dbquery
@@ -286,7 +298,7 @@ channel, time range, and/or nick to narrow the search to."
   "Drill down to messages per nick or channel.
 ARG-LIST defines which records to select."
   (let ((db (rcirc-sqlite--conn))
-	(dbquery "SELECT * FROM rcirclogs WHERE ")
+	(dbquery "SELECT rowid, channel, time, nick, message FROM rcirclogs WHERE ")
 	(dbdata ()))
     (pcase-let ((`(,what ,where ,nick) arg-list))
       (cond
@@ -309,11 +321,11 @@ timestamp."
   (unless (listp list-to-convert)
     (error "No data available"))
       (mapcar (lambda (cell)
-		(list  nil (vector (nth 0 cell)
+		(list (nth 0 cell) (vector (nth 1 cell)
 				   (format-time-string rcirc-sqlite-time-format
-						       (string-to-number (nth 1 cell)))
-				   (nth 2 cell)
-				   (nth 3 cell))))
+						       (string-to-number (nth 2 cell)))
+				   (nth 3 cell)
+				   (nth 4 cell))))
               list-to-convert))
 
 (defun rcirc-sqlite-convert-two-column-tabulation-list (list-to-convert)
@@ -331,8 +343,29 @@ Build a vector from the data, converting numbers to text, because
               (list (car cell) (vector (car cell) (cadr cell))))
             list-to-convert)))
 
-(define-derived-mode rcirc-sqlite-list-mode tabulated-list-mode
-  "rcirc-sqlite-list-mode"
+(defvar-keymap rcirc-sqlite-two-column-mode-map
+  :parent tabulated-list-mode-map  
+  "RET" #'rcirc-sqlite-view-drill-down
+  "<down-mouse-1>" #'rcirc-sqlite-view-drill-down)
+
+(defun rcirc-sqlite-test-map ()
+  (interactive nil rcirc-sqlite-column-mode)
+  (message "%s" (tabulated-list-get-id)))
+
+(defvar-keymap rcirc-sqlite-column-mode-map
+  :parent tabulated-list-mode-map
+  "RET" #'rcirc-sqlite-test-map)
+
+(define-derived-mode rcirc-sqlite-two-column-mode tabulated-list-mode
+  "rcirc-sqlite-two-column-mode"
+  "Major mode Rcirc-SQLite, to display two-column tabulated db queries."
+  (setq tabulated-list-format
+	(vector (list "Channel/Nick" rcirc-sqlite-channel-column-width t)
+		(list "Data" 0 t)))
+  (tabulated-list-init-header))
+
+(define-derived-mode rcirc-sqlite-column-mode tabulated-list-mode
+  "rcirc-sqlite-column-mode"
   "Major mode Rcirc-SQLite, to display tabulated db queries."
   (setq tabulated-list-format
 	(vector (list "Channel" rcirc-sqlite-channel-column-width t)
@@ -344,25 +377,13 @@ Build a vector from the data, converting numbers to text, because
 		(list "Message" 0 t)))
   (tabulated-list-init-header))
 
-(defvar-keymap rcirc-sqlite-two-column-mode-map
-  "RET" #'rcirc-sqlite-view-drill-down
-  "<down-mouse-1>" #'rcirc-sqlite-view-drill-down)
-
-(define-derived-mode rcirc-sqlite-two-column-mode tabulated-list-mode
-  "rcirc-sqlite-two-column-mode"
-  "Major mode Rcirc-SQLite, to display two-column tabulated db queries."
-  (setq tabulated-list-format
-	(vector (list "Channel/Nick" rcirc-sqlite-channel-column-width t)
-		(list "Data" 0 t)))
-  (tabulated-list-init-header))
-
-(defun rcirc-sqlite-display-tabulation-list (identstr with-function
-						      &optional arg-list)
+(defun rcirc-sqlite-display-tabulation-list
+    (identstr with-function &optional arg-list)
   "Display data in tabulated format in a new buffer.
 Retreive data using WITH-FUNCTION, optionally with additional arguments
 in ARG-LIST, IDENTSTR explains the current query through the mode-line."
   (with-current-buffer (get-buffer-create "*rcirc log*")
-    (rcirc-sqlite-list-mode)
+    (rcirc-sqlite-column-mode)
     (setq tabulated-list-entries
           (rcirc-sqlite-convert-tabulation-list
 	   (funcall with-function arg-list)))
@@ -394,10 +415,22 @@ arguments in ARG-LIST.  IDENTSTR explains which stat is shown."
 	     (nth 2 rcirc-sqlite-drill-down-method))
      #'rcirc-sqlite-db-drilldown rcirc-sqlite-drill-down-method))
 
+(defun rcirc-sqlite-format-period-string (when)
+  "Create a human readable string from a time range.
+WHEN is a cons of starttime and endtime."
+  (let ((range-string rcirc-sqlite-anytime))
+    (unless (= (car when) 0)
+      (setq range-string (format-time-string "%F %R - " (car when)))
+      (if (= (cdr when) 0)
+	  (setq range-string (concat range-string "now"))
+	(setq range-string
+	      (concat range-string
+		      (format-time-string "%F %R" (cdr when)))))) range-string))
+
 (defun rcirc-sqlite-view-drill-down ()
   "Show messages per nick or channel.
 Called from `rcirc-sqlite-two-column-mode'."
-(interactive nil rcirc-sqlite-two-column-mode)
+  (interactive nil rcirc-sqlite-two-column-mode)
 (cond
  ((string= (nth 1 rcirc-sqlite-drill-down-method) rcirc-sqlite-nicks-per-channel)
   (let ((arg-list (list "Channel" (tabulated-list-get-id))))
@@ -469,18 +502,6 @@ When end is before start, exchange them."
 	  (setq start-time tmp-time)))))
     (cons start-time end-time)))
 
-(defun rcirc-sqlite-format-period-string (when)
-  "Create a human readable string from a time range.
-WHEN is a cons of starttime and endtime."
-  (let ((range-string rcirc-sqlite-anytime))
-    (unless (= (car when) 0)
-      (setq range-string (format-time-string "%F %R - " (car when)))
-      (if (= (cdr when) 0)
-	  (setq range-string (concat range-string "now"))
-	(setq range-string
-	      (concat range-string
-		      (format-time-string "%F %R" (cdr when)))))) range-string))
-
 (defun rcirc-sqlite-logs-from-nick (nick when)
   "View the logs from a specific NICK.
 WHEN is a cons of starttime and endtime.
@@ -520,7 +541,7 @@ The results are displayed a new buffer."
                      (rcirc-sqlite-select-channel)
 		     (rcirc-sqlite-select-time-range)
 		     (rcirc-sqlite-select-nick (list rcirc-sqlite-all-nicks))))
-  (let ((searcharg-list (list query channel when nick)))
+  (let ((searcharg-list (list query channel when nick nil)))
     (rcirc-sqlite-display-tabulation-list
      (format "Search %s (%s %s %s)" query channel
 	     (rcirc-sqlite-format-period-string when)

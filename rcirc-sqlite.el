@@ -212,27 +212,6 @@ ARG-LIST is a list with the requested nick and/or channel.
 			   column dimension from column column)))
       (sqlite-select db dbquery dbdata))))
 
-(defun rcirc-sqlite-db-query-nick (arg-list)
-  "Fetch the logs from a specific nick.
-ARG-LIST is a list build from the nick and start-time."
-  (let ((db (rcirc-sqlite--conn))
-	(dbquery "SELECT * FROM rcirclogs")
-	(dbdata ()))
-    (pcase-let ((`(,nick ,when) arg-list))
-      (unless (string= nick "All nicks")
-	(setq dbquery (concat dbquery " WHERE nick=?"))
-	(push nick dbdata))
-      (unless (= (car when) 0)
-	(if (string= nick "All nicks")
-	    (setq dbquery (concat dbquery " WHERE "))
-	  (setq dbquery (concat dbquery " AND ")))
-	(setq dbquery (concat dbquery
-			      (rcirc-sqlite-create-period-selectstring when)))
-	(push (car when) dbdata)
-	(when (> (cdr when) 0)
-	  (push (cdr when) dbdata)))
-      (sqlite-execute db dbquery (reverse dbdata)))))
-
 (defun rcirc-sqlite-db-query-log (arg-list)
   "Fetch the last N rows of the logs from a specific channel.
 N is defined in `rcirc-sqlite-rows' and is default 200.
@@ -271,25 +250,37 @@ offset and limit."
 ARG-LIST describes the search argument and possibly a specific
 channel, time range, and/or nick to narrow the search to."
   (let ((db (rcirc-sqlite--conn))
-	(dbquery "SELECT * FROM rcirclogs WHERE rcirclogs=?"))
+	(dbquery "")
+        (dbdata nil))
     (pcase-let ((`(,query ,channel ,when ,nick) arg-list))
-      (let ((dbdata (list query)))
-	(unless (string= channel rcirc-sqlite-all-channels)
-	  (setq dbquery (concat dbquery " AND channel=?"))
-	  (push channel dbdata))
-	(unless (= (car when) 0)
-	    (setq dbquery (concat dbquery " AND "))
-	  (setq dbquery (concat dbquery
-				(rcirc-sqlite-create-period-selectstring when)))
-	  (push (car when) dbdata)
-	  (when (> (cdr when) 0)
-	    (push (cdr when) dbdata)))
-	(unless (string= nick rcirc-sqlite-all-nicks)
-	  (setq dbquery (concat dbquery " AND nick=?"))
-	  (push nick dbdata))
-	(setq dbquery (concat dbquery " ORDER BY rank, time"))
-	(sqlite-execute db dbquery
-			(reverse dbdata))))))
+      (when query
+        (setq dbquery "rcirclogs=?")
+        (push query dbdata))
+      (unless (string= channel rcirc-sqlite-all-channels)
+        (when (not (string-empty-p dbquery))
+          (setq dbquery (concat dbquery " AND ")))
+	(setq dbquery (concat dbquery "channel=?"))
+	(push channel dbdata))
+      (unless (= (car when) 0)
+        (when (not (string-empty-p dbquery))
+          (setq dbquery (concat dbquery " AND ")))
+	(setq dbquery (concat dbquery
+			      (rcirc-sqlite-create-period-selectstring
+                               when)))
+	(push (car when) dbdata)
+	(when (> (cdr when) 0)
+	  (push (cdr when) dbdata)))
+      (unless (string= nick rcirc-sqlite-all-nicks)
+        (when (not (string-empty-p dbquery))
+          (setq dbquery (concat dbquery " AND ")))
+        (setq dbquery (concat dbquery "nick=?"))
+	(push nick dbdata))
+      (setq dbquery (concat
+                     "SELECT channel, time, nick, message FROM rcirclogs WHERE "
+                     dbquery))
+      (setq dbquery (concat dbquery " ORDER BY rank, time"))
+      (sqlite-execute db dbquery
+		      (reverse dbdata)))))
 
 (defun rcirc-sqlite-db-drilldown (arg-list)
   "Drill down to messages per nick or channel.
@@ -373,7 +364,8 @@ in ARG-LIST, IDENTSTR explains the current query through the mode-line."
   (with-current-buffer (get-buffer-create "*rcirc log*")
     (rcirc-sqlite-list-mode)
     (setq tabulated-list-entries
-          (rcirc-sqlite-convert-tabulation-list (funcall with-function arg-list)))
+          (rcirc-sqlite-convert-tabulation-list
+	   (funcall with-function arg-list)))
     (tabulated-list-print t)
     (display-buffer (current-buffer))
     (setq mode-line-buffer-identification identstr)
@@ -496,10 +488,12 @@ The results are displayed a new buffer."
   (interactive (list
 		(rcirc-sqlite-select-nick nil)
 		(rcirc-sqlite-select-time-range)))
-  (let ((searcharg-list (list nick when)))
-     (rcirc-sqlite-display-tabulation-list
+  (when (string-empty-p nick)
+    (error "No nick selected."))
+  (let ((searcharg (list nil rcirc-sqlite-all-channels when nick)))
+    (rcirc-sqlite-display-tabulation-list
      (format "<%s> %s" nick (rcirc-sqlite-format-period-string when))
-     #'rcirc-sqlite-db-query-nick searcharg-list)))
+     #'rcirc-sqlite-db-search-log searcharg)))
 
 (defun rcirc-sqlite-view-log (channel when &optional unlimited offset limit)
   "View the logs of a specific CHANNEL.

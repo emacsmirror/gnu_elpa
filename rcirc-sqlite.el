@@ -5,7 +5,7 @@
 ;; Author: Matto Fransen <matto@matto.nl>
 ;; Maintainer: Matto Fransen <matto@matto.nl>
 ;; Url: https://codeberg.org/mattof/rcirc-sqlite
-;; Version: 1.0.0
+;; Version: 1.0.1
 ;; Keywords: comm
 ;; Package-Requires: ((emacs "30.0"))
 
@@ -53,6 +53,20 @@
 
 ;;; News:
 
+;; Version 1.0.1 - 2024-04-22
+
+;; * New custom option:  rcirc-sqlite-register
+;;   Register to store messages (default: register `r').
+;;
+;; * Quickly change the view of the logs
+;;   When exploring your logs, change the view with just one key:
+;;   - Show all the logs of a channel for a single day or two days.
+;;   - Show all the logs of a channel from a specific nick for a single day.
+;;
+;; * Collect individual messages with just one key:
+;;   - Select and copy a message nicely formatted to the kill-ring.
+;;   - Collect one or more messages in a register.
+
 ;; Version 1.0.0 - 2024-04-16
 
 ;; * Narrow queries to time range
@@ -92,6 +106,10 @@
 (defcustom rcirc-sqlite-channel-column-width 30
   "Default width of the column displaying the channelname."
   :type 'natnum)
+
+(defcustom rcirc-sqlite-register ?r
+  "Register to store messages."
+  :type 'character)
 
 (defvar rcirc-sqlite--conn nil
   "Variable to store the current database connection.
@@ -146,11 +164,12 @@ This function overrides `rcirc-log-write' from rcirc.el.
       (dolist (logline (split-string (cdr cell) "\n"))
 	(unless (string-empty-p logline)
 	  (save-match-data
-	    (and (string-match "\\`\\([0-9]+?\\)?\x0<\\([^@]+?\\)> \\([^@]+\\)\\'"
+	    (and (string-match
+                  "\\`\\([0-9]+?\\)?\x0<\\([^@]+?\\)> \\([^@]+\\)\\'"
 			       logline)
 		 (sqlite-execute db
-				 "INSERT INTO rcirclogs (channel, time, nick, message)
-VALUES (?,?,?,?)"
+				 "INSERT INTO rcirclogs
+(channel, time, nick, message) VALUES (?,?,?,?)"
 				 (list (car cell)
 				       (match-string 1 logline)
 				       (match-string 2 logline)
@@ -159,7 +178,7 @@ VALUES (?,?,?,?)"
 
 (defun rcirc-sqlite-db-row-data (rowid)
   "Select the key data from the database.
-ROWID defines the record. Use SQLite start of day to prevent time
+ROWID defines the record.  Use SQLite `start of day' to prevent time
 zone errors during time conversions and calculations."
   (let ((db (rcirc-sqlite--conn)))
     (sqlite-select db
@@ -167,7 +186,7 @@ zone errors during time conversions and calculations."
 unixepoch(datetime(time, 'unixepoch','start of day'))
 FROM rcirclogs WHERE rowid=?"
 		   (list rowid))))
-  
+
 (defun rcirc-sqlite-db-query-channels ()
   "List the channels from the SQLite database."
   (let ((db (rcirc-sqlite--conn)))
@@ -179,7 +198,7 @@ FROM rcirclogs WHERE rowid=?"
     (sqlite-select db "SELECT DISTINCT nick FROM rcirclogs")))
 
 (defun rcirc-sqlite-create-period-selectstring (when)
-  "Create a select string for the query.
+  "Create a where string for the query.
 WHEN is a cons of start-time and end-time."
   (let ((subquery ""))
    (unless (= (car when) 0)
@@ -201,12 +220,14 @@ ARG-LIST is a list with the requested nick and/or channel.
     (cond ((string= (car arg-list) rcirc-sqlite-nicks-per-channel)
 	   (setq dimension "nicks")
 	   (push "channel" rcirc-sqlite-drill-down-method)
-	   (setq from "(SELECT channel, nick FROM rcirclogs GROUP BY channel,nick)"))
+	   (setq from
+                 "(SELECT channel, nick FROM rcirclogs GROUP BY channel,nick)"))
 	  ((string= (car arg-list) rcirc-sqlite-channels-per-nick)
 	   (setq column "nick")
 	   (setq dimension "channels")
 	   (push "nick" rcirc-sqlite-drill-down-method)
-	   (setq from "(SELECT nick, channel FROM rcirclogs GROUP BY nick, channel)"))
+	   (setq from
+                 "(SELECT nick, channel FROM rcirclogs GROUP BY nick, channel)"))
 	  ((string= (car arg-list) "Channel")
 	   (setq column "nick")
 	   (setq dimension "messages")
@@ -220,9 +241,31 @@ ARG-LIST is a list with the requested nick and/or channel.
 	   (push "channel" rcirc-sqlite-drill-down-method)
 	   (push (car arg-list) dbdata)
 	   (setq dimension "messages")))
-    (let ((dbquery (format "SELECT %s, COUNT() || ' %s' FROM %s GROUP BY %s ORDER BY %s"
+    (let ((dbquery (format
+                    "SELECT %s, COUNT() || ' %s' FROM %s GROUP BY %s ORDER BY %s"
 			   column dimension from column column)))
       (sqlite-select db dbquery dbdata))))
+
+(defun rcirc-sqlite-db-query-nick (arg-list)
+  "Fetch the logs from a specific nick.
+ARG-LIST is a list build from the nick and a time range."
+  (let ((db (rcirc-sqlite--conn))
+	(dbquery "SELECT rowid, * FROM rcirclogs")
+	(dbdata ()))
+    (pcase-let ((`(,nick ,when) arg-list))
+      (unless (string= nick "All nicks")
+	(setq dbquery (concat dbquery " WHERE nick=?"))
+	(push nick dbdata))
+      (unless (= (car when) 0)
+	(if (string= nick "All nicks")
+	    (setq dbquery (concat dbquery " WHERE "))
+	  (setq dbquery (concat dbquery " AND ")))
+	(setq dbquery (concat dbquery
+			      (rcirc-sqlite-create-period-selectstring when)))
+	(push (car when) dbdata)
+	(when (> (cdr when) 0)
+	  (push (cdr when) dbdata)))
+      (sqlite-execute db dbquery (reverse dbdata)))))
 
 (defun rcirc-sqlite-db-query-log (arg-list)
   "Fetch the last N rows of the logs from a specific channel.
@@ -253,7 +296,8 @@ offset and limit."
 	      (push offset dbdata)
 	      (push limit dbdata))
 	  (setq dbquery (concat "SELECT * FROM (" dbquery
-				(format " ORDER BY time DESC LIMIT %s) ORDER BY time ASC"
+				(format
+                                 " ORDER BY time DESC LIMIT %s) ORDER BY time ASC"
 					rcirc-sqlite-rows)))))
       (sqlite-execute db dbquery (reverse dbdata)))))
 
@@ -344,17 +388,21 @@ Build a vector from the data, converting numbers to text, because
             list-to-convert)))
 
 (defvar-keymap rcirc-sqlite-two-column-mode-map
-  :parent tabulated-list-mode-map  
+  :parent tabulated-list-mode-map
   "RET" #'rcirc-sqlite-view-drill-down
   "<down-mouse-1>" #'rcirc-sqlite-view-drill-down)
 
-(defun rcirc-sqlite-test-map ()
-  (interactive nil rcirc-sqlite-column-mode)
-  (message "%s" (tabulated-list-get-id)))
-
-(defvar-keymap rcirc-sqlite-column-mode-map
+(defvar-keymap rcirc-sqlite-list-mode-map
   :parent tabulated-list-mode-map
-  "RET" #'rcirc-sqlite-test-map)
+  "RET" #'rcirc-sqlite-single-day
+  "<down-mouse-1>" #'rcirc-sqlite-single-day
+  (kbd "<") #'rcirc-sqlite-single-nick
+  (kbd ">") #'rcirc-sqlite-next-day
+  (kbd "^") #'rcirc-sqlite-previous-day
+  (kbd "a") #'rcirc-sqlite-all-next-days
+  (kbd "c") #'rcirc-sqlite-kill-insert
+  (kbd "r") #'rcirc-sqlite-register-append
+  (kbd "R") #'rcirc-sqlite-register-insert)
 
 (define-derived-mode rcirc-sqlite-two-column-mode tabulated-list-mode
   "rcirc-sqlite-two-column-mode"
@@ -364,8 +412,8 @@ Build a vector from the data, converting numbers to text, because
 		(list "Data" 0 t)))
   (tabulated-list-init-header))
 
-(define-derived-mode rcirc-sqlite-column-mode tabulated-list-mode
-  "rcirc-sqlite-column-mode"
+(define-derived-mode rcirc-sqlite-list-mode tabulated-list-mode
+  "rcirc-sqlite-list-mode"
   "Major mode Rcirc-SQLite, to display tabulated db queries."
   (setq tabulated-list-format
 	(vector (list "Channel" rcirc-sqlite-channel-column-width t)
@@ -383,7 +431,7 @@ Build a vector from the data, converting numbers to text, because
 Retreive data using WITH-FUNCTION, optionally with additional arguments
 in ARG-LIST, IDENTSTR explains the current query through the mode-line."
   (with-current-buffer (get-buffer-create "*rcirc log*")
-    (rcirc-sqlite-column-mode)
+    (rcirc-sqlite-list-mode)
     (setq tabulated-list-entries
           (rcirc-sqlite-convert-tabulation-list
 	   (funcall with-function arg-list)))
@@ -447,6 +495,122 @@ Called from `rcirc-sqlite-two-column-mode'."
   (push (tabulated-list-get-id) rcirc-sqlite-drill-down-method)
   (rcirc-sqlite-view-drill-down-final))))
 
+(defun rcirc-sqlite-query-single-day
+    (with-nick extra-days all-next-days)
+  "Select logs from a single day.
+When WITH-NICK is not nil, narrow the selection to a nick.
+EXTRA-DAYS extends to previous or next days.
+When ALL-NEXT-DAYS is true, select everything after the start-time."
+  (let ((rowid (tabulated-list-get-id)))
+    (when (not rowid)
+      (error "No row selected"))
+    (let ((rowdata
+	   (car (rcirc-sqlite-db-row-data rowid)))
+          (nick rcirc-sqlite-all-nicks)
+          (timerange nil))
+      (cond (all-next-days
+             (setq timerange (cons (nth 4 rowdata) 0)))
+	    ((< extra-days 0)
+	     (setq timerange (cons (+ (* extra-days 86400)
+                                      (nth 4 rowdata))
+				   (+ (nth 4 rowdata) 86400))))
+	    (t
+             (setq timerange (cons (nth 4 rowdata)
+				   (+ (* extra-days 86400)
+                                      (nth 4 rowdata))))))
+      (let ((identstring (nth 0 rowdata)))
+        (when with-nick
+          (setq nick (nth 2 rowdata))
+          (setq identstring (concat identstring " <" nick ">")))
+        (rcirc-sqlite-display-tabulation-list
+         (format "%s %s" identstring
+                 (rcirc-sqlite-format-period-string timerange))
+         #'rcirc-sqlite-db-search-log (list nil
+                                            (nth 0 rowdata)
+                                            timerange
+                                            nick))))))
+
+(defun rcirc-sqlite-single-day ()
+  "Drill down from the main tabulated view.
+Select all the logs from the day and channel of the selected line.
+Called from `rcirc-sqlite-list-mode'."
+  (interactive nil rcirc-sqlite-list-mode)
+  (rcirc-sqlite-query-single-day nil 1 nil))
+
+(defun rcirc-sqlite-single-nick ()
+  "Drill down from the main tabulated view.
+Select all the logs from the day and channel of the selected line
+and narrow to the nick from the selected line.
+Called from `rcirc-sqlite-list-mode'."
+  (interactive nil rcirc-sqlite-list-mode)
+  (rcirc-sqlite-query-single-day t 1 nil))
+
+(defun rcirc-sqlite-next-day ()
+  "Drill down from the main tabulated view.
+Select all the logs from the day of the selected line
+as well as from the day after that.
+Called from `rcirc-sqlite-list-mode'."
+  (interactive nil rcirc-sqlite-list-mode)
+  (rcirc-sqlite-query-single-day nil 2 nil))
+
+(defun rcirc-sqlite-previous-day ()
+  "Drill down from the main tabulated view.
+Select all the logs from the day of the selected line
+as well as from the day before that.
+Called from `rcirc-sqlite-list-mode'."
+  (interactive nil rcirc-sqlite-list-mode)
+  (rcirc-sqlite-query-single-day nil -1 nil))
+
+(defun rcirc-sqlite-all-next-days ()
+    "Drill down from the main tabulated view.
+Select all the logs from the day of the selected line
+as well as all following days.
+Called from `rcirc-sqlite-list-mode'."
+  (interactive nil rcirc-sqlite-list-mode)
+  (rcirc-sqlite-query-single-day nil nil t))
+
+(defun rcirc-sqlite-format-message ()
+  "Fetch the selected message and nicely format it."
+    (let ((rowid (tabulated-list-get-id)))
+    (when (not rowid)
+      (error "No row selected"))
+    (pcase-let ((`(,channel ,time ,nick ,message)
+		 (car (rcirc-sqlite-db-row-data rowid))))
+      (let ((day (format-time-string "%F" (string-to-number time))))
+        (format "** %s <%s>\n<%s> wrote on %s in %s\n\n%s\n"
+		day nick nick day channel message)))))
+
+(defun rcirc-sqlite-kill-insert ()
+  "Add the selected message nicely formatted to the `kill-ring'."
+  (interactive nil rcirc-sqlite-list-mode)
+  (kill-new (rcirc-sqlite-format-message))
+  (message "Added message to kill-ring"))
+
+(defun rcirc-sqlite-register-add (method)
+  "Insert a chatmessage into the register `rcirc-sqlite-register'.
+METHOD is eiter insert or append."
+  (if (string= method "insert")
+      (set-register rcirc-sqlite-register (rcirc-sqlite-format-message))
+    (set-register rcirc-sqlite-register
+		  (format "%s\n%s"
+			  (get-register rcirc-sqlite-register)
+			  (rcirc-sqlite-format-message))))
+  (message "Added message to register %c" rcirc-sqlite-register))
+
+(defun rcirc-sqlite-register-insert ()
+  "Insert (overwrite) the selected chatmessage into a register.
+Default the register `r' is used, this can be changed by the user.
+Called from `rcirc-sqlite-list-mode'."
+  (interactive nil rcirc-sqlite-list-mode)
+  (rcirc-sqlite-register-add "insert"))
+
+(defun rcirc-sqlite-register-append ()
+   "Append the selected chatmessage to a register.
+Default register `r' is used, this can be changed by the user.
+Called from `rcirc-sqlite-list-mode'."
+  (interactive nil rcirc-sqlite-list-mode)
+    (rcirc-sqlite-register-add "append"))
+
 (defun rcirc-sqlite-select-channel ()
   "Provide completion to select a channel."
   (let ((default (or (bound-and-true-p rcirc-target)
@@ -467,7 +631,7 @@ choices.  This will also be used as the default choice."
 
 (defun rcirc-sqlite-select-time-range ()
   "Select the start and end in epochseconds of a time range.
-When end is before start, exchange them."
+When end-time is before start-time, exchange them."
   (let ((chperiod (completing-read
 		   (format-prompt "Select the search period (use completion): "
 				  rcirc-sqlite-anytime)
@@ -510,7 +674,7 @@ The results are displayed a new buffer."
 		(rcirc-sqlite-select-nick nil)
 		(rcirc-sqlite-select-time-range)))
   (when (string-empty-p nick)
-    (error "No nick selected."))
+    (error "No nick selected"))
   (let ((searcharg (list nil rcirc-sqlite-all-channels when nick)))
     (rcirc-sqlite-display-tabulation-list
      (format "<%s> %s" nick (rcirc-sqlite-format-period-string when))
@@ -543,7 +707,7 @@ The results are displayed a new buffer."
 		     (rcirc-sqlite-select-nick (list rcirc-sqlite-all-nicks))))
   (let ((searcharg-list (list query channel when nick nil)))
     (rcirc-sqlite-display-tabulation-list
-     (format "Search %s (%s %s %s)" query channel
+     (format "Search %s (%s %s <%s>)" query channel
 	     (rcirc-sqlite-format-period-string when)
 	     nick)
      #'rcirc-sqlite-db-search-log searcharg-list)))
@@ -552,12 +716,13 @@ The results are displayed a new buffer."
   "Display overview of the number of rows per channel.
 Optionally narrow to a specific NICK.
 The results are displayed a new buffer."
-  (interactive (list (rcirc-sqlite-select-nick (list rcirc-sqlite-all-nicks
-						     rcirc-sqlite-nicks-per-channel
-						     rcirc-sqlite-channels-per-nick))))
+  (interactive (list (rcirc-sqlite-select-nick
+                      (list rcirc-sqlite-all-nicks
+			    rcirc-sqlite-nicks-per-channel
+			    rcirc-sqlite-channels-per-nick))))
   (let ((searcharg-list (list nick)))
     (rcirc-sqlite-display-two-column-tabulation-list
-     (format "Stats (%s)" nick)
+     (format "Stats (<%s>)" nick)
      #'rcirc-sqlite-db-query-stats searcharg-list)))
 
 ;;;###autoload

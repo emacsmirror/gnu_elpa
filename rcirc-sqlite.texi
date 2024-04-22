@@ -34,8 +34,9 @@
 * Inner workings::
 * Database schema::
 * GNU Free Documentation License::
-* Command and Function Index::   Command names and some internal functions.
-* Variable Index::               Variables mentioned in the manual.
+* Command and Function Index::
+* Variable Index::
+* Key bindings::
 
 @detailmenu
 --- The Detailed Node Listing ---
@@ -74,19 +75,22 @@ It also comes with some functionality to query the SQLite database.
 @chapter Requirements
 
 @code{rcirc-sqlite} relies on the capability of Emacs to work together
-with SQLite. 
+with SQLite. It makes use of the variable @code{rcirc-log-time-format},
+which is introduced in Emacs version 30.1.
+
+To use rcirc-sqlite:
 
 @itemize
 @item
-Emacs must be compiled with this capability.
+Emacs must be compiled with the SQLite capability.
 @item
 SQLite 3 must be installed on the system.
+@item
+rcirc must have the option to set the variable @code{rcirc-log-time-format}.
 @end itemize
 
 @node Installation and activation
 @chapter Installation and activation
-
-@findex Installation
 
 @menu
 * Installation::
@@ -98,7 +102,7 @@ SQLite 3 must be installed on the system.
 
 @node Install from GNU ELPA
 @subsection Install from GNU ELPA
-The GNU ELPA package name is: ~rcirc-sqlite~
+The GNU ELPA package name is: @code{rcirc-sqlite}.
 
 To install the package:
 
@@ -109,9 +113,9 @@ To install the package:
 @code{M-x package-install}
 @end itemize
 
-and search for ~rcirc-sqlite~.
+and search for @code{rcirc-sqlite}.
 
-Or use ~use-package~:
+Or use @code{use-package}:
 
 @lisp
 (use-package rcirc-sqlite
@@ -138,7 +142,6 @@ Re-evaluate your init file or restart Emacs, whatever you prefer.
 
 @node Activation
 @section Activation
-@findex Activation
 @findex rcirc-sqlite-log-mode
 
 @deffn Command rcirc-sqlite-log-mode
@@ -245,6 +248,27 @@ wider column in the buffer @code{*rcirc log*}.
 
 @ref{The buffer @code{*rcirc log*}} has more information on this buffer.
 
+@defopt rcirc-sqlite-register
+The register to store messages.
+@end defopt
+
+@vindex rcirc-sqlite-register
+
+The variable @code{rcirc-sqlite-register} assigns the register
+to store chat messages in.
+
+The user selects a message from the list of messages in the
+buffer @code{*rcirc log*}.
+Depending on the command, the chat message either overwrites
+the current contents of the register, or is appended to it.
+
+@ref{Collect one or more messages in a register}
+
+The default register is @code{r}.
+
+Change this option when you have assigned this register for
+a different use.
+
 @node Commands
 @chapter Commands
 
@@ -252,14 +276,15 @@ wider column in the buffer @code{*rcirc log*}.
 * Summery of the commands::
 * View the logs::
 * Full text search and load the result in a buffer::
+* Change the selected logs in the log-buffer::
+* Copy a message to the kill-ring::
+* Collect one or more messages in a register::
 * Logs from a specific nick::
 * Stats::
 @end menu
 
 @node Summery of the commands
 @section Summery of the commands
-
-@vindex command summary
 
 @itemize
 @item
@@ -271,6 +296,19 @@ wider column in the buffer @code{*rcirc log*}.
 @item
 @code{M-x rcirc-sqlite-stats}: displays some stats.
 @end itemize
+
+These commands result in logs displayed in the buffer @code{*rcirc
+log*}. In that buffer you can use the key bindings for more actions.
+These actions are described in the sections:
+
+@itemize
+@item @ref{Change the selected logs in the log-buffer}
+@item @ref{Copy a message to the kill-ring}
+@item @ref{Collect one or more messages in a register}
+@end itemize
+
+The stats view offer some drill-down options and can be a good
+starting point to explore your logs.
 
 @node View the logs
 @section View the logs
@@ -368,6 +406,151 @@ For more formatting of the search see the chapter
 
 The buffer @code{*rcirc log*} displays the search results.
 
+@node Change the selected logs in the log-buffer
+@section Change the selected logs in the log-buffer
+
+The buffer @code{*rcirc log*} shows the results from the latest query.
+Move the point on this buffer up or down to select a chat message.
+
+Use one of the key bindings to change the selected logs.
+
+@node Change the view to a specific day
+@subsection Change the view to a specific day
+@findex rcirc-sqlite-single-day
+@kindex RET
+
+Move the point in the buffer @code{*rcirc log*} up or down to select a
+chat message.
+
+Activate the command `rcirc-sqlite-single-day' with the key @key{RET}
+or mouse button 1.
+
+The command switches the view to the logs with the same channel and
+the same date as the selected chat message.
+
+This can be useful to get some context around a specific search result.
+
+@node Change the view to a specific day and the next day
+@subsection Change the view to a specific day and the next day
+@findex rcirc-sqlite-next-day
+@kindex >
+
+Move the point in the buffer @code{*rcirc log*} up or down to select a
+chat message.
+
+Activate the command `rcirc-sqlite-next-day' with the key @key{>}.
+
+The command switches the view to the logs with the same channel and
+the same date and the next day as the selected chat message.
+
+@node Change the view to a specific day and the previous day
+@subsection Change the view to a specific day and the previous day
+@findex rcirc-sqlite-previous-day
+@kindex ^
+
+Move the point in the buffer @code{*rcirc log*} up or down to select a
+chat message.
+
+Activate the command `rcirc-sqlite-previous-day' with the key @key{^}.
+
+The command switches the view to the logs with the same channel and
+the same date and the previous day as the selected chat message.
+
+@node Change the view to a specific day and the next days
+@subsection Change the view to a specific day and the next days
+@findex rcirc-sqlite-all-next-days
+@kindex a
+
+Move the point in the buffer @code{*rcirc log*} up or down to select a
+chat message.
+
+Activate the command `rcirc-sqlite-all-next-days' with
+the key @key{a}.
+
+The command switches the view to the logs with the same channel and
+the same date or later as the selected chat message.
+
+@node Change the view to a specific day and a specific nick
+@subsection Change the view to a specific day and a specific nick
+@findex rcirc-sqlite-single-nick
+@kindex <
+
+Move the point in the buffer @code{*rcirc log*} up or down to select a
+chat message.
+
+Activate the command `rcirc-sqlite-single-nick' with
+the key @key{<}.
+
+The command switches the view to the logs with the same channel, the
+same nick, and the same date as the selected chat message.
+
+@node Copy a message to the kill-ring
+@section Copy a message to the kill-ring
+@findex rcirc-sqlite-kill-insert
+@kindex c
+
+Move the point in the buffer @code{*rcirc log*} up or down to select a
+chat message.
+
+Activate the command `rcirc-sqlite-kill-insert' with the key
+@key{c} to insert the selected message in the kill-ring.
+
+This command copies the chat message with a some markup, fit to use
+in e.g., org mode.
+
+@node Collect one or more messages in a register
+@section Collect one or more messages in a register 
+@findex rcirc-sqlite-register-insert
+@findex rcirc-sqlite-register-append'
+@kindex R
+@kindex r
+
+Move the point in the buffer @code{*rcirc log*} up or down to select a
+chat message.
+
+Activate the command `rcirc-sqlite-register-insert' with the key
+@key{R} to insert the selected message in a register. This overwrites
+the current contents of the register.
+
+Activate the command `rcirc-sqlite-register-append' with the key
+@key{r} to append the selected message to a register.
+
+The commands insert the chat message with a some markup, fit to use in
+e.g., org mode.
+
+The default register that is used for this is register `r'. Change the
+default register by setting the variable `rcirc-sqlite-register' to a
+different register.
+
+@ref{Customization}
+
+You can insert the contents of the register into any buffer with
+`insert-register' (`C-x r i <register>'). For the default register `r'
+this is: `C-x r i r'.
+
+Whatever you store in a register remains there until you store
+something else in that register, or until you close Emacs.
+
+@xref{Registers,,,emacs,Emacs manual}
+
+@subheading Example workflow
+
+Explore the logs, for example with the search option, and start
+collecting messages.
+
+Store the first message of your interest with the
+command `rcirc-sqlite-register-insert' (key: @key{R}), overwriting
+anything that was in this register.
+
+Search for the next message of your interest, and
+issue the command `rcirc-sqlite-register-append' (key: @key{r}).
+
+Repeat appending until done.
+
+Open a note, for example in denote, org, or org-roam, and
+insert your collected chat messages with
+`insert-register' (`C-x r i <register>').
+
 @node Logs from a specific nick
 @section  Logs from a specific nick
 @findex rcirc-sqlite-logs-from-nick
@@ -453,15 +636,43 @@ Drill-down
 Drill-down
 @end table
 
+The drill-down options make the command @code{rcirc-sqlite-stats}
+a nice starting point to explore your logs.
+
 @node The buffer @code{*rcirc log*}
 @chapter The buffer @code{*rcirc log*}
 
 The buffer @code{*rcirc log*} is used to show the output of the
 database queries. This buffer uses a derived mode from the
-@code{tabulated-list-mode}.  The default key bindings of the
-@code{tabulated-list-mode} are available in this buffer.
+@code{tabulated-list-mode}.
 
-Some key binding examples:
+Move up and down in this buffer to select a chat message.
+Then you can use the following key bindings to activate
+some commands.
+
+@table @asis
+@item @kbd{RET} @code{rcirc-sqlite-single-day}
+@item @kbd{>} @code{rcirc-sqlite-next-day}
+@item @kbd{^} @code{rcirc-sqlite-previous-day}
+@item @kbd{a} @code{rcirc-sqlite-all-next-days}
+@item @kbd{<} @code{rcirc-sqlite-single-nick}
+@item @kbd{c} @code{rcirc-sqlite-kill-insert}
+@item @kbd{R} @code{rcirc-sqlite-register-insert}
+@item @kbd{r} @code{rcirc-sqlite-register-append}
+@end table
+
+For a description of these commands, see the following chapters.
+
+@ref{Change the selected logs in the log-buffer}
+
+@ref{Copy a message to the kill-ring}
+
+@ref{Collect one or more messages in a register}
+
+The default key bindings of the
+@code{tabulated-list-mode} are also available in this buffer.
+
+Some examples of these key bindings:
 
 @table @asis
 @item @kbd{S} (@code{Sort})
@@ -563,6 +774,7 @@ message:
 The actual chat message.
 @end itemize
 
+
 @node GNU Free Documentation License
 @appendix GNU Free Documentation License
 
@@ -578,5 +790,10 @@ The actual chat message.
 @chapter Variable Index
 
 @printindex vr
+
+@node Key bindings
+@chapter Key bindings
+
+@printindex ky
 
 @bye

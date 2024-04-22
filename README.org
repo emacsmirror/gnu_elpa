@@ -143,6 +143,27 @@ each nick the number of channels with messages from this nick.
 Use drill-down in the stats buffer to get more details, either by the
 "RET" key, or the left mouse button.
 
+** Key bindings in the buffer ~*rcirc log*~
+In the log buffer showing the channel, time, nick, and message
+a number of functions are available with the press of a single key.
+
+First, select a message by moving point up or down. Next, use one of the
+following keys.
+
+| Key   | Action                                                          |
+|-------+-----------------------------------------------------------------|
+| ~RET~ | Show logs of the channel and date of the selected message       |
+| ~>~   | Same, but also include the next day                             |
+| ~^~   | Same, but also include the previous day                         |
+| ~a~   | Same, but also include all following days                       |
+| ~<~   | Show logs of the channel,date, and nick of the selected message |
+| ~c~   | Copy the selected message, nicely formatted, to the kill-ring   |
+| ~R~   | Insert the selected message, nicely formatted, into a register  |
+| ~r~   | Same, but append to the register                                |
+
+The register to insert or append messages is default register ~r~. A different
+register can be set as user option, with ~customize-group RET rcicq-sqlite~.
+
 * Contribute
 A copyright assignment to the FSF is required for all non-trivial code
 contributions.

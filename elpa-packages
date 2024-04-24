@@ -212,7 +212,7 @@
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
  (denote-menu		:url "https://github.com/namilus/denote-menu"
-  :doc "README.org"
+  :readme "README.org"
   :ignored-files ("COPYING"))
  (detached		:url "https://git.sr.ht/~niklaseklund/detached.el"
   :news "CHANGELOG.org"

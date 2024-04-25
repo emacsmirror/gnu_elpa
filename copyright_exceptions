@@ -58,3 +58,4 @@ uni-confusables/uni-confusables.el
 uni-confusables/uni-confusables.el:;; Copyright (C) 1991-2009, 2010 Unicode, Inc.
 uni-confusables/uni-confusables.el:;; gen-confusables.el.  The copyright and permissions are the same
 uni-confusables/uni-confusables.el:;; list (covered by the Unicode copyright terms in copyright.html)
+visual-fill/visual-fill.el:;; - Fix copyright.

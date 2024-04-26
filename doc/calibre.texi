@@ -334,15 +334,18 @@ with your edits press the Accept or Apply buttons.  You will see your
 changes reflected in the @file{*Library*} buffer, and the book will be
 marked as modified.
 
+
 @node Modifying multiple books
 @subsection Modifying multiple books
 @findex calibre-library-mark
 @findex calibre-library-mark-unmark
 To edit multiple books at once you must mark them with
 @code{calibre-library-mark} (bound to @kbd{m} by default).  A book can
-be removed from the selection by calling @code{calibre-library-mark-unmark}
-(bound to @kbd{u} by default).  Once you are satisfied with your selection
-simply call any of the commands in this section.
+be removed from the selection by calling
+@code{calibre-library-mark-unmark} (bound to @kbd{u} by default).  Once
+you are satisfied with your selection simply call any of the commands in
+this section.  If no books are selected all of the commands in this
+section will operate on the book at point.
 
 Be careful when marking already modified books with
 @code{calibre-library-mark}.  calibre.el uses the mark applied by the
@@ -355,6 +358,15 @@ modifications will merge together and the book will again be marked as
 modified.  However, if you unmark the book with
 @code{calibre-library-mark-unmark} the modification mark will not be
 restored and any modifications will be lost.
+
+@findex calibre-library-add-tags
+@findex calibre-library-remove-tags
+Currently the only metadata that can be modified from the
+@file{*Library*} buffer is tags, which can be manipulated with the
+commands @code{calibre-library-add-tags} and
+@code{calibre-library-remove-tags}.  Both commands will prompt for one,
+or more, tags and respectively add them to any books which do not
+already have them, or remove them from any books that do.
 
 @node Committing and reverting modifications
 @subsection Committing and reverting modifications

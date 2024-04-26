@@ -10,6 +10,12 @@ Calibre.
 ** Add ability to mark books
 It is now possible to mark books in the Library buffer.
 
+** Add ability to modify tags from the Library buffer
+The new commands calibre-library-add-tags and
+calibre-library-remove-tags enable the addition and removal of tags
+directly from the Library buffer.  If any books are marked they will
+operate on all of the marked books.
+
 
 * Changes in calibre.el 1.4.1
 ** Fix sorting by series

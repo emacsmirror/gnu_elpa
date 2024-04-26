@@ -48,6 +48,12 @@
 (defvar-local calibre-edit--tags nil
   "The tags widget in the current buffer.")
 
+(defun calibre-edit--mark-modified (book)
+  "Mark BOOK as modified in the *Library* buffer."
+  (with-current-buffer (get-buffer calibre-library-buffer)
+    (calibre-library--find-book book)
+    (tabulated-list-put-tag (char-to-string calibre-mod-marker))))
+
 (defun calibre-edit-apply (&rest _)
   "Apply any edits to the book in the current buffer."
   (interactive)
@@ -61,11 +67,8 @@
                                                            (cdr (widget-value calibre-edit--series))
                                                          1)
         (calibre-book-tags calibre-edit--book) (widget-value calibre-edit--tags))
-    (calibre-library--refresh)
-    (let ((book calibre-edit--book))
-      (with-current-buffer (get-buffer calibre-library-buffer)
-        (calibre-library--find-book book)
-        (tabulated-list-put-tag (char-to-string calibre-mod-marker)))))
+  (calibre-library--refresh)
+  (calibre-edit--mark-modified calibre-edit--book))
 
 (defun calibre-edit-abort (&rest _)
   "Abort any changes made in the current buffer."
@@ -109,11 +112,35 @@
   :group 'calibre
   (widget-put (get 'editable-field 'widget-type) :keymap calibre-edit-field-keymap))
 
+(defun calibre-edit--preserve-original (book)
+  "Preserve the original metadata of BOOK.
+
+Store a copy of BOOK's original metadata in
+`calibre-edit--edited-books', so that any changes can be reverted later.
+If BOOK already has an entry in `calibre-edit--edited-books' this
+function does nothing."
+  (unless (calibre-util-find-book book calibre-edit--edited-books)
+    (push (copy-calibre-book book) calibre-edit--edited-books)))
+
+(defun calibre-edit-add-tag (tag book)
+  "Add TAG to BOOK."
+  (calibre-edit--preserve-original book)
+  (unless (member tag (calibre-book-tags book))
+    (push tag (calibre-book-tags book))
+    (calibre-edit--mark-modified book)))
+
+(defun calibre-edit-remove-tag (tag book)
+  "Remove TAG from BOOK."
+  (calibre-edit--preserve-original book)
+  (when (member tag (calibre-book-tags book))
+    (setf (calibre-book-tags book)
+          (seq-remove (apply-partially #'string= tag) (calibre-book-tags book)))
+    (calibre-edit--mark-modified book)))
+
 (defun calibre-edit-book (book)
   "Edit the metadata of BOOK."
   (interactive (list (tabulated-list-get-id)) calibre-library-mode)
-  (unless (calibre-util-find-book book calibre-edit--edited-books)
-    (push (copy-calibre-book book) calibre-edit--edited-books))
+  (calibre-edit--preserve-original book)
   (let ((buffer (calibre-edit--create-buffer book)))
     (pop-to-buffer buffer)))
 

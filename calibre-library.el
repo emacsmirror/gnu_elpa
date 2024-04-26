@@ -61,6 +61,24 @@ opening books in that format."
     (if (derived-mode-p 'dired-mode)
         (calibre-library-add-books (dired-get-marked-files))))
 
+(defun calibre-library-add-tags (tags books)
+  "Add TAGS to BOOKS if not already present."
+  (interactive (list (completing-read-multiple "Tag: " calibre-tags-completion-table)
+                     (or (calibre-library-get-marked) (list (tabulated-list-get-id)))))
+  (dolist (tag tags)
+    (dolist (book books)
+      (calibre-edit-add-tag tag book)))
+  (calibre-library--refresh))
+
+(defun calibre-library-remove-tags (tags books)
+  "Remove TAGS from BOOKS if present."
+  (interactive (list (completing-read-multiple "Tag: " calibre-tags-completion-table)
+                     (or (calibre-library-get-marked) (list (tabulated-list-get-id)))))
+  (dolist (tag tags)
+    (dolist (book books)
+      (calibre-edit-remove-tag tag book)))
+  (calibre-library--refresh))
+
 (defun calibre-library-remove-books (books)
   "Remove BOOKS from the Calibre library."
   (let ((ids (mapcar #'int-to-string (mapcar #'calibre-book-id books))))

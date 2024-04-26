@@ -83,10 +83,10 @@
 
 (defvar calibre-font-lock-keywords
   (list
-   (list (concat "^[" (char-to-string calibre-del-marker) "]")
+   (list (rx-to-string `(seq line-start ,calibre-del-marker))
          '(".+" (beginning-of-line) nil (0 calibre-flagged-face)))
-   (list (concat "^[" (char-to-string calibre-mod-marker) "]")
-         '(".+" (beginning-of-line) nil (0 calibre-modified-face)))))
+   (list (rx-to-string `(seq line-start ,calibre-mod-marker))
+         '(".+" (beginning-of-line) nil (0 calibre-modified-face)))
 
 (provide 'calibre)
 ;;; calibre.el ends here

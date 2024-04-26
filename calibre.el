@@ -50,6 +50,8 @@
   "Return a list of the names of defined libraries."
   (mapcar #'car calibre-libraries))
 
+(defconst calibre-mark-marker ?*
+  "Character used to flag books for further operations.")
 (defconst calibre-del-marker ?D
   "Character used to flag books for deletion.")
 (defconst calibre-mod-marker ?M
@@ -81,12 +83,23 @@
 (defvar calibre-flagged-face 'calibre-flagged
   "Face used for books flagged for deletion.")
 
+(defface calibre-marked
+  '((t (:inherit dired-marked)))
+  "Face used for books flagged for further operations."
+  :group 'calibre-faces
+  :package-version '("calibre" . "1.5.0"))
+
+(defvar calibre-marked-face 'calibre-marked
+  "Face used for books flagged for further operations.")
+
 (defvar calibre-font-lock-keywords
   (list
    (list (rx-to-string `(seq line-start ,calibre-del-marker))
          '(".+" (beginning-of-line) nil (0 calibre-flagged-face)))
    (list (rx-to-string `(seq line-start ,calibre-mod-marker))
          '(".+" (beginning-of-line) nil (0 calibre-modified-face)))
+   (list (rx-to-string `(seq line-start ,calibre-mark-marker))
+         '(".+" (beginning-of-line) nil (0 calibre-marked-face)))))
 
 (provide 'calibre)
 ;;; calibre.el ends here

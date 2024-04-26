@@ -66,6 +66,11 @@ opening books in that format."
   (let ((ids (mapcar #'int-to-string (mapcar #'calibre-book-id books))))
     (calibre-exec--queue-command `("remove" ,(string-join ids ",")))))
 
+(defun calibre-library-mark (&optional _num)
+  "Mark a book for further operations and move to the next line."
+  (interactive "p" calibre-library-mode)
+  (tabulated-list-put-tag (char-to-string calibre-mark-marker) t))
+
 (defun calibre-library-mark-remove (&optional _num)
   "Mark a book for removal and move to the next line."
   (interactive "p" calibre-library-mode)
@@ -80,6 +85,21 @@ opening books in that format."
       (calibre-edit-revert book))
     (calibre-library--find-book book)
     (tabulated-list-put-tag " " t)))
+
+(defun calibre-library-get-marked (&optional mark)
+  "Return books marked with MARK.
+
+If MARK is not specified it defaults to `calibre-mod-marker'."
+  (let ((mark (or mark calibre-mark-marker))
+        books)
+    (save-excursion
+      (goto-char (point-min))
+      (while (not (eobp))
+        (let ((book (tabulated-list-get-id))
+              (book-mark (char-after)))
+          (when (eql mark book-mark) (push book books)))
+        (forward-line))
+      (nreverse books))))
 
 (defun calibre-library-execute ()
   "Performed marked Library actions."
@@ -155,6 +175,7 @@ If called with a prefix argument prompt the user for the format."
 (defvar-keymap calibre-library-mode-map
   :doc "Local keymap for Calibre Library buffers."
   :parent tabulated-list-mode-map
+  "m" #'calibre-library-mark
   "d" #'calibre-library-mark-remove
   "u" #'calibre-library-mark-unmark
   "e" #'calibre-edit-book

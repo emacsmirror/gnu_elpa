@@ -312,16 +312,52 @@ library.
 
 @node Modifying books
 @section Modifying books
+calibre.el provides two methods of modifying book metadata.  A dedicated
+editing buffer providing full access to the metadata of a single book,
+and a set of commands to make simple changes to a set of books directly
+from the @file{*Library*} buffer.
+
+@menu
+* Modifying a single book::
+* Modifying multiple books::
+* Committing and reverting modifications::
+@end menu
+
+@node Modifying a single book
+@subsection Modifying a single book
 @findex calibre-edit-book
-calibre.el allows you to modify the metadata of the books in your
-library.  To do this bring point to the line representing that book in
-the @file{*Library*} buffer and press @kbd{e}
+To edit a single book in your library, bring point to the line
+representing that book in the @file{*Library*} buffer and press @kbd{e}
 (@code{calibre-edit-book}).  This will open a customisation buffer which
 you can use to edit the metadata of the book.  Once you are satisfied
 with your edits press the Accept or Apply buttons.  You will see your
 changes reflected in the @file{*Library*} buffer, and the book will be
 marked as modified.
 
+@node Modifying multiple books
+@subsection Modifying multiple books
+@findex calibre-library-mark
+@findex calibre-library-mark-unmark
+To edit multiple books at once you must mark them with
+@code{calibre-library-mark} (bound to @kbd{m} by default).  A book can
+be removed from the selection by calling @code{calibre-library-mark-unmark}
+(bound to @kbd{u} by default).  Once you are satisfied with your selection
+simply call any of the commands in this section.
+
+Be careful when marking already modified books with
+@code{calibre-library-mark}.  calibre.el uses the mark applied by the
+modification commands to identify changes that have not been committed
+(@pxref{Committing and reverting modifications}) and the mark applied by
+@code{calibre-library-mark} overwrites that mark (but not the
+modifications themselves), this is fine as long as you subsequently
+perform some modification on the book since the two sets of
+modifications will merge together and the book will again be marked as
+modified.  However, if you unmark the book with
+@code{calibre-library-mark-unmark} the modification mark will not be
+restored and any modifications will be lost.
+
+@node Committing and reverting modifications
+@subsection Committing and reverting modifications
 @findex calibre-library-execute
 @findex calibre-library-mark-unmark
 Modifications are not immediately applied to the underlying Calibre

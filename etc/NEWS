@@ -6,6 +6,11 @@ See the end of the file for license conditions.
 This file is about changes in calibre.el, the Emacs client for
 Calibre.
 
+* Changes in calibre.el 1.5.0
+** Add ability to mark books
+It is now possible to mark books in the Library buffer.
+
+
 * Changes in calibre.el 1.4.1
 ** Fix sorting by series
 Sorting by series did not sort series names correctly.

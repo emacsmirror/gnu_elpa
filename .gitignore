@@ -1,3 +1,9 @@
 *~
 \#*\#
+.\#*
+.dir-locals.el
 *.elc
+*.info
+calibre-pkg.el
+calibre-autoloads.el
+TAGS

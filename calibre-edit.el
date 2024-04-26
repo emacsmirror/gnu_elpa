@@ -235,7 +235,7 @@ Returns a buffer for editing BOOK, creating it if necessary."
     diff))
 
 (defun calibre-util-uglify-field-name (field)
-  "Return FIELD replacing - with -."
+  "Return FIELD replacing - with _."
   (string-join (split-string (symbol-name field) "-") "_"))
 
 (defun calibre-edit--command (book)

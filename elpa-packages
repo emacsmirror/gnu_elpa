@@ -152,6 +152,7 @@
  (cobol-mode          	:url nil) ;; Was "https://gist.github.com/Edward-H/6768e7dc53ea3dd2adca"
  (code-cells		:url "https://github.com/astoff/code-cells.el"
   :ignored-files ("LICENSE"))
+ (colorful-mode         :url "https://github.com/DevelopmentCool2449/colorful-mode")
  (comint-mime		:url "https://github.com/astoff/comint-mime")
  ;; The upstream has incompatible copyrights, so we moved it to NonGNU.
  ;; (coffee-mode		:url "https://github.com/defunkt/coffee-mode")

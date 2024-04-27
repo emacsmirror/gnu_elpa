@@ -7,7 +7,7 @@
 ;; Keywords: matching
 ;; License: GPL3+
 ;; URL: https://dataswamp.org/~incal/emacs-init/wrap-search.el
-;; Version: 4.14.10
+;; Version: 4.14.11
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -96,16 +96,16 @@ Interactively, use a preceding
   (declare-function wrap-search-show-default nil)
 
   (defun wrap-search (str &optional case rev beg end)
-    "Search for STR.
+    "Search for STR in the current buffer.
 
 With CASE the search is case-sensitive.
-With REV the search direction is reversed, i.e. north in the buffer from point.
-BEG and END, or a region, delimits the search area. (default: whole buffer)
+With REV the search direction is reversed, so north in the buffer from point.
+BEG and END, or a region, delimits the search area, defaults to whole buffer.
 
 Interactively, use a preceeding
   \\[universal-argument] to set CASE (case-sensitive search)
   \\[universal-argument] \\[universal-argument] to set REV (search direction north)
-  \\[universal-argument] \\[universal-argument] \\[universal-argument] to set both
+  \\[universal-argument] \\[universal-argument] \\[universal-argument] to set both CASE and REV
 
 Do \\[wrap-search-again] to repeat, with `wrap-search-again'."
     (interactive

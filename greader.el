@@ -55,7 +55,7 @@
 (defvar greader-timer-flag nil)
 (defvar greader-tired-flag nil)
 (defvar greader-filter-enabled nil)
-(defvar greader-debug-buffer "spd-output"
+(defvar greader-debug-buffer (get-buffer-create "spd-output")
   "Contains the buffer name for debugging purposes.")
 (defvar greader-backend-action #'greader--default-action)
 (defvar greader-status 'paused)

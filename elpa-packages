@@ -376,7 +376,9 @@
  (hyperbole           	:url "https://git.savannah.gnu.org/git/hyperbole.git"
   :make ("kotl/kotl-autoloads.el")
   :news "HY-NEWS")
- ;; (idlwave		:url "https://github.com/jdtsmith/idlwave")
+ (idlwave		:url "https://github.com/jdtsmith/idlwave"
+  :doc "idlwave.texi"
+  :readme "README.md")
  (ilist			:url "https://gitlab.com/mmemmew/ilist"
   :doc "ilist.texinfo"
   :readme "README.org")

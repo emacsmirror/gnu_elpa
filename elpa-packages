@@ -38,7 +38,7 @@
  (activities           	:url "https://github.com/alphapapa/activities.el.git"
    :release-branch "stable"
    :doc "README.org")
- (ada-mode		:url nil
+ (ada-mode		:url nil ;https://git.savannah.nongnu.org/git/ada-mode
   :doc ("ada-mode.texi")
   :release-branch t)
  (ada-ref-man		:url nil)
@@ -378,6 +378,7 @@
   :news "HY-NEWS")
  (idlwave		:url "https://github.com/jdtsmith/idlwave"
   :doc "idlwave.texi"
+  :news "CHANGES"
   :readme "README.md")
  (ilist			:url "https://gitlab.com/mmemmew/ilist"
   :doc "ilist.texinfo"
@@ -820,7 +821,7 @@
   :news "NEWS")
  (windower		:url "https://gitlab.com/ambrevar/emacs-windower")
  (windresize		:url nil)
- (wisi			:url nil
+ (wisi			:url nil ;https://git.savannah.nongnu.org/git/ada-mode
   :doc ("wisi.texi" "wisitoken-user_guide.texinfo")
   :release-branch t)
  (wisitoken-grammar-mode :url nil)

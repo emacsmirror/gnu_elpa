@@ -20,12 +20,47 @@
 ;; 
 
 ;;; Code:
-
+(require 'ring)
 ;;; customization variables
 (defgroup greader-speechd
   nil
   "Speech-dispatcher back-end for greader."
   :group 'greader)
+
+(defcustom greader-speechd-handle-server nil
+  "automatically handle of server.
+If this variable is set, greader will check if there is a running
+instance of `speech-dispatcher', kill it and relaunch with the correct
+parameters to make it work properly with greader.
+Alternatively, you can start speech-dispatcher as daemon, and with
+timer disabled as in:
+`$ speech-dispatcher -d -t0'.
+Use this variable with caution, especially if you are using other
+assistive technologies that rely on speech-dispatcher."
+  :type 'boolean)
+
+(defvar greader-speechd-server nil
+  "contains the instance of speech-dispatcher server, or nil if
+`greader-speechd-handle-server' is enabled.")
+
+(defun greader-speechd-start-server ()
+  "Start speech-dispatcher.
+If there are other instances of speech-dispatcher, this function will
+kill them first. This function does nothing when
+`greader-speechd-handle-server' is disabled."
+  (when
+      (and greader-speechd-handle-server (not greader-speechd-server))
+    (call-process "killall" nil 0 nil "speech-dispatcher")
+    ;; Now we start `speech-dispatcher' with -s, that means we want a
+    ;; single application instance, and with `-t0', which stands for
+    ;; timer disabled. In this way speech-dispatcher will keep running
+    ;; even if there no are currently messages to speak.
+    (setq greader-speechd-server
+	  (make-process  :name "greader-speechd" :command
+			 '("speech-dispatcher" "-s" "-t0")
+			 :sentinel (lambda (_p _status) (setq
+							 greader-speechd-server
+							 nil))))))
 
 (defcustom greader-speechd-executable "spd-say"
   "Executable file name."
@@ -83,7 +118,7 @@ for further documentation, see the `greader-speechd-rate' variable."
 PUNCT must be a numeric value, 0 for no punctuation, 1 for some and 2
 or >2 for all punctuation."
   (setq-local greader-speechd-punctuation
-              (pcase punct
+	      (pcase punct
 		('t "all")
 		('0 "none")
 		('1 "some")
@@ -95,6 +130,7 @@ or >2 for all punctuation."
   "Stops speech-dispatcher client."
   (start-process "speechd-client" nil greader-speechd-executable "-S")
   (sleep-for 0.100))
+
 (defvar greader-speechd--punctuation-ring (make-ring 3))
 (ring-insert greader-speechd--punctuation-ring 0)
 (ring-insert greader-speechd--punctuation-ring 1)
@@ -109,12 +145,14 @@ or >2 for all punctuation."
 (defun greader-speechd--ring-next ()
   "Return the next element in the `greader-speechd--punctuation-ring'
 based on `greader-speechd--ring-item'"
-  (setq greader-speechd--ring-item (ring-next greader-speechd--punctuation-ring
-	     greader-speechd--ring-item)))
+  (setq greader-speechd--ring-item (ring-next
+				    greader-speechd--punctuation-ring
+					      greader-speechd--ring-item)))
 
 ;;;###autoload
 (defun greader-speechd (command &optional arg &rest _)
   "greader speech-dispatcher back-end."
+  (greader-speechd-start-server)
   (pcase command
     ('executable
      greader-speechd-executable)
@@ -133,8 +171,10 @@ based on `greader-speechd--ring-item'"
      (cond
       ((equal arg 'toggle)
        (prog1
-	   (greader-speechd-set-punctuation (greader-speechd--ring-next))		 
-	 (message (concat "punctuation set to " greader-speechd-punctuation))))
+	   (greader-speechd-set-punctuation
+	    (greader-speechd--ring-next))
+	 (message
+	  (concat "punctuation set to " greader-speechd-punctuation))))
       ((not arg)
        (cond
 	((equal greader-speechd--ring-item 0) "-mnone")

@@ -358,3 +358,8 @@ ul {
 li {
   margin-bottom: 0.25em;
 }
+
+.badge {
+    float: right;
+    display: block;
+}

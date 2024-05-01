@@ -3,6 +3,7 @@
 ((name			"GNU")
  (gitrepo		"emacs/elpa.git")
  (url			"https://elpa.gnu.org/packages/")
+ (devel-url		"https://elpa.gnu.org/devel/")
  (branch-prefix		"externals/")
  (release-branch-prefix	"externals-release/")
  ;;(specs-file		"elpa-packages")

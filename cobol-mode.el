@@ -3,7 +3,7 @@
 ;; Copyright (C) 2013-2022  Free Software Foundation, Inc.
 
 ;; Author: Edward Hart <edward.dan.hart@gmail.com>
-;; Maintainer: emacs-devel@gnu.org
+;; Maintainer: Kristofer Hjelmtorp <kristofer@hjelmtorp.se>
 ;; Version: 1.1
 ;; Created: 9 November 2013
 ;; Keywords: languages
@@ -59,8 +59,6 @@
 ;;; News:
 
 ;; - A new submenu for skeletons.
-;; - cobol-mode is now orphaned :-(
-;;   We're looking for a generous soul willing to give it loving care.
 
 ;;; Code:
 

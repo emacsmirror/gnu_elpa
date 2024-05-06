@@ -70,7 +70,11 @@ an error.  HOST - DNS name of the service."
   (if srht-token
       srht-token
     (let ((token (when-let ((f (plist-get
-                                (car (auth-source-search :host host))
+                                (car
+                                 (if srht-username
+                                     (auth-source-search :host host
+                                                         :user srht-username)
+                                   (auth-source-search :host host)))
                                 :secret)))
                    (funcall f))))
       (unless token

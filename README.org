@@ -50,7 +50,7 @@ machine sr.ht password TOKEN
 To store the token use =auth-source.el=, the host must be set to git.sr.ht.
 
 #+begin_example
-machine git.sr.ht password TOKEN
+machine git.sr.ht login LOGIN password TOKEN
 #+end_example
 Strongly encouraged for the user to limit the scope of access that is provided
 by an authentication token.  Currently srht-git.el requires at least
@@ -71,8 +71,8 @@ If you are using a self-hosted instanse:
 
 * Commands
 
-| Function             | Description                           |
-|----------------------+---------------------------------------|
+| Function               | Description                           |
+|------------------------+---------------------------------------|
 | =srht-git-repo-update= | Update information for git repository |
 | =srht-git-repo-delete= | Delete existing git repository        |
 | =srht-git-repo-create= | Create git repository                 |

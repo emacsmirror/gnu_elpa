@@ -7,7 +7,7 @@
 ;; Keywords: matching
 ;; License: GPL3+
 ;; URL: https://dataswamp.org/~incal/emacs-init/wrap-search.el
-;; Version: 4.14.11
+;; Version: 4.15.11
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -43,8 +43,8 @@
 ;; To use the package without keyboard shortcuts isn't
 ;; recommended. Instead, do for example
 ;;
-;;   (global-set-key "\C-s" #'wrap-search)
-;;   (global-set-key "\C-r" #'wrap-search-again)
+;;   (keymap-global-set "C-s" #'wrap-search)
+;;   (keymap-global-set "C-r" #'wrap-search-again)
 ;;
 ;; One can use the `universal-argument' key, which is
 ;; typically C-u, before those functions to set two search

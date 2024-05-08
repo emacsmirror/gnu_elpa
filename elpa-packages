@@ -170,6 +170,8 @@
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("LICENSE"))
+ (consult-denote		:url "https://github.com/protesilaos/consult-denote"
+  :readme "README.md")
  (consult-hoogle	:url "https://codeberg.org/rahguzar/consult-hoogle"
   :ignored-files ("LICENSE"))
  (consult-recoll	:url "https://codeberg.org/jao/consult-recoll"

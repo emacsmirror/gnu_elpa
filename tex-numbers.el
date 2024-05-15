@@ -1,9 +1,9 @@
-;;; tex-numbers.el --- numbering for LaTeX previews and folds  -*- lexical-binding: t; -*-
+;;; tex-numbers.el --- Numbering for LaTeX previews and folds  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024  Paul D. Nelson
 
 ;; Author: Paul D. Nelson <nelson.paul.david@gmail.com>
-;; Version: 0.0
+;; Version: 0.1
 ;; URL: https://github.com/ultronozm/tex-numbers.el
 ;; Package-Requires: ((emacs "27.1") (auctex "14.0.5"))
 ;; Keywords: tex
@@ -23,38 +23,11 @@
 
 ;;; Commentary:
 
-;; This package augments the preview and folding features of AUCTeX:
-;;
-;; - Previews of labeled equations are numbered as in the compiled
-;;   document.
-;;
-;; - The the macros \\ref, \\eqref, and \\label are folded with the
-;;   corresponding numbers.
-;;
-;; - completion-at-point annotations for the contents of \\ref and
-;;   \\eqref include equation numbers.
-;;
-;; TEMPORARY NOTE: this package currently only works with the master
-;; branch of AUCTeX.  Its release is intended to be synchronized with
-;; the next release of AUCTeX.
-;;
-;; Activate via M-x tex-numbers-mode, or by adding to your init file:
-;;
-;; (use-package tex-numbers
-;;   :hook
-;;   (LaTeX-mode . tex-numbers-mode))
-;;
-;; The package provides an interface for retrieving label numbers in
-;; LaTeX documents.  This interface is used to implement a global
-;; minor mode, `tex-numbers-mode', which enables the noted features.
-;;
-;; The label numbers are retrieved from the aux file of the compiled
-;; document.  To update them, one should compile the document,
-;; regenerate the previews and refresh the folds.
-;;
-;; By customizing the variable `tex-numbers-label-to-number-function', one
-;; can specify a different way to retrieve label numbers, e.g., by
-;; querying an LSP server.
+;; This package provides a function, `tex-numbers-label-to-number',
+;; that retrieves label numbers for LaTeX documents from the compiled
+;; aux file.  That function is used to implement a global minor mode,
+;; `tex-numbers-mode', that augments many features of AUCTeX
+;; (previews, folding, ...).  See README.org for details.
 
 ;;; Code:
 
@@ -114,6 +87,18 @@ the label number as a string, or nil if the label cannot be found."
     (when cache
       (gethash label cache))))
 
+(defcustom tex-numbers-search-external-documents t
+  "Whether to search external documents for label numbers.
+If non-nil, `tex-numbers-label-to-number' will search external documents
+for label numbers if the label cannot be found in the current document.
+
+The search is performed by looking for \\externaldocument{FILENAME}
+commands in the current document, and then looking for the label in
+FILENAME.tex.  This operation opens external TeX documents in unselected
+buffers, so that it can use AUCTeX's function `TeX-master-output-file'
+to find the corresponding aux files."
+  :type 'boolean)
+
 (defun tex-numbers-label-to-number (label)
   "Get number of LABEL for current tex buffer.
 If the buffer does not point to a file, or if the corresponding
@@ -124,22 +109,29 @@ with \"X\"."
   (if tex-numbers-label-to-number-function
       (funcall tex-numbers-label-to-number-function label)
     (or
-     (when-let* ((aux-file (TeX-master-file "aux")))
+     (when-let* ((aux-file (TeX-master-output-file "aux")))
        (tex-numbers-label-to-number-helper label aux-file))
      ;; If we can't retrieve the label from the main file, then we look
      ;; at any external documents.
-     (save-excursion
-       (save-restriction
-         (widen)
-         (goto-char (point-min))
-         (let (found)
-           (while (and (null found)
-                       (re-search-forward tex-numbers--external-document-regexp
-                                          nil t))
-             (let* ((filename (concat (match-string 1) ".aux")))
-               (setq found (tex-numbers-label-to-number-helper label filename))))
-           (when found
-             (concat "X" found))))))))
+     (and
+      tex-numbers-search-external-documents
+      (save-excursion
+        (save-restriction
+          (widen)
+          (goto-char (point-min))
+          (let (found)
+            (while (and (null found)
+                        (re-search-forward tex-numbers--external-document-regexp
+                                           nil t))
+              (let* ((tex-filename (concat (match-string 1) ".tex"))
+                     (tex-buffer (find-file-noselect tex-filename))
+                     (aux-filename
+                      (with-current-buffer tex-buffer
+                        (hack-local-variables)
+                        (TeX-master-output-file "aux"))))
+                (setq found (tex-numbers-label-to-number-helper label aux-filename))))
+            (when found
+              (concat "X" found)))))))))
 
 (defun tex-numbers-preview-preprocessor (str)
   "Preprocess STR for preview by adding tags to labels.
@@ -152,17 +144,18 @@ Uses `tex-numbers-label-to-number-function' to retrieve label numbers."
       (goto-char (point-min))
       (while (re-search-forward label-re nil t)
         (let ((label (match-string 1)))
-          (when-let ((number
-                      (with-current-buffer buf
-                        (tex-numbers-label-to-number label))))
-            (when (let ((comment-start-skip
-                         (concat
-                          "\\(\\(^\\|[^\\\n]\\)\\("
-                          (regexp-quote TeX-esc)
-                          (regexp-quote TeX-esc)
-                          "\\)*\\)\\(%+ *\\)")))
-                    (texmathp))
-              (insert (format "\\tag{%s}" number))))))
+          (if-let ((number
+                    (with-current-buffer buf
+                      (tex-numbers-label-to-number label))))
+              (when (let ((comment-start-skip
+                           (concat
+                            "\\(\\(^\\|[^\\\n]\\)\\("
+                            (regexp-quote TeX-esc)
+                            (regexp-quote TeX-esc)
+                            "\\)*\\)\\(%+ *\\)")))
+                      (texmathp))
+                (insert (format "\\tag{%s}" number)))
+            (insert "\\nonumber"))))
       (buffer-substring-no-properties (point-min) (point-max)))))
 
 (defun tex-numbers-ref-helper (label default)
@@ -195,11 +188,26 @@ that returns a fold display string for that macro."
   :type '(repeat string))
 
 (defun tex-numbers-label-annotation-advice (orig-fun label)
-  "Return context for LABEL, augmented by the corresponding label number."
+  "Return context for LABEL, augmented by the corresponding label number.
+Call ORIG-FUN with LABEL, and append the label number in parentheses if
+it can be retrieved."
   (concat
    (funcall orig-fun label)
    (when-let ((number (tex-numbers-label-to-number label)))
      (format " (%s)" number))))
+
+(defun tex-numbers--reftex-goto-label-advice (orig-fun &rest args)
+  "Advice for `reftex-goto-label'.
+Call ORIG-FUN with ARGS, and add the label number to the annotation."
+  (let* ((buf (current-buffer))
+         (fn (lambda (label)
+               (if-let ((str (with-current-buffer buf
+                               (funcall #'tex-numbers-label-to-number label))))
+                   (format " [%s]" str)
+                 "")))
+         (completion-extra-properties
+          `(:annotation-function ,fn)))
+    (apply orig-fun args)))
 
 ;;;###autoload
 (define-minor-mode tex-numbers-mode
@@ -208,9 +216,10 @@ that returns a fold display string for that macro."
   :lighter nil
   (cond
    (tex-numbers-mode
-    (setq preview-preprocess-function #'tex-numbers-preview-preprocessor)
+    (add-to-list 'preview-preprocess-functions #'tex-numbers-preview-preprocessor)
     (advice-add 'LaTeX-completion-label-annotation-function
                 :around #'tex-numbers-label-annotation-advice)
+    (advice-add 'reftex-goto-label :around #'tex-numbers--reftex-goto-label-advice)
     (require 'tex-fold)
     (dolist (macro tex-numbers-macro-list)
       (let ((func (intern (format "tex-numbers-%s-display" macro))))
@@ -223,9 +232,11 @@ that returns a fold display string for that macro."
     (when TeX-fold-mode
       (TeX-fold-mode 1)))
    (t
-    (setq preview-preprocess-function nil)
+    (setq preview-preprocess-functions
+          (delete #'tex-numbers-preview-preprocessor preview-preprocess-functions))
     (advice-remove 'LaTeX-completion-label-annotation-function
                    #'tex-numbers-label-annotation-advice)
+    (advice-remove 'reftex-goto-label #'tex-numbers--reftex-goto-label-advice)
     (dolist (macro tex-numbers-macro-list)
       (let ((func (intern (format "tex-numbers-%s-display" macro))))
         (setq TeX-fold-macro-spec-list

@@ -7,7 +7,7 @@
 ;; Keywords: matching
 ;; License: GPL3+
 ;; URL: https://dataswamp.org/~incal/emacs-init/wrap-search.el
-;; Version: 4.15.11
+;; Version: 4.16.13
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -68,6 +68,11 @@
 ;; `wrap-search-again'.
 ;;
 ;;; Code:
+
+(defcustom wrap-search-echo-point nil
+  "Whether to echo point after a search hit."
+  :group 'wrap-search
+  :type  'boolean)
 
 (let ((prev-str "dummy search string")
       (prev-case)
@@ -134,12 +139,15 @@ Do \\[wrap-search-again] to repeat, with `wrap-search-again'."
                          (list #'search-backward end beg)
                        (list #'search-forward beg end) )))
           (if (funcall search-f str search-end t)
-              (message "hit: %s" (point))
+              (when wrap-search-echo-point
+                (message "hit: %s" (point)) )
             (goto-char search-beg)
             (if (funcall search-f str (+ pos (if rev 0 (length str))) t)
                 (if (= pos (point))
-                    (message "this is the one occurrence")
-                  (message "hit: %s (wrap)" (point)) )
+                    (message "this is the only occurrence")
+                  (message "wrap%s" (if wrap-search-echo-point
+                                        (format ": %s" (point))
+                                      "") ))
               (goto-char pos)
               (message "no hit") ))) )))
   (declare-function wrap-search nil) )

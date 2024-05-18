@@ -1,4 +1,4 @@
-#+title: tex-parens.el: Commands for working with tex items
+#+title: tex-item.el: Commands for working with tex items
 #+author: Paul Nelson
 
 * Overview

@@ -21,7 +21,7 @@
 ;;; Commentary:
 
 ;; This package provides commands for working with \\item expressions
-;; in a tex document.  See README.org for a sample configuration.
+;; in a TeX document.  See README.org for a sample configuration.
 
 ;;; Code:
 
@@ -116,36 +116,36 @@ change the direction by \\[exchange-point-and-mark].  This command
 assumes point is not in a string or comment."
   (interactive "P\np")
   (cond ((and allow-extend
-	      (or (and (eq last-command this-command) (mark t))
-		  (and transient-mark-mode mark-active)))
-	 (setq arg (if arg (prefix-numeric-value arg)
-		     (if (< (mark) (point)) -1 1)))
-	 (set-mark
-	  (save-excursion
-	    (goto-char (mark))
+              (or (and (eq last-command this-command) (mark t))
+                  (and transient-mark-mode mark-active)))
+         (setq arg (if arg (prefix-numeric-value arg)
+                     (if (< (mark) (point)) -1 1)))
+         (set-mark
+          (save-excursion
+            (goto-char (mark))
             (condition-case error
-	        (progn (tex-item-forward arg))
+                (progn (tex-item-forward arg))
               (scan-error
                (user-error (if (equal (cadr error)
                                       "Containing expression ends prematurely")
                                "No more item to select"
                              (cadr error)))))
-	    (point))))
-	(t
+            (point))))
+        (t
          (unless (bolp)
            (tex-item-backward))
-	 (push-mark
-	  (save-excursion
+         (push-mark
+          (save-excursion
             (condition-case error
-	        (progn
+                (progn
                   (tex-item-forward (prefix-numeric-value arg)))
               (scan-error
                (user-error (if (equal (cadr error)
                                       "Containing expression ends prematurely")
                                "No item to select"
                              (cadr error)))))
-	    (point))
-	  nil t))))
+            (point))
+          nil t))))
 
 (defun tex-item-kill (&optional arg interactive)
   "Kill the item following point.

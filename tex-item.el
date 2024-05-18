@@ -27,52 +27,59 @@
 
 (require 'tex-mode)
 
+(defgroup tex-item ()
+  "Commands for working with tex items."
+  :group 'tex)
+
+(defcustom tex-item-items '("\\item" "\\bibitem" "\\task")
+  "List of TeX item macros."
+  :type '(repeat string))
+
 (defun tex-item--forward-1 (next)
   "Move to the next or previous item.
 Move to the next if NEXT is non-nil, else to the previous."
   (interactive)
-  (let ((delims '("\\begin" "\\end" "\\item" "\\bibitem"))
-        (item-delims '("\\item" "\\bibitem")))
-    (unless (bolp)
-      (when-let ((pos (save-excursion
-                        (beginning-of-line)
-                        (re-search-forward (regexp-opt item-delims)
-                                           (line-end-position) t))))
-        (goto-char pos)))
-    (let* ((start (point))
-           (next-min (line-end-position))
-           (search-fn
-            (lambda ()
-              (when (tex-search-noncomment
-                     (funcall
-                      (if next #'re-search-forward #'re-search-backward)
-                      (regexp-opt delims)
-                      nil t))
-                (match-string 0))))
-           (delim (funcall search-fn))
-           (count 0)
-           success)
-      (while (and delim
-                  (if next (>= count 0) (<= count 0))
-                  (not (setq success
-                             (and (eq count 0)
-                                  (if next
-                                      (> (point) next-min)
-                                    t)
-                                  (or
-                                   (member delim item-delims)
-                                   (and next (equal delim "\\end") 'end))))))
-        (setq count (+ count (cond
-                              ((equal delim "\\begin") 1)
-                              ((equal delim "\\end") -1)
-                              (t 0))))
-        (setq delim (funcall search-fn)))
-      (cond
-       (success
-        (beginning-of-line))
-       (t (goto-char start)
-          (user-error
-           (concat "No " (if next "next" "previous") " item")))))))
+  (unless (bolp)
+    (when-let ((pos (save-excursion
+                      (beginning-of-line)
+                      (re-search-forward (regexp-opt
+                                          tex-item-items)
+                                         (line-end-position) t))))
+      (goto-char pos)))
+  (let* ((start (point))
+         (next-min (line-end-position))
+         (search-fn
+          (lambda ()
+            (when (tex-search-noncomment
+                   (funcall
+                    (if next #'re-search-forward #'re-search-backward)
+                    (regexp-opt (append '("\\begin" "\\end") tex-item-items))
+                    nil t))
+              (match-string 0))))
+         (delim (funcall search-fn))
+         (count 0)
+         success)
+    (while (and delim
+                (if next (>= count 0) (<= count 0))
+                (not (setq success
+                           (and (eq count 0)
+                                (if next
+                                    (> (point) next-min)
+                                  t)
+                                (or
+                                 (member delim tex-item-items)
+                                 (and next (equal delim "\\end") 'end))))))
+      (setq count (+ count (cond
+                             ((equal delim "\\begin") 1)
+                             ((equal delim "\\end") -1)
+                             (t 0))))
+      (setq delim (funcall search-fn)))
+    (cond
+      (success
+       (beginning-of-line))
+      (t (goto-char start)
+         (user-error
+          (concat "No " (if next "next" "previous") " item"))))))
 
 ;;;###autoload
 (defun tex-item-forward (&optional arg)

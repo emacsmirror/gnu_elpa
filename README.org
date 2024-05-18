@@ -52,7 +52,7 @@ If the point on the line containing "Beta", then the associated =\item= block is
 #+begin_example
   \item One
 #+end_example
-The commands provided by this package operate in an intuitive way on such blocks.  For example, if we do apply =tex-item-move-up= (=M-g M-i <up>=) with the point on "Beta", then we obtain the following rearrangement:
+The commands provided by this package operate in an intuitive way on such blocks.  For example, if we apply =tex-item-move-up= (=M-g M-i <up>=) with point on "Beta", then we obtain the following rearrangement:
 #+begin_example
 \begin{enumerate}
 \item Beta:

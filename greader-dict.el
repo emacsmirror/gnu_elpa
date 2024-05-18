@@ -408,6 +408,10 @@ user-error and aborts the reading process."
       (setq greader-dict-filename (buffer-local-value
 				   'greader-dict-filename
 				   greader-dict--current-reading-buffer))
+      (setq greader-filters (buffer-local-value 'greader-filters
+						greader-dict--current-reading-buffer))
+      (setq greader-dict-toggle-filters (buffer-local-value
+					 'greader-dict-toggle-filters greader-dict--current-reading-buffer))
       (insert-file-contents (greader-dict--get-file-name))
       (when-let ((lines (string-lines (buffer-string) t)))
 	(dolist (line lines)
@@ -653,11 +657,14 @@ asked."
 	   greader-dict--saved-flag
 	   t))))
       (clrhash greader-dictionary)
+      (clrhash greader-filters)
       (greader-dict--set-file (intern new-dict))
       (unless (file-exists-p (greader-dict--get-file-name))
 	(shell-command-to-string
 	 (concat "touch " greader-dict-filename)))
-      (greader-dict-read-from-dict-file))))
+      (greader-dict--update)
+      (greader-dict--update))))
+
 ;; (remove-hook 'buffer-list-update-hook #'greader-dict--update)))))
 
 (defun greader-dict--update ()

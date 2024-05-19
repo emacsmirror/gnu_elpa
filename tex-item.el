@@ -3,7 +3,10 @@
 ;; Copyright (C) 2024  Paul D. Nelson
 
 ;; Author: Paul D. Nelson <nelson.paul.david@gmail.com>
-;; Keywords: tex
+;; Version: 0.0
+;; URL: https://github.com/ultronozm/tex-item.el
+;; Package-Requires: ((emacs "27.1"))
+;; Keywords: tex, convenience
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

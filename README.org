@@ -26,7 +26,7 @@ Download this repository, install using =M-x package-install-file= (or package-v
 This configuration makes use of =repeat-mode= (see [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Repeating.html][the Emacs manual]] or [[https://karthinks.com/software/it-bears-repeating/][this blog post]]) to make it easier to apply such commands repeatedly.  The precise use-package declaration that I use may be found in [[https://github.com/ultronozm/emacsd/blob/main/init-latex.el][the LaTeX part of my config]] (elpaca branch).
 
 * Usage
-The =\item= block associated to a given position is the one that contains that position and for which the position is not contained in any subordinate begin/end block.  For example, consider the TeX code:
+The =\item= block associated to a given position is the one that contains that position and for which the position is not contained in any subordinate begin/end itemize-like block.  For example, consider the TeX code:
 #+begin_example
 \begin{enumerate}
 \item Alpha
@@ -63,3 +63,6 @@ The commands provided by this package operate in an intuitive way on such blocks
 \item Alpha
 \end{enumerate}
 #+end_example
+
+* Customization
+By default, this package pays attention to the macros =\item=, =\bibitem= and =\task=, as well as the list environments =itemize=, =enumerate= and =description=.  You can use other macros or environments by adding them to the customization variables =tex-item-items= and =tex-item-envs=.

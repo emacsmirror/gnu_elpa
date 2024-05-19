@@ -32,7 +32,11 @@
   :group 'tex)
 
 (defcustom tex-item-items '("\\item" "\\bibitem" "\\task")
-  "List of TeX item macros."
+  "List of TeX item-like macros."
+  :type '(repeat string))
+
+(defcustom tex-item-envs '("itemize" "enumerate" "description")
+  "List of TeX list-like environments."
   :type '(repeat string))
 
 (defun tex-item--forward-1 (next)
@@ -48,12 +52,18 @@ Move to the next if NEXT is non-nil, else to the previous."
       (goto-char pos)))
   (let* ((start (point))
          (next-min (line-end-position))
+         (begins (mapcar (lambda (env)
+                           (format "\\begin{%s}" env))
+                         tex-item-envs))
+         (ends (mapcar (lambda (env)
+                         (format "\\end{%s}" env))
+                       tex-item-envs))
          (search-fn
           (lambda ()
             (when (tex-search-noncomment
                    (funcall
                     (if next #'re-search-forward #'re-search-backward)
-                    (regexp-opt (append '("\\begin" "\\end") tex-item-items))
+                    (regexp-opt (append begins ends tex-item-items))
                     nil t))
               (match-string 0))))
          (delim (funcall search-fn))
@@ -68,10 +78,10 @@ Move to the next if NEXT is non-nil, else to the previous."
                                   t)
                                 (or
                                  (member delim tex-item-items)
-                                 (and next (equal delim "\\end") 'end))))))
+                                 (and next (member delim ends) 'end))))))
       (setq count (+ count (cond
-                             ((equal delim "\\begin") 1)
-                             ((equal delim "\\end") -1)
+                             ((member delim begins) 1)
+                             ((member delim ends) -1)
                              (t 0))))
       (setq delim (funcall search-fn)))
     (cond

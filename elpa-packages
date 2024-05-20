@@ -825,6 +825,7 @@
   :readme ignore
   :doc "window-commander.texi"
   :news "NEWS")
+ (window-tool-bar       :core "lisp/window-tool-bar.el")
  (windower		:url "https://gitlab.com/ambrevar/emacs-windower")
  (windresize		:url nil)
  (wisi			:url nil ;https://git.savannah.nongnu.org/git/ada-mode

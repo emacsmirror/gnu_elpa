@@ -1696,6 +1696,20 @@ this major mode to the variable `greader-continuous-modes'")))
 ;; This is the complementary mode of "greader-continuous-mode", and
 ;; is used to repeatedly read the contents of a buffer or part of
 ;; it.
+(defvar-local greader-study-start-position 1
+  "The buffer position in which restart of reading will happen.")
+
+;;;###autoload
+(defun greader-study-set-position (pos)
+  "Set the position in which reading will restart.
+When called interactively, use the current position in the buffer."
+  (interactive "d")
+  (cond
+   ((not pos)
+    (user-error "Position must be a positive integer"))
+   ((< pos 1)
+    (user-error "position is not valid")))
+  (setq greader-study-start-position pos))
 
 ;; greader-study-restart is the function that will be added to the hook
 ;; `greader-before-finish-functions'.

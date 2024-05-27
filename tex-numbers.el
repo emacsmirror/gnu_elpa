@@ -53,7 +53,7 @@ Return the updated cache, or nil if the aux file does not exist."
     (with-temp-buffer
       (insert-file-contents aux-file)
       (let ((cache (make-hash-table :test 'equal))
-            (pattern "\\newlabel{\\([^}]+\\)}{{\\([^}]+\\)}"))
+            (pattern "\\\\newlabel{\\([^}]+\\)}{{\\([^}]+\\)}"))
         (save-excursion
           (goto-char (point-min))
           (while (re-search-forward pattern nil t)

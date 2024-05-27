@@ -227,7 +227,8 @@ Call ORIG-FUN with ARGS, and add the label number to the annotation."
           (when (and (member macro (cadr spec))
                      (not (eq (car spec) func)))
             (push (cons macro (car spec)) tex-numbers--saved-spec-list)
-            (setcdr spec (list (cl-remove macro (cadr spec) :test 'equal)))))
+            (setcdr spec (list
+                          (seq-remove (lambda (x) (equal x macro)) (cadr spec))))))
         (add-to-list 'TeX-fold-macro-spec-list (list func (list macro)))))
     (when TeX-fold-mode
       (TeX-fold-mode 1)))
@@ -240,8 +241,8 @@ Call ORIG-FUN with ARGS, and add the label number to the annotation."
     (dolist (macro tex-numbers-macro-list)
       (let ((func (intern (format "tex-numbers-%s-display" macro))))
         (setq TeX-fold-macro-spec-list
-              (cl-remove-if (lambda (elem) (eq (car elem) func))
-                            TeX-fold-macro-spec-list)))
+              (seq-remove (lambda (elem) (eq (car elem) func))
+                          TeX-fold-macro-spec-list)))
       (when-let ((saved (assoc macro tex-numbers--saved-spec-list)))
         (dolist (spec TeX-fold-macro-spec-list)
           (when (eq (car spec) (cdr saved))

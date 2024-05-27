@@ -1,6 +1,6 @@
 ;;; do-at-point.el --- Generic context-sensitive action dispatcher.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2023  Free Software Foundation, Inc.
+;; Copyright (C) 2023, 2024  Free Software Foundation, Inc.
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <~pkal/public-inbox@lists.sr.ht>
@@ -108,7 +108,12 @@ of this variable.")
                           (let ((hi-lock-auto-select-face t))
                             (highlight-regexp
                              (regexp-quote str)
-                             (hi-lock-read-face-name)))))))
+                             (hi-lock-read-face-name))))))
+     (?y "Yank & Swap"
+         ,(lambda (start end)
+            (let ((str (delete-and-extract-region start end)))
+              (insert-for-yank (current-kill 0))
+              (kill-new str t)))))
     (email
      (?m "Compose message" ,(lambda (to) (compose-mail to))))
     (existing-filename

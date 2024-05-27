@@ -113,7 +113,8 @@ of this variable.")
          ,(lambda (start end)
             (let ((str (delete-and-extract-region start end)))
               (insert-for-yank (current-kill 0))
-              (kill-new str t)))))
+              (kill-new str t))))
+     (?\C-? "Delete" ,#'delete-region))
     (email
      (?m "Compose message" ,(lambda (to) (compose-mail to))))
     (existing-filename

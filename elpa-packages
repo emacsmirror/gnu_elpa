@@ -360,7 +360,8 @@
  (greader		:url "https://gitlab.com/michelangelo-rodriguez/greader")
  (greenbar		:url nil)
  (gtags-mode		:url "https://github.com/Ergus/gtags-mode")
- (guess-language	:url "https://github.com/tmalsburg/guess-language.el")
+ (guess-language	:url "https://github.com/tmalsburg/guess-language.el"
+  :merge t)
  (hcel			:url "https://g.ypei.me/hc.el.git")
  (heap			:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
  (hiddenquote		:url "https://gitlab.com/mauroaranda/hiddenquote/hiddenquote")

@@ -4,6 +4,8 @@
 
 ;; Author: Titus von der Malsburg <malsburg@posteo.de>
 ;; Maintainer: Titus von der Malsburg <malsburg@posteo.de>
+;; Description: Robust automatic language detection
+;; Keywords: wp
 ;; Version: 0.0.1
 ;; Package-Requires: ((cl-lib "0.5") (emacs "24") (nadvice "0.1"))
 ;; URL: https://github.com/tmalsburg/guess-language.el
@@ -38,12 +40,12 @@
 ;; such that users can do things like changing the input method when
 ;; needed.
 ;;
-;; The detection algorithm is based on counts of character
-;; trigrams.  At this time, supported languages are Arabic, Czech,
-;; Danish, Dutch, English, Finnish, French, German, Italian,
-;; Norwegian, Polish, Portuguese, Russian, Slovak, Slovenian, Spanish,
-;; Swedish.  Adding further languages is very easy and this package
-;; already contains language statistics for 49 additional languages.
+;; The detection algorithm is based on counts of character trigrams. At this
+;; time, supported languages are Arabic, Czech, Danish, Dutch, English,
+;; Esperanto, Finnish, French, German, Italian, Norwegian, Polish, Portuguese,
+;; Russian, Serbian, Slovak, Slovenian, Spanish, Swedish and Vietnamese. Adding
+;; further languages is very easy and this package already contains language
+;; statistics for 49 additional languages.
 
 ;;; Code:
 
@@ -61,11 +63,12 @@ dictionary, input methods, etc."
 (defcustom guess-language-languages '(en de fr)
   "List of languages that should be considered.
 
-Uses ISO 639-1 identifiers.  Currently supported languages are:
-Arabic (ar),  Czech (cs),  Danish (da),  Dutch (nl),  English (en),
-Finnish (fi),  French (fr),  German (de),  Italian (it),
-Norwegian (nb),  Polish (pl),  Portuguese (pt),  Russian (ru),
-Slovak (sk),  Slovenian (sl),  Spanish (es),  Swedish (sv)"
+Uses ISO 639-1 identifiers. Currently supported languages are:
+Arabic (ar), Czech (cs), Danish (da), Dutch (nl), English (en),
+Esperanto (eo), Finnish (fi), French (fr), German (de),
+Italian (it), Norwegian (nb), Polish (pl), Portuguese (pt),
+Russian (ru), Slovak (sk), Slovenian (sl), Spanish (es),
+Swedish (sv) and Vietnamese (vi)."
   :type '(repeat symbol))
 
 (defcustom guess-language-min-paragraph-length 40
@@ -80,33 +83,41 @@ little material to reliably guess the language."
   "The regular expressions that are used to count trigrams.")
 
 (defcustom guess-language-langcodes
-  '((ar . ("ar"         nil))
-    (cs . ("czech"      "Czech"))
-    (da . ("dansk"      nil))
-    (de . ("de"         "German"))
-    (en . ("en"         "English"))
-    (es . ("spanish"    nil))
-    (fi . ("finnish"    "Finnish"))
-    (fr . ("francais"   "French"))
-    (it . ("italiano"   "Italian"))
-    (nb . ("norsk"      nil))
-    (nl . ("nederlands" nil))
-    (pl . ("polish"     nil))
-    (pt . ("portuguese" nil))
-    (ru . ("russian"    "Russian"))
-    (sk . ("slovak"     nil))
-    (sl . ("slovenian"  nil))
-    (sv . ("svenska"    nil)))
+  '((ar     . ("ar"         nil         "اَلْعَرَبِيَّةُ" "Arabic"))
+    (cs     . ("czech"      "Czech"     "🇨🇿"   "Czech"))
+    (da     . ("dansk"      nil         "🇩🇰"   "Danish"))
+    (de     . ("de"         "German"    "🇩🇪"   "German"))
+    (en     . ("en"         "English"   "🇬🇧"   "English"))
+    (eo     . ("eo"         "Esperanto" "🟩"   "Esperanto"))
+    (es     . ("spanish"    nil         "🇪🇸"   "Spanish"))
+    (fi     . ("finnish"    "Finnish"   "🇫🇮"   "Finnish"))
+    (fr     . ("francais"   "French"    "🇫🇷"   "French"))
+    (it     . ("italiano"   "Italian"   "🇮🇹"   "Italian"))
+    (nb     . ("norsk"      nil         "🇳🇴"   "Norsk"))
+    (nl     . ("nederlands" nil         "🇳🇱"   "Dutch"))
+    (pl     . ("polish"     "Polish"    "🇵🇱"   "Polish"))
+    (pt     . ("portuguese" nil         "🇵🇹"   "Portuguese"))
+    (ru     . ("russian"    "Russian"   "🇷🇺"   "Russian"))
+    (sk     . ("slovak"     nil         "🇸🇰"   "Slovak"))
+    (sl     . ("slovenian"  nil         "🇸🇮"   "Slovenian"))
+    (sr     . ("serbian"    "Serbian"   "🇷🇸"   "Serbian"))
+    (sr_LAT . ("sr-lat"     "Serbian"   "🇷🇸"   "Serbian"))
+    (sv     . ("svenska"    "Swedish"   "🇸🇪"   "Swedish"))
+    (vi     . ("viet"       nil         "🇻🇳"   "Vietnamese")))
   "Language codes for spell-checker and typo-mode.
 
 The key is a symbol specifying the ISO 639-1 code of the
-language.  The values is a list with two elements.  The first is
+language.  The values is a list with four elements.  The first is
 the name of the dictionary that should be used by the
 spell-checker (e.g., what you would enter when setting the
 language with `ispell-change-dictionary').  The second element is
 the name of the language setting that should be used with
 typo-mode.  If a language is not supported by typo-mode, that
-value is nil."
+value is nil.  The third element is a string for displaying the
+current language in the mode line.  This could be text or a
+Unicode flag symbol (displayed as color emoji starting from Emacs
+28.1).  The last element is the name of the language for display
+in the mini buffer."
   :type '(alist :key-type symbol :value-type list))
 
 (defcustom guess-language-after-detection-functions (list #'guess-language-switch-flyspell-function
@@ -132,6 +143,9 @@ By default it's the same directory where this module is installed."
 Uses ISO 639-1 to identify languages.")
 (make-variable-buffer-local 'guess-language-current-language)
 
+(defvar-local guess-language--post-command-h #'ignore
+  "Function called by `guess-language--post-command-h'.")
+
 (defun guess-language-load-trigrams ()
   "Load language statistics."
   (cl-loop
@@ -148,9 +162,8 @@ Uses ISO 639-1 to identify languages.")
   "Compile regular expressions used for guessing language."
   (setq guess-language--regexps
         (cl-loop
-         for lang in (guess-language-load-trigrams)
-         for regexp = (mapconcat 'identity (cdr lang) "\\|")
-         collect (cons (car lang) regexp))))
+         for (lang . regexps) in (guess-language-load-trigrams)
+         collect (cons lang (regexp-opt regexps)))))
 
 (defun guess-language-backward-paragraph ()
   "Uses whatever method for moving to the previous paragraph is
@@ -183,9 +196,8 @@ Region starts at BEGINNING and ends at END."
   (when (cl-set-exclusive-or guess-language-languages (mapcar #'car guess-language--regexps))
     (guess-language-compile-regexps))
   (let ((tally (cl-loop
-                for lang in guess-language--regexps
-                for regexp = (cdr lang)
-                collect (cons (car lang) (how-many regexp beginning end)))))
+                for (lang . regexp) in guess-language--regexps
+                collect (cons lang (how-many regexp beginning end)))))
     (car (cl-reduce (lambda (x y) (if (> (cdr x) (cdr y)) x y)) tally))))
 
 (defun guess-language-buffer ()
@@ -218,7 +230,7 @@ things like changing the keyboard layout or input method."
       (let ((lang (guess-language-region beginning end)))
         (run-hook-with-args 'guess-language-after-detection-functions lang beginning end)
         (setq guess-language-current-language lang)
-        (message (format "Detected language: %s" (caddr (assoc lang guess-language-langcodes))))))))
+        (message (format "Detected language: %s" (nth 4 (assoc lang guess-language-langcodes))))))))
 
 (defun guess-language-function (_beginning _end _doublon)
   "Wrapper for `guess-language' because `flyspell-incorrect-hook'
@@ -227,6 +239,13 @@ provides three arguments that we don't need."
   ;; Return nil because flyspell may otherwise not highlight incorrect
   ;; words:
   nil)
+
+(defun guess-language--post-command-h ()
+  "The `post-command-hook' used by guess-language.
+
+Used by `guess-language-switch-flyspell-function' to recheck the
+spelling of the current paragraph after switching dictionary."
+  (funcall guess-language--post-command-h))
 
 (defun guess-language-switch-flyspell-function (lang beginning end)
   "Switch the Flyspell dictionary and recheck the current paragraph.
@@ -245,13 +264,15 @@ which LANG was detected."
       ;; from flyspell-incorrect-hook that called us. Otherwise, the
       ;; word at point is highlighted as incorrect even if it is
       ;; correct according to the new dictionary.
-      (run-at-time 0 nil
-                   (lambda ()
-                     (let ((flyspell-issue-welcome-flag nil)
-                           (flyspell-issue-message-flag nil)
-                           (flyspell-incorrect-hook nil)
-                           (flyspell-large-region 1))
-                       (flyspell-region beginning end)))))))
+      (setq guess-language--post-command-h
+            (lambda ()
+              (setq guess-language--post-command-h #'ignore)
+              (let ((flyspell-issue-welcome-flag nil)
+                    (flyspell-issue-message-flag nil)
+                    (flyspell-incorrect-hook nil)
+                    (flyspell-large-region 1))
+                (with-local-quit
+                  (flyspell-region beginning end))))))))
 
 (defun guess-language-switch-typo-mode-function (lang _beginning _end)
   "Switch the language used by typo-mode.
@@ -289,13 +310,21 @@ correctly."
   ;; The initial value.
   :init-value nil
   ;; The indicator for the mode line.
-  :lighter (:eval (format " (%s)" (or guess-language-current-language "default")))
+  :lighter (:eval (format " %s" (or
+                                 (nth 3 (assq guess-language-current-language guess-language-langcodes))
+                                 ;; Options for users of old configurations:
+                                 (nth 2 (assq guess-language-current-language guess-language-langcodes))
+                                 (nth 1 (assq guess-language-current-language guess-language-langcodes))
+                                 "default")))
   :global nil
   (if guess-language-mode
       (progn
         (add-hook 'flyspell-incorrect-hook #'guess-language-function nil t)
+        ;; Depth of 92 to ensure placement after flyspell's PCH
+        (add-hook 'post-command-hook #'guess-language--post-command-h 92 t)
         (advice-add 'flyspell-buffer :around #'guess-language-flyspell-buffer-wrapper))
     (remove-hook 'flyspell-incorrect-hook #'guess-language-function t)
+    (remove-hook 'post-command-hook #'guess-language--post-command-h t)
     (advice-remove 'flyspell-buffer #'guess-language-flyspell-buffer-wrapper)))
 
 (defun guess-language-mark-lines (&optional highlight)

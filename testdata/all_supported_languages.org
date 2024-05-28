@@ -9,6 +9,8 @@ de: Dies ist ein kurzer Text zu Testzwecken geschrieben und übersetzt in mehrer
 
 en: This is a short text written for testing purposes and translated to several languages using Google Translate.
 
+eo: Ĉi tiu estas mallonga teksto skribita por elprov celoj kaj tradukitajn kelkajn lingvojn uzantan Google Traduki.
+
 es: Este es un texto corto escrito para propósitos de prueba y traducido a varios idiomas usando Google Translate.
 
 fi: Tämä on lyhyt teksti kirjoitettu testausta varten ja käännetty useita kieliä Google kääntää.
@@ -32,3 +34,5 @@ sk: Jedná sa o krátky text písaný na účely testovania a preložené do nie
 sl: To je kratko besedilo, napisano za testiranje in prevedena v več jezikov, ki uporabljajo Google Translate.
 
 sv: Detta är en kort text skriven för teständamål och översatt till flera språk med Google Translate.
+
+vi: Đây là một văn bản ngắn được viết cho mục đích thử nghiệm và được dịch sang một số ngôn ngữ bằng Google Dịch.

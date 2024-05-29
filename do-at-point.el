@@ -332,6 +332,9 @@ The lighter depends on the current \"thing\" being selected."
     (define-key map (kbd "M-p") #'do-at-point-backward)
     map))
 
+(defvar do-at-point-hook '()
+  "Hook run after enabling and disabling `do-at-point' selection.")
+
 (define-minor-mode do-at-point--mode
   "Minor mode that implements the selection for `do-at-point'.
 This is an internal implementation detail and shouldn't be
@@ -351,7 +354,8 @@ instead."
     (remove-hook 'post-command-hook #'do-at-point--update t)
     (overlay-put do-at-point--overlay 'do-at-point-thing nil)
     (delete-overlay do-at-point--overlay)
-    (setq do-at-point--overlay nil)))
+    (setq do-at-point--overlay nil))
+  (run-hooks 'do-at-point-hook))
 
 (define-minor-mode do-at-point-persist-mode
   "Minor mode that inhibits `do-at-point' from disabling itself.

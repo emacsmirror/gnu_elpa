@@ -73,6 +73,9 @@ return the corresponding label number as a string, or nil if that number
 cannot be retrieved."
   :type '(choice (const :tag "Default" nil) function))
 
+;; FIXME: we don't properly handle the optional arguments to
+;; \externaldocument, i.e., prefixes for labels.
+
 (defconst auctex-label-numbers--external-document-regexp
   "\\\\external\\(?:cite\\)?document\\(?:\\[[^]]+\\]\\)\\{0,2\\}{\\([^}]+\\)}")
 

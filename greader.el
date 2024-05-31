@@ -5,8 +5,8 @@
 ;; package-requires: ((emacs "25"))
 ;; Author: Michelangelo Rodriguez <michelangelo.rodriguez@gmail.com>
 ;; Keywords: tools, accessibility
-
-;; Version: 0.9.23
+;; URL: https://www.gitlab.com/michelangelo-rodriguez/greader
+;; Version: 0.9.24
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

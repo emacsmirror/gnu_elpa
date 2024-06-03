@@ -578,6 +578,9 @@ function, point jumps at the last position you called command `greader-read'."
 
   (interactive "P")
   (when goto-marker
+    (when greader-continuous-mode
+      (user-error "`greader-continuous-mode' is enabled, please
+  disable it to use the prefix"))
     (greader-jump-to-register))
   (when (called-interactively-p 'any)
     (greader-set-register))

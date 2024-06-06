@@ -75,6 +75,8 @@
   :news "NEWS.org"
   :make "elpa"
   :doc ("doc/auctex.texi" "doc/preview-latex.texi"))
+ (auctex-cont-latexmk	:url "https://github.com/ultronozm/auctex-cont-latexmk.el")
+ (auctex-label-numbers	:url "https://github.com/ultronozm/auctex-label-numbers.el")
  (aumix-mode		:url nil)
  (auto-correct		:url nil)
  (auto-header           :url "https://git.sr.ht/~pkal/auto-header")
@@ -149,7 +151,7 @@
  ;; The `cl-print' code doesn't try to work outside of Emacs any more.
  ;;(cl-print		:core "lisp/emacs-lisp/cl-print.el")
  (clipboard-collector 	:url "https://github.com/clemera/clipboard-collector")
- (cobol-mode          	:url nil) ;; Was "https://gist.github.com/Edward-H/6768e7dc53ea3dd2adca"
+ (cobol-mode          	:url "https://git.sr.ht/~hjelmtech/cobol-mode")
  (code-cells		:url "https://github.com/astoff/code-cells.el"
   :ignored-files ("LICENSE"))
  (colorful-mode         :url "https://github.com/DevelopmentCool2449/colorful-mode")
@@ -610,6 +612,8 @@
  (pq			:url "https://github.com/anse1/emacs-libpq"
   :readme "README.org")
  (prefixed-core		:url nil)
+ (preview-auto		:url "https://github.com/ultronozm/preview-auto.el")
+ (preview-tailor	:url "https://github.com/ultronozm/preview-tailor.el")
  (project		:core "lisp/progmodes/project.el")
  (psgml               	:url nil) ;; Was https://github.com/lenst/psgml.git
  ;; FIXME: We actually used a filtered version of pspp.git using:
@@ -733,6 +737,8 @@
   :news "CHANGELOG.org"
   :ignored-files ("LICENSE"))
  (test-simple         	:url "https://github.com/rocky/emacs-test-simple")
+ (tex-item		:url "https://github.com/ultronozm/tex-item.el")
+ (tex-parens    	:url "https://github.com/ultronozm/tex-parens.el")
  (theme-buffet		:url "https://git.sr.ht/~bboal/theme-buffet")
  (timerfunctions	:url nil)
  (tiny			:url "https://github.com/abo-abo/tiny")

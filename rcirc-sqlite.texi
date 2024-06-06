@@ -302,6 +302,7 @@ log*}. In that buffer you can use the key bindings for more actions.
 These actions are described in the sections:
 
 @itemize
+@item @ref{Toggle display of the server in the channel name}
 @item @ref{Change the selected logs in the log-buffer}
 @item @ref{Copy a message to the kill-ring}
 @item @ref{Collect one or more messages in a register}
@@ -405,6 +406,19 @@ For more formatting of the search see the chapter
 @uref{https://www.sqlite.org/fts5.html}).
 
 The buffer @code{*rcirc log*} displays the search results.
+
+@node Toggle display of the server in the channel name
+@section Toggle display of the server in the channel name
+@kindex (
+@kindex )
+
+The buffer @code{*rcirc log*} shows the results from the latest query.
+
+To suprress the display of the server name in the channel name,
+use the key @key{(}.
+
+To activate the display of the server name in the channel name,
+use the key @key{)}.
 
 @node Change the selected logs in the log-buffer
 @section Change the selected logs in the log-buffer
@@ -645,6 +659,10 @@ a nice starting point to explore your logs.
 The buffer @code{*rcirc log*} is used to show the output of the
 database queries. This buffer uses a derived mode from the
 @code{tabulated-list-mode}.
+
+Suprress the display of the server name in the channel name with the
+key @kbd{(}, or activate the display of the server name with the key
+@kbd{)}.
 
 Move up and down in this buffer to select a chat message.
 Then you can use the following key bindings to activate

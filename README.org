@@ -160,6 +160,8 @@ following keys.
 | ~c~   | Copy the selected message, nicely formatted, to the kill-ring   |
 | ~R~   | Insert the selected message, nicely formatted, into a register  |
 | ~r~   | Same, but append to the register                                |
+| ~(~   | Suppress display of server in channel name                      |
+| ~)~   | Activate display of server in channel name                      |
 
 The register to insert or append messages is default register ~r~. A different
 register can be set as user option, with ~customize-group RET rcicq-sqlite~.

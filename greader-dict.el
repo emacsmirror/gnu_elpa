@@ -142,10 +142,151 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 
 ;;; Code:
-(require 'greader)
 (defgroup greader-dict nil
   "String substitution module for greader"
   :group 'greader)
+
+;; variable definitions
+(defvar greader-dict-match-indicator "\%\*"
+  "Regexp that will be used for match delimiter.")
+
+(defvar greader-dict-match-indicator "\%\*"
+  "Regexp that will be used for match delimiter.")
+
+(defvar-local  greader-dictionary nil)
+
+(defvar-local  greader-dictionary nil)
+(defvar greader-dict-match-indicator "\%\*"
+  "Regexp that will be used for match delimiter.")
+(defvar greader-dict--timer nil)
+(defvar greader-dict--item-type-alist '((match
+					 . "\%\*")
+					(filter
+					 . "\%f")
+					(word . ""))
+  "item types and relative prefixes.")
+
+;; This function saves the contents of the hash table.
+(defvar greader-dict-directory (concat user-emacs-directory
+				       ".greader-dict/")
+  "The directory containing greader-dict files.")
+(defvar-local greader-dict-filename "greader-dict.global"
+  "File name where dictionary definitions are stored.")
+(defvar greader-dict--current-reading-buffer (current-buffer))
+;; We use this variable to know if greader-dictionary is saved after
+;; the last modification.
+(defvar-local greader-dict--saved-flag t)
+
+;; greader-dict-mode.
+(defvar-keymap greader-dict-mode-map
+  :doc "keymap for `greader-dict-mode'."
+  "C-r d a" #'greader-dict-add-entry
+  "C-r d k" #'greader-dict-remove-entry
+  "C-r d c" #'greader-dict-change-dictionary
+  "C-r d l" #'greader-dict-pronounce-in-other-language
+  "C-r d s" #'greader-dict-save)
+
+(defvar greader-dict--type-file-alternatives '(buffer mode global))
+
+(defvar greader-dict-lang-history nil)
+
+(defvar-local greader-filters nil
+  "Hash table containing our filters.")
+
+(defvar greader-dict-filter-indicator "\%f")
+
+(defvar-keymap greader-dict-filter-map
+  :doc "key bindings for greader-dict filter feature."
+  "C-r d f a" #'greader-dict-filter-add
+  "C-r d f m" #'greader-dict-filter-modify
+  "C-r r" #'isearch-backward
+  "C-r d f k" #'greader-dict-filter-remove)
+
+(defvar-keymap greader-dict-filter-map
+  :doc "key bindings for greader-dict filter feature."
+  "C-r d f a" #'greader-dict-filter-add
+  "C-r d f m" #'greader-dict-filter-modify
+  "C-r r" #'isearch-backward
+  "C-r d f k" #'greader-dict-filter-remove)
+
+;; filters.
+;; filters allow users to define arbitrary regexps to be replaced
+;; either with empty strings or by another string.
+;; It is necessary to conceptually abstract filters from other types of
+;; match because the filters allow the use of any character and in any case, being applied as they are,
+;; the user can better exploit the expressive power of regexps.
+;; so filters are a separate feature, which we can consider an
+;; "advanced" use case of greader-dict.
+;;;###autoload
+(define-minor-mode greader-dict-toggle-filters
+  "enable or disable filters.
+Filters allow you to replace every regexp you wish with something
+else you wish.
+While matches and words are conceived as facilities that are
+designated to be user-friendly interfaces to regexps, with filters
+you can unleash all
+your expressiveness!
+Filters and dictionary are considered independent features for now, so
+you can enable filters without the extra payload given by
+`greader-dict-mode'.
+To use a filter you must first enable this mode, and, eventually, add
+a filter.
+So use `greader-dict-filter-add' to do that.
+When you are prompted for the filter, you should insert the regexp
+that must match to have the associated replacement.
+You can use the usual `\\\\' expressions, shy groups and all the power
+of regexps.
+If you are interested in how to write a regexp please consult the info
+node `(emacs) Regexps'."
+  :keymap greader-dict-filter-map
+  :lighter " gr-filters"
+  (when greader-dict-toggle-filters
+    (setq greader-filters (make-hash-table :test 'ignore-case))
+    (setq greader-dict--current-reading-buffer (current-buffer))
+    (unless greader-dictionary
+      (greader-dict-mode 1)
+      (greader-dict-mode -1))
+    (greader-dict--filter-init)))
+
+(defcustom greader-dict-include-sentences-in-defaults nil
+  "Includi le parole della frase come alternative.
+When active, the constituent words of the sentence currently in
+reading will be added to the list of defaults (where it makes sense
+to do it).
+In this way anyone who wishes can search for the word to manipulate
+using a menu instead of navigating the buffer."
+  :type 'boolean)
+
+;;;###autoload
+(define-minor-mode greader-dict-mode
+  "Dictionary module for greader.
+With this mode it is possible to instruct greader to pronounce in an 
+alternative way the words that the tts mispronounces in a given language.
+There are two types of definitions understood by greader-dict-mode:
+\"word definitions\" are those that must be surrounded by
+Non-constituent word characters;
+\"Match definitions\" are those that can be replaced regardless of
+surrounding characters.
+The definition type is determined when you add a new definition:
+If you use the region to mark a word, you can select a partial word or
+the entire word, and greader-dict-mode will understand that you want
+to add a match definition.
+If instead you add simply the word under the point, it will be added
+as a word definition."
+  :lighter " gr-dictionary"
+  (cond
+   (greader-dict-mode
+    (setq greader-dictionary (make-hash-table :test 'ignore-case))
+    (setq greader-dict--current-reading-buffer (current-buffer))
+    (greader-dict-read-from-dict-file)
+    (add-hook 'greader-after-get-sentence-functions
+	      #'greader-dict--replace-wrapper 1)
+    (add-hook 'buffer-list-update-hook #'greader-dict--update)
+    (add-hook 'greader-after-change-language-hook
+	      (lambda ()
+		(when greader-dict-mode
+		  (greader-dict-read-from-dict-file)))))))
+
 ;; THanks to the loved and alwais useful elisp reference.
 (defun string-hash-ignore-case (a)
   (sxhash-equal (upcase a)))
@@ -153,11 +294,7 @@
 (define-hash-table-test 'ignore-case
 			'string-equal-ignore-case
 			'string-hash-ignore-case)
-
-(defvar-local  greader-dictionary nil)
-(defvar greader-dict-match-indicator "\%\*"
-  "Regexp that will be used for match delimiter.")
-
+(declare-function string-remove-suffix nil)
 ;; The following two functions deal, respectively, with
 ;; replace a dictionary item with the value specified in
 ;; `greader-dictionari' and its possible variants.
@@ -208,7 +345,6 @@
   "Amount of idleness to wait before saving dictionary data.
 A value of 0 indicates saving immediately."
   :type 'number)
-(defvar greader-dict--timer nil)
 (defun greader-dict-add (word replacement)
   "Add the WORD REPLACEMent pair to `greader-dictionary'.
 If you want to add a partial replacement, you should
@@ -250,12 +386,6 @@ add `\*'to the end of the WORD string parameter."
    (t
     (setq greader-dict--saved-flag t)
     nil)))
-(defvar greader-dict--item-type-alist '((match
-					 . "\%\*")
-					(filter
-					 . "\%f")
-					(word . ""))
-  "item types and relative prefixes.")
 
 (defun greader-dict-item-type (key)
   "Return the type of KEY.
@@ -318,6 +448,7 @@ Return nil if KEY is not present in `greader-dictionary'."
 ;; could need it.
 ;; This is the function to add to
 ;; `greader-after-get-sentence-functions'.
+;;;###autoload
 (defun greader-dict-check-and-replace (text)
   "Return the TEXT passed to it, eventually modified according to
 `greader-dictionary' and variants."
@@ -359,17 +490,6 @@ Return nil if KEY is not present in `greader-dictionary'."
 	      (re-search-forward "\\W*\\w" nil 1))
 	    (buffer-string)))
       (buffer-string))))
-
-;; This function saves the contents of the hash table.
-(defvar greader-dict-directory (concat user-emacs-directory
-				       ".greader-dict/")
-  "The directory containing greader-dict files.")
-(defvar-local greader-dict-filename "greader-dict.global"
-  "File name where dictionary definitions are stored.")
-(defvar greader-dict--current-reading-buffer (current-buffer))
-;; We use this variable to know if greader-dictionary is saved after
-;; the last modification.
-(defvar-local greader-dict--saved-flag t)
 
 (defun greader-dict-write-file ()
   "Save greader-dictionary stored in `greader-dict-filename'."
@@ -434,6 +554,7 @@ to the dictionary."
   (let ((greader-dict--saved-flag nil))
     (greader-dict-write-file)))
 
+(declare-function greader-get-sentence nil)
 ;; This command Adds a definition to `greader-dictionary'.
 ;; If the region is active and it does not constitute more than one word,
 ;; the command will propose the selected word as the original word to
@@ -517,7 +638,7 @@ modify: "
 				 nil nil
 				 (gethash key greader-dictionary)))
 	(greader-dict-add key value))))))
-
+(declare-function hash-table-keys nil)
 (defun greader-dict-remove-entry (key)
   "Remove KEY from the dictionary.
 If KEY is not present, signal an user-error."
@@ -539,15 +660,6 @@ Please use `greader-dict-save' for that purpose."
   (clrhash greader-dictionary)
   (setq greader-dict--saved-flag nil)
   (message "Cleaned."))
-
-;; greader-dict-mode.
-(defvar-keymap greader-dict-mode-map
-  :doc "keymap for `greader-dict-mode'."
-  "C-r d a" #'greader-dict-add-entry
-  "C-r d k" #'greader-dict-remove-entry
-  "C-r d c" #'greader-dict-change-dictionary
-  "C-r d l" #'greader-dict-pronounce-in-other-language
-  "C-r d s" #'greader-dict-save)
 (defun greader-dict--replace-wrapper (text)
   "Function to add to `greader-after-get-sentence-functions'.
 It simply calls `greader-dict-check-and-replace' with TEXT as its
@@ -555,7 +667,7 @@ argument, only if `greader-dict-mode' is enabled."
   (if (or greader-dict-mode greader-dict-toggle-filters)
       (greader-dict-check-and-replace text)
     text))
-
+(declare-function greader-get-language nil)
 (defun greader-dict--get-file-name ()
   "Return the absolute path of current dictionary file."
   (concat greader-dict-directory (greader-get-language) "/"
@@ -620,8 +732,6 @@ Means it exists a file called \"greader-dict.global\" in
      ((string-equal "greader-dict.global" greader-dict-filename)
       'global)
      (t 'global))))
-
-(defvar greader-dict--type-file-alternatives '(buffer mode global))
 (defun greader-dict--type-alternatives ()
   "Return the list of currently valid alternatives for dictionary."
   (let ((alternatives nil))
@@ -667,6 +777,7 @@ asked."
 
 ;; (remove-hook 'buffer-list-update-hook #'greader-dict--update)))))
 
+(defvar greader-reading-mode)
 (defun greader-dict--update ()
   (when greader-dict-toggle-filters
     (setq greader-dict--current-reading-buffer (current-buffer))
@@ -688,36 +799,6 @@ asked."
        (buffer-local-value 'greader-dictionary
 			   greader-dict--current-reading-buffer))
       (greader-dict-read-from-dict-file t))))
-
-;;;###autoload
-(define-minor-mode greader-dict-mode
-  "Dictionary module for greader.
-With this mode it is possible to instruct greader to pronounce in an 
-alternative way the words that the tts mispronounces in a given language.
-There are two types of definitions understood by greader-dict-mode:
-\"word definitions\" are those that must be surrounded by
-Non-constituent word characters;
-\"Match definitions\" are those that can be replaced regardless of
-surrounding characters.
-The definition type is determined when you add a new definition:
-If you use the region to mark a word, you can select a partial word or
-the entire word, and greader-dict-mode will understand that you want
-to add a match definition.
-If instead you add simply the word under the point, it will be added
-as a word definition."
-  :lighter " gr-dictionary"
-  (cond
-   (greader-dict-mode
-    (setq greader-dictionary (make-hash-table :test 'ignore-case))
-    (setq greader-dict--current-reading-buffer (current-buffer))
-    (greader-dict-read-from-dict-file)
-    (add-hook 'greader-after-get-sentence-functions
-	      #'greader-dict--replace-wrapper 1)
-    (add-hook 'buffer-list-update-hook #'greader-dict--update)
-    (add-hook 'greader-after-change-language-hook
-	      (lambda ()
-		(when greader-dict-mode
-		  (greader-dict-read-from-dict-file)))))))
 ;; Questa funzione è solo di utilità e potrebbe essere rimossa o
 ;; modificata in qualsiasi momento.
 (defun greader-dict-beep ()
@@ -794,15 +875,6 @@ are classified as matches."
 	  (greader-dict-add new-key backup-value))
       (user-error "Key not found"))))
 
-(defcustom greader-dict-include-sentences-in-defaults nil
-  "Includi le parole della frase come alternative.
-When active, the constituent words of the sentence currently in
-reading will be added to the list of defaults (where it makes sense
-to do it).
-In this way anyone who wishes can search for the word to manipulate
-using a menu instead of navigating the buffer."
-  :type 'boolean)
-
 (defun greader-dict--get-word-alternatives (text)
   "Return a list with a set of words in TEXT."
   (if-let ((alternatives text))
@@ -813,9 +885,8 @@ using a menu instead of navigating the buffer."
 	    (push word alternatives)))
 	(reverse alternatives))
     (user-error "No text")))
-
-(defvar greader-dict-lang-history nil)
-
+(declare-function greader-set-language nil)
+(declare-function greader-read-asynchronous nil)
 ;;;###autoload
 (defun greader-dict-pronounce-in-other-language (word new-lang)
   "pronounce WORD in the language specified by NEW-LANG.
@@ -839,58 +910,6 @@ in the current sentence."
     (greader-set-language new-lang)
     (greader-read-asynchronous word)
     (greader-set-language old-lang)))
-
-;; filters.
-;; filters allow users to define arbitrary regexps to be replaced
-;; either with empty strings or by another string.
-;; It is necessary to conceptually abstract filters from other types of
-;; match because the filters allow the use of any character and in any case, being applied as they are,
-;; the user can better exploit the expressive power of regexps.
-;; so filters are a separate feature, which we can consider an
-;; "advanced" use case of greader-dict.
-
-(defvar-local greader-filters nil
-  "Hash table containing our filters.")
-
-(defvar greader-dict-filter-indicator "\%f")
-
-(defvar-keymap greader-dict-filter-map
-  :doc "key bindings for greader-dict filter feature."
-  "C-r d f a" #'greader-dict-filter-add
-  "C-r d f m" #'greader-dict-filter-modify
-  "C-r r" #'isearch-backward
-  "C-r d f k" #'greader-dict-filter-remove)
-
-;;;###autoload
-(define-minor-mode greader-dict-toggle-filters
-  "enable or disable filters.
-Filters allow you to replace every regexp you wish with something
-else you wish.
-While matches and words are conceived as facilities that are
-designated to be user-friendly interfaces to regexps, with filters
-you can unleash all
-your expressiveness!
-Filters and dictionary are considered independent features for now, so
-you can enable filters without the extra payload given by
-`greader-dict-mode'.
-To use a filter you must first enable this mode, and, eventually, add
-a filter.
-So use `greader-dict-filter-add' to do that.
-When you are prompted for the filter, you should insert the regexp
-that must match to have the associated replacement.
-You can use the usual `\\\\' expressions, shy groups and all the power
-of regexps.
-If you are interested in how to write a regexp please consult the info
-node `(emacs) Regexps'."
-  :keymap greader-dict-filter-map
-  :lighter " gr-filters"
-  (when greader-dict-toggle-filters
-    (setq greader-filters (make-hash-table :test 'ignore-case))
-    (setq greader-dict--current-reading-buffer (current-buffer))
-    (unless greader-dictionary
-      (greader-dict-mode 1)
-      (greader-dict-mode -1))
-    (greader-dict--filter-init)))
 
 (defun greader-dict--is-filter-p (key)
   "Return t if KEY is a filter based on

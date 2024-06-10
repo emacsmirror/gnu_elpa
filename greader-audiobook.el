@@ -13,14 +13,31 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 
 ;;; Commentary:
-;; This module define just one command:
+;; This module defines just one command:
 ;; `greader-audiobook-buffer'.  All the rest of the functionality is
 ;; controlled by customizing the module through customizing the group
 ;; `greader-audiobook' so:
 ;; 'M-x customize-group <RET> greader-audiobook <RET>.
 ;; Please see the documentation of each single customization item, and
 ;; the documentation of `greader-audiobook-buffer'.
-
+;;
+;; The parameters of espeak are the same used normally with
+;; `greader-read', so you just have to configure greader normally in
+;; terms of the back-end.
+;; If you want the maximum speed of the conversion, disable
+;; `greader-audiobook-transcode-wave-files'.
+;; In this way you will have a directory with only the wave files
+;; produced by espeak.
+;; in order for greader-audiobook to transcode your files you must
+;; have ffmpeg utility installed on your system.
+;; the default format in which transcode the files produced by espeak
+;; is "mp3", but honestly it is not the better choice, only the most
+;; popular.
+;; If you want better quality of output, you can set
+;; `greader-audiobook-transcode-format to "m4a" or "flac"; The
+;; conversion will take more time, but as sayd first, the quality is
+;; definitely better.
+;;
 ;; 
 ;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

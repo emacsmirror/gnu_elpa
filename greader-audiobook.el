@@ -178,16 +178,18 @@ Return a cons with start and end of the block or nil if at end of the buffer."
 	  ((pred stringp)
 	   (cond
 	    ((> (string-to-number greader-audiobook-block-size) 0)
-	     (when (< (*
-		       (string-to-number greader-audiobook-block-size)
-		       (greader-get-rate))
-		      words)
-	       (forward-word (* (string-to-number
-				 greader-audiobook-block-size)
-				(greader-get-rate)))
-	       (when (thing-at-point 'sentence)
-		 (forward-sentence)))
-	     (setq end (point)))))
+	     (if (< (*
+		     (string-to-number greader-audiobook-block-size)
+		     (greader-get-rate))
+		    words)
+		 (progn
+		   (forward-word (* (string-to-number
+				     greader-audiobook-block-size)
+				    (greader-get-rate)))
+		   (when (thing-at-point 'sentence)
+		     (forward-sentence))
+		   (setq end (point)))
+	       (setq end (point-max))))))
 	  (_
 	   (error "Cannot determine the block size"))))
       (if (> end start)
@@ -263,14 +265,16 @@ COUNTER represents the current file name."
 	 (filename nil)
 	 (counter-chars 0))
     (while (< counter-chars (- (length
-				 total-blocks-string)(length counter-string)))
+				 total-blocks-string)
+			       (length counter-string)))
       (setq filename (concat filename "0"))
       (setq counter-chars (+ counter-chars 1)))
     (setq filename (concat filename counter-string ".wav"))))
 
 (defun greader-audiobook-compress (book-directory)
   "Compress given BOOK-DIRECTORY."
-  (let ((zip-args (append (list "-rj")greader-audiobook-zip-args (list (concat
+  (let ((zip-args (append (list "-rj")greader-audiobook-zip-args (list
+								  (concat
 							    (string-remove-suffix
 							     "/"
 							     book-directory)
@@ -294,7 +298,8 @@ This function will create a directory under
 buffer without the extension, if any."
 
   (interactive "P")
-  (unless greader-audiobook-buffer-quietly(message "Preparing for conversion (this could take some time...)"))
+  (unless greader-audiobook-buffer-quietly
+    (message "Preparing for conversion (this could take some time...)"))
   (let ((end-position (point-max)))
     (cond
      ((not start-position)
@@ -321,20 +326,24 @@ buffer without the extension, if any."
 	       (total-blocks (greader-audiobook--count-blocks)))
 	  (unless (file-exists-p default-directory)
 	    (make-directory default-directory))
-	  (unless greader-audiobook-buffer-quietly(message "Starting conversion of %s ."
+	  (unless greader-audiobook-buffer-quietly
+	    (message "Starting conversion of %s ."
 							   book-directory))
 	  (while (greader-audiobook--get-block)
 	    (setq output-file-name
 		  (greader-audiobook--calculate-file-name
 		   output-file-counter total-blocks))
-	    (unless greader-audiobook-buffer-quietly(message "converting block %d of %d"
-							     output-file-counter total-blocks))
+	    (unless greader-audiobook-buffer-quietly
+	      (message "converting block %d of %d"
+							     output-file-counter
+							     total-blocks))
 	    (setq output-file-name
 		  (greader-audiobook-convert-block output-file-name))
 	    (if output-file-name
 		(progn
 		  (when greader-audiobook-transcode-wave-files
-		    (unless greader-audiobook-buffer-quietly(message "Transcoding block to %s..."
+		    (unless greader-audiobook-buffer-quietly
+		      (message "Transcoding block to %s..."
 								     greader-audiobook-transcode-format))
 		    (greader-audiobook-transcode-file
 		     output-file-name)
@@ -345,7 +354,8 @@ buffer without the extension, if any."
 	      (error "An error has occurred while converting")))
 	  (when greader-audiobook-compress
 	    (setq default-directory greader-audiobook-base-directory)
-	    (unless greader-audiobook-buffer-quietly(message "compressing %s..." book-directory))
+	    (unless greader-audiobook-buffer-quietly
+	      (message "compressing %s..." book-directory))
 	    (greader-audiobook-compress book-directory)
 	    (when greader-audiobook-compress-remove-original
 	      (delete-directory book-directory t t)

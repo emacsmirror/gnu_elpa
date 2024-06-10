@@ -5,10 +5,11 @@
 ;; Author: Alexey Veretennikov <alexey.veretennikov@gmail.com>
 ;;
 ;; Created: 2009-09-08
+
 ;; Version: 1.2.5
 ;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: matching
-;; URL: https://github.com/fourier/loccur
+;; URL: https://codeberg.org/fourier/loccur
 ;; Compatibility: GNU Emacs 25.1
 ;;
 ;; This file is part of GNU Emacs.

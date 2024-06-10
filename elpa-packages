@@ -456,7 +456,7 @@
  (load-dir		:url nil)
  (load-relative		:url "https://github.com/rocky/emacs-load-relative")
  (loc-changes		:url "https://github.com/rocky/emacs-loc-changes")
- (loccur		:url "https://github.com/fourier/loccur")
+ (loccur		:url "https://codeberg.org/fourier/loccur.git")
  (logos			:url "https://github.com/protesilaos/logos"
   :doc "README.org"
   :readme "README.md"

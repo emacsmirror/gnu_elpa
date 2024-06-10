@@ -140,6 +140,12 @@ set this variable to \"flac\" \(not \".flac\"\)."
   "When enabled, remove the original directory of the book converted.
 In this way, you will have only the zipped file containing the book."
   :type 'boolean)
+
+(defcustom greader-audiobook-buffer-quietly nil
+  "Convert buffer without messages.
+Only the final report will be printed."
+  :type '(boolean))
+
 ;; functions
 (defun greader-audiobook--get-block ()
   "Get a block of text in current buffer.
@@ -288,7 +294,7 @@ This function will create a directory under
 buffer without the extension, if any."
 
   (interactive "P")
-  (message "Preparing for conversion (this could take some time...)")
+  (unless greader-audiobook-buffer-quietly(message "Preparing for conversion (this could take some time...)"))
   (let ((end-position (point-max)))
     (cond
      ((not start-position)
@@ -315,21 +321,21 @@ buffer without the extension, if any."
 	       (total-blocks (greader-audiobook--count-blocks)))
 	  (unless (file-exists-p default-directory)
 	    (make-directory default-directory))
-	  (message "Starting conversion of %s ."
-		   book-directory)
+	  (unless greader-audiobook-buffer-quietly(message "Starting conversion of %s ."
+							   book-directory))
 	  (while (greader-audiobook--get-block)
 	    (setq output-file-name
 		  (greader-audiobook--calculate-file-name
 		   output-file-counter total-blocks))
-	    (message "converting block %d of %d"
-		     output-file-counter total-blocks)
+	    (unless greader-audiobook-buffer-quietly(message "converting block %d of %d"
+							     output-file-counter total-blocks))
 	    (setq output-file-name
 		  (greader-audiobook-convert-block output-file-name))
 	    (if output-file-name
 		(progn
 		  (when greader-audiobook-transcode-wave-files
-		    (message "Transcoding block to %s..."
-			     greader-audiobook-transcode-format)
+		    (unless greader-audiobook-buffer-quietly(message "Transcoding block to %s..."
+								     greader-audiobook-transcode-format))
 		    (greader-audiobook-transcode-file
 		     output-file-name)
 		    (when
@@ -339,7 +345,7 @@ buffer without the extension, if any."
 	      (error "An error has occurred while converting")))
 	  (when greader-audiobook-compress
 	    (setq default-directory greader-audiobook-base-directory)
-	    (message "compressing %s..." book-directory)
+	    (unless greader-audiobook-buffer-quietly(message "compressing %s..." book-directory))
 	    (greader-audiobook-compress book-directory)
 	    (when greader-audiobook-compress-remove-original
 	      (delete-directory book-directory t t)

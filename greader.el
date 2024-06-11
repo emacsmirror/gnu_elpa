@@ -6,6 +6,7 @@
 ;; Author: Michelangelo Rodriguez <michelangelo.rodriguez@gmail.com>
 ;; Keywords: tools, accessibility
 ;; URL: https://www.gitlab.com/michelangelo-rodriguez/greader
+;; package-requires: ((google-translate))
 ;; Version: 0.11.0
 
 ;; This program is free software; you can redistribute it and/or modify

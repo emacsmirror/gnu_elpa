@@ -4,7 +4,6 @@
 ;; Description: On the fly translation for greader.
 ;; Author: Michelangelo Rodriguez <michelangelo.rodriguez@gmail.com>
 ;; Created: Mar Giu 11 04:37:23 2024 (+0200)
-;; Package-Requires: (google-translate lingva)
 ;; URL: https://gitlab.com/michelangelo-rodriguez/greader
 ;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

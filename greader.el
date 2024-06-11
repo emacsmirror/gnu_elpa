@@ -6,7 +6,7 @@
 ;; Author: Michelangelo Rodriguez <michelangelo.rodriguez@gmail.com>
 ;; Keywords: tools, accessibility
 ;; URL: https://www.gitlab.com/michelangelo-rodriguez/greader
-;; Version: 0.10.2
+;; Version: 0.11.0
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -129,7 +129,7 @@ If all the functions in the hook return nil, this function return nil."
 
 (defcustom
   greader-current-backend
-  #'greader-espeak
+  'greader-espeak
   "Greader back-end to use."
   :tag "greader current back-end"
   :type
@@ -266,7 +266,7 @@ if set to t, when you call function `greader-read', that function sets a
     (define-key map (kbd "<left>")   #'greader-backward)
     (define-key map (kbd "<right>")   #'greader-forward)
     map))
-
+(defvar greader-queue-mode)
 ;;;###autoload
 (define-minor-mode greader-mode
   nil
@@ -307,9 +307,9 @@ when the buffer is visiting a file."
 ;; to read and move the point "believe" that that is all the
 ;; buffer to read.
 (defvar greader-start-region nil
-  "start of region.")
+  "Start of region.")
 (defvar greader-end-region nil
-  "end of region.")
+  "End of region.")
 
 (defun greader--active-region-p ()
   "Return t if the region in the current buffer is active.
@@ -330,12 +330,12 @@ Active in this context means that the variables
   "Widen buffer and set greader-region variables to nil."
   (setq greader-start-region nil)
   (setq greader-end-region nil)
-  (greader-region-mode -1)  
+  (greader-region-mode -1)
   (widen))
 
 ;; This function places the point at the beginning of the active region.
 (defun greader-set-point-to-start-of-region ()
-  "set the point to the beginning of the active region.
+  "Set the point to the beginning of the active region.
 This only happens if the variables `greader-start-region' and
 `greader-end-region' are set."
   (when (and greader-start-region greader-end-region)
@@ -414,7 +414,7 @@ available backends."
 	              (user-error "Not a greader's back-end: %S"
 				  backend))))
 	       (backend
-	        (error "backend should be a string or a function: %S"
+	        (error "Backend should be a string or a function: %S"
 		       backend))
 	       (t
 	        (car (or
@@ -570,7 +570,7 @@ mindfullness!)."
 	(greader-mode 1)
 	(greader-read))
     (fset 'y-or-n-p (symbol-function 'greader-temp-function))))
-
+(defvar greader-continuous-mode)
 (defun greader-read (&optional goto-marker)
   "Start reading of current buffer.
 if `GOTO-MARKER' is t and if you pass a prefix to this
@@ -643,7 +643,7 @@ Argument ARG is not used."
     (insert arg)))
 (defvar greader-sentence-regexp "[.?!]+[[:space:]]"
   "Regexp to indicate the end of a sentence in terms of greader.")
-
+(defvar greader-classic-nav-mode)
 (defun greader-forward-sentence ()
   "Move the point to next sentence."
   (let ((result (greader-call-backend 'next-text)))
@@ -693,14 +693,12 @@ Optional argument STRING contains the string passed to
   (if greader-filter-enabled
       (message string)))
 (defvar greader-after-change-language-hook nil
-  "The functions stored in this variable are executed just after new
-language is set.")
+  "The functions in this variable are executed just after new language is set.")
+
 (defun greader-set-language (lang)
   "Set language of tts.
 LANG must be in ISO code, for example `en' for English or `fr' for
-French.  This function sets the language of tts locally for current
-buffer, so if you want to set it globally, please use
-`M-x customize-option RET greader-language RET'."
+French."
   (interactive
    (list
     (let ((result (greader-call-backend 'set-voice nil)))
@@ -715,7 +713,7 @@ buffer, so if you want to set it globally, please use
   (greader-call-backend 'punctuation flag))
 
 (defun greader--get-local-language ()
-  "Returns the language code from the system's locale."
+  "Return the language code from the system's locale."
   (let ((locale (or (getenv "LANG") ; First try with the LANG environment variable
                     (getenv "LC_ALL") ; Then with LC_ALL
                     "en")))
@@ -727,7 +725,7 @@ buffer, so if you want to set it globally, please use
 					; Default to "en" if the locale format is unrecognized
 
 (defun greader-get-language ()
-  "return language set in current back-end.
+  "Return language set in current back-end.
 if `current-backend' does not implement `get-language' command, try to
 get the language from the environment."
   (let ((lang nil))
@@ -738,7 +736,7 @@ get the language from the environment."
     lang))
 
 (defun greader-get-rate ()
-  "return the numerical value for current back-end rate."
+  "Return the numerical value for current back-end rate."
   (let ((result (greader-call-backend 'get-rate)))
     (if (not (equal result 'not-implemented))
 	result
@@ -962,7 +960,7 @@ In this mode, greader will enter in tired mode at a customizable time
   (string-to-number (format-time-string "%H")))
 
 (defun greader-convert-time (time)
-  "Not documented, internal use."
+  "Return encoded TIME."
   (let ((current-t (decode-time))
 	(i (nth 2 (decode-time)))
 	(counter (nth 2 (decode-time))))
@@ -982,7 +980,7 @@ In this mode, greader will enter in tired mode at a customizable time
     (apply #'encode-time current-t)))
 
 (defun greader-current-time-in-interval-p (time1 time2)
-  "Not documented, internal use."
+  "Return t if TIME2 is in TIME1."
   (let
       ((current-t (current-time)))
     (if
@@ -1116,7 +1114,7 @@ administrator."
   "Compile espeak voice for a given LANG.
 when called interactively, compile the
 espeak-ng definitions for a given language.
-By default, greader-compile infers the language from the first two
+By default, `greader-compile' infers the language from the first two
 letters of the file you are visiting.
 If its LANG parameter is `non-nil', the function will ask for
 specifying the language to compile, ignoring the current file name
@@ -1168,7 +1166,7 @@ function is specifically designed to be executed by a hook."
        :command command))))
 
 (defun greader-compile--filter (&optional process str)
-  "Filter process for sudo."
+  "Filter PROCESS for sudo based on STR."
   (when (string-match "password" str)
     (process-send-string process (concat (read-passwd str) "\n")))
   (when (string-match "error" str)
@@ -1275,6 +1273,7 @@ When called from a function, you should specify SRC and DST, even if
   :type 'boolean)
 
 (defun greader--forward ()
+  "Internal forward sentence."
   (when (and (equal
 	      (point) greader--marker-backward)
 	     greader-reading-mode)
@@ -1284,6 +1283,7 @@ When called from a function, you should specify SRC and DST, even if
       (beep))))
 
 (defun greader--set-forward-timer ()
+  "Set the timer for `greader-backward'."
   (setq greader--timer-backward
 	(run-with-idle-timer greader-backward-seconds nil
 			     #'greader--forward)))

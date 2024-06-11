@@ -1,5 +1,10 @@
-;; greader-espeak.el  -*- lexical-binding: t; -*-
+;;; greader-espeak.el --- greader back-end for espeak. -*- lexical-binding: t; -*-
 ;; Copyright (C) 2017-2024  Free Software Foundation, Inc.
+
+;;; commentary:
+
+;;; code:
+(require 'ring)
 (defgroup greader-espeak
   nil
   "Back-end of espeak for greader."
@@ -57,8 +62,9 @@ LANG must be recognized by espeak or espeak-ng."
 
 ;;;###autoload
 (defun greader-espeak (command &optional arg &rest _)
-  "Back-end main function of greader-espeak.
-COMMAND must be a string suitable for `make-process'."
+  "Back-end main function for espeak.
+COMMAND must be a string suitable for `make-process'.
+ARG is applied depending on the command."
   (pcase command
     ('executable
      greader-espeak-executable-name)
@@ -98,3 +104,4 @@ COMMAND must be a string suitable for `make-process'."
 (put 'greader-espeak 'greader-backend-name "greader-espeak")
 
 (provide 'greader-espeak)
+;;; greader-espeak.el ends here

@@ -147,6 +147,7 @@ Only the final report will be printed."
   :type '(boolean))
 
 ;; functions
+
 (defun greader-audiobook--get-block ()
   "Get a block of text in current buffer.
 This function uses `greader-audiobook-block-size' to determine the
@@ -157,8 +158,7 @@ Return a cons with start and end of the block or nil if at end of the buffer."
 
   (save-excursion
     (let ((start (point))
-	  (end (point-max))
-	  (words (count-words (point) (point-max))))
+	  (end (point-max)))
       (if (assq major-mode greader-audiobook-modes)
 	  (progn
 	    (search-forward
@@ -167,26 +167,19 @@ Return a cons with start and end of the block or nil if at end of the buffer."
 	    (setq end (point)))
 	(pcase greader-audiobook-block-size
 	  ((pred numberp)
-	   (when
-	       (< (+ (point) greader-audiobook-block-size) (point-max))
-	     (cond
-	      ((> greader-audiobook-block-size 0)
-	       (goto-char (+ (point) greader-audiobook-block-size))
-	       (when (thing-at-point 'sentence)
-		 (forward-sentence))
-	       (setq end (point))))))
+	   (when (> greader-audiobook-block-size 0)
+	     (goto-char (+ (point) greader-audiobook-block-size))
+	     (when (thing-at-point 'sentence)
+	       (forward-sentence)
+	       (setq end (point)))))
 	  ((pred stringp)
 	   (cond
 	    ((> (string-to-number greader-audiobook-block-size) 0)
-	     (when (< (*
-		       (string-to-number greader-audiobook-block-size)
-		       (greader-get-rate))
-		      words)
-	       (forward-word (* (string-to-number
-				 greader-audiobook-block-size)
-				(greader-get-rate)))
-	       (when (thing-at-point 'sentence)
-		 (forward-sentence)))
+	     (forward-word (* (string-to-number
+			       greader-audiobook-block-size)
+			      (greader-get-rate)))
+	     (when (thing-at-point 'sentence)
+	       (forward-sentence))
 	     (setq end (point)))))
 	  (_
 	   (error "Cannot determine the block size"))))

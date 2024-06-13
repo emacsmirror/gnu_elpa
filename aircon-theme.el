@@ -251,6 +251,9 @@
  '(magit-diff-file-heading-highlight     ((t (:inherit (aircon-header)))))
  '(magit-diff-revision-summary-highlight ((t (:inherit (aircon-header)))))
 
+ '(magit-process-ok              ((t (:inherit (success)))))
+ '(magit-process-ng              ((t (:inherit (error)))))
+
  '(dired-directory      ((t (:inherit (aircon-cello bold)))))
  '(dired-header         ((t (:inherit (dired-directory)))))
  '(dired-symlink        ((t (:inherit (italic link)))))

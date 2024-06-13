@@ -208,10 +208,13 @@ Return the generated file name, or nil if at end of the buffer."
 	  (setq text (greader-dehyphenate text))
 	  (when (or greader-dict-mode greader-dict-toggle-filters)
 	    (setq text (greader-dict-check-and-replace text)))
-	  (setq output (call-process command nil nil nil rate language
+	  (setq output (call-process command nil "*espeak-output*" nil
+				     rate language
 				     wave-file text))
-	  (when (= output 0)
-	    (goto-char (cdr block)))
+	  (if (= output 0)
+	      (goto-char (cdr block))
+	    (error "Espeak has generated an error.  Please see
+      *espeak-output* for more information"))
 	  filename)
       nil)))
 
@@ -256,7 +259,7 @@ COUNTER represents the current file name."
 	 (filename nil)
 	 (counter-chars 0))
     (while (< counter-chars (- (length
-				 total-blocks-string)
+				total-blocks-string)
 			       (length counter-string)))
       (setq filename (concat filename "0"))
       (setq counter-chars (+ counter-chars 1)))
@@ -266,10 +269,10 @@ COUNTER represents the current file name."
   "Compress given BOOK-DIRECTORY."
   (let ((zip-args (append (list "-rj")greader-audiobook-zip-args (list
 								  (concat
-							    (string-remove-suffix
-							     "/"
-							     book-directory)
-							    ".zip"))
+								   (string-remove-suffix
+								    "/"
+								    book-directory)
+								   ".zip"))
 			  (list book-directory)))
 	(result nil))
     (setq result (apply 'call-process "zip" nil "*audiobook-zip*" nil
@@ -319,15 +322,15 @@ buffer without the extension, if any."
 	    (make-directory default-directory))
 	  (unless greader-audiobook-buffer-quietly
 	    (message "Starting conversion of %s ."
-							   book-directory))
+		     book-directory))
 	  (while (greader-audiobook--get-block)
 	    (setq output-file-name
 		  (greader-audiobook--calculate-file-name
 		   output-file-counter total-blocks))
 	    (unless greader-audiobook-buffer-quietly
 	      (message "converting block %d of %d"
-							     output-file-counter
-							     total-blocks))
+		       output-file-counter
+		       total-blocks))
 	    (setq output-file-name
 		  (greader-audiobook-convert-block output-file-name))
 	    (if output-file-name
@@ -335,7 +338,7 @@ buffer without the extension, if any."
 		  (when greader-audiobook-transcode-wave-files
 		    (unless greader-audiobook-buffer-quietly
 		      (message "Transcoding block to %s..."
-								     greader-audiobook-transcode-format))
+			       greader-audiobook-transcode-format))
 		    (greader-audiobook-transcode-file
 		     output-file-name)
 		    (when

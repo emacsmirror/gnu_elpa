@@ -161,6 +161,8 @@ Return a cons with start and end of the block or nil if at end of the buffer."
 	  (end (point-max)))
       (if (assq major-mode greader-audiobook-modes)
 	  (progn
+	    (when (looking-at "\\W")
+	      (setq start (re-search-forward "\\W*" nil 1)))
 	    (re-search-forward
 	     (cdr (assq major-mode greader-audiobook-modes))
 	     nil t 1)

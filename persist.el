@@ -122,9 +122,7 @@ to load a previously saved location."
   (let ((initvalue (or initvalue (symbol-value symbol))))
     (add-to-list 'persist--symbols symbol)
     (put symbol 'persist t)
-    (if (hash-table-p initvalue)
-        (put symbol 'persist-default (copy-hash-table initvalue))
-      (put symbol 'persist-default (persist-copy-tree initvalue t)))))
+    (put symbol 'persist-default (persist-copy initvalue))))
 
 (defun persist--persistant-p (symbol)
   "Return non-nil if SYMBOL is a persistent variable."
@@ -164,8 +162,8 @@ variables persist automatically when Emacs exits."
   (get symbol 'persist-default))
 
 (defun persist-reset (symbol)
-  "Reset the value of SYMBOL to the default."
-  (set symbol (persist-default symbol)))
+  "Set the value of SYMBOL to a copy of the default."
+  (set symbol (persist-copy (persist-default symbol))))
 
 (defun persist-load (symbol)
   "Load the saved value of SYMBOL."
@@ -240,6 +238,12 @@ traverses and copies vectors and records as well as conses."
 	    (aset tree i (persist-copy-tree (aref tree i) vectors-and-records)))
 	  tree)
       tree)))
+
+(defun persist-copy (obj)
+  "Return copy of OBJ."
+  (if (hash-table-p obj)
+      (copy-hash-table obj)
+    (persist-copy-tree obj t)))
 
 (provide 'persist)
 ;;; persist.el ends here

@@ -5,7 +5,8 @@
 ;; package-requires: ((emacs "25"))
 ;; Author: Michelangelo Rodriguez <michelangelo.rodriguez@gmail.com>
 ;; Keywords: tools, accessibility
-;; URL: https://www.gitlab.com/michelangelo-rodriguez/greader
+;; URL: https://gitlab.com/michelangelo-rodriguez/greader
+
 ;; package-requires: ((google-translate))
 ;; Version: 0.11.2
 

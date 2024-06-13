@@ -254,6 +254,11 @@
  '(magit-process-ok              ((t (:inherit (success)))))
  '(magit-process-ng              ((t (:inherit (error)))))
 
+ '(transient-key-exit            ((t (:inherit (error)))))
+ '(transient-key-noop            ((t (:inherit (shadow)))))
+ '(transient-key-return          ((t (:inherit (warning)))))
+ '(transient-key-stay            ((t (:inherit (success)))))
+
  '(dired-directory      ((t (:inherit (aircon-cello bold)))))
  '(dired-header         ((t (:inherit (dired-directory)))))
  '(dired-symlink        ((t (:inherit (italic link)))))

@@ -340,6 +340,8 @@
  '(elfeed-log-info-level-face      ((t (:inherit (aircon-sapphire)))))
  '(elfeed-log-warn-level-face      ((t (:inherit (warning)))))
 
+ '(sh-heredoc                      ((t (:inherit (aircon-goblin italic)))))
+ '(sh-quoted-exec                  ((t (:inherit (aircon-hibiscus)))))
  )
 
 ;;;###autoload

@@ -107,7 +107,7 @@ this variable will be ignored to honor the mode specified in
   :type '(choice (natnum :tag "size in characters") (string :tag "size
   in minutes")))
 
-(defcustom greader-audiobook-modes '((ereader-mode . ""))
+(defcustom greader-audiobook-modes '((ereader-mode . "\\W*"))
   "Different treatment of block based on the current major mode.
 Instead of numerical block size, use a string to determine the end of
 each block."
@@ -161,7 +161,7 @@ Return a cons with start and end of the block or nil if at end of the buffer."
 	  (end (point-max)))
       (if (assq major-mode greader-audiobook-modes)
 	  (progn
-	    (search-forward
+	    (re-search-forward
 	     (cdr (assq major-mode greader-audiobook-modes))
 	     nil t 1)
 	    (setq end (point)))

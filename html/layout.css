@@ -190,7 +190,7 @@ dt {
 }
 
 .invisible {
-    display: none;
+  display: none;
 }
 
 header, .header {
@@ -347,6 +347,6 @@ li {
 }
 
 .badge {
-    float: right;
-    display: block;
+  float: right;
+  display: block;
 }

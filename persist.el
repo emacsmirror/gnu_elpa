@@ -1,12 +1,12 @@
 ;;; persist.el --- Persist Variables between Emacs Sessions -*- lexical-binding: t -*-
 
-;; Copyright (C) 2019 Free Software Foundation, Inc.
+;; Copyright (C) 2019, 2024 Free Software Foundation, Inc.
 
 ;; Author: Phillip Lord <phillip.lord@russet.org.uk>
 ;; Maintainer: Joseph Turner <persist-el@breatheoutbreathe.in>
 ;; Package-Type: multi
 ;; Package-Requires: ((emacs "26.1"))
-;; Version: 0.6
+;; Version: 0.6.1
 
 ;; The contents of this file are subject to the GPL License, Version 3.0.
 

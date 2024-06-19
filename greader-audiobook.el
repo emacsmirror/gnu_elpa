@@ -146,6 +146,17 @@ In this way, you will have only the zipped file containing the book."
 Only the final report will be printed."
   :type '(boolean))
 
+(defcustom greader-audiobook-include-track-name-in-audio nil
+  "If t, audio track names will be included at start of each file."
+  :type '(boolean))
+(defcustom greader-audiobook-pause-at-end-of-track t
+  "Enable to add a pause at end of each block."
+  :type '(boolean))
+
+(defcustom greader-audiobook-pause-string "\n.\n.\n.\n.\n.\n"
+  "The string that will be used to generate the pause at end of sentence."
+  :type '(string))
+
 ;; functions
 
 (defun greader-audiobook--get-block ()
@@ -207,9 +218,14 @@ Return the generated file name, or nil if at end of the buffer."
        (text (when block (buffer-substring (car block) (cdr block)))))
     (if block
 	(progn
+	  (when greader-audiobook-include-track-name-in-audio
+	    (setq text (concat (file-name-sans-extension filename)
+			       ".\n" text)))
 	  (setq text (greader-dehyphenate text))
 	  (when (or greader-dict-mode greader-dict-toggle-filters)
 	    (setq text (greader-dict-check-and-replace text)))
+	  (when greader-audiobook-pause-at-end-of-track
+	    (setq text (concat text greader-audiobook-pause-string)))
 	  (setq output (call-process command nil "*espeak-output*" nil
 				     rate language
 				     wave-file text))

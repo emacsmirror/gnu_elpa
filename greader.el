@@ -8,7 +8,7 @@
 ;; URL: https://gitlab.com/michelangelo-rodriguez/greader
 
 ;; package-requires: ((google-translate))
-;; Version: 0.11.4
+;; Version: 0.11.5
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

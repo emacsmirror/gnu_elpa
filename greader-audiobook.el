@@ -184,7 +184,10 @@ Return a cons with start and end of the block or nil if at end of the buffer."
 	     (goto-char (+ (point) greader-audiobook-block-size))
 	     (when (thing-at-point 'sentence)
 	       (forward-sentence)
-	       (setq end (point)))))
+	       (setq end (point)))
+	     (when (looking-at "\\W")
+	       (re-search-forward "\\W*" nil 1))
+	     (setq end (point))))
 	  ((pred stringp)
 	   (cond
 	    ((> (string-to-number greader-audiobook-block-size) 0)
@@ -193,6 +196,8 @@ Return a cons with start and end of the block or nil if at end of the buffer."
 			      (greader-get-rate)))
 	     (when (thing-at-point 'sentence)
 	       (forward-sentence))
+	     (when (looking-at "\\W")
+	       (re-search-forward "\\W*" nil 1))
 	     (setq end (point)))))
 	  (_
 	   (error "Cannot determine the block size"))))

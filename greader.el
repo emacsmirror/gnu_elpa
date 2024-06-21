@@ -1,8 +1,8 @@
-;;; greader.el --- gnamù reader, send buffer contents to a speech engine. -*- lexical-binding: t; -*-
+;;; greader.el --- Gnamù reader, send buffer contents to a speech engine -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017-2024  Free Software Foundation, Inc.
 
-;; package-requires: ((emacs "25"))
+;; package-requires: ((emacs "25.1") (seq "2.24") (compat "29.1.4.5"))
 ;; Author: Michelangelo Rodriguez <michelangelo.rodriguez@gmail.com>
 ;; Keywords: tools, accessibility
 ;; URL: https://gitlab.com/michelangelo-rodriguez/greader
@@ -43,6 +43,7 @@
 ;; 'C-r SPC'
 
 ;;; Code:
+(require 'seq)
 (require 'view)
 (defvar-local greader-timer-flag nil)
 
@@ -62,7 +63,7 @@
 (defvar greader-backend-action #'greader--default-action)
 (defvar greader-status 'paused)
 (defvar greader-synth-process nil)
-(require 'seq)
+
 
 (define-obsolete-variable-alias 'greader-before-get-sentence-functions
   'greader-before-get-sentence-hook
@@ -286,7 +287,7 @@ if set to t, when you call function `greader-read', that function sets a
   :keymap greader-reading-map
   :lighter " reading...")
 
-(defun set-bookmark-for-greader ()
+(defun greader-greader-set-bookmark-for-greader ()
   "Imposta il segnalibro ad ogni interruzione della lettura."
   (when buffer-file-name
     (let ((inhibit-message t))
@@ -299,8 +300,8 @@ when the buffer is visiting a file."
   :lighter " bk"
   :global t
   (if greader-auto-bookmark-mode
-      (add-hook 'greader-after-stop-hook #'set-bookmark-for-greader)
-    (remove-hook 'greader-after-stop-hook #'set-bookmark-for-greader)))
+      (add-hook 'greader-after-stop-hook #'greader-set-bookmark-for-greader)
+    (remove-hook 'greader-after-stop-hook #'greader-set-bookmark-for-greader)))
 ;; greader-region-mode is a non-interactive minor mode that deals with
 ;; read the active region instead of the entire buffer.
 ;; The current implementation of greader probably dictates that the
@@ -1081,7 +1082,7 @@ You must configure this variable in order to use
   `greader-compile-mode'."
   :tag "greader compile source dictionary directory"
   :type '(repeat :tag "directory:" string))
-
+;;;###autoload
 (define-minor-mode greader-compile-mode
   "Espeak voice definition and compilation mode.
 This global minor mode of greader allows saving of an

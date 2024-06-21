@@ -287,7 +287,7 @@ if set to t, when you call function `greader-read', that function sets a
   :keymap greader-reading-map
   :lighter " reading...")
 
-(defun greader-greader-set-bookmark-for-greader ()
+(defun greader-set-bookmark-for-greader ()
   "Imposta il segnalibro ad ogni interruzione della lettura."
   (when buffer-file-name
     (let ((inhibit-message t))

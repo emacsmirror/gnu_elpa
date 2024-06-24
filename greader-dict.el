@@ -6,13 +6,11 @@
 ;; Maintainer:
 ;; Created: Lun Gen  8 09:52:58 2024 (+0100)
 ;; Version:
-;; Package-Requires: ()
 ;; Last-Updated:
 ;;           By:
 ;;     Update #: 0
 ;; URL:
 ;; Doc URL:
-;; Keywords:
 ;; Compatibility:
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -288,12 +286,12 @@ as a word definition."
 		  (greader-dict-read-from-dict-file)))))))
 
 ;; THanks to the loved and alwais useful elisp reference.
-(defun string-hash-ignore-case (a)
+(defun greader-dict--string-hash-ignore-case (a)
   (sxhash-equal (upcase a)))
 
 (define-hash-table-test 'ignore-case
 			'string-equal-ignore-case
-			'string-hash-ignore-case)
+			'greader-dict--string-hash-ignore-case)
 (declare-function string-remove-suffix nil)
 ;; The following two functions deal, respectively, with
 ;; replace a dictionary item with the value specified in

@@ -7,7 +7,6 @@
 ;; <michelangelo.rodriguez@gmail.com>
 
 ;; Created: Dom Mar 31 00:32:55 2024 (+0100)
-;; Package-Requires: ()
 ;; URL: https://gitlab.com/michelangelo-rodriguez/greader
 ;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -159,6 +158,9 @@ Only the final report will be printed."
 
 ;; functions
 
+(defun greader-audiobook--percentage ()
+  "Return the percentage read of the buffer."
+  
 (defun greader-audiobook--get-block ()
   "Get a block of text in current buffer.
 This function uses `greader-audiobook-block-size' to determine the

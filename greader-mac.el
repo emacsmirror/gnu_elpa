@@ -6,8 +6,7 @@
 (defgroup greader-mac
   nil
   "Back-end of mac for greader."
-  :group 'greader
-  )
+  :group 'greader)
 
 (defcustom greader-mac-voice nil
   "Set the desired voice for the tts `say’.

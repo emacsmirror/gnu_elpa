@@ -2,12 +2,11 @@
 
 ;; Copyright (C) 2017-2024  Free Software Foundation, Inc.
 
-;; package-requires: ((emacs "25.1") (seq "2.24") (compat "29.1.4.5"))
+;; package-requires: ((emacs "26.1") (seq "2.24") (compat "29.1.4.5"))
 ;; Author: Michelangelo Rodriguez <michelangelo.rodriguez@gmail.com>
 ;; Keywords: tools, accessibility
 ;; URL: https://gitlab.com/michelangelo-rodriguez/greader
 
-;; package-requires: ((google-translate))
 ;; Version: 0.11.6
 
 ;; This program is free software; you can redistribute it and/or modify

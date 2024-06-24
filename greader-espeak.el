@@ -8,8 +8,7 @@
 (defgroup greader-espeak
   nil
   "Back-end of espeak for greader."
-  :group 'greader
-  )
+  :group 'greader)
 
 (defcustom greader-espeak-language "en"
   "Specifies the language of this back-end.

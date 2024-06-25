@@ -160,7 +160,8 @@ Only the final report will be printed."
 
 (defun greader-audiobook--percentage ()
   "Return the percentage read of the buffer."
-  
+  (let ((unit (/ (point-max) 100)))
+    (/ (point) unit)))
 (defun greader-audiobook--get-block ()
   "Get a block of text in current buffer.
 This function uses `greader-audiobook-block-size' to determine the
@@ -353,9 +354,11 @@ buffer without the extension, if any."
 		  (greader-audiobook--calculate-file-name
 		   output-file-counter total-blocks))
 	    (unless greader-audiobook-buffer-quietly
-	      (message "converting block %d of %d"
+	      (message "converting block %d of %d \(%s\)"
 		       output-file-counter
-		       total-blocks))
+		       total-blocks (concat (number-to-string
+					     (greader-audiobook--percentage))
+					    "\%")))
 	    (setq output-file-name
 		  (greader-audiobook-convert-block output-file-name))
 	    (if output-file-name

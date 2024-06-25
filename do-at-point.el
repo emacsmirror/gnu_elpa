@@ -5,7 +5,7 @@
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <~pkal/public-inbox@lists.sr.ht>
 ;; URL: https://git.sr.ht/~pkal/do-at-point
-;; Version: 0.1.1
+;; Version: 0.1.2
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: convenience
 
@@ -41,6 +41,22 @@
 ;; actions.
 
 ;; Inspired by Embark and `isearch-forward-thing-at-point'.
+
+;;; News:
+
+;;;; Version 0.1.2
+
+;; - New general actions: "delete-region" and "yank-and-swap".
+;;
+;; - New hook `do-at-point-mode-hook'.
+;;
+;; - New minor mode `do-at-point-persist-mode', bound to M-<return> by
+;;   default.  If enabled, it disables the disactivation of selections
+;;   after an action.  To enable it by default, evaluate
+;;
+;;     (add-hook 'do-at-point-hook #'do-at-point-persist-mode)
+;;
+;; - Allow customising the quick-confirm key (by Visuwesh).
 
 ;;; Code:
 

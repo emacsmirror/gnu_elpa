@@ -155,7 +155,10 @@ Only the final report will be printed."
 (defcustom greader-audiobook-pause-string "\n.\n.\n.\n.\n.\n"
   "The string that will be used to generate the pause at end of sentence."
   :type '(string))
-
+(defcustom greader-audiobook-create-m4b nil
+  "If enabled, an m4b file will be created.
+Enabling it implies disabling of the variable `greader-audiobook-compress'."
+  :type '(boolean))
 ;; functions
 
 (defun greader-audiobook--percentage ()
@@ -306,6 +309,97 @@ COUNTER represents the current file name."
     (unless (eq result 0)
       (error "Error while compressing, see buffer *audiobook-zip* for
 more information"))))
+(defun greader-audiobook--get-file-list ()
+  "Return the list of media files in current dir.
+Media files means that those files must have the same extension as
+`greader-audiobook-transcode-format'."
+
+  (let* ((regexp greader-audiobook-transcode-format)
+	 (file-list (directory-files default-directory nil regexp)))
+    file-list))
+
+(defun greader-audiobook--make-index ()
+  "Write a file with all the tracks pertaining to this book."
+  (let* ((output-file-name "filelist.txt")
+	 (file-list (greader-audiobook--get-file-list)))
+    (with-temp-buffer
+      (dolist (file file-list)
+	(insert "file " "\'" file "\'" "\n"))
+      (write-region (point-min) (point-max) output-file-name))))
+
+(defun greader-audiobook--get-file-duration (file-name)
+  "Return the duration of FILE-NAME in milliseconds."
+  (with-temp-buffer
+    (let ((command "ffprobe")
+          (args (list "-i" file-name
+                      "-show_entries" "format=duration"
+                      "-v" "quiet"
+                      "-of" "csv=p=0"))
+          (duration 0)
+          (process nil))
+      (setq process (apply #'call-process command nil t nil args))
+      (if (= process 0)
+          (progn
+            (goto-char (point-min))
+            (unless (re-search-forward "[0-9]+\\.?[0-9]*" nil t)
+              (error "Cannot determine the duration of this file"))
+            (setq duration (match-string 0)))
+        (error
+	 "There was an error while determining the duration of %s"
+	 file-name))
+      (truncate (* (string-to-number duration) 1000)))))
+
+(defun greader-audiobook--make-chapters-file ()
+  "Create a file \=chapters.txt\= with our chapters.
+This file should be compatible with ffmpeg."
+
+  (let* ((output-file-name "chapters.txt")
+	 (file-list (greader-audiobook--get-file-list))
+	 (title (file-name-sans-extension (buffer-name)))
+	 (start 0)
+	 (end 0))
+    (with-temp-buffer
+      (insert
+       ";FFMETADATA1\n"
+       "artist=\n"
+       "title=" title "\n")
+      (dolist (file file-list)
+	(setq end
+	      (+ (greader-audiobook--get-file-duration file) start))
+	(insert
+	 "\[CHAPTER\]\n"
+	 "TIMEBASE=1/1000\n"
+	 "START=" (number-to-string start) "\n"
+	 "END=" (number-to-string end) "\n"
+	 "title="
+	 (file-name-nondirectory (file-name-sans-extension file))
+	 "\n\n")
+	(setq start end))
+      (write-region (point-min) (point-max) output-file-name))))
+
+(defun greader-audiobook-make-m4b ()
+  "Make an m4b file from the current folder."
+  (let* ((command "ffmpeg")
+         (output-file (concat
+                       (expand-file-name
+			greader-audiobook-base-directory)
+                       (file-name-sans-extension (buffer-name)) ".m4b"))
+         (args (list "-f" "concat" "-safe" "0" "-i" "filelist.txt"
+                     "-i" "chapters.txt" "-map_metadata" "1"
+                     "-f" "mp4" output-file))
+         (output-buffer "*ffmpeg-m4b-output*")
+         (process nil)
+         (files-to-delete '("filelist.txt" "chapters.txt")))
+    (greader-audiobook--make-index)
+    (greader-audiobook--make-chapters-file)
+    (setq process
+	  (apply #'call-process command nil output-buffer nil args))
+    (unless (eq process 0)
+      (error
+       "Error while creating m4b file.  Please see %s for more information"
+       output-buffer))
+    (mapc #'delete-file files-to-delete))
+  t)
 
 ;;;###autoload
 (defun greader-audiobook-buffer (&optional start-position)
@@ -318,6 +412,15 @@ This function will create a directory under
 buffer without the extension, if any."
 
   (interactive "P")
+  (when (directory-files greader-audiobook-base-directory nil
+			 (file-name-sans-extension (buffer-name)))
+    (let ((response (yes-or-no-p "This audiobook already
+  exists.  Overwrite it?")))
+      (if response
+	  (delete-directory (concat greader-audiobook-base-directory
+				    (file-name-sans-extension (buffer-name)))
+			    t t)
+	(user-error "Audiobook creation aborted by user"))))
   (unless greader-audiobook-buffer-quietly
     (message "Preparing for conversion (this could take some time...)"))
   (let ((end-position (point-max)))
@@ -374,7 +477,16 @@ buffer without the extension, if any."
 		      (delete-file output-file-name)))
 		  (setq output-file-counter (+ output-file-counter 1)))
 	      (error "An error has occurred while converting")))
-	  (when greader-audiobook-compress
+	  (when greader-audiobook-create-m4b
+	    (unless greader-audiobook-buffer-quietly
+	      (message "Building m4b..."))
+	    (greader-audiobook-make-m4b)
+	    (setq book-directory (concat (string-remove-suffix "/"
+							       book-directory)
+					 ".m4b")))
+	  (when
+	      (and greader-audiobook-compress
+		   (not greader-audiobook-create-m4b))
 	    (setq default-directory greader-audiobook-base-directory)
 	    (unless greader-audiobook-buffer-quietly
 	      (message "compressing %s..." book-directory))
@@ -387,6 +499,7 @@ buffer without the extension, if any."
 	  (message "conversion terminated and saved in %s"
 		   (concat greader-audiobook-base-directory
 			   book-directory)))))))
+
 
 (provide 'greader-audiobook)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

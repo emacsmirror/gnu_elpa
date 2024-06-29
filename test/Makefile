@@ -1,7 +1,7 @@
 # -*- coding: utf-8; -*-
 # Emacs Makefile for Tramp
 
-# Copyright (C) 2019 Free Software Foundation, Inc.
+# Copyright (C) 2019-2024 Free Software Foundation, Inc.
 
 # Author: Michael Albinus <michael.albinus@gmx.de>
 # Keywords: comm, processes
@@ -54,4 +54,5 @@ distclean: clean
 
 # This target is for the maintainer only.
 sync:
+	cp -p $(SOURCE_DIR)/test/tramp-archive-tests.el tramp-archive-tests.el
 	cp -p $(SOURCE_DIR)/test/tramp-tests.el tramp-tests.el

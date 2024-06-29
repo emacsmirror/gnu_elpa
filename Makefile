@@ -1,4 +1,4 @@
-# Copyright (C) 2019 Free Software Foundation, Inc.
+# Copyright (C) 2019-2024 Free Software Foundation, Inc.
 
 # Author: Michael Albinus <michael.albinus@gmx.de>
 # Keywords: comm, processes
@@ -51,6 +51,7 @@ clean:
 # This target is for the maintainer only.
 sync:
 	cp -p $(SOURCE_DIR)/lisp/tramp-adb.el tramp-adb.el
+	cp -p $(SOURCE_DIR)/lisp/tramp-androidsu.el tramp-androidsu.el
 	cp -p $(SOURCE_DIR)/lisp/tramp-archive.el tramp-archive.el
 	cp -p $(SOURCE_DIR)/lisp/tramp-cache.el tramp-cache.el
 	cp -p $(SOURCE_DIR)/lisp/tramp-cmds.el tramp-cmds.el
@@ -61,6 +62,7 @@ sync:
 	cp -p $(SOURCE_DIR)/lisp/tramp-fuse.el tramp-fuse.el
 	cp -p $(SOURCE_DIR)/lisp/tramp-gvfs.el tramp-gvfs.el
 	cp -p $(SOURCE_DIR)/lisp/tramp-integration.el tramp-integration.el
+	cp -p $(SOURCE_DIR)/lisp/tramp-message.el tramp-message.el
 	cp -p $(SOURCE_DIR)/lisp/tramp-rclone.el tramp-rclone.el
 	cp -p $(SOURCE_DIR)/lisp/tramp-sh.el tramp-sh.el
 	cp -p $(SOURCE_DIR)/lisp/tramp-smb.el tramp-smb.el

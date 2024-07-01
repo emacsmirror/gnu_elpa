@@ -500,6 +500,30 @@ buffer without the extension, if any."
 		   (concat greader-audiobook-base-directory
 			   book-directory)))))))
 
+(defvar greader-audiobook-transcode-history nil)
+
+(defun greader-audiobook-retranscode (audiobook-directory new-format)
+  "Transcode an AUDIOBOOK-DIRECTORY into NEW-FORMAT.
+If `greader-audiobook-cancel-intermediate-wave-files is enabled, then
+original files will be deleted."
+
+  (interactive
+   (let ((book-directory (read-directory-name "Audiobook to
+re-transcode (directory): " greader-audiobook-base-directory nil t))
+	 (new-format (read-string "New format: " nil
+				 'greader-audiobook-transcode-history)))
+     (list book-directory new-format)))
+  (let* ((default-directory audiobook-directory)
+	 (greader-audiobook-transcode-format new-format)
+	 (file-list (directory-files default-directory nil
+				    "^[[:digit:]]")))
+    (dolist (file file-list)
+      (unless greader-audiobook-buffer-quietly
+	(message "Re-transcoding file %s..." file))
+      (greader-audiobook-transcode-file file)
+      (when greader-audiobook-cancel-intermediate-wave-files
+	(delete-file file)))
+    (message "re-transcoding finished.")))
 
 (provide 'greader-audiobook)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -501,7 +501,7 @@ Return nil if KEY is not present in `greader-dictionary'."
 				 greader-dict--current-reading-buffer))
     (maphash
      (lambda (k v)
-       (insert (concat "\"" k "\"" "=" v "\n")))
+       (insert "\"" k "\"" "=" v "\n"))
      greader-dictionary)
     (write-region (point-min) (point-max)
 		  (greader-dict--get-file-name)))

@@ -1224,10 +1224,10 @@ When called from a function, you should specify SRC and DST, even if
   (unless src
     (setq src (thing-at-point 'word t))
     (unless src
-      (setq src (read-string "Word to add:"))))
+      (setq src (read-string "Word to add: "))))
 
   (when (listp src)
-    (setq src (read-string "word to add:"))
+    (setq src (read-string "word to add: "))
     (if (equal src "")
 	(setq src (thing-at-point 'word t))))
   (unless dst
@@ -1242,7 +1242,7 @@ When called from a function, you should specify SRC and DST, even if
 		   greader-compile-default-source))))
     (with-current-buffer (find-file-noselect lang-file)
       (goto-char (point-max))
-      (insert (concat src " " dst "\n"))
+      (insert src " " dst "\n")
       (save-buffer)
       (unless greader-compile-mode
 	(greader-compile)))))

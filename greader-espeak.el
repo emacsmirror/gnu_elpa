@@ -74,7 +74,7 @@ LANG must be recognized by espeak or espeak-ng."
 				    "no"))
 
 ;;;###autoload
-(defun greader-espeak (command &optional arg &rest _)
+(defun greader-espeak (command &optional arg)
   "Back-end main function for espeak.
 COMMAND must be a string suitable for `make-process'.
 ARG is applied depending on the command."

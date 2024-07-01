@@ -62,7 +62,7 @@ providing completion."
   (when greader-mac-voice (concat "-v" greader-mac-voice)))
 
 ;;;###autoload
-(defun greader-mac (command &optional arg &rest _)
+(defun greader-mac (command &optional arg)
   "Back-end main function of greader-mac.
 COMMAND must be a string suitable for `make-process'."
   (pcase command

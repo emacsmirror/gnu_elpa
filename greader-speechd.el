@@ -150,7 +150,7 @@ based on `greader-speechd--ring-item'"
 					      greader-speechd--ring-item)))
 
 ;;;###autoload
-(defun greader-speechd (command &optional arg &rest _)
+(defun greader-speechd (command &optional arg)
   "greader speech-dispatcher back-end."
   (greader-speechd-start-server)
   (pcase command

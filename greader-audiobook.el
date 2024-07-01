@@ -274,7 +274,7 @@ You have certain control of how this happens by configuring
 				   "."
 				   greader-audiobook-transcode-format))))
        (result nil))
-    (setq result (apply 'call-process "ffmpeg" nil "*ffmpeg-output*"
+    (setq result (apply #'call-process "ffmpeg" nil "*ffmpeg-output*"
 			nil ffmpeg-args))
     (unless (eq result 0)
       (error "Error while transcoding, see buffer `*ffmpeg-output*'"))))
@@ -304,7 +304,7 @@ COUNTER represents the current file name."
 								   ".zip"))
 			  (list book-directory)))
 	(result nil))
-    (setq result (apply 'call-process "zip" nil "*audiobook-zip*" nil
+    (setq result (apply #'call-process "zip" nil "*audiobook-zip*" nil
 			zip-args))
     (unless (eq result 0)
       (error "Error while compressing, see buffer *audiobook-zip* for

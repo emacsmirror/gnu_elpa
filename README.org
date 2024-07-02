@@ -1,0 +1,7 @@
+# -*- after-save-hook: (org-md-export-to-markdown); -*-
+#+options: toc:nil
+
+* Cobol-mode
+
+This is an major-mode for editing COBOL code in Emacs.
+

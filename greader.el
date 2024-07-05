@@ -429,7 +429,7 @@ available backends."
 (defun greader-load-backends ()
   "Load backends taken from `greader-backends'."
   (mapcar #'require greader-backends))
-
+(greader-load-backends)
 (defun greader-read-asynchronous (txt)
   "Read the text given in TXT."
   (if greader-debug

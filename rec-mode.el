@@ -6,7 +6,7 @@
 ;; Maintainer: Antoine Kalmbach <ane@iki.fi>
 ;; URL: https://www.gnu.org/software/recutils/
 ;; Package-Requires: ((emacs "25"))
-;; Version: 1.9.3
+;; Version: 1.9.4
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -207,8 +207,8 @@ hidden by default in navigation mode.")
 (defvar rec-font-lock-keywords
   `((,(concat "^" rec-keyword-prefix "[a-zA-Z0-9_]+:") . 'rec-keyword-face)
     (,rec-type-re . (1 font-lock-function-name-face))
-    (,(regexp-opt rec-constants) . 'font-lock-constant-face)
-    (,(regexp-opt rec-field-types) . 'font-lock-type-face)
+    (,(regexp-opt rec-constants 'words) . 'font-lock-constant-face)
+    (,(regexp-opt rec-field-types 'words) . 'font-lock-type-face)
     (,rec-field-name-re . 'rec-field-name-face)
     ("^\\+" . 'rec-continuation-line-face))
   "Font lock keywords used in `rec-mode'.")

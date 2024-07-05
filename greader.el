@@ -44,6 +44,7 @@
 ;;; Code:
 (require 'seq)
 (require 'view)
+(greader-load-backends)
 (defvar-local greader-timer-flag nil)
 
 (defvar greader-auto-tired-timer nil)
@@ -385,10 +386,6 @@ This only happens if the variables `greader-start-region' and
       (funcall greader-current-backend command arg)
     (funcall greader-current-backend command)))
 
-(defun greader-load-backends ()
-  "Load backends taken from `greader-backends'."
-  (mapcar #'require greader-backends))
-(greader-load-backends)
 (defvar
   greader-backend-filename
   (greader-call-backend 'executable))
@@ -430,6 +427,10 @@ available backends."
 	                 greader-backends)))))
   (message "Current back-end is %s"
            (get greader-current-backend 'greader-backend-name)))
+
+(defun greader-load-backends ()
+  "Load backends taken from `greader-backends'."
+  (mapcar #'require greader-backends))
 
 (defun greader-read-asynchronous (txt)
   "Read the text given in TXT."

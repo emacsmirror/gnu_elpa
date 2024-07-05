@@ -384,9 +384,14 @@ This only happens if the variables `greader-start-region' and
   (if arg
       (funcall greader-current-backend command arg)
     (funcall greader-current-backend command)))
-(defvar
-  greader-backend-filename
+(defun greader-load-backends ()
+  "Load backends taken from `greader-backends'."
+  (mapcar #'require greader-backends))
+(greader-load-backends)
+
+(defvar   greader-backend-filename
   (greader-call-backend 'executable))
+
 (defvar greader-backend `(,greader-backend-filename))
 (defvar greader-orig-buffer nil)
 (defvar greader-dissoc-buffer "*Dissociation*")
@@ -426,10 +431,8 @@ available backends."
   (message "Current back-end is %s"
            (get greader-current-backend 'greader-backend-name)))
 
-(defun greader-load-backends ()
-  "Load backends taken from `greader-backends'."
-  (mapcar #'require greader-backends))
-(greader-load-backends)
+
+
 (defun greader-read-asynchronous (txt)
   "Read the text given in TXT."
   (if greader-debug

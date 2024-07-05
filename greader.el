@@ -44,7 +44,6 @@
 ;;; Code:
 (require 'seq)
 (require 'view)
-(greader-load-backends)
 (defvar-local greader-timer-flag nil)
 
 (defvar greader-auto-tired-timer nil)
@@ -385,7 +384,6 @@ This only happens if the variables `greader-start-region' and
   (if arg
       (funcall greader-current-backend command arg)
     (funcall greader-current-backend command)))
-
 (defvar
   greader-backend-filename
   (greader-call-backend 'executable))

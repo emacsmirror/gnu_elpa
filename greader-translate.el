@@ -94,7 +94,7 @@ case of error."
 ;;;###autoload
 (define-minor-mode greader-translate-mode
   nil
-  :lighter "gr-transl "
+  :lighter " gr-transl"
   (if greader-translate-mode
       (progn
 	(add-hook 'greader-after-get-sentence-functions

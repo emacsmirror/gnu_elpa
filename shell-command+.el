@@ -284,6 +284,12 @@ prefix the command with \"../../../../\" or \"....\".")
   (pcase-let ((`(,_ ,directory) (shell-command+-tokenize command)))
     (cd directory)))
 
+(defun shell-command+-cmd-clear (&rest _command)
+  "Empty the contents of the the *Shell Output* buffer."
+  (with-current-buffer (or (bound-and-true-p shell-command-buffer-name)
+                           "*Shell Command Output*")
+    (erase-buffer)))
+
 (defcustom shell-command+-substitute-alist
   '(("grep" . shell-command+-cmd-grep)
     ("fgrep" . shell-command+-cmd-grep)
@@ -297,7 +303,8 @@ prefix the command with \"../../../../\" or \"....\".")
     ("diff" . shell-command+-cmd-diff)
     ("make" . compile)
     ("sudo" . shell-command+-cmd-sudo)
-    ("cd" . shell-command+-cmd-cd))
+    ("cd" . shell-command+-cmd-cd)
+    ("clear" . shell-command+-cmd-clear))
   "Association of command substitutes in Elisp.
 Each entry has the form (COMMAND . FUNC), where FUNC is passed
 the command string.  To disable all command substitutions, set

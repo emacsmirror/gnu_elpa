@@ -288,7 +288,8 @@ prefix the command with \"../../../../\" or \"....\".")
   "Empty the contents of the the *Shell Output* buffer."
   (with-current-buffer (or (bound-and-true-p shell-command-buffer-name)
                            "*Shell Command Output*")
-    (erase-buffer)))
+    (erase-buffer)
+    (bury-buffer)))
 
 (defcustom shell-command+-substitute-alist
   '(("grep" . shell-command+-cmd-grep)

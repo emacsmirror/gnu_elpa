@@ -108,9 +108,13 @@ this variable will be ignored to honor the mode specified in
 
 (defcustom greader-audiobook-modes '((ereader-mode . "\\W*"))
   "Different treatment of block based on the current major mode.
-Instead of numerical block size, use a string to determine the end of
-each block."
-  :type '(alist :key-type (symbol :tag "mode") :value-type (string)))
+Instead of numerical block size, use a string or function to determine the end
+of each block.
+If you specify a function, that function has to return a cons in which
+car represents the start of the block, and cdr represents the end,
+or nil if there are no more blocks to convert."
+  :type '(alist :key-type (symbol :tag "mode") :value-type (choice
+  (string  function))))
 
 (defcustom greader-audiobook-transcode-wave-files nil
   "If enabled,  transcode original wave files using `ffmpeg'."
@@ -417,9 +421,12 @@ buffer without the extension, if any."
     (let ((response (yes-or-no-p "This audiobook already
   exists.  Overwrite it?")))
       (if response
-	  (delete-directory (concat greader-audiobook-base-directory
-				    (file-name-sans-extension (buffer-name)))
-			    t t)
+	  (progn
+	    (unless greader-audiobook-buffer-quietly
+	      (message "removing old audiobook..."))
+	    (delete-directory (concat greader-audiobook-base-directory
+				      (file-name-sans-extension (buffer-name)))
+			      t t))
 	(user-error "Audiobook creation aborted by user"))))
   (unless greader-audiobook-buffer-quietly
     (message "Preparing for conversion (this could take some time...)"))

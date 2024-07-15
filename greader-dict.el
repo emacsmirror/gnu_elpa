@@ -182,6 +182,7 @@
   "C-r d k" #'greader-dict-remove-entry
   "C-r d c" #'greader-dict-change-dictionary
   "C-r d l" #'greader-dict-pronounce-in-other-language
+  "C-r d m" #'greader-dict-modify-key
   "C-r d s" #'greader-dict-save)
 
 (defvar greader-dict--type-file-alternatives '(buffer mode global))

@@ -162,7 +162,7 @@
 					(filter
 					 . "\%f")
 					(word . ""))
-  "item types and relative prefixes.")
+  "Item types and relative prefixes.")
 
 ;; This function saves the contents of the hash table.
 (defvar greader-dict-directory (concat user-emacs-directory
@@ -415,30 +415,20 @@ Return nil if KEY is not present in `greader-dictionary'."
    ((gethash word greader-dictionary)
     word)
    (t
-    (let ((reduced-dictionary (make-hash-table :test 'ignore-case)))
+    (let ((reduced-dictionary (make-hash-table :test 'ignore-case))
+	  (key nil))
       (dolist (item (greader-dict--get-matches 'match))
 	(puthash item (gethash item greader-dictionary)
 		 reduced-dictionary))
-      (let ((key nil))
-	(catch 'matched
-	  (maphash
-	   (lambda (k _v)
-	     (let* ((result (string-remove-suffix
-			     greader-dict-match-indicator k))
-		    (candidate-matches (string-split result "\\W" t)))
-	       (setq candidate-matches (sort candidate-matches
-					     (lambda (s1 s2) (>
-							      (length
-							       s1)
-							      (length
-							       s2)))))
-	       (dolist (candidate candidate-matches)
-		 ;; (message "%s" (concat "matching " candidate " against " word "..."))
-		 (when (string-match candidate word)
-		   ;; (message "Matched!")
-		   (setq key (concat k greader-dict-match-indicator))
-		   (throw 'matched key)))))
-	   reduced-dictionary)))))))
+      (catch 'key-matched
+	(maphash
+	 (lambda (k _v)
+	   (setq k (string-remove-suffix greader-dict-match-indicator k))
+	   (when (string-match k word)
+	     (setq key (concat k greader-dict-match-indicator))
+	     (throw 'key-matched key)))
+	 reduced-dictionary))
+      key      ))))
 
 ;; This function checks that, in the string you pass to it, there are
 ;; effectively words to be replaced. If so, use apis

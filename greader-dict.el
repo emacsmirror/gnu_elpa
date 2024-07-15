@@ -635,7 +635,9 @@ modify: "
 	(setq value (read-string (concat "substitute " key " with: ")
 				 nil nil
 				 (gethash key greader-dictionary)))
-	(greader-dict-add key value))))))
+	(greader-dict-add key value)))))
+  (deactivate-mark t))
+
 (declare-function hash-table-keys nil)
 (defun greader-dict-remove-entry (key)
   "Remove KEY from the dictionary.

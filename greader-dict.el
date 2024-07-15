@@ -586,7 +586,10 @@ the current sentence."
       (unless key
 	(user-error "Input is empty: aborting"))
       (setq key (concat key greader-dict-match-indicator))
-      (setq value (read-string (concat "substitute regexp " key "with:
+      (setq value (read-string (concat "substitute regexp "
+				       (string-remove-suffix
+					greader-dict-match-indicator
+					key) " with:
 ")
 			       nil nil(gethash key greader-dictionary)))
       (greader-dict-add key value))

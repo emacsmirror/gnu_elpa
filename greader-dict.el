@@ -843,12 +843,14 @@ If TYPE is `all', all items in the current dictionary will be included."
      (lambda (s1 s2)
        (string-greaterp s2 s1)))))
 (defun greader-dict-modify-key (arg)
-  "Modify a key (_NOT_ a value associated with it!).
+  "Modify a key \(_NOT_ a value associated with it!\).
 While `greader-dict-add-entry can modify either keys or associated
 values, `greader-dict-modify-key' allows you to modify the key
 itself, without modifying the associated value.
 if prefix ARG is non-nil, then this command proposes only keys that
-are classified as matches."
+are classified as matches.
+When called without a prefix, it modifies only keys that are
+classified as words."
   (interactive "P")
   (let ((key (read-string "key to modify: " nil nil (if arg
 							(greader-dict--get-matches

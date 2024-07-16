@@ -856,7 +856,7 @@ classified as words."
 							(greader-dict--get-matches
 							 'match)
 						      (greader-dict--get-matches
-						       'all))))
+						       'word))))
 	(new-key nil))
     (unless key
       (user-error "Key not valid"))

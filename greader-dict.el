@@ -424,7 +424,8 @@ Return nil if KEY is not present in `greader-dictionary'."
       (catch 'key-matched
 	(maphash
 	 (lambda (k _v)
-	   (setq k (string-remove-suffix greader-dict-match-indicator k))
+	   (setq k
+		 (string-remove-suffix greader-dict-match-indicator k))
 	   (when (string-match k word)
 	     (setq key (concat k greader-dict-match-indicator))
 	     (throw 'key-matched key)))
@@ -520,7 +521,8 @@ user-error and aborts the reading process."
       (setq greader-filters (buffer-local-value 'greader-filters
 						greader-dict--current-reading-buffer))
       (setq greader-dict-toggle-filters (buffer-local-value
-					 'greader-dict-toggle-filters greader-dict--current-reading-buffer))
+					 'greader-dict-toggle-filters
+					 greader-dict--current-reading-buffer))
       (insert-file-contents (greader-dict--get-file-name))
       (when-let ((lines (string-lines (buffer-string) t)))
 	(dolist (line lines)
@@ -590,7 +592,8 @@ the current sentence."
       (setq value (read-string (concat "substitute regexp "
 				       (string-remove-suffix
 					greader-dict-match-indicator
-					key) " with:
+					key)
+				       " with:
 ")
 			       nil nil(gethash key greader-dictionary)))
       (greader-dict-add key value))

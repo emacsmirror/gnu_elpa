@@ -589,7 +589,7 @@ the current sentence."
       (unless key
 	(user-error "Input is empty: aborting"))
       (setq key (concat key greader-dict-match-indicator))
-      (setq value (read-string (concat "substitute regexp "
+      (setq value (read-string (concat "substitute match "
 				       (string-remove-suffix
 					greader-dict-match-indicator
 					key)

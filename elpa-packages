@@ -275,6 +275,7 @@
  ;; `eldoc-eval' is obsoleted by core support for eldoc in minibuffer (2013).
  ;;(eldoc-eval		:url "https://github.com/thierryvolpiatto/eldoc-eval.git")
  (electric-spacing	:url nil)
+ (elisa                 :url "https://github.com/s-kostyaev/elisa")
  (elisp-benchmarks	:url nil)
  (ellama		:url "https://github.com/s-kostyaev/ellama")
  (emacs-gc-stats	:url "https://git.sr.ht/~yantar92/emacs-gc-stats"

@@ -829,7 +829,7 @@
  (web-server		:url "https://github.com/eschulte/emacs-web-server.git")
  (webfeeder		:url "https://gitlab.com/ambrevar/emacs-webfeeder.git")
  (websocket		:url "https://github.com/ahyatt/emacs-websocket.git")
- (which-key           	:url "https://github.com/justbur/emacs-which-key")
+ (which-key           	:core "lisp/which-key.el")
  (window-commander	:url "https://git.sr.ht/~dsemy/window-commander"
   :readme ignore
   :doc "window-commander.texi"

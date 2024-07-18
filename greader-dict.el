@@ -350,6 +350,8 @@ If you want to add a partial replacement, you should
 add `\*'to the end of the WORD string parameter."
   ;; We prevent an infinite loop if disallowing that key and values
   ;; are the same.
+  (unless replacement
+    (setq replacement ""))
   (when (string-equal-ignore-case word replacement)
     (user-error "key and value are the same, aborting"))
   (puthash word replacement greader-dictionary)
@@ -926,6 +928,8 @@ in the current sentence."
 		(gethash (concat key greader-dict-filter-indicator)
 			 greader-dictionary))))
      (list key value)))
+  (while (string-match "\n" key)
+    (setq key (replace-match "[[:space:]]" nil nil key)))
   (greader-dict-add (concat key greader-dict-filter-indicator) value)
   (greader-dict--filter-init))
 
@@ -982,11 +986,11 @@ hash table."
   "Apply filters defined in sequence to the current buffer."
   (maphash
    (lambda (k v)
+     (setq k (string-remove-suffix greader-dict-filter-indicator k))
+     (setq k (string-trim-right k))
      (save-excursion
        (goto-char (point-min))
-       (while (re-search-forward (string-remove-suffix
-				  greader-dict-filter-indicator k)
-				 nil t)
+       (while (re-search-forward k nil t)
 	 (replace-match v))))
    greader-filters))
 

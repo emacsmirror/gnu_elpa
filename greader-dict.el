@@ -335,7 +335,7 @@ as a word definition."
 	       (concat (match-string 1)
 		       (gethash match greader-dictionary)
 		       (match-string 3))))
-	  (replace-match replacement))
+	  (replace-match replacement nil t))
 	(goto-char (point-min))))))
 
 ;; This function adds to the `greader-dictionary' variable the

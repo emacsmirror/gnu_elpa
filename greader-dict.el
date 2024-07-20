@@ -575,7 +575,7 @@ word, it will be added as a match.
 If neither the region is active nor point is on a word, simply asks
 for definition and substitution, without defaults.
 If called with prefix argument, ask for a match.
-In this case you can type a regular expression.
+In this case you can type a partial word or a regular expression.
 You can use regular expressions to, for example, craft filters instead
 of pronunciation rules.
 If the customizable variable
@@ -881,7 +881,7 @@ classified as words."
   (if-let ((alternatives text))
       (progn
 	(setq alternatives nil)
-	(dolist (word (split-string text "\\W" t))
+	(dolist (word (split-string (substring-no-properties text) "\\W" t))
 	  (unless (member word alternatives)
 	    (push word alternatives)))
 	(reverse alternatives))

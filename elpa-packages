@@ -198,8 +198,7 @@
  (csharp-mode		:url "https://github.com/emacs-csharp/csharp-mode"
   :readme "README.org")
  (csv-mode		:url nil)
- (cursor-undo           :url nil
-  :doc "README.txt")
+ (cursor-undo		:url nil)
  (cursory		:url "https://github.com/protesilaos/cursory"
   :doc "README.org"
   :news "CHANGELOG.org"

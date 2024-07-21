@@ -1,12 +1,12 @@
 ;;; visual-filename-abbrev.el --- Visually abbreviate filenames  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019-2022 Free Software Foundation, Inc
+;; Copyright (C) 2019-2022, 2024 Free Software Foundation, Inc
 
 ;; Author: Tassilo Horn <tsdh@gnu.org>
 ;; Maintainer: Tassilo Horn <tsdh@gnu.org>
 ;; Keywords: tools
 ;; Package-Requires: ((emacs "26.1"))
-;; Version: 1.2
+;; Version: 1.3
 
 ;; This file is part of GNU Emacs.
 
@@ -122,6 +122,15 @@ This takes the font at POS into account."
 	(< (visual-filename-abbrev--get-visual-width abbrev font)
 	   (visual-filename-abbrev--get-visual-width filename font))))))
 
+(defun visual-filename-abbrev--line-wider-than-window-p (_buffer pos _filename _abbrev)
+  "Return non-nil if the line with POS is wider than the width of the window."
+  (save-excursion
+    (goto-char pos)
+    (< (window-width nil t)
+       (string-pixel-width
+        (buffer-substring (line-beginning-position)
+                          (line-end-position))))))
+
 (defcustom visual-filename-abbrev-predicates
   (list #'visual-filename-abbrev--abbrev-visually-shorter-p)
   "A list of predicates inhibiting abbreviation of a filename.
@@ -148,7 +157,16 @@ These predicates are available:
     that an abbreviation is only shown if it is visually shorter
     than the original filename, i.e., it takes the current font
     and, e.g., double-width unicode characters into account.
-    This predicate is a bit more expensive to compute."
+    This predicate is a bit more expensive to compute.
+
+  - `visual-filename-abbrev--line-wider-than-window-p' allows
+    abbreviations only if the line the filename is on is wider than the
+    width of the window, i.e., abbreviations are only shown if the
+    window is too narrow for the unabbreviated filename.  This predicate
+    is best used together with one of the other predicates.  It also
+    allows to relax `visual-filename-abbrev-regex' a bit to cover
+    filenames without extension which can lead to too many false
+    positives otherwise."
   :group 'visual-filename-abbrev
   :type '(repeat function))
 

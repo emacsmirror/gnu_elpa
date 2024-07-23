@@ -1000,7 +1000,8 @@ hash table."
 	 (replace-match v))))
    greader-filters))
 
-(defun greader-dict--add-match-as-word (key word replacement)
+(defun greader-dict--add-match-as-word (key word replacement &optional
+					    original-word)
   "Add WORD and REPLACEMENT to the current dictionary.
 This function is used internally, please use the normal entry-points
 to add your own items to the dictionary."
@@ -1009,13 +1010,18 @@ to add your own items to the dictionary."
     (string-match key word)
     (setq start (match-beginning 0))
     (setq end (match-end 0))
-    (setq key word)
     (when (> start 0)
       (setq value (concat (substring word 0 start))))
     (setq value (concat value replacement))
     (when (> (length word) (length value))
       (setq value (concat value (substring word end))))
-    (greader-dict-add key value)))
+    (if (string-match key value)
+	(progn
+	  (setq original-word word)
+	  (greader-dict--add-match-as-word key value replacement
+					   original-word))
+      (setq key (or original-word word))
+      (greader-dict-add key value))))
 
 (provide 'greader-dict)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

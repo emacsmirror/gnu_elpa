@@ -619,12 +619,15 @@ the current sentence."
 modify: "
 				   nil
 				   nil
-				   (append (list default-word)(when
-								  greader-dict-include-sentences-in-defaults
-								(greader-dict--get-word-alternatives
-								 (greader-get-sentence)))
-					   (greader-dict--get-matches
-					    'word))))
+				   (append (list
+					    (substring-no-properties
+					     default-word))
+					   (when
+					    greader-dict-include-sentences-in-defaults
+					    (greader-dict--get-word-alternatives
+					     (greader-get-sentence)))
+					     (greader-dict--get-matches
+					      'word))))
 	    (setq value (read-string (concat "substitute word " key
 					     " with: ")
 				     (gethash key greader-dictionary)))
@@ -881,7 +884,9 @@ classified as words."
   (if-let ((alternatives text))
       (progn
 	(setq alternatives nil)
-	(dolist (word (split-string (substring-no-properties text) "\\W" t))
+	(dolist
+	    (word
+	     (split-string (substring-no-properties text) "\\W" t))
 	  (unless (member word alternatives)
 	    (push word alternatives)))
 	(reverse alternatives))

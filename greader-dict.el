@@ -425,10 +425,11 @@ Return nil if KEY is not present in `greader-dictionary'."
 		 reduced-dictionary))
       (catch 'key-matched
 	(maphash
-	 (lambda (k _v)
+	 (lambda (k v)
 	   (setq k
 		 (string-remove-suffix greader-dict-match-indicator k))
 	   (when (string-match k word)
+	     (greader-dict--add-match-as-word k word v)
 	     (setq key (concat k greader-dict-match-indicator))
 	     (throw 'key-matched key)))
 	 reduced-dictionary))
@@ -623,11 +624,11 @@ modify: "
 					    (substring-no-properties
 					     default-word))
 					   (when
-					    greader-dict-include-sentences-in-defaults
-					    (greader-dict--get-word-alternatives
-					     (greader-get-sentence)))
-					     (greader-dict--get-matches
-					      'word))))
+					       greader-dict-include-sentences-in-defaults
+					     (greader-dict--get-word-alternatives
+					      (greader-get-sentence)))
+					   (greader-dict--get-matches
+					    'word))))
 	    (setq value (read-string (concat "substitute word " key
 					     " with: ")
 				     (gethash key greader-dictionary)))
@@ -998,6 +999,23 @@ hash table."
        (while (re-search-forward k nil t)
 	 (replace-match v))))
    greader-filters))
+
+(defun greader-dict--add-match-as-word (key word replacement)
+  "Add WORD and REPLACEMENT to the current dictionary.
+This function is used internally, please use the normal entry-points
+to add your own items to the dictionary."
+
+  (let (value start end)
+    (string-match key word)
+    (setq start (match-beginning 0))
+    (setq end (match-end 0))
+    (setq key word)
+    (when (> start 0)
+      (setq value (concat (substring word 0 start))))
+    (setq value (concat value replacement))
+    (when (> (length word) (length value))
+      (setq value (concat value (substring word end))))
+    (greader-dict-add key value)))
 
 (provide 'greader-dict)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

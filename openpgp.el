@@ -1,6 +1,6 @@
 ;;; openpgp.el --- Client for keys.openpgp.org       -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020, 2023  Free Software Foundation, Inc.
+;; Copyright (C) 2020, 2023, 2024  Free Software Foundation, Inc.
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <~pkal/public-inbox@lists.sr.ht>
@@ -74,6 +74,7 @@ STATUS is a plist described in the docstring for `url-retrieve'."
 ;;;###autoload
 (defun openpgp-fetch-key-by-fingerprint (fingerprint)
   "Query key via FINGERPRINT and add to keychain."
+  (interactive "sFingerprint: ")
   (let ((fingerprint (string-remove-prefix "0X" (upcase fingerprint))))
     (url-retrieve (openpgp--api-url "by-fingerprint" fingerprint)
 		  #'openpgp--process-key)))
@@ -81,13 +82,20 @@ STATUS is a plist described in the docstring for `url-retrieve'."
 ;;;###autoload
 (defun openpgp-fetch-key-by-keyid (keyid)
   "Query key via KEYID and add to keychain."
+  (interactive "sKey ID: ")
   (let ((keyid (string-remove-prefix "0X" (upcase keyid))))
     (url-retrieve (openpgp--api-url "by-keyid" keyid)
 		  #'openpgp--process-key)))
 
+(declare-function message--name-table "message" (orig-string))
+
 ;;;###autoload
 (defun openpgp-fetch-key-by-email (email)
   "Query key via EMAIL and add to keychain."
+  (interactive (progn
+                 (require 'message)
+                 (cdr (mail-extract-address-components
+                       (completing-read "Email: " (message--name-table ""))))))
   (url-retrieve (openpgp--api-url "by-email" (url-hexify-string email))
 		#'openpgp--process-key))
 

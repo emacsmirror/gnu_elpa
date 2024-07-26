@@ -5,7 +5,7 @@
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <~pkal/public-inbox@lists.sr.ht>
 ;; URL: https://git.sr.ht/~pkal/openpgp/
-;; Version: 1.0.1
+;; Version: 1.0.2
 ;; Package-Requires: ((emacs "24.4"))
 ;; Keywords: convenience
 

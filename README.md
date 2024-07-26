@@ -24,7 +24,7 @@ Usage
 The package provides three commands for fetching a key (by
 fingerprint, key ID and email) and two commands for uploading a key
 (from a file or from your GPG keychain).  Use <kbd>C-h a openpgp-
-RET<kbd> to generate an overview.
+RET</kbd> to generate an overview.
 
 Contribute
 ----------

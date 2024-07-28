@@ -284,12 +284,16 @@ prefix the command with \"../../../../\" or \"....\".")
   (pcase-let ((`(,_ ,directory) (shell-command+-tokenize command)))
     (cd directory)))
 
+(defcustom shell-command+-clear-function (apply-partially #'quit-window t)
+  "Function to invoke without any arguments when handling \"clear\"."
+  :type 'function)
+
 (defun shell-command+-cmd-clear (&rest _command)
   "Empty the contents of the the *Shell Output* buffer."
   (with-current-buffer (or (bound-and-true-p shell-command-buffer-name)
                            "*Shell Command Output*")
     (erase-buffer)
-    (bury-buffer)))
+    (funcall shell-command+-clear-function)))
 
 (defcustom shell-command+-substitute-alist
   '(("grep" . shell-command+-cmd-grep)

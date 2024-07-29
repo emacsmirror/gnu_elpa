@@ -418,6 +418,12 @@ Return nil if KEY is not present in `greader-dictionary'."
 		(throw 'key-found result))
 	    nil))))))
 
+(defcustom greader-dict-transform-match-to-word nil
+  "If enabled, every match in the text will be added as a word.
+This option could improve slightly the performance of this framework,
+by adding every match found in the text as a word."
+  :type 'boolean)
+
 (defun greader-dict--get-key-from-word (word)
   "Return key related to WORD, nil otherwise."
   (setq word (string-trim word))
@@ -436,7 +442,8 @@ Return nil if KEY is not present in `greader-dictionary'."
 	   (setq k
 		 (string-remove-suffix greader-dict-match-indicator k))
 	   (when (string-match k word)
-	     (greader-dict--add-match-as-word k word v)
+	     (when greader-dict-transform-match-to-word
+	       (greader-dict--add-match-as-word k word v))
 	     (setq key (concat k greader-dict-match-indicator))
 	     (throw 'key-matched key)))
 	 reduced-dictionary))

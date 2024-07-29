@@ -4,10 +4,11 @@
 ;;
 ;; Author: Emanuel Berg <incal@dataswamp.org>
 ;; Created: 2021-05-23
+;; Git: git clone https://dataswamp.org/~incal/wrap-search.git
 ;; Keywords: matching
 ;; License: GPL3+
 ;; URL: https://dataswamp.org/~incal/elpa/wrap-search.el
-;; Version: 4.16.14
+;; Version: 4.16.15
 ;;
 ;; This file is part of GNU Emacs.
 ;;

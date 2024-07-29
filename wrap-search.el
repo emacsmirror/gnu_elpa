@@ -6,8 +6,8 @@
 ;; Created: 2021-05-23
 ;; Keywords: matching
 ;; License: GPL3+
-;; URL: https://dataswamp.org/~incal/emacs-init/wrap-search.el
-;; Version: 4.16.13
+;; URL: https://dataswamp.org/~incal/elpa/wrap-search.el
+;; Version: 4.16.14
 ;;
 ;; This file is part of GNU Emacs.
 ;;

@@ -10,6 +10,12 @@ can do it entirely electronically.  We can help you get started, and
 answer any questions you may have (or point you to the people with the
 answers), at the emacs-devel@gnu.org mailing list.
 
+* Allow viewing the queue of calibredb jobs
+If a large number of library modifications is started they will
+potentially take a long time to complete.  When this is the case it
+may be desirable to have listing of the remaining jobs so that the
+user can see that progress is being made.
+
 * Decide what to do about metadata edit buffers when library is switched
 The current implementation of metadata editing relies on the
 assumption that the active library is not changed while a metadata

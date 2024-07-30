@@ -53,6 +53,8 @@
 (declare-function tramp-file-name-host-port "tramp")
 (declare-function tramp-file-name-user-domain "tramp")
 (declare-function tramp-get-default-directory "tramp")
+(defvar tramp-repository-branch)
+(defvar tramp-repository-version)
 
 ;;;###tramp-autoload
 (defcustom tramp-verbose 3
@@ -127,7 +129,7 @@ The outline level is equal to the verbosity of the Tramp message."
 ;; `command-completion-default-include-p'.
 (defun tramp-debug-buffer-command-completion-p (_symbol buffer)
   "A predicate for Tramp interactive commands.
-They are completed by \"M-x TAB\" only in Tramp debug buffers."
+They are completed by `M-x TAB' only in Tramp debug buffers."
   (declare (tramp-suppress-trace t))
   (with-current-buffer buffer
     (string-equal

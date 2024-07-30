@@ -39,6 +39,8 @@
 (defvar mm-7bit-chars)
 (defvar reporter-eval-buffer)
 (defvar reporter-prompt-for-summary-p)
+(defvar tramp-repository-branch)
+(defvar tramp-repository-version)
 
 ;;;###tramp-autoload
 (defun tramp-change-syntax (&optional syntax)
@@ -630,7 +632,7 @@ If the buffer runs `dired', the buffer is reverted."
 ;;;###tramp-autoload
 (defun tramp-recompile-elpa-command-completion-p (_symbol _buffer)
   "A predicate for `tramp-recompile-elpa'.
-It is completed by \"M-x TAB\" only if package.el is loaded, and
+It is completed by `M-x TAB' only if package.el is loaded, and
 Tramp is an installed ELPA package."
   ;; We cannot apply `package-installed-p', this would also return the
   ;; builtin package.

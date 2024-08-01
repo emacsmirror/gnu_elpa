@@ -284,7 +284,11 @@ prefix the command with \"../../../../\" or \"....\".")
   (pcase-let ((`(,_ ,directory) (shell-command+-tokenize command)))
     (cd directory)))
 
-(defcustom shell-command+-clear-function (apply-partially #'quit-window t)
+(defcustom shell-command+-clear-function
+  (lambda ()
+    (when-let ((win (get-buffer-window)))
+      (quit-window nil win))
+    (erase-buffer))
   "Function to invoke without any arguments when handling \"clear\"."
   :type 'function)
 

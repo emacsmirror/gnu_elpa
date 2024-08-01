@@ -15,7 +15,7 @@
    (let ((persist--symbols nil)
          (sym (cl-gensym)))
      (persist-symbol sym 10)
-     (seq-contains persist--symbols sym))))
+     (seq-contains-p persist--symbols sym))))
 
 (ert-deftest test-persist-save-only-persistant ()
   ;; do not save not persist variables

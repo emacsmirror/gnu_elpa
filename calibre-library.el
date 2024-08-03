@@ -51,7 +51,11 @@ opening books in that format."
 (defun calibre-library-add-books (files)
   "Add FILES to the Calibre library."
   (calibre-exec--queue-command
-   `("add" "-r" ,@(mapcar #'expand-file-name files)))
+   `("add" "-r"
+     ,@(mapcar #'expand-file-name files)
+     ,@(if calibre-default-tags
+           (list "--tags" (string-join calibre-default-tags ","))
+         nil)))
   (calibre-exec--start-execution))
 
 ;;;###autoload

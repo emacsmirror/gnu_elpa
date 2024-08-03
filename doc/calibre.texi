@@ -287,6 +287,7 @@ is automatically refreshed once the modification has been completed.
 @menu
 * Adding individual books::
 * Adding books in bulk::
+* Tagging added books
 @end menu
 
 @node Adding individual books
@@ -309,6 +310,14 @@ can make use of calibre.el's integration with Dired
 (@pxref{Dired,,,Emacs}).  Mark the files you want to add in a Dired
 buffer and call @code{calibre-dired-add} to add them all to your
 library.
+
+@node Tagging added books
+@subsection Tagging added books
+@vindex calibre-default-tags
+If you have tags you want to apply to all books added to your library,
+for example to tag all books as ``unread'', you can customise
+@code{calibre-default-tags}.  Any tag present in this list will be
+automatically added to the book.
 
 @node Modifying books
 @section Modifying books

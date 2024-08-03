@@ -16,6 +16,10 @@ calibre-library-remove-tags enable the addition and removal of tags
 directly from the Library buffer.  If any books are marked they will
 operate on all of the marked books.
 
+** Add ability to specify tags to apply to all added books
+The new defcustom calibre-default-tags allows specifying a list of
+tags which should be applied to all books added to the library.
+
 
 * Changes in calibre.el 1.4.1
 ** Fix sorting by series

@@ -46,6 +46,11 @@
                                    (directory :tag "Location")))
   :package-version '("calibre" . "0.1.0"))
 
+(defcustom calibre-default-tags nil
+  "A list of tags to add to books when they are added."
+  :type '(repeat :tag "Tag" (string :tag "Tag"))
+  :package-version '("calibre" . "1.5.0"))
+
 (defun calibre--library-names ()
   "Return a list of the names of defined libraries."
   (mapcar #'car calibre-libraries))

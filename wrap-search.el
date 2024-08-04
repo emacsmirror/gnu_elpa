@@ -8,7 +8,7 @@
 ;; Keywords: matching
 ;; License: GPL3+
 ;; URL: https://dataswamp.org/~incal/elpa/wrap-search.el
-;; Version: 4.16.15
+;; Version: 4.16.17
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -79,7 +79,7 @@
       (prev-case)
       (prev-rev)
       (prev-beg)
-      (prev-end) )
+      (prev-end))
   (defun wrap-search-again (&optional rev-case rev-rev)
     "Repeat the search previously done with `wrap-search'.
 
@@ -88,17 +88,17 @@ Interactively, use a preceding
   \\[universal-argument] \\[universal-argument] to set REV-REV (ditto search direction)
   \\[universal-argument] \\[universal-argument] \\[universal-argument] to set both"
     (interactive
-     (list (member current-prefix-arg '( (4) (64)))
-           (member current-prefix-arg '((16) (64))) ))
+      (list (member current-prefix-arg '( (4) (64)))
+            (member current-prefix-arg '((16) (64)))))
     (when rev-case
-      (setq prev-case (not prev-case)) )
+      (setq prev-case (not prev-case)))
     (when rev-rev
-      (setq prev-rev (not prev-rev)) )
-    (wrap-search prev-str prev-case prev-rev prev-beg prev-end) )
+      (setq prev-rev (not prev-rev)))
+    (wrap-search prev-str prev-case prev-rev prev-beg prev-end))
   (declare-function wrap-search-again nil)
 
   (defun wrap-search-show-default ()
-    (truncate-string-to-width prev-str 10 nil nil t) )
+    (truncate-string-to-width prev-str 10 nil nil t))
   (declare-function wrap-search-show-default nil)
 
   (defun wrap-search (str &optional case rev beg end)
@@ -119,14 +119,14 @@ Do \\[wrap-search-again] to repeat, with `wrap-search-again'."
        ,(member current-prefix-arg '( (4) (64)))
        ,(member current-prefix-arg '((16) (64)))
        ,@(when (use-region-p)
-           (list (region-beginning) (region-end)) )))
+           (list (region-beginning) (region-end)))))
     (let ((pos (point)))
       (when (or (not beg)
-                (and rev (< pos beg)) )
-        (setq beg (point-min)) )
+                (and rev (< pos beg)))
+        (setq beg (point-min)))
       (when (or (not end)
-                (and (not rev) (> pos end)) )
-        (setq end (point-max)) )
+                (and (not rev) (> pos end)))
+        (setq end (point-max)))
       (if (string= "" str)
           (wrap-search-again)
         (setq prev-str  str)
@@ -138,20 +138,20 @@ Do \\[wrap-search-again] to repeat, with `wrap-search-again'."
                     (`(,search-f ,search-beg ,search-end)
                      (if rev
                          (list #'search-backward end beg)
-                       (list #'search-forward beg end) )))
+                       (list #'search-forward beg end))))
           (if (funcall search-f str search-end t)
               (when wrap-search-echo-point
-                (message "hit: %s" (point)) )
+                (message "hit: %s" (point)))
             (goto-char search-beg)
             (if (funcall search-f str (+ pos (if rev 0 (length str))) t)
                 (if (= pos (point))
                     (message "this is the only occurrence")
                   (message "wrap%s" (if wrap-search-echo-point
                                         (format ": %s" (point))
-                                      "") ))
+                                      "")))
               (goto-char pos)
-              (message "no hit") ))) )))
-  (declare-function wrap-search nil) )
+              (message "no hit")))))))
+  (declare-function wrap-search nil))
 
 (provide 'wrap-search)
 ;;; wrap-search.el ends here

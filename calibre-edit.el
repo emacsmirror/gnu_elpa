@@ -48,7 +48,7 @@
 (defvar-local calibre-edit--tags nil
   "The tags widget in the current buffer.")
 
-(defun calibre-edit--mark-modified (book)
+(defun calibre-edit-mark-modified (book)
   "Mark BOOK as modified in the *Library* buffer."
   (with-current-buffer (get-buffer calibre-library-buffer)
     (calibre-library--find-book book)
@@ -68,7 +68,7 @@
                                                          1)
         (calibre-book-tags calibre-edit--book) (widget-value calibre-edit--tags))
   (calibre-library--refresh)
-  (calibre-edit--mark-modified calibre-edit--book))
+  (calibre-edit-mark-modified calibre-edit--book))
 
 (defun calibre-edit-abort (&rest _)
   "Abort any changes made in the current buffer."
@@ -122,12 +122,16 @@ function does nothing."
   (unless (calibre-util-find-book book calibre-edit--edited-books)
     (push (copy-calibre-book book) calibre-edit--edited-books)))
 
+(defun calibre-edit-modified-p (book)
+  "Return non-nil if BOOK has been modified, nil otherwise."
+  (calibre-edit--find-original book))
+
 (defun calibre-edit-add-tags (tags book)
   "Add TAGS to BOOK."
   (calibre-edit--preserve-original book)
   (when (seq-difference tags (calibre-book-tags book))
     (setf (calibre-book-tags book) (seq-union tags (calibre-book-tags book)))
-    (calibre-edit--mark-modified book)))
+    (calibre-edit-mark-modified book)))
 
 (defun calibre-edit-remove-tags (tags book)
   "Remove TAGS from BOOK."
@@ -135,7 +139,7 @@ function does nothing."
   (let ((difference (seq-difference (calibre-book-tags book) tags)))
     (unless (seq-set-equal-p (calibre-book-tags book) difference)
       (setf (calibre-book-tags book) difference)
-      (calibre-edit--mark-modified book))))
+      (calibre-edit-mark-modified book))))
 
 (defun calibre-edit-add-tag (tag book)
   "Add TAG to BOOK."

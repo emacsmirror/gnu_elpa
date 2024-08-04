@@ -116,10 +116,16 @@ TAGS should be a list of strings to add to FILE."
   (interactive "p" calibre-library-mode)
   (let ((book (tabulated-list-get-id)))
     (beginning-of-line)
-    (when (char-equal (char-after) ?M)
-      (calibre-edit-revert book))
-    (calibre-library--find-book book)
-    (tabulated-list-put-tag " " t)))
+    (let ((mark (char-after)))
+      (unless (char-equal mark 32)
+        (cond
+         ((char-equal mark calibre-mod-marker)
+          (calibre-edit-revert book)
+          (tabulated-list-put-tag " " t))
+         ((char-equal mark calibre-mark-marker)
+          (if (calibre-edit-modified-p book)
+              (calibre-edit-mark-modified book)
+              (tabulated-list-put-tag " " t))))))))
 
 (defun calibre-library-get-marked (&optional mark)
   "Return books marked with MARK.

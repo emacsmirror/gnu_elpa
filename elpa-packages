@@ -845,8 +845,6 @@
  (wisitoken-grammar-mode :url nil)
  (wpuzzle		:url nil)
  (wrap-search		:url "https://dataswamp.org/~incal/wrap-search.git")
- ;; FIXME: Waiting for copyright paperwork from Emanuel Berg.
- ;;(wrap-search		:url "https://dataswamp.org/~incal/wrap-search.git")
  (xclip			:url nil)
  (xeft                  :url "https://git.sr.ht/~casouri/xeft"
   :ignored-files ("*.gif"))

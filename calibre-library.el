@@ -83,9 +83,8 @@ TAGS should be a list of strings to add to FILE."
   (interactive (list (calibre--read-tags)
                      (or (calibre-library-get-marked) (list (tabulated-list-get-id))))
                calibre-library-mode)
-  (dolist (tag tags)
-    (dolist (book books)
-      (calibre-edit-add-tag tag book)))
+  (dolist (book books)
+      (calibre-edit-add-tags tags book))
   (calibre-library--refresh))
 
 (defun calibre-library-remove-tags (tags books)
@@ -93,9 +92,8 @@ TAGS should be a list of strings to add to FILE."
   (interactive (list (calibre--read-tags)
                      (or (calibre-library-get-marked) (list (tabulated-list-get-id))))
                calibre-library-mode)
-  (dolist (tag tags)
-    (dolist (book books)
-      (calibre-edit-remove-tag tag book)))
+  (dolist (book books)
+    (calibre-edit-remove-tags tags book))
   (calibre-library--refresh))
 
 (defun calibre-library-remove-books (books)

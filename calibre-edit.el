@@ -122,20 +122,28 @@ function does nothing."
   (unless (calibre-util-find-book book calibre-edit--edited-books)
     (push (copy-calibre-book book) calibre-edit--edited-books)))
 
+(defun calibre-edit-add-tags (tags book)
+  "Add TAGS to BOOK."
+  (calibre-edit--preserve-original book)
+  (when (seq-difference tags (calibre-book-tags book))
+    (setf (calibre-book-tags book) (seq-union tags (calibre-book-tags book)))
+    (calibre-edit--mark-modified book)))
+
+(defun calibre-edit-remove-tags (tags book)
+  "Remove TAGS from BOOK."
+  (calibre-edit--preserve-original book)
+  (let ((difference (seq-difference (calibre-book-tags book) tags)))
+    (unless (seq-set-equal-p (calibre-book-tags book) difference)
+      (setf (calibre-book-tags book) difference)
+      (calibre-edit--mark-modified book))))
+
 (defun calibre-edit-add-tag (tag book)
   "Add TAG to BOOK."
-  (calibre-edit--preserve-original book)
-  (unless (member tag (calibre-book-tags book))
-    (push tag (calibre-book-tags book))
-    (calibre-edit--mark-modified book)))
+  (calibre-edit-add-tags (list tag) book))
 
 (defun calibre-edit-remove-tag (tag book)
   "Remove TAG from BOOK."
-  (calibre-edit--preserve-original book)
-  (when (member tag (calibre-book-tags book))
-    (setf (calibre-book-tags book)
-          (seq-remove (apply-partially #'string= tag) (calibre-book-tags book)))
-    (calibre-edit--mark-modified book)))
+  (calibre-edit-remove-tags (list tag) book))
 
 (defun calibre-edit-book (book)
   "Edit the metadata of BOOK."

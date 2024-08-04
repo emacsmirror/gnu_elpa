@@ -42,33 +42,47 @@ opening books in that format."
   :group 'calibre
   :package-version '("calibre" . "1.4.0"))
 
-;;;###autoload
-(defun calibre-library-add-book (file)
-  "Add FILE to the Calibre library."
-  (interactive "f")
-  (calibre-library-add-books (list file)))
+(defun calibre--read-tags ()
+  "Prompt the user for a list of tags."
+  (completing-read-multiple "Tag: " calibre-tags-completion-table))
 
-(defun calibre-library-add-books (files)
-  "Add FILES to the Calibre library."
+;;;###autoload
+(defun calibre-library-add-book (file &optional tags)
+  "Add FILE to the Calibre library.
+
+TAGS should be a list of strings to add to FILE."
+  (interactive (list (read-file-name "File: " nil nil t)
+                     (if current-prefix-arg (calibre--read-tags) nil))
+               calibre-library-mode)
+  (calibre-library-add-books (list file) tags))
+
+(defun calibre-library-add-books (files &optional tags)
+  "Add FILES to the Calibre library.
+
+TAGS should be a list of strings to add to FILE."
   (calibre-exec--queue-command
    `("add" "-r"
      ,@(mapcar #'expand-file-name files)
-     ,@(if calibre-default-tags
-           (list "--tags" (string-join calibre-default-tags ","))
+     ,@(if (or tags calibre-default-tags)
+           (list "--tags" (string-join (append tags calibre-default-tags) ","))
          nil)))
   (calibre-exec--start-execution))
 
 ;;;###autoload
-(defun calibre-dired-add ()
-  "Add marked files to the Calibre library."
-    (interactive)
+(defun calibre-dired-add (&optional tags)
+  "Add marked files to the Calibre library.
+
+TAGS should be a list of strings to add to FILE."
+  (interactive (list (if current-prefix-arg (calibre--read-tags) nil))
+               dired-mode)
     (if (derived-mode-p 'dired-mode)
-        (calibre-library-add-books (dired-get-marked-files))))
+        (calibre-library-add-books (dired-get-marked-files) tags)))
 
 (defun calibre-library-add-tags (tags books)
   "Add TAGS to BOOKS if not already present."
-  (interactive (list (completing-read-multiple "Tag: " calibre-tags-completion-table)
-                     (or (calibre-library-get-marked) (list (tabulated-list-get-id)))))
+  (interactive (list (calibre--read-tags)
+                     (or (calibre-library-get-marked) (list (tabulated-list-get-id))))
+               calibre-library-mode)
   (dolist (tag tags)
     (dolist (book books)
       (calibre-edit-add-tag tag book)))
@@ -76,8 +90,9 @@ opening books in that format."
 
 (defun calibre-library-remove-tags (tags books)
   "Remove TAGS from BOOKS if present."
-  (interactive (list (completing-read-multiple "Tag: " calibre-tags-completion-table)
-                     (or (calibre-library-get-marked) (list (tabulated-list-get-id)))))
+  (interactive (list (calibre--read-tags)
+                     (or (calibre-library-get-marked) (list (tabulated-list-get-id))))
+               calibre-library-mode)
   (dolist (tag tags)
     (dolist (book books)
       (calibre-edit-remove-tag tag book)))

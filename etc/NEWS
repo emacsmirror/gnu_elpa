@@ -20,6 +20,11 @@ operate on all of the marked books.
 The new defcustom calibre-default-tags allows specifying a list of
 tags which should be applied to all books added to the library.
 
+** Add ability to specify tags to apply when adding books.
+calibre-library-add-book and calibre-dired-add now accept a prefix
+argument.  When called with a prefix argument they will prompt for
+tags which should be applied to the books being added.
+
 
 * Changes in calibre.el 1.4.1
 ** Fix sorting by series

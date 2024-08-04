@@ -319,6 +319,11 @@ for example to tag all books as ``unread'', you can customise
 @code{calibre-default-tags}.  Any tag present in this list will be
 automatically added to the book.
 
+For more specific control over tags both @code{calibre-library-add-book}
+and @code{calibre-dired-add} can be called with a prefix argument.  When
+called with a prefix argument they will prompt for a list of tags to
+apply to the books being added.
+
 @node Modifying books
 @section Modifying books
 calibre.el provides two methods of modifying book metadata.  A dedicated

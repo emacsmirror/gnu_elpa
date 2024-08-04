@@ -112,7 +112,7 @@ DOCSTRING is the docstring of the created function."
                      "--with-library"
                      (calibre--library)
                      (format ,(format "%s%%s%%s" field ) (if fuzzy-match ":" ":=") ,field))
-       (mapcar #'cl-parse-integer
+       (mapcar #'string-to-number
                (string-split
                 (buffer-substring-no-properties (point-min) (point-max))
                 ",")))))

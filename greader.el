@@ -1727,7 +1727,7 @@ When called interactively, use the current position in the buffer."
   "restart reading of buffer or region."
   (if greader-region-mode
       (goto-char (region-beginning))
-    (goto-char (point-min)))
+    (goto-char greader-study-start-position))
   (greader-read) t)
 
 ;; greader-study-mode

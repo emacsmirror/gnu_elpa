@@ -1312,7 +1312,7 @@ progress."
          (name-len (length names))
          (new-len (length new-list))
          (table (make-hash-table
-                 :test 'equal :size (+ name-len new_len)))
+                 :test 'equal :size (+ name-len new-len)))
          (count 0))
     ;; use a hash table so that testing for membership is a constant
     ;; time operation

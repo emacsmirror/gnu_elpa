@@ -435,6 +435,8 @@
  ;;  :ignored-files ("LICENSE")
  ;;  :readme "README")
  (kmb			:url nil)
+ (kubed			:url "https://git.sr.ht/~eshel/kubed"
+  :doc "kubed.texi")
  (landmark		:url nil)
  (latex-table-wizard    :url "https://github.com/enricoflor/latex-table-wizard"
   :doc "latex-table-wizard.texi")

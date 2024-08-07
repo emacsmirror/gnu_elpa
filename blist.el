@@ -5,7 +5,7 @@
 ;; Author: Durand <durand@jsdurand.xyz>
 ;; Keywords: convenience
 ;; URL: https://gitlab.com/mmemmew/blist
-;; Package-Requires: ((ilist "0.1") (emacs "24"))
+;; Package-Requires: ((ilist "0.4") (emacs "24"))
 ;; Version: 0.3
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -427,6 +427,11 @@ list; they are simply ignored."
   "If non-nil, show a header of column names as well."
   :type 'boolean)
 
+;;;; Whether to show the number of items
+
+(defcustom blist-show-item-num-p nil
+  "If non-nil, the number of items is shown in the group header.")
+
 ;;; Variables
 
 ;;;; Sorter
@@ -605,7 +610,8 @@ used as a `revert-buffer-function'."
           #'blist-filter-groups
           blist-discard-empty-p
           blist-sorter
-          t))
+          t
+          blist-show-item-num-p))
         (goto-char (point-min))
         ;; set the header if necessary
         (cond
@@ -1427,7 +1433,16 @@ get unique numeric suffixes \"<2>\", \"<3>\", etc."
   (interactive)
   (let* ((group-header (ilist-get-group))
          (group-symbol (intern (format "[ %s ]" group-header)))
+         (group-items-num
+          (ilist-get-property (point) 'ilist-item-num))
          (hidden-p (ilist-get-property (point) 'blist-hidden))
+         (hidden-ellipsis (cond (hidden-p "") (" ...")))
+         (group-title
+          (cond
+           (blist-show-item-num-p
+            (format "[ %s - %d%s ]\n"
+                    group-header group-items-num hidden-ellipsis))
+           ((format "[ %s%s ]\n" group-header hidden-ellipsis))))
          (inhibit-read-only t))
     (blist-assert-mode)
     (cond
@@ -1444,8 +1459,9 @@ get unique numeric suffixes \"<2>\", \"<3>\", etc."
       (save-excursion
         (insert
          (propertize
-          (format "%s\n" group-symbol)
-          'ilist-group-header group-header)))
+          group-title
+          'ilist-group-header group-header
+          'ilist-item-num group-items-num)))
       (remove-from-invisibility-spec group-symbol))
      ;; not hidden
      ((goto-char (ilist-point-at-eol))
@@ -1455,9 +1471,10 @@ get unique numeric suffixes \"<2>\", \"<3>\", etc."
           (delete-region start end)
           (insert
            (propertize
-            (format "[ %s ... ]\n" group-header)
+            group-title
             'ilist-group-header group-header
-            'blist-hidden t))
+            'blist-hidden t
+            'ilist-item-num group-items-num))
           ;; Emacs has a bug that if an invisible character right next
           ;; to the visible part has a display property, then it will
           ;; turn out to be visible.  So we insert an invisible

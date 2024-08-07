@@ -1,3 +1,13 @@
+2024-08-07  Durand  <durand@jsdurand.xyz>
+
+	* blist.el: The new customisation option `blist-show-item-num-p`
+	controls whether or not to display the number of items in each
+	group's header.  Note that this requires ilist at least version
+	0.4 to work, since the actual counting is done in the function
+	`ilist-string` whose signature is thus changed to incorporate a
+	new argument `show-item-num-p`.  This change is too minor to
+	record in the documentation info files in my opinion, by the way.
+
 2023-06-19  Durand  <durand@jsdurand.xyz>
 
 	* blist.el:

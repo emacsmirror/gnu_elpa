@@ -449,7 +449,7 @@ supposed to leave the global state alone as well.
            (user-error
             (concat
              "Invalid keyword arguments.  "
-             "Only :key and :test are allowed, but got %S")
+             "Only :key, :default, and :test are allowed, but got %S")
             args)))
     ;; Note: This just puts a property to the symbol.
     (define-hash-table-test 'ilist-classify-test

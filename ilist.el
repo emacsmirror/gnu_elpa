@@ -223,7 +223,7 @@ and fallbacks to that function if `ilist-pixel-precision' is nil."
            (idx 0)
            (space-width (string-pixel-width (string #x20)))
            (limit (* space-width limit))
-           last-column last-idx)
+           last-column last-idx temp-str)
       (with-current-buffer (get-buffer-create
                             " *ilist-truncate-to-pixels*")
         (when (bound-and-true-p display-line-numbers-mode)
@@ -239,12 +239,13 @@ and fallbacks to that function if `ilist-pixel-precision' is nil."
             (while (< column limit)
               (setq last-column column)
               (setq last-idx idx)
+              (setq temp-str (nth idx substring-list))
               (insert (propertize
-                       (nth idx substring-list)
+                       temp-str
                        'line-prefix nil 'wrap-prefix nil))
               (setq column (car (buffer-text-pixel-size nil nil t)))
-              (setq idx (1+ idx)))
-          (args-out-of-range (setq idx str-len)))
+              (setq idx (+ idx (length temp-str))))
+          (t (setq idx str-len)))
         (cond
          ((> column limit)
           (setq column last-column)

@@ -1,3 +1,9 @@
+2024-08-07  李俊緯  <mmemmew@gmail.com>
+
+	* The function `ilist-string` now has a new argument
+	SHOW-ITEM-NUM-P which controls whether each group header also
+	displays the number of items within that group.
+
 2024-02-19  李俊緯  <mmemmew@gmail.com>
 
 	* Now the variable `ilist-pixel-precision` has special meaning if

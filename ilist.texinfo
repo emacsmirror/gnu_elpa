@@ -90,7 +90,8 @@ It is called as follows.
 
 @lisp
 (ilist-string LIST COLUMNS GROUPS
-    &optional DISCARD-EMPTY-P SORTER NO-TRAILING-SPACE)
+    &optional
+    DISCARD-EMPTY-P SORTER NO-TRAILING-SPACE SHOW-ITEM-NUM-P)
 @end lisp
 
 @table@code
@@ -110,6 +111,13 @@ before grouping happens.  To sort groups, see @ref{Groups}.
 @item NO-TRAILING-SPACE
 If this is non-nil then there will be no trailing whitespaces in the
 resulting string.
+@item SHOW-ITEM-NUM-P
+@cindex ilist-item-num
+@cindex number of items
+@cindex group number
+If this is non-nil, then each group header displays the number of items
+within that group.  This number is actually also stored in the text
+property @code{ilist-item-num} of the group header.
 @end table
 
 @menu

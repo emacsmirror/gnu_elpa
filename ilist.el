@@ -485,7 +485,9 @@ supposed to leave the global state alone as well.
 
 (defun ilist-string
     (ls columns groups
-        &optional discard-empty-p sorter no-trailing-space)
+        &optional
+        discard-empty-p sorter no-trailing-space
+        show-item-num-p)
   "Display list LS as the returned string.
 COLUMNS will be passed to `ilist-define-column'.
 
@@ -540,6 +542,9 @@ X and Y, and should return non-nil if X should come before Y.
 
 If NO-TRAILING-SPACE is non-nil, the last column will not have
 trailing spaces.
+
+If SHOW-ITEM-NUM-P is non-nil, the number of items in each group
+will be shown in the group headers.
 
 As a note, this function is not supposed to change global state,
 so the functions used, such as the automatic group or the sorter,
@@ -612,11 +617,19 @@ matched data, the cursor position, etc."
                 ((setq remain (cons element remain)))))
              ls)
             (setq ls (reverse remain))
-            ;; endow it with a text property so that we can
+            ;; Endow it with a text property so that we can
             ;; distinguish a group header from a normal line
+            ;;
+            ;; We also count the number of items and record this
+            ;; number in a text property at this stage.
             (list (propertize
-                   (format "[ %s ]" (car temp-group))
-                   'ilist-group-header (car temp-group))
+                   (cond
+                    (show-item-num-p
+                     (format
+                      "[ %s - %d ]" (car temp-group) (length res)))
+                    ((format "[ %s ]" (car temp-group))))
+                   'ilist-group-header (car temp-group)
+                   'ilist-item-num (length res))
                   (reverse res)))
           group-results))
         (setq temp-groups (cdr temp-groups))))
@@ -640,13 +653,20 @@ matched data, the cursor position, etc."
       (setq
        group-results
        ;; to conform with the other case, we manually reverse the list
+       ;;
+       ;; The number of items is counted and recorded at this stage.
        (nreverse
         (mapcar
          (lambda (result)
            (cons
             (propertize
-             (format "[ %s ]" (car result))
-             'ilist-group-header (car result))
+             (cond
+              (show-item-num-p
+               (format
+                "[ %s - %d ]" (car result) (length (cdr result))))
+              ((format "[ %s ]" (car result))))
+             'ilist-group-header (car result)
+             'ilist-item-num (length (cdr result)))
             (list (cdr result))))
          group-results)))))
     ;; group-strs will not be in the final format yet, after this
@@ -807,10 +827,13 @@ matched data, the cursor position, etc."
                   (concat title-sep (string #xa))
                   'ilist-title-sep t))
            ;; transform back to the format we want
-           (let ((index 0))
+           (let ((index 0) element-group)
              (mapcar
               (lambda (element)
                 (setq index (1+ index))
+                (setq element-group
+                      (get-text-property
+                       0 'ilist-group-header (car element)))
                 (concat
                  ;; title
                  (car element)
@@ -818,9 +841,10 @@ matched data, the cursor position, etc."
                  (cond ((cdr element)
                         (propertize
                          (string #xa)
-                         'ilist-group-header
+                         'ilist-group-header element-group
+                         'ilist-item-num
                          (get-text-property
-                          0 'ilist-group-header (car element)))))
+                          0 'ilist-item-num (car element)))))
                  ;; rows
                  (mapconcat
                   (lambda (row)
@@ -830,7 +854,8 @@ matched data, the cursor position, etc."
                        #'identity (cdr row) (string #x20))
                       (string #xa))
                      'ilist-index (car row)
-                     'invisible (intern (car element))))
+                     'invisible
+                     (intern (format "[ %s ]" element-group))))
                   (cdr element)
                   (string))))
               group-strs))))

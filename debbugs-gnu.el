@@ -33,7 +33,7 @@
 ;;
 ;;   M-x debbugs-gnu
 
-;; It asks for the severities, for which bugs shall be shown. This can
+;; It asks for the severities, for which bugs shall be shown.  This can
 ;; be either just one severity, or a list of severities, separated by
 ;; comma.  Valid severities are "serious", "important", "normal",
 ;; "minor" or "wishlist".  Severities "critical" and "grave" are not
@@ -243,7 +243,7 @@
 (defvar debbugs-gnu-limit)
 
 (defgroup debbugs-gnu ()
-  "UI for the debbugs.gnu.org bug tracker."
+  "UI for the debbugs bug tracker."
   :group 'debbugs
   :version "24.1")
 
@@ -426,7 +426,7 @@ They haven't been touched more than a week.")
 
 (defvar debbugs-gnu-persistency-file
   (expand-file-name (locate-user-emacs-file "debbugs"))
-  "File name of a persistency store for debbugs variables")
+  "File name of a persistency store for debbugs variables.")
 
 (defun debbugs-gnu-dump-persistency-file ()
   "Function to store debbugs variables persistently."
@@ -698,7 +698,7 @@ depend on PHRASE being a string, or nil.  See Info node
 
 ;;;###autoload
 (defun debbugs-gnu-package (&optional packages)
-  "List the bug reports of default packages, divided by severity."
+  "List the bug reports of PACKAGES or default packages, divided by severity."
   (interactive
      (list
       (if current-prefix-arg
@@ -2548,7 +2548,7 @@ If given a prefix, patch in the branch directory instead.
 If SELECTIVELY, query the user before applying the patch."
   (interactive "P")
   (unless (eq debbugs-gnu-mail-backend 'gnus)
-    (error "This function only works with Gnus."))
+    (error "This function only works with Gnus"))
   (add-hook 'diff-mode-hook #'debbugs-gnu-diff-mode)
   (debbugs-gnu-init-current-directory branch)
   (let ((rej (expand-file-name "debbugs-gnu.rej" temporary-file-directory))
@@ -2695,12 +2695,12 @@ If SELECTIVELY, query the user before applying the patch."
 		       nil t)))
     (forward-line 2)))
 
-(defun debbugs-gnu-find-contributor (string)
-  "Search through ChangeLogs to find contributors."
+(defun debbugs-gnu-find-contributor (contributor)
+  "Search through ChangeLogs to find CONTRIBUTOR."
   (interactive "sContributor match: ")
   (debbugs-gnu-init-current-directory)
   (let ((found 0)
-	(match (concat "^[0-9].*" string)))
+	(match (concat "^[0-9].*" contributor)))
     (dolist (file (directory-files-recursively
 		   debbugs-gnu-current-directory "ChangeLog\\(\\.[0-9]+\\)?\\'"))
       (with-temp-buffer
@@ -2710,7 +2710,7 @@ If SELECTIVELY, query the user before applying the patch."
 	(while (and (re-search-forward match nil t)
 		    (not (looking-at ".*tiny change")))
 	  (cl-incf found))))
-    (message "%s is a contributor %d times" string found)
+    (message "%s is a contributor %d times" contributor found)
     found))
 
 (defvar debbugs-gnu-patch-subject nil)
@@ -2719,7 +2719,7 @@ If SELECTIVELY, query the user before applying the patch."
   "Add a ChangeLog from a recently applied patch from a third party."
   (interactive)
   (unless (eq debbugs-gnu-mail-backend 'gnus)
-    (error "This function only works with Gnus."))
+    (error "This function only works with Gnus"))
   (let (from subject patch-subject changelog
 	     patch-from)
     (with-current-buffer gnus-article-buffer
@@ -2848,7 +2848,7 @@ If SELECTIVELY, query the user before applying the patch."
     map))
 
 (define-minor-mode debbugs-gnu-log-edit-mode
-  "Minor mode for providing a debbugs interface in log-edit buffers.
+  "Minor mode for providing a debbugs interface in `log-edit' buffers.
 
 \\{debbugs-gnu-log-edit-mode-map}"
   :lighter " Debbugs" :keymap debbugs-gnu-log-edit-mode-map)

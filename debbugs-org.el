@@ -31,7 +31,7 @@
 ;;
 ;;   M-x debbugs-org
 
-;; It asks for the severities, for which bugs shall be shown. This can
+;; It asks for the severities, for which bugs shall be shown.  This can
 ;; be either just one severity, or a list of severities, separated by
 ;; comma.  Valid severities are "serious", "important", "normal",
 ;; "minor" or "wishlist".  Severities "critical" and "grave" are not
@@ -140,7 +140,7 @@
   "Mapping of debbugs severities to TODO priorities.")
 
 (defun debbugs-org-get-severity-priority (state)
-  "Returns the TODO priority of STATE."
+  "Return the TODO priority of STATE."
   (or (cdr (assoc (alist-get 'severity state) debbugs-org-severity-priority))
       (cdr (assoc "minor" debbugs-org-severity-priority))))
 
@@ -319,7 +319,7 @@ the corresponding buffer (e.g. by closing Emacs)."
 
 ;;;###autoload
 (define-minor-mode debbugs-org-mode
-  "Minor mode for providing a debbugs interface in org-mode buffers.
+  "Minor mode for providing a debbugs interface in `org-mode' buffers.
 
 \\{debbugs-org-mode-map}"
   :lighter " Debbugs" :keymap debbugs-org-mode-map
@@ -374,3 +374,4 @@ defined."
 ;; - Sort according to different TODO properties.
 
 (provide 'debbugs-org)
+;;; debbugs-org.el ends here

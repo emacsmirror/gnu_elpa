@@ -44,7 +44,7 @@
 (eval-when-compile (require 'cl-lib))
 
 (defgroup debbugs nil
-  "Debbugs library"
+  "Debbugs library."
   :group 'hypermedia)
 
 (defcustom debbugs-servers
@@ -56,10 +56,10 @@
      :bugreport-url "https://bugs.debian.org/cgi-bin/bugreport.cgi"))
   "*List of Debbugs server specifiers.
 Each entry is a list that contains a string identifying the port
-name and the server parameters in keyword-value form. Allowed
+name and the server parameters in keyword-value form.  Allowed
 keywords are:
 
-`:wsdl' -- Location of WSDL. The value is a string with URL that
+`:wsdl' -- Location of WSDL.  The value is a string with URL that
 should return the WSDL specification of Debbugs/SOAP service.
 
 `:bugreport-url' -- URL of the server script that returns mboxes
@@ -121,7 +121,9 @@ t or 0 disables caching, nil disables expiring."
   "The object manipulated by `debbugs-soap-invoke-async'.")
 
 (defun debbugs-soap-invoke-async (operation-name &rest parameters)
-  "Invoke the SOAP connection asynchronously."
+  "Invoke the SOAP connection asynchronously.
+
+OPERATION-NAME and PARAMETERS are as described in `soap-invoke'."
   (apply
    #'soap-invoke-async
    (lambda (response &rest _args)
@@ -381,7 +383,7 @@ Every returned entry is an association list with the following attributes:
 
   `package': A list of package names the bug belongs to.
 
-  `severity': The severity of the bug report. This can be
+  `severity': The severity of the bug report.  This can be
   \"critical\", \"grave\", \"serious\", \"important\",
   \"normal\", \"minor\" or \"wishlist\".
 

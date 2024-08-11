@@ -54,6 +54,7 @@ This can be either `debbugs-gnu-bugs' or `debbugs-org-bugs'."
 
 ;;;###autoload
 (defun debbugs-browse-url (url &optional _new-window)
+  "Browse bug at URL using debbugs."
   (when (and (stringp url)
 	     (string-match debbugs-browse-url-regexp url))
     (funcall debbugs-browse-function (string-to-number (match-string 3 url)))
@@ -67,7 +68,7 @@ This can be either `debbugs-gnu-bugs' or `debbugs-org-bugs'."
 
 ;;;###autoload
 (define-minor-mode debbugs-browse-mode
-  "Browse GNU Debbugs bug URLs with debbugs-gnu or debbugs-org.
+  "Browse GNU Debbugs bug URLs with `debbugs-gnu' or `debbugs-org'.
 With a prefix argument ARG, enable Debbugs Browse mode if ARG is
 positive, and disable it otherwise.  If called from Lisp, enable
 the mode if ARG is omitted or nil.

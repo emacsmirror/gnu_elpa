@@ -21,6 +21,9 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
+;;; Commentary:
+;;; Code:
+
 ;; Function `string-replace' is new in Emacs 28.1.
 (defalias 'debbugs-compat-string-replace
   (if (fboundp 'string-replace)

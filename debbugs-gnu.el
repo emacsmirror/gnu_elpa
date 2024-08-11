@@ -2702,7 +2702,7 @@ If SELECTIVELY, query the user before applying the patch."
   (let ((found 0)
 	(match (concat "^[0-9].*" string)))
     (dolist (file (directory-files-recursively
-		   debbugs-gnu-current-directory "ChangeLog\\(.[0-9]+\\)?$"))
+		   debbugs-gnu-current-directory "ChangeLog\\(\\.[0-9]+\\)?\\'"))
       (with-temp-buffer
 	(when (file-exists-p file)
 	  (insert-file-contents file))

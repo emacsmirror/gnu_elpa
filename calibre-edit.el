@@ -122,24 +122,43 @@ function does nothing."
   (unless (calibre-util-find-book book calibre-edit--edited-books)
     (push (copy-calibre-book book) calibre-edit--edited-books)))
 
+(defmacro calibre-edit--metadata-adder (field)
+  "Create a function to add items to FIELD of a given book."
+  (let ((name (intern (format "calibre-edit-add-%s" field)))
+        (getter (intern (format "calibre-book-%s" field))))
+    `(defun ,name (,field book)
+       ,(format "Add %s to BOOK's list of %s."
+                (upcase (prin1-to-string field))
+                field)
+       (calibre-edit--preserve-original book)
+       (when (seq-difference ,field (,getter book))
+         (setf (,getter book) (seq-union ,field (,getter book)))
+         (calibre-edit-mark-modified book)))))
+
+(defmacro calibre-edit--metadata-remover (field)
+  "Create a function to remove items from FIELD of a given book."
+  (let ((name (intern (format "calibre-edit-remove-%s" field)))
+        (getter (intern (format "calibre-book-%s" field))))
+    `(defun ,name (,field book)
+       ,(format "Remove %s to BOOK's list of %s."
+                (upcase (prin1-to-string field))
+                field)
+       (calibre-edit--preserve-original book)
+       (let ((difference (seq-difference (,getter book) ,field)))
+         (unless (seq-set-equal-p (,getter book) difference)
+           (setf (,getter book) difference)
+           (calibre-edit-mark-modified book))))))
+
+(defmacro calibre-edit--metadata-modifier-pair (field)
+  "Create a pair of add/remove functions to modify FIELD of a given book."
+  `(progn
+     (calibre-edit--metadata-adder ,field)
+     (calibre-edit--metadata-remover ,field)))
+
+(calibre-edit--metadata-modifier-pair tags)
 (defun calibre-edit-modified-p (book)
   "Return non-nil if BOOK has been modified, nil otherwise."
   (calibre-edit--find-original book))
-
-(defun calibre-edit-add-tags (tags book)
-  "Add TAGS to BOOK."
-  (calibre-edit--preserve-original book)
-  (when (seq-difference tags (calibre-book-tags book))
-    (setf (calibre-book-tags book) (seq-union tags (calibre-book-tags book)))
-    (calibre-edit-mark-modified book)))
-
-(defun calibre-edit-remove-tags (tags book)
-  "Remove TAGS from BOOK."
-  (calibre-edit--preserve-original book)
-  (let ((difference (seq-difference (calibre-book-tags book) tags)))
-    (unless (seq-set-equal-p (calibre-book-tags book) difference)
-      (setf (calibre-book-tags book) difference)
-      (calibre-edit-mark-modified book))))
 
 (defun calibre-edit-add-tag (tag book)
   "Add TAG to BOOK."

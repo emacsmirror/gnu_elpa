@@ -8,7 +8,7 @@
 ;; Keywords: matching
 ;; License: GPL3+
 ;; URL: https://dataswamp.org/~incal/elpa/wrap-search.el
-;; Version: 4.16.17
+;; Version: 4.16.18
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -54,7 +54,7 @@
 ;; they do,
 ;;
 ;;         C-u C-s  do case-sensitive search
-;;     C-u C-u C-s  do revere search, direction north from point
+;;     C-u C-u C-s  do reverse search, direction north from point
 ;; C-u C-u C-u C-s  do case-sensitive, reverse search
 ;;
 ;; and for `wrap-search-again', using a corresponding interface

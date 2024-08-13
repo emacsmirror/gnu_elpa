@@ -26,6 +26,11 @@
 (require 'calibre)
 (require 'calibre-book)
 
+(defmacro calibre-util--macro-map (macro list)
+  "Apply MACRO to each element in LIST."
+  `(progn
+     ,@(mapcar (lambda (el) `(,macro ,el)) list)))
+
 (defun calibre-util-find-book (book seq)
   "Find BOOK in SEQ."
   (seq-find (lambda (b)

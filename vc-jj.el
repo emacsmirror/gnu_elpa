@@ -148,6 +148,10 @@
 
 (defalias 'vc-jj-responsible-p #'vc-jj-root)
 
+(defun vc-jj-find-ignore-file (file)
+  (expand-file-name ".gitignore"
+		            (vc-jj-root file)))
+
 
 (defconst vc-jj-diff-switches '("--git"))
 

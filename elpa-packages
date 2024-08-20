@@ -773,7 +773,7 @@
   :lisp-dir "lisp"
   :renames (("docs/" ""))
   :news "CHANGELOG"
-  :doc "docs/transient.texi")
+  :doc "docs/transient.org")
  (transient-cycles    	:url nil)
  (tree-inspector        :url "https://github.com/mmontone/emacs-tree-inspector")
  (trie			:url nil) ;"http://www.dr-qubit.org/git/predictive.git"

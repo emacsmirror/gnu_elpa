@@ -732,6 +732,7 @@
  (tNFA			:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
  (tam			:url "https://github.com/owinebar/emacs-table-allocation-manager")
  (taxy                	:url "https://github.com/alphapapa/taxy.el.git"
+  :release-branch "stable"
   :doc "taxy.info"
   :ignored-files ("images"))
  (taxy-magit-section  	:url "https://github.com/alphapapa/taxy.el.git"

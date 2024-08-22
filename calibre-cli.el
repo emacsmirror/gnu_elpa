@@ -67,7 +67,7 @@ specified the default is \\='all\\='."
                        :timestamp (calibre-cli--parse-timestamp .timestamp)
                        :pubdate (calibre-cli--parse-timestamp .pubdate)
                        :last-modified (calibre-cli--parse-timestamp .last_modified)
-                       :tags .tags
+                       :tags (sort .tags)
                        :formats (calibre-cli--parse-formats .formats)
                        :path (calibre-cli--parse-path .formats)
                        :file-name (calibre-cli--parse-file-name .formats))))

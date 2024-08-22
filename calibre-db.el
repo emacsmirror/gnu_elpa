@@ -50,7 +50,7 @@ ENTRY is a list of the form:
                        :timestamp (calibre-db--parse-timestamp timestamp)
                        :pubdate (calibre-db--parse-timestamp pubdate)
                        :last-modified (calibre-db--parse-timestamp last-modified)
-                       :tags (calibre-db--get-book-tags id)
+                       :tags (sort (calibre-db--get-book-tags id))
                        :formats (calibre-db--get-book-formats id)
                        :path path
                        :file-name (calibre-db--get-book-file-name id))))

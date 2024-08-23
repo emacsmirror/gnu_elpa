@@ -236,14 +236,14 @@ if set to t, when you call function `greader-read', that function sets a
 
 (defun greader-set-reading-keymap ()
   "Set greader's keymap when reading."
-  (greader-mode -1)
-  (greader-reading-mode t))
+  (setq greader-mode nil)
+  (setq greader-reading-mode t))
 
 (defun greader-set-greader-keymap ()
   "Set greader's keymap when not reading."
 
-  (greader-mode t)
-  (greader-reading-mode -1))
+  (setq greader-mode t)
+  (setq greader-reading-mode nil))
 
 (define-obsolete-variable-alias 'greader-map 'greader-mode-map "2022")
 (defvar greader-mode-map

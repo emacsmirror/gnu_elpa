@@ -5,7 +5,7 @@
 ;; Author:       Luke Lee <luke.yx.lee@gmail.com>
 ;; Maintainer:   Luke Lee <luke.yx.lee@gmail.com>
 ;; Keywords:     brief, emulations, crisp
-;; Version:      5.91
+;; Version:      5.92
 ;; Package-Requires: ((nadvice "0.3") (cl-lib "0.5"))
 
 ;; GNU Emacs is free software: you can redistribute it and/or modify
@@ -895,7 +895,7 @@ does not load the scroll-lock package."
  ;; This variable is used by macro `brief-key' so we need this variable
  ;; to be available early in compile time.
 
- (defcustom brief-map-meta-as-esc-prefix t
+(defcustom brief-map-meta-as-esc-prefix t
    "Map all Meta key related commands to be prefixed by ESC key as well.
 This is especially useful in terminal mode, or under GUI environments
 that intercept hotkeys before reaching Emacs.  For example, Alt-F4
@@ -2389,9 +2389,9 @@ This is the number of newlines between them."
 ;;  "Much faster version for replacing `line-number-at-pos'."
 ;;  (1+ (brief-fast-count-physical-lines 1 (or pos (point))))) ; base 1
 
-;; Control variables used in my "cursor undo" package, to be released.
-(defvar enable-cursor-tracking)
-(defvar disable-local-cursor-tracking)
+;; Control variables used by my ELPA "cursor-undo" package.
+(defvar cundo-enable-cursor-tracking)
+(defvar cundo-disable-local-cursor-tracking)
 
 (defun brief-current-row-visual () ;; base:0
   "Compute the relative row number of cursor for current window.
@@ -2405,7 +2405,7 @@ Supports all 3 modes: line truncation, line wrapping and visual line mode."
            ;;line
            (column0 (current-column))
            (count 0)
-           (disable-local-cursor-tracking '(t)))
+           (cundo-disable-local-cursor-tracking '(t)))
       (goto-char (window-start))
       (while (or (and (< (point) point0)
                       ;;(< (setq line (line-number-at-pos)) line0)
@@ -5232,7 +5232,7 @@ restored, otherwise NIL."
 ;; When undo restored the cua rectangle, we need to backup the clipboard or the
 ;; same issue happens
 ;; (advice-add 'cua--rect-undo-handler :around
-;;   (lambda (org-fun &restargs)
+;;   (lambda (org-fun &rest args)
 ;;     (let ((backup-clipboard (use-region-p)))
 ;;       (or backup-clipboard
 ;;           (brief-region-backup-clipboard-selection))
@@ -5467,23 +5467,30 @@ or negative prefix} and {`brief-linecmd-respect-visual'}."
 (defun brief-forward-column (n)
   "Move N visual column(s) forwards if N>0; or backwards if N<0.
 TAB stop is considered according to the value of `tab-width'."
-  (let ((c (current-column))
+  (let ((c (brief-current-column-visual))
         (dir (if (< n 0) -1 1))
         c1 d) ;; d:delta
-    (while (or (and (< dir 0)
-                    (< n 0))
-               (> n 0))
+    (while (> (* dir n) 0) ; (if (< dir 0) (< n 0) (> n 0))
       ;; When TAB char met here, the change in column will be <= `tab-width'
       (forward-char dir)
-      (setq c1 (current-column)
-            d  (- c c1)
+      (setq c1 (brief-current-column-visual))
+      ;; [2024-05-28 Tue] Rely on `current-column' will stuck cursor in many
+      ;; cases (e.g. in some org-mode files.)  According to the doc string of
+      ;; `current-column' : "In a buffer with very long lines, the value will
+      ;; be an approximation, because calculating the exact number is very
+      ;; expensive."
+      (setq d (if (= c c1) ; in case not changing, got incorrect approximation
+                  (- dir)
+                (- c c1))
             n  (+ n d)
             c  c1))))
 
 (defun brief-move-to-column-visual (vcol)
-  "Move to visual column VCOL (>=0) but not exceeding EOL."
+  "Move to visual column VCOL (>=0) but not exceeding current line."
+  ;; Change column only if it won't move to previous or next line.
   (unless (< vcol 0)
     (let* (p
+           (lbeg (line-beginning-position))
            (vend (save-excursion
                    (end-of-visual-line) ;; move to current visual line end
                    (setq p (brief-current-column-visual))
@@ -5491,17 +5498,22 @@ TAB stop is considered according to the value of `tab-width'."
                        p
                      ;; If we are already at the beginning of line, then
                      ;; do not back off.
-                     (if (/= (point) (line-beginning-position))
+                     (if (/= (point) lbeg)
                          ;;(left-char 1) ;; Emacs23 has no `left-char'
                          (backward-char 1))
-                     (brief-current-column-visual)))))
+                     (brief-current-column-visual))))
+           ;; prevent exceeding EOL
+           (steps (- (min vcol vend) (brief-current-column-visual))))
       ;; Emacs23 have no `right-char'
       ;;(right-char (- (min vcol vend) (brief-current-column-visual)))
       ;;(forward-char (- (min vcol vend) (brief-current-column-visual)))
       ;; When TAB is considered as multiple column character, the above code
       ;; that moves by char would fail.
-      (brief-forward-column (- (min vcol vend)
-                               (brief-current-column-visual))))))
+      (if (and (< steps 0)
+               (< (+ (point) steps) lbeg)) ; todo: what about tabs?
+          ;; prevent exceeding BOL (beginning of line)
+          (brief-forward-column (- lbeg (point)))
+        (brief-forward-column steps)))))
 
 (defun brief-delete-entire-line (arg)
   ;; <2011-06-09 Thu 14:14> for Emacs, use 'delete' as name since it does not
@@ -5557,7 +5569,8 @@ told this command to respect visual mode."
            ;; instead of the real line end), I choose `move-beginning-of-line'.
            (setq p1 (if visual
                         (beginning-of-visual-line 1)
-                      (move-beginning-of-line 1)))
+                      (move-beginning-of-line 1)
+                      (point)))
            (if (= p1 (progn
                        (if visual
                            (vertical-motion (abs arg))
@@ -5582,7 +5595,7 @@ copies the region to the kill ring and clipboard, and then deletes it."
         (interprogram-paste-function nil)
         (old-column (brief-current-column-visual)) ;; (current-column)
         (prev-point (point))
-        (enable-cursor-tracking nil)
+        (cundo-enable-cursor-tracking nil)
         (this-command this-command)
         (last-command last-command)
         (visual (brief-is-visual-operation))
@@ -6157,10 +6170,11 @@ If we're searching in a region, this undo will restore the region."
   ;; TODO: undo everything in the region (check `undo' then restore
   ;;       the region. (Find text "Undo in region" in `undo' source)
   (let () ;; (was-replace nil)
+    (setq this-command 'undo) ;; pretend this is a standard `undo'
     (if (not (or (brief-is-search-command last-command)
                  (brief-is-prefix-command last-command)
                  ;;(setq was-replace
-                       (brief-is-query-replace-command last-command)));;)
+                 (brief-is-query-replace-command last-command)));;)
         ;; It was not a search or query&replace command, do usual undo
         (undo arg)
 
@@ -6756,31 +6770,33 @@ be treated as current word, otherwise a search region."
     nil))
 
 ;; added 03/09/2006
-(defun brief-repeat-search ()
+(defun brief-repeat-search (arg)
   "Repeat the most recent forward/backward search command.
 Notice that if the latest search command is prefixed with a prefix
 command (\\[universal-argument]), it is also repeated."
-  (interactive "")
-  (let* ((current-prefix-arg current-prefix-arg))
-    (if brief-search-last
-        (if brief-last-search-action-forward
-            (brief-search-forward brief-search-last)
-          (brief-search-backward brief-search-last))
-      (call-interactively (if brief-last-search-action-forward
-                              #'brief-search-forward
-                            #'brief-search-backward)))))
+  (interactive "p")
+  (cl-loop
+   for i downfrom (or arg 1) to 1 by 1 do
+   (let* ((current-prefix-arg current-prefix-arg))
+     (if brief-search-last
+         (if brief-last-search-action-forward
+             (brief-search-forward brief-search-last)
+           (brief-search-backward brief-search-last))
+       (call-interactively (if brief-last-search-action-forward
+                               #'brief-search-forward
+                             #'brief-search-backward))))))
 
-(defun brief-repeat-search-forward ()
+(defun brief-repeat-search-forward (arg)
   "Repeat the latest search operation but change direction forwards."
-  (interactive "")
+  (interactive "p")
   (setq brief-last-search-action-forward t)
-  (brief-repeat-search))
+  (brief-repeat-search arg))
 
-(defun brief-repeat-search-backward ()
+(defun brief-repeat-search-backward (arg)
   "Repeat the latest search operation but change direction backwards."
-  (interactive "")
+  (interactive "p")
   (setq brief-last-search-action-forward nil)
-  (brief-repeat-search))
+  (brief-repeat-search arg))
 
 ;;
 ;; Query & Replace
@@ -7173,28 +7189,32 @@ be treated as current word, otherwise a search region."
         (brief-restore-clipboard-selection))
     (brief-delete-char arg)))
 
-(defun brief-forward-word (&optional arg)
+(defun brief-forward-word (&optional arg0)
   "New implementation of `forward-word' which won't be that greedy."
   (interactive "^p")
-  (ignore-errors ;; prevent begin of buffer or end of buffer
-    (if (< arg 0)
-        (let ((currsyn (char-syntax (char-before)))
-              (iswhite (char-syntax ?\t )))
-          (ignore-errors
-            (cl-loop for i from arg to -1 by 1 do
-                     (while (= (char-syntax (char-before)) iswhite)
-                       (backward-char))
-                     (while (= (char-syntax (char-before)) currsyn)
-                       (backward-char)))))
-      (let ((currsyn (char-syntax (char-after)))
-            (iswhite (char-syntax ?\t )))
-        (ignore-errors
-          (cl-loop for i downfrom (or arg 1) to 1 by 1 do
-                   (while (= (char-syntax (char-after)) currsyn)
-                     (forward-char))
-                   (while (= (char-syntax (char-after)) iswhite)
-                     (forward-char)))))))
-  t)
+  (let ((iswhite (char-syntax ?\t ))
+        (current-prefix-arg nil)
+        (arg (or arg0 1)))
+    (ignore-errors ;; prevent begin of buffer or end of buffer
+      (if (< arg 0)
+          (cl-loop
+           for i from arg to -1 by 1 do
+           (let ((currsyn))
+             (while (or (= (char-syntax (char-before)) iswhite)
+                        (brief-is-crlf (char-before)))
+               (backward-char))
+             (setq currsyn (char-syntax (char-before)))
+             (while (= (char-syntax (char-before)) currsyn)
+               (backward-char))))
+        (cl-loop
+         for i downfrom arg to 1 by 1 do
+         (let ((currsyn (char-syntax (char-after))))
+           (while (= (char-syntax (char-after)) currsyn)
+             (forward-char))
+           (while (or (= (char-syntax (char-after)) iswhite)
+                      (brief-is-crlf (char-after)))
+             (forward-char))))))
+    t))
 
 (defun brief-backward-word (&optional arg)
   "New implementation of `backward-word' which is not as greedy."
@@ -7254,19 +7274,22 @@ with \\[universal-argument] which will delete texts till the end of visual line.
 Users press [shift-tab] continuously usually expects the immediately followed
 [tab] go reversely, therefore we keep a state to track this.")
 
-(defun brief-shift-tab ()
+(defun brief-shift-tab (arg)
   "Backward to previous visual TAB position, according to `tab-width'"
-  (interactive "^")
-  (let ((col (brief-current-column-visual))
-        (tabw (or (and (zerop tab-width) 8) ;; prevent user error
-                  tab-width)))
-    (setq col
-          (if (> col 0)
-              (1- col)
-            (call-interactively #'previous-line)
-            (brief-end)
-            (brief-current-column-visual)))
-    (brief-move-to-column-visual (* (/ col tabw) tabw))))
+  (interactive "^p")
+  (cl-loop
+   for i downfrom (or arg 1) to 1 by 1 do
+   (let ((col (brief-current-column-visual))
+         (tabw (or (and (zerop tab-width) 8) ;; prevent user error
+                   tab-width))
+         (current-prefix-arg)) ;; disable prefix for `previous-line' calls
+     (setq col
+           (if (> col 0)
+               (1- col)
+             (call-interactively #'previous-line)
+             (brief-end)
+             (brief-current-column-visual)))
+     (brief-move-to-column-visual (* (/ col tabw) tabw)))))
 
 (defun brief-indent-tab (arg)
   "Indent current line, or region if marked; or do completion, insert a TAB.
@@ -7876,15 +7899,15 @@ from `write-file'."
 ;; Miscellaneous, infrequently used commands
 ;;
 
-(defun brief-scroll-up-one-line ()
-  "Scroll one line up."
-  (interactive)
-  (scroll-up 1))
+(defun brief-scroll-up-one-line (arg)
+  "Scroll (a) line(s) up according to the prefixed number."
+  (interactive "p")
+  (scroll-up arg))
 
-(defun brief-scroll-down-one-line ()
-  "Scroll one line down."
-  (interactive)
-  (scroll-up -1))
+(defun brief-scroll-down-one-line (arg)
+  "Scroll (a) line(s) down according to the prefixed number."
+  (interactive "p")
+  (scroll-up (- arg)))
 
 ;; Emacs v23 does not support this
 ;;(define-minor-mode brief-auto-backup-mode
@@ -8182,11 +8205,9 @@ Unlike [return] key, this command does not split current line."
 (brief-key [(control home)]         #'brief-move-to-window-line-0)
 (brief-key [(control shift home)]   #'brief-mark-move-to-window-line-0)
 
-(brief-key [(meta home)]            #'beginning-of-line)
 (brief-key [(end)]                  #'brief-end)
 (brief-key [(control end)]          #'brief-move-to-window-line-end)
 (brief-key [(control shift end)]    #'brief-mark-move-to-window-line-end)
-(brief-key [(meta end)]             #'end-of-line)
 
 (brief-key [prior]                  #'brief-fixed-cursor-page-up)
 (brief-key [next]                   #'brief-fixed-cursor-page-down)
@@ -8621,7 +8642,6 @@ toggle brief-mode."
                         brief-toggle-search-case-sensitivity
                         brief-toggle-search-replace-regexp
                         brief-print
-                        brief-search-again
                         brief-search-forward-currword
                         brief-switch-window-up
                         brief-switch-window-down

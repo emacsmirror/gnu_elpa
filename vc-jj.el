@@ -153,7 +153,7 @@
 		            (vc-jj-root file)))
 
 
-(defconst vc-jj-diff-switches '("--git"))
+(defvar vc-jj-diff-switches '("--git"))
 
 (defun vc-jj-diff (files &optional rev1 rev2 buffer async)
   (setq buffer (or buffer "*vc-diff*"))

@@ -159,7 +159,8 @@
 
 (defvar vc-jj-diff-switches '("--git"))
 
-(defun vc-jj-diff (files &optional rev1 rev2 buffer async)
+(defun vc-jj-diff (files &optional rev1 rev2 buffer _async)
+  ;; TODO: handle async
   (setq buffer (or buffer "*vc-diff*"))
   (cond
    ((and (null rev1)

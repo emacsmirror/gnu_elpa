@@ -25,7 +25,6 @@
 
 (require 'seq)
 
-(autoload 'vc-setup-buffer "vc-dispatcher")
 (autoload 'vc-switches "vc")
 
 (add-to-list 'vc-handled-backends 'JJ)
@@ -119,8 +118,8 @@
   (call-process "jj" nil nil nil "restore" "--" file))
 
 (defun vc-jj-print-log (files buffer &optional _shortlog start-revision limit)
-  (vc-setup-buffer buffer)
   (let ((inhibit-read-only t)
+        (erase-buffer)
         (args (append
                (when limit
                  (list "-n" (number-to-string limit)))
@@ -161,7 +160,7 @@
 
 (defun vc-jj-diff (files &optional rev1 rev2 buffer _async)
   ;; TODO: handle async
-  (setq buffer (or buffer "*vc-diff*"))
+  (setq buffer (get-buffer-create (or buffer "*vc-diff*")))
   (cond
    ((and (null rev1)
          (null rev2))
@@ -171,6 +170,8 @@
   (setq rev2 (or rev2 "@"))
   (let ((inhibit-read-only t)
         (args (append (vc-switches 'jj 'diff) (list "--") files)))
+    (with-current-buffer buffer
+      (erase-buffer))
     (apply #'call-process "jj" nil buffer nil "diff" "--from" rev1 "--to" rev2 args)
     (if (seq-some #'vc-jj--file-modified files)
         1

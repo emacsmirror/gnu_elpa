@@ -23,6 +23,8 @@
 
 ;;; Code:
 
+(require 'seq)
+
 (autoload 'vc-setup-buffer "vc-dispatcher")
 (autoload 'vc-switches "vc")
 
@@ -71,11 +73,13 @@
   ;; TODO: should be async!
   (let ((files (apply #'process-lines "jj" "file" "list" "--" dir))
         (modified (apply #'process-lines "jj" "diff" "--name-only" "--" dir)))
-    (mapcar (lambda (file)
-              (let ((vc-state (if (member file modified)
-                                  'edited
-                                'up-to-date)))
-                (list file vc-state))))))
+    (let ((result
+           (mapcar (lambda (file)
+                     (let ((vc-state (if (member file modified)
+                                         'edited
+                                       'up-to-date)))
+                       (list file vc-state))))))
+      (funcall update-function result nil))))
 
 (defun vc-jj-working-revision (file)
   (when-let ((root (vc-jj-root file)))
@@ -166,7 +170,10 @@
   (setq rev2 (or rev2 "@"))
   (let ((inhibit-read-only t)
         (args (append (vc-switches 'jj 'diff) (list "--") files)))
-    (apply #'call-process "jj" nil buffer nil "diff" "--from" rev1 "--to" rev2 args)))
+    (apply #'call-process "jj" nil buffer nil "diff" "--from" rev1 "--to" rev2 args)
+    (if (seq-some #'vc-jj--file-modified files)
+        1
+      0)))
 
 (defun vc-jj-revision-completion-table (files)
   (let ((revisions

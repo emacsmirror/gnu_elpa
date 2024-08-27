@@ -168,6 +168,7 @@
  (company-statistics	:url "https://github.com/company-mode/company-statistics")
  (compat		:url "https://github.com/emacs-compat/compat"
   :doc "compat.texi")
+ (constants             :url "https://github.com/cdominik/constants-for-Emacs")
  (consult		:url "https://github.com/minad/consult"
   :doc "README.org"
   :news "CHANGELOG.org"

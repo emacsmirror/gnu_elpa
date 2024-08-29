@@ -771,6 +771,11 @@
  (tramp-theme		:url nil)
  (transcribe		:url nil)
  (transient		:url "https://github.com/magit/transient"
+  ;; The author of this package views its branch in the GNU ELPA
+  ;; repository as nothing but a distribution mechanism, and requests
+  ;; that you make no changes whatsoever to that branch, and instead
+  ;; open a pull-request in the above upstream repository, even for
+  ;; the most trivial of changes.
   :manual-sync t ;;Author prefers manual control.
   :lisp-dir "lisp"
   :renames (("docs/" ""))

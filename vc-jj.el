@@ -100,6 +100,13 @@
   ;; No action needed.
   )
 
+(defun vc-jj-delete-file (file)
+  (when (file-exists-p file)
+    (delete-file file)))
+
+(defun vc-jj-rename-file (old new)
+  (rename-file old new))
+
 (defun vc-jj-checkin (files comment &optional _rev)
   (setq comment (replace-regexp-in-string "\\`Summary: " "" comment))
   (let ((args (append (vc-switches 'jj 'checkin) (list "--") files)))

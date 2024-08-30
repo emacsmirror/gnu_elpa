@@ -1,4 +1,4 @@
-;;; rec-mode.el --- Major mode for viewing/editing rec files  -*- lexical-binding: t; -*-
+;;; rec-mode.el --- Major mode for viewing/editing recfiles for GNU Recutils  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2009-2022  Free Software Foundation, Inc.
 

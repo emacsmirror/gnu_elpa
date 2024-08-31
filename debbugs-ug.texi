@@ -74,6 +74,43 @@ Programmer's Manual, debbugs}).
 
 @node Retrieving Bugs
 @chapter Retrieving Bugs
+@section Asynchronous Work
+
+The access to the GNU Debbugs server happens via a SOAP interface.
+This can be slow, especially, when a large number of bugs must be
+retrieved, or an extensive search is applied.  If Emacs is compiled
+with threading support, this work is performed by a thread.  During
+the bug retrieval, it is still possible to continue the work with
+Emacs then.
+
+After the bug retrieval is finished, a respective message will appear
+in the minibuffer.
+
+
+@deffn  {Command} debbugs-gnu-show-last-result
+
+This command switches the current buffer to the recent buffer
+containing bug reports.  It is useful to bind this command to a
+function key in your @file{.emacs} file, like
+
+@kindex @kbd{f5}
+@lisp
+(keymap-global-set "<f5>" 'debbugs-gnu-show-last-result)
+@end lisp
+@end deffn
+
+
+@defopt debbugs-gnu-use-threads
+
+@vindex debbugs-gnu-use-threads-lower-limit
+The user option @code{debbugs-gnu-use-threads}, when set to
+@code{nil}, disables threaded bug retrieval, and synchronous bug
+retrieval is performed.  Threaded bug retrieval is also suppressed if
+the number of bugs to be retrieved is known in advance, and it is
+smaller than the user option @code{debbugs-gnu-use-threads-lower-limit}.
+@end defopt
+
+@section Basic Commands
 
 Bugs are retrieved by the @code{debbugs-gnu} or @code{debbugs-org}
 commands.  In their simple version, they retrieve just bugs for the
@@ -180,6 +217,10 @@ number in the repository.
 A default value for interactive use can be configured in the user
 option @code{debbugs-gnu-default-bug-number-list}.
 
+When the number of bugs is smaller than the user option
+@code{debbugs-gnu-use-threads-lower-limit}, the bug retrieval is
+performed synchronously.
+
 @ref{Presenting Bugs} for the presentation of the results.
 @end deffn
 
@@ -202,6 +243,10 @@ This is useful for bug triaging.
 The commands @code{debbugs-gnu-tagged} and @code{debbugs-org-tagged}
 show all bugs tagged locally.  This list is useful for keeping track
 of bugs you are currently working on.
+
+When the number of tagged bugs is smaller than the user option
+@code{debbugs-gnu-use-threads-lower-limit}, the bug retrieval is
+performed synchronously.
 
 @ref{Presenting Bugs} for the presentation of the results.
 @end deffn
@@ -234,8 +279,9 @@ change this when called interactively.
 
 @defopt debbugs-show-progress
 
-If this user option is non-@code{nil}, a progress report is shown when
-retrieving bugs, defaults to t.
+If the bug retrieval happens synchronously, and this user option is
+non-@code{nil}, a progress report is shown when retrieving bugs.  It
+defaults to @code{t}.
 @end defopt
 
 
@@ -244,7 +290,7 @@ retrieving bugs, defaults to t.
 
 The GNU Debbugs server allows searching the text of the messages
 submitted to the bugs in the database.  It uses a
-@uref{https://fallabs.com/hyperestraier/uguide-en.html#searchcond,
+@uref{https://dbmx.net/hyperestraier/uguide-en.html#searchcond,
 HyperEstraier based search engine}@footnote{This has been added to the
 Debbugs/SOAP backend of the GNU Debbugs server only.}.
 
@@ -283,6 +329,12 @@ Several wildcards must be separated by the operators explained above.
 
 While the words to be searched for are case insensitive, the operators
 must be specified in upper case.
+
+@ignore
+For test purposes, we have added the operators "MAX <nnn>" and "SKIP
+<nnn>" at the end of a phrase.  Since this is internal only, we don't
+document it here.
+@end ignore
 
 While the search for the phrase is performed only in the bodies of the
 messages belonging to a bug report, it is also possible to restrict
@@ -375,7 +427,8 @@ Note, that client side filters perform badly, because they can be
 applied only after all bugs have been downloaded.
 
 These commands show also a progress report when
-@code{debbugs-show-progress} is non-@code{nil}.
+@code{debbugs-show-progress} is non-@code{nil} and the bug retrieval
+is performed synchronously.
 @end deffn
 
 
@@ -810,7 +863,7 @@ creates a ChangeLog entry with all needed information.  A final
 @samp{*vc-log*}.
 
 @vindex debbugs-gnu-apply-patch-prefers-magit
-  If the user option @code{debbugs-gnu-apply-patch-prefers-magit} is
+If the user option @code{debbugs-gnu-apply-patch-prefers-magit} is
 non-@code{nil}, the third-party package Magit will be used instead of
 VC when you hit @kbd{M-m} in the GNUS ephemeral group.  Note that the
 rest of the workflow described above is not yet supported.

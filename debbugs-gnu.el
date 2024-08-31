@@ -457,6 +457,12 @@ a date, value is the cons cell (BEFORE . AFTER).")
 The specification which bugs shall be suppressed is taken from
   `debbugs-gnu-default-suppress-bugs'.")
 
+(defvar debbugs-gnu-current-buffer nil
+  "The current buffer results are presented in.")
+
+(defvar debbugs-gnu-current-message nil
+  "The message to be shown after getting the bugs.")
+
 (defvar debbugs-gnu-current-print-function #'tabulated-list-print
   "Which function to apply printing the tabulated list..
 See `debbugs-gnu-package' for an alternative.")
@@ -680,8 +686,8 @@ depend on PHRASE being a string, or nil.  See Info node
      elt))
 
   ;; Do the search.
-  (debbugs-gnu severities packages archivedp)
-  (message "Search finished"))
+  (setq debbugs-gnu-current-message "Search finished")
+  (debbugs-gnu severities packages archivedp))
 
 ;;;###autoload
 (defun debbugs-gnu-patches ()
@@ -777,9 +783,26 @@ depend on PHRASE being a string, or nil.  See Info node
       (format "GNU bug reports: package(s) %s\n" (string-join packages ","))
       'face 'debbugs-gnu-title))))
 
-(defvar debbugs-gnu-show-reports-function #'debbugs-gnu-show-reports
+(defconst debbugs-gnu-default-show-reports-function #'debbugs-gnu-show-reports
+  "Which function to apply showing bug reports.")
+
+(defvar debbugs-gnu-show-reports-function
+  debbugs-gnu-default-show-reports-function
   "Which function to apply showing bug reports.
 Shall be bound in `debbugs-org-*' functions.")
+
+(defcustom debbugs-gnu-use-threads (and main-thread t)
+  "Whether to use threads when retrieving bugs.
+This doesn't when Emacs is compiled without threading support."
+  :type 'boolean
+  :version "30.1")
+
+(defcustom debbugs-gnu-use-threads-lower-limit 100
+  "Lower limit of bugs to be expected when using threads.
+This is taken into account only when the number of bugs is a fixed
+value, like in `debbugs-gnu-get-bugs' or `debbubgs-gnu-tagged'."
+  :type 'integer
+  :version "30.1")
 
 ;;;###autoload
 (defun debbugs-gnu (severities &optional packages archivedp suppress tags)
@@ -805,48 +828,87 @@ Shall be bound in `debbugs-org-*' functions.")
       (when (member "tagged" severities)
 	(split-string (read-string "User tag(s): ") "," t)))))
 
-  (unwind-protect
-      (progn
-	;; Initialize variables.
-	(when (and (file-exists-p debbugs-gnu-persistency-file)
-		   (not debbugs-gnu-local-tags))
-	  (with-temp-buffer
-	    (insert-file-contents debbugs-gnu-persistency-file)
-	    (eval (read (current-buffer)) t)))
-	;; Per default, we suppress retrieved unwanted bugs.
-	(when (and (called-interactively-p 'any)
-		   debbugs-gnu-suppress-closed)
-	  (setq debbugs-gnu-current-suppress t))
+  ;; Initialize variables.
+  (when (and (file-exists-p debbugs-gnu-persistency-file)
+	     (not debbugs-gnu-local-tags))
+    (with-temp-buffer
+      (insert-file-contents debbugs-gnu-persistency-file)
+      (eval (read (current-buffer)) t)))
+  ;; Per default, we suppress retrieved unwanted bugs.
+  (when (and (called-interactively-p 'any)
+	     debbugs-gnu-suppress-closed)
+    (setq debbugs-gnu-current-suppress t))
 
-	;; Add queries.
-	(dolist (severity (if (consp severities) severities (list severities)))
-	  (when (not (zerop (length severity)))
-	    (when (string-equal severity "tagged")
-	      (setq debbugs-gnu-current-suppress nil))
-	    (add-to-list 'debbugs-gnu-current-query (cons 'severity severity))))
-	(dolist (package (if (consp packages) packages (list packages)))
-	  (when (not (zerop (length package)))
-	    (add-to-list 'debbugs-gnu-current-query (cons 'package package))))
-	(when archivedp
-	  (setq debbugs-gnu-current-suppress nil)
-	  (add-to-list 'debbugs-gnu-current-query '(archive . "1")))
-	(when suppress
-	  (setq debbugs-gnu-current-suppress t)
-	  (add-to-list 'debbugs-gnu-current-query '(status . "open"))
-	  (add-to-list 'debbugs-gnu-current-query '(status . "forwarded")))
-	(dolist (tag (if (consp tags) tags (list tags)))
-	  (when (not (zerop (length tag)))
-	    (add-to-list 'debbugs-gnu-current-query (cons 'tag tag))))
+  ;; Add queries.
+  (dolist (severity (if (consp severities) severities (list severities)))
+    (when (not (zerop (length severity)))
+      (when (string-equal severity "tagged")
+	(setq debbugs-gnu-current-suppress nil))
+      (add-to-list 'debbugs-gnu-current-query (cons 'severity severity))))
+  (dolist (package (if (consp packages) packages (list packages)))
+    (when (not (zerop (length package)))
+      (add-to-list 'debbugs-gnu-current-query (cons 'package package))))
+  (when archivedp
+    (setq debbugs-gnu-current-suppress nil)
+    (add-to-list 'debbugs-gnu-current-query '(archive . "1")))
+  (when suppress
+    (setq debbugs-gnu-current-suppress t)
+    (add-to-list 'debbugs-gnu-current-query '(status . "open"))
+    (add-to-list 'debbugs-gnu-current-query '(status . "forwarded")))
+  (dolist (tag (if (consp tags) tags (list tags)))
+    (when (not (zerop (length tag)))
+      (add-to-list 'debbugs-gnu-current-query (cons 'tag tag))))
 
-	;; Show result.
-	(funcall debbugs-gnu-show-reports-function))
+  ;; Show result.
+  (when (called-interactively-p 'interactive)
+    (setq debbugs-gnu-current-message "Query finished"))
+  ;; `main-thread' is nil when not compiled with threading support.
+  (if (and debbugs-gnu-use-threads main-thread
+           ;; If there is a bugs query, there shall be a sufficient
+           ;; number of bugs.
+           (if-let ((bugs (alist-get 'bugs debbugs-gnu-current-query)))
+               (> (length bugs) (1- debbugs-gnu-use-threads-lower-limit))
+             t)
+           ;; If there is a request for tagged bugs, there shall be a
+           ;; sufficient number of bugs.
+           (if (string-equal
+                (alist-get 'severity debbugs-gnu-current-query) "tagged")
+               (> (length debbugs-gnu-local-tags)
+                  (1- debbugs-gnu-use-threads-lower-limit))
+             t))
+      (funcall 'make-thread
+       (lambda ()
+         (let (debbugs-show-progress)
+           (unwind-protect
+	       (funcall debbugs-gnu-show-reports-function)
+             ;; Indicate result.
+             (if debbugs-gnu-current-message
+                 (message
+                  (substitute-command-keys
+                   "%s, visit buffer via \\[debbugs-gnu-show-last-result]")
+                  debbugs-gnu-current-message)
+               (message
+                (substitute-command-keys
+                 "Visit buffer via \\[debbugs-gnu-show-last-result]")))
+             ;; Reset query, filter, suppress and message.
+             (setq debbugs-gnu-current-query nil
+	           debbugs-gnu-current-filter nil
+	           debbugs-gnu-current-suppress nil
+                   debbugs-gnu-current-message nil
+                   debbugs-gnu-show-reports-function
+                   debbugs-gnu-default-show-reports-function)))))
 
-    ;; Reset query, filter and suppress.
-    (setq debbugs-gnu-current-query nil
-	  debbugs-gnu-current-filter nil
-	  debbugs-gnu-current-suppress nil)
-    (when (called-interactively-p 'interactive)
-      (message "Query finished"))))
+    (unwind-protect
+  	(funcall debbugs-gnu-show-reports-function)
+      (when debbugs-gnu-current-message
+        (message "%s" debbugs-gnu-current-message))
+      ;; Reset query, filter, suppress and message.
+      (setq debbugs-gnu-current-query nil
+	    debbugs-gnu-current-filter nil
+	    debbugs-gnu-current-suppress nil
+            debbugs-gnu-current-message nil
+            debbugs-gnu-show-reports-function
+            debbugs-gnu-default-show-reports-function))))
 
 ;;;###autoload
 (defun debbugs-gnu-my-open-bugs ()
@@ -854,6 +916,13 @@ Shall be bound in `debbugs-org-*' functions.")
 This function assumes the variable `user-mail-address' is defined."
   (interactive)
   (apply #'debbugs-gnu-bugs (debbugs-get-bugs :submitter "me" :status "open")))
+
+;;;###autoload
+(defun debbugs-gnu-show-last-result ()
+  "Switch to buffer with the recent retrieved bugs"
+  (interactive)
+  (when (ignore-errors (get-buffer debbugs-gnu-current-buffer))
+    (pop-to-buffer-same-window debbugs-gnu-current-buffer)))
 
 (defun debbugs-gnu-get-bugs (query)
   "Retrieve bug numbers from debbugs.gnu.org according search criteria."
@@ -874,7 +943,18 @@ This function assumes the variable `user-mail-address' is defined."
 	       (if phrase
 		   (cond
 		    ((eq (car elt) 'phrase)
-		     (list (list :phrase (cdr elt))))
+                     (let ((str (cdr elt))
+                           res)
+                       (while (string-match
+                               (rx (1+ space) (group (or "MAX" "SKIP"))
+                                   (1+ space) (group (1+ digit)) eol)
+                               str)
+                         (push (string-to-number (match-string 2 str)) res)
+                         (push
+                          (intern (concat ":" (downcase (match-string 1 str))))
+                          res)
+                         (setq str (replace-match "" nil nil str)))
+		       (list (append (list :phrase str) res))))
 		    ((memq (car elt) '(date @cdate))
 		     (list (list (intern (concat ":" (symbol-name (car elt))))
 				 (cddr elt) (cadr elt)
@@ -917,20 +997,24 @@ This function assumes the variable `user-mail-address' is defined."
   "Show bug reports.
 If OFFLINE is non-nil, the query is not sent to the server.  Bugs
 are taken from the cache instead."
-  (let* ((inhibit-read-only t)
-	 string
-	 (buffer-name
-	  (cond
-	   ((setq string (alist-get 'phrase debbugs-gnu-current-query))
-	    (format "*%S Bugs*" string))
-	   ((setq string (alist-get 'package debbugs-gnu-current-query))
-	    (format "*%s Bugs*" (capitalize string)))
-	   (t "*Bugs*"))))
-    ;; The tabulated mode sets several local variables.  We must get
-    ;; rid of them.
-    (when (get-buffer buffer-name)
-      (kill-buffer buffer-name))
-    (pop-to-buffer-same-window (get-buffer-create buffer-name))
+  (setq debbugs-gnu-current-buffer
+	(cond
+	 ((when-let ((string (alist-get 'phrase debbugs-gnu-current-query)))
+	    (format "*%S Bugs*" string)))
+	 ((when-let ((string (alist-get 'package debbugs-gnu-current-query)))
+	    (format "*%s Bugs*" (capitalize string))))
+	 (t "*Bugs*")))
+  ;; The tabulated mode sets several local variables.  We must get rid
+  ;; of them.
+  (when (get-buffer debbugs-gnu-current-buffer)
+    (kill-buffer debbugs-gnu-current-buffer))
+  ;; When we are retrieving the bugs asynchronously (we're not in the
+  ;; main thread), the buffer shall not be shown to the user yet.
+  (funcall
+   (if (or (not main-thread) (eq main-thread (funcall 'current-thread)))
+       #'pop-to-buffer-same-window #'set-buffer)
+   (get-buffer-create debbugs-gnu-current-buffer))
+  (let ((inhibit-read-only t))
     (debbugs-gnu-mode)
 
     ;; Print bug reports.
@@ -1056,7 +1140,7 @@ are taken from the cache instead."
 	   'append))))
 
     (tabulated-list-init-header)
-    (funcall debbugs-gnu-local-print-function)
+    (funcall debbugs-gnu-current-print-function)
 
     (set-buffer-modified-p nil)
     (goto-char (point-min))))
@@ -1872,7 +1956,6 @@ returned by `debbugs-gnu-bugs'."
 	       (number-sequence (string-to-number from) (string-to-number to)))
 	      result))))))))
 
-
 (defconst debbugs-gnu-control-message-keywords
   '("serious" "important" "normal" "minor" "wishlist"
     "done" "donenotabug" "donewontfix" "doneunreproducible"
@@ -2500,9 +2583,9 @@ or bug ranges, with default to `debbugs-gnu-default-bug-number-list'."
   (add-to-list 'debbugs-gnu-current-query (cons 'bugs bugs))
   ;; We do not suppress bugs requested explicitly.
   (setq debbugs-gnu-current-suppress nil)
-  (debbugs-gnu nil)
   (when (called-interactively-p 'interactive)
-    (message "Retrieving bugs finished")))
+    (setq debbugs-gnu-current-message "Retrieving bugs finished"))
+  (debbugs-gnu nil))
 
 (defalias 'debbugs-gnu-get-bug-by-id #'debbugs-gnu-bugs)
 
@@ -2511,7 +2594,7 @@ or bug ranges, with default to `debbugs-gnu-default-bug-number-list'."
   :type 'directory
   :version "25.2")
 
-(defcustom debbugs-gnu-branch-directory "~/src/emacs/emacs-29/"
+(defcustom debbugs-gnu-branch-directory "~/src/emacs/emacs-30/"
   "The directory where the previous source tree lives."
   :type 'directory
   :version "30.1")

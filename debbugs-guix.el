@@ -47,9 +47,9 @@
   "Search for open guix bugs and patches and display the results in an \
 org buffer."
   (interactive)
-  (let ((debbugs-gnu-show-reports-function #'debbugs-org-show-reports))
-    (debbugs-gnu-search (read-string "Search String: ") '((pending . "pending"))
-                        nil '("guix" "guix-patches") nil)))
+  (setq debbugs-gnu-show-reports-function #'debbugs-org-show-reports)
+  (debbugs-gnu-search (read-string "Search String: ") '((pending . "pending"))
+                      nil '("guix" "guix-patches") nil))
 
 (provide 'debbugs-guix)
 

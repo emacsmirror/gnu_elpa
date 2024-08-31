@@ -162,37 +162,44 @@ Further key-value pairs are requested until an empty key is
 returned.  If a key cannot be queried by a SOAP request, it is
 marked as \"client-side filter\"."
   (interactive)
-  (let ((debbugs-gnu-show-reports-function #'debbugs-org-show-reports))
-    (call-interactively #'debbugs-gnu-search)))
+  (setq debbugs-gnu-show-reports-function #'debbugs-org-show-reports)
+  (call-interactively #'debbugs-gnu-search))
 
 ;;;###autoload
 (defun debbugs-org-patches ()
   "List the bug reports that have been marked as containing a patch."
   (interactive)
-  (let ((debbugs-gnu-show-reports-function #'debbugs-org-show-reports))
-    (call-interactively #'debbugs-gnu-patches)))
+  (setq debbugs-gnu-show-reports-function #'debbugs-org-show-reports)
+  (call-interactively #'debbugs-gnu-patches))
 
 ;;;###autoload
 (defun debbugs-org-tagged ()
   "List the bug reports that have been tagged locally."
   (interactive)
-  (let ((debbugs-gnu-show-reports-function #'debbugs-org-show-reports))
-    (call-interactively 'debbugs-gnu-tagged)))
+  (setq debbugs-gnu-show-reports-function #'debbugs-org-show-reports)
+  (call-interactively 'debbugs-gnu-tagged))
 
 ;;;###autoload
 (defun debbugs-org ()
   "List all outstanding bugs."
   (interactive)
-  (let ((debbugs-gnu-show-reports-function #'debbugs-org-show-reports))
-    (call-interactively #'debbugs-gnu)))
+  (setq debbugs-gnu-show-reports-function #'debbugs-org-show-reports)
+  (call-interactively #'debbugs-gnu))
 
 (defun debbugs-org-show-reports ()
   "Show bug reports as retrieved via `debbugs-gnu-current-query'."
   (let ((inhibit-read-only t)
 	(org-startup-folded t))
+    (setq debbugs-gnu-current-buffer debbugs-org-buffer-name)
     (when (get-buffer debbugs-org-buffer-name)
       (kill-buffer debbugs-org-buffer-name))
-    (switch-to-buffer (get-buffer-create debbugs-org-buffer-name))
+    ;; When we are retrieving the bugs asynchronously (we're not in
+    ;; the main thread), the buffer shall not be shown to the user
+    ;; yet.
+    (funcall
+     (if  (or (not main-thread) (eq main-thread (funcall 'current-thread)))
+         #'pop-to-buffer-same-window #'set-buffer)
+     (get-buffer-create debbugs-org-buffer-name))
     (org-mode)
     (debbugs-org-mode 1)
 
@@ -347,8 +354,8 @@ the corresponding buffer (e.g. by closing Emacs)."
 (defun debbugs-org-emacs-release-blocking-reports ()
   "Show the reports that are blocking an Emacs release."
   (interactive)
-  (let ((debbugs-gnu-show-reports-function #'debbugs-org-show-reports))
-    (call-interactively #'debbugs-gnu-emacs-release-blocking-reports)))
+  (setq debbugs-gnu-show-reports-function #'debbugs-org-show-reports)
+  (call-interactively #'debbugs-gnu-emacs-release-blocking-reports))
 
 ;;;###autoload
 (defun debbugs-org-bugs ()
@@ -356,8 +363,8 @@ the corresponding buffer (e.g. by closing Emacs)."
 In interactive calls, prompt for a comma separated list of bugs
 or bug ranges, with default to `debbugs-gnu-default-bug-number-list'."
   (interactive)
-  (let ((debbugs-gnu-show-reports-function #'debbugs-org-show-reports))
-    (call-interactively #'debbugs-gnu-bugs)))
+  (setq debbugs-gnu-show-reports-function #'debbugs-org-show-reports)
+  (call-interactively #'debbugs-gnu-bugs))
 
 ;;;###autoload
 (defun debbugs-org-my-open-bugs ()
@@ -365,8 +372,8 @@ or bug ranges, with default to `debbugs-gnu-default-bug-number-list'."
 This function assumes the variable `user-mail-address' is
 defined."
   (interactive)
-  (let ((debbugs-gnu-show-reports-function #'debbugs-org-show-reports))
-    (apply #'debbugs-gnu-bugs (debbugs-get-bugs :submitter "me" :status "open"))))
+  (setq debbugs-gnu-show-reports-function #'debbugs-org-show-reports)
+  (call-interactively #'debbugs-gnu-my-open-bugs))
 
 ;; TODO
 

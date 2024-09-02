@@ -29,6 +29,10 @@
 ;; show and manipulate bug reports from Emacs, but it could be used
 ;; also for other GNU projects which use the same bug tracker.
 
+;; Retrieving bugs is performed in a separate thread.  This is
+;; controlled by user option `debbugs-gnu-use-threads'.  Set it to nil
+;; if you want to change this behavior.
+
 ;; The bug tracker is called interactively by
 ;;
 ;;   M-x debbugs-gnu
@@ -793,7 +797,7 @@ Shall be bound in `debbugs-org-*' functions.")
 
 (defcustom debbugs-gnu-use-threads (and main-thread t)
   "Whether to use threads when retrieving bugs.
-This doesn't when Emacs is compiled without threading support."
+This doesn't apply when Emacs is compiled without threading support."
   :type 'boolean
   :version "30.1")
 
@@ -921,6 +925,12 @@ This function assumes the variable `user-mail-address' is defined."
 (defun debbugs-gnu-show-last-result ()
   "Switch to buffer with the recent retrieved bugs"
   (interactive)
+  ;; `thread-last-error' has an argument since Emacs 27.1.  This
+  ;; doesn't matter, because in Emacs 26 we don't use threads.
+  (when-let ((err
+              (ignore-errors
+                (with-no-warnings (funcall 'thread-last-error 'cleanup)))))
+    (message "debbugs-gnu-show-last-result: %S" err))
   (when (ignore-errors (get-buffer debbugs-gnu-current-buffer))
     (pop-to-buffer-same-window debbugs-gnu-current-buffer)))
 
@@ -1140,7 +1150,7 @@ are taken from the cache instead."
 	   'append))))
 
     (tabulated-list-init-header)
-    (funcall debbugs-gnu-current-print-function)
+    (funcall debbugs-gnu-local-print-function)
 
     (set-buffer-modified-p nil)
     (goto-char (point-min))))

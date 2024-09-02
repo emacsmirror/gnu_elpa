@@ -24,6 +24,10 @@
 ;;; Commentary:
 ;;; Code:
 
+;; `main-thread' has been added in Emacs 27.1.
+(unless (boundp 'main-thread)
+  (defconst main-thread nil))
+
 ;; Function `string-replace' is new in Emacs 28.1.
 (defalias 'debbugs-compat-string-replace
   (if (fboundp 'string-replace)
@@ -32,6 +36,15 @@
       (let ((case-fold-search nil))
         (replace-regexp-in-string
          (regexp-quote from-string) to-string in-string t t)))))
+
+;; `soap-invoke-internal' let-binds `url-http-attempt-keepalives' to
+;; t, which is not thread-safe.  We override this setting.
+(defvar url-http-attempt-keepalives)
+(advice-add
+ 'url-http-create-request :around
+ (lambda (orig-fun)
+   (with-no-warnings (setq url-http-attempt-keepalives nil))
+   (funcall orig-fun)))
 
 (provide 'debbugs-compat)
 

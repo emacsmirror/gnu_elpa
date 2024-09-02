@@ -27,6 +27,10 @@
 ;; on the GNU bug tracker debbugs.gnu.org.  Its main purpose is to
 ;; show and manipulate bug reports as org-mode TODO items.
 
+;; Retrieving bugs is performed in a separate thread.  This is
+;; controlled by user option `debbugs-org-use-threads'.  Set it to nil
+;; if you want to change this behavior.
+
 ;; The bug tracker is called interactively by
 ;;
 ;;   M-x debbugs-org
@@ -131,6 +135,8 @@
 ;; Buffer-local variables.
 (defvar debbugs-gnu-local-query)
 (defvar debbugs-gnu-local-filter)
+
+(defvaralias 'debbugs-org-use-threads 'debbugs-gnu-use-threads)
 
 (defconst debbugs-org-severity-priority
   (let ((priority ?A))

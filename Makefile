@@ -2,8 +2,9 @@ EMACS ?= emacs
 
 SOURCE=$(wildcard *.el)
 TESTSOURCE=$(wildcard test/*.el)
-TARGET=$(patsubst %.el,%.elc,$(SOURCE))
+TARGET=$(filter-out debbugs-pkg.elc,$(patsubst %.el,%.elc,$(SOURCE)))
 TESTTARGET=$(patsubst %.el,%.elc,$(TESTSOURCE))
+
 
 .PHONY: all build check clean
 .PRECIOUS: %.elc

@@ -108,6 +108,9 @@ The user option @code{debbugs-gnu-use-threads}, when set to
 retrieval is performed.  Threaded bug retrieval is also suppressed if
 the number of bugs to be retrieved is known in advance, and it is
 smaller than the user option @code{debbugs-gnu-use-threads-lower-limit}.
+
+@vindex debbugs-org-use-threads
+@code{debbugs-org-use-threads} an alias of this user option.
 @end defopt
 
 @section Basic Commands

@@ -333,12 +333,6 @@ Several wildcards must be separated by the operators explained above.
 While the words to be searched for are case insensitive, the operators
 must be specified in upper case.
 
-@ignore
-For test purposes, we have added the operators "MAX <nnn>" and "SKIP
-<nnn>" at the end of a phrase.  Since this is internal only, we don't
-document it here.
-@end ignore
-
 While the search for the phrase is performed only in the bodies of the
 messages belonging to a bug report, it is also possible to restrict
 the search using further bug attributes.  The commands ask for such
@@ -346,6 +340,12 @@ attribute-value pairs, until an empty attribute is returned.  Possible
 attributes are
 
 @table @samp
+@item skip
+How many hits are skipped (default 0).
+
+@item max
+How many maximal hits are returned.
+
 @item severity
 A comma-separated list of bug severities, @xref{Retrieving Bugs}.
 

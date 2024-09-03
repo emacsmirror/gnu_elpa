@@ -526,13 +526,13 @@ depend on PHRASE being a string, or nil.  See Info node
   (interactive
    (let ((date-format
 	  (eval-when-compile
-	    (concat"\\([[:digit:]]\\{4\\}\\)-"
-		   "\\([[:digit:]]\\{1,2\\}\\)-"
-		   "\\([[:digit:]]\\{1,2\\}\\)")))
+	    (concat "\\([[:digit:]]\\{4\\}\\)-"
+		    "\\([[:digit:]]\\{1,2\\}\\)-"
+		    "\\([[:digit:]]\\{1,2\\}\\)")))
 	 key val1 val2 phrase query severities packages archivedp)
 
      ;; Check for the phrase.
-     (setq phrase (read-string debbugs-gnu-phrase-prompt))
+     (setq phrase (string-trim (read-string debbugs-gnu-phrase-prompt)))
      (when (zerop (length phrase))
        (setq phrase nil))
 
@@ -544,7 +544,8 @@ depend on PHRASE being a string, or nil.  See Info node
 		    (if phrase
 			(append
 			 '("severity" "package" "tags"
-			   "author" "date" "subject")
+			   "author" "date" "subject"
+                           "skip" "max")
 			 ;; Client-side filters.
 			 (mapcar
 			  (lambda (key)
@@ -597,6 +598,11 @@ depend on PHRASE being a string, or nil.  See Info node
 	     (push
 	      (cons (intern (if (equal key "author") "@author" key)) val1)
 	      query)))
+
+	  ((member key '("skip" "max"))
+	   (setq val1 (read-number (format "Enter %s: " key)))
+	   (when (natnump val1)
+	     (push (cons (intern key) val1) query)))
 
 	  ;; Client-side filters.
 	  ((equal key "status")
@@ -940,8 +946,12 @@ This function assumes the variable `user-mail-address' is defined."
 	 (tags (and (member '(severity . "tagged") query) (assq 'tag query)))
 	 (local-tags (and (member '(severity . "tagged") query) (not tags)))
 	 (phrase (assq 'phrase query))
+	 (skip (assq 'skip query))
+	 (max (assq 'max query))
 	 args)
     ;; Compile query arguments.
+    (setq query (delete skip query)
+          query (delete max query))
     (unless (or query tags)
       (dolist (elt debbugs-gnu-default-packages)
 	(setq args (append args (list :package elt)))))
@@ -953,18 +963,9 @@ This function assumes the variable `user-mail-address' is defined."
 	       (if phrase
 		   (cond
 		    ((eq (car elt) 'phrase)
-                     (let ((str (cdr elt))
-                           res)
-                       (while (string-match
-                               (rx (1+ space) (group (or "MAX" "SKIP"))
-                                   (1+ space) (group (1+ digit)) eol)
-                               str)
-                         (push (string-to-number (match-string 2 str)) res)
-                         (push
-                          (intern (concat ":" (downcase (match-string 1 str))))
-                          res)
-                         (setq str (replace-match "" nil nil str)))
-		       (list (append (list :phrase str) res))))
+		     (list (append (list :phrase (cdr phrase))
+                                   (when skip (list :skip (cdr skip)))
+                                   (when max (list :max (cdr max))))))
 		    ((memq (car elt) '(date @cdate))
 		     (list (list (intern (concat ":" (symbol-name (car elt))))
 				 (cddr elt) (cadr elt)

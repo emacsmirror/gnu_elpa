@@ -464,6 +464,9 @@ The specification which bugs shall be suppressed is taken from
 (defvar debbugs-gnu-current-buffer nil
   "The current buffer results are presented in.")
 
+(defvar debbugs-gnu-current-id nil
+  "The saved position in a debbugs buffer.")
+
 (defvar debbugs-gnu-current-message nil
   "The message to be shown after getting the bugs.")
 
@@ -891,6 +894,8 @@ value, like in `debbugs-gnu-get-bugs' or `debbubgs-gnu-tagged'."
          (let (debbugs-show-progress)
            (unwind-protect
 	       (funcall debbugs-gnu-show-reports-function)
+             (when debbugs-gnu-current-id
+               (debbugs-gnu-goto debbugs-gnu-current-id))
              ;; Indicate result.
              (if debbugs-gnu-current-message
                  (message
@@ -904,18 +909,22 @@ value, like in `debbugs-gnu-get-bugs' or `debbubgs-gnu-tagged'."
              (setq debbugs-gnu-current-query nil
 	           debbugs-gnu-current-filter nil
 	           debbugs-gnu-current-suppress nil
+                   debbugs-gnu-current-id nil
                    debbugs-gnu-current-message nil
                    debbugs-gnu-show-reports-function
                    debbugs-gnu-default-show-reports-function)))))
 
     (unwind-protect
   	(funcall debbugs-gnu-show-reports-function)
+      (when debbugs-gnu-current-id
+        (debbugs-gnu-goto debbugs-gnu-current-id))
       (when debbugs-gnu-current-message
         (message "%s" debbugs-gnu-current-message))
       ;; Reset query, filter, suppress and message.
       (setq debbugs-gnu-current-query nil
 	    debbugs-gnu-current-filter nil
 	    debbugs-gnu-current-suppress nil
+            debbugs-gnu-current-id nil
             debbugs-gnu-current-message nil
             debbugs-gnu-show-reports-function
             debbugs-gnu-default-show-reports-function))))
@@ -1308,15 +1317,15 @@ If NOCACHE is non-nil, bug information is retrieved from the debbugs server.
 Interactively, it is non-nil with the prefix argument."
   (interactive
    (list current-prefix-arg))
-  (let ((id (debbugs-gnu-current-id t))
-	(debbugs-gnu-current-query debbugs-gnu-local-query)
-	(debbugs-gnu-current-filter debbugs-gnu-local-filter)
-	(debbugs-gnu-current-suppress debbugs-gnu-local-suppress)
-	(debbugs-gnu-current-print-function debbugs-gnu-local-print-function)
-	(debbugs-cache-expiry (if nocache t debbugs-cache-expiry)))
-    (funcall debbugs-gnu-show-reports-function)
-    (when id
-      (debbugs-gnu-goto id))))
+  (setq debbugs-gnu-current-query debbugs-gnu-local-query
+	debbugs-gnu-current-filter debbugs-gnu-local-filter
+	debbugs-gnu-current-suppress debbugs-gnu-local-suppress
+        debbugs-gnu-current-id (debbugs-gnu-current-id t)
+	debbugs-gnu-current-print-function debbugs-gnu-local-print-function
+	debbugs-cache-expiry (if nocache t debbugs-cache-expiry)
+        debbugs-gnu-current-message "Reverting finished")
+  (message "Reverting buffer")
+  (debbugs-gnu nil))
 
 (define-derived-mode debbugs-gnu-mode tabulated-list-mode "Debbugs"
   "Major mode for listing bug reports.
@@ -1335,6 +1344,7 @@ modified on the debbugs server, consider typing \\`C-u g'.
        debbugs-gnu-current-suppress)
   (set (make-local-variable 'debbugs-gnu-local-print-function)
        debbugs-gnu-current-print-function)
+  (set (make-local-variable 'tabulated-list-entries) nil)
   (setq tabulated-list-format [("Id"         5 debbugs-gnu-sort-id)
 			       ("State"     10 debbugs-gnu-sort-state)
 			       ("Submitter" 18 debbugs-gnu-sort-submitter)

@@ -340,12 +340,6 @@ attribute-value pairs, until an empty attribute is returned.  Possible
 attributes are
 
 @table @samp
-@item skip
-How many hits are skipped (default 0).
-
-@item max
-How many maximal hits are returned.
-
 @item severity
 A comma-separated list of bug severities, @xref{Retrieving Bugs}.
 
@@ -366,10 +360,17 @@ modified.
 @item subject
 Word(s) contained in the subject of the bug report.
 
+@c This is queried with the attribute "pending".
 @item status
 The status of the bug report.  Valid values are "pending",
 "forwarded", "fixed" and "done".
-@c This is queried with the attribute "pending".
+
+@c The next two items are rather for testing purposes.
+@item skip
+How many hits are skipped.
+
+@item max
+How many maximal hits are returned.
 @end table
 
 It is also possible to apply these commands with an empty search

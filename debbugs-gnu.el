@@ -470,6 +470,9 @@ The specification which bugs shall be suppressed is taken from
 (defvar debbugs-gnu-current-message nil
   "The message to be shown after getting the bugs.")
 
+(defvar debbugs-gnu-current-nocache nil
+  "Whether `debbugs-gnu-rescan' has been called with NOCACHE.")
+
 (defvar debbugs-gnu-current-print-function #'tabulated-list-print
   "Which function to apply printing the tabulated list..
 See `debbugs-gnu-package' for an alternative.")
@@ -911,6 +914,7 @@ value, like in `debbugs-gnu-get-bugs' or `debbubgs-gnu-tagged'."
 	           debbugs-gnu-current-suppress nil
                    debbugs-gnu-current-id nil
                    debbugs-gnu-current-message nil
+                   debbugs-gnu-current-nocache nil
                    debbugs-gnu-show-reports-function
                    debbugs-gnu-default-show-reports-function)))))
 
@@ -926,6 +930,7 @@ value, like in `debbugs-gnu-get-bugs' or `debbubgs-gnu-tagged'."
 	    debbugs-gnu-current-suppress nil
             debbugs-gnu-current-id nil
             debbugs-gnu-current-message nil
+            debbugs-gnu-current-nocache nil
             debbugs-gnu-show-reports-function
             debbugs-gnu-default-show-reports-function))))
 
@@ -1040,7 +1045,9 @@ are taken from the cache instead."
     ;; Print bug reports.
     (dolist (status
 	     (sort
-	      (let ((debbugs-cache-expiry (if offline nil debbugs-cache-expiry))
+	      (let ((debbugs-cache-expiry
+                     (if offline nil
+                       (or debbugs-gnu-current-nocache debbugs-cache-expiry)))
 		    ids)
 		(apply #'debbugs-get-status
 		       (if offline
@@ -1321,9 +1328,9 @@ Interactively, it is non-nil with the prefix argument."
 	debbugs-gnu-current-filter debbugs-gnu-local-filter
 	debbugs-gnu-current-suppress debbugs-gnu-local-suppress
         debbugs-gnu-current-id (debbugs-gnu-current-id t)
-	debbugs-gnu-current-print-function debbugs-gnu-local-print-function
-	debbugs-cache-expiry (if nocache t debbugs-cache-expiry)
-        debbugs-gnu-current-message "Reverting finished")
+        debbugs-gnu-current-message "Reverting finished"
+	debbugs-gnu-current-nocache (and nocache t)
+	debbugs-gnu-current-print-function debbugs-gnu-local-print-function)
   (message "Reverting buffer")
   (debbugs-gnu nil))
 

@@ -680,6 +680,10 @@
  (shell-command+	:url "https://git.sr.ht/~pkal/shell-command-plus")
  (shell-quasiquote	:url nil)
  (shen-mode		:url nil)
+ (show-font		:url "https://github.com/protesilaos/show-font"
+  :doc "README.org"
+  :news "CHANGELOG.org"
+  :ignored-files ("COPYING" "doclicense.texi"))
  (sisu-mode		:url nil)
  (site-lisp             :url "https://git.sr.ht/~pkal/site-lisp")
  (sketch-mode		:url "https://github.com/dalanicolai/sketch-mode")

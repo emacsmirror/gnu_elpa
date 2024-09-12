@@ -286,9 +286,9 @@ prefix the command with \"../../../../\" or \"....\".")
 
 (defcustom shell-command+-clear-function
   (lambda ()
+    (erase-buffer)
     (when-let ((win (get-buffer-window)))
-      (quit-window nil win))
-    (erase-buffer))
+      (quit-window nil win)))
   "Function to invoke without any arguments when handling \"clear\"."
   :type 'function)
 
@@ -296,7 +296,6 @@ prefix the command with \"../../../../\" or \"....\".")
   "Empty the contents of the the *Shell Output* buffer."
   (with-current-buffer (or (bound-and-true-p shell-command-buffer-name)
                            "*Shell Command Output*")
-    (erase-buffer)
     (funcall shell-command+-clear-function)))
 
 (defcustom shell-command+-substitute-alist

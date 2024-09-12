@@ -38,6 +38,7 @@
 
 ;;; Code:
 
+(require 'debbugs-compat)
 (require 'subr-x)
 ;(setq soap-debug t url-debug t message-log-max t)
 (require 'soap-client)
@@ -117,18 +118,27 @@ t or 0 disables caching, nil disables expiring."
 		 (const :tag "Forever" nil)
 		 (integer :tag "Seconds")))
 
+(defun debbugs-soap-invoke (operation-name &rest parameters)
+  "Invoke the SOAP connection.
+OPERATION-NAME and PARAMETERS are as described in `soap-invoke'."
+  (debbugs-compat-add-debbugs-advice)
+  (prog1
+      (apply #'soap-invoke operation-name parameters)
+    (debbugs-compat-remove-debbugs-advice)))
+
 (defvar debbugs-soap-invoke-async-object nil
   "The object manipulated by `debbugs-soap-invoke-async'.")
 
 (defun debbugs-soap-invoke-async (operation-name &rest parameters)
   "Invoke the SOAP connection asynchronously.
-
 OPERATION-NAME and PARAMETERS are as described in `soap-invoke'."
+  (debbugs-compat-add-debbugs-advice)
   (apply
    #'soap-invoke-async
    (lambda (response &rest _args)
      (setq debbugs-soap-invoke-async-object
-	   (append debbugs-soap-invoke-async-object (car response))))
+	   (append debbugs-soap-invoke-async-object (car response)))
+     (debbugs-compat-remove-debbugs-advice))
    nil debbugs-wsdl debbugs-port operation-name parameters))
 
 (defcustom debbugs-show-progress t
@@ -304,7 +314,8 @@ patch:
     (unless (null query)
       (error "Unknown key: %s" (car query)))
     (prog1
-	(sort (car (soap-invoke debbugs-wsdl debbugs-port "get_bugs" vec)) #'<)
+	(sort (car (debbugs-soap-invoke
+                    debbugs-wsdl debbugs-port "get_bugs" vec)) #'<)
       (when debbugs-show-progress
 	(remove-function
 	 (symbol-function debbugs-url-display-message-or-percentage-function)
@@ -340,7 +351,7 @@ patch:
 	    (cons 'cache_time (float-time))
 	    (cons 'newest_bug
 		  (caar
-		   (soap-invoke
+		   (debbugs-soap-invoke
 		    debbugs-wsdl debbugs-port "newest_bugs" amount)))))
 
 	  ;; Cache it.
@@ -351,7 +362,8 @@ patch:
 	(list (alist-get 'newest_bug status)))
 
     (sort
-     (car (soap-invoke debbugs-wsdl debbugs-port "newest_bugs" amount)) #'<)))
+     (car (debbugs-soap-invoke
+           debbugs-wsdl debbugs-port "newest_bugs" amount)) #'<)))
 
 (defun debbugs-convert-soap-value-to-string (string-value)
   "If STRING-VALUE is unibyte, decode its contents as a UTF-8 string.
@@ -461,8 +473,7 @@ Example:
     ;; Check for cached bugs.
     (setq bug-numbers (delete-dups bug-numbers)
 	  bug-numbers
-	  (delete
-	   nil
+	  (delq nil
 	   (mapcar
 	    (lambda (bug)
 	      (let ((status (gethash bug debbugs-cache-data)))
@@ -645,7 +656,8 @@ Example:
 
     (setq
      object
-     (car (soap-invoke debbugs-wsdl debbugs-port "get_usertag" (car user))))
+     (car (debbugs-soap-invoke
+           debbugs-wsdl debbugs-port "get_usertag" (car user))))
 
     (if (null tags)
 	;; Return the list of existing tags.
@@ -672,7 +684,7 @@ Every message is an association list with the following attributes:
 
   `attachments' A list of possible attachments, or nil.  Not
   implemented yet server side."
-  (car (soap-invoke debbugs-wsdl debbugs-port "get_bug_log" bug-number)))
+  (car (debbugs-soap-invoke debbugs-wsdl debbugs-port "get_bug_log" bug-number)))
 
 (defun debbugs-search-est (&rest query)
   "Return the result of a full text search according to QUERY.
@@ -957,7 +969,8 @@ Examples:
 	  (setq args (vconcat args (list vec)))))
 
       (setq result
-	    (car (soap-invoke debbugs-wsdl debbugs-port "search_est" args)))
+	    (car (debbugs-soap-invoke
+                  debbugs-wsdl debbugs-port "search_est" args)))
       ;; The result contains lists (key value).  We transform it into
       ;; cons cells (key . value).
       (dolist (elt1 result)

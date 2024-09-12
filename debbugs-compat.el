@@ -37,14 +37,29 @@
         (replace-regexp-in-string
          (regexp-quote from-string) to-string in-string t t)))))
 
+;; This is needed for Bug#73199.
 ;; `soap-invoke-internal' let-binds `url-http-attempt-keepalives' to
 ;; t, which is not thread-safe.  We override this setting.
 (defvar url-http-attempt-keepalives)
-(advice-add
- 'url-http-create-request :around
- (lambda (orig-fun)
-   (with-no-warnings (setq url-http-attempt-keepalives nil))
-   (funcall orig-fun)))
+(defvar debbugs-compat-url-http-attempt-keepalives nil
+  "Temporary storage for `'.")
+(defun debbugs-compat-add-debbugs-advice ()
+  (with-no-warnings
+    (setq debbugs-compat-url-http-attempt-keepalives
+          url-http-attempt-keepalives))
+  (advice-add
+   'url-http-create-request :around
+   (lambda (orig-fun)
+     "Set `url-http-attempt-keepalives' to nil."
+     (with-no-warnings (setq url-http-attempt-keepalives nil))
+     (funcall orig-fun))
+   '(name debbugs-advice)))
+
+(defun debbugs-compat-remove-debbugs-advice ()
+  (advice-remove 'url-http-create-request 'debbugs-advice)
+  (with-no-warnings
+    (setq url-http-attempt-keepalives
+          debbugs-compat-url-http-attempt-keepalives)))
 
 (provide 'debbugs-compat)
 

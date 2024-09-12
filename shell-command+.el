@@ -528,6 +528,32 @@ can be combined but will be processed in the following order:"
              (or beg (point-min))
              (or end (point-max)))))
 
+;;;###autoload
+(defun shell-command+-in-place ()
+  "Inject the output of a command at point into the buffer."
+  (interactive)
+  (let ((command (catch 'content
+                   (atomic-change-group
+                     (uncomment-region
+                      (line-beginning-position)
+                      (line-end-position))
+                     (throw 'content (thing-at-point 'line)))))
+        (initial-buffer (current-buffer)))
+    (unless (string-match (rx (? (* space) (or "$" "%") (* space))
+                              (group (+ nonl)))
+                          command)
+      (user-error "No command found"))
+    (with-temp-buffer
+      (let ((shell-command-buffer-name (current-buffer))
+            (inhibit-message t))
+        (save-excursion (shell-command+ (match-string 1 command)))
+        (with-current-buffer initial-buffer
+          (save-excursion
+            (forward-line)
+            (let ((start (point)))
+              (insert-buffer-substring shell-command-buffer-name)
+              (comment-region start (point)))))))))
+
 (provide 'shell-command+)
 
 ;;; shell-command+.el ends here

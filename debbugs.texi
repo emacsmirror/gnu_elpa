@@ -472,7 +472,7 @@ values are strings or numbers, i.e.@: @var{:keyword} @var{value}
 
 Every sublist of the @var{query} forms a hyperestraier condition.  A
 detailed description of hyperestraier conditions can be found at
-@uref{https://fallabs.com/hyperestraier/uguide-en.html#searchcond}.
+@uref{https://dbmx.net/hyperestraier/uguide-en.html#searchcond}.
 
 The following conditions are possible:
 

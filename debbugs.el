@@ -683,7 +683,7 @@ VALUE]*
 
 Every sublist of the QUERY forms a hyperestraier condition.  A
 detailed description of hyperestraier conditions can be found at
-URL `https://fallabs.com/hyperestraier/uguide-en.html#searchcond'.
+URL `https://dbmx.net/hyperestraier/uguide-en.html#searchcond'.
 
 The following conditions are possible:
 

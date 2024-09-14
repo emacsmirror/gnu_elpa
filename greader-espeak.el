@@ -67,10 +67,10 @@ LANG must be recognized by espeak or espeak-ng."
       (setq-local greader-espeak-language lang)
       (concat "-v " lang))))
 
-(defvar greader-espeak--punctuation-ring (make-ring 2))
+(defvar-local  greader-espeak--punctuation-ring (make-ring 2))
 (ring-insert greader-espeak--punctuation-ring "yes")
 (ring-insert greader-espeak--punctuation-ring "no")
-(defvar greader-espeak--ring-item (if greader-espeak-punctuation "yes"
+(defvar-local greader-espeak--ring-item (if greader-espeak-punctuation "yes"
 				    "no"))
 
 ;;;###autoload

@@ -274,7 +274,8 @@
                                "doc/emacs/docstyle.texi"
                                "doc/misc/eglot.texi"
                                "etc/EGLOT-NEWS")
-                        :news "EGLOT-NEWS")
+  :news "EGLOT-NEWS"
+  :doc "eglot.texi")
  (el-search		:url nil)
  (eldoc			:core "lisp/emacs-lisp/eldoc.el")
  ;; `eldoc-eval' is obsoleted by core support for eldoc in minibuffer (2013).

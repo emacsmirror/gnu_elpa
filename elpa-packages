@@ -163,6 +163,8 @@
   :shell-command "cp -R doc/images ."
   :doc "doc/company.texi"
   :ignored-files ("doc"))
+ ;; (company-coq		:url "https://github.com/cpitclaudel/company-coq"
+ ;;  :ignored-files ("LICENSE"))
  (company-ebdb		:url nil)
  (company-math		:url "https://github.com/vspinu/company-math.git")
  (company-statistics	:url "https://github.com/company-mode/company-statistics")
@@ -395,6 +397,8 @@
  (ilist			:url "https://gitlab.com/mmemmew/ilist"
   :doc "ilist.texinfo"
   :readme "README.org")
+ (indent-bars		:url "https://github.com/jdtsmith/indent-bars"
+  :ignored-files ("LICENSE"))
  ;; (infix-notation-calculator :url "https://github.com/cjohansson/emacs-infix-notation-calculator")
  (inspector		:url "https://github.com/mmontone/emacs-inspector"
   :ignored-files ("LICENSE"))

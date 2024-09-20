@@ -8,7 +8,7 @@
 ;; Keywords: matching
 ;; License: GPL3+
 ;; URL: https://dataswamp.org/~incal/elpa/wrap-search.el
-;; Version: 4.17.3
+;; Version: 4.17.4
 ;;
 ;; This file is part of GNU Emacs.
 ;;
@@ -65,7 +65,7 @@
 ;;
 ;; and the search is done again, with those settings.
 ;;
-;; See docstrings of `wrap-search' and `wrap-search-again'.
+;; See `wrap-search' and `wrap-search-again' docstrings.
 ;;
 ;;; Code:
 

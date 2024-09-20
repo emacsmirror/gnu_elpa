@@ -137,6 +137,7 @@
 (defvar debbugs-gnu-local-filter)
 
 (defvaralias 'debbugs-org-use-threads 'debbugs-gnu-use-threads)
+(defalias 'debbugs-org-show-last-result #'debbugs-gnu-show-last-result)
 
 (defconst debbugs-org-severity-priority
   (let ((priority ?A))

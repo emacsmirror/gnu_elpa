@@ -97,6 +97,9 @@ function key in your @file{.emacs} file, like
 @lisp
 (keymap-global-set "<f5>" 'debbugs-gnu-show-last-result)
 @end lisp
+
+@findex debbugs-org-show-last-result
+@code{debbugs-org-show-last-result} is an alias of this command.
 @end deffn
 
 
@@ -110,7 +113,7 @@ the number of bugs to be retrieved is known in advance, and it is
 smaller than the user option @code{debbugs-gnu-use-threads-lower-limit}.
 
 @vindex debbugs-org-use-threads
-@code{debbugs-org-use-threads} an alias of this user option.
+@code{debbugs-org-use-threads} is an alias of this user option.
 @end defopt
 
 @section Basic Commands

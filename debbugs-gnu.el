@@ -896,18 +896,25 @@ value, like in `debbugs-gnu-get-bugs' or `debbubgs-gnu-tagged'."
        (lambda ()
          (let (debbugs-show-progress)
            (unwind-protect
-	       (funcall debbugs-gnu-show-reports-function)
+               (condition-case err
+                   (funcall debbugs-gnu-show-reports-function)
+                 ;; `thread-signal' exists since Emacs 27.1.  This
+                 ;; doesn't matter, because in Emacs 26 we don't use
+                 ;; threads.
+                 (error (apply 'thread-signal main-thread err)))
              (when debbugs-gnu-current-id
                (debbugs-gnu-goto debbugs-gnu-current-id))
              ;; Indicate result.
              (if debbugs-gnu-current-message
                  (message
+                  "%s, visit buffer via %s"
+                  debbugs-gnu-current-message
                   (substitute-command-keys
-                   "%s, visit buffer via \\[debbugs-gnu-show-last-result]")
-                  debbugs-gnu-current-message)
+                   "\\[debbugs-gnu-show-last-result]"))
                (message
+                "Visit buffer via %s"
                 (substitute-command-keys
-                 "Visit buffer via \\[debbugs-gnu-show-last-result]")))
+                 "\\[debbugs-gnu-show-last-result]")))
              ;; Reset query, filter, suppress and message.
              (setq debbugs-gnu-current-query nil
 	           debbugs-gnu-current-filter nil
@@ -916,7 +923,8 @@ value, like in `debbugs-gnu-get-bugs' or `debbubgs-gnu-tagged'."
                    debbugs-gnu-current-message nil
                    debbugs-gnu-current-nocache nil
                    debbugs-gnu-show-reports-function
-                   debbugs-gnu-default-show-reports-function)))))
+                   debbugs-gnu-default-show-reports-function))))
+       "debbugs")
 
     (unwind-protect
   	(funcall debbugs-gnu-show-reports-function)
@@ -943,14 +951,8 @@ This function assumes the variable `user-mail-address' is defined."
 
 ;;;###autoload
 (defun debbugs-gnu-show-last-result ()
-  "Switch to buffer with the recent retrieved bugs"
+  "Switch to buffer with the recent retrieved bugs."
   (interactive)
-  ;; `thread-last-error' has an argument since Emacs 27.1.  This
-  ;; doesn't matter, because in Emacs 26 we don't use threads.
-  (when-let ((err
-              (ignore-errors
-                (with-no-warnings (funcall 'thread-last-error 'cleanup)))))
-    (message "debbugs-gnu-show-last-result: %S" err))
   (when (ignore-errors (get-buffer debbugs-gnu-current-buffer))
     (pop-to-buffer-same-window debbugs-gnu-current-buffer)))
 
@@ -1709,6 +1711,16 @@ interesting to you."
       (put-text-property
        (match-beginning 1) (match-end 1)
        'help-echo (current-time-string (read (match-string 1)))))
+    (goto-char (point-min))
+    (when (re-search-forward
+           (rx "(" (group "cache_time") " . "(1+ digit) (? "." (1+ digit)) ")")
+           nil t)
+      (put-text-property
+       (match-beginning 0) (match-end 0)
+       'face 'debbugs-gnu-marked))
+      (put-text-property
+       (match-beginning 1) (match-end 1)
+       'help-echo "Client-side attribute")
     (goto-char (point-min)))
   (set-buffer-modified-p nil)
   (special-mode))

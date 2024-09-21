@@ -426,6 +426,8 @@ by adding every match found in the text as a word."
 
 (defun greader-dict--get-key-from-word (word)
   "Return key related to WORD, nil otherwise."
+  (unless word
+    (setq word""))
   (setq word (string-trim word))
   (cond
    ((gethash word greader-dictionary)

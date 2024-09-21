@@ -7,7 +7,7 @@
 ;; Keywords: tools, accessibility
 ;; URL: https://gitlab.com/michelangelo-rodriguez/greader
 
-;; Version: 0.11.17
+;; Version: 0.11.18
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

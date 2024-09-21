@@ -391,7 +391,7 @@ bytes represent a UTF-8 string and decode them accordingly."
 
 Every returned entry is an association list with the following attributes:
 
-  `bug_num': The bug number.
+  `id', `bug_num': The bug number.
 
   `package': A list of package names the bug belongs to.
 
@@ -456,6 +456,7 @@ Example:
 
   => ;; Attributes with empty values are not shown
      \(\(\(cache_time . 1469716026.4981334)
+       \(id . 10)
        \(bug_num . 10)
        \(source . \"unknown\")
        \(date . 1203606305)

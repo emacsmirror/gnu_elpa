@@ -53,10 +53,12 @@
 ;;;###autoload         (vc-jj-registered file))))
 
 (defun vc-jj-registered (file)
-  (when-let ((root (vc-jj-root file)))
-    (let ((relative (file-relative-name file root))
-          (default-directory root))
-      (vc-jj--file-tracked relative))))
+  (unless (not (file-exists-p default-directory))
+    (with-demoted-errors "Error: %S"
+      (when-let ((root (vc-jj-root file)))
+        (let ((relative (file-relative-name file root))
+              (default-directory root))
+          (vc-jj--file-tracked relative))))))
 
 (defun vc-jj-state (file)
   (when-let ((root (vc-jj-root file)))

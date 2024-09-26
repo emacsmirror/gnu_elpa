@@ -5,7 +5,7 @@
 ;; Author: Matto Fransen <matto@matto.nl>
 ;; Maintainer: Matto Fransen <matto@matto.nl>
 ;; Url: https://codeberg.org/mattof/rcirc-sqlite
-;; Version: 1.0.2
+;; Version: 1.0.3
 ;; Keywords: comm
 ;; Package-Requires: ((emacs "30.0"))
 
@@ -45,6 +45,9 @@
 ;;
 ;;   (info "(rcirc-sqlite) Top")
 ;;
+;; or visit `https://elpa.gnu.org/packages/doc/rcirc-sqlite.html'
+;; for the online manual.
+
 ;;;; Customization:
 ;;
 ;; To customize various options, including the file to hold the
@@ -52,6 +55,13 @@
 ;;   M-x customize-group rcirc-sqlite RET
 
 ;;; News:
+
+;; Version 1.0.3 - 2024-09-26
+
+;; * New command: rcirc-sqlite-stats-per-month
+;;   Display overview of the number of rows per month.
+;;   Drill down to number of rows per day, and then
+;;   drill down to messages of that day.
 
 ;; Version 1.0.2 - 2024-06-06
 
@@ -164,7 +174,7 @@ fts5(channel, time, nick, message)"))
 
 (defun rcirc-sqlite-set-log-time-format (fn &rest args)
   "Advise to create parsable time format.
-This is advised to run around rcirc-log (FN) in rcirc.  After setting
+This is advised to run around `rcirc-log' (FN) in rcirc.  After setting
 the time format, FN (rcirc-log) is called with ARGS as it's arguments.
 This changes the `rcirc-log-time-format' into the Unix timestamp format.
 ?\x0 is used as delimiter after the timestamp."
@@ -214,6 +224,22 @@ FROM rcirclogs WHERE rowid=?"
   "List the nicks from the SQLite database."
   (let ((db (rcirc-sqlite--conn)))
     (sqlite-select db "SELECT DISTINCT nick FROM rcirclogs")))
+
+(defun rcirc-sqlite-db-query-monthly-count (&optional arg)
+  "List the count per month from the SQLite database.
+ARG is a month, in the format YYYY-MM."
+  (let ((db (rcirc-sqlite--conn))
+        (dbquery
+         "SELECT (strftime( '%Y-%m', time, 'unixepoch')) AS month, count(*)
+FROM rcirclogs GROUP BY month ORDER BY month"))
+    (when arg
+      (setq dbquery
+            (concat
+             "SELECT (strftime( '%Y-%m-%d', time, 'unixepoch')) AS day, count(*)
+FROM rcirclogs WHERE (strftime( '%Y-%m', time, 'unixepoch')) = "
+             (format "'%s'" arg)
+             " GROUP BY day ORDER BY day")))
+    (sqlite-select db dbquery)))
 
 (defun rcirc-sqlite-db-query-nick (arg-list)
   "Fetch the logs from a specific nick.
@@ -304,12 +330,13 @@ channel, time range, and/or nick to narrow the search to."
           (setq dbquery (concat dbquery " AND ")))
         (setq dbquery (concat dbquery "nick=?"))
 	(push nick dbdata))
-      (setq dbquery (concat
-                     "SELECT rowid, channel, time, nick, message FROM rcirclogs WHERE "
-                     dbquery))
+      (setq dbquery
+            (concat
+             "SELECT rowid, channel, time, nick, message FROM rcirclogs WHERE "
+             dbquery))
       (setq dbquery (concat dbquery " ORDER BY rank, time"))
       (setq rcirc-sqlite-dbquery dbquery
-	     rcirc-sqlite-dbdata (reverse dbdata))
+	    rcirc-sqlite-dbdata (reverse dbdata))
       (sqlite-execute db dbquery
 		      (reverse dbdata)))))
 
@@ -319,7 +346,7 @@ channel, time range, and/or nick to narrow the search to."
     (sqlite-execute db rcirc-sqlite-dbquery rcirc-sqlite-dbdata)))
 
 (defun rcirc-sqlite-db-drilldown (arg-list)
-  "Drill down to messages per nick or channel.
+  "Drill down to messages per nick, channel, or day.
 ARG-LIST defines which records to select."
   (let ((db (rcirc-sqlite--conn))
 	(dbquery "SELECT rowid, channel, time, nick, message FROM rcirclogs WHERE ")
@@ -332,6 +359,9 @@ ARG-LIST defines which records to select."
        ((string= nick rcirc-sqlite-all-nicks)
 	(setq dbquery (concat dbquery "channel=?"))
 	(push what dbdata))
+       ((string= nick "stats for day")
+        (setq dbquery (concat dbquery "(strftime( '%Y-%m-%d', time, 'unixepoch'))=?"))
+        (push what dbdata))
        (t
 	(setq dbquery (concat dbquery (format "%s=? and nick=?" where)))
 	(push nick dbdata)
@@ -573,7 +603,8 @@ WHEN is a cons of starttime and endtime."
 	  (setq range-string (concat range-string "now"))
 	(setq range-string
 	      (concat range-string
-		      (format-time-string "%F %R" (cdr when)))))) range-string))
+		      (format-time-string "%F %R" (cdr when))))))
+    range-string))
 
 (defun rcirc-sqlite-view-drill-down ()
   "Show messages per nick or channel.
@@ -586,6 +617,17 @@ Called from `rcirc-sqlite-two-column-mode'."
       (rcirc-sqlite-display-two-column-tabulation-list
        (format "Stats (%s)" (tabulated-list-get-id))
        #'rcirc-sqlite-db-query-stats arg-list)))
+   ((string= (nth 0 rcirc-sqlite-drill-down-method) "stats per day")
+    (setq rcirc-sqlite-drill-down-method
+          (list (tabulated-list-get-id)
+                nil
+           "stats for day"))
+    (rcirc-sqlite-view-drill-down-final))
+   ((string= (nth 0 rcirc-sqlite-drill-down-method) "stats per month")
+    (setq rcirc-sqlite-drill-down-method (list "stats per day" ""))
+    (rcirc-sqlite-display-two-column-tabulation-list
+     (format "Stats per month")
+     #'rcirc-sqlite-db-query-monthly-count (tabulated-list-get-id)))
    ((string= (nth 0 rcirc-sqlite-drill-down-method) "Channel")
     (setq rcirc-sqlite-drill-down-method
 	  (list (nth 1 rcirc-sqlite-drill-down-method)
@@ -825,6 +867,15 @@ The results are displayed a new buffer."
     (rcirc-sqlite-display-two-column-tabulation-list
      (format "Stats (<%s>)" nick)
      #'rcirc-sqlite-db-query-stats searcharg-list)))
+
+(defun rcirc-sqlite-stats-per-month ()
+  "Display overview of the number of rows per month.
+The results are displayed a new buffer."
+  (interactive)
+  (setq rcirc-sqlite-drill-down-method (list "stats per month" ""))
+  (rcirc-sqlite-display-two-column-tabulation-list
+   (format "Stats per month")
+   #'rcirc-sqlite-db-query-monthly-count nil))
 
 ;;;###autoload
 (define-minor-mode rcirc-sqlite-log-mode

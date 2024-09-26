@@ -67,6 +67,7 @@ Use the following commands to query the database.
 - ~M-x rcirc-sqlite-text-search~ perform full text search in the logs.
 - ~M-x rcirc-sqlite-logs-from-nick~ display the logs from a specific nick.
 - ~M-x rcirc-sqlite-stats~ displays some stats.
+- ~M-x rcirc-sqlite-stats-per-month~ displays counts per month.
 
 ** ~rcirc-sqlite-view-log~
 Default this commands shows the last 200 messages, optionally narrowed
@@ -142,6 +143,9 @@ each nick the number of channels with messages from this nick.
 
 Use drill-down in the stats buffer to get more details, either by the
 "RET" key, or the left mouse button.
+
+** ~rcirc-sqlite-stats-per-month~
+This command gives an overview of the number of messages per month.
 
 ** Key bindings in the buffer ~*rcirc log*~
 In the log buffer showing the channel, time, nick, and message

@@ -610,6 +610,7 @@ org calendar commands to select a date and time.
 @section Stats
 @findex rcirc-sqlite-stats
 @findex rcirc-sqlite-view-drill-down
+@findex rcirc-sqlite-stats-per-month
 
 @defun rcirc-sqlite-stats nick
 Create overview with some stats
@@ -652,6 +653,17 @@ Drill-down
 
 The drill-down options make the command @code{rcirc-sqlite-stats}
 a nice starting point to explore your logs.
+
+@defun rcirc-sqlite-stats-per-month
+Create overview of the number of rows per month.
+@end defun
+
+Issue the command @code{M-x rcirc-sqlite-stats-per-month} to get an
+overview of the number of rows (messages) in the database, summerized
+per month.
+
+Drill down to the number of rows summerized per day of the selected
+month, and from there drill down to all messages of the selected day.
 
 @node The buffer @code{*rcirc log*}
 @chapter The buffer @code{*rcirc log*}

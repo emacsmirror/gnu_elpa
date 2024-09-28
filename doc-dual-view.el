@@ -137,5 +137,15 @@ redisplay-func)."
       (cancel-timer doc-dual-view--redisplay-timer)
       (setq doc-dual-view--redisplay-timer nil))))
 
+(defun doc-dual-view--maybe-enable ()
+  "Enable `doc-dual-view-mode' if appropriate for this buffer."
+  (when (assq major-mode doc-dual-view-modes)
+    (doc-dual-view-mode 1)))
+
+;;;###autoload
+(define-globalized-minor-mode global-doc-dual-view-mode
+  doc-dual-view-mode
+  doc-dual-view--maybe-enable)
+
 (provide 'doc-dual-view)
 ;;; doc-dual-view.el ends here

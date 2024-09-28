@@ -63,8 +63,7 @@ redisplay-func)."
                        (repeat :tag "Goto Page Functions" symbol)
                        (function :tag "Current Page Function")
                        (function :tag "Max Page Function")
-                       (function :tag "Redisplay Function")))
-  :group 'doc-dual-view)
+                       (function :tag "Redisplay Function"))))
 
 (defvar-local doc-dual-view--redisplay-timer nil
   "Timer for delayed redisplay.")

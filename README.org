@@ -1,0 +1,21 @@
+#+title: doc-dual-view.el: Synchronized dual window document viewing
+#+author: Paul Nelson
+
+* Overview
+
+=doc-dual-view= is an Emacs package that synchronizes two windows showing the same document in =doc-view-mode= or =pdf-view-mode= (with the list of available modes customizable via =doc-dual-view-modes=).  When you navigate to a page in one window, the other window automatically displays the neighboring page, giving a dual-page view.
+
+* Installation
+
+Install =doc-dual-view= by, e.g., downloading the source and using =M-x package-install-file=.
+
+* Usage
+
+After installing the package, you can toggle it globally via =M-x global-dual-doc-view-mode=, locally via =M-x doc-dual-view-mode=.  To have it activate by default, add =(global-dual-doc-view-mode)= to your config.
+
+1. Open a document in =doc-view-mode= or =pdf-view-mode= (the latter being part of the [[https://github.com/vedang/pdf-tools][pdf-tools]] package)
+2. Split the window (e.g., =C-x 3= for vertical split)
+3. Activate =doc-dual-view-mode= in either window (if not already activated)
+4. Navigate through the document in either window (e.g. =n= or =p= to navigate by page)
+
+The package will automatically keep the two views in sync, with the second always one page ahead of the first.

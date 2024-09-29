@@ -2149,12 +2149,12 @@ Note that this matches DECLARATIVES.")
   "Regexp matching the declaration of a file.")
 
 (defconst cobol--pic-type-re
-  "PIC\\(TURE\\)?\\(\\s-+IS\\)?\\s-+\\(\\([-$*+,./[:digit:]()ABENPSVXZ]\\|CR\\|DB\\)+?\\)\\(\\s-\\|\\.?
+  "PIC\\(TURE\\)?\\(\\s-+IS\\)?\\s-+\\(\\([-$*+,./[:digit:]()ABENPSUVXZ]\\|CR\\|DB\\)+?\\)\\(\\s-\\|\\.?
 \\)"
   "Regexp matching the PICTURE clause of a variable.")
 
 (defconst cobol--string-literal-type-re
-  "\\([ZBN]X?\\|[GHLX]\\)\\(\"\\|\'\\)"
+  "\\([ZBNU]X?\\|[GHLX]\\)\\(\"\\|\'\\)"
   "Regexp matching the type of a string-style literal.")
 
 (defconst cobol--function-call-re

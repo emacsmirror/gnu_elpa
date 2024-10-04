@@ -233,7 +233,8 @@ if set to t, when you call function `greader-read', that function sets a
   is set at register position then reading starts from there."
   :type 'boolean
   :tag "use register")
-
+(defvar greader-reading-mode)
+(defvar greader-mode)
 (defun greader-set-reading-keymap ()
   "Set greader's keymap when reading."
   (setq greader-mode nil)
@@ -540,7 +541,9 @@ Argument EVENT ."
   (if greader-debug
       (greader-debug (format "greader-next-action: %s" event)))
   (run-hooks 'greader-after-read-hook)
-  (funcall greader-move-to-next-chunk)
+  (cond
+   ((equal event "finished\n")
+    (funcall greader-move-to-next-chunk)))
   (greader-read))
 
 (defun greader-response-for-dissociate (&optional _prompt)

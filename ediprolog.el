@@ -4,7 +4,7 @@
 
 ;; Author: Markus Triska <triska@metalevel.at>
 ;; Keywords: languages, processes
-;; Version: 2.2
+;; Version: 2.3
 ;; Homepage: https://www.metalevel.at/ediprolog/
 
 ;; This file is free software; you can redistribute it and/or modify

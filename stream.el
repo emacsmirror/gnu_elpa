@@ -290,12 +290,20 @@ range is infinite."
 Return nil if STREAM is empty."
   (stream--first (stream--force stream)))
 
+(defun \(setf\ stream-first\) (_store _stream)
+  "Signal an error when trying to use `setf' on the head of a stream."
+  (error "Streams are not mutable"))
+
 (defun stream-rest (stream)
   "Return a stream of all but the first element of STREAM."
   (setq stream (stream--force stream))
   (if (stream--empty stream)
       (stream-empty)
     (stream--rest stream)))
+
+(defun \(setf\ stream-rest\) (_store _stream)
+  "Signal an error when trying to use `setf' on the tail of a stream."
+  (error "Streams are not mutable"))
 
 (defun stream-append (&rest streams)
   "Concatenate the STREAMS.
@@ -336,6 +344,9 @@ elements in the STREAMS in order."
     (setq stream (stream-rest stream))
     (setq n (1- n)))
   (stream-first stream))
+
+(cl-defmethod (setf seq-elt) (_store (_sequence stream) _n)
+  (error "Streams are not mutable"))
 
 (cl-defmethod seq-length ((stream stream))
   "Return the length of STREAM.

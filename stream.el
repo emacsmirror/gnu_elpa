@@ -164,6 +164,10 @@ FIRST and REST are forms and REST must return a stream."
 (cl-defgeneric stream (src)
   "Return a new stream from SRC.")
 
+(cl-defmethod stream ((stream stream))
+  "Return STREAM unmodified."
+  stream)
+
 (cl-defmethod stream ((seq sequence))
   "Return a stream built from the sequence SEQ.
 SEQ can be a list, vector or string."
@@ -492,6 +496,11 @@ calling this function."
 (cl-defmethod seq-copy ((stream stream))
   "Return a shallow copy of STREAM."
   (stream-delay stream))
+
+(cl-defmethod seq-concatenate ((_type (eql stream)) &rest sequences)
+  "Make a stream which concatenates each sequence in SEQUENCES."
+  (apply #'stream-append (mapcar #'stream sequences)))
+
 
 
 ;;; More stream operations

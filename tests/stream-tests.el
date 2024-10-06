@@ -212,6 +212,27 @@
             (and (equal res1 5)
                  (equal res2 5)))))
 
+(ert-deftest stream-seq-concatenate-test ()
+  (should (streamp (seq-concatenate 'stream (list 1 2) (vector 3 4) (stream (list 5 6)))))
+  (should (equal '(1 2 3 4 5 6)
+                 (seq-into (seq-concatenate 'stream
+                                            (list 1 2)
+                                            (vector 3 4)
+                                            (stream (list 5 6)))
+                           'list))))
+
+(ert-deftest stream-seq-mapcat-test ()
+  (should (streamp (seq-mapcat #'stream (list (list 1 2)
+                                              (vector 3 4)
+                                              (stream (list 5 6)))
+                               'stream)))
+  (should (equal '(1 2 3 4 5 6)
+                 (seq-into (seq-mapcat #'stream (list (list 1 2)
+                                                      (vector 3 4)
+                                                      (stream (list 5 6)))
+                                       'stream)
+                           'list))))
+
 (ert-deftest stream-seq-copy-test ()
   (should (streamp (seq-copy (stream-range))))
   (should (= 0 (stream-first (seq-copy (stream-range)))))

@@ -63,33 +63,94 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl-lib))
+(eval-when-compile
+  (require 'cl-lib)
+  ;; Set safety to 0 to avoid checking the type of the argument multiple times
+  ;; within `stream--force', which is used frequently.
+  (cl-declaim (optimize (safety 0))))
+
 (require 'seq)
 
-(eval-and-compile
-  (defconst stream--fresh-identifier '--stream-fresh--
-    "Symbol internally used to streams whose head was not evaluated.")
-  (defconst stream--evald-identifier '--stream-evald--
-    "Symbol internally used to streams whose head was evaluated."))
+(cl-defstruct (stream (:constructor stream--make-stream)
+                      (:conc-name stream--)
+                      (:predicate streamp)
+                      :named)
+
+  "A lazily evaluated sequence, compatible with the `seq' library's functions."
+
+  (evaluated
+   nil
+   :type boolean
+   :documentation "Whether the head and tail of the stream are accessible.
+
+This value is set to t via the function `stream--force' after it
+calls the updater function.")
+
+  (first
+   nil
+   :type t
+   :documentation "The first element of the stream.")
+
+  (rest
+   nil
+   :type (or stream null)
+   :documentation "The rest of the stream, which is itself a stream.")
+
+  (empty
+   nil
+   :type boolean
+   :documentation "Whether the evaluated stream is empty.
+
+A stream is empty if the updater function returns nil when
+`stream--force' evaluates the stream.")
+
+  (updater
+   nil
+   :type (or function null)
+   :documentation "Function that returns the head and tail of the stream when called.
+
+The updater function returns the head and tail in a cons cell.
+If it returns nil, then the stream is empty and `empty' is
+set to t.  After this function is called, assuming no errors were signaled,
+`evaluated' is set to t.
+
+In the case of the canonical empty stream (see the variable `stream-empty'),
+this slot is nil."))
 
 (defmacro stream-make (&rest body)
   "Return a stream built from BODY.
-BODY must return nil or a cons cell whose cdr is itself a
-stream."
+
+BODY must return a cons cell whose car would be the head of a
+stream and whose cdr would be the tail of a stream.  The cdr must
+be a stream itself in order to be a valid tail.  Alternatively,
+BODY may return nil, in which case the stream is marked empty
+when the stream is evaluated."
   (declare (debug t))
-  `(cons ',stream--fresh-identifier (lambda () ,@body)))
+  `(stream--make-stream :evaluated nil
+                        :updater (lambda () ,@body)))
 
 (defun stream--force (stream)
-  "Evaluate and return the first cons cell of STREAM.
-That value is the one passed to `stream-make'."
-  (cond
-   ((eq (car-safe stream) stream--evald-identifier)
-    (cdr stream))
-   ((eq (car-safe stream) stream--fresh-identifier)
-    (prog1 (setf (cdr stream) (funcall (cdr stream)))
-      ;; identifier is only updated when forcing didn't exit nonlocally
-      (setf (car stream) stream--evald-identifier)))
-   (t (signal 'wrong-type-argument (list 'streamp stream)))))
+  "Evaluate and return the STREAM.
+
+If the output of the updater function is nil, then STREAM is
+marked as empty.  Otherwise, the output of the updater function
+is used to set the head and the tail of the stream."
+  ;; Check explicitly so that we can avoid checking
+  ;; in accessors by setting safety to 0 via `cl-declaim'.
+  (cl-check-type stream stream)
+  (if (stream--evaluated stream)
+      stream
+    (pcase (funcall (stream--updater stream))
+      (`(,head . ,tail)
+       (setf (stream--first stream) head
+             (stream--rest stream) tail))
+      ((pred null)
+       (setf (stream--empty stream) t))
+      (bad-output
+       (error "Bad output from stream updater: %S"
+              bad-output)))
+    (setf (stream--evaluated stream) t)
+    stream))
 
 (defmacro stream-cons (first rest)
   "Return a stream built from the cons of FIRST and REST.
@@ -190,13 +251,12 @@ range is infinite."
      (stream-range (+ start step) end step))))
 
 
-(defun streamp (stream)
-  "Return non-nil if STREAM is a stream, nil otherwise."
-  (let ((car (car-safe stream)))
-    (or (eq car stream--fresh-identifier)
-        (eq car stream--evald-identifier))))
-
-(defconst stream-empty (cons stream--evald-identifier nil)
+(defconst stream-empty
+  (stream--make-stream :evaluated t
+                       :first nil
+                       :rest nil
+                       :empty t
+                       :updater nil)
   "The empty stream.")
 
 (defun stream-empty ()
@@ -205,17 +265,19 @@ range is infinite."
 
 (defun stream-empty-p (stream)
   "Return non-nil if STREAM is empty, nil otherwise."
-  (null (cdr (stream--force stream))))
+  (stream--empty (stream--force stream)))
 
 (defun stream-first (stream)
   "Return the first element of STREAM.
 Return nil if STREAM is empty."
-  (car (stream--force stream)))
+  (stream--first (stream--force stream)))
 
 (defun stream-rest (stream)
   "Return a stream of all but the first element of STREAM."
-  (or (cdr (stream--force stream))
-      (stream-empty)))
+  (setq stream (stream--force stream))
+  (if (stream--empty stream)
+      (stream-empty)
+    (stream--rest stream)))
 
 (defun stream-append (&rest streams)
   "Concatenate the STREAMS.
@@ -240,22 +302,6 @@ elements in the STREAMS in order."
   `(prog1
        (stream-first ,stream)
      (setq ,stream (stream-rest ,stream))))
-
-
-;;; cl-generic support for streams
-
-(cl-generic-define-generalizer stream--generalizer
-  11
-  (lambda (name &rest _)
-    `(when (streamp ,name)
-       'stream))
-  (lambda (tag &rest _)
-    (when (eq tag 'stream)
-      '(stream))))
-
-(cl-defmethod cl-generic-generalizers ((_specializer (eql stream)))
-  "Support for `stream' specializers."
-  (list stream--generalizer))
 
 
 ;;; Implementation of seq.el generic functions

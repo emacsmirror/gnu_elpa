@@ -173,6 +173,24 @@ SEQ can be a list, vector or string."
      (seq-elt seq 0)
      (stream (seq-subseq seq 1)))))
 
+(cl-defmethod stream ((array array))
+  "Return a stream built from the array ARRAY."
+  (let ((len (length array)))
+    (if (= len 0)
+        (stream-empty)
+      ;; This approach could avoid one level of indirection by setting
+      ;; `stream--updater' directly, but using `funcall' makes for a
+      ;; good example of how to use a custom updater function using the public
+      ;; interface.
+      (let ((idx 0))
+        (cl-labels ((updater ()
+                      (if (< idx len)
+                          (prog1 (cons (aref array idx)
+                                       (stream-make (funcall #'updater)))
+                            (setq idx (1+ idx)))
+                        nil)))
+          (stream-make (funcall #'updater)))))))
+
 (cl-defmethod stream ((list list))
   "Return a stream built from the list LIST."
   (if (null list)

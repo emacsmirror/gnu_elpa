@@ -234,6 +234,10 @@
   (dolist (list '(nil '(1 2 3) '(a . b)))
     (should (equal list (seq-into (stream list) 'list)))))
 
+(ert-deftest stream-array-test ()
+  (dolist (arr (list "cat" [0 1 2]))
+    (should (equal arr (seq-into (stream arr) (type-of arr))))))
+
 (ert-deftest stream-seq-subseq-test ()
   (should (stream-empty-p (seq-subseq (stream-range 2 10) 0 0)))
   (should (= (stream-first (seq-subseq (stream-range 2 10) 0 3)) 2))

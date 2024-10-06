@@ -321,6 +321,7 @@
 (deftest-for-delayed-evaluation (seq-take (make-delayed-test-stream) 2))
 (deftest-for-delayed-evaluation (seq-drop (make-delayed-test-stream) 2))
 (deftest-for-delayed-evaluation (seq-take-while #'numberp (make-delayed-test-stream)))
+(deftest-for-delayed-evaluation (seq-drop-while #'numberp (make-delayed-test-stream)))
 (deftest-for-delayed-evaluation (seq-map #'identity (make-delayed-test-stream)))
 (deftest-for-delayed-evaluation (seq-mapn #'cons
                                           (make-delayed-test-stream)

@@ -15,14 +15,14 @@ See also [PceProlog](https://www.metalevel.at/pceprolog/).
 
 # Installation
 
-With Emacs&ge;24.1, the simplest way to install ediprolog is to use
-Emacs's built-in *package&nbsp;manager* via the key sequence:
+With Emacs≥24.1, the simplest way to install ediprolog is to use
+Emacs's built-in *package manager* via the key sequence:
 
     M-x package-install RET ediprolog RET
 
 Alternatively, copy [ediprolog.el](ediprolog.el) to your `load-path`
 and add the following form to your `.emacs`, then evaluate the form or
-restart&nbsp;Emacs:
+restart Emacs:
 
     (require 'ediprolog)
 
@@ -38,8 +38,8 @@ The two most important configuration options are:
 # Usage
 
 The central function is `ediprolog-dwim` (Do What I Mean). I recommend
-to bind it to the function&nbsp;key&nbsp;F10 by adding the following
-form to your&nbsp;`.emacs` and evaluating it:
+to bind it to the function key F10 by adding the following
+form to your `.emacs` and evaluating it:
 
     (global-set-key [f10] 'ediprolog-dwim)
 
@@ -63,20 +63,20 @@ If you press F10 when point is on that query, you get:
 
 When waiting for output of the Prolog process, you can press C-g to
 unblock Emacs and continue with other work. To resume interaction
-with the Prolog process, use **M-x&nbsp;ediprolog-toplevel&nbsp;RET**.
+with the Prolog process, use **M-x ediprolog-toplevel RET**.
 
 If you press F10 when point is *not* on a query, the buffer content is
 consulted in the Prolog process, and point is moved to the first error
-(if any). You do&nbsp;*not* need to *save* the file beforehand, since
-the *buffer&nbsp;content* (not the file) is consulted.
+(if any). You do *not* need to *save* the file beforehand, since
+the *buffer content* (not the file) is consulted.
 
 For convenience, the most recent interactions with the Prolog
 process are logged in the buffer `*ediprolog-history*`.
 
-Use **M-x ediprolog-localize RET** to make any Prolog process started
+Use **M-x ediprolog-localize RET** to make any Prolog process started
 in the current buffer buffer-local. This way, you can run distinct
 processes simultaneously. Revert with
-**M-x&nbsp;ediprolog-unlocalize&nbsp;RET**.
+**M-x ediprolog-unlocalize RET**.
 
 `ediprolog-dwim` with prefix arguments has special meanings:
 
@@ -90,12 +90,12 @@ processes simultaneously. Revert with
 |  C-u C-u F10 |   like C-u F10, with a new process                       |
 
 Tested with Scryer Prolog 0.8.119 and SWI-Prolog 8.1.24, using Emacs
-versions 26.1 and&nbsp;27.0.50.
+versions 26.1 and 27.0.50.
 
 # Screenshot
 
 Here is a sample interaction, using
-[CLP(ℤ)&nbsp;constraints](https://www.metalevel.at/prolog/clpz) to
+[CLP(ℤ) constraints](https://www.metalevel.at/prolog/clpz) to
 relate a number to its factorial:
 
 ![Factorial](factorial.png)

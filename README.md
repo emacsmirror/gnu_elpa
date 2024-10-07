@@ -1,7 +1,19 @@
 # a68-mode -- Algol68 major mode
 
-This is an improved and modernised version of the Algol68 mode by Jose
-E. Marchesi.  It fully supports automatic indentation and font locking
+[First I wrote it in a68-mode.el and distributed a copy at
+ https://jemarch.net.
+
+ Then at some point someone got a copy of a68-mode.el, renamed it to
+ algol-mode.el and distributed it in github.
+
+ Then Omar Polo foked algol-mode.el, renaming it back to a68-mode.el
+ and distributing the result at https://git.omarpolo.com/a68-mode.git.
+
+ Finally at some point I decided to ditch my original version and start
+ using Omar's version, which is better.  This is that copy.
+ - jemarch ]
+
+This mode fully supports automatic indentation and font locking
 (i.e. syntax highlighting) including the three comment styles.
 
 a68-mode supports only the UPPER stropping style and not the QUOTE or

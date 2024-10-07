@@ -117,6 +117,7 @@
                       (args ("(" fargs ")"))
                       (fargs (fargs "," fargs)
                              (exp))
+                      (conformity-cases)
                       (exp (ids)
                            (exp "OF" exp)
                            (exp "[" exp "]")

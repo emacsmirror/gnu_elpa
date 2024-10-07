@@ -234,14 +234,14 @@
   (setq-local comment-end a68-comment-style)
   (setq-local syntax-propertize-function
               (syntax-propertize-rules
-               ((rx (group bow "COMMENT" eow)
+               ((rx (group bow "[C][O][M][M][E][N][T]" eow)
                     (group (*? anychar))
-                    (group bow "COMMENT" eow))
+                    (group bow "[C][O][M][M][E][N][T]" eow))
                 (1 "<")
                 (3 ">"))
-               ((rx (group bow "CO" eow)
+               ((rx (group bow "[C][O]" eow)
                     (group (*? anychar))
-                    (group bow "CO" eow))
+                    (group bow "[C][O]" eow))
                 (1 "<")
                 (3 ">"))
                ;; a comment is # ... #, but I don't want the

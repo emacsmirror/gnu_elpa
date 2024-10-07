@@ -1,6 +1,6 @@
 ;;; a68-mode.el --- Major mode for editing Algol 68 code -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2011 Jose E. Marchesi
+;; Copyright (C) 2011, 2024 Jose E. Marchesi
 ;; Copyright (C) 2021 Omar Polo <op@omarpolo.com>
 
 ;; Author: Jose E. Marchesi
@@ -89,6 +89,8 @@
                  "PAR" "BEGIN" "END" "GOTO" "EXIT"
                  "LWB" "UPB" "NOT" "ABS" "BIN" "REPR" "LENG"
                  "SHORTEN" "ODD" "SIGN" "ROUND" "ENTIER" "AND" "OR"
+                 "THEF" "ANDF" "ANDTH"
+                 "ELSF" "ORF" "OREL"
                  "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"
                  "REF")
              word-end)

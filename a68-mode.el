@@ -75,24 +75,28 @@
     map)
   "Keymap for Algol 68 major mode.")
 
+(defconst a68-keywords
+  '("DECS" "PROGRAM" "CONTEXT" "USE" "FINISH" "KEEP"
+    "ALIEN" "UNTIL"
+    "MODE" "OP" "PRIO" "PROC"
+    "OF" "AT" "IS" "ISNT" "EMPTY" "SKIP"
+    "PR" "PRAGMAT"
+    "CASE" "IN" "OUSE" "OUT" "ESAC"
+    "FOR" "FORALL" "FROM" "TO" "BY" "WHILE" "DO" "OD"
+    "IF" "THEN" "ELIF" "THEN" "ELSE" "FI"
+    "PAR" "BEGIN" "END" "GOTO" "EXIT"
+    "LWB" "UPB" "NOT" "ABS" "BIN" "REPR" "LENG"
+    "SHORTEN" "ODD" "SIGN" "ROUND" "ENTIER" "AND" "OR"
+    "THEF" "ANDF" "ANDTH"
+    "ELSF" "ORF" "OREL"
+    "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"
+    "REF")
+  "List of ALGOL 68 keywords.")
+
 (defconst a68-font-lock-keywords
   (list
    (cons (rx word-start
-             (or "DECS" "PROGRAM" "CONTEXT" "USE" "FINISH" "KEEP"
-                 "ALIEN" "UNTIL"
-                 "MODE" "OP" "PRIO" "PROC"
-                 "OF" "AT" "IS" "ISNT" "EMPTY" "SKIP"
-                 "PR" "PRAGMAT"
-                 "CASE" "IN" "OUSE" "OUT" "ESAC"
-                 "FOR" "FORALL" "FROM" "TO" "BY" "WHILE" "DO" "OD"
-                 "IF" "THEN" "ELIF" "THEN" "ELSE" "FI"
-                 "PAR" "BEGIN" "END" "GOTO" "EXIT"
-                 "LWB" "UPB" "NOT" "ABS" "BIN" "REPR" "LENG"
-                 "SHORTEN" "ODD" "SIGN" "ROUND" "ENTIER" "AND" "OR"
-                 "THEF" "ANDF" "ANDTH"
-                 "ELSF" "ORF" "OREL"
-                 "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"
-                 "REF")
+             (eval `(or ,@(mapcar (lambda (kw) kw) a68-keywords)))
              word-end)
          'font-lock-keyword-face)
    (cons (rx word-start
@@ -232,6 +236,7 @@
   (smie-setup a68--smie-grammar #'a68--smie-rules
               :forward-token #'a68--smie-forward-token
               :backward-token #'a68--smie-backward-token)
+  (add-hook 'after-change-functions 'a68--after-change-function nil t)
   (setq-local comment-start a68-comment-style)
   (setq-local comment-end a68-comment-style)
   (setq-local syntax-propertize-function
@@ -259,4 +264,64 @@
 (add-to-list 'auto-mode-alist '("\\.a68\\'" . a68-mode))
 
 (provide 'a68-mode)
+
+;;;; Pretty-printing of bold tags (minor mode).
+
+(defface a68-bold-tag-face '((t :inherit font-lock-keyword-face))
+  "Face for ALGOL 68 bold tags")
+
+;;;###autoload(defvar a68-pretty-bold-tags-mode nil "Non-nil if A68 pretty print bold tags mode is enabled.")
+;;;###autoload
+(define-minor-mode a68-pretty-bold-tags-mode
+  "Toggle pretty-printing of bold tags in a68-mode."
+  :group a68
+  (if a68-pretty-bold-tags-mode
+      (a68--pretty-print-bold-tags-on)
+    (a68--pretty-print-bold-tags-off)))
+
+(defun a68--pretty-print-bold-tags-on ()
+  (save-excursion
+    (goto-char (point-min))
+    (forward-comment (point-max))
+    (while (re-search-forward (rx word-start
+                                  (any "A-Z") (zero-or-more (any "[A-Z_]"))
+                                  word-end) nil t)
+      (goto-char (match-end 0))
+      (a68--pretty-print-bold-tag)
+      (add-hook 'after-change-functions 'a68--after-change-function nil t)
+      (forward-comment (point-max)))))
+
+(defun a68--pretty-print-bold-tags-off ()
+  (remove-hook 'after-change-functions 'a68--after-change-function t)
+  (save-excursion
+    (goto-char (point-min))
+    (let (match)
+      (while (not (equal (setq match (next-overlay-change (point)))
+                         (point-max)))
+        (let ((propandmore (get-char-property-and-overlay (point) 'display)))
+          (when (cdr propandmore) (delete-overlay (cdr propandmore))))
+        (goto-char match)))))
+
+(defun a68--pretty-print-bold-tag ()
+  "Pretty-print an ALGOL 68 bold tag."
+  (save-excursion
+    (unless (a68-within-comment)
+      (skip-chars-forward "ABCDEFGHIJKLMNOPQRSTUVWXYZ_")
+      (let* ((bold-tag-end (point))
+             (bold-tag-begin (save-excursion
+                               (skip-chars-backward "ABCDEFGHIJKLMNOPQRSTUVWXYZ_")
+                               (point))))
+        (let ((replacedtext (downcase (buffer-substring bold-tag-begin bold-tag-end)))
+              (overlay (make-overlay bold-tag-begin bold-tag-end)))
+          (let ((old-overlay (get-char-property-and-overlay bold-tag-begin 'display)))
+            (when (cdr old-overlay) (delete-overlay (cdr old-overlay))))
+          (overlay-put overlay 'face 'a68-bold-tag-face)
+          (overlay-put overlay 'display replacedtext)
+          (overlay-put overlay 'evaporate t))))))
+
+(defun a68--after-change-function (start stop _len)
+  "Save the current buffer and point for the mode's post-command hook."
+  (when a68-pretty-bold-tags-mode
+    (a68--pretty-print-bold-tag)))
+  
 ;;; a68-mode.el ends here

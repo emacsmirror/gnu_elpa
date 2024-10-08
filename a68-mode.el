@@ -5,8 +5,8 @@
 
 ;; Author: Jose E. Marchesi
 ;;         Omar Polo <op@omarpolo.com>
-;; Maintainer: Omar Polo
-;; URL: https://git.omarpolo.com/a68-mode
+;; Maintainer: Jose E. Marchesi
+;; URL: https://jemarch.net/a68-mode
 ;; Keywords: languages
 ;; Version: 0
 ;; Package-Requires: ((emacs "24.3"))

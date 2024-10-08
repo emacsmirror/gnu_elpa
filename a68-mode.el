@@ -142,9 +142,10 @@
                              "DO" exp "OD")
                             ("FOR" exp "BY" exp "TO" exp
                              "DO" exp "OD")
-                            ("-do-" "DO" exp "UNTIL" exp "OD")
                             ("-to-" "TO" exp "DO" exp "OD")
-                            ("WHILE" exp "DO" exp "OD"))
+                            ("WHILE" exp "DO" exp "OD")
+                            ("WHILE" exp "UNTIL" exp "DO" exp "OD")
+                            ("-until" "UNTIL" exp "DO" exp "OD"))
                       (insts (insts ";" insts)
                              (id ":=" exp)
                              ("IF" exp "THEN" insts "FI")

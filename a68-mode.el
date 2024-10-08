@@ -332,6 +332,9 @@
 (defun a68--after-change-function (start stop _len)
   "Save the current buffer and point for the mode's post-command hook."
   (when a68-pretty-bold-tags-mode
-    (a68--pretty-print-bold-tag)))
+    (let* ((pos (point))
+           (in-bold-tag-already (get-char-property pos 'display)))
+      (a68--pretty-print-bold-tag)
+      (when in-bold-tag-already (backward-char)))))
   
 ;;; a68-mode.el ends here

@@ -71,6 +71,7 @@
 (defvar a68-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-j") #'newline-and-indent)
+    (define-key map (kbd "#") #'a68-comment-hash)
     ;; (define-key map (kbd "RET") #'a68-electric-terminate-line)
     map)
   "Keymap for Algol 68 major mode.")
@@ -227,6 +228,15 @@
 
 (define-abbrev-table 'a68-mode-abbrev-table
   '())
+
+(defun a68-comment-hash ()
+  "Smart insert a # ... # style comment."
+  (interactive)
+  (if (a68-within-comment)
+      (insert "#")
+    (save-excursion
+      (insert "#   #"))
+    (goto-char (+ (point) 2))))
 
 ;;;###autoload
 (define-derived-mode a68-mode prog-mode "Algol68"

@@ -79,7 +79,7 @@
   (list
    (cons (rx word-start
              (or "DECS" "PROGRAM" "CONTEXT" "USE" "FINISH" "KEEP"
-                 "ALIEN"
+                 "ALIEN" "UNTIL"
                  "MODE" "OP" "PRIO" "PROC"
                  "OF" "AT" "IS" "ISNT" "EMPTY" "SKIP"
                  "PR" "PRAGMAT"

@@ -290,16 +290,8 @@
     (a68--pretty-print-bold-tags-off)))
 
 (defun a68--pretty-print-bold-tags-on ()
-  (save-excursion
-    (goto-char (point-min))
-    (forward-comment (point-max))
-    (while (re-search-forward (rx word-start
-                                  (any "A-Z") (zero-or-more (any "[A-Z_]"))
-                                  word-end) nil t)
-      (goto-char (match-end 0))
-      (a68--pretty-print-bold-tag)
-      (add-hook 'after-change-functions 'a68--after-change-function nil t)
-      (forward-comment (point-max)))))
+  (a68--pretty-print-bold-tags (point-min) (point-max))
+  (add-hook 'after-change-functions 'a68--after-change-function nil t))
 
 (defun a68--pretty-print-bold-tags-off ()
   (remove-hook 'after-change-functions 'a68--after-change-function t)
@@ -315,7 +307,8 @@
 (defun a68--pretty-print-bold-tag ()
   "Pretty-print an ALGOL 68 bold tag."
   (save-excursion
-    (unless (a68-within-comment)
+    (unless (or (a68-within-comment)
+                (a68-within-string))
       (skip-chars-forward "ABCDEFGHIJKLMNOPQRSTUVWXYZ_")
       (let* ((bold-tag-end (point))
              (bold-tag-begin (save-excursion
@@ -329,12 +322,36 @@
           (overlay-put overlay 'display replacedtext)
           (overlay-put overlay 'evaporate t))))))
 
+(defun a68--pretty-print-bold-tags (beginning end)
+  "Pretty-print ALGOL 68 bold tags in the given region."
+  (unless (or (a68-within-comment)
+              (a68-within-string))
+    (save-excursion
+      (goto-char beginning)
+      (while (let ((case-fold-search nil))
+               (re-search-forward (rx word-start upper (zero-or-more upper) word-end)
+                                  nil t))
+        (unless (or (a68-within-comment)
+                    (a68-within-string))
+          (let* ((bold-tag-end (match-end 0))
+                 (bold-tag-begin (match-beginning 0)))
+            (let ((replacedtext (downcase (buffer-substring bold-tag-begin bold-tag-end)))
+                  (overlay (make-overlay bold-tag-begin bold-tag-end)))
+              (let ((old-overlay (get-char-property-and-overlay bold-tag-begin 'display)))
+                (when (cdr old-overlay) (delete-overlay (cdr old-overlay))))
+              (overlay-put overlay 'face 'a68-bold-tag-face)
+              (overlay-put overlay 'display replacedtext)
+              (overlay-put overlay 'evaporate t))))))))
+
 (defun a68--after-change-function (start stop _len)
   "Save the current buffer and point for the mode's post-command hook."
   (when a68-pretty-bold-tags-mode
     (let* ((pos (point))
            (in-bold-tag-already (get-char-property pos 'display)))
-      (a68--pretty-print-bold-tag)
-      (when in-bold-tag-already (backward-char)))))
+      (save-match-data
+        (if (equal _len 0)
+            (a68--pretty-print-bold-tag)
+          (a68--pretty-print-bold-tags start stop)))
+      (when (and (equal _len 0) in-bold-tag-already (backward-char))))))
   
 ;;; a68-mode.el ends here

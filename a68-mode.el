@@ -149,10 +149,10 @@
                              ("IF" exp "THEN" insts "FI")
                              ("IF" exp "THEN" insts "ELSE" insts "FI")
                              ("IF" exp "THEN" insts
-                              "ELSIF" exp "THEN" insts "ELSE" insts "FI")
+                              "ELIF" exp "THEN" insts "ELSE" insts "FI")
                              ("IF" exp "THEN" insts
-                              "ELSIF" exp "THEN" insts
-                              "ELSIF" exp "THEN" insts "ELSE" insts "FI")
+                              "ELIF" exp "THEN" insts
+                              "ELIF" exp "THEN" insts "ELSE" insts "FI")
                              ;; TODO OUSE for both case and conformity case
                              ("CASE" exp "IN" fargs "ESAC")
                              ("CASE" exp "IN" conformity-cases "ESAC")

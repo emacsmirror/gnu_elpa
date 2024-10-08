@@ -139,6 +139,7 @@
                       (proc-decl (proc-decl "," proc-decl)
                                  ("OP" ids "=" args ids ":" exp)
                                  ("PROC" ids "=" ids ":" exp))
+                      (exports ("KEEP" id "," id "FINISH"))
                       ;; TODO: this don't cover all the loop
                       ;; possibilities.
                       (loop ("FOR" exp "FROM" exp "TO" exp "BY" exp

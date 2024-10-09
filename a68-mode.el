@@ -8,7 +8,7 @@
 ;; Maintainer: Jose E. Marchesi
 ;; URL: https://git.sr.ht/~jemarch/a68-mode
 ;; Keywords: languages
-;; Version: 1.0
+;; Version: 0.1
 ;; Package-Requires: ((emacs "24.3"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -185,8 +185,22 @@
                    (smie-rule-parent)))
     (`(:after . ":=") a68-indent-level)
     (`(:after . "=") a68-indent-level)
-    (`(:before . ,(or `"BEGIN" '"(")) (when (smie-rule-hanging-p)
-                                        (smie-rule-parent)))
+    (`(:before . "BEGIN")
+     (when (or (smie-rule-hanging-p)
+               (and (or (smie-rule-parent-p "PROC")
+                        (smie-rule-parent-p "OP"))
+                    (smie-rule-prev-p ":")))
+       (smie-rule-parent)))
+    (`(:before . "(")
+     (when (smie-rule-hanging-p)
+       (smie-rule-parent)))
+    (`(:before . ,(or `"BEGIN" '"("))
+     (when (or (smie-rule-hanging-p)
+               (and (smie-rule-next-p "BEGIN")
+                    (or (smie-rule-parent-p "PROC")
+                        (smie-rule-parent-p "OP"))
+                    (smie-rule-prev-p ":")))
+       (smie-rule-parent)))
     (`(:before . "IF")
      (and (not (smie-rule-bolp))
           (smie-rule-prev-p "ELSE")

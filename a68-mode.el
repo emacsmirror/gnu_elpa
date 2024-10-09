@@ -6,9 +6,9 @@
 ;; Author: Jose E. Marchesi
 ;;         Omar Polo <op@omarpolo.com>
 ;; Maintainer: Jose E. Marchesi
-;; URL: https://jemarch.net/a68-mode
+;; URL: https://git.sr.ht/~jemarch/a68-mode
 ;; Keywords: languages
-;; Version: 0
+;; Version: 1.0
 ;; Package-Requires: ((emacs "24.3"))
 
 ;; This file is NOT part of GNU Emacs.

@@ -110,6 +110,12 @@
          'font-lock-variable-name-face))
   "Highlighting expressions for Algol 68 mode.")
 
+(defun a68-within-string ()
+  (nth 3 (syntax-ppss)))
+
+(defun a68-within-comment ()
+  (nth 4 (syntax-ppss)))
+
 (defvar a68--keywords-regexp
   (regexp-opt '("+" "*" ";" ">" "<" ":=" "=" "," ":")))
 

@@ -1,0 +1,4 @@
+math2svg/node_modules
+.dir-locals.el
+autoloads.el
+*.elc

@@ -39,7 +39,8 @@
 
 ;; This is needed for Bug#73199.
 ;; `soap-invoke-internal' let-binds `url-http-attempt-keepalives' to
-;; t, which is not thread-safe.  We override this setting.
+;; t, which is not thread-safe.  We override this setting.  It is
+;; fixed in Emacs 31.1.
 (defvar url-http-attempt-keepalives)
 (defvar debbugs-gnu-use-threads)
 (defvar debbugs-compat-url-http-attempt-keepalives nil
@@ -51,7 +52,7 @@
 
 (defun debbugs-compat-add-debbugs-advice ()
   "Activate advice for Bug#73199."
-  (when debbugs-gnu-use-threads
+  (when (and debbugs-gnu-use-threads (< emacs-major-version 31))
     (setq debbugs-compat-url-http-attempt-keepalives
           url-http-attempt-keepalives)
     (advice-add
@@ -59,7 +60,7 @@
 
 (defun debbugs-compat-remove-debbugs-advice ()
   "Deactivate advice for Bug#73199."
-  (when debbugs-gnu-use-threads
+  (when (and debbugs-gnu-use-threads (< emacs-major-version 31))
     (setq url-http-attempt-keepalives
           debbugs-compat-url-http-attempt-keepalives)
     (advice-remove 'url-http-create-request  #'debbugs-compat-debbugs-advice)))

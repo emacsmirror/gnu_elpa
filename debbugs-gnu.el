@@ -221,6 +221,8 @@
 (declare-function log-view-current-tag "log-view" (&optional pos))
 (declare-function magit-status-setup-buffer "magit" (&optional directory))
 (declare-function magit-refresh "magit" ())
+(declare-function current-thread "thread.c" ())
+(declare-function make-thread "thread.c" (function &optional NAME))
 
 (defvar compilation-in-progress)
 (defvar diff-file-header-re)
@@ -892,7 +894,7 @@ value, like in `debbugs-gnu-get-bugs' or `debbubgs-gnu-tagged'."
                (> (length debbugs-gnu-local-tags)
                   (1- debbugs-gnu-use-threads-lower-limit))
              t))
-      (funcall 'make-thread
+      (make-thread
        (lambda ()
          (let (debbugs-show-progress)
            (unwind-protect
@@ -1038,7 +1040,7 @@ are taken from the cache instead."
   ;; When we are retrieving the bugs asynchronously (we're not in the
   ;; main thread), the buffer shall not be shown to the user yet.
   (funcall
-   (if (or (not main-thread) (eq main-thread (funcall 'current-thread)))
+   (if (or (not main-thread) (eq main-thread (current-thread)))
        #'pop-to-buffer-same-window #'set-buffer)
    (get-buffer-create debbugs-gnu-current-buffer))
   (let ((inhibit-read-only t))

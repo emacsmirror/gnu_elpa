@@ -132,6 +132,8 @@
 (require 'org)
 (eval-when-compile (require 'cl-lib))
 
+(declare-function current-thread "thread.c" ())
+
 ;; Buffer-local variables.
 (defvar debbugs-gnu-local-query)
 (defvar debbugs-gnu-local-filter)
@@ -204,7 +206,7 @@ marked as \"client-side filter\"."
     ;; the main thread), the buffer shall not be shown to the user
     ;; yet.
     (funcall
-     (if  (or (not main-thread) (eq main-thread (funcall 'current-thread)))
+     (if  (or (not main-thread) (eq main-thread (current-thread)))
          #'pop-to-buffer-same-window #'set-buffer)
      (get-buffer-create debbugs-org-buffer-name))
     (org-mode)

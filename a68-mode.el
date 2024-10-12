@@ -116,6 +116,9 @@
 (defun a68-within-comment ()
   (nth 4 (syntax-ppss)))
 
+(defun a68-within-string-or-comment ()
+  (nth 8 (syntax-ppss)))
+
 (defvar a68--keywords-regexp
   (regexp-opt '("+" "*" ";" ">" "<" ":=" "=" "," ":")))
 
@@ -252,6 +255,25 @@
       (insert "#   #"))
     (goto-char (+ (point) 2))))
 
+(defun a68-beginning-of-defun (&optional arg)
+  "Algol 68 specific `beginning-of-defun-function'."
+  ;; Move out of strings or comments.
+  (when (a68-within-string-or-comment)
+    (goto-char (a68-within-string-or-comment)))
+    (letrec ((orig (point))
+             (toplevel (lambda (pos)
+                         (condition-case nil
+                             (progn
+                               (backward-up-list 1)
+                               (funcall toplevel (point)))
+                           (scan-error pos)))))
+      (goto-char (funcall toplevel (point)))
+      (when (and (> arg 0) (/= orig (point)))
+        (setq arg (1- arg)))
+      (forward-sexp (- arg))
+      (and (< arg 0) (forward-sexp -1))
+      (/= orig (point))))
+
 ;;;###autoload
 (define-derived-mode a68-mode prog-mode "Algol68"
   "Major mode for editing Alogl68 files."
@@ -263,6 +285,7 @@
   (add-hook 'after-change-functions 'a68--after-change-function nil t)
   (setq-local comment-start a68-comment-style)
   (setq-local comment-end a68-comment-style)
+  (setq-local beginning-of-defun-function 'a68-beginning-of-defun)
   (setq-local syntax-propertize-function
               (syntax-propertize-rules
                ((rx (group bow "[C][O][M][M][E][N][T]" eow)
@@ -275,6 +298,11 @@
                     (group bow "[C][O]" eow))
                 (1 "<")
                 (3 ">"))
+               ((rx (group bow "[B][E][G][I][N]")
+                    (group (*? anychar))
+                    (group bow "[E][N][D]"))
+                (1 "(")
+                (3 ")"))
                ;; a comment is # ... #, but I don't want the
                ;; (eventual) shebang #! to be considered the start of
                ;; the comment.

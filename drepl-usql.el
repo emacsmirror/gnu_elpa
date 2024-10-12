@@ -71,9 +71,16 @@
            (propertize "M-x drepl-usql-build" 'face 'help-key-binding))
     (user-error "%s not found" drepl-usql-program)))
 
+(defun drepl-usql--comint-indirect-setup ()
+  "Function to set up indentation in the comint indirect buffer."
+  ;; This at least ensures TAB completion works.
+  (setq-local indent-line-function #'ignore)
+  (when (fboundp 'sql-indent-enable) (sql-indent-enable)))
+
 (cl-defmethod drepl--init ((repl drepl-usql))
   (cl-call-next-method repl)
   (push '("5151" . comint-mime-osc-handler) ansi-osc-handlers)
+  (add-hook 'comint-indirect-setup-hook #'drepl-usql--comint-indirect-setup nil t)
   (drepl--adapt-comint-to-mode ".sql"))
 
 (provide 'drepl-usql)

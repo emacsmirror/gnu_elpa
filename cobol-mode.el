@@ -120,23 +120,16 @@
 The next key typed is executed unless it is SPC."
   (interactive)
   (momentary-string-display
-   (cond ((eq cobol-source-format 'fixed-85)
-          cobol-fixed-85-ruler)
-         ((eq cobol-source-format 'fixed-2002)
-          cobol-fixed-2002-ruler)
-         ((eq cobol-source-format 'free)
-          cobol-free-ruler))
+   (pcase cobol-source-format
+     ('fixed-85 cobol-fixed-85-ruler)
+     ('fixed-2002 cobol-fixed-2002-ruler)
+     (_ cobol-free-ruler))
    (save-excursion
      (beginning-of-line)
-     (if (eq (window-start (selected-window))
-             (window-point (selected-window)))
+     (if (eq (window-start) (window-point))
          (line-beginning-position 2)
        (point)))
    nil "Type SPC or any command to erase the ruler."))
-
-(defcustom cobol-mode-hook nil
-  "Hook run by `cobol-mode'."
-  :type 'hook)
 
 (defun cobol--remove-strings (l1 l2)
   "Return a list of strings in L1 not in L2."
@@ -2009,21 +2002,21 @@ lines.")
   "Regexp matching a free-form source comment.")
 
 (eval-and-compile
-(defconst cobol--optional-whitespace-re
-  "[ 	]*" ; Space and tab
-  "Regexp matching optional whitespace.
+  (defconst cobol--optional-whitespace-re
+    "[ 	]*" ; Space and tab
+    "Regexp matching optional whitespace.
 \\w isn't used to avoid matching newlines.")
 
-(defconst cobol--optional-leading-whitespace-line-re
-  (if (not (eq cobol-source-format 'free))
-      (concat cobol--fixed-non-comment-sequence-area-re
-              cobol--optional-whitespace-re)
-    (concat "^" cobol--optional-whitespace-re))
-  "Regexp matching a line perhaps starting with whitespace.")
+  (defun cobol--optional-leading-whitespace-line-re ()
+    "Regexp matching a line perhaps starting with whitespace."
+    (concat (if (eq cobol-source-format 'free) "^"
+              cobol--fixed-non-comment-sequence-area-re)
+            cobol--optional-whitespace-re))
 
-(defun cobol--with-opt-whitespace-line (&rest strs)
-  "Return STRS concatenated after `cobol--optional-leading-whitespace-line-re'."
-  (apply #'concat cobol--optional-leading-whitespace-line-re strs)))
+  (defun cobol--with-opt-whitespace-line (&rest strs)
+    "Return STRS concatenated after `cobol--optional-leading-whitespace-line-re'."
+    (apply #'concat (cobol--optional-leading-whitespace-line-re) strs))
+  )
 
 (defconst cobol--free-form-comment-line-re
   (cobol--with-opt-whitespace-line cobol--free-form-comment-re)
@@ -2737,7 +2730,7 @@ after whitespace if WITH-WHITESPACE). If that cannot be found, return 0."
 
 (defun cobol--match-with-leading-whitespace (re str)
   "Match regexp RE (with optional leading whitespace) against STR."
-  (string-match (concat cobol--optional-leading-whitespace-line-re re)
+  (string-match (concat (cobol--optional-leading-whitespace-line-re) re)
                 str))
 
 (defun cobol--match-line-with-leading-whitespace (re)

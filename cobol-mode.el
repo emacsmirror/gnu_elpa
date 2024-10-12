@@ -1,13 +1,13 @@
 ;;; cobol-mode.el --- Mode for editing COBOL code -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2013-2022  Free Software Foundation, Inc.
+;; Copyright (C) 2013-2024  Free Software Foundation, Inc.
 
 ;; Author: Edward Hart <edward.dan.hart@gmail.com>
 ;; Maintainer: Kristofer Hjelmtorp <kristofer@hjelmtorp.se>
 ;; Version: 1.1
 ;; Created: 9 November 2013
 ;; Keywords: languages
-;; Package-Requires: ((cl-lib "0.5"))
+;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

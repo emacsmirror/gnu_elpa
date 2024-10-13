@@ -288,21 +288,6 @@
   (setq-local beginning-of-defun-function 'a68-beginning-of-defun)
   (setq-local syntax-propertize-function
               (syntax-propertize-rules
-               ((rx (group bow "[C][O][M][M][E][N][T]" eow)
-                    (group (*? anychar))
-                    (group bow "[C][O][M][M][E][N][T]" eow))
-                (1 "<")
-                (3 ">"))
-               ((rx (group bow "[C][O]" eow)
-                    (group (*? anychar))
-                    (group bow "[C][O]" eow))
-                (1 "<")
-                (3 ">"))
-               ((rx (group bow "[B][E][G][I][N]")
-                    (group (*? anychar))
-                    (group bow "[E][N][D]"))
-                (1 "(")
-                (3 ")"))
                ;; a comment is # ... #, but I don't want the
                ;; (eventual) shebang #! to be considered the start of
                ;; the comment.
@@ -310,7 +295,21 @@
                     (group (*? anychar))
                     (group "#"))
                 (1 "<")
-                (3 ">")))))
+                (3 ">"))
+               ((rx bow (group "C") "OMMENT" eow
+                    (*? anychar)
+                    bow "COMMEN" (group "T") eow)
+                (1 "< b")
+                (2 "> b"))
+               ((rx bow (group "C") "O" eow
+                    (*? anychar)
+                    bow "C" (group "O") eow)
+                (1 "< c")
+                (2 "> c"))
+               ((rx bow (group "BEGIN") eow)
+                (1 "("))
+               ((rx bow (group "END") eow)
+                (3 "(")))))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.a68\\'" . a68-mode))

@@ -257,22 +257,10 @@
 
 (defun a68-beginning-of-defun (&optional arg)
   "Algol 68 specific `beginning-of-defun-function'."
-  ;; Move out of strings or comments.
-  (when (a68-within-string-or-comment)
-    (goto-char (a68-within-string-or-comment)))
-    (letrec ((orig (point))
-             (toplevel (lambda (pos)
-                         (condition-case nil
-                             (progn
-                               (backward-up-list 1)
-                               (funcall toplevel (point)))
-                           (scan-error pos)))))
-      (goto-char (funcall toplevel (point)))
-      (when (and (> arg 0) (/= orig (point)))
-        (setq arg (1- arg)))
-      (forward-sexp (- arg))
-      (and (< arg 0) (forward-sexp -1))
-      (/= orig (point))))
+  (goto-char (save-excursion
+               (while (and (re-search-backward (rx bow (or "PROC" "OP")) nil t)
+                           (a68-within-string-or-comment)))
+               (point))))
 
 ;;;###autoload
 (define-derived-mode a68-mode prog-mode "Algol68"
@@ -305,11 +293,7 @@
                     (*? anychar)
                     bow "C" (group "O") eow)
                 (1 "< c")
-                (2 "> c"))
-               ((rx bow (group "BEGIN") eow)
-                (1 "("))
-               ((rx bow (group "END") eow)
-                (3 "(")))))
+                (2 "> c")))))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.a68\\'" . a68-mode))
@@ -394,5 +378,5 @@
             (a68--pretty-print-bold-tag)
           (a68--pretty-print-bold-tags start stop)))
       (when (and (equal _len 0) in-bold-tag-already (backward-char))))))
-  
+
 ;;; a68-mode.el ends here

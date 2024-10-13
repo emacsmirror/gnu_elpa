@@ -262,6 +262,31 @@
                            (a68-within-string-or-comment)))
                (point))))
 
+(defun a68-syntax-propertize-function (start end)
+  (let ((case-fold-search nil))
+    (goto-char start)
+    (funcall
+     (syntax-propertize-rules
+      ;; a comment is # ... #, but I don't want the
+      ;; (eventual) shebang #! to be considered the start of
+      ;; the comment.
+      ((rx (group "#" (not "!"))
+           (group (*? anychar))
+           (group "#"))
+       (1 "<")
+       (3 ">"))
+      ((rx bow (group "C") "OMMENT" eow
+           (*? anychar)
+           bow "COMMEN" (group "T") eow)
+       (1 "< b")
+       (2 "> b"))
+      ((rx bow (group "C") "O" eow
+           (*? anychar)
+           bow "C" (group "O") eow)
+       (1 "< c")
+       (2 "> c")))
+     (point) end)))
+
 ;;;###autoload
 (define-derived-mode a68-mode prog-mode "Algol68"
   "Major mode for editing Alogl68 files."
@@ -274,26 +299,7 @@
   (setq-local comment-start a68-comment-style)
   (setq-local comment-end a68-comment-style)
   (setq-local beginning-of-defun-function 'a68-beginning-of-defun)
-  (setq-local syntax-propertize-function
-              (syntax-propertize-rules
-               ;; a comment is # ... #, but I don't want the
-               ;; (eventual) shebang #! to be considered the start of
-               ;; the comment.
-               ((rx (group "#" (not "!"))
-                    (group (*? anychar))
-                    (group "#"))
-                (1 "<")
-                (3 ">"))
-               ((rx bow (group "C") "OMMENT" eow
-                    (*? anychar)
-                    bow "COMMEN" (group "T") eow)
-                (1 "< b")
-                (2 "> b"))
-               ((rx bow (group "C") "O" eow
-                    (*? anychar)
-                    bow "C" (group "O") eow)
-                (1 "< c")
-                (2 "> c")))))
+  (setq-local syntax-propertize-function #'a68-syntax-propertize-function))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.a68\\'" . a68-mode))

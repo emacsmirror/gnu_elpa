@@ -1212,16 +1212,18 @@ Hook for `after-save-hook'."
 If nil, you can not use `greader-compile-at-point'."
   :tag "greader compile default dictionary source file"
   :type 'string)
-
+(defcustom greader-compile-history-delete-duplicates t
+  "If enabled, duplicates in the history will not be added."
+  :type 'boolean)
 (defvar greader-espeak-language)
 (defun greader-compile-at-point (&optional src dst)
   "Add a word to the espeak dictionary definition.
 When called interactively and point is on a word, this function asks
-  for the definition, assuming you want to define current word.
+for the definition, assuming you want to define current word.
 If you want to be asked about the word to define, call this command
-  with prefix.
+with prefix.
 When called from a function, you should specify SRC and DST, even if
-  SRC and DST are declared as optional."
+SRC and DST are declared as optional."
   (interactive "P")
   (unless greader-compile-default-source
     (error
@@ -1237,8 +1239,9 @@ When called from a function, you should specify SRC and DST, even if
     (if (equal src "")
 	(setq src (thing-at-point 'word t))))
   (unless dst
-    (setq dst (read-string (concat "Redefine " src " to: ") nil
-			   'greader-compile-history)))
+    (let ((history-delete-duplicates  greader-compile-history-delete-duplicates))
+      (setq dst (read-string (concat "Redefine " src " to: ") nil
+			   'greader-compile-history))))
 
   (let ((lang-file
 	 (if (string-prefix-p "/" greader-compile-default-source)

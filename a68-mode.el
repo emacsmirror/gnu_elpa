@@ -321,8 +321,10 @@
     (a68--pretty-print-bold-tags-off)))
 
 (defun a68--pretty-print-bold-tags-on ()
-  (a68--pretty-print-bold-tags (point-min) (point-max))
-  (add-hook 'after-change-functions 'a68--after-change-function nil t))
+  (save-excursion
+    (goto-char (point-min))
+    (a68--pretty-print-bold-tags (point-min) (point-max))
+    (add-hook 'after-change-functions 'a68--after-change-function nil t)))
 
 (defun a68--pretty-print-bold-tags-off ()
   (remove-hook 'after-change-functions 'a68--after-change-function t)

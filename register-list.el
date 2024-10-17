@@ -478,8 +478,8 @@ the register or copy its value into the kill ring."
 	    (t "error"))
     (cond ((window-configuration-p (car key)) "W")
 	  ((frame-configuration-p (car key)) "F")
-	  ((stringp (car key)) "R")
 	  ((string= "Unprintable entity" (car key)) "?")
+	  ((stringp (car key)) "R")
 	  (t "error"))))
 
 ;;; Edit key/value of the register

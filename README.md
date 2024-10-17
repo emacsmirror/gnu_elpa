@@ -39,8 +39,7 @@ Jose E. Marchesi wrote the first version of a68-mode.el.
 At some point someone got a copy of a68-mode.el, renamed it to
 algol-mode.el and distributed it in github.
 
-Then Omar Polo forked algol-mode.el, renaming it back to a68-mode.el
-and distributing the result at https://git.omarpolo.com/a68-mode.git.
+Then Omar Polo forked algol-mode.el, renaming it back to a68-mode.el.
 
 Finally at some point Jose decided to ditch his original version and
 start using and maintain Omar's version instead.

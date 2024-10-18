@@ -47,20 +47,23 @@
 The keys are aux file names.  The values are hash tables, mapping label
 strings to label number strings.")
 
+(defconst auctex-label-numbers--newlabel-regexp
+  "\\\\newlabel{\\([^}]+\\)}{{\\([^}]+\\)}"
+  "Regexp for \\newlabel commands, capturing label and number.")
+
 (defun auctex-label-numbers-update-cache (aux-file)
   "Update the cache for AUX-FILE.
 Return the updated cache, or nil if the aux file does not exist."
   (when (file-exists-p aux-file)
     (with-temp-buffer
       (insert-file-contents aux-file)
-      (let ((cache (make-hash-table :test 'equal))
-            (pattern "\\\\newlabel{\\([^}]+\\)}{{\\([^}]+\\)}"))
-        (save-excursion
-          (goto-char (point-min))
-          (while (re-search-forward pattern nil t)
-            (let ((label (match-string 1))
-                  (number (match-string 2)))
-              (puthash label number cache))))
+      (let ((cache (make-hash-table :test 'equal)))
+        (goto-char (point-min))
+        (while (re-search-forward
+                auctex-label-numbers--newlabel-regexp nil t)
+          (let ((label (match-string 1))
+                (number (match-string 2)))
+            (puthash label number cache)))
         (puthash 'timestamp (current-time) cache)
         (puthash aux-file cache auctex-label-numbers-cache)
         cache))))
@@ -71,13 +74,11 @@ If non-nil, `auctex-label-numbers-label-to-number' delegates to this
 function.  The function should take a label string as its argument and
 return the corresponding label number as a string, or nil if that number
 cannot be retrieved."
-  :type '(choice (const :tag "Default" nil) function))
+  :type '(choice (const :tag "Default" nil)
+                 (function :tag "Custom function")))
 
 ;; FIXME: we don't properly handle the optional arguments to
 ;; \externaldocument, i.e., prefixes for labels.
-
-(defconst auctex-label-numbers--external-document-regexp
-  "\\\\external\\(?:cite\\)?document\\(?:\\[[^]]+\\]\\)\\{0,2\\}{\\([^}]+\\)}")
 
 (defun auctex-label-numbers-label-to-number-helper (label aux-file)
   "Get the number of LABEL from the AUX-FILE.
@@ -102,7 +103,13 @@ commands in the current document, and then looking for the label in
 FILENAME.tex.  This operation opens external TeX documents in unselected
 buffers, so that it can use AUCTeX's function `TeX-master-output-file'
 to find the corresponding aux files."
-  :type 'boolean)
+  :type '(choice (const :tag "Search external documents" t)
+                 (const :tag "Don't search external documents" nil)))
+
+(defconst auctex-label-numbers--external-document-regexp
+  "\\\\external\\(?:cite\\)?document\\(?:\\[\\([^]]+\\)\\]\\)?{\\([^}]+\\)}"
+  "Regexp for \\externaldocument commands.
+Optional prefix is (match-string 1), filename is (match-string 2).")
 
 (defun auctex-label-numbers-label-to-number (label)
   "Get number of LABEL for current tex buffer.
@@ -113,10 +120,10 @@ in an external document, prefix the string with \"X\"."
   (if auctex-label-numbers-label-to-number-function
       (funcall auctex-label-numbers-label-to-number-function label)
     (or
+     ;; Check main aux file
      (when-let* ((aux-file (TeX-master-output-file "aux")))
        (auctex-label-numbers-label-to-number-helper label aux-file))
-     ;; If we can't retrieve the label from the main file, then we look
-     ;; at any external documents.
+     ;; Search external documents
      (and
       auctex-label-numbers-search-external-documents
       (save-excursion
@@ -127,13 +134,16 @@ in an external document, prefix the string with \"X\"."
             (while (and (null found)
                         (re-search-forward auctex-label-numbers--external-document-regexp
                                            nil t))
-              (let* ((tex-filename (concat (match-string 1) ".tex"))
+              (let* ((prefix (match-string 1))
+                     (tex-filename (concat (match-string 2) ".tex"))
                      (tex-buffer (find-file-noselect tex-filename))
                      (aux-filename
                       (with-current-buffer tex-buffer
                         (hack-local-variables)
                         (TeX-master-output-file "aux"))))
-                (setq found (auctex-label-numbers-label-to-number-helper label aux-filename))))
+                (when aux-filename
+                  (let ((full-label (concat (or prefix "") label)))
+                    (setq found (auctex-label-numbers-label-to-number-helper full-label aux-filename))))))
             (when found
               (concat "X" found)))))))))
 
@@ -191,7 +201,7 @@ Each element describes a LaTeX macro that takes a label as its argument.
 There should be a corresponding function
 `auctex-label-numbers-MACRO-display' that returns a fold display string
 for that macro."
-  :type '(repeat string))
+  :type '(repeat (string :tag "Macro name")))
 
 (defun auctex-label-numbers-label-annotation-advice (orig-fun label)
   "Return context for LABEL, augmented by the corresponding label number.

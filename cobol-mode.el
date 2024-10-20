@@ -4,10 +4,15 @@
 
 ;; Author: Edward Hart <edward.dan.hart@gmail.com>
 ;; Maintainer: Kristofer Hjelmtorp <kristofer@hjelmtorp.se>
+;; URL: https://git.sr.ht/~hjelmtech/cobol-mode
 ;; Version: 1.1
 ;; Created: 9 November 2013
 ;; Keywords: languages
-;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
+;; Package-Requires: ((emacs "24.3"))
+
+;; This file is part of GNU Emacs.
+
+;;; License:
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -2015,8 +2020,7 @@ lines.")
 
   (defun cobol--with-opt-whitespace-line (&rest strs)
     "Return STRS concatenated after `cobol--optional-leading-whitespace-line-re'."
-    (apply #'concat (cobol--optional-leading-whitespace-line-re) strs))
-  )
+    (apply #'concat (cobol--optional-leading-whitespace-line-re) strs)))
 
 (defconst cobol--free-form-comment-line-re
   (cobol--with-opt-whitespace-line cobol--free-form-comment-re)
@@ -2101,8 +2105,7 @@ COBOL.")
 
 (defconst cobol--mf-function-types
   '("ITERATOR" "OPERATOR" "PROPERTY")
-  "List containing the names of constructs similar to functions created by Micro
-Focus.")
+  "List containing the names of constructs similar to functions by Micro Focus.")
 
 (defconst cobol--function-types-re
   (regexp-opt (append cobol--standard-function-types cobol--mf-function-types))
@@ -2257,7 +2260,7 @@ Note that this matches DECLARATIVES.")
 
 (defun cobol--fixed-format-p ()
   "Return whether the current source format is fixed."
-  (memq cobol-source-format '(fixed-85 'fixed-2002)))
+  (not (eq cobol-source-format 'free)))
 
 ;; This is required for indentation to function, because the initial sequence
 ;; area is marked as a comment, not whitespace.
@@ -2611,25 +2614,23 @@ arguments at all.")
       (downcase word)))))
 
 (defun cobol-format-region (beg end)
-  "Format all COBOL words between BEG and END according to
-`cobol-format-style'."
+  "Format all COBOL words between BEG and END according to `cobol-format-style'."
   (interactive "*r")
   (cobol-format beg end))
 
 (defun cobol-format-buffer ()
-  "Format all COBOL words in the current buffer according to
-`cobol-format-style'."
+  "Format all COBOL words in the current buffer according to `cobol-format-style'."
   (interactive "*")
   (cobol-format (point-min) (point-max)))
 
+(defconst cobol-words-to-format
+  (append cobol-directives cobol-verbs cobol-keywords cobol-intrinsics
+          cobol-symbolic-literals))
+
 (defun cobol-format (beg end)
   "Format COBOL code between BEG and END according to `cobol-format-style'."
-  (defconst words-to-format
-    (append cobol-directives cobol-verbs cobol-keywords cobol-intrinsics
-            cobol-symbolic-literals))
-
   (save-excursion
-    (dolist (word words-to-format)
+    (dolist (word cobol-words-to-format)
       (let ((ref-point (point-min)))
         (goto-char beg)
         (while (search-forward-regexp (concat "\\<" word "\\>") end t)
@@ -2678,10 +2679,10 @@ arguments at all.")
   (+ indent (* times cobol-tab-width)))
 
 (defun cobol--current-indentation ()
-  "Return the indentation of the current line or -1 if the line is within the
-sequence area."
+  "Return the indentation of the current line if outside the sequence area.
+Returns -1 if the line is within the sequence area."
   (if (< (- (line-end-position) (line-beginning-position)) (cobol--code-start))
-     -1
+      -1
     (save-excursion
       (goto-char (+ (line-beginning-position) (cobol--code-start)))
       (let ((code-start-position (point)))
@@ -2702,8 +2703,9 @@ If the car of the return value is non-nil, return the cdr."
       (forward-line -1))))
 
 (cl-defun cobol--search-back-for-indent (str &key with-whitespace)
-  "Return the indent of the previous line starting with the regexp STR (optionally
-after whitespace if WITH-WHITESPACE). If that cannot be found, return 0."
+  "Return the indent of the previous line starting with the regexp STR.
+Optionally after whitespace if WITH-WHITESPACE. If that cannot be found,
+ return 0."
   (let ((line-re (concat (when with-whitespace cobol--optional-whitespace-re)
                          str)))
     (cobol--search-back
@@ -3096,28 +3098,25 @@ start of area A, if fixed-format)."
 (define-derived-mode cobol-mode prog-mode "COBOL"
   "COBOL mode is a major mode for handling COBOL files."
 
-  (set (make-local-variable 'font-lock-defaults) cobol-font-lock-defaults)
+  (setq-local font-lock-defaults cobol-font-lock-defaults)
 
   (when cobol-tab-width
-    (set (make-local-variable 'tab-width) cobol-tab-width))
+    (setq-local tab-width cobol-tab-width))
 
-  (set (make-local-variable 'indent-tabs-mode) nil)
+  (setq-local indent-tabs-mode nil)
 
-  (set (make-local-variable 'comment-start-skip)
-       "\\(^.\\{6\\}\\*\\|\\*>\\)\\s-* *")
-  (set (make-local-variable 'comment-start) "*>")
-  (set (make-local-variable 'comment-end) "")
+  (setq-local comment-start-skip "\\(^.\\{6\\}\\*\\|\\*>\\)\\s-* *")
+  (setq-local comment-start "*>")
+  (setq-local comment-end "")
 
-  (set (make-local-variable 'syntax-propertize-function)
-       #'cobol--syntax-propertize-function)
+  (setq-local syntax-propertize-function #'cobol--syntax-propertize-function)
 
-  (set (make-local-variable 'column-number-mode) t)
+  (setq-local column-number-mode t)
 
-  (set (make-local-variable 'indent-line-function) #'cobol-indent-line)
+  (setq-local indent-line-function #'cobol-indent-line)
 
   ;; Auto complete mode
-  (set (make-local-variable 'ac-ignore-case) t)
-  )
+  (setq-local ac-ignore-case t))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist

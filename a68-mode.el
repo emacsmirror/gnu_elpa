@@ -91,7 +91,7 @@
     "THEF" "ANDF" "ANDTH"
     "ELSF" "ORF" "OREL"
     "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"
-    "REF")
+    "REF" "NIL" "TRUE" "FALSE")
   "List of ALGOL 68 keywords.")
 
 (defconst a68-font-lock-keywords
@@ -386,5 +386,56 @@
             (a68--pretty-print-bold-tag)
           (a68--pretty-print-bold-tags start stop)))
       (when (and (equal _len 0) in-bold-tag-already (backward-char))))))
+
+;;;; Auto-stropping (minor mode).
+
+;;;###autoload(defvar a68-auto-stropping-mode nil "Non-nil if A68 auto stropping mode is enabled.")
+;;;###autoload
+(define-minor-mode a68-auto-stropping-mode
+  "Toggle auto-stropping in a68-mode."
+  :group a68
+  (if a68-auto-stropping-mode
+      (progn
+        (a68--collect-modes)
+        (add-hook 'post-self-insert-hook
+                  #'a68--do-auto-stropping 'append 'local))
+    (remove-hook 'post-self-insert-hook
+                 #'a68--do-auto-stropping)
+    (setq a68--mode-indicants nil)))
+
+(defvar a68--mode-indicants
+  nil
+  "List of mode indicants declared in current buffer.")
+
+(defun a68--collect-modes ()
+  "Collect mode-indicants of modes defined in the current buffer
+into a68--mode-indicants."
+  (save-excursion
+    (goto-char (point-min))
+    (let ((case-fold-search nil))
+      (setq a68--mode-indicants nil)
+      (while (re-search-forward (rx bow "MODE" eow
+                                    (one-or-more white)
+                                    (group (any "A-Z") (zero-or-more (any "A-Z0-9_")))
+                                    (zero-or-more white)
+                                    "=") nil t)
+        (setq a68--mode-indicants
+              (cons (buffer-substring-no-properties (match-beginning 1)
+                                                    (match-end 1))
+                    a68--mode-indicants)))))
+  a68--mode-indicants)
+
+(defun a68--do-auto-stropping ()
+  (let (id beginning end)
+    (save-excursion
+      (when (looking-back (rx bow (group (any "a-z") (zero-or-more (any "a-z0-9_"))))
+                          nil t)
+        (setq beginning (match-beginning 1))
+        (setq end (match-end 1))
+        (setq id (upcase (buffer-substring-no-properties beginning end)))))
+    (when (member id (append a68-keywords a68--mode-indicants))
+      (goto-char end)
+      (delete-region beginning end)
+      (insert id))))
 
 ;;; a68-mode.el ends here

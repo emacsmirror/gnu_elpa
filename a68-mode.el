@@ -426,16 +426,18 @@ into a68--mode-indicants."
   a68--mode-indicants)
 
 (defun a68--do-auto-stropping ()
-  (let (id beginning end)
-    (save-excursion
-      (when (looking-back (rx bow (group (any "a-z") (zero-or-more (any "a-z0-9_"))))
-                          nil t)
-        (setq beginning (match-beginning 1))
-        (setq end (match-end 1))
-        (setq id (upcase (buffer-substring-no-properties beginning end)))))
-    (when (member id (append a68-keywords a68--mode-indicants))
-      (goto-char end)
-      (delete-region beginning end)
-      (insert id))))
+  (when (or (eq (char-before) ?\s)
+            (eq (char-before) ?\n))
+    (let (id beginning end)
+      (save-excursion
+        (when (looking-back (rx bow (group (any "a-z") (zero-or-more (any "a-z0-9_"))))
+                            nil t)
+          (setq beginning (match-beginning 1))
+          (setq end (match-end 1))
+          (setq id (upcase (buffer-substring-no-properties beginning end)))))
+      (when (member id (append a68-keywords a68--mode-indicants))
+        (goto-char end)
+        (delete-region beginning end)
+        (insert id)))))
 
 ;;; a68-mode.el ends here

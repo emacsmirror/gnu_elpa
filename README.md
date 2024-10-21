@@ -12,6 +12,10 @@ according to the a68-bold-tag-face.  This allows to show bold tags as
 underlined, or bold, or whatever other visual characteristic that can
 be configured in an Emacs face.
 
+A minor mode a68-auto-stropping-mode is provided that, when active,
+applies upper stropping automatically as you type, to both keywords
+and mode indicators defined in the current buffer.
+
 ### Manual installation
 
 Just put a68-mode.el somewhere in your load-path and require it.

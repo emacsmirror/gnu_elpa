@@ -76,6 +76,11 @@
     map)
   "Keymap for Algol 68 major mode.")
 
+(defconst a68-std-modes
+  '("SHORT" "LONG" "INT" "REAL" "BITS" "BYTES"
+    "COMPLEX" "STRING")
+  "List of Algol 68 standard modes and shortety.")
+
 (defconst a68-keywords
   '("DECS" "PROGRAM" "CONTEXT" "USE" "FINISH" "KEEP"
     "ALIEN" "UNTIL"
@@ -92,7 +97,7 @@
     "ELSF" "ORF" "OREL"
     "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"
     "REF" "NIL" "TRUE" "FALSE")
-  "List of ALGOL 68 keywords.")
+  "List of Algol 68 keywords.")
 
 (defconst a68-font-lock-keywords
   (list
@@ -435,7 +440,7 @@ into a68--mode-indicants."
           (setq beginning (match-beginning 1))
           (setq end (match-end 1))
           (setq id (upcase (buffer-substring-no-properties beginning end)))))
-      (when (member id (append a68-keywords a68--mode-indicants))
+      (when (member id (append a68-std-modes a68-keywords a68--mode-indicants))
         (goto-char end)
         (delete-region beginning end)
         (insert id)))))

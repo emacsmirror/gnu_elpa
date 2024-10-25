@@ -32,6 +32,8 @@
 ;;; Code:
 
 (require 'grep)
+(require 'pcase)
+(require 'map)
 (require 'project)
 (require 'transient)
 
@@ -85,26 +87,46 @@
   :group 'convenience
   :group 'project)
 
-(defcustom disproject-compile-suffixes '(("c" "make" "Make" "make -k"))
+(defcustom disproject-compile-suffixes '(("c" "make" "make -k"
+                                          :description "Make"))
   "Commands for the `disproject-compile' prefix.
 
 The value should be a list of transient-like specification
-entries (KEY NAME DESCRIPTION COMPILE-COMMAND), where KEY is the
-project root path that is used as the alist key.
+entries (KEY NAME COMPILE-COMMAND {PROPERTY VALUE} ...).
 
-NAME is used to construct the compilation buffer name.  KEY and
-DESCRIPTION are passed to transient suffix constructors as the
-keybind and description, respectively.  The COMPILE-COMMAND value
-is passed to `compile' as the shell command to run.
+KEY is the keybind that will be used in the Transient menu.
+
+NAME is used in the compilation buffer name.  This should be
+unique, but it may be useful to use the same name as another
+command if one wants certain project compilation commands as
+incompatible (only one runs at a given time).
+
+COMPILE-COMMAND is passed to `compile' as the shell command to
+run.
+
+Optional properties can be set after COMPILE-COMMAND through
+keywords.
+
+:description is the only valid property.  It is used as the
+transient command description.  If this is not specified, then
+COMPILE-COMMAND will be used instead.
 
 For example, the following may be used as a dir-locals.el value
 for `disproject-compile-suffixes' to add \"make -k\" and
 \"guile --help\" in a particular project:
 
-  ((\"m\" \"Make\" \"echo Running make...; make -k\")
-   (\"g\" \"Guile help\" \"echo Get some help from Guile...; guile --help\")))"
+  ((\"m\" \"make\"
+    \"echo Running make...; make -k\"
+    :description \"Make\")
+   (\"g\" \"guile-help\"
+    \"echo Get some help from Guile...; guile --help\"
+    :description \"/Compile/ some help from Guile!\")))"
   :type '(alist :key-type string
-                :value-type (list string string string))
+                :value-type (list string
+                                  string
+                                  (plist :inline t
+                                         :key-type (const :description)
+                                         :value-type string)))
   :group 'disproject)
 
 (defcustom disproject-find-file-command
@@ -374,10 +396,11 @@ ROOT-DIRECTORY is used to determine the project."
    (transient-parse-suffixes
     'disproject-compile
     `(,@(mapcar
-         (pcase-lambda (`(,key ,name ,description ,compile-command))
+         (pcase-lambda (`( ,key ,name ,compile-command
+                           . ,(map :description)))
            `(,key
              ;; TODO: Color the command
-             ,(concat description "  ::  " compile-command)
+             ,(or description compile-command)
              (lambda ()
                (interactive)
                (let ((default-directory ,default-directory))

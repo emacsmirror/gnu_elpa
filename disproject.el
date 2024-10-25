@@ -385,7 +385,7 @@ ROOT-DIRECTORY is used to determine the project."
                     (compile ,compile-command)))))))
          disproject-compile-suffixes)
       ("!"
-       "Aternative command..."
+       "Alternative command..."
        (lambda ()
          (interactive)
          (let ((default-directory ,default-directory))

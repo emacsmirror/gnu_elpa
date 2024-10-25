@@ -63,7 +63,7 @@ experimenting with `show-font-pangram-p'."
           ,@(mapcar
              (lambda (element)
                (list 'const :tag (cdr element) (car element)))
-               show-font-pangrams)
+             show-font-pangrams)
           (string :tag "A custom pangram"))
   :group 'show-font)
 
@@ -163,19 +163,19 @@ return nil."
 Determine how to render the font file contents in a buffer."
   (cond
    ((eq operation 'insert-file-contents)
-    (when-let ((filename (car args))
-               (visit (cadr args)))
-         (setq buffer-file-name filename)
-         (list buffer-file-name (point-max)))
-     (show-font--add-text))
-    ;; Handle any operation we do not know about.  This is copied from
-    ;; the example shown in (info "(elisp) Magic File Names").
-    (t (let ((inhibit-file-name-handlers
-              (cons #'show-font-handler
-                    (and (eq inhibit-file-name-operation operation)
-                         inhibit-file-name-handlers)))
-             (inhibit-file-name-operation operation))
-         (apply operation args)))))
+    (when-let* ((filename (car args))
+                (visit (cadr args)))
+      (setq buffer-file-name filename)
+      (list buffer-file-name (point-max)))
+    (show-font--add-text))
+   ;; Handle any operation we do not know about.  This is copied from
+   ;; the example shown in (info "(elisp) Magic File Names").
+   (t (let ((inhibit-file-name-handlers
+             (cons #'show-font-handler
+                   (and (eq inhibit-file-name-operation operation)
+                        inhibit-file-name-handlers)))
+            (inhibit-file-name-operation operation))
+        (apply operation args)))))
 
 (defun show-font--get-attribute-from-file (attribute &optional file)
   "Get font family ATTRIBUTE from the current file or given FILE.
@@ -184,11 +184,11 @@ matched against the output of the `fc-scan' executable."
   ;; TODO 2024-09-06: Make this work with other font backends.
   (unless (executable-find "fc-scan")
     (error "Cannot find `fc-scan' executable; will not render font"))
-  (when-let ((f (or file buffer-file-name))
-             (_ (string-match-p "\\.\\(ttf\\|otf\\)\\'" f))
-             (output (shell-command-to-string (format "fc-scan -f \"%%{%s}\" %s"
-                                                      (shell-quote-argument attribute)
-                                                      (shell-quote-argument f)))))
+  (when-let* ((f (or file buffer-file-name))
+              (_ (string-match-p "\\.\\(ttf\\|otf\\)\\'" f))
+              (output (shell-command-to-string (format "fc-scan -f \"%%{%s}\" %s"
+                                                       (shell-quote-argument attribute)
+                                                       (shell-quote-argument f)))))
     (if (string-match-p "," output)
         (car (split-string output ","))
       output)))
@@ -267,8 +267,8 @@ FAMILY is a string like those of `show-font--get-installed-font-families'."
 
 (defun show-font--install (file)
   "Install the font FILE."
-  (when-let ((destination (show-font--install-get-destination))
-             (_ (show-font--install-confirmation destination)))
+  (when-let* ((destination (show-font--install-get-destination))
+              (_ (show-font--install-confirmation destination)))
     (copy-file file destination 1) ; ask for confirmation to overwrite
     (message "Copied `%s' to `%s'; now updating the font cache" file destination)
     ;; TODO 2024-09-06: How to do the same on all operating systems?
@@ -352,12 +352,12 @@ instead of that of the file."
 With optional BUFFER, operate therein.  Otherwise, do it in the current
 buffer."
   (with-silent-modifications
-   (with-current-buffer (or buffer (current-buffer))
-     (let ((inhibit-read-only t))
-       (save-excursion
-         (if-let ((text (show-font--prepare-text)))
-             (insert text)
-           (show-font--insert-button)))))))
+    (with-current-buffer (or buffer (current-buffer))
+      (let ((inhibit-read-only t))
+        (save-excursion
+          (if-let* ((text (show-font--prepare-text)))
+              (insert text)
+            (show-font--insert-button)))))))
 
 (defmacro show-font-with-preview-buffer (name &rest body)
   "Evaluate BODY inside NAME buffer."
@@ -415,14 +415,14 @@ The preview text is that of `show-font-pangram'."
       (let* ((counter 0)
              (counter-string (lambda () (concat (number-to-string counter)  ". "))))
         (dolist (family (show-font--get-installed-font-families))
-           (insert (concat
-                    (propertize (funcall counter-string) 'face 'show-font-misc)
-                    (propertize family 'face (list 'show-font-title-small :family family))
-                    "\n"
-                    (make-string (length (funcall counter-string)) ?\s)
-                    (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family))))
-           (insert "\n\n")
-           (setq counter (+ counter 1)))))
+          (insert (concat
+                   (propertize (funcall counter-string) 'face 'show-font-misc)
+                   (propertize family 'face (list 'show-font-title-small :family family))
+                   "\n"
+                   (make-string (length (funcall counter-string)) ?\s)
+                   (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family))))
+          (insert "\n\n")
+          (setq counter (+ counter 1)))))
     (setq-local revert-buffer-function
                 (lambda (_ignore-auto _noconfirm)
                   (show-font-list)))))

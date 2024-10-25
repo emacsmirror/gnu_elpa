@@ -92,14 +92,14 @@
   "Commands for the `disproject-compile' prefix.
 
 The value should be a list of transient-like specification
-entries (KEY NAME COMPILE-COMMAND {PROPERTY VALUE} ...).
+entries (KEY IDENTIFIER COMPILE-COMMAND {PROPERTY VALUE} ...).
 
 KEY is the keybind that will be used in the Transient menu.
 
-NAME is used in the compilation buffer name.  This should be
-unique, but it may be useful to use the same name as another
-command if one wants certain project compilation commands as
-incompatible (only one runs at a given time).
+IDENTIFIER is used in the compilation buffer name.  This should
+be unique, but it may be useful to use the same identifier as
+another command if one wants certain project compilation commands
+as incompatible (only one runs at a given time).
 
 COMPILE-COMMAND is passed to `compile' as the shell command to
 run.
@@ -396,7 +396,7 @@ ROOT-DIRECTORY is used to determine the project."
    (transient-parse-suffixes
     'disproject-compile
     `(,@(mapcar
-         (pcase-lambda (`( ,key ,name ,compile-command
+         (pcase-lambda (`( ,key ,identifier ,compile-command
                            . ,(map :description)))
            `(,key
              ;; TODO: Color the command
@@ -408,7 +408,7 @@ ROOT-DIRECTORY is used to determine the project."
                   (let* ((compilation-buffer-name-function
                           (lambda (major-mode-name)
                             (project-prefixed-buffer-name
-                             (concat ,name "-" major-mode-name)))))
+                             (concat ,identifier "-" major-mode-name)))))
                     (compile ,compile-command)))))))
          disproject-compile-suffixes)
       ("!"

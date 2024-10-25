@@ -79,8 +79,9 @@
 ;;;
 
 (defgroup disproject nil
-  "Customization for `disproject'."
-  :group 'disproject)
+  "Transient interface for managing and interacting with projects."
+  :group 'convenience
+  :group 'project)
 
 (defcustom disproject-compile-suffixes '(("c" "make" "Make" "make -k"))
   "Commands for the `disproject-compile' prefix.

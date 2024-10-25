@@ -121,12 +121,13 @@ for `disproject-compile-suffixes' to add \"make -k\" and
    (\"g\" \"guile-help\"
     \"echo Get some help from Guile...; guile --help\"
     :description \"/Compile/ some help from Guile!\")))"
-  :type '(alist :key-type string
-                :value-type (list string
-                                  string
-                                  (plist :inline t
-                                         :key-type (const :description)
-                                         :value-type string)))
+  :type '(repeat (list (string :tag "Key bind")
+                       (string :tag "Identifier")
+                       (string :tag "Shell command")
+                       (plist :inline t
+                              :tag "Properties"
+                              :key-type (const :description)
+                              :value-type string)))
   :group 'disproject)
 
 (defcustom disproject-find-file-command

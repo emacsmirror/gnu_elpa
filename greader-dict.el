@@ -546,7 +546,7 @@ user-error and aborts the reading process."
 					 'greader-dict-toggle-filters
 					 greader-dict--current-reading-buffer))
       (insert-file-contents (greader-dict--get-file-name))
-      (when-let ((lines (string-lines (buffer-string) t)))
+      (when-let* ((lines (string-lines (buffer-string) t)))
 	(dolist (line lines)
 	  (setq line (split-string line "=" ))
 	  (setf (car line) (car (split-string (car line) "\"" t)))
@@ -633,7 +633,7 @@ the current sentence."
 				 (gethash key greader-dictionary)))
 	(greader-dict-add key value)))
      ((not (region-active-p))
-      (if-let ((default-word (thing-at-point 'word)))
+      (if-let* ((default-word (thing-at-point 'word)))
 	  (progn
 	    (setq key (read-string "Original word to substitute or
 modify: "
@@ -901,7 +901,7 @@ classified as words."
 	(new-key nil))
     (unless key
       (user-error "Key not valid"))
-    (if-let ((backup-value (gethash key greader-dictionary)))
+    (if-let* ((backup-value (gethash key greader-dictionary)))
 	(progn
 	  (setq new-key (read-string (concat "substitute key " key "
   with:")
@@ -914,7 +914,7 @@ classified as words."
 
 (defun greader-dict--get-word-alternatives (text)
   "Return a list with a set of words in TEXT."
-  (if-let ((alternatives text))
+  (if-let* ((alternatives text))
       (progn
 	(setq alternatives nil)
 	(dolist

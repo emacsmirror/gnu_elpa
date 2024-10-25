@@ -35,8 +35,9 @@ following in this repository's root directory:
 ** Usage
 
 Disproject tries to provide usable defaults that don't require additional
-packages or significant configuration; however, it does not provide any keybinds
-by default.  The following is a minimal setup using ~use-package~:
+packages or significant configuration; however, it does not provide any keybind
+for ~disproject~ by default.  The following is a minimal setup using
+~use-package~:
 
 #+begin_src emacs-lisp
   (use-package disproject

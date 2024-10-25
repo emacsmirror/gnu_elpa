@@ -402,7 +402,7 @@
   (if a68-auto-stropping-mode
       (progn
         (a68--collect-modes)
-        (run-with-idle-timer 5 t #'a68--collect-modes)
+        (run-with-idle-timer 0.5 t #'a68--collect-modes)
         (add-hook 'post-self-insert-hook
                   #'a68--do-auto-stropping 'append 'local))
     (remove-hook 'post-self-insert-hook

@@ -1,2 +1,62 @@
 
-* Disproject: Dispatch project commands with Transient
+* Disproject
+
+Disproject is a package for Emacs that provides integration with ~project.el~
+and allows for dispatching various project-related commands via extendable
+Transient menus.
+
+This package is similar to (and inspired by) the built-in function
+~project-switch-project~, but attempts to make it more convenient than just a
+Transient-ified version.
+
+In addition the commands it provides, some notable features include (but may not
+be limited to):
+- Auto-recognizing the current project.
+- Executing commands in a subdirectory of the project.
+- Displaying predefined compilation commands to execute, which can be set
+  per-project (see ~disproject-compile-suffixes~).
+- An option to prefer displaying buffers to another window when executing
+  commands.
+
+** Installation
+
+Currently only available via this repository.
+
+*** Guix
+
+If Guix is available, one may use the package definition in =guix.scm= to
+install Disproject.  For example, to install in the user profile, run the
+following in this repository's root directory:
+
+#+begin_src sh
+  guix package --install-from-file=guix.scm
+#+end_src
+
+** Usage
+
+Disproject tries to provide usable defaults that don't require additional
+packages or significant configuration.  Thus, the following may suffice (with
+~use-package~ as an example):
+
+#+begin_src emacs-lisp
+  (use-package disproject
+    ;; Replace default `project.el' interface with Disproject.
+    :bind ( :map ctl-x-map
+            ("p" . disproject)))
+#+end_src
+
+*** Customization
+
+Disproject also offers variables for customizing its interface.  Search
+=disproject= via =M-x customize-apropos= to see them and accompanying
+documentation.
+
+# TODO: Is there a better way to document the note below?  It is important for
+# those that want to customize commands, but I feel like this is an awkward
+# place to put it and - should the list of options grow - may easily become
+# out-of-sync with code.
+
+Note that in order for a command to be compatible with the options Disproject
+provides, it must respect the following variables where relevant:
+~default-directory~; ~project-current-directory-override~;
+~display-buffer-overriding-action~.

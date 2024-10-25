@@ -86,7 +86,7 @@
     "ALIEN" "UNTIL"
     "MODE" "OP" "PRIO" "PROC"
     "OF" "AT" "IS" "ISNT" "EMPTY" "SKIP"
-    "PR" "PRAGMAT"
+    "PR" "PRAGMAT" "STRUCT" "UNION"
     "CASE" "IN" "OUSE" "OUT" "ESAC"
     "FOR" "FORALL" "FROM" "TO" "BY" "WHILE" "DO" "OD"
     "IF" "THEN" "ELIF" "THEN" "ELSE" "FI"

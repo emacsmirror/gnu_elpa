@@ -25,7 +25,9 @@
 ;;; Commentary:
 
 ;; Disproject is a `transient.el' interface that provides integration with
-;; `project.el' for managing and interacting with projects.
+;; `project.el' for managing and interacting with projects.  It is similar to
+;; (and inspired by) the function `project-switch-project', but attempts to make
+;; it more convenient than just a Transient-ified version.
 
 ;;; Code:
 

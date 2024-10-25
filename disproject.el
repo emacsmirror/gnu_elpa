@@ -166,6 +166,7 @@ This is called whenever the function
 ;;; Prefixes.
 ;;;
 
+;;;###autoload (autoload 'disproject "disproject")
 (transient-define-prefix disproject ()
   "Dispatch some command for a project."
   ["Options"

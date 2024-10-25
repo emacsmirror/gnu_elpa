@@ -5,7 +5,9 @@
 ;; Copyright (C) 2015-2024 Free Software Foundation, Inc.
 
 ;; Author: aurtzy <aurtzy@gmail.com>
-;; Keywords: convenience
+;; URL: https://github.com/aurtzy/disproject
+;; Keywords: convenience, project
+;; Package-Version: 0.1.0
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

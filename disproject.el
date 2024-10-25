@@ -46,7 +46,8 @@
                              default-directory))
          (prefer-other-window (disproject--prefer-other-window))
          ;; Only enable envrc if the initial environment has it enabled.
-         (enable-envrc? (and (boundp 'envrc-mode) envrc-mode))
+         (enable-envrc (and (bound-and-true-p envrc-mode)
+                            (symbol-function 'envrc-mode)))
          ;; Save the environment to restore in case of problem.
          (old-default-directory default-directory)
          (old-project-current-directory-override
@@ -65,8 +66,7 @@
                                              (inhibit-same-window t)))))
              ;; Make sure commands are run in the correct direnv environment
              ;; if envrc-mode is enabled.
-             (when (and enable-envrc? (functionp 'envrc-mode))
-               (envrc-mode 1))
+             (when enable-envrc (funcall enable-envrc))
              ,@body))
        (setq default-directory
              old-default-directory
@@ -360,8 +360,9 @@ ROOT-DIRECTORY is used to determine the project."
 (transient-define-suffix disproject-magit-status ()
   "Open the Magit dispatch transient for project."
   (interactive)
+  (declare-function magit-status-setup-buffer "magit-status")
   (disproject--with-environment
-   (and (fboundp 'magit-status-setup-buffer) (magit-status-setup-buffer))))
+   (magit-status-setup-buffer)))
 
 (defun disproject-compile--setup-suffixes (_)
   "Set up suffixes according to `disproject-compile-suffixes'."

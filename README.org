@@ -9,7 +9,7 @@ This package is similar to (and inspired by) the built-in function
 ~project-switch-project~, but attempts to make it more convenient than just a
 Transient-ified version.
 
-In addition the commands it makes available in the interface, some notable
+In addition to the commands it makes available in the interface, some notable
 features include (but may not be limited to):
 - Auto-recognizing the current project.
 - Executing commands in a subdirectory of the project.

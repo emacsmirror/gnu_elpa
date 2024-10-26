@@ -344,7 +344,7 @@ is always selected."
    (call-interactively #'project-kill-buffers)))
 
 (transient-define-suffix disproject-shell ()
-  "Start an Eat terminal emulator in project."
+  "Start a shell in project."
   (interactive)
   (disproject--with-environment
    (call-interactively disproject-shell-command)))
@@ -368,7 +368,7 @@ is always selected."
    (call-interactively disproject-find-regexp-command)))
 
 (transient-define-suffix disproject-magit-status ()
-  "Open the Magit dispatch transient for project."
+  "Open the Magit status buffer for project."
   (interactive)
   (declare-function magit-status-setup-buffer "magit-status")
   (disproject--with-environment

@@ -183,7 +183,7 @@ executed or when --root-directory is manually set."
                         (funcall (symbol-function 'magit-git-repo-p)
                                  (disproject--root-directory))))
     ("m" "Status" disproject-magit-status)
-    ("T" "Todos" disproject-todos-list
+    ("T" "Todos" disproject-magit-todos-list
      :if (lambda () (featurep 'magit-todos)))]]
   (interactive)
   (transient-setup

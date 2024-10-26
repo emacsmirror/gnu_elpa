@@ -266,9 +266,10 @@ is always selected."
                 (oset obj value (disproject--scope 'root-directory)))
   :always-read t
   :reader (lambda (&rest _ignore)
-            (let ((new-root-directory (disproject--find-root-directory
-                                       (project-prompt-project-dir)))
-                  (scope (disproject--scope nil t)))
+            ;; Don't set anything if either of these are nil.
+            (if-let ((new-root-directory (disproject--find-root-directory
+                                          (project-prompt-project-dir)))
+                     (scope (disproject--scope nil t)))
               ;; Update --root-directory in Transient scope to keep it in sync
               (setf (alist-get 'root-directory scope) new-root-directory)
               new-root-directory)))

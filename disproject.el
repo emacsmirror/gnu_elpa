@@ -138,6 +138,24 @@ invoked."
   :type 'function
   :group 'disproject)
 
+(defcustom disproject-or-external-find-file-command
+  #'project-or-external-find-file
+  "The command used to find a file in a project or its external roots.
+
+This is called whenever the function
+`disproject-or-external-find-file' is invoked."
+  :type 'function
+  :group 'disproject)
+
+(defcustom disproject-or-external-find-regexp-command
+  #'project-or-external-find-regexp
+  "The command used to find regexp matches in a project or its external roots.
+
+This is called whenever the function
+`disproject-or-external-find-file' is invoked."
+  :type 'function
+  :group 'disproject)
+
 (defcustom disproject-shell-command #'project-eshell
   "The command used for opening a shell in a project.
 
@@ -178,7 +196,9 @@ executed or when --root-directory is manually set."
     ("b" "Switch buffer" disproject-switch-to-buffer)
     ("c" "Compile" disproject-compile)
     ("D" "Dired" disproject-dired)
+    ("F" "Find file (incl. external)" disproject-or-external-find-file)
     ("f" "Find file" disproject-find-file)
+    ("G" "Find regexp (incl. external)" disproject-or-external-find-regexp)
     ("g" "Find regexp" disproject-find-regexp)]
    [("k" "Kill buffers" disproject-kill-buffers)
     ("s" "Shell" disproject-shell)
@@ -360,6 +380,18 @@ root directory, and this function may return nil."
   (declare-function magit-todos-list-internal "magit-todos")
   (disproject--with-environment
    (magit-todos-list-internal default-directory)))
+
+(transient-define-suffix disproject-or-external-find-file ()
+  "Find file in project or external roots."
+  (interactive)
+  (disproject--with-environment
+   (call-interactively disproject-or-external-find-file-command)))
+
+(transient-define-suffix disproject-or-external-find-regexp ()
+  "Find regexp in project or external roots."
+  (interactive)
+  (disproject--with-environment
+   (call-interactively disproject-or-external-find-regexp-command)))
 
 (transient-define-suffix disproject-shell ()
   "Start a shell in project."

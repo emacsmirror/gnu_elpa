@@ -360,13 +360,13 @@ ROOT-DIRECTORY is used to determine the project."
   "Display a list of open buffers for project."
   (interactive)
   (disproject--with-environment
-   (project-list-buffers)))
+   (call-interactively #'project-list-buffers)))
 
 (transient-define-suffix disproject-dired ()
   "Open Dired in project root."
   (interactive)
   (disproject--with-environment
-   (dired (disproject--from-directory))))
+   (call-interactively #'dired)))
 
 (transient-define-suffix disproject-find-file ()
   "Find file in project."
@@ -442,7 +442,7 @@ ROOT-DIRECTORY is used to determine the project."
   "Run VC-Dir in project."
   (interactive)
   (disproject--with-environment
-   (vc-dir (disproject--from-directory))))
+   (call-interactively #'vc-dir)))
 
 (provide 'disproject)
 ;;; disproject.el ends here

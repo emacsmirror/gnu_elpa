@@ -16,6 +16,9 @@ features include (but may not be limited to):
   per-project (see ~disproject-compile-suffixes~).
 - An option to prefer displaying buffers to another window when executing
   commands.
+- When available, integration with: =magit=; =envrc=; =magit-todos=.
+- A set of customizable variables to easily substitute some commands in the
+  menu (see [[*Customization][Customization]]).
 
 ** Installation
 
@@ -56,7 +59,10 @@ documentation.
 # place to put it and - should the list of options grow - may easily become
 # out-of-sync with code.
 
-Note that in order for a command to be compatible with the options Disproject
-provides, it must respect the following variables where relevant:
-~default-directory~; ~project-current-directory-override~;
-~display-buffer-overriding-action~.
+Note that commands should work out of the box if they respect the following
+variables where relevant: ~default-directory~;
+~project-current-directory-override~; ~display-buffer-overriding-action~.
+
+Those that want to add commands to the transient menu may be interested in the
+~disproject--with-environment~ macro, which sets the noted variables
+automatically.

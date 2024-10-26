@@ -187,6 +187,7 @@ to start searching first for a project directory root; otherwise,
 it moves on to `default-directory'.  If no project is found, it
 starts the menu anyways to explicitly ask later when a command is
 executed or when --root-directory is manually set."
+  :refresh-suffixes t
   ["Options"
    ("p" "Switch project" disproject:--root-directory)
    ("o" "Prefer other window" "--prefer-other-window")]
@@ -196,7 +197,14 @@ executed or when --root-directory is manually set."
     ("b" "Switch buffer" disproject-switch-to-buffer)]
    [("k" "Kill buffers" disproject-kill-buffers)
     ("m" "Magit status" disproject-magit-status
-     :if (lambda () (featurep 'magit)))]]
+     :if (lambda () (and (featurep 'magit)
+                         (funcall (symbol-function 'magit-git-repo-p)
+                                  (disproject--root-directory)))))
+    ("T" "Magit todos" disproject-todos-list
+     :if (lambda () (and (featurep 'magit)
+                         (funcall (symbol-function 'magit-git-repo-p)
+                                  (disproject--root-directory))
+                         (featurep 'magit-todos))))]]
   ["From directory"
    :pad-keys t
    [("c" "Compile" disproject-compile)
@@ -373,6 +381,13 @@ is always selected."
   (declare-function magit-status-setup-buffer "magit-status")
   (disproject--with-environment
    (magit-status-setup-buffer)))
+
+(transient-define-suffix disproject-magit-todos-list ()
+  "Open a `magit-todos-list' buffer for project."
+  (interactive)
+  (declare-function magit-todos-list-internal "magit-todos")
+  (disproject--with-environment
+   (magit-todos-list-internal default-directory)))
 
 (defun disproject-compile--setup-suffixes (_)
   "Set up suffixes according to `disproject-compile-suffixes'."

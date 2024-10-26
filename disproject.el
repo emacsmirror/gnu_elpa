@@ -44,9 +44,7 @@
 (defmacro disproject--with-environment (&rest body)
   "Run BODY with `disproject' \"environment\" options set."
   ;; Define variables that determine the environment.
-  `(let ((from-directory (or (disproject--from-directory)
-                             (disproject--root-directory)
-                             default-directory))
+  `(let ((from-directory (or (disproject--root-directory) default-directory))
          (prefer-other-window (disproject--prefer-other-window))
          ;; Only enable envrc if the initial environment has it enabled.
          (enable-envrc (and (bound-and-true-p envrc-mode)
@@ -191,7 +189,6 @@ starts the menu anyways to explicitly ask later when a command is
 executed or when --root-directory is manually set."
   ["Options"
    ("p" "Switch project" disproject:--root-directory)
-   ("d" "From directory" disproject:--from-directory)
    ("o" "Prefer other window" "--prefer-other-window")]
   ["Project commands"
    :pad-keys t
@@ -305,40 +302,6 @@ is always selected."
              (next-value (cadr (member value choices))))
         next-value
       (car choices))))
-
-(transient-define-infix disproject:--from-directory ()
-  :class disproject-option-switches
-  :argument-format "--from-%s-directory"
-  :argument-regexp "\\(--from-\\(root\\|sub\\)-directory\\)"
-  :init-value (lambda (obj)
-                (oset obj value "--from-root-directory"))
-  :choices '("root" "sub"))
-
-(defun disproject--prompt-directory (root-directory)
-  "Prompt for a subdirectory in project and return the selected path.
-
-ROOT-DIRECTORY is used to determine the project."
-  ;; XXX: This is based on `project-find-dir' in project.el, which has an issue
-  ;; of not displaying empty directories.
-  (let* ((project (project-current nil root-directory))
-         (all-files (project-files project))
-         (completion-ignore-case read-file-name-completion-ignore-case)
-         (all-dirs (mapcar #'file-name-directory all-files)))
-    (funcall project-read-file-name-function
-             "Select directory"
-             ;; Some completion UIs show duplicates.
-             (delete-dups all-dirs)
-             nil 'file-name-history)))
-
-(defun disproject--from-directory ()
-  "Return the working directory to be used for `disproject' commands."
-  (let ((args (transient-args transient-current-command))
-        (root-directory (disproject--root-directory)))
-    (cond
-     ((transient-arg-value "--from-root-directory" args)
-      root-directory)
-     ((transient-arg-value "--from-sub-directory" args)
-      (disproject--prompt-directory root-directory)))))
 
 (defun disproject--prefer-other-window ()
   "Return whether other window should be preferred when displaying buffers."

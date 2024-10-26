@@ -239,30 +239,6 @@ This prefix can be configured with `disproject-compile-suffixes'."
 ;;; Transient state handling.
 ;;;
 
-(defun disproject--scope (key &optional no-alist?)
-  "Get `disproject' scope.
-
-By default, this function assumes that the scope is an alist.
-KEY is the key used to get the alist value.  If NO-ALIST? is
-non-nil, the scope will be treated as a value of any possible
-type and directly returned instead, ignoring KEY."
-  (let ((scope (transient-scope)))
-    (if no-alist? scope (alist-get key scope))))
-
-(transient-define-infix disproject:--root-directory ()
-  :class transient-option
-  :argument "--root-directory="
-  :init-value (lambda (obj)
-                (oset obj value (disproject--scope 'root-directory)))
-  :always-read t
-  :reader (lambda (&rest _ignore)
-            (let ((new-root-directory (disproject--find-root-directory
-                                        (project-prompt-project-dir)))
-                  (scope (disproject--scope nil t)))
-              ;; Update --root-directory in Transient scope to keep it in sync
-              (setf (alist-get 'root-directory scope) new-root-directory)
-              new-root-directory)))
-
 (defun disproject--find-root-directory (directory &optional silent)
   "Attempt to find project root directory from DIRECTORY.  May return nil.
 
@@ -279,17 +255,17 @@ may be set to a non-nil value to suppress it."
                directory))
     nil))
 
-(defun disproject--root-directory ()
-  "Return the project root directory defined in transient arguments.
+(defun disproject--scope (key &optional no-alist?)
+  "Get `disproject' scope.
 
-Prefer the current Transient prefix's arguments.  If not
-available, try the Transient scope.  Otherwise, if neither have a
-root directory stored, use `default-directory' to find the
-current project or prompt as needed."
-  (let ((args (transient-args transient-current-command)))
-    (or (and args (transient-arg-value "--root-directory=" args))
-        (disproject--scope 'root-directory)
-        (project-root (project-current t)))))
+By default, this function assumes that the scope is an alist.
+KEY is the key used to get the alist value.  If NO-ALIST? is
+non-nil, the scope will be treated as a value of any possible
+type and directly returned instead, ignoring KEY."
+  (let ((scope (transient-scope)))
+    (if no-alist? scope (alist-get key scope))))
+
+;;;; Infix classes.
 
 (defclass disproject-option-switches (transient-switches)
   ()
@@ -307,27 +283,45 @@ is always selected."
         next-value
       (car choices))))
 
+;;;; Infixes.
+
+(transient-define-infix disproject:--root-directory ()
+  :class transient-option
+  :argument "--root-directory="
+  :init-value (lambda (obj)
+                (oset obj value (disproject--scope 'root-directory)))
+  :always-read t
+  :reader (lambda (&rest _ignore)
+            (let ((new-root-directory (disproject--find-root-directory
+                                       (project-prompt-project-dir)))
+                  (scope (disproject--scope nil t)))
+              ;; Update --root-directory in Transient scope to keep it in sync
+              (setf (alist-get 'root-directory scope) new-root-directory)
+              new-root-directory)))
+
+;;;; Transient state getters.
+
 (defun disproject--prefer-other-window ()
   "Return whether other window should be preferred when displaying buffers."
   (let ((args (transient-args transient-current-command)))
     (and args (transient-arg-value "--prefer-other-window" args))))
 
+(defun disproject--root-directory ()
+  "Return the project root directory defined in transient arguments.
+
+Prefer the current Transient prefix's arguments.  If not
+available, try the Transient scope.  Otherwise, if neither have a
+root directory stored, use `default-directory' to find the
+current project or prompt as needed."
+  (let ((args (transient-args transient-current-command)))
+    (or (and args (transient-arg-value "--root-directory=" args))
+        (disproject--scope 'root-directory)
+        (project-root (project-current t)))))
+
 
 ;;;
 ;;; Suffixes.
 ;;;
-
-(transient-define-suffix disproject-switch-to-buffer ()
-  "Switch to buffer in project."
-  (interactive)
-  (disproject--with-environment
-   (call-interactively disproject-switch-to-buffer-command)))
-
-(transient-define-suffix disproject-list-buffers ()
-  "Display a list of open buffers for project."
-  (interactive)
-  (disproject--with-environment
-   (call-interactively #'project-list-buffers)))
 
 (transient-define-suffix disproject-dired ()
   "Open Dired in project root."
@@ -335,11 +329,23 @@ is always selected."
   (disproject--with-environment
    (call-interactively #'dired)))
 
+(transient-define-suffix disproject-execute-extended-command ()
+  "Execute an extended command in project root."
+  (interactive)
+  (disproject--with-environment
+   (call-interactively #'execute-extended-command)))
+
 (transient-define-suffix disproject-find-file ()
   "Find file in project."
   (interactive)
   (disproject--with-environment
    (call-interactively disproject-find-file-command)))
+
+(transient-define-suffix disproject-find-regexp ()
+  "Search project for regexp."
+  (interactive)
+  (disproject--with-environment
+   (call-interactively disproject-find-regexp-command)))
 
 (transient-define-suffix disproject-kill-buffers ()
   "Kill all buffers related to project."
@@ -347,29 +353,11 @@ is always selected."
   (disproject--with-environment
    (call-interactively #'project-kill-buffers)))
 
-(transient-define-suffix disproject-shell ()
-  "Start a shell in project."
+(transient-define-suffix disproject-list-buffers ()
+  "Display a list of open buffers for project."
   (interactive)
   (disproject--with-environment
-   (call-interactively disproject-shell-command)))
-
-(transient-define-suffix disproject-shell-command ()
-  "Run a shell command asynchronously in a project."
-  (interactive)
-  (disproject--with-environment
-   (call-interactively #'async-shell-command)))
-
-(transient-define-suffix disproject-execute-extended-command ()
-  "Execute an extended command in project root."
-  (interactive)
-  (disproject--with-environment
-   (call-interactively #'execute-extended-command)))
-
-(transient-define-suffix disproject-find-regexp ()
-  "Search project for regexp."
-  (interactive)
-  (disproject--with-environment
-   (call-interactively disproject-find-regexp-command)))
+   (call-interactively #'project-list-buffers)))
 
 (transient-define-suffix disproject-magit-status ()
   "Open the Magit status buffer for project."
@@ -384,6 +372,18 @@ is always selected."
   (declare-function magit-todos-list-internal "magit-todos")
   (disproject--with-environment
    (magit-todos-list-internal default-directory)))
+
+(transient-define-suffix disproject-shell ()
+  "Start a shell in project."
+  (interactive)
+  (disproject--with-environment
+   (call-interactively disproject-shell-command)))
+
+(transient-define-suffix disproject-shell-command ()
+  "Run a shell command asynchronously in a project."
+  (interactive)
+  (disproject--with-environment
+   (call-interactively #'async-shell-command)))
 
 (defun disproject-compile--setup-suffixes (_)
   "Set up suffixes according to `disproject-compile-suffixes'."
@@ -411,6 +411,12 @@ is always selected."
          (interactive)
          (disproject--with-environment
           (call-interactively #'compile))))))))
+
+(transient-define-suffix disproject-switch-to-buffer ()
+  "Switch to buffer in project."
+  (interactive)
+  (disproject--with-environment
+   (call-interactively disproject-switch-to-buffer-command)))
 
 (transient-define-suffix disproject-vc-dir ()
   "Run VC-Dir in project."

@@ -181,7 +181,8 @@ executed or when --root-directory is manually set."
     ;; Needs :refresh-suffixes t since it depends on infix "--root-directory="
     :if (lambda () (and (featurep 'magit)
                         (funcall (symbol-function 'magit-git-repo-p)
-                                 (disproject--root-directory))))
+                                 (or (disproject--root-directory t)
+                                     default-directory))))
     ("m" "Status" disproject-magit-status)
     ("T" "Todos" disproject-magit-todos-list
      :if (lambda () (featurep 'magit-todos)))]]
@@ -279,17 +280,22 @@ is always selected."
   (let ((args (transient-args transient-current-command)))
     (and args (transient-arg-value "--prefer-other-window" args))))
 
-(defun disproject--root-directory ()
+(defun disproject--root-directory (&optional no-prompt?)
   "Return the project root directory defined in transient arguments.
 
 Prefer the current Transient prefix's arguments.  If not
 available, try the Transient scope.  Otherwise, if neither have a
 root directory stored, use `default-directory' to find the
-current project or prompt as needed."
+current project or prompt as needed.
+
+If NO-PROMPT? is non-nil, no prompts will be made to specify a
+root directory, and this function may return nil."
   (let ((args (transient-args transient-current-command)))
     (or (and args (transient-arg-value "--root-directory=" args))
         (disproject--scope 'root-directory)
-        (project-root (project-current t)))))
+        (if no-prompt?
+            nil
+          (project-root (project-current t))))))
 
 
 ;;;

@@ -11,7 +11,7 @@ Transient-ified version.
 
 In addition to the commands it makes available in the interface, some notable
 features include (but may not be limited to):
-- Auto-detecting the current project when starting ~disproject~.
+- Auto-detecting the current project when starting Disproject.
 - Displaying predefined compilation commands to execute, which can be set
   per-project (see ~disproject-compile-suffixes~).
 - An option to prefer displaying buffers to another window when executing
@@ -38,14 +38,14 @@ following in this repository's root directory:
 
 Disproject tries to provide usable defaults that don't require additional
 packages or significant configuration; however, it does not provide any keybind
-for ~disproject~ by default.  The following is a suggested minimal setup using
-~use-package~:
+for ~disproject-dispatch~ by default.  The following is a suggested minimal
+setup using ~use-package~:
 
 #+begin_src emacs-lisp
   (use-package disproject
-    ;; Replace `project-prefix-map' with `disproject'.
+    ;; Replace `project-prefix-map' with `disproject-dispatch'.
     :bind ( :map ctl-x-map
-            ("p" . disproject)))
+            ("p" . disproject-dispatch)))
 #+end_src
 
 *** Customization

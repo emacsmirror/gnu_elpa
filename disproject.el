@@ -151,8 +151,8 @@ This is called whenever the function
 ;;; Prefixes.
 ;;;
 
-;;;###autoload (autoload 'disproject "disproject" nil t)
-(transient-define-prefix disproject (&optional directory)
+;;;###autoload (autoload 'disproject-dispatch "disproject" nil t)
+(transient-define-prefix disproject-dispatch (&optional directory)
   "Dispatch some command for a project.
 
 DIRECTORY is an optional argument that tells `disproject' where
@@ -188,7 +188,7 @@ executed or when --root-directory is manually set."
      :if (lambda () (featurep 'magit-todos)))]]
   (interactive)
   (transient-setup
-   'disproject nil nil
+   'disproject-dispatch nil nil
    :scope `((root-directory
              . ,(let ((project
                        (project-current nil (or directory default-directory))))

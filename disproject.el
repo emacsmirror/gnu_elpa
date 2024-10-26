@@ -180,8 +180,14 @@ This is called whenever the function
 ;;;
 
 ;;;###autoload (autoload 'disproject "disproject" nil t)
-(transient-define-prefix disproject ()
-  "Dispatch some command for a project."
+(transient-define-prefix disproject (&optional directory)
+  "Dispatch some command for a project.
+
+DIRECTORY is an optional argument that tells `disproject' where
+to start searching first for a project directory root; otherwise,
+it moves on to `default-directory'.  If no project is found, it
+starts the menu anyways to explicitly ask later when a command is
+executed or when --root-directory is manually set."
   ["Options"
    ("p" "Switch project" disproject:--root-directory)
    ("d" "From directory" disproject:--from-directory)
@@ -203,30 +209,57 @@ This is called whenever the function
     ("M-x" "Extended command" disproject-execute-extended-command)]]
   ["Find"
    [("f" "file" disproject-find-file)]
-   [("g" "regexp" disproject-find-regexp)]])
+   [("g" "regexp" disproject-find-regexp)]]
+  (interactive)
+  (transient-setup
+   'disproject nil nil
+   :scope `((root-directory
+             . ,(let ((project
+                       (project-current nil (or directory default-directory))))
+                  (and project (project-root project)))))))
 
-(transient-define-prefix disproject-compile ()
+(transient-define-prefix disproject-compile (&optional directory)
   "Dispatch compilation commands.
 
 This prefix can be configured with `disproject-compile-suffixes'."
   ["Compile"
    :class transient-column
-   :setup-children disproject-compile--setup-suffixes])
+   :setup-children disproject-compile--setup-suffixes]
+  (interactive)
+  (transient-setup
+   'disproject-compile nil nil
+   :scope `((root-directory . ,(or (disproject--scope 'root-directory)
+                                   (project-current t (or directory
+                                                          default-directory)))))))
 
 
 ;;;
-;;; Infix handling.
+;;; Transient state handling.
 ;;;
+
+(defun disproject--scope (key &optional sexp?)
+  "Get `disproject' scope.
+
+By default, this function assumes that the scope is an alist.
+KEY is the key used to get the alist value.  If SEXP? is non-nil,
+the scope will be treated as an s-expression of any value and
+directly returned, ignoring KEY."
+  (let ((scope (transient-scope)))
+    (if sexp? scope (alist-get key scope))))
 
 (transient-define-infix disproject:--root-directory ()
   :class transient-option
   :argument "--root-directory="
   :init-value (lambda (obj)
-                (oset obj value (disproject--find-root-directory
-                                 default-directory)))
+                (oset obj value (disproject--scope 'root-directory)))
   :always-read t
   :reader (lambda (&rest _ignore)
-            (disproject--find-root-directory (project-prompt-project-dir))))
+            (let ((new-root-directory (disproject--find-root-directory
+                                        (project-prompt-project-dir))))
+              ;; Update --root-directory in Transient scope to keep it in sync
+              (setf (alist-get 'root-directory (disproject--scope nil t))
+                    new-root-directory)
+              new-root-directory)))
 
 (defun disproject--find-root-directory (directory &optional silent)
   "Attempt to find project root directory from DIRECTORY.  May return nil.
@@ -245,11 +278,16 @@ may be set to a non-nil value to suppress it."
     nil))
 
 (defun disproject--root-directory ()
-  "Return the project root directory defined in transient arguments."
-  (if-let ((args (transient-args transient-current-command))
-           (root-dir (transient-arg-value "--root-directory=" args)))
-      root-dir
-    (project-root (project-current t))))
+  "Return the project root directory defined in transient arguments.
+
+Prefer the current Transient prefix's arguments.  If not
+available, try the Transient scope.  Otherwise, if neither have a
+root directory stored, use `default-directory' to find the
+current project or prompt as needed."
+  (let ((args (transient-args transient-current-command)))
+    (or (and args (transient-arg-value "--root-directory=" args))
+        (disproject--scope 'root-directory)
+        (project-root (project-current t)))))
 
 (defclass disproject-option-switches (transient-switches)
   ()

@@ -49,33 +49,18 @@
          (prefer-other-window (disproject--prefer-other-window))
          ;; Only enable envrc if the initial environment has it enabled.
          (enable-envrc (and (bound-and-true-p envrc-mode)
-                            (symbol-function 'envrc-mode)))
-         ;; Save the environment to restore in case of problem.
-         (old-default-directory default-directory)
-         (old-project-current-directory-override
-          project-current-directory-override)
-         (old-display-buffer-overriding-action
-          display-buffer-overriding-action))
-     (unwind-protect
-         ;; Don't let the current buffer affect execution in case it's not
-         ;; related to the project.
-         (with-temp-buffer
-           (let ((default-directory from-directory)
-                 ;; This handles edge cases with `project' commands.
-                 (project-current-directory-override from-directory)
-                 (display-buffer-overriding-action
-                  (and prefer-other-window '(display-buffer-use-some-window
-                                             (inhibit-same-window t)))))
-             ;; Make sure commands are run in the correct direnv environment
-             ;; if envrc-mode is enabled.
-             (when enable-envrc (funcall enable-envrc))
-             ,@body))
-       (setq default-directory
-             old-default-directory
-             project-current-directory-override
-             old-project-current-directory-override
-             display-buffer-overriding-action
-             old-display-buffer-overriding-action))))
+                            (symbol-function 'envrc-mode))))
+     (with-temp-buffer
+       (let ((default-directory from-directory)
+             ;; This handles edge cases with `project' commands.
+             (project-current-directory-override from-directory)
+             (display-buffer-overriding-action
+              (and prefer-other-window '(display-buffer-use-some-window
+                                         (inhibit-same-window t)))))
+         ;; Make sure commands are run in the correct direnv environment
+         ;; if envrc-mode is enabled.
+         (when enable-envrc (funcall enable-envrc))
+         ,@body))))
 
 
 ;;;

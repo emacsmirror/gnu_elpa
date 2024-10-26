@@ -114,17 +114,7 @@ for `disproject-compile-suffixes' to add \"make -k\" and
                               :value-type string)))
   :group 'disproject)
 
-(defcustom disproject-find-file-command
-  (lambda ()
-    (interactive)
-    (let* ((project (project-current t))
-           (dirs (list default-directory)))
-      (project-find-file-in (thing-at-point 'filename)
-                            dirs
-                            project
-                            ;; TODO: Support some way of enabling INCLUDE-ALL
-                            ;; include-all
-                            )))
+(defcustom disproject-find-file-command #'project-find-file
   "The command used for opening a file in a project.
 
 This is called whenever the function `disproject-find-file' is
@@ -132,15 +122,7 @@ invoked."
   :type 'function
   :group 'disproject)
 
-(defcustom disproject-find-regexp-command
-  ;; Modified version of `project-find-regexp' from `project.el'.
-  (lambda (regexp)
-    (interactive (list (project--read-regexp)))
-    (xref-show-xrefs
-     (apply-partially #'project--find-regexp-in-files
-                      regexp
-                      (project--files-in-directory default-directory nil))
-     nil))
+(defcustom disproject-find-regexp-command #'project-find-regexp
   "The command used for finding regexp matches in a project.
 
 This is called whenever the function `disproject-find-regexp' is
@@ -148,16 +130,7 @@ invoked."
   :type 'function
   :group 'disproject)
 
-(defcustom disproject-shell-command
-  ;; Modified version of `project-eshell' from `project.el'.
-  (lambda ()
-    (interactive)
-    (let* ((eshell-buffer-name (project-prefixed-buffer-name "eshell"))
-           (eshell-buffer (get-buffer eshell-buffer-name)))
-      (if (and eshell-buffer (not current-prefix-arg))
-          (pop-to-buffer eshell-buffer
-                         (bound-and-true-p display-comint-buffer-action))
-        (eshell t))))
+(defcustom disproject-shell-command #'project-eshell
   "The command used for opening a shell in a project.
 
 This is called whenever the function `disproject-shell-command'

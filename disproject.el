@@ -192,8 +192,8 @@ executed or when --root-directory is manually set."
    ("o" "Prefer other window" "--prefer-other-window")]
   ["Commands"
    :pad-keys t
-   [("B" "Buffer list" disproject-list-buffers)
-    ("b" "Switch buffer" disproject-switch-to-buffer)
+   [("b" "Switch buffer" disproject-switch-to-buffer)
+    ("B" "Buffer list" disproject-list-buffers)
     ("c" "Compile" disproject-compile)
     ("D" "Dired" disproject-dired)
     ("k" "Kill buffers" disproject-kill-buffers)]
@@ -202,10 +202,10 @@ executed or when --root-directory is manually set."
     ("!" "Run" disproject-shell-command)
     ("M-x" "Extended command" disproject-execute-extended-command)]]
   [["Find..."
-    ("F" "File (+external)" disproject-or-external-find-file)
     ("f" "File" disproject-find-file)
-    ("G" "Regexp (+external)" disproject-or-external-find-regexp)
-    ("g" "Regexp" disproject-find-regexp)]
+    ("F" "File (+external)" disproject-or-external-find-file)
+    ("g" "Regexp" disproject-find-regexp)
+    ("G" "Regexp (+external)" disproject-or-external-find-regexp)]
    ["Magit"
     ;; Needs :refresh-suffixes t since it depends on infix "--root-directory="
     :if (lambda () (and (featurep 'magit)

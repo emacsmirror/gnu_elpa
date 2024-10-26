@@ -45,6 +45,7 @@
   "Run BODY with `disproject' \"environment\" options set."
   ;; Define variables that determine the environment.
   `(let ((from-directory (or (disproject--from-directory)
+                             (disproject--root-directory)
                              default-directory))
          (prefer-other-window (disproject--prefer-other-window))
          ;; Only enable envrc if the initial environment has it enabled.
@@ -237,15 +238,15 @@ This prefix can be configured with `disproject-compile-suffixes'."
 ;;; Transient state handling.
 ;;;
 
-(defun disproject--scope (key &optional sexp?)
+(defun disproject--scope (key &optional no-alist?)
   "Get `disproject' scope.
 
 By default, this function assumes that the scope is an alist.
-KEY is the key used to get the alist value.  If SEXP? is non-nil,
-the scope will be treated as an s-expression of any value and
-directly returned, ignoring KEY."
+KEY is the key used to get the alist value.  If NO-ALIST? is
+non-nil, the scope will be treated as a value of any possible
+type and directly returned instead, ignoring KEY."
   (let ((scope (transient-scope)))
-    (if sexp? scope (alist-get key scope))))
+    (if no-alist? scope (alist-get key scope))))
 
 (transient-define-infix disproject:--root-directory ()
   :class transient-option
@@ -255,10 +256,10 @@ directly returned, ignoring KEY."
   :always-read t
   :reader (lambda (&rest _ignore)
             (let ((new-root-directory (disproject--find-root-directory
-                                        (project-prompt-project-dir))))
+                                        (project-prompt-project-dir)))
+                  (scope (disproject--scope nil t)))
               ;; Update --root-directory in Transient scope to keep it in sync
-              (setf (alist-get 'root-directory (disproject--scope nil t))
-                    new-root-directory)
+              (setf (alist-get 'root-directory scope) new-root-directory)
               new-root-directory)))
 
 (defun disproject--find-root-directory (directory &optional silent)
@@ -414,34 +415,28 @@ ROOT-DIRECTORY is used to determine the project."
   "Set up suffixes according to `disproject-compile-suffixes'."
   (disproject--with-environment
    (hack-dir-local-variables-non-file-buffer)
-   ;; XXX: Since infix arguments from `disproject' are not made available for
-   ;; `disproject-compile', work around it by setting `default-directory' from
-   ;; the current (desired) environment to be used later.
    (transient-parse-suffixes
     'disproject-compile
     `(,@(mapcar
          (pcase-lambda (`( ,key ,identifier ,compile-command
                            . ,(map :description)))
            `(,key
-             ;; TODO: Color the command
              ,(or description compile-command)
              (lambda ()
                (interactive)
-               (let ((default-directory ,default-directory))
-                 (disproject--with-environment
-                  (let* ((compilation-buffer-name-function
-                          (lambda (major-mode-name)
-                            (project-prefixed-buffer-name
-                             (concat ,identifier "-" major-mode-name)))))
-                    (compile ,compile-command)))))))
+               (disproject--with-environment
+                (let* ((compilation-buffer-name-function
+                        (lambda (major-mode-name)
+                          (project-prefixed-buffer-name
+                           (concat ,identifier "-" major-mode-name)))))
+                  (compile ,compile-command))))))
          disproject-compile-suffixes)
       ("!"
        "Alternative command..."
        (lambda ()
          (interactive)
-         (let ((default-directory ,default-directory))
-           (disproject--with-environment
-            (call-interactively #'compile)))))))))
+         (disproject--with-environment
+          (call-interactively #'compile))))))))
 
 (transient-define-suffix disproject-vc-dir ()
   "Run VC-Dir in project."

@@ -41,7 +41,7 @@ for ~disproject~ by default.  The following is a minimal setup using
 
 #+begin_src emacs-lisp
   (use-package disproject
-    ;; Replace `project-switch-project' with `disproject'.
+    ;; Replace `project-prefix-map' with `disproject'.
     :bind ( :map ctl-x-map
             ("p" . disproject)))
 #+end_src

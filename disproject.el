@@ -194,28 +194,24 @@ executed or when --root-directory is manually set."
   ["Project commands"
    :pad-keys t
    [("B" "Buffer list" disproject-list-buffers)
-    ("b" "Switch buffer" disproject-switch-to-buffer)]
-   [("k" "Kill buffers" disproject-kill-buffers)
-    ("m" "Magit status" disproject-magit-status
-     :if (lambda () (and (featurep 'magit)
-                         (funcall (symbol-function 'magit-git-repo-p)
-                                  (disproject--root-directory)))))
-    ("T" "Magit todos" disproject-todos-list
-     :if (lambda () (and (featurep 'magit)
-                         (funcall (symbol-function 'magit-git-repo-p)
-                                  (disproject--root-directory))
-                         (featurep 'magit-todos))))]]
-  ["From directory"
-   :pad-keys t
-   [("c" "Compile" disproject-compile)
+    ("b" "Switch buffer" disproject-switch-to-buffer)
+    ("c" "Compile" disproject-compile)
     ("D" "Dired" disproject-dired)
-    ("s" "Shell" disproject-shell)]
-   [("v" "VC dir" disproject-vc-dir)
+    ("f" "Find file" disproject-find-file)
+    ("g" "Find regexp" disproject-find-regexp)]
+   [("k" "Kill buffers" disproject-kill-buffers)
+    ("s" "Shell" disproject-shell)
+    ("v" "VC dir" disproject-vc-dir)
     ("!" "Run" disproject-shell-command)
-    ("M-x" "Extended command" disproject-execute-extended-command)]]
-  ["Find"
-   [("f" "file" disproject-find-file)]
-   [("g" "regexp" disproject-find-regexp)]]
+    ("M-x" "Extended command" disproject-execute-extended-command)]
+   ["Magit"
+    ;; Needs :refresh-suffixes t since it depends on infix "--root-directory="
+    :if (lambda () (and (featurep 'magit)
+                        (funcall (symbol-function 'magit-git-repo-p)
+                                 (disproject--root-directory))))
+    ("m" "Status" disproject-magit-status)
+    ("T" "Todos" disproject-todos-list
+     :if (lambda () (featurep 'magit-todos)))]]
   (interactive)
   (transient-setup
    'disproject nil nil

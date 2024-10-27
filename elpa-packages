@@ -105,7 +105,7 @@
  (blist			:url "https://gitlab.com/mmemmew/blist"
   :doc "blist.texinfo"
   :readme "README.org")
- (bluetooth		:url "https://gitlab.com/rstocker/emacs-bluetooth")
+ (bluetooth		:url "https://codeberg.org/rstocker/emacs-bluetooth")
  (bnf-mode		:url "https://github.com/sergeyklay/bnf-mode")
  (boxy			:url "https://gitlab.com/grinn.amy/boxy.git")
  (boxy-headings		:url "https://gitlab.com/grinn.amy/boxy-headings")

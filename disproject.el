@@ -231,10 +231,7 @@ executed or when --root-directory is manually set."
   (interactive)
   (transient-setup
    'disproject-dispatch nil nil
-   :scope `((root-directory
-             . ,(let ((project
-                       (project-current nil (or directory default-directory))))
-                  (and project (project-root project)))))))
+   :scope `((root-directory . ,(or directory (disproject--root-directory t))))))
 
 (transient-define-prefix disproject-compile (&optional directory)
   "Dispatch compilation commands.
@@ -246,9 +243,7 @@ This prefix can be configured with `disproject-compile-suffixes'."
   (interactive)
   (transient-setup
    'disproject-compile nil nil
-   :scope `((root-directory . ,(or (disproject--scope 'root-directory)
-                                   (project-current t (or directory
-                                                          default-directory)))))))
+   :scope `((root-directory . ,(or directory (disproject--root-directory))))))
 
 
 ;;;

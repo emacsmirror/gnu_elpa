@@ -9,14 +9,15 @@ This package is similar to (and inspired by) the function
 ~project-switch-project~, but attempts to make it more convenient than just a
 Transient-ified version.
 
-In addition to the commands it makes available in the interface, some notable
-features include (but may not be limited to):
+In addition to the Transient interface, some notable features include (but may
+not be limited to):
 - Auto-detecting the current project when starting Disproject.
+- Switching between only projects that have buffers open.
 - Displaying predefined compilation commands to execute, which can be set
   per-project (see ~disproject-compile-suffixes~).
 - An option to prefer displaying buffers to another window when executing
   commands.
-- When available, integration with: =magit=; =envrc=; =magit-todos=.
+- When available, integration with: =envrc=; =magit=; =magit-todos=.
 - A set of customizable variables to easily substitute some commands in the
   menu (see [[#Customization][Customization]]).
 

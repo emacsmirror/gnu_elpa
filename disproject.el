@@ -80,7 +80,7 @@
   :group 'project)
 
 (defcustom disproject-compile-suffixes '(("c" "make" "make -k"
-                                          :description "Make"))
+                                          :description "Make  %s"))
   "Commands for the `disproject-compile' prefix.
 
 The value should be a list of transient-like specification
@@ -100,8 +100,10 @@ Optional properties can be set after COMPILE-COMMAND through
 keywords.
 
 :description is the only valid property.  It is used as the
-transient command description.  If this is not specified, then
-COMPILE-COMMAND will be used instead.
+transient command description.  If a \"%s\" is present in the
+description, it will be substituted with COMPILE-COMMAND.
+Otherwise, if the property is not specified, COMPILE-COMMAND is
+used in place of the entire description.
 
 For example, the following may be used as a dir-locals.el value
 for `disproject-compile-suffixes' to add \"make -k\" and
@@ -476,7 +478,10 @@ root directory, and this function may return nil."
          (pcase-lambda (`( ,key ,identifier ,compile-command
                            . ,(map :description)))
            `(,key
-             ,(or description compile-command)
+             ,(format (or description "%s")
+                      (propertize compile-command
+                                  'face
+                                  'transient-value))
              (lambda ()
                (interactive)
                (disproject--with-environment

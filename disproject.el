@@ -189,6 +189,7 @@ executed or when --root-directory is manually set."
   :refresh-suffixes t
   ["Options"
    ("p" "Switch project" disproject:--root-directory)
+   ("P" "Switch to active project" disproject:only-active--root-directory)
    ("o" "Prefer other window" "--prefer-other-window")]
   ["Commands"
    :pad-keys t
@@ -245,6 +246,24 @@ This prefix can be configured with `disproject-compile-suffixes'."
 ;;;
 ;;; Transient state handling.
 ;;;
+
+(defun disproject--active-projects ()
+  "Return a list of active known projects, i.e. those with open buffers."
+  (let* ((buffer-list
+          ;; Ignore ephemeral buffers
+          (seq-filter (lambda (buf)
+                        (not (string-prefix-p " " (buffer-name buf))))
+                      (buffer-list)))
+         (deduplicated-buffer-list
+          (cl-remove-duplicates (mapcar
+                                 (lambda (buf)
+                                   (buffer-local-value 'default-directory buf))
+                                 buffer-list)
+                                :test #'equal)))
+    (seq-mapcat (lambda (directory)
+                  (if-let ((project (project-current nil directory)))
+                      (list (project-root project))))
+                deduplicated-buffer-list)))
 
 (defun disproject--find-root-directory (directory &optional silent)
   "Attempt to find project root directory from DIRECTORY.  May return nil.
@@ -303,6 +322,28 @@ is always selected."
             (if-let ((new-root-directory (disproject--find-root-directory
                                           (project-prompt-project-dir)))
                      (scope (disproject--scope nil t)))
+                ;; Update --root-directory in Transient scope to keep it in sync
+                (setf (alist-get 'root-directory scope) new-root-directory)
+              new-root-directory)))
+
+(transient-define-infix disproject:only-active--root-directory ()
+  :class transient-option
+  :argument "--root-directory="
+  ;; Value mimics `disproject:--root-directory', so this doesn't need to be
+  ;; shown again.
+  :format " %k %d"
+  :always-read t
+  :reader (lambda (&rest _ignore)
+            (if-let* ((new-root-directory
+                       (completing-read "Select active project: "
+                                        (project--file-completion-table
+                                         ;; Follow the format of
+                                         ;; `project--list'.
+                                         (mapcar #'list
+                                                 (disproject--active-projects)))
+                                        nil
+                                        t))
+                      (scope (disproject--scope nil t)))
                 ;; Update --root-directory in Transient scope to keep it in sync
                 (setf (alist-get 'root-directory scope) new-root-directory)
               new-root-directory)))

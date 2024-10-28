@@ -268,22 +268,6 @@ This prefix can be configured with `disproject-compile-suffixes'."
                       (list (project-root project))))
                 deduplicated-buffer-list)))
 
-(defun disproject--find-root-directory (directory &optional silent)
-  "Attempt to find project root directory from DIRECTORY.  May return nil.
-
-A message is printed if no root directory can be found.  SILENT
-may be set to a non-nil value to suppress it."
-  (if-let ((directory (directory-file-name (file-truename directory)))
-           (project (project-current nil directory))
-           (root-directory (project-root project)))
-      (progn
-        (project-remember-project project)
-        root-directory)
-    (unless silent
-      (message "No parent project found for %s"
-               directory))
-    nil))
-
 (defun disproject--scope (key &optional no-alist?)
   "Get `disproject' scope.
 

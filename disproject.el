@@ -387,7 +387,11 @@ root directory, and this function may return nil."
         (disproject--scope 'root-directory)
         (if no-prompt?
             (if-let ((project (project-current nil)))
-                (project-root project))
+                (prog1 (project-root project)
+                  ;; `project-current' only remembers project when maybe-prompt?
+                  ;; is true, but this function will opt to always remember
+                  ;; instead so it can show up in "Switch projects".
+                  (project-remember-project project)))
           (project-root (project-current t))))))
 
 

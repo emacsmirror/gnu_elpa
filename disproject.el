@@ -369,27 +369,36 @@ active projects when prompting for projects to switch to."
   (let ((args (transient-args transient-current-command)))
     (and args (transient-arg-value "--prefer-other-window" args))))
 
-(defun disproject--root-directory (&optional no-prompt?)
+(defun disproject--root-directory (&optional no-prompt? directory)
   "Return the project root directory defined in transient arguments.
 
-Prefer the current Transient prefix's arguments.  If not
-available, try the Transient scope.  Otherwise, if neither have a
-root directory stored, use `default-directory' to find the
-current project or prompt as needed.
+Prefer searching DIRECTORY for a project root first, if set.
+Otherwise, use the current Transient prefix's arguments.  If
+those are also not available, try the Transient scope.
+`default-directory' is searched if none of these methods find a
+root directory.  As a fallback, the function may prompt for a
+project to use.
 
-If NO-PROMPT? is non-nil, no prompts will be made to specify a
-root directory, and this function may return nil."
-  (let ((args (transient-args transient-current-command)))
-    (or (and args (transient-arg-value "--root-directory=" args))
-        (disproject--scope 'root-directory)
-        (if no-prompt?
-            (if-let ((project (project-current nil)))
-                (prog1 (project-root project)
-                  ;; `project-current' only remembers project when maybe-prompt?
-                  ;; is true, but this function will opt to always remember
-                  ;; instead so it can show up in "Switch projects".
-                  (project-remember-project project)))
-          (project-root (project-current t))))))
+DIRECTORY is used to search for the project, and is preferred if
+it is set.
+
+If NO-PROMPT? is non-nil, no prompts will be made if a root
+directory can be found, and this function may return nil."
+  ;; `project-current' only remembers project when maybe-prompt?  is true, but
+  ;; this function will opt to always remember instead so it can show up in
+  ;; the "Switch projects" prompt.
+  (or (if-let ((directory)
+               (project (project-current nil directory)))
+          (prog1 (project-root project)
+            (project-remember-project project)))
+      (if-let ((args (transient-args transient-current-command)))
+          (transient-arg-value "--root-directory=" args))
+      (disproject--scope 'root-directory)
+      (if no-prompt?
+          (if-let ((project (project-current nil)))
+              (prog1 (project-root project)
+                (project-remember-project project)))
+        (project-root (project-current t)))))
 
 
 ;;;

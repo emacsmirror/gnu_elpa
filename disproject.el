@@ -183,7 +183,7 @@ This is called whenever the function
 (transient-define-prefix disproject-dispatch (&optional directory)
   "Dispatch some command for a project.
 
-DIRECTORY is an optional argument that tells `disproject' where
+DIRECTORY is an optional argument that tells the function where
 to start searching first for a project directory root; otherwise,
 it moves on to `default-directory'.  If no project is found, it
 starts the menu anyways to explicitly ask later when a command is

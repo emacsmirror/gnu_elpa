@@ -66,6 +66,7 @@ Note that commands should work out of the box if they respect the following
 variables where relevant: ~default-directory~;
 ~project-current-directory-override~; ~display-buffer-overriding-action~.
 
-Those that want to add commands to the transient menu may be interested in the
-~disproject--with-environment~ macro, which sets the noted variables
-automatically.
+Those who want to insert new commands to the transient menu using methods that
+do not go through the custom variables (e.g. with ~transient-append-suffix~) may
+be interested in the ~disproject--with-environment~ macro, which sets the noted
+variables automatically.

@@ -296,8 +296,10 @@ By default, this function assumes that the scope is an alist.
 KEY is the key used to get the alist value.  If NO-ALIST? is
 non-nil, the scope will be treated as a value of any possible
 type and directly returned instead, ignoring KEY."
-  (let ((scope (transient-scope)))
-    (if no-alist? scope (alist-get key scope))))
+  ;; Just return nil instead of signaling an error if there is no prefix.
+  (if-let (((transient-prefix-object))
+           (scope (transient-scope)))
+      (if no-alist? scope (alist-get key scope))))
 
 ;;;; Infix classes.
 

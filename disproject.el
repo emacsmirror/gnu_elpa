@@ -177,7 +177,7 @@ This is called whenever the function
 ;;; Prefixes.
 ;;;
 
-;;;###autoload (autoload 'disproject-dispatch "disproject" nil t)
+;;;###autoload (autoload 'disproject "disproject")
 (transient-define-prefix disproject-dispatch (&optional directory)
   "Dispatch some command for a project.
 

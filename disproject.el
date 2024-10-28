@@ -179,7 +179,7 @@ This is called whenever the function
 ;;; Prefixes.
 ;;;
 
-;;;###autoload (autoload 'disproject "disproject")
+;;;###autoload (autoload 'disproject-dispatch "disproject")
 (transient-define-prefix disproject-dispatch (&optional directory)
   "Dispatch some command for a project.
 

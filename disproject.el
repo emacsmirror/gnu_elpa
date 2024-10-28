@@ -312,6 +312,9 @@ is always selected."
 ;;;; Infixes.
 
 (transient-define-infix disproject:--root-directory ()
+  "Root directory of the project to execute commands from.
+
+Uses `project-prompt-project-dir' to switch project root directories."
   :class transient-option
   :argument "--root-directory="
   :init-value (lambda (obj)
@@ -327,6 +330,11 @@ is always selected."
               new-root-directory)))
 
 (transient-define-infix disproject:only-active--root-directory ()
+  "Root directory of the project to execute commands from.
+
+This is equivalent to `disproject:--root-directory' and is backed
+by the same \"--root-directory=\" argument value, but only shows
+active projects when prompting for projects to switch to."
   :class transient-option
   :argument "--root-directory="
   ;; Value mimics `disproject:--root-directory', so this doesn't need to be

@@ -386,7 +386,8 @@ root directory, and this function may return nil."
     (or (and args (transient-arg-value "--root-directory=" args))
         (disproject--scope 'root-directory)
         (if no-prompt?
-            nil
+            (if-let ((project (project-current nil)))
+                (project-root project))
           (project-root (project-current t))))))
 
 

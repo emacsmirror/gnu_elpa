@@ -200,12 +200,16 @@ executed or when --root-directory is manually set."
    [("s" "Shell" disproject-shell)
     ("v" "VC dir" disproject-vc-dir)
     ("!" "Run" disproject-shell-command)
-    ("M-x" "Extended command" disproject-execute-extended-command)]]
-  [["Find..."
+    ("M-x" "Extended command" disproject-execute-extended-command)]
+   ["Find..."
     ("f" "File" disproject-find-file)
     ("F" "File (+external)" disproject-or-external-find-file)
     ("g" "Regexp" disproject-find-regexp)
-    ("G" "Regexp (+external)" disproject-or-external-find-regexp)]
+    ("G" "Regexp (+external)" disproject-or-external-find-regexp)]]
+  ;; This section should consist of project-dependent commands that could be
+  ;; disabled, allowing for it to be completely omitted in the menu if no
+  ;; additional commands are applicable.
+  ["Additional commands"
    ["Magit"
     ;; Needs :refresh-suffixes t since it depends on infix "--root-directory="
     :if (lambda () (and (featurep 'magit)

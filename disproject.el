@@ -187,9 +187,15 @@ it moves on to `default-directory'.  If no project is found, it
 starts the menu anyways to explicitly ask later when a command is
 executed or when --root-directory is manually set."
   :refresh-suffixes t
-  ["Options"
+  [:description
+   (lambda ()
+     (format (propertize "Project: %s" 'face 'transient-heading)
+             (if-let ((directory (disproject--root-directory t)))
+                 (propertize directory 'face 'transient-value)
+               (propertize "None detected" 'face 'transient-inapt-suffix))))
    ("p" "Switch project" disproject:--root-directory)
-   ("P" "Switch to active project" disproject:only-active--root-directory)
+   ("P" "Switch to active project" disproject:only-active--root-directory)]
+  ["Options"
    ("o" "Prefer other window" "--prefer-other-window")]
   ["Commands"
    :pad-keys t
@@ -317,6 +323,8 @@ is always selected."
 Uses `project-prompt-project-dir' to switch project root directories."
   :class transient-option
   :argument "--root-directory="
+  ;; Value already shown elsewhere.
+  :format " %k %d"
   :init-value (lambda (obj)
                 (oset obj value (disproject--scope 'root-directory)))
   :always-read t
@@ -337,8 +345,7 @@ by the same \"--root-directory=\" argument value, but only shows
 active projects when prompting for projects to switch to."
   :class transient-option
   :argument "--root-directory="
-  ;; Value mimics `disproject:--root-directory', so this doesn't need to be
-  ;; shown again.
+  ;; Value already shown elsewhere.
   :format " %k %d"
   :always-read t
   :reader (lambda (&rest _ignore)

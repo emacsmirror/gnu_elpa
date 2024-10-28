@@ -303,8 +303,8 @@ is always selected."
             (if-let ((new-root-directory (disproject--find-root-directory
                                           (project-prompt-project-dir)))
                      (scope (disproject--scope nil t)))
-              ;; Update --root-directory in Transient scope to keep it in sync
-              (setf (alist-get 'root-directory scope) new-root-directory)
+                ;; Update --root-directory in Transient scope to keep it in sync
+                (setf (alist-get 'root-directory scope) new-root-directory)
               new-root-directory)))
 
 ;;;; Transient state getters.

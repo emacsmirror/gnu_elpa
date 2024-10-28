@@ -329,11 +329,14 @@ Uses `project-prompt-project-dir' to switch project root directories."
   :always-read t
   :reader (lambda (&rest _ignore)
             ;; Don't set anything if either of these are nil.
-            (if-let ((new-root-directory (disproject--find-root-directory
-                                          (project-prompt-project-dir)))
+            (if-let ((search-directory (project-prompt-project-dir))
+                     (new-root-directory (disproject--root-directory
+                                          nil search-directory))
                      (scope (disproject--scope nil t)))
                 ;; Update --root-directory in Transient scope to keep it in sync
                 (setf (alist-get 'root-directory scope) new-root-directory)
+              (unless new-root-directory
+                (message "No parent project found for %s" search-directory))
               new-root-directory)))
 
 (transient-define-infix disproject:only-active--root-directory ()

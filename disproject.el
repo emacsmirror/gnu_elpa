@@ -472,33 +472,34 @@ root directory, and this function may return nil."
 
 (defun disproject-compile--setup-suffixes (_)
   "Set up suffixes according to `disproject-compile-suffixes'."
-  (disproject--with-environment
-   (hack-dir-local-variables-non-file-buffer)
-   (transient-parse-suffixes
-    'disproject-compile
-    `(,@(mapcar
-         (pcase-lambda (`( ,key ,identifier ,compile-command
-                           . ,(map :description)))
-           `(,key
-             ,(format (or description "%s")
-                      (propertize compile-command
-                                  'face
-                                  'transient-value))
-             (lambda ()
-               (interactive)
-               (disproject--with-environment
-                (let* ((compilation-buffer-name-function
-                        (lambda (major-mode-name)
-                          (project-prefixed-buffer-name
-                           (concat ,identifier "-" major-mode-name)))))
-                  (compile ,compile-command))))))
-         disproject-compile-suffixes)
-      ("!"
-       "Alternative command..."
-       (lambda ()
-         (interactive)
-         (disproject--with-environment
-          (call-interactively #'compile))))))))
+  (transient-parse-suffixes
+   'disproject-compile
+   `(,@(mapcar
+        (pcase-lambda (`( ,key ,identifier ,compile-command
+                          . ,(map :description)))
+          `(,key
+            ,(format (or description "%s")
+                     (propertize compile-command
+                                 'face
+                                 'transient-value))
+            (lambda ()
+              (interactive)
+              (disproject--with-environment
+               (let* ((compilation-buffer-name-function
+                       (lambda (major-mode-name)
+                         (project-prefixed-buffer-name
+                          (concat ,identifier "-" major-mode-name)))))
+                 (compile ,compile-command))))))
+        (with-temp-buffer
+          (let ((default-directory (disproject--root-directory)))
+            (hack-dir-local-variables-non-file-buffer)
+            disproject-compile-suffixes)))
+     ("!"
+      "Alternative command..."
+      (lambda ()
+        (interactive)
+        (disproject--with-environment
+         (call-interactively #'compile)))))))
 
 (transient-define-suffix disproject-switch-to-buffer ()
   "Switch to buffer in project."

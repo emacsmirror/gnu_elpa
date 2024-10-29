@@ -447,8 +447,8 @@ Example: this prints the first ten Fibonacci numbers:
                   1
                   (stream-cons
                    1
-                   (seq-mapn #'+ fibs (stream-rest fibs))))))
-    (seq-do #'print (seq-take fibs 10)))
+                   (seq-mapn #\\='+ fibs (stream-rest fibs))))))
+    (seq-do #\\='print (seq-take fibs 10)))
 
 \(fn FUNCTION STREAMS...)"
   (if (not (seq-every-p #'streamp streams))

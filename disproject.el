@@ -375,6 +375,10 @@ is always selected."
   "Return the current caller's (the one setting up Transient) root directory."
   (disproject--scope 'default-root-directory))
 
+(defun disproject--magit-in-git-repository? ()
+  "Return if currently in a Magit-supported Git repository."
+  (disproject--scope 'magit-in-git-repository?))
+
 (defun disproject--prefer-other-window ()
   "Return whether other window should be preferred when displaying buffers."
   (let ((args (transient-args transient-current-command)))
@@ -423,6 +427,11 @@ directory can be found, and this function may return nil."
          (if no-prompt?
              (funcall find-project-root t directory)
            (funcall find-project-root nil directory)))))))
+
+(defun disproject--root-directory-is-default? ()
+  "Return whether the project is the same as the default project."
+  (equal (disproject--scope 'default-root-directory)
+         (disproject--scope 'root-directory)))
 
 
 ;;;

@@ -44,7 +44,7 @@
 (defmacro disproject--with-environment (&rest body)
   "Run BODY with `disproject' \"environment\" options set."
   ;; Define variables that determine the environment.
-  `(let ((from-directory (or (disproject--root-directory) default-directory))
+  `(let ((from-directory (disproject--root-directory))
          (prefer-other-window (disproject--prefer-other-window))
          ;; Only enable envrc if the initial environment has it enabled.
          (enable-envrc (and (bound-and-true-p envrc-mode)

@@ -424,7 +424,7 @@ an input event arrives.  The other arguments are passed to `tramp-error'."
 	    ;; Show buffer.
 	    (pop-to-buffer buf)
 	    (discard-input)
-	    (sit-for tramp-error-show-message-timeout)))
+	    (sit-for tramp-error-show-message-timeout 'nodisp)))
 	;; Reset timestamp.  It would be wrong after waiting for a while.
 	(when (tramp-file-name-equal-p vec (car tramp-current-connection))
 	  (setcdr tramp-current-connection (current-time)))))))
@@ -446,7 +446,7 @@ an input event arrives.  The other arguments are passed to `tramp-error'."
 	;; `tramp-error' does not show messages.  So we must do it ourselves.
 	(apply #'message fmt-string arguments)
 	(discard-input)
-	(sit-for tramp-error-show-message-timeout)
+	(sit-for tramp-error-show-message-timeout 'nodisp)
 	;; Reset timestamp.  It would be wrong after waiting for a while.
 	(when
 	    (tramp-file-name-equal-p vec-or-proc (car tramp-current-connection))
@@ -488,7 +488,7 @@ to `tramp-message'."
   "Goto the linked message in debug buffer at place."
   (declare (tramp-suppress-trace t))
   (when (mouse-event-p last-input-event) (mouse-set-point last-input-event))
-  (when-let ((point (button-get button 'position)))
+  (when-let* ((point (button-get button 'position)))
     (goto-char point)))
 
 (define-button-type 'tramp-debug-button-type

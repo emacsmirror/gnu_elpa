@@ -251,10 +251,9 @@ commands."
    [("b" "Switch buffer" disproject-switch-to-buffer)
     ("B" "Buffer list" disproject-list-buffers)
     ("c" "Compile" disproject-compile)
-    ("D" "Dired" disproject-dired)
-    ("k" "Kill buffers" disproject-kill-buffers)]
-   [("s" "Shell" disproject-shell)
-    ("v" "VC dir" disproject-vc-dir)
+    ("D" "Dired" disproject-dired)]
+   [("k" "Kill buffers" disproject-kill-buffers)
+    ("s" "Shell" disproject-shell)
     ("!" "Run" disproject-shell-command)
     ("M-x" "Extended command" disproject-execute-extended-command)]
    ["Find"
@@ -262,20 +261,22 @@ commands."
     ("F" "file (+external)" disproject-or-external-find-file)
     ("g" "regexp" disproject-find-regexp)
     ("G" "regexp (+external)" disproject-or-external-find-regexp)]]
-  ;; This section should consist of project-dependent commands that could be
-  ;; disabled, allowing for it to be completely omitted in the menu if no
-  ;; additional commands are applicable.
-  ["Additional commands"
-   ["Magit"
-    ;; Needs :refresh-suffixes t since it depends on dynamic root directory
-    ;; value
-    :if (lambda () (and (featurep 'magit)
-                        (if-let ((root-directory (disproject--root-directory t)))
-                            (funcall (symbol-function 'magit-git-repo-p)
-                                     root-directory))))
-    ("m" "Status" disproject-magit-status)
-    ("T" "Todos" disproject-magit-todos-list
-     :if (lambda () (featurep 'magit-todos)))]]
+  ;; This section may contain commands that are dynamically enabled/disabled
+  ;; depending on the chosen project.  This requires :refresh-suffixes to be t.
+  [["Version control"
+    ("v d" "Magit dispatch" magit-dispatch
+     :if (lambda () (and (featurep 'magit) (disproject--in-git-repository?)))
+     :inapt-if-not disproject--root-directory-is-default?)
+    ("v f" "Magit file dispatch" magit-file-dispatch
+     :if (lambda () (and (featurep 'magit) (disproject--in-git-repository?)))
+     :inapt-if-not disproject--root-directory-is-default?)
+    ("v m" "Magit status" disproject-magit-status
+     :if (lambda () (and (featurep 'magit) (disproject--in-git-repository?))))
+    ("v t" "Magit todos" disproject-magit-todos-list
+     :if (lambda () (and (featurep 'magit-todos)
+                         (disproject--in-git-repository?))))
+    ("v v" "VC dir" disproject-vc-dir
+     :if (lambda () (nth 1 (disproject--project))))]]
   [("SPC" "Manage projects" disproject-manage-projects)]
   (interactive)
   (transient-setup

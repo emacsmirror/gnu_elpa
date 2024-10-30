@@ -179,8 +179,11 @@ This is called whenever the function
 ;;; Prefix handling.
 ;;;
 
-(defun disproject--setup-scope (&optional directory force-init?)
+(defun disproject--setup-scope (&optional write-scope? directory force-init?)
   "Set up Transient scope for a Disproject prefix.
+
+When WRITE-SCOPE? is t, overwrite the current Transient scope
+with the return value.
 
 DIRECTORY is passed to `disproject--root-directory' as a
 \"preferred search directory\".
@@ -206,11 +209,18 @@ ignoring the previous Transient state."
          (magit-in-git-repository?
           (and magit-supported?
                root-directory
-               (funcall (symbol-function 'magit-git-repo-p) root-directory))))
-    `((default-root-directory . ,default-root-directory)
-      (root-directory . ,root-directory)
-      (magit-supported? . ,magit-supported?)
-      (magit-in-git-repository? . ,magit-in-git-repository?))))
+               (funcall (symbol-function 'magit-git-repo-p) root-directory)))
+         (new-scope
+          `((default-root-directory . ,default-root-directory)
+            (root-directory . ,root-directory)
+            (magit-supported? . ,magit-supported?)
+            (magit-in-git-repository? . ,magit-in-git-repository?))))
+    (if-let ((write-scope?)
+             (scope (disproject--scope nil t)))
+      (seq-each (pcase-lambda (`(,key . ,value))
+                  (setf (alist-get key scope) value))
+                new-scope))
+    new-scope))
 
 ;;;; Prefixes.
 
@@ -271,7 +281,7 @@ commands."
   (interactive)
   (transient-setup
    'disproject-dispatch nil nil
-   :scope (disproject--setup-scope directory t)))
+   :scope (disproject--setup-scope nil directory t)))
 
 (transient-define-prefix disproject-compile (&optional directory)
   "Dispatch compilation commands.
@@ -283,7 +293,7 @@ This prefix can be configured with `disproject-compile-suffixes'."
   (interactive)
   (transient-setup
    'disproject-compile nil nil
-   :scope (disproject--setup-scope directory)))
+   :scope (disproject--setup-scope nil directory)))
 
 (transient-define-prefix disproject-manage-projects (&optional directory)
   "Dispatch commands for managing projects.
@@ -300,7 +310,7 @@ DIRECTORY will be searched for the project if passed."
   (interactive)
   (transient-setup
    'disproject-manage-projects nil nil
-   :scope (disproject--setup-scope directory)))
+   :scope (disproject--setup-scope nil directory)))
 
 
 ;;;

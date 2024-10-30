@@ -205,7 +205,7 @@ ignoring the previous Transient state."
               default-root-directory
             (disproject--root-directory nil directory)))
          (project (project-current nil root-directory))
-         (magit-in-git-repository?
+         (in-git-repository?
           (and (featurep 'magit)
                root-directory
                (funcall (symbol-function 'magit-git-repo-p) root-directory)))
@@ -213,7 +213,7 @@ ignoring the previous Transient state."
           `((default-root-directory . ,default-root-directory)
             (root-directory . ,root-directory)
             (project . ,project)
-            (magit-in-git-repository? . ,magit-in-git-repository?))))
+            (in-git-repository? . ,in-git-repository?))))
     (if-let ((write-scope?)
              (scope (disproject--scope nil t)))
       (seq-each (pcase-lambda (`(,key . ,value))
@@ -375,9 +375,11 @@ is always selected."
   "Return the current caller's (the one setting up Transient) root directory."
   (disproject--scope 'default-root-directory))
 
-(defun disproject--magit-in-git-repository? ()
-  "Return if currently in a Magit-supported Git repository."
-  (disproject--scope 'magit-in-git-repository?))
+(defun disproject--in-git-repository? ()
+  "Return if project is a Git repository."
+  ;; Index 1 contains the project backend; see
+  ;; `project-vc-backend-markers-alist'.
+  (eq (nth 1 (disproject--scope 'project)) 'Git))
 
 (defun disproject--prefer-other-window ()
   "Return whether other window should be preferred when displaying buffers."

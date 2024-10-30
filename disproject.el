@@ -204,16 +204,13 @@ ignoring the previous Transient state."
           (if force-init?
               default-root-directory
             (disproject--root-directory nil directory)))
-         (magit-supported?
-          (featurep 'magit))
          (magit-in-git-repository?
-          (and magit-supported?
+          (and (featurep 'magit)
                root-directory
                (funcall (symbol-function 'magit-git-repo-p) root-directory)))
          (new-scope
           `((default-root-directory . ,default-root-directory)
             (root-directory . ,root-directory)
-            (magit-supported? . ,magit-supported?)
             (magit-in-git-repository? . ,magit-in-git-repository?))))
     (if-let ((write-scope?)
              (scope (disproject--scope nil t)))

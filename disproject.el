@@ -242,6 +242,7 @@ executed or when invoking one of the switch-project commands."
     ("m" "Status" disproject-magit-status)
     ("T" "Todos" disproject-magit-todos-list
      :if (lambda () (featurep 'magit-todos)))]]
+  [("SPC" "Manage projects" disproject-manage-projects)]
   (interactive)
   (transient-setup
    'disproject-dispatch nil nil
@@ -265,6 +266,23 @@ This prefix can be configured with `disproject-compile-suffixes'."
   (interactive)
   (transient-setup
    'disproject-compile nil nil
+   :scope (disproject--setup-scope directory)))
+
+(transient-define-prefix disproject-manage-projects (&optional directory)
+  "Dispatch commands for managing projects.
+
+DIRECTORY will be searched for the project if passed."
+  ["Forget"
+   ;; TODO: Could add an option to close buffers of the project to forget.
+   ("f p" "a project" disproject-forget-project)
+   ("f u" "projects under..." disproject-forget-projects-under)
+   ("f z" "zombie projects" disproject-forget-zombie-projects)]
+  ["Remember"
+   ("r a" "active projects" disproject-remember-projects-active)
+   ("r u" "projects under..." disproject-remember-projects-under)]
+  (interactive)
+  (transient-setup
+   'disproject-manage-projects nil nil
    :scope (disproject--setup-scope directory)))
 
 
@@ -416,6 +434,21 @@ the new directory."
   (disproject--with-environment
    (call-interactively disproject-find-regexp-command)))
 
+(transient-define-suffix disproject-forget-project ()
+  "Forget a project."
+  (interactive)
+  (call-interactively #'project-forget-project))
+
+(transient-define-suffix disproject-forget-projects-under ()
+  "Forget projects under a directory."
+  (interactive)
+  (call-interactively #'project-forget-projects-under))
+
+(transient-define-suffix disproject-forget-zombie-projects ()
+  "Forget zombie projects."
+  (interactive)
+  (call-interactively #'project-forget-zombie-projects))
+
 (transient-define-suffix disproject-kill-buffers ()
   "Kill all buffers related to project."
   (interactive)
@@ -453,6 +486,20 @@ the new directory."
   (interactive)
   (disproject--with-environment
    (call-interactively disproject-or-external-find-regexp-command)))
+
+(transient-define-suffix disproject-remember-projects-active ()
+  "Remember active projects."
+  (interactive)
+  (let ((active-projects (disproject--active-projects)))
+    (seq-each (lambda (project)
+                (project-remember-project project t))
+              active-projects)
+    (project--write-project-list)))
+
+(transient-define-suffix disproject-remember-projects-under ()
+  "Remember projects under a directory."
+  (interactive)
+  (call-interactively #'project-remember-projects-under))
 
 (transient-define-suffix disproject-shell ()
   "Start a shell in project."

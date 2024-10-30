@@ -268,7 +268,7 @@ This prefix can be configured with `disproject-compile-suffixes'."
           (seq-filter (lambda (buf)
                         (not (string-prefix-p " " (buffer-name buf))))
                       (buffer-list)))
-         (deduplicated-buffer-list
+         (directories
           (cl-remove-duplicates (mapcar
                                  (lambda (buf)
                                    (buffer-local-value 'default-directory buf))
@@ -276,8 +276,8 @@ This prefix can be configured with `disproject-compile-suffixes'."
                                 :test #'equal)))
     (seq-mapcat (lambda (directory)
                   (if-let ((project (project-current nil directory)))
-                      (list (project-root project))))
-                deduplicated-buffer-list)))
+                      (list project)))
+                directories)))
 
 (defun disproject--scope (key &optional no-alist?)
   "Get `disproject' scope.
@@ -501,7 +501,9 @@ active projects when prompting for projects to switch to."
    (completing-read "Select active project: "
                     (project--file-completion-table
                      ;; Follow the format of `project--list'.
-                     (mapcar #'list (disproject--active-projects)))
+                     (mapcar (lambda (project)
+                               (list (project-root project)))
+                             (disproject--active-projects)))
                     nil
                     t)))
 

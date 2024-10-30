@@ -223,11 +223,11 @@ executed or when invoking one of the switch-project commands."
     ("v" "VC dir" disproject-vc-dir)
     ("!" "Run" disproject-shell-command)
     ("M-x" "Extended command" disproject-execute-extended-command)]
-   ["Find..."
-    ("f" "File" disproject-find-file)
-    ("F" "File (+external)" disproject-or-external-find-file)
-    ("g" "Regexp" disproject-find-regexp)
-    ("G" "Regexp (+external)" disproject-or-external-find-regexp)]]
+   ["Find"
+    ("f" "file" disproject-find-file)
+    ("F" "file (+external)" disproject-or-external-find-file)
+    ("g" "regexp" disproject-find-regexp)
+    ("G" "regexp (+external)" disproject-or-external-find-regexp)]]
   ;; This section should consist of project-dependent commands that could be
   ;; disabled, allowing for it to be completely omitted in the menu if no
   ;; additional commands are applicable.

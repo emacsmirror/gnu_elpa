@@ -194,11 +194,12 @@ ignoring the previous Transient state."
   ;; upstream issue?  This also applies to `disproject-compile', but since it's
   ;; less likely to be called on its own it can do without the hack (which would
   ;; break scope between that and `disproject-dispatch').
-  (let* ((root-directory
+  (let* ((default-root-directory
+          (if-let ((project (project-current nil default-directory)))
+              (project-root project)))
+         (root-directory
           (if force-init?
-              (if-let ((project (project-current
-                                 nil (or directory default-directory))))
-                  (project-root project))
+              default-root-directory
             (disproject--root-directory nil directory)))
          (magit-supported?
           (featurep 'magit))
@@ -206,7 +207,8 @@ ignoring the previous Transient state."
           (and magit-supported?
                root-directory
                (funcall (symbol-function 'magit-git-repo-p) root-directory))))
-    `((root-directory . ,root-directory)
+    `((default-root-directory . ,default-root-directory)
+      (root-directory . ,root-directory)
       (magit-supported? . ,magit-supported?)
       (magit-in-git-repository? . ,magit-in-git-repository?))))
 
@@ -358,6 +360,10 @@ is always selected."
 ;;;; Infixes.
 
 ;;;; Transient state getters.
+
+(defun disproject--default-root-directory ()
+  "Return the current caller's (the one setting up Transient) root directory."
+  (disproject--scope 'default-root-directory))
 
 (defun disproject--prefer-other-window ()
   "Return whether other window should be preferred when displaying buffers."

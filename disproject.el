@@ -184,9 +184,19 @@ This is called whenever the function
 
 DIRECTORY is preferred if it is non-nil and the directory is
 under a valid project root."
-  `((root-directory . ,(or (if-let ((project (project-current nil directory)))
-                               (project-root project))
-                           (disproject--root-directory)))))
+  (let* ((root-directory
+          (or (if-let ((project (project-current nil directory)))
+                  (project-root project))
+              (disproject--root-directory)))
+         (magit-supported?
+          (featurep 'magit))
+         (magit-in-git-repository?
+          (and magit-supported?
+               root-directory
+               (funcall (symbol-function 'magit-git-repo-p) root-directory))))
+    `((root-directory . ,root-directory)
+      (magit-supported? . ,magit-supported?)
+      (magit-in-git-repository? . ,magit-in-git-repository?))))
 
 ;;;; Prefixes.
 

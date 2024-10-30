@@ -225,9 +225,9 @@ executed or when invoking one of the switch-project commands."
     ;; Needs :refresh-suffixes t since it depends on dynamic root directory
     ;; value
     :if (lambda () (and (featurep 'magit)
-                        (funcall (symbol-function 'magit-git-repo-p)
-                                 (or (disproject--root-directory t)
-                                     default-directory))))
+                        (if-let ((root-directory (disproject--root-directory t)))
+                            (funcall (symbol-function 'magit-git-repo-p)
+                                     root-directory))))
     ("m" "Status" disproject-magit-status)
     ("T" "Todos" disproject-magit-todos-list
      :if (lambda () (featurep 'magit-todos)))]]

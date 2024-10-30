@@ -176,8 +176,19 @@ This is called whenever the function
 
 
 ;;;
-;;; Prefixes.
+;;; Prefix handling.
 ;;;
+
+(defun disproject--setup-scope (&optional directory)
+  "Set up Transient scope for a Disproject prefix.
+
+DIRECTORY is preferred if it is non-nil and the directory is
+under a valid project root."
+  `((root-directory . ,(or (if-let ((project (project-current nil directory)))
+                               (project-root project))
+                           (disproject--root-directory)))))
+
+;;;; Prefixes.
 
 ;;;###autoload (autoload 'disproject-dispatch "disproject")
 (transient-define-prefix disproject-dispatch (&optional directory)
@@ -254,7 +265,7 @@ This prefix can be configured with `disproject-compile-suffixes'."
   (interactive)
   (transient-setup
    'disproject-compile nil nil
-   :scope `((root-directory . ,(or directory (disproject--root-directory))))))
+   :scope (disproject--setup-scope directory)))
 
 
 ;;;

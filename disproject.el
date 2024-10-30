@@ -497,15 +497,19 @@ directories."
 This is equivalent to `disproject-switch-project' but only shows
 active projects when prompting for projects to switch to."
   (interactive)
-  (disproject--switch-project
-   (completing-read "Select active project: "
-                    (project--file-completion-table
-                     ;; Follow the format of `project--list'.
-                     (mapcar (lambda (project)
-                               (list (project-root project)))
-                             (disproject--active-projects)))
-                    nil
-                    t)))
+  (let* ((active-projects (mapcar (lambda (project)
+                                    ;; Keep reference to project so we can
+                                    ;; project-remember the project chosen.
+                                    (cons (project-root project) project))
+                                  (disproject--active-projects)))
+         ;; `project--file-completion-table' seems to accept any collection as
+         ;; defined by `completing-read'.
+         (completion-table (project--file-completion-table active-projects))
+         (project-directory (completing-read "Select active project: "
+                                             completion-table nil t))
+         (project (alist-get project-directory active-projects nil nil #'equal)))
+    (project-remember-project project)
+    (disproject--switch-project project-directory)))
 
 (transient-define-suffix disproject-switch-to-buffer ()
   "Switch to buffer in project."

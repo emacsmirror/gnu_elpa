@@ -303,55 +303,6 @@ is always selected."
 
 ;;;; Infixes.
 
-(transient-define-infix disproject:--root-directory ()
-  "Root directory of the project to execute commands from.
-
-Uses `project-prompt-project-dir' to switch project root directories."
-  :class transient-option
-  :argument "--root-directory="
-  ;; Value already shown elsewhere.
-  :format " %k %d"
-  :init-value (lambda (obj)
-                (oset obj value (disproject--scope 'root-directory)))
-  :always-read t
-  :reader (lambda (&rest _ignore)
-            ;; Don't set anything if either of these are nil.
-            (if-let ((search-directory (project-prompt-project-dir))
-                     (new-root-directory (disproject--root-directory
-                                          nil search-directory))
-                     (scope (disproject--scope nil t)))
-                ;; Update --root-directory in Transient scope to keep it in sync
-                (setf (alist-get 'root-directory scope) new-root-directory)
-              (unless new-root-directory
-                (message "No parent project found for %s" search-directory))
-              new-root-directory)))
-
-(transient-define-infix disproject:only-active--root-directory ()
-  "Root directory of the project to execute commands from.
-
-This is equivalent to `disproject:--root-directory' and is backed
-by the same \"--root-directory=\" argument value, but only shows
-active projects when prompting for projects to switch to."
-  :class transient-option
-  :argument "--root-directory="
-  ;; Value already shown elsewhere.
-  :format " %k %d"
-  :always-read t
-  :reader (lambda (&rest _ignore)
-            (if-let* ((new-root-directory
-                       (completing-read "Select active project: "
-                                        (project--file-completion-table
-                                         ;; Follow the format of
-                                         ;; `project--list'.
-                                         (mapcar #'list
-                                                 (disproject--active-projects)))
-                                        nil
-                                        t))
-                      (scope (disproject--scope nil t)))
-                ;; Update --root-directory in Transient scope to keep it in sync
-                (setf (alist-get 'root-directory scope) new-root-directory)
-              new-root-directory)))
-
 ;;;; Transient state getters.
 
 (defun disproject--prefer-other-window ()

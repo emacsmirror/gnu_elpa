@@ -182,12 +182,10 @@ This is called whenever the function
 (defun disproject--setup-scope (&optional directory)
   "Set up Transient scope for a Disproject prefix.
 
-DIRECTORY is preferred if it is non-nil and the directory is
-under a valid project root."
+DIRECTORY is passed to `disproject--root-directory' as a
+\"preferred search directory\"."
   (let* ((root-directory
-          (or (if-let ((project (project-current nil directory)))
-                  (project-root project))
-              (disproject--root-directory)))
+          (disproject--root-directory nil directory))
          (magit-supported?
           (featurep 'magit))
          (magit-in-git-repository?

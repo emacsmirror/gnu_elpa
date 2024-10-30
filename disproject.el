@@ -204,6 +204,7 @@ ignoring the previous Transient state."
           (if force-init?
               default-root-directory
             (disproject--root-directory nil directory)))
+         (project (project-current nil root-directory))
          (magit-in-git-repository?
           (and (featurep 'magit)
                root-directory
@@ -211,6 +212,7 @@ ignoring the previous Transient state."
          (new-scope
           `((default-root-directory . ,default-root-directory)
             (root-directory . ,root-directory)
+            (project . ,project)
             (magit-in-git-repository? . ,magit-in-git-repository?))))
     (if-let ((write-scope?)
              (scope (disproject--scope nil t)))
@@ -377,6 +379,10 @@ is always selected."
   "Return whether other window should be preferred when displaying buffers."
   (let ((args (transient-args transient-current-command)))
     (and args (transient-arg-value "--prefer-other-window" args))))
+
+(defun disproject--project ()
+  "Return the project from the current Transient scope."
+  (disproject--scope 'project))
 
 (defun disproject--root-directory (&optional no-prompt? directory)
   "Return the project root directory defined in transient arguments.

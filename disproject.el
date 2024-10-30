@@ -286,10 +286,12 @@ This prefix can be configured with `disproject-compile-suffixes'."
                                    (buffer-local-value 'default-directory buf))
                                  buffer-list)
                                 :test #'equal)))
-    (seq-mapcat (lambda (directory)
-                  (if-let ((project (project-current nil directory)))
-                      (list project)))
-                directories)))
+    (cl-remove-duplicates
+     (seq-mapcat (lambda (directory)
+                   (if-let ((project (project-current nil directory)))
+                       (list project)))
+                 directories)
+     :test (lambda (p1 p2) (equal (project-root p1) (project-root p2))))))
 
 (defun disproject--scope (key &optional no-alist?)
   "Get `disproject' scope.

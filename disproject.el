@@ -187,7 +187,7 @@ DIRECTORY is an optional argument that tells the function where
 to start searching first for a project directory root; otherwise,
 it moves on to `default-directory'.  If no project is found, it
 starts the menu anyways to explicitly ask later when a command is
-executed or when --root-directory is manually set."
+executed or when invoking one of the switch-project commands."
   :refresh-suffixes t
   [:description
    (lambda ()
@@ -195,8 +195,10 @@ executed or when --root-directory is manually set."
              (if-let ((directory (disproject--root-directory t)))
                  (propertize directory 'face 'transient-value)
                (propertize "None detected" 'face 'transient-inapt-suffix))))
-   ("p" "Switch project" disproject:--root-directory)
-   ("P" "Switch to active project" disproject:only-active--root-directory)]
+   ("p" "Switch project" disproject-switch-project
+    :transient t)
+   ("P" "Switch to active project" disproject-switch-project-active
+    :transient t)]
   ["Options"
    ("o" "Prefer other window" "--prefer-other-window")]
   ["Commands"
@@ -220,7 +222,8 @@ executed or when --root-directory is manually set."
   ;; additional commands are applicable.
   ["Additional commands"
    ["Magit"
-    ;; Needs :refresh-suffixes t since it depends on infix "--root-directory="
+    ;; Needs :refresh-suffixes t since it depends on dynamic root directory
+    ;; value
     :if (lambda () (and (featurep 'magit)
                         (funcall (symbol-function 'magit-git-repo-p)
                                  (or (disproject--root-directory t)
@@ -384,10 +387,6 @@ directory can be found, and this function may return nil."
     (or
      ;; If DIRECTORY is set, prioritize searching it first without prompting.
      (if directory (funcall find-project-root t directory))
-     ;; The "--root-directory=" option can be more up-to-date than scope (in
-     ;; what cases?  I don't remember anymore), so check it before scope.
-     (if-let ((args (transient-args transient-current-command)))
-         (transient-arg-value "--root-directory=" args))
      ;; Scope.
      (disproject--scope 'root-directory)
      ;; Prompt as a fallback if possible.  Use `default-directory' if DIRECTORY
@@ -402,8 +401,23 @@ directory can be found, and this function may return nil."
 
 
 ;;;
-;;; Suffixes.
+;;; Suffix handling.
 ;;;
+
+(defun disproject--switch-project (search-directory)
+  "Modify the Transient scope to switch to another project.
+
+Look for a valid project root directory in SEARCH-DIRECTORY.  If
+one is found, update the root-directory key in Transient scope to
+the new directory."
+  (if-let ((directory (disproject--root-directory nil search-directory))
+           (scope (disproject--scope nil t)))
+      (setf (alist-get 'root-directory scope) directory)
+    (if directory
+        (error "No scope available")
+      (message "No parent project found for %s" search-directory))))
+
+;;;; Suffixes.
 
 (transient-define-suffix disproject-dired ()
   "Open Dired in project root."
@@ -509,6 +523,28 @@ directory can be found, and this function may return nil."
         (interactive)
         (disproject--with-environment
          (call-interactively #'compile)))))))
+
+(transient-define-suffix disproject-switch-project ()
+  "Switch project to dispatch commands on.
+
+Uses `project-prompt-project-dir' to switch project root
+directories."
+  (interactive)
+  (disproject--switch-project (project-prompt-project-dir)))
+
+(transient-define-suffix disproject-switch-project-active ()
+  "Switch to an active project to dispatch commands on.
+
+This is equivalent to `disproject-switch-project' but only shows
+active projects when prompting for projects to switch to."
+  (interactive)
+  (disproject--switch-project
+   (completing-read "Select active project: "
+                    (project--file-completion-table
+                     ;; Follow the format of `project--list'.
+                     (mapcar #'list (disproject--active-projects)))
+                    nil
+                    t)))
 
 (transient-define-suffix disproject-switch-to-buffer ()
   "Switch to buffer in project."

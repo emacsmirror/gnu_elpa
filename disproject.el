@@ -359,33 +359,46 @@ active projects when prompting for projects to switch to."
 (defun disproject--root-directory (&optional no-prompt? directory)
   "Return the project root directory defined in transient arguments.
 
-Prefer searching DIRECTORY for a project root first, if set.
-Otherwise, use the current Transient prefix's arguments.  If
-those are also not available, try the Transient scope.
-`default-directory' is searched if none of these methods find a
-root directory.  As a fallback, the function may prompt for a
-project to use.
+Prefer searching DIRECTORY for a project root first, but only if
+it is set.  Otherwise, use the current Transient prefix's
+arguments.  If those are also not available, try the Transient
+scope.  Fall back to searching `default-directory' at this point
+if DIRECTORY is not set.  The function may prompt for a project
+to use if all of these cannot find a project root.
 
-DIRECTORY is used to search for the project, and is preferred if
-it is set.
+DIRECTORY is used to search for the project, and is prioritized
+when it is set.
 
 If NO-PROMPT? is non-nil, no prompts will be made if a root
 directory can be found, and this function may return nil."
   ;; `project-current' only remembers project when maybe-prompt?  is true, but
   ;; this function will opt to always remember instead so it can show up in
   ;; the "Switch projects" prompt.
-  (or (if-let ((directory)
-               (project (project-current nil directory)))
-          (prog1 (project-root project)
-            (project-remember-project project)))
-      (if-let ((args (transient-args transient-current-command)))
-          (transient-arg-value "--root-directory=" args))
-      (disproject--scope 'root-directory)
-      (if no-prompt?
-          (if-let ((project (project-current nil)))
-              (prog1 (project-root project)
-                (project-remember-project project)))
-        (project-root (project-current t)))))
+  (let ((find-project-root
+         (lambda (no-prompt? dir)
+           (if no-prompt?
+               (if-let ((project (project-current nil dir)))
+                   (prog1 (project-root project)
+                     (project-remember-project project)))
+             (project-root (project-current t dir))))))
+    (or
+     ;; If DIRECTORY is set, prioritize searching it first without prompting.
+     (if directory (funcall find-project-root t directory))
+     ;; The "--root-directory=" option can be more up-to-date than scope (in
+     ;; what cases?  I don't remember anymore), so check it before scope.
+     (if-let ((args (transient-args transient-current-command)))
+         (transient-arg-value "--root-directory=" args))
+     ;; Scope.
+     (disproject--scope 'root-directory)
+     ;; Prompt as a fallback if possible.  Use `default-directory' if DIRECTORY
+     ;; wasn't set.
+     (if directory
+         (if (not no-prompt?)
+             (funcall find-project-root nil directory))
+       (let ((directory (or directory default-directory)))
+         (if no-prompt?
+             (funcall find-project-root t directory)
+           (funcall find-project-root nil directory)))))))
 
 
 ;;;

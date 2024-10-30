@@ -220,9 +220,10 @@ ignoring the previous Transient state."
 
 DIRECTORY is an optional argument that tells the function where
 to start searching first for a project directory root; otherwise,
-it moves on to `default-directory'.  If no project is found, it
-starts the menu anyways to explicitly ask later when a command is
-executed or when invoking one of the switch-project commands."
+it uses the default root directory if available.  If no project
+is found, it starts the menu anyways to explicitly ask later when
+a command is executed or when invoking one of the switch-project
+commands."
   :refresh-suffixes t
   [:description
    (lambda ()
@@ -376,9 +377,9 @@ is always selected."
 Prefer searching DIRECTORY for a project root first, but only if
 it is set.  Otherwise, use the current Transient prefix's
 arguments.  If those are also not available, try the Transient
-scope.  Fall back to searching `default-directory' at this point
-if DIRECTORY is not set.  The function may prompt for a project
-to use if all of these cannot find a project root.
+scope.  Fall back to searching default root directory at this
+point if DIRECTORY is not set.  The function may prompt for a
+project to use if all of these cannot find a project root.
 
 DIRECTORY is used to search for the project, and is prioritized
 when it is set.
@@ -400,12 +401,12 @@ directory can be found, and this function may return nil."
      (if directory (funcall find-project-root t directory))
      ;; Scope.
      (disproject--scope 'root-directory)
-     ;; Prompt as a fallback if possible.  Use `default-directory' if DIRECTORY
-     ;; wasn't set.
+     ;; Use current root directory if DIRECTORY wasn't set.  Prompt as a
+     ;; fallback if it is permitted and all else fails.
      (if directory
          (if (not no-prompt?)
              (funcall find-project-root nil directory))
-       (let ((directory (or directory default-directory)))
+       (let ((directory (disproject--scope 'default-root-directory)))
          (if no-prompt?
              (funcall find-project-root t directory)
            (funcall find-project-root nil directory)))))))

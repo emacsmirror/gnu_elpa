@@ -434,7 +434,7 @@ one is found, update the root-directory key in Transient scope to
 the new directory."
   (if-let ((directory (disproject--root-directory nil search-directory))
            (scope (disproject--scope nil t)))
-      (setf (alist-get 'root-directory scope) directory)
+      (disproject--setup-scope t directory)
     (if directory
         (error "No scope available")
       (message "No parent project found for %s" search-directory))))

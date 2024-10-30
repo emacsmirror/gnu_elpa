@@ -198,7 +198,7 @@ ignoring the previous Transient state."
   ;; less likely to be called on its own it can do without the hack (which would
   ;; break scope between that and `disproject-dispatch').
   (let* ((default-root-directory
-          (if-let ((project (project-current nil default-directory)))
+          (if-let* ((project (project-current nil default-directory)))
               (project-root project)))
          (root-directory
           (if force-init?
@@ -214,8 +214,8 @@ ignoring the previous Transient state."
             (root-directory . ,root-directory)
             (project . ,project)
             (in-git-repository? . ,in-git-repository?))))
-    (if-let ((write-scope?)
-             (scope (disproject--scope nil t)))
+    (if-let* ((write-scope?)
+              (scope (disproject--scope nil t)))
       (seq-each (pcase-lambda (`(,key . ,value))
                   (setf (alist-get key scope) value))
                 new-scope))
@@ -237,7 +237,7 @@ commands."
   [:description
    (lambda ()
      (format (propertize "Project: %s" 'face 'transient-heading)
-             (if-let ((directory (disproject--root-directory t)))
+             (if-let* ((directory (disproject--root-directory t)))
                  (propertize directory 'face 'transient-value)
                (propertize "None detected" 'face 'transient-inapt-suffix))))
    ("p" "Switch project" disproject-switch-project
@@ -333,7 +333,7 @@ DIRECTORY will be searched for the project if passed."
                                 :test #'equal)))
     (cl-remove-duplicates
      (seq-mapcat (lambda (directory)
-                   (if-let ((project (project-current nil directory)))
+                   (if-let* ((project (project-current nil directory)))
                        (list project)))
                  directories)
      :test (lambda (p1 p2) (equal (project-root p1) (project-root p2))))))
@@ -346,8 +346,8 @@ KEY is the key used to get the alist value.  If NO-ALIST? is
 non-nil, the scope will be treated as a value of any possible
 type and directly returned instead, ignoring KEY."
   ;; Just return nil instead of signaling an error if there is no prefix.
-  (if-let (((transient-prefix-object))
-           (scope (transient-scope)))
+  (if-let* (((transient-prefix-object))
+            (scope (transient-scope)))
       (if no-alist? scope (alist-get key scope))))
 
 ;;;; Infix classes.
@@ -363,8 +363,8 @@ This method skips over nil, so exactly one switch of this object
 is always selected."
   (let ((choices (mapcar (apply-partially #'format (oref obj argument-format))
                          (oref obj choices))))
-    (if-let ((value (oref obj value))
-             (next-value (cadr (member value choices))))
+    (if-let* ((value (oref obj value))
+              (next-value (cadr (member value choices))))
         next-value
       (car choices))))
 
@@ -412,7 +412,7 @@ directory can be found, and this function may return nil."
   (let ((find-project-root
          (lambda (no-prompt? dir)
            (if no-prompt?
-               (if-let ((project (project-current nil dir)))
+               (if-let* ((project (project-current nil dir)))
                    (prog1 (project-root project)
                      (project-remember-project project)))
              (project-root (project-current t dir))))))
@@ -447,8 +447,8 @@ directory can be found, and this function may return nil."
 Look for a valid project root directory in SEARCH-DIRECTORY.  If
 one is found, update the root-directory key in Transient scope to
 the new directory."
-  (if-let ((directory (disproject--root-directory nil search-directory))
-           (scope (disproject--scope nil t)))
+  (if-let* ((directory (disproject--root-directory nil search-directory))
+            (scope (disproject--scope nil t)))
       (disproject--setup-scope t directory)
     (if directory
         (error "No scope available")

@@ -239,10 +239,13 @@ in the Transient menu.
 a git repository."
   ;; FIXME: Transient scope can contain the previous `disproject-dispatch'
   ;; invocation's root directory (specifically after invoking a suffix), so
-  ;; don't use `disproject--root-directory' if FORCE-INIT? is t.  Is this an
-  ;; upstream issue?  This also applies to `disproject-compile', but since it's
-  ;; less likely to be called on its own it can do without the hack (which would
-  ;; break scope between that and `disproject-dispatch').
+  ;; don't use `disproject--root-directory' if FORCE-INIT? is t.  This also
+  ;; applies to `disproject-compile', but since this would break scope between
+  ;; it and `project-dispatch', this shouldn't used for the sub-prefix (but it's
+  ;; less likely to be called on its own anyways, so is probably able to do
+  ;; without the hack).
+  ;;
+  ;; Upstream issue: https://www.github.com/magit/transient/issues/323
   (let* ((default-root-directory
           (if-let* ((project (project-current nil default-directory)))
               (project-root project)))

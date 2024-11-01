@@ -303,7 +303,7 @@ commands."
 This prefix can be configured with `disproject-compile-suffixes'."
   ["Compile"
    :class transient-column
-   :setup-children disproject-compile--setup-suffixes]
+   :setup-children disproject-compile--setup-compile-suffixes]
   (interactive)
   (transient-setup
    'disproject-compile nil nil
@@ -573,7 +573,7 @@ the new directory."
   (disproject--with-environment
    (call-interactively #'async-shell-command)))
 
-(defun disproject-compile--setup-suffixes (_)
+(defun disproject-compile--setup-compile-suffixes (_)
   "Set up suffixes according to `disproject-compile-suffixes'."
   (transient-parse-suffixes
    'disproject-compile

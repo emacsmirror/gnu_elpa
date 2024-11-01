@@ -203,7 +203,7 @@ in the Transient menu.
 
 \\='project: the project associated with \\='root-directory.
 
-\\='in-git-repository?: whether the currently selected project is
+\\='git-repository?: whether the currently selected project is
 a git repository."
   ;; FIXME: Transient scope can contain the previous `disproject-dispatch'
   ;; invocation's root directory (specifically after invoking a suffix), so
@@ -219,7 +219,7 @@ a git repository."
               default-root-directory
             (disproject--root-directory nil directory)))
          (project (project-current nil root-directory))
-         (in-git-repository?
+         (git-repository?
           (and (featurep 'magit)
                root-directory
                (funcall (symbol-function 'magit-git-repo-p) root-directory)))
@@ -227,7 +227,7 @@ a git repository."
           `((default-root-directory . ,default-root-directory)
             (root-directory . ,root-directory)
             (project . ,project)
-            (in-git-repository? . ,in-git-repository?))))
+            (git-repository? . ,git-repository?))))
     (if-let* ((write-scope?)
               (scope (disproject--scope nil t)))
       (seq-each (pcase-lambda (`(,key . ,value))
@@ -280,16 +280,16 @@ commands."
   [["Version control"
     :if (lambda () (nth 1 (disproject--project)))
     ("v d" "Magit dispatch" magit-dispatch
-     :if (lambda () (and (featurep 'magit) (disproject--in-git-repository?)))
+     :if (lambda () (and (featurep 'magit) (disproject--git-repository?)))
      :inapt-if-not disproject--root-directory-is-default?)
     ("v f" "Magit file dispatch" magit-file-dispatch
-     :if (lambda () (and (featurep 'magit) (disproject--in-git-repository?)))
+     :if (lambda () (and (featurep 'magit) (disproject--git-repository?)))
      :inapt-if-not disproject--root-directory-is-default?)
     ("v m" "Magit status" disproject-magit-status
-     :if (lambda () (and (featurep 'magit) (disproject--in-git-repository?))))
+     :if (lambda () (and (featurep 'magit) (disproject--git-repository?))))
     ("v t" "Magit todos" disproject-magit-todos-list
      :if (lambda () (and (featurep 'magit-todos)
-                         (disproject--in-git-repository?))))
+                         (disproject--git-repository?))))
     ("v v" "VC dir" disproject-vc-dir)]]
   [("SPC" "Manage projects" disproject-manage-projects)]
   (interactive)
@@ -390,7 +390,7 @@ is always selected."
   "Return the current caller's (the one setting up Transient) root directory."
   (disproject--scope 'default-root-directory))
 
-(defun disproject--in-git-repository? ()
+(defun disproject--git-repository? ()
   "Return if project is a Git repository."
   ;; Index 1 contains the project backend; see
   ;; `project-vc-backend-markers-alist'.

@@ -42,7 +42,15 @@
 ;;;
 
 (defmacro disproject--with-environment (&rest body)
-  "Run BODY with `disproject' \"environment\" options set."
+  "Run BODY with `disproject' \"environment\" options set.
+
+The \"environment\" consists of the following overrides:
+
+`default-directory', `project-current-directory-override': Set to
+the project's root directory.
+
+`display-buffer-overriding-action': Set to display in another
+window if \"--prefer-other-window\" is enabled."
   ;; Define variables that determine the environment.
   `(let ((from-directory (disproject--root-directory))
          (prefer-other-window (disproject--prefer-other-window))

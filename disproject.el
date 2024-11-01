@@ -124,6 +124,30 @@ for `disproject-compile-suffixes' to add \"make -k\" and
                               :value-type string)))
   :group 'disproject)
 
+(defcustom disproject-custom-suffixes '()
+  "Custom project commands for the `disproject-dispatch' prefix.
+
+This is meant to be set per-project, usually via directory-local
+variables.
+
+The value should be a suffix command or a group specification as
+defined by `transient-parse-suffixes'.
+
+For example, to evaluate some code when \"N\" is pressed,
+something like the following may be specified:
+
+  ((\"N\" \"Frobnicate a foo\"
+    (lambda ()
+      (interactive)
+      (message \"Frobnicated a foo!\"))))
+
+Consider wrapping code in the `disproject--with-environment' form
+so commands that should respect the menu options can do so (like
+preferring other buffer, or running from the project's root
+directory)."
+  :type 'sexp
+  :group 'disproject)
+
 (defcustom disproject-find-file-command #'project-find-file
   "The command used for opening a file in a project.
 
@@ -290,7 +314,9 @@ commands."
     ("v t" "Magit todos" disproject-magit-todos-list
      :if (lambda () (and (featurep 'magit-todos)
                          (disproject--git-repository?))))
-    ("v v" "VC dir" disproject-vc-dir)]]
+    ("v v" "VC dir" disproject-vc-dir)]
+   ["Custom commands"
+    :setup-children disproject--setup-custom-suffixes]]
   [("SPC" "Manage projects" disproject-manage-projects)]
   (interactive)
   (transient-setup
@@ -469,6 +495,16 @@ the new directory."
       (message "No parent project found for %s" search-directory))))
 
 ;;;; Suffix setup functions.
+
+(defun disproject--setup-custom-suffixes (_)
+  "Set up suffixes according to `disproject-custom-suffixes'."
+  (transient-parse-suffixes
+   'disproject-dispatch
+   (if-let* ((directory (disproject--root-directory t)))
+       (with-temp-buffer
+         (let ((default-directory directory))
+           (hack-dir-local-variables-non-file-buffer)
+           disproject-custom-suffixes)))))
 
 (defun disproject-compile--setup-compile-suffixes (_)
   "Set up suffixes according to `disproject-compile-suffixes'."

@@ -74,9 +74,10 @@
                                               search-string _line-end bad-box
                                               _error-point ignore)
   "Process an error or warning for the current TeX document.
-The arguments are as in `TeX-error-list'.  Return either nil or a
-triple (ERROR-P DESCRIPTION (BEG . END)), where ERROR-P is non-nil if it
-is an error rather than a warning."
+The arguments TYPE, FILE, LINE, MESSAGE, OFFSET, SEARCH-STRING, BAD-BOX
+and IGNORE are as in `TeX-error-list'.
+Return either nil or a triple (ERROR-P DESCRIPTION (BEG . END)), where
+ERROR-P is non-nil if it is an error rather than a warning."
   (or
    (when-let*
        (((not ignore))
@@ -239,10 +240,6 @@ additional option to output build files to a directory (if
 (defvar-local auctex-cont-latexmk--compilation-buffer nil
   "The buffer used for LaTeX compilation.")
 
-(defconst auctex-cont-latexmk--watching-str
-  "=== Watching for updated files. Use ctrl/C to stop ..."
-  "String indicating that latexmk is watching for updated files.")
-
 (defvar-local auctex-cont-latexmk--last-update-time nil
   "Time of the last update in the compilation buffer.")
 
@@ -250,39 +247,26 @@ additional option to output build files to a directory (if
   "Update the time of the last update in the compilation buffer."
   (setq auctex-cont-latexmk--last-update-time (current-time)))
 
-(defconst auctex-cont-latexmk--wait-time 1
-  "Time to wait before checking for changes in the log file.")
+(defcustom auctex-cont-latexmk--wait-time 0.3
+  "Time to wait before checking for changes in the log file."
+  :type 'number)
 
 (defun auctex-cont-latexmk--fresh-p ()
   "Return non-nil if logged errors should apply to current buffer.
 This is the case if the current buffer is not modified, the current
 buffer is a file, the current buffer has a log file, the log file is
-newer than the current buffer, and the current latexmk compilation is
-either in a watching state or has not updated recently.
-
-The reason we check if the latexmk has not been updated recently is
-because it seems that on Windows, the latexmk script doesn't always
-display the most recent message.  I haven't been able to debug why this
-is the case.  Checking that the compilation has not been updated
-recently serves as a workaround."
+newer than the current buffer, and there have been no recent updates
+to the compilation buffer."
   (when-let* ((file
                (or buffer-file-name (buffer-file-name (buffer-base-buffer))))
               (log-file (TeX-master-output-file "log")))
     (and
      (when-let ((buf auctex-cont-latexmk--compilation-buffer))
        (with-current-buffer buf
-         (or
-          (progn
-            (goto-char (point-max))
-            (forward-line -1)
-            (re-search-forward
-             (rx (literal auctex-cont-latexmk--watching-str) (? ?\n) eos)
-             nil t))
-          (and (or
-                auctex-cont-latexmk--last-update-time
-                (time-less-p (time-subtract (current-time)
-                                            auctex-cont-latexmk--last-update-time)
-                             (seconds-to-time auctex-cont-latexmk--wait-time)))))))
+         (or (null auctex-cont-latexmk--last-update-time)
+             (let ((time-since-last-update
+                    (time-subtract (current-time) auctex-cont-latexmk--last-update-time)))
+               (time-less-p auctex-cont-latexmk--wait-time time-since-last-update)))))
      (not (buffer-modified-p))
      (file-exists-p file)
      (file-exists-p log-file)

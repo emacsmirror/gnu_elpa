@@ -2,15 +2,11 @@
 * Disproject
 
 Disproject is a package for Emacs that provides integration with ~project.el~
-and allows for dispatching various project-related commands via extendable
-Transient menus.
+and allows for dispatching various project-related commands via Transient menus.
 
 This package is similar to (and inspired by) the function
-~project-switch-project~, but attempts to make it more convenient than just a
-Transient-ified version.
-
-In addition to the Transient interface, some notable features include (but may
-not be limited to):
+~project-switch-project~, but attempts to make it even more convenient and
+featureful.  Some notable features include (but may not be limited to):
 - Auto-detecting the current project when starting Disproject.
 - Switching between only projects that have buffers open.
 - Displaying predefined compilation commands to execute, which can be set
@@ -54,9 +50,9 @@ setup using ~use-package~:
 :CUSTOM_ID: customization
 :END:
 
-Disproject also offers variables for customizing its interface.  Search
-=disproject= via =M-x customize-apropos= to see them and accompanying
-documentation.
+Disproject also offers variables for customizing its interface and underlying
+commands.  Search =disproject= via =M-x customize-apropos= to see them and
+accompanying documentation.
 
 # TODO: Is there a better way to document the note below?  It is important for
 # those that want to customize commands, but I feel like this is an awkward

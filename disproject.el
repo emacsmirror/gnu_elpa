@@ -262,9 +262,9 @@ a git repository."
             (git-repository? . ,git-repository?))))
     (if-let* ((write-scope?)
               (scope (disproject--scope nil t)))
-      (seq-each (pcase-lambda (`(,key . ,value))
-                  (setf (alist-get key scope) value))
-                new-scope))
+        (seq-each (pcase-lambda (`(,key . ,value))
+                    (setf (alist-get key scope) value))
+                  new-scope))
     new-scope))
 
 ;;;; Prefixes.

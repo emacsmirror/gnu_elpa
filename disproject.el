@@ -190,7 +190,21 @@ DIRECTORY is passed to `disproject--root-directory' as a
 
 FORCE-INIT? is an internal hack.  If it is t, it indicates that
 the scope should be set up for a completely new Transient,
-ignoring the previous Transient state."
+ignoring the previous Transient state.
+
+The specifications for the scope returned is an alist with keys
+and descriptions of their values as follows:
+
+\\='default-root-directory: the project root directory of
+`default-directory' (or the current buffer, in other words).
+
+\\='root-directory: the current project root directory selected
+in the Transient menu.
+
+\\='project: the project associated with \\='root-directory.
+
+\\='in-git-repository?: whether the currently selected project is
+a git repository."
   ;; FIXME: Transient scope can contain the previous `disproject-dispatch'
   ;; invocation's root directory (specifically after invoking a suffix), so
   ;; don't use `disproject--root-directory' if FORCE-INIT? is t.  Is this an

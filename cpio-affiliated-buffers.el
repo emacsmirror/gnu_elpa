@@ -1,8 +1,8 @@
-;;; cpio-affiliated-buffers.el --- Establish and manage buffers affiliated with each other. -*- coding: utf-8 -*-
+;;; cpio-affiliated-buffers.el --- Establish and manage buffers affiliated with each other. -*- lexical-binding:t; coding: utf-8 -*-
 
 ;; COPYRIGHT
 
-;; Copyright © 2019 Free Software Foundation, Inc.
+;; Copyright © 2019-2024 Free Software Foundation, Inc.
 ;; All rights reserved.
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -78,6 +78,10 @@
 ;;
 ;; Development
 ;;
+
+(eval-when-compile (require 'cl-lib))
+(with-suppressed-warnings ((lexical fname)) (defvar fname))
+
 (defun cab-setup-parenthood-check ()
   "Set up a simple situation where the parenthood check should error out."
   (let ((b0 (find-file-noselect "b0"))
@@ -167,9 +171,6 @@ It's not strictly a hook, but it pairs with the above kill-buffer-hook."
 ;;
 ;; Dependencies
 ;;
-(eval-when-compile
-  (require 'cl-lib))
-
 
 ;;
 ;; Vars
@@ -218,7 +219,7 @@ Return NIL if buffer is already affiliated to another parent."
 	     (local-set-key "\C-x\C-k" (lambda () (cab-deregister buffer))))
 	   (with-current-buffer parent
 	     (push buffer *cab-subordinates*)
-	     (add-hook 'kill-buffer-hook 'cab-kill-buffer-hook nil 'local)
+	     (add-hook 'kill-buffer-hook #'cab-kill-buffer-hook nil 'local)
 	     (local-set-key "\C-x\C-k" (lambda () (cab-deregister parent))))))))
 
 (defun cab-detect-parenthood-cycle (buffer parent)
@@ -276,7 +277,7 @@ if you want to lose registry information."
 	   (with-current-buffer buffer
 	     (setq parent *cab-parent*)
 	     (setq subordinates *cab-subordinates*))
-	   (mapc 'cab-deregister subordinates)
+	   (mapc #'cab-deregister subordinates)
 	   (if (and parent
 		    (bufferp parent)
 		    (buffer-live-p parent)
@@ -295,7 +296,7 @@ if you want to lose registry information."
     (with-current-buffer buffer
       (setq parent *cab-parent*)
       (setq subordinates *cab-subordinates*))
-    (mapc 'cab-simple-deregister subordinates)
+    (mapc #'cab-simple-deregister subordinates)
     (with-current-buffer parent
       (setq *cab-subordinates* (delete buffer *cab-subordinates*)))))
 

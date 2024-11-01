@@ -1,8 +1,8 @@
-;;; cpio-bin.el --- handle bin cpio entry header formats -*- coding: utf-8 -*-
+;;; cpio-bin.el --- handle bin cpio entry header formats -*- lexical-binding:t; coding: utf-8 -*-
 
 ;; COPYRIGHT
 ;;
-;; Copyright © 2019-2020 Free Software Foundation, Inc.
+;; Copyright © 2019-2024 Free Software Foundation, Inc.
 ;; All rights reserved.
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -30,6 +30,8 @@
 ;;; Documentation:
 
 ;;; Code:
+
+(with-suppressed-warnings ((lexical fname)) (defvar fname))
 
 ;;
 ;; Dependencies
@@ -61,62 +63,48 @@
 ;; Vars
 ;;
 
-(defconst *cpio-bin-header-length* (length (string-as-unibyte "\307q\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"))
+(defconst *cpio-bin-header-length* (length (string-to-unibyte "\307q\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"))
   "The length of a bin header.")
 
 ;; \307q\0\375c\9\244\201\350\3\350\3\1\0\0\0\377Z\320q\2\0\0\0\4\0a\0
 ;; \307q \0\375 c\9 \244\201 \350\3 \350\3 \1\0 \0\0 \377Z\320q \2\0 \0\0\4\0 a\0
 (defconst *cpio-bin-magic-re* "\307q" ; 070707 \307q
   "RE to match the magic number of a bin archive.")
-(setq *cpio-bin-magic-re* "\307q")
 
 (defconst *cpio-bin-dev-re* "\\w\\w"
   "RE to match the c_dev field in a bin header.")
-(setq *cpio-bin-dev-re* "\\w\\w")
 
 (defconst *cpio-bin-ino-re* "\\w\\w"
   "RE to match the c_ino field in a bin header.")
-(setq *cpio-bin-ino-re* "\\w\\w")
 
 (defconst *cpio-bin-mode-re* "\\w\\w"
   "RE to match the c_mode field in a bin header.")
-(setq *cpio-bin-mode-re* "\\w\\w")
 
 (defconst *cpio-bin-uid-re* "\\w\\w"
   "RE to match the c_uid field in a bin header.")
-(setq *cpio-bin-uid-re* "\\w\\w")
 
 (defconst *cpio-bin-gid-re* "\\w\\w"
   "RE to match the c_gid field in a bin header.")
-(setq *cpio-bin-gid-re* "\\w\\w")
 
 (defconst *cpio-bin-nlink-re* "\\w\\w"
   "RE to match the c_nlink field in a bin header.")
-(setq *cpio-bin-nlink-re* "\\w\\w")
 
 (defconst *cpio-bin-rdev-re* "\\w\\w"
   "RE to match the c_rdev field in a bin header.")
-(setq *cpio-bin-rdev-re* "\\w\\w")
 
 (defconst *cpio-bin-mtime-re* "\\w\\w\\w\\w"
   "RE to match the c_mtime field in a bin header.")
-(setq *cpio-bin-mtime-re* "\\w\\w\\w\\w")
 
 (defconst *cpio-bin-namesize-re* "\\w\\w"
   "RE to match the c_rdev field in a bin header.")
-(setq *cpio-bin-rdev-re* "\\w\\w")
 
 (defconst *cpio-bin-filesize-re* "\\w\\w\\w\\w"
   "RE to match the c_filesize field in a bin header.")
-(setq *cpio-bin-filesize-re* "\\w\\w\\w\\w")
 
-(defconst *cpio-bin-filename-re* ()
+(defconst *cpio-bin-filename-re* "[[:print:]]+"
   "RE to match a filename in a bin header.")
-(setq *cpio-bin-filename-re* "[[:print:]]+")
 
-(defconst *cpio-bin-header-re* ()
-  "RE to match bin header format cpio archives.")
-(setq *cpio-bin-header-re* (concat "\\(" *cpio-bin-magic-re*    "\\)"
+(defconst *cpio-bin-header-re*  (concat "\\(" *cpio-bin-magic-re*    "\\)"
 				   "\\(" *cpio-bin-dev-re*      "\\)"
 				   "\\(" *cpio-bin-ino-re*      "\\)"
 				   "\\(" *cpio-bin-mode-re*     "\\)"
@@ -128,25 +116,13 @@
 				   "\\(" *cpio-bin-namesize-re* "\\)"
 				   "\\(" *cpio-bin-filesize-re* "\\)"
 				   "\\(" *cpio-bin-filename-re* "\\)"
-				   "\0"))
+				   "\0")
+  "RE to match bin header format cpio archives.")
 
 (defvar  *cpio-bin-name-field-offset* (length "\307q\0\375z\r\244\201\350\350\0\0\0[\211\255\0\0\0\0")
   "The offset of the name field in a cpio binary header.")
 
 (defconst cpio-bin-index-spec
-  '(;; (:magic	u16)
-    (:dev	u16)
-    (:ino	u16)
-    (:mode	u16)
-    (:uid	u16)
-    (:gid	u16)
-    (:nlink	u16)
-    (:rdev	u16)
-    (:mtime	u32)
-    (:namesize	u16)
-    (:filesize	u32)
-    (:filename	strz (:namesize))))
-(setq cpio-bin-index-spec
   '((:magic	u16r)
     (:dev	u16r)
     (:ino	u16r)
@@ -164,27 +140,23 @@
 
 (defconst *cpio-bin-magic* *cpio-bin-magic-re*
   "The string that identifies an entry as a BIN style cpio(1) entry.")
-(setq *cpio-bin-magic* *cpio-bin-magic-re*)
 
 (defconst *cpio-bin-magic-int* #o070707
   "An integer value of the cpio bin magic number.")
 
 (defconst *cpio-bin-padding-modulus* 2
   "The modulus to which some things are padded in a BIN cpio archive.")
-(setq *cpio-bin-padding-modulus* 2)
 
 (defconst *cpio-bin-padding-char* ?\0
   "A character to be used for padding headers and entry contents
 in a bin cpio archive.")
-(setq *cpio-bin-padding-char* ?\0)
 
 (defconst *cpio-bin-padding-str* "\0"
   "A single character string of the character
 to be used for padding headers and entry contents
 in a bin cpio archive.")
-(setq *cpio-bin-padding-str* "\0")
 
-(defconst *cpio-bin-trailer* (string-as-unibyte "\307q\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0TRAILER!!!\0\0")
+(defconst *cpio-bin-trailer* (string-to-unibyte "\307q\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0TRAILER!!!\0\0")
   "The TRAILER string of a cpio binary archive.")
   
 (defcustom *cpio-bin-blocksize* 512
@@ -211,13 +183,14 @@ CAVEATS:
 	(found nil))
     (save-match-data
       (cond ((looking-at *cpio-bin-header-re*)
-	     (string-as-unibyte (match-string-no-properties 0)))
+	     ;; FIXME: Why isn't it already unibyte?
+	     (string-to-unibyte (match-string-no-properties 0)))
 	    (t
 	     (forward-char (length *cpio-bin-magic-re*))
 	     (while (and (re-search-backward *cpio-bin-magic-re* (point-min) t)
 			 (not (setq found (looking-at *cpio-bin-header-re*)))))
 	     (if found
-		 (string-as-unibyte (match-string-no-properties 0))))))))
+		 (string-to-unibyte (match-string-no-properties 0))))))))
 
 (defun cpio-bin-parse-header (header-string)
   "Return the internal entry header structure encoded in HEADER-STRING.
@@ -350,7 +323,7 @@ This function does NOT include the contents."
   "Return an 8 digit hex string for the filesize attribute among the given ATTRs."
   (let ((fname "cpio-bin-make-filesize")
 	(filesize (cpio-entry-size attrs)))
-    (cons (lsh (logand #xFFFF0000 filesize) 8)
+    (cons (ash (logand #xFFFF0000 filesize) 8)
 	       (logand #xFFFF filesize))))
 
 (defun cpio-bin-make-dev-maj (attrs)
@@ -390,7 +363,7 @@ If there is no header there, then signal an error."
   (let ((fname "cpio-bin-parse-header-at-point"))
     (unless (looking-at-p *cpio-bin-header-re*)
       (error "%s(): point is not looking at a bin header." fname))
-    (cpio-bin-parse-header (string-as-unibyte (match-string-no-properties 0)))))
+    (cpio-bin-parse-header (string-to-unibyte (match-string-no-properties 0)))))
 
 (defun cpio-bin-goto-next-header ()
   "Move the point to the beginning of the next bin cpio header.

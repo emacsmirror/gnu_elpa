@@ -1,8 +1,8 @@
-;;; cpio-odc.el --- handle old portable cpio entry header format. -*- coding: utf-8 -*-
+;;; cpio-odc.el --- handle old portable cpio entry header format. -*- lexical-binding:t; coding: utf-8 -*-
 
 ;; COPYRIGHT
 ;;
-;; Copyright © 2019-2020 Free Software Foundation, Inc.
+;; Copyright © 2019-2024 Free Software Foundation, Inc.
 ;; All rights reserved.
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -39,6 +39,8 @@
 ;; (load-file (concat default-directory "cpio-generic.el"))
 
 (eval-when-compile (require 'cpio-generic)) ;For `with-writable-buffer'!
+
+(with-suppressed-warnings ((lexical fname)) (defvar fname))
 
 ;;;;;;;;;;;;;;;;
 ;; Things to make the byte compiler happy.
@@ -95,59 +97,44 @@
 
 (defconst *cpio-odc-magic-re* "070707"
   "RE to match the magic number of a odc archive.")
-(setq *cpio-odc-magic-re* "070707")
 
 (defconst *cpio-odc-field-width* 6
   "The width of all of the fields in a odc header.")
-(setq *cpio-odc-field-width* 6)
 
 (defconst *cpio-odc-ino-re*	 (format "[0-7]\\{%d\\}" *cpio-odc-field-width*)
   "RE to match the c_ino field in a odc header.")
-(setq *cpio-odc-ino-re*		 (format "[0-7]\\{%d\\}" *cpio-odc-field-width*))
 
 (defconst *cpio-odc-dev-re*	 (format "[0-7]\\{%d\\}" *cpio-odc-field-width*)
   "RE to match the c_dev field in a odc header.")
-(setq *cpio-odc-dev-re*		 (format "[0-7]\\{%d\\}" *cpio-odc-field-width*))
 
 (defconst *cpio-odc-mode-re*	 (format "[0-7]\\{%d\\}" *cpio-odc-field-width*)
   "RE to match the c_mode field in a odc header.")
-(setq *cpio-odc-mode-re*	 (format "[0-7]\\{%d\\}" *cpio-odc-field-width*))
 
 (defconst *cpio-odc-uid-re*	 (format "[0-7]\\{%d\\}" *cpio-odc-field-width*)
   "RE to match the c_uid field in a odc header.")
-(setq *cpio-odc-uid-re*		 (format "[0-7]\\{%d\\}" *cpio-odc-field-width*))
 
 (defconst *cpio-odc-gid-re*	 (format "[0-7]\\{%d\\}" *cpio-odc-field-width*)
   "RE to match the c_gid field in a odc header.")
-(setq *cpio-odc-gid-re*		 (format "[0-7]\\{%d\\}" *cpio-odc-field-width*))
 
 (defconst *cpio-odc-nlink-re*	 (format "[0-7]\\{%d\\}" *cpio-odc-field-width*)
   "RE to match the c_nlink field in a odc header.")
-(setq *cpio-odc-nlink-re*	 (format "[0-7]\\{%d\\}" *cpio-odc-field-width*))
 
 (defconst *cpio-odc-rdev-re*	 (format "[0-7]\\{%d\\}" *cpio-odc-field-width*)
   "RE to match the c_rdev field in a odc header.")
-(setq *cpio-odc-rdev-re*	 (format "[0-7]\\{%d\\}" *cpio-odc-field-width*))
 
 (defconst *cpio-odc-mtime-re*		 "[0-7]\\{11\\}"
   "RE to match the c_mtime field in a odc header.")
-(setq *cpio-odc-mtime-re*		 "[0-7]\\{11\\}")
 
 (defconst *cpio-odc-namesize-re* (format "[0-7]\\{%d\\}" *cpio-odc-field-width*)
   "RE to match the c_namesize field in a odc header.")
-(setq *cpio-odc-namesize-re*	 (format "[0-7]\\{%d\\}" *cpio-odc-field-width*))
 
 (defconst *cpio-odc-filesize-re*	 "[0-7]\\{11\\}"
   "RE to match the c_filesize field in a odc header.")
-(setq *cpio-odc-filesize-re*		 "[0-7]\\{11\\}")
 
 (defconst *cpio-odc-filename-re* "[[:print:]]+"
   "RE to match the c_filename field in a odc header.")
-(setq *cpio-odc-filename-re* "[[:print:]]+")
 
-(defconst *cpio-odc-header-re* ()
-  "RE to match odc header format cpio archives.")
-(setq *cpio-odc-header-re* (concat "\\(" *cpio-odc-magic-re*	"\\)"
+(defconst *cpio-odc-header-re* (concat "\\(" *cpio-odc-magic-re*	"\\)"
 				   "\\(" *cpio-odc-dev-re*	"\\)"
 				   "\\(" *cpio-odc-ino-re*	"\\)"
 				   "\\(" *cpio-odc-mode-re*	"\\)"
@@ -161,56 +148,45 @@
 				   "\\(" *cpio-odc-namesize-re* "\\)"
 				   "\\(" *cpio-odc-filesize-re* "\\)"
 				   "\\(" *cpio-odc-filename-re* "\\)"
-				   "\0"))
+				   "\0")
+  "RE to match odc header format cpio archives.")
 
 (let ((i 0))
-  (defconst *cpio-odc-magic-re-idx* 0
+  (defconst *cpio-odc-magic-re-idx* (setq i (1+ i))
     "RE to match the magic number in a odc header.")
-  (setq *cpio-odc-magic-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-odc-dev-re-idx* 0
+  (defconst *cpio-odc-dev-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-odc-header-re* to parse the dev.")
-  (setq *cpio-odc-dev-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-odc-ino-re-idx* 0
+  (defconst *cpio-odc-ino-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-odc-header-re* to parse the inode.")
-  (setq *cpio-odc-ino-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-odc-mode-re-idx* 0
+  (defconst *cpio-odc-mode-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-odc-header-re* to parse the mode.")
-  (setq *cpio-odc-mode-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-odc-uid-re-idx* 0
+  (defconst *cpio-odc-uid-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-odc-header-re* to parse the UID.")
-  (setq *cpio-odc-uid-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-odc-gid-re-idx* 0
+  (defconst *cpio-odc-gid-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-odc-header-re* to parse the GID.")
-  (setq *cpio-odc-gid-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-odc-nlink-re-idx* 0
+  (defconst *cpio-odc-nlink-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-odc-header-re* to parse the nlink.")
-  (setq *cpio-odc-nlink-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-odc-rdev-re-idx* 0
+  (defconst *cpio-odc-rdev-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-odc-header-re* to parse the rdev.")
-  (setq *cpio-odc-rdev-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-odc-mtime-re-idx* 0
+  (defconst *cpio-odc-mtime-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-odc-header-re* to parse the mtime.")
-  (setq *cpio-odc-mtime-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-odc-namesize-re-idx* 0
+  (defconst *cpio-odc-namesize-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-odc-header-re* to parse the namesize.")
-  (setq *cpio-odc-namesize-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-odc-filesize-re-idx* 0
+  (defconst *cpio-odc-filesize-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-odc-header-re* to parse the filesize.")
-  (setq *cpio-odc-filesize-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-odc-filename-re-idx* 0
-    "Index of the sub RE from *cpio-odc-header-re* to parse the filename.")
-  (setq *cpio-odc-filename-re-idx* (setq i (1+ i))))
+  (defconst *cpio-odc-filename-re-idx* (setq i (1+ i))
+    "Index of the sub RE from *cpio-odc-header-re* to parse the filename."))
 ;;
 ;; EO odc header variables.
 ;;
@@ -220,67 +196,49 @@
 ;; *cpio-odc-magic-re*
 (defconst *cpio-odc-magic* *cpio-odc-magic-re*
   "The string that identifies an entry as a ODC style cpio(1) entry.")
-(setq *cpio-odc-magic* *cpio-odc-magic-re*)
 
 (defconst *cpio-odc-field-width* 6
   "The width of all of the fields in a odc header.")
-(setq *cpio-odc-field-width* 6)
 
 (defconst *cpio-odc-padding-modulus* 2
   "The modulus to which some things are padded in a ODC cpio archive.")
-(setq *cpio-odc-padding-modulus* 2)
 
 (defconst *cpio-odc-padding-char* ?\0
   "A character to be used for padding headers and entry contents
 in a odc cpio archive.")
-(setq *cpio-odc-padding-char* ?\0)
 
 (defconst *cpio-odc-padding-str* "\0"
   "A single character string of the character
 to be used for padding headers and entry contents
 in a odc cpio archive.")
-(setq *cpio-odc-padding-str* "\0")
 
 (let ((offset-so-far 0))
   (defconst *cpio-odc-magic-field-offset* offset-so-far)
-  (setq *cpio-odc-magic-field-offset* offset-so-far)
 
-  (defconst *cpio-odc-dev-field-offset*	     ())
-  (setq *cpio-odc-dev-field-offset*	     (setq offset-so-far (+ offset-so-far (length *cpio-odc-magic*))))
+  (defconst *cpio-odc-dev-field-offset*	     (setq offset-so-far (+ offset-so-far (length *cpio-odc-magic*))))
 
-  (defconst *cpio-odc-ino-field-offset*	     ())
-  (setq *cpio-odc-ino-field-offset*	     (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
+  (defconst *cpio-odc-ino-field-offset*	     (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
 
-  (defconst *cpio-odc-mode-field-offset*     ())
-  (setq *cpio-odc-mode-field-offset*	     (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
+  (defconst *cpio-odc-mode-field-offset*     (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
 
-  (defconst *cpio-odc-uid-field-offset*	     ())
-  (setq *cpio-odc-uid-field-offset*	     (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
+  (defconst *cpio-odc-uid-field-offset*	     (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
 
-  (defconst *cpio-odc-gid-field-offset*	     ())
-  (setq *cpio-odc-gid-field-offset*	     (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
+  (defconst *cpio-odc-gid-field-offset*	     (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
 
-  (defconst *cpio-odc-nlink-field-offset*    ())
-  (setq *cpio-odc-nlink-field-offset*	     (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
+  (defconst *cpio-odc-nlink-field-offset*    (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
 
-  (defconst *cpio-odc-rdev-field-offset*     ())
-  (setq *cpio-odc-rdev-field-offset*	     (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
+  (defconst *cpio-odc-rdev-field-offset*     (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
 
-  (defconst *cpio-odc-mtime-field-offset*    ())
-  (setq *cpio-odc-mtime-field-offset*	     (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
+  (defconst *cpio-odc-mtime-field-offset*    (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
 
-  (defconst *cpio-odc-namesize-field-offset* ())
-  (setq *cpio-odc-namesize-field-offset*     (setq offset-so-far (+ offset-so-far 11)))
+  (defconst *cpio-odc-namesize-field-offset* (setq offset-so-far (+ offset-so-far 11)))
 
-  (defconst *cpio-odc-filesize-field-offset* ())
-  (setq *cpio-odc-filesize-field-offset*     (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
+  (defconst *cpio-odc-filesize-field-offset* (setq offset-so-far (+ offset-so-far *cpio-odc-field-width*)))
 
-  (defconst *cpio-odc-name-field-offset*     ())
-  (setq *cpio-odc-name-field-offset*	     (setq offset-so-far (+ offset-so-far 11))))
+  (defconst *cpio-odc-name-field-offset*     (setq offset-so-far (+ offset-so-far 11))))
 
 (defconst *cpio-odc-trailer* "0707070000000000000000000000000000000000010000000000000000000001300000000000TRAILER!!!\0"
   "The TRAILER string for a odc archive.")
-(setq *cpio-odc-trailer* "0707070000000000000000000000000000000000010000000000000000000001300000000000TRAILER!!!\0")
 
 
 (defcustom *cpio-odc-blocksize* 512
@@ -414,9 +372,8 @@ This function does NOT get the contents."
   (let* ((fname "cpio-odc-parse-mtime")
 	 (this-offset *cpio-odc-mtime-field-offset*)
 	 (end-offset (+ this-offset 11))
-	 (time-value ()))
-    (setq time-value (string-to-number (substring header-string this-offset end-offset) 8))
-    (setq time-value (list (lsh (logand #xFFFF0000 time-value) -16) (logand #xFFFF)))))
+	 (time-value (string-to-number (substring header-string this-offset end-offset) 8)))
+    (list (ash (logand #xFFFF0000 time-value) -16) (logand #xFFFF))))
 
 (defun cpio-odc-parse-filesize (header-string)
   "Get the filesize from the HEADER-STRING."
@@ -448,7 +405,7 @@ This function does NOT get the contents."
 
 (defun cpio-odc-parse-name (header-string namesize)
   "Get the name field from HEADER-STRING.
-N.B. When called with the correct namesize, this includes the terminating \0."
+N.B. When called with the correct namesize, this includes the terminating \\0."
   (let* ((fname "cpio-odc-parse-name")
 	 (this-offset *cpio-odc-name-field-offset*)
 	 (tmp-string (substring header-string this-offset (+ this-offset namesize -1))))

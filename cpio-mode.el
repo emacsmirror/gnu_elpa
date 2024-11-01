@@ -1,4 +1,4 @@
-;;; cpio-mode.el --- Handle cpio archives in the style of dired. -*- coding: utf-8 -*-
+;;; cpio-mode.el --- Handle cpio archives in the style of dired -*- lexical-binding:t; coding: utf-8 -*-
 
 ;; Author: Douglas Lewan <d.lewan2000@gmail.com>
 ;; Maintainer: Douglas Lewan <d.lewan2000@gmail.com>
@@ -9,7 +9,7 @@
 ;; Package-Type: multi
 ;; Keywords: files
 
-;; Copyright © 2019-2020 Free Software Foundation, Inc.
+;; Copyright © 2019-2024 Free Software Foundation, Inc.
 ;; All rights reserved.
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -247,6 +247,8 @@
 (require 'cpio-odc)
 (require 'cpio-dired)
 ;; (require 'cpio-entry-contents-mode) ;;FIXME: missing file?
+
+(with-suppressed-warnings ((lexical fname)) (defvar fname))
 
 ;; Formats not supported:
 ;;   (require 'cpio-tar)

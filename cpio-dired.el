@@ -1,8 +1,8 @@
-;;; cpio-dired.el --- UI definition à la dired. -*- coding: utf-8 -*-
+;;; cpio-dired.el --- UI definition à la dired. -*- lexical-binding:t; coding: utf-8 -*-
 
 ;; COPYRIGHT
 
-;; Copyright © 2019-2020 Free Software Foundation, Inc.
+;; Copyright © 2019-2024 Free Software Foundation, Inc.
 ;; All rights reserved.
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -38,6 +38,8 @@
 ;;   is adding a file to the archive.
 
 ;;; Code:
+
+(with-suppressed-warnings ((lexical fname)) (defvar fname))
 
 
 ;;
@@ -80,7 +82,7 @@ Keep any preceding comments."
 		  defuns))
     (setq sorted-list (sort sortable-list (lambda (l r)
 					    (string-lessp (car l) (car r)))))
-    (mapcar 'cdr sorted-list)))
+    (mapcar #'cdr sorted-list)))
 
 (defun sort-defuns-in-buffer ()         ;FIXME: Namespace!
   "Replace the visible portion of the current buffer with its defuns, but sorted."
@@ -562,7 +564,6 @@ Important: the match ends just after the marker.")
 
 (defconst *cpio-dirline-re* "^..d"
   "Regular expression to match an entry for a directory.")
-(setq *cpio-dirline-re* "^..d")
 
 
 (defvar *cpio-dired-copy-history* ()
@@ -773,7 +774,7 @@ Important: the match ends just after the marker.")
     (if *cab-parent*
 	(with-current-buffer *cab-parent*
 	  (cpio-internal-do-deletions l))
-      (mapc 'cpio-internal-do-deletion l))))
+      (mapc #'cpio-internal-do-deletion l))))
 
 (defun cpio-internal-do-deletion (entry-name)
   "Remove the entry with name ENTRY-NAME from a cpio-archive.
@@ -1179,7 +1180,7 @@ You can then feed the entry name(s) to other commands with C-y."
     (unless (eq major-mode 'cpio-dired-mode)
       (error "%s(): You're not in a cpio dired buffer." fname))
     (if names
-	(mapc 'kill-new names)
+	(mapc #'kill-new names)
       (save-excursion
 	(while (and (> arg 0)
 		    (< (point) (point-max)))

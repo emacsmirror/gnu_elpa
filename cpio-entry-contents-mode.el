@@ -1,8 +1,8 @@
-;;; cpio-entry-contents-mode.el --- minor mode for editing a cpio-entry's contents. -*- coding: utf-8 -*-
+;;; cpio-entry-contents-mode.el --- minor mode for editing a cpio-entry's contents. -*- lexical-binding:t; coding: utf-8 -*-
 
 ;; COPYRIGHT
 ;;
-;; Copyright © 2019 Free Software Foundation, Inc.
+;; Copyright © 2019, 2024 Free Software Foundation, Inc.
 ;; All rights reserved.
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -32,6 +32,8 @@
 ;;; Documentation:
 
 ;;; Code:
+
+(with-suppressed-warnings ((lexical fname)) (defvar fname))
 
 ;;
 ;; Hacks

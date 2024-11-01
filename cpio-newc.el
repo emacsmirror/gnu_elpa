@@ -1,8 +1,8 @@
-;;; cpio-newc.el --- handle portable newc cpio archives. -*- coding: utf-8 -*-
+;;; cpio-newc.el --- handle portable newc cpio archives  -*- coding: utf-8; lexical-binding: t -*-
 
 ;; COPYRIGHT
 ;;
-;; Copyright © 2019-2020 Free Software Foundation, Inc.
+;; Copyright © 2019-2024 Free Software Foundation, Inc.
 ;; All rights reserved.
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -63,6 +63,7 @@
 
 ;;;;;;;;;;;;;;;;
 ;; Things to make the byte compiler happy.
+(with-suppressed-warnings ((lexical fname)) (defvar fname))
 (defvar *cpio-catalog*)
 (defvar *cpio-padding-modulus*)
 (declare-function cpio-entry-name "cpio-mode.el")
@@ -96,71 +97,50 @@
 ;; MAINTENANCE The following must remain in synch with *cpio-newc-header-re*.
 (defconst *cpio-newc-magic-re* "070701"
   "RE to match the magic number of a newc archive.")
-(setq *cpio-newc-magic-re* "070701")
 
 (defconst *cpio-newc-ino-re* "[[:xdigit:]]\\{8\\}"
   "RE to match the c_ino field in a newc header.")
-(setq *cpio-newc-ino-re* "[[:xdigit:]]\\{8\\}")
 
 (defconst *cpio-newc-mode-re* "[[:xdigit:]]\\{8\\}"
   "RE to match the c_mode field in a newc header.")
-(setq *cpio-newc-mode-re* "[[:xdigit:]]\\{8\\}")
 
 (defconst *cpio-newc-uid-re* "[[:xdigit:]]\\{8\\}"
   "RE to match the c_uid field in a newc header.")
-(setq *cpio-newc-uid-re* "[[:xdigit:]]\\{8\\}")
 
 (defconst *cpio-newc-gid-re* "[[:xdigit:]]\\{8\\}"
   "RE to match the c_gid field in a newc header.")
-(setq *cpio-newc-gid-re* "[[:xdigit:]]\\{8\\}")
 
 (defconst *cpio-newc-nlink-re* "[[:xdigit:]]\\{8\\}"
   "RE to match the c_nlink field in a newc header.")
-(setq *cpio-newc-nlink-re* "[[:xdigit:]]\\{8\\}")
 
 (defconst *cpio-newc-mtime-re* "[[:xdigit:]]\\{8\\}"
   "RE to match the c_mtime field in a newc header.")
-(setq *cpio-newc-mtime-re* "[[:xdigit:]]\\{8\\}")
 
 (defconst *cpio-newc-filesize-re* "[[:xdigit:]]\\{8\\}"
   "RE to match the c_filesize field in a newc header.")
-(setq *cpio-newc-filesize-re* "[[:xdigit:]]\\{8\\}")
 
 (defconst *cpio-newc-dev-maj-re* "[[:xdigit:]]\\{8\\}"
   "RE to match the c_dev field in a newc header.")
-(setq *cpio-newc-dev-maj-re* "[[:xdigit:]]\\{8\\}")
 
 (defconst *cpio-newc-dev-min-re* "[[:xdigit:]]\\{8\\}"
   "RE to match the c_dev field in a newc header.")
-(setq *cpio-newc-dev-min-re* "[[:xdigit:]]\\{8\\}")
 
 (defconst *cpio-newc-rdev-maj-re* "[[:xdigit:]]\\{8\\}"
   "RE to match the c_rdev field in a newc header.")
-(setq *cpio-newc-rdev-maj-re* "[[:xdigit:]]\\{8\\}")
 
 (defconst *cpio-newc-rdev-min-re* "[[:xdigit:]]\\{8\\}"
   "RE to match the c_rdev field in a newc header.")
-(setq *cpio-newc-rdev-min-re* "[[:xdigit:]]\\{8\\}")
-
-(defconst *cpio-newc-rdev-min-re* "[[:xdigit:]]\\{8\\}"
-  "RE to match the c_rdev field in a newc header.")
-(setq *cpio-newc-rdev-min-re* "[[:xdigit:]]\\{8\\}")
 
 (defconst *cpio-newc-namesize-re* "[[:xdigit:]]\\{8\\}"
   "RE to match the c_namesize field in a newc header.")
-(setq *cpio-newc-namesize-re* "[[:xdigit:]]\\{8\\}")
 
 (defconst *cpio-newc-chksum-re*	 "[[:xdigit:]]\\{8\\}"
   "RE to match the CRC checksum in a newc header.")
-(setq *cpio-newc-chksum-re* "[[:xdigit:]]\\{8\\}")
 
 (defconst *cpio-newc-filename-re* "[[:print:]]+"
   "RE to match the c_filename field in a newc header.")
-(setq *cpio-newc-filename-re* "[[:print:]]+")
 
-(defconst *cpio-newc-header-re* ()
-  "RE to match newc header format cpio archives.")
-(setq *cpio-newc-header-re* (concat "\\(" *cpio-newc-magic-re*	  "\\)"
+(defconst *cpio-newc-header-re*  (concat "\\(" *cpio-newc-magic-re*	  "\\)"
 				    "\\(" *cpio-newc-ino-re*	  "\\)"
 				    "\\(" *cpio-newc-mode-re*	  "\\)"
 				    "\\(" *cpio-newc-uid-re*	  "\\)"
@@ -177,68 +157,54 @@
 				    "\\(" *cpio-newc-namesize-re* "\\)"
 				    "\\(" *cpio-newc-chksum-re*	  "\\)"
 				    "\\(" *cpio-newc-filename-re* "\\)"
-				    "\0"))
+				    "\0")
+  "RE to match newc header format cpio archives.")
 
 (let ((i 0))
-  (defconst *cpio-newc-magic-re-idx* 0	; (setq i (1+ i))
+  (defconst *cpio-newc-magic-re-idx* (setq i (1+ i))
     "RE to match the magic number in a newc header.")
-  (setq *cpio-newc-magic-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-newc-ino-re-idx* 0	; (setq i (1+ i))
+  (defconst *cpio-newc-ino-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-newc-header-re* to parse the inode.")
-  (setq *cpio-newc-ino-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-newc-mode-re-idx* 0	; (setq i (1+ i))
+  (defconst *cpio-newc-mode-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-newc-header-re* to parse the mode.")
-  (setq *cpio-newc-mode-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-newc-uid-re-idx* 0	; (setq i (1+ i))
+  (defconst *cpio-newc-uid-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-newc-header-re* to parse the UID.")
-  (setq *cpio-newc-uid-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-newc-gid-re-idx* 0	; (setq i (1+ i))
+  (defconst *cpio-newc-gid-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-newc-header-re* to parse the GID.")
-  (setq *cpio-newc-gid-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-newc-nlink-re-idx* 0	; (setq i (1+ i))
+  (defconst *cpio-newc-nlink-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-newc-header-re* to parse the nlink.")
-  (setq *cpio-newc-nlink-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-newc-mtime-re-idx* 0	; (setq i (1+ i))
+  (defconst *cpio-newc-mtime-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-newc-header-re* to parse the mtime.")
-  (setq *cpio-newc-mtime-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-newc-filesize-re-idx* 0 ; (setq i (1+ i))
+  (defconst *cpio-newc-filesize-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-newc-header-re* to parse the filesize.")
-  (setq *cpio-newc-filesize-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-newc-dev-maj-re-idx* 0	; (setq i (1+ i))
+  (defconst *cpio-newc-dev-maj-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-newc-header-re* to parse the dev.")
-  (setq *cpio-newc-dev-maj-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-newc-dev-min-re-idx* 0	; (setq i (1+ i))
+  (defconst *cpio-newc-dev-min-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-newc-header-re* to parse the dev.")
-  (setq *cpio-newc-dev-min-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-newc-rdev-maj-re-idx* 0	; (setq i (1+ i))
+  (defconst *cpio-newc-rdev-maj-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-newc-header-re* to parse the rdev.")
-  (setq *cpio-newc-rdev-maj-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-newc-rdev-min-re-idx* 0	; (setq i (1+ i))
+  (defconst *cpio-newc-rdev-min-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-newc-header-re* to parse the rdev.")
-  (setq *cpio-newc-rdev-min-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-newc-namesize-re-idx* 0 ; (setq i (1+ i))
+  (defconst *cpio-newc-namesize-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-newc-header-re* to parse the namesize.")
-  (setq *cpio-newc-namesize-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-newc-chksum-re-idx* 0 ; (setq i (1+ i))
+  (defconst *cpio-newc-chksum-re-idx* (setq i (1+ i))
     "Index of the sub RE from *cpio-newc-header-re* to parse the chksum.")
-  (setq *cpio-newc-chksum-re-idx* (setq i (1+ i)))
 
-  (defconst *cpio-newc-filename-re-idx* 0 ; (setq i (1+ i))
-    "Index of the sub RE from *cpio-newc-header-re* to parse the namesize.")
-  (setq *cpio-newc-filename-re-idx* (setq i (1+ i))))
+  (defconst *cpio-newc-filename-re-idx* (setq i (1+ i))
+    "Index of the sub RE from *cpio-newc-header-re* to parse the namesize."))
 ;;
 ;; EO newc header variables.
 ;;
@@ -247,73 +213,53 @@
 ;; *cpio-newc-magic-re*
 (defconst *cpio-newc-magic* *cpio-newc-magic-re*
   "The string that identifies an entry as a NEWC style cpio(1) entry.")
-(setq *cpio-newc-magic* *cpio-newc-magic-re*)
 
 (defconst *cpio-newc-field-width* 8
   "The width of all of the fields in a newc header.")
-(setq *cpio-newc-field-width* 8)
 
 (defconst *cpio-newc-padding-modulus* 4
   "The modulus to which some things are padded in a NEWC cpio archive.")
-(setq *cpio-newc-padding-modulus* 4)
 
 (defconst *cpio-newc-padding-char* ?\0
   "A character to be used for padding headers and entry contents
 in a newc cpio archive.")
-(setq *cpio-newc-padding-char* ?\0)
 
 (defconst *cpio-newc-padding-str* "\0"
   "A single character string of the character
 to be used for padding headers and entry contents
 in a newc cpio archive.")
-(setq *cpio-newc-padding-str* "\0")
 
 (let ((i 0)
       (l (length *cpio-newc-magic-re*)))
   (defconst *cpio-newc-magic-field-offset* i)
-  (setq *cpio-newc-magic-field-offset* i)
   (setq i (1+ i))
-  (defconst *cpio-newc-ino-field-offset*      (+ l (* *cpio-newc-field-width* i)))
-  (setq *cpio-newc-ino-field-offset*	      (+ l (* *cpio-newc-field-width* (1- i))))
+  (defconst *cpio-newc-ino-field-offset*      (+ l (* *cpio-newc-field-width* (1- i))))
   (setq i (1+ i))
-  (defconst *cpio-newc-mode-field-offset*     (+ l (* *cpio-newc-field-width* i)))
-  (setq *cpio-newc-mode-field-offset*	      (+ l (* *cpio-newc-field-width* (1- i))))
+  (defconst *cpio-newc-mode-field-offset*     (+ l (* *cpio-newc-field-width* (1- i))))
   (setq i (1+ i))
-  (defconst *cpio-newc-uid-field-offset*      (+ l (* *cpio-newc-field-width* i)))
-  (setq *cpio-newc-uid-field-offset*	      (+ l (* *cpio-newc-field-width* (1- i))))
+  (defconst *cpio-newc-uid-field-offset*      (+ l (* *cpio-newc-field-width* (1- i))))
   (setq i (1+ i))
-  (defconst *cpio-newc-gid-field-offset*      (+ l (* *cpio-newc-field-width* i)))
-  (setq *cpio-newc-gid-field-offset*	      (+ l (* *cpio-newc-field-width* (1- i))))
+  (defconst *cpio-newc-gid-field-offset*      (+ l (* *cpio-newc-field-width* (1- i))))
   (setq i (1+ i))
-  (defconst *cpio-newc-nlink-field-offset*    (+ l (* *cpio-newc-field-width* i)))
-  (setq *cpio-newc-nlink-field-offset*	      (+ l (* *cpio-newc-field-width* (1- i))))
+  (defconst *cpio-newc-nlink-field-offset*    (+ l (* *cpio-newc-field-width* (1- i))))
   (setq i (1+ i))
-  (defconst *cpio-newc-mtime-field-offset*    (+ l (* *cpio-newc-field-width* i)))
-  (setq *cpio-newc-mtime-field-offset*	      (+ l (* *cpio-newc-field-width* (1- i))))
+  (defconst *cpio-newc-mtime-field-offset*    (+ l (* *cpio-newc-field-width* (1- i))))
   (setq i (1+ i))
-  (defconst *cpio-newc-filesize-field-offset* (+ l (* *cpio-newc-field-width* i)))
-  (setq *cpio-newc-filesize-field-offset*     (+ l (* *cpio-newc-field-width* (1- i))))
+  (defconst *cpio-newc-filesize-field-offset* (+ l (* *cpio-newc-field-width* (1- i))))
   (setq i (1+ i))
-  (defconst *cpio-newc-dev-maj-field-offset*  (+ l (* *cpio-newc-field-width* i)))
-  (setq *cpio-newc-dev-maj-field-offset*      (+ l (* *cpio-newc-field-width* (1- i))))
+  (defconst *cpio-newc-dev-maj-field-offset*  (+ l (* *cpio-newc-field-width* (1- i))))
   (setq i (1+ i))
-  (defconst *cpio-newc-dev-min-field-offset*  (+ l (* *cpio-newc-field-width* i)))
-  (setq *cpio-newc-dev-min-field-offset*      (+ l (* *cpio-newc-field-width* (1- i))))
+  (defconst *cpio-newc-dev-min-field-offset*  (+ l (* *cpio-newc-field-width* (1- i))))
   (setq i (1+ i))
-  (defconst *cpio-newc-rdev-maj-field-offset* (+ l (* *cpio-newc-field-width* i)))
-  (setq *cpio-newc-rdev-maj-field-offset*     (+ l (* *cpio-newc-field-width* (1- i))))
+  (defconst *cpio-newc-rdev-maj-field-offset* (+ l (* *cpio-newc-field-width* (1- i))))
   (setq i (1+ i))
-  (defconst *cpio-newc-rdev-min-field-offset* (+ l (* *cpio-newc-field-width* i)))
-  (setq *cpio-newc-rdev-min-field-offset*     (+ l (* *cpio-newc-field-width* (1- i))))
+  (defconst *cpio-newc-rdev-min-field-offset* (+ l (* *cpio-newc-field-width* (1- i))))
   (setq i (1+ i))
-  (defconst *cpio-newc-namesize-field-offset* (+ l (* *cpio-newc-field-width* i)))
-  (setq *cpio-newc-namesize-field-offset*     (+ l (* *cpio-newc-field-width* (1- i))))
+  (defconst *cpio-newc-namesize-field-offset* (+ l (* *cpio-newc-field-width* (1- i))))
   (setq i (1+ i))
-  (defconst *cpio-newc-chksum-field-offset*   (+ l (* *cpio-newc-field-width* i)))
-  (setq *cpio-newc-chksum-field-offset*	      (+ l (* *cpio-newc-field-width* (1- i))))
+  (defconst *cpio-newc-chksum-field-offset*   (+ l (* *cpio-newc-field-width* (1- i))))
   (setq i (1+ i))
-  (defconst *cpio-newc-name-field-offset*     (+ l (* *cpio-newc-field-width* i)))
-  (setq *cpio-newc-name-field-offset*	      (+ l (* *cpio-newc-field-width* (1- i)))))
+  (defconst *cpio-newc-name-field-offset*     (+ l (* *cpio-newc-field-width* (1- i)))))
 
 (defconst *cpio-newc-trailer* "07070100000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000B00000000TRAILER!!!\0\0\0\0"
   "The TRAILER string for a newc archive.")

@@ -1,8 +1,8 @@
-;; cpio-tar.el --- Let tar-mode handle tar archives. -*- coding: utf-8 -*-
+;; cpio-tar.el --- Let tar-mode handle tar archives  -*- coding: utf-8; lexical-binding: t -*-
 
 ;; COPYRIGHT
 ;;
-;; Copyright © 2019 Free Software Foundation, Inc.
+;; Copyright © 2019, 2024 Free Software Foundation, Inc.
 ;; All rights reserved.
 ;;
 ;; This program is free software: you can redistribute it and/or modify

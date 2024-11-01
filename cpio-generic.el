@@ -1,8 +1,8 @@
-;;; cpio-generic.el --- generically useful functions created in support of CPIO mode. -*- coding: utf-8 -*-
+;;; cpio-generic.el --- generically useful functions created in support of CPIO mode. -*- lexical-binding:t; coding: utf-8 -*-
 
 ;; COPYRIGHT
 ;;
-;; Copyright © 2019-2020 Free Software Foundation, Inc.
+;; Copyright © 2019-2024 Free Software Foundation, Inc.
 ;; All rights reserved.
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -43,58 +43,41 @@
 ;;
 ;; Dependencies
 ;;
-(eval-and-compile
-  (require 'cl))
+(require 'cl-lib)
 
-(declare-function signum "cl")
-
+(with-suppressed-warnings ((lexical fname)) (defvar fname))
 
 
 ;;
 ;; Vars
 ;;
 
-(defvar *cg-integer-hex-digits* nil)
+(defconst *cg-integer-hex-digits*
+  (let ((fixnum-bits (1+ (ceiling (/ (log most-positive-fixnum) (log 2))))))
+    (/ (+ fixnum-bits 3) 4)))
 
 (defvar *cg-insert-after* nil
-  "Value used to define that a marker has type 'insert after'.")
+  "Value used to define that a marker has type \"insert after\".")
 (defvar *cg-insert-before* t
-  "Value used to define that a marker has type 'insert before'.")
+  "Value used to define that a marker has type \"insert before\".")
 
 
 ;;
 ;; Library
 ;;
 
-(defun cg-integer-hex-digits ()
-  "Calculate the number of hex digits that are required to represent any integer."
-  (let ((fname "cg-integer-hex-digits")
-	(an-integer most-negative-fixnum)
-	(hex-digit-ct 0))
-    (unless *cg-integer-hex-digits*
-	(while (/= 0 an-integer)
-	  (setq an-integer (lsh an-integer -4))
-	  (setq hex-digit-ct (1+ hex-digit-ct)))
-	(setq *cg-integer-hex-digits* hex-digit-ct)))
-  *cg-integer-hex-digits*)
-
 (defun OBS-cg-hex-format-pair (pair)
   "Return a hex formatted representation of PAIR."
   (let ((fname "cg-hex-format-pair")
-	(hex-digit-count (cg-integer-hex-digits))
-	(formatter))
-    (setq formatter (format "%%0%dx" hex-digit-count))
-    (setq formatter (concat formatter formatter))
-    (format formatter (car pair) (cdr pair))))
+	(formatter (format "%%0%dx" *cg-integer-hex-digits*)))
+    (format (concat formatter formatter) (car pair) (cdr pair))))
 
 (defun OBS-cg-hex-format-triple (triple)
   "Return a hex formatted representation of TRIPLE."
   (let ((fname "cg-hex-format-triple")
-	(hex-digit-count (cg-integer-hex-digits))
-	(formatter))
-    (setq formatter (format "%%0%dx" hex-digit-count))
-    (setq formatter (concat formatter formatter formatter))
-    (format formatter (car triple) (cadr triple) (cddr triple))))
+        (formatter (format "%%0%dx" *cg-integer-hex-digits*)))
+    (format (concat formatter formatter formatter)
+            (car triple) (cadr triple) (cddr triple))))
 
 (defun cg-round-up (number modulus)
   "Round NUMBER up to the next multiple of MODULUS.
@@ -106,16 +89,17 @@ CAVEAT: If NUMBER is negative, then the result may be surprising."
       (error "%s() takes integer arguments." fname))
     (cond ((= 0 (mod number modulus))
 	   number)
-	  ((= (signum number) 1)
+	  ((= (cl-signum number) 1)
 	   (* modulus (/ (+ number modulus -1) modulus)))
-	  ((= (signum number) -1)
+	  ((= (cl-signum number) -1)
 	   (* modulus (/ number modulus)))
 	  (t
 	   (error "%s(): Impossible condition." fname)))))
 
 (defun cg-pad-right (string width char)
   "Pad STRING on the right with CHAR until it is at least WIDTH characters wide.
-CHAR is typically a character or a single character string, but may be any string."
+CHAR is typically a character or a single character string,
+but may be any string."
   (let ((fname "cg-pad-right"))
     (if (characterp char) (setq char (char-to-string char)))
     (while (< (length string) width)
@@ -155,12 +139,12 @@ then match as many copies of RE as are there."
   "Remove the given RE from both ends of STRING.
 If the optional argument MULTIPLES is not NIL,
 then match as many copies of RE as are there."
-  (let ((fname "strip")
-	(result))
+  (let ((fname "strip"))
     (cg-strip-left re (cg-strip-right re string multiples) multiples)))
 
 (defun cpio-pad (string modulus pad-char)
-  "Pad the given STRING with PAD-CHAR so that the resulting string has at least length MODULUS."
+  "Pad the given STRINGso the resulting string has at least length MODULUS.
+Padding is done with PAD-CHAR "
   (let* ((fname "cpio-padded")
 	 (string-length (length string))
 	 (desired-length (cg-round-up string-length modulus)))
@@ -529,7 +513,6 @@ Other languages are not yet implemented."
 	(time-in)
 	(emacs-time)
 	(time-out)
-	(format "")
 	(test-dates (list
 		     "2018 Nov 9"
 		     "2018 Nov 9 9:53"

@@ -1,8 +1,8 @@
-;;; cpio-crc.el --- handle crc cpio entry header formats -*- coding: utf-8 -*-
+;;; cpio-crc.el --- handle crc cpio entry header formats -*- lexical-binding:t; coding: utf-8 -*-
 
 ;; COPYRIGHT
 ;;
-;; Copyright © 2019-2020 Free Software Foundation, Inc.
+;; Copyright © 2019-2024 Free Software Foundation, Inc.
 ;; All rights reserved.
 ;;
 ;; This program is free software: you can redistribute it and/or modify
@@ -52,6 +52,8 @@
 (require 'cpio-newc)
 (eval-when-compile (require 'cpio-generic)) ;For `with-writable-buffer'!
 
+(with-suppressed-warnings ((lexical fname)) (defvar fname))
+
 ;;;;;;;;;;;;;;;;
 ;; Things to make the byte compiler happy.
 (declare-function cg-pad-right "cpio-generic.el")
@@ -91,7 +93,6 @@
 ;; MAINTENANCE The following must remain in synch with *cpio-newc-header-re*.
 (defconst *cpio-crc-magic-re* "070702"
   "RE to match the magic number of a newc archive.")
-(setq *cpio-crc-magic-re* "070702")
 
 (defconst *cpio-crc-ino-re*      *cpio-newc-ino-re*)
 (defconst *cpio-crc-mode-re*     *cpio-newc-mode-re*)
@@ -108,9 +109,7 @@
 (defconst *cpio-crc-namesize-re* *cpio-newc-namesize-re*)
 (defconst *cpio-crc-chksum-re*   *cpio-newc-chksum-re*)
 (defconst *cpio-crc-filename-re* *cpio-newc-filename-re*)
-(defconst *cpio-crc-header-re* ()
-  "RE to match crc header format cpio archives.")
-(setq *cpio-crc-header-re* (concat "\\(" *cpio-crc-magic-re*    "\\)"
+(defconst *cpio-crc-header-re* (concat "\\(" *cpio-crc-magic-re*    "\\)"
 				   "\\(" *cpio-crc-ino-re*      "\\)"
 				   "\\(" *cpio-crc-mode-re*     "\\)"
 				   "\\(" *cpio-crc-uid-re*      "\\)"
@@ -127,7 +126,8 @@
 				   "\\(" *cpio-crc-namesize-re* "\\)"
 				   "\\(" *cpio-crc-chksum-re*   "\\)"
 				   "\\(" *cpio-crc-filename-re* "\\)"
-				   "\0"))
+				   "\0")
+  "RE to match crc header format cpio archives.")
 
 (defconst *cpio-crc-magic-re-idx*    *cpio-newc-magic-re-idx*)
 (defconst *cpio-crc-ino-re-idx*      *cpio-newc-ino-re-idx*)

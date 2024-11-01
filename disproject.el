@@ -549,7 +549,11 @@ the new directory."
       (lambda ()
         (interactive)
         (disproject--with-environment
-         (call-interactively #'compile)))))))
+         (let ((compilation-buffer-name-function
+                (lambda (major-mode-name)
+                  (project-prefixed-buffer-name
+                   (concat "default-" major-mode-name)))))
+           (call-interactively #'compile))))))))
 
 ;;;; Suffixes.
 

@@ -337,7 +337,7 @@ commands."
 This prefix can be configured with `disproject-compile-suffixes'."
   ["Compile"
    :class transient-column
-   :setup-children disproject-compile--setup-compile-suffixes]
+   :setup-children disproject-compile--setup-suffixes]
   (interactive)
   (transient-setup
    'disproject-compile nil nil
@@ -514,7 +514,7 @@ the new directory."
            (hack-dir-local-variables-non-file-buffer)
            disproject-custom-suffixes)))))
 
-(defun disproject-compile--setup-compile-suffixes (_)
+(defun disproject-compile--setup-suffixes (_)
   "Set up suffixes according to `disproject-compile-suffixes'."
   (transient-parse-suffixes
    'disproject-compile

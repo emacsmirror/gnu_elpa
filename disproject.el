@@ -264,6 +264,7 @@ commands."
   ;; This section may contain commands that are dynamically enabled/disabled
   ;; depending on the chosen project.  This requires :refresh-suffixes to be t.
   [["Version control"
+    :if (lambda () (nth 1 (disproject--project)))
     ("v d" "Magit dispatch" magit-dispatch
      :if (lambda () (and (featurep 'magit) (disproject--in-git-repository?)))
      :inapt-if-not disproject--root-directory-is-default?)
@@ -275,8 +276,7 @@ commands."
     ("v t" "Magit todos" disproject-magit-todos-list
      :if (lambda () (and (featurep 'magit-todos)
                          (disproject--in-git-repository?))))
-    ("v v" "VC dir" disproject-vc-dir
-     :if (lambda () (nth 1 (disproject--project))))]]
+    ("v v" "VC dir" disproject-vc-dir)]]
   [("SPC" "Manage projects" disproject-manage-projects)]
   (interactive)
   (transient-setup

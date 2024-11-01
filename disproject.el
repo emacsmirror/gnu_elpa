@@ -87,19 +87,18 @@ window if \"--prefer-other-window\" is enabled."
   :group 'convenience
   :group 'project)
 
-(defcustom disproject-compile-suffixes '(("c" "make" "make -k"
-                                          :description "Make  %s"))
+(defcustom disproject-compile-suffixes '(("c" "Make  %s" "make -k"
+                                          :identifier "make"))
   "Commands for the `disproject-compile' prefix.
 
 The value should be a list of transient-like specification
-entries (KEY IDENTIFIER COMPILE-COMMAND {PROPERTY VALUE} ...).
+entries (KEY DESCRIPTION COMPILE-COMMAND {PROPERTY VALUE} ...).
 
 KEY is the keybind that will be used in the Transient menu.
 
-IDENTIFIER is used in the compilation buffer name.  This should
-be unique, but it may be useful to use the same identifier as
-another command if one wants certain project compilation commands
-as incompatible (only one runs at a given time).
+DESCRIPTION is used as the Transient command description.  If a
+\"%s\" is present in the description, it will be substituted with
+COMPILE-COMMAND.
 
 COMPILE-COMMAND is passed to `compile' as the shell command to
 run.
@@ -107,28 +106,29 @@ run.
 Optional properties can be set after COMPILE-COMMAND through
 keywords.
 
-:description is the only valid property.  It is used as the
-transient command description.  If a \"%s\" is present in the
-description, it will be substituted with COMPILE-COMMAND.
-Otherwise, if the property is not specified, COMPILE-COMMAND is
-used in place of the entire description.
+:identifier is the only valid property.  It defaults to the first
+word in the description (or \"default\" if none are found).  This
+should be unique as it is used in the compilation buffer name,
+but it may be useful to use the same identifier as another
+command if one wants certain project compilation commands to be
+incompatible (enforcing only one runs at a given time).
 
 For example, the following may be used as a dir-locals.el value
 for `disproject-compile-suffixes' to add \"make -k\" and
 \"guile --help\" in a particular project:
 
-  ((\"m\" \"make\"
+  ((\"m\" \"Make\"
     \"echo Running make...; make -k\"
-    :description \"Make\")
-   (\"g\" \"guile-help\"
+    :identifier \"make\")
+   (\"g\" \"/Compile/ some help from Guile!\"
     \"echo Get some help from Guile...; guile --help\"
-    :description \"/Compile/ some help from Guile!\")))"
+    :identifier \"guile-help\")))"
   :type '(repeat (list (string :tag "Key bind")
-                       (string :tag "Identifier")
+                       (string :tag "Description")
                        (string :tag "Shell command")
                        (plist :inline t
                               :tag "Properties"
-                              :key-type (const :description)
+                              :key-type (const :identifier)
                               :value-type string)))
   :group 'disproject)
 
@@ -522,20 +522,23 @@ the new directory."
   (transient-parse-suffixes
    'disproject-compile
    `(,@(mapcar
-        (pcase-lambda (`( ,key ,identifier ,compile-command
-                          . ,(map :description)))
+        (pcase-lambda (`( ,key ,description ,compile-command
+                          . ,(map :identifier)))
           `(,key
-            ,(format (or description "%s")
-                     (propertize compile-command
-                                 'face
-                                 'transient-value))
+            ,(format description
+                     (propertize compile-command 'face 'transient-value))
             (lambda ()
               (interactive)
               (disproject--with-environment
                (let* ((compilation-buffer-name-function
                        (lambda (major-mode-name)
                          (project-prefixed-buffer-name
-                          (concat ,identifier "-" major-mode-name)))))
+                          (concat ,(or identifier
+                                       (and
+                                        (string-match "\\(\\w+\\)" description)
+                                        (match-string 1 description))
+                                       "default")
+                                  "-" major-mode-name)))))
                  (compile ,compile-command))))))
         (with-temp-buffer
           (let ((default-directory (disproject--root-directory)))

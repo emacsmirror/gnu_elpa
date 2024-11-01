@@ -6,7 +6,7 @@
 
 ;; Author: aurtzy <aurtzy@gmail.com>
 ;; URL: https://github.com/aurtzy/disproject
-;; Keywords: convenience, project
+;; Keywords: convenience, files, vc
 ;; Package-Version: 0.6.0
 
 ;; This program is free software; you can redistribute it and/or modify

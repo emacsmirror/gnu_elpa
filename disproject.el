@@ -55,7 +55,7 @@ the project's root directory.
 window if \"--prefer-other-window\" is enabled."
   ;; Define variables that determine the environment.
   `(let ((from-directory (disproject--root-directory))
-         (prefer-other-window (disproject--prefer-other-window))
+         (prefer-other-window? (disproject--prefer-other-window?))
          ;; Only enable envrc if the initial environment has it enabled.
          (enable-envrc (and (bound-and-true-p envrc-mode)
                             (symbol-function 'envrc-mode)))
@@ -71,8 +71,8 @@ window if \"--prefer-other-window\" is enabled."
              ;; This handles edge cases with `project' commands.
              (project-current-directory-override from-directory)
              (display-buffer-overriding-action
-              (and prefer-other-window '(display-buffer-use-some-window
-                                         (inhibit-same-window t))))
+              (and prefer-other-window? '(display-buffer-use-some-window
+                                          (inhibit-same-window t))))
              (project-vc-external-roots-function external-roots-function))
          ;; Make sure commands are run in the correct direnv environment
          ;; if envrc-mode is enabled.
@@ -436,7 +436,7 @@ is always selected."
   ;; `project-vc-backend-markers-alist'.
   (eq (nth 1 (disproject--scope 'project)) 'Git))
 
-(defun disproject--prefer-other-window ()
+(defun disproject--prefer-other-window? ()
   "Return whether other window should be preferred when displaying buffers."
   (let ((args (transient-args transient-current-command)))
     (and args (transient-arg-value "--prefer-other-window" args))))

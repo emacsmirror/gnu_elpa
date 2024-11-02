@@ -241,28 +241,33 @@ FROM rcirclogs WHERE (strftime( '%Y-%m', time, 'unixepoch')) = "
              " GROUP BY day ORDER BY day")))
     (sqlite-select db dbquery)))
 
-(defun rcirc-sqlite-db-query-nick (arg-list)
-  "Fetch the logs from a specific nick.
-ARG-LIST is a list build from the nick and a time range."
-  (let ((db (rcirc-sqlite--conn))
-	(dbquery "SELECT rowid, * FROM rcirclogs")
-	(dbdata ()))
-    (pcase-let ((`(,nick ,when) arg-list))
-      (unless (string= nick "All nicks")
-	(setq dbquery (concat dbquery " WHERE nick=?"))
-	(push nick dbdata))
+(defun rcirc-sqlite-create-where (arg-list)
+  "Create the SQL WHERE clause for the query.
+ARG-LIST is a list build from channel, time range, and nick"
+  (let ((where ""))
+    (pcase-let ((`(,channel ,when ,nick) arg-list))
+      (unless (string= channel rcirc-sqlite-all-channels)
+	(setq where "channel=?"))
       (unless (= (car when) 0)
-	(if (string= nick "All nicks")
-	    (setq dbquery (concat dbquery " WHERE "))
-	  (setq dbquery (concat dbquery " AND ")))
-	(setq dbquery (concat dbquery
-			      (rcirc-sqlite-create-period-selectstring when)))
-	(push (car when) dbdata)
-	(when (> (cdr when) 0)
-	  (push (cdr when) dbdata)))
-      (setq rcirc-sqlite-dbquery dbquery
-	     rcirc-sqlite-dbdata (reverse dbdata))
-      (sqlite-execute db dbquery (reverse dbdata)))))
+	(when (not (string-empty-p where))
+	  (setq where (concat where " AND ")))
+	(setq where (concat where
+			    (rcirc-sqlite-create-period-selectstring when))))
+      (unless (or (string= nick rcirc-sqlite-all-nicks)
+		   (string-empty-p nick))
+	(when (not (string-empty-p where))
+	  (setq where (concat where " AND ")))
+	(setq where (concat where "nick=?"))))
+    where ))
+
+(defun rcirc-sqlite-db-store-and-run-query (dbquery dbdata)
+  "Store and perform the query.
+Store query DBQUERY and query data DBDATA to switch between
+short and long channel names and for drill down."
+  (let ((db (rcirc-sqlite--conn)))
+  (setq rcirc-sqlite-dbquery dbquery
+	    rcirc-sqlite-dbdata dbdata)
+      (sqlite-execute db dbquery dbdata)))
 
 (defun rcirc-sqlite-db-query-log (arg-list)
   "Fetch the last N rows of the logs from a specific channel.
@@ -270,22 +275,18 @@ N is defined in `rcirc-sqlite-rows' and is default 200.
 The user can opt for no limit, or a different limit and offset.
 ARG-LIST is a list build from channel, time range, unlimited,
 offset and limit."
-  (let ((db (rcirc-sqlite--conn))
-	(dbquery "SELECT rowid, channel, time, nick, message FROM rcirclogs")
-	(dbdata ()))
-    (pcase-let ((`(,channel ,when ,unlimited ,offset ,limit) arg-list))
+  (pcase-let ((`(,channel ,when ,unlimited ,offset ,limit) arg-list))
+    (let ((dbquery "SELECT rowid, channel, time, nick, message FROM rcirclogs")
+	  (where (rcirc-sqlite-create-where (list channel when "")))
+	  (dbdata ()))
       (unless (string= channel rcirc-sqlite-all-channels)
-	(setq dbquery (concat dbquery " WHERE channel=?"))
 	(push channel dbdata))
       (unless (= (car when) 0)
-	(if (string= channel rcirc-sqlite-all-channels)
-	    (setq dbquery (concat dbquery " WHERE "))
-	  (setq dbquery (concat dbquery " AND ")))
-	(setq dbquery (concat dbquery
-			      (rcirc-sqlite-create-period-selectstring when)))
 	(push (car when) dbdata)
 	(when (> (cdr when) 0)
 	  (push (cdr when) dbdata)))
+      (when (not (string-empty-p where))
+	(setq dbquery (concat dbquery " WHERE " where)))
       (unless unlimited
 	(if limit
 	    (progn
@@ -296,49 +297,37 @@ offset and limit."
 				(format
                                  " ORDER BY time DESC LIMIT %s) ORDER BY time ASC"
 				 rcirc-sqlite-rows)))))
-      (setq rcirc-sqlite-dbquery dbquery
-	    rcirc-sqlite-dbdata (reverse dbdata))
-      (sqlite-execute db dbquery (reverse dbdata)))))
+      (rcirc-sqlite-db-store-and-run-query dbquery (reverse dbdata)))))
 
 (defun rcirc-sqlite-db-search-log (arg-list)
   "Perform a full text search.
 ARG-LIST describes the search argument and possibly a specific
-channel, time range, and/or nick to narrow the search to."
-  (let ((db (rcirc-sqlite--conn))
-	(dbquery "")
-        (dbdata nil))
-    (pcase-let ((`(,query ,channel ,when ,nick) arg-list))
+channel, time range, and/or nick to narrow the search to."  
+  (pcase-let ((`(,query ,channel ,when ,nick) arg-list))
+    (let ((dbquery "")
+	  (where (rcirc-sqlite-create-where (list channel when nick)))
+          (dbdata nil))
       (when query
         (setq dbquery "rcirclogs=?")
         (push query dbdata))
+      (when (not (string-empty-p where))
+	(when (not (string-empty-p dbquery))
+	  (setq dbquery (concat dbquery " AND ")))
+	(setq dbquery (concat dbquery where)))
       (unless (string= channel rcirc-sqlite-all-channels)
-        (when (not (string-empty-p dbquery))
-          (setq dbquery (concat dbquery " AND ")))
-	(setq dbquery (concat dbquery "channel=?"))
 	(push channel dbdata))
       (unless (= (car when) 0)
-        (when (not (string-empty-p dbquery))
-          (setq dbquery (concat dbquery " AND ")))
-	(setq dbquery (concat dbquery
-			      (rcirc-sqlite-create-period-selectstring
-                               when)))
 	(push (car when) dbdata)
 	(when (> (cdr when) 0)
 	  (push (cdr when) dbdata)))
       (unless (string= nick rcirc-sqlite-all-nicks)
-        (when (not (string-empty-p dbquery))
-          (setq dbquery (concat dbquery " AND ")))
-        (setq dbquery (concat dbquery "nick=?"))
 	(push nick dbdata))
       (setq dbquery
             (concat
              "SELECT rowid, channel, time, nick, message FROM rcirclogs WHERE "
              dbquery))
       (setq dbquery (concat dbquery " ORDER BY rank, time"))
-      (setq rcirc-sqlite-dbquery dbquery
-	    rcirc-sqlite-dbdata (reverse dbdata))
-      (sqlite-execute db dbquery
-		      (reverse dbdata)))))
+      (rcirc-sqlite-db-store-and-run-query dbquery (reverse dbdata)))))
 
 (defun rcirc-sqlite-db-refresh ()
   "Repeat latest query to refresh the tabulated list."

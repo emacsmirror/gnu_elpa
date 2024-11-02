@@ -260,11 +260,21 @@ a git repository."
           (and (featurep 'magit)
                root-directory
                (funcall (symbol-function 'magit-git-repo-p) root-directory)))
+         (dir-local-variables (with-temp-buffer
+                                (let ((default-directory root-directory))
+                                  (hack-dir-local-variables)
+                                  dir-local-variables-alist)))
+         (compile-suffixes
+          (alist-get 'disproject-compile-suffixes dir-local-variables))
+         (custom-suffixes
+          (alist-get 'disproject-custom-suffixes dir-local-variables))
          (new-scope
           `((default-root-directory . ,default-root-directory)
             (root-directory . ,root-directory)
             (project . ,project)
-            (git-repository? . ,git-repository?))))
+            (git-repository? . ,git-repository?)
+            (compile-suffixes . ,compile-suffixes)
+            (custom-suffixes . ,custom-suffixes))))
     (if-let* ((write-scope?)
               (scope (disproject--scope nil t)))
         (seq-each (pcase-lambda (`(,key . ,value))
@@ -426,6 +436,14 @@ is always selected."
 
 ;;;; Transient state getters.
 
+(defun disproject--compile-suffixes ()
+  "Return the `disproject-compile' suffixes for this scope."
+  (disproject--scope 'compile-suffixes))
+
+(defun disproject--custom-suffixes ()
+  "Return the `disproject-dispatch' custom suffixes for this scope."
+  (disproject--scope 'custom-suffixes))
+
 (defun disproject--default-root-directory ()
   "Return the current caller's (the one setting up Transient) root directory."
   (disproject--scope 'default-root-directory))
@@ -513,11 +531,7 @@ the new directory."
   "Set up suffixes according to `disproject-custom-suffixes'."
   (transient-parse-suffixes
    'disproject-dispatch
-   (if-let* ((directory (disproject--root-directory t)))
-       (with-temp-buffer
-         (let ((default-directory directory))
-           (hack-dir-local-variables-non-file-buffer)
-           disproject-custom-suffixes)))))
+   (disproject--custom-suffixes)))
 
 (defun disproject-compile--setup-suffixes (_)
   "Set up suffixes according to `disproject-compile-suffixes'."
@@ -542,10 +556,7 @@ the new directory."
                                        "default")
                                   "-" major-mode-name)))))
                  (compile ,compile-command))))))
-        (with-temp-buffer
-          (let ((default-directory (disproject--root-directory)))
-            (hack-dir-local-variables-non-file-buffer)
-            disproject-compile-suffixes)))
+        (disproject--compile-suffixes))
      ("!"
       "Alternative command..."
       (lambda ()

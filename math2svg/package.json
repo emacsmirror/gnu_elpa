@@ -1,8 +1,6 @@
 {
   "dependencies": {
-    "font-list": "^1.5.1",
-    "mathjax-full": "^3.2.2",
-    "yargs": "^17.7.2"
+    "mathjax-full": "^3.2.2"
   },
   "devDependencies": {
     "webpack": "^5.95.0",

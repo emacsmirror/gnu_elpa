@@ -329,6 +329,7 @@ commands."
                          (disproject--git-repository?))))
     ("v v" "VC dir" disproject-vc-dir)]
    ["Custom commands"
+    :class transient-column
     :setup-children disproject--setup-custom-suffixes]]
   [("SPC" "Manage projects" disproject-manage-projects)]
   (interactive)

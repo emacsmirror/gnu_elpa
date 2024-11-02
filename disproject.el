@@ -261,7 +261,8 @@ a git repository."
                root-directory
                (funcall (symbol-function 'magit-git-repo-p) root-directory)))
          (dir-local-variables (with-temp-buffer
-                                (let ((default-directory root-directory))
+                                (when-let* ((root-directory)
+                                            (default-directory root-directory))
                                   (hack-dir-local-variables)
                                   dir-local-variables-alist)))
          (compile-suffixes

@@ -501,8 +501,7 @@ directory can be found, and this function may return nil."
 Look for a valid project root directory in SEARCH-DIRECTORY.  If
 one is found, update the root-directory key in Transient scope to
 the new directory."
-  (if-let* ((directory (disproject--root-directory nil search-directory))
-            (scope (disproject--scope nil t)))
+  (if-let* ((directory (disproject--root-directory nil search-directory)))
       (disproject--setup-scope t directory)
     (if directory
         (error "No scope available")

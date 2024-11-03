@@ -304,6 +304,12 @@ commands."
     ("G" "regexp (+external)" disproject-or-external-find-regexp)]]
   ;; This section may contain commands that are dynamically enabled/disabled
   ;; depending on the chosen project.  This requires :refresh-suffixes to be t.
+  ;;
+  ;; FIXME: There is a case where the section doesn't display when it should.
+  ;; 1. Start with no project detected; 2. Compile, selecting a project that has
+  ;; vc; 3. return to main dispatch menu.  Version control should show up since
+  ;; that project is now selected, but it doesn't until the next refresh
+  ;; (e.g. by flipping an option).
   [["Version control"
     :if (lambda () (nth 1 (disproject--state-project)))
     ("v d" "Magit dispatch" magit-dispatch

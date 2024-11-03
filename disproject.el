@@ -213,11 +213,14 @@ This is called whenever the function
 ;;; Prefix handling.
 ;;;
 
-(defun disproject--setup-scope (&optional write-scope? directory)
+(defun disproject--setup-scope (&optional write-scope? no-prompt? directory)
   "Set up Transient scope for a Disproject prefix.
 
-When WRITE-SCOPE? is t, overwrite the current Transient scope
+When WRITE-SCOPE? is non-nil, overwrite the current Transient scope
 with the return value.
+
+If NO-PROMPT? is non-nil, no prompts will be made.  This means
+that some values in the scope may be nil.
 
 DIRECTORY is passed to `disproject--root-directory' as a
 \"preferred search directory\".
@@ -239,7 +242,7 @@ a git repository."
           (if-let* ((project (project-current nil default-directory)))
               (project-root project)))
          (root-directory
-          (disproject--root-directory nil directory))
+          (disproject--root-directory no-prompt? directory))
          (project (project-current nil root-directory))
          (git-repository?
           (and (featurep 'magit)
@@ -331,7 +334,7 @@ commands."
   (interactive)
   (transient-setup
    'disproject-dispatch nil nil
-   :scope (disproject--setup-scope nil directory)))
+   :scope (disproject--setup-scope nil t directory)))
 
 (transient-define-prefix disproject-compile (&optional directory)
   "Dispatch compilation commands.
@@ -343,7 +346,7 @@ This prefix can be configured with `disproject-compile-suffixes'."
   (interactive)
   (transient-setup
    'disproject-compile nil nil
-   :scope (disproject--setup-scope nil directory)))
+   :scope (disproject--setup-scope nil nil directory)))
 
 (transient-define-prefix disproject-manage-projects (&optional directory)
   "Dispatch commands for managing projects.
@@ -360,7 +363,7 @@ DIRECTORY will be searched for the project if passed."
   (interactive)
   (transient-setup
    'disproject-manage-projects nil nil
-   :scope (disproject--setup-scope nil directory)))
+   :scope (disproject--setup-scope nil nil directory)))
 
 
 ;;;
@@ -506,7 +509,7 @@ Look for a valid project root directory in SEARCH-DIRECTORY.  If
 one is found, update the root-directory key in Transient scope to
 the new directory."
   (if-let* ((directory (disproject--root-directory nil search-directory)))
-      (disproject--setup-scope t directory)
+      (disproject--setup-scope t t directory)
     (if directory
         (error "No scope available")
       (message "No parent project found for %s" search-directory))))

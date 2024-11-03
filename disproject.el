@@ -426,7 +426,7 @@ is always selected."
   "Return the `disproject-dispatch' custom suffixes for this scope."
   (disproject--scope 'custom-suffixes))
 
-(defun disproject--state-default-root-directory ()
+(defun disproject--state-default-project-root ()
   "Return the current caller's (the one setting up Transient) root directory."
   (if-let* ((project (disproject--scope 'default-project)))
       (project-root project)))

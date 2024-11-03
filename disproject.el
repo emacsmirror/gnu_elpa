@@ -307,10 +307,10 @@ commands."
     :if (lambda () (nth 1 (disproject--state-project)))
     ("v d" "Magit dispatch" magit-dispatch
      :if (lambda () (and (featurep 'magit) (disproject--state-git-repository?)))
-     :inapt-if-not disproject--state-root-directory-is-default?)
+     :inapt-if-not disproject--state-project-is-default?)
     ("v f" "Magit file dispatch" magit-file-dispatch
      :if (lambda () (and (featurep 'magit) (disproject--state-git-repository?)))
-     :inapt-if-not disproject--state-root-directory-is-default?)
+     :inapt-if-not disproject--state-project-is-default?)
     ("v m" "Magit status" disproject-magit-status
      :if (lambda () (and (featurep 'magit) (disproject--state-git-repository?))))
     ("v t" "Magit todos" disproject-magit-todos-list
@@ -446,6 +446,12 @@ is always selected."
   "Return the project from the current Transient scope."
   (disproject--scope 'project))
 
+(defun disproject--state-project-is-default? ()
+  "Return whether the selected project is the same as the default project."
+  (if-let* ((default-project (disproject--scope 'default-project))
+            (project (disproject--scope 'project)))
+      (equal (project-root default-project) (project-root project))))
+
 (defun disproject--state-root-directory (&optional no-prompt? directory)
   "Return the project root directory defined in transient arguments.
 
@@ -487,12 +493,6 @@ directory can be found, and this function may return nil."
          (if no-prompt?
              (funcall find-project-root t directory)
            (funcall find-project-root nil directory)))))))
-
-(defun disproject--state-root-directory-is-default? ()
-  "Return whether the project is the same as the default project."
-  (if-let* ((default-project (disproject--scope 'default-project))
-            (project (disproject--scope 'project)))
-      (equal (project-root default-project) (project-root project))))
 
 
 ;;;

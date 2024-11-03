@@ -54,8 +54,8 @@ the project's root directory.
 `display-buffer-overriding-action': Set to display in another
 window if \"--prefer-other-window\" is enabled."
   ;; Define variables that determine the environment.
-  `(let ((from-directory (disproject--root-directory))
-         (prefer-other-window? (disproject--prefer-other-window?))
+  `(let ((from-directory (disproject--state-root-directory))
+         (prefer-other-window? (disproject--state-prefer-other-window?))
          ;; Only enable envrc if the initial environment has it enabled.
          (enable-envrc (and (bound-and-true-p envrc-mode)
                             (symbol-function 'envrc-mode)))
@@ -222,7 +222,7 @@ with the return value.
 If NO-PROMPT? is non-nil, no prompts will be made.  This means
 that some values in the scope may be nil.
 
-DIRECTORY is passed to `disproject--root-directory' as a
+DIRECTORY is passed to `disproject--state-root-directory' as a
 \"preferred search directory\".
 
 The specifications for the scope returned is an alist with keys
@@ -236,7 +236,7 @@ menu."
   (let* ((default-project (project-current nil default-directory))
          (project
           (project-current
-           nil (disproject--root-directory no-prompt? directory)))
+           nil (disproject--state-root-directory no-prompt? directory)))
          (dir-local-variables
           (with-temp-buffer
             (when-let* ((project)
@@ -277,7 +277,7 @@ commands."
   [:description
    (lambda ()
      (format (propertize "Project: %s" 'face 'transient-heading)
-             (if-let* ((directory (disproject--root-directory t)))
+             (if-let* ((directory (disproject--state-root-directory t)))
                  (propertize directory 'face 'transient-value)
                (propertize "None detected" 'face 'transient-inapt-suffix))))
    ("p" "Switch project" disproject-switch-project
@@ -304,18 +304,18 @@ commands."
   ;; This section may contain commands that are dynamically enabled/disabled
   ;; depending on the chosen project.  This requires :refresh-suffixes to be t.
   [["Version control"
-    :if (lambda () (nth 1 (disproject--project)))
+    :if (lambda () (nth 1 (disproject--state-project)))
     ("v d" "Magit dispatch" magit-dispatch
-     :if (lambda () (and (featurep 'magit) (disproject--git-repository?)))
-     :inapt-if-not disproject--root-directory-is-default?)
+     :if (lambda () (and (featurep 'magit) (disproject--state-git-repository?)))
+     :inapt-if-not disproject--state-root-directory-is-default?)
     ("v f" "Magit file dispatch" magit-file-dispatch
-     :if (lambda () (and (featurep 'magit) (disproject--git-repository?)))
-     :inapt-if-not disproject--root-directory-is-default?)
+     :if (lambda () (and (featurep 'magit) (disproject--state-git-repository?)))
+     :inapt-if-not disproject--state-root-directory-is-default?)
     ("v m" "Magit status" disproject-magit-status
-     :if (lambda () (and (featurep 'magit) (disproject--git-repository?))))
+     :if (lambda () (and (featurep 'magit) (disproject--state-git-repository?))))
     ("v t" "Magit todos" disproject-magit-todos-list
      :if (lambda () (and (featurep 'magit-todos)
-                         (disproject--git-repository?))))
+                         (disproject--state-git-repository?))))
     ("v v" "VC dir" disproject-vc-dir)]
    ["Custom commands"
     :class transient-column
@@ -414,36 +414,39 @@ is always selected."
 ;;;; Infixes.
 
 ;;;; Transient state getters.
+;; Functions that query the Transient state should have their names be prefixed
+;; with "disproject--state-" to provide unique identifiers that can be searched
+;; for.
 
-(defun disproject--compile-suffixes ()
+(defun disproject--state-compile-suffixes ()
   "Return the `disproject-compile' suffixes for this scope."
   (disproject--scope 'compile-suffixes))
 
-(defun disproject--custom-suffixes ()
+(defun disproject--state-custom-suffixes ()
   "Return the `disproject-dispatch' custom suffixes for this scope."
   (disproject--scope 'custom-suffixes))
 
-(defun disproject--default-root-directory ()
+(defun disproject--state-default-root-directory ()
   "Return the current caller's (the one setting up Transient) root directory."
   (if-let* ((project (disproject--scope 'default-project)))
       (project-root project)))
 
-(defun disproject--git-repository? ()
+(defun disproject--state-git-repository? ()
   "Return if project is a Git repository."
   ;; Index 1 contains the project backend; see
   ;; `project-vc-backend-markers-alist'.
   (eq (nth 1 (disproject--scope 'project)) 'Git))
 
-(defun disproject--prefer-other-window? ()
+(defun disproject--state-prefer-other-window? ()
   "Return whether other window should be preferred when displaying buffers."
   (let ((args (transient-args transient-current-command)))
     (and args (transient-arg-value "--prefer-other-window" args))))
 
-(defun disproject--project ()
+(defun disproject--state-project ()
   "Return the project from the current Transient scope."
   (disproject--scope 'project))
 
-(defun disproject--root-directory (&optional no-prompt? directory)
+(defun disproject--state-root-directory (&optional no-prompt? directory)
   "Return the project root directory defined in transient arguments.
 
 Prefer searching DIRECTORY for a project root first, but only if
@@ -485,7 +488,7 @@ directory can be found, and this function may return nil."
              (funcall find-project-root t directory)
            (funcall find-project-root nil directory)))))))
 
-(defun disproject--root-directory-is-default? ()
+(defun disproject--state-root-directory-is-default? ()
   "Return whether the project is the same as the default project."
   (if-let* ((default-project (disproject--scope 'default-project))
             (project (disproject--scope 'project)))
@@ -502,7 +505,7 @@ directory can be found, and this function may return nil."
 Look for a valid project root directory in SEARCH-DIRECTORY.  If
 one is found, update the root-directory key in Transient scope to
 the new directory."
-  (if-let* ((directory (disproject--root-directory nil search-directory)))
+  (if-let* ((directory (disproject--state-root-directory nil search-directory)))
       (disproject--setup-scope t t directory)
     (if directory
         (error "No scope available")
@@ -514,7 +517,7 @@ the new directory."
   "Set up suffixes according to `disproject-custom-suffixes'."
   (transient-parse-suffixes
    'disproject-dispatch
-   (disproject--custom-suffixes)))
+   (disproject--state-custom-suffixes)))
 
 (defun disproject-compile--setup-suffixes (_)
   "Set up suffixes according to `disproject-compile-suffixes'."
@@ -539,7 +542,7 @@ the new directory."
                                        "default")
                                   "-" major-mode-name)))))
                  (compile ,compile-command))))))
-        (disproject--compile-suffixes))
+        (disproject--state-compile-suffixes))
      ("!"
       "Alternative command..."
       (lambda ()

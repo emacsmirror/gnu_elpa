@@ -228,31 +228,27 @@ DIRECTORY is passed to `disproject--root-directory' as a
 The specifications for the scope returned is an alist with keys
 and descriptions of their values as follows:
 
-\\='default-root-directory: the project root directory of
+\\='default-project: the project belonging to
 `default-directory' (or the current buffer, in other words).
 
-\\='root-directory: the current project root directory selected
-in the Transient menu.
-
-\\='project: the project associated with \\='root-directory."
-  (let* ((default-root-directory
-          (if-let* ((project (project-current nil default-directory)))
-              (project-root project)))
-         (root-directory
-          (disproject--root-directory no-prompt? directory))
-         (project (project-current nil root-directory))
-         (dir-local-variables (with-temp-buffer
-                                (when-let* ((root-directory)
-                                            (default-directory root-directory))
-                                  (hack-dir-local-variables)
-                                  dir-local-variables-alist)))
+\\='project: the currently selected project in the Transient
+menu."
+  (let* ((default-project (project-current nil default-directory))
+         (project
+          (project-current
+           nil (disproject--root-directory no-prompt? directory)))
+         (dir-local-variables
+          (with-temp-buffer
+            (when-let* ((project)
+                        (default-directory (project-root project)))
+              (hack-dir-local-variables)
+              dir-local-variables-alist)))
          (compile-suffixes
           (alist-get 'disproject-compile-suffixes dir-local-variables))
          (custom-suffixes
           (alist-get 'disproject-custom-suffixes dir-local-variables))
          (new-scope
-          `((default-root-directory . ,default-root-directory)
-            (root-directory . ,root-directory)
+          `((default-project . ,default-project)
             (project . ,project)
             (compile-suffixes . ,compile-suffixes)
             (custom-suffixes . ,custom-suffixes))))
@@ -427,7 +423,8 @@ is always selected."
 
 (defun disproject--default-root-directory ()
   "Return the current caller's (the one setting up Transient) root directory."
-  (disproject--scope 'default-root-directory))
+  (if-let* ((project (disproject--scope 'default-project)))
+      (project-root project)))
 
 (defun disproject--git-repository? ()
   "Return if project is a Git repository."
@@ -473,21 +470,24 @@ directory can be found, and this function may return nil."
      ;; If DIRECTORY is set, prioritize searching it first without prompting.
      (if directory (funcall find-project-root t directory))
      ;; Scope.
-     (disproject--scope 'root-directory)
+     (if-let* ((project (disproject--scope 'project)))
+         (project-root project))
      ;; Use current root directory if DIRECTORY wasn't set.  Prompt as a
      ;; fallback if it is permitted and all else fails.
      (if directory
          (if (not no-prompt?)
              (funcall find-project-root nil directory))
-       (let ((directory (disproject--scope 'default-root-directory)))
+       (when-let* ((project (disproject--scope 'default-project))
+                   (directory (project-root project)))
          (if no-prompt?
              (funcall find-project-root t directory)
            (funcall find-project-root nil directory)))))))
 
 (defun disproject--root-directory-is-default? ()
   "Return whether the project is the same as the default project."
-  (equal (disproject--scope 'default-root-directory)
-         (disproject--scope 'root-directory)))
+  (if-let* ((default-project (disproject--scope 'default-project))
+            (project (disproject--scope 'project)))
+      (equal (project-root default-project) (project-root project))))
 
 
 ;;;

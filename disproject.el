@@ -234,20 +234,13 @@ and descriptions of their values as follows:
 \\='root-directory: the current project root directory selected
 in the Transient menu.
 
-\\='project: the project associated with \\='root-directory.
-
-\\='git-repository?: whether the currently selected project is
-a git repository."
+\\='project: the project associated with \\='root-directory."
   (let* ((default-root-directory
           (if-let* ((project (project-current nil default-directory)))
               (project-root project)))
          (root-directory
           (disproject--root-directory no-prompt? directory))
          (project (project-current nil root-directory))
-         (git-repository?
-          (and (featurep 'magit)
-               root-directory
-               (funcall (symbol-function 'magit-git-repo-p) root-directory)))
          (dir-local-variables (with-temp-buffer
                                 (when-let* ((root-directory)
                                             (default-directory root-directory))
@@ -261,7 +254,6 @@ a git repository."
           `((default-root-directory . ,default-root-directory)
             (root-directory . ,root-directory)
             (project . ,project)
-            (git-repository? . ,git-repository?)
             (compile-suffixes . ,compile-suffixes)
             (custom-suffixes . ,custom-suffixes))))
     (if-let* ((write-scope?)

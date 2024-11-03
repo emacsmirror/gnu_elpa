@@ -222,8 +222,9 @@ with the return value.
 If NO-PROMPT? is non-nil, no prompts will be made.  This means
 that some values in the scope may be nil.
 
-DIRECTORY is passed to `disproject--state-project-root' as a
-\"preferred search directory\".
+DIRECTORY - if available - is a \"preferred search directory\"
+that will be searched before falling back to the selected or
+default project root.
 
 The specifications for the scope returned is an alist with keys
 and descriptions of their values as follows:
@@ -235,8 +236,9 @@ and descriptions of their values as follows:
 menu."
   (let* ((default-project (project-current nil default-directory))
          (project
-          (project-current
-           nil (disproject--state-project-root no-prompt? directory)))
+          (or (and directory (project-current nil directory))
+              (project-current nil (disproject--state-project-root no-prompt?))
+              default-project))
          (dir-local-variables
           (with-temp-buffer
             (when-let* ((project)
@@ -452,18 +454,13 @@ is always selected."
             (project (disproject--scope 'project)))
       (equal (project-root default-project) (project-root project))))
 
-(defun disproject--state-project-root (&optional no-prompt? directory)
-  "Return the project root directory defined in transient arguments.
+(defun disproject--state-project-root (&optional no-prompt?)
+  "Return the selected project's root directory from Transient state.
 
-Prefer searching DIRECTORY for a project root first, but only if
-it is set.  Otherwise, use the current Transient prefix's
-arguments.  If those are also not available, try the Transient
-scope.  Fall back to searching default root directory at this
-point if DIRECTORY is not set.  The function may prompt for a
-project to use if all of these cannot find a project root.
-
-DIRECTORY is used to search for the project, and is prioritized
-when it is set.
+Return the selected project's root directory from Transient
+state.  Fall back to searching default root directory if no
+project root is found.  The function may prompt for a project to
+use if all of these cannot find a project root.
 
 If NO-PROMPT? is non-nil, no prompts will be made if a root
 directory can be found, and this function may return nil."
@@ -478,21 +475,13 @@ directory can be found, and this function may return nil."
                      (project-remember-project project)))
              (project-root (project-current t dir))))))
     (or
-     ;; If DIRECTORY is set, prioritize searching it first without prompting.
-     (if directory (funcall find-project-root t directory))
      ;; Scope.
      (if-let* ((project (disproject--scope 'project)))
          (project-root project))
-     ;; Use current root directory if DIRECTORY wasn't set.  Prompt as a
-     ;; fallback if it is permitted and all else fails.
-     (if directory
-         (if (not no-prompt?)
-             (funcall find-project-root nil directory))
-       (when-let* ((project (disproject--scope 'default-project))
-                   (directory (project-root project)))
-         (if no-prompt?
-             (funcall find-project-root t directory)
-           (funcall find-project-root nil directory)))))))
+     ;; Prompt as a fallback if it is permitted and above does not find
+     ;; anything.
+     (unless no-prompt?
+       (funcall find-project-root nil (disproject--state-default-project-root))))))
 
 
 ;;;
@@ -505,7 +494,9 @@ directory can be found, and this function may return nil."
 Look for a valid project root directory in SEARCH-DIRECTORY.  If
 one is found, update the root-directory key in Transient scope to
 the new directory."
-  (if-let* ((directory (disproject--state-project-root nil search-directory)))
+  (if-let* ((project (project-current nil search-directory))
+            (directory (or (project-root project)
+                           (disproject--state-project-root))))
       (disproject--setup-scope t t directory)
     (if directory
         (error "No scope available")

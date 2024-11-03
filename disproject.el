@@ -215,14 +215,11 @@ This is called whenever the function
 ;;; Prefix handling.
 ;;;
 
-(defun disproject--setup-scope (&optional write-scope? no-prompt? directory)
+(defun disproject--setup-scope (&optional write-scope? directory)
   "Set up Transient scope for a Disproject prefix.
 
 When WRITE-SCOPE? is non-nil, overwrite the current Transient scope
 with the return value.
-
-If NO-PROMPT? is non-nil, no prompts will be made.  This means
-that some values in the scope may be nil.
 
 DIRECTORY - if available - is a \"preferred search directory\"
 that will be searched before falling back to the selected or
@@ -328,7 +325,7 @@ commands."
   (interactive)
   (transient-setup
    'disproject-dispatch nil nil
-   :scope (disproject--setup-scope nil t directory)))
+   :scope (disproject--setup-scope nil directory)))
 
 (transient-define-prefix disproject-compile (&optional directory)
   "Dispatch compilation commands.
@@ -343,7 +340,7 @@ This prefix can be configured with `disproject-compile-suffixes'."
     (disproject--state-project-ensure))
   (transient-setup
    'disproject-compile nil nil
-   :scope (disproject--setup-scope nil nil (disproject--state-project-root))))
+   :scope (disproject--setup-scope nil (disproject--state-project-root))))
 
 (transient-define-prefix disproject-manage-projects (&optional directory)
   "Dispatch commands for managing projects.
@@ -360,7 +357,7 @@ DIRECTORY will be searched for the project if passed."
   (interactive)
   (transient-setup
    'disproject-manage-projects nil nil
-   :scope (disproject--setup-scope nil nil directory)))
+   :scope (disproject--setup-scope nil directory)))
 
 
 ;;;
@@ -484,15 +481,11 @@ expectation.  Returns the project."
   "Modify the Transient scope to switch to another project.
 
 Look for a valid project root directory in SEARCH-DIRECTORY.  If
-one is found, update the root-directory key in Transient scope to
-the new directory."
-  (if-let* ((project (project-current nil search-directory))
-            (directory (or (project-root project)
-                           (disproject--state-project-root))))
-      (disproject--setup-scope t t directory)
-    (if directory
-        (error "No scope available")
-      (message "No parent project found for %s" search-directory))))
+one is found, update the Transient scope to switch the selected
+project."
+  (if-let* ((project (project-current nil search-directory)))
+      (disproject--setup-scope t (project-root project))
+    (error "No parent project found for %s" search-directory)))
 
 ;;;; Suffix setup functions.
 

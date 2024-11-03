@@ -213,7 +213,7 @@ This is called whenever the function
 ;;; Prefix handling.
 ;;;
 
-(defun disproject--setup-scope (&optional write-scope? directory force-init?)
+(defun disproject--setup-scope (&optional write-scope? directory)
   "Set up Transient scope for a Disproject prefix.
 
 When WRITE-SCOPE? is t, overwrite the current Transient scope
@@ -221,10 +221,6 @@ with the return value.
 
 DIRECTORY is passed to `disproject--root-directory' as a
 \"preferred search directory\".
-
-FORCE-INIT? is an internal hack.  If it is t, it indicates that
-the scope should be set up for a completely new Transient,
-ignoring the previous Transient state.
 
 The specifications for the scope returned is an alist with keys
 and descriptions of their values as follows:
@@ -239,22 +235,11 @@ in the Transient menu.
 
 \\='git-repository?: whether the currently selected project is
 a git repository."
-  ;; FIXME: Transient scope can contain the previous `disproject-dispatch'
-  ;; invocation's root directory (specifically after invoking a suffix), so
-  ;; don't use `disproject--root-directory' if FORCE-INIT? is t.  This also
-  ;; applies to `disproject-compile', but since this would break scope between
-  ;; it and `project-dispatch', this shouldn't used for the sub-prefix (but it's
-  ;; less likely to be called on its own anyways, so is probably able to do
-  ;; without the hack).
-  ;;
-  ;; Upstream issue: https://www.github.com/magit/transient/issues/323
   (let* ((default-root-directory
           (if-let* ((project (project-current nil default-directory)))
               (project-root project)))
          (root-directory
-          (if force-init?
-              default-root-directory
-            (disproject--root-directory nil directory)))
+          (disproject--root-directory nil directory))
          (project (project-current nil root-directory))
          (git-repository?
           (and (featurep 'magit)
@@ -346,7 +331,7 @@ commands."
   (interactive)
   (transient-setup
    'disproject-dispatch nil nil
-   :scope (disproject--setup-scope nil directory t)))
+   :scope (disproject--setup-scope nil directory)))
 
 (transient-define-prefix disproject-compile (&optional directory)
   "Dispatch compilation commands.

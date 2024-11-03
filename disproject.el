@@ -54,7 +54,7 @@ the project's root directory.
 `display-buffer-overriding-action': Set to display in another
 window if \"--prefer-other-window\" is enabled."
   ;; Define variables that determine the environment.
-  `(let ((from-directory (disproject--state-root-directory))
+  `(let ((from-directory (disproject--state-project-root))
          (prefer-other-window? (disproject--state-prefer-other-window?))
          ;; Only enable envrc if the initial environment has it enabled.
          (enable-envrc (and (bound-and-true-p envrc-mode)
@@ -222,7 +222,7 @@ with the return value.
 If NO-PROMPT? is non-nil, no prompts will be made.  This means
 that some values in the scope may be nil.
 
-DIRECTORY is passed to `disproject--state-root-directory' as a
+DIRECTORY is passed to `disproject--state-project-root' as a
 \"preferred search directory\".
 
 The specifications for the scope returned is an alist with keys
@@ -236,7 +236,7 @@ menu."
   (let* ((default-project (project-current nil default-directory))
          (project
           (project-current
-           nil (disproject--state-root-directory no-prompt? directory)))
+           nil (disproject--state-project-root no-prompt? directory)))
          (dir-local-variables
           (with-temp-buffer
             (when-let* ((project)
@@ -277,7 +277,7 @@ commands."
   [:description
    (lambda ()
      (format (propertize "Project: %s" 'face 'transient-heading)
-             (if-let* ((directory (disproject--state-root-directory t)))
+             (if-let* ((directory (disproject--state-project-root t)))
                  (propertize directory 'face 'transient-value)
                (propertize "None detected" 'face 'transient-inapt-suffix))))
    ("p" "Switch project" disproject-switch-project
@@ -452,7 +452,7 @@ is always selected."
             (project (disproject--scope 'project)))
       (equal (project-root default-project) (project-root project))))
 
-(defun disproject--state-root-directory (&optional no-prompt? directory)
+(defun disproject--state-project-root (&optional no-prompt? directory)
   "Return the project root directory defined in transient arguments.
 
 Prefer searching DIRECTORY for a project root first, but only if
@@ -505,7 +505,7 @@ directory can be found, and this function may return nil."
 Look for a valid project root directory in SEARCH-DIRECTORY.  If
 one is found, update the root-directory key in Transient scope to
 the new directory."
-  (if-let* ((directory (disproject--state-root-directory nil search-directory)))
+  (if-let* ((directory (disproject--state-project-root nil search-directory)))
       (disproject--setup-scope t t directory)
     (if directory
         (error "No scope available")

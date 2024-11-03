@@ -239,7 +239,7 @@ menu."
   (let* ((default-project (project-current nil default-directory))
          (project
           (or (and directory (project-current nil directory))
-              (project-current nil (disproject--state-project-root no-prompt?))
+              (project-current nil (disproject--state-project-root))
               default-project))
          (dir-local-variables
           (with-temp-buffer
@@ -281,7 +281,7 @@ commands."
   [:description
    (lambda ()
      (format (propertize "Project: %s" 'face 'transient-heading)
-             (if-let* ((directory (disproject--state-project-root t)))
+             (if-let* ((directory (disproject--state-project-root)))
                  (propertize directory 'face 'transient-value)
                (propertize "None detected" 'face 'transient-inapt-suffix))))
    ("p" "Switch project" disproject-switch-project
@@ -470,34 +470,10 @@ expectation.  Returns the project."
             (project (disproject--scope 'project)))
       (equal (project-root default-project) (project-root project))))
 
-(defun disproject--state-project-root (&optional no-prompt?)
-  "Return the selected project's root directory from Transient state.
-
-Return the selected project's root directory from Transient
-state.  Fall back to searching default root directory if no
-project root is found.  The function may prompt for a project to
-use if all of these cannot find a project root.
-
-If NO-PROMPT? is non-nil, no prompts will be made if a root
-directory can be found, and this function may return nil."
-  ;; `project-current' only remembers project when maybe-prompt?  is true, but
-  ;; this function will opt to always remember instead so it can show up in
-  ;; the "Switch projects" prompt.
-  (let ((find-project-root
-         (lambda (no-prompt? dir)
-           (if no-prompt?
-               (if-let* ((project (project-current nil dir)))
-                   (prog1 (project-root project)
-                     (project-remember-project project)))
-             (project-root (project-current t dir))))))
-    (or
-     ;; Scope.
-     (if-let* ((project (disproject--scope 'project)))
-         (project-root project))
-     ;; Prompt as a fallback if it is permitted and above does not find
-     ;; anything.
-     (unless no-prompt?
-       (funcall find-project-root nil (disproject--state-default-project-root))))))
+(defun disproject--state-project-root ()
+  "Return the selected project's root directory from Transient state."
+  (if-let* ((project (disproject--scope 'project)))
+      (project-root project)))
 
 
 ;;;

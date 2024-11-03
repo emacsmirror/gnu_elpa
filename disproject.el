@@ -448,6 +448,17 @@ is always selected."
   "Return the project from the current Transient scope."
   (disproject--scope 'project))
 
+(defun disproject--state-project-ensure ()
+  "Ensure that there is a selected project.
+
+This checks if there is a selected project in Transient scope,
+prompting and setting the Transient state if needed to meet that
+expectation.  Returns the project."
+  (unless (disproject--state-project)
+    (disproject-switch-project))
+  (or (disproject--state-project)
+      (error "Function did not return a valid project when it was supposed to")))
+
 (defun disproject--state-project-is-default? ()
   "Return whether the selected project is the same as the default project."
   (if-let* ((default-project (disproject--scope 'default-project))

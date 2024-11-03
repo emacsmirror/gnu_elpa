@@ -244,9 +244,11 @@ menu."
               (hack-dir-local-variables)
               dir-local-variables-alist)))
          (compile-suffixes
-          (alist-get 'disproject-compile-suffixes dir-local-variables))
+          (alist-get 'disproject-compile-suffixes dir-local-variables
+                     (default-value 'disproject-compile-suffixes)))
          (custom-suffixes
-          (alist-get 'disproject-custom-suffixes dir-local-variables))
+          (alist-get 'disproject-custom-suffixes dir-local-variables
+                     (default-value 'disproject-custom-suffixes)))
          (new-scope
           `((default-project . ,default-project)
             (project . ,project)

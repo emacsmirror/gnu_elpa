@@ -302,7 +302,7 @@ offset and limit."
 (defun rcirc-sqlite-db-search-log (arg-list)
   "Perform a full text search.
 ARG-LIST describes the search argument and possibly a specific
-channel, time range, and/or nick to narrow the search to."  
+channel, time range, and/or nick to narrow the search to."
   (pcase-let ((`(,query ,channel ,when ,nick) arg-list))
     (let ((dbquery "")
 	  (where (rcirc-sqlite-create-where (list channel when nick)))
@@ -627,6 +627,22 @@ Called from `rcirc-sqlite-two-column-mode'."
     (push (tabulated-list-get-id) rcirc-sqlite-drill-down-method)
     (rcirc-sqlite-view-drill-down-final))))
 
+(defun rcirc-sqlite-create-time-range (rowdata extra-days all-next-days)
+  "Create a timerange cons for the narrowing.
+ROWDATA contains the user-selected row.
+EXTRA-DAYS extends to previous or next days.
+When ALL-NEXT-DAYS is true, select everything after the start-time."
+  (cond (all-next-days
+         (cons (nth 4 rowdata) 0))
+	((< extra-days 0)
+	 (cons (+ (* extra-days 86400)
+                  (nth 4 rowdata))
+	       (+ (nth 4 rowdata) 86400)))
+	(t
+         (cons (nth 4 rowdata)
+	       (+ (* extra-days 86400)
+                  (nth 4 rowdata))))))
+  
 (defun rcirc-sqlite-query-single-day
     (with-nick extra-days all-next-days)
   "Select logs from a single day.
@@ -636,20 +652,11 @@ When ALL-NEXT-DAYS is true, select everything after the start-time."
   (let ((rowid (tabulated-list-get-id)))
     (when (not rowid)
       (error "No row selected"))
-    (let ((rowdata
+    (let* ((rowdata
 	   (car (rcirc-sqlite-db-row-data rowid)))
           (nick rcirc-sqlite-all-nicks)
-          (timerange nil))
-      (cond (all-next-days
-             (setq timerange (cons (nth 4 rowdata) 0)))
-	    ((< extra-days 0)
-	     (setq timerange (cons (+ (* extra-days 86400)
-                                      (nth 4 rowdata))
-				   (+ (nth 4 rowdata) 86400))))
-	    (t
-             (setq timerange (cons (nth 4 rowdata)
-				   (+ (* extra-days 86400)
-                                      (nth 4 rowdata))))))
+          (timerange (rcirc-sqlite-create-time-range
+		      rowdata extra-days all-next-days)))
       (let ((identstring (nth 0 rowdata)))
         (when with-nick
           (setq nick (nth 2 rowdata))

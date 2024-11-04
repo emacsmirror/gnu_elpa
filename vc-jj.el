@@ -47,18 +47,20 @@
 
 ;;;###autoload (defun vc-jj-registered (file)
 ;;;###autoload   "Return non-nil if FILE is registered with jj."
-;;;###autoload   (if (vc-find-root file ".jj")       ; Short cut.
+;;;###autoload   (if (and (vc-find-root file ".jj")   ; Short cut.
+;;;###autoload            (executable-find "jj"))
 ;;;###autoload       (progn
 ;;;###autoload         (load "vc-jj" nil t)
 ;;;###autoload         (vc-jj-registered file))))
 
 (defun vc-jj-registered (file)
-  (unless (not (file-exists-p default-directory))
-    (with-demoted-errors "Error: %S"
-      (when-let ((root (vc-jj-root file)))
-        (let ((relative (file-relative-name file root))
-              (default-directory root))
-          (vc-jj--file-tracked relative))))))
+  (when (executable-find "jj")
+    (unless (not (file-exists-p default-directory))
+      (with-demoted-errors "Error: %S"
+        (when-let ((root (vc-jj-root file)))
+          (let ((relative (file-relative-name file root))
+                (default-directory root))
+            (vc-jj--file-tracked relative)))))))
 
 (defun vc-jj-state (file)
   (when-let ((root (vc-jj-root file)))

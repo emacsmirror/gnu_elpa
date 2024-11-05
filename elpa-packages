@@ -492,7 +492,8 @@
   :ignored-files ("LICENSE"))
  (markchars		:url nil)
  (math-symbol-lists 	:url "https://github.com/vspinu/math-symbol-lists.git")
- (mathjax               :url "https://github.com/astoff/mathjax.el")
+ (mathjax               :url "https://github.com/astoff/mathjax.el"
+  :make "elpa")
  (mct			:url "https://gitlab.com/protesilaos/mct"
   :doc "README.org")
  (memory-usage		:url nil)

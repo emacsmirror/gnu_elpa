@@ -91,49 +91,78 @@ window if \"--prefer-other-window\" is enabled."
   :group 'convenience
   :group 'project)
 
-(defcustom disproject-compile-suffixes '(("c" "Make  %s" "make -k"
+(defcustom disproject-compile-suffixes '(("c" "Make  %s"
+                                          :command-type compile
+                                          :command "make -k"
                                           :identifier "make"))
   "Commands for the `disproject-compile' prefix.
 
 The value should be a list of transient-like specification
-entries (KEY DESCRIPTION COMPILE-COMMAND {PROPERTY VALUE} ...).
+entries (KEY DESCRIPTION {PROPERTY VALUE} ...).
 
 KEY is the keybind that will be used in the Transient menu.
 
-DESCRIPTION is used as the Transient command description.  If a
-\"%s\" is present in the description, it will be substituted with
-COMPILE-COMMAND.
+DESCRIPTION is used as the Transient command description.
 
-COMPILE-COMMAND is passed to `compile' as the shell command to
-run.
+The following properties are required:
 
-Optional properties can be set after COMPILE-COMMAND through
-keywords.
+`:command' is an s-expression which is evaluated and used
+depending on the command type :command-type.
 
-:identifier is the only valid property.  It defaults to the first
-word in the description (or \"default\" if none are found).  This
-should be unique as it is used in the compilation buffer name,
-but it may be useful to use the same identifier as another
-command if one wants certain project compilation commands to be
-incompatible (enforcing only one runs at a given time).
+`:command-type' is a symbol that specifies what to do with the
+value of `:command'.  It can be any of the following keys:
 
-For example, the following may be used as a dir-locals.el value
-for `disproject-compile-suffixes' to add \"make -k\" and
-\"guile --help\" in a particular project:
+  \\='bare-call: the value is interactively called without any
+  wrapping, i.e. from the current buffer.  This ignores the
+  optional properties.
+
+  \\='call: the value will be called as an interactive function
+  with some wrappings.  Variables such as those from
+  `disproject--with-environment' and the other properties are set
+  before the command is invoked.
+
+  \\='compile: the value of `:command' should be a string that
+  will be passed to `compile' as the shell command to run.  The
+  same wrappings from \\='call are used.
+
+Some optional properties may be set as well:
+
+`:identifier' is used mainly for naming things like buffers.  It
+defaults to the first word in the description (or \"default\" if
+none are found).  This should be unique as it is used in the
+compilation buffer name, but it may be useful to use the same
+identifier as another command if one wants certain project
+compilation commands to be incompatible (enforcing only one runs
+at a given time).
+
+To illustrate usage of `disproject-compile-suffixes', for
+example, the following may be used as a dir-locals.el value for
+some project to add \"make -k\" and \"guile --help\" as compile
+commands and some custom `find-file' call commands:
 
   ((\"m\" \"Make\"
-    \"echo Running make...; make -k\"
+    :command-type compile
+    :command \"echo Running make...; make -k\"
     :identifier \"make\")
-   (\"g\" \"/Compile/ some help from Guile!\"
-    \"echo Get some help from Guile...; guile --help\"
-    :identifier \"guile-help\")))"
+   (\"g\" \"\\=`Compile\\=' some help from Guile!\"
+    :command-type compile
+    :command \"echo Get some help from Guile...; guile --help\"
+    :identifier \"guile-help\")
+   (\"f\" \"Find a file\"
+    :command-type call
+    :command #\\='find-file)
+   (\"F\" \"Announce the finding a file\"
+    :command-type call
+    :command (lambda ()
+               (message \"FINDING A FILE!\")
+               (call-interactively #\\='find-file))"
   :type '(repeat (list (string :tag "Key bind")
                        (string :tag "Description")
-                       (string :tag "Shell command")
                        (plist :inline t
                               :tag "Properties"
-                              :key-type (const :identifier)
-                              :value-type string)))
+                              :key-type (choice (const :command-type)
+                                                (const :command)
+                                                (const :identifier)))))
   :group 'disproject)
 
 (defcustom disproject-custom-suffixes '()
@@ -507,6 +536,38 @@ expectation.  Returns the project."
 ;;; Suffix handling.
 ;;;
 
+(defun disproject-compile--suffix (spec-entry)
+  "Construct and return a suffix to be parsed by `transient-parse-suffixes'.
+
+SPEC-ENTRY is a single entry from the specification described by
+`disproject-compile-suffixes'."
+  (pcase spec-entry
+    (`( ,key ,description
+        .
+        ,(map :command-type :command :identifier))
+     `(,key
+       ,description
+       (lambda ()
+         (interactive)
+         ,(pcase command-type
+            ('bare-call
+             `(call-interactively ,command))
+            (_
+             `(disproject--with-environment
+               (let* ((compilation-buffer-name-function
+                       (lambda (major-mode-name)
+                         (project-prefixed-buffer-name
+                          (concat
+                           ,(or identifier
+                                (and (string-match "\\(\\w+\\)" description)
+                                     (match-string 1 description))
+                                "default")
+                           "-"
+                           major-mode-name)))))
+                 ,(pcase command-type
+                    ('call `(call-interactively ,command))
+                    ('compile `(compile ,command))))))))))))
+
 (defun disproject--switch-project (search-directory)
   "Modify the Transient scope to switch to another project.
 
@@ -529,26 +590,8 @@ project."
   "Set up suffixes according to `disproject-compile-suffixes'."
   (transient-parse-suffixes
    'disproject-compile
-   `(,@(mapcar
-        (pcase-lambda (`( ,key ,description ,compile-command
-                          . ,(map :identifier)))
-          `(,key
-            ,(format description
-                     (propertize compile-command 'face 'transient-value))
-            (lambda ()
-              (interactive)
-              (disproject--with-environment
-               (let* ((compilation-buffer-name-function
-                       (lambda (major-mode-name)
-                         (project-prefixed-buffer-name
-                          (concat ,(or identifier
-                                       (and
-                                        (string-match "\\(\\w+\\)" description)
-                                        (match-string 1 description))
-                                       "default")
-                                  "-" major-mode-name)))))
-                 (compile ,compile-command))))))
-        (disproject--state-compile-suffixes))
+   `(,@(mapcar #'disproject-compile--suffix
+               (disproject--state-compile-suffixes))
      ("!"
       "Alternative compile..."
       (lambda ()

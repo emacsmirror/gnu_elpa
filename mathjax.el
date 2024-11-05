@@ -1,9 +1,11 @@
 ;;; mathjax.el --- Render formulas using MathJax     -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024  Augusto Stoffel
+;; Copyright (C) 2024  Free Software Foundation, Inc.
 
 ;; Author: Augusto Stoffel <arstoffel@gmail.com>
-;; Keywords: text, tools
+;; URL: https://github.com/astoff/mathjax.el
+;; Version: 0
+;; Keywords: tex, text, tools
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

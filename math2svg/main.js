@@ -1,7 +1,7 @@
 /*!
  * mathjax.el --- Render formulas using MathJax
  *
- * Copyright (C) 2024  Augusto Stoffel
+ * Copyright (C) 2024  Free Software Foundation, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,9 +15,9 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- * Adapted from https://github.com/mathjax/MathJax-demos-node/blob/master/simple/
  */
+
+// Cf. https://github.com/mathjax/MathJax-demos-node/blob/master/simple
 
 const config = JSON.parse(process.argv[2] || "{}")
 MathJax = {

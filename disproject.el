@@ -165,30 +165,6 @@ commands and some custom `find-file' call commands:
                                                 (const :identifier)))))
   :group 'disproject)
 
-(defcustom disproject-custom-suffixes '()
-  "Custom project commands for the `disproject-dispatch' prefix.
-
-This is meant to be set per-project, usually via directory-local
-variables.
-
-The value should be a suffix command or a group specification as
-defined by `transient-parse-suffixes'.
-
-For example, to evaluate some code when \"N\" is pressed,
-something like the following may be specified:
-
-  ((\"N\" \"Frobnicate a foo\"
-    (lambda ()
-      (interactive)
-      (message \"Frobnicated a foo!\"))))
-
-Consider wrapping code in the `disproject--with-environment' form
-so commands that should respect the menu options can do so (like
-preferring other buffer, or running from the project's root
-directory)."
-  :type 'sexp
-  :group 'disproject)
-
 (defcustom disproject-find-file-command #'project-find-file
   "The command used for opening a file in a project.
 
@@ -288,14 +264,6 @@ menu."
          ;; Type-check local custom variables, since `hack-dir-local-variables'
          ;; only reads an alist.
          (compile-suffixes
-          (if-let* ((suffixes (alist-get 'disproject-compile-suffixes
-                                         dir-local-variables
-                                         (default-value
-                                          'disproject-compile-suffixes)))
-                    ((disproject--assert-type 'disproject-compile-suffixes
-                                              suffixes)))
-              suffixes))
-         (custom-suffixes
           (if-let* ((suffixes (alist-get 'disproject-custom-suffixes
                                          dir-local-variables
                                          (default-value
@@ -306,8 +274,7 @@ menu."
          (new-scope
           `((default-project . ,default-project)
             (project . ,project)
-            (compile-suffixes . ,compile-suffixes)
-            (custom-suffixes . ,custom-suffixes))))
+            (compile-suffixes . ,compile-suffixes))))
     (if-let* ((write-scope?)
               (scope (disproject--scope nil t)))
         (seq-each (pcase-lambda (`(,key . ,value))
@@ -376,10 +343,7 @@ commands."
     ("v t" "Magit todos" disproject-magit-todos-list
      :if (lambda () (and (featurep 'magit-todos)
                          (disproject--state-git-repository?))))
-    ("v v" "VC dir" disproject-vc-dir)]
-   ["Custom commands"
-    :class transient-column
-    :setup-children disproject--setup-custom-suffixes]]
+    ("v v" "VC dir" disproject-vc-dir)]]
   [("SPC" "Manage projects" disproject-manage-projects)]
   (interactive)
   (transient-setup
@@ -579,12 +543,6 @@ project."
     (error "No parent project found for %s" search-directory)))
 
 ;;;; Suffix setup functions.
-
-(defun disproject--setup-custom-suffixes (_)
-  "Set up suffixes according to `disproject-custom-suffixes'."
-  (transient-parse-suffixes
-   'disproject-dispatch
-   (disproject--state-custom-suffixes)))
 
 (defun disproject-compile--setup-suffixes (_)
   "Set up suffixes according to `disproject-compile-suffixes'."

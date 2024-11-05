@@ -538,7 +538,7 @@ project."
                  (compile ,compile-command))))))
         (disproject--state-compile-suffixes))
      ("!"
-      "Alternative command..."
+      "Alternative compile..."
       (lambda ()
         (interactive)
         (disproject--with-environment

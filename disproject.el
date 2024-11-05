@@ -215,6 +215,18 @@ This is called whenever the function
 ;;; Prefix handling.
 ;;;
 
+(defun disproject--assert-type (variable value)
+  "Assert that VALUE matches the type for custom VARIABLE.
+
+A nil value is returned and a warning is signaled if VALUE does
+not match the type.  Otherwise, this function returns a non-nil
+value."
+  (let ((type (get variable 'custom-type)))
+    (if (widget-apply (widget-convert type) :match value)
+        t
+      (warn "Value `%S' does not match type %s" value type)
+      nil)))
+
 (defun disproject--setup-scope (&optional write-scope? directory)
   "Set up Transient scope for a Disproject prefix.
 

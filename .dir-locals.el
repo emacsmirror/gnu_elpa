@@ -3,7 +3,7 @@
 
 ((nil
   .
-  ((disproject-compile-suffixes
+  ((disproject-custom-suffixes
     .
     (("p i" "[Re-]Initialize a local Guix profile"
       :command-type compile

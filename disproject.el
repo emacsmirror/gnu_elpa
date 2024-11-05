@@ -91,11 +91,11 @@ window if \"--prefer-other-window\" is enabled."
   :group 'convenience
   :group 'project)
 
-(defcustom disproject-compile-suffixes '(("c" "Make  %s"
+(defcustom disproject-custom-suffixes '(("c" "Make  %s"
                                           :command-type compile
                                           :command "make -k"
                                           :identifier "make"))
-  "Commands for the `disproject-compile' prefix.
+  "Commands for the `disproject-custom-dispatch' prefix.
 
 The value should be a list of transient-like specification
 entries (KEY DESCRIPTION {PROPERTY VALUE} ...).
@@ -135,7 +135,7 @@ identifier as another command if one wants certain project
 compilation commands to be incompatible (enforcing only one runs
 at a given time).
 
-To illustrate usage of `disproject-compile-suffixes', for
+To illustrate usage of `disproject-custom-suffixes', for
 example, the following may be used as a dir-locals.el value for
 some project to add \"make -k\" and \"guile --help\" as compile
 commands and some custom `find-file' call commands:
@@ -263,7 +263,7 @@ menu."
               dir-local-variables-alist)))
          ;; Type-check local custom variables, since `hack-dir-local-variables'
          ;; only reads an alist.
-         (compile-suffixes
+         (custom-suffixes
           (if-let* ((suffixes (alist-get 'disproject-custom-suffixes
                                          dir-local-variables
                                          (default-value
@@ -274,7 +274,7 @@ menu."
          (new-scope
           `((default-project . ,default-project)
             (project . ,project)
-            (compile-suffixes . ,compile-suffixes))))
+            (custom-suffixes . ,custom-suffixes))))
     (if-let* ((write-scope?)
               (scope (disproject--scope nil t)))
         (seq-each (pcase-lambda (`(,key . ,value))
@@ -311,7 +311,7 @@ commands."
    :pad-keys t
    [("b" "Switch buffer" disproject-switch-to-buffer)
     ("B" "Buffer list" disproject-list-buffers)
-    ("c" "Compile" disproject-compile)
+    ("c" "Custom dispatch" disproject-custom-dispatch)
     ("D" "Dired" disproject-dired)]
    [("k" "Kill buffers" disproject-kill-buffers)
     ("s" "Shell" disproject-shell)
@@ -326,10 +326,10 @@ commands."
   ;; depending on the chosen project.  This requires :refresh-suffixes to be t.
   ;;
   ;; FIXME: There is a case where the section doesn't display when it should.
-  ;; 1. Start with no project detected; 2. Compile, selecting a project that has
-  ;; vc; 3. return to main dispatch menu.  Version control should show up since
-  ;; that project is now selected, but it doesn't until the next refresh
-  ;; (e.g. by flipping an option).
+  ;; 1. Start with no project detected; 2. Custom dispatch, selecting a project
+  ;; that has vc; 3. return to main dispatch menu.  Version control should show
+  ;; up since that project is now selected, but it doesn't until the next
+  ;; refresh (e.g. by flipping an option).
   [["Version control"
     :if (lambda () (nth 1 (disproject--state-project)))
     ("v d" "Magit dispatch" magit-dispatch
@@ -350,19 +350,19 @@ commands."
    'disproject-dispatch nil nil
    :scope (disproject--setup-scope nil directory)))
 
-(transient-define-prefix disproject-compile (&optional directory)
-  "Dispatch compilation commands.
+(transient-define-prefix disproject-custom-dispatch (&optional directory)
+  "Dispatch custom commands.
 
-This prefix can be configured with `disproject-compile-suffixes'."
-  ["Compile"
+This prefix can be configured with `disproject-custom-suffixes'."
+  ["Custom commands"
    :class transient-column
-   :setup-children disproject-compile--setup-suffixes]
+   :setup-children disproject-custom--setup-suffixes]
   (interactive)
   (if directory
       (disproject--switch-project directory)
     (disproject--state-project-ensure))
   (transient-setup
-   'disproject-compile nil nil
+   'disproject-custom-dispatch nil nil
    :scope (disproject--setup-scope nil (disproject--state-project-root))))
 
 (transient-define-prefix disproject-manage-projects (&optional directory)
@@ -500,11 +500,11 @@ expectation.  Returns the project."
 ;;; Suffix handling.
 ;;;
 
-(defun disproject-compile--suffix (spec-entry)
+(defun disproject-custom--suffix (spec-entry)
   "Construct and return a suffix to be parsed by `transient-parse-suffixes'.
 
 SPEC-ENTRY is a single entry from the specification described by
-`disproject-compile-suffixes'."
+`disproject-custom-suffixes'."
   (pcase spec-entry
     (`( ,key ,description
         .
@@ -544,12 +544,12 @@ project."
 
 ;;;; Suffix setup functions.
 
-(defun disproject-compile--setup-suffixes (_)
-  "Set up suffixes according to `disproject-compile-suffixes'."
+(defun disproject-custom--setup-suffixes (_)
+  "Set up suffixes according to `disproject-custom-suffixes'."
   (transient-parse-suffixes
-   'disproject-compile
-   `(,@(mapcar #'disproject-compile--suffix
-               (disproject--state-compile-suffixes))
+   'disproject-custom-dispatch
+   `(,@(mapcar #'disproject-custom--suffix
+               (disproject--state-custom-suffixes))
      ("!"
       "Alternative compile..."
       (lambda ()

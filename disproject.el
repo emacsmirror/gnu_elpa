@@ -256,12 +256,24 @@ menu."
                         (default-directory (project-root project)))
               (hack-dir-local-variables)
               dir-local-variables-alist)))
+         ;; Type-check local custom variables, since `hack-dir-local-variables'
+         ;; only reads an alist.
          (compile-suffixes
-          (alist-get 'disproject-compile-suffixes dir-local-variables
-                     (default-value 'disproject-compile-suffixes)))
+          (if-let* ((suffixes (alist-get 'disproject-compile-suffixes
+                                         dir-local-variables
+                                         (default-value
+                                          'disproject-compile-suffixes)))
+                    ((disproject--assert-type 'disproject-compile-suffixes
+                                              suffixes)))
+              suffixes))
          (custom-suffixes
-          (alist-get 'disproject-custom-suffixes dir-local-variables
-                     (default-value 'disproject-custom-suffixes)))
+          (if-let* ((suffixes (alist-get 'disproject-custom-suffixes
+                                         dir-local-variables
+                                         (default-value
+                                          'disproject-custom-suffixes)))
+                    ((disproject--assert-type 'disproject-custom-suffixes
+                                              suffixes)))
+              suffixes))
          (new-scope
           `((default-project . ,default-project)
             (project . ,project)

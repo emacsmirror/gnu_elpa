@@ -91,7 +91,7 @@ window if \"--prefer-other-window\" is enabled."
   :group 'convenience
   :group 'project)
 
-(defcustom disproject-custom-suffixes '(("c" "Make  %s"
+(defcustom disproject-custom-suffixes '(("c" "Make"
                                           :command-type compile
                                           :command "make -k"
                                           :identifier "make"))

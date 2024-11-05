@@ -53,7 +53,7 @@ setup using ~use-package~:
 :END:
 
 Disproject also offers variables for customizing its interface and underlying
-commands.  Search =disproject= via =M-x customize-apropos= to see them and
+commands.  Search =disproject= via =M-x customize-group= to see them and
 accompanying documentation.
 
 # TODO: Is there a better way to document the note below?  It is important for

@@ -628,6 +628,11 @@ default, a GNUS ephemeral group for that bug will be shown; if its
 value is @code{rmail}, the command will present an Rmail folder
 instead.
 
+@vindex debbugs-gnu-summary-keep-posting-styles
+If the mail backend @code{gnus} is used, it will apply its own
+settings of @code{gnus-posting-styles} in the GNUS summary buffer.
+Set @code{debbugs-gnu-summary-keep-posting-styles} to @code{t} if you
+want to prepend your own posting-styles.
 
 @node TODO Items
 @section TODO Items

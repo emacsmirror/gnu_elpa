@@ -770,14 +770,14 @@ depend on PHRASE being a string, or nil.  See Info node
 	  (widen))))
 
     (when (member "emacs" packages)
-      (when-let ((blockers
-		  (alist-get
-		   'blockedby
-		   (car
-		    (debbugs-get-status
-		     (alist-get
-		      debbugs-gnu-emacs-current-release
-		      debbugs-gnu-emacs-blocking-reports nil nil #'equal))))))
+      (when-let* ((blockers
+		   (alist-get
+		    'blockedby
+		    (car
+		     (debbugs-get-status
+		      (alist-get
+		       debbugs-gnu-emacs-current-release
+		       debbugs-gnu-emacs-blocking-reports nil nil #'equal))))))
 	(setq tabulated-list-entries
 	      (delq nil
 		    (mapcar
@@ -884,7 +884,7 @@ value, like in `debbugs-gnu-get-bugs' or `debbubgs-gnu-tagged'."
   (if (and debbugs-gnu-use-threads main-thread
            ;; If there is a bugs query, there shall be a sufficient
            ;; number of bugs.
-           (if-let ((bugs (alist-get 'bugs debbugs-gnu-current-query)))
+           (if-let* ((bugs (alist-get 'bugs debbugs-gnu-current-query)))
                (> (length bugs) (1- debbugs-gnu-use-threads-lower-limit))
              t)
            ;; If there is a request for tagged bugs, there shall be a
@@ -1028,9 +1028,9 @@ If OFFLINE is non-nil, the query is not sent to the server.  Bugs
 are taken from the cache instead."
   (setq debbugs-gnu-current-buffer
 	(cond
-	 ((when-let ((string (alist-get 'phrase debbugs-gnu-current-query)))
+	 ((when-let* ((string (alist-get 'phrase debbugs-gnu-current-query)))
 	    (format "*%S Bugs*" string)))
-	 ((when-let ((string (alist-get 'package debbugs-gnu-current-query)))
+	 ((when-let* ((string (alist-get 'package debbugs-gnu-current-query)))
 	    (format "*%s Bugs*" (capitalize string))))
 	 (t "*Bugs*")))
   ;; The tabulated mode sets several local variables.  We must get rid
@@ -1603,8 +1603,8 @@ interest to you."
     (if (memq id debbugs-gnu-local-tags)
 	(setq debbugs-gnu-local-tags (delq id debbugs-gnu-local-tags))
       (add-to-list 'debbugs-gnu-local-tags id))
-    (when-let ((entry (debbugs-gnu--update-tag-mark-face id))
-	       (inhibit-read-only t))
+    (when-let* ((entry (debbugs-gnu--update-tag-mark-face id))
+	        (inhibit-read-only t))
       (delete-region (line-beginning-position) (progn (forward-line 1) (point)))
       (apply #'debbugs-gnu-print-entry entry))
     (when id
@@ -1653,8 +1653,8 @@ interesting to you."
     (if (memq id debbugs-gnu-local-marks)
 	(setq debbugs-gnu-local-marks (delq id debbugs-gnu-local-marks))
       (add-to-list 'debbugs-gnu-local-marks id))
-    (when-let ((entry (debbugs-gnu--update-tag-mark-face id))
-	       (inhibit-read-only t))
+    (when-let* ((entry (debbugs-gnu--update-tag-mark-face id))
+	        (inhibit-read-only t))
       (delete-region (line-beginning-position) (progn (forward-line 1) (point)))
       (apply #'debbugs-gnu-print-entry entry))
     (when id
@@ -1897,6 +1897,11 @@ MERGED is the list of bugs merged with this one."
   :version "29.1"
   :type 'regexp)
 
+(defcustom debbugs-gnu-summary-keep-posting-styles nil
+  "Whether to keep the user's `gnus-posting-styles'."
+  :version "30.1"
+  :type 'boolean)
+
 (defvar debbugs-gnu-summary-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map "C" #'debbugs-gnu-send-control-message)
@@ -1910,7 +1915,11 @@ MERGED is the list of bugs merged with this one."
 \\{debbugs-gnu-summary-mode-map}"
   :lighter " Debbugs" :keymap debbugs-gnu-summary-mode-map
   (set (make-local-variable 'gnus-posting-styles)
-       `((".*"
+       `(;; We apply them first, because we want to keep our own
+         ;; posting-styles prior the others.
+         ,@(and debbugs-gnu-summary-keep-posting-styles
+                (default-value 'gnus-posting-styles))
+         (".*"
 	  (eval
 	   (when (buffer-live-p gnus-article-copy)
 	     (with-current-buffer gnus-article-copy
@@ -2061,13 +2070,11 @@ removed instead."
                        (save-excursion
                          (save-restriction
                            (message-narrow-to-headers)
-                           (or (when-let ((addr (message-fetch-field "to")))
-                                 (and (string-match bugnum-re addr)
-				      (string-to-number (match-string 1 addr))))
-                               (when-let ((addr (message-fetch-field "cc")))
-                                 (and (string-match bugnum-re addr)
-                                      (string-to-number
-				       (match-string 1 addr)))))))))))))
+                           (and-let* ((addr (or (message-fetch-field "to")
+                                                (message-fetch-field "cc")))
+                                      ((string-match bugnum-re addr))
+                                      ((string-to-number
+				        (match-string 1 addr)))))))))))))
 
 (defun debbugs-gnu-make-control-message
     (message bugid &optional reverse buffer noversion)
@@ -2250,14 +2257,14 @@ Use `gnus-read-ephemeral-emacs-bug-group' instead if there is no such buffer."
        for buf in (buffer-list)
        while preferred-modes do
        (set-buffer buf)
-       (when-let (((memql bugid (debbugs-gnu-implicit-ids)))
-                  (mode (cl-loop
-                         for mode in preferred-modes
-                         thereis (and (derived-mode-p mode)
-                                      ;; Don't choose sent message buffers.
-                                      (or (not (eq mode #'message-mode))
-                                          (not message-sent-message-via))
-                                      mode))))
+       (when-let* (((memql bugid (debbugs-gnu-implicit-ids)))
+                   (mode (cl-loop
+                          for mode in preferred-modes
+                          thereis (and (derived-mode-p mode)
+                                       ;; Don't choose sent message buffers.
+                                       (or (not (eq mode #'message-mode))
+                                           (not message-sent-message-via))
+                                       mode))))
          (setq preferred-modes (cdr (memq mode preferred-modes)))
          (setq bug-buf buf))))
     (if bug-buf
@@ -2595,7 +2602,7 @@ successfully sent."
   (interactive)
   (when (mouse-event-p last-input-event) (mouse-set-point last-input-event))
   ;; We open the bug reports.
-  (when-let ((args (debbugs-gnu-current-status)))
+  (when-let* ((args (debbugs-gnu-current-status)))
     (apply #'debbugs-gnu args)))
 
 (defcustom debbugs-gnu-default-bug-number-list
@@ -2811,13 +2818,13 @@ If SELECTIVELY, query the user before applying the patch."
   (goto-char (point-min))
   (while (re-search-forward diff-file-header-re nil t)
     (goto-char (match-beginning 0))
-    (when-let ((target-name (debbugs-gnu-diff-hunk-target-name dir)))
-      (when (and (string-match "^/" target-name)
-		 (re-search-forward "^\\([+]+\\|-+\\) .*" nil t))
-	(replace-match (concat (match-string 1)
-			       " a"
-			       (substring target-name (length dir)))
-		       nil t)))
+    (when-let* ((target-name (debbugs-gnu-diff-hunk-target-name dir))
+                ((string-match "^/" target-name))
+		((re-search-forward "^\\([+]+\\|-+\\) .*" nil t)))
+      (replace-match (concat (match-string 1)
+			     " a"
+			     (substring target-name (length dir)))
+		     nil t))
     (forward-line 2)))
 
 (defun debbugs-gnu-find-contributor (contributor)
@@ -2864,7 +2871,7 @@ If SELECTIVELY, query the user before applying the patch."
 		   (quoted-printable-decode-region (point-min) (point-max))))
 	    (setq patch-subject
 		  (or (gnus-fetch-field "subject") patch-subject))
-	    (when-let ((pf (gnus-fetch-field "from")))
+	    (when-let* ((pf (gnus-fetch-field "from")))
 	      (setq patch-from (mail-decode-encoded-address-string pf)))
 	    (goto-char (point-min))
 	    (when (re-search-forward "^[*] " nil t)

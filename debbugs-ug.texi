@@ -475,6 +475,11 @@ entry: @code{Id} (the bug number), @code{State} (some bug attributes),
 (the bug subject).  By default the bugs are sorted descending by
 @code{Id}; this can be changed by clicking in the headline.
 
+The width of the columns in the tabulated list are specified by the
+user options @code{debbugs-gnu-width-id},
+@code{debbugs-gnu-width-state}, @code{debbugs-gnu-width-submitter},
+and @code{debbugs-gnu-width-title}, respectively.
+
 Different foreground colors represent further information on the bug
 report.  If the bug number uses a red color
 (@code{debbugs-gnu-tagged}), the bug has been tagged locally.  The

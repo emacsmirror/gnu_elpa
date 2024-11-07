@@ -1338,6 +1338,26 @@ Interactively, it is non-nil with the prefix argument."
   (message "Reverting buffer")
   (debbugs-gnu nil))
 
+(defcustom debbugs-gnu-width-id 5
+  "The width of the \"Id\" column in the tabulated list"
+  :type 'integer
+  :version "30.1")
+
+(defcustom debbugs-gnu-width-state 10
+  "The width of the \"State\" column in the tabulated list"
+  :type 'integer
+  :version "30.1")
+
+(defcustom debbugs-gnu-width-submitter 18
+  "The width of the \"Submitter\" column in the tabulated list"
+  :type 'integer
+  :version "30.1")
+
+(defcustom debbugs-gnu-width-title 10
+  "The width of the \"Title\" column in the tabulated list"
+  :type 'integer
+  :version "30.1")
+
 (define-derived-mode debbugs-gnu-mode tabulated-list-mode "Debbugs"
   "Major mode for listing bug reports.
 The bugs are taken from the cache when the list is refreshed.
@@ -1356,10 +1376,11 @@ modified on the debbugs server, consider typing \\`C-u g'.
   (set (make-local-variable 'debbugs-gnu-local-print-function)
        debbugs-gnu-current-print-function)
   (set (make-local-variable 'tabulated-list-entries) nil)
-  (setq tabulated-list-format [("Id"         5 debbugs-gnu-sort-id)
-			       ("State"     10 debbugs-gnu-sort-state)
-			       ("Submitter" 18 debbugs-gnu-sort-submitter)
-			       ("Title"     10 debbugs-gnu-sort-title)])
+  (setq tabulated-list-format
+        `[("Id" ,debbugs-gnu-width-id debbugs-gnu-sort-id)
+	  ("State" ,debbugs-gnu-width-state debbugs-gnu-sort-state)
+	  ("Submitter" ,debbugs-gnu-width-submitter debbugs-gnu-sort-submitter)
+	  ("Title" ,debbugs-gnu-width-title debbugs-gnu-sort-title)])
   (setq tabulated-list-sort-key (cons "Id" nil))
   (setq tabulated-list-printer #'debbugs-gnu-print-entry)
   (add-hook 'tabulated-list-revert-hook #'debbugs-gnu-rescan nil t)

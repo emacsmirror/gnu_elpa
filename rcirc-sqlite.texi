@@ -396,10 +396,8 @@ containing the word @code{foobar} will not be found.
 To search for both @code{foo} and @code{foobar}, use the search
 string @code{foo*}.
 
-Likewise, to search for URLs, use something like @code{"http://*"} or
-@code{"https://*"} as search string, or for example
-@code{"gopher://*"}.  Because of the colon (@code{:}), the double
-quotes (@code{"}) here are required.
+Likewise, to search for URLs, use something like @code{"http*"}
+to search for @code{"http://"} as well as for @code{"https://"}.
 
 For more formatting of the search see the chapter
 @code{Full-text Query Syntax} of the SQLite documentation (see

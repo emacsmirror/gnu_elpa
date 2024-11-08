@@ -364,20 +364,21 @@ start with as the selected project."
    :scope (disproject--setup-scope
            nil `(,@(if project `((project . ,project)) '())))))
 
-(transient-define-prefix disproject-custom-dispatch (&optional directory)
+(transient-define-prefix disproject-custom-dispatch (&optional project)
   "Dispatch custom commands.
+
+If non-nil, PROJECT is used as the project to dispatch custom
+commands for.
 
 This prefix can be configured with `disproject-custom-suffixes'."
   ["Custom commands"
    :class transient-column
    :setup-children disproject-custom--setup-suffixes]
   (interactive)
-  (if directory
-      (disproject--switch-project directory)
-    (disproject--state-project-ensure))
   (transient-setup
    'disproject-custom-dispatch nil nil
-   :scope (disproject--setup-scope)))
+   :scope (disproject--setup-scope
+           nil `((project . ,(or project (disproject--state-project-ensure)))))))
 
 (transient-define-prefix disproject-magit-commands-dispatch ()
   "Dispatch Magit-related commands for a project.
@@ -512,15 +513,18 @@ is always selected."
   (disproject--scope 'project))
 
 (defun disproject--state-project-ensure ()
-  "Ensure that there is a selected project.
+  "Ensure that there is a selected project and return it.
 
 This checks if there is a selected project in Transient scope,
-prompting and setting the Transient state if needed to meet that
-expectation.  Returns the project."
-  (unless (disproject--state-project)
-    (disproject-switch-project))
+prompting for the value if needed to meet that expectation.
+Sets the Transient state if possible."
   (or (disproject--state-project)
-      (error "Function did not return a valid project when it was supposed to")))
+      (if-let* ((directory (project-prompt-project-dir))
+                (project (project-current nil directory)))
+          (progn
+            (disproject--setup-scope t `((project . ,project)))
+            project)
+        (error "No project found for directory: %s" directory))))
 
 (defun disproject--state-project-is-default? ()
   "Return whether the selected project is the same as the default project."

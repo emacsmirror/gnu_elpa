@@ -5,7 +5,7 @@
 ;; Author: Matto Fransen <matto@matto.nl>
 ;; Maintainer: Matto Fransen <matto@matto.nl>
 ;; Url: https://codeberg.org/mattof/rcirc-sqlite
-;; Version: 1.0.3
+;; Version: 1.0.4
 ;; Keywords: comm
 ;; Package-Requires: ((emacs "30.0"))
 
@@ -56,6 +56,12 @@
 
 ;;; News:
 
+;; Version 1.0.4 - 2024-11-08
+
+;; * Browse URL in the message
+;;   Select a message in the logs and browse to the first URL
+;;   in the message with the key 'b'.
+
 ;; Version 1.0.3 - 2024-09-26
 
 ;; * New command: rcirc-sqlite-stats-per-month
@@ -77,7 +83,8 @@
 ;; * Quickly change the view of the logs
 ;;   When exploring your logs, change the view with just one key:
 ;;   - Show all the logs of a channel for a single day or two days.
-;;   - Show all the logs of a channel from a specific nick for a single day.
+;;   - Show all the logs of a channel from a specific nick for a
+;;     single day.
 ;;
 ;; * Collect individual messages with just one key:
 ;;   - Select and copy a message nicely formatted to the `kill-ring'.
@@ -99,6 +106,7 @@
 
 (defvar rcirc-log-alist)
 (defvar rcirc-log-time-format)
+(defvar rcirc-url-regexp)
 
 (defgroup rcirc-sqlite nil
   "Rcirc logging in SQLite."
@@ -491,6 +499,7 @@ This function should be called from the two column tabulated list."
   (kbd ">") #'rcirc-sqlite-next-day
   (kbd "^") #'rcirc-sqlite-previous-day
   (kbd "a") #'rcirc-sqlite-all-next-days
+  (kbd "b") #'rcirc-sqlite-browse-url-from-message
   (kbd "c") #'rcirc-sqlite-kill-insert
   (kbd "r") #'rcirc-sqlite-register-append
   (kbd "R") #'rcirc-sqlite-register-insert
@@ -642,7 +651,7 @@ When ALL-NEXT-DAYS is true, select everything after the start-time."
          (cons (nth 4 rowdata)
 	       (+ (* extra-days 86400)
                   (nth 4 rowdata))))))
-  
+
 (defun rcirc-sqlite-query-single-day
     (with-nick extra-days all-next-days)
   "Select logs from a single day.
@@ -724,6 +733,27 @@ Called from `rcirc-sqlite-list-mode'."
   (interactive nil rcirc-sqlite-list-mode)
   (kill-new (rcirc-sqlite-format-message))
   (message "Added message to kill-ring"))
+
+(defun rcirc-sqlite-browse-url-in-string (message)
+  "Fetch URL from MESSAGE and open it."
+  (let ((this-url
+	 (and
+	  (string-match
+	   (concat "\\(" rcirc-url-regexp "\\)\\(.*$\\)")
+	   message)
+	  (match-string 1 message))))
+    (when (not this-url)
+      (error "No URL found"))
+    (browse-url this-url)))
+
+(defun rcirc-sqlite-browse-url-from-message ()
+  "Fetch URL from the selected message and open it."
+  (interactive nil rcirc-sqlite-list-mode)
+  (let ((rowid (tabulated-list-get-id)))
+    (when (not rowid)
+      (error "No row selected"))
+    (rcirc-sqlite-browse-url-in-string
+     (nth 3 (car (rcirc-sqlite-db-row-data rowid))))))
 
 (defun rcirc-sqlite-register-add (method)
   "Insert a chatmessage into the register `rcirc-sqlite-register'.

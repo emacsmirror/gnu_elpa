@@ -276,10 +276,12 @@ a different use.
 * Summery of the commands::
 * View the logs::
 * Full text search and load the result in a buffer::
+* Toggle display of the server in the channel name:: 
 * Change the selected logs in the log-buffer::
 * Copy a message to the kill-ring::
 * Collect one or more messages in a register::
 * Logs from a specific nick::
+* Browse URL in the message::
 * Stats::
 @end menu
 
@@ -306,6 +308,7 @@ These actions are described in the sections:
 @item @ref{Change the selected logs in the log-buffer}
 @item @ref{Copy a message to the kill-ring}
 @item @ref{Collect one or more messages in a register}
+@item @ref{Browse URL in the message}
 @end itemize
 
 The stats view offer some drill-down options and can be a good
@@ -604,6 +607,18 @@ The option @code{manually select range} prompts the user to select a
 start and a end of a time range, using the org date picker.  Use the
 org calendar commands to select a date and time.
 
+
+@node Browse URL in the message
+@section Browse URL in the message
+@findex rcirc-sqlite-browse-url-from-message
+@kindex b
+
+Move the point in the buffer @code{*rcirc log*} up or down to select a
+chat message.
+
+Activate the command `rcirc-sqlite-browse-url-from-message' with the key
+@key{b} to browse to the first URL in the selected message.
+
 @node Stats
 @section Stats
 @findex rcirc-sqlite-stats
@@ -683,6 +698,7 @@ some commands.
 @item @kbd{>} @code{rcirc-sqlite-next-day}
 @item @kbd{^} @code{rcirc-sqlite-previous-day}
 @item @kbd{a} @code{rcirc-sqlite-all-next-days}
+@item @kbd{b} @code{rcirc-sqlite-browse-url-from-message}
 @item @kbd{<} @code{rcirc-sqlite-single-nick}
 @item @kbd{c} @code{rcirc-sqlite-kill-insert}
 @item @kbd{R} @code{rcirc-sqlite-register-insert}
@@ -696,6 +712,8 @@ For a description of these commands, see the following chapters.
 @ref{Copy a message to the kill-ring}
 
 @ref{Collect one or more messages in a register}
+
+@ref{Browse URL in the message}
 
 The default key bindings of the
 @code{tabulated-list-mode} are also available in this buffer.

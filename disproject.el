@@ -232,29 +232,46 @@ value."
       (warn "Value `%S' does not match type %s" value type)
       nil)))
 
-(defun disproject--setup-scope (&optional write-scope? directory)
+(defun disproject--setup-scope (&optional write-scope? overrides)
   "Set up Transient scope for a Disproject prefix.
 
 When WRITE-SCOPE? is non-nil, overwrite the current Transient scope
 with the return value.
 
-DIRECTORY - if available - is a \"preferred search directory\"
-that will be searched before falling back to the selected or
-default project root.
+OVERRIDES should be an alist, with optional key-value entries
+where the key corresponds to one in the scope that permits being
+overridden (see specifications below).  If a corresponding key is
+non-nil, the override value will be used instead, ignoring any
+current project state.
 
 The specifications for the scope returned is an alist with keys
 and descriptions of their values as follows:
 
 \\='default-project: the project belonging to
-`default-directory' (or the current buffer, in other words).
+`default-directory' (or the current buffer, in other words).  Can
+be overridden.
 
 \\='project: the currently selected project in the Transient
-menu."
-  (let* ((default-project (project-current nil default-directory))
+menu.  Can be overridden.
+
+\\='custom-suffixes: suffixes for `disproject-custom-dispatch',
+as described `disproject-custom-suffixes'."
+  (let* ((maybe-override ; TODO: maybe this should be a macro?
+          (lambda (key value)
+            (if-let* ((override (assq key overrides)))
+                (cdr override)
+              value)))
+         (default-project
+          (funcall
+           maybe-override
+           'default-project
+           (project-current nil default-directory)))
          (project
-          (or (and directory (project-current nil directory))
-              (project-current nil (disproject--state-project-root))
-              default-project))
+          (funcall
+           maybe-override
+           'project
+           (or (project-current nil (disproject--state-project-root))
+               default-project)))
          (dir-local-variables
           (with-temp-buffer
             (when-let* ((project)
@@ -285,15 +302,11 @@ menu."
 ;;;; Prefixes.
 
 ;;;###autoload (autoload 'disproject-dispatch "disproject")
-(transient-define-prefix disproject-dispatch (&optional directory)
+(transient-define-prefix disproject-dispatch (&optional project)
   "Dispatch some command for a project.
 
-DIRECTORY is an optional argument that tells the function where
-to start searching first for a project directory root; otherwise,
-it uses the default root directory if available.  If no project
-is found, it starts the menu anyways to explicitly ask later when
-a command is executed or when invoking one of the switch-project
-commands."
+PROJECT is an optional argument that tells the function what to
+start with as the selected project."
   :refresh-suffixes t
   [:description
    (lambda ()
@@ -339,7 +352,8 @@ commands."
   (interactive)
   (transient-setup
    'disproject-dispatch nil nil
-   :scope (disproject--setup-scope nil directory)))
+   :scope (disproject--setup-scope
+           nil `(,@(if project `((project . ,project)) '())))))
 
 (transient-define-prefix disproject-custom-dispatch (&optional directory)
   "Dispatch custom commands.
@@ -354,7 +368,7 @@ This prefix can be configured with `disproject-custom-suffixes'."
     (disproject--state-project-ensure))
   (transient-setup
    'disproject-custom-dispatch nil nil
-   :scope (disproject--setup-scope nil (disproject--state-project-root))))
+   :scope (disproject--setup-scope)))
 
 (transient-define-prefix disproject-magit-commands-dispatch ()
   "Dispatch Magit-related commands for a project.
@@ -376,10 +390,11 @@ the same as the default (current buffer) one."
    'disproject-magit-commands-dispatch nil nil
    :scope (disproject--setup-scope)))
 
-(transient-define-prefix disproject-manage-projects-dispatch (&optional directory)
+(transient-define-prefix disproject-manage-projects-dispatch (&optional project)
   "Dispatch commands for managing projects.
 
-DIRECTORY will be searched for the project if passed."
+If PROJECT is non-nil, it overrides the currently selected
+project in Transient state (if any)."
   ["Forget"
    ;; TODO: Could add an option to close buffers of the project to forget.
    ("f p" "a project" disproject-forget-project)
@@ -391,7 +406,8 @@ DIRECTORY will be searched for the project if passed."
   (interactive)
   (transient-setup
    'disproject-manage-projects-dispatch nil nil
-   :scope (disproject--setup-scope nil directory)))
+   :scope (disproject--setup-scope
+           nil `(,@(if project `((project . ,project)) '())))))
 
 
 ;;;
@@ -550,7 +566,7 @@ Look for a valid project root directory in SEARCH-DIRECTORY.  If
 one is found, update the Transient scope to switch the selected
 project."
   (if-let* ((project (project-current nil search-directory)))
-      (disproject--setup-scope t (project-root project))
+      (disproject--setup-scope t `((project . ,project)))
     (error "No parent project found for %s" search-directory)))
 
 ;;;; Suffix setup functions.

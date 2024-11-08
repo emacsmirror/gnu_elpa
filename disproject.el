@@ -232,7 +232,7 @@ value."
       (warn "Value `%S' does not match type %s" value type)
       nil)))
 
-(defun disproject--setup-scope (&optional write-scope? overrides)
+(defun disproject--setup-scope (&optional overrides write-scope?)
   "Set up Transient scope for a Disproject prefix.
 
 When WRITE-SCOPE? is non-nil, overwrite the current Transient scope
@@ -362,7 +362,7 @@ start with as the selected project."
   (transient-setup
    'disproject-dispatch nil nil
    :scope (disproject--setup-scope
-           nil `(,@(if project `((project . ,project)) '())))))
+           `(,@(if project `((project . ,project)) '())))))
 
 (transient-define-prefix disproject-custom-dispatch (&optional project)
   "Dispatch custom commands.
@@ -378,7 +378,7 @@ This prefix can be configured with `disproject-custom-suffixes'."
   (transient-setup
    'disproject-custom-dispatch nil nil
    :scope (disproject--setup-scope
-           nil `((project . ,(or project (disproject--state-project-ensure)))))))
+           `((project . ,(or project (disproject--state-project-ensure)))))))
 
 (transient-define-prefix disproject-magit-commands-dispatch ()
   "Dispatch Magit-related commands for a project.
@@ -417,7 +417,7 @@ project in Transient state (if any)."
   (transient-setup
    'disproject-manage-projects-dispatch nil nil
    :scope (disproject--setup-scope
-           nil `(,@(if project `((project . ,project)) '())))))
+           `(,@(if project `((project . ,project)) '())))))
 
 
 ;;;
@@ -522,7 +522,7 @@ Sets the Transient state if possible."
       (if-let* ((directory (project-prompt-project-dir))
                 (project (project-current nil directory)))
           (progn
-            (disproject--setup-scope t `((project . ,project)))
+            (disproject--setup-scope `((project . ,project)) t)
             project)
         (error "No project found for directory: %s" directory))))
 
@@ -581,7 +581,7 @@ Look for a valid project root directory in SEARCH-DIRECTORY.  If
 one is found, update the Transient scope to switch the selected
 project."
   (if-let* ((project (project-current nil search-directory)))
-      (disproject--setup-scope t `((project . ,project)))
+      (disproject--setup-scope `((project . ,project)) t)
     (error "No parent project found for %s" search-directory)))
 
 ;;;; Suffix setup functions.

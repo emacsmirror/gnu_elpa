@@ -344,7 +344,7 @@ commands."
      :if (lambda () (and (featurep 'magit-todos)
                          (disproject--state-git-repository?))))
     ("v v" "VC dir" disproject-vc-dir)]]
-  [("SPC" "Manage projects" disproject-manage-projects)]
+  [("SPC" "Manage projects" disproject-manage-projects-dispatch)]
   (interactive)
   (transient-setup
    'disproject-dispatch nil nil
@@ -365,7 +365,7 @@ This prefix can be configured with `disproject-custom-suffixes'."
    'disproject-custom-dispatch nil nil
    :scope (disproject--setup-scope nil (disproject--state-project-root))))
 
-(transient-define-prefix disproject-manage-projects (&optional directory)
+(transient-define-prefix disproject-manage-projects-dispatch (&optional directory)
   "Dispatch commands for managing projects.
 
 DIRECTORY will be searched for the project if passed."
@@ -379,7 +379,7 @@ DIRECTORY will be searched for the project if passed."
    ("r u" "projects under..." disproject-remember-projects-under)]
   (interactive)
   (transient-setup
-   'disproject-manage-projects nil nil
+   'disproject-manage-projects-dispatch nil nil
    :scope (disproject--setup-scope nil directory)))
 
 

@@ -332,18 +332,9 @@ commands."
   ;; refresh (e.g. by flipping an option).
   [["Version control"
     :if (lambda () (nth 1 (disproject--state-project)))
-    ("v d" "Magit dispatch" magit-dispatch
-     :if (lambda () (and (featurep 'magit) (disproject--state-git-repository?)))
-     :inapt-if-not disproject--state-project-is-default?)
-    ("v f" "Magit file dispatch" magit-file-dispatch
-     :if (lambda () (and (featurep 'magit) (disproject--state-git-repository?)))
-     :inapt-if-not disproject--state-project-is-default?)
-    ("v m" "Magit status" disproject-magit-status
+    ("m" "Magit" disproject-magit-commands-dispatch
      :if (lambda () (and (featurep 'magit) (disproject--state-git-repository?))))
-    ("v t" "Magit todos" disproject-magit-todos-list
-     :if (lambda () (and (featurep 'magit-todos)
-                         (disproject--state-git-repository?))))
-    ("v v" "VC dir" disproject-vc-dir)]]
+    ("v" "VC status" disproject-vc-dir)]]
   [("SPC" "Manage projects" disproject-manage-projects-dispatch)]
   (interactive)
   (transient-setup
@@ -364,6 +355,26 @@ This prefix can be configured with `disproject-custom-suffixes'."
   (transient-setup
    'disproject-custom-dispatch nil nil
    :scope (disproject--setup-scope nil (disproject--state-project-root))))
+
+(transient-define-prefix disproject-magit-commands-dispatch ()
+  "Dispatch Magit-related commands for a project.
+
+DIRECTORY will be searched for the project if passed.
+
+Some commands may not be available if the selected project is not
+the same as the default (current buffer) one."
+  ["Magit commands"
+   ("d" "Dispatch" magit-dispatch
+    :inapt-if-not disproject--state-project-is-default?)
+   ("f" "File dispatch" magit-file-dispatch
+    :inapt-if-not disproject--state-project-is-default?)
+   ("m" "Status" disproject-magit-status)
+   ("T" "Todos" disproject-magit-todos-list
+    :if (lambda () (featurep 'magit-todos)))]
+  (interactive)
+  (transient-setup
+   'disproject-magit-commands-dispatch nil nil
+   :scope (disproject--setup-scope)))
 
 (transient-define-prefix disproject-manage-projects-dispatch (&optional directory)
   "Dispatch commands for managing projects.

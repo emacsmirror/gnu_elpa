@@ -254,6 +254,9 @@ be overridden.
 \\='project: the currently selected project in the Transient
 menu.  Can be overridden.
 
+\\='prefer-other-window?: whether to prefer another window when
+displaying buffers.  Can be overridden.
+
 \\='custom-suffixes: suffixes for `disproject-custom-dispatch',
 as described `disproject-custom-suffixes'."
   (let* ((maybe-override ; TODO: maybe this should be a macro?
@@ -272,6 +275,11 @@ as described `disproject-custom-suffixes'."
            'project
            (or (project-current nil (disproject--state-project-root))
                default-project)))
+         (prefer-other-window?
+          (funcall
+           maybe-override
+           'prefer-other-window?
+           (disproject--state-prefer-other-window?)))
          (dir-local-variables
           (with-temp-buffer
             (when-let* ((project)
@@ -291,6 +299,7 @@ as described `disproject-custom-suffixes'."
          (new-scope
           `((default-project . ,default-project)
             (project . ,project)
+            (prefer-other-window? . ,prefer-other-window?)
             (custom-suffixes . ,custom-suffixes))))
     (if-let* ((write-scope?)
               (scope (disproject--scope nil t)))
@@ -493,8 +502,10 @@ is always selected."
 
 (defun disproject--state-prefer-other-window? ()
   "Return whether other window should be preferred when displaying buffers."
-  (let ((args (transient-args transient-current-command)))
-    (and args (transient-arg-value "--prefer-other-window" args))))
+  (if (eq transient-current-command 'disproject-dispatch)
+      (let ((args (transient-args transient-current-command)))
+        (and args (transient-arg-value "--prefer-other-window" args)))
+    (disproject--scope 'prefer-other-window?)))
 
 (defun disproject--state-project ()
   "Return the project from the current Transient scope."

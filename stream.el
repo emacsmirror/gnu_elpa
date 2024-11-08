@@ -413,14 +413,14 @@ stream will simply be accordingly shorter, or even empty)."
            (stream-rest stream)))))
 
 (cl-defmethod seq-take-while (pred (stream stream))
-  "Return a stream of the successive elements for which (PRED elt) is non-nil in STREAM."
+  "Return a stream of STREAM's successive elements for which PRED returns non-nil."
   (stream-make
    (when (funcall pred (stream-first stream))
      (cons (stream-first stream)
            (seq-take-while pred (stream-rest stream))))))
 
 (cl-defmethod seq-drop-while (pred (stream stream))
-  "Return a stream from the first element for which (PRED elt) is nil in STREAM."
+  "Return a stream of STREAM's successive elements for which PRED returns nil."
   (stream-make
    (while (not (or (stream-empty-p stream)
                    (funcall pred (stream-first stream))))

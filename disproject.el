@@ -300,6 +300,8 @@ as described `disproject-custom-suffixes'."
             (project . ,project)
             (prefer-other-window? . ,prefer-other-window?)
             (custom-suffixes . ,custom-suffixes))))
+    ;; Remember the project in case it's not in `project-known-project-roots'.
+    (when project (project-remember-project project))
     (if-let* ((write-scope?)
               (scope (disproject--scope nil t)))
         (seq-each (pcase-lambda (`(,key . ,value))
@@ -721,18 +723,12 @@ directories."
 This is equivalent to `disproject-switch-project' but only shows
 active projects when prompting for projects to switch to."
   (interactive)
-  (let* ((active-projects (mapcar (lambda (project)
-                                    ;; Keep reference to project so we can
-                                    ;; project-remember the project chosen.
-                                    (cons (project-root project) project))
-                                  (disproject--active-projects)))
+  (let* ((active-projects (mapcar #'project-root (disproject--active-projects)))
          ;; `project--file-completion-table' seems to accept any collection as
          ;; defined by `completing-read'.
          (completion-table (project--file-completion-table active-projects))
          (project-directory (completing-read "Select active project: "
-                                             completion-table nil t))
-         (project (alist-get project-directory active-projects nil nil #'equal)))
-    (project-remember-project project)
+                                             completion-table nil t)))
     (disproject--switch-project project-directory)))
 
 (transient-define-suffix disproject-switch-to-buffer ()

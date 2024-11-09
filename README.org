@@ -2,7 +2,7 @@
 * Disproject
 
 Disproject is a package for Emacs that provides integration with ~project.el~
-and allows for dispatching various project-related commands via Transient menus.
+and allows for dispatching various project-related commands via [[https://github.com/magit/transient][Transient]] menus.
 
 It is similar to (and inspired by) the function ~project-switch-project~, but
 also attempts to improve on its feature set in addition to the use of Transient.
@@ -15,7 +15,7 @@ Some notable features include (but may not be limited to):
   documentation.
 - An option to prefer displaying buffers to another window when executing
   commands.
-- When available, integration with: =envrc=; =magit=; =magit-todos=.
+- When available, integration with: [[https://github.com/purcell/envrc][=envrc=]]; [[https://magit.vc/][=magit=]]; [[https://github.com/alphapapa/magit-todos][=magit-todos=]].
 - A set of customizable variables to substitute some commands in the menu (see
   [[#Customization][Customization]]).
 

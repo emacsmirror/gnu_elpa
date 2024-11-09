@@ -1,4 +1,5 @@
 (use-modules (gnu packages emacs-xyz)
+             (gnu packages version-control)
              (guix build-system emacs)
              (guix download)
              (guix gexp)
@@ -15,7 +16,7 @@
                  #:select? (lambda (file stat)
                              (not (string-contains file "/.git/")))))
     (build-system emacs-build-system)
-    (propagated-inputs (list emacs-transient))
+    (propagated-inputs (list emacs-transient git))
     (home-page "https://github.com/aurtzy/disproject")
     (synopsis "Transient interface for managing and interacting with projects")
     (description

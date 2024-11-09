@@ -19,5 +19,5 @@
                 "1k30zhj2acs9spri6pqcyc0v0wcd9smb3xgl1vm0i6485d9lvr2p"))))))
 
 (packages->manifest
- (append (specifications->packages (list "emacs"))
+ (append (specifications->packages (list "emacs" "git"))
          (list emacs-transient/newer)))

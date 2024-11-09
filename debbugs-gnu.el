@@ -1339,23 +1339,23 @@ Interactively, it is non-nil with the prefix argument."
   (debbugs-gnu nil))
 
 (defcustom debbugs-gnu-width-id 5
-  "The width of the \"Id\" column in the tabulated list"
-  :type 'integer
+  "The width of the \"Id\" column in the tabulated list."
+  :type 'natnum
   :version "30.1")
 
 (defcustom debbugs-gnu-width-state 10
-  "The width of the \"State\" column in the tabulated list"
-  :type 'integer
+  "The width of the \"State\" column in the tabulated list."
+  :type 'natnum
   :version "30.1")
 
 (defcustom debbugs-gnu-width-submitter 18
-  "The width of the \"Submitter\" column in the tabulated list"
-  :type 'integer
+  "The width of the \"Submitter\" column in the tabulated list."
+  :type 'natnum
   :version "30.1")
 
 (defcustom debbugs-gnu-width-title 10
-  "The width of the \"Title\" column in the tabulated list"
-  :type 'integer
+  "The width of the \"Title\" column in the tabulated list."
+  :type 'natnum
   :version "30.1")
 
 (define-derived-mode debbugs-gnu-mode tabulated-list-mode "Debbugs"

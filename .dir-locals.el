@@ -7,9 +7,10 @@
     .
     (("p i" "[Re-]Initialize a local Guix profile"
       :command-type compile
-      :command "[ -e .guix-profile ] && rm ./.guix-profile; \
-guix time-machine --channels=channels.scm -- \
-shell --manifest=manifest.scm --root=./.guix-profile --search-paths"
+      :command "\
+[ -e .guix-profile ] && rm ./.guix-profile
+guix time-machine --channels=channels.scm -- \\
+	shell --manifest=manifest.scm --root=./.guix-profile --search-paths"
       :identifier "profile")
      ("p r" "Run minimum-supported Emacs"
       :command-type compile

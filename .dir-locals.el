@@ -14,5 +14,7 @@ guix time-machine --channels=channels.scm -- \\
       :identifier "profile")
      ("p r" "Run minimum-supported Emacs"
       :command-type compile
-      :command "guix shell --pure --profile=./.guix-profile -- emacs -Q"
+      :command "\
+guix shell --pure --profile=./.guix-profile -- \\
+	emacs --quick --load disproject.el"
       :identifier "profile"))))))

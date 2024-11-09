@@ -273,8 +273,7 @@ as described `disproject-custom-suffixes'."
           (funcall
            maybe-override
            'project
-           (or (project-current nil (disproject--state-project-root))
-               default-project)))
+           (or (disproject--state-project) default-project)))
          (prefer-other-window?
           (funcall
            maybe-override

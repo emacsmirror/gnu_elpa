@@ -286,9 +286,8 @@ prefix the command with \"../../../../\" or \"....\".")
 
 (defcustom shell-command+-clear-function
   (lambda ()
-    (erase-buffer)
-    (when-let ((win (get-buffer-window)))
-      (quit-window nil win)))
+    (when-let* ((win (get-buffer-window)))
+      (quit-window t win)))
   "Function to invoke without any arguments when handling \"clear\"."
   :type 'function)
 

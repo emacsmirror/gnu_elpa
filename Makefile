@@ -4,6 +4,7 @@ elpa: math2svg.js
 
 math2svg/node_modules:
 	cd math2svg && npm ci
+	git apply math2svg/node_modules.patch
 
 math2svg.js: math2svg/node_modules math2svg/package-lock.json math2svg/*.js
 	cd math2svg && npm run build

@@ -1,3 +1,8 @@
 .dir-locals.el
 autoloads.el
 *.elc
+math2svg.js*
+
+# ELPA-generated files.
+mathjax-pkg.el
+mathjax-autoloads.el

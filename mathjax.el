@@ -4,6 +4,7 @@
 
 ;; Author: Augusto Stoffel <arstoffel@gmail.com>
 ;; URL: https://github.com/astoff/mathjax.el
+;; Package-Requires: ((emacs "27.1"))
 ;; Version: 0
 ;; Keywords: tex, text, tools
 
@@ -37,9 +38,12 @@
 (defvar mathjax--ttl 60
   "Time to let the MathJax process live without producing output.")
 
-(defvar mathjax--installation-directory (if load-file-name
-                                            (file-name-directory load-file-name)
-                                          default-directory)
+(defvar mathjax--installation-directory
+  (if-let ((file (if (fboundp 'macroexp-file-name) ;Emacs≥28.
+                     (macroexp-file-name)
+                   load-file-name)))
+      (file-name-directory file)
+    default-directory)
   "Directory where the `mathjax' package is installed.")
 
 (defun mathjax-available-p ()
@@ -136,7 +140,12 @@ FORMAT and OPTIONS are passed directly to `mathjax-render', which see."
          (callback
           (lambda (data)
             (when (and (buffer-live-p buffer)
-                       (< start end)) ;funky erase-buffer detection
+                       ;; Normally we allow buffer modifications
+                       ;; between the time `mathjax-display' is called
+                       ;; and the callback is called, but not if the
+                       ;; region was deleted entirely.  Hence the test
+                       ;; below.
+                       (< start end))
               (with-current-buffer buffer
                 (dolist (ov (overlays-at start))
                   (when (eq (overlay-get ov 'category) 'mathjax)
@@ -146,9 +155,9 @@ FORMAT and OPTIONS are passed directly to `mathjax-render', which see."
                   (overlay-put ov 'category 'mathjax)
                   (overlay-put ov 'evaporate t)
                   (when-let ((svg (alist-get 'svg data)))
-                    (let* ((h (and (string-match "height=\"\\([-.0-9]*\\)" svg)
+                    (let* ((h (and (string-match "height=\"\\([-.0-9]+\\)" svg)
                                    (string-to-number (match-string 1 svg))))
-                           (va (and (string-match "vertical-align: \\([-.0-9]*\\)" svg)
+                           (va (and (string-match "vertical-align: \\([-.0-9]+\\)" svg)
                                     (string-to-number (match-string 1 svg))))
                            (ascent (if (and h va) (round (* 100 (+ va h) (/ h))) 100))
                            (image (svg-image svg :ascent ascent)))
@@ -183,7 +192,7 @@ line.")
 (defun mathjax--math-searchfn (items)
   "Return a function to search for math regions.
 
-ITEMS should be a list like `mathjax-delimiers'.  The returned function
+ITEMS should be a list like `mathjax-delimiters'.  The returned function
 takes one argument, the search bound, and returns a list of the form
 
   (OUTER-START INNER-START INNER-END OUTER-END . OPTIONS)

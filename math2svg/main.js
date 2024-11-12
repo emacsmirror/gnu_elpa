@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Cf. https://github.com/mathjax/MathJax-demos-node/blob/master/simple
+// Cf. https://github.com/mathjax/MathJax-demos-node/blob/master/preload
 
 const config = JSON.parse(process.argv[2] || "{}")
 MathJax = {

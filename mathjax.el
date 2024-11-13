@@ -5,7 +5,7 @@
 ;; Author: Augusto Stoffel <arstoffel@gmail.com>
 ;; URL: https://github.com/astoff/mathjax.el
 ;; Package-Requires: ((emacs "27.1"))
-;; Version: 0
+;; Version: 0.1
 ;; Keywords: tex, text, tools
 
 ;; This program is free software; you can redistribute it and/or modify

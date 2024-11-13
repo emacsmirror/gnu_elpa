@@ -54,7 +54,6 @@ the project's root directory.
 `display-buffer-overriding-action': Set to display in another
 window if \"--prefer-other-window\" is enabled."
   (declare (debug t))
-  ;; Define variables that determine the environment.
   `(let* ((project (disproject--state-project-ensure))
           (from-directory (project-root project))
           (prefer-other-window? (disproject--state-prefer-other-window?))

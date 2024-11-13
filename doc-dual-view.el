@@ -48,7 +48,7 @@
       pdf-view-previous-page-command)
      (lambda () (pdf-view-current-page))
      (lambda () (pdf-cache-number-of-pages))
-     pdf-view-redisplay)
+     pdf-view-goto-page)
     (doc-view-mode
      (doc-view-goto-page
       doc-view-next-page

@@ -60,6 +60,9 @@ window if \"--prefer-other-window\" is enabled."
           ;; Only enable envrc if the initial environment has it enabled.
           (enable-envrc (and (bound-and-true-p envrc-mode)
                              (symbol-function 'envrc-mode)))
+          ;; Only enable mise if the initial environment has it enabled.
+          (enable-mise (and (bound-and-true-p mise-mode)
+                            (symbol-function 'mise-mode)))
           ;; HACK: Since `project-external-roots' targets specifically the
           ;; current buffer's major mode - a problem, since we create a temp
           ;; buffer - we make it work by grabbing the function that it's supposed
@@ -78,6 +81,9 @@ window if \"--prefer-other-window\" is enabled."
          ;; Make sure commands are run in the correct direnv environment
          ;; if envrc-mode is enabled.
          (when enable-envrc (funcall enable-envrc))
+         ;; Make sure commands are run in the correct mise environment
+         ;; if mise-mode is enabled.
+         (when enable-mise (funcall enable-mise))
          ,@body))))
 
 

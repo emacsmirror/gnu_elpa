@@ -706,7 +706,9 @@ project."
   "Run a shell command asynchronously in a project."
   (interactive)
   (disproject--with-environment
-   (call-interactively #'async-shell-command)))
+   (let ((shell-command-buffer-name-async
+          (project-prefixed-buffer-name "async-shell")))
+     (call-interactively #'async-shell-command))))
 
 (transient-define-suffix disproject-switch-project ()
   "Switch project to dispatch commands on.

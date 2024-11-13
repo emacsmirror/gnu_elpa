@@ -15,7 +15,7 @@ Some notable features include (but may not be limited to):
   documentation.
 - An option to prefer displaying buffers to another window when executing
   commands.
-- When available, integration with: [[https://github.com/purcell/envrc][envrc]]; [[https://magit.vc/][magit]]; [[https://github.com/alphapapa/magit-todos][magit-todos]].
+- When available, integration with: [[https://github.com/purcell/envrc][envrc]]; [[https://magit.vc/][magit]]; [[https://github.com/alphapapa/magit-todos][magit-todos]]; [[https://github.com/liuyinz/mise.el][mise.el]].
 - A set of customizable variables to substitute some commands in the menu (see
   [[#Customization][Customization]]).
 

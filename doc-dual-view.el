@@ -112,11 +112,13 @@ redisplay-func)."
                         (setq doc-dual-view--redisplay-timer
                               (run-with-idle-timer
                                0.001 nil
-                               (lambda (win)
+                               (lambda (win func page)
                                  (when (window-live-p win)
                                    (with-selected-window win
-                                     (funcall redisplay-func))))
-                               (selected-window))))
+                                     (funcall func page))))
+                               (selected-window)
+                               redisplay-func
+                               target-page)))
                     ;; Re-add advice after execution
                     (dolist (func goto-funcs)
                       (advice-add

@@ -405,6 +405,11 @@ the same as the default (current buffer) one."
 
 If PROJECT is non-nil, it overrides the currently selected
 project in Transient state (if any)."
+  ["New"
+   ("n g c" "git clone" magit-clone
+    :if (lambda () (featurep 'magit)))
+   ("n g i" "git init" magit-init
+    :if (lambda () (featurep 'magit)))]
   ["Forget"
    ;; TODO: Could add an option to close buffers of the project to forget.
    ("f p" "a project" disproject-forget-project)

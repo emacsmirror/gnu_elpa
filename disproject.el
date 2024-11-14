@@ -130,6 +130,11 @@ value of `:command'.  It can be any of the following keys:
   be passed to `compile' as the shell command to run.  The same
   wrappings from \\='call are used.
 
+The variable `disproject-buffer-name' is made available for users
+when evaluating the `:command' value, which can be useful for
+those that want to create their own buffer to track in case there
+isn't a supported command type to automatically do so.
+
 Some optional properties may be set as well:
 
 `:identifier' is used mainly for naming things like buffers.  It
@@ -583,24 +588,30 @@ SPEC-ENTRY is a single entry from the specification described by
        ,description
        (lambda ()
          (interactive)
-         ,(pcase command-type
-            ('bare-call
-             `(call-interactively ,command))
-            (_
-             `(disproject--with-environment
-               (let* ((compilation-buffer-name-function
-                       (lambda (major-mode-name)
-                         (project-prefixed-buffer-name
-                          (concat
-                           ,(or identifier
-                                (and (string-match "\\(\\w+\\)" description)
-                                     (match-string 1 description))
-                                "default")
-                           "-"
-                           major-mode-name)))))
-                 ,(pcase command-type
-                    ('call `(call-interactively ,command))
-                    ('compile `(compile ,command))))))))))))
+         ;; This is exposed to the user; see `disproject-custom-suffixes'.
+         (let ((disproject-buffer-name
+                (disproject-prefixed-command-buffer-name
+                 ,(or identifier
+                      (and (string-match "\\(\\w+\\)" description)
+                           (match-string 1 description))))))
+           ,(pcase command-type
+              ('bare-call
+               `(call-interactively ,command))
+              ('call
+               `(disproject--with-environment
+                 ;; DEPRECATED: `compilation-buffer-name-function' will not be
+                 ;; automatically set for this command type in the future.  This
+                 ;; should no longer be considered a "set everything under the
+                 ;; sun" command type; new types can be created if needed
+                 ;; instead.
+                 (let* ((compilation-buffer-name-function
+                         (lambda (&rest _ignore) disproject-buffer-name)))
+                   (call-interactively ,command))))
+              ('compile
+               `(disproject--with-environment
+                 (let* ((compilation-buffer-name-function
+                         (lambda (&rest _ignore) disproject-buffer-name)))
+                   (compile ,command)))))))))))
 
 (defun disproject--switch-project (search-directory)
   "Modify the Transient scope to switch to another project.

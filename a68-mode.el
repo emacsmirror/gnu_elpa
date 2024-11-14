@@ -153,6 +153,7 @@
                                  ("OP" ids "=" args ids ":" exp)
                                  ("PROC" ids "=" ids ":" exp))
                       (exports ("KEEP" fields "FINISH"))
+                      (program ("PROGRAM" exp "FINISH"))
                       ;; TODO: this don't cover all the loop
                       ;; possibilities.
                       (loop ("FOR" exp "FROM" exp "TO" exp "BY" exp
@@ -200,9 +201,11 @@
     (`(:after . "=") a68-indent-level)
     (`(:before . "BEGIN")
      (when (or (smie-rule-hanging-p)
-               (and (or (smie-rule-parent-p "PROC")
-                        (smie-rule-parent-p "OP"))
-                    (smie-rule-prev-p ":")))
+               (or
+                (and (or (smie-rule-parent-p "PROC")
+                         (smie-rule-parent-p "OP"))
+                     (smie-rule-prev-p ":"))
+                (smie-rule-parent-p "PROGRAM")))
        (smie-rule-parent)))
     (`(:before . "(")
      (when (smie-rule-hanging-p)

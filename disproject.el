@@ -126,9 +126,9 @@ value of `:command'.  It can be any of the following keys:
   `disproject--with-environment' and the other properties are set
   before the command is invoked.
 
-  compile: the value of `:command' should be a string that will
-  be passed to `compile' as the shell command to run.  The same
-  wrappings from \\='call are used.
+  compile: the value of `:command' should be a string or an
+  interactive function that returns a string that will be passed
+  to `compile' as the shell command to run.
 
 The variable `disproject-buffer-name' is made available for users
 when evaluating the `:command' value, which can be useful for
@@ -610,8 +610,11 @@ SPEC-ENTRY is a single entry from the specification described by
               ('compile
                `(disproject--with-environment
                  (let* ((compilation-buffer-name-function
-                         (lambda (&rest _ignore) disproject-buffer-name)))
-                   (compile ,command)))))))))))
+                         (lambda (&rest _ignore) disproject-buffer-name))
+                        (command ,command))
+                   (compile (if (stringp command)
+                                command
+                              (call-interactively command)))))))))))))
 
 (defun disproject--switch-project (search-directory)
   "Modify the Transient scope to switch to another project.

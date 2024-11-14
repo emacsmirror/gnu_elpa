@@ -117,18 +117,18 @@ depending on the command type :command-type.
 `:command-type' is a symbol that specifies what to do with the
 value of `:command'.  It can be any of the following keys:
 
-  \\='bare-call: the value is interactively called without any
+  bare-call: the value is interactively called without any
   wrapping, i.e. from the current buffer.  This ignores the
   optional properties.
 
-  \\='call: the value will be called as an interactive function
-  with some wrappings.  Variables such as those from
+  call: the value will be called as an interactive function with
+  some wrappings.  Variables such as those from
   `disproject--with-environment' and the other properties are set
   before the command is invoked.
 
-  \\='compile: the value of `:command' should be a string that
-  will be passed to `compile' as the shell command to run.  The
-  same wrappings from \\='call are used.
+  compile: the value of `:command' should be a string that will
+  be passed to `compile' as the shell command to run.  The same
+  wrappings from \\='call are used.
 
 Some optional properties may be set as well:
 

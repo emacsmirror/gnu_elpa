@@ -553,6 +553,23 @@ Sets the Transient state if possible."
 ;;; Suffix handling.
 ;;;
 
+(defun disproject-prefixed-command-buffer-name (&optional identifier)
+  "Return a buffer name for a command.
+
+IDENTIFIER is an optional string argument that can be specified
+to make the buffer name unique.  If non-nil, \"default\" is used
+as the identifier.
+
+This function is *not* meant to be used like
+`project-prefixed-buffer-name', even though it's used internally;
+the identifier should not be tied to the buffer mode in any way.
+It should be the only means of making a name unique in the
+context of a project.  This allows users to track buffers based
+on just an identifier and also allow specifying incompatible
+commands (e.g. if two commands use the same buffer name, they
+should not be allowed to run at the same time)."
+  (project-prefixed-buffer-name (concat "run-" (or identifier "default"))))
+
 (defun disproject-custom--suffix (spec-entry)
   "Construct and return a suffix to be parsed by `transient-parse-suffixes'.
 

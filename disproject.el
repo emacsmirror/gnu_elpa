@@ -164,8 +164,9 @@ commands and some custom `find-file' call commands:
    (\"F\" \"Announce the finding a file\"
     :command-type call
     :command (lambda ()
+               (interactive)
                (message \"FINDING A FILE!\")
-               (call-interactively #\\='find-file))"
+               (call-interactively #\\='find-file))))"
   :type '(repeat (list (string :tag "Key bind")
                        (string :tag "Description")
                        (plist :inline t
@@ -594,6 +595,8 @@ SPEC-ENTRY is a single entry from the specification described by
                  ,(or identifier
                       (and (string-match "\\(\\w+\\)" description)
                            (match-string 1 description))))))
+           ;; TODO: provide more useful error messages if `command' is not a
+           ;; valid value
            ,(pcase command-type
               ('bare-call
                `(call-interactively ,command))

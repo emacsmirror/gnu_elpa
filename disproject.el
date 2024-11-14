@@ -154,9 +154,11 @@ commands and some custom `find-file' call commands:
     :command-type compile
     :command \"echo Running make...; make -k\"
     :identifier \"make\")
-   (\"g\" \"\\=`Compile\\=' some help from Guile!\"
+   (\"h\" \"Get help from a program (if it supports --help)\"
     :command-type compile
-    :command \"echo Get some help from Guile...; guile --help\"
+    :command (lambda (program)
+               (interactive \"sProgram: \")
+               (concat program \" --help\"))
     :identifier \"guile-help\")
    (\"f\" \"Find a file\"
     :command-type call

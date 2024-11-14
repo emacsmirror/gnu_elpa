@@ -637,18 +637,13 @@ project."
   "Set up suffixes according to `disproject-custom-suffixes'."
   (transient-parse-suffixes
    'disproject-custom-dispatch
-   `(,@(mapcar #'disproject-custom--suffix
-               (disproject--state-custom-suffixes))
-     ("!"
-      "Alternative compile..."
-      (lambda ()
-        (interactive)
-        (disproject--with-environment
-         (let ((compilation-buffer-name-function
-                (lambda (major-mode-name)
-                  (project-prefixed-buffer-name
-                   (concat "default-" major-mode-name)))))
-           (call-interactively #'compile))))))))
+   (mapcar #'disproject-custom--suffix
+           `(,@(disproject--state-custom-suffixes)
+             ("!" "Alternative compile..."
+              :command-type compile
+              :command (lambda ()
+                         (interactive)
+                         (compilation-read-command (eval compile-command))))))))
 
 ;;;; Suffixes.
 

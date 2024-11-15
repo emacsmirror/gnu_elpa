@@ -387,7 +387,7 @@ start with as the selected project."
            `(,@(if project `((project . ,project)) '())))))
 
 (transient-define-prefix disproject-custom-dispatch (&optional project)
-  "Dispatch custom commands.
+  "Dispatch custom suffix commands.
 
 If non-nil, PROJECT is used as the project to dispatch custom
 commands for.
@@ -402,7 +402,7 @@ These characters represent the following states:
   [a]: Command is active.
   [i]: Command is inactive."
   :refresh-suffixes t
-  ["Custom commands"
+  ["Custom suffix commands"
    :class transient-column
    :pad-keys t
    :setup-children disproject-custom--setup-suffixes]

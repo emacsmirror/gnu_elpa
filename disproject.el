@@ -583,39 +583,49 @@ SPEC-ENTRY is a single entry from the specification described by
            ;; Expose buffer name to the user; see note in
            ;; `disproject-custom-suffixes'.
            (let ((disproject-command-buffer-name ,disproject-command-buffer-name))
-             ;; TODO: provide more useful error messages if `command' is not a
-             ;; valid value
-             ,(pcase command-type
-                ('bare-call
-                 `(call-interactively ,command))
-                ('call
-                 `(disproject--with-environment
-                   ;; DEPRECATED: `compilation-buffer-name-function' will not be
-                   ;; automatically set for this command type in the future.  This
-                   ;; should no longer be considered a "set everything under the
-                   ;; sun" command type; new types can be created if needed
-                   ;; instead.
-                   (let* ((compilation-buffer-name-function
-                           (lambda (&rest _ignore)
-                             (display-warning
-                              'disproject
-                              (concat
-                               "DEPRECATION WARNING:"
-                               " The `call' custom suffix command type"
-                               " commands will soon no longer automatically"
-                               " set `compilation-buffer-name-function';"
-                               " use the `compile' command type instead"
-                               " or manually set the variable."))
-                             disproject-command-buffer-name)))
-                     (call-interactively ,command))))
-                ('compile
-                 `(disproject--with-environment
-                   (let* ((compilation-buffer-name-function
-                           (lambda (&rest _ignore) disproject-command-buffer-name))
-                          (command ,command))
-                     (compile (if (stringp command)
-                                  command
-                                (call-interactively command))))))))))))))
+             ,(disproject-custom--suffix-command command-type command))))))))
+
+(defun disproject-custom--suffix-command (command-type command)
+  "Dispatch a command s-expression to be evaluated in a custom suffix.
+
+COMMAND-TYPE is a symbol corresponding to a command type
+documented in `disproject-custom-suffixes'.
+
+COMMAND is an yet-to-be-evaluated s-expression which is inserted
+appropriately according to the command type."
+  (pcase command-type
+    ;; TODO: provide more useful error messages if `command' is not a valid
+    ;; value
+    ('bare-call
+     `(call-interactively ,command))
+    ('call
+     `(disproject--with-environment
+       ;; DEPRECATED: `compilation-buffer-name-function' will not be
+       ;; automatically set for this command type in the future.  This
+       ;; should no longer be considered a "set everything under the
+       ;; sun" command type; new types can be created if needed
+       ;; instead.
+       (let* ((compilation-buffer-name-function
+               (lambda (&rest _ignore)
+                 (display-warning
+                  'disproject
+                  (concat
+                   "DEPRECATION WARNING:"
+                   " The `call' custom suffix command type"
+                   " commands will soon no longer automatically"
+                   " set `compilation-buffer-name-function';"
+                   " use the `compile' command type instead"
+                   " or manually set the variable."))
+                 disproject-command-buffer-name)))
+         (call-interactively ,command))))
+    ('compile
+     `(disproject--with-environment
+       (let* ((compilation-buffer-name-function
+               (lambda (&rest _ignore) disproject-command-buffer-name))
+              (command ,command))
+         (compile (if (stringp command)
+                      command
+                    (call-interactively command))))))))
 
 (defun disproject--switch-project (search-directory)
   "Modify the Transient scope to switch to another project.

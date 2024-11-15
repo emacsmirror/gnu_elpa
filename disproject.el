@@ -579,11 +579,6 @@ SPEC-ENTRY is a single entry from the specification described by
             (disproject-command-buffer-name (disproject-command-buffer-name
                                              identifier)))
        `(,key
-         ;; TODO: Is it possible to auto-refresh to get updates on process
-         ;; activity?  I could add a noop suffix that the user invokes to
-         ;; force-refresh, but it's not automatic and takes up menu space.
-         ;; Maybe I could set up some kind of watcher/timer that can
-         ;; auto-refresh the menu?
          ,(disproject-custom--suffix-description
            (get-buffer disproject-command-buffer-name)
            description)
@@ -592,7 +587,16 @@ SPEC-ENTRY is a single entry from the specification described by
            ;; Expose buffer name to the user; see note in
            ;; `disproject-custom-suffixes'.
            (let ((disproject-command-buffer-name ,disproject-command-buffer-name))
-             ,(disproject-custom--suffix-command command-type command))))))))
+             ,(disproject-custom--suffix-command command-type command)
+             ;; Auto-refresh menu on command completion
+             (when-let* ((buffer (get-buffer disproject-command-buffer-name))
+                         (process (get-buffer-process buffer))
+                         ((not (advice-function-member-p
+                                #'disproject-custom--suffix-refresh-transient
+                                (process-sentinel process)))))
+               (add-function
+                :before (process-sentinel process)
+                #'disproject-custom--suffix-refresh-transient)))))))))
 
 (defun disproject-custom--suffix-command (command-type command)
   "Dispatch a command s-expression to be evaluated in a custom suffix.

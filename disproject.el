@@ -584,21 +584,9 @@ SPEC-ENTRY is a single entry from the specification described by
          ;; force-refresh, but it's not automatic and takes up menu space.
          ;; Maybe I could set up some kind of watcher/timer that can
          ;; auto-refresh the menu?
-         ,(concat (let ((buffer (get-buffer disproject-command-buffer-name)))
-                    (cond
-                     ((null buffer)
-                      "")
-                     ((get-buffer-process buffer)
-                      (concat
-                       "("
-                       (propertize "active" 'face 'transient-enabled-suffix)
-                       ") "))
-                     (t
-                      (concat
-                       "("
-                       (propertize "inactive" 'face 'transient-inactive-value)
-                       ") "))))
-                  description)
+         ,(disproject-custom--suffix-description
+           (get-buffer disproject-command-buffer-name)
+           description)
          (lambda ()
            (interactive)
            ;; Expose buffer name to the user; see note in
@@ -647,6 +635,27 @@ appropriately according to the command type."
          (compile (if (stringp command)
                       command
                     (call-interactively command))))))))
+
+(defun disproject-custom--suffix-description (buffer description)
+  "Return an appropriate description for a custom suffix.
+
+BUFFER is the associated custom suffix buffer.  It may be
+non-nil.
+
+DESCRIPTION is the custom suffix description as defined by the
+user."
+  (concat (cond
+           ((null buffer)
+            "")
+           ((get-buffer-process buffer)
+            (concat "("
+                    (propertize "active" 'face 'transient-enabled-suffix)
+                    ") "))
+           (t
+            (concat "("
+                    (propertize "inactive" 'face 'transient-inactive-value)
+                    ") ")))
+          description))
 
 (defun disproject--switch-project (search-directory)
   "Modify the Transient scope to switch to another project.

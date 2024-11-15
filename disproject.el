@@ -571,9 +571,10 @@ SPEC-ENTRY is a single entry from the specification described by
     (`( ,key ,description
         .
         ,(map :command-type :command :identifier))
-     (let* ((identifier (or identifier
-                            (and (string-match "\\(\\w+\\)" description)
-                                 (match-string 1 description))))
+     (let* (;; Fall back to description if identifier is not provided.
+            ;; Uniqueness is preferred over the name looking nice to prevent
+            ;; unintentionally making commands incompatible.
+            (identifier (or identifier description))
             (disproject-command-buffer-name (disproject-command-buffer-name
                                              identifier)))
        `(,key

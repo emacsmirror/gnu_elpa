@@ -629,15 +629,17 @@ appropriately according to the command type."
        ;; instead.
        (let* ((compilation-buffer-name-function
                (lambda (&rest _ignore)
-                 (display-warning
-                  'disproject
-                  (concat
-                   "DEPRECATION WARNING:"
-                   " The `call' custom suffix command type"
-                   " commands will soon no longer automatically"
-                   " set `compilation-buffer-name-function';"
-                   " use the `compile' command type instead"
-                   " or manually set the variable."))
+                 (let ((display-buffer-overriding-action
+                        '(display-buffer-same-window)))
+                   (display-warning
+                    'disproject
+                    (concat
+                     "DEPRECATION WARNING:"
+                     " The `call' custom suffix command type"
+                     " commands will soon no longer automatically"
+                     " set `compilation-buffer-name-function';"
+                     " use the `compile' command type instead"
+                     " or manually set the variable.")))
                  disproject-command-buffer-name)))
          (call-interactively ,command))))
     ('compile

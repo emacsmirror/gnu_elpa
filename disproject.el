@@ -383,7 +383,15 @@ start with as the selected project."
 If non-nil, PROJECT is used as the project to dispatch custom
 commands for.
 
-This prefix can be configured with `disproject-custom-suffixes'."
+This prefix can be configured with `disproject-custom-suffixes'.
+
+Suffixes have an associated buffer that is tracked for command
+activity; this is shown in the menu in the form of \"[CHAR]\",
+where the string is color-coded and CHAR is a single character.
+These characters represent the following states:
+
+  [a]: Command is active.
+  [i]: Command is inactive."
   :refresh-suffixes t
   ["Custom commands"
    :class transient-column
@@ -653,13 +661,11 @@ user."
            ((null buffer)
             "")
            ((get-buffer-process buffer)
-            (concat "("
-                    (propertize "active" 'face 'transient-enabled-suffix)
-                    ") "))
+            (concat (propertize "[a]" 'face 'transient-enabled-suffix)
+                    " "))
            (t
-            (concat "("
-                    (propertize "inactive" 'face 'transient-inactive-value)
-                    ") ")))
+            (concat (propertize "[i]" 'face 'transient-inactive-value)
+                    " ")))
           description))
 
 (defun disproject-custom--suffix-refresh-transient (&rest _ignore)

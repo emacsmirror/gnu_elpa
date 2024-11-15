@@ -705,7 +705,7 @@ project."
   "Open Dired in project root."
   (interactive)
   (disproject--with-environment
-   (call-interactively #'dired)))
+   (call-interactively #'project-dired)))
 
 (transient-define-suffix disproject-execute-extended-command ()
   "Execute an extended command in project root."

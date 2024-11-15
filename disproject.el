@@ -387,6 +387,7 @@ This prefix can be configured with `disproject-custom-suffixes'."
   :refresh-suffixes t
   ["Custom commands"
    :class transient-column
+   :pad-keys t
    :setup-children disproject-custom--setup-suffixes]
   (interactive)
   (transient-setup

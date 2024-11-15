@@ -479,32 +479,12 @@ type and directly returned instead, ignoring KEY."
 
 ;;;; Infix classes.
 
-(defclass disproject-option-switches (transient-switches)
-  ()
-  "Class used for a set of switches where exactly one is selected.")
-
-(cl-defmethod transient-infix-read ((obj disproject-option-switches))
-  "Cycle through mutually exclusive switch options from OBJ.
-
-This method skips over nil, so exactly one switch of this object
-is always selected."
-  (let ((choices (mapcar (apply-partially #'format (oref obj argument-format))
-                         (oref obj choices))))
-    (if-let* ((value (oref obj value))
-              (next-value (cadr (member value choices))))
-        next-value
-      (car choices))))
-
 ;;;; Infixes.
 
 ;;;; Transient state getters.
 ;; Functions that query the Transient state should have their names be prefixed
 ;; with "disproject--state-" to provide unique identifiers that can be searched
 ;; for.
-
-(defun disproject--state-compile-suffixes ()
-  "Return the `disproject-compile' suffixes for this scope."
-  (disproject--scope 'compile-suffixes))
 
 (defun disproject--state-custom-suffixes ()
   "Return the `disproject-dispatch' custom suffixes for this scope."

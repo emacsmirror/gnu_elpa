@@ -137,13 +137,14 @@ isn't a supported command type to automatically do so.
 
 Some optional properties may be set as well:
 
-`:identifier' is used mainly for naming things like buffers.  It
-defaults to the first word in the description (or \"default\" if
-none are found).  This should be unique as it is used in the
-compilation buffer name, but it may be useful to use the same
-identifier as another command if one wants certain project
-compilation commands to be incompatible (enforcing only one runs
-at a given time).
+`:identifier' is used as part of the buffer name, and should be
+unique to the command.  It defaults to the result of applying
+`disproject-prefixed-command-buffer-name' to the value (or first
+word in the description if not specified).  Users may choose to
+set the same identifier for multiple commands to mark them as
+incompatible (only one can run at a given time).  This relies on
+commands like `compile' which notify the user that a buffer with
+the same name already has a process running.
 
 To illustrate usage of `disproject-custom-suffixes', for
 example, the following may be used as a dir-locals.el value for

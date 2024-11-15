@@ -347,7 +347,8 @@ start with as the selected project."
    ("p" "Switch project" disproject-switch-project
     :transient t)
    ("P" "Switch to active project" disproject-switch-project-active
-    :transient t)]
+    :transient t)
+   ("C-p" "Manage projects" disproject-manage-projects-dispatch)]
   ["Options"
    ("o" "Prefer other window" "--prefer-other-window")]
   ["Commands"
@@ -379,7 +380,6 @@ start with as the selected project."
     ("m" "Magit" disproject-magit-commands-dispatch
      :if (lambda () (and (featurep 'magit) (disproject--state-git-repository?))))
     ("v" "VC status" disproject-vc-dir)]]
-  [("SPC" "Manage projects" disproject-manage-projects-dispatch)]
   (interactive)
   (transient-setup
    'disproject-dispatch nil nil

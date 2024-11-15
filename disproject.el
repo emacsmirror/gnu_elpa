@@ -570,14 +570,19 @@ to make the buffer name unique.  If non-nil, \"default\" is used
 as the identifier.
 
 This function is *not* meant to be used like
-`project-prefixed-buffer-name', even though it's used internally;
-the identifier should not be tied to the buffer mode in any way.
-It should be the only means of making a name unique in the
-context of a project.  This allows users to track buffers based
-on just an identifier and also allow specifying incompatible
-commands (e.g. if two commands use the same buffer name, they
-should not be allowed to run at the same time)."
-  (project-prefixed-buffer-name (concat "run-" (or identifier "default"))))
+`project-prefixed-buffer-name', although it is similar in
+functionality; the identifier should not be tied to the buffer
+mode in any way.  It should be the only means of making a name
+unique in the context of a project.  This allows users to track
+buffers based on just an identifier and also allow specifying
+incompatible commands (e.g. if two commands use the same buffer
+name, they should not be allowed to run at the same time)."
+  (concat "*"
+          (file-name-nondirectory
+           (directory-file-name (disproject--state-project-root)))
+          "-run-"
+          (or identifier "default")
+          "*"))
 
 (defun disproject-custom--suffix (spec-entry)
   "Construct and return a suffix to be parsed by `transient-parse-suffixes'.
@@ -588,49 +593,51 @@ SPEC-ENTRY is a single entry from the specification described by
     (`( ,key ,description
         .
         ,(map :command-type :command :identifier))
-     `(,key
-       ,description
-       (lambda ()
-         (interactive)
-         ;; This is exposed to the user; see `disproject-custom-suffixes'.
-         (let ((disproject-buffer-name
-                (disproject-prefixed-command-buffer-name
-                 ,(or identifier
-                      (and (string-match "\\(\\w+\\)" description)
-                           (match-string 1 description))))))
-           ;; TODO: provide more useful error messages if `command' is not a
-           ;; valid value
-           ,(pcase command-type
-              ('bare-call
-               `(call-interactively ,command))
-              ('call
-               `(disproject--with-environment
-                 ;; DEPRECATED: `compilation-buffer-name-function' will not be
-                 ;; automatically set for this command type in the future.  This
-                 ;; should no longer be considered a "set everything under the
-                 ;; sun" command type; new types can be created if needed
-                 ;; instead.
-                 (let* ((compilation-buffer-name-function
-                         (lambda (&rest _ignore)
-                           (display-warning
-                            'disproject
-                            (concat
-                             "DEPRECATION WARNING:"
-                             " The `call' custom suffix command type"
-                             " commands will soon no longer automatically"
-                             " set `compilation-buffer-name-function';"
-                             " use the `compile' command type instead"
-                             " or manually set the variable."))
-                           disproject-buffer-name)))
-                   (call-interactively ,command))))
-              ('compile
-               `(disproject--with-environment
-                 (let* ((compilation-buffer-name-function
-                         (lambda (&rest _ignore) disproject-buffer-name))
-                        (command ,command))
-                   (compile (if (stringp command)
-                                command
-                              (call-interactively command)))))))))))))
+     (let* ((identifier (or identifier
+                            (and (string-match "\\(\\w+\\)" description)
+                                 (match-string 1 description))))
+            (disproject-buffer-name (disproject-prefixed-command-buffer-name
+                                     identifier)))
+       `(,key
+         ,description
+         (lambda ()
+           (interactive)
+           ;; Expose buffer name to the user; see note in
+           ;; `disproject-custom-suffixes'.
+           (let ((disproject-buffer-name ,disproject-buffer-name))
+             ;; TODO: provide more useful error messages if `command' is not a
+             ;; valid value
+             ,(pcase command-type
+                ('bare-call
+                 `(call-interactively ,command))
+                ('call
+                 `(disproject--with-environment
+                   ;; DEPRECATED: `compilation-buffer-name-function' will not be
+                   ;; automatically set for this command type in the future.  This
+                   ;; should no longer be considered a "set everything under the
+                   ;; sun" command type; new types can be created if needed
+                   ;; instead.
+                   (let* ((compilation-buffer-name-function
+                           (lambda (&rest _ignore)
+                             (display-warning
+                              'disproject
+                              (concat
+                               "DEPRECATION WARNING:"
+                               " The `call' custom suffix command type"
+                               " commands will soon no longer automatically"
+                               " set `compilation-buffer-name-function';"
+                               " use the `compile' command type instead"
+                               " or manually set the variable."))
+                             disproject-buffer-name)))
+                     (call-interactively ,command))))
+                ('compile
+                 `(disproject--with-environment
+                   (let* ((compilation-buffer-name-function
+                           (lambda (&rest _ignore) disproject-buffer-name))
+                          (command ,command))
+                     (compile (if (stringp command)
+                                  command
+                                (call-interactively command))))))))))))))
 
 (defun disproject--switch-project (search-directory)
   "Modify the Transient scope to switch to another project.

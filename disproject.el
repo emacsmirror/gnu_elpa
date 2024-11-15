@@ -380,11 +380,19 @@ start with as the selected project."
     ("m" "Magit" disproject-magit-commands-dispatch
      :if (lambda () (and (featurep 'magit) (disproject--state-git-repository?))))
     ("v" "VC status" disproject-vc-dir)]]
+  [("SPC" "Custom dispatch" disproject-custom-dispatch
+    :transient transient--do-replace)]
   (interactive)
   (transient-setup
    'disproject-dispatch nil nil
    :scope (disproject--setup-scope
-           `(,@(if project `((project . ,project)) '())))))
+           `(,@(if project `((project . ,project)) '())))
+   ;; XXX: Preserve options in scope if we're coming from another Disproject
+   ;; Transient.  `:refresh-suffixes' being true causes the `:init-value'
+   ;; function to be called every refresh which messes up --prefer-other-window,
+   ;; so that can't be used.
+   :value `(,@(if (disproject--state-prefer-other-window?)
+                  '("--prefer-other-window")))))
 
 (transient-define-prefix disproject-custom-dispatch (&optional project)
   "Dispatch custom suffix commands.
@@ -406,6 +414,8 @@ These characters represent the following states:
    :class transient-column
    :pad-keys t
    :setup-children disproject-custom--setup-suffixes]
+  [("SPC" "Main dispatch" disproject-dispatch
+    :transient transient--do-replace)]
   (interactive)
   (transient-setup
    'disproject-custom-dispatch nil nil

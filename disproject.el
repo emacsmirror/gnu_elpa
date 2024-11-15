@@ -384,6 +384,7 @@ If non-nil, PROJECT is used as the project to dispatch custom
 commands for.
 
 This prefix can be configured with `disproject-custom-suffixes'."
+  :refresh-suffixes t
   ["Custom commands"
    :class transient-column
    :setup-children disproject-custom--setup-suffixes]
@@ -578,7 +579,26 @@ SPEC-ENTRY is a single entry from the specification described by
             (disproject-command-buffer-name (disproject-command-buffer-name
                                              identifier)))
        `(,key
-         ,description
+         ;; TODO: Is it possible to auto-refresh to get updates on process
+         ;; activity?  I could add a noop suffix that the user invokes to
+         ;; force-refresh, but it's not automatic and takes up menu space.
+         ;; Maybe I could set up some kind of watcher/timer that can
+         ;; auto-refresh the menu?
+         ,(concat (let ((buffer (get-buffer disproject-command-buffer-name)))
+                    (cond
+                     ((null buffer)
+                      "")
+                     ((get-buffer-process buffer)
+                      (concat
+                       "("
+                       (propertize "active" 'face 'transient-enabled-suffix)
+                       ") "))
+                     (t
+                      (concat
+                       "("
+                       (propertize "inactive" 'face 'transient-inactive-value)
+                       ") "))))
+                  description)
          (lambda ()
            (interactive)
            ;; Expose buffer name to the user; see note in

@@ -355,13 +355,13 @@ start with as the selected project."
    :pad-keys t
    [("b" "Switch buffer" disproject-switch-to-buffer)
     ("B" "Buffer list" disproject-list-buffers)
+    ("d" "Dired" disproject-dired)
+    ("k" "Kill buffers" disproject-kill-buffers)
+    ("s" "Shell" disproject-shell)]
+   [("!" "Run" disproject-shell-command)
+    ("M-x" "Extended command" disproject-execute-extended-command)
     ;; DEPRECATED: Replaced by `SPC' key-bind.
-    ("c" "(deprecated) Custom dis." disproject-custom-dispatch)
-    ("d" "Dired" disproject-dired)]
-   [("k" "Kill buffers" disproject-kill-buffers)
-    ("s" "Shell" disproject-shell)
-    ("!" "Run" disproject-shell-command)
-    ("M-x" "Extended command" disproject-execute-extended-command)]
+    ("c" "(deprecated) Custom dis." disproject-custom-dispatch)]
    ["Find"
     ("D" "directory" disproject-find-dir)
     ("f" "file" disproject-find-file)

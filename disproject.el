@@ -657,6 +657,11 @@ user."
                     ") ")))
           description))
 
+(defun disproject-custom--suffix-refresh-transient (&rest _ignore)
+  "Refresh the `disproject-custom-dispatch' transient, if active."
+  (when (transient-active-prefix)
+    (transient--refresh-transient)))
+
 (defun disproject--switch-project (search-directory)
   "Modify the Transient scope to switch to another project.
 

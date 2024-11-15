@@ -611,7 +611,17 @@ SPEC-ENTRY is a single entry from the specification described by
                  ;; sun" command type; new types can be created if needed
                  ;; instead.
                  (let* ((compilation-buffer-name-function
-                         (lambda (&rest _ignore) disproject-buffer-name)))
+                         (lambda (&rest _ignore)
+                           (display-warning
+                            'disproject
+                            (concat
+                             "DEPRECATION WARNING:"
+                             " The `call' custom suffix command type"
+                             " commands will soon no longer automatically"
+                             " set `compilation-buffer-name-function';"
+                             " use the `compile' command type instead"
+                             " or manually set the variable."))
+                           disproject-buffer-name)))
                    (call-interactively ,command))))
               ('compile
                `(disproject--with-environment

@@ -130,10 +130,10 @@ value of `:command'.  It can be any of the following keys:
   interactive function that returns a string that will be passed
   to `compile' as the shell command to run.
 
-The variable `disproject-buffer-name' is made available for users
-when evaluating the `:command' value, which can be useful for
-those that want to create their own buffer to track in case there
-isn't a supported command type to automatically do so.
+When using the \\='bare-call or \\='call command types, consider
+using the variable `disproject-command-buffer-name' (available
+when evaluating `:command') as the buffer name for processes to
+enable tracking e.g. process state.
 
 Some optional properties may be set as well:
 
@@ -596,14 +596,15 @@ SPEC-ENTRY is a single entry from the specification described by
      (let* ((identifier (or identifier
                             (and (string-match "\\(\\w+\\)" description)
                                  (match-string 1 description))))
-            (disproject-buffer-name (disproject-command-buffer-name identifier)))
+            (disproject-command-buffer-name (disproject-command-buffer-name
+                                             identifier)))
        `(,key
          ,description
          (lambda ()
            (interactive)
            ;; Expose buffer name to the user; see note in
            ;; `disproject-custom-suffixes'.
-           (let ((disproject-buffer-name ,disproject-buffer-name))
+           (let ((disproject-command-buffer-name ,disproject-command-buffer-name))
              ;; TODO: provide more useful error messages if `command' is not a
              ;; valid value
              ,(pcase command-type
@@ -627,12 +628,12 @@ SPEC-ENTRY is a single entry from the specification described by
                                " set `compilation-buffer-name-function';"
                                " use the `compile' command type instead"
                                " or manually set the variable."))
-                             disproject-buffer-name)))
+                             disproject-command-buffer-name)))
                      (call-interactively ,command))))
                 ('compile
                  `(disproject--with-environment
                    (let* ((compilation-buffer-name-function
-                           (lambda (&rest _ignore) disproject-buffer-name))
+                           (lambda (&rest _ignore) disproject-command-buffer-name))
                           (command ,command))
                      (compile (if (stringp command)
                                   command

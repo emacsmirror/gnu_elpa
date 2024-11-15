@@ -580,7 +580,7 @@ name, they should not be allowed to run at the same time)."
   (concat "*"
           (file-name-nondirectory
            (directory-file-name (disproject--state-project-root)))
-          "-run-"
+          "-command|"
           (or identifier "default")
           "*"))
 

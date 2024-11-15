@@ -177,6 +177,14 @@ commands and some custom `find-file' call commands:
                                                 (const :identifier)))))
   :group 'disproject)
 
+(defcustom disproject-find-dir-command #'project-find-dir
+  "Command to find a directory in a project.
+
+This is called whenever the function `disproject-find-dir' is
+invoked."
+  :type 'function
+  :group 'disproject)
+
 (defcustom disproject-find-file-command #'project-find-file
   "The command used for opening a file in a project.
 
@@ -353,6 +361,7 @@ start with as the selected project."
     ("!" "Run" disproject-shell-command)
     ("M-x" "Extended command" disproject-execute-extended-command)]
    ["Find"
+    ("D" "directory" disproject-find-dir)
     ("f" "file" disproject-find-file)
     ("F" "file (+external)" disproject-or-external-find-file)
     ("g" "regexp" disproject-find-regexp)
@@ -712,6 +721,12 @@ project."
   (interactive)
   (disproject--with-environment
    (call-interactively #'execute-extended-command)))
+
+(transient-define-suffix disproject-find-dir ()
+  "Find directory in project."
+  (interactive)
+  (disproject--with-environment
+   (call-interactively disproject-find-dir-command)))
 
 (transient-define-suffix disproject-find-file ()
   "Find file in project."

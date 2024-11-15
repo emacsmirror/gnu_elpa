@@ -355,7 +355,8 @@ start with as the selected project."
    :pad-keys t
    [("b" "Switch buffer" disproject-switch-to-buffer)
     ("B" "Buffer list" disproject-list-buffers)
-    ("c" "Custom dispatch" disproject-custom-dispatch)
+    ;; DEPRECATED: Replaced by `SPC' key-bind.
+    ("c" "(deprecated) Custom dis." disproject-custom-dispatch)
     ("d" "Dired" disproject-dired)]
    [("k" "Kill buffers" disproject-kill-buffers)
     ("s" "Shell" disproject-shell)

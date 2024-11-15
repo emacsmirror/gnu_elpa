@@ -139,9 +139,9 @@ Some optional properties may be set as well:
 
 `:identifier' is used as part of the buffer name, and should be
 unique to the command.  It defaults to the result of applying
-`disproject-prefixed-command-buffer-name' to the value (or first
-word in the description if not specified).  Users may choose to
-set the same identifier for multiple commands to mark them as
+`disproject-command-buffer-name' to the value (or first word in
+the description if not specified).  Users may choose to set the
+same identifier for multiple commands to mark them as
 incompatible (only one can run at a given time).  This relies on
 commands like `compile' which notify the user that a buffer with
 the same name already has a process running.
@@ -562,8 +562,8 @@ Sets the Transient state if possible."
 ;;; Suffix handling.
 ;;;
 
-(defun disproject-prefixed-command-buffer-name (&optional identifier)
-  "Return a buffer name for a command.
+(defun disproject-command-buffer-name (&optional identifier)
+  "Return the command buffer name according to project and IDENTIFIER.
 
 IDENTIFIER is an optional string argument that can be specified
 to make the buffer name unique.  If non-nil, \"default\" is used
@@ -596,8 +596,7 @@ SPEC-ENTRY is a single entry from the specification described by
      (let* ((identifier (or identifier
                             (and (string-match "\\(\\w+\\)" description)
                                  (match-string 1 description))))
-            (disproject-buffer-name (disproject-prefixed-command-buffer-name
-                                     identifier)))
+            (disproject-buffer-name (disproject-command-buffer-name identifier)))
        `(,key
          ,description
          (lambda ()

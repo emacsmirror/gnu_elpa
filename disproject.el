@@ -8,7 +8,7 @@
 ;; URL: https://github.com/aurtzy/disproject
 ;; Keywords: convenience, files, vc
 
-;; Version: 0.12.0
+;; Version: 0.13.0
 ;; Package-Requires: ((emacs "29.4") (transient "0.7.8"))
 
 ;; This program is free software; you can redistribute it and/or modify

@@ -91,7 +91,7 @@
     "IF" "THEN" "ELIF" "THEN" "ELSE" "FI"
     "PAR" "BEGIN" "END" "GOTO" "EXIT"
     "LWB" "UPB" "ELEMS" "NOT" "ABS" "BIN" "REPR" "LENG"
-    "SHORTEN" "ODD" "SIGN" "ROUND" "ENTIER" "AND" "OR"
+    "SHORTEN" "ODD" "SIGN" "ROUND" "ENTIER" "AND" "OR" "XOR"
     "THEF" "ANDF" "ANDTH"
     "ELSF" "ORF" "OREL"
     "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"

@@ -188,7 +188,7 @@ invoked."
   :group 'disproject)
 
 (defcustom disproject-find-file-command #'project-find-file
-  "The command used for opening a file in a project.
+  "Command used for opening a file in a project.
 
 This is called whenever the function `disproject-find-file' is
 invoked."
@@ -196,7 +196,7 @@ invoked."
   :group 'disproject)
 
 (defcustom disproject-find-regexp-command #'project-find-regexp
-  "The command used for finding regexp matches in a project.
+  "Command used for finding regexp matches in a project.
 
 This is called whenever the function `disproject-find-regexp' is
 invoked."
@@ -205,7 +205,7 @@ invoked."
 
 (defcustom disproject-or-external-find-file-command
   #'project-or-external-find-file
-  "The command used to find a file in a project or its external roots.
+  "Command used to find a file in a project or its external roots.
 
 This is called whenever the function
 `disproject-or-external-find-file' is invoked."
@@ -214,7 +214,7 @@ This is called whenever the function
 
 (defcustom disproject-or-external-find-regexp-command
   #'project-or-external-find-regexp
-  "The command used to find regexp matches in a project or its external roots.
+  "Command used to find regexp matches in a project or its external roots.
 
 This is called whenever the function
 `disproject-or-external-find-file' is invoked."
@@ -222,7 +222,7 @@ This is called whenever the function
   :group 'disproject)
 
 (defcustom disproject-shell-command #'project-eshell
-  "The command used for opening a shell in a project.
+  "Command used for opening a shell in a project.
 
 This is called whenever the function `disproject-shell-command'
 is invoked."
@@ -230,7 +230,7 @@ is invoked."
   :group 'disproject)
 
 (defcustom disproject-switch-to-buffer-command #'project-switch-to-buffer
-  "The command used for switching project buffers.
+  "Command used for switching project buffers.
 
 This is called whenever the function
 `disproject-switch-to-buffer' is invoked."

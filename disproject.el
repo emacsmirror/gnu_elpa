@@ -43,7 +43,7 @@
 ;;; Macros.
 ;;;
 
-(defmacro disproject--with-environment (&rest body)
+(defmacro disproject-with-environment (&rest body)
   "Run BODY with `disproject' \"environment\" options set.
 
 The \"environment\" consists of the following overrides:
@@ -122,7 +122,7 @@ value of `:command'.  It can be any of the following keys:
   bare-call: the value is called as an interactive function from
   the current buffer.  This is the only command type that is not
   automatically run in the environment provided by
-  `disproject--with-environment'.
+  `disproject-with-environment'.
 
   call: the value will be called as an interactive function.
 
@@ -647,7 +647,7 @@ appropriately according to the command type."
           ,(disproject-custom--suffix-command-type-error
             "Not an interactive function" command-type command)))))
     ('call
-     `(disproject--with-environment
+     `(disproject-with-environment
        ;; DEPRECATED: `compilation-buffer-name-function' will not be
        ;; automatically set for this command type in the future.  This
        ;; should no longer be considered a "set everything under the
@@ -675,7 +675,7 @@ appropriately according to the command type."
            ,(disproject-custom--suffix-command-type-error
              "Not an interactive function" command-type command))))))
     ('compile
-     `(disproject--with-environment
+     `(disproject-with-environment
        (let* ((compilation-buffer-name-function
                (lambda (&rest _ignore) disproject-command-buffer-name))
               (command ,command))
@@ -763,31 +763,31 @@ project."
 (transient-define-suffix disproject-dired ()
   "Open Dired in project root."
   (interactive)
-  (disproject--with-environment
+  (disproject-with-environment
    (call-interactively #'project-dired)))
 
 (transient-define-suffix disproject-execute-extended-command ()
   "Execute an extended command in project root."
   (interactive)
-  (disproject--with-environment
+  (disproject-with-environment
    (call-interactively #'execute-extended-command)))
 
 (transient-define-suffix disproject-find-dir ()
   "Find directory in project."
   (interactive)
-  (disproject--with-environment
+  (disproject-with-environment
    (call-interactively disproject-find-dir-command)))
 
 (transient-define-suffix disproject-find-file ()
   "Find file in project."
   (interactive)
-  (disproject--with-environment
+  (disproject-with-environment
    (call-interactively disproject-find-file-command)))
 
 (transient-define-suffix disproject-find-regexp ()
   "Search project for regexp."
   (interactive)
-  (disproject--with-environment
+  (disproject-with-environment
    (call-interactively disproject-find-regexp-command)))
 
 (transient-define-suffix disproject-forget-project ()
@@ -808,39 +808,39 @@ project."
 (transient-define-suffix disproject-kill-buffers ()
   "Kill all buffers related to project."
   (interactive)
-  (disproject--with-environment
+  (disproject-with-environment
    (call-interactively #'project-kill-buffers)))
 
 (transient-define-suffix disproject-list-buffers ()
   "Display a list of open buffers for project."
   (interactive)
-  (disproject--with-environment
+  (disproject-with-environment
    (call-interactively #'project-list-buffers)))
 
 (transient-define-suffix disproject-magit-status ()
   "Open the Magit status buffer for project."
   (interactive)
   (declare-function magit-status-setup-buffer "magit-status")
-  (disproject--with-environment
+  (disproject-with-environment
    (magit-status-setup-buffer)))
 
 (transient-define-suffix disproject-magit-todos-list ()
   "Open a `magit-todos-list' buffer for project."
   (interactive)
   (declare-function magit-todos-list-internal "magit-todos")
-  (disproject--with-environment
+  (disproject-with-environment
    (magit-todos-list-internal default-directory)))
 
 (transient-define-suffix disproject-or-external-find-file ()
   "Find file in project or external roots."
   (interactive)
-  (disproject--with-environment
+  (disproject-with-environment
    (call-interactively disproject-or-external-find-file-command)))
 
 (transient-define-suffix disproject-or-external-find-regexp ()
   "Find regexp in project or external roots."
   (interactive)
-  (disproject--with-environment
+  (disproject-with-environment
    (call-interactively disproject-or-external-find-regexp-command)))
 
 (transient-define-suffix disproject-remember-projects-active ()
@@ -860,13 +860,13 @@ project."
 (transient-define-suffix disproject-shell ()
   "Start a shell in project."
   (interactive)
-  (disproject--with-environment
+  (disproject-with-environment
    (call-interactively disproject-shell-command)))
 
 (transient-define-suffix disproject-shell-command ()
   "Run a shell command asynchronously in a project."
   (interactive)
-  (disproject--with-environment
+  (disproject-with-environment
    (let ((shell-command-buffer-name-async
           (project-prefixed-buffer-name "async-shell")))
      (call-interactively #'async-shell-command))))
@@ -896,13 +896,13 @@ active projects when prompting for projects to switch to."
 (transient-define-suffix disproject-switch-to-buffer ()
   "Switch to buffer in project."
   (interactive)
-  (disproject--with-environment
+  (disproject-with-environment
    (call-interactively disproject-switch-to-buffer-command)))
 
 (transient-define-suffix disproject-vc-dir ()
   "Run VC-Dir in project."
   (interactive)
-  (disproject--with-environment
+  (disproject-with-environment
    (call-interactively #'vc-dir)))
 
 (provide 'disproject)

@@ -67,5 +67,5 @@ variables where relevant: ~default-directory~;
 
 Those who want to insert new commands to the transient menu using methods that
 do not go through the custom variables (e.g. with ~transient-append-suffix~) may
-be interested in the ~disproject--with-environment~ macro, which sets the noted
+be interested in the ~disproject-with-environment~ macro, which sets the noted
 variables automatically.

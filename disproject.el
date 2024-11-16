@@ -53,7 +53,7 @@ the project's root directory.
 
 `display-buffer-overriding-action': Set to display in another
 window if \"--prefer-other-window\" is enabled."
-  (declare (indent defun) (debug t))
+  (declare (indent 0) (debug t))
   `(let* ((project (disproject--state-project-ensure))
           (from-directory (project-root project))
           (prefer-other-window? (disproject--state-prefer-other-window?))

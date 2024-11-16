@@ -673,6 +673,20 @@ appropriately according to the command type."
                       command
                     (call-interactively command))))))))
 
+(defun disproject-custom--suffix-command-type-error (message
+                                                     command-type
+                                                     command)
+  "Return an s-expression to evaluate when there is a suffix command type error.
+
+MESSAGE is the message body stating the typing issue.
+
+COMMAND-TYPE is the `:command-type' value declared in the custom
+suffix entry specification.
+
+COMMAND is an unevaluated s-expression representing the declared
+`:command' value that can be printed as-is for the user."
+  `(error "(`%s') %s: %s" ',command-type ,message ',command))
+
 (defun disproject-custom--suffix-description (buffer description)
   "Return an appropriate description for a custom suffix.
 

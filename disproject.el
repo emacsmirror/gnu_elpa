@@ -105,7 +105,9 @@ window if \"--prefer-other-window\" is enabled."
 The value should be a list of transient-like specification
 entries (KEY DESCRIPTION {PROPERTY VALUE} ...).
 
-KEY is the keybind that will be used in the Transient menu.
+KEY is the key-bind that will be used in the Transient menu.  Key
+sequences starting with alphanumeric characters (regexp
+\"[a-zA-Z0-9]\") are reserved for the user.
 
 DESCRIPTION is used as the Transient command description.
 

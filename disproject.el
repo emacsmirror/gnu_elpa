@@ -638,10 +638,14 @@ documented in `disproject-custom-suffixes'.
 COMMAND is an yet-to-be-evaluated s-expression which is inserted
 appropriately according to the command type."
   (pcase command-type
-    ;; TODO: provide more useful error messages if `command' is not a valid
-    ;; value
     ('bare-call
-     `(call-interactively ,command))
+     `(let ((command ,command))
+        (cond
+         ((commandp command t)
+          (call-interactively command))
+         (t
+          ,(disproject-custom--suffix-command-type-error
+            "Not an interactive function" command-type command)))))
     ('call
      `(disproject--with-environment
        ;; DEPRECATED: `compilation-buffer-name-function' will not be
@@ -662,16 +666,35 @@ appropriately according to the command type."
                      " set `compilation-buffer-name-function';"
                      " use the `compile' command type instead"
                      " or manually set the variable.")))
-                 disproject-command-buffer-name)))
-         (call-interactively ,command))))
+                 disproject-command-buffer-name))
+              (command ,command))
+         (cond
+          ((commandp command t)
+           (call-interactively command))
+          (t
+           ,(disproject-custom--suffix-command-type-error
+             "Not an interactive function" command-type command))))))
     ('compile
      `(disproject--with-environment
        (let* ((compilation-buffer-name-function
                (lambda (&rest _ignore) disproject-command-buffer-name))
               (command ,command))
-         (compile (if (stringp command)
-                      command
-                    (call-interactively command))))))))
+         (compile (cond
+                   ((stringp command)
+                    command)
+                   ((commandp command t)
+                    (let ((result (call-interactively command)))
+                      (if (stringp result)
+                          result
+                        ,(disproject-custom--suffix-command-type-error
+                          "Function does not return string"
+                          command-type
+                          command))))
+                   (t
+                    ,(disproject-custom--suffix-command-type-error
+                      "Not a string or interactive function"
+                      command-type
+                      command)))))))))
 
 (defun disproject-custom--suffix-command-type-error (message
                                                      command-type

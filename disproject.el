@@ -251,6 +251,8 @@ value."
   (let ((type (get variable 'custom-type)))
     (if (widget-apply (widget-convert type) :match value)
         t
+      ;; The rest of the menu should still be usable if a customizable variable
+      ;; type is invalid, so only warn user about invalid types.
       (warn "Value `%S' does not match type %s" value type)
       nil)))
 

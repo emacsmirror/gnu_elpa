@@ -53,7 +53,7 @@ the project's root directory.
 
 `display-buffer-overriding-action': Set to display in another
 window if \"--prefer-other-window\" is enabled."
-  (declare (debug t))
+  (declare (indent defun) (debug t))
   `(let* ((project (disproject--state-project-ensure))
           (from-directory (project-root project))
           (prefer-other-window? (disproject--state-prefer-other-window?))
@@ -648,53 +648,53 @@ appropriately according to the command type."
             "Not an interactive function" command-type command)))))
     ('call
      `(disproject-with-environment
-       ;; DEPRECATED: `compilation-buffer-name-function' will not be
-       ;; automatically set for this command type in the future.  This
-       ;; should no longer be considered a "set everything under the
-       ;; sun" command type; new types can be created if needed
-       ;; instead.
-       (let* ((compilation-buffer-name-function
-               (lambda (&rest _ignore)
-                 (let ((display-buffer-overriding-action
-                        '(display-buffer-same-window)))
-                   (display-warning
-                    'disproject
-                    (concat
-                     "DEPRECATION WARNING:"
-                     " The `call' custom suffix command type"
-                     " commands will soon no longer automatically"
-                     " set `compilation-buffer-name-function';"
-                     " use the `compile' command type instead"
-                     " or manually set the variable.")))
-                 disproject-command-buffer-name))
-              (command ,command))
-         (cond
-          ((commandp command t)
-           (call-interactively command))
-          (t
-           ,(disproject-custom--suffix-command-type-error
-             "Not an interactive function" command-type command))))))
+        ;; DEPRECATED: `compilation-buffer-name-function' will not be
+        ;; automatically set for this command type in the future.  This
+        ;; should no longer be considered a "set everything under the
+        ;; sun" command type; new types can be created if needed
+        ;; instead.
+        (let* ((compilation-buffer-name-function
+                (lambda (&rest _ignore)
+                  (let ((display-buffer-overriding-action
+                         '(display-buffer-same-window)))
+                    (display-warning
+                     'disproject
+                     (concat
+                      "DEPRECATION WARNING:"
+                      " The `call' custom suffix command type"
+                      " commands will soon no longer automatically"
+                      " set `compilation-buffer-name-function';"
+                      " use the `compile' command type instead"
+                      " or manually set the variable.")))
+                  disproject-command-buffer-name))
+               (command ,command))
+          (cond
+           ((commandp command t)
+            (call-interactively command))
+           (t
+            ,(disproject-custom--suffix-command-type-error
+              "Not an interactive function" command-type command))))))
     ('compile
      `(disproject-with-environment
-       (let* ((compilation-buffer-name-function
-               (lambda (&rest _ignore) disproject-command-buffer-name))
-              (command ,command))
-         (compile (cond
-                   ((stringp command)
-                    command)
-                   ((commandp command t)
-                    (let ((result (call-interactively command)))
-                      (if (stringp result)
-                          result
-                        ,(disproject-custom--suffix-command-type-error
-                          "Function does not return string"
-                          command-type
-                          command))))
-                   (t
-                    ,(disproject-custom--suffix-command-type-error
-                      "Not a string or interactive function"
-                      command-type
-                      command)))))))))
+        (let* ((compilation-buffer-name-function
+                (lambda (&rest _ignore) disproject-command-buffer-name))
+               (command ,command))
+          (compile (cond
+                    ((stringp command)
+                     command)
+                    ((commandp command t)
+                     (let ((result (call-interactively command)))
+                       (if (stringp result)
+                           result
+                         ,(disproject-custom--suffix-command-type-error
+                           "Function does not return string"
+                           command-type
+                           command))))
+                    (t
+                     ,(disproject-custom--suffix-command-type-error
+                       "Not a string or interactive function"
+                       command-type
+                       command)))))))))
 
 (defun disproject-custom--suffix-command-type-error (message
                                                      command-type
@@ -764,31 +764,31 @@ project."
   "Open Dired in project root."
   (interactive)
   (disproject-with-environment
-   (call-interactively #'project-dired)))
+    (call-interactively #'project-dired)))
 
 (transient-define-suffix disproject-execute-extended-command ()
   "Execute an extended command in project root."
   (interactive)
   (disproject-with-environment
-   (call-interactively #'execute-extended-command)))
+    (call-interactively #'execute-extended-command)))
 
 (transient-define-suffix disproject-find-dir ()
   "Find directory in project."
   (interactive)
   (disproject-with-environment
-   (call-interactively disproject-find-dir-command)))
+    (call-interactively disproject-find-dir-command)))
 
 (transient-define-suffix disproject-find-file ()
   "Find file in project."
   (interactive)
   (disproject-with-environment
-   (call-interactively disproject-find-file-command)))
+    (call-interactively disproject-find-file-command)))
 
 (transient-define-suffix disproject-find-regexp ()
   "Search project for regexp."
   (interactive)
   (disproject-with-environment
-   (call-interactively disproject-find-regexp-command)))
+    (call-interactively disproject-find-regexp-command)))
 
 (transient-define-suffix disproject-forget-project ()
   "Forget a project."
@@ -809,39 +809,39 @@ project."
   "Kill all buffers related to project."
   (interactive)
   (disproject-with-environment
-   (call-interactively #'project-kill-buffers)))
+    (call-interactively #'project-kill-buffers)))
 
 (transient-define-suffix disproject-list-buffers ()
   "Display a list of open buffers for project."
   (interactive)
   (disproject-with-environment
-   (call-interactively #'project-list-buffers)))
+    (call-interactively #'project-list-buffers)))
 
 (transient-define-suffix disproject-magit-status ()
   "Open the Magit status buffer for project."
   (interactive)
   (declare-function magit-status-setup-buffer "magit-status")
   (disproject-with-environment
-   (magit-status-setup-buffer)))
+    (magit-status-setup-buffer)))
 
 (transient-define-suffix disproject-magit-todos-list ()
   "Open a `magit-todos-list' buffer for project."
   (interactive)
   (declare-function magit-todos-list-internal "magit-todos")
   (disproject-with-environment
-   (magit-todos-list-internal default-directory)))
+    (magit-todos-list-internal default-directory)))
 
 (transient-define-suffix disproject-or-external-find-file ()
   "Find file in project or external roots."
   (interactive)
   (disproject-with-environment
-   (call-interactively disproject-or-external-find-file-command)))
+    (call-interactively disproject-or-external-find-file-command)))
 
 (transient-define-suffix disproject-or-external-find-regexp ()
   "Find regexp in project or external roots."
   (interactive)
   (disproject-with-environment
-   (call-interactively disproject-or-external-find-regexp-command)))
+    (call-interactively disproject-or-external-find-regexp-command)))
 
 (transient-define-suffix disproject-remember-projects-active ()
   "Remember active projects."
@@ -861,15 +861,15 @@ project."
   "Start a shell in project."
   (interactive)
   (disproject-with-environment
-   (call-interactively disproject-shell-command)))
+    (call-interactively disproject-shell-command)))
 
 (transient-define-suffix disproject-shell-command ()
   "Run a shell command asynchronously in a project."
   (interactive)
   (disproject-with-environment
-   (let ((shell-command-buffer-name-async
-          (project-prefixed-buffer-name "async-shell")))
-     (call-interactively #'async-shell-command))))
+    (let ((shell-command-buffer-name-async
+           (project-prefixed-buffer-name "async-shell")))
+      (call-interactively #'async-shell-command))))
 
 (transient-define-suffix disproject-switch-project ()
   "Switch project to dispatch commands on.
@@ -897,13 +897,13 @@ active projects when prompting for projects to switch to."
   "Switch to buffer in project."
   (interactive)
   (disproject-with-environment
-   (call-interactively disproject-switch-to-buffer-command)))
+    (call-interactively disproject-switch-to-buffer-command)))
 
 (transient-define-suffix disproject-vc-dir ()
   "Run VC-Dir in project."
   (interactive)
   (disproject-with-environment
-   (call-interactively #'vc-dir)))
+    (call-interactively #'vc-dir)))
 
 (provide 'disproject)
 ;;; disproject.el ends here

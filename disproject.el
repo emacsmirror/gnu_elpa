@@ -114,7 +114,7 @@ DESCRIPTION is used as the Transient command description.
 The following properties are required:
 
 `:command' is an s-expression which is evaluated and used
-depending on the command type :command-type.
+depending on the command type `:command-type'.
 
 `:command-type' is a symbol that specifies what to do with the
 value of `:command'.  It can be any of the following keys:

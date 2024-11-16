@@ -90,7 +90,7 @@
     "FOR" "FORALL" "FROM" "TO" "BY" "WHILE" "DO" "OD"
     "IF" "THEN" "ELIF" "THEN" "ELSE" "FI"
     "PAR" "BEGIN" "END" "GOTO" "EXIT"
-    "LWB" "UPB" "NOT" "ABS" "BIN" "REPR" "LENG"
+    "LWB" "UPB" "ELEMS" "NOT" "ABS" "BIN" "REPR" "LENG"
     "SHORTEN" "ODD" "SIGN" "ROUND" "ENTIER" "AND" "OR"
     "THEF" "ANDF" "ANDTH"
     "ELSF" "ORF" "OREL"

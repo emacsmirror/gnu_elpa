@@ -479,11 +479,9 @@ project in Transient state (if any)."
 (defun disproject--active-projects ()
   "Return a list of active known projects, i.e. those with open buffers."
   (let* ((buffer-list
-          ;; Ignore ephemeral and star buffers
+          ;; Ignore ephemeral buffers
           (match-buffers (lambda (buf)
-                           (let ((name (buffer-name buf)))
-                             (not (or (string-prefix-p " " name)
-                                      (string-prefix-p "*" name)))))))
+                           (not (string-prefix-p " " (buffer-name buf))))))
          (directories
           (cl-remove-duplicates (mapcar
                                  (lambda (buf)

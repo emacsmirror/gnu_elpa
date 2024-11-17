@@ -652,26 +652,7 @@ appropriately according to the command type."
             "Not an interactive function" command-type command)))))
     ('call
      `(disproject-with-environment
-        ;; DEPRECATED: `compilation-buffer-name-function' will not be
-        ;; automatically set for this command type in the future.  This
-        ;; should no longer be considered a "set everything under the
-        ;; sun" command type; new types can be created if needed
-        ;; instead.
-        (let* ((compilation-buffer-name-function
-                (lambda (&rest _ignore)
-                  (let ((display-buffer-overriding-action
-                         '(display-buffer-same-window)))
-                    (display-warning
-                     'disproject
-                     (concat
-                      "DEPRECATION WARNING:"
-                      " The `call' custom suffix command type"
-                      " commands will soon no longer automatically"
-                      " set `compilation-buffer-name-function';"
-                      " use the `compile' command type instead"
-                      " or manually set the variable.")))
-                  disproject-process-buffer-name))
-               (command ,command))
+        (let ((command ,command))
           (cond
            ((commandp command t)
             (call-interactively command))

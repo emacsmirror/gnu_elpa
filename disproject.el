@@ -102,6 +102,11 @@ window if \"--prefer-other-window\" is enabled."
                                           :identifier "make"))
   "Commands for the `disproject-custom-dispatch' prefix.
 
+The custom dispatch was initially designed for suites of
+compilation commands, but it is flexible enough to be used for
+any custom command designated for a particular project, like
+starting servers or updates.
+
 The value should be a list of transient-like specification
 entries (KEY DESCRIPTION {PROPERTY VALUE} ...).
 

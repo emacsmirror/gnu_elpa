@@ -21,7 +21,12 @@ Some notable features include (but may not be limited to):
 
 ** Installation
 
-Currently not available in any package archives yet.
+*** MELPA
+
+[[https://melpa.org/#/disproject][file:https://melpa.org/packages/disproject-badge.svg]] [[https://stable.melpa.org/#/disproject][file:https://stable.melpa.org/packages/disproject-badge.svg]]
+
+Disproject is available on [[https://melpa.org/#/disproject][MELPA]] and [[https://stable.melpa.org/#/disproject][MELPA Stable]].  See [[https://melpa.org/#/getting-started][Getting Started]]
+instructions for using MELPA.
 
 *** Guix
 

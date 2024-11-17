@@ -886,7 +886,7 @@ The command used can be customized with the variable
   (interactive)
   (disproject-with-environment
     (let ((shell-command-buffer-name-async
-           (project-prefixed-buffer-name "async-shell")))
+           (disproject-process-buffer-name "async-shell-command")))
       (call-interactively #'async-shell-command))))
 
 (transient-define-suffix disproject-switch-project ()

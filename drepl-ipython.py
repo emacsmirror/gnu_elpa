@@ -1,6 +1,7 @@
 """IPython interface for dREPL."""
 
 import base64
+from base64 import b64decode, b64encode
 import json
 from itertools import chain
 from pathlib import Path
@@ -14,16 +15,10 @@ from IPython.utils.tokenutil import token_at_cursor
 from traitlets import Unicode
 
 
-def encoding_workaround(data):
-    if isinstance(data, str):
-        return base64.decodebytes(data.encode())
-    return data
-
-
 mime_types = {
     "application/json": lambda d: json.dumps(d).encode(),
-    "image/jpeg": encoding_workaround,
-    "image/png": encoding_workaround,
+    "image/jpeg": lambda s: b64decode(s) if isinstance(s, str) else s,
+    "image/png": lambda s: b64decode(s) if isinstance(s, str) else s,
     "image/svg+xml": str.encode,
     "text/html": str.encode,
     "text/latex": str.encode,

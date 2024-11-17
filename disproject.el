@@ -409,9 +409,9 @@ This prefix can be configured with `disproject-custom-suffixes';
 see its documentation for more information.
 
 Suffixes have an associated buffer that is tracked for command
-activity; this is shown in the menu in the form of \"[CHAR]\",
-where the string is color-coded and CHAR is a single character.
-These characters represent the following states:
+process activity; this is shown in the menu in the form of
+\"[CHAR]\", where the string is color-coded and CHAR is a single
+character.  These characters represent the following states:
 
   [a]: Command is active.
   [i]: Command is inactive."

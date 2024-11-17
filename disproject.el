@@ -405,7 +405,8 @@ start with as the selected project."
 If non-nil, PROJECT is used as the project to dispatch custom
 commands for.
 
-This prefix can be configured with `disproject-custom-suffixes'.
+This prefix can be configured with `disproject-custom-suffixes';
+see its documentation for more information.
 
 Suffixes have an associated buffer that is tracked for command
 activity; this is shown in the menu in the form of \"[CHAR]\",

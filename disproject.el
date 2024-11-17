@@ -131,7 +131,7 @@ value of `:command'.  It can be any of the following keys:
   to `compile' as the shell command to run.
 
 When using the \\='bare-call or \\='call command types, consider
-using the variable `disproject-command-buffer-name' (available
+using the variable `disproject-process-buffer-name' (available
 when evaluating `:command') as the buffer name for processes to
 enable tracking e.g. process state.
 
@@ -139,7 +139,7 @@ Some optional properties may be set as well:
 
 `:identifier' is used as part of the buffer name, and should be
 unique to the command.  It defaults to the result of applying
-`disproject-command-buffer-name' to the value (or first word in
+`disproject-process-buffer-name' to the value (or first word in
 the description if not specified).  Users may choose to set the
 same identifier for multiple commands to mark them as
 incompatible (only one can run at a given time).  This relies on
@@ -572,8 +572,8 @@ Sets the Transient state if possible."
 ;;; Suffix handling.
 ;;;
 
-(defun disproject-command-buffer-name (&optional identifier)
-  "Return the command buffer name according to project and IDENTIFIER.
+(defun disproject-process-buffer-name (&optional identifier)
+  "Return the selected project's process buffer name associated with IDENTIFIER.
 
 IDENTIFIER is an optional string argument that can be specified
 to make the buffer name unique.  If non-nil, \"default\" is used
@@ -590,7 +590,7 @@ name, they should not be allowed to run at the same time)."
   (concat "*"
           (file-name-nondirectory
            (directory-file-name (disproject--state-project-root)))
-          "-command|"
+          "-process|"
           (or identifier "default")
           "*"))
 
@@ -607,20 +607,20 @@ SPEC-ENTRY is a single entry from the specification described by
             ;; Uniqueness is preferred over the name looking nice to prevent
             ;; unintentionally making commands incompatible.
             (identifier (or identifier description))
-            (disproject-command-buffer-name (disproject-command-buffer-name
+            (disproject-process-buffer-name (disproject-process-buffer-name
                                              identifier)))
        `(,key
          ,(disproject-custom--suffix-description
-           (get-buffer disproject-command-buffer-name)
+           (get-buffer disproject-process-buffer-name)
            description)
          (lambda ()
            (interactive)
            ;; Expose buffer name to the user; see note in
            ;; `disproject-custom-suffixes'.
-           (let ((disproject-command-buffer-name ,disproject-command-buffer-name))
+           (let ((disproject-process-buffer-name ,disproject-process-buffer-name))
              ,(disproject-custom--suffix-command command-type command)
              ;; Auto-refresh menu on command completion
-             (when-let* ((buffer (get-buffer disproject-command-buffer-name))
+             (when-let* ((buffer (get-buffer disproject-process-buffer-name))
                          (process (get-buffer-process buffer))
                          ((not (advice-function-member-p
                                 #'disproject-custom--suffix-refresh-transient
@@ -666,7 +666,7 @@ appropriately according to the command type."
                       " set `compilation-buffer-name-function';"
                       " use the `compile' command type instead"
                       " or manually set the variable.")))
-                  disproject-command-buffer-name))
+                  disproject-process-buffer-name))
                (command ,command))
           (cond
            ((commandp command t)
@@ -677,7 +677,7 @@ appropriately according to the command type."
     ('compile
      `(disproject-with-environment
         (let* ((compilation-buffer-name-function
-                (lambda (&rest _ignore) disproject-command-buffer-name))
+                (lambda (&rest _ignore) disproject-process-buffer-name))
                (command ,command))
           (compile (cond
                     ((stringp command)

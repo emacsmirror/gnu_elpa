@@ -25,6 +25,7 @@ type Dline struct {
 	scanner   *bufio.Scanner
 	handler   *handler.Handler
 	completer readline.AutoCompleter
+	nextMsg   *map[string]any
 }
 
 // One-size-fits-all struct to decode an incoming message
@@ -146,6 +147,12 @@ func (l *Dline) Complete(code string, pos int) (string, []string) {
 
 // Next returns the next line of runes (excluding '\n') from the input.
 func (l *Dline) Next() ([]rune, error) {
+	if l.nextMsg != nil {
+		// Send now the response of the previous eval command, so the
+		// client knows it has finished.
+		l.SendMsg(*l.nextMsg)
+		l.nextMsg = nil
+	}
 	fmt.Print(l.MakePrompt())
 	for {
 		msg, err := l.ReadMsg()
@@ -158,7 +165,10 @@ func (l *Dline) Next() ([]rune, error) {
 		}
 		switch msg.Op {
 		case "eval":
-			l.SendMsg(map[string]any{"id": msg.Id})
+			l.nextMsg = &map[string]any{
+				"id":     msg.Id,
+				"format": env.Pall()["format"],
+			}
 			l.SendStatus("rawio")
 			return []rune(msg.Code), nil
 		case "checkinput":
@@ -231,7 +241,7 @@ func main() {
 	}
 	env.Pset("pager", "off")
 	scanner := bufio.NewScanner(os.Stdin)
-	l := &Dline{scanner: scanner, completer: nil}
+	l := &Dline{scanner: scanner, completer: nil, nextMsg: nil}
 	l.handler = handler.New(l, usr, wd, false)
 	l.handler.SetSingleLineMode(true)
 	l.SendStatus("rawio") // The following line may ask for a password

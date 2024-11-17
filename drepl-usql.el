@@ -92,6 +92,19 @@ Note that this requires a Go compiler."
   (setq-local indent-line-function #'ignore)
   (when (fboundp 'sql-indent-enable) (sql-indent-enable)))
 
+(cl-defmethod drepl--eval ((repl drepl-usql) code)
+  "Send an eval request to REPL with CODE as argument."
+  (let ((cb (lambda (data)
+              (when (string= (alist-get 'format data) 'html)
+                (save-excursion
+                  (let* ((start (previous-single-char-property-change (point) 'field))
+                         (end (point))
+                         (html (buffer-substring-no-properties start end)))
+                    (when (eq (char-after start) ?<)
+                      (comint-mime-render-html '((type . "text/html")) html)
+                      (delete-region start end))))))))
+    (drepl--communicate repl cb 'eval :code code)))
+
 (cl-defmethod drepl--init ((repl drepl-usql))
   (cl-call-next-method repl)
   (push '("5151" . comint-mime-osc-handler) ansi-osc-handlers)

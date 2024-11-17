@@ -5,7 +5,7 @@
 ;; Author: Augusto Stoffel <arstoffel@gmail.com>
 ;; Keywords: languages, processes
 ;; URL: https://github.com/astoff/drepl
-;; Package-Requires: ((emacs "29.1") (comint-mime "0.3"))
+;; Package-Requires: ((emacs "29.1") (comint-mime "0.7"))
 ;; Version: 0.3
 
 ;; This program is free software; you can redistribute it and/or modify

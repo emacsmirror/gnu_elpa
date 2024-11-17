@@ -43,14 +43,14 @@ def readmsg():
         if line.startswith(b"\033="):
             return json.loads(b"".join(buffer))
         if not line.startswith(b"\033+"):
-            raise DReplError("Invalid input")
+            raise ReplError("Invalid input")
 
 
-class DReplError(Exception):
+class ReplError(Exception):
     pass
 
 
-class DReplDisplayHook(DisplayHook):
+class ReplDisplayHook(DisplayHook):
     def write_output_prompt(self):
         stdout.write(self.shell.separate_out)
         if self.do_full_cache:
@@ -64,8 +64,7 @@ class DReplDisplayHook(DisplayHook):
         super().write_format_data(format_dict, md_dict)
 
 
-@InteractiveShellABC.register
-class DRepl(InteractiveShell):
+class Repl(InteractiveShell):
     ps1 = Unicode(
         "In [{}]: ",
         help="Primary input prompt, with '{}' replaced by the execution count.",
@@ -79,13 +78,20 @@ class DRepl(InteractiveShell):
         help="String prepended to return values displayed in the shell.",
     ).tag(config=True)
 
-    def __init__(self, config) -> None:
+    @classmethod
+    def run(cls):
+        "Read config as a single JSON line from stdin, then start the REPL."
+        config = json.loads(stdin.readline())
+        cls.instance(config).run_loop()
+
+    def __init__(self, config):
         # Default settings
         self.config.HistoryManager.enabled = False
         # User-supplied settings
+        own_config = getattr(self.config, self.__class__.__name__)
         for k, v in config.items():
             k0, dot, k1 = k.rpartition(".")
-            cfg = getattr(self.config, k0) if dot else self.config.DRepl
+            cfg = getattr(self.config, k0) if dot else own_config
             setattr(cfg, k1, v)
         super().__init__()
         self.confirm_exit = True
@@ -100,7 +106,7 @@ class DRepl(InteractiveShell):
         self.show_banner()
 
     system = InteractiveShell.system_raw
-    displayhook_class = DReplDisplayHook
+    displayhook_class = ReplDisplayHook
 
     def make_mime_renderer(self, type, encoder):
         def renderer(data, meta=None):
@@ -113,7 +119,7 @@ class DRepl(InteractiveShell):
                     f.write(data)
                 payload = "tmp" + Path(fname).as_uri()
             else:
-                payload = base64.encodebytes(data).decode()
+                payload = b64encode(data).decode()
             stdout.write(f"\033]5151;{header}\n{payload}\033\\\n")
 
         return renderer
@@ -121,7 +127,7 @@ class DRepl(InteractiveShell):
     def enable_gui(self, gui=None):
         pass
 
-    def mainloop(self):
+    def run_loop(self):
         while True:
             try:
                 self.run_once()
@@ -131,7 +137,7 @@ class DRepl(InteractiveShell):
                     "\nDo you really want to exit ([y]/n)?", "y", "n"
                 ):
                     return
-            except (DReplError, KeyboardInterrupt) as e:
+            except (ReplError, KeyboardInterrupt) as e:
                 print(str(e) or e.__class__.__name__)
 
     def run_once(self):
@@ -143,7 +149,7 @@ class DRepl(InteractiveShell):
             op = data.pop("op")
             fun = getattr(self, "drepl_{}".format(op), None)
             if fun is None:
-                raise DReplError("Invalid op: {}".format(op))
+                raise ReplError("Invalid op: {}".format(op))
             fun(**data)
             if op in ("eval", "setoptions"):
                 self.execution_count += 1
@@ -189,6 +195,6 @@ class DRepl(InteractiveShell):
             sendmsg(id=id)
 
 
-if __name__ == "__main__":
-    config = json.loads(stdin.readline())
-    DRepl.instance(config).mainloop()
+@InteractiveShellABC.register
+class PythonRepl(Repl):
+    pass

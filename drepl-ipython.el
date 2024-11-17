@@ -45,10 +45,10 @@ This should be a plist of configuration options in flat \"dotted\"
 format.  For example, to make the prompt look like the classic Python
 one and use SVG output for plots, set this variable as follows:
 
-  (DRepl.ps1 \">>> \"
-   DRepl.ps2 \"... \"
-   DRepl.ps3 \"\"
-   DRepl.separate_in \"\"
+  (PythonRepl.ps1 \">>> \"
+   PythonRepl.ps2 \"... \"
+   PythonRepl.ps3 \"\"
+   PyhtonRepl.separate_in \"\"
    InlineBackend.figure_formats [\"svg\"])
 
 Type `%config' in the shell to see a listing of all available options."
@@ -67,7 +67,8 @@ Type `%config' in the shell to see a listing of all available options."
 (cl-defmethod drepl--command ((_ drepl-ipython))
   `(,python-interpreter "-c" "\
 from sys import stdin; \
-exec(stdin.read(int(stdin.readline())))"))
+exec(stdin.read(int(stdin.readline()))); \
+PythonRepl.run()"))
 
 (cl-defmethod drepl--init ((repl drepl-ipython))
   (cl-call-next-method repl)

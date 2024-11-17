@@ -773,19 +773,28 @@ project."
     (call-interactively #'execute-extended-command)))
 
 (transient-define-suffix disproject-find-dir ()
-  "Find directory in project."
+  "Find directory in project.
+
+The command used can be customized with
+`disproject-find-dir-command'."
   (interactive)
   (disproject-with-environment
     (call-interactively disproject-find-dir-command)))
 
 (transient-define-suffix disproject-find-file ()
-  "Find file in project."
+  "Find file in project.
+
+The command used can be customized with
+`disproject-find-file-command'."
   (interactive)
   (disproject-with-environment
     (call-interactively disproject-find-file-command)))
 
 (transient-define-suffix disproject-find-regexp ()
-  "Search project for regexp."
+  "Search project for regexp.
+
+The command used can be customized with
+`disproject-find-regexp-command'."
   (interactive)
   (disproject-with-environment
     (call-interactively disproject-find-regexp-command)))
@@ -832,13 +841,19 @@ project."
     (magit-todos-list-internal default-directory)))
 
 (transient-define-suffix disproject-or-external-find-file ()
-  "Find file in project or external roots."
+  "Find file in project or external roots.
+
+The command used can be customized with
+`disproject-or-external-find-file-command'."
   (interactive)
   (disproject-with-environment
     (call-interactively disproject-or-external-find-file-command)))
 
 (transient-define-suffix disproject-or-external-find-regexp ()
-  "Find regexp in project or external roots."
+  "Find regexp in project or external roots.
+
+The command used can be customized with
+`disproject-or-external-find-regexp-command'."
   (interactive)
   (disproject-with-environment
     (call-interactively disproject-or-external-find-regexp-command)))
@@ -858,7 +873,10 @@ project."
   (call-interactively #'project-remember-projects-under))
 
 (transient-define-suffix disproject-shell ()
-  "Start a shell in project."
+  "Start a shell in project.
+
+The command used can be customized with the variable
+`disproject-shell-command'."
   (interactive)
   (disproject-with-environment
     (call-interactively disproject-shell-command)))
@@ -894,7 +912,10 @@ active projects when prompting for projects to switch to."
     (disproject--switch-project project-directory)))
 
 (transient-define-suffix disproject-switch-to-buffer ()
-  "Switch to buffer in project."
+  "Switch to buffer in project.
+
+The command used can be customized with
+`disproject-switch-to-buffer-command'."
   (interactive)
   (disproject-with-environment
     (call-interactively disproject-switch-to-buffer-command)))

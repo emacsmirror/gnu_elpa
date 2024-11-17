@@ -368,9 +368,7 @@ start with as the selected project."
     ("k" "Kill buffers" disproject-kill-buffers)
     ("s" "Shell" disproject-shell)]
    [("!" "Run" disproject-shell-command)
-    ("M-x" "Extended command" disproject-execute-extended-command)
-    ;; DEPRECATED: Replaced by `SPC' key-bind.
-    ("c" "(deprecated) Custom dis." disproject-custom-dispatch)]
+    ("M-x" "Extended command" disproject-execute-extended-command)]
    ["Find"
     ("D" "directory" disproject-find-dir)
     ("f" "file" disproject-find-file)

@@ -18,15 +18,6 @@ import (
 	"github.com/xo/usql/handler"
 	"github.com/xo/usql/rline"
 	"github.com/xo/usql/text"
-
-	// TODO: Make selected drivers customizable
-	_ "github.com/xo/usql/drivers/clickhouse"
-	_ "github.com/xo/usql/drivers/csvq"
-	_ "github.com/xo/usql/drivers/mysql"
-	_ "github.com/xo/usql/drivers/oracle"
-	_ "github.com/xo/usql/drivers/postgres"
-	_ "github.com/xo/usql/drivers/sqlite3"
-	_ "github.com/xo/usql/drivers/sqlserver"
 )
 
 // Implements usql's rline.IO interface

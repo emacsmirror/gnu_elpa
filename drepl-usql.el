@@ -49,13 +49,26 @@
   "Name of the drepl-usql executable."
   :type 'string)
 
+(defcustom drepl-usql-drivers
+  '(clickhouse csvq mysql oracle postgres sqlite3 sqlserver)
+  "List of drivers to include when building the `drepl-usql' executable.
+See https://github.com/xo/usql#database-support for the available
+options (second column of the table).
+
+Make sure to run \\[drepl-usql-build] after setting this option."
+  :type '(repeat symbol))
+
 (defun drepl-usql-build ()
   "Build the `drepl-usql' executable."
   (interactive)
   (let ((default-directory drepl-usql--directory)
         (gocmd (or (bound-and-true-p go-command) "go")))
-    (compile (format "%s build -v drepl-usql.go"
-                     (shell-quote-argument gocmd)))))
+    (with-temp-file "drivers.go"
+      (insert "package main\n\nimport (\n")
+      (dolist (s drepl-usql-drivers)
+        (insert (format "\t_ \"github.com/xo/usql/drivers/%s\"\n" s)))
+      (insert ")\n"))
+    (compile (format "%s build -v" (shell-quote-argument gocmd)))))
 
 ;;;###autoload (autoload 'drepl-usql "drepl-usql" nil t)
 (drepl--define drepl-usql :display-name "usql")
@@ -65,8 +78,10 @@
       (list prog (read-from-minibuffer "Connect to database: "
                                        nil nil nil
                                        'drepl-usql--connection-history))
-    (lwarn 'drepl-usql :error
-           "`%s' not found, built it with %s"
+    (lwarn 'drepl-usql :error "\
+`%s' not found.
+Use %s to build it.
+Note that this requires a Go compiler."
            drepl-usql-program
            (propertize "M-x drepl-usql-build" 'face 'help-key-binding))
     (user-error "%s not found" drepl-usql-program)))

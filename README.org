@@ -57,15 +57,15 @@ setup using ~use-package~:
 :CUSTOM_ID: customization
 :END:
 
-Disproject also offers variables for customizing its interface and underlying
-commands.  Search =disproject= via =M-x customize-group= to see them and
-accompanying documentation.
+Disproject provides a set of customizable variables that can be viewed by
+searching for the =disproject= group via =M-x customize-group=.
 
-Note that commands should work out of the box if they respect the following
-variables where relevant: ~default-directory~;
-~project-current-directory-override~; ~display-buffer-overriding-action~.
+Some of these variables customize existing commands in the main dispatch menu.
+To look at just these, search for the =disproject-commands= group via =M-x
+customize-group= which provides additional documentation on how to make sure
+commands respect menu settings.
 
-Those who want to insert new commands to the transient menu using methods that
-do not go through the custom variables (e.g. with ~transient-append-suffix~) may
-be interested in the ~disproject-with-environment~ macro, which sets the noted
-variables automatically.
+Documentation on =disproject-commands= also applies for those who want to insert
+new commands to the transient menu (e.g. with ~transient-append-suffix~).
+Notably, it is recommended to use ~disproject-with-environment~ to set relevant
+variables.

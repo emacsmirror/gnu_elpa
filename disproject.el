@@ -379,10 +379,9 @@ start with as the selected project."
   ;; depending on the chosen project.  This requires :refresh-suffixes to be t.
   ;;
   ;; FIXME: There is a case where the section doesn't display when it should.
-  ;; 1. Start with no project detected; 2. Custom dispatch, selecting a project
-  ;; that has vc; 3. return to main dispatch menu.  Version control should show
-  ;; up since that project is now selected, but it doesn't until the next
-  ;; refresh (e.g. by flipping an option).
+  ;; This is fixed in Transient commit 0ed009491910f5466ad7f95b4576e9dde7156f4e;
+  ;; update dependency when version is available.  Upstream issue context:
+  ;; https://www.github.com/magit/transient/issues/327
   [["Version control"
     :if (lambda () (nth 1 (disproject--state-project)))
     ("m" "Magit" disproject-magit-commands-dispatch

@@ -63,7 +63,6 @@ menu.  To look at just these, search for the =disproject-commands= group via
 =M-x customize-group= which provides additional documentation on how to make
 sure commands respect menu settings.
 
-Documentation on =disproject-commands= also applies for those who want to insert
-new commands to the transient menu (e.g. with ~transient-append-suffix~).
-Notably, it is recommended to use ~disproject-with-environment~ to set relevant
-variables.
+The documentation for =disproject-commands= also applies for adding new commands
+to the transient menu (e.g. with ~transient-append-suffix~).  Notably, it is
+recommended to use ~disproject-with-environment~ to set relevant variables.

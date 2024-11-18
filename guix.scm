@@ -1,4 +1,5 @@
-(use-modules (gnu packages emacs-xyz)
+(use-modules (gnu packages base)
+             (gnu packages emacs-xyz)
              (gnu packages version-control)
              (guix build-system emacs)
              (guix download)
@@ -18,7 +19,8 @@
                  #:recursive? #t
                  #:select? (git-predicate repository-root-directory)))
     (build-system emacs-build-system)
-    (propagated-inputs (list emacs-transient git))
+    ;; Some project.el functions depend on external programs.
+    (propagated-inputs (list emacs-transient findutils git grep))
     (home-page "https://github.com/aurtzy/disproject")
     (synopsis "Transient interface for managing and interacting with projects")
     (description

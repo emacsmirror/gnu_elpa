@@ -58,10 +58,10 @@ setup using ~use-package~:
 Disproject provides a set of customizable variables that can be viewed by
 searching for the =disproject= group via =M-x customize-group=.
 
-Some of these variables customize existing commands in the main dispatch menu.
-To look at just these, search for the =disproject-commands= group via =M-x
-customize-group= which provides additional documentation on how to make sure
-commands respect menu settings.
+Some of these variables customize what commands are called in the main dispatch
+menu.  To look at just these, search for the =disproject-commands= group via
+=M-x customize-group= which provides additional documentation on how to make
+sure commands respect menu settings.
 
 Documentation on =disproject-commands= also applies for those who want to insert
 new commands to the transient menu (e.g. with ~transient-append-suffix~).

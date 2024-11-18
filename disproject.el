@@ -97,7 +97,7 @@ window if \"--prefer-other-window\" is enabled."
   :group 'project)
 
 (defgroup disproject-commands nil
-  "Customizable Disproject menu commands.
+  "Customizable Disproject main dispatch commands.
 
 See documentation on `disproject-with-environment' for the
 variables it sets according to the menu settings.  These must be

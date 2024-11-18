@@ -2,19 +2,21 @@
              (gnu packages version-control)
              (guix build-system emacs)
              (guix download)
+             (guix git-download)
              (guix gexp)
              ((guix licenses) #:prefix license:)
              (guix packages))
+
+(define repository-root-directory (dirname (current-filename)))
 
 (define-public emacs-disproject
   (package
     (name "emacs-disproject")
     (version "0.0.0-dev")
     (source
-     (local-file (canonicalize-path ".")
+     (local-file repository-root-directory
                  #:recursive? #t
-                 #:select? (lambda (file stat)
-                             (not (string-contains file "/.git/")))))
+                 #:select? (git-predicate repository-root-directory)))
     (build-system emacs-build-system)
     (propagated-inputs (list emacs-transient git))
     (home-page "https://github.com/aurtzy/disproject")

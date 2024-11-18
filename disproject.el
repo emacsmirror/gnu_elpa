@@ -96,6 +96,17 @@ window if \"--prefer-other-window\" is enabled."
   :group 'convenience
   :group 'project)
 
+(defgroup disproject-commands nil
+  "Customizable Disproject menu commands.
+
+See documentation on `disproject-with-environment' for the
+variables it sets according to the menu settings.  These must be
+respected (when relevant) by commands.  For example, a command
+will not always run in the project root directory if it does not
+respect `default-directory' or
+`project-current-directory-override', which the macro sets."
+  :group 'disproject)
+
 (defcustom disproject-custom-suffixes '(("c" "Make"
                                          :command-type compile
                                          :command "make -k"
@@ -190,7 +201,8 @@ commands and some custom `find-file' call commands:
 This is called whenever the function `disproject-find-dir' is
 invoked."
   :type 'function
-  :group 'disproject)
+  :group 'disproject
+  :group 'disproject-commands)
 
 (defcustom disproject-find-file-command #'project-find-file
   "Command used for opening a file in a project.
@@ -198,7 +210,8 @@ invoked."
 This is called whenever the function `disproject-find-file' is
 invoked."
   :type 'function
-  :group 'disproject)
+  :group 'disproject
+  :group 'disproject-commands)
 
 (defcustom disproject-find-regexp-command #'project-find-regexp
   "Command used for finding regexp matches in a project.
@@ -206,7 +219,8 @@ invoked."
 This is called whenever the function `disproject-find-regexp' is
 invoked."
   :type 'function
-  :group 'disproject)
+  :group 'disproject
+  :group 'disproject-commands)
 
 (defcustom disproject-or-external-find-file-command
   #'project-or-external-find-file
@@ -215,7 +229,8 @@ invoked."
 This is called whenever the function
 `disproject-or-external-find-file' is invoked."
   :type 'function
-  :group 'disproject)
+  :group 'disproject
+  :group 'disproject-commands)
 
 (defcustom disproject-or-external-find-regexp-command
   #'project-or-external-find-regexp
@@ -224,7 +239,8 @@ This is called whenever the function
 This is called whenever the function
 `disproject-or-external-find-file' is invoked."
   :type 'function
-  :group 'disproject)
+  :group 'disproject
+  :group 'disproject-commands)
 
 (defcustom disproject-shell-command #'project-eshell
   "Command used for opening a shell in a project.
@@ -232,7 +248,8 @@ This is called whenever the function
 This is called whenever the function `disproject-shell-command'
 is invoked."
   :type 'function
-  :group 'disproject)
+  :group 'disproject
+  :group 'disproject-commands)
 
 (defcustom disproject-switch-to-buffer-command #'project-switch-to-buffer
   "Command used for switching project buffers.
@@ -240,7 +257,8 @@ is invoked."
 This is called whenever the function
 `disproject-switch-to-buffer' is invoked."
   :type 'function
-  :group 'disproject)
+  :group 'disproject
+  :group 'disproject-commands)
 
 
 ;;;

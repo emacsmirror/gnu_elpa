@@ -61,11 +61,6 @@ Disproject also offers variables for customizing its interface and underlying
 commands.  Search =disproject= via =M-x customize-group= to see them and
 accompanying documentation.
 
-# TODO: Is there a better way to document the note below?  It is important for
-# those that want to customize commands, but I feel like this is an awkward
-# place to put it and - should the list of options grow - may easily become
-# out-of-sync with code.
-
 Note that commands should work out of the box if they respect the following
 variables where relevant: ~default-directory~;
 ~project-current-directory-override~; ~display-buffer-overriding-action~.

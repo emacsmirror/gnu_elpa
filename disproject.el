@@ -97,9 +97,9 @@ window if \"--prefer-other-window\" is enabled."
   :group 'project)
 
 (defcustom disproject-custom-suffixes '(("c" "Make"
-                                          :command-type compile
-                                          :command "make -k"
-                                          :identifier "make"))
+                                         :command-type compile
+                                         :command "make -k"
+                                         :identifier "make"))
   "Commands for the `disproject-custom-dispatch' prefix.
 
 The custom dispatch was initially designed for suites of

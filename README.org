@@ -17,6 +17,16 @@ Some notable features include (but may not be limited to):
 - A set of customizable variables to substitute some commands in the menu (see
   [[#Customization][Customization]]).
 
+
+Main dispatch menu:
+
+[[file:images/disproject-dispatch.png]]
+
+An example of using custom dispatch, setting ~disproject-custom-suffixes~ in
+the Guix source tree:
+
+[[file:images/disproject-custom-dispatch.png]]
+
 ** Installation
 
 *** MELPA

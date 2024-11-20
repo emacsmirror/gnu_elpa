@@ -93,18 +93,27 @@ Optional argument FLATTEN, when non-nil, flattens the result."
                        (when (string-equal (org-element-property :key kw) "FILETAGS")
                          (org-element-property :value kw)))
                      nil t)))
-    (when filetags
-      (mapconcat 'identity (split-string filetags "[:\s]+" t) ","))))
+    (and filetags (remove "" (split-string filetags ":")))))
+
+(defun org-gnosis-get-links (contents)
+  "Recursively collect all node id links from CONTENTS."
+  (org-element-map contents 'link
+    (lambda (link)
+      (when (string-equal "id" (org-element-property :type link))
+        (org-element-property :path link)))
+    nil nil 'headline))
 
 (defun org-gnosis-process-node (node)
   "Process a single headline NODE and return information as a list."
   (let ((title (org-element-property :raw-value node))
         (tags (org-element-property :tags node))
         (id (org-element-property :ID node))
+	(links (org-gnosis-get-links (org-element-contents node)))
         (children (org-element-contents node)))
     (when title
       (list title tags id
-            (org-gnosis-process-children children (1+ (org-element-property :level node)))))))
+            (org-gnosis-process-children children (1+ (org-element-property :level node)))
+	    links))))
 
 (defun org-gnosis-process-children (nodes level)
   "Recursively process NODES at a given LEVEL."
@@ -150,8 +159,9 @@ FILE: File path"
   (let* ((parsed-data (org-element-parse-buffer))
 	 (topic (org-gnosis-get-data--topic parsed-data))
 	 (nodes (org-gnosis-get-data--nodes parsed-data))
-	 (filename (file-name-nondirectory file)))
-    `(:file ,filename :topic ,topic :nodes ,nodes)))
+	 (filename (file-name-nondirectory file))
+	 (links (org-gnosis-get-links parsed-data)))
+    `(:file ,filename :topic ,topic :nodes ,nodes :links ,links)))
 
 (defun org-gnosis-adjust-title (input)
   "Adjust the INPUT string to replace id link structures with plain text."
@@ -169,17 +179,18 @@ FILE: File path"
 NODES: list of nodes to parse.
 TOP-NODE-ID: the ID of the top node to associate with each node.
 INHERITED-TAGS: tags from the top node to inherit."
-  (cl-loop for (name tags id sub-nodes) in nodes
+  (cl-loop for (name tags id sub-nodes links) in nodes
            ;; Only include nodes with non-nil id
            when id
            append (list (list :node name
                               :tags (append tags inherited-tags)
                               :id id
-                              :top-node top-node-id))
+                              :top-node top-node-id
+			      :links links))
            ;; Recursively parse sub-nodes, inheriting current node's tags
            append (org-gnosis-parse-nodes sub-nodes (when id id) (append tags inherited-tags))))
 
-(defun org-gnosis-parse-data-recursive (data &optional initial-tags)
+(defun org-gnosis-parse-data-recursive (data &optional initial-tags top-node-id)
   "Recursively parse the entire data structure, extracting nodes and details.
 DATA: List of top-level nodes to start parsing.
 INITIAL-TAGS: Initial set of tags to inherit."

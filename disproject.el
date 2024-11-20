@@ -385,7 +385,11 @@ as described `disproject-custom-suffixes'."
   "Dispatch some command for a project.
 
 PROJECT is an optional argument that tells the function what to
-start with as the selected project."
+start with as the selected project.
+
+See Info node `(transient)Modifying Existing Transients' for
+information on inserting user-defined suffix commands to this
+menu."
   :refresh-suffixes t
   [:description
    (lambda ()

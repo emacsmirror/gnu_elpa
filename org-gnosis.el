@@ -1,4 +1,4 @@
-;;; org-gnosis.el --- Org Zettelkasten Note Management System  -*- lexical-binding: t; -*-
+;;; org-gnosis.el --- Org Note Management System  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024-2025  Thanos Apollo
 
@@ -31,6 +31,25 @@
 (require 'cl-lib)
 (require 'emacsql-sqlite)
 (require 'org-element)
+
+(defgroup org-gnosis nil
+  "Note Taking System."
+  :group 'external)
+
+(defcustom org-gnosis-dir "~/Notes"
+  "Directory with gnosis notes."
+  :type 'directory
+  :group 'org-gnosis)
+
+(defcustom org-gnosis-show-tags nil
+  "Display tags with `org-gnosis-find'."
+  :type 'boolean
+  :group 'org-gnosis)
+
+(defface org-gnosis-face-tags
+  '((t :inherit font-lock-type-face))
+  "Face for displaying gnosis with `org-gnosis-find'."
+  :group 'org-gnosis)
 
 (defvar org-gnosis-db (emacsql-sqlite-open (locate-user-emacs-file "org-gnosis.db")))
 

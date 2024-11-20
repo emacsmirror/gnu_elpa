@@ -502,9 +502,13 @@ If PROJECT is non-nil, it overrides the currently selected
 project in Transient state (if any)."
   ["New"
    ("n g c" "git clone" magit-clone
-    :if (lambda () (featurep 'magit)))
+    :if (lambda () (featurep 'magit-clone)))
+   ("n g c" "git clone" disproject-git-clone-fallback
+    :if (lambda () (and (not (featurep 'magit-clone)) (executable-find "git"))))
    ("n g i" "git init" magit-init
-    :if (lambda () (featurep 'magit)))]
+    :if (lambda () (featurep 'magit-status)))
+   ("n g i" "git init" disproject-git-init-fallback
+    :if (lambda () (and (not (featurep 'magit-status)) (executable-find "git"))))]
   ["Forget"
    ;; TODO: Could add an option to close buffers of the project to forget.
    ("f p" "a project" disproject-forget-project)
@@ -853,6 +857,56 @@ The command used can be customized with
   "Forget zombie projects."
   (interactive)
   (call-interactively #'project-forget-zombie-projects))
+
+(transient-define-suffix disproject-git-clone-fallback (repository
+                                                        directory
+                                                        &optional
+                                                        arguments)
+  "Git-clone REPOSITORY into DIRECTORY.
+
+ARGUMENTS is \"git clone\" by default.  If prefix arg is non-nil,
+prompt to modify ARGUMENTS options.
+
+\" -- <repository> <directory>\" is appended to ARGUMENTS, which
+is executed as a shell command.
+
+This command relies on the \"git\" executable being in the
+programs path."
+  (interactive "GRepository: \nGDirectory: ")
+  (let* ((directory (expand-file-name directory))
+         (arguments (or arguments
+                        (if current-prefix-arg
+                            (read-shell-command "git arguments: " "git clone ")
+                          "git clone ")))
+         (buf-name (disproject-process-buffer-name "git" directory)))
+    (async-shell-command (concat arguments " -- " repository " " directory)
+                         buf-name)
+    (switch-to-buffer-other-window buf-name)
+    (setq default-directory directory)))
+
+(transient-define-suffix disproject-git-init-fallback (directory
+                                                       &optional
+                                                       arguments)
+  "Initialize a git repository in DIRECTORY.
+
+ARGUMENTS is \"git init\" by default.  If prefix arg is non-nil,
+prompt to modify ARGUMENTS.
+
+\" -- <directory>\" is appended to ARGUMENTS, which is executed
+as a shell command.
+
+This command relies on the \"git\" executable being in the
+programs path."
+  (interactive "GDirectory: ")
+  (let* ((directory (expand-file-name directory))
+         (arguments (or arguments
+                        (if current-prefix-arg
+                            (read-shell-command "git arguments: " "git init ")
+                          "git init ")))
+         (buf-name (disproject-process-buffer-name "git" directory)))
+    (async-shell-command (concat arguments " -- " directory) buf-name)
+    (switch-to-buffer-other-window buf-name)
+    (setq default-directory directory)))
 
 (transient-define-suffix disproject-kill-buffers ()
   "Kill all buffers related to project."

@@ -10,6 +10,9 @@
   for project buffers.
 - Included fallback commands for creating new git projects when Magit is not
   available.
+- Added new command ~disproject-dir-locals~ for opening ~dir-locals-file~, or
+  the personal directory-locals file (=.dir-locals-2.el= by default) with a
+  universal prefix argument.
 
 *** Changed
 

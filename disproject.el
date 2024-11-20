@@ -213,6 +213,15 @@ invoked."
   :group 'disproject
   :group 'disproject-commands)
 
+(defcustom disproject-find-line-command #'disproject-default-find-line
+  "Command to find line occurrences in open project buffers.
+
+This is called whenever the function `disproject-find-line' is
+invoked."
+  :type 'function
+  :group 'disproject
+  :group 'disproject-commands)
+
 (defcustom disproject-find-regexp-command #'project-find-regexp
   "Command used for finding regexp matches in a project.
 
@@ -259,6 +268,19 @@ This is called whenever the function
   :type 'function
   :group 'disproject
   :group 'disproject-commands)
+
+;;;; Default commands.
+
+(defun disproject-default-find-line (regexp)
+  "Find matching line in buffers associated with the current project.
+
+REGEXP is a regular expression used to search for occurrences.
+
+This uses `multi-occur' under the hood."
+  (interactive (list (project--read-regexp)))
+  (if-let* ((project (project-current)))
+      (multi-occur (project-buffers project) regexp)
+    (error "No project in current directory: %s" default-directory)))
 
 
 ;;;
@@ -392,7 +414,8 @@ start with as the selected project."
     ("f" "file" disproject-find-file)
     ("F" "file (+external)" disproject-or-external-find-file)
     ("g" "regexp" disproject-find-regexp)
-    ("G" "regexp (+external)" disproject-or-external-find-regexp)]]
+    ("G" "regexp (+external)" disproject-or-external-find-regexp)
+    ("L" "line occurrence" disproject-find-line)]]
   ;; This section may contain commands that are dynamically enabled/disabled
   ;; depending on the chosen project.  This requires :refresh-suffixes to be t.
   ;;
@@ -791,6 +814,12 @@ The command used can be customized with
   (interactive)
   (disproject-with-environment
     (call-interactively disproject-find-file-command)))
+
+(transient-define-suffix disproject-find-line ()
+  "Find matching line in open project buffers."
+  (interactive)
+  (disproject-with-environment
+    (call-interactively disproject-find-line-command)))
 
 (transient-define-suffix disproject-find-regexp ()
   "Search project for regexp.

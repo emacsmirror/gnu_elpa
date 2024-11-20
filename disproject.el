@@ -620,12 +620,16 @@ Sets the Transient state if possible."
 ;;; Suffix handling.
 ;;;
 
-(defun disproject-process-buffer-name (&optional identifier)
+(defun disproject-process-buffer-name (&optional identifier project-dir)
   "Return the selected project's process buffer name associated with IDENTIFIER.
 
 IDENTIFIER is an optional string argument that can be specified
 to make the buffer name unique.  If non-nil, \"default\" is used
 as the identifier.
+
+PROJECT-DIR is an override value that specifies the project
+directory used to construct the buffer name.  If non-nil, it uses
+the currently selected project from transient state.
 
 This function is *not* meant to be used like
 `project-prefixed-buffer-name', although it is similar in
@@ -636,8 +640,9 @@ buffers based on just an identifier and also allow specifying
 incompatible commands (e.g. if two commands use the same buffer
 name, they should not be allowed to run at the same time)."
   (concat "*"
-          (file-name-nondirectory
-           (directory-file-name (disproject--state-project-root)))
+          (file-name-nondirectory (directory-file-name
+                                   (or project-dir
+                                       (disproject--state-project-root))))
           "-process|"
           (or identifier "default")
           "*"))

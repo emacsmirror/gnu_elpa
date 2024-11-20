@@ -145,7 +145,7 @@ FILE: File path"
 	 (filename (file-name-nondirectory file)))
     `(:file ,filename :topic ,topic :nodes ,nodes)))
 
-(defun org-gnosis-adjust-titles (input)
+(defun org-gnosis-adjust-title (input)
   "Adjust the INPUT string to replace id link structures with plain text."
   (replace-regexp-in-string "\\[\\[id:[^]]+\\]\\[\\(.*?\\)\\]\\]" "\\1" input))
 
@@ -153,32 +153,31 @@ FILE: File path"
   "Something FILENAME."
   (with-temp-buffer
     (insert-file-contents filename)
-    (let* ((data (org-gnosis-get--data filename))
-	   (filename (plist-get data :file)))
+    (let* ((data (org-gnosis-get--data filename)))
       data)))
 
-(defun org-gnosis-parse-nodes (nodes top-node inherited-tags)
-  "Parse a list of nodes, inheriting tags from the top node.
+(defun org-gnosis-parse-nodes (nodes top-node-id inherited-tags)
+  "Parse a list of nodes, inheriting tags and associating the top node ID.
 NODES: list of nodes to parse.
-TOP-NODE: the name of the top node to associate with each node.
+TOP-NODE-ID: the ID of the top node to associate with each node.
 INHERITED-TAGS: tags from the top node to inherit."
   (cl-loop for (name tags id sub-nodes) in nodes
            ;; Only include nodes with non-nil id
            when id
-           append (list (list :category name
+           append (list (list :node name
                               :tags (append tags inherited-tags)
                               :id id
-                              :top-node top-node))
+                              :top-node top-node-id))
            ;; Recursively parse sub-nodes, inheriting current node's tags
-           append (org-gnosis-parse-nodes sub-nodes (when id name) (append tags inherited-tags))))
+           append (org-gnosis-parse-nodes sub-nodes (when id id) (append tags inherited-tags))))
 
 (defun org-gnosis-parse-data-recursive (data &optional initial-tags)
   "Recursively parse the entire data structure, extracting nodes and details.
-DATA: List of top-level categories to start parsing.
+DATA: List of top-level nodes to start parsing.
 INITIAL-TAGS: Initial set of tags to inherit."
   (cl-loop for (node tags id sub-nodes) in data
            ;; Directly parse sub-nodes, using top-level nodes only if they have valid id
-           append (when id (list (list :category node
+           append (when id (list (list :node node
                                        :tags (append tags initial-tags)
                                        :id id
                                        :top-node nil)))

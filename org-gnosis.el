@@ -336,32 +336,45 @@ Removes all contents of FILE in database, adding them anew."
        (file :not-null)
        (title text)
        tags]))
-    (refs
-     ([(node-id :not-null)
-       (ref :not-null)
-       (type :not-null)]
-      (:foreign-key [node-id] :references nodes [id] :on-delete :cascade)))
+    (tags
+     ([(tag-name text :primary-key)]))
+    (journal
+     ([(id :not-null :primary-key)
+       (title text)
+       tags]))
+    ;; (node-tags
+    ;;  ([(node-id :not-null)
+    ;;    (tags :not-null)
+    ;;    (:foreign-key [node-id] :references nodes [id] :on-delete :cascade)
+    ;;    (:foreign-key [tags] :references tags [tag-name] :on-delete :cascade)]))
     (links
-     ([(source :not-null)
-       (dest :not-null)]
-      (:foreign-key [source] :references nodes [id] :on-delete :cascade)))))
+     ([(source text)
+       (dest text)]
+      ;; (:unique (source dest))
+      (:foreign-key [source] :references nodes [id] :on-delete :cascade)
+      ))))
 
-(defconst org-gnosis-db--table-indices
-  '((refs-node-id refs [node-id])))
+(defun org-gnosis-db-delete-tables ()
+  "Drop all tables."
+  (ignore-errors
+    (emacsql-with-transaction org-gnosis-db
+    (org-gnosis--drop-table 'nodes)
+    (org-gnosis--drop-table 'tags)
+    (org-gnosis--drop-table 'journal)
+    (org-gnosis--drop-table 'links))))
 
 (defun org-gnosis-db-init ()
   "Initialize database DB with the correct schema and user version."
-  (unless (length= (emacsql org-gnosis-db
+  (setf org-gnosis-db (emacsql-sqlite-open (locate-user-emacs-file "org-gnosis.db")))
+  (org-gnosis-db-delete-tables)
+  (when (length< (emacsql org-gnosis-db
 			    [:select name :from sqlite-master :where (= type table)])
-		   3)
+		 3)
+    (org-gnosis-db-delete-tables)
     (emacsql-with-transaction org-gnosis-db
       (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
 	(emacsql org-gnosis-db [:create-table $i1 $S2] table schema))
-      (pcase-dolist (`(,index-name ,table ,columns) org-gnosis-db--table-indices)
-	(emacsql org-gnosis-db [:create-index $i1 :on $i2 $S3] index-name table columns))
       (emacsql org-gnosis-db [:pragma (= user-version org-gnosis-db-version)]))))
-
-(org-gnosis-db-init)
 
 (provide 'org-gnosis)
 ;;; org-gnosis.el ends here

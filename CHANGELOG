@@ -4,6 +4,17 @@
 
 ** Unreleased
 
+*** Added
+
+- Added new customizable command ~disproject-find-line~, providing ~multi-occur~
+  for project buffers.
+- Included fallback commands for creating new git projects when Magit is not
+  available.
+
+*** Changed
+
+- Shortened "Extended command" to "Extended cmd." to make the column narrower.
+
 ** [[release-version:1.0.0][1.0.0]] - 2024-11-17
 
 v1 release.  This CHANGELOG file has been added, which will track changes in

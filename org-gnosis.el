@@ -193,8 +193,7 @@ INITIAL-TAGS: Initial set of tags to inherit."
      ([(id :not-null :primary-key)
        (file :not-null)
        (title text)
-       tags]
-      (:foreign-key [file] :references files [file] :on-delete :cascade)))
+       tags]))
     (refs
      ([(node-id :not-null)
        (ref :not-null)
@@ -212,13 +211,15 @@ INITIAL-TAGS: Initial set of tags to inherit."
   "Initialize database DB with the correct schema and user version."
   (unless (length= (emacsql org-gnosis-db
 			    [:select name :from sqlite-master :where (= type table)])
-		   7)
+		   3)
     (emacsql-with-transaction org-gnosis-db
       (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
 	(emacsql org-gnosis-db [:create-table $i1 $S2] table schema))
       (pcase-dolist (`(,index-name ,table ,columns) org-gnosis-db--table-indices)
 	(emacsql org-gnosis-db [:create-index $i1 :on $i2 $S3] index-name table columns))
       (emacsql org-gnosis-db [:pragma (= user-version org-gnosis-db-version)]))))
+
+(org-gnosis-db-init)
 
 (provide 'org-gnosis)
 ;;; org-gnosis.el ends here

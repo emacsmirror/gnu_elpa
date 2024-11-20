@@ -66,6 +66,14 @@ Optional argument FLATTEN, when non-nil, flattens the result."
   "Insert VALUES to TABLE."
   (emacsql org-gnosis-db `[:insert :into ,table :values ,values]))
 
+(defun org-gnosis--delete (table value)
+  "From TABLE use where to delete VALUE."
+  (emacsql org-gnosis-db `[:delete :from ,table :where ,value]))
+
+(cl-defun org-gnosis--drop-table (table)
+  "Drop TABLE from `gnosis-db'."
+  (emacsql org-gnosis-db `[:drop-table ,table]))
+
 (defun org-gnosis-get-current-node-title ()
   "Return the title of the current node."
   (when (derived-mode-p 'org-mode)

@@ -182,7 +182,71 @@ INITIAL-TAGS: Initial set of tags to inherit."
                                        :tags (append tags initial-tags)
                                        :id id
                                        :top-node nil)))
-           append (org-gnosis-parse-nodes sub-nodes node (append tags initial-tags))))
+           append (org-gnosis-parse-nodes sub-nodes id (append tags initial-tags))))
+
+(defun org-gnosis-db-sync ()
+  "Sync `org-gnosis-db'."
+  (interactive)
+  (let ((files (cl-remove-if-not (lambda (file)
+				   (and (string-match-p "^[0-9]" (file-name-nondirectory file))
+					(not (file-directory-p file))))
+				 (directory-files org-gnosis-dir t nil t))))
+    (cl-loop for file in files
+	     do
+	     ;; Add gnosis topic
+	     (let* ((data (org-gnosis-get-file-info file))
+		    (file (plist-get data :file))
+		    (topic (org-gnosis-adjust-title (nth 0 (plist-get data :topic))))
+		    (tags (nth 1 (plist-get data :topic)))
+		    (hash (nth 2 (plist-get data :topic))))
+	       (emacsql-with-transaction org-gnosis-db
+		 (org-gnosis--insert-into 'nodes `([,hash ,file ,topic ,tags])))
+	       ;; Add nodes
+	       (cl-loop for node in (org-gnosis-parse-data-recursive
+				     (plist-get data :nodes))
+			do
+		        (let ((title (org-gnosis-adjust-title (plist-get node :node)))
+			      (tags (plist-get node :tags))
+			      (id (plist-get node :id)))
+			  (emacsql-with-transaction org-gnosis-db
+			    (org-gnosis--insert-into 'nodes `([,id ,file ,title ,tags])))
+			  (message "ok")))))))
+
+(defun org-gnosis-find--tag-with-tag-prop (lst)
+  "Combine each sublist of strings in LST into a single string."
+  (mapcar (lambda (sublist)
+            (mapconcat (lambda (element)
+                         (let ((str (if (stringp element)
+                                        element
+                                      (format "%s" element)))) ;; Convert to string if necessary
+                           (if (eq element (car sublist))
+                               str
+                             (propertize (replace-regexp-in-string "," "#" str)
+					 'face 'org-gnosis-face-tags))))
+                       (cl-remove-if-not #'identity sublist) ;; Remove nil values
+                       (format "  %s" (propertize "#" 'face 'org-gnosis-face-tags))))
+          lst))
+
+(defun org-gnosis-find--with-tags ()
+  "Select gnosis node with tags."
+  (replace-regexp-in-string "  #[^[:space:]]+" ""
+   (completing-read "Select gnosis node: "
+		    (org-gnosis-find--tag-with-tag-prop
+		     (org-gnosis-select '[title tags] 'nodes)))))
+
+(defun org-gnosis-find ()
+  "Select gnosis node."
+  (interactive)
+  (let* ((title (if org-gnosis-show-tags
+		    (org-gnosis-find--with-tags)
+		  (completing-read "Select gnosis node: "
+				   (org-gnosis-select 'title 'nodes))))
+	 (file (caar (org-gnosis-select 'file 'nodes `(= title ,title))))
+	 (id (caar (org-gnosis-select 'id 'nodes `(= title ,title)))))
+    (find-file
+     (expand-file-name file org-gnosis-dir)
+     ;;
+     (ignore-errors (org-id-goto id)))))
 
 ;; Org-Gnosis Database
 

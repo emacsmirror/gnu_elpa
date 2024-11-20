@@ -289,10 +289,31 @@ Removes all contents of FILE in database, adding them anew."
 				   (org-gnosis-select 'title 'nodes))))
 	 (file (caar (org-gnosis-select 'file 'nodes `(= title ,title))))
 	 (id (caar (org-gnosis-select 'id 'nodes `(= title ,title)))))
-    (find-file
-     (expand-file-name file org-gnosis-dir)
-     ;;
-     (ignore-errors (org-id-goto id)))))
+    (cond ((null file)
+	   (org-gnosis--create-file title))
+	  ((file-exists-p (expand-file-name file org-gnosis-dir))
+	   (find-file
+	    (expand-file-name file org-gnosis-dir))
+	   (ignore-errors (org-id-goto id))
+	   (org-gnosis-mode 1)))))
+
+(defun org-gnosis-insert ()
+  "Insert gnosis node."
+  (interactive)
+  (let* ((node (completing-read "Select gnosis node: "
+				(org-gnosis-select 'title 'nodes '1=1 t)))
+	 (id (concat "id:" (car (org-gnosis-select 'id 'nodes `(= ,node title) '1=1)))))
+    (org-insert-link nil id node)))
+
+(define-minor-mode org-gnosis-mode
+  "Org gnosis mode."
+  :lighter " org-gnosis"
+  :keymap nil
+  :global nil
+  :group 'org-gnosis
+  (if org-gnosis-mode
+      (add-hook 'after-save-hook #'org-gnosis-update-file nil t) ;; buffer local hook
+    (remove-hook 'after-save-hook #'org-gnosis-update-file)))
 
 ;; Org-Gnosis Database
 

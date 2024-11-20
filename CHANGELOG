@@ -6,10 +6,8 @@
 
 ** [[release-version:1.0.0][1.0.0]] - 2024-11-17
 
-*** Added
-
-- New CHANGELOG file, which will track changes in future version releases from
-  this point onward.
+v1 release.  This CHANGELOG file has been added, which will track changes in
+future version releases from this point onward.
 
 
 #+link: release-version https://github.com/aurtzy/disproject/tree/v

@@ -410,6 +410,7 @@ menu."
     ("B" "Buffer list" disproject-list-buffers)
     ("d" "Dired" disproject-dired)
     ("k" "Kill buffers" disproject-kill-buffers)
+    ("l" "Dir-locals file" disproject-dir-locals)
     ("s" "Shell" disproject-shell)]
    [("!" "Run" disproject-shell-command)
     ("M-x" "Extended cmd." disproject-execute-extended-command)]
@@ -803,6 +804,19 @@ project."
   (interactive)
   (disproject-with-environment
     (call-interactively #'project-dired)))
+
+(transient-define-suffix disproject-dir-locals ()
+  "Open `dir-locals-file' in the project root.
+
+If prefix arg is non-nil, open the personal secondary
+file (\".dir-locals-2.el\" by default)."
+  (interactive)
+  (disproject-with-environment
+    (find-file (if current-prefix-arg
+                   (concat (file-name-base dir-locals-file)
+                           "-2."
+                           (file-name-extension dir-locals-file))
+                 dir-locals-file))))
 
 (transient-define-suffix disproject-execute-extended-command ()
   "Execute an extended command in project root."

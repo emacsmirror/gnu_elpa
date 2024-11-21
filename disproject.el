@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2024 aurtzy
 ;; Copyright (C) 2008-2023 The Magit Project Contributors
-;; Copyright (C) 2015-2024 Free Software Foundation, Inc.
+;; Copyright (C) 1985-1987, 1992-2024 Free Software Foundation, Inc.
 
 ;; Author: aurtzy <aurtzy@gmail.com>
 ;; URL: https://github.com/aurtzy/disproject
@@ -106,6 +106,13 @@ will not always run in the project root directory if it does not
 respect `default-directory' or
 `project-current-directory-override', which the macro sets."
   :group 'disproject)
+
+(defcustom disproject-custom-allowed-suffixes '()
+  "Allowed values for `disproject-custom-suffixes'."
+  :risky t
+  :group 'disproject
+  :type '(alist :key-type (string :tag "Project path")
+                :value-type (repeat (sexp :tag "Custom suffix"))))
 
 (defcustom disproject-custom-suffixes '(("c" "Make"
                                          :command-type compile
@@ -301,6 +308,77 @@ value."
       ;; type is invalid, so only warn user about invalid types.
       (warn "Value `%S' does not match type %s" value type)
       nil)))
+
+(defun disproject-custom--suffixes-allowed? (project custom-suffixes)
+  "Return non-nil if CUSTOM-SUFFIXES for PROJECT has been allowed.
+
+CUSTOM-SUFFIXES should follow the specifications from
+`disproject-custom-suffixes'.  PROJECT is the project context in
+which the suffixes will be checked.
+
+If CUSTOM-SUFFIXES has not been marked as allowed, a prompt will
+be made to temporarily or permanently do so.
+
+Due to the tendency for `disproject-custom-suffixes' to be
+tweaked or customized, we use this function with limited history
+saving to determine if the suffixes are allowed in order to
+prevent `safe-local-variable-values' from increasing drastically
+in size.
+
+This does not check other projects, because commands may behave
+differently depending on the project (e.g. what \"make\" does for
+one project can do something else for another).
+
+Saved history of allowed suffixes is currently not implemented.
+Only the most recent custom suffixes (i.e. currently used) are
+saved."
+  ;; TODO: Add some form of saved history; the
+  ;; `disproject-custom-allowed-suffixes' alist value is a list type to allow
+  ;; for this.  This implementation only saves a single custom-suffixes element
+  ;; to the list at the moment.
+  (let* ((root-directory (project-root project))
+         (project-suffixes-list (alist-get root-directory
+                                           disproject-custom-allowed-suffixes
+                                           nil nil #'equal)))
+    (or (seq-some (lambda (suffixes)
+                    (equal suffixes custom-suffixes))
+                  project-suffixes-list)
+        (let* ((buf (get-buffer-create "*Custom Suffixes*")))
+          (with-current-buffer buf
+            (erase-buffer)
+            (insert "\
+This project has modified local custom suffixes, which may be risky.
+
+Allow the custom suffixes?  You can type
+y -- to allow the custom suffixes.
+n -- to ignore them and use the default custom suffixes.
+! -- to permanently allow the custom suffixes."
+                    "\n\n")
+            ;; TODO: Replace this pretty print with a custom one to give a more
+            ;; uniform layout (e.g. new line for each keyword followed by
+            ;; value).  This one is particularly funky with the ":" prefix.
+            (cl-prettyprint custom-suffixes)
+            (setq-local cursor-type nil)
+            (set-buffer-modified-p nil)
+            (goto-char (point-min)))
+          ;; FIXME: If the user presses an invalid key in the menu after
+          ;; answering prompt, the menu does not quit until a valid key is
+          ;; pressed (e.g. "C-g" doesn't quit it, but "SPC").
+          (save-window-excursion
+            (pop-to-buffer buf '(display-buffer-at-bottom))
+            (prog1
+                (pcase (read-char-choice "Type y, n, or !: " '(?y ?n ?!))
+                  (?y t)
+                  (?n nil)
+                  (?! (progn
+                        (setf (alist-get root-directory
+                                         disproject-custom-allowed-suffixes)
+                              (list custom-suffixes))
+                        (customize-push-and-save
+                         'disproject-custom-allowed-suffixes
+                         disproject-custom-allowed-suffixes)
+                        t)))
+              (quit-window t)))))))
 
 (defun disproject--setup-scope (&optional overrides write-scope?)
   "Set up Transient scope for a Disproject prefix.

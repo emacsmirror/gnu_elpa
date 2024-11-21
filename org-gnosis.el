@@ -41,6 +41,11 @@
   :type 'directory
   :group 'org-gnosis)
 
+(defcustom org-gnosis-journal-dir "~/Notes/journal"
+  "Gnosis journal directory."
+  :type 'directory
+  :group 'org-gnosis)
+
 (defcustom org-gnosis-show-tags nil
   "Display tags with `org-gnosis-find'."
   :type 'boolean
@@ -207,14 +212,25 @@ INITIAL-TAGS: Initial set of tags to inherit."
 
 Removes all contents of FILE in database, adding them anew."
   (let* ((file (or file (file-name-nondirectory (buffer-file-name))))
-	 (nodes (org-gnosis-select 'id 'nodes `(= file ,file) t)))
-    (if (null nodes)
-	(org-gnosis--update-file file)
-      (emacsql-with-transaction org-gnosis-db
+	 (journal-p (file-in-directory-p file org-gnosis-journal-dir))
+	 (nodes (if journal-p
+		    (org-gnosis-select 'id 'journal `(= file ,file) t)
+		  (org-gnosis-select 'id 'nodes `(= file ,file) t))))
+    (emacsql-with-transaction org-gnosis-db
       ;; Delete all nodes of file in db
       (cl-loop for node in nodes
-	       do (org-gnosis--delete 'nodes `(= id ,node)))
-      (org-gnosis--update-file file)))))
+	       do (if journal-p
+		      (org-gnosis--delete 'journal `(= id ,node))
+		    (org-gnosis--delete 'nodes `(= id ,node))))
+      (if journal-p
+	  (org-gnosis-journal--update-file file)
+	(org-gnosis--update-file file)))))
+
+(defun org-gnosis--is-journal-entry-p (file)
+  "Check if FILE is a journal entry."
+  (let ((file-dir (file-name-directory (expand-file-name file)))
+        (expanded-dir (file-name-as-directory (expand-file-name org-gnosis-journal-dir))))
+    (string-equal file-dir expanded-dir)))
 
 (defun org-gnosis--update-file (file)
   "Add contents of FILE to database."
@@ -244,16 +260,41 @@ Removes all contents of FILE in database, adding them anew."
 		 ;; (org-gnosis--insert-into 'links `([,id ]))
 		 )))))
 
-(defun org-gnosis-db-sync ()
-  "Sync `org-gnosis-db'."
-  (interactive)
-  (org-gnosis-db-init)
+(defun org-gnosis-journal--update-file (file)
+  "Update database for journal FILE."
+  (let* ((data (org-gnosis-get-file-info file))
+	 (file (plist-get data :file))
+	 (tags (nth 1 (plist-get data :topic)))
+	 (date (org-gnosis-adjust-title (nth 0 (plist-get data :topic))))
+	 (hash (nth 2 (plist-get data :topic)))
+	 (links (plist-get data :links)))
+    ;; Add journal
+    (emacsql-with-transaction org-gnosis-db
+      (org-gnosis--insert-into 'journal `([,hash ,file ,date ,tags])))))
+
+(defun org-gnosis-db-sync--journal ()
+  "Sync journal entries in databse."
+  (cl-loop for file in (cl-remove-if-not (lambda (file)
+					   (and (string-match-p "^[0-9]"
+								(file-name-nondirectory file))
+						(not (file-directory-p file))))
+					 (directory-files org-gnosis-journal-dir t nil t))
+	   do (org-gnosis-journal--update-file file)))
+
+(defun org-gnosis-db-sync (&optional arg)
+  "Sync `org-gnosis-db'.
+
+If called with ARG do not initialize the database."
+  (interactive "P")
+  (unless arg
+    (org-gnosis-db-init))
   (let ((files (cl-remove-if-not (lambda (file)
 				   (and (string-match-p "^[0-9]" (file-name-nondirectory file))
 					(not (file-directory-p file))))
 				 (directory-files org-gnosis-dir t nil t))))
     (cl-loop for file in files
-	     do (org-gnosis--update-file file))))
+	     do (org-gnosis--update-file file)))
+  (org-gnosis-db-sync--journal))
 
 (defun org-gnosis-find--tag-with-tag-prop (lst)
   "Combine each sublist of strings in LST into a single string."
@@ -270,51 +311,96 @@ Removes all contents of FILE in database, adding them anew."
               title)))
         lst))
 
-(defun org-gnosis--create-file (title)
-  "Create node & file for TITLE."
-  (let ((file-name (replace-regexp-in-string "#" ""
-		    (replace-regexp-in-string " " "-" title))))
-    (find-file
-     (expand-file-name
-      (format "%s--%s.org" (format-time-string "%Y%m%d%H%M%S") file-name)
-      org-gnosis-dir))
-    (insert (format "#+title: %s" title))
-    (org-mode)
-    (org-gnosis-mode)
-    (org-id-get-create)
-    file-name))
+(defun org-gnosis--create-file (title &optional file extras)
+  "Create node & FILE for TITLE."
+  (let* ((file-name (replace-regexp-in-string "#" "" ;; hashtags are used for tags
+					      (replace-regexp-in-string " " "-" title)))
+	 (file (or file (expand-file-name
+			 (format "%s--%s.org" (format-time-string "%Y%m%d%H%M%S") file-name)
+			 org-gnosis-dir))))
+    (find-file file)
+    (unless (file-exists-p file)
+      (insert (format "#+title: %s\n#+filetags:\n" title))
+      (org-id-get-create)
+      (and extras (insert extras))
+      (org-mode)
+      (org-gnosis-mode)
+      file-name)))
 
-(defun org-gnosis-find--with-tags ()
-  "Select gnosis node with tags."
+(defun org-gnosis-find--with-tags (&optional prompt entries)
+  "Select gnosis node with tags from ENTRIES.
+
+PROMPT: Prompt message."
   (replace-regexp-in-string "  #[^[:space:]]+" ""
-   (completing-read "Select gnosis node: "
+   (completing-read (or prompt "Select gnosis node: ")
 		    (org-gnosis-find--tag-with-tag-prop
-		     (org-gnosis-select '[title tags] 'nodes)))))
+		     (or entries (org-gnosis-select '[title tags] 'nodes))))))
 
-(defun org-gnosis-find ()
+(defun org-gnosis--find (prompt entries-with-tags entries)
+  "PROMPT user to select from ENTRIES.
+
+If `org-gnosis-show-tags' is non-nil, ENTRIES-WITH-TAGS will be used
+instead."
+  (let* ((entry (if org-gnosis-show-tags
+                    (org-gnosis-find--with-tags prompt entries-with-tags)
+                  (completing-read prompt entries))))
+    entry))
+
+(defun org-gnosis-find (&optional title file id directory)
   "Select gnosis node."
   (interactive)
-  (let* ((title (if org-gnosis-show-tags
-		    (org-gnosis-find--with-tags)
-		  (completing-read "Select gnosis node: "
-				   (org-gnosis-select 'title 'nodes))))
-	 (file (caar (org-gnosis-select 'file 'nodes `(= title ,title))))
-	 (id (caar (org-gnosis-select 'id 'nodes `(= title ,title)))))
+  (let* ((title (or title (if org-gnosis-show-tags
+			      (org-gnosis-find--with-tags)
+			    (completing-read "Select gnosis node: "
+					     (org-gnosis-select 'title 'nodes)))))
+	 (file (or file (caar (org-gnosis-select 'file 'nodes `(= title ,title)))))
+	 (id (or id (caar (or id (org-gnosis-select 'id 'nodes `(= title ,title))))))
+	 (directory (or directory org-gnosis-dir)))
     (cond ((null file)
 	   (org-gnosis--create-file title))
-	  ((file-exists-p (expand-file-name file org-gnosis-dir))
+	  ((file-exists-p (expand-file-name file directory))
 	   (find-file
-	    (expand-file-name file org-gnosis-dir))
+	    (expand-file-name file directory))
 	   (ignore-errors (org-id-goto id))
 	   (org-gnosis-mode 1)))))
 
 (defun org-gnosis-insert ()
   "Insert gnosis node."
   (interactive)
-  (let* ((node (completing-read "Select gnosis node: "
-				(org-gnosis-select 'title 'nodes '1=1 t)))
+  (let* ((node (org-gnosis--find "Select gnosis node: "
+				 (org-gnosis-select '[title tags] 'nodes '1=1)
+				 (org-gnosis-select 'title 'nodes '1=1)))
 	 (id (concat "id:" (car (org-gnosis-select 'id 'nodes `(= ,node title) '1=1)))))
     (org-insert-link nil id node)))
+
+(defun org-gnosis-journal-find (&optional date)
+  "Find journal entry for DATE."
+  (interactive)
+  (let* ((prompt "Select journal entry")
+	 (date (or date (org-gnosis--find
+			 prompt
+			 (org-gnosis-select '[date tags] 'journal)
+			 (org-gnosis-select 'date 'journal))))
+	 (id (car (org-gnosis-select 'id 'journal `(= date ,date) t)))
+	 (file (car (org-gnosis-select 'file 'journal `(= date ,date) t))))
+    (org-gnosis-find date file id org-gnosis-journal-dir)))
+
+(defun org-gnosis-journal-insert ()
+  "Insert journal entry."
+  (interactive)
+  (let* ((node (org-gnosis--find "Select journal entry: "
+		  (org-gnosis-select '[date tags] 'journal '1=1)
+		  (org-gnosis-select 'date 'journal '1=1)))
+	 (id (concat "id:" (car (org-gnosis-select 'id 'nodes `(= ,node title) '1=1)))))
+    (org-insert-link nil id node)))
+
+(defun org-gnosis-journal (&optional template)
+  "Start journaling for current date."
+  (interactive)
+  (let* ((date (format-time-string "%Y-%m-%d"))
+	 (file (format "%s.org" date)))
+    (org-gnosis--create-file date (expand-file-name file org-gnosis-journal-dir)
+			     (or template org-gnosis-journal-template))))
 
 (define-minor-mode org-gnosis-mode
   "Org gnosis mode."

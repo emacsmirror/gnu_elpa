@@ -186,6 +186,7 @@ commands and some custom `find-file' call commands:
                (interactive)
                (message \"FINDING A FILE!\")
                (call-interactively #\\='find-file))))"
+  :safe #'always
   :type '(repeat (list (string :tag "Key bind")
                        (string :tag "Description")
                        (plist :inline t

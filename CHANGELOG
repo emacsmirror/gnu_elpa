@@ -13,10 +13,36 @@
 - Added new command ~disproject-dir-locals~ for opening ~dir-locals-file~, or
   the personal directory-locals file (=.dir-locals-2.el= by default) with a
   universal prefix argument.
+- Added custom variable ~disproject-custom-allowed-suffixes~ for
+  permanently-allowed custom suffixes.
+
+*** Fixed
+
+- Implemented custom-dispatch-only prompt for allowing a local
+  ~disproject-custom-suffixes~ value in the menu to fix a few issues:
+  - Emacs kindly remembers potentially-unsafe values marked as permanently safe,
+    but in the case of ~disproject-custom-suffixes~ where it may be changed many
+    times to many different values, the variable ~safe-local-variable-values~
+    can balloon quite fast.  The variable ~disproject-custom-allowed-suffixes~
+    is now used to remember these values instead, which only tracks the
+    currently used suffixes.  Options to save (limited) history may be added in
+    the future.
+
+    Users who have extensively customized this variable may want to consider
+    =M-x customize= and prune the historical values from
+    ~safe-local-variable-values~.
+  - The method used to obtain local variables caused the "risky variables"
+    prompt to not actually allow the user to reject applying variables; custom
+    suffixes were always displayed even if the user answered "n".
+  - ~disproject-custom-suffixes~ was not pretty-printed at all, so it could be
+    difficult to properly verify the variable was safe to evaluate.  There is
+    /some/ pretty-printing now.
 
 *** Changed
 
 - Shortened "Extended command" to "Extended cmd." to make the column narrower.
+- Marked custom variable ~disproject-custom-suffixes~ as safe, deferring prompts
+  for allowing it to custom dispatch menu.
 
 ** [[release-version:1.0.0][1.0.0]] - 2024-11-17
 

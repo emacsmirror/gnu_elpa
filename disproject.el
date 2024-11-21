@@ -379,7 +379,8 @@ n -- to ignore them and use the default custom suffixes.
                   (?n nil)
                   (?! (progn
                         (setf (alist-get root-directory
-                                         disproject-custom-allowed-suffixes)
+                                         disproject-custom-allowed-suffixes
+                                         nil nil #'equal)
                               (list custom-suffixes))
                         (customize-push-and-save
                          'disproject-custom-allowed-suffixes

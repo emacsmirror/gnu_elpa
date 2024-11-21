@@ -380,7 +380,7 @@ n -- to ignore them and use the default custom suffixes.
                         t)))
               (quit-window t)))))))
 
-(defun disproject--setup-scope (&optional overrides write-scope?)
+(defun disproject--setup-scope (&optional overrides write-scope? prompt-keys)
   "Set up Transient scope for a Disproject prefix.
 
 When WRITE-SCOPE? is non-nil, overwrite the current Transient scope
@@ -391,6 +391,11 @@ where the key corresponds to one in the scope that permits being
 overridden (see specifications below).  If a corresponding key is
 non-nil, the override value will be used instead, ignoring any
 current project state.
+
+PROMPT-KEYS should be a list of keys corresponding to the scope
+alist.  If a key is present, it is permitted to invoke prompts.
+If a tag is not provided, a default will be used instead.  The
+following keys respect this argument: \\='custom-suffixes
 
 The specifications for the scope returned is an alist with keys
 and descriptions of their values as follows:
@@ -433,16 +438,16 @@ as described `disproject-custom-suffixes'."
                         (default-directory (project-root project)))
               (hack-dir-local-variables)
               dir-local-variables-alist)))
-         ;; Type-check local custom variables, since `hack-dir-local-variables'
-         ;; only reads an alist.
          (custom-suffixes
-          (if-let* ((suffixes (alist-get 'disproject-custom-suffixes
-                                         dir-local-variables
-                                         (default-value
-                                          'disproject-custom-suffixes)))
+          (if-let* (((seq-contains-p prompt-keys 'custom-suffixes #'eq))
+                    (dir-local-variables)
+                    (suffixes (alist-get 'disproject-custom-suffixes
+                                         dir-local-variables))
                     ((disproject--assert-type 'disproject-custom-suffixes
-                                              suffixes)))
-              suffixes))
+                                              suffixes))
+                    ((disproject-custom--suffixes-allowed? project suffixes)))
+              suffixes
+            (default-value 'disproject-custom-suffixes)))
          (new-scope
           `((default-project . ,default-project)
             (project . ,project)
@@ -553,7 +558,8 @@ character.  These characters represent the following states:
   (transient-setup
    'disproject-custom-dispatch nil nil
    :scope (disproject--setup-scope
-           `((project . ,(or project (disproject--state-project-ensure)))))))
+           `((project . ,(or project (disproject--state-project-ensure))))
+           nil '(custom-suffixes))))
 
 (transient-define-prefix disproject-magit-commands-dispatch ()
   "Dispatch Magit-related commands for a project.

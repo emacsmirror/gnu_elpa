@@ -41,6 +41,12 @@
   :type 'directory
   :group 'org-gnosis)
 
+(defcustom org-gnosis-journal-template
+  "* Daily Notes\n\n* Goals\n+ []"
+  "Template for journaling."
+  :type 'string
+  :group 'org-gnosis)
+
 (defcustom org-gnosis-journal-dir "~/Notes/journal"
   "Gnosis journal directory."
   :type 'directory
@@ -281,6 +287,7 @@ Removes all contents of FILE in database, adding them anew."
 					 (directory-files org-gnosis-journal-dir t nil t))
 	   do (org-gnosis-journal--update-file file)))
 
+;;;###autoload
 (defun org-gnosis-db-sync (&optional arg)
   "Sync `org-gnosis-db'.
 
@@ -346,6 +353,7 @@ instead."
                   (completing-read prompt entries))))
     entry))
 
+;;;###autoload
 (defun org-gnosis-find (&optional title file id directory)
   "Select gnosis node."
   (interactive)
@@ -364,6 +372,7 @@ instead."
 	   (ignore-errors (org-id-goto id))
 	   (org-gnosis-mode 1)))))
 
+;;;###autoload
 (defun org-gnosis-insert ()
   "Insert gnosis node."
   (interactive)
@@ -373,6 +382,7 @@ instead."
 	 (id (concat "id:" (car (org-gnosis-select 'id 'nodes `(= ,node title) '1=1)))))
     (org-insert-link nil id node)))
 
+;;;###autoload
 (defun org-gnosis-journal-find (&optional date)
   "Find journal entry for DATE."
   (interactive)
@@ -385,6 +395,7 @@ instead."
 	 (file (car (org-gnosis-select 'file 'journal `(= date ,date) t))))
     (org-gnosis-find date file id org-gnosis-journal-dir)))
 
+;;;###autoload
 (defun org-gnosis-journal-insert ()
   "Insert journal entry."
   (interactive)

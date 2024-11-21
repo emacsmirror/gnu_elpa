@@ -34,8 +34,9 @@
     =M-x customize= to prune the historical values from
     ~safe-local-variable-values~.
   - The method used to obtain local variables caused the "risky variables"
-    prompt to not actually allow the user to reject applying variables; custom
-    suffixes were always displayed even if the user answered "n".
+    prompt to not actually allow the user to reject applying
+    ~disproject-custom-suffixes~; custom suffixes were always displayed even if
+    the user answered "n".
   - ~disproject-custom-suffixes~ was not pretty-printed at all, so it could be
     difficult to properly verify the variable was safe.  There is /some/
     pretty-printing now.

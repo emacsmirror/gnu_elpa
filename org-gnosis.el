@@ -340,7 +340,8 @@ Removes all contents of FILE in database, adding them anew."
      ([(tag-name text :primary-key)]))
     (journal
      ([(id :not-null :primary-key)
-       (title text)
+       (file :not-null)
+       (date text)
        tags]))
     ;; (node-tags
     ;;  ([(node-id :not-null)
@@ -350,7 +351,6 @@ Removes all contents of FILE in database, adding them anew."
     (links
      ([(source text)
        (dest text)]
-      ;; (:unique (source dest))
       (:foreign-key [source] :references nodes [id] :on-delete :cascade)
       ))))
 

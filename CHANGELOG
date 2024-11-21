@@ -4,6 +4,8 @@
 
 ** Unreleased
 
+** [[release-version:1.1.0][1.1.0]] - 2024-11-21
+
 *** Added
 
 - Added new customizable command ~disproject-find-line~, providing ~multi-occur~

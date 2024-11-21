@@ -192,7 +192,14 @@ commands and some custom `find-file' call commands:
     :command (lambda ()
                (interactive)
                (message \"FINDING A FILE!\")
-               (call-interactively #\\='find-file))))"
+               (call-interactively #\\='find-file))))
+
+This variable is marked safe due to various reasons discussed in
+`disproject-custom--suffixes-allowed?'.  Prompts are deferred to
+the mentioned function, called when setting up the custom
+dispatch menu.  Non-default values must still be explicitly
+allowed by the user - this may be unsafe if unconditionally
+evaluated."
   :safe #'always
   :type '(repeat (list (string :tag "Key bind")
                        (string :tag "Description")

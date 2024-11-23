@@ -47,7 +47,7 @@
   :type 'string
   :group 'org-gnosis)
 
-(defcustom org-gnosis-journal-dir "~/Notes/journal"
+(defcustom org-gnosis-journal-dir (expand-file-name "journal" org-gnosis-dir)
   "Gnosis journal directory."
   :type 'directory
   :group 'org-gnosis)
@@ -176,7 +176,8 @@ FILE: File path"
 
 (defun org-gnosis-adjust-title (input)
   "Adjust the INPUT string to replace id link structures with plain text."
-  (replace-regexp-in-string "\\[\\[id:[^]]+\\]\\[\\(.*?\\)\\]\\]" "\\1" input))
+  (when (stringp input)
+    (replace-regexp-in-string "\\[\\[id:[^]]+\\]\\[\\(.*?\\)\\]\\]" "\\1" input)))
 
 (defun org-gnosis-get-file-info (filename)
   "Something FILENAME."
@@ -402,8 +403,8 @@ instead."
   (let* ((node (org-gnosis--find "Select journal entry: "
 		  (org-gnosis-select '[date tags] 'journal '1=1)
 		  (org-gnosis-select 'date 'journal '1=1)))
-	 (id (concat "id:" (car (org-gnosis-select 'id 'nodes `(= ,node title) '1=1)))))
-    (org-insert-link nil id node)))
+	 (node-id (concat "id:" (car (org-gnosis-select 'id 'journal `(= ,node date) '1=1)))))
+    (org-insert-link nil node-id node)))
 
 (defun org-gnosis-journal (&optional template)
   "Start journaling for current date."

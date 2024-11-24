@@ -1062,7 +1062,7 @@ The command used can be customized with
 (transient-define-suffix disproject-remember-projects-active ()
   "Remember active projects."
   (interactive)
-  (let ((active-projects (disproject--active-projects)))
+  (when-let* ((active-projects (disproject--active-projects)))
     (seq-each (lambda (project)
                 (project-remember-project project t))
               active-projects)

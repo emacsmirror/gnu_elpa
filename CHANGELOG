@@ -4,6 +4,17 @@
 
 ** Unreleased
 
+** [[release-version:1.1.1][1.1.1]] - 2024-11-24
+
+This is a fix for an unlikely, but still undesirable bug.
+
+*** Fixed
+
+- Fixed case where if a user tried to remember active projects when there were
+  actually none open, the known-projects file could be overwritten with an
+  invalid ~unset~ value (value of ~project--list~ when it's not initialized yet)
+  that had to be manually removed e.g. by deleting the file.
+
 ** [[release-version:1.1.0][1.1.0]] - 2024-11-21
 
 *** Added

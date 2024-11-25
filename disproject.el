@@ -388,6 +388,17 @@ n -- to ignore them and use the default custom suffixes.
                         t)))
               (quit-window t)))))))
 
+(defun disproject--selected-project-description ()
+  "Return a Transient menu headline to indicate the currently selected project."
+  ;; TODO: For some reason, `defconst'-ing a predefined group and using it in
+  ;; prefixes is an error; probably doing something wrong.  Investigate since
+  ;; there are multiple cases of just declaring
+  ;; `[:description disproject--selected-project-description ""]'...
+  (format (propertize "Project: %s" 'face 'transient-heading)
+          (if-let* ((directory (disproject--state-project-root)))
+              (propertize directory 'face 'transient-value)
+            (propertize "None detected" 'face 'transient-inapt-suffix))))
+
 (defun disproject--setup-scope (&optional overrides write-scope? prompt-keys)
   "Set up Transient scope for a Disproject prefix.
 
@@ -484,11 +495,7 @@ information on inserting user-defined suffix commands to this
 menu."
   :refresh-suffixes t
   [:description
-   (lambda ()
-     (format (propertize "Project: %s" 'face 'transient-heading)
-             (if-let* ((directory (disproject--state-project-root)))
-                 (propertize directory 'face 'transient-value)
-               (propertize "None detected" 'face 'transient-inapt-suffix))))
+   disproject--selected-project-description
    ("p" "Switch project" disproject-switch-project
     :transient t)
    ("P" "Switch to active project" disproject-switch-project-active
@@ -556,6 +563,7 @@ character.  These characters represent the following states:
   [a]: Command is active.
   [i]: Command is inactive."
   :refresh-suffixes t
+  [:description disproject--selected-project-description ""]
   ["Custom suffix commands"
    :class transient-column
    :pad-keys t
@@ -576,6 +584,7 @@ DIRECTORY will be searched for the project if passed.
 
 Some commands may not be available if the selected project is not
 the same as the default (current buffer) one."
+  [:description disproject--selected-project-description ""]
   ["Magit commands"
    ("d" "Dispatch" magit-dispatch
     :inapt-if-not disproject--state-project-is-default?)

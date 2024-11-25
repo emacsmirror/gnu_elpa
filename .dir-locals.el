@@ -5,16 +5,32 @@
   .
   ((disproject-custom-suffixes
     .
-    (("p i" "[Re-]Initialize a local Guix profile"
-      :command-type compile
+    (("t c" "Time-machine: Compile to Guix profile"
+      :command-type run
       :command "\
-[ -e .guix-profile ] && rm ./.guix-profile
+profile=.time-machine-guix-profile
+[ -e $profile ] && rm $profile
 guix time-machine --channels=channels.scm -- \\
-	shell --manifest=manifest.scm --root=./.guix-profile --search-paths"
-      :identifier "profile")
-     ("p r" "Run minimum-supported Emacs"
-      :command-type compile
+	shell emacs --manifest=manifest.scm --file=guix.scm --root=$profile \\
+	--search-paths"
+      :identifier "time-machine-profile")
+     ("t r" "Time-machine: Run Emacs"
+      :command-type run
       :command "\
-guix shell --pure --profile=./.guix-profile -- \\
-	emacs --quick --load disproject.el"
-      :identifier "profile"))))))
+guix shell --pure --profile=.time-machine-guix-profile -- \\
+	emacs --no-init-file --eval \"(require 'disproject)\""
+      :identifier "time-machine-profile")
+     ("l c" "Latest: Compile to Guix profile"
+      :command-type run
+      :command "\
+profile=.latest-guix-profile
+[ -e $profile ] && rm $profile
+guix shell emacs-next --manifest=manifest.scm --file=guix.scm --root=$profile \\
+	--search-paths"
+      :identifier "latest-profile")
+     ("l r" "Latest: Run Emacs"
+      :command-type run
+      :command "\
+guix shell --pure --profile=.latest-guix-profile -- \\
+	emacs --no-init-file --eval \"(require 'disproject)\""
+      :identifier "latest-profile"))))))

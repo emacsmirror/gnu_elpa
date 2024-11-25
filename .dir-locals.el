@@ -7,30 +7,40 @@
     .
     (("t c" "Time-machine: Compile to Guix profile"
       :command-type run
-      :command "\
+      :command (lambda () (interactive)
+                 (concat
+                  "\
 profile=.time-machine-guix-profile
 [ -e $profile ] && rm $profile
+"
+                  (read-shell-command "Command: " "\
 guix time-machine --channels=channels.scm -- \\
 	shell emacs --manifest=manifest.scm --file=guix.scm --root=$profile \\
-	--search-paths"
+	--search-paths")))
       :identifier "time-machine-profile")
      ("t r" "Time-machine: Run Emacs"
       :command-type run
-      :command "\
+      :command (lambda () (interactive)
+                 (read-shell-command "Command: " "\
 guix shell --pure --profile=.time-machine-guix-profile -- \\
-	emacs --no-init-file --eval \"(require 'disproject)\""
+	emacs --no-init-file --eval \"(require 'disproject)\""))
       :identifier "time-machine-profile")
      ("l c" "Latest: Compile to Guix profile"
       :command-type run
-      :command "\
+      :command (lambda () (interactive)
+                 (concat
+                  "\
 profile=.latest-guix-profile
 [ -e $profile ] && rm $profile
+"
+                  (read-shell-command "Command: "  "\
 guix shell emacs-next --manifest=manifest.scm --file=guix.scm --root=$profile \\
-	--search-paths"
+	--search-paths")))
       :identifier "latest-profile")
      ("l r" "Latest: Run Emacs"
       :command-type run
-      :command "\
+      :command (lambda () (interactive)
+                 (read-shell-command "Command: " "\
 guix shell --pure --profile=.latest-guix-profile -- \\
-	emacs --no-init-file --eval \"(require 'disproject)\""
+	emacs --no-init-file --eval \"(require 'disproject)\""))
       :identifier "latest-profile"))))))

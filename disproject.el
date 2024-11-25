@@ -618,8 +618,12 @@ project in Transient state (if any)."
    ("f u" "projects under..." disproject-forget-projects-under)
    ("f z" "zombie projects" disproject-forget-zombie-projects)]
   ["Remember"
-   ("r a" "active projects" disproject-remember-projects-active)
+   ("r o" "open projects" disproject-remember-projects-open)
    ("r u" "projects under..." disproject-remember-projects-under)]
+  ["Deprecated"
+   :hide always
+   ;; DEPRECATED: Remove when `disproject-remember-projects-active' is removed.
+   ("r a" "active projects" disproject-remember-projects-active)]
   (interactive)
   (transient-setup
    'disproject-manage-projects-dispatch nil nil
@@ -1072,7 +1076,7 @@ The command used can be customized with
   (disproject-with-environment
     (call-interactively disproject-or-external-find-regexp-command)))
 
-(transient-define-suffix disproject-remember-projects-active ()
+(transient-define-suffix disproject-remember-projects-open ()
   "Remember active projects."
   (interactive)
   (when-let* ((open-projects (disproject--open-projects)))
@@ -1080,6 +1084,10 @@ The command used can be customized with
                 (project-remember-project project t))
               open-projects)
     (project--write-project-list)))
+
+;; DEPRECATED: Remove at least 2 months after deprecation.
+(define-obsolete-function-alias 'disproject-remember-projects-active
+  #'disproject-remember-projects-open "after v1.1")
 
 (transient-define-suffix disproject-remember-projects-under ()
   "Remember projects under a directory."

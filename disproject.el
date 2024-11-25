@@ -1129,7 +1129,7 @@ The command used can be customized with
   #'disproject-remember-projects-open "after v1.1")
 
 (transient-define-suffix disproject-remember-projects-under ()
-  "Remember projects under a directory."
+  "Remember projects under a directory with `project-remember-projects-under'."
   (interactive)
   (call-interactively #'project-remember-projects-under))
 

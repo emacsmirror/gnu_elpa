@@ -153,6 +153,10 @@ value of `:command'.  It can be any of the following keys:
   interactive function that returns a string that will be passed
   to `compile' as the shell command to run.
 
+  run: the value of `:command' should be a string or an
+  interactive function returning a string, which will be passed
+  to `async-shell-command'.
+
 When using the \\='bare-call or \\='call command types, consider
 using the variable `disproject-process-buffer-name' (available
 when evaluating `:command') as the buffer name for processes to
@@ -184,6 +188,9 @@ commands and some custom `find-file' call commands:
                (interactive \"sProgram: \")
                (concat program \" --help\"))
     :identifier \"guile-help\")
+   (\"r\" \"Sleep for a couple of seconds\"
+    :command-type run
+    :command \"echo Sleeping... && sleep 5 && echo Done sleeping.\")
    (\"f\" \"Find a file\"
     :command-type call
     :command #\\='find-file)
@@ -848,7 +855,27 @@ will run."
                      ,(disproject-custom--suffix-command-type-error
                        "Not a string or interactive function"
                        command-type
-                       command)))))))))
+                       command)))))))
+    ('run
+     `(disproject-with-environment
+        (let ((shell-command-buffer-name-async disproject-process-buffer-name)
+              (command ,command))
+          (async-shell-command
+           (cond ((stringp command)
+                  command)
+                 ((commandp command t)
+                  (if-let* ((result (call-interactively command))
+                            ((stringp result)))
+                      result
+                    ,(disproject-custom--suffix-command-type-error
+                      "Function does not return string"
+                      command-type
+                      command)))
+                 (t
+                  ,(disproject-custom--suffix-command-type-error
+                    "Not a string or interactive function"
+                    command-type
+                    command)))))))))
 
 (defun disproject-custom--suffix-command-type-error (message
                                                      command-type

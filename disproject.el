@@ -631,8 +631,8 @@ project in Transient state (if any)."
 ;;; Transient state handling.
 ;;;
 
-(defun disproject--active-projects ()
-  "Return a list of active known projects, i.e. those with open buffers."
+(defun disproject--open-projects ()
+  "Return a list of projects with open buffers."
   (let* ((buffer-list
           ;; Ignore ephemeral buffers
           (match-buffers (lambda (buf)
@@ -1075,10 +1075,10 @@ The command used can be customized with
 (transient-define-suffix disproject-remember-projects-active ()
   "Remember active projects."
   (interactive)
-  (when-let* ((active-projects (disproject--active-projects)))
+  (when-let* ((open-projects (disproject--open-projects)))
     (seq-each (lambda (project)
                 (project-remember-project project t))
-              active-projects)
+              open-projects)
     (project--write-project-list)))
 
 (transient-define-suffix disproject-remember-projects-under ()
@@ -1117,10 +1117,10 @@ directories."
 This is equivalent to `disproject-switch-project' but only shows
 active projects when prompting for projects to switch to."
   (interactive)
-  (let* ((active-projects (mapcar #'project-root (disproject--active-projects)))
+  (let* ((open-projects (mapcar #'project-root (disproject--open-projects)))
          ;; `project--file-completion-table' seems to accept any collection as
          ;; defined by `completing-read'.
-         (completion-table (project--file-completion-table active-projects))
+         (completion-table (project--file-completion-table open-projects))
          (project-directory (completing-read "Select active project: "
                                              completion-table nil t)))
     (disproject--switch-project project-directory)))

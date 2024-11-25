@@ -11,7 +11,7 @@ Projectile users may also find similarities to ~projectile-commander~.
 
 Some notable features include (but may not be limited to):
 - Auto-detecting the current project when starting the menu.
-- Switching between active projects (i.e. only those with open buffers).
+- Switching between projects with open buffers.
 - Defining custom per-project suffixes like compilation commands to show in the
   menu (see ~disproject-custom-suffixes~).
 - An option to prefer displaying buffers to another window when executing

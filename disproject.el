@@ -804,7 +804,12 @@ COMMAND-TYPE is a symbol corresponding to a command type
 documented in `disproject-custom-suffixes'.
 
 COMMAND is an yet-to-be-evaluated s-expression which is inserted
-appropriately according to the command type."
+appropriately according to the command type.
+
+Note that the returned s-expressions may expect
+`disproject-process-buffer-name' to be set when evaluated; this
+value is expected to be the name of the buffer which processes
+will run."
   (pcase command-type
     ('bare-call
      `(let ((command ,command))

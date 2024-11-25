@@ -6,16 +6,16 @@
 
 *** Added
 
-- The selected-project header now shows up on other relevant menus other than
-  the main dispatch.
 - Add ~run~ custom suffix command type for general shell commands that don't
   need features from ~compile~.
 
 *** Changed
 
-- A warning is now displayed to the user when a custom suffix command type is
-  not recognized instead of silently doing nothing.
-- "Active projects" are now referred to as "open projects" since "active" can be
+- Display selected-project header for relevant menus other than the main
+  dispatch.
+- Display warning to the user when a custom suffix command type is not
+  recognized instead of silently doing nothing.
+- Change "Active projects" references to "open projects" since "active" can be
   somewhat ambiguous.  The latter term is also used by Projectile, so this gives
   some consistency for those who have used it.
   - The key-bind for remembering open projects is also changed from =r a= to
@@ -23,13 +23,13 @@
 
 *** Deprecated
 
-- Symbols and key binds related to "active projects" are deprecated in favor of
-  their "open projects" alternatives.  Removal is set for /at least/ 2 months
-  after this release.
+- Deprecate symbols and key binds related to "active projects" in favor of their
+  "open projects" alternatives.  Removal is set for /at least/ 2 months after
+  this release.
 
 *** Fixed
 
-- Fixed case where ~disproject-custom-suffixes~ was not considered safe if
+- Fix case where ~disproject-custom-suffixes~ was not considered safe if
   Disproject hadn't been loaded yet.
 
 ** [[release-version:1.1.1][1.1.1]] - 2024-11-24

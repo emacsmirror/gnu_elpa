@@ -875,7 +875,12 @@ will run."
                   ,(disproject-custom--suffix-command-type-error
                     "Not a string or interactive function"
                     command-type
-                    command)))))))))
+                    command)))))))
+    (_
+     (display-warning
+      'disproject
+      (format-message "Custom suffix command type not recognized: `%s'"
+                      command-type)))))
 
 (defun disproject-custom--suffix-command-type-error (message
                                                      command-type

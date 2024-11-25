@@ -472,7 +472,7 @@ as described `disproject-custom-suffixes'."
 
 ;;;; Prefixes.
 
-;;;###autoload (autoload 'disproject-dispatch "disproject")
+;;;###autoload (autoload 'disproject-dispatch "disproject" nil t)
 (transient-define-prefix disproject-dispatch (&optional project)
   "Dispatch some command for a project.
 

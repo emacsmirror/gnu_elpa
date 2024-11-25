@@ -498,7 +498,7 @@ menu."
    disproject--selected-project-description
    ("p" "Switch project" disproject-switch-project
     :transient t)
-   ("P" "Switch to active project" disproject-switch-project-active
+   ("P" "Switch to open project" disproject-switch-project-open
     :transient t)
    ("C-p" "Manage projects" disproject-manage-projects-dispatch)]
   ["Options"
@@ -1119,7 +1119,7 @@ directories."
   (interactive)
   (disproject--switch-project (project-prompt-project-dir)))
 
-(transient-define-suffix disproject-switch-project-active ()
+(transient-define-suffix disproject-switch-project-open ()
   "Switch to an active project to dispatch commands on.
 
 This is equivalent to `disproject-switch-project' but only shows
@@ -1132,6 +1132,10 @@ active projects when prompting for projects to switch to."
          (project-directory (completing-read "Select active project: "
                                              completion-table nil t)))
     (disproject--switch-project project-directory)))
+
+;; DEPRECATED: Remove at least 2 months after deprecation.
+(define-obsolete-function-alias 'disproject-switch-project-active
+  #'disproject-switch-project-open "after v1.1")
 
 (transient-define-suffix disproject-switch-to-buffer ()
   "Switch to buffer in project.

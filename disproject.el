@@ -320,7 +320,9 @@ value."
         t
       ;; The rest of the menu should still be usable if a customizable variable
       ;; type is invalid, so only warn user about invalid types.
-      (warn "Value `%S' does not match type %s" value type)
+      (display-warning
+       'disproject
+       (format-message "Value: `%S'\nDoes not match type: %s" value type))
       nil)))
 
 (defun disproject-custom--suffixes-allowed? (project custom-suffixes)

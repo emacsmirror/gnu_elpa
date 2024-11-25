@@ -200,7 +200,6 @@ the mentioned function, called when setting up the custom
 dispatch menu.  Non-default values must still be explicitly
 allowed by the user - this may be unsafe if unconditionally
 evaluated."
-  :safe #'always
   :type '(repeat (list (string :tag "Key bind")
                        (string :tag "Description")
                        (plist :inline t
@@ -209,6 +208,7 @@ evaluated."
                                                 (const :command)
                                                 (const :identifier)))))
   :group 'disproject)
+;;;###autoload(put 'disproject-custom-suffixes 'safe-local-variable #'always)
 
 (defcustom disproject-find-dir-command #'project-find-dir
   "Command to find a directory in a project.

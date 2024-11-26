@@ -20,12 +20,21 @@
   some consistency for those who have used it.
   - The key-bind for remembering open projects is also changed from =r a= to
     =r o= (the former is deprecated, but still works as a hidden key-bind).
+- Prefix all options (currently, just =--prefer-other-window=) with a comma.
+  This will permit eventually showing the options section for all relevant
+  menus, since it's not immediately clear to the user that they can in fact
+  apply to other sub-prefixes; e.g. custom dispatch and magit commands dispatch.
+  This was not reasonable before as options would be in the same "namespace" as
+  other commands, making it easy to cause key-bind conflicts (especially with
+  custom dispatch, which reserves alphanumeric keys for custom suffixes).
 
 *** Deprecated
 
 - Deprecate symbols and key binds related to "active projects" in favor of their
   "open projects" alternatives.  Removal is set for /at least/ 2 months after
   this release.
+- Deprecate non-comma-prefixed options.  Removal is set for /at least/ 2 months
+  after this release.
 
 *** Fixed
 

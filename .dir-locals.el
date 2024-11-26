@@ -8,39 +8,45 @@
     (("t c" "Time-machine: Compile to Guix profile"
       :command-type run
       :command (lambda () (interactive)
-                 (concat
-                  "\
+                 (let ((command "\
 profile=.time-machine-guix-profile
 [ -e $profile ] && rm $profile
-"
-                  (read-shell-command "Command: " "\
 guix time-machine --channels=channels.scm -- \\
 	shell emacs --manifest=manifest.scm --file=guix.scm --root=$profile \\
-	--search-paths")))
+	--search-paths"))
+                   (if currrent-prefix-arg
+                       (read-shell-command "Command: " command)
+                     command)))
       :identifier "time-machine-profile")
      ("t r" "Time-machine: Run Emacs"
       :command-type run
       :command (lambda () (interactive)
-                 (read-shell-command "Command: " "\
+                 (let ((command "\
 guix shell --pure --profile=.time-machine-guix-profile -- \\
 	emacs --no-init-file --eval \"(require 'disproject)\""))
+                   (if current-prefix-arg
+                       (read-shell-command "Command: " command)
+                     command)))
       :identifier "time-machine-profile")
      ("l c" "Latest: Compile to Guix profile"
       :command-type run
       :command (lambda () (interactive)
-                 (concat
-                  "\
+                 (let ((command "\
 profile=.latest-guix-profile
 [ -e $profile ] && rm $profile
-"
-                  (read-shell-command "Command: "  "\
 guix shell emacs-next --manifest=manifest.scm --file=guix.scm --root=$profile \\
-	--search-paths")))
+	--search-paths"))
+                   (if current-prefix-arg
+                       (read-shell-command "Command: " command)
+                     command)))
       :identifier "latest-profile")
      ("l r" "Latest: Run Emacs"
       :command-type run
       :command (lambda () (interactive)
-                 (read-shell-command "Command: " "\
+                 (let ((command "\
 guix shell --pure --profile=.latest-guix-profile -- \\
 	emacs --no-init-file --eval \"(require 'disproject)\""))
+                   (if current-prefix-arg
+                       (read-shell-command "Command: " command)
+                     command)))
       :identifier "latest-profile"))))))

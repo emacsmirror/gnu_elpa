@@ -511,7 +511,22 @@ menu."
     :transient t)
    ("C-p" "Manage projects" disproject-manage-projects-dispatch)]
   ["Options"
-   ("o" "Prefer other window" "--prefer-other-window")]
+   (",o" "Prefer other window" "--prefer-other-window")]
+  ["Deprecated options"
+   :hide always
+   ;; DEPRECATED: Remove at least 2 months after deprecation.
+   ("o" "Prefer other window (deprecated)"
+    (lambda () (interactive)
+      (seq-each (lambda (suffix)
+                  (when (and (object-of-class-p suffix 'transient-switch)
+                             (equal "--prefer-other-window"
+                                    (oref suffix argument)))
+                    (oset suffix value (transient-infix-read suffix))
+                    (message
+                     (concat "Key-bind \"o\" for --prefer-other-window is"
+                             " deprecated; please use \",o\" instead"))))
+                (transient-suffixes 'disproject-dispatch)))
+    :transient t)]
   ["Commands"
    :pad-keys t
    [("b" "Switch buffer" disproject-switch-to-buffer)

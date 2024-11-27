@@ -691,11 +691,7 @@ non-nil, the scope will be treated as a value of any possible
 type and directly returned instead, ignoring KEY."
   ;; Just return nil instead of signaling an error if there is no prefix.
   (if-let* (((transient-prefix-object))
-            ;; HACK: Transient commit 4de5812 introduces a change that modifies
-            ;; the behavior of `transient-scope' when called without arguments.
-            ;; This hack uses the old method of retrieving scope, but ideally we
-            ;; should rely on `transient-scope' again.
-            (scope (oref (transient-prefix-object) scope)))
+            (scope (transient-scope)))
       (if no-alist? scope (alist-get key scope))))
 
 ;;;; Infix classes.

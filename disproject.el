@@ -304,6 +304,14 @@ This uses `multi-occur' under the hood."
       (multi-occur (project-buffers project) regexp)
     (error "No project in current directory: %s" default-directory)))
 
+;;;; Transient groups.
+
+;; Evaluate at compile-time so `transient-define-prefix' can find definitions.
+(eval-and-compile
+  (defconst disproject--selected-project-header-group
+    [:description disproject--selected-project-description ""]
+    "Header for transient prefixes to display the currently selected project."))
+
 
 ;;;
 ;;; Prefix handling.
@@ -399,10 +407,6 @@ n -- to ignore them and use the default custom suffixes.
 
 (defun disproject--selected-project-description ()
   "Return a Transient menu headline to indicate the currently selected project."
-  ;; TODO: For some reason, `defconst'-ing a predefined group and using it in
-  ;; prefixes is an error; probably doing something wrong.  Investigate since
-  ;; there are multiple cases of just declaring
-  ;; `[:description disproject--selected-project-description ""]'...
   (format (propertize "Project: %s" 'face 'transient-heading)
           (if-let* ((directory (disproject--state-project-root)))
               (propertize directory 'face 'transient-value)
@@ -587,7 +591,7 @@ character.  These characters represent the following states:
   [a]: Command is active.
   [i]: Command is inactive."
   :refresh-suffixes t
-  [:description disproject--selected-project-description ""]
+  disproject--selected-project-header-group
   ["Custom suffix commands"
    :class transient-column
    :pad-keys t
@@ -608,7 +612,7 @@ DIRECTORY will be searched for the project if passed.
 
 Some commands may not be available if the selected project is not
 the same as the default (current buffer) one."
-  [:description disproject--selected-project-description ""]
+  disproject--selected-project-header-group
   ["Magit commands"
    ("d" "Dispatch" magit-dispatch
     :inapt-if-not disproject--state-project-is-default?)

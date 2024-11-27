@@ -14,7 +14,7 @@ profile=.time-machine-guix-profile
 guix time-machine --channels=channels.scm -- \\
 	shell emacs --manifest=manifest.scm --file=guix.scm --root=$profile \\
 	--search-paths"))
-                   (if currrent-prefix-arg
+                   (if current-prefix-arg
                        (read-shell-command "Command: " command)
                      command)))
       :identifier "time-machine-profile")

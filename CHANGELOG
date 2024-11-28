@@ -38,6 +38,7 @@
 
 *** Fixed
 
+- Fix ~disproject-dispatch~ not being autoloaded as an interactive function.
 - Fix case where ~disproject-custom-suffixes~ was not considered safe if
   Disproject hadn't been loaded yet.
 

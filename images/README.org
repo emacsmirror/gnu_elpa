@@ -1,0 +1,18 @@
+
+* Image previews
+
+~disproject-dispatch~:
+
+[[file:disproject-dispatch.png]]
+
+~disproject-custom-dispatch~:
+
+[[file:disproject-custom-dispatch.png]]
+
+~disproject-manage-projects-dispatch~:
+
+[[file:disproject-manage-projects-dispatch.png]]
+
+~disproject-magit-commands-dispatch~:
+
+[[file:disproject-magit-commands-dispatch.png]]

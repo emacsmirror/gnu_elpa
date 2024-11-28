@@ -33,9 +33,9 @@
 *** Deprecated
 
 - Deprecate symbols and key binds related to "active projects" in favor of their
-  "open projects" alternatives.  Removal is set for /at least/ 2 months after
+  "open projects" alternatives.  Removal is set for /at least/ 1 month after
   this release.
-- Deprecate non-comma-prefixed options.  Removal is set for /at least/ 2 months
+- Deprecate non-comma-prefixed options.  Removal is set for /at least/ 1 month
   after this release.
 
 *** Fixed

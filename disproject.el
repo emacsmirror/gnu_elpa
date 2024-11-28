@@ -518,7 +518,7 @@ menu."
    (",o" "Prefer other window" "--prefer-other-window")]
   ["Deprecated options"
    :hide always
-   ;; DEPRECATED: Remove at least 2 months after deprecation.
+   ;; DEPRECATED: Remove at least 1 month after deprecation.
    ("o" "Prefer other window (deprecated)"
     (lambda () (interactive)
       (seq-each (lambda (suffix)
@@ -1139,7 +1139,7 @@ The command used can be customized with
               open-projects)
     (project--write-project-list)))
 
-;; DEPRECATED: Remove at least 2 months after deprecation.
+;; DEPRECATED: Remove at least 1 month after deprecation.
 (define-obsolete-function-alias 'disproject-remember-projects-active
   #'disproject-remember-projects-open "after v1.1")
 
@@ -1187,7 +1187,7 @@ active projects when prompting for projects to switch to."
                                              completion-table nil t)))
     (disproject--switch-project project-directory)))
 
-;; DEPRECATED: Remove at least 2 months after deprecation.
+;; DEPRECATED: Remove at least 1 month after deprecation.
 (define-obsolete-function-alias 'disproject-switch-project-active
   #'disproject-switch-project-open "after v1.1")
 

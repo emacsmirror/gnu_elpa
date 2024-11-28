@@ -4,6 +4,12 @@
 
 ** Unreleased
 
+** [[release-version:1.2.0][1.2.0]] - 2024-11-28
+
+This update consists of mainly quality-of-life / UX changes.  Some changes to
+key-binds have also been made, with deprecations and planned removal
+time-frames.
+
 *** Added
 
 - Add ~run~ custom suffix command type for general shell commands that don't

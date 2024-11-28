@@ -1131,7 +1131,7 @@ The command used can be customized with
     (call-interactively disproject-or-external-find-regexp-command)))
 
 (transient-define-suffix disproject-remember-projects-open ()
-  "Remember active projects."
+  "Remember projects with open buffers."
   (interactive)
   (when-let* ((open-projects (disproject--open-projects)))
     (seq-each (lambda (project)
@@ -1174,16 +1174,17 @@ directories."
   (disproject--switch-project (project-prompt-project-dir)))
 
 (transient-define-suffix disproject-switch-project-open ()
-  "Switch to an active project to dispatch commands on.
+  "Switch to an open project to dispatch commands on.
 
 This is equivalent to `disproject-switch-project' but only shows
-active projects when prompting for projects to switch to."
+projects with open buffers when prompting for projects to switch
+to."
   (interactive)
   (let* ((open-projects (mapcar #'project-root (disproject--open-projects)))
          ;; `project--file-completion-table' seems to accept any collection as
          ;; defined by `completing-read'.
          (completion-table (project--file-completion-table open-projects))
-         (project-directory (completing-read "Select active project: "
+         (project-directory (completing-read "Select open project: "
                                              completion-table nil t)))
     (disproject--switch-project project-directory)))
 

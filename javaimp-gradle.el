@@ -154,6 +154,7 @@ descriptor."
      ;; java-library projects.  See
      ;; https://docs.gradle.org/current/userguide/java_library_plugin.html#sec:java_library_classes_usage
      "-Dorg.gradle.java.compile-classpath-packaging=true"
+     "--no-configuration-cache"
      "-I" (javaimp-cygpath-convert-file-name
            (expand-file-name "javaimp-init-script.gradle"
                              (file-name-concat javaimp-basedir "support")))

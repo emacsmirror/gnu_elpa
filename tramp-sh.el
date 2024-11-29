@@ -597,6 +597,7 @@ shell from reading its init file."
   '((tramp-login-prompt-regexp tramp-action-login)
     (tramp-password-prompt-regexp tramp-action-password)
     (tramp-otp-password-prompt-regexp tramp-action-otp-password)
+    (tramp-fingerprint-prompt-regexp tramp-action-fingerprint)
     (tramp-wrong-passwd-regexp tramp-action-permission-denied)
     (shell-prompt-pattern tramp-action-succeed)
     (tramp-shell-prompt-pattern tramp-action-succeed)
@@ -3101,8 +3102,7 @@ will be used."
 			;; needed when sending signals remotely.
 			(let ((pid (tramp-send-command-and-read v "echo $$")))
 			  (setq p (tramp-get-connection-process v))
-			  (process-put p 'remote-pid pid)
-			  (tramp-set-connection-property p "remote-pid" pid))
+			  (process-put p 'remote-pid pid))
 			(when (memq connection-type '(nil pipe))
 			  ;; Disable carriage return to newline
 			  ;; translation.  This does not work on
@@ -3753,7 +3753,7 @@ Fall back to normal file name handler if no Tramp handler exists."
 
       ;; When `tramp-mode' is not enabled, or the file name is not a
       ;; remote file name, we don't do anything.  Same for default
-      ;; file namne handlers.
+      ;; file name handlers.
       (tramp-run-real-handler operation args))))
 
 (defun tramp-sh-handle-file-notify-add-watch (file-name flags _callback)
@@ -5250,9 +5250,10 @@ connection if a previous connection has died for some reason."
 			(setq r-shell t)))
 		    (setq current-host l-host)
 
-		    ;; Set password prompt vector.
+		    ;; Set hop and password prompt vector.
+		    (tramp-set-connection-property p "hop-vector" hop)
 		    (tramp-set-connection-property
-		     p "password-vector"
+		     p "pw-vector"
 		     (if (tramp-get-method-parameter
 			  hop 'tramp-password-previous-hop)
 			 (let ((pv (copy-tramp-file-name previous-hop)))
@@ -5308,6 +5309,8 @@ connection if a previous connection has died for some reason."
 		       tramp-actions-before-shell connection-timeout))
 
 		    ;; Next hop.
+		    (tramp-flush-connection-property p "hop-vector")
+		    (tramp-flush-connection-property p "pw-vector")
 		    (setq options ""
 			  target-alist (cdr target-alist)
 			  previous-hop hop)))

@@ -179,7 +179,8 @@ A resource file is in the resource directory as per
        (tramp-dissect-file-name ert-remote-temporary-file-directory))
   "The used `tramp-file-name' structure.")
 
-(setq auth-source-save-behavior nil
+(setq auth-source-cache-expiry nil
+      auth-source-save-behavior nil
       password-cache-expiry nil
       remote-file-name-inhibit-cache nil
       tramp-allow-unsafe-temporary-files t
@@ -209,6 +210,7 @@ being the result.")
   (when (cdr tramp--test-enabled-checked)
     ;; Remove old test files.
     (dolist (dir `(,temporary-file-directory
+		   ,tramp-compat-temporary-file-directory
 		   ,ert-remote-temporary-file-directory))
       (dolist (file (directory-files dir 'full (rx bos (? ".#") "tramp-test")))
 	(ignore-errors
@@ -217,7 +219,7 @@ being the result.")
 	    (delete-file file)))))
     ;; Cleanup connection.
     (ignore-errors
-      (tramp-cleanup-connection tramp-test-vec nil 'keep-password)))
+      (tramp-cleanup-connection tramp-test-vec 'keep-debug 'keep-password)))
 
   ;; Return result.
   (cdr tramp--test-enabled-checked))
@@ -2176,7 +2178,7 @@ is greater than 10.
     (when (assoc m tramp-methods)
       (let (tramp-connection-properties tramp-default-proxies-alist)
 	(ignore-errors
-	  (tramp-cleanup-connection tramp-test-vec nil 'keep-password))
+	  (tramp-cleanup-connection tramp-test-vec 'keep-debug 'keep-password))
 	;; Single hop.  The host name must match `tramp-local-host-regexp'.
 	(should-error
 	 (find-file (format "/%s:foo:" m))
@@ -4946,7 +4948,7 @@ This tests also `make-symbolic-link', `file-truename' and `add-name-to-file'."
 (ert-deftest tramp-test26-interactive-file-name-completion ()
   "Check interactive completion with different `completion-styles'."
   ;; Method, user and host name in completion mode.
-  (tramp-cleanup-connection tramp-test-vec nil 'keep-password)
+  (tramp-cleanup-connection tramp-test-vec 'keep-debug 'keep-password)
 
   (let ((method (file-remote-p ert-remote-temporary-file-directory 'method))
 	(user (file-remote-p ert-remote-temporary-file-directory 'user))
@@ -5477,6 +5479,8 @@ If UNSTABLE is non-nil, the test is tagged as `:unstable'."
 		direct-async-process-profile)
 	      connection-local-criteria-alist)))
        (skip-unless (tramp-direct-async-process-p))
+       (when-let* ((result (ert-test-most-recent-result ert-test)))
+	 (skip-unless (< (ert-test-result-duration result) 300)))
        ;; We do expect an established connection already,
        ;; `file-truename' does it by side-effect.  Suppress
        ;; `tramp--test-enabled', in order to keep the connection.
@@ -6015,7 +6019,9 @@ INPUT, if non-nil, is a string sent to the process."
 
   ;; Test `async-shell-command-width'.
   (when (and (tramp--test-asynchronous-processes-p) (tramp--test-sh-p))
-    (let* ((async-shell-command-width 1024)
+    (let* (;; Since Fedora 41, this seems to be the upper limit.  Used
+	   ;; to be 1024 before.
+	   (async-shell-command-width 512)
 	   (default-directory ert-remote-temporary-file-directory)
 	   (cols (ignore-errors
 		   (read (tramp--test-shell-command-to-string-asynchronously
@@ -6536,6 +6542,7 @@ INPUT, if non-nil, is a string sent to the process."
 	   (tmp-name1 (tramp--test-make-temp-name nil quoted))
 	   (tmp-name2 (expand-file-name "foo" tmp-name1))
 	   (tramp-remote-process-environment tramp-remote-process-environment)
+	   ;; Suppress nasty messages.
            (inhibit-message t)
 	   (vc-handled-backends
 	    (cond
@@ -6558,9 +6565,7 @@ INPUT, if non-nil, is a string sent to the process."
 	      (tramp-cleanup-connection
 	       tramp-test-vec 'keep-debug 'keep-password)
 	      '(Bzr))
-	     (t nil)))
-	   ;; Suppress nasty messages.
-	   (inhibit-message t))
+	     (t nil))))
       (skip-unless vc-handled-backends)
       (unless quoted (tramp--test-message "%s" vc-handled-backends))
 
@@ -8063,7 +8068,7 @@ process sentinels.  They shall not disturb each other."
 
   (let ((pass "secret")
 	(mock-entry (copy-tree (assoc "mock" tramp-methods)))
-	mocked-input tramp-methods)
+	mocked-input tramp-methods auth-sources)
     ;; We must mock `read-string', in order to avoid interactive
     ;; arguments.
     (cl-letf* (((symbol-function #'read-string)
@@ -8107,7 +8112,37 @@ process sentinels.  They shall not disturb each other."
 		 "machine %s port mock password %s"
 		 (file-remote-p ert-remote-temporary-file-directory 'host) pass)
 	  (let ((auth-sources `(,netrc-file)))
-	    (should (file-exists-p ert-remote-temporary-file-directory)))))))))
+	    (should (file-exists-p ert-remote-temporary-file-directory))))))
+
+      ;; Checking session-timeout.
+      (with-no-warnings (when (symbol-plist 'ert-with-temp-file)
+	(tramp-cleanup-connection tramp-test-vec 'keep-debug)
+	(let ((tramp-connection-properties
+	       (cons '(nil "session-timeout" 1)
+		     tramp-connection-properties)))
+	  (setq mocked-input nil)
+	  (auth-source-forget-all-cached)
+	  (ert-with-temp-file netrc-file
+	    :prefix "tramp-test" :suffix ""
+	    :text (format
+		   "machine %s port mock password %s"
+		   (file-remote-p ert-remote-temporary-file-directory 'host)
+		   pass)
+	    (let ((auth-sources `(,netrc-file)))
+	      (should (file-exists-p ert-remote-temporary-file-directory))))
+	  ;; Session established, password cached.
+	  (should
+	   (password-in-cache-p
+	    (auth-source-format-cache-entry
+	     (tramp-get-connection-property tramp-test-vec "pw-spec"))))
+	  ;; We want to see the timeout message.
+	  (tramp--test-instrument-test-case 3
+	    (sleep-for 2))
+	  ;; Session canceled, no password in cache.
+	  (should-not
+	   (password-in-cache-p
+	    (auth-source-format-cache-entry
+	     (tramp-get-connection-property tramp-test-vec "pw-spec"))))))))))
 
 (ert-deftest tramp-test47-read-otp-password ()
   "Check Tramp one-time password handling."
@@ -8167,6 +8202,49 @@ process sentinels.  They shall not disturb each other."
 	  (let ((auth-sources `(,netrc-file)))
 	    (should-error
 	     (file-exists-p ert-remote-temporary-file-directory)))))))))
+
+(ert-deftest tramp-test47-read-fingerprint ()
+  "Check Tramp fingerprint handling."
+  :tags '(:expensive-test)
+  (skip-unless (tramp--test-mock-p))
+
+  (let (;; Suppress "exec".
+	(tramp-restricted-shell-hosts-alist `(,tramp-system-name)))
+
+    ;; Reading fingerprint works.
+    (tramp-cleanup-connection tramp-test-vec 'keep-debug)
+    (let ((tramp-connection-properties
+	   `((nil "login-args"
+		  (("-c")
+		   (,(tramp-shell-quote-argument
+		      "echo Place your finger on the fingerprint reader"))
+		   (";") ("sleep" "1")
+		   (";") ("sh" "-i"))))))
+      (should (file-exists-p ert-remote-temporary-file-directory)))
+
+    ;; Falling back after a timeout works.
+    (tramp-cleanup-connection tramp-test-vec 'keep-debug)
+    (let ((tramp-connection-properties
+	   `((nil "login-args"
+		  (("-c")
+		   (,(tramp-shell-quote-argument
+		      "echo Place your finger on the fingerprint reader"))
+		   (";") ("sleep" "1")
+		   (";") ("echo" "Failed to match fingerprint")
+		   (";") ("sh" "-i"))))))
+      (should (file-exists-p ert-remote-temporary-file-directory)))
+
+    ;; Interrupting the fingerprint handshaking works.
+    (tramp-cleanup-connection tramp-test-vec 'keep-debug)
+    (let ((tramp-connection-properties
+	   `((nil "login-args"
+		  (("-c")
+		   (,(tramp-shell-quote-argument
+		      "echo Place your finger on the fingerprint reader"))
+		   (";") ("sleep" "1")
+		   (";") ("sh" "-i")))))
+	  tramp-use-fingerprint)
+      (should (file-exists-p ert-remote-temporary-file-directory)))))
 
 ;; This test is inspired by Bug#29163.
 (ert-deftest tramp-test48-auto-load ()
@@ -8388,7 +8466,6 @@ If INTERACTIVE is non-nil, the tests are run interactively."
 ;; * file-equal-p (partly done in `tramp-test21-file-links')
 ;; * file-in-directory-p
 ;; * file-name-case-insensitive-p
-;; * memory-info
 ;; * tramp-get-home-directory
 ;; * tramp-set-file-uid-gid
 

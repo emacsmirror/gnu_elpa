@@ -876,6 +876,7 @@
   :ignored-files ("Makefile" ".github" "*-test.el*"))
  (xref			:core "lisp/progmodes/xref.el")
  (xref-union            :url "https://git.sr.ht/~pkal/xref-union")
+ (yaml			:url "https://github.com/zkry/yaml.el")
  (yasnippet		:url "https://github.com/capitaomorte/yasnippet.git")
  (yasnippet-classic-snippets :url nil)
  (zones			:url nil)  ;https://www.emacswiki.org/emacs/zones.el

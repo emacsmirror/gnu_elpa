@@ -54,5 +54,6 @@ distclean: clean
 
 # This target is for the maintainer only.
 sync:
+	cp -p $(SOURCE_DIR)/test/README README
 	cp -p $(SOURCE_DIR)/test/tramp-archive-tests.el tramp-archive-tests.el
 	cp -p $(SOURCE_DIR)/test/tramp-tests.el tramp-tests.el

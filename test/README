@@ -1,5 +1,10 @@
 This directory contains files for running Tramp related tests.
 
+tramp-archive-tests.el
+	This file is a test suite for file archives.  It uses test
+        data from directory "resources".  Interactively, you can run
+        the test suite by "M-x tramp-archive-test-all".
+
 tramp-tests.el
         This file is a test suite.  Interactively, you can run the
         test suite by "M-x tramp-test-all".  The environment variable
@@ -7,15 +12,21 @@ tramp-tests.el
         the tests on another remote host, see
         `tramp-test-temporary-file-directory' for the default value.
 
+tramp-time.el (not on GNU ELPA)
+        These are performance tests on Tramp.  Read the "Commentary"
+        section for details.  These tests are not covered by the Makefile.
+
 The Makefile in this directory supports the following targets:
 
 * make all  -or-  make check
-  Run all tests declared in tramp-tests.el.  If
-  $REMOTE_TEMPORARY_FILE_DIRECTORY is set, only tramp-tests.el is
+  Run all tests declared in tramp-archive-tests.el and tramp-tests.el.
+  If $REMOTE_TEMPORARY_FILE_DIRECTORY is set, only tramp-tests.el is
   used.
 
-* make <filename>
-  Run all tests declared in <filename>.el.  <filename> is tramp-tests.
+* make <filename>  -or-  make <filename>.log (not on GNU ELPA)
+  Run all tests declared in <filename>.el.  <filename> can be either
+  tramp-archive-tests or tramp-tests.  If the target is
+  <filename>.log, the output of the test run will be redirected there.
 
 ERT offers selectors, which make it possible to filter out which test
 cases shall run.  The make variable $(SELECTOR) gives you a simple
@@ -29,9 +40,22 @@ could use a selector regexp.
 
     make <filename> SELECTOR='"foo$$"'
 
+In case you want to use the symbol name of a test as selector, you can
+use it directly:
+
+    make <filename> SELECTOR='test-foo-remote'
+
 If you want to run just the non-expensive tests, you might apply
 
     make check SELECTOR='(not (tag :expensive-test))'
+
+Sometimes, a given remote host does not support several connections in
+parallel, for example a telnet server which restricts the number of
+connections for a given user to one.  In this case, Tramp must be
+taught to avoid testing asynchronous processes.  This is achieved by
+using the selector
+
+    make check SELECTOR='(not (tag :tramp-asynchronous-processes))'
 
 The tag `:unstable' marks tests which do not run as expected, and are
 still under test by the developers.  In order to exclude those tests

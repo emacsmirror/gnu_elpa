@@ -89,7 +89,7 @@
     "CASE" "IN" "OUSE" "OUT" "ESAC"
     "FOR" "FORALL" "FROM" "TO" "BY" "WHILE" "DO" "OD"
     "IF" "THEN" "ELIF" "THEN" "ELSE" "FI"
-    "PAR" "BEGIN" "END" "GOTO" "EXIT"
+    "PAR" "BEGIN" "END" "GOTO" "GO" "TO" "EXIT"
     "LWB" "UPB" "ELEMS" "NOT" "ABS" "BIN" "REPR" "LENG"
     "SHORTEN" "ODD" "SIGN" "ROUND" "ENTIER" "AND" "OR" "XOR"
     "THEF" "ANDF" "ANDTH"
@@ -156,7 +156,8 @@
                       (program ("PROGRAM" exp "FINISH"))
                       ;; TODO: this don't cover all the loop
                       ;; possibilities.
-                      (loop ("FOR" exp "FROM" exp "TO" exp "BY" exp
+                      (loop ("-do-" "DO" exp "OD")
+                            ("FOR" exp "FROM" exp "TO" exp "BY" exp
                              "DO" exp "OD")
                             ("FOR" exp "FROM" exp "TO" exp
                              "DO" exp "OD")
@@ -165,7 +166,7 @@
                             ("-to-" "TO" exp "DO" exp "OD")
                             ("WHILE" exp "DO" exp "OD")
                             ("WHILE" exp "UNTIL" exp "DO" exp "OD")
-                            ("-until" "UNTIL" exp "DO" exp "OD"))
+                            ("-until-" "UNTIL" exp "DO" exp "OD"))
                       (insts (insts ";" insts)
                              (id ":=" exp)
                              ("IF" exp "THEN" insts "FI")

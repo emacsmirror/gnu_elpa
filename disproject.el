@@ -236,7 +236,7 @@ invoked."
   :group 'disproject-commands)
 
 (defcustom disproject-find-line-command #'disproject-default-find-line
-  "Command to find line occurrences in open project buffers.
+  "Command to find line occurrences in a project's open buffers.
 
 This is called whenever the function `disproject-find-line' is
 invoked."

@@ -33,6 +33,7 @@
 
 ;;; Code:
 
+(require 'cl-extra)
 (require 'grep)
 (require 'pcase)
 (require 'map)

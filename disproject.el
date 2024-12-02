@@ -34,6 +34,7 @@
 ;;; Code:
 
 (require 'cl-extra)
+(require 'eieio)
 (require 'grep)
 (require 'pcase)
 (require 'map)
@@ -108,6 +109,17 @@ will not always run in the project root directory if it does not
 respect `default-directory' or
 `project-current-directory-override', which the macro sets."
   :group 'disproject)
+
+(defvar disproject-prefix--transient-commands
+  '(disproject-dispatch
+    disproject-custom-dispatch
+    disproject-magit-commands-dispatch)
+  "Disproject transient prefix commands.
+
+This is a list of prefixes that use the `disproject-prefix' class
+and permit sharing scope between each other via scope.")
+
+;;;; Custom variables.
 
 (defcustom disproject-custom-allowed-suffixes '()
   "Allowed values for `disproject-custom-suffixes'."
@@ -416,85 +428,6 @@ n -- to ignore them and use the default custom suffixes.
               (propertize directory 'face 'transient-value)
             (propertize "None detected" 'face 'transient-inapt-suffix))))
 
-(defun disproject--setup-scope (&optional overrides write-scope? prompt-keys)
-  "Set up Transient scope for a Disproject prefix.
-
-When WRITE-SCOPE? is non-nil, overwrite the current Transient scope
-with the return value.
-
-OVERRIDES should be an alist, with optional key-value entries
-where the key corresponds to one in the scope that permits being
-overridden (see specifications below).  If a corresponding key is
-non-nil, the override value will be used instead, ignoring any
-current project state.
-
-PROMPT-KEYS should be a list of keys corresponding to the scope
-alist.  If a key is present, it is permitted to invoke prompts.
-If a tag is not provided, a default will be used instead.  The
-following keys respect this argument: \\='custom-suffixes
-
-The specifications for the scope returned is an alist with keys
-and descriptions of their values as follows:
-
-\\='default-project: the project belonging to
-`default-directory' (or the current buffer, in other words).  Can
-be overridden.
-
-\\='project: the currently selected project in the Transient
-menu.  Can be overridden.
-
-\\='prefer-other-window?: whether to prefer another window when
-displaying buffers.  Can be overridden.
-
-\\='custom-suffixes: suffixes for `disproject-custom-dispatch',
-as described `disproject-custom-suffixes'."
-  (let* ((maybe-override ; TODO: maybe this should be a macro?
-          (lambda (key value)
-            (if-let* ((override (assq key overrides)))
-                (cdr override)
-              value)))
-         (default-project
-          (funcall
-           maybe-override
-           'default-project
-           (project-current nil default-directory)))
-         (project
-          (funcall
-           maybe-override
-           'project
-           (or (disproject--state-project) default-project)))
-         (prefer-other-window?
-          (funcall
-           maybe-override
-           'prefer-other-window?
-           (disproject--state-prefer-other-window?)))
-         (custom-suffixes
-          (if-let* (((seq-contains-p prompt-keys 'custom-suffixes #'eq))
-                    (suffixes (with-temp-buffer
-                                (when-let* ((project)
-                                            (default-directory
-                                             (project-root project)))
-                                  (alist-get 'disproject-custom-suffixes
-                                             (hack-dir-local--get-variables nil)))))
-                    ((disproject--assert-type 'disproject-custom-suffixes
-                                              suffixes))
-                    ((disproject-custom--suffixes-allowed? project suffixes)))
-              suffixes
-            (default-value 'disproject-custom-suffixes)))
-         (new-scope
-          `((default-project . ,default-project)
-            (project . ,project)
-            (prefer-other-window? . ,prefer-other-window?)
-            (custom-suffixes . ,custom-suffixes))))
-    ;; Remember the project in case it's not in `project-known-project-roots'.
-    (when project (project-remember-project project))
-    (if-let* ((write-scope?)
-              (scope (disproject--scope nil t)))
-        (seq-each (pcase-lambda (`(,key . ,value))
-                    (setf (alist-get key scope) value))
-                  new-scope))
-    new-scope))
-
 ;;;; Prefixes.
 
 ;;;###autoload (autoload 'disproject-dispatch "disproject" nil t)
@@ -565,16 +498,22 @@ menu."
   [("SPC" "Custom dispatch" disproject-custom-dispatch
     :transient transient--do-replace)]
   (interactive)
-  (transient-setup
-   'disproject-dispatch nil nil
-   :scope (disproject--setup-scope
-           `(,@(if project `((project . ,project)) '())))
-   ;; XXX: Preserve options in scope if we're coming from another Disproject
-   ;; Transient.  `:refresh-suffixes' being true causes the `:init-value'
-   ;; function to be called every refresh which messes up --prefer-other-window,
-   ;; so that can't be used.
-   :value `(,@(if (disproject--state-prefer-other-window?)
-                  '("--prefer-other-window")))))
+  (let ((project-current-directory-override (or (and project (project-root project))
+                                                project-current-directory-override))
+        (scope (disproject--scope t)))
+    ;; HACK: The object-based scope itself doesn't provide a means of preserving
+    ;; options, so set it here for now.
+    (setf (disproject-scope-prefer-other-window? scope)
+          (disproject--state-prefer-other-window?))
+    (transient-setup
+     'disproject-dispatch nil nil
+     :scope scope
+     ;; XXX: Preserve options in scope if we're coming from another Disproject
+     ;; Transient.  `:refresh-suffixes' being true causes the `:init-value'
+     ;; function to be called every refresh which messes up --prefer-other-window,
+     ;; so that can't be used.
+     :value `(,@(if (disproject--state-prefer-other-window?)
+                    '("--prefer-other-window"))))))
 
 (transient-define-prefix disproject-custom-dispatch (&optional project)
   "Dispatch custom suffix commands.
@@ -601,16 +540,20 @@ character.  These characters represent the following states:
   [("SPC" "Main dispatch" disproject-dispatch
     :transient transient--do-replace)]
   (interactive)
-  (transient-setup
-   'disproject-custom-dispatch nil nil
-   :scope (disproject--setup-scope
-           `((project . ,(or project (disproject--state-project-ensure))))
-           nil '(custom-suffixes))))
+  (let ((project-current-directory-override (or (and project (project-root project))
+                                                project-current-directory-override))
+        (scope (disproject--scope t)))
+    (disproject-scope-selected-project-ensure scope)
+    ;; HACK: The object-based scope itself doesn't provide a means of preserving
+    ;; options, so set it here for now.
+    (setf (disproject-scope-prefer-other-window? scope)
+          (disproject--state-prefer-other-window?))
+    (transient-setup
+     'disproject-custom-dispatch nil nil
+     :scope scope)))
 
 (transient-define-prefix disproject-magit-commands-dispatch ()
   "Dispatch Magit-related commands for a project.
-
-DIRECTORY will be searched for the project if passed.
 
 Some commands may not be available if the selected project is not
 the same as the default (current buffer) one."
@@ -624,9 +567,14 @@ the same as the default (current buffer) one."
    ("T" "Todos" disproject-magit-todos-list
     :if (lambda () (featurep 'magit-todos)))]
   (interactive)
-  (transient-setup
-   'disproject-magit-commands-dispatch nil nil
-   :scope (disproject--setup-scope)))
+  (let ((scope (disproject--scope t)))
+    ;; HACK: The object-based scope itself doesn't provide a means of preserving
+    ;; options, so set it here for now.
+    (setf (disproject-scope-prefer-other-window? scope)
+          (disproject--state-prefer-other-window?))
+    (transient-setup
+     'disproject-magit-commands-dispatch nil nil
+     :scope scope)))
 
 (transient-define-prefix disproject-manage-projects-dispatch ()
   "Dispatch commands for managing projects."
@@ -676,18 +624,187 @@ the same as the default (current buffer) one."
                  directories)
      :test (lambda (p1 p2) (equal (project-root p1) (project-root p2))))))
 
-(defun disproject--scope (key &optional no-alist?)
-  "Get `disproject' scope.
+(defun disproject--scope (&optional ensure?)
+  "Return Disproject scope.
 
-By default, this function assumes that the scope is an alist.
-KEY is the key used to get the alist value.  If NO-ALIST? is
-non-nil, the scope will be treated as a value of any possible
-type and directly returned instead, ignoring KEY."
-  ;; Just return nil instead of signaling an error if there is no prefix.
-  (if-let* (((transient-prefix-object))
-            (scope (transient-scope)))
-      (if no-alist? scope (alist-get key scope))))
+If there is no object of `disproject-scope' available in the
+transient scope and ENSURE? is non-nil, create and return a new
+instance.  Otherwise, return nil."
+  (or (transient-scope disproject-prefix--transient-commands)
+      (and ensure? (disproject-scope))))
 
+;;;; Transient state classes.
+
+;;;;; Project class.
+
+(defclass disproject-project ()
+  ;; root must be a path to a valid project.  An `initialize-instance' method
+  ;; for this class enforces this.
+  ((root :reader disproject-project-root
+         :initarg :root
+         :type string
+         :documentation "Project root directory.")
+   (instance :reader disproject-project-instance
+             :type list
+             :documentation "Project `project.el' instance.")
+   (backend :reader disproject-project-backend
+            :type symbol
+            :documentation "Project VC backend.")
+   (custom-suffixes :reader disproject-project-custom-suffixes
+                    :type list
+                    :documentation "\
+Project's custom suffixes as described in
+`disproject-custom-suffixes'."))
+  "Class representing a `project.el' project.
+
+Instances of this class are initialized by providing the `:root'
+initialization argument, which is the only argument available.
+Other slots depend on this value, and are lazily fetched as
+needed when calling readers.  These fetched values are then
+cached for subsequent queries.")
+
+(cl-defmethod initialize-instance :after ((obj disproject-project) &rest _slots)
+  "Do additional initialization for a `disproject-project' instance.
+
+This enforces that the root is part of a valid project.  If
+unbound, `project-current' will be invoked, which may prompt the
+user for a path.  If the path does not lead to a valid project,
+an error will be signaled.  \"Transient\" project instances are
+not considered valid.
+
+If the directory provided is not actually the root directory, the
+slot will also be changed to the detected root.
+
+Additionally, the project will be force-remembered as a known
+project as a last step of initialization."
+  (let* ((provided-root (if (slot-boundp obj 'root)
+                            (oref obj root)
+                          (project-root (project-current t))))
+         (project (oset obj instance (project-current nil provided-root))))
+    (unless project
+      (error "Root directory does not lead to valid project: %s" provided-root))
+    ;; The provided root may be a sub-directory, so we re-set it to the root
+    ;; determined by `project.el'.
+    (oset obj root (project-root project))
+    ;; Remember the project in case it's not in `project-known-project-roots'.
+    (project-remember-project project)))
+
+(defun disproject-project-or-nil (&optional directory)
+  "Return a `disproject-project' instance for DIRECTORY, or maybe nil.
+
+DIRECTORY is passed to `project-current' to detect a project."
+  (if-let* ((project (project-current nil directory)))
+      (disproject-project :root (project-root project))))
+
+(cl-defmethod disproject-project-backend ((obj disproject-project))
+  "Return the OBJ project backend."
+  (if (slot-boundp obj 'backend)
+      (oref obj backend)
+    ;; Index 1 contains the project backend; see
+    ;; `project-vc-backend-markers-alist'.
+    (oset obj backend (nth 1 (disproject-project-instance obj)))))
+
+(cl-defmethod disproject-project-custom-suffixes ((obj disproject-project))
+  "Return the OBJ project custom suffixes."
+  (if (slot-boundp obj 'custom-suffixes)
+      (oref obj custom-suffixes)
+    (oset obj
+          custom-suffixes
+          (if-let*
+              ((project (disproject-project-instance obj))
+               (root (disproject-project-root obj))
+               (suffixes
+                ;; Retrieve custom suffixes without triggering dir-locals
+                ;; permissions prompt.
+                (alist-get 'disproject-custom-suffixes
+                           (with-temp-buffer
+                             (let ((default-directory root))
+                               (hack-dir-local--get-variables nil)))))
+               ((disproject--assert-type 'disproject-custom-suffixes suffixes))
+               ((disproject-custom--suffixes-allowed? project suffixes)))
+              suffixes
+            (default-value 'disproject-custom-suffixes)))))
+
+;;;;; Scope class.
+
+(defclass disproject-scope ()
+  ((selected-project :initarg :selected-project
+                     :accessor disproject-scope-selected-project
+                     :initform nil
+                     :type (or null disproject-project)
+                     :documentation "\
+Currently selected project object in the transient menu, if any.
+If no value is provided during initialization, the function
+`project-current' is used to find one for initializing a
+`disproject-project' object.  This slot may be nil.")
+   (default-project :reader disproject-scope-default-project
+                    :initform nil
+                    :type (or null disproject-project)
+                    :documentation "\
+Project object belonging to `default-directory' at the time of
+initialization (or the current buffer, in other words), if any.")
+   (prefer-other-window? :initarg :prefer-other-window?
+                         :accessor disproject-scope-prefer-other-window?
+                         :initform nil
+                         :documentation "Non-nil to prefer other window."))
+  "Class representing a Disproject menu's transient scope.
+
+Objects of this type are intended to be used in a transient
+prefix's `:scope' slot, and contains information regarding the
+default project, selected project, and other state like option
+values that should be shared with other menus.
+
+In Disproject prefixes, this scope object is normally fetched via
+the function `disproject--scope'.")
+
+(cl-defmethod initialize-instance :after ((obj disproject-scope) &rest _slots)
+  "Do additional initialization for scope OBJ."
+  (let* ((default-project-obj
+          (disproject-project-or-nil default-directory))
+         (selected-project-obj
+          ;; `project-current' may read other variables like
+          ;; `project-current-directory-override', which may make the initial
+          ;; selected project different from the default project (only
+          ;; `default-directory' is read for the latter).
+          (if-let* ((current-project (project-current))
+                    ;; Use `default-project-obj' if the projects happen to be
+                    ;; the same so cached values are shared.
+                    ((or (not default-project-obj)
+                         (not (file-equal-p
+                               (project-root current-project)
+                               (disproject-project-root default-project-obj))))))
+              (disproject-project :root (project-root current-project))
+            default-project-obj)))
+    (when default-project-obj
+      (oset obj default-project default-project-obj))
+    (when selected-project-obj
+      (oset obj selected-project selected-project-obj))))
+
+(cl-defmethod disproject-scope-selected-project ((obj disproject-scope))
+  "Return scope OBJ selected project.  May be nil."
+  (if (slot-boundp obj 'selected-project)
+      (oref obj selected-project)))
+
+(cl-defmethod disproject-scope-selected-project-ensure ((obj disproject-scope))
+  "Return scope OBJ selected project.
+
+If the selected-project slot is nil, a new instance of
+`disproject-project' will be initialized and written to the slot.
+The user may be prompted for a project."
+  (or (disproject-scope-selected-project obj)
+      (oset obj selected-project (disproject-project))))
+
+(cl-defmethod disproject-scope-default-project ((obj disproject-scope))
+  "Return scope OBJ default project.  May be nil."
+  (if (slot-boundp obj 'default-project)
+      (oref obj default-project)))
+
+(cl-defmethod disproject-scope-project-is-default? ((obj disproject-scope))
+  "Return non-nil if the OBJ scope's selected and default projects are the same."
+  (and-let* ((default-project (disproject-scope-default-project obj))
+             (selected-project (disproject-scope-selected-project obj)))
+    (file-equal-p (disproject-project-root default-project)
+                  (disproject-project-root selected-project))))
 
 ;;;; Transient state getters.
 ;; Functions that query the Transient state should have their names be prefixed
@@ -696,29 +813,36 @@ type and directly returned instead, ignoring KEY."
 
 (defun disproject--state-custom-suffixes ()
   "Return the `disproject-dispatch' custom suffixes for this scope."
-  (disproject--scope 'custom-suffixes))
+  (if-let* ((scope (disproject--scope))
+            (selected-project (or (disproject-scope-selected-project scope)
+                                  (disproject-project))))
+      (disproject-project-custom-suffixes selected-project)))
 
 (defun disproject--state-default-project-root ()
   "Return the current caller's (the one setting up Transient) root directory."
-  (if-let* ((project (disproject--scope 'default-project)))
-      (project-root project)))
+  (if-let* ((scope (disproject--scope))
+            (default-project (disproject-scope-default-project scope)))
+      (disproject-project-root default-project)))
 
 (defun disproject--state-git-repository? ()
   "Return if project is a Git repository."
-  ;; Index 1 contains the project backend; see
-  ;; `project-vc-backend-markers-alist'.
-  (eq (nth 1 (disproject--scope 'project)) 'Git))
+  (if-let* ((scope (disproject--scope))
+            (selected-project (disproject-scope-selected-project scope)))
+      (eq (disproject-project-backend selected-project) 'Git)))
 
 (defun disproject--state-prefer-other-window? ()
   "Return whether other window should be preferred when displaying buffers."
   (if (eq transient-current-command 'disproject-dispatch)
       (let ((args (transient-args transient-current-command)))
         (and args (transient-arg-value "--prefer-other-window" args)))
-    (disproject--scope 'prefer-other-window?)))
+    (if-let* ((scope (disproject--scope)))
+        (disproject-scope-prefer-other-window? scope))))
 
 (defun disproject--state-project ()
-  "Return the project from the current Transient scope."
-  (disproject--scope 'project))
+  "Return the project instance from the current Transient scope."
+  (if-let* ((scope (disproject--scope))
+            (selected-project (disproject-scope-selected-project scope)))
+      (disproject-project-instance selected-project)))
 
 (defun disproject--state-project-ensure ()
   "Ensure that there is a selected project and return it.
@@ -726,24 +850,19 @@ type and directly returned instead, ignoring KEY."
 This checks if there is a selected project in Transient scope,
 prompting for the value if needed to meet that expectation.
 Sets the Transient state if possible."
-  (or (disproject--state-project)
-      (if-let* ((directory (project-prompt-project-dir))
-                (project (project-current nil directory)))
-          (progn
-            (disproject--setup-scope `((project . ,project)) t)
-            project)
-        (error "No project found for directory: %s" directory))))
+  (disproject-project-instance
+   (disproject-scope-selected-project-ensure (disproject--scope t))))
 
 (defun disproject--state-project-is-default? ()
   "Return whether the selected project is the same as the default project."
-  (if-let* ((default-project (disproject--scope 'default-project))
-            (project (disproject--scope 'project)))
-      (equal (project-root default-project) (project-root project))))
+  (if-let* ((scope (disproject--scope)))
+      (disproject-scope-project-is-default? scope)))
 
 (defun disproject--state-project-root ()
   "Return the selected project's root directory from Transient state."
-  (if-let* ((project (disproject--scope 'project)))
-      (project-root project)))
+  (if-let* ((scope (disproject--scope))
+            (selected-project (disproject-scope-selected-project scope)))
+      (disproject-project-root selected-project)))
 
 
 ;;;
@@ -940,9 +1059,8 @@ user."
 Look for a valid project root directory in SEARCH-DIRECTORY.  If
 one is found, update the Transient scope to switch the selected
 project."
-  (if-let* ((project (project-current nil search-directory)))
-      (disproject--setup-scope `((project . ,project)) t)
-    (error "No parent project found for %s" search-directory)))
+  (setf (disproject-scope-selected-project (disproject--scope))
+        (disproject-project :root search-directory)))
 
 ;;;; Suffix setup functions.
 

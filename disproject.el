@@ -432,6 +432,52 @@ n -- to ignore them and use the default custom suffixes.
               (propertize root 'face 'transient-value)
             (propertize "None detected" 'face 'transient-inapt-suffix))))
 
+;;;; Prefix classes.
+
+;;;;; General Disproject prefix class.
+
+(defclass disproject-prefix (transient-prefix) ()
+  "General Disproject prefix class.
+
+All prefixes that need to make use of `disproject-scope' as the
+scope object should be of this type or inherit from it, as it is
+responsible for preserving the scope across menus.")
+
+(cl-defmethod transient-init-scope ((obj disproject-prefix))
+  "Initialize transient scope for OBJ.
+
+Inherit the current prefix's scope if it is part of
+`disproject-prefix--transient-commands'; otherwise, initialize a
+new `disproject-scope' scope value if it hasn't already been
+initialized."
+  (if (memq transient-current-command disproject-prefix--transient-commands)
+      (let ((scope (disproject--scope)))
+        (setf (disproject-scope-prefer-other-window? scope)
+              (disproject--state-prefer-other-window?))
+        (oset obj scope scope))
+    ;; This method is also called for situations like returning from a
+    ;; sub-prefix, in which case we want to keep the existing scope.
+    (unless (oref obj scope)
+      (oset obj scope (disproject-scope)))))
+
+;;;;; Disproject custom-suffixes prefix
+;; HACK: A prefix specific to custom-dispatch is needed to avoid an issue caused
+;; by prompts.  `disproject-custom--setup-suffixes' is perfectly capable of
+;; getting custom-suffixes, but when a prompt is made in it, there is breakage
+;; in the menu; e.g. pressing invalid keys can result in the menu being "sticky"
+;; and passing inputs to the current buffer instead of the transient menu.  This
+;; may be an upstream issue that has something to do with prompts made during
+;; transient setup.
+
+(defclass disproject--custom-suffixes-prefix (disproject-prefix) ()
+  "Class for Disproject prefixes that need to use custom suffixes.")
+
+(cl-defmethod transient-init-scope ((obj disproject--custom-suffixes-prefix))
+  "Ensure custom suffixes are loaded after initializing scope for OBJ."
+  (cl-call-next-method)
+  (disproject-project-custom-suffixes
+   (disproject-scope-selected-project-ensure (oref obj scope))))
+
 ;;;; Prefixes.
 
 ;;;###autoload (autoload 'disproject-dispatch "disproject" nil t)
@@ -444,6 +490,7 @@ start with as the selected project.
 See Info node `(transient)Modifying Existing Transients' for
 information on inserting user-defined suffix commands to this
 menu."
+  :class disproject-prefix
   :refresh-suffixes t
   [:description
    disproject--selected-project-description
@@ -509,15 +556,9 @@ menu."
     :transient transient--do-replace)]
   (interactive)
   (let ((project-current-directory-override (or (and project (project-root project))
-                                                project-current-directory-override))
-        (scope (disproject--scope t)))
-    ;; HACK: The object-based scope itself doesn't provide a means of preserving
-    ;; options, so set it here for now.
-    (setf (disproject-scope-prefer-other-window? scope)
-          (disproject--state-prefer-other-window?))
+                                                project-current-directory-override)))
     (transient-setup
      'disproject-dispatch nil nil
-     :scope scope
      ;; XXX: Preserve options in scope if we're coming from another Disproject
      ;; Transient.  `:refresh-suffixes' being true causes the `:init-value'
      ;; function to be called every refresh which messes up --prefer-other-window,
@@ -541,6 +582,7 @@ character.  These characters represent the following states:
 
   [a]: Command is active.
   [i]: Command is inactive."
+  :class disproject--custom-suffixes-prefix
   :refresh-suffixes t
   disproject--selected-project-header-group
   ["Custom suffix commands"
@@ -551,22 +593,16 @@ character.  These characters represent the following states:
     :transient transient--do-replace)]
   (interactive)
   (let ((project-current-directory-override (or (and project (project-root project))
-                                                project-current-directory-override))
-        (scope (disproject--scope t)))
-    (disproject-scope-selected-project-ensure scope)
-    ;; HACK: The object-based scope itself doesn't provide a means of preserving
-    ;; options, so set it here for now.
-    (setf (disproject-scope-prefer-other-window? scope)
-          (disproject--state-prefer-other-window?))
+                                                project-current-directory-override)))
     (transient-setup
-     'disproject-custom-dispatch nil nil
-     :scope scope)))
+     'disproject-custom-dispatch nil nil)))
 
 (transient-define-prefix disproject-magit-commands-dispatch ()
   "Dispatch Magit-related commands for a project.
 
 Some commands may not be available if the selected project is not
 the same as the default (current buffer) one."
+  :class disproject-prefix
   disproject--selected-project-header-group
   ["Magit commands"
    ("d" "Dispatch" magit-dispatch
@@ -577,16 +613,7 @@ the same as the default (current buffer) one."
                                  (disproject-scope-project-is-default? scope))))
    ("m" "Status" disproject-magit-status)
    ("T" "Todos" disproject-magit-todos-list
-    :if (lambda () (featurep 'magit-todos)))]
-  (interactive)
-  (let ((scope (disproject--scope t)))
-    ;; HACK: The object-based scope itself doesn't provide a means of preserving
-    ;; options, so set it here for now.
-    (setf (disproject-scope-prefer-other-window? scope)
-          (disproject--state-prefer-other-window?))
-    (transient-setup
-     'disproject-magit-commands-dispatch nil nil
-     :scope scope)))
+    :if (lambda () (featurep 'magit-todos)))])
 
 (transient-define-prefix disproject-manage-projects-dispatch ()
   "Dispatch commands for managing projects."

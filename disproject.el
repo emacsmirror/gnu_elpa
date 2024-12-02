@@ -478,6 +478,44 @@ initialized."
   (disproject-project-custom-suffixes
    (disproject-scope-selected-project-ensure (oref obj scope))))
 
+;;;; Disproject prefix command/group aptness predicates.
+;; These predicates are specifically meant for usage during transient setup of
+;; `disproject-prefix' prefixes.  Calling these in any other situation may lead
+;; to unexpected/undesired results.
+
+(defun disproject-prefix--feature-magit-clone? ()
+  "Return non-nil if `magit-clone' is an available library."
+  (featurep 'magit-clone))
+
+(defun disproject-prefix--feature-magit-status? ()
+  "Return non-nil if `magit-status' is an available library."
+  (featurep 'magit-status))
+
+(defun disproject-prefix--git-clone-fallback-apt? ()
+  "Return non-nil if the \"git clone\" fallback command should be used."
+  (and (not (featurep 'magit-clone)) (executable-find "git")))
+
+(defun disproject-prefix--git-init-fallback-apt? ()
+  "Return non-nil if the \"git init\" fallback command should be used."
+  (and (not (featurep 'magit-status)) (executable-find "git")))
+
+(defun disproject-prefix--in-default-project? ()
+  "Return non-nil if the selected project is also the default project."
+  (if-let* ((scope (transient-scope)))
+      (disproject-scope-project-is-default? scope)))
+
+(defun disproject-prefix--magit-apt? ()
+  "Return non-nil if magit commands are apt to show."
+  (and (featurep 'magit)
+       (if-let* ((scope (transient-scope))
+                 (project (disproject-scope-selected-project scope)))
+           (eq 'Git (disproject-project-backend project)))))
+
+(defun disproject-prefix--version-control-apt? ()
+  "Return non-nil if version control commands are apt to show."
+  (if-let* ((project (disproject-scope-selected-project (transient-scope))))
+      (disproject-project-backend project)))
+
 ;;;; Prefixes.
 
 ;;;###autoload (autoload 'disproject-dispatch "disproject" nil t)
@@ -543,15 +581,9 @@ menu."
   ;; update dependency when version is available.  Upstream issue context:
   ;; https://www.github.com/magit/transient/issues/327
   [["Version control"
-    :if (lambda () (if-let* ((scope (disproject--scope))
-                             (project (disproject-scope-selected-project scope)))
-                       (disproject-project-backend project)))
+    :if disproject-prefix--version-control-apt?
     ("m" "Magit" disproject-magit-commands-dispatch
-     :if (lambda () (and
-                     (featurep 'magit)
-                     (if-let* ((scope (disproject--scope))
-                               (project (disproject-scope-selected-project scope)))
-                         (eq 'Git (disproject-project-backend project))))))
+     :if disproject-prefix--magit-apt?)
     ("v" "VC status" disproject-vc-dir)]]
   [("SPC" "Custom dispatch" disproject-custom-dispatch
     :transient transient--do-replace)]
@@ -616,11 +648,9 @@ the same as the default (current buffer) one."
   disproject--selected-project-header-group
   ["Magit commands"
    ("d" "Dispatch" magit-dispatch
-    :inapt-if-not (lambda () (if-let* ((scope (disproject--scope)))
-                                 (disproject-scope-project-is-default? scope))))
+    :inapt-if-not disproject-prefix--in-default-project?)
    ("f" "File dispatch" magit-file-dispatch
-    :inapt-if-not (lambda () (if-let* ((scope (disproject--scope)))
-                                 (disproject-scope-project-is-default? scope))))
+    :inapt-if-not disproject-prefix--in-default-project?)
    ("m" "Status" disproject-magit-status)
    ("T" "Todos" disproject-magit-todos-list
     :if (lambda () (featurep 'magit-todos)))])
@@ -629,13 +659,13 @@ the same as the default (current buffer) one."
   "Dispatch commands for managing projects."
   ["New"
    ("n g c" "git clone" magit-clone
-    :if (lambda () (featurep 'magit-clone)))
+    :if disproject-prefix--feature-magit-clone?)
    ("n g c" "git clone" disproject-git-clone-fallback
-    :if (lambda () (and (not (featurep 'magit-clone)) (executable-find "git"))))
+    :if disproject-prefix--git-clone-fallback-apt?)
    ("n g i" "git init" magit-init
-    :if (lambda () (featurep 'magit-status)))
+    :if disproject-prefix--feature-magit-status?)
    ("n g i" "git init" disproject-git-init-fallback
-    :if (lambda () (and (not (featurep 'magit-status)) (executable-find "git"))))]
+    :if disproject-prefix--git-init-fallback-apt?)]
   ["Forget"
    ;; TODO: Could add an option to close buffers of the project to forget.
    ("f p" "a project" disproject-forget-project)

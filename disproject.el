@@ -56,7 +56,9 @@ the project's root directory.
 `display-buffer-overriding-action': Set to display in another
 window if \"--prefer-other-window\" is enabled."
   (declare (indent 0) (debug t))
-  `(let* ((project (disproject--state-project-ensure))
+  `(let* ((scope (disproject--scope t))
+          (project (disproject-project-instance
+                    (disproject-scope-selected-project-ensure scope)))
           (from-directory (project-root project))
           (prefer-other-window? (disproject--state-prefer-other-window?))
           ;; Only enable envrc if the initial environment has it enabled.
@@ -424,8 +426,10 @@ n -- to ignore them and use the default custom suffixes.
 (defun disproject--selected-project-description ()
   "Return a Transient menu headline to indicate the currently selected project."
   (format (propertize "Project: %s" 'face 'transient-heading)
-          (if-let* ((directory (disproject--state-project-root)))
-              (propertize directory 'face 'transient-value)
+          (if-let* ((scope (disproject--scope))
+                    (project (disproject-scope-selected-project scope))
+                    (root (disproject-project-root project)))
+              (propertize root 'face 'transient-value)
             (propertize "None detected" 'face 'transient-inapt-suffix))))
 
 ;;;; Prefixes.
@@ -491,9 +495,15 @@ menu."
   ;; update dependency when version is available.  Upstream issue context:
   ;; https://www.github.com/magit/transient/issues/327
   [["Version control"
-    :if (lambda () (nth 1 (disproject--state-project)))
+    :if (lambda () (if-let* ((scope (disproject--scope))
+                             (project (disproject-scope-selected-project scope)))
+                       (disproject-project-backend project)))
     ("m" "Magit" disproject-magit-commands-dispatch
-     :if (lambda () (and (featurep 'magit) (disproject--state-git-repository?))))
+     :if (lambda () (and
+                     (featurep 'magit)
+                     (if-let* ((scope (disproject--scope))
+                               (project (disproject-scope-selected-project scope)))
+                         (eq 'Git (disproject-project-backend project))))))
     ("v" "VC status" disproject-vc-dir)]]
   [("SPC" "Custom dispatch" disproject-custom-dispatch
     :transient transient--do-replace)]
@@ -560,9 +570,11 @@ the same as the default (current buffer) one."
   disproject--selected-project-header-group
   ["Magit commands"
    ("d" "Dispatch" magit-dispatch
-    :inapt-if-not disproject--state-project-is-default?)
+    :inapt-if-not (lambda () (if-let* ((scope (disproject--scope)))
+                                 (disproject-scope-project-is-default? scope))))
    ("f" "File dispatch" magit-file-dispatch
-    :inapt-if-not disproject--state-project-is-default?)
+    :inapt-if-not (lambda () (if-let* ((scope (disproject--scope)))
+                                 (disproject-scope-project-is-default? scope))))
    ("m" "Status" disproject-magit-status)
    ("T" "Todos" disproject-magit-todos-list
     :if (lambda () (featurep 'magit-todos)))]
@@ -806,29 +818,7 @@ The user may be prompted for a project."
     (file-equal-p (disproject-project-root default-project)
                   (disproject-project-root selected-project))))
 
-;;;; Transient state getters.
-;; Functions that query the Transient state should have their names be prefixed
-;; with "disproject--state-" to provide unique identifiers that can be searched
-;; for.
-
-(defun disproject--state-custom-suffixes ()
-  "Return the `disproject-dispatch' custom suffixes for this scope."
-  (if-let* ((scope (disproject--scope))
-            (selected-project (or (disproject-scope-selected-project scope)
-                                  (disproject-project))))
-      (disproject-project-custom-suffixes selected-project)))
-
-(defun disproject--state-default-project-root ()
-  "Return the current caller's (the one setting up Transient) root directory."
-  (if-let* ((scope (disproject--scope))
-            (default-project (disproject-scope-default-project scope)))
-      (disproject-project-root default-project)))
-
-(defun disproject--state-git-repository? ()
-  "Return if project is a Git repository."
-  (if-let* ((scope (disproject--scope))
-            (selected-project (disproject-scope-selected-project scope)))
-      (eq (disproject-project-backend selected-project) 'Git)))
+;;;; Getters for infix arguments.
 
 (defun disproject--state-prefer-other-window? ()
   "Return whether other window should be preferred when displaying buffers."
@@ -837,32 +827,6 @@ The user may be prompted for a project."
         (and args (transient-arg-value "--prefer-other-window" args)))
     (if-let* ((scope (disproject--scope)))
         (disproject-scope-prefer-other-window? scope))))
-
-(defun disproject--state-project ()
-  "Return the project instance from the current Transient scope."
-  (if-let* ((scope (disproject--scope))
-            (selected-project (disproject-scope-selected-project scope)))
-      (disproject-project-instance selected-project)))
-
-(defun disproject--state-project-ensure ()
-  "Ensure that there is a selected project and return it.
-
-This checks if there is a selected project in Transient scope,
-prompting for the value if needed to meet that expectation.
-Sets the Transient state if possible."
-  (disproject-project-instance
-   (disproject-scope-selected-project-ensure (disproject--scope t))))
-
-(defun disproject--state-project-is-default? ()
-  "Return whether the selected project is the same as the default project."
-  (if-let* ((scope (disproject--scope)))
-      (disproject-scope-project-is-default? scope)))
-
-(defun disproject--state-project-root ()
-  "Return the selected project's root directory from Transient state."
-  (if-let* ((scope (disproject--scope))
-            (selected-project (disproject-scope-selected-project scope)))
-      (disproject-project-root selected-project)))
 
 
 ;;;
@@ -891,7 +855,9 @@ name, they should not be allowed to run at the same time)."
   (concat "*"
           (file-name-nondirectory (directory-file-name
                                    (or project-dir
-                                       (disproject--state-project-root))))
+                                       (disproject-project-root
+                                        (disproject-scope-selected-project
+                                         (disproject--scope t))))))
           "-process|"
           (or identifier "default")
           "*"))
@@ -1069,7 +1035,8 @@ project."
   (transient-parse-suffixes
    'disproject-custom-dispatch
    (mapcar #'disproject-custom--suffix
-           `(,@(disproject--state-custom-suffixes)
+           `(,@(disproject-project-custom-suffixes
+                (disproject-scope-selected-project-ensure (disproject--scope t)))
              ("!" "Alternative compile"
               :command-type compile
               :command (lambda ()
@@ -1254,7 +1221,7 @@ The buffer name is determined by
 process status."
   :description
   (lambda ()
-    (if (disproject--state-project)
+    (if (disproject-scope-selected-project (disproject--scope t))
         (let* ((buffer-name (disproject-process-buffer-name "default-compile")))
           (disproject-custom--suffix-description (get-buffer buffer-name)
                                                  "Compile"))

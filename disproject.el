@@ -695,9 +695,6 @@ type and directly returned instead, ignoring KEY."
             (scope (transient-scope)))
       (if no-alist? scope (alist-get key scope))))
 
-;;;; Infix classes.
-
-;;;; Infixes.
 
 ;;;; Transient state getters.
 ;; Functions that query the Transient state should have their names be prefixed

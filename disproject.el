@@ -536,7 +536,7 @@ menu."
    :pad-keys t
    [("b" "Switch buffer" disproject-switch-to-buffer)
     ("B" "Buffer list" disproject-list-buffers)
-    ("c" "Compile" disproject-compile)
+    ("c" disproject-compile)
     ("d" "Dired" disproject-dired)
     ("k" "Kill buffers" disproject-kill-buffers)
     ("l" "Dir-locals file" disproject-dir-locals)
@@ -785,6 +785,20 @@ name, they should not be allowed to run at the same time)."
           (or identifier "default")
           "*"))
 
+(defun disproject-add-sentinel-refresh-transient (buffer-name)
+  "Add function to a buffer's process sentinel to refresh transient, if active.
+
+BUFFER-NAME is the name of the buffer with a process sentinel the
+function will be added to."
+  (when-let* ((buffer (get-buffer buffer-name))
+              (process (get-buffer-process buffer))
+              ((not (advice-function-member-p
+                     #'disproject--refresh-transient
+                     (process-sentinel process)))))
+    (add-function
+     :before (process-sentinel process)
+     #'disproject--refresh-transient)))
+
 (defun disproject-custom--suffix (spec-entry)
   "Construct and return a suffix to be parsed by `transient-parse-suffixes'.
 
@@ -810,15 +824,8 @@ SPEC-ENTRY is a single entry from the specification described by
            ;; `disproject-custom-suffixes'.
            (let ((disproject-process-buffer-name ,disproject-process-buffer-name))
              ,(disproject-custom--suffix-command command-type command)
-             ;; Auto-refresh menu on command completion
-             (when-let* ((buffer (get-buffer disproject-process-buffer-name))
-                         (process (get-buffer-process buffer))
-                         ((not (advice-function-member-p
-                                #'disproject-custom--suffix-refresh-transient
-                                (process-sentinel process)))))
-               (add-function
-                :before (process-sentinel process)
-                #'disproject-custom--suffix-refresh-transient)))))))))
+             (disproject-add-sentinel-refresh-transient
+              disproject-process-buffer-name))))))))
 
 (defun disproject-custom--suffix-command (command-type command)
   "Dispatch a command s-expression to be evaluated in a custom suffix.
@@ -930,8 +937,8 @@ user."
                     " ")))
           description))
 
-(defun disproject-custom--suffix-refresh-transient (&rest _ignore)
-  "Refresh the `disproject-custom-dispatch' transient, if active."
+(defun disproject--refresh-transient (&rest _ignore)
+  "Refresh the currently active transient, if available."
   (when (transient-active-prefix)
     (transient--refresh-transient)))
 
@@ -1130,13 +1137,26 @@ The command used can be customized with
     (call-interactively disproject-or-external-find-regexp-command)))
 
 (transient-define-suffix disproject-compile ()
-  "Call `project-compile' in project."
+  "Call `project-compile' in project.
+
+The buffer name is determined by
+`disproject-process-buffer-name', which will be used to track the
+process status."
+  :description
+  (lambda ()
+    (if (disproject--state-project)
+        (let* ((buffer-name (disproject-process-buffer-name "default-compile")))
+          (disproject-custom--suffix-description (get-buffer buffer-name)
+                                                 "Compile"))
+      "Compile"))
   (interactive)
   (disproject-with-environment
-    (let ((project-compilation-buffer-name-function
-           (lambda (&rest _ignore)
-             (disproject-process-buffer-name "default-compile" default-directory))))
-      (call-interactively #'project-compile))))
+    (let* ((buffer-name
+            (disproject-process-buffer-name "default-compile" default-directory))
+           (project-compilation-buffer-name-function
+            (lambda (&rest _ignore) buffer-name)))
+      (call-interactively #'project-compile)
+      (disproject-add-sentinel-refresh-transient buffer-name))))
 
 (transient-define-suffix disproject-remember-projects-open ()
   "Remember projects with open buffers."

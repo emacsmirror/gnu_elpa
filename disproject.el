@@ -915,8 +915,7 @@ COMMAND is an unevaluated s-expression representing the declared
 (defun disproject-custom--suffix-description (buffer description)
   "Return an appropriate description for a custom suffix.
 
-BUFFER is the associated custom suffix buffer.  It may be
-non-nil.
+BUFFER is the associated custom suffix buffer.  It may be nil.
 
 DESCRIPTION is the custom suffix description as defined by the
 user."

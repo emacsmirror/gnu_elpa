@@ -536,6 +536,7 @@ menu."
    :pad-keys t
    [("b" "Switch buffer" disproject-switch-to-buffer)
     ("B" "Buffer list" disproject-list-buffers)
+    ("c" "Compile" disproject-compile)
     ("d" "Dired" disproject-dired)
     ("k" "Kill buffers" disproject-kill-buffers)
     ("l" "Dir-locals file" disproject-dir-locals)
@@ -953,11 +954,12 @@ project."
    'disproject-custom-dispatch
    (mapcar #'disproject-custom--suffix
            `(,@(disproject--state-custom-suffixes)
-             ("!" "Alternative compile..."
+             ("!" "Alternative compile"
               :command-type compile
               :command (lambda ()
                          (interactive)
-                         (compilation-read-command (eval compile-command))))))))
+                         (compilation-read-command (eval compile-command)))
+              :identifier "default-compile")))))
 
 ;;;; Suffixes.
 
@@ -1127,6 +1129,15 @@ The command used can be customized with
   (interactive)
   (disproject-with-environment
     (call-interactively disproject-or-external-find-regexp-command)))
+
+(transient-define-suffix disproject-compile ()
+  "Call `project-compile' in project."
+  (interactive)
+  (disproject-with-environment
+    (let ((project-compilation-buffer-name-function
+           (lambda (&rest _ignore)
+             (disproject-process-buffer-name "default-compile" default-directory))))
+      (call-interactively #'project-compile))))
 
 (transient-define-suffix disproject-remember-projects-open ()
   "Remember projects with open buffers."

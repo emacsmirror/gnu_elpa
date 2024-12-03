@@ -56,7 +56,7 @@ the project's root directory.
 `display-buffer-overriding-action': Set to display in another
 window if \"--prefer-other-window\" is enabled."
   (declare (indent 0) (debug t))
-  `(let* ((scope (disproject--scope t))
+  `(let* ((scope (disproject--scope))
           (project (disproject-project-instance
                     (disproject-scope-selected-project-ensure scope)))
           (from-directory (project-root project))
@@ -663,14 +663,9 @@ the same as the default (current buffer) one."
                  directories)
      :test (lambda (p1 p2) (equal (project-root p1) (project-root p2))))))
 
-(defun disproject--scope (&optional ensure?)
-  "Return Disproject scope.
-
-If there is no object of `disproject-scope' available in the
-transient scope and ENSURE? is non-nil, create and return a new
-instance.  Otherwise, return nil."
-  (or (transient-scope disproject-prefix--transient-commands)
-      (and ensure? (disproject-scope))))
+(defun disproject--scope ()
+  "Return the scope for a `disproject-prefix' prefix."
+  (transient-scope disproject-prefix--transient-commands))
 
 ;;;; Transient state classes.
 
@@ -852,8 +847,7 @@ The user may be prompted for a project."
   (if (eq transient-current-command 'disproject-dispatch)
       (let ((args (transient-args transient-current-command)))
         (and args (transient-arg-value "--prefer-other-window" args)))
-    (if-let* ((scope (disproject--scope)))
-        (disproject-scope-prefer-other-window? scope))))
+    (disproject-scope-prefer-other-window? (disproject--scope))))
 
 
 ;;;
@@ -884,7 +878,7 @@ name, they should not be allowed to run at the same time)."
                                    (or project-dir
                                        (disproject-project-root
                                         (disproject-scope-selected-project
-                                         (disproject--scope t))))))
+                                         (disproject--scope))))))
           "-process|"
           (or identifier "default")
           "*"))
@@ -1063,7 +1057,7 @@ project."
    'disproject-custom-dispatch
    (mapcar #'disproject-custom--suffix
            `(,@(disproject-project-custom-suffixes
-                (disproject-scope-selected-project-ensure (disproject--scope t)))
+                (disproject-scope-selected-project-ensure (disproject--scope)))
              ("!" "Alternative compile"
               :command-type compile
               :command (lambda ()
@@ -1248,7 +1242,7 @@ The buffer name is determined by
 process status."
   :description
   (lambda ()
-    (if (disproject-scope-selected-project (disproject--scope t))
+    (if (disproject-scope-selected-project (disproject--scope))
         (let* ((buffer-name (disproject-process-buffer-name "default-compile")))
           (disproject-custom--suffix-description (get-buffer buffer-name)
                                                  "Compile"))

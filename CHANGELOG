@@ -4,6 +4,15 @@
 
 ** Unreleased
 
+*** Added
+
+- Add compilation command to the main dispatch menu.
+
+  Sometimes users don't want/need to learn ~disproject-custom-suffixes~ (which
+  can come with a lot of baggage), and ~project-compile~ is sufficient enough.
+  This provides a more accessible compile command that also matches the default
+  =C-x p c= key-bind for ~project-compile~.
+
 ** [[release-version:1.2.0][1.2.0]] - 2024-11-28
 
 This update consists of mainly quality-of-life / UX changes.  Some changes to

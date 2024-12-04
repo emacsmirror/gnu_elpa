@@ -465,17 +465,14 @@ as described `disproject-custom-suffixes'."
            maybe-override
            'prefer-other-window?
            (disproject--state-prefer-other-window?)))
-         (dir-local-variables
-          (with-temp-buffer
-            (when-let* ((project)
-                        (default-directory (project-root project)))
-              (hack-dir-local-variables)
-              dir-local-variables-alist)))
          (custom-suffixes
           (if-let* (((seq-contains-p prompt-keys 'custom-suffixes #'eq))
-                    (dir-local-variables)
-                    (suffixes (alist-get 'disproject-custom-suffixes
-                                         dir-local-variables))
+                    (suffixes (with-temp-buffer
+                                (when-let* ((project)
+                                            (default-directory
+                                             (project-root project)))
+                                  (alist-get 'disproject-custom-suffixes
+                                             (hack-dir-local--get-variables nil)))))
                     ((disproject--assert-type 'disproject-custom-suffixes
                                               suffixes))
                     ((disproject-custom--suffixes-allowed? project suffixes)))

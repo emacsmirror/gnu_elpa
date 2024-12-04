@@ -79,6 +79,7 @@ window if \"--prefer-other-window\" is enabled."
               (and prefer-other-window? '(display-buffer-use-some-window
                                           (inhibit-same-window t))))
              (project-vc-external-roots-function external-roots-function))
+         (hack-dir-local-variables-non-file-buffer)
          ;; Make sure commands are run in the correct direnv environment
          ;; if envrc-mode is enabled.
          (when enable-envrc (funcall enable-envrc))

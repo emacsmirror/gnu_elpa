@@ -112,14 +112,13 @@ respect `default-directory' or
 `project-current-directory-override', which the macro sets."
   :group 'disproject)
 
-(defvar disproject-prefix--transient-commands
-  '(disproject-dispatch
-    disproject-custom-dispatch
-    disproject-magit-commands-dispatch)
+(defvar disproject-prefix--transient-commands nil
   "Disproject transient prefix commands.
 
-This is a list of prefixes that use the `disproject-prefix' class
-and permit sharing scope between each other via scope.")
+This is a list of prefix commands that use and permit sharing a
+`disproject-scope' instance as a scope value.  Prefixes which use
+`disproject-prefix' or a child type are automatically added to
+this list via `initialize-instance'.")
 
 ;;;; Custom variables.
 
@@ -443,6 +442,12 @@ All prefixes that need to make use of `disproject-scope' as the
 scope object should be of this type or inherit from it, as it is
 responsible for preserving the scope across menus.")
 
+(cl-defmethod initialize-instance :after ((obj disproject-prefix) &rest _slots)
+  "Add OBJ command to `disproject-prefix--transient-commands' if not a member."
+  (let ((command (oref obj command)))
+    (unless (memq command disproject-prefix--transient-commands)
+      (add-to-list 'disproject-prefix--transient-commands command))))
+
 (cl-defmethod transient-init-scope ((obj disproject-prefix))
   "Initialize transient scope for OBJ.
 
@@ -705,7 +710,10 @@ the same as the default (current buffer) one."
 
 (defun disproject--scope ()
   "Return the scope for a `disproject-prefix' prefix."
-  (transient-scope disproject-prefix--transient-commands))
+  ;; Always fall back to initializing scope from `disproject-prefix' (i.e. class
+  ;; of `disproject-dispatch') rather than a child class to be predictable.
+  (transient-scope (cons 'disproject-dispatch
+                         disproject-prefix--transient-commands)))
 
 ;;;; Transient state classes.
 

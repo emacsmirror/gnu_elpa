@@ -111,8 +111,7 @@ Optional argument FLATTEN, when non-nil, flattens the result."
   (org-element-map contents 'link
     (lambda (link)
       (when (string-equal "id" (org-element-property :type link))
-        (org-element-property :path link)))
-    nil nil 'headline))
+        (org-element-property :path link)))))
 
 (defun org-gnosis-process-node (node)
   "Process a single headline NODE and return information as a list."

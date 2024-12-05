@@ -450,7 +450,7 @@ instead."
      ([(source text)
        (dest text)]
       (:foreign-key [source] :references nodes [id] :on-delete :cascade)
-      ))))
+      (:unique [source dest])))))
 
 (defun org-gnosis-db-delete-tables ()
   "Drop all tables."

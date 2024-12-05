@@ -173,10 +173,24 @@ FILE: File path"
 	 (links (org-gnosis-get-links parsed-data)))
     `(:file ,filename :topic ,topic :nodes ,nodes :links ,links)))
 
-(defun org-gnosis-adjust-title (input)
-  "Adjust the INPUT string to replace id link structures with plain text."
+(defun org-gnosis-adjust-title (input &optional node-id)
+  "Adjust the INPUT string to replace id link structures with plain text.
+
+Adjust title INPUT for NODE-ID.  If node-id contains an id link, it's
+inserted as link for NODE-ID in the database."
   (when (stringp input)
-    (replace-regexp-in-string "\\[\\[id:[^]]+\\]\\[\\(.*?\\)\\]\\]" "\\1" input)))
+    (let* ((id-links '())
+	   (new-input (replace-regexp-in-string
+                       "\\[\\[id:[^]]+\\]\\[\\(.*?\\)\\]\\]"
+                       (lambda (match)
+                         (push (match-string 1 match) id-links)
+                         (match-string 1 match))
+                       input)))
+      (when (and node-id id-links)
+	(emacsql-with-transaction org-gnosis-db
+	  (cl-loop for link in (reverse id-links)
+		   do (org-gnosis--insert-into 'links `([,node-id ,link])))))
+      new-input)))
 
 (defun org-gnosis-get-file-info (filename)
   "Something FILENAME."

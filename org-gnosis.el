@@ -97,17 +97,6 @@ Optional argument FLATTEN, when non-nil, flattens the result."
   "Drop TABLE from `gnosis-db'."
   (emacsql org-gnosis-db `[:drop-table ,table]))
 
-(defun org-gnosis-get--data (file)
-  "Return data for FILE.
-
-FILE: File path"
-  (let* ((parsed-data (org-element-parse-buffer))
-	 (topic (org-gnosis-get-data--topic parsed-data))
-	 (nodes (org-gnosis-get-data--nodes parsed-data))
-	 (filename (file-name-nondirectory file))
-	 (links (org-gnosis-get-links parsed-data)))
-    `(:file ,filename :topic ,topic :nodes ,nodes :links ,links)))
-
 (defun org-gnosis-adjust-title (input &optional node-id)
   "Adjust the INPUT string to replace id link structures with plain text.
 
@@ -127,6 +116,16 @@ inserted as link for NODE-ID in the database."
 		   do (org-gnosis--insert-into 'links `([,node-id ,link])))))
       new-input)))
 
+(defun org-collect-id-links (element)
+  "Collect all ID links within an ELEMENT."
+  (org-element-map element 'link
+    (lambda (link)
+      (let ((raw-link (org-element-property :raw-link link)))
+        (when (string-prefix-p "id:" raw-link)
+          (substring raw-link 3))))
+    nil nil t))
+
+;; TODO: Do not use links from master headline
 (defun org-gnosis-parse-headline (headline inherited-tags topic-id)
   "Parse a single headline element."
   (let* ((title (org-element-property :raw-value headline))
@@ -134,7 +133,7 @@ inserted as link for NODE-ID in the database."
          (level (org-element-property :level headline))
          (tags (org-element-property :tags headline))
          (links (org-collect-id-links headline))
-         (combined-tags (inherit-tags inherited-tags tags))
+         (combined-tags (delete-dups (append inherited-tags tags)))
          (master (if (= level 1) topic-id
                    (org-element-property :ID (org-element-property :parent headline)))))
     (when id
@@ -149,15 +148,45 @@ inserted as link for NODE-ID in the database."
           (substring raw-link 3))))
     nil nil t))
 
+(defun org-gnosis-get-data--topic (&optional parsed-data)
+  "Retrieve the title and ID from the current org buffer or given PARSED-DATA."
+  (let* ((parsed-data (or parsed-data (org-element-parse-buffer)))
+         (title (org-element-map parsed-data 'keyword
+                  (lambda (kw)
+                    (when (string= (org-element-property :key kw) "TITLE")
+                      (org-element-property :value kw)))
+                  nil t))
+         (id (org-element-map parsed-data 'property-drawer
+                (lambda (drawer)
+                  (org-element-map (org-element-contents drawer) 'node-property
+                    (lambda (prop)
+                      (when (string= (org-element-property :key prop) "ID")
+                        (org-element-property :value prop)))
+                    nil t))
+                nil t))
+	 (tags (org-gnosis-get-filetags)))
+    (list title tags id)))
+
+;; This one is used mostly for topic
+(defun org-gnosis-get-filetags (&optional parsed-data)
+  "Return the filetags of the buffer's PARSED-DATA as a comma-separated string."
+  (let* ((parsed-data (or parsed-data (org-element-parse-buffer)))
+         (filetags (org-element-map parsed-data 'keyword
+                     (lambda (kw)
+                       (when (string-equal (org-element-property :key kw) "FILETAGS")
+                         (org-element-property :value kw)))
+                     nil t)))
+    (and filetags (remove "" (split-string filetags ":")))))
+
 (defun org-gnosis-parse-topic (parsed-data)
-  "Parse topic information from the buffer."
+  "Parse topic information from the PARSED-DATA."
   (let* ((topic-info (org-gnosis-get-data--topic parsed-data))
          (topic-title (nth 0 topic-info))
          (topic-tags (nth 1 topic-info))
          (topic-id (nth 2 topic-info))
          (topic-links (org-gnosis-collect-id-links parsed-data)))
     (when topic-id
-      (list :title topic-title :id topic-id :links topic-links :tags topic-tags :level 0))))
+      (list :title topic-title :id topic-id :links topic-links :tags topic-tags :master 0))))
 
 (defun org-gnosis-buffer-data (&optional data)
   "Parse DATA in FILENAME for topic & headlines with IDs, ID, TAGS, MASTER id."

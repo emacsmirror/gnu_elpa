@@ -231,7 +231,8 @@ Removes all contents of FILE in database, adding them anew."
     ;; Add gnosis topic
     (emacsql-with-transaction org-gnosis-db
       (cl-loop for item in (butlast data)
-	       do (let ((title (plist-get item :title))
+	       do (let ((title (org-gnosis-adjust-title
+				(plist-get item :title)))
 			(id (plist-get item :id))
 			(links (plist-get item :links))
 			;; (master (plist-get item :master))

@@ -313,7 +313,7 @@ If called with ARG do not initialize the database."
 			 org-gnosis-dir))))
     (find-file file)
     (unless (file-exists-p file)
-      (insert (format "#+title: %s\n#+filetags:\n" title))
+      (insert (format "#+title: %s\n#+filetags: \n" title))
       (org-id-get-create)
       (and extras (insert extras))
       (org-mode)

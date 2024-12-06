@@ -711,6 +711,7 @@
   :readme "README.md"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
+ (speedrect             :url "https://github.com/jdtsmith/speedrect")
  (spinner		:url "https://github.com/Malabarba/spinner.el")
  (sql-beeline		:url nil)
  (sql-cassandra		:url nil)

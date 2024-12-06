@@ -377,6 +377,22 @@ instead."
     (org-insert-link nil id node)))
 
 ;;;###autoload
+(defun org-gnosis-insert-tag ()
+  "Insert filetag."
+  (interactive)
+  (let* ((filetags (org-gnosis-select 'tag 'tags '1=1 t))
+         (tag (funcall org-gnosis-completing-read-func "Select tag: " filetags)))
+    (save-excursion
+      (goto-char (point-min))
+      (if (re-search-forward "^#\\+FILETAGS:" nil t)
+          (progn
+            (end-of-line)
+            (insert (if (looking-back ":" nil) "" ":") tag ":"))
+        (progn
+          (insert "#+FILETAGS: :" tag ":")
+          (newline))))))
+
+;;;###autoload
 (defun org-gnosis-journal-find (&optional date)
   "Find journal entry for DATE."
   (interactive)

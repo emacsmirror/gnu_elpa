@@ -23,10 +23,6 @@
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
-;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING3.  If not see
-;; <http://www.gnu.org/licenses/>.
-
 ;;; Commentary:
 
 ;; A major mode for editing Algol 68 code.
@@ -95,7 +91,8 @@
     "THEF" "ANDF" "ANDTH"
     "ELSF" "ORF" "OREL"
     "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"
-    "REF" "NIL" "TRUE" "FALSE")
+    "REF" "NIL" "TRUE" "FALSE"
+    "MODULE" "DEF" "FED" "POSTLUDE" "ACCESS" "PUB")
   "List of Algol 68 keywords.")
 
 (defconst a68-font-lock-keywords
@@ -141,6 +138,8 @@
                            (exp "[" exp "]")
                            ("(" exp ")")
                            ("BEGIN" exp "END"))
+                      (def ("DEF" exp "POSTLUDE" exp "FED")
+                           ("DEF" exp "FED"))
                       (type-decl ("MODE" type-decl*))
                       (type-decl* (type-decl* "," type-decl*)
                                   (id "=" type-decl**))

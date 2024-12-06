@@ -116,31 +116,21 @@ inserted as link for NODE-ID in the database."
 		   do (org-gnosis--insert-into 'links `([,node-id ,link])))))
       new-input)))
 
-(defun org-collect-id-links (element)
-  "Collect all ID links within an ELEMENT."
-  (org-element-map element 'link
-    (lambda (link)
-      (let ((raw-link (org-element-property :raw-link link)))
-        (when (string-prefix-p "id:" raw-link)
-          (substring raw-link 3))))
-    nil nil t))
-
-;; TODO: Do not use links from master headline
 (defun org-gnosis-parse-headline (headline inherited-tags topic-id)
-  "Parse a single headline element."
+  "Parse a single headline and return a plist with its info."
   (let* ((title (org-element-property :raw-value headline))
          (id (org-element-property :ID headline))
          (level (org-element-property :level headline))
-         (tags (org-element-property :tags headline))
-         (links (org-collect-id-links headline))
-         (combined-tags (delete-dups (append inherited-tags tags)))
+         (tags (or (org-element-property :tags headline) inherited-tags))
+         (all-tags (delete-dups (append inherited-tags tags)))
+         (links (org-gnosis-collect-id-links headline))
          (master (if (= level 1) topic-id
                    (org-element-property :ID (org-element-property :parent headline)))))
-    (when id
-      (list :title title :id id :links links :tags combined-tags :master master))))
+    (and id
+         (list :title title :id id :links links :tags all-tags :master master))))
 
 (defun org-gnosis-collect-id-links (element)
-  "Collect all ID links within an element."
+  "Collect all ID links within ELEMENT that start with id:."
   (org-element-map element 'link
     (lambda (link)
       (let ((raw-link (org-element-property :raw-link link)))
@@ -157,13 +147,13 @@ inserted as link for NODE-ID in the database."
                       (org-element-property :value kw)))
                   nil t))
          (id (org-element-map parsed-data 'property-drawer
-                (lambda (drawer)
-                  (org-element-map (org-element-contents drawer) 'node-property
-                    (lambda (prop)
-                      (when (string= (org-element-property :key prop) "ID")
-                        (org-element-property :value prop)))
-                    nil t))
-                nil t))
+               (lambda (drawer)
+                 (org-element-map (org-element-contents drawer) 'node-property
+                   (lambda (prop)
+                     (when (string= (org-element-property :key prop) "ID")
+                       (org-element-property :value prop)))
+                   nil t))
+               nil t))
 	 (tags (org-gnosis-get-filetags)))
     (list title tags id)))
 
@@ -189,35 +179,22 @@ inserted as link for NODE-ID in the database."
       (list :title topic-title :id topic-id :links topic-links :tags topic-tags :master 0))))
 
 (defun org-gnosis-buffer-data (&optional data)
-  "Parse DATA in FILENAME for topic & headlines with IDs, ID, TAGS, MASTER id."
+  "Parse DATA in current buffer for topics & headlines with their ID, tags, links."
   (let* ((parsed-data (or data (org-element-parse-buffer)))
          (topic (org-gnosis-parse-topic parsed-data))
-         (topic-id (plist-get topic :id))
-         (headlines '())
-         (current-path '())
+         (all-ids (when topic (list (plist-get topic :id))))
          (inherited-tags (plist-get topic :tags))
-         (all-ids '()))
+         (headlines '()))
     (org-element-map parsed-data 'headline
       (lambda (headline)
-        (let ((entry (org-gnosis-parse-headline headline inherited-tags topic-id)))
-          (when entry
-            (push entry headlines)
-            (push (plist-get entry :id) all-ids)
-            (setq current-path
-		  (cl-subseq current-path 0
-			     (min (org-element-property :level headline)
-				  (length current-path))))
-            (dolist (parent current-path)
-              (plist-put parent
-			 :links (cons (plist-get entry :id)
-				      (remove (plist-get entry :id)
-					      (plist-get parent :links)))))
-            (push entry current-path)
-            (setq inherited-tags (plist-get entry :tags))))))
+        (let ((parsed-headline (org-gnosis-parse-headline
+				headline inherited-tags (plist-get topic :id))))
+          (when parsed-headline
+            (push parsed-headline headlines)
+            (push (plist-get parsed-headline :id) all-ids)))))
     (when topic
-      (plist-put topic :links (append all-ids (plist-get topic :links)))
-      (push topic headlines))
-    (nreverse headlines)))
+      (plist-put topic :links (org-gnosis-collect-id-links parsed-data)))
+    (nreverse (cons topic headlines))))
 
 (defun org-gnosis-get-file-info (filename)
   "Get data for FILENAME.
@@ -322,17 +299,17 @@ If called with ARG do not initialize the database."
 (defun org-gnosis-find--tag-with-tag-prop (lst)
   "Combine each sublist of strings in LST into a single string."
   (mapcar (lambda (item)
-          (let* ((title (car item))
-                 (tags (cadr item))
-                 (propertized-tags
-		  (when tags
-                    (concat (propertize "#" 'face 'org-gnosis-face-tags)
-                            (propertize (mapconcat 'identity tags "#")
-					'face 'org-gnosis-face-tags)))))
-            (if propertized-tags
-                (format "%s  %s" title propertized-tags)
-              title)))
-        lst))
+            (let* ((title (car item))
+                   (tags (cadr item))
+                   (propertized-tags
+		    (when tags
+                      (concat (propertize "#" 'face 'org-gnosis-face-tags)
+                              (propertize (mapconcat 'identity tags "#")
+					  'face 'org-gnosis-face-tags)))))
+              (if propertized-tags
+                  (format "%s  %s" title propertized-tags)
+		title)))
+          lst))
 
 (defun org-gnosis--create-file (title &optional file extras)
   "Create node & FILE for TITLE."
@@ -441,8 +418,8 @@ instead."
   "Insert journal entry."
   (interactive)
   (let* ((node (org-gnosis--find "Select journal entry: "
-		  (org-gnosis-select '[date tags] 'journal '1=1)
-		  (org-gnosis-select 'date 'journal '1=1)))
+				 (org-gnosis-select '[date tags] 'journal '1=1)
+				 (org-gnosis-select 'date 'journal '1=1)))
 	 (node-id (concat "id:" (car (org-gnosis-select 'id 'journal `(= ,node date) '1=1)))))
     (org-insert-link nil node-id node)))
 
@@ -508,7 +485,7 @@ instead."
   (setf org-gnosis-db (emacsql-sqlite-open (locate-user-emacs-file "org-gnosis.db")))
   (org-gnosis-db-delete-tables)
   (when (length< (emacsql org-gnosis-db
-			    [:select name :from sqlite-master :where (= type table)])
+			  [:select name :from sqlite-master :where (= type table)])
 		 3)
     (org-gnosis-db-delete-tables)
     (emacsql-with-transaction org-gnosis-db

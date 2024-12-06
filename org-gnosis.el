@@ -41,8 +41,9 @@
   :type 'directory
   :group 'org-gnosis)
 
-(defcustom org-gnosis-journal-template
-  "* Daily Notes\n\n* Goals\n+ []"
+(defcustom org-gnosis-journal-templates
+  '(("default" "* Daily Notes\n\n* Goals\n+ []")
+    ("Empty" ""))
   "Template for journaling."
   :type 'string
   :group 'org-gnosis)
@@ -397,6 +398,14 @@ instead."
 	   (ignore-errors (org-id-goto id))
 	   (org-gnosis-mode 1)))))
 
+(defun org-gnosis-journal-select-template (&optional templates)
+  "Selecte journal template from TEMPLATES."
+  (let* ((templates (or templates org-gnosis-journal-templates))
+	 (selected (funcall org-gnosis-completing-read-func "Select template:"
+			    (mapcar #'car templates)))
+	 (template (cdr (assoc selected templates))))
+    (apply #'append template)))
+
 ;;;###autoload
 (defun org-gnosis-insert ()
   "Insert gnosis node."
@@ -436,7 +445,7 @@ instead."
   (let* ((date (format-time-string "%Y-%m-%d"))
 	 (file (format "%s.org" date)))
     (org-gnosis--create-file date (expand-file-name file org-gnosis-journal-dir)
-			     (or template org-gnosis-journal-template))))
+			     (or template (org-gnosis-journal-select-template)))))
 
 (define-minor-mode org-gnosis-mode
   "Org gnosis mode."

@@ -57,6 +57,17 @@
   :type 'boolean
   :group 'org-gnosis)
 
+(defcustom org-gnosis-completing-read-func
+  (cond ((or (bound-and-true-p ivy-mode)
+	     (bound-and-true-p helm-mode)
+	     (bound-and-true-p vertico-mode)
+	     (bound-and-true-p fido-mode))
+	 #'completing-read)
+	(t #'ido-completing-read))
+  "Function to use for `completing-read'."
+  :type 'function
+  :group 'gnosis)
+
 (defface org-gnosis-face-tags
   '((t :inherit font-lock-type-face))
   "Face for displaying gnosis with `org-gnosis-find'."

@@ -325,10 +325,11 @@ If called with ARG do not initialize the database."
   "Select gnosis node with tags from ENTRIES.
 
 PROMPT: Prompt message."
-  (replace-regexp-in-string "  #[^[:space:]]+" ""
-   (completing-read (or prompt "Select gnosis node: ")
-		    (org-gnosis-find--tag-with-tag-prop
-		     (or entries (org-gnosis-select '[title tags] 'nodes))))))
+  (replace-regexp-in-string
+   "  #[^[:space:]]+" ""
+   (funcall org-gnosis-completing-read-func (or prompt "Select gnosis node: ")
+	    (org-gnosis-find--tag-with-tag-prop
+	     (or entries (org-gnosis-select '[title tags] 'nodes))))))
 
 (defun org-gnosis--find (prompt entries-with-tags entries)
   "PROMPT user to select from ENTRIES.
@@ -337,7 +338,7 @@ If `org-gnosis-show-tags' is non-nil, ENTRIES-WITH-TAGS will be used
 instead."
   (let* ((entry (if org-gnosis-show-tags
                     (org-gnosis-find--with-tags prompt entries-with-tags)
-                  (completing-read prompt entries))))
+                  (funcall org-gnosis-completing-read-func prompt entries))))
     entry))
 
 ;;;###autoload

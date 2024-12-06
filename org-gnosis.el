@@ -97,83 +97,6 @@ Optional argument FLATTEN, when non-nil, flattens the result."
   "Drop TABLE from `gnosis-db'."
   (emacsql org-gnosis-db `[:drop-table ,table]))
 
-(defun org-gnosis-get-current-node-title ()
-  "Return the title of the current node."
-  (when (derived-mode-p 'org-mode)
-    (let* ((parsed-data (org-element-parse-buffer))
-           (title (org-element-map parsed-data 'keyword
-                    (lambda (kw)
-                      (when (string-equal (org-element-property :key kw) "TITLE")
-                        (org-element-property :value kw)))
-                    nil t)))
-      title)))
-
-(defun org-gnosis-get-filetags (&optional parsed-data)
-  "Return the filetags of the buffer's PARSED-DATA as a comma-separated string."
-  (let* ((parsed-data (or parsed-data (org-element-parse-buffer)))
-         (filetags (org-element-map parsed-data 'keyword
-                     (lambda (kw)
-                       (when (string-equal (org-element-property :key kw) "FILETAGS")
-                         (org-element-property :value kw)))
-                     nil t)))
-    (and filetags (remove "" (split-string filetags ":")))))
-
-(defun org-gnosis-get-links (contents)
-  "Recursively collect all node id links from CONTENTS."
-  (org-element-map contents 'link
-    (lambda (link)
-      (when (string-equal "id" (org-element-property :type link))
-        (org-element-property :path link)))))
-
-(defun org-gnosis-process-node (node)
-  "Process a single headline NODE and return information as a list."
-  (let ((title (org-element-property :raw-value node))
-        (tags (org-element-property :tags node))
-        (id (org-element-property :ID node))
-	(links (org-gnosis-get-links (org-element-contents node)))
-        (children (org-element-contents node)))
-    (when title
-      (list title tags id
-            (org-gnosis-process-children children (1+ (org-element-property :level node)))
-	    links))))
-
-(defun org-gnosis-process-children (nodes level)
-  "Recursively process NODES at a given LEVEL."
-  (let (result)
-    (while nodes
-      (let ((current-node (car nodes))
-            (current-level (org-element-property :level (car nodes))))
-        (if (and current-level (= current-level level))
-            (progn
-              (push (org-gnosis-process-node current-node) result)
-              (setq nodes (cdr nodes)))
-          (setq nodes (cdr nodes)))))
-    (nreverse result)))
-
-(defun org-gnosis-get-data--nodes (&optional parsed-data)
-  "Return a hierarchical list of nodes with titles, tags, and IDs from PARSED-DATA."
-  (let ((parsed-data (or parsed-data (org-element-parse-buffer))))
-    (org-gnosis-process-children (org-element-map parsed-data 'headline #'identity) 1)))
-
-(defun org-gnosis-get-data--topic (&optional parsed-data)
-  "Retrieve the title and ID from the current org buffer or given PARSED-DATA."
-  (let* ((parsed-data (or parsed-data (org-element-parse-buffer)))
-         (title (org-element-map parsed-data 'keyword
-                  (lambda (kw)
-                    (when (string= (org-element-property :key kw) "TITLE")
-                      (org-element-property :value kw)))
-                  nil t))
-         (id (org-element-map parsed-data 'property-drawer
-                (lambda (drawer)
-                  (org-element-map (org-element-contents drawer) 'node-property
-                    (lambda (prop)
-                      (when (string= (org-element-property :key prop) "ID")
-                        (org-element-property :value prop)))
-                    nil t))
-                nil t))
-	 (tags (org-gnosis-get-filetags)))
-    (list title tags id)))
-
 (defun org-gnosis-get--data (file)
   "Return data for FILE.
 
@@ -204,40 +127,77 @@ inserted as link for NODE-ID in the database."
 		   do (org-gnosis--insert-into 'links `([,node-id ,link])))))
       new-input)))
 
+(defun org-gnosis-parse-headline (headline inherited-tags topic-id)
+  "Parse a single headline element."
+  (let* ((title (org-element-property :raw-value headline))
+         (id (org-element-property :ID headline))
+         (level (org-element-property :level headline))
+         (tags (org-element-property :tags headline))
+         (links (org-collect-id-links headline))
+         (combined-tags (inherit-tags inherited-tags tags))
+         (master (if (= level 1) topic-id
+                   (org-element-property :ID (org-element-property :parent headline)))))
+    (when id
+      (list :title title :id id :links links :tags combined-tags :master master))))
+
+(defun org-gnosis-collect-id-links (element)
+  "Collect all ID links within an element."
+  (org-element-map element 'link
+    (lambda (link)
+      (let ((raw-link (org-element-property :raw-link link)))
+        (when (string-prefix-p "id:" raw-link)
+          (substring raw-link 3))))
+    nil nil t))
+
+(defun org-gnosis-parse-topic (parsed-data)
+  "Parse topic information from the buffer."
+  (let* ((topic-info (org-gnosis-get-data--topic parsed-data))
+         (topic-title (nth 0 topic-info))
+         (topic-tags (nth 1 topic-info))
+         (topic-id (nth 2 topic-info))
+         (topic-links (org-gnosis-collect-id-links parsed-data)))
+    (when topic-id
+      (list :title topic-title :id topic-id :links topic-links :tags topic-tags :level 0))))
+
+(defun org-gnosis-buffer-data (&optional data)
+  "Parse DATA in FILENAME for topic & headlines with IDs, ID, TAGS, MASTER id."
+  (let* ((parsed-data (or data (org-element-parse-buffer)))
+         (topic (org-gnosis-parse-topic parsed-data))
+         (topic-id (plist-get topic :id))
+         (headlines '())
+         (current-path '())
+         (inherited-tags (plist-get topic :tags))
+         (all-ids '()))
+    (org-element-map parsed-data 'headline
+      (lambda (headline)
+        (let ((entry (org-gnosis-parse-headline headline inherited-tags topic-id)))
+          (when entry
+            (push entry headlines)
+            (push (plist-get entry :id) all-ids)
+            (setq current-path
+		  (cl-subseq current-path 0
+			     (min (org-element-property :level headline)
+				  (length current-path))))
+            (dolist (parent current-path)
+              (plist-put parent
+			 :links (cons (plist-get entry :id)
+				      (remove (plist-get entry :id)
+					      (plist-get parent :links)))))
+            (push entry current-path)
+            (setq inherited-tags (plist-get entry :tags))))))
+    (when topic
+      (plist-put topic :links (append all-ids (plist-get topic :links)))
+      (push topic headlines))
+    (nreverse headlines)))
+
 (defun org-gnosis-get-file-info (filename)
-  "Something FILENAME."
+  "Get data for FILENAME.
+
+Returns file data with FILENAME."
   (with-temp-buffer
     (insert-file-contents filename)
-    (let* ((data (org-gnosis-get--data filename)))
-      data)))
-
-(defun org-gnosis-parse-nodes (nodes top-node-id inherited-tags)
-  "Parse a list of nodes, inheriting tags and associating the top node ID.
-NODES: list of nodes to parse.
-TOP-NODE-ID: the ID of the top node to associate with each node.
-INHERITED-TAGS: tags from the top node to inherit."
-  (cl-loop for (name tags id sub-nodes links) in nodes
-           ;; Only include nodes with non-nil id
-           when id
-           append (list (list :node name
-                              :tags (append tags inherited-tags)
-                              :id id
-                              :top-node top-node-id
-			      :links links))
-           ;; Recursively parse sub-nodes, inheriting current node's tags
-           append (org-gnosis-parse-nodes sub-nodes (when id id) (append tags inherited-tags))))
-
-(defun org-gnosis-parse-data-recursive (data &optional initial-tags top-node-id)
-  "Recursively parse the entire data structure, extracting nodes and details.
-DATA: List of top-level nodes to start parsing.
-INITIAL-TAGS: Initial set of tags to inherit."
-  (cl-loop for (node tags id sub-nodes) in data
-           ;; Directly parse sub-nodes, using top-level nodes only if they have valid id
-           append (when id (list (list :node node
-                                       :tags (append tags initial-tags)
-                                       :id id
-                                       :top-node top-node-id)))
-           append (org-gnosis-parse-nodes sub-nodes id (append tags initial-tags))))
+    (let* ((data (org-gnosis-buffer-data)))
+      (append data (list (file-name-nondirectory filename))))))
 
 (defun org-gnosis-update-file (&optional file)
   "Update contents of FILE in databse.
@@ -267,42 +227,42 @@ Removes all contents of FILE in database, adding them anew."
 (defun org-gnosis--update-file (file)
   "Add contents of FILE to database."
   (let* ((data (org-gnosis-get-file-info file))
-	 (file (plist-get data :file))
-	 (topic (org-gnosis-adjust-title (nth 0 (plist-get data :topic))))
-	 (tags (nth 1 (plist-get data :topic)))
-	 (hash (nth 2 (plist-get data :topic))) ;; topic id
-	 (links  (plist-get data :links))) ;; main topic links
+	 (filename (file-name-nondirectory file)))
     ;; Add gnosis topic
     (emacsql-with-transaction org-gnosis-db
-      (org-gnosis--insert-into 'nodes `([,hash ,file ,topic ,tags]))
-      (cl-loop for link in links
-	       do (org-gnosis--insert-into 'links `([,hash ,link]))))
-    ;; Add nodes of topic
-    (cl-loop for node in (org-gnosis-parse-data-recursive
-			  (plist-get data :nodes)
-			  tags ;; initial topic tags for top node
-			  hash ;; node topic hash
-			  )
-	     do
-	     (let ((title (org-gnosis-adjust-title (plist-get node :node)))
-		   (tags (plist-get node :tags))
-		   (id (plist-get node :id)))
-	       (emacsql-with-transaction org-gnosis-db
-		 (org-gnosis--insert-into 'nodes `([,id ,file ,title ,tags]))
-		 ;; (org-gnosis--insert-into 'links `([,id ]))
-		 )))))
+      (cl-loop for item in (butlast data)
+	       do (let ((title (plist-get item :title))
+			(id (plist-get item :id))
+			(links (plist-get item :links))
+			;; (master (plist-get item :master))
+			(tags (plist-get item :tags)))
+		    (org-gnosis--insert-into 'nodes `([,id ,filename ,title ,tags]))
+	            (cl-loop for link in links
+			     do (org-gnosis--insert-into 'links `([,id ,link])))
+		    (cl-loop for tag in tags
+			     do
+			     (org-gnosis--insert-into 'tags `([,tag]))
+			     (org-gnosis--insert-into 'node-tag `([,id ,tag]))))))))
+
 
 (defun org-gnosis-journal--update-file (file)
   "Update database for journal FILE."
   (let* ((data (org-gnosis-get-file-info file))
-	 (file (plist-get data :file))
-	 (tags (nth 1 (plist-get data :topic)))
-	 (date (org-gnosis-adjust-title (nth 0 (plist-get data :topic))))
-	 (hash (nth 2 (plist-get data :topic)))
-	 (links (plist-get data :links)))
-    ;; Add journal
+	 (file (file-name-nondirectory file)))
     (emacsql-with-transaction org-gnosis-db
-      (org-gnosis--insert-into 'journal `([,hash ,file ,date ,tags])))))
+      (cl-loop for item in (butlast data)
+	       do (let ((title (plist-get item :title))
+			(id (plist-get item :id))
+			(links (plist-get item :links))
+			;; (master (plist-get item :master))
+			(tags (plist-get item :tags)))
+		    (org-gnosis--insert-into 'journal `([,id ,file ,title ,tags]))
+	            (cl-loop for link in links
+			     do (org-gnosis--insert-into 'links `([,id ,link])))
+		    (cl-loop for tag in tags
+			     do
+			     (org-gnosis--insert-into 'tags `([,tag]))
+			     (org-gnosis--insert-into 'node-tag `([,id ,tag]))))))))
 
 (defun org-gnosis-db-sync--journal ()
   "Sync journal entries in databse."
@@ -468,17 +428,18 @@ instead."
        (title text)
        tags]))
     (tags
-     ([(tag-name text :primary-key)]))
+     ([(tag text :primary-key)]
+      (:unique [tag])))
     (journal
      ([(id :not-null :primary-key)
        (file :not-null)
        (date text)
        tags]))
-    ;; (node-tags
-    ;;  ([(node-id :not-null)
-    ;;    (tags :not-null)
-    ;;    (:foreign-key [node-id] :references nodes [id] :on-delete :cascade)
-    ;;    (:foreign-key [tags] :references tags [tag-name] :on-delete :cascade)]))
+    (node-tag
+     ([(node-id :not-null)
+       (tag :not-null)]
+      (:foreign-key [node-id] :references nodes [id] :on-delete :cascade)
+      (:unique [node-id tag])))
     (links
      ([(source text)
        (dest text)]
@@ -489,10 +450,11 @@ instead."
   "Drop all tables."
   (ignore-errors
     (emacsql-with-transaction org-gnosis-db
-    (org-gnosis--drop-table 'nodes)
-    (org-gnosis--drop-table 'tags)
-    (org-gnosis--drop-table 'journal)
-    (org-gnosis--drop-table 'links))))
+      (org-gnosis--drop-table 'nodes)
+      (org-gnosis--drop-table 'tags)
+      (org-gnosis--drop-table 'journal)
+      (org-gnosis--drop-table 'links)
+      (org-gnosis--drop-table 'node-tag))))
 
 (defun org-gnosis-db-init ()
   "Initialize database DB with the correct schema and user version."

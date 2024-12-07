@@ -271,31 +271,6 @@ Removes all contents of FILE in database, adding them anew."
 			     (org-gnosis--insert-into 'tags `([,tag]))
 			     (org-gnosis--insert-into 'node-tag `([,id ,tag]))))))))
 
-(defun org-gnosis-db-sync--journal ()
-  "Sync journal entries in databse."
-  (cl-loop for file in (cl-remove-if-not (lambda (file)
-					   (and (string-match-p "^[0-9]"
-								(file-name-nondirectory file))
-						(not (file-directory-p file))))
-					 (directory-files org-gnosis-journal-dir t nil t))
-	   do (org-gnosis-journal--update-file file)))
-
-;;;###autoload
-(defun org-gnosis-db-sync (&optional arg)
-  "Sync `org-gnosis-db'.
-
-If called with ARG do not initialize the database."
-  (interactive "P")
-  (unless arg
-    (org-gnosis-db-init))
-  (let ((files (cl-remove-if-not (lambda (file)
-				   (and (string-match-p "^[0-9]" (file-name-nondirectory file))
-					(not (file-directory-p file))))
-				 (directory-files org-gnosis-dir t nil t))))
-    (cl-loop for file in files
-	     do (org-gnosis--update-file file)))
-  (org-gnosis-db-sync--journal))
-
 (defun org-gnosis-find--tag-with-tag-prop (lst)
   "Combine each sublist of strings in LST into a single string."
   (mapcar (lambda (item)
@@ -479,6 +454,30 @@ instead."
       (org-gnosis--drop-table 'journal)
       (org-gnosis--drop-table 'links)
       (org-gnosis--drop-table 'node-tag))))
+
+(defun org-gnosis-db-sync--journal ()
+  "Sync journal entries in databse."
+  (cl-loop for file in (cl-remove-if-not (lambda (file)
+					   (and (string-match-p "^[0-9]"
+								(file-name-nondirectory file))
+						(not (file-directory-p file))))
+					 (directory-files org-gnosis-journal-dir t nil t))
+	   do (org-gnosis-journal--update-file file)))
+
+;;;###autoload
+(defun org-gnosis-db-sync ()
+  "Sync `org-gnosis-db'.
+
+If called with ARG do not initialize the database."
+  (interactive)
+  (org-gnosis-db-init)
+  (let ((files (cl-remove-if-not (lambda (file)
+				   (and (string-match-p "^[0-9]" (file-name-nondirectory file))
+					(not (file-directory-p file))))
+				 (directory-files org-gnosis-dir t nil t))))
+    (cl-loop for file in files
+	     do (org-gnosis--update-file file)))
+  (org-gnosis-db-sync--journal))
 
 (defun org-gnosis-db-init ()
   "Initialize database DB with the correct schema and user version."

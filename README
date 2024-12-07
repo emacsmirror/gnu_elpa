@@ -1,0 +1,35 @@
+org-gnosis
+==========
+
+
+This is a roam-inspired note-taking system for GNU Emacs.  It is
+designed to serve as a minimalistic, drop-in alternative to org-roam.
+
+It is currently under development & destined to be part of the gnosis
+package <https://git.thanosapollo.org/gnosis/>.
+
+
+Installation
+============
+
+   (use-package org-gnosis
+     :vc (:url "https://git.thanosapollo.org/org-gnosis")
+     :ensure t
+     :init
+     (define-prefix-command 'thanos/notes-map)
+     :config
+     (setf org-gnosis-dir "~/Notes"
+	   org-gnosis-journal-template
+	   "* Daily Notes\n\n* Goals\n+ [] Workout\n+ [] Study\n\n* Extras"
+	   org-gnosis-show-tags t) ;; enable if you use a vertical completion-system e.g vertico
+     :bind (("C-c n" . thanos/notes-map)
+	    :map thanos/notes-map
+	    ("f" . org-gnosis-find)
+	    ("i" . org-gnosis-insert)
+	    ("j j" . org-gnosis-journal)
+	    ("j f" . org-gnosis-journal-find)
+	    ("j i" . org-gnosis-journal-insert)
+	    :map thanos/journal-map
+	    :map org-mode-map
+	    ("C-c C-." . org-gnosis-insert-tag)
+	    ("C-c i" . org-id-get-create)))

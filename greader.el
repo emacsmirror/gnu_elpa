@@ -1809,5 +1809,25 @@ If the region is active, use it."
 	(dtk-speak (car (greader--estimated-reading-time)))))
   (force-mode-line-update))
 
+;;;###autoload
+(define-minor-mode greader-estimated-time-mode
+  "keep mode line updated in respect of remaining reading time.
+This mode updates the mode line on certain events, such as when pass
+to the next sentence, or when you stop the reading."
+  :lighter " "
+  (if greader-estimated-time-mode
+      (progn
+	(add-hook 'greader-before-read-hook
+		  #'greader-estimated-time-update)
+	(add-hook 'greader-after-stop-hook
+		  #'greader-estimated-time-update))
+    (remove-hook 'greader-before-read-hook 'greader-estimated-time-update)
+    (remove-hook 'greader-after-stop-hook
+		 'greader-estimated-time-update)
+    (greader--estimated-reading-time-remove))
+  (force-mode-line-update))
+
+    
+
 (provide 'greader)
 ;;; greader.el ends here

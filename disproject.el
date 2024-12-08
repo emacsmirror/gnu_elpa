@@ -219,6 +219,8 @@ evaluated."
   :group 'disproject)
 ;;;###autoload(put 'disproject-custom-suffixes 'safe-local-variable #'always)
 
+;;;;; Customizable Disproject commands.
+
 (defcustom disproject-find-dir-command #'project-find-dir
   "Command to find a directory in a project.
 

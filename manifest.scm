@@ -7,7 +7,7 @@
 (define-public emacs-transient/newer
   (package/inherit emacs-transient
     (name "emacs-transient")
-    (version "0.7.8")
+    (version "0.8.0")
     (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -16,7 +16,7 @@
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "1k30zhj2acs9spri6pqcyc0v0wcd9smb3xgl1vm0i6485d9lvr2p"))))))
+                "1f8w6b242ar0538pimnrf7a5j277q80z7n379hyihdblvjk90xi2"))))))
 
 (packages->manifest
  (append (specifications->packages (list "findutils" "git" "grep"))

@@ -9,7 +9,7 @@
 ;; Keywords: convenience, files, vc
 
 ;; Version: 1.2.0
-;; Package-Requires: ((emacs "29.4") (transient "0.7.8"))
+;; Package-Requires: ((emacs "29.4") (transient "0.8.0"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

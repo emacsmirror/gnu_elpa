@@ -10,6 +10,10 @@
 
 (define repository-root-directory (dirname (current-filename)))
 
+;; Disproject depends on emacs-transient>=0.8.0 which is not yet available
+;; upstream - older versions may not work.  See manifest.scm for newer
+;; emacs-transient package that can be used (needs to replace older
+;; emacs-transient in guix environment completely to be used).
 (define-public emacs-disproject
   (package
     (name "emacs-disproject")

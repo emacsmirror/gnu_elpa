@@ -84,6 +84,7 @@
     "PR" "PRAGMAT" "STRUCT" "UNION"
     "CASE" "IN" "OUSE" "OUT" "ESAC"
     "FOR" "FORALL" "FROM" "TO" "BY" "WHILE" "DO" "OD"
+    "EQ" "NE" "LT" "GT"
     "IF" "THEN" "ELIF" "THEN" "ELSE" "FI"
     "PAR" "BEGIN" "END" "GOTO" "GO" "TO" "EXIT"
     "LWB" "UPB" "ELEMS" "NOT" "ABS" "BIN" "REPR" "LENG"

@@ -6,26 +6,20 @@
 
 *** Added
 
-- Add compilation command to the main dispatch menu.
-
-  Sometimes users don't want/need to learn ~disproject-custom-suffixes~ (which
-  can come with a lot of baggage), and ~project-compile~ is sufficient enough.
-  This provides a more accessible compile command that also matches the default
-  =C-x p c= key-bind for ~project-compile~.
-- Support ~project-current-directory-override~ by using ~project-current~
-  without arguments when appropriate.  This variable can now be used to set the
-  default selected project for dispatch commands, for example.
-- Add the ~disproject-scope~ and ~disproject-project~ classes.
-
-  These types replace the previous implementation of passing state around menus,
-  and should offer more benefits (like the improved state-tracking noted below)
-  moving forward.
-- Add the ~disproject-prefix~ class.
-
-  Most Disproject menus use this class now.  This mainly handles preserving
-  transient scope.  Combined with the classes mentioned above, it should make it
-  easier to create new menus that make use of state like the selected project,
-  shared from other Disproject menus.
+- Add compilation command to the main dispatch menu.  Sometimes users don't
+  want/need to learn ~disproject-custom-suffixes~ (which can come with a lot of
+  baggage), and ~project-compile~ is sufficient enough.  This provides a more
+  accessible compile command that also matches the default =C-x p c= key-bind
+  for ~project-compile~.
+- Support ~project-current-directory-override~, which can be reliably used now
+  to e.g. set the default selected project for dispatch commands.
+- Add the ~disproject-scope~ and ~disproject-project~ classes, which provide
+  interfaces for interacting with the transient scope.  This replaces the
+  previous implementation of passing state around menus, and should offer more
+  benefits - like the improved state-tracking noted below - moving forward.
+- Add the ~disproject-prefix~ class, which can be used to indicate to other
+  transient prefixes using the class that transient scope should be shared
+  between them (i.e. a ~disproject-scope~ type value).
 
 *** Changed
 
@@ -34,17 +28,16 @@
   should only show up once (and only when needed) for each transient "session"
   until the menu closes.
 - Automatically use the current project if available for suffix commands when
-  calling them without the use of Disproject menus
-  (e.g. ~(disproject-find-file)~; ~(disproject-shell)~).  When there is no
-  current project, the behavior is the same as before.
+  calling them without the use of Disproject menus (e.g. ~disproject-find-file~;
+  ~disproject-shell~).  When there is no current project, the behavior is the
+  same as before.
 
 *** Deprecated
 
 - Deprecate the optional ~project~ argument for some dispatch commands as they
   are now redundant with the support for ~project-current-directory-override~.
-  They will still work for now.
-
-  Removal is set for at least 1 month after this release.
+  They will still work for now.  Removal is set for at least 1 month after this
+  release.
 
 *** Removed
 

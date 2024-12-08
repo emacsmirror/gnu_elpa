@@ -1749,5 +1749,65 @@ If `greader-region-mode' is enabled, restart will behave accordingly."
     (remove-hook 'greader-before-finish-functions
 		 #'greader-study-restart t)))
 
+;; Estimated reading time calculation.
+(defvar-local greader--buffer-words nil
+  "Total buffer words.")
+(defun greader--estimated-reading-time (&optional start end)
+  "Calculate the estimated reading time between START and END, based
+on your reading speed in WPM (words per minute).
+The selected back-end must support `rate' command.
+If START or END is not provided, consider the entire buffer."
+  (if-let* ((wpm (and (numberp (greader-get-rate))
+                      (greader-get-rate))))
+      (progn
+	(setq greader--buffer-words (if greader--buffer-words
+					greader--buffer-words (count-words (or start (point-min))
+									   (or end (point-max)))))
+	(let* ((total-minutes (/ (* 1.0 greader--buffer-words) wpm))
+               (total-seconds (round (* total-minutes 60)))
+               (hours (/ total-seconds 3600))
+             (minutes (/ (% total-seconds 3600) 60))
+             (seconds (% total-seconds 60)))
+          ;; (message "%02d:%02d:%02d" hours minutes seconds)
+	  (list (propertize (format "%02d:%02d:%02d" hours minutes
+				    seconds) 'greader-estimated-time t)
+		`(,hours ,minutes ,seconds))))
+    nil))
+
+(defun greader--estimated-reading-time-remove ()
+  "Remove estimated-time banner from the mode line."
+  (catch 'banner-found
+    (dolist (elt mode-line-misc-info)
+      (if (listp elt)
+	  (let ((line (cadr elt)))
+	    (and
+	     (equal (car elt) :propertize)
+	     (text-property-any 0 (- (length line) 1)
+				'greader-estimated-time t line)
+	     (setq-local mode-line-misc-info (delete elt
+					       mode-line-misc-info))))
+	(throw 'banner-found t))
+      nil)))
+
+(defun greader-estimated-time-update ()
+  "update of estimated reading time.
+new data is stored in the mode-line.
+The calculation is made from point to end of the buffer.
+If the region is active, use it."
+  (interactive)
+  (setq greader--buffer-words nil)
+  (greader--estimated-reading-time-remove)
+  (let ((region-beginning
+	 (if (region-active-p) (region-beginning) (point)))
+	(region-end
+	 (if (region-active-p) (region-end) (point-max))))
+    (add-to-list 'mode-line-misc-info (list :propertize (car (greader--estimated-reading-time
+							 region-beginning region-end))
+						   'greader-estimated-time
+						   t))
+      (when (and (featurep 'emacspeak) (called-interactively-p 'any))
+	(dtk-speak (car (greader--estimated-reading-time)))))
+  (force-mode-line-update))
+
 (provide 'greader)
 ;;; greader.el ends here

@@ -626,11 +626,8 @@ the same as the default (current buffer) one."
    'disproject-magit-commands-dispatch nil nil
    :scope (disproject--setup-scope)))
 
-(transient-define-prefix disproject-manage-projects-dispatch (&optional project)
-  "Dispatch commands for managing projects.
-
-If PROJECT is non-nil, it overrides the currently selected
-project in Transient state (if any)."
+(transient-define-prefix disproject-manage-projects-dispatch ()
+  "Dispatch commands for managing projects."
   ["New"
    ("n g c" "git clone" magit-clone
     :if (lambda () (featurep 'magit-clone)))
@@ -651,12 +648,7 @@ project in Transient state (if any)."
   ["Deprecated"
    :hide always
    ;; DEPRECATED: Remove when `disproject-remember-projects-active' is removed.
-   ("r a" "active projects" disproject-remember-projects-active)]
-  (interactive)
-  (transient-setup
-   'disproject-manage-projects-dispatch nil nil
-   :scope (disproject--setup-scope
-           `(,@(if project `((project . ,project)) '())))))
+   ("r a" "active projects" disproject-remember-projects-active)])
 
 
 ;;;

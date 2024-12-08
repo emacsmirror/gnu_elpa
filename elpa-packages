@@ -494,6 +494,8 @@
  (math-symbol-lists 	:url "https://github.com/vspinu/math-symbol-lists.git")
  (mathjax               :url "https://github.com/astoff/mathjax.el"
   :make "elpa")
+ (matlab-mode           :url "https://github.com/mathworks/Emacs-MATLAB-Mode.git"
+  :main-file "matlab.el")
  (mct			:url "https://gitlab.com/protesilaos/mct"
   :doc "README.org")
  (memory-usage		:url nil)

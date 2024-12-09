@@ -1273,12 +1273,9 @@ programs path."
   (disproject-with-environment
     (call-interactively #'project-list-buffers)))
 
-(transient-define-suffix disproject-magit-status ()
-  "Open the Magit status buffer for project."
-  (interactive)
-  (declare-function magit-status-setup-buffer "magit-status")
-  (disproject-with-environment
-    (magit-status-setup-buffer)))
+;; DEPRECATED: Remove at least 1 month after earliest release with deprecation.
+(define-obsolete-function-alias 'disproject-magit-status
+  #'disproject-vc-status "after v1.2")
 
 (transient-define-suffix disproject-magit-todos-list ()
   "Open a `magit-todos-list' buffer for project."

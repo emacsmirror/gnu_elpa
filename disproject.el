@@ -578,13 +578,6 @@ menu."
     ("g" "regexp" disproject-find-regexp)
     ("G" "regexp (+external)" disproject-or-external-find-regexp)
     ("L" "line occurrence" disproject-find-line)]]
-  ;; This section may contain commands that are dynamically enabled/disabled
-  ;; depending on the chosen project.  This requires :refresh-suffixes to be t.
-  ;;
-  ;; FIXME: There is a case where the section doesn't display when it should.
-  ;; This is fixed in Transient commit 0ed009491910f5466ad7f95b4576e9dde7156f4e;
-  ;; update dependency when version is available.  Upstream issue context:
-  ;; https://www.github.com/magit/transient/issues/327
   [["Version control"
     :if disproject-prefix--version-control-apt?
     ("m" "Magit" disproject-magit-commands-dispatch

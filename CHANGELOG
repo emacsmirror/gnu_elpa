@@ -20,6 +20,10 @@
 - Add the ~disproject-prefix~ class, which can be used to indicate to other
   transient prefixes using the class that transient scope should be shared
   between them (i.e. a ~disproject-scope~ type value).
+- Add new command ~disproject-vc-status~, which replaces ~disproject-vc-dir~ as
+  a more flexible VC status command in the main dispatch menu.  This is
+  customizable through ~disproject-vc-status-commands~, which is pre-configured
+  to use ~magit-status~ (if available) for git-backed projects.
 
 *** Changed
 
@@ -37,6 +41,9 @@
 - Deprecate the optional ~project~ argument for some dispatch commands as they
   are now redundant with the support for ~project-current-directory-override~.
   They will still work for now.  Removal is set for at least 1 month after this
+  release.
+- Deprecate ~disproject-vc-dir~, which has been replaced by
+  ~disproject-vc-status~.  Removal is set for at least 1 month after this
   release.
 
 *** Removed

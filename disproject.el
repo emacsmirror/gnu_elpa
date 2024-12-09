@@ -932,16 +932,15 @@ The user may be prompted for a project."
 ;;; Suffix handling.
 ;;;
 
-(defun disproject-process-buffer-name (&optional identifier project-dir)
-  "Return the selected project's process buffer name associated with IDENTIFIER.
+(defun disproject-process-buffer-name (project-dir &optional identifier)
+  "Return a project's process buffer name corresponding to IDENTIFIER.
+
+PROJECT-DIR is the project directory, which will be used to give
+project buffers a unique namespace.
 
 IDENTIFIER is an optional string argument that can be specified
-to make the buffer name unique.  If non-nil, \"default\" is used
-as the identifier.
-
-PROJECT-DIR is an override value that specifies the project
-directory used to construct the buffer name.  If non-nil, it uses
-the currently selected project from transient state.
+to make the buffer name unique to the project's process buffers.
+If non-nil, \"default\" is used as the identifier.
 
 This function is *not* meant to be used like
 `project-prefixed-buffer-name', although it is similar in
@@ -952,11 +951,7 @@ buffers based on just an identifier and also allow specifying
 incompatible commands (e.g. if two commands use the same buffer
 name, they should not be allowed to run at the same time)."
   (concat "*"
-          (file-name-nondirectory (directory-file-name
-                                   (or project-dir
-                                       (disproject-project-root
-                                        (disproject-scope-selected-project
-                                         (disproject--scope))))))
+          (file-name-nondirectory (directory-file-name project-dir))
           "-process|"
           (or identifier "default")
           "*"))
@@ -984,11 +979,14 @@ SPEC-ENTRY is a single entry from the specification described by
     (`( ,key ,description
         .
         ,(map :command-type :command :identifier))
-     (let* (;; Fall back to description if identifier is not provided.
+     (let* ((project (disproject-scope-selected-project-ensure
+                      (disproject--scope)))
+            ;; Fall back to description if identifier is not provided.
             ;; Uniqueness is preferred over the name looking nice to prevent
             ;; unintentionally making commands incompatible.
             (identifier (or identifier description))
             (disproject-process-buffer-name (disproject-process-buffer-name
+                                             (disproject-project-root project)
                                              identifier)))
        `(,key
          ,(disproject-custom--suffix-description
@@ -1238,7 +1236,7 @@ programs path."
                         (if current-prefix-arg
                             (read-shell-command "git arguments: " "git clone ")
                           "git clone ")))
-         (buf-name (disproject-process-buffer-name "git" directory)))
+         (buf-name (disproject-process-buffer-name directory "git")))
     (async-shell-command (concat arguments " -- " repository " " directory)
                          buf-name)
     (switch-to-buffer-other-window buf-name)
@@ -1263,7 +1261,7 @@ programs path."
                         (if current-prefix-arg
                             (read-shell-command "git arguments: " "git init ")
                           "git init ")))
-         (buf-name (disproject-process-buffer-name "git" directory)))
+         (buf-name (disproject-process-buffer-name directory "git")))
     (async-shell-command (concat arguments " -- " directory) buf-name)
     (switch-to-buffer-other-window buf-name)
     (setq default-directory directory)))
@@ -1317,15 +1315,17 @@ The buffer name is determined by
 process status."
   :description
   (lambda ()
-    (if (disproject-scope-selected-project (disproject--scope))
-        (let* ((buffer-name (disproject-process-buffer-name "default-compile")))
-          (disproject-custom--suffix-description (get-buffer buffer-name)
-                                                 "Compile"))
+    (if-let* ((project (disproject-scope-selected-project (disproject--scope)))
+              (buffer-name (disproject-process-buffer-name
+                            (disproject-project-root project)
+                            "default-compile")))
+        (disproject-custom--suffix-description (get-buffer buffer-name)
+                                               "Compile")
       "Compile"))
   (interactive)
   (disproject-with-environment
     (let* ((buffer-name
-            (disproject-process-buffer-name "default-compile" default-directory))
+            (disproject-process-buffer-name default-directory "default-compile"))
            (project-compilation-buffer-name-function
             (lambda (&rest _ignore) buffer-name)))
       (call-interactively #'project-compile)
@@ -1363,7 +1363,8 @@ The command used can be customized with the variable
   (interactive)
   (disproject-with-environment
     (let ((shell-command-buffer-name-async
-           (disproject-process-buffer-name "async-shell-command")))
+           (disproject-process-buffer-name default-directory
+                                           "async-shell-command")))
       (call-interactively #'async-shell-command))))
 
 (transient-define-suffix disproject-switch-project ()

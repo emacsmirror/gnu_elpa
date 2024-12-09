@@ -35,6 +35,9 @@
   calling them without the use of Disproject menus (e.g. ~disproject-find-file~;
   ~disproject-shell~).  When there is no current project, the behavior is the
   same as before.
+- Allow version control commands to be invoked in the main dispatch menu when no
+  project is selected, which triggers a prompt to select one like the other
+  commands.
 
 *** Deprecated
 

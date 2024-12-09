@@ -20,7 +20,7 @@ Some notable features include (but may not be limited to):
   process-running commands like ~project-compile~ use the correct environment
   when switching projects on command invocations (see [[https://github.com/purcell/envrc/issues/59][an envrc issue on this]]):
   [[https://github.com/purcell/envrc][envrc]]; [[https://github.com/liuyinz/mise.el][mise.el]].
-- When available, out-of-the-box menu commands for: [[https://magit.vc/][magit]]; [[https://github.com/alphapapa/magit-todos][magit-todos]].
+- When available, pre-configured menu commands for: [[https://magit.vc/][magit]]; [[https://github.com/alphapapa/magit-todos][magit-todos]].
 - A set of customizable variables to substitute some commands in the menu (see
   [[#Customization][Customization]]).
 

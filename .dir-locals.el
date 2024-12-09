@@ -12,8 +12,9 @@
 profile=.time-machine-guix-profile
 [ -e $profile ] && rm $profile
 guix time-machine --channels=channels.scm -- \\
-	shell emacs --manifest=manifest.scm --file=guix.scm --root=$profile \\
-	--search-paths"))
+	shell --development --file=guix.scm --file=guix.scm \\
+	--manifest=manifest.scm emacs \\
+	--root=$profile --search-paths"))
                    (if current-prefix-arg
                        (read-shell-command "Command: " command)
                      command)))
@@ -34,8 +35,9 @@ guix shell --pure --profile=.time-machine-guix-profile -- \\
                  (let ((command "\
 profile=.latest-guix-profile
 [ -e $profile ] && rm $profile
-guix shell emacs-next --manifest=manifest.scm --file=guix.scm --root=$profile \\
-	--search-paths"))
+guix shell --development --file=guix.scm --file=guix.scm \\
+	--manifest=manifest.scm emacs-next \\
+	--root=$profile --search-paths"))
                    (if current-prefix-arg
                        (read-shell-command "Command: " command)
                      command)))

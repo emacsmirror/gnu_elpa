@@ -588,7 +588,7 @@ menu."
                              " deprecated; please use \",o\" instead"))))
                 (transient-suffixes 'disproject-dispatch)))
     :transient t)]
-  ["Commands"
+  ["Main commands"
    :pad-keys t
    [("b" "Switch buffer" disproject-switch-to-buffer)
     ("B" "Buffer list" disproject-list-buffers)
@@ -596,7 +596,9 @@ menu."
     ("d" "Dired" disproject-dired)
     ("k" "Kill buffers" disproject-kill-buffers)
     ("l" "Dir-locals file" disproject-dir-locals)
-    ("s" "Shell" disproject-shell)]
+    ("s" "Shell" disproject-shell)
+    ("v" disproject-vc-status
+     :if disproject-prefix--version-control-apt?)]
    [("!" "Run" disproject-shell-command)
     ("M-x" "Extended cmd." disproject-execute-extended-command)]
    ["Find"
@@ -609,10 +611,10 @@ menu."
     ("T" "todos" disproject-magit-todos-list
      :if disproject-prefix--magit-todos-apt?)]]
   ["Version control"
+   :hide always
    :if disproject-prefix--version-control-apt?
    ("m" "Magit" disproject-magit-commands-dispatch
-    :if disproject-prefix--magit-apt?)
-   ("v" disproject-vc-status)]
+    :if disproject-prefix--magit-apt?)]
   [("SPC" "Custom dispatch" disproject-custom-dispatch
     :transient transient--do-replace)]
   (interactive)

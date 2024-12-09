@@ -534,6 +534,11 @@ initialized."
                  (project (disproject-scope-selected-project scope)))
            (eq 'Git (disproject-project-backend project)))))
 
+(defun disproject-prefix--magit-todos-apt? ()
+  "Return non-nil if `magit-todos' commands are apt to show."
+  (and (featurep 'magit-todos)
+       (disproject-prefix--magit-apt?)))
+
 (defun disproject-prefix--version-control-apt? ()
   "Return non-nil if version control commands are apt to show.
 
@@ -600,7 +605,9 @@ menu."
     ("F" "file (+external)" disproject-or-external-find-file)
     ("g" "regexp" disproject-find-regexp)
     ("G" "regexp (+external)" disproject-or-external-find-regexp)
-    ("L" "line occurrence" disproject-find-line)]]
+    ("L" "line occurrence" disproject-find-line)
+    ("T" "todos" disproject-magit-todos-list
+     :if disproject-prefix--magit-todos-apt?)]]
   ["Version control"
    :if disproject-prefix--version-control-apt?
    ("m" "Magit" disproject-magit-commands-dispatch

@@ -308,6 +308,24 @@ This is called whenever the function
   :group 'disproject
   :group 'disproject-commands)
 
+(defcustom disproject-vc-status-commands '((Git . magit-status)
+                                           (nil . project-vc-dir))
+  "Alist of entries denoting a VC backend and an associated status command.
+
+BACKEND is a VC backend; see `vc-handled-backends' for recognized
+values.  COMMAND is a symbol or function that is called
+interactively when the suffix is invoked.
+
+In certain cases, COMMAND may be unbound, or an entry for a
+selected project's backend is not present.  In both of these
+cases, the entry with a nil backend will be used instead as a
+fallback.  A fallback should always be specified.
+
+This is used in the command `disproject-vc-status'."
+  :type 'alist
+  :group 'disproject
+  :group 'disproject-commands)
+
 ;;;; Default commands.
 
 (defun disproject-default-find-line (regexp)
@@ -1373,6 +1391,38 @@ The command used can be customized with
   (interactive)
   (disproject-with-environment
     (call-interactively #'vc-dir)))
+
+(transient-define-suffix disproject-vc-status ()
+  "Dispatch a VC status command depending on the project backend.
+
+The status command used depends on the variable
+`disproject-vc-status-commands' - see its documentation for
+configuring this function's behavior.  The chosen function will
+be called interactively."
+  :description
+  (lambda ()
+    (concat (if-let* ((project (disproject-scope-selected-project
+                                (disproject--scope)))
+                      (backend (disproject-project-backend project)))
+                ;; The number chosen for this is somewhat arbitrary, but should
+                ;; be fine as long as the end result is around the same size as
+                ;; the other descriptions in its column.
+                (truncate-string-to-width (symbol-name backend) 6 nil nil t)
+              "VC")
+            " status"))
+  (interactive)
+  (disproject-with-environment
+    (let* ((scope (disproject--scope))
+           (project (disproject-scope-selected-project-ensure scope))
+           (backend (disproject-project-backend project)))
+      (unless backend
+        (user-error "No backend found for project: %s"
+                    (disproject-project-root project)))
+      (call-interactively
+       (if-let* ((command (alist-get backend disproject-vc-status-commands))
+                 ((fboundp command)))
+           command
+         (alist-get nil disproject-vc-status-commands))))))
 
 (provide 'disproject)
 ;;; disproject.el ends here

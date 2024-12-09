@@ -535,9 +535,14 @@ initialized."
            (eq 'Git (disproject-project-backend project)))))
 
 (defun disproject-prefix--version-control-apt? ()
-  "Return non-nil if version control commands are apt to show."
+  "Return non-nil if version control commands are apt to show.
+
+Consider commands apt when no project is selected, since the
+state already implies that a prompt will be made to select a
+project."
   (if-let* ((project (disproject-scope-selected-project (transient-scope))))
-      (disproject-project-backend project)))
+      (disproject-project-backend project)
+    t))
 
 ;;;; Prefixes.
 

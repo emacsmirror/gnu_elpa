@@ -180,9 +180,9 @@ enable tracking e.g. process state.
 Some optional properties may be set as well:
 
 `:identifier' is used as part of the buffer name, and should be
-unique to the command.  It defaults to the result of applying
-`disproject-process-buffer-name' to the value (or first word in
-the description if not specified).  Users may choose to set the
+unique to the command.  `disproject-process-buffer-name' is
+applied to the value (or first word in the description if not
+specified) to get the buffer name.  Users may choose to set the
 same identifier for multiple commands to mark them as
 incompatible (only one can run at a given time).  This relies on
 commands like `compile' which notify the user that a buffer with

@@ -56,6 +56,13 @@
   have been replaced by ~disproject-vc-status~.  Removal is set for at least 1
   month after this release.
 
+*** Fixed
+
+- Prevent situations where ~disproject-process-buffer-name~ can unintentionally
+  cause prompts for a selected project to occur more than once.  This changes
+  the function signature to make the project directory argument explicit, and is
+  a breaking change.
+
 *** Removed
 
 - Remove redundant ~project~ argument from

@@ -667,6 +667,7 @@ PROJECT argument for `disproject-custom-dispatch' is deprecated since after v1.2
     (transient-setup
      'disproject-custom-dispatch nil nil)))
 
+;; DEPRECATED: Remove at least 1 month after earliest release with deprecation.
 (transient-define-prefix disproject-magit-commands-dispatch ()
   "Dispatch Magit-related commands for a project.
 
@@ -682,6 +683,10 @@ the same as the default (current buffer) one."
    ("m" "Status" disproject-magit-status)
    ("T" "Todos" disproject-magit-todos-list
     :if (lambda () (featurep 'magit-todos)))])
+
+(make-obsolete 'disproject-magit-commands-dispatch
+               "most commands have been moved to `disproject-dispatch'."
+               "after v1.2")
 
 (transient-define-prefix disproject-manage-projects-dispatch ()
   "Dispatch commands for managing projects."

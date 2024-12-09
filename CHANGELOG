@@ -24,6 +24,8 @@
   a more flexible VC status command in the main dispatch menu.  This is
   customizable through ~disproject-vc-status-commands~, which is pre-configured
   to use ~magit-status~ (if available) for git-backed projects.
+- Include ~disproject-vc-status~ and ~disproject-magit-todos-list~ in the /Main
+  commands/ section.
 
 *** Changed
 
@@ -45,9 +47,14 @@
   are now redundant with the support for ~project-current-directory-override~.
   They will still work for now.  Removal is set for at least 1 month after this
   release.
-- Deprecate ~disproject-vc-dir~, which has been replaced by
-  ~disproject-vc-status~.  Removal is set for at least 1 month after this
-  release.
+- Deprecate ~disproject-magit-commands-dispatch~.  Commands from this menu have
+  been moved into ~disproject-dispatch~ itself.  ~magit-dispatch~ and
+  ~magit-file-dispatch~ are not included, but may still be accessed through =C-x
+  M-g= and =C-c M-g=, respectively.  Removal is set for at least 1 month after
+  this release.
+- Deprecate ~disproject-vc-dir~ and ~disproject-magit-status~, both of which
+  have been replaced by ~disproject-vc-status~.  Removal is set for at least 1
+  month after this release.
 
 *** Removed
 

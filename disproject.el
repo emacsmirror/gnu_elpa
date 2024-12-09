@@ -687,7 +687,7 @@ the same as the default (current buffer) one."
     :if (lambda () (featurep 'magit-todos)))])
 
 (make-obsolete 'disproject-magit-commands-dispatch
-               "most commands have been moved to `disproject-dispatch'."
+               "some commands have been moved to `disproject-dispatch'."
                "after v1.2")
 
 (transient-define-prefix disproject-manage-projects-dispatch ()

@@ -596,11 +596,11 @@ menu."
     ("g" "regexp" disproject-find-regexp)
     ("G" "regexp (+external)" disproject-or-external-find-regexp)
     ("L" "line occurrence" disproject-find-line)]]
-  [["Version control"
-    :if disproject-prefix--version-control-apt?
-    ("m" "Magit" disproject-magit-commands-dispatch
-     :if disproject-prefix--magit-apt?)
-    ("v" "VC status" disproject-vc-dir)]]
+  ["Version control"
+   :if disproject-prefix--version-control-apt?
+   ("m" "Magit" disproject-magit-commands-dispatch
+    :if disproject-prefix--magit-apt?)
+   ("v" disproject-vc-status)]
   [("SPC" "Custom dispatch" disproject-custom-dispatch
     :transient transient--do-replace)]
   (interactive)
@@ -1386,11 +1386,9 @@ The command used can be customized with
   (disproject-with-environment
     (call-interactively disproject-switch-to-buffer-command)))
 
-(transient-define-suffix disproject-vc-dir ()
-  "Run VC-Dir in project."
-  (interactive)
-  (disproject-with-environment
-    (call-interactively #'vc-dir)))
+;; DEPRECATED: Remove at least 1 month after earliest release with deprecation.
+(define-obsolete-function-alias 'disproject-vc-dir
+  #'disproject-vc-status "after v1.2")
 
 (transient-define-suffix disproject-vc-status ()
   "Dispatch a VC status command depending on the project backend.

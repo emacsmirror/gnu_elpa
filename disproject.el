@@ -598,7 +598,7 @@ menu."
     ("l" "Dir-locals file" disproject-dir-locals)
     ("s" "Shell" disproject-shell)
     ("v" disproject-vc-status
-     :if disproject-prefix--version-control-apt?)]
+     :inapt-if-not disproject-prefix--version-control-apt?)]
    [("!" "Run" disproject-shell-command)
     ("M-x" "Extended cmd." disproject-execute-extended-command)]
    ["Find"

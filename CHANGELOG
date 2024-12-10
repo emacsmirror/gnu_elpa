@@ -17,41 +17,40 @@
   interfaces for interacting with the transient scope.  This replaces the
   previous implementation of passing state around menus, and should offer more
   benefits - like the improved state-tracking noted below - moving forward.
-- Add the ~disproject-prefix~ class, which can be used to indicate to other
-  transient prefixes using the class that transient scope should be shared
-  between them (i.e. a ~disproject-scope~ type value).
-- Add new command ~disproject-vc-status~, which replaces ~disproject-vc-dir~ as
-  a more flexible VC status command in the main dispatch menu.  This is
-  customizable through ~disproject-vc-status-commands~, which is pre-configured
-  to use ~magit-status~ (if available) for git-backed projects.
+- Add the ~disproject-prefix~ class, which should make it easier to add new
+  transient sub-prefixes to the menu.
+- Add new command ~disproject-vc-status~, which replaces ~disproject-vc-dir~ and
+  ~disproject-magit-status~ as a more versatile VC status command in the main
+  dispatch menu.  This is customizable through ~disproject-vc-status-commands~,
+  which is pre-configured to use ~magit-status~ (if available) for git-backed
+  projects.
 - Include ~disproject-vc-status~ and ~disproject-magit-todos-list~ in the /Main
   commands/ section.
 
 *** Changed
 
 - Improve state-tracking while navigating through Disproject menus.  This
-  notably allows for easier deferring/caching of state, so prompts for example
-  should only show up once (and only when needed) for each transient "session"
-  until the menu closes.
-- Automatically use the current project if available for suffix commands when
-  calling them without the use of Disproject menus (e.g. ~disproject-find-file~;
+  notably allows for easier deferring/caching of state, so prompts for
+  e.g. using per-project custom suffixes should show up just once (and only when
+  needed) for each transient "session" until the menu closes.
+- Automatically use the current project if there is one for suffix commands when
+  called without the use of Disproject menus (e.g. ~disproject-find-file~;
   ~disproject-shell~).  When there is no current project, the behavior is the
   same as before.
 - Allow version control commands to be invoked in the main dispatch menu when no
-  project is selected, which triggers a prompt to select one like the other
+  project is selected.  This will trigger a prompt to select one, like the other
   commands.
 
 *** Deprecated
 
 - Deprecate the optional ~project~ argument for some dispatch commands as they
   are now redundant with the support for ~project-current-directory-override~.
-  They will still work for now.  Removal is set for at least 1 month after this
-  release.
+  Removal is set for at least 1 month after this release.
 - Deprecate ~disproject-magit-commands-dispatch~.  Commands from this menu have
   been moved into ~disproject-dispatch~ itself.  ~magit-dispatch~ and
-  ~magit-file-dispatch~ are not included, but may still be accessed through =C-x
-  M-g= and =C-c M-g=, respectively.  Removal is set for at least 1 month after
-  this release.
+  ~magit-file-dispatch~ are not included, but may still be accessed through the
+  key-binds =C-x M-g= and =C-c M-g=, respectively.  Removal is set for at least
+  1 month after this release.
 - Deprecate ~disproject-vc-dir~ and ~disproject-magit-status~, both of which
   have been replaced by ~disproject-vc-status~.  Removal is set for at least 1
   month after this release.

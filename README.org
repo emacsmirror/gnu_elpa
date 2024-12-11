@@ -16,10 +16,12 @@ Some notable features include (but may not be limited to):
   menu (see ~disproject-custom-suffixes~).
 - An option to prefer displaying buffers to another window when executing
   commands.
-- Support for the following directory-based environment packages to make
-  process-running commands like ~project-compile~ use the correct environment
-  when switching projects on command invocations (see [[https://github.com/purcell/envrc/issues/59][an envrc issue on this]]):
-  [[https://github.com/purcell/envrc][envrc]]; [[https://github.com/liuyinz/mise.el][mise.el]].
+- Support for the following directory/project-based environment packages: [[https://github.com/purcell/envrc][envrc]];
+  [[https://github.com/liuyinz/mise.el][mise.el]].
+
+  This includes support for using the correct environment when executing
+  commands like ~project-compile~ after a project switch
+  (see [[https://github.com/purcell/envrc/issues/59][an envrc issue on this]]).
 - When available, pre-configured menu commands for: [[https://magit.vc/][magit]]; [[https://github.com/alphapapa/magit-todos][magit-todos]].
 - A set of customizable variables to substitute some commands in the menu (see
   [[#Customization][Customization]]).

@@ -4,6 +4,17 @@
 
 ** Unreleased
 
+** [[release-version:1.3.0][1.3.0]] - 2024-12-11
+
+This is a maintenance-heavy release which comes with a fair bit of reworked
+internals, particularly with handling of transient scope/state.  Some of these
+changes are exposed as stable interfaces, and may provide more options to the
+user for extending the menus.
+
+Other highlights include a merging of Magit commands with the main menu to help
+with generalizing to other version control systems, and the addition of a
+standalone compile command in ~disproject-dispatch~.
+
 *** Added
 
 - Add compilation command ~disproject-compile~ to the main dispatch menu.  This

@@ -6,40 +6,45 @@
 
 *** Added
 
-- Add compilation command to the main dispatch menu.  Sometimes users don't
-  want/need to learn ~disproject-custom-suffixes~ (which can come with a lot of
-  baggage), and ~project-compile~ is sufficient enough.  This provides a more
-  accessible compile command that also matches the default =C-x p c= key-bind
-  for ~project-compile~.
+- Add compilation command ~disproject-compile~ to the main dispatch menu.  This
+  provides a more accessible compile command compared to the custom suffixes
+  that also matches the default =C-x p c= key-bind for ~project-compile~.
 - Support ~project-current-directory-override~, which can be reliably used now
-  to e.g. set the default selected project for dispatch commands.
-- Add the ~disproject-scope~ and ~disproject-project~ classes, which provide
-  interfaces for interacting with the transient scope.  This replaces the
-  previous implementation of passing state around menus, and should offer more
-  benefits - like the improved state-tracking noted below - moving forward.
+  to e.g. set the initial selected project for dispatch commands.
 - Add the ~disproject-prefix~ class, which should make it easier to add new
   transient sub-prefixes to the menu.
+- Add the ~disproject-scope~ and ~disproject-project~ classes, which provide
+  interfaces for interacting with the transient scope for Disproject prefixes.
+  This replaces the previous implementation of passing state around menus, and
+  should offer more benefits - like the improved state-tracking noted below -
+  moving forward.
 - Add new command ~disproject-vc-status~, which replaces ~disproject-vc-dir~ and
   ~disproject-magit-status~ as a more versatile VC status command in the main
   dispatch menu.  This is customizable through ~disproject-vc-status-commands~,
-  which is pre-configured to use ~magit-status~ (if available) for git-backed
+  and is pre-configured to use ~magit-status~ (if available) for git-backed
   projects.
 - Include ~disproject-vc-status~ and ~disproject-magit-todos-list~ in the /Main
   commands/ section.
 
 *** Changed
 
+- Bump transient dependency version to 0.8.0.
 - Improve state-tracking while navigating through Disproject menus.  This
-  notably allows for easier deferring/caching of state, so prompts for
-  e.g. using per-project custom suffixes should show up just once (and only when
-  needed) for each transient "session" until the menu closes.
-- Automatically use the current project if there is one for suffix commands when
-  called without the use of Disproject menus (e.g. ~disproject-find-file~;
-  ~disproject-shell~).  When there is no current project, the behavior is the
-  same as before.
+  notably allows for easier deferring/caching of state, so prompts to e.g. apply
+  per-project custom suffixes will show up just once (and only when needed) for
+  each transient "session" until the menu closes.
+- Automatically use the current project if suffix commands
+  (e.g. ~disproject-find-file~; ~disproject-shell~) are called and are unable to
+  find a selected project from transient scope.  When there is no current
+  project, a prompt to select a project will occur as it has before.
 - Allow version control commands to be invoked in the main dispatch menu when no
   project is selected.  This will trigger a prompt to select one, like the other
   commands.
+- Apply directory-local variables in ~disproject-with-environment~ so commands
+  like ~disproject-compile~ respect ~compile-command~ set from dir-locals, for
+  example.
+- Use ~disproject-prefix~ as the prefix class for all Disproject menus that make
+  use of ~disproject-scope~.
 
 *** Deprecated
 
@@ -47,20 +52,20 @@
   are now redundant with the support for ~project-current-directory-override~.
   Removal is set for at least 1 month after this release.
 - Deprecate ~disproject-magit-commands-dispatch~.  Commands from this menu have
-  been moved into ~disproject-dispatch~ itself.  ~magit-dispatch~ and
-  ~magit-file-dispatch~ are not included, but may still be accessed through the
-  key-binds =C-x M-g= and =C-c M-g=, respectively.  Removal is set for at least
-  1 month after this release.
+  been moved into ~disproject-dispatch~, with the exception of ~magit-dispatch~
+  and ~magit-file-dispatch~; these may still be accessed through the
+  Magit-provided key-binds =C-x M-g= and =C-c M-g=, respectively.  Removal is
+  set for at least 1 month after this release.
 - Deprecate ~disproject-vc-dir~ and ~disproject-magit-status~, both of which
   have been replaced by ~disproject-vc-status~.  Removal is set for at least 1
   month after this release.
 
 *** Fixed
 
-- Prevent situations where ~disproject-process-buffer-name~ can unintentionally
-  cause prompts for a selected project to occur more than once.  This changes
-  the function signature to make the project directory argument explicit, and is
-  a breaking change.
+- *Breaking:* Prevent situations where the ~disproject-process-buffer-name~
+  function can unintentionally cause prompts for a selected project to occur
+  more than once.  This changes the function signature to make the project
+  directory argument explicit, and is a breaking change.
 
 *** Removed
 

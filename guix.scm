@@ -23,8 +23,11 @@
     (home-page "https://github.com/aurtzy/disproject")
     (synopsis "Transient interface for managing and interacting with projects")
     (description
-     "Disproject is a package for Emacs that provides integration with
-project.el via extendable Transient menus.")
+     "Disproject is a package for GNU Emacs that implements Transient menus for
+dispatching project-related commands on top of the @code{project.el} library.  It
+aims to provide a more featureful version of the @code{project-switch-project}
+command, which it is inspired by.  Those who are familiar with Projectile may also
+find similarities to @code{projectile-commander}.")
     (license license:gpl3+)))
 
 emacs-disproject

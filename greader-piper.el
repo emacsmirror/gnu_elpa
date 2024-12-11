@@ -15,4 +15,16 @@
 ;; along with this program.  If not, see
 ;; <http://www.gnu.org/licenses/>.
 
-;;; commentary
+;;; commentary:
+;; This is the back-end for the piper synthesizer.
+;; It uses a shell script to call piper.
+
+;;; code:
+(defgroup greader-piper
+  nil
+  "piper back-end."
+  :group 'greader)
+
+(defcustom greader-piper-binary-path ""
+  "Path of the piper binary."
+  :type 'string)

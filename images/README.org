@@ -1,11 +1,15 @@
 
 * Image previews
 
-~disproject-dispatch~:
+~disproject-dispatch~ with no selected project:
+
+[[file:disproject-dispatch-no-project.png]]
+
+~disproject-dispatch~ in a project:
 
 [[file:disproject-dispatch.png]]
 
-~disproject-custom-dispatch~:
+~disproject-custom-dispatch~ with some directory-local custom suffixes:
 
 [[file:disproject-custom-dispatch.png]]
 

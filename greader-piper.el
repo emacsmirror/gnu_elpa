@@ -20,11 +20,51 @@
 ;; It uses a shell script to call piper.
 
 ;;; code:
+(require 'package)
 (defgroup greader-piper
   nil
   "piper back-end."
   :group 'greader)
 
-(defcustom greader-piper-binary-path ""
-  "Path of the piper binary."
+(defcustom greader-piper-script-path
+  (concat (package-desc-dir (package-get-descriptor 'greader)) "/piper.sh")
+  "Piper script path."
   :type 'string)
+
+(defcustom greader-piper-script-url
+  "https://gitlab.com/michelangelo-rodriguez/greader/-/raw/master/piper.sh"
+  "Url of the script `piper.sh'."
+  :type 'string)
+(defun greader-piper-find-script ()
+  "Check if the piper script is really present.
+If the script is not present, propose to download it from gitlab.
+if the script is present or downloaded, then return the path.
+If the script is nor present neither downloaded, then generate an
+Error."
+  (if (file-exists-p greader-piper-script-path)
+      greader-piper-script-path
+    (let* ((default-directory (package-desc-dir
+			       (package-get-descriptor 'greader)))
+	   (answer (yes-or-no-p "Do you want to download the script
+  \"piper.sh\" from gitlab?")))
+      (if answer
+	  (progn
+	    (setq answer (call-process "curl" nil "*piper-script download*"
+				       nil greader-piper-script-url))
+	    (unless (file-exists-p greader-piper-script-path)
+	      (Error "Error while downloading %s\nPlease try later or
+open an issue" greader-piper-script-url)))
+	nil))))
+
+;;;###autoload
+(defun greader-piper (command &optional arg)
+  "Entry point for greader-piper."
+  (pcase command
+    ('executable
+     (greader-piper-find-script))
+    (_
+     'not-implemented)
+    ))
+(put 'greader-piper 'greader-backend-name "greader-piper")
+
+(provide 'greader-piper)

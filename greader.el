@@ -124,7 +124,7 @@ If all the functions in the hook return nil, this function return nil."
 
 (defcustom
   greader-backends
-  '(greader-espeak greader-speechd)
+  '(greader-espeak greader-speechd greader-mac greader-piper)
   "A list of functions that are back-ends for greader."
   :tag "greader back-ends"
   :type '(repeat function))

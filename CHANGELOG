@@ -4,6 +4,12 @@
 
 ** Unreleased
 
+*** Fixed
+
+- Fix issue where fetching the VC backend could fail when the
+  ~project-find-functions~ hook was configured with other functions that could
+  return project instances in unexpectedly different formats ([[https://github.com/aurtzy/disproject/issues/4][#4]]).
+
 ** [[release-version:1.3.0][1.3.0]] - 2024-12-11
 
 This is a maintenance-heavy release which comes with a fair bit of reworked

@@ -312,9 +312,9 @@ This is called whenever the function
                                            (nil . project-vc-dir))
   "Alist of entries denoting a VC backend and an associated status command.
 
-BACKEND is a VC backend; see `vc-handled-backends' for recognized
-values.  COMMAND is a symbol or function that is called
-interactively when the suffix is invoked.
+BACKEND is a VC backend; see `project-vc-backend-markers-alist'
+for recognized keys.  COMMAND is a symbol or function that is
+called interactively when the suffix is invoked.
 
 In certain cases, COMMAND may be unbound, or an entry for a
 selected project's backend is not present.  In both of these

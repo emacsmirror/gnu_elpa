@@ -528,7 +528,12 @@ Optional argument EVENT ."
 	'not-implemented))
       (setq arg (greader-call-backend 'extra))
       (setq args (append `(,arg) args))))
-    (setq greader-backend (append `(,greader-backend) args))))
+    (catch 'deleted
+      (dolist (argument args)
+	(when (equal argument 'not-implemented)
+	  (setq args (delete argument args))
+	  (throw 'deleted t))))
+      (setq greader-backend (append `(,greader-backend) args))))
 
 (defun greader-reset ()
   "Reset greader."

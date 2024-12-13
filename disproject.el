@@ -809,12 +809,21 @@ DIRECTORY is passed to `project-current' to detect a project."
       (disproject-project :root (project-root project))))
 
 (cl-defmethod disproject-project-backend ((obj disproject-project))
-  "Return the OBJ project backend."
+  "Return the OBJ project backend.
+
+This internally uses `project-try-vc' to determine the backend."
   (if (slot-boundp obj 'backend)
       (oref obj backend)
-    ;; Index 1 contains the project backend; see
-    ;; `project-vc-backend-markers-alist'.
-    (oset obj backend (nth 1 (disproject-project-instance obj)))))
+    ;; XXX: `project-find-functions' (used in `project-current') doesn't enforce
+    ;; a project instance format, so we can't expect the VC backend to be in the
+    ;; same place in `disproject-project-instance'.  Instead, we specifically
+    ;; rely on `project-try-vc' (`project-vc-backend-markers-alist') to get the
+    ;; backend.
+    (oset obj backend (let* ((root (disproject-project-root obj))
+                             (instance (project-try-vc root)))
+                        ;; Expect index 1 to be the VC backend of the project
+                        ;; instance.
+                        (nth 1 instance)))))
 
 (cl-defmethod disproject-project-custom-suffixes ((obj disproject-project))
   "Return the OBJ project custom suffixes."

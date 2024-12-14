@@ -440,10 +440,12 @@ available backends."
       (greader-debug "greader-read-asynchronous entered\n"))
   (run-hooks 'greader-before-read-hook)
   (greader-build-args)
+  (setq txt (substring-no-properties txt))
   (if (and txt (greader-sentence-needs-dehyphenation txt))
       (setq txt (greader-dehyphenate txt)))
   (let* ((txt (concat " " txt))
-         (backend (append greader-backend `(,txt))))
+         (backend (append greader-backend `(,txt)))
+	 (default-directory (package-desc-dir (package-get-descriptor 'greader))))
     (and (stringp txt)
 	 (setq-local greader-synth-process (make-process
 				            :name "greader-backend"

@@ -27,7 +27,7 @@
   :group 'greader)
 
 (defcustom greader-piper-script-path
-  (concat (package-desc-dir (package-get-descriptor 'greader)) "/piper.sh")
+  (find-library-name "greader")
   "Piper script path."
   :type 'string)
 

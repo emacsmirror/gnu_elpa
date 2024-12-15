@@ -62,6 +62,10 @@
 (defvar greader-backend-action #'greader--default-action)
 (defvar greader-status 'paused)
 (defvar greader-synth-process nil)
+(defvar-local greader-process-directory (package-desc-dir
+					 (package-get-descriptor
+					  'greader))
+  "The directory where execution should start.")
 
 
 (define-obsolete-variable-alias 'greader-before-get-sentence-functions
@@ -445,7 +449,7 @@ available backends."
       (setq txt (greader-dehyphenate txt)))
   (let* ((txt (concat " " txt))
          (backend (append greader-backend `(,txt)))
-	 (default-directory (package-desc-dir (package-get-descriptor 'greader))))
+	 (default-directory greader-process-directory))
     (and (stringp txt)
 	 (setq-local greader-synth-process (make-process
 				            :name "greader-backend"

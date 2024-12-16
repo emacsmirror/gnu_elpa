@@ -43,8 +43,7 @@ If the script is nor present neither downloaded, then generate an
 Error."
   (if (file-exists-p greader-piper-script-path)
       greader-piper-script-path
-    (let* ((default-directory (package-desc-dir
-			       (package-get-descriptor 'greader)))
+    (let* ((default-directory greader-piper-script-path)
 	   (answer (yes-or-no-p "Do you want to download the script
   \"piper.sh\" from gitlab?")))
       (if answer

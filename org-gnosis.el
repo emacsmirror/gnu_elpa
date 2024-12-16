@@ -111,35 +111,51 @@ inserted as link for NODE-ID in the database."
       new-input)))
 
 (defun org-gnosis-parse-headline (headline inherited-tags topic-id)
-  "Parse a single headline and return a plist with its info."
+  "Parse a HEADLINE and return a plist with its info.
+
+INHERITED-TAGS: Upper level headline tags.
+TOPIC-ID: Topic hash id."
   (let* ((title (org-element-property :raw-value headline))
          (id (org-element-property :ID headline))
          (level (org-element-property :level headline))
          (tags (or (org-element-property :tags headline) inherited-tags))
          (all-tags (delete-dups (append inherited-tags tags)))
-         (links (org-gnosis-collect-id-links headline))
          (master (if (= level 1) topic-id
                    (org-element-property :ID (org-element-property :parent headline)))))
     (and id
-         (list :title title :id id :links links :tags all-tags :master master))))
+         (list :title title :id id :tags all-tags :master master :level level))))
 
-(defun org-gnosis-collect-id-links (element)
-  "Collect all ID links within ELEMENT that start with id:."
-  (org-element-map element 'link
-    (lambda (link)
-      (let ((raw-link (org-element-property :raw-link link)))
-        (when (string-prefix-p "id:" raw-link)
-          (substring raw-link 3))))
-    nil nil t))
+(defun org-gnosis-get-id ()
+  "Find the nearest ID property searching up the outline hierarchy.
+
+Return the ID if found, else nil."
+  (save-excursion
+    (while (and (not (org-entry-get nil "ID"))
+                (not (bobp)))
+      (ignore-errors
+        (if (> (funcall outline-level) 1)
+	    ;; Adjust for level <1 headings that do not have a level 1 heading.
+            (or (org-up-heading-safe) (goto-char (point-min)))
+	    (org-up-heading-safe)
+          (goto-char (point-min)))))
+    (org-entry-get nil "ID")))
+
+(defun org-gnosis-collect-id-links ()
+  "Collect ID links and current headline ID as (link-id . headline-id) pairs."
+  (let ((links nil)
+        (begin (point-min))
+        (end (point-max)))
+    (save-excursion
+      (goto-char begin)
+      (while (re-search-forward org-link-any-re end t)
+        (let ((link (match-string-no-properties 0)))
+          (when (string-match "id:\\([^]]+\\)" link)
+            (push (cons (match-string 1 link) (org-gnosis-get-id)) links)))))
+    (nreverse links)))
 
 (defun org-gnosis-get-data--topic (&optional parsed-data)
   "Retrieve the title and ID from the current org buffer or given PARSED-DATA."
   (let* ((parsed-data (or parsed-data (org-element-parse-buffer)))
-         (title (org-element-map parsed-data 'keyword
-                  (lambda (kw)
-                    (when (string= (org-element-property :key kw) "TITLE")
-                      (org-element-property :value kw)))
-                  nil t))
          (id (org-element-map parsed-data 'property-drawer
                (lambda (drawer)
                  (org-element-map (org-element-contents drawer) 'node-property
@@ -148,6 +164,13 @@ inserted as link for NODE-ID in the database."
                        (org-element-property :value prop)))
                    nil t))
                nil t))
+	 (title (org-gnosis-adjust-title
+		 (org-element-map parsed-data 'keyword
+                  (lambda (kw)
+                    (when (string= (org-element-property :key kw) "TITLE")
+                      (org-element-property :value kw)))
+                  nil t)
+		 id))
 	 (tags (org-gnosis-get-filetags)))
     (list title tags id)))
 
@@ -167,10 +190,10 @@ inserted as link for NODE-ID in the database."
   (let* ((topic-info (org-gnosis-get-data--topic parsed-data))
          (topic-title (nth 0 topic-info))
          (topic-tags (nth 1 topic-info))
-         (topic-id (nth 2 topic-info))
-         (topic-links (org-gnosis-collect-id-links parsed-data)))
+         (topic-id (nth 2 topic-info)))
     (when topic-id
-      (list :title topic-title :id topic-id :links topic-links :tags topic-tags :master 0))))
+      (list :title topic-title
+	    :id topic-id :tags topic-tags :master 0 :level 0))))
 
 (defun org-gnosis-buffer-data (&optional data)
   "Parse DATA in current buffer for topics & headlines with their ID, tags, links."
@@ -186,8 +209,6 @@ inserted as link for NODE-ID in the database."
           (when parsed-headline
             (push parsed-headline headlines)
             (push (plist-get parsed-headline :id) all-ids)))))
-    (when topic
-      (plist-put topic :links (org-gnosis-collect-id-links parsed-data)))
     (nreverse (cons topic headlines))))
 
 (defun org-gnosis-get-file-info (filename)
@@ -196,8 +217,12 @@ inserted as link for NODE-ID in the database."
 Returns file data with FILENAME."
   (with-temp-buffer
     (insert-file-contents filename)
-    (let* ((data (org-gnosis-buffer-data)))
-      (append data (list (file-name-nondirectory filename))))))
+    (org-mode)
+    (message "%s" filename)
+    (let* ((data (org-gnosis-buffer-data))
+	   (links (org-gnosis-collect-id-links)))
+      ;; Append an empty list if links are nil
+      (append data (list links)))))
 
 (defun org-gnosis-update-file (&optional file)
   "Update contents of FILE in databse.
@@ -214,9 +239,8 @@ Removes all contents of FILE in database, adding them anew."
 	       do (if journal-p
 		      (org-gnosis--delete 'journal `(= id ,node))
 		    (org-gnosis--delete 'nodes `(= id ,node))))
-      (if journal-p
-	  (org-gnosis-journal--update-file file)
-	(org-gnosis--update-file file)))))
+      ;; Add new data
+      (org-gnosis--update-file file journal-p))))
 
 (defun org-gnosis--is-journal-entry-p (file)
   "Check if FILE is a journal entry."
@@ -224,46 +248,33 @@ Removes all contents of FILE in database, adding them anew."
         (expanded-dir (file-name-as-directory (expand-file-name org-gnosis-journal-dir))))
     (string-equal file-dir expanded-dir)))
 
-(defun org-gnosis--update-file (file)
-  "Add contents of FILE to database."
-  (let* ((data (org-gnosis-get-file-info file))
-	 (filename (file-name-nondirectory file)))
+(defun org-gnosis--update-file (file &optional journal)
+  "Add contents of FILE to database.
+
+If JOURNAL is non-nil, update file as a journal entry."
+  (let* ((info (org-gnosis-get-file-info file))
+	 (data (butlast info))
+	 (table (if journal 'journal 'nodes))
+	 (filename (file-name-nondirectory file))
+	 (links (and (> (length info) 1) (apply #'append (last info)))))
     ;; Add gnosis topic
-    (emacsql-with-transaction org-gnosis-db
-      (cl-loop for item in (butlast data)
-	       do (let ((title (org-gnosis-adjust-title
-				(plist-get item :title)))
-			(id (plist-get item :id))
-			(links (plist-get item :links))
-			;; (master (plist-get item :master))
-			(tags (plist-get item :tags)))
-		    (org-gnosis--insert-into 'nodes `([,id ,filename ,title ,tags]))
-	            (cl-loop for link in links
-			     do (org-gnosis--insert-into 'links `([,id ,link])))
-		    (cl-loop for tag in tags
-			     do
-			     (org-gnosis--insert-into 'tags `([,tag]))
-			     (org-gnosis--insert-into 'node-tag `([,id ,tag]))))))))
-
-
-(defun org-gnosis-journal--update-file (file)
-  "Update database for journal FILE."
-  (let* ((data (org-gnosis-get-file-info file))
-	 (file (file-name-nondirectory file)))
-    (emacsql-with-transaction org-gnosis-db
-      (cl-loop for item in (butlast data)
-	       do (let ((title (plist-get item :title))
-			(id (plist-get item :id))
-			(links (plist-get item :links))
-			;; (master (plist-get item :master))
-			(tags (plist-get item :tags)))
-		    (org-gnosis--insert-into 'journal `([,id ,file ,title ,tags]))
-	            (cl-loop for link in links
-			     do (org-gnosis--insert-into 'links `([,id ,link])))
-		    (cl-loop for tag in tags
-			     do
-			     (org-gnosis--insert-into 'tags `([,tag]))
-			     (org-gnosis--insert-into 'node-tag `([,id ,tag]))))))))
+    (message "Parsing: %s" filename)
+    (cl-loop for item in data
+	     do (let ((title (org-gnosis-adjust-title
+			      (plist-get item :title)))
+		      (id (plist-get item :id))
+		      (master (plist-get item :master))
+		      (tags (plist-get item :tags))
+		      (level (plist-get item :level)))
+		  (org-gnosis--insert-into table `([,id ,filename ,title ,level ,tags]))
+		  (cl-loop for tag in tags
+			   do
+			   (org-gnosis--insert-into 'tags `([,tag]))
+			   (org-gnosis--insert-into 'node-tag `([,id ,tag]))
+			   (when (stringp master)
+			     (org-gnosis--insert-into 'links `([,id ,master]))))))
+    (cl-loop for link in links
+	     do (org-gnosis--insert-into 'links `[,(cdr link) ,(car link)]))))
 
 (defun org-gnosis-find--tag-with-tag-prop (lst)
   "Combine each sublist of strings in LST into a single string."
@@ -393,12 +404,15 @@ instead."
     (org-insert-link nil node-id node)))
 
 (defun org-gnosis-journal (&optional template)
-  "Start journaling for current date."
+  "Start journaling for current date.
+
+TEMPLATE: Journaling template, refer to `org-gnosis-journal-templates'."
   (interactive)
   (let* ((date (format-time-string "%Y-%m-%d"))
-	 (file (format "%s.org" date)))
-    (org-gnosis--create-file date (expand-file-name file org-gnosis-journal-dir)
-			     (or template (org-gnosis-journal-select-template)))))
+	 (file (expand-file-name (format "%s.org" date) org-gnosis-journal-dir)))
+    (org-gnosis--create-file date file
+			     (and (not (file-exists-p file))
+				  (or template (org-gnosis-journal-select-template))))))
 
 (define-minor-mode org-gnosis-mode
   "Org gnosis mode."
@@ -418,7 +432,8 @@ instead."
   '((nodes
      ([(id :not-null :primary-key)
        (file :not-null)
-       (title text)
+       (title text :not-null)
+       (level text :not-null)
        tags]))
     (tags
      ([(tag text :primary-key)]
@@ -427,6 +442,7 @@ instead."
      ([(id :not-null :primary-key)
        (file :not-null)
        (date text)
+       (level text :not-null)
        tags]))
     (node-tag
      ([(node-id :not-null)
@@ -456,7 +472,7 @@ instead."
 								(file-name-nondirectory file))
 						(not (file-directory-p file))))
 					 (directory-files org-gnosis-journal-dir t nil t))
-	   do (org-gnosis-journal--update-file file)))
+	   do (org-gnosis-update-file file)))
 
 ;;;###autoload
 (defun org-gnosis-db-sync ()
@@ -470,7 +486,7 @@ If called with ARG do not initialize the database."
 					(not (file-directory-p file))))
 				 (directory-files org-gnosis-dir t nil t))))
     (cl-loop for file in files
-	     do (org-gnosis--update-file file)))
+	     do (org-gnosis-update-file file)))
   (org-gnosis-db-sync--journal))
 
 (defun org-gnosis-db-init ()

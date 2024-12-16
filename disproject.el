@@ -1087,6 +1087,16 @@ project."
 
 ;;;; Suffix environment.
 
+(defvar disproject--environment-scope nil
+  "Current disproject scope in `disproject-with-environment'.
+
+This is for suffixes that use `disproject-with-environment',
+normally by specifying the class as `disproject-suffix' or a
+subclass of it.  It is preferred to use this when possible over
+`disproject--scope' to avoid cases where there is no scope,
+causing a new `disproject-scope' to be initialized on every call
+and potentially resulting in duplicate prompts.")
+
 (defmacro disproject-with-environment (&rest body)
   "Run BODY with `disproject' \"environment\" options set.
 
@@ -1098,9 +1108,10 @@ the project's root directory.
 `display-buffer-overriding-action': Set to display in another
 window if \"--prefer-other-window\" is enabled."
   (declare (indent 0) (debug t))
-  `(let* ((scope (disproject--scope))
+  `(let* ((disproject--environment-scope (disproject--scope))
           (project (disproject-project-instance
-                    (disproject-scope-selected-project-ensure scope)))
+                    (disproject-scope-selected-project-ensure
+                     disproject--environment-scope)))
           (from-directory (project-root project))
           (prefer-other-window? (disproject--state-prefer-other-window?))
           ;; Only enable envrc if the initial environment has it enabled.

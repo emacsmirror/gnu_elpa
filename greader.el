@@ -62,7 +62,7 @@
 (defvar greader-backend-action #'greader--default-action)
 (defvar greader-status 'paused)
 (defvar greader-synth-process nil)
-(defvar-local greader-process-directory (find-library-name "greader")
+(defvar-local greader-process-directory (file-name-directory (find-library-name "greader"))
   "The directory where execution should start.")
 
 

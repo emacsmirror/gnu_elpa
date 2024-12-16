@@ -42,7 +42,7 @@
   :group 'org-gnosis)
 
 (defcustom org-gnosis-journal-templates
-  '(("default" "* Daily Notes\n\n* Goals\n+ []")
+  '(("Default" "* Daily Notes\n\n* Goals\n+ []")
     ("Empty" ""))
   "Template for journaling."
   :type 'string
@@ -58,13 +58,7 @@
   :type 'boolean
   :group 'org-gnosis)
 
-(defcustom org-gnosis-completing-read-func
-  (cond ((or (bound-and-true-p ivy-mode)
-	     (bound-and-true-p helm-mode)
-	     (bound-and-true-p vertico-mode)
-	     (bound-and-true-p fido-mode))
-	 #'completing-read)
-	(t #'ido-completing-read))
+(defcustom org-gnosis-completing-read-func #'org-completing-read
   "Function to use for `completing-read'."
   :type 'function
   :group 'gnosis)

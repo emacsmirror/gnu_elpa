@@ -1,4 +1,4 @@
-;;; org-gnosis.el --- Org Note Management System  -*- lexical-binding: t; -*-
+;;; org-gnosis.el --- Roam-like Note Management System  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024-2025  Thanos Apollo
 
@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 
-;; Under development
+;; Minimal, Roam Research inspired, note taking tool.
 
 ;;; Code:
 
@@ -36,7 +36,7 @@
   "Note Taking System."
   :group 'external)
 
-(defcustom org-gnosis-dir "~/Notes"
+(defcustom org-gnosis-dir (expand-file-name "Notes" "~")
   "Directory with gnosis notes."
   :type 'directory
   :group 'org-gnosis)
@@ -62,6 +62,11 @@
   "Function to use for `completing-read'."
   :type 'function
   :group 'gnosis)
+
+(defcustom org-gnosis-denote-p nil
+  "Use org-gnosis databse for denote notes."
+  :group 'org-gnosis
+  :type 'boolean)
 
 (defface org-gnosis-face-tags
   '((t :inherit font-lock-type-face))
@@ -174,6 +179,27 @@ Return the ID if found, else nil."
 	 (tags (org-gnosis-get-filetags)))
     (list title tags id)))
 
+(defun org-gnosis--denote-topic ()
+  "Parse current buffer for denote file format."
+  (save-excursion
+    (goto-char (point-min))
+    (let ((title nil)
+          (tags nil)
+          (identifier nil))
+      (when (or (re-search-forward "^title:\\s-*\\(.*\\)$" nil t)
+                (re-search-forward "^#\\+title:\\s-*\\(.*\\)$" nil t))
+        (setq title (match-string-no-properties 1)))
+      (when (or (re-search-forward "^tags:\\s-*\\(.*\\)$" nil t)
+                (re-search-forward "^#\\+filetags:\\s-*\\(.*\\)$" nil t))
+        (setq tags (if (string-match-p ":" (match-string-no-properties 1))
+                       (split-string (match-string-no-properties 1) ":")
+                     (split-string (match-string-no-properties 1))))
+        (setq tags (delete "" tags)))
+      (when (or (re-search-forward "^identifier:\\s-*\\(.*\\)$" nil t)
+                (re-search-forward "^#\\+identifier:\\s-*\\(.*\\)$" nil t))
+        (setq identifier (match-string-no-properties 1)))
+      (list title tags identifier))))
+
 ;; This one is used mostly for topic
 (defun org-gnosis-get-filetags (&optional parsed-data)
   "Return the filetags of the buffer's PARSED-DATA as a comma-separated string."
@@ -187,7 +213,9 @@ Return the ID if found, else nil."
 
 (defun org-gnosis-parse-topic (parsed-data)
   "Parse topic information from the PARSED-DATA."
-  (let* ((topic-info (org-gnosis-get-data--topic parsed-data))
+  (let* ((topic-info (if org-gnosis-denote-p
+			 (org-gnosis--denote-topic)
+		       (org-gnosis-get-data--topic parsed-data)))
          (topic-title (nth 0 topic-info))
          (topic-tags (nth 1 topic-info))
          (topic-id (nth 2 topic-info)))

@@ -120,6 +120,10 @@ Unicode flag symbol (displayed as color emoji starting from Emacs
 in the mini buffer."
   :type '(alist :key-type symbol :value-type list))
 
+(defcustom guess-language-idle-delay 0.2
+  "If non-nil, idle delay in seconds before guessing the language of the current paragraph."
+  :type 'float)
+
 (defcustom guess-language-after-detection-functions (list #'guess-language-switch-flyspell-function
                                                           #'guess-language-switch-typo-mode-function)
   "Hook run when a new language is detected.
@@ -169,7 +173,7 @@ Uses ISO 639-1 to identify languages.")
 most appropriate given the buffer mode."
   (if (derived-mode-p 'org-mode)
       ;; When in list, go to the beginning of the top-level list:
-      (if (org-in-item-p) 
+      (if (org-in-item-p)
           (org-beginning-of-item-list)
         (org-backward-paragraph))
     (backward-paragraph)
@@ -231,10 +235,28 @@ things like changing the keyboard layout or input method."
         (setq guess-language-current-language lang)
         (message (format "Detected language: %s" (nth 4 (assoc lang guess-language-langcodes))))))))
 
+(defun guess-language--idle-begin (buf win tick beginning)
+  "Run guess-langauge unless we left or changed the current paragraph."
+  (when (and (eq buf (current-buffer))
+             (eq win (selected-window))
+             (eq tick (buffer-chars-modified-tick))
+             (eq beginning (save-excursion (guess-language-backward-paragraph) (point))))
+    (guess-language)
+    ;; when running from idle timer, run the post command right away
+    (guess-language--post-command-h)))
+
 (defun guess-language-function (_beginning _end _doublon)
-  "Wrapper for `guess-language' because `flyspell-incorrect-hook'
-provides three arguments that we don't need."
-  (guess-language)
+  "Wrapper for `guess-language'.
+
+Ignores arguments of `flyspell-incorrect-hook' that we don't need and
+adds an idle delay."
+  (if (and guess-language-idle-delay (> guess-language-idle-delay 0))
+      (run-with-idle-timer guess-language-idle-delay nil
+                           #'guess-language--idle-begin
+                           (current-buffer) (selected-window)
+                           (buffer-chars-modified-tick)
+                           (save-excursion (guess-language-backward-paragraph) (point)))
+    (guess-language))
   ;; Return nil because flyspell may otherwise not highlight incorrect
   ;; words:
   nil)

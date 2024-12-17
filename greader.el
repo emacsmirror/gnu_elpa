@@ -45,7 +45,7 @@
 (require 'seq)
 (require 'view)
 (defvar-local greader-timer-flag nil)
-
+(require 'find-func)
 (defvar greader-auto-tired-timer nil)
 (defvar greader-auto-tired-end-timer)
 (defvar greader-last-point nil)

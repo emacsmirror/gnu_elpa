@@ -20,7 +20,8 @@
 ;; It uses a shell script to call piper.
 
 ;;; code:
-(require 'package)
+(require 'find-func)
+
 (defgroup greader-piper
   nil
   "piper back-end."
@@ -51,12 +52,12 @@ Error."
 	    (setq answer (call-process "curl" nil "*piper-script download*"
 				       nil greader-piper-script-url))
 	    (unless (file-exists-p greader-piper-script-path)
-	      (Error "Error while downloading %s\nPlease try later or
+	      (error "Error while downloading %s\nPlease try later or
 open an issue" greader-piper-script-url)))
 	nil))))
 
 ;;;###autoload
-(defun greader-piper (command &optional arg)
+(defun greader-piper (command &optional _arg)
   "Entry point for greader-piper."
   (pcase command
     ('executable

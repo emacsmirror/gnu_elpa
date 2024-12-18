@@ -127,8 +127,11 @@ If all the functions in the hook return nil, this function return nil."
 (defcustom
   greader-backends
   '(greader-espeak greader-speechd greader-mac greader-piper)
-  "A list of functions that are back-ends for greader."
-  :tag "greader back-ends"
+  "A list of functions that are back-ends for greader.
+If you have already customized this variable and saved it, and if a
+new back-end was released or you have created yours, you should add
+those new back-ends manually,  so if you want to keep yourself
+updated on new back-ends, please check the pproject's repository."
   :type '(repeat function))
 
 (defcustom

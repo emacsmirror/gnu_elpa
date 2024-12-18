@@ -359,13 +359,24 @@ instead."
 
 ;;;###autoload
 (defun org-gnosis-insert ()
-  "Insert gnosis node."
+  "Insert gnosis node.
+
+If node does not exist, create it."
   (interactive)
   (let* ((node (org-gnosis--find "Select gnosis node: "
 				 (org-gnosis-select '[title tags] 'nodes '1=1)
 				 (org-gnosis-select 'title 'nodes '1=1)))
 	 (id (concat "id:" (car (org-gnosis-select 'id 'nodes `(= ,node title) '1=1)))))
-    (org-insert-link nil id node)))
+    (cond ((< (length id) 4)
+	   (save-window-excursion
+	     (org-gnosis--create-file node)
+	     ;; Save buffer to store new node id
+	     (save-buffer)
+	     (setf id (concat "id:"
+			      (car (org-gnosis-select 'id 'nodes `(= ,node title) '1=1)))))
+	   (org-insert-link nil id node)
+	   (message "Created new node: %s" node))
+	  (t (org-insert-link nil id node)))))
 
 ;;;###autoload
 (defun org-gnosis-insert-tag ()

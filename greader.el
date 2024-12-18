@@ -1800,7 +1800,7 @@ If START or END is not provided, consider the entire buffer."
 					       mode-line-misc-info))))
 	(throw 'banner-found t))
       nil)))
-
+(declare-function dtk-speak nil)
 (defun greader-estimated-time-update ()
   "update of estimated reading time.
 new data is stored in the mode-line.

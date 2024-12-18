@@ -70,8 +70,6 @@
 
 (defvar org-gnosis-db (emacsql-sqlite-open (locate-user-emacs-file "org-gnosis.db")))
 
-(defvar org-gnosis-auto-sync--timer nil)
-
 (cl-defun org-gnosis-select (value table &optional (restrictions '1=1) (flatten nil))
   "Select VALUE from TABLE, optionally with RESTRICTIONS.
 
@@ -458,35 +456,6 @@ TEMPLATE: Journaling template, refer to `org-gnosis-journal-templates'."
   (if org-gnosis-mode
       (add-hook 'after-save-hook #'org-gnosis-update-file nil t) ;; buffer local hook
     (remove-hook 'after-save-hook #'org-gnosis-update-file)))
-
-(defvar org-gnosis-db-sync-timer nil
-  "Timer for org-gnosis-db-sync minor mode.")
-
-(defvar org-gnosis-db-sync-interval 60
-  "Second interval to sync database.")
-
-(define-minor-mode org-gnosis-db-sync-mode
-  "Minor mode to automatically run `org-gnosis-db-sync` every 30 seconds."
-  :lighter nil
-  :global t
-  (if org-gnosis-db-sync-mode
-      (setq org-gnosis-db-sync-timer
-            (run-with-timer 0 org-gnosis-db-sync-interval #'org-gnosis-db-sync-async))
-    (when org-gnosis-db-sync-timer
-      (cancel-timer org-gnosis-db-sync-timer)
-      (setq org-gnosis-db-sync-timer nil))))
-
-(defun org-gnosis-db-sync-async ()
-  "Run `org-gnosis-db-sync` asynchronously using a subprocess."
-  (let ((script (concat
-                 "(progn "
-                 "(require 'org-gnosis) "  ;; Ensure the necessary package is loaded
-                 "(org-gnosis-db-sync))")))
-    (start-process "org-gnosis-db-sync-process"
-                   nil
-                   "emacs"
-                   "--batch"
-                   "--eval" script)))
 
 ;; Org-Gnosis Database
 

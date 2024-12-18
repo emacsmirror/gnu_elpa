@@ -58,7 +58,9 @@ open an issue" greader-piper-script-url)))
 
 ;;;###autoload
 (defun greader-piper (command &optional _arg)
-  "Entry point for greader-piper."
+  "Entry point for greader-piper.
+If you experiment problems using this back-end, please refer to the
+documentation of `greader-back-ends' variable."
   (pcase command
     ('executable
      (greader-piper-find-script))

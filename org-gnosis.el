@@ -63,11 +63,6 @@
   :type 'function
   :group 'gnosis)
 
-(defcustom org-gnosis-denote-p nil
-  "Use org-gnosis databse for denote notes."
-  :group 'org-gnosis
-  :type 'boolean)
-
 (defface org-gnosis-face-tags
   '((t :inherit font-lock-type-face))
   "Face for displaying gnosis with `org-gnosis-find'."
@@ -178,27 +173,6 @@ Return the ID if found, else nil."
 		 id))
 	 (tags (org-gnosis-get-filetags)))
     (list title tags id)))
-
-(defun org-gnosis--denote-topic ()
-  "Parse current buffer for denote file format."
-  (save-excursion
-    (goto-char (point-min))
-    (let ((title nil)
-          (tags nil)
-          (identifier nil))
-      (when (or (re-search-forward "^title:\\s-*\\(.*\\)$" nil t)
-                (re-search-forward "^#\\+title:\\s-*\\(.*\\)$" nil t))
-        (setq title (match-string-no-properties 1)))
-      (when (or (re-search-forward "^tags:\\s-*\\(.*\\)$" nil t)
-                (re-search-forward "^#\\+filetags:\\s-*\\(.*\\)$" nil t))
-        (setq tags (if (string-match-p ":" (match-string-no-properties 1))
-                       (split-string (match-string-no-properties 1) ":")
-                     (split-string (match-string-no-properties 1))))
-        (setq tags (delete "" tags)))
-      (when (or (re-search-forward "^identifier:\\s-*\\(.*\\)$" nil t)
-                (re-search-forward "^#\\+identifier:\\s-*\\(.*\\)$" nil t))
-        (setq identifier (match-string-no-properties 1)))
-      (list title tags identifier))))
 
 ;; This one is used mostly for topic
 (defun org-gnosis-get-filetags (&optional parsed-data)

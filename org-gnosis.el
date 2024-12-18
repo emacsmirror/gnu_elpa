@@ -24,7 +24,10 @@
 
 ;;; Commentary:
 
-;; Minimal, Roam Research inspired, note taking tool.
+;; Org Gnosis is a knowledge management system, where notes are stored
+;; in org files under a specified directory.  Files are parsed and
+;; their data is saved in an SQLite databse, making it easier to
+;; retrieve information and view relationships.
 
 ;;; Code:
 
@@ -45,7 +48,15 @@
   '(("Default" "* Daily Notes\n\n* Goals\n+ []")
     ("Empty" ""))
   "Template for journaling."
-  :type 'string
+  :type '(repeat (cons (string :tag "Name")
+                       (string :tag "Template")))
+  :group 'org-gnosis)
+
+(defcustom org-gnosis-node-templates
+  '(("Default" ""))
+  "Template for nodes."
+  :type '(repeat (cons (string :tag "Name")
+                       (string :tag "Template")))
   :group 'org-gnosis)
 
 (defcustom org-gnosis-journal-dir (expand-file-name "journal" org-gnosis-dir)
@@ -338,21 +349,27 @@ instead."
 				     (org-gnosis-select 'title 'nodes)))))
 	 (file (or file (caar (org-gnosis-select 'file 'nodes `(= title ,title)))))
 	 (id (or id (caar (or id (org-gnosis-select 'id 'nodes `(= title ,title))))))
-	 (directory (or directory org-gnosis-dir)))
+	 (directory (or directory org-gnosis-dir))
+	 (node-template (org-gnosis-select-template org-gnosis-node-templates)))
     (cond ((null file)
-	   (org-gnosis--create-file title))
+	   (org-gnosis--create-file title nil node-template)
+	   (org-gnosis-mode))
 	  ((file-exists-p (expand-file-name file directory))
 	   (find-file
 	    (expand-file-name file directory))
 	   (ignore-errors (org-id-goto id))
-	   (org-gnosis-mode 1)))))
+	   (org-gnosis-mode)))))
 
-(defun org-gnosis-journal-select-template (&optional templates)
-  "Selecte journal template from TEMPLATES."
+(defun org-gnosis-select-template (&optional templates)
+  "Select journal template from TEMPLATES.
+
+If templates is only item, return it without a prompt."
   (let* ((templates (or templates org-gnosis-journal-templates))
-	 (selected (funcall org-gnosis-completing-read-func "Select template:"
-			    (mapcar #'car templates)))
-	 (template (cdr (assoc selected templates))))
+         (template (if (= (length templates) 1)
+                       (cdar templates)
+                     (cdr (assoc (funcall org-gnosis-completing-read-func "Select template:"
+                                          (mapcar #'car templates))
+                                 templates)))))
     (apply #'append template)))
 
 ;;;###autoload
@@ -424,7 +441,9 @@ TEMPLATE: Journaling template, refer to `org-gnosis-journal-templates'."
 	 (file (expand-file-name (format "%s.org" date) org-gnosis-journal-dir)))
     (org-gnosis--create-file date file
 			     (and (not (file-exists-p file))
-				  (or template (org-gnosis-journal-select-template))))))
+				  (or template
+				      (org-gnosis-select-template
+				       org-gnosis-journal-templates))))))
 
 (defun org-gnosis--get-id-at-point ()
   "Return the Org ID link at point, if any."

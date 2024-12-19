@@ -23,7 +23,13 @@
 ;; chances are that your distribution has already the package,or you
 ;; can download and compile the source from
 ;; https://github.com/rhasspy/piper.
-
+;;
+;; if you experiment problems on your first use of this back-end,
+;;check that you have execution permissions on "piper.sh", that should
+;;be located in the greader's directory or in your path.
+;; However it is recommended to move the script from the directory where
+;; resides greader to a directory in your path, so you can
+;; configure your shell script as you prefer.
 ;;; code:
 (require 'find-func)
 
@@ -33,8 +39,10 @@
   :group 'greader)
 
 (defcustom greader-piper-script-path
-  (file-name-concat (file-name-directory (find-library-name
-					  "greader")) "piper.sh")
+  (progn
+    (add-to-list 'exec-path greader-process-directory)
+    (file-name-concat (file-name-directory (find-library-name
+					    "greader")) "piper.sh"))
   "Piper script path."
   :type 'string)
 

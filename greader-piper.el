@@ -18,6 +18,11 @@
 ;;; commentary:
 ;; This is the back-end for the piper synthesizer.
 ;; It uses a shell script to call piper.
+;; The piper tts itself is not included with greader, you have to
+;; install it manually.
+;; chances are that your distribution has already the package,or you
+;; can download and compile the source from
+;; https://github.com/rhasspy/piper.
 
 ;;; code:
 (require 'find-func)

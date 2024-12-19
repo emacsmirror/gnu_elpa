@@ -28,7 +28,8 @@
   :group 'greader)
 
 (defcustom greader-piper-script-path
-  (find-library-name "greader")
+  (file-name-concat (file-name-directory (find-library-name
+					  "greader")) "piper.sh")
   "Piper script path."
   :type 'string)
 
@@ -36,6 +37,7 @@
   "https://gitlab.com/michelangelo-rodriguez/greader/-/raw/master/piper.sh"
   "Url of the script `piper.sh'."
   :type 'string)
+
 (defun greader-piper-find-script ()
   "Check if the piper script is really present.
 If the script is not present, propose to download it from gitlab.
@@ -49,8 +51,12 @@ Error."
   \"piper.sh\" from gitlab?")))
       (if answer
 	  (progn
-	    (setq answer (call-process "curl" nil "*piper-script download*"
-				       nil greader-piper-script-url))
+	    (setq answer (call-process "curl" nil (list
+						   (get-buffer-create
+						    "*piper-script download*") "piper.err")
+				       nil "-s" greader-piper-script-url))
+	    (with-current-buffer "*piper-script download*"
+	      (write-region (point-min) (point-max) greader-piper-script-path))
 	    (unless (file-exists-p greader-piper-script-path)
 	      (error "Error while downloading %s\nPlease try later or
 open an issue" greader-piper-script-url)))

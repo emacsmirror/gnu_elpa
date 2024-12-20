@@ -232,6 +232,8 @@
  (devdocs		:url "https://github.com/astoff/devdocs.el")
  (devicetree-ts-mode	:url "https://git.sr.ht/~akagi/devicetree-ts-mode"
   :ignored-files ("LICENSE"))
+ (dicom			:url "https://github.com/minad/dicom"
+  :ignored-files ("LICENSE"))
  (dict-tree		:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
  (diff-hl		:url "https://github.com/dgutov/diff-hl.git")
  (diffview            	:url "https://github.com/mgalgs/diffview-mode.git")

@@ -44,7 +44,7 @@ opening books in that format."
 
 (defun calibre--read-tags ()
   "Prompt the user for a list of tags."
-  (completing-read-multiple "Tag: " calibre-tags-completion-table))
+  (completing-read-multiple "Tags: " calibre-tags-completion-table))
 
 ;;;###autoload
 (defun calibre-library-add-book (file &optional tags)

@@ -39,6 +39,11 @@
   :type 'string
   :package-version '("calibre" . "1.0.4"))
 
+(defcustom calibre-ebook-device-executable "ebook-device"
+  "The ebook-device executable to use."
+  :type 'string
+  :package-version '("calibre" . "1.5.0"))
+
 (defcustom calibre-libraries nil
   "An alist mapping library names to directories."
   :type '(repeat :tag "Libraries" (cons :tag "Library"

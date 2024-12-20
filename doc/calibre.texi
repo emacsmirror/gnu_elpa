@@ -47,6 +47,7 @@ This manual is for calibre.el (version @value{VERSION},
 * Getting started::
 * Viewing your library::
 * Modifying your library::
+* Interacting with external reading devices::
 * GNU Free Documentation License::
 * Index::
 @end menu
@@ -403,6 +404,21 @@ to remove and press @kbd{d} (@code{calibre-library-mark-remove}).  This
 will mark the book for removal.  Once you have marked all the books you
 wish to remove, press @kbd{x} (@code{calibre-library-execute}) to remove
 them.
+
+@node Interacting with external reading devices
+@chapter Interacting with external reading devices
+Calibre has the ability to interact with external reading devices,
+allowing to manage the books stored on these devices.  calibre.el now
+supports a limited subset of this functionality in the form of the
+ability to transfer books from your library to an external device.
+
+To do this call @code{calibre-device-send-books} which will transfer all
+marked books, or the book at point if no books are marked, to an
+external device.  The transfer is performed asynchronously so it will
+not block Emacs but it can take some time to complete.
+
+Once the transfer is complete call @code{calibre-device-eject} to safely
+eject the external device before unplugging it from your computer.
 
 @include fdl.texi
 

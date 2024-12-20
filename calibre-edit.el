@@ -155,6 +155,31 @@ function does nothing."
      (calibre-edit--metadata-adder ,field)
      (calibre-edit--metadata-remover ,field)))
 
+(defmacro calibre-edit--metadata-setter (field)
+  "Create a function to set FIELD of a given book."
+  (let ((name (intern (format "calibre-edit-set-%s" field)))
+        (getter (intern (format "calibre-book-%s" field))))
+    `(defun ,name (,field book)
+       ,(format "Set BOOK's %s to %s"
+                field
+                (upcase (prin1-to-string field)))
+       (calibre-edit--preserve-original book)
+       (setf (,getter book) ,field))))
+
+(defmacro calibre-edit--metadata-unsetter (field)
+  "Create a function to unset FIELD of a given book."
+  (let ((name (intern (format "calibre-edit-unset-%s" field)))
+        (setter (intern (format "calibre-edit-set-%s" field))))
+    `(defun ,name (book)
+       ,(format "Unset BOOK's %s" field)
+       (,setter nil book))))
+
+(defmacro calibre-edit--metadata-setter-pair (field)
+  "Create a pair of set/unset functions to modify FIELD of a given book."
+  `(progn
+     (calibre-edit--metadata-setter ,field)
+     (calibre-edit--metadata-unsetter ,field)))
+
 (calibre-util--macro-map
  calibre-edit--metadata-modifier-pair (tags authors))
 (defun calibre-edit-modified-p (book)

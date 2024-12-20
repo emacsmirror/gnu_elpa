@@ -266,7 +266,7 @@ that particular component as fuzzy.
 The operations discussed in this section perform modifications to
 Calibre's metadata database through the @command{calibredb} executable
 shipped with Calibre.  If Emacs does not find @command{calibredb}
-customize @var{calibre-calibredb-executable} to point to it.
+customize @code{calibre-calibredb-executable} to point to it.
 
 All database modifications are performed using asynchronous background
 processes, this means that Emacs will not become unresponsive while
@@ -288,7 +288,7 @@ is automatically refreshed once the modification has been completed.
 @menu
 * Adding individual books::
 * Adding books in bulk::
-* Tagging added books
+* Tagging added books::
 @end menu
 
 @node Adding individual books

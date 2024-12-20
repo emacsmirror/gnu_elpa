@@ -41,7 +41,7 @@ EVENT is the process event, see Info node
       (progn
         (kill-buffer calibre-exec--process-buffer)
         (calibre-library--refresh t))
-    (error "Calibre process failed.  See %s for details." calibre-exec--process-buffer))
+    (error "Calibre process failed.  See %s for details" calibre-exec--process-buffer))
   (if calibre-exec--commands
       (calibre-exec--next-command)
     (setf calibre-exec--executing nil)))

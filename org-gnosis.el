@@ -1,4 +1,4 @@
-;;; org-gnosis.el --- Roam-like Note Management System  -*- lexical-binding: t; -*-
+;;; org-gnosis.el --- Knowledge Management System  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024-2025  Thanos Apollo
 
@@ -28,6 +28,9 @@
 ;; in org files under a specified directory.  Files are parsed and
 ;; their data is saved in an SQLite databse, making it easier to
 ;; retrieve information and view relationships.
+
+;; Functionality for journaling with journal entries in a separated
+;; directory & customizable templates is also available.
 
 ;;; Code:
 
@@ -360,6 +363,7 @@ DIRECTORY."
 ;;;###autoload
 (defun org-gnosis-find-by-tag (&optional tag)
   "Find node under TAG."
+  (interactive)
   (let* ((tag (or tag (funcall org-gnosis-completing-read-func
 			       "Select tag: "
 			       (org-gnosis-select 'tag 'tags '1=1 t))))

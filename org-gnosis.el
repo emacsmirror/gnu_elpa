@@ -357,6 +357,18 @@ DIRECTORY."
 	   (ignore-errors (org-id-goto id))
 	   (org-gnosis-mode)))))
 
+;;;###autoload
+(defun org-gnosis-find-by-tag (&optional tag)
+  "Find node under TAG."
+  (let* ((tag (or tag (funcall org-gnosis-completing-read-func
+			       "Select tag: "
+			       (org-gnosis-select 'tag 'tags '1=1 t))))
+	 (node
+	  (funcall org-gnosis-completing-read-func
+		   "Select node: "
+		   (org-gnosis-select 'title 'nodes `(like tags ',(format "%%\"%s\"%%" tag))))))
+    (org-gnosis-find node)))
+
 (defun org-gnosis-select-template (&optional templates)
   "Select journal template from TEMPLATES.
 

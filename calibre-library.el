@@ -89,10 +89,17 @@ TAGS should be a list of strings to add to FILE."
     (if (derived-mode-p 'dired-mode)
         (calibre-library-add-books (dired-get-marked-files) tags)))
 
+(defun calibre--get-active-books ()
+  "Get the list of books to operate on.
+
+Get the list of books a library command should operate on.  If any books
+are marked return those books otherwise return the book at point."
+  (or (calibre-library-get-marked) (list (tabulated-list-get-id))))
+
 (defun calibre-library-add-tags (tags books)
   "Add TAGS to BOOKS if not already present."
   (interactive (list (calibre--read-tags)
-                     (or (calibre-library-get-marked) (list (tabulated-list-get-id))))
+                     (calibre--get-active-books))
                calibre-library-mode)
   (dolist (book books)
       (calibre-edit-add-tags tags book))
@@ -101,7 +108,7 @@ TAGS should be a list of strings to add to FILE."
 (defun calibre-library-remove-tags (tags books)
   "Remove TAGS from BOOKS if present."
   (interactive (list (calibre--read-tags)
-                     (or (calibre-library-get-marked) (list (tabulated-list-get-id))))
+                     (calibre--get-active-books))
                calibre-library-mode)
   (dolist (book books)
     (calibre-edit-remove-tags tags book))

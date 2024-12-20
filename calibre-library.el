@@ -46,6 +46,10 @@ opening books in that format."
   "Prompt the user for a list of tags."
   (completing-read-multiple "Tags: " calibre-tags-completion-table))
 
+(defun calibre--read-authors ()
+  "Prompt the user for a list of authors."
+  (completing-read-multiple "Authors: " calibre-authors-completion-table))
+
 ;;;###autoload
 (defun calibre-library-add-book (file &optional tags)
   "Add FILE to the Calibre library.
@@ -112,6 +116,24 @@ are marked return those books otherwise return the book at point."
                calibre-library-mode)
   (dolist (book books)
     (calibre-edit-remove-tags tags book))
+  (calibre-library--refresh))
+
+(defun calibre-library-add-authors (authors books)
+  "Add AUTHORS to BOOKS if not already present."
+  (interactive (list (calibre--read-authors)
+                     (calibre--get-active-books))
+               calibre-library-mode)
+  (dolist (book books)
+      (calibre-edit-add-authors authors book))
+  (calibre-library--refresh))
+
+(defun calibre-library-remove-authors (authors books)
+  "Remove AUTHORS from BOOKS if present."
+  (interactive (list (calibre--read-authors)
+                     (calibre--get-active-books))
+               calibre-library-mode)
+  (dolist (book books)
+    (calibre-edit-remove-authors authors book))
   (calibre-library--refresh))
 
 (defun calibre-library-remove-books (books)

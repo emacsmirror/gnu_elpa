@@ -375,11 +375,12 @@ section will operate on the book at point.
 @findex calibre-library-add-tags
 @findex calibre-library-remove-tags
 Currently the only metadata that can be modified from the
-@file{*Library*} buffer is tags, which can be manipulated with the
-commands @code{calibre-library-add-tags} and
-@code{calibre-library-remove-tags}.  Both commands will prompt for one,
-or more, tags and respectively add them to any books which do not
-already have them, or remove them from any books that do.
+@file{*Library*} buffer are tags and authors, which can be manipulated
+with the commands @code{calibre-library-add-tags},
+@code{calibre-library-remove-tags}, @code{calibre-library-add-authors},
+and @code{calibre-library-remove-authors}.  Both commands will prompt
+for one, or more, tags or authors and respectively add them to any books
+which do not already have them, or remove them from any books that do.
 
 @node Committing and reverting modifications
 @subsection Committing and reverting modifications

@@ -232,7 +232,6 @@ Returns file data with FILENAME."
   (with-temp-buffer
     (insert-file-contents filename)
     (org-mode)
-    (message "%s" filename)
     (let* ((data (org-gnosis-buffer-data))
 	   (links (org-gnosis-collect-id-links)))
       ;; Append links even if they are nil
@@ -469,12 +468,16 @@ TEMPLATE: Journaling template, refer to `org-gnosis-journal-templates'."
 
 
 (defun org-gnosis-goto-id (&optional id)
-  "Visit file for ID."
+  "Visit file for ID.
+
+If file or id are not found, use `org-open-at-point'."
   (interactive)
   (let* ((id (or id (org-gnosis--get-id-at-point)))
 	 (file (caar (org-gnosis-select 'file 'nodes `(= id ,id)))))
-    (find-file (expand-file-name file org-gnosis-dir))
-    (org-gnosis-mode)))
+    (if (and id file)
+	(progn (find-file (expand-file-name file org-gnosis-dir))
+	       (org-gnosis-mode))
+      (org-open-at-point))))
 
 (defvar-keymap org-gnosis-mode-map
   :doc "org-gnosis keymap"

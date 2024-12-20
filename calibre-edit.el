@@ -155,7 +155,8 @@ function does nothing."
      (calibre-edit--metadata-adder ,field)
      (calibre-edit--metadata-remover ,field)))
 
-(calibre-edit--metadata-modifier-pair tags)
+(calibre-util--macro-map
+ calibre-edit--metadata-modifier-pair (tags authors))
 (defun calibre-edit-modified-p (book)
   "Return non-nil if BOOK has been modified, nil otherwise."
   (calibre-edit--find-original book))

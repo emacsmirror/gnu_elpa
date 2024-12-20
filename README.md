@@ -68,7 +68,7 @@ inbox].
 Distribution
 ------------
 
-Auto-header.el and all other source files in this directory are
+Do-at-point.el and all other source files in this directory are
 distributed under the [GNU Public License], Version 3 (like Emacs
 itself).
 

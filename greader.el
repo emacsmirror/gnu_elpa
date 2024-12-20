@@ -1051,9 +1051,12 @@ If prefix, it will be used to increment by that.  Default is N=10."
   (interactive "P")
   (if (not n)
       (setq n 10))
-  (greader-tts-stop)
-  (greader-set-rate (+ (greader-call-backend 'rate 'value) n))
-  (greader-read))
+  (if (stringp (greader-call-backend 'rate))
+      (progn
+	(greader-tts-stop)
+	(greader-set-rate (+ (greader-call-backend 'rate 'value) n))
+	(greader-read))
+    (beep)))
 
 (defun greader-dec-rate (&optional n)
   "Decrements rate of speech by units specified in N.
@@ -1061,9 +1064,12 @@ If prefix, it will be used to decrement  rate."
   (interactive "P")
   (if (not n)
       (setq n 10))
-  (greader-tts-stop)
-  (greader-set-rate (- (greader-call-backend 'rate 'value) n))
-  (greader-read))
+  (if (stringp (greader-call-backend 'rate))
+      (progn
+	(greader-tts-stop)
+	(greader-set-rate (- (greader-call-backend 'rate 'value) n))
+	(greader-read))
+    (beep)))
 
 (defun greader-sentence-needs-dehyphenation (str)
   "Return t if there are lines broken by hyphens in STR, nil otherwise."

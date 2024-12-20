@@ -232,32 +232,8 @@ Returns file data with FILENAME."
     (message "%s" filename)
     (let* ((data (org-gnosis-buffer-data))
 	   (links (org-gnosis-collect-id-links)))
-      ;; Append an empty list if links are nil
+      ;; Append links even if they are nil
       (append data (list links)))))
-
-(defun org-gnosis-update-file (&optional file)
-  "Update contents of FILE in databse.
-
-Removes all contents of FILE in database, adding them anew."
-  (let* ((file (or file (file-name-nondirectory (buffer-file-name))))
-	 (journal-p (file-in-directory-p file org-gnosis-journal-dir))
-	 (nodes (if journal-p
-		    (org-gnosis-select 'id 'journal `(= file ,file) t)
-		  (org-gnosis-select 'id 'nodes `(= file ,file) t))))
-    (emacsql-with-transaction org-gnosis-db
-      ;; Delete all nodes of file in db
-      (cl-loop for node in nodes
-	       do (if journal-p
-		      (org-gnosis--delete 'journal `(= id ,node))
-		    (org-gnosis--delete 'nodes `(= id ,node))))
-      ;; Add new data
-      (org-gnosis--update-file file journal-p))))
-
-(defun org-gnosis--is-journal-entry-p (file)
-  "Check if FILE is a journal entry."
-  (let ((file-dir (file-name-directory (expand-file-name file)))
-        (expanded-dir (file-name-as-directory (expand-file-name org-gnosis-journal-dir))))
-    (string-equal file-dir expanded-dir)))
 
 (defun org-gnosis--update-file (file &optional journal)
   "Add contents of FILE to database.
@@ -286,6 +262,24 @@ If JOURNAL is non-nil, update file as a journal entry."
 			     (org-gnosis--insert-into 'links `([,id ,master]))))))
     (cl-loop for link in links
 	     do (org-gnosis--insert-into 'links `[,(cdr link) ,(car link)]))))
+
+(defun org-gnosis-update-file (&optional file)
+  "Update contents of FILE in databse.
+
+Removes all contents of FILE in database, adding them anew."
+  (let* ((file (or file (file-name-nondirectory (buffer-file-name))))
+	 (journal-p (file-in-directory-p file org-gnosis-journal-dir))
+	 (nodes (if journal-p
+		    (org-gnosis-select 'id 'journal `(= file ,file) t)
+		  (org-gnosis-select 'id 'nodes `(= file ,file) t))))
+    (emacsql-with-transaction org-gnosis-db
+      ;; Delete all nodes of file in db
+      (cl-loop for node in nodes
+	       do (if journal-p
+		      (org-gnosis--delete 'journal `(= id ,node))
+		    (org-gnosis--delete 'nodes `(= id ,node))))
+      ;; Add new data
+      (org-gnosis--update-file file journal-p))))
 
 (defun org-gnosis-find--tag-with-tag-prop (lst)
   "Combine each sublist of strings in LST into a single string."
@@ -340,7 +334,10 @@ instead."
 
 ;;;###autoload
 (defun org-gnosis-find (&optional title file id directory)
-  "Select gnosis node."
+  "Select gnosis node.
+
+If there is no ID for TITLE, create a new FILE with TITLE as TOPIC in
+DIRECTORY."
   (interactive)
   (let* ((title (or title (if org-gnosis-show-tags
 			      (org-gnosis-find--with-tags)
@@ -432,6 +429,7 @@ If node does not exist, create it."
 	 (node-id (concat "id:" (car (org-gnosis-select 'id 'journal `(= ,node date) '1=1)))))
     (org-insert-link nil node-id node)))
 
+;;;###autoload
 (defun org-gnosis-journal (&optional template)
   "Start journaling for current date.
 

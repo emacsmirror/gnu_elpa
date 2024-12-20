@@ -182,6 +182,9 @@ function does nothing."
 
 (calibre-util--macro-map
  calibre-edit--metadata-modifier-pair (tags authors))
+(calibre-util--macro-map
+ calibre-edit--metadata-setter-pair (title publisher series))
+
 (defun calibre-edit-modified-p (book)
   "Return non-nil if BOOK has been modified, nil otherwise."
   (calibre-edit--find-original book))

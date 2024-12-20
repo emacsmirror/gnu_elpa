@@ -68,6 +68,17 @@ TAGS should be a list of strings to add to FILE."
          nil)))
   (calibre-exec--start-execution))
 
+(defun calibre-library-add-format (book file)
+  "Add FILE as a format for BOOK."
+  (interactive (list (tabulated-list-get-id)
+                     (read-file-name "File: " nil nil t))
+               calibre-library-mode)
+  (calibre-exec--queue-command
+     `("add_format"
+       ,(number-to-string (calibre-book-id book))
+       ,(expand-file-name file)))
+    (calibre-exec--start-execution))
+
 ;;;###autoload
 (defun calibre-dired-add (&optional tags)
   "Add marked files to the Calibre library.

@@ -277,6 +277,7 @@ is automatically refreshed once the modification has been completed.
 
 @menu
 * Adding books::
+* Adding formats to existing books::
 * Modifying books::
 * Removing books::
 @end menu
@@ -323,6 +324,15 @@ For more specific control over tags both @code{calibre-library-add-book}
 and @code{calibre-dired-add} can be called with a prefix argument.  When
 called with a prefix argument they will prompt for a list of tags to
 apply to the books being added.
+
+@node Adding formats to existing books
+@section Adding formats to existing books
+@findex calibre-library-add-format
+The @code{calibre-library-add-format} allows you to add formats to an
+existing book.  The command will prompt for a file and add that file as
+a new format to the book at point in the @file{*Library*} buffer.  Be
+aware that if you provide a file in a format already present in the
+library the existing file will be overwritten.
 
 @node Modifying books
 @section Modifying books

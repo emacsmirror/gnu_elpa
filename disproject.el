@@ -1097,10 +1097,35 @@ subclass of it.  It is preferred to use this when possible over
 causing a new `disproject-scope' to be initialized on every call
 and potentially resulting in duplicate prompts.")
 
-(defmacro disproject-with-environment (&rest body)
-  "Run BODY with `disproject' \"environment\" options set.
+(defvar disproject--environment-buffer-name " disproject-environment"
+  "Name of buffer which commands will be run from.")
 
-The \"environment\" consists of the following overrides:
+(defmacro disproject--with-environment-buffer (&rest body)
+  "Run BODY in a disproject environment buffer.
+
+This will be an indirect buffer made from the current buffer."
+  (declare (indent 0) (debug t))
+  (let ((buf-name (make-symbol "buf-name")))
+    `(let ((,buf-name (generate-new-buffer-name
+                       disproject--environment-buffer-name)))
+       (unwind-protect
+           (with-current-buffer
+               (make-indirect-buffer (current-buffer) ,buf-name nil t)
+             ,@body)
+         (when-let* ((buf (get-buffer ,buf-name)))
+           (kill-buffer buf))))))
+
+(defmacro disproject-with-environment (&rest body)
+  "Run BODY in an environment respecting Disproject settings.
+
+In order to prevent side effects from modifying variables in the
+current buffer, BODY is run in the context of a temporary
+indirect buffer made from the current buffer.  Note that the
+indirect buffer is made without preserving the current buffer's
+state to prevent side effects as well, so commands which depend
+on e.g. the major mode may not behave as expected.
+
+The environment consists of the following overrides:
 
 `default-directory', `project-current-directory-override': Set to
 the project's root directory.
@@ -1132,7 +1157,7 @@ window if \"--prefer-other-window\" is enabled."
             ;; entering the temp buffer, and then restoring it.  This won't be
             ;; needed once `project.el' supports project-wide external roots.
             (external-roots-function project-vc-external-roots-function))
-       (with-temp-buffer
+       (disproject--with-environment-buffer
          (let ((default-directory ,from-directory)
                ;; This handles edge cases with `project' commands.
                (project-current-directory-override ,from-directory)

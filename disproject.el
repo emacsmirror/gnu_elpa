@@ -44,7 +44,7 @@
 
 
 ;;;
-;;; Global variables.
+;;; Customizable variables.
 ;;;
 
 (defgroup disproject nil

@@ -1108,41 +1108,46 @@ the project's root directory.
 `display-buffer-overriding-action': Set to display in another
 window if \"--prefer-other-window\" is enabled."
   (declare (indent 0) (debug t))
-  `(let* ((disproject--environment-scope (disproject--scope))
-          (project (disproject-project-instance
-                    (disproject-scope-selected-project-ensure
-                     disproject--environment-scope)))
-          (from-directory (project-root project))
-          (prefer-other-window? (disproject--state-prefer-other-window?))
-          ;; Only enable envrc if the initial environment has it enabled.
-          (enable-envrc (and (bound-and-true-p envrc-mode)
-                             (symbol-function 'envrc-mode)))
-          ;; Only enable mise if the initial environment has it enabled.
-          (enable-mise (and (bound-and-true-p mise-mode)
-                            (symbol-function 'mise-mode)))
-          ;; HACK: Since `project-external-roots' targets specifically the
-          ;; current buffer's major mode - a problem, since we create a temp
-          ;; buffer - we make it work by grabbing the function that it's supposed
-          ;; to return (i.e. `project-vc-external-roots-function') before
-          ;; entering the temp buffer, and then restoring it.  This won't be
-          ;; needed once `project.el' supports project-wide external roots.
-          (external-roots-function project-vc-external-roots-function))
-     (with-temp-buffer
-       (let ((default-directory from-directory)
-             ;; This handles edge cases with `project' commands.
-             (project-current-directory-override from-directory)
-             (display-buffer-overriding-action
-              (and prefer-other-window? '(display-buffer-use-some-window
-                                          (inhibit-same-window t))))
-             (project-vc-external-roots-function external-roots-function))
-         (hack-dir-local-variables-non-file-buffer)
-         ;; Make sure commands are run in the correct direnv environment
-         ;; if envrc-mode is enabled.
-         (when enable-envrc (funcall enable-envrc))
-         ;; Make sure commands are run in the correct mise environment
-         ;; if mise-mode is enabled.
-         (when enable-mise (funcall enable-mise))
-         ,@body))))
+  (let ((project (make-symbol "project"))
+        (from-directory (make-symbol "from-directory"))
+        (prefer-other-window? (make-symbol "prefer-other-window?"))
+        (enable-envrc (make-symbol "enable-envrc"))
+        (enable-mise (make-symbol "enable-mise")))
+    `(let* ((disproject--environment-scope (disproject--scope))
+            (,project (disproject-project-instance
+                       (disproject-scope-selected-project-ensure
+                        disproject--environment-scope)))
+            (,from-directory (project-root ,project))
+            (,prefer-other-window? (disproject--state-prefer-other-window?))
+            ;; Only enable envrc if the initial environment has it enabled.
+            (,enable-envrc (and (bound-and-true-p envrc-mode)
+                                (symbol-function 'envrc-mode)))
+            ;; Only enable mise if the initial environment has it enabled.
+            (,enable-mise (and (bound-and-true-p mise-mode)
+                               (symbol-function 'mise-mode)))
+            ;; HACK: Since `project-external-roots' targets specifically the
+            ;; current buffer's major mode - a problem, since we create a temp
+            ;; buffer - we make it work by grabbing the function that it's supposed
+            ;; to return (i.e. `project-vc-external-roots-function') before
+            ;; entering the temp buffer, and then restoring it.  This won't be
+            ;; needed once `project.el' supports project-wide external roots.
+            (external-roots-function project-vc-external-roots-function))
+       (with-temp-buffer
+         (let ((default-directory ,from-directory)
+               ;; This handles edge cases with `project' commands.
+               (project-current-directory-override ,from-directory)
+               (display-buffer-overriding-action
+                (and ,prefer-other-window? '(display-buffer-use-some-window
+                                             (inhibit-same-window t))))
+               (project-vc-external-roots-function external-roots-function))
+           (hack-dir-local-variables-non-file-buffer)
+           ;; Make sure commands are run in the correct direnv environment
+           ;; if envrc-mode is enabled.
+           (when ,enable-envrc (funcall ,enable-envrc))
+           ;; Make sure commands are run in the correct mise environment
+           ;; if mise-mode is enabled.
+           (when ,enable-mise (funcall ,enable-mise))
+           ,@body)))))
 
 ;;;; Suffix setup functions.
 

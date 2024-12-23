@@ -1770,27 +1770,40 @@ If `greader-region-mode' is enabled, restart will behave accordingly."
 ;; Estimated reading time calculation.
 (defvar-local greader--buffer-words nil
   "Total buffer words.")
+(defcustom greader-reading-time-adjustment 10
+  "Percentage adjustment to add to the estimated reading time.
+This value is added as a percentage to the calculated reading time."
+  :type 'integer
+  :group 'greader)
+
 (defun greader--estimated-reading-time (&optional start end)
   "Calculate the estimated reading time between START and END, based
 on your reading speed in WPM (words per minute).
 The selected back-end must support `rate' command.
-If START or END is not provided, consider the entire buffer."
+If START or END is not provided, consider the entire buffer.
+
+The reading time is adjusted by a percentage specified in
+`greader-reading-time-adjustment`."
   (if-let* ((wpm (and (numberp (greader-get-rate))
                       (greader-get-rate))))
       (progn
-	(setq greader--buffer-words (if greader--buffer-words
-					greader--buffer-words (count-words (or start (point-min))
-									   (or end (point-max)))))
-	(let* ((total-minutes (/ (* 1.0 greader--buffer-words) wpm))
+        (setq greader--buffer-words (if greader--buffer-words
+                                        greader--buffer-words
+                                      (count-words (or start (point-min))
+                                                   (or end (point-max)))))
+        (let* ((total-minutes (/ (* 1.0 greader--buffer-words) wpm))
                (total-seconds (round (* total-minutes 60)))
-               (hours (/ total-seconds 3600))
-             (minutes (/ (% total-seconds 3600) 60))
-             (seconds (% total-seconds 60)))
-          ;; (message "%02d:%02d:%02d" hours minutes seconds)
-	  (list (propertize (format "%02d:%02d:%02d" hours minutes
-				    seconds) 'greader-estimated-time t)
-		`(,hours ,minutes ,seconds))))
+               ;; Aggiungi la percentuale configurabile
+               (adjusted-seconds (round (* total-seconds
+                                           (+ 1.0 (/ greader-reading-time-adjustment 100.0)))))
+               (hours (/ adjusted-seconds 3600))
+               (minutes (/ (% adjusted-seconds 3600) 60))
+               (seconds (% adjusted-seconds 60)))
+          (list (propertize (format "%02d:%02d:%02d" hours minutes seconds)
+                            'greader-estimated-time t)
+                `(,hours ,minutes ,seconds))))
     nil))
+
 
 (defun greader--estimated-reading-time-remove ()
   "Remove estimated-time banner from the mode line."

@@ -3,7 +3,7 @@
 ;;;
 ;;; This file is part of greader.
 
-(define-module (guix))
+(define-module (emacs-greader-package))
 
 (import
  (ice-9 popen)
@@ -29,11 +29,10 @@
     (lambda ()
       (get-string-all (current-input-port)))))
 
-(define emacs-greader-mode
+(define emacs-greader
   (let ((version "0.11.18")
         (revision "1"))
     (package
-      (name "emacs-greader-mode")
       (version (git-version version revision (sh-runner "git rev-parse HEAD")))
       (home-page "https://gitlab.com/michelangelo-rodriguez/greader")
       (source
@@ -55,6 +54,7 @@
        "Gnamù Reader - greader-mode, send buffer contents to a speech engine")
       (description
        "Greader is a module that allows you to send any emacs buffer to a TTS.
+      (name "emacs-greader")
 A text-to-speech like engine @code{espeak-ng} or @code{speech-dispatcher} are
 already supported, plus limited bakend support native to macOS.  The
 mode supports timer reading, automatic scrolling of buffers in modes

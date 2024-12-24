@@ -158,7 +158,10 @@ with values determined by `calibre-library-columns'."
                                      (< (calibre-book-id (car a))
                                         (calibre-book-id (car b))))
                        :right-align t))
-                 (title `("Title" ,width t))
+                 (title `("Title" ,width
+                          (lambda (a b)
+                            (string< (downcase (calibre-book-title (car a)))
+                                     (downcase (calibre-book-title (car b)))))))
                  (authors `("Author(s)" ,width t))
                  (publisher `("Publisher" ,width t))
                  (series `("Series" ,width (lambda (a b)

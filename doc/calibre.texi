@@ -294,6 +294,7 @@ is automatically refreshed once the modification has been completed.
 * Adding individual books::
 * Adding books in bulk::
 * Tagging added books::
+* Handling duplicate books::
 @end menu
 
 @node Adding individual books
@@ -329,6 +330,33 @@ For more specific control over tags both @code{calibre-library-add-book}
 and @code{calibre-dired-add} can be called with a prefix argument.  When
 called with a prefix argument they will prompt for a list of tags to
 apply to the books being added.
+
+@node Handling duplicate books
+@subsection Handling duplicate books
+When adding new books Calibre compares them with existing books in your
+library in an attempt to determine if the book is already present.  When
+a duplicate is detected Calibre can do one of three things:
+@enumerate
+@item
+Ignore the new book
+@item
+Overwrite the existing book
+@item
+Create a new book, resulting in two distinct books in your library.
+@end enumerate
+
+@vindex calibre-automerge-policy
+Which of these options calibre.el uses is controlled by the user option
+@code{calibre-automerge-policy} whose three values:
+@itemize
+@item
+Ignore
+@item
+Overwrite
+@item
+New Record
+@end itemize
+correspond to the three options.
 
 @node Adding formats to existing books
 @section Adding formats to existing books

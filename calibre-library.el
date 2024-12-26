@@ -65,7 +65,8 @@ TAGS should be a list of strings to add to FILE."
 
 TAGS should be a list of strings to add to FILE."
   (calibre-exec--queue-command
-   `("add" "-r"
+   `("add" "--recurse"
+     "--automerge" ,calibre-automerge-policy
      ,@(mapcar #'expand-file-name files)
      ,@(if (or tags calibre-default-tags)
            (list "--tags" (string-join (append tags calibre-default-tags) ","))

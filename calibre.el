@@ -51,6 +51,20 @@
                                    (directory :tag "Location")))
   :package-version '("calibre" . "0.1.0"))
 
+(defcustom calibre-automerge-policy "ignore"
+  "What to do when adding books which already exists.
+
+If books with similar titles and authors are found, merge the incoming
+formats (files) automatically into existing book records.  A value of
+\"ignore\" means duplicate formats are discarded.  A value of
+\"overwrite\" means duplicate formats in the library are overwritten
+with the newly added files.  A value of \"new_record\" means duplicate
+formats are placed into a new book record."
+  :type '(choice (const :tag "Ignore" "ignore")
+                 (const :tag "Overwrite" "overwrite")
+                 (const :tag "New Record" "new_record"))
+  :package-version '("calibre" . "1.5.0"))
+
 (defcustom calibre-default-tags nil
   "A list of tags to add to books when they are added."
   :type '(repeat :tag "Tag" (string :tag "Tag"))

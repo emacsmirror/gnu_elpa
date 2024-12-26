@@ -39,11 +39,6 @@ formats from the *Library* buffer.
 It should be possible to mark a set of books and apply a change, such
 as adding tags or setting a publisher, to to all of them.
 
-* Add a defcustom specifying automerge policy
-calibredb add's --automerge option allows specifying how to handle
-books already in the library.  The user should be allowed to control
-this in calibre.el.
-
 * Allow modifying publication date
 
 

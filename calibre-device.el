@@ -19,14 +19,21 @@
 
 ;;; Commentary:
 ;; This file file contains the infrastructure to interact with external
-;; reading devices, such as transfering books to those devices.
+;; reading devices, such as transferring books to those devices.
 
 ;;; Code:
 (require 'calibre-book)
 (require 'calibre-core)
+(require 'calibre-library)
 
 (defconst calibre-device--process-buffer "*ebook-device*"
   "The name of the buffer containing output from ebook-device processes.")
+
+(defvar calibre-device--transferring nil
+  "A boolean indicating whether transfer of books is ongoing.")
+
+(defvar calibre-device--transfer-queue nil
+  "A list of books queued for transfer.")
 
 (defun calibre-device-send-book (book &optional force)
   "Transfer BOOK to an external device.
@@ -48,8 +55,30 @@ Overwrite an existing file if FORCE is non-nil."
                 "cp" ,@(if force '("--force") nil) ,library-path ,device-path)
      :buffer (get-buffer-create calibre-device--process-buffer)
      :sentinel (lambda (_ event)
-                 (unless (string= event "finished\n")
-                   (message "Error transfering \"%s\" to device" (calibre-book-title book)))))))
+                 (if (string= event "finished\n")
+                     (with-current-buffer calibre-device--process-buffer
+                       (erase-buffer))
+                   (message "Error transferring \"%s\" to device" (calibre-book-title book)))
+                 (if calibre-device--transfer-queue
+                     (calibre-device--transfer-next)
+                   (progn
+                     (setf calibre-device--transferring nil)
+                     (message "Transfer complete")))))))
+
+(defun calibre-device--start-transfer ()
+  "Start the transfer of books."
+  (unless calibre-device--transfer-queue
+    (error "No books queued for transfer"))
+  (unless calibre-device--transferring
+    (setf calibre-device--transferring t)
+    (calibre-device--transfer-next)))
+
+(defun calibre-device--transfer-next ()
+  "Transfer the next book."
+  (when calibre-device--transfer-queue
+    (pcase-let ((`(,book . ,force) (pop calibre-device--transfer-queue)))
+      (message "Transferring: %s" (calibre-book-title book))
+      (calibre-device-send-book book force))))
 
 (defun calibre-device-send-books (books &optional force)
   "Transfer BOOKS to an external device.
@@ -57,9 +86,13 @@ Overwrite an existing file if FORCE is non-nil."
 Overwrite existing files if FORCE is non-nil."
   (interactive (list (calibre--get-active-books)
                      current-prefix-arg)
-               calibre-librar-mode)
-  (dolist (book books)
-    (calibre-device-send-book book force)))
+               calibre-library-mode)
+  (setf calibre-device--transfer-queue
+        (append calibre-device--transfer-queue
+                (mapcar (lambda (book) (list book force))
+                        books)))
+  (unless calibre-device--transferring
+    (calibre-device--start-transfer)))
 
 (defun calibre-device-eject ()
   "Eject an external device."

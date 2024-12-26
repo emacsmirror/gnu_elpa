@@ -35,14 +35,23 @@ See [[file:images/][images]] for more screenshots of Disproject menus.
 
 [[https://melpa.org/#/disproject][file:https://melpa.org/packages/disproject-badge.svg]] [[https://stable.melpa.org/#/disproject][file:https://stable.melpa.org/packages/disproject-badge.svg]]
 
-Disproject is available on [[https://melpa.org/#/disproject][MELPA]] and [[https://stable.melpa.org/#/disproject][MELPA Stable]].  See [[https://melpa.org/#/getting-started][Getting Started]]
+Disproject is available in [[https://melpa.org/#/disproject][MELPA]] and [[https://stable.melpa.org/#/disproject][MELPA Stable]].  See [[https://melpa.org/#/getting-started][Getting Started]]
 instructions for using MELPA.
 
 *** Guix
 
-If Guix is available, one may use the package definition in =guix.scm= to
-install Disproject.  For example, to install in the user profile, run the
-following in this repository's root directory:
+Disproject is also available as a [[https://guix.gnu.org/][GNU Guix]] package.
+
+The stable version can be found in the ~(gnu packages emacs-xyz)~ module under
+the name ~emacs-disproject~.  It may be installed in the user profile like so:
+
+#+begin_src sh
+  guix install emacs-disproject
+#+end_src
+
+Alternatively, one may use the package definition in =./guix.scm= to install a
+development version of Disproject from the repository.  For example, to install
+in the user profile, run the following in this repository's root directory:
 
 #+begin_src sh
   guix package --install-from-file=guix.scm

@@ -565,7 +565,6 @@ If called with ARG do not initialize the database."
   (when (length< (emacsql org-gnosis-db
 			  [:select name :from sqlite-master :where (= type table)])
 		 3)
-    (org-gnosis-db-delete-tables)
     (emacsql-with-transaction org-gnosis-db
       (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
 	(emacsql org-gnosis-db [:create-table $i1 $S2] table schema))

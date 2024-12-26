@@ -98,6 +98,10 @@ The formats the book is available in within the library.
 @item pubdate
 The book's date of publication.@footnote{To change how this is displayed
 customize @code{calibre-library-time-format.}}
+@item summary
+The book's summary.@footnote{This field is likely to contain large
+amounts of text which are not well suited to display in the
+@file{*Library*} buffer.}
 @end table
 @var{WIDTH} is an integer specifying the number of characters the
 corresponding column should take in the @file{*Library*} buffer.

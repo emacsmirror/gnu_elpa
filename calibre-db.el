@@ -39,8 +39,18 @@ TIMESTAMP is a string of the form YYYY-MM-DD HH:MM:SS.xxxxxx+00:00."
 (defun calibre-db--make-book (entry)
   "Create a `calibre-book' from ENTRY.
 ENTRY is a list of the form:
-\(ID TITLE SERIES SERIES-INDEX TIMESTAMP PUBDATE LAST-MODIFIED)."
-  (seq-let [id title series series-index timestamp pubdate last-modified path] entry
+\(ID TITLE SERIES SERIES-INDEX TIMESTAMP PUBDATE LAST-MODIFIED PATH SUMMARY)."
+  (seq-let
+      [id
+       title
+       series
+       series-index
+       timestamp
+       pubdate
+       last-modified
+       path
+       summary]
+      entry
     (make-calibre-book :id id
                        :title title
                        :authors (calibre-db--get-book-authors id)
@@ -53,7 +63,8 @@ ENTRY is a list of the form:
                        :tags (sort (calibre-db--get-book-tags id))
                        :formats (calibre-db--get-book-formats id)
                        :path path
-                       :file-name (calibre-db--get-book-file-name id))))
+                       :file-name (calibre-db--get-book-file-name id)
+                       :summary summary)))
 
 (defun calibre-db--get-book-authors (id)
   "Return a list of authors for the book identified by ID."
@@ -146,10 +157,19 @@ WHERE books.id = ?"
       nil
     (mapcar #'calibre-db--make-book
             (sqlite-select (calibre--db)
-                           "SELECT books.id, title, series.name, series_index, timestamp, pubdate, last_modified, path
+                           "SELECT
+ books.id, title,
+ series.name,
+ series_index,
+ timestamp,
+ pubdate,
+ last_modified,
+ path,
+ comments.text
 FROM books
 LEFT JOIN books_series_link sl ON books.id = sl.book
-LEFT JOIN series ON sl.series = series.id;"))))
+LEFT JOIN series ON sl.series = series.id
+LEFT JOIN comments ON books.id = comments.book;"))))
 
 (defmacro calibre-db--query (query arg fuzzy)
   "Run QUERY on the Calibre database.

@@ -1110,7 +1110,7 @@ This will be an indirect buffer made from the current buffer."
                        disproject--environment-buffer-name)))
        (unwind-protect
            (with-current-buffer
-               (make-indirect-buffer (current-buffer) ,buf-name nil t)
+               (make-indirect-buffer (current-buffer) ,buf-name t t)
              ,@body)
          (when-let* ((buf (get-buffer ,buf-name)))
            (kill-buffer buf))))))
@@ -1149,22 +1149,14 @@ window if \"--prefer-other-window\" is enabled."
                                 (symbol-function 'envrc-mode)))
             ;; Only enable mise if the initial environment has it enabled.
             (,enable-mise (and (bound-and-true-p mise-mode)
-                               (symbol-function 'mise-mode)))
-            ;; HACK: Since `project-external-roots' targets specifically the
-            ;; current buffer's major mode - a problem, since we create a temp
-            ;; buffer - we make it work by grabbing the function that it's supposed
-            ;; to return (i.e. `project-vc-external-roots-function') before
-            ;; entering the temp buffer, and then restoring it.  This won't be
-            ;; needed once `project.el' supports project-wide external roots.
-            (external-roots-function project-vc-external-roots-function))
+                               (symbol-function 'mise-mode))))
        (disproject--with-environment-buffer
          (let ((default-directory ,from-directory)
                ;; This handles edge cases with `project' commands.
                (project-current-directory-override ,from-directory)
                (display-buffer-overriding-action
                 (and ,prefer-other-window? '(display-buffer-use-some-window
-                                             (inhibit-same-window t))))
-               (project-vc-external-roots-function external-roots-function))
+                                             (inhibit-same-window t)))))
            (hack-dir-local-variables-non-file-buffer)
            ;; Make sure commands are run in the correct direnv environment
            ;; if envrc-mode is enabled.

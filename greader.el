@@ -433,7 +433,7 @@ available backends."
 	        (car (or
 		      (cdr
 		       (memq greader-current-backend greader-backends))
-	                 greader-backends)))))
+	              greader-backends)))))
   (message "Current back-end is %s"
            (get greader-current-backend 'greader-backend-name)))
 
@@ -540,7 +540,7 @@ Optional argument EVENT ."
 	(when (equal argument 'not-implemented)
 	  (setq args (delete argument args))
 	  (throw 'deleted t))))
-      (setq greader-backend (append `(,greader-backend) args))))
+    (setq greader-backend (append `(,greader-backend) args))))
 
 (defun greader-reset ()
   "Reset greader."
@@ -973,7 +973,7 @@ In this mode, greader will enter in tired mode at a customizable time
 					    (message
 					     "auto-tired mode enabled in current buffer")
 					  (message
-												   "auto-tired mode disabled in current buffer.")))
+					   "auto-tired mode disabled in current buffer.")))
 
 (defun greader-current-time ()
   "Not documented, internal use."
@@ -1259,7 +1259,7 @@ SRC and DST are declared as optional."
   (unless dst
     (let ((history-delete-duplicates  greader-compile-history-delete-duplicates))
       (setq dst (read-string (concat "Redefine " src " to: ") nil
-			   'greader-compile-history))))
+			     'greader-compile-history))))
 
   (let ((lang-file
 	 (if (string-prefix-p "/" greader-compile-default-source)
@@ -1446,8 +1446,8 @@ If INDEX is nil, use `greader-queue-current-element'."
     (when (< greader-queue-current-element (length greader-queue))
       (setq result (buffer-substring (car (elt greader-queue index))
 				     (cdr (elt
-									   greader-queue
-									   index)))))
+					   greader-queue
+					   index)))))
     result))
 
 ;; This function returns the next item in the queue. If
@@ -1816,7 +1816,7 @@ The reading time is adjusted by a percentage specified in
 	     (text-property-any 0 (- (length line) 1)
 				'greader-estimated-time t line)
 	     (setq-local mode-line-misc-info (delete elt
-					       mode-line-misc-info))))
+						     mode-line-misc-info))))
 	(throw 'banner-found t))
       nil)))
 (declare-function dtk-speak nil)
@@ -1833,11 +1833,11 @@ If the region is active, use it."
 	(region-end
 	 (if (region-active-p) (region-end) (point-max))))
     (add-to-list 'mode-line-misc-info (list :propertize (car (greader--estimated-reading-time
-							 region-beginning region-end))
-						   'greader-estimated-time
-						   t))
-      (when (and (featurep 'emacspeak) (called-interactively-p 'any))
-	(dtk-speak (car (greader--estimated-reading-time)))))
+							      region-beginning region-end))
+					    'greader-estimated-time
+					    t))
+    (when (and (featurep 'emacspeak) (called-interactively-p 'any))
+      (dtk-speak (car (greader--estimated-reading-time)))))
   (force-mode-line-update))
 
 ;;;###autoload
@@ -1858,7 +1858,7 @@ to the next sentence, or when you stop the reading."
     (greader--estimated-reading-time-remove))
   (force-mode-line-update))
 
-    
+
 
 (provide 'greader)
 ;;; greader.el ends here

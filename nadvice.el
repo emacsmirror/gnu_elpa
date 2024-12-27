@@ -1,6 +1,6 @@
 ;;; nadvice.el --- Forward compatibility for Emacs-24.4's nadvice  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2018-2023  Free Software Foundation, Inc.
+;; Copyright (C) 2018-2024  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
 ;; Version: 0.4
@@ -41,9 +41,10 @@
 
 ;;; Code:
 
-(declare-function ad-remove-advice "advice")
-
-(eval-and-compile (require 'advice))
+(declare-function ad-add-advice "advice") (function advice class position)
+(declare-function ad-remove-advice "advice" (function class name))
+(declare-function ad-find-advice "advice"(function class name))
+(declare-function ad-activate "advice" (function &optional compile))
 
 (unless (fboundp 'add-function)
   ;; If `add-function' is defined, we're presumably running on

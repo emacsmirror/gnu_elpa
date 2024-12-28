@@ -26,7 +26,7 @@
 
 ;;; Commentary:
 
-;; This package provides a search functionality for Denote, the
+;; This package provides a search utility for Denote, the
 ;; simple-to-use, focused-in-scope, and effective note-taking tool for
 ;; Emacs.
 ;;
@@ -38,7 +38,7 @@
 ;; well.
 ;;
 ;; This package has the same code principles as Denote: to be
-;; simple-to-use, focused-in-scope, and effective.  We build upon xref
+;; simple-to-use, focused-in-scope, and effective.  We build upon Xref
 ;; to be good Emacs citizens, and don't use any dependencies other
 ;; than Denote and built-in libraries.
 

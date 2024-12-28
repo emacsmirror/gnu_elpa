@@ -205,7 +205,7 @@ notes with the "science" keyword, without the "personal" keyword, and
 which mention "Maxwell" somewhere in the text. The procedure is as
 follows:
 
-- =M-x denote-search RET maxwell RET=[fn:3]
+- =M-x denote-search RET maxwell RET= [fn:3]
 - =i _science RET=
 - =x _personal RET=
 - =f quantum mechanics RET=

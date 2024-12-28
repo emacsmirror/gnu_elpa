@@ -16,3 +16,37 @@ be good Emacs citizens, and don't use any dependencies other than
 Denote and built-in libraries.
 
 See the `README.org` file for a comprehensive manual.
+
+## Installation
+
+If you are using Emacs 29.1 onwards, you can install the package by
+evaluating the following code:
+
+```elisp
+(package-vc-install
+ '(denote-search
+   :url "https://github.com/lmq-10/denote-search"
+   :doc "README.org"))
+```
+
+Alternatively, you can use the :vc keyword from use-package, as shown
+in the sample configuration:
+
+```elisp
+(use-package denote-search
+  :ensure t
+  ;; Installation with VC
+  :vc (:url "https://github.com/lmq-10/denote-search"
+       :rev :newest)
+  :bind
+  ;; Start search with C-c s
+  ("C-c s" . denote-search)
+  :custom
+  ;; Disable help string (set it once you learn the commands)
+  ;; (denote-search-help-string "")
+  ;; Display keywords in results buffer
+  (denote-search-format-heading-function #'denote-search-format-heading-with-keywords))
+```
+
+Of course, you can also install it manually or use an alternative
+package manager such as quelpa.

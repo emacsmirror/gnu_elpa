@@ -287,10 +287,59 @@ value for ~denote-directory~), then ~denote-search~ should correctly
 search in the contents of the silo when inside of it, without
 additional configuration.
 
+* Installation
+
+If you are using Emacs 29.1 onwards, you can install the package by
+evaluating the following code:
+
+#+begin_src elisp
+(package-vc-install
+ '(denote-search
+   :url "https://github.com/lmq-10/denote-search"
+   :doc "README.org"))
+#+end_src
+
+Alternatively, you can use the :vc keyword from use-package, as shown
+in the [[*sample configuration][sample configuration]].
+
+Of course, you can also [[*manual installation][install it manually]] or use an alternative
+package manager such as quelpa.
+
+** Manual installation
+
+Assuming your Emacs files are found in =~/.emacs.d/=, execute the
+following commands in a shell prompt:
+
+#+begin_src sh
+cd ~/.emacs.d
+
+# Create a directory for manually-installed packages
+mkdir manual-packages
+
+# Go to the new directory
+cd manual-packages
+
+# Clone this repo, naming it "denote-search"
+git clone https://github.com/lmq-10/denote-search denote-search
+#+end_src
+
+Finally, in your =init.el= (or equivalent) evaluate this:
+
+#+begin_src emacs-lisp
+;; Make Elisp files in that directory available to the user.
+(add-to-list 'load-path "~/.emacs.d/manual-packages/denote-search")
+#+end_src
+
+Everything is in place to set up the package.
+
 * Sample configuration
 
 #+begin_src elisp
 (use-package denote-search
+  :ensure t
+  ;; Installation with VC
+  :vc (:url "https://github.com/lmq-10/denote-search"
+       :rev :newest)
   :bind
   ;; Start search with C-c s
   ("C-c s" . denote-search)

@@ -138,8 +138,7 @@ navigate all the files using ~imenu~ or an enhanced front-end such as
 You can press ~a~ (~outline-cycle-buffer~) to fold all files.  This
 can give you a quick overlook of all the files that matched the
 search.  If there are many, you can proceed to filter the output 
-(see [[*filtering the search
- results][filtering the search results]]).
+(see [[*filtering the search results][filtering the search results]]).
 
 * Filtering the search results
 
@@ -164,7 +163,7 @@ These commands always act as if the files matched by the last search
 were all the Denote files in existence.  This has a great advantage;
 you can chain them in any way you want.  You can, for example, press
 ~i~ and input =_emacs=, and then press ~x~ and input =_philosophy=.
-The resulting buffer will have all notes which have the keyword
+The resulting buffer will have all the notes which have the keyword
 "emacs" but not the keyword "philosophy", and will then display the
 matches for the search query you made originally only for those
 specific files.  You can of course keep filtering further.

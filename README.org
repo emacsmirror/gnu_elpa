@@ -362,7 +362,7 @@ installing it of course) can improve the speed.
 
 * Acknowledgements
 
-If ~denote-search~ exists it's because Protesilaos Stevrou developed
+If ~denote-search~ exists it's because Protesilaos Stavrou developed
 the incredible Denote package.  Please consider donating to him.[fn:2]
 
 I also want to thank Richard Stallman (creator of GNU Emacs), Po Lu

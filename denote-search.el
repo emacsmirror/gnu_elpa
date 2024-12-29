@@ -4,6 +4,7 @@
 
 ;; Author: Lucas Quintana <lmq10@protonmail.com>
 ;; Maintainer: Lucas Quintana <lmq10@protonmail.com>
+;; URL: https://github.com/lmq-10/denote-search
 ;; Created: 2024-12-28
 ;; Keywords: matching
 ;; Version: 0.2.0
@@ -195,7 +196,7 @@ with a non-nil TEXT-ONLY argument.  When calling the function from Lisp,
 however, SET can be a list of files to search instead.  This is mostly
 useful for filtering output; see e.g. `denote-search-refine'.
 
-The results are populated in a buffer whose major is
+The results are populated in a buffer whose major mode is
 `xref--xref-buffer-mode' and where `denote-search-mode-map' is active."
   ;; Some of this is based on `denote-link--prepare-backlinks'
   (interactive (denote-search-query-prompt))

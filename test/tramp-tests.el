@@ -181,6 +181,7 @@ A resource file is in the resource directory as per
 
 (setq auth-source-cache-expiry nil
       auth-source-save-behavior nil
+      ert-batch-backtrace-right-margin nil
       password-cache-expiry nil
       remote-file-name-inhibit-cache nil
       tramp-allow-unsafe-temporary-files t
@@ -6912,34 +6913,40 @@ INPUT, if non-nil, is a string sent to the process."
             (should-not (with-no-warnings (file-locked-p tmp-name1)))
 
             ;; `kill-buffer' removes the lock.
-	    (with-no-warnings (lock-file tmp-name1))
-	    (should (eq (with-no-warnings (file-locked-p tmp-name1)) t))
-            (with-temp-buffer
-              (set-visited-file-name tmp-name1)
-              (insert "foo")
-	      (should (buffer-modified-p))
-	      (cl-letf (((symbol-function #'read-from-minibuffer)
-                         (lambda (&rest _args) "yes")))
-                (kill-buffer)))
-	    (should-not (with-no-warnings (file-locked-p tmp-name1)))
+	    ;; `kill-buffer--possibly-save' exists since Emacs 29.1.
+	    (when (fboundp 'kill-buffer--possibly-save)
+	      (with-no-warnings (lock-file tmp-name1))
+	      (should (eq (with-no-warnings (file-locked-p tmp-name1)) t))
+              (with-temp-buffer
+		(set-visited-file-name tmp-name1)
+		(insert "foo")
+		(should (buffer-modified-p))
+		;; Modifying `read-from-minibuffer' doesn't work on MS Windows.
+		(cl-letf (((symbol-function #'kill-buffer--possibly-save)
+			   #'tramp-compat-always))
+                  (kill-buffer)))
+	      (should-not (with-no-warnings (file-locked-p tmp-name1))))
 
             ;; `kill-buffer' should not remove the lock when the
             ;; connection is broken.  See Bug#61663.
-	    (with-no-warnings (lock-file tmp-name1))
-	    (should (eq (with-no-warnings (file-locked-p tmp-name1)) t))
-            (with-temp-buffer
-              (set-visited-file-name tmp-name1)
-              (insert "foo")
-	      (should (buffer-modified-p))
-	      (tramp-cleanup-connection
-	       tramp-test-vec 'keep-debug 'keep-password)
-	      (cl-letf (((symbol-function #'read-from-minibuffer)
-                         (lambda (&rest _args) "yes")))
-                (kill-buffer)))
-	    ;; A new connection changes process id, and also the
-	    ;; lock file contents.  But it still exists.
-	    (tramp-cleanup-connection tramp-test-vec 'keep-debug 'keep-password)
-	    (should (stringp (with-no-warnings (file-locked-p tmp-name1))))
+	    ;; `kill-buffer--possibly-save' exists since Emacs 29.1.
+	    (when (fboundp 'kill-buffer--possibly-save)
+	      (with-no-warnings (lock-file tmp-name1))
+	      (should (eq (with-no-warnings (file-locked-p tmp-name1)) t))
+              (with-temp-buffer
+		(set-visited-file-name tmp-name1)
+		(insert "foo")
+		(should (buffer-modified-p))
+		(tramp-cleanup-connection
+		 tramp-test-vec 'keep-debug 'keep-password)
+		;; Modifying `read-from-minibuffer' doesn't work on MS Windows.
+		(cl-letf (((symbol-function #'kill-buffer--possibly-save)
+			   #'tramp-compat-always))
+                  (kill-buffer)))
+	      ;; A new connection changes process id, and also the
+	      ;; lock file contents.  But it still exists.
+	      (tramp-cleanup-connection tramp-test-vec 'keep-debug 'keep-password)
+	      (should (stringp (with-no-warnings (file-locked-p tmp-name1)))))
 
 	    ;; When `remote-file-name-inhibit-locks' is set, nothing happens.
 	    (tramp-cleanup-connection tramp-test-vec 'keep-debug 'keep-password)
@@ -6962,35 +6969,43 @@ INPUT, if non-nil, is a string sent to the process."
 
 	    ;; Steal the file lock.
 	    (tramp-cleanup-connection tramp-test-vec 'keep-debug 'keep-password)
-	    (cl-letf (((symbol-function #'read-char) (lambda (&rest _args) ?s)))
+	    ;; Modifying `read-char' doesn't work on MS Windows.
+	    (cl-letf (((symbol-function #'ask-user-about-lock)
+		       #'tramp-compat-always))
 	      (with-no-warnings (lock-file tmp-name1)))
 	    (should (eq (with-no-warnings (file-locked-p tmp-name1)) t))
 
 	    ;; Ignore the file lock.
 	    (tramp-cleanup-connection tramp-test-vec 'keep-debug 'keep-password)
-	    (cl-letf (((symbol-function #'read-char) (lambda (&rest _args) ?p)))
+	    ;; Modifying `read-char' doesn't work on MS Windows.
+	    (cl-letf (((symbol-function #'ask-user-about-lock) #'ignore))
 	      (with-no-warnings (lock-file tmp-name1)))
 	    (should (stringp (with-no-warnings (file-locked-p tmp-name1))))
 
-	    ;; Quit the file lock machinery.
-	    (tramp-cleanup-connection tramp-test-vec 'keep-debug 'keep-password)
-	    (cl-letf (((symbol-function #'read-char) (lambda (&rest _args) ?q)))
-	      (with-no-warnings
+	    ;; Quit the file lock machinery.  There are problems with
+	    ;; "sftp" and "podman", so we test on Emacs 29.1 only.
+	    (when (tramp--test-emacs29-p )
+	      (tramp-cleanup-connection tramp-test-vec 'keep-debug 'keep-password)
+	      ;; Modifying `read-char' doesn't work on MS Windows.
+	      (cl-letf (((symbol-function #'ask-user-about-lock)
+			 (lambda (&rest args)
+			   (signal 'file-locked args))))
+		(with-no-warnings
+		  (should-error
+		   (lock-file tmp-name1)
+		   :type 'file-locked))
+		;; The same for `write-region'.
 		(should-error
-		 (lock-file tmp-name1)
-		 :type 'file-locked))
-	      ;; The same for `write-region'.
-	      (should-error
-	       (write-region "foo" nil tmp-name1)
-	       :type 'file-locked)
-	      (should-error
-	       (write-region "foo" nil tmp-name1 nil nil tmp-name1)
-               :type 'file-locked)
-	      ;; The same for `set-visited-file-name'.
-              (with-temp-buffer
-	        (should-error
-                 (set-visited-file-name tmp-name1)
-		 :type 'file-locked)))
+		 (write-region "foo" nil tmp-name1)
+		 :type 'file-locked)
+		(should-error
+		 (write-region "foo" nil tmp-name1 nil nil tmp-name1)
+		 :type 'file-locked)
+		;; The same for `set-visited-file-name'.
+		(with-temp-buffer
+	          (should-error
+                   (set-visited-file-name tmp-name1)
+		   :type 'file-locked))))
 	    (should (stringp (with-no-warnings (file-locked-p tmp-name1)))))
 
 	;; Cleanup.
@@ -7692,7 +7707,7 @@ This requires restrictions of file name syntax."
        ;; to U+1FFFF).
        "🌈🍒👋")
 
-      (when (tramp--test-expensive-test-p)
+      (when (and (tramp--test-expensive-test-p) (not (tramp--test-windows-nt-p)))
 	(delete-dups
 	 (mapcar
 	  ;; Use all available language specific snippets.

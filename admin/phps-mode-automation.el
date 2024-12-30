@@ -28,9 +28,11 @@
         ;; Emacs 29.1
         ;; Batch jobs that are supposed to run for a long time should
         ;; adjust the limit back down to 0.1
-        (setq
-         gc-cons-percentage
-         0.1)
+        (when (>= (string-to-number emacs-version) 29.1)
+          (message ";; Adjusting gc-cons-percentage to 0.1 since Emacs version is 29.1 or newer")
+          (setq
+           gc-cons-percentage
+           0.1))
 
         (let* ((global-declaration
                 (phps-mode-automation-parser-generator--global-declaration))
@@ -178,29 +180,83 @@
             (progn
               (message ";; Parser tables are not defined - generating..")
               (when (fboundp 'parser-generator-lr--generate-goto-tables)
+
                 (let ((table-lr-items
                        (parser-generator-lr--generate-goto-tables)))
+
+                  ;; Output LR-items sets to-enable resuming
                   (message
-                   ";; table-lr-items: %S"
+                   "%s"
+                   "(setq table-lr-items-resume (make-hash-table :test 'equal))")
+                  (maphash
+                   (lambda (key value)
+                     (message
+                      "%s"
+                      (format
+                       "(puthash %S '%S table-lr-items-resume)" key value)))
                    table-lr-items)
+                  (message "")
+
+                  ;; Output GOTO-tables to enable resuming
                   (when (boundp 'parser-generator-lr--goto-tables)
                     (message
-                     "(setq parser-generator-lr--goto-tables-resume %S)"
-                     parser-generator-lr--goto-tables))
+                     "%s"
+                     "(setq parser-generator-lr--goto-tables-resume (make-hash-table :test 'equal))")
+                    (maphash
+                     (lambda (key value)
+                       (message
+                        "%s"
+                        (format
+                        "(puthash %S %S parser-generator-lr--goto-tables-resume)" key value)))
+                     parser-generator-lr--goto-tables)
+                    (message ""))
+
+                  ;; Output distinct GOTO-tables to enable resuming
                   (when (boundp 'parser-generator-lr--distinct-goto-tables)
                     (message
-                     "(setq parser-generator-lr--distinct-goto-tables-resume %S)"
-                     parser-generator-lr--distinct-goto-tables))
+                     "%s"
+                     "(setq parser-generator-lr--distinct-goto-tables-resume (make-hash-table :test 'equal))")
+                    (maphash
+                     (lambda (key value)
+                       (message
+                        "%s"
+                        (format
+                        "(puthash %S '%S parser-generator-lr--distinct-goto-tables-resume)" key value)))
+                     parser-generator-lr--distinct-goto-tables)
+                    (message ""))
+
+                  ;; Generate ACTION-tables
                   (when (fboundp 'parser-generator-lr--generate-action-tables)
                     (parser-generator-lr--generate-action-tables table-lr-items)
+
+                    ;; Output ACTION-tables to enable resuming
                     (when (boundp 'parser-generator-lr--action-tables)
                       (message
-                       "(setq parser-generator-lr--action-tables-resume %S)"
-                       parser-generator-lr--action-tables))
+                       "%s"
+                       "(setq parser-generator-lr--action-tables-resume (make-hash-table :test 'equal))")
+                      (maphash
+                       (lambda (key value)
+                         (message
+                          "%s"
+                          (format
+                          "(puthash %S %S parser-generator-lr--action-tables-resume)" key value)))
+                       parser-generator-lr--action-tables)
+                      (message ""))
+
+                    ;; Output distinct ACTION-tables to enable resuming
                     (when (boundp 'parser-generator-lr--distinct-action-tables)
                       (message
-                       "(setq parser-generator-lr--distinct-action-tables-resume %S)"
-                       parser-generator-lr--distinct-action-tables))))))))
+                       "%s"
+                       "(setq parser-generator-lr--distinct-action-tables-resume (make-hash-table :test 'equal))")
+                      (maphash
+                       (lambda (key value)
+                         (message
+                          "%s"
+                          (format
+                          "(puthash %S '%S parser-generator-lr--distinct-action-tables-resume)" key value)))
+                       parser-generator-lr--distinct-action-tables)
+                      (message ""))))))))
+
         (message "\n")
 
         ;; Export

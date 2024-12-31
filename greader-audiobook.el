@@ -1,5 +1,5 @@
 ;;; greader-audiobook.el --- Converts buffers into audio. -*- lexical-binding: t; -*-
-;; Copyright (C) 2017-2024  Free Software Foundation, Inc.
+;; Copyright (C) 2017-2025  Free Software Foundation, Inc.
 ;; Filename: greader-audiobook.el
 ;; Description: converts the current buffer into an audiobook using espeak.
 ;; Author: Michelangelo Rodriguez <michelangelo.rodriguez@gmail.com>

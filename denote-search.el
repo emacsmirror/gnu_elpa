@@ -46,6 +46,7 @@
 ;;; Code:
 
 (require 'denote)
+(require 'dired)
 (require 'outline)
 (require 'time-date)
 (require 'xref)
@@ -130,14 +131,23 @@ non-nil."
            "Only include file names matching: ")
          nil 'denote-search-file-regexp-history)))
 
-(defun denote-search-query-prompt (&optional focused)
+(defun denote-search-query-prompt (&optional type)
   "Prompt for a search query in the minibuffer.
 
-The prompt assumes a search in all files, unless FOCUSED is non-nil."
+The prompt assumes a search in all files, unless TYPE is non-nil.
+
+TYPE can be one of :focused (for a focused search, see
+`denote-search-refine') or :dired (for a search in marked dired files,
+see `denote-search-marked-dired-files').
+
+TYPE only affects the prompt, not the returned value."
   (list (read-string
-         (if (not focused)
-             "Search (all Denote files): "
-           "Search (only files matched last): ")
+         (cond ((eq type :focused)
+                "Search (only files matched last): ")
+               ((eq type :dired)
+                "Search (only marked dired files): ")
+               (:else
+                "Search (all Denote files): "))
          nil 'denote-search-query-history)))
 
 (defun denote-search-format-heading-with-keywords (file)
@@ -243,6 +253,17 @@ The results are populated in a buffer whose major mode is
       (goto-char (point-min)))
     (pop-to-buffer-same-window denote-search-buffer-name)
     (run-hooks 'denote-search-hook)))
+
+;;;###autoload
+(defun denote-search-marked-dired-files (query)
+  "Search QUERY in the content of marked dired files.
+
+Internally, this works by passing the list of marked files as the SET
+parameter of `denote-search'."
+  (interactive (denote-search-query-prompt :dired))
+  (if-let* ((files (dired-get-marked-files)))
+      (denote-search query files)
+    (user-error "No marked files")))
 
 (defun denote-search-refine (query)
   "Search QUERY in the content of files which matched the last `denote-search'.

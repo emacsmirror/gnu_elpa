@@ -766,7 +766,7 @@ the current backend"))))
 (defun greader-toggle-punctuation ()
   "Toggle punctuation locally for current buffer."
   (interactive)
-  (greader-stop)
+  (greader-tts-stop)
   (greader-call-backend 'punctuation 'toggle)
   (greader-read))
 

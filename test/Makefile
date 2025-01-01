@@ -1,7 +1,7 @@
 # -*- coding: utf-8; -*-
 # Emacs Makefile for Tramp
 
-# Copyright (C) 2019-2024 Free Software Foundation, Inc.
+# Copyright (C) 2019-2025 Free Software Foundation, Inc.
 
 # Author: Michael Albinus <michael.albinus@gmx.de>
 # Keywords: comm, processes

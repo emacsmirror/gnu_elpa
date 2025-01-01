@@ -1,6 +1,6 @@
 ;;; boxy.el --- A boxy layout framework -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021-2024 Free Software Foundation, Inc.
+;; Copyright (C) 2021-2025 Free Software Foundation, Inc.
 
 ;; Author: Amy Grinn <grinn.amy@gmail.com>
 ;; Version: 1.1.4

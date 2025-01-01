@@ -39,8 +39,10 @@ in the sample configuration:
   :vc (:url "https://github.com/lmq-10/denote-search"
        :rev :newest)
   :bind
-  ;; Start search with C-c s
-  ("C-c s" . denote-search)
+  ;; Customize keybindings to your liking
+  (("C-c s s" . denote-search)
+   ("C-c s d" . denote-search-marked-dired-files)
+   ("C-c s r" . denote-search-files-referenced-in-region))
   :custom
   ;; Disable help string (set it once you learn the commands)
   ;; (denote-search-help-string "")

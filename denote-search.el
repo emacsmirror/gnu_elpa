@@ -1,13 +1,13 @@
 ;;; denote-search.el --- Search the contents of your notes -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024  Lucas Quintana
+;; Copyright (C) 2024-2025  Lucas Quintana
 
 ;; Author: Lucas Quintana <lmq10@protonmail.com>
 ;; Maintainer: Lucas Quintana <lmq10@protonmail.com>
 ;; URL: https://github.com/lmq-10/denote-search
 ;; Created: 2024-12-28
 ;; Keywords: matching
-;; Version: 0.2.0
+;; Version: 0.3.0
 ;; Package-Requires: ((emacs "29.1") (denote "3.0"))
 
 ;; This program is NOT part of GNU Emacs.
@@ -146,6 +146,8 @@ TYPE only affects the prompt, not the returned value."
                 "Search (only files matched last): ")
                ((eq type :dired)
                 "Search (only marked dired files): ")
+               ((eq type :region)
+                "Search (only files referenced in region): ")
                (:else
                 "Search (all Denote files): "))
          nil 'denote-search-query-history)))
@@ -193,6 +195,25 @@ line, and any key descriptions within it are replaced using
       query
       (seconds-to-string (float-time (time-subtract (current-time) time)))
       number-of-files help-string))))
+
+(defun denote-search--get-files-referenced-in-region (start end)
+  "Return a list with all Denote files referenced between START and END.
+
+START and END should be buffer positions, as integers.
+
+\"Referenced\" here means an ID is present in the text, so it'll work with
+plain links, links written by a dynamic block, or even file lists
+returned by ls (and that naturally includes dired).
+
+Returned value is a list with the absoulte path of referenced files."
+  (let (id-list)
+    (save-excursion
+      (save-restriction
+        (narrow-to-region start end)
+        (goto-char (point-min))
+        (while (re-search-forward denote-id-regexp nil t)
+          (push (match-string 0) id-list))))
+    (and id-list (mapcar #'denote-get-path-by-id id-list))))
 
 ;;;###autoload
 (defun denote-search (query &optional set)
@@ -264,6 +285,28 @@ parameter of `denote-search'."
   (if-let* ((files (dired-get-marked-files)))
       (denote-search query files)
     (user-error "No marked files")))
+
+;;;###autoload
+(defun denote-search-files-referenced-in-region (query start end)
+  "Search QUERY in the content of files referenced between START and END.
+
+START and END should be buffer positions, as integers.  Interactively,
+they are the positions of point and mark (i.e. the region).
+
+See `denote-search--get-files-referenced-in-region' for an explanation
+of what referenced means (in short: an ID is present somewhere).
+
+This function is not used for filtering content in the results buffer;
+see e.g. `denote-search-exclude-files' for that."
+  ;; MAYBE: We could respect `use-empty-active-region', but it would
+  ;; complicate things a little
+  (interactive
+   (append
+    (denote-search-query-prompt :region)
+    (list (region-beginning) (region-end))))
+  (if-let* ((files (denote-search--get-files-referenced-in-region start end)))
+      (denote-search query files)
+    (user-error "No files referenced in region")))
 
 (defun denote-search-refine (query)
   "Search QUERY in the content of files which matched the last `denote-search'.

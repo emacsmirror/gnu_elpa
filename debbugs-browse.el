@@ -1,6 +1,6 @@
 ;; debbugs-browse.el --- browse bug URLs with debbugs-gnu or debbugs-org  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2015-2024 Free Software Foundation, Inc.
+;; Copyright (C) 2015-2025 Free Software Foundation, Inc.
 
 ;; Author: Michael Albinus <michael.albinus@gmx.de>
 ;; Keywords: comm, hypermedia, maint

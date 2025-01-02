@@ -1,6 +1,6 @@
 ;; -*- lisp-data -*-
 
-;; Copyright (C) 2020-2024 Free Software Foundation, Inc.
+;; Copyright (C) 2020-2025 Free Software Foundation, Inc.
 
 ;; List of packages that are maintained externally.
 ;; The list is made of elements of the form (NAME KIND URL OPTS...).
@@ -579,7 +579,7 @@
   :readme "README.org"
   :doc "docs/org-remark.org")
  (org-transclusion	:url "https://github.com/nobiot/org-transclusion"
-  :make "org-transclusion.org"
+  :make "docs/org-transclusion.org"
   :doc "docs/org-transclusion.org"
   :readme "README.org")
  (org-translate		:url nil)

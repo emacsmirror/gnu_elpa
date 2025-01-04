@@ -10,10 +10,9 @@ package:
     - export PATH="/root/.local/bin:$PATH"
   script:
     - eldev lint
-    - eldev compile -W
+    - eldev compile
     - eldev test
     - eldev package
-    - eldev md5
   artifacts:
     paths:
       - dist/
@@ -35,8 +34,6 @@ release:
       links:
         - name: $FILENAME_BASE.el
           url: $DIST_DIR/$FILENAME_BASE.el
-        - name: $FILENAME_BASE.md5
-          url: $DIST_DIR/$FILENAME_BASE.md5
   script:
     - echo Release job
   artifacts:

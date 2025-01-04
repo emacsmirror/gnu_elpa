@@ -79,10 +79,10 @@
  (auctex-label-numbers	:url "https://github.com/ultronozm/auctex-label-numbers.el")
  (aumix-mode		:url nil)
  (auto-correct		:url nil)
- (auto-header           :url "https://git.sr.ht/~pkal/auto-header")
+ (auto-header           :url "https://codeberg.org/pkal/auto-header.el")
  (auto-overlays		:url nil ;"http://www.dr-qubit.org/git/predictive.git"
   :doc "docs/auto-overlay-manual.texinfo")
- (autocrypt             :url "https://git.sr.ht/~pkal/autocrypt")
+ (autocrypt             :url "https://codeberg.org/pkal/autocrypt.el")
  (avy			:url "https://github.com/abo-abo/avy"
   ;; FIXME: Avy diverged https://github.com/abo-abo/avy/issues/344
   :merge t)
@@ -250,7 +250,7 @@
  (disk-usage		:url "https://gitlab.com/ambrevar/emacs-disk-usage")
  (dismal		:url nil)
  (djvu			:url nil)
- (do-at-point           :url "https://git.sr.ht/~pkal/do-at-point")
+ (do-at-point           :url "https://codeberg.org/pkal/do-at-point.el")
  (doc-toc		:url "https://github.com/dalanicolai/doc-tools-toc"
   :ignored-files ("LICENSE"))
  (docbook		:url nil)
@@ -332,7 +332,7 @@
  (external-completion   :core "lisp/external-completion.el")
  (exwm			:url "https://github.com/emacs-exwm/exwm.git")
  (f90-interface-browser :url nil) ;; Was "https://github.com/wence-/f90-iface"
- (face-shift            :url "https://git.sr.ht/~pkal/face-shift")
+ (face-shift            :url "https://codeberg.org/pkal/face-shift.el")
  (filechooser		:url "https://codeberg.org/rahguzar/filechooser"
   :ignored-files ("LICENSE"))
  (filladapt		:url nil)
@@ -546,7 +546,7 @@
  (objed        		:url "https://github.com/clemera/objed")
  (omn-mode            	:url "https://github.com/phillord/omn-mode")
  (on-screen           	:url "https://github.com/michael-heerdegen/on-screen.el.git")
- (openpgp               :url "https://git.sr.ht/~pkal/openpgp")
+ (openpgp               :url "https://codeberg.org/pkal/openpgp.el")
  (orderless		:url "https://github.com/oantolin/orderless"
   :doc "orderless.texi"
   :readme "README.org")
@@ -689,9 +689,9 @@
  (scroll-restore	:url nil)
  (sed-mode		:url nil)
  (seq			:url nil)
- (setup			:url "https://git.sr.ht/~pkal/setup")
+ (setup			:url "https://codeberg.org/pkal/setup.el")
  (shelisp		:url nil)
- (shell-command+	:url "https://git.sr.ht/~pkal/shell-command-plus")
+ (shell-command+	:url "https://codeberg.org/pkal/shell-command-plus.el")
  (shell-quasiquote	:url nil)
  (shen-mode		:url nil)
  (show-font		:url "https://github.com/protesilaos/show-font"
@@ -699,7 +699,7 @@
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
  (sisu-mode		:url nil)
- (site-lisp             :url "https://git.sr.ht/~pkal/site-lisp")
+ (site-lisp             :url "https://codeberg.org/pkal/site-lisp.el")
  (sketch-mode		:url "https://github.com/dalanicolai/sketch-mode")
  (slime-volleyball	:url nil)
  (sm-c-mode 		:url nil)
@@ -806,7 +806,7 @@
  (trinary		:url "https://github.com/emacs-elsa/trinary-logic")
  (triples		:url "https://github.com/ahyatt/triples"
   :readme "README.org")
- (typo                  :url "https://git.sr.ht/~pkal/typo")
+ (typo                  :url "https://codeberg.org/pkal/typo.el")
  (ulisp-repl		:url "https://git.sr.ht/~fitzsim/ulisp-repl")
  ;; FIXME: The upstream of `undo-tree' has diverged.  I tried to
  ;; contact Toby but he's quite busy.  He mentioned thinking of using the
@@ -832,7 +832,7 @@
   :doc "use-package.texi")
  (validate		:url "https://github.com/Malabarba/validate.el")
  (valign		:url "https://github.com/casouri/valign")
- (vc-backup		:url "https://git.sr.ht/~pkal/vc-backup")
+ (vc-backup		:url "https://codeberg.org/pkal/vc-backup.el")
  (vc-got		:url "https://git.omarpolo.com/vc-got.git"
   ;; Mirror: https://github.com/omar-polo/vc-got/
   :ignored-files ("targets" "LICENSE"))
@@ -881,7 +881,7 @@
  (xr			:url "https://github.com/mattiase/xr"
   :ignored-files ("Makefile" ".github" "*-test.el*"))
  (xref			:core "lisp/progmodes/xref.el")
- (xref-union            :url "https://git.sr.ht/~pkal/xref-union")
+ (xref-union            :url "https://codeberg.org/pkal/xref-union.el")
  (yaml			:url "https://github.com/zkry/yaml.el")
  (yasnippet		:url "https://github.com/capitaomorte/yasnippet.git")
  (yasnippet-classic-snippets :url nil)

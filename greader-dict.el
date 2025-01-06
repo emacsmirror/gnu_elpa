@@ -199,6 +199,30 @@
 
 (defvar greader-dict-filter-indicator "\%f")
 
+;; This macro calls `with-temp-buffer', setting all the necessary
+;; local variables to useful values. This means that all sensible
+;; variables will be bound to `greader-dict-current-buffer' local
+;; values.
+(defmacro with-greader-dict-temp-buffer (&rest body)
+  "Optimized `with-temp-buffer' for greader-dict.
+Execute BODY in a temporary bufer as if we where in the reading
+buffer."
+  `(with-temp-buffer
+     (setq greader-dictionary (buffer-local-value 'greader-dictionary
+						  greader-dict--current-reading-buffer))
+     (setq greader-dict-filename (buffer-local-value
+				  'greader-dict-filename
+				  greader-dict--current-reading-buffer))
+     (setq greader-dict-local-language (buffer-local-value
+					'greader-dict-local-language
+					greader-dict--current-reading-buffer))
+     (setq greader-filters (buffer-local-value 'greader-filters
+					       greader-dict--current-reading-buffer))
+     (setq greader-dict-toggle-filters (buffer-local-value
+					'greader-dict-toggle-filters
+					greader-dict--current-reading-buffer))
+     ,@body))
+
 (defvar-keymap greader-dict-filter-map
   :doc "key bindings for greader-dict filter feature."
   "C-r d f a" #'greader-dict-filter-add
@@ -461,9 +485,7 @@ by adding every match found in the text as a word."
 (defun greader-dict-check-and-replace (text)
   "Return the TEXT passed to it, eventually modified according to
 `greader-dictionary' and variants."
-  (with-temp-buffer
-    (setq greader-dictionary (buffer-local-value 'greader-dictionary
-						 greader-dict--current-reading-buffer))
+  (with-greader-dict-temp-buffer
     (insert text)
     (goto-char (point-min))
     (when
@@ -504,15 +526,7 @@ by adding every match found in the text as a word."
   "Save greader-dictionary stored in `greader-dict-filename'."
   (unless (file-exists-p greader-dict-directory)
     (make-directory greader-dict-directory t))
-  (with-temp-buffer
-    (setq greader-dictionary (buffer-local-value 'greader-dictionary
-						 greader-dict--current-reading-buffer))
-    (setq greader-dict-filename (buffer-local-value
-				 'greader-dict-filename
-				 greader-dict--current-reading-buffer))
-    (setq greader-dict-local-language (buffer-local-value
-				       'greader-dict-local-language
-				       greader-dict--current-reading-buffer))
+  (with-greader-dict-temp-buffer
     (maphash
      (lambda (k v)
        (insert "\"" k "\"" "=" v "\n"))
@@ -534,17 +548,7 @@ user-error and aborts the reading process."
   (when (and (not greader-dict--saved-flag) (not force))
     (user-error "Dictionary has been modified and not yet saved"))
   (when (file-exists-p (greader-dict--get-file-name))
-    (with-temp-buffer
-      (setq greader-dictionary (buffer-local-value 'greader-dictionary
-						   greader-dict--current-reading-buffer))
-      (setq greader-dict-filename (buffer-local-value
-				   'greader-dict-filename
-				   greader-dict--current-reading-buffer))
-      (setq greader-filters (buffer-local-value 'greader-filters
-						greader-dict--current-reading-buffer))
-      (setq greader-dict-toggle-filters (buffer-local-value
-					 'greader-dict-toggle-filters
-					 greader-dict--current-reading-buffer))
+    (with-greader-dict-temp-buffer
       (insert-file-contents (greader-dict--get-file-name))
       (when-let* ((lines (string-lines (buffer-string) t)))
 	(dolist (line lines)

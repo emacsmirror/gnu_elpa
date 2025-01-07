@@ -71,15 +71,16 @@ non-trivial code contributions.
 Source code
 -----------
 
-`shell-command+` is developed on [SourceHut].
+`shell-command+` is developed on [Codeberg].
 
-[SourceHut]:
-	https://git.sr.ht/~pkal/shell-command-plus
+[Codeberg]:
+	https://codeberg.org/pkal/shell-command-plus.el
 
 Bugs and Patches
 ----------------
 
-Bugs or comments can be submitted to my [public inbox].
+Bugs or comments can be submitted via [Codeberg's issue system] or by
+sending [me] an email.
 
 When contributing, make sure to provide test and use the existing
 tests defined in shell-command+-tests.el.  These can be easily
@@ -87,8 +88,10 @@ executed using the bundled Makefile:
 
 	make test
 
-[public inbox]:
-	https://lists.sr.ht/~pkal/public-inbox
+[Codeberg's issue system]:
+	https://codeberg.org/pkal/shell-command-plus.el/issues
+[me]:
+	https://amodernist.com/#email
 
 Distribution
 ------------

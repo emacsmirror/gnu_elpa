@@ -1,13 +1,13 @@
 ;;; shell-command+.el --- An extended shell-command -*- lexical-binding: t -*-
 
-;; Copyright (C) 2020-2024  Free Software Foundation, Inc.
+;; Copyright (C) 2020-2025  Free Software Foundation, Inc.
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
-;; Maintainer: Philip Kaludercic <~pkal/public-inbox@lists.sr.ht>
+;; Maintainer: Philip Kaludercic <philipk@posteo.net>
 ;; Version: 2.4.2
 ;; Keywords: unix, processes, convenience
 ;; Package-Requires: ((emacs "24.3"))
-;; URL: https://git.sr.ht/~pkal/shell-command-plus
+;; URL: https://codeberg.org/pkal/shell-command-plus.el
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

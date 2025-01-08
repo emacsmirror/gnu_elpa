@@ -92,6 +92,7 @@
     "THEF" "ANDF" "ANDTH"
     "ELSF" "ORF" "OREL"
     "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"
+    "UP" "DOWN"
     "REF" "NIL" "TRUE" "FALSE"
     "MODULE" "DEF" "FED" "POSTLUDE" "ACCESS" "PUB")
   "List of Algol 68 keywords.")

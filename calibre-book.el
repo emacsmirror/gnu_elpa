@@ -68,10 +68,7 @@
         :documentation "The book's position within the library")
   (file-name nil
              :type string
-             :documentation "The book's filename, sans extension.")
-  (summary nil
-           :type (or string null)
-           :documentation "The book's summary."))
+             :documentation "The book's filename, sans extension."))
 
 (defcustom calibre-format-preferences '(pdf epub)
   "The preference order of file formats."

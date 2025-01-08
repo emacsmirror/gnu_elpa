@@ -70,8 +70,7 @@ specified the default is \\='all\\='."
                        :tags (sort .tags)
                        :formats (calibre-cli--parse-formats .formats)
                        :path (calibre-cli--parse-path .formats)
-                       :file-name (calibre-cli--parse-file-name .formats)
-                       :summary .comments)))
+                       :file-name (calibre-cli--parse-file-name .formats))))
 
 (defun calibre-cli--parse-authors (authors)
   "Parse AUTHORS a string, into a list of authors.

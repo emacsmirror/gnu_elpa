@@ -39,7 +39,7 @@ TIMESTAMP is a string of the form YYYY-MM-DD HH:MM:SS.xxxxxx+00:00."
 (defun calibre-db--make-book (entry)
   "Create a `calibre-book' from ENTRY.
 ENTRY is a list of the form:
-\(ID TITLE SERIES SERIES-INDEX TIMESTAMP PUBDATE LAST-MODIFIED PATH SUMMARY)."
+\(ID TITLE SERIES SERIES-INDEX TIMESTAMP PUBDATE LAST-MODIFIED PATH)."
   (seq-let
       [id
        title
@@ -48,8 +48,7 @@ ENTRY is a list of the form:
        timestamp
        pubdate
        last-modified
-       path
-       summary]
+       path]
       entry
     (make-calibre-book :id id
                        :title title
@@ -63,8 +62,7 @@ ENTRY is a list of the form:
                        :tags (sort (calibre-db--get-book-tags id))
                        :formats (calibre-db--get-book-formats id)
                        :path path
-                       :file-name (calibre-db--get-book-file-name id)
-                       :summary summary)))
+                       :file-name (calibre-db--get-book-file-name id))))
 
 (defun calibre-db--get-book-authors (id)
   "Return a list of authors for the book identified by ID."
@@ -164,12 +162,10 @@ WHERE books.id = ?"
  timestamp,
  pubdate,
  last_modified,
- path,
- comments.text
+ path
 FROM books
 LEFT JOIN books_series_link sl ON books.id = sl.book
-LEFT JOIN series ON sl.series = series.id
-LEFT JOIN comments ON books.id = comments.book;"))))
+LEFT JOIN series ON sl.series = series.id;"))))
 
 (defmacro calibre-db--query (query arg fuzzy)
   "Run QUERY on the Calibre database.

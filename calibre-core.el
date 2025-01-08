@@ -136,8 +136,7 @@ column should have."
                    (const :tag "Series Index" series-index)
                    (const :tag "Tags" tags)
                    (const :tag "Formats" formats)
-                   (const :tag "Publication date" pubdate)
-                   (const :tag "Summary" summary))
+                   (const :tag "Publication date" pubdate))
                   (integer :tag "Width")))
   :set (lambda (symbol value)
          (set-default symbol value)
@@ -174,31 +173,39 @@ with values determined by `calibre-library-columns'."
                  (formats `("Formats" ,width))
                  (pubdate `("Publication Date" ,width (lambda (a b)
                                                         (time-less-p (calibre-book-pubdate (car a))
-                                                                     (calibre-book-pubdate (car b))))))
-                 (summary `("Summary" ,width)))))
+                                                                     (calibre-book-pubdate (car b)))))))))
            calibre-library-columns)))
 
 (defun calibre-book--print-info (book)
   "Return list suitable as a value of `tabulated-list-entries'.
 BOOK is a `calibre-book'."
   (list book
-        (vconcat (mapcar (lambda (x)
-                           (let ((column (car x)))
-                             (cl-case column
-                               (id (int-to-string (calibre-book-id book)))
-                               (title (calibre-book-title book))
-                               (authors (string-join (calibre-book-authors book) ", "))
-                               (publisher (let ((publisher (calibre-book-publisher book)))
-                                            (if (not publisher) "" publisher)))
-                               (series (let ((series (calibre-book-series book))) (if (not series) "" series)))
-                               (series-index (if (calibre-book-series book) (format "%.1f" (calibre-book-series-index book)) ""))
-                               (tags (string-join (calibre-book-tags book) ", "))
-                               (formats (string-join (mapcar (lambda (f) (upcase (symbol-name f))) (calibre-book-formats book)) ", "))
-                               (pubdate (if (calibre-book-pubdate book)
-                                            (format-time-string calibre-library-time-format (calibre-book-pubdate book))
-                                          "Invalid"))
-                               (summary (or (calibre-book-summary book) "")))))
-                         calibre-library-columns))))
+        (vconcat
+         (mapcar
+          (lambda (x)
+            (let ((column (car x)))
+              (cl-case column
+                (id (int-to-string (calibre-book-id book)))
+                (title (calibre-book-title book))
+                (authors (string-join (calibre-book-authors book) ", "))
+                (publisher (or (calibre-book-publisher book) ""))
+                (series (or (calibre-book-series book) ""))
+                (series-index
+                 (if (calibre-book-series book)
+                     (format "%.1f" (calibre-book-series-index book))
+                   ""))
+                (tags (string-join (calibre-book-tags book) ", "))
+                (formats (string-join
+                          (mapcar (lambda (f)
+                                    (upcase (symbol-name f)))
+                                  (calibre-book-formats book))
+                          ", "))
+                (pubdate (if (calibre-book-pubdate book)
+                             (format-time-string
+                              calibre-library-time-format
+                              (calibre-book-pubdate book))
+                           "Invalid")))))
+                 calibre-library-columns))))
 
 (defun calibre-book--file (book format)
   "Return the path to BOOK in FORMAT."

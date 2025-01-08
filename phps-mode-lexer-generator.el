@@ -478,14 +478,6 @@
 
   (phps-mode-lexer-generator--add-rule
    phps-mode-lexer-generator--table
-   'ST_LOOKING_FOR_PROPERTY
-   (lambda() (looking-at phps-mode-lexer--any-char))
-   (lambda() (phps-mode-lexer--yyless 0)
-     (phps-mode-lexer--yy-pop-state)
-     (phps-mode-lexer--restart)))
-
-  (phps-mode-lexer-generator--add-rule
-   phps-mode-lexer-generator--table
    'ST_IN_SCRIPTING
    (lambda() (looking-at "::"))
    (lambda() (phps-mode-lexer--return-token 'T_PAAMAYIM_NEKUDOTAYIM)))
@@ -738,6 +730,24 @@
   (phps-mode-lexer-generator--add-rule
    phps-mode-lexer-generator--table
    'ST_IN_SCRIPTING
+   (lambda() (looking-at "public(set)"))
+   (lambda() (phps-mode-lexer--return-token-with-indent 'T_PUBLIC_SET)))
+
+  (phps-mode-lexer-generator--add-rule
+   phps-mode-lexer-generator--table
+   'ST_IN_SCRIPTING
+   (lambda() (looking-at "protected(set)"))
+   (lambda() (phps-mode-lexer--return-token-with-indent 'T_PROTECTED_SET)))
+
+  (phps-mode-lexer-generator--add-rule
+   phps-mode-lexer-generator--table
+   'ST_IN_SCRIPTING
+   (lambda() (looking-at "private(set)"))
+   (lambda() (phps-mode-lexer--return-token-with-indent 'T_PRIVATE_SET)))
+
+  (phps-mode-lexer-generator--add-rule
+   phps-mode-lexer-generator--table
+   'ST_IN_SCRIPTING
    (lambda() (looking-at "public"))
    (lambda() (phps-mode-lexer--return-token-with-indent 'T_PUBLIC)))
 
@@ -956,6 +966,8 @@
    'ST_IN_SCRIPTING
    (lambda() (looking-at ">>"))
    (lambda() (phps-mode-lexer--return-token 'T_SR)))
+
+  ;; TODO WAS HERE
 
   (phps-mode-lexer-generator--add-rule
    phps-mode-lexer-generator--table

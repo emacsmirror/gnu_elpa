@@ -207,6 +207,7 @@
   "Optimized `with-temp-buffer' for greader-dict.
 Execute BODY in a temporary bufer as if we where in the reading
 buffer."
+  (declare (indent defun))
   `(with-temp-buffer
      (setq greader-dictionary (buffer-local-value 'greader-dictionary
 						  greader-dict--current-reading-buffer))

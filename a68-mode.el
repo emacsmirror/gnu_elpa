@@ -78,7 +78,7 @@
 
 (defconst a68-keywords
   '("DECS" "PROGRAM" "CONTEXT" "USE" "FINISH" "KEEP"
-    "ALIEN" "UNTIL"
+    "ALIEN" "UNTIL" "RE" "IM"
     "MODE" "OP" "PRIO" "PROC"
     "OF" "AT" "IS" "ISNT" "EMPTY" "SKIP"
     "PR" "PRAGMAT" "STRUCT" "UNION"

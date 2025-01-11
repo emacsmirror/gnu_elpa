@@ -73,7 +73,7 @@
 
 (defconst a68-std-modes
   '("SHORT" "LONG" "INT" "REAL" "BITS" "BYTES"
-    "COMPLEX" "STRING")
+    "COMPL" "STRING")
   "List of Algol 68 standard modes and shortety.")
 
 (defconst a68-keywords

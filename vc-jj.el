@@ -73,15 +73,18 @@
         'up-to-date)))))
 
 (defun vc-jj-dir-status-files (dir _files update-function)
+  "Return a list of (FILE STATE EXTRA) entries for DIR."
   ;; TODO: should be async!
-  (let ((files (apply #'process-lines "jj" "file" "list" "--" dir))
-        (modified (apply #'process-lines "jj" "diff" "--name-only" "--" dir)))
+  (let* ((dir (expand-file-name dir))
+         (files (process-lines "jj" "file" "list" "--" dir))
+         (modified (process-lines "jj" "diff" "--name-only" "--" dir)))
     (let ((result
            (mapcar (lambda (file)
                      (let ((vc-state (if (member file modified)
                                          'edited
                                        'up-to-date)))
-                       (list file vc-state))))))
+                       (list file vc-state)))
+                   files)))
       (funcall update-function result nil))))
 
 (defun vc-jj-working-revision (file)

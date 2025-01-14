@@ -77,7 +77,7 @@
   "List of Algol 68 standard modes and shortety.")
 
 (defconst a68-keywords
-  '("DECS" "PROGRAM" "CONTEXT" "USE" "FINISH" "KEEP"
+  '("DECS" "PROGRAM" "CONTEXT" "USE" "KEEP"
     "ALIEN" "UNTIL" "RE" "IM"
     "MODE" "OP" "PRIO" "PROC"
     "OF" "AT" "IS" "ISNT" "EMPTY" "SKIP"
@@ -153,8 +153,7 @@
                       (proc-decl (proc-decl "," proc-decl)
                                  ("OP" ids "=" args ids ":" exp)
                                  ("PROC" ids "=" ids ":" exp))
-                      (exports ("KEEP" fields "FINISH"))
-                      (program ("PROGRAM" exp "FINISH"))
+                      (program ("PROGRAM" exp))
                       ;; TODO: this don't cover all the loop
                       ;; possibilities.
                       (loop ("-do-" "DO" exp "OD")

@@ -87,6 +87,58 @@
                    files)))
       (funcall update-function result nil))))
 
+(defun vc-jj-dir-extra-headers (dir)
+  "Return extra headers for DIR.
+Always add the first line of the description, the change ID, and
+the git commit ID of the current change.  If the current change
+is named by one or more bookmarks, also add a Bookmarks header.
+If the current change is conflicted, divergent or hidden, also
+add a Status header.  (We do not check for emptiness of the
+current change since the user can see that via the list of files
+below the headers anyway.)"
+  (let* ((default-directory dir)
+         (info (process-lines "jj" "log" "--no-graph" "-r" "@" "-T"
+                              "concat(
+self.change_id().short(), \"\\n\",
+self.change_id().shortest(), \"\\n\",
+self.commit_id().short(), \"\\n\",
+self.commit_id().shortest(), \"\\n\",
+description.first_line(), \"\\n\",
+bookmarks.join(\",\"), \"\\n\",
+self.conflict(), \"\\n\",
+self.divergent(), \"\\n\",
+self.hidden(), \"\\n\"
+)")))
+    (seq-let [change-id change-id-short commit-id commit-id-short
+                        description bookmarks conflict divergent hidden]
+        info
+      (cl-flet ((fmt (key value &optional prefix)
+                  (concat
+                   (propertize (format "% -11s: " key) 'face 'vc-dir-header)
+                   ;; there is no header value emphasis face, so we
+                   ;; use vc-dir-status-up-to-date for the prefix.
+                   (when prefix (propertize prefix 'face 'vc-dir-status-up-to-date))
+                   (propertize value 'face 'vc-dir-header-value))))
+        (let ((status (concat
+                       (when (string= conflict "true") "(conflict)")
+                       (when (string= divergent "true") "(divergent)")
+                       (when (string= hidden "true") "(hidden)")))
+              (change-id-suffix (substring change-id (length change-id-short)))
+              (commit-id-suffix (substring commit-id (length commit-id-short))))
+          (string-join (seq-remove
+                        #'null
+                        (list
+                         (fmt "Description" (if (string= description "") "(no description set)" description))
+                         (fmt "Change ID" change-id-suffix change-id-short)
+                         (fmt "Commit" commit-id-suffix commit-id-short)
+                         (unless (string= bookmarks "") (fmt "Bookmarks" bookmarks))
+                         (unless (string= status "")
+                           ;; open-code this line instead of adding a face parameter to `fmt'
+                           (concat
+                            (propertize (format "% -11s: " "Status") 'face 'vc-dir-header)
+                            (propertize status 'face 'vc-dir-status-warning)))))
+                       "\n"))))))
+
 (defun vc-jj-working-revision (file)
   (when-let ((root (vc-jj-root file)))
     (let ((relative (file-relative-name file root))

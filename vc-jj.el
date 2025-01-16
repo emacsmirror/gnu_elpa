@@ -218,9 +218,25 @@ self.hidden(), \"\\n\"
 (defalias 'vc-jj-responsible-p #'vc-jj-root)
 
 (defun vc-jj-find-ignore-file (file)
-  (expand-file-name ".gitignore"
-		            (vc-jj-root file)))
+  "Return the .gitignore file that controls FILE.
+Currently we return the .gitignore file at project root instead
+of checking for per-directory .gitignore files."
+  (expand-file-name ".gitignore" (vc-jj-root file)))
 
+(defun vc-jj-ignore (file &optional directory remove)
+  "Ignore FILE under DIRECTORY (default is `default-directory').
+FILE is a wildcard specification relative to DIRECTORY.  If
+REMOVE is non-nil, remove FILE from ignored files instead.
+
+For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
+  (let ((ignore (vc-jj-find-ignore-file file)))
+    (cond
+     (remove
+      (vc--remove-regexp (concat "^" (regexp-quote file) "\\(\n\\|$\\)") ignore)
+      (call-process "jj" nil (list t nil) nil "file" "track" file))
+     (t
+      (vc--add-line file ignore)
+      (call-process "jj" nil (list t nil) nil "file" "untrack" file)))))
 
 (defvar vc-jj-diff-switches '("--git"))
 

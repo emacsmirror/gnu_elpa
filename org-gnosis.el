@@ -358,13 +358,12 @@ DIRECTORY."
 	 (directory (or directory org-gnosis-dir))
 	 (node-template (org-gnosis-select-template org-gnosis-node-templates)))
     (cond ((null file)
-	   (org-gnosis--create-file title nil node-template)
-	   (org-gnosis-mode))
+	   (org-gnosis--create-file title nil node-template))
 	  ((file-exists-p (expand-file-name file directory))
 	   (find-file
 	    (expand-file-name file directory))
-	   (ignore-errors (org-id-goto id))
-	   (org-gnosis-mode)))))
+	   (ignore-errors (org-id-goto id))))
+    (org-gnosis-mode)))
 
 ;;;###autoload
 (defun org-gnosis-find-by-tag (&optional tag)
@@ -432,7 +431,7 @@ If node does not exist, create it."
 (defun org-gnosis-journal-find (&optional date)
   "Find journal entry for DATE."
   (interactive)
-  (let* ((prompt "Select journal entry")
+  (let* ((prompt "Select journal entry: ")
 	 (date (or date (org-gnosis--find
 			 prompt
 			 (org-gnosis-select '[date tags] 'journal)
@@ -448,7 +447,8 @@ If node does not exist, create it."
   (let* ((node (org-gnosis--find "Select journal entry: "
 				 (org-gnosis-select '[date tags] 'journal '1=1)
 				 (org-gnosis-select 'date 'journal '1=1)))
-	 (node-id (concat "id:" (car (org-gnosis-select 'id 'journal `(= ,node date) '1=1)))))
+	 (node-id (concat "id:"
+			  (car (org-gnosis-select 'id 'journal `(= ,node date) '1=1)))))
     (org-insert-link nil node-id node)))
 
 ;;;###autoload

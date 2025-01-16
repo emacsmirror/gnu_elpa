@@ -75,7 +75,7 @@
 (defcustom org-gnosis-completing-read-func #'org-completing-read
   "Function to use for `completing-read'."
   :type 'function
-  :group 'gnosis)
+  :group 'org-gnosis)
 
 (defface org-gnosis-face-tags
   '((t :inherit font-lock-type-face))
@@ -88,7 +88,8 @@
   "Select VALUE from TABLE, optionally with RESTRICTIONS.
 
 Optional argument FLATTEN, when non-nil, flattens the result."
-  (let ((output (emacsql org-gnosis-db `[:select ,value :from ,table :where ,restrictions])))
+  (let ((output (emacsql org-gnosis-db
+			 `[:select ,value :from ,table :where ,restrictions])))
     (if flatten
 	(apply #'append output)
       output)))
@@ -299,20 +300,26 @@ Removes all contents of FILE in database, adding them anew."
           lst))
 
 (defun org-gnosis--create-file (title &optional file extras)
-  "Create node & FILE for TITLE."
-  (let* ((file-name (replace-regexp-in-string "#" "" ;; hashtags are used for tags
-					      (replace-regexp-in-string " " "-" title)))
+  "Create a node and optionally a FILE for TITLE.
+
+  Insert initial Org metadata if the buffer is new or empty."
+  (let* ((file-name (replace-regexp-in-string "#" ""
+					      (replace-regexp-in-string " " "_" title)))
 	 (file (or file (expand-file-name
-			 (format "%s--%s.org" (format-time-string "%Y%m%d%H%M%S") file-name)
-			 org-gnosis-dir))))
-    (find-file file)
-    (unless (file-exists-p file)
-      (insert (format "#+title: %s\n#+filetags: \n" title))
-      (org-id-get-create)
-      (and extras (insert extras))
-      (org-mode)
-      (org-gnosis-mode)
-      file-name)))
+			 (format "%s--%s.org"
+				 (format-time-string "%Y%m%d%H%M%S")
+				 file-name)
+			 org-gnosis-dir)))
+	 (buffer (find-file-noselect file)))
+    (with-current-buffer buffer
+      (unless (or (file-exists-p file)
+		  (> (buffer-size) 0))
+	(insert (format "#+title: %s\n#+filetags: \n" title))
+	(org-id-get-create)
+	(when extras (insert extras))
+	(org-mode)))
+    (switch-to-buffer buffer)
+    file-name))
 
 (defun org-gnosis-find--with-tags (&optional prompt entries)
   "Select gnosis node with tags from ENTRIES.

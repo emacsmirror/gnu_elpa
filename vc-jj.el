@@ -155,6 +155,23 @@ self.hidden(), \"\\n\"
                         "-r" "@"
                         "-T" "self.change_id().short() ++ \"\\n\""))))
 
+(defun vc-jj-mode-line-string (file)
+  "Return a mode line string and tooltip for FILE."
+  (pcase-let* ((long-rev (vc-jj-working-revision file))
+               (`(,short-rev ,description)
+                (process-lines "jj" "log" "--no-graph" "-r" long-rev
+                               "-T" "self.change_id().shortest() ++ \"\\n\" ++ description.first_line() ++ \"\\n\""))
+               (def-ml (vc-default-mode-line-string 'JJ file))
+               (help-echo (get-text-property 0 'help-echo def-ml))
+               (face   (get-text-property 0 'face def-ml)))
+    ;; See docstring of `vc-default-mode-line-string' for a
+    ;; description of the string prefix we extract here
+    (propertize (concat (substring def-ml 0 3) short-rev)
+                'face face
+                'help-echo (concat help-echo
+                                   "\nCurrent change: " long-rev
+                                   " (" description ")"))))
+
 (defun vc-jj-create-repo ()
   (if current-prefix-arg
       (call-process "jj" nil nil nil "git" "init" "--colocate")

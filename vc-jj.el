@@ -41,9 +41,15 @@
 
 (defun vc-jj--file-modified (file)
   (with-temp-buffer
-    (and (= 0 (call-process "jj" nil t nil "diff" "--name-only" "--" file))
-         (not (= (point-min) (point-max))))))
+    (and (= 0 (call-process "jj" nil t nil "diff" "--summary" "--" file))
+         (not (= (point-min) (point-max)))
+         (progn (goto-char (point-min)) (looking-at "M ")))))
 
+(defun vc-jj--file-added (file)
+  (with-temp-buffer
+    (and (= 0 (call-process "jj" nil t nil "diff" "--summary" "--" file))
+         (not (= (point-min) (point-max)))
+         (progn (goto-char (point-min)) (looking-at "A ")))))
 
 ;;;###autoload (defun vc-jj-registered (file)
 ;;;###autoload   "Return non-nil if FILE is registered with jj."
@@ -63,14 +69,18 @@
             (vc-jj--file-tracked relative)))))))
 
 (defun vc-jj-state (file)
+  "JJ implementation of `vc-state' for FILE."
   (when-let ((root (vc-jj-root file)))
     (let ((relative (file-relative-name file root))
           (default-directory root))
       (cond
        ((vc-jj--file-modified relative)
         'edited)
+       ((vc-jj--file-added relative)
+        'added)
        ((vc-jj--file-tracked relative)
-        'up-to-date)))))
+        'up-to-date)
+       (t nil)))))
 
 (defun vc-jj-dir-status-files (dir _files update-function)
   "Return a list of (FILE STATE EXTRA) entries for DIR."
@@ -140,15 +150,10 @@ self.hidden(), \"\\n\"
                        "\n"))))))
 
 (defun vc-jj-working-revision (file)
-  (when-let ((root (vc-jj-root file)))
-    (let ((relative (file-relative-name file root))
-          (default-directory root))
-      (let ((rev (if (vc-jj--file-modified relative)
-                     "@"
-                   "@-")))
-        (car (process-lines "jj" "log" "--no-graph"
-                            "-r" rev
-                            "-T" "self.change_id().short() ++ \"\\n\""))))))
+  (when-let ((default-directory (vc-jj-root file)))
+    (car (process-lines "jj" "log" "--no-graph"
+                        "-r" "@"
+                        "-T" "self.change_id().short() ++ \"\\n\""))))
 
 (defun vc-jj-create-repo ()
   (if current-prefix-arg

@@ -141,19 +141,17 @@ TOPIC-ID: Topic hash id."
          (list :title title :id id :tags all-tags :master master :level level))))
 
 (defun org-gnosis-get-id ()
-  "Find the nearest ID property searching up the outline hierarchy.
-
-Return the ID if found, else nil."
+  "Return id for heading at point."
   (save-excursion
-    (while (and (not (org-entry-get nil "ID"))
-                (not (bobp)))
-      (ignore-errors
-        (if (> (funcall outline-level) 1)
-	    ;; Adjust for level <1 headings that do not have a level 1 heading.
-            (or (org-up-heading-safe) (goto-char (point-min)))
-	    (org-up-heading-safe)
-          (goto-char (point-min)))))
-    (org-entry-get nil "ID")))
+    (let ((heading-level (org-current-level))
+	  (id (org-id-get)))
+      (cond (id id)
+	    ((and (null id) (= heading-level 1))
+	     (goto-char (point-min))
+	     (org-id-get))
+	    (t
+	     (outline-up-heading 1 t)
+	     (org-gnosis-get-id))))))
 
 (defun org-gnosis-collect-id-links ()
   "Collect ID links and current headline ID as (link-id . headline-id) pairs."

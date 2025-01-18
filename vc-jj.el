@@ -221,11 +221,14 @@ self.hidden(), \"\\n\"
   "Return the .gitignore file that controls FILE."
   (let ((root (vc-jj-root file))
         (ignore (expand-file-name
-                 ".gitignore"
-                 (locate-dominating-file default-directory ".gitignore"))))
-    (if (string-prefix-p (file-name-as-directory root) ignore)
-        ignore
-      (expand-file-name ".gitignore" root))))
+                 (locate-dominating-file default-directory
+                                         ".gitignore"))))
+    (expand-file-name
+     ".gitignore"
+     (if (string-prefix-p (file-name-as-directory root)
+                          (file-name-as-directory ignore))
+         ignore
+       root))))
 
 (defun vc-jj-ignore (file &optional directory remove)
   "Ignore FILE under DIRECTORY.

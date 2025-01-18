@@ -298,9 +298,8 @@ Removes all contents of FILE in database, adding them anew."
           lst))
 
 (defun org-gnosis--create-file (title &optional file extras)
-  "Create a node and optionally a FILE for TITLE.
-
-  Insert initial Org metadata if the buffer is new or empty."
+  "Create a node FILE for TITLE.
+Insert initial Org metadata if the buffer is new or empty."
   (let* ((file-name (replace-regexp-in-string "#" ""
 					      (replace-regexp-in-string " " "_" title)))
 	 (file (or file (expand-file-name
@@ -313,11 +312,11 @@ Removes all contents of FILE in database, adding them anew."
       (unless (or (file-exists-p file)
 		  (> (buffer-size) 0))
 	(insert (format "#+title: %s\n#+filetags: \n" title))
+	(org-mode)
 	(org-id-get-create)
-	(when extras (insert extras))
-	(org-mode)))
+	(when extras (insert extras))))
     (switch-to-buffer buffer)
-    file-name))
+    (org-gnosis-mode 1)))
 
 (defun org-gnosis-find--with-tags (&optional prompt entries)
   "Select gnosis node with tags from ENTRIES.

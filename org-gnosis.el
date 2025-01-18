@@ -517,7 +517,7 @@ If file or id are not found, use `org-open-at-point'."
     (journal
      ([(id :not-null :primary-key)
        (file :not-null)
-       (date text)
+       (title text :not-null)
        (level text :not-null)
        tags]))
     (node-tag

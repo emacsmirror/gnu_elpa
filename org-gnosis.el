@@ -355,12 +355,11 @@ DIRECTORY."
 	 (directory (or directory org-gnosis-dir))
 	 (node-template (org-gnosis-select-template org-gnosis-node-templates)))
     (cond ((null file)
-	   (org-gnosis--create-file title nil node-template))
+	   (org-gnosis--create-file title (expand-file-name title directory)
+				    node-template))
 	  ((file-exists-p (expand-file-name file directory))
-	   (find-file
-	    (expand-file-name file directory))
-	   (ignore-errors (org-id-goto id))))
-    (org-gnosis-mode)))
+	   (org-gnosis-goto-id id))
+	  (t (error "File %s does exist" file)))))
 
 ;;;###autoload
 (defun org-gnosis-find-by-tag (&optional tag)

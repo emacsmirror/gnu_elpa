@@ -468,20 +468,26 @@ TEMPLATE: Journaling template, refer to `org-gnosis-journal-templates'."
          (id-link (when (and (eq (org-element-type element) 'link)
                              (string= (org-element-property :type element) "id"))
                     (org-element-property :path element))))
-    (and id-link id-link)))
-
+    id-link))
 
 (defun org-gnosis-goto-id (&optional id)
   "Visit file for ID.
 
 If file or id are not found, use `org-open-at-point'."
   (interactive)
-  (let* ((id (or id (org-gnosis--get-id-at-point)))
-	 (file (caar (org-gnosis-select 'file 'nodes `(= id ,id)))))
-    (if (and id file)
-	(progn (find-file (expand-file-name file org-gnosis-dir))
-	       (org-gnosis-mode))
-      (org-open-at-point))))
+  (let* ((id (or id (org-gnosis--get-id-at-point))))
+    (cond ((org-gnosis-select 'file 'nodes `(= id ,id))
+	   (find-file
+	    (expand-file-name (car (org-gnosis-select 'file 'nodes `(= id ,id) t))
+			      org-gnosis-dir))
+	   (org-id-goto id))
+	  ((org-gnosis-select 'file 'journal `(= id ,id))
+	   (find-file
+	    (expand-file-name (car (org-gnosis-select 'file 'journal `(= id ,id) t))
+			      org-gnosis-journal-dir))
+	   (org-id-goto id))
+	  (t (org-open-at-point)))
+    (org-gnosis-mode 1)))
 
 (defvar-keymap org-gnosis-mode-map
   :doc "org-gnosis keymap"

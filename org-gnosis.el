@@ -442,10 +442,10 @@ If node does not exist, create it."
   "Insert journal entry."
   (interactive)
   (let* ((node (org-gnosis--find "Select journal entry: "
-				 (org-gnosis-select '[date tags] 'journal '1=1)
-				 (org-gnosis-select 'date 'journal '1=1)))
+				 (org-gnosis-select '[title tags] 'journal '1=1)
+				 (org-gnosis-select 'title 'journal '1=1)))
 	 (node-id (concat "id:"
-			  (car (org-gnosis-select 'id 'journal `(= ,node date) '1=1)))))
+			  (car (org-gnosis-select 'id 'journal `(= ,node title) '1=1)))))
     (org-insert-link nil node-id node)))
 
 ;;;###autoload

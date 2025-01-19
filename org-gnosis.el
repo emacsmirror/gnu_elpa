@@ -371,7 +371,8 @@ DIRECTORY."
 	 (node
 	  (funcall org-gnosis-completing-read-func
 		   "Select node: "
-		   (org-gnosis-select 'title 'nodes `(like tags ',(format "%%\"%s\"%%" tag))))))
+		   (org-gnosis-select 'title 'nodes
+				      `(like tags ',(format "%%\"%s\"%%" tag))))))
     (org-gnosis-find node)))
 
 (defun org-gnosis-select-template (&optional templates)
@@ -401,8 +402,9 @@ If node does not exist, create it."
 	     (org-gnosis--create-file node)
 	     ;; Save buffer to store new node id
 	     (save-buffer)
-	     (setf id (concat "id:"
-			      (car (org-gnosis-select 'id 'nodes `(= ,node title) '1=1)))))
+	     (setf id (concat
+		       "id:"
+		       (car (org-gnosis-select 'id 'nodes `(= ,node title) '1=1)))))
 	   (org-insert-link nil id node)
 	   (message "Created new node: %s" node))
 	  (t (org-insert-link nil id node)))))
@@ -424,17 +426,16 @@ If node does not exist, create it."
           (newline))))))
 
 ;;;###autoload
-(defun org-gnosis-journal-find (&optional date)
+(defun org-gnosis-journal-find (&optional title)
   "Find journal entry for DATE."
   (interactive)
-  (let* ((prompt "Select journal entry: ")
-	 (date (or date (org-gnosis--find
-			 prompt
-			 (org-gnosis-select '[date tags] 'journal)
-			 (org-gnosis-select 'date 'journal))))
-	 (id (car (org-gnosis-select 'id 'journal `(= date ,date) t)))
-	 (file (car (org-gnosis-select 'file 'journal `(= date ,date) t))))
-    (org-gnosis-find date file id org-gnosis-journal-dir)))
+  (let* ((title (or title (org-gnosis--find
+			   "Select journal entry: "
+			   (org-gnosis-select '[title tags] 'journal)
+			   (org-gnosis-select 'title 'journal))))
+	 (id (car (org-gnosis-select 'id 'journal `(= title ,title) t)))
+	 (file (car (org-gnosis-select 'file 'journal `(= title ,title) t))))
+    (org-gnosis-find title file id org-gnosis-journal-dir)))
 
 ;;;###autoload
 (defun org-gnosis-journal-insert ()

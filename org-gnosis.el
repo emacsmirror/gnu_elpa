@@ -271,23 +271,44 @@ If JOURNAL is non-nil, update file as a journal entry."
     (cl-loop for link in links
 	     do (org-gnosis--insert-into 'links `[,(cdr link) ,(car link)]))))
 
-(defun org-gnosis-update-file (&optional file)
-  "Update contents of FILE in databse.
-
-Removes all contents of FILE in database, adding them anew."
+(defun org-gnosis--delete-file (&optional file)
+  "Delete contents for FILE in database."
   (let* ((file (or file (file-name-nondirectory (buffer-file-name))))
 	 (journal-p (file-in-directory-p file org-gnosis-journal-dir))
 	 (nodes (if journal-p
 		    (org-gnosis-select 'id 'journal `(= file ,file) t)
 		  (org-gnosis-select 'id 'nodes `(= file ,file) t))))
     (emacsql-with-transaction org-gnosis-db
-      ;; Delete all nodes of file in db
       (cl-loop for node in nodes
 	       do (if journal-p
 		      (org-gnosis--delete 'journal `(= id ,node))
-		    (org-gnosis--delete 'nodes `(= id ,node))))
-      ;; Add new data
-      (org-gnosis--update-file file journal-p))))
+		    (org-gnosis--delete 'nodes `(= id ,node)))))))
+
+(defun org-gnosis-update-file (&optional file)
+  "Update contents of FILE in databse.
+
+Removes all contents of FILE in database, adding them anew."
+  (let* ((file (or file (file-name-nondirectory (buffer-file-name))))
+	 (journal-p (file-in-directory-p file org-gnosis-journal-dir)))
+    ;; Delete all contents for file
+    (org-gnosis--delete-file file)
+    ;; Reinsert them anew
+    (org-gnosis--update-file file journal-p)))
+
+(defun org-gnosis-delete-file (&optional file)
+  "Delete FILE.
+
+Delete file contents in database & file."
+  (interactive)
+  (let ((file (or file (file-name-nondirectory (buffer-file-name)))))
+    (if (or (file-in-directory-p (buffer-file-name) org-gnosis-dir)
+	    (file-in-directory-p (buffer-file-name) org-gnosis-journal-dir))
+	(progn
+	  (when (y-or-n-p (format "Delete file: %s?" file))
+	    (org-gnosis--delete-file file)
+	    (delete-file (buffer-file-name))
+	    (kill-buffer (buffer-name))))
+      (error "%s is not an org-gnosis file" file))))
 
 (defun org-gnosis-find--tag-with-tag-prop (lst)
   "Combine each sublist of strings in LST into a single string."

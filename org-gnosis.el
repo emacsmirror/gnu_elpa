@@ -72,6 +72,11 @@
   :type 'boolean
   :group 'org-gnosis)
 
+(defcustom org-gnosis-timestring "%Y%m%d%H%M%S"
+  "Timestring used for the creation of file."
+  :type 'string
+  :group 'org-gnosis)
+
 (defcustom org-gnosis-completing-read-func #'org-completing-read
   "Function to use for `completing-read'."
   :type 'function
@@ -297,16 +302,22 @@ Removes all contents of FILE in database, adding them anew."
 		title)))
           lst))
 
-(defun org-gnosis--create-file (title &optional file extras)
+(defun org-gnosis--create-name (title &optional timestring)
+  "Create filename for TITLE.
+
+TIMESTRING defaults to `org-gnosis-timestring'"
+  (let ((timestring (or timestring org-gnosis-timestring))
+	(filename (replace-regexp-in-string "#" ""
+					    (replace-regexp-in-string " " "_" title))))
+    (format "%s--%s.org" (format-time-string timestring) filename)))
+
+(defun org-gnosis--create-file (title &optional directory extras)
   "Create a node FILE for TITLE.
+
 Insert initial Org metadata if the buffer is new or empty."
-  (let* ((file-name (replace-regexp-in-string "#" ""
-					      (replace-regexp-in-string " " "_" title)))
-	 (file (or file (expand-file-name
-			 (format "%s--%s.org"
-				 (format-time-string "%Y%m%d%H%M%S")
-				 file-name)
-			 org-gnosis-dir)))
+  (let* ((file (expand-file-name
+		(org-gnosis--create-name title)
+		(or directory org-gnosis-dir)))
 	 (buffer (find-file-noselect file)))
     (with-current-buffer buffer
       (unless (or (file-exists-p file)

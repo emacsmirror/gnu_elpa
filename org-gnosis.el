@@ -249,7 +249,8 @@ If JOURNAL is non-nil, update file as a journal entry."
 	 (data (butlast info))
 	 (table (if journal 'journal 'nodes))
 	 (filename (file-name-nondirectory file))
-	 (links (and (> (length info) 1) (apply #'append (last info)))))
+	 (links (and (> (length info) 1) (apply #'append (last info))))
+	 (titles (org-gnosis-select 'title table '1=1 t)))
     ;; Add gnosis topic
     (message "Parsing: %s" filename)
     (cl-loop for item in data
@@ -259,6 +260,7 @@ If JOURNAL is non-nil, update file as a journal entry."
 		      (master (plist-get item :master))
 		      (tags (plist-get item :tags))
 		      (level (plist-get item :level)))
+		  (when (member title titles) (error "Title for node already exists"))
 		  (org-gnosis--insert-into table `([,id ,filename ,title ,level ,tags]))
 		  (cl-loop for tag in tags
 			   do

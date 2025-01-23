@@ -114,8 +114,8 @@ Optional argument FLATTEN, when non-nil, flattens the result."
 (defun org-gnosis-adjust-title (input &optional node-id)
   "Adjust the INPUT string to replace id link structures with plain text.
 
-Adjust title INPUT for NODE-ID.  If node-id contains an id link, it's
-inserted as link for NODE-ID in the database."
+If node TITLE contains an id link, it's inserted as link for NODE-ID
+in the database."
   (when (stringp input)
     (let* ((id-links '())
 	   (new-input (replace-regexp-in-string
@@ -373,7 +373,7 @@ instead."
     entry))
 
 ;;;###autoload
-(defun org-gnosis-find (&optional title file id directory)
+(defun org-gnosis-find (&optional title file id directory templates)
   "Select gnosis node.
 
 If there is no ID for TITLE, create a new FILE with TITLE as TOPIC in
@@ -387,13 +387,14 @@ DIRECTORY."
 	 (file (or file (caar (org-gnosis-select 'file 'nodes `(= title ,title)))))
 	 (id (or id (caar (or id (org-gnosis-select 'id 'nodes `(= title ,title))))))
 	 (directory (or directory org-gnosis-dir))
-	 (node-template (org-gnosis-select-template org-gnosis-node-templates)))
+	 (templates (or templates org-gnosis-node-templates)))
     (cond ((null file)
-	   (org-gnosis--create-file title (expand-file-name title directory)
-				    node-template))
+	   (org-gnosis--create-file title directory
+				    (org-gnosis-select-template templates)))
 	  ((file-exists-p (expand-file-name file directory))
 	   (org-gnosis-goto-id id))
-	  (t (error "File %s does exist" file)))))
+	  (t (error "File %s does not exist.  Try running `org-gnosis-db-sync' to resolve this"
+		    file)))))
 
 ;;;###autoload
 (defun org-gnosis-find-by-tag (&optional tag)
@@ -409,16 +410,16 @@ DIRECTORY."
 				      `(like tags ',(format "%%\"%s\"%%" tag))))))
     (org-gnosis-find node)))
 
-(defun org-gnosis-select-template (&optional templates)
+(defun org-gnosis-select-template (templates)
   "Select journal template from TEMPLATES.
 
 If templates is only item, return it without a prompt."
-  (let* ((templates (or templates org-gnosis-journal-templates))
-         (template (if (= (length templates) 1)
+  (let* ((template (if (= (length templates) 1)
                        (cdar templates)
-                     (cdr (assoc (funcall org-gnosis-completing-read-func "Select template:"
-                                          (mapcar #'car templates))
-                                 templates)))))
+                     (cdr (assoc
+			   (funcall org-gnosis-completing-read-func "Select template:"
+                                    (mapcar #'car templates))
+                           templates)))))
     (apply #'append template)))
 
 ;;;###autoload

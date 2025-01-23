@@ -423,23 +423,24 @@ If templates is only item, return it without a prompt."
     (apply #'append template)))
 
 ;;;###autoload
-(defun org-gnosis-insert ()
+(defun org-gnosis-insert (&optional journal-p)
   "Insert gnosis node.
 
-If node does not exist, create it."
-  (interactive)
-  (let* ((node (org-gnosis--find "Select gnosis node: "
-				 (org-gnosis-select '[title tags] 'nodes '1=1)
-				 (org-gnosis-select 'title 'nodes '1=1)))
-	 (id (concat "id:" (car (org-gnosis-select 'id 'nodes `(= ,node title) '1=1)))))
-    (cond ((< (length id) 4)
+If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
+  (interactive "P")
+  (let* ((table (if journal-p 'journal 'nodes))
+	 (node (org-gnosis--find "Select gnosis node: "
+				 (org-gnosis-select '[title tags] table '1=1)
+				 (org-gnosis-select 'title table '1=1)))
+	 (id (concat "id:" (car (org-gnosis-select 'id table `(= ,node title) '1=1)))))
+    (cond ((< (length id) 4) ;; if less that 4 then `org-gnosis-select' returned nil, (id:)
 	   (save-window-excursion
-	     (org-gnosis--create-file node)
+	     (org-gnosis--create-file node (if journal-p org-gnosis-journal-dir org-gnosis-dir))
 	     ;; Save buffer to store new node id
 	     (save-buffer)
 	     (setf id (concat
 		       "id:"
-		       (car (org-gnosis-select 'id 'nodes `(= ,node title) '1=1)))))
+		       (car (org-gnosis-select 'id table `(= ,node title) '1=1)))))
 	   (org-insert-link nil id node)
 	   (message "Created new node: %s" node))
 	  (t (org-insert-link nil id node)))))
@@ -462,7 +463,7 @@ If node does not exist, create it."
 
 ;;;###autoload
 (defun org-gnosis-journal-find (&optional title)
-  "Find journal entry for DATE."
+  "Find journal entry for TITLE."
   (interactive)
   (let* ((title (or title (org-gnosis--find
 			   "Select journal entry: "
@@ -470,18 +471,18 @@ If node does not exist, create it."
 			   (org-gnosis-select 'title 'journal))))
 	 (id (car (org-gnosis-select 'id 'journal `(= title ,title) t)))
 	 (file (car (org-gnosis-select 'file 'journal `(= title ,title) t))))
-    (org-gnosis-find title file id org-gnosis-journal-dir)))
+    (if (and id file)
+	(org-gnosis-find
+	 title file id org-gnosis-journal-dir org-gnosis-journal-templates)
+      (org-gnosis--create-file
+       title org-gnosis-journal-dir
+       (org-gnosis-select-template org-gnosis-journal-templates)))))
 
 ;;;###autoload
 (defun org-gnosis-journal-insert ()
   "Insert journal entry."
   (interactive)
-  (let* ((node (org-gnosis--find "Select journal entry: "
-				 (org-gnosis-select '[title tags] 'journal '1=1)
-				 (org-gnosis-select 'title 'journal '1=1)))
-	 (node-id (concat "id:"
-			  (car (org-gnosis-select 'id 'journal `(= ,node title) '1=1)))))
-    (org-insert-link nil node-id node)))
+  (org-gnosis-insert t))
 
 ;;;###autoload
 (defun org-gnosis-journal (&optional template)
@@ -489,13 +490,11 @@ If node does not exist, create it."
 
 TEMPLATE: Journaling template, refer to `org-gnosis-journal-templates'."
   (interactive)
-  (let* ((date (format-time-string "%Y-%m-%d"))
-	 (file (expand-file-name (format "%s.org" date) org-gnosis-journal-dir)))
-    (org-gnosis--create-file date file
-			     (and (not (file-exists-p file))
-				  (or template
-				      (org-gnosis-select-template
-				       org-gnosis-journal-templates))))))
+  (let* ((date (format-time-string "%Y-%m-%d")))
+    (org-gnosis--create-file date org-gnosis-journal-dir
+			     (or template
+				 (org-gnosis-select-template
+				  org-gnosis-journal-templates)))))
 
 (defun org-gnosis--get-id-at-point ()
   "Return the Org ID link at point, if any."

@@ -104,6 +104,10 @@
              word-end)
          'font-lock-keyword-face)
    (cons (rx word-start
+             (eval `(or ,@(mapcar (lambda (mode) mode) a68-std-modes)))
+             word-end)
+         'font-lock-type-face)
+   (cons (rx word-start
              (or "TRUE" "FALSE")
              word-end)
          'font-lock-constant-face)

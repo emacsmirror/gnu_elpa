@@ -73,7 +73,7 @@
 
 (defconst a68-std-modes
   '("SHORT" "LONG" "INT" "REAL" "BITS" "BYTES"
-    "COMPL" "STRING")
+    "COMPL" "STRING" "REF")
   "List of Algol 68 standard modes and shortety.")
 
 (defconst a68-keywords
@@ -93,7 +93,7 @@
     "ELSF" "ORF" "OREL"
     "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"
     "UP" "DOWN"
-    "REF" "NIL" "TRUE" "FALSE"
+    "NIL" "TRUE" "FALSE"
     "MODULE" "DEF" "FED" "POSTLUDE" "ACCESS" "PUB")
   "List of Algol 68 keywords.")
 

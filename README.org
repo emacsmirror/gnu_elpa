@@ -76,6 +76,11 @@ Emacs. This can be done in the following ways:
   message and an option to install the font (NOTE 2024-09-10: this
   only works on Linux).
 
+#+vindex: show-font-display-buffer-action-alist
+Where the buffer which previews the font is displayed is controlled by
+the user option ~show-font-display-buffer-action-alist~. The default
+value is to show the buffer at the bottom of the frame.
+
 #+vindex: show-font-pangram
 The previews include a pangram, which is controlled by the user option
 ~show-font-pangram~. The default value is a playful take on the more

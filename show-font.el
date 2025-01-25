@@ -448,7 +448,7 @@ being strings that are propertized to display FAMILY."
        (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family)))))
    (show-font--get-installed-font-families)))
 
-(define-derived-mode show-font-list-mode tabulated-list-mode "Show fonts"
+(define-derived-mode show-font-tabulated-mode tabulated-list-mode "Show fonts"
   "Major mode to display a Modus themes palette."
   :interactive nil
   (setq-local tabulated-list-format

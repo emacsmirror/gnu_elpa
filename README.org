@@ -59,7 +59,15 @@ Emacs. This can be done in the following ways:
 #+findex: show-font-list
 - The command ~show-font-list~ produces a list with all the fonts
   available on the system. Each font on display is styled with its
-  given character set.
+  given character set. With an optional prefix argument (=C-u= by
+  default), it prompt for a string or regular expression to limit the
+  list of fonts to only the matching ones.
+
+#+findex: show-font-tabulated
+- The command ~show-font-tabulated~ is almost the same as
+  ~show-font-list~ except it uses the built-in Emacs framework of a
+  tabulated view. Concretely, users can sort by column and may prefer
+  the slightly more compact listing.
 
 #+findex: show-font-mode
 - The ~show-font-mode~ is a major mode that gets activated when the
@@ -177,6 +185,7 @@ Everything is in place to set up the package.
 
 (define-key global-map (kbd "C-c s f") #'show-font-select-preview)
 (define-key global-map (kbd "C-c s l") #'show-font-list)
+(define-key global-map (kbd "C-c s t") #'show-font-tabulated)
 #+end_src
 
 * Acknowledgements

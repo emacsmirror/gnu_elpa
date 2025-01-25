@@ -84,6 +84,35 @@ x×X .,·°;:¡!¿?`'‘’   ÄAÃÀ TODO
   :type 'string
   :group 'show-font)
 
+(defcustom show-font-display-buffer-action-alist
+  '((display-buffer-at-bottom)
+    (dedicated . t)
+    (preserve-size . (t . t)))
+  "The `display-buffer' action alist for the preview window.
+This is the same data that is passed to `display-buffer-alist'.
+Read Info node `(elisp) Displaying Buffers'.  As such, it is
+meant for experienced users.
+
+Example of a valid value:
+
+    \\='((display-buffer-in-side-window)
+      (side . bottom)
+      (window-height . 0.2)
+      (preserve-size . (t . t)))
+
+The value may also be a function, which returns a `display-buffer'
+action alist."
+  :group 'show-font
+  :package-version '(show-font . "0.2.0")
+  :type `(choice
+          (alist :key-type
+                 (choice :tag "Condition"
+                         regexp
+                         (function :tag "Matcher function"))
+                 :value-type ,display-buffer--action-custom-type)
+          (function :tag "Custom function to return an action alist"))
+  :risky t)
+
 ;;;; Faces
 
 (defgroup show-font-faces nil
@@ -404,6 +433,41 @@ The preview text is that of `show-font-pangram'."
     (setq-local revert-buffer-function
                 (lambda (_ignore-auto _noconfirm)
                   (show-font-list)))))
+
+
+(defun show-font--list-families ()
+  "Return a list of propertized family strings for `show-font-list'.
+Each element is a list of the form (FAMILY PANGRAM) with both elements
+being strings that are propertized to display FAMILY."
+  (mapcar
+   (lambda (family)
+     (list
+      family
+      (vector
+       (propertize family 'face (list 'show-font-title-small :family family))
+       (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family)))))
+   (show-font--get-installed-font-families)))
+
+(define-derived-mode show-font-list-mode tabulated-list-mode "Show fonts"
+  "Major mode to display a Modus themes palette."
+  :interactive nil
+  (setq-local tabulated-list-format
+              [("Font family" 60 t)
+               ("Sample text" 0 t)])
+  (setq-local tabulated-list-entries (show-font--list-families))
+  (tabulated-list-init-header)
+  (tabulated-list-print))
+
+;;;###autoload
+(defun show-font-tabulated ()
+  "Produce a list of installed fonts with their preview.
+The preview text is that of `show-font-pangram'."
+  (declare (interactive-only t))
+  (interactive)
+  (let ((buffer (get-buffer-create "*show-font-list*")))
+    (with-current-buffer buffer
+      (show-font-list-mode))
+    (display-buffer buffer show-font-display-buffer-action-alist)))
 
 ;;;; Major mode to preview the font of the current TTF or OTF file
 

@@ -222,34 +222,12 @@ FAMILY is a string like those of `show-font--get-installed-font-families'."
   "Return non-nil if FILE is among `show-font--get-installed-font-files'."
   (member file (show-font--get-installed-font-files)))
 
-;; TODO 2024-09-06: Maybe we can rewrite `show-font--get-pangram' in some smart way to do this:
-;;
-;; `(cond
-;;   ((stringp show-font-pangram)
-;;    show-font-pangram)
-;;   ,@(mapcar
-;;      (lambda (element)
-;;        (list `(eq show-font-pangram ',(car element)) (cdr element)))
-;;      show-font-pangrams)
-;;   (t
-;;    "No string or acceptable symbol value for `show-font-pangram', but this will do...")))
-;;
-;; Can it be done without all the magic of `pcase' and friends?
 (defun show-font--get-pangram ()
   "Return `show-font-pangram' or fallback string."
   (cond
-   ((stringp show-font-pangram)
-    show-font-pangram)
-   ((eq show-font-pangram 'fox)
-    "The quick brown fox jumps over the lazy dog")
-   ((eq show-font-pangram 'wizards)
-    "Grumpy wizards make toxic brew for the evil queen and jack")
-   ((eq show-font-pangram 'gunboats)
-    "A quick movement of the enemy will jeopardize six gunboats")
-   ((eq show-font-pangram 'prot)
-    "Prot may find zesty owls join quiet vixens as the night beckons")
-   (t
-    "No string or acceptable symbol value for `show-font-pangram', but this will do...")))
+   ((stringp show-font-pangram) show-font-pangram)
+   ((alist-get show-font-pangram show-font-pangrams))
+   (t "No string or acceptable symbol value for `show-font-pangram', but this will do...")))
 
 (defun show-font--install-get-destination ()
   "Return directory where fonts can be copied locally."

@@ -222,23 +222,25 @@ matched against the output of the `fc-scan' executable."
         (car (split-string output ","))
       output)))
 
-(defun show-font--get-installed-font-families (&optional full)
+(defun show-font-get-installed-font-families (&optional regexp)
   "Return list of installed font families names.
-With optional FULL, return the full XLFD representation instead."
-  (sort
-   (delete-dups
-    (mapcar
-     (lambda (font)
-       (if full
-           (aref font 6)
-         (format "%s" (aref font 0))))
-     (x-family-fonts)))
-   #'string-lessp))
+With optional REGEXP filter the list to only include fonts whose name
+matches the given regular expression."
+  (let ((fonts (delete-dups
+                (mapcar
+                 (lambda (font)
+                   (format "%s" (aref font 0)))
+                 (x-family-fonts)))))
+    (when regexp
+      (setq fonts (seq-filter (lambda (family) (string-match-p regexp family)) fonts)))
+    (sort fonts #'string-lessp)))
 
-(defun show-font-installed-p (family)
+(defun show-font-installed-p (family &optional regexp)
   "Return non-nil if font family FAMILY is installed on the system.
-FAMILY is a string like those of `show-font--get-installed-font-families'."
-  (member family (show-font--get-installed-font-families)))
+FAMILY is a string like those of `show-font-get-installed-font-families'.
+With optional REGEXP filter the list to only include fonts whose name
+matches the given regular expression."
+  (member family (show-font-get-installed-font-families regexp)))
 
 (defun show-font--get-installed-font-files ()
   "Get list of font files available on the system."
@@ -382,12 +384,13 @@ buffer."
 (defvar show-font-select-preview-history nil
   "Minibuffer history for `show-font-select-preview'.")
 
-(defun show-font--select-preview-prompt ()
-  "Prompt for a font among `show-font--get-installed-font-families'."
+(defun show-font--select-preview-prompt (&optional regexp)
+  "Prompt for a font among `show-font-get-installed-font-families'.
+Optional REGEXP has the same meaning as in the aforementioned function."
   (let ((def (car show-font-select-preview-history)))
     (completing-read
      (format-prompt "Select font to preview" def)
-     (show-font--get-installed-font-families))))
+     (show-font-get-installed-font-families regexp))))
 
 ;;;###autoload
 (defun show-font-select-preview (family)
@@ -408,20 +411,36 @@ FAMILY is a string that satisfies `show-font-installed-p'."
 
 ;;;; Preview fonts in a list
 
+(defvar show-font-regexp-history nil
+  "Minibuffer history for `show-font-regexp-prompt'.")
+
+(defun show-font-regexp-prompt ()
+  "Prompt for a string or regular expression."
+  (let ((default (car show-font-regexp-history)))
+    (read-string
+     (format-prompt "Fonts matching REGEXP" default)
+     nil 'show-font-regexp-history default)))
+
 ;;;###autoload
-(defun show-font-list ()
-  "Produce a list of installed fonts with their preview.
-The preview text is that of `show-font-pangram'."
-  (declare (interactive-only t))
-  (interactive)
+(defun show-font-list (&optional regexp)
+  "Produce a list of installed fonts with `show-font-pangram' preview text.
+With optional REGEXP as a prefix argument, prompt for a string or
+regular expression to list only fonts matching the given input.
+Otherwise, list all installed fonts."
+  (interactive
+   (list
+    (when current-prefix-arg
+      (show-font-regexp-prompt))))
   ;; FIXME 2024-09-06: Here we should only list fonts that can display
   ;; the pangram OR, better, we should have something appropriate to
   ;; show for them (e.g. emoji for the Emoji font).
-  (show-font-with-preview-buffer "*show-font preview of all installed fonts*"
+  (show-font-with-preview-buffer (if regexp
+                                     (format-message "*show-font preview matching `%s'*" regexp)
+                                   "*show-font preview of all installed fonts*")
     (save-excursion
       (let* ((counter 1)
              (counter-string (lambda () (concat (number-to-string counter)  ". "))))
-        (dolist (family (show-font--get-installed-font-families))
+        (dolist (family (show-font-get-installed-font-families regexp))
           (insert (concat
                    (propertize (funcall counter-string) 'face 'show-font-misc)
                    (propertize family 'face (list 'show-font-title-small :family family))
@@ -434,11 +453,10 @@ The preview text is that of `show-font-pangram'."
                 (lambda (_ignore-auto _noconfirm)
                   (show-font-list)))))
 
-
-(defun show-font--list-families ()
+(defun show-font--list-families (&optional regexp)
   "Return a list of propertized family strings for `show-font-list'.
-Each element is a list of the form (FAMILY PANGRAM) with both elements
-being strings that are propertized to display FAMILY."
+Optional REGEXP has the meaning documented in the function
+`show-font-get-installed-font-families'."
   (mapcar
    (lambda (family)
      (list
@@ -446,7 +464,11 @@ being strings that are propertized to display FAMILY."
       (vector
        (propertize family 'face (list 'show-font-title-small :family family))
        (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family)))))
-   (show-font--get-installed-font-families)))
+   (show-font-get-installed-font-families regexp)))
+
+(defvar show-font-tabulated-current-regexp nil
+  "Regexp for `show-font-get-installed-font-families'.
+Only `let' bind this while calling `show-font-tabulated-mode'.")
 
 (define-derived-mode show-font-tabulated-mode tabulated-list-mode "Show fonts"
   "Major mode to display a Modus themes palette."
@@ -454,19 +476,25 @@ being strings that are propertized to display FAMILY."
   (setq-local tabulated-list-format
               [("Font family" 60 t)
                ("Sample text" 0 t)])
-  (setq-local tabulated-list-entries (show-font--list-families))
+  (setq-local tabulated-list-entries
+              (show-font--list-families show-font-tabulated-current-regexp))
   (tabulated-list-init-header)
   (tabulated-list-print))
 
 ;;;###autoload
-(defun show-font-tabulated ()
-  "Produce a list of installed fonts with their preview.
-The preview text is that of `show-font-pangram'."
-  (declare (interactive-only t))
-  (interactive)
+(defun show-font-tabulated (&optional regexp)
+  "Produce a tabulated view of installed fonts with `show-font-pangram' preview.
+With optional REGEXP as a prefix argument, prompt for a string or
+regular expression to list only fonts matching the given input.
+Otherwise, list all installed fonts."
+  (interactive
+   (list
+    (when current-prefix-arg
+      (show-font-regexp-prompt))))
   (let ((buffer (get-buffer-create "*show-font-list*")))
     (with-current-buffer buffer
-      (show-font-list-mode))
+      (let ((show-font-tabulated-current-regexp regexp))
+        (show-font-tabulated-mode)))
     (display-buffer buffer show-font-display-buffer-action-alist)))
 
 ;;;; Major mode to preview the font of the current TTF or OTF file

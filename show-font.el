@@ -88,7 +88,7 @@ x×X .,·°;:¡!¿?`'‘’   ÄAÃÀ TODO
   '((display-buffer-at-bottom)
     (dedicated . t)
     (preserve-size . (t . t)))
-  "The `display-buffer' action alist for the preview window.
+  "The `display-buffer' action alist for displaying a font list.
 This is the same data that is passed to `display-buffer-alist'.
 Read Info node `(elisp) Displaying Buffers'.  As such, it is
 meant for experienced users.
@@ -377,7 +377,7 @@ buffer."
          (erase-buffer)
          ,@body)
        (show-font-mode))
-     (display-buffer buffer)))
+     (display-buffer buffer show-font-display-buffer-action-alist)))
 
 ;;;; Preview an installed font
 

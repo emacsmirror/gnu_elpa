@@ -390,7 +390,7 @@ The preview text is that of `show-font-pangram'."
   ;; show for them (e.g. emoji for the Emoji font).
   (show-font-with-preview-buffer "*show-font preview of all installed fonts*"
     (save-excursion
-      (let* ((counter 0)
+      (let* ((counter 1)
              (counter-string (lambda () (concat (number-to-string counter)  ". "))))
         (dolist (family (show-font--get-installed-font-families))
           (insert (concat

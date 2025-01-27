@@ -51,6 +51,12 @@
          (not (= (point-min) (point-max)))
          (progn (goto-char (point-min)) (looking-at "A ")))))
 
+(defun vc-jj--file-conflicted (file)
+  (with-temp-buffer
+    (and (= 0 (call-process "jj" nil t nil "resolve" "--list" "--" file))
+         (not (= (point-min) (point-max)))
+         (progn (goto-char (point-min)) (looking-at file)))))
+
 ;;;###autoload (defun vc-jj-registered (file)
 ;;;###autoload   "Return non-nil if FILE is registered with jj."
 ;;;###autoload   (if (and (vc-find-root file ".jj")   ; Short cut.
@@ -74,6 +80,8 @@
     (let ((relative (file-relative-name file root))
           (default-directory root))
       (cond
+       ((vc-jj--file-conflicted relative)
+        'conflict)
        ((vc-jj--file-modified relative)
         'edited)
        ((vc-jj--file-added relative)
@@ -83,18 +91,27 @@
        (t nil)))))
 
 (defun vc-jj-dir-status-files (dir _files update-function)
-  "Return a list of (FILE STATE EXTRA) entries for DIR."
-  ;; TODO: should be async!
+  "Calculate a list of (FILE STATE EXTRA) entries for DIR.
+The list is passed to UPDATE-FUNCTION."
+  ;; TODO: could be async!
   (let* ((dir (expand-file-name dir))
          (files (process-lines "jj" "file" "list" "--" dir))
-         (modified (process-lines "jj" "diff" "--name-only" "--" dir)))
+         (modified (process-lines "jj" "diff" "--name-only" "--" dir))
+         ;; The output of `jj resolve --list' is a list of file names
+         ;; plus a conflict description -- rather than trying to be
+         ;; fancy and parsing each line (and getting bugs with file
+         ;; names with spaces), use `string-prefix-p' later.  Also,
+         ;; the command errors when there are no conflicts.
+         (conflicted (ignore-errors (process-lines "jj" "resolve" "--list"))))
     (let ((result
-           (mapcar (lambda (file)
-                     (let ((vc-state (if (member file modified)
-                                         'edited
-                                       'up-to-date)))
-                       (list file vc-state)))
-                   files)))
+           (mapcar
+            (lambda (file)
+              (let ((vc-state
+                     (cond ((seq-find (lambda (e) (string-prefix-p file e)) conflicted) 'conflict)
+                           ((member file modified) 'edited)
+                           (t 'up-to-date))))
+                (list file vc-state)))
+            files)))
       (funcall update-function result nil))))
 
 (defun vc-jj-dir-extra-headers (dir)

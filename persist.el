@@ -5,7 +5,7 @@
 ;; Author: Phillip Lord <phillip.lord@russet.org.uk>
 ;; Maintainer: Joseph Turner <persist-el@breatheoutbreathe.in>
 ;; Package-Type: multi
-;; Package-Requires: ((emacs "26.1"))
+;; Package-Requires: ((emacs "26.1") (compat "30.0.2.0"))
 ;; Version: 0.6.1
 
 ;; The contents of this file are subject to the GPL License, Version 3.0.
@@ -42,6 +42,8 @@
 ;; variables.
 
 ;;; Code:
+
+(require 'compat)
 
 (defvar persist--directory-location
   (locate-user-emacs-file "persist")
@@ -211,39 +213,11 @@ tables.  In that case, the following are compared:
              t))
     (equal a b)))
 
-(defun persist-copy-tree (tree &optional vectors-and-records)
-  "Make a copy of TREE.
-If TREE is a cons cell, this recursively copies both its car and its cdr.
-Contrast to `copy-sequence', which copies only along the cdrs.
-With the second argument VECTORS-AND-RECORDS non-nil, this
-traverses and copies vectors and records as well as conses."
-  (declare (side-effect-free error-free))
-  (if (consp tree)
-      (let (result)
-	(while (consp tree)
-	  (let ((newcar (car tree)))
-	    (if (or (consp (car tree))
-                    (and vectors-and-records
-                         (or (vectorp (car tree)) (recordp (car tree)))))
-		(setq newcar (persist-copy-tree (car tree) vectors-and-records)))
-	    (push newcar result))
-	  (setq tree (cdr tree)))
-	(nconc (nreverse result)
-               (if (and vectors-and-records (or (vectorp tree) (recordp tree)))
-                   (persist-copy-tree tree vectors-and-records)
-                 tree)))
-    (if (and vectors-and-records (or (vectorp tree) (recordp tree)))
-	(let ((i (length (setq tree (copy-sequence tree)))))
-	  (while (>= (setq i (1- i)) 0)
-	    (aset tree i (persist-copy-tree (aref tree i) vectors-and-records)))
-	  tree)
-      tree)))
-
 (defun persist-copy (obj)
   "Return copy of OBJ."
   (if (hash-table-p obj)
       (copy-hash-table obj)
-    (persist-copy-tree obj t)))
+    (compat-call copy-tree obj t)))
 
 (provide 'persist)
 ;;; persist.el ends here

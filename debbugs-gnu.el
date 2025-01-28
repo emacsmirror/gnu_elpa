@@ -1926,7 +1926,7 @@ MERGED is the list of bugs merged with this one."
       (? "v" (1+ digit) space)          ;optional reroll count
       (1+ digit) "/" (1+ digit) "]")    ;patch number
   "Regular expression which keeps the original message subject in replies."
-  :version "29.1"
+  :version "30.1"
   :type 'regexp)
 
 (defcustom debbugs-gnu-summary-keep-posting-styles nil

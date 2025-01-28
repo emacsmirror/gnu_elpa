@@ -1915,7 +1915,16 @@ MERGED is the list of bugs merged with this one."
     (debbugs-gnu-summary-mode 1)))
 
 (defcustom debbugs-gnu-summary-keep-subject
-  (rx "[PATCH" (? (0+ (not (any digit "/]"))) (1+ digit) "/" (1+ digit)) "]")
+  ;; This intends to match the message subject as prepared by 'git
+  ;; format-patch', including optional use of
+  ;; --subject-prefix='leading-prefix PATCH' or
+  ;; --subject-prefix='PATCH trailing-prefix' as well as
+  ;; --reroll-count=n.
+  (rx "[" (? (1+ (not space)) space)    ;leading prefix?
+      "PATCH "
+      (? (1+ (not space)) space)        ;trailing prefix?
+      (? "v" (1+ digit) space)          ;optional reroll count
+      (1+ digit) "/" (1+ digit) "]")    ;patch number
   "Regular expression which keeps the original message subject in replies."
   :version "29.1"
   :type 'regexp)

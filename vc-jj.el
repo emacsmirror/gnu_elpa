@@ -32,6 +32,8 @@
 
 (autoload 'vc-switches "vc")
 (autoload 'ansi-color-apply-on-region "ansi-color")
+(autoload 'iso8601-parse "iso8601")
+(autoload 'decoded-time-set-defaults "time-date")
 
 (add-to-list 'vc-handled-backends 'JJ)
 
@@ -345,6 +347,43 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
     (if (seq-some #'vc-jj--file-modified files)
         1
       0)))
+
+(defun vc-jj-annotate-command (file buf &optional rev)
+  (with-current-buffer buf
+    (let ((rev (or rev "@")))
+      (call-process "jj" nil t nil "file" "annotate" "-r" rev file))))
+
+(defconst vc-jj--annotation-line-prefix-re
+  (rx (: bol
+         (group (+ (any "a-z")))        ; change id
+         " "
+         (group (+ (any alnum)))        ; author
+         (+ " ")
+         (group                         ; iso 8601-ish datetime
+          (= 4 digit) "-" (= 2 digit) "-" (= 2 digit) " "
+          (= 2 digit) ":" (= 2 digit) ":" (= 2 digit))
+         (+ " ")
+         (group (+ (any "0-9")))        ; line number
+         ": "))
+  ;; TODO: find out if the output changes when the file got renamed
+  ;; somewhere in its history
+  "Regexp for the per-line prefix of the output of 'jj file annotate'.
+The regex captures four groups: change id, author, datetime, line number.")
+
+(defun vc-jj-annotate-time ()
+  (and (re-search-forward vc-jj--annotation-line-prefix-re nil t)
+       (let* ((dt (match-string 3))
+              (dt (and dt (string-replace " " "T" dt)))
+              (decoded (ignore-errors (iso8601-parse dt))))
+         (and decoded
+              (vc-annotate-convert-time
+               (encode-time (decoded-time-set-defaults decoded)))))))
+
+(defun vc-jj-annotate-extract-revision-at-line ()
+  (save-excursion
+    (beginning-of-line)
+    (when (looking-at vc-jj--annotation-line-prefix-re)
+      (match-string-no-properties 1))))
 
 (defun vc-jj-revision-completion-table (files)
   (let ((revisions

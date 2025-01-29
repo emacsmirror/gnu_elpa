@@ -96,7 +96,13 @@ The list is passed to UPDATE-FUNCTION."
   ;; TODO: could be async!
   (let* ((dir (expand-file-name dir))
          (files (process-lines "jj" "file" "list" "--" dir))
-         (modified (process-lines "jj" "diff" "--name-only" "--" dir))
+         (changed-files (process-lines "jj" "diff" "--summary" "--" dir))
+         (added (mapcar (lambda (entry) (substring entry 2))
+                        (seq-filter (lambda (file) (string-prefix-p "A " file))
+                                    changed-files)))
+         (modified (mapcar (lambda (entry) (substring entry 2))
+                        (seq-filter (lambda (file) (string-prefix-p "M " file))
+                                    changed-files)))
          ;; The output of `jj resolve --list' is a list of file names
          ;; plus a conflict description -- rather than trying to be
          ;; fancy and parsing each line (and getting bugs with file
@@ -108,6 +114,7 @@ The list is passed to UPDATE-FUNCTION."
             (lambda (file)
               (let ((vc-state
                      (cond ((seq-find (lambda (e) (string-prefix-p file e)) conflicted) 'conflict)
+                           ((member file added) 'added)
                            ((member file modified) 'edited)
                            (t 'up-to-date))))
                 (list file vc-state)))

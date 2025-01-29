@@ -191,7 +191,7 @@ self.hidden(), \"\\n\"
 (defun vc-jj-checkin (files comment &optional _rev)
   (setq comment (replace-regexp-in-string "\\`Summary: " "" comment))
   (let ((args (append (vc-switches 'jj 'checkin) (list "--") files)))
-    (apply #'call-process "jj" nil nil nil "commit" "-m" comment "--" args)))
+    (apply #'call-process "jj" nil nil nil "commit" "-m" comment args)))
 
 (defun vc-jj-find-revision (file rev buffer)
   (call-process "jj" nil buffer nil "file" "show" "-r" rev "--" file))

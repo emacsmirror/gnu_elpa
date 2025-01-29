@@ -48,18 +48,18 @@
   :group 'org-gnosis)
 
 (defcustom org-gnosis-journal-templates
-  '(("Default" "* Daily Notes\n\n* Goals\n+ []")
-    ("Empty" ""))
-  "Template for journaling."
+  '(("Default" (lambda () (format "* Daily Notes\n\n* Goals\n%s" (org-gnosis-todos))))
+    ("Empty" (lambda () "")))
+  "Templates for journaling."
   :type '(repeat (cons (string :tag "Name")
-                       (string :tag "Template")))
+                       (function :tag "Template Function")))
   :group 'org-gnosis)
 
 (defcustom org-gnosis-node-templates
-  '(("Default" ""))
-  "Template for nodes."
+  '(("Default" (lambda () "")))
+  "Templates for nodes."
   :type '(repeat (cons (string :tag "Name")
-                       (string :tag "Template")))
+                       (function :tag "Template Function")))
   :group 'org-gnosis)
 
 (defcustom org-gnosis-journal-dir (expand-file-name "journal" org-gnosis-dir)

@@ -77,9 +77,19 @@
   :type 'string
   :group 'org-gnosis)
 
+(defcustom org-gnosis-todo-files org-agenda-files
+  "TODO files used for the journal entries."
+  :type '(repeat string)
+  :group 'org-gnosis)
+
 (defcustom org-gnosis-completing-read-func #'org-completing-read
   "Function to use for `completing-read'."
   :type 'function
+  :group 'org-gnosis)
+
+(defcustom org-gnosis-bullet-point-char "+"
+  "String to indicate a bullet point."
+  :type 'string
   :group 'org-gnosis)
 
 (defface org-gnosis-face-tags

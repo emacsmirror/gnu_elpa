@@ -445,6 +445,13 @@ installing it of course) can improve the speed.
 
 * Acknowledgements
 
+~denote-search~, just like Denote itself, is meant to be a collective
+effort.  Every bit of help matters.
+
++ Author/maintainer :: Lucas Quintana.
+
++ Contributions to code :: Grant Rettke.
+
 If ~denote-search~ exists it's because Protesilaos Stavrou developed
 the incredible Denote package.  Please consider donating to him.[fn:2]
 

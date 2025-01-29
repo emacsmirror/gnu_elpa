@@ -303,7 +303,12 @@ Removes all contents of FILE in database, adding them anew."
     ;; Delete all contents for file
     (org-gnosis--delete-file file)
     ;; Reinsert them anew
-    (org-gnosis--update-file file journal-p)))
+    (org-gnosis--update-file file journal-p)
+    ;; Update todos
+    (when (and journal-p file)
+      (let ((done-todos (org-gnosis-get-checked-items (org-element-parse-buffer))))
+        (cl-loop for done-todo in done-todos
+		 do (org-gnosis-mark-todo-as-done done-todo file))))))
 
 (defun org-gnosis-delete-file (&optional file)
   "Delete FILE.
@@ -430,7 +435,7 @@ If templates is only item, return it without a prompt."
 			   (funcall org-gnosis-completing-read-func "Select template:"
                                     (mapcar #'car templates))
                            templates)))))
-    (apply #'append template)))
+    (funcall (apply #'append template))))
 
 ;;;###autoload
 (defun org-gnosis-insert (&optional journal-p)
@@ -443,9 +448,10 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
 				 (org-gnosis-select '[title tags] table '1=1)
 				 (org-gnosis-select 'title table '1=1)))
 	 (id (concat "id:" (car (org-gnosis-select 'id table `(= ,node title) '1=1)))))
-    (cond ((< (length id) 4) ;; if less that 4 then `org-gnosis-select' returned nil, (id:)
+    (cond ((< (length id) 4) ; if less that 4 then `org-gnosis-select' returned nil, (id:)
 	   (save-window-excursion
-	     (org-gnosis--create-file node (if journal-p org-gnosis-journal-dir org-gnosis-dir))
+	     (org-gnosis--create-file
+	      node (if journal-p org-gnosis-journal-dir org-gnosis-dir))
 	     ;; Save buffer to store new node id
 	     (save-buffer)
 	     (setf id (concat
@@ -495,16 +501,11 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
   (org-gnosis-insert t))
 
 ;;;###autoload
-(defun org-gnosis-journal (&optional template)
-  "Start journaling for current date.
-
-TEMPLATE: Journaling template, refer to `org-gnosis-journal-templates'."
+(defun org-gnosis-journal ()
+  "Journal for current date."
   (interactive)
   (let* ((date (format-time-string "%Y-%m-%d")))
-    (org-gnosis--create-file date org-gnosis-journal-dir
-			     (or template
-				 (org-gnosis-select-template
-				  org-gnosis-journal-templates)))))
+    (org-gnosis-journal-find date)))
 
 (defun org-gnosis--get-id-at-point ()
   "Return the Org ID link at point, if any."
@@ -591,8 +592,9 @@ If file or id are not found, use `org-open-at-point'."
 (defun org-gnosis-db-sync--journal ()
   "Sync journal entries in databse."
   (cl-loop for file in (cl-remove-if-not (lambda (file)
-					   (and (string-match-p "^[0-9]"
-								(file-name-nondirectory file))
+					   (and
+					    (string-match-p "^[0-9]"
+							    (file-name-nondirectory file))
 						(not (file-directory-p file))))
 					 (directory-files org-gnosis-journal-dir t nil t))
 	   do (org-gnosis-update-file file)))
@@ -605,7 +607,8 @@ If called with ARG do not initialize the database."
   (interactive)
   (org-gnosis-db-init)
   (let ((files (cl-remove-if-not (lambda (file)
-				   (and (string-match-p "^[0-9]" (file-name-nondirectory file))
+				   (and (string-match-p "^[0-9]"
+							(file-name-nondirectory file))
 					(not (file-directory-p file))))
 				 (directory-files org-gnosis-dir t nil t))))
     (cl-loop for file in files
@@ -623,6 +626,115 @@ If called with ARG do not initialize the database."
       (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
 	(emacsql org-gnosis-db [:create-table $i1 $S2] table schema))
       (emacsql org-gnosis-db [:pragma (= user-version org-gnosis-db-version)]))))
+;; should we use `org-get'
+(defun org-gnosis-get--todos (file)
+  "Get TODO items for FILE."
+  (let ((todos))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (org-mode)
+      (org-element-map (org-element-parse-buffer) 'headline
+        (lambda (headline)
+          (when (string= (org-element-property :todo-keyword headline) "TODO")
+            (let* ((title (org-element-property :raw-value headline))
+                   (timestamp (org-element-property :raw-value
+                           (org-element-property :scheduled headline))))
+              (push `(,title ,timestamp ,file) todos))))))
+    (nreverse todos)))
+
+(defun org-gnosis-find-file-with-heading (title files)
+  "Find first org file in FILES containing heading TITLE."
+  (catch 'found
+    (dolist (file files)
+      (with-temp-buffer
+        (insert-file-contents file)
+        (org-mode)
+        (goto-char (point-min))
+        (when (org-find-exact-headline-in-buffer title)
+          (throw 'found file))))))
+
+(defun org-gnosis-get-todos (&optional files)
+  "Get TODO items for FILES.
+
+If TITLE is non-nil, return the file that has a TODO TITLE."
+  (let ((files (or files org-gnosis-todo-files))
+	todos)
+    (cl-loop for file in files
+	     do (push (org-gnosis-get--todos file) todos))
+    (nreverse (apply #'append todos))))
+
+(defun org-gnosis-todos ()
+  "Output todos as checkboxes in a string for current date."
+  (let ((todos (org-gnosis-get-todos))
+	(current-date (format-time-string "%Y-%m-%d"))
+	todos-string)
+    (cl-loop for todo in todos
+	     do
+	     (let ((todo-title (car todo))
+		   (todo-timestamp (cadr todo)))
+	       (when (or
+		      (null todo-timestamp)
+		      (string-match-p (regexp-quote current-date) todo-timestamp))
+		 (setq todos-string
+		       (concat todos-string
+			       (format "%s [ ] %s\n" org-gnosis-bullet-point-char
+				       todo-title))))))
+    (or todos-string "")))
+
+(defun org-gnosis-get-checked-items (element)
+  "Get checked items for org ELEMENT.
+
+ELEMENT should be the output of `org-element-parse-buffer'."
+  (let ((checked-items nil))
+    (org-element-map element 'item
+      (lambda (item)
+        (when (eq (org-element-property :checkbox item) 'on)
+          (push (substring-no-properties
+                 (string-trim
+                  (org-element-interpret-data
+                   (org-element-contents item))))
+                checked-items))))
+    (nreverse checked-items)))
+
+;; TODO: Break this into smaller functions
+(defun org-gnosis-mark-todo-as-done (todo-title entry)
+  "Mark the TODO Heading with TODO-TITLE as DONE.
+ENTRY: Journal entry linked under the heading."
+  (let* ((file (org-gnosis-find-file-with-heading todo-title org-gnosis-todo-files))
+         (today (org-time-string-to-absolute (format-time-string "%Y-%m-%d"))))
+    (when file
+      (save-current-buffer
+        (with-current-buffer (find-file-noselect file)
+          (let ((found nil))
+            (save-excursion
+              (org-element-map (org-element-parse-buffer) 'headline
+                (lambda (headline)
+                  (let ((scheduled (org-element-property :scheduled headline)))
+                    (when (and (not found)
+                             (string= (org-element-property :raw-value headline)
+                                    todo-title)
+                             (string= (org-element-property :todo-keyword headline)
+                                    "TODO")
+                             (or (null scheduled)
+                                 (= (org-time-string-to-absolute
+                                     (org-element-property :raw-value scheduled))
+                                    today)))
+                      (org-with-point-at
+                          (save-excursion
+                            (goto-char (point-min))
+                            (let ((case-fold-search t))
+                              (re-search-forward (concat "^\\*+ .*"
+                                                       (regexp-quote todo-title)))))
+                        (org-todo 'done)
+                        (org-end-of-subtree)
+                        (insert "\n " org-gnosis-bullet-point-char " ")
+                        (org-insert-link
+                         nil
+                         (format "file:%s"
+				 (expand-file-name entry org-gnosis-journal-dir))
+                         "Journal File"))
+                      (setq found t)))))))
+          (save-buffer))))))
 
 (provide 'org-gnosis)
 ;;; org-gnosis.el ends here

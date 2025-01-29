@@ -238,7 +238,8 @@ The results are populated in a buffer whose major mode is
          (xref--analyze
           (xref-matches-in-files
            query
-           (or set (denote-directory-files nil nil :text-only))))))
+           (or set (denote-directory-files nil nil :text-only)
+               (user-error "Sorry, the directory `%s' doesn't have any text files to search." denote-directory))))))
     (or xref-alist (user-error "No matches for `%s'" query))
     ;; Set internal variables for last set of files and last query
     (setq denote-search--last-files nil)

@@ -7159,5 +7159,11 @@ If VEC is `tramp-null-hop', return local null device."
 ;;
 ;; * Implement user and host name completion for multi-hops.  Some
 ;;   methods in tramp-container.el have it already.
+;;
+;; * Make it configurable, which environment variables are set in
+;;   direct async processes.
+;;
+;; * Pass working dir for direct async processes, for example for
+;;   container methods.
 
 ;;; tramp.el ends here

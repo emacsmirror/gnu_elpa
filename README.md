@@ -1,7 +1,7 @@
 Autocrypt for Emacs
 ===================
 
-[Autocrypt][autocrypt] is cryptography protocol, for distributing and
+[Autocrypt] is cryptography protocol, for distributing and
 automatically encrypting emails.  This package generically implements
 the protocol, for various Emacs MUAs (Mail User Agent).
 
@@ -23,6 +23,9 @@ I will attempt to on these issues in time, but any contributions, both
 in terms of extending the support of the protocol, but also MUA
 integration is welcomed.
 
+[Autocrypt]:
+	https://autocrypt.org/
+
 How to use
 ----------
 
@@ -42,7 +45,8 @@ command.  In case you want to manually configure your setup, customise
 the `autocrypt-accounts` option.  Note that configuring a key is
 necessary for `autocrypt.el` to function properly.
 
-Bug reports and patches should be sent to my [public inbox].
+[GNU ELPA]:
+	https://elpa.gnu.org/packages/autocrypt.html
 
 Extending `autocrypt.el`
 ------------------------
@@ -70,19 +74,11 @@ and call the first one it finds.  All a backend has to do is to define
 these functions and ensure that they are visible (e.g. by autoloading
 when necessary).
 
-Copying
--------
 Source code
 -----------
 
-`autocrypt.el` is distributed under the [CC0 1.0 Universal (CC0 1.0)
-Public Domain Dedication][cc0] license.
 Do-at-point.el is developed on [Codeberg].
 
-[autocrypt]: https://autocrypt.org/
-[public inbox]: https://lists.sr.ht/~pkal/public-inbox
-[GNU ELPA]: https://elpa.gnu.org/packages/autocrypt.html
-[cc0]: https://creativecommons.org/publicdomain/zero/1.0/deed
 [Codeberg]:
 	https://codeberg.org/pkal/do-at-point.el
 
@@ -97,3 +93,12 @@ issue system] or by sending [me] an email.
 [me]:
 	https://amodernist.com/#email
 
+Distribution
+---------
+
+Autocrypt.el and all other source files in this directory are
+distributed under the [GNU Public License], Version 3 (like Emacs
+itself).
+
+[GNU Public License]:
+	https://www.gnu.org/licenses/gpl-3.0.en.html

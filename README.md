@@ -72,11 +72,28 @@ when necessary).
 
 Copying
 -------
+Source code
+-----------
 
 `autocrypt.el` is distributed under the [CC0 1.0 Universal (CC0 1.0)
 Public Domain Dedication][cc0] license.
+Do-at-point.el is developed on [Codeberg].
 
 [autocrypt]: https://autocrypt.org/
 [public inbox]: https://lists.sr.ht/~pkal/public-inbox
 [GNU ELPA]: https://elpa.gnu.org/packages/autocrypt.html
 [cc0]: https://creativecommons.org/publicdomain/zero/1.0/deed
+[Codeberg]:
+	https://codeberg.org/pkal/do-at-point.el
+
+Bugs and Patches
+----------------
+
+Bugs, patches, comments or questions can be submitted via [Codeberg's
+issue system] or by sending [me] an email.
+
+[public inbox]:
+	https://lists.sr.ht/~pkal/public-inbox
+[me]:
+	https://amodernist.com/#email
+

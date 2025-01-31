@@ -2208,7 +2208,7 @@ In this mode, keys do not self insert (see `gnugo-board-mode-map')."
                                (overlay-put ov 'display ")")
                                ov)))
   (gnugo-put :mul '(1 . 1))
-  (gnugo-put :obarray (make-vector 31 nil))
+  (gnugo-put :obarray (if (fboundp 'obarray-make) (obarray-make 31) (make-vector 31 nil)))
   (add-to-invisibility-spec :nogrid))
 
 ;;;---------------------------------------------------------------------------

@@ -51,19 +51,21 @@ code contributions.
 Source code
 -----------
 
-Do-at-point.el is developed on [SourceHut].
+Do-at-point.el is developed on [Codeberg].
 
-[SourceHut]:
-	https://git.sr.ht/~pkal/do-at-point
+[Codeberg]:
+	https://codeberg.org/pkal/do-at-point.el
 
 Bugs and Patches
 ----------------
 
-Bugs, patches, comments or questions can be submitted to my [public
-inbox].
+Bugs, patches, comments or questions can be submitted via [Codeberg's
+issue system] or by sending [me] an email.
 
-[public inbox]:
-	https://lists.sr.ht/~pkal/public-inbox
+[Codeberg's issue system]:
+	https://codeberg.org/pkal/do-at-point.el/issues
+[me]:
+	https://amodernist.com/#email
 
 Distribution
 ------------

@@ -1,10 +1,10 @@
 ;;; do-at-point.el --- Generic context-sensitive action dispatcher.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2023, 2024  Free Software Foundation, Inc.
+;; Copyright (C) 2023, 2024, 2025  Free Software Foundation, Inc.
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
-;; Maintainer: Philip Kaludercic <~pkal/public-inbox@lists.sr.ht>
-;; URL: https://git.sr.ht/~pkal/do-at-point
+;; Maintainer: Philip Kaludercic <philipk@posteo.net>
+;; URL: https://codeberg.org/pkal/do-at-point.el
 ;; Version: 0.1.2
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: convenience

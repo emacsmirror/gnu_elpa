@@ -81,6 +81,7 @@
  (auctex-cont-latexmk	:url "https://github.com/ultronozm/auctex-cont-latexmk.el")
  (auctex-label-numbers	:url "https://github.com/ultronozm/auctex-label-numbers.el")
  (aumix-mode		:url nil)
+ (auth-source-xoauth2-plugin   :url "https://gitlab.com/manphiz/auth-source-xoauth2-plugin")
  (auto-correct		:url nil)
  (auto-header           :url "https://codeberg.org/pkal/auto-header.el")
  (auto-overlays		:url nil ;"http://www.dr-qubit.org/git/predictive.git"

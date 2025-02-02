@@ -67,31 +67,34 @@
     map)
   "Keymap for Algol 68 major mode.")
 
-(defconst a68-std-modes
-  '("SHORT" "LONG" "INT" "REAL" "BITS" "BYTES"
-    "COMPL" "STRING" "REF" "FLEX")
-  "List of Algol 68 standard modes and shortety.")
+(eval-and-compile
+  ;; Both of those vars are used during macroexpansion (and hence compilation).
 
-(defconst a68-keywords
-  '("DECS" "PROGRAM" "CONTEXT" "USE" "KEEP"
-    "ALIEN" "UNTIL" "RE" "IM"
-    "MODE" "OP" "PRIO" "PROC"
-    "OF" "AT" "IS" "ISNT" "EMPTY" "SKIP"
-    "PR" "PRAGMAT" "STRUCT" "UNION"
-    "CASE" "IN" "OUSE" "OUT" "ESAC"
-    "FOR" "FORALL" "FROM" "TO" "BY" "WHILE" "DO" "OD"
-    "EQ" "NE" "LT" "GT" "LE" "GE"
-    "IF" "THEN" "ELIF" "THEN" "ELSE" "FI"
-    "PAR" "BEGIN" "END" "GOTO" "GO" "TO" "EXIT"
-    "LWB" "UPB" "ELEMS" "NOT" "ABS" "BIN" "REPR" "LENG"
-    "SHORTEN" "ODD" "SIGN" "ROUND" "ENTIER" "AND" "OR" "XOR"
-    "THEF" "ANDF" "ANDTH"
-    "ELSF" "ORF" "OREL"
-    "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"
-    "UP" "DOWN"
-    "NIL" "TRUE" "FALSE"
-    "MODULE" "DEF" "FED" "POSTLUDE" "ACCESS" "PUB")
-  "List of Algol 68 keywords.")
+  (defconst a68-std-modes
+    '("SHORT" "LONG" "INT" "REAL" "BITS" "BYTES"
+      "COMPL" "STRING" "REF" "FLEX")
+    "List of Algol 68 standard modes and shortety.")
+
+  (defconst a68-keywords
+    '("DECS" "PROGRAM" "CONTEXT" "USE" "KEEP"
+      "ALIEN" "UNTIL" "RE" "IM"
+      "MODE" "OP" "PRIO" "PROC"
+      "OF" "AT" "IS" "ISNT" "EMPTY" "SKIP"
+      "PR" "PRAGMAT" "STRUCT" "UNION"
+      "CASE" "IN" "OUSE" "OUT" "ESAC"
+      "FOR" "FORALL" "FROM" "TO" "BY" "WHILE" "DO" "OD"
+      "EQ" "NE" "LT" "GT" "LE" "GE"
+      "IF" "THEN" "ELIF" "THEN" "ELSE" "FI"
+      "PAR" "BEGIN" "END" "GOTO" "GO" "TO" "EXIT"
+      "LWB" "UPB" "ELEMS" "NOT" "ABS" "BIN" "REPR" "LENG"
+      "SHORTEN" "ODD" "SIGN" "ROUND" "ENTIER" "AND" "OR" "XOR"
+      "THEF" "ANDF" "ANDTH"
+      "ELSF" "ORF" "OREL"
+      "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"
+      "UP" "DOWN"
+      "NIL" "TRUE" "FALSE"
+      "MODULE" "DEF" "FED" "POSTLUDE" "ACCESS" "PUB")
+    "List of Algol 68 keywords."))
 
 (defconst a68-font-lock-keywords
   (list

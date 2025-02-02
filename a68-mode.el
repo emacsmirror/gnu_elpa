@@ -355,10 +355,10 @@
   (save-excursion
     (unless (or (a68-within-comment)
                 (a68-within-string))
-      (skip-chars-forward "ABCDEFGHIJKLMNOPQRSTUVWXYZ_")
+      (skip-chars-forward "A-Z_")
       (let* ((bold-tag-end (point))
              (bold-tag-begin (save-excursion
-                               (skip-chars-backward "ABCDEFGHIJKLMNOPQRSTUVWXYZ_")
+                               (skip-chars-backward "A-Z_")
                                (point))))
         (let ((replacedtext (downcase (buffer-substring bold-tag-begin bold-tag-end)))
               (overlay (make-overlay bold-tag-begin bold-tag-end)))

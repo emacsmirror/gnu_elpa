@@ -310,10 +310,10 @@
   (smie-setup a68--smie-grammar #'a68--smie-rules
               :forward-token #'a68--smie-forward-token
               :backward-token #'a68--smie-backward-token)
-  (add-hook 'after-change-functions 'a68--after-change-function nil t)
+  (add-hook 'after-change-functions #'a68--after-change-function nil t)
   (setq-local comment-start a68-comment-style)
   (setq-local comment-end a68-comment-style)
-  (setq-local beginning-of-defun-function 'a68-beginning-of-defun)
+  (setq-local beginning-of-defun-function #'a68-beginning-of-defun)
   (setq-local syntax-propertize-function #'a68-syntax-propertize-function))
 
 ;;;###autoload
@@ -339,10 +339,10 @@
   (save-excursion
     (goto-char (point-min))
     (a68--pretty-print-bold-tags (point-min) (point-max))
-    (add-hook 'after-change-functions 'a68--after-change-function nil t)))
+    (add-hook 'after-change-functions #'a68--after-change-function nil t)))
 
 (defun a68--pretty-print-bold-tags-off ()
-  (remove-hook 'after-change-functions 'a68--after-change-function t)
+  (remove-hook 'after-change-functions #'a68--after-change-function t)
   (save-excursion
     (goto-char (point-min))
     (let (match)

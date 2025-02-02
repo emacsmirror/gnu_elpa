@@ -389,20 +389,23 @@
               (overlay-put overlay 'display replacedtext)
               (overlay-put overlay 'evaporate t))))))))
 
-(defun a68--after-change-function (start stop _len)
+(defun a68--after-change-function (start stop len)
   "Save the current buffer and point for the mode's post-command hook."
   (when a68-pretty-bold-tags-mode
     (let* ((pos (point))
            (in-bold-tag-already (get-char-property pos 'display)))
       (save-match-data
-        (if (equal _len 0)
+        (if (equal len 0)
             (a68--pretty-print-bold-tag)
           (a68--pretty-print-bold-tags start stop)))
-      (when (and (equal _len 0) in-bold-tag-already (backward-char))))))
+      (when (and (equal len 0) in-bold-tag-already (backward-char))))))
 
 ;;;; Auto-stropping (minor mode).
 
-;;;###autoload(defvar a68-auto-stropping-mode nil "Non-nil if A68 auto stropping mode is enabled.")
+(defvar a68--mode-indicants
+  nil
+  "List of mode indicants declared in current buffer.")
+
 ;;;###autoload
 (define-minor-mode a68-auto-stropping-mode
   "Toggle auto-stropping in a68-mode."
@@ -416,10 +419,6 @@
     (remove-hook 'post-self-insert-hook
                  #'a68--do-auto-stropping)
     (setq a68--mode-indicants nil)))
-
-(defvar a68--mode-indicants
-  nil
-  "List of mode indicants declared in current buffer.")
 
 (defun a68--collect-modes ()
   "Collect mode-indicants of modes defined in the current buffer
@@ -450,6 +449,7 @@ into a68--mode-indicants."
           (setq beginning (match-beginning 1))
           (setq end (match-end 1))
           (setq id (upcase (buffer-substring-no-properties beginning end)))
+          ;; XXX Optimize away this `append' with `eval-when-compile'?
           (when (member id (append a68-std-modes a68-keywords a68--mode-indicants))
             (goto-char end)
             (delete-region beginning end)

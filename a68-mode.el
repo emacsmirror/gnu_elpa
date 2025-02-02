@@ -319,8 +319,6 @@
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.a68\\'" . a68-mode))
 
-(provide 'a68-mode)
-
 ;;;; Pretty-printing of bold tags (minor mode).
 
 (defface a68-bold-tag-face '((t :inherit font-lock-keyword-face))
@@ -456,5 +454,7 @@ into a68--mode-indicants."
             (goto-char end)
             (delete-region beginning end)
             (insert id)))))))
+
+(provide 'a68-mode)
 
 ;;; a68-mode.el ends here

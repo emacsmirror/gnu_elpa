@@ -59,9 +59,6 @@
                  (const "COMMENT"))
   :safe #'consp)
 
-(defvar a68-mode-hook '()
-  "Hook run when entering Algol68 mode.")
-
 (defvar a68-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-j") #'newline-and-indent)

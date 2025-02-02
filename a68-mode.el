@@ -1,11 +1,10 @@
 ;;; a68-mode.el --- Major mode for editing Algol 68 code -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2011, 2024 Jose E. Marchesi
-;; Copyright (C) 2021 Omar Polo <op@omarpolo.com>
+;; Copyright (C) 2011-2025  Free Software Foundation, Inc.
 
 ;; Author: Jose E. Marchesi
 ;;         Omar Polo <op@omarpolo.com>
-;; Maintainer: Jose E. Marchesi
+;; Maintainer: Jose E. Marchesi <jemarch@gnu.org>
 ;; URL: https://git.sr.ht/~jemarch/a68-mode
 ;; Keywords: languages
 ;; Version: 0.1

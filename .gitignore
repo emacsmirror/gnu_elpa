@@ -1,5 +1,5 @@
 *.elc
-
+*~
 # ELPA-generated files.
 /a68-mode-autoloads.el
 /a68-mode-pkg.el

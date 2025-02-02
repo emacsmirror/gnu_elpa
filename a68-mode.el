@@ -270,12 +270,18 @@
       (insert "#   #"))
     (goto-char (+ (point) 2))))
 
-(defun a68-beginning-of-defun (&optional arg)
+(defun a68-beginning-of-defun (&optional count)
   "Algol 68 specific `beginning-of-defun-function'."
-  (goto-char (save-excursion
-               (while (and (re-search-backward (rx bow (or "PROC" "OP")) nil t)
-                           (a68-within-string-or-comment)))
-               (point))))
+  (let ((count (or count 1))
+        (case-fold-search nil)
+        res)
+    (while (> count 0)
+      (goto-char (save-excursion
+                   (while (and (re-search-backward (rx bow (or "PROC" "OP") eow) nil t)
+                               (a68-within-string-or-comment)))
+                   (setq res (point))))
+      (setq count (1- count )))
+    res))
 
 (defun a68-syntax-propertize-function (start end)
   (let ((case-fold-search nil))

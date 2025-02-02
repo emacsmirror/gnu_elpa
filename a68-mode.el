@@ -376,7 +376,7 @@
       (goto-char beginning)
       (while (let ((case-fold-search nil))
                (re-search-forward (rx word-start upper (zero-or-more upper) word-end)
-                                  nil t))
+                                  end t))
         (unless (or (a68-within-comment)
                     (a68-within-string))
           (let* ((bold-tag-end (match-end 0))
@@ -398,7 +398,7 @@
         (if (equal len 0)
             (a68--pretty-print-bold-tag)
           (a68--pretty-print-bold-tags start stop)))
-      (when (and (equal len 0) in-bold-tag-already (backward-char))))))
+      (when (and (equal len 0) in-bold-tag-already) (backward-char)))))
 
 ;;;; Auto-stropping (minor mode).
 

@@ -99,11 +99,11 @@
 (defconst a68-font-lock-keywords
   (list
    (cons (rx word-start
-             (eval `(or ,@(mapcar (lambda (kw) kw) a68-keywords)))
+             (eval `(or ,@a68-keywords))
              word-end)
          'font-lock-keyword-face)
    (cons (rx word-start
-             (eval `(or ,@(mapcar (lambda (mode) mode) a68-std-modes)))
+             (eval `(or ,@a68-std-modes))
              word-end)
          'font-lock-type-face)
    (cons (rx word-start

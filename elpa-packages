@@ -34,6 +34,7 @@
 ;; diverged).
 
 ((a68-mode		:url "https://git.sr.ht/~jemarch/a68-mode"
+  :readme "README.md"
   :ignored-files ("COPYING"))
  (ace-window		:url "https://github.com/abo-abo/ace-window")
  (ack			:url "https://github.com/leoliu/ack-el")

@@ -57,70 +57,60 @@
 If nil, truncation is disabled.  Bind this as a buffer-local variable to
 control the maximum number lines to retain for specific buffers."
   :group 'auto-revert
-  :type 'natnum
-  :version "31.1")
+  :type 'natnum)
 
 (defcustom auto-revert-tail-truncate-file-size-hint 64
   "Bytes per line hint to `auto-revert-tail-truncate-file'.
 This is multiplied by `auto-revert-tail-truncate-max-lines' to compute
 the initial bytes to load."
   :group 'auto-revert
-  :type 'natnum
-  :version "31.1")
+  :type 'natnum)
 
 (defcustom auto-revert-tail-truncate-revert-interval auto-revert-interval
   "Number of seconds between Auto-Revert Tail Truncate Mode file checks.
 The default value is `auto-revert-interval', which see."
   :group 'auto-revert
-  :type 'natnum
-  :version "31.1")
+  :type 'natnum)
 
 (defcustom auto-revert-tail-truncate-verbose auto-revert-verbose
   "When nil, `auto-revert-tail-truncate-mode' does not generate messages.
 When non-nil, a message is generated whenever a buffer is reverted.
 The default value is `auto-revert-verbose', which see."
   :group 'auto-revert
-  :type 'boolean
-  :version "31.1")
+  :type 'boolean)
 
 (defcustom auto-revert-tail-truncate-immediately t
   "If non-nil, buffer is truncated when this mode is enabled.
 Set the maximum number of lines to retain in the buffer using the
 option `auto-revert-tail-truncate-max-lines', which see."
   :group 'auto-revert
-  :type 'boolean
-  :version "31.1")
+  :type 'boolean)
 
 (defcustom auto-revert-tail-truncate-read-only t
   "If non-nil, the tailed buffer is set to be read only."
   :group 'auto-revert
-  :type 'boolean
-  :version "31.1")
+  :type 'boolean)
 
 (defcustom auto-revert-tail-truncate-disable-undo t
   "If non-nil, the buffer's undo log is disabled to save memory."
   :group 'auto-revert
-  :type 'boolean
-  :version "31.1")
+  :type 'boolean)
 
 (defcustom auto-revert-tail-truncate-disable-font-lock t
   "If non-nil, font-lock is disabled on the tailed buffer."
   :group 'auto-revert
-  :type 'boolean
-  :version "31.1")
+  :type 'boolean)
 
 (defcustom auto-revert-tail-truncate-check-vc-info auto-revert-check-vc-info
   "If non-nil `auto-revert-tail-truncate-mode' updates vc info.
 The default value is `auto-revert-check-vc-info', which see."
   :group 'auto-revert
-  :type 'boolean
-  :version "31.1")
+  :type 'boolean)
 
 (defcustom auto-revert-tail-truncate-mode-text " TailTrunc"
   "Mode line string when `auto-revert-tail-truncate-mode' is active."
   :group 'auto-revert
-  :type 'string
-  :version "31.1")
+  :type 'string)
 
 (defvar-local auto-revert-tail-truncate-mode nil
   "Non-nil when `auto-revert-tail-truncate-mode' is active.

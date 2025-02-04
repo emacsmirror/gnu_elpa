@@ -192,12 +192,6 @@ Invoke programmatically specifying FILENAME."
       (auto-revert-tail-truncate-mode))
     (pop-to-buffer buf)))
 
-;;;###autoload
-(defun auto-revert-tail-mode-on-log-files ()
-  "Enable `auto-revert-tail-truncate-mode' for all *.log files."
-  (interactive)
-  (add-to-list 'auto-mode-alist '("\\.log\\'" . auto-revert-tail-truncate-mode)))
-
 (provide 'autorevert-tail-truncate)
 
 ;;; autorevert-tail-truncate.el ends here

@@ -64,6 +64,26 @@ Or, if you use Emacs 30+, uncomment the :vc stanza, below.
   (auto-revert-tail-mode-on-log-files))
 ```
 
+To invoke the mode interactively, use `M-x auto-revert-tail-truncate-mode`.
+
+To enable `auto-revert-tail-truncate-mode` automatically when viewing files of certain modes, add something like the following to their major-mode hooks.
+
+``` elisp
+(defun my/fundamental-mode-hook ()
+  (auto-revert-tail-truncate-mode))
+(add-hook 'fundamental-mode-hook #'my/fundamental-mode-hook)
+```
+
+If you want to enable `auto-revert-tail-truncate-mode` only for buffers with file names that have a .log suffix, but not others that share the same major mode, consider the following.
+
+``` elisp
+(defun my/fundamental-mode-hook ()
+  (when (and buffer-file-name
+             (string-match-p "\\.log\\'" buffer-file-name))
+    (auto-revert-tail-truncate-mode)))
+(add-hook 'fundamental-mode-hook #'my/fundamental-mode-hook)
+```
+
 ## Coda
 
 I put this into the package because the earliest Emacs I can easily support is 29.x. This will likely be altered if the package is

@@ -2,9 +2,9 @@
 
 # autorevert-tail-truncate.el
 
-Extend Emacs auto-revert-tail-mode to optimize memory and CPU.
+Emacs minor mode for auto-revert-tail-mode to optimize memory and CPU.
 
-`auto-revert-tail-truncate-mode` extends `auto-revert-tail-mode` to automate truncating the tailed buffer to a
+`auto-revert-tail-truncate-mode` is a veneer over `auto-revert-tail-mode` to automate truncating the tailed buffer to a
 user-specified number of lines. This allows you, for example, to tail log files in an auto-reverting buffer forever without
 running out of memory. By default, a newly tailed buffer is immediately truncated for the same reason. Also, by default, the
 buffer's undo log is disabled along with font-lock to both preserve memory and optimize CPU consumption.

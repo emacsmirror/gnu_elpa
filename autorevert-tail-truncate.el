@@ -1,6 +1,5 @@
 ;;; autorevert-tail-truncate.el -- Summary;: -*- mode: emacs-lisp; lexical-binding: t; -*-
 
-;; Copyright (C) 2025 Stephane Marks
 ;; Copyright (C) 2025 Free Software Foundation, Inc.
 
 ;; Author: Stephane Marks <shipmints@gmail.com>
@@ -26,14 +25,14 @@
 
 ;;; Commentary:
 
-;; `auto-revert-tail-truncate-mode' extends `auto-revert-tail-mode' to
-;; automate truncating the tailed buffer to a user-specified number of
-;; lines.  This allows you, for example, to tail log files in an
-;; auto-reverting buffer forever without running out of memory.  By
-;; default, a newly tailed buffer is immediately truncated for the
-;; same reason.  Also, by default, the buffer's undo log is disabled
-;; along with font-lock to both preserve memory and optimize CPU
-;; consumption.
+;; `auto-revert-tail-truncate-mode' is a veneer over
+;; `auto-revert-tail-mode' to automate truncating the tailed buffer to
+;; a user-specified number of lines.  This allows you, for example, to
+;; tail log files in an auto-reverting buffer forever without running
+;; out of memory.  By default, a newly tailed buffer is immediately
+;; truncated for the same reason.  Also, by default, the buffer's undo
+;; log is disabled along with font-lock to both preserve memory and
+;; optimize CPU consumption.
 ;;
 ;; Use the command auto-revert-tail-truncate-file to open a file in a
 ;; new buffer with `auto-revert-tail-truncate-mode' enabled.

@@ -100,12 +100,6 @@ option `auto-revert-tail-truncate-max-lines', which see."
   :group 'auto-revert
   :type 'boolean)
 
-(defcustom auto-revert-tail-truncate-check-vc-info auto-revert-check-vc-info
-  "If non-nil `auto-revert-tail-truncate-mode' updates vc info.
-The default value is `auto-revert-check-vc-info', which see."
-  :group 'auto-revert
-  :type 'boolean)
-
 (defcustom auto-revert-tail-truncate-mode-text " TailTrunc"
   "Mode line string when `auto-revert-tail-truncate-mode' is active."
   :group 'auto-revert
@@ -141,8 +135,9 @@ Customize `auto-revert-tail-mode-hook' to control features such as
           (buffer-disable-undo))
         (when auto-revert-tail-truncate-disable-font-lock
           (font-lock-mode -1))
-        (make-local-variable 'auto-revert-check-vc-info)
-        (setq auto-revert-check-vc-info auto-revert-tail-truncate-check-vc-info)
+        (when (version< emacs-version "31")
+          (make-local-variable 'auto-revert-check-vc-info)
+          (setq auto-revert-check-vc-info nil))
         (goto-char (point-max))
         (when auto-revert-tail-truncate-immediately
           (auto-revert--tail-truncate))

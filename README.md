@@ -69,19 +69,19 @@ To invoke the mode interactively, use `M-x auto-revert-tail-truncate-mode`.
 To enable `auto-revert-tail-truncate-mode` automatically when viewing files of certain modes, add something like the following to their major-mode hooks.
 
 ``` elisp
-(defun my/fundamental-mode-hook ()
+(defun my/text-mode-hook ()
   (auto-revert-tail-truncate-mode))
-(add-hook 'fundamental-mode-hook #'my/fundamental-mode-hook)
+(add-hook 'text-mode-hook #'my/text-mode-hook)
 ```
 
 If you want to enable `auto-revert-tail-truncate-mode` only for buffers with file names that have a .log suffix, but not others that share the same major mode, consider the following.
 
 ``` elisp
-(defun my/fundamental-mode-hook ()
+(defun my/text-mode-hook ()
   (when (and buffer-file-name
              (string-match-p "\\.log\\'" buffer-file-name))
     (auto-revert-tail-truncate-mode)))
-(add-hook 'fundamental-mode-hook #'my/fundamental-mode-hook)
+(add-hook 'text-mode-hook #'my/text-mode-hook)
 ```
 
 ## Coda

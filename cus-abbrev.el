@@ -229,9 +229,12 @@ the abbrev table to customize.  If nil, it defaults to `global-abbrev-table'."
          (table (symbol-value table-name))
          abbrevs)
     (mapatoms (lambda (abbrev)
+                ;; Guard against ##.
                 (unless (string= (symbol-name abbrev) "")
                   (let ((exp (abbrev-expansion abbrev table)))
                     (when exp
+                      ;; We treat each abbrev as a list:
+                      ;; (ABBREV EXPANSION HOOK ENABLE-FUNCTION CASE-FIXED)
                       (push (list (symbol-name abbrev) exp
                                   (symbol-function abbrev)
                                   (abbrev-get abbrev :enable-function)
@@ -248,6 +251,7 @@ the abbrev table to customize.  If nil, it defaults to `global-abbrev-table'."
     (widget-insert " in the Emacs manual for more information.\n\n")
     (custom-abbrev--insert-buttons)
     (setq custom-abbrev-widgets
+          ;; It's always a list, even when customizing a single abbrev-table.
           (list
            (widget-create 'custom-abbrev :value abbrevs
                           :custom-abbrev-table table-name

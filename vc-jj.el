@@ -26,6 +26,7 @@
 (require 'seq)
 
 (autoload 'vc-switches "vc")
+(autoload 'ansi-color-apply-on-region "ansi-color")
 
 (add-to-list 'vc-handled-backends 'JJ)
 
@@ -33,6 +34,13 @@
 (defun vc-jj-checkout-model (_files) 'implicit)
 (defun vc-jj-update-on-retrieve-tag () nil)
 
+(defgroup vc-jj nil
+  "VC Jujutsu backend."
+  :group 'vc)
+
+(defcustom vc-jj-colorize-log t
+  "Control whether to have jj colorize the log."
+  :type 'boolean)
 
 (defun vc-jj--file-tracked (file)
   (with-temp-buffer
@@ -230,6 +238,9 @@ self.hidden(), \"\\n\"
   (call-process "jj" nil nil nil "restore" "--" file))
 
 (defun vc-jj-print-log (files buffer &optional _shortlog start-revision limit)
+  "Print commit log associated with FILES into specified BUFFER."
+  ;; FIXME: limit can be a revision string, in which case we should
+  ;; print revisions between start-revision and limit
   (let ((inhibit-read-only t)
         (erase-buffer)
         (args (append
@@ -237,9 +248,13 @@ self.hidden(), \"\\n\"
                  (list "-n" (number-to-string limit)))
                (when start-revision
                  (list "-r" (concat ".." start-revision)))
+               (when vc-jj-colorize-log (list "--color" "always"))
                (list "--")
                files)))
-    (apply #'call-process "jj" nil buffer nil "log" args))
+    (apply #'call-process "jj" nil buffer nil "log" args)
+    (when vc-jj-colorize-log
+      (with-current-buffer buffer
+        (ansi-color-apply-on-region (point-min) (point-max)))))
   (goto-char (point-min)))
 
 (defun vc-jj-show-log-entry (revision)

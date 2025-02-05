@@ -196,7 +196,7 @@ This command also saves any other editions made to the abbrev table."
       (setq abbrevs (nreverse abbrevs))
       (push (widget-create 'custom-abbrev
                            :value abbrevs
-                           :format "\n%{%t%}\n%v%i\n"
+                           :format "\nAbbrev Table: %{%t%}\n%v%i\n"
                            :tag (symbol-name table-name)
                            :sample-face 'highlight
                            :custom-abbrev-table table-name

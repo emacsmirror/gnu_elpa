@@ -408,8 +408,9 @@ DIRECTORY."
 				    (org-gnosis-select-template templates)))
 	  ((file-exists-p (expand-file-name file directory))
 	   (org-gnosis-goto-id id))
-	  (t (error "File %s does not exist.  Try running `org-gnosis-db-sync' to resolve this"
-		    file)))))
+	  (t (error
+	      "File %s does not exist.  Try running `org-gnosis-db-sync' to resolve this"
+	      file)))))
 
 ;;;###autoload
 (defun org-gnosis-find-by-tag (&optional tag)
@@ -685,14 +686,16 @@ If TITLE is non-nil, return the file that has a TODO TITLE."
   "Get checked items for org ELEMENT.
 
 ELEMENT should be the output of `org-element-parse-buffer'."
-  (let ((checked-items nil))
+  (let ((checked-items))
     (org-element-map element 'item
       (lambda (item)
         (when (eq (org-element-property :checkbox item) 'on)
-          (push (substring-no-properties
-                 (string-trim
-                  (org-element-interpret-data
-                   (org-element-contents item))))
+          (push (car (split-string
+                     (substring-no-properties
+                      (string-trim
+                       (org-element-interpret-data
+                        (org-element-contents item))))
+                     "\n"))
                 checked-items))))
     (nreverse checked-items)))
 

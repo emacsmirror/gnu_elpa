@@ -219,13 +219,12 @@ This command also saves any other editions made to the abbrev table."
 
 When called interactively, prompts for the abbrev table to customize.
 When called from Lisp, optional argument TABLE-NAME is the symbol that holds
-the abbrev table to customize."
+the abbrev table to customize.  If nil, it defaults to `global-abbrev-table'."
   (interactive (list
                 (intern-soft
-                 (completing-read "Table: "
-                                  abbrev-table-name-list nil t
-                                  "global-abbrev-table" nil
-                                  "global-abbrev-table"))))
+                 (completing-read (format-prompt "Customize Abbrev Table"
+                                                 "global-abbrev-table")
+                                  abbrev-table-name-list nil t))))
   (let* ((table-name (or table-name 'global-abbrev-table))
          (table (symbol-value table-name))
          abbrevs)
@@ -245,9 +244,7 @@ the abbrev table to customize."
     (widget-insert "in abbrev table: ")
     (widget-create 'variable-link table-name)
     (widget-insert "\n\nCheck the ")
-    (widget-create 'custom-manual
-		   :tag "Abbrev section"
-		   "(emacs)Abbrevs")
+    (widget-create 'custom-manual :tag "Abbrev section" "(emacs)Abbrevs")
     (widget-insert " in the Emacs manual for more information.\n\n")
     (custom-abbrev--insert-buttons)
     (setq custom-abbrev-widgets

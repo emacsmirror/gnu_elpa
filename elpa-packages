@@ -87,6 +87,7 @@
  (auto-overlays		:url nil ;"http://www.dr-qubit.org/git/predictive.git"
   :doc "docs/auto-overlay-manual.texinfo")
  (autocrypt             :url "https://codeberg.org/pkal/autocrypt.el")
+ (autorevert-tail-truncate      :url "https://github.com/shipmints/autorevert-tail-truncate.el")
  (avy			:url "https://github.com/abo-abo/avy"
   ;; FIXME: Avy diverged https://github.com/abo-abo/avy/issues/344
   :merge t)

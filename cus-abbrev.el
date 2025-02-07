@@ -157,13 +157,17 @@ This command also saves any other editions made to the abbrev table."
 
 (defun custom-abbrev--insert-buttons ()
   "Insert buttons for Customizing Abbrevs in current buffer."
+  (widget-insert "Global actions:\n")
   (widget-create 'push-button :tag " Revert "
+                 :help-echo "Revert buffer, discarding all edits."
                  :action #'Custom-abbrev-revert-buffer)
   (widget-insert " ")
   (widget-create 'push-button :tag " Define Abbrevs "
+                 :help-echo "Define abbrevs for this session, without saving."
                  :action #'Custom-abbrev-define)
   (widget-insert " ")
   (widget-create 'push-button :tag " Save Abbrevs "
+                 :help-echo "Save abbrevs to the abbrev file."
                  :action #'Custom-abbrev-save)
   (widget-insert "\n\n"))
 
@@ -179,9 +183,13 @@ This command also saves any other editions made to the abbrev table."
 		 "(emacs)Abbrevs")
   (widget-insert " in the Emacs manual for more information.\n\n")
   (custom-abbrev--insert-buttons)
+  (custom-group--draw-horizontal-line)
+  (widget-insert "\n")
   (dolist (table-name (reverse abbrev-table-name-list))
     (let ((table (symbol-value table-name))
-          abbrevs)
+          abbrevs
+          abbrev-widget
+          visibility)
       (mapatoms (lambda (abbrev)
                   ;; Guard against ##.
                   (unless (string= (symbol-name abbrev) "")
@@ -194,9 +202,19 @@ This command also saves any other editions made to the abbrev table."
                               abbrevs)))))
                 table)
       (setq abbrevs (nreverse abbrevs))
-      (push (widget-create 'custom-abbrev
+      (setq visibility (widget-create
+                        'custom-visibility
+		        :help-echo "Hide or show this abbrev table."
+		        :on "Hide"
+		        :off "Show"
+		        :on-glyph "down"
+		        :off-glyph "right"
+		        :action #'custom-abbrev-toggle-hide-abbrev-table
+		        t))
+      (setq abbrev-widget (widget-create
+                           'custom-abbrev
                            :value abbrevs
-                           :format "\nAbbrev Table: %{%t%}\n%v%i\n"
+                           :format "Abbrev Table: %{%t%}\n%v%i\n"
                            :tag (symbol-name table-name)
                            :sample-face 'highlight
                            :custom-abbrev-table table-name
@@ -209,9 +227,23 @@ This command also saves any other editions made to the abbrev table."
                                   (choice :tag "Enable function"
                                           (const :tag "None" nil)
                                           (function :value always))
-                                  (boolean :tag "Case fixed")))
-            custom-abbrev-widgets)))
+                                  (boolean :tag "Case fixed"))))
+      (push abbrev-widget custom-abbrev-widgets)
+      (widget-put visibility :widget abbrev-widget)))
   (custom-abbrev--prepare-buffer-2))
+
+(defun custom-abbrev-toggle-hide-abbrev-table (widget &rest _ignore)
+  "..."
+  (let ((w (widget-get widget :widget))
+        (val (not (widget-value widget))))
+    (widget-value-set widget val)
+    (widget-put w :format (concat "Abbrev Table: %{%t%}"
+                                  (if val "\n%v%i" "")
+                                  "\n"))
+    (if val
+        (widget-value-set w (widget-get w :stashed-value))
+      (widget-put w :stashed-value (widget-value w))
+      (widget-value-set w (widget-value w)))))
   
 ;;;###autoload
 (defun customize-abbrevs (&optional table-name)
@@ -250,6 +282,8 @@ the abbrev table to customize.  If nil, it defaults to `global-abbrev-table'."
     (widget-create 'custom-manual :tag "Abbrev section" "(emacs)Abbrevs")
     (widget-insert " in the Emacs manual for more information.\n\n")
     (custom-abbrev--insert-buttons)
+    (custom-group--draw-horizontal-line)
+    (widget-insert "\n")
     (setq custom-abbrev-widgets
           ;; It's always a list, even when customizing a single abbrev-table.
           (list

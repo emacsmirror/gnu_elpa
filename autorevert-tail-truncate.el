@@ -6,9 +6,11 @@
 ;; Maintainer: Stephane Marks <shipmints@gmail.com>
 ;; Url: https://github.com/shipmints/autorevert-tail-truncate.el
 ;; Created: 2025-02-03
-;; Version: 1.0
+;; Version: 1.0 pre
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: convenience, tools, log files, autorevert
+
+;; This file is part of GNU Emacs.
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -51,11 +53,17 @@
 
 (require 'autorevert)
 
+(defgroup auto-revert-tail-truncate nil
+  "auto-revert-tail your files with RAM control."
+  :prefix "auto-revert-tail-truncate-"
+  :group 'auto-revert
+  :group 'convenience
+  :group 'files)
+
 (defcustom auto-revert-tail-truncate-max-lines 5000
   "Truncate buffer to this maximum number of lines.
 If nil, truncation is disabled.  Bind this as a buffer-local variable to
 control the maximum number lines to retain for specific buffers."
-  :group 'auto-revert
   :type '(choice (const :tag "Disabled" nil) natnum)
   :version "29.1"
   :package-version "1.0")
@@ -64,7 +72,6 @@ control the maximum number lines to retain for specific buffers."
   "Bytes per line hint to `auto-revert-tail-truncate-file'.
 This is multiplied by `auto-revert-tail-truncate-max-lines' to compute
 the initial bytes to load."
-  :group 'auto-revert
   :type 'natnum
   :version "29.1"
   :package-version "1.0")
@@ -72,7 +79,6 @@ the initial bytes to load."
 (defcustom auto-revert-tail-truncate-revert-interval auto-revert-interval
   "Number of seconds between Auto-Revert Tail Truncate Mode file checks.
 The default value is `auto-revert-interval', which see."
-  :group 'auto-revert
   :type 'natnum
   :version "29.1"
   :package-version "1.0")
@@ -81,7 +87,6 @@ The default value is `auto-revert-interval', which see."
   "When nil, `auto-revert-tail-truncate-mode' does not generate messages.
 When non-nil, a message is generated whenever a buffer is reverted.
 The default value is `auto-revert-verbose', which see."
-  :group 'auto-revert
   :type 'boolean
   :version "29.1"
   :package-version "1.0")
@@ -90,35 +95,30 @@ The default value is `auto-revert-verbose', which see."
   "If non-nil, buffer is truncated when this mode is enabled.
 Set the maximum number of lines to retain in the buffer using the
 option `auto-revert-tail-truncate-max-lines', which see."
-  :group 'auto-revert
   :type 'boolean
   :version "29.1"
   :package-version "1.0")
 
 (defcustom auto-revert-tail-truncate-read-only t
   "If non-nil, the tailed buffer is set to be read only."
-  :group 'auto-revert
   :type 'boolean
   :version "29.1"
   :package-version "1.0")
 
 (defcustom auto-revert-tail-truncate-disable-undo t
   "If non-nil, the buffer's undo log is disabled to save memory."
-  :group 'auto-revert
   :type 'boolean
   :version "29.1"
   :package-version "1.0")
 
 (defcustom auto-revert-tail-truncate-disable-font-lock t
   "If non-nil, font-lock is disabled on the tailed buffer."
-  :group 'auto-revert
   :type 'boolean
   :version "29.1"
   :package-version "1.0")
 
 (defcustom auto-revert-tail-truncate-mode-text " TailTrunc"
   "Mode line string when `auto-revert-tail-truncate-mode' is active."
-  :group 'auto-revert
   :type 'string
   :version "29.1"
   :package-version "1.0")
@@ -137,7 +137,6 @@ buffer in which it is displayed.
 
 Customize `auto-revert-tail-mode-hook' to control features such as
 `truncate-lines' for the tailed buffer."
-  :group 'auto-revert
   :lighter auto-revert-tail-truncate-mode-text
   (if auto-revert-tail-truncate-mode
       (progn

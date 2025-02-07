@@ -1,6 +1,6 @@
 ;;; blist.el --- Display bookmarks in an ibuffer way  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021, 2022, 2023, 2024  Free Software Foundation, Inc.
+;; Copyright (C) 2021 - 2025  Free Software Foundation, Inc.
 
 ;; Author: Durand <durand@jsdurand.xyz>
 ;; Keywords: convenience
@@ -391,8 +391,11 @@ follows.
                    higher on the list are opened on the right.
 - right, up, down: similar to left.  Left takes precedence over
                    right, and up takes precedence over down.
-- tab:             open the bookmarks in a new tab.  Requires
-                   'tab-bar if used.
+- onetab:          open the selected bookmarks in a new tab.
+                   Requires 'tab-bar if used.
+- one-per-tab:     open a new tab for each selected bookmark.
+                   Requires 'tab-bar if used.  If this is present,
+                   all other options are ignored.
 
 As a quick shortcut, if the list does not contain left, it means
 to use right; if no up, it means down; if no vertical, it means
@@ -412,7 +415,9 @@ list; they are simply ignored."
            (const :tag "Towards Right" right)
            (const :tag "Towards Up" up)
            (const :tag "Towards Down" down)
-           (const :tag "In a new tab" tab))))
+           (const :tag "In a new tab" onetab)
+           (const :tag "Each bookmark in a new tab"
+            one-per-tab))))
 
 ;;;; Edit bookmark annotation buffer name
 
@@ -779,8 +784,10 @@ Note that invisible lines will not be considered here."
 
 ;; I almost forgot that I want to open bookmarks.
 
-(defun blist-open ()
-  "Open the bookmark at point."
+(defun blist-open (&optional arg)
+  "Open the bookmark at point.
+If ARG is non-nil, offer to temporarily edit the location of the
+bookmark before jumping."
   (interactive)
   (blist-assert-mode)
   (cond
@@ -811,13 +818,30 @@ Note that invisible lines will not be considered here."
 
 NUM should be a positive integer.
 
-See `blist-select-manner' for what MANNER should look like."
+See `blist-select-manner' for what MANNER should look like.
+
+Return a list of cons cells of the form
+
+(WINDOW . TAB-INDEX)
+
+where WINDOW is the prepared window and TAB-INDEX is the index of
+the prepared tab that can be fed to the function
+`tab-bar-select-tab'.  If no tab is prepared, this returned index
+is nil."
   (cond
    ((or (not (integerp num))
         (<= num 0))
     (error "NUM should be a positive integer, but got %S" num)))
-  (let* ((mainp (memq 'main-side manner))
-         (tabp (cond (mainp nil) ((memq 'tab manner))))
+  ;; tab bar index starts from 1, but `tab-bar--current-tab-index'
+  ;; starts from 0.
+  (let* ((one-per-tab (memq 'one-per-tab manner))
+         (mainp (memq 'main-side manner))
+         (tabp (cond (mainp nil) ((memq 'onetab manner))))
+         (orig-tab-index
+          (cond
+           ((or one-per-tab tabp)
+            (require 'tab-bar)
+            (1+ (tab-bar--current-tab-index)))))
          (verticalp (memq 'vertical manner))
          (leftp (memq 'left manner))
          (upp (memq 'up manner))
@@ -835,45 +859,65 @@ See `blist-select-manner' for what MANNER should look like."
          (current-direction verticalp)
          (orig-window (selected-window))
          temp-window windows main-side-splitted-p)
-    (cond (tabp (require 'tab-bar) (tab-bar-new-tab)))
-    ;; create a new window so that we are not inside some window that
-    ;; cannot be splitted, like a side window
-    (select-window (split-window (frame-root-window) nil 'below))
-    (delete-other-windows)
-    (setq orig-window (selected-window))
-    (setq windows (cons orig-window windows))
-    (setq temp-window orig-window)
-    (setq num (1- num))
-    (while (> num 0)
-      (setq
-       temp-window
-       (split-window temp-window
-                     (cond
-                      ((and mainp (not main-side-splitted-p))
-                       nil)
-                      (size))
-                     (cond
-                      (current-direction
-                       ;; vertical
-                       (cond (upp 'above) ('below)))
-                      ;; horizontal
-                      (leftp 'left)
-                      ('right))))
-      (setq windows (cons temp-window windows))
-      ;; change direction for spirals and change direction only once
-      ;; for main-side
-      (cond (spiralp
-             (setq current-direction (not current-direction))
-             ;; spirals change the horizontal / vertical directions as
-             ;; well
-             (cond
-              (current-direction
-               (setq leftp (not leftp)))
-              ((setq upp (not upp)))))
-            ((and mainp (not main-side-splitted-p))
-             (setq current-direction (not current-direction))
-             (setq main-side-splitted-p t)))
-      (setq num (1- num)))
+    (cond (tabp
+           (tab-bar-new-tab)
+           (setq orig-tab-index (1+ (tab-bar--current-tab-index)))))
+    (cond
+     (one-per-tab
+      (let ((firstp t))
+        (while (> num 0)
+          (tab-bar-new-tab)
+          (cond
+           (firstp
+            (select-window
+             (split-window (frame-root-window) nil 'below))
+            (delete-other-windows)
+            (setq firstp nil)))
+          (setq windows (cons
+                         (cons (selected-window)
+                               (1+ (tab-bar--current-tab-index)))
+                         windows))
+          (setq num (1- num)))))
+     (t
+      ;; create a new window so that we are not inside some window
+      ;; that cannot be splitted, like a side window
+      (select-window (split-window (frame-root-window) nil 'below))
+      (delete-other-windows)
+      (setq orig-window (selected-window))
+      (setq windows (cons (cons orig-window orig-tab-index) windows))
+      (setq temp-window orig-window)
+      (setq num (1- num))
+      (while (> num 0)
+        (setq
+         temp-window
+         (split-window temp-window
+                       (cond
+                        ((and mainp (not main-side-splitted-p))
+                         nil)
+                        (size))
+                       (cond
+                        (current-direction
+                         ;; vertical
+                         (cond (upp 'above) ('below)))
+                        ;; horizontal
+                        (leftp 'left)
+                        ('right))))
+        (setq windows
+              (cons (cons temp-window orig-tab-index) windows))
+        ;; change direction for spirals and change direction only once
+        ;; for main-side
+        (cond (spiralp
+               (setq current-direction (not current-direction))
+               ;; spirals change the horizontal / vertical directions
+               ;; as well
+               (cond
+                (current-direction
+                 (setq leftp (not leftp)))
+                ((setq upp (not upp)))))
+              ((and mainp (not main-side-splitted-p))
+               (setq current-direction (not current-direction))
+               (setq main-side-splitted-p t)))
+        (setq num (1- num)))))
     (reverse windows)))
 
 ;;;;; select function
@@ -921,19 +965,23 @@ controls how multiple bookmarks are selected."
                      "How to select multiple bookmarks: "
                      (list
                       'vertical 'horizontal 'spiral 'main-side
-                      'left 'right 'up 'down 'tab)
+                      'left 'right 'up 'down 'onetab 'one-per-tab)
                      nil t)))
                   (blist-select-manner)))
          (windows (blist-prepare-select-windows
                    (length marked-items) manner))
          (orig-window (car windows)))
     (while (consp windows)
-      (select-window (car windows))
+      (cond ((cdar windows)
+             (tab-bar-select-tab (cdar windows))))
+      (select-window (caar windows))
       (bookmark-jump
        (bookmark-name-from-full-record (car marked-items)))
       (setq marked-items (cdr marked-items))
       (setq windows (cdr windows)))
-    (select-window orig-window)))
+    (cond ((cdr orig-window)
+           (tab-bar-select-tab (cdr orig-window))))
+    (select-window (car orig-window))))
 
 ;;;; rename
 
@@ -1517,6 +1565,9 @@ get unique numeric suffixes \"<2>\", \"<3>\", etc."
 
 ;;;; Toggle location display
 
+;; TODO: Make a toggle sub-map to integrate some toggling
+;; functionalities.
+
 (defun blist-toggle-location ()
   "Toggle the display of locations of bookmarks."
   (interactive)
@@ -2000,6 +2051,8 @@ stop at."
 ;; TODO: Some information should be inserted first, with outstanding
 ;; faces, and the rest should be inserted at the end.
 
+;; TODO: Show index as well, optionally.
+
 (defun blist-show-info (&optional arg)
   "Pop a buffer showing detailed information about the bookmarks.
 If there are marked bookmarks, show the information of those
@@ -2078,6 +2131,10 @@ information of the bookmarks of that group."
 
 ;; TODO: Navigate between each fields.
 
+;; TODO: Add a way to truncate the location names, in a customizable
+;; way.
+
+;; TODO: Rearrange bookmarks within groups
 
 (provide 'blist)
 ;;; blist.el ends here

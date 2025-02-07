@@ -243,7 +243,8 @@ This command also saves any other editions made to the abbrev table."
     (if val
         (widget-value-set w (widget-get w :stashed-value))
       (widget-put w :stashed-value (widget-value w))
-      (widget-value-set w (widget-value w)))))
+      (widget-value-set w (widget-value w)))
+    (widget-setup)))
   
 ;;;###autoload
 (defun customize-abbrevs (&optional table-name)

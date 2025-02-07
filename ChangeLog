@@ -1,3 +1,13 @@
+2025-02-07  Durand  <durand@jsdurand.xyz>
+
+	* blist.el: Add an option to open each bookmark in a new tab.  Now
+	`blist-select-manner` has two options related to tabs: `onetab`
+	and `one-per-tab`.  The former just opens all selected bookmarks
+	in a new tab, while the latter opens one tab for each selected
+	bookmark.  In the latter case, all other window-related options
+	are ignored as a dedicated tab is used which contains no other
+	windows at all.
+
 2024-08-07  Durand  <durand@jsdurand.xyz>
 
 	* blist.el: The new customisation option `blist-show-item-num-p`

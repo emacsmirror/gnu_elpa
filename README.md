@@ -29,7 +29,7 @@ If you use Emacs 29.1+, use `package-vc-install`. In your `*scratch*` buffer, co
 the command `eval-last-sexp`, which see:
 
 ``` elisp
-(package-vc-install '(autorevert-tail-truncate :url "https://github.com/shipmints/autorevert-tail-truncate.el"))
+(package-vc-install "https://github.com/shipmints/autorevert-tail-truncate.el")
 ```
 
 Or, if you use Emacs 30+, uncomment the :vc stanza, below.

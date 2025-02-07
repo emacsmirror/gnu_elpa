@@ -233,7 +233,7 @@ This command also saves any other editions made to the abbrev table."
   (custom-abbrev--prepare-buffer-2))
 
 (defun custom-abbrev-toggle-hide-abbrev-table (widget &rest _ignore)
-  "..."
+  "Hide/Show the abbrev-table widget related to this visibility WIDGET."
   (let ((w (widget-get widget :widget))
         (val (not (widget-value widget))))
     (widget-value-set widget val)
@@ -274,7 +274,8 @@ the abbrev table to customize.  If nil, it defaults to `global-abbrev-table'."
                             abbrevs)))))
               table)
     (setq abbrevs (nreverse abbrevs))
-    (custom-abbrev--prepare-buffer (format "*Customize Abbrevs: %s*" table-name))
+    (custom-abbrev--prepare-buffer
+     (format "*Customize Abbrevs: %s*" table-name))
     (widget-insert "This buffer is for customizing abbrevs\n")
     (widget-insert "in abbrev table: ")
     (widget-create 'variable-link :button-face 'widget-button table-name)

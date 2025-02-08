@@ -352,7 +352,10 @@ TIMESTRING defaults to `org-gnosis-timestring'"
 (defun org-gnosis--create-file (title &optional directory extras)
   "Create a node FILE for TITLE.
 
-Insert initial Org metadata if the buffer is new or empty."
+Insert initial Org metadata if the buffer is new or empty.
+
+DIRECTORY: Directory where the file is created.
+EXTRAS: The template to be inserted at the start."
   (let* ((file (expand-file-name
 		(org-gnosis--create-name title)
 		(or directory org-gnosis-dir)))
@@ -462,12 +465,12 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
 	   (message "Created new node: %s" node))
 	  (t (org-insert-link nil id node)))))
 
-;;;###autoload
-(defun org-gnosis-insert-tag ()
-  "Insert filetag."
+
+(defun org-gnosis-insert-tag (&optional tag)
+  "Insert TAG as filetag."
   (interactive)
   (let* ((filetags (org-gnosis-select 'tag 'tags '1=1 t))
-         (tag (funcall org-gnosis-completing-read-func "Select tag: " filetags)))
+         (tag (or tag (funcall org-gnosis-completing-read-func "Select tag: " filetags))))
     (save-excursion
       (goto-char (point-min))
       (if (re-search-forward "^#\\+FILETAGS:" nil t)
@@ -477,6 +480,15 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
         (progn
           (insert "#+FILETAGS: :" tag ":")
           (newline))))))
+
+;;;###autoload
+(defun org-gnosis-insert-tags (tags)
+  "Insert TAGS as filetags."
+  (interactive (list (completing-read-multiple
+		      "Select tags (seperated by ,): "
+		      (org-gnosis-select 'tag 'tags '1=1 t))))
+  (dolist (tag tags)
+    (org-gnosis-insert-tag tag)))
 
 ;;;###autoload
 (defun org-gnosis-journal-find (&optional title)

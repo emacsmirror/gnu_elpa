@@ -1921,10 +1921,10 @@ MERGED is the list of bugs merged with this one."
   ;; --subject-prefix='PATCH trailing-prefix' as well as
   ;; --reroll-count=n.
   (rx "[" (? (1+ (not space)) space)    ;leading prefix?
-      "PATCH "
+      "PATCH" (? space)
       (? (1+ (not space)) space)        ;trailing prefix?
       (? "v" (1+ digit) space)          ;optional reroll count
-      (1+ digit) "/" (1+ digit) "]")    ;patch number
+      (? (1+ digit) "/" (1+ digit)) "]") ;optional patch number
   "Regular expression which keeps the original message subject in replies."
   :version "30.1"
   :type 'regexp)

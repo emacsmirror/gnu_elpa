@@ -6,7 +6,7 @@
 ;; Maintainer: Stephane Marks <shipmints@gmail.com>
 ;; Url: https://github.com/shipmints/autorevert-tail-truncate.el
 ;; Created: 2025-02-03
-;; Version: 1.0 pre
+;; Version: 1.0.0
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: convenience, tools, log files, autorevert
 

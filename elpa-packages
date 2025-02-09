@@ -855,7 +855,7 @@
  (vigenere 		:url nil)
  (visual-filename-abbrev :url nil)
  (visual-fill		:url nil)
- (vlf			:url "https://github.com/m00natic/vlfi") ;FIXME:Dead?
+ (vlf			:url nil) ;"https://github.com/m00natic/vlfi"
  (vundo			:url "https://github.com/casouri/vundo"
   :ignored-files ("test")
   :news "NEWS.txt")

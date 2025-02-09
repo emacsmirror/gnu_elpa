@@ -1,10 +1,10 @@
-;;; org-gnosis.el --- Knowledge Management System  -*- lexical-binding: t; -*-
+;;; org-gnosis.el --- Roam-like Knowledge Management System  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024-2025  Thanos Apollo
 
 ;; Author: Thanos Apollo <public@thanosapollo.org>
 ;; Keywords: extensions
-;; URL: https://thanosapollo.org/projects/gnosis
+;; URL: https://thanosapollo.org/projects/org-gnosis/
 ;; Version: 0.0.1
 
 ;; Package-Requires: ((emacs "27.2") (emacsql "4.0.3") (compat "29.1.4.2"))
@@ -310,6 +310,7 @@ Removes all contents of FILE in database, adding them anew."
         (cl-loop for done-todo in done-todos
 		 do (org-gnosis-mark-todo-as-done done-todo))))))
 
+;;;###autoload
 (defun org-gnosis-delete-file (&optional file)
   "Delete FILE.
 

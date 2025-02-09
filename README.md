@@ -16,9 +16,6 @@ Add a function (example, below) to `auto-revert-tail-truncate-mode-hook` to cont
 e.g., `truncate-lines`, controlling `so-long-mode` threshold, disabling spell checking, or enabling other minor modes for
 specific log-file formats (the visual features of which may require you to enable font-lock for those buffers).
 
-If you want this mode enabled for all *.log files, run the command
-`auto-revert-tail-mode-on-log-files` or add this to your `init.el` file.
-
 Refer to the source code or docstrings for details on user options.
 
 ## Installation
@@ -59,9 +56,7 @@ Or, if you use Emacs 30+, uncomment the :vc stanza, below.
       (jinx-mode -1))
     (when (fboundp 'show-smartparens-mode)
       (show-smartparens-mode -1)))
-  (add-hook 'auto-revert-tail-truncate-mode-hook #'my/auto-revert-tail-truncate-mode-hook)
-  ;; add auto-mode-alist entry for .log files to use auto-revert-tail-mode
-  (auto-revert-tail-mode-on-log-files))
+  (add-hook 'auto-revert-tail-truncate-mode-hook #'my/auto-revert-tail-truncate-mode-hook))
 ```
 
 To invoke the mode interactively, use `M-x auto-revert-tail-truncate-mode`.

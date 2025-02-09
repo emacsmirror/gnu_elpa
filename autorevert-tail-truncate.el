@@ -6,7 +6,7 @@
 ;; Maintainer: Stephane Marks <shipmints@gmail.com>
 ;; Url: https://github.com/shipmints/autorevert-tail-truncate.el
 ;; Created: 2025-02-03
-;; Version: 1.0.0
+;; Version: 1.0.1
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: convenience, tools, log files, autorevert
 
@@ -45,9 +45,6 @@
 ;; enabling other minor modes for specific log-file formats (the
 ;; visual features of which may require you to enable font-lock for
 ;; those buffers).
-;;
-;; If you want this mode enabled for all *.log files, run the command
-;; `auto-revert-tail-mode-on-log-files'.
 
 ;;; Code:
 

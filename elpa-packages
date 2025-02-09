@@ -304,7 +304,7 @@
  (embark		:url "https://github.com/oantolin/embark"
   :doc "embark.texi"
   :ignored-files ("embark-consult.el" "avy-embark-collect.el"))
- (embark-consult	:url "https://github.com/oantolin/embark"
+ (embark-consult	:url embark
   :ignored-files ("embark.el" "embark.texi" "avy-embark-collect.el"
                   "embark-org.el"))
  (ement			:url "https://github.com/alphapapa/ement.el.git"
@@ -486,7 +486,7 @@
   :ignored-files ("COPYING" "doclicense.texi"))
  (luwak			:url "https://g.ypei.me/luwak.git"
   :readme "README.org")
- (lv			:url "https://github.com/abo-abo/hydra"
+ (lv			:url hydra
   :ignored-files ("hydra*" "README.md" "doc" "targets"))
  (m-buffer		:url "https://github.com/phillord/m-buffer-el"
   ;; FIXME: This is fairly ugly, we should clean it up.

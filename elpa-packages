@@ -690,7 +690,7 @@
  (rudel			:url nil) ;; Was bzr::bzr://rudel.bzr.sourceforge.net/bzrroot/rudel/trunk
  (satchel		:url "https://git.sr.ht/~theo/satchel"
   :ignored-files ("LICENSE"))
- (scanner		:url "https://gitlab.com/rstocker/scanner.git")
+ (scanner		:url "https://codeberg.org/rstocker/scanner.git")
  (scroll-restore	:url nil)
  (sed-mode		:url nil)
  (seq			:url nil)

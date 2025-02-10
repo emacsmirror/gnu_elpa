@@ -1,3 +1,22 @@
+2025-02-10  Durand  <durand@jsdurand.xyz>
+
+	* blist.el: Refine the process of naming new tabs.  Now the tab
+	names are determined at the same time bookmarks are jumped to, so
+	that we do not risk opening the same bookmark twice, causing some
+	unwanted consequences.
+
+        Also the user experience of giving names to new tabs is refined as
+	well: the user can either choose manual names, the bookmark names,
+	or the automatic naming for the new tabs.  The user can even roll
+	back a tab name or skip some tabs at wish.
+
+	This process is inspired by the multi-file searches, by the way.
+
+	* README.org:
+	* blist.texinfo: Include the descriptions of the variable
+	`blist-select-manner` and its various options in the documentation
+	now.
+
 2025-02-07  Durand  <durand@jsdurand.xyz>
 
 	* blist.el: Add an option to open each bookmark in a new tab.  Now

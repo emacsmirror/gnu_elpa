@@ -24,13 +24,9 @@
 
 ;;; Commentary:
 
-;; Org Gnosis is a knowledge management system, where notes are stored
-;; in org files under a specified directory.  Files are parsed and
-;; their data is saved in an SQLite databse, making it easier to
-;; retrieve information and view relationships.
-
-;; Functionality for journaling with journal entries in a separated
-;; directory & customizable templates is also available.
+;; Org Gnosis is a knowledge management tool that leverages Org mode
+;; for storing notes & journal entries, integrating them with an
+;; SQLite database for efficient retrieval and relationship mapping.
 
 ;;; Code:
 
@@ -44,58 +40,48 @@
 
 (defcustom org-gnosis-dir (expand-file-name "Notes" "~")
   "Directory with gnosis notes."
-  :type 'directory
-  :group 'org-gnosis)
+  :type 'directory)
 
 (defcustom org-gnosis-journal-templates
   '(("Default" (lambda () (format "* Daily Notes\n\n* Goals\n%s" (org-gnosis-todos))))
     ("Empty" (lambda () "")))
   "Templates for journaling."
   :type '(repeat (cons (string :tag "Name")
-                       (function :tag "Template Function")))
-  :group 'org-gnosis)
+                       (function :tag "Template Function"))))
 
 (defcustom org-gnosis-node-templates
   '(("Default" (lambda () "")))
   "Templates for nodes."
   :type '(repeat (cons (string :tag "Name")
-                       (function :tag "Template Function")))
-  :group 'org-gnosis)
+                       (function :tag "Template Function"))))
 
 (defcustom org-gnosis-journal-dir (expand-file-name "journal" org-gnosis-dir)
   "Gnosis journal directory."
-  :type 'directory
-  :group 'org-gnosis)
+  :type 'directory)
 
 (defcustom org-gnosis-show-tags nil
   "Display tags with `org-gnosis-find'."
-  :type 'boolean
-  :group 'org-gnosis)
+  :type 'boolean)
 
 (defcustom org-gnosis-timestring "%Y%m%d%H%M%S"
   "Timestring used for the creation of file."
-  :type 'string
-  :group 'org-gnosis)
+  :type 'string)
 
 (defcustom org-gnosis-todo-files org-agenda-files
   "TODO files used for the journal entries."
-  :type '(repeat string)
-  :group 'org-gnosis)
+  :type '(repeat string))
 
 (defcustom org-gnosis-completing-read-func #'org-completing-read
   "Function to use for `completing-read'."
-  :type 'function
-  :group 'org-gnosis)
+  :type 'function)
 
 (defcustom org-gnosis-bullet-point-char "+"
   "String to indicate a bullet point."
-  :type 'string
-  :group 'org-gnosis)
+  :type 'string)
 
 (defface org-gnosis-face-tags
   '((t :inherit font-lock-type-face))
-  "Face for displaying gnosis with `org-gnosis-find'."
-  :group 'org-gnosis)
+  "Face for displaying gnosis with `org-gnosis-find'.")
 
 (defvar org-gnosis-db (emacsql-sqlite-open (locate-user-emacs-file "org-gnosis.db")))
 
@@ -334,7 +320,7 @@ Delete file contents in database & file."
                    (propertized-tags
 		    (when tags
                       (concat (propertize "#" 'face 'org-gnosis-face-tags)
-                              (propertize (mapconcat 'identity tags "#")
+                              (propertize (mapconcat #'identity tags "#")
 					  'face 'org-gnosis-face-tags)))))
               (if propertized-tags
                   (format "%s  %s" title propertized-tags)

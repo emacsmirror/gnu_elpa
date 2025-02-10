@@ -1000,7 +1000,7 @@ question will be asked again."
             (orig-prompt "How to name the tab %s? ")
             (prompt "How to name the tab %s? ")
             help-pressed do-not-jump history first-tab key temp
-            pre-key keep-pre-key)
+            pre-key keep-pre-key temp-sign)
         (while (or do-not-jump (consp bookmarks))
           (cond
            ((not do-not-jump)
@@ -1043,7 +1043,10 @@ question will be asked again."
                    orig-prompt))
             (setq do-not-jump t))
            ((memq key digit-keys)
-            (setq temp-num (+ (- key ?0) (* 10 temp-num)))
+            (cond
+             ((eq key ?-)
+              (setq temp-sign (cond ((null temp-sign) '-))))
+             ((setq temp-num (+ (- key ?0) (* 10 temp-num)))))
             (setq do-not-jump t))
            ((and (numberp key) (= key ?y))
             (tab-bar-rename-tab (read-string "Name: "))
@@ -1058,7 +1061,7 @@ question will be asked again."
             (setq do-not-jump t))
            ((and (numberp key) (= key ?n))
             (cond
-             ((and (numberp temp-num) (>= temp-num 0))
+             ((null temp-sign)
               (setq temp-num (1- temp-num))
               (setq history
                     (cons
@@ -1077,27 +1080,29 @@ question will be asked again."
                          (blist-prepare-select-tabs--normalize-history
                           temp)
                          history)))
-                 ((setq temp-num 0)))))
-             ((and (numberp temp-num) (< temp-num 0))
-              (setq temp-num (- temp-num))
+                 ((setq temp-num 0))))
+              (setq temp-num 0))
+             ((eq temp-sign '-)
               (setq bookmarks
                     (cons
                      (blist-prepare-select-tabs--normalize-history
                       temp)
                      bookmarks))
-              (while (> temp-num 0)
+              (while (>= temp-num 0)
                 (setq temp-num (1- temp-num))
                 (setq temp (car-safe history))
                 (setq history (cdr-safe history))
                 (cond
                  (temp
                   (setq bookmarks (cons temp bookmarks)))
-                 ((setq temp-num 0))))))
-            (setq temp-num 0))
+                 ((setq temp-num -1))))))
+            (setq temp-num 0)
+            (setq temp-sign nil))
            ((memq key (list ?N ?!))
             (setq pre-key ?N)
             (setq keep-pre-key t)
-            (setq temp-num 0))
+            (setq temp-num 0)
+            (setq temp-sign nil))
            ((and (numberp key) (= key ?b))
             (tab-bar-rename-tab
              (blist-prepare-select-tabs--name temp))
@@ -1115,9 +1120,7 @@ question will be asked again."
                    history)))
            ((and (numberp key) (= key ?p))
             (setq do-not-jump t)
-            (cond
-             ((= temp-num 0) (setq temp-num -1))
-             ((setq temp-num (- temp-num))))
+            (setq temp-sign (cond ((null temp-sign) '-)))
             (setq pre-key ?n))
            ((and (numberp key) (= key ?\C-g))
             (setq bookmarks nil))
@@ -1126,9 +1129,7 @@ question will be asked again."
             (cond
              (help-pressed
               (with-selected-window (get-buffer-window (help-buffer))
-                (ignore-errors
-                  (scroll-up-command (cond ((< temp-num 0) '-)))))
-              (setq temp-num 0))
+                (ignore-errors (scroll-up-command temp-sign))))
              (t
               (with-help-window (help-buffer)
                 (let ((inhibit-read-only t)
@@ -1141,7 +1142,9 @@ question will be asked again."
                   (search-forward (make-string 70 ?-))
                   (delete-region (point-min) (point))
                   (kill-line 2)))
-              (setq help-pressed t))))))
+              (setq help-pressed t)))
+            (setq temp-num 0)
+            (setq temp-sign nil))))
         (tab-bar-select-tab first-tab))
     (cond
      ((window-live-p (get-buffer-window (help-buffer)))

@@ -27,12 +27,18 @@
 ;;; Commentary:
 ;; The following code provides an Easy Customization interface to manage
 ;; abbrevs.
-;; The main command are `customize-abbrevs' and `customize-all-abbrevs'.
-;; It presents a Custom-like buffer with abbrevs to edit.
+;; The main commands are `customize-abbrevs' and `customize-all-abbrevs'.
+;; Both present a Custom-like buffer with abbrevs to edit.
+;; With `customize-all-abbrevs', the buffer contains all abbrev tables
+;; known, with all of their abbrevs.
+;; With `customize-abbrevs', the buffer contains a single abbrev table.
+;; Still, saving abbrevs saves all of them.
 
 ;;; Code:
+;; Requirements.
 (require 'cus-edit)
 
+;; User options.
 (defgroup cus-abbrev nil
   "Customize Abbrevs with a Customize-like interface."
   :group 'customize)
@@ -43,6 +49,7 @@
 If nil, this is the same as `abbrev-file-name'."
   :type '(choice (const :tag "Default abbrev file" nil) (file)))
 
+;; Variables.
 (defvar-local custom-abbrev-widgets nil
   "List of widgets that hold the abbrev customizations.")
 
@@ -89,6 +96,7 @@ See `custom-commands' for further explanation.")
 (defvar custom-abbrev-tool-bar-map nil
   "Keymap for the toolbar in buffers for Customizing Abbrevs.")
 
+;; Widgets.
 (define-widget 'custom-abbrev 'editable-list
   "An editable list to edit abbrevs."
   :entry-format "%i %d %v"
@@ -128,6 +136,21 @@ This command also saves any other editions made to the abbrev table."
   (message (format "Abbrevs saved to %s" (or custom-abbrev-file-name
                                              abbrev-file-name))))
 
+(defun custom-abbrev-toggle-hide-abbrev-table (widget &rest _ignore)
+  "Hide/Show the abbrev-table widget related to this visibility WIDGET."
+  (let ((w (widget-get widget :widget))
+        (val (not (widget-value widget))))
+    (widget-value-set widget val)
+    (widget-put w :format (concat "Abbrev Table: %{%t%}"
+                                  (if val "\n%v%i" "")
+                                  "\n"))
+    (if val
+        (widget-value-set w (widget-get w :stashed-value))
+      (widget-put w :stashed-value (widget-value w))
+      (widget-value-set w (widget-value w)))
+    (widget-setup)))
+
+;; Functions.
 (defun custom-abbrev--prepare-buffer (buffer-name)
   "Prepare buffer called BUFFER-NAME for Customizing Abbrevs."
   (switch-to-buffer buffer-name)
@@ -171,6 +194,7 @@ This command also saves any other editions made to the abbrev table."
                  :action #'Custom-abbrev-save)
   (widget-insert "\n\n"))
 
+;; Commands.
 ;;;###autoload
 (defun customize-all-abbrevs ()
   "Customize all Abbrevs in current session."
@@ -204,13 +228,13 @@ This command also saves any other editions made to the abbrev table."
       (setq abbrevs (nreverse abbrevs))
       (setq visibility (widget-create
                         'custom-visibility
-		        :help-echo "Hide or show this abbrev table."
-		        :on "Hide"
-		        :off "Show"
-		        :on-glyph "down"
-		        :off-glyph "right"
-		        :action #'custom-abbrev-toggle-hide-abbrev-table
-		        t))
+                        :help-echo "Hide or show this abbrev table."
+                        :on "Hide"
+                        :off "Show"
+                        :on-glyph "down"
+                        :off-glyph "right"
+                        :action #'custom-abbrev-toggle-hide-abbrev-table
+                        t))
       (setq abbrev-widget (widget-create
                            'custom-abbrev
                            :value abbrevs
@@ -232,20 +256,6 @@ This command also saves any other editions made to the abbrev table."
       (widget-put visibility :widget abbrev-widget)))
   (custom-abbrev--prepare-buffer-2))
 
-(defun custom-abbrev-toggle-hide-abbrev-table (widget &rest _ignore)
-  "Hide/Show the abbrev-table widget related to this visibility WIDGET."
-  (let ((w (widget-get widget :widget))
-        (val (not (widget-value widget))))
-    (widget-value-set widget val)
-    (widget-put w :format (concat "Abbrev Table: %{%t%}"
-                                  (if val "\n%v%i" "")
-                                  "\n"))
-    (if val
-        (widget-value-set w (widget-get w :stashed-value))
-      (widget-put w :stashed-value (widget-value w))
-      (widget-value-set w (widget-value w)))
-    (widget-setup)))
-  
 ;;;###autoload
 (defun customize-abbrevs (&optional table-name)
   "Customize Abbrevs in current session for abbrev table TABLE-NAME.

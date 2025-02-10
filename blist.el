@@ -813,35 +813,26 @@ bookmark before jumping."
 
 ;;;;; Prepare windows
 
-(defun blist-prepare-select-windows (num manner)
+(defun blist-prepare-select-windows (num manner name)
   "Create and return NUM windows according to MANNER.
 
 NUM should be a positive integer.
 
 See `blist-select-manner' for what MANNER should look like.
 
-Return a list of cons cells of the form
+If NAME is a string and if `onetab' belongs to MANNER, then the
+new tab created to hold the created windows will be named NAME.
 
-(WINDOW . TAB-INDEX)
+NOTE that it is undefined behaviour, if `one-per-tab' belongs to
+MANNER.
 
-where WINDOW is the prepared window and TAB-INDEX is the index of
-the prepared tab that can be fed to the function
-`tab-bar-select-tab'.  If no tab is prepared, this returned index
-is nil."
+Return the list of created windows."
   (cond
    ((or (not (integerp num))
         (<= num 0))
     (error "NUM should be a positive integer, but got %S" num)))
-  ;; tab bar index starts from 1, but `tab-bar--current-tab-index'
-  ;; starts from 0.
-  (let* ((one-per-tab (memq 'one-per-tab manner))
-         (mainp (memq 'main-side manner))
+  (let* ((mainp (memq 'main-side manner))
          (tabp (cond (mainp nil) ((memq 'onetab manner))))
-         (orig-tab-index
-          (cond
-           ((or one-per-tab tabp)
-            (require 'tab-bar)
-            (1+ (tab-bar--current-tab-index)))))
          (verticalp (memq 'vertical manner))
          (leftp (memq 'left manner))
          (upp (memq 'up manner))
@@ -860,65 +851,303 @@ is nil."
          (orig-window (selected-window))
          temp-window windows main-side-splitted-p)
     (cond (tabp
+           (require 'tab-bar)
            (tab-bar-new-tab)
-           (setq orig-tab-index (1+ (tab-bar--current-tab-index)))))
-    (cond
-     (one-per-tab
-      (let ((firstp t))
-        (while (> num 0)
-          (tab-bar-new-tab)
-          (cond
-           (firstp
-            (select-window
-             (split-window (frame-root-window) nil 'below))
-            (delete-other-windows)
-            (setq firstp nil)))
-          (setq windows (cons
-                         (cons (selected-window)
-                               (1+ (tab-bar--current-tab-index)))
-                         windows))
-          (setq num (1- num)))))
-     (t
-      ;; create a new window so that we are not inside some window
-      ;; that cannot be splitted, like a side window
-      (select-window (split-window (frame-root-window) nil 'below))
-      (delete-other-windows)
-      (setq orig-window (selected-window))
-      (setq windows (cons (cons orig-window orig-tab-index) windows))
-      (setq temp-window orig-window)
-      (setq num (1- num))
-      (while (> num 0)
-        (setq
-         temp-window
-         (split-window temp-window
-                       (cond
-                        ((and mainp (not main-side-splitted-p))
-                         nil)
-                        (size))
-                       (cond
-                        (current-direction
-                         ;; vertical
-                         (cond (upp 'above) ('below)))
-                        ;; horizontal
-                        (leftp 'left)
-                        ('right))))
-        (setq windows
-              (cons (cons temp-window orig-tab-index) windows))
-        ;; change direction for spirals and change direction only once
-        ;; for main-side
-        (cond (spiralp
-               (setq current-direction (not current-direction))
-               ;; spirals change the horizontal / vertical directions
-               ;; as well
-               (cond
-                (current-direction
-                 (setq leftp (not leftp)))
-                ((setq upp (not upp)))))
-              ((and mainp (not main-side-splitted-p))
-               (setq current-direction (not current-direction))
-               (setq main-side-splitted-p t)))
-        (setq num (1- num)))))
+           (cond ((and name (stringp name))
+                  (tab-bar-rename-tab name)))))
+    ;; Create a new window so that we are not inside some window that
+    ;; cannot be splitted, like a side window.
+    (select-window (split-window (frame-root-window) nil 'below))
+    (delete-other-windows)
+    (setq orig-window (selected-window))
+    (setq windows (cons orig-window windows))
+    (setq temp-window orig-window)
+    (setq num (1- num))
+    (while (> num 0)
+      (setq
+       temp-window
+       (split-window temp-window
+                     (cond
+                      ((and mainp (not main-side-splitted-p)) nil)
+                      (size))
+                     (cond
+                      (current-direction
+                       ;; vertical
+                       (cond (upp 'above) ('below)))
+                      ;; horizontal
+                      (leftp 'left)
+                      ('right))))
+      (setq windows (cons temp-window windows))
+      ;; Change direction for spirals and change direction only once
+      ;; for main-side.
+      (cond (spiralp
+             (setq current-direction (not current-direction))
+             ;; Spirals change the horizontal / vertical directions as
+             ;; well
+             (cond
+              (current-direction
+               (setq leftp (not leftp)))
+              ((setq upp (not upp)))))
+            ((and mainp (not main-side-splitted-p))
+             (setq current-direction (not current-direction))
+             (setq main-side-splitted-p t)))
+      (setq num (1- num)))
     (reverse windows)))
+
+;;;;; Prepare tabs for each selected bookmark
+
+;;;;;; Some auxiliary functions for handling tabs
+
+(defun blist-prepare-select-tabs--name (struct)
+  "Return the bookmark name contained in STRUCT."
+  (cond
+   ((eq (car struct) 'history)
+    (bookmark-name-from-full-record (cadr struct)))
+   (t (bookmark-name-from-full-record struct))))
+
+(defun blist-prepare-select-tabs--jump (struct)
+  "Jump to STRUCT, which is either a bookmark or a history.
+The contained bookmark is returned."
+  (cond
+   ((eq (car struct) 'history)
+    (tab-bar-select-tab (caddr struct))
+    (cadr struct))
+   (t (tab-bar-new-tab) (bookmark-jump struct) struct)))
+
+(defun blist-prepare-select-tabs--normalize-history (struct)
+  "Make STRUCT a history struct and return."
+  (cond
+   ((eq (car struct) 'history) struct)
+   ((list 'history struct (1+ (tab-bar--current-tab-index))))))
+
+(defun blist-prepare-select-tabs--tabs-str ()
+  "Return the string showing the current situation."
+  (interactive)
+  (mapconcat
+   (lambda (tab)
+     (propertize
+      (cdr (assoc 'name (cdr tab)))
+      'face
+      (cond ((eq (car tab) 'current-tab)
+             'success)
+            ('default))))
+   (tab-bar-tabs)
+   " | "))
+
+;;;;;; The function that prepares the tabs
+
+(defun blist-prepare-select-tabs (bookmarks)
+  "Create a new tab for each item in BOOKMARKS.
+The tab holding the first item will be selected after the
+execution of this function.
+
+The names of the new tabs are determined by the following
+procedure:
+
+After creating a tab and jumping to the corresponding bookmark,
+ask if the user wants to give the tab a specific name.
+
+----------------------------------------------------------------------
+
+If the user enters \\`y', then the user will be asked about the
+name of the tab, and the user has two options:
+
+    If the user enters a non-empty string, that will be the name
+    of the tab, and the function proceeds to the next item.
+
+    If the user enters a blank string, the tab's name will be
+    determined by tab-bar automatically.  Usually this means the
+    selected buffer name in the tab will be the name of the tab.
+
+If the user enters \\`Y', then for each marked item afterwards,
+it will be assumed that the user will enter \\`y'.
+
+If the user enters \\`n', the tab's name will not be touched.
+
+    The user can also enter some number before entering \\`n', so
+    that this procedure simply skips that number of items.
+
+If the user enters \\`N' or \\`!', then for each marked item
+afterwards, it will be assumed that the user will enter \\`n'.
+
+If the user enters \\`b', the name of this tab will be the name
+of the corresponding bookmark.
+
+If the user enters \\`B' or \\`=', then for each marked item
+afterwards, it will be assumed that the user will enter \\`b'.
+
+If the user enters \\`p', the function will jump to the previous
+tab and run the same procedure to allow the user change the
+previous tab name.
+
+    The user can also enter some number before entering \\`p', so
+    that this procedure simply rolls back that number of items.
+
+    If no more previous tabs exist, just ask the same question
+    again.
+
+If the user enters anything else, a temporary help screen will be
+displayed, the above help message will be shown, and the same
+question will be asked again."
+  (unwind-protect
+      (let ((temp-num 0)
+            (firstp t)
+            (digit-keys
+             (cons
+              ?-
+              (mapcar (lambda (n) (+ n ?0)) (number-sequence 0 9))))
+            (orig-prompt "How to name the tab %s? ")
+            (prompt "How to name the tab %s? ")
+            help-pressed do-not-jump history first-tab key temp
+            pre-key keep-pre-key)
+        (while (or do-not-jump (consp bookmarks))
+          (cond
+           ((not do-not-jump)
+            (setq temp (car bookmarks))
+            (setq bookmarks (cdr bookmarks))
+            (cond (firstp
+                   (tab-bar-new-tab)
+                   (setq first-tab (1+ (tab-bar--current-tab-index)))
+                   (select-window
+                    (split-window (frame-root-window) nil 'below))
+                   (delete-other-windows)
+                   (setq firstp nil)
+                   (bookmark-jump temp))
+                  ((setq temp
+                         (blist-prepare-select-tabs--jump temp))))))
+          (setq do-not-jump nil)
+          (setq key (cond
+                     (pre-key)
+                     ((read-key
+                       (format
+                        prompt
+                        (blist-prepare-select-tabs--name temp))
+                       t))))
+          (setq prompt orig-prompt)
+          (setq pre-key (cond (keep-pre-key pre-key)))
+          (cond
+           ((memq key (list 'tab ?\C-i ?y ?Y ?n ?N ?! ?b ?B ?= ?p))
+            (setq help-pressed nil)))
+          (cond
+           ((memq key (list 'tab ?\C-i))
+            (setq prompt
+                  (concat
+                   "Remaining: "
+                   (mapconcat
+                    #'blist-prepare-select-tabs--name
+                    bookmarks " | ")
+                   "\nTabs: "
+                   (blist-prepare-select-tabs--tabs-str)
+                   "\n"
+                   orig-prompt))
+            (setq do-not-jump t))
+           ((memq key digit-keys)
+            (setq temp-num (+ (- key ?0) (* 10 temp-num)))
+            (setq do-not-jump t))
+           ((and (numberp key) (= key ?y))
+            (tab-bar-rename-tab (read-string "Name: "))
+            (setq history
+                  (cons
+                   (blist-prepare-select-tabs--normalize-history
+                    temp)
+                   history)))
+           ((and (numberp key) (= key ?Y))
+            (setq pre-key ?y)
+            (setq keep-pre-key t)
+            (setq do-not-jump t))
+           ((and (numberp key) (= key ?n))
+            (cond
+             ((and (numberp temp-num) (>= temp-num 0))
+              (setq temp-num (1- temp-num))
+              (setq history
+                    (cons
+                     (blist-prepare-select-tabs--normalize-history
+                      temp)
+                     history))
+              (while (> temp-num 0)
+                (setq temp-num (1- temp-num))
+                (setq temp (car-safe bookmarks))
+                (setq bookmarks (cdr-safe bookmarks))
+                (cond
+                 (temp
+                  (blist-prepare-select-tabs--jump temp)
+                  (setq history
+                        (cons
+                         (blist-prepare-select-tabs--normalize-history
+                          temp)
+                         history)))
+                 ((setq temp-num 0)))))
+             ((and (numberp temp-num) (< temp-num 0))
+              (setq temp-num (- temp-num))
+              (setq bookmarks
+                    (cons
+                     (blist-prepare-select-tabs--normalize-history
+                      temp)
+                     bookmarks))
+              (while (> temp-num 0)
+                (setq temp-num (1- temp-num))
+                (setq temp (car-safe history))
+                (setq history (cdr-safe history))
+                (cond
+                 (temp
+                  (setq bookmarks (cons temp bookmarks)))
+                 ((setq temp-num 0))))))
+            (setq temp-num 0))
+           ((memq key (list ?N ?!))
+            (setq pre-key ?N)
+            (setq keep-pre-key t)
+            (setq temp-num 0))
+           ((and (numberp key) (= key ?b))
+            (tab-bar-rename-tab
+             (blist-prepare-select-tabs--name temp))
+            (setq history
+                  (cons
+                   (blist-prepare-select-tabs--normalize-history temp)
+                   history)))
+           ((memq key (list ?B ?=))
+            (tab-bar-rename-tab
+             (blist-prepare-select-tabs--name temp))
+            (setq pre-key ?B)
+            (setq history
+                  (cons
+                   (blist-prepare-select-tabs--normalize-history temp)
+                   history)))
+           ((and (numberp key) (= key ?p))
+            (setq do-not-jump t)
+            (cond
+             ((= temp-num 0) (setq temp-num -1))
+             ((setq temp-num (- temp-num))))
+            (setq pre-key ?n))
+           ((and (numberp key) (= key ?\C-g))
+            (setq bookmarks nil))
+           (t
+            (setq do-not-jump t)
+            (cond
+             (help-pressed
+              (with-selected-window (get-buffer-window (help-buffer))
+                (ignore-errors
+                  (scroll-up-command (cond ((< temp-num 0) '-)))))
+              (setq temp-num 0))
+             (t
+              (with-help-window (help-buffer)
+                (let ((inhibit-read-only t)
+                      (doc
+                       (documentation
+                        #'blist-prepare-select-tabs)))
+                  (erase-buffer)
+                  (insert doc)
+                  (goto-char (point-min))
+                  (search-forward (make-string 70 ?-))
+                  (delete-region (point-min) (point))
+                  (kill-line 2)))
+              (setq help-pressed t))))))
+        (tab-bar-select-tab first-tab))
+    (cond
+     ((window-live-p (get-buffer-window (help-buffer)))
+      (quit-window nil (get-buffer-window (help-buffer)))))
+    (message
+     "%s"
+     (blist-prepare-select-tabs--tabs-str))))
 
 ;;;;; select function
 
@@ -968,20 +1197,33 @@ controls how multiple bookmarks are selected."
                       'left 'right 'up 'down 'onetab 'one-per-tab)
                      nil t)))
                   (blist-select-manner)))
-         (windows (blist-prepare-select-windows
-                   (length marked-items) manner))
-         (orig-window (car windows)))
+         (new-tab-name
+          (cond
+           ((and (memq 'onetab manner)
+                 (not (memq 'one-per-tab manner)))
+            (defvar new-tab-name-hist)
+            (setq
+             new-tab-name-hist
+             (mapcar #'bookmark-name-from-full-record
+                     marked-items))
+            (read-string
+             "Give the new tab a name? "
+             nil (cons 'new-tab-name-hist 1)))))
+         (windows
+          (cond
+           ((memq 'one-per-tab manner)
+            (blist-prepare-select-tabs marked-items)
+            nil)
+           ((blist-prepare-select-windows
+             (length marked-items) manner new-tab-name))))
+         (orig-window (car-safe windows)))
     (while (consp windows)
-      (cond ((cdar windows)
-             (tab-bar-select-tab (cdar windows))))
-      (select-window (caar windows))
+      (select-window (car windows))
       (bookmark-jump
        (bookmark-name-from-full-record (car marked-items)))
       (setq marked-items (cdr marked-items))
       (setq windows (cdr windows)))
-    (cond ((cdr orig-window)
-           (tab-bar-select-tab (cdr orig-window))))
-    (select-window (car orig-window))))
+    (cond ((windowp orig-window) (select-window orig-window)))))
 
 ;;;; rename
 

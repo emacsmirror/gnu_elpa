@@ -1,13 +1,13 @@
 ;;; org-gnosis.el --- Roam-like Knowledge Management System  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024-2025  Thanos Apollo
+;; Copyright (C) 2024-2025  Free Software Foundation, Inc.
 
 ;; Author: Thanos Apollo <public@thanosapollo.org>
 ;; Keywords: extensions
 ;; URL: https://thanosapollo.org/projects/org-gnosis/
 ;; Version: 0.0.1
 
-;; Package-Requires: ((emacs "27.2") (emacsql "4.0.3") (compat "29.1.4.2"))
+;; Package-Requires: ((emacs "27.2") (emacsql "4.1.0") (compat "29.1.4.2"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

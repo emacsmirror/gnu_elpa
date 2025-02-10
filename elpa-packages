@@ -566,6 +566,7 @@
  (org-edna		:url "bzr::https://bzr.savannah.gnu.org/git/org-edna-el"
   ;; The Bzr<->Git bridge wasn't working well enough last time I tried.
   :manual-sync t)
+ (org-gnosis		:url "https://git.thanosapollo.org/org-gnosis")
  (org-jami-bot		:url "https://gitlab.com/hperrey/org-jami-bot"
   :ignored-files ("LICENSE"))
  ;; FIXME: Waiting for copyright paperwork from Brandon Webster.

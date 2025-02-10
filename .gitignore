@@ -5,6 +5,7 @@
 *.kys
 *.log
 *.toc
+*.synctex.gz
 *.elc
 *.pdf
 *.info

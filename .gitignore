@@ -1,0 +1,5 @@
+*.elc
+
+# ELPA-generated files.
+/org-gnosis-autoloads.el
+/org-gnosis-pkg.el

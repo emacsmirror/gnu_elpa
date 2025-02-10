@@ -435,7 +435,8 @@ list; they are simply ignored."
 ;;;; Whether to show the number of items
 
 (defcustom blist-show-item-num-p nil
-  "If non-nil, the number of items is shown in the group header.")
+  "If non-nil, the number of items is shown in the group header."
+  :type 'boolean)
 
 ;;; Variables
 

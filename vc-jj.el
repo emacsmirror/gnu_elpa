@@ -42,6 +42,15 @@
   "Control whether to have jj colorize the log."
   :type 'boolean)
 
+(defcustom vc-jj-log-template "builtin_log_compact"
+  "The template to use for `vc-print-log'."
+  :type '(radio (const "builtin_log_oneline")
+                (const "builtin_log_compact")
+                (const "builtin_log_comfortable")
+                (const "builtin_log_compact_full_description")
+                (const "builtin_log_detailed")
+                (string :tag "Custom template")))
+
 (defun vc-jj--file-tracked (file)
   (with-temp-buffer
     (and (= 0 (call-process "jj" nil t nil "file" "list" "--" file))
@@ -249,7 +258,7 @@ self.hidden(), \"\\n\"
                (when start-revision
                  (list "-r" (concat ".." start-revision)))
                (when vc-jj-colorize-log (list "--color" "always"))
-               (list "--")
+               (list "-T" vc-jj-log-template "--")
                files)))
     (apply #'call-process "jj" nil buffer nil "log" args)
     (when vc-jj-colorize-log

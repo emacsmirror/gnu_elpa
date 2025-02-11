@@ -1181,39 +1181,40 @@ are taken from the cache instead."
 (defun debbugs-gnu-print-entry (list-id cols)
   "Insert a debbugs entry at point.
 Used instead of `tabulated-list-print-entry'."
-  (let ((case-fold-search t))
-    (when (and
-	   ;; We may have a narrowing in effect.
-	   (or (not debbugs-gnu-limit)
-	       (memq (alist-get 'id list-id) debbugs-gnu-limit))
-	   ;; Filter suppressed bugs.
-	   (or (not debbugs-gnu-local-suppress)
-	       (not (catch :suppress
-		      (dolist (check debbugs-gnu-default-suppress-bugs)
-			(when (string-match
-			       (cdr check) (alist-get (car check) list-id ""))
-			  (throw :suppress t))))))
-	   ;; Filter search list.
-	   (not (catch :suppress
-		  (dolist (check debbugs-gnu-local-filter)
-		    (let ((val (alist-get (car check) list-id)))
-		      (if (stringp (cdr check))
-			  ;; Regular expression.
-			  (when (not (string-match (cdr check) (or val "")))
-			    (throw :suppress t))
-			;; Time value.
-			(when (or (and (numberp (cadr check))
-				       (< (cadr check) val))
-				  (and (numberp (cddr check))
-				       (> (cddr check) val)))
-			  (throw :suppress t))))))))
+  (when-let* ((case-fold-search t)
+              ;; We may have a narrowing in effect.
+	      ((or (not debbugs-gnu-limit)
+	           (memq (alist-get 'id list-id) debbugs-gnu-limit)))
+	      ;; Filter suppressed bugs.
+	      ((or (not debbugs-gnu-local-suppress)
+	           (not (catch :suppress
+		          (dolist (check debbugs-gnu-default-suppress-bugs)
+			    (when
+                                (string-match
+			         (cdr check) (alist-get (car check) list-id ""))
+			      (throw :suppress t)))))))
+	      ;; Filter search list.
+	      ((not (catch :suppress
+		      (dolist (check debbugs-gnu-local-filter)
+		        (let ((val (alist-get (car check) list-id)))
+		          (if (stringp (cdr check))
+			      ;; Regular expression.
+			      (when
+                                  (not (string-match (cdr check) (or val "")))
+			        (throw :suppress t))
+			    ;; Time value.
+			    (when (or (and (numberp (cadr check))
+				           (< (cadr check) val))
+				      (and (numberp (cddr check))
+				           (> (cddr check) val)))
+			      (throw :suppress t)))))))))
 
-      (tabulated-list-print-entry list-id cols)
+    (tabulated-list-print-entry list-id cols)
 
-      ;; Add properties.
-      (add-text-properties
-       (line-beginning-position 0) (line-end-position 0)
-       '(mouse-face highlight)))))
+    ;; Add properties.
+    (add-text-properties
+     (line-beginning-position 0) (line-end-position 0)
+     '(mouse-face highlight))))
 
 (defun debbugs-gnu-menu-map-emacs-enabled ()
   "Whether \"Show Release Blocking Bugs\" is enabled in the menu."
@@ -1518,20 +1519,20 @@ modified on the debbugs server, consider typing \\`C-u g'.
 (defun debbugs-gnu-show-blocked-by-reports ()
   "Display all bug reports this report is blocked by."
   (interactive)
-  (let ((id (debbugs-gnu-current-id))
-	(status (debbugs-gnu-current-status)))
-    (if (null (alist-get 'blockedby status))
-	(message "Bug %d is not blocked by any other bug" id)
-      (apply #'debbugs-gnu-bugs (alist-get 'blockedby status)))))
+  (if-let* ((id (debbugs-gnu-current-id))
+	    (status (debbugs-gnu-current-status))
+            ((null (alist-get 'blockedby status))))
+      (message "Bug %d is not blocked by any other bug" id)
+    (apply #'debbugs-gnu-bugs (alist-get 'blockedby status))))
 
 (defun debbugs-gnu-show-blocking-reports ()
   "Display all bug reports this report is blocking."
   (interactive)
-  (let ((id (debbugs-gnu-current-id))
-	(status (debbugs-gnu-current-status)))
-    (if (null (alist-get 'blocks status))
-	(message "Bug %d is not blocking any other bug" id)
-      (apply #'debbugs-gnu-bugs (alist-get 'blocks status)))))
+  (if-let* ((id (debbugs-gnu-current-id))
+	    (status (debbugs-gnu-current-status))
+            ((null (alist-get 'blocks status))))
+      (message "Bug %d is not blocking any other bug" id)
+    (apply #'debbugs-gnu-bugs (alist-get 'blocks status))))
 
 (defun debbugs-gnu-show-all-blocking-reports (&optional release)
   "Narrow the display to just the reports that are blocking an Emacs release."
@@ -2096,17 +2097,17 @@ removed instead."
              (list (debbugs-gnu-current-id t)
                    debbugs-gnu-bug-number ; Set on group entry.
                    (debbugs-gnu-guess-current-id)
-                   (let ((bugnum-re
-			  "\\([0-9]+\\)\\(?:-done\\)?@debbugs.gnu.org"))
-                     (when (derived-mode-p #'message-mode)
-                       (save-excursion
-                         (save-restriction
-                           (message-narrow-to-headers)
-                           (and-let* ((addr (or (message-fetch-field "to")
-                                                (message-fetch-field "cc")))
-                                      ((string-match bugnum-re addr))
-                                      ((string-to-number
-				        (match-string 1 addr)))))))))))))
+                   (when-let* ((bugnum-re
+			        "\\([0-9]+\\)\\(?:-done\\)?@debbugs.gnu.org")
+                               ((derived-mode-p #'message-mode)))
+                     (save-excursion
+                       (save-restriction
+                         (message-narrow-to-headers)
+                         (and-let* ((addr (or (message-fetch-field "to")
+                                              (message-fetch-field "cc")))
+                                    ((string-match bugnum-re addr))
+                                    ((string-to-number
+				      (match-string 1 addr))))))))))))
 
 (defun debbugs-gnu-make-control-message
     (message bugid &optional reverse buffer noversion)
@@ -2925,10 +2926,9 @@ If SELECTIVELY, query the user before applying the patch."
 	  (narrow-to-region (point) (point))
 	  (insert (debbugs-compat-string-replace "\r" "" changelog))
 	  (indent-region (point-min) (point-max))))
-      (let ((point (point)))
+      (save-excursion
 	(when (string-match "\\(bug#[0-9]+\\)" subject)
-	  (insert " (" (match-string 1 subject) ")."))
-	(goto-char point)))))
+	  (insert " (" (match-string 1 subject) ")."))))))
 
 (defvar debbugs-gnu-lisp-mode-map
   (let ((map (make-sparse-keymap)))
@@ -3025,24 +3025,24 @@ If SELECTIVELY, query the user before applying the patch."
 (defun debbugs-gnu-log-edit-done ()
   "Finish editing the log edit and commit the files."
   (interactive)
-  (let ((author (mail-fetch-field "Author")))
-    (when (> (length author) 0)
-      (let ((from (debbugs-gnu--parse-mail author)))
-	(when (and (zerop (debbugs-gnu-find-contributor
-			   (let ((bits (split-string (car from))))
-			     (cond
-			      ((>= (length bits) 2)
-			       (format "%s.*%s" (car bits) (car (last bits))))
-			      ((= (length bits) 1)
-			       (car bits))
-			      ;; Fall back on the email address.
-			      (t
-			       (cadr from))))))
-		   (y-or-n-p "Add paperwork exempt line?"))
-	  (goto-char (point-max))
-	  (end-of-line)
-	  (terpri)
-	  (insert "\nCopyright-paperwork-exempt: yes\n")))))
+  (when-let* ((author (mail-fetch-field "Author"))
+              ((> (length author) 0))
+              (from (debbugs-gnu--parse-mail author))
+              ((zerop (debbugs-gnu-find-contributor
+		       (let ((bits (split-string (car from))))
+			 (cond
+			  ((>= (length bits) 2)
+			   (format "%s.*%s" (car bits) (car (last bits))))
+			  ((= (length bits) 1)
+			   (car bits))
+			  ;; Fall back on the email address.
+			  (t
+			   (cadr from)))))))
+	      ((y-or-n-p "Add paperwork exempt line?")))
+    (goto-char (point-max))
+    (end-of-line)
+    (terpri)
+    (insert "\nCopyright-paperwork-exempt: yes\n"))
   ;; Commit.
   (log-edit-done))
 

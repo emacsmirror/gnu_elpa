@@ -120,14 +120,13 @@ t or 0 disables caching, nil disables expiring."
 
 (defun debbugs-get-cache (bug-number)
   "Return the cached status entry for the bug identified by BUG-NUMBER."
-  (let ((status (gethash bug-number debbugs-cache-data)))
-    (when (and status
-               (or (null debbugs-cache-expiry)
+  (when-let* ((status (gethash bug-number debbugs-cache-data))
+              ((or (null debbugs-cache-expiry)
                    (and
                     (natnump debbugs-cache-expiry)
                     (> (alist-get 'cache_time status)
-                       (- (float-time) debbugs-cache-expiry)))))
-      status)))
+                       (- (float-time) debbugs-cache-expiry))))))
+      status))
 
 (defun debbugs-put-cache (bug-number status &optional ttl)
   "Put the STATUS entry for the bug BUG-NUMBER in the cache.
@@ -492,12 +491,11 @@ Example:
 	  (delq nil
 	   (mapcar
 	    (lambda (bug)
-	      (let ((status (debbugs-get-cache bug)))
-		(if status
-		    (progn
-		      (setq cached-bugs (append cached-bugs (list status)))
-		      nil)
-		  bug)))
+	      (if-let* ((status (debbugs-get-cache bug)))
+		  (progn
+		    (setq cached-bugs (append cached-bugs (list status)))
+		    nil)
+		bug))
 	    bug-numbers)))
 
     ;; Retrieve the data.

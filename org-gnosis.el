@@ -688,11 +688,9 @@ ENTRY: Journal entry linked under the heading."
   "Drop all tables."
   (ignore-errors
     (emacsql-with-transaction org-gnosis-db
-      (org-gnosis--drop-table 'nodes)
-      (org-gnosis--drop-table 'tags)
-      (org-gnosis--drop-table 'journal)
-      (org-gnosis--drop-table 'links)
-      (org-gnosis--drop-table 'node-tag))))
+      ;; Maybe use sql for version upgrades that change schemata?
+      (dolist (table (mapcar #'car org-gnosis-db--table-schemata))
+	(org-gnosis--drop-table table)))))
 
 (defun org-gnosis-db-sync--journal ()
   "Sync journal entries in databse."

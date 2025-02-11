@@ -89,49 +89,70 @@
           nil)
       return)))
 
-(add-function
- :override (symbol-function #'soap-invoke-internal)
- #'debbugs-test--soap-invoke-internal)
+(defun debbugs-test--setup ()
+  "Mock network and time functions.
+These mock functions are needed to make the tests reproducible."
+  (setq debbugs-test--soap-operation-name nil)
+  (setq debbugs-test--soap-parameters nil)
+
+  (add-function
+   :override (symbol-function #'soap-invoke-internal)
+   #'debbugs-test--soap-invoke-internal))
+
+(defun debbugs-test--teardown ()
+  "Restore functions to as they where before."
+  (setq debbugs-test--soap-operation-name nil)
+  (setq debbugs-test--soap-parameters nil)
+
+  (remove-function
+   (symbol-function #'soap-invoke-internal)
+   #'debbugs-test--soap-invoke-internal))
+
+(defmacro ert-deftest--debbugs (name args docstring &rest body)
+  "The same as `ert-deftest' but runs setup and teardown functions."
+  (declare
+   (doc-string 3)
+   (indent 2))
+  `(ert-deftest ,name ,args ,docstring
+                (debbugs-test--setup)
+                ,@body
+                (debbugs-test--teardown)))
 
 ;;; Tests:
 
-(ert-deftest debbugs-test-get-bugs ()
+(ert-deftest--debbugs debbugs-test-get-bugs ()
   "Test \"get_bugs\"."
-  (let (debbugs-test--soap-operation-name debbugs-test--soap-parameters)
-    (debbugs-get-bugs
-     :tag "patch"
-     :severity "critical"
-     :status "open"
-     :status "forwarded")
-    (should (string-equal debbugs-test--soap-operation-name "get_bugs"))
-    (should (equal debbugs-test--soap-parameters
-                   '(["tag" "patch" "severity" "critical"
-                      "status" "open" "status" "forwarded"])))))
+  (debbugs-get-bugs
+   :tag "patch"
+   :severity "critical"
+   :status "open"
+   :status "forwarded")
+  (should (string-equal debbugs-test--soap-operation-name "get_bugs"))
+  (should (equal debbugs-test--soap-parameters
+                 '(["tag" "patch" "severity" "critical"
+                    "status" "open" "status" "forwarded"]))))
 
-(ert-deftest debbugs-test-newest-bugs ()
+(ert-deftest--debbugs debbugs-test-newest-bugs ()
   "Test \"newest_bugs\"."
-  (let (debbugs-test--soap-operation-name debbugs-test--soap-parameters)
-    (debbugs-newest-bugs 4)
-    (should (string-equal debbugs-test--soap-operation-name "newest_bugs"))
-    (should (equal debbugs-test--soap-parameters '(4)))))
+  (debbugs-newest-bugs 4)
+  (should (string-equal debbugs-test--soap-operation-name "newest_bugs"))
+  (should (equal debbugs-test--soap-parameters '(4))))
 
-(ert-deftest debbugs-test-get-status ()
+(ert-deftest--debbugs debbugs-test-get-status ()
   "Test \"get_status\"."
-  (let (debbugs-test--soap-operation-name debbugs-test--soap-parameters)
-    (cl-letf (((symbol-function #'float-time)
-               (lambda (&optional _specified-time) 5000)))
-      (should (= (float-time) 5000))
-      (should (equal (sort (car (debbugs-get-status 64064)))
-                     (sort (car debbugs-test--bug-status))))
-      (should (string-equal debbugs-test--soap-operation-name "get_status"))
-      (should (equal debbugs-test--soap-parameters '([64064]))))))
+  (cl-letf (((symbol-function #'float-time)
+             (lambda (&optional _specified-time) 5000)))
+    (should (= (float-time) 5000))
+    (should (equal (sort (car (debbugs-get-status 64064)))
+                   (sort (car debbugs-test--bug-status))))
+    (should (string-equal debbugs-test--soap-operation-name "get_status"))
+    (should (equal debbugs-test--soap-parameters '([64064])))))
 
-(ert-deftest debbugs-test-get-usertag ()
+(ert-deftest--debbugs debbugs-test-get-usertag ()
   "Test \"get_usertag\"."
-  (let (debbugs-test--soap-operation-name debbugs-test--soap-parameters)
-    (should (equal (debbugs-get-usertag :user "emacs") '("hi")))
-    (should (string-equal debbugs-test--soap-operation-name "get_usertag"))
-    (should (equal debbugs-test--soap-parameters '("emacs")))))
+  (should (equal (debbugs-get-usertag :user "emacs") '("hi")))
+  (should (string-equal debbugs-test--soap-operation-name "get_usertag"))
+  (should (equal debbugs-test--soap-parameters '("emacs"))))
 
 (provide 'debbugs-tests)
 

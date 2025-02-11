@@ -118,6 +118,33 @@ t or 0 disables caching, nil disables expiring."
 		 (const :tag "Forever" nil)
 		 (integer :tag "Seconds")))
 
+(defun debbugs-get-cache (bug-number)
+  "Return the cached status entry for the bug identified by BUG-NUMBER."
+  (let ((status (gethash bug-number debbugs-cache-data)))
+    (when (and status
+               (or (null debbugs-cache-expiry)
+                   (and
+                    (natnump debbugs-cache-expiry)
+                    (> (alist-get 'cache_time status)
+                       (- (float-time) debbugs-cache-expiry)))))
+      status)))
+
+(defun debbugs-put-cache (bug-number status &optional ttl)
+  "Put the STATUS entry for the bug BUG-NUMBER in the cache.
+Return STATUS."
+  (if (or (null debbugs-cache-expiry)
+          (and (natnump debbugs-cache-expiry)
+               (not (zerop debbugs-cache-expiry))))
+      (let ((cache-time (float-time)))
+        ;; Kind of a hack for TTL that assume that `debbugs-cache-expiry'
+        ;; doesn't change
+        (when (and ttl (natnump debbugs-cache-expiry))
+          (setq cache-time (+ ttl (- cache-time debbugs-cache-expiry))))
+        (puthash bug-number
+                 (cons (cons 'cache_time cache-time) status)
+                 debbugs-cache-data))
+    status))
+
 (defun debbugs-soap-invoke (operation-name &rest parameters)
   "Invoke the SOAP connection.
 OPERATION-NAME and PARAMETERS are as described in `soap-invoke'."
@@ -325,41 +352,29 @@ patch:
 (defun debbugs-newest-bugs (amount)
   "Return the list of bug numbers, according to AMOUNT (a number) latest bugs."
   (if (= amount 1)
-      ;; We cache it as bug "0" in `debbugs-cache-data'.
-      (let ((status (gethash 0 debbugs-cache-data)))
-	(unless (and
-		 status
-		 (or
-		  (null debbugs-cache-expiry)
-		  (and
-		   (natnump debbugs-cache-expiry)
-		   (> (alist-get 'cache_time status)
-		      (- (float-time) debbugs-cache-expiry)))))
-	  ;; Due to `debbugs-gnu-completion-table', this function
-	  ;; could be called in rapid sequence.  We cache temporarily
-	  ;; the value nil, therefore.
-	  (when (natnump debbugs-cache-expiry)
-	    (puthash
-	     0
-	     (list (cons 'cache_time (1+ (- (float-time) debbugs-cache-expiry)))
-		   (list 'newest_bug))
-	     debbugs-cache-data))
-	  ;; Compute the value.
-	  (setq
-	   status
-	   (list
-	    (cons 'cache_time (float-time))
-	    (cons 'newest_bug
-		  (caar
-		   (debbugs-soap-invoke
-		    debbugs-wsdl debbugs-port "newest_bugs" amount)))))
+      ;; We cache it as bug "0"
+      (let ((status (debbugs-get-cache 0)))
+        (unless status
+          ;; Due to `debbugs-gnu-completion-table', this function
+          ;; could be called in rapid sequence.  We cache temporarily
+          ;; the value nil, therefore.
+          (when (natnump debbugs-cache-expiry)
+            (debbugs-put-cache 0 (list 'newest_bug) 1))
 
-	  ;; Cache it.
-	  (when (or (null debbugs-cache-expiry) (natnump debbugs-cache-expiry))
-	    (puthash 0 status debbugs-cache-data)))
+          ;; Compute the value.
+          (setq
+           status
+           (list
+            (cons 'newest_bug
+                  (caar
+                   (debbugs-soap-invoke
+                    debbugs-wsdl debbugs-port "newest_bugs" amount)))))
 
-	;; Return the value, as list.
-	(list (alist-get 'newest_bug status)))
+          ;; Cache it.
+          (debbugs-put-cache 0 status))
+
+        ;; Return the value, as list.
+        (list (alist-get 'newest_bug status)))
 
     (sort
      (car (debbugs-soap-invoke
@@ -477,15 +492,8 @@ Example:
 	  (delq nil
 	   (mapcar
 	    (lambda (bug)
-	      (let ((status (gethash bug debbugs-cache-data)))
-		(if (and
-		     status
-		     (or
-		      (null debbugs-cache-expiry)
-		      (and
-		       (natnump debbugs-cache-expiry)
-		       (> (alist-get 'cache_time status)
-			  (- (float-time) debbugs-cache-expiry)))))
+	      (let ((status (debbugs-get-cache bug)))
+		(if status
 		    (progn
 		      (setq cached-bugs (append cached-bugs (list status)))
 		      nil)
@@ -582,14 +590,9 @@ Example:
 	    (when (stringp (cdr y))
 	      (setcdr y (split-string (cdr y) ",\\| " t))))
 	  ;; Cache the result, and return.
-	  (if (or (null debbugs-cache-expiry) (natnump debbugs-cache-expiry))
-	      (puthash
-	       (alist-get 'key x)
-	       ;; Put also a time stamp.
-	       (cons (cons 'cache_time (float-time)) (alist-get 'value x))
-	       debbugs-cache-data)
-	    ;; Don't cache.
-	    (alist-get 'value x))))
+      (debbugs-put-cache
+       (alist-get 'key x)
+       (alist-get 'value x))))
       debbugs-soap-invoke-async-object))))
 
 (defun debbugs-get-usertag (&rest query)

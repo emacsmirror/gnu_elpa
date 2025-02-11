@@ -89,6 +89,12 @@
           nil)
       return)))
 
+(defun debbugs-test--override-float-time (func &rest rest)
+  "Override `float-time' for FUNC with args REST."
+  (cl-letf (((symbol-function #'float-time)
+             (lambda (&optional _specified-time) 5000)))
+    (apply func rest)))
+
 (defun debbugs-test--setup ()
   "Mock network and time functions.
 These mock functions are needed to make the tests reproducible."
@@ -97,7 +103,15 @@ These mock functions are needed to make the tests reproducible."
 
   (add-function
    :override (symbol-function #'soap-invoke-internal)
-   #'debbugs-test--soap-invoke-internal))
+   #'debbugs-test--soap-invoke-internal)
+
+  (add-function
+   :around (symbol-function #'debbugs-get-cache)
+   #'debbugs-test--override-float-time)
+
+  (add-function
+   :around (symbol-function #'debbugs-put-cache)
+   #'debbugs-test--override-float-time))
 
 (defun debbugs-test--teardown ()
   "Restore functions to as they where before."
@@ -106,7 +120,15 @@ These mock functions are needed to make the tests reproducible."
 
   (remove-function
    (symbol-function #'soap-invoke-internal)
-   #'debbugs-test--soap-invoke-internal))
+   #'debbugs-test--soap-invoke-internal)
+
+  (remove-function
+   (symbol-function #'debbugs-get-cache)
+   #'debbugs-test--override-float-time)
+
+  (remove-function
+   (symbol-function #'debbugs-put-cache)
+   #'debbugs-test--override-float-time))
 
 (defmacro ert-deftest--debbugs (name args docstring &rest body)
   "The same as `ert-deftest' but runs setup and teardown functions."
@@ -138,15 +160,32 @@ These mock functions are needed to make the tests reproducible."
   (should (string-equal debbugs-test--soap-operation-name "newest_bugs"))
   (should (equal debbugs-test--soap-parameters '(4))))
 
+(ert-deftest--debbugs debbugs-test-newest-bug-cached ()
+  "Test getting the newest bug from the cache."
+  ;; First time we get it from the server.
+  (should (equal (debbugs-newest-bugs 1) '(0)))
+  (should (equal debbugs-test--soap-operation-name "newest_bugs"))
+  (should (equal debbugs-test--soap-parameters '(1)))
+  (setq debbugs-test--soap-operation-name nil)
+  (setq debbugs-test--soap-parameters nil)
+  ;; Now it's cached
+  (should (equal (debbugs-newest-bugs 1) '(0)))
+  (should (equal debbugs-test--soap-operation-name nil))
+  (should (equal debbugs-test--soap-parameters nil)))
+
 (ert-deftest--debbugs debbugs-test-get-status ()
   "Test \"get_status\"."
-  (cl-letf (((symbol-function #'float-time)
-             (lambda (&optional _specified-time) 5000)))
-    (should (= (float-time) 5000))
-    (should (equal (sort (car (debbugs-get-status 64064)))
-                   (sort (car debbugs-test--bug-status))))
-    (should (string-equal debbugs-test--soap-operation-name "get_status"))
-    (should (equal debbugs-test--soap-parameters '([64064])))))
+  (should (equal (sort (car (debbugs-get-status 64064)))
+                 (sort (car debbugs-test--bug-status))))
+  (should (string-equal debbugs-test--soap-operation-name "get_status"))
+  (should (equal debbugs-test--soap-parameters '([64064])))
+  (setq debbugs-test--soap-operation-name nil)
+  (setq debbugs-test--soap-parameters nil)
+  ;; cached
+  (should (equal (sort (car (debbugs-get-status 64064)))
+                 (sort (car debbugs-test--bug-status))))
+  (should (equal debbugs-test--soap-operation-name nil))
+  (should (equal debbugs-test--soap-parameters nil)))
 
 (ert-deftest--debbugs debbugs-test-get-usertag ()
   "Test \"get_usertag\"."

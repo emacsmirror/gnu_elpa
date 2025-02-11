@@ -89,6 +89,7 @@
   "Select VALUE from TABLE, optionally with RESTRICTIONS.
 
 Optional argument FLATTEN, when non-nil, flattens the result."
+  (org-gnosis-db-init-if-needed)
   (let ((output (emacsql org-gnosis-db
 			 `[:select ,value :from ,table :where ,restrictions])))
     (if flatten
@@ -724,6 +725,14 @@ If called with ARG do not initialize the database."
       (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
 	(emacsql org-gnosis-db [:create-table $i1 $S2] table schema))
       (emacsql org-gnosis-db [:pragma (= user-version org-gnosis-db-version)]))))
+
+(defun org-gnosis-db-init-if-needed ()
+  "Init database if it has not been initizalized."
+  (when (length< (emacsql org-gnosis-db
+			  [:select name :from sqlite-master :where (= type table)])
+		 4)
+    (message "Creating org-gnosis database...")
+    (org-gnosis-db-init)))
 
 (provide 'org-gnosis)
 ;;; org-gnosis.el ends here

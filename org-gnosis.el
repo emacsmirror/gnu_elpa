@@ -7,7 +7,7 @@
 ;; URL: https://thanosapollo.org/projects/org-gnosis/
 ;; Version: 0.0.2
 
-;; Package-Requires: ((emacs "27.2") (emacsql "4.1.0") (compat "29.1.4.2"))
+;; Package-Requires: ((emacs "27.2") (emacsql "4.0.0") (compat "29.1.4.2"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

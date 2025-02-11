@@ -262,7 +262,8 @@ If JOURNAL is non-nil, update file as a journal entry."
 		      (master (plist-get item :master))
 		      (tags (plist-get item :tags))
 		      (level (plist-get item :level)))
-		  (when (member title titles) (error "Title for node already exists"))
+		  (when (member title titles)
+		    (error "Title: '%s' already exists" title))
 		  (org-gnosis--insert-into table `([,id ,filename ,title ,level ,tags]))
 		  (cl-loop for tag in tags
 			   do

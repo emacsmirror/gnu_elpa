@@ -37,7 +37,7 @@
 (defgroup org-gnosis nil
   "Note Taking System."
   :group 'external)
-
+;; is ~/Notes appropriate for all Operating Systems?
 (defcustom org-gnosis-dir (expand-file-name "Notes" "~")
   "Directory with gnosis notes."
   :type 'directory)
@@ -84,6 +84,11 @@
   "Face for displaying gnosis with `org-gnosis-find'.")
 
 (defvar org-gnosis-db (emacsql-sqlite-open (locate-user-emacs-file "org-gnosis.db")))
+
+;; Create notes & journal directories.
+(dolist (dir `(,org-gnosis-dir ,org-gnosis-journal-dir))
+  (unless (file-directory-p dir)
+    (make-directory dir)))
 
 (cl-defun org-gnosis-select (value table &optional (restrictions '1=1) (flatten nil))
   "Select VALUE from TABLE, optionally with RESTRICTIONS.

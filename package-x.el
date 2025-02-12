@@ -3,9 +3,11 @@
 ;; Copyright (C) 2007-2025 Free Software Foundation, Inc.
 
 ;; Author: Tom Tromey <tromey@redhat.com>
+;; Maintainer: Philip Kaludercic <philipk@posteo.net>
 ;; Created: 10 Mar 2007
 ;; Keywords: tools
 ;; Package: package
+;; Version: 1.0
 
 ;; This file is part of GNU Emacs.
 

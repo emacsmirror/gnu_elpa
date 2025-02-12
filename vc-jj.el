@@ -251,7 +251,6 @@ self.hidden(), \"\\n\"
   ;; FIXME: limit can be a revision string, in which case we should
   ;; print revisions between start-revision and limit
   (let ((inhibit-read-only t)
-        (erase-buffer)
         (args (append
                (when limit
                  (list "-n" (number-to-string limit)))
@@ -260,6 +259,7 @@ self.hidden(), \"\\n\"
                (when vc-jj-colorize-log (list "--color" "always"))
                (list "-T" vc-jj-log-template "--")
                files)))
+    (with-current-buffer buffer (erase-buffer))
     (apply #'call-process "jj" nil buffer nil "log" args)
     (when vc-jj-colorize-log
       (with-current-buffer buffer

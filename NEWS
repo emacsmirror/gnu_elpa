@@ -1,6 +1,0 @@
--*- mode: org -*-
-
-* 0.0.3
-+ Add gpg encryption support.
-+ Add inserting tags for headings (from tags found in the db).
-+ Minor improvements in error messages & error handling.

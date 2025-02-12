@@ -1,0 +1,21 @@
+#+TITLE: Org Gnosis NEWS
+#+AUTHOR: Thanos Apollo
+#+EMAIL: public@thanosapollo.org
+#+OPTIONS: ':nil toc:nil num:nil author:nil email:nil
+
+
+This document contains the release notes that are included in each
+tagged commit on the project's main git repository:
+<https://git.thanosapollo.org/org-gnosis>.
+
+* 0.0.4
+Minor update with the following changes:
+  + Adds documentation.
+  + Adds Makefile & manifest.scm
+  + Updates the formatting of NEWS file
+
+* 0.0.3
+Minor Update that adds the following features:
+  + gpg encryption support.
+  + Inserting tags for headings, with completions of tags found in the db.
+  + Minor improvements in error messages & error handling.

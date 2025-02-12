@@ -465,29 +465,34 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
 	  (t (org-insert-link nil id node)))))
 
 
-(defun org-gnosis-insert-tag (&optional tag)
+(defun org-gnosis-insert-filetag (&optional tag)
   "Insert TAG as filetag."
   (interactive)
   (let* ((filetags (org-gnosis-select 'tag 'tags '1=1 t))
          (tag (or tag (funcall org-gnosis-completing-read-func "Select tag: " filetags))))
     (save-excursion
-      (goto-char (point-min))
-      (if (re-search-forward "^#\\+FILETAGS:" nil t)
+      (if (org-at-heading-p)
+	  (org-set-tags tag)
+	(goto-char (point-min))
+	(if (re-search-forward "^#\\+FILETAGS:" nil t)
+            (progn
+              (end-of-line)
+              (insert (if (looking-back ":" nil) "" ":") tag ":"))
           (progn
-            (end-of-line)
-            (insert (if (looking-back ":" nil) "" ":") tag ":"))
-        (progn
-          (insert "#+FILETAGS: :" tag ":")
-          (newline))))))
+            (insert "#+FILETAGS: :" tag ":")
+            (newline)))))))
 
 ;;;###autoload
 (defun org-gnosis-insert-tags (tags)
   "Insert TAGS as filetags."
-  (interactive (list (completing-read-multiple
-		      "Select tags (seperated by ,): "
-		      (org-gnosis-select 'tag 'tags '1=1 t))))
-  (dolist (tag tags)
-    (org-gnosis-insert-tag tag)))
+  (interactive
+   (list (completing-read-multiple
+	  "Select tags (separated by ,): "
+	  (org-gnosis-select 'tag 'tags '1=1 t))))
+  (if (org-before-first-heading-p)
+      (mapc #'org-gnosis-insert-filetag tags)
+    (org-back-to-heading)
+    (org-set-tags tags)))
 
 ;;;###autoload
 (defun org-gnosis-journal-find (&optional title)

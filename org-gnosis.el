@@ -98,7 +98,7 @@
   "Select VALUE from TABLE, optionally with RESTRICTIONS.
 
 Optional argument FLATTEN, when non-nil, flattens the result."
-  (org-gnosis-db-init-if-needed)
+  (org-gnosis-db-init-if-needed) ;; Init database if needed
   (let ((output (emacsql org-gnosis-db
 			 `[:select ,value :from ,table :where ,restrictions])))
     (if flatten
@@ -120,7 +120,7 @@ Optional argument FLATTEN, when non-nil, flattens the result."
 (defun org-gnosis-adjust-title (input &optional node-id)
   "Adjust the INPUT string to replace id link structures with plain text.
 
-If node TITLE contains an id link, it's inserted as link for NODE-ID
+If node title contains an id link, it's inserted as link for NODE-ID
 in the database."
   (when (stringp input)
     (let* ((id-links '())
@@ -198,7 +198,7 @@ TOPIC-ID: Topic hash id."
 	 (tags (org-gnosis-get-filetags)))
     (list title tags id)))
 
-;; This one is used mostly for topic
+;; This one is used for topics
 (defun org-gnosis-get-filetags (&optional parsed-data)
   "Return the filetags of the buffer's PARSED-DATA as a comma-separated string."
   (let* ((parsed-data (or parsed-data (org-element-parse-buffer)))
@@ -704,32 +704,34 @@ ENTRY: Journal entry linked under the heading."
 
 (defun org-gnosis-db-sync--journal ()
   "Sync journal entries in databse."
-  (cl-loop for file in (cl-remove-if-not (lambda (file)
-					   (and
-					    (string-match-p "^[0-9]"
-							    (file-name-nondirectory file))
-						(not (file-directory-p file))))
-					 (directory-files org-gnosis-journal-dir t nil t))
+  (cl-loop for file in (cl-remove-if-not
+			(lambda (file)
+			  (and
+			   (string-match-p "^[0-9]"
+					   (file-name-nondirectory file))
+			   (not (file-directory-p file))))
+			(directory-files org-gnosis-journal-dir t nil t))
 	   do (org-gnosis-update-file file)))
 
 ;;;###autoload
 (defun org-gnosis-db-sync ()
-  "Sync `org-gnosis-db'.
-
-If called with ARG do not initialize the database."
+  "Sync `org-gnosis-db'."
   (interactive)
   (org-gnosis-db-init)
-  (let ((files (cl-remove-if-not (lambda (file)
-				   (and (string-match-p "^[0-9]"
-							(file-name-nondirectory file))
-					(not (file-directory-p file))))
-				 (directory-files org-gnosis-dir t nil t))))
+  (let ((files (cl-remove-if-not
+		(lambda (file)
+		  (and (string-match-p "^[0-9]"
+				       (file-name-nondirectory file))
+		       (not (file-directory-p file))))
+		(directory-files org-gnosis-dir t nil t))))
     (cl-loop for file in files
 	     do (org-gnosis-update-file file)))
   (org-gnosis-db-sync--journal))
 
 (defun org-gnosis-db-init ()
-  "Initialize database DB with the correct schema and user version."
+  "Initialize database.
+
+If database tables exist, delete them & recreate the db."
   (setf org-gnosis-db (emacsql-sqlite-open (locate-user-emacs-file "org-gnosis.db")))
   (org-gnosis-db-delete-tables)
   (when (length< (emacsql org-gnosis-db

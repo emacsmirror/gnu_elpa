@@ -1,0 +1,245 @@
+#+TITLE: Org Gnosis User Manual
+#+AUTHOR: Thanos Apollo
+#+email: public@thanosapollo.org
+#+language: en
+#+options: ':t toc:nil author:t email:t num:t
+#+startup: content
+#+macro: stable-version 0.0.4
+#+macro: release-date 2025-02-13
+#+macro: file @@texinfo:@file{@@$1@@texinfo:}@@
+#+macro: space @@texinfo:@: @@
+#+macro: kbd @@texinfo:@kbd{@@$1@@texinfo:}@@
+#+macro: file @@texinfo:@file{@@$1@@texinfo:}@@
+#+macro: space @@texinfo:@: @@
+#+macro: kbd @@texinfo:@kbd{@@$1@@texinfo:}@@
+#+texinfo_filename: org-gnosis.info
+#+texinfo_dir_category: Emacs misc features
+#+texinfo_dir_title: Org Gnosis : (org-gnosis) 
+#+texinfo_dir_desc: Roam-like Knowledge Management System
+#+texinfo_header: @set MAINTAINERSITE @uref{https://thanosapollo.org,maintainer webpage}
+#+texinfo_header: @set MAINTAINER Thanos Apollo
+#+texinfo_header: @set MAINTAINEREMAIL @email{public@thanosapollo.org}
+#+texinfo_header: @set MAINTAINERCONTACT @uref{mailto:public@thanosapollo.org,contact the maintainer}
+
+#+texinfo: @insertcopying
+
+This manual, authored by Thanos Apollo, offers installation
+instructions, customization options, and recommendations for
+effectively using ~org-gnosis~.
+
+The documentation furnished herein corresponds to stable version
+{{{stable-version}}}, released on {{{release-date}}}.
+
++ Name: Org Gnosis | Organization Of Gnosis (knowledge/information)
++ Homepage: <https://thanosapollo.org/projects/org-gnosis/>
+  
+Org Gnosis (GNU-sis) is an org-mode parsing tool that organizes notes
+as atomic nodes in an SQLite database.  Each heading with an ID is
+treated as an atomic note (node), storing its metadata, such as title
+and links, in a relational database to facilitate efficient linking
+and navigation.
+
+This tool also offers special functionality for journal entries,
+stored in a separate directory with support for customizable
+templates. This can serve as an additional space for temporary notes.
+
+* COPYING
+:PROPERTIES:
+:COPYING: t
+:END:
+
+Copyright (C) 2025 Free Software Foundation, Inc.
+
+#+begin_quote
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, with the Front-Cover Texts being “A GNU Manual,” and
+with the Back-Cover Texts as in (a) below.  A copy of the license is
+included in the section entitled “GNU Free Documentation License.”
+
+(a) The FSF’s Back-Cover Text is: “You have the freedom to copy and
+modify this GNU manual.”
+#+end_quote
+
+
+* Installation & Configuration
++ The ~org-gnosis~ package is available from the GNU ELPA archive,
+  which is enabled by default.
+  
+  + Prior to querying an archive, make sure to update the index, with
+    {{{kbd(M-x package-refresh-contents)}}}.
+
++ Then all you need to do is type {{{kbd(M-x package-install)}}} and
+  specify the ~org-gnosis~ package.
+
+Example installation & configuration using ~use-package~
+#+begin_src emacs-lisp
+  (use-package org-gnosis
+    :ensure t
+    :init
+    ;; Example for separated journaling & notes keymap
+    (define-prefix-command 'my/notes-map)
+    (define-prefix-command 'my/journal-map)
+    :config
+    ;; Common settings you might want to tweak to your liking
+    (setf org-gnosis-dir "~/Notes"
+  	;; Whe non-nil, create notes as gpg encrypted files
+  	org-gnosis-create-as-gpg nil
+  	;; TODO files, commonly used for templates.
+  	org-gnosis-todo-files org-agenda-files
+  	;; Used in #'org-gnosis-todos for template generation
+  	org-gnosis-bullet-point-char "+"
+  	;; Default completing-read function
+  	org-gnosis-completing-read-func #'org-completing-read
+  	;; Recommended if you use a vertical completion system (e.g vertico)
+  	org-gnosis-show-tags t)
+
+    (defun example/org-gnosis-book-template ()
+      (let ((date (format-time-string "%Y-%m-%d"))
+  	  (book-title (completing-read
+  		     "Example book: "
+  		     '("Free Software, Free Society" "How to Take Smart Notes"))))
+        (format "#+DATE: %s \n#+BOOK_TITLE: %s\n\n* Main Idea\n* Key Points\n* Own Thoughts"
+  	      date book-title)))
+
+    (add-to-list 'org-gnosis-node-templates
+  	       '("Book Example" example/org-gnosis-book-template))
+    :bind (("C-c n" . thanos/notes-map)
+  	 ("C-c n j" . thanos/journal-map)
+  	 :map thanos/notes-map
+  	 ("f" . org-gnosis-find)
+  	 ("i" . org-gnosis-insert)
+  	 ("t" . org-gnosis-find-by-tag)
+  	 :map thanos/journal-map
+  	 ("j" . org-gnosis-journal)
+  	 ("f" . org-gnosis-journal-find)
+  	 ("i" . org-gnosis-journal-insert)
+  	 :map org-mode-map
+  	 ("C-c C-." . org-gnosis-insert-tag)
+  	 ("C-c i" . org-id-get-create)))
+#+end_src
+* Taking Notes With Org Gnosis
+** Organizing your notes
+
+~org-gnosis~ offers a zettelkasten-like workflow for note taking where
+knowledge/information (gnosis) is considered precious and should not
+viewed as something disposable to be put inside a box category.
+
+Using directories to organize your notes is not recommended, a
+preferred method is to create *MOC* files (Maps Of Contents) for
+specific categories/projects that you are working on.
+
+An MOC file can be for example the syllabus of a class you are taking,
+let's say for example on biopolymers, you'd create an MOC similarly to
+this:
+
++ First create a file my running {{{kbd(M-x org-gnosis-find)}}}
+  followed by ~Biopolymers~, which will be created if it does not
+  already exist.
++ Use {{{kbd(M-x org-gnosis-insert-tags)}}} to insert ~moc~ tag.
++ Start inserting your syllabus points with {{{kbd(M-x
+  org-gnosis-insert)}}}, their files will be automatically created & saved.
+
+Example:
+#+begin_src org
+  :PROPERTIES:
+  :ID:       15edada1-9815-4fb3-9b8f-7da08107bdb2
+  :END:
+  ,#+title: Biopolymers
+  ,#+filetags: :moc:
+
+  ,* [[id:<node-id>][Proteins]]
+  + [[id:<node-id>][Protein Structure Levels]]
+  + [[id:<node-id>][Protein Domains]]
+  + [[id:<node-id>][Protein MOTIF]]
+  + [[id:<node-id>][Difference between a motif and a domain in a protein]]
+  + [[id:<node-id>][Protein Families]]
+
+  ,* [[id:<node-id>][Nucleic acids]]
+  + [[id:<node-id>][DNA]]
+  + [[id:<node-id>][RNA]]
+  + [[id:<node-id>][Recognition and self-assembly of macromolecules]]
+  + [[id:<node-id>][Cytoskeleton]]
+
+#+end_src
+
+This way your notes are atomic & can be reused used in future
+classes/projects.
+
+For example you'd reuse your notes on nucleic acids in a genetics
+class MOC next semester.
+
+** Importing Notes
+If you are a previous user of packages that use ~org-mode~ and org
+ids, your current note collection should be able to work with
+org-gnosis without you having to change anything.
+
+To sync your note collection use {{{kbd(M-x org-gnosis-db-sync)}}}
+* Contributing
+** Sources
++ Main repository: <https://git.thanosapollo.org/org-gnosis/>
++ Mirrors:
+  + <https://codeberg.org/thanosapollo/emacs-org-gnosis>
+** Patches Require Copyright Assignment To The FSF
+Code contributions are most welcome.  For any major edit (more than 15
+lines, or so, in aggregate per person), you need to make a copyright
+assignment to the Free Software Foundation.  This is necessary as the
+FSF must at all times be in a position to enforce the GNU General
+Public License.
+
+Here’s the process:
+
+1. Review and adapt the request form below.
+2. Email the specified address with your request.
+3. Await a legal agreement from the FSF.
+4. Sign and return the document, which can be done via email.
+   
+The entire process usually takes about a week and needs to be
+completed only once, allowing you to contribute to GNU Emacs.
+
+#+begin_example text
+Please email the following information to assign@gnu.org, and we
+will send you the assignment form for your past and future changes.
+
+Please use your full legal name (in ASCII characters) as the subject
+line of the message.
+
+REQUEST: SEND FORM FOR PAST AND FUTURE CHANGES
+
+[What is the name of the program or package you're contributing to?]
+
+GNU Emacs
+
+[Did you copy any files or text written by someone else in these changes?
+Even if that material is free software, we need to know about it.]
+
+Copied a few snippets from the same files I edited.  Their author,
+Protesilaos Stavrou, has already assigned copyright to the Free Software
+Foundation.
+
+[Do you have an employer who might have a basis to claim to own
+your changes?  Do you attend a school which might make such a claim?]
+
+
+[For the copyright registration, what country are you a citizen of?]
+
+
+[What year were you born?]
+
+
+[Please write your email address here.]
+
+
+[Please write your postal address here.]
+
+
+
+
+
+[Which files have you changed so far, and which new files have you written
+so far?]
+
+#+end_example
+
+

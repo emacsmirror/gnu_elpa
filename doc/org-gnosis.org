@@ -122,24 +122,25 @@ Example installation & configuration using ~use-package~
 * Taking Notes With Org Gnosis
 ** Organizing your notes
 
-~org-gnosis~ offers a zettelkasten-like workflow for note taking where
-knowledge/information (gnosis) is considered precious and should not
-viewed as something disposable to be put inside a box category.
+~org-gnosis~ provides a zettelkasten-inspired approach to note-taking,
+treating knowledge (gnosis) as valuable and not merely something to be
+boxed into a single category, to be disposed after a certain period of
+time or task accomplishment.
 
 Using directories to organize your notes is not recommended, a
 preferred method is to create *MOC* files (Maps Of Contents) for
 specific categories/projects that you are working on.
 
-An MOC file can be for example the syllabus of a class you are taking,
-let's say for example on biopolymers, you'd create an MOC similarly to
-this:
+An MOC file can be the syllabus of a class or a project road map.  For
+example, you might create an MOC like this for a class on
+~Biopolymers~:
 
-+ First create a file my running {{{kbd(M-x org-gnosis-find)}}}
-  followed by ~Biopolymers~, which will be created if it does not
-  already exist.
++ First create a node using {{{kbd(M-x org-gnosis-find)}}} followed by
+  ~Biopolymers~, which will be created if it does not already exist.
 + Use {{{kbd(M-x org-gnosis-insert-tags)}}} to insert ~moc~ tag.
 + Start inserting your syllabus points with {{{kbd(M-x
-  org-gnosis-insert)}}}, their files will be automatically created & saved.
+  org-gnosis-insert)}}} as nodes, which will be automatically created
+  & saved in separated files.
 
 Example:
 #+begin_src org
@@ -168,7 +169,7 @@ This way your notes are atomic & can be reused used in future
 classes/projects.
 
 For example you'd reuse your notes on nucleic acids in a genetics
-class MOC next semester.
+class MOC for your next semester.
 
 ** Importing Notes
 If you are a previous user of packages that use ~org-mode~ and org

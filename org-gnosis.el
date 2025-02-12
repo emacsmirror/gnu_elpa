@@ -67,6 +67,10 @@
   "Timestring used for the creation of file."
   :type 'string)
 
+(defcustom org-gnosis-create-as-gpg nil
+  "When non-nil, create notes with a .gpg suffix."
+  :type 'boolean)
+
 (defcustom org-gnosis-todo-files org-agenda-files
   "TODO files used for the journal entries."
   :type '(repeat string))
@@ -341,7 +345,8 @@ TIMESTRING defaults to `org-gnosis-timestring'"
   (let ((timestring (or timestring org-gnosis-timestring))
 	(filename (replace-regexp-in-string "#" ""
 					    (replace-regexp-in-string " " "_" title))))
-    (format "%s--%s.org" (format-time-string timestring) filename)))
+    (format "%s--%s.org%s" (format-time-string timestring) filename
+	    (if org-gnosis-create-as-gpg ".gpg" ""))))
 
 (defun org-gnosis--create-file (title &optional directory extras)
   "Create a node FILE for TITLE.

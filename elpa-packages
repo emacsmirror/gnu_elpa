@@ -598,6 +598,7 @@
   :ignored-files ("LICENSE"))
  (other-frame-window	:url nil)
  (pabbrev             	:url "https://github.com/phillord/pabbrev.git")
+ (package-x             :url nil)
  (paced			:url "bzr::bzr://bzr.savannah.nongnu.org/paced-el/trunk"
   ;; The Bzr<->Git bridge wasn't working well enough last time I tried.
   :manual-sync t)

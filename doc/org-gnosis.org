@@ -120,6 +120,27 @@ Example installation & configuration using ~use-package~
   	 ("C-c i" . org-id-get-create)))
 #+end_src
 * Taking Notes With Org Gnosis
+
+For Org Gnosis there are 2 types of notes,
+
+  + Your "permanent" notes, which you can visit & and create using {{{kbd(M-x
+    org-gnosis-find)}}}
+
+  + Your journal notes, which you can visit & create using {{{kbd(M-x
+    org-gnosis-journal-find)}}}, which optionally can serve as
+    "fleeting" notes.
+
+As mentioned before, opening & searching your notes should be done
+using {{{kbd(M-x org-gnosis-find)}}} as this will enable
+=org-gnosis-mode=.
+
+If =org-gnosis-mode= is not enabled, files will not be parsed and
+saved in the database when you run =save-buffer=.
+
+Org Gnosis does not automatically sync the database. To delete a file,
+use =org-gnosis-delete-file= or run =org-gnosis-db-sync= after manual
+deletion.
+
 ** Organizing your notes
 
 ~org-gnosis~ provides a zettelkasten-inspired approach to note-taking,
@@ -147,29 +168,31 @@ Example:
   :PROPERTIES:
   :ID:       15edada1-9815-4fb3-9b8f-7da08107bdb2
   :END:
-  ,#+title: Biopolymers
+  ,#+title: Biopolymers Syllabus
   ,#+filetags: :moc:
 
-  ,* [[id:<node-id>][Proteins]]
-  + [[id:<node-id>][Protein Structure Levels]]
-  + [[id:<node-id>][Protein Domains]]
-  + [[id:<node-id>][Protein MOTIF]]
-  + [[id:<node-id>][Difference between a motif and a domain in a protein]]
-  + [[id:<node-id>][Protein Families]]
+  ,* Proteins
+  - Protein Structure Levels]
+  - Protein Domains
+  - Protein MOTIF
+  - Difference between a motif and a domain in a protein
+  - Protein Families
 
-  ,* [[id:<node-id>][Nucleic acids]]
-  + [[id:<node-id>][DNA]]
-  + [[id:<node-id>][RNA]]
-  + [[id:<node-id>][Recognition and self-assembly of macromolecules]]
-  + [[id:<node-id>][Cytoskeleton]]
+  ,* Nucleic acids
+  - DNA
+  - RNA
+  - Recognition and self-assembly of macromolecules
+  - Cytoskeleton
 
 #+end_src
+     Note: Items with =-= would be links.  The headings in the above
+     example could be links to an MOC as well.
 
 This way your notes are atomic & can be reused used in future
 classes/projects.
 
-For example you'd reuse your notes on nucleic acids in a genetics
-class MOC for your next semester.
+  + For example you'd reuse your notes on nucleic acids in a genetics
+    class MOC for your next semester.
 
 ** Importing Notes
 If you are a previous user of packages that use ~org-mode~ and org
@@ -183,6 +206,7 @@ To sync your note collection use {{{kbd(M-x org-gnosis-db-sync)}}}
 + Mirrors:
   + <https://codeberg.org/thanosapollo/emacs-org-gnosis>
 ** Patches Require Copyright Assignment To The FSF
+
 Code contributions are most welcome.  For any major edit (more than 15
 lines, or so, in aggregate per person), you need to make a copyright
 assignment to the Free Software Foundation.  This is necessary as the
@@ -210,14 +234,11 @@ REQUEST: SEND FORM FOR PAST AND FUTURE CHANGES
 
 [What is the name of the program or package you're contributing to?]
 
-GNU Emacs
+org-gnosis
 
 [Did you copy any files or text written by someone else in these changes?
 Even if that material is free software, we need to know about it.]
 
-Copied a few snippets from the same files I edited.  Their author,
-Protesilaos Stavrou, has already assigned copyright to the Free Software
-Foundation.
 
 [Do you have an employer who might have a basis to claim to own
 your changes?  Do you attend a school which might make such a claim?]
@@ -233,9 +254,6 @@ your changes?  Do you attend a school which might make such a claim?]
 
 
 [Please write your postal address here.]
-
-
-
 
 
 [Which files have you changed so far, and which new files have you written

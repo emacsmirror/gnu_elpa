@@ -53,6 +53,7 @@ If nil, this is the same as `abbrev-file-name'."
 (defvar-local custom-abbrev-widgets nil
   "List of widgets that hold the abbrev customizations.")
 
+;; Menu-bar and tool-bar support.
 (defvar-keymap custom-abbrev-map
   :doc "Keymap used in buffers for Customizing Abbrevs."
   :full t
@@ -60,13 +61,16 @@ If nil, this is the same as `abbrev-file-name'."
   "SPC"     #'scroll-up-command
   "S-SPC"   #'scroll-down-command
   "DEL"     #'scroll-down-command
+  "C-c C-c" #'Custom-abbrev-define
   "C-x C-s" #'Custom-abbrev-save
   "q"       #'Custom-buffer-done
   "n"       #'widget-forward
   "p"       #'widget-backward)
 
 (defvar custom-abbrev-commands
-  '((" Save Abbrevs " Custom-abbrev-save t
+  '((" Define Abbrevs" Custom-abbrev-define t
+     "Define Abbrevs but don't save." "index" "Define" t)
+    (" Save Abbrevs " Custom-abbrev-save t
      "Save Abbrevs to the abbrevs file." "save" "Save" t)
     (" Undo Edits " Custom-abbrev-revert-buffer t
      "Revert buffer, undoing any editions."
@@ -94,7 +98,19 @@ See `custom-commands' for further explanation.")
                  custom-abbrev-commands)))
 
 (defvar custom-abbrev-tool-bar-map nil
-  "Keymap for the toolbar in buffers for Customizing Abbrevs.")
+  "Keymap for the tool-bar in buffers for customizing abbrevs.")
+
+(defun custom-abbrev--tool-bar-setup ()
+  "Set up tool-bar for buffers customizing abbrevs."
+  (or custom-abbrev-tool-bar-map ; Already set-up.
+      (let ((map (make-sparse-keymap)))
+        (mapc
+         (lambda (arg)
+           (tool-bar-local-item-from-menu
+            (nth 1 arg) (nth 4 arg) map custom-abbrev-map
+            :label (nth 5 arg)))
+         custom-abbrev-commands)
+        (setq custom-abbrev-tool-bar-map map))))
 
 ;; Widgets.
 (define-widget 'custom-abbrev 'editable-list
@@ -178,17 +194,7 @@ This command also saves any other editions made to the abbrev table."
 (defun custom-abbrev--prepare-buffer-2 ()
   "Finalize preparations for Customizing Abbrevs in current buffer."
   (goto-char (point-min))
-  (setq-local tool-bar-map
-              (or custom-abbrev-tool-bar-map
-                  ;; Set up `custom-abbrev-tool-bar-map'.
-                  (let ((map (make-sparse-keymap)))
-                    (mapc
-                     (lambda (arg)
-                       (tool-bar-local-item-from-menu
-                        (nth 1 arg) (nth 4 arg) map custom-abbrev-map
-                        :label (nth 5 arg)))
-                     custom-abbrev-commands)
-                    (setq custom-abbrev-tool-bar-map map))))
+  (setq-local tool-bar-map (custom-abbrev--tool-bar-setup))
   (setq-local revert-buffer-function #'Custom-abbrev-revert-buffer)
   (use-local-map custom-abbrev-map)
   (widget-setup))

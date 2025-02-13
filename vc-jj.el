@@ -87,15 +87,15 @@
     (unless (not (file-exists-p default-directory))
       (with-demoted-errors "Error: %S"
         (when-let ((root (vc-jj-root file)))
-          (let ((relative (file-relative-name file root))
-                (default-directory root))
+          (let* ((default-directory root)
+                 (relative (file-relative-name file)))
             (vc-jj--file-tracked relative)))))))
 
 (defun vc-jj-state (file)
   "JJ implementation of `vc-state' for FILE."
   (when-let ((root (vc-jj-root file)))
-    (let ((relative (file-relative-name file root))
-          (default-directory root))
+    (let* ((default-directory root)
+           (relative (file-relative-name file)))
       (cond
        ((vc-jj--file-conflicted relative)
         'conflict)
@@ -121,11 +121,11 @@ The list is passed to UPDATE-FUNCTION."
                         (seq-filter (lambda (file) (string-prefix-p "M " file))
                                     changed-files)))
          ;; The output of `jj resolve --list' is a list of file names
-         ;; plus a conflict description -- rather than trying to be
-         ;; fancy and parsing each line (and getting bugs with file
-         ;; names with spaces), use `string-prefix-p' later.  Also,
-         ;; the command errors when there are no conflicts.
-         (conflicted (ignore-errors (process-lines "jj" "resolve" "--list"))))
+         ;; plus a conflict description per line -- rather than trying
+         ;; to be fancy and parsing each line (and getting bugs with
+         ;; file names with spaces), use `string-prefix-p' later.
+         ;; Also, the command errors when there are no conflicts.
+         (conflicted (process-lines-ignore-status "jj" "resolve" "--list")))
     (let ((result
            (mapcar
             (lambda (file)

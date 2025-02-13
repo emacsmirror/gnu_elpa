@@ -8,6 +8,12 @@ This document contains the release notes that are included in each
 tagged commit on the project's main git repository:
 <https://git.thanosapollo.org/org-gnosis>.
 
+* 0.0.5
+Minor update with documentation changes
+  + Fix typos
+  + Clearer examples & terminology
+  + Fix formatting for GNU ELPA
+
 * 0.0.4
 Minor update with the following changes:
   + Adds documentation.

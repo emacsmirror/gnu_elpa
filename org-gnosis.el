@@ -5,7 +5,7 @@
 ;; Author: Thanos Apollo <public@thanosapollo.org>
 ;; Keywords: extensions
 ;; URL: https://thanosapollo.org/projects/org-gnosis/
-;; Version: 0.0.4
+;; Version: 0.0.5
 
 ;; Package-Requires: ((emacs "27.2") (emacsql "4.0.0") (compat "29.1.4.2"))
 
@@ -489,9 +489,8 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
    (list (completing-read-multiple
 	  "Select tags (separated by ,): "
 	  (org-gnosis-select 'tag 'tags '1=1 t))))
-  (if (org-before-first-heading-p)
+  (if (and (org-before-first-heading-p))
       (mapc #'org-gnosis-insert-filetag tags)
-    (org-back-to-heading)
     (org-set-tags tags)))
 
 ;;;###autoload

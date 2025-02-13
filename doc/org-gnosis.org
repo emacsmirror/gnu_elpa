@@ -172,7 +172,7 @@ Example:
   ,#+filetags: :moc:
 
   ,* Proteins
-  - Protein Structure Levels]
+  - Protein Structure Levels
   - Protein Domains
   - Protein MOTIF
   - Difference between a motif and a domain in a protein
@@ -197,7 +197,7 @@ classes/projects.
 ** Importing Notes
 If you are a previous user of packages that use ~org-mode~ and org
 ids, your current note collection should be able to work with
-org-gnosis without you having to change anything.
+~org-gnosis~ without you having to change anything.
 
 To sync your note collection use {{{kbd(M-x org-gnosis-db-sync)}}}
 * Contributing
@@ -234,7 +234,7 @@ REQUEST: SEND FORM FOR PAST AND FUTURE CHANGES
 
 [What is the name of the program or package you're contributing to?]
 
-org-gnosis
+Emacs
 
 [Did you copy any files or text written by someone else in these changes?
 Even if that material is free software, we need to know about it.]
@@ -260,5 +260,3 @@ your changes?  Do you attend a school which might make such a claim?]
 so far?]
 
 #+end_example
-
-

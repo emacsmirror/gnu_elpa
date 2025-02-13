@@ -232,6 +232,10 @@ line of the message.
 
 REQUEST: SEND FORM FOR PAST AND FUTURE CHANGES
 
+[Additional people we should notify about the progress of the assignment.]
+
+Thanos Apollo <public@thanosapollo.org>
+
 [What is the name of the program or package you're contributing to?]
 
 Emacs

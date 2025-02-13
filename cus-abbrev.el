@@ -120,53 +120,6 @@ See `custom-commands' for further explanation.")
   :append-button-args '(:help-echo "Append new abbrev here.")
   :delete-button-args '(:help-echo "Delete this abbrev."))
 
-(defun Custom-abbrev-define (&rest _ignored)
-  "Define abbrevs in current buffer, without saving them."
-  (interactive)
-  (dolist (widget custom-abbrev-widgets)
-    (let ((table (symbol-value (widget-get widget :custom-abbrev-table)))
-          (count nil))
-      ;; Get current count for all abbrevs to be defined.
-      (dolist (abbrev-widget (widget-get widget :children))
-        (let* ((abbrev (widget-value abbrev-widget))
-               (symname (nth 0 abbrev))
-               (sym (obarray-get table symname))
-               (plist (symbol-plist sym)))
-          (push (plist-get plist :count) count)))
-      (setq count (nreverse count))
-      ;; We clear the abbrev table so that we can make sure removed
-      ;; abbrevs are not present anymore.
-      (clear-abbrev-table table)
-      (let ((i 0))
-        (dolist (abbrev-widget (widget-get widget :children))
-          (let ((abbrev (widget-value abbrev-widget)))
-            (define-abbrev table (nth 0 abbrev) (nth 1 abbrev)
-              (nth 2 abbrev)
-              :enable-function (nth 3 abbrev)
-              :case-fixed (nth 4 abbrev)
-              ;; We effectively preserve count of each redefined abbrev.
-              :count (nth i count))
-            (setq i (1+ i)))))))
-  (message "Abbrevs defined, but not saved"))
-
-(defun Custom-abbrev-revert-buffer (&rest _ignored)
-  "Revert the buffer for customizing abbrevs."
-  (interactive)
-  (if (>= (length custom-abbrev-widgets) 2)
-      (customize-all-abbrevs)
-    (customize-abbrevs (widget-get (car custom-abbrev-widgets)
-                                   :custom-abbrev-table))))
-
-(defun Custom-abbrev-save (&rest _ignored)
-  "Save all abbrevs currently being edited.
-
-This command also saves any other editions made to the abbrev table."
-  (interactive)
-  (Custom-abbrev-define)
-  (write-abbrev-file (or custom-abbrev-file-name) abbrev-file-name)
-  (message (format "Abbrevs saved to %s" (or custom-abbrev-file-name
-                                             abbrev-file-name))))
-
 (defun custom-abbrev-toggle-hide-abbrev-table (widget &rest _ignore)
   "Hide/Show the abbrev-table widget related to this visibility WIDGET."
   (let ((w (widget-get widget :widget))
@@ -216,6 +169,53 @@ This command also saves any other editions made to the abbrev table."
   (widget-insert "\n\n"))
 
 ;; Commands.
+(defun Custom-abbrev-define (&rest _ignored)
+  "Define abbrevs in current buffer, without saving them."
+  (interactive)
+  (dolist (widget custom-abbrev-widgets)
+    (let ((table (symbol-value (widget-get widget :custom-abbrev-table)))
+          (count nil))
+      ;; Get current count for all abbrevs to be defined.
+      (dolist (abbrev-widget (widget-get widget :children))
+        (let* ((abbrev (widget-value abbrev-widget))
+               (symname (nth 0 abbrev))
+               (sym (obarray-get table symname))
+               (plist (symbol-plist sym)))
+          (push (plist-get plist :count) count)))
+      (setq count (nreverse count))
+      ;; We clear the abbrev table so that we can make sure removed
+      ;; abbrevs are not present anymore.
+      (clear-abbrev-table table)
+      (let ((i 0))
+        (dolist (abbrev-widget (widget-get widget :children))
+          (let ((abbrev (widget-value abbrev-widget)))
+            (define-abbrev table (nth 0 abbrev) (nth 1 abbrev)
+              (nth 2 abbrev)
+              :enable-function (nth 3 abbrev)
+              :case-fixed (nth 4 abbrev)
+              ;; We effectively preserve count of each redefined abbrev.
+              :count (nth i count))
+            (setq i (1+ i)))))))
+  (message "Abbrevs defined, but not saved"))
+
+(defun Custom-abbrev-revert-buffer (&rest _ignored)
+  "Revert the buffer for customizing abbrevs."
+  (interactive)
+  (if (>= (length custom-abbrev-widgets) 2)
+      (customize-all-abbrevs)
+    (customize-abbrevs (widget-get (car custom-abbrev-widgets)
+                                   :custom-abbrev-table))))
+
+(defun Custom-abbrev-save (&rest _ignored)
+  "Save all abbrevs currently being edited.
+
+This command also saves any other editions made to the abbrev table."
+  (interactive)
+  (Custom-abbrev-define)
+  (write-abbrev-file (or custom-abbrev-file-name) abbrev-file-name)
+  (message (format "Abbrevs saved to %s" (or custom-abbrev-file-name
+                                             abbrev-file-name))))
+
 ;;;###autoload
 (defun customize-all-abbrevs ()
   "Customize all Abbrevs in current session."

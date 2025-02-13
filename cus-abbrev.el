@@ -7,7 +7,7 @@
 ;; Created: Tue Jan 21 19:59:28 2025
 ;; Version: 0.1
 ;; Package-Version: 0.1
-;; Package-Requires: ((emacs "28.1"))
+;; Package-Requires: ((emacs "29.1"))
 ;; URL: https://gitlab.com/mauroaranda/cus-abbrev
 ;; Keywords: convenience
 
@@ -114,7 +114,7 @@ See `custom-commands' for further explanation.")
 
 ;; Widgets.
 (define-widget 'custom-abbrev 'editable-list
-  "An editable list to edit abbrevs."
+  "A widget to edit abbrevs, as an editable list."
   :entry-format "%i %d %v"
   :insert-button-args '(:help-echo "Insert new abbrev here.")
   :append-button-args '(:help-echo "Append new abbrev here.")
@@ -136,7 +136,7 @@ See `custom-commands' for further explanation.")
 
 ;; Functions.
 (defun custom-abbrev--prepare-buffer (buffer-name)
-  "Prepare buffer called BUFFER-NAME for Customizing Abbrevs."
+  "Prepare buffer called BUFFER-NAME for customizing abbrevs."
   (switch-to-buffer buffer-name)
   (kill-all-local-variables)
   (let ((inhibit-read-only t))
@@ -145,7 +145,7 @@ See `custom-commands' for further explanation.")
   (custom--initialize-widget-variables))
 
 (defun custom-abbrev--prepare-buffer-2 ()
-  "Finalize preparations for Customizing Abbrevs in current buffer."
+  "Finalize preparations for customizing abbrevs in current buffer."
   (goto-char (point-min))
   (setq-local tool-bar-map (custom-abbrev--tool-bar-setup))
   (setq-local revert-buffer-function #'Custom-abbrev-revert-buffer)
@@ -153,7 +153,7 @@ See `custom-commands' for further explanation.")
   (widget-setup))
 
 (defun custom-abbrev--insert-buttons ()
-  "Insert buttons for Customizing Abbrevs in current buffer."
+  "Insert buttons for customizing abbrevs in current buffer."
   (widget-insert "Global actions:\n")
   (widget-create 'push-button :tag " Revert "
                  :help-echo "Revert buffer, discarding all edits."
@@ -209,7 +209,8 @@ See `custom-commands' for further explanation.")
 (defun Custom-abbrev-save (&rest _ignored)
   "Save all abbrevs currently being edited.
 
-This command also saves any other editions made to the abbrev table."
+This command also saves any other editions made to the abbrev tables in
+this session."
   (interactive)
   (Custom-abbrev-define)
   (write-abbrev-file (or custom-abbrev-file-name) abbrev-file-name)

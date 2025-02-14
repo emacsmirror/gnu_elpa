@@ -1127,56 +1127,62 @@ This is a macro version of `disproject-with-root-apply'."
   (declare (indent 0) (debug t))
   `(disproject-with-root-apply (lambda () ,@body)))
 
-(defmacro disproject-with-environment (&rest body)
-  "Run BODY in an environment respecting Disproject settings.
+(defun disproject-with-env-apply (fun &rest args)
+  "Set up environment from Disproject transient options and apply FUN to ARGS.
 
 In order to prevent side effects from modifying variables in the
 current buffer, BODY is run in the context of a temporary
-indirect buffer made from the current buffer.  Note that the
-indirect buffer is made without preserving the current buffer's
-state to prevent side effects as well, so commands which depend
-on e.g. the major mode may not behave as expected.
+indirect buffer made from the current buffer.
 
 The environment consists of the following overrides:
 
-`default-directory', `project-current-directory-override': Set to
-the project's root directory.
+`project-current-directory-override': Set to the selected
+project's root directory.
 
 `display-buffer-overriding-action': Set to display in another
 window if \"--prefer-other-window\" is enabled."
+  (let* ((disproject--environment-scope (disproject--scope))
+         (project (disproject-project-instance
+                   (disproject-scope-selected-project-ensure
+                    disproject--environment-scope)))
+         (from-directory (project-root project))
+         (prefer-other-window? (disproject--state-prefer-other-window?))
+         ;; Only enable envrc if the initial environment has it enabled.
+         (enable-envrc (and (bound-and-true-p envrc-mode)
+                            (symbol-function 'envrc-mode)))
+         ;; Only enable mise if the initial environment has it enabled.
+         (enable-mise (and (bound-and-true-p mise-mode)
+                           (symbol-function 'mise-mode))))
+    (disproject--with-environment-buffer
+      (let ((project-current-directory-override from-directory)
+            (display-buffer-overriding-action
+             (and prefer-other-window? '(display-buffer-use-some-window
+                                         (inhibit-same-window t)))))
+        (hack-dir-local-variables-non-file-buffer)
+        ;; Make sure commands are run in the correct direnv environment if
+        ;; envrc-mode is enabled.
+        (when enable-envrc (funcall enable-envrc))
+        ;; Make sure commands are run in the correct mise environment if
+        ;; mise-mode is enabled.
+        (when enable-mise (funcall enable-mise))
+        (apply fun args)))))
+
+(defmacro disproject-with-env (&rest body)
+  "Run BODY with Disproject transient settings applied.
+
+This is a macro version of `disproject-with-env-apply'; see the
+function for documentation on the settings."
   (declare (indent 0) (debug t))
-  (let ((project (make-symbol "project"))
-        (from-directory (make-symbol "from-directory"))
-        (prefer-other-window? (make-symbol "prefer-other-window?"))
-        (enable-envrc (make-symbol "enable-envrc"))
-        (enable-mise (make-symbol "enable-mise")))
-    `(let* ((disproject--environment-scope (disproject--scope))
-            (,project (disproject-project-instance
-                       (disproject-scope-selected-project-ensure
-                        disproject--environment-scope)))
-            (,from-directory (project-root ,project))
-            (,prefer-other-window? (disproject--state-prefer-other-window?))
-            ;; Only enable envrc if the initial environment has it enabled.
-            (,enable-envrc (and (bound-and-true-p envrc-mode)
-                                (symbol-function 'envrc-mode)))
-            ;; Only enable mise if the initial environment has it enabled.
-            (,enable-mise (and (bound-and-true-p mise-mode)
-                               (symbol-function 'mise-mode))))
-       (disproject--with-environment-buffer
-         (let ((default-directory ,from-directory)
-               ;; This handles edge cases with `project' commands.
-               (project-current-directory-override ,from-directory)
-               (display-buffer-overriding-action
-                (and ,prefer-other-window? '(display-buffer-use-some-window
-                                             (inhibit-same-window t)))))
-           (hack-dir-local-variables-non-file-buffer)
-           ;; Make sure commands are run in the correct direnv environment
-           ;; if envrc-mode is enabled.
-           (when ,enable-envrc (funcall ,enable-envrc))
-           ;; Make sure commands are run in the correct mise environment
-           ;; if mise-mode is enabled.
-           (when ,enable-mise (funcall ,enable-mise))
-           ,@body)))))
+  `(disproject-with-env-apply
+    (lambda () ,@body)))
+
+(defmacro disproject-with-environment (&rest body)
+  "Run BODY with Disproject transient settings applied in selected project root.
+
+This uses `disproject-with-env' and `disproject-with-root' to set
+up the environment."
+  (declare (indent 0) (debug t))
+  `(disproject-with-env (disproject-with-root ,@body)))
 
 ;;;; Suffix setup functions.
 

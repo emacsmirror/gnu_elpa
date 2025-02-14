@@ -510,7 +510,7 @@ project."
 ;;;; Prefixes.
 
 ;;;###autoload (autoload 'disproject-dispatch "disproject" nil t)
-(transient-define-prefix disproject-dispatch (&optional project)
+(transient-define-prefix disproject-dispatch ()
   "Dispatch some command for a project.
 
 PROJECT is an optional argument that tells the function what to
@@ -531,21 +531,6 @@ menu."
    ("C-p" "Manage projects" disproject-manage-projects-dispatch)]
   ["Options"
    (",o" "Prefer other window" "--prefer-other-window")]
-  ["Deprecated options"
-   :hide always
-   ;; DEPRECATED: Remove at least 1 month after deprecation.
-   ("o" "Prefer other window (deprecated)"
-    (lambda () (interactive)
-      (seq-each (lambda (suffix)
-                  (when (and (object-of-class-p suffix 'transient-switch)
-                             (equal "--prefer-other-window"
-                                    (oref suffix argument)))
-                    (oset suffix value (transient-infix-read suffix))
-                    (message
-                     (concat "Key-bind \"o\" for --prefer-other-window is"
-                             " deprecated; please use \",o\" instead"))))
-                (transient-suffixes 'disproject-dispatch)))
-    :transient t)]
   ["Main commands"
    :pad-keys t
    [("b" "Switch buffer" disproject-switch-to-buffer)
@@ -568,30 +553,19 @@ menu."
     ("L" "line occurrence" disproject-find-line)
     ("T" "todos" disproject-magit-todos-list
      :if disproject-prefix--magit-todos-apt?)]]
-  ["Version control"
-   :hide always
-   :if disproject-prefix--version-control-apt?
-   ("m" "Magit" disproject-magit-commands-dispatch
-    :if disproject-prefix--magit-apt?)]
   [("SPC" "Custom dispatch" disproject-custom-dispatch
     :transient transient--do-replace)]
   (interactive)
-  ;; DEPRECATED: Remove at least 1 month after deprecation.
-  (when project
-    (display-warning 'disproject "\
-PROJECT argument for `disproject-dispatch' is deprecated since after v1.2"))
-  (let ((project-current-directory-override (or (and project (project-root project))
-                                                project-current-directory-override)))
-    (transient-setup
-     'disproject-dispatch nil nil
-     ;; XXX: Preserve options in scope if we're coming from another Disproject
-     ;; Transient.  `:refresh-suffixes' being true causes the `:init-value'
-     ;; function to be called every refresh which messes up --prefer-other-window,
-     ;; so that can't be used.
-     :value `(,@(if (disproject--state-prefer-other-window?)
-                    '("--prefer-other-window"))))))
+  (transient-setup
+   'disproject-dispatch nil nil
+   ;; XXX: Preserve options in scope if we're coming from another Disproject
+   ;; Transient.  `:refresh-suffixes' being true causes the `:init-value'
+   ;; function to be called every refresh which messes up --prefer-other-window,
+   ;; so that can't be used.
+   :value `(,@(if (disproject--state-prefer-other-window?)
+                  '("--prefer-other-window")))))
 
-(transient-define-prefix disproject-custom-dispatch (&optional project)
+(transient-define-prefix disproject-custom-dispatch ()
   "Dispatch custom suffix commands.
 
 If non-nil, PROJECT is used as the project to dispatch custom
@@ -615,37 +589,7 @@ character.  These characters represent the following states:
    :pad-keys t
    :setup-children disproject-custom--setup-suffixes]
   [("SPC" "Main dispatch" disproject-dispatch
-    :transient transient--do-replace)]
-  (interactive)
-  ;; DEPRECATED: Remove at least 1 month after deprecation.
-  (when project
-    (display-warning 'disproject "\
-PROJECT argument for `disproject-custom-dispatch' is deprecated since after v1.2"))
-  (let ((project-current-directory-override (or (and project (project-root project))
-                                                project-current-directory-override)))
-    (transient-setup
-     'disproject-custom-dispatch nil nil)))
-
-;; DEPRECATED: Remove at least 1 month after earliest release with deprecation.
-(transient-define-prefix disproject-magit-commands-dispatch ()
-  "Dispatch Magit-related commands for a project.
-
-Some commands may not be available if the selected project is not
-the same as the default (current buffer) one."
-  :class disproject-prefix
-  disproject--selected-project-header-group
-  ["Magit commands"
-   ("d" "Dispatch" magit-dispatch
-    :inapt-if-not disproject-prefix--in-default-project?)
-   ("f" "File dispatch" magit-file-dispatch
-    :inapt-if-not disproject-prefix--in-default-project?)
-   ("m" "Status" disproject-magit-status)
-   ("T" "Todos" disproject-magit-todos-list
-    :if (lambda () (featurep 'magit-todos)))])
-
-(make-obsolete 'disproject-magit-commands-dispatch
-               "some commands have been moved to `disproject-dispatch'."
-               "after v1.2")
+    :transient transient--do-replace)])
 
 (transient-define-prefix disproject-manage-projects-dispatch ()
   "Dispatch commands for managing projects."
@@ -665,11 +609,7 @@ the same as the default (current buffer) one."
    ("f z" "zombie projects" disproject-forget-zombie-projects)]
   ["Remember"
    ("r o" "open projects" disproject-remember-projects-open)
-   ("r u" "projects under..." disproject-remember-projects-under)]
-  ["Deprecated"
-   :hide always
-   ;; DEPRECATED: Remove when `disproject-remember-projects-active' is removed.
-   ("r a" "active projects" disproject-remember-projects-active)])
+   ("r u" "projects under..." disproject-remember-projects-under)])
 
 
 ;;;
@@ -1375,10 +1315,6 @@ programs path."
   (disproject-with-environment
     (call-interactively #'project-list-buffers)))
 
-;; DEPRECATED: Remove at least 1 month after earliest release with deprecation.
-(define-obsolete-function-alias 'disproject-magit-status
-  #'disproject-vc-status "after v1.2")
-
 (transient-define-suffix disproject-magit-todos-list ()
   "Open a `magit-todos-list' buffer for project."
   (interactive)
@@ -1437,10 +1373,6 @@ process status."
               open-projects)
     (project--write-project-list)))
 
-;; DEPRECATED: Remove at least 1 month after deprecation.
-(define-obsolete-function-alias 'disproject-remember-projects-active
-  #'disproject-remember-projects-open "after v1.1")
-
 (transient-define-suffix disproject-remember-projects-under ()
   "Remember projects under a directory with `project-remember-projects-under'."
   (interactive)
@@ -1487,10 +1419,6 @@ to."
                                              completion-table nil t)))
     (disproject--switch-project project-directory)))
 
-;; DEPRECATED: Remove at least 1 month after deprecation.
-(define-obsolete-function-alias 'disproject-switch-project-active
-  #'disproject-switch-project-open "after v1.1")
-
 (transient-define-suffix disproject-switch-to-buffer ()
   "Switch to buffer in project.
 
@@ -1499,10 +1427,6 @@ The command used can be customized with
   (interactive)
   (disproject-with-environment
     (call-interactively disproject-switch-to-buffer-command)))
-
-;; DEPRECATED: Remove at least 1 month after earliest release with deprecation.
-(define-obsolete-function-alias 'disproject-vc-dir
-  #'disproject-vc-status "after v1.2")
 
 (transient-define-suffix disproject-vc-status ()
   "Dispatch a VC status command depending on the project backend.

@@ -94,6 +94,9 @@ The value should be a list of specifications.  A specification
 can use either Transient syntax for suffixes (see Info
 node `(transient)Suffix Specifications') or an additional custom
 syntax provided by Disproject for some common types of commands.
+If Transient syntax is used, it may be helpful to use functions
+from `M-x shortdoc disproject-environment' so that variables are
+set according to the transient state.
 
 The custom syntax is documented below.
 
@@ -1196,6 +1199,14 @@ This uses `disproject-with-env' and `disproject-with-root' to set
 up the environment."
   (declare (indent 0) (debug t))
   `(disproject-with-env (disproject-with-root ,@body)))
+
+(define-short-documentation-group disproject-environment
+  "Environments from Disproject transient settings"
+  (disproject-with-env-apply)
+  (disproject-with-env)
+  (disproject-with-root-apply)
+  (disproject-with-root)
+  (disproject-with-environment))
 
 ;;;; Suffix setup functions.
 

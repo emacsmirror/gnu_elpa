@@ -86,17 +86,23 @@ this list via `initialize-instance'.")
                                          :identifier "make"))
   "Commands for the `disproject-custom-dispatch' prefix.
 
-The custom dispatch was initially designed for suites of
-compilation commands, but it is flexible enough to be used for
-any custom command designated for a particular project, like
-starting servers or updates.
+This variable provides a way to declare per-project suffixes like
+common compilation commands.  Usually, this is done through
+`dir-locals-file'.
 
-The value should be a list of transient-like specification
-entries (KEY DESCRIPTION {PROPERTY VALUE} ...).
+The value should be a list of specifications.  A specification
+can use either Transient syntax for suffixes (see Info
+node `(transient)Suffix Specifications') or an additional custom
+syntax provided by Disproject for some common types of commands.
 
-KEY is the key-bind that will be used in the Transient menu.  Key
-sequences starting with alphanumeric characters (regexp
-\"[a-zA-Z0-9]\") are reserved for the user.
+The custom syntax is documented below.
+
+A specification using the custom syntax has the following form:
+  (KEY DESCRIPTION {PROPERTY VALUE} ...)
+
+KEY is the key-bind that will be used in the Transient menu.  Any
+key sequence starting with alphanumeric characters or
+dash (regexp \"[a-zA-Z0-9-]\") are reserved for the user.
 
 DESCRIPTION is used as the Transient command description.
 
@@ -139,9 +145,13 @@ incompatible (only one can run at a given time).  This relies on
 commands like `compile' which notify the user that a buffer with
 the same name already has a process running.
 
-To illustrate usage of `disproject-custom-suffixes', for
-example, the following may be used as a dir-locals.el value for
-some project to add \"make -k\" and \"guile --help\" as compile
+Note that the presence of the `:command-type' keyword (described
+later) is used as the indicator for whether or not a
+specification uses the custom syntax.
+
+To illustrate usage of the custom syntax, the following is an
+example that may be used as a dir-locals.el value for some
+project to add \"make -k\" and \"guile --help\" as compile
 commands and some custom `find-file' call commands:
 
   ((\"m\" \"Make\"
@@ -173,13 +183,7 @@ the mentioned function, called when setting up the custom
 dispatch menu.  Non-default values must still be explicitly
 allowed by the user - this may be unsafe if unconditionally
 evaluated."
-  :type '(repeat (list (string :tag "Key bind")
-                       (string :tag "Description")
-                       (plist :inline t
-                              :tag "Properties"
-                              :key-type (choice (const :command-type)
-                                                (const :command)
-                                                (const :identifier)))))
+  :type '(repeat sexp)
   :group 'disproject)
 ;;;###autoload(put 'disproject-custom-suffixes 'safe-local-variable #'always)
 
@@ -1195,11 +1199,26 @@ up the environment."
 
 ;;;; Suffix setup functions.
 
+(defun disproject-custom--custom-spec? (spec)
+  "Return non-nil if SPEC is considered custom Disproject suffix syntax.
+
+The keyword `:command-type' is used as an indicator that SPEC
+should be interpreted as custom syntax.
+
+Note that this essentially makes `:command-type' a reserved
+keyword; behavior may be unexpected if it involves a
+specification that uses some transient suffix class with this
+keyword."
+  (and (listp spec) (memq :command-type spec)))
+
 (defun disproject-custom--setup-suffixes (_)
   "Set up suffixes according to `disproject-custom-suffixes'."
   (transient-parse-suffixes
    'disproject-custom-dispatch
-   (mapcar #'disproject-custom--suffix
+   (mapcar (lambda (spec)
+             (if (disproject-custom--custom-spec? spec)
+                 (disproject-custom--suffix spec)
+               spec))
            `(,@(disproject-project-custom-suffixes
                 (disproject-scope-selected-project-ensure (disproject--scope)))
              ("!" "Alternative compile"

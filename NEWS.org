@@ -8,6 +8,13 @@ This document contains the release notes that are included in each
 tagged commit on the project's main git repository:
 <https://git.thanosapollo.org/org-gnosis>.
 
+* 0.0.6
+Minor update with bug fixes & documentation improvements:
+  + Fixes insertion of tags issues
+    + Tags are now inserted at the nearest heading with an ID, or as
+      filetags if none found.
+  + Update FSF assignment form in docs
+
 * 0.0.5
 Minor update with documentation changes
   + Fix typos

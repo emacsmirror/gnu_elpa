@@ -689,13 +689,6 @@ the same as the default (current buffer) one."
                  directories)
      :test (lambda (p1 p2) (equal (project-root p1) (project-root p2))))))
 
-(defun disproject--scope ()
-  "Return the scope for a `disproject-prefix' prefix."
-  ;; Always fall back to initializing scope from `disproject-prefix' (i.e. class
-  ;; of `disproject-dispatch') rather than a child class to be predictable.
-  (transient-scope (cons 'disproject-dispatch
-                         disproject-prefix--transient-commands)))
-
 ;;;; Transient state classes.
 
 ;;;;; Project class.
@@ -1099,6 +1092,22 @@ and potentially resulting in duplicate prompts.")
 
 (defvar disproject--environment-buffer-name " disproject-environment"
   "Name of buffer which commands will be run from.")
+
+(defun disproject--scope ()
+  "Return the scope for a `disproject-prefix' prefix.
+
+It is recommended to bind the return value for reuse instead of
+calling this multiple times, as it is possible for multiple
+different scope objects to be created (which is not usually desired)."
+  ;; TODO: Improve case where callers cannot avoid calling `disproject--scope'
+  ;; more than once (perhaps when calling a suffix that also calls scope).
+  ;; Maybe document that `disproject-with-environment' should be used so that
+  ;; `disproject--environment-scope' is bound?
+  (or disproject--environment-scope
+      ;; Always fall back to initializing scope from `disproject-prefix' (i.e. class
+      ;; of `disproject-dispatch') rather than a child class to be predictable.
+      (transient-scope (cons 'disproject-dispatch
+                             disproject-prefix--transient-commands))))
 
 (defmacro disproject--with-environment-buffer (&rest body)
   "Run BODY in a disproject environment buffer.

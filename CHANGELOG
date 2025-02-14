@@ -4,6 +4,30 @@
 
 ** Unreleased
 
+*** Added
+
+- Support specifications using Transient syntax in ~disproject-custom-suffixes~.
+- Add the following macros/functions that split up functionality from
+  ~disproject-with-environment~, which are particularly useful when combined
+  with suffix advice, an experimental feature recently added in Transient:
+  - ~disproject-with-env~ macro, ~disproject-with-env-apply~ function for
+    applying transient options (like ~project-current-directory-override~ or
+    display buffer overrides).
+
+    This is intended to be used in the (currently experimental) =advice= and
+    =advice*= slots.
+  - ~disproject-with-root~ macro, ~disproject-with-root-apply~ function for
+    setting ~default-directory~ to the current (or selected) project's root.
+
+    This is intended to be used in commands themselves, as advice only applies
+    to commands when executed from a prefix.
+
+*** Changed
+
+- Maintain the current buffer context when running in environment (as created by
+  e.g. ~disproject-with-environment~) to provide more usable context to commands
+  like ~ffap~ ([[https://github.com/aurtzy/disproject/issues/6][#6]]).
+
 ** [[release-version:1.3.1][1.3.1]] - 2024-12-13
 
 Bugfix release to resolve an issue that could make the menu inaccessible for

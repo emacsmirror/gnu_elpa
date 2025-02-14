@@ -1115,6 +1115,18 @@ This will be an indirect buffer made from the current buffer."
          (when-let* ((buf (get-buffer ,buf-name)))
            (kill-buffer buf))))))
 
+(defun disproject-with-root-apply (fun &rest args)
+  "Apply FUN to ARGS with `default-directory' set to the current project root."
+  (let ((default-directory (project-root (project-current t))))
+    (apply fun args)))
+
+(defmacro disproject-with-root (&rest body)
+  "Run BODY from the current project's root directory.
+
+This is a macro version of `disproject-with-root-apply'."
+  (declare (indent 0) (debug t))
+  `(disproject-with-root-apply (lambda () ,@body)))
+
 (defmacro disproject-with-environment (&rest body)
   "Run BODY in an environment respecting Disproject settings.
 

@@ -1,0 +1,9 @@
+#+TITLE: Org Gnosis
+
+** About
+
+Org Gnosis (GNU-sis) is a Roam-inspired note-taking system for GNU
+Emacs.
+
++ [[https://thanosapollo.org/projects/org-gnosis/][Homepage]]
++ [[https://thanosapollo.org/user-manual/org-gnosis/][Manual]]

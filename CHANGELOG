@@ -17,7 +17,9 @@
     This is intended to be used in the (currently experimental) =advice= and
     =advice*= slots.
   - ~disproject-with-root~ macro, ~disproject-with-root-apply~ function for
-    setting ~default-directory~ to the current (or selected) project's root.
+    setting ~default-directory~ to the current project's root.  When used in
+    the context of a ~disproject-with-env~, it is set to the selected project's
+    root directory.
 
     This is intended to be used in commands themselves, as advice only applies
     to commands when executed from a prefix.

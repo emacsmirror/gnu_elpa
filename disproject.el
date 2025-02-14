@@ -609,7 +609,6 @@ character.  These characters represent the following states:
   [a]: Command is active.
   [i]: Command is inactive."
   :class disproject--custom-suffixes-prefix
-  :refresh-suffixes t
   disproject--selected-project-header-group
   ["Custom suffix commands"
    :class transient-column

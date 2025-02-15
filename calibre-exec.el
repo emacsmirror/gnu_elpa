@@ -50,12 +50,16 @@ EVENT is the process event, see Info node
   "Execute calibredb with arguments ARGS.
 ARGS should be a list of strings to be passed as arguments to
 calibredb.  SENTINEL is a process sentinel to install."
-  (if (not (executable-find calibre-calibredb-executable))
-      (error "Could not find calibredb")
+  (unless (executable-find calibre-calibredb-executable)
+    (error "Could not find calibredb"))
+  (let ((buffer (get-buffer-create calibre-exec--process-buffer))
+        (command `(,calibre-calibredb-executable "--with-library" ,(calibre--library) ,@args)))
+    (with-current-buffer buffer
+      (insert (string-join command " ") "\n"))
     (make-process
      :name "calibre"
-     :command `(,calibre-calibredb-executable "--with-library" ,(calibre--library) ,@args)
-     :buffer (get-buffer-create calibre-exec--process-buffer)
+     :command command
+     :buffer buffer
      :sentinel sentinel)))
 
 (defun calibre-exec--next-command ()

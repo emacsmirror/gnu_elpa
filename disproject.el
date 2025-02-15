@@ -1140,7 +1140,8 @@ up the environment."
   `(disproject-with-env (disproject-with-root ,@body)))
 
 (define-short-documentation-group disproject-environment
-  "Environments from Disproject transient settings"
+  "Environments from Disproject transient settings
+(Use `C-h o' on symbols for more documentation)"
   (disproject-with-env-apply)
   (disproject-with-env)
   (disproject-with-root-apply)

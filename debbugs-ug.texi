@@ -4,7 +4,7 @@
 
 @dircategory Emacs
 @direntry
-* Debbugs UG: (debbugs-ug).  Debbugs User Interface in Emacs.
+* Debbugs User Guide: (debbugs-ug).  Debbugs User Interface in Emacs.
 @end direntry
 
 @copying

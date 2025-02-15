@@ -4,7 +4,7 @@
 
 @dircategory Emacs
 @direntry
-* Debbugs: (debbugs).  A library for communication with Debbugs.
+* Debbugs Library: (debbugs).  A library for communication with Debbugs.
 @end direntry
 
 @copying

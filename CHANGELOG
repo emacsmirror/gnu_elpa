@@ -30,6 +30,17 @@
   e.g. ~disproject-with-environment~) to provide more usable context to commands
   like ~ffap~ ([[https://github.com/aurtzy/disproject/issues/6][#6]]).
 
+*** Removed
+
+- Remove deprecated ~project~ argument from ~disproject-dispatch~ and
+  ~disproject-custom-dispatch~ commands.
+- Remove deprecated =o= option key-bind for preferring other window.
+- Remove deprecated ~disproject-magit-commands-dispatch~ command.
+- Remove deprecated ~disproject-remember-projects-active~ command.
+- Remove deprecated ~disproject-magit-status~ command.
+- Remove deprecated ~disproject-switch-project-active~ command.
+- Remove deprecated ~disproject-vc-dir~ command.
+
 ** [[release-version:1.3.1][1.3.1]] - 2024-12-13
 
 Bugfix release to resolve an issue that could make the menu inaccessible for

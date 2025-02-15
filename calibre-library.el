@@ -166,7 +166,23 @@ are marked return those books otherwise return the book at point."
          ((char-equal mark calibre-mark-marker)
           (if (calibre-edit-modified-p book)
               (calibre-edit-mark-modified book)
-              (tabulated-list-put-tag " " t))))))))
+            (tabulated-list-put-tag " " t))))))))
+
+(defun calibre-library-unmark-all (&optional mark)
+  "Clear all marks from the library buffer.
+
+If MARK is provided clear only that mark.  When called with a prefix
+argument prompts for MARK."
+  (interactive (list (if current-prefix-arg (read-char "Mark: ") nil)))
+  (let ((book (tabulated-list-get-id)))
+    (goto-char (point-min))
+    (while (not (eobp))
+      (let ((current-mark (char-after)))
+        (when (or (and mark (char-equal current-mark mark))
+                  (and (not mark) (not (char-equal current-mark 32))))
+          (tabulated-list-put-tag " " nil)))
+      (forward-line))
+    (calibre-library--find-book book)))
 
 (defun calibre-library-get-marked (&optional mark)
   "Return books marked with MARK.
@@ -260,6 +276,7 @@ If called with a prefix argument prompt the user for the format."
   "m" #'calibre-library-mark
   "d" #'calibre-library-mark-remove
   "u" #'calibre-library-mark-unmark
+  "U" #'calibre-library-unmark-all
   "e" #'calibre-edit-book
   "x" #'calibre-library-execute
   "a" #'calibre-library-add-book

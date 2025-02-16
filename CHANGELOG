@@ -23,6 +23,12 @@
 
     This is intended to be used in commands themselves, as advice only applies
     to commands when executed from a prefix.
+- Add ~disproject-process-suffix~ and ~disproject-shell-command-suffix~ classes
+  for defining customizable transient suffixes that spawn processes.  The latter
+  is used by ~disproject-compile~ and ~disproject-shell-command~ now.
+
+  See ~disproject-custom-suffixes~ and documentation on respective symbols for
+  information on using them in custom suffixes.
 
 *** Changed
 

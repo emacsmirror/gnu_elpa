@@ -1,10 +1,12 @@
-;;; denote-org-extras.el --- Denote extensions for Org mode -*- lexical-binding: t -*-
+;;; denote-org.el --- Denote extensions for Org mode -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024-2025  Free Software Foundation, Inc.
 
 ;; Author: Protesilaos Stavrou <info@protesilaos.com>
 ;; Maintainer: Protesilaos Stavrou <info@protesilaos.com>
-;; URL: https://github.com/protesilaos/denote
+;; URL: https://github.com/protesilaos/denote-org
+;; Version: 0.0.0
+;; Package-Requires: ((emacs "28.1") (denote "3.1.0"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -28,7 +30,6 @@
 ;;; Code:
 
 (require 'denote)
-(require 'denote-sort)
 (require 'org)
 
 ;;;; Link to file and heading
@@ -790,5 +791,5 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
     (when rx (denote-org-extras-dblock-add-files-as-headings rx add-links sort reverse excluded-dirs not-rx)))
   (join-line)) ; remove trailing empty line
 
-(provide 'denote-org-extras)
-;;; denote-org-extras.el ends here
+(provide 'denote-org)
+;;; denote-org.el ends here

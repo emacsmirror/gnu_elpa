@@ -67,6 +67,13 @@ If nil, this is the same as `abbrev-file-name'."
   "n"       #'widget-forward
   "p"       #'widget-backward)
 
+(defvar-keymap custom-abbrev-field-map
+  :doc "Keymap for the editable fields in the buffers for Customizing Abbrevs."
+  :full t
+  :parent custom-field-keymap
+  "C-x C-s" #'Custom-abbrev-save
+  "C-c C-c" #'Custom-abbrev-define)
+
 (defvar custom-abbrev-commands
   '((" Define Abbrevs" Custom-abbrev-define t
      "Define Abbrevs but don't save." "index" "Define" t)
@@ -265,14 +272,19 @@ this session."
                            :sample-face 'highlight
                            :custom-abbrev-table table-name
                            '(list :tag "Abbrev"
-                                  (string :tag "Abbreviation")
-                                  (string :tag "Expansion")
-                                  (choice :tag "Hook"
-                                          (const :tag "None" nil)
-                                          (function))
-                                  (choice :tag "Enable function"
-                                          (const :tag "None" nil)
-                                          (function :value always))
+                                  (string :tag "Abbreviation"
+                                          :keymap custom-abbrev-field-map)
+                                  (string :tag "Expansion"
+                                          :keymap custom-abbrev-field-map)
+                                  (choice
+                                   :tag "Hook"
+                                   (const :tag "None" nil)
+                                   (function :keymap custom-abbrev-field-map))
+                                  (choice
+                                   :tag "Enable function"
+                                   (const :tag "None" nil)
+                                   (function :value always
+                                             :keymap custom-abbrev-field-map))
                                   (boolean :tag "Case fixed"))))
       (push abbrev-widget custom-abbrev-widgets)
       (widget-put visibility :widget abbrev-widget)))
@@ -324,14 +336,19 @@ the abbrev table to customize.  If nil, it defaults to `global-abbrev-table'."
            (widget-create 'custom-abbrev :value abbrevs
                           :custom-abbrev-table table-name
                           '(list :tag "Abbrev"
-                                 (string :tag "Abbreviation")
-                                 (string :tag "Expansion")
-                                 (choice :tag "Hook"
-                                          (const :tag "None" nil)
-                                          (function))
-                                 (choice :tag "Enable function"
-                                         (const :tag "None" nil)
-                                         (function :value always))
+                                 (string :tag "Abbreviation"
+                                         :keymap custom-abbrev-field-map)
+                                 (string :tag "Expansion"
+                                         :keymap custom-abbrev-field-map)
+                                 (choice
+                                  :tag "Hook"
+                                  (const :tag "None" nil)
+                                  (function :keymap custom-abbrev-field-map))
+                                 (choice
+                                  :tag "Enable function"
+                                  (const :tag "None" nil)
+                                  (function :value always
+                                            :keymap custom-abbrev-field-map))
                                  (boolean :tag "Case fixed"))))))
   (custom-abbrev--prepare-buffer-2))
 

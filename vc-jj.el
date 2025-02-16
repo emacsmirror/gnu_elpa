@@ -1,8 +1,13 @@
-;;; vc-jj.el --- A vc.el backend for Jujutsu VCS  -*- lexical-binding: t; -*-
+;;; vc-jj.el --- VC backend for the Jujutsu version control system -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024  Wojciech Siewierski
 
 ;; Author: Wojciech Siewierski
+;;         Rudolf Schlatte <rudi@constantly.at>
+;; URL: https://codeberg.org/emacs-jj-vc/vc-jj.el
+;; Version: 0.1
+;; Package-Requires: ((emacs "25.1") (compat "29.4"))
+;; Keywords: vc tools
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

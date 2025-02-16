@@ -1113,13 +1113,14 @@ window if \"--prefer-other-window\" is enabled."
             (display-buffer-overriding-action
              (and prefer-other-window? '(display-buffer-use-some-window
                                          (inhibit-same-window t)))))
-        (hack-dir-local-variables-non-file-buffer)
-        ;; Make sure commands are run in the correct direnv environment if
-        ;; envrc-mode is enabled.
-        (when enable-envrc (funcall enable-envrc))
-        ;; Make sure commands are run in the correct mise environment if
-        ;; mise-mode is enabled.
-        (when enable-mise (funcall enable-mise))
+        (disproject-with-root
+          (hack-dir-local-variables-non-file-buffer)
+          ;; Make sure commands are run in the correct direnv environment if
+          ;; envrc-mode is enabled.
+          (when enable-envrc (funcall enable-envrc))
+          ;; Make sure commands are run in the correct mise environment if
+          ;; mise-mode is enabled.
+          (when enable-mise (funcall enable-mise)))
         (apply fun args)))))
 
 (defmacro disproject-with-env (&rest body)

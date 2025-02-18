@@ -1234,6 +1234,17 @@ When unable to convert to a string, throw an error."
      ((commandp cmd t) (call-interactively cmd))
      (t (user-error "Not a string or command: %s" cmd)))))
 
+;;;;; Class for suffixes utilizing `compile' for shell commands.
+
+(defclass disproject-compilation-suffix (disproject-shell-command-suffix)
+  ((comint? :initarg :comint?
+            :documentation "\
+Non-nil to enable Comint mode in the compilation buffer.
+
+Implementations of suffix commands should check this value in
+order to conditionally enable the mode."))
+  "Class for suffixes that utilize the `compile' command for shell commands.")
+
 ;;;; Suffix setup functions.
 
 (defun disproject-custom--custom-spec? (spec)
@@ -1430,9 +1441,12 @@ fall back to `compile-command'.
 
 With prefix arg, always prompt.
 
-See type `disproject-shell-command-suffix' for documentation on
+If the `comint?' slot value of the current suffix object is
+non-nil, Comint mode will be enabled in the compilation buffer.
+
+See type `disproject-compilation-suffix' for documentation on
 transient suffix slots."
-  :class disproject-shell-command-suffix
+  :class disproject-compilation-suffix
   (interactive
    (disproject-with-env
      (disproject-with-root
@@ -1452,17 +1466,24 @@ transient suffix slots."
                    command)))))))
   (disproject-with-env
     (disproject-with-root
-      (let* ((scope
+      (let* ((obj
+              (transient-suffix-object))
+             (scope
               (disproject--scope))
              (project-name
               (project-name (disproject-project-instance
                              (disproject-scope-selected-project-ensure scope))))
              (buf-name
-              (disproject-process-suffix-buffer-name
-               (transient-suffix-object) project-name))
+              (disproject-process-suffix-buffer-name obj project-name))
              (compilation-buffer-name-function
               (cl-constantly buf-name)))
-        (compile command)))))
+        (compile command
+                 (and (cl-typep obj 'disproject-compilation-suffix)
+                      (if (slot-boundp obj 'comint?)
+                          (oref obj comint?)
+                        ;; TODO: Default to a customizable variable when
+                        ;; the slot is unbound.
+                        nil)))))))
 
 (transient-define-suffix disproject-remember-projects-open ()
   "Remember projects with open buffers."

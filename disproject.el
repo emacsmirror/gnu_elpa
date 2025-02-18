@@ -1214,7 +1214,14 @@ string to be used as the command.  A nil value indicates to read
 a shell command.
 
 Implementations of suffix commands should handle spawning
-processes based on the value."))
+processes based on the value.")
+   (always-read? :initarg :always-read?
+                 :initform nil
+                 :documentation "\
+Non-nil to always read shell command, even when `cmd' is non-nil.
+
+Implementations of suffix commands should handle reading based
+off this value."))
   "Class for suffix commands that execute shell commands.")
 
 (cl-defmethod disproject-shell-command-suffix-cmd
@@ -1440,7 +1447,8 @@ When called interactively, use the `cmd' slot value of the
 current transient suffix object as COMMAND.  If it is nil, prompt
 with `compile-command' as an initial value.
 
-With prefix arg, always prompt.
+With prefix arg or the `always-read?' slot non-nil, always
+prompt.
 
 If the `comint?' slot value of the current suffix object is
 non-nil, Comint mode will be enabled in the compilation buffer.
@@ -1458,7 +1466,7 @@ transient suffix slots."
                  ;; We don't need to read if `compilation-read-command' is t,
                  ;; since the command should already be considered safe from
                  ;; `disproject-custom--suffixes-allowed?'.
-                 (if current-prefix-arg
+                 (if (or (oref obj always-read?) current-prefix-arg)
                      (compilation-read-command command)
                    command)
                (let ((command (eval compile-command)))
@@ -1516,7 +1524,8 @@ When called interactively, use the `cmd' slot value of the
 current transient suffix object as COMMAND.  If nil, prompt for a
 command to run.
 
-With prefix arg, always prompt.
+With prefix arg or the `always-read?' slot non-nil, always
+prompt.
 
 If the `allow-multiple-buffers?' slot of the current suffix
 object is nil, `async-shell-command-buffer' will be set to
@@ -1533,7 +1542,7 @@ transient suffix slots."
                        (command (and
                                  (cl-typep obj 'disproject-shell-command-suffix)
                                  (disproject-shell-command-suffix-cmd obj))))
-                 (if current-prefix-arg
+                 (if (or (oref obj always-read?) current-prefix-arg)
                      (read-shell-command "Async shell command: " command)
                    command)
                (read-shell-command "Async shell command: "))))))

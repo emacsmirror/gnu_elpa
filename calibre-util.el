@@ -26,6 +26,12 @@
 (require 'calibre)
 (require 'calibre-book)
 
+(defun calibre-and=> (value f)
+  "Return (F VALUE) when VALUE is non-nil, nil otherwise."
+  (if value
+      (funcall f value)
+    nil))
+
 (defmacro calibre-util--macro-map (macro list)
   "Apply MACRO to each element in LIST."
   `(progn

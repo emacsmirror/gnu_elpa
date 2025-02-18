@@ -55,6 +55,26 @@ specified the default is \\='all\\='."
   "Return all books in the Calibre library `calibre-library-dir'."
   (mapcar #'calibre-cli--make-book (calibre-cli--list)))
 
+(defun calibre-cli--get-summary (book)
+  "Return the summary of BOOK."
+  (calibre-and=>
+   (with-temp-buffer
+     (apply #'call-process
+            `(,calibre-calibredb-executable
+              nil
+              t
+              nil
+              "--with-library"
+              ,(calibre--library)
+              "list"
+              "--search" ,(format "id:%d" (calibre-book-id book))
+              "--fields" "comments"
+              "--for-machine"))
+     (goto-char (point-min))
+     (json-parse-buffer :object-type 'alist :array-type 'list))
+   (lambda (res)
+     (calibre-and=> (assq 'comments (car res)) #'cdr))))
+
 (defun calibre-cli--make-book (json)
   "Make a `calibre-book' from JSON."
   (let-alist json

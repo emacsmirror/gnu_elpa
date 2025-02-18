@@ -167,7 +167,7 @@ FROM books
 LEFT JOIN books_series_link sl ON books.id = sl.book
 LEFT JOIN series ON sl.series = series.id;"))))
 
-(defmacro calibre-db--query (query arg fuzzy)
+(defmacro calibre-db--query (query arg &optional fuzzy)
   "Run QUERY on the Calibre database.
 
 ARG is a value to passed to a WHERE clause in QUERY.  FUZZY
@@ -181,9 +181,17 @@ WHERE column %s
 with column being the name of some column."
   `(flatten-list (sqlite-select (calibre--db)
                                 (format ,query (if ,fuzzy "LIKE ?" "= ?"))
-                                (if fuzzy-match
+                                (if ,fuzzy
                                     (vector (format "%%%s%%" ,arg))
                                   (vector ,arg)))))
+
+(defun calibre-db--get-summary (book)
+  "Return the summary of BOOK."
+  (calibre-and=>
+   (calibre-db--query
+    "SELECT text FROM comments WHERE book %s"
+    (calibre-book-id book))
+   #'car))
 
 (defmacro calibre-db--search-function (field docstring query)
   "Create a search function for FIELD with DOCSTRING as docstring.

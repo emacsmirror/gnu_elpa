@@ -45,6 +45,10 @@ If FORCE is non-nil the list is refreshed from the database."
     (setf calibre--books (calibre-core--interface get-books)))
   calibre--books)
 
+(defun calibre-book-summary (book)
+  "Return the summary of BOOK."
+  (calibre-core--interface get-summary book))
+
 (defvar calibre-library--filters nil)
 (defun calibre-library-clear-filters ()
   "Clear all active filters."

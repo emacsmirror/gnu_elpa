@@ -1048,7 +1048,8 @@ project's root directory.
 
 `display-buffer-overriding-action': Set to display in another
 window if \"--prefer-other-window\" is enabled."
-  (let* ((disproject--environment-scope (disproject--scope))
+  (let* ((original-command this-command)
+         (disproject--environment-scope (disproject--scope))
          (project (disproject-project-instance
                    (disproject-scope-selected-project-ensure
                     disproject--environment-scope)))
@@ -1061,7 +1062,11 @@ window if \"--prefer-other-window\" is enabled."
          (enable-mise (and (bound-and-true-p mise-mode)
                            (symbol-function 'mise-mode))))
     (disproject--with-environment-buffer
-      (let ((project-current-directory-override from-directory)
+      ;; Since interactive prompts may occur from having to ensure that a
+      ;; project is selected, we re-set `this-command' so
+      ;; `transient-suffix-object' can find the current suffix object.
+      (let ((this-command original-command)
+            (project-current-directory-override from-directory)
             (display-buffer-overriding-action
              (and prefer-other-window? '(display-buffer-use-some-window
                                          (inhibit-same-window t)))))

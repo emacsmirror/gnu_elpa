@@ -1199,6 +1199,8 @@ buffer's current status."
                     description))
         description)))
 
+;;;;; Class for suffixes that run a shell command.
+
 (defclass disproject-shell-command-suffix (disproject-process-suffix)
   ((cmd :initarg :cmd
         :initform nil

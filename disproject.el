@@ -1435,9 +1435,9 @@ The command used can be customized with
 (transient-define-suffix disproject-compile (command)
   "Run COMMAND with `compile' in project root.
 
-When called interactively, try to use the `cmd' slot value of the
-current transient suffix object as the shell command.  Otherwise,
-fall back to `compile-command'.
+When called interactively, use the `cmd' slot value of the
+current transient suffix object as COMMAND.  If it is nil, prompt
+with `compile-command' as an initial value.
 
 With prefix arg, always prompt.
 
@@ -1511,9 +1511,9 @@ The command used can be customized with the variable
 (transient-define-suffix disproject-shell-command (command)
   "Run COMMAND asynchronously in project root.
 
-When called interactively, try to use the `cmd' slot value of the
-current transient suffix object as the shell command.  Otherwise,
-prompt for a command to run.
+When called interactively, use the `cmd' slot value of the
+current transient suffix object as COMMAND.  If nil, prompt for a
+command to run.
 
 With prefix arg, always prompt.
 

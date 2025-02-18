@@ -1445,12 +1445,12 @@ The command used can be customized with
   (disproject-with-environment
     (call-interactively disproject-or-external-find-regexp-command)))
 
-(transient-define-suffix disproject-compile (command)
-  "Run COMMAND with `compile' in project root.
+(transient-define-suffix disproject-compile ()
+  "Run a shell command with `compile' in project root.
 
-When called interactively, use the `cmd' slot value of the
-current transient suffix object as COMMAND.  If it is nil, prompt
-with `compile-command' as an initial value.
+The `cmd' slot value of the current transient suffix object is
+used as the shell command.  If nil, prompt with `compile-command'
+as an initial value.
 
 With prefix arg or the `always-read?' slot non-nil, always
 prompt.
@@ -1461,25 +1461,31 @@ non-nil, Comint mode will be enabled in the compilation buffer.
 See type `disproject-compilation-suffix' for documentation on
 transient suffix slots."
   :class disproject-compilation-suffix
-  (interactive
-   (disproject-with-env
-     (disproject-with-root
-       (list (if-let* ((obj (transient-suffix-object))
-                       (command (disproject-shell-command-suffix-cmd obj)))
-                 ;; We don't need to read if `compilation-read-command' is t,
-                 ;; since the command should already be considered safe from
-                 ;; `disproject-custom--suffixes-allowed?'.
-                 (if (or (oref obj always-read?) current-prefix-arg)
-                     (compilation-read-command command)
-                   command)
-               (let ((command (eval compile-command)))
-                 (if (or compilation-read-command current-prefix-arg)
-                     (compilation-read-command command)
-                   command)))))))
+  (interactive)
   (disproject-with-env
     (disproject-with-root
       (let* ((obj
               (transient-suffix-object))
+             (always-read?
+              (oref obj always-read?))
+             (command
+              (if-let* ((cmd (disproject-shell-command-suffix-cmd obj)))
+                  ;; We don't need to read if `compilation-read-command' is t,
+                  ;; since the command should already be considered safe from
+                  ;; `disproject-custom--suffixes-allowed?'.
+                  (if (or always-read? current-prefix-arg)
+                      (compilation-read-command cmd)
+                    cmd)
+                (let ((cmd (eval compile-command)))
+                  (if (or compilation-read-command current-prefix-arg)
+                      (compilation-read-command cmd)
+                    cmd))))
+             (comint?
+              (if (slot-boundp obj 'comint?)
+                  (oref obj comint?)
+                ;; TODO: Default to a customizable variable when
+                ;; the slot is unbound.
+                nil))
              (scope
               (disproject--scope))
              (project-name
@@ -1489,12 +1495,7 @@ transient suffix slots."
               (disproject-process-suffix-buffer-name obj project-name))
              (compilation-buffer-name-function
               (cl-constantly buf-name)))
-        (compile command
-                 (if (slot-boundp obj 'comint?)
-                     (oref obj comint?)
-                   ;; TODO: Default to a customizable variable when
-                   ;; the slot is unbound.
-                   nil))))))
+        (compile command comint?)))))
 
 (transient-define-suffix disproject-remember-projects-open ()
   "Remember projects with open buffers."
@@ -1519,12 +1520,11 @@ The command used can be customized with the variable
   (disproject-with-environment
     (call-interactively disproject-shell-command)))
 
-(transient-define-suffix disproject-shell-command (command)
-  "Run COMMAND asynchronously in project root.
+(transient-define-suffix disproject-shell-command ()
+  "Run a shell command asynchronously in project root.
 
-When called interactively, use the `cmd' slot value of the
-current transient suffix object as COMMAND.  If nil, prompt for a
-command to run.
+The `cmd' slot value of the current transient suffix object is
+used as the command.  If nil, prompt for a command to run.
 
 With prefix arg or the `always-read?' slot non-nil, always
 prompt.
@@ -1537,19 +1537,17 @@ reflected.
 See type `disproject-shell-command-suffix' for documentation on
 transient suffix slots."
   :class disproject-shell-command-suffix
-  (interactive
-   (disproject-with-env
-     (disproject-with-root
-       (list (if-let* ((obj (transient-suffix-object))
-                       (command (disproject-shell-command-suffix-cmd obj)))
-                 (if (or (oref obj always-read?) current-prefix-arg)
-                     (read-shell-command "Async shell command: " command)
-                   command)
-               (read-shell-command "Async shell command: "))))))
+  (interactive)
   (disproject-with-env
     (disproject-with-root
       (let* ((scope (disproject--scope))
              (obj (transient-suffix-object))
+             (always-read? (oref obj always-read?))
+             (command (if-let* ((cmd (disproject-shell-command-suffix-cmd obj)))
+                          (if (or always-read? current-prefix-arg)
+                              (read-shell-command "Async shell command: " cmd)
+                            cmd)
+                        (read-shell-command "Async shell command: ")))
              (project-name (project-name
                             (disproject-project-instance
                              (disproject-scope-selected-project-ensure scope))))

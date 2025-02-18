@@ -1214,12 +1214,6 @@ Implementations of suffix commands should handle spawning
 processes based on the value."))
   "Class for suffix commands that execute shell commands.")
 
-(cl-defgeneric disproject-shell-command-suffix--cmd (_obj)
-  "Return a string shell command from OBJ.
-
-The default implementation returns nil."
-  nil)
-
 (cl-defmethod disproject-shell-command-suffix--cmd
   ((obj disproject-shell-command-suffix))
   "Return a string shell command from OBJ.
@@ -1441,7 +1435,9 @@ transient suffix slots."
    (disproject-with-env
      (disproject-with-root
        (list (if-let* ((obj (transient-suffix-object))
-                       (command (disproject-shell-command-suffix--cmd obj)))
+                       (command (and
+                                 (cl-typep obj 'disproject-shell-command-suffix)
+                                 (disproject-shell-command-suffix--cmd obj))))
                  ;; We don't need to read if `compilation-read-command' is t,
                  ;; since the command should already be considered safe from
                  ;; `disproject-custom--suffixes-allowed?'.
@@ -1510,7 +1506,9 @@ transient suffix slots."
    (disproject-with-env
      (disproject-with-root
        (list (if-let* ((obj (transient-suffix-object))
-                       (command (disproject-shell-command-suffix--cmd obj)))
+                       (command (and
+                                 (cl-typep obj 'disproject-shell-command-suffix)
+                                 (disproject-shell-command-suffix--cmd obj))))
                  (if current-prefix-arg
                      (read-shell-command "Async shell command: " command)
                    command)

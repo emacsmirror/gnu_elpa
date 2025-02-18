@@ -79,15 +79,6 @@ standalone file. The following sections cover the technicalities.
 :CUSTOM_ID: h:8b542c50-dcc9-4bca-8037-a36599b22779
 :END:
 
-[ As part of version 2.3.0, all dynamic blocks are defined in the file
-  =denote-org-extras.el=. The file which was once called
-  =denote-org-dblock.el= contains aliases for the new function names
-  and displays a warning about its deprecation. There is no need to
-  ~require~ the ~denote-org-extras~ feature because all of Denote's
-  Org dynamic blocks are autoloaded (meaning that they work as soon as
-  they are used). For backward compatibility, all dynamic blocks
-  retain their original names as an alias for the newer one. ]
-
 Denote can optionally integrate with Org mode's "dynamic blocks"
 facility. This means that it can use special blocks that are evaluated
 with =C-c C-x C-u= (~org-dblock-update~) to generate their contents.
@@ -120,18 +111,9 @@ Evaluate:
 :CUSTOM_ID: h:50160fae-6515-4d7d-9737-995ad925e64b
 :END:
 
-[ As part of version 2.3.0, all dynamic blocks are defined in the file
-  =denote-org-extras.el=. The file which was once called
-  =denote-org-dblock.el= contains aliases for the new function names
-  and displays a warning about its deprecation. There is no need to
-  ~require~ the ~denote-org-extras~ feature because all of Denote's
-  Org dynamic blocks are autoloaded (meaning that they work as soon as
-  they are used). For backward compatibility, all dynamic blocks
-  retain their original names as an alias for the newer one. ]
-
-#+findex: denote-org-extras-dblock-insert-links
+#+findex: denote-org-dblock-insert-links
 The =denote-links= block can be inserted at point with the command
-~denote-org-extras-dblock-insert-links~ or by manually including the
+~denote-org-dblock-insert-links~ or by manually including the
 following in an Org file:
 
 : #+BEGIN: denote-links :regexp "YOUR REGEXP HERE" :not-regexp :excluded-dirs-regexp nil :sort-by-component nil :reverse-sort nil :id-only nil :include-date nil
@@ -179,7 +161,7 @@ line to update the block.
 - The =:sort-by-component= parameter is optional. It sorts the files
   by the given Denote file name component. The value it accepts is an
   unquoted symbol among =title=, =keywords=, =signature=, =identifier=.
-  When using the command ~denote-org-extras-dblock-insert-files~, this
+  When using the command ~denote-org-dblock-insert-files~, this
   parameter is automatically inserted together with the (=:regexp=
   parameter) and the user is prompted for a file name component.
 
@@ -213,9 +195,9 @@ block. We cover that case as well ([[#h:1a81e255-0510-4ee0-bc3a-374de048ef46][Th
 :CUSTOM_ID: h:1a81e255-0510-4ee0-bc3a-374de048ef46
 :END:
 
-#+findex: denote-org-extras-dblock-insert-missing-links
+#+findex: denote-org-dblock-insert-missing-links
 The =denote-missing-links= block is available with the command
-~denote-org-extras-dblock-insert-missing-links~. It is like the
+~denote-org-dblock-insert-missing-links~. It is like the
 aforementioned =denote-links= block, except it only lists links to
 files that are not present in the current buffer ([[#h:50160fae-6515-4d7d-9737-995ad925e64b][Org dynamic blocks to insert links]]).
 The parameters are otherwise the same and are all optional except for
@@ -236,10 +218,10 @@ Remember to type =C-c C-x C-u= (~org-dblock-update~) with point on the
 :CUSTOM_ID: h:f9a97859-1deb-47dd-bdae-52f8b424ff46
 :END:
 
-#+findex: denote-org-extras-dblock-insert-backlinks
+#+findex: denote-org-dblock-insert-backlinks
 Apart from links to files matching a regular expression, we can also
 produce a list of backlinks to the current file. The dynamic block can
-be inserted at point with the command ~denote-org-extras-dblock-insert-backlinks~
+be inserted at point with the command ~denote-org-dblock-insert-backlinks~
 or by manually writing this in an Org file:
 
 : #+BEGIN: denote-backlinks :excluded-dirs-regexp nil :sort-by-component nil :reverse-sort nil :id-only nil :this-heading-only nil :include-date nil
@@ -270,15 +252,6 @@ the heading ([[#h:fc1ad245-ec08-41be-8d1e-7153d99daf02][Insert link to an Org fi
 :CUSTOM_ID: h:f15fa143-5036-416f-9bff-1bcabbb03456
 :END:
 
-[ As part of version 2.3.0, all dynamic blocks are defined in the file
-  =denote-org-extras.el=. The file which was once called
-  =denote-org-dblock.el= contains aliases for the new function names
-  and displays a warning about its deprecation. There is no need to
-  ~require~ the ~denote-org-extras~ feature because all of Denote's
-  Org dynamic blocks are autoloaded (meaning that they work as soon as
-  they are used). For backward compatibility, all dynamic blocks
-  retain their original names as an alias for the newer one. ]
-
 Denote can optionally use Org's dynamic blocks facility to produce a
 section that lists entire file contents ([[#h:8b542c50-dcc9-4bca-8037-a36599b22779][Use Org dynamic blocks]]).
 This works by instructing Org to match a regular expression of Denote
@@ -290,8 +263,8 @@ list of scattered thoughts on a given topic, like =^2023.*_emacs= for
 a long entry that incorporates all the notes written in 2023 with the
 keyword =emacs=.
 
-#+findex: denote-org-extras-dblock-insert-files
-To produce such a block, call the command ~denote-org-extras-dblock-insert-files~
+#+findex: denote-org-dblock-insert-files
+To produce such a block, call the command ~denote-org-dblock-insert-files~
 or manually write the following block in an Org file and then type
  =C-c C-x C-u= (~org-dblock-update~) on the =#+BEGIN= line to run it
 (do it again to recalculate the block):
@@ -340,7 +313,7 @@ parameters, which are described further below:
 - The =:sort-by-component= parameter is optional. It sorts the files
   by the given Denote file name component. The value it accepts is an
   unquoted symbol among =title=, =keywords=, =signature=, =identifier=.
-  When using the command ~denote-org-extras-dblock-insert-files~, this
+  When using the command ~denote-org-dblock-insert-files~, this
   parameter is automatically inserted together with the (=:regexp=
   parameter) and the user is prompted for a file name component.
 
@@ -349,10 +322,10 @@ parameters, which are described further below:
   of the parameter =:sort-by-component=, though it also combines with
   it.
 
-#+vindex: denote-org-extras-dblock-file-contents-separator
+#+vindex: denote-org-dblock-file-contents-separator
 - The =:file-separator= parameter is optional. If it is omitted, then
   Denote will use no separator between the files it inserts. If the
-  value is ~t~ the ~denote-org-extras-dblock-file-contents-separator~ is
+  value is ~t~ the ~denote-org-dblock-file-contents-separator~ is
   applied at the end of each file: it introduces some empty lines and
   a horizontal rule between them to visually distinguish individual
   files. If the =:file-separator= value is a string, it is used as the
@@ -394,9 +367,9 @@ parameters, which are described further below:
   because it has to assume the Org notation in order to insert each
   file's contents as its own heading. ]
 
-#+findex: denote-org-extras-dblock-insert-files-as-headings
+#+findex: denote-org-dblock-insert-files-as-headings
 As a variation of the previously covered block that inserts file
-contents, we have the ~denote-org-extras-dblock-insert-files-as-headings~
+contents, we have the ~denote-org-dblock-insert-files-as-headings~
 command ([[#h:f15fa143-5036-416f-9bff-1bcabbb03456][Org dynamic block to insert file contents]]). It Turn the
 =#+title= of each file into a top-level heading. Then it increments
 all original headings in the file by one, so that they become
@@ -414,7 +387,7 @@ In its simplest form, this dynamic block looks like this, with
 :
 : #+END:
 
-Though when you use the command ~denote-org-extras-dblock-insert-files-as-headings~
+Though when you use the command ~denote-org-dblock-insert-files-as-headings~
 you get all the parameters included:
 
 : #+BEGIN: denote-files-as-headings :regexp "YOUR REGEXP HERE" :not-regexp nil :excluded-dirs-regexp nil :sort-by-component title :reverse-sort nil :add-links t
@@ -450,7 +423,7 @@ you get all the parameters included:
 - The =:sort-by-component= parameter is optional. It sorts the files
   by the given Denote file name component. The value it accepts is an
   unquoted symbol among =title=, =keywords=, =signature=, =identifier=.
-  When using the command ~denote-org-extras-dblock-insert-files~, this
+  When using the command ~denote-org-dblock-insert-files~, this
   parameter is automatically inserted together with the (=:regexp=
   parameter) and the user is prompted for a file name component.
 
@@ -481,12 +454,12 @@ the current file and create a new file out of it. One such workflow is
 to collect thoughts in a single document and produce longer standalone
 notes out of them upon review.
 
-#+findex: denote-org-extras-extract-org-subtree
-The command ~denote-org-extras-extract-org-subtree~ is used for this
+#+findex: denote-org-extract-org-subtree
+The command ~denote-org-extract-org-subtree~ is used for this
 purpose. It creates a new Denote note using the current Org subtree.
 In doing so, it removes the subtree from its current file and moves
 its contents into a new file. This command is part of the optional
-=denote-org-extras.el= extension, which is part of the ~denote~
+=denote-org.el= extension, which is part of the ~denote~
 package. It is loaded automatically as soon as one of its commands is
 invoked.
 
@@ -497,7 +470,7 @@ If the heading has any tags, they are used as the keywords of the new
 note. If the Org file has any =#+filetags= they are taken as well
 (Org's =#+filetags= are inherited by the headings). If none of these
 are true and the user option ~denote-prompts~ includes an entry for
-keywords, then ~denote-org-extras-extract-org-subtree~ prompts for
+keywords, then ~denote-org-extract-org-subtree~ prompts for
 keywords. Else the new note has no keywords.
 
 If the heading has a =PROPERTIES= drawer, it is retained for further
@@ -527,15 +500,15 @@ The new note is an Org file regardless of the user option
 :CUSTOM_ID: h:fc1ad245-ec08-41be-8d1e-7153d99daf02
 :END:
 
-#+findex: denote-org-extras-link-to-heading
-As part of the optional =denote-org-extras.el= extension, the command
-~denote-org-extras-link-to-heading~ prompts for a link to an Org file
+#+findex: denote-org-link-to-heading
+As part of the optional =denote-org.el= extension, the command
+~denote-org-link-to-heading~ prompts for a link to an Org file
 and then asks for a heading therein, using minibuffer completion. Once
 the user provides input at the two prompts, the command inserts a link
 at point which has the following pattern: =[[denote:IDENTIFIER::#ORG-HEADING-CUSTOM-ID]][Description::Heading text]]=.
 
 Because only Org files can have links to individual headings, the
-command ~denote-org-extras-link-to-heading~ prompts only for Org files
+command ~denote-org-link-to-heading~ prompts only for Org files
 (i.e. files which include the =.org= extension). Remember that Denote
 works with many file types (read the Denote manual's section about the
 file-naming scheme).
@@ -547,7 +520,7 @@ directionality of the action. With that user option, the command
 ~org-store-link~ will generate a =CUSTOM_ID= for the current heading
 (or capture the value of one as-is), giving the user the option to
 then call ~org-insert-link~ wherever they see fit. By contrast, the
-command ~denote-org-extras-link-to-heading~ prompts for a file, then a
+command ~denote-org-link-to-heading~ prompts for a file, then a
 heading, and inserts the link at point.
 
 Just as with files, it is possible to show backlinks for the given
@@ -558,10 +531,10 @@ heading ([[#h:604bf92a-908a-485c-98b8-37ccae559afd][Backlinks for Org headings]]
 :CUSTOM_ID: h:604bf92a-908a-485c-98b8-37ccae559afd
 :END:
 
-The optional =denote-org-extras.el= can generate Denote links to
+The optional =denote-org.el= can generate Denote links to
 individual headings ([[#h:fc1ad245-ec08-41be-8d1e-7153d99daf02][Insert link to an Org file with a further pointer to a heading]]).
 It is then possible to produce a corresponding backlinks buffer with
-the command ~denote-org-extras-backlinks-for-heading~. The resulting
+the command ~denote-org-backlinks-for-heading~. The resulting
 buffer behaves the same way as the standard backlinks buffer we
 provide (read the Denote manual's section about the backlinks buffer).
 An Org dynamic block with backlinks to the current heading is also an
@@ -580,21 +553,21 @@ either make a copy of their Denote note or edit the existing one, and
 (ii) convert all links to the generic =file:= link type that
 external/other programs understand.
 
-The optional extension =denote-org-extras.el= contains two commands
+The optional extension =denote-org.el= contains two commands
 that are relevant for this use-case:
 
-#+findex: denote-org-extras-convert-links-to-file-type
+#+findex: denote-org-convert-links-to-file-type
 + Convert =denote:= links to =file:= links :: The command
-  ~denote-org-extras-convert-links-to-file-type~ goes through the
+  ~denote-org-convert-links-to-file-type~ goes through the
   buffer to find all =denote:= links. It gets the identifier of the
   link and resolves it to the actual file system path. It then
   replaces the match so that the link is written with the =file:= type
   and then the file system path. The optional search terms and/or link
   description are preserved ([[#h:fc1ad245-ec08-41be-8d1e-7153d99daf02][Insert link to an Org file with a further pointer to a heading]]).
 
-#+findex: denote-org-extras-convert-links-to-denote-type
+#+findex: denote-org-convert-links-to-denote-type
 + Convert =file:= links to =denote:= links :: The command
-  ~denote-org-extras-convert-links-to-denote-type~ behaves like the
+  ~denote-org-convert-links-to-denote-type~ behaves like the
   one above. The difference is that it finds the file system path and
   converts it into its identifier.
 

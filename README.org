@@ -582,7 +582,7 @@ that are relevant for this use-case:
 :CUSTOM_ID: h:gnu-elpa-package
 :END:
 
-The package is available as =denote-sequence=.  Simply do:
+The package is available as =denote-org=.  Simply do:
 
 : M-x package-refresh-contents
 : M-x package-install
@@ -611,15 +611,15 @@ mkdir manual-packages
 # Go to the new directory
 cd manual-packages
 
-# Clone this repo, naming it "denote-sequence"
-git clone https://github.com/protesilaos/denote-sequence denote-sequence
+# Clone this repo, naming it "denote-org"
+git clone https://github.com/protesilaos/denote-org denote-org
 #+end_src
 
 Finally, in your =init.el= (or equivalent) evaluate this:
 
 #+begin_src emacs-lisp
 ;; Make Elisp files in that directory available to the user.
-(add-to-list 'load-path "~/.emacs.d/manual-packages/denote-sequence")
+(add-to-list 'load-path "~/.emacs.d/manual-packages/denote-org")
 #+end_src
 
 Everything is in place to set up the package.

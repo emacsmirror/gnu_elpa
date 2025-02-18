@@ -1465,9 +1465,7 @@ transient suffix slots."
    (disproject-with-env
      (disproject-with-root
        (list (if-let* ((obj (transient-suffix-object))
-                       (command (and
-                                 (cl-typep obj 'disproject-shell-command-suffix)
-                                 (disproject-shell-command-suffix-cmd obj))))
+                       (command (disproject-shell-command-suffix-cmd obj)))
                  ;; We don't need to read if `compilation-read-command' is t,
                  ;; since the command should already be considered safe from
                  ;; `disproject-custom--suffixes-allowed?'.
@@ -1492,12 +1490,11 @@ transient suffix slots."
              (compilation-buffer-name-function
               (cl-constantly buf-name)))
         (compile command
-                 (and (cl-typep obj 'disproject-compilation-suffix)
-                      (if (slot-boundp obj 'comint?)
-                          (oref obj comint?)
-                        ;; TODO: Default to a customizable variable when
-                        ;; the slot is unbound.
-                        nil)))))))
+                 (if (slot-boundp obj 'comint?)
+                     (oref obj comint?)
+                   ;; TODO: Default to a customizable variable when
+                   ;; the slot is unbound.
+                   nil))))))
 
 (transient-define-suffix disproject-remember-projects-open ()
   "Remember projects with open buffers."
@@ -1544,9 +1541,7 @@ transient suffix slots."
    (disproject-with-env
      (disproject-with-root
        (list (if-let* ((obj (transient-suffix-object))
-                       (command (and
-                                 (cl-typep obj 'disproject-shell-command-suffix)
-                                 (disproject-shell-command-suffix-cmd obj))))
+                       (command (disproject-shell-command-suffix-cmd obj)))
                  (if (or (oref obj always-read?) current-prefix-arg)
                      (read-shell-command "Async shell command: " command)
                    command)

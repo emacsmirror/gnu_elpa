@@ -1210,7 +1210,8 @@ will be used to spawn a process.
 
 If the value is a string, it is used as the shell command.
 Otherwise, it should be an interactive function that returns a
-string to be used as the command.
+string to be used as the command.  A nil value indicates to read
+a shell command.
 
 Implementations of suffix commands should handle spawning
 processes based on the value."))

@@ -1,6 +1,6 @@
 ;;; disproject.el --- Dispatch project commands with Transient  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024 aurtzy
+;; Copyright (C) 2024-2025 aurtzy
 ;; Copyright (C) 2008-2023 The Magit Project Contributors
 ;; Copyright (C) 1985-1987, 1992-2024 Free Software Foundation, Inc.
 

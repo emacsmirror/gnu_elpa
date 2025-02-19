@@ -30,12 +30,15 @@
 
   See ~disproject-custom-suffixes~ and documentation on respective symbols for
   information on using them in custom suffixes.
+- Support Transient group specifications in ~disproject-custom-suffixes~.
 
 *** Changed
 
 - Maintain the current buffer context when running in environment (as created by
   e.g. ~disproject-with-environment~) to provide more usable context to commands
   like ~ffap~ ([[https://github.com/aurtzy/disproject/issues/6][#6]]).
+- No longer force the =:pad-keys= setting to =t= in custom suffixes.  Users that
+  desire this behavior can now set it via group specifications.
 
 *** Removed
 

@@ -497,6 +497,17 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
 	(org-gnosis-insert-filetag tag)))))
 
 ;;;###autoload
+(defun org-gnosis-visit-backlinks ()
+  "Visit backlinks for current node."
+  (interactive)
+  (let* ((id (org-gnosis-get-id))
+	 (links (org-gnosis-select 'source 'links `(= dest ,id) t))
+	 (titles (cl-loop for link in links
+			  collect (org-gnosis-select 'title 'nodes `(= id ,link) t))))
+    (org-gnosis-find
+     (completing-read "Backlink: " (apply #'append titles)))))
+
+;;;###autoload
 (defun org-gnosis-journal-find (&optional title)
   "Find journal entry for TITLE."
   (interactive)

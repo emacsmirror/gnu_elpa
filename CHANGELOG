@@ -39,6 +39,8 @@
   like ~ffap~ ([[https://github.com/aurtzy/disproject/issues/6][#6]]).
 - No longer force the =:pad-keys= setting to =t= in custom suffixes.  Users that
   desire this behavior can now set it via group specifications.
+- Revise pretty-printing of custom suffixes when displaying a request to allow
+  them.
 
 *** Removed
 

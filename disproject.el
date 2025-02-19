@@ -536,8 +536,7 @@ character.  These characters represent the following states:
   [i]: Command is inactive."
   :class disproject--custom-suffixes-prefix
   disproject--selected-project-header-group
-  ["Custom suffix commands"
-   :class transient-subgroups
+  [:class transient-subgroups
    :setup-children disproject-custom--setup-suffixes]
   [ :class transient-row
     ("SPC" "Main dispatch" disproject-dispatch
@@ -1293,7 +1292,7 @@ keyword."
      ;; be omitted if only one column of suffixes is needed.
      (if (nlistp (seq-elt custom-suffixes 0))
          custom-suffixes
-       `([,@custom-suffixes])))))
+       `(["Custom suffixes" ,@custom-suffixes])))))
 
 ;;;; Suffixes.
 

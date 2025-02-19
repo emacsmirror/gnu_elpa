@@ -5,7 +5,7 @@
 ;; Author: Thanos Apollo <public@thanosapollo.org>
 ;; Keywords: extensions
 ;; URL: https://thanosapollo.org/projects/org-gnosis/
-;; Version: 0.0.6
+;; Version: 0.0.7
 
 ;; Package-Requires: ((emacs "27.2") (emacsql "4.0.0") (compat "29.1.4.2"))
 
@@ -347,7 +347,7 @@ TIMESTRING defaults to `org-gnosis-timestring'"
 					    (replace-regexp-in-string " " "_" title))))
     (format "%s--%s.org%s" (format-time-string timestring) filename
 	    (if org-gnosis-create-as-gpg ".gpg" ""))))
-
+;; TODO: Add filetags
 (defun org-gnosis--create-file (title &optional directory extras)
   "Create a node FILE for TITLE.
 
@@ -489,9 +489,23 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
    (list (completing-read-multiple
 	  "Select tags (separated by ,): "
 	  (org-gnosis-select 'tag 'tags '1=1 t))))
-  (let ((id (org-gnosis-get-id)))
+  (let ((id (and (org-gnosis-get-id))))
     (org-id-goto id)
-    (org-set-tags tags)))
+    (if (org-current-level)
+	(org-set-tags tags)
+      (dolist (tag tags)
+	(org-gnosis-insert-filetag tag)))))
+
+;;;###autoload
+(defun org-gnosis-visit-backlinks ()
+  "Visit backlinks for current node."
+  (interactive)
+  (let* ((id (org-gnosis-get-id))
+	 (links (org-gnosis-select 'source 'links `(= dest ,id) t))
+	 (titles (cl-loop for link in links
+			  collect (org-gnosis-select 'title 'nodes `(= id ,link) t))))
+    (org-gnosis-find
+     (completing-read "Backlink: " (apply #'append titles)))))
 
 ;;;###autoload
 (defun org-gnosis-journal-find (&optional title)

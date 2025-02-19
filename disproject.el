@@ -90,9 +90,10 @@ This variable provides a way to declare per-project suffixes like
 common compilation commands.  Usually, this is done through
 the `dir-locals-file'.
 
-The value should be a list of suffix specifications.  See Info
-node `(transient)Suffix Specifications' for documentation on
-syntax.
+The value should be a list of suffix or group specifications.
+See Info node `(transient)Suffix Specifications' and Info
+node `(transient)Group Specifications' for documentation on
+respective syntax.
 
 For common types of commands like compilation or shell commands,
 Disproject provides suffixes with built-in features like process
@@ -126,7 +127,9 @@ provided by Disproject for defining custom suffixes.  This is
 still supported, but is discouraged in favor of a solution that
 is based on Transient syntax, and may be deprecated/removed at a
 later date.  The old syntax is used for suffix specifications
-when the `:command-type' keyword is present.
+when the `:command-type' keyword is present.  Group
+specifications are not supported with this syntax; only the
+shorthand may be used.
 
 This variable is marked safe due to various reasons discussed in
 `disproject-custom--suffixes-allowed?'.  Prompts are deferred to
@@ -534,8 +537,7 @@ character.  These characters represent the following states:
   :class disproject--custom-suffixes-prefix
   disproject--selected-project-header-group
   ["Custom suffix commands"
-   :class transient-column
-   :pad-keys t
+   :class transient-subgroups
    :setup-children disproject-custom--setup-suffixes]
   [ :class transient-row
     ("SPC" "Main dispatch" disproject-dispatch
@@ -1276,12 +1278,22 @@ keyword."
   "Set up suffixes according to `disproject-custom-suffixes'."
   (transient-parse-suffixes
    'disproject-custom-dispatch
-   (mapcar (lambda (spec)
-             (if (disproject-custom--custom-spec? spec)
-                 (disproject-custom--suffix spec)
-               spec))
-           `(,@(disproject-project-custom-suffixes
-                (disproject-scope-selected-project-ensure (disproject--scope)))))))
+   (let* ((scope (disproject--scope))
+          (custom-suffixes (disproject-project-custom-suffixes
+                            (disproject-scope-selected-project-ensure scope)))
+          ;; For backwards compatibility, convert any custom spec suffixes found
+          ;; in a shallow search.
+          (custom-suffixes (seq-map
+                            (lambda (spec)
+                              (if (disproject-custom--custom-spec? spec)
+                                  (disproject-custom--suffix spec)
+                                spec))
+                            custom-suffixes)))
+     ;; As a shorthand (and for backwards compatibility), vector brackets can
+     ;; be omitted if only one column of suffixes is needed.
+     (if (nlistp (seq-elt custom-suffixes 0))
+         custom-suffixes
+       `([,@custom-suffixes])))))
 
 ;;;; Suffixes.
 

@@ -188,7 +188,7 @@ Example:
      Note: Items with =-= would be links.  The headings in the above
      example could be links to an MOC as well.
 
-This way your notes are atomic & can be reused used in future
+This way your notes are atomic & can be reused in future
 classes/projects.
 
   + For example you'd reuse your notes on nucleic acids in a genetics

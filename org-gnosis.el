@@ -489,9 +489,12 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
    (list (completing-read-multiple
 	  "Select tags (separated by ,): "
 	  (org-gnosis-select 'tag 'tags '1=1 t))))
-  (let ((id (org-gnosis-get-id)))
+  (let ((id (and (org-gnosis-get-id))))
     (org-id-goto id)
-    (org-set-tags tags)))
+    (if (org-current-level)
+	(org-set-tags tags)
+      (dolist (tag tags)
+	(org-gnosis-insert-filetag tag)))))
 
 ;;;###autoload
 (defun org-gnosis-journal-find (&optional title)

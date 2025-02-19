@@ -34,10 +34,10 @@
 
 ;;; Code:
 
-(require 'cl-extra)
 (require 'eieio)
 (require 'grep)
 (require 'pcase)
+(require 'pp)
 (require 'map)
 (require 'project)
 (require 'transient)
@@ -320,10 +320,35 @@ y -- to allow the custom suffixes.
 n -- to ignore them and use the default custom suffixes.
 ! -- to permanently allow the custom suffixes."
                     "\n\n")
-            ;; TODO: Replace this pretty print with a custom one to give a more
-            ;; uniform layout (e.g. new line for each keyword followed by
-            ;; value).  This one is particularly funky with the ":" prefix.
-            (cl-prettyprint custom-suffixes)
+            (save-excursion
+              (let ((pp-max-width 60))
+                (pp-emacs-lisp-code custom-suffixes)))
+            ;; Do some heuristics to adjust pretty-printing output.
+            ;;
+            ;; XXX: Some of these heuristics can produce slightly incorrect
+            ;; output from substituting forms in strings too.
+            (dolist (pair '(;; Separate adjacent sexps with ") (" form, which
+                            ;; seems to often be the cause of unexpectedly long
+                            ;; lines.
+                            (") (" . ")\n(")
+                            ;; Move keywords onto their own lines.
+                            ("\s*:\\(\\w\\)" . "\n:\\1")
+                            ;; Remove superfluous empty lines.
+                            ("\n+" . "\n")
+                            ;; Open brackets at the end of a line can be joined
+                            ;; with the next line.
+                            ("(\n\s*" . "(")
+                            ("\\[\n\s*" . "[")))
+              (save-excursion
+                (pcase-exhaustive pair
+                  (`(,regexp . ,replacement)
+                   (while (re-search-forward regexp nil t)
+                     (replace-match replacement))))))
+            ;; Fix indentation from some of the heuristics applied.
+            (goto-char (point-max))
+            (backward-sexp)
+            (indent-pp-sexp)
+
             (setq-local cursor-type nil)
             (set-buffer-modified-p nil)
             (goto-char (point-min)))

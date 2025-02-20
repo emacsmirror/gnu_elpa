@@ -55,12 +55,11 @@
 (defgroup disproject-commands nil
   "Customizable Disproject main dispatch commands.
 
-See documentation on `disproject-with-environment' for the
-variables it sets according to the menu settings.  These must be
-respected (when relevant) by commands.  For example, a command
-will not always run in the project root directory if it does not
-respect `default-directory' or
-`project-current-directory-override', which the macro sets."
+See documentation on `disproject-with-env-apply' and
+`disproject-with-root-apply' for variables that are set according
+to transient state (e.g. `default-directory' to the project's
+root directory).  These must be respected by custom commands in
+order to apply as expected."
   :group 'disproject)
 
 (defvar disproject-prefix--transient-commands nil
@@ -1005,9 +1004,9 @@ project."
 ;;;; Suffix environment.
 
 (defvar disproject--environment-scope nil
-  "Current disproject scope in `disproject-with-environment'.
+  "Current disproject scope in `disproject-with-env-apply'.
 
-This is for suffixes that use `disproject-with-environment',
+This is for suffixes that use `disproject-with-env-apply',
 normally by specifying the class as `disproject-suffix' or a
 subclass of it.  It is preferred to use this when possible over
 `disproject--scope' to avoid cases where there is no scope,

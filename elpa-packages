@@ -894,7 +894,7 @@
  (yasnippet		:url "https://github.com/joaotavora/yasnippet")
  (yasnippet-classic-snippets :url nil)
  (zones			:url nil)  ;https://www.emacswiki.org/emacs/zones.el
- (ztree			:url "https://github.com/fourier/ztree")
+ (ztree			:url "https://codeberg.org/fourier/ztree")
  (zuul			:url "https://git.sr.ht/~niklaseklund/zuul.el"
   :news "CHANGELOG.org"
   :readme "README.md")

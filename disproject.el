@@ -1006,12 +1006,11 @@ project."
 (defvar disproject--environment-scope nil
   "Current disproject scope in `disproject-with-env-apply'.
 
-This is for suffixes that use `disproject-with-env-apply',
-normally by specifying the class as `disproject-suffix' or a
-subclass of it.  It is preferred to use this when possible over
-`disproject--scope' to avoid cases where there is no scope,
-causing a new `disproject-scope' to be initialized on every call
-and potentially resulting in duplicate prompts.")
+This is for suffixes that use `disproject-with-env-apply'.  It is
+preferred to use this when possible over `disproject--scope' to
+avoid cases where there is no scope, causing a new
+`disproject-scope' to be initialized on every call and
+potentially resulting in duplicate prompts.")
 
 (defvar disproject--environment-buffer-name " disproject-environment"
   "Name of buffer which commands will be run from.")

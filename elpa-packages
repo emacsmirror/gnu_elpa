@@ -216,7 +216,7 @@
   :ignored-files ("COPYING" "doclicense.texi"))
  (cycle-quotes		:url nil)
  (dape                  :url "https://github.com/svaante/dape")
- (darkroom            	:url "https://github.com/capitaomorte/darkroom.git")
+ (darkroom            	:url "https://github.com/joaotavora/darkroom")
  (dash			:url "https://github.com/magnars/dash.el.git"
   :doc "dash.texi"
   :news "NEWS.md")
@@ -514,7 +514,7 @@
   :ignored-files ("LICENSE.txt"))
  (minibuffer-line	:url nil)
  (minimap		:url nil)
- (mmm-mode		:url "https://github.com/purcell/mmm-mode.git"
+ (mmm-mode		:url "https://github.com/dgutov/mmm-mode"
   :doc "mmm.texi")
  (modus-themes		:url "https://github.com/protesilaos/modus-themes"
   :doc "doc/modus-themes.org"
@@ -891,7 +891,7 @@
  (xref			:core "lisp/progmodes/xref.el")
  (xref-union            :url "https://codeberg.org/pkal/xref-union.el")
  (yaml			:url "https://github.com/zkry/yaml.el")
- (yasnippet		:url "https://github.com/capitaomorte/yasnippet.git")
+ (yasnippet		:url "https://github.com/joaotavora/yasnippet")
  (yasnippet-classic-snippets :url nil)
  (zones			:url nil)  ;https://www.emacswiki.org/emacs/zones.el
  (ztree			:url "https://github.com/fourier/ztree")

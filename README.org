@@ -76,14 +76,16 @@ setup using ~use-package~:
 :CUSTOM_ID: customization
 :END:
 
-Disproject provides a set of customizable variables that can be viewed by
+A complete list of variables for customizing Disproject can be found by
 searching for the =disproject= group via =M-x customize-group=.
 
-Some of these variables customize what commands are called in the main dispatch
-menu.  To look at just these, search for the =disproject-commands= group via
-=M-x customize-group= which provides additional documentation on how to make
-sure commands respect menu settings.
+Users may find that they would like to swap out certain commands in the main
+dispatch menu; for example, to replace the default ~project-eshell~ used in
+~disproject-shell~ with ~project-shell~.  In addition to the mentioned group,
+this particular subset of customizable variables can be found in the
+=disproject-commands= customization group.
 
-The documentation for =disproject-commands= also applies for adding new commands
-to the transient menu (e.g. with ~transient-append-suffix~).  Notably, it is
-recommended to use ~disproject-with-environment~ to set relevant variables.
+Note that custom commands are expected to respect certain variables in order for
+transient state to apply correctly; a list of the variables that are set can be
+found in ~disproject-with-env-apply~.  Functions for setting up variables from
+transient state can be found via =M-x shortdoc disproject-environment=.

@@ -351,9 +351,6 @@ n -- to ignore them and use the default custom suffixes.
             (setq-local cursor-type nil)
             (set-buffer-modified-p nil)
             (goto-char (point-min)))
-          ;; FIXME: If the user presses an invalid key in the menu after
-          ;; answering prompt, the menu does not quit until a valid key is
-          ;; pressed (e.g. "C-g" doesn't quit it, but "SPC").
           (save-window-excursion
             (pop-to-buffer buf '(display-buffer-at-bottom))
             (prog1

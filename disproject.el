@@ -331,13 +331,13 @@ n -- to ignore them and use the default custom suffixes.
                             ;; lines.
                             (") (" . ")\n(")
                             ;; Move keywords onto their own lines.
-                            ("\s*:\\(\\w\\)" . "\n:\\1")
+                            ("[[:blank:]]*:\\(\\w\\)" . "\n:\\1")
                             ;; Remove superfluous empty lines.
-                            ("\n+" . "\n")
+                            ("\n[\n[:blank:]]*\n" . "\n")
                             ;; Open brackets at the end of a line can be joined
                             ;; with the next line.
-                            ("(\n\s*" . "(")
-                            ("\\[\n\s*" . "[")))
+                            ("(\n[[:blank:]]*" . "(")
+                            ("\\[\n[[:blank:]]*" . "[")))
               (save-excursion
                 (pcase-exhaustive pair
                   (`(,regexp . ,replacement)

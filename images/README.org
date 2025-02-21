@@ -1,18 +1,36 @@
 
 * Image previews
 
-~disproject-dispatch~ with no selected project:
-
 [[file:disproject-dispatch-no-project.png]]
 
-~disproject-dispatch~ in a project:
+~disproject-dispatch~ menu, with no project found in the current directory.
+
+-----
 
 [[file:disproject-dispatch.png]]
 
-~disproject-custom-dispatch~ with some directory-local custom suffixes:
+~disproject-dispatch~ menu, opened in this repository.  The project is
+automatically selected.
 
-[[file:disproject-custom-dispatch.png]]
+-----
 
-~disproject-manage-projects-dispatch~:
+[[file:disproject-custom-dispatch-guix.png]]
+
+~disproject-custom-dispatch~ menu in a local checkout of the Guix repository.
+Some custom suffixes are defined for commonly-run commands.  Process status
+(provided by ~disproject-compile~) indicators show that the guix authentication
+process has exited, and documentation is currently building.
+
+-----
+
+[[file:disproject-custom-dispatch-guix-config.png]]
+
+~disproject-custom-dispatch~ menu in a personal configuration, with some
+transient options defined.
+
+-----
 
 [[file:disproject-manage-projects-dispatch.png]]
+
+~disproject-manage-projects-dispatch~ menu, for managing known projects and
+initializing new ones.

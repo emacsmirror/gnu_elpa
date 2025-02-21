@@ -1166,25 +1166,18 @@ associated command's process buffer.")
   "Return a buffer name for a process suffix from BUFFER-ID and PROJECT-NAME."
   (concat "*" project-name "-process|" buffer-id "*"))
 
-(cl-defgeneric disproject-process-suffix-buffer-name (_obj project-name)
+(cl-defmethod disproject-process-suffix-buffer-name
+  ((obj disproject-process-suffix) project-name)
   "Return the OBJ suffix's process buffer name associated with PROJECT-NAME.
 
 PROJECT-NAME is the project name, which will be used to give a
-unique namespace to the project's process buffers.
-
-The default method uses \"default\" as the buffer name's unique
-identifier."
-  (disproject-process-suffix--buffer-name "default" project-name))
-
-(cl-defmethod disproject-process-suffix-buffer-name
-  ((obj disproject-process-suffix) project-name)
-  "Return the OBJ suffix's process buffer name associated with PROJECT-NAME."
-  (if-let* ((buffer-id
-             (or (oref obj buffer-id)
-                 (let ((description (oref obj description)))
-                   (and (stringp description) description)))))
-      (disproject-process-suffix--buffer-name buffer-id project-name)
-    (cl-call-next-method)))
+unique namespace to the project's process buffers."
+  (disproject-process-suffix--buffer-name
+   (or (oref obj buffer-id)
+       (let ((description (oref obj description)))
+         (and (stringp description) description))
+       "default")
+   project-name))
 
 (cl-defmethod transient-format-description ((obj disproject-process-suffix))
   "Format description for OBJ.

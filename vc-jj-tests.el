@@ -64,7 +64,7 @@ jj commands are executed with a fixed username and email; augment
 `process-environment' with `vc-jj-test-environment' if control
 over timestamps and random number seed (and thereby change ids)
 is needed."
-  (declare (indent 1))
+  (declare (indent 1) (debug (symbolp body)))
   `(ert-with-temp-directory ,name
      (let ((default-directory ,name)
            (process-environment
@@ -97,17 +97,17 @@ is needed."
     (let (branch-1 branch-2 branch-merged)
       ;; the root change id is always zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
       (shell-command "jj new zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
-      (setq branch-1 (vc-jj-working-revision "."))
       (write-region "Unconflicted" nil "unconflicted.txt")
       (write-region "Branch 1" nil "conflicted.txt")
       (make-directory "subdir")
       (write-region "Branch 1" nil "subdir/conflicted.txt")
+      (setq branch-1 (vc-jj-working-revision "unconflicted.txt"))
       (shell-command "jj new zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
-      (setq branch-2 (vc-jj-working-revision "."))
       (write-region "Unconflicted" nil "unconflicted.txt")
       (write-region "Branch 2" nil "conflicted.txt")
       (make-directory "subdir")
       (write-region "Branch 2" nil "subdir/conflicted.txt")
+      (setq branch-2 (vc-jj-working-revision "unconflicted.txt"))
       (shell-command (concat "jj new " branch-1 " " branch-2))
       (should (eq (vc-jj-state "unconflicted.txt") 'up-to-date))
       (should (eq (vc-jj-state "conflicted.txt") 'conflict))

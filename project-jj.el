@@ -29,17 +29,18 @@
   (cdr project))
 
 (cl-defmethod project-files ((project (head jj)) &optional dirs)
-  (mapcan
-   (lambda (dir)
-     (let ((default-directory dir))
-       (mapcar
-        #'expand-file-name
-        (process-lines "jj" "file" "list"))))
-   (or dirs
-       (list (project-root project)))))
+  "Return a list of files in directories DIRS in PROJECT."
+  ;; There is a bit of filename frobbing going on in this method.  The
+  ;; reason is that while jj reads and writes relative filenames, we
+  ;; get passed absolute filenames in DIRS and must return absolute
+  ;; (tilde-expanded) filenames.
+  (let* ((default-directory (expand-file-name (project-root project)))
+         (args (cons "--" (mapcar #'file-relative-name dirs))))
+    (mapcar (apply-partially #'file-name-concat default-directory)
+            (apply #'process-lines "jj" "file" "list" args))))
 
 (defun project-try-jj (dir)
-  (when-let ((root (locate-dominating-file dir ".jj")))
+  (when-let* ((root (locate-dominating-file dir ".jj")))
     (cons 'jj root)))
 
 (with-eval-after-load 'project

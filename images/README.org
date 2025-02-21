@@ -18,7 +18,7 @@ automatically selected.
 
 ~disproject-custom-dispatch~ menu in a local checkout of the Guix repository.
 Some custom suffixes are defined for commonly-run commands.  Process status
-(provided by ~disproject-compile~) indicators show that the guix authentication
+indicators (provided by ~disproject-compile~) show that the guix authentication
 process has exited, and documentation is currently building.
 
 -----

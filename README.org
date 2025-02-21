@@ -15,9 +15,9 @@ other notable features include:
 - Switch between projects with open buffers.
 - Transient option to prefer displaying buffers to another window when executing
   commands.
-- Support for ensured directory/project-based environments on commands when
-  executed from outside a project (see [[https://github.com/purcell/envrc/issues/59][an envrc issue on this]]).  This behavior
-  is supported for the following packages: [[https://github.com/purcell/envrc][envrc]]; [[https://github.com/liuyinz/mise.el][mise.el]].
+- Ensure directory/project-based environments when executing commands from
+  outside a project (see [[https://github.com/purcell/envrc/issues/59][an envrc issue on this]]).  This behavior is supported
+  for the following packages: [[https://github.com/purcell/envrc][envrc]]; [[https://github.com/liuyinz/mise.el][mise.el]].
 - When available, pre-configured menu commands for: [[https://magit.vc/][magit]]; [[https://github.com/alphapapa/magit-todos][magit-todos]].
 - Customizable variables to substitute some commands in the menu and more (see
   [[#Customization][Customization]]).

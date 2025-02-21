@@ -42,6 +42,12 @@
 - Revise pretty-printing of custom suffixes when displaying a request to allow
   them.
 
+*** Deprecated
+
+- Deprecate custom specifications syntax for custom suffixes in favor of
+  the syntax provided by Transient.  Removal is set for at least six months from
+  this release.
+
 *** Removed
 
 - Remove deprecated ~project~ argument from ~disproject-dispatch~ and

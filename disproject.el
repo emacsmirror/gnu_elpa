@@ -483,10 +483,6 @@ project."
 (transient-define-prefix disproject-dispatch ()
   "Dispatch some command for a project.
 
-PROJECT is an optional argument that tells the function what to
-start with as the selected project.  This argument is deprecated;
-`project-current-directory-override' should be used instead.
-
 See Info node `(transient)Modifying Existing Transients' for
 information on inserting user-defined suffix commands to this
 menu."
@@ -540,10 +536,6 @@ menu."
 
 (transient-define-prefix disproject-custom-dispatch ()
   "Dispatch custom suffix commands.
-
-If non-nil, PROJECT is used as the project to dispatch custom
-commands for.  This argument is deprecated;
-`project-current-directory-override' should be used instead.
 
 This prefix can be configured with `disproject-custom-suffixes';
 see its documentation for more information.

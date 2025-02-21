@@ -398,6 +398,15 @@ Used locally in the definitions buffer, to highlight/unhighlight them.")
                      (file-name-as-directory source)
                      (file-name-as-directory hiddenquote-directory))))
 
+(defun hiddenquote-maybe-mark-syllable-after-isearch ()
+  "Mark syllable when exiting isearch with success.
+
+Only marks the syllable if `hiddenquote-mark-syllable-after-isearch' is
+non-nil."
+  (when (and hiddenquote-mark-syllable-after-isearch
+             (equal (this-command-keys) [return]))
+    (widget-button-press (point))))
+
 (defun hiddenquote-widget-backward ()
   "Compatibility function, to avoid `widget-backward' to skip widgets."
   (unless (eobp)
@@ -614,12 +623,8 @@ Returns the `hiddenquote-grid' widget created."
         (setq buffer-read-only t)
         (setq hiddenquote-buffer cbuff)
         (add-hook 'kill-buffer-hook #'hiddenquote-refuse-kill-buffer nil t)
-        (when hiddenquote-mark-syllable-after-isearch
-          (add-hook 'isearch-mode-end-hook
-                    (lambda ()
-                      (when (equal (this-command-keys) [return])
-                        (widget-button-press (point))))
-                    nil t))
+        (add-hook 'isearch-mode-end-hook
+                  #'hiddenquote-maybe-mark-syllable-after-isearch nil t)
         (when (< emacs-major-version 28)
           (add-hook 'widget-backward-hook
                     #'hiddenquote-widget-backward nil t))

@@ -8,7 +8,7 @@
 ;; Version: 1.2
 ;; Package-Version: 1.2
 ;; Package-Requires: ((emacs "25.1"))
-;; URL: http://mauroaranda.com/puzzles/hidden-quote-puzzle/
+;; URL: https://mauroaranda.com/puzzles/hidden-quote-puzzle/
 ;; Keywords: games
 
 ;; This file is NOT part of GNU Emacs.
@@ -1275,7 +1275,7 @@ With N non-nil, return that puzzle, otherwise return the newest one."
 With N nil, return the latest puzzle.  With N non-nil, return that
 puzzle Nº."
   (let* ((num (and n (read-number "Enter a puzzle number: ")))
-         (url "http://mauroaranda.com/puzzles/hidden-quote-puzzle/")
+         (url "https://mauroaranda.com/puzzles/hidden-quote-puzzle/")
          (file (and num (hiddenquote-expand-puzzle-file-name
                          (format "%s.ipuz" num) "hidden-quote")))
          (url-mime-accept-string "application/json")

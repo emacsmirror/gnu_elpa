@@ -1307,7 +1307,7 @@ puzzle Nº."
       (set-text-properties (car (aref hiddenquote-definition-markers n))
                            (cdr (aref hiddenquote-definition-markers n))
                            '(face hiddenquote-highlight))
-      (when-let ((w (get-buffer-window (current-buffer))))
+      (when-let* ((w (get-buffer-window (current-buffer))))
         (set-window-point w (car (aref hiddenquote-definition-markers n)))
         (or (pos-visible-in-window-p
              (cdr (aref hiddenquote-definition-markers n)) w)
@@ -1349,7 +1349,7 @@ puzzle Nº."
 
 (defun hiddenquote-puzzle-complete-p ()
   "Non-nil if the grid is complete."
-  (when-let ((used-all-p (with-current-buffer
+  (when-let* ((used-all-p (with-current-buffer
                              (concat (buffer-name hiddenquote-buffer)
                                      " - Syllables")
                            (cl-every #'widget-value hiddenquote-syllables))))

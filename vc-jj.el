@@ -45,6 +45,11 @@
   "VC Jujutsu backend."
   :group 'vc)
 
+(defcustom vc-jj-program "jj"
+  "Name of the jj executable (excluding any arguments)."
+  :type 'string
+  :risky t)
+
 (defcustom vc-jj-colorize-log t
   "Control whether to have jj colorize the log."
   :type 'boolean)
@@ -60,24 +65,24 @@
 
 (defun vc-jj--file-tracked (file)
   (with-temp-buffer
-    (and (= 0 (call-process "jj" nil t nil "file" "list" "--" file))
+    (and (= 0 (call-process vc-jj-program nil t nil "file" "list" "--" file))
          (not (= (point-min) (point-max))))))
 
 (defun vc-jj--file-modified (file)
   (with-temp-buffer
-    (and (= 0 (call-process "jj" nil t nil "diff" "--summary" "--" file))
+    (and (= 0 (call-process vc-jj-program nil t nil "diff" "--summary" "--" file))
          (not (= (point-min) (point-max)))
          (progn (goto-char (point-min)) (looking-at "M ")))))
 
 (defun vc-jj--file-added (file)
   (with-temp-buffer
-    (and (= 0 (call-process "jj" nil t nil "diff" "--summary" "--" file))
+    (and (= 0 (call-process vc-jj-program nil t nil "diff" "--summary" "--" file))
          (not (= (point-min) (point-max)))
          (progn (goto-char (point-min)) (looking-at "A ")))))
 
 (defun vc-jj--file-conflicted (file)
   (with-temp-buffer
-    (and (= 0 (call-process "jj" nil t nil "resolve" "--list" "--" file))
+    (and (= 0 (call-process vc-jj-program nil t nil "resolve" "--list" "--" file))
          (not (= (point-min) (point-max)))
          (progn (goto-char (point-min)) (looking-at file)))))
 
@@ -90,7 +95,7 @@
 ;;;###autoload         (vc-jj-registered file))))
 
 (defun vc-jj-registered (file)
-  (when (executable-find "jj")
+  (when (executable-find vc-jj-program)
     (unless (not (file-exists-p default-directory))
       (with-demoted-errors "Error: %S"
         (when-let ((root (vc-jj-root file)))
@@ -119,8 +124,8 @@
 The list is passed to UPDATE-FUNCTION."
   ;; TODO: could be async!
   (let* ((dir (expand-file-name dir))
-         (files (process-lines "jj" "file" "list" "--" dir))
-         (changed-files (process-lines "jj" "diff" "--summary" "--" dir))
+         (files (process-lines vc-jj-program "file" "list" "--" dir))
+         (changed-files (process-lines vc-jj-program "diff" "--summary" "--" dir))
          (added (mapcar (lambda (entry) (substring entry 2))
                         (seq-filter (lambda (file) (string-prefix-p "A " file))
                                     changed-files)))
@@ -132,7 +137,7 @@ The list is passed to UPDATE-FUNCTION."
          ;; to be fancy and parsing each line (and getting bugs with
          ;; file names with spaces), use `string-prefix-p' later.
          ;; Also, the command errors when there are no conflicts.
-         (conflicted (process-lines-ignore-status "jj" "resolve" "--list")))
+         (conflicted (process-lines-ignore-status vc-jj-program "resolve" "--list")))
     (let ((result
            (mapcar
             (lambda (file)
@@ -157,7 +162,7 @@ below the headers anyway.)"
   (pcase-let* ((default-directory dir)
                (`( ,change-id ,change-id-short ,commit-id ,commit-id-short
                    ,description ,bookmarks ,conflict ,divergent ,hidden)
-                (process-lines "jj" "log" "--no-graph" "-r" "@" "-T"
+                (process-lines vc-jj-program "log" "--no-graph" "-r" "@" "-T"
                                "concat(
 self.change_id().short(), \"\\n\",
 self.change_id().shortest(), \"\\n\",
@@ -199,7 +204,7 @@ self.hidden(), \"\\n\"
 
 (defun vc-jj-working-revision (file)
   (when-let ((default-directory (vc-jj-root file)))
-    (car (process-lines "jj" "log" "--no-graph"
+    (car (process-lines vc-jj-program "log" "--no-graph"
                         "-r" "@"
                         "-T" "self.change_id().short() ++ \"\\n\""))))
 
@@ -207,7 +212,7 @@ self.hidden(), \"\\n\"
   "Return a mode line string and tooltip for FILE."
   (pcase-let* ((long-rev (vc-jj-working-revision file))
                (`(,short-rev ,description)
-                (process-lines "jj" "log" "--no-graph" "-r" long-rev
+                (process-lines vc-jj-program "log" "--no-graph" "-r" long-rev
                                "-T" "self.change_id().shortest() ++ \"\\n\" ++ description.first_line() ++ \"\\n\""))
                (def-ml (vc-default-mode-line-string 'JJ file))
                (help-echo (get-text-property 0 'help-echo def-ml))
@@ -222,8 +227,8 @@ self.hidden(), \"\\n\"
 
 (defun vc-jj-create-repo ()
   (if current-prefix-arg
-      (call-process "jj" nil nil nil "git" "init" "--colocate")
-    (call-process "jj" nil nil nil "git" "init")))
+      (call-process vc-jj-program nil nil nil "git" "init" "--colocate")
+    (call-process vc-jj-program nil nil nil "git" "init")))
 
 (defun vc-jj-register (_files &optional _comment)
   ;; No action needed.
@@ -239,19 +244,19 @@ self.hidden(), \"\\n\"
 (defun vc-jj-checkin (files comment &optional _rev)
   (setq comment (replace-regexp-in-string "\\`Summary: " "" comment))
   (let ((args (append (vc-switches 'jj 'checkin) (list "--") files)))
-    (apply #'call-process "jj" nil nil nil "commit" "-m" comment args)))
+    (apply #'call-process vc-jj-program nil nil nil "commit" "-m" comment args)))
 
 (defun vc-jj-find-revision (file rev buffer)
-  (call-process "jj" nil buffer nil "file" "show" "-r" rev "--" file))
+  (call-process vc-jj-program nil buffer nil "file" "show" "-r" rev "--" file))
 
 (defun vc-jj-checkout (file &optional rev)
   (let ((args (if rev
                   (list "--from" rev "--" file)
                 (list "--" file))))
-    (call-process "jj" nil nil nil "restore" args)))
+    (call-process vc-jj-program nil nil nil "restore" args)))
 
 (defun vc-jj-revert (file &optional _contents-done)
-  (call-process "jj" nil nil nil "restore" "--" file))
+  (call-process vc-jj-program nil nil nil "restore" "--" file))
 
 (defun vc-jj-print-log (files buffer &optional _shortlog start-revision limit)
   "Print commit log associated with FILES into specified BUFFER."
@@ -267,7 +272,7 @@ self.hidden(), \"\\n\"
                (list "-T" vc-jj-log-template "--")
                files)))
     (with-current-buffer buffer (erase-buffer))
-    (apply #'call-process "jj" nil buffer nil "log" args)
+    (apply #'call-process vc-jj-program nil buffer nil "log" args)
     (when vc-jj-colorize-log
       (with-current-buffer buffer
         (ansi-color-apply-on-region (point-min) (point-max)))))
@@ -289,7 +294,7 @@ self.hidden(), \"\\n\"
 
 (defun vc-jj-root (_file)
   (with-temp-buffer
-    (when (= 0 (call-process "jj" nil (list t nil) nil "root"))
+    (when (= 0 (call-process vc-jj-program nil (list t nil) nil "root"))
       (buffer-substring (point-min) (1- (point-max))))))
 
 (defalias 'vc-jj-responsible-p #'vc-jj-root)
@@ -321,11 +326,11 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
      (remove
       (vc--remove-regexp (concat "^" (regexp-quote file) "\\(\n\\|$\\)") ignore)
       (let ((default-directory directory))
-        (call-process "jj" nil (list t nil) nil "file" "track" file)))
+        (call-process vc-jj-program nil (list t nil) nil "file" "track" file)))
      (t
       (vc--add-line file ignore)
       (let ((default-directory directory))
-        (call-process "jj" nil (list t nil) nil "file" "untrack" file))))))
+        (call-process vc-jj-program nil (list t nil) nil "file" "untrack" file))))))
 
 (defvar vc-jj-diff-switches '("--git"))
 
@@ -343,7 +348,7 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
         (args (append (vc-switches 'jj 'diff) (list "--") files)))
     (with-current-buffer buffer
       (erase-buffer))
-    (apply #'call-process "jj" nil buffer nil "diff" "--from" rev1 "--to" rev2 args)
+    (apply #'call-process vc-jj-program nil buffer nil "diff" "--from" rev1 "--to" rev2 args)
     (if (seq-some #'vc-jj--file-modified files)
         1
       0)))
@@ -351,7 +356,7 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
 (defun vc-jj-annotate-command (file buf &optional rev)
   (with-current-buffer buf
     (let ((rev (or rev "@")))
-      (call-process "jj" nil t nil "file" "annotate" "-r" rev file))))
+      (call-process vc-jj-program nil t nil "file" "annotate" "-r" rev file))))
 
 (defconst vc-jj--annotation-line-prefix-re
   (rx (: bol
@@ -388,7 +393,7 @@ The regex captures four groups: change id, author, datetime, line number.")
 (defun vc-jj-revision-completion-table (files)
   (let ((revisions
          (apply #'process-lines
-                "jj" "log" "--no-graph"
+                vc-jj-program "log" "--no-graph"
                 "-T" "self.change_id() ++ \"\\n\"" "--" files)))
     (lambda (string pred action)
       (if (eq action 'metadata)

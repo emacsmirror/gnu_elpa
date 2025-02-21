@@ -31,6 +31,7 @@
 (require 'compat)
 (require 'seq)
 (require 'vc)
+(require 'vc-git)
 (require 'ansi-color)
 (require 'iso8601)
 (require 'time-date)
@@ -162,7 +163,8 @@ The list is passed to UPDATE-FUNCTION."
       (funcall update-function result nil))))
 
 (defun vc-jj-dir-extra-headers (dir)
-  "Return extra headers for DIR.
+  "Return extra headers for to display in the vc-dir buffer of DIR.
+
 Always add the first line of the description, the change ID, and
 the git commit ID of the current change.  If the current change
 is named by one or more bookmarks, also add a Bookmarks header.
@@ -170,7 +172,7 @@ If the current change is conflicted, divergent or hidden, also
 add a Status header.  (We do not check for emptiness of the
 current change since the user can see that via the list of files
 below the headers anyway.)"
-  (pcase-let* ((default-directory dir)
+  (pcase-let* ((default-directory (file-name-as-directory dir))
                (`( ,change-id ,change-id-short ,commit-id ,commit-id-short
                    ,description ,bookmarks ,conflict ,divergent ,hidden)
                 (process-lines vc-jj-program "log" "--no-graph" "-r" "@" "-T"
@@ -279,7 +281,7 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
   ;; specified, should we revert or leave FILE unchanged?
   (let ((args (append (and rev (list "--from" rev))
                       (list "--" file))))
-    (call-process vc-jj-program nil nil nil "restore" args)))
+    (apply #'vc-jj--call-jj "restore" args)))
 
 (defun vc-jj-revert (file &optional _contents-done)
   "Restore FILE to the state from its parent(s), via 'jj restore'."
@@ -326,10 +328,17 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
 (defun vc-jj-root (file)
   "Return the root of the repository containing FILE.
 Return NIL if FILE is not in a jj repository."
-  (let ((default-directory (file-name-directory (expand-file-name file))))
+  ;; `default-directory' must be an absolute directory name ending
+  ;; with a slash, so we go to some lengths to guarantee this, even
+  ;; for e.g. (vc-jj-root ".")
+  (let* ((absolute-file (expand-file-name file))
+         (default-directory
+          (file-name-as-directory (if (file-directory-p absolute-file)
+                                      absolute-file
+                                    (file-name-directory absolute-file)))))
     (with-temp-buffer
       (when (= 0 (call-process vc-jj-program nil (list t nil) nil "root"))
-        (buffer-substring (point-min) (1- (point-max)))))))
+        (file-name-as-directory (buffer-substring (point-min) (1- (point-max))))))))
 
 (defalias 'vc-jj-responsible-p #'vc-jj-root)
 
@@ -355,16 +364,11 @@ DIRECTORY defaults to `default-directory'.
 If REMOVE is non-nil, remove FILE from ignored files instead.
 
 For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
-  (let ((ignore (expand-file-name ".gitignore" directory)))
-    (cond
-     (remove
-      (vc--remove-regexp (concat "^" (regexp-quote file) "\\(\n\\|$\\)") ignore)
-      (let ((default-directory directory))
-        (call-process vc-jj-program nil (list t nil) nil "file" "track" file)))
-     (t
-      (vc--add-line file ignore)
-      (let ((default-directory directory))
-        (call-process vc-jj-program nil (list t nil) nil "file" "untrack" file))))))
+  (vc-default-ignore 'Git file directory remove)
+  (let ((default-directory
+         (if directory (file-name-as-directory directory)
+           default-directory)))
+    (vc-jj--call-jj "file" (if remove "track" "untrack") file)))
 
 (defvar vc-jj-diff-switches '("--git"))
 
@@ -373,8 +377,7 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
   ;; TODO: handle async
   (setq buffer (get-buffer-create (or buffer "*vc-diff*")))
   (cond
-   ((and (null rev1)
-         (null rev2))
+   ((not (or rev1 rev2))
     (setq rev1 "@-"))
    ((null rev1)
     (setq rev1 "root()")))

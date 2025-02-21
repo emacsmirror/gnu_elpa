@@ -502,7 +502,7 @@ menu."
    [("b" "Switch buffer" disproject-switch-to-buffer)
     ("B" "Buffer list" disproject-list-buffers)
     ("c" "Compile" disproject-compile
-     :buffer-id "default-compile")
+     :buffer-id "compile")
     ("d" "Dired" disproject-dired)
     ("k" "Kill buffers" disproject-kill-buffers)
     ("l" "Dir-locals file" disproject-dir-locals)
@@ -510,7 +510,7 @@ menu."
     ("v" disproject-vc-status
      :inapt-if-not disproject-prefix--version-control-apt?)]
    [("!" "Run" disproject-shell-command
-     :buffer-id "default-shell-command"
+     :buffer-id "shell-command"
      :allow-multiple-buffers? t)
     ("M-x" "Extended cmd." disproject-execute-extended-command)]
    ["Find"
@@ -555,7 +555,7 @@ character.  These characters represent the following states:
     ("SPC" "Main dispatch" disproject-dispatch
      :transient transient--do-replace)
     ("!" "Alternative compile" disproject-compile
-     :buffer-id "default-compile")])
+     :buffer-id "compile")])
 
 (transient-define-prefix disproject-manage-projects-dispatch ()
   "Dispatch commands for managing projects."
@@ -1136,9 +1136,12 @@ time).
 
 If the `description' slot of the instance is a string, this slot
 will use it as a default value.  Otherwise, the description is
-assumed to be a function, and \"default\" will be used as the
-value instead, since there is no way to guarantee that a function
-will always return the same identifier.
+assumed to be a function, and the `default-buffer-id' slot value
+will be used instead, since there is no way to guarantee that a
+function will always return the same identifier.
+
+The `disproject-process-suffix-buffer-name' method may be used to
+retrieve the buffer name associated with this suffix.
 
 Implementations of suffix commands should handle the value as
 documented.")
@@ -1156,7 +1159,11 @@ If allowed, the `display-status?' slot will be ignored, and
 status will not be shown.  Suffix command implementations may
 also behave differently; for example, executing a command while a
 process is running could create a new buffer instead of killing
-the existing one."))
+the existing one.")
+   (default-buffer-id :allocation :class
+                      :initform "default"
+                      :documentation "\
+Default string for the `buffer-id' slot when it is nil."))
   "Class for Disproject suffixes that spawn a process.
 
 This provides methods for managing things related to the
@@ -1176,7 +1183,7 @@ unique namespace to the project's process buffers."
    (or (oref obj buffer-id)
        (let ((description (oref obj description)))
          (and (stringp description) description))
-       "default")
+       (oref obj default-buffer-id))
    project-name))
 
 (cl-defmethod transient-format-description ((obj disproject-process-suffix))
@@ -1232,7 +1239,9 @@ processes based on the value.")
 Non-nil to always read shell command, even when `cmd' is non-nil.
 
 Implementations of suffix commands should handle reading based
-off this value."))
+off this value.")
+   (default-buffer-id :allocation :class
+                      :initform "shell-command"))
   "Class for suffix commands that execute shell commands.")
 
 (cl-defmethod disproject-shell-command-suffix-cmd
@@ -1261,7 +1270,9 @@ When unable to convert to a string, throw an error."
 Non-nil to enable Comint mode in the compilation buffer.
 
 Implementations of suffix commands should check this value in
-order to conditionally enable the mode."))
+order to conditionally enable the mode.")
+   (default-buffer-id :allocation :class
+                      :initform "compile"))
   "Class for suffixes that utilize the `compile' command for shell commands.")
 
 ;;;; Suffix setup functions.

@@ -1285,6 +1285,9 @@ specification that uses some transient suffix class with this
 keyword."
   (and (listp spec) (memq :command-type spec)))
 
+(defvar disproject-custom--showed-custom-spec-deprecation? nil
+  "Whether deprecation message for the custom specification syntax has been shown.")
+
 (defun disproject-custom--setup-suffixes (_)
   "Set up suffixes according to `disproject-custom-suffixes'."
   (transient-parse-suffixes
@@ -1292,14 +1295,23 @@ keyword."
    (let* ((scope (disproject--scope))
           (custom-suffixes (disproject-project-custom-suffixes
                             (disproject-scope-selected-project-ensure scope)))
-          ;; For backwards compatibility, convert any custom spec suffixes found
-          ;; in a shallow search.
-          (custom-suffixes (seq-map
-                            (lambda (spec)
-                              (if (disproject-custom--custom-spec? spec)
-                                  (disproject-custom--suffix spec)
-                                spec))
-                            custom-suffixes)))
+          ;; DEPRECATED: Remove at least 6 months after release with this notice.
+          ;; Since we originally only supported a single column, just convert
+          ;; any custom spec suffixes found in a shallow search.
+          (custom-suffixes
+           (seq-map
+            (lambda (spec)
+              (if (disproject-custom--custom-spec? spec)
+                  (progn
+                    (unless disproject-custom--showed-custom-spec-deprecation?
+                      (message "\
+Defining custom suffixes with Disproject's custom syntax is deprecated;\
+ use transient specifications instead\
+ (see `disproject-custom-suffixes' for updated documentation).")
+                      (setq disproject-custom--showed-custom-spec-deprecation? t))
+                    (disproject-custom--suffix spec))
+                spec))
+            custom-suffixes)))
      ;; As a shorthand (and for backwards compatibility), vector brackets can
      ;; be omitted if only one column of suffixes is needed.
      (if (nlistp (seq-elt custom-suffixes 0))

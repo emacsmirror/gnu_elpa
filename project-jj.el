@@ -35,9 +35,13 @@
   ;; get passed absolute filenames in DIRS and must return absolute
   ;; (tilde-expanded) filenames.
   (let* ((default-directory (expand-file-name (project-root project)))
-         (args (cons "--" (mapcar #'file-relative-name dirs))))
-    (mapcar #'expand-file-name
-            (apply #'process-lines "jj" "file" "list" args))))
+         (args (cons "--" (mapcar #'file-relative-name dirs)))
+         (absolutify (or (not project-files-relative-names)
+                         (> (length dirs) 1)))
+         (files (apply #'process-lines "jj" "file" "list" args)))
+    (if absolutify
+        (mapcar #'expand-file-name files)
+      files)))
 
 (defun project-try-jj (dir)
   (when-let* ((root (locate-dominating-file dir ".jj")))

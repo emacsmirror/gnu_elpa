@@ -1024,10 +1024,11 @@ Calls `widget-default-notify' with WIDGET, CHILD and EVENT as args."
                                         (widget-get
                                          parent
                                          :hiddenquote-word-number)))))))
-        (setq val (buffer-substring-no-properties start (1+ start)));end))
-        (widget-value-set widget (if hiddenquote-upcase-chars
-                                     (upcase val)
-                                   val))
+        (setq val (buffer-substring-no-properties start (1+ start)))
+        (unless (string= val " ")
+          (widget-value-set widget (if hiddenquote-upcase-chars
+                                       (upcase val)
+                                     val)))
         ;; Hack! Restore the cursor-sensor-functions property here,
         ;; because `widget-value-set' drops it.
         (add-text-properties (1- (widget-get parent :from))

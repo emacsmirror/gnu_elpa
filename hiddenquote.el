@@ -315,6 +315,7 @@ allow running the command after exiting Isearch."
     (define-key map [end] #'hiddenquote-move-end-of-word)
     (define-key map "\C-j" #'hiddenquote-next)
     ;; Editing.
+    (define-key map "\C-d" #'hiddenquote-delete-char)
     (define-key map "\C-k" #'hiddenquote-kill-word)
     (define-key map [(control shift backspace)] #'hiddenquote-kill-whole-word)
     (define-key map [backspace] #'hiddenquote-delete-backward-char)
@@ -1422,6 +1423,14 @@ Character cell bindings:
     (setq-local tool-bar-map hiddenquote-tool-bar-map)))
 
 ;; Commands.
+(defun hiddenquote-delete-char ()
+  "Replacement for `delete-char' inside `hiddenquote-character' widgets.
+
+Doesn't really delete the character, rather it changes it for an empty space."
+  (interactive)
+  (let ((w (widget-at)))
+    (widget-value-set w " ")))
+
 (defun hiddenquote-kill-word ()
   "Starting at point, delete the rest of the characters of the current word."
   (interactive)

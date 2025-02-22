@@ -36,7 +36,7 @@
   ;; (tilde-expanded) filenames.
   (let* ((default-directory (expand-file-name (project-root project)))
          (args (cons "--" (mapcar #'file-relative-name dirs))))
-    (mapcar (apply-partially #'file-name-concat default-directory)
+    (mapcar #'expand-file-name
             (apply #'process-lines "jj" "file" "list" args))))
 
 (defun project-try-jj (dir)

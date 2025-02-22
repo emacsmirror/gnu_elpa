@@ -1429,7 +1429,7 @@ Character cell bindings:
          (parent (widget-get (widget-at) :parent)))
     (save-excursion
       (dolist (w (member child (widget-get parent :children)))
-        (widget-value-set w "")))))
+        (widget-value-set w " ")))))
 
 (defun hiddenquote-kill-whole-word ()
   "Delete each character in a word."
@@ -1437,7 +1437,7 @@ Character cell bindings:
   (let ((parent (widget-get (widget-at) :parent)))
     (save-excursion
       (dolist (child (widget-get parent :children))
-        (widget-value-set child "")))))
+        (widget-value-set child " ")))))
 
 (defun hiddenquote-delete-backward-char ()
   "Delete the previous character."
@@ -1465,8 +1465,8 @@ point to the next word."
          (oval (widget-value ch1))
          (nval (widget-value ch2)))
     ;; Spaces are problematic.
-    (widget-value-set ch1 (if (char-equal nval ?\s) "" nval))
-    (widget-value-set ch2 (if (char-equal oval ?\s) "" oval))
+    (widget-value-set ch1 (if (char-equal nval ?\s) " " nval))
+    (widget-value-set ch2 (if (char-equal oval ?\s) " " oval))
     (hiddenquote-forward)))
 
 (defun hiddenquote-forward ()

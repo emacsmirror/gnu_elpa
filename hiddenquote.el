@@ -1461,7 +1461,7 @@ Doesn't really delete the character, rather it changes it for an empty space."
 (defun hiddenquote-transpose-chars ()
   "Interchange the characters around point, and move forward one character.
 
-Attempting to transporte the first character in a word results in an error.
+Attempting to transpose the first character in a word results in an error.
 
 Note that after transposing the last character in a word, this command moves
 point to the next word."

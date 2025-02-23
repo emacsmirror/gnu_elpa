@@ -409,7 +409,7 @@ non-nil."
     (widget-button-press (point))))
 
 (defun hiddenquote-widget-backward ()
-  "Compatibility function, to avoid `widget-backward' to skip widgets."
+  "Compatibility function, to avoid `widget-backward' skipping widgets."
   (unless (eobp)
     (forward-char 1)))
 
@@ -879,7 +879,10 @@ the :tag, and use the description slot to build the :doc."
     (widget-put widget :children (reverse children))))
 
 (defun hiddenquote-grid-format-handler (widget ch)
-  "Recognize escape character CH when creating a `hiddenquote-grid' WIDGET."
+  "Recognize escape character CH when creating a `hiddenquote-grid' WIDGET.
+
+It handles a custom escape character, \"%T\", to create a hiddenquote-timer
+widget."
   (let ((saved (oref (widget-get widget :hiddenquote) saved)))
     (cond ((eq ch ?T) ; Print time.
            (when hiddenquote-show-time
@@ -966,7 +969,7 @@ Notify the widget between FROM and TO about a change."
 
 If the car of EVENT is `before-change', this function just calls
 `widget-default-notify'.  If the car of EVENT is `after-change',
-advance point to some other widget and maybe check the answer."
+advances point to some other widget and maybe check the answer."
   ;; When CHILD is the last WIDGET's children, go to the first child.
   (when (and (eq (car-safe event) 'after-change)
              (not (eql (nth 1 event) (nth 2 event))))
@@ -1173,7 +1176,7 @@ Redo it means setting WIDGET to the opposite of VALUE."
     (undo)))
 
 (defun hiddenquote--get-quote-length ()
-  "Return the quote length, by looking each word in the widget."
+  "Return the quote length, by looking at each word in the widget."
   ;; We have to do this when the qquote slot is empty.
   (let* ((puzzle (widget-get hiddenquote-current :hiddenquote))
          (words (widget-get hiddenquote-current :children))
@@ -1240,7 +1243,7 @@ Redo it means setting WIDGET to the opposite of VALUE."
 (defun hiddenquote-get-local-puzzle (&optional n)
   "Return a puzzle from this package `puzzles' directory.
 
-With N non-nil, return that puzzle, otherwise return the newest one."
+With N non-nil, prompt for a puzzle N°, otherwise return the newest one."
   (let* ((num (and n (read-number "Enter a puzzle number: ")))
          (dir (file-name-directory (locate-library "hiddenquote")))
          (file (if num
@@ -1280,7 +1283,7 @@ With N non-nil, return that puzzle, otherwise return the newest one."
 (defun hiddenquote-get-hidden-quote-puzzle (&optional n)
   "Return a puzzle from the hidden-quote puzzle source.
 
-With N nil, return the latest puzzle.  With N non-nil, return that
+With N nil, return the latest puzzle.  With N non-nil, prompt for a
 puzzle Nº."
   (let* ((num (and n (read-number "Enter a puzzle number: ")))
          (url "https://mauroaranda.com/puzzles/hidden-quote-puzzle/")
@@ -1591,7 +1594,7 @@ point to the next word."
 
 Interactively, prompts for the string.
 
-This command comes handy when you have figured out the quote but not yet
+This command is handy when you have figured out the quote but not yet
 every word."
   (interactive (list (read-string "Quote: ")))
   (setq str
@@ -1678,7 +1681,9 @@ every word."
                           (not hiddenquote-skip-used-syllables)))
 
 (defun hiddenquote-save ()
-  "Save the puzzle and the user progress."
+  "Save the puzzle and the user progress to a file.
+
+The file slot of the hiddenquote object contains the filename."
   (interactive)
   (let* ((puzzle (widget-get hiddenquote-current :hiddenquote))
          (user-answers (vconcat
@@ -1733,8 +1738,8 @@ With a prefix argument NOPROMPT non-nil, doesn't prompt."
   "Stop playing hiddenquote, without saving the progress.
 
 Prompts the user and kills the buffer if the answer is \"yes\".
-Kills the buffer unconditionally With a prefix argument NOPROMPT non-nil,
-or if the puzzle is complete."
+With a prefix argument NOPROMPT non-nil, or if the puzzle is complete,
+kills the buffer unconditionally "
   (interactive "P")
   (when (or noprompt (hiddenquote-puzzle-complete-p)
             (yes-or-no-p "Really quit playing Hiddenquote? "))

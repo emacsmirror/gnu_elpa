@@ -1455,7 +1455,8 @@ Doesn't really delete the character, rather it changes it for an empty space."
   (widget-backward 1)
   (unless (eq (widget-type (widget-at)) 'hiddenquote-character)
     (widget-forward 1))
-  (delete-char 1))
+  (widget-value-set (widget-at) " ")
+  (widget-backward 1))
 
 (defun hiddenquote-transpose-chars ()
   "Interchange the characters around point, and move forward one character.

@@ -1,0 +1,678 @@
+{
+  "version": "http://ipuz.org/v2",
+  "kind": [
+    "http://mauroaranda.com/puzzles//hiddenquote#1",
+    "http://ipuz.org/crossword#1"
+  ],
+  "copyright": "Copyright (C) 2025 tbb",
+  "publisher": "MauroAranda",
+  "url": "http://yourdomain.com1",
+  "uniqueid": "6",
+  "title": "Hidden Puzzle Nº1",
+  "author": "Mauro Aranda",
+  "editor": "Mauro Aranda",
+  "date": "02/23/2025",
+  "origin": "GNU Emacs",
+  "intro": "Complete the grid to find a quote from Confucius.",
+  "dimensions": {
+    "width": 12,
+    "height": 25
+  },
+  "puzzle": [
+    [
+      "1",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "2",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null
+    ],
+    [
+      "3",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "4",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "5",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "6",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null
+    ],
+    [
+      "7",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "8",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "9",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null
+    ],
+    [
+      "10",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null
+    ],
+    [
+      "11",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "12",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null
+    ],
+    [
+      "13",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null
+    ],
+    [
+      "14",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "15",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null
+    ],
+    [
+      "16",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "17",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "18",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "19",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "20",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "21",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "22",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "23",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "24",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "25",
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  ],
+  "clues": {
+    "Clues": [
+      {
+        "number": 1,
+        "clue": "Refrigerator.",
+        "answer": "icebox",
+        "enumeration": 6
+      },
+      {
+        "number": 2,
+        "clue": "The quality or state of being turbulent.",
+        "answer": "turbulence",
+        "enumeration": 10
+      },
+      {
+        "number": 3,
+        "clue": "Injury or harm to person, property, or reputation.",
+        "answer": "damage",
+        "enumeration": 6
+      },
+      {
+        "number": 4,
+        "clue": "- stage.  A platform where a band can play in the open air.",
+        "answer": "outdoor",
+        "enumeration": 7
+      },
+      {
+        "number": 5,
+        "clue": "One who educates; a teacher.",
+        "answer": "educator",
+        "enumeration": 8
+      },
+      {
+        "number": 6,
+        "clue": "Having the figure of a half sphere.",
+        "answer": "Semispheric",
+        "enumeration": 11
+      },
+      {
+        "number": 7,
+        "clue": "A systematic arrangement, or classification, of diseases.",
+        "answer": "nosology",
+        "enumeration": 8
+      },
+      {
+        "number": 8,
+        "clue": "To mount above.",
+        "answer": "outmount",
+        "enumeration": 8
+      },
+      {
+        "number": 9,
+        "clue": "A lively whirling Italian dance for two persons.",
+        "answer": "tarantella",
+        "enumeration": 10
+      },
+      {
+        "number": 10,
+        "clue": "Island in the Indian Ocean, the world's fourth-largest one.",
+        "answer": "madagascar",
+        "enumeration": 10
+      },
+      {
+        "number": 11,
+        "clue": "Yearly; year by year.",
+        "answer": "annually",
+        "enumeration": 8
+      },
+      {
+        "number": 12,
+        "clue": "Visible only with a telescope",
+        "answer": "telescopic",
+        "enumeration": 10
+      },
+      {
+        "number": 13,
+        "clue": "Instrument that indicates speed",
+        "answer": "tachymeter",
+        "enumeration": 10
+      },
+      {
+        "number": 14,
+        "clue": "A circular opening to recive a hook, cord, ring, or rope.",
+        "answer": "eyehole",
+        "enumeration": 7
+      },
+      {
+        "number": 15,
+        "clue": "A game played on a handball court with short-handled rackets.",
+        "answer": "racquetball",
+        "enumeration": 11
+      },
+      {
+        "number": 16,
+        "clue": "One who hoards.",
+        "answer": "hoarder",
+        "enumeration": 7
+      },
+      {
+        "number": 17,
+        "clue": "Having or emitting an odor or scent, especially a sweet odor.",
+        "answer": "odorous",
+        "enumeration": 7
+      },
+      {
+        "number": 18,
+        "clue": "- Ryder.  American actress, starred in Beetlejuice (1990).",
+        "answer": "winona",
+        "enumeration": 6
+      },
+      {
+        "number": 19,
+        "clue": "Reddish yellow or orange color, named after a fish.",
+        "answer": "salmon",
+        "enumeration": 6
+      },
+      {
+        "number": 20,
+        "clue": "A place for washing.",
+        "answer": "lavatory",
+        "enumeration": 8
+      },
+      {
+        "number": 21,
+        "clue": "In an obtuse manner.",
+        "answer": "obtusely",
+        "enumeration": 8
+      },
+      {
+        "number": 22,
+        "clue": "To make a kind of musical sound by forcing the breath through a small orifice formed by contracting the lips.",
+        "answer": "whistle",
+        "enumeration": 7
+      },
+      {
+        "number": 23,
+        "clue": "A curvature of the spine forwards, usually in the lumbar region.",
+        "answer": "lordosis",
+        "enumeration": 8
+      },
+      {
+        "number": 24,
+        "clue": "U.S. County in Arizona.",
+        "answer": "yavapai",
+        "enumeration": 7
+      },
+      {
+        "number": 25,
+        "clue": "Of the color of gold or brass.",
+        "answer": "yellow",
+        "enumeration": 6
+      }
+    ]
+  },
+  "answer": "It does not matter how slowly you go as long as you do not stop",
+  "zones": [
+    {
+      "rect": [
+        0,
+        0,
+        0,
+        24
+      ],
+      "style": {
+        "border": 0
+      }
+    },
+    {
+      "rect": [
+        1,
+        0,
+        1,
+        24
+      ],
+      "style": {
+        "highlight": true
+      }
+    },
+    {
+      "rect": [
+        5,
+        0,
+        5,
+        24
+      ],
+      "style": {
+        "highlight": true
+      }
+    }
+  ],
+  "saved": {
+    "answers": [],
+    "checked-answers": null,
+    "used-syllables": null,
+    "elapsed-time": 0
+  },
+  "volatile": {
+    "com.hiddenquote:arrows": "",
+    "com.hiddenquote:subject": "",
+    "com.hiddenquote:syllables": ""
+  },
+  "com.hiddenquote:arrows": "1,5",
+  "com.hiddenquote:subject": "general",
+  "com.hiddenquote:syllables": [
+    "a",
+    "a",
+    "age",
+    "al",
+    "an",
+    "an",
+    "ball",
+    "box",
+    "bu",
+    "ca",
+    "car",
+    "chym",
+    "dam",
+    "do",
+    "door",
+    "dor",
+    "e",
+    "e",
+    "ed",
+    "er",
+    "eye",
+    "gas",
+    "gy",
+    "hoard",
+    "hole",
+    "i",
+    "ic",
+    "ic",
+    "ice",
+    "la",
+    "lav",
+    "lence",
+    "lor",
+    "low",
+    "ly",
+    "ly",
+    "mad",
+    "mount",
+    "na",
+    "no",
+    "nu",
+    "o",
+    "o",
+    "o",
+    "ob",
+    "on",
+    "ous",
+    "out",
+    "out",
+    "pai",
+    "quet",
+    "rac",
+    "ry",
+    "salm",
+    "scop",
+    "sem",
+    "sis",
+    "sol",
+    "spher",
+    "ta",
+    "tar",
+    "tel",
+    "tel",
+    "ter",
+    "tle",
+    "to",
+    "tor",
+    "tur",
+    "tuse",
+    "u",
+    "va",
+    "whis",
+    "win",
+    "ya",
+    "yel"
+  ]
+}

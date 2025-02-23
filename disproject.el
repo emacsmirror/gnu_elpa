@@ -508,7 +508,8 @@ menu."
     ("s" "Shell" disproject-shell)
     ("v" disproject-vc-status
      :inapt-if-not disproject-prefix--version-control-apt?)]
-   [("!" "Run" disproject-shell-command
+   [("!" "Shell command" disproject-synchronous-shell-command)
+    ("&" "Async shell command" disproject-shell-command
      :buffer-id "shell-command"
      :allow-multiple-buffers? t)
     ("M-x" "Extended cmd." disproject-execute-extended-command)]
@@ -1627,6 +1628,12 @@ The command used can be customized with
   (interactive)
   (disproject-with-environment
     (call-interactively disproject-switch-to-buffer-command)))
+
+(transient-define-suffix disproject-synchronous-shell-command ()
+  "Run `project-shell-command' in selected project."
+  (interactive)
+  (disproject-with-env
+    (call-interactively #'project-shell-command)))
 
 (transient-define-suffix disproject-vc-status ()
   "Dispatch a VC status command depending on the project backend.

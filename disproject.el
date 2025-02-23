@@ -79,10 +79,9 @@ this list via `initialize-instance'.")
   :type '(alist :key-type (string :tag "Project path")
                 :value-type (repeat (sexp :tag "Custom suffix"))))
 
-(defcustom disproject-custom-suffixes '(("c" "Make"
-                                         :command-type compile
-                                         :command "make -k"
-                                         :identifier "make"))
+(defcustom disproject-custom-suffixes '(("c" "Make" disproject-compile
+                                         :cmd "make -k"
+                                         :buffer-id "make"))
   "Commands for the `disproject-custom-dispatch' prefix.
 
 This variable provides a way to declare per-project suffixes like

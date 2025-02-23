@@ -516,7 +516,7 @@ It has to be of the form ARR1,ARR2")
             :type string
             :custom string
             :documentation
-            "The subject for the puzzle (e.g., general, chemistry, etc.")
+            "The subject for the puzzle (e.g., general, chemistry, etc.)")
    ;; Not part of ipuz.
    (file :initarg :file
          :initform ""
@@ -869,7 +869,8 @@ the :tag, and use the description slot to build the :doc."
         :hiddenquote-word-number i
         :hiddenquote-word-length (aref lengths i)
         :value (if (and (oref puzzle saved)
-                        (oref (oref puzzle saved) answers))
+                        (oref (oref puzzle saved) answers)
+                        (> (length (oref (oref puzzle saved) answers)) 0))
                    (aref (oref (oref puzzle saved) answers) i)
                  (make-string (aref lengths i) ?\s)))
        children)

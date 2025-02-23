@@ -175,6 +175,7 @@
  (company-statistics	:url "https://github.com/company-mode/company-statistics")
  (compat		:url "https://github.com/emacs-compat/compat"
   :doc "compat.texi")
+ (cond-star             :core "lisp/emacs-lisp/cond-star.el")
  (constants             :url "https://github.com/cdominik/constants-for-Emacs")
  (consult		:url "https://github.com/minad/consult"
   :doc "README.org"

@@ -497,7 +497,6 @@ menu."
   ["Options"
    (",o" "Prefer other window" "--prefer-other-window")]
   ["Main commands"
-   :pad-keys t
    [("b" "Switch buffer" disproject-switch-to-buffer)
     ("B" "Buffer list" disproject-list-buffers)
     ("c" "Compile" disproject-compile
@@ -512,7 +511,7 @@ menu."
     ("&" "Async shell command" disproject-shell-command
      :buffer-id "shell-command"
      :allow-multiple-buffers? t)
-    ("M-x" "Extended cmd." disproject-execute-extended-command)]
+    ("M-x" "Extended command" disproject-execute-extended-command)]
    ["Find"
     ("D" "directory" disproject-find-dir)
     ("f" "file" disproject-find-file)

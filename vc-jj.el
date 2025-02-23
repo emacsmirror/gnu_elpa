@@ -265,7 +265,7 @@ function."
   (vc-jj--call-jj "status"))
 
 (defun vc-jj-checkin (files comment &optional _rev)
-  "Runs 'jj commit' with supplied FILES and COMMENT."
+  "Runs \"jj commit\" with supplied FILES and COMMENT."
   (setq comment (replace-regexp-in-string "\\`Summary: " "" comment))
   (let ((args (append (vc-switches 'jj 'checkin) (list "--") files)))
     (apply #'call-process vc-jj-program nil nil nil "commit" "-m" comment args)))
@@ -284,7 +284,7 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
     (apply #'vc-jj--call-jj "restore" args)))
 
 (defun vc-jj-revert (file &optional _contents-done)
-  "Restore FILE to the state from its parent(s), via 'jj restore'."
+  "Restore FILE to the state from its parent(s), via \"jj restore\"."
   (call-process vc-jj-program nil nil nil "restore" "--" file))
 
 (defun vc-jj-print-log (files buffer &optional _shortlog start-revision limit)
@@ -412,8 +412,9 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
       ": ")
   ;; TODO: find out if the output changes when the file got renamed
   ;; somewhere in its history
-  "Regexp for the per-line prefix of the output of 'jj file annotate'.
-The regex captures four groups: change id, author, datetime, line number.")
+  "Regex for the output of \"jj file annotate\".
+The regex matches each line's commit information and captures
+four groups: change id, author, datetime, line number.")
 
 (defun vc-jj-annotate-time ()
   "Return the time for the annotated line."

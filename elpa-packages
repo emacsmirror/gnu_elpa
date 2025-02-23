@@ -188,6 +188,7 @@
   :ignored-files ("LICENSE"))
  (consult-recoll	:url "https://codeberg.org/jao/consult-recoll"
   :ignored-files ("license")
+  :news "changelog.org"
   :readme "readme.org")
  ;; FIXME: https://github.com/jacksonrayhamilton/context-coloring/issues/9
  (context-coloring	:url "https://github.com/jacksonrayhamilton/context-coloring.git")

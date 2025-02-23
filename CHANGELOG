@@ -31,6 +31,8 @@
   See ~disproject-custom-suffixes~ and documentation on respective symbols for
   information on using them in custom suffixes.
 - Support Transient group specifications in ~disproject-custom-suffixes~.
+- Add ~disproject-synchronous-shell-command~ suffix command for synchronous
+  shell commands.  It is bound to =!= in ~disproject-dispatch~.
 
 *** Changed
 
@@ -41,6 +43,8 @@
   desire this behavior can now set it via group specifications.
 - Revise pretty-printing of custom suffixes when displaying a request to allow
   them.
+- Move ~disproject-shell-command~ from =!= to =&= binding in
+  ~disproject-dispatch~.
 
 *** Deprecated
 

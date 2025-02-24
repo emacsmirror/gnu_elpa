@@ -100,6 +100,20 @@ NIL otherwise."
          (not (= (point-min) (point-max)))
          (progn (goto-char (point-min)) (looking-at-p file)))))
 
+(defun vc-jj--file-state (file)
+  (let ((s (with-output-to-string
+             (vc-jj-command standard-output 0 file
+               "diff" "--summary" "--" file))))
+    (when s
+      ;; for [T]racked. returns nothing cleanly if file has no changes
+      (if (zerop (length s))
+        "T"
+        ;; HACK: if the file is not tracked, it doesnt error and still returns
+        ;; 0, but prints an error msg, which starts with "Warning...". it wont
+        ;; match M or A, which means it's untracked. Ugly, but saves us from
+        ;; running multiple commands for every file
+        (substring s 0 1)))))
+
 ;;;###autoload (defun vc-jj-registered (file)
 ;;;###autoload   "Return non-nil if FILE is registered with jj."
 ;;;###autoload   (if (and (vc-find-root file ".jj")   ; Short cut.
@@ -120,15 +134,16 @@ NIL otherwise."
 (defun vc-jj-state (file)
   "JJ implementation of `vc-state' for FILE."
   (when-let* ((default-directory (vc-jj-root file))
-              (relative (file-relative-name file)))
+              (relative (file-relative-name file))
+              (state (vc-jj--file-state relative)))
     (cond
        ((vc-jj--file-conflicted relative)
         'conflict)
-       ((vc-jj--file-modified relative)
+       ((equal "M" state)
         'edited)
-       ((vc-jj--file-added relative)
+       ((equal "A" state)
         'added)
-       ((vc-jj--file-tracked relative)
+       (state
         'up-to-date)
        (t nil))))
 

@@ -26,6 +26,7 @@
 
 ;;; Code:
 
+(require 'ert)
 (require 'debbugs)
 (require 'debbugs-test-helpers)
 

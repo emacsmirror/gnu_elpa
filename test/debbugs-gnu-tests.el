@@ -26,12 +26,13 @@
 
 ;;; Code:
 
+(require 'ert)
 (require 'debbugs-gnu)
 (require 'debbugs-test-helpers)
 
 ;;; Tests:
 
-(ert-deftest--debbugs debbugs-test-debbugs-gnu-search ()
+(ert-deftest--debbugs debbugs-test-gnu-search ()
   "Test `debbugs-gnu-search'."
   (cl-letf (((symbol-function #'debbugs-gnu)
              #'list))

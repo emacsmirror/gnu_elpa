@@ -433,6 +433,39 @@ four groups: change id, author, datetime, line number.")
           `(metadata . ((display-sort-function . ,#'identity)))
         (complete-with-action action revisions string pred)))))
 
+(defvar vc-jj-pull-history (list "jj git fetch")
+  "History variable for `vc-jj-pull'.")
+
+(defun vc-jj-pull (prompt)
+  "Pull changes from an upstream repository.
+Normally, this runs \"jj git fetch\".  If PROMPT is non-nil, prompt for
+the jj command to run."
+  (let* ((command (if prompt
+                      (split-string
+		       (read-shell-command
+                        (format "jj git fetch command: ")
+                        "jj git fetch"
+                        'vc-jj-pull-history)
+		       " " t)
+                    `(,vc-jj-program "git" "fetch")))
+         (jj-program (car command))
+         (args (cdr command))
+         (root (vc-jj-root default-directory))
+         (buffer (format "*vc-jj : %s*" (expand-file-name root))))
+    (apply #'vc-do-async-command buffer root jj-program args)
+    (with-current-buffer buffer
+      (vc-run-delayed
+        (vc-compilation-mode 'jj)
+        (setq-local compile-command (string-join command " "))
+        (setq-local compilation-directory root)
+        ;; Either set `compilation-buffer-name-function' locally to nil
+        ;; or use `compilation-arguments' to set `name-function'.
+        ;; See `compilation-buffer-name'.
+        (setq-local compilation-arguments
+                    (list compile-command nil
+                          (lambda (_name-of-mode) buffer)
+                          nil))))
+    (vc-set-async-update buffer)))
 
 (provide 'vc-jj)
 ;;; vc-jj.el ends here

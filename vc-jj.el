@@ -344,19 +344,6 @@ Return NIL if FILE is not in a jj repository."
 
 (defalias 'vc-jj-responsible-p #'vc-jj-root)
 
-(defun vc-jj-find-ignore-file (file)
-  "Return the .gitignore file that controls FILE."
-  (let ((root (vc-jj-root file))
-        (ignore (expand-file-name
-                 (locate-dominating-file default-directory
-                                         ".gitignore"))))
-    (expand-file-name
-     ".gitignore"
-     (if (string-prefix-p (file-name-as-directory root)
-                          (file-name-as-directory ignore))
-         ignore
-       root))))
-
 (defun vc-jj-ignore (file &optional directory remove)
   "Ignore FILE under DIRECTORY.
 

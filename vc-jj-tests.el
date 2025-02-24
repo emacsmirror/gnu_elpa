@@ -137,5 +137,21 @@ is needed."
       (kill-buffer readme-buffer)
       (kill-buffer annotation-buffer))))
 
+(ert-deftest vc-jj-ignore ()
+  (vc-jj-test-with-repo repo
+    (write-region "xxx" nil "root-ignored.txt")
+    (make-directory "subdir")
+    (write-region "xxx" nil "subdir/subdir-ignored.txt")
+    (should (eq (vc-jj-state "root-ignored.txt") 'added))
+    (should (eq (vc-jj-state "subdir/subdir-ignored.txt") 'added))
+    (vc-jj-ignore "root-ignored.txt")
+    (vc-jj-ignore "subdir/subdir-ignored.txt")
+    (should (eq (vc-jj-state "root-ignored.txt") nil))
+    (should (eq (vc-jj-state "subdir/subdir-ignored.txt") nil))
+    (vc-jj-ignore "root-ignored.txt" nil t)
+    (vc-jj-ignore "subdir/subdir-ignored.txt" nil t)
+    (should (eq (vc-jj-state "root-ignored.txt") 'added))
+    (should (eq (vc-jj-state "subdir/subdir-ignored.txt") 'added))))
+
 (provide 'vc-jj-tests)
 ;;; vc-jj-tests.el ends here

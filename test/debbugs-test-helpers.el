@@ -136,9 +136,11 @@ These mock functions are needed to make the tests reproducible."
    (doc-string 3)
    (indent 2))
   `(ert-deftest ,name ,args ,docstring
-                (debbugs-test--setup)
-                ,@body
-                (debbugs-test--teardown)))
+                (unwind-protect
+                    (progn
+                      (debbugs-test--setup)
+                      ,@body)
+                  (debbugs-test--teardown))))
 
 
 (provide 'debbugs-test-helpers)

@@ -105,7 +105,7 @@ NIL otherwise."
   (when (executable-find vc-jj-program)
     (unless (not (file-exists-p default-directory))
       (with-demoted-errors "Error: %S"
-        (when-let ((root (vc-jj-root file)))
+        (when-let* ((root (vc-jj-root file)))
           (let* ((default-directory root)
                  (relative (file-relative-name file)))
             (vc-jj--file-tracked relative)))))))

@@ -392,7 +392,7 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
   (rx bol
       (group (+ (any "a-z")))           ; change id
       " "
-      (group (+ (any alnum)))           ; author username
+      (group (+? anychar))              ; author username
       (+ " ")
       (group                            ; iso 8601-ish datetime
        (= 4 digit) "-" (= 2 digit) "-" (= 2 digit) " "

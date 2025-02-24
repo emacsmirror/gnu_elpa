@@ -70,6 +70,13 @@ Return T if the process exited successfully (with exit status 0),
 NIL otherwise."
   (= 0 (apply #'call-process vc-jj-program nil t nil args)))
 
+(defun vc-jj-command (buffer okstatus file-or-list &rest flags)
+  ""
+  (apply #'vc-do-command (or buffer "*vc*") okstatus vc-jj-program
+    file-or-list
+    (append (list "--no-pager" "--color" "never")
+      flags)))
+
 (defun vc-jj--file-tracked (file)
   (with-temp-buffer
     (and (vc-jj--call-jj "file" "list" "--" file)

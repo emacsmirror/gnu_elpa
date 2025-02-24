@@ -220,7 +220,7 @@ self.hidden(), \"\\n\"
   (when-let* ((default-directory (vc-jj-root file)))
     (car (process-lines vc-jj-program "log" "--no-graph"
                         "-r" "@"
-                        "-T" "self.change_id().short() ++ \"\\n\""))))
+                        "-T" "change_id ++ \"\\n\""))))
 
 (defun vc-jj-mode-line-string (file)
   "Return a mode line string and tooltip for FILE."

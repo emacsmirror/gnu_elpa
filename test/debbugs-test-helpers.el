@@ -55,17 +55,18 @@
 ;; Generated using this:
 ;; (debbugs-get-status 64064)
 (defconst debbugs-test--bug-status
-  '(((cache_time . 5000) (source . "unknown") (unarchived)
-     (keywords "patch") (blocks) (pending . "done") (severity . "normal")
-     (done . "Michael Albinus <michael.albinus@gmx.de>") (location . "archive")
-     (log_modified . 1689593050) (subject . "[PATCH 0/4] debbugs improvements")
-     (last_modified . 1689593050) (found) (tags "patch") (package "emacs")
-     (originator . "Morgan Smith <Morgan.J.Smith@outlook.com>") (archived . t)
-     (blockedby) (affects) (mergedwith) (summary) (date . 1686745022)
-     (fixed_versions) (id . 64064) (fixed) (found_date) (forwarded)
+  '(((cache_time . 5000) (affects) (archived . t) (blockedby) (blocks)
+     (bug_num . 64064) (date . 1686745022)
+     (done . "Michael Albinus <michael.albinus@gmx.de>") (fixed) (fixed_date)
+     (fixed_versions) (forwarded) (found) (found_date) (found_versions)
+     (id . 64064) (keywords "patch") (last_modified . 1689593050)
+     (location . "archive") (log_modified . 1689593050) (mergedwith)
      (msgid
       . "<DM5PR03MB31632E3A4FE170C62E7D4B0CC55AA@DM5PR03MB3163.namprd03.prod.outlook.com>")
-     (owner) (found_versions) (fixed_date) (bug_num . 64064)))
+     (originator . "Morgan Smith <Morgan.J.Smith@outlook.com>") (owner)
+     (package "emacs") (pending . "done") (severity . "normal")
+     (source . "unknown") (subject . "[PATCH 0/4] debbugs improvements") (summary)
+     (tags "patch") (unarchived)))
   "Mock result from `debbugs-get-status' for bug 64064.")
 
 ;;; Helper Functions:

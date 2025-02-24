@@ -64,15 +64,15 @@
 
 (ert-deftest--debbugs debbugs-test-get-status ()
   "Test \"get_status\"."
-  (should (equal (sort (car (debbugs-get-status 64064)))
-                 (sort (car debbugs-test--bug-status))))
+  (should (equal (car (debbugs-get-status 64064))
+                 (car debbugs-test--bug-status)))
   (should (string-equal debbugs-test--soap-operation-name "get_status"))
   (should (equal debbugs-test--soap-parameters '([64064])))
   (setq debbugs-test--soap-operation-name nil)
   (setq debbugs-test--soap-parameters nil)
   ;; cached
-  (should (equal (sort (car (debbugs-get-status 64064)))
-                 (sort (car debbugs-test--bug-status))))
+  (should (equal (car (debbugs-get-status 64064))
+                 (car debbugs-test--bug-status)))
   (should (equal debbugs-test--soap-operation-name nil))
   (should (equal debbugs-test--soap-parameters nil)))
 

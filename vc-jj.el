@@ -56,7 +56,36 @@
   "Control whether to have jj colorize the log."
   :type 'boolean)
 
-(defcustom vc-jj-log-template "builtin_log_compact"
+(defvar vc-jj--log-default-template
+  "
+if(root,
+  format_root_commit(self),
+  label(if(current_working_copy, \"working_copy\"),
+    concat(
+      separate(\" \",
+        change_id.shortest(8).prefix() ++ \"​\" ++ change_id.shortest(8).rest(),
+        if(author.name(), author.name(), if(author.email(), author.email().local(), email_placeholder)),
+        commit_timestamp(self).format(\"%Y-%m-%d\"),
+        bookmarks,
+        tags,
+        working_copies,
+        if(git_head, label(\"git_head\", \"git_head()\")),
+        format_short_commit_id(commit_id),
+        if(conflict, label(\"conflict\", \"conflict\")),
+        if(config(\"ui.show-cryptographic-signatures\").as_boolean(),
+          format_short_cryptographic_signature(signature)),
+        if(empty, label(\"empty\", \"(empty)\")),
+        if(description,
+          description.first_line(),
+          label(if(empty, \"empty\"), description_placeholder),
+        ),
+      ) ++ \"\n\",
+    ),
+  )
+)
+")
+
+(defcustom vc-jj-log-template "cap_oneline"
   "The template to use for `vc-print-log'."
   :type '(radio (const "builtin_log_oneline")
                 (const "builtin_log_compact")
@@ -426,21 +455,21 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
   "Print commit log associated with FILES into specified BUFFER."
   ;; FIXME: limit can be a revision string, in which case we should
   ;; print revisions between start-revision and limit
+  (vc-setup-buffer buffer)
   (let ((inhibit-read-only t)
         (args (append
                (and limit
                     (list "-n" (number-to-string limit)))
-               (and start-revision
-                    (list "-r" (concat ".." start-revision)))
-               (and vc-jj-colorize-log (list "--color" "always"))
-               (list "-T" vc-jj-log-template "--")
-               files)))
-    (with-current-buffer buffer (erase-buffer))
-    (apply #'call-process vc-jj-program nil buffer nil "log" args)
-    (when vc-jj-colorize-log
-      (with-current-buffer buffer
-        (ansi-color-apply-on-region (point-min) (point-max)))))
-  (goto-char (point-min)))
+               (if start-revision
+                 (list "-r" (concat "::" start-revision))
+                 (list "-r" "::"))
+               (list "-T" vc-jj--log-default-template "--")
+               (unless (string-equal (vc-jj-root (car files)) (car files))
+                 files))))
+    (with-current-buffer buffer
+      (apply #'vc-jj-command buffer
+        'async nil
+        args))))
 
 (defun vc-jj-show-log-entry (revision)
   "Move to the log entry for REVISION."
@@ -459,6 +488,165 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
 ;; (defun vc-jj-log-incoming (buffer remote-location)
 ;;   ;; TODO
 ;;   )
+
+(defvar log-view-message-re)
+(defvar log-view-file-re)
+(defvar log-view-font-lock-keywords)
+(defvar log-view-per-file-logs)
+(defvar log-view-expanded-log-entry-function)
+
+(defvar vc-jj--logline-re
+  (rx
+    line-start
+    ;; graph
+    (+? nonl)
+    " "
+    ;; change-id
+    (group (+ (any "K-Zk-z")))
+    space
+    (group (+ (any "K-Zk-z")))
+    " "
+    ;; author
+    (group (* nonl))
+    " "
+    ;; time
+    (group
+      (= 4 (any num)) "-" (= 2 (any num)) "-" (= 2 (any num)))
+      ;; " "
+      ;; (= 2 (any num)) ":" (= 2 (any num)) ":" (= 2 (any num)))
+    ;; tags, bookmarks, commit-id
+    (group
+      (*? nonl))
+
+    " "
+    ;; commit-id
+    (group
+      (+ (any hex)))
+    " "
+    ;; special states
+    (? (group (or (: "(empty) ")
+                "")))
+    (? (group (or (: "(no description set)" (* nonl))
+                "")))
+    ;; regular description
+    (* nonl)
+    line-end))
+
+(define-derived-mode vc-jj-log-view-mode log-view-mode "JJ-Log-View"
+  (require 'add-log) ;; We need the faces add-log.
+  ;; Don't have file markers, so use impossible regexp.
+  (setq-local log-view-file-re regexp-unmatchable)
+  (setq-local log-view-per-file-logs nil)
+  (setq-local log-view-message-re vc-jj--logline-re)
+  ;; Allow expanding short log entries.
+  (setq truncate-lines t)
+  (setq-local log-view-expanded-log-entry-function
+    'vc-jj-expanded-log-entry)
+  (setq-local log-view-font-lock-keywords
+    `((,vc-jj--logline-re
+        (1 'log-view-message)
+        (2 'change-log-list)
+        (3 'change-log-name)
+        (4 'change-log-date)
+        (5 'change-log-file)
+        (6 'change-log-list)
+        (7 'change-log-function)
+        (8 'change-log-function))))
+
+  (keymap-set vc-jj-log-view-mode-map "r" #'vc-jj-edit-change)
+  (keymap-set vc-jj-log-view-mode-map "x" #'vc-jj-abandon-change)
+  (keymap-set vc-jj-log-view-mode-map "i" #'vc-jj-new-change))
+
+
+(defun vc-jj-expanded-log-entry (revision)
+  (with-temp-buffer
+    (vc-jj-command t 0 nil
+      "log"
+      "-r" revision
+      "-T" "builtin_log_detailed"
+      "--color" "never"
+      "--no-graph"
+      "--")
+    (buffer-string)))
+
+(defun vc-jj-previous-revision (file rev)
+  "JJ-specific version of `vc-previous-revision'."
+  (if file
+    (with-temp-buffer
+      (apply #'vc-jj-command t 0 nil "log"
+        (list "-r" (concat ".." rev "-")
+          "-T" "change_id.shortest()"
+          "--no-graph"
+            "-n" "1"
+          "--" file))
+      (let ((s (buffer-string)))
+        (unless (string-blank-p s)
+          s)))
+    (with-output-to-string
+      (vc-jj-command standard-output 1 nil
+        "log" "--no-graph" "-n" "1"
+        "-T" "change_id.shortest()"
+        "-r" (concat rev "-")))))
+
+(defun vc-jj-next-revision (file rev)
+  "JJ-specific version of `vc-next-revision'."
+  (if file
+    (with-temp-buffer
+      (apply #'vc-jj-command (current-buffer) 0 nil "log"
+        (list "-r" (format "roots(files(\"%s\") ~ ::%s)" file rev)
+          "-T" "change_id.shortest()"
+          "--no-graph"
+          "-n" "1"))
+      (let ((s (buffer-string)))
+        (unless (string-blank-p s)
+          s)))
+    (with-output-to-string
+      (vc-jj-command standard-output 1 nil
+        "log" "--no-graph" "-n" "1"
+        "-T" "change_id.shortest()"
+        "-r" (concat rev "+")))))
+
+(defun vc-jj-get-change-comment (_files rev)
+  (with-output-to-string
+    (vc-jj-command standard-output 1 nil
+      "log" "--no-graph" "-n" "1" "-T" "description" "-r" rev)))
+
+(declare-function log-edit-mode "log-edit" ())
+(declare-function log-edit-toggle-header "log-edit" (header value))
+(declare-function log-edit-extract-headers "log-edit" (headers string))
+(declare-function log-edit--toggle-amend "log-edit" (last-msg-fn))
+
+;; TODO: protect immutable changes
+(defun vc-jj-modify-change-comment (_files rev comment)
+  (let ((args (log-edit-extract-headers () comment)))
+    (vc-jj-command nil 0 nil "desc" rev "-m" (pop args) "--quiet")))
+
+(defun vc-jj--reload-log-buffers ()
+  (and vc-parent-buffer
+    (with-current-buffer vc-parent-buffer
+      (revert-buffer)))
+  (with-current-buffer (revert-buffer)))
+
+(defun vc-jj-edit-change ()
+  (interactive)
+  (let ((rev (log-view-current-tag)))
+    (vc-jj-command nil 0 nil "edit" rev "--quiet")
+    (vc-jj--reload-log-buffers)))
+
+(defun vc-jj-abandon-change ()
+  (interactive)
+  ;; TODO: should probably ask for confirmation, although this would be
+  ;; different from the cli
+  (let ((rev (log-view-current-tag)))
+    (vc-jj-command nil 0 nil "abandon" rev "--quiet")
+    (vc-jj--reload-log-buffers)))
+
+(defun vc-jj-new-change ()
+  (interactive)
+  (let ((rev (log-view-current-tag)))
+    (vc-jj-command nil 0 nil "new" rev "--quiet")
+    (with-current-buffer (revert-buffer))
+    (vc-jj--reload-log-buffers)))
 
 (defun vc-jj-root (file)
   "Return the root of the repository containing FILE.

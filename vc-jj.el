@@ -77,43 +77,6 @@ NIL otherwise."
     (append (list "--no-pager" "--color" "never")
       flags)))
 
-(defun vc-jj--file-tracked (file)
-  (with-temp-buffer
-    (and (vc-jj--call-jj "file" "list" "--" file)
-         (not (= (point-min) (point-max))))))
-
-(defun vc-jj--file-modified (file)
-  (with-temp-buffer
-    (and (vc-jj--call-jj "diff" "--summary" "--" file)
-         (not (= (point-min) (point-max)))
-         (progn (goto-char (point-min)) (looking-at-p "M ")))))
-
-(defun vc-jj--file-added (file)
-  (with-temp-buffer
-    (and (vc-jj--call-jj "diff" "--summary" "--" file)
-         (not (= (point-min) (point-max)))
-         (progn (goto-char (point-min)) (looking-at-p "A ")))))
-
-(defun vc-jj--file-conflicted (file)
-  (with-temp-buffer
-    (and (vc-jj--call-jj "resolve" "--list" "--" file)
-         (not (= (point-min) (point-max)))
-         (progn (goto-char (point-min)) (looking-at-p file)))))
-
-(defun vc-jj--file-state (file)
-  (let ((s (with-output-to-string
-             (vc-jj-command standard-output 0 file
-               "diff" "--summary" "--" file))))
-    (when s
-      ;; for [T]racked. returns nothing cleanly if file has no changes
-      (if (zerop (length s))
-        "T"
-        ;; HACK: if the file is not tracked, it doesnt error and still returns
-        ;; 0, but prints an error msg, which starts with "Warning...". it wont
-        ;; match M or A, which means it's untracked. Ugly, but saves us from
-        ;; running multiple commands for every file
-        (substring s 0 1)))))
-
 ;;;###autoload (defun vc-jj-registered (file)
 ;;;###autoload   "Return non-nil if FILE is registered with jj."
 ;;;###autoload   (if (and (vc-find-root file ".jj")   ; Short cut.
@@ -123,29 +86,42 @@ NIL otherwise."
 ;;;###autoload         (vc-jj-registered file))))
 
 (defun vc-jj-registered (file)
+  "Check whether FILE is registered with jj."
   (when (executable-find vc-jj-program)
     (unless (not (file-exists-p default-directory))
       (with-demoted-errors "Error: %S"
-        (when-let* ((root (vc-jj-root file)))
-          (let* ((default-directory root)
-                 (relative (file-relative-name file)))
-            (vc-jj--file-tracked relative)))))))
+        (when-let* ((default-directory (vc-jj-root file))
+                    (relative (file-relative-name file)))
+          (with-temp-buffer
+              (and (vc-jj--call-jj "file" "list" "--" file)
+                   (not (= (point-min) (point-max))))))))))
 
 (defun vc-jj-state (file)
   "JJ implementation of `vc-state' for FILE."
+  ;; We need to run two commands for the complete state:
+  ;;
+  ;; - "jj file list -T 'conflict' FILE" gets us conflicted (output
+  ;;   "true"), ignored (no output) or tracked (output "false", but
+  ;;   could be added or modified)
+  ;;
+  ;; - "jj diff --summary FILE" gets us modified (output starts with
+  ;;   "M ") or added (output starts with "A "), but no output could
+  ;;   be conflicted, ignored or unchanged
   (when-let* ((default-directory (vc-jj-root file))
-              (relative (file-relative-name file))
-              (state (vc-jj--file-state relative)))
+              ;; (relative (file-relative-name file)) ;; done by `vc-do-command'
+              (conflicted-ignored
+               (with-output-to-string
+                 (vc-jj-command standard-output 0 file "file" "list" "-T" "conflict" "--")))
+              (modified-added
+               (with-output-to-string (vc-jj-command standard-output 0 file
+                                                     "diff" "--summary" "--"))))
     (cond
-       ((vc-jj--file-conflicted relative)
-        'conflict)
-       ((equal "M" state)
-        'edited)
-       ((equal "A" state)
-        'added)
-       (state
-        'up-to-date)
-       (t nil))))
+     ((string-empty-p conflicted-ignored) 'ignored)
+     ((string= conflicted-ignored "true") 'conflict)
+     ((string-prefix-p "M " modified-added) 'edited)
+     ((string-prefix-p "A " modified-added) 'added)
+     ((string= conflicted-ignored "false") 'up-to-date)
+     (t nil))))
 
 (defun vc-jj-dir-status-files (dir _files update-function)
   "Calculate a list of (FILE STATE EXTRA) entries for DIR.
@@ -385,7 +361,7 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
 (defvar vc-jj-diff-switches '("--git"))
 
 (defun vc-jj-diff (files &optional rev1 rev2 buffer _async)
-  "Display diffs for FILES between two revisions."
+  "Display diffs for FILES between revisions REV1 and REV2."
   ;; TODO: handle async
   (setq buffer (get-buffer-create (or buffer "*vc-diff*")))
   (cond
@@ -399,7 +375,8 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
     (with-current-buffer buffer
       (erase-buffer))
     (apply #'call-process vc-jj-program nil buffer nil "diff" "--from" rev1 "--to" rev2 args)
-    (if (seq-some #'vc-jj--file-modified files)
+    (if (seq-some (lambda (line) (string-prefix-p "M " line))
+                  (apply #'process-lines vc-jj-program "diff" "--summary" "--" files))
         1
       0)))
 

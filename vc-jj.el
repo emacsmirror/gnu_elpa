@@ -247,13 +247,14 @@ self.immutable(), \"\\n\"
       (call-process vc-jj-program nil nil nil "git" "init" "--colocate")
     (call-process vc-jj-program nil nil nil "git" "init")))
 
-(defun vc-jj-register (_files &optional _comment)
-  "Make sure all changes are registered by jj.
-Note that jj auto-registers all changes (there is no staging area
-or notion of uncommitted changes), so we ignore arguments to this
-function."
-  ;; Any jj command picks up changes when run, so 'status' will do.
-  (vc-jj--call-jj "status"))
+(defun vc-jj-register (files &optional _comment)
+  "Register FILES into the jj version-control system."
+  ;; This is usually a no-op since jj auto-registers all files, so we
+  ;; just need to run some jj command so new files are picked up.  We
+  ;; run "jj file track" for the case where some of FILES are excluded
+  ;; via the "snapshot.auto-track" setting or via git's mechanisms
+  ;; such as the .gitignore file.
+  (apply #'vc-jj--call-jj "file" "track" files))
 
 (defun vc-jj-delete-file (file)
   "Delete the file and make sure jj registers the change."

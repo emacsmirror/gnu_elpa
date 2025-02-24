@@ -163,18 +163,18 @@ The list is passed to UPDATE-FUNCTION."
       (funcall update-function result nil))))
 
 (defun vc-jj-dir-extra-headers (dir)
-  "Return extra headers for to display in the vc-dir buffer of DIR.
+  "Return extra headers for `vc-dir' when executed inside DIR.
 
-Always add the first line of the description, the change ID, and
-the git commit ID of the current change.  If the current change
-is named by one or more bookmarks, also add a Bookmarks header.
-If the current change is conflicted, divergent or hidden, also
-add a Status header.  (We do not check for emptiness of the
-current change since the user can see that via the list of files
-below the headers anyway.)"
+Always add headers for the first line of the description, the change ID,
+and the git commit ID of the current change.  If the current change is
+named by one or more bookmarks, also add a Bookmarks header.  If the
+current change is conflicted, divergent, hidden or immutable, also add a
+Status header.  (We do not check for emptiness of the current change
+since the user can see that via the list of files below the headers
+anyway.)"
   (pcase-let* ((default-directory (file-name-as-directory dir))
                (`( ,change-id ,change-id-short ,commit-id ,commit-id-short
-                   ,description ,bookmarks ,conflict ,divergent ,hidden)
+                   ,description ,bookmarks ,conflict ,divergent ,hidden ,immutable)
                 (process-lines vc-jj-program "log" "--no-graph" "-r" "@" "-T"
                                "concat(
 self.change_id().short(), \"\\n\",
@@ -185,12 +185,14 @@ description.first_line(), \"\\n\",
 bookmarks.join(\",\"), \"\\n\",
 self.conflict(), \"\\n\",
 self.divergent(), \"\\n\",
-self.hidden(), \"\\n\"
+self.hidden(), \"\\n\",
+self.immutable(), \"\\n\"
 )"))
                (status (concat
                         (and (string= conflict "true") "(conflict)")
                         (and (string= divergent "true") "(divergent)")
-                        (and (string= hidden "true") "(hidden)")))
+                        (and (string= hidden "true") "(hidden)")
+                        (and (string= immutable "true") "(immutable)")))
                (change-id-suffix (substring change-id (length change-id-short)))
                (commit-id-suffix (substring commit-id (length commit-id-short))))
     (cl-flet ((fmt (key value &optional prefix)

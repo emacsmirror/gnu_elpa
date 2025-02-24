@@ -152,10 +152,9 @@ NIL otherwise."
 The list is passed to UPDATE-FUNCTION."
   ;; TODO: could be async!
   (let* ((dir (expand-file-name dir))
-         (files (process-lines vc-jj-program "file" "list" "--" dir))
-	 ;; TODO: Instead of the two `mapcan' calls, it should be more
-	 ;; efficient to write the output to a buffer and then search
-	 ;; for lines beginning with A or M, pushing them into a list.
+         ;; TODO: Instead of the two `mapcan' calls, it should be more
+         ;; efficient to write the output to a buffer and then search
+         ;; for lines beginning with A or M, pushing them into a list.
          (changed-files (process-lines vc-jj-program "diff" "--summary" "--" dir))
          (added (mapcan (lambda (file) (and (string-prefix-p "A " file)
                                             (list (substring file 2))))
@@ -163,6 +162,7 @@ The list is passed to UPDATE-FUNCTION."
          (modified (mapcan (lambda (file) (and (string-prefix-p "M " file)
                                                (list (substring file 2))))
                            changed-files))
+         (files (mapcan (lambda (file) (list (substring file 2))) changed-files))
          ;; The output of `jj resolve --list' is a list of file names
          ;; plus a free-text conflict description per line -- rather
          ;; than trying to be fancy and parsing each line (and getting

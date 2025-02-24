@@ -1,6 +1,9 @@
 EMACS ?= emacs
 MAKEINFO ?= makeinfo
 
+# regex of tests to run
+TESTS=.*
+
 SOURCE=$(wildcard *.el)
 TESTSOURCE=$(wildcard test/*.el)
 TARGET=$(filter-out debbugs-pkg.elc,$(patsubst %.el,%.elc,$(SOURCE)))
@@ -14,6 +17,9 @@ INFOMANUALS=debbugs.info debbugs-ug.info
 %.elc: %.el
 	@$(EMACS) -Q -batch -L . -f batch-byte-compile $<
 
+test/%.elc: test/%.el
+	@$(EMACS) -Q -batch -L . -L ./test -f batch-byte-compile $<
+
 %.info: %.texi
 	$(MAKEINFO) --error-limit=0 --no-split $< -o $@
 
@@ -24,7 +30,7 @@ doc: $(INFOMANUALS)
 build: $(TARGET)
 
 check: build $(TESTTARGET)
-	@$(EMACS) -Q --batch -L . -l $(TESTSOURCE) -f ert-run-tests-batch-and-exit
+	@$(EMACS) -Q --batch -L . -L ./test $(foreach file,$(TESTSOURCE), -l $(file)) --eval '(ert-run-tests-batch-and-exit "$(TESTS)")'
 
 clean:
 	-rm -f $(TARGET) $(TESTTARGET) $(INFOMANUALS)

@@ -18,8 +18,8 @@
 #+STARTUP: indent
 * Setup                                                                               :noexport:
 #+BEGIN_SRC elisp :exports results :results silent
-(add-to-list 'load-path default-directory)
-(require 'ivy-ox)
+  (add-to-list 'load-path (directory-file-name default-directory))
+  (require 'ivy-ox)
 #+END_SRC
 * Writing this manual                                                                 :noexport:
 To highlight a section without introducing a new subheading use
@@ -70,7 +70,7 @@ final candidate is either through simple keyboard character inputs or
 through powerful regular expressions.
 #+TEXINFO: @end ifnottex
 
-Copyright (C) 2015--2024 Free Software Foundation, Inc.
+Copyright (C) 2015--2025 Free Software Foundation, Inc.
 
 #+BEGIN_QUOTE
 Permission is granted to copy, distribute and/or modify this document
@@ -189,15 +189,15 @@ For package manager details, see [[info:emacs#Packages]].
      First clone the Swiper repository with:
 
      #+begin_src sh
-     cd ~/git && git clone https://github.com/abo-abo/swiper
-     cd swiper && make compile
+       cd ~/git && git clone 'https://github.com/abo-abo/swiper.git'
+       cd swiper && make deps compile
      #+end_src
 
      Second, add these lines to the Emacs init file:
 
      #+begin_src elisp
-     (add-to-list 'load-path "~/git/swiper/")
-     (require 'ivy)
+       (add-to-list 'load-path "~/git/swiper")
+       (require 'ivy)
      #+end_src
 
      Then, update the code with:

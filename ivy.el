@@ -1,6 +1,6 @@
 ;;; ivy.el --- Incremental Vertical completYon -*- lexical-binding: t -*-
 
-;; Copyright (C) 2015-2024 Free Software Foundation, Inc.
+;; Copyright (C) 2015-2025 Free Software Foundation, Inc.
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; Maintainer: Basil L. Contovounesios <basil@contovou.net>
@@ -2037,6 +2037,8 @@ Directories come first."
          (seq (cl-mapcan
                (lambda (f)
                  (unless (member f '("./" "../"))
+                   ;; FIXME: Use `substitute-in-file-name'?
+                   ;; Re: #2012, #3060.
                    (setq f (ivy--string-replace "$$" "$" f))
                    (list (if (and dirs-first (ivy--dirname-p f))
                              (propertize f 'ivy--dir (directory-file-name f))
@@ -2620,10 +2622,11 @@ The previous string is between `ivy-completion-beg' and `ivy-completion-end'."
                                            (ivy-state-collection ivy-last)))
             (minibuffer-completion-predicate (if (boundp 'ivy--minibuffer-pred)
                                                  ivy--minibuffer-pred
-                                               (ivy-state-predicate ivy-last))))
-        (completion--done str (cond ((eq ivy--minibuffer-try t) 'finished)
-                                    ((eq ivy-exit 'done) 'unknown)
-                                    ('exact))))
+                                               (ivy-state-predicate ivy-last)))
+            (newstr (or (car-safe ivy--minibuffer-try) str)))
+        (completion--done newstr (cond ((eq ivy--minibuffer-try t) 'finished)
+                                       ((eq ivy-exit 'done) 'unknown)
+                                       ('exact))))
       (setq ivy-completion-end (point))
       (save-excursion
         (dolist (cursor fake-cursors)
@@ -2636,24 +2639,46 @@ The previous string is between `ivy-completion-beg' and `ivy-completion-end'."
           (set-marker (overlay-get cursor 'point) (point))
           (set-marker (overlay-get cursor 'mark) (point)))))))
 
+(defalias 'ivy--face-list-p
+  (if (fboundp 'face-list-p)
+      #'face-list-p
+    (lambda (face)
+      (and (listp face)
+           (listp (cdr face))
+           (not (keywordp (car face))))))
+  "Compatibility shim for Emacs 25 `face-list-p'.")
+
+;; FIXME: Should this return the smallest such index instead?
+;; Usually the two are equal, but perhaps there exist more
+;; exotic applications of `completions-first-difference'.
+;;
+;; Completing files under a directory foo/ can have a first difference at
+;; index 0 in some Emacs versions, and no such property in other versions.
+;; So perhaps this function should return 0 instead of (length str) when no
+;; property is found?  That still follows the 'largest index' definition.
 (defun ivy-completion-common-length (str)
-  "Return the amount of characters that match in  STR.
+  "Return the length of the completion-matching prefix of STR.
 
-`completion-all-completions' computes this and returns the result
-via text properties.
+That is, return the largest index into STR at which either the
+`face' or `font-lock-face' property value contains the face
+`completions-first-difference'.
+If no such index is found, return the length of STR.
 
-The first non-matching part is propertized:
-- either with: (face (completions-first-difference))
-- or: (font-lock-face completions-first-difference)."
-  (let ((char-property-alias-alist '((face font-lock-face)))
-        (i (1- (length str))))
-    (catch 'done
-      (while (>= i 0)
-        (when (equal (get-text-property i 'face str)
-                     '(completions-first-difference))
-          (throw 'done i))
-        (cl-decf i))
-      (throw 'done (length str)))))
+Typically the completion-matching parts of STR have previously been
+propertized by `completion-all-completions', but then the base-size
+returned by that function should be preferred over
+`ivy-completion-common-length'."
+  (let* ((char-property-alias-alist '((face font-lock-face)))
+         (cmn (length str))
+         (i cmn))
+    (when (> i 0)
+      (while (if (let ((face (get-text-property (1- i) 'face str)))
+                   (or (eq 'completions-first-difference face)
+                       (and (ivy--face-list-p face)
+                            (memq 'completions-first-difference face))))
+                 (ignore (setq cmn (1- i)))
+               (setq i (previous-single-property-change i 'face str)))))
+    cmn))
 
 (defun ivy-completion-in-region (start end collection &optional predicate)
   "An Ivy function suitable for `completion-in-region-function'.
@@ -2661,43 +2686,57 @@ The function completes the text between START and END using COLLECTION.
 PREDICATE (a function called with no arguments) says when to exit.
 See `completion-in-region' for further information."
   (let* ((enable-recursive-minibuffers t)
+         (reg (- end start))
          (str (buffer-substring-no-properties start end))
          (completion-ignore-case (ivy--case-fold-p str))
          (md (completion-metadata str collection predicate))
-         (reg (- end start))
-         (comps (completion-all-completions str collection predicate reg md))
          (try (completion-try-completion str collection predicate reg md))
+         (comps (completion-all-completions str collection predicate reg md))
+         (last (last comps))
+         (base-size (cdr last))
          (ivy--minibuffer-table collection)
          (ivy--minibuffer-pred predicate))
-    (cond ((null comps)
-           (message "No matches"))
-          ((progn
-             (nconc comps nil)
-             (and (null (cdr comps))
-                  (string= str (car comps))))
-           (message "Sole match"))
+    (when last (setcdr last ()))
+    (cond ((not try)
+           (and (not completion-fail-discreetly)
+                completion-show-inline-help
+                (minibuffer-message "No matches"))
+           nil)
+          ((eq try t)
+           (goto-char end)
+           (let ((minibuffer-completion-table collection)
+                 (minibuffer-completion-predicate predicate))
+             (completion--done str 'finished "Sole match"))
+           t)
           (t
            (when (eq collection 'crm--collection-fn)
              (setq comps (delete-dups comps)))
-           (let* ((len (ivy-completion-common-length (car comps)))
-                  (initial (cond ((= len 0)
+           (let* ((cmn (ivy-completion-common-length (car comps)))
+                  ;; Translate a 'not found' result to 0.  Do this here (instead
+                  ;; of fixing `ivy-completion-common-length') for backward
+                  ;; compatibility, since it's a potentially public function.
+                  (cmn (if (= cmn (length (car comps))) 0 cmn))
+                  (initial (cond (base-size (substring str base-size))
+                                 ;; The remaining clauses should hopefully never
+                                 ;; be taken, since they rely on
+                                 ;; `ivy-completion-common-length'.
+                                 ((= cmn 0)
                                   "")
-                                 ((let ((str-len (length str)))
-                                    (when (> len str-len)
-                                      (setq len str-len)
-                                      str)))
+                                 ((>= cmn reg)
+                                  (setq cmn reg)
+                                  str)
                                  (t
-                                  (substring str (- len))))))
-             (delete-region (- end len) end)
-             (setq ivy-completion-beg (- end len))
+                                  (substring str (- cmn)))))
+                  (base-pos (if base-size (+ start base-size) (- end cmn))))
+             (delete-region base-pos end)
+             (setq ivy-completion-beg base-pos)
              (setq ivy-completion-end ivy-completion-beg)
              (if (null (cdr comps))
-                 (progn
+                 (let ((ivy--minibuffer-try try))
                    (unless (minibuffer-window-active-p (selected-window))
                      (setf (ivy-state-window ivy-last) (selected-window)))
-                   (let ((ivy--minibuffer-try try))
-                     (ivy-completion-in-region-action
-                      (substring-no-properties (car comps)))))
+                   (ivy-completion-in-region-action
+                    (substring-no-properties (car comps))))
                (dolist (s comps)
                  ;; Remove face `completions-first-difference'.
                  (ivy--remove-props s 'face))
@@ -2711,6 +2750,9 @@ See `completion-in-region' for further information."
                  (setq predicate nil))
                (ivy-read (format "(%s): " str) collection
                          :predicate predicate
+                         ;; FIXME: The anchor is intrusive and not easily
+                         ;; configurable by `ivy-initial-inputs-alist' or
+                         ;; `ivy-hooks-alist'.
                          :initial-input (concat
                                          (and (derived-mode-p #'emacs-lisp-mode)
                                               "^")
@@ -2722,7 +2764,7 @@ See `completion-in-region' for further information."
                                      (when initial
                                        (insert initial))))
                          :caller 'ivy-completion-in-region)))
-           ;; Return value should be non-nil on valid completion;
+           ;; Return value should be t on valid completion;
            ;; see `completion-in-region'.
            t))))
 
@@ -3187,23 +3229,17 @@ parts beyond their respective faces `ivy-confirm-face' and
             (std-props '(front-sticky t rear-nonsticky t field t read-only t))
             (n-str
              (concat
-              (if (and (bound-and-true-p minibuffer-depth-indicate-mode)
-                       (> (minibuffer-depth) 1))
-                  (format "[%d] " (minibuffer-depth))
-                "")
-              (concat
-               (if (string-match "%d.*%d" ivy-count-format)
-                   (format head
-                           (1+ ivy--index)
-                           (or (and (ivy-state-dynamic-collection ivy-last)
+              (and (bound-and-true-p minibuffer-depth-indicate-mode)
+                   (> (minibuffer-depth) 1)
+                   (format "[%d] " (minibuffer-depth)))
+              (let ((count (or (and (ivy-state-dynamic-collection ivy-last)
                                     ivy--full-length)
-                               ivy--length))
-                 (format head
-                         (or (and (ivy-state-dynamic-collection ivy-last)
-                                  ivy--full-length)
-                             ivy--length)))
-               ivy--prompt-extra
-               tail)))
+                               ivy--length)))
+                (if (string-match-p "%d.*%d" ivy-count-format)
+                    (format head (min (1+ ivy--index) count) count)
+                  (format head count)))
+              ivy--prompt-extra
+              tail))
             (d-str (if ivy--directory
                        (abbreviate-file-name ivy--directory)
                      "")))

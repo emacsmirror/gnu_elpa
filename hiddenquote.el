@@ -113,7 +113,7 @@ which is the prefix arg given to `hiddenquote'."
                         (string :tag "Source name")
                         (symbol :tag "Format")
                         (function :tag "Custom function"))))
-  :package-version '(hiddenquote . "0.2"))
+  :package-version '(hiddenquote . "1.3"))
 
 (defcustom hiddenquote-mode-hook nil
   "Hook to run after entering `hiddenquote-mode'."

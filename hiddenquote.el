@@ -109,8 +109,11 @@ which is the prefix arg given to `hiddenquote'."
                         (string :tag "Source name")
                         (const :tag "Format: html" html)
                         (function :tag "Function"))
-                  (sexp :tag "Custom source")))
-  :package-version '(hiddenquote . "0.1"))
+                  (list :tag "Custom source"
+                        (string :tag "Source name")
+                        (symbol :tag "Format")
+                        (function :tag "Custom function"))))
+  :package-version '(hiddenquote . "0.2"))
 
 (defcustom hiddenquote-mode-hook nil
   "Hook to run after entering `hiddenquote-mode'."

@@ -94,18 +94,18 @@
   (unless (file-directory-p dir)
     (make-directory dir)))
 
-(cl-defun org-gnosis-select (value table &optional (restrictions '(= '1 '1)) (flatten nil))
+(defun org-gnosis-select (value table &optional restrictions flatten)
   "Select VALUE from TABLE, optionally with RESTRICTIONS.
 
 Optional argument FLATTEN, when non-nil, flattens the result."
   (org-gnosis-db-init-if-needed) ;; Init database if needed
-  (let ((output (emacsql org-gnosis-db
-			 `[:select ,value :from ,table :where ,restrictions])))
-    (if flatten
-	(apply #'append output)
-      output)))
+  (let* ((restrictions (or restrictions '(= 1 1)))
+	 (flatten (or flatten nil))
+	 (output (emacsql org-gnosis-db
+			  `[:select ,value :from ,table :where ,restrictions])))
+    (if flatten (apply #'append output) output)))
 
-(cl-defun org-gnosis--insert-into (table values)
+(defun org-gnosis--insert-into (table values)
   "Insert VALUES to TABLE."
   (emacsql org-gnosis-db `[:insert :into ,table :values ,values]))
 
@@ -113,7 +113,7 @@ Optional argument FLATTEN, when non-nil, flattens the result."
   "From TABLE use where to delete VALUE."
   (emacsql org-gnosis-db `[:delete :from ,table :where ,value]))
 
-(cl-defun org-gnosis--drop-table (table)
+(defun org-gnosis--drop-table (table)
   "Drop TABLE from `gnosis-db'."
   (emacsql org-gnosis-db `[:drop-table ,table]))
 
@@ -425,7 +425,7 @@ DIRECTORY."
 	  (funcall org-gnosis-completing-read-func
 		   "Select node: "
 		   (org-gnosis-select 'title 'nodes
-				      `(like tags ',(format "%%\"%s\"%%" tag))))))
+				      `(like tags ',(format "%%\"%s\"%%" tag)) t))))
     (org-gnosis-find node)))
 
 (defun org-gnosis-select-template (templates)

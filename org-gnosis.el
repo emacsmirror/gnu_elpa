@@ -441,16 +441,17 @@ If templates is only item, return it without a prompt."
     (funcall (apply #'append template))))
 
 ;;;###autoload
-(defun org-gnosis-insert (&optional journal-p)
+(defun org-gnosis-insert (arg &optional journal-p)
   "Insert gnosis node.
 
+If called with ARG, prompt for custom link description.
 If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
   (interactive "P")
   (let* ((table (if journal-p 'journal 'nodes))
 	 (node (org-gnosis--find "Select gnosis node: "
 				 (org-gnosis-select '[title tags] table)
 				 (org-gnosis-select 'title table)))
-	 (id (concat "id:" (car (org-gnosis-select 'id table `(= ,node title))))))
+	 (id (concat "id:" (car (org-gnosis-select 'id table `(= ,node title) t)))))
     (cond ((< (length id) 4) ; if less that 4 then `org-gnosis-select' returned nil, (id:)
 	   (save-window-excursion
 	     (org-gnosis--create-file
@@ -459,10 +460,10 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
 	     (save-buffer)
 	     (setf id (concat
 		       "id:"
-		       (car (org-gnosis-select 'id table `(= ,node title))))))
+		       (car (org-gnosis-select 'id table `(= ,node title) t)))))
 	   (org-insert-link nil id node)
 	   (message "Created new node: %s" node))
-	  (t (org-insert-link nil id node)))))
+	  (t (org-insert-link nil id (if arg (read-string "Description: ") node))))))
 
 
 (defun org-gnosis-insert-filetag (&optional tag)

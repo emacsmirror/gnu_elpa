@@ -7,6 +7,10 @@
 This document contains the release notes that are included in each
 tagged commit on the project's main git repository:
 <https://git.thanosapollo.org/org-gnosis>.
+* 0.0.9
++ Add support for inserting journal entries as links with custom
+  description.
+
 * 0.0.8
 New Features:
 + When org-gnosis-insert is called with a prefix arg, prompt for

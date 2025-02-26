@@ -77,7 +77,7 @@
 
   (defconst a68-keywords
     '("DECS" "PROGRAM" "CONTEXT" "USE" "KEEP"
-      "ALIEN" "UNTIL" "RE" "IM"
+      "ALIEN" "RE" "IM"
       "MODE" "OP" "PRIO" "PROC"
       "OF" "AT" "IS" "ISNT" "EMPTY" "SKIP"
       "PR" "PRAGMAT" "STRUCT" "UNION"
@@ -167,9 +167,7 @@
                             ("FOR" exp "BY" exp "TO" exp
                              "DO" exp "OD")
                             ("-to-" "TO" exp "DO" exp "OD")
-                            ("WHILE" exp "DO" exp "OD")
-                            ("WHILE" exp "UNTIL" exp "DO" exp "OD")
-                            ("-until-" "UNTIL" exp "DO" exp "OD"))
+                            ("WHILE" exp "DO" exp "OD"))
                       (insts (insts ";" insts)
                              (id ":=" exp)
                              ("IF" exp "THEN" insts "FI")

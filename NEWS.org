@@ -7,7 +7,16 @@
 This document contains the release notes that are included in each
 tagged commit on the project's main git repository:
 <https://git.thanosapollo.org/org-gnosis>.
+* 0.0.8
+New Features:
++ When org-gnosis-insert is called with a prefix arg, prompt for
+  custom link description
 
+Fixes:
+ + Use proper quoting for string literals, see [1][2]
+   + This resolves previous issues for BSD systems
+[1] <https://www.sqlite.org/quirks.html#double_quoted_string_literals_are_accepted>
+[2] <https://github.com/magit/emacsql/issues/128#issuecomment-2682104151>
 * 0.0.7
 + Fix insertion of tags for file topic
 + Add org-gnosis-visit-backlinks.

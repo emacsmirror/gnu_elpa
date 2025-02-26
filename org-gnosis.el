@@ -526,10 +526,12 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
        (org-gnosis-select-template org-gnosis-journal-templates)))))
 
 ;;;###autoload
-(defun org-gnosis-journal-insert ()
-  "Insert journal entry."
-  (interactive)
-  (org-gnosis-insert t))
+(defun org-gnosis-journal-insert (arg)
+  "Insert journal entry.
+
+If called with prefix ARG, use custom link description."
+  (interactive "P")
+  (org-gnosis-insert arg t))
 
 ;;;###autoload
 (defun org-gnosis-journal ()

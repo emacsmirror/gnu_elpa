@@ -241,7 +241,10 @@ REGEXP is a regular expression used to search for occurrences.
 This uses `multi-occur' under the hood."
   (interactive (list (project--read-regexp)))
   (if-let* ((project (project-current)))
-      (multi-occur (project-buffers project) regexp)
+      (multi-occur (seq-filter (lambda (buf)
+                                 (not (string-prefix-p " " (buffer-name buf))))
+                               (project-buffers project))
+                   regexp)
     (error "No project in current directory: %s" default-directory)))
 
 ;;;; Transient groups.

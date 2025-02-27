@@ -555,7 +555,7 @@
  (ob-haxe		:url "https://github.com/ianxm/ob-haxe.el")
  (objed        		:url "https://github.com/clemera/objed")
  (omn-mode            	:url "https://github.com/phillord/omn-mode")
- (on-screen           	:url "https://github.com/michael-heerdegen/on-screen.el.git")
+ (on-screen           	:url nil) ;;Was "https://github.com/michael-heerdegen/on-screen.el"
  (openpgp               :url "https://codeberg.org/pkal/openpgp.el")
  (orderless		:url "https://github.com/oantolin/orderless"
   :doc "orderless.texi"
@@ -897,7 +897,8 @@
   :ignored-files ("Makefile" ".github" "*-test.el*"))
  (xref			:core "lisp/progmodes/xref.el")
  (xref-union            :url "https://codeberg.org/pkal/xref-union.el")
- (yaml			:url "https://github.com/zkry/yaml.el")
+ (yaml			:url "https://github.com/zkry/yaml.el"
+  :ignored-files "LICENSE")
  (yasnippet		:url "https://github.com/joaotavora/yasnippet")
  (yasnippet-classic-snippets :url nil)
  (zones			:url nil)  ;https://www.emacswiki.org/emacs/zones.el

@@ -7,7 +7,7 @@
 ;; URL: https://github.com/lmq-10/denote-search
 ;; Created: 2024-12-28
 ;; Keywords: matching
-;; Version: 1.0.0
+;; Version: 1.0.1
 ;; Package-Requires: ((emacs "29.1") (denote "3.0"))
 
 ;; This program is NOT part of GNU Emacs.
@@ -60,12 +60,11 @@
 
 (defgroup denote-search ()
   "A simple search utility for Denote."
-  :group 'matching
+  :group 'denote
   :link '(info-link "(denote-search) Top"))
 
 (defcustom denote-search-buffer-name "*denote-search*"
   "Name of the buffer created by `denote-search'."
-  :group 'denote-search
   :type 'string)
 
 (defcustom denote-search-format-heading-function #'denote-search-extract-title
@@ -79,7 +78,8 @@ should always return a string."
   "String to use as heading for untitled notes."
   :type 'string)
 
-(defcustom denote-search-help-string "\\<denote-search-mode-map>Refine with \
+(defcustom denote-search-help-string
+  "\\<denote-search-mode-map>Refine with \
 `\\[denote-search-refine]', exclude files with \
 `\\[denote-search-exclude-files]', (only) include certain files \
 with `\\[denote-search-only-include-files]'."
@@ -168,8 +168,7 @@ TYPE only affects the prompt, not the returned value."
                 "Search (only marked dired files): ")
                ((eq type :region)
                 "Search (only files referenced in region): ")
-               (:else
-                "Search (all Denote files): "))
+               (t "Search (all Denote files): "))
          nil 'denote-search-query-history)))
 
 (defun denote-search-format-heading-with-keywords (file)
@@ -187,7 +186,7 @@ This function is intended to be used as the
         title
       (format
        "%s  [%s]"
-       title (string-join (string-split keywords "_") ", ")))))
+       title (replace-regexp-in-string "_" ", " keywords)))))
 
 (defun denote-search-set-header-line (query number-of-files time)
   "Set header line for `denote-search' buffer.
@@ -232,8 +231,8 @@ Returned value is a list with the absoulte path of referenced files."
         (narrow-to-region start end)
         (goto-char (point-min))
         (while (re-search-forward denote-id-regexp nil t)
-          (push (match-string 0) id-list))))
-    (and id-list (mapcar #'denote-get-path-by-id id-list))))
+          (push (denote-get-path-by-id (match-string 0)) id-list))))
+    id-list))
 
 ;;;###autoload
 (defun denote-search (query &optional set)
@@ -266,22 +265,20 @@ The results are populated in a buffer whose major mode is
     ;; Set internal variables for last set of files and last query
     (setq denote-search--last-files nil)
     (setq denote-search--last-query query)
-    (mapc
-     (lambda (x)
-       (let* ((file-xref (car x))
-              (file
-               ;; NOTE: Unfortunately, the car of the xref construct is
-               ;; not reliable; sometimes it's absolute, sometimes it
-               ;; is not
-               (if (file-name-absolute-p file-xref)
-                   file-xref
-                 (xref-location-group
-                  (xref-match-item-location (car (last x)))))))
-         ;; Add to current set of files
-         (push file denote-search--last-files)
-         ;; Format heading
-         (setf (car x) (funcall denote-search-format-heading-function file))))
-     xref-alist)
+    (dolist (x xref-alist)
+      (let* ((file-xref (car x))
+             (file
+              ;; NOTE: Unfortunately, the car of the xref construct is
+              ;; not reliable; sometimes it's absolute, sometimes it
+              ;; is not
+              (if (file-name-absolute-p file-xref)
+                  file-xref
+                (xref-location-group
+                 (xref-match-item-location (car (last x)))))))
+        ;; Add to current set of files
+        (push file denote-search--last-files)
+        ;; Format heading
+        (setf (car x) (funcall denote-search-format-heading-function file))))
     (delete-dups denote-search--last-files)
     (with-current-buffer (get-buffer-create denote-search-buffer-name)
       (erase-buffer)
@@ -454,7 +451,6 @@ relevant keymap (`denote-search-mode-map')."
   (when denote-search-mode
     (setq-local outline-minor-mode-use-buttons 'in-margins)
     (outline-minor-mode)))
-
 
 (provide 'denote-search)
 ;;; denote-search.el ends here

@@ -1,13 +1,13 @@
 ;;; denote-search.el --- Search the contents of your notes -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024-2025  Lucas Quintana
+;; Copyright (C) 2024-2025  Free Software Foundation, Inc.
 
 ;; Author: Lucas Quintana <lmq10@protonmail.com>
 ;; Maintainer: Lucas Quintana <lmq10@protonmail.com>
 ;; URL: https://github.com/lmq-10/denote-search
 ;; Created: 2024-12-28
 ;; Keywords: matching
-;; Version: 0.3.0
+;; Version: 1.0.0
 ;; Package-Requires: ((emacs "29.1") (denote "3.0"))
 
 ;; This program is NOT part of GNU Emacs.

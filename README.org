@@ -222,8 +222,9 @@ can give you a quick overlook of all the files that matched the
 search.  If there are many, you can proceed to filter the output 
 (see [[*filtering the search results][filtering the search results]]).
 
-Press ~o~ (~delete-other-windows~) to close other windows displayed in
-the frame.
+Press ~l~ (~recenter-current-error~) to recenter current search focus
+shown in the other window.  Press ~o~ (~delete-other-windows~) to
+close other windows displayed in the frame.
 
 * Filtering the search results
 

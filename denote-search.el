@@ -440,6 +440,7 @@ means of e.g. `denote-search-exclude-files')."
   "v" #'outline-cycle
   "x" #'denote-search-exclude-files
   "i" #'denote-search-only-include-files
+  "l" #'recenter-current-error
   "X" #'denote-search-exclude-files-with-keywords
   "I" #'denote-search-only-include-files-with-keywords
   "G" #'denote-search-clean-all-filters)

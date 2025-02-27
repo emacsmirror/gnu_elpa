@@ -189,7 +189,8 @@ A resource file is in the resource directory as per
       tramp-copy-size-limit nil
       tramp-error-show-message-timeout nil
       tramp-persistency-file-name nil
-      tramp-verbose 0)
+      tramp-verbose 0
+      vc-handled-backends nil)
 
 (defvar tramp--test-enabled-checked nil
   "Cached result of `tramp--test-enabled'.

@@ -232,6 +232,10 @@
  (denote-menu		:url "https://github.com/namilus/denote-menu"
   :readme "README.org"
   :ignored-files ("COPYING"))
+ (denote-search		:url "https://github.com/lmq-10/denote-search"
+  :ignored-files ("COPYING" "doclicense.texi")
+  :readme "README.md"
+  :doc "README.org")
  (detached		:url "https://git.sr.ht/~niklaseklund/detached.el"
   :news "CHANGELOG.org"
   :readme "README.md")
@@ -599,10 +603,10 @@
   :ignored-files ("LICENSE"))
  (other-frame-window	:url nil)
  (pabbrev             	:url "https://github.com/phillord/pabbrev.git")
- (package-x             :url nil)
  (paced			:url "bzr::bzr://bzr.savannah.nongnu.org/paced-el/trunk"
   ;; The Bzr<->Git bridge wasn't working well enough last time I tried.
   :manual-sync t)
+ (package-x             :url nil)
  ;; `package-fixes` is obsolete and was never released.
  ;; (package-fixes		:url nil)
  (parsec              	:url "https://github.com/cute-jumper/parsec.el.git")
@@ -846,6 +850,8 @@
   ;; Mirror: https://github.com/omar-polo/vc-got/
   :ignored-files ("targets" "LICENSE"))
  (vc-hgcmd		:url "https://github.com/muffinmad/emacs-vc-hgcmd")
+ ;; FIXME: Waiting for copyright paperwork.
+ ;;(vc-jj			:url "https://codeberg.org/emacs-jj-vc/vc-jj.el")
  (vcard			:url nil)
  (vcl-mode	        :url "https://git.gnu.org.ua/vcl-mode.git")
  (vdiff               	:url "https://github.com/justbur/emacs-vdiff")

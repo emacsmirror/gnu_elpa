@@ -38,6 +38,11 @@
 ;; filtering; all standard commands offered by Xref are available as
 ;; well.
 ;;
+;; Other relevant points of entry are
+;; `denote-search-marked-dired-files' and
+;; `denote-search-files-referenced-in-region'.  See the documentation
+;; for details.
+;;
 ;; This package has the same code principles as Denote: to be
 ;; simple-to-use, focused-in-scope, and effective.  We build upon Xref
 ;; to be good Emacs citizens, and don't use any dependencies other

@@ -137,7 +137,7 @@ restricted subset of files and are described in the next sections.
 #+findex: denote-search-marked-dired-files
 The command ~denote-search-marked-dired-files~ acts just like
 ~denote-search~, but it restricts the search to the files marked in
-current Dired buffer (see [[info:emacs#Dired][Marks vs Flags]]).  This is useful if you only
+current Dired buffer (see [[info:emacs#Marks vs Flags][Marks vs Flags]]).  This is useful if you only
 want to search some files, though depending on the case maybe you'd
 be better served by our built-in filtering capabilities; see
 [[*filtering the search results][filtering the search results]].
@@ -261,6 +261,8 @@ It's possible that you don't want to start a new search, but rather to
 search something on the curated file list you got.  See [[*focused search][focused
 search]].
 
+#+findex: denote-search-exclude-files-with-keyword
+#+findex: denote-search-only-include-files-with-keyword
 Filtering by keyword is such a common operation that two special
 commands exist just for that: ~X~
 (~denote-search-exclude-files-with-keyword~) and ~I~

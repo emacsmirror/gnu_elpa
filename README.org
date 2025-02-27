@@ -261,17 +261,19 @@ It's possible that you don't want to start a new search, but rather to
 search something on the curated file list you got.  See [[*focused search][focused
 search]].
 
-#+findex: denote-search-exclude-files-with-keyword
-#+findex: denote-search-only-include-files-with-keyword
-Filtering by keyword is such a common operation that two special
+#+findex: denote-search-exclude-files-with-keywords
+#+findex: denote-search-only-include-files-with-keywords
+Filtering by keywords is such a common operation that two special
 commands exist just for that: ~X~
-(~denote-search-exclude-files-with-keyword~) and ~I~
-(~denote-search-only-include-files-with-keyword~).  They are
+(~denote-search-exclude-files-with-keywords~) and ~I~
+(~denote-search-only-include-files-with-keywords~).  They are
 equivalent to calling its regular counterparts and issuing a word with
 a leading underscore; however, they also offer completion for
 available keywords (using ~denote-keywords~, so its actual behaviour
 is governed by the variables ~denote-infer-keywords~ and
-~denote-known-keywords~).
+~denote-known-keywords~).  But the main advantage is that they allow
+issuing multiple keywords at once, separated by commas (or whatever
+the value of ~crm-separator~ is, which should be a comma).
 
 History is available when filtering.  Press ~M-p~
 (~previous-history-element~) to view past queries.  This history is

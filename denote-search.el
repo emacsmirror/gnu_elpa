@@ -136,16 +136,20 @@ non-nil."
            "Only include file names matching: ")
          nil 'denote-search-file-regexp-history)))
 
-(defun denote-search-keyword-prompt (&optional include)
-  "Prompt for a keyword in the minibuffer, with completion.
+(defun denote-search-keywords-prompt (&optional include)
+  "Prompt for keywords in the minibuffer, with completion.
 
-The prompt assumes the user wants to exclude the keyword, unless INCLUDE
-is non-nil."
-  (list (completing-read
-         (if (not include)
-             "Exclude files with keyword: "
-           "Only include files with keyword: ")
-         (denote-keywords) nil t nil 'denote-keyword-history)))
+Keywords are read using `completing-read-multiple'.
+
+The prompt assumes the user wants to exclude the keywords, unless
+INCLUDE is non-nil."
+  (list
+   (delete-dups
+    (completing-read-multiple
+     (if (not include)
+         "Exclude files with keywords: "
+       "Only include files with keywords: ")
+     (denote-keywords) nil t nil 'denote-keyword-history))))
 
 (defun denote-search-query-prompt (&optional type)
   "Prompt for a search query in the minibuffer.
@@ -355,11 +359,22 @@ RET’.
 
 Internally, this works by generating a new call to `denote-search' with
 the same QUERY as the last one, but with a restricted SET gotten from
-checking REGEXP against last matched files."
+checking REGEXP against last matched files.
+
+When called from Lisp, REGEXP can be a list; in that case, it should be
+a list of fixed strings (NOT regexps) to check against last matched
+files.  Files that match any of the strings get excluded.  Internally,
+the list is processed using `regexp-opt', which see.  For an example of
+this usage, see `denote-search-exclude-files-with-keywords'."
   (interactive (denote-search-file-regexp-prompt))
   (let (final-files)
     (dolist (file denote-search--last-files)
-      (unless (string-match regexp file)
+      (unless (string-match
+               ;; Support list of strings as REGEXP
+               (if (listp regexp)
+                   (regexp-opt regexp)
+                 regexp)
+               file)
         (push file final-files)))
     (if final-files
         (denote-search denote-search--last-query final-files)
@@ -368,33 +383,40 @@ checking REGEXP against last matched files."
 (defun denote-search-only-include-files (regexp)
   "Exclude file names not matching REGEXP from current `denote-search' buffer.
 
-See also `denote-search-exlude-files'."
+See `denote-search-exlude-files' for details, including the behaviour
+when REGEXP is a list."
   (interactive (denote-search-file-regexp-prompt :include))
   (let (final-files)
     (dolist (file denote-search--last-files)
-      (when (string-match regexp file)
+      (when (string-match
+             ;; Support list of strings as REGEXP
+             (if (listp regexp)
+                 (regexp-opt regexp)
+               regexp)
+             file)
         (push file final-files)))
     (if final-files
         (denote-search denote-search--last-query final-files)
       (user-error "No remaining files when applying that filter"))))
 
-(defun denote-search-exclude-files-with-keyword (keyword)
-  "Exclude files with KEYWORD from current `denote-search' buffer.
+(defun denote-search-exclude-files-with-keywords (keywords)
+  "Exclude files with KEYWORDS from current `denote-search' buffer.
 
-This is equivalent to passing the argument \"_KEYWORD\" to
-`denote-search-exclude-files'.  This command, however, offers completion
-for available keywords."
-  (interactive (denote-search-keyword-prompt))
-  (denote-search-exclude-files (concat "_" keyword)))
+KEYWORDS should be a list of keywords (without underscore).
 
-(defun denote-search-only-include-files-with-keyword (keyword)
-  "Exclude files without KEYWORD from current `denote-search' buffer.
+Interactively, KEYWORDS are read from the minibuffer using
+`completing-read-multiple', which see."
+  (interactive (denote-search-keywords-prompt))
+  (denote-search-exclude-files
+   (mapcar (lambda (kw) (concat "_" kw)) keywords)))
 
-This is equivalent to passing the argument \"_KEYWORD\" to
-`denote-search-only-include-files'.  This command, however, offers
-completion for available keywords."
-  (interactive (denote-search-keyword-prompt :include))
-  (denote-search-only-include-files (concat "_" keyword)))
+(defun denote-search-only-include-files-with-keywords (keywords)
+  "Exclude files without KEYWORDS from current `denote-search' buffer.
+
+See `denote-search-exclude-files-with-keywords' for details."
+  (interactive (denote-search-keywords-prompt :include))
+  (denote-search-only-include-files
+   (mapcar (lambda (kw) (concat "_" kw)) keywords)))
 
 ;;;; Keymap and mode definition:
 
@@ -409,8 +431,8 @@ completion for available keywords."
   "v" #'outline-cycle
   "x" #'denote-search-exclude-files
   "i" #'denote-search-only-include-files
-  "X" #'denote-search-exclude-files-with-keyword
-  "I" #'denote-search-only-include-files-with-keyword)
+  "X" #'denote-search-exclude-files-with-keywords
+  "I" #'denote-search-only-include-files-with-keywords)
 
 (define-minor-mode denote-search-mode
   "Minor mode enabled in the buffer generated by `denote-search'.

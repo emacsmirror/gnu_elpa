@@ -25,7 +25,7 @@ process has exited, and documentation is currently building.
 
 [[file:disproject-custom-dispatch-guix-config.png]]
 
-~disproject-custom-dispatch~ menu in a personal configuration, with some
+~disproject-custom-dispatch~ menu in a personal Guix configuration, with some
 transient options defined.
 
 -----

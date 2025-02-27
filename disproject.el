@@ -325,10 +325,11 @@ n -- to ignore them and use the default custom suffixes.
             ;;
             ;; XXX: Some of these heuristics can produce slightly incorrect
             ;; output from substituting forms in strings too.
-            (dolist (pair '(;; Separate adjacent sexps with ") (" form, which
+            (dolist (pair '(;; Separate adjacent brackets with ") (" form, which
                             ;; seems to often be the cause of unexpectedly long
                             ;; lines.
                             (") (" . ")\n(")
+                            ("\\] \\[" . "]\n[")
                             ;; Move keywords onto their own lines.
                             ("[[:blank:]]*:\\(\\w\\)" . "\n:\\1")
                             ;; Remove superfluous empty lines.

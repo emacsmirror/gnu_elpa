@@ -1105,13 +1105,30 @@ function for documentation on the settings."
   `(disproject-with-env-apply
     (lambda () ,@body)))
 
+(defun disproject-with-env+root-apply (fun &rest args)
+  "Apply FUN to ARGS from project root with Disproject transient settings.
+
+See `disproject-with-env' and `disproject-with-root' for
+documentation on settings applied.
+
+Note that the environment is applied first, so project root will
+be based on the selected project, not the current project."
+  (disproject-with-env (disproject-with-root (apply fun args))))
+
+(defmacro disproject-with-env+root (&rest body)
+  "Run BODY with Disproject transient settings applied in selected project root.
+
+This is a macro version of `disproject-with-env+root-apply'; see the
+function for documentation on settings applied."
+  (declare (indent 0) (debug t))
+  `(disproject-with-env+root-apply (lambda () ,@body)))
+
 (defmacro disproject-with-environment (&rest body)
   "Run BODY with Disproject transient settings applied in selected project root.
 
-This uses `disproject-with-env' and `disproject-with-root' to set
-up the environment."
+This is an alias for `disproject-with-env+root'."
   (declare (indent 0) (debug t))
-  `(disproject-with-env (disproject-with-root ,@body)))
+  `(disproject-with-env+root ,@body))
 
 (define-short-documentation-group disproject-environment
   "Environments from Disproject transient settings
@@ -1120,6 +1137,8 @@ up the environment."
   (disproject-with-env)
   (disproject-with-root-apply)
   (disproject-with-root)
+  (disproject-with-env+root-apply)
+  (disproject-with-env+root)
   (disproject-with-environment))
 
 ;;;; Suffix classes.

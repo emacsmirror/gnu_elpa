@@ -10,6 +10,7 @@
        :cmd "\
 profile=.time-machine-guix-profile
 [ -e $profile ] && rm $profile
+export GUIX_PACKAGE_PATH=''
 guix time-machine --channels=channels.scm -- \\
 	shell --development --file=guix.scm --file=guix.scm \\
 	--manifest=manifest.scm emacs \\
@@ -25,6 +26,7 @@ guix shell --pure --profile=.time-machine-guix-profile -- \\
        :cmd "\
 profile=.latest-guix-profile
 [ -e $profile ] && rm $profile
+export GUIX_PACKAGE_PATH=''
 guix shell --development --file=guix.scm --file=guix.scm \\
 	--manifest=manifest.scm emacs-next \\
 	--root=$profile --search-paths"

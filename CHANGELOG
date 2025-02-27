@@ -7,38 +7,35 @@
 *** Added
 
 - Support specifications using Transient syntax in ~disproject-custom-suffixes~.
-- Add the following macros/functions that split up functionality from
-  ~disproject-with-environment~, which are particularly useful when combined
-  with suffix advice, an experimental feature recently added in Transient:
+- Add the following macros/functions to split up functionality from
+  ~disproject-with-environment~ for more environment setup options when defining
+  transient suffixes:
   - ~disproject-with-env~ macro, ~disproject-with-env-apply~ function for
     applying transient options (like ~project-current-directory-override~ or
     display buffer overrides).
-
-    This is intended to be used in the (currently experimental) =advice= and
-    =advice*= slots.
   - ~disproject-with-root~ macro, ~disproject-with-root-apply~ function for
     setting ~default-directory~ to the current project's root.  When used in
     the context of a ~disproject-with-env~, it is set to the selected project's
     root directory.
-
-    This is intended to be used in commands themselves, as advice only applies
-    to commands when executed from a prefix.
+  - ~disproject-with-env+root~ macro, ~disproject-with-env+root-apply~ function
+    as a shorthand combination of the previous two.  This is equivalent to
+    ~disproject-with-environment~.
 - Add ~disproject-process-suffix~, ~disproject-shell-command-suffix~, and
   ~disproject-compilation-suffix~ classes for defining customizable transient
   suffixes that spawn processes.  The latter two are used by
   ~disproject-shell-command~ and ~disproject-compile~ (respectively) now.
 
-  See ~disproject-custom-suffixes~ and documentation on respective symbols for
-  information on using them in custom suffixes.
+  See ~disproject-custom-suffixes~ and documentation on the mentioned symbols
+  for information on using them in custom suffixes.
 - Support Transient group specifications in ~disproject-custom-suffixes~.
 - Add ~disproject-synchronous-shell-command~ suffix command for synchronous
   shell commands.  It is bound to =!= in ~disproject-dispatch~.
 
 *** Changed
 
-- Maintain the current buffer context when running in environment (as created by
-  e.g. ~disproject-with-environment~) to provide more usable context to commands
-  like ~ffap~ ([[https://github.com/aurtzy/disproject/issues/6][#6]]).
+- Maintain the current buffer context when setting up environment from transient
+  state (see ~disproject-with-env-apply~) to provide more usable context to
+  commands like ~ffap~ ([[https://github.com/aurtzy/disproject/issues/6][#6]]).
 - No longer force the =:pad-keys= setting to =t= in custom suffixes.  Users that
   desire this behavior can now set it via group specifications.
 - Revise pretty-printing of custom suffixes when displaying a request to allow
@@ -51,6 +48,11 @@
 - Deprecate custom specifications syntax for custom suffixes in favor of
   the syntax provided by Transient.  Removal is set for at least six months from
   this release.
+
+*** Fixed
+
+- Fix ~disproject-default-find-line~ showing results from hidden/ephemeral
+  buffers.
 
 *** Removed
 

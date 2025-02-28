@@ -221,15 +221,19 @@
 (declare-function log-view-current-tag "log-view" (&optional pos))
 (declare-function magit-status-setup-buffer "magit" (&optional directory))
 (declare-function magit-refresh "magit" ())
+(declare-function
+ message-simplify-subject "message" (subject &optional functions))
 (declare-function current-thread "thread.c" ())
 (declare-function make-thread "thread.c" (function &optional NAME))
 
 (defvar compilation-in-progress)
 (defvar diff-file-header-re)
 (defvar gnus-article-buffer)
+(defvar gnus-article-copy)
 (defvar gnus-bug-group-download-format-alist)
 (defvar gnus-posting-styles)
 (defvar gnus-save-duplicate-list)
+(defvar gnus-summary-buffer)
 (defvar gnus-suppress-duplicates)
 (defvar mail-extr-ignore-realname-equals-mailbox-name)
 (defvar mail-extr-ignore-single-names)
@@ -1942,6 +1946,20 @@ MERGED is the list of bugs merged with this one."
     (define-key map [(meta m)] #'debbugs-gnu-apply-patch)
     map))
 
+(defun debbugs-gnu-keep-subject ()
+  "Keep original subject in replies.
+This is checked against `debbugs-gnu-summary-keep-subject'."
+  (concat
+   "Re: "
+   (message-simplify-subject
+    (if-let* (((stringp debbugs-gnu-summary-keep-subject))
+              (orig-subject
+               (with-current-buffer gnus-article-copy
+                 (or (message-fetch-field "subject") "none")))
+              ((string-match-p debbugs-gnu-summary-keep-subject orig-subject)))
+        orig-subject
+      (buffer-local-value 'debbugs-gnu-subject gnus-summary-buffer)))))
+
 (define-minor-mode debbugs-gnu-summary-mode
   "Minor mode for providing a debbugs interface in Gnus summary buffers.
 
@@ -1969,10 +1987,8 @@ MERGED is the list of bugs merged with this one."
 					     (match-string 1 (car address)))))
 			    (cons new new))
 			address))))))
-	  ,@(and debbugs-gnu-subject
-                 (not (string-match-p debbugs-gnu-summary-keep-subject
-                                      debbugs-gnu-subject))
-		 `((subject ,debbugs-gnu-subject)))))))
+	  ,@(and (stringp debbugs-gnu-subject)
+	         '((subject debbugs-gnu-keep-subject)))))))
 
 (defun debbugs-gnu-guess-current-id ()
   "Guess the ID based on \"#23\".
@@ -2112,7 +2128,7 @@ removed instead."
 (defun debbugs-gnu-make-control-message
     (message bugid &optional reverse buffer noversion)
   "Make a control message for the current bug report.
-The message is inserted into BUFFER, and mail headers are adjust
+The message is inserted into BUFFER, and mail headers are adjusted
 so that it will be sent to control@debbugs.gnu.org (via Bcc if
 there is already a To address).  If BUFFER omitted, create and
 display a new buffer.  If optional NOVERSION is non-nil, suppress
@@ -3060,6 +3076,8 @@ If SELECTIVELY, query the user before applying the patch."
 (provide 'debbugs-gnu)
 
 ;;; TODO:
+
+;; * Unarchive archived bugs prior an action.
 
 ;; * Extend SOAP interface to get all bugs modified in a given timeframe.
 

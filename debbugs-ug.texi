@@ -4,6 +4,7 @@
 
 @dircategory Emacs
 @direntry
+@c If you change this, you must also change file "dir" in this directory.
 * Debbugs User Guide: (debbugs-ug).  Debbugs User Interface in Emacs.
 @end direntry
 

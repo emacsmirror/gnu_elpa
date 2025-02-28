@@ -398,8 +398,19 @@ additional configuration.
 
 * Installation
 
-If you are using Emacs 29.1 onwards, you can install the package by
-evaluating the following code:
+** GNU ELPA package
+
+The package is available as denote-search. Simply do:
+
+: M-x package-refresh-contents
+: M-x package-install
+
+And search for it.
+
+** VC installation
+
+You can install the package from source by evaluating the following
+code:
 
 #+begin_src elisp
 (package-vc-install
@@ -408,11 +419,7 @@ evaluating the following code:
    :doc "README.org"))
 #+end_src
 
-Alternatively, you can use the :vc keyword from use-package, as shown
-in the [[#sample-configuration][sample configuration]].
-
-Of course, you can also [[#manual-installation][install it manually]] or use an alternative
-package manager such as quelpa.
+Alternatively, you can use the :vc keyword from use-package.
 
 ** Manual installation
 :PROPERTIES:
@@ -452,9 +459,6 @@ Everything is in place to set up the package.
 #+begin_src elisp
 (use-package denote-search
   :ensure t
-  ;; Installation with VC
-  :vc (:url "https://github.com/lmq-10/denote-search"
-       :rev :newest)
   :bind
   ;; Customize keybindings to your liking
   (("C-c s s" . denote-search)
@@ -484,7 +488,7 @@ effort.  Every bit of help matters.
 
 + Author/maintainer :: Lucas Quintana.
 
-+ Contributions to code :: Grant Rettke.
++ Contributions to code :: Grant Rettke, Philip Kaludercic.
 
 If ~denote-search~ exists it's because Protesilaos Stavrou developed
 the incredible Denote package.  Please consider donating to him.[fn:2]

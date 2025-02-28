@@ -1,6 +1,6 @@
 # denote-search: A simple search utility for Denote
 
-#+html: <a href="https://elpa.gnu.org/packages/denote-search.html"><img alt="GNU ELPA" src="https://elpa.gnu.org/packages/denote-search.svg"/></a>
+<a href="https://elpa.gnu.org/packages/denote-search.html"><img alt="GNU ELPA" src="https://elpa.gnu.org/packages/denote-search.svg"/></a>
 
 This package provides a search utility for Denote, the simple-to-use,
 focused-in-scope, and effective note-taking tool for Emacs.

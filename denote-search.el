@@ -7,7 +7,7 @@
 ;; URL: https://github.com/lmq-10/denote-search
 ;; Created: 2024-12-28
 ;; Keywords: matching
-;; Version: 1.0.1
+;; Version: 1.0.2
 ;; Package-Requires: ((emacs "29.1") (denote "3.0"))
 
 ;; This program is NOT part of GNU Emacs.

@@ -4,8 +4,8 @@
 #+language: en
 #+options: ':t toc:nil author:t email:t num:t
 #+startup: content
-#+macro: stable-version 1.0.1
-#+macro: release-date 2025-02-27
+#+macro: stable-version 1.0.2
+#+macro: release-date 2025-02-28
 #+export_file_name: denote-search.texi
 #+texinfo_filename: denote-search.info
 #+texinfo_dir_category: Emacs misc features
@@ -124,8 +124,8 @@ library and/or the program it calls.
 Once the (synchronous) search is over, a new buffer populated with the
 results, if any, will be made current.  On that buffer, the user will
 be able to perform several potentially useful actions, including
-filtering the output (see [[*filtering the search results][filtering the search results]]) and searching
-in the matched files (see [[*focused search][focused search]]).
+filtering the output (see [[#filtering-the-search-results][filtering the search results]]) and searching
+in the matched files (see [[#focused-search][focused search]]).
 
 History is available when searching.  Press ~M-p~
 (~previous-history-element~) to view past queries.
@@ -143,7 +143,7 @@ The command ~denote-search-marked-dired-files~ acts just like
 current Dired buffer (see [[info:emacs#Marks vs Flags][Marks vs Flags]]).  This is useful if you only
 want to search some files, though depending on the case maybe you'd
 be better served by our built-in filtering capabilities; see
-[[*filtering the search results][filtering the search results]].
+[[#filtering-the-search-results][filtering the search results]].
 
 This works well in tandem with the Denote command ~denote-sort-dired~,
 which produces a Dired buffer with files matching a regexp.  So,
@@ -223,13 +223,16 @@ navigate all the files using ~imenu~ or an enhanced front-end such as
 You can press ~a~ (~outline-cycle-buffer~) to fold all files.  This
 can give you a quick overlook of all the files that matched the
 search.  If there are many, you can proceed to filter the output 
-(see [[*filtering the search results][filtering the search results]]).
+(see [[#filtering-the-search-results][filtering the search results]]).
 
 Press ~l~ (~recenter-current-error~) to recenter current search focus
 shown in the other window.  Press ~o~ (~delete-other-windows~) to
 close other windows displayed in the frame.
 
 * Filtering the search results
+:PROPERTIES:
+:CUSTOM_ID: filtering-the-search-results
+:END:
 
 #+findex: denote-search-exclude-files
 On the results buffer, you can press ~x~
@@ -262,8 +265,7 @@ call ~denote-search~, which is bound to ~s~ in the results buffer for
 convenience.
 
 It's possible that you don't want to start a new search, but rather to
-search something on the curated file list you got.  See [[*focused search][focused
-search]].
+search something on the curated file list you got.  See [[#focused-search][focused search]].
 
 #+findex: denote-search-exclude-files-with-keywords
 #+findex: denote-search-only-include-files-with-keywords
@@ -286,6 +288,9 @@ keyword filtering, history is shared with other Denote keyword
 prompts.
 
 * Focused search
+:PROPERTIES:
+:CUSTOM_ID: focused-search
+:END:
 
 A "focused search" is a search which is run against a set of files
 matched by a previous search.  There are many use-cases for this,
@@ -300,7 +305,7 @@ search.  The buffer will be properly updated and will show the matches
 found.
 
 Note that this feature, combined with the filtering capabilities
-offered by this package (see [[*filtering the search results][filtering the search results]]), can be
+offered by this package (see [[#filtering-the-search-results][filtering the search results]]), can be
 very powerful.
 
 Let's look at a complex example, which would be nearly impossible with
@@ -404,12 +409,15 @@ evaluating the following code:
 #+end_src
 
 Alternatively, you can use the :vc keyword from use-package, as shown
-in the [[*sample configuration][sample configuration]].
+in the [[#sample-configuration][sample configuration]].
 
-Of course, you can also [[*manual installation][install it manually]] or use an alternative
+Of course, you can also [[#manual-installation][install it manually]] or use an alternative
 package manager such as quelpa.
 
 ** Manual installation
+:PROPERTIES:
+:CUSTOM_ID: manual-installation
+:END:
 
 Assuming your Emacs files are found in =~/.emacs.d/=, execute the
 following commands in a shell prompt:
@@ -437,6 +445,9 @@ Finally, in your =init.el= (or equivalent) evaluate this:
 Everything is in place to set up the package.
 
 * Sample configuration
+:PROPERTIES:
+:CUSTOM_ID: sample-configuration
+:END:
 
 #+begin_src elisp
 (use-package denote-search
@@ -971,7 +982,7 @@ to permit their use in free software.
 #+html: -->
 
 * Footnotes
-[fn:3] You'll probably bind ~denote-search~ to something comfortable, see [[*sample configuration][Sample configuration]]
+[fn:3] You'll probably bind ~denote-search~ to something comfortable, see [[#sample-configuration][Sample configuration]]
 
 [fn:1] https://kaorahi.github.io/howm/
 

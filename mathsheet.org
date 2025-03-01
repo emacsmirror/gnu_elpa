@@ -1,0 +1,159 @@
+* goal
+the goal is to generate a math practice sheet.
+* script
+** vars
+#+property: header-args+ :var student="Noble" problem-count=24
+
+** problem sets
+*** add and subtract
+TODO support "var c in [b 5]"
+
+#+name: first-set
+#+begin_example
+var a in [1 10]
+var b in [0 10]
+var c in [1 5]
+var d in [0 15]
+problem weight 3 order 1 "a + b"
+problem weight 2 order 1 "a + d"
+problem weight 1 order 2 "a + b + c"
+problem weight 1 order 3 "a + c - b"
+#+end_example
+
+** generate problem set from template
+
+#+name: problem-set
+#+begin_src elisp :noweb yes :var template=first-set
+  (let (prob ret)
+    (dotimes (index problem-count ret)
+      (setq prob
+            <<one-problem>>)
+      (setq ret (push (list (car prob) (cdr prob)) ret ))))
+#+end_src
+
+
+#+name: one-problem
+#+begin_src elisp :var template=first-set
+  (let (vars probs prob weight order answ)
+    ;; parse input
+    (dolist (line (split-string template "\n"))
+      (pcase (read (concat "(" line ")"))
+        (`(var ,name in [,min ,max])
+         ;; assign vars
+         (push (cons name (+ (random (- max min -1)) min)) vars))
+        ((and
+          (pred (lambda (x) (eq 'problem (car x))))
+          `(problem weight ,weight order ,order ,prob))
+         ;; save problems
+         (push (cons prob weight)
+               probs))))
+    ;; choose problem given weights
+    (let ((tot (reduce
+                (lambda (tot prob) (+ tot (cdr prob)))
+                probs
+                :initial-value 0))
+          indx chosen-prob)
+      (setq indx (random tot)
+            chosen-prob (reduce
+                         (lambda (rem prob)
+                           (cond
+                            ((not (numberp rem)) rem)
+                            ((> rem 0) (setq rem (- rem (cdr prob))) (if (> rem 0) rem (car prob)))
+                            (t (car prob))))
+                         probs
+                         :initial-value indx))
+      ;; do replacements
+      (dolist (var vars)
+        (setq chosen-prob (replace-regexp-in-string
+                           (symbol-name (car var))
+                           (number-to-string (cdr var))
+                           chosen-prob)))
+      ;; calculate answer
+      (setq answ (calc-eval chosen-prob))
+
+      (cons chosen-prob answ)))
+#+end_src
+
+#+RESULTS: one-problem
+: (7 + 8 . 15)
+
+** lay out problems and answers
+this generates a problem set.
+
+#+name: layout-problems-answers
+#+begin_src elisp :results silent :noweb yes :var problem-set=problem-set problemsp='t
+      (with-temp-buffer
+          (dolist (row problem-set)
+            (if problemsp
+                (insert (format"\\CircledItem %s = \\rule[-.2\\baselineskip]{2cm}{0.4pt}\n\n"
+                               (car row)))
+              (insert (format "\\CircledItem %s\n\n"
+                              (cadr row)))))
+        (buffer-string))
+#+end_src
+
+** lay out page
+this wraps the problems with a tex header and footer.
+
+solution for how to enumerate with circled numbers from [[https://latex.org/forum/viewtopic.php?p=40006&sid=d202f756313add2391c3140fbeafe2ff#p40006][here]]
+
+#+name: page
+#+begin_src latex :results value silent :noweb yes
+  \documentclass[12pt]{article}
+  \usepackage[top=1in, bottom=0.8in, left=0.8in, right=0.8in]{geometry}
+  \usepackage{fancyhdr}
+  \newsavebox{\myheadbox}% Heading storage box
+  \usepackage{multicol}
+  \usepackage{rotating}
+  \usepackage{xcolor}
+  \usepackage{enumitem}
+  \usepackage{tikz}
+  \newcommand*\circled[1]{%
+    \tikz[baseline=(C.base)]\node[draw,circle,inner sep=1.2pt,line width=0.2mm,](C) {#1};}
+  \newcommand*\CircledItem{%
+    \stepcounter{enumi}\item[\circled{\theenumi}]}
+
+  \pagestyle{fancy}
+  \lhead{\textmd{\textsf{Name: student}}}
+  \rhead{\textmd{\textsf{Date: \today}}}
+  \cfoot{}
+
+  \renewcommand{\familydefault}{\ttdefault}
+
+  \begin{document}
+
+    \begin{multicols}{2}
+      \begin{enumerate}[itemsep=0.5cm]
+        <<layout-problems-answers(problemsp='t)>>
+      \end{enumerate}
+    \end{multicols}
+
+    \vspace*{0.1cm}
+    \noindent\rule{\linewidth}{0.4pt}
+    \vspace*{0.1cm}
+
+    \begin{turn}{180}
+      \begin{minipage}{\linewidth}
+        \color{gray}
+        \footnotesize
+        \begin{multicols}{4}
+          \begin{enumerate}
+            <<layout-problems-answers(problemsp='nil)>>
+          \end{enumerate}
+        \end{multicols}
+      \end{minipage}
+    \end{turn}
+
+  \end{document}
+#+end_src
+
+* generate pdf
+this writes the generated into a local file and runs ~texi2pdf~ to
+convert it to a pdf.
+
+#+begin_src elisp :results silent :var tex-content=page
+  (with-temp-file "worksheet.tex"
+    (insert tex-content))
+  (shell-command "texi2pdf worksheet.tex"
+                 (get-buffer-create "*Standard output*"))))
+#+end_src

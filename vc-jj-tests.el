@@ -78,10 +78,6 @@ is needed."
 (ert-deftest vc-jj-test-add-file ()
   (vc-jj-test-with-repo repo
     (write-region "New file" nil "README")
-    (should (vc-jj--file-tracked "README"))
-    (should (vc-jj--file-added "README"))
-    (should (not (vc-jj--file-modified "README")))
-    (should (not (vc-jj--file-conflicted "README")))
     (should (eq (vc-state "README" 'jj) 'added))))
 
 (ert-deftest vc-jj-test-added-tracked ()

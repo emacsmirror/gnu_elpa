@@ -150,14 +150,13 @@ process object in the asynchronous case."
   ;; - "jj diff --summary FILE" gets us modified (output starts with
   ;;   "M ") or added (output starts with "A "), but no output could
   ;;   be conflicted, ignored or unchanged
-  (when-let* ((default-directory (vc-jj-root file))
-              ;; (relative (file-relative-name file)) ;; done by `vc-do-command'
-              (conflicted-ignored
-               (with-output-to-string
-                 (vc-jj-command standard-output 0 file "file" "list" "-T" "conflict" "--")))
-              (modified-added
-               (with-output-to-string (vc-jj-command standard-output 0 file
-                                                     "diff" "--summary" "--"))))
+  (let* ((default-directory (vc-jj-root file))
+         (conflicted-ignored
+          (with-output-to-string
+            (vc-jj-command standard-output 0 file "file" "list" "-T" "conflict" "--")))
+         (modified-added
+          (with-output-to-string (vc-jj-command standard-output 0 file
+                                                "diff" "--summary" "--"))))
     (cond
      ((string-empty-p conflicted-ignored) 'ignored)
      ((string= conflicted-ignored "true") 'conflict)
@@ -168,40 +167,60 @@ process object in the asynchronous case."
 
 (defun vc-jj-dir-status-files (dir _files update-function)
   "Calculate a list of (FILE STATE EXTRA) entries for DIR.
-The list is passed to UPDATE-FUNCTION."
-  ;; TODO: could be async!
+Return the result result of applying UPDATE-FUNCTION to that list."
+  ;; This function is specified below the STATE-QUERYING FUNCTIONS
+  ;; header in the comments at the beginning of vc.el.  The
+  ;; specification says the 'dir-status-files' backend function
+  ;; returns "a list of lists ... for FILES in DIR", which does not
+  ;; say anything about subdirectories.  We follow the example of
+  ;; 'vc-git' and return the state of files in subdirectories of DIR
+  ;; as well (except for ignored files, since we don't want to cons up
+  ;; a list of every file below DIR).
+  ;;
+  ;; Unfortunately this function needs to do a lot of work:
+  ;; - There is no single jj command that gives us all the info we
+  ;;   need, so we cannot run asynchronously.
+  ;; - jj prints filenames relative to the repository root, while we
+  ;;   need them relative to DIR.
+  ;;
+  ;; TODO: we should use hash tables, since we're doing a lot of set
+  ;; operations, which are slow on lists.
   (let* ((dir (expand-file-name dir))
-         ;; TODO: Instead of the two `mapcan' calls, it should be more
-         ;; efficient to write the output to a buffer and then search
-         ;; for lines beginning with A or M, pushing them into a list.
-         (changed-files (process-lines vc-jj-program "diff" "--summary" "--" dir))
-         (added (mapcan (lambda (file) (and (string-prefix-p "A " file)
-                                            (list (substring file 2))))
-                        changed-files))
-         (modified (mapcan (lambda (file) (and (string-prefix-p "M " file)
-                                               (list (substring file 2))))
-                           changed-files))
-         (files (mapcan (lambda (file) (list (substring file 2))) changed-files))
-         ;; The output of `jj resolve --list' is a list of file names
-         ;; plus a free-text conflict description per line -- rather
-         ;; than trying to be fancy and parsing each line (and getting
-         ;; bugs with file names with spaces), use `string-prefix-p'
-         ;; later.  Note that 'jj resolve' errors when there are no
-         ;; conflicts, which is harmless.
-         (conflicted (process-lines-ignore-status vc-jj-program "resolve" "--list")))
-    (let ((result
-           (mapcar
-            (lambda (file)
-              (let ((vc-state
-                     (cond ((seq-find
-                             (apply-partially #'string-prefix-p file) conflicted)
-                            'conflict)
-                           ((member file added) 'added)
-                           ((member file modified) 'edited)
-                           (t 'up-to-date))))
-                (list file vc-state)))
-            files)))
-      (funcall update-function result nil))))
+         (default-directory dir)
+         (project-root (vc-jj-root dir))
+         (registered-files (process-lines vc-jj-program "file" "list" "--" dir))
+         (ignored-files (seq-difference (cl-delete-if #'file-directory-p
+                                                      (directory-files dir nil nil t))
+                                        registered-files))
+         (changed (process-lines vc-jj-program "diff" "--summary" "--" dir))
+         (added-files (mapcan (lambda (entry)
+                                (and (string-prefix-p "A " entry)
+                                     (list (substring entry 2))))
+                              changed))
+         (modified-files (mapcan (lambda (entry)
+                                   (and (string-prefix-p "M " entry)
+                                        (list (substring entry 2))))
+                                 changed))
+         ;; The command below only prints conflicted files in DIR, but
+         ;; relative to project-root, hence the dance with
+         ;; expand-file-name / file-relative-name
+         (conflicted-files (mapcar (lambda (entry)
+                                     (file-relative-name (expand-file-name entry project-root) dir))
+                                   (process-lines vc-jj-program
+                                                  "file" "list"
+                                                  "-T" "if(conflict, path ++ \"\\n\")" "--" dir)))
+         (unchanged-files (cl-remove-if (lambda (entry) (or (member entry conflicted-files)
+                                                            (member entry modified-files)
+                                                            (member entry added-files)
+                                                            (member entry ignored-files)))
+                                        registered-files))
+         (result
+          (nconc (mapcar (lambda (entry) (list entry 'conflict)) conflicted-files)
+                 (mapcar (lambda (entry) (list entry 'added)) added-files)
+                 (mapcar (lambda (entry) (list entry 'edited)) modified-files)
+                 (mapcar (lambda (entry) (list entry 'ignored)) ignored-files)
+                 (mapcar (lambda (entry) (list entry 'up-to-date)) unchanged-files))))
+    (funcall update-function result nil)))
 
 (defun vc-jj-dir-extra-headers (dir)
   "Return extra headers for `vc-dir' when executed inside DIR.

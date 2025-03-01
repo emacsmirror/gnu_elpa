@@ -73,12 +73,19 @@ is needed."
        (let ((process-environment
               (append (vc-jj-test-environment 0) process-environment)))
          (vc-create-repo 'jj))
-       ,@body)))
+       ;; On macOS, the generated filename "/var/folders/..." was in
+       ;; reality "/private/var/folders/...", which got unfolded by
+       ;; `vc-jj-root' within some tests -- do this here already
+       (let ((,name (vc-jj-root ,name))
+             (default-directory ,name))
+         ,@body))))
 
 (ert-deftest vc-jj-test-add-file ()
   (vc-jj-test-with-repo repo
     (write-region "New file" nil "README")
-    (should (eq (vc-state "README" 'jj) 'added))))
+    (should (eq (vc-state "README" 'jj) 'added))
+    (should (equal (vc-jj-dir-status-files repo nil (lambda (x y) x))
+                   '(("README" added))))))
 
 (ert-deftest vc-jj-test-added-tracked ()
   (vc-jj-test-with-repo repo
@@ -86,7 +93,9 @@ is needed."
     (vc-jj-checkin '("first-file") "First commit")
     (write-region "In second commit" nil "second-file")
     (should (eq (vc-jj-state "second-file") 'added))
-    (should (eq (vc-jj-state "first-file") 'up-to-date))))
+    (should (eq (vc-jj-state "first-file") 'up-to-date))
+    (should (equal (vc-jj-dir-status-files repo nil (lambda (x y) x))
+                   '(("second-file" added) ("first-file" up-to-date))))))
 
 (ert-deftest vc-jj-test-conflict ()
   (vc-jj-test-with-repo repo
@@ -148,6 +157,32 @@ is needed."
     (vc-jj-ignore "subdir/subdir-ignored.txt" nil t)
     (should (eq (vc-jj-state "root-ignored.txt") 'added))
     (should (eq (vc-jj-state "subdir/subdir-ignored.txt") 'added))))
+
+(ert-deftest vc-jj-list-files ()
+  (vc-jj-test-with-repo repo
+    (let (branch-1 branch-2 branch-merged)
+      ;; the root change id is always zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+      (shell-command "jj new zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
+      (write-region "Unconflicted" nil "unconflicted.txt")
+      (write-region "Branch 1" nil "conflicted.txt")
+      (make-directory "subdir")
+      (write-region "Branch 1" nil "subdir/conflicted.txt")
+      (setq branch-1 (vc-jj-working-revision "unconflicted.txt"))
+      (shell-command "jj new zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
+      (write-region "Unconflicted" nil "unconflicted.txt")
+      (write-region "Branch 2" nil "conflicted.txt")
+      (make-directory "subdir")
+      (write-region "Branch 2" nil "subdir/conflicted.txt")
+      (setq branch-2 (vc-jj-working-revision "unconflicted.txt"))
+      (shell-command (concat "jj new " branch-1 " " branch-2))
+      (write-region "Added" nil "added.txt")
+      (should (equal (vc-jj-dir-status-files repo nil (lambda (x y) x))
+                     '(("conflicted.txt" conflict)
+                       ("subdir/conflicted.txt" conflict)
+                       ("added.txt" added)
+                       ("unconflicted.txt" up-to-date))))
+      (should (equal (vc-jj-dir-status-files (expand-file-name "subdir/" repo) nil (lambda (x y) x))
+                     '(("conflicted.txt" conflict)))))))
 
 (provide 'vc-jj-tests)
 ;;; vc-jj-tests.el ends here

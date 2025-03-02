@@ -121,9 +121,13 @@ When that doesn't work, return `denote-search-untitled-string'.
 
 This is the default function used to format headings in the
 `denote-search' buffer.  See `denote-format-heading-function'."
-  (or
-   (denote-retrieve-title-or-filename file (denote-filetype-heuristics file))
-   denote-search-untitled-string))
+  (let ((title
+         (denote-retrieve-title-or-filename
+          file
+          (denote-filetype-heuristics file))))
+    (if (and (stringp title) (not (string-blank-p title)))
+        title
+      denote-search-untitled-string)))
 
 (defun denote-search-file-regexp-prompt (&optional include)
   "Prompt for a file regexp in the minibuffer.

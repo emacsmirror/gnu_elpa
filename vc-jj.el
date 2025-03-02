@@ -437,7 +437,7 @@ four groups: change id, author, datetime, line number.")
   "History variable for `vc-jj-pull'.")
 
 (defun vc-jj-pull (prompt)
-  "Pull changes from an upstream repository.
+  "Pull changes from an upstream repository, invoked via \\[vc-update].
 Normally, this runs \"jj git fetch\".  If PROMPT is non-nil, prompt for
 the jj command to run."
   (let* ((command (if prompt
@@ -453,7 +453,32 @@ the jj command to run."
          (root (vc-jj-root default-directory))
          (buffer (format "*vc-jj : %s*" (expand-file-name root))))
     (apply #'vc-do-async-command buffer root jj-program args)
-    (with-current-buffer buffer
+    (vc-jj--set-up-process-buffer buffer root command)))
+
+(defvar vc-jj-push-history (list "jj git push")
+  "History variable for `vc-jj-push'.")
+
+(defun vc-jj-push (prompt)
+  "Push changes to an upstream repository, invoked via \\[vc-push].
+Normally, this runs \"jj git push\".  If PROMPT is non-nil, prompt for
+the command to run, e.g., the semi-standard \"jj git push -c @-\"."
+  (let* ((command (if prompt
+                      (split-string
+		       (read-shell-command
+                        (format "jj git push command: ")
+                        "jj git push"
+                        'vc-jj-push-history)
+		       " " t)
+                    `(,vc-jj-program "git" "push")))
+         (jj-program (car command))
+         (args (cdr command))
+         (root (vc-jj-root default-directory))
+         (buffer (format "*vc-jj : %s*" (expand-file-name root))))
+    (apply #'vc-do-async-command buffer root jj-program args)
+    (vc-jj--set-up-process-buffer buffer root command)))
+
+(defun vc-jj--set-up-process-buffer (buffer root command)
+  (with-current-buffer buffer
       (vc-run-delayed
         (vc-compilation-mode 'jj)
         (setq-local compile-command (string-join command " "))
@@ -465,7 +490,7 @@ the jj command to run."
                     (list compile-command nil
                           (lambda (_name-of-mode) buffer)
                           nil))))
-    (vc-set-async-update buffer)))
+  (vc-set-async-update buffer))
 
 (provide 'vc-jj)
 ;;; vc-jj.el ends here

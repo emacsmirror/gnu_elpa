@@ -287,6 +287,13 @@ kept separately from that available when searching.  In the case of
 keyword filtering, history is shared with other Denote keyword
 prompts.
 
+#+findex: denote-search-clean-all-filters
+To get rid of all filters, just type ~G~
+(~denote-search-clean-all-filters~).  This simply re-runs the last
+search on the full set of Denote files.  Note that this differs from
+~g~ (~revert-buffer~), which re-runs the last search on the same set
+of files (i.e. with filters applied).
+
 * Focused search
 :PROPERTIES:
 :CUSTOM_ID: focused-search

@@ -433,7 +433,7 @@ four groups: change id, author, datetime, line number.")
           `(metadata . ((display-sort-function . ,#'identity)))
         (complete-with-action action revisions string pred)))))
 
-(defvar vc-jj-pull-history (list "jj git fetch")
+(defvar vc-jj-pull-history nil
   "History variable for `vc-jj-pull'.")
 
 (defun vc-jj-pull (prompt)
@@ -444,7 +444,7 @@ the jj command to run."
                       (split-string
 		       (read-shell-command
                         (format "jj git fetch command: ")
-                        "jj git fetch"
+                        (concat vc-jj-program " git fetch")
                         'vc-jj-pull-history)
 		       " " t)
                     `(,vc-jj-program "git" "fetch")))
@@ -455,7 +455,7 @@ the jj command to run."
     (apply #'vc-do-async-command buffer root jj-program args)
     (vc-jj--set-up-process-buffer buffer root command)))
 
-(defvar vc-jj-push-history (list "jj git push")
+(defvar vc-jj-push-history nil
   "History variable for `vc-jj-push'.")
 
 (defun vc-jj-push (prompt)
@@ -466,7 +466,7 @@ the command to run, e.g., the semi-standard \"jj git push -c @-\"."
                       (split-string
 		       (read-shell-command
                         (format "jj git push command: ")
-                        "jj git push"
+                        (concat vc-jj-program " git push")
                         'vc-jj-push-history)
 		       " " t)
                     `(,vc-jj-program "git" "push")))

@@ -1,6 +1,6 @@
 ;;; cus-abbrev.el --- Easy Customization interface for Abbrevs  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025  Mauro Aranda
+;; Copyright (C) 2025  Free Software Foundation, Inc.
 
 ;; Author: Mauro Aranda <maurooaranda@gmail.com>
 ;; Maintainer: Mauro Aranda <maurooaranda@gmail.com>
@@ -10,6 +10,8 @@
 ;; Package-Requires: ((emacs "29.1"))
 ;; URL: https://gitlab.com/mauroaranda/cus-abbrev
 ;; Keywords: convenience
+
+;; This file is NOT part of GNU Emacs.
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -74,7 +76,7 @@ If nil, this is the same as `abbrev-file-name'."
   "C-x C-s" #'Custom-abbrev-save
   "C-c C-c" #'Custom-abbrev-define)
 
-(defvar custom-abbrev-commands
+(defconst custom-abbrev-commands
   '((" Define Abbrevs" Custom-abbrev-define t
      "Define Abbrevs but don't save." "index" "Define" t)
     (" Save Abbrevs " Custom-abbrev-save t
@@ -109,15 +111,13 @@ See `custom-commands' for further explanation.")
 
 (defun custom-abbrev--tool-bar-setup ()
   "Set up tool-bar for buffers customizing abbrevs."
-  (or custom-abbrev-tool-bar-map ; Already set-up.
-      (let ((map (make-sparse-keymap)))
-        (mapc
-         (lambda (arg)
-           (tool-bar-local-item-from-menu
-            (nth 1 arg) (nth 4 arg) map custom-abbrev-map
-            :label (nth 5 arg)))
-         custom-abbrev-commands)
-        (setq custom-abbrev-tool-bar-map map))))
+  (unless custom-abbrev-tool-bar-map ; Already set-up.
+    (let ((map (make-sparse-keymap)))
+      (dolist (arg custom-abbrev-commands)
+        (tool-bar-local-item-from-menu
+         (nth 1 arg) (nth 4 arg) map custom-abbrev-map
+         :label (nth 5 arg)))
+      (setq custom-abbrev-tool-bar-map map))))
 
 ;; Widgets.
 (define-widget 'custom-abbrev 'editable-list
@@ -208,7 +208,7 @@ See `custom-commands' for further explanation.")
 (defun Custom-abbrev-revert-buffer (&rest _ignored)
   "Revert the buffer for customizing abbrevs."
   (interactive)
-  (if (>= (length custom-abbrev-widgets) 2)
+  (if (length> custom-abbrev-widgets 1)
       (customize-all-abbrevs)
     (customize-abbrevs (widget-get (car custom-abbrev-widgets)
                                    :custom-abbrev-table))))

@@ -64,18 +64,61 @@
                 (const "builtin_log_detailed")
                 (string :tag "Custom template")))
 
-(defun vc-jj--call-jj (&rest args)
-  "Call `vc-jj-program' with ARGS.
-Return T if the process exited successfully (with exit status 0),
-NIL otherwise."
-  (= 0 (apply #'call-process vc-jj-program nil t nil args)))
+(defcustom vc-jj-global-switches '("--no-pager" "--color" "never")
+  "Global switches to pass to any jj command."
+  :type '(choice (const :tag "None" nil)
+         (string :tag "Argument String")
+         (repeat :tag "Argument List" :value ("") string)))
+
+(defcustom vc-jj-annotate-switches nil
+  "String or list of strings specifying switches for \"jj file annotate\".
+If nil, use the value of `vc-annotate-switches'.  If t, use no switches."
+  :type '(choice (const :tag "Unspecified" nil)
+		 (const :tag "None" t)
+		 (string :tag "Argument String")
+		 (repeat :tag "Argument List" :value ("") string)))
+
+(defcustom vc-jj-checkin-switches nil
+  "String or list of strings specifying switches for \"jj commit\".
+If nil, use the value of `vc-checkin-switches'.  If t, use no switches."
+  :type '(choice (const :tag "Unspecified" nil)
+		 (const :tag "None" t)
+		 (string :tag "Argument String")
+		 (repeat :tag "Argument List" :value ("") string)))
+
+(defcustom vc-jj-diff-switches '("--git")
+  "String or list of strings specifying switches for \"jj diff\".
+If nil, use the value of `vc-diff-switches'.  If t, use no switches."
+  :type '(choice (const :tag "Unspecified" nil)
+		 (const :tag "None" t)
+		 (string :tag "Argument String")
+		 (repeat :tag "Argument List" :value ("") string)))
 
 (defun vc-jj-command (buffer okstatus file-or-list &rest flags)
-  ""
+  "Execute `vc-jj-program', notifying the user and checking for errors.
+
+The output goes to BUFFER, the current buffer if BUFFER is t, or a
+buffer named \"*vc*\" if BUFFER is nil.  If the destination buffer is
+not already current, set it up properly and erase it.
+
+The command is considered successful if its exit status does not exceed
+OKSTATUS (if OKSTATUS is nil, that means to ignore error status, if it
+is 'async', that means not to wait for termination of the subprocess; if
+it is t it means to ignore all execution errors).  On unsuccessful
+execution, raise an error.
+
+FILE-OR-LIST is the name of a working file; it may be a list of files or
+be nil (to execute commands that don't expect a file name or set of
+files).  If an optional list of FLAGS is present, that is inserted into
+the command line before the filename(s).
+
+Return the return value of the command in the synchronous case, and the
+process object in the asynchronous case."
   (apply #'vc-do-command (or buffer "*vc*") okstatus vc-jj-program
     file-or-list
-    (append (list "--no-pager" "--color" "never")
-      flags)))
+    (if (stringp vc-jj-global-switches)
+        (cons vc-jj-global-switches flags)
+      (append vc-jj-global-switches flags))))
 
 ;;;###autoload (defun vc-jj-registered (file)
 ;;;###autoload   "Return non-nil if FILE is registered with jj."
@@ -93,8 +136,8 @@ NIL otherwise."
         (when-let* ((default-directory (vc-jj-root file))
                     (relative (file-relative-name file)))
           (with-temp-buffer
-              (and (vc-jj--call-jj "file" "list" "--" file)
-                   (not (= (point-min) (point-max))))))))))
+            (and (= 0 (vc-jj-command t 0 file "file" "list" "--"))
+                 (not (= (point-min) (point-max))))))))))
 
 (defun vc-jj-state (file)
   "JJ implementation of `vc-state' for FILE."
@@ -252,28 +295,29 @@ self.immutable(), \"\\n\"
   ;; run "jj file track" for the case where some of FILES are excluded
   ;; via the "snapshot.auto-track" setting or via git's mechanisms
   ;; such as the .gitignore file.
-  (apply #'vc-jj--call-jj "file" "track" files))
+  (vc-jj-command nil 0 files "file" "track" "--"))
 
 (defun vc-jj-delete-file (file)
-  "Delete the file and make sure jj registers the change."
+  "Delete FILE and make sure jj registers the change."
   (when (file-exists-p file)
     (delete-file file)
-    (vc-jj--call-jj "status")))
+    (vc-jj-command nil 0 nil "status")))
 
 (defun vc-jj-rename-file (old new)
   "Rename file OLD to NEW and make sure jj registers the change."
   (rename-file old new)
-  (vc-jj--call-jj "status"))
+  (vc-jj-command nil 0 nil "status"))
 
 (defun vc-jj-checkin (files comment &optional _rev)
-  "Runs \"jj commit\" with supplied FILES and COMMENT."
+  "Run \"jj commit\" with supplied FILES and COMMENT."
   (setq comment (replace-regexp-in-string "\\`Summary: " "" comment))
-  (let ((args (append (vc-switches 'jj 'checkin) (list "--") files)))
-    (apply #'call-process vc-jj-program nil nil nil "commit" "-m" comment args)))
+  (let ((args (append (vc-switches 'jj 'checkin) (list "--"))))
+    (apply #'vc-jj-command nil 0 files "commit" "-m" comment args)))
 
 (defun vc-jj-find-revision (file rev buffer)
-  "Read REVISION of FILE into a buffer and return the buffer."
-  (call-process vc-jj-program nil buffer nil "file" "show" "-r" rev "--" file))
+  "Read revision REV of FILE into BUFFER and return the buffer."
+  (vc-jj-command buffer 0 file "file" "show" "-r" rev "--")
+  buffer)
 
 (defun vc-jj-checkout (file &optional rev)
   "Restore the contents of FILE to be the same as in change REV.
@@ -281,12 +325,12 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
   ;; TODO: check that this does the right thing: if REV is not
   ;; specified, should we revert or leave FILE unchanged?
   (let ((args (append (and rev (list "--from" rev))
-                      (list "--" file))))
-    (apply #'vc-jj--call-jj "restore" args)))
+                      (list "--"))))
+    (apply #'vc-jj-command nil 0 file "restore" args)))
 
 (defun vc-jj-revert (file &optional _contents-done)
   "Restore FILE to the state from its parent(s), via \"jj restore\"."
-  (call-process vc-jj-program nil nil nil "restore" "--" file))
+  (vc-jj-command nil 0 file "restore" "--"))
 
 (defun vc-jj-print-log (files buffer &optional _shortlog start-revision limit)
   "Print commit log associated with FILES into specified BUFFER."
@@ -356,9 +400,7 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
   (let ((default-directory
          (if directory (file-name-as-directory directory)
            default-directory)))
-    (vc-jj--call-jj "file" (if remove "track" "untrack") file)))
-
-(defvar vc-jj-diff-switches '("--git"))
+    (vc-jj-command nil 0 file "file" (if remove "track" "untrack") "--")))
 
 (defun vc-jj-diff (files &optional rev1 rev2 buffer _async)
   "Display diffs for FILES between revisions REV1 and REV2."
@@ -479,17 +521,17 @@ the command to run, e.g., the semi-standard \"jj git push -c @-\"."
 
 (defun vc-jj--set-up-process-buffer (buffer root command)
   (with-current-buffer buffer
-      (vc-run-delayed
-        (vc-compilation-mode 'jj)
-        (setq-local compile-command (string-join command " "))
-        (setq-local compilation-directory root)
-        ;; Either set `compilation-buffer-name-function' locally to nil
-        ;; or use `compilation-arguments' to set `name-function'.
-        ;; See `compilation-buffer-name'.
-        (setq-local compilation-arguments
-                    (list compile-command nil
-                          (lambda (_name-of-mode) buffer)
-                          nil))))
+    (vc-run-delayed
+      (vc-compilation-mode 'jj)
+      (setq-local compile-command (string-join command " "))
+      (setq-local compilation-directory root)
+      ;; Either set `compilation-buffer-name-function' locally to nil
+      ;; or use `compilation-arguments' to set `name-function'.
+      ;; See `compilation-buffer-name'.
+      (setq-local compilation-arguments
+                  (list compile-command nil
+                        (lambda (_name-of-mode) buffer)
+                        nil))))
   (vc-set-async-update buffer))
 
 (provide 'vc-jj)

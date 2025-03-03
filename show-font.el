@@ -425,37 +425,10 @@ FAMILY is a string that satisfies `show-font-installed-p'."
      (format-prompt "Fonts matching REGEXP" default)
      nil 'show-font-regexp-history default)))
 
-;;;###autoload
-(defun show-font-list (&optional regexp)
-  "Produce a list of installed fonts with `show-font-pangram' preview text.
-With optional REGEXP as a prefix argument, prompt for a string or
-regular expression to list only fonts matching the given input.
-Otherwise, list all installed fonts."
-  (interactive
-   (list
-    (when current-prefix-arg
-      (show-font-regexp-prompt))))
-  ;; FIXME 2024-09-06: Here we should only list fonts that can display
-  ;; the pangram OR, better, we should have something appropriate to
-  ;; show for them (e.g. emoji for the Emoji font).
-  (show-font-with-preview-buffer (if regexp
-                                     (format-message "*show-font preview matching `%s'*" regexp)
-                                   "*show-font preview of all installed fonts*")
-    (save-excursion
-      (let* ((counter 1)
-             (counter-string (lambda () (concat (number-to-string counter)  ". "))))
-        (dolist (family (show-font-get-installed-font-families regexp))
-          (insert (concat
-                   (propertize (funcall counter-string) 'face 'show-font-misc)
-                   (propertize family 'face (list 'show-font-title-small :family family))
-                   "\n"
-                   (make-string (length (funcall counter-string)) ?\s)
-                   (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family))))
-          (insert "\n\n")
-          (setq counter (+ counter 1)))))
-    (setq-local revert-buffer-function
-                (lambda (_ignore-auto _noconfirm)
-                  (show-font-list)))))
+(define-obsolete-function-alias
+  'show-font-list
+  'show-font-tabulated
+  "0.3.0")
 
 (defun show-font--list-families (&optional regexp)
   "Return a list of propertized family strings for `show-font-list'.

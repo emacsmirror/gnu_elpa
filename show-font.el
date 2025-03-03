@@ -152,10 +152,15 @@ action alist."
   "Face for font preview title."
   :group 'show-font-faces)
 
-(defface show-font-title-small
-  `((default :height 2.0)
+(define-obsolete-face-alias
+ 'show-font-title-small
+ 'show-font-title-in-listing
+ "0.3.0")
+
+(defface show-font-title-in-listing
+  `((default :height 1.0)
     ,@show-font-title-common)
-  "Face for smaller font preview title."
+  "Face for font preview title in listings (see `show-font-tabulated')."
   :group 'show-font-faces)
 
 (defface show-font-misc '((t :inherit shadow))
@@ -438,7 +443,7 @@ Optional REGEXP has the meaning documented in the function
      (list
       family
       (vector
-       (propertize family 'face (list 'show-font-title-small :family family))
+       (propertize family 'face (list 'show-font-title-in-listing :family family))
        (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family)))))
    (show-font-get-installed-font-families regexp)))
 

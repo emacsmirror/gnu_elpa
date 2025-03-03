@@ -330,9 +330,8 @@ instead of that of the file."
        (if (not (equal name family))
            (concat
             "\n"
-            (propertize "Rendered with parent family:" 'face (list 'show-font-regular :family family))
-            "\n"
-            (propertize family 'face (list 'show-font-title-small :family family))
+            (propertize "Rendered with parent family: " 'face (list 'show-font-regular :family family))
+            (propertize family 'face (list 'show-font-regular :family family))
             "\n"
             (make-separator-line))
          "")

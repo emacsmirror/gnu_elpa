@@ -189,6 +189,16 @@ Everything is in place to set up the package.
 (define-key global-map (kbd "C-c s t") #'show-font-tabulated)
 #+end_src
 
+Or with ~use-package~:
+
+#+begin_src emacs-lisp
+(use-package show-font
+  :ensure t
+  :bind
+  (("C-c s f" . show-font-select-preview)
+   ("C-c s t" . show-font-tabulated)))
+#+end_src
+
 * Acknowledgements
 :PROPERTIES:
 :CUSTOM_ID: h:362ab0e8-2602-4ffd-bd34-b4bba58d87e6

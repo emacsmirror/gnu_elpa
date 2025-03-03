@@ -115,8 +115,10 @@ elements.
 #+vindex: show-font-title
 - ~show-font-title~
 
-#+vindex: show-font-title-small
-- ~show-font-title-small~
+#+vindex: show-font-title-in-listing
+- ~show-font-title-in-listing~ [ The face ~show-font-title-small~ is
+  an obsolete alias of ~show-font-title-in-listing~ as part of
+  {{{development-version}}}. ]
 
 #+vindex: show-font-misc
 - ~show-font-misc~

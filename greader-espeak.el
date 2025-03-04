@@ -102,7 +102,7 @@ ARG is applied depending on the command."
 	   "--punct")
 	  ("no"
 	   (setq-local greader-espeak-punctuation nil)
-	   (message "punctuation disabled in current buffer.")
+	   (message "Punctuation disabled in current buffer.")
 	   nil)))
        ('nil
 	(if greader-espeak-punctuation

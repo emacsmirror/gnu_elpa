@@ -1,5 +1,5 @@
 ;;; greader-espeak.el --- greader back-end for espeak. -*- lexical-binding: t; -*-
-;; Copyright (C) 2017-2024  Free Software Foundation, Inc.
+;; Copyright (C) 2017-2025  Free Software Foundation, Inc.
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -102,7 +102,7 @@ ARG is applied depending on the command."
 	   "--punct")
 	  ("no"
 	   (setq-local greader-espeak-punctuation nil)
-	   (message "punctuation disabled in current buffer.")
+	   (message "Punctuation disabled in current buffer.")
 	   nil)))
        ('nil
 	(if greader-espeak-punctuation

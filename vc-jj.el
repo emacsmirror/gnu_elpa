@@ -6,7 +6,7 @@
 ;;         Rudolf Schlatte <rudi@constantly.at>
 ;; URL: https://codeberg.org/emacs-jj-vc/vc-jj.el
 ;; Version: 0.1
-;; Package-Requires: ((emacs "25.1") (compat "29.4"))
+;; Package-Requires: ((emacs "28.1") (compat "29.4"))
 ;; Keywords: vc tools
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -483,7 +483,7 @@ four groups: change id, author, datetime, line number.")
 Normally, this runs \"jj git fetch\".  If PROMPT is non-nil, prompt for
 the jj command to run."
   (let* ((command (if prompt
-                      (split-string
+                      (split-string-shell-command
 		       (read-shell-command
                         (format "jj git fetch command: ")
                         (concat vc-jj-program " git fetch")
@@ -505,7 +505,7 @@ the jj command to run."
 Normally, this runs \"jj git push\".  If PROMPT is non-nil, prompt for
 the command to run, e.g., the semi-standard \"jj git push -c @-\"."
   (let* ((command (if prompt
-                      (split-string
+                      (split-string-shell-command
 		       (read-shell-command
                         (format "jj git push command: ")
                         (concat vc-jj-program " git push")

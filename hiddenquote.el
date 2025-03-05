@@ -352,6 +352,7 @@ allow running the command after exiting Isearch."
     (define-key map "\C-e" #'hiddenquote-end-of-line-syllable)
     (define-key map "\M->" #'hiddenquote-goto-last-syllable)
     (define-key map "\C-x u" #'hiddenquote-undo)
+    (define-key map "o" #'other-window)
     map)
   "Keymap for the Syllables buffer.")
 

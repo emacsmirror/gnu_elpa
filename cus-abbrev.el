@@ -271,20 +271,20 @@ this session."
                            :tag (symbol-name table-name)
                            :sample-face 'highlight
                            :custom-abbrev-table table-name
-                           '(list :tag "Abbrev"
+                           `(list :tag "Abbrev"
                                   (string :tag "Abbreviation"
-                                          :keymap custom-abbrev-field-map)
+                                          :keymap ,custom-abbrev-field-map)
                                   (string :tag "Expansion"
-                                          :keymap custom-abbrev-field-map)
+                                          :keymap ,custom-abbrev-field-map)
                                   (choice
                                    :tag "Hook"
                                    (const :tag "None" nil)
-                                   (function :keymap custom-abbrev-field-map))
+                                   (function :keymap ,custom-abbrev-field-map))
                                   (choice
                                    :tag "Enable function"
                                    (const :tag "None" nil)
                                    (function :value always
-                                             :keymap custom-abbrev-field-map))
+                                             :keymap ,custom-abbrev-field-map))
                                   (boolean :tag "Case fixed"))))
       (push abbrev-widget custom-abbrev-widgets)
       (widget-put visibility :widget abbrev-widget)))
@@ -335,20 +335,20 @@ the abbrev table to customize.  If nil, it defaults to `global-abbrev-table'."
           (list
            (widget-create 'custom-abbrev :value abbrevs
                           :custom-abbrev-table table-name
-                          '(list :tag "Abbrev"
+                          `(list :tag "Abbrev"
                                  (string :tag "Abbreviation"
-                                         :keymap custom-abbrev-field-map)
+                                         :keymap ,custom-abbrev-field-map)
                                  (string :tag "Expansion"
-                                         :keymap custom-abbrev-field-map)
+                                         :keymap ,custom-abbrev-field-map)
                                  (choice
                                   :tag "Hook"
                                   (const :tag "None" nil)
-                                  (function :keymap custom-abbrev-field-map))
+                                  (function :keymap ,custom-abbrev-field-map))
                                  (choice
                                   :tag "Enable function"
                                   (const :tag "None" nil)
                                   (function :value always
-                                            :keymap custom-abbrev-field-map))
+                                            :keymap ,custom-abbrev-field-map))
                                  (boolean :tag "Case fixed"))))))
   (custom-abbrev--prepare-buffer-2))
 

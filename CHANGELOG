@@ -4,6 +4,19 @@
 
 ** Unreleased
 
+** [[release-version:2.0.0][2.0.0]] - 2025-03-05
+
+The major focus of this update is support for Transient specifications syntax in
+~disproject-custom-suffixes~.  The previous custom syntax has been deprecated,
+and documentation has been updated to reflect the preference of Transient's
+syntax in achieving the same functionality (and more).
+
+Other highlights include improvements for customized commands that rely on
+context around point, and the addition of a synchronous shell-command suffix
+command.
+
+Deprecated items that have passed their planned removal dates have been removed.
+
 *** Added
 
 - Support specifications using Transient syntax in ~disproject-custom-suffixes~.

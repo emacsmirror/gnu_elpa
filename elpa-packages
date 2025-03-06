@@ -216,6 +216,7 @@
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
+ (cus-abbrev            :url "https://gitlab.com/mauroaranda/cus-abbrev")
  (cycle-quotes		:url nil)
  (dape                  :url "https://github.com/svaante/dape")
  (darkroom            	:url "https://github.com/joaotavora/darkroom")

@@ -1,4 +1,4 @@
-;;; denote-silo-extras.el --- Convenience functions for using Denote in multiple silos  -*- lexical-binding: t; -*-
+;;; denote-silo.el --- Convenience functions for using Denote in multiple silos  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2023-2025  Free Software Foundation, Inc.
 
@@ -35,91 +35,91 @@
 
 (require 'denote)
 
-(defgroup denote-silo-extras nil
+(defgroup denote-silo nil
   "Make it easier to use Denote across Silos."
   :group 'denote
   :link '(info-link "(denote) Top")
   :link '(url-link :tag "Homepage" "https://protesilaos.com/emacs/denote"))
 
-(defcustom denote-silo-extras-directories
+(defcustom denote-silo-directories
   `(,denote-directory)
   "List of file paths pointing to Denote silos.
 Each file path points to a directory, which takes the same value
 as the variable `denote-directory'."
-  :group 'denote-silo-extras
+  :group 'denote-silo
   :link '(info-link "(denote) Maintain separate directories for notes")
   :type '(repeat directory))
 
-(defvar denote-silo-extras-directory-history nil
-  "Minibuffer history for `denote-silo-extras-directory-prompt'.")
+(defvar denote-silo-directory-history nil
+  "Minibuffer history for `denote-silo-directory-prompt'.")
 
-(defalias 'denote-silo-extras--directory-history 'denote-silo-extras-directory-history
-  "Compatibility alias for `denote-silo-extras-directory-history'.")
+(defalias 'denote-silo--directory-history 'denote-silo-directory-history
+  "Compatibility alias for `denote-silo-directory-history'.")
 
 (define-obsolete-function-alias
-  'denote-silo-extras--directory-prompt
-  'denote-silo-extras-directory-prompt
+  'denote-silo--directory-prompt
+  'denote-silo-directory-prompt
   "3.1.0")
 
-(defun denote-silo-extras-directory-prompt ()
-  "Prompt for directory among `denote-silo-extras-directories'."
-  (let ((default (car denote-silo-extras-directory-history)))
+(defun denote-silo-directory-prompt ()
+  "Prompt for directory among `denote-silo-directories'."
+  (let ((default (car denote-silo-directory-history)))
     (completing-read
      (format-prompt "Select a silo" default)
-     (denote--completion-table 'file denote-silo-extras-directories)
-     nil :require-match nil 'denote-silo-extras-directory-history)))
+     (denote--completion-table 'file denote-silo-directories)
+     nil :require-match nil 'denote-silo-directory-history)))
 
-(defun denote-silo-extras-path-is-silo-p (path)
-  "Return non-nil if PATH is among `denote-silo-extras-directories'."
-  (member path denote-silo-extras-directories))
+(defun denote-silo-path-is-silo-p (path)
+  "Return non-nil if PATH is among `denote-silo-directories'."
+  (member path denote-silo-directories))
 
-(defmacro denote-silo-extras-with-silo (silo &rest args)
-  "Run ARGS with SILO bound, if SILO satisfies `denote-silo-extras-path-is-silo-p'."
+(defmacro denote-silo-with-silo (silo &rest args)
+  "Run ARGS with SILO bound, if SILO satisfies `denote-silo-path-is-silo-p'."
   (declare (indent defun))
-  `(if (denote-silo-extras-path-is-silo-p ,silo)
+  `(if (denote-silo-path-is-silo-p ,silo)
        (progn
          ,@args)
-     (user-error "`%s' is not among the `denote-silo-extras-directories'" ,silo)))
+     (user-error "`%s' is not among the `denote-silo-directories'" ,silo)))
 
 ;;;###autoload
-(defun denote-silo-extras-create-note (silo)
+(defun denote-silo-create-note (silo)
   "Select SILO and run `denote' in it.
-SILO is a file path from `denote-silo-extras-directories'.
+SILO is a file path from `denote-silo-directories'.
 
 When called from Lisp, SILO is a file system path to a directory that
-conforms with `denote-silo-extras-path-is-silo-p'."
-  (interactive (list (denote-silo-extras-directory-prompt)))
-  (denote-silo-extras-with-silo silo
+conforms with `denote-silo-path-is-silo-p'."
+  (interactive (list (denote-silo-directory-prompt)))
+  (denote-silo-with-silo silo
     (let ((denote-directory silo))
       (call-interactively #'denote))))
 
 ;;;###autoload
-(defun denote-silo-extras-open-or-create (silo)
+(defun denote-silo-open-or-create (silo)
   "Select SILO and run `denote-open-or-create' in it.
-SILO is a file path from `denote-silo-extras-directories'.
+SILO is a file path from `denote-silo-directories'.
 
 When called from Lisp, SILO is a file system path to a directory that
-conforms with `denote-silo-extras-path-is-silo-p'."
-  (interactive (list (denote-silo-extras-directory-prompt)))
-  (denote-silo-extras-with-silo silo
+conforms with `denote-silo-path-is-silo-p'."
+  (interactive (list (denote-silo-directory-prompt)))
+  (denote-silo-with-silo silo
     (let ((denote-directory silo))
       (call-interactively #'denote-open-or-create))))
 
 ;;;###autoload
-(defun denote-silo-extras-select-silo-then-command (silo command)
+(defun denote-silo-select-silo-then-command (silo command)
   "Select SILO and run Denote COMMAND in it.
-SILO is a file path from `denote-silo-extras-directories', while
-COMMAND is one among `denote-silo-extras-commands'.
+SILO is a file path from `denote-silo-directories', while
+COMMAND is one among `denote-silo-commands'.
 
 When called from Lisp, SILO is a file system path to a directory that
-conforms with `denote-silo-extras-path-is-silo-p'."
+conforms with `denote-silo-path-is-silo-p'."
   (interactive
    (list
-    (denote-silo-extras-directory-prompt)
+    (denote-silo-directory-prompt)
     (denote-command-prompt)))
-  (denote-silo-extras-with-silo silo
+  (denote-silo-with-silo silo
     (let ((denote-directory silo))
       (call-interactively command))))
 
-(provide 'denote-silo-extras)
-;;; denote-silo-extras.el ends here
+(provide 'denote-silo)
+;;; denote-silo.el ends here

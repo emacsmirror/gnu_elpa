@@ -36,6 +36,14 @@
   "Flymake backend for Clippy."
   :group 'programming)
 
+(defcustom clippy-flymake-cargo-path "cargo"
+  "Path to the Cargo executable used by Clippy Flymake.
+
+Users can customize this if Cargo is not in their system PATH
+or if they want to use a specific Cargo binary."
+  :type 'string
+  :group 'clippy-flymake)
+
 (defvar-local clippy-flymake--proc nil
   "Bound to cargo clippy process during it's execution.")
 
@@ -51,8 +59,8 @@ for Rust linting in the current buffer."
   "A standalone Flymake backend for Clippy.
 
 For details on REPORT-FN, see `flymake-diagnostic-functions'."
-  (unless (executable-find "cargo")
-    (error "Cannot find cargo"))
+  (unless (executable-find clippy-flymake-cargo-path)
+    (error "Cannot find Cargo at `%s`" clippy-flymake-cargo-path))
   ;; If process is still running from the last check, kill it
   (when (process-live-p clippy-flymake--proc)
     (kill-process clippy-flymake--proc))
@@ -65,7 +73,7 @@ For details on REPORT-FN, see `flymake-diagnostic-functions'."
        (make-process
         :name "clippy-flymake" :noquery t :connection-type 'pipe
         :buffer (generate-new-buffer " *clippy-flymake*")
-        :command '("cargo" "clippy" "--message-format=json")
+        :command `(,clippy-flymake-cargo-path "clippy" "--message-format=json")
         :sentinel
         (lambda (proc _event)
           ;; Check the process has indeed exited, as it might be

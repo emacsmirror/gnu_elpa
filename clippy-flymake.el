@@ -64,7 +64,7 @@ For details on REPORT-FN, see `flymake-diagnostic-functions'."
        clippy-flymake--proc
        (make-process
         :name "clippy-flymake" :noquery t :connection-type 'pipe
-        :buffer (generate-new-buffer "*clippy-flymake*")
+        :buffer (generate-new-buffer " *clippy-flymake*")
         :command '("cargo" "clippy" "--message-format=json")
         :sentinel
         (lambda (proc _event)

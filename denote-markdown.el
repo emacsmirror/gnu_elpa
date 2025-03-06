@@ -1,10 +1,12 @@
-;;; denote-markdown.el --- Denote extensions for Markdown mode -*- lexical-binding: t -*-
+;;; denote-markdown.el --- Extensions that better integrate Denote with Markdown -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024-2025  Free Software Foundation, Inc.
 
 ;; Author: Protesilaos Stavrou <info@protesilaos.com>
 ;; Maintainer: Protesilaos Stavrou <info@protesilaos.com>
-;; URL: https://github.com/protesilaos/denote
+;; URL: https://github.com/protesilaos/denote-markdown
+;; Version: 0.0.0
+;; Package-Requires: ((emacs "28.1") (denote "3.1.0"))
 
 ;; This file is NOT part of GNU Emacs.
 

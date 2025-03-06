@@ -106,12 +106,12 @@ LIST contains ordered args required by FLYMAKE-MAKE-DIAGNOSTIC.
 
 SOURCE-BUFFER is needed to find the buffer points corresponding
 to the reported line and column numbers"
-  (let* ((diagnostic (cdr (assq 'message json)))
-         (message    (cdr (assq 'message diagnostic)))
-         (level      (cdr (assq 'level   diagnostic)))
-         (spans      (cdr (assq 'spans diagnostic)))
-         (spans (when (> (length spans) 0)
-                  (aref spans 0))))
+  (let* ((diagnostic (alist-get 'message json))
+         (message    (alist-get 'message diagnostic))
+         (level      (alist-get 'level   diagnostic))
+         (spans      (alist-get 'spans   diagnostic))
+         (spans (and (> (length spans) 0)
+                     (aref spans 0))))
     (when (and message spans (not (string= level "note")))
       (let* ((start-line (alist-get 'line_start   spans))
              (start-col  (alist-get 'column_start spans))
@@ -134,13 +134,13 @@ to the reported line and column numbers"
 (defun clippy-flymake--include-help (diagnostic message)
   "Concatenate MESSAGE with help tips extracted from DIAGNOSTIC."
   (cl-loop
-   for child across (cdr (assq 'children diagnostic))
-   for msg     = (cdr (assq 'message child))
-   for level   = (cdr (assq 'level   child))
-   for spans   = (cdr (assq 'spans   child))
-   for spans   = (when (> (length spans) 0)
-                   (aref spans 0))
-   for replace = (cdr (assq 'suggested_replacement spans))
+   for child across (alist-get 'children diagnostic)
+   for msg     = (alist-get 'message child)
+   for level   = (alist-get 'level   child)
+   for spans   = (alist-get 'spans   child)
+   for spans   = (and (> (length spans) 0)
+                      (aref spans 0))
+   for replace = (alist-get 'suggested_replacement spans)
    ;; When help messages don't span text, there's nothing to overlay
    when (and spans (string= level "help"))
    do (setq message
@@ -149,8 +149,8 @@ to the reported line and column numbers"
                     "\nhelp: "
                     msg
                     ;; Include suggested replacement
-                    (when replace
-                      (format ": %s" replace)))))
+                    (and replace
+                         (format ": %s" replace)))))
   message)
 
 (defun clippy-flymake-line-col-buffer-position (line column)

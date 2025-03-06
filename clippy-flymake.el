@@ -121,7 +121,8 @@ to the reported line and column numbers"
              (message    (clippy-flymake--include-help diagnostic message))
              (type (pcase level
                      ("error"   :error)
-                     ("warning" :warning)))
+                     ("warning" :warning)
+                     (_         :note)))
              (beg (with-current-buffer source-buffer
                     (clippy-flymake-line-col-buffer-position start-line
                                                              start-col)))

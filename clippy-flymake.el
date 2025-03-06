@@ -5,7 +5,7 @@
 ;; Author: Michael Kirkland <mak.kirkland@proton.me>
 ;; Keywords: languages tools
 ;; Version: 1.0.0
-;; Package-Requires: ((emacs "26.1"))
+;; Package-Requires: ((emacs "27"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -22,7 +22,8 @@
 
 ;;; Commentary:
 
-;; Flymake backend for Clippy.
+;; Flymake backend for Clippy (https://doc.rust-lang.org/clippy/), a
+;; linter for the Rust programming language.
 ;;
 ;; Based on "An annotated example backend" in the Flymake docs:
 ;; https://www.gnu.org/software/emacs/manual/html_mono/flymake.html
@@ -39,10 +40,17 @@
   "Bound to cargo clippy process during it's execution.")
 
 (defun clippy-flymake-setup ()
+  "Enable Clippy Flymake diagnostics in the current buffer.
+
+This function adds `clippy-flymake-backend' to
+`flymake-diagnostic-functions', allowing Flymake to use Clippy
+for Rust linting in the current buffer."
   (add-hook 'flymake-diagnostic-functions #'clippy-flymake-backend nil t))
 
 (defun clippy-flymake-backend (report-fn &rest _args)
-  "See `flymake-diagnostic-functions'."
+  "A standalone Flymake backend for Clippy.
+
+For details on REPORT-FN, see `flymake-diagnostic-functions'."
   (unless (executable-find "cargo")
     (error "Cannot find cargo"))
   ;; If process is still running from the last check, kill it

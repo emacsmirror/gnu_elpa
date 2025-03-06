@@ -6,6 +6,8 @@ Usage:
 
 ```elisp
 (use-package clippy-flymake
-  :load-path "~/path/to/clippy-flymake"
-  :hook (rust-mode . clippy-flymake-setup))
+  :load-path "~/workspace/clippy-flymake"
+  :hook ((rust-mode . clippy-flymake-setup))
+  :config
+  (add-hook 'rust-mode-hook #'flymake-mode))
 ```

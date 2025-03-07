@@ -61,7 +61,8 @@ for Rust linting in the current buffer."
 
 For details on REPORT-FN, see `flymake-diagnostic-functions'."
   (unless (executable-find flymake-clippy-cargo-path)
-    (error "Cannot find Cargo at `%s`" flymake-clippy-cargo-path))
+    (flymake-log :error "Cannot find Cargo at `%s`" flymake-clippy-cargo-path)
+    (cl-return-from flymake-clippy-backend))
   ;; If process is still running from the last check, kill it
   (when (process-live-p flymake-clippy--proc)
     (kill-process flymake-clippy--proc))

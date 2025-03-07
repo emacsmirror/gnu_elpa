@@ -1,4 +1,4 @@
-;;; clippy-flymake.el --- Flymake backend for Clippy  -*- lexical-binding: t; -*-
+;;; flymake-clippy.el --- Flymake backend for Clippy  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025  Michael Kirkland
 
@@ -32,48 +32,48 @@
 
 (require 'cl-lib)
 
-(defgroup clippy-flymake nil
+(defgroup flymake-clippy nil
   "Flymake backend for Clippy."
   :group 'programming)
 
-(defcustom clippy-flymake-cargo-path "cargo"
+(defcustom flymake-clippy-cargo-path "cargo"
   "Path to the Cargo executable used by Clippy Flymake.
 
 Users can customize this if Cargo is not in their system PATH
 or if they want to use a specific Cargo binary."
   :type 'string
-  :group 'clippy-flymake)
+  :group 'flymake-clippy)
 
-(defvar-local clippy-flymake--proc nil
+(defvar-local flymake-clippy--proc nil
   "Bound to cargo clippy process during it's execution.")
 
-(defun clippy-flymake-setup ()
+(defun flymake-clippy-setup ()
   "Enable Clippy Flymake diagnostics in the current buffer.
 
-This function adds `clippy-flymake-backend' to
+This function adds `flymake-clippy-backend' to
 `flymake-diagnostic-functions', allowing Flymake to use Clippy
 for Rust linting in the current buffer."
-  (add-hook 'flymake-diagnostic-functions #'clippy-flymake-backend nil t))
+  (add-hook 'flymake-diagnostic-functions #'flymake-clippy-backend nil t))
 
-(defun clippy-flymake-backend (report-fn &rest _args)
+(defun flymake-clippy-backend (report-fn &rest _args)
   "A standalone Flymake backend for Clippy.
 
 For details on REPORT-FN, see `flymake-diagnostic-functions'."
-  (unless (executable-find clippy-flymake-cargo-path)
-    (error "Cannot find Cargo at `%s`" clippy-flymake-cargo-path))
+  (unless (executable-find flymake-clippy-cargo-path)
+    (error "Cannot find Cargo at `%s`" flymake-clippy-cargo-path))
   ;; If process is still running from the last check, kill it
-  (when (process-live-p clippy-flymake--proc)
-    (kill-process clippy-flymake--proc))
+  (when (process-live-p flymake-clippy--proc)
+    (kill-process flymake-clippy--proc))
   (let* ((source-buffer (current-buffer))
          (filename (buffer-file-name source-buffer)))
     (save-restriction
       (widen)
       (setq
-       clippy-flymake--proc
+       flymake-clippy--proc
        (make-process
-        :name "clippy-flymake" :noquery t :connection-type 'pipe
-        :buffer (generate-new-buffer " *clippy-flymake*")
-        :command `(,clippy-flymake-cargo-path "clippy" "--message-format=json")
+        :name "flymake-clippy" :noquery t :connection-type 'pipe
+        :buffer (generate-new-buffer " *flymake-clippy*")
+        :command `(,flymake-clippy-cargo-path "clippy" "--message-format=json")
         :sentinel
         (lambda (proc _event)
           ;; Check the process has indeed exited, as it might be
@@ -82,7 +82,7 @@ For details on REPORT-FN, see `flymake-diagnostic-functions'."
             (unwind-protect
                 ;; Only proceed if registered process is current process
                 ;; (maybe a new call has been made since)
-                (if (eq proc clippy-flymake--proc)
+                (if (eq proc flymake-clippy--proc)
                     (with-current-buffer (process-buffer proc)
                       (goto-char (point-min))
                       (let (diagnostics)
@@ -90,7 +90,7 @@ For details on REPORT-FN, see `flymake-diagnostic-functions'."
                         (while (re-search-forward "^{.*}$" nil t)
                           (let* ((json (json-parse-string (match-string 0)
                                                           :object-type 'alist))
-                                 (diagnostic (clippy-flymake--parse-diagnostic
+                                 (diagnostic (flymake-clippy--parse-diagnostic
                                               json
                                               source-buffer)))
                             (when diagnostic
@@ -107,7 +107,7 @@ For details on REPORT-FN, see `flymake-diagnostic-functions'."
               ;; Cleanup temporary buffer
               (kill-buffer (process-buffer proc))))))))))
 
-(defun clippy-flymake--parse-diagnostic (json source-buffer)
+(defun flymake-clippy--parse-diagnostic (json source-buffer)
   "Parse JSON diagnostic and return a LIST.
 
 LIST contains ordered args required by FLYMAKE-MAKE-DIAGNOSTIC.
@@ -126,20 +126,20 @@ to the reported line and column numbers"
              (end-line   (alist-get 'line_end     spans))
              (end-col    (alist-get 'column_end   spans))
              (message    (concat level ": " message))
-             (message    (clippy-flymake--include-help diagnostic message))
+             (message    (flymake-clippy--include-help diagnostic message))
              (type (pcase level
                      ("error"   :error)
                      ("warning" :warning)
                      (_         :note)))
              (beg (with-current-buffer source-buffer
-                    (clippy-flymake-line-col-buffer-position start-line
+                    (flymake-clippy-line-col-buffer-position start-line
                                                              start-col)))
              (end (with-current-buffer source-buffer
-                    (clippy-flymake-line-col-buffer-position end-line
+                    (flymake-clippy-line-col-buffer-position end-line
                                                              end-col))))
         (list beg end type message)))))
 
-(defun clippy-flymake--include-help (diagnostic message)
+(defun flymake-clippy--include-help (diagnostic message)
   "Concatenate MESSAGE with help tips extracted from DIAGNOSTIC."
   (cl-loop
    for child across (alist-get 'children diagnostic)
@@ -161,7 +161,7 @@ to the reported line and column numbers"
                          (format ": %s" replace)))))
   message)
 
-(defun clippy-flymake-line-col-buffer-position (line column)
+(defun flymake-clippy-line-col-buffer-position (line column)
   "Return the position in the current buffer at LINE and COLUMN."
   (save-excursion
     (save-restriction
@@ -171,6 +171,6 @@ to the reported line and column numbers"
       (move-to-column (1- column))
       (point))))
 
-(provide 'clippy-flymake)
+(provide 'flymake-clippy)
 
-;;; clippy-flymake.el ends here
+;;; flymake-clippy.el ends here

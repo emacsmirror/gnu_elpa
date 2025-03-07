@@ -1,6 +1,6 @@
-# clippy-flymake
+# flymake-clippy
 
-`clippy-flymake` is an Emacs package that integrates [Clippy](https://doc.rust-lang.org/clippy/), a linter for the Rust programming language, with the Flymake diagnostics system. It provides real-time linting feedback directly in your Emacs buffers using cargo clippy.
+`flymake-clippy` is an Emacs package that integrates [Clippy](https://doc.rust-lang.org/clippy/), a linter for the Rust programming language, with the Flymake diagnostics system. It provides real-time linting feedback directly in your Emacs buffers using cargo clippy.
 
 ## Features
 
@@ -21,16 +21,16 @@
 1. Clone or download the repository to a local directory:
 
     ```bash
-    git clone https://github.com/SiberzK/clippy-flymake.git
+    git clone https://github.com/SiberzK/flymake-clippy.git
     ```
 
 2. Add the following to your Emacs configuration:
 
     ```elisp
-    (use-package clippy-flymake
-      :load-path "~/path/to/clippy-flymake"
-      :hook ((rust-mode . clippy-flymake-setup))
-      :custom (clippy-flymake-cargo-path "cargo") ; Optional: Specify the path to the `cargo' executable.
+    (use-package flymake-clippy
+      :load-path "~/path/to/flymake-clippy"
+      :hook ((rust-mode . flymake-clippy-setup))
+      :custom (flymake-clippy-cargo-path "cargo") ; Optional: Specify the path to the `cargo' executable.
       :config (add-hook 'rust-mode-hook #'flymake-mode))
     ```
 

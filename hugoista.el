@@ -5,7 +5,7 @@
 ;; Author: Alexander Adolf <alexander.adolf@condition-alpha.com>
 ;; Maintainer: Alexander Adolf <alexander.adolf@condition-alpha.com>
 ;; Version: 0.1.0
-;; Package-Requires: (cl-lib seq tabulated-list parse-csv)
+;; Package-Requires: ((emacs "24.3") cl-lib seq tabulated-list (parse-csv "0.3"))
 ;; Homepage: https://codeberg.org/c-alpha/hugoista
 
 ;; This file is not part of GNU Emacs
@@ -64,24 +64,20 @@
 
 (defcustom hugoista-hugo-command "hugo"
   "Command to use the Hugo command line interface."
-  :group 'hugoista
   :type 'string)
 
 (defcustom hugoista-site-dir "~/"
   "Default site directory to be used by `hugoista'."
-  :group 'hugoista
   :type 'directory
   :local t)
 
 (defcustom hugoista-posts-dir "posts"
   "Hugo content directory containing the blog posts."
-  :group 'hugoista
   :type 'string
   :local t)
 
 (defcustom hugoista-initial-sort t
   "Sort order for newly created `hugoista' buffers."
-  :group 'hugoista
   :type '(choice (const :tag "descending" t)
                  (const :tag "ascending" nil)))
 
@@ -89,7 +85,7 @@
 
 (cl-defstruct post-desc
   "Structure containing information about an individual post."
-  path slug title date expiryDate publishDate draft permalink kind section)
+  path slug title date expiry-date publish-date draft permalink kind section)
 
 (defun hugoista--list-content (&optional restrict)
   "Obtain a list of site content from Hugo.
@@ -127,14 +123,14 @@ respective publication state."
           (setq bol (pos-bol)
                 eol (pos-eol))
           (while (not (= bol eol))
-            (seq-let (path slug title date expiryDate publishDate draft
+            (seq-let (path slug title date expiry-date publish-date draft
                            permalink kind section)
                 (parse-csv->list (buffer-substring-no-properties bol eol))
               ;; Drafts with a future release date appear in both,
               ;; `hugo list drafts', and `hugo list future'. To avoid
-              ;; double appearance in the hugoista buffer, we file
-              ;; such entries under drafts only.
-              (if (or (not (equal sel 'future))
+              ;; double appearance in the hugoista buffer, show such
+              ;; entries under drafts only.
+              (if (or (not (eq sel 'future))
                       (not (string= draft "true")))
                   ;; filter entries based on criteria in RESTRICT;
                   ;; empty value matches all
@@ -152,8 +148,8 @@ respective publication state."
                                                         :slug slug
                                                         :title title
                                                         :date date
-                                                        :expiryDate expiryDate
-                                                        :publishDate publishDate
+                                                        :expiry-date expiry-date
+                                                        :publish-date publish-date
                                                         :draft draft
                                                         :permalink permalink
                                                         :kind kind
@@ -176,23 +172,23 @@ respective publication state."
 CONTENT-GROUPS is a grouped list in the format produced by
 `hugoista--list-content'."
   (mapcar (lambda (group)
-            (append (list (upcase (symbol-name (car group))))
-                    (mapcar (lambda (member)
-                              (list member
-                                    (vector (substring-no-properties
-                                             (post-desc-date member) 0 10)
-                                            (if (string= (post-desc-date member)
-                                                         (post-desc-publishDate member))
-                                                ""
-                                              (substring-no-properties
-                                               (post-desc-publishDate member) 0 10))
-                                            (if (string= "0001-01-01T00:00:00Z"
-                                                         (post-desc-expiryDate member))
-                                                ""
-                                              (substring-no-properties
-                                               (post-desc-expiryDate member) 0 10))
-                                            (post-desc-title member))))
-                            (cadr group))))
+            (cons (upcase (symbol-name (car group)))
+                  (mapcar (lambda (member)
+                            (list member
+                                  (vector (substring-no-properties
+                                           (post-desc-date member) 0 10)
+                                          (if (string= (post-desc-date member)
+                                                       (post-desc-publish-date member))
+                                              ""
+                                            (substring-no-properties
+                                             (post-desc-publish-date member) 0 10))
+                                          (if (string= "0001-01-01T00:00:00Z"
+                                                       (post-desc-expiry-date member))
+                                              ""
+                                            (substring-no-properties
+                                             (post-desc-expiry-date member) 0 10))
+                                          (post-desc-title member))))
+                          (cadr group))))
           content-groups))
 
 (defun hugoista--content-dir ()
@@ -202,7 +198,7 @@ CONTENT-GROUPS is a grouped list in the format produced by
                   ;; command line args
                   "config")
     (goto-char (point-min))
-    (when (re-search-forward "^contentdir = '\\([^']+\\)'$" nil t)
+    (when (re-search-forward "^contentdir[ \t]*=[ \t]*'\\([^']+\\)'$" nil t)
       (match-string-no-properties 1))))
 
 (defun hugoista--hugo-site-dir-p (dir)
@@ -224,16 +220,15 @@ CONTENT-GROUPS is a grouped list in the format produced by
   "Visit the file containing the Hugo post in the current row."
   (interactive)
   (find-file (expand-file-name (post-desc-path (tabulated-list-get-id))
-                                 hugoista-site-dir)))
+                               hugoista-site-dir)))
 
 (defun hugoista-new-post ()
   "Create a new Hugo post file, querying for the file name."
   (interactive)
   (let* ((content-dir (expand-file-name (hugoista--content-dir)
                                         hugoista-site-dir))
-         (posts-dir (file-name-as-directory (expand-file-name
-                                             hugoista-posts-dir
-                                             content-dir)))
+         (posts-dir (file-name-as-directory (expand-file-name hugoista-posts-dir
+                                                              content-dir)))
          (new-file (read-file-name "New post file " posts-dir))
          (new-post (file-relative-name new-file content-dir)))
     (with-temp-buffer
@@ -252,43 +247,39 @@ E1 and E2 are `post-desc' structs."
         (t2 (date-to-time (post-desc-date (car e2)))))
     (time-less-p t1 t2)))
 
-(defun hugoista--publishDate-less-p (e1 e2)
+(defun hugoista--publish-date-less-p (e1 e2)
   "Sorting predicate for the publication date column in `hugoista-mode'.
 
 E1 and E2 are `post-desc' structs."
-  (let ((t1 (date-to-time (post-desc-publishDate (car e1))))
-        (t2 (date-to-time (post-desc-publishDate (car e2)))))
+  (let ((t1 (date-to-time (post-desc-publish-date (car e1))))
+        (t2 (date-to-time (post-desc-publish-date (car e2)))))
     (time-less-p t1 t2)))
 
-(defun hugoista--expiryDate-less-p (e1 e2)
+(defun hugoista--expiry-date-less-p (e1 e2)
   "Sorting predicate for the expiration date column in `hugoista-mode'.
 
 E1 and E2 are `post-desc' structs."
-  (let ((t1 (date-to-time (post-desc-expiryDate (car e1))))
-        (t2 (date-to-time (post-desc-expiryDate (car e2)))))
+  (let ((t1 (date-to-time (post-desc-expiry-date (car e1))))
+        (t2 (date-to-time (post-desc-expiry-date (car e2)))))
     (time-less-p t1 t2)))
 
-;;;###autoload
 (defvar-keymap hugoista-mode-map
   :doc "Keymap for buffers created by `hugoista'."
   :parent tabulated-list-mode-map
   "RET" #'hugoista-visit-post
-  "N"   #'hugoista-new-post)
+  "N"   #'hugoista-new-post
+  "+"   #'hugoista-new-post)
 
-;;;###autoload
 (define-derived-mode hugoista-mode tabulated-list-mode "Hugoista"
   "Major mode for buffers made by \\[hugoista]."
   :interactive nil
-  (read-only-mode 1)
-  (setq tabulated-list-format [("Posted"   12 hugoista--date-less-p)
-                               ("Releases" 12 hugoista--publishDate-less-p)
-                               ("Expires"  12 hugoista--expiryDate-less-p)
-                               ("Title"     0 t)])
+  (setq tabulated-list-format `[("Posted"   12 ,#'hugoista--date-less-p)
+                                ("Releases" 12 ,#'hugoista--publish-date-less-p)
+                                ("Expires"  12 ,#'hugoista--expiry-date-less-p)
+                                ("Title"     0 t)])
   (setq tabulated-list-padding 3)
   (setq tabulated-list-sort-key '("Posted" . hugoista-initial-sort))
-  (tabulated-list-init-header)
-  (make-local-variable 'hugoista-site-dir)
-  (make-local-variable 'hugoista-posts-dir))
+  (tabulated-list-init-header))
 
 ;;;###autoload
 (defun hugoista (&optional dir)
@@ -317,12 +308,13 @@ been modified."
           (message "Hugo executable \"%s\" not found" hugoista-hugo-command)
         (let ((buf (get-buffer-create
                     (format "*%s*" (abbreviate-file-name buffer-dir)))))
-          (switch-to-buffer buf)
+          (set-buffer buf)
           (hugoista-mode)
           (setq hugoista-site-dir buffer-dir
                 default-directory buffer-dir)
           (setq-local revert-buffer-function #'hugoista-reload)
-          (revert-buffer))))))
+          (revert-buffer)
+          (switch-to-buffer buf))))))
 
 (provide 'hugoista)
 ;;; hugoista.el ends here

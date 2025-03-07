@@ -66,8 +66,7 @@ For details on REPORT-FN, see `flymake-diagnostic-functions'."
   ;; If process is still running from the last check, kill it
   (when (process-live-p flymake-clippy--proc)
     (kill-process flymake-clippy--proc))
-  (let* ((source-buffer (current-buffer))
-         (filename (buffer-file-name source-buffer)))
+  (let ((source-buffer (current-buffer)))
     (save-restriction
       (widen)
       (setq

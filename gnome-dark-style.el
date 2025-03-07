@@ -10,7 +10,7 @@
 ;; Package-Requires: ((emacs "30.1"))
 ;; Keywords: themes, gnome, sync, dark, light, color-scheme
 
-;; This file is NOT part of GNU Emacs.
+;; This file is part of GNU Emacs.
 
 ;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published
@@ -30,7 +30,7 @@
 ;; based on GNOME's color scheme.  It allows the user to define custom
 ;; light and dark themes.
 
-;; Requirements:
+;;; Requirements:
 ;; - GNOME Shell 47.4. (tested with this version).
 ;; - The `gsettings' command must be available in the system.
 
@@ -53,10 +53,14 @@ Set to nil to use the default Emacs theme."
 
 ;;;###autoload
 (defun get-gnome-color-scheme ()
-  "Get the current GNOME color-scheme setting with gsettings."
-  (string-trim
-   (shell-command-to-string
-    "gsettings get org.gnome.desktop.interface color-scheme")))
+  "Get the current GNOME color-scheme setting with gsettings.
+If `gsettings' is not available, warn the user and return nil."
+  (if (executable-find "gsettings")
+      (string-trim
+       (shell-command-to-string
+        "gsettings get org.gnome.desktop.interface color-scheme"))
+    (warn "`gsettings' not found.  Install it to use gnome-dark-style.")
+    nil))
 
 ;;;###autoload
 (defun gnome-set-theme-based-in-color-scheme ()
@@ -69,12 +73,14 @@ Set to nil to use the default Emacs theme."
                         ((string-match-p "prefer-light" gnome-color-scheme)
                          gnome-light-theme)
                         (t gnome-dark-theme))))
-    ;; Disable all themes before loading the new one
     (mapc #'disable-theme custom-enabled-themes)
     (setq custom-enabled-themes nil)
     ;; Load the target theme (if not nil)
     (when target-theme
-      (load-theme target-theme t))))
+      (condition-case err
+          (load-theme target-theme t)
+        (error
+         (message "Warning: Theme `%s' not found. Using default." target-theme))))))
 
 ;;;###autoload
 (defun gnome-start-color-scheme-monitor ()
@@ -93,39 +99,43 @@ Set to nil to use the default Emacs theme."
 ;;;###autoload
 (defun gnome-stop-color-scheme-monitor ()
   "Stop monitoring GNOME's color-scheme."
-  (when (get-process "gsettings-monitor")
-    (delete-process "gsettings-monitor")))
+  (when-let* ((proc (get-process "gsettings-monitor")))
+    (delete-process proc)))
 
 ;;;###autoload
 (defun gnome-dark-style--sync-toggle (enable)
-  "Enable or disable sync of Emacs theme with GNOME's color scheme.
-If ENABLE is non-nil, start monitoring and set the theme.
-If ENABLE is nil, stop monitoring and retain the current theme."
+  "Toggle GNOME theme sync.
+If ENABLE, monitor GNOME's color scheme and set the theme.
+If nil, stop monitoring and keep the current theme.
+Manages a hook to stop monitoring on Emacs exit."
   (let ((current-state (get-process "gsettings-monitor")))
     (if enable
         (unless current-state
-          ;; Start monitoring GNOME's color scheme
           (gnome-start-color-scheme-monitor)
-          ;; Add hook to stop monitoring when Emacs is killed
           (add-hook 'kill-emacs-hook #'gnome-stop-color-scheme-monitor)
-          ;; Set the theme based on the current GNOME color scheme
-          (gnome-set-theme-based-in-color-scheme))
+          ;; Only set the theme if it's different from the current one
+          (let* ((gnome-color-scheme (get-gnome-color-scheme))
+                 (target-theme (cond
+                                ((string-match-p "default" gnome-color-scheme)
+                                 gnome-light-theme)
+                                ((string-match-p "prefer-light" gnome-color-scheme)
+                                 gnome-light-theme)
+                                (t gnome-dark-theme))))
+            (unless (member target-theme custom-enabled-themes)
+              (gnome-set-theme-based-in-color-scheme))))
       (when current-state
-        ;; If synchronization is disabled, stop monitoring
         (gnome-stop-color-scheme-monitor)
-        ;; Remove the kill-emacs hook
         (remove-hook 'kill-emacs-hook #'gnome-stop-color-scheme-monitor)))))
 
 ;;;###autoload
 (defcustom gnome-dark-style-sync t
-  "Sync with GNOME's color scheme variable.
-When nil, synchronization stops and the current theme is retained."
+  "Non-nil enables automatic theme sync with GNOME's color scheme.
+When nil, sync stops and the current theme is retained."
   :type 'boolean
   :group 'gnome-dark-style
   :set (lambda (sym val)
-         (set-default sym val)
-         (gnome-dark-style--sync-toggle val)
-	 val))
+         (prog1 (set-default sym val)
+           (gnome-dark-style--sync-toggle val))))
 
 (provide 'gnome-dark-style)
 

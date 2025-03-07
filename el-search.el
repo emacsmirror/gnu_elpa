@@ -2949,6 +2949,7 @@ Position not accessible in narrowed buffer - really continue?")
 (define-obsolete-function-alias 'el-search-jump-to-search-head
   'el-search-jump "el-search 1.12.5")
 
+;;;###autoload
 (defun el-search-jump (&optional arg)
   "Jump by matches.
 Select a match, resuming the last search if necessary.  The

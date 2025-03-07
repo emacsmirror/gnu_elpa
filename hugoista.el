@@ -5,7 +5,7 @@
 ;; Author: Alexander Adolf <alexander.adolf@condition-alpha.com>
 ;; Maintainer: Alexander Adolf <alexander.adolf@condition-alpha.com>
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "24.3") cl-lib seq tabulated-list (parse-csv "0.3"))
+;; Package-Requires: ((emacs "24.3") seq (parse-csv "0.3"))
 ;; Homepage: https://codeberg.org/c-alpha/hugoista
 
 ;; This file is not part of GNU Emacs

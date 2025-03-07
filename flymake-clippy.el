@@ -46,7 +46,7 @@ or if they want to use a specific Cargo binary."
   :group 'flymake-clippy)
 
 (defvar-local flymake-clippy--proc nil
-  "Bound to cargo clippy process during it's execution.")
+  "Bound to cargo clippy process during its execution.")
 
 (defun flymake-clippy-setup ()
   "Enable Clippy Flymake diagnostics in the current buffer.
@@ -114,7 +114,7 @@ For details on REPORT-FN, see `flymake-diagnostic-functions'."
 LIST contains ordered args required by FLYMAKE-MAKE-DIAGNOSTIC.
 
 SOURCE-BUFFER is needed to find the buffer points corresponding
-to the reported line and column numbers"
+to the reported line and column numbers."
   (let* ((diagnostic (alist-get 'message json))
          (message    (alist-get 'message diagnostic))
          (level      (alist-get 'level   diagnostic))

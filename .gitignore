@@ -32,3 +32,6 @@
 # Compiled ELisp
 *.elc
 
+# Package stuff
+/cus-abbrev-pkg.el
+/cus-abbrev-autoloads.el

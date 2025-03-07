@@ -1,2 +1,4 @@
-.elpaignore
+.gitignore
 Makefile
+/cus-abbrev-pkg.el
+/cus-abbrev-autoloads.el

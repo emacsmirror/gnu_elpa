@@ -31,6 +31,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'json)
 
 (defgroup flymake-clippy nil
   "Flymake backend for Clippy."

@@ -71,7 +71,7 @@ nil."
     (while (and (not (setq match (funcall try-match list1 list2)))
                 (consp list1))
       (let ((last-list1 (last list1)))
-        (if-let ((cdr-last-list1 (cdr last-list1)))
+        (if-let* ((cdr-last-list1 (cdr last-list1)))
             ;; list1 is a dotted list.  Then list2 must be empty.
             (progn (setcdr last-list1 nil)
                    (setq list2 cdr-last-list1))
@@ -92,7 +92,7 @@ which one is chosen.
 
 Example: the pattern
 
-   (append '(1 2 3) x (app car-safe 7))
+    (append \\='(1 2 3) x (app car-safe 7))
 
 matches the list (1 2 3 4 5 6 7 8 9), binding `x' to (4 5 6)."
   (cond
@@ -144,7 +144,7 @@ customizing `el-search-lazy-l' to nil):
 
 SYMBOL  Matches any symbol S matched by SYMBOL's name interpreted
         as a regexp.
-'SYMBOL Matches the SYMBOL.
+\\='SYMBOL Matches the SYMBOL.
 STRING  Matches any string matched by STRING interpreted as a
         regexp.
 _       Matches any list element.
@@ -164,7 +164,7 @@ Example: To match defuns that contain \"hl\" in the defined name
 and have at least one mandatory, but also optional arguments, you
 could use this pattern:
 
-    (l ^ 'defun hl (l _ &optional))"
+    (l ^ \\='defun hl (l _ &optional))"
   ;; We don't allow PATs in `l' to create bindings because to make this
   ;; work as expected we would need some kind of backtracking
   (declare
@@ -247,7 +247,7 @@ COMMIT defaults to HEAD."
 (defun el-search--file-changed-p (file revision)
   "Return non-nil when FILE has changed relative to REVISION."
   (cl-callf el-search--file-truename-wstm file)
-  (when-let ((backend (vc-backend file)))
+  (when-let* ((backend (vc-backend file)))
     (let ((default-directory (file-name-directory file)))
       (and
        (with-temp-buffer
@@ -345,20 +345,20 @@ Uses variable `el-search--cached-changes' for caching."
          (file-changed-p (el-search-with-short-term-memory
                           (lambda (file-name-or-buffer)
                             (require 'vc)
-                            (when-let ((file (if (stringp file-name-or-buffer)
-                                                 file-name-or-buffer
-                                               (buffer-file-name file-name-or-buffer))))
+                            (when-let* ((file (if (stringp file-name-or-buffer)
+                                                  file-name-or-buffer
+                                                (buffer-file-name file-name-or-buffer))))
                               (cl-callf el-search--file-truename-wstm file)
                               (let ((default-directory (file-name-directory file)))
-                                (when-let ((backend (vc-backend file))
-                                           (root-dir
-                                            (condition-case err
-                                                (vc-call-backend backend 'root default-directory)
-                                              ;; Same handler as in `vc-root-dir'
-                                              (vc-not-supported
-                                               (unless (eq (cadr err) 'root)
-                                                 (signal (car err) (cdr err)))
-                                               nil))))
+                                (when-let* ((backend (vc-backend file))
+                                            (root-dir
+                                             (condition-case err
+                                                 (vc-call-backend backend 'root default-directory)
+                                               ;; Same handler as in `vc-root-dir'
+                                               (vc-not-supported
+                                                (unless (eq (cadr err) 'root)
+                                                  (signal (car err) (cdr err)))
+                                                nil))))
                                   (cl-some
                                    (apply-partially #'file-equal-p file)
                                    (funcall get-changed-files-in-repo
@@ -446,9 +446,9 @@ expression matching the `change' pattern will be matched."
 ;;;; `keys'
 
 (defun el-search--match-key-sequence (keys expr)
-  (when-let ((expr-keys (pcase expr
-                          ((or (pred stringp) (pred vectorp))  expr)
-                          (`(kbd ,(and (pred stringp) string)) (ignore-errors (kbd string))))))
+  (when-let* ((expr-keys (pcase expr
+                           ((or (pred stringp) (pred vectorp))  expr)
+                           (`(kbd ,(and (pred stringp) string)) (ignore-errors (kbd string))))))
     (apply #'equal
            (mapcar (lambda (keys) (ignore-errors (key-description keys)))
                    (list keys expr-keys)))))

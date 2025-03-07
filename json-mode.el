@@ -101,11 +101,11 @@
 Object names receive the face `json-mode-object-name-face' to
 distinguish them from other strings."
   (cond
-   ((nth 4 state) font-lock-comment-face)
+   ((nth 4 state) 'font-lock-comment-face)
    ((and (nth 3 state)
          (json-mode--string-is-object-name-p (nth 8 state)))
     'json-mode-object-name-face)
-   (t font-lock-string-face)))
+   (t 'font-lock-string-face)))
 
 (defconst json-mode--smie-grammar
   (smie-prec2->grammar

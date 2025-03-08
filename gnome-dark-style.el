@@ -4,8 +4,8 @@
 
 ;; Author: David Dimagid <davidimagid@gmail.com>
 ;; Maintainer: David Dimagid <davidimagid@gmail.com>
-;; Version: 0.1
-;; Package-Version: 0.1
+;; Version: 0.2.1
+;; Package-Version: 0.2.1
 ;; URL: https://github.com/dimagid/gnome-dark-style
 ;; Package-Requires: ((emacs "30.1"))
 ;; Keywords: themes, gnome, sync, dark, light, color-scheme

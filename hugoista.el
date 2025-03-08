@@ -5,7 +5,7 @@
 ;; Author: Alexander Adolf <alexander.adolf@condition-alpha.com>
 ;; Maintainer: Alexander Adolf <alexander.adolf@condition-alpha.com>
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "24.3") seq (parse-csv "0.3"))
+;; Package-Requires: ((emacs "24.3") seq)
 ;; Homepage: https://codeberg.org/c-alpha/hugoista
 
 ;; This file is not part of GNU Emacs
@@ -54,7 +54,6 @@
 (require 'cl-lib)
 (require 'seq)
 (require 'tabulated-list)
-(require 'parse-csv)
 
 ;;;; Customisation Variables
 
@@ -86,6 +85,44 @@
 (cl-defstruct post-desc
   "Structure containing information about an individual post."
   path slug title date expiry-date publish-date draft permalink kind section)
+
+(defun hugoista--in-quotes-p (pos line)
+  "Return t if POS in LINE is within quotes, nil otherwise."
+  (let ((quote-count 0)
+        (i 0))
+    (while (< i pos)
+      (when (= (aref line i) ?\")
+        (setq quote-count (1+ quote-count)))
+      (setq i (1+ i)))
+    (= (mod quote-count 2) 1)))
+
+(defun hugoista--next-comma (line start)
+  "Find next legitimate comma from START in LINE."
+  (let ((pos start))
+    (while (and (setq pos (string-match "," line pos))
+                (hugoista--in-quotes-p pos line))
+      (setq pos (1+ pos)))
+    pos))
+
+(defun hugoista--parse-csv-to-list (line)
+  "Parse LINE as CSV.
+
+Handles quoted fields with embedded commas and escaped quotes."
+  (let ((fields nil)
+        (start 0)
+        (end (length line)))
+    (while (< start end)
+      (let* ((next-comma (hugoista--next-comma line start))
+             (field-end (or next-comma end))
+             (field (substring line start field-end))
+             (cleaned-field
+              (if (string-match "\\`\"\\(.*\\)\"\\'" field)
+                  (replace-regexp-in-string "\"\"" "\""
+                    (match-string 1 field))
+                field)))
+        (push cleaned-field fields)
+        (setq start (if next-comma (1+ field-end) end))))
+    (nreverse fields)))
 
 (defun hugoista--list-content (&optional restrict)
   "Obtain a list of site content from Hugo.
@@ -125,7 +162,7 @@ respective publication state."
           (while (not (= bol eol))
             (seq-let (path slug title date expiry-date publish-date draft
                            permalink kind section)
-                (parse-csv->list (buffer-substring-no-properties bol eol))
+                (hugoista--parse-csv-to-list (buffer-substring-no-properties bol eol))
               ;; Drafts with a future release date appear in both,
               ;; `hugo list drafts', and `hugo list future'. To avoid
               ;; double appearance in the hugoista buffer, show such

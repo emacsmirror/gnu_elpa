@@ -203,8 +203,14 @@ CONTENT-GROUPS is a grouped list in the format produced by
 
 (defun hugoista--hugo-site-dir-p (dir)
   "Test whether DIR is a Hugo site directory."
-  (or (file-exists-p (expand-file-name "hugo.toml" dir))
-      (file-exists-p (expand-file-name "config.toml" dir))))
+  (> (length (directory-files dir nil
+                              (rx bos
+                                  (or "hugo" "config")
+                                  "."
+                                  (or "toml" (seq "y" (opt "a") "ml"))
+                                  eos)
+                              t))
+     0))
 
 ;;;; Interactive Functions
 

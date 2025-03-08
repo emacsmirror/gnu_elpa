@@ -1,7 +1,7 @@
 #+TITLE: gnome-dark-style.el
 #+AUTHOR: David Dimagid
 #+EMAIL: davidimagid@gmail.com
-#+VERSION: 0.1
+#+VERSION: 0.2
 #+URL: https://github.com/dimagid/gnome-dark-style
 
 * Description
@@ -22,6 +22,14 @@ desktop environment and GNU Emacs.
 - The =gsettings= command must be available on your system.
 
 * Installation
+** GNU ELPA package
+The package is available as gnome-dark-style. Simply do:
+   #+BEGIN_SRC elisp
+     M-x package-refresh-contents
+     M-x package-install
+   #+END_SRC
+
+** Manual installation
 1. Clone the repository or download the =gnome-dark-style.el= file.
 2. Add the following to your Emacs configuration file =init.el=:
 
@@ -48,7 +56,6 @@ Example configuration with use-package:
 #+BEGIN_SRC elisp
   ;; Sync Emacs theme with GNOME's color scheme
   (use-package gnome-dark-style
-    :load-path "/path/to/gnome-dark-style"
     ;; Uncomment and set your preferred themes
     ;; :custom
     ;; (gnome-light-theme 'ef-eagle)  ; default: nil

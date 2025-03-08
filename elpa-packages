@@ -369,6 +369,7 @@
  (gnat-compiler		:url nil
   :release-branch t)
  (gnome-c-style		:url "https://github.com/ueno/gnome-c-style.git")
+ (gnome-dark-style      :url "https://github.com/dimagid/gnome-dark-style")
  (gnorb               	:url nil) ;; Was "https://github.com/girzel/gnorb"
  (gnu-elpa		:url nil)
  (gnu-elpa-keyring-update :url nil)

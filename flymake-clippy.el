@@ -3,6 +3,7 @@
 ;; Copyright (C) 2025  Michael Kirkland
 
 ;; Author: Michael Kirkland <mak.kirkland@proton.me>
+;; URL: https://github.com/mak-kirkland/flymake-clippy
 ;; Keywords: languages tools
 ;; Version: 1.0.0
 ;; Package-Requires: ((emacs "27"))

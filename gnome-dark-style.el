@@ -63,7 +63,7 @@ If `gsettings' is not available, warn the user and return nil."
     nil))
 
 ;;;###autoload
-(defun gnome-set-theme-based-in-color-scheme ()
+(defun gnome-set-theme-based-on-color-scheme ()
   "Switch Emacs themes based on GNOME's color-scheme setting."
   (interactive)
   (let* ((gnome-color-scheme (get-gnome-color-scheme))
@@ -92,7 +92,7 @@ If `gsettings' is not available, warn the user and return nil."
                   :command '("gsettings" "monitor" "org.gnome.desktop.interface" "color-scheme")
                   :filter (lambda (process output)
                             (when (string-match-p "color-scheme" output)
-                              (gnome-set-theme-based-in-color-scheme))))))
+                              (gnome-set-theme-based-on-color-scheme))))))
     ;; Mark the process as non-queryable on exit
     (set-process-query-on-exit-flag process nil)))
 
@@ -122,7 +122,7 @@ Manages a hook to stop monitoring on Emacs exit."
                                  gnome-light-theme)
                                 (t gnome-dark-theme))))
             (unless (member target-theme custom-enabled-themes)
-              (gnome-set-theme-based-in-color-scheme))))
+              (gnome-set-theme-based-on-color-scheme))))
       (when current-state
         (gnome-stop-color-scheme-monitor)
         (remove-hook 'kill-emacs-hook #'gnome-stop-color-scheme-monitor)))))

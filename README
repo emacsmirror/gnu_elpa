@@ -63,7 +63,7 @@ the ones you want.
 ** Check out all packages
 
 If you wish to check out all the packages into the =packages=
-directory, you can run the command:
+directory, having done the above steps, you can run the command:
 
 #+begin_src shell
    make worktrees

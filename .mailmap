@@ -1,0 +1,14 @@
+#
+# This list is used to fix a few misspelled names in various git
+# listings (e.g., "git log").  This can be used to fix incorrect
+# attribution, poor display, or names showing up more than once.
+# It also allows updating an old email addresses to a new one.
+#
+# See "man git-shortlog" for more information on the format.
+#
+# Keep file sorted using `M-x sort-lines'.
+#
+Ian Dunn <dunni@gnu.org>
+João Távora <joaotavora@gmail.com>
+Stefan Kangas <stefankangas@gmail.com> <stefan@marxist.se>
+Stefan Monnier <monnier@iro.umontreal.ca> monnier <>

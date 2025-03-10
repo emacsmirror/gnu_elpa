@@ -72,7 +72,7 @@ html, body {
   height: 100%;
   margin: 0 auto -50px; /* the bottom margin is the negative value of the footer's height */
 }
-footer, .push, .footer {
+.push {
   height: 90px; /* .push must be the same height as .footer */
 }
 
@@ -276,6 +276,11 @@ td {
   border-bottom: 1px solid #ddd;
 }
 
+td:last-child,
+th:last-child {
+  text-align: right;
+}
+
 footer, .footer {
   border-top: 1px solid #999;
   text-align:center;
@@ -295,6 +300,10 @@ footer p, .footer p {
   line-height: 1.4em;
 }
 
+table {
+  width: 100%;
+}
+
 @media screen and (max-width: 999px) {
   .container {
     width: 600px;
@@ -306,10 +315,6 @@ footer p, .footer p {
     font-size: 1em;
   }
 
-  table {
-    width: 100%;
-  }
-  
   .container {
     width: 90%;
     padding: 40px 5%;
@@ -323,7 +328,7 @@ footer p, .footer p {
     width: 300px;
   }
 
-  td:last-child, th:last-child {
+  td:nth-child(2), th:nth-child(2) {
     display: none;
   }
 

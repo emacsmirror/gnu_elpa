@@ -1,6 +1,6 @@
 ;; -*- lisp-data -*-
 
-;; Copyright (C) 2020-2024 Free Software Foundation, Inc.
+;; Copyright (C) 2020-2025 Free Software Foundation, Inc.
 
 ;; List of packages that are maintained externally.
 ;; The list is made of elements of the form (NAME KIND URL OPTS...).
@@ -33,7 +33,10 @@
 ;; some manual intervention (typically, because the two branches have
 ;; diverged).
 
-((ace-window		:url "https://github.com/abo-abo/ace-window")
+((a68-mode		:url "https://git.sr.ht/~jemarch/a68-mode"
+  :readme "README.md"
+  :ignored-files ("COPYING"))
+ (ace-window		:url "https://github.com/abo-abo/ace-window")
  (ack			:url "https://github.com/leoliu/ack-el")
  (activities           	:url "https://github.com/alphapapa/activities.el.git"
    :release-branch "stable"
@@ -78,11 +81,13 @@
  (auctex-cont-latexmk	:url "https://github.com/ultronozm/auctex-cont-latexmk.el")
  (auctex-label-numbers	:url "https://github.com/ultronozm/auctex-label-numbers.el")
  (aumix-mode		:url nil)
+ (auth-source-xoauth2-plugin   :url "https://gitlab.com/manphiz/auth-source-xoauth2-plugin")
  (auto-correct		:url nil)
- (auto-header           :url "https://git.sr.ht/~pkal/auto-header")
+ (auto-header           :url "https://codeberg.org/pkal/auto-header.el")
  (auto-overlays		:url nil ;"http://www.dr-qubit.org/git/predictive.git"
   :doc "docs/auto-overlay-manual.texinfo")
- (autocrypt             :url "https://git.sr.ht/~pkal/autocrypt")
+ (autocrypt             :url "https://codeberg.org/pkal/autocrypt.el")
+ (autorevert-tail-truncate      :url "https://github.com/shipmints/autorevert-tail-truncate.el")
  (avy			:url "https://github.com/abo-abo/avy"
   ;; FIXME: Avy diverged https://github.com/abo-abo/avy/issues/344
   :merge t)
@@ -170,6 +175,7 @@
  (company-statistics	:url "https://github.com/company-mode/company-statistics")
  (compat		:url "https://github.com/emacs-compat/compat"
   :doc "compat.texi")
+ (cond-star             :core "lisp/emacs-lisp/cond-star.el")
  (constants             :url "https://github.com/cdominik/constants-for-Emacs")
  (consult		:url "https://github.com/minad/consult"
   :doc "README.org"
@@ -183,6 +189,7 @@
   :ignored-files ("LICENSE"))
  (consult-recoll	:url "https://codeberg.org/jao/consult-recoll"
   :ignored-files ("license")
+  :news "changelog.org"
   :readme "readme.org")
  ;; FIXME: https://github.com/jacksonrayhamilton/context-coloring/issues/9
  (context-coloring	:url "https://github.com/jacksonrayhamilton/context-coloring.git")
@@ -209,9 +216,10 @@
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
+ (cus-abbrev            :url "https://gitlab.com/mauroaranda/cus-abbrev")
  (cycle-quotes		:url nil)
  (dape                  :url "https://github.com/svaante/dape")
- (darkroom            	:url "https://github.com/capitaomorte/darkroom.git")
+ (darkroom            	:url "https://github.com/joaotavora/darkroom")
  (dash			:url "https://github.com/magnars/dash.el.git"
   :doc "dash.texi"
   :news "NEWS.md")
@@ -226,11 +234,18 @@
  (denote-menu		:url "https://github.com/namilus/denote-menu"
   :readme "README.org"
   :ignored-files ("COPYING"))
+ (denote-search		:url "https://github.com/lmq-10/denote-search"
+  :ignored-files ("COPYING" "doclicense.texi")
+  :readme "README.md"
+  :doc "README.org")
  (detached		:url "https://git.sr.ht/~niklaseklund/detached.el"
   :news "CHANGELOG.org"
   :readme "README.md")
  (devdocs		:url "https://github.com/astoff/devdocs.el")
  (devicetree-ts-mode	:url "https://git.sr.ht/~akagi/devicetree-ts-mode"
+  :ignored-files ("LICENSE"))
+ (dicom			:url "https://github.com/minad/dicom"
+  :doc "README.org"
   :ignored-files ("LICENSE"))
  (dict-tree		:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
  (diff-hl		:url "https://github.com/dgutov/diff-hl.git")
@@ -247,7 +262,7 @@
  (disk-usage		:url "https://gitlab.com/ambrevar/emacs-disk-usage")
  (dismal		:url nil)
  (djvu			:url nil)
- (do-at-point           :url "https://git.sr.ht/~pkal/do-at-point")
+ (do-at-point           :url "https://codeberg.org/pkal/do-at-point.el")
  (doc-toc		:url "https://github.com/dalanicolai/doc-tools-toc"
   :ignored-files ("LICENSE"))
  (docbook		:url nil)
@@ -290,13 +305,13 @@
   :ignored-files ("COPYING"))
  ;; FIXME: Work in progress.  The copyright paperwork is ready.
  ;;(elsa		:url "https://github.com/emacs-elsa/Elsa")
- ;;(emacspeak		:url "https://github.com/tvraman/emacspeak"
- ;; :doc "info/emacspeak.texi"
- ;; :lisp-dir "lisp")
+ ;; (emacspeak		:url "https://github.com/tvraman/emacspeak"
+ ;;  :doc "info/emacspeak.texi"
+ ;;  :lisp-dir "lisp")
  (embark		:url "https://github.com/oantolin/embark"
   :doc "embark.texi"
   :ignored-files ("embark-consult.el" "avy-embark-collect.el"))
- (embark-consult	:url "https://github.com/oantolin/embark"
+ (embark-consult	:url embark
   :ignored-files ("embark.el" "embark.texi" "avy-embark-collect.el"
                   "embark-org.el"))
  (ement			:url "https://github.com/alphapapa/ement.el.git"
@@ -329,7 +344,7 @@
  (external-completion   :core "lisp/external-completion.el")
  (exwm			:url "https://github.com/emacs-exwm/exwm.git")
  (f90-interface-browser :url nil) ;; Was "https://github.com/wence-/f90-iface"
- (face-shift            :url "https://git.sr.ht/~pkal/face-shift")
+ (face-shift            :url "https://codeberg.org/pkal/face-shift.el")
  (filechooser		:url "https://codeberg.org/rahguzar/filechooser"
   :ignored-files ("LICENSE"))
  (filladapt		:url nil)
@@ -354,6 +369,7 @@
  (gnat-compiler		:url nil
   :release-branch t)
  (gnome-c-style		:url "https://github.com/ueno/gnome-c-style.git")
+ (gnome-dark-style      :url "https://github.com/dimagid/gnome-dark-style")
  (gnorb               	:url nil) ;; Was "https://github.com/girzel/gnorb"
  (gnu-elpa		:url nil)
  (gnu-elpa-keyring-update :url nil)
@@ -478,7 +494,7 @@
   :ignored-files ("COPYING" "doclicense.texi"))
  (luwak			:url "https://g.ypei.me/luwak.git"
   :readme "README.org")
- (lv			:url "https://github.com/abo-abo/hydra"
+ (lv			:url hydra
   :ignored-files ("hydra*" "README.md" "doc" "targets"))
  (m-buffer		:url "https://github.com/phillord/m-buffer-el"
   ;; FIXME: This is fairly ugly, we should clean it up.
@@ -494,6 +510,8 @@
  (math-symbol-lists 	:url "https://github.com/vspinu/math-symbol-lists.git")
  (mathjax               :url "https://github.com/astoff/mathjax.el"
   :make "elpa")
+ (matlab-mode           :url "https://github.com/mathworks/Emacs-MATLAB-Mode.git"
+  ) ;; :main-file "matlab.el"
  (mct			:url "https://gitlab.com/protesilaos/mct"
   :doc "README.org")
  (memory-usage		:url nil)
@@ -504,7 +522,7 @@
   :ignored-files ("LICENSE.txt"))
  (minibuffer-line	:url nil)
  (minimap		:url nil)
- (mmm-mode		:url "https://github.com/purcell/mmm-mode.git"
+ (mmm-mode		:url "https://github.com/dgutov/mmm-mode"
   :doc "mmm.texi")
  (modus-themes		:url "https://github.com/protesilaos/modus-themes"
   :doc "doc/modus-themes.org"
@@ -540,8 +558,8 @@
  (ob-haxe		:url "https://github.com/ianxm/ob-haxe.el")
  (objed        		:url "https://github.com/clemera/objed")
  (omn-mode            	:url "https://github.com/phillord/omn-mode")
- (on-screen           	:url "https://github.com/michael-heerdegen/on-screen.el.git")
- (openpgp               :url "https://git.sr.ht/~pkal/openpgp")
+ (on-screen           	:url nil) ;;Was "https://github.com/michael-heerdegen/on-screen.el"
+ (openpgp               :url "https://codeberg.org/pkal/openpgp.el")
  (orderless		:url "https://github.com/oantolin/orderless"
   :doc "orderless.texi"
   :readme "README.org")
@@ -556,6 +574,8 @@
  (org-edna		:url "bzr::https://bzr.savannah.gnu.org/git/org-edna-el"
   ;; The Bzr<->Git bridge wasn't working well enough last time I tried.
   :manual-sync t)
+ (org-gnosis		:url "https://git.thanosapollo.org/org-gnosis"
+  :doc "doc/org-gnosis.org")
  (org-jami-bot		:url "https://gitlab.com/hperrey/org-jami-bot"
   :ignored-files ("LICENSE"))
  ;; FIXME: Waiting for copyright paperwork from Brandon Webster.
@@ -574,7 +594,7 @@
   :readme "README.org"
   :doc "docs/org-remark.org")
  (org-transclusion	:url "https://github.com/nobiot/org-transclusion"
-  :make "org-transclusion.org"
+  :make "docs/org-transclusion.org"
   :doc "docs/org-transclusion.org"
   :readme "README.org")
  (org-translate		:url nil)
@@ -589,6 +609,7 @@
  (paced			:url "bzr::bzr://bzr.savannah.nongnu.org/paced-el/trunk"
   ;; The Bzr<->Git bridge wasn't working well enough last time I tried.
   :manual-sync t)
+ (package-x             :url nil)
  ;; `package-fixes` is obsolete and was never released.
  ;; (package-fixes		:url nil)
  (parsec              	:url "https://github.com/cute-jumper/parsec.el.git")
@@ -680,13 +701,13 @@
  (rudel			:url nil) ;; Was bzr::bzr://rudel.bzr.sourceforge.net/bzrroot/rudel/trunk
  (satchel		:url "https://git.sr.ht/~theo/satchel"
   :ignored-files ("LICENSE"))
- (scanner		:url "https://gitlab.com/rstocker/scanner.git")
+ (scanner		:url "https://codeberg.org/rstocker/scanner.git")
  (scroll-restore	:url nil)
  (sed-mode		:url nil)
  (seq			:url nil)
- (setup			:url "https://git.sr.ht/~pkal/setup")
+ (setup			:url "https://codeberg.org/pkal/setup.el")
  (shelisp		:url nil)
- (shell-command+	:url "https://git.sr.ht/~pkal/shell-command-plus")
+ (shell-command+	:url "https://codeberg.org/pkal/shell-command-plus.el")
  (shell-quasiquote	:url nil)
  (shen-mode		:url nil)
  (show-font		:url "https://github.com/protesilaos/show-font"
@@ -694,7 +715,7 @@
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
  (sisu-mode		:url nil)
- (site-lisp             :url "https://git.sr.ht/~pkal/site-lisp")
+ (site-lisp             :url "https://codeberg.org/pkal/site-lisp.el")
  (sketch-mode		:url "https://github.com/dalanicolai/sketch-mode")
  (slime-volleyball	:url nil)
  (sm-c-mode 		:url nil)
@@ -711,6 +732,7 @@
   :readme "README.md"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
+ (speedrect             :url "https://github.com/jdtsmith/speedrect")
  (spinner		:url "https://github.com/Malabarba/spinner.el")
  (sql-beeline		:url nil)
  (sql-cassandra		:url nil)
@@ -799,7 +821,7 @@
  (trinary		:url "https://github.com/emacs-elsa/trinary-logic")
  (triples		:url "https://github.com/ahyatt/triples"
   :readme "README.org")
- (typo                  :url "https://git.sr.ht/~pkal/typo")
+ (typo                  :url "https://codeberg.org/pkal/typo.el")
  (ulisp-repl		:url "https://git.sr.ht/~fitzsim/ulisp-repl")
  ;; FIXME: The upstream of `undo-tree' has diverged.  I tried to
  ;; contact Toby but he's quite busy.  He mentioned thinking of using the
@@ -825,11 +847,13 @@
   :doc "use-package.texi")
  (validate		:url "https://github.com/Malabarba/validate.el")
  (valign		:url "https://github.com/casouri/valign")
- (vc-backup		:url "https://git.sr.ht/~pkal/vc-backup")
+ (vc-backup		:url "https://codeberg.org/pkal/vc-backup.el")
  (vc-got		:url "https://git.omarpolo.com/vc-got.git"
   ;; Mirror: https://github.com/omar-polo/vc-got/
   :ignored-files ("targets" "LICENSE"))
  (vc-hgcmd		:url "https://github.com/muffinmad/emacs-vc-hgcmd")
+ ;; FIXME: Waiting for copyright paperwork.
+ ;;(vc-jj			:url "https://codeberg.org/emacs-jj-vc/vc-jj.el")
  (vcard			:url nil)
  (vcl-mode	        :url "https://git.gnu.org.ua/vcl-mode.git")
  (vdiff               	:url "https://github.com/justbur/emacs-vdiff")
@@ -843,7 +867,7 @@
  (vigenere 		:url nil)
  (visual-filename-abbrev :url nil)
  (visual-fill		:url nil)
- (vlf			:url "https://github.com/m00natic/vlfi") ;FIXME:Dead?
+ (vlf			:url nil) ;"https://github.com/m00natic/vlfi"
  (vundo			:url "https://github.com/casouri/vundo"
   :ignored-files ("test")
   :news "NEWS.txt")
@@ -874,11 +898,13 @@
  (xr			:url "https://github.com/mattiase/xr"
   :ignored-files ("Makefile" ".github" "*-test.el*"))
  (xref			:core "lisp/progmodes/xref.el")
- (xref-union            :url "https://git.sr.ht/~pkal/xref-union")
- (yasnippet		:url "https://github.com/capitaomorte/yasnippet.git")
+ (xref-union            :url "https://codeberg.org/pkal/xref-union.el")
+ (yaml			:url "https://github.com/zkry/yaml.el"
+  :ignored-files "LICENSE")
+ (yasnippet		:url "https://github.com/joaotavora/yasnippet")
  (yasnippet-classic-snippets :url nil)
  (zones			:url nil)  ;https://www.emacswiki.org/emacs/zones.el
- (ztree			:url "https://github.com/fourier/ztree")
+ (ztree			:url "https://codeberg.org/fourier/ztree")
  (zuul			:url "https://git.sr.ht/~niklaseklund/zuul.el"
   :news "CHANGELOG.org"
   :readme "README.md")

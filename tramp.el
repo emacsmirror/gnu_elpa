@@ -7,6 +7,10 @@
 ;; Maintainer: Michael Albinus <michael.albinus@gmx.de>
 ;; Keywords: comm, processes
 ;; Package: tramp
+;; Version: 2.7.2.2
+;; Package-Requires: ((emacs 27.1))
+;; Package-Type: multi
+;; URL: https://www.gnu.org/software/tramp/
 
 ;; This is a GNU ELPA :core package.  Avoid functionality that is not
 ;; compatible with the version of Emacs recorded in trampver.el.

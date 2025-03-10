@@ -1,25 +1,281 @@
 * goal
 the goal is to generate a math practice sheet.
+
+similar to https://www.math-aids.com
 * script
 ** vars
-#+property: header-args+ :var student="Noble" problem-count=24
+-#+property: header-args+ :var student="Noble" problem-count=24
 
 ** problem sets
 *** add and subtract
-TODO support "var c in [b 5]"
 
-#+name: first-set
+#+name: firstset
+| weight | order | problem                       | descr                  |
+|--------+-------+-------------------------------+------------------------|
+|      3 |     1 | [1..10] + [0..10]             | simple                 |
+|      2 |     2 | [1..10] + [8..15]             | second number bigger   |
+|      1 |     3 | [1..10] + [1..7] + [1..5]     | three numbers          |
+|      1 |     4 | [a=3..10] - [0..$a]           | subtraction            |
+|      1 |     4 | [a=1..10] + [0..10] - [1..$a] | three with subtraction |
+|      0 |     0 | [$a*[1..5]] / [a=1..10]       | division               |
+
+** problem generation
+
+TODO create a package. if you C-c C-c on a table
+1. if you are on the header, generate a worksheet
+2. if you on on a row, generate a single example
+
+*** var-list
+need ~var-list~ to keep track of the variables between fields.
+
+#+name: var-list
+#+begin_src elisp
+(defvar ianxm/var-list '()
+"List of variables used in a problem")
+#+end_src
+*** scan field
+
+must call with point at the start of a field. moves the point to the
+end of the field. returns a list of fields, formatted as:
+
 #+begin_example
-var a in [1 10]
-var b in [0 10]
-var c in [1 5]
-var d in [0 15]
-problem weight 3 order 1 "a + b"
-problem weight 2 order 1 "a + d"
-problem weight 1 order 2 "a + b + c"
-problem weight 1 order 3 "a + c - b"
+'(var (deps) start-marker end-marker nil)
 #+end_example
 
+~var~ is a variable name if there is an assignment, or it is a
+placeholder like ~_0~, ~_1~, etc. the last entry is nil for "not
+visited." ~var~ must be interned and must be the first index since we
+use this as an alist.
+
+~start-marker~ and ~end-marker~ are markers in the (temp) buffer.
+
+for example:
+#+begin_example
+[$a + 2 + [a=1..5]] => '((nil (a) m1 m19 nil) (a nil m11 m18 nil))
+#+end_example
+
+~open-fields~ is a stack of fields with the current field on top. we
+push a new field to the stack when we start a new field.
+~closed-fields~ is a list of fields that have been completed. we push a
+new field to the list when we close the current field.
+
+#+name: scan-problem
+#+begin_src elisp
+  (defun ianxm/scan-problem ()
+    (interactive)
+    (let ((field-index 0)
+          open-fields ; stack (open close (vars) deps)
+          closed-fields) ; list (open close (vars) deps)
+
+      (with-peg-rules
+          ((stuff (* (or var letter digit symbol field space)))
+           (field open (opt assignment) stuff close)
+           (space (* [space]))
+           (open (region "[")
+                 `(l r -- (progn
+                            (setq
+                             open-fields (push (list
+                                                (intern (concat "_" (number-to-string field-index)))
+                                                nil (copy-marker l) nil nil)
+                                               open-fields)
+                             field-index (1+ field-index))
+                            ".")))
+           (assignment (region (substring letter)) "="
+                       `(l v r -- (progn
+                                    (setcar
+                                     (car open-fields)
+                                     (intern v))
+                                    ".")))
+           (var "$" (substring letter)
+                `(v -- (progn
+                         (setcar
+                          (nthcdr 1 (car open-fields))
+                          (push (intern v) (nth 1 (car open-fields))))
+                         ".")))
+           (close (region "]")
+                  `(l r -- (progn
+                             (setcar (nthcdr 3 (car open-fields)) (copy-marker l t))
+                             (when (> (length open-fields) 1)
+                               (setcar
+                                (nthcdr 1 (nth 1 open-fields))
+                                (push (caar open-fields) (nth 1 (nth 1 open-fields)))))
+                             (setq
+                              closed-fields
+                              (push (pop open-fields) closed-fields))
+                             ".")))
+           (letter [a-z])
+           (digit [0-9])
+           (symbol (or "." "+" "-" "*" "/" "(" ")")))
+
+        (peg-run (peg stuff)
+                 (lambda (x) (message "failed %s" x))
+                 (lambda (x)
+                   (funcall x)
+                   closed-fields)))))
+#+end_src
+
+*** reduce field
+
+must call with point at the start of a field. moves point to the end
+of the field. returns a list containing the value to which the field
+reduces.
+
+#+name: reduce-field
+#+begin_src elisp
+    (defun ianxm/reduce-field ()
+      (interactive)
+      (with-peg-rules
+          ((field "[" space (or range sequence assignment expression value) space "]")
+           (expression (list value space operation space value (* space operation space value))
+                       `(vals -- (string-to-number
+                                  (calc-eval
+                                   (mapconcat
+                                    (lambda (x) (if (numberp x) (number-to-string x) x))
+                                    vals
+                                    " ")))))
+           (operation (substring (or "+" "-" "*" "/")))
+           (assignment var-lhs space "=" space (or range sequence)
+                       `(v r -- (progn
+                                  (setq var-list (push (cons (intern v) r) var-list))
+                                  r)))
+           (range value ".." value
+                  `(min max -- (+ (random (- max min)) min)))
+           (sequence (list value "," value (* "," value))
+                     `(vals -- (seq-random-elt vals)))
+           (value (or (substring (opt "-") (+ digit)) var-rhs parenthetical)
+                  `(v -- (if (stringp v) (string-to-number v) v)))
+           (parenthetical "(" expression ")"
+                          (action (message "paren")))
+           (var-lhs (substring letter)) ; var for assignment
+           (var-rhs "$" (substring letter) ; var for use
+                    `(v -- (let ((val (alist-get (intern v) var-list)))
+                             (or val (error "var %s not set" v)))))
+           (space (* [space]))
+           (letter [a-z])
+           (digit [0-9]))
+
+        (peg-run (peg field)
+                 (lambda (x) (message "failed %s" x))
+                 (lambda (x) (funcall x)))))
+#+end_src
+
+#+begin_example
+  simple range
+  [10..11]
+
+  complex range
+  [-10..[10..20]]
+
+  complex with assignment
+  [a=1..[2..8]]
+
+  complex with inner assignment
+  [-10..[b=10..20]]
+
+  simple with variable
+  [0..[$a..$b]]
+#+end_example
+
+*** replace field
+
+replace a field with the value returned from processing it.
+
+#+name: replace-field
+#+begin_src elisp
+  (defun ianxm/replace-field (node)
+    (let ((start (nth 2 node))
+          (end (1+ (nth 3 node)))
+          val)
+      (goto-char start)
+      (when (looking-at "\\[")
+        (setq val (car (ianxm/reduce-field)))
+        (goto-char start)
+        (delete-char (- end start) t)
+        (insert (number-to-string val)))))
+#+end_src
+
+*** dfs visit
+
+check dependencies then visit the node
+
+#+name: dfs-visit
+#+begin_src elisp
+  (defun ianxm/dfs-visit (node fields)
+    (pcase (nth 4 node)
+      (1 (error "cycle detected")) ; cycle
+      (2)                          ; skip
+      (_                           ; process
+       (setcar (nthcdr 4 node) 1)  ; started
+       (let ((deps (nth 1 node)))
+         (dolist (dep deps)
+           (ianxm/dfs-visit
+            (assq dep fields)
+            fields)))
+       (ianxm/replace-field node) ; visit
+       (setcar (nthcdr 4 node) 2)))) ; mark done
+#+end_src
+*** fill fields in problem
+
+processes all fields in a problem.
+
+#+begin_example
+(full-problem (buffer-substring (point-at-bol) (point-at-eol)))
+#+end_example
+
+#+name: fill-problem
+#+begin_src elisp :var full-problem="[$a + 2 + [a=1..5]]"
+  (defun ianxm/fill-problem (full-problem)
+      (interactive)
+      (let (fields)
+        (with-temp-buffer
+          ;; stage problem in temp buffer
+          (insert full-problem)
+          (beginning-of-buffer)
+
+          ;; find fields, assignments, dependencies
+          (setq fields (ianxm/scan-problem))
+          (message "fields %s" fields)
+
+          ;; order fields according to dependencies
+          (dolist (node fields)
+            (ianxm/dfs-visit node fields))
+          (setq var-list '())
+          (buffer-string))))
+#+end_src
+
+test with this
+#+begin_src elisp :noweb yes
+  <<full>>
+
+  (ianxm/fill-problem "[1..12] + [1..10]")
+  ;;(ianxm/fill-problem "[1..[2..[10..100]]]")
+  ;;(ianxm/fill-problem "[$a*[1..10]] / [a=1..10]")
+  ;;(ianxm/fill-problem "[$a]/(3+[a=1..5])")
+
+#+end_src
+
+#+RESULTS:
+: 11 + 8
+
+*** full script
+tangles everything needed to convert a template to a problem
+
+#+name: full
+#+begin_src elisp :noweb yes :tangle mathsheet.el
+<<var-list>>
+
+<<scan-problem>>
+
+<<reduce-field>>
+
+<<catalog-fields>>
+
+<<replace-field>>
+
+<<dfs-visit>>
+
+<<fill-problem>>
+#+end_src
 ** generate problem set from template
 
 #+name: problem-set
@@ -76,6 +332,8 @@ problem weight 1 order 3 "a + c - b"
 
 #+RESULTS: one-problem
 : (7 + 8 . 15)
+
+*** TODO dedup
 
 ** lay out problems and answers
 this generates a problem set.

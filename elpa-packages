@@ -776,7 +776,6 @@
  (track-changes		:core "lisp/emacs-lisp/track-changes.el")
  (tramp			:url "https://git.savannah.gnu.org/git/tramp.git"
   :branch "externals/tramp"
-  :main-file "trampver.el"
   :make ("autoloads" "info")
   :doc "texi/tramp.texi")
  (tramp-nspawn		:url "https://github.com/bjc/tramp-nspawn"

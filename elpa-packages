@@ -305,9 +305,9 @@
   :ignored-files ("COPYING"))
  ;; FIXME: Work in progress.  The copyright paperwork is ready.
  ;;(elsa		:url "https://github.com/emacs-elsa/Elsa")
- ;;(emacspeak		:url "https://github.com/tvraman/emacspeak"
- ;; :doc "info/emacspeak.texi"
- ;; :lisp-dir "lisp")
+ ;; (emacspeak		:url "https://github.com/tvraman/emacspeak"
+ ;;  :doc "info/emacspeak.texi"
+ ;;  :lisp-dir "lisp")
  (embark		:url "https://github.com/oantolin/embark"
   :doc "embark.texi"
   :ignored-files ("embark-consult.el" "avy-embark-collect.el"))
@@ -511,7 +511,7 @@
  (mathjax               :url "https://github.com/astoff/mathjax.el"
   :make "elpa")
  (matlab-mode           :url "https://github.com/mathworks/Emacs-MATLAB-Mode.git"
-  :main-file "matlab.el")
+  ) ;; :main-file "matlab.el"
  (mct			:url "https://gitlab.com/protesilaos/mct"
   :doc "README.org")
  (memory-usage		:url nil)

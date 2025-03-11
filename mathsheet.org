@@ -4,7 +4,7 @@ the goal is to generate a math practice sheet.
 similar to https://www.math-aids.com
 * script
 ** vars
--#+property: header-args+ :var student="Noble" problem-count=24
+#+property: header-args+ :var student="Noble" problem-count=26
 
 ** problem sets
 *** add and subtract
@@ -14,9 +14,9 @@ similar to https://www.math-aids.com
 |--------+-------+-------------------------------+------------------------|
 |      3 |     1 | [1..10] + [0..10]             | simple                 |
 |      2 |     2 | [1..10] + [8..15]             | second number bigger   |
+|      1 |     2 | [a=3..10] - [0..$a]           | subtraction            |
 |      1 |     3 | [1..10] + [1..7] + [1..5]     | three numbers          |
-|      1 |     4 | [a=3..10] - [0..$a]           | subtraction            |
-|      1 |     4 | [a=1..10] + [0..10] - [1..$a] | three with subtraction |
+|      1 |     4 | [a=1..10] + [0..10] - [0..$a] | three with subtraction |
 |      0 |     0 | [$a*[1..5]] / [a=1..10]       | division               |
 
 ** problem generation
@@ -159,23 +159,6 @@ reduces.
                  (lambda (x) (funcall x)))))
 #+end_src
 
-#+begin_example
-  simple range
-  [10..11]
-
-  complex range
-  [-10..[10..20]]
-
-  complex with assignment
-  [a=1..[2..8]]
-
-  complex with inner assignment
-  [-10..[b=10..20]]
-
-  simple with variable
-  [0..[$a..$b]]
-#+end_example
-
 *** replace field
 
 replace a field with the value returned from processing it.
@@ -234,7 +217,7 @@ processes all fields in a problem.
 
           ;; find fields, assignments, dependencies
           (setq fields (ianxm/scan-problem))
-          (message "fields %s" fields)
+          ;;(message "fields %s" fields)
 
           ;; order fields according to dependencies
           (dolist (node fields)
@@ -247,93 +230,146 @@ test with this
 #+begin_src elisp :noweb yes
   <<full>>
 
-  (ianxm/fill-problem "[1..12] + [1..10]")
+  ;;(ianxm/fill-problem "[1..12] + [1..10]")
   ;;(ianxm/fill-problem "[1..[2..[10..100]]]")
   ;;(ianxm/fill-problem "[$a*[1..10]] / [a=1..10]")
   ;;(ianxm/fill-problem "[$a]/(3+[a=1..5])")
+  (ianxm/fill-problem "[-10..[10..20]]")
 
 #+end_src
 
 #+RESULTS:
-: 11 + 8
+: -7
+
+other examples
+#+begin_example
+  simple range
+  [10..11]
+
+  complex range
+  [-10..[10..20]]
+
+  complex with assignment
+  [a=1..[2..8]]
+
+  complex with inner assignment
+  [-10..[b=10..20]]
+
+  simple with variable
+  [0..[$a..$b]]
+#+end_example
 
 *** full script
 tangles everything needed to convert a template to a problem
 
 #+name: full
 #+begin_src elisp :noweb yes :tangle mathsheet.el
-<<var-list>>
+  <<var-list>>
 
-<<scan-problem>>
+  <<scan-problem>>
 
-<<reduce-field>>
+  <<reduce-field>>
 
-<<catalog-fields>>
+  <<catalog-fields>>
 
-<<replace-field>>
+  <<replace-field>>
 
-<<dfs-visit>>
+  <<dfs-visit>>
 
-<<fill-problem>>
+  <<fill-problem>>
+
+  <<generate-problems>>
 #+end_src
-** generate problem set from template
+** generate problem set from templates
+
+1. load table
+2. determine how many of each
+   1. sort by weight, low to high
+   2. for each row
+      1. calculate number, round with min 1, but 0->0
+   3. for last entry (highest weight) just take however many are left.
+   4. produce '(order template nil) for each problem
+   5. convert to '(order problem answer)
+3. sort
+4. loop through list, replacing entry with '(problem . solution)
+
+#+name: generate-problems
+#+begin_src elisp :results table :var templates=firstset
+  (defun ianxm/generate-problems ()
+    (let (total-weight problems)
+      ;; sort by weight (low to high)
+      (setq templates (sort templates (lambda (a b) (< (car a) (car b))))
+            ;; calc total weight
+            total-weight (float
+                          (seq-reduce (lambda (total item) (+ total (car item)))
+                                      templates
+                                      0)))
+      ;; calculate number for each row
+      (dotimes (ii (length templates) problems)
+        (let* (problem answer
+                       (item (nth ii templates))
+                       (weight (car item))
+                       (needed (cond
+                                ((= weight 0)
+                                 0)
+                                ((= ii (1- (length templates)))
+                                 (- problem-count (length problems)))
+                                (t
+                                 (max (round (* (/ weight total-weight) problem-count) ) 1)))))
+          ;; add problems to list
+          (dotimes (jj needed)
+            (let* ((problem (ianxm/fill-problem (nth 2 item)))
+                   (answer (calc-eval problem))
+                   (order (nth 1 item)))
+              (setq problems (push (list order problem answer) problems))))))
+
+      ;; shuffle
+      (dotimes (ii (- (length problems) 1))
+        (let ((jj (+ (random (- (length problems) ii)) ii)))
+          (psetf (elt problems ii) (elt problems jj)
+                 (elt problems jj) (elt problems ii))))
+
+      ;; sort by order
+      (sort problems (lambda (a b) (< (car a) (car b))))
+
+      ;; remove the "order" column and return
+      (mapcar (lambda (x) (seq-drop x 1)) problems)))
+#+end_src
+
+test with this
 
 #+name: problem-set
-#+begin_src elisp :noweb yes :var template=first-set
-  (let (prob ret)
-    (dotimes (index problem-count ret)
-      (setq prob
-            <<one-problem>>)
-      (setq ret (push (list (car prob) (cdr prob)) ret ))))
+#+begin_src elisp :results table :noweb yes :var templates=firstset
+  <<full>>
+
+  (ianxm/generate-problems)
 #+end_src
 
-
-#+name: one-problem
-#+begin_src elisp :var template=first-set
-  (let (vars probs prob weight order answ)
-    ;; parse input
-    (dolist (line (split-string template "\n"))
-      (pcase (read (concat "(" line ")"))
-        (`(var ,name in [,min ,max])
-         ;; assign vars
-         (push (cons name (+ (random (- max min -1)) min)) vars))
-        ((and
-          (pred (lambda (x) (eq 'problem (car x))))
-          `(problem weight ,weight order ,order ,prob))
-         ;; save problems
-         (push (cons prob weight)
-               probs))))
-    ;; choose problem given weights
-    (let ((tot (reduce
-                (lambda (tot prob) (+ tot (cdr prob)))
-                probs
-                :initial-value 0))
-          indx chosen-prob)
-      (setq indx (random tot)
-            chosen-prob (reduce
-                         (lambda (rem prob)
-                           (cond
-                            ((not (numberp rem)) rem)
-                            ((> rem 0) (setq rem (- rem (cdr prob))) (if (> rem 0) rem (car prob)))
-                            (t (car prob))))
-                         probs
-                         :initial-value indx))
-      ;; do replacements
-      (dolist (var vars)
-        (setq chosen-prob (replace-regexp-in-string
-                           (symbol-name (car var))
-                           (number-to-string (cdr var))
-                           chosen-prob)))
-      ;; calculate answer
-      (setq answ (calc-eval chosen-prob))
-
-      (cons chosen-prob answ)))
-#+end_src
-
-#+RESULTS: one-problem
-: (7 + 8 . 15)
-
-*** TODO dedup
+#+RESULTS: problem-set
+| 9 + 9     | 18 |
+| 1 + 4     |  5 |
+| 8 + 2     | 10 |
+| 3 + 7     | 10 |
+| 6 + 4     | 10 |
+| 1 + 1     |  2 |
+| 7 + 4     | 11 |
+| 5 + 5     | 10 |
+| 4 + 1     |  5 |
+| 9 + 13    | 22 |
+| 2 + 14    | 16 |
+| 4 + 10    | 14 |
+| 9 + 11    | 20 |
+| 4 + 12    | 16 |
+| 3 + 12    | 15 |
+| 3 + 4 + 3 | 10 |
+| 2 + 6 + 1 |  9 |
+| 7 + 5 + 1 | 13 |
+| 8 - 7     |  1 |
+| 8 + 1 - 3 |  6 |
+| 4 - 0     |  4 |
+| 6 + 3 - 3 |  6 |
+| 3 - 0     |  3 |
+| 8 + 7 - 5 | 10 |
 
 ** lay out problems and answers
 this generates a problem set.

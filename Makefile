@@ -33,6 +33,7 @@
 
 EMACS ?= emacs
 MAKEINFO ?= makeinfo
+INSTALL_INFO ?= install-info --quiet
 
 SOURCE = $(wildcard *.el)
 TESTSOURCE = $(wildcard test/*.el)
@@ -54,7 +55,8 @@ test/%.elc: test/%.el
 	@$(EMACS) -Q -batch -L . -L ./test -f batch-byte-compile $<
 
 %.info: %.texi
-	$(MAKEINFO) --error-limit=0 --no-split $< -o $@
+	@$(MAKEINFO) --error-limit=0 --no-split $< -o $@
+	@$(INSTALL_INFO) --dir-file=dir $@
 
 all: build doc
 
@@ -73,4 +75,4 @@ check: $(TESTS)
 	  --eval '(ert-run-tests-batch-and-exit (quote ${SELECTOR}))'
 
 clean:
-	-rm -f $(TARGET) $(TESTTARGET) $(INFOMANUALS)
+	-rm -f $(TARGET) $(TESTTARGET) $(INFOMANUALS) dir

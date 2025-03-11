@@ -1,23 +1,20 @@
--*- Text -*-
-This is the file .../info/dir, which contains the topmost node of the
-Info hierarchy.  The first time you invoke Info you start off
-looking at that node, which is (dir)Top.
+This is the file .../info/dir, which contains the
+topmost node of the Info hierarchy, called (dir)Top.
+The first time you invoke Info you start off looking at this node.
 
-File: dir	Node: Top	This is the top of the INFO tree
+File: dir,	Node: Top	This is the top of the INFO tree
 
-The Info Directory
-******************
+  This (the Directory node) gives a menu of major topics.
+  Typing "q" exits, "H" lists all Info commands, "d" returns here,
+  "h" gives a primer for first-timers,
+  "mEmacs<Return>" visits the Emacs manual, etc.
 
-  The Info Directory is the top-level menu of major Info topics.
-  Type "d" in Info to return to the Info Directory.  Type "q" to exit Info.
-  Type "?" for a list of Info commands, or "h" to visit an Info tutorial.
-  Type "m" to choose a menu item--for instance,
-    "mEmacs<Return>" visits the Emacs manual.
-  In Emacs Info, you can click mouse button 2 on a menu item
-  or cross reference to follow it to its target.
+  In Emacs, you can click mouse button 2 on a menu item or cross reference
+  to select it.
 
-* Menu: Each line that starts with a * is a topic you can select with "m".
+* Menu:
 
 Emacs
 * Debbugs Library: (debbugs).   A library for communication with Debbugs.
-* Debbugs User Guide: (debbugs-ug).  Debbugs User Interface in Emacs.
+* Debbugs User Guide: (debbugs-ug).
+                                Debbugs User Interface in Emacs.

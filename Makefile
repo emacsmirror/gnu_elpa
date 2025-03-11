@@ -45,7 +45,7 @@ SELECTOR ?= (not (tag :unstable))
 
 INFOMANUALS = debbugs.info debbugs-ug.info
 
-.PHONY: all build check clean checkdoc
+.PHONY: all build check checkdoc clean doc
 .PRECIOUS: %.elc
 
 %.elc: %.el

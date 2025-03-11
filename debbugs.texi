@@ -4,7 +4,6 @@
 
 @dircategory Emacs
 @direntry
-@c If you change this, you must also change file "dir" in this directory.
 * Debbugs Library: (debbugs).  A library for communication with Debbugs.
 @end direntry
 

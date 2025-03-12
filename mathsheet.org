@@ -1,16 +1,42 @@
 * goal
-the goal is to generate a math practice sheet.
+The goal is to generate a math practice sheet made up of dynamic problems that are defined in flexible templates.
 
-similar to https://www.math-aids.com
+Similar to https://www.math-aids.com.
 * script
 ** vars
+This sets the name at the top of the page as well as the number of
+problems on the worksheet.
+
 #+property: header-args+ :var student="Noble" problem-count=26
 
-** problem sets
+** problem set examples
+This section contains some example templates. Each table defines a
+worksheet. Each time the worksheet is created the problems are
+generated randomly.
+
+The table contains the following columns:
+- weight :: the relative number of this type of problem to include on
+  the worksheet.
+- order :: problems are ordered on the sheet in ascending order. two
+  problems with the same order will be intermingled.
+- template :: this is the template used to generate problems of this
+  type. Templates are described in more detail below.
+- descr :: just notes, not used in worksheet generation.
+
+Templates are problems but the numbers are replaced with placeholders
+in square brackets.
+- [0..10] :: any number from 0 to 10
+- [a=...] :: assign the variable a to the number chosen for this field
+- [1,3,5] :: choose 1 or 3 or 5
+- [10/(2-1)] :: evaluate the expression
+- [-2..$a] :: any number from -2 to the value assigned to a in another
+  placeholder
+- [0..[$a/2]] :: placeholders can be embedded within placeholders
+
 *** add and subtract
 
 #+name: firstset
-| weight | order | problem                       | descr                  |
+| weight | order | template                      | descr                  |
 |--------+-------+-------------------------------+------------------------|
 |      3 |     1 | [1..10] + [0..10]             | simple                 |
 |      2 |     2 | [1..10] + [8..15]             | second number bigger   |
@@ -73,12 +99,11 @@ new field to the list when we close the current field.
            (space (* [space]))
            (open (region "[")
                  `(l r -- (progn
-                            (setq
-                             open-fields (push (list
-                                                (intern (concat "_" (number-to-string field-index)))
-                                                nil (copy-marker l) nil nil)
-                                               open-fields)
-                             field-index (1+ field-index))
+                            (push (list
+                                   (intern (concat "_" (number-to-string field-index)))
+                                   nil (copy-marker l) nil nil)
+                                  open-fields)
+                            field-index (1+ field-index)
                             ".")))
            (assignment (region (substring letter)) "="
                        `(l v r -- (progn
@@ -88,20 +113,14 @@ new field to the list when we close the current field.
                                     ".")))
            (var "$" (substring letter)
                 `(v -- (progn
-                         (setcar
-                          (nthcdr 1 (car open-fields))
-                          (push (intern v) (nth 1 (car open-fields))))
+                         (push (intern v) (cadar open-fields))
                          ".")))
            (close (region "]")
                   `(l r -- (progn
-                             (setcar (nthcdr 3 (car open-fields)) (copy-marker l t))
+                             (setcar (cdddar open-fields) (copy-marker l t))
                              (when (> (length open-fields) 1)
-                               (setcar
-                                (nthcdr 1 (nth 1 open-fields))
-                                (push (caar open-fields) (nth 1 (nth 1 open-fields)))))
-                             (setq
-                              closed-fields
-                              (push (pop open-fields) closed-fields))
+                               (push (caar open-fields) (cadadr open-fields)))
+                             (push (pop open-fields) closed-fields)
                              ".")))
            (letter [a-z])
            (digit [0-9])
@@ -122,41 +141,41 @@ reduces.
 
 #+name: reduce-field
 #+begin_src elisp
-    (defun ianxm/reduce-field ()
-      (interactive)
-      (with-peg-rules
-          ((field "[" space (or range sequence assignment expression value) space "]")
-           (expression (list value space operation space value (* space operation space value))
-                       `(vals -- (string-to-number
-                                  (calc-eval
-                                   (mapconcat
-                                    (lambda (x) (if (numberp x) (number-to-string x) x))
-                                    vals
-                                    " ")))))
-           (operation (substring (or "+" "-" "*" "/")))
-           (assignment var-lhs space "=" space (or range sequence)
-                       `(v r -- (progn
-                                  (setq var-list (push (cons (intern v) r) var-list))
-                                  r)))
-           (range value ".." value
-                  `(min max -- (+ (random (- max min)) min)))
-           (sequence (list value "," value (* "," value))
-                     `(vals -- (seq-random-elt vals)))
-           (value (or (substring (opt "-") (+ digit)) var-rhs parenthetical)
-                  `(v -- (if (stringp v) (string-to-number v) v)))
-           (parenthetical "(" expression ")"
-                          (action (message "paren")))
-           (var-lhs (substring letter)) ; var for assignment
-           (var-rhs "$" (substring letter) ; var for use
-                    `(v -- (let ((val (alist-get (intern v) var-list)))
-                             (or val (error "var %s not set" v)))))
-           (space (* [space]))
-           (letter [a-z])
-           (digit [0-9]))
+  (defun ianxm/reduce-field ()
+    (interactive)
+    (with-peg-rules
+        ((field "[" space (or range sequence assignment expression value) space "]")
+         (expression (list value space operation space value (* space operation space value))
+                     `(vals -- (string-to-number
+                                (calc-eval
+                                 (mapconcat
+                                  (lambda (x) (if (numberp x) (number-to-string x) x))
+                                  vals
+                                  " ")))))
+         (operation (substring (or "+" "-" "*" "/")))
+         (assignment var-lhs space "=" space (or range sequence)
+                     `(v r -- (progn
+                                (push (cons (intern v) r) var-list)
+                                r)))
+         (range value ".." value
+                `(min max -- (+ (random (- max min)) min)))
+         (sequence (list value "," value (* "," value))
+                   `(vals -- (seq-random-elt vals)))
+         (value (or (substring (opt "-") (+ digit)) var-rhs parenthetical)
+                `(v -- (if (stringp v) (string-to-number v) v)))
+         (parenthetical "(" expression ")"
+                        (action (message "paren")))
+         (var-lhs (substring letter)) ; var for assignment
+         (var-rhs "$" (substring letter) ; var for use
+                  `(v -- (let ((val (alist-get (intern v) var-list)))
+                           (or val (error "var %s not set" v)))))
+         (space (* [space]))
+         (letter [a-z])
+         (digit [0-9]))
 
-        (peg-run (peg field)
-                 (lambda (x) (message "failed %s" x))
-                 (lambda (x) (funcall x)))))
+      (peg-run (peg field)
+               (lambda (x) (message "failed %s" x))
+               (lambda (x) (funcall x)))))
 #+end_src
 
 *** replace field
@@ -166,8 +185,8 @@ replace a field with the value returned from processing it.
 #+name: replace-field
 #+begin_src elisp
   (defun ianxm/replace-field (node)
-    (let ((start (nth 2 node))
-          (end (1+ (nth 3 node)))
+    (let ((start (caddr node))
+          (end (1+ (cadddr node)))
           val)
       (goto-char start)
       (when (looking-at "\\[")
@@ -188,14 +207,14 @@ check dependencies then visit the node
       (1 (error "cycle detected")) ; cycle
       (2)                          ; skip
       (_                           ; process
-       (setcar (nthcdr 4 node) 1)  ; started
-       (let ((deps (nth 1 node)))
+       (setcar (cddddr node) 1)  ; started
+       (let ((deps (cadr node)))
          (dolist (dep deps)
            (ianxm/dfs-visit
             (assq dep fields)
             fields)))
        (ianxm/replace-field node) ; visit
-       (setcar (nthcdr 4 node) 2)))) ; mark done
+       (setcar (cddddr node) 2)))) ; mark done
 #+end_src
 *** fill fields in problem
 
@@ -316,12 +335,19 @@ tangles everything needed to convert a template to a problem
                                  (- problem-count (length problems)))
                                 (t
                                  (max (round (* (/ weight total-weight) problem-count) ) 1)))))
-          ;; add problems to list
-          (dotimes (jj needed)
-            (let* ((problem (ianxm/fill-problem (nth 2 item)))
-                   (answer (calc-eval problem))
-                   (order (nth 1 item)))
-              (setq problems (push (list order problem answer) problems))))))
+
+          ;; add just problems to list?
+          ;; dedup each one
+          ;; add until "needed" are kept
+          (let ((added 0)
+                problem-set
+                problem)
+            (while (< added needed)
+              (setq problem (ianxm/fill-problem (caddr item)))
+              (when (not (member problem problem-set))
+                (push problem problem-set)
+                (push (list problem (calc-eval problem) (cadr item)) problems)
+                (setq added (1+ added)))))))
 
       ;; shuffle
       (dotimes (ii (- (length problems) 1))
@@ -330,10 +356,10 @@ tangles everything needed to convert a template to a problem
                  (elt problems jj) (elt problems ii))))
 
       ;; sort by order
-      (sort problems (lambda (a b) (< (car a) (car b))))
+      (sort problems (lambda (a b) (< (caddr a) (caddr b))))
 
-      ;; remove the "order" column and return
-      (mapcar (lambda (x) (seq-drop x 1)) problems)))
+      ;; return
+      problems))
 #+end_src
 
 test with this
@@ -346,30 +372,32 @@ test with this
 #+end_src
 
 #+RESULTS: problem-set
-| 9 + 9     | 18 |
-| 1 + 4     |  5 |
-| 8 + 2     | 10 |
-| 3 + 7     | 10 |
-| 6 + 4     | 10 |
-| 1 + 1     |  2 |
-| 7 + 4     | 11 |
-| 5 + 5     | 10 |
-| 4 + 1     |  5 |
-| 9 + 13    | 22 |
-| 2 + 14    | 16 |
-| 4 + 10    | 14 |
-| 9 + 11    | 20 |
-| 4 + 12    | 16 |
-| 3 + 12    | 15 |
-| 3 + 4 + 3 | 10 |
-| 2 + 6 + 1 |  9 |
-| 7 + 5 + 1 | 13 |
-| 8 - 7     |  1 |
-| 8 + 1 - 3 |  6 |
-| 4 - 0     |  4 |
-| 6 + 3 - 3 |  6 |
-| 3 - 0     |  3 |
-| 8 + 7 - 5 | 10 |
+| 9 + 9     | 18 | 1 |
+| 4 + 3     |  7 | 1 |
+| 6 + 9     | 15 | 1 |
+| 5 + 4     |  9 | 1 |
+| 1 + 4     |  5 | 1 |
+| 3 + 7     | 10 | 1 |
+| 4 + 7     | 11 | 1 |
+| 8 + 3     | 11 | 1 |
+| 2 + 0     |  2 | 1 |
+| 5 + 5     | 10 | 1 |
+| 9 + 3     | 12 | 1 |
+| 8 + 10    | 18 | 2 |
+| 6 + 10    | 16 | 2 |
+| 6 - 4     |  2 | 2 |
+| 7 + 10    | 17 | 2 |
+| 4 + 13    | 17 | 2 |
+| 6 + 14    | 20 | 2 |
+| 7 - 3     |  4 | 2 |
+| 8 - 6     |  2 | 2 |
+| 2 + 11    | 13 | 2 |
+| 9 + 1 + 4 | 14 | 3 |
+| 3 + 1 + 4 |  8 | 3 |
+| 1 + 1 + 4 |  6 | 3 |
+| 2 + 7 - 1 |  8 | 4 |
+| 9 + 1 - 1 |  9 | 4 |
+| 9 + 1 - 4 |  6 | 4 |
 
 ** lay out problems and answers
 this generates a problem set.

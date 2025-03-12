@@ -254,7 +254,7 @@ Everything is in place to set up the package.
 :END:
 #+cindex: Contributors
 
-Denote Journal is meant to be a collective effort.  Every bit of help matters.
+Denote Silo is meant to be a collective effort.  Every bit of help matters.
 
 + Author/maintainer :: Protesilaos Stavrou.
 

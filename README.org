@@ -102,6 +102,24 @@ Once the user selects a silo, a second prompt asks for a Denote
 note-creation command to call from inside that silo (read about the
 "Points of entry" in the Denote manual).
 
+** Switch to a silo directory
+:PROPERTIES:
+:CUSTOM_ID: h:switch-to-a-silo-directory
+:END:
+
+#+findex: denote-silo-dired
+The command ~denote-silo-dired~ prompts for a silo directory among
+those specified in the user option ~denote-silo-directories~ and
+switches to it using ~dired~.
+
+#+findex: denote-silo-cd
+The command ~denote-silo-cd~ is the same as above, except it used the
+~cd~ to perform the switch. This is more subtle because the current
+buffer does not change, even though the "current directory" is
+different. Such an action is useful to, for example, affect what a
+shell or search command will consider as the current directory,
+without necessarily changing context completely.
+
 * Installation
 :PROPERTIES:
 :CUSTOM_ID: h:installation
@@ -167,7 +185,9 @@ Everything is in place to set up the package.
   ;; Bind these commands to key bindings of your choice.
   :commands ( denote-silo-create-note
               denote-silo-open-or-create
-              denote-silo-select-silo-then-command ))
+              denote-silo-select-silo-then-command
+              denote-silo-dired
+              denote-silo-cd ))
 #+end_src
 
 * Acknowledgements

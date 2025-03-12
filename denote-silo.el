@@ -123,5 +123,27 @@ conforms with `denote-silo-path-is-silo-p'."
     (let ((denote-directory silo))
       (call-interactively command))))
 
+;;;###autoload
+(defun denote-silo-dired (silo)
+  "Switch to SILO directory using `dired'.
+SILO is a file path from `denote-silo-directories'.
+
+When called from Lisp, SILO is a file system path to a directory that
+conforms with `denote-silo-path-is-silo-p'."
+  (interactive (list (denote-silo-directory-prompt)))
+  (denote-silo-with-silo silo
+    (dired silo)))
+
+;;;###autoload
+(defun denote-silo-cd (silo)
+  "Switch to SILO directory using `cd'.
+SILO is a file path from `denote-silo-directories'.
+
+When called from Lisp, SILO is a file system path to a directory that
+conforms with `denote-silo-path-is-silo-p'."
+  (interactive (list (denote-silo-directory-prompt)))
+  (denote-silo-with-silo silo
+    (cd silo)))
+
 (provide 'denote-silo)
 ;;; denote-silo.el ends here

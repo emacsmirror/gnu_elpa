@@ -59,6 +59,7 @@ included in the section entitled “GNU Free Documentation License.”
 (a) The FSF’s Back-Cover Text is: “You have the freedom to copy and
 modify this GNU manual.”
 #+end_quote
+
 * Overview
 :PROPERTIES:
 :CUSTOM_ID: h:6157c29a-31e6-4ba7-b114-57f94a21d460

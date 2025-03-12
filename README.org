@@ -659,13 +659,9 @@ Everything is in place to set up the package.
 :END:
 #+cindex: Contributors
 
-Denote Sequence is meant to be a collective effort.  Every bit of help matters.
+Denote Org is meant to be a collective effort.  Every bit of help matters.
 
 + Author/maintainer :: Protesilaos Stavrou.
-
-+ Contributions to code or the manual :: Claudio Migliorelli, Kierin Bell.
-
-+ Ideas and/or user feedback :: Mirko Hernandez.
 
 * GNU Free Documentation License
 :PROPERTIES:

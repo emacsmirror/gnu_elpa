@@ -1,0 +1,5 @@
+*.elc
+*-autoloads.el
+*-pkg.el
+denote-silo.info
+denote-silo.texi

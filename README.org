@@ -7,8 +7,8 @@
 #+macro: stable-version 0.0.0
 #+macro: release-date N/A
 #+macro: development-version 0.1.0-dev
-#+export_file_name: denote-silod.texi
-#+texinfo_filename: denote-silod.info
+#+export_file_name: denote-silo.texi
+#+texinfo_filename: denote-silo.info
 #+texinfo_dir_category: Emacs misc features
 #+texinfo_dir_title: Denote Silo: (denote-silo)
 #+texinfo_dir_desc: Convenience functions to work with multiple Denote silos

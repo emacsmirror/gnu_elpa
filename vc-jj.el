@@ -29,6 +29,7 @@
 ;;; Code:
 
 (require 'compat)
+(require 'cl-lib)
 (require 'seq)
 (require 'vc)
 (require 'vc-git)

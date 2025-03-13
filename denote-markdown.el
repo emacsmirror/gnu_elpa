@@ -25,7 +25,7 @@
 
 ;;; Commentary:
 ;;
-;; Optional extensions to Denote that work specifically with Markdown files.
+;; Optional extensions for Denote that work specifically with Markdown files.
 
 ;;; Code:
 

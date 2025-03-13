@@ -20,7 +20,7 @@
 #+texinfo: @insertcopying
 
 This manual, written by Protesilaos Stavrou, describes the customization
-options for the Emacs package called ~denote~ (or =denote.el=), and
+options for the Emacs package called ~denote-silo~ (or =denote-silo.el=), and
 provides every other piece of information pertinent to it.
 
 The documentation furnished herein corresponds to stable version

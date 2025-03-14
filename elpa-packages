@@ -231,12 +231,22 @@
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
+ (denote-journal		:url "https://github.com/protesilaos/denote-journal"
+  :doc "README.org")
+ (denote-markdown		:url "https://github.com/protesilaos/denote-markdown"
+  :doc "README.org")
  (denote-menu		:url "https://github.com/namilus/denote-menu"
   :readme "README.org"
   :ignored-files ("COPYING"))
+ (denote-org		:url "https://github.com/protesilaos/denote-org"
+  :doc "README.org")
  (denote-search		:url "https://github.com/lmq-10/denote-search"
   :ignored-files ("COPYING" "doclicense.texi")
   :readme "README.md"
+  :doc "README.org")
+ (denote-sequence		:url "https://github.com/protesilaos/denote-sequence"
+  :doc "README.org")
+ (denote-silo		:url "https://github.com/protesilaos/denote-silo"
   :doc "README.org")
  (detached		:url "https://git.sr.ht/~niklaseklund/detached.el"
   :news "CHANGELOG.org"

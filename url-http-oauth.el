@@ -1,9 +1,10 @@
 ;;; url-http-oauth.el --- OAuth 2.0 for URL library -*- lexical-binding: t -*-
 
-;; Copyright (C) 2023 Free Software Foundation, Inc.
+;; Copyright (C) 2023, 2025 Free Software Foundation, Inc.
 
 ;; Author: Thomas Fitzsimmons <fitzsim@fitzsim.org>
 ;; Version: 0.8.3
+;; Package-Requires: ((emacs "24.4"))
 ;; Keywords: comm, data, processes, hypermedia
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -561,7 +562,11 @@ permissions that the caller is requesting."
 
 ;;; Register `url-oauth-auth' HTTP authentication method.
 ;;;###autoload
-(url-register-auth-scheme "oauth" nil 9)
+(with-eval-after-load 'url-auth
+  ;; Delay the evaluation to after `url-auth' is loaded, since loading
+  ;; `url-auth' loads a crapload of other packages that we just don't need
+  ;; at startup.
+  (url-register-auth-scheme "oauth" nil 9))
 
 (provide 'url-http-oauth)
 

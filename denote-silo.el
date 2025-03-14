@@ -5,7 +5,7 @@
 ;; Author: Protesilaos Stavrou <info@protesilaos.com>
 ;; Maintainer: Protesilaos Stavrou <info@protesilaos.com>
 ;; URL: https://github.com/protesilaos/denote-silo
-;; Version: 0.0.0
+;; Version: 0.0.0.1
 ;; Package-Requires: ((emacs "28.1") (denote "3.1.0"))
 
 ;; This file is NOT part of GNU Emacs.

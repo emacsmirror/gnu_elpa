@@ -151,7 +151,7 @@ request to the host in URL's server slot."
 
 (defun url-http-ntlm--clean-headers ()
   "Remove Authorization element from `url-http-extra-headers' alist."
-  (cl-declare (special url-http-extra-headers))
+  (defvar url-http-extra-headers)
   (setq url-http-extra-headers
 	(url-http-ntlm--rmssoc "Authorization" url-http-extra-headers)))
 
@@ -160,7 +160,7 @@ request to the host in URL's server slot."
 ARGS comes from `url-ntlm-auth''s caller,
 `url-get-authentication'.  Its meaning depends on the current
 implementation -- this function is well and truly coupled."
-  (cl-declare (special url-http-extra-headers))
+  (defvar url-http-extra-headers)
   (let* ((response-rxp	   "^NTLM TlRMTVNTUAADAAA")
 	 (challenge-rxp	   "^TLRMTVNTUAACAAA")
 	 (auth-header	   (assoc "Authorization" url-http-extra-headers))

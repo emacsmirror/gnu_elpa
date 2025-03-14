@@ -1,13 +1,13 @@
 ;;; url-http-ntlm.el --- NTLM authentication for the url library  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2008-2023  Free Software Foundation, Inc.
+;; Copyright (C) 2008-2025  Free Software Foundation, Inc.
 
 ;; Author: Tom Schutzer-Weissmann <tom.weissmann@gmail.com>
 ;; Maintainer: Thomas Fitzsimmons <fitzsim@fitzsim.org>
 ;; Version: 2.0.5
 ;; Keywords: comm, data, processes, hypermedia
 ;; Homepage: https://code.google.com/p/url-http-ntlm/
-;; Package-Requires: ((cl-lib "0.5") (ntlm "2.1.0") (nadvice "0.3"))
+;; Package-Requires: ((emacs "24.4") (ntlm "2.1.0"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -323,7 +323,11 @@ the server's last response.  These are used by
 
 ;;; Register `url-ntlm-auth' HTTP authentication method.
 ;;;###autoload
-(url-register-auth-scheme "ntlm" nil 8)
+(with-eval-after-load 'url-auth
+  ;; Delay the evaluation to after `url-auth' is loaded, since loading
+  ;; `url-auth' loads a crapload of other packages that we just don't need
+  ;; at startup.
+  (url-register-auth-scheme "ntlm" nil 8))
 
 (provide 'url-http-ntlm)
 

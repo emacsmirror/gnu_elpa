@@ -1,6 +1,6 @@
-;;; shell-quasiquote.el --- Turn s-expressions into shell command strings.
+;;; shell-quasiquote.el --- Turn s-expressions into shell command strings.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2015  Free Software Foundation, Inc.
+;; Copyright (C) 2015, 2025  Free Software Foundation, Inc.
 
 ;; Author: Taylan Ulrich Bayırlı/Kammer <taylanbayirli@gmail.com>
 ;; Keywords: extensions, unix
@@ -70,8 +70,8 @@
   (shell-quote-argument (shqq--atom-to-string atom)))
 
 (defmacro shqq (parts)
-  "First, PARTS is turned into a list of strings.  For this,
-every element of PARTS must be one of:
+  "First, PARTS is turned into a list of strings.
+Every element of PARTS must be one of:
 
 - a symbol, evaluating to its name,
 

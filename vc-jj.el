@@ -1,6 +1,6 @@
 ;;; vc-jj.el --- VC backend for the Jujutsu version control system -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024  Wojciech Siewierski
+;; Copyright (C) 2024-2025  Free Software Foundation, Inc.
 
 ;; Author: Wojciech Siewierski
 ;;         Rudolf Schlatte <rudi@constantly.at>

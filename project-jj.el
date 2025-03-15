@@ -1,6 +1,6 @@
 ;;; project-jj.el --- A minimal project.el backend for Jujutsu VCS  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024  Wojciech Siewierski
+;; Copyright (C) 2024-2025  Free Software Foundation, Inc.
 
 ;; Author: Wojciech Siewierski
 

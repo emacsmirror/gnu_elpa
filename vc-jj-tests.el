@@ -1,6 +1,6 @@
 ;;; vc-jj-tests.el --- tests for vc-jj.el            -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025  Rudolf Schlatte
+;; Copyright (C) 2025  Free Software Foundation, Inc.
 
 ;; Author: Rudolf Schlatte <rudi@constantly.at>
 

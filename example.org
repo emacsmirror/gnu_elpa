@@ -1,0 +1,38 @@
+* add and subtract
+
+#+name: first-set
+| weight | order | template                      | descr                  |
+|--------+-------+-------------------------------+------------------------|
+|      3 |     1 | [1..10] + [0..10]             | simple                 |
+|      2 |     2 | [1..10] + [8..15]             | second number bigger   |
+|      1 |     2 | [a=3..10] - [0..$a]           | subtraction            |
+|      1 |     3 | [1..10] + [1..7] + [1..5]     | three numbers          |
+|      1 |     4 | [a=1..10] + [0..10] - [0..$a] | three with subtraction |
+|      0 |     0 | [$a*[1..5]] / [a=1..10]       | division               |
+
+#+BEGIN: problem-set :templates "first-set" :count 21 :name "Noble"
+| problem   | answer |
+|-----------+--------|
+| 2 + 7     |      9 |
+| 1 + 3     |      4 |
+| 4 + 6     |     10 |
+| 7 + 0     |      7 |
+| 9 + 1     |     10 |
+| 6 + 7     |     13 |
+| 6 + 8     |     14 |
+| 3 + 13    |     16 |
+| 9 + 11    |     20 |
+| 9 - 2     |      7 |
+| 4 - 1     |      3 |
+| 5 + 14    |     19 |
+| 5 + 11    |     16 |
+| 1 + 10    |     11 |
+| 8 - 3     |      5 |
+| 7 + 5 + 2 |     14 |
+| 2 + 5 + 4 |     11 |
+| 9 + 4 + 2 |     15 |
+| 5 + 8 - 4 |      9 |
+| 5 + 8 - 3 |     10 |
+| 7 + 9 - 2 |     14 |
+#+END:
+* bigger addition and multiplications

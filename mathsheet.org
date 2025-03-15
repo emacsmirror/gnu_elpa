@@ -1,18 +1,14 @@
-* goal
-The goal is to generate a math practice sheet made up of dynamic problems that are defined in flexible templates.
+* Goal
+The goal is to generate a math practice sheet made up of dynamic
+problems that are defined based on flexible templates. The problem
+distribution and order is also configurable.
 
 Similar to https://www.math-aids.com.
-* script
-** vars
-This sets the name at the top of the page as well as the number of
-problems on the worksheet.
-
-#+property: header-args+ :var student="Noble" problem-count=26
-
-** problem set examples
+* Problem Templates
+** Description
 This section contains some example templates. Each table defines a
-worksheet. Each time the worksheet is created the problems are
-generated randomly.
+worksheet. Each time the worksheet is generated the problems are
+re-randomized.
 
 The table contains the following columns:
 - weight :: the relative number of this type of problem to include on
@@ -33,7 +29,7 @@ in square brackets.
   placeholder
 - [0..[$a/2]] :: placeholders can be embedded within placeholders
 
-*** add and subtract
+** Examples
 
 #+name: firstset
 | weight | order | template                      | descr                  |
@@ -45,50 +41,54 @@ in square brackets.
 |      1 |     4 | [a=1..10] + [0..10] - [0..$a] | three with subtraction |
 |      0 |     0 | [$a*[1..5]] / [a=1..10]       | division               |
 
+* script
 ** problem generation
+*** variables
+Need ~var-list~ to keep track of the variables between fields.
 
-TODO create a package. if you C-c C-c on a table
-1. if you are on the header, generate a worksheet
-2. if you on on a row, generate a single example
+~worksheet-template~ is the LaTeX template for the worksheet.
 
-*** var-list
-need ~var-list~ to keep track of the variables between fields.
+#+begin_src elisp :tangle mathsheet.el :var page=page
+  (defvar ianxm/var-list '()
+    "List of variables used in a problem")
 
-#+name: var-list
-#+begin_src elisp
-(defvar ianxm/var-list '()
-"List of variables used in a problem")
+  (defconst ianxm/worksheet-template page
+    "LaTeX template for worksheet")
 #+end_src
-*** scan field
+*** scan problem
 
-must call with point at the start of a field. moves the point to the
-end of the field. returns a list of fields, formatted as:
+must call with point at the start of a problem. moves the point to the
+end of the problem. returns a list of fields, formatted as:
 
 #+begin_example
 '(var (deps) start-marker end-marker nil)
 #+end_example
 
-~var~ is a variable name if there is an assignment, or it is a
-placeholder like ~_0~, ~_1~, etc. the last entry is nil for "not
-visited." ~var~ must be interned and must be the first index since we
-use this as an alist.
+~var~ is a variable name if there is an assignment, otherwise it is a
+placeholder like ~_0~, ~_1~, etc.
 
 ~start-marker~ and ~end-marker~ are markers in the (temp) buffer.
+
+The last entry is ~nil~ for "not visited."  ~var~ must be interned and
+must be the first index since we use this as an alist later.
 
 for example:
 #+begin_example
 [$a + 2 + [a=1..5]] => '((nil (a) m1 m19 nil) (a nil m11 m18 nil))
 #+end_example
 
-~open-fields~ is a stack of fields with the current field on top. we
+This uses the peg package to parse the problem. Instead of using the
+peg return value we build the list of fields outside of the peg stack.
+
+~open-fields~ is a stack of fields with the current field on top. We
 push a new field to the stack when we start a new field.
-~closed-fields~ is a list of fields that have been completed. we push a
+~closed-fields~ is a list of fields that have been completed. We push a
 new field to the list when we close the current field.
 
 #+name: scan-problem
-#+begin_src elisp
+#+begin_src elisp :tangle mathsheet.el
   (defun ianxm/scan-problem ()
-    (interactive)
+    "Scan problem"
     (let ((field-index 0)
           open-fields ; stack (open close (vars) deps)
           closed-fields) ; list (open close (vars) deps)
@@ -135,14 +135,16 @@ new field to the list when we close the current field.
 
 *** reduce field
 
-must call with point at the start of a field. moves point to the end
-of the field. returns a list containing the value to which the field
-reduces.
+This must be called with point at the start of a field. This moves the
+point to the end of the field. This returns a list containing the
+value to which the field reduces.
 
-#+name: reduce-field
-#+begin_src elisp
+This uses the peg package to parse the field. This time there
+shouldn't be any fields embedded within the field. We should have
+already evaluated and replaced them.
+
+#+begin_src elisp :tangle mathsheet.el
   (defun ianxm/reduce-field ()
-    (interactive)
     (with-peg-rules
         ((field "[" space (or range sequence assignment expression value) space "]")
          (expression (list value space operation space value (* space operation space value))
@@ -163,8 +165,7 @@ reduces.
                    `(vals -- (seq-random-elt vals)))
          (value (or (substring (opt "-") (+ digit)) var-rhs parenthetical)
                 `(v -- (if (stringp v) (string-to-number v) v)))
-         (parenthetical "(" expression ")"
-                        (action (message "paren")))
+         (parenthetical "(" expression ")")
          (var-lhs (substring letter)) ; var for assignment
          (var-rhs "$" (substring letter) ; var for use
                   `(v -- (let ((val (alist-get (intern v) var-list)))
@@ -180,10 +181,10 @@ reduces.
 
 *** replace field
 
-replace a field with the value returned from processing it.
+Replace a field with the value returned from processing it.
 
 #+name: replace-field
-#+begin_src elisp
+#+begin_src elisp :tangle mathsheet.el
   (defun ianxm/replace-field (node)
     (let ((start (caddr node))
           (end (1+ (cadddr node)))
@@ -201,7 +202,7 @@ replace a field with the value returned from processing it.
 check dependencies then visit the node
 
 #+name: dfs-visit
-#+begin_src elisp
+#+begin_src elisp :tangle mathsheet.el
   (defun ianxm/dfs-visit (node fields)
     (pcase (nth 4 node)
       (1 (error "cycle detected")) ; cycle
@@ -225,7 +226,7 @@ processes all fields in a problem.
 #+end_example
 
 #+name: fill-problem
-#+begin_src elisp :var full-problem="[$a + 2 + [a=1..5]]"
+#+begin_src elisp :tangle mathsheet.el
   (defun ianxm/fill-problem (full-problem)
       (interactive)
       (let (fields)
@@ -278,27 +279,6 @@ other examples
   [0..[$a..$b]]
 #+end_example
 
-*** full script
-tangles everything needed to convert a template to a problem
-
-#+name: full
-#+begin_src elisp :noweb yes :tangle mathsheet.el
-  <<var-list>>
-
-  <<scan-problem>>
-
-  <<reduce-field>>
-
-  <<catalog-fields>>
-
-  <<replace-field>>
-
-  <<dfs-visit>>
-
-  <<fill-problem>>
-
-  <<generate-problems>>
-#+end_src
 ** generate problem set from templates
 
 1. load table
@@ -313,9 +293,18 @@ tangles everything needed to convert a template to a problem
 4. loop through list, replacing entry with '(problem . solution)
 
 #+name: generate-problems
-#+begin_src elisp :results table :var templates=firstset
-  (defun ianxm/generate-problems ()
-    (let (total-weight problems)
+#+begin_src elisp :tangle mathsheet.el
+  (defun ianxm/generate-problems (template-name count)
+    (let (total-weight templates problems)
+      (save-excursion
+        (goto-char (point-min))
+        (search-forward-regexp (org-babel-named-data-regexp-for-name template-name) nil t)
+        ;; read table from buffer, drop header, convert fields to numbers or strings
+        (setq templates (mapcar
+                         (lambda (row) (list (string-to-number (nth 0 row))
+                                             (string-to-number (nth 1 row))
+                                             (substring-no-properties (nth 2 row))))
+                         (seq-drop (org-table-to-lisp) 2))))
       ;; sort by weight (low to high)
       (setq templates (sort templates (lambda (a b) (< (car a) (car b))))
             ;; calc total weight
@@ -325,26 +314,23 @@ tangles everything needed to convert a template to a problem
                                       0)))
       ;; calculate number for each row
       (dotimes (ii (length templates) problems)
-        (let* (problem answer
-                       (item (nth ii templates))
-                       (weight (car item))
-                       (needed (cond
-                                ((= weight 0)
-                                 0)
-                                ((= ii (1- (length templates)))
-                                 (- problem-count (length problems)))
-                                (t
-                                 (max (round (* (/ weight total-weight) problem-count) ) 1)))))
+        (let* ((item (nth ii templates))
+               (weight (car item))
+               (needed (cond ; number of problems to add for this template
+                        ((= weight 0)
+                         0)
+                        ((= ii (1- (length templates)))
+                         (- count (length problems)))
+                        (t
+                         (max (round (* (/ weight total-weight) count) ) 1))))
+               problem answer)
 
-          ;; add just problems to list?
-          ;; dedup each one
-          ;; add until "needed" are kept
           (let ((added 0)
                 problem-set
                 problem)
-            (while (< added needed)
+            (while (< added needed) ; add until "needed" are kept
               (setq problem (ianxm/fill-problem (caddr item)))
-              (when (not (member problem problem-set))
+              (when (not (member problem problem-set)) ; dedup problems
                 (push problem problem-set)
                 (push (list problem (calc-eval problem) (cadr item)) problems)
                 (setq added (1+ added)))))))
@@ -358,69 +344,93 @@ tangles everything needed to convert a template to a problem
       ;; sort by order
       (sort problems (lambda (a b) (< (caddr a) (caddr b))))
 
-      ;; return
-      problems))
+      ;; return problems and answers, drop header
+      (mapcar
+       (lambda (x) (seq-take x 2))
+       problems)))
 #+end_src
 
 test with this
 
 #+name: problem-set
-#+begin_src elisp :results table :noweb yes :var templates=firstset
+#+begin_src elisp :results table :noweb yes
   <<full>>
 
-  (ianxm/generate-problems)
+  (ianxm/generate-problems "firstset" 20)
 #+end_src
 
 #+RESULTS: problem-set
-| 9 + 9     | 18 | 1 |
-| 4 + 3     |  7 | 1 |
-| 6 + 9     | 15 | 1 |
-| 5 + 4     |  9 | 1 |
-| 1 + 4     |  5 | 1 |
-| 3 + 7     | 10 | 1 |
-| 4 + 7     | 11 | 1 |
-| 8 + 3     | 11 | 1 |
-| 2 + 0     |  2 | 1 |
-| 5 + 5     | 10 | 1 |
-| 9 + 3     | 12 | 1 |
-| 8 + 10    | 18 | 2 |
-| 6 + 10    | 16 | 2 |
-| 6 - 4     |  2 | 2 |
-| 7 + 10    | 17 | 2 |
-| 4 + 13    | 17 | 2 |
-| 6 + 14    | 20 | 2 |
-| 7 - 3     |  4 | 2 |
-| 8 - 6     |  2 | 2 |
-| 2 + 11    | 13 | 2 |
-| 9 + 1 + 4 | 14 | 3 |
-| 3 + 1 + 4 |  8 | 3 |
-| 1 + 1 + 4 |  6 | 3 |
-| 2 + 7 - 1 |  8 | 4 |
-| 9 + 1 - 1 |  9 | 4 |
-| 9 + 1 - 4 |  6 | 4 |
+| 1 + 6     |  7 |
+| 4 + 0     |  4 |
+| 1 + 3     |  4 |
+| 3 + 9     | 12 |
+| 2 + 8     | 10 |
+| 9 + 5     | 14 |
+| 2 + 5     |  7 |
+| 3 + 5     |  8 |
+| 7 + 8     | 15 |
+| 6 + 13    | 19 |
+| 4 + 13    | 17 |
+| 8 + 14    | 22 |
+| 9 + 11    | 20 |
+| 5 + 13    | 18 |
+| 6 - 0     |  6 |
+| 5 - 1     |  4 |
+| 9 + 6 + 2 | 17 |
+| 4 + 5 + 2 | 11 |
+| 6 + 6 - 2 | 10 |
+| 2 + 8 - 0 | 10 |
 
-** lay out problems and answers
-this generates a problem set.
+** update problem-set block
 
-#+name: layout-problems-answers
-#+begin_src elisp :results silent :noweb yes :var problem-set=problem-set problemsp='t
-      (with-temp-buffer
-          (dolist (row problem-set)
-            (if problemsp
-                (insert (format"\\CircledItem %s = \\rule[-.2\\baselineskip]{2cm}{0.4pt}\n\n"
-                               (car row)))
-              (insert (format "\\CircledItem %s\n\n"
-                              (cadr row)))))
-        (buffer-string))
+This generates a problem set and writes it to the dynamic block. This
+is triggered by C-c C-c on the dynamic block header.
+
+~params~ is a property list of params on the block header line
+I need to extract the values
+
+- :templates :: templates
+- :count :: 10
+
+#+begin_src elisp :tangle mathsheet.el
+  (defun org-dblock-write:problem-set (params)
+    "Update problem-set block and optionally write a worksheet."
+
+    ;; write the table header
+    (insert "| problem | answer |\n")
+    (insert "|-\n")
+
+    ;; generate problem set
+    (let ((problems (ianxm/generate-problems
+                     (plist-get params :templates)
+                     (plist-get params :count))))
+
+      ;; for each problem, write a row to the table
+      (insert
+       (mapconcat
+        (lambda (problem) (format "|%s|%s|"
+                                  (car problem)
+                                  (cadr problem)))
+        problems
+        "\n"))
+
+      ;; align table
+      (org-table-align)
+
+      ;; should we generate the sheet?
+      (when (y-or-n-p "Write worksheet? ")
+        (ianxm/gen-worksheet
+         problems))))
 #+end_src
 
+* create worksheet
 ** lay out page
 this wraps the problems with a tex header and footer.
 
 solution for how to enumerate with circled numbers from [[https://latex.org/forum/viewtopic.php?p=40006&sid=d202f756313add2391c3140fbeafe2ff#p40006][here]]
 
 #+name: page
-#+begin_src latex :results value silent :noweb yes
+#+begin_src latex :results value silent :var student="Noble"
   \documentclass[12pt]{article}
   \usepackage[top=1in, bottom=0.8in, left=0.8in, right=0.8in]{geometry}
   \usepackage{fancyhdr}
@@ -436,7 +446,7 @@ solution for how to enumerate with circled numbers from [[https://latex.org/foru
     \stepcounter{enumi}\item[\circled{\theenumi}]}
 
   \pagestyle{fancy}
-  \lhead{\textmd{\textsf{Name: student}}}
+  \lhead{\textmd{\textsf{Name: }}}
   \rhead{\textmd{\textsf{Date: \today}}}
   \cfoot{}
 
@@ -446,9 +456,11 @@ solution for how to enumerate with circled numbers from [[https://latex.org/foru
 
     \begin{multicols}{2}
       \begin{enumerate}[itemsep=0.5cm]
-        <<layout-problems-answers(problemsp='t)>>
+        <<problems>>
       \end{enumerate}
     \end{multicols}
+
+    \vspace*{\fill}
 
     \vspace*{0.1cm}
     \noindent\rule{\linewidth}{0.4pt}
@@ -460,7 +472,7 @@ solution for how to enumerate with circled numbers from [[https://latex.org/foru
         \footnotesize
         \begin{multicols}{4}
           \begin{enumerate}
-            <<layout-problems-answers(problemsp='nil)>>
+            <<answers>>
           \end{enumerate}
         \end{multicols}
       \end{minipage}
@@ -469,13 +481,26 @@ solution for how to enumerate with circled numbers from [[https://latex.org/foru
   \end{document}
 #+end_src
 
-* generate pdf
+** generate pdf
 this writes the generated into a local file and runs ~texi2pdf~ to
 convert it to a pdf.
 
-#+begin_src elisp :results silent :var tex-content=page
-  (with-temp-file "worksheet.tex"
-    (insert tex-content))
-  (shell-command "texi2pdf worksheet.tex"
-                 (get-buffer-create "*Standard output*"))))
+#+begin_src elisp :results silent :tangle mathsheet.el
+  (defun ianxm/gen-worksheet (problems)
+    (with-temp-file "worksheet.tex"
+      (insert ianxm/worksheet-template)
+      (goto-char (point-min))
+      (search-forward "<<problems>>")
+      (replace-match "")
+      (dolist (row problems)
+        (insert (format"\\CircledItem %s = \\rule[-.2\\baselineskip]{2cm}{0.4pt}\n\n"
+                       (car row))))
+      (goto-char (point-min))
+      (search-forward "<<answers>>")
+      (replace-match "")
+      (dolist (row problems)
+        (insert (format "\\CircledItem %s\n\n"
+                        (cadr row)))))
+    (shell-command "texi2pdf worksheet.tex"
+                   (get-buffer-create "*Standard output*")))
 #+end_src

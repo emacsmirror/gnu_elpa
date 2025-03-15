@@ -864,6 +864,7 @@
  (vc-hgcmd		:url "https://github.com/muffinmad/emacs-vc-hgcmd")
  ;; FIXME: Waiting for copyright paperwork.
  ;;(vc-jj			:url "https://codeberg.org/emacs-jj-vc/vc-jj.el")
+ (vc-jj		:url "https://codeberg.org/emacs-jj-vc/vc-jj.el")
  (vcard			:url nil)
  (vcl-mode	        :url "https://git.gnu.org.ua/vcl-mode.git")
  (vdiff               	:url "https://github.com/justbur/emacs-vdiff")

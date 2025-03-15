@@ -5,7 +5,7 @@ distribution and order is also configurable.
 
 Similar to https://www.math-aids.com.
 * Problem Templates
-** Description
+** Overview
 This section contains some example templates. Each table defines a
 worksheet. Each time the worksheet is generated the problems are
 re-randomized.
@@ -31,23 +31,40 @@ in square brackets.
 
 ** Examples
 
-#+name: firstset
-| weight | order | template                      | descr                  |
-|--------+-------+-------------------------------+------------------------|
-|      3 |     1 | [1..10] + [0..10]             | simple                 |
-|      2 |     2 | [1..10] + [8..15]             | second number bigger   |
-|      1 |     2 | [a=3..10] - [0..$a]           | subtraction            |
-|      1 |     3 | [1..10] + [1..7] + [1..5]     | three numbers          |
-|      1 |     4 | [a=1..10] + [0..10] - [0..$a] | three with subtraction |
-|      0 |     0 | [$a*[1..5]] / [a=1..10]       | division               |
+We label the table so that we can refer to it from the dynamic block
+that generates the worksheet. Only the first three columns are used.
 
-* script
-** problem generation
-*** variables
-Need ~var-list~ to keep track of the variables between fields.
+#+name: firstset
+| weight | order | template                      | descr                        |
+|--------+-------+-------------------------------+------------------------------|
+|      3 |     1 | [1..10] + [0..10]             | simple                       |
+|      2 |     2 | [1..10] + [8..15]             | second number bigger         |
+|      1 |     2 | [a=3..10] - [0..$a]           | subtraction                  |
+|      1 |     3 | [1..10] + [1..7] + [1..5]     | three terms                  |
+|      1 |     4 | [a=1..10] + [0..10] - [0..$a] | three terms with subtraction |
+|      0 |     0 | [$a*[1..5]] / [a=1..10]       | division                     |
+
+*** TODO handle templates with variables
+can be done like this
+#+begin_export
+(calc-eval "solve(2x = 1 + 2, [x])")
+#+end_export
+
+* Code walkthrough
+** Problem generation
+*** Dependencies
+This package needs [[https://elpa.gnu.org/packages/peg.html][peg]].
+
+#+begin_src elisp :tangle mathsheet.el
+  (require 'peg)
+#+end_src
+
+*** Variables
+Need ~ianxm/var-list~ to keep track of the variables between fields.
 
 ~worksheet-template~ is the LaTeX template for the worksheet.
 
+#+name: variables
 #+begin_src elisp :tangle mathsheet.el :var page=page
   (defvar ianxm/var-list '()
     "List of variables used in a problem")
@@ -55,7 +72,7 @@ Need ~var-list~ to keep track of the variables between fields.
   (defconst ianxm/worksheet-template page
     "LaTeX template for worksheet")
 #+end_src
-*** scan problem
+*** Scan problem
 
 must call with point at the start of a problem. moves the point to the
 end of the problem. returns a list of fields, formatted as:
@@ -103,7 +120,7 @@ new field to the list when we close the current field.
                                    (intern (concat "_" (number-to-string field-index)))
                                    nil (copy-marker l) nil nil)
                                   open-fields)
-                            field-index (1+ field-index)
+                            (setq field-index (1+ field-index))
                             ".")))
            (assignment (region (substring letter)) "="
                        `(l v r -- (progn
@@ -124,7 +141,7 @@ new field to the list when we close the current field.
                              ".")))
            (letter [a-z])
            (digit [0-9])
-           (symbol (or "." "+" "-" "*" "/" "(" ")")))
+           (symbol (or "." "+" "-" "*" "/" "(" ")" "=")))
 
         (peg-run (peg stuff)
                  (lambda (x) (message "failed %s" x))
@@ -133,16 +150,33 @@ new field to the list when we close the current field.
                    closed-fields)))))
 #+end_src
 
-*** reduce field
+test scan
+#+begin_src elisp :noweb yes
+  <<scan-problem>>
+
+  (with-temp-buffer
+    (insert "y = [1..4] + [5..9]")
+    (goto-char (point-min))
+    (ianxm/scan-problem))
+#+end_src
+
+#+RESULTS:
+| _1 | nil | #<marker in no buffer> | #<marker (moves after insertion) in no buffer> | nil |
+| _0 | nil | #<marker in no buffer> | #<marker (moves after insertion) in no buffer> | nil |
+
+*** Reduce field
 
 This must be called with point at the start of a field. This moves the
 point to the end of the field. This returns a list containing the
-value to which the field reduces.
+value to which the field reduces. It is wrapped in a list because
+~peg-run~ returns its stack and the value is the last thing remaining on
+the stack when peg completes.
 
 This uses the peg package to parse the field. This time there
 shouldn't be any fields embedded within the field. We should have
 already evaluated and replaced them.
 
+#+name: reduce-field
 #+begin_src elisp :tangle mathsheet.el
   (defun ianxm/reduce-field ()
     (with-peg-rules
@@ -157,7 +191,7 @@ already evaluated and replaced them.
          (operation (substring (or "+" "-" "*" "/")))
          (assignment var-lhs space "=" space (or range sequence)
                      `(v r -- (progn
-                                (push (cons (intern v) r) var-list)
+                                (push (cons (intern v) r) ianxm/var-list)
                                 r)))
          (range value ".." value
                 `(min max -- (+ (random (- max min)) min)))
@@ -168,7 +202,7 @@ already evaluated and replaced them.
          (parenthetical "(" expression ")")
          (var-lhs (substring letter)) ; var for assignment
          (var-rhs "$" (substring letter) ; var for use
-                  `(v -- (let ((val (alist-get (intern v) var-list)))
+                  `(v -- (let ((val (alist-get (intern v) ianxm/var-list)))
                            (or val (error "var %s not set" v)))))
          (space (* [space]))
          (letter [a-z])
@@ -179,11 +213,24 @@ already evaluated and replaced them.
                (lambda (x) (funcall x)))))
 #+end_src
 
-*** replace field
+test with
+#+begin_src elisp :noweb yes :var page=page
+  <<variables>>
+  <<reduce-field>>
 
-Replace a field with the value returned from processing it.
+  (with-temp-buffer
+      (insert "[1..4]")
+      (goto-char (point-min))
+      (ianxm/reduce-field))
+#+end_src
 
-#+name: replace-field
+#+RESULTS:
+| 3 |
+
+*** Replace field
+
+Replace a field with the value returned from reducing it.
+
 #+begin_src elisp :tangle mathsheet.el
   (defun ianxm/replace-field (node)
     (let ((start (caddr node))
@@ -197,11 +244,12 @@ Replace a field with the value returned from processing it.
         (insert (number-to-string val)))))
 #+end_src
 
-*** dfs visit
+*** DFS visit
 
-check dependencies then visit the node
+This uses a depth first search to ensure that we visit (reduce and
+replace) the fields in dependency order. Check dependencies then visit
+the node.
 
-#+name: dfs-visit
 #+begin_src elisp :tangle mathsheet.el
   (defun ianxm/dfs-visit (node fields)
     (pcase (nth 4 node)
@@ -217,7 +265,7 @@ check dependencies then visit the node
        (ianxm/replace-field node) ; visit
        (setcar (cddddr node) 2)))) ; mark done
 #+end_src
-*** fill fields in problem
+*** Fill fields in problem
 
 processes all fields in a problem.
 
@@ -225,7 +273,6 @@ processes all fields in a problem.
 (full-problem (buffer-substring (point-at-bol) (point-at-eol)))
 #+end_example
 
-#+name: fill-problem
 #+begin_src elisp :tangle mathsheet.el
   (defun ianxm/fill-problem (full-problem)
       (interactive)
@@ -237,12 +284,11 @@ processes all fields in a problem.
 
           ;; find fields, assignments, dependencies
           (setq fields (ianxm/scan-problem))
-          ;;(message "fields %s" fields)
 
           ;; order fields according to dependencies
           (dolist (node fields)
             (ianxm/dfs-visit node fields))
-          (setq var-list '())
+          (setq ianxm/var-list '())
           (buffer-string))))
 #+end_src
 
@@ -279,7 +325,7 @@ other examples
   [0..[$a..$b]]
 #+end_example
 
-** generate problem set from templates
+*** Generate problem set from templates
 
 1. load table
 2. determine how many of each
@@ -326,14 +372,18 @@ other examples
                problem answer)
 
           (let ((added 0)
+                (dup-count 0)
                 problem-set
                 problem)
             (while (< added needed) ; add until "needed" are kept
               (setq problem (ianxm/fill-problem (caddr item)))
-              (when (not (member problem problem-set)) ; dedup problems
+              (if (member problem problem-set) ; dedup problems
+                  (setq dup-count (1+ dup-count))
                 (push problem problem-set)
                 (push (list problem (calc-eval problem) (cadr item)) problems)
-                (setq added (1+ added)))))))
+                (setq added (1+ added)))
+              (when (> dup-count 100)
+                (error "Giving up, too many dups"))))))
 
       ;; shuffle
       (dotimes (ii (- (length problems) 1))
@@ -350,38 +400,7 @@ other examples
        problems)))
 #+end_src
 
-test with this
-
-#+name: problem-set
-#+begin_src elisp :results table :noweb yes
-  <<full>>
-
-  (ianxm/generate-problems "firstset" 20)
-#+end_src
-
-#+RESULTS: problem-set
-| 1 + 6     |  7 |
-| 4 + 0     |  4 |
-| 1 + 3     |  4 |
-| 3 + 9     | 12 |
-| 2 + 8     | 10 |
-| 9 + 5     | 14 |
-| 2 + 5     |  7 |
-| 3 + 5     |  8 |
-| 7 + 8     | 15 |
-| 6 + 13    | 19 |
-| 4 + 13    | 17 |
-| 8 + 14    | 22 |
-| 9 + 11    | 20 |
-| 5 + 13    | 18 |
-| 6 - 0     |  6 |
-| 5 - 1     |  4 |
-| 9 + 6 + 2 | 17 |
-| 4 + 5 + 2 | 11 |
-| 6 + 6 - 2 | 10 |
-| 2 + 8 - 0 | 10 |
-
-** update problem-set block
+** Update problem-set block
 
 This generates a problem set and writes it to the dynamic block. This
 is triggered by C-c C-c on the dynamic block header.
@@ -423,14 +442,14 @@ I need to extract the values
          problems))))
 #+end_src
 
-* create worksheet
-** lay out page
+** Generate PDF
+*** Lay out page
 this wraps the problems with a tex header and footer.
 
 solution for how to enumerate with circled numbers from [[https://latex.org/forum/viewtopic.php?p=40006&sid=d202f756313add2391c3140fbeafe2ff#p40006][here]]
 
 #+name: page
-#+begin_src latex :results value silent :var student="Noble"
+#+begin_src latex :results value silent
   \documentclass[12pt]{article}
   \usepackage[top=1in, bottom=0.8in, left=0.8in, right=0.8in]{geometry}
   \usepackage{fancyhdr}
@@ -480,10 +499,15 @@ solution for how to enumerate with circled numbers from [[https://latex.org/foru
 
   \end{document}
 #+end_src
+*** Write PDF
 
-** generate pdf
-this writes the generated into a local file and runs ~texi2pdf~ to
-convert it to a pdf.
+This writes the generated into a local file and runs ~texi2pdf~ to
+convert it to a pdf. We save it as ~worksheet.tex~ and the final
+worksheet is named ~worksheet.pdf~. Each execution will overwrite the
+same file.
+
+**** TODO get the base filename from the org buffer
+
 
 #+begin_src elisp :results silent :tangle mathsheet.el
   (defun ianxm/gen-worksheet (problems)

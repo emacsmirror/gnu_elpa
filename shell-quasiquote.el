@@ -110,7 +110,7 @@ separating spaces."
                   ;; ,foo
                   (`(,`\, ,form) `(shqq--quote-atom ,form))
                   ;; ,@foo
-                  (`,@,form `(mapconcat #'shqq--quote-atom ,form " "))
+                  (`(,`\,@ ,form) `(mapconcat #'shqq--quote-atom ,form " "))
                   (_
                    (error "Bad shqq part: %S" part))))))
           parts)))

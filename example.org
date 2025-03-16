@@ -18,23 +18,48 @@
 |      1 |     4 | [a=1..10] + [0..10] - [0..$a] | three with subtraction, positive result |
 |      0 |     0 | [$a*[1..5]] / [a=1..10]       | division                                |
 
+#+BEGIN: problem-set :templates "add-sub-1" :count 21 :instruction "Compute the answer"
+| problem | answer |
+|---------+--------|
+| 6 + 3   |      9 |
+| 1 + 6   |      7 |
+| 5 + 6   |     11 |
+| 2 + 0   |      2 |
+| 1 + 4   |      5 |
+| 8 + 7   |     15 |
+| 6 + 5   |     11 |
+| 2 + 3   |      5 |
+| 9 + 9   |     18 |
+| 3 + 8   |     11 |
+| 1 + 11  |     12 |
+| 4 + 2   |      6 |
+| 2 + 9   |     11 |
+| 1 + 4   |      5 |
+| 11 + 1  |     12 |
+| 6 + 0   |      6 |
+| 4 + 9   |     13 |
+| 7 + 10  |     17 |
+| 3 - 1   |      2 |
+| 9 - 8   |      1 |
+| 2 - 1   |      1 |
+#+END:
+
+* algebra
 #+name: algebra-1
 | weight | order | template                           | descr  |
 |--------+-------+------------------------------------+--------|
 |      3 |     1 | x / ([2..4] + [a=0..5]) = [$a..10] | simple |
 |      3 |     2 | [$a*[2..10]] / x = [a=1,2,4]       | simple |
 
-#+BEGIN: problem-set :templates "algebra-1" :count 8
+#+BEGIN: problem-set :templates "algebra-1" :count 8 :instruction "Solve for x"
 | problem         | answer |
 |-----------------+--------|
-| x / (2 + 2) = 2 | x = 8  |
-| x / (2 + 0) = 8 | x = 16 |
 | x / (3 + 1) = 1 | x = 4  |
-| x / (3 + 4) = 7 | x = 49 |
+| x / (3 + 0) = 5 | x = 15 |
+| x / (2 + 4) = 5 | x = 30 |
+| x / (2 + 1) = 6 | x = 18 |
+| 16 / x = 2      | x = 8  |
 | 2 / x = 1       | x = 2  |
-| 7 / x = 1       | x = 7  |
-| 10 / x = 2      | x = 5  |
-| 28 / x = 4      | x = 7  |
+| 9 / x = 1       | x = 9  |
+| 8 / x = 4       | x = 2  |
 #+END:
-
-* bigger addition and multiplications

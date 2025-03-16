@@ -475,6 +475,8 @@ I need to extract the values
       ;; should we generate the sheet?
       (when (y-or-n-p "Write worksheet? ")
         (ianxm/gen-worksheet
+         (plist-get params :templates)
+         (plist-get params :instruction)
          problems))))
 #+end_src
 
@@ -505,9 +507,12 @@ solution for how to enumerate with circled numbers from [[https://latex.org/foru
   \rhead{\textmd{\textsf{Date: \today}}}
   \cfoot{}
 
-  \renewcommand{\familydefault}{\ttdefault}
 
   \begin{document}
+
+  \noindent\textbf{<<instruction>>}
+  \vspace{.2cm}
+  \renewcommand{\familydefault}{\ttdefault}
 
     \begin{multicols}{2}
       \begin{enumerate}[itemsep=0.5cm]
@@ -542,13 +547,16 @@ convert it to a pdf. We save it as ~worksheet.tex~ and the final
 worksheet is named ~worksheet.pdf~. Each execution will overwrite the
 same file.
 
-**** TODO get the base filename from the org buffer
-
-
 #+begin_src elisp :results silent :tangle mathsheet.el
-  (defun ianxm/gen-worksheet (problems)
-    (with-temp-file "worksheet.tex"
+  (defun ianxm/gen-worksheet (template-name instruction problems)
+    (with-temp-file (concat template-name ".tex")
       (insert ianxm/worksheet-template)
+
+      (goto-char (point-min))
+      (search-forward "<<instruction>>")
+      (replace-match "")
+      (insert instruction)
+
       (goto-char (point-min))
       (search-forward "<<problems>>")
       (replace-match "")
@@ -558,12 +566,13 @@ same file.
                        (car row)))
           (insert (format"\\CircledItem %s = \\rule[-.2\\baselineskip]{2cm}{0.4pt}\n"
                          (car row)))))
+
       (goto-char (point-min))
       (search-forward "<<answers>>")
       (replace-match "")
       (dolist (row problems)
-        (insert (format "\\CircledItem %s\n\n"
+        (insert (format "\\CircledItem %s\n"
                         (cadr row)))))
-    (shell-command "texi2pdf worksheet.tex"
+    (shell-command (concat "texi2pdf " template-name ".tex")
                    (get-buffer-create "*Standard output*")))
 #+end_src

@@ -44,12 +44,6 @@ that generates the worksheet. Only the first three columns are used.
 |      1 |     4 | [a=1..10] + [0..10] - [0..$a] | three terms with subtraction |
 |      0 |     0 | [$a*[1..5]] / [a=1..10]       | division                     |
 
-*** TODO handle templates with variables
-can be done like this
-#+begin_export
-(calc-eval "solve(2x = 1 + 2, [x])")
-#+end_export
-
 * Code walkthrough
 ** Problem generation
 *** Dependencies
@@ -81,13 +75,22 @@ end of the problem. returns a list of fields, formatted as:
 '(var (deps) start-marker end-marker nil)
 #+end_example
 
-~var~ is a variable name if there is an assignment, otherwise it is a
-placeholder like ~_0~, ~_1~, etc.
+change to
+
+#+begin_example
+'(asn-var (deps) (start-marker . end-marker) nil)
+#+end_example
+
+~asn-var~ is a variable name if there is an assignment, otherwise it is a
+placeholder like ~_0~, ~_1~, etc. ~asn-var~ must be interned and must
+be the first index since we use this list as an alist later.
+
+~alg-vars~ are algebraic variables if there are any in this problem,
+otherwise ~nil~.
 
 ~start-marker~ and ~end-marker~ are markers in the (temp) buffer.
 
-The last entry is ~nil~ for "not visited."  ~var~ must be interned and
-must be the first index since we use this as an alist later.
+The last entry is ~nil~ for "not visited." It is used by ~dfs-visit~.
 
 for example:
 #+begin_example
@@ -107,18 +110,21 @@ new field to the list when we close the current field.
   (defun ianxm/scan-problem ()
     "Scan problem"
     (let ((field-index 0)
-          open-fields ; stack (open close (vars) deps)
-          closed-fields) ; list (open close (vars) deps)
+          open-fields ; stack
+          closed-fields ; list
+          alg-vars)
 
       (with-peg-rules
-          ((stuff (* (or var letter digit symbol field space)))
+          ((stuff (* (or asn-var alg-var digit symbol field space)))
            (field open (opt assignment) stuff close)
            (space (* [space]))
            (open (region "[")
                  `(l r -- (progn
                             (push (list
-                                   (intern (concat "_" (number-to-string field-index)))
-                                   nil (copy-marker l) nil nil)
+                                   (intern (concat "_" (number-to-string field-index))) ; asn-var
+                                   nil ; deps
+                                   (cons (copy-marker l) nil) ; start and end markers
+                                   nil) ; not visited
                                   open-fields)
                             (setq field-index (1+ field-index))
                             ".")))
@@ -128,41 +134,46 @@ new field to the list when we close the current field.
                                      (car open-fields)
                                      (intern v))
                                     ".")))
-           (var "$" (substring letter)
+           (asn-var "$" (substring letter)
                 `(v -- (progn
                          (push (intern v) (cadar open-fields))
                          ".")))
+           (alg-var (substring letter)
+                    `(v -- (progn
+                             (push v alg-vars)
+                             ".")))
            (close (region "]")
                   `(l r -- (progn
-                             (setcar (cdddar open-fields) (copy-marker l t))
-                             (when (> (length open-fields) 1)
+                             (setcdr (caddar open-fields) (copy-marker l t))
+                             (when (> (length open-fields) 1) ; add parent to child dependency
                                (push (caar open-fields) (cadadr open-fields)))
                              (push (pop open-fields) closed-fields)
                              ".")))
            (letter [a-z])
            (digit [0-9])
-           (symbol (or "." "+" "-" "*" "/" "(" ")" "=")))
+           (symbol (or "." "," "+" "-" "*" "/" "(" ")" "=")))
 
         (peg-run (peg stuff)
                  (lambda (x) (message "failed %s" x))
                  (lambda (x)
                    (funcall x)
-                   closed-fields)))))
+                   `((:fields . ,closed-fields)
+                     (:alg-vars . ,alg-vars)))))))
 #+end_src
 
 test scan
-#+begin_src elisp :noweb yes
+
+#+begin_src elisp :results verbatim :noweb yes
   <<scan-problem>>
 
   (with-temp-buffer
-    (insert "y = [1..4] + [5..9]")
+    (insert "y = [1..4] + [5,7,9]")
     (goto-char (point-min))
     (ianxm/scan-problem))
 #+end_src
 
 #+RESULTS:
-| _1 | nil | #<marker in no buffer> | #<marker (moves after insertion) in no buffer> | nil |
-| _0 | nil | #<marker in no buffer> | #<marker (moves after insertion) in no buffer> | nil |
+: ((:fields (_1 nil (#<marker in no buffer> . #<marker (moves after insertion) in no buffer>) nil) (_0 nil (#<marker in no buffer> . #<marker (moves after insertion) in no buffer>) nil)) (:alg-vars "y"))
 
 *** Reduce field
 
@@ -214,7 +225,8 @@ already evaluated and replaced them.
 #+end_src
 
 test with
-#+begin_src elisp :noweb yes :var page=page
+
+#+begin_src elisp :results verbatim :noweb yes :var page=page
   <<variables>>
   <<reduce-field>>
 
@@ -225,16 +237,17 @@ test with
 #+end_src
 
 #+RESULTS:
-| 3 |
+: (1)
 
 *** Replace field
 
 Replace a field with the value returned from reducing it.
 
+#+name: replace-field
 #+begin_src elisp :tangle mathsheet.el
   (defun ianxm/replace-field (node)
-    (let ((start (caddr node))
-          (end (1+ (cadddr node)))
+    (let ((start (caaddr node))
+          (end (1+ (cdaddr node)))
           val)
       (goto-char start)
       (when (looking-at "\\[")
@@ -250,21 +263,23 @@ This uses a depth first search to ensure that we visit (reduce and
 replace) the fields in dependency order. Check dependencies then visit
 the node.
 
+#+name: dfs-visit
 #+begin_src elisp :tangle mathsheet.el
   (defun ianxm/dfs-visit (node fields)
-    (pcase (nth 4 node)
+    (pcase (cadddr node)
       (1 (error "cycle detected")) ; cycle
       (2)                          ; skip
       (_                           ; process
-       (setcar (cddddr node) 1)  ; started
+       (setcar (cdddr node) 1)     ; started
        (let ((deps (cadr node)))
          (dolist (dep deps)
            (ianxm/dfs-visit
             (assq dep fields)
             fields)))
        (ianxm/replace-field node) ; visit
-       (setcar (cddddr node) 2)))) ; mark done
+       (setcar (cdddr node) 2)))) ; mark done
 #+end_src
+
 *** Fill fields in problem
 
 processes all fields in a problem.
@@ -275,37 +290,44 @@ processes all fields in a problem.
 
 #+begin_src elisp :tangle mathsheet.el
   (defun ianxm/fill-problem (full-problem)
-      (interactive)
-      (let (fields)
-        (with-temp-buffer
-          ;; stage problem in temp buffer
-          (insert full-problem)
-          (beginning-of-buffer)
+      (with-temp-buffer
+        ;; stage problem in temp buffer
+        (insert full-problem)
+        (beginning-of-buffer)
 
-          ;; find fields, assignments, dependencies
-          (setq fields (ianxm/scan-problem))
+        ;; find fields, assignment variables, algebraic variables, dependencies
+        (let* ((scan-ret (ianxm/scan-problem))
+               (fields (alist-get :fields scan-ret))
+               (alg-vars (alist-get :alg-vars scan-ret)))
 
-          ;; order fields according to dependencies
+          ;; visit fields ordered according to dependencies
           (dolist (node fields)
             (ianxm/dfs-visit node fields))
           (setq ianxm/var-list '())
-          (buffer-string))))
+
+          ;; return filled problem
+          `((:problem . ,(buffer-string))
+            (:alg-vars . ,alg-vars)))))
 #+end_src
 
 test with this
-#+begin_src elisp :noweb yes
-  <<full>>
+#+begin_src elisp :results verbatim :noweb yes :var page=page
+  <<variables>>
+  <<scan-problem>>
+  <<reduce-field>>
+  <<replace-field>>
+  <<dfs-visit>>
 
-  ;;(ianxm/fill-problem "[1..12] + [1..10]")
+  (ianxm/fill-problem "[1..12] + [1,4,6,10]")
   ;;(ianxm/fill-problem "[1..[2..[10..100]]]")
   ;;(ianxm/fill-problem "[$a*[1..10]] / [a=1..10]")
   ;;(ianxm/fill-problem "[$a]/(3+[a=1..5])")
-  (ianxm/fill-problem "[-10..[10..20]]")
+  ;; (ianxm/fill-problem "1/x + 2 = [-10..[10..20]]")
 
 #+end_src
 
 #+RESULTS:
-: -7
+: ((:problem . "6 + [1,4,6,10]") (:alg-vars))
 
 other examples
 #+begin_example
@@ -374,16 +396,32 @@ other examples
           (let ((added 0)
                 (dup-count 0)
                 problem-set
-                problem)
+                fill-ret problem solution)
             (while (< added needed) ; add until "needed" are kept
-              (setq problem (ianxm/fill-problem (caddr item)))
-              (if (member problem problem-set) ; dedup problems
+              (let* ((fill-ret (ianxm/fill-problem (caddr item)))
+                     (problem (alist-get :problem fill-ret))
+                     (alg-vars (alist-get :alg-vars fill-ret))
+                     (calc-string (if (not alg-vars)
+                                      problem
+                                    (format "solve(%s,[%s])" problem (string-join alg-vars ","))))
+                     (solution
+                      (replace-regexp-in-string (rx (or "[" ".]" "]"))
+                                                ""
+                                                (calc-eval calc-string))))
+                (cond
+                 ((member problem problem-set) ; dedup problems
                   (setq dup-count (1+ dup-count))
-                (push problem problem-set)
-                (push (list problem (calc-eval problem) (cadr item)) problems)
-                (setq added (1+ added)))
-              (when (> dup-count 100)
-                (error "Giving up, too many dups"))))))
+                  (when (> dup-count 100)
+                    ;; high number of dups indicates a narrow problem space relative to problem count
+                    (error "Giving up, too many dups")))
+                 (t
+                  (push problem problem-set)
+                  (push (list problem ; problem
+                              solution ; solution
+                              (cadr item) ; order
+                              (not (null alg-vars))) ; true if algebraic variables exist
+                        problems)
+                  (setq added (1+ added)))))))))
 
       ;; shuffle
       (dotimes (ii (- (length problems) 1))
@@ -395,9 +433,7 @@ other examples
       (sort problems (lambda (a b) (< (caddr a) (caddr b))))
 
       ;; return problems and answers, drop header
-      (mapcar
-       (lambda (x) (seq-take x 2))
-       problems)))
+      problems))
 #+end_src
 
 ** Update problem-set block
@@ -517,8 +553,11 @@ same file.
       (search-forward "<<problems>>")
       (replace-match "")
       (dolist (row problems)
-        (insert (format"\\CircledItem %s = \\rule[-.2\\baselineskip]{2cm}{0.4pt}\n\n"
-                       (car row))))
+        (if (cadddr row)
+            (insert (format"\\CircledItem %s\\vspace{4cm}\n"
+                       (car row)))
+          (insert (format"\\CircledItem %s = \\rule[-.2\\baselineskip]{2cm}{0.4pt}\n"
+                         (car row)))))
       (goto-char (point-min))
       (search-forward "<<answers>>")
       (replace-match "")

@@ -914,7 +914,7 @@
  (xref			:core "lisp/progmodes/xref.el")
  (xref-union            :url "https://codeberg.org/pkal/xref-union.el")
  (yaml			:url "https://github.com/zkry/yaml.el"
-  :ignored-files "LICENSE")
+  :ignored-files ("LICENSE"))
  (yasnippet		:url "https://github.com/joaotavora/yasnippet")
  (yasnippet-classic-snippets :url nil)
  (zones			:url nil)  ;https://www.emacswiki.org/emacs/zones.el

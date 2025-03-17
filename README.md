@@ -14,8 +14,8 @@ To open the list of posts for a site, do `M-: (hugoista
 simply do `M-x hugoista`.
 
 With the cursor on the line for a post, hitting the `RETURN` key opens
-the corresponding file for editing. Hitting the `N` key creates a new
-post file, prompting for the file name. All standard
+the corresponding file for editing. Hitting the `+` or `N` key creates
+a new post file, prompting for the file name. All standard
 `tabulated-list-mode` key bindings are available, too (for example `g`
 to refresh the list, `S` to sort by the current column, etc.).
 

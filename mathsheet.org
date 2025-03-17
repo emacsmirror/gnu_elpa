@@ -1,9 +1,7 @@
 * Goal
 The goal is to generate a math practice sheet made up of dynamic
-problems that are defined based on flexible templates. The problem
-distribution and order is also configurable.
-
-Similar to https://www.math-aids.com.
+problems that are defined based on a set of flexible templates. The
+problem distribution and order should also be configurable.
 * Problem Templates
 ** Overview
 This section contains some example templates. Each table defines a
@@ -46,6 +44,11 @@ that generates the worksheet. Only the first three columns are used.
 
 * Code walkthrough
 ** Problem generation
+*** Header
+#+begin_src elisp :tangle mathsheet.el
+;;; mathsheet.el --- Generate dynamic math worksheets  -*- lexical-binding:t -*-
+#+end_src
+
 *** Dependencies
 This package needs [[https://elpa.gnu.org/packages/peg.html][peg]].
 
@@ -115,7 +118,7 @@ new field to the list when we close the current field.
           alg-vars)
 
       (with-peg-rules
-          ((stuff (* (or asn-var alg-var digit symbol field space)))
+          ((stuff (* (or asn-var math-func alg-var digit symbol field space)))
            (field open (opt assignment) stuff close)
            (space (* [space]))
            (open (region "[")
@@ -149,9 +152,10 @@ new field to the list when we close the current field.
                                (push (caar open-fields) (cadadr open-fields)))
                              (push (pop open-fields) closed-fields)
                              ".")))
+           (math-func (or "sqrt"))
            (letter [a-z])
            (digit [0-9])
-           (symbol (or "." "," "+" "-" "*" "/" "(" ")" "=")))
+           (symbol (or "." "," "+" "-" "*" "/" "^" "(" ")" "=")))
 
         (peg-run (peg stuff)
                  (lambda (x) (message "failed %s" x))
@@ -540,12 +544,25 @@ solution for how to enumerate with circled numbers from [[https://latex.org/foru
 
   \end{document}
 #+end_src
+*** Convert calc to latex
+Convert a calc expression to latex format.
+
+#+name: convert-to-latex
+#+begin_src elisp :tangle mathsheet.el
+  (defun ianxm/convert-to-latex (expr)
+    (let* ((calc-language 'latex)
+           (calc-expr (math-read-expr expr))
+           (latex-expr (math-format-stack-value (list calc-expr 1 nil)))
+           (latex-expr-cleaned (replace-regexp-in-string (rx "1:" (* space)) "" latex-expr)))
+      (concat "$" latex-expr-cleaned "$")))
+#+end_src
 *** Write PDF
 
 This writes the generated into a local file and runs ~texi2pdf~ to
-convert it to a pdf. We save it as ~worksheet.tex~ and the final
-worksheet is named ~worksheet.pdf~. Each execution will overwrite the
-same file.
+convert it to a pdf. We save it as ~[template-name].tex~ and the final
+worksheet is named ~[template-name].pdf~. Each execution with the same
+template name will overwrite the same file.
+
 
 #+begin_src elisp :results silent :tangle mathsheet.el
   (defun ianxm/gen-worksheet (template-name instruction problems)
@@ -563,16 +580,16 @@ same file.
       (dolist (row problems)
         (if (cadddr row)
             (insert (format"\\CircledItem %s\\vspace{4cm}\n"
-                       (car row)))
+                           (ianxm/convert-to-latex (car row))))
           (insert (format"\\CircledItem %s = \\rule[-.2\\baselineskip]{2cm}{0.4pt}\n"
-                         (car row)))))
+                         (ianxm/convert-to-latex (car row))))))
 
       (goto-char (point-min))
       (search-forward "<<answers>>")
       (replace-match "")
       (dolist (row problems)
         (insert (format "\\CircledItem %s\n"
-                        (cadr row)))))
+                        (ianxm/convert-to-latex (cadr row))))))
     (shell-command (concat "texi2pdf " template-name ".tex")
                    (get-buffer-create "*Standard output*")))
 #+end_src

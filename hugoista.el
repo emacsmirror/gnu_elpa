@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2025  Free Software Foundation, Inc.
 
-;; Author: Alexander Adolf <alexander.adolf@condition-alpha.com>
+;; Author: Alexander Adolf <alexander.adolf@condition-alpha.com>, Thanos Apollo <public@thanosapollo.org>
 ;; Maintainer: Alexander Adolf <alexander.adolf@condition-alpha.com>
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "24.3") seq)

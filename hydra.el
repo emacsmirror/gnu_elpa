@@ -1,6 +1,6 @@
 ;;; hydra.el --- Make bindings that stick around. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2015-2022  Free Software Foundation, Inc.
+;; Copyright (C) 2015-2025  Free Software Foundation, Inc.
 
 ;; Author: Oleh Krehel <ohwoeowho@gmail.com>
 ;; Maintainer: Oleh Krehel <ohwoeowho@gmail.com>
@@ -321,31 +321,6 @@ Exitable only through a blue head.")
    '("Hydras"
      "^.*(\\(defhydra\\) \\([[:alpha:]-]+\\)"
      2)))
-
-;;* Find Function
-
-;; FIXME: Maybe we can dispense with this advice if `defhydra' adds appropriate
-;; `definition-name' properties to the functions it defines?
-(advice-add 'find-function-search-for-symbol :around
-            #'hydra--around-find-function-search-for-symbol-advice)
-
-(defun hydra--around-find-function-search-for-symbol-advice
-    (orig-fun symbol type library)
-  "Navigate to hydras with `find-function-search-for-symbol'."
-  (let ((res (apply orig-fun symbol type library)))
-    (when (symbolp symbol)
-        ;; The original function returns (cons (current-buffer) (point))
-        ;; if it found the point.
-        (unless (cdr res)
-          (with-current-buffer (find-file-noselect library)
-            (let ((sn (symbol-name symbol)))
-              (when (and (null type)
-                         (string-match "\\`\\(hydra-[[:alnum:]-]+\\)/\\(.*\\)\\'" sn)
-                         (re-search-forward (concat "(defhydra " (match-string 1 sn))
-                                            nil t))
-                (goto-char (match-beginning 0)))
-              (cons (current-buffer) (point))))))
-    res))
 
 ;;* Universal Argument
 (defvar hydra-base-map

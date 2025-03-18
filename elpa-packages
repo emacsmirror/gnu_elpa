@@ -406,6 +406,7 @@
   			:url "https://github.com/dgutov/highlight-escape-sequences/")
  (hook-helpers		:url "https://git.savannah.nongnu.org/git/hook-helpers-el.git")
  (html5-schema		:url nil)
+ (hugoista		:url "https://codeberg.org/c-alpha/hugoista")
  (hydra			:url "https://github.com/abo-abo/hydra"
   ;; FIXME: Upstream has accidentally diverged but doesn't want to fix the
   ;; problem on their end, see bug#52902 as well as
@@ -415,6 +416,8 @@
   :news "doc/Changelog.org")
  (hyperbole           	:url "https://git.savannah.gnu.org/git/hyperbole.git"
   :make ("kotl/kotl-autoloads.el")
+  :ignored-files ("*.eps" "test" "*.pdf" "*.html"
+                  "HY-TALK/improve-performance.png" "man/im/wgrid4x3.png")
   :news "HY-NEWS")
  (idlwave		:url "https://github.com/jdtsmith/idlwave"
   :doc "idlwave.texi"
@@ -867,7 +870,7 @@
   ;; Mirror: https://github.com/omar-polo/vc-got/
   :ignored-files ("targets" "LICENSE"))
  (vc-hgcmd		:url "https://github.com/muffinmad/emacs-vc-hgcmd")
- (vc-jj		:url "https://codeberg.org/emacs-jj-vc/vc-jj.el")
+ (vc-jj			:url "https://codeberg.org/emacs-jj-vc/vc-jj.el")
  (vcard			:url nil)
  (vcl-mode	        :url "https://git.gnu.org.ua/vcl-mode.git")
  (vdiff               	:url "https://github.com/justbur/emacs-vdiff")

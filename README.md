@@ -27,4 +27,24 @@ content files. You are thus free to use page bundles, and all other
 features supported by Hugo, as well as all content file, and front
 matter formats supported by Hugo.
 
+## Installation
+
+Hugoista is available from [GNU ELPA](https://elpa.gnu.org/packages/).
+Thus, installing it is as easy as doing interactively:
+
+```
+M-x package-install RET hugoista RET
+M-: (require 'hugoista) RET
+```
+
+or with `use-package` and setting a default site directory at the same
+time:
+
+``` emacs-lisp
+(use-package hugoista
+  :ensure t
+  :custom
+  (hugoista-site-dir "~/path/to/default/site"))
+```
+
 Hope you'll find this useful, and happy posting!

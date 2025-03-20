@@ -111,7 +111,7 @@
              word-end)
          'font-lock-constant-face)
    ;; only valid for bold stropping
-   (cons (concat "\\<[A-Z]+\\>") 'font-lock-type-face)
+   (cons (concat "\\<[A-Z]+[A-Z_]*\\>") 'font-lock-type-face)
    (cons "\\('\\w*'\\)"
          'font-lock-variable-name-face))
   "Highlighting expressions for Algol 68 mode.")

@@ -101,19 +101,21 @@
    (cons (rx word-start
              (eval `(or ,@a68-keywords))
              word-end)
-         'font-lock-keyword-face)
+         ''font-lock-keyword-face)
    (cons (rx word-start
              (eval `(or ,@a68-std-modes))
              word-end)
-         'font-lock-type-face)
+         ''font-lock-type-face)
    (cons (rx word-start
              (or "TRUE" "FALSE")
              word-end)
-         'font-lock-constant-face)
+         ''font-lock-constant-face)
    ;; only valid for bold stropping
-   (cons (concat "\\<[A-Z]+[A-Z_]*\\>") 'font-lock-type-face)
+   '("\\<\\([A-Z]+[A-Z_]*\\>\\)\\(_+\\)?"
+     (1 'font-lock-type-face)
+      (2 'font-lock-warning-face nil t))
    (cons "\\('\\w*'\\)"
-         'font-lock-variable-name-face))
+         ''font-lock-variable-name-face))
   "Highlighting expressions for Algol 68 mode.")
 
 (defun a68-within-string ()

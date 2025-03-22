@@ -32,6 +32,14 @@
 (require 'denote)
 (require 'org)
 
+(defgroup denote-org ()
+  "Optional extensions to Denote that work specifically with Org mode."
+  :group 'denote
+  :link '(info-link "(denote) top")
+  :link '(info-link "(denote-org) top")
+  :link '(url-link :tag "Denote homepage" "https://protesilaos.com/emacs/denote")
+  :link '(url-link :tag "Denote Org homepage" "https://protesilaos.com/emacs/denote-org"))
+
 ;;;; Link to file and heading
 
 (defun denote-org--get-outline (file)

@@ -31,6 +31,14 @@
 
 (require 'denote)
 
+(defgroup denote-markdown ()
+  "Optional extensions for Denote that work specifically with Markdown files."
+  :group 'denote
+  :link '(info-link "(denote) top")
+  :link '(info-link "(denote-markdown) top")
+  :link '(url-link :tag "Denote homepage" "https://protesilaos.com/emacs/denote")
+  :link '(url-link :tag "Denote Markdown homepage" "https://protesilaos.com/emacs/denote-markdown"))
+
 ;;;; Register a new file type
 
 (add-to-list

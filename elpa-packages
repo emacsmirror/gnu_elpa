@@ -303,6 +303,7 @@
                                "etc/EGLOT-NEWS")
   :news "EGLOT-NEWS"
   :doc "eglot.texi")
+ (el-job		:url "https://github.com/meedstrom/el-job")
  (el-search		:url nil)
  (eldoc			:core "lisp/emacs-lisp/eldoc.el")
  ;; `eldoc-eval' is obsoleted by core support for eldoc in minibuffer (2013).

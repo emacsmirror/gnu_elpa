@@ -41,7 +41,9 @@
   "Make it easier to use Denote across Silos."
   :group 'denote
   :link '(info-link "(denote) Top")
-  :link '(url-link :tag "Homepage" "https://protesilaos.com/emacs/denote"))
+  :link '(info-link "(denote-silo) Top")
+  :link '(url-link :tag "Denote homepage" "https://protesilaos.com/emacs/denote")
+  :link '(url-link :tag "Denote Silo homepage" "https://protesilaos.com/emacs/denote-silo"))
 
 (defcustom denote-silo-directories
   `(,denote-directory)

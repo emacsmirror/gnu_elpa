@@ -362,6 +362,7 @@
  (firefox-javascript-repl	:url "https://git.sr.ht/~fitzsim/firefox-javascript-repl")
  (flylisp		:url nil)
  (flymake		:core "lisp/progmodes/flymake.el")
+ (flymake-clippy        :url "https://github.com/mak-kirkland/flymake-clippy")
  (flymake-codespell	:url "https://github.com/skangas/flymake-codespell"
   :readme "README.org")
  (flymake-proselint	:url "https://git.sr.ht/~manuel-uberti/flymake-proselint")

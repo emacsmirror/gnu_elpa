@@ -4,7 +4,7 @@
 
 ;; Author: Alexander Adolf <alexander.adolf@condition-alpha.com>, Thanos Apollo <public@thanosapollo.org>
 ;; Maintainer: Alexander Adolf <alexander.adolf@condition-alpha.com>
-;; Version: 0.2.0
+;; Version: 0.2.1
 ;; Package-Requires: ((emacs "24.3") seq)
 ;; Homepage: https://codeberg.org/c-alpha/hugoista
 
@@ -257,14 +257,18 @@ CONTENT-GROUPS is a grouped list in the format produced by
 
 (defun hugoista--hugo-site-dir-p (dir)
   "Test whether DIR is a Hugo site directory."
-  (> (length (directory-files dir nil
-                              (rx bos
-                                  (or "hugo" "config")
-                                  "."
-                                  (or "toml" (seq "y" (opt "a") "ml"))
-                                  eos)
-                              t))
-     0))
+  (let* ((cfgrx (rx bos
+                    (or "hugo" "config")
+                    "."
+                    (or "toml" (seq "y" (opt "a") "ml"))
+                    eos))
+         (cfgsubdir (expand-file-name "config" dir))
+         (rootcfgs (length (directory-files dir nil cfgrx t)))
+         (subdircfgs (if (file-directory-p cfgsubdir)
+                         (length (directory-files-recursively cfgsubdir cfgrx
+                                                              nil nil t))
+                       0)))
+    (> (+ rootcfgs subdircfgs) 0)))
 
 ;;;; Interactive Functions
 

@@ -1,0 +1,39 @@
+NEWS for https://codeberg.org/c-alpha/hugoista
+========================================================================
+Release Notes for Version 0.2.1
+========================================================================
+
+Issues Resolved with This Version
+---------------------------------
+- [Issue #3] The test for detecting a Hugo site directory was
+  considering simple setups only, that is with the Hugo config file at
+  the root of the site's directory tree. Advanced configurations with
+  a set of configuration files in the config subdirectory are now also
+  recognised as Hugo site directories.
+
+New in This Version
+-------------------
+None.
+
+Known Problems and Limitations
+------------------------------
+None.
+
+========================================================================
+Release Notes for Version 0.2.0
+========================================================================
+
+Issues Resolved with This Version
+---------------------------------
+None.
+
+New in This Version
+-------------------
+- Add GNU ELPA installation instructions to readme.
+- Bump version to 0.2.0 to trigger GNU ELPA publication.
+
+Known Problems and Limitations
+------------------------------
+None.
+
+---------------------------- End of NEWS -------------------------------

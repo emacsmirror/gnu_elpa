@@ -16,6 +16,21 @@
 
 ## Installation
 
+### GNU ELPA
+
+1. Package can be installed directly from ELPA:
+
+    `M-x package-install RET flymake-clippy RET`
+
+2. Add the following to your Emacs configuration:
+
+    ```elisp
+    (use-package flymake-clippy
+      :hook ((rust-mode . flymake-clippy-setup))
+      :custom (flymake-clippy-cargo-path "cargo") ; Optional: Specify the path to the `cargo' executable.
+      :config (add-hook 'rust-mode-hook #'flymake-mode))
+    ```
+
 ### Manual Installation
 
 1. Clone or download the repository to a local directory:
@@ -28,7 +43,7 @@
 
     ```elisp
     (use-package flymake-clippy
-      :load-path "~/path/to/flymake-clippy"
+      :load-path "~/path/to/flymake-clippy" ; Point to local repository
       :hook ((rust-mode . flymake-clippy-setup))
       :custom (flymake-clippy-cargo-path "cargo") ; Optional: Specify the path to the `cargo' executable.
       :config (add-hook 'rust-mode-hook #'flymake-mode))

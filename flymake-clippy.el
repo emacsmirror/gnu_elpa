@@ -1,11 +1,11 @@
 ;;; flymake-clippy.el --- Flymake backend for Clippy  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025  Michael Kirkland
+;; Copyright (C) 2025  Free Software Foundation, Inc.
 
 ;; Author: Michael Kirkland <mak.kirkland@proton.me>
 ;; URL: https://github.com/mak-kirkland/flymake-clippy
 ;; Keywords: languages tools
-;; Version: 1.0.0
+;; Version: 1.1.0
 ;; Package-Requires: ((emacs "27"))
 
 ;; This program is free software; you can redistribute it and/or modify

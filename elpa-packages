@@ -418,8 +418,7 @@
   :news "doc/Changelog.org")
  (hyperbole           	:url "https://git.savannah.gnu.org/git/hyperbole.git"
   :make ("kotl/kotl-autoloads.el")
-  :ignored-files ("*.eps" "test" "*.pdf" "*.html"
-                  "HY-TALK/improve-performance.png" "man/im/wgrid4x3.png")
+  :doc "man/hyperbole.texi"
   :news "HY-NEWS")
  (idlwave		:url "https://github.com/jdtsmith/idlwave"
   :doc "idlwave.texi"
@@ -538,10 +537,10 @@
  (minibuffer-line	:url nil)
  (minimap		:url nil)
  ;; FIXME: Waiting for copyright paperwork.
- ;; (minuet		:url "https://github.com/milanglacier/minuet-ai.el"
- ;;  :ignored-files ("LICENSE")
- ;;  :readme "README.md"
- ;;  :news "CHANGELOG.md")
+ (minuet		:url "https://github.com/milanglacier/minuet-ai.el"
+  :ignored-files ("LICENSE")
+  :readme "README.md"
+  :news "CHANGELOG.md")
  (mmm-mode		:url "https://github.com/dgutov/mmm-mode"
   :doc "mmm.texi")
  (modus-themes		:url "https://github.com/protesilaos/modus-themes"

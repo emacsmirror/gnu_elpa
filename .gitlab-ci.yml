@@ -13,6 +13,7 @@ package:
     - eldev compile
     - eldev test
     - eldev package
+    - eldev sha256
   artifacts:
     paths:
       - dist/
@@ -34,6 +35,8 @@ release:
       links:
         - name: $FILENAME_BASE.el
           url: $DIST_DIR/$FILENAME_BASE.el
+        - name: $FILENAME_BASE.sha256.b32
+          url: $DIST_DIR/$FILENAME_BASE.sha256.b32
   script:
     - echo Release job
   artifacts:

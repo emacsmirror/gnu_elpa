@@ -1,3 +1,55 @@
 ; -*- mode: emacs-lisp; lexical-binding: t -*-
 
 (eldev-add-loading-roots 'test "tests")
+
+(defun base32-encode-string (string)
+  "Base32-encode STRING and return the result."
+  ; Ensure unibyte encoding
+  (setq string (encode-coding-string string 'utf-8 t))
+  (let* ((b32str "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
+	 (b32matrix '((0 -3) (0 2 1 -6) (1 -1)
+		      (1 4 2 -4) (2 1 3 -7)
+		      (3 -2) (3 3 4 -5) (4 0)))
+	 (inlen (length string))
+	 (outlen (* 8 (+ (/ inlen 5)
+			 (if (= (% inlen 5) 0) 0 1))))
+	 (encoded (make-vector outlen 0))
+	 (i 0) (o -1))
+    (cl-flet ((encode ()
+		(mapc
+		 (lambda (l)
+		   (apply
+		    (lambda (i1 s1 &optional i2 s2)
+		      (aset encoded (cl-incf o)
+			    (if (>= i inlen) ?=
+			      (aref b32str
+				    (logand
+				     (+ (ash (aref string i1) s1)
+					(if (or (not i2)
+						(>= (cl-incf i) inlen))
+					    0
+					  (ash (aref string i2) s2)))
+				     #x1f))))
+		      (when (>= o outlen) (throw 'break t)))
+		    l))
+		 b32matrix)))
+      (catch 'break
+	(while (and (< i inlen) (< o outlen))
+	  (encode)
+	  (cl-incf i)
+	  (setq string (substring string (min (length string) 5))))))
+    (concat encoded)))
+
+(eldev-defcommand
+ boxy-sha256 (&rest _)
+ "Create md5 checksum of .tar and .el files in dist folder."
+ (mapc
+  (lambda (file)
+    (find-file-literally file)
+    (let ((buff (current-buffer)))
+      (with-temp-file (concat (file-name-sans-extension file) ".sha256.b32")
+	(insert (base32-encode-string (secure-hash 'sha256 buff nil nil t))))))
+  (append
+   (directory-files eldev-dist-dir t "\\.tar\\'")
+   (directory-files eldev-dist-dir t "\\.el\\'"))))
+

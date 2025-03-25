@@ -1,11 +1,11 @@
-;;; gnome-dark-style.el --- Sync theme with GNOME color-scheme -*- lexical-binding: t; -*-
+;;; gnome-dark-style.el --- Sync theme with GNOME color-scheme   -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025 Free Software Foundation, Inc.
 
 ;; Author: David Dimagid <davidimagid@gmail.com>
 ;; Maintainer: David Dimagid <davidimagid@gmail.com>
-;; Version: 0.2.2
-;; Package-Version: 0.2.2
+;; Version: 0.2.3
+;; Package-Version: 0.2.3
 ;; URL: https://github.com/dimagid/gnome-dark-style
 ;; Package-Requires: ((emacs "30.1"))
 ;; Keywords: themes, gnome, sync, dark, light, color-scheme
@@ -68,19 +68,22 @@ If `gsettings' is not available, warn the user and return nil."
   (interactive)
   (let* ((gnome-color-scheme (get-gnome-color-scheme))
          (target-theme (cond
-                        ((string-match-p "default" gnome-color-scheme)
+                        ((string-match-p "default"
+					 gnome-color-scheme)
                          gnome-light-theme)
-                        ((string-match-p "prefer-light" gnome-color-scheme)
+                        ((string-match-p "prefer-light"
+					 gnome-color-scheme)
                          gnome-light-theme)
                         (t gnome-dark-theme))))
     (mapc #'disable-theme custom-enabled-themes)
     (setq custom-enabled-themes nil)
     ;; Load the target theme (if not nil)
     (when target-theme
-      (condition-case err
+      (condition-case _
           (load-theme target-theme t)
         (error
-         (message "Warning: Theme `%s' not found. Using default." target-theme))))))
+         (message "Warning: Theme `%s' not found. Using default."
+		  target-theme))))))
 
 ;;;###autoload
 (defun gnome-start-color-scheme-monitor ()
@@ -89,8 +92,10 @@ If `gsettings' is not available, warn the user and return nil."
   (gnome-stop-color-scheme-monitor)
   (let ((process (make-process
                   :name "gsettings-monitor"
-                  :command '("gsettings" "monitor" "org.gnome.desktop.interface" "color-scheme")
-                  :filter (lambda (process output)
+                  :command '("gsettings" "monitor"
+			     "org.gnome.desktop.interface"
+			     "color-scheme")
+                  :filter (lambda (_ output)
                             (when (string-match-p "color-scheme" output)
                               (gnome-set-theme-based-on-color-scheme))))))
     ;; Mark the process as non-queryable on exit
@@ -116,16 +121,19 @@ Manages a hook to stop monitoring on Emacs exit."
           ;; Only set the theme if it's different from the current one
           (let* ((gnome-color-scheme (get-gnome-color-scheme))
                  (target-theme (cond
-                                ((string-match-p "default" gnome-color-scheme)
+                                ((string-match-p "default"
+						 gnome-color-scheme)
                                  gnome-light-theme)
-                                ((string-match-p "prefer-light" gnome-color-scheme)
+                                ((string-match-p "prefer-light"
+						 gnome-color-scheme)
                                  gnome-light-theme)
                                 (t gnome-dark-theme))))
             (unless (member target-theme custom-enabled-themes)
               (gnome-set-theme-based-on-color-scheme))))
       (when current-state
         (gnome-stop-color-scheme-monitor)
-        (remove-hook 'kill-emacs-hook #'gnome-stop-color-scheme-monitor)))))
+        (remove-hook 'kill-emacs-hook
+		     #'gnome-stop-color-scheme-monitor)))))
 
 ;;;###autoload
 (defcustom gnome-dark-style-sync t

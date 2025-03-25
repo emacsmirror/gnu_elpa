@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2024-2025 aurtzy
 ;; Copyright (C) 2008-2023 The Magit Project Contributors
-;; Copyright (C) 1985-1987, 1992-2024 Free Software Foundation, Inc.
+;; Copyright (C) 1985-1987, 1992-2025 Free Software Foundation, Inc.
 
 ;; Author: aurtzy <aurtzy@gmail.com>
 ;; URL: https://github.com/aurtzy/disproject
@@ -437,6 +437,10 @@ initialized."
 ;; `disproject-prefix' prefixes.  Calling these in any other situation may lead
 ;; to unexpected/undesired results.
 
+(defun disproject-prefix--feature-flymake? ()
+  "Return non-nil if `flymake' is an available library."
+  (featurep 'flymake))
+
 (defun disproject-prefix--feature-magit-clone? ()
   "Return non-nil if `magit-clone' is an available library."
   (featurep 'magit-clone))
@@ -510,7 +514,9 @@ menu."
     ("l" "Dir-locals file" disproject-dir-locals)
     ("s" "Shell" disproject-shell)
     ("v" disproject-vc-status
-     :inapt-if-not disproject-prefix--version-control-apt?)]
+     :inapt-if-not disproject-prefix--version-control-apt?)
+    ("w" "Diagnostics" disproject-flymake-diagnostics
+     :if disproject-prefix--feature-flymake?)]
    [("!" "Shell command" disproject-synchronous-shell-command)
     ("&" "Async shell command" disproject-shell-command
      :buffer-id "shell-command"
@@ -1352,6 +1358,13 @@ Defining custom suffixes with Disproject's custom syntax is deprecated;\
   (interactive)
   (disproject-with-environment
     (call-interactively #'project-dired)))
+
+(transient-define-suffix disproject-flymake-diagnostics ()
+  "View the Flymake diagnostics of the project."
+  (interactive)
+  (declare-function flymake-show-project-diagnostics "flymake")
+  (disproject-with-environment
+    (call-interactively #'flymake-show-project-diagnostics)))
 
 (transient-define-suffix disproject-dir-locals ()
   "Open `dir-locals-file' in the project root.

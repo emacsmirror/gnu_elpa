@@ -847,11 +847,11 @@ will overwrite the same file.
 #+end_src
 
 * Literate Programming
-This is written as a [[https://en.wikipedia.org/wiki/Literate_programming][literate program]] using [[https://orgmode.org/][emacs org-mode]].  [[file:gimp-comic-book.org][The org
-file]] contains the code and documentation for the math worksheet
-generation script.  When this file is saved, the source code is
-generated using =org-babel-tangle= and the readme is generated using
-=org-md-export-to-file=.
+This is written as a [[https://en.wikipedia.org/wiki/Literate_programming][literate program]] using [[https://orgmode.org/][emacs
+org-mode]]. [[file:mathsheet.org][The org file]] contains the code and
+documentation for the math worksheet generation script.  When this
+file is saved, the source code is generated using =org-babel-tangle= and
+the readme is generated using =org-md-export-to-file=.
 
 The first line of [[file:mathsheet.org][the org file]] configures emacs to run those commands
 whenever this file is saved, which generates the scripts and readme.

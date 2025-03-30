@@ -2,6 +2,19 @@
 
 <a href="https://elpa.gnu.org/packages/denote-search.html"><img alt="GNU ELPA" src="https://elpa.gnu.org/packages/denote-search.svg"/></a>
 
+-----
+
+NOTICE: Together with Protesilaos, I merged most of the features of
+this package into Denote. From version 4.0.0 onwards, you will be able
+to search in the contents of your notes with the command
+`denote-grep`, and most of the functionality described in
+`denote-search` manual will be available in stock Denote as well (even
+in unexpected places such as backlinks buffers!). The package will
+stay here for existing users, but you probably should switch to
+`denote-grep` once the new version of Denote is released.
+
+-----
+
 This package provides a search utility for Denote, the simple-to-use,
 focused-in-scope, and effective note-taking tool for Emacs.
 

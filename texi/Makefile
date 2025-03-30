@@ -23,8 +23,8 @@
 
 MAKEINFO	= makeinfo --no-warn --no-split
 TEXI_FILES	= $(wildcard *.texi)
-CLEAN_FILES	= .\\\#* \\\#* .*~ *~ *.aux *.cp *.cps *.diff *.fn *.fns \
-		  *.ky *.log *.pg *.tmp *.toc *.tp *.vr *.vrs ../tramp.info
+CLEAN_FILES	= .\\\#* \\\#* .*~ *~ *.aux *.cp *.cps *.diff *.fn *.fns *.ky \
+		  *.kys *.log *.pg *.tmp *.toc *.tp *.vr *.vrs ../tramp.info
 SOURCE_DIR	= ~/src/tramp
 
 .PHONY: all clean sync

@@ -7,13 +7,15 @@
 ;; Maintainer: Michael Albinus <michael.albinus@gmx.de>
 ;; Keywords: comm, processes
 ;; Package: tramp
-;; Version: 2.7.2.2
+;; Version: 2.7.2.3
 ;; Package-Requires: ((emacs 27.1))
 ;; Package-Type: multi
 ;; URL: https://www.gnu.org/software/tramp/
 
-;; This is a GNU ELPA :core package.  Avoid functionality that is not
+;; This is also a GNU ELPA package.  Avoid functionality that is not
 ;; compatible with the version of Emacs recorded in trampver.el.
+;; Version and Package-Requires are place holders.  They are updated
+;; when the GNU ELPA package is released.
 
 ;; This file is part of GNU Emacs.
 
@@ -124,9 +126,8 @@
   :version "22.1"
   :link '(custom-manual "(tramp)Top"))
 
-;; On MS-DOS, there is no process support.
 ;;;###autoload
-(defcustom tramp-mode (not (eq system-type 'ms-dos))
+(defcustom tramp-mode (fboundp 'make-process) ; Disable on MS-DOS.
   "Whether Tramp is enabled.
 If it is set to nil, all remote file names are used literally."
   :type 'boolean)
@@ -2099,7 +2100,7 @@ does not exist, otherwise propagate the error."
     `(condition-case ,err
          (progn ,@body)
        (error
-	(if (not (file-exists-p ,filename))
+	(if (not (or (file-exists-p ,filename) (file-symlink-p ,filename)))
 	    (tramp-error ,vec 'file-missing ,filename)
 	  (signal (car ,err) (cdr ,err)))))))
 
@@ -3538,12 +3539,19 @@ BODY is the backend specific code."
        (when (tramp-connectable-p ,filename)
 	 (with-parsed-tramp-file-name (expand-file-name ,filename) nil
 	   (with-tramp-file-property v localname "file-exists-p"
-	     ;; Examine `file-attributes' cache to see if request can
-	     ;; be satisfied without remote operation.
-	     (if (tramp-file-property-p v localname "file-attributes")
-		 (not
-		  (null (tramp-get-file-property v localname "file-attributes")))
-	       ,@body))))))
+	     (cond
+	      ;; Examine `file-attributes' cache to see if request can
+	      ;; be satisfied without remote operation.
+	      ((and-let*
+		   (((tramp-file-property-p v localname "file-attributes"))
+		    (fa (tramp-get-file-property v localname "file-attributes"))
+		    ((not (stringp (car fa)))))))
+	      ;; Symlink to a non-existing target counts as nil.
+	      ;; Protect against cyclic symbolic links.
+	      ((file-symlink-p ,filename)
+	       (ignore-errors
+		 (file-exists-p (file-truename ,filename))))
+	      (t ,@body)))))))
 
 (defmacro tramp-skeleton-file-local-copy (filename &rest body)
   "Skeleton for `tramp-*-handle-file-local-copy'.
@@ -3767,10 +3775,13 @@ BODY is the backend specific code."
 		   tmpstderr (tramp-make-tramp-file-name v stderr))))
 	  ;; stderr to be discarded.
 	  ((null (cadr ,destination))
-	   (setq stderr (tramp-get-remote-null-device v)))))
+	   (setq stderr (tramp-get-remote-null-device v)))
+	  ((eq (cadr ,destination) tramp-cache-undefined)
+	   ;; stderr is not impelmemted.
+	   (tramp-warning v "%s" "STDERR not supported"))))
 	;; t
 	(,destination
-	(setq outbuf (current-buffer))))
+	 (setq outbuf (current-buffer))))
 
        ,@body
 
@@ -3806,7 +3817,7 @@ BODY is the backend specific code."
 	 ;; We cannot add "file-attributes", "file-executable-p",
 	 ;; "file-ownership-preserved-p", "file-readable-p",
 	 ;; "file-writable-p".
-	 '("file-directory-p" "file-exists-p" "file-symlinkp" "file-truename")
+	 '("file-directory-p" "file-exists-p" "file-symlink-p" "file-truename")
        (tramp-flush-file-properties v localname))
      (condition-case err
 	 (progn ,@body)
@@ -4148,10 +4159,9 @@ Let-bind it when necessary.")
 (defun tramp-handle-file-directory-p (filename)
   "Like `file-directory-p' for Tramp files."
   ;; `file-truename' could raise an error, for example due to a cyclic
-  ;; symlink.  We don't protect this despite it, because other errors
-  ;; might be worth to be visible, for example impossibility to mount
-  ;; in tramp-gvfs.el.
-  (eq (file-attribute-type (file-attributes (file-truename filename))) t))
+  ;; symlink.
+  (ignore-errors
+    (eq (file-attribute-type (file-attributes (file-truename filename))) t)))
 
 (defun tramp-handle-file-equal-p (filename1 filename2)
   "Like `file-equalp-p' for Tramp files."
@@ -5462,8 +5472,22 @@ support symbolic links."
 			 (insert-file-contents-literally
 			  error-file nil nil nil 'replace))
 		       (delete-file error-file)))))
-		(display-buffer output-buffer '(nil (allow-no-window . t)))))
-
+                (if async-shell-command-display-buffer
+                    ;; Display buffer immediately.
+                    (display-buffer output-buffer '(nil (allow-no-window . t)))
+                  ;; Defer displaying buffer until first process output.
+                  ;; Use disposable named advice so that the buffer is
+                  ;; displayed at most once per process lifetime.
+                  (let ((nonce (make-symbol "nonce")))
+                    (add-function
+		     :before (process-filter p)
+                     (lambda (proc _string)
+                       (let ((buf (process-buffer proc)))
+                         (when (buffer-live-p buf)
+                           (remove-function (process-filter proc)
+                                            nonce)
+                           (display-buffer buf '(nil (allow-no-window . t))))))
+                     `((name . ,nonce)))))))
 	    ;; Insert error messages if they were separated.
 	    (when (and error-file (not (process-live-p p)))
 	      (ignore-errors

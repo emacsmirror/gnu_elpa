@@ -1,0 +1,5 @@
+*.elc
+*.aux
+*.log
+*.pdf
+*.tex

@@ -1,10 +1,10 @@
-;;; doc-dual-view.el --- Sync two windows showing the same document  -*- lexical-binding: t; -*-
+;;; doc-follow.el --- Sync two windows showing the same document  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024  Paul D. Nelson
 
 ;; Author: Paul D. Nelson <nelson.paul.david@gmail.com>
 ;; Version: 0.1
-;; URL: https://github.com/ultronozm/doc-dual-view.el
+;; URL: https://github.com/ultronozm/doc-follow.el
 ;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: convenience
 
@@ -23,25 +23,25 @@
 
 ;;; Commentary:
 
-;; This package provides a minor mode, `doc-dual-view-mode', that
+;; This package provides a minor mode, `doc-follow-mode', that
 ;; synchronizes page navigation between two windows displaying the
 ;; same document, making it so that when you navigate to a page in one
 ;; window, the other window will navigate to a neighboring page, so
 ;; that the second window is always one page ahead of the first.
 
 ;; Supports `doc-view-mode' and `pdf-view-mode'.  You can customize
-;; the `doc-dual-view-modes' variable to add support for additional
+;; the `doc-follow-modes' variable to add support for additional
 ;; document viewing modes or modify the behavior for existing modes.
 
 ;;; Code:
 
 (require 'timer)
 
-(defgroup doc-dual-view nil
+(defgroup doc-follow nil
   "Synchronize pages between two windows displaying the same document."
   :group 'convenience)
 
-(defvar doc-dual-view-modes
+(defvar doc-follow-modes
   '((doc-view-mode
      :goto doc-view-goto-page
      :next doc-view-next-page
@@ -66,11 +66,11 @@ Each entry has the format:
 Other packages can add support for additional document viewing modes
 by adding entries to this list.")
 
-(defun doc-dual-view--call-func (mode-config action &rest args)
+(defun doc-follow--call-func (mode-config action &rest args)
   "Call function for ACTION from MODE-CONFIG with ARGS."
   (apply (plist-get mode-config action) args))
 
-(defun doc-dual-view--order-windows (windows)
+(defun doc-follow--order-windows (windows)
   "Order WINDOWS based on their position: leftmost, then topmost."
   (sort windows (lambda (window-a window-b)
                   (let* ((edges-a (window-edges window-a))
@@ -82,21 +82,21 @@ by adding entries to this list.")
                     (or (< left-a left-b)
                         (and (= left-a left-b) (< top-a top-b)))))))
 
-(defvar doc-dual-view--sync-in-progress nil
+(defvar doc-follow--sync-in-progress nil
   "Flag to prevent recursive sync operations.")
 
-(defun doc-dual-view--sync-pages (&rest _args)
+(defun doc-follow--sync-pages (&rest _args)
   "Sync pages between windows showing the same document."
-  (when (and doc-dual-view-mode
-             (not doc-dual-view--sync-in-progress))
-    (let ((doc-dual-view--sync-in-progress t))
+  (when (and doc-follow-mode
+             (not doc-follow--sync-in-progress))
+    (let ((doc-follow--sync-in-progress t))
       (when-let*
-          ((cfg (cdr (assoc major-mode doc-dual-view-modes)))
-           (windows (doc-dual-view--order-windows
+          ((cfg (cdr (assoc major-mode doc-follow-modes)))
+           (windows (doc-follow--order-windows
                      (get-buffer-window-list nil nil nil)))
            ((> (length windows) 1)))
-        (let* ((current-page (doc-dual-view--call-func cfg :current))
-               (max-page (doc-dual-view--call-func cfg :max))
+        (let* ((current-page (doc-follow--call-func cfg :current))
+               (max-page (doc-follow--call-func cfg :max))
                (current-window (selected-window))
                (window-index (seq-position windows current-window)))
           (seq-do-indexed
@@ -105,43 +105,43 @@ by adding entries to this list.")
                     (min max-page
                          (max 1 (+ current-page (- i window-index))))))
                (with-selected-window win
-                 (doc-dual-view--call-func cfg :goto target-page))))
+                 (doc-follow--call-func cfg :goto target-page))))
            windows))))))
 
-(defun doc-dual-view--manage-advice (add-or-remove)
-  "Add or remove advice for all functions in `doc-dual-view-modes`.
+(defun doc-follow--manage-advice (add-or-remove)
+  "Add or remove advice for all functions in `doc-follow-modes`.
 ADD-OR-REMOVE should be either 'add or 'remove."
-  (dolist (mode-entry doc-dual-view-modes)
+  (dolist (mode-entry doc-follow-modes)
     (dolist (action '(:goto :next :prev))
       (when-let ((func (plist-get (cdr mode-entry) action)))
         (if (eq add-or-remove 'add)
-            (advice-add func :after #'doc-dual-view--sync-pages)
-          (advice-remove func #'doc-dual-view--sync-pages))))))
+            (advice-add func :after #'doc-follow--sync-pages)
+          (advice-remove func #'doc-follow--sync-pages))))))
 
-(defun doc-dual-view--some-buffer-active-p ()
-  "Return non-nil if some buffer has `doc-dual-view-mode' active."
+(defun doc-follow--some-buffer-active-p ()
+  "Return non-nil if some buffer has `doc-follow-mode' active."
   (seq-some (lambda (buf)
-              (buffer-local-value 'doc-dual-view-mode buf))
+              (buffer-local-value 'doc-follow-mode buf))
             (buffer-list)))
 
 ;;;###autoload
-(define-minor-mode doc-dual-view-mode
+(define-minor-mode doc-follow-mode
   "Minor mode to sync pages between two windows showing the same document."
   :global nil
-  (if doc-dual-view-mode
-      (doc-dual-view--manage-advice 'add)
-    (unless (doc-dual-view--some-buffer-active-p)
-      (doc-dual-view--manage-advice 'remove))))
+  (if doc-follow-mode
+      (doc-follow--manage-advice 'add)
+    (unless (doc-follow--some-buffer-active-p)
+      (doc-follow--manage-advice 'remove))))
 
-(defun doc-dual-view--maybe-enable ()
-  "Enable `doc-dual-view-mode' if appropriate for this buffer."
-  (when (assq major-mode doc-dual-view-modes)
-    (doc-dual-view-mode 1)))
+(defun doc-follow--maybe-enable ()
+  "Enable `doc-follow-mode' if appropriate for this buffer."
+  (when (assq major-mode doc-follow-modes)
+    (doc-follow-mode 1)))
 
 ;;;###autoload
-(define-globalized-minor-mode global-doc-dual-view-mode
-  doc-dual-view-mode
-  doc-dual-view--maybe-enable)
+(define-globalized-minor-mode global-doc-follow-mode
+  doc-follow-mode
+  doc-follow--maybe-enable)
 
-(provide 'doc-dual-view)
-;;; doc-dual-view.el ends here
+(provide 'doc-follow)
+;;; doc-follow.el ends here

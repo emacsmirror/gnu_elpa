@@ -85,6 +85,9 @@ by adding entries to this list.")
 (defvar doc-dual-view--sync-in-progress nil
   "Flag to prevent recursive sync operations.")
 
+(defconst doc-dual-view--sync-delay 0.001
+  "Short delay in seconds before syncing windows to avoid timing issues.")
+
 (defun doc-dual-view--sync-pages (&rest _args)
   "Sync pages between windows showing the same document."
   (unless doc-dual-view--sync-in-progress
@@ -108,11 +111,11 @@ by adding entries to this list.")
                    (unless (= target-page
                               (doc-dual-view--call-func mode-config :current))
                      (run-with-idle-timer
-                      0.001 nil
-                      (lambda (target-win config page)
-                        (when (window-live-p target-win)
-                          (with-selected-window target-win
-                            (doc-dual-view--call-func config :goto page))))
+                      doc-dual-view--sync-delay nil
+                      (lambda (w cfg page)
+                        (when (window-live-p w)
+                          (with-selected-window w
+                            (doc-dual-view--call-func cfg :goto page))))
                       win mode-config target-page))))))
            windows))))))
 

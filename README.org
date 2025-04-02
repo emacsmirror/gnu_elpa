@@ -1,4 +1,4 @@
-#+title: doc-follow.el: synchronize windows showing the same document
+#+title: doc-follow.el: Synchronize windows showing the same document
 #+author: Paul Nelson
 
 * Overview
@@ -38,4 +38,4 @@ Both windows will automatically stay synchronized.
 
 * Extensibility
 
-One could add support for additional document viewing modes via the =doc-follow-modes= variable.
+One could add support for additional document viewing modes (if any) via the =doc-follow-modes= variable.

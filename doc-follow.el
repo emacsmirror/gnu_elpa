@@ -1,4 +1,4 @@
-;;; doc-follow.el --- synchronize windows showing the same document -*- lexical-binding: t; -*-
+;;; doc-follow.el --- Synchronize windows showing the same document -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024  Paul D. Nelson
 
@@ -33,8 +33,8 @@
 ;; in two side-by-side windows on consecutive pages.
 ;;
 ;; `doc-view-mode' (built-in to Emacs) and `pdf-view-mode' (from
-;; pdf-tools) are supported by default.  Additional viewing modes can
-;; be added via the `doc-follow-modes' variable.
+;; pdf-tools) are supported by default.  Additional viewing modes (if
+;; any) could be added via the `doc-follow-modes' variable.
 ;;
 ;; Usage:
 ;; - Enable globally: M-x global-doc-follow-mode

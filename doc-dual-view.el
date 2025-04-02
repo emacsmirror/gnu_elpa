@@ -70,12 +70,17 @@ redisplay-func)."
 
 (defun doc-dual-view--order-windows (windows)
   "Order WINDOWS based on their position, leftmost (or topmost if equal) first."
-  (sort windows (lambda (a b)
-                  (let ((edges-a (window-edges a))
-                        (edges-b (window-edges b)))
-                    (or (< (car edges-a) (car edges-b))
-                        (and (= (car edges-a) (car edges-b))
-                             (< (cadr edges-a) (cadr edges-b))))))))
+  (sort windows
+        (lambda (window-a window-b)
+          (let* ((edges-a (window-edges window-a))
+                 (edges-b (window-edges window-b))
+                 (left-a (nth 0 edges-a))
+                 (left-b (nth 0 edges-b))
+                 (top-a (nth 1 edges-a))
+                 (top-b (nth 1 edges-b)))
+            (or (< left-a left-b)
+                (and (= left-a left-b)
+                     (< top-a top-b)))))))
 
 (defun doc-dual-view--sync-pages (&rest _args)
   "Sync pages between windows showing the same document."

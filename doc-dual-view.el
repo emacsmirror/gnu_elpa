@@ -41,43 +41,46 @@
   "Synchronize pages between two windows displaying the same document."
   :group 'convenience)
 
-(defcustom doc-dual-view-modes
-  '((pdf-view-mode
-     (pdf-view-goto-page
-      pdf-view-next-page-command
-      pdf-view-previous-page-command)
-     (lambda () (pdf-view-current-page)) ; convert macro to function
-     (lambda () (pdf-cache-number-of-pages)))
-    (doc-view-mode
-     (doc-view-goto-page
-      doc-view-next-page
-      doc-view-previous-page)
-     (lambda () (doc-view-current-page))
-     (lambda () (doc-view-last-page-number))))
-  "Alist for supported modes.
-List of mode-specific functions of the form
+(defvar doc-dual-view-modes
+  '((doc-view-mode
+     :goto doc-view-goto-page
+     :next doc-view-next-page
+     :prev doc-view-previous-page
+     :current (lambda () (doc-view-current-page))
+     :max (lambda () (doc-view-last-page-number)))
+    (pdf-view-mode
+     :goto pdf-view-goto-page
+     :next pdf-view-next-page-command
+     :prev pdf-view-previous-page-command
+     :current (lambda () (pdf-view-current-page))
+     :max (lambda () (pdf-cache-number-of-pages))))
+  "Alist of supported major modes and relevant functions.
+Each entry has the format:
+(MAJOR-MODE
+ :goto GOTO-PAGE-FUNCTION
+ :next NEXT-PAGE-FUNCTION
+ :prev PREV-PAGE-FUNCTION
+ :current FUNCTION-RETURNING-CURRENT-PAGE
+ :max FUNCTION-RETURNING-MAX-PAGE)
 
-(MAJOR-MODE GOTO-FUNCTIONS CURRENT-PAGE-FUNCTION MAX-PAGE-FUNCTION),
+Other packages can add support for additional document viewing modes
+by adding entries to this list.")
 
-where GOTO-FUNCTIONS is of the form (GOTO-FUNC NEXT-FUNC PREV-FUNC)."
-  :type '(repeat (list (symbol :tag "Major Mode")
-                       (repeat :tag "Goto Page Functions" symbol)
-                       (function :tag "Current Page Function")
-                       (function :tag "Max Page Function"))))
+(defun doc-dual-view--call-func (mode-config action &rest args)
+  "Call function for ACTION from MODE-CONFIG with ARGS."
+  (apply (plist-get mode-config action) args))
 
 (defun doc-dual-view--order-windows (windows)
   "Order WINDOWS based on their position: leftmost, then topmost."
-  (sort windows
-        (lambda (window-a window-b)
-          (let* ((edges-a (window-edges window-a))
-                 (edges-b (window-edges window-b))
-                 (left-a (nth 0 edges-a))
-                 (left-b (nth 0 edges-b))
-                 (top-a (nth 1 edges-a))
-                 (top-b (nth 1 edges-b)))
-            (or (< left-a left-b)
-                (and (= left-a left-b)
-                     (< top-a top-b)))))))
+  (sort windows (lambda (window-a window-b)
+                  (let* ((edges-a (window-edges window-a))
+                         (edges-b (window-edges window-b))
+                         (left-a (nth 0 edges-a))
+                         (left-b (nth 0 edges-b))
+                         (top-a (nth 1 edges-a))
+                         (top-b (nth 1 edges-b)))
+                    (or (< left-a left-b)
+                        (and (= left-a left-b) (< top-a top-b)))))))
 
 (defvar doc-dual-view--sync-in-progress nil
   "Flag to prevent recursive sync operations.")
@@ -87,46 +90,44 @@ where GOTO-FUNCTIONS is of the form (GOTO-FUNC NEXT-FUNC PREV-FUNC)."
   (unless doc-dual-view--sync-in-progress
     (let ((doc-dual-view--sync-in-progress t))
       (when-let*
-          ((mode-funcs (assoc major-mode doc-dual-view-modes))
+          ((mode-config (cdr (assoc major-mode doc-dual-view-modes)))
            (windows (doc-dual-view--order-windows
                      (get-buffer-window-list nil nil nil)))
            ((> (length windows) 1)))
-        (let* ((goto-func (car (nth 1 mode-funcs)))
-               (current-page-func (nth 2 mode-funcs))
-               (current-page (funcall current-page-func))
-               (max-page-func (nth 3 mode-funcs))
-               (max-page (funcall max-page-func))
+        (let* ((current-page (doc-dual-view--call-func mode-config :current))
+               (max-page (doc-dual-view--call-func mode-config :max))
                (current-window (selected-window))
                (window-index (seq-position windows current-window)))
           (seq-do-indexed
            (lambda (win i)
-             (when (and (not (eq win current-window))
-                        (window-live-p win))
+             (unless (eq win current-window)
                (let ((target-page
                       (min max-page
                            (max 1 (+ current-page (- i window-index))))))
                  (with-selected-window win
-                   (let ((current (funcall current-page-func)))
-                     (when (not (= current target-page))
-                       (run-with-idle-timer
-                        0.001 nil
-                        (lambda (target-win func page)
-                          (when (window-live-p target-win)
-                            (with-selected-window target-win
-                              (funcall func page))))
-                        win goto-func target-page)))))))
+                   (unless (= target-page
+                              (doc-dual-view--call-func mode-config :current))
+                     (run-with-idle-timer
+                      0.001 nil
+                      (lambda (target-win config page)
+                        (when (window-live-p target-win)
+                          (with-selected-window target-win
+                            (doc-dual-view--call-func config :goto page))))
+                      win mode-config target-page))))))
            windows))))))
 
 ;;;###autoload
 (define-minor-mode doc-dual-view-mode
   "Minor mode to sync pages between two windows showing the same document."
   :global nil
-  (dolist (mode-funcs doc-dual-view-modes)
-    (let ((goto-funcs (cadr mode-funcs)))
-      (dolist (goto-func goto-funcs)
-        (if doc-dual-view-mode
-            (advice-add goto-func :after #'doc-dual-view--sync-pages)
-          (advice-remove goto-func #'doc-dual-view--sync-pages))))))
+  (dolist (mode-entry doc-dual-view-modes)
+    (let* ((mode (car mode-entry))
+           (mode-config (cdr mode-entry)))
+      (dolist (action '(:goto :next :prev))
+        (let ((func (plist-get mode-config action)))
+          (if doc-dual-view-mode
+              (advice-add func :after #'doc-dual-view--sync-pages)
+            (advice-remove func #'doc-dual-view--sync-pages)))))))
 
 (defun doc-dual-view--maybe-enable ()
   "Enable `doc-dual-view-mode' if appropriate for this buffer."

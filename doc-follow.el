@@ -84,6 +84,15 @@ by adding entries to this list.")
 (defvar doc-follow--sync-in-progress nil
   "Flag to prevent recursive sync operations.")
 
+;;;###autoload
+(define-minor-mode doc-follow-mode
+  "Minor mode to sync pages between two windows showing the same document."
+  :global nil
+  (if doc-follow-mode
+      (doc-follow--manage-advice 'add)
+    (unless (doc-follow--some-buffer-active-p)
+      (doc-follow--manage-advice 'remove))))
+
 (defun doc-follow--sync-pages (&rest _args)
   "Sync pages between windows showing the same document."
   (when (and doc-follow-mode
@@ -122,15 +131,6 @@ ADD-OR-REMOVE should be either 'add or 'remove."
   (seq-some (lambda (buf)
               (buffer-local-value 'doc-follow-mode buf))
             (buffer-list)))
-
-;;;###autoload
-(define-minor-mode doc-follow-mode
-  "Minor mode to sync pages between two windows showing the same document."
-  :global nil
-  (if doc-follow-mode
-      (doc-follow--manage-advice 'add)
-    (unless (doc-follow--some-buffer-active-p)
-      (doc-follow--manage-advice 'remove))))
 
 (defun doc-follow--maybe-enable ()
   "Enable `doc-follow-mode' if appropriate for this buffer."

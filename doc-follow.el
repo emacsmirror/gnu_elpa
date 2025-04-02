@@ -54,13 +54,14 @@
      :current (lambda () (pdf-view-current-page))
      :max (lambda () (pdf-cache-number-of-pages))))
   "Alist of supported major modes and relevant functions.
-Each entry has the format:
-(MAJOR-MODE
- :goto GOTO-PAGE-FUNCTION
- :next NEXT-PAGE-FUNCTION
- :prev PREV-PAGE-FUNCTION
- :current FUNCTION-RETURNING-CURRENT-PAGE
- :max FUNCTION-RETURNING-MAX-PAGE)
+Each entry has the format: (MAJOR-MODE . CONFIG), where CONFIG is a list
+with entries:
+
+:goto GOTO-PAGE-FUNCTION
+:next NEXT-PAGE-FUNCTION
+:prev PREV-PAGE-FUNCTION
+:current FUNCTION-RETURNING-CURRENT-PAGE
+:max FUNCTION-RETURNING-MAX-PAGE
 
 Other packages can add support for additional document viewing modes
 by adding entries to this list.")

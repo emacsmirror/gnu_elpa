@@ -101,12 +101,7 @@ redisplay-func)."
     (unwind-protect
         (let ((i 0))
           (dolist (win windows)
-            (let ((target-page (cond
-                                ((< i window-index)
-                                 (max 1 (- current-page (- window-index i))))
-                                ((> i window-index)
-                                 (min max-page (+ current-page (- i window-index))))
-                                (t current-page))))
+            (let ((target-page (min max-page (max 1 (+ current-page (- i window-index))))))
               (when (and (not (eq win current-window))
                          (window-live-p win))
                 (with-selected-window win

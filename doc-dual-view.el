@@ -82,33 +82,39 @@ redisplay-func)."
                 (and (= left-a left-b)
                      (< top-a top-b)))))))
 
+(defvar doc-dual-view--sync-in-progress nil
+  "Flag to prevent recursive sync operations.")
+
 (defun doc-dual-view--sync-pages (&rest _args)
   "Sync pages between windows showing the same document."
-  (when-let* ((mode-funcs (assoc major-mode doc-dual-view-modes))
-              (windows (doc-dual-view--order-windows
-                        (get-buffer-window-list nil nil nil)))
-              ((> (length windows) 1))
-              (goto-funcs (nth 1 mode-funcs))
-              (current-page-func (nth 2 mode-funcs))
-              (max-page-func (nth 3 mode-funcs))
-              (redisplay-func (nth 4 mode-funcs))
-              (current-window (selected-window))
-              (window-index (seq-position windows current-window))
-              (current-page (funcall current-page-func))
-              (max-page (funcall max-page-func)))
-    (dolist (func goto-funcs)
-      (advice-remove func #'doc-dual-view--sync-pages))
-    (unwind-protect
-        (let ((i 0))
+  (unless doc-dual-view--sync-in-progress
+    (let ((doc-dual-view--sync-in-progress t))
+      (when-let*
+          ((mode-funcs (assoc major-mode doc-dual-view-modes))
+           (windows (doc-dual-view--order-windows
+                     (get-buffer-window-list nil nil nil)))
+           ((> (length windows) 1)))
+        (let* ((goto-funcs (nth 1 mode-funcs))
+               (current-page-func (nth 2 mode-funcs))
+               (max-page-func (nth 3 mode-funcs))
+               (redisplay-func (nth 4 mode-funcs))
+               (current-window (selected-window))
+               (window-index (seq-position windows current-window))
+               (current-page (funcall current-page-func))
+               (max-page (funcall max-page-func))
+               (i 0))
           (dolist (win windows)
-            (let ((target-page (min max-page (max 1 (+ current-page (- i window-index))))))
+            (let ((target-page (min max-page (max 1 (+ current-page
+                                                       (- i window-index))))))
               (when (and (not (eq win current-window))
                          (window-live-p win))
                 (with-selected-window win
                   (let ((current (funcall current-page-func)))
                     (when (not (= current target-page))
                       (funcall (car goto-funcs) target-page)
-                      (let ((timer-sym (intern (format "doc-dual-view--redisplay-timer-%d" i))))
+                      (let ((timer-sym
+                             (intern (format
+                                      "doc-dual-view--redisplay-timer-%d" i))))
                         (when (and (boundp timer-sym)
                                    (timerp (symbol-value timer-sym)))
                           (cancel-timer (symbol-value timer-sym)))
@@ -119,10 +125,7 @@ redisplay-func)."
                                 (when (window-live-p w)
                                   (with-selected-window w
                                     (funcall f p))))
-                              win redisplay-func target-page))))))))
-            (setq i (1+ i))))
-      (dolist (func goto-funcs)
-        (advice-add func :after #'doc-dual-view--sync-pages)))))
+                              win redisplay-func target-page))))))))))))))
 
 ;;;###autoload
 (define-minor-mode doc-dual-view-mode

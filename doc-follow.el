@@ -118,11 +118,11 @@ by adding entries to this list.")
            windows))))))
 
 (defun doc-follow--manage-advice (add-or-remove)
-  "Add or remove advice for all functions in `doc-follow-modes`.
-ADD-OR-REMOVE should be either 'add or 'remove."
+  "Add or remove advice for all functions in `doc-follow-modes'.
+ADD-OR-REMOVE should be either \\='add or \\='remove."
   (dolist (mode-entry doc-follow-modes)
     (dolist (action '(:goto :next :prev))
-      (when-let ((func (plist-get (cdr mode-entry) action)))
+      (when-let* ((func (plist-get (cdr mode-entry) action)))
         (if (eq add-or-remove 'add)
             (advice-add func :after #'doc-follow--sync-pages)
           (advice-remove func #'doc-follow--sync-pages))))))

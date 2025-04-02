@@ -67,7 +67,7 @@ redisplay-func)."
                        (function :tag "Max Page Function"))))
 
 (defun doc-dual-view--order-windows (windows)
-  "Order WINDOWS based on their position, leftmost (or topmost if equal) first."
+  "Order WINDOWS based on their position: leftmost, then topmost."
   (sort windows
         (lambda (window-a window-b)
           (let* ((edges-a (window-edges window-a))

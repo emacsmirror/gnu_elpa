@@ -87,7 +87,8 @@ by adding entries to this list.")
 
 (defun doc-dual-view--sync-pages (&rest _args)
   "Sync pages between windows showing the same document."
-  (unless doc-dual-view--sync-in-progress
+  (when (and doc-dual-view-mode
+             (not doc-dual-view--sync-in-progress))
     (let ((doc-dual-view--sync-in-progress t))
       (when-let*
           ((cfg (cdr (assoc major-mode doc-dual-view-modes)))
@@ -107,18 +108,30 @@ by adding entries to this list.")
                  (doc-dual-view--call-func cfg :goto target-page))))
            windows))))))
 
+(defun doc-dual-view--manage-advice (add-or-remove)
+  "Add or remove advice for all functions in `doc-dual-view-modes`.
+ADD-OR-REMOVE should be either 'add or 'remove."
+  (dolist (mode-entry doc-dual-view-modes)
+    (dolist (action '(:goto :next :prev))
+      (when-let ((func (plist-get (cdr mode-entry) action)))
+        (if (eq add-or-remove 'add)
+            (advice-add func :after #'doc-dual-view--sync-pages)
+          (advice-remove func #'doc-dual-view--sync-pages))))))
+
+(defun doc-dual-view--some-buffer-active-p ()
+  "Return non-nil if some buffer has `doc-dual-view-mode' active."
+  (seq-some (lambda (buf)
+              (buffer-local-value 'doc-dual-view-mode buf))
+            (buffer-list)))
+
 ;;;###autoload
 (define-minor-mode doc-dual-view-mode
   "Minor mode to sync pages between two windows showing the same document."
   :global nil
-  (dolist (mode-entry doc-dual-view-modes)
-    (let* ((mode (car mode-entry))
-           (mode-config (cdr mode-entry)))
-      (dolist (action '(:goto :next :prev))
-        (let ((func (plist-get mode-config action)))
-          (if doc-dual-view-mode
-              (advice-add func :after #'doc-dual-view--sync-pages)
-            (advice-remove func #'doc-dual-view--sync-pages)))))))
+  (if doc-dual-view-mode
+      (doc-dual-view--manage-advice 'add)
+    (unless (doc-dual-view--some-buffer-active-p)
+      (doc-dual-view--manage-advice 'remove))))
 
 (defun doc-dual-view--maybe-enable ()
   "Enable `doc-dual-view-mode' if appropriate for this buffer."

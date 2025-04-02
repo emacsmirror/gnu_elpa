@@ -46,24 +46,23 @@
      (pdf-view-goto-page
       pdf-view-next-page-command
       pdf-view-previous-page-command)
-     (lambda () (pdf-view-current-page))
-     (lambda () (pdf-cache-number-of-pages))
-     pdf-view-goto-page)
+     (lambda () (pdf-view-current-page)) ; convert macro to function
+     (lambda () (pdf-cache-number-of-pages)))
     (doc-view-mode
      (doc-view-goto-page
       doc-view-next-page
       doc-view-previous-page)
      (lambda () (doc-view-current-page))
-     (lambda () (doc-view-last-page-number))
-     doc-view-goto-page))
+     (lambda () (doc-view-last-page-number))))
   "Alist for supported modes.
-Given by (major-mode (goto-funcs) current-page-func max-page-func
-redisplay-func)."
+List of mode-specific functions of the form
+
+(MAJOR-MODE GOTO-FUNCTIONS CURRENT-PAGE-FUNCTION MAX-PAGE-FUNCTION),
+
+where GOTO-FUNCTIONS is of the form (GOTO-FUNC NEXT-FUNC PREV-FUNC)."
   :type '(repeat (list (symbol :tag "Major Mode")
                        (repeat :tag "Goto Page Functions" symbol)
                        (function :tag "Current Page Function")
-                       (function :tag "Max Page Function")
-                       (function :tag "Redisplay Function"))))
                        (function :tag "Max Page Function"))))
 
 (defun doc-dual-view--order-windows (windows)

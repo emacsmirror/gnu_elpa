@@ -85,38 +85,26 @@ by adding entries to this list.")
 (defvar doc-dual-view--sync-in-progress nil
   "Flag to prevent recursive sync operations.")
 
-(defconst doc-dual-view--sync-delay 0.001
-  "Short delay in seconds before syncing windows to avoid timing issues.")
-
 (defun doc-dual-view--sync-pages (&rest _args)
   "Sync pages between windows showing the same document."
   (unless doc-dual-view--sync-in-progress
     (let ((doc-dual-view--sync-in-progress t))
       (when-let*
-          ((mode-config (cdr (assoc major-mode doc-dual-view-modes)))
+          ((cfg (cdr (assoc major-mode doc-dual-view-modes)))
            (windows (doc-dual-view--order-windows
                      (get-buffer-window-list nil nil nil)))
            ((> (length windows) 1)))
-        (let* ((current-page (doc-dual-view--call-func mode-config :current))
-               (max-page (doc-dual-view--call-func mode-config :max))
+        (let* ((current-page (doc-dual-view--call-func cfg :current))
+               (max-page (doc-dual-view--call-func cfg :max))
                (current-window (selected-window))
                (window-index (seq-position windows current-window)))
           (seq-do-indexed
            (lambda (win i)
-             (unless (eq win current-window)
-               (let ((target-page
-                      (min max-page
-                           (max 1 (+ current-page (- i window-index))))))
-                 (with-selected-window win
-                   (unless (= target-page
-                              (doc-dual-view--call-func mode-config :current))
-                     (run-with-idle-timer
-                      doc-dual-view--sync-delay nil
-                      (lambda (w cfg page)
-                        (when (window-live-p w)
-                          (with-selected-window w
-                            (doc-dual-view--call-func cfg :goto page))))
-                      win mode-config target-page))))))
+             (let ((target-page
+                    (min max-page
+                         (max 1 (+ current-page (- i window-index))))))
+               (with-selected-window win
+                 (doc-dual-view--call-func cfg :goto target-page))))
            windows))))))
 
 ;;;###autoload

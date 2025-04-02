@@ -24,10 +24,9 @@
 ;;; Commentary:
 
 ;; This package provides a minor mode, `doc-follow-mode', that
-;; synchronizes page navigation between two windows displaying the
-;; same document, making it so that when you navigate to a page in one
-;; window, the other window will navigate to a neighboring page, so
-;; that the second window is always one page ahead of the first.
+;; synchronizes page navigation between windows displaying the same
+;; document, making it so that when you navigate to a page in one
+;; window, the other windows will navigate to neighboring pages.
 
 ;; Supports `doc-view-mode' and `pdf-view-mode'.  You can customize
 ;; the `doc-follow-modes' variable to add support for additional

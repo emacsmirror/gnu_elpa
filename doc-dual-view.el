@@ -64,9 +64,7 @@ redisplay-func)."
                        (function :tag "Current Page Function")
                        (function :tag "Max Page Function")
                        (function :tag "Redisplay Function"))))
-
-(defvar-local doc-dual-view--redisplay-timer nil
-  "Timer for delayed redisplay.")
+                       (function :tag "Max Page Function"))))
 
 (defun doc-dual-view--order-windows (windows)
   "Order WINDOWS based on their position, leftmost (or topmost if equal) first."
@@ -139,11 +137,7 @@ redisplay-func)."
       (dolist (goto-func goto-funcs)
         (if doc-dual-view-mode
             (advice-add goto-func :after #'doc-dual-view--sync-pages)
-          (advice-remove goto-func #'doc-dual-view--sync-pages)))))
-  (when (not doc-dual-view-mode)
-    (when doc-dual-view--redisplay-timer
-      (cancel-timer doc-dual-view--redisplay-timer)
-      (setq doc-dual-view--redisplay-timer nil))))
+          (advice-remove goto-func #'doc-dual-view--sync-pages))))))
 
 (defun doc-dual-view--maybe-enable ()
   "Enable `doc-dual-view-mode' if appropriate for this buffer."

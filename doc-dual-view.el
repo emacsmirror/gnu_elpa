@@ -94,14 +94,14 @@ redisplay-func)."
            (windows (doc-dual-view--order-windows
                      (get-buffer-window-list nil nil nil)))
            ((> (length windows) 1)))
-        (let* ((goto-funcs (nth 1 mode-funcs))
+        (let* ((goto-func (car (nth 1 mode-funcs)))
                (current-page-func (nth 2 mode-funcs))
+               (current-page (funcall current-page-func))
                (max-page-func (nth 3 mode-funcs))
+               (max-page (funcall max-page-func))
                (redisplay-func (nth 4 mode-funcs))
                (current-window (selected-window))
                (window-index (seq-position windows current-window))
-               (current-page (funcall current-page-func))
-               (max-page (funcall max-page-func))
                (i 0))
           (dolist (win windows)
             (let ((target-page (min max-page (max 1 (+ current-page
@@ -111,7 +111,7 @@ redisplay-func)."
                 (with-selected-window win
                   (let ((current (funcall current-page-func)))
                     (when (not (= current target-page))
-                      (funcall (car goto-funcs) target-page)
+                      (funcall goto-func target-page)
                       (let ((timer-sym
                              (intern (format
                                       "doc-dual-view--redisplay-timer-%d" i))))

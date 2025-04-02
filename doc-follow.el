@@ -2,8 +2,8 @@
 
 ;; Copyright (C) 2024  Paul D. Nelson
 
-;; Author: Paul D. Nelson <nelson.paul.david@gmail.com>
-;; Version: 0.1
+;; Author: Paul D. Nelson <ultrono@gmail.com>
+;; Version: 0.2
 ;; URL: https://github.com/ultronozm/doc-follow.el
 ;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: convenience
@@ -25,7 +25,9 @@
 
 ;; doc-follow.el provides a convenient way to synchronize page
 ;; navigation between multiple windows displaying the same document
-;; (PS/PDF/DVI/DjVu, etc.).
+;; (PS/PDF/DVI/DjVu, etc.).  It is essentially an analogue of the
+;; built-in `follow-mode', but for document buffers rather than text
+;; buffers.
 ;;
 ;; With `doc-follow-mode' enabled, navigating pages in one window
 ;; automatically adjusts the other windows to show adjacent pages.  In

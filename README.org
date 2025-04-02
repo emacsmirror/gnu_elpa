@@ -3,7 +3,9 @@
 
 * Overview
 
-doc-follow.el provides a minor mode, =doc-follow-mode=, that automatically synchronizes page navigation between multiple windows displaying the same PS/PDF/DVI/DjVu document.  In particular, this allows for a convenient "book view," with two windows showing consecutive pages side-by-side.
+doc-follow.el provides a minor mode, =doc-follow-mode=, that automatically synchronizes page navigation between multiple windows displaying the same PS/PDF/DVI/DjVu document.  This is essentially an analogue of Emacs' built-in =follow-mode=, but for document buffers instead rather than text buffers.
+
+In particular, this allows for a convenient "book view," with two windows showing consecutive pages side-by-side.
 
 * Installation
 

@@ -1,4 +1,4 @@
-;;; doc-follow.el --- Sync two windows showing the same document  -*- lexical-binding: t; -*-
+;;; doc-follow.el --- synchronize windows showing the same document -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024  Paul D. Nelson
 
@@ -23,14 +23,28 @@
 
 ;;; Commentary:
 
-;; This package provides a minor mode, `doc-follow-mode', that
-;; synchronizes page navigation between windows displaying the same
-;; document, making it so that when you navigate to a page in one
-;; window, the other windows will navigate to neighboring pages.
-
-;; Supports `doc-view-mode' and `pdf-view-mode'.  You can customize
-;; the `doc-follow-modes' variable to add support for additional
-;; document viewing modes or modify the behavior for existing modes.
+;; doc-follow.el provides a convenient way to synchronize page
+;; navigation between multiple windows displaying the same document
+;; (PS/PDF/DVI/DjVu, etc.).
+;;
+;; With `doc-follow-mode' enabled, navigating pages in one window
+;; automatically adjusts the other windows to show adjacent pages.  In
+;; particular, this allows a "book view" where the document is shown
+;; in two side-by-side windows on consecutive pages.
+;;
+;; `doc-view-mode' (built-in to Emacs) and `pdf-view-mode' (from
+;; pdf-tools) are supported by default.  Additional viewing modes can
+;; be added via the `doc-follow-modes' variable.
+;;
+;; Usage:
+;; - Enable globally: M-x global-doc-follow-mode
+;; - Enable locally: M-x doc-follow-mode
+;;
+;; Once activated, split your Emacs frame (e.g., vertically with
+;; \\[split-window-right]) and open your document in both windows.
+;; Navigating with standard commands (like 'n' for next page and 'p'
+;; for previous page) in one window automatically synchronizes the
+;; view in the other.
 
 ;;; Code:
 

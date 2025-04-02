@@ -1,21 +1,41 @@
-#+title: doc-follow.el: Synchronized dual window document viewing
+#+title: doc-follow.el: synchronize windows showing the same document
 #+author: Paul Nelson
 
 * Overview
 
-=doc-follow= is an Emacs package that synchronizes multiple windows showing the same document in =doc-view-mode= or =pdf-view-mode= (with the list of available modes customizable via =doc-follow-modes=).  When you navigate to a page in one window, the other windows automatically display neighboring pages.  A common setup is to have two pages side by side, in which case this mode gives a book-like view.
+doc-follow.el provides a minor mode, =doc-follow-mode=, that automatically synchronizes page navigation between multiple windows displaying the same PS/PDF/DVI/DjVu document.  In particular, this allows for a convenient "book view," with two windows showing consecutive pages side-by-side.
 
 * Installation
 
-Install =doc-follow= by, e.g., downloading the source and using =M-x package-install-file=.
+You can install =doc-follow.el= by downloading the source file and running:
+
+#+begin_src emacs-lisp
+M-x package-install-file RET /path/to/doc-follow.el RET
+#+end_src
 
 * Usage
 
-After installing the package, you can toggle it globally via =M-x global-dual-doc-view-mode=, locally via =M-x doc-follow-mode=.  To have it activate by default, add =(global-dual-doc-view-mode)= to your config.
+After installation, you can activate the mode:
 
-1. Open a document in =doc-view-mode= or =pdf-view-mode= (the latter being part of the [[https://github.com/vedang/pdf-tools][pdf-tools]] package)
-2. Split the window (e.g., =C-x 3= for vertical split)
-3. Activate =doc-follow-mode= in either window (if not already activated)
-4. Navigate through the document in either window (e.g. =n= or =p= to navigate by page)
+- Globally: =M-x global-doc-follow-mode=
+- Locally: =M-x doc-follow-mode=
 
-The package will automatically keep the two views in sync, with the second always one page ahead of the first.  It works similarly with more than two windows.
+To enable synchronization by default, add to your Emacs configuration:
+
+#+begin_src emacs-lisp
+(global-doc-follow-mode 1)
+#+end_src
+
+** Example workflow:
+
+1. Open a supported document in =doc-view-mode= or =pdf-view-mode=.  
+   (=doc-view-mode= is built-in; =pdf-view-mode= requires [[https://github.com/vedang/pdf-tools][pdf-tools]].)
+2. Split the frame vertically (with default bindings, via =C-x 3=).
+3. Activate =doc-follow-mode= if not already enabled.
+4. Navigate pages in either window with standard commands (e.g., =n=, =p=).
+
+Both windows will automatically stay synchronized.
+
+* Extensibility
+
+One could add support for additional document viewing modes via the =doc-follow-modes= variable.

@@ -101,31 +101,34 @@ redisplay-func)."
                (max-page (funcall max-page-func))
                (redisplay-func (nth 4 mode-funcs))
                (current-window (selected-window))
-               (window-index (seq-position windows current-window))
-               (i 0))
-          (dolist (win windows)
-            (let ((target-page (min max-page (max 1 (+ current-page
-                                                       (- i window-index))))))
-              (when (and (not (eq win current-window))
-                         (window-live-p win))
-                (with-selected-window win
-                  (let ((current (funcall current-page-func)))
-                    (when (not (= current target-page))
-                      (funcall goto-func target-page)
-                      (let ((timer-sym
-                             (intern (format
-                                      "doc-dual-view--redisplay-timer-%d" i))))
-                        (when (and (boundp timer-sym)
-                                   (timerp (symbol-value timer-sym)))
-                          (cancel-timer (symbol-value timer-sym)))
-                        (set timer-sym
-                             (run-with-idle-timer
-                              0.001 nil
-                              (lambda (w f p)
-                                (when (window-live-p w)
-                                  (with-selected-window w
-                                    (funcall f p))))
-                              win redisplay-func target-page))))))))))))))
+               (window-index (seq-position windows current-window)))
+          (seq-do-indexed
+           (lambda (win i)
+             (when (and (not (eq win current-window))
+                        (window-live-p win))
+               (let ((target-page
+                      (min max-page
+                           (max 1 (+ current-page (- i window-index))))))
+                 (with-selected-window win
+                   (let ((current (funcall current-page-func)))
+                     (when (not (= current target-page))
+                       (funcall goto-func target-page)
+                       (let ((timer-sym
+                              (intern (format
+                                       "doc-dual-view--redisplay-timer-%d" i))))
+                         (when (and (boundp timer-sym)
+                                    (timerp (symbol-value timer-sym)))
+                           (cancel-timer (symbol-value timer-sym)))
+                         (set timer-sym
+                              (run-with-idle-timer
+                               0.001 nil
+                               (lambda (w f p)
+                                 (when (window-live-p w)
+                                   (with-selected-window w
+                                     (funcall f p))))
+                               win redisplay-func target-page)))))))))
+           windows))))))
+
 
 ;;;###autoload
 (define-minor-mode doc-dual-view-mode

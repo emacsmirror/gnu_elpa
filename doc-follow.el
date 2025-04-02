@@ -34,7 +34,7 @@
 
 ;;; Code:
 
-(require 'timer)
+(require 'follow)
 
 (defgroup doc-follow nil
   "Synchronize pages between two windows displaying the same document."
@@ -70,18 +70,6 @@ by adding entries to this list.")
   "Call function for ACTION from MODE-CONFIG with ARGS."
   (apply (plist-get mode-config action) args))
 
-(defun doc-follow--order-windows (windows)
-  "Order WINDOWS based on their position: leftmost, then topmost."
-  (sort windows (lambda (window-a window-b)
-                  (let* ((edges-a (window-edges window-a))
-                         (edges-b (window-edges window-b))
-                         (left-a (nth 0 edges-a))
-                         (left-b (nth 0 edges-b))
-                         (top-a (nth 1 edges-a))
-                         (top-b (nth 1 edges-b)))
-                    (or (< left-a left-b)
-                        (and (= left-a left-b) (< top-a top-b)))))))
-
 (defvar doc-follow--sync-in-progress nil
   "Flag to prevent recursive sync operations.")
 
@@ -101,8 +89,7 @@ by adding entries to this list.")
     (let ((doc-follow--sync-in-progress t))
       (when-let*
           ((cfg (cdr (assoc major-mode doc-follow-modes)))
-           (windows (doc-follow--order-windows
-                     (get-buffer-window-list nil nil nil)))
+           (windows (follow-all-followers))
            ((> (length windows) 1)))
         (let* ((current-page (doc-follow--call-func cfg :current))
                (max-page (doc-follow--call-func cfg :max))

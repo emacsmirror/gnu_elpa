@@ -110,15 +110,15 @@ by adding entries to this list.")
         (let* ((current-page (doc-follow--call-func cfg :current))
                (max-page (doc-follow--call-func cfg :max))
                (current-window (selected-window))
-               (window-index (seq-position windows current-window)))
-          (seq-do-indexed
-           (lambda (win i)
-             (let ((target-page
-                    (min max-page
-                         (max 1 (+ current-page (- i window-index))))))
-               (with-selected-window win
-                 (doc-follow--call-func cfg :goto target-page))))
-           windows))))))
+               (window-index (seq-position windows current-window))
+               (i 0))
+          (dolist (win windows)
+            (let ((target-page
+                   (min max-page
+                        (max 1 (+ current-page (- i window-index))))))
+              (with-selected-window win
+                (doc-follow--call-func cfg :goto target-page)))
+            (setq i (1+ i))))))))
 
 (defun doc-follow--manage-advice (add-or-remove)
   "Add or remove advice for all functions in `doc-follow-modes'.

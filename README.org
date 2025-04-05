@@ -3,7 +3,7 @@
 
 * Overview
 
-doc-view-follow.el provides a minor mode, =doc-view-follow-mode=, that automatically synchronizes page navigation between multiple windows displaying the same PS/PDF/DVI/DjVu document.  This is essentially an analogue of Emacs' built-in =follow-mode=, but for document buffers instead rather than text buffers.
+doc-view-follow.el provides a minor mode, =doc-view-follow-mode=, that automatically synchronizes page navigation between multiple windows displaying the same document (PS/PDF/DVI/DjVu, etc.).  This is essentially an analogue of Emacs' built-in =follow-mode=, but for document buffers instead rather than text buffers.
 
 In particular, this allows for a convenient "book view," with two windows showing consecutive pages side-by-side.
 
@@ -14,6 +14,15 @@ In particular, this allows for a convenient "book view," with two windows showin
 Alternatively, download the source file and run:
 #+begin_src emacs-lisp
 M-x package-install-file RET /path/to/doc-view-follow.el RET
+#+end_src
+
+** PDF-Tools Support (Optional)
+
+This package supports the built-in =doc-view-mode= as well as =pdf-view-mode= from [[https://github.com/vedang/pdf-tools][pdf-tools]].  If you use pdf-tools, add the following to your init file:
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'pdf-view
+  (require 'doc-view-follow-pdf-tools))
 #+end_src
 
 * Usage
@@ -41,4 +50,4 @@ Both windows will automatically stay synchronized.
 
 * Extensibility
 
-One could add support for additional document viewing modes (if any) via the =doc-view-follow-modes= variable.
+The package uses generic functions, making it straightforward to add support for additional document viewing modes.  See =doc-view-follow-pdf-tools.el= for an example of how to do this.

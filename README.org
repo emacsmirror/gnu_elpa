@@ -1,31 +1,32 @@
-#+title: doc-follow.el: Synchronize windows showing the same document
+#+title: doc-view-follow.el: Synchronize windows showing the same document
 #+author: Paul Nelson
 
 * Overview
 
-doc-follow.el provides a minor mode, =doc-follow-mode=, that automatically synchronizes page navigation between multiple windows displaying the same PS/PDF/DVI/DjVu document.  This is essentially an analogue of Emacs' built-in =follow-mode=, but for document buffers instead rather than text buffers.
+doc-view-follow.el provides a minor mode, =doc-view-follow-mode=, that automatically synchronizes page navigation between multiple windows displaying the same PS/PDF/DVI/DjVu document.  This is essentially an analogue of Emacs' built-in =follow-mode=, but for document buffers instead rather than text buffers.
 
 In particular, this allows for a convenient "book view," with two windows showing consecutive pages side-by-side.
 
 * Installation
 
-You can install =doc-follow.el= by downloading the source file and running:
+=doc-view-follow.el= should soon be available on ELPA, so you can install it from there via =M-x packages-install=.
 
+Alternatively, download the source file and run:
 #+begin_src emacs-lisp
-M-x package-install-file RET /path/to/doc-follow.el RET
+M-x package-install-file RET /path/to/doc-view-follow.el RET
 #+end_src
 
 * Usage
 
 After installation, you can activate the mode:
 
-- Globally: =M-x global-doc-follow-mode=
-- Locally: =M-x doc-follow-mode=
+- Globally: =M-x global-doc-view-follow-mode=
+- Locally: =M-x doc-view-follow-mode=
 
 To enable synchronization by default, add to your Emacs configuration:
 
 #+begin_src emacs-lisp
-(global-doc-follow-mode 1)
+(global-doc-view-follow-mode 1)
 #+end_src
 
 ** Example workflow:
@@ -33,11 +34,11 @@ To enable synchronization by default, add to your Emacs configuration:
 1. Open a supported document in =doc-view-mode= or =pdf-view-mode=.  
    (=doc-view-mode= is built-in; =pdf-view-mode= requires [[https://github.com/vedang/pdf-tools][pdf-tools]].)
 2. Split the frame vertically (with default bindings, via =C-x 3=).
-3. Activate =doc-follow-mode= if not already enabled.
+3. Activate =doc-view-follow-mode= if not already enabled.
 4. Navigate pages in either window with standard commands (e.g., =n=, =p=).
 
 Both windows will automatically stay synchronized.
 
 * Extensibility
 
-One could add support for additional document viewing modes (if any) via the =doc-follow-modes= variable.
+One could add support for additional document viewing modes (if any) via the =doc-view-follow-modes= variable.

@@ -1,6 +1,6 @@
 ;;; doc-view-follow.el --- Synchronize windows showing the same document -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024  Paul D. Nelson
+;; Copyright (C) 2024-2025  Free Software Foundation, Inc.
 
 ;; Author: Paul D. Nelson <ultrono@gmail.com>
 ;; Version: 0.2

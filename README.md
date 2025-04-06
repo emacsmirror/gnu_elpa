@@ -126,7 +126,7 @@ Both are described in detail below.
     a worksheet, each worksheet is configured with a set of templates in a
     templates table. For example
     
-    <table id="org3c0f295" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+    <table id="org63a6bd3" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
     
     
     <colgroup>
@@ -184,7 +184,7 @@ Both are described in detail below.
 
     Here is another example template table.
     
-    <table id="orga58bae4" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+    <table id="org5f01db6" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
     
     
     <colgroup>
@@ -289,6 +289,10 @@ Both are described in detail below.
 
 This is the standard emacs package header.
 
+`emacs 26` is needed for `seq-random-elt`.  `calc` is used to solve the
+problems as well as converting them to mathematical notation in LaTeX
+format.
+
     ;;; org-mathsheet.el --- Generate dynamic math worksheets  -*- lexical-binding:t -*-
     
     ;; Copyright (C) 2025 Free Software Foundation, Inc.
@@ -297,7 +301,9 @@ This is the standard emacs package header.
     ;; Keywords: tools, education, math
     ;; Homepage: https://gitlab.com/ianxm/org-mathsheet
     ;; Version: 1.0
-    ;; Package-Requires: ((peg "1.0"))
+    ;; Package-Requires: ((peg "1.0")
+    ;;                    (emacs "26.0")
+    ;;                    calc)
     
     ;; This file is not part of GNU Emacs.
     
@@ -326,9 +332,16 @@ This is the standard emacs package header.
 
 ### Dependencies
 
-This package needs [peg](https://elpa.gnu.org/packages/peg.html).
+This package needs [peg](https://elpa.gnu.org/packages/peg.html). We also need [calc](https://www.gnu.org/software/emacs/manual/html_mono/calc.html) and some [org-table](https://orgmode.org/manual/Tables.html) and
+[org-babel](https://orgmode.org/org.html#Working-with-Source-Code) functions.
 
     (require 'peg)
+    (require 'calc)
+    
+    (declare-function math-read-expr "calc-ext")
+    (declare-function org-table-align "org-table")
+    (declare-function org-table-to-lisp "org-table")
+    (declare-function org-babel-named-data-regexp-for-name "ob-core")
 
 
 ### Variables
@@ -340,10 +353,10 @@ worksheet, which is defined in a LaTeX source block below. This
 assigns the constant directly to that named block.
 
     (defvar org-mathsheet--var-list '()
-      "List of variables used in a problem")
+      "List of variables used in a problem.")
     
     (defconst org-mathsheet--worksheet-template page
-      "LaTeX template for the worksheet")
+      "LaTeX template for the worksheet.")
 
 
 ### Scan problem
@@ -388,11 +401,11 @@ of `open-fields`.
       "Scan a problem.
     
     This parses the problem and produces a list containing info about
-    its fields. For each field it returns a list containing:
+    its fields.  For each field it returns a list containing:
     1. a symbol for the assigned variable or a unique placeholder
     2. a list of variables this field depends on
     3. a cons containing start and end markers for the field in the current buffer
-    4. `nil' which is used by `dfs-visit' later"
+    4. nil which is used by `dfs-visit' later"
       (let ((field-index 0)
             open-fields ; stack
             closed-fields ; list
@@ -439,7 +452,7 @@ of `open-fields`.
              (symbol (or "." "," "+" "-" "*" "/" "^" "(" ")" "=")))
     
           (peg-run (peg stuff)
-                   (lambda (x) (message "failed %s" x))
+                   (lambda (x) (message "Failed %s" x))
                    (lambda (x)
                      (funcall x)
                      `((:fields . ,closed-fields)
@@ -471,8 +484,8 @@ both places to keep them synced.
       "Reduce the field to a number.
     
     Parse the field again, replacing spans with random numbers and
-    evaluating arithmetic operations. The field shouldn't have any
-    internal fields so this should result in a single number. Return
+    evaluating arithmetic operations.  The field shouldn't have any
+    internal fields so this should result in a single number.  Return
     that number."
       (with-peg-rules
           ((field "[" space (or math-func expression sequence assignment value) space "]")
@@ -502,7 +515,7 @@ both places to keep them synced.
            (var-lhs (substring letter)) ; var for assignment
            (var-rhs "$" (substring letter) ; var for use
                     `(v -- (let ((val (alist-get (intern v) org-mathsheet--var-list)))
-                             (or val (error "var %s not set" v)))))
+                             (or val (error "Var %s not set" v)))))
            (math-func (substring (or "sqrt" "sin" "cos" "tan" "asin" "acos" "atan" "floor" "ceil" "round"))
                       parenthetical
                       `(f v -- (string-to-number (calc-eval (format "%s(%s)" f v)))))
@@ -511,7 +524,7 @@ both places to keep them synced.
            (digit [0-9]))
     
         (peg-run (peg field)
-                 (lambda (x) (message "failed %s" x))
+                 (lambda (x) (message "Failed %s" x))
                  (lambda (x) (car (funcall x))))))
 
 
@@ -522,10 +535,10 @@ Replace a field with the value returned from reducing it. This uses
 the field.
 
     (defun org-mathsheet--replace-field (node)
-      "Replace a field with the number to which it reduces
+      "Replace a field with the number to which it reduces.
     
     Update the current buffer by replacing the field at point in the
-    current buffer with the number it reduces to. NODE contains the
+    current buffer with the number it reduces to.  NODE contains the
     info for the current field."
       (let ((start (caaddr node))
             (end (1+ (cdaddr node)))
@@ -546,21 +559,20 @@ visit the node. We use the last field in the field structure to keep
 track of which fields have been visited.
 
     (defun org-mathsheet--dfs-visit (node fields)
-      "Visit NODE as part of a DFS of the problem
+      "Visit NODE as part of a DFS of the problem.
     
     Traverse the fields of a problem using depth first search to
-    ensure that field replacement happens in dependency order. FIELDS
-    is a list of all fields in the problem."
+    ensure that field replacement happens in dependency order.
+    FIELDS is a list of all fields in the problem."
       (pcase (cadddr node)
-        (1 (error "cycle detected")) ; cycle
+        (1 (error "Cycle detected")) ; cycle
         (2)                          ; skip
         (_                           ; process
          (setcar (cdddr node) 1)     ; started
-         (let ((deps (cadr node)))
-           (dolist (dep deps)
-             (org-mathsheet--dfs-visit
-              (assq dep fields)
-              fields)))
+         (dolist (dep (cadr node))
+           (org-mathsheet--dfs-visit
+            (assq dep fields)
+            fields))
          (org-mathsheet--replace-field node) ; visit
          (setcar (cdddr node) 2)))) ; mark done
 
@@ -572,10 +584,10 @@ processes all fields in a problem.
     (full-problem (buffer-substring (point-at-bol) (point-at-eol)))
 
     (defun org-mathsheet--fill-problem (full-problem)
-      "Replace all fields in FULL-PROBLEM
+      "Replace all fields in FULL-PROBLEM.
     
     Goes through all fields in the given problem in dependency order
-    and replaces fields with numbers. When this completes the problem
+    and replaces fields with numbers.  When this completes the problem
     will be ready to solve."
         (with-temp-buffer
           ;; stage problem in temp buffer
@@ -609,10 +621,10 @@ each template sequentially. In order to mix them up we shuffle the
 whole set and then reorder by `order`.
 
     (defun org-mathsheet--generate-problems (template-name count)
-      "Use templates from TEMPLATE-NAME to generate COUNT problems
+      "Use templates from TEMPLATE-NAME to generate COUNT problems.
     
     Generate problems and answers based on what is defined in the
-    given template table. The template table defines problem
+    given template table.  The template table defines problem
     templates as well as relative weights and how they should be
     ordered."
       (let (total-weight templates problems)
@@ -628,12 +640,11 @@ whole set and then reorder by `order`.
                            (seq-drop (org-table-to-lisp) 2)))) ; load the table, drop the header
     
         ;; sort by weight (low to high)
-        (setq templates (sort templates (lambda (a b) (< (car a) (car b))))
+        (setq templates (sort templates #'car-less-than-car)
               ;; calc total weight
-              total-weight (float
-                            (seq-reduce (lambda (total item) (+ total (car item)))
-                                        templates
-                                        0)))
+              total-weight (seq-reduce (lambda (total item) (+ total (car item)))
+                                       templates
+                                       0.0))
     
         ;; calculate number for each row
         (dotimes (ii (length templates))
@@ -683,10 +694,10 @@ whole set and then reorder by `order`.
         (dotimes (ii (- (length problems) 1))
           (let ((jj (+ (random (- (length problems) ii)) ii)))
             (cl-psetf (elt problems ii) (elt problems jj)
-                   (elt problems jj) (elt problems ii))))
+                      (elt problems jj) (elt problems ii))))
     
         ;; sort by order
-        (sort problems (lambda (a b) (< (caddr a) (caddr b))))
+        (setq problems (sort problems (lambda (a b) (< (caddr a) (caddr b)))))
     
         ;; return problems and answers, drop header
         problems))
@@ -755,14 +766,48 @@ another.
 
 ### Lay out page
 
-This wraps the problems with a tex header and footer.
+This wraps the problems with a LaTeX header and footer.
 
-This template doesn't use noweb but it uses noweb syntax (`<<label>>`) to
-mark where org-mathsheet will insert content. It's not possible actually
-use noweb here since this template must be tangled to org-mathsheet.el as
-a template.
+This template doesn't use noweb but it uses noweb syntax (`<<label>>`)
+to mark where org-mathsheet will insert content. It's not possible
+actually use noweb here since the problems and answers are coming from
+elisp and generated at runtime. Instead this template must be tangled
+to org-mathsheet.el as a template so the elisp functions can use it.
 
-I found the solution for how to enumerate with circled numbers [here](https://latex.org/forum/viewtopic.php?p=40006&sid=d202f756313add2391c3140fbeafe2ff#p40006).
+    \documentclass[12pt]{exam}
+    \usepackage[top=1in, bottom=0.5in, left=0.8in, right=0.8in]{geometry}
+    \usepackage{multicol}
+    \usepackage{rotating}
+    \usepackage{xcolor}
+    
+    \pagestyle{head}
+    \header{Name:\enspace\makebox[2.2in]{\hrulefill}}{}{Date:\enspace\makebox[2.2in]{\hrulefill}}
+    
+    \begin{document}
+    
+      \noindent <<instruction>>
+    
+      \begin{questions}
+        <<problems>>
+      \end{questions}
+    
+      \vspace*{\fill}
+    
+      \vspace*{0.1cm}
+      \noindent\rule{\linewidth}{0.4pt}
+      \vspace*{0.1cm}
+    
+      \begin{turn}{180}
+        \begin{minipage}{\linewidth}
+          \color{gray}
+          \footnotesize
+          \begin{questions}
+            <<answers>>
+          \end{questions}
+        \end{minipage}
+      \end{turn}
+    
+    \end{document}
 
 
 ### Convert calc to latex
@@ -773,15 +818,15 @@ written to a PDF we convert them to latex. emacs calc already knows
 how to convert between formats, so we let it do it.
 
     (defun org-mathsheet--convert-to-latex (expr)
-      "Format the given calc expression EXPR for LaTeX
+      "Format the given calc expression EXPR for LaTeX.
     
-    EXPR should be in normal calc format. The result is the same
+    EXPR should be in normal calc format.  The result is the same
     expression (not simplified) but in LaTeX format."
       (let* ((calc-language 'latex)
              (calc-expr (math-read-expr expr))
              (latex-expr (math-format-stack-value (list calc-expr 1 nil)))
              (latex-expr-cleaned (replace-regexp-in-string (rx "1:" (* space)) "" latex-expr)))
-        (concat "$" latex-expr-cleaned "$")))
+        (concat "\\(" latex-expr-cleaned "\\)")))
 
 
 ### Write PDF
@@ -795,8 +840,8 @@ will overwrite the same file.
     (defun org-mathsheet--gen-worksheet (file-name instruction problems prob-cols)
       "Generate a worksheet with PROBLEMS.
     
-    Write a file named FILE-NAME. Include the INSTRUCTION line at the
-    top. The problems will be arranged in PROB-COLS columns. The
+    Write a file named FILE-NAME.  Include the INSTRUCTION line at the
+    top.  The problems will be arranged in PROB-COLS columns.  The
     answers will be in 4 columns."
       (with-temp-file (concat file-name ".tex")
         (insert org-mathsheet--worksheet-template)
@@ -830,8 +875,9 @@ will overwrite the same file.
               (insert (format "\\question %s\n"
                               (org-mathsheet--convert-to-latex (cadr row)))))
             (insert "\\end{multicols}\n"))))
-      (shell-command (concat "texi2pdf " file-name ".tex")
-                     (get-buffer-create "*Standard output*")))
+      (call-process
+       "texi2pdf" nil (get-buffer-create "*Standard output*") nil
+       (concat  file-name ".tex")))
 
 
 ### Footer

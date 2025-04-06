@@ -6,7 +6,9 @@
 ;; Keywords: tools, education, math
 ;; Homepage: https://gitlab.com/ianxm/org-mathsheet
 ;; Version: 1.0
-;; Package-Requires: ((peg "1.0"))
+;; Package-Requires: ((peg "1.0")
+;;                    (emacs "26.0")
+;;                    calc)
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,14 +27,20 @@
 
 ;;; Commentary:
 
-;; This package generates dynamic math worksheets.  The types and
-;; distribution of problems is highly customizable.  Problem sets are
+;; This package generates dynamic math worksheets. The types and
+;; distribution of problems is highly customizable. Problem sets are
 ;; defined in org tables, generated in dynamic blocks for review, and
 ;; exported to PDF for printing.
 
 ;;; Code:
 
 (require 'peg)
+(require 'calc)
+
+(declare-function math-read-expr "calc-ext")
+(declare-function org-table-align "org-table")
+(declare-function org-table-to-lisp "org-table")
+(declare-function org-babel-named-data-regexp-for-name "ob-core")
 
 (let ((page '"\\documentclass[12pt]{exam}
 \\usepackage[top=1in, bottom=0.5in, left=0.8in, right=0.8in]{geometry}
@@ -210,11 +218,10 @@ FIELDS is a list of all fields in the problem."
     (2)                          ; skip
     (_                           ; process
      (setcar (cdddr node) 1)     ; started
-     (let ((deps (cadr node)))
-       (dolist (dep deps)
-         (org-mathsheet--dfs-visit
-          (assq dep fields)
-          fields)))
+     (dolist (dep (cadr node))
+       (org-mathsheet--dfs-visit
+        (assq dep fields)
+        fields))
      (org-mathsheet--replace-field node) ; visit
      (setcar (cdddr node) 2)))) ; mark done
 
@@ -263,12 +270,11 @@ ordered."
                        (seq-drop (org-table-to-lisp) 2)))) ; load the table, drop the header
 
     ;; sort by weight (low to high)
-    (setq templates (sort templates (lambda (a b) (< (car a) (car b))))
+    (setq templates (sort templates #'car-less-than-car)
           ;; calc total weight
-          total-weight (float
-                        (seq-reduce (lambda (total item) (+ total (car item)))
-                                    templates
-                                    0)))
+          total-weight (seq-reduce (lambda (total item) (+ total (car item)))
+                                   templates
+                                   0.0))
 
     ;; calculate number for each row
     (dotimes (ii (length templates))
@@ -318,10 +324,10 @@ ordered."
     (dotimes (ii (- (length problems) 1))
       (let ((jj (+ (random (- (length problems) ii)) ii)))
         (cl-psetf (elt problems ii) (elt problems jj)
-               (elt problems jj) (elt problems ii))))
+                  (elt problems jj) (elt problems ii))))
 
     ;; sort by order
-    (sort problems (lambda (a b) (< (caddr a) (caddr b))))
+    (setq problems (sort problems (lambda (a b) (< (caddr a) (caddr b)))))
 
     ;; return problems and answers, drop header
     problems))
@@ -375,7 +381,7 @@ expression (not simplified) but in LaTeX format."
          (calc-expr (math-read-expr expr))
          (latex-expr (math-format-stack-value (list calc-expr 1 nil)))
          (latex-expr-cleaned (replace-regexp-in-string (rx "1:" (* space)) "" latex-expr)))
-    (concat "$" latex-expr-cleaned "$")))
+    (concat "\\(" latex-expr-cleaned "\\)")))
 
 (defun org-mathsheet--gen-worksheet (file-name instruction problems prob-cols)
   "Generate a worksheet with PROBLEMS.
@@ -415,8 +421,9 @@ answers will be in 4 columns."
           (insert (format "\\question %s\n"
                           (org-mathsheet--convert-to-latex (cadr row)))))
         (insert "\\end{multicols}\n"))))
-  (shell-command (concat "texi2pdf " file-name ".tex")
-                 (get-buffer-create "*Standard output*")))
+  (call-process
+   "texi2pdf" nil (get-buffer-create "*Standard output*") nil
+   (concat  file-name ".tex")))
 
 (provide 'org-mathsheet)
 

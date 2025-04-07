@@ -8,7 +8,7 @@
 ;; Keywords: comm, processes
 ;; Package: tramp
 ;; Version: 2.7.2.3
-;; Package-Requires: ((emacs 27.1))
+;; Package-Requires: ((emacs "27.1"))
 ;; Package-Type: multi
 ;; URL: https://www.gnu.org/software/tramp/
 

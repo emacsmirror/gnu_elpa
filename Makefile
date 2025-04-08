@@ -75,6 +75,6 @@ sync:
 	cp -p $(SOURCE_DIR)/lisp/tramp-sudoedit.el tramp-sudoedit.el
 	cp -p $(SOURCE_DIR)/lisp/tramp-uu.el tramp-uu.el
 	cp -p $(SOURCE_DIR)/lisp/trampver.el trampver.el
-	sed -e "$(SCRIPTV)" -e "$(SCRIPTP)" $(SOURCE_DIR)/lisp/tramp.el > tramp.el
+	sed -e '$(SCRIPTV)' -e '$(SCRIPTP)' $(SOURCE_DIR)/lisp/tramp.el > tramp.el
 	$(MAKE) -C texi sync
 	$(MAKE) -C test sync

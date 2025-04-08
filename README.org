@@ -40,6 +40,7 @@ That's all.  I prefer this workflow to the alternative in which one compiles the
 * Customization
 - You can tweak the underlying =latexmk= command via =M-x customize-variable auctex-cont-latexmk-command=.
 - This package respects the AUCTeX variable =TeX-output-dir=: you can use that variable to control where the output files generated via latexmk are placed.
+- It also respects AUCTeX's mechanisms for filtering warnings and errors, in particular the variable =TeX-ignore-warnings=, which may be used to exclude certain warnings.
 
 * Troubleshooting
 - The compilation takes place in a buffer *pvc-filename*, so look there if you need to see the output.

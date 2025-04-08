@@ -21,6 +21,26 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
+;;; Commentary:
+;;
+;; This package provides a minor mode that compiles a LaTeX document
+;; via latexmk, reporting errors via `flymake'.
+;;
+;; In multifile documents, you may independently enable continuous
+;; compilation and Flymake diagnostics in multiple buffers.  The
+;; compilation process will automatically be shared among these
+;; buffers.  This ensures errors and warnings from latexmk appear
+;; directly in the buffer containing the source code causing them.
+;;
+;; Usage:
+;; - Use `auctex-cont-latexmk-toggle' to activate compilation and Flymake
+;; simultaneously (recommended default workflow).
+;; - Alternatively, call `auctex-cont-latexmk-mode' directly to enable
+;; continuous compilation without automatically enabling Flymake.
+;; In this case, you may manually add the Flymake backend as needed.
+
+
 ;;; Commentary:
 
 ;; This package provides a minor mode that compiles a LaTeX document

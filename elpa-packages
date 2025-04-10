@@ -273,6 +273,8 @@
  (dismal		:url nil)
  (djvu			:url nil)
  (do-at-point           :url "https://codeberg.org/pkal/do-at-point.el")
+ ;; FIXME: `doc-follow` or `doc-view-follow`?
+ ;;(doc-follow		:url "https://github.com/ultronozm/doc-view-follow.el")
  (doc-toc		:url "https://github.com/dalanicolai/doc-tools-toc"
   :ignored-files ("LICENSE"))
  (docbook		:url nil)
@@ -596,6 +598,8 @@
   :doc "doc/org-gnosis.org")
  (org-jami-bot		:url "https://gitlab.com/hperrey/org-jami-bot"
   :ignored-files ("LICENSE"))
+ (org-mathsheet		:url "https://gitlab.com/ianxm/org-mathsheet"
+  :doc "mathsheet.org")
  ;; FIXME: Waiting for copyright paperwork from Brandon Webster.
  ;;(org-drill		:url "https://gitlab.com/phillord/org-drill")
  (org-modern		:url "https://github.com/minad/org-modern"

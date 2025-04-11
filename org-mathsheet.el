@@ -404,11 +404,10 @@ answers will be in 4 columns."
       (dolist (group (seq-partition problems prob-cols))
         (insert (format "\\begin{multicols}{%d}\n" prob-cols))
         (dolist (row group)
-          (if (cadddr row)
-              (insert (format"\\question %s\n"
-                             (org-mathsheet--convert-to-latex (car row))))
-            (insert (format"\\question %s = \\rule[-.2\\baselineskip]{2cm}{0.4pt}\n"
-                           (org-mathsheet--convert-to-latex (car row))))))
+          (insert (format (if (nth 3 row)
+                              "\\question %s\n"
+                            "\\question %s = \\rule[-.2\\baselineskip]{2cm}{0.4pt}\n")
+                          (org-mathsheet--convert-to-latex (car row)))))
         (insert "\\end{multicols}\n")
         (insert "\\vspace{\\stretch{1}}\n"))
 

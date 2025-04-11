@@ -77,7 +77,7 @@ answers that are negative or don't divide evenly.
 
 These math functions are allowed: sqrt, sin, cos, tan, asin, acos,
 atan, floor, ceil, round. Find more details about each of these
-functions in the emacs calc manual.
+functions in the Emacs Calc manual.
 **** Template Examples
 Here are a few more examples:
 
@@ -167,7 +167,7 @@ This is an example problem-set block.
 * Code walkthrough
 ** Problem generation
 *** Header
-This is the standard emacs package header.
+This is the standard Emacs package header.
 
 ~emacs 26~ is needed for ~seq-random-elt~.  ~calc~ is used to solve the
 problems as well as converting them to mathematical notation in LaTeX
@@ -829,11 +829,10 @@ will overwrite the same file.
         (dolist (group (seq-partition problems prob-cols))
           (insert (format "\\begin{multicols}{%d}\n" prob-cols))
           (dolist (row group)
-            (if (cadddr row)
-                (insert (format"\\question %s\n"
-                               (org-mathsheet--convert-to-latex (car row))))
-              (insert (format"\\question %s = \\rule[-.2\\baselineskip]{2cm}{0.4pt}\n"
-                             (org-mathsheet--convert-to-latex (car row))))))
+            (insert (format (if (nth 3 row)
+                                "\\question %s\n"
+                              "\\question %s = \\rule[-.2\\baselineskip]{2cm}{0.4pt}\n")
+                            (org-mathsheet--convert-to-latex (car row)))))
           (insert "\\end{multicols}\n")
           (insert "\\vspace{\\stretch{1}}\n"))
 
@@ -858,7 +857,7 @@ will overwrite the same file.
 #+end_src
 
 * Literate Programming
-This is written as a [[https://en.wikipedia.org/wiki/Literate_programming][literate program]] using [[https://orgmode.org/][emacs
+This is written as a [[https://en.wikipedia.org/wiki/Literate_programming][literate program]] using [[https://orgmode.org/][Emacs
 org-mode]]. [[file:mathsheet.org][The org file]] contains the code and
 documentation for the math worksheet generation script.  When this
 file is saved, the source code is generated using =org-babel-tangle= and

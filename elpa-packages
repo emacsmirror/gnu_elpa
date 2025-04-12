@@ -743,7 +743,8 @@
  (sm-c-mode 		:url nil)
  (smalltalk-mode	:url nil) ;; Was "git://git.sv.gnu.org/smalltalk"
  (smart-yank		:url nil)
- (sml-mode		:url nil)
+ (sml-mode		:url nil
+  :doc "sml-mode.texi")
  ;; (snippet		:url "https://github.com/joaotavora/snippet")
  (so-long		:core "lisp/so-long.el")
  (soap-client		:core ("lisp/net/soap-client.el" "lisp/net/soap-inspect.el"))

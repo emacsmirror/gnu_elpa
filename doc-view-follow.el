@@ -34,15 +34,8 @@
 ;; particular, this allows a "book view" where the document is shown
 ;; in two side-by-side windows on consecutive pages.
 ;;
-;; `doc-view-mode' (built-in to Emacs) is supported by default.  To
-;; enable support for `pdf-view-mode' (from pdf-tools), add the
-;; following to your init file:
-;;
-;;   (with-eval-after-load 'pdf-view
-;;     (require 'doc-view-follow-pdf-tools))
-;;
-;; The file `doc-view-follow-pdf-tools.el' shows by example how the
-;; package might be extended to other document viewing modes.
+;; `doc-view-mode' (built-in to Emacs) and `pdf-view-mode' (from
+;; pdf-tools) are supported
 ;;
 ;; Usage:
 ;; - Enable globally: M-x global-doc-view-follow-mode
@@ -59,65 +52,62 @@
 (require 'follow)
 
 (defgroup doc-view-follow nil
-  "Synchronize pages between two windows displaying the same document."
+  "Synchronize pages between windows displaying the same document."
   :group 'convenience)
 
-(cl-defgeneric doc-view-follow-supported-p ()
-  "Check if the current buffer is supported by `doc-view-follow-mode'."
+;;;###autoload
+(cl-defgeneric doc-view-follow-supported-p (_mode)
+  "Check if MODE supports `doc-view-follow-mode'."
   nil)
 
-(cl-defgeneric doc-view-follow-setup ()
-  "Setup function for `doc-view-follow-mode'."
-  (error "`doc-view-follow-mode' is not supported in this buffer"))
+(cl-defgeneric doc-view-follow-setup (mode)
+  "Setup function for `doc-view-follow-mode' in MODE."
+  (error "`doc-view-follow-mode' is not supported in %s" mode))
 
-(cl-defgeneric doc-view-follow-teardown ()
-  "Teardown function for `doc-view-follow-mode'."
-  (error "`doc-view-follow-mode' is not supported in this buffer"))
+(cl-defgeneric doc-view-follow-teardown (mode)
+  "Teardown function for `doc-view-follow-mode' in MODE."
+  (error "`doc-view-follow-mode' is not supported in %s" mode))
 
-(cl-defgeneric doc-view-follow-set-page (_page)
-  "Go to PAGE in the current document buffer.
-Clamps PAGE to the valid range of pages."
-  (error "`doc-view-follow-mode' is not supported in this buffer"))
+(cl-defgeneric doc-view-follow-set-page (_page mode)
+  "Set PAGE in MODE document buffer."
+  (error "`doc-view-follow-mode' is not supported in %s" mode))
 
-(cl-defgeneric doc-view-follow-get-page ()
-  "Return the current page number in the document buffer."
-  (error "`doc-view-follow-mode' is not supported in this buffer"))
+(cl-defgeneric doc-view-follow-get-page (mode)
+  "Get current page number in MODE document buffer."
+  (error "`doc-view-follow-mode' is not supported in %s" mode))
 
 (defvar doc-view-follow--sync-in-progress nil
   "Flag to prevent recursive sync operations.")
 
 ;;;###autoload
 (define-minor-mode doc-view-follow-mode
-  "Minor mode to sync pages between windows showing the same document."
+  "Minor mode to sync pages between document windows."
   :global nil
-  :lighter nil
-  (unless (doc-view-follow-supported-p)
-    (error "`doc-view-follow-mode' is not supported in this buffer"))
+  (unless (doc-view-follow-supported-p major-mode)
+    (error "`doc-view-follow-mode' not supported in %s" major-mode))
   (if doc-view-follow-mode
       (progn
-        (doc-view-follow-setup)
+        (doc-view-follow-setup major-mode)
         (doc-view-follow-sync-pages))
-    (doc-view-follow-teardown)))
+    (doc-view-follow-teardown major-mode)))
 
-(defun doc-view-follow-sync-pages (&rest _args)
-  "Sync pages between windows showing the same document."
-  (when (and doc-view-follow-mode
-             (not doc-view-follow--sync-in-progress))
+(defun doc-view-follow-sync-pages (&rest _)
+  "Synchronize document pages between windows."
+  (when (and doc-view-follow-mode (not doc-view-follow--sync-in-progress))
     (let ((doc-view-follow--sync-in-progress t)
           (windows (follow-all-followers)))
       (when (> (length windows) 1)
-        (let* ((current-i (seq-position windows (selected-window)))
-               (current-page (doc-view-follow-get-page))
-               (page (- current-page current-i)))
+        (let* ((idx (seq-position windows (selected-window)))
+               (page (- (doc-view-follow-get-page major-mode) idx)))
           (dolist (win windows)
-            (unless (eq (selected-window) win)
+            (unless (eq win (selected-window))
               (with-selected-window win
-                (doc-view-follow-set-page page)))
-            (incf page)))))))
+                (doc-view-follow-set-page page major-mode)))
+            (setq page (1+ page))))))))
 
 (defun doc-view-follow--maybe-enable ()
   "Enable `doc-view-follow-mode' if appropriate for this buffer."
-  (when (doc-view-follow-supported-p)
+  (when (doc-view-follow-supported-p major-mode)
     (unless doc-view-follow-mode
       (doc-view-follow-mode 1))))
 
@@ -125,33 +115,38 @@ Clamps PAGE to the valid range of pages."
 (define-globalized-minor-mode global-doc-view-follow-mode
   doc-view-follow-mode doc-view-follow--maybe-enable)
 
-(require 'doc-view)
+(with-eval-after-load 'doc-view
+  (declare-function doc-view-goto-page "doc-view")
+  (declare-function doc-view-last-page-number "doc-view")
+  (declare-function doc-view-current-page "doc-view")
+  
+  (cl-defmethod doc-view-follow-supported-p ((_mode (eql doc-view-mode))) t)
+  (cl-defmethod doc-view-follow-setup ((_mode (eql doc-view-mode)))
+    (advice-add 'doc-view-goto-page :after #'doc-view-follow-sync-pages))
+  (cl-defmethod doc-view-follow-teardown ((_mode (eql doc-view-mode)))
+    (advice-remove 'doc-view-goto-page #'doc-view-follow-sync-pages))
+  (cl-defmethod doc-view-follow-set-page (page (_mode (eql doc-view-mode)))
+    (doc-view-goto-page (max 1 (min page (doc-view-last-page-number)))))
+  (cl-defmethod doc-view-follow-get-page ((_mode (eql doc-view-mode)))
+    (doc-view-current-page)))
 
-(cl-defmethod doc-view-follow-supported-p (&context (major-mode doc-view-mode))
-  "When MAJOR-MODE is `doc-view-mode', return t."
-  t)
-
-(cl-defmethod doc-view-follow-setup (&context (major-mode doc-view-mode))
-  "When MAJOR-MODE is `doc-view-mode', setup `doc-view-follow-mode'."
-  (advice-add 'doc-view-goto-page :after #'doc-view-follow-sync-pages))
-
-(cl-defmethod doc-view-follow-teardown (&context (major-mode doc-view-mode))
-  "When MAJOR-MODE is `doc-view-mode', teardown `doc-view-follow-mode'."
-  (unless
-      (seq-some (lambda (buf)
-                  (and (eq (buffer-local-value 'major-mode buf) 'doc-view-mode)
-                       (buffer-local-value 'doc-view-follow-mode buf)))
-                (buffer-list))
-    (advice-remove 'doc-view-goto-page #'doc-view-follow-sync-pages)))
-
-(cl-defmethod doc-view-follow-set-page (page &context (major-mode doc-view-mode))
-  "When MAJOR-MODE is `doc-view-mode', go to PAGE in the document buffer."
-  (let ((page (max 1 (min page (doc-view-last-page-number)))))
-    (doc-view-goto-page page)))
-
-(cl-defmethod doc-view-follow-get-page (&context (major-mode doc-view-mode))
-  "When MAJOR-MODE is `doc-view-mode', return the current page number."
-  (doc-view-current-page))
+(with-eval-after-load 'pdf-tools
+  (declare-function pdf-view-goto-page "pdf-view")
+  (declare-function pdf-cache-number-of-pages "pdf-cache")
+  (declare-function pdf-view-current-page "pdf-view")
+  (defvar pdf-view-inhibit-redisplay)
+  (cl-defmethod doc-view-follow-supported-p ((_mode (eql pdf-view-mode))) t)
+  (cl-defmethod doc-view-follow-setup ((_mode (eql pdf-view-mode)))
+    (add-hook 'pdf-view-after-change-page-hook
+              #'doc-view-follow-sync-pages nil t))
+  (cl-defmethod doc-view-follow-teardown ((_mode (eql pdf-view-mode)))
+    (remove-hook 'pdf-view-after-change-page-hook
+                 #'doc-view-follow-sync-pages t))
+  (cl-defmethod doc-view-follow-set-page (page (_mode (eql pdf-view-mode)))
+    (let ((pdf-view-inhibit-redisplay nil))
+      (pdf-view-goto-page (max 1 (min page (pdf-cache-number-of-pages))))))
+  (cl-defmethod doc-view-follow-get-page ((_mode (eql pdf-view-mode)))
+    (pdf-view-current-page)))
 
 (provide 'doc-view-follow)
 ;;; doc-view-follow.el ends here

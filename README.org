@@ -50,11 +50,11 @@ Both windows will automatically stay synchronized.
 
 * Extensibility
 
-The package uses generic functions, making it straightforward to add support for additional document viewing modes.  See =doc-view-follow-pdf-tools.el= for an example of how to do this.
+The package uses generic functions, making it straightforward to add support for additional document viewing modes.
 
 * Convenience
 
-Since `doc-view-follow-mode` works with document files (PDF, PS, etc.) and `follow-mode` works with text buffers, you might want a single command that applies the appropriate mode based on your current buffer.  Here's a function that does so:
+Since =doc-view-follow-mode= works with document files (PDF, PS, etc.) and =follow-mode= works with text buffers, you might want a single command that applies the appropriate mode based on your current buffer.  Here's one:
 
 #+begin_src elisp
 (defun toggle-some-follow-mode ()
@@ -63,7 +63,7 @@ In buffers where `doc-view-follow-mode' is supported, toggle that mode.
 Otherwise, toggle the standard `follow-mode'."
   (interactive)
   (if (and (fboundp 'doc-view-follow-supported-p)
-           (doc-view-follow-supported-p))
+           (doc-view-follow-supported-p major-mode))
       (call-interactively 'doc-view-follow-mode)
     (call-interactively 'follow-mode)))
 

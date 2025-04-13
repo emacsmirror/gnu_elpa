@@ -48,11 +48,7 @@ To enable synchronization by default, add to your Emacs configuration:
 
 Both windows will automatically stay synchronized.
 
-* Extensibility
-
-The package uses generic functions, making it straightforward to add support for additional document viewing modes.
-
-* Convenience
+** Convenience
 
 Since =doc-view-follow-mode= works with document files (PDF, PS, etc.) and =follow-mode= works with text buffers, you might want a single command that applies the appropriate mode based on your current buffer.  Here's one:
 
@@ -69,3 +65,23 @@ Otherwise, toggle the standard `follow-mode'."
 
 (keymap-global-set "H-f" 'toggle-some-follow-mode)
 #+end_src
+** Prefix Key Commands
+
+When =doc-view-follow-mode= is active, you can use the following commands with the prefix key (by default =C-c .=, the same as =follow-mode='s prefix):
+
+| Key   | Function                           | Description                                      |
+|-------+------------------------------------+--------------------------------------------------|
+| =C-c . 1= | =follow-delete-other-windows-and-split= | Delete other windows and split current one       |
+| =C-c . b= | =follow-switch-to-buffer=              | Switch to another buffer in the current window   |
+| =C-c . C-b= | =follow-switch-to-buffer-all=          | Switch to another buffer in all follow windows   |
+| =C-c . <= | =follow-first-window=                  | Select the first window in the follow chain      |
+| =C-c . >= | =follow-last-window=                   | Select the last window in the follow chain       |
+| =C-c . n= | =follow-next-window=                   | Select the next window in the follow chain       |
+| =C-c . p= | =follow-previous-window=               | Select the previous window in the follow chain   |
+
+The prefix key can be customized by changing =follow-mode-prefix-key=.
+
+* Extensibility
+
+The package uses generic functions, making it straightforward to add support for additional document viewing modes.
+

@@ -5,7 +5,7 @@
 ;; Author: Paul D. Nelson <ultrono@gmail.com>
 ;; Version: 0.2
 ;; URL: https://github.com/ultronozm/doc-view-follow.el
-;; Package-Requires: ((emacs "27.1"))
+;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: convenience
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -50,10 +50,18 @@
 ;;; Code:
 
 (require 'follow)
+(require 'compat)
 
 (defgroup doc-view-follow nil
   "Synchronize pages between windows displaying the same document."
   :group 'convenience)
+
+(defvar-keymap doc-view-follow-mode-map
+  :doc "Keymap for `doc-view-follow-mode'."
+  "<remap> <doc-view-first-page>" #'doc-view-follow-beginning-of-buffer
+  "<remap> <doc-view-last-page>" #'doc-view-follow-end-of-buffer
+  "<remap> <pdf-view-first-page>" #'doc-view-follow-beginning-of-buffer
+  "<remap> <pdf-view-last-page>" #'doc-view-follow-end-of-buffer)
 
 ;;;###autoload
 (cl-defgeneric doc-view-follow-supported-p (_mode)
@@ -76,13 +84,44 @@
   "Get current page number in MODE document buffer."
   (error "`doc-view-follow-mode' is not supported in %s" mode))
 
+(cl-defgeneric doc-view-follow-get-page-count (mode)
+  "Get total number of pages in MODE document buffer."
+  (error "`doc-view-follow-mode' is not supported in %s" mode))
+
 (defvar doc-view-follow--sync-in-progress nil
   "Flag to prevent recursive sync operations.")
+
+(defun doc-view-follow-beginning-of-buffer ()
+  "Navigate to the beginning of the document, Doc-View-Follow mode style.
+  
+This selects the first window in the window chain and displays the first
+page of the document in that window.  Other windows in the chain will
+display consecutive pages."
+  (interactive)
+  (let ((windows (follow-all-followers)))
+    (when (> (length windows) 0)
+      (select-window (car windows))
+      (doc-view-follow-set-page 1 major-mode)
+      (doc-view-follow-sync-pages))))
+
+(defun doc-view-follow-end-of-buffer ()
+  "Navigate to the end of the document, Doc-View-Follow mode style.
+  
+This selects the last window in the window chain and displays the last
+page of the document in that window."
+  (interactive)
+  (let ((windows (follow-all-followers)))
+    (when (> (length windows) 0)
+      (select-window (car (last windows)))
+      (let ((last-page (doc-view-follow-get-page-count major-mode)))
+        (doc-view-follow-set-page last-page major-mode)
+        (doc-view-follow-sync-pages)))))
 
 ;;;###autoload
 (define-minor-mode doc-view-follow-mode
   "Minor mode to sync pages between document windows."
   :global nil
+  :keymap doc-view-follow-mode-map
   (unless (doc-view-follow-supported-p major-mode)
     (error "`doc-view-follow-mode' not supported in %s" major-mode))
   (if doc-view-follow-mode
@@ -126,9 +165,11 @@
   (cl-defmethod doc-view-follow-teardown ((_mode (eql doc-view-mode)))
     (advice-remove 'doc-view-goto-page #'doc-view-follow-sync-pages))
   (cl-defmethod doc-view-follow-set-page (page (_mode (eql doc-view-mode)))
-    (doc-view-goto-page (max 1 (min page (doc-view-last-page-number)))))
+    (doc-view-goto-page (max 1 (min page (doc-view-follow-get-page-count 'doc-view-mode)))))
   (cl-defmethod doc-view-follow-get-page ((_mode (eql doc-view-mode)))
-    (doc-view-current-page)))
+    (doc-view-current-page))
+  (cl-defmethod doc-view-follow-get-page-count ((_mode (eql doc-view-mode)))
+    (doc-view-last-page-number)))
 
 (with-eval-after-load 'pdf-tools
   (declare-function pdf-view-goto-page "pdf-view")
@@ -144,9 +185,11 @@
                  #'doc-view-follow-sync-pages t))
   (cl-defmethod doc-view-follow-set-page (page (_mode (eql pdf-view-mode)))
     (let ((pdf-view-inhibit-redisplay nil))
-      (pdf-view-goto-page (max 1 (min page (pdf-cache-number-of-pages))))))
+      (pdf-view-goto-page (max 1 (min page (doc-view-follow-get-page-count 'pdf-view-mode))))))
   (cl-defmethod doc-view-follow-get-page ((_mode (eql pdf-view-mode)))
-    (pdf-view-current-page)))
+    (pdf-view-current-page))
+  (cl-defmethod doc-view-follow-get-page-count ((_mode (eql pdf-view-mode)))
+    (pdf-cache-number-of-pages)))
 
 (provide 'doc-view-follow)
 ;;; doc-view-follow.el ends here

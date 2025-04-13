@@ -46,6 +46,10 @@
 ;; Navigating with standard commands (like 'n' for next page and 'p'
 ;; for previous page) in one window automatically synchronizes the
 ;; view in the other.
+;;
+;; Setting the user option `doc-view-follow-hijack' to non-nil will
+;; hijack `follow-mode' in document buffers, so that it delegates to
+;; `doc-view-follow-mode' automatically.
 
 ;;; Code:
 
@@ -142,6 +146,31 @@ page of the document in that window."
       (let ((last-page (doc-view-follow-get-page-count major-mode)))
         (doc-view-follow-set-page last-page major-mode)
         (doc-view-follow-sync-pages)))))
+
+;;;###autoload
+(defcustom doc-view-follow-hijack nil
+  "Non-nil to hijack `follow-mode' in document buffers.
+When non-nil, `follow-mode' will delegate to `doc-view-follow' in
+document buffers."
+  :type 'boolean
+  :group 'doc-view
+  :set (lambda (sym val)
+         (set-default sym val)
+         (if val
+             (advice-add 'follow-mode :around #'doc-view-follow--hijack)
+           (advice-remove 'follow-mode #'doc-view-follow--hijack))))
+
+(defun doc-view-follow--hijack (orig-fun &rest args)
+  "Around advice for `follow-mode' to delegate to `doc-view-follow-mode'.
+Called non-interactively, calls ORIG-FUN with ARGS.  Called
+interactively, toggles `doc-view-follow-mode' when supported, otherwise
+toggles `follow-mode'."
+  (if (called-interactively-p 'any)
+      (let ((target-fun (if (doc-view-follow-supported-p major-mode)
+                            #'doc-view-follow-mode
+                          orig-fun)))
+        (call-interactively target-fun))
+    (apply orig-fun args)))
 
 ;;;###autoload
 (define-minor-mode doc-view-follow-mode

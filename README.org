@@ -50,21 +50,8 @@ Both windows will automatically stay synchronized.
 
 ** Convenience
 
-Since =doc-view-follow-mode= works with document files (PDF, PS, etc.) and =follow-mode= works with text buffers, you might want a single command that applies the appropriate mode based on your current buffer.  Here's one:
+Since =doc-view-follow-mode= works with document files (PDF, PS, etc.) and =follow-mode= works with text buffers, you might want =M-x follow-mode= to activate the appropriate mode based on your current buffer.  You can do this by customizing the user option =doc-view-follow-hijack=, or adding =(setopt doc-view-follow-hijack t)= to your config.
 
-#+begin_src elisp
-(defun toggle-some-follow-mode ()
-  "Toggle either `doc-view-follow-mode' or `follow-mode' as appropriate.
-In buffers where `doc-view-follow-mode' is supported, toggle that mode.
-Otherwise, toggle the standard `follow-mode'."
-  (interactive)
-  (if (and (fboundp 'doc-view-follow-supported-p)
-           (doc-view-follow-supported-p major-mode))
-      (call-interactively 'doc-view-follow-mode)
-    (call-interactively 'follow-mode)))
-
-(keymap-global-set "H-f" 'toggle-some-follow-mode)
-#+end_src
 ** Prefix Key Commands
 
 When =doc-view-follow-mode= is active, you can use the following commands with the prefix key (by default =C-c .=, the same as =follow-mode='s prefix):

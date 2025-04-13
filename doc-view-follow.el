@@ -56,12 +56,38 @@
   "Synchronize pages between windows displaying the same document."
   :group 'convenience)
 
+(defvar-keymap doc-view-follow-mode-submap
+  "1"   #'follow-delete-other-windows-and-split
+  "b"   #'follow-switch-to-buffer
+  "C-b" #'follow-switch-to-buffer-all
+  "<"   #'follow-first-window
+  ">"   #'follow-last-window
+  "n"   #'follow-next-window
+  "p"   #'follow-previous-window)
+
+(defvar doc-view-follow-mode-prefix-key follow-mode-prefix-key
+  "Prefix key to use for follow commands in Doc View Follow mode.
+By default, this matches `follow-mode-prefix-key'.")
+
+(defun doc-view-follow--update-prefix-key (_sym newval op _where)
+  "Update doc-view-follow mode keymap when the prefix key changes.
+Called when `follow-mode-prefix-key' is customized."
+  (when (and (eq op 'set) (boundp 'doc-view-follow-mode-map))
+    (keymap-unset doc-view-follow-mode-map doc-view-follow-mode-prefix-key t)
+    (setq doc-view-follow-mode-prefix-key newval)
+    (keymap-set doc-view-follow-mode-map newval doc-view-follow-mode-submap)))
+
+(add-variable-watcher
+ 'follow-mode-prefix-key #'doc-view-follow--update-prefix-key)
+
 (defvar-keymap doc-view-follow-mode-map
-  :doc "Keymap for `doc-view-follow-mode'."
   "<remap> <doc-view-first-page>" #'doc-view-follow-beginning-of-buffer
   "<remap> <doc-view-last-page>" #'doc-view-follow-end-of-buffer
   "<remap> <pdf-view-first-page>" #'doc-view-follow-beginning-of-buffer
   "<remap> <pdf-view-last-page>" #'doc-view-follow-end-of-buffer)
+
+(keymap-set doc-view-follow-mode-map
+            doc-view-follow-mode-prefix-key doc-view-follow-mode-submap)
 
 ;;;###autoload
 (cl-defgeneric doc-view-follow-supported-p (_mode)
@@ -93,7 +119,7 @@
 
 (defun doc-view-follow-beginning-of-buffer ()
   "Navigate to the beginning of the document, Doc-View-Follow mode style.
-  
+
 This selects the first window in the window chain and displays the first
 page of the document in that window.  Other windows in the chain will
 display consecutive pages."
@@ -106,7 +132,7 @@ display consecutive pages."
 
 (defun doc-view-follow-end-of-buffer ()
   "Navigate to the end of the document, Doc-View-Follow mode style.
-  
+
 This selects the last window in the window chain and displays the last
 page of the document in that window."
   (interactive)
@@ -119,7 +145,17 @@ page of the document in that window."
 
 ;;;###autoload
 (define-minor-mode doc-view-follow-mode
-  "Minor mode to sync pages between document windows."
+  "Minor mode to sync pages between document windows.
+
+With `doc-view-follow-mode' enabled, navigating pages in one window
+automatically adjusts the other windows to show adjacent pages.  This
+allows a \"book view\" where the document is shown in multiple windows
+displaying consecutive pages.
+
+The following commands are available on the keymap bound to the value of
+`follow-mode-prefix':
+
+\\{doc-view-follow-mode-submap}"
   :global nil
   :keymap doc-view-follow-mode-map
   (unless (doc-view-follow-supported-p major-mode)
@@ -158,14 +194,15 @@ page of the document in that window."
   (declare-function doc-view-goto-page "doc-view")
   (declare-function doc-view-last-page-number "doc-view")
   (declare-function doc-view-current-page "doc-view")
-  
+
   (cl-defmethod doc-view-follow-supported-p ((_mode (eql doc-view-mode))) t)
   (cl-defmethod doc-view-follow-setup ((_mode (eql doc-view-mode)))
     (advice-add 'doc-view-goto-page :after #'doc-view-follow-sync-pages))
   (cl-defmethod doc-view-follow-teardown ((_mode (eql doc-view-mode)))
     (advice-remove 'doc-view-goto-page #'doc-view-follow-sync-pages))
   (cl-defmethod doc-view-follow-set-page (page (_mode (eql doc-view-mode)))
-    (doc-view-goto-page (max 1 (min page (doc-view-follow-get-page-count 'doc-view-mode)))))
+    (doc-view-goto-page
+     (max 1 (min page (doc-view-follow-get-page-count 'doc-view-mode)))))
   (cl-defmethod doc-view-follow-get-page ((_mode (eql doc-view-mode)))
     (doc-view-current-page))
   (cl-defmethod doc-view-follow-get-page-count ((_mode (eql doc-view-mode)))
@@ -174,7 +211,6 @@ page of the document in that window."
 (with-eval-after-load 'pdf-tools
   (declare-function pdf-view-goto-page "pdf-view")
   (declare-function pdf-cache-number-of-pages "pdf-cache")
-  (declare-function pdf-view-current-page "pdf-view")
   (defvar pdf-view-inhibit-redisplay)
   (cl-defmethod doc-view-follow-supported-p ((_mode (eql pdf-view-mode))) t)
   (cl-defmethod doc-view-follow-setup ((_mode (eql pdf-view-mode)))
@@ -185,9 +221,12 @@ page of the document in that window."
                  #'doc-view-follow-sync-pages t))
   (cl-defmethod doc-view-follow-set-page (page (_mode (eql pdf-view-mode)))
     (let ((pdf-view-inhibit-redisplay nil))
-      (pdf-view-goto-page (max 1 (min page (doc-view-follow-get-page-count 'pdf-view-mode))))))
+      (pdf-view-goto-page
+       (max 1 (min page (doc-view-follow-get-page-count 'pdf-view-mode))))))
   (cl-defmethod doc-view-follow-get-page ((_mode (eql pdf-view-mode)))
-    (pdf-view-current-page))
+    (require 'image-mode)
+    (declare-function image-mode-window-get "image-mode")
+    (image-mode-window-get 'page))
   (cl-defmethod doc-view-follow-get-page-count ((_mode (eql pdf-view-mode)))
     (pdf-cache-number-of-pages)))
 

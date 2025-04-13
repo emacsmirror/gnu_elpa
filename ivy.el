@@ -393,25 +393,32 @@ Remove DEF from `counsel-M-x' list."
 ;;; Globals
 
 (cl-defstruct ivy-state
+  "State representing a call to `ivy-read'."
   prompt collection
   predicate require-match initial-input
   history preselect keymap update-fn sort
-  ;; The frame in which `ivy-read' was called
-  frame
-  ;; The window in which `ivy-read' was called
-  window
-  ;; The buffer in which `ivy-read' was called
-  buffer
-  ;; The value of `ivy-text' to be used by `ivy-occur'
-  text
+  (frame
+   nil :type frame :documentation
+   "The frame in which `ivy-read' was called.")
+  (window
+   nil :type window :documentation
+   "The window in which `ivy-read' was called.")
+  (buffer
+   nil :type buffer :documentation
+   "The buffer in which `ivy-read' was called.")
+  (text
+   nil :type string :documentation
+   "The value of `ivy-text' to be used by `ivy-occur'.")
   action
   unwind
   re-builder
   matcher
-  ;; When this is non-nil, call it for each input change to get new candidates
-  dynamic-collection
-  ;; A lambda that transforms candidates only for display
-  display-transformer-fn
+  (dynamic-collection
+   nil :documentation
+   "When non-nil, call collection anew for each input change.")
+  (display-transformer-fn
+   nil :documentation
+   "A function that formats candidates for display.")
   directory
   caller
   current

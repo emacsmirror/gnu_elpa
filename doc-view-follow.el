@@ -165,12 +165,14 @@ document buffers."
 Called non-interactively, calls ORIG-FUN with ARGS.  Called
 interactively, toggles `doc-view-follow-mode' when supported, otherwise
 toggles `follow-mode'."
-  (if (called-interactively-p 'any)
-      (let ((target-fun (if (doc-view-follow-supported-p major-mode)
-                            #'doc-view-follow-mode
-                          orig-fun)))
-        (call-interactively target-fun))
-    (apply orig-fun args)))
+  (apply (if (called-interactively-p 'any)
+             #'funcall-interactively #'funcall)
+         (if (and (doc-view-follow-supported-p major-mode)
+                  ;; Let's not overdo it.
+                  (called-interactively-p 'any))
+             #'doc-view-follow-mode
+           orig-fun)
+         args))
 
 ;;;###autoload
 (define-minor-mode doc-view-follow-mode

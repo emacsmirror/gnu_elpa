@@ -190,10 +190,10 @@ The following commands are available on the keymap bound to the value of
 (define-globalized-minor-mode global-doc-view-follow-mode
   doc-view-follow-mode doc-view-follow--maybe-enable)
 
+;; TODO: migrate to doc-view.el
 (with-eval-after-load 'doc-view
   (declare-function doc-view-goto-page "doc-view")
   (declare-function doc-view-last-page-number "doc-view")
-  (declare-function doc-view-current-page "doc-view")
 
   (cl-defmethod doc-view-follow-supported-p ((_mode (eql doc-view-mode))) t)
   (cl-defmethod doc-view-follow-setup ((_mode (eql doc-view-mode)))
@@ -204,10 +204,11 @@ The following commands are available on the keymap bound to the value of
     (doc-view-goto-page
      (max 1 (min page (doc-view-follow-get-page-count 'doc-view-mode)))))
   (cl-defmethod doc-view-follow-get-page ((_mode (eql doc-view-mode)))
-    (doc-view-current-page))
+    (image-mode-window-get 'page))
   (cl-defmethod doc-view-follow-get-page-count ((_mode (eql doc-view-mode)))
     (doc-view-last-page-number)))
 
+;; TODO: migrate to pdf-tools
 (with-eval-after-load 'pdf-tools
   (declare-function pdf-view-goto-page "pdf-view")
   (declare-function pdf-cache-number-of-pages "pdf-cache")

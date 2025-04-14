@@ -183,9 +183,9 @@ RECOMPILE all the benchmark folder when non nil."
 		    (elisp-benchmarks--call-benchmark entry-point))))))
 	  (when time
 	    (push time (gethash test res)))))
-       (elisp-benchmarks--display tests res i)))))
+       (elb--display tests res i)))))
 
-(defun elisp-benchmarks--display (results res runs)
+(defun elb--display (tests res runs)
   (pop-to-buffer elb-result-buffer-name)
   (erase-buffer)
   (insert "* Results\n\n")
@@ -194,12 +194,12 @@ RECOMPILE all the benchmark folder when non nil."
   ;; but Org doesn't know how to align that satisfactorily.
   (insert "  |test|non-gc (s)|gc (s)|gcs|total (s)|err\n")
   (insert "|-\n")
-  (cl-loop for test in results
+  (cl-loop for test in tests
 	   for l = (gethash test res)
 	   for test-elapsed = (cl-loop for x in l sum (car x))
 	   for test-gcs = (cl-loop for x in l sum (cadr x))
 	   for test-gc-elapsed = (cl-loop for x in l sum (caddr x))
-	   for test-err = (elb-std-deviation (mapcar #'car l))
+	   for test-err = (if (cdr l) (elb-std-deviation (mapcar #'car l)))
 	   do
 	   (insert (apply #'format "|%s|%.2f|%.2f|%d|%.2f" test
 			  (mapcar (lambda (x) (/ x runs))
@@ -207,11 +207,13 @@ RECOMPILE all the benchmark folder when non nil."
 					test-gc-elapsed test-gcs
 					test-elapsed))))
 	   (insert (format "|%2d%%\n"
-		           (round (/ (* 100 test-err) test-elapsed))))
+		           (if test-err
+		               (round (/ (* 100 test-err) test-elapsed))
+		             -0.0)))
 	   summing test-elapsed into elapsed
 	   summing test-gcs into gcs
 	   summing test-gc-elapsed into gc-elapsed
-	   collect test-err into errs
+	   collect (or test-err -0.0) into errs
 	   finally
 	   (insert "|-\n")
 	   (insert (apply #'format "|total|%.2f|%.2f|%d|%.2f"

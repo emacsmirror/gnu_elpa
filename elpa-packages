@@ -273,7 +273,7 @@
  (dismal		:url nil)
  (djvu			:url nil)
  (do-at-point           :url "https://codeberg.org/pkal/do-at-point.el")
- (doc-view-follow-mode	:url "https://github.com/ultronozm/doc-view-follow.el")
+ (doc-view-follow	:url "https://github.com/ultronozm/doc-view-follow.el")
  (doc-toc		:url "https://github.com/dalanicolai/doc-tools-toc"
   :ignored-files ("LICENSE"))
  (docbook		:url nil)

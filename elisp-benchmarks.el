@@ -1,6 +1,6 @@
 ;;; elisp-benchmarks.el --- elisp benchmarks collection -*- lexical-binding:t -*-
 
-;; Copyright (C) 2019-2024  Free Software Foundation, Inc.
+;; Copyright (C) 2019-2025  Free Software Foundation, Inc.
 
 ;; Author: Andrea Corallo <acorallo@gnu.org>
 ;; Maintainer: Andrea Corallo <acorallo@gnu.org>
@@ -146,87 +146,91 @@ RECOMPILE all the benchmark folder when non nil."
 		  test-sources))
     (let ((tests (let ((names '()))
 	           (mapatoms (lambda (s)
-	                      (let ((name (symbol-name s)))
-	                        (when (and (fboundp s)
-	                                   (string-match
-	                                    "\\`elb-\\(.*\\)-entry\\'" name))
-	                          (push (match-string 1 name) names)))))
+	                       (let ((name (symbol-name s)))
+	                         (when (and (fboundp s)
+	                                    (string-match
+	                                     "\\`elb-\\(.*\\)-entry\\'" name))
+	                           (push (match-string 1 name) names)))))
 	           (sort names #'string-lessp))))
       ;; (cl-loop for test in tests
       ;;          do (puthash test () res))
-      (cl-loop with runs = (or runs elb-runs)
-	       repeat runs
-	       for i from 1
-	       named test-loop
-	       do
-	       (message "Iteration number: %d" i)
-	       (cl-loop
-		for test in tests
-		for entry-point = (intern (concat "elb-" test "-entry"))
-		do
-		(garbage-collect)
-		(message "Running %s..." test)
-		(let ((time
-		       (with-demoted-errors "Error running: %S"
-			 ;; There are two calling conventions for the
-			 ;; benchmarks: either it's just a function
-			 ;; of no argument (old, simple convention), or
-                         ;; it's a function that takes our measuring function
-                         ;; as argument (and should return its value).
-                         ;; The more complex convention is used so the
-                         ;; benchmark can set things up before running the
-                         ;; code that we want to measure.
-			 (condition-case nil
-			     (funcall entry-point
-			              #'elisp-benchmarks--call-benchmark)
-			   (wrong-number-of-arguments
-			    (elisp-benchmarks--call-benchmark entry-point))))))
-		  (when time
-		    (push time (gethash test res)))))
-	       finally
-	       (setq debug-on-error t)
+      (cl-loop
+       with runs = (or runs elb-runs)
+       repeat runs
+       for i from 1
+       named test-loop
+       do
+       (message "Iteration number: %d" i)
+       (cl-loop
+	for test in tests
+	for entry-point = (intern (concat "elb-" test "-entry"))
+	do
+	(garbage-collect)
+	(message "Running %s..." test)
+	(let ((time
+	       (with-demoted-errors "Error running: %S"
+		 ;; There are two calling conventions for the
+		 ;; benchmarks: either it's just a function
+		 ;; of no argument (old, simple convention), or
+                 ;; it's a function that takes our measuring function
+                 ;; as argument (and should return its value).
+                 ;; The more complex convention is used so the
+                 ;; benchmark can set things up before running the
+                 ;; code that we want to measure.
+		 (condition-case nil
+		     (funcall entry-point #'elisp-benchmarks--call-benchmark)
+		   (wrong-number-of-arguments
+		    (elisp-benchmarks--call-benchmark entry-point))))))
+	  (when time
+	    (push time (gethash test res)))))
+       (elisp-benchmarks--display tests res i)))))
 
-	       (pop-to-buffer elb-result-buffer-name)
-	       (erase-buffer)
-	       (insert "* Results\n\n")
-	       ;; I tried to put the std-dev as a "(±N.NN)" in the
-               ;; same column as the total, to make it more compact,
-               ;; but Org doesn't know how to align that satisfactorily.
-	       (insert "  |test|non-gc (s)|gc (s)|gcs|total (s)|err (s)\n")
-	       (insert "|-\n")
-	       (cl-loop for test in tests
-		        for l = (gethash test res)
-		        for test-elapsed = (cl-loop for x in l sum (car x))
-		        for test-gcs = (cl-loop for x in l sum (cadr x))
-		        for test-gc-elapsed = (cl-loop for x in l sum (caddr x))
-		        for test-err = (elb-std-deviation (mapcar #'car l))
-		        do
-		        (insert (apply #'format "|%s|%.2f|%.2f|%d|%.2f" test
-				       (mapcar (lambda (x) (/ x runs))
-					       (list (- test-elapsed test-gc-elapsed)
-						     test-gc-elapsed test-gcs
-						     test-elapsed))))
-			(insert (format "|%.2f\n" test-err))
-			summing test-elapsed into elapsed
-			summing test-gcs into gcs
-			summing test-gc-elapsed into gc-elapsed
-			collect test-err into errs
-			finally
-			(insert "|-\n")
-			(insert (apply #'format "|total|%.2f|%.2f|%d|%.2f"
-				       (mapcar (lambda (x) (/ x runs))
-					       (list (- elapsed gc-elapsed)
-						     gc-elapsed gcs elapsed))))
-			(insert (format "|%.2f\n"
-					(sqrt (apply #'+ (mapcar (lambda (x)
-							           (expt x 2))
-							         errs))))))
-	       (org-table-align)
-	       (goto-char (point-min))
-	       (if noninteractive
-	           (message (buffer-string))
-	         (org-mode)
-	         (outline-show-subtree))))))
+(defun elisp-benchmarks--display (results res runs)
+  (pop-to-buffer elb-result-buffer-name)
+  (erase-buffer)
+  (insert "* Results\n\n")
+  ;; I tried to put the std-dev as a "(±N.NN)" in the
+  ;; same column as the total, to make it more compact,
+  ;; but Org doesn't know how to align that satisfactorily.
+  (insert "  |test|non-gc (s)|gc (s)|gcs|total (s)|err\n")
+  (insert "|-\n")
+  (cl-loop for test in results
+	   for l = (gethash test res)
+	   for test-elapsed = (cl-loop for x in l sum (car x))
+	   for test-gcs = (cl-loop for x in l sum (cadr x))
+	   for test-gc-elapsed = (cl-loop for x in l sum (caddr x))
+	   for test-err = (elb-std-deviation (mapcar #'car l))
+	   do
+	   (insert (apply #'format "|%s|%.2f|%.2f|%d|%.2f" test
+			  (mapcar (lambda (x) (/ x runs))
+				  (list (- test-elapsed test-gc-elapsed)
+					test-gc-elapsed test-gcs
+					test-elapsed))))
+	   (insert (format "|%2d%%\n"
+		           (round (/ (* 100 test-err) test-elapsed))))
+	   summing test-elapsed into elapsed
+	   summing test-gcs into gcs
+	   summing test-gc-elapsed into gc-elapsed
+	   collect test-err into errs
+	   finally
+	   (insert "|-\n")
+	   (insert (apply #'format "|total|%.2f|%.2f|%d|%.2f"
+			  (mapcar (lambda (x) (/ x runs))
+				  (list (- elapsed gc-elapsed)
+					gc-elapsed gcs elapsed))))
+	   (insert (format "|%2d%%\n"
+			   (let ((squares
+				  (apply #'+ (mapcar (lambda (x) (expt x 2))
+				        	     errs))))
+			     (round (/ (* 100 (sqrt squares))
+				       elapsed))))))
+  (org-table-align)
+  (goto-char (point-min))
+  (if noninteractive
+      (message "%s" (buffer-string))
+    (org-mode)
+    (outline-show-subtree)))
+
 
 (provide 'elisp-benchmarks)
 ;;; elisp-benchmarks.el ends here

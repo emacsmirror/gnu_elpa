@@ -7,6 +7,9 @@ doc-view-follow.el provides a minor mode, =doc-view-follow-mode=, that automatic
 
 In particular, this allows for a convenient "book view," with two windows showing consecutive pages side-by-side.
 
+This package supports the built-in =doc-view-mode= as well as =pdf-view-mode= from [[https://github.com/vedang/pdf-tools][pdf-tools]].
+
+
 * Installation
 
 =doc-view-follow.el= should soon be available on ELPA, so you can install it from there via =M-x packages-install=.
@@ -14,15 +17,6 @@ In particular, this allows for a convenient "book view," with two windows showin
 Alternatively, download the source file and run:
 #+begin_src emacs-lisp
 M-x package-install-file RET /path/to/doc-view-follow.el RET
-#+end_src
-
-** PDF-Tools Support (Optional)
-
-This package supports the built-in =doc-view-mode= as well as =pdf-view-mode= from [[https://github.com/vedang/pdf-tools][pdf-tools]].  If you use pdf-tools, add the following to your init file:
-
-#+begin_src emacs-lisp
-(with-eval-after-load 'pdf-view
-  (require 'doc-view-follow-pdf-tools))
 #+end_src
 
 * Usage

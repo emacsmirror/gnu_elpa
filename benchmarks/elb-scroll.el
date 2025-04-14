@@ -1,6 +1,6 @@
 ;;; elb-scroll.el --- Benchmark scrolling performance  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2022  Free Software Foundation, Inc.
+;; Copyright (C) 2022-2025  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
 
@@ -35,7 +35,7 @@
   (defun elb-scroll-entry ()
     ;; FIXME: This relies on `elb-smie.el' being compiled already which is
     ;; not necessarily the case if we're only running some of the benchmarks.
-    (load (expand-file-name "elb-smie" elb-bench-directory))
+    (load (expand-file-name "elb-smie" elb-bench-directory) nil 'nomessage)
     (setq redisplay-skip-initial-frame nil)
     (with-temp-buffer
       (rename-buffer (generate-new-buffer-name "elb-scroll"))
@@ -43,19 +43,25 @@
       (insert-file-contents (expand-file-name
                              "../resources/xmenu.c" elb-bench-directory))
       (redisplay 'force) ;; Refresh the window dimensions.
-      (enlarge-window (- 23 (window-height)))
-      (enlarge-window (- 80 (window-width)) 'horiz)
-      (redisplay 'force) ;; Refresh the window dimensions.
-      (message "Window size: %S x %S" (window-height) (window-width))
-      (unless (and (equal 23 (window-height))
-                   (equal 80 (window-width)))
-        (error "Window size not as stipulated by the benchmark"))
+      (elb--set-win-size 23 80)
       (dotimes (_ 10)
         (elb-smie-mode)
         (goto-char (point-min))
         (condition-case nil
             (while t (scroll-up nil) (redisplay 'force))
           (end-of-buffer nil))))))
+
+(defun elb--set-win-size (height width &optional no-retry)
+  (enlarge-window (- height (window-height)))
+  (enlarge-window (- width (window-width)) 'horiz)
+  (redisplay 'force) ;; Refresh the window dimensions.
+  (unless (and (equal height (window-height))
+               (equal width (window-width)))
+    (if no-retry
+        (error "Window size %S x %S not as stipulated by the benchmark"
+               (window-height) (window-width))
+      (delete-other-windows)
+      (elb--set-win-size height width 'no-retry))))
 
 (provide 'elb-scroll)
 ;;; elb-scroll.el ends here

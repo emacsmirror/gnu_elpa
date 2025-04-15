@@ -1,7 +1,5 @@
 # Denote Markdown extras
 
-WORK-IN-PROGRESS: <https://protesilaos.com/codelog/2025-02-11-emacs-splitting-denote-many-packages/>.
-
 The `denote-markdown` package provides some convenience functions to
 better integrate Markdown with Deonte. This is mostly about converting
 links from one type to another so that they can work in different
@@ -15,7 +13,7 @@ their setup to use the `denote-markdown` package. This can be done by
 replacing all instances of `denote-md-extras` with `denote-markdown`
 across their configuration.
 
-+ Package name (GNU ELPA): `denote-markdown` (⚠️ Not available yet)
++ Package name (GNU ELPA): `denote-markdown`
 + Official manual: <https://protesilaos.com/emacs/denote-markdown>
 + Git repository: <https://github.com/protesilaos/denote-markdown>
 + Backronyms: Denote... Markdown's Ambitious Reimplimentations

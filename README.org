@@ -4,9 +4,9 @@
 #+language: en
 #+options: ':t toc:nil author:t email:t num:t
 #+startup: content
-#+macro: stable-version 0.0.0
-#+macro: release-date N/A
-#+macro: development-version 0.1.0-dev
+#+macro: stable-version 0.1.0
+#+macro: release-date 2025-04-15
+#+macro: development-version 0.2.0-dev
 #+export_file_name: denote-org.texi
 #+texinfo_filename: denote-org.info
 #+texinfo_dir_category: Emacs misc features
@@ -30,7 +30,7 @@ commit, is explicitly marked as such.
 
 Current development target is {{{development-version}}}.
 
-+ Package name (GNU ELPA): ~denote-org~ (⚠️ Not available yet)
++ Package name (GNU ELPA): ~denote-org~
 + Official manual: <https://protesilaos.com/emacs/denote-org>
 + Git repository: <https://github.com/protesilaos/denote-org>
 + Backronym: Denote... Ordinarily Restricts Gyrations.
@@ -142,8 +142,7 @@ line to update the block.
   include all files that have a =journal= keyword.
 
 - The =:not-regexp= parameter is optional. It is a regular expression
-  that applies after =:regexp= to filter out the matching files. [
-  Part of {{{development-version}}}. ]
+  that applies after =:regexp= to filter out the matching files.
 
 - The =:excluded-dirs-regexp= is a string that contains a word or
   regular expression that matches against directory files names
@@ -294,8 +293,7 @@ parameters, which are described further below:
   include all files that have a =journal= keyword.
 
 - The =:not-regexp= parameter is optional. It is a regular expression
-  that applies after =:regexp= to filter out the matching files. [
-  Part of {{{development-version}}}. ]
+  that applies after =:regexp= to filter out the matching files.
 
 - The =:excluded-dirs-regexp= is a string that contains a word or
   regular expression that matches against directory files names
@@ -404,8 +402,7 @@ you get all the parameters included:
   include all files that have a =journal= keyword.
 
 - The =:not-regexp= parameter is optional. It is a regular expression
-  that applies after =:regexp= to filter out the matching files. [
-  Part of {{{development-version}}}. ]
+  that applies after =:regexp= to filter out the matching files.
 
 - The =:excluded-dirs-regexp= is a string that contains a word or
   regular expression that matches against directory files names

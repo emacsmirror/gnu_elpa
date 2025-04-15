@@ -1,7 +1,5 @@
 # Denote Silo extras
 
-WORK-IN-PROGRESS: <https://protesilaos.com/codelog/2025-02-11-emacs-splitting-denote-many-packages/>.
-
 The `denote-silo` package makes it easier to work with multiple
 "silos", as explained in the Denote manual. In short, a "silo" is a
 localised `denote-directory` that is not connected to the
@@ -14,7 +12,7 @@ their setup to use the `denote-silo` package. This can be done by
 replacing all instances of `denote-silo-extras` with `denote-silo`
 across their configuration.
 
-+ Package name (GNU ELPA): `denote-silo` (⚠️ Not available yet)
++ Package name (GNU ELPA): `denote-silo`
 + Official manual: <https://protesilaos.com/emacs/denote-silo>
 + Git repository: <https://github.com/protesilaos/denote-silo>
 + Backronym: Denote... Silos Insulate Localised Objects.

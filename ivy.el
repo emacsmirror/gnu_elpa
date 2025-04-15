@@ -2291,10 +2291,6 @@ customizations apply to the current completion session."
                 hist (propertize item 'ivy-index ivy--index))))))))
 
 (defun ivy--cleanup ()
-  ;; Fixes a bug in ESS, #1660
-  (put 'post-command-hook 'permanent-local nil)
-  (remove-hook 'post-command-hook #'ivy--queue-exhibit)
-  (remove-hook 'window-size-change-functions #'ivy--window-size-changed)
   (let ((cleanup (ivy--display-function-prop :cleanup))
         (unwind (ivy-state-unwind ivy-last)))
     (when (functionp cleanup)
@@ -3115,7 +3111,7 @@ tries to ensure that it does not change depending on the number of candidates."
   :type 'boolean)
 
 (defun ivy--minibuffer-setup ()
-  "Setup ivy completion in the minibuffer."
+  "Set up Ivy completion in `minibuffer-setup-hook'."
   ;; Guard for --without-x builds where `mwheel' is not preloaded.
   (when (boundp 'mwheel-scroll-up-function)
     (setq-local mwheel-scroll-up-function 'ivy-next-line))
@@ -3136,11 +3132,18 @@ tries to ensure that it does not change depending on the number of candidates."
                       (ivy-add-newline-after-prompt 2))))
     (when height
       (set-window-text-height nil height)))
+  (add-hook 'minibuffer-exit-hook #'ivy--minibuffer-exit nil t)
   (add-hook 'post-command-hook #'ivy--queue-exhibit nil t)
   (add-hook 'window-size-change-functions #'ivy--window-size-changed nil t)
   (let ((hook (ivy-alist-setting ivy-hooks-alist)))
     (when (functionp hook)
       (funcall hook))))
+
+(defun ivy--minibuffer-exit ()
+  "Clean up Ivy completion in `minibuffer-exit-hook'."
+  (remove-hook 'minibuffer-exit-hook #'ivy--minibuffer-exit t)
+  (remove-hook 'post-command-hook #'ivy--queue-exhibit t)
+  (remove-hook 'window-size-change-functions #'ivy--window-size-changed t))
 
 (defun ivy--input ()
   "Return the current minibuffer input."
@@ -3478,10 +3481,14 @@ The function was added in Emacs 26.1.")
    (ivy--format
     (setq ivy--all-candidates cands))))
 
+(defun ivy--completing-p ()
+  "Return non-nil if Ivy is completing in the current buffer."
+  (memq #'ivy--queue-exhibit post-command-hook))
+
 (defun ivy--exhibit ()
   "Insert Ivy completions display.
 Should be run in the minibuffer."
-  (when (memq #'ivy--queue-exhibit post-command-hook)
+  (when (ivy--completing-p)
     (let ((inhibit-field-text-motion nil))
       (constrain-to-field nil (point-max)))
     (ivy-set-text (ivy--input))
@@ -3628,7 +3635,7 @@ height < `ivy-height', auto-shrink the minibuffer."
 
 (defun ivy--window-size-changed (&rest _)
   "Resize ivy window to fit with current frame's size."
-  (when ivy-mode
+  (when (ivy--completing-p)
     (ivy--resize-minibuffer-to-fit)))
 
 (defun ivy--add-face (str face)

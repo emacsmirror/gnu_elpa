@@ -95,6 +95,17 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 		 (string :tag "Argument String")
 		 (repeat :tag "Argument List" :value ("") string)))
 
+(defun vc-jj--filename-to-fileset (filename &optional root)
+  "Convert FILENAME to a JJ fileset expression.
+If ROOT is given, the result is relative to the repository root,
+otherwise it is relative to the current directory."
+  (if root
+      (concat "root-file:\""
+          (string-replace "\"" "\\\"" (file-relative-name filename root))
+          "\"")
+    (concat "cwd-file:\""
+            (string-replace "\"" "\\\"" (file-relative-name filename)) "\"")))
+
 (defun vc-jj-command (buffer okstatus file-or-list &rest flags)
   "Execute `vc-jj-program', notifying the user and checking for errors.
 
@@ -115,11 +126,17 @@ the command line before the filename(s).
 
 Return the return value of the command in the synchronous case, and the
 process object in the asynchronous case."
-  (apply #'vc-do-command (or buffer "*vc*") okstatus vc-jj-program
-    file-or-list
-    (if (stringp vc-jj-global-switches)
-        (cons vc-jj-global-switches flags)
-      (append vc-jj-global-switches flags))))
+  (let* ((filesets (mapcar #'vc-jj--filename-to-fileset
+                           (if (listp file-or-list) file-or-list (list file-or-list))))
+         (global-switches (if (stringp vc-jj-global-switches)
+                              (list vc-jj-global-switches)
+                            vc-jj-global-switches)))
+    (apply #'vc-do-command (or buffer "*vc*") okstatus vc-jj-program
+           ;; Note that we pass NIL for FILE-OR-LIST to avoid
+           ;; vc-do-command mangling of filenames; we pass the fileset
+           ;; expressions in ARGS instead.
+           nil
+           (append global-switches flags filesets))))
 
 ;;;###autoload (defun vc-jj-registered (file)
 ;;;###autoload   "Return non-nil if FILE is registered with jj."
@@ -128,17 +145,14 @@ process object in the asynchronous case."
 ;;;###autoload       (progn
 ;;;###autoload         (load "vc-jj" nil t)
 ;;;###autoload         (vc-jj-registered file))))
-
 (defun vc-jj-registered (file)
   "Check whether FILE is registered with jj."
-  (when (executable-find vc-jj-program)
-    (unless (not (file-exists-p default-directory))
-      (with-demoted-errors "Error: %S"
-        (when-let* ((default-directory (vc-jj-root file))
-                    (relative (file-relative-name file)))
-          (with-temp-buffer
-            (and (= 0 (vc-jj-command t 0 file "file" "list" "--"))
-                 (not (= (point-min) (point-max))))))))))
+  (and-let* ((vc-jj-program (executable-find vc-jj-program))
+             (default-directory (vc-jj-root file)))
+    (with-temp-buffer
+      (and (= 0 (call-process vc-jj-program nil (list t nil) nil
+                              "file" "list" "--" (vc-jj--filename-to-fileset file)))
+           (/= (point-min) (point-max))))))
 
 (defun vc-jj-state (file)
   "JJ implementation of `vc-state' for FILE."
@@ -331,8 +345,8 @@ self.immutable(), \"\\n\"
 (defun vc-jj-checkin (files comment &optional _rev)
   "Run \"jj commit\" with supplied FILES and COMMENT."
   (setq comment (replace-regexp-in-string "\\`Summary: " "" comment))
-  (let ((args (append (vc-switches 'jj 'checkin) (list "--"))))
-    (apply #'vc-jj-command nil 0 files "commit" "-m" comment args)))
+  (let ((args (append (vc-switches 'jj 'checkin) (list "commit" "-m" comment))))
+    (apply #'vc-jj-command nil 0 files args)))
 
 (defun vc-jj-find-revision (file rev buffer)
   "Read revision REV of FILE into BUFFER and return the buffer."
@@ -344,13 +358,12 @@ self.immutable(), \"\\n\"
 If REV is not specified, revert the file as with `vc-jj-revert'."
   ;; TODO: check that this does the right thing: if REV is not
   ;; specified, should we revert or leave FILE unchanged?
-  (let ((args (append (and rev (list "--from" rev))
-                      (list "--"))))
+  (let ((args (append (and rev (list "--from" rev)))))
     (apply #'vc-jj-command nil 0 file "restore" args)))
 
 (defun vc-jj-revert (file &optional _contents-done)
   "Restore FILE to the state from its parent(s), via \"jj restore\"."
-  (vc-jj-command nil 0 file "restore" "--"))
+  (vc-jj-command nil 0 file "restore"))
 
 (defun vc-jj-print-log (files buffer &optional _shortlog start-revision limit)
   "Print commit log associated with FILES into specified BUFFER."

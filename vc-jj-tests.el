@@ -149,19 +149,25 @@ is needed."
 
 (ert-deftest vc-jj-ignore ()
   (vc-jj-test-with-repo repo
-    (write-region "xxx" nil "root-ignored.txt")
-    (make-directory "subdir")
-    (write-region "xxx" nil "subdir/subdir-ignored.txt")
-    (should (eq (vc-jj-state "root-ignored.txt") 'added))
-    (should (eq (vc-jj-state "subdir/subdir-ignored.txt") 'added))
-    (vc-jj-ignore "root-ignored.txt")
-    (vc-jj-ignore "subdir/subdir-ignored.txt")
-    (should (eq (vc-jj-state "root-ignored.txt") 'ignored))
-    (should (eq (vc-jj-state "subdir/subdir-ignored.txt") 'ignored))
-    (vc-jj-ignore "root-ignored.txt" nil t)
-    (vc-jj-ignore "subdir/subdir-ignored.txt" nil t)
-    (should (eq (vc-jj-state "root-ignored.txt") 'added))
-    (should (eq (vc-jj-state "subdir/subdir-ignored.txt") 'added))))
+    (let (gitignore-buffer)
+      (unwind-protect
+          (progn
+            (setq gitignore-buffer (find-file ".gitignore"))
+            (write-region "xxx" nil "root-ignored.txt")
+            (make-directory "subdir")
+            (write-region "xxx" nil "subdir/subdir-ignored.txt")
+            (should (eq (vc-jj-state "root-ignored.txt") 'added))
+            (should (eq (vc-jj-state "subdir/subdir-ignored.txt") 'added))
+            (vc-jj-ignore "root-ignored.txt")
+            (vc-jj-ignore "subdir/subdir-ignored.txt")
+            (should (eq (vc-jj-state "root-ignored.txt") 'ignored))
+            (should (eq (vc-jj-state "subdir/subdir-ignored.txt") 'ignored))
+            (vc-jj-ignore "root-ignored.txt" nil t)
+            (vc-jj-ignore "subdir/subdir-ignored.txt" nil t)
+            (should (eq (vc-jj-state "root-ignored.txt") 'added))
+            (should (eq (vc-jj-state "subdir/subdir-ignored.txt") 'added)))
+        (when (buffer-live-p gitignore-buffer)
+          (kill-buffer gitignore-buffer))))))
 
 (ert-deftest vc-jj-list-files ()
   (vc-jj-test-with-repo repo
@@ -188,6 +194,21 @@ is needed."
                        ("unconflicted.txt" up-to-date))))
       (should (equal (vc-jj-dir-status-files (expand-file-name "subdir/" repo) nil (lambda (x y) x))
                      '(("conflicted.txt" conflict)))))))
+
+(ert-deftest vc-jj-funky-filename ()
+  ;; https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/38
+  (vc-jj-test-with-repo repo
+    (write-region "Hello" nil "TEST=TEST.txt")
+    (write-region "Hello" nil "with'apostrophe.txt")
+    (write-region "Hello" nil "with\"quotation.txt")
+    (should (eq (vc-jj-state "TEST=TEST.txt") 'added))
+    (should (eq (vc-jj-state "with'apostrophe.txt") 'added))
+    (should (eq (vc-jj-state "with\"quotation.txt") 'added))
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo nil (lambda (x y) x))
+             '(("TEST=TEST.txt" added)
+               ("with'apostrophe.txt" added)
+               ("with\"quotation.txt" added))))))
 
 (provide 'vc-jj-tests)
 ;;; vc-jj-tests.el ends here

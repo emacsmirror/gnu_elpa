@@ -1178,16 +1178,14 @@ If the text hasn't changed as a result, forward to `ivy-alt-done'."
   "Complete the minibuffer text as much as possible."
   (interactive)
   (if (ivy-state-dynamic-collection ivy-last)
-      (let* ((bnd
-              (ignore-errors
-                (funcall
-                 (ivy-state-collection ivy-last)
-                 ivy-text nil (cons 'boundaries (buffer-substring (point) (line-end-position))))))
+      (let* ((table (ivy-state-collection ivy-last))
+             (suf (buffer-substring (point) (ivy--pos-eol)))
+             (bnd (ignore-errors
+                    (completion-boundaries ivy-text table nil suf)))
              (beg (+ (minibuffer-prompt-end)
-                     (if bnd (cadr bnd) 0))))
+                     (or (car bnd) 0))))
         (delete-region beg (point-max))
-        (insert
-         (ivy-state-current ivy-last))
+        (insert (ivy-state-current ivy-last))
         t)
     (let* ((parts (or (ivy--split-spaces ivy-text) (list "")))
            (tail (last parts))

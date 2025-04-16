@@ -988,10 +988,11 @@ Is is a cons cell, related to `tramp-get-completion-function'."
   :type '(alist :key-type symbol :value-type function))
 
 (defun ivy--completing-fname-p ()
-  (let ((meta (ignore-errors
-                (funcall (ivy-state-collection ivy-last) ivy-text nil 'metadata))))
-    (and (consp meta)
-         (eq 'file (cdr (assoc 'category meta))))))
+  (let* ((table (ivy-state-collection ivy-last))
+         (md (condition-case nil
+                 (completion-metadata ivy-text table nil)
+               (error '(metadata)))))
+    (eq (ivy--metadata-get md 'category) 'file)))
 
 (defun ivy-alt-done (&optional arg)
   "Exit the minibuffer with the selected candidate.

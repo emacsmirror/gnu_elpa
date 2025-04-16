@@ -4130,15 +4130,13 @@ N wraps around, but skips the first element of the list."
 SELECTED-FN is called for the selected candidate, OTHER-FN for the others.
 Both functions take one string argument each.  CANDS is a list of candidates
 and SEPARATOR is used to join them."
-  (let ((i -1))
-    (mapconcat
-     (lambda (str)
-       (let ((curr (eq (cl-incf i) ivy--window-index)))
-         (if curr
-             (funcall selected-fn str)
-           (funcall other-fn str))))
-     cands
-     separator)))
+  (mapconcat (let ((i -1))
+               (lambda (str)
+                 (funcall (if (eql (cl-incf i) ivy--window-index)
+                              selected-fn
+                            other-fn)
+                          str)))
+             cands separator))
 
 (defun ivy-format-function-default (cands)
   "Transform CANDS into a multiline string for the minibuffer.

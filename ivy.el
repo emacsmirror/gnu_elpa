@@ -1734,10 +1734,18 @@ minibuffer."
         (setq ivy--old-text (current-kill 0 t)))
     (kill-line)))
 
+(defalias 'ivy--pos-eol
+  (if (fboundp 'pos-eol)
+      #'pos-eol
+    (lambda (&optional n)
+      (let ((inhibit-field-text-motion t))
+        (line-end-position n))))
+  "Compatibility shim for Emacs 29 `pos-eol'.")
+
 (defun ivy-kill-whole-line ()
   "Forward to `kill-whole-line'."
   (interactive)
-  (kill-region (minibuffer-prompt-end) (line-end-position)))
+  (kill-region (minibuffer-prompt-end) (ivy--pos-eol)))
 
 (defun ivy-backward-kill-word ()
   "Forward to `backward-kill-word'."
@@ -3147,19 +3155,16 @@ tries to ensure that it does not change depending on the number of candidates."
 
 (defun ivy--input ()
   "Return the current minibuffer input."
-  ;; assume one-line minibuffer input
+  ;; Assume one-line minibuffer input.
   (save-excursion
     (goto-char (minibuffer-prompt-end))
-    (let ((inhibit-field-text-motion t))
-      (buffer-substring-no-properties
-       (point)
-       (line-end-position)))))
+    (buffer-substring-no-properties (point) (ivy--pos-eol))))
 
 (defun ivy--minibuffer-cleanup ()
   "Delete the displayed completion candidates."
   (save-excursion
     (goto-char (minibuffer-prompt-end))
-    (delete-region (line-end-position) (point-max))))
+    (delete-region (ivy--pos-eol) (point-max))))
 
 (defun ivy-cleanup-string (str)
   "Destructively remove unwanted text properties from STR."
@@ -3296,11 +3301,11 @@ Also handle `ivy-set-prompt-text-properties-function'."
         ;; option left.  Since the user input stays put, we have to manually
         ;; remove the face as well.
         (when ivy--use-selectable-prompt
-          (if (= ivy--index -1)
-              (add-face-text-property
-               (minibuffer-prompt-end) (line-end-position) 'ivy-prompt-match)
-            (remove-list-of-text-properties
-             (minibuffer-prompt-end) (line-end-position) '(face))))
+          (let ((prompt (minibuffer-prompt-end))
+                (eol (ivy--pos-eol)))
+            (if (= ivy--index -1)
+                (add-face-text-property prompt eol 'ivy-prompt-match)
+              (remove-list-of-text-properties prompt eol '(face)))))
         ;; get out of the prompt area
         (constrain-to-field nil (point-max))))))
 

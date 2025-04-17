@@ -445,8 +445,10 @@ into a68--mode-indicants."
   a68--mode-indicants)
 
 (defun a68--do-auto-stropping ()
-  (when (or (eq (char-before) ?\s)
-            (eq (char-before) ?\n))
+  (when (and (not (a68-within-comment))
+             (not (a68-within-string))
+             (or (eq (char-before) ?\s)
+                 (eq (char-before) ?\n)))
     (let (id beginning end)
       (save-excursion
         (goto-char (- (point) 1))

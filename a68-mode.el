@@ -93,7 +93,8 @@
       "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"
       "UP" "DOWN"
       "NIL" "TRUE" "FALSE"
-      "MODULE" "DEF" "FED" "POSTLUDE" "ACCESS" "PUB")
+      "MODULE" "DEF" "FED" "POSTLUDE" "ACCESS" "PUB"
+      "UNSAFE")
     "List of Algol 68 keywords."))
 
 (defconst a68-font-lock-keywords

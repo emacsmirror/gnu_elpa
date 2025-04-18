@@ -18,11 +18,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Security
 
-## [0.0.1] - 2025-03-16
+## [0.2] - 2025-04-18
+
+### Fixed
+
+- Properly escape filenames containing jj fileset operator characters.
+
+## [0.1] - 2025-03-16
 
 ### Added
 
-First released version.
+- First released version.
 
-[unreleased]: https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.0.1...HEAD
-[0.0.1]: https://codeberg.org/emacs-vc-jj/vc-jj.el/src/tag/v0.0.1
+[unreleased]: https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.2...HEAD
+[0.2]: https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.1...v0.2
+[0.1]: https://codeberg.org/emacs-jj-vc/vc-jj.el/src/tag/v0.1

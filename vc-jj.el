@@ -5,7 +5,7 @@
 ;; Author: Wojciech Siewierski
 ;;         Rudolf Schlatte <rudi@constantly.at>
 ;; URL: https://codeberg.org/emacs-jj-vc/vc-jj.el
-;; Version: 0.1
+;; Version: 0.2
 ;; Package-Requires: ((emacs "28.1") (compat "29.4"))
 ;; Keywords: vc tools
 

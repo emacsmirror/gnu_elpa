@@ -420,6 +420,7 @@
  (hyperbole           	:url "https://git.savannah.gnu.org/git/hyperbole.git"
   :make ("kotl/kotl-autoloads.el")
   :doc "man/hyperbole.texi"
+  :doc-files ("man/im/")
   :news "HY-NEWS")
  (idlwave		:url "https://github.com/jdtsmith/idlwave"
   :doc "idlwave.texi"

@@ -25,13 +25,6 @@
 ;;; Commentary:
 
 ;; A major mode for editing Algol 68 code.
-;;
-;; This is an improved and modernized version of the a68-mode written
-;; by Jose E. Marchesi.  The original code was taken from
-;;
-;; https://github.com/lachrymology/me/blob/master/.emacs.d/extras/algol-mode.el
-;;
-;; TODO: support quote and dot stropping.
 
 ;;; Code:
 
@@ -59,6 +52,8 @@
                  (const "COMMENT"))
   :safe #'consp)
 
+;;;; Stuff common to all stroppings
+
 (defvar a68-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-j") #'newline-and-indent)
@@ -67,15 +62,85 @@
     map)
   "Keymap for Algol 68 major mode.")
 
-(eval-and-compile
-  ;; Both of those vars are used during macroexpansion (and hence compilation).
+(defun a68-within-string ()
+  (nth 3 (syntax-ppss)))
 
-  (defconst a68-std-modes
+(defun a68-within-comment ()
+  (nth 4 (syntax-ppss)))
+
+(defun a68-within-string-or-comment ()
+  (nth 8 (syntax-ppss)))
+
+(defvar a68--keywords-regexp
+  (regexp-opt '("+" "*" ";" ">" "<" ":=" "=" "," ":")))
+
+(defun a68--smie-forward-token ()
+  (forward-comment (point-max))
+  (cond
+   ((looking-at a68--keywords-regexp)
+    (goto-char (match-end 0))
+    (match-string-no-properties 0))
+   (t (buffer-substring-no-properties (point)
+                                      (progn (skip-syntax-forward "w_")
+                                             (point))))))
+
+(defun a68--smie-backward-token ()
+  (forward-comment (- (point)))
+  (cond
+   ((looking-back a68--keywords-regexp (- (point) 2) t)
+    (goto-char (match-beginning 0))
+    (match-string-no-properties 0))
+   (t (buffer-substring-no-properties (point)
+                                      (progn (skip-syntax-backward "w_")
+                                             (point))))))
+
+(defvar a68-mode-syntax-table
+  (let ((st (make-syntax-table)))
+    (modify-syntax-entry ?# "<" st)
+    (modify-syntax-entry ?# ">" st)
+    (modify-syntax-entry ?\\ "." st)
+    (modify-syntax-entry ?, "." st)
+    (modify-syntax-entry ?: "." st)
+    ;; define parentheses to match
+    (modify-syntax-entry ?\( "()" st)
+    (modify-syntax-entry ?\) ")(" st)
+    st))
+
+(defvar a68-mode-abbrev-table nil
+  "Abbreviation table used in `a68-mode' buffers.")
+
+(define-abbrev-table 'a68-mode-abbrev-table
+  '())
+
+(defun a68-comment-hash ()
+  "Smart insert a # ... # style comment."
+  (interactive)
+  (if (a68-within-comment)
+      (insert "#")
+    (save-excursion
+      (insert "#   #"))
+    (goto-char (+ (point) 2))))
+
+(defun a68--figure-out-stropping-regime ()
+  (save-excursion
+    (goto-char (point-min))
+    (if (let ((case-fold-search nil))
+          (and (re-search-forward "PR LAME PR" nil t)
+               (not (a68-within-comment))
+               (not (a68-within-string))))
+        'lame
+      'upper)))
+
+;;;; UPPER stropping
+
+(eval-and-compile
+  ;; Those vars are used during macroexpansion (and hence compilation).
+  (defconst a68-std-modes-upper
     '("SHORT" "LONG" "INT" "REAL" "BITS" "BYTES"
       "COMPL" "STRING" "REF" "FLEX" "VOID")
-    "List of Algol 68 standard modes and shortety.")
+    "List of Algol 68 standard modes and shortety in UPPER stropping.")
 
-  (defconst a68-keywords
+  (defconst a68-keywords-upper
     '("DECS" "PROGRAM" "CONTEXT" "USE" "KEEP"
       "ALIEN" "RE" "IM"
       "MODE" "OP" "PRIO" "PROC"
@@ -95,43 +160,30 @@
       "NIL" "TRUE" "FALSE"
       "MODULE" "DEF" "FED" "POSTLUDE" "ACCESS" "PUB"
       "UNSAFE")
-    "List of Algol 68 keywords."))
+    "List of Algol 68 keywords in UPPER stropping."))
 
-(defconst a68-font-lock-keywords
+(defconst a68-font-lock-keywords-upper
   (list
    (cons (rx word-start
-             (eval `(or ,@a68-keywords))
+             (eval `(or ,@a68-keywords-upper))
              word-end)
          ''font-lock-keyword-face)
    (cons (rx word-start
-             (eval `(or ,@a68-std-modes))
+             (eval `(or ,@a68-std-modes-upper))
              word-end)
          ''font-lock-type-face)
    (cons (rx word-start
              (or "TRUE" "FALSE")
              word-end)
          ''font-lock-constant-face)
-   ;; only valid for bold stropping
    '("\\<\\([A-Z]+[A-Z_]*\\>\\)\\(_+\\)?"
      (1 'font-lock-type-face)
       (2 'font-lock-warning-face nil t))
    (cons "\\('\\w*'\\)"
          ''font-lock-variable-name-face))
-  "Highlighting expressions for Algol 68 mode.")
+  "Highlighting expressions for Algol 68 mode in UPPER stropping.")
 
-(defun a68-within-string ()
-  (nth 3 (syntax-ppss)))
-
-(defun a68-within-comment ()
-  (nth 4 (syntax-ppss)))
-
-(defun a68-within-string-or-comment ()
-  (nth 8 (syntax-ppss)))
-
-(defvar a68--keywords-regexp
-  (regexp-opt '("+" "*" ";" ">" "<" ":=" "=" "," ":")))
-
-(defvar a68--smie-grammar
+(defvar a68--smie-grammar-upper
   (smie-prec2->grammar
    (smie-bnf->prec2 '((id)
                       (ids (id "-anchor-" id))
@@ -195,7 +247,7 @@
                     '((assoc "=" "/" ":=" ":=:" ":/=:"
                              "+" "-" "*" "/")))))
 
-(defun a68--smie-rules (kind token)
+(defun a68--smie-rules-upper (kind token)
   (pcase (cons kind token)
     (`(:elem . basic) a68-indent-level)
     ;; (`(,_ . ",") (smie-rule-separator kind))
@@ -224,54 +276,7 @@
           (smie-rule-prev-p "ELSE")
           (smie-rule-parent)))))
 
-(defun a68--smie-forward-token ()
-  (forward-comment (point-max))
-  (cond
-   ((looking-at a68--keywords-regexp)
-    (goto-char (match-end 0))
-    (match-string-no-properties 0))
-   (t (buffer-substring-no-properties (point)
-                                      (progn (skip-syntax-forward "w_")
-                                             (point))))))
-
-(defun a68--smie-backward-token ()
-  (forward-comment (- (point)))
-  (cond
-   ((looking-back a68--keywords-regexp (- (point) 2) t)
-    (goto-char (match-beginning 0))
-    (match-string-no-properties 0))
-   (t (buffer-substring-no-properties (point)
-                                      (progn (skip-syntax-backward "w_")
-                                             (point))))))
-
-(defvar a68-mode-syntax-table
-  (let ((st (make-syntax-table)))
-    (modify-syntax-entry ?# "<" st)
-    (modify-syntax-entry ?# ">" st)
-    (modify-syntax-entry ?\\ "." st)
-    (modify-syntax-entry ?, "." st)
-    (modify-syntax-entry ?: "." st)
-    ;; define parentheses to match
-    (modify-syntax-entry ?\( "()" st)
-    (modify-syntax-entry ?\) ")(" st)
-    st))
-
-(defvar a68-mode-abbrev-table nil
-  "Abbreviation table used in `a68-mode' buffers.")
-
-(define-abbrev-table 'a68-mode-abbrev-table
-  '())
-
-(defun a68-comment-hash ()
-  "Smart insert a # ... # style comment."
-  (interactive)
-  (if (a68-within-comment)
-      (insert "#")
-    (save-excursion
-      (insert "#   #"))
-    (goto-char (+ (point) 2))))
-
-(defun a68-beginning-of-defun (&optional count)
+(defun a68-beginning-of-defun-upper (&optional count)
   "Algol 68 specific `beginning-of-defun-function'."
   (let ((count (or count 1))
         (case-fold-search nil)
@@ -284,7 +289,7 @@
       (setq count (1- count )))
     res))
 
-(defun a68-syntax-propertize-function (start end)
+(defun a68-syntax-propertize-function-upper (start end)
   (let ((case-fold-search nil))
     (goto-char start)
     (funcall
@@ -309,19 +314,204 @@
        (2 "> c")))
      (point) end)))
 
+;;;; LAME stropping.
+
+(eval-and-compile
+  ;; Those vars are used during macroexpansion (and hence compilation).
+  (defconst a68-std-modes-lame
+    '("int" "real" "bool" "char" "format" "void"
+      "compl" "bits" "bytes" "string" "sema" "file" "channel")
+    "List of Algol 68 standard modes in LAME stropping.")
+
+  (defconst a68-keywords-lame
+    '("true" "false" "empty"
+      "long" "short" "ref" "loc" "heap" "struct" "flex" "proc"
+      "union" "op" "prio" "mode" "begin" "end" "exit" "par" "if"
+      "then" "elif" "else" "fi" "case" "in" "ouse" "out" "esac"
+      "nil" "of" "goto" "skip" "for" "from" "by" "to" "while"
+      "do" "od")
+    "List of Algol 68 keywords in LAME stropping."))
+
+(defconst a68-font-lock-keywords-lame
+  (list
+   (cons (rx word-start
+             (eval `(or ,@a68-keywords-lame))
+             word-end)
+         ''font-lock-keyword-face)
+   (cons (rx word-start
+             (eval `(or ,@a68-std-modes-lame))
+             word-end)
+         ''font-lock-type-face)
+   (cons (rx word-start
+             (or "TRUE" "FALSE")
+             word-end)
+         ''font-lock-constant-face)
+   '("\\<\\([A-Z]+[A-Za-z_]*\\>\\)\\(_+\\)?"
+     (1 'font-lock-type-face)
+      (2 'font-lock-warning-face nil t))
+   (cons "\\('\\w*'\\)"
+         ''font-lock-variable-name-face))
+  "Highlighting expressions for Algol 68 mode in LAME stropping.")
+
+(defvar a68--smie-grammar-lame
+  (smie-prec2->grammar
+   (smie-bnf->prec2 '((id)
+                      (ids (id "-anchor-" id))
+                      (fields (fields "," fields)
+                              (ids))
+                      (args ("(" fargs ")"))
+                      (fargs (fargs "," fargs)
+                             (exp))
+                      (conformity-cases)
+                      (exp (ids)
+                           (exp "of" exp)
+                           (exp "[" exp "]")
+                           ("(" exp ")")
+                           ("begin" exp "end")
+                           ("module" exp "def" exp "fed")
+                           ("module" exp "def" exp "postlude" exp "fed"))
+                      (type-decl ("mode" type-decl*))
+                      (type-decl* (type-decl* "," type-decl*)
+                                  (id "=" type-decl**))
+                      (type-decl** ("struct" args)
+                                   ("union" args)
+                                   ("proc" args "-archor-" ids))
+                      (op-decl (op-decl "," op-decl)
+                               ("op" ids "=" args ids ":" exp))
+                      (proc-decl (proc-decl "," proc-decl)
+                                 ("op" ids "=" args ids ":" exp)
+                                 ("proc" ids "=" ids ":" exp))
+                      (program ("program" exp))
+                      ;; TODO: this don't cover all the loop
+                      ;; possibilities.
+                      (loop ("-do-" "do" exp "od")
+                            ("for" exp "from" exp "to" exp "by" exp
+                             "do" exp "od")
+                            ("for" exp "from" exp "to" exp
+                             "do" exp "od")
+                            ("for" exp "by" exp "to" exp
+                             "do" exp "od")
+                            ("-to-" "to" exp "do" exp "od")
+                            ("while" exp "do" exp "od"))
+                      (insts (insts ";" insts)
+                             (id ":=" exp)
+                             ("if" exp "then" insts "fi")
+                             ("if" exp "then" insts "else" insts "fi")
+                             ("if" exp "then" insts
+                              "elif" exp "then" insts "else" insts "fi")
+                             ("if" exp "then" insts
+                              "elif" exp "then" insts
+                              "elif" exp "then" insts "else" insts "fi")
+                             ;; TODO OUSE for both case and conformity case
+                             ("case" exp "in" fargs "esac")
+                             ("case" exp "in" conformity-cases "esac")
+                             ("case" exp "in" fargs "out" exp "esac")
+                             (op-decl)
+                             (type-decl)
+                             (proc-decl)
+                             (loop)))
+                    '((assoc "of" "[")
+                      (assoc ";")
+                      (assoc "|" "|:")
+                      (assoc ","))
+                    '((assoc "=" "/" ":=" ":=:" ":/=:"
+                             "+" "-" "*" "/")))))
+
+(defun a68--smie-rules-lame (kind token)
+  (pcase (cons kind token)
+    (`(:elem . basic) a68-indent-level)
+    ;; (`(,_ . ",") (smie-rule-separator kind))
+    (`(,_ . ",") (smie-rule-separator kind))
+    (`(,_ . ";") (when (smie-rule-parent-p)
+                   (smie-rule-parent)))
+    (`(:after . ":=") a68-indent-level)
+    (`(:after . "=") a68-indent-level)
+    (`(:before . "begin")
+     (when (or (smie-rule-hanging-p)
+               (or
+                (and (or (smie-rule-parent-p "proc")
+                         (smie-rule-parent-p "op"))
+                     (smie-rule-prev-p ":"))
+                (smie-rule-parent-p "program")))
+       (smie-rule-parent)))
+    (`(:before . "then")
+     (when (or (smie-rule-hanging-p)
+               (smie-rule-parent-p "if"))
+       (smie-rule-parent)))
+    (`(:before . "(")
+     (when (smie-rule-hanging-p)
+       (smie-rule-parent)))
+    (`(:before . "if")
+     (and (not (smie-rule-bolp))
+          (smie-rule-prev-p "else")
+          (smie-rule-parent)))))
+
+(defun a68-beginning-of-defun-lame (&optional count)
+  "Algol 68 specific `beginning-of-defun-function'."
+  (let ((count (or count 1))
+        (case-fold-search nil)
+        res)
+    (while (> count 0)
+      (goto-char (save-excursion
+                   (while (and (re-search-backward (rx bow (or "proc" "op") eow) nil t)
+                               (a68-within-string-or-comment)))
+                   (setq res (point))))
+      (setq count (1- count )))
+    res))
+
+(defun a68-syntax-propertize-function-lame (start end)
+  (let ((case-fold-search nil))
+    (goto-char start)
+    (funcall
+     (syntax-propertize-rules
+      ;; a comment is # ... #, but I don't want the
+      ;; (eventual) shebang #! to be considered the start of
+      ;; the comment.
+      ((rx (group "#" (not "!"))
+           (group (*? anychar))
+           (group "#"))
+       (1 "<")
+       (3 ">"))
+      ((rx bow (group "c") "omment" eow
+           (*? anychar)
+           bow "commen" (group "t") eow)
+       (1 "< b")
+       (2 "> b"))
+      ((rx bow (group "c") "o" eow
+           (*? anychar)
+           bow "c" (group "o") eow)
+       (1 "< c")
+       (2 "> c")))
+     (point) end)))
+
+;;;; The major mode.
+
 ;;;###autoload
 (define-derived-mode a68-mode prog-mode "Algol68"
   "Major mode for editing Alogl68 files."
   :abbrev-table a68-mode-abbrev-table
-  (setq-local font-lock-defaults '(a68-font-lock-keywords))
-  (smie-setup a68--smie-grammar #'a68--smie-rules
-              :forward-token #'a68--smie-forward-token
-              :backward-token #'a68--smie-backward-token)
+  ;; First determine the stropping regime
+  (setq-local a68--stropping-regime
+              (a68--figure-out-stropping-regime))
+  (if (equal a68--stropping-regime 'lame)
+      ;; LAME stropping.
+      (progn
+        (setq-local font-lock-defaults '(a68-font-lock-keywords-lame))
+        (smie-setup a68--smie-grammar-lame #'a68--smie-rules-lame
+                    :forward-token #'a68--smie-forward-token
+                    :backward-token #'a68--smie-backward-token)
+        (setq-local beginning-of-defun-function #'a68-beginning-of-defun-lame)
+        (setq-local syntax-propertize-function #'a68-syntax-propertize-function-lame))
+    ;; UPPER stropping, the default.
+    (setq-local font-lock-defaults '(a68-font-lock-keywords-upper))
+    (smie-setup a68--smie-grammar-upper #'a68--smie-rules-upper
+                :forward-token #'a68--smie-forward-token
+                :backward-token #'a68--smie-backward-token)
+    (setq-local beginning-of-defun-function #'a68-beginning-of-defun-upper)
+    (setq-local syntax-propertize-function #'a68-syntax-propertize-function-upper))
   (add-hook 'after-change-functions #'a68--after-change-function nil t)
   (setq-local comment-start a68-comment-style)
-  (setq-local comment-end a68-comment-style)
-  (setq-local beginning-of-defun-function #'a68-beginning-of-defun)
-  (setq-local syntax-propertize-function #'a68-syntax-propertize-function))
+  (setq-local comment-end a68-comment-style))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.a68\\'" . a68-mode))

@@ -1,11 +1,11 @@
 ;;; literate-scratch.el --- Lisp Interaction w/ text paragraphs  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2023-2024  Free Software Foundation, Inc.
+;; Copyright (C) 2023-2025  Free Software Foundation, Inc.
 
 ;; Author: Sean Whitton <spwhitton@spwhitton.name>
 ;; Maintainer: Sean Whitton <spwhitton@spwhitton.name>
 ;; Package-Requires: ((emacs "29.1"))
-;; Version: 1.0
+;; Version: 2.0
 ;; URL: https://git.spwhitton.name/dotfiles/tree/.emacs.d/site-lisp/literate-scratch.el
 ;; Keywords: lisp text
 
@@ -49,85 +49,103 @@
 
 ;;; News:
 
+;; Ver 2.0 2025/04/18 Sean Whitton
+;;     Rewrite core algorithm to use comment starters not comment fences,
+;;     and therefore no `syntax-propertize-extend-region-functions' entry.
+;;     Thanks to Stefan Monnier for comments which prompted this.
+;;     Newly recognise `\\=`(' as starting paragraphs of Lisp.
 ;; Ver 1.0 2024/06/21 Sean Whitton
 ;;     Initial release.
 ;;     Thanks to Philip Kaludercic for review.
 
 ;;; Code:
 
-(defun literate-scratch--extend (start end)
-  (save-excursion
-    (let ((res1
-	   (and (goto-char start)
-		(not (looking-at paragraph-separate))
-		(and-let* ((new (car (bounds-of-thing-at-point 'paragraph))))
-		  (and (< new start)
-		       (setq start new)))))
-	  (res2
-	   (and (goto-char end)
-		(not (looking-at paragraph-separate))
-		(and-let* ((new (cdr (bounds-of-thing-at-point 'paragraph))))
-		  (and (> new end)
-		       (setq end new))))))
-      (and (or res1 res2)
-	   (cons start end)))))
-
 (defun literate-scratch--propertize (start end)
   (goto-char start)
-  (let ((start (1- start)))
-    (catch 'finish
-      (while t
-	(when-let* ((comment-start (nth 8 (syntax-ppss))))
-	  (put-text-property (1- (point)) (point) 'syntax-table
-			     (eval-when-compile
-			       (string-to-syntax "!")))
-	  (put-text-property comment-start (point) 'syntax-multiline t))
-	(forward-paragraph 1)
-	(backward-paragraph 1)
-	(unless (> end (point) start)
-	  (throw 'finish nil))
-	(setq start (point))
-	(unless
-	    (save-excursion
-	      (catch 'done
-		(while t
-		  ;; Examine the syntax of the paragraph's first char.
-		  ;; If it's whitespace, we need to check the previous
-		  ;; paragraph, to handle multiple paragraphs within a defun.
-		  (let ((syn
-			 (char-syntax
-			  (char-after
-			   ;; (1+ point) unless at end-of-buf or on first line
-			   ;; of a paragraph beginning right at beg-of-buf.
-			   (if (looking-at "\\`[[:space:]]*[^[:space:]\n]")
-			       (point)
-			     (1+ (point)))))))
-		    (cond ((bobp) (throw 'done (memq syn '(?\( ?<))))
-			  ((memq syn '(?\( ?<)) (throw 'done t))
-			  ((not (eq syn ?\s)) (throw 'done nil))))
-		  (backward-paragraph 1))))
-	  (put-text-property (point) (1+ (point)) 'syntax-table
-			     (eval-when-compile
-			       (string-to-syntax "!"))))
-	(forward-paragraph 1))))
+  (unless (bolp)
+    ;; Skip this line if START is already later than where we'd put the text
+    ;; property (i.e., make a modification).  Else just ensure BOL.
+    (back-to-indentation)
+    (forward-line (if (>= (point) start) 0 1)))
+  (while (and (not (eobp)) (>= end (point)))
+    ;; Here we do want to treat `]' the same as `)'.
+    (skip-syntax-forward "-)")
+    (unless (looking-at paragraph-separate)
+      (back-to-indentation)
+      (let ((1st (point)))
+	;; 1ST's line ...
+	(if (eq (pos-bol) (point-min))
+	    ;; ... is the first line of the buffer.
+	    (literate-scratch--put-comment-start 1st)
+	  (save-excursion
+	    (forward-line -1)
+	    (cond ((not (looking-at paragraph-separate))
+		   ;; ... is within a paragraph.
+		   ;; Then make 1ST's line a block comment line if and only
+		   ;; if the line preceding it is a block comment line too.
+		   (back-to-indentation)
+		   (when (literate-scratch--comment-start-p (point))
+		     (literate-scratch--put-comment-start 1st t)))
+		  ((eq (pos-bol 2) 1st)
+		   ;; ... starts a paragraph and is unindented.
+		   (literate-scratch--put-comment-start 1st))
+		  ((zerop (car (syntax-ppss 1st)))
+		   ;; ... starts a paragraph and is indented, but could not
+		   ;; be a code paragraph within a multi-paragraph defun.
+		   (literate-scratch--put-comment-start 1st)
+		   (syntax-ppss-flush-cache 1st)))))))
+    (forward-line 1))
   ;; Now also call the usual `syntax-propertize-function' for this mode.
   (elisp-mode-syntax-propertize start end))
+
+(defun literate-scratch--indent-line ()
+  ;; `lisp-indent-line' has hardcoded behaviour for lines starting with a
+  ;; single comment character, which includes the ones we've marked.
+  (or (save-excursion
+	(back-to-indentation)
+	(literate-scratch--comment-start-p (point)))
+      (lisp-indent-line)))
+
+(defun literate-scratch--put-comment-start (pos &optional force)
+  "Mark POS's line as a block comment line depending on the char(s) at POS.
+If FORCE is non-nil, instead unconditionally mark POS's line as a block
+comment line.  Moves point to POS if it is not already there."
+  (goto-char pos)
+  ;; We consider only non-self-evaluating forms to compose Lisp paragraphs.
+  ;; It might be useful to be able to prepare forms starting with `\\='(' or
+  ;; `[' in *scratch* with the benefit of Paredit, and then kill them and yank
+  ;; into other buffers.  On the other hand, you might want to start plain
+  ;; text paragraphs with those strings.
+  ;;
+  ;; Treat a backtick on its own as Lisp so that when an immediate following
+  ;; open parenthesis is typed, Paredit inserts a closing parenthesis too.
+  (when (or force (not (looking-at "`$\\|`?(\\|;")))
+    (put-text-property pos (1+ pos) 'syntax-table
+		       (eval-when-compile (string-to-syntax "<")))
+    ;; Mark the newline as not a comment ender, as it usually is for Elisp.
+    ;; Then only the second newline of the two newlines at the end of a text
+    ;; paragraph is a comment ender.  This means that when point is between
+    ;; the two newlines, i.e. at the beginning of an empty line right after
+    ;; the text paragraph, `paredit-in-comment-p' still returns t, and so
+    ;; \\`(' and \\`[' insert only single characters.
+    (put-text-property (pos-eol) (1+ (pos-eol)) 'syntax-table
+		       (eval-when-compile (string-to-syntax "-")))))
+
+(defun literate-scratch--comment-start-p (pos)
+  (equal (get-text-property pos 'syntax-table)
+	 (eval-when-compile (string-to-syntax "<"))))
 
 ;;;###autoload
 (define-derived-mode literate-scratch-mode lisp-interaction-mode
   "Lisp Interaction"
   "Variant `lisp-interaction-mode' designed for the *scratch* buffer.
-
-Paragraphs that don't start with `(' or `;' are treated as block comments.
+Paragraphs that don't start with `(', `\\=`(' or `;' become block comments.
 This makes it easier to interleave paragraphs of plain text with Lisp.
 
-You can enable this mode by customizing the variable `initial-major-mode'
+You can enable this mode by customising the variable `initial-major-mode'
 to `literate-scratch-mode'."
-  (add-hook 'syntax-propertize-extend-region-functions
-	    #'syntax-propertize-multiline t t)
-  (add-hook 'syntax-propertize-extend-region-functions
-	    #'literate-scratch--extend t t)
-  (setq-local syntax-propertize-function #'literate-scratch--propertize))
+  (setq-local syntax-propertize-function #'literate-scratch--propertize
+	      indent-line-function       #'literate-scratch--indent-line))
 
 (provide 'literate-scratch)
 

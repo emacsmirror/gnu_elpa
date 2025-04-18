@@ -101,6 +101,7 @@
     (modify-syntax-entry ?\\ "." st)
     (modify-syntax-entry ?, "." st)
     (modify-syntax-entry ?: "." st)
+    (modify-syntax-entry ?_ "w" st)
     ;; define parentheses to match
     (modify-syntax-entry ?\( "()" st)
     (modify-syntax-entry ?\) ")(" st)
@@ -325,6 +326,7 @@
 
   (defconst a68-keywords-lame
     '("true" "false" "empty"
+      "pr" "PR" "pragmat" "PRAGMAT"
       "long" "short" "ref" "loc" "heap" "struct" "flex" "proc"
       "union" "op" "prio" "mode" "begin" "end" "exit" "par" "if"
       "then" "elif" "else" "fi" "case" "in" "ouse" "out" "esac"
@@ -343,14 +345,15 @@
              word-end)
          ''font-lock-type-face)
    (cons (rx word-start
-             (or "TRUE" "FALSE")
+             (or "true" "false")
              word-end)
          ''font-lock-constant-face)
-   '("\\<\\([A-Z]+[A-Za-z_]*\\>\\)\\(_+\\)?"
-     (1 'font-lock-type-face)
-      (2 'font-lock-warning-face nil t))
-   (cons "\\('\\w*'\\)"
-         ''font-lock-variable-name-face))
+   ;; Tags.
+   (cons "\\<[a-z_]+\\>" ''font-lock-variable-name-face)
+   ;; By convention operators have only upper-letter names.
+   (cons "\\<\\([A-Z]+\\>\\)" ''font-lock-keyword-face)
+   ;; Mode names use ThisCase.
+   (cons "\\<\\([A-Z][A-Za-z]*\\>\\)" ''font-lock-type-face))
   "Highlighting expressions for Algol 68 mode in LAME stropping.")
 
 (defvar a68--smie-grammar-lame

@@ -520,8 +520,7 @@ the jj command to run."
 		       (read-shell-command
                         (format "jj git fetch command: ")
                         (concat vc-jj-program " git fetch")
-                        'vc-jj-pull-history)
-		       " " t)
+                        'vc-jj-pull-history))
                     `(,vc-jj-program "git" "fetch")))
          (jj-program (car command))
          (args (cdr command))
@@ -542,8 +541,7 @@ the command to run, e.g., the semi-standard \"jj git push -c @-\"."
 		       (read-shell-command
                         (format "jj git push command: ")
                         (concat vc-jj-program " git push")
-                        'vc-jj-push-history)
-		       " " t)
+                        'vc-jj-push-history))
                     `(,vc-jj-program "git" "push")))
          (jj-program (car command))
          (args (cdr command))

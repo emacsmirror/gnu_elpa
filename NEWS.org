@@ -1,0 +1,11 @@
+* Recent changes
+
+** [[https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.1...v0.2][0.2]] - 2025-04-18
+
+*** Fixed
+
+- Properly escape filenames containing jj fileset operator characters.
+
+** [[https://codeberg.org/emacs-jj-vc/vc-jj.el/src/tag/v0.1][0.1]] - 2025-03-16
+
+- First released version.

@@ -176,6 +176,9 @@
              (or "TRUE" "FALSE")
              word-end)
          ''font-lock-constant-face)
+   ;; Two or more consecutive underscore characters are always
+   ;; illegal in this stropping regime.
+   (cons "_[_]+" ''font-lock-warning-face)
    '("\\<\\([A-Z]+[A-Z_]*\\>\\)\\(_+\\)?"
      (1 'font-lock-type-face)
       (2 'font-lock-warning-face nil t))
@@ -348,6 +351,9 @@
              (or "true" "false")
              word-end)
          ''font-lock-constant-face)
+   ;; Two or more consecutive underscore characters are always
+   ;; illegal in this stropping regime.
+   (cons "_[_]+" ''font-lock-warning-face)
    ;; Tags.
    (cons "\\<[a-z]\\([a-z]_\\)*\\>" ''font-lock-variable-name-face)
    ;; By convention operators have only upper-letter names.

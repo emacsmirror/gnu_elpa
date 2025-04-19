@@ -349,7 +349,7 @@
              word-end)
          ''font-lock-constant-face)
    ;; Tags.
-   (cons "\\<[a-z_]+\\>" ''font-lock-variable-name-face)
+   (cons "\\<[a-z]\\([a-z]_\\)*\\>" ''font-lock-variable-name-face)
    ;; By convention operators have only upper-letter names.
    (cons "\\<\\([A-Z]+\\>\\)" ''font-lock-keyword-face)
    ;; Mode names use ThisCase.

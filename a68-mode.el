@@ -126,10 +126,10 @@
   (save-excursion
     (goto-char (point-min))
     (if (let ((case-fold-search nil))
-          (and (re-search-forward "PR LAME PR" nil t)
+          (and (re-search-forward "PR GNU PR" nil t)
                (not (a68-within-comment))
                (not (a68-within-string))))
-        'lame
+        'gnu
       'upper)))
 
 ;;;; UPPER stropping
@@ -317,16 +317,16 @@
        (2 "> c")))
      (point) end)))
 
-;;;; LAME stropping.
+;;;; GNU stropping.
 
 (eval-and-compile
   ;; Those vars are used during macroexpansion (and hence compilation).
-  (defconst a68-std-modes-lame
+  (defconst a68-std-modes-gnu
     '("int" "real" "bool" "char" "format" "void"
       "compl" "bits" "bytes" "string" "sema" "file" "channel")
-    "List of Algol 68 standard modes in LAME stropping.")
+    "List of Algol 68 standard modes in GNU stropping.")
 
-  (defconst a68-keywords-lame
+  (defconst a68-keywords-gnu
     '("true" "false" "empty"
       "pr" "PR" "pragmat" "PRAGMAT"
       "andth" "orel"
@@ -335,16 +335,16 @@
       "then" "elif" "else" "fi" "case" "in" "ouse" "out" "esac"
       "nil" "of" "goto" "skip" "for" "from" "by" "to" "while"
       "do" "od")
-    "List of Algol 68 keywords in LAME stropping."))
+    "List of Algol 68 keywords in GNU stropping."))
 
-(defconst a68-font-lock-keywords-lame
+(defconst a68-font-lock-keywords-gnu
   (list
    (cons (rx word-start
-             (eval `(or ,@a68-keywords-lame))
+             (eval `(or ,@a68-keywords-gnu))
              word-end)
          ''font-lock-keyword-face)
    (cons (rx word-start
-             (eval `(or ,@a68-std-modes-lame))
+             (eval `(or ,@a68-std-modes-gnu))
              word-end)
          ''font-lock-type-face)
    (cons (rx word-start
@@ -360,9 +360,9 @@
    (cons "\\<\\([A-Z]+\\>\\)" ''font-lock-keyword-face)
    ;; Mode names use ThisCase.
    (cons "\\<\\([A-Z][A-Za-z]*\\>\\)" ''font-lock-type-face))
-  "Highlighting expressions for Algol 68 mode in LAME stropping.")
+  "Highlighting expressions for Algol 68 mode in GNU stropping.")
 
-(defvar a68--smie-grammar-lame
+(defvar a68--smie-grammar-gnu
   (smie-prec2->grammar
    (smie-bnf->prec2 '((id)
                       (ids (id "-anchor-" id))
@@ -426,7 +426,7 @@
                     '((assoc "=" "/" ":=" ":=:" ":/=:"
                              "+" "-" "*" "/")))))
 
-(defun a68--smie-rules-lame (kind token)
+(defun a68--smie-rules-gnu (kind token)
   (pcase (cons kind token)
     (`(:elem . basic) a68-indent-level)
     ;; (`(,_ . ",") (smie-rule-separator kind))
@@ -455,7 +455,7 @@
           (smie-rule-prev-p "else")
           (smie-rule-parent)))))
 
-(defun a68-beginning-of-defun-lame (&optional count)
+(defun a68-beginning-of-defun-gnu (&optional count)
   "Algol 68 specific `beginning-of-defun-function'."
   (let ((count (or count 1))
         (case-fold-search nil)
@@ -468,7 +468,7 @@
       (setq count (1- count )))
     res))
 
-(defun a68-syntax-propertize-function-lame (start end)
+(defun a68-syntax-propertize-function-gnu (start end)
   (let ((case-fold-search nil))
     (goto-char start)
     (funcall
@@ -502,15 +502,15 @@
   ;; First determine the stropping regime
   (setq-local a68--stropping-regime
               (a68--figure-out-stropping-regime))
-  (if (equal a68--stropping-regime 'lame)
-      ;; LAME stropping.
+  (if (equal a68--stropping-regime 'gnu)
+      ;; GNU stropping.
       (progn
-        (setq-local font-lock-defaults '(a68-font-lock-keywords-lame))
-        (smie-setup a68--smie-grammar-lame #'a68--smie-rules-lame
+        (setq-local font-lock-defaults '(a68-font-lock-keywords-gnu))
+        (smie-setup a68--smie-grammar-gnu #'a68--smie-rules-gnu
                     :forward-token #'a68--smie-forward-token
                     :backward-token #'a68--smie-backward-token)
-        (setq-local beginning-of-defun-function #'a68-beginning-of-defun-lame)
-        (setq-local syntax-propertize-function #'a68-syntax-propertize-function-lame))
+        (setq-local beginning-of-defun-function #'a68-beginning-of-defun-gnu)
+        (setq-local syntax-propertize-function #'a68-syntax-propertize-function-gnu))
     ;; UPPER stropping, the default.
     (setq-local font-lock-defaults '(a68-font-lock-keywords-upper))
     (smie-setup a68--smie-grammar-upper #'a68--smie-rules-upper

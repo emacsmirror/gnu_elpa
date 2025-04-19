@@ -154,8 +154,7 @@
       "PAR" "BEGIN" "END" "GOTO" "GO" "TO" "EXIT"
       "LWB" "UPB" "ELEMS" "NOT" "ABS" "BIN" "REPR" "LENG"
       "SHORTEN" "ODD" "SIGN" "ROUND" "ENTIER" "AND" "OR" "XOR"
-      "THEF" "ANDF" "ANDTH"
-      "ELSF" "ORF" "OREL"
+      "ANDTH" "OREL"
       "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"
       "UP" "DOWN"
       "NIL" "TRUE" "FALSE"
@@ -327,6 +326,7 @@
   (defconst a68-keywords-lame
     '("true" "false" "empty"
       "pr" "PR" "pragmat" "PRAGMAT"
+      "andth" "orel"
       "long" "short" "ref" "loc" "heap" "struct" "flex" "proc"
       "union" "op" "prio" "mode" "begin" "end" "exit" "par" "if"
       "then" "elif" "else" "fi" "case" "in" "ouse" "out" "esac"

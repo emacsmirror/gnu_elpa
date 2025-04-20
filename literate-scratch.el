@@ -5,7 +5,7 @@
 ;; Author: Sean Whitton <spwhitton@spwhitton.name>
 ;; Maintainer: Sean Whitton <spwhitton@spwhitton.name>
 ;; Package-Requires: ((emacs "29.1"))
-;; Version: 2.0
+;; Version: 2.1
 ;; URL: https://git.spwhitton.name/dotfiles/tree/.emacs.d/site-lisp/literate-scratch.el
 ;; Keywords: lisp text
 
@@ -49,6 +49,10 @@
 
 ;;; News:
 
+;; Ver 2.1 2025/04/19 Sean Whitton
+;;     Bug fix: before adding whitespace syntax to the newline character
+;;     following a block comment line, check we're not on the last line of a
+;;     buffer with no final newline character.
 ;; Ver 2.0 2025/04/18 Sean Whitton
 ;;     Rewrite core algorithm to use comment starters not comment fences,
 ;;     and therefore no `syntax-propertize-extend-region-functions' entry.
@@ -128,8 +132,9 @@ comment line.  Moves point to POS if it is not already there."
     ;; the two newlines, i.e. at the beginning of an empty line right after
     ;; the text paragraph, `paredit-in-comment-p' still returns t, and so
     ;; \\`(' and \\`[' insert only single characters.
-    (put-text-property (pos-eol) (1+ (pos-eol)) 'syntax-table
-		       (eval-when-compile (string-to-syntax "-")))))
+    (unless (eq (pos-eol) (point-max))
+     (put-text-property (pos-eol) (1+ (pos-eol)) 'syntax-table
+			(eval-when-compile (string-to-syntax "-"))))))
 
 (defun literate-scratch--comment-start-p (pos)
   (equal (get-text-property pos 'syntax-table)

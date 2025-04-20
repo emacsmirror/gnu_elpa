@@ -359,7 +359,7 @@
    ;; By convention operators have only upper-letter names.
    (cons "\\<\\([A-Z]+\\>\\)" ''font-lock-keyword-face)
    ;; Mode names use ThisCase.
-   (cons "\\<\\([A-Z][A-Za-z]*\\>\\)" ''font-lock-type-face))
+   (cons "\\<\\([A-Z][A-Za-z_]*\\>\\)" ''font-lock-type-face))
   "Highlighting expressions for Algol 68 mode in SUPPER stropping.")
 
 (defvar a68--smie-grammar-supper

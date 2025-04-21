@@ -330,13 +330,13 @@
     "List of Algol 68 standard modes in SUPPER stropping.")
 
   (defconst a68-keywords-supper
-    '("true" "false" "empty"
+    '("true" "false" "empty" "at"
       "pr" "PR" "pragmat" "PRAGMAT"
-      "andth" "orel"
+      "andth" "orel" "is" "isnt"
       "long" "short" "ref" "loc" "heap" "struct" "flex" "proc"
       "union" "op" "prio" "mode" "begin" "end" "exit" "par" "if"
       "then" "elif" "else" "fi" "case" "in" "ouse" "out" "esac"
-      "nil" "of" "goto" "skip" "for" "from" "by" "to" "while"
+      "nil" "of" "go" "goto" "skip" "for" "from" "by" "to" "while"
       "do" "od" "unsafe" "assert")
     "List of Algol 68 keywords in SUPPER stropping."))
 
@@ -513,7 +513,7 @@
     (save-excursion
       (mapcar (lambda (pair)
                 (goto-char (point-min))
-                (while (re-search-forward (car pair) nil t)
+                (while (re-search-forward (concat "\\<" (car pair) "\\>") nil t)
                   (replace-match (cadr pair) t t)))
               replacements))))
 

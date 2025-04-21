@@ -526,8 +526,6 @@
     (setq-local beginning-of-defun-function #'a68-beginning-of-defun-upper)
     (setq-local syntax-propertize-function #'a68-syntax-propertize-function-upper))
   (add-hook 'after-change-functions #'a68--after-change-function nil t)
-;  (add-hook 'syntax-propertize-extend-region-functions
-;            #'a68--syntax-propertize-wholebuffer 'append 'local)
   (add-hook 'syntax-propertize-extend-region-functions
             #'syntax-propertize-multiline 'append 'local)
   (setq-local comment-start a68-comment-style)

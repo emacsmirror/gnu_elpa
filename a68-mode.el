@@ -302,17 +302,23 @@
            (*? anychar)
            (group "#"))
        (1 (when (not (a68-within-string)) (string-to-syntax "<")))
-       (2 (when (not (a68-within-string)) (string-to-syntax ">"))))
+       (2 (when (not (a68-within-string)) (string-to-syntax ">")))
+       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
+                                     'syntax-multiline t))))
       ((rx bow (group "C") "OMMENT" eow
            (*? anychar)
            bow "COMMEN" (group "T") eow)
        (1 (when (not (a68-within-string)) (string-to-syntax "< b")))
-       (2 (when (not (a68-within-string)) (string-to-syntax "> b"))))
+       (2 (when (not (a68-within-string)) (string-to-syntax "> b")))
+       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
+                                     'syntax-multiline t))))
       ((rx bow (group "C") "O" eow
            (*? anychar)
            bow "C" (group "O") eow)
        (1 (when (not (a68-within-string)) (string-to-syntax "< c")))
-       (2 (when (not (a68-within-string)) (string-to-syntax "> c")))))
+       (2 (when (not (a68-within-string)) (string-to-syntax "> c")))
+       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
+                                     'syntax-multiline t)))))
      (point) end)))
 
 ;;;; SUPPER stropping.
@@ -475,24 +481,24 @@
            (*? anychar)
            (group "#"))
        (1 (when (not (a68-within-string)) (string-to-syntax "<")))
-       (2 (when (not (a68-within-string)) (string-to-syntax ">"))))
+       (2 (when (not (a68-within-string)) (string-to-syntax ">")))
+       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
+                                     'syntax-multiline t))))
       ((rx bow (group "c") "omment" eow
            (*? anychar)
            bow "commen" (group "t") eow)
        (1 (when (not (a68-within-string)) (string-to-syntax "< b")))
-       (2 (when (not (a68-within-string)) (string-to-syntax "> b"))))
+       (2 (when (not (a68-within-string)) (string-to-syntax "> b")))
+       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
+                                     'syntax-multiline t))))
       ((rx bow (group "c") "o" eow
            (*? anychar)
            bow "c" (group "o") eow)
        (1 (when (not (a68-within-string)) (string-to-syntax "< c")))
-       (2 (when (not (a68-within-string)) (string-to-syntax "> c")))))
+       (2 (when (not (a68-within-string)) (string-to-syntax "> c")))
+       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
+                                     'syntax-multiline t)))))
      (point) end)))
-
-;;;; Syntax highlighting functions
-
-(defun a68--syntax-propertize-wholebuffer (beg end)
-  "Let `syntax-propertize' pay attention to the syntax-multiline property."
-  (cons (point-min) (point-max)))
 
 ;;;; The major mode.
 
@@ -520,8 +526,10 @@
     (setq-local beginning-of-defun-function #'a68-beginning-of-defun-upper)
     (setq-local syntax-propertize-function #'a68-syntax-propertize-function-upper))
   (add-hook 'after-change-functions #'a68--after-change-function nil t)
+;  (add-hook 'syntax-propertize-extend-region-functions
+;            #'a68--syntax-propertize-wholebuffer 'append 'local)
   (add-hook 'syntax-propertize-extend-region-functions
-            #'a68--syntax-propertize-wholebuffer 'append 'local)
+            #'syntax-propertize-multiline 'append 'local)
   (setq-local comment-start a68-comment-style)
   (setq-local comment-end a68-comment-style))
 

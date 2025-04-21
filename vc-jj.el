@@ -247,50 +247,79 @@ current change is conflicted, divergent, hidden or immutable, also add a
 Status header.  (We do not check for emptiness of the current change
 since the user can see that via the list of files below the headers
 anyway.)"
-  (pcase-let* ((default-directory (file-name-as-directory dir))
-               (`( ,change-id ,change-id-short ,commit-id ,commit-id-short
-                   ,description ,bookmarks ,conflict ,divergent ,hidden ,immutable)
-                (process-lines vc-jj-program "log" "--no-graph" "-r" "@" "-T"
-                               "concat(
-self.change_id().short(), \"\\n\",
+  (cl-destructuring-bind
+      ;; We have some fixed lines for the current changeset, then at
+      ;; the end 5 lines for each parent
+      ( change-id change-id-short commit-id commit-id-short
+        description bookmarks conflict divergent hidden immutable
+        &rest parent-info)
+      (let ((default-directory (file-name-as-directory dir)))
+        (process-lines vc-jj-program "log" "--no-graph" "-r" "@" "-T"
+                       "concat(
+self.change_id().short(8), \"\\n\",
 self.change_id().shortest(), \"\\n\",
-self.commit_id().short(), \"\\n\",
+self.commit_id().short(8), \"\\n\",
 self.commit_id().shortest(), \"\\n\",
 description.first_line(), \"\\n\",
 bookmarks.join(\",\"), \"\\n\",
 self.conflict(), \"\\n\",
 self.divergent(), \"\\n\",
 self.hidden(), \"\\n\",
-self.immutable(), \"\\n\"
-)"))
-               (status (concat
-                        (and (string= conflict "true") "(conflict)")
-                        (and (string= divergent "true") "(divergent)")
-                        (and (string= hidden "true") "(hidden)")
-                        (and (string= immutable "true") "(immutable)")))
-               (change-id-suffix (substring change-id (length change-id-short)))
-               (commit-id-suffix (substring commit-id (length commit-id-short))))
-    (cl-flet ((fmt (key value &optional prefix)
-                (concat
-                 (propertize (format "% -11s: " key) 'face 'vc-dir-header)
-                 ;; there is no header value emphasis face, so we use
-                 ;; vc-dir-status-up-to-date for the prefix.
-                 (and prefix (propertize prefix 'face 'vc-dir-status-up-to-date))
-                 (propertize value 'face 'vc-dir-header-value))))
-      (string-join (seq-remove
-                    #'null
-                    (list
-                     (fmt "Description" (if (string= description "") "(no description set)" description))
-                     (fmt "Change ID" change-id-suffix change-id-short)
-                     (fmt "Commit" commit-id-suffix commit-id-short)
-                     (unless (string= bookmarks "") (fmt "Bookmarks" bookmarks))
-                     (unless (string= status "")
-                       ;; open-code this line instead of adding a
-                       ;; `face' parameter to `fmt'
-                       (concat
-                        (propertize (format "% -11s: " "Status") 'face 'vc-dir-header)
-                        (propertize status 'face 'vc-dir-status-warning)))))
-                   "\n"))))
+self.immutable(), \"\\n\",
+parents.map(|c| concat(
+  c.change_id().short(8), \"\\n\",
+  c.change_id().shortest(), \"\\n\",
+  c.commit_id().short(8), \"\\n\",
+  c.commit_id().shortest(), \"\\n\",
+  c.description().first_line(), \"\\n\"
+)))"))
+    (cl-labels
+        ((str (string &optional face prefix)
+           ;; format a string
+           (cond ((not face) (propertize string 'face 'vc-dir-header-value))
+                 ((not prefix) (propertize string 'face face))
+                 (t (concat (propertize prefix 'face 'vc-dir-header-value)
+                            (propertize string 'face face)))))
+         (info (key description change-id change-id-prefix commit-id commit-id-prefix)
+           ;; format a changeset info line
+           (let ((change-id-suffix (substring change-id (length change-id-short)))
+                 (commit-id-suffix (substring commit-id (length commit-id-short))))
+             (concat
+              (str (format "% -11s: " key) 'vc-dir-header)
+              ;; There's no vc-dir-header-value-emphasis or similar
+              ;; face, so we re-use vc-dir-status-up-to-date to render
+              ;; the unique prefix
+              " "
+              (str change-id-suffix 'vc-dir-status-ignored change-id-short)
+              " "
+              (str commit-id-suffix 'vc-dir-status-ignored commit-id-short)
+              " "
+              (if (string-empty-p description)
+                  (str "(no description set)")
+                (str description))))))
+      (let ((status (concat
+                     (and (string= conflict "true") "(conflict)")
+                     (and (string= divergent "true") "(divergent)")
+                     (and (string= hidden "true") "(hidden)")
+                     (and (string= immutable "true") "(immutable)")))
+            (parent-keys (cl-loop
+                          for (change-id change-id-short commit-id commit-id-short description)
+                          in (seq-partition parent-info 5)
+                          collect (info "Parent" description
+                                        change-id change-id-short
+                                        commit-id commit-id-short))))
+        (string-join
+         (seq-remove
+          ;; Remove NIL entries because we get empty lines otherwise
+          #'null
+          (cl-list*
+           (info "Changeset" description change-id change-id-short commit-id commit-id-short)
+           (unless (string= bookmarks "")
+             (concat (str "Bookmarks  : " 'vc-dir-header) (str bookmarks)))
+           (unless (string= status "")
+             (concat (str "Status     : " 'vc-dir-header) (str status 'vc-dir-status-warning)))
+           parent-keys))
+         "\n")))))
 
 (defun vc-jj-working-revision (file)
   "Return the current change id of the repository containing FILE."

@@ -96,8 +96,6 @@
 
 (defvar a68-mode-syntax-table
   (let ((st (make-syntax-table)))
-    (modify-syntax-entry ?# "<" st)
-    (modify-syntax-entry ?# ">" st)
     (modify-syntax-entry ?\\ "." st)
     (modify-syntax-entry ?, "." st)
     (modify-syntax-entry ?: "." st)
@@ -116,7 +114,7 @@
 (defun a68-comment-hash ()
   "Smart insert a # ... # style comment."
   (interactive)
-  (if (a68-within-comment)
+  (if (a68-within-string-or-comment)
       (insert "#")
     (save-excursion
       (insert "#   #"))
@@ -301,20 +299,20 @@
       ;; (eventual) shebang #! to be considered the start of
       ;; the comment.
       ((rx (group "#" (not "!"))
-           (group (*? anychar))
+           (*? anychar)
            (group "#"))
-       (1 "<")
-       (3 ">"))
+       (1 (when (not (a68-within-string)) (string-to-syntax "<")))
+       (2 (when (not (a68-within-string)) (string-to-syntax ">"))))
       ((rx bow (group "C") "OMMENT" eow
            (*? anychar)
            bow "COMMEN" (group "T") eow)
-       (1 "< b")
-       (2 "> b"))
+       (1 (when (not (a68-within-string)) (string-to-syntax "< b")))
+       (2 (when (not (a68-within-string)) (string-to-syntax "> b"))))
       ((rx bow (group "C") "O" eow
            (*? anychar)
            bow "C" (group "O") eow)
-       (1 "< c")
-       (2 "> c")))
+       (1 (when (not (a68-within-string)) (string-to-syntax "< c")))
+       (2 (when (not (a68-within-string)) (string-to-syntax "> c")))))
      (point) end)))
 
 ;;;; SUPPER stropping.
@@ -473,25 +471,28 @@
     (goto-char start)
     (funcall
      (syntax-propertize-rules
-      ;; a comment is # ... #, but I don't want the
-      ;; (eventual) shebang #! to be considered the start of
-      ;; the comment.
-      ((rx (group "#" (not "!"))
-           (group (*? anychar))
+      ((rx (group "#")
+           (*? anychar)
            (group "#"))
-       (1 "<")
-       (3 ">"))
+       (1 (when (not (a68-within-string)) (string-to-syntax "<")))
+       (2 (when (not (a68-within-string)) (string-to-syntax ">"))))
       ((rx bow (group "c") "omment" eow
            (*? anychar)
            bow "commen" (group "t") eow)
-       (1 "< b")
-       (2 "> b"))
+       (1 (when (not (a68-within-string)) (string-to-syntax "< b")))
+       (2 (when (not (a68-within-string)) (string-to-syntax "> b"))))
       ((rx bow (group "c") "o" eow
            (*? anychar)
            bow "c" (group "o") eow)
-       (1 "< c")
-       (2 "> c")))
+       (1 (when (not (a68-within-string)) (string-to-syntax "< c")))
+       (2 (when (not (a68-within-string)) (string-to-syntax "> c")))))
      (point) end)))
+
+;;;; Syntax highlighting functions
+
+(defun a68--syntax-propertize-wholebuffer (beg end)
+  "Let `syntax-propertize' pay attention to the syntax-multiline property."
+  (cons (point-min) (point-max)))
 
 ;;;; The major mode.
 
@@ -519,6 +520,8 @@
     (setq-local beginning-of-defun-function #'a68-beginning-of-defun-upper)
     (setq-local syntax-propertize-function #'a68-syntax-propertize-function-upper))
   (add-hook 'after-change-functions #'a68--after-change-function nil t)
+  (add-hook 'syntax-propertize-extend-region-functions
+            #'a68--syntax-propertize-wholebuffer 'append 'local)
   (setq-local comment-start a68-comment-style)
   (setq-local comment-end a68-comment-style))
 

@@ -289,8 +289,7 @@
  (ebdb-gnorb		:url nil)
  (ebdb-i18n-chn		:url nil)
  (ediprolog		:url "https://github.com/triska/ediprolog"
-  :readme "README.md"
-  :doc-files ("factorial.png"))
+  :readme "README.md")
  (eev			:url "https://github.com/edrx/eev.git"
   :branch "UTF-8")
  (ef-themes		:url "https://github.com/protesilaos/ef-themes"
@@ -421,7 +420,6 @@
  (hyperbole           	:url "https://git.savannah.gnu.org/git/hyperbole.git"
   :make ("kotl/kotl-autoloads.el")
   :doc "man/hyperbole.texi"
-  :doc-files ("man/im/")
   :news "HY-NEWS")
  (idlwave		:url "https://github.com/jdtsmith/idlwave"
   :doc "idlwave.texi"
@@ -598,8 +596,7 @@
  (org-gnosis		:url "https://git.thanosapollo.org/org-gnosis"
   :doc "doc/org-gnosis.org")
  (org-jami-bot		:url "https://gitlab.com/hperrey/org-jami-bot"
-  :ignored-files ("LICENSE")
-  :doc-files ("images/"))
+  :ignored-files ("LICENSE"))
  (org-mathsheet		:url "https://gitlab.com/ianxm/org-mathsheet"
   :doc "mathsheet.org")
  ;; FIXME: Waiting for copyright paperwork from Brandon Webster.

@@ -124,7 +124,7 @@
   (save-excursion
     (goto-char (point-min))
     (if (let ((case-fold-search nil))
-          (and (re-search-forward "PR UPPER PR" nil t)
+          (and (re-search-forward "\\<pr UPPER pr\\>" nil t)
                (not (a68-within-comment))
                (not (a68-within-string))))
         'upper

@@ -180,6 +180,7 @@
    ;; String breaks.  Apostrophe is not (currently) a worthy character
    ;; out of strings, so for now we can just match it anywhere.
    '("\\('[nrft']\\)\\|\\('(.*?)\\)" 0 ''a68-string-break-face prepend)
+   '("'[^nrft'(]" 0 ''font-lock-warning-face)
    ;; Two or more consecutive underscore characters are always
    ;; illegal in this stropping regime.
    (cons "_[_]+" ''font-lock-warning-face)
@@ -364,6 +365,7 @@
    ;; String breaks.  Apostrophe is not (currently) a worthy character
    ;; out of strings, so for now we can just match it anywhere.
    '("\\('[nrft']\\)\\|\\('(.*?)\\)" 0 ''a68-string-break-face prepend)
+   '("'[^nrft'(]" 0 ''font-lock-warning-face prepend)
    ;; Two or more consecutive underscore characters are always
    ;; illegal in this stropping regime.
    (cons "_[_]+" ''font-lock-warning-face)

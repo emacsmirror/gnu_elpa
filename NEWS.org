@@ -1,5 +1,15 @@
 * Recent changes
 
+** Unreleased
+
+*** Changed
+
+- Display more information in =vc-dir= headers:
+  - Display change id, commit id, description of the current changeset
+    in one line
+  - Display information about the current changeset's parent(s) in the
+    same format
+
 ** [[https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.1...v0.2][0.2]] - 2025-04-18
 
 *** Fixed

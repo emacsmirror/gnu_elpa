@@ -318,16 +318,18 @@ instead of that of the file."
           (list-of-blocks nil)
           (pangram (show-font--get-pangram))
           (name (or family (show-font--get-attribute-from-file "fullname")))
-          (family (or family (show-font--get-attribute-from-file "family"))))
+          (family (or family (show-font--get-attribute-from-file "family")))
+          (propertize-sample-p (stringp show-font-character-sample)))
       (dolist (face faces)
         (push (propertize pangram 'face (list face :family family)) list-of-lines)
         (push (propertize pangram 'face (list face :family family :slant 'italic)) list-of-lines)
         (push (propertize pangram 'face (list face :family family :weight 'bold)) list-of-lines)
         (push (propertize pangram 'face (list face :family family :slant 'italic :weight 'bold)) list-of-lines)
-        (push (propertize show-font-character-sample 'face (list face :family family)) list-of-blocks)
-        (push (propertize show-font-character-sample 'face (list face :family family :slant 'italic)) list-of-blocks)
-        (push (propertize show-font-character-sample 'face (list face :family family :weight 'bold)) list-of-blocks)
-        (push (propertize show-font-character-sample 'face (list face :family family :slant 'italic :weight 'bold)) list-of-blocks))
+        (when propertize-sample-p
+          (push (propertize show-font-character-sample 'face (list face :family family)) list-of-blocks)
+          (push (propertize show-font-character-sample 'face (list face :family family :slant 'italic)) list-of-blocks)
+          (push (propertize show-font-character-sample 'face (list face :family family :weight 'bold)) list-of-blocks)
+          (push (propertize show-font-character-sample 'face (list face :family family :slant 'italic :weight 'bold)) list-of-blocks)))
       (concat
        (propertize name 'face (list 'show-font-title :family family))
        "\n"

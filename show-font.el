@@ -400,7 +400,8 @@ Optional REGEXP has the same meaning as in the aforementioned function."
   (let ((def (car show-font-select-preview-history)))
     (completing-read
      (format-prompt "Select font to preview" def)
-     (show-font-get-installed-font-families regexp))))
+     (show-font-get-installed-font-families regexp)
+     nil t nil 'show-font-select-preview-history)))
 
 ;;;###autoload
 (defun show-font-select-preview (family)

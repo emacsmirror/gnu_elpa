@@ -52,6 +52,9 @@
                  (const "COMMENT"))
   :safe #'consp)
 
+(defface a68-string-break-face '((t :inherit font-lock-string-face))
+  "Face for printing Algol 64 string breaks.")
+
 ;;;; Stuff common to all stroppings
 
 (defvar a68-mode-map
@@ -174,6 +177,9 @@
              (or "TRUE" "FALSE")
              word-end)
          ''font-lock-constant-face)
+   ;; String breaks.  Apostrophe is not (currently) a worthy character
+   ;; out of strings, so for now we can just match it anywhere.
+   '("\\('[nrft']\\)\\|\\('(.*?)\\)" 0 ''a68-string-break-face prepend)
    ;; Two or more consecutive underscore characters are always
    ;; illegal in this stropping regime.
    (cons "_[_]+" ''font-lock-warning-face)
@@ -355,6 +361,9 @@
              (or "true" "false")
              word-end)
          ''font-lock-constant-face)
+   ;; String breaks.  Apostrophe is not (currently) a worthy character
+   ;; out of strings, so for now we can just match it anywhere.
+   '("\\('[nrft']\\)\\|\\('(.*?)\\)" 0 ''a68-string-break-face prepend)
    ;; Two or more consecutive underscore characters are always
    ;; illegal in this stropping regime.
    (cons "_[_]+" ''font-lock-warning-face)

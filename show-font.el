@@ -189,9 +189,12 @@ action alist."
 
 ;;;; Helper functions
 
-(defconst show-font-latin-alphabet
-  (eval-when-compile (mapcar #'string (number-sequence ?a ?z)))
-  "The latin alphabet as a list of strings.")
+;; NOTE 2025-04-24: We do not need to check for capital letters.  A
+;; font that does not support those is a weird case that is not our
+;; problem.
+(defconst show-font-latin-characters
+  (number-sequence ?a ?z)
+  "The Latin lower-case characters.")
 
 (defun show-font-pangram-p (string &optional characters)
   "Return non-nil if STRING is a pangram.
@@ -201,7 +204,7 @@ that all of them occur at least once in STRING.
 If there are characters missing from STRING, print them in a message and
 return nil."
   (let ((missing-characters nil))
-    (dolist (character (or characters show-font-latin-alphabet))
+    (dolist (character (or characters (mapcar #'string show-font-latin-characters)))
       (unless (string-match-p character string)
         (push character missing-characters)))
     (if (not missing-characters)

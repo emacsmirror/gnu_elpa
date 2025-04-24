@@ -472,14 +472,18 @@ FAMILY is a string that satisfies `show-font-installed-p'."
   "Return a list of propertized family strings for `show-font-list'.
 Optional REGEXP has the meaning documented in the function
 `show-font-get-installed-font-families'."
-  (mapcar
-   (lambda (family)
-     (list
-      family
-      (vector
-       (propertize family 'face (list 'show-font-title-in-listing :family family))
-       (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family)))))
-   (show-font-get-installed-font-families regexp)))
+  (if-let* ((families (show-font-get-installed-font-families regexp)))
+      (mapcar
+       (lambda (family)
+         (list
+          family
+          (vector
+           (propertize family 'face (list 'show-font-title-in-listing :family family))
+           (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family)))))
+       families)
+    (if regexp
+        (error "No font families match regexp `%s'" regexp)
+      (error "No font families found"))))
 
 (defvar show-font-tabulated-current-regexp nil
   "Regexp for `show-font-get-installed-font-families'.

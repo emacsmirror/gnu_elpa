@@ -299,6 +299,34 @@
                                      'syntax-multiline t)))))
      (point) end)))
 
+;;;; Functions to move up and down a procedure.
+
+(defun a68-beginning-of-defun-upper (&optional count)
+  "Algol 68 specific `beginning-of-defun-function' for UPPER stropping."
+  (let ((count (or count 1))
+        (case-fold-search nil)
+        res)
+    (while (> count 0)
+      (goto-char (save-excursion
+                   (while (and (re-search-backward (rx bow (or "PROC" "OP") eow) nil t)
+                               (a68-within-string-or-comment)))
+                   (setq res (point))))
+      (setq count (1- count )))
+    res))
+
+(defun a68-beginning-of-defun-supper (&optional count)
+  "Algol 68 specific `beginning-of-defun-function' for SUPPER stropping."
+  (let ((count (or count 1))
+        (case-fold-search nil)
+        res)
+    (while (> count 0)
+      (goto-char (save-excursion
+                   (while (and (re-search-backward (rx bow (or "proc" "op") eow) nil t)
+                               (a68-within-string-or-comment)))
+                   (setq res (point))))
+      (setq count (1- count )))
+    res))
+
 ;;;; UPPER stropping
 
 (defvar a68--smie-grammar-upper
@@ -394,18 +422,6 @@
           (smie-rule-prev-p "ELSE")
           (smie-rule-parent)))))
 
-(defun a68-beginning-of-defun-upper (&optional count)
-  "Algol 68 specific `beginning-of-defun-function'."
-  (let ((count (or count 1))
-        (case-fold-search nil)
-        res)
-    (while (> count 0)
-      (goto-char (save-excursion
-                   (while (and (re-search-backward (rx bow (or "PROC" "OP") eow) nil t)
-                               (a68-within-string-or-comment)))
-                   (setq res (point))))
-      (setq count (1- count )))
-    res))
 
 ;;;; SUPPER stropping.
 
@@ -501,19 +517,6 @@
      (and (not (smie-rule-bolp))
           (smie-rule-prev-p "else")
           (smie-rule-parent)))))
-
-(defun a68-beginning-of-defun-supper (&optional count)
-  "Algol 68 specific `beginning-of-defun-function'."
-  (let ((count (or count 1))
-        (case-fold-search nil)
-        res)
-    (while (> count 0)
-      (goto-char (save-excursion
-                   (while (and (re-search-backward (rx bow (or "proc" "op") eow) nil t)
-                               (a68-within-string-or-comment)))
-                   (setq res (point))))
-      (setq count (1- count )))
-    res))
 
 ;;;; Stropping utilities and commands.
 

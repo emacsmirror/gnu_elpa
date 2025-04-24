@@ -95,7 +95,9 @@ character set that is intended for use in full buffer previews (i.e.
 not in the list of fonts). It can be set to any string. The default
 value is a set of alphanumeric characters that are commonly used in
 programming: a good monospaced font should render all of them
-unambiguously.
+unambiguously. This text is shown in the buffer of the command
+~show-font-select-preview~.
+
 
 Finally, the following faces control the appearance of various
 elements.

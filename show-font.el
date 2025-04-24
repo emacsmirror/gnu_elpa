@@ -79,7 +79,9 @@ abcdefghijklmnopqrstuvwxyz
 !ij c¢ 5$Ss 7Z2z 9gqp nmMNNMW uvvwWuuw
 x×X .,·°;:¡!¿?`'‘’   ÄAÃÀ TODO
 "
-  "Character sample to showcase font qualities."
+  "Character sample to showcase font qualities.
+This is displayed in the buffer produced by the command
+`show-font-select-preview'."
   :package-version '(show-font . "0.1.0")
   :type 'string
   :group 'show-font)

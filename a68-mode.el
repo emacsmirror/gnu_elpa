@@ -133,6 +133,55 @@
         'upper
       'supper)))
 
+;;;; Definitions of keywords and modes.
+
+(eval-and-compile
+  ;; Those vars are used during macroexpansion (and hence compilation).
+
+  ;; UPPER stropping.
+  (defconst a68-std-modes-upper
+    '("SHORT" "LONG" "INT" "REAL" "BITS" "BYTES"
+      "COMPL" "STRING" "REF" "FLEX" "VOID")
+    "List of Algol 68 standard modes and shortety in UPPER stropping.")
+
+  (defconst a68-keywords-upper
+    '("DECS" "PROGRAM" "CONTEXT" "USE" "KEEP"
+      "ALIEN" "RE" "IM"
+      "MODE" "OP" "PRIO" "PROC"
+      "OF" "AT" "IS" "ISNT" "EMPTY" "SKIP"
+      "PR" "PRAGMAT" "STRUCT" "UNION"
+      "CASE" "IN" "OUSE" "OUT" "ESAC"
+      "FOR" "FORALL" "FROM" "TO" "BY" "WHILE" "DO" "OD"
+      "EQ" "NE" "LT" "GT" "LE" "GE"
+      "IF" "THEN" "ELIF" "THEN" "ELSE" "FI"
+      "PAR" "BEGIN" "END" "GOTO" "GO" "TO" "EXIT"
+      "LWB" "UPB" "ELEMS" "NOT" "ABS" "BIN" "REPR" "LENG"
+      "SHORTEN" "ODD" "SIGN" "ROUND" "ENTIER" "AND" "OR" "XOR"
+      "ANDTH" "OREL"
+      "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"
+      "UP" "DOWN"
+      "NIL" "TRUE" "FALSE"
+      "MODULE" "DEF" "FED" "POSTLUDE" "ACCESS" "PUB"
+      "UNSAFE" "ASSERT")
+    "List of Algol 68 keywords in UPPER stropping.")
+
+  ;; SUPPER stropping.
+  (defconst a68-std-modes-supper
+    '("int" "real" "bool" "char" "format" "void"
+      "compl" "bits" "bytes" "string" "sema" "file" "channel")
+    "List of Algol 68 standard modes in SUPPER stropping.")
+
+  (defconst a68-keywords-supper
+    '("true" "false" "empty" "at"
+      "pr" "PR" "pragmat" "PRAGMAT"
+      "andth" "orel" "is" "isnt"
+      "long" "short" "ref" "loc" "heap" "struct" "flex" "proc"
+      "union" "op" "prio" "mode" "begin" "end" "exit" "par" "if"
+      "then" "elif" "else" "fi" "case" "in" "ouse" "out" "esac"
+      "nil" "of" "go" "goto" "skip" "for" "from" "by" "to" "while"
+      "do" "od" "unsafe" "assert")
+    "List of Algol 68 keywords in SUPPER stropping."))
+
 ;;;; Font-lock keywords.
 
 (defconst a68-font-lock-keywords-common
@@ -193,34 +242,6 @@
    "Highlighting expressions for Algol 68 mode in SUPPER stropping.")
 
 ;;;; UPPER stropping
-
-(eval-and-compile
-  ;; Those vars are used during macroexpansion (and hence compilation).
-  (defconst a68-std-modes-upper
-    '("SHORT" "LONG" "INT" "REAL" "BITS" "BYTES"
-      "COMPL" "STRING" "REF" "FLEX" "VOID")
-    "List of Algol 68 standard modes and shortety in UPPER stropping.")
-
-  (defconst a68-keywords-upper
-    '("DECS" "PROGRAM" "CONTEXT" "USE" "KEEP"
-      "ALIEN" "RE" "IM"
-      "MODE" "OP" "PRIO" "PROC"
-      "OF" "AT" "IS" "ISNT" "EMPTY" "SKIP"
-      "PR" "PRAGMAT" "STRUCT" "UNION"
-      "CASE" "IN" "OUSE" "OUT" "ESAC"
-      "FOR" "FORALL" "FROM" "TO" "BY" "WHILE" "DO" "OD"
-      "EQ" "NE" "LT" "GT" "LE" "GE"
-      "IF" "THEN" "ELIF" "THEN" "ELSE" "FI"
-      "PAR" "BEGIN" "END" "GOTO" "GO" "TO" "EXIT"
-      "LWB" "UPB" "ELEMS" "NOT" "ABS" "BIN" "REPR" "LENG"
-      "SHORTEN" "ODD" "SIGN" "ROUND" "ENTIER" "AND" "OR" "XOR"
-      "ANDTH" "OREL"
-      "DIV" "OVER" "MOD" "ELEM" "SHL" "SHR" "OVERAB" "DIVAB" "MODAB"
-      "UP" "DOWN"
-      "NIL" "TRUE" "FALSE"
-      "MODULE" "DEF" "FED" "POSTLUDE" "ACCESS" "PUB"
-      "UNSAFE" "ASSERT")
-    "List of Algol 68 keywords in UPPER stropping."))
 
 (defvar a68--smie-grammar-upper
   (smie-prec2->grammar
@@ -360,24 +381,6 @@
      (point) end)))
 
 ;;;; SUPPER stropping.
-
-(eval-and-compile
-  ;; Those vars are used during macroexpansion (and hence compilation).
-  (defconst a68-std-modes-supper
-    '("int" "real" "bool" "char" "format" "void"
-      "compl" "bits" "bytes" "string" "sema" "file" "channel")
-    "List of Algol 68 standard modes in SUPPER stropping.")
-
-  (defconst a68-keywords-supper
-    '("true" "false" "empty" "at"
-      "pr" "PR" "pragmat" "PRAGMAT"
-      "andth" "orel" "is" "isnt"
-      "long" "short" "ref" "loc" "heap" "struct" "flex" "proc"
-      "union" "op" "prio" "mode" "begin" "end" "exit" "par" "if"
-      "then" "elif" "else" "fi" "case" "in" "ouse" "out" "esac"
-      "nil" "of" "go" "goto" "skip" "for" "from" "by" "to" "while"
-      "do" "od" "unsafe" "assert")
-    "List of Algol 68 keywords in SUPPER stropping."))
 
 (defvar a68--smie-grammar-supper
   (smie-prec2->grammar

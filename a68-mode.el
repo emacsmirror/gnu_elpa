@@ -133,6 +133,65 @@
         'upper
       'supper)))
 
+;;;; Font-lock keywords.
+
+(defconst a68-font-lock-keywords-common
+  (list
+   ;; String breaks.  Apostrophe is not (currently) a worthy character
+   ;; out of strings, so for now we can just match it anywhere.
+   '("\\('[nrft']\\)\\|\\('(.*?)\\)" 0 ''a68-string-break-face prepend)
+   '("\\(''\\|[^']\\)\\('[^nrft'(]\\)" 2 ''font-lock-warning-face prepend)
+   ;; Two or more consecutive underscore characters are always
+   ;; illegal in this stropping regime.
+   (cons "_[_]+" ''font-lock-warning-face))
+  "Font-lock keywords expressions common to all stropping regimes. ")
+
+(defconst a68-font-lock-keywords-upper
+  (append
+   a68-font-lock-keywords-common
+   (list (cons (rx word-start
+                   (eval `(or ,@a68-keywords-upper))
+                   word-end)
+               ''font-lock-keyword-face)
+         (cons (rx word-start
+                   (eval `(or ,@a68-std-modes-upper))
+                   word-end)
+               ''font-lock-type-face)
+         (cons (rx word-start
+                   (or "TRUE" "FALSE")
+                   word-end)
+               ''font-lock-constant-face)
+         '("\\<\\([A-Z]+[A-Z_]*\\>\\)\\(_+\\)?"
+           (1 'font-lock-type-face)
+           (2 'font-lock-warning-face nil t))
+         (cons "\\('\\w*'\\)"
+               ''font-lock-variable-name-face)))
+   "Highlighting expressions for Algol 68 mode in UPPER stropping.")
+
+(defconst a68-font-lock-keywords-supper
+  (append
+   a68-font-lock-keywords-common
+   (list
+    (cons (rx word-start
+              (eval `(or ,@a68-keywords-supper))
+              word-end)
+          ''font-lock-keyword-face)
+    (cons (rx word-start
+              (eval `(or ,@a68-std-modes-supper))
+              word-end)
+          ''font-lock-type-face)
+    (cons (rx word-start
+              (or "true" "false")
+              word-end)
+          ''font-lock-constant-face)
+    ;; Tags.
+    (cons "\\<[a-z]\\([a-z]_\\)*\\>" ''font-lock-variable-name-face)
+    ;; By convention operators have only upper-letter names.
+    (cons "\\<\\([A-Z]+\\>\\)" ''font-lock-keyword-face)
+    ;; Mode names use ThisCase.
+    (cons "\\<\\([A-Z][A-Za-z_]*\\>\\)" ''font-lock-type-face)))
+   "Highlighting expressions for Algol 68 mode in SUPPER stropping.")
+
 ;;;; UPPER stropping
 
 (eval-and-compile
@@ -162,34 +221,6 @@
       "MODULE" "DEF" "FED" "POSTLUDE" "ACCESS" "PUB"
       "UNSAFE" "ASSERT")
     "List of Algol 68 keywords in UPPER stropping."))
-
-(defconst a68-font-lock-keywords-upper
-  (list
-   (cons (rx word-start
-             (eval `(or ,@a68-keywords-upper))
-             word-end)
-         ''font-lock-keyword-face)
-   (cons (rx word-start
-             (eval `(or ,@a68-std-modes-upper))
-             word-end)
-         ''font-lock-type-face)
-   (cons (rx word-start
-             (or "TRUE" "FALSE")
-             word-end)
-         ''font-lock-constant-face)
-   ;; String breaks.  Apostrophe is not (currently) a worthy character
-   ;; out of strings, so for now we can just match it anywhere.
-   '("[^']\\('[^nrft'(]\\)" 1 ''font-lock-warning-face)
-   '("\\(''\\|[^']\\)\\('[^nrft'(]\\)" 2 ''font-lock-warning-face prepend)
-   ;; Two or more consecutive underscore characters are always
-   ;; illegal in this stropping regime.
-   (cons "_[_]+" ''font-lock-warning-face)
-   '("\\<\\([A-Z]+[A-Z_]*\\>\\)\\(_+\\)?"
-     (1 'font-lock-type-face)
-      (2 'font-lock-warning-face nil t))
-   (cons "\\('\\w*'\\)"
-         ''font-lock-variable-name-face))
-  "Highlighting expressions for Algol 68 mode in UPPER stropping.")
 
 (defvar a68--smie-grammar-upper
   (smie-prec2->grammar
@@ -347,35 +378,6 @@
       "nil" "of" "go" "goto" "skip" "for" "from" "by" "to" "while"
       "do" "od" "unsafe" "assert")
     "List of Algol 68 keywords in SUPPER stropping."))
-
-(defconst a68-font-lock-keywords-supper
-  (list
-   (cons (rx word-start
-             (eval `(or ,@a68-keywords-supper))
-             word-end)
-         ''font-lock-keyword-face)
-   (cons (rx word-start
-             (eval `(or ,@a68-std-modes-supper))
-             word-end)
-         ''font-lock-type-face)
-   (cons (rx word-start
-             (or "true" "false")
-             word-end)
-         ''font-lock-constant-face)
-   ;; String breaks.  Apostrophe is not (currently) a worthy character
-   ;; out of strings, so for now we can just match it anywhere.
-   '("\\('[nrft']\\)\\|\\('(.*?)\\)" 0 ''a68-string-break-face prepend)
-   '("\\(''\\|[^']\\)\\('[^nrft'(]\\)" 2 ''font-lock-warning-face prepend)
-   ;; Two or more consecutive underscore characters are always
-   ;; illegal in this stropping regime.
-   (cons "_[_]+" ''font-lock-warning-face)
-   ;; Tags.
-   (cons "\\<[a-z]\\([a-z]_\\)*\\>" ''font-lock-variable-name-face)
-   ;; By convention operators have only upper-letter names.
-   (cons "\\<\\([A-Z]+\\>\\)" ''font-lock-keyword-face)
-   ;; Mode names use ThisCase.
-   (cons "\\<\\([A-Z][A-Za-z_]*\\>\\)" ''font-lock-type-face))
-  "Highlighting expressions for Algol 68 mode in SUPPER stropping.")
 
 (defvar a68--smie-grammar-supper
   (smie-prec2->grammar

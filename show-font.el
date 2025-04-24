@@ -77,7 +77,7 @@ abcdefghijklmnopqrstuvwxyz
 
 ()[]{}<>«»‹› 6bB8&0ODdoa 1tiIlL|\/
 !ij c¢ 5$Ss 7Z2z 9gqp nmMNNMW uvvwWuuw
-x×X .,·°;:¡!¿?`'‘’   ÄAÃÀ TODO
+x×X Ee€£Ll .,·°;:¡!¿?`'‘’   ÄAÃÀ TODO
 "
   "Character sample to showcase font qualities.
 This is displayed in the buffer produced by the command

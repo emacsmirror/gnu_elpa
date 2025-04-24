@@ -327,7 +327,7 @@
       (setq count (1- count )))
     res))
 
-;;;; UPPER stropping
+;;;; SMIE grammar
 
 (defvar a68--smie-grammar-upper
   (smie-prec2->grammar
@@ -393,38 +393,6 @@
                     '((assoc "=" "/" ":=" ":=:" ":/=:"
                              "+" "-" "*" "/")))))
 
-(defun a68--smie-rules-upper (kind token)
-  (pcase (cons kind token)
-    (`(:elem . basic) a68-indent-level)
-    ;; (`(,_ . ",") (smie-rule-separator kind))
-    (`(,_ . ",") (smie-rule-separator kind))
-    (`(,_ . ";") (when (smie-rule-parent-p)
-                   (smie-rule-parent)))
-    (`(:after . ":=") a68-indent-level)
-    (`(:after . "=") a68-indent-level)
-    (`(:before . "BEGIN")
-     (when (or (smie-rule-hanging-p)
-               (or
-                (and (or (smie-rule-parent-p "PROC")
-                         (smie-rule-parent-p "OP"))
-                     (smie-rule-prev-p ":"))
-                (smie-rule-parent-p "PROGRAM")))
-       (smie-rule-parent)))
-    (`(:before . "THEN")
-     (when (or (smie-rule-hanging-p)
-               (smie-rule-parent-p "IF"))
-       (smie-rule-parent)))
-    (`(:before . "(")
-     (when (smie-rule-hanging-p)
-       (smie-rule-parent)))
-    (`(:before . "IF")
-     (and (not (smie-rule-bolp))
-          (smie-rule-prev-p "ELSE")
-          (smie-rule-parent)))))
-
-
-;;;; SUPPER stropping.
-
 (defvar a68--smie-grammar-supper
   (smie-prec2->grammar
    (smie-bnf->prec2 '((id)
@@ -488,6 +456,37 @@
                       (assoc ","))
                     '((assoc "=" "/" ":=" ":=:" ":/=:"
                              "+" "-" "*" "/")))))
+
+;;;; SMIE indentation rules.
+
+(defun a68--smie-rules-upper (kind token)
+  (pcase (cons kind token)
+    (`(:elem . basic) a68-indent-level)
+    ;; (`(,_ . ",") (smie-rule-separator kind))
+    (`(,_ . ",") (smie-rule-separator kind))
+    (`(,_ . ";") (when (smie-rule-parent-p)
+                   (smie-rule-parent)))
+    (`(:after . ":=") a68-indent-level)
+    (`(:after . "=") a68-indent-level)
+    (`(:before . "BEGIN")
+     (when (or (smie-rule-hanging-p)
+               (or
+                (and (or (smie-rule-parent-p "PROC")
+                         (smie-rule-parent-p "OP"))
+                     (smie-rule-prev-p ":"))
+                (smie-rule-parent-p "PROGRAM")))
+       (smie-rule-parent)))
+    (`(:before . "THEN")
+     (when (or (smie-rule-hanging-p)
+               (smie-rule-parent-p "IF"))
+       (smie-rule-parent)))
+    (`(:before . "(")
+     (when (smie-rule-hanging-p)
+       (smie-rule-parent)))
+    (`(:before . "IF")
+     (and (not (smie-rule-bolp))
+          (smie-rule-prev-p "ELSE")
+          (smie-rule-parent)))))
 
 (defun a68--smie-rules-supper (kind token)
   (pcase (cons kind token)

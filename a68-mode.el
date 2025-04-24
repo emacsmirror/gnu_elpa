@@ -300,63 +300,77 @@
 
 ;;;; SMIE grammar
 
+(defun a68--upcase-strings-in-tree (tree)
+  "Return a copy of the given tree with all strings replaced
+with the equivalent upcased form."
+  (cond
+   ((listp tree)
+    (mapcar (lambda (t) (a68--upcase-strings-in-tree t)) tree))
+   ((and (stringp tree) (not (string-match "-.*-" tree)))
+    (upcase tree))
+   (t
+    tree)))
+
+(defconst a68--bnf-grammar
+  '((id)
+    (ids (id "-anchor-" id))
+    (fields (fields "," fields)
+            (ids))
+    (args ("(" fargs ")"))
+    (fargs (fargs "," fargs)
+           (exp))
+    (conformity-cases)
+    (exp (ids)
+         (exp "of" exp)
+         (exp "[" exp "]")
+         ("(" exp ")")
+         ("begin" exp "end")
+         ("module" exp "def" exp "fed")
+         ("module" exp "def" exp "postlude" exp "fed"))
+    (type-decl ("mode" type-decl*))
+    (type-decl* (type-decl* "," type-decl*)
+                (id "=" type-decl**))
+    (type-decl** ("struct" args)
+                 ("union" args)
+                 ("proc" args "-archor-" ids))
+    (op-decl (op-decl "," op-decl)
+             ("op" ids "=" args ids ":" exp))
+    (proc-decl (proc-decl "," proc-decl)
+               ("op" ids "=" args ids ":" exp)
+               ("proc" ids "=" ids ":" exp))
+    ;; TODO: this don't cover all the loop
+    ;; possibilities.
+    (loop ("-do-" "do" exp "od")
+          ("for" exp "from" exp "to" exp "by" exp
+           "do" exp "od")
+          ("for" exp "from" exp "to" exp
+           "do" exp "od")
+          ("for" exp "by" exp "to" exp
+           "do" exp "od")
+          ("-to-" "to" exp "do" exp "od")
+          ("while" exp "do" exp "od"))
+    (insts (insts ";" insts)
+           (id ":=" exp)
+           ("if" exp "then" insts "fi")
+           ("if" exp "then" insts "else" insts "fi")
+           ("if" exp "then" insts
+            "elif" exp "then" insts "else" insts "fi")
+           ("if" exp "then" insts
+            "elif" exp "then" insts
+            "elif" exp "then" insts "else" insts "fi")
+           ;; TODO OUSE for both case and conformity case
+           ("case" exp "in" fargs "esac")
+           ("case" exp "in" conformity-cases "esac")
+           ("case" exp "in" fargs "out" exp "esac")
+           (op-decl)
+           (type-decl)
+           (proc-decl)
+           (loop)))
+  "Algol 68 BNF operator precedence grammar to use with SMIE")
+
 (defvar a68--smie-grammar-upper
   (smie-prec2->grammar
-   (smie-bnf->prec2 '((id)
-                      (ids (id "-anchor-" id))
-                      (fields (fields "," fields)
-                              (ids))
-                      (args ("(" fargs ")"))
-                      (fargs (fargs "," fargs)
-                             (exp))
-                      (conformity-cases)
-                      (exp (ids)
-                           (exp "OF" exp)
-                           (exp "[" exp "]")
-                           ("(" exp ")")
-                           ("BEGIN" exp "END")
-                           ("MODULE" exp "DEF" exp "FED")
-                           ("MODULE" exp "DEF" exp "POSTLUDE" exp "FED"))
-                      (type-decl ("MODE" type-decl*))
-                      (type-decl* (type-decl* "," type-decl*)
-                                  (id "=" type-decl**))
-                      (type-decl** ("STRUCT" args)
-                                   ("UNION" args)
-                                   ("PROC" args "-archor-" ids))
-                      (op-decl (op-decl "," op-decl)
-                               ("OP" ids "=" args ids ":" exp))
-                      (proc-decl (proc-decl "," proc-decl)
-                                 ("OP" ids "=" args ids ":" exp)
-                                 ("PROC" ids "=" ids ":" exp))
-                      (program ("PROGRAM" exp))
-                      ;; TODO: this don't cover all the loop
-                      ;; possibilities.
-                      (loop ("-do-" "DO" exp "OD")
-                            ("FOR" exp "FROM" exp "TO" exp "BY" exp
-                             "DO" exp "OD")
-                            ("FOR" exp "FROM" exp "TO" exp
-                             "DO" exp "OD")
-                            ("FOR" exp "BY" exp "TO" exp
-                             "DO" exp "OD")
-                            ("-to-" "TO" exp "DO" exp "OD")
-                            ("WHILE" exp "DO" exp "OD"))
-                      (insts (insts ";" insts)
-                             (id ":=" exp)
-                             ("IF" exp "THEN" insts "FI")
-                             ("IF" exp "THEN" insts "ELSE" insts "FI")
-                             ("IF" exp "THEN" insts
-                              "ELIF" exp "THEN" insts "ELSE" insts "FI")
-                             ("IF" exp "THEN" insts
-                              "ELIF" exp "THEN" insts
-                              "ELIF" exp "THEN" insts "ELSE" insts "FI")
-                             ;; TODO OUSE for both case and conformity case
-                             ("CASE" exp "IN" fargs "ESAC")
-                             ("CASE" exp "IN" conformity-cases "ESAC")
-                             ("CASE" exp "IN" fargs "OUT" exp "ESAC")
-                             (op-decl)
-                             (type-decl)
-                             (proc-decl)
-                             (loop)))
+   (smie-bnf->prec2 (a68--upcase-strings-in-tree a68--bnf-grammar)
                     '((assoc "OF" "[")
                       (assoc ";")
                       (assoc "|" "|:")
@@ -366,61 +380,7 @@
 
 (defvar a68--smie-grammar-supper
   (smie-prec2->grammar
-   (smie-bnf->prec2 '((id)
-                      (ids (id "-anchor-" id))
-                      (fields (fields "," fields)
-                              (ids))
-                      (args ("(" fargs ")"))
-                      (fargs (fargs "," fargs)
-                             (exp))
-                      (conformity-cases)
-                      (exp (ids)
-                           (exp "of" exp)
-                           (exp "[" exp "]")
-                           ("(" exp ")")
-                           ("begin" exp "end")
-                           ("module" exp "def" exp "fed")
-                           ("module" exp "def" exp "postlude" exp "fed"))
-                      (type-decl ("mode" type-decl*))
-                      (type-decl* (type-decl* "," type-decl*)
-                                  (id "=" type-decl**))
-                      (type-decl** ("struct" args)
-                                   ("union" args)
-                                   ("proc" args "-archor-" ids))
-                      (op-decl (op-decl "," op-decl)
-                               ("op" ids "=" args ids ":" exp))
-                      (proc-decl (proc-decl "," proc-decl)
-                                 ("op" ids "=" args ids ":" exp)
-                                 ("proc" ids "=" ids ":" exp))
-                      (program ("program" exp))
-                      ;; TODO: this don't cover all the loop
-                      ;; possibilities.
-                      (loop ("-do-" "do" exp "od")
-                            ("for" exp "from" exp "to" exp "by" exp
-                             "do" exp "od")
-                            ("for" exp "from" exp "to" exp
-                             "do" exp "od")
-                            ("for" exp "by" exp "to" exp
-                             "do" exp "od")
-                            ("-to-" "to" exp "do" exp "od")
-                            ("while" exp "do" exp "od"))
-                      (insts (insts ";" insts)
-                             (id ":=" exp)
-                             ("if" exp "then" insts "fi")
-                             ("if" exp "then" insts "else" insts "fi")
-                             ("if" exp "then" insts
-                              "elif" exp "then" insts "else" insts "fi")
-                             ("if" exp "then" insts
-                              "elif" exp "then" insts
-                              "elif" exp "then" insts "else" insts "fi")
-                             ;; TODO OUSE for both case and conformity case
-                             ("case" exp "in" fargs "esac")
-                             ("case" exp "in" conformity-cases "esac")
-                             ("case" exp "in" fargs "out" exp "esac")
-                             (op-decl)
-                             (type-decl)
-                             (proc-decl)
-                             (loop)))
+   (smie-bnf->prec2 a68--bnf-grammar
                     '((assoc "of" "[")
                       (assoc ";")
                       (assoc "|" "|:")

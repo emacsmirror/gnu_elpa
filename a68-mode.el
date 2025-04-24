@@ -173,7 +173,7 @@
 
   (defconst a68-keywords-supper
     '("true" "false" "empty" "at"
-      "pr" "PR" "pragmat" "PRAGMAT"
+      "pr" "pragmat"
       "andth" "orel" "is" "isnt"
       "long" "short" "ref" "loc" "heap" "struct" "flex" "proc"
       "union" "op" "prio" "mode" "begin" "end" "exit" "par" "if"

@@ -6,9 +6,15 @@
 
 - Display more information in =vc-dir= headers:
   - Display change id, commit id, description of the current changeset
-    in one line
+    in one line.
   - Display information about the current changeset's parent(s) in the
-    same format
+    same format.
+
+*** Fixed
+
+- Fix breakage when the project directory contains a file too large to
+  be automatically added.  (jj prints a warning in that case, even
+  when run with =--quiet=, so we need to discard output to stderr.)
 
 ** [[https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.1...v0.2][0.2]] - 2025-04-18
 

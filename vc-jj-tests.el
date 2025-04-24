@@ -34,9 +34,9 @@
 (defun vc-jj-test-environment (seq)
   "Create a list suitable for prepending to `process-environment'.
 The purpose is to make tests reproducible by fixing timestamps,
-change ids, author information etc. SEQ is an integer that
+change ids, author information etc.  SEQ is an integer that
 modifies the JJ_RANDOMNESS_SEED, JJ_TIMESTAMP and JJ_OP_TIMESTAMP
-environment variables. Increasing values for SEQ will result in
+environment variables.  Increasing values for SEQ will result in
 increasing timestamps.
 
 Note that it not necessary to use this function, except when
@@ -209,6 +209,15 @@ is needed."
              '(("TEST=TEST.txt" added)
                ("with'apostrophe.txt" added)
                ("with\"quotation.txt" added))))))
+
+(ert-deftest vc-jj-looong-file ()
+  ;; https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/52
+  (vc-jj-test-with-repo repo
+    (shell-command "jj config set --repo snapshot.max-new-file-size 12")
+    (write-region "1234567890" nil "numbers.txt")
+    (write-region "abcdefghijklmnopqrstuvwxyz" nil "alphabet.txt")
+    (should (eq (vc-jj-state "numbers.txt") 'added))
+    (should (eq (vc-jj-state "alphabet.txt") 'ignored))))
 
 (provide 'vc-jj-tests)
 ;;; vc-jj-tests.el ends here

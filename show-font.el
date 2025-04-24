@@ -6,7 +6,7 @@
 ;; Maintainer: Protesilaos Stavrou <info@protesilaos.com>
 ;; URL: https://github.com/protesilaos/show-font
 ;; Version: 0.2.1
-;; Package-Requires: ((emacs "28.1"))
+;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: convenience, writing, font
 
 ;; This file is NOT part of GNU Emacs.
@@ -265,6 +265,27 @@ matches the given regular expression."
       (setq fonts (seq-filter (lambda (family) (string-match-p regexp family)) fonts)))
     (sort fonts #'string-lessp)))
 
+(defun show-font--displays-characters-p (family characters &optional lax)
+  "Return non-nil if the font FAMILY can display CHARACTERS.
+CHARACTERS is a sequence of numbers, corresponding to characters.
+
+With optional LAX if FAMILY can display at least one among the
+CHARACTERS."
+  (if-let* ((font-object (find-font (font-spec :family family))))
+      (catch 'exit
+        (dolist (character characters)
+          (or (and lax (font-has-char-p font-object character) (throw 'exit t))
+              (font-has-char-p font-object character)
+              (throw 'exit nil)))
+        t)
+    (error "No font object for family `%s'" family)))
+
+(defun show-font--displays-latin-p (family &optional lax)
+  "Return non-nil if the font FAMILY can display Latin.
+With optional LAX if FAMILY can display at least one among the
+CHARACTERS."
+  (show-font--displays-characters-p family show-font-latin-characters lax))
+
 (defun show-font-installed-p (family &optional regexp)
   "Return non-nil if font family FAMILY is installed on the system.
 FAMILY is a string like those of `show-font-get-installed-font-families'.
@@ -331,7 +352,7 @@ FILE must be of type TTF or OTF and must not already be installed (per
   "Return non-nil if STRING is a string that is not empty."
   (and (stringp string) (not (string-blank-p string))))
 
-(defun show-font--prepare-text (&optional family)
+(defun show-font--prepare-text-subr (&optional family)
   "Prepare pangram text at varying font heights for the current font file.
 With optional FAMILY, prepare a preview for the given font family
 instead of that of the file."
@@ -385,6 +406,15 @@ instead of that of the file."
        (mapconcat #'identity (nreverse list-of-blocks) "\n") "\n" "\n"
        (mapconcat #'identity (nreverse list-of-sentences) "\n") "\n")))))
 
+(defun show-font--prepare-text (family)
+  "Use appropriate text for preview text of FAMILY.
+If FAMILY is nil, use the one of the current font file."
+  (cond
+   ((show-font--displays-latin-p family :lax)
+    (show-font--prepare-text-subr family))
+   (t
+    (propertize (format "The font family `%s' cannot display characters we know about" family) 'face 'show-font-title))))
+
 (defun show-font--install-file-button (_button)
   "Wrapper for `show-font-install' to work as a button."
   (show-font-install))
@@ -415,7 +445,7 @@ buffer."
     (with-current-buffer (or buffer (current-buffer))
       (let ((inhibit-read-only t))
         (save-excursion
-          (if-let* ((text (show-font--prepare-text)))
+          (if-let* ((text (show-font--prepare-text nil)))
               (insert text)
             (show-font--insert-button)))))))
 
@@ -481,13 +511,19 @@ FAMILY is a string that satisfies `show-font-installed-p'."
 Optional REGEXP has the meaning documented in the function
 `show-font-get-installed-font-families'."
   (if-let* ((families (show-font-get-installed-font-families regexp)))
+      ;; FIXME 2025-04-24: How to identify icon fonts?
       (mapcar
        (lambda (family)
-         (list
-          family
-          (vector
-           (propertize family 'face (list 'show-font-title-in-listing :family family))
-           (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family)))))
+         (let ((latin-p (show-font--displays-latin-p family)))
+           (list
+            family
+            (vector
+             (if latin-p
+                 (propertize family 'face (list 'show-font-title-in-listing :family family))
+               (propertize family 'face (list :inherit '(error show-font-title-in-listing))))
+             (if latin-p
+                 (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family))
+               (propertize "No preview" 'face (list :inherit '(error show-font-regular))))))))
        families)
     (if regexp
         (error "No font families match regexp `%s'" regexp)

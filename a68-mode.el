@@ -133,7 +133,7 @@
         'upper
       'supper)))
 
-;;;; Definitions of keywords and modes.
+;;;; Lists of keywords and modes.
 
 (eval-and-compile
   ;; Those vars are used during macroexpansion (and hence compilation).
@@ -240,6 +240,64 @@
     ;; Mode names use ThisCase.
     (cons "\\<\\([A-Z][A-Za-z_]*\\>\\)" ''font-lock-type-face)))
    "Highlighting expressions for Algol 68 mode in SUPPER stropping.")
+
+;;;; Syntax-based text properties.
+
+(defun a68-syntax-propertize-function-upper (start end)
+  (let ((case-fold-search nil))
+    (goto-char start)
+    (funcall
+     (syntax-propertize-rules
+      ((rx (group "#")
+           (*? anychar)
+           (group "#"))
+       (1 (when (not (a68-within-string)) (string-to-syntax "<")))
+       (2 (when (not (a68-within-string)) (string-to-syntax ">")))
+       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
+                                     'syntax-multiline t))))
+      ((rx bow (group "C") "OMMENT" eow
+           (*? anychar)
+           bow "COMMEN" (group "T") eow)
+       (1 (when (not (a68-within-string)) (string-to-syntax "< b")))
+       (2 (when (not (a68-within-string)) (string-to-syntax "> b")))
+       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
+                                     'syntax-multiline t))))
+      ((rx bow (group "C") "O" eow
+           (*? anychar)
+           bow "C" (group "O") eow)
+       (1 (when (not (a68-within-string)) (string-to-syntax "< c")))
+       (2 (when (not (a68-within-string)) (string-to-syntax "> c")))
+       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
+                                     'syntax-multiline t)))))
+     (point) end)))
+
+(defun a68-syntax-propertize-function-supper (start end)
+  (let ((case-fold-search nil))
+    (goto-char start)
+    (funcall
+     (syntax-propertize-rules
+      ((rx (group "#")
+           (*? anychar)
+           (group "#"))
+       (1 (when (not (a68-within-string)) (string-to-syntax "<")))
+       (2 (when (not (a68-within-string)) (string-to-syntax ">")))
+       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
+                                     'syntax-multiline t))))
+      ((rx bow (group "c") "omment" eow
+           (*? anychar)
+           bow "commen" (group "t") eow)
+       (1 (when (not (a68-within-string)) (string-to-syntax "< b")))
+       (2 (when (not (a68-within-string)) (string-to-syntax "> b")))
+       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
+                                     'syntax-multiline t))))
+      ((rx bow (group "c") "o" eow
+           (*? anychar)
+           bow "c" (group "o") eow)
+       (1 (when (not (a68-within-string)) (string-to-syntax "< c")))
+       (2 (when (not (a68-within-string)) (string-to-syntax "> c")))
+       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
+                                     'syntax-multiline t)))))
+     (point) end)))
 
 ;;;; UPPER stropping
 
@@ -349,37 +407,6 @@
       (setq count (1- count )))
     res))
 
-(defun a68-syntax-propertize-function-upper (start end)
-  (let ((case-fold-search nil))
-    (goto-char start)
-    (funcall
-     (syntax-propertize-rules
-      ;; a comment is # ... #, but I don't want the
-      ;; (eventual) shebang #! to be considered the start of
-      ;; the comment.
-      ((rx (group "#" (not "!"))
-           (*? anychar)
-           (group "#"))
-       (1 (when (not (a68-within-string)) (string-to-syntax "<")))
-       (2 (when (not (a68-within-string)) (string-to-syntax ">")))
-       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
-                                     'syntax-multiline t))))
-      ((rx bow (group "C") "OMMENT" eow
-           (*? anychar)
-           bow "COMMEN" (group "T") eow)
-       (1 (when (not (a68-within-string)) (string-to-syntax "< b")))
-       (2 (when (not (a68-within-string)) (string-to-syntax "> b")))
-       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
-                                     'syntax-multiline t))))
-      ((rx bow (group "C") "O" eow
-           (*? anychar)
-           bow "C" (group "O") eow)
-       (1 (when (not (a68-within-string)) (string-to-syntax "< c")))
-       (2 (when (not (a68-within-string)) (string-to-syntax "> c")))
-       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
-                                     'syntax-multiline t)))))
-     (point) end)))
-
 ;;;; SUPPER stropping.
 
 (defvar a68--smie-grammar-supper
@@ -487,34 +514,6 @@
                    (setq res (point))))
       (setq count (1- count )))
     res))
-
-(defun a68-syntax-propertize-function-supper (start end)
-  (let ((case-fold-search nil))
-    (goto-char start)
-    (funcall
-     (syntax-propertize-rules
-      ((rx (group "#")
-           (*? anychar)
-           (group "#"))
-       (1 (when (not (a68-within-string)) (string-to-syntax "<")))
-       (2 (when (not (a68-within-string)) (string-to-syntax ">")))
-       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
-                                     'syntax-multiline t))))
-      ((rx bow (group "c") "omment" eow
-           (*? anychar)
-           bow "commen" (group "t") eow)
-       (1 (when (not (a68-within-string)) (string-to-syntax "< b")))
-       (2 (when (not (a68-within-string)) (string-to-syntax "> b")))
-       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
-                                     'syntax-multiline t))))
-      ((rx bow (group "c") "o" eow
-           (*? anychar)
-           bow "c" (group "o") eow)
-       (1 (when (not (a68-within-string)) (string-to-syntax "< c")))
-       (2 (when (not (a68-within-string)) (string-to-syntax "> c")))
-       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
-                                     'syntax-multiline t)))))
-     (point) end)))
 
 ;;;; Stropping utilities and commands.
 

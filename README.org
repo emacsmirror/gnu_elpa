@@ -98,6 +98,11 @@ programming: a good monospaced font should render all of them
 unambiguously. This text is shown in the buffer of the command
 ~show-font-select-preview~.
 
+#+vindex: show-font-sentences-sample
+The user option ~show-font-sentences-sample~ is a list of strings that
+can be used to showcase common patterns and letter combinations in
+words. The default value should cover many such examples. Those are
+displayed in the buffer produced by the command ~show-font-select-preview~.
 
 Finally, the following faces control the appearance of various
 elements.

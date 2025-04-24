@@ -86,6 +86,22 @@ This is displayed in the buffer produced by the command
   :type 'string
   :group 'show-font)
 
+(defcustom show-font-sentences-sample
+  (list
+   "anonymous jiggly bidirectional numeral equip toxic yacht zetetic zodiac"
+   "because illicit mnemonic gimmicky query incandescent transcendent"
+   "gymnasium interoperability bifurcation amphibian quixotic verboten"
+   "incongruous malfeasance syntax hitherto yesterday paramilitary"
+   "coagulation acerbic admiration juxtapose superjacent tequila"
+   "hyperion scholarch industrious quotidian caffeine intergovernmentalism"
+   "obfuscate liaison voyage reify antipode heteroclite sovereignty")
+  "List of strings that can exhibit common patterns or letter combinations.
+This is displayed in the buffer produced by the command
+`show-font-select-preview'."
+  :package-version '(show-font . "0.3.0")
+  :type 'string
+  :group 'show-font)
+
 (defcustom show-font-display-buffer-action-alist
   '((display-buffer-at-bottom)
     (dedicated . t)
@@ -322,6 +338,7 @@ instead of that of the file."
     (let ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
           (list-of-lines nil)
           (list-of-blocks nil)
+          (list-of-sentences nil)
           (pangram (show-font--get-pangram))
           (name (or family (show-font--get-attribute-from-file "fullname")))
           (family (or family (show-font--get-attribute-from-file "family")))
@@ -335,7 +352,14 @@ instead of that of the file."
           (push (propertize show-font-character-sample 'face (list face :family family)) list-of-blocks)
           (push (propertize show-font-character-sample 'face (list face :family family :slant 'italic)) list-of-blocks)
           (push (propertize show-font-character-sample 'face (list face :family family :weight 'bold)) list-of-blocks)
-          (push (propertize show-font-character-sample 'face (list face :family family :slant 'italic :weight 'bold)) list-of-blocks)))
+          (push (propertize show-font-character-sample 'face (list face :family family :slant 'italic :weight 'bold)) list-of-blocks))
+        (when show-font-sentences-sample
+          (dolist (sentence show-font-sentences-sample)
+            (when (show-font--string-p sentence)
+              (push (propertize sentence 'face (list face :family family)) list-of-sentences)
+              (push (propertize sentence 'face (list face :family family :slant 'italic)) list-of-sentences)
+              (push (propertize sentence 'face (list face :family family :weight 'bold)) list-of-sentences)
+              (push (propertize sentence 'face (list face :family family :slant 'italic :weight 'bold)) list-of-sentences)))))
       (concat
        (propertize name 'face (list 'show-font-title :family family))
        "\n"
@@ -350,7 +374,8 @@ instead of that of the file."
          "")
        "\n"
        (mapconcat #'identity (nreverse list-of-lines) "\n") "\n"
-       (mapconcat #'identity (nreverse list-of-blocks) "\n") "\n")))))
+       (mapconcat #'identity (nreverse list-of-blocks) "\n") "\n" "\n"
+       (mapconcat #'identity (nreverse list-of-sentences) "\n") "\n")))))
 
 (defun show-font--install-file-button (_button)
   "Wrapper for `show-font-install' to work as a button."

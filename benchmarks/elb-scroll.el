@@ -31,25 +31,32 @@
 
 ;;; Code:
 
+(defun elb--scroll-file (file)
+  ;; FIXME: This relies on `elb-smie.el' being compiled already which is
+  ;; not necessarily the case if we're only running some of the benchmarks.
+  (load (expand-file-name "elb-smie" elb-bench-directory) nil 'nomessage)
+  (setq redisplay-skip-initial-frame nil)
+  (with-temp-buffer
+    (rename-buffer (generate-new-buffer-name "elb-scroll"))
+    (switch-to-buffer (current-buffer))
+    (insert-file-contents (expand-file-name file elb-bench-directory))
+    (redisplay 'force) ;; Refresh the window dimensions.
+    (elb--set-win-size 23 80)
+    (dotimes (_ 10)
+      ;; Use our own C major mode (copied from GNU ELPA's sm-c-mode),
+      ;; so it's not impacted by changes to Emacs's own C mode.
+      (elb-smie-mode)
+      (goto-char (point-min))
+      (condition-case nil
+          (while t (scroll-up nil) (redisplay 'force))
+        (end-of-buffer nil)))))
+
 (unless (and noninteractive (not (boundp 'redisplay-skip-initial-frame)))
   (defun elb-scroll-entry ()
-    ;; FIXME: This relies on `elb-smie.el' being compiled already which is
-    ;; not necessarily the case if we're only running some of the benchmarks.
-    (load (expand-file-name "elb-smie" elb-bench-directory) nil 'nomessage)
-    (setq redisplay-skip-initial-frame nil)
-    (with-temp-buffer
-      (rename-buffer (generate-new-buffer-name "elb-scroll"))
-      (switch-to-buffer (current-buffer))
-      (insert-file-contents (expand-file-name
-                             "../resources/xmenu.c" elb-bench-directory))
-      (redisplay 'force) ;; Refresh the window dimensions.
-      (elb--set-win-size 23 80)
-      (dotimes (_ 10)
-        (elb-smie-mode)
-        (goto-char (point-min))
-        (condition-case nil
-            (while t (scroll-up nil) (redisplay 'force))
-          (end-of-buffer nil))))))
+    (elb--scroll-file "../resources/xmenu.c"))
+
+  (defun elb-scroll-nonascii-entry ()
+    (elb--scroll-file "../resources/xmenu-nonascii.c")))
 
 (defun elb--set-win-size (height width &optional no-retry)
   (enlarge-window (- height (window-height)))

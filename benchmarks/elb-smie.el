@@ -1,6 +1,6 @@
 ;;; elb-smie.el --- C major mode based on SMIE  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2015-2023  Free Software Foundation, Inc.
+;; Copyright (C) 2015-2025  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
 ;; Version: 1.1
@@ -893,6 +893,14 @@ Past this column, we do not try to align the backslashes."
   (with-temp-buffer
     (insert-file-contents (expand-file-name
                            "../resources/xmenu.c" elb-bench-directory))
+    (elb-smie-mode)
+    (dotimes (_ 5)
+      (indent-region (point-min) (point-max)))))
+
+(defun elb-smie-nonascii-entry ()
+  (with-temp-buffer
+    (insert-file-contents (expand-file-name
+                           "../resources/xmenu-nonascii.c" elb-bench-directory))
     (elb-smie-mode)
     (dotimes (_ 5)
       (indent-region (point-min) (point-max)))))

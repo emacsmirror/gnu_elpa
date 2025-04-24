@@ -754,7 +754,10 @@ With optional ADD-LINKS, make the title link to the original file."
         (insert-file-contents file)
         (setq title (denote-org-dblock--extract-regexp (denote--title-key-regexp file-type)))
         (setq tags (denote-org-dblock--extract-regexp (denote--keywords-key-regexp file-type)))
-        (delete-region (1+ (re-search-forward "^$" nil :no-error 1)) beginning-of-contents)
+        (when-let* ((_ (re-search-forward "^$" nil :no-error 1))
+                    (match-end (+ (match-end 0) 1))
+                    (_ (>= (point-max) match-end)))
+          (delete-region match-end beginning-of-contents))
         (goto-char beginning-of-contents)
         (when (and title tags)
           (if add-links

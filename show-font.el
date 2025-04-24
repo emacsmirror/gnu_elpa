@@ -33,7 +33,9 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl-lib))
+(eval-when-compile
+  (require 'cl-lib)
+  (require 'subr-x))
 
 (defgroup show-font nil
   "Show font features in a buffer."
@@ -252,11 +254,13 @@ matched against the output of the `fc-scan' executable."
   "Return list of installed font families names.
 With optional REGEXP filter the list to only include fonts whose name
 matches the given regular expression."
-  (let ((fonts (delete-dups
-                (mapcar
-                 (lambda (font)
-                   (format "%s" (aref font 0)))
-                 (x-family-fonts)))))
+  (let ((fonts (thread-last (x-family-fonts)
+                            (mapcar
+                             (lambda (font)
+                               (when-let* ((family (format "%s" (aref font 0))))
+                                 family)))
+                            (delq nil)
+                            (delete-dups))))
     (when regexp
       (setq fonts (seq-filter (lambda (family) (string-match-p regexp family)) fonts)))
     (sort fonts #'string-lessp)))

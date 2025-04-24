@@ -126,11 +126,8 @@ the command line before the filename(s).
 
 Return the return value of the command in the synchronous case, and the
 process object in the asynchronous case."
-  (let* ((filesets (mapcar #'vc-jj--filename-to-fileset
-                           (if (listp file-or-list) file-or-list (list file-or-list))))
-         (global-switches (if (stringp vc-jj-global-switches)
-                              (list vc-jj-global-switches)
-                            vc-jj-global-switches)))
+  (let* ((filesets (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
+         (global-switches (ensure-list vc-jj-global-switches)))
     (apply #'vc-do-command (or buffer "*vc*") okstatus vc-jj-program
            ;; Note that we pass NIL for FILE-OR-LIST to avoid
            ;; vc-do-command mangling of filenames; we pass the fileset

@@ -55,8 +55,6 @@
 (defface a68-string-break-face '((t :inherit font-lock-string-face))
   "Face for printing Algol 64 string breaks.")
 
-;;;; Stuff common to all stroppings
-
 (defvar a68-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-j") #'newline-and-indent)
@@ -74,28 +72,7 @@
 (defun a68-within-string-or-comment ()
   (nth 8 (syntax-ppss)))
 
-(defvar a68--keywords-regexp
-  (regexp-opt '("+" "*" ";" ">" "<" ":=" "=" "," ":")))
-
-(defun a68--smie-forward-token ()
-  (forward-comment (point-max))
-  (cond
-   ((looking-at a68--keywords-regexp)
-    (goto-char (match-end 0))
-    (match-string-no-properties 0))
-   (t (buffer-substring-no-properties (point)
-                                      (progn (skip-syntax-forward "w_")
-                                             (point))))))
-
-(defun a68--smie-backward-token ()
-  (forward-comment (- (point)))
-  (cond
-   ((looking-back a68--keywords-regexp (- (point) 2) t)
-    (goto-char (match-beginning 0))
-    (match-string-no-properties 0))
-   (t (buffer-substring-no-properties (point)
-                                      (progn (skip-syntax-backward "w_")
-                                             (point))))))
+;;;; Syntax table for the a68-mode.
 
 (defvar a68-mode-syntax-table
   (let ((st (make-syntax-table)))
@@ -107,12 +84,6 @@
     (modify-syntax-entry ?\( "()" st)
     (modify-syntax-entry ?\) ")(" st)
     st))
-
-(defvar a68-mode-abbrev-table nil
-  "Abbreviation table used in `a68-mode' buffers.")
-
-(define-abbrev-table 'a68-mode-abbrev-table
-  '())
 
 (defun a68-comment-hash ()
   "Smart insert a # ... # style comment."
@@ -457,6 +428,31 @@
                     '((assoc "=" "/" ":=" ":=:" ":/=:"
                              "+" "-" "*" "/")))))
 
+;;;; SMIE token movement.
+
+(defvar a68--keywords-regexp
+  (regexp-opt '("+" "*" ";" ">" "<" ":=" "=" "," ":")))
+
+(defun a68--smie-forward-token ()
+  (forward-comment (point-max))
+  (cond
+   ((looking-at a68--keywords-regexp)
+    (goto-char (match-end 0))
+    (match-string-no-properties 0))
+   (t (buffer-substring-no-properties (point)
+                                      (progn (skip-syntax-forward "w_")
+                                             (point))))))
+
+(defun a68--smie-backward-token ()
+  (forward-comment (- (point)))
+  (cond
+   ((looking-back a68--keywords-regexp (- (point) 2) t)
+    (goto-char (match-beginning 0))
+    (match-string-no-properties 0))
+   (t (buffer-substring-no-properties (point)
+                                      (progn (skip-syntax-backward "w_")
+                                             (point))))))
+
 ;;;; SMIE indentation rules.
 
 (defun a68--smie-rules-upper (kind token)
@@ -541,7 +537,6 @@
 ;;;###autoload
 (define-derived-mode a68-mode prog-mode "Algol68"
   "Major mode for editing Alogl68 files."
-  :abbrev-table a68-mode-abbrev-table
   ;; First determine the stropping regime
   (setq-local a68--stropping-regime
               (a68--figure-out-stropping-regime))

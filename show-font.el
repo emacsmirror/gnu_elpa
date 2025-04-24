@@ -434,7 +434,7 @@ Optional REGEXP has the same meaning as in the aforementioned function."
     (completing-read
      (format-prompt "Select font to preview" def)
      (show-font-get-installed-font-families regexp)
-     nil t nil 'show-font-select-preview-history)))
+     nil t nil 'show-font-select-preview-history def)))
 
 ;;;###autoload
 (defun show-font-select-preview (family)

@@ -1,15 +1,16 @@
 * jj (Jujutsu) integration with Emacs vc.el and project.el
 
-Work-in-progress support for =vc.el= and =project.el= implementations for
-the [[https://github.com/jj-vcs/jj][Jujutsu]] version control system.
+Support for Emacs built-in [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Version-Control.html][=vc.el=]] and [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Projects.html][=project.el=]] for the [[https://github.com/jj-vcs/jj][Jujutsu]]
+version control system.
 
-** Contributing
+** Installation
 
-We welcome bug reports and pull requests!  Since =vc-jj.el= is
-distributed via GNU elpa, non-trivial code contributions need to have
-the standard FSF copyright assignment in place.
+This package is distributed via GNU Elpa
+(https://elpa.gnu.org/packages/vc-jj.html) and can be installed via
+=M-x package-install=.
 
-** Jujutsu configuration hints
+
+** Jujutsu configuration
 
 Emacs has built-in support for git-style diff and conflict markers, so
 you might want to set the following options in your Jujutsu
@@ -21,3 +22,11 @@ configuration, for example via =jj config edit --user= or =jj config edit
 diff.format = "git"
 conflict-marker-style = "git"
 #+end_src
+
+** Contributing
+
+We welcome bug reports and pull requests!  Since =vc-jj.el= is
+distributed via GNU elpa, non-trivial code contributions need to have
+the standard FSF copyright assignment in place; feel free to contact
+us for details.  Note that "trivial" (below 15 lines or obvious) code
+suggestions in bug reports are fine.

@@ -5,7 +5,7 @@
 ;; Author: Sean Whitton <spwhitton@spwhitton.name>
 ;; Maintainer: Sean Whitton <spwhitton@spwhitton.name>
 ;; Package-Requires: ((emacs "29.1"))
-;; Version: 2.1
+;; Version: 2.2
 ;; URL: https://git.spwhitton.name/dotfiles/tree/.emacs.d/site-lisp/literate-scratch.el
 ;; Keywords: lisp text
 
@@ -49,6 +49,13 @@
 
 ;;; News:
 
+;; Ver 2.2 2025/04/25 Sean Whitton
+;;     Bug fix: prevent \\`M-j' and \\`M-q' copying the first characters of
+;;     block comment lines to the beginnings of newly added lines.
+;;     Bug fix: prevent `comment-indent' indenting block comment lines as
+;;     though they were Lisp comments beginning with single semicolons.
+;;     Make \\`TAB' indent block comment lines, copying the preceding block
+;;     comment line's indentation downwards.
 ;; Ver 2.1 2025/04/19 Sean Whitton
 ;;     Bug fix: before adding whitespace syntax to the newline character
 ;;     following a block comment line, check we're not on the last line of a
@@ -103,12 +110,71 @@
   (elisp-mode-syntax-propertize start end))
 
 (defun literate-scratch--indent-line ()
-  ;; `lisp-indent-line' has hardcoded behaviour for lines starting with a
-  ;; single comment character, which includes the ones we've marked.
-  (or (save-excursion
-	(back-to-indentation)
-	(literate-scratch--comment-start-p (point)))
-      (lisp-indent-line)))
+  "`indent-line-function' for `literate-scratch-mode'.
+If within a block comment, copy previous line's indentation,
+unless at start of paragraph.
+Otherwise defer to `lisp-indent-line'."
+  ;; `lisp-indent-line' has hardcoded behaviour to call `comment-indent' for
+  ;; lines starting with a single comment character, which includes the ones
+  ;; we've marked.  This is fine for the first lines of block comments;
+  ;; `comment-search-forward' identifies the line as a comment line and so our
+  ;; `comment-indent-function' is used properly even in the absence of this
+  ;; custom `indent-line-function'.  But since the fix for Emacs bug#78003,
+  ;; `comment-indent' will identify subsequent block comment lines as part of
+  ;; multiline constructs, and defer back to the mode to indent them.
+  ;; We require a custom `indent-line-function' to break the infinite loop.
+  (if (literate-scratch--comment-line-p)
+      (indent-line-to (save-excursion
+			(literate-scratch--calc-comment-indent)))
+    (lisp-indent-line)))
+
+(defun literate-scratch--comment-indent ()
+  "`comment-indent-function' for `literate-scratch-mode'.
+If within a block comment, copy previous line's indentation,
+unless at start of paragraph.
+Otherwise defer to `lisp-comment-indent'."
+  (if (literate-scratch--comment-line-p)
+      (literate-scratch--calc-comment-indent)
+    (lisp-comment-indent)))
+
+(defun literate-scratch--calc-comment-indent ()
+  (let ((indent (current-indentation)))
+    (if (or (eq (line-number-at-pos) 1)
+	    (progn (forward-line -1)
+		   (looking-at paragraph-separate)))
+	indent
+      (current-indentation))))
+
+(defun literate-scratch--fill-paragraph (&optional justify)
+  "`fill-paragraph-function' for `literate-scratch-mode'.
+If within a block comment, perform a text paragraph fill.
+Otherwise defer to `lisp-fill-paragraph'."
+  (if (literate-scratch--comment-line-p)
+      ;; Just fill as a text paragraph.
+      ;; M-q is usually bound to `prog-fill-reindent-defun', which calls
+      ;; `fill-paragraph', which calls us, and then if we simply return nil
+      ;; the paragraph will be filled as text.
+      ;; However, Paredit has its own binding for M-q.
+      ;; Calling `fill-paragraph' like this, instead of just returning nil,
+      ;; covers both `prog-fill-reindent-defun' and `paredit-reindent-defun'.
+      (let (fill-paragraph-function)
+	(fill-paragraph justify))
+    (lisp-fill-paragraph justify)))
+
+(defun literate-scratch--comment-break (&optional soft)
+  "`comment-line-break-function' for `literate-scratch-mode'.
+If within a block comment, perform a simple newline-and-indent.
+Otherwise defer to `comment-indent-new-line'."
+  (if (literate-scratch--comment-line-p)
+      (let ((indent (current-indentation)))
+	;; Insert the newline and clear horizontal space in the same manner as
+	;; `default-indent-new-line' and `comment-indent-new-line', which see.
+	(if soft (insert-and-inherit ?\n) (newline 1))
+	(save-excursion (forward-char -1) (delete-horizontal-space))
+	(delete-horizontal-space)
+	;; Indent to the same level as the previous line.
+	(indent-to indent))
+    (comment-indent-new-line soft)))
 
 (defun literate-scratch--put-comment-start (pos &optional force)
   "Mark POS's line as a block comment line depending on the char(s) at POS.
@@ -132,13 +198,19 @@ comment line.  Moves point to POS if it is not already there."
     ;; the two newlines, i.e. at the beginning of an empty line right after
     ;; the text paragraph, `paredit-in-comment-p' still returns t, and so
     ;; \\`(' and \\`[' insert only single characters.
-    (unless (eq (pos-eol) (point-max))
-     (put-text-property (pos-eol) (1+ (pos-eol)) 'syntax-table
-			(eval-when-compile (string-to-syntax "-"))))))
+    (let ((eol (pos-eol)))
+     (unless (eq eol (point-max))
+       (put-text-property eol (1+ eol) 'syntax-table
+			  (eval-when-compile (string-to-syntax "-")))))))
 
 (defun literate-scratch--comment-start-p (pos)
   (equal (get-text-property pos 'syntax-table)
 	 (eval-when-compile (string-to-syntax "<"))))
+
+(defun literate-scratch--comment-line-p ()
+  (save-excursion
+    (back-to-indentation)
+    (literate-scratch--comment-start-p (point))))
 
 ;;;###autoload
 (define-derived-mode literate-scratch-mode lisp-interaction-mode
@@ -149,8 +221,11 @@ This makes it easier to interleave paragraphs of plain text with Lisp.
 
 You can enable this mode by customising the variable `initial-major-mode'
 to `literate-scratch-mode'."
-  (setq-local syntax-propertize-function #'literate-scratch--propertize
-	      indent-line-function       #'literate-scratch--indent-line))
+  (setq-local syntax-propertize-function  #'literate-scratch--propertize
+	      indent-line-function        #'literate-scratch--indent-line
+	      comment-indent-function     #'literate-scratch--comment-indent
+	      fill-paragraph-function     #'literate-scratch--fill-paragraph
+	      comment-line-break-function #'literate-scratch--comment-break))
 
 (provide 'literate-scratch)
 

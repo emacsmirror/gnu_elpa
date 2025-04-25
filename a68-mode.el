@@ -370,6 +370,9 @@ with the equivalent upcased form."
     (proc-decl (proc-decl "," proc-decl)
                ("op" ids "=" args ids ":" exp)
                ("proc" ids "=" ids ":" exp))
+    ;; Formulae.
+    ;; Standard operators are given their priority.
+    ;; XXX
     ;; Enquiry clause:
     ;;  enquiry clause :
     ;;   series.
@@ -451,8 +454,15 @@ with the equivalent upcased form."
                  ("-to-" exp "do" exp "od")
                  ("-while-" exp "do" exp "od")
                  ("-do-" exp "od"))
+    (pseudo-operator (exp "andth" exp)
+                     (exp "orel" exp)
+                     (exp ":=:" exp)
+                     (exp ":/=:" exp)
+                     (exp "is" exp)
+                     (exp "isnt" exp))
     (insts (insts ";" insts)
            (id ":=" exp)
+           (pseudo-operator)
            (op-decl)
            (type-decl)
            (proc-decl)
@@ -737,6 +747,7 @@ with the equivalent upcased form."
     (`(:after . "=") a68-indent-level)
     (`(:after . "begin") 6)
     (`(:after . "then") 5)
+    (`(:after . "else") 5)
     (`(:after . "elif") 5)
     (`(:after . "case") 5)
     (`(:after . "ouse") 5)

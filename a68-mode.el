@@ -232,12 +232,14 @@
               word-end)
           ''font-lock-constant-face)
     ;; Tags.
-    (cons "\\<[a-z]\\([a-z]_\\)*\\>" ''font-lock-variable-name-face)
-    ;; By convention operators have only upper-letter names.
-    (cons "\\<\\([A-Z]+\\>\\)" ''font-lock-keyword-face)
-    ;; Mode names use ThisCase.
-    (cons "\\<\\([A-Z][A-Za-z_]*\\>\\)" ''font-lock-type-face)))
-   "Highlighting expressions for Algol 68 mode in SUPPER stropping.")
+    (cons "\\<\\([a-z][a-z]+_?\\)+\\>" ''font-lock-variable-name-face)
+    ;; Mode names start with an upper case letter.
+    ;; To distinguish from operator indications in highlighting,
+    ;; we mandate type faced strings to have at least one
+    ;; lower-case letter.
+    (cons "\\<\\([A-Z][A-Za-z_]*[a-z][A-Za-z_]*\\)\\>" ''font-lock-type-face)
+    (cons "\\<\\([A-Z][A-Z_]*\\)\\>" ''font-lock-keyword-face)))
+  "Highlighting expressions for Algol 68 mode in SUPPER stropping.")
 
 ;;;; Syntax-based text properties.
 
@@ -639,14 +641,14 @@ with the equivalent upcased form."
    ;; See comments in a68--smie-forward-token for an explanation of
    ;; the handling of loop insertions -from- -to- -by- -while-.
    ((looking-back "\\<from\\>")
-    (cond
      (goto-char (- (point) 4))
-     ((a68-at-strong-void-enclosed-clause)
-      "-from-")
-     ((a68-at-post-unit)
-      "from")
-     (t
-      "-from-")))
+     (cond
+      ((a68-at-strong-void-enclosed-clause)
+       "-from-")
+      ((a68-at-post-unit)
+       "from")
+      (t
+       "-from-")))
    ((looking-back "\\<by\\>")
     (goto-char (- (point) 2))
     (cond

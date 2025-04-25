@@ -584,6 +584,14 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
 
 ;;;;; Dynamic block to insert entire file contents
 
+(defun denote-org-escape-code-in-region (beg end)
+  "Like `org-escape-code-in-region' to escape only #+ by appending a zero width space to it.
+Operate on the region between positions BEG and END."
+  (save-excursion
+    (goto-char end)
+    (while (re-search-backward "^[ \t]*\\(#\\+\\)" beg t)
+      (save-excursion (replace-match "​\\1" nil nil nil 1)))))
+
 (defun denote-org-dblock--get-file-contents (file &optional no-front-matter add-links)
   "Insert the contents of FILE.
 With optional NO-FRONT-MATTER as non-nil, try to remove the front
@@ -615,7 +623,8 @@ argument."
              (1+ (re-search-forward "^$" nil :no-error 1)))
            beginning-of-contents))
         (when add-links
-          (indent-region beginning-of-contents (point-max) 2)))
+          (indent-region beginning-of-contents (point-max) 2))
+        (denote-org-escape-code-in-region beginning-of-contents (point-max)))
       (buffer-string))))
 
 (defvar denote-org-dblock-file-contents-separator
@@ -741,7 +750,8 @@ With optional ADD-LINKS, make the title link to the original file."
             (insert (format "* %s %s\n\n" title tags)))
           (org-align-tags :all))
         (while (re-search-forward "^\\(*+?\\) " nil :no-error)
-          (replace-match (format "*%s " "\\1"))))
+          (replace-match (format "*%s " "\\1")))
+        (denote-org-escape-code-in-region beginning-of-contents (point-max)))
       (buffer-string))))
 
 (defun denote-org-dblock-add-files-as-headings (regexp &optional add-links sort-by-component reverse excluded-dirs-regexp exclude-regexp)

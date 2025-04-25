@@ -475,7 +475,6 @@ with the equivalent upcased form."
    (smie-bnf->prec2 a68--bnf-grammar
                     '((assoc "of" "[")
                       (assoc ";")
-;                      (assoc "|" "|:")
                       (assoc ","))
                     '((assoc "=" "/" ":=" ":=:" ":/=:"
                              "+" "-" "*" "/")))))
@@ -701,6 +700,10 @@ with the equivalent upcased form."
     (`(,_ . ";") (smie-rule-separator kind))
     (`(:after . ":=") a68-indent-level)
     (`(:after . "=") a68-indent-level)
+    ;; Since "|" is in the same BNF rule as "(" in choice-clauses,
+    ;; SMIE by default aligns it with it.
+    (`(:before . "|")
+     (if (not smie-rule-sibling-p) 3))
     (`(:before . "BEGIN")
      (when (or (smie-rule-hanging-p)
                (or
@@ -726,6 +729,10 @@ with the equivalent upcased form."
     (`(:elem . basic) a68-indent-level)
     (`(,_ . ",") (smie-rule-separator kind))
     (`(,_ . ";") (smie-rule-separator kind))
+    ;; Since "|" is in the same BNF rule as "(" in choice-clauses,
+    ;; SMIE by default aligns it with it.
+    (`(:before . ,(or "|" "|:"))
+     (if (not (smie-rule-sibling-p)) 1))
     (`(:after . ":=") a68-indent-level)
     (`(:after . "=") a68-indent-level)
     (`(:after . "begin") 6)

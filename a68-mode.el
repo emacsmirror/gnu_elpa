@@ -344,9 +344,12 @@ with the equivalent upcased form."
     (fields (fields "," fields)
             (ids))
     (args ("(" fargs ")"))
+    (spec ("(" fargs "):")
+          (exp))
     (fargs (fargs "," fargs)
            (exp))
-    (conformity-cases)
+    (specs (specs "," specs)
+           (spec))
     (exp (ids)
          (exp "of" exp)
          (exp "[" exp "]")
@@ -365,6 +368,54 @@ with the equivalent upcased form."
     (proc-decl (proc-decl "," proc-decl)
                ("op" ids "=" args ids ":" exp)
                ("proc" ids "=" ids ":" exp))
+    ;; Enquiry clause:
+    ;;  enquiry clause :
+    ;;   series.
+    (enquiry-clause (insts))
+    ;; Choice clauses
+    ;;   choice clause :
+    ;;     choice start, chooser choice clause, choice finish.
+    ;;   chooser choice clause :
+    ;;     enquiry clause, alternate choice clause.
+    ;;   enquiry clause :
+    ;;     series.
+    ;;   alternate choice clause :
+    ;;     in choice clause, (out choice clause).
+    ;;   in choice clause :
+    ;;     choice in, in part of choice.
+    ;;   in part of choice :
+    ;;     serial clause ; case part list proper ; united case part.
+    ;;   case part list proper :
+    ;;     case part list, and also token, case part.
+    ;;   case part list :
+    ;;     (case part list, and also token), case part.
+    ;;   case part :
+    ;;     unit ; united case part.
+    ;;   united case part :
+    ;;     specification, unit.
+    ;;   specification :
+    ;;     single declaration brief pack, specification token.
+    ;;   single declaration brief pack :
+    ;;     brief begin token, single declaration, brief end token.
+    ;;   single declaration :
+    ;;     declarer, (dectag insert, identifier).
+    ;;   out choice clause :
+    ;;     choice out, serial clause ;
+    ;;     choice again, chooser choice clause.
+    (choice-clause ("if" enquiry-clause "then" insts "fi")
+                   ("if" enquiry-clause "then" insts "else" insts "fi")
+                   ("if" enquiry-clause "then" insts
+                    "elif" enquiry-clause "then" insts "fi")
+                   ("(" enquiry-clause "|" insts ")")
+                   ("(" enquiry-clause "|" insts "|" insts ")")
+                   ("(" enquiry-clause "|" insts
+                    "|:" enquiry-clause "|" insts ")")
+                   ("case" enquiry-clause "in" specs "esac")
+                   ("case" enquiry-clause "in" specs "out" insts "esac")
+                   ("case" enquiry-clause "in" specs "ouse" insts "esac")
+                   ("(" enquiry-clause "|" specs ")")
+                   ("(" enquiry-clause "|" specs "|" insts ")")
+                   ("(" enquiry-clause "|" specs "|:" insts ")"))
     ;; Loop clauses.
     ;;   loop clause :
     ;;     loop insert, for part, (from part), (by part), (to part), repeating part.
@@ -400,20 +451,10 @@ with the equivalent upcased form."
                  ("-do-" exp "od"))
     (insts (insts ";" insts)
            (id ":=" exp)
-           ("if" exp "then" insts "fi")
-           ("if" exp "then" insts "else" insts "fi")
-           ("if" exp "then" insts
-            "elif" exp "then" insts "else" insts "fi")
-           ("if" exp "then" insts
-            "elif" exp "then" insts
-            "elif" exp "then" insts "else" insts "fi")
-           ;; TODO OUSE for both case and conformity case
-           ("case" exp "in" fargs "esac")
-           ("case" exp "in" conformity-cases "esac")
-           ("case" exp "in" fargs "out" exp "esac")
            (op-decl)
            (type-decl)
            (proc-decl)
+           (choice-clause)
            (loop-clause)))
   "Algol 68 BNF operator precedence grammar to use with SMIE")
 
@@ -432,7 +473,7 @@ with the equivalent upcased form."
    (smie-bnf->prec2 a68--bnf-grammar
                     '((assoc "of" "[")
                       (assoc ";")
-                      (assoc "|" "|:")
+;                      (assoc "|" "|:")
                       (assoc ","))
                     '((assoc "=" "/" ":=" ":=:" ":/=:"
                              "+" "-" "*" "/")))))
@@ -440,7 +481,7 @@ with the equivalent upcased form."
 ;;;; SMIE lexer
 
 (defvar a68--keywords-regexp
-  (regexp-opt '("+" "*" ";" ">" "<" ":=" "=" "," ":" "~")))
+  (regexp-opt '("|:" "(" ")" "+" "*" ";" ">" "<" ":=" "=" "," ":" "~")))
 
 (defun a68-at-strong-void-enclosed-clause ()
   "Return whether the point is at the beginning of a VOID enclosed clause."
@@ -509,6 +550,9 @@ with the equivalent upcased form."
 (defun a68--smie-forward-token ()
   (forward-comment (point-max))
   (cond
+   ((looking-at "):")
+    (goto-char (+ (point) 2))
+    "):")
    ;; The symbols "by", "from", "to", "while" and "do" mark the start
    ;; of a loop-clause if they are the first symbol of an
    ;; enclosed-clause, and is thus preceded by a symbol which may
@@ -589,6 +633,9 @@ with the equivalent upcased form."
 (defun a68--smie-backward-token ()
   (forward-comment (- (point)))
   (cond
+   ((looking-back "):")
+    (goto-char (- (point) 2))
+    "):")
    ;; See comments in a68--smie-forward-token for an explanation of
    ;; the handling of loop insertions -from- -to- -by- -while-.
    ((looking-back "\\<from\\>")

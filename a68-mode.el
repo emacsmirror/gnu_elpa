@@ -435,7 +435,7 @@ with the equivalent upcased form."
 ;;;; SMIE lexer
 
 (defvar a68--keywords-regexp
-  (regexp-opt '("+" "*" ";" ">" "<" ":=" "=" "," ":")))
+  (regexp-opt '("+" "*" ";" ">" "<" ":=" "=" "," ":" "~")))
 
 (defun a68-at-enclosed-clause ()
   "Return whether the point is at the beginning of an enclosed clause."

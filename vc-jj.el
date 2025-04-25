@@ -279,17 +279,17 @@ parents.map(|c| concat(
                             (propertize string 'face face)))))
          (info (key description change-id change-id-prefix commit-id commit-id-prefix)
            ;; format a changeset info line
-           (let ((change-id-suffix (substring change-id (length change-id-short)))
-                 (commit-id-suffix (substring commit-id (length commit-id-short))))
+           (let ((change-id-suffix (substring change-id (length change-id-prefix)))
+                 (commit-id-suffix (substring commit-id (length commit-id-prefix))))
              (concat
               (str (format "% -11s: " key) 'vc-dir-header)
               ;; There's no vc-dir-header-value-emphasis or similar
               ;; face, so we re-use vc-dir-status-up-to-date to render
               ;; the unique prefix
               " "
-              (str change-id-suffix 'vc-dir-status-ignored change-id-short)
+              (str change-id-suffix 'vc-dir-status-ignored change-id-prefix)
               " "
-              (str commit-id-suffix 'vc-dir-status-ignored commit-id-short)
+              (str commit-id-suffix 'vc-dir-status-ignored commit-id-prefix)
               " "
               (if (string-empty-p description)
                   (str "(no description set)")

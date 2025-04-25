@@ -454,12 +454,6 @@ Also see `denote-org-dblock--files'."
                            :include-date nil))
   (org-update-dblock))
 
-;; NOTE 2024-03-30: This is how the autoload is done in org.el.
-;;;###autoload
-(eval-after-load 'org
-  '(progn
-     (org-dynamic-block-define "denote-links" 'denote-org-dblock-insert-links)))
-
 ;; TODO 2024-12-04: Maybe we can do this for anything that deals with
 ;; regular expressions that users provide?  I prefer not to do the
 ;; work if nobody wants it, though I am mentioning this here just in
@@ -520,12 +514,6 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
                            :include-date nil))
   (org-update-dblock))
 
-;; NOTE 2024-03-30: This is how the autoload is done in org.el.
-;;;###autoload
-(eval-after-load 'org
-  '(progn
-     (org-dynamic-block-define "denote-missing-links" 'denote-org-dblock-insert-missing-links)))
-
 ;;;###autoload
 (defun org-dblock-write:denote-missing-links (params)
   "Function to update `denote-links' Org Dynamic blocks.
@@ -577,12 +565,6 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
                            :this-heading-only nil
                            :include-date nil))
   (org-update-dblock))
-
-;; NOTE 2024-03-30: This is how the autoload is done in org.el.
-;;;###autoload
-(eval-after-load 'org
-  '(progn
-     (org-dynamic-block-define "denote-backlinks" 'denote-org-dblock-insert-backlinks)))
 
 ;;;###autoload
 (defun org-dblock-write:denote-backlinks (params)
@@ -707,12 +689,6 @@ among `denote-sort-components'."
                            :add-links nil))
   (org-update-dblock))
 
-;; NOTE 2024-03-30: This is how the autoload is done in org.el.
-;;;###autoload
-(eval-after-load 'org
-  '(progn
-     (org-dynamic-block-define "denote-files" 'denote-org-dblock-insert-files)))
-
 ;;;###autoload
 (defun org-dblock-write:denote-files (params)
   "Function to update `denote-files' Org Dynamic blocks.
@@ -832,12 +808,6 @@ as its own heading."
                            :add-links nil))
   (org-update-dblock))
 
-;; NOTE 2024-03-30: This is how the autoload is done in org.el.
-;;;###autoload
-(eval-after-load 'org
-  '(progn
-     (org-dynamic-block-define "denote-files-as-headings" 'denote-org-dblock-insert-files-as-headings)))
-
 ;;;###autoload
 (defun org-dblock-write:denote-files-as-headings (params)
   "Function to update `denote-files' Org Dynamic blocks.
@@ -852,6 +822,16 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
     (when block-name (insert "#+name: " block-name "\n"))
     (when rx (denote-org-dblock-add-files-as-headings rx add-links sort reverse excluded-dirs not-rx)))
   (join-line)) ; remove trailing empty line
+
+;; NOTE 2024-03-30: This is how the autoload is done in org.el.
+;;;###autoload
+(eval-after-load 'org
+  '(progn
+     (org-dynamic-block-define "denote-links" 'denote-org-dblock-insert-links)
+     (org-dynamic-block-define "denote-missing-links" 'denote-org-dblock-insert-missing-links)
+     (org-dynamic-block-define "denote-backlinks" 'denote-org-dblock-insert-backlinks)
+     (org-dynamic-block-define "denote-files" 'denote-org-dblock-insert-files)
+     (org-dynamic-block-define "denote-files-as-headings" 'denote-org-dblock-insert-files-as-headings)))
 
 (provide 'denote-org)
 ;;; denote-org.el ends here

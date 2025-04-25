@@ -36,7 +36,12 @@
 ;; Vliet, and documented in two main works:
 ;;
 ;; - "An operator-priority grammar for Algol 68+"
+;;   L.G.L.T Meertens & J.C. van Vliet
+;;   https://ir.cwi.nl/pub/9325
+;;
 ;; - "Making ALGOL 68+ texts conform to an operator-priority grammar"
+;;   L.G.L.T Meertens & J.C. van Vliet
+;;   https://ir.cwi.nl/pub/9318
 ;;
 ;; The first article provides an operator-priority grammar for the
 ;; language, and indicates what inserts are necessary in order to
@@ -437,18 +442,20 @@ with the equivalent upcased form."
 (defvar a68--keywords-regexp
   (regexp-opt '("+" "*" ";" ">" "<" ":=" "=" "," ":" "~")))
 
-(defun a68-at-enclosed-clause ()
-  "Return whether the point is at the beginning of an enclosed clause."
+(defun a68-at-strong-void-enclosed-clause ()
+  "Return whether the point is at the beginning of a VOID enclosed clause."
   (save-excursion
     (forward-comment (- (point)))
-    (or (looking-back (regexp-opt '(":" ":=" ":/=:" "=" "," ";" "["
-                                        "@" "begin" "if" "then" "elif"
-                                        "else" "case" "in" "ouse" "out"
-                                        "of" "from" "by" "to" "while"
-                                        "do" "(" "|" ")" "def" "postlude")))
-        ;; operator, so any nomad or monad.
-        (looking-back (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
-                                    ">" "<" "/" "=" "*")))
+    (or
+     ;; A VOID enclosed-clause may be preceded by one of the following
+     ;; symbols.
+     ;;
+     ;; Note the following symbols would have also be included if we
+     ;; were detecting a SORT MODE enclosed-clause: := :=: :/=: = [
+     ;; @ of from by to ) operator.
+     (looking-back (regexp-opt '(":" "," ";" "begin" "if" "then" "elif"
+                                    "else" "case" "in" "ouse" "out"
+                                    "while" "do" "(" "|" "|:" "def" "postlude")))
         ;; tag denotation or mode indication
         (and (looking-back "[A-Z][A-Za-z_]+")
              ;; Given the context at hand, i.e. a bold word followed
@@ -477,7 +484,7 @@ with the equivalent upcased form."
                 (looking-back (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
                                             ">" "<" "/" "=" "*")))))))))
 
-(defun a68-at-after-an-unit ()
+(defun a68-at-post-unit ()
   "Return whether the point is immediately after an unit."
   (save-excursion
     (forward-comment (- (point)))
@@ -515,56 +522,56 @@ with the equivalent upcased form."
    ;; the beginning of a loop, provisionally, so it could be
    ;; corrected later by a top-down parser.  We proceed the same way
    ;; here, only our decision is final, be it right or wrong ;)
-   ((looking-at "from")
+   ((looking-at "\\<from\\>")
     (cond
-     ((a68-at-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause)
       (goto-char (+ (point) 4))
       "-from-")
-     ((a68-at-after-an-unit)
+     ((a68-at-post-unit)
       (goto-char (+ (point) 4))
       "from")
      (t
       (goto-char (+ (point) 4))
       "-from-")))
-   ((looking-at "by")
+   ((looking-at "\\<by\\>")
     (cond
-     ((a68-at-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause)
       (goto-char (+ (point) 2))
       "-by-")
-     ((a68-at-after-an-unit)
+     ((a68-at-post-unit)
       (goto-char (+ (point) 2))
       "by")
      (t
       (goto-char (+ (point) 2))
       "-by-")))
-   ((looking-at "to")
+   ((looking-at "\\<to\\>")
     (cond
-     ((a68-at-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause)
       (goto-char (+ (point) 2))
       "-to-")
-     ((a68-at-after-an-unit)
+     ((a68-at-post-unit)
       (goto-char (+ (point) 2))
       "to")
      (t
       (goto-char (+ (point) 2))
       "-to-")))
-   ((looking-at "while")
+   ((looking-at "\\<while\\>")
     (cond
-     ((a68-at-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause)
       (goto-char (+ (point) 5))
       "-while-")
-     ((a68-at-after-an-unit)
+     ((a68-at-post-unit)
       (goto-char (+ (point) 5))
       "while")
      (t
       (goto-char (+ (point) 5))
       "-while-")))
-   ((looking-at "do")
+   ((looking-at "\\<do\\>")
     (cond
-     ((a68-at-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause)
       (goto-char (+ (point) 2))
       "-do-")
-     ((a68-at-after-an-unit)
+     ((a68-at-post-unit)
       (goto-char (+ (point) 2))
       "do")
      (t
@@ -584,48 +591,48 @@ with the equivalent upcased form."
   (cond
    ;; See comments in a68--smie-forward-token for an explanation of
    ;; the handling of loop insertions -from- -to- -by- -while-.
-   ((looking-back "from")
+   ((looking-back "\\<from\\>")
     (cond
      (goto-char (- (point) 4))
-     ((a68-at-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause)
       "-from-")
-     ((a68-at-after-an-unit)
+     ((a68-at-post-unit)
       "from")
      (t
       "-from-")))
-   ((looking-back "by")
+   ((looking-back "\\<by\\>")
     (goto-char (- (point) 2))
     (cond
-     ((a68-at-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause)
       "-by-")
-     ((a68-at-after-an-unit)
+     ((a68-at-post-unit)
       "by")
      (t
       "-by-")))
-   ((looking-back "to")
+   ((looking-back "\\<to\\>")
     (goto-char (- (point) 2))
     (cond
-     ((a68-at-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause)
       "-to-")
-     ((a68-at-after-an-unit)
+     ((a68-at-post-unit)
       "to")
      (t
       "-to-")))
-   ((looking-back "while")
+   ((looking-back "\\<while\\>")
     (goto-char (- (point) 5))
     (cond
-     ((a68-at-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause)
       "-while-")
-     ((a68-at-after-an-unit)
+     ((a68-at-post-unit)
       "while")
      (t
       "-while-")))
-   ((looking-back "do")
+   ((looking-back "\\<do\\>")
     (goto-char (- (point) 2))
     (cond
-     ((a68-at-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause)
       "-do-")
-     ((a68-at-after-an-unit)
+     ((a68-at-post-unit)
       "do")
      (t
       "-do-")))

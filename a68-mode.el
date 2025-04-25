@@ -26,6 +26,28 @@
 
 ;; A major mode for editing Algol 68 code.
 
+;; This mode uses SMIE in order to implement syntax-driven
+;; highlighting and automatic indentation.  SMIE is based on operator
+;; precedence grammars, which often makes it difficult to express the
+;; syntax of programming languages due to their many restrictions.
+;;
+;; Fortunately, the parsing of Algol 68 by the means of an operator
+;; precedence grammar has been extensively studied by Meertens and van
+;; Vliet, and documented in two main works:
+;;
+;; - "An operator-priority grammar for Algol 68+"
+;; - "Making ALGOL 68+ texts conform to an operator-priority grammar"
+;;
+;; The first article provides an operator-priority grammar for the
+;; language, and indicates what inserts are necessary in order to
+;; comply with the grammar's structural restrictions.  This is the
+;; basis of many of the rules in the SMIE grammar used in this file,
+;; particularly the tricky cases like loop clauses.
+;;
+;; The second article provides rules to determine when the several
+;; inserts must be inserted by the lexer.  This is the basis of the
+;; SMIE lexer used in this file.
+
 ;;; Code:
 
 (require 'font-lock)
@@ -338,17 +360,39 @@ with the equivalent upcased form."
     (proc-decl (proc-decl "," proc-decl)
                ("op" ids "=" args ids ":" exp)
                ("proc" ids "=" ids ":" exp))
-    ;; TODO: this don't cover all the loop
-    ;; possibilities.
-    (loop ("-do-" "do" exp "od")
-          ("for" exp "from" exp "to" exp "by" exp
-           "do" exp "od")
-          ("for" exp "from" exp "to" exp
-           "do" exp "od")
-          ("for" exp "by" exp "to" exp
-           "do" exp "od")
-          ("-to-" "to" exp "do" exp "od")
-          ("while" exp "do" exp "od"))
+    ;; Loop clauses.
+    ;;   loop clause :
+    ;;     loop insert, for part, (from part), (by part), (to part), repeating part.
+    ;;   for part :
+    ;;     (for token, identifier).
+    ;;   from part :
+    ;;     from token, unit.
+    ;;   by part :
+    ;;     by token, unit.
+    ;;   to part :
+    ;;     to token, unit.
+    ;;   repeating part :
+    ;;     (while part), do part.
+    ;;   while part :
+    ;;     while token, enquiry clause.
+    ;;   do part :
+    ;;     do token, serial clause, od token.
+    (loop-clause ("for" id "do" exp "od")
+                 ("for" id "from" exp "do" exp "od")
+                 ("for" id "from" exp "by" exp "do" exp "od")
+                 ("for" id "from" exp "by" exp "to" exp "do" exp "od")
+                 ("for" id "from" exp "by" exp "to" exp "while" exp "do" exp "od")
+                 ("-from-" exp "by" exp "to" exp "while" exp "do" exp "od")
+                 ("-from-" exp "by" exp "to" exp "do" exp "od")
+                 ("-from-" exp "by" exp "do" exp "od")
+                 ("-from-" exp "do" exp "od")
+                 ("-by-" exp "to" exp "while" exp "do" exp "od")
+                 ("-by-" exp "while" exp "do" exp "od")
+                 ("-by-" exp "do" exp "od")
+                 ("-to-" exp "while" exp "do" exp "od")
+                 ("-to-" exp "do" exp "od")
+                 ("-while-" exp "do" exp "od")
+                 ("-do-" exp "od"))
     (insts (insts ";" insts)
            (id ":=" exp)
            ("if" exp "then" insts "fi")
@@ -365,7 +409,7 @@ with the equivalent upcased form."
            (op-decl)
            (type-decl)
            (proc-decl)
-           (loop)))
+           (loop-clause)))
   "Algol 68 BNF operator precedence grammar to use with SMIE")
 
 (defvar a68--smie-grammar-upper
@@ -388,17 +432,149 @@ with the equivalent upcased form."
                     '((assoc "=" "/" ":=" ":=:" ":/=:"
                              "+" "-" "*" "/")))))
 
-;;;; SMIE token movement.
+;;;; SMIE lexer
 
 (defvar a68--keywords-regexp
   (regexp-opt '("+" "*" ";" ">" "<" ":=" "=" "," ":")))
 
+(defun a68-at-enclosed-clause ()
+  "Return whether the point is at the beginning of an enclosed clause."
+  (save-excursion
+    (forward-comment (- (point)))
+    (or (looking-back (regexp-opt '(":" ":=" ":/=:" "=" "," ";" "["
+                                        "@" "begin" "if" "then" "elif"
+                                        "else" "case" "in" "ouse" "out"
+                                        "of" "from" "by" "to" "while"
+                                        "do" "(" "|" ")" "def" "postlude")))
+        ;; operator, so any nomad or monad.
+        (looking-back (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
+                                    ">" "<" "/" "=" "*")))
+        ;; tag denotation or mode indication
+        (and (looking-back "[A-Z][A-Za-z_]+")
+             ;; Given the context at hand, i.e. a bold word followed
+             ;; by "from", "to", "by", "while" or "do", we are at the
+             ;; beginning of an enclosed clause if we are part of:
+             ;;
+             ;; - An access-clause: ... access <bold-word> to ...
+             ;; - Or a cast:        ... ; <bold-word> to ...
+             (save-excursion
+               (forward-comment (- (point)))
+               (or
+                ;; In the case of an access-clause, the
+                ;; module-indication is preceded by one of the
+                ;; following symbols:
+                (looking-back (regexp-opt '("access" "," "pub")))
+                ;; The symbols that may precede a cast are the same
+                ;; as those that may precede an enclosed-clause, with
+                ;; the exception of the close-symbol, mode-indication
+                ;; and module-indication.
+                (looking-back (regexp-opt '(":" ":=" ":/=:" "=" "," ";" "["
+                                            "@" "begin" "if" "then" "elif"
+                                            "else" "case" "in" "ouse" "out"
+                                            "of" "from" "by" "to" "while"
+                                            "do" "(" "|" "def" "postlude")))
+                ;; operator, so any nomad or monad.
+                (looking-back (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
+                                            ">" "<" "/" "=" "*")))))))))
+
+(defun a68-at-after-an-unit ()
+  "Return whether the point is immediately after an unit."
+  (save-excursion
+    (forward-comment (- (point)))
+    (or (looking-back (regexp-opt '("end" "fi" "esac" "]" "nil" "od" ")"
+                                    "skip" "~")))
+        ;; This cover the end of denotations.
+        (looking-back "\\([0-9]+\\|[\"]\\)")
+        ;; tags
+        (looking-back "\\<[a-z][a-z_]*\\>")
+        ;; A bold word finishes an unit if it is part of a generator,
+        ;; like in: ... loc <mode-indication> ...
+        ;;
+        ;; In this case, the set of symbols which may precede the
+        ;; mode-indication consists of the symbols "loc" and "heap",
+        ;; plus those symbols which may immediately precede a
+        ;; mode-indication in an actual-MODE-declarer.
+        (and (looking-back "[A-Z][A-Za-z_]+")
+             (looking-back (regexp-opt '("loc" "heap"
+                                         "ref" ")" "]"
+                                         "proc" "flex")))))))
+
 (defun a68--smie-forward-token ()
   (forward-comment (point-max))
   (cond
+   ;; The symbols "by", "from", "to", "while" and "do" mark the start
+   ;; of a loop-clause if they are the first symbol of an
+   ;; enclosed-clause, and is thus preceded by a symbol which may
+   ;; appear just before an enclosed-clause.
+   ;;
+   ;; On the other hand, they do not mark the start of a loop-clause
+   ;; if they are preceded by symbols that mark the end of an unit.
+   ;;
+   ;; In case a decisive answer cannot be determined, probably due
+   ;; to a syntax error, Meertens and van Vliet decided to assume
+   ;; the beginning of a loop, provisionally, so it could be
+   ;; corrected later by a top-down parser.  We proceed the same way
+   ;; here, only our decision is final, be it right or wrong ;)
+   ((looking-at "from")
+    (cond
+     ((a68-at-enclosed-clause)
+      (goto-char (+ (point) 4))
+      "-from-")
+     ((a68-at-after-an-unit)
+      (goto-char (+ (point) 4))
+      "from")
+     (t
+      (goto-char (+ (point) 4))
+      "-from-")))
+   ((looking-at "by")
+    (cond
+     ((a68-at-enclosed-clause)
+      (goto-char (+ (point) 2))
+      "-by-")
+     ((a68-at-after-an-unit)
+      (goto-char (+ (point) 2))
+      "by")
+     (t
+      (goto-char (+ (point) 2))
+      "-by-")))
+   ((looking-at "to")
+    (cond
+     ((a68-at-enclosed-clause)
+      (goto-char (+ (point) 2))
+      "-to-")
+     ((a68-at-after-an-unit)
+      (goto-char (+ (point) 2))
+      "to")
+     (t
+      (goto-char (+ (point) 2))
+      "-to-")))
+   ((looking-at "while")
+    (cond
+     ((a68-at-enclosed-clause)
+      (goto-char (+ (point) 5))
+      "-while-")
+     ((a68-at-after-an-unit)
+      (goto-char (+ (point) 5))
+      "while")
+     (t
+      (goto-char (+ (point) 5))
+      "-while-")))
+   ((looking-at "do")
+    (cond
+     ((a68-at-enclosed-clause)
+      (goto-char (+ (point) 2))
+      "-do-")
+     ((a68-at-after-an-unit)
+      (goto-char (+ (point) 2))
+      "do")
+     (t
+      (goto-char (+ (point) 2))
+      "-to-")))
+   ;; Keywords.
    ((looking-at a68--keywords-regexp)
     (goto-char (match-end 0))
     (match-string-no-properties 0))
+   ;; Words.
    (t (buffer-substring-no-properties (point)
                                       (progn (skip-syntax-forward "w_")
                                              (point))))))
@@ -406,6 +582,53 @@ with the equivalent upcased form."
 (defun a68--smie-backward-token ()
   (forward-comment (- (point)))
   (cond
+   ;; See comments in a68--smie-forward-token for an explanation of
+   ;; the handling of loop insertions -from- -to- -by- -while-.
+   ((looking-back "from")
+    (cond
+     (goto-char (- (point) 4))
+     ((a68-at-enclosed-clause)
+      "-from-")
+     ((a68-at-after-an-unit)
+      "from")
+     (t
+      "-from-")))
+   ((looking-back "by")
+    (goto-char (- (point) 2))
+    (cond
+     ((a68-at-enclosed-clause)
+      "-by-")
+     ((a68-at-after-an-unit)
+      "by")
+     (t
+      "-by-")))
+   ((looking-back "to")
+    (goto-char (- (point) 2))
+    (cond
+     ((a68-at-enclosed-clause)
+      "-to-")
+     ((a68-at-after-an-unit)
+      "to")
+     (t
+      "-to-")))
+   ((looking-back "while")
+    (goto-char (- (point) 5))
+    (cond
+     ((a68-at-enclosed-clause)
+      "-while-")
+     ((a68-at-after-an-unit)
+      "while")
+     (t
+      "-while-")))
+   ((looking-back "do")
+    (goto-char (- (point) 2))
+    (cond
+     ((a68-at-enclosed-clause)
+      "-do-")
+     ((a68-at-after-an-unit)
+      "do")
+     (t
+      "-do-")))
    ((looking-back a68--keywords-regexp (- (point) 2) t)
     (goto-char (match-beginning 0))
     (match-string-no-properties 0))

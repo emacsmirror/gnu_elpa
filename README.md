@@ -36,22 +36,72 @@ still generate the table of problems and solutions.
 
 ## Usage
 
-There are two main components involved in defining a worksheet:
 
-1.  the problem templates
-2.  the problem-set block
+### Starting Mathsheet
 
-Both are described in detail below.
+Open mathsheet using <kbd>M-x</kbd>
+<kbd>mathsheet-open</kbd>
+
+
+### Defining a Worksheet
+
+Worksheets are defined using a form. Forms-mode provides a way to add,
+save, load records based on a form. See [forms-mode doc](https://www.gnu.org/software/emacs/manual/html_mono/forms.html#Forms-Commands) for
+details. The mathsheet form specifies the following fields:
+
+-   **`name`:** The base name of the file to write. Spaces will be converted
+    to dashes and a `pdf` extension will be added.
+-   **`count`:** the total number of problems to put on the worksheet
+-   **`columns`:** the number of columns the worksheet should have.
+-   **`instruction`:** a brief, one sentence instruction that will be
+    included at the top of the sheet to guide the student.
+-   **`problems`:** A multi-line, pipe (`|`) delimited string describing the
+    problems to include on the worksheet.
+
+Consider this example value for `problems`:
+
+    3 | 1 | [1..10] + [1..20]
+    1 | 2 | [a=1..10] - [0..$a]
+
+Each `problems` line contains the following fields:
+
+-   **`weight (w)`:** The relative number of this type of problem to include
+    on the worksheet. A weight of zero means the template will not be
+    used. In the example above, three fourths of the worksheet problems
+    will be addition.
+-   **`order (o)`:** Problems are ordered on the sheet in ascending
+    order. Two problems with the same order will be intermingled. In the
+    example above, all of the addition problems will come before the
+    subtraction problems.
+-   **`template`:** this is the template used to generate problems of this
+    type.
+
+Generate a worksheet by running <kbd>C-c</kbd>
+<kbd>C-r</kbd> from the mathsheet form.
+
+
+### Customization
+
+Mathsheet allows for the following customizations:
+
+-   **`mathsheet-data-file`:** This is where mathsheet data is stored. It
+    defaults to a file in your emacs user directory. You can probably
+    leave it there.
+-   **`mathsheet-output-directory`:** This is where worksheets should be
+    written. It defaults to your home directory. You'll probably want to
+    move it somewhere else.
 
 
 ### Problem Templates
 
+The worksheet is made of a set of math problems. Each problem is
+defined by a template that lays out an equation or expression and
+shows where variables or numbers should be.
+
 1.  Expression Templates
 
-    The worksheet is made of a set of math problems. Each problem is
-    defined by a template that lays out an equation or expression and
-    shows where variables or numbers should be. For example, consider this
-    template:
+    Expression templates define an expression which must be evaluated.
+    For example, consider this template:
     
         [0..15] + [1..10]
     
@@ -118,174 +168,19 @@ Both are described in detail below.
         [-10..10] / [-5..-1,1..5]
 
 
-### The Problem Template Table
-
-1.  Overview
-
-    In order to make it possible to have more than one problem template on
-    a worksheet, each worksheet is configured with a set of templates in a
-    templates table. For example
-    
-    <table id="orga527c8f" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-    
-    
-    <colgroup>
-    <col  class="org-right" />
-    
-    <col  class="org-right" />
-    
-    <col  class="org-left" />
-    
-    <col  class="org-left" />
-    </colgroup>
-    <thead>
-    <tr>
-    <th scope="col" class="org-right">weight</th>
-    <th scope="col" class="org-right">order</th>
-    <th scope="col" class="org-left">template</th>
-    <th scope="col" class="org-left">description</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-    <td class="org-right">3</td>
-    <td class="org-right">1</td>
-    <td class="org-left">[1..10] + [1..20]</td>
-    <td class="org-left">addition</td>
-    </tr>
-    
-    <tr>
-    <td class="org-right">1</td>
-    <td class="org-right">2</td>
-    <td class="org-left">[a=1..10] - [0..$a]</td>
-    <td class="org-left">subtraction above zero</td>
-    </tr>
-    </tbody>
-    </table>
-    
-    The table contains the following columns:
-    
-    -   **weight:** The relative number of this type of problem to include on
-        the worksheet. A weight of zero means the template will not be
-        used. For `first-sheet` three out of four of the worksheet problems
-        will be addition.
-    -   **order:** Problems are ordered on the sheet in ascending order. Two
-        problems with the same order will be intermingled. For `first-sheet`
-        all of the addition problems will come first.
-    -   **template:** this is the template used to generate problems of this
-        type.
-    -   **description:** This column is just for your notes. It is not used in
-        worksheet generation.
-    
-    Also notice that the table is assigned a name. That name will be used
-    to refer to it later.
-
-2.  Example
-
-    Here is another example template table.
-    
-    <table id="orgf65faac" border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-    
-    
-    <colgroup>
-    <col  class="org-right" />
-    
-    <col  class="org-right" />
-    
-    <col  class="org-left" />
-    
-    <col  class="org-left" />
-    </colgroup>
-    <thead>
-    <tr>
-    <th scope="col" class="org-right">weight</th>
-    <th scope="col" class="org-right">order</th>
-    <th scope="col" class="org-left">template</th>
-    <th scope="col" class="org-left">description</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-    <td class="org-right">3</td>
-    <td class="org-right">1</td>
-    <td class="org-left">[1..10] + [0..10]</td>
-    <td class="org-left">simple</td>
-    </tr>
-    
-    <tr>
-    <td class="org-right">2</td>
-    <td class="org-right">2</td>
-    <td class="org-left">[1..10] + [8..15]</td>
-    <td class="org-left">second number bigger</td>
-    </tr>
-    
-    <tr>
-    <td class="org-right">1</td>
-    <td class="org-right">2</td>
-    <td class="org-left">[a=3..10] - [0..$a]</td>
-    <td class="org-left">subtraction</td>
-    </tr>
-    
-    <tr>
-    <td class="org-right">1</td>
-    <td class="org-right">3</td>
-    <td class="org-left">[1..10] + [1..7] + [1..5]</td>
-    <td class="org-left">three terms</td>
-    </tr>
-    
-    <tr>
-    <td class="org-right">1</td>
-    <td class="org-right">4</td>
-    <td class="org-left">[a=1..10] + [0..10] - [0..$a]</td>
-    <td class="org-left">three terms with subtraction</td>
-    </tr>
-    
-    <tr>
-    <td class="org-right">0</td>
-    <td class="org-right">0</td>
-    <td class="org-left">[$a*[1..5]] / [a=1..10]</td>
-    <td class="org-left">division</td>
-    </tr>
-    </tbody>
-    </table>
-
-
-### The Problem-Set Block
-
-1.  Overview
-
-    The second thing needed to generate a mathsheet is an [org dynamic
-    block](https://orgmode.org/manual/Dynamic-Blocks.html). Here is an example:
-    
-    The block name must be `problem-set` and it must specify the following parameters
-    
-    -   **`:templates`:** The name of the templates table to use
-    -   **`:count`:** the total number of problems to put on the sheet
-    -   **`:prob-cols`:** the number of columns in which to lay out the problems
-    -   **`:instruction`:** a brief instruction that will be included at the top
-        of the sheet to guide the student
-    
-    <kbd>C-c</kbd> <kbd>C-c</kbd> on
-    the block `BEGIN` line or `END` line will trigger org-mathsheet to
-    generate a new set of problems. The new problems and answers will be
-    written to a table in the body of the dynamic block, and you will have
-    the option (via a yes/no prompt in the mini bar) to write those
-    problems to a PDF. On "yes", org-mathsheet will write a PDF to a file
-    named by the template table name. If an existing file exists it will
-    be overwritten. On "no", nothing will be written.
-
-2.  Example
-
-    This is an example problem-set block.
-
-
 # Code walkthrough
 
 
-## Problem generation
+## Front matter
 
 
-### Header
+### GNU header components
+
+This lays out some standard header content that is repeated for each
+file.
+
+
+### Full header
 
 This is the standard Emacs package header.
 
@@ -293,16 +188,16 @@ This is the standard Emacs package header.
 problems as well as converting them to mathematical notation in LaTeX
 format.
 
-    ;;; org-mathsheet.el --- Generate dynamic math worksheets  -*- lexical-binding:t -*-
+    ;;; mathsheet.el --- Generate dynamic math worksheets  -*- lexical-binding:t -*-
     
     ;; Copyright (C) 2025 Free Software Foundation, Inc.
     
     ;; Author: Ian Martins <ianxm@jhu.edu>
     ;; Keywords: tools, education, math
-    ;; Homepage: https://gitlab.com/ianxm/org-mathsheet
+    ;; Homepage: https://gitlab.com/ianxm/mathsheet
     ;; Version: 1.0
     ;; Package-Requires: ((peg "1.0")
-    ;;                    (emacs "26.0")
+    ;;                    (emacs "28.1")
     ;;                    calc)
     
     ;; This file is not part of GNU Emacs.
@@ -322,41 +217,312 @@ format.
     
     ;;; Commentary:
     
-    ;; This package generates dynamic math worksheets. The types and
-    ;; distribution of problems is highly customizable. Problem sets are
-    ;; defined in org tables, generated in dynamic blocks for review, and
-    ;; exported to PDF for printing.
+    ;; This package generates dynamic math worksheets.  The types and
+    ;; distribution of problems is highly customizable.  Problem sets are
+    ;; defined using templates and exported to PDF for printing.
     
     ;;; Code:
 
 
 ### Dependencies
 
-This package needs [peg](https://elpa.gnu.org/packages/peg.html). We also need [calc](https://www.gnu.org/software/emacs/manual/html_mono/calc.html) and some [org-table](https://orgmode.org/manual/Tables.html) and
-[org-babel](https://orgmode.org/org.html#Working-with-Source-Code) functions.
+This package needs [forms-mode](https://www.gnu.org/software/emacs/manual/html_mono/forms.html), [peg](https://elpa.gnu.org/packages/peg.html), [calc](https://www.gnu.org/software/emacs/manual/html_mono/calc.html). Forms mode and Calc are
+included in Emacs but we need to make sure they have been loaded.
 
+    (require 'forms)
     (require 'peg)
     (require 'calc)
     
     (declare-function math-read-expr "calc-ext")
-    (declare-function org-table-align "org-table")
-    (declare-function org-table-to-lisp "org-table")
-    (declare-function org-babel-named-data-regexp-for-name "ob-core")
 
 
 ### Variables
 
-We need `org-mathsheet--var-list` to keep track of the variables between fields.
+Here we define a customize group, some customize variables that
+provide for configuring where form records are stored and where output
+is written, and some non-customize variables used internally.
 
-`org-mathsheet--worksheet-template` is the LaTeX template for the
+    (defgroup mathsheet nil
+      "Options for customizing Mathsheet."
+      :prefix "mathsheet-"
+      :group 'applications
+      :tag "mathsheet")
+    
+    (defcustom mathsheet-data-file
+      (expand-file-name "mathsheet.dat" user-emacs-directory)
+      "Where to store saved mathsheet configurations.
+    
+    The default is to save them to a file in the private emacs
+    configuration directory."
+      :type 'file
+      :group 'mathsheet)
+    
+    (defcustom mathsheet-output-directory
+      (expand-file-name "~")
+      "Where to write generated worksheets.
+    
+    The default is to write the to the home directory."
+      :type 'directory
+      :group 'mathsheet)
+
+We need `mathsheet--var-list` to keep track of the variables between
+fields since we need to access the list from multiple top level
+functions.
+
+`mathsheet--worksheet-template` is the LaTeX template for the
 worksheet, which is defined in a LaTeX source block below. This
 assigns the constant directly to that named block.
 
-    (defvar org-mathsheet--var-list '()
-      "List of variables used in a problem.")
+`mathsheet--num-pat` is defined here since it is referenced in a macro
+that is used in multiple places. If it was in the macro it would be
+redefined by expansion, and since the macro is called from different
+scopes we'd have to define it in multiple places to define it in the
+scope where the macro is called.
+
+    (defvar mathsheet--var-list '()
+      "List of variables used within a problem.")
     
-    (defconst org-mathsheet--worksheet-template page
+    (defconst mathsheet--worksheet-template page
       "LaTeX template for the worksheet.")
+    
+    (defconst mathsheet--num-pat (rx string-start (+ num) string-end)
+      "Pattern for integers.")
+    
+    (defvar mathsheet--field-sheet-name nil
+      "The form record name field.")
+    
+    (defvar mathsheet--field-count nil
+      "The form record count field.")
+    
+    (defvar mathsheet--field-cols nil
+      "The form record cols field.")
+    
+    (defvar mathsheet--field-instruction nil
+      "The form record instruction field.")
+    
+    (defvar mathsheet--field-problems nil
+      "The form record problems field.")
+
+
+## UI Form
+
+
+### Form configuration
+
+See details [here](https://www.gnu.org/software/emacs/manual/html_mono/forms.html).
+
+    (setq forms-file mathsheet-data-file)
+    
+    (setq forms-number-of-fields
+          (forms-enumerate
+           '(mathsheet--field-sheet-name
+             mathsheet--field-count
+             mathsheet--field-cols
+             mathsheet--field-instruction
+             mathsheet--field-problems)))
+    
+    (setq forms-field-sep "||")
+
+
+### New record defaults
+
+When new records are created using the form, initialize them with
+default values.
+
+    (defun mathsheet--new-record-filter (record)
+      "Set defaults in new RECORD."
+      (aset record 2 "20")                  ; default
+      (aset record 3 "2")                   ; default
+      (aset record 4 "Find the answer.")    ; default
+      (aset record 5 "1 | 1 | ")            ; lay out structure
+      record)
+    
+    (setq forms-new-record-filter 'mathsheet--new-record-filter)
+
+
+### Clean up template rows
+
+When the form is saved, clean up the template field by lining up the
+columns.
+
+    (defun mathsheet--format-templates (record)
+      "Format the template rows in RECORD to line up with the header."
+      (let ((rows (string-split (aref record 5) "\n"))
+            (pat (rx (* space) (group (+ alnum)) (* space) "|"
+                     (* space) (group (+ alnum)) (* space) "|"
+                     (* space) (group (+ nonl)))))
+        (setq rows (mapconcat
+                    (lambda (row)
+                      (string-match pat row)
+                      (format "%s | %s | %s"
+                              (match-string 1 row)
+                              (match-string 2 row)
+                              (match-string 3 row)))
+                    rows
+                    "\n"))
+        (aset record 5 rows))
+      record)
+    (setq forms-modified-record-filter 'mathsheet--format-templates)
+
+
+### Layout the actual form
+
+This defines the form itself and the locations of the fields.
+
+    (setq forms-format-list
+          (list
+           "====== Math Sheet Generator ======"
+           "\nSee https://gitlab.com/ianxm/mathsheet for details."
+    
+           "\n\nThe base-name of the mathsheet file to write, not including extension."
+           "\nName: " mathsheet--field-sheet-name
+    
+           "\n\nThe total number of problems to put on the sheet."
+           "\nCount: " mathsheet--field-count
+    
+           "\n\nThe number of columns the sheet should have."
+           "\nColumns: " mathsheet--field-cols
+    
+           "\n\nThe instruction to give at the top of the sheet."
+           "\nInstruction: " mathsheet--field-instruction
+    
+           "\n\nThe problem templates from which to generate problems for the sheet."
+           "\nOne per line, formatted as \"(w)eight | (o)rder | template\".\n\n"
+    
+           "w | o | template\n"
+           "--+---+------------------------------------\n"
+           mathsheet--field-problems
+           "\n"))
+
+
+## Extract configuration from form
+
+
+### Validate form fields
+
+This adds validation checks as needed for each field.
+
+    (defmacro mathsheet--validate (field-name field-str checks)
+      "Add specified checks to validate field input.
+    
+    FIELD-NAME is the name of the field.  FIELD-STR is the string
+    value in the record.  CHECKS is a list of symbols specifying
+    which validation checks to perform."
+      (let (ret)
+        (dolist (check checks)
+          (pcase check
+            ('not-null-p
+             (push
+              `(when (null ,field-str)
+                 (error (format "`%s' cannot be empty" ,field-name)))
+              ret))
+            ('is-num-p
+             (when (not (null field-str))
+               (push
+                `(when (not (string-match-p mathsheet--num-pat ,field-str))
+                   (error (format "`%s' must be a number" ,field-name)))
+                ret)))
+            (`(in-range-p ,min ,max)
+             (push
+              `(when
+                   (or
+                    (< (string-to-number ,field-str) ,min)
+                    (> (string-to-number ,field-str) ,max))
+                 (error (format "`%s' must be between %s and %s, inclusive"
+                                ,field-name ,min ,max)))
+              ret))
+            (_
+             (push
+              `(error (format "Unknown check: %s" ,check))
+              ret))
+            ))
+        (append '(progn) ret)))
+
+
+### Extract and parse
+
+`emacs-forms` treats everything like strings so we have to validate and
+convert the numbers. Also the problem field contains multi-line delimited
+data so we have to parse it.
+
+    (defun mathsheet--parse (record)
+      "Parse all of the fields of the current RECORD into an alist."
+      (let (count cols problems)
+    
+        (pcase record
+          (`(,name ,count-str ,cols-str ,instruction ,problems-str)
+    
+           ;; validate the form fields
+           (mathsheet--validate "name" name (not-null-p))
+           (mathsheet--validate "count" count-str (not-null-p is-num-p (in-range-p 1 30)))
+           (mathsheet--validate "cols" cols-str (not-null-p is-num-p (in-range-p 1 6)))
+           (mathsheet--validate "problems" problems-str (not-null-p))
+    
+           ;; convert the numbers and parse the problems field
+           (setq count (string-to-number count-str)
+                 cols (string-to-number cols-str)
+                 problems (mapcar           ; parse rows
+                           #'mathsheet--parse-problem-row
+                           (seq-filter      ; remove possible trailing empty line
+                            (lambda (x) (not (string-empty-p x)))
+                            (string-split   ; split lines
+                             problems-str
+                             "\n"))))
+    
+           `((:name . ,name)
+             (:count . ,count)
+             (:cols . ,cols)
+             (:instr . ,instruction)
+             (:probs .  ,problems)))
+          (_ (error "Invalid form data")))))
+
+This function is used to parse each problem row.
+
+    (defun mathsheet--parse-problem-row (row)
+      "Parse one ROW of the problem field into a list."
+      (let* ((fields (mapcar                ; trim whitespace
+                      #'string-trim
+                      (split-string         ; split fields
+                       row
+                       "|")))
+             (weight-str (nth 0 fields))
+             (order-str (nth 1 fields))
+             (template (nth 2 fields))
+             weight order)
+        (mathsheet--validate "weight" weight-str (not-null-p is-num-p))
+        (mathsheet--validate "order" order-str (not-null-p is-num-p))
+        (mathsheet--validate "template" template (not-null-p))
+        (setq weight (string-to-number weight-str)
+              order (string-to-number order-str))
+        (list weight order template)))
+
+
+### Initiate sheet generation
+
+    (defun mathsheet-generate-sheet ()
+      "Generate sheet for current form data."
+      (interactive)
+      (when (not (string= major-mode "forms-mode"))
+        (error "Mathsheet must be open to generate a sheet"))
+      (let ((config (mathsheet--parse forms--the-record-list)))
+        (let ((problems (mathsheet--generate-problems
+                         (alist-get :probs config)
+                         (alist-get :count config)))
+              ;; absolute path without extension
+              (fname (concat
+                      (file-name-as-directory mathsheet-output-directory)
+                      (string-replace " " "-" (alist-get :name config)))))
+          (mathsheet--write-worksheet
+           fname
+           (alist-get :instr config)
+           problems
+           (alist-get :cols config))
+          (message "Wrote %s problems to %s.pdf"
+                   (alist-get :count config)
+                   fname))))
+
+
+## Problem generation
 
 
 ### Scan problem
@@ -397,7 +563,7 @@ push a new field to the stack when we start a new field.
 new field to the list when we close the current field, taking it off
 of `open-fields`.
 
-    (defun org-mathsheet--scan-problem ()
+    (defun mathsheet--scan-problem ()
       "Scan a problem.
     
     This parses the problem and produces a list containing info about
@@ -477,10 +643,10 @@ be ambiguous:
     [1-5]
 
 The list of supported operators and math functions are listed both
-here and in `org-mathsheet--scan-problem`, so changes must be made in
+here and in `mathsheet--scan-problem`, so changes must be made in
 both places to keep them synced.
 
-    (defun org-mathsheet--reduce-field ()
+    (defun mathsheet--reduce-field ()
       "Reduce the field to a number.
     
     Parse the field again, replacing spans with random numbers and
@@ -501,7 +667,7 @@ both places to keep them synced.
            (operation (substring (or "+" "-" "*" "/")))
            (assignment var-lhs space "=" space (or range sequence)
                        `(v r -- (progn
-                                  (push (cons (intern v) r) org-mathsheet--var-list)
+                                  (push (cons (intern v) r) mathsheet--var-list)
                                   r)))
            (sequence (list (or range value) (* "," space (or range value)))
                      `(vals -- (seq-random-elt vals)))
@@ -514,7 +680,7 @@ both places to keep them synced.
            (parenthetical "(" (or expression value) ")")
            (var-lhs (substring letter)) ; var for assignment
            (var-rhs "$" (substring letter) ; var for use
-                    `(v -- (let ((val (alist-get (intern v) org-mathsheet--var-list)))
+                    `(v -- (let ((val (alist-get (intern v) mathsheet--var-list)))
                              (or val (error "Var %s not set" v)))))
            (math-func (substring (or "sqrt" "sin" "cos" "tan" "asin" "acos" "atan" "floor" "ceil" "round"))
                       parenthetical
@@ -531,11 +697,11 @@ both places to keep them synced.
 ### Replace field
 
 Replace a field with the value returned from reducing it. This uses
-`org-mathsheet--reduce-field` to determine the value to use in place of
+`mathsheet--reduce-field` to determine the value to use in place of
 the field.
 
-    (defun org-mathsheet--replace-field (node)
-      "Replace a field with the number to which it reduces.
+    (defun mathsheet--replace-field (node)
+      "Replace a field in NODE with the number to which it reduces.
     
     Update the current buffer by replacing the field at point in the
     current buffer with the number it reduces to.  NODE contains the
@@ -545,7 +711,7 @@ the field.
             val)
         (goto-char start)
         (when (looking-at "\\[")
-          (setq val (org-mathsheet--reduce-field))
+          (setq val (mathsheet--reduce-field))
           (goto-char start)
           (delete-char (- end start) t)
           (insert (number-to-string val)))))
@@ -558,7 +724,7 @@ replace) the fields in dependency order. We check dependencies then
 visit the node. We use the last field in the field structure to keep
 track of which fields have been visited.
 
-    (defun org-mathsheet--dfs-visit (node fields)
+    (defun mathsheet--dfs-visit (node fields)
       "Visit NODE as part of a DFS of the problem.
     
     Traverse the fields of a problem using depth first search to
@@ -570,10 +736,10 @@ track of which fields have been visited.
         (_                           ; process
          (setcar (cdddr node) 1)     ; started
          (dolist (dep (cadr node))
-           (org-mathsheet--dfs-visit
+           (mathsheet--dfs-visit
             (assq dep fields)
             fields))
-         (org-mathsheet--replace-field node) ; visit
+         (mathsheet--replace-field node) ; visit
          (setcar (cdddr node) 2)))) ; mark done
 
 
@@ -583,7 +749,7 @@ processes all fields in a problem.
 
     (full-problem (buffer-substring (point-at-bol) (point-at-eol)))
 
-    (defun org-mathsheet--fill-problem (full-problem)
+    (defun mathsheet--fill-problem (full-problem)
       "Replace all fields in FULL-PROBLEM.
     
     Goes through all fields in the given problem in dependency order
@@ -595,14 +761,14 @@ processes all fields in a problem.
           (goto-char (point-min))
     
           ;; find fields, assignment variables, algebraic variables, dependencies
-          (let* ((scan-ret (org-mathsheet--scan-problem))
+          (let* ((scan-ret (mathsheet--scan-problem))
                  (fields (alist-get :fields scan-ret))
                  (alg-vars (alist-get :alg-vars scan-ret)))
     
             ;; visit fields ordered according to dependencies
             (dolist (node fields)
-              (org-mathsheet--dfs-visit node fields))
-            (setq org-mathsheet--var-list '())
+              (mathsheet--dfs-visit node fields))
+            (setq mathsheet--var-list '())
     
             ;; return filled problem
             `((:problem . ,(buffer-string))
@@ -620,25 +786,14 @@ same `order`, they should be intermingled, but we add all problems for
 each template sequentially. In order to mix them up we shuffle the
 whole set and then reorder by `order`.
 
-    (defun org-mathsheet--generate-problems (template-name count)
-      "Use templates from TEMPLATE-NAME to generate COUNT problems.
+    (defun mathsheet--generate-problems (templates count)
+      "Use TEMPLATES to generate COUNT problems.
     
     Generate problems and answers based on what is defined in the
     given template table.  The template table defines problem
     templates as well as relative weights and how they should be
     ordered."
-      (let (total-weight templates problems)
-        (save-excursion
-          (goto-char (point-min))
-          (search-forward-regexp (org-babel-named-data-regexp-for-name template-name) nil t)
-    
-          ;; read table from buffer, drop header, convert fields to numbers or strings
-          (setq templates (mapcar
-                           (lambda (row) (list (string-to-number (nth 0 row))
-                                               (string-to-number (nth 1 row))
-                                               (substring-no-properties (nth 2 row))))
-                           (seq-drop (org-table-to-lisp) 2)))) ; load the table, drop the header
-    
+      (let (total-weight problems)
         ;; sort by weight (low to high)
         (setq templates (sort templates #'car-less-than-car)
               ;; calc total weight
@@ -661,7 +816,7 @@ whole set and then reorder by `order`.
                  (dup-count 0)
                  problem-set)
             (while (< added needed) ; add until "needed" are kept
-              (let* ((fill-ret (org-mathsheet--fill-problem (caddr item)))
+              (let* ((fill-ret (mathsheet--fill-problem (caddr item)))
                      (problem (alist-get :problem fill-ret))
                      (alg-vars (alist-get :alg-vars fill-ret))
                      (calc-string (if (not alg-vars)
@@ -703,64 +858,6 @@ whole set and then reorder by `order`.
         problems))
 
 
-## Update problem-set block
-
-This generates a problem set and writes it to the dynamic block. This
-is triggered by <kbd>C-c</kbd>
-<kbd>C-c</kbd> on the dynamic block header or
-footer.
-
-`params` is a property list of params on the block header line.
-
-First we generate the problems and answers, then we write them out to
-a table in the dynamic block, finally, if the user wants it, we
-generate a PDF with these problems.
-
-The reason for the yes/no prompt is to allow you to see the problem
-set that was generated to decide if you want to use it or generate
-another.
-
-    ;;;###autoload
-    (defun org-dblock-write:problem-set (params)
-      "Update problem-set block and optionally write a worksheet.
-    
-    PARAMS is a plist with the properties set on the dynamic block
-    header, which includes `:tempates' which is the name of the
-    templates table, `:count' which is the number of problems to put
-    on the worksheet, `:prob-cols' for the number of columns to use
-    for problems, and `:instruction' which is the content of the
-    instruction line at the top of the page."
-    
-      ;; write the table header
-      (insert "| problem | answer |\n")
-      (insert "|-\n")
-    
-      ;; generate problem set
-      (let ((problems (org-mathsheet--generate-problems
-                       (plist-get params :templates)
-                       (plist-get params :count))))
-    
-        ;; for each problem, write a row to the table
-        (insert
-         (mapconcat
-          (lambda (problem) (format "| %s | %s |"
-                                    (car problem)
-                                    (cadr problem)))
-          problems
-          "\n"))
-    
-        ;; align table
-        (org-table-align)
-    
-        ;; should we generate the sheet?
-        (when (y-or-n-p "Write worksheet? ")
-          (org-mathsheet--gen-worksheet
-           (plist-get params :templates)
-           (plist-get params :instruction)
-           problems
-           (plist-get params :prob-cols)))))
-
-
 ## Generate PDF
 
 
@@ -769,10 +866,10 @@ another.
 This wraps the problems with a LaTeX header and footer.
 
 This template doesn't use noweb but it uses noweb syntax (`<<label>>`)
-to mark where org-mathsheet will insert content. It's not possible
+to mark where mathsheet will insert content. It's not possible
 actually use noweb here since the problems and answers are coming from
 elisp and generated at runtime. Instead this template must be tangled
-to org-mathsheet.el as a template so the elisp functions can use it.
+to mathsheet.el as a template so the elisp functions can use it.
 
     \documentclass[12pt]{exam}
     \usepackage[top=1in, bottom=0.5in, left=0.8in, right=0.8in]{geometry}
@@ -817,7 +914,7 @@ answers are generated in standard emacs calc format. If they are to be
 written to a PDF we convert them to latex. emacs calc already knows
 how to convert between formats, so we let it do it.
 
-    (defun org-mathsheet--convert-to-latex (expr)
+    (defun mathsheet--convert-to-latex (expr)
       "Format the given calc expression EXPR for LaTeX.
     
     EXPR should be in normal calc format.  The result is the same
@@ -837,14 +934,14 @@ PDF. We save it as `[template-name].tex` and the final worksheet is
 named `[template-name].pdf`. Each execution with the same template name
 will overwrite the same file.
 
-    (defun org-mathsheet--gen-worksheet (file-name instruction problems prob-cols)
-      "Generate a worksheet with PROBLEMS.
+    (defun mathsheet--write-worksheet (fname instruction problems prob-cols)
+      "Write a worksheet to FNAME with INSTRUCTION and PROBLEMS.
     
-    Write a file named FILE-NAME.  Include the INSTRUCTION line at the
+    Write a file named FNAME.  Include the INSTRUCTION line at the
     top.  The problems will be arranged in PROB-COLS columns.  The
-    answers will be in 4 columns."
-      (with-temp-file (concat file-name ".tex")
-        (insert org-mathsheet--worksheet-template)
+    answers will be in 5 columns."
+      (with-temp-file (concat fname ".tex")
+        (insert mathsheet--worksheet-template)
     
         (goto-char (point-min))
         (search-forward "<<instruction>>")
@@ -861,7 +958,7 @@ will overwrite the same file.
               (insert (format (if (nth 3 row)
                                   "\\question %s\n"
                                 "\\question %s = \\rule[-.2\\baselineskip]{2cm}{0.4pt}\n")
-                              (org-mathsheet--convert-to-latex (car row)))))
+                              (mathsheet--convert-to-latex (car row)))))
             (insert "\\end{multicols}\n")
             (insert "\\vspace{\\stretch{1}}\n"))
     
@@ -872,27 +969,60 @@ will overwrite the same file.
             (insert (format "\\begin{multicols}{%s}\n" answ-cols))
             (dolist (row group)
               (insert (format "\\question %s\n"
-                              (org-mathsheet--convert-to-latex (cadr row)))))
+                              (mathsheet--convert-to-latex (cadr row)))))
             (insert "\\end{multicols}\n"))))
-      (call-process
-       "texi2pdf" nil (get-buffer-create "*Standard output*") nil
-       (concat  file-name ".tex")))
-
-
-### Footer
-
-    (provide 'org-mathsheet)
     
-    ;;; org-mathsheet.el ends here
+      (let* ((default-directory mathsheet-output-directory)
+             (ret (call-process
+                  "texi2pdf" nil (get-buffer-create "*Standard output*") nil
+                  (concat fname ".tex"))))
+        (unless (eq ret 0)
+          (error "PDF generation failed"))))
+
+
+## Convenience functions
+
+
+### Add key binding to form
+
+This adds the keybinding to run the mathsheet generator from the
+mathsheet form.
+
+    (when (null forms-mode-map)
+      (add-to-list
+       'forms-mode-hook
+       (lambda ()
+         (when (string= "mathsheet.el" (buffer-name))
+           (define-key forms-mode-map "\C-r" #'mathsheet-generate-sheet)))))
+
+
+### Open mathsheet
+
+This is a helper to open mathsheet with the configured data file.
+
+    ;;;###autoload
+    (defun mathsheet-open ()
+      "Open mathsheet."
+      (interactive)
+      (forms-find-file (locate-file "mathsheet.el" load-path)))
+
+
+## Footer
+
+This is the form file footer.
+
+    (provide 'mathsheet)
+    
+    ;;; mathsheet.el ends here
 
 
 # Literate Programming
 
-This is written as a [literate program](https://en.wikipedia.org/wiki/Literate_programming) using [Emacs
-org-mode](https://orgmode.org/). [The org file](mathsheet.md) contains the code and
-documentation for the math worksheet generation script.  When this
-file is saved, the source code is generated using `org-babel-tangle` and
-the readme is generated using `org-md-export-to-file`.
+This is written as a [literate program](https://en.wikipedia.org/wiki/Literate_programming) using [Emacs org-mode](https://orgmode.org/). [The org
+file](mathsheet.md) contains the code and documentation for the math worksheet
+generation script.  When this file is saved, the source code is
+generated using `org-babel-tangle` and the readme is generated using
+`org-md-export-to-file`.
 
 The first line of [the org file](mathsheet.md) configures emacs to run those commands
 whenever this file is saved, which generates the scripts and readme.

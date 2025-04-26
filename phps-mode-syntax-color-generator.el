@@ -129,6 +129,7 @@
                   (T_POW_EQUAL font-lock-constant-face table)
                   (T_PRINT font-lock-keyword-face table)
                   (T_PRIVATE font-lock-keyword-face table)
+                  (T_PROPERTY_C font-lock-constant-face table)
                   (T_PROTECTED font-lock-keyword-face table)
                   (T_PUBLIC font-lock-keyword-face table)
                   (T_READONLY font-lock-keyword-face table)

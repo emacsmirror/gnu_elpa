@@ -967,8 +967,6 @@
    (lambda() (looking-at ">>"))
    (lambda() (phps-mode-lexer--return-token 'T_SR)))
 
-  ;; TODO WAS HERE
-
   (phps-mode-lexer-generator--add-rule
    phps-mode-lexer-generator--table
    'ST_IN_SCRIPTING
@@ -1173,6 +1171,12 @@
    'ST_IN_SCRIPTING
    (lambda() (looking-at "__FUNCTION__"))
    (lambda() (phps-mode-lexer--return-token-with-indent 'T_FUNC_C)))
+
+  (phps-mode-lexer-generator--add-rule
+   phps-mode-lexer-generator--table
+   'ST_IN_SCRIPTING
+   (lambda() (looking-at "__PROPERTY__"))
+   (lambda() (phps-mode-lexer--return-token-with-indent 'T_PROPERTY_C)))
 
   (phps-mode-lexer-generator--add-rule
    phps-mode-lexer-generator--table
@@ -1383,7 +1387,7 @@
    (lambda()
      (looking-at
       (concat "\\(" phps-mode-lexer--tokens
-              "\\|[{}\"`]\\)")))
+              "\\|[(){}\"`]\\)")))
    (lambda()
      (let* ((start (match-beginning 0))
             (end (match-end 0))
@@ -1513,6 +1517,15 @@
                 start)
                start))))))))
 
+  (phps-mode-lexer-generator--add-rule
+   phps-mode-lexer-generator--table
+   'ST_LOOKING_FOR_PROPERTY
+   (lambda() (looking-at phps-mode-lexer--any-char))
+   (lambda()
+     (phps-mode-lexer--yyless 0)
+     (phps-mode-lexer--yy-pop-state)
+     (phps-mode-lexer--restart)))
+  
   (phps-mode-lexer-generator--add-rule
    phps-mode-lexer-generator--table
    'ST_IN_SCRIPTING
@@ -1702,9 +1715,7 @@
   (phps-mode-lexer-generator--add-rule
    phps-mode-lexer-generator--table
    'ST_END_HEREDOC
-   (lambda()
-     (looking-at
-      (concat phps-mode-lexer--any-char)))
+   (lambda() (looking-at phps-mode-lexer--any-char))
    (lambda()
      (let* ((start (match-beginning 0))
             (end (+ start

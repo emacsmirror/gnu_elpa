@@ -460,6 +460,7 @@ with the equivalent upcased form."
                      (exp ":/=:" exp)
                      (exp "is" exp)
                      (exp "isnt" exp))
+    (pragmat ("-pr-" exp "pr"))
     (insts (insts ";" insts)
            (id ":=" exp)
            (pseudo-operator)
@@ -467,7 +468,8 @@ with the equivalent upcased form."
            (type-decl)
            (proc-decl)
            (choice-clause)
-           (loop-clause)))
+           (loop-clause)
+           (pragmat)))
   "Algol 68 BNF operator precedence grammar to use with SMIE")
 
 (defvar a68--smie-grammar-upper
@@ -564,6 +566,13 @@ with the equivalent upcased form."
    ((looking-at "):")
     (goto-char (+ (point) 2))
     "):")
+   ;; A "begin pragmat" token can precede the following symbols:
+   ;; include
+   ((looking-at "\\<pr\\>")
+    (goto-char (+ (point) 2))
+    (if (looking-at "[ \t\n]*\\<include\\>")
+        "-pr-"
+      "pr"))
    ;; The symbols "by", "from", "to", "while" and "do" mark the start
    ;; of a loop-clause if they are the first symbol of an
    ;; enclosed-clause, and is thus preceded by a symbol which may
@@ -644,6 +653,12 @@ with the equivalent upcased form."
 (defun a68--smie-backward-token ()
   (forward-comment (- (point)))
   (cond
+   ((looking-back "\\<pr\\>")
+    (let ((pr (if (looking-at "[ \t\n]*\\<include\\>")
+                  "-pr-"
+                "pr")))
+      (goto-char (- (point) 2))
+      pr))
    ((looking-back "):")
     (goto-char (- (point) 2))
     "):")
@@ -710,6 +725,7 @@ with the equivalent upcased form."
     (`(,_ . ";") (smie-rule-separator kind))
     (`(:after . ":=") a68-indent-level)
     (`(:after . "=") a68-indent-level)
+    (`(:after . "PR") 0)
     ;; Since "|" is in the same BNF rule as "(" in choice-clauses,
     ;; SMIE by default aligns it with it.
     (`(:before . "|")
@@ -745,6 +761,7 @@ with the equivalent upcased form."
      (if (not (smie-rule-sibling-p)) 1))
     (`(:after . ":=") a68-indent-level)
     (`(:after . "=") a68-indent-level)
+    (`(:after . "pr") 0)
     (`(:after . "begin") 6)
     (`(:after . "then") 5)
     (`(:after . "else") 5)

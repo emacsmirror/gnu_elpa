@@ -1,2 +1,5 @@
 *.elc
 admin/zend_language_parser.y
+output.txt
+zend_*
+*.el~

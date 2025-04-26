@@ -133,23 +133,23 @@ shows where variables or numbers should be.
 
     These are the different ways fields can be defined:
     
-    -   **[-2..8]:** choose a random number from -2 to 8, inclusive
-    -   **[1,3,5]:** choose randomly from 1, 3 or 5
-    -   **[-3..-1,1..3]:** choose a random number from -3 to -1 or 1 to 3
-    -   **[10/(2-1)]:** evaluate the expression
-    -   **[round(sin(0.3))]:** expressions can use math functions
-    -   **[a=&#x2026;]:** assign the variable `a` to the number chosen for this field
-    -   **[-2..$a]:** any number from -2 to the value another field assigned
+    -   **`[-2..8]`:** choose a random number from -2 to 8, inclusive
+    -   **`[1,3,5]`:** choose randomly from 1, 3 or 5
+    -   **`[-3..-1,1..3]`:** choose a random number from -3 to -1 or 1 to 3
+    -   **`[10/(2-1)]`:** evaluate the expression
+    -   **`[round(sin(0.3))]`:** expressions can use math functions
+    -   **`[a=...]`:** assign the variable `a` to the number chosen for this field
+    -   **`[-2..$a]`:** any number from -2 to the value another field assigned
         to `a`
-    -   **[0..[$a/2]]:** any number from 0 to half the value assigned to `a`.
+    -   **`[0..[$a/2]]`:** any number from 0 to half the value assigned to `a`.
     
     The ability to keep track of the random number chosen in one field and
     use it to influence another allows the template to be written to avoid
     answers that are negative or don't divide evenly.
     
-    These math functions are allowed: sqrt, sin, cos, tan, asin, acos,
-    atan, floor, ceil, round. Find more details about each of these
-    functions in the Emacs Calc manual.
+    These math functions are allowed: `sqrt`, `sin`, `cos`, `tan`, `asin`, `acos`,
+    `atan`, `floor`, `ceil`, `round`. Find more details about each of these
+    functions in the [Emacs Calc manual](https://www.gnu.org/software/emacs/manual/html_mono/calc.html#Arithmetic).
 
 4.  Template Examples
 

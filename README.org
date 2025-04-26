@@ -43,6 +43,81 @@ the GNU ELPA machinery automatically generates an Info manual out of it.
 
 #+toc: headlines 8 insert TOC here, with eight headline levels
 
+* Installation
+:PROPERTIES:
+:CUSTOM_ID: h:b85fc5e4-590d-4960-8e24-7e0afbd5e4b8
+:END:
+#+cindex: Installation instructions
+
+** GNU ELPA package
+:PROPERTIES:
+:CUSTOM_ID: h:21ce2c22-ab4c-4ea1-a39f-7b59b31882d0
+:END:
+
+The package is available as ~show-font~.  Simply do:
+
+: M-x package-refresh-contents
+: M-x package-install
+
+And search for it.
+
+GNU ELPA provides the latest stable release.  Those who prefer to follow
+the development process in order to report bugs or suggest changes, can
+use the version of the package from the GNU-devel ELPA archive.  Read:
+https://protesilaos.com/codelog/2022-05-13-emacs-elpa-devel/.
+
+** Manual installation
+:PROPERTIES:
+:CUSTOM_ID: h:2f9ab18c-175a-48e0-83f3-a7ede419808e
+:END:
+
+Assuming your Emacs files are found in =~/.emacs.d/=, execute the
+following commands in a shell prompt:
+
+#+begin_src sh
+cd ~/.emacs.d
+
+# Create a directory for manually-installed packages
+mkdir manual-packages
+
+# Go to the new directory
+cd manual-packages
+
+# Clone this repo, naming it "show-font"
+git clone https://github.com/protesilaos/show-font show-font
+#+end_src
+
+Finally, in your =init.el= (or equivalent) evaluate this:
+
+#+begin_src emacs-lisp
+;; Make Elisp files in that directory available to the user.
+(add-to-list 'load-path "~/.emacs.d/manual-packages/show-font")
+#+end_src
+
+Everything is in place to set up the package.
+
+* Sample configuration
+:PROPERTIES:
+:CUSTOM_ID: h:2ae41a08-c8ee-4f12-a685-0740b73334cc
+:END:
+
+#+begin_src emacs-lisp
+(require 'show-font)
+
+(define-key global-map (kbd "C-c s f") #'show-font-select-preview)
+(define-key global-map (kbd "C-c s t") #'show-font-tabulated)
+#+end_src
+
+Or with ~use-package~:
+
+#+begin_src emacs-lisp
+(use-package show-font
+  :ensure t
+  :bind
+  (("C-c s f" . show-font-select-preview)
+   ("C-c s t" . show-font-tabulated)))
+#+end_src
+
 * Overview
 :PROPERTIES:
 :CUSTOM_ID: h:4d8e439b-e0b3-43f2-b909-2279e1851270
@@ -132,81 +207,6 @@ elements.
 
 #+vindex: show-font-button
 - ~show-font-button~
-
-* Installation
-:PROPERTIES:
-:CUSTOM_ID: h:b85fc5e4-590d-4960-8e24-7e0afbd5e4b8
-:END:
-#+cindex: Installation instructions
-
-** GNU ELPA package
-:PROPERTIES:
-:CUSTOM_ID: h:21ce2c22-ab4c-4ea1-a39f-7b59b31882d0
-:END:
-
-The package is available as ~show-font~.  Simply do:
-
-: M-x package-refresh-contents
-: M-x package-install
-
-And search for it.
-
-GNU ELPA provides the latest stable release.  Those who prefer to follow
-the development process in order to report bugs or suggest changes, can
-use the version of the package from the GNU-devel ELPA archive.  Read:
-https://protesilaos.com/codelog/2022-05-13-emacs-elpa-devel/.
-
-** Manual installation
-:PROPERTIES:
-:CUSTOM_ID: h:2f9ab18c-175a-48e0-83f3-a7ede419808e
-:END:
-
-Assuming your Emacs files are found in =~/.emacs.d/=, execute the
-following commands in a shell prompt:
-
-#+begin_src sh
-cd ~/.emacs.d
-
-# Create a directory for manually-installed packages
-mkdir manual-packages
-
-# Go to the new directory
-cd manual-packages
-
-# Clone this repo, naming it "show-font"
-git clone https://github.com/protesilaos/show-font show-font
-#+end_src
-
-Finally, in your =init.el= (or equivalent) evaluate this:
-
-#+begin_src emacs-lisp
-;; Make Elisp files in that directory available to the user.
-(add-to-list 'load-path "~/.emacs.d/manual-packages/show-font")
-#+end_src
-
-Everything is in place to set up the package.
-
-* Sample configuration
-:PROPERTIES:
-:CUSTOM_ID: h:2ae41a08-c8ee-4f12-a685-0740b73334cc
-:END:
-
-#+begin_src emacs-lisp
-(require 'show-font)
-
-(define-key global-map (kbd "C-c s f") #'show-font-select-preview)
-(define-key global-map (kbd "C-c s t") #'show-font-tabulated)
-#+end_src
-
-Or with ~use-package~:
-
-#+begin_src emacs-lisp
-(use-package show-font
-  :ensure t
-  :bind
-  (("C-c s f" . show-font-select-preview)
-   ("C-c s t" . show-font-tabulated)))
-#+end_src
 
 * Acknowledgements
 :PROPERTIES:

@@ -1394,10 +1394,9 @@ See `ivy-format-functions-alist' for further information."
 
 (defun swiper-match-usable-p ()
   (or search-invisible
-      (not (cl-find-if
-            (lambda (ov)
-              (invisible-p (overlay-get ov 'invisible)))
-            (overlays-at (point))))))
+      (cl-notany (lambda (ov)
+                   (invisible-p (overlay-get ov 'invisible)))
+                 (overlays-at (point)))))
 
 (defvar swiper--isearch-backward nil
   "Non-nil when performing `swiper-isearch-backward'.")

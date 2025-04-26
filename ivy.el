@@ -4462,32 +4462,26 @@ TREE can be nested multiple times to have multiple window splits.")
 
 (defun ivy-default-view-name ()
   "Return default name for new view."
-  (let* ((default-view-name
-          (concat "{} "
-                  (mapconcat #'identity
-                             (sort
-                              (mapcar (lambda (w)
-                                        (let* ((b (window-buffer w))
-                                               (f (buffer-file-name b)))
-                                          (if f
-                                              (file-name-nondirectory f)
-                                            (buffer-name b))))
-                                      (window-list))
-                              #'string-lessp)
-                             " ")))
+  (let* ((wins (mapcar (lambda (w)
+                         (let* ((b (window-buffer w))
+                                (f (buffer-file-name b)))
+                           (if f
+                               (file-name-nondirectory f)
+                             (buffer-name b))))
+                       (window-list)))
+         (default-view-name
+          (string-join (cons "{}" (sort wins #'string-lessp))
+                       " "))
          (view-name-re (concat "\\`"
                                (regexp-quote default-view-name)
-                               " \\([0-9]+\\)"))
-         old-view)
-    (cond ((setq old-view
-                 (cl-find-if
-                  (lambda (x)
-                    (string-match view-name-re (car x)))
-                  ivy-views))
-           (format "%s %d"
-                   default-view-name
-                   (1+ (string-to-number
-                        (match-string 1 (car old-view))))))
+                               " \\([0-9]+\\)")))
+    (cond ((let ((num (cl-some (lambda (view)
+                                 (let ((name (car view)))
+                                   (and (string-match view-name-re name)
+                                        (string-to-number
+                                         (match-string 1 name)))))
+                               ivy-views)))
+             (and num (format "%s %d" default-view-name (1+ num)))))
           ((assoc default-view-name ivy-views)
            (concat default-view-name " 1"))
           (t
@@ -4756,21 +4750,20 @@ Skip buffers that match `ivy-ignore-buffers'."
               (and b (string-match-p
                       regexp (buffer-local-value 'default-directory b))))))
         (copy-sequence candidates)))
-    (let ((res (ivy--re-filter regexp candidates)))
-      (if (or (null ivy-use-ignore)
-              (null ivy-ignore-buffers))
-          res
-        (or (cl-remove-if
-             (lambda (buf)
-               (cl-find-if
-                (lambda (f-or-r)
-                  (if (functionp f-or-r)
-                      (funcall f-or-r buf)
-                    (string-match-p f-or-r buf)))
-                ivy-ignore-buffers))
+    (let ((res (ivy--re-filter regexp candidates))
+          (policy ivy-use-ignore)
+          (ignores ivy-ignore-buffers))
+      (cond ((null (and policy ignores))
              res)
-            (and (eq ivy-use-ignore t)
-                 res))))))
+            ((cl-remove-if (lambda (buf)
+                             (cl-some (lambda (f-or-r)
+                                        (if (stringp f-or-r)
+                                            (string-match-p f-or-r buf)
+                                          (funcall f-or-r buf)))
+                                      ignores))
+                           res))
+            ((eq policy t)
+             res)))))
 
 (defun ivy-append-face (str face)
   "Append to STR the property FACE."
@@ -5144,8 +5137,7 @@ buffer would modify `ivy-last'.")
 
 (defun ivy--select-occur-buffer ()
   (let* ((ob (ivy--find-occur-buffer))
-         (ow (cl-find-if (lambda (w) (equal ob (window-buffer w)))
-                         (window-list))))
+         (ow (get-buffer-window ob)))
     (if ow
         (select-window ow)
       (pop-to-buffer ob))))

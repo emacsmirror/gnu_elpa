@@ -2246,10 +2246,10 @@ If USE-IGNORE is non-nil, try to generate a command that respects
   (let ((regex ivy--old-re))
     (if (= 0 (length regex))
         "cat"
-      (let ((filter-cmd (cl-find-if
-                         (lambda (x)
+      (let ((filter-cmd (cl-assoc-if
+                         (lambda (cmd)
                            (executable-find
-                            (car (split-string (car x)))))
+                            (car (split-string cmd))))
                          counsel-file-name-filter-alist))
             cmd)
         (when (and use-ignore ivy-use-ignore
@@ -2561,10 +2561,8 @@ This function uses the `dom' library from Emacs 25.1 or later."
   "Return candidates for `counsel-buffer-or-recentf'."
   (recentf-mode)
   (let ((buffers (delq nil (mapcar #'buffer-file-name (buffer-list)))))
-    (nconc
-     buffers
-     (cl-remove-if (lambda (f) (member f buffers))
-                   (counsel-recentf-candidates)))))
+    (nconc buffers (cl-set-difference (counsel-recentf-candidates)
+                                      buffers :test #'equal))))
 
 ;;;###autoload
 (defun counsel-buffer-or-recentf ()
@@ -2647,24 +2645,24 @@ By default `counsel-bookmark' opens a dired buffer for directories."
 
 ;;;; `counsel-bookmarked-directory'
 
-(defun counsel-bookmarked-directory--candidates ()
-  "Get a list of bookmarked directories sorted by file path."
+(defun counsel--bookmarked-dirs ()
+  "Return a list of bookmarked directories sorted by file name."
   (bookmark-maybe-load-default-file)
-  (sort (cl-delete-if-not
-         #'ivy--dirname-p
-         (delq nil (mapcar #'bookmark-get-filename bookmark-alist)))
+  (sort (cl-mapcan (lambda (bm)
+                     (let ((dir (bookmark-get-filename bm)))
+                       (and dir (ivy--dirname-p dir) (list dir))))
+                   bookmark-alist)
         #'string<))
 
 ;;;###autoload
 (defun counsel-bookmarked-directory ()
   "Ivy interface for bookmarked directories.
 
-With a prefix argument, this command creates a new bookmark which points to the
-current value of `default-directory'."
+With a prefix argument, this command creates a new bookmark which points
+to the current value of `default-directory'."
   (interactive)
   (require 'bookmark)
-  (ivy-read "Bookmarked directory: "
-            (counsel-bookmarked-directory--candidates)
+  (ivy-read "Bookmarked directory: " (counsel--bookmarked-dirs)
             :caller 'counsel-bookmarked-directory
             :action #'dired))
 
@@ -2828,17 +2826,19 @@ library, which see."
   "Location where to put the locatedb in case your home folder is encrypted."
   :type 'file)
 
-(defun counsel-file-stale-p (fname seconds)
-  "Return non-nil if FNAME was modified more than SECONDS ago."
-  (> (float-time (time-since (nth 5 (file-attributes fname))))
-     seconds))
+(defun counsel-file-stale-p (file seconds)
+  "Return non-nil if FILE was modified more than SECONDS ago.
+Also return non-nil if FILE does not exist."
+  (let ((mtime (nth 5 (file-attributes file))))
+    (or (not mtime)
+        (> (float-time (time-since mtime))
+           seconds))))
 
 (defun counsel--locate-updatedb ()
   (when (file-exists-p "~/.Private")
     (let ((db-fname (expand-file-name counsel-locate-db-path)))
       (setenv "LOCATE_PATH" db-fname)
-      (when (or (not (file-exists-p db-fname))
-                (counsel-file-stale-p db-fname 60))
+      (when (counsel-file-stale-p db-fname 60)
         (message "Updating %s..." db-fname)
         (counsel--command
          "updatedb" "-l" "0" "-o" db-fname "-U" (expand-file-name "~"))))))
@@ -4468,16 +4468,14 @@ When ARG is non-nil, display all active evil registers."
   "Return completion alist for `counsel-package'."
   (unless package--initialized
     (package-initialize t))
-  (if (or (not package-archive-contents)
-          (cl-find-if (lambda (package-archive)
-                        (let ((fname
-                               (format
-                                "%s/archives/%s/archive-contents"
-                                package-user-dir (car package-archive))))
-                          (or (not (file-exists-p fname))
-                              (counsel-file-stale-p fname (* 4 60 60)))))
-                      package-archives))
-      (package-refresh-contents))
+  (when (or (null package-archive-contents)
+            (cl-some (lambda (archive)
+                       (let* ((fname (format "archives/%s/archive-contents"
+                                             (car archive)))
+                              (fname (expand-file-name fname package-user-dir)))
+                         (counsel-file-stale-p fname (* 4 60 60))))
+                     package-archives))
+    (package-refresh-contents))
   (sort (mapcar (lambda (entry)
                   (cons (let ((pkg (car entry)))
                           (concat (if (package-installed-p pkg) "-" "+")
@@ -6491,12 +6489,11 @@ Any desktop entries that fail to parse are recorded in
              (eq counsel-linux-app-format-function
                  counsel--linux-apps-cache-format-function)
              (equal new-files counsel--linux-apps-cached-files)
-             (null (cl-find-if
-                    (lambda (file)
-                      (time-less-p
-                       counsel--linux-apps-cache-timestamp
-                       (nth 5 (file-attributes file))))
-                    new-files)))
+             (cl-notany (lambda (file)
+                          (time-less-p
+                           counsel--linux-apps-cache-timestamp
+                           (nth 5 (file-attributes file))))
+                        new-files))
       (setq counsel--linux-apps-cache (counsel-linux-apps-parse new-desktop-alist))
       (setq counsel--linux-apps-cache-format-function counsel-linux-app-format-function)
       (setq counsel--linux-apps-cache-timestamp (current-time))

@@ -69,20 +69,38 @@
   "n"   #'follow-next-window
   "p"   #'follow-previous-window)
 
-(defvar doc-view-follow-mode-prefix-key follow-mode-prefix-key
+(defvar doc-view-follow-mode-prefix-key
+  (cond ((boundp 'follow-mode-prefix-key)
+         (symbol-value 'follow-mode-prefix-key))
+        ((boundp 'follow-mode-prefix)
+         (key-description
+          (symbol-value 'follow-mode-prefix)))
+        (t
+         nil))
   "Prefix key to use for follow commands in Doc View Follow mode.
-By default, this matches `follow-mode-prefix-key'.")
+By default, this matches `follow-mode-prefix-key' (Emacs 31+) or
+`follow-mode-prefix' (earlier Emacs versions).")
 
-(defun doc-view-follow--update-prefix-key (_sym newval op _where)
+(defun doc-view-follow--update-prefix-key (sym newval op _where)
   "Update doc-view-follow mode keymap when the prefix key changes.
-Called when `follow-mode-prefix-key' is customized."
+Called when `follow-mode-prefix-key' is customized.
+SYM is the symbol being changed, NEWVAL is the new value, and OP is
+the operation being performed."
   (when (and (eq op 'set) (boundp 'doc-view-follow-mode-map))
     (keymap-unset doc-view-follow-mode-map doc-view-follow-mode-prefix-key t)
-    (setq doc-view-follow-mode-prefix-key newval)
-    (keymap-set doc-view-follow-mode-map newval doc-view-follow-mode-submap)))
+    (setq doc-view-follow-mode-prefix-key
+          (if (eq sym 'follow-mode-prefix)
+              (key-description newval)
+            newval))
+    (keymap-set doc-view-follow-mode-map
+                doc-view-follow-mode-prefix-key
+                doc-view-follow-mode-submap)))
 
 (add-variable-watcher
- 'follow-mode-prefix-key #'doc-view-follow--update-prefix-key)
+ (if (boundp 'follow-mode-prefix-key)
+     'follow-mode-prefix-key
+   'follow-mode-prefix)
+ #'doc-view-follow--update-prefix-key)
 
 (defvar-keymap doc-view-follow-mode-map
   "<remap> <doc-view-first-page>" #'doc-view-follow-beginning-of-buffer

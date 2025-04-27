@@ -651,10 +651,10 @@ with the equivalent upcased form."
         ;; mode-indication consists of the symbols "loc" and "heap",
         ;; plus those symbols which may immediately precede a
         ;; mode-indication in an actual-MODE-declarer.
-        (and (looking-back "[A-Z][A-Za-z_]+")
-             (looking-back (regexp-opt '("loc" "heap"
-                                         "ref" ")" "]"
-                                         "proc" "flex")))))))
+        (or (looking-back "[A-Z][A-Za-z_]+")
+            (looking-back (regexp-opt '("loc" "heap"
+                                        "ref" ")" "]"
+                                        "proc" "flex")))))))
 
 (defun a68--smie-forward-token ()
   (forward-comment (point-max))

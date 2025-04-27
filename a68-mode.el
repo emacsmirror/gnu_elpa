@@ -359,6 +359,9 @@ with the equivalent upcased form."
          ("begin" exp "end")
          ("module" exp "def" exp "fed")
          ("module" exp "def" exp "postlude" exp "fed"))
+    ;; Declarations:
+    (declaration (type-decl)
+                 (proc-decl))
     (type-decl ("mode" type-decl*))
     (type-decl* (type-decl* "," type-decl*)
                 (id "=" type-decl**))
@@ -370,13 +373,117 @@ with the equivalent upcased form."
     (proc-decl (proc-decl "," proc-decl)
                ("op" ids "=" args ids ":" exp)
                ("proc" ids "=" ids ":" exp))
-    ;; Formulae.
+    ;; Units:
+    ;;  unit :
+    ;;    assignation ; identity relation ; routine text ;
+    ;;    function and ; function or ; tertiary.
+    ;;  tertiary :
+    ;;    formula ; secondary.
+    ;;  secondary :
+    ;;    leap generator ; selection ; primary.
+    ;;  primary :
+    ;;    primary one ; other denote ; skip token ; nil token.
+    ;;  primary one :
+    ;;    slice call ; cast ; string denoter ; identifier ;
+    ;;    jump ; enclosed clause.
+    (unit (id ":=" exp)
+          ; (routine-text)
+          (assignation)
+          (pseudo-operator))
+    (assignation (tertiary ":=" unit))
+    (tertiary (formula)
+              (secondary))
+    (secondary (leap-geneator)
+               (selection)
+               (primary))
+    (primary (primary-one)
+             (other-denote)
+             ("skip")
+             ("~")
+             ("nil"))
+    (primary-one (slice-call)
+                 (cast)
+                 (string-denoter)
+                 (id)
+                 (jump)
+                 (enclosed-clause))
+    (jump ("goto" id)
+          ("go" "-to-jump-" id))
+    (pseudo-operator (exp "andth" exp)
+                     (exp "orel" exp)
+                     (exp ":=:" exp)
+                     (exp ":/=:" exp)
+                     (exp "is" exp)
+                     (exp "isnt" exp))
+    ;; Formula.
     ;; Standard operators are given their priority.
-    ;; XXX
+    (formula (dyadic-formula)
+             (monadic-formula))
+    (monadic-formula ("-monadic~-" monadic-operand)
+                     (-monadic+- monadic-operand)
+                     ("-monadic--" monadic-operand))
+    (dyadic-formula (operand "-oper-" monadic-operand)
+                    (operand "+:=" monadic-operand)
+                    (operand "-:=" monadic-operand)
+                    (operand "*:=" monadic-operand)
+                    (operand "/:=" monadic-operand)
+                    (operand "%:=" monadic-operand)
+                    (operand "%*:=" monadic-operand)
+                    (operand "+=:" monadic-operand)
+                    (operand "PLUSAB" monadic-operand)
+                    (operand "MINUSAB" monadic-operand)
+                    (operand "TIMESAB" monadic-operand)
+                    (operand "DIVAB" monadic-operand)
+                    (operand "OVERAB" monadic-operand)
+                    (operand "MODAB" monadic-operand)
+                    (operand "PLUSTO" monadic-operand)
+                    (operand "OR" monadic-operand)
+                    (operand "AND" monadic-operand)
+                    (operand "XOR" monadic-operand)
+                    (operand "=" monadic-operand)
+                    (operand "/=" monadic-operand)
+                    (operand "<" monadic-operand)
+                    (operand "<=" monadic-operand)
+                    (operand ">" monadic-operand)
+                    (operand ">=" monadic-operand)
+                    (operand "EQ" monadic-operand)
+                    (operand "NE" monadic-operand)
+                    (operand "LT" monadic-operand)
+                    (operand "LE" monadic-operand)
+                    (operand "GT" monadic-operand)
+                    (operand "GE" monadic-operand)
+                    (operand "+" monadic-operand)
+                    (operand "-" monadic-operand)
+                    (operand "*" monadic-operand)
+                    (operand "/" monadic-operand)
+                    (operand "OVER" monadic-operand)
+                    (operand "%" monadic-operand)
+                    (operand "MOD" monadic-operand)
+                    (operand "%*" monadic-operand)
+                    (operand "ELEM" monadic-operand)
+                    (operand "**" monadic-operand)
+                    (operand "SHL" monadic-operand)
+                    (operand "SHR" monadic-operand)
+                    (operand "UP" monadic-operand)
+                    (operand "DOWN" monadic-operand)
+                    (operand "^" monadic-operand)
+                    (operand "LWB" monadic-operand)
+                    (operand "UPB" monadic-operand)
+                    (operand "I" monadic-operand)
+                    (operand "+*" monadic-operand)
+                    (operand "ELEMS" monadic-operand))
+    (operand (formula)
+             (secondary))
+    (monadic-formula (secondary))
+    (monadic-operand (monadic-formula)
+                     (secondary))
     ;; Enquiry clause:
     ;;  enquiry clause :
     ;;   series.
-    (enquiry-clause (insts))
+    (enquiry-clause (serial))
+    ;; Clauses:
+    (enclosed-clause (choice-clause)
+                     (loop-clause))
     ;; Choice clauses
     ;;   choice clause :
     ;;     choice start, chooser choice clause, choice finish.
@@ -407,20 +514,20 @@ with the equivalent upcased form."
     ;;   out choice clause :
     ;;     choice out, serial clause ;
     ;;     choice again, chooser choice clause.
-    (choice-clause ("if" enquiry-clause "then" insts "fi")
-                   ("if" enquiry-clause "then" insts "else" insts "fi")
-                   ("if" enquiry-clause "then" insts
-                    "elif" enquiry-clause "then" insts "fi")
-                   ("(" enquiry-clause "|" insts ")")
-                   ("(" enquiry-clause "|" insts "|" insts ")")
-                   ("(" enquiry-clause "|" insts
-                    "|:" enquiry-clause "|" insts ")")
+    (choice-clause ("if" enquiry-clause "then" serial "fi")
+                   ("if" enquiry-clause "then" serial "else" serial "fi")
+                   ("if" enquiry-clause "then" serial
+                    "elif" enquiry-clause "then" serial "fi")
+                   ("(" enquiry-clause "|" serial ")")
+                   ("(" enquiry-clause "|" serial "|" serial ")")
+                   ("(" enquiry-clause "|" serial
+                    "|:" enquiry-clause "|" serial ")")
                    ("case" enquiry-clause "in" specs "esac")
-                   ("case" enquiry-clause "in" specs "out" insts "esac")
-                   ("case" enquiry-clause "in" specs "ouse" insts "esac")
+                   ("case" enquiry-clause "in" specs "out" serial "esac")
+                   ("case" enquiry-clause "in" specs "ouse" serial "esac")
                    ("(" enquiry-clause "|" specs ")")
-                   ("(" enquiry-clause "|" specs "|" insts ")")
-                   ("(" enquiry-clause "|" specs "|:" insts ")"))
+                   ("(" enquiry-clause "|" specs "|" serial ")")
+                   ("(" enquiry-clause "|" specs "|:" serial ")"))
     ;; Loop clauses.
     ;;   loop clause :
     ;;     loop insert, for part, (from part), (by part), (to part), repeating part.
@@ -438,38 +545,27 @@ with the equivalent upcased form."
     ;;     while token, enquiry clause.
     ;;   do part :
     ;;     do token, serial clause, od token.
-    (loop-clause ("for" id "do" exp "od")
-                 ("for" id "from" exp "do" exp "od")
-                 ("for" id "from" exp "by" exp "do" exp "od")
-                 ("for" id "from" exp "by" exp "to" exp "do" exp "od")
-                 ("for" id "from" exp "by" exp "to" exp "while" exp "do" exp "od")
-                 ("-from-" exp "by" exp "to" exp "while" exp "do" exp "od")
-                 ("-from-" exp "by" exp "to" exp "do" exp "od")
-                 ("-from-" exp "by" exp "do" exp "od")
-                 ("-from-" exp "do" exp "od")
-                 ("-by-" exp "to" exp "while" exp "do" exp "od")
-                 ("-by-" exp "while" exp "do" exp "od")
-                 ("-by-" exp "do" exp "od")
-                 ("-to-" exp "while" exp "do" exp "od")
-                 ("-to-" exp "do" exp "od")
-                 ("-while-" exp "do" exp "od")
-                 ("-do-" exp "od"))
-    (pseudo-operator (exp "andth" exp)
-                     (exp "orel" exp)
-                     (exp ":=:" exp)
-                     (exp ":/=:" exp)
-                     (exp "is" exp)
-                     (exp "isnt" exp))
+    (loop-clause ("for" id "do" serial "od")
+                 ("for" id "from" serial "do" serial "od")
+                 ("for" id "from" serial "by" serial "do" serial "od")
+                 ("for" id "from" serial "by" serial "to" serial "do" serial "od")
+                 ("for" id "from" serial "by" serial "to" serial "while" serial "do" serial "od")
+                 ("-from-" serial "by" serial "to" serial "while" serial "do" serial "od")
+                 ("-from-" serial "by" serial "to" serial "do" serial "od")
+                 ("-from-" serial "by" serial "do" serial "od")
+                 ("-from-" serial "do" serial "od")
+                 ("-by-" serial "to" serial "while" serial "do" serial "od")
+                 ("-by-" serial "while" serial "do" serial "od")
+                 ("-by-" serial "do" serial "od")
+                 ("-to-" serial "while" serial "do" serial "od")
+                 ("-to-" serial "do" serial "od")
+                 ("-while-" serial "do" serial "od")
+                 ("-do-" serial "od"))
     (pragmat ("-pr-" exp "pr"))
-    (insts (insts ";" insts)
-           (id ":=" exp)
-           (pseudo-operator)
-           (op-decl)
-           (type-decl)
-           (proc-decl)
-           (choice-clause)
-           (loop-clause)
-           (pragmat)))
+    (serial (serial ";" serial)
+            (unit)
+            (declaration)
+            (pragmat)))
   "Algol 68 BNF operator precedence grammar to use with SMIE")
 
 (defvar a68--smie-grammar-upper
@@ -610,6 +706,9 @@ with the equivalent upcased form."
       "-by-")))
    ((looking-at "\\<to\\>")
     (cond
+     ((looking-back "\\<go\\>[ \t\n]*")
+      (goto-char (+ (point) 2))
+      "-to-jump-")
      ((a68-at-strong-void-enclosed-clause)
       (goto-char (+ (point) 2))
       "-to-")
@@ -685,6 +784,8 @@ with the equivalent upcased form."
    ((looking-back "\\<to\\>")
     (goto-char (- (point) 2))
     (cond
+     ((looking-back "\\<go\\>[ \t\n]*")
+      "-to-jump-")
      ((a68-at-strong-void-enclosed-clause)
       "-to-")
      ((a68-at-post-unit)

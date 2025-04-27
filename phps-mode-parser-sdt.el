@@ -5210,23 +5210,40 @@
 
 ;; TODO WAS HERE
 
-;; 351 ((class_const_list) (class_const_list "," class_const_decl))
+;; TODO 356
+;; TODO 357
+;; TODO 358
+;; TODO 359
+;; TODO 360
+;; TODO 361
+;; TODO 362
+;; TODO 363
+;; TODO 364
+;; TODO 365
+;; TODO 366
+;; TODO 367
+;; TODO 368
+;; TODO 369
+;; TODO 370
+
+
+;; 371 ((class_const_list) (class_const_list "," class_const_decl))
 (puthash
- 351
+ 371
  (lambda(args _terminals)
    `(append ,(nth 1 args) ,(nth 3 args)))
  phps-mode-parser--table-translations)
 
-;; 352 ((class_const_list) (class_const_decl))
+;; 372 ((class_const_list) (class_const_decl))
 (puthash
- 352
+ 372
  (lambda(args _terminals)
    (list args))
  phps-mode-parser--table-translations)
 
-;; 353 ((class_const_decl) (T_STRING "=" expr backup_doc_comment))
+;; 373 ((class_const_decl) (T_STRING "=" expr backup_doc_comment))
 (puthash
- 353
+ 373
  (lambda(args _terminals)
    `(
      ast-type
@@ -5239,9 +5256,9 @@
      ,(nth 3 args)))
  phps-mode-parser--table-translations)
 
-;; 354 ((class_const_decl) (semi_reserved "=" expr backup_doc_comment))
+;; 374 ((class_const_decl) (semi_reserved "=" expr backup_doc_comment))
 (puthash
- 354
+ 374
  (lambda(args _terminals)
    `(
      ast-type
@@ -5254,9 +5271,9 @@
      ,(nth 3 args)))
  phps-mode-parser--table-translations)
 
-;; 355 ((const_decl) (T_STRING "=" expr backup_doc_comment))
+;; 375 ((const_decl) (T_STRING "=" expr backup_doc_comment))
 (puthash
- 355
+ 375
  (lambda(args _terminals)
    `(
      ast-type
@@ -5269,9 +5286,9 @@
      ,(nth 3 args)))
  phps-mode-parser--table-translations)
 
-;; 356 ((echo_expr_list) (echo_expr_list "," echo_expr))
+;; 376 ((echo_expr_list) (echo_expr_list "," echo_expr))
 (puthash
- 356
+ 376
  (lambda(args _terminals)
    `(
      ast-type
@@ -5282,9 +5299,9 @@
      ,(nth 2 args)))
  phps-mode-parser--table-translations)
 
-;; 357 ((echo_expr_list) (echo_expr))
+;; 377 ((echo_expr_list) (echo_expr))
 (puthash
- 357
+ 377
  (lambda(args _terminals)
    `(
      ast-type
@@ -5293,9 +5310,9 @@
      ,args))
  phps-mode-parser--table-translations)
 
-;; 358 ((echo_expr) (expr))
+;; 378 ((echo_expr) (expr))
 (puthash
- 358
+ 378
  (lambda(args _terminals)
    `(
      ast-type
@@ -5304,18 +5321,18 @@
      ,args))
  phps-mode-parser--table-translations)
 
-;; 359 ((for_exprs) (%empty))
+;; 379 ((for_exprs) (%empty))
 (puthash
- 359
+ 379
  (lambda(_args _terminals)
    `(
      ast-type
      empty-for-exprs))
  phps-mode-parser--table-translations)
 
-;; 360 ((for_exprs) (non_empty_for_exprs))
+;; 380 ((for_exprs) (non_empty_for_exprs))
 (puthash
- 360
+ 380
  (lambda(args _terminals)
    `(
      ast-type
@@ -5325,9 +5342,9 @@
      ))
  phps-mode-parser--table-translations)
 
-;; 361 ((non_empty_for_exprs) (non_empty_for_exprs "," expr))
+;; 381 ((non_empty_for_exprs) (non_empty_for_exprs "," expr))
 (puthash
- 361
+ 381
  (lambda(args _terminals)
    `(
      ast-type
@@ -5339,9 +5356,9 @@
      ))
  phps-mode-parser--table-translations)
 
-;; 362 ((non_empty_for_exprs) (expr))
+;; 382 ((non_empty_for_exprs) (expr))
 (puthash
- 362
+ 382
  (lambda(args _terminals)
    `(
      ast-type
@@ -5351,9 +5368,9 @@
      ))
  phps-mode-parser--table-translations)
 
-;; 363 ((anonymous_class) (T_CLASS ctor_arguments extends_from implements_list backup_doc_comment "{" class_statement_list "}"))
+;; 383 ((anonymous_class) (T_CLASS ctor_arguments extends_from implements_list backup_doc_comment "{" class_statement_list "}"))
 (puthash
- 363
+ 383
  (lambda(args _terminals)
    `(
      ast-type
@@ -5371,9 +5388,9 @@
      ))
  phps-mode-parser--table-translations)
 
-;; 364 ((new_expr) (T_NEW class_name_reference ctor_arguments))
+;; 384 ((new_expr) (T_NEW class_name_reference ctor_arguments))
 (puthash
- 364
+ 384
  (lambda(args _terminals)
    `(
      ast-type
@@ -5385,9 +5402,9 @@
      ))
  phps-mode-parser--table-translations)
 
-;; 365 ((new_expr) (T_NEW anonymous_class))
+;; 385 ((new_expr) (T_NEW anonymous_class))
 (puthash
- 365
+ 385
  (lambda(args _terminals)
    `(
      ast-type
@@ -5396,6 +5413,8 @@
      ,(nth 1 args)
      ))
  phps-mode-parser--table-translations)
+
+;; TODO WAS HERE
 
 ;; 366 ((new_expr) (T_NEW attributes anonymous_class))
 (puthash

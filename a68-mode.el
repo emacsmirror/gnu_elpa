@@ -415,12 +415,13 @@ with the equivalent upcased form."
                      (exp ":/=:" exp)
                      (exp "is" exp)
                      (exp "isnt" exp))
+    (selection (id "of" secondary))
     ;; Formula.
     ;; Standard operators are given their priority.
     (formula (dyadic-formula)
              (monadic-formula))
     (monadic-formula ("-monadic~-" monadic-operand)
-                     (-monadic+- monadic-operand)
+                     ("-monadic+-" monadic-operand)
                      ("-monadic--" monadic-operand))
     (dyadic-formula (operand "-oper-" monadic-operand)
                     (operand "+:=" monadic-operand)
@@ -474,7 +475,6 @@ with the equivalent upcased form."
                     (operand "ELEMS" monadic-operand))
     (operand (formula)
              (secondary))
-    (monadic-formula (secondary))
     (monadic-operand (monadic-formula)
                      (secondary))
     ;; Enquiry clause:

@@ -3,7 +3,7 @@
 ;; Copyright (C) 2024-2025  Free Software Foundation, Inc.
 
 ;; Author: Paul D. Nelson <ultrono@gmail.com>
-;; Version: 0.3.1
+;; Version: 0.3.2
 ;; URL: https://github.com/ultronozm/doc-view-follow.el
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: convenience

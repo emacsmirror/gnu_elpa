@@ -621,5 +621,8 @@ the command to run, e.g., the semi-standard \"jj git push -c @-\"."
                         nil))))
   (vc-set-async-update buffer))
 
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.jjdescription\\'" . log-edit-mode))
+
 (provide 'vc-jj)
 ;;; vc-jj.el ends here

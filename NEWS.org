@@ -4,6 +4,10 @@
 
 *** Changed
 
+- Files of type =.jjdescription= are now edited using =log-edit-mode=
+  instead of fundamental mode.  Such files are created by jj when
+  invoking an editor via =jj describe=.
+
 - Display more information in =vc-dir= headers:
   - Display change id, commit id, description of the current changeset
     in one line.

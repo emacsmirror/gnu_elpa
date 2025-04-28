@@ -195,9 +195,90 @@
   (phps-mode-test-parser--buffer-contents
    "<?php\n\nclass Foo {\n    const PHP = 'PHP 8.3';\n}\n\n$searchableConstant = 'PHP';\n\nvar_dump(Foo::{$searchableConstant});"
    "PHP 8.3 Dynamic class constant fetch"
-   (lambda()
-     (phps-mode-parser-parse)))
+   (lambda() (phps-mode-parser-parse)))
 
+  (phps-mode-test-parser--buffer-contents
+  "<?php\nclass Locale
+{
+    public string $languageCode;
+
+    public string $countryCode
+    {
+        set (string $countryCode) {
+            $this->countryCode = strtoupper($countryCode);
+        }
+    }
+
+    public string $combinedCode
+    {
+        get => \sprintf(\"%s_%s\", $this->languageCode, $this->countryCode);
+        set (string $value) {
+            [$this->languageCode, $this->countryCode] = explode('_', $value, 2);
+        }
+    }
+
+    public function __construct(string $languageCode, string $countryCode)
+    {
+        $this->languageCode = $languageCode;
+        $this->countryCode = $countryCode;
+    }
+}
+
+$brazilianPortuguese = new Locale('pt', 'br');
+var_dump($brazilianPortuguese->countryCode); // BR
+var_dump($brazilianPortuguese->combinedCode); // pt_BR"
+  "PHP 8.4 Property hooks"
+  (lambda() (phps-mode-parser-parse)))
+
+  (phps-mode-test-parser--buffer-contents
+  "<?php\nclass PhpVersion
+{
+    public private(set) string $version = '8.4';
+
+    public function increment(): void
+    {
+        [$major, $minor] = explode('.', $this->version);
+        $minor++;
+        $this->version = \"{$major}.{$minor}\";
+    }
+}"
+  "PHP 8.4 Asymmetric Visibility"
+  (lambda() (phps-mode-parser-parse)))
+
+  (phps-mode-test-parser--buffer-contents
+   "<?php\nclass PhpVersion
+{
+    #[\\Deprecated(
+        message: \"use PhpVersion::getVersion() instead\",
+        since: \"8.4\",
+    )]
+    public function getPhpVersion(): string
+    {
+        return $this->getVersion();
+    }
+
+    public function getVersion(): string
+    {
+        return '8.4';
+    }
+}
+$phpVersion = new PhpVersion();
+// Deprecated: Method PhpVersion::getPhpVersion() is deprecated since 8.4, use PhpVersion::getVersion() instead
+echo $phpVersion->getPhpVersion();"
+   "PHP 8.4 #[\\Deprecated] Attribute"
+   (lambda() (phps-mode-parser-parse)))
+
+  (phps-mode-test-parser--buffer-contents
+   "<?php\nclass PhpVersion
+{
+    public function getVersion(): string
+    {
+        return 'PHP 8.4';
+    }
+}
+var_dump(new PhpVersion()->getVersion());"
+   "PHP 8.4 new MyClass()->method() without parentheses"
+   (lambda() (phps-mode-parser-parse)))
 
   (message "\n-- Ran tests for parser parse. --"))
 

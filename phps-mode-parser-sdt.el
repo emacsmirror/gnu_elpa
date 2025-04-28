@@ -5208,24 +5208,78 @@
      ,(cdr (cdr (nth 0 terminals)))))
  phps-mode-parser--table-translations)
 
-;; TODO WAS HERE
+;; 356 ((hooked_property) (T_VARIABLE backup_doc_comment "{" property_hook_list "}"))
+(puthash
+ 356
+ (lambda(args _terminals)
+   `(
+     ast-type
+     hooked-property
+     variable
+     ,(nth 0 args)
+     property-hook-list
+     ,(nth 3 args)))
+ phps-mode-parser--table-translations)
 
-;; TODO 356
-;; TODO 357
-;; TODO 358
-;; TODO 359
-;; TODO 360
-;; TODO 361
-;; TODO 362
-;; TODO 363
-;; TODO 364
-;; TODO 365
-;; TODO 366
-;; TODO 367
-;; TODO 368
-;; TODO 369
-;; TODO 370
+;; 357 ((hooked_property) (T_VARIABLE "=" expr backup_doc_comment "{" property_hook_list "}"))
+(puthash
+ 357
+ (lambda(args _terminals)
+   `(
+     ast-type
+     hooked-property
+     variable
+     ,(nth 0 args)
+     expr
+     ,(nth 2 args)
+     property-hook-list
+     ,(nth 5 args)))
+ phps-mode-parser--table-translations)
 
+;; 358 ((property_hook_list) (%empty))
+(puthash 358 (lambda(_args _terminals) nil) phps-mode-parser--table-translations)
+
+;; 359 ((property_hook_list) (property_hook_list property_hook))
+(puthash
+ 359
+ (lambda(args _terminals)
+   (append (nth args 0) (list (nth args 1))))
+ phps-mode-parser--table-translations)
+
+;; 360 ((property_hook_list) (property_hook_list attributes property_hook))
+(puthash
+ 360
+ (lambda(args _terminals)
+   (append (nth args 0) (list (nth args 2))))
+ phps-mode-parser--table-translations)
+
+;; 361 ((optional_property_hook_list) (%empty))
+
+;; 362 ((optional_property_hook_list) ("{" property_hook_list "}"))
+(puthash
+ 362
+ (lambda(args _terminals)
+   `(
+     ast-type
+     property-hook-list
+     ,(nth 1 args)))
+ phps-mode-parser--table-translations)
+
+;; 363 ((property_hook_modifiers) (%empty))
+
+;; 364 ((property_hook_modifiers) (non_empty_member_modifiers))
+
+;; 365 ((property_hook) (property_hook_modifiers returns_ref T_STRING backup_doc_comment optional_parameter_list backup_fn_flags property_hook_body backup_fn_flags))
+
+;; 366 ((property_hook_body) (";"))
+
+;; 367 ((property_hook_body) ("{" inner_statement_list "}"))
+
+;; 368 ((property_hook_body) (T_DOUBLE_ARROW expr ";"))
+
+;; 369 ((optional_parameter_list) (%empty))
+
+;; 370 ((optional_parameter_list) ("(" parameter_list ")"))
 
 ;; 371 ((class_const_list) (class_const_list "," class_const_decl))
 (puthash

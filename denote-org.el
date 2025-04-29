@@ -411,12 +411,9 @@ Also see `denote-org-dblock--files-missing-only'."
   "Return list of missing links to all notes matching REGEXP.
 Missing links are those for which REGEXP does not have a match in
 the current buffer."
-  (let ((found-files (denote-directory-files regexp :omit-current))
-        (linked-files (denote-link--expand-identifiers denote-org-link-in-context-regexp)))
-    (if-let* ((final-files (seq-difference found-files linked-files)))
-        final-files
-      (message "All links matching `%s' are present" regexp)
-      '())))
+  (when-let* ((all-files (denote-directory-files regexp :omit-current))
+              (linked-files (denote-link-return-links nil all-files)))
+    (seq-difference all-files linked-files)))
 
 (defun denote-org-dblock--files-missing-only (files-matching-regexp &optional sort-by-component reverse)
   "Return list of missing links to FILES-MATCHING-REGEXP.

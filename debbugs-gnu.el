@@ -2422,7 +2422,7 @@ Optionally call `debbugs-gnu-make-control-message' to close BUGNUM."
                   (with-temp-buffer
                     (insert-file-contents "configure.ac")
                     (and (re-search-forward "\
-^ *AC_INIT(GNU Emacs, *\\([0-9.]+\\), *bug-gnu-emacs@gnu.org"
+^ *AC_INIT(\\[?GNU Emacs\\]?, *\\[?\\([0-9.]+\\)\\]?, *\\[?bug-gnu-emacs@gnu.org"
                                             nil t)
                          (match-string 1))))))
         (debbugs-gnu-make-control-message

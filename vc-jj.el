@@ -87,7 +87,7 @@ If nil, use the value of `vc-checkin-switches'.  If t, use no switches."
 		 (string :tag "Argument String")
 		 (repeat :tag "Argument List" :value ("") string)))
 
-(defcustom vc-jj-diff-switches t
+(defcustom vc-jj-diff-switches '("--git")
   "String or list of strings specifying switches for \"jj diff\".
 If nil, use the value of `vc-diff-switches'.  If t, use no switches."
   :type '(choice (const :tag "Unspecified" nil)
@@ -503,7 +503,7 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
     (setq rev1 "root()")))
   (setq rev2 (or rev2 "@"))
   (let ((inhibit-read-only t)
-        (args (append (vc-switches 'jj 'diff) (list "--git" "--") files)))
+        (args (append (vc-switches 'jj 'diff) (list "--") files)))
     (with-current-buffer buffer
       (erase-buffer))
     (apply #'call-process vc-jj-program nil buffer nil "diff" "--from" rev1 "--to" rev2 args)

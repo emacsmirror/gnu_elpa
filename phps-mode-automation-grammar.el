@@ -93,6 +93,11 @@
   "The reset function.")
 
 (defvar
+  phps-mode-automation-grammar--lex-analyzer-init-state
+  (list 'ST_INITIAL)
+  "The init state of the lex analyzer.")
+
+(defvar
   phps-mode-automation-grammar--precedence-comparison-function
   (lambda(a-type a-value _b-type b-value)
     (cond

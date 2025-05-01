@@ -5,13 +5,17 @@
 -----
 
 NOTICE: Together with Protesilaos, I merged most of the features of
-this package into Denote. From version 4.0.0 onwards, you will be able
-to search in the contents of your notes with the command
-`denote-grep`, and most of the functionality described in
-`denote-search` manual will be available in stock Denote as well (even
-in unexpected places such as backlinks buffers!). The package will
-stay here for existing users, but you probably should switch to
-`denote-grep` once the new version of Denote is released.
+this package into Denote. From version 4.0.0 (released on 2025-04-15)
+onwards, the command `denote-grep` is available out-of-the-box to
+search in the contents of your notes. Other commands with the
+`denote-grep-` prefix mirror the functionality available in
+`denote-search`. Also, you can now create links to a specific search
+using the new command `denote-query-contents-link`. Another
+interesting addition: try the well-known `denote-search` filter
+commands in the backlinks buffer; they work there!
+
+The package will stay here for existing users, but you probably should
+switch to `denote-grep`.
 
 -----
 

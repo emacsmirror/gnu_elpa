@@ -7,7 +7,7 @@
 ;; Maintainer: Jose E. Marchesi <jemarch@gnu.org>
 ;; URL: https://git.sr.ht/~jemarch/a68-mode
 ;; Keywords: languages
-;; Version: 1.0
+;; Version: 1.1
 ;; Package-Requires: ((emacs "24.3"))
 
 ;; This file is NOT part of GNU Emacs.

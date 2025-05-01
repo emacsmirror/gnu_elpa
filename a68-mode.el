@@ -615,33 +615,33 @@ with the equivalent upcased form."
      (looking-back (regexp-opt '(":" "," ";" "begin" "if" "then" "elif"
                                     "else" "case" "in" "ouse" "out"
                                     "while" "do" "(" "|" "|:" "def" "postlude")))
-        ;; tag denotation or mode indication
-        (and (looking-back "[A-Z][A-Za-z_]+")
-             ;; Given the context at hand, i.e. a bold word followed
-             ;; by "from", "to", "by", "while" or "do", we are at the
-             ;; beginning of an enclosed clause if we are part of:
-             ;;
-             ;; - An access-clause: ... access <bold-word> to ...
-             ;; - Or a cast:        ... ; <bold-word> to ...
-             (save-excursion
-               (forward-comment (- (point)))
-               (or
-                ;; In the case of an access-clause, the
-                ;; module-indication is preceded by one of the
-                ;; following symbols:
-                (looking-back (regexp-opt '("access" "," "pub")))
-                ;; The symbols that may precede a cast are the same
-                ;; as those that may precede an enclosed-clause, with
-                ;; the exception of the close-symbol, mode-indication
-                ;; and module-indication.
-                (looking-back (regexp-opt '(":" ":=" ":/=:" "=" "," ";" "["
-                                            "@" "begin" "if" "then" "elif"
-                                            "else" "case" "in" "ouse" "out"
-                                            "of" "from" "by" "to" "while"
-                                            "do" "(" "|" "def" "postlude")))
-                ;; operator, so any nomad or monad.
-                (looking-back (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
-                                            ">" "<" "/" "=" "*")))))))))
+     ;; tag denotation or mode indication
+     (and (looking-back "[A-Z][A-Za-z_]+")
+          ;; Given the context at hand, i.e. a bold word followed
+          ;; by "from", "to", "by", "while" or "do", we are at the
+          ;; beginning of an enclosed clause if we are part of:
+          ;;
+          ;; - An access-clause: ... access <bold-word> to ...
+          ;; - Or a cast:        ... ; <bold-word> to ...
+          (save-excursion
+            (forward-comment (- (point)))
+            (or
+             ;; In the case of an access-clause, the
+             ;; module-indication is preceded by one of the
+             ;; following symbols:
+             (looking-back (regexp-opt '("access" "," "pub")))
+             ;; The symbols that may precede a cast are the same
+             ;; as those that may precede an enclosed-clause, with
+             ;; the exception of the close-symbol, mode-indication
+             ;; and module-indication.
+             (looking-back (regexp-opt '(":" ":=" ":/=:" "=" "," ";" "["
+                                         "@" "begin" "if" "then" "elif"
+                                         "else" "case" "in" "ouse" "out"
+                                         "of" "from" "by" "to" "while"
+                                         "do" "(" "|" "def" "postlude")))
+             ;; operator, so any nomad or monad.
+             (looking-back (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
+                                         ">" "<" "/" "=" "*")))))))))
 
 (defun a68-at-post-unit ()
   "Return whether the point is immediately after an unit."

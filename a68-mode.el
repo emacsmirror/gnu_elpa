@@ -343,7 +343,7 @@
 with the equivalent upcased form."
   (cond
    ((listp tree)
-    (mapcar (lambda (t) (a68--upcase-strings-in-tree t)) tree))
+    (mapcar (lambda (n) (a68--upcase-strings-in-tree n)) tree))
    ((and (stringp tree) (not (string-match "-.*-" tree)))
     (upcase tree))
    (t
@@ -614,9 +614,10 @@ with the equivalent upcased form."
      ;; @ of from by to ) operator.
      (looking-back (regexp-opt '(":" "," ";" "begin" "if" "then" "elif"
                                  "else" "case" "in" "ouse" "out"
-                                 "while" "do" "(" "|" "|:" "def" "postlude")))
+                                 "while" "do" "(" "|" "|:" "def" "postlude"))
+                   nil)
      ;; tag denotation or mode indication
-     (and (looking-back "[A-Z][A-Za-z_]+")
+     (and (looking-back "[A-Z][A-Za-z_]+" nil)
           ;; Given the context at hand, i.e. a bold word followed
           ;; by "from", "to", "by", "while" or "do", we are at the
           ;; beginning of an enclosed clause if we are part of:
@@ -629,7 +630,7 @@ with the equivalent upcased form."
              ;; In the case of an access-clause, the
              ;; module-indication is preceded by one of the
              ;; following symbols:
-             (looking-back (regexp-opt '("access" "," "pub")))
+             (looking-back (regexp-opt '("access" "," "pub")) nil)
              ;; The symbols that may precede a cast are the same
              ;; as those that may precede an enclosed-clause, with
              ;; the exception of the close-symbol, mode-indication
@@ -638,21 +639,24 @@ with the equivalent upcased form."
                                          "@" "begin" "if" "then" "elif"
                                          "else" "case" "in" "ouse" "out"
                                          "of" "from" "by" "to" "while"
-                                         "do" "(" "|" "def" "postlude")))
+                                         "do" "(" "|" "def" "postlude"))
+                           nil)
              ;; operator, so any nomad or monad.
              (looking-back (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
-                                         ">" "<" "/" "=" "*")))))))))
+                                         ">" "<" "/" "=" "*"))
+                           nil)))))))
 
 (defun a68-at-post-unit-supper ()
   "Return whether the point is immediately after an unit."
   (save-excursion
     (forward-comment (- (point)))
     (or (looking-back (regexp-opt '("end" "fi" "esac" "]" "nil" "od" ")"
-                                    "skip" "~")))
+                                    "skip" "~"))
+                      nil)
         ;; This cover the end of denotations.
-        (looking-back "\\([0-9]+\\|[\"]\\)")
+        (looking-back "\\([0-9]+\\|[\"]\\)" nil)
         ;; tags
-        (looking-back "\\<[a-z][a-z_]*\\>")
+        (looking-back "\\<[a-z][a-z_]*\\>" nil)
         ;; A bold word finishes an unit if it is part of a generator,
         ;; like in: ... loc <mode-indication> ...
         ;;
@@ -660,10 +664,11 @@ with the equivalent upcased form."
         ;; mode-indication consists of the symbols "loc" and "heap",
         ;; plus those symbols which may immediately precede a
         ;; mode-indication in an actual-MODE-declarer.
-        (or (looking-back "[A-Z][A-Za-z_]+")
+        (or (looking-back "[A-Z][A-Za-z_]+" nil)
             (looking-back (regexp-opt '("loc" "heap"
                                         "ref" ")" "]"
-                                        "proc" "flex")))))))
+                                        "proc" "flex"))
+                          nil)))))
 
 (defun a68--smie-forward-token-supper ()
   (forward-comment (point-max))
@@ -715,7 +720,7 @@ with the equivalent upcased form."
       "-by-")))
    ((looking-at "\\<to\\>")
     (cond
-     ((looking-back "\\<go\\>[ \t\n]*")
+     ((looking-back "\\<go\\>[ \t\n]*" nil)
       (goto-char (+ (point) 2))
       "-to-jump-")
      ((a68-at-strong-void-enclosed-clause-supper)
@@ -761,18 +766,18 @@ with the equivalent upcased form."
 (defun a68--smie-backward-token-supper ()
   (forward-comment (- (point)))
   (cond
-   ((looking-back "\\<pr\\>")
+   ((looking-back "\\<pr\\>" nil)
     (let ((pr (if (looking-at "[ \t\n]*\\<include\\>")
                   "-pr-"
                 "pr")))
       (goto-char (- (point) 2))
       pr))
-   ((looking-back "):")
+   ((looking-back "):" nil)
     (goto-char (- (point) 2))
     "):")
    ;; See comments in a68--smie-forward-token for an explanation of
    ;; the handling of loop insertions -from- -to- -by- -while-.
-   ((looking-back "\\<from\\>")
+   ((looking-back "\\<from\\>" nil)
      (goto-char (- (point) 4))
      (cond
       ((a68-at-strong-void-enclosed-clause-supper)
@@ -781,7 +786,7 @@ with the equivalent upcased form."
        "from")
       (t
        "-from-")))
-   ((looking-back "\\<by\\>")
+   ((looking-back "\\<by\\>" nil)
     (goto-char (- (point) 2))
     (cond
      ((a68-at-strong-void-enclosed-clause-supper)
@@ -790,10 +795,10 @@ with the equivalent upcased form."
       "by")
      (t
       "-by-")))
-   ((looking-back "\\<to\\>")
+   ((looking-back "\\<to\\>" nil)
     (goto-char (- (point) 2))
     (cond
-     ((looking-back "\\<go\\>[ \t\n]*")
+     ((looking-back "\\<go\\>[ \t\n]*" nil)
       "-to-jump-")
      ((a68-at-strong-void-enclosed-clause-supper)
       "-to-")
@@ -801,7 +806,7 @@ with the equivalent upcased form."
       "to")
      (t
       "-to-")))
-   ((looking-back "\\<while\\>")
+   ((looking-back "\\<while\\>" nil)
     (goto-char (- (point) 5))
     (cond
      ((a68-at-strong-void-enclosed-clause-supper)
@@ -810,7 +815,7 @@ with the equivalent upcased form."
       "while")
      (t
       "-while-")))
-   ((looking-back "\\<do\\>")
+   ((looking-back "\\<do\\>" nil)
     (goto-char (- (point) 2))
     (cond
      ((a68-at-strong-void-enclosed-clause-supper)
@@ -842,9 +847,10 @@ UPPER stropping version."
      ;; @ of from by to ) operator.
      (looking-back (regexp-opt '(":" "," ";" "BEGIN" "IF" "THEN" "ELIF"
                                  "ELSE" "CASE" "IN" "OUSE" "OUT"
-                                 "WHILE" "DO" "(" "|" "|:" "DEF" "POSTLUDE")))
+                                 "WHILE" "DO" "(" "|" "|:" "DEF" "POSTLUDE"))
+                   nil)
      ;; tag denotation or mode indication
-     (and (looking-back "[A-Z][A-Z_]*")
+     (and (looking-back "[A-Z][A-Z_]*" nil)
           ;; Given the context at hand, i.e. a bold word followed
           ;; by "from", "to", "by", "while" or "do", we are at the
           ;; beginning of an enclosed clause if we are part of:
@@ -857,7 +863,7 @@ UPPER stropping version."
              ;; In the case of an access-clause, the
              ;; module-indication is preceded by one of the
              ;; following symbols:
-             (looking-back (regexp-opt '("ACCESS" "," "PUB")))
+             (looking-back (regexp-opt '("ACCESS" "," "PUB")) nil)
              ;; The symbols that may precede a cast are the same
              ;; as those that may precede an enclosed-clause, with
              ;; the exception of the close-symbol, mode-indication
@@ -866,10 +872,12 @@ UPPER stropping version."
                                          "@" "BEGIN" "IF" "THEN" "ELIF"
                                          "ELSE" "CASE" "IN" "OUSE" "OUT"
                                          "OF" "FROM" "BY" "TO" "WHILE"
-                                         "DO" "(" "|" "DEF" "POSTLUDE")))
+                                         "DO" "(" "|" "DEF" "POSTLUDE"))
+                           nil)
              ;; operator, so any nomad or monad.
              (looking-back (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
-                                         ">" "<" "/" "=" "*")))))))))
+                                         ">" "<" "/" "=" "*"))
+                           nil)))))))
 
 (defun a68-at-post-unit-upper ()
   "Return whether the point is immediately after an unit.
@@ -877,11 +885,12 @@ UPPER stropping version."
   (save-excursion
     (forward-comment (- (point)))
     (or (looking-back (regexp-opt '("END" "FI" "ESAC" "]" "NIL" "OD" ")"
-                                    "SKIP" "~")))
+                                    "SKIP" "~"))
+                      nil)
         ;; This cover the end of denotations.
-        (looking-back "\\([0-9]+\\|[\"]\\)")
+        (looking-back "\\([0-9]+\\|[\"]\\)" nil)
         ;; tags
-        (looking-back "\\<[a-z][a-z_ ]*\\>")
+        (looking-back "\\<[a-z][a-z_ ]*\\>" nil)
         ;; A bold word finishes an unit if it is part of a generator,
         ;; like in: ... loc <mode-indication> ...
         ;;
@@ -889,10 +898,11 @@ UPPER stropping version."
         ;; mode-indication consists of the symbols "loc" and "heap",
         ;; plus those symbols which may immediately precede a
         ;; mode-indication in an actual-MODE-declarer.
-        (or (looking-back "[A-Z][A-Z_]*")
+        (or (looking-back "[A-Z][A-Z_]*" nil)
             (looking-back (regexp-opt '("LOC" "HEAP"
                                         "REF" ")" "]"
-                                        "PROC" "FLEX")))))))
+                                        "PROC" "FLEX"))
+                          nil)))))
 
 (defun a68--smie-forward-token-upper ()
   (forward-comment (point-max))
@@ -944,7 +954,7 @@ UPPER stropping version."
       "-by-")))
    ((looking-at "\\<TO\\>")
     (cond
-     ((looking-back "\\<GO\\>[ \t\n]*")
+     ((looking-back "\\<GO\\>[ \t\n]*" nil)
       (goto-char (+ (point) 2))
       "-to-jump-")
      ((a68-at-strong-void-enclosed-clause-upper)
@@ -990,18 +1000,18 @@ UPPER stropping version."
 (defun a68--smie-backward-token-upper ()
   (forward-comment (- (point)))
   (cond
-   ((looking-back "\\<PR\\>")
+   ((looking-back "\\<PR\\>" nil)
     (let ((pr (if (looking-at "[ \t\n]*\\<include\\>")
                   "-pr-"
                 "PR")))
       (goto-char (- (point) 2))
       pr))
-   ((looking-back "):")
+   ((looking-back "):" nil)
     (goto-char (- (point) 2))
     "):")
    ;; See comments in a68--smie-forward-token for an explanation of
    ;; the handling of loop insertions -from- -to- -by- -while-.
-   ((looking-back "\\<FROM\\>")
+   ((looking-back "\\<FROM\\>" nil)
      (goto-char (- (point) 4))
      (cond
       ((a68-at-strong-void-enclosed-clause-upper)
@@ -1010,7 +1020,7 @@ UPPER stropping version."
        "FROM")
       (t
        "-from-")))
-   ((looking-back "\\<BY\\>")
+   ((looking-back "\\<BY\\>" nil)
     (goto-char (- (point) 2))
     (cond
      ((a68-at-strong-void-enclosed-clause-upper)
@@ -1019,10 +1029,10 @@ UPPER stropping version."
       "BY")
      (t
       "-by-")))
-   ((looking-back "\\<TO\\>")
+   ((looking-back "\\<TO\\>" nil)
     (goto-char (- (point) 2))
     (cond
-     ((looking-back "\\<GO\\>[ \t\n]*")
+     ((looking-back "\\<GO\\>[ \t\n]*" nil)
       "-to-jump-")
      ((a68-at-strong-void-enclosed-clause-upper)
       "-to-")
@@ -1030,7 +1040,7 @@ UPPER stropping version."
       "TO")
      (t
       "-to-")))
-   ((looking-back "\\<WHILE\\>")
+   ((looking-back "\\<WHILE\\>" nil)
     (goto-char (- (point) 5))
     (cond
      ((a68-at-strong-void-enclosed-clause-upper)
@@ -1039,7 +1049,7 @@ UPPER stropping version."
       "WHILE")
      (t
       "-while-")))
-   ((looking-back "\\<DO\\>")
+   ((looking-back "\\<DO\\>" nil)
     (goto-char (- (point) 2))
     (cond
      ((a68-at-strong-void-enclosed-clause-upper)

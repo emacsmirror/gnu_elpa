@@ -112,6 +112,8 @@ of this variable.")
               (write-region beg end file))))
      (?k "Kill" ,#'kill-region)
      (?n "Narrow" ,#'narrow-to-region)
+     (?g "Grep" ,(lambda (str)
+                   (rgrep (regexp-quote str) "*" ".")))
      (?$ "Spell check" ,#'ispell-region)
      (?| "Pipe command"
          ,(lambda (beg end)

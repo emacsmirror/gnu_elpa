@@ -613,8 +613,8 @@ with the equivalent upcased form."
      ;; were detecting a SORT MODE enclosed-clause: := :=: :/=: = [
      ;; @ of from by to ) operator.
      (looking-back (regexp-opt '(":" "," ";" "begin" "if" "then" "elif"
-                                    "else" "case" "in" "ouse" "out"
-                                    "while" "do" "(" "|" "|:" "def" "postlude")))
+                                 "else" "case" "in" "ouse" "out"
+                                 "while" "do" "(" "|" "|:" "def" "postlude")))
      ;; tag denotation or mode indication
      (and (looking-back "[A-Z][A-Za-z_]+")
           ;; Given the context at hand, i.e. a bold word followed

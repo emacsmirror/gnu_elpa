@@ -596,12 +596,12 @@ with the equivalent upcased form."
                     '((assoc "=" "/" ":=" ":=:" ":/=:"
                              "+" "-" "*" "/")))))
 
-;;;; SMIE lexer
+;;;; SMIE lexer, SUPPER stropping.
 
 (defvar a68--keywords-regexp
   (regexp-opt '("|:" "(" ")" "+" "*" ";" ">" "<" ":=" "=" "," ":" "~")))
 
-(defun a68-at-strong-void-enclosed-clause ()
+(defun a68-at-strong-void-enclosed-clause-supper ()
   "Return whether the point is at the beginning of a VOID enclosed clause."
   (save-excursion
     (forward-comment (- (point)))
@@ -643,7 +643,7 @@ with the equivalent upcased form."
              (looking-back (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
                                          ">" "<" "/" "=" "*")))))))))
 
-(defun a68-at-post-unit ()
+(defun a68-at-post-unit-supper ()
   "Return whether the point is immediately after an unit."
   (save-excursion
     (forward-comment (- (point)))
@@ -665,7 +665,7 @@ with the equivalent upcased form."
                                         "ref" ")" "]"
                                         "proc" "flex")))))))
 
-(defun a68--smie-forward-token ()
+(defun a68--smie-forward-token-supper ()
   (forward-comment (point-max))
   (cond
    ((looking-at "):")
@@ -693,10 +693,10 @@ with the equivalent upcased form."
    ;; here, only our decision is final, be it right or wrong ;)
    ((looking-at "\\<from\\>")
     (cond
-     ((a68-at-strong-void-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause-supper)
       (goto-char (+ (point) 4))
       "-from-")
-     ((a68-at-post-unit)
+     ((a68-at-post-unit-supper)
       (goto-char (+ (point) 4))
       "from")
      (t
@@ -704,10 +704,10 @@ with the equivalent upcased form."
       "-from-")))
    ((looking-at "\\<by\\>")
     (cond
-     ((a68-at-strong-void-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause-supper)
       (goto-char (+ (point) 2))
       "-by-")
-     ((a68-at-post-unit)
+     ((a68-at-post-unit-supper)
       (goto-char (+ (point) 2))
       "by")
      (t
@@ -718,10 +718,10 @@ with the equivalent upcased form."
      ((looking-back "\\<go\\>[ \t\n]*")
       (goto-char (+ (point) 2))
       "-to-jump-")
-     ((a68-at-strong-void-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause-supper)
       (goto-char (+ (point) 2))
       "-to-")
-     ((a68-at-post-unit)
+     ((a68-at-post-unit-supper)
       (goto-char (+ (point) 2))
       "to")
      (t
@@ -729,10 +729,10 @@ with the equivalent upcased form."
       "-to-")))
    ((looking-at "\\<while\\>")
     (cond
-     ((a68-at-strong-void-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause-supper)
       (goto-char (+ (point) 5))
       "-while-")
-     ((a68-at-post-unit)
+     ((a68-at-post-unit-supper)
       (goto-char (+ (point) 5))
       "while")
      (t
@@ -740,10 +740,10 @@ with the equivalent upcased form."
       "-while-")))
    ((looking-at "\\<do\\>")
     (cond
-     ((a68-at-strong-void-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause-supper)
       (goto-char (+ (point) 2))
       "-do-")
-     ((a68-at-post-unit)
+     ((a68-at-post-unit-supper)
       (goto-char (+ (point) 2))
       "do")
      (t
@@ -758,7 +758,7 @@ with the equivalent upcased form."
                                       (progn (skip-syntax-forward "w_")
                                              (point))))))
 
-(defun a68--smie-backward-token ()
+(defun a68--smie-backward-token-supper ()
   (forward-comment (- (point)))
   (cond
    ((looking-back "\\<pr\\>")
@@ -775,18 +775,18 @@ with the equivalent upcased form."
    ((looking-back "\\<from\\>")
      (goto-char (- (point) 4))
      (cond
-      ((a68-at-strong-void-enclosed-clause)
+      ((a68-at-strong-void-enclosed-clause-supper)
        "-from-")
-      ((a68-at-post-unit)
+      ((a68-at-post-unit-supper)
        "from")
       (t
        "-from-")))
    ((looking-back "\\<by\\>")
     (goto-char (- (point) 2))
     (cond
-     ((a68-at-strong-void-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause-supper)
       "-by-")
-     ((a68-at-post-unit)
+     ((a68-at-post-unit-supper)
       "by")
      (t
       "-by-")))
@@ -795,28 +795,257 @@ with the equivalent upcased form."
     (cond
      ((looking-back "\\<go\\>[ \t\n]*")
       "-to-jump-")
-     ((a68-at-strong-void-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause-supper)
       "-to-")
-     ((a68-at-post-unit)
+     ((a68-at-post-unit-supper)
       "to")
      (t
       "-to-")))
    ((looking-back "\\<while\\>")
     (goto-char (- (point) 5))
     (cond
-     ((a68-at-strong-void-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause-supper)
       "-while-")
-     ((a68-at-post-unit)
+     ((a68-at-post-unit-supper)
       "while")
      (t
       "-while-")))
    ((looking-back "\\<do\\>")
     (goto-char (- (point) 2))
     (cond
-     ((a68-at-strong-void-enclosed-clause)
+     ((a68-at-strong-void-enclosed-clause-supper)
       "-do-")
-     ((a68-at-post-unit)
+     ((a68-at-post-unit-supper)
       "do")
+     (t
+      "-do-")))
+   ((looking-back a68--keywords-regexp (- (point) 2) t)
+    (goto-char (match-beginning 0))
+    (match-string-no-properties 0))
+   (t (buffer-substring-no-properties (point)
+                                      (progn (skip-syntax-backward "w_")
+                                             (point))))))
+
+;;;; SMIE lexer, UPPER stropping.
+
+(defun a68-at-strong-void-enclosed-clause-upper ()
+  "Return whether the point is at the beginning of a VOID enclosed clause.
+UPPER stropping version."
+  (save-excursion
+    (forward-comment (- (point)))
+    (or
+     ;; A VOID enclosed-clause may be preceded by one of the following
+     ;; symbols.
+     ;;
+     ;; Note the following symbols would have also be included if we
+     ;; were detecting a SORT MODE enclosed-clause: := :=: :/=: = [
+     ;; @ of from by to ) operator.
+     (looking-back (regexp-opt '(":" "," ";" "BEGIN" "IF" "THEN" "ELIF"
+                                 "ELSE" "CASE" "IN" "OUSE" "OUT"
+                                 "WHILE" "DO" "(" "|" "|:" "DEF" "POSTLUDE")))
+     ;; tag denotation or mode indication
+     (and (looking-back "[A-Z][A-Z_]*")
+          ;; Given the context at hand, i.e. a bold word followed
+          ;; by "from", "to", "by", "while" or "do", we are at the
+          ;; beginning of an enclosed clause if we are part of:
+          ;;
+          ;; - An access-clause: ... access <bold-word> to ...
+          ;; - Or a cast:        ... ; <bold-word> to ...
+          (save-excursion
+            (forward-comment (- (point)))
+            (or
+             ;; In the case of an access-clause, the
+             ;; module-indication is preceded by one of the
+             ;; following symbols:
+             (looking-back (regexp-opt '("ACCESS" "," "PUB")))
+             ;; The symbols that may precede a cast are the same
+             ;; as those that may precede an enclosed-clause, with
+             ;; the exception of the close-symbol, mode-indication
+             ;; and module-indication.
+             (looking-back (regexp-opt '(":" ":=" ":/=:" "=" "," ";" "["
+                                         "@" "BEGIN" "IF" "THEN" "ELIF"
+                                         "ELSE" "CASE" "IN" "OUSE" "OUT"
+                                         "OF" "FROM" "BY" "TO" "WHILE"
+                                         "DO" "(" "|" "DEF" "POSTLUDE")))
+             ;; operator, so any nomad or monad.
+             (looking-back (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
+                                         ">" "<" "/" "=" "*")))))))))
+
+(defun a68-at-post-unit-upper ()
+  "Return whether the point is immediately after an unit.
+UPPER stropping version."
+  (save-excursion
+    (forward-comment (- (point)))
+    (or (looking-back (regexp-opt '("END" "FI" "ESAC" "]" "NIL" "OD" ")"
+                                    "SKIP" "~")))
+        ;; This cover the end of denotations.
+        (looking-back "\\([0-9]+\\|[\"]\\)")
+        ;; tags
+        (looking-back "\\<[a-z][a-z_ ]*\\>")
+        ;; A bold word finishes an unit if it is part of a generator,
+        ;; like in: ... loc <mode-indication> ...
+        ;;
+        ;; In this case, the set of symbols which may precede the
+        ;; mode-indication consists of the symbols "loc" and "heap",
+        ;; plus those symbols which may immediately precede a
+        ;; mode-indication in an actual-MODE-declarer.
+        (or (looking-back "[A-Z][A-Z_]*")
+            (looking-back (regexp-opt '("LOC" "HEAP"
+                                        "REF" ")" "]"
+                                        "PROC" "FLEX")))))))
+
+(defun a68--smie-forward-token-upper ()
+  (forward-comment (point-max))
+  (cond
+   ((looking-at "):")
+    (goto-char (+ (point) 2))
+    "):")
+   ;; A "begin pragmat" token can precede the following symbols:
+   ;; include
+   ((looking-at "\\<PR\\>")
+    (goto-char (+ (point) 2))
+    (if (looking-at "[ \t\n]*\\<include\\>")
+        "-pr-"
+      "PR"))
+   ;; The symbols "by", "from", "to", "while" and "do" mark the start
+   ;; of a loop-clause if they are the first symbol of an
+   ;; enclosed-clause, and is thus preceded by a symbol which may
+   ;; appear just before an enclosed-clause.
+   ;;
+   ;; On the other hand, they do not mark the start of a loop-clause
+   ;; if they are preceded by symbols that mark the end of an unit.
+   ;;
+   ;; In case a decisive answer cannot be determined, probably due
+   ;; to a syntax error, Meertens and van Vliet decided to assume
+   ;; the beginning of a loop, provisionally, so it could be
+   ;; corrected later by a top-down parser.  We proceed the same way
+   ;; here, only our decision is final, be it right or wrong ;)
+   ((looking-at "\\<FROM\\>")
+    (cond
+     ((a68-at-strong-void-enclosed-clause-upper)
+      (goto-char (+ (point) 4))
+      "-from-")
+     ((a68-at-post-unit-upper)
+      (goto-char (+ (point) 4))
+      "FROM")
+     (t
+      (goto-char (+ (point) 4))
+      "-from-")))
+   ((looking-at "\\<BY\\>")
+    (cond
+     ((a68-at-strong-void-enclosed-clause-upper)
+      (goto-char (+ (point) 2))
+      "-by-")
+     ((a68-at-post-unit-upper)
+      (goto-char (+ (point) 2))
+      "BY")
+     (t
+      (goto-char (+ (point) 2))
+      "-by-")))
+   ((looking-at "\\<TO\\>")
+    (cond
+     ((looking-back "\\<GO\\>[ \t\n]*")
+      (goto-char (+ (point) 2))
+      "-to-jump-")
+     ((a68-at-strong-void-enclosed-clause-upper)
+      (goto-char (+ (point) 2))
+      "-to-")
+     ((a68-at-post-unit-upper)
+      (goto-char (+ (point) 2))
+      "TO")
+     (t
+      (goto-char (+ (point) 2))
+      "-to-")))
+   ((looking-at "\\<WHILE\\>")
+    (cond
+     ((a68-at-strong-void-enclosed-clause-upper)
+      (goto-char (+ (point) 5))
+      "-while-")
+     ((a68-at-post-unit-upper)
+      (goto-char (+ (point) 5))
+      "WHILE")
+     (t
+      (goto-char (+ (point) 5))
+      "-while-")))
+   ((looking-at "\\<DO\\>")
+    (cond
+     ((a68-at-strong-void-enclosed-clause-upper)
+      (goto-char (+ (point) 2))
+      "-do-")
+     ((a68-at-post-unit-upper)
+      (goto-char (+ (point) 2))
+      "DO")
+     (t
+      (goto-char (+ (point) 2))
+      "-to-")))
+   ;; Keywords.
+   ((looking-at a68--keywords-regexp)
+    (goto-char (match-end 0))
+    (match-string-no-properties 0))
+   ;; Words.
+   (t (buffer-substring-no-properties (point)
+                                      (progn (skip-syntax-forward "w_")
+                                             (point))))))
+
+(defun a68--smie-backward-token-upper ()
+  (forward-comment (- (point)))
+  (cond
+   ((looking-back "\\<PR\\>")
+    (let ((pr (if (looking-at "[ \t\n]*\\<include\\>")
+                  "-pr-"
+                "PR")))
+      (goto-char (- (point) 2))
+      pr))
+   ((looking-back "):")
+    (goto-char (- (point) 2))
+    "):")
+   ;; See comments in a68--smie-forward-token for an explanation of
+   ;; the handling of loop insertions -from- -to- -by- -while-.
+   ((looking-back "\\<FROM\\>")
+     (goto-char (- (point) 4))
+     (cond
+      ((a68-at-strong-void-enclosed-clause-upper)
+       "-from-")
+      ((a68-at-post-unit-upper)
+       "FROM")
+      (t
+       "-from-")))
+   ((looking-back "\\<BY\\>")
+    (goto-char (- (point) 2))
+    (cond
+     ((a68-at-strong-void-enclosed-clause-upper)
+      "-by-")
+     ((a68-at-post-unit-upper)
+      "BY")
+     (t
+      "-by-")))
+   ((looking-back "\\<TO\\>")
+    (goto-char (- (point) 2))
+    (cond
+     ((looking-back "\\<GO\\>[ \t\n]*")
+      "-to-jump-")
+     ((a68-at-strong-void-enclosed-clause-upper)
+      "-to-")
+     ((a68-at-post-unit-upper)
+      "TO")
+     (t
+      "-to-")))
+   ((looking-back "\\<WHILE\\>")
+    (goto-char (- (point) 5))
+    (cond
+     ((a68-at-strong-void-enclosed-clause-upper)
+      "-while-")
+     ((a68-at-post-unit-upper)
+      "WHILE")
+     (t
+      "-while-")))
+   ((looking-back "\\<DO\\>")
+    (goto-char (- (point) 2))
+    (cond
+     ((a68-at-strong-void-enclosed-clause-upper)
+      "-do-")
+     ((a68-at-post-unit-upper)
+      "DO")
      (t
       "-do-")))
    ((looking-back a68--keywords-regexp (- (point) 2) t)
@@ -956,8 +1185,8 @@ with the equivalent upcased form."
     (setq-local comment-end a68-comment-style-supper)
     (setq-local font-lock-defaults '(a68-font-lock-keywords-supper))
     (smie-setup a68--smie-grammar-supper #'a68--smie-rules-supper
-                :forward-token #'a68--smie-forward-token
-                :backward-token #'a68--smie-backward-token)
+                :forward-token #'a68--smie-forward-token-supper
+                :backward-token #'a68--smie-backward-token-supper)
     (setq-local beginning-of-defun-function #'a68-beginning-of-defun-supper)
     (setq-local syntax-propertize-function #'a68-syntax-propertize-function-supper))
    (t
@@ -966,8 +1195,8 @@ with the equivalent upcased form."
     (setq-local comment-end a68-comment-style-upper)
     (setq-local font-lock-defaults '(a68-font-lock-keywords-upper))
     (smie-setup a68--smie-grammar-upper #'a68--smie-rules-upper
-                :forward-token #'a68--smie-forward-token
-                :backward-token #'a68--smie-backward-token)
+                :forward-token #'a68--smie-forward-token-upper
+                :backward-token #'a68--smie-backward-token-upper)
     (setq-local beginning-of-defun-function #'a68-beginning-of-defun-upper)
     (setq-local syntax-propertize-function #'a68-syntax-propertize-function-upper)))
   (add-hook 'syntax-propertize-extend-region-functions

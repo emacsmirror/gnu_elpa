@@ -840,6 +840,21 @@ with the equivalent upcased form."
     ;; SMIE by default aligns it with it.
     (`(:before . "|")
      (if (not smie-rule-sibling-p) 3))
+    (`(:after . "BEGIN") 6)
+    (`(:after . "THEN") 5)
+    (`(:after . "ELSE") 5)
+    (`(:after . "ELIF") 5)
+    (`(:after . "CASE") 5)
+    (`(:after . "OUSE") 5)
+    (`(:after . "OUT") 4)
+    (`(:after . "IN") 3)
+    (`(:after . "FOR") 4)
+    (`(:after . "DO") 3)
+    (`(:after . "FROM") 5)
+    (`(:after . "BY") 3)
+    (`(:after . "TO") 3)
+    (`(:after . "WHILE") 3)
+    (`(:after . "DEF") 4)
     (`(:before . "BEGIN")
      (when (or (smie-rule-hanging-p)
                (or
@@ -934,17 +949,18 @@ with the equivalent upcased form."
   ;; First determine the stropping regime
   (setq-local a68--stropping-regime
               (a68--figure-out-stropping-regime))
-  (if (equal a68--stropping-regime 'supper)
-      ;; SUPPER stropping.
-      (progn
-        (setq-local comment-start a68-comment-style-supper)
-        (setq-local comment-end a68-comment-style-supper)
-        (setq-local font-lock-defaults '(a68-font-lock-keywords-supper))
-        (smie-setup a68--smie-grammar-supper #'a68--smie-rules-supper
-                    :forward-token #'a68--smie-forward-token
-                    :backward-token #'a68--smie-backward-token)
-        (setq-local beginning-of-defun-function #'a68-beginning-of-defun-supper)
-        (setq-local syntax-propertize-function #'a68-syntax-propertize-function-supper))
+  (cond
+   ((equal a68--stropping-regime 'supper)
+    ;; SUPPER stropping.
+    (setq-local comment-start a68-comment-style-supper)
+    (setq-local comment-end a68-comment-style-supper)
+    (setq-local font-lock-defaults '(a68-font-lock-keywords-supper))
+    (smie-setup a68--smie-grammar-supper #'a68--smie-rules-supper
+                :forward-token #'a68--smie-forward-token
+                :backward-token #'a68--smie-backward-token)
+    (setq-local beginning-of-defun-function #'a68-beginning-of-defun-supper)
+    (setq-local syntax-propertize-function #'a68-syntax-propertize-function-supper))
+   (t
     ;; UPPER stropping.
     (setq-local comment-start a68-comment-style-upper)
     (setq-local comment-end a68-comment-style-upper)
@@ -953,7 +969,7 @@ with the equivalent upcased form."
                 :forward-token #'a68--smie-forward-token
                 :backward-token #'a68--smie-backward-token)
     (setq-local beginning-of-defun-function #'a68-beginning-of-defun-upper)
-    (setq-local syntax-propertize-function #'a68-syntax-propertize-function-upper))
+    (setq-local syntax-propertize-function #'a68-syntax-propertize-function-upper)))
   (add-hook 'syntax-propertize-extend-region-functions
             #'syntax-propertize-multiline 'append 'local))
 

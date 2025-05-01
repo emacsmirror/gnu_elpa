@@ -72,13 +72,6 @@
   :type 'integer
   :safe #'integerp)
 
-(defcustom a68-comment-style "#"
-  "Default comment style used by e.g. `comment-dwim'."
-  :type '(choice (const "#")
-                 (const "CO")
-                 (const "COMMENT"))
-  :safe #'consp)
-
 (defface a68-string-break-face '((t :inherit font-lock-string-face))
   "Face for printing Algol 64 string breaks.")
 
@@ -98,6 +91,22 @@
 
 (defun a68-within-string-or-comment ()
   (nth 8 (syntax-ppss)))
+
+;;;; Comment style to use by default.
+
+(defcustom a68-comment-style-upper "#"
+  "Default comment style used by e.g. `comment-dwim'."
+  :type '(choice (const "#")
+                 (const "CO")
+                 (const "COMMENT"))
+  :safe #'consp)
+
+(defcustom a68-comment-style-supper "#"
+  "Default comment style used by e.g. `comment-dwim'."
+  :type '(choice (const "#")
+                 (const "co")
+                 (const "comment"))
+  :safe #'consp)
 
 ;;;; Syntax table for the a68-mode.
 
@@ -928,13 +937,17 @@ with the equivalent upcased form."
   (if (equal a68--stropping-regime 'supper)
       ;; SUPPER stropping.
       (progn
+        (setq-local comment-start a68-comment-style-supper)
+        (setq-local comment-end a68-comment-style-supper)
         (setq-local font-lock-defaults '(a68-font-lock-keywords-supper))
         (smie-setup a68--smie-grammar-supper #'a68--smie-rules-supper
                     :forward-token #'a68--smie-forward-token
                     :backward-token #'a68--smie-backward-token)
         (setq-local beginning-of-defun-function #'a68-beginning-of-defun-supper)
         (setq-local syntax-propertize-function #'a68-syntax-propertize-function-supper))
-    ;; UPPER stropping, the default.
+    ;; UPPER stropping.
+    (setq-local comment-start a68-comment-style-upper)
+    (setq-local comment-end a68-comment-style-upper)
     (setq-local font-lock-defaults '(a68-font-lock-keywords-upper))
     (smie-setup a68--smie-grammar-upper #'a68--smie-rules-upper
                 :forward-token #'a68--smie-forward-token
@@ -942,9 +955,7 @@ with the equivalent upcased form."
     (setq-local beginning-of-defun-function #'a68-beginning-of-defun-upper)
     (setq-local syntax-propertize-function #'a68-syntax-propertize-function-upper))
   (add-hook 'syntax-propertize-extend-region-functions
-            #'syntax-propertize-multiline 'append 'local)
-  (setq-local comment-start a68-comment-style)
-  (setq-local comment-end a68-comment-style))
+            #'syntax-propertize-multiline 'append 'local))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.a68\\'" . a68-mode))

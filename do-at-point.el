@@ -146,6 +146,8 @@ of this variable.")
      (?b "Browse" ,#'browse-url)
      (?d "Download" ,#'(lambda (url)
                          (start-process "*Download*" nil "wget" "-q" "-c" url)))
+     (?G "Git" ,#'(lambda (url)
+                    (start-process "*Git*" nil "git" "clone" url "/tmp/")))
      (?e "eww" ,#'eww-browse-url))
     (number
      (?* "Calc" ,(lambda () (calc-embedded '(t)))))

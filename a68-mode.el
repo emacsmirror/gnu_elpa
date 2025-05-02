@@ -359,7 +359,9 @@ with the equivalent upcased form."
     (spec ("(" fargs "):")
           (exp))
     (fargs (fargs "," fargs)
+           (modal)
            (exp))
+    (modal ("-mode-" type-decl**))
     (specs (specs "," specs)
            (spec))
     (exp (ids)
@@ -674,6 +676,14 @@ with the equivalent upcased form."
 (defun a68--smie-forward-token-supper ()
   (forward-comment (point-max))
   (cond
+   ;; defining-modal-indications "mode MODE" are preceded by either (
+   ;; or , in formal-parameter packs.
+   ((looking-at "\\<mode\\>")
+    (let ((res (if (looking-back "[(,][ \t\n]*" nil)
+                   "-mode-"
+                 "mode")))
+      (goto-char (+ (point) 4))
+      res))
    ((looking-at "):")
     (goto-char (+ (point) 2))
     "):")
@@ -767,6 +777,11 @@ with the equivalent upcased form."
 (defun a68--smie-backward-token-supper ()
   (forward-comment (- (point)))
   (cond
+   ((looking-back "\\<mode\\>" nil)
+    (goto-char (- (point) 4))
+    (if (looking-back "[(,][ \t\n]*" nil)
+        "-mode-"
+      "mode"))
    ((looking-back "\\<pr\\>" nil)
     (let ((pr (if (looking-at "[ \t\n]*\\<include\\>")
                   "-pr-"
@@ -908,6 +923,14 @@ UPPER stropping version."
 (defun a68--smie-forward-token-upper ()
   (forward-comment (point-max))
   (cond
+   ;; defining-modal-indications "mode MODE" are preceded by either (
+   ;; or , in formal-parameter packs.
+   ((looking-at "\\<MODE\\>")
+    (let ((res (if (looking-back "[(,][ \t\n]*" nil)
+                   "-mode-"
+                 "MODE")))
+      (goto-char (+ (point) 4))
+      res))
    ((looking-at "):")
     (goto-char (+ (point) 2))
     "):")
@@ -1001,6 +1024,11 @@ UPPER stropping version."
 (defun a68--smie-backward-token-upper ()
   (forward-comment (- (point)))
   (cond
+   ((looking-back "\\<MODE\\>" nil)
+    (goto-char (- (point) 4))
+    (if (looking-back "[(,][ \t\n]*" nil)
+        "-mode-"
+      "MODE"))
    ((looking-back "\\<PR\\>" nil)
     (let ((pr (if (looking-at "[ \t\n]*\\<include\\>")
                   "-pr-"

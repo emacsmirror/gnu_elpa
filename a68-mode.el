@@ -379,7 +379,7 @@ with the equivalent upcased form."
                 (id "=" type-decl**))
     (type-decl** ("struct" args)
                  ("union" args)
-                 ("proc" args "-archor-" ids))
+                 ("proc" args))
     (op-decl (op-decl "," op-decl)
              ("op" ids "=" args ids ":" exp))
     (proc-decl (proc-decl "," proc-decl)

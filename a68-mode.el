@@ -1137,11 +1137,7 @@ UPPER stropping version."
        (smie-rule-parent)))
     (`(:before . "(")
      (when (smie-rule-hanging-p)
-       (smie-rule-parent)))
-    (`(:before . "IF")
-     (and (not (smie-rule-bolp))
-          (smie-rule-prev-p "ELSE")
-          (smie-rule-parent)))))
+       (smie-rule-parent)))))
 
 (defun a68--smie-rules-supper (kind token)
   (pcase (cons kind token)
@@ -1184,11 +1180,7 @@ UPPER stropping version."
        (smie-rule-parent)))
     (`(:before . "(")
      (when (smie-rule-hanging-p)
-       (smie-rule-parent)))
-    (`(:before . "if")
-     (and (not (smie-rule-bolp))
-          (smie-rule-prev-p "else")
-          (smie-rule-parent)))))
+       (smie-rule-parent)))))
 
 ;;;; Stropping utilities and commands.
 

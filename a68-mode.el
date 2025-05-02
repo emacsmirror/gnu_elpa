@@ -1210,6 +1210,7 @@ UPPER stropping version."
                 :backward-token #'a68--smie-backward-token-upper)
     (setq-local beginning-of-defun-function #'a68-beginning-of-defun-upper)
     (setq-local syntax-propertize-function #'a68-syntax-propertize-function-upper)))
+  (setq-local comment-start-skip "\\(#\\) *")
   (add-hook 'syntax-propertize-extend-region-functions
             #'syntax-propertize-multiline 'append 'local))
 

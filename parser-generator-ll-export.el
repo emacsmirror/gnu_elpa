@@ -167,16 +167,16 @@
        (format
         "(defvar\n  %s-lex-analyzer--get-function\n  (lambda %S %S)\n  \"The lex-analyzer get function.\")\n\n"
         namespace
-        (nth 2 parser-generator-lex-analyzer--get-function)
-        (nth 3 parser-generator-lex-analyzer--get-function)))
+        (aref parser-generator-lex-analyzer--get-function 0)
+        (car (aref parser-generator-lex-analyzer--get-function 1))))
 
       ;; Lex-Analyzer Function
       (insert
        (format
         "(defvar\n  %s-lex-analyzer--function\n  (lambda %S %S)\n  \"The lex-analyzer function.\")\n\n"
         namespace
-        (nth 2 parser-generator-lex-analyzer--function)
-        (nth 3 parser-generator-lex-analyzer--function)))
+        (aref parser-generator-lex-analyzer--function 0)
+        (car (aref parser-generator-lex-analyzer--function 1))))
 
       ;; Lex-Analyzer Reset Function
       (insert
@@ -187,8 +187,8 @@
           (insert
            (format
             "(lambda %S %S)\n"
-            (nth 2 parser-generator-lex-analyzer--reset-function)
-            (nth 3 parser-generator-lex-analyzer--reset-function)))
+            (aref parser-generator-lex-analyzer--reset-function 0)
+            (car (aref parser-generator-lex-analyzer--reset-function 1))))
         (insert "nil\n"))
       (insert "  \"The lex-analyzer reset function.\")\n\n")
 

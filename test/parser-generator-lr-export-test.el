@@ -194,8 +194,7 @@
 
   ;; Export parser
   (let ((export (parser-generator-lr-export-to-elisp "e")))
-    (parser-generator--debug
-     (message "export:\n%S\n" export))
+     (message "export:\n%S\n" export)
 
     (with-temp-buffer
       (insert export)

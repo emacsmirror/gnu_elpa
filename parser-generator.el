@@ -5,8 +5,8 @@
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>
 ;; Created: 10 Oct 2020
-;; Modified: 20 Dec 2024
-;; Version: 0.2.4
+;; Modified: 5 May 2025
+;; Version: 0.2.5
 ;; Keywords: tools, convenience
 ;; URL: https://github.com/cjohansson/emacs-parser-generator
 

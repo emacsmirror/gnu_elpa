@@ -412,7 +412,7 @@ Also see `denote-org-dblock--files-missing-only'."
 Missing links are those for which REGEXP does not have a match in
 the current buffer."
   (when-let* ((all-files (denote-directory-files regexp :omit-current))
-              (linked-files (denote-link-return-links nil all-files)))
+              (linked-files (denote-get-links nil all-files)))
     (seq-difference all-files linked-files)))
 
 (defun denote-org-dblock--files-missing-only (files-matching-regexp &optional sort-by-component reverse)
@@ -569,7 +569,7 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
 Used by `org-dblock-update' with PARAMS provided by the dynamic block."
   (when-let* ((files (if (plist-get params :this-heading-only)
                          (denote-org--get-backlinks-for-heading (denote-org--get-file-id-and-heading-id-or-context))
-                       (denote-link-return-backlinks))))
+                       (denote-get-backlinks))))
     (let* ((sort (plist-get params :sort-by-component))
            (reverse (plist-get params :reverse-sort))
            (include-date (plist-get params :include-date))

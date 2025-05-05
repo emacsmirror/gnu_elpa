@@ -1,6 +1,6 @@
 ;;; parser-generator.el --- Parser Generator library -*- lexical-binding: t -*-
 
-;; Copyright (C) 2020-2024  Free Software Foundation, Inc.
+;; Copyright (C) 2020-2025  Free Software Foundation, Inc.
 
 ;; Author: Christian Johansson <christian@cvj.se>
 ;; Maintainer: Christian Johansson <christian@cvj.se>

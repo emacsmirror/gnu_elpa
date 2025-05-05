@@ -879,43 +879,42 @@
                               (if
                                   (%s--get-grammar-translation-by-number
                                    production-number)
-                                    (progn
-                                      (condition-case conditions
-                                          (let ((partial-translation
-                                                 (funcall
-                                                  (%s--get-grammar-translation-by-number
-                                                   production-number)
-                                                  popped-items-meta-contents
-                                                  popped-items-terminals)))
-                                            (let ((temp-hash-key
-                                                   (format
-                                                    \"%%S\"
-                                                    production-lhs)))
-                                              (let ((symbol-translations
-                                                     (gethash
-                                                      temp-hash-key
-                                                      translation-symbol-table)))
-                                                (push
-                                                  (list
-                                                   partial-translation
-                                                   popped-items-terminals)
-                                                   symbol-translations)
-                                                (puthash
-                                                 temp-hash-key
-                                                 symbol-translations
-                                                 translation-symbol-table)
-                                                (setq
-                                                 translation
-                                                 partial-translation))))
+                                    (condition-case conditions
+                                        (let ((partial-translation
+                                               (funcall
+                                                (%s--get-grammar-translation-by-number
+                                                 production-number)
+                                                popped-items-meta-contents
+                                                popped-items-terminals)))
+                                          (let ((temp-hash-key
+                                                 (format
+                                                  \"%%S\"
+                                                  production-lhs)))
+                                            (let ((symbol-translations
+                                                   (gethash
+                                                    temp-hash-key
+                                                    translation-symbol-table)))
+                                              (push
+                                                (list
+                                                 partial-translation
+                                                 popped-items-terminals)
+                                                 symbol-translations)
+                                              (puthash
+                                               temp-hash-key
+                                               symbol-translations
+                                               translation-symbol-table)
+                                              (setq
+                                               translation
+                                               partial-translation))))
 
-                                        (error
-                                         (signal
-                                          'error
-                                          (list
-                                           (format
-                                            \"Failed AST translation for production %%S with error: %%sS\"
-                                            production-number
-                                            conditions))))))
+                                      (error
+                                       (signal
+                                        'error
+                                        (list
+                                         (format
+                                          \"Failed AST translation for production %%S with error: %%S\"
+                                          production-number
+                                          conditions)))))
 "
                       namespace
                       namespace))

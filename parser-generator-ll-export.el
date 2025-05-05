@@ -811,26 +811,35 @@
 
     (if (%s--get-grammar-translation-by-number
          production-number)
-        (let ((partial-translation
-               (funcall
-                (%s--get-grammar-translation-by-number
-                 production-number)
-                args-1
-                args-2))
-              (old-symbol-value
-               (gethash production-lhs symbol-table)))
-          (push
-           (list
-            partial-translation
-            args-2)
-           old-symbol-value)
-          (puthash
-           production-lhs
-           old-symbol-value
-           symbol-table)
-          (setq
-           translation
-           partial-translation))
+        (condition-case conditions
+          (let ((partial-translation
+                 (funcall
+                  (%s--get-grammar-translation-by-number
+                   production-number)
+                  args-1
+                  args-2))
+                (old-symbol-value
+                 (gethash production-lhs symbol-table)))
+            (push
+             (list
+              partial-translation
+              args-2)
+             old-symbol-value)
+            (puthash
+             production-lhs
+             old-symbol-value
+             symbol-table)
+            (setq
+             translation
+             partial-translation))
+(error
+           (signal
+            'error
+            (list
+             (format
+              \"Failed AST translation for production %%S with error: %%S\"
+              production-number
+              conditions)))))
 
       ;; When no translation is specified just use popped contents as translation
       (let ((partial-translation

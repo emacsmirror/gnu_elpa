@@ -2054,47 +2054,46 @@ OUTPUT, TRANSLATION, TRANSLATION-SYMBOL-TABLE-LIST."
                               (if
                                   (parser-generator--get-grammar-translation-by-number
                                    production-number)
-                                  (progn
-                                    (condition-case conditions
-                                        (let ((partial-translation
-                                               (funcall
-                                                (parser-generator--get-grammar-translation-by-number
-                                                 production-number)
-                                                popped-items-meta-contents
-                                                popped-items-terminals)))
-                                          (parser-generator--debug
-                                           (message
-                                            "translation-symbol-table: %S = %S (processed)"
-                                            production-lhs
-                                            partial-translation))
-                                          (let ((temp-hash-key
-                                                 (format
-                                                  "%S"
-                                                  production-lhs)))
-                                            (let ((symbol-translations
-                                                   (gethash
-                                                    temp-hash-key
-                                                    translation-symbol-table)))
-                                              (push
-                                               (list
-                                                partial-translation
-                                                popped-items-terminals)
-                                               symbol-translations)
-                                              (puthash
-                                               temp-hash-key
-                                               symbol-translations
-                                               translation-symbol-table)
-                                              (setq
-                                               translation
-                                               partial-translation))))
-                                      (error
-                                       (signal
-                                        'error
-                                        (list
-                                         (format
-                                          "Failed AST translation for production %S with error: %S"
-                                          production-number
-                                          conditions))))))
+                                  (condition-case conditions
+                                      (let ((partial-translation
+                                             (funcall
+                                              (parser-generator--get-grammar-translation-by-number
+                                               production-number)
+                                              popped-items-meta-contents
+                                              popped-items-terminals)))
+                                        (parser-generator--debug
+                                         (message
+                                          "translation-symbol-table: %S = %S (processed)"
+                                          production-lhs
+                                          partial-translation))
+                                        (let ((temp-hash-key
+                                               (format
+                                                "%S"
+                                                production-lhs)))
+                                          (let ((symbol-translations
+                                                 (gethash
+                                                  temp-hash-key
+                                                  translation-symbol-table)))
+                                            (push
+                                             (list
+                                              partial-translation
+                                              popped-items-terminals)
+                                             symbol-translations)
+                                            (puthash
+                                             temp-hash-key
+                                             symbol-translations
+                                             translation-symbol-table)
+                                            (setq
+                                             translation
+                                             partial-translation))))
+                                    (error
+                                     (signal
+                                      'error
+                                      (list
+                                       (format
+                                        "Failed AST translation for production %S with error: %S"
+                                        production-number
+                                        conditions)))))
 
                                 ;; When no translation is specified just use popped contents as translation
                                 (let ((partial-translation

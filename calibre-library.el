@@ -94,12 +94,16 @@ TAGS should be a list of strings to add to FILE."
     (if (derived-mode-p 'dired-mode)
         (calibre-library-add-books (dired-get-marked-files) tags)))
 
+(defun calibre-library-book-at-point ()
+  "Get the book at point."
+  (tabulated-list-get-id))
+
 (defun calibre--get-active-books ()
   "Get the list of books to operate on.
 
 Get the list of books a library command should operate on.  If any books
 are marked return those books otherwise return the book at point."
-  (or (calibre-library-get-marked) (list (tabulated-list-get-id))))
+  (or (calibre-library-get-marked) (list (calibre-library-book-at-point))))
 
 (defun calibre-library-add-tags (tags books)
   "Add TAGS to BOOKS if not already present."
@@ -155,7 +159,7 @@ are marked return those books otherwise return the book at point."
 (defun calibre-library-mark-unmark (&optional _num)
   "Clear any marks on a book and move to the next line."
   (interactive "p" calibre-library-mode)
-  (let ((book (tabulated-list-get-id)))
+  (let ((book (calibre-library-book-at-point)))
     (beginning-of-line)
     (let ((mark (char-after)))
       (unless (char-equal mark 32)
@@ -174,7 +178,7 @@ are marked return those books otherwise return the book at point."
 If MARK is provided clear only that mark.  When called with a prefix
 argument prompts for MARK."
   (interactive (list (if current-prefix-arg (read-char "Mark: ") nil)))
-  (let ((book (tabulated-list-get-id)))
+  (let ((book (calibre-library-book-at-point)))
     (goto-char (point-min))
     (while (not (eobp))
       (let ((current-mark (char-after)))
@@ -193,7 +197,7 @@ If MARK is not specified it defaults to `calibre-mod-marker'."
     (save-excursion
       (goto-char (point-min))
       (while (not (eobp))
-        (let ((book (tabulated-list-get-id))
+        (let ((book (calibre-library-book-at-point))
               (book-mark (char-after)))
           (when (eql mark book-mark) (push book books)))
         (forward-line))
@@ -206,7 +210,7 @@ If MARK is not specified it defaults to `calibre-mod-marker'."
     (save-excursion
       (goto-char (point-min))
       (while (not (eobp))
-        (let ((book (tabulated-list-get-id))
+        (let ((book (calibre-library-book-at-point))
               (mark (char-after)))
           (cond
             ((eql mark calibre-del-marker) (push book remove-list))
@@ -221,7 +225,7 @@ If MARK is not specified it defaults to `calibre-mod-marker'."
 
 (defun calibre-library-revert (&rest _IGNORED)
   "Revert the *LIBRARY* buffer."
-  (let ((pos (tabulated-list-get-id)))
+  (let ((pos (calibre-library-book-at-point)))
     (calibre-library--refresh t)
     (if (not pos)
         (goto-char (point-max))
@@ -230,7 +234,7 @@ If MARK is not specified it defaults to `calibre-mod-marker'."
 (defun calibre-library-open-book (book &optional arg)
   "Open BOOK in its preferred format.
 If called with a prefix argument prompt the user for the format."
-  (interactive (list (tabulated-list-get-id)
+  (interactive (list (calibre-library-book-at-point)
                      current-prefix-arg)
                calibre-library-mode)
   (let ((format (if arg
@@ -244,7 +248,7 @@ If called with a prefix argument prompt the user for the format."
 (defun calibre-library-open-book-other-window (book &optional arg)
   "Open BOOK in its preferred format, in another window.
 If called with a prefix argument prompt the user for the format."
-  (interactive (list (tabulated-list-get-id)
+  (interactive (list (calibre-library-book-at-point)
                      current-prefix-arg)
                calibre-library-mode)
   (let ((format (if arg
@@ -255,7 +259,7 @@ If called with a prefix argument prompt the user for the format."
 (defun calibre-library-open-book-external (book &optional command arg)
   "Open BOOK in an external program.
 If called with a prefix argument prompt the user for the format."
-  (interactive (list (tabulated-list-get-id)
+  (interactive (list (calibre-library-book-at-point)
                      nil
                      current-prefix-arg)
                calibre-library-mode)

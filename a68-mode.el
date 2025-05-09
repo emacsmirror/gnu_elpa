@@ -401,7 +401,6 @@ with the equivalent upcased form."
     ;;    jump ; enclosed clause.
     (unit (id ":=" exp)
           ; (routine-text)
-          ("-label-" unit)
           (assignation)
           (pseudo-operator))
     (assignation (tertiary ":=" unit))
@@ -578,6 +577,7 @@ with the equivalent upcased form."
     (pragmat ("-pr-" exp "pr"))
     (serial (serial ";" serial)
             (unit)
+            ("-label-" unit)
             (declaration)
             (pragmat)))
   "Algol 68 BNF operator precedence grammar to use with SMIE")

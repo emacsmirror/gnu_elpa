@@ -79,6 +79,7 @@
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-j") #'newline-and-indent)
     (define-key map (kbd "#") #'a68-comment-hash)
+    (define-key map (kbd "\C-c\C-e") #'smie-close-block)
     ;; (define-key map (kbd "RET") #'a68-electric-terminate-line)
     map)
   "Keymap for Algol 68 major mode.")
@@ -400,6 +401,7 @@ with the equivalent upcased form."
     ;;    jump ; enclosed clause.
     (unit (id ":=" exp)
           ; (routine-text)
+          ("-label-" unit)
           (assignation)
           (pseudo-operator))
     (assignation (tertiary ":=" unit))
@@ -675,177 +677,196 @@ with the equivalent upcased form."
 
 (defun a68--smie-forward-token-supper ()
   (forward-comment (point-max))
-  (cond
-   ;; defining-modal-indications "mode MODE" are preceded by either (
-   ;; or , in formal-parameter packs.
-   ((looking-at "\\<mode\\>")
-    (let ((res (if (looking-back "[(,][ \t\n]*" nil)
-                   "-mode-"
-                 "mode")))
-      (goto-char (+ (point) 4))
-      res))
-   ((looking-at "):")
-    (goto-char (+ (point) 2))
-    "):")
-   ;; A "begin pragmat" token can precede the following symbols:
-   ;; include
-   ((looking-at "\\<pr\\>")
-    (goto-char (+ (point) 2))
-    (if (looking-at "[ \t\n]*\\<include\\>")
-        "-pr-"
-      "pr"))
-   ;; The symbols "by", "from", "to", "while" and "do" mark the start
-   ;; of a loop-clause if they are the first symbol of an
-   ;; enclosed-clause, and is thus preceded by a symbol which may
-   ;; appear just before an enclosed-clause.
-   ;;
-   ;; On the other hand, they do not mark the start of a loop-clause
-   ;; if they are preceded by symbols that mark the end of an unit.
-   ;;
-   ;; In case a decisive answer cannot be determined, probably due
-   ;; to a syntax error, Meertens and van Vliet decided to assume
-   ;; the beginning of a loop, provisionally, so it could be
-   ;; corrected later by a top-down parser.  We proceed the same way
-   ;; here, only our decision is final, be it right or wrong ;)
-   ((looking-at "\\<from\\>")
+  (let ((case-fold-search nil))
     (cond
-     ((a68-at-strong-void-enclosed-clause-supper)
-      (goto-char (+ (point) 4))
-      "-from-")
-     ((a68-at-post-unit-supper)
-      (goto-char (+ (point) 4))
-      "from")
-     (t
-      (goto-char (+ (point) 4))
-      "-from-")))
-   ((looking-at "\\<by\\>")
-    (cond
-     ((a68-at-strong-void-enclosed-clause-supper)
+     ;; A semicolon following a tag is a label, but mind standard modes.
+     ((and (looking-at "\\<[a-z]+:")
+           (let ((beg (match-beginning 0))
+                 (end (match-end 0)))
+             (not (member (buffer-substring-no-properties
+                           beg (- end 1))
+                          a68-std-modes-supper))))
+      (goto-char (match-end 0))
+      "-label-")
+     ;; defining-modal-indications "mode MODE" are preceded by either (
+     ;; or , in formal-parameter packs.
+     ((looking-at "\\<mode\\>")
+      (let ((res (if (looking-back "[(,][ \t\n]*" nil)
+                     "-mode-"
+                   "mode")))
+        (goto-char (+ (point) 4))
+        res))
+     ((looking-at "):")
       (goto-char (+ (point) 2))
-      "-by-")
-     ((a68-at-post-unit-supper)
+      "):")
+     ;; A "begin pragmat" token can precede the following symbols:
+     ;; include
+     ((looking-at "\\<pr\\>")
       (goto-char (+ (point) 2))
-      "by")
-     (t
-      (goto-char (+ (point) 2))
-      "-by-")))
-   ((looking-at "\\<to\\>")
-    (cond
-     ((looking-back "\\<go\\>[ \t\n]*" nil)
-      (goto-char (+ (point) 2))
-      "-to-jump-")
-     ((a68-at-strong-void-enclosed-clause-supper)
-      (goto-char (+ (point) 2))
-      "-to-")
-     ((a68-at-post-unit-supper)
-      (goto-char (+ (point) 2))
-      "to")
-     (t
-      (goto-char (+ (point) 2))
-      "-to-")))
-   ((looking-at "\\<while\\>")
-    (cond
-     ((a68-at-strong-void-enclosed-clause-supper)
-      (goto-char (+ (point) 5))
-      "-while-")
-     ((a68-at-post-unit-supper)
-      (goto-char (+ (point) 5))
-      "while")
-     (t
-      (goto-char (+ (point) 5))
-      "-while-")))
-   ((looking-at "\\<do\\>")
-    (cond
-     ((a68-at-strong-void-enclosed-clause-supper)
-      (goto-char (+ (point) 2))
-      "-do-")
-     ((a68-at-post-unit-supper)
-      (goto-char (+ (point) 2))
-      "do")
-     (t
-      (goto-char (+ (point) 2))
-      "-to-")))
-   ;; Keywords.
-   ((looking-at a68--keywords-regexp)
-    (goto-char (match-end 0))
-    (match-string-no-properties 0))
-   ;; Words.
-   (t (buffer-substring-no-properties (point)
-                                      (progn (skip-syntax-forward "w_")
-                                             (point))))))
+      (if (looking-at "[ \t\n]*\\<include\\>")
+          "-pr-"
+        "pr"))
+     ;; The symbols "by", "from", "to", "while" and "do" mark the start
+     ;; of a loop-clause if they are the first symbol of an
+     ;; enclosed-clause, and is thus preceded by a symbol which may
+     ;; appear just before an enclosed-clause.
+     ;;
+     ;; On the other hand, they do not mark the start of a loop-clause
+     ;; if they are preceded by symbols that mark the end of an unit.
+     ;;
+     ;; In case a decisive answer cannot be determined, probably due
+     ;; to a syntax error, Meertens and van Vliet decided to assume
+     ;; the beginning of a loop, provisionally, so it could be
+     ;; corrected later by a top-down parser.  We proceed the same way
+     ;; here, only our decision is final, be it right or wrong ;)
+     ((looking-at "\\<from\\>")
+      (cond
+       ((a68-at-strong-void-enclosed-clause-supper)
+        (goto-char (+ (point) 4))
+        "-from-")
+       ((a68-at-post-unit-supper)
+        (goto-char (+ (point) 4))
+        "from")
+       (t
+        (goto-char (+ (point) 4))
+        "-from-")))
+     ((looking-at "\\<by\\>")
+      (cond
+       ((a68-at-strong-void-enclosed-clause-supper)
+        (goto-char (+ (point) 2))
+        "-by-")
+       ((a68-at-post-unit-supper)
+        (goto-char (+ (point) 2))
+        "by")
+       (t
+        (goto-char (+ (point) 2))
+        "-by-")))
+     ((looking-at "\\<to\\>")
+      (cond
+       ((looking-back "\\<go\\>[ \t\n]*" nil)
+        (goto-char (+ (point) 2))
+        "-to-jump-")
+       ((a68-at-strong-void-enclosed-clause-supper)
+        (goto-char (+ (point) 2))
+        "-to-")
+       ((a68-at-post-unit-supper)
+        (goto-char (+ (point) 2))
+        "to")
+       (t
+        (goto-char (+ (point) 2))
+        "-to-")))
+     ((looking-at "\\<while\\>")
+      (cond
+       ((a68-at-strong-void-enclosed-clause-supper)
+        (goto-char (+ (point) 5))
+        "-while-")
+       ((a68-at-post-unit-supper)
+        (goto-char (+ (point) 5))
+        "while")
+       (t
+        (goto-char (+ (point) 5))
+        "-while-")))
+     ((looking-at "\\<do\\>")
+      (cond
+       ((a68-at-strong-void-enclosed-clause-supper)
+        (goto-char (+ (point) 2))
+        "-do-")
+       ((a68-at-post-unit-supper)
+        (goto-char (+ (point) 2))
+        "do")
+       (t
+        (goto-char (+ (point) 2))
+        "-to-")))
+     ;; Keywords.
+     ((looking-at a68--keywords-regexp)
+      (goto-char (match-end 0))
+      (match-string-no-properties 0))
+     ;; Words.
+     (t (buffer-substring-no-properties (point)
+                                        (progn (skip-syntax-forward "w_")
+                                               (point)))))))
 
 (defun a68--smie-backward-token-supper ()
   (forward-comment (- (point)))
-  (cond
-   ((looking-back "\\<mode\\>" (- (point) 4))
-    (goto-char (- (point) 4))
-    (if (looking-back "[(,][ \t\n]*" nil)
-        "-mode-"
-      "mode"))
-   ((looking-back "\\<pr\\>" (- (point) 2))
-    (let ((pr (if (looking-at "[ \t\n]*\\<include\\>")
-                  "-pr-"
-                "pr")))
+  (let ((case-fold-search nil))
+    (cond
+     ((and (looking-back "\\<[a-z]+:" (pos-bol))
+           (let ((beg (match-beginning 0))
+                 (end (match-end 0)))
+             (not (member (buffer-substring-no-properties
+                           beg (- end 1))
+                          a68-std-modes-supper))))
+      (goto-char (match-beginning 0))
+      "-label-")
+     ((looking-back "\\<mode\\>" (- (point) 4))
+      (goto-char (- (point) 4))
+      (if (looking-back "[(,][ \t\n]*" nil)
+          "-mode-"
+        "mode"))
+     ((looking-back "\\<pr\\>" (- (point) 2))
+      (let ((pr (if (looking-at "[ \t\n]*\\<include\\>")
+                    "-pr-"
+                  "pr")))
+        (goto-char (- (point) 2))
+        pr))
+     ((looking-back "):" (- (point) 2))
       (goto-char (- (point) 2))
-      pr))
-   ((looking-back "):" (- (point) 2))
-    (goto-char (- (point) 2))
-    "):")
-   ;; See comments in a68--smie-forward-token for an explanation of
-   ;; the handling of loop insertions -from- -to- -by- -while-.
-   ((looking-back "\\<from\\>" (- (point) 4))
-     (goto-char (- (point) 4))
-     (cond
-      ((a68-at-strong-void-enclosed-clause-supper)
-       "-from-")
-      ((a68-at-post-unit-supper)
-       "from")
-      (t
-       "-from-")))
-   ((looking-back "\\<by\\>" (- (point) 2))
-    (goto-char (- (point) 2))
-    (cond
-     ((a68-at-strong-void-enclosed-clause-supper)
-      "-by-")
-     ((a68-at-post-unit-supper)
-      "by")
-     (t
-      "-by-")))
-   ((looking-back "\\<to\\>" (- (point) 2))
-    (goto-char (- (point) 2))
-    (cond
-     ((looking-back "\\<go\\>[ \t\n]*" nil)
-      "-to-jump-")
-     ((a68-at-strong-void-enclosed-clause-supper)
-      "-to-")
-     ((a68-at-post-unit-supper)
-      "to")
-     (t
-      "-to-")))
-   ((looking-back "\\<while\\>" (- (point) 5))
-    (goto-char (- (point) 5))
-    (cond
-     ((a68-at-strong-void-enclosed-clause-supper)
-      "-while-")
-     ((a68-at-post-unit-supper)
-      "while")
-     (t
-      "-while-")))
-   ((looking-back "\\<do\\>" (- (point) 2))
-    (goto-char (- (point) 2))
-    (cond
-     ((a68-at-strong-void-enclosed-clause-supper)
-      "-do-")
-     ((a68-at-post-unit-supper)
-      "do")
-     (t
-      "-do-")))
-   ((looking-back a68--keywords-regexp (- (point) 2) t)
-    (goto-char (match-beginning 0))
-    (match-string-no-properties 0))
-   (t (buffer-substring-no-properties (point)
-                                      (progn (skip-syntax-backward "w_")
-                                             (point))))))
+      "):")
+     ;; See comments in a68--smie-forward-token for an explanation of
+     ;; the handling of loop insertions -from- -to- -by- -while-.
+     ((looking-back "\\<from\\>" (- (point) 4))
+      (goto-char (- (point) 4))
+      (cond
+       ((a68-at-strong-void-enclosed-clause-supper)
+        "-from-")
+       ((a68-at-post-unit-supper)
+        "from")
+       (t
+        "-from-")))
+     ((looking-back "\\<by\\>" (- (point) 2))
+      (goto-char (- (point) 2))
+      (cond
+       ((a68-at-strong-void-enclosed-clause-supper)
+        "-by-")
+       ((a68-at-post-unit-supper)
+        "by")
+       (t
+        "-by-")))
+     ((looking-back "\\<to\\>" (- (point) 2))
+      (goto-char (- (point) 2))
+      (cond
+       ((looking-back "\\<go\\>[ \t\n]*" nil)
+        "-to-jump-")
+       ((a68-at-strong-void-enclosed-clause-supper)
+        "-to-")
+       ((a68-at-post-unit-supper)
+        "to")
+       (t
+        "-to-")))
+     ((looking-back "\\<while\\>" (- (point) 5))
+      (goto-char (- (point) 5))
+      (cond
+       ((a68-at-strong-void-enclosed-clause-supper)
+        "-while-")
+       ((a68-at-post-unit-supper)
+        "while")
+       (t
+        "-while-")))
+     ((looking-back "\\<do\\>" (- (point) 2))
+      (goto-char (- (point) 2))
+      (cond
+       ((a68-at-strong-void-enclosed-clause-supper)
+        "-do-")
+       ((a68-at-post-unit-supper)
+        "do")
+       (t
+        "-do-")))
+     ((looking-back a68--keywords-regexp (- (point) 2) t)
+      (goto-char (match-beginning 0))
+      (match-string-no-properties 0))
+     (t (buffer-substring-no-properties (point)
+                                        (progn (skip-syntax-backward "w_")
+                                               (point)))))))
 
 ;;;; SMIE lexer, UPPER stropping.
 
@@ -922,177 +943,186 @@ UPPER stropping version."
 
 (defun a68--smie-forward-token-upper ()
   (forward-comment (point-max))
-  (cond
-   ;; defining-modal-indications "mode MODE" are preceded by either (
-   ;; or , in formal-parameter packs.
-   ((looking-at "\\<MODE\\>")
-    (let ((res (if (looking-back "[(,][ \t\n]*" nil)
-                   "-mode-"
-                 "MODE")))
-      (goto-char (+ (point) 4))
-      res))
-   ((looking-at "):")
-    (goto-char (+ (point) 2))
-    "):")
-   ;; A "begin pragmat" token can precede the following symbols:
-   ;; include
-   ((looking-at "\\<PR\\>")
-    (goto-char (+ (point) 2))
-    (if (looking-at "[ \t\n]*\\<include\\>")
-        "-pr-"
-      "PR"))
-   ;; The symbols "by", "from", "to", "while" and "do" mark the start
-   ;; of a loop-clause if they are the first symbol of an
-   ;; enclosed-clause, and is thus preceded by a symbol which may
-   ;; appear just before an enclosed-clause.
-   ;;
-   ;; On the other hand, they do not mark the start of a loop-clause
-   ;; if they are preceded by symbols that mark the end of an unit.
-   ;;
-   ;; In case a decisive answer cannot be determined, probably due
-   ;; to a syntax error, Meertens and van Vliet decided to assume
-   ;; the beginning of a loop, provisionally, so it could be
-   ;; corrected later by a top-down parser.  We proceed the same way
-   ;; here, only our decision is final, be it right or wrong ;)
-   ((looking-at "\\<FROM\\>")
+  (let ((case-fold-search nil))
     (cond
-     ((a68-at-strong-void-enclosed-clause-upper)
-      (goto-char (+ (point) 4))
-      "-from-")
-     ((a68-at-post-unit-upper)
-      (goto-char (+ (point) 4))
-      "FROM")
-     (t
-      (goto-char (+ (point) 4))
-      "-from-")))
-   ((looking-at "\\<BY\\>")
-    (cond
-     ((a68-at-strong-void-enclosed-clause-upper)
+     ;; A semicolon following a tag is a label.
+     ((looking-at "\\<[a-z]+:")
+      (goto-char (match-end 0))
+      "-label-")
+     ;; defining-modal-indications "mode MODE" are preceded by either
+     ;; ( or , in formal-parameter packs.
+     ((looking-at "\\<MODE\\>")
+      (let ((res (if (looking-back "[(,][ \t\n]*" nil)
+                     "-mode-"
+                   "MODE")))
+        (goto-char (+ (point) 4))
+        res))
+     ((looking-at "):")
       (goto-char (+ (point) 2))
-      "-by-")
-     ((a68-at-post-unit-upper)
+      "):")
+     ;; A "begin pragmat" token can precede the following symbols:
+     ;; include
+     ((looking-at "\\<PR\\>")
       (goto-char (+ (point) 2))
-      "BY")
-     (t
-      (goto-char (+ (point) 2))
-      "-by-")))
-   ((looking-at "\\<TO\\>")
-    (cond
-     ((looking-back "\\<GO\\>[ \t\n]*" nil)
-      (goto-char (+ (point) 2))
-      "-to-jump-")
-     ((a68-at-strong-void-enclosed-clause-upper)
-      (goto-char (+ (point) 2))
-      "-to-")
-     ((a68-at-post-unit-upper)
-      (goto-char (+ (point) 2))
-      "TO")
-     (t
-      (goto-char (+ (point) 2))
-      "-to-")))
-   ((looking-at "\\<WHILE\\>")
-    (cond
-     ((a68-at-strong-void-enclosed-clause-upper)
-      (goto-char (+ (point) 5))
-      "-while-")
-     ((a68-at-post-unit-upper)
-      (goto-char (+ (point) 5))
-      "WHILE")
-     (t
-      (goto-char (+ (point) 5))
-      "-while-")))
-   ((looking-at "\\<DO\\>")
-    (cond
-     ((a68-at-strong-void-enclosed-clause-upper)
-      (goto-char (+ (point) 2))
-      "-do-")
-     ((a68-at-post-unit-upper)
-      (goto-char (+ (point) 2))
-      "DO")
-     (t
-      (goto-char (+ (point) 2))
-      "-to-")))
-   ;; Keywords.
-   ((looking-at a68--keywords-regexp)
-    (goto-char (match-end 0))
-    (match-string-no-properties 0))
-   ;; Words.
-   (t (buffer-substring-no-properties (point)
-                                      (progn (skip-syntax-forward "w_")
-                                             (point))))))
+      (if (looking-at "[ \t\n]*\\<include\\>")
+          "-pr-"
+        "PR"))
+     ;; The symbols "by", "from", "to", "while" and "do" mark the
+     ;; start of a loop-clause if they are the first symbol of an
+     ;; enclosed-clause, and is thus preceded by a symbol which may
+     ;; appear just before an enclosed-clause.
+     ;;
+     ;; On the other hand, they do not mark the start of a loop-clause
+     ;; if they are preceded by symbols that mark the end of an unit.
+     ;;
+     ;; In case a decisive answer cannot be determined, probably due
+     ;; to a syntax error, Meertens and van Vliet decided to assume
+     ;; the beginning of a loop, provisionally, so it could be
+     ;; corrected later by a top-down parser.  We proceed the same way
+     ;; here, only our decision is final, be it right or wrong ;)
+     ((looking-at "\\<FROM\\>")
+      (cond
+       ((a68-at-strong-void-enclosed-clause-upper)
+        (goto-char (+ (point) 4))
+        "-from-")
+       ((a68-at-post-unit-upper)
+        (goto-char (+ (point) 4))
+        "FROM")
+       (t
+        (goto-char (+ (point) 4))
+        "-from-")))
+     ((looking-at "\\<BY\\>")
+      (cond
+       ((a68-at-strong-void-enclosed-clause-upper)
+        (goto-char (+ (point) 2))
+        "-by-")
+       ((a68-at-post-unit-upper)
+        (goto-char (+ (point) 2))
+        "BY")
+       (t
+        (goto-char (+ (point) 2))
+        "-by-")))
+     ((looking-at "\\<TO\\>")
+      (cond
+       ((looking-back "\\<GO\\>[ \t\n]*" nil)
+        (goto-char (+ (point) 2))
+        "-to-jump-")
+       ((a68-at-strong-void-enclosed-clause-upper)
+        (goto-char (+ (point) 2))
+        "-to-")
+       ((a68-at-post-unit-upper)
+        (goto-char (+ (point) 2))
+        "TO")
+       (t
+        (goto-char (+ (point) 2))
+        "-to-")))
+     ((looking-at "\\<WHILE\\>")
+      (cond
+       ((a68-at-strong-void-enclosed-clause-upper)
+        (goto-char (+ (point) 5))
+        "-while-")
+       ((a68-at-post-unit-upper)
+        (goto-char (+ (point) 5))
+        "WHILE")
+       (t
+        (goto-char (+ (point) 5))
+        "-while-")))
+     ((looking-at "\\<DO\\>")
+      (cond
+       ((a68-at-strong-void-enclosed-clause-upper)
+        (goto-char (+ (point) 2))
+        "-do-")
+       ((a68-at-post-unit-upper)
+        (goto-char (+ (point) 2))
+        "DO")
+       (t
+        (goto-char (+ (point) 2))
+        "-to-")))
+     ;; Keywords.
+     ((looking-at a68--keywords-regexp)
+      (goto-char (match-end 0))
+      (match-string-no-properties 0))
+     ;; Words.
+     (t (buffer-substring-no-properties (point)
+                                        (progn (skip-syntax-forward "w_")
+                                               (point)))))))
 
 (defun a68--smie-backward-token-upper ()
   (forward-comment (- (point)))
-  (cond
-   ((looking-back "\\<MODE\\>" (- (point) 4))
-    (goto-char (- (point) 4))
-    (if (looking-back "[(,][ \t\n]*" nil)
-        "-mode-"
-      "MODE"))
-   ((looking-back "\\<PR\\>" (- (point) 2))
-    (let ((pr (if (looking-at "[ \t\n]*\\<include\\>")
-                  "-pr-"
-                "PR")))
+  (let ((case-fold-search nil))
+    (cond
+     ((looking-back "\\<[a-z]+:" (pos-bol))
+      (goto-char (match-beginning 0))
+      "-label-")
+     ((looking-back "\\<MODE\\>" (- (point) 4))
+      (goto-char (- (point) 4))
+      (if (looking-back "[(,][ \t\n]*" nil)
+          "-mode-"
+        "MODE"))
+     ((looking-back "\\<PR\\>" (- (point) 2))
+      (let ((pr (if (looking-at "[ \t\n]*\\<include\\>")
+                    "-pr-"
+                  "PR")))
+        (goto-char (- (point) 2))
+        pr))
+     ((looking-back "):" (- (point) 2))
       (goto-char (- (point) 2))
-      pr))
-   ((looking-back "):" (- (point) 2))
-    (goto-char (- (point) 2))
-    "):")
-   ;; See comments in a68--smie-forward-token for an explanation of
-   ;; the handling of loop insertions -from- -to- -by- -while-.
-   ((looking-back "\\<FROM\\>" (- (point) 4))
-     (goto-char (- (point) 4))
-     (cond
-      ((a68-at-strong-void-enclosed-clause-upper)
-       "-from-")
-      ((a68-at-post-unit-upper)
-       "FROM")
-      (t
-       "-from-")))
-   ((looking-back "\\<BY\\>" (- (point) 2))
-    (goto-char (- (point) 2))
-    (cond
-     ((a68-at-strong-void-enclosed-clause-upper)
-      "-by-")
-     ((a68-at-post-unit-upper)
-      "BY")
-     (t
-      "-by-")))
-   ((looking-back "\\<TO\\>" (- (point) 2))
-    (goto-char (- (point) 2))
-    (cond
-     ((looking-back "\\<GO\\>[ \t\n]*" nil)
-      "-to-jump-")
-     ((a68-at-strong-void-enclosed-clause-upper)
-      "-to-")
-     ((a68-at-post-unit-upper)
-      "TO")
-     (t
-      "-to-")))
-   ((looking-back "\\<WHILE\\>" (- (point) 5))
-    (goto-char (- (point) 5))
-    (cond
-     ((a68-at-strong-void-enclosed-clause-upper)
-      "-while-")
-     ((a68-at-post-unit-upper)
-      "WHILE")
-     (t
-      "-while-")))
-   ((looking-back "\\<DO\\>" (- (point) 2))
-    (goto-char (- (point) 2))
-    (cond
-     ((a68-at-strong-void-enclosed-clause-upper)
-      "-do-")
-     ((a68-at-post-unit-upper)
-      "DO")
-     (t
-      "-do-")))
-   ((looking-back a68--keywords-regexp (- (point) 2) t)
-    (goto-char (match-beginning 0))
-    (match-string-no-properties 0))
-   (t (buffer-substring-no-properties (point)
-                                      (progn (skip-syntax-backward "w_")
-                                             (point))))))
+      "):")
+     ;; See comments in a68--smie-forward-token for an explanation of
+     ;; the handling of loop insertions -from- -to- -by- -while-.
+     ((looking-back "\\<FROM\\>" (- (point) 4))
+      (goto-char (- (point) 4))
+      (cond
+       ((a68-at-strong-void-enclosed-clause-upper)
+        "-from-")
+       ((a68-at-post-unit-upper)
+        "FROM")
+       (t
+        "-from-")))
+     ((looking-back "\\<BY\\>" (- (point) 2))
+      (goto-char (- (point) 2))
+      (cond
+       ((a68-at-strong-void-enclosed-clause-upper)
+        "-by-")
+       ((a68-at-post-unit-upper)
+        "BY")
+       (t
+        "-by-")))
+     ((looking-back "\\<TO\\>" (- (point) 2))
+      (goto-char (- (point) 2))
+      (cond
+       ((looking-back "\\<GO\\>[ \t\n]*" nil)
+        "-to-jump-")
+       ((a68-at-strong-void-enclosed-clause-upper)
+        "-to-")
+       ((a68-at-post-unit-upper)
+        "TO")
+       (t
+        "-to-")))
+     ((looking-back "\\<WHILE\\>" (- (point) 5))
+      (goto-char (- (point) 5))
+      (cond
+       ((a68-at-strong-void-enclosed-clause-upper)
+        "-while-")
+       ((a68-at-post-unit-upper)
+        "WHILE")
+       (t
+        "-while-")))
+     ((looking-back "\\<DO\\>" (- (point) 2))
+      (goto-char (- (point) 2))
+      (cond
+       ((a68-at-strong-void-enclosed-clause-upper)
+        "-do-")
+       ((a68-at-post-unit-upper)
+        "DO")
+       (t
+        "-do-")))
+     ((looking-back a68--keywords-regexp (- (point) 2) t)
+      (goto-char (match-beginning 0))
+      (match-string-no-properties 0))
+     (t (buffer-substring-no-properties (point)
+                                        (progn (skip-syntax-backward "w_")
+                                               (point)))))))
 
 ;;;; SMIE indentation rules.
 
@@ -1123,6 +1153,8 @@ UPPER stropping version."
     (`(:after . "TO") 3)
     (`(:after . "WHILE") 3)
     (`(:after . "DEF") 4)
+    (`(:before . "-label-")
+     (smie-rule-parent))
     (`(:before . "BEGIN")
      (when (or (smie-rule-hanging-p)
                (or
@@ -1166,6 +1198,8 @@ UPPER stropping version."
     (`(:after . "to") 3)
     (`(:after . "while") 3)
     (`(:after . "def") 4)
+    (`(:before . "-label-")
+     (smie-rule-parent))
     (`(:before . "begin")
      (when (or (smie-rule-hanging-p)
                (or

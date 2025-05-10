@@ -273,9 +273,9 @@
  (dismal		:url nil)
  (djvu			:url nil)
  (do-at-point           :url "https://codeberg.org/pkal/do-at-point.el")
- (doc-view-follow	:url "https://github.com/ultronozm/doc-view-follow.el")
  (doc-toc		:url "https://github.com/dalanicolai/doc-tools-toc"
   :ignored-files ("LICENSE"))
+ (doc-view-follow	:url "https://github.com/ultronozm/doc-view-follow.el")
  (docbook		:url nil)
  ;; `dtache' was renamed to `detached' in May 2022.
  ;;(dtache		:url "https://git.sr.ht/~niklaseklund/dtache"
@@ -529,6 +529,8 @@
  (math-symbol-lists 	:url "https://github.com/vspinu/math-symbol-lists.git")
  (mathjax               :url "https://github.com/astoff/mathjax.el"
   :make "elpa")
+ (mathsheet		:url "https://gitlab.com/ianxm/mathsheet"
+  :doc "mathsheet.org")
  (matlab-mode           :url "https://github.com/mathworks/Emacs-MATLAB-Mode.git"
   ) ;; :main-file "matlab.el"
  (mct			:url "https://gitlab.com/protesilaos/mct"
@@ -601,8 +603,6 @@
   :doc "doc/org-gnosis.org")
  (org-jami-bot		:url "https://gitlab.com/hperrey/org-jami-bot"
   :ignored-files ("LICENSE"))
- (org-mathsheet		:url "https://gitlab.com/ianxm/org-mathsheet"
-  :doc "mathsheet.org")
  ;; FIXME: Waiting for copyright paperwork from Brandon Webster.
  ;;(org-drill		:url "https://gitlab.com/phillord/org-drill")
  (org-modern		:url "https://github.com/minad/org-modern"

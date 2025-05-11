@@ -204,7 +204,7 @@ format.
   ;; Author: Ian Martins <ianxm@jhu.edu>
   ;; Keywords: tools, education, math
   ;; Homepage: https://gitlab.com/ianxm/mathsheet
-  ;; Version: 1.0
+  ;; Version: 1.1
   ;; Package-Requires: ((peg "1.0")
   ;;                    (emacs "28.1")
   ;;                    calc)

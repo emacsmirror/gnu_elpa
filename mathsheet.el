@@ -5,7 +5,7 @@
 ;; Author: Ian Martins <ianxm@jhu.edu>
 ;; Keywords: tools, education, math
 ;; Homepage: https://gitlab.com/ianxm/mathsheet
-;; Version: 1.0
+;; Version: 1.1
 ;; Package-Requires: ((peg "1.0")
 ;;                    (emacs "28.1")
 ;;                    calc)
@@ -62,45 +62,28 @@ The default is to write the to the home directory."
   :type 'directory
   :group 'mathsheet)
 
-(let ((page '"\\documentclass[12pt]{exam}
-\\usepackage[top=1in, bottom=0.5in, left=0.8in, right=0.8in]{geometry}
-\\usepackage{multicol}
-\\usepackage{rotating}
-\\usepackage{xcolor}
-
-\\pagestyle{head}
-\\header{Name:\\enspace\\makebox[2.2in]{\\hrulefill}}{}{Date:\\enspace\\makebox[2.2in]{\\hrulefill}}
-
-\\begin{document}
-
-  \\noindent <<instruction>>
-
-  \\begin{questions}
-    <<problems>>
-  \\end{questions}
-
-  \\vspace*{\\fill}
-
-  \\vspace*{0.1cm}
-  \\noindent\\rule{\\linewidth}{0.4pt}
-  \\vspace*{0.1cm}
-
-  \\begin{turn}{180}
-    \\begin{minipage}{\\linewidth}
-      \\color{gray}
-      \\footnotesize
-      \\begin{questions}
-        <<answers>>
-      \\end{questions}
-    \\end{minipage}
-  \\end{turn}
-
-\\end{document}"))
+(let ((page '".VM 0 -0.5i                                     \\\" reduce bottom margin
+.PH \"'Name: \\l'20\\_'''Date:\\l'10\\_''\"           \\\" header
+<<instruction>>
+.SP 1
+.fam C                                          \\\" set font
+<<layout>>
+.MC \\n[clen]p 10p                               \\\" start columns mode
+<<problems>>
+.1C 1                                           \\\" end of columns mode
+.BS                                             \\\" floating bottom box
+\\l'\\n(.lu'                                      \\\" horizontal rule
+.S 8 10                                         \\\" reduce font and vertical space
+.ss 6                                           \\\" reduce horizontal space
+.gcolor grey                                    \\\" answers color
+<<answers>>
+.BE
+"))
 (defvar mathsheet--var-list '()
   "List of variables used within a problem.")
 
 (defconst mathsheet--worksheet-template page
-  "LaTeX template for the worksheet.")
+  "Groff template for the worksheet.")
 
 (defconst mathsheet--num-pat (rx string-start (+ num) string-end)
   "Pattern for integers.")
@@ -233,8 +216,8 @@ which validation checks to perform."
 
        ;; validate the form fields
        (mathsheet--validate "name" name (not-null-p))
-       (mathsheet--validate "count" count-str (not-null-p is-num-p (in-range-p 1 30)))
-       (mathsheet--validate "cols" cols-str (not-null-p is-num-p (in-range-p 1 6)))
+       (mathsheet--validate "count" count-str (not-null-p is-num-p (in-range-p 1 50)))
+       (mathsheet--validate "cols" cols-str (not-null-p is-num-p (in-range-p 1 4)))
        (mathsheet--validate "problems" problems-str (not-null-p))
 
        ;; convert the numbers and parse the problems field
@@ -533,61 +516,85 @@ ordered."
     ;; return problems and answers, drop header
     problems))
 
-(defun mathsheet--convert-to-latex (expr)
-  "Format the given calc expression EXPR for LaTeX.
+(defun mathsheet--convert-to-eqn (expr)
+  "Format the given calc expression EXPR for groff.
 
-EXPR should be in normal calc format.  The result is the same
-expression (not simplified) but in LaTeX format."
-  (let* ((calc-language 'latex)
-         (calc-expr (math-read-expr expr))
-         (latex-expr (math-format-stack-value (list calc-expr 1 nil)))
-         (latex-expr-cleaned (replace-regexp-in-string (rx "1:" (* space)) "" latex-expr)))
-    (concat "\\(" latex-expr-cleaned "\\)")))
+  EXPR should be in normal calc format.  The result is the same
+  expression (not simplified) but in eqn format for groff."
+  (let ((current-language calc-language))
+    (calc-set-language 'eqn)
+    (let* ((calc-expr (math-read-expr expr))
+           (eqn-expr (math-format-stack-value (list calc-expr 1 nil)))
+           (eqn-expr-cleaned (replace-regexp-in-string (rx "1:" (* space)) "" eqn-expr)))
+      (calc-set-language current-language)
+      eqn-expr-cleaned)))
 
 (defun mathsheet--write-worksheet (fname instruction problems prob-cols)
   "Write a worksheet to FNAME with INSTRUCTION and PROBLEMS.
 
-Write a file named FNAME.  Include the INSTRUCTION line at the
-top.  The problems will be arranged in PROB-COLS columns.  The
-answers will be in 5 columns."
-  (with-temp-file (concat fname ".tex")
+  Write a file named FNAME.  Include the INSTRUCTION line at the
+  top.  The problems will be arranged in PROB-COLS columns.  The
+  answers will be in 5 columns."
+  (with-temp-buffer
     (insert mathsheet--worksheet-template)
 
-    (goto-char (point-min))
-    (search-forward "<<instruction>>")
-    (replace-match "")
-    (insert instruction)
+    (let ((probs-per-col (ceiling (/ (float (length problems)) prob-cols))))
+      (goto-char (point-min))
+      (search-forward "<<instruction>>")
+      (replace-match
+       (if (null instruction)
+           ""
+         (concat ".B \"" instruction "\"")))
 
-    (let ((answ-cols 5))
+      (goto-char (point-min))
+      (search-forward "<<layout>>")
+      (replace-match "")
+      (insert (format ".nr ncols %d\n" prob-cols))
+      (insert ".nr clen ((\\n[.l]/1000)-((\\n[ncols]-1)*10)/\\n[ncols])\n")
+      (insert (format ".nr cl %d\n" probs-per-col))
+      (insert ".nr vs (\\n[.p]/1000-(2*72)-20-(12*\\n[cl]))/(\\n[cl]+1)")
+
       (goto-char (point-min))
       (search-forward "<<problems>>")
       (replace-match "")
-      (dolist (group (seq-partition problems prob-cols))
-        (insert (format "\\begin{multicols}{%d}\n" prob-cols))
-        (dolist (row group)
-          (insert (format (if (nth 3 row)
-                              "\\question %s\n"
-                            "\\question %s = \\rule[-.2\\baselineskip]{2cm}{0.4pt}\n")
-                          (mathsheet--convert-to-latex (car row)))))
-        (insert "\\end{multicols}\n")
-        (insert "\\vspace{\\stretch{1}}\n"))
+      (insert ".AL\n")
+      (let ((colsize probs-per-col))
+        (seq-do-indexed
+         (lambda (group index)
+           (unless (= index 0)
+             (insert ".NCOL\n"))
+           (dolist (row group)
+             (message "convert to eqn %s -> %s" (car row) (mathsheet--convert-to-eqn (car row)))
+             (insert (format (if (nth 3 row)
+                                 ".LI\n.EQ\n%s\n.EN\n.SP \\n[vs]p\n"
+                               ".LI\n.EQ\n%s =\n.EN\n\\l'5\\_'\n.SP \\n[vs]p\n")
+                             (mathsheet--convert-to-eqn (car row))))))
+         (seq-partition problems colsize)))
+      (insert ".LE")
 
       (goto-char (point-min))
       (search-forward "<<answers>>")
       (replace-match "")
-      (dolist (group (seq-partition problems answ-cols))
-        (insert (format "\\begin{multicols}{%s}\n" answ-cols))
-        (dolist (row group)
-          (insert (format "\\question %s\n"
-                          (mathsheet--convert-to-latex (cadr row)))))
-        (insert "\\end{multicols}\n"))))
+      (let ((index 0))
+        (dolist (row problems)
+          (setq index (1+ index))
+          (insert
+           (format ".EQ\n%d. %s%s\n.EN%s"
+                   index
+                   (mathsheet--convert-to-eqn (cadr row))
+                   (if (< index (length problems)) "\",\"~" "")
+                   (if (< index (length problems)) "\n" ""))))))
 
-  (let* ((default-directory mathsheet-output-directory)
-         (ret (call-process
-              "texi2pdf" nil (get-buffer-create "*Standard output*") nil
-              (concat fname ".tex"))))
-    (unless (eq ret 0)
-      (error "PDF generation failed"))))
+    ;; write the groff file for debugging
+    ;; (write-region (point-min) (point-max) (concat fname ".mm"))
+
+    ;; run groff to generate the pdf
+    (let* ((default-directory mathsheet-output-directory)
+           (ret (shell-command-on-region
+                 (point-min) (point-max)
+                 (format "groff -mm -e -Tpdf - > %s" (concat fname ".pdf")))))
+      (unless (eq ret 0)
+        (error "PDF generation failed")))))
 
 (when (null forms-mode-map)
   (add-to-list

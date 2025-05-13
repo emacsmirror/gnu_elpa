@@ -188,6 +188,7 @@
       "union" "op" "prio" "mode" "begin" "end" "exit" "par" "if"
       "then" "elif" "else" "fi" "case" "in" "ouse" "out" "esac"
       "nil" "of" "go" "goto" "skip" "for" "from" "by" "to" "while"
+      "module" "def" "fed" "postlude" "access" "pub"
       "do" "od" "unsafe" "assert")
     "List of Algol 68 keywords in SUPPER stropping."))
 

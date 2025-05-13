@@ -7,8 +7,7 @@
 ;; Homepage: https://gitlab.com/ianxm/mathsheet
 ;; Version: 1.1
 ;; Package-Requires: ((peg "1.0")
-;;                    (emacs "28.1")
-;;                    calc)
+;;                    (emacs "28.1"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -38,6 +37,7 @@
 (require 'calc)
 
 (declare-function math-read-expr "calc-ext")
+(declare-function calc-set-language "calc-lang")
 
 (defgroup mathsheet nil
   "Options for customizing Mathsheet."

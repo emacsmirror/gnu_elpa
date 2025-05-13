@@ -530,6 +530,7 @@
  (mathjax               :url "https://github.com/astoff/mathjax.el"
   :make "elpa")
  (mathsheet		:url "https://gitlab.com/ianxm/mathsheet"
+  :readme "README.md"
   :doc "mathsheet.org")
  (matlab-mode           :url "https://github.com/mathworks/Emacs-MATLAB-Mode.git"
   ) ;; :main-file "matlab.el"

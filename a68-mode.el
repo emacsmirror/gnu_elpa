@@ -369,8 +369,6 @@ with the equivalent upcased form."
     (exp (ids)
          (exp "of" exp)
          (exp "[" exp "]")
-         ("(" exp ")")
-         ("begin" exp "end")
          ("module" exp "def"  exp "fed")
          ("module" exp "def" exp "postlude" exp "fed"))
     ;; Declarations:
@@ -496,8 +494,12 @@ with the equivalent upcased form."
     ;;   series.
     (enquiry-clause (serial))
     ;; Clauses:
-    (enclosed-clause (choice-clause)
+    (enclosed-clause (closed-clause)
+                     (choice-clause)
                      (loop-clause))
+    ;; Closed clause.
+    (closed-clause ("begin" serial "end")
+                   ("(" serial ")"))
     ;; Choice clauses
     ;;   choice clause :
     ;;     choice start, chooser choice clause, choice finish.

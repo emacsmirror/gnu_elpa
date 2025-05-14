@@ -354,6 +354,7 @@ with the equivalent upcased form."
 
 (defconst a68--bnf-grammar
   '((id)
+    (declarer)
     (ids (id "-anchor-" id))
     (fields (fields "," fields)
             (ids))
@@ -385,109 +386,12 @@ with the equivalent upcased form."
     (proc-decl (proc-decl "," proc-decl)
                ("op" ids "=" args ids ":" exp)
                ("proc" ids "=" ids ":" exp))
-    ;; Units:
-    ;;  unit :
-    ;;    assignation ; identity relation ; routine text ;
-    ;;    function and ; function or ; tertiary.
-    ;;  tertiary :
-    ;;    formula ; secondary.
-    ;;  secondary :
-    ;;    leap generator ; selection ; primary.
-    ;;  primary :
-    ;;    primary one ; other denote ; skip token ; nil token.
-    ;;  primary one :
-    ;;    slice call ; cast ; string denoter ; identifier ;
-    ;;    jump ; enclosed clause.
-    (unit ; (routine-text)
-          (assignation)
-          (pseudo-operator))
-    (assignation (tertiary ":=" unit))
-    (tertiary (formula)
-              (secondary))
-    (secondary (leap-geneator)
-               (selection)
-               (primary))
-    (primary (primary-one)
-             (other-denote)
-             ("skip")
-             ("~")
-             ("nil"))
-    (primary-one (slice-call)
-                 (cast)
-                 (string-denoter)
-                 (id)
-                 (jump)
-                 (enclosed-clause))
-    (jump ("goto" id)
-          ("go" "-to-jump-" id))
-    (pseudo-operator (exp "andth" exp)
-                     (exp "orel" exp)
-                     (exp ":=:" exp)
-                     (exp ":/=:" exp)
-                     (exp "is" exp)
-                     (exp "isnt" exp))
-    (selection (id "of" secondary))
-    ;; Formula.
-    ;; Standard operators are given their priority.
-    (formula (dyadic-formula)
-             (monadic-formula))
-    (monadic-formula ("-monadic~-" monadic-operand)
-                     ("-monadic+-" monadic-operand)
-                     ("-monadic--" monadic-operand))
-    (dyadic-formula (operand "-oper-" monadic-operand)
-                    (operand "+:=" monadic-operand)
-                    (operand "-:=" monadic-operand)
-                    (operand "*:=" monadic-operand)
-                    (operand "/:=" monadic-operand)
-                    (operand "%:=" monadic-operand)
-                    (operand "%*:=" monadic-operand)
-                    (operand "+=:" monadic-operand)
-                    (operand "PLUSAB" monadic-operand)
-                    (operand "MINUSAB" monadic-operand)
-                    (operand "TIMESAB" monadic-operand)
-                    (operand "DIVAB" monadic-operand)
-                    (operand "OVERAB" monadic-operand)
-                    (operand "MODAB" monadic-operand)
-                    (operand "PLUSTO" monadic-operand)
-                    (operand "OR" monadic-operand)
-                    (operand "AND" monadic-operand)
-                    (operand "XOR" monadic-operand)
-                    (operand "=" monadic-operand)
-                    (operand "/=" monadic-operand)
-                    (operand "<" monadic-operand)
-                    (operand "<=" monadic-operand)
-                    (operand ">" monadic-operand)
-                    (operand ">=" monadic-operand)
-                    (operand "EQ" monadic-operand)
-                    (operand "NE" monadic-operand)
-                    (operand "LT" monadic-operand)
-                    (operand "LE" monadic-operand)
-                    (operand "GT" monadic-operand)
-                    (operand "GE" monadic-operand)
-                    (operand "+" monadic-operand)
-                    (operand "-" monadic-operand)
-                    (operand "*" monadic-operand)
-                    (operand "/" monadic-operand)
-                    (operand "OVER" monadic-operand)
-                    (operand "%" monadic-operand)
-                    (operand "MOD" monadic-operand)
-                    (operand "%*" monadic-operand)
-                    (operand "ELEM" monadic-operand)
-                    (operand "**" monadic-operand)
-                    (operand "SHL" monadic-operand)
-                    (operand "SHR" monadic-operand)
-                    (operand "UP" monadic-operand)
-                    (operand "DOWN" monadic-operand)
-                    (operand "^" monadic-operand)
-                    (operand "LWB" monadic-operand)
-                    (operand "UPB" monadic-operand)
-                    (operand "I" monadic-operand)
-                    (operand "+*" monadic-operand)
-                    (operand "ELEMS" monadic-operand))
-    (operand (formula)
-             (secondary))
-    (monadic-operand (monadic-formula)
-                     (secondary))
+    ;; Compilation inputs
+    ;; ==================
+    (compilation-input (labeled-enclosed-clause)
+                       (module-declaration))
+    (labeled-enclosed-clause ("-label-" labeled-enclosed-clause)
+                              ("-label-" enclosed-clause))
     ;; Clauses
     ;; =======
     (enclosed-clause (closed-clause)
@@ -626,7 +530,189 @@ with the equivalent upcased form."
                  ("-to-" serial "while" serial "do" serial "od")
                  ("-to-" serial "do" serial "od")
                  ("-while-" serial "do" serial "od")
-                 ("-do-" serial "od")))
+                 ("-do-" serial "od"))
+    ;; Declarations
+    ;; ============
+    ;;   declaration :
+    ;;     publety ldecety declaration,
+    ;;       (separate and also token, declaration).
+    ;;   publety ldecety declaration :
+    ;;     (public token), ldecety declaration.
+    ;;   ldecety declaration :
+    ;;     (ldec token), common declaration.
+    ;;   common declaration :
+    ;;     mode declaration ; priority declaration ;
+    ;;     identifier declaration ; operation declaration ;
+    ;;     module declaration.
+    (declaration ("pub" declaration*)
+                 (declaration*))
+    (declaration* (mode-declaration)
+                  (priority-declaration)
+                  (identifier-declaration)
+                  (operation-declaration)
+                  (module-declaration))
+    ;; Mode declarations
+    ;; -----------------
+    ;;   mode declaration :
+    ;;     mode token, mode joined definition.
+    ;;   mode joined definition :
+    ;;     (mode joined definition, and also token), mode definition.
+    ;;   mode definition :
+    ;;     defined mode indication, is defined as token, declarer or code.
+    ;;   defined mode indication :
+    ;;     mode indication.
+    ;;   declarer or code :
+    ;;     declarer ; code.
+    (mode-declaration ("mode" mode-joined-definition))
+    (mode-joined-definition (mode-joined-definition "," mode-joined-definition)
+                            (mode-definition))
+    (mode-definition (mode-indication "=" declarer-or-code))
+    (mode-indication ("-bold-"))
+    (declarer-or-code (declarer)
+                      (code))
+    ;; Priority declarations
+    ;; ---------------------
+    ;;   priority declaration :
+    ;;     priority token, priority joined definition.
+    ;;   priority joined definition :
+    ;;     (priority joined definition, and also token), priority definition.
+    ;;   priority definition :
+    ;;     operator, is defined as token, priority unit.
+    ;;   priority unit :
+    ;;     digit token.
+    (priority-declaration ("prio" priority-joined-definition))
+    (priority-joined-definition (priority-joined-definition "," priority-joined-definition)
+                                (priority-definition))
+    (priority-definition (operator "=" priority-unit))
+    (operator ("-oper-"))
+    (priority-unit ("1") ("2") ("3") ("4") ("5")
+                   ("6") ("7") ("8") ("9"))
+    ;; Units
+    ;; =====
+    ;;  unit :
+    ;;    assignation ; identity relation ; routine text ;
+    ;;    function and ; function or ; tertiary.
+    ;;  tertiary :
+    ;;    formula ; secondary.
+    ;;  secondary :
+    ;;    leap generator ; selection ; primary.
+    ;;  primary :
+    ;;    primary one ; other denote ; skip token ; nil token.
+    ;;  primary one :
+    ;;    slice call ; cast ; string denoter ; identifier ;
+    ;;    jump ; enclosed clause.
+    (unit ; (routine-text)
+          (assignation)
+          (pseudo-operator)
+          (tertiary))
+    (tertiary (formula)
+              (secondary))
+    (secondary (leap-geneator)
+               (selection)
+               (primary))
+    (primary (primary-one)
+             (other-denote)
+             ("skip")
+             ("~")
+             ("nil"))
+    (primary-one (slice-call)
+                 (cast)
+                 (string-denoter)
+                 (id)
+                 (jump)
+                 (enclosed-clause))
+    ;; Assignations
+    ;; ------------
+    (assignation (tertiary ":=" unit))
+    ;; Pseudo-operators
+    ;; ----------------
+    (pseudo-operator (tertiary "andth" tertiary)
+                     (tertiary "orel" tertiary)
+                     (tertiary ":=:" tertiary)
+                     (tertiary ":/=:" tertiary)
+                     (tertiary "is" tertiary)
+                     (tertiary "isnt" tertiary))
+    ;; Generators
+    ;; ----------
+    (leap-generator ("heap" declarer)
+                    ("loc" declarer))
+    ;; Selections
+    ;; ----------
+    (selection (id "of" secondary))
+    ;; Slices
+    ;; ------
+    ;; XXX
+    ;; Routine texts
+    ;; -------------
+    ;; XXX
+    ;; Formulas
+    ;; --------
+    (formula (dyadic-formula)
+             (monadic-formula))
+    (dyadic-formula (operand "-oper-" monadic-operand)
+                    (operand "+:=" monadic-operand)
+                    (operand "-:=" monadic-operand)
+                    (operand "*:=" monadic-operand)
+                    (operand "/:=" monadic-operand)
+                    (operand "%:=" monadic-operand)
+                    (operand "%*:=" monadic-operand)
+                    (operand "+=:" monadic-operand)
+                    (operand "PLUSAB" monadic-operand)
+                    (operand "MINUSAB" monadic-operand)
+                    (operand "TIMESAB" monadic-operand)
+                    (operand "DIVAB" monadic-operand)
+                    (operand "OVERAB" monadic-operand)
+                    (operand "MODAB" monadic-operand)
+                    (operand "PLUSTO" monadic-operand)
+                    (operand "OR" monadic-operand)
+                    (operand "AND" monadic-operand)
+                    (operand "XOR" monadic-operand)
+                    (operand "=" monadic-operand)
+                    (operand "/=" monadic-operand)
+                    (operand "<" monadic-operand)
+                    (operand "<=" monadic-operand)
+                    (operand ">" monadic-operand)
+                    (operand ">=" monadic-operand)
+                    (operand "EQ" monadic-operand)
+                    (operand "NE" monadic-operand)
+                    (operand "LT" monadic-operand)
+                    (operand "LE" monadic-operand)
+                    (operand "GT" monadic-operand)
+                    (operand "GE" monadic-operand)
+                    (operand "+" monadic-operand)
+                    (operand "-" monadic-operand)
+                    (operand "*" monadic-operand)
+                    (operand "/" monadic-operand)
+                    (operand "OVER" monadic-operand)
+                    (operand "%" monadic-operand)
+                    (operand "MOD" monadic-operand)
+                    (operand "%*" monadic-operand)
+                    (operand "ELEM" monadic-operand)
+                    (operand "**" monadic-operand)
+                    (operand "SHL" monadic-operand)
+                    (operand "SHR" monadic-operand)
+                    (operand "UP" monadic-operand)
+                    (operand "DOWN" monadic-operand)
+                    (operand "^" monadic-operand)
+                    (operand "LWB" monadic-operand)
+                    (operand "UPB" monadic-operand)
+                    (operand "I" monadic-operand)
+                    (operand "+*" monadic-operand)
+                    (operand "ELEMS" monadic-operand))
+    (monadic-formula ("-monadic~-" monadic-operand)
+                     ("-monadic+-" monadic-operand)
+                     ("-monadic--" monadic-operand))
+    (operand (formula)
+             (secondary))
+    (monadic-operand (monadic-formula)
+                     (secondary))
+    ;; Jumps
+    ;; -----
+    (jump ("goto" id)
+          ("go" "-to-jump-" id))
+    ;; Casts
+    ;; -----
+    (cast (declarer "-cast-" enclosed-clause)))
   "Algol 68 BNF operator precedence grammar to use with SMIE")
 
 (defvar a68--smie-grammar-upper
@@ -726,6 +812,12 @@ with the equivalent upcased form."
   (forward-comment (point-max))
   (let ((case-fold-search nil))
     (cond
+     ;; operator, so any nomad or monad, but not =.
+     ((looking-at (concat (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
+                                        ">" "<" "/" "*"))
+                          "+"))
+      (goto-char (match-end 0))
+      "-oper-")
      ;; A bold-word may be a ssecca insert if it is preceded by a
      ;; joined list of bold words, preceded by access.
      ((looking-at "[A-Z][A-Za-z_]+")
@@ -847,6 +939,13 @@ with the equivalent upcased form."
   (forward-comment (- (point)))
   (let ((case-fold-search nil))
     (cond
+     ;; operator, so any nomad or monad, but not =.
+     ((looking-back (concat (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
+                                        ">" "<" "/" "*"))
+                            "+")
+                    (pos-bol))
+      (goto-char (match-beginning 0))
+      "-oper-")
      ((looking-back "[A-Z][A-Za-z_]+" (pos-bol))
       (goto-char (match-beginning 0))
       (if (and (not (looking-at "[A-Z][A-Za-z_]+[ \t\n]*,"))

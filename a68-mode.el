@@ -488,7 +488,7 @@ with the equivalent upcased form."
              (secondary))
     (monadic-operand (monadic-formula)
                      (secondary))
-    ;; Enquiry clause:
+    ;; Enquiry clause.
     ;;  enquiry clause :
     ;;   series.
     (enquiry-clause (serial))
@@ -497,6 +497,15 @@ with the equivalent upcased form."
                      (choice-clause)
                      (loop-clause))
     ;; Closed clause.
+    ;;   closed or collateral clause :
+    ;;     begin, inner clause, end.
+    ;;   begin :
+    ;;     bold begin token ; brief begin token.
+    ;;   end :
+    ;;     bold end token ; brief end token.
+    ;;   inner clause :
+    ;;     serial clause ;
+    ;;     (joined portrait).
     (closed-clause ("begin" serial "end")
                    ("(" serial ")"))
     ;; Choice clauses

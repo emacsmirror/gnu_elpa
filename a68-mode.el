@@ -371,7 +371,7 @@ with the equivalent upcased form."
          (exp "[" exp "]")
          ("(" exp ")")
          ("begin" exp "end")
-         ("module" exp "def" exp "fed")
+         ("module" exp "def"  exp "fed")
          ("module" exp "def" exp "postlude" exp "fed"))
     ;; Declarations:
     (declaration (type-decl)
@@ -578,6 +578,7 @@ with the equivalent upcased form."
     (pragmat ("-pr-" exp "pr"))
     (serial (serial ";" serial)
             (unit)
+            (module)
             ("-label-" unit)
             (declaration)
             (pragmat)))

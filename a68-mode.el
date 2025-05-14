@@ -731,7 +731,7 @@ with the equivalent upcased form."
      ((looking-at "[A-Z][A-Za-z_]+")
       (let* ((end (match-end 0))
              (token (if (and (not (looking-at "[A-Z][A-Za-z_]+[ \t\n]*,"))
-                             (looking-back "access[ \t\n]*\\([A-Z][A-Za-z_]+[ \t\n]*,\\)*[ \t\n]*"))
+                             (looking-back "access[ \t\n]*\\([ \t\n]*[A-Z][A-Za-z_]+[ \t\n]*,\\)*[ \t\n]*"))
                         "-ssecca-"
                       "-bold-")))
         (goto-char end)
@@ -850,7 +850,7 @@ with the equivalent upcased form."
      ((looking-back "[A-Z][A-Za-z_]+" (pos-bol))
       (goto-char (match-beginning 0))
       (if (and (not (looking-at "[A-Z][A-Za-z_]+[ \t\n]*,"))
-               (looking-back "access[ \t\n]*\\([A-Z][A-Za-z_]+[ \t\n]*,\\)*[ \t\n]*"))
+               (looking-back "access[ \t\n]*\\([ \t\n]*[A-Z][A-Za-z_]+[ \t\n]*,\\)*[ \t\n]*"))
           "-ssecca-"
         "-bold-"))
      ((and (looking-back "\\<[a-z]+:" (pos-bol))
@@ -1013,7 +1013,7 @@ UPPER stropping version."
      ((looking-at "[A-Z][A-Z_]+")
       (let* ((end (match-end 0))
              (token (if (and (not (looking-at "[A-Z][A-Z_]+[ \t\n]*,"))
-                             (looking-back "access[ \t\n]*\\([A-Z][A-Z_]+[ \t\n]*,\\)*[ \t\n]*"))
+                             (looking-back "access[ \t\n]*\\([ \t\n]*[A-Z][A-Z_]+[ \t\n]*,\\)*[ \t\n]*"))
                         "-ssecca-"
                       "-bold-")))
         (goto-char end)
@@ -1127,7 +1127,7 @@ UPPER stropping version."
      ((looking-back "[A-Z][A-Z]+" (pos-bol))
       (goto-char (match-beginning 0))
       (if (and (not (looking-at "[A-Z][A-Z_]+[ \t\n]*,"))
-               (looking-back "access[ \t\n]*\\([A-Z][A-Z_]+[ \t\n]*,\\)*[ \t\n]*"))
+               (looking-back "access[ \t\n]*\\([ \t\n]*[A-Z][A-Z_]+[ \t\n]*,\\)*[ \t\n]*"))
           "-ssecca-"
         "-bold-"))
      ((looking-back "\\<[a-z]+:" (pos-bol))

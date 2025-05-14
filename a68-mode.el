@@ -373,11 +373,6 @@ with the equivalent upcased form."
          ("module" exp "def"  exp "fed")
          ("module" exp "def" exp "postlude" exp "fed"))
     ;; Declarations:
-    (declaration (type-decl)
-                 (proc-decl))
-    (type-decl ("mode" type-decl*))
-    (type-decl* (type-decl* "," type-decl*)
-                (id "=" type-decl**))
     (type-decl** ("struct" args)
                  ("union" args)
                  ("proc" args))
@@ -834,7 +829,7 @@ with the equivalent upcased form."
   (let ((case-fold-search nil))
     (cond
      ;; operator.
-     ((looking-at a68--oper-regexp)
+     ((posix-looking-at a68--oper-regexp)
       (goto-char (match-end 0))
       "-oper-")
      ;; A bold-word may be a ssecca insert if it is preceded by a

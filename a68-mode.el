@@ -488,15 +488,31 @@ with the equivalent upcased form."
              (secondary))
     (monadic-operand (monadic-formula)
                      (secondary))
-    ;; Enquiry clause.
-    ;;  enquiry clause :
-    ;;   series.
-    (enquiry-clause (serial))
-    ;; Clauses:
+    ;; Clauses
+    ;; =======
     (enclosed-clause (closed-clause)
                      (choice-clause)
-                     (loop-clause))
-    ;; Closed clause.
+                     (loop-clause)
+                     (access-clause))
+    ;; Access clause
+    ;; -------------
+    ;;   access clause :
+    ;;     revelation, invoke insert, enclosed clause.
+    ;;   revelation :
+    ;;     access token, joined module call, ssecca insert.
+    ;;   joined module call :
+    ;;     module call, (separate and also token, joined module call).
+    ;;   module call :
+    ;;     (public token), invocation.
+    ;;   invocation :
+    ;;     module indication.
+    (access-clause ("access" joined-module-call "-ssecca-" enclosed-clause))
+    (joined-module-call (joined-module-call "," joined-module-call)
+                        (invocation)
+                        ("pub" invocation))
+    (invocation ("-bold-"))
+    ;; Closed clause
+    ;; -------------
     ;;   closed or collateral clause :
     ;;     begin, inner clause, end.
     ;;   begin :
@@ -508,6 +524,32 @@ with the equivalent upcased form."
     ;;     (joined portrait).
     (closed-clause ("begin" serial "end")
                    ("(" serial ")"))
+    ;; Serial clause
+    ;; -------------
+    ;;   serial clause :
+    ;;     series.
+    ;;   series :
+    ;;     train, (completion token, series).
+    ;;   train :
+    ;;     declun, go on token, train ; lunit.
+    ;;   declun :
+    ;;     declaration ; lunit.
+    ;;   lunit :
+    ;;     label definition, lunit ; unit.
+    ;;   label definition :
+    ;;     identifier, label token.
+    (pragmat ("-pr-" exp "pr"))
+    (serial (serial ";" serial)
+            (unit)
+            (module)
+            ("-label-" unit)
+            (declaration)
+            (pragmat))
+    ;; Enquiry clause
+    ;; --------------
+    ;;  enquiry clause :
+    ;;   series.
+    (enquiry-clause (serial))
     ;; Choice clauses
     ;;   choice clause :
     ;;     choice start, chooser choice clause, choice finish.
@@ -584,14 +626,7 @@ with the equivalent upcased form."
                  ("-to-" serial "while" serial "do" serial "od")
                  ("-to-" serial "do" serial "od")
                  ("-while-" serial "do" serial "od")
-                 ("-do-" serial "od"))
-    (pragmat ("-pr-" exp "pr"))
-    (serial (serial ";" serial)
-            (unit)
-            (module)
-            ("-label-" unit)
-            (declaration)
-            (pragmat)))
+                 ("-do-" serial "od")))
   "Algol 68 BNF operator precedence grammar to use with SMIE")
 
 (defvar a68--smie-grammar-upper
@@ -691,6 +726,16 @@ with the equivalent upcased form."
   (forward-comment (point-max))
   (let ((case-fold-search nil))
     (cond
+     ;; A bold-word may be a ssecca insert if it is preceded by a
+     ;; joined list of bold words, preceded by access.
+     ((looking-at "[A-Z][A-Za-z_]+")
+      (let* ((end (match-end 0))
+             (token (if (and (not (looking-at "[A-Z][A-Za-z_]+[ \t\n]*,"))
+                             (looking-back "access[ \t\n]*\\([A-Z][A-Za-z_]+[ \t\n]*,\\)*[ \t\n]*"))
+                        "-ssecca-"
+                      "-bold-")))
+        (goto-char end)
+        token))
      ;; A semicolon following a tag is a label, but mind standard modes.
      ((and (looking-at "\\<[a-z]+:")
            (let ((beg (match-beginning 0))
@@ -802,6 +847,12 @@ with the equivalent upcased form."
   (forward-comment (- (point)))
   (let ((case-fold-search nil))
     (cond
+     ((looking-back "[A-Z][A-Za-z_]+" (pos-bol))
+      (goto-char (match-beginning 0))
+      (if (and (not (looking-at "[A-Z][A-Za-z_]+[ \t\n]*,"))
+               (looking-back "access[ \t\n]*\\([A-Z][A-Za-z_]+[ \t\n]*,\\)*[ \t\n]*"))
+          "-ssecca-"
+        "-bold-"))
      ((and (looking-back "\\<[a-z]+:" (pos-bol))
            (let ((beg (match-beginning 0))
                  (end (match-end 0)))
@@ -957,6 +1008,16 @@ UPPER stropping version."
   (forward-comment (point-max))
   (let ((case-fold-search nil))
     (cond
+     ;; A bold-word may be a ssecca insert if it is preceded by a
+     ;; joined list of bold words, preceded by access.
+     ((looking-at "[A-Z][A-Z_]+")
+      (let* ((end (match-end 0))
+             (token (if (and (not (looking-at "[A-Z][A-Z_]+[ \t\n]*,"))
+                             (looking-back "access[ \t\n]*\\([A-Z][A-Z_]+[ \t\n]*,\\)*[ \t\n]*"))
+                        "-ssecca-"
+                      "-bold-")))
+        (goto-char end)
+        token))
      ;; A semicolon following a tag is a label.
      ((looking-at "\\<[a-z]+:")
       (goto-char (match-end 0))
@@ -1063,6 +1124,12 @@ UPPER stropping version."
   (forward-comment (- (point)))
   (let ((case-fold-search nil))
     (cond
+     ((looking-back "[A-Z][A-Z]+" (pos-bol))
+      (goto-char (match-beginning 0))
+      (if (and (not (looking-at "[A-Z][A-Z_]+[ \t\n]*,"))
+               (looking-back "access[ \t\n]*\\([A-Z][A-Z_]+[ \t\n]*,\\)*[ \t\n]*"))
+          "-ssecca-"
+        "-bold-"))
      ((looking-back "\\<[a-z]+:" (pos-bol))
       (goto-char (match-beginning 0))
       "-label-")

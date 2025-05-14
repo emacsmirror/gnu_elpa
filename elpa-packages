@@ -639,7 +639,8 @@
  ;; `package-fixes` is obsolete and was never released.
  ;; (package-fixes		:url nil)
  (parsec              	:url "https://github.com/cute-jumper/parsec.el.git")
- (parser-generator	:url "https://github.com/cjohansson/emacs-parser-generator")
+ (parser-generator	:url nil
+  ) ;; Was: "https://github.com/cjohansson/emacs-parser-generator"
  (path-iterator		:url nil)
  (peg			:url nil ;Was in "https://github.com/ellerh/peg.el"
   :ignored-files ("COPYING"))
@@ -647,10 +648,8 @@
   :ignored-files ("LICENSE"))
  (persist             	:url nil) ; was https://gitlab.com/phillord/persist
  (phpinspect		:url "https://github.com/hugot/phpinspect.el")
- (phps-mode		:url "https://github.com/cjohansson/emacs-phps-mode"
-  ;; Christian Johansson works on a private Git and pushes to both Github
-  ;; and elpa.git anyway, so there's no need to auto-sync.
-  :manual-sync t)
+ (phps-mode		:url nil
+  ) ;; Was "https://github.com/cjohansson/emacs-phps-mode"
  (pinentry		:url "https://github.com/ueno/pinentry-el.git")
  (plz                 	:url "https://github.com/alphapapa/plz.el.git"
   :release-branch "stable"
@@ -768,7 +767,8 @@
  (srht			:url "https://git.sr.ht/~akagi/srht.el"
   :ignored-files ("LICENSE")
   :lisp-dir "lisp")
- (ssh-deploy		:url "https://github.com/cjohansson/emacs-ssh-deploy")
+ (ssh-deploy		:url nil
+  ) ;; Was: "https://github.com/cjohansson/emacs-ssh-deploy"
  (standard-themes		:url "https://github.com/protesilaos/standard-themes"
   :doc "README.org"
   :news "CHANGELOG.org"

@@ -739,6 +739,27 @@ with the equivalent upcased form."
 (defvar a68--keywords-regexp
   (regexp-opt '("|:" "(" ")" "+" "*" ";" ">" "<" ":=" "=" "," ":" "~")))
 
+(defconst a68--monads
+  '("%" "^" "&" "+" "-" "~" "!" "?"))
+
+(defconst a68--nomads
+  '(">" "<" "/" "=" "*"))
+
+;; An operator indication is:
+;; - A bold tag, or.
+;; - Any monad, or
+;; - A monad followed by a nomad, or
+;; - A monad optionally followed by a nomad followd by either
+;;   := or =:, but not by both.
+(defvar a68--oper-regexp
+  (concat "\\("
+          "\\(" (regexp-opt a68--monads) "\\)"
+          "\\|"
+          "\\(" (regexp-opt a68--monads) (regexp-opt a68--nomads) "\\)"
+          "\\|"
+          "\\(" (regexp-opt a68--monads) (regexp-opt a68--nomads) "?" "\\(:=\\|=:\\)" "\\)"
+          "\\)"))
+
 (defun a68-at-strong-void-enclosed-clause-supper ()
   "Return whether the point is at the beginning of a VOID enclosed clause."
   (save-excursion
@@ -812,10 +833,8 @@ with the equivalent upcased form."
   (forward-comment (point-max))
   (let ((case-fold-search nil))
     (cond
-     ;; operator, so any nomad or monad, but not =.
-     ((looking-at (concat (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
-                                        ">" "<" "/" "*"))
-                          "+"))
+     ;; operator.
+     ((looking-at a68--oper-regexp)
       (goto-char (match-end 0))
       "-oper-")
      ;; A bold-word may be a ssecca insert if it is preceded by a
@@ -939,10 +958,8 @@ with the equivalent upcased form."
   (forward-comment (- (point)))
   (let ((case-fold-search nil))
     (cond
-     ;; operator, so any nomad or monad, but not =.
-     ((looking-back (concat (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
-                                        ">" "<" "/" "*"))
-                            "+")
+     ;; operator, so any nomad or monad.
+     ((looking-back a68--oper-regexp
                     (pos-bol))
       (goto-char (match-beginning 0))
       "-oper-")

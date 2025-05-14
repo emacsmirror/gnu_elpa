@@ -398,8 +398,7 @@ with the equivalent upcased form."
     ;;  primary one :
     ;;    slice call ; cast ; string denoter ; identifier ;
     ;;    jump ; enclosed clause.
-    (unit (id ":=" exp)
-          ; (routine-text)
+    (unit ; (routine-text)
           (assignation)
           (pseudo-operator))
     (assignation (tertiary ":=" unit))

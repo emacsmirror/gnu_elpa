@@ -277,6 +277,8 @@
   :ignored-files ("LICENSE"))
  (doc-view-follow	:url "https://github.com/ultronozm/doc-view-follow.el")
  (docbook		:url nil)
+ (doric-themes		:url "https://github.com/protesilaos/doric-themes"
+  :readme "README.md")
  ;; `dtache' was renamed to `detached' in May 2022.
  ;;(dtache		:url "https://git.sr.ht/~niklaseklund/dtache"
  ;; :news "CHANGELOG.org"

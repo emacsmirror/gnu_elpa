@@ -641,7 +641,7 @@ with the equivalent upcased form."
                       ("-stdmode-"))
     (portrayer-pack ("(" portrayer ")"))
     (portrayer (portrayer "," portrayer)
-               (declarer "-dectag-")
+               (declarer "-dectag-") ; XXX handle insert in lexer.
                (id))
     ;; Units
     ;; =====
@@ -1218,6 +1218,25 @@ UPPER stropping version."
   (forward-comment (point-max))
   (let ((case-fold-search nil))
     (cond
+     ;; Standard mode indicators.
+     ((looking-at (concat "\\<" (regexp-opt a68-std-modes-upper) "\\>"))
+      (goto-char (match-end 0))
+      "-stdmode-")
+     ;; operator.
+     ((posix-looking-at a68--oper-regexp)
+      (goto-char (match-end 0))
+      "-oper-")
+     ;; = can be an equal operator or an is-defined-token.
+     ((looking-at "=")
+      (let ((token (cond
+                    ((looking-back "\\<[A-Z][A-Z_]+\\>[ \n\t]*")
+                     "-bold=-")
+                    ((looking-back (concat a68--oper-regexp "[ \n\t]*"))
+                     "-op=-")
+                    (t
+                      "="))))
+        (goto-char (+ (point) 1))
+        token))
      ;; A bold-word may be a ssecca insert if it is preceded by a
      ;; joined list of bold words, preceded by access.
      ((looking-at "[A-Z][A-Z_]+")
@@ -1334,6 +1353,26 @@ UPPER stropping version."
   (forward-comment (- (point)))
   (let ((case-fold-search nil))
     (cond
+     ;; Standard mode indicators.
+     ((looking-back (concat "\\<" (regexp-opt a68-std-modes-upper) "\\>")
+                    (pos-bol))
+      (goto-char (match-beginning 0))
+      "-stdmode-")
+     ;; operator, so any nomad or monad.
+     ((looking-back a68--oper-regexp
+                    (pos-bol))
+      (goto-char (match-beginning 0))
+      "-oper-")
+     ((looking-back "=")
+      (let ((token (cond
+                    ((looking-back "\\<[A-Z][A-Z_]+\\>[ \n\t]*=")
+                     "-bold=-")
+                    ((looking-back (concat a68--oper-regexp "[ \n\t]*="))
+                     "-op=-")
+                    (t
+                     "="))))
+        (goto-char (- (point) 1))
+        token))
      ((looking-back "[A-Z][A-Z]+" (pos-bol))
       (goto-char (match-beginning 0))
       (if (and (not (looking-at "[A-Z][A-Z_]+[ \t\n]*,"))

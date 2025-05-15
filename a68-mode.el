@@ -935,6 +935,22 @@ standard prelude described in the Revised Report.")
                           a68-std-modes-supper))))
       (goto-char (match-end 0))
       "-label-")
+     ;; We consider that any tag following a bold word or a standard
+     ;; moe is a defining identifier.  We are not handling many case
+     ;; that would require more extensive parsing, such as tags
+     ;; following commas.
+     ((looking-at "\\<[a-z]+\\>")
+      (let* ((end (match-end 0))
+             (tag (buffer-substring-no-properties (match-beginning 0) end))
+             (token (if (or (looking-back "[A-Z][A-Za-z_]+[ \t\n]+" (pos-bol))
+                            (and (looking-back "\\<\\([a-z][a-z_]*\\)\\>[ \t\n]+" (pos-bol))
+                                 (member (buffer-substring-no-properties (match-beginning 1)
+                                                                         (match-end 1))
+                                         a68-std-modes-supper)))
+                        "-dectag-"
+                      tag)))
+        (goto-char end)
+        token))
      ;; defining-modal-indications "mode MODE" are preceded by either (
      ;; or , in formal-parameter packs.
      ((looking-at "\\<mode\\>")
@@ -1071,6 +1087,17 @@ standard prelude described in the Revised Report.")
                           a68-std-modes-supper))))
       (goto-char (match-beginning 0))
       "-label-")
+     ((looking-back "\\<[a-z]+\\>" (pos-bol))
+      (let ((tag (buffer-substring-no-properties (match-beginning 0)
+                                                 (match-end 0))))
+        (goto-char (match-beginning 0))
+        (if (or (looking-back "[A-Z][A-Za-z_]+[ \t\n]+" (pos-bol))
+                (and (looking-back "\\<\\([a-z][a-z_]*\\)\\>[ \t\n]+" (pos-bol))
+                     (member (buffer-substring-no-properties (match-beginning 1)
+                                                             (match-end 1))
+                             a68-std-modes-supper)))
+            "-dectag-"
+          tag)))
      ((looking-back "\\<mode\\>" (- (point) 4))
       (goto-char (- (point) 4))
       (if (looking-back "[(,][ \t\n]*" nil)
@@ -1251,6 +1278,22 @@ UPPER stropping version."
      ((looking-at "\\<[a-z]+:")
       (goto-char (match-end 0))
       "-label-")
+     ;; We consider that any tag following a bold word or a standard
+     ;; moe is a defining identifier.  We are not handling many case
+     ;; that would require more extensive parsing, such as tags
+     ;; following commas.
+     ((looking-at "\\<[a-z]+\\>")
+      (let* ((end (match-end 0))
+             (tag (buffer-substring-no-properties (match-beginning 0) end))
+             (token (if (or (looking-back "[A-Z][A-Z_]+[ \t\n]+" (pos-bol))
+                            (and (looking-back "\\<\\([a-z][a-z_]*\\)\\>[ \t\n]+" (pos-bol))
+                                 (member (buffer-substring-no-properties (match-beginning 1)
+                                                                         (match-end 1))
+                                         a68-std-modes-upper)))
+                        "-dectag-"
+                      tag)))
+        (goto-char end)
+        token))
      ;; defining-modal-indications "mode MODE" are preceded by either
      ;; ( or , in formal-parameter packs.
      ((looking-at "\\<MODE\\>")
@@ -1382,6 +1425,17 @@ UPPER stropping version."
      ((looking-back "\\<[a-z]+:" (pos-bol))
       (goto-char (match-beginning 0))
       "-label-")
+     ((looking-back "\\<[a-z]+\\>" (pos-bol))
+      (let ((tag (buffer-substring-no-properties (match-beginning 0)
+                                                 (match-end 0))))
+        (goto-char (match-beginning 0))
+        (if (or (looking-back "[A-Z][A-Z_]+[ \t\n]+" (pos-bol))
+                (and (looking-back "\\<\\([a-z][a-z_]*\\)\\>[ \t\n]+" (pos-bol))
+                     (member (buffer-substring-no-properties (match-beginning 1)
+                                                             (match-end 1))
+                             a68-std-modes-upper)))
+            "-dectag-"
+          tag)))
      ((looking-back "\\<MODE\\>" (- (point) 4))
       (goto-char (- (point) 4))
       (if (looking-back "[(,][ \t\n]*" nil)

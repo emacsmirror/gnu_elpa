@@ -106,10 +106,11 @@
       (while (eq (setq res (avy-process (ivy-avy--candidates))) t))
       (when res
         (ivy-avy--action res)))))
+(ivy--no-M-x #'ivy-avy #'ivy--minibuffer-p)
 
-(function-put #'ivy-avy 'no-counsel-M-x t)
-(unless (lookup-key ivy-minibuffer-map (kbd "C-'"))
-  (define-key ivy-minibuffer-map (kbd "C-'") 'ivy-avy))
+(let ((key (kbd "C-'")))
+  (unless (lookup-key ivy-minibuffer-map key)
+    (define-key ivy-minibuffer-map key #'ivy-avy)))
 (add-to-list 'avy-styles-alist `(ivy-avy . ,ivy-avy-style))
 
 (provide 'ivy-avy)

@@ -423,11 +423,10 @@ Update the minibuffer with the amount of lines collected every
 (defun counsel-irony ()
   "Inline C/C++ completion using Irony."
   (interactive)
-  (irony-completion-candidates-async 'counsel-irony-callback))
+  (irony-completion-candidates-async #'counsel-irony-callback))
 
 (defun counsel-irony-callback (candidates)
   "Callback function for Irony to search among CANDIDATES."
-  (interactive)
   (let* ((symbol-bounds (irony-completion-symbol-bounds))
          (beg (car symbol-bounds))
          (end (cdr symbol-bounds))
@@ -455,7 +454,8 @@ Update the minibuffer with the amount of lines collected every
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-.") #'counsel-find-symbol)
     (define-key map (kbd "C-,") #'counsel--info-lookup-symbol)
-    map))
+    map)
+  "Keymap for Counsel commands that describe symbols.")
 
 (ivy-set-actions
  'counsel-describe-variable
@@ -471,12 +471,13 @@ Used by commands `counsel-describe-symbol',
   "Jump to the definition of the current symbol."
   (interactive)
   (ivy-exit-with-action #'counsel--find-symbol))
-(function-put #'counsel-find-symbol 'no-counsel-M-x t)
+(ivy--no-M-x #'counsel-find-symbol #'ivy--minibuffer-p)
 
 (defun counsel--info-lookup-symbol ()
   "Lookup the current symbol in the info docs."
   (interactive)
   (ivy-exit-with-action #'counsel-info-lookup-symbol))
+(ivy--no-M-x #'counsel--info-lookup-symbol #'ivy--minibuffer-p)
 
 (defun counsel--push-xref-marker (&optional m)
   "Compatibility shim for `xref-push-marker-stack'."
@@ -599,7 +600,7 @@ to `ivy-highlight-face'."
     (ivy-read "Describe function: " obarray
               :predicate (lambda (sym)
                            (or (fboundp sym)
-                               (get sym 'function-documentation)))
+                               (function-get sym 'function-documentation)))
               :require-match t
               :history 'counsel-describe-symbol-history
               :keymap counsel-describe-map
@@ -921,7 +922,7 @@ packages are, in order of precedence, `amx' and `smex'."
 (defun counsel--M-x-externs-predicate (cand)
   "Return non-nil if `counsel-M-x' should complete CAND.
 CAND is a string returned by `counsel--M-x-externs'."
-  (not (get (intern cand) 'no-counsel-M-x)))
+  (not (function-get (intern cand) 'no-counsel-M-x)))
 
 (defun counsel--M-x-make-predicate ()
   "Return a predicate for `counsel-M-x' in the current buffer."
@@ -929,8 +930,8 @@ CAND is a string returned by `counsel--M-x-externs'."
   (let ((buf (current-buffer)))
     (lambda (sym)
       (and (commandp sym)
-           (not (get sym 'byte-obsolete-info))
-           (not (get sym 'no-counsel-M-x))
+           (not (function-get sym 'byte-obsolete-info))
+           (not (function-get sym 'no-counsel-M-x))
            (cond ((not (bound-and-true-p read-extended-command-predicate)))
                  ((functionp read-extended-command-predicate)
                   (condition-case-unless-debug err
@@ -1751,6 +1752,7 @@ When CMD is non-nil, prompt for a specific \"git grep\" command."
   (unless (ivy-state-dynamic-collection ivy-last)
     (setq ivy--all-candidates
           (all-completions "" #'counsel-git-grep-function))))
+(ivy--no-M-x #'counsel-git-grep-switch-cmd #'ivy--minibuffer-p t)
 
 (defun counsel--normalize-grep-match (str)
   ;; Prepend ./ if necessary:
@@ -1808,6 +1810,7 @@ When CMD is non-nil, prompt for a specific \"git grep\" command."
                    (find-file file-name)
                    (goto-char (point-min)))
                  (perform-replace from to t t nil))))))))))
+(ivy--no-M-x #'counsel-git-grep-query-replace #'ivy--minibuffer-p)
 
 ;;;; `counsel-git-stash'
 
@@ -1973,20 +1976,12 @@ currently checked out."
 ;;; File
 ;;;; `counsel-find-file'
 
-(defvar counsel-find-file-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-DEL") #'counsel-up-directory)
-    (define-key map (kbd "C-<backspace>") #'counsel-up-directory)
-    (define-key map (kbd "`") #'counsel-file-jump-from-find)
-    (define-key map (kbd "C-`") (ivy-make-magic-action #'counsel-find-file "b"))
-    (define-key map `[remap ,#'undo] #'counsel-find-file-undo)
-    map))
-
 (defun counsel-file-jump-from-find ()
   "Switch to `counsel-file-jump' from `counsel-find-file'."
   (interactive)
   (ivy-quit-and-run
     (counsel-file-jump ivy-text (ivy-state-directory ivy-last))))
+(ivy--no-M-x #'counsel-file-jump-from-find #'ivy--minibuffer-p)
 
 (when (executable-find "git")
   (add-to-list 'ivy-ffap-url-functions 'counsel-github-url-p)
@@ -2083,18 +2078,29 @@ choose between `yes-or-no-p' and `y-or-n-p'; otherwise default to
     (when win (with-selected-window win (ivy--cd dir)))))
 
 (ivy-set-actions
- 'counsel-find-file
- '(("j" find-file-other-window "other window")
-   ("f" find-file-other-frame "other frame")
-   ("b" counsel-find-file-cd-bookmark-action "cd bookmark")
-   ("x" counsel-find-file-extern "open externally")
-   ("r" counsel-find-file-as-root "open as root")
-   ("R" find-file-read-only "read only")
-   ("l" find-file-literally "open literally")
-   ("k" counsel-find-file-delete "delete")
-   ("c" counsel-find-file-copy "copy file")
-   ("m" counsel-find-file-move "move or rename")
-   ("d" counsel-find-file-mkdir-action "mkdir")))
+ #'counsel-find-file
+ `(("j" ,#'find-file-other-window "other window")
+   ("f" ,#'find-file-other-frame "other frame")
+   ("b" ,#'counsel-find-file-cd-bookmark-action "cd bookmark")
+   ("x" ,#'counsel-find-file-extern "open externally")
+   ("r" ,#'counsel-find-file-as-root "open as root")
+   ("R" ,#'find-file-read-only "read only")
+   ("l" ,#'find-file-literally "open literally")
+   ("k" ,#'counsel-find-file-delete "delete")
+   ("c" ,#'counsel-find-file-copy "copy file")
+   ("m" ,#'counsel-find-file-move "move or rename")
+   ("d" ,#'counsel-find-file-mkdir-action "mkdir")))
+
+(defvar counsel-find-file-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-DEL") #'counsel-up-directory)
+    (define-key map (kbd "C-<backspace>") #'counsel-up-directory)
+    (define-key map (kbd "`") #'counsel-file-jump-from-find)
+    ;; Needs to come after "b" action is defined.
+    (define-key map (kbd "C-`") (ivy-make-magic-action #'counsel-find-file "b"))
+    (define-key map `[remap ,#'undo] #'counsel-find-file-undo)
+    map)
+  "Keymap used during Counsel file name completion.")
 
 (defcustom counsel-find-file-at-point nil
   "When non-nil, add file-at-point to the list of candidates."
@@ -2338,11 +2344,13 @@ See variable `counsel-up-directory-level'."
         (ivy--cd up-dir)
         (setf (ivy-state-preselect ivy-last)
               (file-name-as-directory (file-name-nondirectory cur-dir)))))))
+(ivy--no-M-x #'counsel-up-directory #'ivy--minibuffer-p)
 
 (defun counsel-down-directory ()
   "Descend into the current directory."
   (interactive)
   (ivy--directory-enter))
+(ivy--no-M-x #'counsel-down-directory #'ivy--minibuffer-p)
 
 (defun counsel-find-file-undo ()
   (interactive)
@@ -2353,6 +2361,7 @@ See variable `counsel-up-directory-level'."
         (when dir
           (ivy--cd dir)))
     (undo)))
+(ivy--no-M-x #'counsel-find-file-undo #'ivy--minibuffer-p)
 
 (defun counsel-at-git-issue-p ()
   "When point is at an issue in a Git-versioned file, return the issue string."
@@ -3049,6 +3058,7 @@ FZF-PROMPT, if non-nil, is passed as `ivy-read' prompt argument."
   (interactive)
   (ivy-quit-and-run
     (counsel-find-file ivy-text (ivy-state-directory ivy-last))))
+(ivy--no-M-x #'counsel-find-file-from-jump #'ivy--minibuffer-p)
 
 ;;;###autoload
 (defun counsel-file-jump (&optional initial-input initial-directory)
@@ -3289,6 +3299,7 @@ Works for `counsel-git-grep', `counsel-ag', etc."
          (new-dir (counsel-read-directory-name "cd: " def-dir)))
     (ivy-quit-and-run
       (funcall (ivy-state-caller ivy-last) input new-dir))))
+(ivy--no-M-x #'counsel-cd #'ivy--minibuffer-p)
 
 (defun counsel--grep-smart-case-flag ()
   (if (ivy--case-fold-p ivy-text)
@@ -5096,6 +5107,7 @@ An extra action allows to switch to the process buffer."
                         (delete-minibuffer-contents)
                         (insert (substring-no-properties (car x))))
               :caller 'counsel-minibuffer-history)))
+(ivy--no-M-x #'counsel-minibuffer-history '(minibuffer-mode) t)
 
 ;;;; `counsel-esh-history'
 
@@ -5860,8 +5872,6 @@ You can insert or kill the name of the selected font."
     (define-key map (kbd "C-k") #'counsel-kmacro-kill)
     map))
 
-;; Avoid (declare (modes ...)) warnings in Emacs < 28.
-(function-put #'counsel-kmacro-kill 'command-modes '(minibuffer-mode))
 (defun counsel-kmacro-kill ()
   "Kill the line, or delete the currently selected keyboard macro."
   (interactive)
@@ -5874,6 +5884,7 @@ You can insert or kill the name of the selected font."
       (ivy-state-current ivy-last)
       (ivy-state-collection ivy-last)))
     (ivy--kill-current-candidate)))
+(ivy--no-M-x #'counsel-kmacro-kill #'ivy--minibuffer-p)
 
 (defvar kmacro-counter)
 (defvar kmacro-counter-format-start)
@@ -7006,15 +7017,16 @@ handling for the `counsel-compile' metadata."
     (insert (substring-no-properties
              cmd 0 (and (get-text-property 0 'cmd cmd)
                         (next-single-property-change 0 'cmd cmd))))))
+(ivy--no-M-x #'counsel-compile-edit-command #'ivy--minibuffer-p)
 
-;; Currently the only thing we do is override ivy's default insert
+;; Currently the only thing we do is override Ivy's default insert
 ;; operation which doesn't include the metadata we want.
 (defvar counsel-compile-map
   (let ((map (make-sparse-keymap)))
     (define-key map `[remap ,#'ivy-insert-current]
                 #'counsel-compile-edit-command)
     map)
-  "Additional ivy keybindings during command selection.")
+  "Additional Ivy keybindings during command selection.")
 
 ;;;###autoload
 (defun counsel-compile (&optional dir)

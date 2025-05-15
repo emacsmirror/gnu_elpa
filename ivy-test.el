@@ -79,8 +79,9 @@ Since `execute-kbd-macro' doesn't pick up a let-bound `default-directory'.")
   (interactive)
   (let ((default-directory (or ivy-eval-dir default-directory)))
     (setq ivy-result (eval ivy-expr))))
+(ivy--no-M-x #'ivy-eval #'ignore)
 
-(global-set-key (kbd "C-c e") 'ivy-eval)
+(global-set-key (kbd "C-c e") #'ivy-eval)
 
 (defvar ivy-test-inhibit-message t)
 

@@ -746,13 +746,12 @@ with the equivalent upcased form."
 ;; - A monad followed by a nomad, or
 ;; - A monad optionally followed by a nomad followd by either
 ;;   := or =:, but not by both.
+
 (defvar a68--oper-regexp
-  (concat "\\("
-          "\\(" (regexp-opt a68--monads) "\\)"
-          "\\|"
-          "\\(" (regexp-opt a68--monads) (regexp-opt a68--nomads) "\\)"
-          "\\|"
-          "\\(" (regexp-opt a68--monads) (regexp-opt a68--nomads) "?" "\\(:=\\|=:\\)" "\\)"
+  (concat "\\(?:"
+          (regexp-opt a68--monads)
+          (regexp-opt a68--nomads) "?"
+          "\\(?::=\\|=:\\)?"
           "\\)"))
 
 (defun a68-at-strong-void-enclosed-clause-supper ()
@@ -829,7 +828,7 @@ with the equivalent upcased form."
   (let ((case-fold-search nil))
     (cond
      ;; operator.
-     ((posix-looking-at a68--oper-regexp)
+     ((looking-at a68--oper-regexp)
       (goto-char (match-end 0))
       "-oper-")
      ;; A bold-word may be a ssecca insert if it is preceded by a

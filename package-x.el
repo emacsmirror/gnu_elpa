@@ -318,6 +318,23 @@ This should be invoked from the gnus *Summary* buffer."
   (with-current-buffer gnus-article-buffer
     (package-upload-buffer)))
 
+(defun package-install-temporarily (pkg)
+  "Install and enable a package PKG non-persistently.
+The package will not be loaded in future sessions, but will appear to be
+so for the remaining one."
+  (interactive
+   (list (intern (completing-read
+                  "Install package: "
+                  (progn
+                    ;; Initialize the package system to get the list
+                    ;; of package symbols for completion.
+                    (package--archives-initialize)
+                    package-archive-contents)
+                  nil t))))
+  (let ((package-user-dir (make-temp-file "elpa" t))
+        (package-alist (copy-list package-alist)))
+    (package-install pkg t)))
+
 (provide 'package-x)
 
 ;;; package-x.el ends here

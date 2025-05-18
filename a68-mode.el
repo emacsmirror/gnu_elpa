@@ -106,8 +106,7 @@
 
 (defcustom a68-comment-style-supper "{"
   "Default comment style used by e.g. `comment-dwim'."
-  :type '(choice (const "{")
-                 (const "#"))
+  :type '(choice (const "{"))
   :safe #'consp)
 
 ;;;; Syntax table for the a68-mode.
@@ -290,27 +289,6 @@
            bow "C" (group "O") eow)
        (1 (when (not (a68-within-string)) (string-to-syntax "< c")))
        (2 (when (not (a68-within-string)) (string-to-syntax "> c")))
-       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
-                                     'syntax-multiline t)))))
-     (point) end)))
-
-(defun a68-syntax-propertize-function-supper (start end)
-  (let ((case-fold-search nil))
-    (goto-char start)
-    (funcall
-     (syntax-propertize-rules
-      ((rx bow (group "n") "ote" eow
-           (*? anychar)
-           bow "eto" (group "n") eow)
-       (1 (when (not (a68-within-string)) (string-to-syntax "< bn")))
-       (2 (when (not (a68-within-string)) (string-to-syntax "> bn")))
-       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
-                                     'syntax-multiline t))))
-      ((rx (group "#")
-           (*? anychar)
-           (group "#"))
-       (1 (when (not (a68-within-string)) (string-to-syntax "<")))
-       (2 (when (not (a68-within-string)) (string-to-syntax ">")))
        (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
                                      'syntax-multiline t)))))
      (point) end)))
@@ -1454,8 +1432,7 @@ UPPER stropping version."
     (setq-local beginning-of-defun-function #'a68-beginning-of-defun-supper)
     (setq-local comment-start-skip "{ *")
     (setq-local comment-end-skip "[ \t]*}")
-    (setq-local font-lock-comment-end-skip "}")
-    (setq-local syntax-propertize-function #'a68-syntax-propertize-function-supper))
+    (setq-local font-lock-comment-end-skip "}"))
    (t
     ;; UPPER stropping.
     (setq-local comment-start a68-comment-style-upper)
@@ -1466,9 +1443,9 @@ UPPER stropping version."
                 :backward-token #'a68--smie-backward-token-upper)
     (setq-local beginning-of-defun-function #'a68-beginning-of-defun-upper)
     (setq-local comment-start-skip "\\(#\\) *")
-    (setq-local syntax-propertize-function #'a68-syntax-propertize-function-upper)))
-  (add-hook 'syntax-propertize-extend-region-functions
-            #'syntax-propertize-multiline 'append 'local))
+    (setq-local syntax-propertize-function #'a68-syntax-propertize-function-upper)
+    (add-hook 'syntax-propertize-extend-region-functions
+              #'syntax-propertize-multiline 'append 'local))))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.a68\\'" . a68-mode))

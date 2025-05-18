@@ -99,14 +99,15 @@
   "Default comment style used by e.g. `comment-dwim'."
   :type '(choice (const "#")
                  (const "CO")
-                 (const "COMMENT"))
+                 (const "COMMENT")
+                 (const "NOTE")
+                 (const "{"))
   :safe #'consp)
 
-(defcustom a68-comment-style-supper "#"
+(defcustom a68-comment-style-supper "{"
   "Default comment style used by e.g. `comment-dwim'."
-  :type '(choice (const "#")
-                 (const "co")
-                 (const "comment"))
+  :type '(choice (const "{")
+                 (const "#"))
   :safe #'consp)
 
 ;;;; Syntax table for the a68-mode.
@@ -117,6 +118,9 @@
     (modify-syntax-entry ?, "." st)
     (modify-syntax-entry ?: "." st)
     (modify-syntax-entry ?_ "w" st)
+    ;; Note { and } are nestable.
+    (modify-syntax-entry ?{ "< n" st)
+    (modify-syntax-entry ?} "> n" st)
     ;; define parentheses to match
     (modify-syntax-entry ?\( "()" st)
     (modify-syntax-entry ?\) ")(" st)
@@ -267,6 +271,13 @@
        (2 (when (not (a68-within-string)) (string-to-syntax ">")))
        (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
                                      'syntax-multiline t))))
+      ((rx bow (group "N") "OTE" eow
+           (*? anychar)
+           bow "ETO" (group "N") eow)
+       (1 (when (not (a68-within-string)) (string-to-syntax "< bn")))
+       (2 (when (not (a68-within-string)) (string-to-syntax "> bn")))
+       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
+                                     'syntax-multiline t))))
       ((rx bow (group "C") "OMMENT" eow
            (*? anychar)
            bow "COMMEN" (group "T") eow)
@@ -288,25 +299,18 @@
     (goto-char start)
     (funcall
      (syntax-propertize-rules
+      ((rx bow (group "n") "ote" eow
+           (*? anychar)
+           bow "eto" (group "n") eow)
+       (1 (when (not (a68-within-string)) (string-to-syntax "< bn")))
+       (2 (when (not (a68-within-string)) (string-to-syntax "> bn")))
+       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
+                                     'syntax-multiline t))))
       ((rx (group "#")
            (*? anychar)
            (group "#"))
        (1 (when (not (a68-within-string)) (string-to-syntax "<")))
        (2 (when (not (a68-within-string)) (string-to-syntax ">")))
-       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
-                                     'syntax-multiline t))))
-      ((rx bow (group "c") "omment" eow
-           (*? anychar)
-           bow "commen" (group "t") eow)
-       (1 (when (not (a68-within-string)) (string-to-syntax "< b")))
-       (2 (when (not (a68-within-string)) (string-to-syntax "> b")))
-       (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
-                                     'syntax-multiline t))))
-      ((rx bow (group "c") "o" eow
-           (*? anychar)
-           bow "c" (group "o") eow)
-       (1 (when (not (a68-within-string)) (string-to-syntax "< c")))
-       (2 (when (not (a68-within-string)) (string-to-syntax "> c")))
        (0 (ignore (put-text-property (match-beginning 0) (match-end 0)
                                      'syntax-multiline t)))))
      (point) end)))
@@ -1448,6 +1452,9 @@ UPPER stropping version."
                 :forward-token #'a68--smie-forward-token-supper
                 :backward-token #'a68--smie-backward-token-supper)
     (setq-local beginning-of-defun-function #'a68-beginning-of-defun-supper)
+    (setq-local comment-start-skip "{ *")
+    (setq-local comment-end-skip "[ \t]*}")
+    (setq-local font-lock-comment-end-skip "}")
     (setq-local syntax-propertize-function #'a68-syntax-propertize-function-supper))
    (t
     ;; UPPER stropping.
@@ -1458,8 +1465,8 @@ UPPER stropping version."
                 :forward-token #'a68--smie-forward-token-upper
                 :backward-token #'a68--smie-backward-token-upper)
     (setq-local beginning-of-defun-function #'a68-beginning-of-defun-upper)
+    (setq-local comment-start-skip "\\(#\\) *")
     (setq-local syntax-propertize-function #'a68-syntax-propertize-function-upper)))
-  (setq-local comment-start-skip "\\(#\\) *")
   (add-hook 'syntax-propertize-extend-region-functions
             #'syntax-propertize-multiline 'append 'local))
 

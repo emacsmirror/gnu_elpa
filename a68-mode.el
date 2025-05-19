@@ -104,11 +104,6 @@
                  (const "{"))
   :safe #'consp)
 
-(defcustom a68-comment-style-supper "{"
-  "Default comment style used by e.g. `comment-dwim'."
-  :type '(choice (const "{"))
-  :safe #'consp)
-
 ;;;; Syntax table for the a68-mode.
 
 (defvar a68-mode-syntax-table
@@ -1427,16 +1422,14 @@ UPPER stropping version."
   (cond
    ((equal a68--stropping-regime 'supper)
     ;; SUPPER stropping.
-    (setq-local comment-start a68-comment-style-supper)
-    (setq-local comment-end a68-comment-style-supper)
     (setq-local font-lock-defaults '(a68-font-lock-keywords-supper))
     (smie-setup a68--smie-grammar-supper #'a68--smie-rules-supper
                 :forward-token #'a68--smie-forward-token-supper
                 :backward-token #'a68--smie-backward-token-supper)
     (setq-local beginning-of-defun-function #'a68-beginning-of-defun-supper)
+    (setq-local comment-start "{")
     (setq-local comment-start-skip "{ *")
-    (setq-local comment-end-skip "[ \t]*}")
-    (setq-local font-lock-comment-end-skip "}"))
+    (setq-local comment-end " }"))
    (t
     ;; UPPER stropping.
     (setq-local comment-start a68-comment-style-upper)

@@ -466,10 +466,12 @@ with the equivalent upcased form."
                     "|:" enquiry-clause "|" serial ")")
                    ("case" enquiry-clause "in" specs "esac")
                    ("case" enquiry-clause "in" specs "out" serial "esac")
-                   ("case" enquiry-clause "in" specs "ouse" serial "esac")
+                   ("case" enquiry-clause "in" specs "ouse" enquiry-clause "in" specs "esac")
+                   ("case" enquiry-clause "in" specs "ouse" enquiry-clause "in" specs "out" serial "esac")
                    ("(" enquiry-clause "|" specs ")")
                    ("(" enquiry-clause "|" specs "|" serial ")")
-                   ("(" enquiry-clause "|" specs "|:" serial ")"))
+                   ("(" enquiry-clause "|" specs "|:" enquiry-clause "|" specs ")")
+                   ("(" enquiry-clause "|" specs "|:" enquiry-clause "|" specs "|" serial ")"))
     ;; Loop clauses.
     ;;   loop clause :
     ;;     loop insert, for part, (from part), (by part), (to part), repeating part.

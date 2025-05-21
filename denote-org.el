@@ -475,13 +475,12 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
          (not-rx (denote-org--parse-rx (plist-get params :not-regexp)))
          (sort (plist-get params :sort-by-component))
          (reverse (plist-get params :reverse-sort))
-         (include-date (plist-get params :include-date))
          (block-name (plist-get params :block-name))
          (denote-excluded-directories-regexp (or (plist-get params :excluded-dirs-regexp)
                                                  denote-excluded-directories-regexp))
          (files (denote-org-dblock--files rx sort reverse not-rx)))
     (when block-name (insert "#+name: " block-name "\n"))
-    (denote-link--insert-links files 'org (plist-get params :id-only) :no-other-sorting include-date)
+    (denote-org--insert-links files (plist-get params :id-only) (plist-get params :include-date))
     (join-line))) ; remove trailing empty line
 
 ;;;;; Dynamic block to insert missing links
@@ -518,13 +517,12 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
   (let* ((rx (denote-org--parse-rx (plist-get params :regexp)))
          (sort (plist-get params :sort-by-component))
          (reverse (plist-get params :reverse-sort))
-         (include-date (plist-get params :include-date))
          (block-name (plist-get params :block-name))
          (denote-excluded-directories-regexp (or (plist-get params :excluded-dirs-regexp)
                                                  denote-excluded-directories-regexp))
          (files (denote-org-dblock--files-missing-only rx sort reverse)))
     (when block-name (insert "#+name: " block-name "\n"))
-    (denote-link--insert-links files 'org (plist-get params :id-only) :no-other-sorting include-date)
+    (denote-org--insert-links files (plist-get params :id-only) (plist-get params :include-date))
     (join-line))) ; remove trailing empty line
 
 ;;;;; Dynamic block to insert backlinks
@@ -563,6 +561,28 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
                            :include-date nil))
   (org-update-dblock))
 
+(defun denote-org--insert-links (files &optional id-only include-date)
+  "Insert links to FILES.
+With optional ID-ONLY, insert links with the corresponding file's
+identifier as the description.  Otherwise, use the title of the file.
+
+With optional INCLUDE-DATE, append the date of the file in (YYYY-MM-DD)
+format."
+  (let ((denote-link-description-format
+         (if include-date
+             ;; TODO 2025-05-21: Consider making this more flexible.
+             ;; The style we have now is what we have had since this
+             ;; feature was first introduced.  But maybe users prefer
+             ;; to have a different format.
+             (lambda (file)
+               (let* ((file-type (denote-filetype-heuristics file))
+                      (title (denote-retrieve-title-or-filename file file-type))
+                      (identifier (denote-retrieve-filename-identifier file))
+                      (date (denote-id-to-date identifier)))
+                 (format "%s (%s)" title date)))
+           denote-link-description-format)))
+    (denote-link--insert-links files 'org id-only :no-other-sorting)))
+
 ;;;###autoload
 (defun org-dblock-write:denote-backlinks (params)
   "Function to update `denote-backlinks' Org Dynamic blocks.
@@ -572,11 +592,10 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
                        (denote-get-backlinks))))
     (let* ((sort (plist-get params :sort-by-component))
            (reverse (plist-get params :reverse-sort))
-           (include-date (plist-get params :include-date))
            (denote-excluded-directories-regexp (or (plist-get params :excluded-dirs-regexp)
                                                    denote-excluded-directories-regexp))
            (files (denote-org-dblock--maybe-sort-backlinks files sort reverse)))
-      (denote-link--insert-links files 'org (plist-get params :id-only) :no-other-sorting include-date)
+      (denote-org--insert-links files (plist-get params :id-only) (plist-get params :include-date))
       (join-line)))) ; remove trailing empty line
 
 ;;;;; Dynamic block to insert entire file contents

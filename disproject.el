@@ -93,6 +93,9 @@ See Info node `(transient)Suffix Specifications' and Info
 node `(transient)Group Specifications' for documentation on
 respective syntax.
 
+Any key sequence starting with alphanumeric characters or
+dash (regexp \"[a-zA-Z0-9-]\") is reserved for the user.
+
 For common types of commands like compilation or shell commands,
 Disproject provides suffixes with built-in features like process
 buffer naming/tracking that can be customized via keyword values

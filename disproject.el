@@ -252,11 +252,22 @@ This uses `multi-occur' under the hood."
 
 ;;;; Transient groups.
 
-;; Evaluate at compile-time so `transient-define-prefix' can find definitions.
-(eval-and-compile
-  (defconst disproject--selected-project-header-group
-    [:description disproject--selected-project-description ""]
-    "Header for transient prefixes to display the currently selected project."))
+;; XXX: Maintain `disproject--define-group' until we bump transient requirement
+;; to 0.9.0+, at which point we can just use `transient-define-group'.
+(defmacro disproject--define-group (symbol group)
+  "Define SYMBOL as a transient GROUP.
+
+Use `transient-define-group' (introduced in Transient v0.9.0) if
+the macro is available; otherwise, assume that the old layout is
+supported and use `defconst' to define the group, instead."
+  (declare (indent 1))
+  (if (macrop 'transient-define-group)
+      `(transient-define-group ,symbol ,group)
+    ;; Evaluate at compile-time so `transient-define-prefix' can find definitions.
+    `(eval-and-compile (defconst ,symbol ,group))))
+
+(disproject--define-group disproject--selected-project-header-group
+  [:description disproject--selected-project-description ""])
 
 
 ;;;

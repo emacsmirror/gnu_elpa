@@ -18,7 +18,7 @@
 - Support Transient version 0.9.0+ (unreleased as of writing), which introduced
   a breaking change to add/improve facilities for defining transient groups.
 
-** [[release-version:2.0.0][2.0.0]] - 2025-03-05
+** [[https://github.com/aurtzy/disproject/tree/v2.0.0][2.0.0]] - 2025-03-05
 
 The major focus of this update is support for Transient specifications syntax in
 ~disproject-custom-suffixes~.  The previous custom syntax has been deprecated,
@@ -92,7 +92,7 @@ Deprecated items that have passed their planned removal dates have been removed.
 - Remove deprecated ~disproject-switch-project-active~ command.
 - Remove deprecated ~disproject-vc-dir~ command.
 
-** [[release-version:1.3.1][1.3.1]] - 2024-12-13
+** [[https://github.com/aurtzy/disproject/tree/v1.3.1][1.3.1]] - 2024-12-13
 
 Bugfix release to resolve an issue that could make the menu inaccessible for
 some users.
@@ -103,7 +103,7 @@ some users.
   ~project-find-functions~ hook was configured with other functions that could
   return project instances in unexpectedly different formats ([[https://github.com/aurtzy/disproject/issues/4][#4]]).
 
-** [[release-version:1.3.0][1.3.0]] - 2024-12-11
+** [[https://github.com/aurtzy/disproject/tree/v1.3.0][1.3.0]] - 2024-12-11
 
 This is a maintenance-heavy release which comes with a fair bit of reworked
 internals, particularly with handling of transient scope/state.  Some of these
@@ -182,7 +182,7 @@ standalone compile command in ~disproject-dispatch~.
 - Remove redundant ~project~ argument from
   ~disproject-manage-projects-dispatch~.  This didn't actually do anything.
 
-** [[release-version:1.2.0][1.2.0]] - 2024-11-28
+** [[https://github.com/aurtzy/disproject/tree/v1.2.0][1.2.0]] - 2024-11-28
 
 This update consists of mainly quality-of-life / UX changes.  Some changes to
 key-binds have also been made, with deprecations and planned removal
@@ -228,7 +228,7 @@ time-frames.
 - Fix case where ~disproject-custom-suffixes~ was not considered safe if
   Disproject hadn't been loaded yet.
 
-** [[release-version:1.1.1][1.1.1]] - 2024-11-24
+** [[https://github.com/aurtzy/disproject/tree/v1.1.1][1.1.1]] - 2024-11-24
 
 This is a fix for an unlikely, but still undesirable bug.
 
@@ -239,7 +239,7 @@ This is a fix for an unlikely, but still undesirable bug.
   invalid ~unset~ value (value of ~project--list~ when it's not initialized yet)
   that had to be manually removed e.g. by deleting the file.
 
-** [[release-version:1.1.0][1.1.0]] - 2024-11-21
+** [[https://github.com/aurtzy/disproject/tree/v1.1.0][1.1.0]] - 2024-11-21
 
 *** Added
 
@@ -282,10 +282,7 @@ This is a fix for an unlikely, but still undesirable bug.
 - Marked custom variable ~disproject-custom-suffixes~ as safe in order to defer
   the prompt and apply fix with ~disproject-custom-suffixes~.
 
-** [[release-version:1.0.0][1.0.0]] - 2024-11-17
+** [[https://github.com/aurtzy/disproject/tree/v1.0.0][1.0.0]] - 2024-11-17
 
 v1 release.  This CHANGELOG file has been added, which will track changes in
 future version releases from this point onward.
-
-
-#+link: release-version https://github.com/aurtzy/disproject/tree/v

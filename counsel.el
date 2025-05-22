@@ -846,6 +846,7 @@ With prefix arg MODE a query for the symbol help mode is offered."
 ;;;; `counsel-M-x'
 
 (defface counsel-key-binding
+  ;; Default Emacs 28 `help-key-binding' doesn't look great in parentheses.
   '((t :inherit font-lock-keyword-face))
   "Face used by `counsel-M-x' for key bindings."
   :group 'ivy-faces)
@@ -874,7 +875,7 @@ With prefix arg MODE a query for the symbol help mode is offered."
     (concat cmd
             (when (and (symbolp alias) counsel-alias-expand)
               (format " (%s)" alias))
-            (when key
+            (when (and key suggest-key-bindings)
               ;; Prefer `<f2>' over `C-x 6' where applicable
               (let ((i (cl-search [?\C-x ?6] key)))
                 (when i
@@ -884,73 +885,109 @@ With prefix arg MODE a query for the symbol help mode is offered."
                                  (lookup-key map dup))
                       (setq key dup)))))
               (setq key (key-description key))
-              (put-text-property 0 (length key) 'face 'counsel-key-binding key)
+              (setq key (propertize key 'face 'counsel-key-binding))
               (format " (%s)" key)))))
 
-(defvar amx-initialized)
-(defvar amx-cache)
-(declare-function amx-initialize "ext:amx")
-(declare-function amx-detect-new-commands "ext:amx")
-(declare-function amx-update "ext:amx")
-(declare-function amx-rank "ext:amx")
-(defvar smex-initialized-p)
-(defvar smex-ido-cache)
-(declare-function smex-initialize "ext:smex")
-(declare-function smex-detect-new-commands "ext:smex")
-(declare-function smex-update "ext:smex")
-(declare-function smex-rank "ext:smex")
+(defcustom counsel-M-x-collection 'auto
+  "Where to source `counsel-M-x' completion candidates from.
+`obarray' - Use the default M-x collection built into Emacs.
+`amx'     - Source candidates from the external `amx' package.
+`smex'    - Source candidates from the external `smex' package.
+`auto'    - Automatically detect one of the previous options,
+            falling back to `obarray'.  This is the default.
+The value can alternatively be a function of no arguments
+that returns a completion table suitable for `ivy-read'."
+  :package-version '(counsel . "0.16.0")
+  :type '(choice (const :tag "Built-in" obarray)
+                 (const :tag "Amx package" amx)
+                 (const :tag "Smex package" smex)
+                 (const :tag "Auto-detect" auto)
+                 (function :tag "Custom function")))
 
-(defun counsel--M-x-externs ()
-  "Return `counsel-M-x' candidates from external packages.
-The return value is a list of strings.  The currently supported
-packages are, in order of precedence, `amx' and `smex'."
-  (cond ((require 'amx nil t)
-         (unless amx-initialized
-           (amx-initialize))
-         (when (amx-detect-new-commands)
-           (amx-update))
-         (mapcar (lambda (entry)
-                   (symbol-name (car entry)))
-                 amx-cache))
-        ((require 'smex nil t)
-         (unless smex-initialized-p
-           (smex-initialize))
-         (when (smex-detect-new-commands)
-           (smex-update))
-         smex-ido-cache)))
+(defun counsel--M-x-collection ()
+  "Return a completion table obeying `counsel-M-x-collection'."
+  (let ((src counsel-M-x-collection))
+    (cond ((eq src 'obarray) obarray)
+          ((eq src 'auto)
+           (cond ((ivy--feature-p 'amx)
+                  (counsel--amx-collection))
+                 ((ivy--feature-p 'smex)
+                  (counsel--smex-collection))
+                 (obarray)))
+          ((eq src 'amx)
+           (unless (ivy--feature-p 'amx)
+             (user-error "Package `amx' not installed"))
+           (counsel--amx-collection))
+          ((eq src 'smex)
+           (unless (ivy--feature-p 'smex)
+             (user-error "Package `smex' not installed"))
+           (counsel--smex-collection))
+          ((functionp src) (funcall src))
+          ((user-error "Unknown `counsel-M-x-collection': %S" src)))))
 
-(defun counsel--M-x-externs-predicate (cand)
-  "Return non-nil if `counsel-M-x' should complete CAND.
-CAND is a string returned by `counsel--M-x-externs'."
-  (not (function-get (intern cand) 'no-counsel-M-x)))
+(defun counsel--M-x-extern-rank (cmd)
+  "Tell external `counsel-M-x-collection' that CMD was selected."
+  (declare-function amx-rank "ext:amx")
+  (declare-function smex-rank "ext:smex")
+  (let ((src counsel-M-x-collection))
+    (cond ((and (memq src '(auto amx))
+                (bound-and-true-p amx-initialized))
+           (amx-rank cmd))
+          ((and (memq src '(auto smex))
+                (bound-and-true-p smex-initialized-p))
+           (smex-rank cmd)))))
 
-(defun counsel--M-x-make-predicate ()
+(defun counsel--amx-collection ()
+  "Return `counsel-M-x' candidates from the `amx' package."
+  (declare-function amx-detect-new-commands "ext:amx")
+  (declare-function amx-initialize "ext:amx")
+  (declare-function amx-update "ext:amx")
+  (defvar amx-cache)
+  (defvar amx-initialized)
+  (unless amx-initialized
+    (amx-initialize))
+  (when (amx-detect-new-commands)
+    (amx-update))
+  amx-cache)
+
+(defun counsel--smex-collection ()
+  "Return `counsel-M-x' candidates from the `smex' package."
+  (declare-function smex-detect-new-commands "ext:smex")
+  (declare-function smex-initialize "ext:smex")
+  (declare-function smex-update "ext:smex")
+  (defvar smex-ido-cache)
+  (defvar smex-initialized-p)
+  (unless smex-initialized-p
+    (smex-initialize))
+  (when (smex-detect-new-commands)
+    (smex-update))
+  smex-ido-cache)
+
+(defun counsel--M-x-predicate ()
   "Return a predicate for `counsel-M-x' in the current buffer."
-  (defvar read-extended-command-predicate)
   (let ((buf (current-buffer)))
-    (lambda (sym)
-      (and (commandp sym)
-           (not (function-get sym 'byte-obsolete-info))
-           (not (function-get sym 'no-counsel-M-x))
-           (cond ((not (bound-and-true-p read-extended-command-predicate)))
-                 ((functionp read-extended-command-predicate)
-                  (condition-case-unless-debug err
-                      (funcall read-extended-command-predicate sym buf)
-                    (error (message "read-extended-command-predicate: %s: %s"
-                                    sym (error-message-string err))))))))))
+    ;; Should work with all completion table types.
+    (lambda (key &optional _val)
+      (when (consp key) (setq key (car key)))
+      (when (stringp key) (setq key (intern key)))
+      (and (commandp key)
+           (not (function-get key 'byte-obsolete-info))
+           (not (function-get key 'no-counsel-M-x))
+           ;; New in Emacs 28.
+           (let ((pred (bound-and-true-p read-extended-command-predicate)))
+             (or (not (functionp pred))
+                 (condition-case-unless-debug err
+                     (funcall pred key buf)
+                   (error (message "read-extended-command-predicate: %s: %s"
+                                   key (error-message-string err))))))))))
 
-(defun counsel--M-x-prompt ()
-  "String for `M-x' plus the string representation of `current-prefix-arg'."
-  (concat (cond ((null current-prefix-arg)
-                 nil)
-                ((eq current-prefix-arg '-)
-                 "- ")
-                ((integerp current-prefix-arg)
-                 (format "%d " current-prefix-arg))
-                ((= (car current-prefix-arg) 4)
-                 "C-u ")
-                (t
-                 (format "%d " (car current-prefix-arg))))
+(defun counsel--M-x-prompt (arg)
+  "Prompt for `counsel-M-x' preceded by a printed form of prefix ARG."
+  (concat (cond ((null arg) ())
+                ((eq (car-safe arg) 4) "C-u ")
+                ((or (eq arg '-)
+                     (integerp (or (car-safe arg) arg)))
+                 (format "%s " (or (car-safe arg) arg))))
           "M-x "))
 
 (defvar counsel-M-x-history nil
@@ -960,38 +997,29 @@ CAND is a string returned by `counsel--M-x-externs'."
   "Execute CMD."
   (setq cmd (intern
              (subst-char-in-string ?\s ?- (string-remove-prefix "^" cmd))))
-  (cond ((bound-and-true-p amx-initialized)
-         (amx-rank cmd))
-        ((bound-and-true-p smex-initialized-p)
-         (smex-rank cmd)))
-  (setq prefix-arg current-prefix-arg)
+  (counsel--M-x-extern-rank cmd)
+  ;; As per `execute-extended-command'.
   (setq this-command cmd)
   (setq real-this-command cmd)
-  (command-execute cmd 'record))
+  (let ((prefix-arg (or ivy-current-prefix-arg current-prefix-arg)))
+    (command-execute cmd 'record)))
 
 ;;;###autoload
 (defun counsel-M-x (&optional initial-input)
   "Ivy version of `execute-extended-command'.
 Optional INITIAL-INPUT is the initial input in the minibuffer.
-This function integrates with either the `amx' or `smex' package
-when available, in that order of precedence."
+This function integrates with either the `amx' or `smex' package when
+available, in that order of precedence; see `counsel-M-x-collection'."
   (interactive)
-  ;; When `counsel-M-x' returns, `last-command' would be set to
-  ;; `counsel-M-x' because :action hasn't been invoked yet.
-  ;; Instead, preserve the old value of `this-command'.
-  (setq this-command last-command)
-  (setq real-this-command real-last-command)
-  (let ((externs (counsel--M-x-externs)))
-    (ivy-read (counsel--M-x-prompt) (or externs obarray)
-              :predicate (if externs
-                             #'counsel--M-x-externs-predicate
-                           (counsel--M-x-make-predicate))
-              :require-match t
-              :history 'counsel-M-x-history
-              :action #'counsel-M-x-action
-              :keymap counsel-describe-map
-              :initial-input initial-input
-              :caller 'counsel-M-x)))
+  (ivy-read (counsel--M-x-prompt current-prefix-arg)
+            (counsel--M-x-collection)
+            :predicate (counsel--M-x-predicate)
+            :require-match t
+            :history 'counsel-M-x-history
+            :action #'counsel-M-x-action
+            :keymap counsel-describe-map
+            :initial-input initial-input
+            :caller 'counsel-M-x))
 
 (ivy-configure 'counsel-M-x
   :initial-input "^"

@@ -3876,12 +3876,15 @@ The alist VAL is a sorting function with the signature of
   (let ((default-directory ivy--directory))
     (sort (copy-sequence candidates) #'file-newer-than-file-p)))
 
-(defvar ivy--flx-available-p)
-(defun ivy--flx-available-p ()
-  "Try to load package `flx' once; return non-nil on success."
-  (if (boundp 'ivy--flx-available-p)
-      ivy--flx-available-p
-    (setq ivy--flx-available-p (require 'flx nil t))))
+(defvar ivy--features ()
+  "Alist mapping features to their `require' result.")
+
+(defun ivy--feature-p (feature)
+  "Try to load FEATURE once; return non-nil on success."
+  (cdr (or (assq feature ivy--features)
+           (let ((entry (cons feature (require feature nil t))))
+             (push entry ivy--features)
+             entry))))
 
 (defun ivy--sort (name candidates)
   "Re-sort candidates by NAME.
@@ -3890,7 +3893,7 @@ All CANDIDATES are assumed to match NAME."
     (cond ((setq fun (ivy-alist-setting ivy-sort-matches-functions-alist))
            (funcall fun name candidates))
           ((and (eq ivy--regex-function #'ivy--regex-fuzzy)
-                (ivy--flx-available-p))
+                (ivy--feature-p 'flx))
            (ivy--flx-sort name candidates))
           (t
            candidates))))
@@ -3990,7 +3993,7 @@ CANDS are the current candidates."
                      ((and (not empty)
                            (not (eq caller 'swiper))
                            (not (and (eq ivy--regex-function #'ivy--regex-fuzzy)
-                                     (ivy--flx-available-p)
+                                     (ivy--feature-p 'flx)
                                      ;; Limit to configured number of candidates
                                      (null (nthcdr ivy-flx-limit cands))))
                            ;; If there was a preselected candidate, don't try to
@@ -4263,7 +4266,7 @@ with the extended highlighting of `ivy-format-function-line'."
 (defun ivy--highlight-fuzzy (str)
   "Highlight STR, using the fuzzy method."
   (if (and (eq (ivy-alist-setting ivy-re-builders-alist) #'ivy--regex-fuzzy)
-           (ivy--flx-available-p))
+           (ivy--feature-p 'flx))
       (let ((flx-name (string-remove-prefix "^" ivy-text)))
         (ivy--flx-propertize
          (cons (flx-score str flx-name ivy--flx-cache) str)))

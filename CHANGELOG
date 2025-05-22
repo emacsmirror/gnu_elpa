@@ -4,6 +4,20 @@
 
 ** Unreleased
 
+*** Added
+# TODO: note about Transient 0.9.0 being "unreleased as of writing" should be
+# removed after it is released.
+
+- Re-add note about reserved keys in ~disproject-custom-suffixes~ documentation,
+  which was accidentally removed.  The reserved keys are still the same as
+  before.
+- Add ~disproject-query-replace-regexp~ suffix command, bound to =r= in main
+  menu ([[https://github.com/aurtzy/disproject/pull/7][#7]]).
+- Add ~disproject-flymake-diagnostics~ suffix command, bound to =w= in main menu
+  ([[https://github.com/aurtzy/disproject/pull/8][#8]]).  This is only present when Flymake is loaded.
+- Support Transient version 0.9.0+ (unreleased as of writing), which introduced
+  a breaking change to add/improve facilities for defining transient groups.
+
 ** [[release-version:2.0.0][2.0.0]] - 2025-03-05
 
 The major focus of this update is support for Transient specifications syntax in

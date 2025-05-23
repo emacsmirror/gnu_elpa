@@ -1438,20 +1438,51 @@ The command used can be customized with
   (disproject-with-environment
     (call-interactively #'project-query-replace-regexp)))
 
+(transient-define-suffix disproject-custom-prune-allowed-suffixes ()
+  "Prune `disproject-custom-allowed-suffixes' entries.
+
+The variable `disproject-custom-allowed-suffixes' may retain old
+allowed custom suffixes from forgotten projects.  This command
+provides a convenient means of removing old entries.
+
+Disproject will usually handle calling this for the user when it
+matters; for example, at the end of `disproject-forget-*'
+commands."
+  (interactive)
+  (let* ((set-message-function 'set-multi-message)
+         (new-suffixes
+          (seq-filter (pcase-lambda (`(,project-root . ,_rest))
+                        (if (seq-contains-p (project-known-project-roots)
+                                            project-root)
+                            t
+                          (message
+                           "disproject: Pruning allowed custom suffixes for unknown project: %s"
+                           project-root)
+                          nil))
+                      disproject-custom-allowed-suffixes)))
+    (when (not (equal new-suffixes disproject-custom-allowed-suffixes))
+      (customize-save-variable 'disproject-custom-allowed-suffixes new-suffixes))))
+
 (transient-define-suffix disproject-forget-project ()
   "Forget a project."
   (interactive)
-  (call-interactively #'project-forget-project))
+  (let ((set-message-function 'set-multi-message))
+    (call-interactively #'project-forget-project)
+    (disproject-custom-prune-allowed-suffixes)))
 
 (transient-define-suffix disproject-forget-projects-under ()
   "Forget projects under a directory."
   (interactive)
-  (call-interactively #'project-forget-projects-under))
+  (let ((set-message-function 'set-multi-message))
+    (call-interactively #'project-forget-projects-under)
+    (disproject-custom-prune-allowed-suffixes)))
 
 (transient-define-suffix disproject-forget-zombie-projects ()
   "Forget zombie projects."
   (interactive)
-  (call-interactively #'project-forget-zombie-projects))
+  (let ((set-message-function 'set-multi-message))
+    (call-interactively #'project-forget-zombie-projects)
+    (disproject-custom-prune-allowed-suffixes)))
 
 (transient-define-suffix disproject-git-clone-fallback (repository
                                                         directory

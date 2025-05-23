@@ -266,8 +266,8 @@
     ;; To distinguish from operator indications in highlighting,
     ;; we mandate type faced strings to have at least one
     ;; lower-case letter.
-    (cons "\\<\\([A-Z][A-Za-z_]*[a-z][A-Za-z_]*\\)\\>" ''font-lock-type-face)
-    (cons "\\<\\([A-Z][A-Z_]*\\)\\>" ''font-lock-keyword-face)))
+    (cons "\\<\\([A-Z][A-Za-z0-9_]*[a-z][A-Za-z0-9_]*\\)\\>" ''font-lock-type-face)
+    (cons "\\<\\([A-Z][A-Z0-9_]*\\)\\>" ''font-lock-keyword-face)))
   "Highlighting expressions for Algol 68 mode in SUPPER stropping.")
 
 ;;;; Syntax-based text properties.
@@ -768,7 +768,7 @@ with the equivalent upcased form."
                                  "while" "do" "(" "|" "|:" "def" "postlude"))
                    (- (point) 8))
      ;; tag denotation or mode indication
-     (and (looking-back "[A-Z][A-Za-z_]+" (pos-bol))
+     (and (looking-back "[A-Z][A-Za-z0-9_]+" (pos-bol))
           ;; Given the context at hand, i.e. a bold word followed
           ;; by "from", "to", "by", "while" or "do", we are at the
           ;; beginning of an enclosed clause if we are part of:
@@ -815,7 +815,7 @@ with the equivalent upcased form."
         ;; mode-indication consists of the symbols "loc" and "heap",
         ;; plus those symbols which may immediately precede a
         ;; mode-indication in an actual-MODE-declarer.
-        (or (looking-back "[A-Z][A-Za-z_]+" (pos-bol))
+        (or (looking-back "[A-Z][A-Za-z0-9_]+" (pos-bol))
             (looking-back (regexp-opt '("loc" "heap"
                                         "ref" ")" "]"
                                         "proc" "flex"))
@@ -831,10 +831,10 @@ with the equivalent upcased form."
       "-oper-")
      ;; A bold-word may be a ssecca insert if it is preceded by a
      ;; joined list of bold words, preceded by access.
-     ((looking-at "[A-Z][A-Za-z_]+")
+     ((looking-at "[A-Z][A-Za-z0-9_]+")
       (let* ((end (match-end 0))
-             (token (if (and (not (looking-at "[A-Z][A-Za-z_]+[ \t\n]*,"))
-                             (looking-back "access[ \t\n]*\\([ \t\n]*[A-Z][A-Za-z_]+[ \t\n]*,\\)*[ \t\n]*"
+             (token (if (and (not (looking-at "[A-Z][A-Za-z0-9_]+[ \t\n]*,"))
+                             (looking-back "access[ \t\n]*\\([ \t\n]*[A-Z][A-Za-z0-9_]+[ \t\n]*,\\)*[ \t\n]*"
                                            nil))
                         "-ssecca-"
                       "-bold-")))
@@ -956,10 +956,10 @@ with the equivalent upcased form."
                     (pos-bol))
       (goto-char (match-beginning 0))
       "-oper-")
-     ((looking-back "[A-Z][A-Za-z_]+" (pos-bol))
+     ((looking-back "[A-Z][A-Za-z0-9_]+" (pos-bol))
       (goto-char (match-beginning 0))
-      (if (and (not (looking-at "[A-Z][A-Za-z_]+[ \t\n]*,"))
-               (looking-back "access[ \t\n]*\\([ \t\n]*[A-Z][A-Za-z_]+[ \t\n]*,\\)*[ \t\n]*"
+      (if (and (not (looking-at "[A-Z][A-Za-z0-9_]+[ \t\n]*,"))
+               (looking-back "access[ \t\n]*\\([ \t\n]*[A-Z][A-Za-z0-9_]+[ \t\n]*,\\)*[ \t\n]*"
                              nil))
           "-ssecca-"
         "-bold-"))

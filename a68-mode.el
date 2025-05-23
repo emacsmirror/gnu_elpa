@@ -104,6 +104,25 @@
                  (const "{"))
   :safe #'consp)
 
+;;;; Our own comment quoting function.
+
+(defun a68--comment-quote-nested (cs ce unp)
+  "Quote comment delimiters in the buffer for a68-mode."
+  (if (or (equal cs "{") (equal cs "NOTE"))
+      ;; Nestable comments do not require any extra handling on top of
+      ;; comment-region-default when unp is nil.  Non-nestable
+      ;; coments, used in the classic stropping regime, are all
+      ;; supposed to be properly handled by
+      ;; comment-quote-nested-default, with the exception of # .. #
+      ;; which is mishandled since it uses symmetrical delimiters of
+      ;; size one character where replacing # by #/ obviously doesn't
+      ;; have the right effect.  To improve.
+      (when unp
+        ;; Remove the end comment.
+        (goto-char (- (point-max) (length ce)))
+        (delete-char (- (length ce) 1)))
+    (comment-quote-nested-default cs ce unp)))
+
 ;;;; Syntax table for the a68-mode.
 
 (defvar a68-mode-syntax-table
@@ -1421,6 +1440,7 @@ UPPER stropping version."
   ;; First determine the stropping regime
   (setq-local a68--stropping-regime
               (a68--figure-out-stropping-regime))
+  (setq-local comment-quote-nested-function #'a68--comment-quote-nested)
   (cond
    ((equal a68--stropping-regime 'supper)
     ;; SUPPER stropping.
@@ -1431,7 +1451,7 @@ UPPER stropping version."
     (setq-local beginning-of-defun-function #'a68-beginning-of-defun-supper)
     (setq-local comment-start "{")
     (setq-local comment-start-skip "{ *")
-    (setq-local comment-end " }"))
+    (setq-local comment-end "}"))
    (t
     ;; UPPER stropping.
     (setq-local comment-start a68-comment-style-upper)

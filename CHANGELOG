@@ -17,6 +17,11 @@
   ([[https://github.com/aurtzy/disproject/pull/8][#8]]).  This is only present when Flymake is loaded.
 - Support Transient version 0.9.0+ (unreleased as of writing), which introduced
   a breaking change to add/improve facilities for defining transient groups.
+- Add ~disproject-custom-prune-allowed-suffixes~ command for pruning entries
+  from ~disproject-custom-allowed-suffixes~.  This may be executed manually, but
+  will also be appropriately called when executing menu commands that modify the
+  list of known projects; e.g. when forgetting projects through
+  ~disproject-manage-projects-dispatch~.
 
 ** [[https://github.com/aurtzy/disproject/tree/v2.0.0][2.0.0]] - 2025-03-05
 

@@ -239,8 +239,8 @@
      ("1" (re-search-backward "2r" nil t) nil (0 ''a68-bits-flip-face)))
    ;; String breaks.  Apostrophe is not (currently) a worthy character
    ;; out of strings, so for now we can just match it anywhere.
-   '(a68--string-break-matcher 0 ''a68-string-break-face t)
-   '(a68--bad-string-break-matcher 2 ''font-lock-warning-face t)
+   '(a68--string-break-matcher 0 'a68-string-break-face t)
+   '(a68--bad-string-break-matcher 2 'font-lock-warning-face t)
    ;; Two or more consecutive underscore characters are always
    ;; illegal in this stropping regime.
    (cons "_[_]+" ''font-lock-warning-face))

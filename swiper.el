@@ -160,6 +160,7 @@ If the input is empty, select the previous history element instead."
     (define-key map (kbd "M-q") #'swiper-query-replace)
     (define-key map (kbd "C-l") #'swiper-recenter-top-bottom)
     (define-key map (kbd "C-'") #'swiper-avy)
+    (define-key map [remap ivy-avy] #'swiper-avy)
     (define-key map (kbd "C-7") #'swiper-mc)
     (define-key map (kbd "C-c C-f") #'swiper-toggle-face-matching)
     map)

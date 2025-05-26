@@ -3152,9 +3152,9 @@ INITIAL-DIRECTORY, if non-nil, is used as the root directory for search."
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-l") #'ivy-call-and-recenter)
     (define-key map (kbd "M-q") #'counsel-git-grep-query-replace)
-    (define-key map (kbd "C-'") #'swiper-avy)
     (define-key map (kbd "C-x C-d") #'counsel-cd)
-    map))
+    map)
+  "Keymap for `counsel-ag'.")
 
 (defcustom counsel-ag-base-command (list "ag" "--vimgrep" "%s")
   "Template for default `counsel-ag' command.
@@ -3495,8 +3495,8 @@ Example input with inclusion and exclusion file patterns:
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-l") #'ivy-call-and-recenter)
     (define-key map (kbd "M-q") #'swiper-query-replace)
-    (define-key map (kbd "C-'") #'swiper-avy)
-    map))
+    map)
+  "Keymap for `counsel-grep'.")
 
 (defcustom counsel-grep-base-command "grep -E -n -e %s %s"
   "Format string used by `counsel-grep' to build a shell command.

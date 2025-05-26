@@ -64,6 +64,8 @@
 ;;; Code:
 (require 'subr-x)
 ;; variable definitions
+(require 'cl-lib)
+(require 'greader)
 (require 'greader-dict)
 (declare-function greader-dehyphenate nil)
 (declare-function greader-get-rate nil)
@@ -73,6 +75,18 @@
   nil
   "Greader audiobook configuration."
   :group 'greader)
+
+(defcustom greader-audiobook-count-blocks-modes-alist nil
+  "Alternative functions to count blocks for specific major modes.
+Each element of this alist is constituted by a major mode as its car,
+and a function to count blocks as its cdr.
+
+The function must return a number that expresses the number of blocks
+for a given buffer.
+For a use-case, please see the code, and in particular the function
+`greader-audiobook-nov-count-blocks."
+  :type
+  '(alist (symbol :tag "major mode") (function :tag "function")))
 
 (defcustom greader-audiobook-compress t
   "When enabled, compress the directory created using zip."
@@ -114,7 +128,51 @@ If you specify a function, that function has to return a cons in which
 car represents the start of the block, and cdr represents the end,
 or nil if there are no more blocks to convert."
   :type '(alist :key-type (symbol :tag "mode") :value-type (choice
-  (string  function))))
+							    (string
+							     function))))
+
+(defvar-local greader-audiobook--use-percentage t)
+
+(defvar greader-audiobook-after-convert-block-hook nil
+  "Functions to call after each block is converted.
+For example when the user needs to call a function to move to next
+chapter before getting the next block.")
+
+(defvar-local greader-audiobook-nov-document-counter 1
+  "Tracking of the current nov document that is being converted.")
+
+(with-eval-after-load 'nov
+  (defun greader-audiobook-nov-next-block ()
+    "Go to next block when in `nov-mode'."
+    (when (equal major-mode 'nov-mode)
+      (setq greader-audiobook--use-percentage nil)
+      (nov-next-document)
+      (setq greader-audiobook-nov-document-counter
+	    (1+ greader-audiobook-nov-document-counter))))
+
+  (defun greader-audiobook-nov-get-block ()
+    "Get the block to read in `nov-mode'.
+
+If there are no more blocks, return nil."
+    (if (<= greader-audiobook-nov-document-counter (length
+						   nov-documents))
+	(cons (point-min) (point-max))
+      (setq greader-audiobook-nov-document-counter 1)
+      nil))
+
+  (defun greader-audiobook-nov-count-blocks ()
+    "Return total number of blocks in `nov-mode'."
+    (when (equal major-mode 'nov-mode)
+      (length nov-documents)))
+
+  (add-hook 'greader-audiobook-after-convert-block-hook
+	    'greader-audiobook-nov-next-block)
+  (add-to-list 'greader-audiobook-modes
+	       (cons 'nov-mode 'greader-audiobook-nov-get-block))
+  (add-to-list 'greader-audiobook-count-blocks-modes-alist (cons
+							    'nov-mode
+							    'greader-audiobook-nov-count-blocks)))
+
 
 (defcustom greader-audiobook-transcode-wave-files nil
   "If enabled,  transcode original wave files using `ffmpeg'."
@@ -167,9 +225,13 @@ Enabling it implies disabling of the variable `greader-audiobook-compress'."
 
 (defun greader-audiobook--percentage ()
   "Return the percentage read of the buffer."
-  (let ((unit (/ (point-max) 100)))
-    (/ (point) unit)))
-(defun greader-audiobook--get-block ()
+  (let ((unit (/ (point-max) 100)) result)
+    (if greader-audiobook--use-percentage
+	(progn
+	  (setq result (/ (point) unit))
+	  (number-to-string result))
+      "n-a")))
+(cl-defun greader-audiobook--get-block ()
   "Get a block of text in current buffer.
 This function uses `greader-audiobook-block-size' to determine the
 position of the end of the block.
@@ -180,14 +242,22 @@ Return a cons with start and end of the block or nil if at end of the buffer."
   (save-excursion
     (let ((start (point))
 	  (end (point-max)))
-      (if (assq major-mode greader-audiobook-modes)
-	  (progn
+      (if-let*
+	  ((result (cdr (assq major-mode greader-audiobook-modes))))
+	  (cond
+	   ((functionp result)
+	    (setq result (funcall result))
+	    (unless result
+	      (cl-return-from greader-audiobook--get-block nil))
+	    (setq start (car result))
+	    (setq end (cdr result)))
+	   (t
 	    (when (looking-at "\\W")
 	      (setq start (re-search-forward "\\W*" nil 1)))
 	    (re-search-forward
 	     (cdr (assq major-mode greader-audiobook-modes))
 	     nil t 1)
-	    (setq end (point)))
+	    (setq end (point))))
 	(pcase greader-audiobook-block-size
 	  ((pred numberp)
 	   (when (> greader-audiobook-block-size 0)
@@ -251,8 +321,16 @@ Return the generated file name, or nil if at end of the buffer."
 	  filename)
       nil)))
 
-(defun greader-audiobook--count-blocks ()
-  "Return the number of total blocks that constitutes a buffer."
+(cl-defun greader-audiobook--count-blocks ()
+  "Return the number of total blocks that constitutes a buffer.
+
+If the current `major-mode' is specified in
+`greader-audiobook-count-blocks-modes-alist', this function will
+return the value returned by the associated function."
+  (when-let* ((result (assoc major-mode
+			     greader-audiobook-count-blocks-modes-alist)))
+    (cl-return-from greader-audiobook--count-blocks
+      (funcall (cdr result))))
   (save-excursion
     (let ((blocks 0)
 	  (block (greader-audiobook--get-block)))
@@ -425,7 +503,8 @@ buffer without the extension, if any."
 	    (unless greader-audiobook-buffer-quietly
 	      (message "removing old audiobook..."))
 	    (delete-directory (concat greader-audiobook-base-directory
-				      (file-name-sans-extension (buffer-name)))
+				      (file-name-sans-extension
+				       (buffer-name)))
 			      t t))
 	(user-error "Audiobook creation aborted by user"))))
   (unless greader-audiobook-buffer-quietly
@@ -466,46 +545,47 @@ buffer without the extension, if any."
 	    (unless greader-audiobook-buffer-quietly
 	      (message "converting block %d of %d \(%s\)"
 		       output-file-counter
-		       total-blocks (concat (number-to-string
-					     (greader-audiobook--percentage))
-					    "\%")))
-	    (setq output-file-name
-		  (greader-audiobook-convert-block output-file-name))
-	    (if output-file-name
-		(progn
-		  (when greader-audiobook-transcode-wave-files
-		    (unless greader-audiobook-buffer-quietly
-		      (message "Transcoding block to %s..."
-			       greader-audiobook-transcode-format))
-		    (greader-audiobook-transcode-file
-		     output-file-name)
-		    (when
-			greader-audiobook-cancel-intermediate-wave-files
-		      (delete-file output-file-name)))
-		  (setq output-file-counter (+ output-file-counter 1)))
-	      (error "An error has occurred while converting")))
-	  (when greader-audiobook-create-m4b
-	    (unless greader-audiobook-buffer-quietly
-	      (message "Building m4b..."))
-	    (greader-audiobook-make-m4b)
+		       total-blocks (concat
+				     (greader-audiobook--percentage)
+		       "\%")))
+	  (setq output-file-name
+		(greader-audiobook-convert-block output-file-name))
+	  (if output-file-name
+	      (progn
+		(when greader-audiobook-transcode-wave-files
+		  (unless greader-audiobook-buffer-quietly
+		    (message "Transcoding block to %s..."
+			     greader-audiobook-transcode-format))
+		  (greader-audiobook-transcode-file
+		   output-file-name)
+		  (when
+		      greader-audiobook-cancel-intermediate-wave-files
+		    (delete-file output-file-name)))
+		(setq output-file-counter (+ output-file-counter 1)))
+	    (error "An error has occurred while converting"))
+	  (run-hooks 'greader-audiobook-after-convert-block-hook))
+	(when greader-audiobook-create-m4b
+	  (unless greader-audiobook-buffer-quietly
+	    (message "Building m4b..."))
+	  (greader-audiobook-make-m4b)
+	  (setq book-directory (concat (string-remove-suffix "/"
+							     book-directory)
+				       ".m4b")))
+	(when
+	    (and greader-audiobook-compress
+		 (not greader-audiobook-create-m4b))
+	  (setq default-directory greader-audiobook-base-directory)
+	  (unless greader-audiobook-buffer-quietly
+	    (message "compressing %s..." book-directory))
+	  (greader-audiobook-compress book-directory)
+	  (when greader-audiobook-compress-remove-original
+	    (delete-directory book-directory t t)
 	    (setq book-directory (concat (string-remove-suffix "/"
 							       book-directory)
-					 ".m4b")))
-	  (when
-	      (and greader-audiobook-compress
-		   (not greader-audiobook-create-m4b))
-	    (setq default-directory greader-audiobook-base-directory)
-	    (unless greader-audiobook-buffer-quietly
-	      (message "compressing %s..." book-directory))
-	    (greader-audiobook-compress book-directory)
-	    (when greader-audiobook-compress-remove-original
-	      (delete-directory book-directory t t)
-	      (setq book-directory (concat (string-remove-suffix "/"
-								 book-directory)
-					   ".zip"))))
-	  (message "conversion terminated and saved in %s"
-		   (concat greader-audiobook-base-directory
-			   book-directory)))))))
+					 ".zip"))))
+	(message "conversion terminated and saved in %s"
+		 (concat greader-audiobook-base-directory
+			 book-directory)))))))
 
 (defvar greader-audiobook-transcode-history nil)
 
@@ -516,14 +596,16 @@ original files will be deleted."
 
   (interactive
    (let ((book-directory (read-directory-name "Audiobook to
-re-transcode (directory): " greader-audiobook-base-directory nil t))
+re-transcode (directory): "
+					      greader-audiobook-base-directory
+					      nil t))
 	 (new-format (read-string "New format: " nil
-				 'greader-audiobook-transcode-history)))
+				  'greader-audiobook-transcode-history)))
      (list book-directory new-format)))
   (let* ((default-directory audiobook-directory)
 	 (greader-audiobook-transcode-format new-format)
 	 (file-list (directory-files default-directory nil
-				    "^[[:digit:]]")))
+				     "^[[:digit:]]")))
     (dolist (file file-list)
       (unless greader-audiobook-buffer-quietly
 	(message "Re-transcoding file %s..." file))

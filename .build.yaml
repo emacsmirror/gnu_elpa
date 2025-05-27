@@ -8,7 +8,7 @@ environment:
 tasks:
   - setup: |
       # This is for not having to cd into your <repo> for each task
-      echo 'cd <repo>' >> ~/.buildenv
+      echo 'cd cobol-mode' >> ~/.buildenv
   - check: |
       if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then \
         complete-build; \

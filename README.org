@@ -43,6 +43,8 @@ replacing one item:
 #+end_src
 
 These can be deleted with ~embed-db-delete-item~ and retrieved by ID with ~embed-db-get-item~.
+
+IDs used in =embed-db= *must* be =uint64= values.  If you have another ID you need to use to tie it together with other storage, that should go into the =payload=.
 * Querying data
 Querying the database can be done with ~embed-db-search-by-vector~, passing it a vector and optionally a number of results to return (10 is the default).
 #+begin_src emacs-lisp

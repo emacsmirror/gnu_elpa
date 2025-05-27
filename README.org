@@ -39,7 +39,7 @@ replacing one item:
                  (list (make-embed-db-item
                         :id "example-id"
                         :vector [0.1 0.2 0.3 0.4]
-                        :payload (:my-id "235913926"))))
+                        :payload '(:my-id "235913926"))))
 #+end_src
 
 These can be deleted with ~embed-db-delete-item~ and retrieved by ID with ~embed-db-get-item~.

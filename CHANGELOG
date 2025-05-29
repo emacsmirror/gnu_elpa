@@ -4,6 +4,11 @@
 
 ** Unreleased
 
+** [[https://github.com/aurtzy/disproject/tree/v2.1.0][2.1.0]] - 2025-05-29
+
+In addition to a few new commands, this version notably adds support for
+Transient version 0.9.0+.
+
 *** Added
 # TODO: note about Transient 0.9.0 being "unreleased as of writing" should be
 # removed after it is released.

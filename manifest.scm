@@ -1,1 +1,1 @@
-(specifications->manifest (list "findutils" "git" "grep"))
+(specifications->manifest (list "emacs-package-lint" "findutils" "git" "grep"))

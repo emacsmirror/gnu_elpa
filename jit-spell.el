@@ -189,7 +189,7 @@ character offset from START, and a list of corrections."
       (while (/= pos limit)
         (setq pos (funcall searchfn pos 'category nil limit))
         (unless (invisible-p pos)
-          (when-let ((ov (jit-spell--overlay-at pos)))
+          (when-let* ((ov (jit-spell--overlay-at pos)))
             (unless (cl-plusp (cl-decf i))
               (throw 'jit-spell ov))))))))
 
@@ -223,7 +223,7 @@ to END coming first."
 
 (defun jit-spell--unhide-overlay-maybe ()
   "Unhide `jit-spell--hidden-overlay' if it doesn't overlap with word at point."
-  (when-let ((ov (car jit-spell--hidden-overlay)))
+  (when-let* ((ov (car jit-spell--hidden-overlay)))
     (unless (and (eq (overlay-buffer ov) (current-buffer))
                  (save-excursion
                    (re-search-forward (rx (or blank eol)))
@@ -281,7 +281,7 @@ The process plist includes the following properties:
       (unless ispell-async-processp
         (error "`jit-spell-mode' requires `ispell-async-processp'"))
       (ispell-set-spellchecker-params)
-      (when-let ((dict (and ispell-really-hunspell (cadr params))))
+      (when-let* ((dict (and ispell-really-hunspell (cadr params))))
         (ispell-hunspell-add-multi-dic dict))
       (ispell-internal-change-dictionary)
       (setq proc (ispell-start-process))
@@ -370,8 +370,8 @@ The process plist includes the following properties:
           (setq end (or (text-property-not-all start limit 'jit-spell-pending t)
                         limit))
           (push (list buffer tick start end) (process-get proc 'jit-spell--requests)))
-        (when-let ((request (and (not (process-get proc 'jit-spell--current-request))
-                                 (pop (process-get proc 'jit-spell--requests)))))
+        (when-let* ((request (and (not (process-get proc 'jit-spell--current-request))
+                                  (pop (process-get proc 'jit-spell--requests)))))
           (jit-spell--send-request proc request))))))
 
 (defun jit-spell--filter-region (start end)
@@ -524,7 +524,7 @@ With a numeric ARG, move backwards that many misspellings."
         (pcase (catch 'jit-spell--next
                  (minibuffer-with-setup-hook
                      (lambda ()
-                       (when-let ((map (and key (make-sparse-keymap))))
+                       (when-let* ((map (and key (make-sparse-keymap))))
                          (set-keymap-parent map (current-local-map))
                          (define-key map key 'jit-spell-correct-word)
                          (use-local-map map)))
@@ -615,10 +615,10 @@ It can also be bound to a mouse click to pop up the menu."
   (interactive "i\ne")
   (save-excursion
     (mouse-set-point click)
-    (when-let ((ov (jit-spell--overlay-at (point)))
-               (word (buffer-substring-no-properties
-                  (overlay-start ov) (overlay-end ov)))
-               (map (or menu (make-sparse-keymap))))
+    (when-let* ((ov (jit-spell--overlay-at (point)))
+                (word (buffer-substring-no-properties
+                       (overlay-start ov) (overlay-end ov)))
+                (map (or menu (make-sparse-keymap))))
       (dolist (corr (overlay-get ov 'jit-spell-corrections))
         (easy-menu-add-item map '("Correct Word")
                             (vector corr (lambda () (interactive)
@@ -668,8 +668,8 @@ It can also be bound to a mouse click to pop up the menu."
       (add-function :filter-return (local 'jit-spell--filter-region)
                     (jit-spell--refine-by-face jit-spell-tex-ignored-faces))))
     ;; Generic ignore predicate
-    (when-let ((pred (or (bound-and-true-p flyspell-generic-check-word-predicate)
-                         (get major-mode 'flyspell-mode-predicate))))
+    (when-let* ((pred (or (bound-and-true-p flyspell-generic-check-word-predicate)
+                          (get major-mode 'flyspell-mode-predicate))))
       (add-function :after-until (local 'jit-spell--ignored-p)
                     (lambda (_start end) (ignore-errors
                                            (save-excursion

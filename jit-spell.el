@@ -641,15 +641,22 @@ It can also be bound to a mouse click to pop up the menu."
 	(while (re-search-forward "\\s-*\\(\\S-+\\)" limit t)
           (jit-spell--accept-word (match-string-no-properties 1) 'session))))))
 
+(defvar-keymap jit-spell--dict-modeline-map
+  "<mode-line> <mouse-1>" #'jit-spell-change-dictionary)
+
+(defun jit-spell--dict-modeline ()
+  (when-let* ((dict (or ispell-local-dictionary ispell-dictionary)))
+    `((:propertize "/")
+      (:propertize ,dict
+                   keymap ,jit-spell--dict-modeline-map
+                   help-echo "Change dictionary"
+		   mouse-face mode-line-highlight))))
+
 ;;;###autoload
 (define-minor-mode jit-spell-mode
   "Just-in-time spell checking."
   :keymap (make-sparse-keymap)
-  :lighter (" Spell"
-            (:propertize
-             (:eval
-              (let ((s (or ispell-local-dictionary ispell-dictionary)))
-                (and s (concat "/" s))))))
+  :lighter (" Spell" (:eval (jit-spell--dict-modeline)))
   (cond
    (jit-spell-mode
     ;; Major mode support

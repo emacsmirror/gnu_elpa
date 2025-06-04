@@ -1,10 +1,12 @@
 ;;; greenbar.el --- Mark comint output with "greenbar" background -*- lexical-binding: t -*-
 
-;; Copyright (C) 2013-2021  Free Software Foundation, Inc.
+;; Copyright (C) 2013-2025  Free Software Foundation, Inc.
 
 ;; Author: Michael R. Mauger <michael@mauger.com>
-;; Version: 1.1
+;; Version: 1.2
+;; SPDX-License-Identifier: GPL-3.0-or-later
 ;; Package-Type: simple
+;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: faces, terminals
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -46,11 +48,10 @@
 ;; the desired derived mode hook.  Adding `greenbar-mode' to
 ;; `comint-mode-hook' enables it for all comint derived modes.
 
-;; The variable `greenbar-color-theme' is a list of predefined bar
-;; background colors.  Each element of the list is a list: the first
-;; member of which is a symbol that is the name of the theme; the rest
-;; of the list are color names which are used as background colors for
-;; successive bands of lines.
+;; The variable `greenbar-color-theme' is an Alist of predefined bar
+;; background colors.  Each element of the Alist consists of a symbol
+;; that is the name of the theme; the rest of the list are color names
+;; which are used as background colors for successive bands of lines.
 
 ;; The variable `greenbar-color-list' controls which set of color bars
 ;; are to be applied.  The value is either a name from color theme
@@ -115,7 +116,16 @@ theme followed by the list bar colors.")
 
 (defcustom greenbar-highlight-input nil
   "Should prompts and command input be highlighted."
-  :type 'booleanp)
+  :type 'boolean)
+
+(defcustom greenbar-lighter
+  (let* ((greenbar (assq 'greenbar greenbar-color-themes))
+         (bg (nth 1 greenbar))
+         (fg (nth 2 greenbar)))
+    (propertize "\N{Heavy Horizontal Fill}"
+                'font-lock-face `(:foreground ,fg :background ,bg)))
+  "The minor mode lighter that appears in the mode line."
+  :type 'string)
 
 (defun greenbar-color-list ()
   "Get the list of greenbar background colors."
@@ -198,8 +208,8 @@ set of background colors found in
 
 ;;;###autoload
 (define-minor-mode greenbar-mode
-  "Enable \"green bar striping\" of comint output"
-  :lighter nil
+  "Enable \"green bar striping\" of comint output."
+  :lighter greenbar-lighter
   (if greenbar-mode
       (add-hook 'comint-output-filter-functions
                 #'greenbar-output-filter t t)

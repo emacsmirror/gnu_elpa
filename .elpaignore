@@ -1,0 +1,4 @@
+.elpaignore
+.git
+.gitignore
+snapshots/

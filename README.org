@@ -265,6 +265,8 @@ Denote Silo is meant to be a collective effort.  Every bit of help matters.
 
 + Author/maintainer :: Protesilaos Stavrou.
 
++ Ideas and/or user feedback :: Daniel Kahlenberg.
+
 * GNU Free Documentation License
 :PROPERTIES:
 :APPENDIX: t

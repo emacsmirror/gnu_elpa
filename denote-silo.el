@@ -71,7 +71,7 @@ as the variable `denote-directory'."
     (completing-read
      (format-prompt "Select a silo" default)
      (denote--completion-table 'file denote-silo-directories)
-     nil :require-match nil 'denote-silo-directory-history)))
+     nil :require-match nil 'denote-silo-directory-history default)))
 
 (defun denote-silo-path-is-silo-p (path)
   "Return non-nil if PATH is among `denote-silo-directories'."

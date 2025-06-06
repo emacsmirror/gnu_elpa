@@ -19,7 +19,7 @@ configuration, for example via =jj config edit --user= or =jj config edit
 
 #+begin_src toml
 [ui]
-diff.format = "git"
+ui.diff-formatter = ":git"
 conflict-marker-style = "git"
 #+end_src
 

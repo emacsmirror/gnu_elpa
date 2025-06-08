@@ -1,4 +1,4 @@
-;;; embed-db.el --- An interface to embedding databases -*- lexical-binding: t; -*-
+;;; embed-qdrant.el --- An interface to the qdrant databases -*- lexical-binding: t; -*-
 
 ;; Copyright (c) 2025  Free Software Foundation, Inc.
 
@@ -76,7 +76,8 @@ properties of the collection."
 (cl-defmethod embed-db-delete ((provider embed-qdrant-provider)
                                (collection embed-db-collection))
   "Delete a collection from the qdrant database."
-  (embed-qdrant-call provider 'delete (concat "/collections/" (embed-db-collection-name collection))))
+  (embed-qdrant-call provider 'delete (concat "/collections/" (embed-db-collection-name collection))
+                     nil t))
 
 (cl-defmethod embed-db-exists ((provider embed-qdrant-provider)
                                (collection embed-db-collection))

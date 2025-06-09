@@ -183,6 +183,7 @@
 ;; greader-dict-mode.
 (defvar-keymap greader-dict-mode-map
   :doc "keymap for `greader-dict-mode'."
+  "C-r d i" #'greader-dict-info
   "C-r d a" #'greader-dict-add-entry
   "C-r d k" #'greader-dict-remove-entry
   "C-r d c" #'greader-dict-change-dictionary
@@ -316,7 +317,7 @@ as a word definition."
 		(when greader-dict-mode
 		  (setq greader-dict-local-language
 			(greader-get-language))
-		  (greader-dict-read-from-dict-file)))))))
+		  (greader-dict--update)))))))
 
 ;; THanks to the loved and alwais useful elisp reference.
 (defun greader-dict--string-hash-ignore-case (a)
@@ -853,7 +854,17 @@ asked."
 		 " in file " greader-dict-filename " it has "
 		 (number-to-string (hash-table-count
 				    greader-dictionary))
-		 " entries.")))
+		 " entries" (if greader-dict-toggle-filters (progn
+							      (concat
+							       ", and "
+							       (number-to-string
+								(hash-table-count
+								 greader-filters))
+							       "
+filters."))
+			      ".")
+		 " Active language is \""
+		 greader-dict-local-language "\".")))
     (message "%s" message)))
 
 (defun greader-dict--get-matches (type &optional decorate)

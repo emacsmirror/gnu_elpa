@@ -4974,6 +4974,11 @@ When nil, disable highlighting."
           (number :tag "Delay in seconds")
           (const :tag "Disable" nil)))
 
+;; TODO: Could use `pulse-momentary-highlight-region' but Emacs 24.5
+;; runs into `https://bugs.gnu.org/47437' since `ivy-yanked-word'
+;; lacks an explicit :background by default.  So either Emacs 24
+;; support or `ivy-yanked-word' would need to be dropped.
+;; Also, the `pulse' library does not merge adjacent pulses.
 (defun ivy--pulse-region (start end)
   "Temporarily highlight text between START and END.
 The \"pulse\" duration is determined by `ivy-pulse-delay'."

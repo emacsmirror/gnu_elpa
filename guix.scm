@@ -6,7 +6,8 @@
              (guix git-download)
              (guix gexp)
              ((guix licenses) #:prefix license:)
-             (guix packages))
+             (guix packages)
+             (guix transformations))
 
 (define repository-root-directory (dirname (current-filename)))
 
@@ -19,7 +20,10 @@
                  #:recursive? #t
                  #:select? (git-predicate repository-root-directory)))
     (build-system emacs-build-system)
-    (propagated-inputs (list emacs-transient))
+    (propagated-inputs
+     (let ((transform (options->transformation
+                       '((with-commit . "emacs-transient=v0.9.2")))))
+       (map transform (list emacs-transient))))
     (home-page "https://github.com/aurtzy/disproject")
     (synopsis "Transient interface for managing and interacting with projects")
     (description

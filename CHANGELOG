@@ -4,6 +4,28 @@
 
 ** Unreleased
 
+*** Added
+
+- Add ~disproject-display-buffer-action-suffix~ class and
+  ~disproject-display-buffer-action-set~ suffix command.  These facilities
+  provide a convenient means of generating suffix commands for setting
+  ~display-buffer~ action overrides.
+- Add ~disproject-display-buffer-action-dispatch~ prefix command, bound to =,=
+  in the main menu.  This provides a menu with some out-of-the-box suffix
+  commands (using ~disproject-display-buffer-action-set~) for managing the
+  ~display-buffer~ override.  Replaces transient switch =--prefer-other-window=,
+  although the =,o= binding is preserved for preferring other window.
+
+*** Changed
+
+- Force-enable ~switch-to-buffer-obey-display-actions~ when a ~display-buffer~
+  override is set.
+
+*** Deprecated
+
+- Deprecate ~disproject-scope-prefer-other-window?~ method.  Removal is set for
+  at least 6 months from this release.
+
 ** [[https://github.com/aurtzy/disproject/tree/v2.1.0][2.1.0]] - 2025-05-29
 
 In addition to a few new commands, this version notably adds support for

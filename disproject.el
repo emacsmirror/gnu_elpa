@@ -1139,8 +1139,10 @@ project's root directory.
                    (disproject-scope-selected-project-ensure
                     disproject--environment-scope)))
          (from-directory (project-root project))
+         (old-display-buffer-overriding-action display-buffer-overriding-action)
          (display-buffer-action (disproject-scope-display-buffer-action
                                  disproject--environment-scope))
+         (minibuffer-depth (minibuffer-depth))
          ;; Only enable envrc if the initial environment has it enabled.
          (enable-envrc (and (bound-and-true-p envrc-mode)
                             (symbol-function 'envrc-mode)))
@@ -1156,7 +1158,22 @@ project's root directory.
             ;; If an override is used and `switch-to-buffer' is called, we
             ;; assume the user explicitly wants it to obey the display action.
             (switch-to-buffer-obey-display-actions (and display-buffer-action t))
-            (display-buffer-overriding-action display-buffer-action))
+            ;; Don't use `display-buffer-override-next-command' to avoid having
+            ;; to infer type in PRE-FUNCTION.  Also makes it possible to use
+            ;; `display-buffer-no-window', which would not have valid values to
+            ;; return.
+            (display-buffer-overriding-action
+             `(,(lambda (buffer alist)
+                  (unless (> (minibuffer-depth) minibuffer-depth)
+                    (pcase display-buffer-action
+                      (`(,functions . ,action-alist)
+                       (prog1
+                           (seq-some (lambda (fun)
+                                       (funcall fun buffer
+                                                (append action-alist alist)))
+                                     (ensure-list functions))
+                         (setq display-buffer-overriding-action
+                               old-display-buffer-overriding-action)))))))))
         (disproject-with-root
           (hack-dir-local-variables-non-file-buffer)
           ;; Make sure commands are run in the correct direnv environment if

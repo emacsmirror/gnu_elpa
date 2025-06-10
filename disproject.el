@@ -600,18 +600,26 @@ defining commands that can modify the override state."
   :class disproject-prefix
   ["Display buffer to"
    ("b" "below selected window" disproject-display-buffer-action-set
-    :display-buffer-action (display-buffer-below-selected))
+    :display-buffer-action (display-buffer-below-selected
+                            (inhibit-multiple-displays . t)))
    ("B" "bottom of frame" disproject-display-buffer-action-set
     :display-buffer-action (display-buffer-at-bottom))
    ("f" "full frame" disproject-display-buffer-action-set
     :display-buffer-action (display-buffer-full-frame))
    ("F" "new frame" disproject-display-buffer-action-set
-    :display-buffer-action (display-buffer-pop-up-frame))
+    :display-buffer-action (display-buffer-pop-up-frame
+                            (inhibit-multiple-displays . t)))
    ("l" "least-recent window" disproject-display-buffer-action-set
     :display-buffer-action (display-buffer-use-least-recent-window))
    ("n" "no window" disproject-display-buffer-action-set
     :display-buffer-action (display-buffer-no-window
-                            (allow-no-window . t)))
+                            (allow-no-window . t)
+                            ;; If a command has some prompt like a
+                            ;; `completing-read', assume the buffer display will
+                            ;; be important, but also ephemeral, so let the user
+                            ;; see whatever the command wants to show in that
+                            ;; case.
+                            (inhibit-multiple-displays . t)))
    ("o" "other window" disproject-display-buffer-action-set
     :display-buffer-action (display-buffer-use-some-window
                             (inhibit-same-window . t)))
@@ -1132,7 +1140,13 @@ The environment consists of the following overrides:
 project's root directory.
 
 `display-buffer-overriding-action': Set to the selected
-`display-buffer' action override, if any."
+`display-buffer' action override, if any.  If the overriding
+action alist has a non-nil entry for
+\\='inhibit-multiple-displays, the action will set up such that
+it only applies to the first `display-buffer' for a command while
+no minibuffer is active.  This may be useful for actions that do
+not play well with commands that can display more than one
+buffer."
   (let* ((original-command this-command)
          (disproject--environment-scope (disproject--scope))
          (project (disproject-project-instance
@@ -1164,16 +1178,20 @@ project's root directory.
             ;; return.
             (display-buffer-overriding-action
              `(,(lambda (buffer alist)
-                  (unless (> (minibuffer-depth) minibuffer-depth)
-                    (pcase display-buffer-action
-                      (`(,functions . ,action-alist)
+                  (pcase display-buffer-action
+                    (`(,functions . ,(and (map ('inhibit-multiple-displays
+                                                inhibit-multiple-displays))
+                                          action-alist))
+                     (unless (and inhibit-multiple-displays
+                                  (> (minibuffer-depth) minibuffer-depth))
                        (prog1
                            (seq-some (lambda (fun)
                                        (funcall fun buffer
                                                 (append action-alist alist)))
                                      (ensure-list functions))
-                         (setq display-buffer-overriding-action
-                               old-display-buffer-overriding-action)))))))))
+                         (when inhibit-multiple-displays
+                           (setq display-buffer-overriding-action
+                                 old-display-buffer-overriding-action))))))))))
         (disproject-with-root
           (hack-dir-local-variables-non-file-buffer)
           ;; Make sure commands are run in the correct direnv environment if
@@ -1395,6 +1413,10 @@ Value to be used for `display-buffer-overriding-action'.
 
 If non-nil, the action alist must contain a \\='description entry
 describing the action.
+
+Action alists may specify an \\='inhibit-multiple-displays entry,
+which will affect action behavior in certain cases as described
+in `disproject-with-env'.
 
 Implementations of suffix commands must handle storing this value
 somewhere so it can be accessed later and applied; for example,
@@ -1850,6 +1872,10 @@ enables generating suffix commands that can set the
 Users may specify a description for the action by adding a
 \\='description entry to the action alist.  If this is omitted,
 the suffix description will be used instead.
+
+An \\='inhibit-multiple-displays entry may also be specified,
+which will affect the behavior of `display-buffer' in certain
+cases.  See `disproject-with-env' for more information.
 
 For example, a specification for a suffix command that sets the
 override to \"prefer other window\" might look something like so:

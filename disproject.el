@@ -420,8 +420,6 @@ new `disproject-scope' scope value if it hasn't already been
 initialized."
   (if (memq transient-current-command disproject-prefix--transient-commands)
       (let ((scope (disproject--scope)))
-        (setf (disproject-scope-prefer-other-window? scope)
-              (disproject--state-prefer-other-window?))
         (oset obj scope scope))
     ;; This method is also called for situations like returning from a
     ;; sub-prefix, in which case we want to keep the existing scope.
@@ -517,7 +515,9 @@ menu."
     :transient t)
    ("C-p" "Manage projects" disproject-manage-projects-dispatch)]
   ["Options"
-   (",o" "Prefer other window" "--prefer-other-window")]
+   (disproject-display-buffer-action-dispatch)
+   ;; Reserve ";" key for other global options to be added in the future.
+   ]
   ["Main commands"
    [("b" "Switch buffer" disproject-switch-to-buffer)
     ("B" "Buffer list" disproject-list-buffers)
@@ -547,16 +547,7 @@ menu."
     ("T" "todos" disproject-magit-todos-list
      :if disproject-prefix--magit-todos-apt?)]]
   [("SPC" "Custom dispatch" disproject-custom-dispatch
-    :transient transient--do-replace)]
-  (interactive)
-  (transient-setup
-   'disproject-dispatch nil nil
-   ;; XXX: Preserve options in scope if we're coming from another Disproject
-   ;; Transient.  `:refresh-suffixes' being true causes the `:init-value'
-   ;; function to be called every refresh which messes up --prefer-other-window,
-   ;; so that can't be used.
-   :value `(,@(if (disproject--state-prefer-other-window?)
-                  '("--prefer-other-window")))))
+    :transient transient--do-replace)])
 
 (transient-define-prefix disproject-custom-dispatch ()
   "Dispatch custom suffix commands.
@@ -600,6 +591,51 @@ character.  These characters represent the following states:
   ["Remember"
    ("r o" "open projects" disproject-remember-projects-open)
    ("r u" "projects under..." disproject-remember-projects-under)])
+
+(transient-define-prefix disproject-display-buffer-action-dispatch ()
+  "Dispatch commands for setting transient `display-buffer' action overrides.
+
+See `disproject-display-buffer-action-set' for documentation on
+defining commands that can modify the override state."
+  :class disproject-prefix
+  ["Display buffer to"
+   ("b" "below selected window" disproject-display-buffer-action-set
+    :display-buffer-action (display-buffer-below-selected))
+   ("B" "bottom of frame" disproject-display-buffer-action-set
+    :display-buffer-action (display-buffer-at-bottom))
+   ("f" "full frame" disproject-display-buffer-action-set
+    :display-buffer-action (display-buffer-full-frame))
+   ("F" "new frame" disproject-display-buffer-action-set
+    :display-buffer-action (display-buffer-pop-up-frame))
+   ("l" "least-recent window" disproject-display-buffer-action-set
+    :display-buffer-action (display-buffer-use-least-recent-window))
+   ("n" "no window" disproject-display-buffer-action-set
+    :display-buffer-action (display-buffer-no-window
+                            (allow-no-window . t)))
+   ("o" "other window" disproject-display-buffer-action-set
+    :display-buffer-action (display-buffer-use-some-window
+                            (inhibit-same-window . t)))
+   ("s" "same window" disproject-display-buffer-action-set
+    :display-buffer-action (display-buffer-same-window))]
+  [("," "Clear override" disproject-display-buffer-action-set)])
+
+(transient-augment-suffix disproject-display-buffer-action-dispatch
+  :key ","
+  :description
+  (lambda ()
+    (concat "Override buffer display action ("
+            (let* ((scope (disproject--scope))
+                   (action (disproject-scope-display-buffer-action scope)))
+              (pcase-exhaustive action
+                ('nil
+                 (propertize "none" 'face 'transient-inactive-value))
+                (`(,_functions . ,(map ('description (and (pred (not null))
+                                                          description))))
+                 (propertize description 'face 'transient-active-infix))
+                (_
+                 (propertize "BUG: display-buffer-action has no description"
+                             'face 'error))))
+            ")")))
 
 
 ;;;
@@ -744,10 +780,18 @@ If no value is provided during initialization, the function
                     :documentation "\
 Project object belonging to `default-directory' at the time of
 initialization (or the current buffer, in other words), if any.")
-   (prefer-other-window? :initarg :prefer-other-window?
-                         :accessor disproject-scope-prefer-other-window?
-                         :initform nil
-                         :documentation "Non-nil to prefer other window."))
+   (display-buffer-action :initarg :display-buffer-action
+                          :accessor disproject-scope-display-buffer-action
+                          :initform nil
+                          :type list
+                          :documentation "\
+Value to use for `display-buffer-overriding-action' when
+executing suffix commands.
+
+If non-nil, the action alist must contain an entry under the
+\\='description key that stores a string value describing the
+action.  This will be used as a menu indicator to show the active
+overriding action."))
   "Class representing a Disproject menu's transient scope.
 
 Objects of this type are intended to be used in a transient
@@ -807,14 +851,18 @@ The user may be prompted for a project."
     (file-equal-p (disproject-project-root default-project)
                   (disproject-project-root selected-project))))
 
-;;;; Getters for infix arguments.
+(cl-defmethod disproject-scope-prefer-other-window? ((obj disproject-scope))
+  "Return whether OBJ scope has a `display-buffer' override to prefer other window."
+  (pcase (disproject-scope-display-buffer-action obj)
+    (`(,(or 'display-buffer-use-some-window
+            '(display-buffer-use-some-window . ,_))
+       . ,_alist)
+     t)))
 
-(defun disproject--state-prefer-other-window? ()
-  "Return whether other window should be preferred when displaying buffers."
-  (if (eq transient-current-command 'disproject-dispatch)
-      (let ((args (transient-args transient-current-command)))
-        (and args (transient-arg-value "--prefer-other-window" args)))
-    (disproject-scope-prefer-other-window? (disproject--scope))))
+;; DEPRECATED: Remove after at least 6 months of being in a stable release.
+(make-obsolete 'disproject-scope-prefer-other-window?
+               'disproject-scope-display-buffer-action
+               "2.2.0")
 
 
 ;;;
@@ -1083,15 +1131,16 @@ The environment consists of the following overrides:
 `project-current-directory-override': Set to the selected
 project's root directory.
 
-`display-buffer-overriding-action': Set to display in another
-window if \"--prefer-other-window\" is enabled."
+`display-buffer-overriding-action': Set to the selected
+`display-buffer' action override, if any."
   (let* ((original-command this-command)
          (disproject--environment-scope (disproject--scope))
          (project (disproject-project-instance
                    (disproject-scope-selected-project-ensure
                     disproject--environment-scope)))
          (from-directory (project-root project))
-         (prefer-other-window? (disproject--state-prefer-other-window?))
+         (display-buffer-action (disproject-scope-display-buffer-action
+                                 disproject--environment-scope))
          ;; Only enable envrc if the initial environment has it enabled.
          (enable-envrc (and (bound-and-true-p envrc-mode)
                             (symbol-function 'envrc-mode)))
@@ -1107,9 +1156,7 @@ window if \"--prefer-other-window\" is enabled."
             ;; If an override is used and `switch-to-buffer' is called, we
             ;; assume the user explicitly wants it to obey the display action.
             (switch-to-buffer-obey-display-actions (and display-buffer-action t))
-            (display-buffer-overriding-action
-             (and prefer-other-window? '(display-buffer-use-some-window
-                                         (inhibit-same-window t)))))
+            (display-buffer-overriding-action display-buffer-action))
         (disproject-with-root
           (hack-dir-local-variables-non-file-buffer)
           ;; Make sure commands are run in the correct direnv environment if
@@ -1320,6 +1367,22 @@ order to conditionally enable the mode.")
    (default-buffer-id :allocation :class
                       :initform "compile"))
   "Class for suffixes that utilize the `compile' command for shell commands.")
+
+;;;;; `disproject-display-buffer-action-suffix' class.
+
+(defclass disproject-display-buffer-action-suffix (transient-suffix)
+  ((display-buffer-action :initarg :display-buffer-action
+                          :initform nil
+                          :documentation "\
+Value to be used for `display-buffer-overriding-action'.
+
+If non-nil, the action alist must contain a \\='description entry
+describing the action.
+
+Implementations of suffix commands must handle storing this value
+somewhere so it can be accessed later and applied; for example,
+through a shared object in the transient scope."))
+  "Class for suffixes that manage `display-buffer' action settings.")
 
 ;;;; Suffix setup functions.
 
@@ -1756,6 +1819,51 @@ be called interactively."
                  ((fboundp command)))
            command
          (alist-get nil disproject-vc-status-commands))))))
+
+(transient-define-suffix disproject-display-buffer-action-set ()
+  "Set the transient scope's `display-buffer-overriding-action' value.
+
+This does not do anything as a standalone command.  It is
+intended to be used in Transient prefixes, where this command may
+be specified with a value for the \\='display-buffer-action
+slot (of `disproject-display-buffer-action-suffix').  This
+enables generating suffix commands that can set the
+`display-buffer' overriding action to custom values.
+
+Users may specify a description for the action by adding a
+\\='description entry to the action alist.  If this is omitted,
+the suffix description will be used instead.
+
+For example, a specification for a suffix command that sets the
+override to \"prefer other window\" might look something like so:
+  (\"o\" \"other window\" disproject-display-buffer-action-set
+   :display-buffer-action (display-buffer-use-some-window
+                           (inhibit-same-window . t)
+                           ;; Omitting this will cause the suffix description
+                           ;; to be used; in this case, \"other window\".
+                           (description . \"use other window\")))
+
+Note that this only works in transient prefixes of class
+`disproject-prefix'.
+
+See type `disproject-display-buffer-action-suffix' for
+documentation on transient suffix slots."
+  :class disproject-display-buffer-action-suffix
+  :transient #'transient--do-return
+  (interactive)
+  (if-let* ((scope (disproject--scope))
+            (suffix (transient-suffix-object)))
+      (setf (disproject-scope-display-buffer-action scope)
+            (let ((action (oref suffix display-buffer-action)))
+              (pcase-exhaustive action
+                ('nil
+                 nil)
+                (`(,_functions . ,(map ('description (pred (not null)))))
+                 action)
+                (`(,functions . ,alist)
+                 `(,functions . ((description
+                                  . ,(transient-format-description suffix))
+                                 ,@alist))))))))
 
 ;;;;; Documentation groups for suffixes.
 

@@ -1104,6 +1104,9 @@ window if \"--prefer-other-window\" is enabled."
       ;; `transient-suffix-object' can find the current suffix object.
       (let ((this-command original-command)
             (project-current-directory-override from-directory)
+            ;; If an override is used and `switch-to-buffer' is called, we
+            ;; assume the user explicitly wants it to obey the display action.
+            (switch-to-buffer-obey-display-actions (and display-buffer-action t))
             (display-buffer-overriding-action
              (and prefer-other-window? '(display-buffer-use-some-window
                                          (inhibit-same-window t)))))

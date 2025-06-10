@@ -28,12 +28,11 @@
 
 ** [[https://github.com/aurtzy/disproject/tree/v2.1.0][2.1.0]] - 2025-05-29
 
-In addition to a few new commands, this version notably adds support for
-Transient version 0.9.0+.
+In addition to a few new commands, +this version notably adds support for
+Transient version 0.9.0++ (the breaking change was found to be [[https://github.com/magit/transient/discussions/389][an unintentional
+bug]]).
 
 *** Added
-# TODO: note about Transient 0.9.0 being "unreleased as of writing" should be
-# removed after it is released.
 
 - Re-add note about reserved keys in ~disproject-custom-suffixes~ documentation,
   which was accidentally removed.  The reserved keys are still the same as
@@ -42,8 +41,8 @@ Transient version 0.9.0+.
   menu ([[https://github.com/aurtzy/disproject/pull/7][#7]]).
 - Add ~disproject-flymake-diagnostics~ suffix command, bound to =w= in main menu
   ([[https://github.com/aurtzy/disproject/pull/8][#8]]).  This is only present when Flymake is loaded.
-- Support Transient version 0.9.0+ (unreleased as of writing), which introduced
-  a breaking change to add/improve facilities for defining transient groups.
+- +Support Transient version 0.9.0 (released 2025-06-01), which introduced
+  a breaking change to add/improve facilities for defining transient groups.+
 - Add ~disproject-custom-prune-allowed-suffixes~ command for cleaning up
   remembered custom suffixes from old projects in
   ~disproject-custom-allowed-suffixes~.  This may be executed manually, but will

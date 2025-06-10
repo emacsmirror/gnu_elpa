@@ -27,7 +27,7 @@
 ;; This is a substitution where the word to be replaced
 ;; constitutes a word as a whole.
 ;; For example, the word "dog" will be replaced only if it is
-;; surrounded by characters that do not constitute a word. (what is a
+;; surrounded by characters that do not constitute a word.  (what is a
 ;; word may change depending on the major-mode
 ;; currently in use).
 ;; `match'
@@ -94,7 +94,7 @@
 ;; You cannot use matches to define rules for character substitution.
 ;; Filters instead allow you to use whatever you want in terms of
 ;; regexps, and to substitute them with all the constructs that the
-;; regexp matcher of emacs allow.
+;; regexp matcher of Emacs allow.
 ;; filters however can become fastly inefficent, because the algoritm
 ;; used is crude when applying filters: take every filter and cycle
 ;; over the buffer until you have applied all the filters.
@@ -104,7 +104,7 @@
 ;; if those are similar.
 ;; Use matches when you individuate a pattern that can work with a
 ;; common set of characters, using `shy groups'.
-;; See the emacs manual for more information about regexp syntax and
+;; See the Emacs manual for more information about regexp syntax and
 ;; related.
 ;; Use `greader-dict-filter-add' to add a new filter to the database,
 ;; `greader-dict-filter-remove' to remove an existing filter from the
@@ -141,7 +141,7 @@
 ;; 
 ;;; Code:
 (defgroup greader-dict nil
-  "String substitution module for greader"
+  "String substitution module for greader."
   :group 'greader)
 
 ;; variable definitions
@@ -249,7 +249,7 @@ buffer."
 ;; "advanced" use case of greader-dict.
 ;;;###autoload
 (define-minor-mode greader-dict-toggle-filters
-  "enable or disable filters.
+  "Enable or disable filters.
 Filters allow you to replace every regexp you wish with something
 else you wish.
 While matches and words are conceived as facilities that are
@@ -290,7 +290,7 @@ using a menu instead of navigating the buffer."
 ;;;###autoload
 (define-minor-mode greader-dict-mode
   "Dictionary module for greader.
-With this mode it is possible to instruct greader to pronounce in an 
+With this mode it is possible to instruct greader to pronounce in an
 alternative way the words that the tts mispronounces in a given language.
 There are two types of definitions understood by greader-dict-mode:
 \"word definitions\" are those that must be surrounded by
@@ -378,7 +378,7 @@ as a word definition."
 A value of 0 indicates saving immediately."
   :type 'number)
 (defun greader-dict-add (word replacement)
-  "Add the WORD REPLACEMent pair to `greader-dictionary'.
+  "Add the WORD REPLACEMENT pair to `greader-dictionary'.
 If you want to add a partial replacement, you should
 add `\*'to the end of the WORD string parameter."
   ;; We prevent an infinite loop if disallowing that key and values
@@ -386,7 +386,7 @@ add `\*'to the end of the WORD string parameter."
   (unless replacement
     (setq replacement ""))
   (when (string-equal-ignore-case word replacement)
-    (user-error "key and value are the same, aborting"))
+    (user-error "Key and value are the same, aborting"))
   (puthash word replacement greader-dictionary)
   (setq greader-dict--saved-flag nil)
   (cond
@@ -485,14 +485,13 @@ by adding every match found in the text as a word."
 ;; `greader-after-get-sentence-functions'.
 ;;;###autoload
 (defun greader-dict-check-and-replace (text)
-  "Return the TEXT passed to it, eventually modified according to
-`greader-dictionary' and variants."
+  "Return TEXT modified by applying dictionary to TEXT."
   (with-greader-dict-temp-buffer
     (insert text)
     (goto-char (point-min))
     (when
 	(buffer-local-value 'greader-dict-toggle-filters
-			    greader-dict--current-reading-buffer) 
+			    greader-dict--current-reading-buffer)
       (setq greader-filters (buffer-local-value 'greader-filters
 						greader-dict--current-reading-buffer))
       (greader-dict-filters-apply))
@@ -525,7 +524,7 @@ by adding every match found in the text as a word."
       (buffer-string))))
 
 (defun greader-dict-write-file ()
-  "Save greader-dictionary stored in `greader-dict-filename'."
+  "Save `greader-dictionary' stored in `greader-dict-filename'."
   (unless (file-exists-p greader-dict-directory)
     (make-directory greader-dict-directory t))
   (with-greader-dict-temp-buffer
@@ -538,7 +537,7 @@ by adding every match found in the text as a word."
   (setq greader-dict--saved-flag t))
 
 (defun greader-dict-read-from-dict-file (&optional force)
-  "populate `greader-dictionary' with the contents of
+  "Populate `greader-dictionary' with the contents of
 `greader-dict-filename'.
 If FORCE is non-nil, reading happens even if there are definitions not
 yet saved.
@@ -590,7 +589,7 @@ to the dictionary."
 ;; a word to be replaced.
 (defun greader-dict-add-entry (arg)
   "Add an entry to the dictionary.
-If point is on a word, this function proposes to add that word as
+If called interactively and point is on a word, this function proposes to add that word as
 default.
 In this case, you can also use history commands to modify key already
 present in the dictionary.
@@ -677,7 +676,7 @@ If KEY is not present, signal an user-error."
 		       (lambda (s1 s2)
 			 (string-greaterp s2 s1))))))
   (unless (greader-dict-remove key)
-    (user-error "Key not found.")))
+    (user-error "Key not found")))
 
 (defun greader-dict-clear ()
   "Clean the definition table.
@@ -783,7 +782,7 @@ Means it exists a file called \"greader-dict.global\" in
     alternatives))
 
 (defun greader-dict-change-dictionary (new-dict)
-  "change the current dictionary.
+  "Change the current dictionary.
 You can choose between the alternatives by using the arrow keys when
 asked."
   (interactive
@@ -795,7 +794,7 @@ asked."
 		 nil nil
 		 (greader-dict--type-alternatives))))
   (unless greader-dict-mode
-    (user-error "Please enable `greader-dict-mode' first."))
+    (user-error "Please enable `greader-dict-mode' first"))
   (let ((old-dict (greader-dict--file-type))
 	(response nil))
     (unless (equal new-dict old-dict)
@@ -944,7 +943,7 @@ classified as words."
 (declare-function greader-read-asynchronous nil)
 ;;;###autoload
 (defun greader-dict-pronounce-in-other-language (word new-lang)
-  "pronounce WORD in the language specified by NEW-LANG.
+  "Pronounce WORD in the language specified by NEW-LANG.
 The currently configured backend will be used for the voice.
 NEW-LANG should be an ISO code, compatible with the back-end you are
 using.

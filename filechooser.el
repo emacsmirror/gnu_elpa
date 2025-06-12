@@ -5,7 +5,7 @@
 ;; Author: rahguzar <rahguzar@mailbox.org>
 ;; Maintainer: rahguzar <rahguzar@mailbox.org>
 ;; Created: May 20, 2023
-;; Version: 0.2.2
+;; Version: 0.2.3
 ;; Keywords: convenience files tools unix
 ;; Homepage: https://codeberg.org/rahguzar/filechooser
 ;; Package-Requires: ((emacs "28.1") (compat "29.1"))
@@ -195,15 +195,17 @@ With prefix ARG toggle multiple filters using `completing-read-multiple'."
 
 (defun filechooser--filters-predicate (name)
   "Return non-nil if NAME matches an active filter."
-  (catch 'match
-    (dolist (filter filechooser--active-filters)
-      (when (cond
-             ((stringp filter)
-              (string-match filter name))
-             ((functionp filter)
-              (funcall filter name))
-             ((error "Unknown filter %S" filter)))
-        (throw 'match t)))))
+  (if filechooser--active-filters
+      (catch 'match
+        (dolist (filter filechooser--active-filters)
+          (when (cond
+                 ((stringp filter)
+                  (string-match filter name))
+                 ((functionp filter)
+                  (funcall filter name))
+                 ((error "Unknown filter %S" filter)))
+            (throw 'match t))))
+    t))
 
 ;;; Utility definitions
 (defmacro filechooser--maybe-with-new-frame (minibuffer &rest body)

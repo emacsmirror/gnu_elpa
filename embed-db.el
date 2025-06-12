@@ -74,9 +74,9 @@ An ID may be an integer or a string, and is used to uniquely identify the item."
   (signal 'not-implemented
           (list "embed-db-upsert not implemented for" (embed-db-provider-name provider))))
 
-(cl-defgeneric embed-db-get-item (provider collection ids &optional sync)
-  "Get items with IDs from the COLLECTION with PROVIDER."
-  (ignore collection ids sync)
+(cl-defgeneric embed-db-get-item (provider collection id)
+  "Get items with ID from the COLLECTION with PROVIDER."
+  (ignore collection id)
   (signal 'not-implemented
           (list "embed-db-get not implemented for" (embed-db-provider-name provider))))
 

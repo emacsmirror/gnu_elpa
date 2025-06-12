@@ -1,0 +1,76 @@
+#+title: Minimail
+
+Minimail is a simple, non-blocking IMAP email client for Emacs.
+
+Currently Minimail provides the bare minimum necessary to read and
+reply to messages.  Here is a listing of implemented and planned
+features.
+
+- [X] Multi-account support
+- [X] Read messages, including MIME (rendering via Gnus)
+- [X] Compose, reply to and forward messages
+- [X] Full-text search
+- [ ] Structured search
+- [ ] Sort by thread
+- [ ] Mark and operate on messages (delete, archive, mark as junk,
+  etc.)
+- [ ] Notifications (polling or IDLE)
+- [ ] OAuth
+
+Being non-blocking doesn't mean Minimail has excellent performance
+(spoiler: it doesn't, yet); it simply means that it has one of the
+necessary condition for such.  In fact, Minimail currently doesn't
+include any other kind of optimization:
+
+- [ ] Message caching
+- [ ] Connection pool (for concurrent requests)
+- [ ] Prefetching of messages in the background
+
+** Configuration
+
+Just set =mail-user-agent= to =minimail= and customize the variable
+=minimail-accounts=.  Here is an illustrative example:
+
+#+begin_src emacs-lisp
+(setq mail-user-agent 'minimail
+      minimail-accounts
+      '((gmail ;; This can be any symbol you like to identify the account
+         :mail-address "somebody@gmail.com"
+         :incoming-url "imaps://imap.gmail.com"
+         :outgoing-url "smtps://smtp.gmail.com")
+        (work ;; Assuming Evil Corp uses "Google Workspace" as email provider
+         :mail-address "webmaster@evilcorp.com"
+         :incoming-url "imaps://imap.gmail.com"
+         :outgoing-url "smtps://smtp.gmail.com"
+         :signature-file "~/.signature")
+        (uni
+         :mail-address "somebody@math.niceuni.edu"
+         ;; Include a username in the server URLs if it doesn't match
+         ;; your email address.
+         ;; Use the `imap' and `smtp' as URL scheme if your server
+         ;; only supports STARTTLS.
+         :incoming-url "imap://username@imap.niceuni.edu"
+         :outgoing-url "smtp://username@smtp.niceuni.edu")))
+#+end_src
+
+In addition to the above, you need to configure [[https://www.gnu.org/software/emacs/manual/html_mono/auth.html][auth-source]] to supply
+the passwords.  Some email provides require you to first create an
+"app password" (for Gmail, see [[https://support.google.com/accounts/answer/185833][this]]).  Then your =~/.authinfo= file
+should look something like this:
+
+#+begin_src
+machine imap.gmail.com login somebody@gmail.com password xxxxxxxxxxxxxxxx
+machine smtp.gmail.com login somebody@gmail.com password xxxxxxxxxxxxxxxx
+
+machine imap.gmail.com login webmaster@evilcorp.com password yyyyyyyyyyyyyyyy
+machine smtp.gmail.com login webmaster@evilcopr.com password yyyyyyyyyyyyyyyy
+
+machine imap.niceuni.edu login username password zzzzzzzzzzzzzzzz
+machine smtp.niceuni.edu login username password zzzzzzzzzzzzzzzz
+#+end_src
+
+** Usage
+
+Type =M-x minimail-find-mailbox RET= and select a mailbox from the
+list to read your messages.  In a mailbox or message buffer, hit =h=
+to see a list of available commands.

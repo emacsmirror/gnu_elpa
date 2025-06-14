@@ -7,20 +7,21 @@ This package doesn't provide end-user functionality on its own; it is designed t
 
 The package does not provide embeddings, that can be done with the [[https://github.com/ahyatt/llm][llm]] package, or any source of embeddings.
 * Configuring the collection
-There are two concepts that together define a collection database of embeddings: the /provider/, and the /collection/.  The provider is what kind of backend we are using, such as =sqlite-vec=, or =qdrant=.  This is a struct defined by the exact provider you want to use.
+There are two concepts that together define a collection database of embeddings: the /provider/, and the /collection/.  The provider is what kind of backend we are using, right now either =chroma=, or =qdrant=.  This is a struct defined by the exact provider you want to use.
 
 The collection is, for that provider, what exact database is getting used, with each collection having its own separate data.  Collections must be created before being used.  The collection is defined by the struct ~embed-db-collection~ which has a ~name~ (used to identify the collection), ~vector-size~, and ~payload-fields~.  The ~vector-size~ will be based on the size of the embedding vector from your provider.  1536 is what Open AI uses.  ~payload-fields~ is an alist of fields and their types that defines other data fields that are inserted and retrieved when search happens, and can be queried on as well (eventually, in a future iteration of the package).
 
 An example, putting it all together, is:
 
 #+begin_src emacs-lisp
-(defvar my-embed-provider (make-embed-qdrant-provider :api-key my-qdrant-api-key :url my-drant-url))
+(defvar my-embed-provider (make-embed-qdrant-provider :api-key my-qdrant-api-key :url my-qdrant-url))
 (defvar my-embed-collection (make-embed-db-collection :name "my test collection" :vector-size 1536 :payload-fields (('my-id . 'string))))
 #+end_src
 
 The provider will be supplied by the end-user, specifying how they want things stored, and any data necessary for that storage and retrieval to function.  The collection is typically partially supplied by the application, with the possible exception of embedding size, which may be dependent on the exact embedding provider they are using.
 
 Collections must be created before they can be used with ~embed-db-create~, and ~embed-db-exists~ can return whether the collection exists.
+
 #+begin_src emacs-lisp
 (unless (embed-db-exists my-embed-provider my-embed-collection)
   (embed-db-create my-embed-provider my-embed-collection))
@@ -47,9 +48,40 @@ These can be deleted with ~embed-db-delete-item~ and retrieved by ID with ~embed
 IDs used in =embed-db= *must* be =uint64= values.  If you have another ID you need to use to tie it together with other storage, that should go into the =payload=.
 * Querying data
 Querying the database can be done with ~embed-db-search-by-vector~, passing it a vector and optionally a number of results to return (10 is the default).
+
 #+begin_src emacs-lisp
 (embed-db-search-by-vector my-embed-provider my-embed-collection [0.3 0.1 0.5 -0.9] 20)
 #+end_src
 
 This will return the specifies number of =embed-db-item= structs, with the payloads they were stored with.
+* Providers
+** qdrant
+[[https://qdrant.tech/][qdrant]] is an open source vector database that concentrates mostly on running in the cloud, but can be run locally with a docker container.  They provide a free tier for your database in the cloud that may be garbage collected after a period of inactivity.
 
+A qdrant provider is defined like:
+
+#+begin_src emacs-lisp
+(defvar my-embed-provider (make-embed-qdrant-provider :api-key my-qdrant-api-key :url my-qdrant-url))
+#+end_src
+
+Substitute =my-qdrant-api-key=  with your key, and =my-qdrant-url= is the URL of the server that is used to serve your data.  This will be unique to your collection in the cloud, or a local URL for docker.
+** chroma
+[[https://www.trychroma.com/][chroma]] is an open source Python-centric vector database.  It can run as a server locally, or offers paid services to host in the cloud.  Currently this library only supports local running.
+
+If running locally, before use, you must run =chroma run= to start the server.
+
+The chroma provider has two additional divisions of data above the collection, and these are specified in the provider itself: the /tenant/ and the /database/.  These will both default to ="default"=, but can be specifed.  Because the chroma provider is local, my default, no configuration is needed:
+
+#+begin_src emacs-lisp
+(defvar my-chroma-provider (make-chroma-provider))
+#+end_src
+
+However, the full set of options, here demonstrating the equivalent settings to the defaults are:
+
+#+begin_src emacs-lisp
+(defvar my-chroma-provider (make-chroma-provider
+                            :binary "chroma"
+                            :url "http://localhost:8000"
+                            :tenant "default"
+                            :database "default"))
+#+end_src

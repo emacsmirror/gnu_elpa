@@ -1,7 +1,7 @@
-#+TITLE: vecdb: Embedding Search Library for Emacs
+#+TITLE: vecdb: Vector Search Library for Emacs
 
 * Introduction
-The =vecdb= package provides an interface to embedding database.  These databases enable "semantic search", which is a powerful way to search over meaning.  This kind of search needs specialized storage and retrieval.
+The =vecdb= package provides an interface to a vector database, where vectors are embeddings representing pieces of text.  These databases enable "semantic search", which is a powerful way to search over meaning.  This kind of search needs specialized storage and retrieval.
 
 This package doesn't provide end-user functionality on its own; it is designed to be used in other packages that need semantic search.
 

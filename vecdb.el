@@ -1,9 +1,9 @@
-;;; embed-db.el --- An interface to embedding databases -*- lexical-binding: t; -*-
+;;; vecdb.el --- An interface to vector databases for embeddings -*- lexical-binding: t; -*-
 
 ;; Copyright (c) 2025  Free Software Foundation, Inc.
 
 ;; Author: Andrew Hyatt <ahyatt@gmail.com>
-;; Homepage: https://github.com/ahyatt/embed-db
+;; Homepage: https://github.com/ahyatt/vecdb
 ;; Package-Requires: ((emacs "28.1") (plz "0.8"))
 ;; Package-Version: 0.1
 ;; SPDX-License-Identifier: GPL-3.0-or-later
@@ -29,11 +29,11 @@
 
 (require 'cl-lib)
 
-(cl-defstruct embed-db-provider
+(cl-defstruct vecdb-provider
   "A structure representing an embedding database provider."
   name)
 
-(cl-defstruct embed-db-collection
+(cl-defstruct vecdb-collection
   "A structure representing a collection in an embedding database.
 
 The NAME field is the name of the collection.
@@ -45,52 +45,54 @@ PAYLOAD-FIELDS is an alist of fields and types (`integer', `string', etc.)
 conses, which are sometimes necessary for an initial setup."
   name vector-size payload-fields)
 
-(cl-defstruct embed-db-item
+(cl-defstruct vecdb-item
   "A structure representing data to be stored in an embedding database.
 An ID may be an integer or a string, and is used to uniquely identify the item."
   id vector payload)
 
-(cl-defgeneric embed-db-create (provider collection)
+(cl-defgeneric vecdb-create (provider collection)
   "Create a new collection of embeddings."
   (ignore collection)
   (signal 'not-implemented
-          (list "embed-db-create not implemented for" (embed-db-provider-name provider))))
+          (list "vecdb-create not implemented for" (vecdb-provider-name provider))))
 
-(cl-defgeneric embed-db-delete (provider collection)
+(cl-defgeneric vecdb-delete (provider collection)
   "Delete a collection of embeddings. This should remove all data."
   (ignore collection)
   (signal 'not-implemented
-          (list "embed-db-delete not implemented for" (embed-db-provider-name provider))))
+          (list "vecdb-delete not implemented for" (vecdb-provider-name provider))))
 
-(cl-defgeneric embed-db-exists (provider collection)
+(cl-defgeneric vecdb-exists (provider collection)
   "Check if a collection exists, return non-nil if it does."
   (ignore collection)
   (signal 'not-implemented
-          (list "embed-db-exists not implemented for" (embed-db-provider-name provider))))
+          (list "vecdb-exists not implemented for" (vecdb-provider-name provider))))
 
-(cl-defgeneric embed-db-upsert-items (provider collection data-list &optional sync)
-  "Upsert a list of `embed-db-item' objects into the COLLECTION with PROVIDER."
+(cl-defgeneric vecdb-upsert-items (provider collection data-list &optional sync)
+  "Upsert a list of `vecdb-item' objects into the COLLECTION with PROVIDER."
   (ignore collection data-list sync)
   (signal 'not-implemented
-          (list "embed-db-upsert not implemented for" (embed-db-provider-name provider))))
+          (list "vecdb-upsert not implemented for" (vecdb-provider-name provider))))
 
-(cl-defgeneric embed-db-get-item (provider collection id)
+(cl-defgeneric vecdb-get-item (provider collection id)
   "Get items with ID from the COLLECTION with PROVIDER."
   (ignore collection id)
   (signal 'not-implemented
-          (list "embed-db-get not implemented for" (embed-db-provider-name provider))))
+          (list "vecdb-get not implemented for" (vecdb-provider-name provider))))
 
-(cl-defgeneric embed-db-delete-items (provider collection ids &optional sync)
+(cl-defgeneric vecdb-delete-items (provider collection ids &optional sync)
   "Delete items with IDs from the COLLECTION with PROVIDER."
   (ignore collection ids sync)
   (signal 'not-implemented
-          (list "embed-db-delete not implemented for" (embed-db-provider-name provider))))
+          (list "vecdb-delete not implemented for" (vecdb-provider-name provider))))
 
-(cl-defgeneric embed-db-search-by-vector (provider collection vector &optional limit)
+(cl-defgeneric vecdb-search-by-vector (provider collection vector &optional limit)
   "Search for items in the COLLECTION with PROVIDER that are similar to VECTOR."
   (ignore collection vector limit)
   (signal 'not-implemented
-          (list "embed-db-search not implemented for" (embed-db-provider-name provider))))
+          (list "vecdb-search not implemented for" (vecdb-provider-name provider))))
 
 
-(provide 'embed-db)
+(provide 'vecdb)
+
+;; vecdb.el ends here

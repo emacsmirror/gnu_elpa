@@ -1,9 +1,9 @@
-;;; embed-chroma.el --- An interface to the chroma databases -*- lexical-binding: t; -*-
+;;; vecdb-chroma.el --- An interface to the chroma databases -*- lexical-binding: t; -*-
 
 ;; Copyright (c) 2025  Free Software Foundation, Inc.
 
 ;; Author: Andrew Hyatt <ahyatt@gmail.com>
-;; Homepage: https://github.com/ahyatt/embed-db
+;; Homepage: https://github.com/ahyatt/vecdb
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
 ;; This program is free software; you can redistribute it and/or
@@ -20,30 +20,30 @@
 ;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;; This package provides an interface to the chroma databases for embed-db.
+;; This package provides an interface to the chroma databases for vecdb.
 
 
 ;;; Code:
 
-(require 'embed-db)
+(require 'vecdb)
 (require 'plz)
 
-(defconst embed-chroma-collection-id-cache
+(defconst vecdb-chroma-collection-id-cache
   (make-hash-table :test 'equal)
   "Cache for chroma collection IDs.")
 
-(cl-defstruct (embed-chroma-provider (:include embed-db-provider
+(cl-defstruct (vecdb-chroma-provider (:include vecdb-provider
                                                (name "chroma")))
   (binary "chroma")
   (url "http://localhost:8000")
   (tenant "default")
   (database "default"))
 
-(defun embed-chroma-call (provider method url-suffix &optional body sync)
+(defun vecdb-chroma-call (provider method url-suffix &optional body sync)
   "Make an HTTP request to the Chroma API.
 If BODY is provided, it will be sent as the request body.
 SYNC indicates whether the request should be synchronous."
-  (let ((url (embed-chroma-provider-url provider)))
+  (let ((url (vecdb-chroma-provider-url provider)))
     (unless url
       (error "Chroma URL is not set"))
     (if sync
@@ -57,27 +57,27 @@ SYNC indicates whether the request should be synchronous."
         :body (if body (json-encode body) "")
         :then #'ignore))))
 
-(defun embed-chroma-has-tenant-p (provider)
+(defun vecdb-chroma-has-tenant-p (provider)
   "Check if the chroma PROVIDER has a tenant."
   (condition-case err
-      (embed-chroma-call
+      (vecdb-chroma-call
        provider
        'get
-       (format "/api/v2/tenants/%s" (embed-chroma-provider-tenant provider))
+       (format "/api/v2/tenants/%s" (vecdb-chroma-provider-tenant provider))
        nil
        t)
     (plz-error (if (eq 404 (plz-response-status (plz-error-response (nth 2 err))))
                    nil
                  (error "Error checking tenant: %s" (plz-error-message err))))))
 
-(defun embed-chroma-has-database-p (provider database)
+(defun vecdb-chroma-has-database-p (provider database)
   "Check if the chroma PROVIDER has a DATABASE."
   (condition-case err
-      (embed-chroma-call
+      (vecdb-chroma-call
        provider
        'get
        (format "/api/v2/tenants/%s/databases/%s"
-               (embed-chroma-provider-tenant provider)
+               (vecdb-chroma-provider-tenant provider)
                database)
        nil
        t)
@@ -85,146 +85,147 @@ SYNC indicates whether the request should be synchronous."
                    nil
                  (error "Error checking database: %s" (plz-error-message err))))))
 
-(cl-defmethod embed-db-create ((provider embed-chroma-provider)
-                               (collection embed-db-collection))
+(cl-defmethod vecdb-create ((provider vecdb-chroma-provider)
+                            (collection vecdb-collection))
   "Create a new chroma collection."
-  (unless (embed-chroma-has-tenant-p provider)
-    (embed-chroma-call
+  (unless (vecdb-chroma-has-tenant-p provider)
+    (vecdb-chroma-call
      provider
      'post
      "/api/v2/tenants"
-     `(("name" . ,(embed-chroma-provider-tenant provider))) t))
-  (unless (embed-chroma-has-database-p provider (embed-chroma-provider-database provider))
-    (embed-chroma-call
+     `(("name" . ,(vecdb-chroma-provider-tenant provider))) t))
+  (unless (vecdb-chroma-has-database-p provider (vecdb-chroma-provider-database provider))
+    (vecdb-chroma-call
      provider
      'post
      (format "/api/v2/tenants/%s/databases"
-             (embed-chroma-provider-tenant provider))
-     `(:name ,(embed-chroma-provider-database provider)) t))
-  (embed-chroma-call
+             (vecdb-chroma-provider-tenant provider))
+     `(:name ,(vecdb-chroma-provider-database provider)) t))
+  (vecdb-chroma-call
    provider
    'post
    (format "/api/v2/tenants/%s/databases/%s/collections"
-           (embed-chroma-provider-tenant provider)
-           (embed-chroma-provider-database provider))
-   `(:name ,(embed-db-collection-name collection))
+           (vecdb-chroma-provider-tenant provider)
+           (vecdb-chroma-provider-database provider))
+   `(:name ,(vecdb-collection-name collection))
    t))
 
-(cl-defmethod embed-db-delete ((provider embed-chroma-provider)
-                               (collection embed-db-collection))
+(cl-defmethod vecdb-delete ((provider vecdb-chroma-provider)
+                            (collection vecdb-collection))
   "Delete a chroma collection."
-  (embed-chroma-call
+  (vecdb-chroma-call
    provider
    'delete
    (format "/api/v2/tenants/%s/databases/%s/collections/%s"
-           (embed-chroma-provider-tenant provider)
-           (embed-chroma-provider-database provider)
-           (embed-db-collection-name collection))
+           (vecdb-chroma-provider-tenant provider)
+           (vecdb-chroma-provider-database provider)
+           (vecdb-collection-name collection))
    nil
    t))
 
-(defun embed-chroma-collection-id (provider collection)
+(defun vecdb-chroma-collection-id (provider collection)
   "Get the ID of a chroma COLLECTION in PROVIDER."
-  (or (gethash (embed-db-collection-name collection)
-               embed-chroma-collection-id-cache)
+  (or (gethash (vecdb-collection-name collection)
+               vecdb-chroma-collection-id-cache)
       (let* ((url (format "/api/v2/tenants/%s/databases/%s/collections/%s"
-                          (embed-chroma-provider-tenant provider)
-                          (embed-chroma-provider-database provider)
-                          (embed-db-collection-name collection)))
-             (result (embed-chroma-call provider 'get url nil t)))
+                          (vecdb-chroma-provider-tenant provider)
+                          (vecdb-chroma-provider-database provider)
+                          (vecdb-collection-name collection)))
+             (result (vecdb-chroma-call provider 'get url nil t)))
         (let ((id (plist-get result :id)))
-          (puthash (embed-db-collection-name collection) id
-                   embed-chroma-collection-id-cache)
+          (puthash (vecdb-collection-name collection) id
+                   vecdb-chroma-collection-id-cache)
           id))))
 
-(cl-defmethod embed-db-exists ((provider embed-chroma-provider)
-                               (collection embed-db-collection))
+(cl-defmethod vecdb-exists ((provider vecdb-chroma-provider)
+                            (collection vecdb-collection))
   "Check if a chroma collection exists."
-  (and (embed-chroma-has-tenant-p provider)
-       (embed-chroma-has-database-p provider
-                                    (embed-chroma-provider-database provider))
+  (and (vecdb-chroma-has-tenant-p provider)
+       (vecdb-chroma-has-database-p provider
+                                    (vecdb-chroma-provider-database provider))
        (condition-case nil
-           (embed-chroma-call
+           (vecdb-chroma-call
             provider
             'get
             (format "/api/v2/tenants/%s/databases/%s/collections/%s"
-                    (embed-chroma-provider-tenant provider)
-                    (embed-chroma-provider-database provider)
-                    (embed-chroma-collection-id provider collection))
+                    (vecdb-chroma-provider-tenant provider)
+                    (vecdb-chroma-provider-database provider)
+                    (vecdb-chroma-collection-id provider collection))
             nil
             t)
          (plz-error nil))))
 
-(cl-defmethod embed-db-upsert-items ((provider embed-chroma-provider)
-                                     (collection embed-db-collection)
-                                     items &optional sync)
+(cl-defmethod vecdb-upsert-items ((provider vecdb-chroma-provider)
+                                  (collection vecdb-collection)
+                                  items &optional sync)
   "Upsert items into a chroma collection."
   (let ((url (format "/api/v2/tenants/%s/databases/%s/collections/%s/upsert"
-                     (embed-chroma-provider-tenant provider)
-                     (embed-chroma-provider-database provider)
-                     (embed-chroma-collection-id provider collection))))
-    (embed-chroma-call
+                     (vecdb-chroma-provider-tenant provider)
+                     (vecdb-chroma-provider-database provider)
+                     (vecdb-chroma-collection-id provider collection))))
+    (vecdb-chroma-call
      provider
      'post
      url
-     `(:embeddings ,(apply #'vector (mapcar #'embed-db-item-vector items))
-                   :ids ,(apply #'vector (mapcar #'embed-db-item-id items))
-                   :metadatas ,(apply #'vector (mapcar #'embed-db-item-payload items)))
+     `(:embeddings ,(apply #'vector (mapcar #'vecdb-item-vector items))
+                   :ids ,(apply #'vector (mapcar #'vecdb-item-id items))
+                   :metadatas ,(apply #'vector (mapcar #'vecdb-item-payload items)))
      sync)))
 
-(cl-defmethod embed-db-get-item ((provider embed-chroma-provider)
-                                 (collection embed-db-collection)
-                                 item-id)
+(cl-defmethod vecdb-get-item ((provider vecdb-chroma-provider)
+                              (collection vecdb-collection)
+                              item-id)
   "Get a single item from a chroma collection by ITEM-ID."
   (let* ((url (format "/api/v2/tenants/%s/databases/%s/collections/%s/get"
-                      (embed-chroma-provider-tenant provider)
-                      (embed-chroma-provider-database provider)
-                      (embed-chroma-collection-id provider collection)))
-         (result (embed-chroma-call provider 'get url
+                      (vecdb-chroma-provider-tenant provider)
+                      (vecdb-chroma-provider-database provider)
+                      (vecdb-chroma-collection-id provider collection)))
+         (result (vecdb-chroma-call provider 'get url
                                     `(:ids ,(vector item-id)
                                            :limit 1)
                                     t)))
     (unless (= (length (plist-get result :items)) 1)
       (error "Expected exactly one item, got %d"
              (length (plist-get result :items)))
-      (make-embed-db-item
+      (make-vecdb-item
        :id (aref (plist-get result :ids) 0)
        :vector (aref (plist-get result :embeddings) 0)
        :payload (aref (plist-get result :metadatas) 0)))))
 
-(cl-defmethod embed-db-delete-items ((provider embed-chroma-provider)
-                                     (collection embed-db-collection)
-                                     item-ids &optional sync)
+(cl-defmethod vecdb-delete-items ((provider vecdb-chroma-provider)
+                                  (collection vecdb-collection)
+                                  item-ids &optional sync)
   "Delete items from a chroma collection by ITEM-IDS."
   (let ((url (format "/api/v2/tenants/%s/databases/%s/collections/%s/delete"
-                     (embed-chroma-provider-tenant provider)
-                     (embed-chroma-provider-database provider)
-                     (embed-chroma-collection-id provider collection))))
-    (embed-chroma-call
+                     (vecdb-chroma-provider-tenant provider)
+                     (vecdb-chroma-provider-database provider)
+                     (vecdb-chroma-collection-id provider collection))))
+    (vecdb-chroma-call
      provider
      'post
      url
      `(:ids ,(apply #'vector item-ids))
      sync)))
 
-(cl-defmethod embed-db-search-by-vector ((provider embed-chroma-provider)
-                                         (collection embed-db-collection)
-                                         vector &optional limit)
+(cl-defmethod vecdb-search-by-vector ((provider vecdb-chroma-provider)
+                                      (collection vecdb-collection)
+                                      vector &optional limit)
   "Search for items in a chroma collection by VECTOR."
   (let* ((url (format "/api/v2/tenants/%s/databases/%s/collections/%s/query"
-                      (embed-chroma-provider-tenant provider)
-                      (embed-chroma-provider-database provider)
-                      (embed-chroma-collection-id provider collection)))
-         (result (embed-chroma-call provider 'post url
+                      (vecdb-chroma-provider-tenant provider)
+                      (vecdb-chroma-provider-database provider)
+                      (vecdb-chroma-collection-id provider collection)))
+         (result (vecdb-chroma-call provider 'post url
                                     `(:query_embeddings [,vector]
                                                         :n_results ,(or limit 10)
                                                         :include ["embeddings" "metadatas" "distances"])
                                     t)))
     (cl-loop for i from 0 below (length (aref (plist-get result :ids) 0))
-             collect (make-embed-db-item ;
+             collect (make-vecdb-item ;
                       :id (aref (aref (plist-get result :ids) 0) i)
                       :vector (aref (aref (plist-get result :embeddings) 0) i)
                       :payload (aref (aref (plist-get result :metadatas) 0) i)))))
 
-(provide 'embed-chroma)
-;;; embed-chroma.el ends here
+(provide 'vecdb-chroma)
+
+;;; vecdb-chroma.el ends here

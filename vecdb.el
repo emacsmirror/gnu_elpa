@@ -4,7 +4,7 @@
 
 ;; Author: Andrew Hyatt <ahyatt@gmail.com>
 ;; Homepage: https://github.com/ahyatt/vecdb
-;; Package-Requires: ((emacs "28.1") (plz "0.8"))
+;; Package-Requires: ((emacs "29.1") (plz "0.8"))
 ;; Package-Version: 0.1
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -25,9 +25,9 @@
 ;; This package provides an interface to embedding databases, allowing
 ;; applications to store data and retrieve it via similarity search.
 
-;;; Code
-
 (require 'cl-lib)
+
+;;; Code:
 
 (cl-defstruct vecdb-provider
   "A structure representing an embedding database provider."
@@ -51,19 +51,19 @@ An ID may be an integer or a string, and is used to uniquely identify the item."
   id vector payload)
 
 (cl-defgeneric vecdb-create (provider collection)
-  "Create a new collection of embeddings."
+  "Create a new COLLECTION of embeddings for PROVIDER."
   (ignore collection)
   (signal 'not-implemented
           (list "vecdb-create not implemented for" (vecdb-provider-name provider))))
 
 (cl-defgeneric vecdb-delete (provider collection)
-  "Delete a collection of embeddings. This should remove all data."
+  "Delete a COLLECTION of embeddings in PROVIDER.  This should remove all data."
   (ignore collection)
   (signal 'not-implemented
           (list "vecdb-delete not implemented for" (vecdb-provider-name provider))))
 
 (cl-defgeneric vecdb-exists (provider collection)
-  "Check if a collection exists, return non-nil if it does."
+  "Check if a COLLECTION exists in PROVIDER, return non-nil if it does."
   (ignore collection)
   (signal 'not-implemented
           (list "vecdb-exists not implemented for" (vecdb-provider-name provider))))
@@ -95,4 +95,4 @@ An ID may be an integer or a string, and is used to uniquely identify the item."
 
 (provide 'vecdb)
 
-;; vecdb.el ends here
+;;; vecdb.el ends here

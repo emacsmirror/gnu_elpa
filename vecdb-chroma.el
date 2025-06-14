@@ -40,7 +40,9 @@
   (database "default"))
 
 (defun vecdb-chroma-call (provider method url-suffix &optional body sync)
-  "Make an HTTP request to the Chroma API.
+  "Make an HTTP request to the Chroma API via PROVIDER.
+METHOD is the HTTP method of the request (a symbol).
+URL-SUFFIX is the path of the URL, along with any parameters.
 If BODY is provided, it will be sent as the request body.
 SYNC indicates whether the request should be synchronous."
   (let ((url (vecdb-chroma-provider-url provider)))
@@ -87,7 +89,7 @@ SYNC indicates whether the request should be synchronous."
 
 (cl-defmethod vecdb-create ((provider vecdb-chroma-provider)
                             (collection vecdb-collection))
-  "Create a new chroma collection."
+  "Create a new COLLECTION of embeddings for PROVIDER."
   (unless (vecdb-chroma-has-tenant-p provider)
     (vecdb-chroma-call
      provider
@@ -112,7 +114,7 @@ SYNC indicates whether the request should be synchronous."
 
 (cl-defmethod vecdb-delete ((provider vecdb-chroma-provider)
                             (collection vecdb-collection))
-  "Delete a chroma collection."
+  "Delete a COLLECTION of embeddings in PROVIDER.  This should remove all data."
   (vecdb-chroma-call
    provider
    'delete
@@ -139,7 +141,7 @@ SYNC indicates whether the request should be synchronous."
 
 (cl-defmethod vecdb-exists ((provider vecdb-chroma-provider)
                             (collection vecdb-collection))
-  "Check if a chroma collection exists."
+  "Check if a COLLECTION exists in PROVIDER, return non-nil if it does."
   (and (vecdb-chroma-has-tenant-p provider)
        (vecdb-chroma-has-database-p provider
                                     (vecdb-chroma-provider-database provider))
@@ -158,7 +160,7 @@ SYNC indicates whether the request should be synchronous."
 (cl-defmethod vecdb-upsert-items ((provider vecdb-chroma-provider)
                                   (collection vecdb-collection)
                                   items &optional sync)
-  "Upsert items into a chroma collection."
+  "Upsert a list of `vecdb-item' objects into the COLLECTION with PROVIDER."
   (let ((url (format "/api/v2/tenants/%s/databases/%s/collections/%s/upsert"
                      (vecdb-chroma-provider-tenant provider)
                      (vecdb-chroma-provider-database provider)
@@ -175,7 +177,7 @@ SYNC indicates whether the request should be synchronous."
 (cl-defmethod vecdb-get-item ((provider vecdb-chroma-provider)
                               (collection vecdb-collection)
                               item-id)
-  "Get a single item from a chroma collection by ITEM-ID."
+  "Get items with ID from the COLLECTION with PROVIDER."
   (let* ((url (format "/api/v2/tenants/%s/databases/%s/collections/%s/get"
                       (vecdb-chroma-provider-tenant provider)
                       (vecdb-chroma-provider-database provider)
@@ -195,7 +197,7 @@ SYNC indicates whether the request should be synchronous."
 (cl-defmethod vecdb-delete-items ((provider vecdb-chroma-provider)
                                   (collection vecdb-collection)
                                   item-ids &optional sync)
-  "Delete items from a chroma collection by ITEM-IDS."
+  "Delete items with IDs from the COLLECTION with PROVIDER."
   (let ((url (format "/api/v2/tenants/%s/databases/%s/collections/%s/delete"
                      (vecdb-chroma-provider-tenant provider)
                      (vecdb-chroma-provider-database provider)
@@ -210,7 +212,7 @@ SYNC indicates whether the request should be synchronous."
 (cl-defmethod vecdb-search-by-vector ((provider vecdb-chroma-provider)
                                       (collection vecdb-collection)
                                       vector &optional limit)
-  "Search for items in a chroma collection by VECTOR."
+  "Search for items in the COLLECTION with PROVIDER that are similar to VECTOR."
   (let* ((url (format "/api/v2/tenants/%s/databases/%s/collections/%s/query"
                       (vecdb-chroma-provider-tenant provider)
                       (vecdb-chroma-provider-database provider)

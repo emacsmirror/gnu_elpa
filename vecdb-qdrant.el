@@ -36,7 +36,9 @@
   (api-key nil))
 
 (defun vecdb-qdrant-call (provider method url-suffix &optional body sync)
-  "Make an HTTP request to the Qdrant API.
+  "Make an HTTP request to the Qdrant API specified in PROVIDER.
+METHOD is the HTTP method of the request (a symbol).
+URL-SUFFIX is the path and optional parameters of the request.
 If BODY is provided, it will be sent as the request body.
 SYNC indicates whether the request should be synchronous."
   (let ((url (vecdb-qdrant-provider-url provider))
@@ -64,10 +66,7 @@ SYNC indicates whether the request should be synchronous."
 
 (cl-defmethod vecdb-create ((provider vecdb-qdrant-provider)
                             (collection vecdb-collection))
-  "Create a new collection in the qdrant database.
-
-COLLECTION is an `vecdb-collection' object that specifies the
-properties of the collection."
+  "Create a new COLLECTION of embeddings for PROVIDER."
   (vecdb-qdrant-call provider 'put (concat "/collections/" (vecdb-collection-name collection))
                      `(:vectors (:size ,(vecdb-collection-vector-size collection)
                                        :distance "Cosine"))
@@ -75,13 +74,13 @@ properties of the collection."
 
 (cl-defmethod vecdb-delete ((provider vecdb-qdrant-provider)
                             (collection vecdb-collection))
-  "Delete a collection from the qdrant database."
+  "Delete a COLLECTION of embeddings in PROVIDER.  This should remove all data."
   (vecdb-qdrant-call provider 'delete (concat "/collections/" (vecdb-collection-name collection))
                      nil t))
 
 (cl-defmethod vecdb-exists ((provider vecdb-qdrant-provider)
                             (collection vecdb-collection))
-  "Check if a collection exists in the qdrant database."
+  "Check if a COLLECTION exists in PROVIDER, return non-nil if it does."
   (let ((response (vecdb-qdrant-call provider 'get (concat "/collections/" (vecdb-collection-name collection)
                                                            "/exists") nil t)))
     (not (eq :false (plist-get (plist-get response :result) :exists)))))
@@ -89,7 +88,7 @@ properties of the collection."
 (cl-defmethod vecdb-upsert-items ((provider vecdb-qdrant-provider)
                                   (collection vecdb-collection)
                                   items &optional sync)
-  "Insert items into a collection in the qdrant database."
+  "Upsert a list of `vecdb-item' objects into the COLLECTION with PROVIDER."
   (vecdb-qdrant-call provider 'put
                      (concat "/collections/" (vecdb-collection-name collection) "/points?wait="
                              (if sync "true" "false"))
@@ -99,15 +98,14 @@ properties of the collection."
                                                   `(:id ,(vecdb-item-id item)
                                                         :vector ,(vecdb-item-vector item))
                                                   (when (vecdb-item-payload item)
-                                                    `(:payload ,(vecdb-item-payload item))))
-                                                 )
+                                                    `(:payload ,(vecdb-item-payload item)))))
                                                items)))
                      t))
 
 (cl-defmethod vecdb-get-item ((provider vecdb-qdrant-provider)
                               (collection vecdb-collection)
                               id)
-  "Retrieve an item from a collection in the qdrant database by ID."
+  "Get items with ID from the COLLECTION with PROVIDER."
   (let ((result (vecdb-qdrant-call provider 'get
                                    (concat "/collections/" (vecdb-collection-name collection) "/points/" id))))
     (when result
@@ -120,7 +118,7 @@ properties of the collection."
 (cl-defmethod vecdb-delete-items ((provider vecdb-qdrant-provider)
                                   (collection vecdb-collection)
                                   ids &optional sync)
-  "Delete items from a collection in the qdrant database."
+  "Delete items with IDs from the COLLECTION with PROVIDER."
   (vecdb-qdrant-call provider 'post
                      (concat "/collections/" (vecdb-collection-name collection) "/points/delete?wait="
                              (if sync "true" "false"))
@@ -131,7 +129,7 @@ properties of the collection."
 (cl-defmethod vecdb-search-by-vector ((provider vecdb-qdrant-provider)
                                       (collection vecdb-collection)
                                       vector &optional limit)
-  "Search for items in a collection in the qdrant database."
+  "Search for items in the COLLECTION with PROVIDER that are similar to VECTOR."
   (let ((result (vecdb-qdrant-call provider 'post
                                    (concat "/collections/" (vecdb-collection-name collection) "/points/query")
                                    `(:query (:nearest ,vector)

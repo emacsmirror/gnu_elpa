@@ -123,7 +123,6 @@ SYNC indicates whether the request should be synchronous."
                      (concat "/collections/" (vecdb-collection-name collection) "/points/delete?wait="
                              (if sync "true" "false"))
                      `(:points ,(apply #'vector ids))
-                     nil
                      sync))
 
 (cl-defmethod vecdb-search-by-vector ((provider vecdb-qdrant-provider)

@@ -2,6 +2,16 @@
 
 ** Unreleased
 
+*** Added
+
+*** Changed
+
+*** Removed
+
+*** Fixed
+
+** [[https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.2...v0.3][0.3]] - 2025-06-15
+
 *** Changed
 
 - The behavior of =vc-jj-print-log= is now closer to the behavior

@@ -4,15 +4,21 @@
 
 *** Changed
 
-- Files of type =.jjdescription= are now edited using =log-edit-mode=
-  instead of fundamental mode.  Such files are created by jj when
-  invoking an editor via =jj describe=.
+- The behavior of =vc-jj-print-log= is now closer to the behavior
+  documented for =vc-print-log=: each commit is displayed in one line,
+  and RET expands the current entry to show commit details.  Remove
+  the unused customization options =vc-jj-colorize-log= and
+  =vc-jj-log-template=.
 
-- Display more information in =vc-dir= headers:
-  - Display change id, commit id, description of the current changeset
-    in one line.
-  - Display information about the current changeset's parent(s) in the
-    same format.
+- Files of type =.jjdescription= are now edited using =log-edit-mode=
+  instead of fundamental mode.  (Such files are created by jj when the
+  user runs =jj describe= or =jj commit= from the command line.)
+
+- =vc-dir= headers now display more information:
+  - All information about the current changeset (change id, commit id,
+    first line of description) is contained in one line.
+  - Information about the current changeset's parent(s) is shown in
+    the same format.
 
 *** Fixed
 

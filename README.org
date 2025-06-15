@@ -30,15 +30,16 @@ Collections must be created before they can be used with ~vecdb-create~, and ~ve
 They can also be deleted with ~vecdb-delete~.
 
 * Adding and replacing data
-Before data is queried, it must be added.  This is done via a batch operation on
-a group of data, ~vecdb-upsert-items~.  This either creates an item in the collection
-or replaces it, based on the =id= of the item.  Here's an example of adding or
-replacing one item:
+Before data is queried, it must be added. This is done via a batch operation on
+a group of data, ~vecdb-upsert-items~. This either creates an item in the
+collection or replaces it, based on the =id= of the item. =id= should be an integer
+or a string UUID. Seeing as how emacs does not provide a UUID library, probably
+an integer is the best choice.
 
 #+begin_src emacs-lisp
 (vecdb-upsert-items my-vecdb-provider my-vecdb-collection
                  (list (make-vecdb-item
-                        :id "example-id"
+                        :id 91
                         :vector [0.1 0.2 0.3 0.4]
                         :payload '(:my-id "235913926"))))
 #+end_src

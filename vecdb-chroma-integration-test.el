@@ -44,6 +44,11 @@
 ;;; Test Suite Definition
 (def-ert-suite vecdb-chroma-integration-suite
   "Integration tests for `vecdb-chroma' package."
+  '(vecdb-chroma-create-exists-delete-collection-test
+    vecdb-chroma-upsert-get-items-test
+    vecdb-chroma-delete-items-test
+    vecdb-chroma-search-by-vector-test
+    vecdb-chroma-search-by-vector-with-filter-test)
   :require (vecdb-chroma))
 
 ;;; Helper Functions
@@ -76,30 +81,28 @@ If `CHROMA_URL' is not set, signals a test skip."
       (setf (aref vec i) (random 1.0)))
     vec))
 
-(defun vecdb-test--random-string (&optional length)
-  "Return a random string of LENGTH (default 8)."
-  (let ((s (md5 (format "%s%s" (random) (current-time)))))
-    (substring s 0 (or length 8))))
-
-(defmacro with-test-collection ((provider collection-var &key (name (vecdb-test--random-string "test-collection-")) (vector-size 3)) &rest body)
+(defmacro with-test-collection ((provider collection-var &key (name "test-collection-default") (vector-size 3)) &rest body)
   "Execute BODY with COLLECTION-VAR bound to a new collection.
-The collection is created before BODY and deleted afterwards."
+The collection is created before BODY and deleted afterwards.
+NAME is the name of the collection to create."
   `(let ((,collection-var (vecdb-test--make-collection ,name ,vector-size)))
      (unwind-protect
          (progn
            (vecdb-create ,provider ,collection-var)
            ,@body)
-       (vecdb-delete ,provider ,collection-var))))
+       ;; Ensure cleanup even if vecdb-create fails or body errors
+       (if (vecdb-exists ,provider ,collection-var)
+           (vecdb-delete ,provider ,collection-var)
+         (message "Collection %s did not exist or was already deleted." ,name)))))
 
 ;;; Test cases
 
 (ert-deftest vecdb-chroma-create-exists-delete-collection-test ()
   "Test `vecdb-create', `vecdb-exists', and `vecdb-delete'."
-  {:tags '(vecdb-chroma-integration-suite)}
   (interactive)
   (let ((provider (vecdb-test--chroma-provider))
-        (collection-name (vecdb-test--random-string "test-coll-ced-"))
-        (collection (vecdb-test--make-collection collection-name 3)))
+        (collection-name "test-collection-ced")
+        (collection (vecdb-test--make-collection "test-collection-ced" 3)))
     (unwind-protect
         (progn
           (should (vecdb-create provider collection))
@@ -112,10 +115,9 @@ The collection is created before BODY and deleted afterwards."
 
 (ert-deftest vecdb-chroma-upsert-get-items-test ()
   "Test `vecdb-upsert-items' and `vecdb-get-item'."
-  {:tags '(vecdb-chroma-integration-suite)}
   (interactive)
   (let* ((provider (vecdb-test--chroma-provider))
-         (collection-name (vecdb-test--random-string "test-coll-ug-"))
+         (collection-name "test-collection-ug")
          (vector-size 3)
          (items (list
                  (vecdb-test--make-item "item1" (vecdb-test--random-vector vector-size) '(:val 1))
@@ -132,10 +134,9 @@ The collection is created before BODY and deleted afterwards."
 
 (ert-deftest vecdb-chroma-delete-items-test ()
   "Test `vecdb-delete-items'."
-  {:tags '(vecdb-chroma-integration-suite)}
   (interactive)
   (let* ((provider (vecdb-test--chroma-provider))
-         (collection-name (vecdb-test--random-string "test-coll-di-"))
+         (collection-name "test-collection-di")
          (vector-size 3)
          (item1 (vecdb-test--make-item "item1" (vecdb-test--random-vector vector-size) '(:val 1)))
          (item2 (vecdb-test--make-item "item2" (vecdb-test--random-vector vector-size) '(:val 2)))
@@ -150,10 +151,9 @@ The collection is created before BODY and deleted afterwards."
 
 (ert-deftest vecdb-chroma-search-by-vector-test ()
   "Test `vecdb-search-by-vector'."
-  {:tags '(vecdb-chroma-integration-suite)}
   (interactive)
   (let* ((provider (vecdb-test--chroma-provider))
-         (collection-name (vecdb-test--random-string "test-coll-sv-"))
+         (collection-name "test-collection-sv")
          (vector-size 3)
          (item1 (vecdb-test--make-item "item1" (vector 0.1 0.2 0.3) '(:val 1)))
          (item2 (vecdb-test--make-item "item2" (vector 0.4 0.5 0.6) '(:val 2)))
@@ -179,10 +179,9 @@ The collection is created before BODY and deleted afterwards."
 
 (ert-deftest vecdb-chroma-search-by-vector-with-filter-test ()
   "Test `vecdb-search-by-vector' with a metadata filter."
-  {:tags '(vecdb-chroma-integration-suite)}
   (interactive)
   (let* ((provider (vecdb-test--chroma-provider))
-         (collection-name (vecdb-test--random-string "test-coll-svf-"))
+         (collection-name "test-collection-svf")
          (vector-size 2)
          (item1 (vecdb-test--make-item "itemA1" (vector 0.1 0.2) '(:type "A" :val 1)))
          (item2 (vecdb-test--make-item "itemB1" (vector 0.3 0.4) '(:type "B" :val 2)))

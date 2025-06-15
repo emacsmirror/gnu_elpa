@@ -679,9 +679,12 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
   "Fill BUF with per-line commit history of FILE at REV."
   (let ((rev (or rev "@"))
         (file (file-relative-name file)))
-    (apply #'vc-jj--command-dispatched buf 'async file "file" "annotate"
+    ;; Contrary to most other jj commands, 'jj file annotate' takes a
+    ;; path instead of a fileset expression, so we append FILE to the
+    ;; unprocessed argument list here.
+    (apply #'vc-jj--command-dispatched buf 'async nil "file" "annotate"
            (append (vc-switches 'jj 'annotate)
-                   (list "-r" rev)))))
+                   (list "-r" rev file)))))
 
 (defconst vc-jj--annotation-line-prefix-re
   (rx bol

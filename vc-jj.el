@@ -52,10 +52,6 @@
   :type 'string
   :risky t)
 
-(defcustom vc-jj-colorize-log t
-  "Control whether to have jj colorize the log."
-  :type 'boolean)
-
 (defvar vc-jj--log-default-template
   "
 if(root,
@@ -84,15 +80,6 @@ if(root,
   )
 )
 ")
-
-(defcustom vc-jj-log-template "cap_oneline"
-  "The template to use for `vc-print-log'."
-  :type '(radio (const "builtin_log_oneline")
-                (const "builtin_log_compact")
-                (const "builtin_log_comfortable")
-                (const "builtin_log_compact_full_description")
-                (const "builtin_log_detailed")
-                (string :tag "Custom template")))
 
 (defcustom vc-jj-global-switches '("--no-pager" "--color" "never")
   "Global switches to pass to any jj command."
@@ -126,8 +113,8 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 
 (defun vc-jj--filename-to-fileset (filename &optional root)
   "Convert FILENAME to a JJ fileset expression.
-If ROOT is given, the result is relative to the repository root,
-otherwise it is relative to the current directory."
+If ROOT is non-nil, the resulting fileset is relative to the repository
+root, otherwise it is relative to the current directory."
   (if root
       (concat "root-file:\""
               (string-replace "\"" "\\\"" (file-relative-name filename root))
@@ -179,9 +166,9 @@ process status."
 See `vc-do-command' for documentation of the BUFFER, OKSTATUS,
 FILE-OR-LIST and FLAGS arguments.
 
-Note: this function should not be used when we need to parse jj's
-output, since jj might print warnings to stderr and `vc-do-command'
-cannot separate output to stdout and stderr."
+Note: if we need to parse jj's output `vc-jj--command-parseable' should
+be used instead of this function, since jj might print warnings to
+stderr and1 `vc-do-command' cannot separate output to stdout and stderr."
   (let* ((filesets (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
          (global-switches (ensure-list vc-jj-global-switches)))
     (apply #'vc-do-command (or buffer "*vc*") okstatus vc-jj-program
@@ -467,7 +454,7 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
                (unless (string-equal (vc-jj-root (car files)) (car files))
                  files))))
     (with-current-buffer buffer
-      (apply #'vc-jj-command buffer
+      (apply #'vc-jj--command-dispatched buffer
         'async nil
         args))))
 
@@ -560,7 +547,7 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
 
 (defun vc-jj-expanded-log-entry (revision)
   (with-temp-buffer
-    (vc-jj-command t 0 nil
+    (vc-jj--command-dispatched t 0 nil
       "log"
       "-r" revision
       "-T" "builtin_log_detailed"
@@ -571,45 +558,33 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
 
 (defun vc-jj-previous-revision (file rev)
   "JJ-specific version of `vc-previous-revision'."
+  ;; TODO: here and in `vc-jj-next-revision', check how (concat
+  ;; revision "-") works with merge commits; do we get multiple change
+  ;; ids in a multi-line string, and does this break users of these
+  ;; functions?
   (if file
-    (with-temp-buffer
-      (apply #'vc-jj-command t 0 nil "log"
-        (list "-r" (concat ".." rev "-")
-          "-T" "change_id.shortest()"
-          "--no-graph"
-            "-n" "1"
-          "--" file))
-      (let ((s (buffer-string)))
-        (unless (string-blank-p s)
-          s)))
-    (with-output-to-string
-      (vc-jj-command standard-output 1 nil
-        "log" "--no-graph" "-n" "1"
-        "-T" "change_id.shortest()"
-        "-r" (concat rev "-")))))
+      (vc-jj--command-parseable "log" "--no-graph" "-n" "1"
+                                "-r" (concat ".." rev "-")
+                                "-T" "change_id.shortest()"
+                                "--" (vc-jj--filename-to-fileset file))
+    (vc-jj--command-parseable "log" "--no-graph" "-n" "1"
+                              "-r" (concat rev "-")
+                              "-T" "change_id.shortest()"
+                              )))
 
 (defun vc-jj-next-revision (file rev)
   "JJ-specific version of `vc-next-revision'."
   (if file
-    (with-temp-buffer
-      (apply #'vc-jj-command (current-buffer) 0 nil "log"
-        (list "-r" (format "roots(files(\"%s\") ~ ::%s)" file rev)
-          "-T" "change_id.shortest()"
-          "--no-graph"
-          "-n" "1"))
-      (let ((s (buffer-string)))
-        (unless (string-blank-p s)
-          s)))
-    (with-output-to-string
-      (vc-jj-command standard-output 1 nil
-        "log" "--no-graph" "-n" "1"
-        "-T" "change_id.shortest()"
-        "-r" (concat rev "+")))))
+      (vc-jj--command-parseable "log" "--no-graph" "-n" "1"
+                                "-r" (format "roots(files(\"%s\") ~ ::%s)" file rev)
+                                "-T" "change_id.shortest()")
+    (vc-jj--command-parseable "log" "--no-graph" "-n" "1"
+                              "-r" (concat rev "+")
+                              "-T" "change_id.shortest()")))
 
 (defun vc-jj-get-change-comment (_files rev)
-  (with-output-to-string
-    (vc-jj-command standard-output 1 nil
-      "log" "--no-graph" "-n" "1" "-T" "description" "-r" rev)))
+  (vc-jj--command-parseable "log" "--no-graph" "-n" "1"
+                            "-r" rev "-T" "description"))
 
 (declare-function log-edit-mode "log-edit" ())
 (declare-function log-edit-toggle-header "log-edit" (header value))
@@ -619,7 +594,7 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
 ;; TODO: protect immutable changes
 (defun vc-jj-modify-change-comment (_files rev comment)
   (let ((args (log-edit-extract-headers () comment)))
-    (vc-jj-command nil 0 nil "desc" rev "-m" (pop args) "--quiet")))
+    (vc-jj--command-dispatched nil 0 nil "desc" rev "-m" (pop args) "--quiet")))
 
 (defun vc-jj--reload-log-buffers ()
   (and vc-parent-buffer
@@ -630,7 +605,7 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
 (defun vc-jj-edit-change ()
   (interactive)
   (let ((rev (log-view-current-tag)))
-    (vc-jj-command nil 0 nil "edit" rev "--quiet")
+    (vc-jj--command-dispatched nil 0 nil "edit" rev "--quiet")
     (vc-jj--reload-log-buffers)))
 
 (defun vc-jj-abandon-change ()
@@ -638,13 +613,13 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
   ;; TODO: should probably ask for confirmation, although this would be
   ;; different from the cli
   (let ((rev (log-view-current-tag)))
-    (vc-jj-command nil 0 nil "abandon" rev "--quiet")
+    (vc-jj--command-dispatched nil 0 nil "abandon" rev "--quiet")
     (vc-jj--reload-log-buffers)))
 
 (defun vc-jj-new-change ()
   (interactive)
   (let ((rev (log-view-current-tag)))
-    (vc-jj-command nil 0 nil "new" rev "--quiet")
+    (vc-jj--command-dispatched nil 0 nil "new" rev "--quiet")
     (with-current-buffer (revert-buffer))
     (vc-jj--reload-log-buffers)))
 

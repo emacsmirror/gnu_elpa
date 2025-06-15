@@ -10,6 +10,11 @@
 
 *** Fixed
 
+- vc-jj now does not prevent non-vc Emacs operations (dired, editing
+  files) in a corrupted jj repository.  Blocking this was never
+  intended, but was a consequence of letting errors escape from
+  =vc-jj-dir-status-files=.
+
 ** [[https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.2...v0.3][0.3]] - 2025-06-15
 
 *** Changed

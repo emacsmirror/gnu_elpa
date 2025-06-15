@@ -219,5 +219,14 @@ is needed."
     (should (eq (vc-jj-state "numbers.txt") 'added))
     (should (eq (vc-jj-state "alphabet.txt") 'ignored))))
 
+(ert-deftest vc-jj-tolerate-repo-corruption ()
+  ;; https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/63
+  (let ((current-prefix-arg 4))         ; create git co-located repo
+    (vc-jj-test-with-repo repo
+      (write-region "Hello!" nil "README")
+      (shell-command "rm -r .git")
+      (should (eq (vc-jj-dir-status-files repo nil (lambda (x y) x))
+                  nil)))))
+
 (provide 'vc-jj-tests)
 ;;; vc-jj-tests.el ends here

@@ -103,14 +103,16 @@ SYNC indicates whether the request should be synchronous."
      (format "/api/v2/tenants/%s/databases"
              (vecdb-chroma-provider-tenant provider))
      `(:name ,(vecdb-chroma-provider-database provider)) t))
-  (vecdb-chroma-call
-   provider
-   'post
-   (format "/api/v2/tenants/%s/databases/%s/collections"
-           (vecdb-chroma-provider-tenant provider)
-           (vecdb-chroma-provider-database provider))
-   `(:name ,(vecdb-collection-name collection))
-   t))
+  (let ((result (vecdb-chroma-call
+                 provider
+                 'post
+                 (format "/api/v2/tenants/%s/databases/%s/collections"
+                         (vecdb-chroma-provider-tenant provider)
+                         (vecdb-chroma-provider-database provider))
+                 `(:name ,(vecdb-collection-name collection))
+                 t)))
+    (puthash (vecdb-collection-name collection)
+             (plist-get result :id) vecdb-chroma-collection-id-cache)))
 
 (cl-defmethod vecdb-delete ((provider vecdb-chroma-provider)
                             (collection vecdb-collection))
@@ -145,17 +147,21 @@ SYNC indicates whether the request should be synchronous."
   (and (vecdb-chroma-has-tenant-p provider)
        (vecdb-chroma-has-database-p provider
                                     (vecdb-chroma-provider-database provider))
-       (condition-case nil
+       (condition-case err
            (vecdb-chroma-call
             provider
             'get
             (format "/api/v2/tenants/%s/databases/%s/collections/%s"
                     (vecdb-chroma-provider-tenant provider)
                     (vecdb-chroma-provider-database provider)
-                    (vecdb-chroma-collection-id provider collection))
+                    ;; Although the docs say this could be the ID, what
+                    ;; actually works in practice is only the name.
+                    (vecdb-collection-name collection))
             nil
             t)
-         (plz-error nil))))
+         (plz-error (if (eq 404 (plz-response-status (plz-error-response (nth 2 err))))
+                        nil
+                      (error "Error checking tenant: %s" (plz-error-message err)))))))
 
 (cl-defmethod vecdb-upsert-items ((provider vecdb-chroma-provider)
                                   (collection vecdb-collection)
@@ -170,7 +176,7 @@ SYNC indicates whether the request should be synchronous."
      'post
      url
      `(:embeddings ,(apply #'vector (mapcar #'vecdb-item-vector items))
-                   :ids ,(apply #'vector (mapcar #'vecdb-item-id items))
+                   :ids ,(apply #'vector (mapcar (lambda (i) (format "%s" (vecdb-item-id i))) items))
                    :metadatas ,(apply #'vector (mapcar #'vecdb-item-payload items)))
      sync)))
 
@@ -182,15 +188,18 @@ SYNC indicates whether the request should be synchronous."
                       (vecdb-chroma-provider-tenant provider)
                       (vecdb-chroma-provider-database provider)
                       (vecdb-chroma-collection-id provider collection)))
-         (result (vecdb-chroma-call provider 'get url
-                                    `(:ids ,(vector item-id)
-                                           :limit 1)
+         (result (vecdb-chroma-call provider 'post url
+                                    `(:ids ,(vector (format "%s" item-id))
+                                           :limit 1
+                                           :include ["embeddings" "metadatas"])
                                     t)))
-    (unless (= (length (plist-get result :items)) 1)
-      (error "Expected exactly one item, got %d"
-             (length (plist-get result :items)))
+    (when (> (length (plist-get result :ids)) 1)
+      (error "Chroma returned multiple items for ID %s: %s"
+             item-id (plist-get result :ids)))
+    (when (= (length (plist-get result :ids)) 1)
       (make-vecdb-item
-       :id (aref (plist-get result :ids) 0)
+       :id (vecdb-chroma--normalize-stored-id
+            (aref (plist-get result :ids) 0))
        :vector (aref (plist-get result :embeddings) 0)
        :payload (aref (plist-get result :metadatas) 0)))))
 
@@ -206,8 +215,16 @@ SYNC indicates whether the request should be synchronous."
      provider
      'post
      url
-     `(:ids ,(apply #'vector item-ids))
+     `(:ids ,(apply #'vector (mapcar (lambda (id) (format "%s" id))
+                                     item-ids)))
      sync)))
+
+(defun vecdb-chroma--normalize-stored-id (id)
+  "From a string ID, return an integer ID if it is numeric.
+If the the ID is a uuid, return it as a string."
+  (if (string-match-p "^[0-9]+$" id)
+      (string-to-number id)
+    id))
 
 (cl-defmethod vecdb-search-by-vector ((provider vecdb-chroma-provider)
                                       (collection vecdb-collection)
@@ -224,7 +241,8 @@ SYNC indicates whether the request should be synchronous."
                                     t)))
     (cl-loop for i from 0 below (length (aref (plist-get result :ids) 0))
              collect (make-vecdb-item ;
-                      :id (aref (aref (plist-get result :ids) 0) i)
+                      :id (vecdb-chroma--normalize-stored-id
+                           (aref (aref (plist-get result :ids) 0) i))
                       :vector (aref (aref (plist-get result :embeddings) 0) i)
                       :payload (aref (aref (plist-get result :metadatas) 0) i)))))
 

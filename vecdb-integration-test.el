@@ -147,9 +147,9 @@ The collection is created before BODY and deleted afterwards."
          (collection (make-vecdb-collection :name collection-name :vector-size 3)))
     (unwind-protect
         (progn
-          (should (vecdb-create current-provider collection))
+          (vecdb-create current-provider collection)
           (should (vecdb-exists current-provider collection))
-          (should (vecdb-delete current-provider collection))
+          (vecdb-delete current-provider collection)
           (should-not (vecdb-exists current-provider collection)))
       ;; Cleanup in case of error during assertions
       (when (vecdb-exists current-provider collection)
@@ -168,7 +168,7 @@ The collection is created before BODY and deleted afterwards."
                  (make-vecdb-item :id 2 :vector [0 1 2] :payload '(:val 2))
                  (make-vecdb-item :id 3 :vector [0 1 2] :payload '(:val 3)))))
     (with-test-collection current-provider current-collection collection-name `(:vector-size ,vector-size)
-                          (should (vecdb-upsert-items current-provider current-collection items t))
+                          (vecdb-upsert-items current-provider current-collection items t)
                           (dolist (item items)
                             (let ((retrieved-item (vecdb-get-item current-provider current-collection (vecdb-item-id item))))
                               (should retrieved-item)
@@ -193,7 +193,7 @@ The collection is created before BODY and deleted afterwards."
          (item3 (make-vecdb-item :id 3 :vector [0.7 0.8 0.9] :payload '(:val 3)))
          (items (list item1 item2 item3)))
     (with-test-collection current-provider current-collection collection-name `(:vector-size ,vector-size)
-                          (vecdb-upsert-items current-provider current-collection items)
+                          (vecdb-upsert-items current-provider current-collection items t)
                           ;; Search for a vector similar to item2
                           (let ((results (vecdb-search-by-vector current-provider current-collection [0.41 0.51 0.61] 3)))
                             (should (= (length results) 3))

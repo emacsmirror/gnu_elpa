@@ -621,7 +621,6 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
   (interactive)
   (let ((rev (log-view-current-tag)))
     (vc-jj--command-dispatched nil 0 nil "new" rev "--quiet")
-    (with-current-buffer (revert-buffer))
     (vc-jj--reload-log-buffers)))
 
 (defun vc-jj-root (file)

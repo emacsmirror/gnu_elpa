@@ -601,7 +601,7 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
   (and vc-parent-buffer
     (with-current-buffer vc-parent-buffer
       (revert-buffer)))
-  (with-current-buffer (revert-buffer)))
+  (revert-buffer))
 
 (defun vc-jj-edit-change ()
   (interactive)

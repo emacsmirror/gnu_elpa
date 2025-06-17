@@ -6,6 +6,10 @@
 
 *** Added
 
+- Added =vc-jj-retrieve-tag=, which makes it possible to use vc commands
+  like =vc-switch-branch=, which are implemented on top of
+  =vc-retrieve-tag=.
+
 *** Changed
 
 *** Removed

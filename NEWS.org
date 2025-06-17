@@ -1,3 +1,5 @@
+#+OPTIONS: toc:nil
+
 * Recent changes
 
 ** Unreleased

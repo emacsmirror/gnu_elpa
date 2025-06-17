@@ -106,14 +106,19 @@ SYNC indicates whether the request should be synchronous."
                               (collection vecdb-collection)
                               id)
   "Get items with ID from the COLLECTION with PROVIDER."
-  (let ((result (vecdb-qdrant-call provider 'get
-                                   (concat "/collections/" (vecdb-collection-name collection) "/points/" id))))
-    (when result
-      (let ((point (plist-get result :result)))
-        (when point
-          (make-vecdb-item :id (plist-get point :id)
-                           :vector (plist-get point :vector)
-                           :payload (plist-get point :payload)))))))
+  (condition-case err
+      (let ((result (vecdb-qdrant-call provider 'get
+                                       (format "/collections/%s/points/%s" (vecdb-collection-name collection) id) nil t)))
+        (when result
+          (let ((point (plist-get result :result)))
+            (when point
+              (make-vecdb-item :id (plist-get point :id)
+                               :vector (plist-get point :vector)
+                               :payload (plist-get point :payload))))))
+    (plz-error
+     (if (eq 404 (plz-response-status (plz-error-response (nth 2 err))))
+         nil
+       (error "Error retrieving item: %s" (plz-error-message err))))))
 
 (cl-defmethod vecdb-delete-items ((provider vecdb-qdrant-provider)
                                   (collection vecdb-collection)

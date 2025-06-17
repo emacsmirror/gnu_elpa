@@ -460,6 +460,17 @@ parents.map(|c| concat(
       (insert revision)))
   buffer)
 
+(defun vc-jj-create-tag (_dir name branchp)
+  "Attach tag named NAME to the current revision.
+When BRANCHP is non-nil, a bookmark named NAME is created at the current
+revision.
+
+Since jujutsu does not support tagging revisions, a nil value of BRANCHP
+has no effect."
+  (if branchp
+      (vc-jj--command-dispatched nil 0 nil "bookmark" "create" name "--quiet")
+    (user-error "Setting tags is not supported by jujutsu")))
+
 (defun vc-jj-checkout (file &optional rev)
   "Restore the contents of FILE to be the same as in change REV.
 If REV is not specified, revert the file as with `vc-jj-revert'."

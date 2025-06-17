@@ -456,8 +456,7 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
                  files))))
     (with-current-buffer buffer
       (apply #'vc-jj--command-dispatched buffer
-        'async nil
-        args))))
+        'async nil "log" args))))
 
 (defun vc-jj-show-log-entry (revision)
   "Move to the log entry for REVISION."

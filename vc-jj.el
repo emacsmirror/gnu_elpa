@@ -580,7 +580,8 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
 
   (keymap-set vc-jj-log-view-mode-map "r" #'vc-jj-edit-change)
   (keymap-set vc-jj-log-view-mode-map "x" #'vc-jj-abandon-change)
-  (keymap-set vc-jj-log-view-mode-map "i" #'vc-jj-new-change))
+  (keymap-set vc-jj-log-view-mode-map "i" #'vc-jj-new-change)
+  (keymap-set vc-jj-log-view-mode-map "b s" #'vc-jj-bookmark-set))
 
 
 (defun vc-jj-expanded-log-entry (revision)
@@ -659,6 +660,40 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
   (let ((rev (log-view-current-tag)))
     (vc-jj--command-dispatched nil 0 nil "new" rev "--quiet")
     (vc-jj--reload-log-buffers)))
+
+(defun vc-jj-bookmark-set ()
+  "Set the bookmark of revision at point.
+When called in a `vc-jj-log-view-mode' buffer, prompt for a bookmark to
+set at the revision at point.  If the bookmark already exists and would
+be moved backwards or sideways in the revision history, confirm with the
+user first."
+  (interactive)
+  (when (derived-mode-p 'vc-jj-log-view-mode)
+    (let* ((target-rev (log-view-current-tag))
+           (bookmarks (vc-jj--process-lines "bookmark" "list" "-T" "self.name() ++ \"\n\""))
+           (bookmark (completing-read "Move or create bookmark: " bookmarks))
+           (new-bookmark-p (not (member bookmark bookmarks)))
+           ;; If the bookmark already exists and target-rev is not a
+           ;; descendant of the revision that the bookmark is
+           ;; currently on, this means that the bookmark will be moved
+           ;; sideways or backwards
+           (backwards-move-p
+            (when (not new-bookmark-p)
+              (let* ((bookmark-rev
+                      (car (vc-jj--process-lines "show" bookmark "--no-patch"
+                                                 "-T" "self.change_id().shortest() ++ \"\n\"")))
+                     (bookmark-descendants
+                      (vc-jj--process-lines "log" "--no-graph" "-r" (concat bookmark-rev "..")
+                                            "-T" "self.change_id().shortest() ++ \"\n\"")))
+                (not (member target-rev bookmark-descendants))))))
+      (when backwards-move-p
+        (unless (yes-or-no-p
+                 (format-prompt "Moving bookmark %s to revision %s would move it either backwards or sideways. Is this okay?"
+                                nil bookmark target-rev bookmark))
+          (user-error "Aborted moving bookmark %s to revision %s" bookmark target-rev)))
+      (vc-jj--command-dispatched nil 0 nil "bookmark" "set" bookmark "-r" target-rev
+                                 "--allow-backwards" "--quiet")
+      (revert-buffer))))
 
 (defun vc-jj-root (file)
   "Return the root of the repository containing FILE.

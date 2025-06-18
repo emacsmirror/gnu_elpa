@@ -141,6 +141,47 @@ may be unsafe if unconditionally evaluated."
   :group 'disproject)
 ;;;###autoload(put 'disproject-custom-suffixes 'safe-local-variable #'always)
 
+(defcustom disproject-find-special-file-suffixes
+  ;; TODO: Rename to "Other options" when we get global options (including in
+  ;; docstring).
+  '(["Options"
+     (disproject-infix-customize-switch)]
+    ["Special files"
+     (disproject-find-dir-locals-file)
+     (disproject-find-dir-locals-2-file)])
+  "Commands for the `disproject-find-special-file-dispatch' prefix.
+
+Its value should be a list of group specifications that is
+accepted by `transient-subgroups' (the same as expected in
+`transient-define-prefix').  If only one column is needed, the
+value may also be a list of suffix specifications as a shorthand.
+See Info node `(transient) Group Specifications' and Info
+node `(transient) Suffix Specifications' for documentation on
+specification forms.
+
+Any key sequence starting with alphanumeric characters or dash
+(regexp \"[a-zA-Z0-9-]\") is reserved for the user.
+
+`disproject-find-special-file' is provided as a convenient way to
+create commands for finding special files.  See its documentation
+for more information on using it.
+
+An example value is provided below, which adds a
+`disproject-find-special-file' command for editing the make file
+at the project root (with preferred file name \"Makefile\"), in
+addition to the default find-dir-locals-file commands.
+
+  ([\"Options\"
+    (disproject-infix-customize-switch)]
+   [\"Special files\"
+    (disproject-find-dir-locals-file)
+    (disproject-find-dir-locals-2-file)
+    (\"m\" disproject-find-special-file :file (\"Makefile\"
+                                             \"makefile\"
+                                             \"GNUmakefile\"))])"
+  :type '(repeat sexp)
+  :group 'disproject)
+
 ;;;;; Customizable Disproject commands.
 
 (defcustom disproject-find-dir-command #'project-find-dir
@@ -582,16 +623,15 @@ character.  These characters represent the following states:
      :buffer-id "compile")])
 
 (transient-define-prefix disproject-find-special-file-dispatch ()
-  "Dispatch command to find a special file in project."
+  "Dispatch command to find a special file in project.
+
+This prefix can be configured with
+`disproject-find-special-file-suffixes'; see its documentation
+for more information."
   :class disproject--selected-project-prefix
   disproject--selected-project-header-group
-  ["Options"
-   (disproject-infix-customize-switch)]
-  ;; TODO: Make this customizable.
-  ["Special files"
-   :advice disproject-with-env-apply
-   (disproject-find-dir-locals-file)
-   (disproject-find-dir-locals-2-file)])
+  [:class transient-subgroups
+   :setup-children disproject--setup-find-special-file-suffixes])
 
 (transient-define-prefix disproject-manage-projects-dispatch ()
   "Dispatch commands for managing projects."
@@ -1668,6 +1708,23 @@ Defining custom suffixes with Disproject's custom syntax is deprecated;\
      (if (nlistp (seq-elt custom-suffixes 0))
          custom-suffixes
        `(["Custom suffixes" ,@custom-suffixes])))))
+
+(defun disproject--setup-find-special-file-suffixes (_)
+  "Set up suffixes according to `disproject-find-special-file-suffixes'."
+  (let* ((user-suffixes (if (nlistp (seq-elt
+                                     disproject-find-special-file-suffixes 0))
+                            disproject-find-special-file-suffixes
+                          ;; Shorthand: Allow omission of vector brackets if
+                          ;; only a single column needs to be specified.
+                          `(["Special files"
+                             ,@disproject-find-special-file-suffixes])))
+         (suffixes (seq-map (lambda (element)
+                              (disproject--group-insert-defaults
+                               element nil
+                               :advice #'disproject-with-env-apply
+                               :advice* #'disproject-with-env-apply))
+                            user-suffixes)))
+    (transient-parse-suffixes 'disproject-find-special-file-dispatch suffixes)))
 
 ;;;; Suffixes.
 

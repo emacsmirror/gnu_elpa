@@ -34,6 +34,7 @@
 
 ;;; Code:
 
+(require 'cus-edit)
 (require 'eieio)
 (require 'grep)
 (require 'pcase)
@@ -490,6 +491,10 @@ initialized."
   (and (featurep 'magit-todos)
        (disproject-prefix--magit-apt?)))
 
+(defun disproject-prefix--customize-dirlocals-apt? ()
+  "Return non-nil if `customize-dirlocals' function exists."
+  (functionp 'customize-dirlocals))
+
 (defun disproject-prefix--version-control-apt? ()
   "Return non-nil if version control commands are apt to show.
 
@@ -580,6 +585,8 @@ character.  These characters represent the following states:
   "Dispatch command to find a special file in project."
   :class disproject--selected-project-prefix
   disproject--selected-project-header-group
+  ["Options"
+   (disproject-infix-customize-switch)]
   ;; TODO: Make this customizable.
   ["Special files"
    :advice disproject-with-env-apply
@@ -682,6 +689,15 @@ defining commands that can modify the override state."
                        (list project)))
                  directories)
      :test (lambda (p1 p2) (equal (project-root p1) (project-root p2))))))
+
+;;;; Infixes.
+
+(transient-define-infix disproject-infix-customize-switch ()
+  :description "Use Customize interface"
+  :class 'transient-switch
+  :shortarg "-c"
+  :argument "--customize"
+  :if #'disproject-prefix--customize-dirlocals-apt?)
 
 ;;;; Transient state classes.
 
@@ -938,6 +954,28 @@ function will be added to."
   (let ((file-root (file-name-base dir-locals-file))
         (file-extension (file-name-extension dir-locals-file)))
     (concat file-root "-2." file-extension)))
+
+(defun disproject--find-dir-locals-file (file)
+  "Dispatch a function to edit dir-locals FILE depending on transient state.
+
+This supports `find-file' (default) and `customize-dirlocals';
+the latter of which will be used when the \"--customize\" value
+is in transient arguments.
+
+Note that `customize-dirlocals' was introduced in Emacs version
+30.1.  If the function is not available and the \"--customize\"
+value is passed, this function will not do anything."
+  (declare-function customize-dirlocals "cus-edit")
+  (let* ((args (if transient-current-command
+                   (transient-args transient-current-command)))
+         (customize? (transient-arg-value "--customize" args)))
+    (cond
+     (customize?
+      (if (functionp 'customize-dirlocals)
+          (customize-dirlocals (expand-file-name file))
+        (user-error "`customize-dirlocals' is not defined (added in Emacs 30.1)")))
+     (t
+      (find-file file)))))
 
 (defun disproject-custom--suffix (spec-entry)
   "Construct and return a suffix to be parsed by `transient-parse-suffixes'.
@@ -1602,22 +1640,30 @@ The command used can be customized with
 (transient-define-suffix disproject-find-dir-locals-file ()
   "Find `dir-locals-file' in project root.
 
+If the \"--customize\" option is specified in transient state,
+use `customize-dirlocals' to open the file.
+
 The secondary dir-locals file may be accessed with
 `disproject-find-dir-locals-2-file'."
   :class disproject-find-special-file-suffix
   :key "l"
   :file #'disproject-dir-locals-file
+  :find-file-function #'disproject--find-dir-locals-file
   (interactive)
   (disproject-find-special-file))
 
 (transient-define-suffix disproject-find-dir-locals-2-file ()
   "Find secondary `dir-locals-file' in project root.
 
+If the \"--customize\" option is specified in transient state,
+use `customize-dirlocals' to open the file.
+
 The primary dir-locals file may be accessed with
 `disproject-find-dir-locals-file'."
   :class disproject-find-special-file-suffix
   :key "L"
   :file #'disproject-dir-locals-2-file
+  :find-file-function #'disproject--find-dir-locals-file
   (interactive)
   (disproject-find-special-file))
 

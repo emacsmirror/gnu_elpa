@@ -116,10 +116,10 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 If ROOT is non-nil, the resulting fileset is relative to the repository
 root, otherwise it is relative to the current directory."
   (if root
-      (concat "root-file:\""
+      (concat "root:\""
               (string-replace "\"" "\\\"" (file-relative-name filename root))
               "\"")
-    (concat "cwd-file:\""
+    (concat "file:\""
             (string-replace "\"" "\\\"" (file-relative-name filename)) "\"")))
 
 (defun vc-jj--process-lines (&rest args)

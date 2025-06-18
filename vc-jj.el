@@ -423,7 +423,7 @@ parents.map(|c| concat(
   "Read revision REV of FILE into BUFFER and return the buffer."
   (let ((revision (vc-jj--command-parseable "file" "show" "-r" rev "--" (vc-jj--filename-to-fileset file))))
     (with-current-buffer buffer
-      (erase-buffer buffer)
+      (erase-buffer)
       (insert revision)))
   buffer)
 

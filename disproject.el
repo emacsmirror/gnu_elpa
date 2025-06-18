@@ -1548,6 +1548,82 @@ same as `transient-suffix' for formatting descriptions."
 
 ;;;; Suffix setup functions.
 
+(defun disproject--group-insert-defaults (group-spec &optional reached-keywords?
+                                                     &rest keyword-values)
+  "Insert KEYWORD-VALUES as \"default keyword-value pairs\" for GROUP-SPEC.
+
+GROUP-SPEC is a transient group specification, as defined in Info
+node `(transient) Group Specifications'.  KEYWORD-VALUES will be
+prepended to the keyword-value pairs (or just added, if none are
+present), such that they essentially change the default values
+associated with the keywords.
+
+REACHED-KEYWORDS? is an internal argument, used for tracking
+whether KEYWORD-VALUES have already been added to the beginning
+of the keyword-value pairs of a group (they must be at the
+beginning, so that it's possible to override them).
+
+For example, if SPEC is:
+  [\"Example group\"
+   :if (lambda () nil)
+   [(\"f\" \"Find file\" find-file)]
+   [(\"d\" \"Dired\" dired)]]
+
+and KEYWORD-VALUES is:
+  (:if (lambda () t))
+
+the return value will be:
+  [\"Example group\"
+   :if (lambda () t)
+   ;; This overrides the line above.
+   :if (lambda () nil)
+   [:if (lambda () t)
+    (\"f\" \"Find file\" find-file)]
+   [:if (lambda () t)
+    (\"d\" \"Dired\" dired)]]"
+  ;; See (info "(transient) Group Specifications") for matching specifications.
+  (pcase-exhaustive group-spec
+    ('()
+     nil)
+    ;; Don't process GROUP-SPEC if it's not a sequence.  Note that since
+    ;; variables this is a limitation of parsing at this point, since that means
+    ;; symbols (which may expand to groups later) won't be processed, either.
+    ((pred (not seqp))
+     group-spec)
+    ;; Make sure to operate on a list-ified GROUP-SPEC, which should avoid
+    ;; generating a bunch of vectors from descending in recursion.
+    ((pred vectorp)
+     (apply #'disproject--group-insert-defaults
+            (seq-into group-spec 'list) reached-keywords? keyword-values))
+    ;; ELEMENT (group)
+    (`(,(and (pred vectorp) group-element) . ,rest-group)
+     (vconcat (if reached-keywords? [] keyword-values)
+              (vector (apply #'disproject--group-insert-defaults
+                             group-element nil keyword-values))
+              (apply #'disproject--group-insert-defaults
+                     rest-group :reached-keywords keyword-values)))
+    ;; ELEMENT (suffix)
+    (`(,(and (pred listp) suffix-element) . ,rest-group)
+     (vconcat (if reached-keywords? [] keyword-values)
+              ;; NOTE: Transient currently doesn't permit subgroup and suffix
+              ;; specifications in the same group, but it's possible this could
+              ;; change, so keep processing anyways.
+              (vector suffix-element)
+              (apply #'disproject--group-insert-defaults
+                     rest-group :reached-keywords keyword-values)))
+    ;; {KEYWORD VALUE}
+    (`(,(and (pred keywordp) keyword) ,value . ,rest-group)
+     (vconcat (if reached-keywords? [] keyword-values)
+              (vector keyword value)
+              (apply #'disproject--group-insert-defaults
+                     rest-group :reached-keywords keyword-values)))
+    ;; {LEVEL} or {DESCRIPTION}.  Also act as a catch-all for any syntax we
+    ;; don't need/expect to process in GROUP-SPEC, which can be included as-is.
+    (`(,special-optional . ,rest-group)
+     (vconcat (vector special-optional)
+              (apply #'disproject--group-insert-defaults
+                     rest-group reached-keywords? keyword-values)))))
+
 (defun disproject-custom--custom-spec? (spec)
   "Return non-nil if SPEC is considered custom Disproject suffix syntax.
 

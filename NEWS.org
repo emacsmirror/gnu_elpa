@@ -20,6 +20,15 @@
   files) in a corrupted jj repository.  Blocking this was never
   intended, but was a consequence of letting errors escape from
   =vc-jj-dir-status-files=.
+- Properly handle cases where directory file paths are passed to
+  vc-jj's =vc-jj--filename-to-fileset=, which vc-jj uses to transform
+  file names into forms adhering to jj's fileset language.  Now,
+  calling =vc-next-action= on a directory listing with changed files in
+  a vc-dir buffer will commit those changed files.  Previously an
+  empty commit would be made.
+- Fix error when calling =vc-find-revision= due to erroneous argument to
+  =erase-buffer=, which accepts no arguments.  Commands that use
+  =vc-find-revision=, like =vc-revision-other-window=, now do not error.
 
 ** [[https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.2...v0.3][0.3]] - 2025-06-15
 

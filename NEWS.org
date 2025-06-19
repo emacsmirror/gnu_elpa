@@ -29,6 +29,8 @@
 - Fix error when calling =vc-find-revision= due to erroneous argument to
   =erase-buffer=, which accepts no arguments.  Commands that use
   =vc-find-revision=, like =vc-revision-other-window=, now do not error.
+- Identify the "removed" vc file state. Previously, removed files
+  would be incorrectly labeled as "ignored."
 
 ** [[https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.2...v0.3][0.3]] - 2025-06-15
 

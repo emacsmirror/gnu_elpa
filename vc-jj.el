@@ -195,33 +195,61 @@ stderr and1 `vc-do-command' cannot separate output to stdout and stderr."
            (/= (point-min) (point-max))))))
 
 (defun vc-jj-state (file)
-  "JJ implementation of `vc-state' for FILE."
-  ;; We need to run two commands for the complete state:
+  "JJ implementation of `vc-state' for FILE.
+There are several file states recognized by vc (see the docstring of
+`vc-state' for the full list).  Several of these are relevant to
+jujutsu.  They are:
+- Added (new file)
+- Removed (deleted file)
+- Edited (modified file)
+- Up-to-date (unmodified file)
+- Conflict (merge conflict)
+- Ignored (ignored by repository)
+
+Other VCS backends would also recognize the \"unregistered\" state, but
+there is no such state in jj since jj automatically registers new files."
+  ;; We can deduce all of the vc states listed above with two
+  ;; commands:
   ;;
-  ;; - "jj file list -T 'conflict' FILE" gets us conflicted (output
-  ;;   "true"), ignored (no output) or tracked (output "false", but
-  ;;   could be added or modified)
+  ;; - "jj diff --summary FILE" gets us the "added" state (when output
+  ;;   starts with "A "), the "removed" state (when output starts with
+  ;;   "D ") and "edited" state (when output starts with "M ").  No
+  ;;   output is also possible (this could mean the "conflict",
+  ;;   "ignored" or "unchanged" state), but we deduce these with the
+  ;;   command below instead.
+  ;; 
+  ;; - "jj file list -T 'conflict' FILE" gets us the "conflict" state
+  ;;   (when output is "true"), the "ignored" state (when there is no
+  ;;   output) and states for tracked files (when output is "false",
+  ;;   either the "added", "removed", "edited" or "up-to-date" state).
+  ;;   We deduce the "added", "removed" and "edited" states with the
+  ;;   command above.
   ;;
-  ;; - "jj diff --summary FILE" gets us modified (output starts with
-  ;;   "M ") or added (output starts with "A "), but no output could
-  ;;   be conflicted, ignored or unchanged
+  ;;   The only remaining possibility is the "up-to-date" state, which
+  ;;   we can deduce because when all other states have not been
+  ;;   matched against.
   (let* ((default-directory (vc-jj-root file))
          (file (vc-jj--filename-to-fileset file))
+         (changed
+          (vc-jj--command-parseable "diff" "--summary" "--" file))
          (conflicted-ignored
-          (vc-jj--command-parseable "file" "list" "-T" "conflict" "--" file))
-         (modified-added
-          (vc-jj--command-parseable "diff" "--summary" "--" file)))
+          (vc-jj--command-parseable "file" "list" "-T" "conflict" "--" file)))
     (cond
-     ((string-empty-p conflicted-ignored) 'ignored)
+     ((string-prefix-p "A " changed) 'added)
+     ((string-prefix-p "D " changed) 'removed)
+     ((string-prefix-p "M " changed) 'edited)
      ((string= conflicted-ignored "true") 'conflict)
-     ((string-prefix-p "M " modified-added) 'edited)
-     ((string-prefix-p "A " modified-added) 'added)
+     ((string-empty-p conflicted-ignored) 'ignored)
+     ;; If the file hasn't matched anything yet, this leaves only one
+     ;; possible state: up-to-date
      ((string= conflicted-ignored "false") 'up-to-date)
-     (t nil))))
+     (t (error "VC state of %s is not recognized" file)))))
 
 (defun vc-jj-dir-status-files (dir _files update-function)
   "Calculate a list of (FILE STATE EXTRA) entries for DIR.
-Return the result of applying UPDATE-FUNCTION to that list."
+Return the result of applying UPDATE-FUNCTION to that list.
+
+For a description of the states relevant to jj, see `vc-jj-state'."
   ;; This function is specified below the STATE-QUERYING FUNCTIONS
   ;; header in the comments at the beginning of vc.el.  The
   ;; specification says the 'dir-status-files' backend function
@@ -252,7 +280,11 @@ Return the result of applying UPDATE-FUNCTION to that list."
                                   (and (string-prefix-p "A " entry)
                                        (list (substring entry 2))))
                                 changed))
-           (modified-files (mapcan (lambda (entry)
+           (removed-files (mapcan (lambda (entry)
+                                    (and (string-prefix-p "D " entry)
+                                         (list (substring entry 2))))
+                                  changed))
+           (edited-files (mapcan (lambda (entry)
                                      (and (string-prefix-p "M " entry)
                                           (list (substring entry 2))))
                                    changed))
@@ -263,17 +295,18 @@ Return the result of applying UPDATE-FUNCTION to that list."
                                        (file-relative-name (expand-file-name entry project-root) dir))
                                      (vc-jj--process-lines "file" "list"
                                                            "-T" "if(conflict, path ++ \"\\n\")" "--" dir)))
-           (unchanged-files (cl-remove-if (lambda (entry) (or (member entry conflicted-files)
-                                                              (member entry modified-files)
+           (up-to-date-files (cl-remove-if (lambda (entry) (or (member entry conflicted-files)
+                                                              (member entry edited-files)
                                                               (member entry added-files)
                                                               (member entry ignored-files)))
                                           registered-files))
            (result
             (nconc (mapcar (lambda (entry) (list entry 'conflict)) conflicted-files)
                    (mapcar (lambda (entry) (list entry 'added)) added-files)
-                   (mapcar (lambda (entry) (list entry 'edited)) modified-files)
+                   (mapcar (lambda (entry) (list entry 'removed)) removed-files)
+                   (mapcar (lambda (entry) (list entry 'edited)) edited-files)
                    (mapcar (lambda (entry) (list entry 'ignored)) ignored-files)
-                   (mapcar (lambda (entry) (list entry 'up-to-date)) unchanged-files))))
+                   (mapcar (lambda (entry) (list entry 'up-to-date)) up-to-date-files))))
       (funcall update-function result nil))))
 
 (defun vc-jj-dir-extra-headers (dir)

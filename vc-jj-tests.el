@@ -97,6 +97,19 @@ is needed."
     (should (equal (vc-jj-dir-status-files repo nil (lambda (x y) x))
                    '(("second-file" added) ("first-file" up-to-date))))))
 
+(ert-deftest vc-jj-delete-file ()
+  "Test \"removed\" vc state and `vc-jj-delete-file'."
+  (vc-jj-test-with-repo repo
+    (write-region "First file" nil "first-file")
+    (should (eq (vc-jj-state "first-file") 'added))
+    (vc-jj-checkin '("first-file") "Commit")
+    (vc-jj-delete-file "first-file")
+    (should (eq (vc-jj-state "first-file") 'removed))
+    (write-region "Second file" nil "second-file")
+    (should (eq (vc-jj-state "second-file") 'added))
+    (should (equal (vc-jj-dir-status-files repo nil (lambda (x y) x))
+                   '(("second-file" added) ("first-file" removed))))))
+
 (ert-deftest vc-jj-test-conflict ()
   (vc-jj-test-with-repo repo
     (let (branch-1 branch-2 branch-merged)

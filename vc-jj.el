@@ -582,6 +582,7 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
   (keymap-set vc-jj-log-view-mode-map "x" #'vc-jj-abandon-change)
   (keymap-set vc-jj-log-view-mode-map "i" #'vc-jj-new-change)
   (keymap-set vc-jj-log-view-mode-map "b s" #'vc-jj-bookmark-set)
+  (keymap-set vc-jj-log-view-mode-map "b r" #'vc-jj-bookmark-rename)
   (keymap-set vc-jj-log-view-mode-map "b D" #'vc-jj-bookmark-delete))
 
 
@@ -694,6 +695,28 @@ user first."
           (user-error "Aborted moving bookmark %s to revision %s" bookmark target-rev)))
       (vc-jj--command-dispatched nil 0 nil "bookmark" "set" bookmark "-r" target-rev
                                  "--allow-backwards" "--quiet")
+      (revert-buffer))))
+
+(defun vc-jj-bookmark-rename ()
+  "Rename a bookmark pointing to the revision at point.
+When called in a `vc-jj-log-view-mode' buffer, rename the bookmark
+pointing to the revision at point.  If there are multiple bookmarks
+pointing to the revision, prompt the user to one of these bookmarks to
+rename."
+  (interactive)
+  (when (derived-mode-p 'vc-jj-log-view-mode)
+    (let* ((target-rev (log-view-current-tag))
+           (bookmarks-at-rev
+            (vc-jj--process-lines "bookmark" "list" "-r" target-rev
+                                  "-T" "if(!self.remote(), self.name() ++ \"\n\")"))
+           (bookmark-old
+            (if (= 1 (length bookmarks-at-rev))
+                (car bookmarks-at-rev)
+              (completing-read "Which bookmark to rename? " bookmarks-at-rev)))
+           (bookmark-new
+            (read-string (format-prompt "Rename %s to" nil bookmark-old))))
+      (vc-jj--command-dispatched nil 0 nil "bookmark" "rename" bookmark-old bookmark-new
+                                 "--quiet")
       (revert-buffer))))
 
 (defun vc-jj-bookmark-delete ()

@@ -15,6 +15,17 @@
   commands (using ~disproject-display-buffer-action-set~) for managing the
   ~display-buffer~ override.  Replaces transient switch =--prefer-other-window=,
   although the =,o= binding is preserved for preferring other window.
+- Add ~disproject-find-special-file-suffix~ class and
+  ~disproject-find-special-file~ suffix command, which provide a convenient
+  means for creating suffixes that find designated files from a project's root.
+- Add ~disproject-find-dir-locals-file~ and ~disproject-find-dir-locals-2-file~
+  suffix commands.  These supersede ~disproject-dir-locals~.
+- Add ~disproject-find-special-file-dispatch~ prefix, bound to =l= in the main
+  menu (replacing ~disproject-dir-locals~).
+- Add ~disproject-find-special-file-suffixes~ for customizing
+  ~disproject-find-special-file-dispatch~.  By default, it includes suffixes for
+  finding dir-locals files and a transient switch that enables using
+  ~customize-dirlocals~ (added in Emacs 30.1) to open them.
 
 *** Changed
 
@@ -25,6 +36,8 @@
 
 - Deprecate ~disproject-scope-prefer-other-window?~ method.  Removal is set for
   at least 6 months from this release.
+- Deprecate ~disproject-dir-locals~.  Removal is set for at least 6 months from
+  this release.
 
 ** [[https://github.com/aurtzy/disproject/tree/v2.1.0][2.1.0]] - 2025-05-29
 

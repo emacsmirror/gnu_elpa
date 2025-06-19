@@ -81,13 +81,15 @@ is needed."
          ,@body))))
 
 (ert-deftest vc-jj-test-add-file ()
+  "Test the \"added\" vc state."
   (vc-jj-test-with-repo repo
     (write-region "New file" nil "README")
-    (should (eq (vc-state "README" 'jj) 'added))
+    (should (eq (vc-jj-state "README") 'added))
     (should (equal (vc-jj-dir-status-files repo nil (lambda (x y) x))
                    '(("README" added))))))
 
 (ert-deftest vc-jj-test-added-tracked ()
+  "Test the \"up-to-date\" vc state."
   (vc-jj-test-with-repo repo
     (write-region "In first commit" nil "first-file")
     (vc-jj-checkin '("first-file") "First commit")
@@ -111,6 +113,7 @@ is needed."
                    '(("second-file" added) ("first-file" removed))))))
 
 (ert-deftest vc-jj-test-conflict ()
+  "Test the \"conflict\" vc state."
   (vc-jj-test-with-repo repo
     (let (branch-1 branch-2 branch-merged)
       ;; the root change id is always zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
@@ -132,6 +135,7 @@ is needed."
       (should (eq (vc-jj-state "subdir/conflicted.txt") 'conflict)))))
 
 (ert-deftest vc-jj-test-annotate ()
+  "Test `vc-annotate'."
   (vc-jj-test-with-repo repo
     (let ( change-1 change-2
            readme-buffer annotation-buffer)
@@ -161,20 +165,25 @@ is needed."
         (when (buffer-live-p annotation-buffer) (kill-buffer annotation-buffer))))))
 
 (ert-deftest vc-jj-ignore ()
+  "Test \"ignored\" vc state."
   (vc-jj-test-with-repo repo
     (let (gitignore-buffer)
       (unwind-protect
           (progn
+            ;; Create then register two files, one in the root and
+            ;; another in a subdirectory
             (setq gitignore-buffer (find-file ".gitignore"))
             (write-region "xxx" nil "root-ignored.txt")
             (make-directory "subdir")
             (write-region "xxx" nil "subdir/subdir-ignored.txt")
             (should (eq (vc-jj-state "root-ignored.txt") 'added))
             (should (eq (vc-jj-state "subdir/subdir-ignored.txt") 'added))
+            ;; Ignore both files
             (vc-jj-ignore "root-ignored.txt")
             (vc-jj-ignore "subdir/subdir-ignored.txt")
             (should (eq (vc-jj-state "root-ignored.txt") 'ignored))
             (should (eq (vc-jj-state "subdir/subdir-ignored.txt") 'ignored))
+            ;; Un-ignore both files
             (vc-jj-ignore "root-ignored.txt" nil t)
             (vc-jj-ignore "subdir/subdir-ignored.txt" nil t)
             (should (eq (vc-jj-state "root-ignored.txt") 'added))
@@ -183,6 +192,7 @@ is needed."
           (kill-buffer gitignore-buffer))))))
 
 (ert-deftest vc-jj-list-files ()
+  "Test `vc-jj-dir-status-files' with a variety of vc states."
   (vc-jj-test-with-repo repo
     (let (branch-1 branch-2 branch-merged)
       ;; the root change id is always zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
@@ -230,7 +240,10 @@ than a path to a regular file."
                ("subdir/deeper_subdir/file3.txt" up-to-date))))))
 
 (ert-deftest vc-jj-funky-filename ()
-  ;; https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/38
+  "Test compatibility with unusual characters in file names.
+We test the presence of apostrophes, double quotes, and the equal sign
+in file names, which are allowed in Linux.  See
+https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/38."
   (vc-jj-test-with-repo repo
     (write-region "Hello" nil "TEST=TEST.txt")
     (write-region "Hello" nil "with'apostrophe.txt")
@@ -244,8 +257,10 @@ than a path to a regular file."
                ("with'apostrophe.txt" added)
                ("with\"quotation.txt" added))))))
 
-(ert-deftest vc-jj-looong-file ()
-  ;; https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/52
+(ert-deftest vc-jj-very-large-file ()
+  "Test very large files.
+Jujutsu usually prints to stderr when there is too large of a file
+registered.  See https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/52."
   (vc-jj-test-with-repo repo
     (shell-command "jj config set --repo snapshot.max-new-file-size 12")
     (write-region "1234567890" nil "numbers.txt")
@@ -254,7 +269,8 @@ than a path to a regular file."
     (should (eq (vc-jj-state "alphabet.txt") 'ignored))))
 
 (ert-deftest vc-jj-tolerate-repo-corruption ()
-  ;; https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/63
+  "Test functionality after removing .git in a colocated repository.
+See https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/63."
   (let ((current-prefix-arg 4))         ; create git co-located repo
     (vc-jj-test-with-repo repo
       (write-region "Hello!" nil "README")

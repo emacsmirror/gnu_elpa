@@ -25,7 +25,7 @@
 - Add ~disproject-find-special-file-suffixes~ for customizing
   ~disproject-find-special-file-dispatch~.  By default, it includes suffixes for
   finding dir-locals files and a transient switch that enables using
-  ~customize-dirlocals~ (added in Emacs 30.1) to open them.
+  ~customize-dirlocals~ (added in Emacs 30.1) to open them ([[https://github.com/aurtzy/disproject/issues/10][#10]]).
 
 *** Changed
 

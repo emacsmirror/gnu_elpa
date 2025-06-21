@@ -1516,13 +1516,20 @@ through a shared object in the transient scope."))
          :type (or string (list-of string) symbol)
          :documentation "The special file's base name.
 
-This slot's value should a string, a list of strings, or a
-function that returns one of the other types.
+This slot's value should be a string, list of strings, or a
+function that returns a string.
 
-If the value is a list of strings, the first element will be
-treated as the preferred file, with the rest as fallbacks (in
-order) to be used if they exist.  The preferred file is used when
-none of the strings match an existing file.
+The behavior for each type is as documented:
+
+- String: Literal file name.
+
+- List of strings: The first element will be treated as the
+  preferred file name to find when none of the other files in the
+  list exist.  The rest are treated as fallbacks (in order) to be
+  used if they exist.
+
+- Function: Must return a string as the literal file name to
+  find.
 
 By default, the file is the project root (\".\" is relative to
 the root directory).")
@@ -1541,15 +1548,15 @@ If a list of strings is encountered, return the first string
 where the file exists from `default-directory'.  Otherwise,
 return the first (preferred file) string."
   (let ((value (oref obj file)))
-    (when (functionp value)
-      (setq value (funcall value)))
-    (cond
-     ((stringp value)
-      value)
-     ((listp value)
-      (when (null value) (error "`file' slot value cannot be an empty list"))
-      (or (seq-find #'file-exists-p value)
-          (car value))))))
+    (pcase-exhaustive value
+      ((pred stringp)
+       value)
+      ((pred listp)
+       (when (null value) (error "`file' slot value cannot be an empty list"))
+       (or (seq-find #'file-exists-p value)
+           (car value)))
+      ((pred functionp)
+       (funcall value)))))
 
 (cl-defmethod transient-format-description
   ((obj disproject-find-special-file-suffix))

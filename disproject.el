@@ -34,6 +34,11 @@
 
 ;;; Code:
 
+
+;;;
+;;; Initial code.
+;;;
+
 (require 'cus-edit)
 (require 'eieio)
 (require 'grep)
@@ -42,6 +47,9 @@
 (require 'map)
 (require 'project)
 (require 'transient)
+
+
+;;; TODO: Sort below.
 
 
 ;;;

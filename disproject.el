@@ -276,6 +276,11 @@ This is used in the command `disproject-vc-status'."
   :group 'disproject-commands)
 
 
+;;;
+;;; Faces.
+;;;
+
+
 ;;; TODO: Sort below.
 
 ;;;; Default commands.

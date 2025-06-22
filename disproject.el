@@ -355,6 +355,162 @@ supported and use `defconst' to define the group, instead."
     `(eval-and-compile (defconst ,symbol ,group))))
 
 
+;;;
+;;; Transient groups.
+;;;
+
+
+;;;; Definitions.
+
+(disproject--define-group disproject--selected-project-header-group
+  [:description disproject--selected-project-description ""])
+
+
+;;;; Dynamic group definitions.
+
+;;;;; Auxiliary.
+
+(defun disproject--group-insert-defaults (group-spec &optional reached-keywords?
+                                                     &rest keyword-values)
+  "Insert KEYWORD-VALUES as \"default keyword-value pairs\" for GROUP-SPEC.
+
+GROUP-SPEC is a transient group specification, as defined in Info
+node `(transient) Group Specifications'.  KEYWORD-VALUES will be
+prepended to the keyword-value pairs (or just added, if none are
+present), such that they essentially change the default values
+associated with the keywords.
+
+REACHED-KEYWORDS? is an internal argument, used for tracking
+whether KEYWORD-VALUES have already been added to the beginning
+of the keyword-value pairs of a group (they must be at the
+beginning, so that it's possible to override them).
+
+For example, if SPEC is:
+  [\"Example group\"
+   :if (lambda () nil)
+   [(\"f\" \"Find file\" find-file)]
+   [(\"d\" \"Dired\" dired)]]
+
+and KEYWORD-VALUES is:
+  (:if (lambda () t))
+
+the return value will be:
+  [\"Example group\"
+   :if (lambda () t)
+   ;; This overrides the line above.
+   :if (lambda () nil)
+   [:if (lambda () t)
+    (\"f\" \"Find file\" find-file)]
+   [:if (lambda () t)
+    (\"d\" \"Dired\" dired)]]"
+  ;; See (info "(transient) Group Specifications") for matching specifications.
+  (pcase-exhaustive group-spec
+    ('()
+     nil)
+    ;; Don't process GROUP-SPEC if it's not a sequence.  Note that since
+    ;; variables this is a limitation of parsing at this point, since that means
+    ;; symbols (which may expand to groups later) won't be processed, either.
+    ((pred (not seqp))
+     group-spec)
+    ;; Make sure to operate on a list-ified GROUP-SPEC, which should avoid
+    ;; generating a bunch of vectors from descending in recursion.
+    ((pred vectorp)
+     (apply #'disproject--group-insert-defaults
+            (seq-into group-spec 'list) reached-keywords? keyword-values))
+    ;; ELEMENT (group)
+    (`(,(and (pred vectorp) group-element) . ,rest-group)
+     (vconcat (if reached-keywords? [] keyword-values)
+              (vector (apply #'disproject--group-insert-defaults
+                             group-element nil keyword-values))
+              (apply #'disproject--group-insert-defaults
+                     rest-group :reached-keywords keyword-values)))
+    ;; ELEMENT (suffix)
+    (`(,(and (pred listp) suffix-element) . ,rest-group)
+     (vconcat (if reached-keywords? [] keyword-values)
+              ;; NOTE: Transient currently doesn't permit subgroup and suffix
+              ;; specifications in the same group, but it's possible this could
+              ;; change, so keep processing anyways.
+              (vector suffix-element)
+              (apply #'disproject--group-insert-defaults
+                     rest-group :reached-keywords keyword-values)))
+    ;; {KEYWORD VALUE}
+    (`(,(and (pred keywordp) keyword) ,value . ,rest-group)
+     (vconcat (if reached-keywords? [] keyword-values)
+              (vector keyword value)
+              (apply #'disproject--group-insert-defaults
+                     rest-group :reached-keywords keyword-values)))
+    ;; {LEVEL} or {DESCRIPTION}.  Also act as a catch-all for any syntax we
+    ;; don't need/expect to process in GROUP-SPEC, which can be included as-is.
+    (`(,special-optional . ,rest-group)
+     (vconcat (vector special-optional)
+              (apply #'disproject--group-insert-defaults
+                     rest-group reached-keywords? keyword-values)))))
+
+(defun disproject-custom--custom-spec? (spec)
+  "Return non-nil if SPEC is considered custom Disproject suffix syntax.
+
+The keyword `:command-type' is used as an indicator that SPEC
+should be interpreted as custom syntax.
+
+Note that this essentially makes `:command-type' a reserved
+keyword; behavior may be unexpected if it involves a
+specification that uses some transient suffix class with this
+keyword."
+  (and (listp spec) (memq :command-type spec)))
+
+;;;;; Setup functions.
+
+(defvar disproject-custom--showed-custom-spec-deprecation? nil
+  "Whether deprecation message for the custom specification syntax has been shown.")
+
+(defun disproject-custom--setup-suffixes (_)
+  "Set up suffixes according to `disproject-custom-suffixes'."
+  (transient-parse-suffixes
+   'disproject-custom-dispatch
+   (let* ((scope (disproject--scope))
+          (custom-suffixes (disproject-project-custom-suffixes
+                            (disproject-scope-selected-project-ensure scope)))
+          ;; DEPRECATED: Remove at least 6 months after release with this notice.
+          ;; Since we originally only supported a single column, just convert
+          ;; any custom spec suffixes found in a shallow search.
+          (custom-suffixes
+           (seq-map
+            (lambda (spec)
+              (if (disproject-custom--custom-spec? spec)
+                  (progn
+                    (unless disproject-custom--showed-custom-spec-deprecation?
+                      (message "\
+Defining custom suffixes with Disproject's custom syntax is deprecated;\
+ use transient specifications instead\
+ (see `disproject-custom-suffixes' for updated documentation).")
+                      (setq disproject-custom--showed-custom-spec-deprecation? t))
+                    (disproject-custom--suffix spec))
+                spec))
+            custom-suffixes)))
+     ;; As a shorthand (and for backwards compatibility), vector brackets can
+     ;; be omitted if only one column of suffixes is needed.
+     (if (nlistp (seq-elt custom-suffixes 0))
+         custom-suffixes
+       `(["Custom suffixes" ,@custom-suffixes])))))
+
+(defun disproject--setup-find-special-file-suffixes (_)
+  "Set up suffixes according to `disproject-find-special-file-suffixes'."
+  (let* ((user-suffixes (if (nlistp (seq-elt
+                                     disproject-find-special-file-suffixes 0))
+                            disproject-find-special-file-suffixes
+                          ;; Shorthand: Allow omission of vector brackets if
+                          ;; only a single column needs to be specified.
+                          `(["Special files"
+                             ,@disproject-find-special-file-suffixes])))
+         (suffixes (seq-map (lambda (element)
+                              (disproject--group-insert-defaults
+                               element nil
+                               :advice #'disproject-with-env-apply
+                               :advice* #'disproject-with-env-apply))
+                            user-suffixes)))
+    (transient-parse-suffixes 'disproject-find-special-file-dispatch suffixes)))
+
+
 ;;; TODO: Sort below.
 
 ;;;; Default commands.
@@ -372,9 +528,6 @@ This uses `multi-occur' under the hood."
                                (project-buffers project))
                    regexp)
     (error "No project in current directory: %s" default-directory)))
-
-(disproject--define-group disproject--selected-project-header-group
-  [:description disproject--selected-project-description ""])
 
 
 ;;;
@@ -1592,146 +1745,6 @@ same as `transient-suffix' for formatting descriptions."
                                    'transient-value
                                  'transient-inactive-value))
       (propertize "(BUG: no description; no project in scope)" 'face 'error))))
-
-;;;; Suffix setup functions.
-
-(defun disproject--group-insert-defaults (group-spec &optional reached-keywords?
-                                                     &rest keyword-values)
-  "Insert KEYWORD-VALUES as \"default keyword-value pairs\" for GROUP-SPEC.
-
-GROUP-SPEC is a transient group specification, as defined in Info
-node `(transient) Group Specifications'.  KEYWORD-VALUES will be
-prepended to the keyword-value pairs (or just added, if none are
-present), such that they essentially change the default values
-associated with the keywords.
-
-REACHED-KEYWORDS? is an internal argument, used for tracking
-whether KEYWORD-VALUES have already been added to the beginning
-of the keyword-value pairs of a group (they must be at the
-beginning, so that it's possible to override them).
-
-For example, if SPEC is:
-  [\"Example group\"
-   :if (lambda () nil)
-   [(\"f\" \"Find file\" find-file)]
-   [(\"d\" \"Dired\" dired)]]
-
-and KEYWORD-VALUES is:
-  (:if (lambda () t))
-
-the return value will be:
-  [\"Example group\"
-   :if (lambda () t)
-   ;; This overrides the line above.
-   :if (lambda () nil)
-   [:if (lambda () t)
-    (\"f\" \"Find file\" find-file)]
-   [:if (lambda () t)
-    (\"d\" \"Dired\" dired)]]"
-  ;; See (info "(transient) Group Specifications") for matching specifications.
-  (pcase-exhaustive group-spec
-    ('()
-     nil)
-    ;; Don't process GROUP-SPEC if it's not a sequence.  Note that since
-    ;; variables this is a limitation of parsing at this point, since that means
-    ;; symbols (which may expand to groups later) won't be processed, either.
-    ((pred (not seqp))
-     group-spec)
-    ;; Make sure to operate on a list-ified GROUP-SPEC, which should avoid
-    ;; generating a bunch of vectors from descending in recursion.
-    ((pred vectorp)
-     (apply #'disproject--group-insert-defaults
-            (seq-into group-spec 'list) reached-keywords? keyword-values))
-    ;; ELEMENT (group)
-    (`(,(and (pred vectorp) group-element) . ,rest-group)
-     (vconcat (if reached-keywords? [] keyword-values)
-              (vector (apply #'disproject--group-insert-defaults
-                             group-element nil keyword-values))
-              (apply #'disproject--group-insert-defaults
-                     rest-group :reached-keywords keyword-values)))
-    ;; ELEMENT (suffix)
-    (`(,(and (pred listp) suffix-element) . ,rest-group)
-     (vconcat (if reached-keywords? [] keyword-values)
-              ;; NOTE: Transient currently doesn't permit subgroup and suffix
-              ;; specifications in the same group, but it's possible this could
-              ;; change, so keep processing anyways.
-              (vector suffix-element)
-              (apply #'disproject--group-insert-defaults
-                     rest-group :reached-keywords keyword-values)))
-    ;; {KEYWORD VALUE}
-    (`(,(and (pred keywordp) keyword) ,value . ,rest-group)
-     (vconcat (if reached-keywords? [] keyword-values)
-              (vector keyword value)
-              (apply #'disproject--group-insert-defaults
-                     rest-group :reached-keywords keyword-values)))
-    ;; {LEVEL} or {DESCRIPTION}.  Also act as a catch-all for any syntax we
-    ;; don't need/expect to process in GROUP-SPEC, which can be included as-is.
-    (`(,special-optional . ,rest-group)
-     (vconcat (vector special-optional)
-              (apply #'disproject--group-insert-defaults
-                     rest-group reached-keywords? keyword-values)))))
-
-(defun disproject-custom--custom-spec? (spec)
-  "Return non-nil if SPEC is considered custom Disproject suffix syntax.
-
-The keyword `:command-type' is used as an indicator that SPEC
-should be interpreted as custom syntax.
-
-Note that this essentially makes `:command-type' a reserved
-keyword; behavior may be unexpected if it involves a
-specification that uses some transient suffix class with this
-keyword."
-  (and (listp spec) (memq :command-type spec)))
-
-(defvar disproject-custom--showed-custom-spec-deprecation? nil
-  "Whether deprecation message for the custom specification syntax has been shown.")
-
-(defun disproject-custom--setup-suffixes (_)
-  "Set up suffixes according to `disproject-custom-suffixes'."
-  (transient-parse-suffixes
-   'disproject-custom-dispatch
-   (let* ((scope (disproject--scope))
-          (custom-suffixes (disproject-project-custom-suffixes
-                            (disproject-scope-selected-project-ensure scope)))
-          ;; DEPRECATED: Remove at least 6 months after release with this notice.
-          ;; Since we originally only supported a single column, just convert
-          ;; any custom spec suffixes found in a shallow search.
-          (custom-suffixes
-           (seq-map
-            (lambda (spec)
-              (if (disproject-custom--custom-spec? spec)
-                  (progn
-                    (unless disproject-custom--showed-custom-spec-deprecation?
-                      (message "\
-Defining custom suffixes with Disproject's custom syntax is deprecated;\
- use transient specifications instead\
- (see `disproject-custom-suffixes' for updated documentation).")
-                      (setq disproject-custom--showed-custom-spec-deprecation? t))
-                    (disproject-custom--suffix spec))
-                spec))
-            custom-suffixes)))
-     ;; As a shorthand (and for backwards compatibility), vector brackets can
-     ;; be omitted if only one column of suffixes is needed.
-     (if (nlistp (seq-elt custom-suffixes 0))
-         custom-suffixes
-       `(["Custom suffixes" ,@custom-suffixes])))))
-
-(defun disproject--setup-find-special-file-suffixes (_)
-  "Set up suffixes according to `disproject-find-special-file-suffixes'."
-  (let* ((user-suffixes (if (nlistp (seq-elt
-                                     disproject-find-special-file-suffixes 0))
-                            disproject-find-special-file-suffixes
-                          ;; Shorthand: Allow omission of vector brackets if
-                          ;; only a single column needs to be specified.
-                          `(["Special files"
-                             ,@disproject-find-special-file-suffixes])))
-         (suffixes (seq-map (lambda (element)
-                              (disproject--group-insert-defaults
-                               element nil
-                               :advice #'disproject-with-env-apply
-                               :advice* #'disproject-with-env-apply))
-                            user-suffixes)))
-    (transient-parse-suffixes 'disproject-find-special-file-dispatch suffixes)))
 
 ;;;; Suffixes.
 

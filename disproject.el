@@ -1037,9 +1037,16 @@ if it hasn't already been initialized."
    (disproject-scope-selected-project-ensure (oref obj scope))))
 
 
-;;; TODO: Sort below.
+;;;
+;;; Commands.
+;;;
 
-;;;; Default commands.
+
+;;;; Interactive functions.
+
+;;;;; Auxiliary.
+
+;;;;; Definitions.
 
 (defun disproject-default-find-line (regexp)
   "Find matching line in buffers associated with the current project.
@@ -1056,9 +1063,904 @@ This uses `multi-occur' under the hood."
     (error "No project in current directory: %s" default-directory)))
 
 
-;;;
-;;; Prefix handling.
-;;;
+;;;; Transient infixes.
+
+;;;;; Auxiliary.
+
+;;;;; Definitions.
+
+(transient-define-infix disproject-infix-customize-switch ()
+  :description "Use Customize interface"
+  :class 'transient-switch
+  :shortarg "-c"
+  :argument "--customize"
+  :if #'disproject-prefix--customize-dirlocals-apt?)
+
+
+;;;; Transient suffixes.
+
+;;;;; Auxiliary.
+
+(defun disproject-add-sentinel-refresh-transient (buffer-name)
+  "Add function to a buffer's process sentinel to refresh transient, if active.
+
+BUFFER-NAME is the name of the buffer with a process sentinel the
+function will be added to."
+  (when-let* ((buffer (get-buffer buffer-name))
+              (process (get-buffer-process buffer))
+              ((not (advice-function-member-p
+                     #'disproject--refresh-transient
+                     (process-sentinel process)))))
+    (add-function
+     :before (process-sentinel process)
+     #'disproject--refresh-transient)))
+
+(defun disproject-dir-locals-file ()
+  "Return `dir-locals-file'."
+  dir-locals-file)
+
+(defun disproject-dir-locals-2-file ()
+  "Return the secondary `dir-locals-file'."
+  (let ((file-root (file-name-base dir-locals-file))
+        (file-extension (file-name-extension dir-locals-file)))
+    (concat file-root "-2." file-extension)))
+
+(defun disproject-process-buffer-name (project-dir &optional identifier)
+  "Return a project's process buffer name corresponding to IDENTIFIER.
+
+PROJECT-DIR is the project directory, which will be used to give
+project buffers a unique namespace.
+
+IDENTIFIER is an optional string argument that can be specified
+to make the buffer name unique to the project's process buffers.
+If non-nil, \"default\" is used as the identifier.
+
+This function is *not* meant to be used like
+`project-prefixed-buffer-name', although it is similar in
+functionality; the identifier should not be tied to the buffer
+mode in any way.  It should be the only means of making a name
+unique in the context of a project.  This allows users to track
+buffers based on just an identifier and also allow specifying
+incompatible commands (e.g. if two commands use the same buffer
+name, they should not be allowed to run at the same time)."
+  (concat "*"
+          (file-name-nondirectory (directory-file-name project-dir))
+          "-process|"
+          (or identifier "default")
+          "*"))
+
+(defun disproject-custom--suffix (spec-entry)
+  "Construct and return a suffix to be parsed by `transient-parse-suffixes'.
+
+SPEC-ENTRY is a single entry from the specification described by
+`disproject-custom-suffixes'."
+  (pcase spec-entry
+    (`( ,key ,description
+        .
+        ,(map :command-type :command :identifier))
+     (let* ((project (disproject-scope-selected-project-ensure
+                      (disproject--scope)))
+            ;; Fall back to description if identifier is not provided.
+            ;; Uniqueness is preferred over the name looking nice to prevent
+            ;; unintentionally making commands incompatible.
+            (identifier (or identifier description))
+            (disproject-process-buffer-name (disproject-process-buffer-name
+                                             (disproject-project-root project)
+                                             identifier)))
+       `(,key
+         ,(disproject-custom--suffix-description
+           (get-buffer disproject-process-buffer-name)
+           description)
+         (lambda ()
+           (interactive)
+           ;; Expose buffer name to the user; see note in
+           ;; `disproject-custom-suffixes'.
+           (let ((disproject-process-buffer-name ,disproject-process-buffer-name))
+             ,(disproject-custom--suffix-command command-type command)
+             (disproject-add-sentinel-refresh-transient
+              disproject-process-buffer-name))))))))
+
+(defun disproject-custom--suffix-command (command-type command)
+  "Dispatch a command s-expression to be evaluated in a custom suffix.
+
+COMMAND-TYPE is a symbol corresponding to a command type
+documented in `disproject-custom-suffixes'.
+
+COMMAND is an yet-to-be-evaluated s-expression which is inserted
+appropriately according to the command type.
+
+Note that the returned s-expressions may expect
+`disproject-process-buffer-name' to be set when evaluated; this
+value is expected to be the name of the buffer which processes
+will run."
+  (pcase command-type
+    ('bare-call
+     `(let ((command ,command))
+        (cond
+         ((commandp command t)
+          (call-interactively command))
+         (t
+          ,(disproject-custom--suffix-command-type-error
+            "Not an interactive function" command-type command)))))
+    ('call
+     `(disproject-with-environment
+        (let ((command ,command))
+          (cond
+           ((commandp command t)
+            (call-interactively command))
+           (t
+            ,(disproject-custom--suffix-command-type-error
+              "Not an interactive function" command-type command))))))
+    ('compile
+     `(disproject-with-environment
+        (let* ((compilation-buffer-name-function
+                (lambda (&rest _ignore) disproject-process-buffer-name))
+               (command ,command))
+          (compile (cond
+                    ((stringp command)
+                     command)
+                    ((commandp command t)
+                     (let ((result (call-interactively command)))
+                       (if (stringp result)
+                           result
+                         ,(disproject-custom--suffix-command-type-error
+                           "Function does not return string"
+                           command-type
+                           command))))
+                    (t
+                     ,(disproject-custom--suffix-command-type-error
+                       "Not a string or interactive function"
+                       command-type
+                       command)))))))
+    ('run
+     `(disproject-with-environment
+        (let ((shell-command-buffer-name-async disproject-process-buffer-name)
+              (command ,command))
+          (async-shell-command
+           (cond ((stringp command)
+                  command)
+                 ((commandp command t)
+                  (if-let* ((result (call-interactively command))
+                            ((stringp result)))
+                      result
+                    ,(disproject-custom--suffix-command-type-error
+                      "Function does not return string"
+                      command-type
+                      command)))
+                 (t
+                  ,(disproject-custom--suffix-command-type-error
+                    "Not a string or interactive function"
+                    command-type
+                    command)))))))
+    (_
+     (display-warning
+      'disproject
+      (format-message "Custom suffix command type not recognized: `%s'"
+                      command-type)))))
+
+(defun disproject-custom--suffix-command-type-error (message
+                                                     command-type
+                                                     command)
+  "Return an s-expression to evaluate when there is a suffix command type error.
+
+MESSAGE is the message body stating the typing issue.
+
+COMMAND-TYPE is the `:command-type' value declared in the custom
+suffix entry specification.
+
+COMMAND is an unevaluated s-expression representing the declared
+`:command' value that can be printed as-is for the user."
+  `(error "(`%s') %s: %s" ',command-type ,message ',command))
+
+(defun disproject-custom--suffix-description (buffer description)
+  "Return an appropriate description for a custom suffix.
+
+BUFFER is the associated custom suffix buffer.  It may be nil.
+
+DESCRIPTION is the custom suffix description as defined by the
+user."
+  (concat (cond
+           ((null buffer)
+            "")
+           ((get-buffer-process buffer)
+            (concat (propertize "[a]" 'face 'transient-enabled-suffix)
+                    " "))
+           (t
+            (concat (propertize "[i]" 'face 'transient-inactive-value)
+                    " ")))
+          description))
+
+(defun disproject--find-dir-locals-file (file)
+  "Dispatch a function to edit dir-locals FILE depending on transient state.
+
+This supports `find-file' (default) and `customize-dirlocals';
+the latter of which will be used when the \"--customize\" value
+is in transient arguments.
+
+Note that `customize-dirlocals' was introduced in Emacs version
+30.1.  If the function is not available and the \"--customize\"
+value is passed, this function will not do anything."
+  (declare-function customize-dirlocals "cus-edit")
+  (let* ((args (if transient-current-command
+                   (transient-args transient-current-command)))
+         (customize? (transient-arg-value "--customize" args)))
+    (cond
+     (customize?
+      (if (functionp 'customize-dirlocals)
+          (customize-dirlocals (expand-file-name file))
+        (user-error "`customize-dirlocals' is not defined (added in Emacs 30.1)")))
+     (t
+      (find-file file)))))
+
+(defun disproject--open-projects ()
+  "Return a list of projects with open buffers."
+  (let* ((buffer-list
+          ;; Ignore ephemeral buffers
+          (match-buffers (lambda (buf)
+                           (not (string-prefix-p " " (buffer-name buf))))))
+         (directories
+          (cl-remove-duplicates (mapcar
+                                 (lambda (buf)
+                                   (buffer-local-value 'default-directory buf))
+                                 buffer-list)
+                                :test #'equal)))
+    (cl-remove-duplicates
+     (seq-mapcat (lambda (directory)
+                   (if-let* ((project (project-current nil directory)))
+                       (list project)))
+                 directories)
+     :test (lambda (p1 p2) (equal (project-root p1) (project-root p2))))))
+
+(defun disproject--refresh-transient (&rest _ignore)
+  "Refresh the currently active transient, if available."
+  (when (transient-active-prefix)
+    (transient--refresh-transient)))
+
+(defun disproject--switch-project (search-directory)
+  "Modify the Transient scope to switch to another project.
+
+Look for a valid project root directory in SEARCH-DIRECTORY.  If
+one is found, update the Transient scope to switch the selected
+project."
+  (setf (disproject-scope-selected-project (disproject--scope))
+        (disproject-project :root search-directory)))
+
+;;;;; Suffix environment.
+
+(defvar disproject--environment-buffer-name " disproject-environment"
+  "Name of buffer which commands will be run from.")
+
+(defmacro disproject--with-environment-buffer (&rest body)
+  "Run BODY in a disproject environment buffer.
+
+This will be an indirect buffer made from the current buffer."
+  (declare (indent 0) (debug t))
+  (let ((buf-name (make-symbol "buf-name")))
+    `(let ((,buf-name (generate-new-buffer-name
+                       disproject--environment-buffer-name)))
+       (unwind-protect
+           (with-current-buffer
+               (make-indirect-buffer (current-buffer) ,buf-name t t)
+             ,@body)
+         (when-let* ((buf (get-buffer ,buf-name)))
+           (kill-buffer buf))))))
+
+(defun disproject-with-root-apply (fun &rest args)
+  "Apply FUN to ARGS with `default-directory' set to the current project root."
+  (let ((default-directory (project-root (project-current t))))
+    (apply fun args)))
+
+(defmacro disproject-with-root (&rest body)
+  "Run BODY from the current project's root directory.
+
+This is a macro version of `disproject-with-root-apply'."
+  (declare (indent 0) (debug t))
+  `(disproject-with-root-apply (lambda () ,@body)))
+
+(defun disproject-with-env-apply (fun &rest args)
+  "Set up environment from Disproject transient options and apply FUN to ARGS.
+
+In order to prevent side effects from modifying variables in the
+current buffer, BODY is run in the context of a temporary
+indirect buffer made from the current buffer.
+
+The environment consists of the following overrides:
+
+`project-current-directory-override': Set to the selected
+project's root directory.
+
+`display-buffer-overriding-action': Set to the selected
+`display-buffer' action override, if any.  If the overriding
+action alist has a non-nil entry for
+\\='inhibit-multiple-displays, the action will set up such that
+it only applies to the first `display-buffer' for a command while
+no minibuffer is active.  This may be useful for actions that do
+not play well with commands that can display more than one
+buffer."
+  (let* ((original-command this-command)
+         (disproject--environment-scope (disproject--scope))
+         (project (disproject-project-instance
+                   (disproject-scope-selected-project-ensure
+                    disproject--environment-scope)))
+         (from-directory (project-root project))
+         (old-display-buffer-overriding-action display-buffer-overriding-action)
+         (display-buffer-action (disproject-scope-display-buffer-action
+                                 disproject--environment-scope))
+         (minibuffer-depth (minibuffer-depth))
+         ;; Don't use `display-buffer-override-next-command' to avoid having
+         ;; to infer type in PRE-FUNCTION.  Also makes it possible to use
+         ;; `display-buffer-no-window', which would not have valid values to
+         ;; return.
+         (display-buffer-override-function
+          `(,(lambda (buffer alist)
+               (pcase display-buffer-action
+                 (`(,functions . ,(and (map ('inhibit-multiple-displays
+                                             inhibit-multiple-displays))
+                                       action-alist))
+                  (unless (and inhibit-multiple-displays
+                               (> (minibuffer-depth) minibuffer-depth))
+                    (prog1 (seq-some (lambda (fun)
+                                       (funcall fun buffer
+                                                (append action-alist alist)))
+                                     (ensure-list functions))
+                      (when inhibit-multiple-displays
+                        (setq display-buffer-overriding-action
+                              old-display-buffer-overriding-action)))))))))
+         ;; Only enable envrc if the initial environment has it enabled.
+         (enable-envrc (and (bound-and-true-p envrc-mode)
+                            (symbol-function 'envrc-mode)))
+         ;; Only enable mise if the initial environment has it enabled.
+         (enable-mise (and (bound-and-true-p mise-mode)
+                           (symbol-function 'mise-mode))))
+    (disproject--with-environment-buffer
+      ;; Since interactive prompts may occur from having to ensure that a
+      ;; project is selected, we re-set `this-command' so
+      ;; `transient-suffix-object' can find the current suffix object.
+      (let ((this-command original-command)
+            (project-current-directory-override from-directory)
+            ;; If an override is used and `switch-to-buffer' is called, we
+            ;; assume the user explicitly wants it to obey the display action.
+            (switch-to-buffer-obey-display-actions (and display-buffer-action t)))
+        (disproject-with-root
+          (hack-dir-local-variables-non-file-buffer)
+          ;; Make sure commands are run in the correct direnv environment if
+          ;; envrc-mode is enabled.
+          (when enable-envrc (funcall enable-envrc))
+          ;; Make sure commands are run in the correct mise environment if
+          ;; mise-mode is enabled.
+          (when enable-mise (funcall enable-mise)))
+        (let ((display-buffer-overriding-action display-buffer-override-function))
+          (apply fun args))))))
+
+(defmacro disproject-with-env (&rest body)
+  "Run BODY with Disproject transient settings applied.
+
+This is a macro version of `disproject-with-env-apply'; see the
+function for documentation on the settings."
+  (declare (indent 0) (debug t))
+  `(disproject-with-env-apply
+    (lambda () ,@body)))
+
+(defun disproject-with-env+root-apply (fun &rest args)
+  "Apply FUN to ARGS from project root with Disproject transient settings.
+
+See `disproject-with-env' and `disproject-with-root' for
+documentation on settings applied.
+
+Note that the environment is applied first, so project root will
+be based on the selected project, not the current project."
+  (disproject-with-env (disproject-with-root (apply fun args))))
+
+(defmacro disproject-with-env+root (&rest body)
+  "Run BODY with Disproject transient settings applied in selected project root.
+
+This is a macro version of `disproject-with-env+root-apply'; see the
+function for documentation on settings applied."
+  (declare (indent 0) (debug t))
+  `(disproject-with-env+root-apply (lambda () ,@body)))
+
+(defmacro disproject-with-environment (&rest body)
+  "Run BODY with Disproject transient settings applied in selected project root.
+
+This is an alias for `disproject-with-env+root'."
+  (declare (indent 0) (debug t))
+  `(disproject-with-env+root ,@body))
+
+;;;;; Definitions.
+
+(transient-define-suffix disproject-compile ()
+  "Run a shell command with `compile' in project root.
+
+The `cmd' slot value of the current transient suffix object is
+used as the shell command.  If nil, prompt with `compile-command'
+as an initial value.
+
+With prefix arg or the `always-read?' slot non-nil, always
+prompt.
+
+If the `comint?' slot value of the current suffix object is
+non-nil, Comint mode will be enabled in the compilation buffer.
+
+See type `disproject-compilation-suffix' for documentation on
+transient suffix slots."
+  :class disproject-compilation-suffix
+  (interactive)
+  (disproject-with-env
+    (disproject-with-root
+      (let* ((obj
+              (transient-suffix-object))
+             (always-read?
+              (oref obj always-read?))
+             (command
+              (if-let* ((cmd (disproject-shell-command-suffix-cmd obj)))
+                  ;; We don't need to read if `compilation-read-command' is t,
+                  ;; since the command should already be considered safe from
+                  ;; `disproject-custom--suffixes-allowed?'.
+                  (if (or always-read? current-prefix-arg)
+                      (compilation-read-command cmd)
+                    cmd)
+                (let ((cmd (eval compile-command)))
+                  (if (or compilation-read-command current-prefix-arg)
+                      (compilation-read-command cmd)
+                    cmd))))
+             (comint?
+              (if (slot-boundp obj 'comint?)
+                  (oref obj comint?)
+                ;; TODO: Default to a customizable variable when
+                ;; the slot is unbound.
+                nil))
+             (scope
+              (disproject--scope))
+             (project-name
+              (project-name (disproject-project-instance
+                             (disproject-scope-selected-project-ensure scope))))
+             (buf-name
+              (disproject-process-suffix-buffer-name obj project-name))
+             (compilation-buffer-name-function
+              (cl-constantly buf-name)))
+        (compile command comint?)))))
+
+(transient-define-suffix disproject-custom-prune-allowed-suffixes ()
+  "Prune `disproject-custom-allowed-suffixes' entries.
+
+The variable `disproject-custom-allowed-suffixes' may retain old
+allowed custom suffixes from forgotten projects.  This command
+provides a convenient means of removing old entries.
+
+Disproject will usually handle calling this for the user when it
+matters; for example, at the end of `disproject-forget-*'
+commands."
+  (interactive)
+  (let* ((set-message-function 'set-multi-message)
+         (new-suffixes
+          (seq-filter (pcase-lambda (`(,project-root . ,_rest))
+                        (if (seq-contains-p (project-known-project-roots)
+                                            project-root)
+                            t
+                          (message
+                           "disproject: Pruning allowed custom suffixes for unknown project: %s"
+                           project-root)
+                          nil))
+                      disproject-custom-allowed-suffixes)))
+    (when (not (equal new-suffixes disproject-custom-allowed-suffixes))
+      (customize-save-variable 'disproject-custom-allowed-suffixes new-suffixes))))
+
+(transient-define-suffix disproject-dired ()
+  "Open Dired in project root."
+  (interactive)
+  (disproject-with-environment
+    (call-interactively #'project-dired)))
+
+(transient-define-suffix disproject-dir-locals ()
+  "Open `dir-locals-file' in the project root.
+
+If prefix arg is non-nil, open the personal secondary
+file (\".dir-locals-2.el\" by default)."
+  (interactive)
+  (disproject-with-environment
+    (find-file (if current-prefix-arg
+                   (disproject-dir-locals-2-file)
+                 (disproject-dir-locals-file)))))
+
+(make-obsolete 'disproject-dir-locals 'disproject-find-dir-locals-file "2.2.0")
+
+;; DEPRECATED: Remove at least six months after release with this notice.
+(transient-define-suffix disproject-display-buffer-action-set ()
+  "Set the transient scope's `display-buffer-overriding-action' value.
+
+This does not do anything as a standalone command.  It is
+intended to be used in Transient prefixes, where this command may
+be specified with a value for the \\='display-buffer-action
+slot (of `disproject-display-buffer-action-suffix').  This
+enables generating suffix commands that can set the
+`display-buffer' overriding action to custom values.
+
+Users may specify a description for the action by adding a
+\\='description entry to the action alist.  If this is omitted,
+the suffix description will be used instead.
+
+An \\='inhibit-multiple-displays entry may also be specified,
+which will affect the behavior of `display-buffer' in certain
+cases.  See `disproject-with-env' for more information.
+
+For example, a specification for a suffix command that sets the
+override to \"prefer other window\" might look something like so:
+  (\"o\" \"other window\" disproject-display-buffer-action-set
+   :display-buffer-action (display-buffer-use-some-window
+                           (inhibit-same-window . t)
+                           ;; Omitting this will cause the suffix description
+                           ;; to be used; in this case, \"other window\".
+                           (description . \"use other window\")))
+
+Note that this only works in transient prefixes of class
+`disproject-prefix'.
+
+See type `disproject-display-buffer-action-suffix' for
+documentation on transient suffix slots."
+  :class disproject-display-buffer-action-suffix
+  :transient #'transient--do-return
+  (interactive)
+  (if-let* ((scope (disproject--scope))
+            (suffix (transient-suffix-object)))
+      (setf (disproject-scope-display-buffer-action scope)
+            (let ((action (oref suffix display-buffer-action)))
+              (pcase-exhaustive action
+                ('nil
+                 nil)
+                (`(,_functions . ,(map ('description (pred (not null)))))
+                 action)
+                (`(,functions . ,alist)
+                 `(,functions . ((description
+                                  . ,(transient-format-description suffix))
+                                 ,@alist))))))))
+
+(transient-define-suffix disproject-execute-extended-command ()
+  "Execute an extended command in project root."
+  (interactive)
+  (disproject-with-environment
+    (call-interactively #'execute-extended-command)))
+
+(transient-define-suffix disproject-find-dir ()
+  "Find directory in project.
+
+The command used can be customized with
+`disproject-find-dir-command'."
+  (interactive)
+  (disproject-with-environment
+    (call-interactively disproject-find-dir-command)))
+
+(transient-define-suffix disproject-find-dir-locals-file ()
+  "Find `dir-locals-file' in project root.
+
+If the \"--customize\" option is specified in transient state,
+use `customize-dirlocals' to open the file.
+
+The secondary dir-locals file may be accessed with
+`disproject-find-dir-locals-2-file'."
+  :class disproject-find-special-file-suffix
+  :key "l"
+  :file #'disproject-dir-locals-file
+  :find-file-function #'disproject--find-dir-locals-file
+  (interactive)
+  (disproject-find-special-file))
+
+(transient-define-suffix disproject-find-dir-locals-2-file ()
+  "Find secondary `dir-locals-file' in project root.
+
+If the \"--customize\" option is specified in transient state,
+use `customize-dirlocals' to open the file.
+
+The primary dir-locals file may be accessed with
+`disproject-find-dir-locals-file'."
+  :class disproject-find-special-file-suffix
+  :key "L"
+  :file #'disproject-dir-locals-2-file
+  :find-file-function #'disproject--find-dir-locals-file
+  (interactive)
+  (disproject-find-special-file))
+
+(transient-define-suffix disproject-find-file ()
+  "Find file in project.
+
+The command used can be customized with
+`disproject-find-file-command'."
+  (interactive)
+  (disproject-with-environment
+    (call-interactively disproject-find-file-command)))
+
+(transient-define-suffix disproject-find-line ()
+  "Find matching line in open project buffers."
+  (interactive)
+  (disproject-with-environment
+    (call-interactively disproject-find-line-command)))
+
+(transient-define-suffix disproject-find-regexp ()
+  "Search project for regexp.
+
+The command used can be customized with
+`disproject-find-regexp-command'."
+  (interactive)
+  (disproject-with-environment
+    (call-interactively disproject-find-regexp-command)))
+
+(transient-define-suffix disproject-find-special-file ()
+  "Find a special file in project.
+
+The `file' slot can be overridden in specifications to set a
+\"special file\" that this command will find.  By default, this
+command will find the project root directory.
+
+`find-file' is the default function used for opening special
+files.  This may be customized via the `find-file-function' slot;
+the value should be a function that takes a single argument,
+being the file to open.
+
+See type `disproject-find-special-file-suffix' for documentation
+on transient suffix slots."
+  :class disproject-find-special-file-suffix
+  (interactive)
+  (disproject-with-root
+    (let* ((suffix (transient-suffix-object))
+           (file (disproject-find-special-file-suffix-file suffix))
+           (find-file-function (oref suffix find-file-function)))
+      (funcall find-file-function file))))
+
+(transient-define-suffix disproject-flymake-diagnostics ()
+  "View the Flymake diagnostics of the project."
+  (interactive)
+  (declare-function flymake-show-project-diagnostics "flymake")
+  (disproject-with-environment
+    (call-interactively #'flymake-show-project-diagnostics)))
+
+(transient-define-suffix disproject-forget-project ()
+  "Forget a project."
+  (interactive)
+  (let ((set-message-function 'set-multi-message))
+    (call-interactively #'project-forget-project)
+    (disproject-custom-prune-allowed-suffixes)))
+
+(transient-define-suffix disproject-forget-projects-under ()
+  "Forget projects under a directory."
+  (interactive)
+  (let ((set-message-function 'set-multi-message))
+    (call-interactively #'project-forget-projects-under)
+    (disproject-custom-prune-allowed-suffixes)))
+
+(transient-define-suffix disproject-forget-zombie-projects ()
+  "Forget zombie projects."
+  (interactive)
+  (let ((set-message-function 'set-multi-message))
+    (call-interactively #'project-forget-zombie-projects)
+    (disproject-custom-prune-allowed-suffixes)))
+
+(transient-define-suffix disproject-git-clone-fallback (repository
+                                                        directory
+                                                        &optional
+                                                        arguments)
+  "Git-clone REPOSITORY into DIRECTORY.
+
+ARGUMENTS is \"git clone\" by default.  If prefix arg is non-nil,
+prompt to modify ARGUMENTS options.
+
+\" -- <repository> <directory>\" is appended to ARGUMENTS, which
+is executed as a shell command.
+
+This command relies on the \"git\" executable being in the
+programs path."
+  (interactive "GRepository: \nGDirectory: ")
+  (let* ((directory (expand-file-name directory))
+         (arguments (or arguments
+                        (if current-prefix-arg
+                            (read-shell-command "git arguments: " "git clone ")
+                          "git clone ")))
+         (buf-name (disproject-process-buffer-name directory "git")))
+    (async-shell-command (concat arguments " -- " repository " " directory)
+                         buf-name)
+    (switch-to-buffer-other-window buf-name)
+    (setq default-directory directory)))
+
+(transient-define-suffix disproject-git-init-fallback (directory
+                                                       &optional
+                                                       arguments)
+  "Initialize a git repository in DIRECTORY.
+
+ARGUMENTS is \"git init\" by default.  If prefix arg is non-nil,
+prompt to modify ARGUMENTS.
+
+\" -- <directory>\" is appended to ARGUMENTS, which is executed
+as a shell command.
+
+This command relies on the \"git\" executable being in the
+programs path."
+  (interactive "GDirectory: ")
+  (let* ((directory (expand-file-name directory))
+         (arguments (or arguments
+                        (if current-prefix-arg
+                            (read-shell-command "git arguments: " "git init ")
+                          "git init ")))
+         (buf-name (disproject-process-buffer-name directory "git")))
+    (async-shell-command (concat arguments " -- " directory) buf-name)
+    (switch-to-buffer-other-window buf-name)
+    (setq default-directory directory)))
+
+(transient-define-suffix disproject-kill-buffers ()
+  "Kill all buffers related to project."
+  (interactive)
+  (disproject-with-environment
+    (call-interactively #'project-kill-buffers)))
+
+(transient-define-suffix disproject-list-buffers ()
+  "Display a list of open buffers for project."
+  (interactive)
+  (disproject-with-environment
+    (call-interactively #'project-list-buffers)))
+
+(transient-define-suffix disproject-magit-todos-list ()
+  "Open a `magit-todos-list' buffer for project."
+  (interactive)
+  (declare-function magit-todos-list-internal "magit-todos")
+  (disproject-with-environment
+    (magit-todos-list-internal default-directory)))
+
+(transient-define-suffix disproject-or-external-find-file ()
+  "Find file in project or external roots.
+
+The command used can be customized with
+`disproject-or-external-find-file-command'."
+  (interactive)
+  (disproject-with-environment
+    (call-interactively disproject-or-external-find-file-command)))
+
+(transient-define-suffix disproject-or-external-find-regexp ()
+  "Find regexp in project or external roots.
+
+The command used can be customized with
+`disproject-or-external-find-regexp-command'."
+  (interactive)
+  (disproject-with-environment
+    (call-interactively disproject-or-external-find-regexp-command)))
+
+(transient-define-suffix disproject-query-replace-regexp ()
+  "Search project for regexp and query-replace matches."
+  (interactive)
+  (disproject-with-environment
+    (call-interactively #'project-query-replace-regexp)))
+
+(transient-define-suffix disproject-remember-projects-open ()
+  "Remember projects with open buffers."
+  (interactive)
+  (when-let* ((open-projects (disproject--open-projects)))
+    (seq-each (lambda (project)
+                (project-remember-project project t))
+              open-projects)
+    (project--write-project-list)))
+
+(transient-define-suffix disproject-remember-projects-under ()
+  "Remember projects under a directory with `project-remember-projects-under'."
+  (interactive)
+  (call-interactively #'project-remember-projects-under))
+
+(transient-define-suffix disproject-shell ()
+  "Start a shell in project.
+
+The command used can be customized with the variable
+`disproject-shell-command'."
+  (interactive)
+  (disproject-with-environment
+    (call-interactively disproject-shell-command)))
+
+(transient-define-suffix disproject-shell-command ()
+  "Run a shell command asynchronously in project root.
+
+The `cmd' slot value of the current transient suffix object is
+used as the command.  If nil, prompt for a command to run.
+
+With prefix arg or the `always-read?' slot non-nil, always
+prompt.
+
+If the `allow-multiple-buffers?' slot of the current suffix
+object is nil, `async-shell-command-buffer' will be set to
+\\='confirm-kill-process so the process status can be accurately
+reflected.
+
+See type `disproject-shell-command-suffix' for documentation on
+transient suffix slots."
+  :class disproject-shell-command-suffix
+  (interactive)
+  (disproject-with-env
+    (disproject-with-root
+      (let* ((scope (disproject--scope))
+             (obj (transient-suffix-object))
+             (always-read? (oref obj always-read?))
+             (command (if-let* ((cmd (disproject-shell-command-suffix-cmd obj)))
+                          (if (or always-read? current-prefix-arg)
+                              (read-shell-command "Async shell command: " cmd)
+                            cmd)
+                        (read-shell-command "Async shell command: ")))
+             (project-name (project-name
+                            (disproject-project-instance
+                             (disproject-scope-selected-project-ensure scope))))
+             (buf-name (disproject-process-suffix-buffer-name obj project-name))
+             (allow-multiple-buffers? (oref obj allow-multiple-buffers?))
+             (async-shell-command-buffer (if allow-multiple-buffers?
+                                             async-shell-command-buffer
+                                           'confirm-kill-process)))
+        (async-shell-command command buf-name)))))
+
+(transient-define-suffix disproject-switch-project ()
+  "Switch project to dispatch commands on.
+
+Uses `project-prompt-project-dir' to switch project root
+directories."
+  (interactive)
+  (disproject--switch-project (project-prompt-project-dir)))
+
+(transient-define-suffix disproject-switch-project-open ()
+  "Switch to an open project to dispatch commands on.
+
+This is equivalent to `disproject-switch-project' but only shows
+projects with open buffers when prompting for projects to switch
+to."
+  (interactive)
+  (let* ((open-projects (mapcar #'project-root (disproject--open-projects)))
+         ;; `project--file-completion-table' seems to accept any collection as
+         ;; defined by `completing-read'.
+         (completion-table (project--file-completion-table open-projects))
+         (project-directory (completing-read "Select open project: "
+                                             completion-table nil t)))
+    (disproject--switch-project project-directory)))
+
+(transient-define-suffix disproject-switch-to-buffer ()
+  "Switch to buffer in project.
+
+The command used can be customized with
+`disproject-switch-to-buffer-command'."
+  (interactive)
+  (disproject-with-environment
+    (call-interactively disproject-switch-to-buffer-command)))
+
+(transient-define-suffix disproject-synchronous-shell-command ()
+  "Run `project-shell-command' in selected project."
+  (interactive)
+  (disproject-with-env
+    (call-interactively #'project-shell-command)))
+
+(transient-define-suffix disproject-vc-status ()
+  "Dispatch a VC status command depending on the project backend.
+
+The status command used depends on the variable
+`disproject-vc-status-commands' - see its documentation for
+configuring this function's behavior.  The chosen function will
+be called interactively."
+  :description
+  (lambda ()
+    (concat (if-let* ((project (disproject-scope-selected-project
+                                (disproject--scope)))
+                      (backend (disproject-project-backend project)))
+                ;; The number chosen for this is somewhat arbitrary, but should
+                ;; be fine as long as the end result is around the same size as
+                ;; the other descriptions in its column.
+                (truncate-string-to-width (symbol-name backend) 6 nil nil t)
+              "VC")
+            " status"))
+  (interactive)
+  (disproject-with-environment
+    (let* ((scope (disproject--scope))
+           (project (disproject-scope-selected-project-ensure scope))
+           (backend (disproject-project-backend project)))
+      (unless backend
+        (user-error "No backend found for project: %s"
+                    (disproject-project-root project)))
+      (call-interactively
+       (if-let* ((command (alist-get backend disproject-vc-status-commands))
+                 ((fboundp command)))
+           command
+         (alist-get nil disproject-vc-status-commands))))))
+
+
+;;;; Transient prefixes.
+
+;;;;; Auxiliary.
 
 (defun disproject--assert-type (variable value)
   "Assert that VALUE matches the type for custom VARIABLE.
@@ -1180,7 +2082,7 @@ n -- to ignore them and use the default custom suffixes.
               (propertize root 'face 'transient-value)
             (propertize "None detected" 'face 'transient-inapt-suffix))))
 
-;;;; Prefixes.
+;;;;; Definitions.
 
 ;;;###autoload (autoload 'disproject-dispatch "disproject" nil t)
 (transient-define-prefix disproject-dispatch ()
@@ -1341,408 +2243,14 @@ defining commands that can modify the override state."
             ")")))
 
 
-;;;
-;;; Transient state handling.
-;;;
-
-(defun disproject--open-projects ()
-  "Return a list of projects with open buffers."
-  (let* ((buffer-list
-          ;; Ignore ephemeral buffers
-          (match-buffers (lambda (buf)
-                           (not (string-prefix-p " " (buffer-name buf))))))
-         (directories
-          (cl-remove-duplicates (mapcar
-                                 (lambda (buf)
-                                   (buffer-local-value 'default-directory buf))
-                                 buffer-list)
-                                :test #'equal)))
-    (cl-remove-duplicates
-     (seq-mapcat (lambda (directory)
-                   (if-let* ((project (project-current nil directory)))
-                       (list project)))
-                 directories)
-     :test (lambda (p1 p2) (equal (project-root p1) (project-root p2))))))
-
-;;;; Infixes.
-
-(transient-define-infix disproject-infix-customize-switch ()
-  :description "Use Customize interface"
-  :class 'transient-switch
-  :shortarg "-c"
-  :argument "--customize"
-  :if #'disproject-prefix--customize-dirlocals-apt?)
+;;; TODO: Sort below.
 
 
 ;;;
 ;;; Suffix handling.
 ;;;
 
-(defun disproject-process-buffer-name (project-dir &optional identifier)
-  "Return a project's process buffer name corresponding to IDENTIFIER.
-
-PROJECT-DIR is the project directory, which will be used to give
-project buffers a unique namespace.
-
-IDENTIFIER is an optional string argument that can be specified
-to make the buffer name unique to the project's process buffers.
-If non-nil, \"default\" is used as the identifier.
-
-This function is *not* meant to be used like
-`project-prefixed-buffer-name', although it is similar in
-functionality; the identifier should not be tied to the buffer
-mode in any way.  It should be the only means of making a name
-unique in the context of a project.  This allows users to track
-buffers based on just an identifier and also allow specifying
-incompatible commands (e.g. if two commands use the same buffer
-name, they should not be allowed to run at the same time)."
-  (concat "*"
-          (file-name-nondirectory (directory-file-name project-dir))
-          "-process|"
-          (or identifier "default")
-          "*"))
-
-(defun disproject-add-sentinel-refresh-transient (buffer-name)
-  "Add function to a buffer's process sentinel to refresh transient, if active.
-
-BUFFER-NAME is the name of the buffer with a process sentinel the
-function will be added to."
-  (when-let* ((buffer (get-buffer buffer-name))
-              (process (get-buffer-process buffer))
-              ((not (advice-function-member-p
-                     #'disproject--refresh-transient
-                     (process-sentinel process)))))
-    (add-function
-     :before (process-sentinel process)
-     #'disproject--refresh-transient)))
-
-(defun disproject-dir-locals-file ()
-  "Return `dir-locals-file'."
-  dir-locals-file)
-
-(defun disproject-dir-locals-2-file ()
-  "Return the secondary `dir-locals-file'."
-  (let ((file-root (file-name-base dir-locals-file))
-        (file-extension (file-name-extension dir-locals-file)))
-    (concat file-root "-2." file-extension)))
-
-(defun disproject--find-dir-locals-file (file)
-  "Dispatch a function to edit dir-locals FILE depending on transient state.
-
-This supports `find-file' (default) and `customize-dirlocals';
-the latter of which will be used when the \"--customize\" value
-is in transient arguments.
-
-Note that `customize-dirlocals' was introduced in Emacs version
-30.1.  If the function is not available and the \"--customize\"
-value is passed, this function will not do anything."
-  (declare-function customize-dirlocals "cus-edit")
-  (let* ((args (if transient-current-command
-                   (transient-args transient-current-command)))
-         (customize? (transient-arg-value "--customize" args)))
-    (cond
-     (customize?
-      (if (functionp 'customize-dirlocals)
-          (customize-dirlocals (expand-file-name file))
-        (user-error "`customize-dirlocals' is not defined (added in Emacs 30.1)")))
-     (t
-      (find-file file)))))
-
-(defun disproject-custom--suffix (spec-entry)
-  "Construct and return a suffix to be parsed by `transient-parse-suffixes'.
-
-SPEC-ENTRY is a single entry from the specification described by
-`disproject-custom-suffixes'."
-  (pcase spec-entry
-    (`( ,key ,description
-        .
-        ,(map :command-type :command :identifier))
-     (let* ((project (disproject-scope-selected-project-ensure
-                      (disproject--scope)))
-            ;; Fall back to description if identifier is not provided.
-            ;; Uniqueness is preferred over the name looking nice to prevent
-            ;; unintentionally making commands incompatible.
-            (identifier (or identifier description))
-            (disproject-process-buffer-name (disproject-process-buffer-name
-                                             (disproject-project-root project)
-                                             identifier)))
-       `(,key
-         ,(disproject-custom--suffix-description
-           (get-buffer disproject-process-buffer-name)
-           description)
-         (lambda ()
-           (interactive)
-           ;; Expose buffer name to the user; see note in
-           ;; `disproject-custom-suffixes'.
-           (let ((disproject-process-buffer-name ,disproject-process-buffer-name))
-             ,(disproject-custom--suffix-command command-type command)
-             (disproject-add-sentinel-refresh-transient
-              disproject-process-buffer-name))))))))
-
-(defun disproject-custom--suffix-command (command-type command)
-  "Dispatch a command s-expression to be evaluated in a custom suffix.
-
-COMMAND-TYPE is a symbol corresponding to a command type
-documented in `disproject-custom-suffixes'.
-
-COMMAND is an yet-to-be-evaluated s-expression which is inserted
-appropriately according to the command type.
-
-Note that the returned s-expressions may expect
-`disproject-process-buffer-name' to be set when evaluated; this
-value is expected to be the name of the buffer which processes
-will run."
-  (pcase command-type
-    ('bare-call
-     `(let ((command ,command))
-        (cond
-         ((commandp command t)
-          (call-interactively command))
-         (t
-          ,(disproject-custom--suffix-command-type-error
-            "Not an interactive function" command-type command)))))
-    ('call
-     `(disproject-with-environment
-        (let ((command ,command))
-          (cond
-           ((commandp command t)
-            (call-interactively command))
-           (t
-            ,(disproject-custom--suffix-command-type-error
-              "Not an interactive function" command-type command))))))
-    ('compile
-     `(disproject-with-environment
-        (let* ((compilation-buffer-name-function
-                (lambda (&rest _ignore) disproject-process-buffer-name))
-               (command ,command))
-          (compile (cond
-                    ((stringp command)
-                     command)
-                    ((commandp command t)
-                     (let ((result (call-interactively command)))
-                       (if (stringp result)
-                           result
-                         ,(disproject-custom--suffix-command-type-error
-                           "Function does not return string"
-                           command-type
-                           command))))
-                    (t
-                     ,(disproject-custom--suffix-command-type-error
-                       "Not a string or interactive function"
-                       command-type
-                       command)))))))
-    ('run
-     `(disproject-with-environment
-        (let ((shell-command-buffer-name-async disproject-process-buffer-name)
-              (command ,command))
-          (async-shell-command
-           (cond ((stringp command)
-                  command)
-                 ((commandp command t)
-                  (if-let* ((result (call-interactively command))
-                            ((stringp result)))
-                      result
-                    ,(disproject-custom--suffix-command-type-error
-                      "Function does not return string"
-                      command-type
-                      command)))
-                 (t
-                  ,(disproject-custom--suffix-command-type-error
-                    "Not a string or interactive function"
-                    command-type
-                    command)))))))
-    (_
-     (display-warning
-      'disproject
-      (format-message "Custom suffix command type not recognized: `%s'"
-                      command-type)))))
-
-(defun disproject-custom--suffix-command-type-error (message
-                                                     command-type
-                                                     command)
-  "Return an s-expression to evaluate when there is a suffix command type error.
-
-MESSAGE is the message body stating the typing issue.
-
-COMMAND-TYPE is the `:command-type' value declared in the custom
-suffix entry specification.
-
-COMMAND is an unevaluated s-expression representing the declared
-`:command' value that can be printed as-is for the user."
-  `(error "(`%s') %s: %s" ',command-type ,message ',command))
-
-(defun disproject-custom--suffix-description (buffer description)
-  "Return an appropriate description for a custom suffix.
-
-BUFFER is the associated custom suffix buffer.  It may be nil.
-
-DESCRIPTION is the custom suffix description as defined by the
-user."
-  (concat (cond
-           ((null buffer)
-            "")
-           ((get-buffer-process buffer)
-            (concat (propertize "[a]" 'face 'transient-enabled-suffix)
-                    " "))
-           (t
-            (concat (propertize "[i]" 'face 'transient-inactive-value)
-                    " ")))
-          description))
-
-(defun disproject--refresh-transient (&rest _ignore)
-  "Refresh the currently active transient, if available."
-  (when (transient-active-prefix)
-    (transient--refresh-transient)))
-
-(defun disproject--switch-project (search-directory)
-  "Modify the Transient scope to switch to another project.
-
-Look for a valid project root directory in SEARCH-DIRECTORY.  If
-one is found, update the Transient scope to switch the selected
-project."
-  (setf (disproject-scope-selected-project (disproject--scope))
-        (disproject-project :root search-directory)))
-
 ;;;; Suffix environment.
-
-(defvar disproject--environment-buffer-name " disproject-environment"
-  "Name of buffer which commands will be run from.")
-
-(defmacro disproject--with-environment-buffer (&rest body)
-  "Run BODY in a disproject environment buffer.
-
-This will be an indirect buffer made from the current buffer."
-  (declare (indent 0) (debug t))
-  (let ((buf-name (make-symbol "buf-name")))
-    `(let ((,buf-name (generate-new-buffer-name
-                       disproject--environment-buffer-name)))
-       (unwind-protect
-           (with-current-buffer
-               (make-indirect-buffer (current-buffer) ,buf-name t t)
-             ,@body)
-         (when-let* ((buf (get-buffer ,buf-name)))
-           (kill-buffer buf))))))
-
-(defun disproject-with-root-apply (fun &rest args)
-  "Apply FUN to ARGS with `default-directory' set to the current project root."
-  (let ((default-directory (project-root (project-current t))))
-    (apply fun args)))
-
-(defmacro disproject-with-root (&rest body)
-  "Run BODY from the current project's root directory.
-
-This is a macro version of `disproject-with-root-apply'."
-  (declare (indent 0) (debug t))
-  `(disproject-with-root-apply (lambda () ,@body)))
-
-(defun disproject-with-env-apply (fun &rest args)
-  "Set up environment from Disproject transient options and apply FUN to ARGS.
-
-In order to prevent side effects from modifying variables in the
-current buffer, BODY is run in the context of a temporary
-indirect buffer made from the current buffer.
-
-The environment consists of the following overrides:
-
-`project-current-directory-override': Set to the selected
-project's root directory.
-
-`display-buffer-overriding-action': Set to the selected
-`display-buffer' action override, if any.  If the overriding
-action alist has a non-nil entry for
-\\='inhibit-multiple-displays, the action will set up such that
-it only applies to the first `display-buffer' for a command while
-no minibuffer is active.  This may be useful for actions that do
-not play well with commands that can display more than one
-buffer."
-  (let* ((original-command this-command)
-         (disproject--environment-scope (disproject--scope))
-         (project (disproject-project-instance
-                   (disproject-scope-selected-project-ensure
-                    disproject--environment-scope)))
-         (from-directory (project-root project))
-         (old-display-buffer-overriding-action display-buffer-overriding-action)
-         (display-buffer-action (disproject-scope-display-buffer-action
-                                 disproject--environment-scope))
-         (minibuffer-depth (minibuffer-depth))
-         ;; Don't use `display-buffer-override-next-command' to avoid having
-         ;; to infer type in PRE-FUNCTION.  Also makes it possible to use
-         ;; `display-buffer-no-window', which would not have valid values to
-         ;; return.
-         (display-buffer-override-function
-          `(,(lambda (buffer alist)
-               (pcase display-buffer-action
-                 (`(,functions . ,(and (map ('inhibit-multiple-displays
-                                             inhibit-multiple-displays))
-                                       action-alist))
-                  (unless (and inhibit-multiple-displays
-                               (> (minibuffer-depth) minibuffer-depth))
-                    (prog1 (seq-some (lambda (fun)
-                                       (funcall fun buffer
-                                                (append action-alist alist)))
-                                     (ensure-list functions))
-                      (when inhibit-multiple-displays
-                        (setq display-buffer-overriding-action
-                              old-display-buffer-overriding-action)))))))))
-         ;; Only enable envrc if the initial environment has it enabled.
-         (enable-envrc (and (bound-and-true-p envrc-mode)
-                            (symbol-function 'envrc-mode)))
-         ;; Only enable mise if the initial environment has it enabled.
-         (enable-mise (and (bound-and-true-p mise-mode)
-                           (symbol-function 'mise-mode))))
-    (disproject--with-environment-buffer
-      ;; Since interactive prompts may occur from having to ensure that a
-      ;; project is selected, we re-set `this-command' so
-      ;; `transient-suffix-object' can find the current suffix object.
-      (let ((this-command original-command)
-            (project-current-directory-override from-directory)
-            ;; If an override is used and `switch-to-buffer' is called, we
-            ;; assume the user explicitly wants it to obey the display action.
-            (switch-to-buffer-obey-display-actions (and display-buffer-action t)))
-        (disproject-with-root
-          (hack-dir-local-variables-non-file-buffer)
-          ;; Make sure commands are run in the correct direnv environment if
-          ;; envrc-mode is enabled.
-          (when enable-envrc (funcall enable-envrc))
-          ;; Make sure commands are run in the correct mise environment if
-          ;; mise-mode is enabled.
-          (when enable-mise (funcall enable-mise)))
-        (let ((display-buffer-overriding-action display-buffer-override-function))
-          (apply fun args))))))
-
-(defmacro disproject-with-env (&rest body)
-  "Run BODY with Disproject transient settings applied.
-
-This is a macro version of `disproject-with-env-apply'; see the
-function for documentation on the settings."
-  (declare (indent 0) (debug t))
-  `(disproject-with-env-apply
-    (lambda () ,@body)))
-
-(defun disproject-with-env+root-apply (fun &rest args)
-  "Apply FUN to ARGS from project root with Disproject transient settings.
-
-See `disproject-with-env' and `disproject-with-root' for
-documentation on settings applied.
-
-Note that the environment is applied first, so project root will
-be based on the selected project, not the current project."
-  (disproject-with-env (disproject-with-root (apply fun args))))
-
-(defmacro disproject-with-env+root (&rest body)
-  "Run BODY with Disproject transient settings applied in selected project root.
-
-This is a macro version of `disproject-with-env+root-apply'; see the
-function for documentation on settings applied."
-  (declare (indent 0) (debug t))
-  `(disproject-with-env+root-apply (lambda () ,@body)))
-
-(defmacro disproject-with-environment (&rest body)
-  "Run BODY with Disproject transient settings applied in selected project root.
-
-This is an alias for `disproject-with-env+root'."
-  (declare (indent 0) (debug t))
-  `(disproject-with-env+root ,@body))
 
 (define-short-documentation-group disproject-environment
   "Environments from Disproject transient settings
@@ -1754,497 +2262,6 @@ This is an alias for `disproject-with-env+root'."
   (disproject-with-env+root-apply)
   (disproject-with-env+root)
   (disproject-with-environment))
-
-;;;; Suffixes.
-
-(transient-define-suffix disproject-dired ()
-  "Open Dired in project root."
-  (interactive)
-  (disproject-with-environment
-    (call-interactively #'project-dired)))
-
-(transient-define-suffix disproject-flymake-diagnostics ()
-  "View the Flymake diagnostics of the project."
-  (interactive)
-  (declare-function flymake-show-project-diagnostics "flymake")
-  (disproject-with-environment
-    (call-interactively #'flymake-show-project-diagnostics)))
-
-(transient-define-suffix disproject-dir-locals ()
-  "Open `dir-locals-file' in the project root.
-
-If prefix arg is non-nil, open the personal secondary
-file (\".dir-locals-2.el\" by default)."
-  (interactive)
-  (disproject-with-environment
-    (find-file (if current-prefix-arg
-                   (disproject-dir-locals-2-file)
-                 (disproject-dir-locals-file)))))
-
-;; DEPRECATED: Remove at least six months after release with this notice.
-(make-obsolete 'disproject-dir-locals 'disproject-find-dir-locals-file "2.2.0")
-
-(transient-define-suffix disproject-execute-extended-command ()
-  "Execute an extended command in project root."
-  (interactive)
-  (disproject-with-environment
-    (call-interactively #'execute-extended-command)))
-
-(transient-define-suffix disproject-find-dir ()
-  "Find directory in project.
-
-The command used can be customized with
-`disproject-find-dir-command'."
-  (interactive)
-  (disproject-with-environment
-    (call-interactively disproject-find-dir-command)))
-
-(transient-define-suffix disproject-find-dir-locals-file ()
-  "Find `dir-locals-file' in project root.
-
-If the \"--customize\" option is specified in transient state,
-use `customize-dirlocals' to open the file.
-
-The secondary dir-locals file may be accessed with
-`disproject-find-dir-locals-2-file'."
-  :class disproject-find-special-file-suffix
-  :key "l"
-  :file #'disproject-dir-locals-file
-  :find-file-function #'disproject--find-dir-locals-file
-  (interactive)
-  (disproject-find-special-file))
-
-(transient-define-suffix disproject-find-dir-locals-2-file ()
-  "Find secondary `dir-locals-file' in project root.
-
-If the \"--customize\" option is specified in transient state,
-use `customize-dirlocals' to open the file.
-
-The primary dir-locals file may be accessed with
-`disproject-find-dir-locals-file'."
-  :class disproject-find-special-file-suffix
-  :key "L"
-  :file #'disproject-dir-locals-2-file
-  :find-file-function #'disproject--find-dir-locals-file
-  (interactive)
-  (disproject-find-special-file))
-
-(transient-define-suffix disproject-find-file ()
-  "Find file in project.
-
-The command used can be customized with
-`disproject-find-file-command'."
-  (interactive)
-  (disproject-with-environment
-    (call-interactively disproject-find-file-command)))
-
-(transient-define-suffix disproject-find-line ()
-  "Find matching line in open project buffers."
-  (interactive)
-  (disproject-with-environment
-    (call-interactively disproject-find-line-command)))
-
-(transient-define-suffix disproject-find-regexp ()
-  "Search project for regexp.
-
-The command used can be customized with
-`disproject-find-regexp-command'."
-  (interactive)
-  (disproject-with-environment
-    (call-interactively disproject-find-regexp-command)))
-
-(transient-define-suffix disproject-find-special-file ()
-  "Find a special file in project.
-
-The `file' slot can be overridden in specifications to set a
-\"special file\" that this command will find.  By default, this
-command will find the project root directory.
-
-`find-file' is the default function used for opening special
-files.  This may be customized via the `find-file-function' slot;
-the value should be a function that takes a single argument,
-being the file to open.
-
-See type `disproject-find-special-file-suffix' for documentation
-on transient suffix slots."
-  :class disproject-find-special-file-suffix
-  (interactive)
-  (disproject-with-root
-    (let* ((suffix (transient-suffix-object))
-           (file (disproject-find-special-file-suffix-file suffix))
-           (find-file-function (oref suffix find-file-function)))
-      (funcall find-file-function file))))
-
-(transient-define-suffix disproject-query-replace-regexp ()
-  "Search project for regexp and query-replace matches."
-  (interactive)
-  (disproject-with-environment
-    (call-interactively #'project-query-replace-regexp)))
-
-(transient-define-suffix disproject-custom-prune-allowed-suffixes ()
-  "Prune `disproject-custom-allowed-suffixes' entries.
-
-The variable `disproject-custom-allowed-suffixes' may retain old
-allowed custom suffixes from forgotten projects.  This command
-provides a convenient means of removing old entries.
-
-Disproject will usually handle calling this for the user when it
-matters; for example, at the end of `disproject-forget-*'
-commands."
-  (interactive)
-  (let* ((set-message-function 'set-multi-message)
-         (new-suffixes
-          (seq-filter (pcase-lambda (`(,project-root . ,_rest))
-                        (if (seq-contains-p (project-known-project-roots)
-                                            project-root)
-                            t
-                          (message
-                           "disproject: Pruning allowed custom suffixes for unknown project: %s"
-                           project-root)
-                          nil))
-                      disproject-custom-allowed-suffixes)))
-    (when (not (equal new-suffixes disproject-custom-allowed-suffixes))
-      (customize-save-variable 'disproject-custom-allowed-suffixes new-suffixes))))
-
-(transient-define-suffix disproject-forget-project ()
-  "Forget a project."
-  (interactive)
-  (let ((set-message-function 'set-multi-message))
-    (call-interactively #'project-forget-project)
-    (disproject-custom-prune-allowed-suffixes)))
-
-(transient-define-suffix disproject-forget-projects-under ()
-  "Forget projects under a directory."
-  (interactive)
-  (let ((set-message-function 'set-multi-message))
-    (call-interactively #'project-forget-projects-under)
-    (disproject-custom-prune-allowed-suffixes)))
-
-(transient-define-suffix disproject-forget-zombie-projects ()
-  "Forget zombie projects."
-  (interactive)
-  (let ((set-message-function 'set-multi-message))
-    (call-interactively #'project-forget-zombie-projects)
-    (disproject-custom-prune-allowed-suffixes)))
-
-(transient-define-suffix disproject-git-clone-fallback (repository
-                                                        directory
-                                                        &optional
-                                                        arguments)
-  "Git-clone REPOSITORY into DIRECTORY.
-
-ARGUMENTS is \"git clone\" by default.  If prefix arg is non-nil,
-prompt to modify ARGUMENTS options.
-
-\" -- <repository> <directory>\" is appended to ARGUMENTS, which
-is executed as a shell command.
-
-This command relies on the \"git\" executable being in the
-programs path."
-  (interactive "GRepository: \nGDirectory: ")
-  (let* ((directory (expand-file-name directory))
-         (arguments (or arguments
-                        (if current-prefix-arg
-                            (read-shell-command "git arguments: " "git clone ")
-                          "git clone ")))
-         (buf-name (disproject-process-buffer-name directory "git")))
-    (async-shell-command (concat arguments " -- " repository " " directory)
-                         buf-name)
-    (switch-to-buffer-other-window buf-name)
-    (setq default-directory directory)))
-
-(transient-define-suffix disproject-git-init-fallback (directory
-                                                       &optional
-                                                       arguments)
-  "Initialize a git repository in DIRECTORY.
-
-ARGUMENTS is \"git init\" by default.  If prefix arg is non-nil,
-prompt to modify ARGUMENTS.
-
-\" -- <directory>\" is appended to ARGUMENTS, which is executed
-as a shell command.
-
-This command relies on the \"git\" executable being in the
-programs path."
-  (interactive "GDirectory: ")
-  (let* ((directory (expand-file-name directory))
-         (arguments (or arguments
-                        (if current-prefix-arg
-                            (read-shell-command "git arguments: " "git init ")
-                          "git init ")))
-         (buf-name (disproject-process-buffer-name directory "git")))
-    (async-shell-command (concat arguments " -- " directory) buf-name)
-    (switch-to-buffer-other-window buf-name)
-    (setq default-directory directory)))
-
-(transient-define-suffix disproject-kill-buffers ()
-  "Kill all buffers related to project."
-  (interactive)
-  (disproject-with-environment
-    (call-interactively #'project-kill-buffers)))
-
-(transient-define-suffix disproject-list-buffers ()
-  "Display a list of open buffers for project."
-  (interactive)
-  (disproject-with-environment
-    (call-interactively #'project-list-buffers)))
-
-(transient-define-suffix disproject-magit-todos-list ()
-  "Open a `magit-todos-list' buffer for project."
-  (interactive)
-  (declare-function magit-todos-list-internal "magit-todos")
-  (disproject-with-environment
-    (magit-todos-list-internal default-directory)))
-
-(transient-define-suffix disproject-or-external-find-file ()
-  "Find file in project or external roots.
-
-The command used can be customized with
-`disproject-or-external-find-file-command'."
-  (interactive)
-  (disproject-with-environment
-    (call-interactively disproject-or-external-find-file-command)))
-
-(transient-define-suffix disproject-or-external-find-regexp ()
-  "Find regexp in project or external roots.
-
-The command used can be customized with
-`disproject-or-external-find-regexp-command'."
-  (interactive)
-  (disproject-with-environment
-    (call-interactively disproject-or-external-find-regexp-command)))
-
-(transient-define-suffix disproject-compile ()
-  "Run a shell command with `compile' in project root.
-
-The `cmd' slot value of the current transient suffix object is
-used as the shell command.  If nil, prompt with `compile-command'
-as an initial value.
-
-With prefix arg or the `always-read?' slot non-nil, always
-prompt.
-
-If the `comint?' slot value of the current suffix object is
-non-nil, Comint mode will be enabled in the compilation buffer.
-
-See type `disproject-compilation-suffix' for documentation on
-transient suffix slots."
-  :class disproject-compilation-suffix
-  (interactive)
-  (disproject-with-env
-    (disproject-with-root
-      (let* ((obj
-              (transient-suffix-object))
-             (always-read?
-              (oref obj always-read?))
-             (command
-              (if-let* ((cmd (disproject-shell-command-suffix-cmd obj)))
-                  ;; We don't need to read if `compilation-read-command' is t,
-                  ;; since the command should already be considered safe from
-                  ;; `disproject-custom--suffixes-allowed?'.
-                  (if (or always-read? current-prefix-arg)
-                      (compilation-read-command cmd)
-                    cmd)
-                (let ((cmd (eval compile-command)))
-                  (if (or compilation-read-command current-prefix-arg)
-                      (compilation-read-command cmd)
-                    cmd))))
-             (comint?
-              (if (slot-boundp obj 'comint?)
-                  (oref obj comint?)
-                ;; TODO: Default to a customizable variable when
-                ;; the slot is unbound.
-                nil))
-             (scope
-              (disproject--scope))
-             (project-name
-              (project-name (disproject-project-instance
-                             (disproject-scope-selected-project-ensure scope))))
-             (buf-name
-              (disproject-process-suffix-buffer-name obj project-name))
-             (compilation-buffer-name-function
-              (cl-constantly buf-name)))
-        (compile command comint?)))))
-
-(transient-define-suffix disproject-remember-projects-open ()
-  "Remember projects with open buffers."
-  (interactive)
-  (when-let* ((open-projects (disproject--open-projects)))
-    (seq-each (lambda (project)
-                (project-remember-project project t))
-              open-projects)
-    (project--write-project-list)))
-
-(transient-define-suffix disproject-remember-projects-under ()
-  "Remember projects under a directory with `project-remember-projects-under'."
-  (interactive)
-  (call-interactively #'project-remember-projects-under))
-
-(transient-define-suffix disproject-shell ()
-  "Start a shell in project.
-
-The command used can be customized with the variable
-`disproject-shell-command'."
-  (interactive)
-  (disproject-with-environment
-    (call-interactively disproject-shell-command)))
-
-(transient-define-suffix disproject-shell-command ()
-  "Run a shell command asynchronously in project root.
-
-The `cmd' slot value of the current transient suffix object is
-used as the command.  If nil, prompt for a command to run.
-
-With prefix arg or the `always-read?' slot non-nil, always
-prompt.
-
-If the `allow-multiple-buffers?' slot of the current suffix
-object is nil, `async-shell-command-buffer' will be set to
-\\='confirm-kill-process so the process status can be accurately
-reflected.
-
-See type `disproject-shell-command-suffix' for documentation on
-transient suffix slots."
-  :class disproject-shell-command-suffix
-  (interactive)
-  (disproject-with-env
-    (disproject-with-root
-      (let* ((scope (disproject--scope))
-             (obj (transient-suffix-object))
-             (always-read? (oref obj always-read?))
-             (command (if-let* ((cmd (disproject-shell-command-suffix-cmd obj)))
-                          (if (or always-read? current-prefix-arg)
-                              (read-shell-command "Async shell command: " cmd)
-                            cmd)
-                        (read-shell-command "Async shell command: ")))
-             (project-name (project-name
-                            (disproject-project-instance
-                             (disproject-scope-selected-project-ensure scope))))
-             (buf-name (disproject-process-suffix-buffer-name obj project-name))
-             (allow-multiple-buffers? (oref obj allow-multiple-buffers?))
-             (async-shell-command-buffer (if allow-multiple-buffers?
-                                             async-shell-command-buffer
-                                           'confirm-kill-process)))
-        (async-shell-command command buf-name)))))
-
-(transient-define-suffix disproject-switch-project ()
-  "Switch project to dispatch commands on.
-
-Uses `project-prompt-project-dir' to switch project root
-directories."
-  (interactive)
-  (disproject--switch-project (project-prompt-project-dir)))
-
-(transient-define-suffix disproject-switch-project-open ()
-  "Switch to an open project to dispatch commands on.
-
-This is equivalent to `disproject-switch-project' but only shows
-projects with open buffers when prompting for projects to switch
-to."
-  (interactive)
-  (let* ((open-projects (mapcar #'project-root (disproject--open-projects)))
-         ;; `project--file-completion-table' seems to accept any collection as
-         ;; defined by `completing-read'.
-         (completion-table (project--file-completion-table open-projects))
-         (project-directory (completing-read "Select open project: "
-                                             completion-table nil t)))
-    (disproject--switch-project project-directory)))
-
-(transient-define-suffix disproject-switch-to-buffer ()
-  "Switch to buffer in project.
-
-The command used can be customized with
-`disproject-switch-to-buffer-command'."
-  (interactive)
-  (disproject-with-environment
-    (call-interactively disproject-switch-to-buffer-command)))
-
-(transient-define-suffix disproject-synchronous-shell-command ()
-  "Run `project-shell-command' in selected project."
-  (interactive)
-  (disproject-with-env
-    (call-interactively #'project-shell-command)))
-
-(transient-define-suffix disproject-vc-status ()
-  "Dispatch a VC status command depending on the project backend.
-
-The status command used depends on the variable
-`disproject-vc-status-commands' - see its documentation for
-configuring this function's behavior.  The chosen function will
-be called interactively."
-  :description
-  (lambda ()
-    (concat (if-let* ((project (disproject-scope-selected-project
-                                (disproject--scope)))
-                      (backend (disproject-project-backend project)))
-                ;; The number chosen for this is somewhat arbitrary, but should
-                ;; be fine as long as the end result is around the same size as
-                ;; the other descriptions in its column.
-                (truncate-string-to-width (symbol-name backend) 6 nil nil t)
-              "VC")
-            " status"))
-  (interactive)
-  (disproject-with-environment
-    (let* ((scope (disproject--scope))
-           (project (disproject-scope-selected-project-ensure scope))
-           (backend (disproject-project-backend project)))
-      (unless backend
-        (user-error "No backend found for project: %s"
-                    (disproject-project-root project)))
-      (call-interactively
-       (if-let* ((command (alist-get backend disproject-vc-status-commands))
-                 ((fboundp command)))
-           command
-         (alist-get nil disproject-vc-status-commands))))))
-
-(transient-define-suffix disproject-display-buffer-action-set ()
-  "Set the transient scope's `display-buffer-overriding-action' value.
-
-This does not do anything as a standalone command.  It is
-intended to be used in Transient prefixes, where this command may
-be specified with a value for the \\='display-buffer-action
-slot (of `disproject-display-buffer-action-suffix').  This
-enables generating suffix commands that can set the
-`display-buffer' overriding action to custom values.
-
-Users may specify a description for the action by adding a
-\\='description entry to the action alist.  If this is omitted,
-the suffix description will be used instead.
-
-An \\='inhibit-multiple-displays entry may also be specified,
-which will affect the behavior of `display-buffer' in certain
-cases.  See `disproject-with-env' for more information.
-
-For example, a specification for a suffix command that sets the
-override to \"prefer other window\" might look something like so:
-  (\"o\" \"other window\" disproject-display-buffer-action-set
-   :display-buffer-action (display-buffer-use-some-window
-                           (inhibit-same-window . t)
-                           ;; Omitting this will cause the suffix description
-                           ;; to be used; in this case, \"other window\".
-                           (description . \"use other window\")))
-
-Note that this only works in transient prefixes of class
-`disproject-prefix'.
-
-See type `disproject-display-buffer-action-suffix' for
-documentation on transient suffix slots."
-  :class disproject-display-buffer-action-suffix
-  :transient #'transient--do-return
-  (interactive)
-  (if-let* ((scope (disproject--scope))
-            (suffix (transient-suffix-object)))
-      (setf (disproject-scope-display-buffer-action scope)
-            (let ((action (oref suffix display-buffer-action)))
-              (pcase-exhaustive action
-                ('nil
-                 nil)
-                (`(,_functions . ,(map ('description (pred (not null)))))
-                 action)
-                (`(,functions . ,alist)
-                 `(,functions . ((description
-                                  . ,(transient-format-description suffix))
-                                 ,@alist))))))))
 
 ;;;;; Documentation groups for suffixes.
 

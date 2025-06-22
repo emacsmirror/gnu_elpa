@@ -511,6 +511,532 @@ Defining custom suffixes with Disproject's custom syntax is deprecated;\
     (transient-parse-suffixes 'disproject-find-special-file-dispatch suffixes)))
 
 
+;;;
+;;; Classes.
+;;;
+
+
+;;;; `disproject-project' class.
+
+(defclass disproject-project ()
+  ;; root must be a path to a valid project.  An `initialize-instance' method
+  ;; for this class enforces this.
+  ((root :reader disproject-project-root
+         :initarg :root
+         :type string
+         :documentation "Project root directory.")
+   (instance :reader disproject-project-instance
+             :type list
+             :documentation "Project `project.el' instance.")
+   (backend :reader disproject-project-backend
+            :type symbol
+            :documentation "Project VC backend.")
+   (custom-suffixes :reader disproject-project-custom-suffixes
+                    :type list
+                    :documentation "\
+Project's custom suffixes as described in
+`disproject-custom-suffixes'."))
+  "Class representing a `project.el' project.
+
+Instances of this class are initialized by providing the `:root'
+initialization argument, which is the only argument available.
+Other slots depend on this value, and are lazily fetched as
+needed when calling readers.  These fetched values are then
+cached for subsequent queries.")
+
+(cl-defmethod initialize-instance :after ((obj disproject-project) &rest _slots)
+  "Do additional initialization for a `disproject-project' instance.
+
+This enforces that the root is part of a valid project.  If
+unbound, `project-current' will be invoked, which may prompt the
+user for a path.  If the path does not lead to a valid project,
+an error will be signaled.  \"Transient\" project instances are
+not considered valid.
+
+If the directory provided is not actually the root directory, the
+slot will also be changed to the detected root.
+
+Additionally, the project will be force-remembered as a known
+project as a last step of initialization."
+  (let* ((provided-root (if (slot-boundp obj 'root)
+                            (oref obj root)
+                          (project-root (project-current t))))
+         (project (oset obj instance (project-current nil provided-root))))
+    (unless project
+      (error "Root directory does not lead to valid project: %s" provided-root))
+    ;; The provided root may be a sub-directory, so we re-set it to the root
+    ;; determined by `project.el'.
+    (oset obj root (project-root project))
+    ;; Remember the project in case it's not in `project-known-project-roots'.
+    (project-remember-project project)))
+
+(defun disproject-project-or-nil (&optional directory)
+  "Return a `disproject-project' instance for DIRECTORY, or maybe nil.
+
+DIRECTORY is passed to `project-current' to detect a project."
+  (if-let* ((project (project-current nil directory)))
+      (disproject-project :root (project-root project))))
+
+(cl-defmethod disproject-project-backend ((obj disproject-project))
+  "Return the OBJ project backend.
+
+This internally uses `project-try-vc' to determine the backend."
+  (if (slot-boundp obj 'backend)
+      (oref obj backend)
+    ;; XXX: `project-find-functions' (used in `project-current') doesn't enforce
+    ;; a project instance format, so we can't expect the VC backend to be in the
+    ;; same place in `disproject-project-instance'.  Instead, we specifically
+    ;; rely on `project-try-vc' (`project-vc-backend-markers-alist') to get the
+    ;; backend.
+    (oset obj backend (let* ((root (disproject-project-root obj))
+                             (instance (project-try-vc root)))
+                        ;; Expect index 1 to be the VC backend of the project
+                        ;; instance.
+                        (nth 1 instance)))))
+
+(cl-defmethod disproject-project-custom-suffixes ((obj disproject-project))
+  "Return the OBJ project custom suffixes."
+  (if (slot-boundp obj 'custom-suffixes)
+      (oref obj custom-suffixes)
+    (oset obj
+          custom-suffixes
+          (if-let*
+              ((project (disproject-project-instance obj))
+               (root (disproject-project-root obj))
+               (suffixes
+                ;; Retrieve custom suffixes without triggering dir-locals
+                ;; permissions prompt.
+                (alist-get 'disproject-custom-suffixes
+                           (with-temp-buffer
+                             (let ((default-directory root))
+                               (hack-dir-local--get-variables nil)))))
+               ((disproject--assert-type 'disproject-custom-suffixes suffixes))
+               ((disproject-custom--suffixes-allowed? project suffixes)))
+              suffixes
+            (default-value 'disproject-custom-suffixes)))))
+
+
+;;;; `disproject-scope' class.
+
+(defclass disproject-scope ()
+  ((selected-project :initarg :selected-project
+                     :accessor disproject-scope-selected-project
+                     :initform nil
+                     :type (or null disproject-project)
+                     :documentation "\
+Currently selected project object in the transient menu, if any.
+If no value is provided during initialization, the function
+`project-current' is used to find one for initializing a
+`disproject-project' object.  This slot may be nil.")
+   (default-project :reader disproject-scope-default-project
+                    :initform nil
+                    :type (or null disproject-project)
+                    :documentation "\
+Project object belonging to `default-directory' at the time of
+initialization (or the current buffer, in other words), if any.")
+   (display-buffer-action :initarg :display-buffer-action
+                          :accessor disproject-scope-display-buffer-action
+                          :initform nil
+                          :type list
+                          :documentation "\
+Value to use for `display-buffer-overriding-action' when
+executing suffix commands.
+
+If non-nil, the action alist must contain an entry under the
+\\='description key that stores a string value describing the
+action.  This will be used as a menu indicator to show the active
+overriding action."))
+  "Class representing a Disproject menu's transient scope.
+
+Objects of this type are intended to be used in a transient
+prefix's `:scope' slot, and contains information regarding the
+default project, selected project, and other state like option
+values that should be shared with other menus.
+
+In Disproject prefixes, this scope object is normally fetched via
+the function `disproject--scope'.")
+
+(cl-defmethod initialize-instance :after ((obj disproject-scope) &rest _slots)
+  "Do additional initialization for scope OBJ."
+  (let* ((default-project-obj
+          (disproject-project-or-nil default-directory))
+         (selected-project-obj
+          ;; `project-current' may read other variables like
+          ;; `project-current-directory-override', which may make the initial
+          ;; selected project different from the default project (only
+          ;; `default-directory' is read for the latter).
+          (if-let* ((current-project (project-current))
+                    ;; Use `default-project-obj' if the projects happen to be
+                    ;; the same so cached values are shared.
+                    ((or (not default-project-obj)
+                         (not (file-equal-p
+                               (project-root current-project)
+                               (disproject-project-root default-project-obj))))))
+              (disproject-project :root (project-root current-project))
+            default-project-obj)))
+    (when default-project-obj
+      (oset obj default-project default-project-obj))
+    (when selected-project-obj
+      (oset obj selected-project selected-project-obj))))
+
+(cl-defmethod disproject-scope-selected-project ((obj disproject-scope))
+  "Return scope OBJ selected project.  May be nil."
+  (if (slot-boundp obj 'selected-project)
+      (oref obj selected-project)))
+
+(cl-defmethod disproject-scope-selected-project-ensure ((obj disproject-scope))
+  "Return scope OBJ selected project.
+
+If the selected-project slot is nil, a new instance of
+`disproject-project' will be initialized and written to the slot.
+The user may be prompted for a project."
+  (or (disproject-scope-selected-project obj)
+      (oset obj selected-project (disproject-project))))
+
+(cl-defmethod disproject-scope-default-project ((obj disproject-scope))
+  "Return scope OBJ default project.  May be nil."
+  (if (slot-boundp obj 'default-project)
+      (oref obj default-project)))
+
+(cl-defmethod disproject-scope-project-is-default? ((obj disproject-scope))
+  "Return non-nil if the OBJ scope's selected and default projects are the same."
+  (and-let* ((default-project (disproject-scope-default-project obj))
+             (selected-project (disproject-scope-selected-project obj)))
+    (file-equal-p (disproject-project-root default-project)
+                  (disproject-project-root selected-project))))
+
+(cl-defmethod disproject-scope-prefer-other-window? ((obj disproject-scope))
+  "Return whether OBJ scope has a `display-buffer' override to prefer other window."
+  (pcase (disproject-scope-display-buffer-action obj)
+    (`(,(or 'display-buffer-use-some-window
+            '(display-buffer-use-some-window . ,_))
+       . ,_alist)
+     t)))
+
+;; DEPRECATED: Remove after at least 6 months of being in a stable release.
+(make-obsolete 'disproject-scope-prefer-other-window?
+               'disproject-scope-display-buffer-action
+               "2.2.0")
+
+(defvar disproject--environment-scope nil
+  "Current disproject scope in `disproject-with-env-apply'.
+
+This is for suffixes that use `disproject-with-env-apply'.  It is
+preferred to use this when possible over `disproject--scope' to
+avoid cases where there is no scope, causing a new
+`disproject-scope' to be initialized on every call and
+potentially resulting in duplicate prompts.")
+
+(defun disproject--scope ()
+  "Return the scope for a `disproject-prefix' prefix.
+
+It is recommended to bind the return value for reuse instead of
+calling this multiple times, as it is possible for multiple
+different scope objects to be created (which is not usually desired)."
+  ;; TODO: Improve case where callers cannot avoid calling `disproject--scope'
+  ;; more than once (perhaps when calling a suffix that also calls scope).
+  ;; Maybe document that `disproject-with-environment' should be used so that
+  ;; `disproject--environment-scope' is bound?
+  (or disproject--environment-scope
+      ;; Fall back to initializing scope with `disproject-dispatch' if needed.
+      (transient-scope 'disproject-dispatch 'disproject-prefix)))
+
+
+;;;; `disproject-process-suffix' class.
+
+(defclass disproject-process-suffix (transient-suffix)
+  ((buffer-id :initarg :buffer-id
+              :initform nil
+              :documentation "\
+String.  Unique identifier for the process buffer associated with
+this suffix command.
+
+Users may set the same identifier for multiple commands to mark
+them as incompatible for a project (only one can run at a given
+time).
+
+If the `description' slot of the instance is a string, this slot
+will use it as a default value.  Otherwise, the description is
+assumed to be a function, and the `default-buffer-id' slot value
+will be used instead, since there is no way to guarantee that a
+function will always return the same identifier.
+
+The `disproject-process-suffix-buffer-name' method may be used to
+retrieve the buffer name associated with this suffix.
+
+Implementations of suffix commands should handle the value as
+documented.")
+   (display-status? :initarg :display-status?
+                    :initform t
+                    :documentation "\
+Non-nil to display status of associated process buffer.")
+   (allow-multiple-buffers? :initarg :allow-multiple-buffers?
+                            :initform nil
+                            :documentation "\
+Non-nil if multiple buffers associated with the buffer ID may be
+created.
+
+If allowed, the `display-status?' slot will be ignored, and
+status will not be shown.  Suffix command implementations may
+also behave differently; for example, executing a command while a
+process is running could create a new buffer instead of killing
+the existing one.")
+   (default-buffer-id :allocation :class
+                      :initform "default"
+                      :documentation "\
+Default string for the `buffer-id' slot when it is nil."))
+  "Class for Disproject suffixes that spawn a process.
+
+This provides methods for managing things related to the
+associated command's process buffer.")
+
+(defun disproject-process-suffix--buffer-name (buffer-id project-name)
+  "Return a buffer name for a process suffix from BUFFER-ID and PROJECT-NAME."
+  (concat "*" project-name "-process|" buffer-id "*"))
+
+(cl-defmethod disproject-process-suffix-buffer-name
+  ((obj disproject-process-suffix) project-name)
+  "Return the OBJ suffix's process buffer name associated with PROJECT-NAME.
+
+PROJECT-NAME is the project name, which will be used to give a
+unique namespace to the project's process buffers."
+  (disproject-process-suffix--buffer-name
+   (or (oref obj buffer-id)
+       (let ((description (oref obj description)))
+         (and (stringp description) description))
+       (oref obj default-buffer-id))
+   project-name))
+
+(cl-defmethod transient-format-description ((obj disproject-process-suffix))
+  "Format description for OBJ.
+
+If the `display-status?' slot is non-nil and
+`allow-multiple-buffers?' is nil, the description will be
+formatted with an indicator that describes the associated process
+buffer's current status."
+  ;; Preserve the transient "bug" warning if there is no description.
+  (if-let* ((description (cl-call-next-method)))
+      (if-let* (((and (oref obj display-status?)
+                      (null (oref obj allow-multiple-buffers?))))
+                (project (disproject-scope-selected-project (disproject--scope)))
+                (project-name (project-name
+                               (disproject-project-instance project)))
+                (buf-name (disproject-process-suffix-buffer-name obj project-name))
+                (buffer (get-buffer buf-name)))
+          (progn
+            ;; Refresh transient if process status changes.
+            (disproject-add-sentinel-refresh-transient buf-name)
+            (concat (cond
+                     ((null buffer)
+                      "")
+                     ((get-buffer-process buffer)
+                      (concat (propertize "[a]" 'face 'transient-enabled-suffix)
+                              " "))
+                     (t
+                      (concat (propertize "[i]" 'face 'transient-inactive-value)
+                              " ")))
+                    description))
+        description)))
+
+
+;;;; `disproject-shell-command-suffix' class.
+
+(defclass disproject-shell-command-suffix (disproject-process-suffix)
+  ((cmd :initarg :cmd
+        :initform nil
+        :documentation "\
+String or interactive function which returns a shell command that
+will be used to spawn a process.
+
+If the value is a string, it is used as the shell command.
+Otherwise, it should be an interactive function that returns a
+string to be used as the command.  A nil value indicates to read
+a shell command.
+
+Implementations of suffix commands should handle spawning
+processes based on the value.")
+   (always-read? :initarg :always-read?
+                 :initform nil
+                 :documentation "\
+Non-nil to always read shell command, even when `cmd' is non-nil.
+
+Implementations of suffix commands should handle reading based
+off this value.")
+   (default-buffer-id :allocation :class
+                      :initform "shell-command"))
+  "Class for suffix commands that execute shell commands.")
+
+(cl-defmethod disproject-shell-command-suffix-cmd
+  ((obj disproject-shell-command-suffix))
+  "Return a string shell command from OBJ.
+
+Use the `cmd' slot of OBJ as the shell command.  If it is a
+command, interactively call it and use the return value as the
+shell command.
+
+May also return nil if the value of `cmd' is nil.
+
+When unable to convert to a string, throw an error."
+  (let ((cmd (oref obj cmd)))
+    (cond
+     ((null cmd) nil)
+     ((stringp cmd) cmd)
+     ((commandp cmd t) (call-interactively cmd))
+     (t (user-error "Not a string or command: %s" cmd)))))
+
+
+;;;; `disproject-compilation-suffix' class.
+
+(defclass disproject-compilation-suffix (disproject-shell-command-suffix)
+  ((comint? :initarg :comint?
+            :documentation "\
+Non-nil to enable Comint mode in the compilation buffer.
+
+Implementations of suffix commands should check this value in
+order to conditionally enable the mode.")
+   (default-buffer-id :allocation :class
+                      :initform "compile"))
+  "Class for suffixes that utilize the `compile' command for shell commands.")
+
+
+;;;; `disproject-display-buffer-action-suffix' class.
+
+(defclass disproject-display-buffer-action-suffix (transient-suffix)
+  ((display-buffer-action :initarg :display-buffer-action
+                          :initform nil
+                          :documentation "\
+Value to be used for `display-buffer-overriding-action'.
+
+If non-nil, the action alist must contain a \\='description entry
+describing the action.
+
+Action alists may specify an \\='inhibit-multiple-displays entry,
+which will affect action behavior in certain cases as described
+in `disproject-with-env'.
+
+Implementations of suffix commands must handle storing this value
+somewhere so it can be accessed later and applied; for example,
+through a shared object in the transient scope."))
+  "Class for suffixes that manage `display-buffer' action settings.")
+
+
+;;;; `disproject-find-special-file-suffix' class.
+
+(defclass disproject-find-special-file-suffix (transient-suffix)
+  ((file :initarg :file
+         :initform "."
+         :type (or string (list-of string) symbol)
+         :documentation "The special file's base name.
+
+This slot's value should be a string, list of strings, or a
+function that returns a string.
+
+The behavior for each type is as documented:
+
+- String: Literal file name.
+
+- List of strings: The first element will be treated as the
+  preferred file name to find when none of the other files in the
+  list exist.  The rest are treated as fallbacks (in order) to be
+  used if they exist.
+
+- Function: Must return a string as the literal file name to
+  find.
+
+By default, the file is the project root (\".\" is relative to
+the root directory).")
+   (find-file-function :initarg :find-file-function
+                       :initform #'find-file
+                       :type function
+                       :documentation "\
+Function that is applied to this object's \\='file slot value to edit it."))
+  "Class for convenience suffixes to edit common project files.")
+
+(cl-defmethod disproject-find-special-file-suffix-file
+  ((obj disproject-find-special-file-suffix))
+  "Return OBJ's \\='file slot value as a string.
+
+If a list of strings is encountered, return the first string
+where the file exists from `default-directory'.  Otherwise,
+return the first (preferred file) string."
+  (let ((value (oref obj file)))
+    (pcase-exhaustive value
+      ((pred stringp)
+       value)
+      ((pred listp)
+       (when (null value) (error "`file' slot value cannot be an empty list"))
+       (or (seq-find #'file-exists-p value)
+           (car value)))
+      ((pred functionp)
+       (funcall value)))))
+
+(cl-defmethod transient-format-description
+  ((obj disproject-find-special-file-suffix))
+  "Return a formatted description for OBJ.
+
+If the \\='description slot value is nil, format and return the
+\\='file slot value as the description.  Otherwise, behave the
+same as `transient-suffix' for formatting descriptions."
+  (if (oref obj description)
+      (cl-call-next-method)
+    (if-let* ((scope (disproject--scope))
+              (project (disproject-scope-selected-project scope))
+              (default-directory (disproject-project-root project))
+              (file (disproject-find-special-file-suffix-file obj)))
+        (propertize file 'face (if (file-exists-p file)
+                                   'transient-value
+                                 'transient-inactive-value))
+      (propertize "(BUG: no description; no project in scope)" 'face 'error))))
+
+
+;;;; `disproject-prefix' class.
+
+(defclass disproject-prefix (transient-prefix) ()
+  "General Disproject prefix class.
+
+All prefixes that need to make use of `disproject-scope' as the
+scope object should be of this type or inherit from it, as it is
+responsible for preserving the scope across menus.")
+
+(cl-defmethod transient-init-scope ((obj disproject-prefix))
+  "Initialize transient scope for OBJ.
+
+Inherit the current prefix's scope if it is a `disproject-prefix'
+type; otherwise, initialize a new `disproject-scope' scope value
+if it hasn't already been initialized."
+  (if (cl-typep transient-current-prefix 'disproject-prefix)
+      (let ((scope (disproject--scope)))
+        (oset obj scope scope))
+    ;; This method is also called for situations like returning from a
+    ;; sub-prefix, in which case we want to keep the existing scope.
+    (unless (oref obj scope)
+      (oset obj scope (disproject-scope)))))
+
+
+;;;; `disproject--selected-project-prefix' class.
+
+(defclass disproject--selected-project-prefix (disproject-prefix) ()
+  "Class for Disproject prefixes that require a project to be selected.")
+
+(cl-defmethod transient-init-scope ((obj disproject--selected-project-prefix))
+  "Ensure there is a selected project after initializing scope for OBJ."
+  (cl-call-next-method)
+  (disproject-scope-selected-project-ensure (oref obj scope)))
+
+
+;;;; `disproject--custom-suffixes-prefix' class.
+
+(defclass disproject--custom-suffixes-prefix
+  (disproject--selected-project-prefix) ()
+  "Class for Disproject prefixes that need to use custom suffixes.")
+
+(cl-defmethod transient-init-scope ((obj disproject--custom-suffixes-prefix))
+  "Ensure custom suffixes are loaded after initializing scope for OBJ."
+  (cl-call-next-method)
+  (disproject-project-custom-suffixes
+   (disproject-scope-selected-project-ensure (oref obj scope))))
+
+
 ;;; TODO: Sort below.
 
 ;;;; Default commands.
@@ -653,53 +1179,6 @@ n -- to ignore them and use the default custom suffixes.
                     (root (disproject-project-root project)))
               (propertize root 'face 'transient-value)
             (propertize "None detected" 'face 'transient-inapt-suffix))))
-
-;;;; Prefix classes.
-
-;;;;; General Disproject prefix class.
-
-(defclass disproject-prefix (transient-prefix) ()
-  "General Disproject prefix class.
-
-All prefixes that need to make use of `disproject-scope' as the
-scope object should be of this type or inherit from it, as it is
-responsible for preserving the scope across menus.")
-
-(cl-defmethod transient-init-scope ((obj disproject-prefix))
-  "Initialize transient scope for OBJ.
-
-Inherit the current prefix's scope if it is a `disproject-prefix'
-type; otherwise, initialize a new `disproject-scope' scope value
-if it hasn't already been initialized."
-  (if (cl-typep transient-current-prefix 'disproject-prefix)
-      (let ((scope (disproject--scope)))
-        (oset obj scope scope))
-    ;; This method is also called for situations like returning from a
-    ;; sub-prefix, in which case we want to keep the existing scope.
-    (unless (oref obj scope)
-      (oset obj scope (disproject-scope)))))
-
-;;;;; `disproject--selected-project-prefix' class.
-
-(defclass disproject--selected-project-prefix (disproject-prefix) ()
-  "Class for Disproject prefixes that require a project to be selected.")
-
-(cl-defmethod transient-init-scope ((obj disproject--selected-project-prefix))
-  "Ensure there is a selected project after initializing scope for OBJ."
-  (cl-call-next-method)
-  (disproject-scope-selected-project-ensure (oref obj scope)))
-
-;;;;; `disproject--custom-suffixes-prefix' class.
-
-(defclass disproject--custom-suffixes-prefix
-  (disproject--selected-project-prefix) ()
-  "Class for Disproject prefixes that need to use custom suffixes.")
-
-(cl-defmethod transient-init-scope ((obj disproject--custom-suffixes-prefix))
-  "Ensure custom suffixes are loaded after initializing scope for OBJ."
-  (cl-call-next-method)
-  (disproject-project-custom-suffixes
-   (disproject-scope-selected-project-ensure (oref obj scope))))
 
 ;;;; Prefixes.
 
@@ -893,209 +1372,6 @@ defining commands that can modify the override state."
   :shortarg "-c"
   :argument "--customize"
   :if #'disproject-prefix--customize-dirlocals-apt?)
-
-;;;; Transient state classes.
-
-;;;;; Project class.
-
-(defclass disproject-project ()
-  ;; root must be a path to a valid project.  An `initialize-instance' method
-  ;; for this class enforces this.
-  ((root :reader disproject-project-root
-         :initarg :root
-         :type string
-         :documentation "Project root directory.")
-   (instance :reader disproject-project-instance
-             :type list
-             :documentation "Project `project.el' instance.")
-   (backend :reader disproject-project-backend
-            :type symbol
-            :documentation "Project VC backend.")
-   (custom-suffixes :reader disproject-project-custom-suffixes
-                    :type list
-                    :documentation "\
-Project's custom suffixes as described in
-`disproject-custom-suffixes'."))
-  "Class representing a `project.el' project.
-
-Instances of this class are initialized by providing the `:root'
-initialization argument, which is the only argument available.
-Other slots depend on this value, and are lazily fetched as
-needed when calling readers.  These fetched values are then
-cached for subsequent queries.")
-
-(cl-defmethod initialize-instance :after ((obj disproject-project) &rest _slots)
-  "Do additional initialization for a `disproject-project' instance.
-
-This enforces that the root is part of a valid project.  If
-unbound, `project-current' will be invoked, which may prompt the
-user for a path.  If the path does not lead to a valid project,
-an error will be signaled.  \"Transient\" project instances are
-not considered valid.
-
-If the directory provided is not actually the root directory, the
-slot will also be changed to the detected root.
-
-Additionally, the project will be force-remembered as a known
-project as a last step of initialization."
-  (let* ((provided-root (if (slot-boundp obj 'root)
-                            (oref obj root)
-                          (project-root (project-current t))))
-         (project (oset obj instance (project-current nil provided-root))))
-    (unless project
-      (error "Root directory does not lead to valid project: %s" provided-root))
-    ;; The provided root may be a sub-directory, so we re-set it to the root
-    ;; determined by `project.el'.
-    (oset obj root (project-root project))
-    ;; Remember the project in case it's not in `project-known-project-roots'.
-    (project-remember-project project)))
-
-(defun disproject-project-or-nil (&optional directory)
-  "Return a `disproject-project' instance for DIRECTORY, or maybe nil.
-
-DIRECTORY is passed to `project-current' to detect a project."
-  (if-let* ((project (project-current nil directory)))
-      (disproject-project :root (project-root project))))
-
-(cl-defmethod disproject-project-backend ((obj disproject-project))
-  "Return the OBJ project backend.
-
-This internally uses `project-try-vc' to determine the backend."
-  (if (slot-boundp obj 'backend)
-      (oref obj backend)
-    ;; XXX: `project-find-functions' (used in `project-current') doesn't enforce
-    ;; a project instance format, so we can't expect the VC backend to be in the
-    ;; same place in `disproject-project-instance'.  Instead, we specifically
-    ;; rely on `project-try-vc' (`project-vc-backend-markers-alist') to get the
-    ;; backend.
-    (oset obj backend (let* ((root (disproject-project-root obj))
-                             (instance (project-try-vc root)))
-                        ;; Expect index 1 to be the VC backend of the project
-                        ;; instance.
-                        (nth 1 instance)))))
-
-(cl-defmethod disproject-project-custom-suffixes ((obj disproject-project))
-  "Return the OBJ project custom suffixes."
-  (if (slot-boundp obj 'custom-suffixes)
-      (oref obj custom-suffixes)
-    (oset obj
-          custom-suffixes
-          (if-let*
-              ((project (disproject-project-instance obj))
-               (root (disproject-project-root obj))
-               (suffixes
-                ;; Retrieve custom suffixes without triggering dir-locals
-                ;; permissions prompt.
-                (alist-get 'disproject-custom-suffixes
-                           (with-temp-buffer
-                             (let ((default-directory root))
-                               (hack-dir-local--get-variables nil)))))
-               ((disproject--assert-type 'disproject-custom-suffixes suffixes))
-               ((disproject-custom--suffixes-allowed? project suffixes)))
-              suffixes
-            (default-value 'disproject-custom-suffixes)))))
-
-;;;;; Scope class.
-
-(defclass disproject-scope ()
-  ((selected-project :initarg :selected-project
-                     :accessor disproject-scope-selected-project
-                     :initform nil
-                     :type (or null disproject-project)
-                     :documentation "\
-Currently selected project object in the transient menu, if any.
-If no value is provided during initialization, the function
-`project-current' is used to find one for initializing a
-`disproject-project' object.  This slot may be nil.")
-   (default-project :reader disproject-scope-default-project
-                    :initform nil
-                    :type (or null disproject-project)
-                    :documentation "\
-Project object belonging to `default-directory' at the time of
-initialization (or the current buffer, in other words), if any.")
-   (display-buffer-action :initarg :display-buffer-action
-                          :accessor disproject-scope-display-buffer-action
-                          :initform nil
-                          :type list
-                          :documentation "\
-Value to use for `display-buffer-overriding-action' when
-executing suffix commands.
-
-If non-nil, the action alist must contain an entry under the
-\\='description key that stores a string value describing the
-action.  This will be used as a menu indicator to show the active
-overriding action."))
-  "Class representing a Disproject menu's transient scope.
-
-Objects of this type are intended to be used in a transient
-prefix's `:scope' slot, and contains information regarding the
-default project, selected project, and other state like option
-values that should be shared with other menus.
-
-In Disproject prefixes, this scope object is normally fetched via
-the function `disproject--scope'.")
-
-(cl-defmethod initialize-instance :after ((obj disproject-scope) &rest _slots)
-  "Do additional initialization for scope OBJ."
-  (let* ((default-project-obj
-          (disproject-project-or-nil default-directory))
-         (selected-project-obj
-          ;; `project-current' may read other variables like
-          ;; `project-current-directory-override', which may make the initial
-          ;; selected project different from the default project (only
-          ;; `default-directory' is read for the latter).
-          (if-let* ((current-project (project-current))
-                    ;; Use `default-project-obj' if the projects happen to be
-                    ;; the same so cached values are shared.
-                    ((or (not default-project-obj)
-                         (not (file-equal-p
-                               (project-root current-project)
-                               (disproject-project-root default-project-obj))))))
-              (disproject-project :root (project-root current-project))
-            default-project-obj)))
-    (when default-project-obj
-      (oset obj default-project default-project-obj))
-    (when selected-project-obj
-      (oset obj selected-project selected-project-obj))))
-
-(cl-defmethod disproject-scope-selected-project ((obj disproject-scope))
-  "Return scope OBJ selected project.  May be nil."
-  (if (slot-boundp obj 'selected-project)
-      (oref obj selected-project)))
-
-(cl-defmethod disproject-scope-selected-project-ensure ((obj disproject-scope))
-  "Return scope OBJ selected project.
-
-If the selected-project slot is nil, a new instance of
-`disproject-project' will be initialized and written to the slot.
-The user may be prompted for a project."
-  (or (disproject-scope-selected-project obj)
-      (oset obj selected-project (disproject-project))))
-
-(cl-defmethod disproject-scope-default-project ((obj disproject-scope))
-  "Return scope OBJ default project.  May be nil."
-  (if (slot-boundp obj 'default-project)
-      (oref obj default-project)))
-
-(cl-defmethod disproject-scope-project-is-default? ((obj disproject-scope))
-  "Return non-nil if the OBJ scope's selected and default projects are the same."
-  (and-let* ((default-project (disproject-scope-default-project obj))
-             (selected-project (disproject-scope-selected-project obj)))
-    (file-equal-p (disproject-project-root default-project)
-                  (disproject-project-root selected-project))))
-
-(cl-defmethod disproject-scope-prefer-other-window? ((obj disproject-scope))
-  "Return whether OBJ scope has a `display-buffer' override to prefer other window."
-  (pcase (disproject-scope-display-buffer-action obj)
-    (`(,(or 'display-buffer-use-some-window
-            '(display-buffer-use-some-window . ,_))
-       . ,_alist)
-     t)))
-
-;; DEPRECATED: Remove after at least 6 months of being in a stable release.
-(make-obsolete 'disproject-scope-prefer-other-window?
-               'disproject-scope-display-buffer-action
-               "2.2.0")
 
 
 ;;;
@@ -1329,31 +1605,8 @@ project."
 
 ;;;; Suffix environment.
 
-(defvar disproject--environment-scope nil
-  "Current disproject scope in `disproject-with-env-apply'.
-
-This is for suffixes that use `disproject-with-env-apply'.  It is
-preferred to use this when possible over `disproject--scope' to
-avoid cases where there is no scope, causing a new
-`disproject-scope' to be initialized on every call and
-potentially resulting in duplicate prompts.")
-
 (defvar disproject--environment-buffer-name " disproject-environment"
   "Name of buffer which commands will be run from.")
-
-(defun disproject--scope ()
-  "Return the scope for a `disproject-prefix' prefix.
-
-It is recommended to bind the return value for reuse instead of
-calling this multiple times, as it is possible for multiple
-different scope objects to be created (which is not usually desired)."
-  ;; TODO: Improve case where callers cannot avoid calling `disproject--scope'
-  ;; more than once (perhaps when calling a suffix that also calls scope).
-  ;; Maybe document that `disproject-with-environment' should be used so that
-  ;; `disproject--environment-scope' is bound?
-  (or disproject--environment-scope
-      ;; Fall back to initializing scope with `disproject-dispatch' if needed.
-      (transient-scope 'disproject-dispatch 'disproject-prefix)))
 
 (defmacro disproject--with-environment-buffer (&rest body)
   "Run BODY in a disproject environment buffer.
@@ -1501,250 +1754,6 @@ This is an alias for `disproject-with-env+root'."
   (disproject-with-env+root-apply)
   (disproject-with-env+root)
   (disproject-with-environment))
-
-;;;; Suffix classes.
-
-;;;;; Class for suffix commands that spawn a process.
-
-(defclass disproject-process-suffix (transient-suffix)
-  ((buffer-id :initarg :buffer-id
-              :initform nil
-              :documentation "\
-String.  Unique identifier for the process buffer associated with
-this suffix command.
-
-Users may set the same identifier for multiple commands to mark
-them as incompatible for a project (only one can run at a given
-time).
-
-If the `description' slot of the instance is a string, this slot
-will use it as a default value.  Otherwise, the description is
-assumed to be a function, and the `default-buffer-id' slot value
-will be used instead, since there is no way to guarantee that a
-function will always return the same identifier.
-
-The `disproject-process-suffix-buffer-name' method may be used to
-retrieve the buffer name associated with this suffix.
-
-Implementations of suffix commands should handle the value as
-documented.")
-   (display-status? :initarg :display-status?
-                    :initform t
-                    :documentation "\
-Non-nil to display status of associated process buffer.")
-   (allow-multiple-buffers? :initarg :allow-multiple-buffers?
-                            :initform nil
-                            :documentation "\
-Non-nil if multiple buffers associated with the buffer ID may be
-created.
-
-If allowed, the `display-status?' slot will be ignored, and
-status will not be shown.  Suffix command implementations may
-also behave differently; for example, executing a command while a
-process is running could create a new buffer instead of killing
-the existing one.")
-   (default-buffer-id :allocation :class
-                      :initform "default"
-                      :documentation "\
-Default string for the `buffer-id' slot when it is nil."))
-  "Class for Disproject suffixes that spawn a process.
-
-This provides methods for managing things related to the
-associated command's process buffer.")
-
-(defun disproject-process-suffix--buffer-name (buffer-id project-name)
-  "Return a buffer name for a process suffix from BUFFER-ID and PROJECT-NAME."
-  (concat "*" project-name "-process|" buffer-id "*"))
-
-(cl-defmethod disproject-process-suffix-buffer-name
-  ((obj disproject-process-suffix) project-name)
-  "Return the OBJ suffix's process buffer name associated with PROJECT-NAME.
-
-PROJECT-NAME is the project name, which will be used to give a
-unique namespace to the project's process buffers."
-  (disproject-process-suffix--buffer-name
-   (or (oref obj buffer-id)
-       (let ((description (oref obj description)))
-         (and (stringp description) description))
-       (oref obj default-buffer-id))
-   project-name))
-
-(cl-defmethod transient-format-description ((obj disproject-process-suffix))
-  "Format description for OBJ.
-
-If the `display-status?' slot is non-nil and
-`allow-multiple-buffers?' is nil, the description will be
-formatted with an indicator that describes the associated process
-buffer's current status."
-  ;; Preserve the transient "bug" warning if there is no description.
-  (if-let* ((description (cl-call-next-method)))
-      (if-let* (((and (oref obj display-status?)
-                      (null (oref obj allow-multiple-buffers?))))
-                (project (disproject-scope-selected-project (disproject--scope)))
-                (project-name (project-name
-                               (disproject-project-instance project)))
-                (buf-name (disproject-process-suffix-buffer-name obj project-name))
-                (buffer (get-buffer buf-name)))
-          (progn
-            ;; Refresh transient if process status changes.
-            (disproject-add-sentinel-refresh-transient buf-name)
-            (concat (cond
-                     ((null buffer)
-                      "")
-                     ((get-buffer-process buffer)
-                      (concat (propertize "[a]" 'face 'transient-enabled-suffix)
-                              " "))
-                     (t
-                      (concat (propertize "[i]" 'face 'transient-inactive-value)
-                              " ")))
-                    description))
-        description)))
-
-;;;;; Class for suffixes that run a shell command.
-
-(defclass disproject-shell-command-suffix (disproject-process-suffix)
-  ((cmd :initarg :cmd
-        :initform nil
-        :documentation "\
-String or interactive function which returns a shell command that
-will be used to spawn a process.
-
-If the value is a string, it is used as the shell command.
-Otherwise, it should be an interactive function that returns a
-string to be used as the command.  A nil value indicates to read
-a shell command.
-
-Implementations of suffix commands should handle spawning
-processes based on the value.")
-   (always-read? :initarg :always-read?
-                 :initform nil
-                 :documentation "\
-Non-nil to always read shell command, even when `cmd' is non-nil.
-
-Implementations of suffix commands should handle reading based
-off this value.")
-   (default-buffer-id :allocation :class
-                      :initform "shell-command"))
-  "Class for suffix commands that execute shell commands.")
-
-(cl-defmethod disproject-shell-command-suffix-cmd
-  ((obj disproject-shell-command-suffix))
-  "Return a string shell command from OBJ.
-
-Use the `cmd' slot of OBJ as the shell command.  If it is a
-command, interactively call it and use the return value as the
-shell command.
-
-May also return nil if the value of `cmd' is nil.
-
-When unable to convert to a string, throw an error."
-  (let ((cmd (oref obj cmd)))
-    (cond
-     ((null cmd) nil)
-     ((stringp cmd) cmd)
-     ((commandp cmd t) (call-interactively cmd))
-     (t (user-error "Not a string or command: %s" cmd)))))
-
-;;;;; Class for suffixes utilizing `compile' for shell commands.
-
-(defclass disproject-compilation-suffix (disproject-shell-command-suffix)
-  ((comint? :initarg :comint?
-            :documentation "\
-Non-nil to enable Comint mode in the compilation buffer.
-
-Implementations of suffix commands should check this value in
-order to conditionally enable the mode.")
-   (default-buffer-id :allocation :class
-                      :initform "compile"))
-  "Class for suffixes that utilize the `compile' command for shell commands.")
-
-;;;;; `disproject-display-buffer-action-suffix' class.
-
-(defclass disproject-display-buffer-action-suffix (transient-suffix)
-  ((display-buffer-action :initarg :display-buffer-action
-                          :initform nil
-                          :documentation "\
-Value to be used for `display-buffer-overriding-action'.
-
-If non-nil, the action alist must contain a \\='description entry
-describing the action.
-
-Action alists may specify an \\='inhibit-multiple-displays entry,
-which will affect action behavior in certain cases as described
-in `disproject-with-env'.
-
-Implementations of suffix commands must handle storing this value
-somewhere so it can be accessed later and applied; for example,
-through a shared object in the transient scope."))
-  "Class for suffixes that manage `display-buffer' action settings.")
-
-;;;;; `disproject-find-special-file-suffix' class.
-
-(defclass disproject-find-special-file-suffix (transient-suffix)
-  ((file :initarg :file
-         :initform "."
-         :type (or string (list-of string) symbol)
-         :documentation "The special file's base name.
-
-This slot's value should be a string, list of strings, or a
-function that returns a string.
-
-The behavior for each type is as documented:
-
-- String: Literal file name.
-
-- List of strings: The first element will be treated as the
-  preferred file name to find when none of the other files in the
-  list exist.  The rest are treated as fallbacks (in order) to be
-  used if they exist.
-
-- Function: Must return a string as the literal file name to
-  find.
-
-By default, the file is the project root (\".\" is relative to
-the root directory).")
-   (find-file-function :initarg :find-file-function
-                       :initform #'find-file
-                       :type function
-                       :documentation "\
-Function that is applied to this object's \\='file slot value to edit it."))
-  "Class for convenience suffixes to edit common project files.")
-
-(cl-defmethod disproject-find-special-file-suffix-file
-  ((obj disproject-find-special-file-suffix))
-  "Return OBJ's \\='file slot value as a string.
-
-If a list of strings is encountered, return the first string
-where the file exists from `default-directory'.  Otherwise,
-return the first (preferred file) string."
-  (let ((value (oref obj file)))
-    (pcase-exhaustive value
-      ((pred stringp)
-       value)
-      ((pred listp)
-       (when (null value) (error "`file' slot value cannot be an empty list"))
-       (or (seq-find #'file-exists-p value)
-           (car value)))
-      ((pred functionp)
-       (funcall value)))))
-
-(cl-defmethod transient-format-description
-  ((obj disproject-find-special-file-suffix))
-  "Return a formatted description for OBJ.
-
-If the \\='description slot value is nil, format and return the
-\\='file slot value as the description.  Otherwise, behave the
-same as `transient-suffix' for formatting descriptions."
-  (if (oref obj description)
-      (cl-call-next-method)
-    (if-let* ((scope (disproject--scope))
-              (project (disproject-scope-selected-project scope))
-              (default-directory (disproject-project-root project))
-              (file (disproject-find-special-file-suffix-file obj)))
-        (propertize file 'face (if (file-exists-p file)
-                                   'transient-value
-                                 'transient-inactive-value))
-      (propertize "(BUG: no description; no project in scope)" 'face 'error))))
 
 ;;;; Suffixes.
 

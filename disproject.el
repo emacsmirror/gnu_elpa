@@ -49,12 +49,12 @@
 (require 'transient)
 
 
-;;; TODO: Sort below.
+;;;
+;;; Options.
+;;;
 
 
-;;;
-;;; Customizable variables.
-;;;
+;;;; Customization groups.
 
 (defgroup disproject nil
   "Transient interface for managing and interacting with projects."
@@ -71,7 +71,8 @@ root directory).  These must be respected by custom commands in
 order to apply as expected."
   :group 'disproject)
 
-;;;; Custom variables.
+
+;;;; Variables.
 
 (defcustom disproject-custom-allowed-suffixes '()
   "Allowed values for `disproject-custom-suffixes'."
@@ -141,6 +142,42 @@ may be unsafe if unconditionally evaluated."
   :group 'disproject)
 ;;;###autoload(put 'disproject-custom-suffixes 'safe-local-variable #'always)
 
+(defcustom disproject-find-dir-command #'project-find-dir
+  "Command to find a directory in a project.
+
+This is called whenever the function `disproject-find-dir' is
+invoked."
+  :type 'function
+  :group 'disproject
+  :group 'disproject-commands)
+
+(defcustom disproject-find-file-command #'project-find-file
+  "Command used for opening a file in a project.
+
+This is called whenever the function `disproject-find-file' is
+invoked."
+  :type 'function
+  :group 'disproject
+  :group 'disproject-commands)
+
+(defcustom disproject-find-line-command #'disproject-default-find-line
+  "Command to find line occurrences in a project's open buffers.
+
+This is called whenever the function `disproject-find-line' is
+invoked."
+  :type 'function
+  :group 'disproject
+  :group 'disproject-commands)
+
+(defcustom disproject-find-regexp-command #'project-find-regexp
+  "Command used for finding regexp matches in a project.
+
+This is called whenever the function `disproject-find-regexp' is
+invoked."
+  :type 'function
+  :group 'disproject
+  :group 'disproject-commands)
+
 (defcustom disproject-find-special-file-suffixes
   ;; TODO: Rename to "Other options" when we get global options (including in
   ;; docstring).
@@ -181,44 +218,6 @@ addition to the default find-dir-locals-file commands.
                                              \"GNUmakefile\"))])"
   :type '(repeat sexp)
   :group 'disproject)
-
-;;;;; Customizable Disproject commands.
-
-(defcustom disproject-find-dir-command #'project-find-dir
-  "Command to find a directory in a project.
-
-This is called whenever the function `disproject-find-dir' is
-invoked."
-  :type 'function
-  :group 'disproject
-  :group 'disproject-commands)
-
-(defcustom disproject-find-file-command #'project-find-file
-  "Command used for opening a file in a project.
-
-This is called whenever the function `disproject-find-file' is
-invoked."
-  :type 'function
-  :group 'disproject
-  :group 'disproject-commands)
-
-(defcustom disproject-find-line-command #'disproject-default-find-line
-  "Command to find line occurrences in a project's open buffers.
-
-This is called whenever the function `disproject-find-line' is
-invoked."
-  :type 'function
-  :group 'disproject
-  :group 'disproject-commands)
-
-(defcustom disproject-find-regexp-command #'project-find-regexp
-  "Command used for finding regexp matches in a project.
-
-This is called whenever the function `disproject-find-regexp' is
-invoked."
-  :type 'function
-  :group 'disproject
-  :group 'disproject-commands)
 
 (defcustom disproject-or-external-find-file-command
   #'project-or-external-find-file
@@ -275,6 +274,9 @@ This is used in the command `disproject-vc-status'."
   :type 'alist
   :group 'disproject
   :group 'disproject-commands)
+
+
+;;; TODO: Sort below.
 
 ;;;; Default commands.
 

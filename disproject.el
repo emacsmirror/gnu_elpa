@@ -281,6 +281,80 @@ This is used in the command `disproject-vc-status'."
 ;;;
 
 
+;;;
+;;; Conditional feature predicates/forms.
+;;;
+;; NOTE: The `disproject-prefix-*' predicates are specifically meant for usage
+;; during transient setup of `disproject-prefix' prefixes (or subclasses of).
+;; Calling these in any other situation may lead to unexpected/undesired
+;; results.
+
+(defun disproject-prefix--feature-flymake? ()
+  "Return non-nil if `flymake' is an available library."
+  (featurep 'flymake))
+
+(defun disproject-prefix--feature-magit-clone? ()
+  "Return non-nil if `magit-clone' is an available library."
+  (featurep 'magit-clone))
+
+(defun disproject-prefix--feature-magit-status? ()
+  "Return non-nil if `magit-status' is an available library."
+  (featurep 'magit-status))
+
+(defun disproject-prefix--git-clone-fallback-apt? ()
+  "Return non-nil if the \"git clone\" fallback command should be used."
+  (and (not (featurep 'magit-clone)) (executable-find "git")))
+
+(defun disproject-prefix--git-init-fallback-apt? ()
+  "Return non-nil if the \"git init\" fallback command should be used."
+  (and (not (featurep 'magit-status)) (executable-find "git")))
+
+(defun disproject-prefix--in-default-project? ()
+  "Return non-nil if the selected project is also the default project."
+  (if-let* ((scope (transient-scope)))
+      (disproject-scope-project-is-default? scope)))
+
+(defun disproject-prefix--magit-apt? ()
+  "Return non-nil if magit commands are apt to show."
+  (and (featurep 'magit)
+       (if-let* ((scope (transient-scope))
+                 (project (disproject-scope-selected-project scope)))
+           (eq 'Git (disproject-project-backend project)))))
+
+(defun disproject-prefix--magit-todos-apt? ()
+  "Return non-nil if `magit-todos' commands are apt to show."
+  (and (featurep 'magit-todos)
+       (disproject-prefix--magit-apt?)))
+
+(defun disproject-prefix--customize-dirlocals-apt? ()
+  "Return non-nil if `customize-dirlocals' function exists."
+  (functionp 'customize-dirlocals))
+
+(defun disproject-prefix--version-control-apt? ()
+  "Return non-nil if version control commands are apt to show.
+
+Consider commands apt when no project is selected, since the
+state already implies that a prompt will be made to select a
+project."
+  (if-let* ((project (disproject-scope-selected-project (transient-scope))))
+      (disproject-project-backend project)
+    t))
+
+;; XXX: Maintain `disproject--define-group' until we bump transient requirement
+;; to 0.9.0+, at which point we can just use `transient-define-group'.
+(defmacro disproject--define-group (symbol group)
+  "Define SYMBOL as a transient GROUP.
+
+Use `transient-define-group' (introduced in Transient v0.9.0) if
+the macro is available; otherwise, assume that the old layout is
+supported and use `defconst' to define the group, instead."
+  (declare (indent 1))
+  (if (macrop 'transient-define-group)
+      `(transient-define-group ,symbol ,group)
+    ;; Evaluate at compile-time so `transient-define-prefix' can find definitions.
+    `(eval-and-compile (defconst ,symbol ,group))))
+
+
 ;;; TODO: Sort below.
 
 ;;;; Default commands.
@@ -298,22 +372,6 @@ This uses `multi-occur' under the hood."
                                (project-buffers project))
                    regexp)
     (error "No project in current directory: %s" default-directory)))
-
-;;;; Transient groups.
-
-;; XXX: Maintain `disproject--define-group' until we bump transient requirement
-;; to 0.9.0+, at which point we can just use `transient-define-group'.
-(defmacro disproject--define-group (symbol group)
-  "Define SYMBOL as a transient GROUP.
-
-Use `transient-define-group' (introduced in Transient v0.9.0) if
-the macro is available; otherwise, assume that the old layout is
-supported and use `defconst' to define the group, instead."
-  (declare (indent 1))
-  (if (macrop 'transient-define-group)
-      `(transient-define-group ,symbol ,group)
-    ;; Evaluate at compile-time so `transient-define-prefix' can find definitions.
-    `(eval-and-compile (defconst ,symbol ,group))))
 
 (disproject--define-group disproject--selected-project-header-group
   [:description disproject--selected-project-description ""])
@@ -489,62 +547,6 @@ if it hasn't already been initialized."
   (cl-call-next-method)
   (disproject-project-custom-suffixes
    (disproject-scope-selected-project-ensure (oref obj scope))))
-
-;;;; Disproject prefix command/group aptness predicates.
-;; These predicates are specifically meant for usage during transient setup of
-;; `disproject-prefix' prefixes.  Calling these in any other situation may lead
-;; to unexpected/undesired results.
-
-(defun disproject-prefix--feature-flymake? ()
-  "Return non-nil if `flymake' is an available library."
-  (featurep 'flymake))
-
-(defun disproject-prefix--feature-magit-clone? ()
-  "Return non-nil if `magit-clone' is an available library."
-  (featurep 'magit-clone))
-
-(defun disproject-prefix--feature-magit-status? ()
-  "Return non-nil if `magit-status' is an available library."
-  (featurep 'magit-status))
-
-(defun disproject-prefix--git-clone-fallback-apt? ()
-  "Return non-nil if the \"git clone\" fallback command should be used."
-  (and (not (featurep 'magit-clone)) (executable-find "git")))
-
-(defun disproject-prefix--git-init-fallback-apt? ()
-  "Return non-nil if the \"git init\" fallback command should be used."
-  (and (not (featurep 'magit-status)) (executable-find "git")))
-
-(defun disproject-prefix--in-default-project? ()
-  "Return non-nil if the selected project is also the default project."
-  (if-let* ((scope (transient-scope)))
-      (disproject-scope-project-is-default? scope)))
-
-(defun disproject-prefix--magit-apt? ()
-  "Return non-nil if magit commands are apt to show."
-  (and (featurep 'magit)
-       (if-let* ((scope (transient-scope))
-                 (project (disproject-scope-selected-project scope)))
-           (eq 'Git (disproject-project-backend project)))))
-
-(defun disproject-prefix--magit-todos-apt? ()
-  "Return non-nil if `magit-todos' commands are apt to show."
-  (and (featurep 'magit-todos)
-       (disproject-prefix--magit-apt?)))
-
-(defun disproject-prefix--customize-dirlocals-apt? ()
-  "Return non-nil if `customize-dirlocals' function exists."
-  (functionp 'customize-dirlocals))
-
-(defun disproject-prefix--version-control-apt? ()
-  "Return non-nil if version control commands are apt to show.
-
-Consider commands apt when no project is selected, since the
-state already implies that a prompt will be made to select a
-project."
-  (if-let* ((project (disproject-scope-selected-project (transient-scope))))
-      (disproject-project-backend project)
-    t))
 
 ;;;; Prefixes.
 

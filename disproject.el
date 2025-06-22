@@ -2243,14 +2243,15 @@ defining commands that can modify the override state."
             ")")))
 
 
-;;; TODO: Sort below.
-
-
 ;;;
-;;; Suffix handling.
+;;; Short-documentation groups.
 ;;;
 
-;;;; Suffix environment.
+(define-short-documentation-group disproject-customizable-suffixes
+  "Customizable Disproject suffixes
+(Use `C-h o' on symbols for more documentation)"
+  (disproject-compile)
+  (disproject-shell-command))
 
 (define-short-documentation-group disproject-environment
   "Environments from Disproject transient settings
@@ -2262,14 +2263,6 @@ defining commands that can modify the override state."
   (disproject-with-env+root-apply)
   (disproject-with-env+root)
   (disproject-with-environment))
-
-;;;;; Documentation groups for suffixes.
-
-(define-short-documentation-group disproject-customizable-suffixes
-  "Customizable Disproject suffixes
-(Use `C-h o' on symbols for more documentation)"
-  (disproject-compile)
-  (disproject-shell-command))
 
 (provide 'disproject)
 ;;; disproject.el ends here

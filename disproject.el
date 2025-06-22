@@ -179,9 +179,7 @@ invoked."
   :group 'disproject-commands)
 
 (defcustom disproject-find-special-file-suffixes
-  ;; TODO: Rename to "Other options" when we get global options (including in
-  ;; docstring).
-  '(["Options"
+  '(["Other options"
      (disproject-infix-customize-switch)]
     ["Special files"
      (disproject-find-dir-locals-file)

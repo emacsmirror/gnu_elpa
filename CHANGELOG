@@ -26,11 +26,18 @@
   ~disproject-find-special-file-dispatch~.  By default, it includes suffixes for
   finding dir-locals files and a transient switch that enables using
   ~customize-dirlocals~ (added in Emacs 30.1) to open them ([[https://github.com/aurtzy/disproject/issues/10][#10]]).
+- Add ~disproject-global-header-group~ transient group, which inserts the
+  selected-project header and "Global options" section.
+- Include ~disproject-global-header-group~ in ~disproject-custom-dispatch~ and
+  ~disproject-find-special-file-dispatch~.  This makes the "Global options"
+  section available in these menus.
 
 *** Changed
 
 - Force-enable ~switch-to-buffer-obey-display-actions~ when a ~display-buffer~
   override is set.
+- Set =transient= slot for ~disproject-switch-project*~ commands in suffix
+  definitions.
 
 *** Deprecated
 

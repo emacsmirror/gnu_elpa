@@ -348,6 +348,16 @@ project."
 
 ;;;; Definitions.
 
+(transient-define-group disproject-global-header-group
+  disproject--selected-project-header-group
+  disproject--global-options-group)
+
+(transient-define-group disproject--global-options-group
+  ["Global options"
+   (disproject-display-buffer-action-dispatch)
+   ;; Reserve ";" key for other global options to be added in the future.
+   ])
+
 (transient-define-group disproject--selected-project-header-group
   [:description disproject--selected-project-description ""])
 
@@ -2086,10 +2096,7 @@ menu."
    ("p" "Switch project" disproject-switch-project)
    ("P" "Switch to open project" disproject-switch-project-open)
    ("C-p" "Manage projects" disproject-manage-projects-dispatch)]
-  ["Options"
-   (disproject-display-buffer-action-dispatch)
-   ;; Reserve ";" key for other global options to be added in the future.
-   ]
+  disproject--global-options-group
   ["Main commands"
    [("b" "Switch buffer" disproject-switch-to-buffer)
     ("B" "Buffer list" disproject-list-buffers)
@@ -2135,7 +2142,7 @@ character.  These characters represent the following states:
   [a]: Command is active.
   [i]: Command is inactive."
   :class disproject--custom-suffixes-prefix
-  disproject--selected-project-header-group
+  disproject-global-header-group
   [:class transient-subgroups
    :setup-children disproject-custom--setup-suffixes]
   [ :class transient-row
@@ -2151,7 +2158,7 @@ This prefix can be configured with
 `disproject-find-special-file-suffixes'; see its documentation
 for more information."
   :class disproject--selected-project-prefix
-  disproject--selected-project-header-group
+  disproject-global-header-group
   [:class transient-subgroups
    :setup-children disproject--setup-find-special-file-suffixes])
 

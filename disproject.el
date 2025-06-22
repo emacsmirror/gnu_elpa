@@ -1878,6 +1878,7 @@ transient suffix slots."
 
 Uses `project-prompt-project-dir' to switch project root
 directories."
+  :transient t
   (interactive)
   (disproject--switch-project (project-prompt-project-dir)))
 
@@ -1887,6 +1888,7 @@ directories."
 This is equivalent to `disproject-switch-project' but only shows
 projects with open buffers when prompting for projects to switch
 to."
+  :transient t
   (interactive)
   (let* ((open-projects (mapcar #'project-root (disproject--open-projects)))
          ;; `project--file-completion-table' seems to accept any collection as
@@ -2081,10 +2083,8 @@ menu."
   :refresh-suffixes t
   [:description
    disproject--selected-project-description
-   ("p" "Switch project" disproject-switch-project
-    :transient t)
-   ("P" "Switch to open project" disproject-switch-project-open
-    :transient t)
+   ("p" "Switch project" disproject-switch-project)
+   ("P" "Switch to open project" disproject-switch-project-open)
    ("C-p" "Manage projects" disproject-manage-projects-dispatch)]
   ["Options"
    (disproject-display-buffer-action-dispatch)

@@ -494,8 +494,8 @@ This function will create a directory under
 buffer without the extension, if any."
 
   (interactive "P")
-  (when (directory-files greader-audiobook-base-directory nil
-			 (file-name-sans-extension (buffer-name)))
+  (when (file-exists-p (file-name-concat
+			greader-audiobook-base-directory (file-name-sans-extension (buffer-name))))
     (let ((response (yes-or-no-p "This audiobook already
   exists.  Overwrite it?")))
       (if response

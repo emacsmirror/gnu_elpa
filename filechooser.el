@@ -36,6 +36,7 @@
 
 (defvar-keymap filechooser-mininuffer-map
   "C-f" #'filechooser-toggle-filter
+  "<remap> <keyboard-quit>" #'filechooser-abort
   "<remap> <abort-recursive-edit>" #'filechooser-abort
   "<remap> <abort-minibuffers>" #'filechooser-abort)
 
@@ -214,18 +215,20 @@ MINIBUFFER is the value of minibuffer frame paramter."
   (declare (indent 1))
   (let ((framevar (make-symbol "frame")))
     `(let ((minibuffer-completing-file-name ,(eq minibuffer 'only)))
-      (if filechooser-use-popup-frame
-         (let ((,framevar (make-frame '((name . ,(if (eq minibuffer 'only)
-                                                     "filechooser-miniframe"
-                                                   "filechooser-frame"))
-                                        (minibuffer . ,minibuffer)))))
-           (unwind-protect
-               (with-demoted-errors "%S"
-                 (with-selected-frame ,framevar
-                   ,@body))
-             (delete-frame ,framevar 'force)))
-       (with-demoted-errors "%S"
-         ,@body)))))
+       (if filechooser-use-popup-frame
+           (let ((,framevar (make-frame '((name . ,(if (eq minibuffer 'only)
+                                                       "filechooser-miniframe"
+                                                     "filechooser-frame"))
+                                          (minibuffer . ,minibuffer))))
+                 (special-event-map (define-keymap :parent special-event-map
+                                      "<delete-frame>" #'filechooser-abort)))
+             (unwind-protect
+                 (with-demoted-errors "%S"
+                   (with-selected-frame ,framevar
+                     ,@body))
+               (delete-frame ,framevar 'force)))
+         (with-demoted-errors "%S"
+           ,@body)))))
 
 (defun filechooser-abort ()
   "Abort the file selection."

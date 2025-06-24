@@ -443,6 +443,10 @@ parents.map(|c| concat(
 
 (defun vc-jj-checkin (files comment &optional _rev)
   "Run \"jj commit\" with supplied FILES and COMMENT."
+  ;; FIXME 2025-06-24: Find a more robust solution than
+  ;; `replace-regexp-in-string' on the "Summary" header if possible.
+  ;; Also ideally future-proof by considering the presence of other
+  ;; headers, e.g., `log-edit-headers-alist'.
   (setq comment (replace-regexp-in-string "\\`Summary: " "" comment))
   (let ((args (append (vc-switches 'jj 'checkin) (list "commit" "-m" comment))))
     (apply #'vc-jj--command-dispatched nil 0 files args)))

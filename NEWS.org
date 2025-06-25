@@ -17,6 +17,7 @@
 *** Fixed
 
 - Fixed =vc-jj-diff= not transforming filenames into jj fileset syntax. This means commands like =vc-diff= and =log-view-diff= do not fail.
+- Fixed a bug related to vc-jj's integration with project.el in cases where a .git repo is within a subdirectory of a .jj repo.  Previously, when inside the .git repo, project.el would erroneously detect the .jj repo to be current one (instead of the .git repo, which is closer).  Now, project.el correctly detects the closer .git repo.
 
 ** [[https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.3...v0.4][0.4]] - 2025-09-03
 

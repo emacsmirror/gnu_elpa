@@ -45,15 +45,8 @@
       files)))
 
 ;;;###autoload
-(defun project-try-jj (dir)
-  "Return the jujutsu project containing DIR or nil."
-  (when-let* ((root (locate-dominating-file dir ".jj")))
-    (cons 'jj root)))
-
-;;;###autoload
 (with-eval-after-load 'project
-  (add-hook 'project-find-functions #'project-try-jj))
-
+  (add-to-list 'project-vc-backend-markers-alist '(JJ . ".jj")))
 
 (provide 'project-jj)
 ;;; project-jj.el ends here

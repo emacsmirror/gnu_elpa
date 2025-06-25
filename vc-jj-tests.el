@@ -208,6 +208,27 @@ is needed."
       (should (equal (vc-jj-dir-status-files (expand-file-name "subdir/" repo) nil (lambda (x y) x))
                      '(("conflicted.txt" conflict)))))))
 
+(ert-deftest vc-jj-checkin-directory ()
+  "Test checking in an entire directory of files.
+This tests when a subdirectory path is passed to `vc-jj-checkin', rather
+than a path to a regular file."
+  ;; https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/62
+  (vc-jj-test-with-repo repo
+    (make-directory "subdir")
+    (write-region "foo" nil "subdir/file1.txt")
+    (write-region "bar" nil "subdir/file2.txt")
+    (make-directory "subdir/deeper_subdir")
+    (write-region "baz" nil "subdir/deeper_subdir/file3.txt")
+    (should (eq (vc-jj-state "subdir/file1.txt") 'added))
+    (should (eq (vc-jj-state "subdir/file2.txt") 'added))
+    (should (eq (vc-jj-state "subdir/deeper_subdir/file3.txt") 'added))
+    (vc-jj-checkin (list "subdir/") "Sample commit message")
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo nil (lambda (x y) x))
+             '(("subdir/file1.txt" up-to-date)
+               ("subdir/file2.txt" up-to-date)
+               ("subdir/deeper_subdir/file3.txt" up-to-date))))))
+
 (ert-deftest vc-jj-funky-filename ()
   ;; https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/38
   (vc-jj-test-with-repo repo

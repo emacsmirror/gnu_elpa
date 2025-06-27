@@ -29,9 +29,18 @@
 
 ;; Usage:
 
-;; Customize `excorporate-configuration'.  To use OAuth 2.0, at a
-;; minimum you will need to set the "client-identifier" and the
-;; "login_hint" fields.
+;; To deal with OAuth 2.0 refresh tokens, `url-http-oauth' needs to
+;; programatically add and rewrite its own entries in netrc files listed
+;; in the `auth-sources' variable (defaults being "~/.authinfo",
+;; "~/.authinfo.gpg", "~/.netrc").  As a precaution please back up files
+;; listed in `auth-sources' before using Excorporate OAuth 2.0
+;; authentication, in case there are bugs or bad interactions with other
+;; packages.
+
+;; Customize `excorporate-configuration'.  To use OAuth 2.0, at a minimum
+;; you will need to modify the "authorization-endpoint",
+;; "access-token-endpoint", "client-identifier" (also known as
+;; "Application ID") and "login_hint" fields.
 
 ;; Then:
 

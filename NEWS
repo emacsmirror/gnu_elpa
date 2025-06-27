@@ -1,5 +1,7 @@
 GNU Emacs Excorporate NEWS -- history of user-visible changes.
 
+** Improve quick start documentation
+
 ** Eliminate a warning issued by newer versions of Org Mode
 
 `exco-org-insert-meetings' was causing a warning,

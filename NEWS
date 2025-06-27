@@ -1,5 +1,12 @@
 GNU Emacs Excorporate NEWS -- history of user-visible changes.
 
+** Eliminate a warning issued by newer versions of Org Mode
+
+`exco-org-insert-meetings' was causing a warning,
+"`org-element-at-point' cannot be used in non-Org buffer ...", because
+it was calling `org-insert-time-stamp' before Org mode was set in
+the *Excorporate* buffer.
+
 * New in Excorporate 1.1.2
 
 Released 2024-02-19:

@@ -321,11 +321,11 @@ meeting organizer."
       (insert (format "%s..." identifier))))
   (with-current-buffer (exco-org--identifier-buffer identifier)
     (let ((inhibit-read-only t))
+      (org-mode)
       (org-insert-time-stamp (current-time) t t "  + Last checked " "\n")
       (exco-calendar-item-iterate-general
        response (lambda (&rest arguments)
 		  (with-current-buffer (exco-org--identifier-buffer identifier)
-		    (org-mode)
 		    (let ((new-arguments arguments))
 		      (setf (nth 7 new-arguments)
 			    (exco-resolve-organizer-email-address-synchronously

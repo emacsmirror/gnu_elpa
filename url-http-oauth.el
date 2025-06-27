@@ -3,7 +3,7 @@
 ;; Copyright (C) 2023, 2025 Free Software Foundation, Inc.
 
 ;; Author: Thomas Fitzsimmons <fitzsim@fitzsim.org>
-;; Version: 0.8.3
+;; Version: 0.8.4
 ;; Package-Requires: ((emacs "24.4"))
 ;; Keywords: comm, data, processes, hypermedia
 

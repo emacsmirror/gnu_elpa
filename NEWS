@@ -1,5 +1,13 @@
 GNU Emacs url-http-oauth NEWS -- history of user-visible changes.
 
+* New in url-http-oauth 0.8.4
+
+Released 2025-06-26
+
+** Register authorization scheme after `url-auth' is loaded.
+
+** Require Emacs 24.4 or newer.
+
 * New in url-http-oauth 0.8.3
 
 Released 2023-05-10

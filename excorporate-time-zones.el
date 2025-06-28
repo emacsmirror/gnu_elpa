@@ -1,4 +1,4 @@
-;;; excorporate-time-zones.el --- time zone conversion *- lexical-binding: t -*-
+;;; excorporate-time-zones.el --- IANA time zones -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2021 Free Software Foundation, Inc.
 
@@ -20,8 +20,9 @@
 
 ;;; Commentary:
 
-;; Hash tables and functions that map (current-time-zone) values to
-;; time zone names recognized by Exchange servers.
+;; Hash tables and functions that map `current-time-zone' values to
+;; IANA (sometimes referred to as Olson) time zone names recognized by
+;; Exchange servers.
 
 ;; For example:
 ;; (current-time-zone) => (-14400 "EDT")
@@ -55,7 +56,7 @@
 ;;		   (dolist (name names)
 ;;		     (puthash name zone table)))))
 ;;	     (format "%S" table)))
-;;	 " \"A hash table mapping IANA/Olson time zone"
+;;	 " \"A hash table mapping IANA time zone"
 ;;	 " names to server time zone names.\")"))
 
 (defvar exco--time-zone-olson-to-server
@@ -524,7 +525,7 @@
       "Pacific/Apia"                   "Samoa Standard Time"
       "Pacific/Kiritimati"             "Line Islands Standard Time"
       "Etc/GMT-14"                     "Line Islands Standard Time"))
-  "A hash table mapping IANA/Olson time zone names to server time zone names.")
+  "A hash table mapping IANA time zone names to server time zone names.")
 
 ;; Generated with:
 ;;(defun zdump-line-to-current-time-zone-value ()
@@ -581,8 +582,8 @@
 ;;		  (puthash key (cons value values) table))
 ;;	      (puthash key (list value) table))))))
 ;;    (format "%S" table))
-;;  "(concat \"A hash table mapping `current-time-zone' values to\"
-;;	  \" IANA/Olson time zone names.\")"))
+;;  " \"A hash table mapping `current-time-zone' values to"
+;;  " IANA time zone names.\")"))
 
 ;; `exco-time-zone' only uses one of these, but I thought knowing this
 ;; mapping might be generally useful.
@@ -832,8 +833,7 @@
       (+46800 "NZDT")  ("Pacific/Auckland")
       (+49500 "+1345") ("Pacific/Chatham")
       (+50400 "+14")   ("Etc/GMT-14" "Pacific/Kiritimati" "Pacific/Apia")))
-  (concat "A hash table mapping `current-time-zone' values to"
-	  " IANA/Olson time zone names."))
+  "A hash table mapping `current-time-zone' values to IANA time zone names.")
 
 (defcustom excorporate-time-zone nil
   "The server-style time zone.

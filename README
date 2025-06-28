@@ -3,6 +3,8 @@ Excorporate provides Exchange integration for Emacs.
 Most Recent Improvements
 ------------------------
 
+** Eliminate excorporate.el compiler warnings
+
 ** Eliminate excorporate-time-zones.el compiler warnings
 
 ** Improve quick start documentation

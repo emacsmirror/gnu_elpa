@@ -570,6 +570,9 @@ the FSM should transition to on success."
 	(warn warning-message)
 	nil))))
 
+(declare-function excorporate-diary-enable "excorporate-diary.el" ())
+(declare-function excorporate-diary-disable "excorporate-diary.el" ())
+
 (define-enter-state exco--fsm :retrieving-data
   (_fsm state-data)
   (let ((wsdl (plist-get state-data :service-wsdl))

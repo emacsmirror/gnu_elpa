@@ -3,6 +3,8 @@ Excorporate provides Exchange integration for Emacs.
 Most Recent Improvements
 ------------------------
 
+** Require Emacs >= 24.4 and latest url-http-ntlm and url-http-oauth packages
+
 ** Eliminate excorporate.el compiler warnings
 
 ** Eliminate excorporate-time-zones.el compiler warnings

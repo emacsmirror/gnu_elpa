@@ -1,5 +1,9 @@
 GNU Emacs Excorporate NEWS -- history of user-visible changes.
 
+* New in Excorporate 1.1.3
+
+Released 2025-06-27:
+
 ** Require Emacs >= 24.4 and latest url-http-ntlm and url-http-oauth packages
 
 ** Eliminate excorporate.el compiler warnings

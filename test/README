@@ -12,6 +12,25 @@ tramp-tests.el
         the tests on another remote host, see
         `tramp-test-temporary-file-directory' for the default value.
 
+        All temporary Tramp test files are removed prior test run.
+        Therefore, two test runs cannot be performed in parallel.
+
+        The environment variable $TRAMP_TEST_CLEANUP_TEMP_FILES, when
+        set, forces the removal of all temporary Tramp files prior
+        test run.  This shouldn't be set if the test suite runs in
+        parallel using Tramp on a production system.
+
+        For slow remote connections, the test
+        `tramp-test45-asynchronous-requests' might be too heavy.
+        Setting $REMOTE_PARALLEL_PROCESSES to a proper value less than
+        10 could help.
+
+        This test suite obeys the environment variables $EMACS_HYDRA_CI
+        and $EMACS_EMBA_CI, used on the Emacs CI/CD platforms.
+
+        The following test tags are used: `:expensive-test',
+        `:tramp-asynchronous-processes' and `:unstable'.
+
 tramp-time.el (not on GNU ELPA)
         These are performance tests on Tramp.  Read the "Commentary"
         section for details.  These tests are not covered by the Makefile.

@@ -115,7 +115,8 @@ journal entry (refer to the `tmr' package on GNU ELPA)."
   :type 'hook)
 
 (defun denote-journal-directory ()
-  "Make the variable `denote-journal-directory' and its parents."
+  "Return the variable `denote-journal-directory' as a directory.
+If the path does not exist, then make it first."
   (if-let* (((stringp denote-journal-directory))
             (directory (file-name-as-directory (expand-file-name denote-journal-directory))))
       (progn

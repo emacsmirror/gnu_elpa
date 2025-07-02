@@ -240,7 +240,8 @@ If there are multiple journal entries for the date, prompt for one among
 them using minibuffer completion.  If there is only one, return it.  If
 there is no journal entry, create it."
   (let* ((internal-date (or (denote-valid-date-p date) (current-time)))
-         (files (denote-journal--entry-today internal-date)))
+         (files (denote-journal--entry-today internal-date))
+         (denote-kill-buffers nil))
     (if files
         (denote-journal-select-file-prompt files)
       (save-window-excursion

@@ -472,9 +472,6 @@ it is nil."
 (defalias '-imap-quote #'json-serialize ;good enough approximation
   "Make a quoted string as per IMAP spec.")
 
-(defalias '-imap-unquote #'json-parse-string
-  "Parse a quoted string as per IMAP spec.")
-
 (defconst -imap-months
   ["Jan" "Feb" "Mar" "Apr" "May" "Jun" "Jul" "Aug" "Sep" "Oct" "Nov" "Dec"])
 
@@ -488,17 +485,16 @@ it is nil."
 
 (define-peg-ruleset -imap-peg-rules
   (sp        () (char ?\s))
-  (untagged  () (bol) "* ")
+  (dquote   ()  (char ?\"))
   (crlf      () "\r\n")
   (anil      () "NIL" `(-- nil))
+  (untagged  () (bol) "* ")
   (number    () (substring (+ [0-9])) `(s -- (string-to-number s)))
   (achar     () (and (not [cntrl "(){] %*\"\\"]) (any))) ;characters allowed in an atom
   (atom      () (substring (+ achar)))  ;non-quoted identifier a.k.a. atom
-  (qchar     () (or (and "\\" (any))    ;character of a quoted string
-                    (and (not "\"") (any))))
-  (qstring   () ;;quoted string
-             (substring "\"" (* qchar) "\"")
-             `(s -- (-imap-unquote s)))
+  (qchar     () (or (and (replace "\\" "") (any))    ;character of a quoted string
+                    (and (not dquote) (any))))
+  (qstring   () dquote (substring (* qchar)) dquote) ;quoted string
   (literal   ()
              (guard (re-search-forward "\\=~?{\\([0-9]+\\)}\r\n" nil t))
              (region
@@ -531,10 +527,10 @@ it is nil."
              (substring (opt "\\") (+ achar))
              `(s -- (intern s)))
   (to-eol    () ;;consume input until eol
-             (* (and (not [cntrl]) (any))) "\r\n")
+             (* (and (not [cntrl]) (any))) crlf)
   (to-rparen () ;;consume input until closing parens
              (* (or (and "(" to-rparen)
-                    (and "\"" (* qchar) "\"")
+                    (and dquote (* qchar) dquote)
                     (and (not [cntrl "()\""]) (any))))
              ")")
   (balanced  () "(" to-rparen))

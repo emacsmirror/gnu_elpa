@@ -165,7 +165,7 @@ See `condition-case' for the exact meaning of VAR and HANDLERS."
   (declare (indent 0))
   `(athunk-condition-case nil ,(macroexp-progn body) (error nil)))
 
-(defmacro athunk-with-memoization (place &rest body)
+(defmacro athunk-memoize (place &rest body)
   "Like `with-memoization' for asynchronous code.
 BODY should evaluate to an athunk.  When it's resolved, store the result
 in PLACE.  If there is already a value stored in PLACE, use it instead."
@@ -175,18 +175,18 @@ in PLACE.  If there is already a value stored in PLACE, use it instead."
      (pcase-exhaustive ,place
        (`(athunk--cached . ,val)
         (funcall cont nil val))
-       (`(athunk--pending . ,_)
-        (push (lambda (val) (funcall cont nil val)) (cdr ,place)))
+       (`(athunk--pending . ,conts)
+        (nconc conts `(,cont)))
        ('nil
         (setf ,place `(athunk--pending ,cont))
         (funcall ,(macroexp-progn body)
                  (lambda (err val)
                    (let ((conts (cdr ,place)))
                      (setf ,place (unless err `(athunk--cached . ,val)))
-                     (dolist (k (nreverse conts))
+                     (dolist (k conts)
                        (funcall k err val))))))))) ;FIXME: should ignore errors?
 
-(defmacro athunk-clear-memoization (place)
+(defmacro athunk-unmemoize (place)
   "Forget the memoized value in PLACE.
 This only has an effect if the value has been already computed; if it is
 pending the computation is not canceled."
@@ -277,7 +277,7 @@ All entries all optional, except for `:incoming-url'."
 (define-error '-imap-error "error in IMAP response")
 
 (defmacro -get-in (alist key &rest rest)
-  (let ((v `(alist-get ,key ,alist nil nil #'string-equal)))
+  (let ((v `(alist-get ,key ,alist nil nil #'equal)))
     (if rest `(-get-in ,v ,(car rest) ,@(cdr rest)) v)))
 
 (defun -get-data (string)
@@ -707,15 +707,15 @@ being used."
              (run-with-idle-timer 0 nil continue))))))))
 
 (defun -aget-capability (account)
-  (athunk-with-memoization (-get-in -account-state account 'capability)
+  (athunk-memoize (-get-in -account-state account 'capability)
     (athunk-let* ((buffer (-amake-request account nil "CAPABILITY")))
       (with-current-buffer buffer
         (-parse-capability)))))
 
 (defun aget-mailbox-listing (account &optional refresh)
   (when refresh
-    (athunk-clear-memoization (-get-in -account-state account 'mailboxes)))
-  (athunk-with-memoization (-get-in -account-state account 'mailboxes)
+    (athunk-unmemoize (-get-in -account-state account 'mailboxes)))
+  (athunk-memoize (-get-in -account-state account 'mailboxes)
     (let* ((props (alist-get account minimail-accounts))
            (url (url-generic-parse-url (plist-get props :incoming-url)))
            (path (string-remove-prefix "/" (car (url-path-and-query url)))))
@@ -731,15 +731,12 @@ being used."
       (with-current-buffer buffer
         (-parse-list))))))
 
-(defun -aget-mailbox-status (account mailbox &optional refresh)
-  (when refresh
-    (athunk-clear-memoization (-get-in -account-state account 'status mailbox)))
-  (athunk-with-memoization (-get-in -account-state account 'status mailbox)
-    (athunk-let*
-        ((buffer (-amake-request account nil
-                                 (format "EXAMINE %s" (-imap-quote mailbox)))))
-      (with-current-buffer buffer
-        (-parse-select)))))
+(defun -aget-mailbox-status (account mailbox)
+  (athunk-let*
+      ((buffer (-amake-request account nil
+                               (format "EXAMINE %s" (-imap-quote mailbox)))))
+    (with-current-buffer buffer
+      (-parse-select))))
 
 (defun -afetch-id (account mailbox uid)
   "Fetch a message ID given its UID, MAILBOX and ACCOUNT."
@@ -756,7 +753,7 @@ being used."
 
 (defun -afetch-mailbox (account mailbox num &optional end)
   (athunk-let*
-      ((status (-aget-mailbox-status account mailbox t))
+      ((status (-aget-mailbox-status account mailbox))
        (buffer (-amake-request account mailbox
                                (let* ((endid (alist-get 'exists status))
                                       (last (if end (1- endid) endid)) ;FIXME?

@@ -261,7 +261,7 @@ Call ORIG-FUN with ARGS, and add the label number to the annotation."
                           TeX-fold-macro-spec-list)))
       (when-let ((saved (assoc macro auctex-label-numbers--saved-spec-list)))
         (dolist (spec TeX-fold-macro-spec-list)
-          (when (eq (car spec) (cdr saved))
+          (when (equal (car spec) (cdr saved))
             (push macro (cadr spec))))))
     (setq auctex-label-numbers--saved-spec-list nil)
     (when TeX-fold-mode

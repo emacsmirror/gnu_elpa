@@ -195,6 +195,18 @@ label number cannot be retrieved."
 (defvar auctex-label-numbers--saved-spec-list nil
   "Saved values from `TeX-fold-macro-spec-list'.")
 
+(defun auctex-label-numbers--fold-spec-display (spec)
+  "Return the display component of folding SPEC.
+SPEC may be an unsigned display such as `TeX-fold-cite-display', or a
+signed display such as (\"[l]\" . TeX-fold-stop-after-first-mandatory)."
+  (if (consp spec) (car spec) spec))
+
+(defun auctex-label-numbers--fold-spec-with-display (spec display)
+  "Return folding SPEC with its display component replaced by DISPLAY.
+For example, replacing `TeX-fold-cite-display' returns DISPLAY, while
+replacing (\"[r]\" . 1) returns (DISPLAY . 1), preserving the signature."
+  (if (consp spec) (cons display (cdr spec)) display))
+
 (defcustom auctex-label-numbers-macro-list '("ref" "eqref" "label")
   "List of macros to fold with theorem or equation numbers.
 Each element describes a LaTeX macro that takes a label as its argument.
@@ -238,14 +250,25 @@ Call ORIG-FUN with ARGS, and add the label number to the annotation."
     (advice-add 'reftex-goto-label :around #'auctex-label-numbers--reftex-goto-label-advice)
     (require 'tex-fold)
     (dolist (macro auctex-label-numbers-macro-list)
-      (let ((func (intern (format "auctex-label-numbers-%s-display" macro))))
-        (dolist (spec TeX-fold-macro-spec-list)
-          (when (and (member macro (cadr spec))
-                     (not (eq (car spec) func)))
-            (push (cons macro (car spec)) auctex-label-numbers--saved-spec-list)
-            (setcdr spec (list
-                          (seq-remove (lambda (x) (equal x macro)) (cadr spec))))))
-        (add-to-list 'TeX-fold-macro-spec-list (list func (list macro)))))
+      (let* ((func (intern (format "auctex-label-numbers-%s-display" macro)))
+             (entry
+              (seq-find
+               (lambda (entry)
+                 (and (member macro (cadr entry))
+                      (not (eq (auctex-label-numbers--fold-spec-display
+                                (car entry))
+                               func))))
+               TeX-fold-macro-spec-list))
+             (old-spec (and entry (car entry)))
+             (replacement-spec
+              (and old-spec
+                   (auctex-label-numbers--fold-spec-with-display
+                    old-spec func))))
+        (when entry
+          (push (cons macro old-spec) auctex-label-numbers--saved-spec-list)
+          (setcdr entry (list (remove macro (cadr entry)))))
+        (add-to-list 'TeX-fold-macro-spec-list
+                     (list (or replacement-spec func) (list macro)))))
     (when TeX-fold-mode
       (TeX-fold-mode 1)))
    (t
@@ -257,7 +280,10 @@ Call ORIG-FUN with ARGS, and add the label number to the annotation."
     (dolist (macro auctex-label-numbers-macro-list)
       (let ((func (intern (format "auctex-label-numbers-%s-display" macro))))
         (setq TeX-fold-macro-spec-list
-              (seq-remove (lambda (elem) (eq (car elem) func))
+              (seq-remove (lambda (elem)
+                            (eq (auctex-label-numbers--fold-spec-display
+                                 (car elem))
+                                func))
                           TeX-fold-macro-spec-list)))
       (when-let ((saved (assoc macro auctex-label-numbers--saved-spec-list)))
         (dolist (spec TeX-fold-macro-spec-list)

@@ -25,6 +25,7 @@
 ;;; Code:
 
 (require 'ert)
+(require 'auctex-label-numbers)
 
 (ert-deftest
     test-auctex-label-numbers--external-document-regexp ()
@@ -67,6 +68,40 @@
                             "\\externaldocument[]{empty}")) ; Empty optional argument
   (should-not (string-match auctex-label-numbers--external-document-regexp
                             "\\externaldocument[prefix]nobraces")))
+
+(ert-deftest test-auctex-label-numbers-fold-spec-signatures ()
+  "Preserve AUCTeX signatures while replacing folding displays."
+  (let ((auctex-label-numbers-macro-list '("ref" "eqref" "label"))
+        (auctex-label-numbers--saved-spec-list nil)
+        (TeX-fold-macro-spec-list
+         '((("[l]" . TeX-fold-stop-after-first-mandatory) ("label"))
+           (("[r]" . 1) ("ref" "eqref"))))
+        (preview-preprocess-functions nil)
+        (TeX-fold-mode nil))
+    (unwind-protect
+        (progn
+          (auctex-label-numbers-mode 1)
+          (should
+           (member '((auctex-label-numbers-ref-display . 1) ("ref"))
+                   TeX-fold-macro-spec-list))
+          (should
+           (member '((auctex-label-numbers-eqref-display . 1) ("eqref"))
+                   TeX-fold-macro-spec-list))
+          (should
+           (member
+            '((auctex-label-numbers-label-display
+               . TeX-fold-stop-after-first-mandatory)
+              ("label"))
+            TeX-fold-macro-spec-list)))
+      (auctex-label-numbers-mode -1))
+    (should-not
+     (seq-some
+      (lambda (spec)
+        (memq (if (consp (car spec)) (caar spec) (car spec))
+              '(auctex-label-numbers-ref-display
+                auctex-label-numbers-eqref-display
+                auctex-label-numbers-label-display)))
+      TeX-fold-macro-spec-list))))
 
 (provide 'auctex-label-numbers-tests)
 ;;; auctex-label-numbers-tests.el ends here

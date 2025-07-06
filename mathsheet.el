@@ -5,7 +5,7 @@
 ;; Author: Ian Martins <ianxm@jhu.edu>
 ;; Keywords: tools, education, math
 ;; Homepage: https://gitlab.com/ianxm/mathsheet
-;; Version: 1.1
+;; Version: 1.2
 ;; Package-Requires: ((peg "1.0")
 ;;                    (emacs "28.1"))
 
@@ -521,10 +521,12 @@ ordered."
 
   EXPR should be in normal calc format.  The result is the same
   expression (not simplified) but in eqn format for groff."
-  (let ((current-language calc-language))
+  (let ((current-language calc-language)
+        calc-expr)
+    (calc-set-language nil)
+    (setq calc-expr (math-read-expr expr))
     (calc-set-language 'eqn)
-    (let* ((calc-expr (math-read-expr expr))
-           (eqn-expr (math-format-stack-value (list calc-expr 1 nil)))
+    (let* ((eqn-expr (math-format-stack-value (list calc-expr 1 nil)))
            (eqn-expr-cleaned (replace-regexp-in-string (rx "1:" (* space)) "" eqn-expr)))
       (calc-set-language current-language)
       eqn-expr-cleaned)))

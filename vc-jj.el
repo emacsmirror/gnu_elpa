@@ -752,13 +752,30 @@ four groups: change id, author, datetime, line number.")
     (when (looking-at vc-jj--annotation-line-prefix-re)
       (match-string-no-properties 1))))
 
+(defun vc-jj--revision-annotation-function (elem)
+  "Calculate propertized change description from ELEM.
+ELEM can be of the form (change-id . description), as produced in
+`vc-jj-revision-completion-table', in which case we return the second
+element, or can be a change id, in which case we query for the first
+line of its description."
+  (let ((description
+         (if (listp elem)
+             (second elem)
+           (vc-jj--command-parseable "log" "-r" elem "--no-graph" "-T" "self.description().first_line()"))))
+    (format " %s" (propertize description 'face 'completions-annotations))))
+
 (defun vc-jj-revision-completion-table (files)
-  (let ((revisions
-         (apply #'vc-jj--process-lines "log" "--no-graph"
-                "-T" "self.change_id() ++ \"\\n\"" "--" files)))
+  "Return a completion table for existing revisions of FILES."
+  (let* ((revisions
+          (mapcar
+           ;; Boldly assuming that jj's change ids won't suddenly change length
+           (lambda (line) (list (substring line 0 31) (substring line 32)))
+           (apply #'vc-jj--process-lines "log" "--no-graph"
+                  "-T" "self.change_id() ++ self.description().first_line() ++ \"\\n\"" "--" files))))
     (lambda (string pred action)
       (if (eq action 'metadata)
-          `(metadata . ((display-sort-function . ,#'identity)))
+          `(metadata . ((display-sort-function . ,#'identity)
+                        (annotation-function . ,#'vc-jj--revision-annotation-function)))
         (complete-with-action action revisions string pred)))))
 
 (defun vc-jj-retrieve-tag (_dir rev _update)

@@ -772,11 +772,37 @@ being used."
         (replace-string-in-region "\r\n" "\n")
         buffer))))
 
-(defun -afetch-search (account mailbox text)
+(defun -format-search-1 (item)
+  (pcase-exhaustive item
+    (`(or ,first . nil)
+     (-format-search-1 first))
+    (`(or ,first . ,rest)
+     (concat "OR " (-format-search-1 first) " " (-format-search-1 `(or . ,rest))))
+    (`(not . ,v)
+     (concat "NOT " (-format-search-1 v)))
+    ((or 'all 'answered 'deleted 'flagged 'seen 'draft)
+     (upcase (symbol-name item)))
+    (`(,(and k (or 'keyword 'larger 'smaller)) . ,v) ;atom or number argument
+     (format "%s %s" (upcase (symbol-name k)) v))
+    (`(,(and k (or 'bcc 'body 'cc 'from 'subject 'text 'to)) . ,v) ;string argument
+     (format "%s %S" (upcase (symbol-name k)) v))
+    (`(,(and k (or 'before 'on 'since 'sentbefore 'senton 'sentsince)) . ,v) ;date argument
+     (pcase-let ((`(_ _ _ ,day ,month ,year) (parse-time-string v)))
+       (format "%s %s-%s-%s"
+               (upcase (symbol-name k))
+               day (aref -imap-months (1- month)) year)))
+    (`(header ,k . ,v)
+     (format "HEADER %S %S" k v))
+    ((pred proper-list-p)
+     (concat "(" (-format-search item) ")"))))
+
+(defun -format-search (query)
+  (mapconcat #'-format-search-1 (or query '(all)) " "))
+
+(defun -afetch-search (account mailbox query)
   (athunk-let*
       ((sbuf (-amake-request account mailbox
-                             (format "UID SEARCH CHARSET UTF-8 TEXT %s"
-                                     (-imap-quote text))))
+                             (concat "UID SEARCH CHARSET UTF-8 " (-format-search query))))
        (fbuf (let ((uids (with-current-buffer sbuf (-parse-search))))
                (-amake-request account mailbox
                                (format "UID FETCH %s (UID FLAGS RFC822.SIZE ENVELOPE)"
@@ -885,12 +911,12 @@ Return a cons cell consisting of the account symbol and mailbox name."
      buffer)))
 
 ;;;###autoload
-(defun minimail-search (account mailbox text)
-  "Search for a message."
+(defun minimail-search (account mailbox query)
+  "Perform a search in ACCOUNT's MAILBOX."
   (interactive (pcase-let*
                    ((`(,acct . ,mbx) (-read-mailbox-maybe "Search in mailbox: "))
                     (text (read-from-minibuffer "Search text: ")))
-                 `(,acct ,mbx ,text)))
+                 `(,acct ,mbx ((text . ,text)))))
   (pop-to-buffer
    (let* ((name (format "*search in %s*"
                         (-mailbox-buffer-name account mailbox)))
@@ -899,7 +925,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
        (minimail-mailbox-mode)
        (setq-local -local-state `((account . ,account)
                                   (mailbox . ,mailbox)
-                                  (search . ,text)))
+                                  (search . ,query)))
        (-mailbox-refresh))
      buffer)))
 

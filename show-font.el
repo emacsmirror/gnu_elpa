@@ -426,16 +426,17 @@ If FAMILY is nil, use the one of the current font file."
 
 (defun show-font--insert-button ()
   "Insert `show-font-installed-file-button' at point."
-  (insert
-   (concat (propertize "Cannot preview this font" 'face 'show-font-title)
-           "\n\n"
-           (propertize buffer-file-name 'face 'bold)
-           " is not installed"
-           "\n\n"
-           "Install this font file?"
-           "\n"))
-  (goto-char (point-max))
-  (make-text-button (line-beginning-position 0) (line-end-position 0) :type 'show-font-installed-file-button))
+  (when buffer-file-name
+    (insert
+     (concat (propertize "Cannot preview this font" 'face 'show-font-title)
+             "\n\n"
+             (propertize buffer-file-name 'face 'bold)
+             " is not installed"
+             "\n\n"
+             "Install this font file?"
+             "\n"))
+    (goto-char (point-max))
+    (make-text-button (line-beginning-position 0) (line-end-position 0) :type 'show-font-installed-file-button)))
 
 (defun show-font--add-text (&optional buffer)
   "Add the `show-font-pangram' as an overlay at `point-min'.

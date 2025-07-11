@@ -220,7 +220,8 @@ matters.
 + Contributions to code or the manual :: Eli Zaretskii, Philip
   Kaludercic, Swapnil Mahajan.
 
-+ Ideas and/or user feedback :: Darryl Hebbes, Perry Metzger.
++ Ideas and/or user feedback :: Darryl Hebbes, Perry Metzger, Zhengyi
+  Fu.
 
 * COPYING
 :PROPERTIES:

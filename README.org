@@ -10,10 +10,10 @@ features.
 - [X] Read messages, including MIME (rendering via Gnus)
 - [X] Compose, reply to and forward messages
 - [X] Full-text search
+- [X] Move messages (also archive, trash, junk)
 - [ ] Structured search
 - [ ] Sort by thread
-- [ ] Mark and operate on messages (delete, archive, mark as junk,
-  etc.)
+- [ ] Mark and operate on sets of messages (move etc.)
 - [ ] Notifications (polling or IDLE)
 - [ ] OAuth
 

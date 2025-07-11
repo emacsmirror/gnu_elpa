@@ -305,6 +305,12 @@ ARGS is the entire argument list of `minimail--log-message'."
 The message is formed by calling `format' with STRING and ARGS."
   `(when -log-buffer (-log-message-1 ,string ,@args)))
 
+(defvar minimail-mailbox-history nil
+  "History variable for mailbox selection.")
+
+(defun -mailbox-display-name (account mailbox)
+  (format "%s:%s" account mailbox))
+
 ;;; Low-level IMAP communication
 
 ;; References:
@@ -708,7 +714,7 @@ being used."
       (with-current-buffer buffer
         (-parse-capability)))))
 
-(defun aget-mailbox-listing (account &optional refresh)
+(defun -aget-mailbox-listing (account &optional refresh)
   (when refresh
     (athunk-unmemoize (-get-in -account-state account 'mailboxes)))
   (athunk-memoize (-get-in -account-state account 'mailboxes)
@@ -722,7 +728,7 @@ being used."
                     (format "LIST %s *%s"
                             (-imap-quote path)
                             (if (memq 'list-status caps)
-                                " RETURN (STATUS (MESSAGES UIDNEXT UNSEEN))"
+                                " RETURN (SPECIAL-USE STATUS (MESSAGES UIDNEXT UNSEEN))" ;FIXME check special-use cap
                               "")))))
       (with-current-buffer buffer
         (-parse-list))))))
@@ -810,7 +816,24 @@ being used."
     (with-current-buffer fbuf
       (-parse-fetch))))
 
-;;; Major modes
+(defun -format-sequence-set (messages)
+  (cond
+   ((stringp messages) messages)
+   ((numberp messages) (number-to-string messages))
+   (t (mapconcat #'number-to-string messages ","))))
+
+(defun -amove-messages (account mailbox destination uids)
+  (athunk-let*
+      ((caps (-aget-capability account))
+       (_ (if (not (memq 'move caps))
+              (error "Account %s doesn't support moving messages" account)
+            (-amake-request account mailbox
+                            (format "UID MOVE %s %s"
+                                    (-format-sequence-set uids)
+                                    (-imap-quote destination))))))
+    t))
+
+;;; Commands
 
 (defmacro -with-associated-buffer (buffer &rest body)
   (declare (indent 1))
@@ -822,13 +845,13 @@ being used."
          (user-error "No %s buffer" ',buffer))
        (with-current-buffer ,bsym ,@body))))
 
-;;;; Mailbox buffer
-
-(defvar minimail-mailbox-history nil
-  "History variable for mailbox selection.")
-
-(defun -mailbox-buffer-name (account mailbox)
-  (format "%s:%s" account mailbox))
+(defun -mailbox-buffer (&optional noerror)
+  (let ((buffer (if (derived-mode-p 'minimail-mailbox-mode)
+                    (current-buffer)
+                  (alist-get 'mailbox-buffer -local-state))))
+    (prog1 buffer
+      (unless (or noerror (buffer-live-p buffer))
+        (user-error "No mailbox buffer")))))
 
 (defun -mailbox-annotate (cand)
   "Return an annotation for `devdocs--read-entry' candidate CAND."
@@ -865,12 +888,12 @@ Return a cons cell consisting of the account symbol and mailbox name."
             (let* ((buffer (current-buffer))
                    (mkcand (pcase-lambda (`(,mbx . ,props))
                              (unless (memq '\\Noselect (alist-get 'attributes props))
-                               (propertize (-mailbox-buffer-name acct mbx)
+                               (propertize (-mailbox-display-name acct mbx)
                                            '-data `(,props ,acct . ,mbx))))))
               (athunk-do
                (athunk-let*
                    ((mailboxes (athunk-condition-case err
-                                   (aget-mailbox-listing acct)
+                                   (-aget-mailbox-listing acct)
                                  (t (overlay-put ov 'display " (error):")
                                     (message "Error loading mailboxes for account %s: %S"
                                              acct err)
@@ -893,13 +916,25 @@ Return a cons cell consisting of the account symbol and mailbox name."
         (mbx (alist-get 'mailbox -local-state)))
     (if mbx (cons acct mbx) (-read-mailbox prompt (ensure-list acct)))))
 
+(defun -selected-messages ()
+  (let ((acct (alist-get 'account -local-state))
+        (mbx (alist-get 'mailbox -local-state)))
+    (cond
+     ((derived-mode-p 'minimail-message-mode)
+      (error "Not implemented"))
+     ((derived-mode-p 'minimail-mailbox-mode)
+      (list acct
+            mbx
+            (list (alist-get 'uid (or (vtable-current-object)
+                                      (user-error "No selected message")))))))))
+
 ;;;###autoload
 (defun minimail-find-mailbox (account mailbox)
   "List messages in a mailbox."
   (interactive (let ((v (-read-mailbox "Find mailbox: ")))
                  `(,(car v) ,(cdr v))))
   (pop-to-buffer
-   (let* ((name (-mailbox-buffer-name account mailbox))
+   (let* ((name (-mailbox-display-name account mailbox))
           (buffer (get-buffer name)))
      (unless buffer
        (setq buffer (get-buffer-create name))
@@ -919,7 +954,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
                  `(,acct ,mbx ((text . ,text)))))
   (pop-to-buffer
    (let* ((name (format "*search in %s*"
-                        (-mailbox-buffer-name account mailbox)))
+                        (-mailbox-display-name account mailbox)))
           (buffer (get-buffer-create name)))
      (with-current-buffer buffer
        (minimail-mailbox-mode)
@@ -928,6 +963,82 @@ Return a cons cell consisting of the account symbol and mailbox name."
                                   (search . ,query)))
        (-mailbox-refresh))
      buffer)))
+
+(defun -amove-messages-and-redisplay (account mailbox destination uids)
+  (let ((prog (make-progress-reporter
+               (format-message "Moving messages to `%s'..."
+                               (-mailbox-display-name account destination)))))
+    (athunk-let*
+        ((_ (-amove-messages account mailbox destination uids)))
+      (progress-reporter-done prog)
+      (when-let*
+        ((mbxbuf (seq-some (lambda (b)
+                             (with-current-buffer b
+                               (and (derived-mode-p 'minimail-mailbox-mode)
+                                    (eq account (alist-get 'account -local-state))
+                                    (equal mailbox (alist-get 'mailbox -local-state))
+                                    b)))
+                           (buffer-list))))
+      (with-current-buffer mbxbuf
+        (let* ((table (vtable-current-table))
+               (objs (vtable-objects table)))
+          (dolist (obj objs)
+            (when (memq (alist-get 'uid obj) uids)
+              (vtable-remove-object table obj)))))))))
+
+(defun minimail-move-to-mailbox (&optional destination)
+  (interactive nil minimail-mailbox-mode minimail-message-mode)
+  (pcase-let* ((`(,acct ,mbx ,uids) (-selected-messages))
+               (prompt (if (length= uids 1)
+                           "Move message to: "
+                         (format "Move %s messages to: " (length uids))))
+               (dest (or destination
+                         (cdr (-read-mailbox prompt (list acct))))))
+    (athunk-do (-amove-messages-and-redisplay acct mbx dest uids))))
+
+(defun -find-mailbox-by-attribute (attr mailboxes)
+  (seq-some (pcase-lambda (`(,mbx . ,items))
+              (when (memq attr (alist-get 'attributes items)) mbx))
+            mailboxes))
+
+(defun minimail-move-to-archive ()
+  (interactive nil minimail-mailbox-mode minimail-message-mode)
+  (pcase-let* ((`(,acct ,mbx ,uids) (-selected-messages)))
+    (athunk-do
+     (athunk-let*
+         ((mailboxes (-aget-mailbox-listing acct))
+          (_ (let ((dest (or (plist-get (alist-get acct minimail-accounts)
+                                        :archive-mailbox)
+                             (-find-mailbox-by-attribute '\\Archive mailboxes)
+                             (-find-mailbox-by-attribute '\\All mailboxes)
+                             (user-error "Archive mailbox not found"))))
+               (-amove-messages-and-redisplay acct mbx dest uids))))))))
+
+(defun minimail-move-to-trash ()
+  (interactive nil minimail-mailbox-mode minimail-message-mode)
+  (pcase-let* ((`(,acct ,mbx ,uids) (-selected-messages)))
+    (athunk-do
+     (athunk-let*
+         ((mailboxes (-aget-mailbox-listing acct))
+          (_ (let ((dest (or (plist-get (alist-get acct minimail-accounts)
+                                        :trash-mailbox)
+                             (-find-mailbox-by-attribute '\\Trash mailboxes)
+                             (user-error "Trash mailbox not found"))))
+               (-amove-messages-and-redisplay acct mbx dest uids))))))))
+
+(defun minimail-move-to-junk ()
+  (interactive nil minimail-mailbox-mode minimail-message-mode)
+  (pcase-let* ((`(,acct ,mbx ,uids) (-selected-messages)))
+    (athunk-do
+     (athunk-let*
+         ((mailboxes (-aget-mailbox-listing acct))
+          (_ (let ((dest (or (plist-get (alist-get acct minimail-accounts)
+                                        :junk-mailbox)
+                             (-find-mailbox-by-attribute '\\Junk mailboxes)
+                             (user-error "Junk mailbox not found"))))
+               (-amove-messages-and-redisplay acct mbx dest uids))))))))
+
+;;; Mailbox buffer
 
 (defvar-keymap minimail-mailbox-mode-map
   "RET" #'minimail-show-message
@@ -1120,7 +1231,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
     (when-let* ((window (get-buffer-window)))
       (quit-window kill window))))
 
-;;;; Message buffer
+;;; Message buffer
 
 (defvar-keymap minimail-message-mode-map
   :doc "Keymap for Help mode."

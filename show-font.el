@@ -218,14 +218,14 @@ return nil."
 (defun show-font-handler (operation &rest args)
   "Handle the given I/O `file-name-handler-alist' OPERATION with ARGS.
 Determine how to render the font file contents in a buffer."
-  ;; Handle any operation we do not know about.  This is copied from
-  ;; the example shown in (info "(elisp) Magic File Names").
   (if-let* ((_ (eq operation 'insert-file-contents))
             (filename (car args))
             (visit (cadr args)))
       (progn
         (setq buffer-file-name filename)
         (show-font--add-text))
+    ;; Handle any operation we do not know about.  This is copied from
+    ;; the example shown in (info "(elisp) Magic File Names").
     (let ((inhibit-file-name-handlers
            (cons #'show-font-handler
                  (and (eq inhibit-file-name-operation operation)

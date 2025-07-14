@@ -414,6 +414,7 @@
  (highlight-escape-sequences
   			:url "https://github.com/dgutov/highlight-escape-sequences/")
  (hook-helpers		:url "https://git.savannah.nongnu.org/git/hook-helpers-el.git")
+ ;; (hotfuzz		:url "https://github.com/axelf4/hotfuzz")
  (html5-schema		:url nil)
  (hugoista		:url "https://codeberg.org/c-alpha/hugoista")
  (hydra			:url "https://github.com/abo-abo/hydra"
@@ -885,6 +886,7 @@
  (vcard			:url nil)
  (vcl-mode	        :url "https://git.gnu.org.ua/vcl-mode.git")
  (vdiff               	:url "https://github.com/justbur/emacs-vdiff")
+ (vecdb			:url "https://github.com/ahyatt/vecdb")
  (verilog-mode		:core "lisp/progmodes/verilog-mode.el")
  (vertico		:url "https://github.com/minad/vertico"
   :doc "README.org"

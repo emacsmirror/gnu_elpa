@@ -57,6 +57,7 @@ DBNAME is the database name, which must have been created by the user."
 
 (cl-defmethod vecdb-create ((provider vecdb-psql)
                             (collection vecdb-collection))
+  "Create COLLECTION in database PROVIDER."
   (pg-exec (vecdb-psql-get-connection provider)
            (format "CREATE TABLE IF NOT EXISTS %s (
                      id INTEGER PRIMARY KEY,
@@ -91,13 +92,14 @@ DBNAME is the database name, which must have been created by the user."
 
 (cl-defmethod vecdb-delete ((provider vecdb-psql)
                             (collection vecdb-collection))
+  "Delete COLLECTION from database PROVIDER."
   (pg-exec (vecdb-psql-get-connection provider)
            (format "DROP TABLE IF EXISTS %s;"
                    (vecdb-collection-name collection))))
 
 (cl-defmethod vecdb-exists ((provider vecdb-psql)
                             (collection vecdb-collection))
-  "Check if the collection exists in the database."
+  "Check if the COLLECTION exists in the database specified by PROVIDER."
   (let ((result
          (pg-exec (vecdb-psql-get-connection provider)
                   (format "SELECT EXISTS (
@@ -116,7 +118,7 @@ DBNAME is the database name, which must have been created by the user."
 (cl-defmethod vecdb-upsert-items ((provider vecdb-psql)
                                   (collection vecdb-collection)
                                   data-list &optional _)
-  "Upsert items into the collection in the database.
+  "Upsert items into the COLLECTION in the database PROVIDER.
 All items in DATA-LIST must have the same paylaods."
   (pg-exec (vecdb-psql-get-connection provider)
            (format "INSERT INTO %s (id, vector, %s) VALUES %s
@@ -166,7 +168,8 @@ All items in DATA-LIST must have the same paylaods."
 (cl-defmethod vecdb-get-item ((provider vecdb-psql)
                               (collection vecdb-collection)
                               id)
-  "Get an item from the collection by ID."
+  "Get an item from COLLECTION by ID.
+PROVIDER specifies the database that the collection is in."
   (let ((result
          (pg-result
           (pg-exec (vecdb-psql-get-connection provider)
@@ -185,7 +188,8 @@ All items in DATA-LIST must have the same paylaods."
 (cl-defmethod vecdb-delete-items ((provider vecdb-psql)
                                   (collection vecdb-collection)
                                   ids &optional _)
-  "Delete items from the collection by IDs."
+  "Delete items from COLLECTION by IDs.
+PROVIDER is the database that the collection is in."
   (when ids
     (pg-exec (vecdb-psql-get-connection provider)
              (format "DELETE FROM %s WHERE id IN (%s);"
@@ -196,7 +200,8 @@ All items in DATA-LIST must have the same paylaods."
                                       (collection vecdb-collection)
                                       vector
                                       &optional limit)
-  "Search for items in the collection by VECTOR."
+  "Search for items in COLLECTION by VECTOR.
+PROVIDER is the database that the collection is in."
   (let ((limit-clause (if limit
                           (format "LIMIT %d" limit)
                         "")))
@@ -220,6 +225,6 @@ All items in DATA-LIST must have the same paylaods."
                               limit-clause))
              :tuples))))
 
-(provider 'vecdb-psql)
+(provide 'vecdb-psql)
 
 ;;; vecdb-psql.el ends here

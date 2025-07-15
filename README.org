@@ -46,7 +46,7 @@ an integer is the best choice.
 
 These can be deleted with ~vecdb-delete-item~ and retrieved by ID with ~vecdb-get-item~.
 
-IDs used in =vecdb= *must* be =uint64= values.  If you have another ID you need to use to tie it together with other storage, that should go into the =payload=.
+IDs used in =vecdb= *must* be =uint64= values.  If you have another ID you need to use to tie it together with other storage, that should go into the =payload=.  Also, each item passed in must set the same payload fields.
 * Querying data
 Querying the database can be done with ~vecdb-search-by-vector~, passing it a vector and optionally a number of results to return (10 is the default).
 

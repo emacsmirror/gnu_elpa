@@ -44,31 +44,33 @@
 
 (ert-deftest minimail-tests-let* ()
   (-with-polling
-   (athunk-let* ((x (athunk-wrap 2))
-                 (y (athunk-wrap (1+ x))))
+   (athunk-let* ((x <- (athunk-wrap 2))
+                 (y <- (athunk-wrap (1+ x))))
      (should (eq y 3)))))
 
 (ert-deftest minimail-tests-sleep ()
   (-should-take-seconds 1
     (-with-polling
-     (athunk-let* ((x (athunk-sleep 1 'xxx)))
+     (athunk-let* ((x <- (athunk-sleep 1 'xxx)))
        (should (eq x 'xxx))))))
 
 (ert-deftest minimail-tests-gather ()
   (-should-take-seconds 0.3
     (-with-polling
-     (athunk-let* ((vec (athunk-gather (list (athunk-sleep 0.1 1)
-                                             (athunk-sleep 0.3 2)
-                                             (athunk-sleep 0.2 3)))))
+     (athunk-let* ((vec <- (athunk-gather (list (athunk-sleep 0.1 1)
+                                                (athunk-sleep 0.3 2)
+                                                (athunk-sleep 0.2 3)))))
        (should (equal vec [1 2 3]))))))
 
 (ert-deftest minimail-tests-let ()
   (-should-take-seconds 0.2
     (-with-polling
-     (athunk-let ((x (athunk-sleep 0.2 1))
-                  (y (athunk-sleep 0.1 2)))
+     (athunk-let ((x <- (athunk-sleep 0.2 1))
+                  (y <- (athunk-sleep 0.1 2))
+                  (z 3))
        (should (eq x 1))
-       (should (eq y 2))))))
+       (should (eq y 2))
+       (should (eq z 3))))))
 
 (ert-deftest minimail-tests-memoization ()
   (-with-polling
@@ -76,7 +78,7 @@
           (place nil)
           (getter (lambda (v)
                     (athunk-memoize (alist-get 'key place)
-                      (athunk-let ((_ (athunk-sleep 0)))
+                      (athunk-let* ((_ <- (athunk-sleep 0)))
                         (cl-incf count)
                         v)))))
      (athunk-let ((x (funcall getter 10))
@@ -92,8 +94,8 @@
                     (athunk-memoize (alist-get 'key place)
                       (athunk-wrap v)))))
      (athunk-let*
-         ((x (funcall getter 1))
-          (y (progn
+         ((x <- (funcall getter 1))
+          (y <- (progn
                (athunk-unmemoize (alist-get 'key place))
                (funcall getter 2))))
        (should (eq x 1))

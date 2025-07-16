@@ -59,27 +59,48 @@
 ;;
 ;; References:
 ;; - https://jyp.github.io/posts/elisp-cps.html
-;; - https://emacsconf.org/2022/talks/async/
+;; - https://nullprogram.com/blog/2019/03/10/
+;; - https://lists.gnu.org/archive/html/emacs-devel/2023-03/msg00630.html
+
+(defmacro athunk--let*-1 (cont bindings form)
+  "Helper macro for `athunk-let*'."
+  (declare (indent 1))
+  (cl-flet ((protect (form)
+              (let ((esym (gensym)))
+                `(condition-case ,esym ,form
+                   (t (funcall ,cont (car ,esym) (cdr ,esym)))))))
+    (pcase-exhaustive bindings
+      ('()
+       `(funcall ,cont nil ,(protect form)))
+      (`((,var ,exp) . ,rest)
+       `(let ((,var ,(protect exp)))
+          (athunk--let*-1 ,cont ,rest ,form)))
+      (`((,var <- ,athunk) . ,rest)
+       (let ((esym (gensym))                ;the error, possibly nil
+             (vsym (gensym)))               ;the computed value
+         `(funcall ,(protect athunk)
+                   (lambda (,esym ,vsym)
+                     (if ,esym
+                         (funcall ,cont ,esym ,vsym)
+                       (let ((,var ,vsym))
+                         (athunk--let*-1 ,cont ,rest ,form))))))))))
 
 (defmacro athunk-let* (bindings &rest body)
   "Sequentially resolve athunks then evaluate BODY.
-BINDINGS is a list of elements of the form (SYMBOL FORM), where FORM
-evaluates to an athunk.  Return an athunk which resolves to the value of
-the last form in BODY."
-  (declare (indent 1))
-  (let* ((csym (gensym))                ;the continuation
-         (esym (gensym))                ;the error, possibly nil
-         (vsym (gensym))                ;the computed value
-         (form `(condition-case ,vsym ,(macroexp-progn body)
-                  (:success (funcall ,csym nil ,vsym))
-                  (t (funcall ,csym (car ,vsym) (cdr ,vsym))))))
-    (pcase-dolist (`(,var ,athunk) (reverse bindings))
-      (setq form `(funcall ,athunk
-                           (lambda (,esym ,vsym)
-                             (if ,esym
-                                 (funcall ,csym ,esym ,vsym)
-                               (let ((,var ,vsym)) ,form))))))
-    `(lambda (,csym) ,form)))
+BINDINGS are elements of the form (SYMBOL FORM) or (SYMBOL <- FORM).
+The former simply binds FORM's value to SYMBOL.  In the latter, FORM
+should evaluate to an athunk, and SYMBOL is bound to it resolved value.
+
+Return an athunk which resolves to the value of the last form in BODY."
+  (declare (indent 1) (debug ((&rest (sexp . [&or ("<-" form) (form)])) body)))
+  (let ((csym (gensym)))
+    `(lambda (,csym)
+       (athunk--let*-1 ,csym ,bindings ,(macroexp-progn body)))))
+
+(defmacro athunk-wrap (&rest body)
+  "Wrap BODY in an athunk for delayed execution."
+  (declare (indent 0))
+  `(athunk-let* nil ,@body))
 
 (defun athunk-gather (athunks)
   "Resolve all ATHUNKS and return a vector of results."
@@ -93,29 +114,30 @@ the last form in BODY."
                        (funcall cont err val)
                      (setf (aref result i) val)
                      (when (zerop (cl-decf n))
-                       (funcall cont nil result)))))))))
+                       (run-with-timer 0 nil cont nil result)))))))))
 
 (defmacro athunk-let (bindings &rest body)
   "Concurrently resolve athunks then evaluate BODY.
-BINDINGS is a list of elements of the form (SYMBOL FORM), where FORM
-evaluates to an athunk.  Return an athunk which resolves to the value of
-the last form in BODY."
+BINDINGS are elements of the form (SYMBOL FORM) or (SYMBOL <- FORM).
+The former simply binds FORM's value to SYMBOL.  In the latter, FORM
+should evaluate to an athunk, and SYMBOL is bound to it resolved value.
+
+Return an athunk which resolves to the value of the last form in BODY."
   (declare (indent 1))
-  (if (length< bindings 2)              ;optimization
+  (if (length< bindings 2)
       `(athunk-let* ,bindings ,@body)
     (let ((vec (gensym))
-          (athunks (mapcar #'cadr bindings))
+          (athunks (mapcar (lambda (binding)
+                             (pcase-exhaustive binding
+                               (`(,_ <- ,athunk) athunk)
+                               (`(,_ ,val) `(athunk-wrap ,val))))
+                           bindings))
           (vars (mapcar #'car bindings)))
-      `(athunk-let* ((,vec (athunk-gather (list ,@athunks))))
+      `(athunk-let* ((,vec <- (athunk-gather (list ,@athunks))))
          (let ,(seq-map-indexed (lambda (v i) `(,v (aref ,vec ,i))) vars)
            ,@body)))))
 
-(defun athunk-sleep (secs &optional value)
-  "Return an athunk that waits SECS seconds and then returns VALUE."
-  (lambda (cont)
-    (run-with-timer secs nil cont nil value)))
-
-(defun athunk-do (athunk)
+(defun athunk-run (athunk)
   "Execute ATHUNK for side-effects.
 Any uncatched errors are signaled, but notice this will happen at a
 later point in time."
@@ -129,10 +151,10 @@ later point in time."
                       (message "%s:%s:%S" (or prefix "athunk-debug") err val)
                       (when err (signal err val))))))
 
-(defmacro athunk-wrap (&rest body)
-  "Wrap BODY in an athunk for delayed execution."
-  (declare (indent 0))
-  `(athunk-let* nil ,@body))
+(defun athunk-sleep (secs &optional value)
+  "Return an athunk that waits SECS seconds and then returns VALUE."
+  (lambda (cont)
+    (run-with-timer secs nil cont nil value)))
 
 (defmacro athunk-condition-case (var form &rest handlers)
   "Like `condition-case', but for asynchronous code.
@@ -710,7 +732,8 @@ being used."
 
 (defun -aget-capability (account)
   (athunk-memoize (-get-in -account-state account 'capability)
-    (athunk-let* ((buffer (-amake-request account nil "CAPABILITY")))
+    (athunk-let*
+        ((buffer <- (-amake-request account nil "CAPABILITY")))
       (with-current-buffer buffer
         (-parse-capability)))))
 
@@ -718,35 +741,34 @@ being used."
   (when refresh
     (athunk-unmemoize (-get-in -account-state account 'mailboxes)))
   (athunk-memoize (-get-in -account-state account 'mailboxes)
-    (let* ((props (alist-get account minimail-accounts))
-           (url (url-generic-parse-url (plist-get props :incoming-url)))
-           (path (string-remove-prefix "/" (car (url-path-and-query url)))))
-      (athunk-let*
-          ((caps (-aget-capability account))
-           (buffer (-amake-request
-                    account nil
-                    (format "LIST %s *%s"
-                            (-imap-quote path)
-                            (if (memq 'list-status caps)
-                                " RETURN (SPECIAL-USE STATUS (MESSAGES UIDNEXT UNSEEN))" ;FIXME check special-use cap
-                              "")))))
+    (athunk-let*
+        ((props (alist-get account minimail-accounts))
+         (url (url-generic-parse-url (plist-get props :incoming-url)))
+         (path (string-remove-prefix "/" (car (url-path-and-query url))))
+         (caps <- (-aget-capability account))
+         (cmd (format "LIST %s *%s"
+                      (-imap-quote path)
+                      (if (memq 'list-status caps)
+                          " RETURN (SPECIAL-USE STATUS (MESSAGES UIDNEXT UNSEEN))" ;FIXME check special-use cap
+                        "")))
+         (buffer <- (-amake-request account nil cmd)))
       (with-current-buffer buffer
-        (-parse-list))))))
+        (-parse-list)))))
 
 (defun -aget-mailbox-status (account mailbox)
   (athunk-let*
-      ((buffer (-amake-request account nil
-                               (format "EXAMINE %s" (-imap-quote mailbox)))))
+      ((cmd (format "EXAMINE %s" (-imap-quote mailbox)))
+       (buffer <- (-amake-request account nil cmd)))
     (with-current-buffer buffer
       (-parse-select))))
 
 (defun -afetch-id (account mailbox uid)
   "Fetch a message ID given its UID, MAILBOX and ACCOUNT."
   (athunk-let*
-      ((buffer (-amake-request account mailbox
-                               (format "%sFETCH %s (UID)"
-                                       (if uid "UID " "")
-                                       (or uid "*")))))
+      ((buffer <- (-amake-request account mailbox
+                                  (format "%sFETCH %s (UID)"
+                                          (if uid "UID " "")
+                                          (or uid "*")))))
     ;;FIXME: uid=nil was supposed to retrieve the highest id, but
     ;;servers seem to implement some kind of caching that make it not
     ;;work.
@@ -755,20 +777,20 @@ being used."
 
 (defun -afetch-mailbox (account mailbox num &optional end)
   (athunk-let*
-      ((status (-aget-mailbox-status account mailbox))
-       (buffer (-amake-request account mailbox
-                               (let* ((endid (alist-get 'exists status))
-                                      (last (if end (1- endid) endid)) ;FIXME?
-                                      (first (max 1 (- last num -1))))
-                                 (format "FETCH %s:%s (UID FLAGS RFC822.SIZE ENVELOPE)"
-                                         first last)))))
+      ((status <- (-aget-mailbox-status account mailbox))
+       (endid (alist-get 'exists status))
+       (last (if end (1- endid) endid)) ;FIXME?
+       (first (max 1 (- last num -1)))
+       (cmd (format "FETCH %s:%s (UID FLAGS RFC822.SIZE ENVELOPE)"
+                    first last))
+       (buffer <- (-amake-request account mailbox cmd)))
     (with-current-buffer buffer
       (-parse-fetch))))
 
 (defun -afetch-message (account mailbox uid)
   (athunk-let*
-      ((buffer (-amake-request account mailbox
-                               (format "UID FETCH %s (BODY[])" uid))))
+      ((cmd (format "UID FETCH %s (BODY[])" uid))
+       (buffer <- (-amake-request account mailbox cmd)))
     (with-current-buffer buffer
       (pcase-let* ((data (car (-parse-fetch)))
                    (`(,start . ,end) (alist-get 'content data)))
@@ -807,12 +829,12 @@ being used."
 
 (defun -afetch-search (account mailbox query)
   (athunk-let*
-      ((sbuf (-amake-request account mailbox
-                             (concat "UID SEARCH CHARSET UTF-8 " (-format-search query))))
-       (fbuf (let ((uids (with-current-buffer sbuf (-parse-search))))
-               (-amake-request account mailbox
-                               (format "UID FETCH %s (UID FLAGS RFC822.SIZE ENVELOPE)"
-                                       (mapconcat #'number-to-string uids ","))))))
+      ((sbuf <- (-amake-request account mailbox
+                                (concat "UID SEARCH CHARSET UTF-8 " (-format-search query))))
+       (uids (with-current-buffer sbuf (-parse-search)))
+       (fbuf <- (-amake-request account mailbox
+                                (format "UID FETCH %s (UID FLAGS RFC822.SIZE ENVELOPE)"
+                                        (mapconcat #'number-to-string uids ",")))))
     (with-current-buffer fbuf
       (-parse-fetch))))
 
@@ -824,13 +846,13 @@ being used."
 
 (defun -amove-messages (account mailbox destination uids)
   (athunk-let*
-      ((caps (-aget-capability account))
-       (_ (if (not (memq 'move caps))
-              (error "Account %s doesn't support moving messages" account)
-            (-amake-request account mailbox
-                            (format "UID MOVE %s %s"
-                                    (-format-sequence-set uids)
-                                    (-imap-quote destination))))))
+      ((caps <- (-aget-capability account))
+       (cmd (if (memq 'move caps)
+                (format "UID MOVE %s %s"
+                        (-format-sequence-set uids)
+                        (-imap-quote destination))
+              (error "Account %s doesn't support moving messages" account)))
+       (_ <- (-amake-request account mailbox cmd)))
     t))
 
 ;;; Commands
@@ -885,25 +907,24 @@ Return a cons cell consisting of the account symbol and mailbox name."
                                  (- (minibuffer-prompt-end) 1)))
           (overlay-put ov 'display " (loading):")
           (dolist (acct accounts)
-            (let* ((buffer (current-buffer))
-                   (mkcand (pcase-lambda (`(,mbx . ,props))
-                             (unless (memq '\\Noselect (alist-get 'attributes props))
-                               (propertize (-mailbox-display-name acct mbx)
-                                           '-data `(,props ,acct . ,mbx))))))
-              (athunk-do
-               (athunk-let*
-                   ((mailboxes (athunk-condition-case err
-                                   (-aget-mailbox-listing acct)
-                                 (t (overlay-put ov 'display " (error):")
-                                    (message "Error loading mailboxes for account %s: %S"
-                                             acct err)
-                                    nil))))
-                 (when ov ;non-nil means we're still reading from minibuffer
-                   (setq cands (nconc (delq nil (mapcar mkcand mailboxes)) cands))
-                   (with-current-buffer buffer
-                     (run-hooks '-minibuffer-update-hook))
-                   (cl-remf accounts acct)
-                   (unless accounts (delete-overlay ov))))))))
+            (athunk-run
+             (athunk-let*
+                 ((mkcand (pcase-lambda (`(,mbx . ,props))
+                            (unless (memq '\\Noselect (alist-get 'attributes props))
+                              (propertize (-mailbox-display-name acct mbx)
+                                          '-data `(,props ,acct . ,mbx)))))
+                  (mailboxes <- (athunk-condition-case err
+                                    (-aget-mailbox-listing acct)
+                                  (t (overlay-put ov 'display " (error):")
+                                     (message "Error loading mailboxes for account %s: %S"
+                                              acct err)
+                                     nil))))
+               (when ov ;non-nil means we're still reading from minibuffer
+                 (setq cands (nconc (delq nil (mapcar mkcand mailboxes)) cands))
+                 (with-current-buffer (overlay-buffer ov)
+                   (run-hooks '-minibuffer-update-hook))
+                 (cl-remf accounts acct)
+                 (unless accounts (delete-overlay ov)))))))
       (let ((cand (unwind-protect
                       (completing-read prompt coll nil t nil 'minimail-mailbox-history)
                     (setq ov nil))))
@@ -965,13 +986,13 @@ Return a cons cell consisting of the account symbol and mailbox name."
      buffer)))
 
 (defun -amove-messages-and-redisplay (account mailbox destination uids)
-  (let ((prog (make-progress-reporter
-               (format-message "Moving messages to `%s'..."
-                               (-mailbox-display-name account destination)))))
-    (athunk-let*
-        ((_ (-amove-messages account mailbox destination uids)))
-      (progress-reporter-done prog)
-      (when-let*
+  (athunk-let*
+      ((prog (make-progress-reporter
+              (format-message "Moving messages to `%s'..."
+                              (-mailbox-display-name account destination))))
+       (_ <- (-amove-messages account mailbox destination uids)))
+    (progress-reporter-done prog)
+    (when-let*
         ((mbxbuf (seq-some (lambda (b)
                              (with-current-buffer b
                                (and (derived-mode-p 'minimail-mailbox-mode)
@@ -984,7 +1005,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
                (objs (vtable-objects table)))
           (dolist (obj objs)
             (when (memq (alist-get 'uid obj) uids)
-              (vtable-remove-object table obj)))))))))
+              (vtable-remove-object table obj))))))))
 
 (defun minimail-move-to-mailbox (&optional destination)
   (interactive nil minimail-mailbox-mode minimail-message-mode)
@@ -994,7 +1015,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
                          (format "Move %s messages to: " (length uids))))
                (dest (or destination
                          (cdr (-read-mailbox prompt (list acct))))))
-    (athunk-do (-amove-messages-and-redisplay acct mbx dest uids))))
+    (athunk-run (-amove-messages-and-redisplay acct mbx dest uids))))
 
 (defun -find-mailbox-by-attribute (attr mailboxes)
   (seq-some (pcase-lambda (`(,mbx . ,items))
@@ -1004,10 +1025,10 @@ Return a cons cell consisting of the account symbol and mailbox name."
 (defun minimail-move-to-archive ()
   (interactive nil minimail-mailbox-mode minimail-message-mode)
   (pcase-let* ((`(,acct ,mbx ,uids) (-selected-messages)))
-    (athunk-do
+    (athunk-run
      (athunk-let*
-         ((mailboxes (-aget-mailbox-listing acct))
-          (_ (let ((dest (or (plist-get (alist-get acct minimail-accounts)
+         ((mailboxes <- (-aget-mailbox-listing acct))
+          (_ <- (let ((dest (or (plist-get (alist-get acct minimail-accounts)
                                         :archive-mailbox)
                              (-find-mailbox-by-attribute '\\Archive mailboxes)
                              (-find-mailbox-by-attribute '\\All mailboxes)
@@ -1017,10 +1038,10 @@ Return a cons cell consisting of the account symbol and mailbox name."
 (defun minimail-move-to-trash ()
   (interactive nil minimail-mailbox-mode minimail-message-mode)
   (pcase-let* ((`(,acct ,mbx ,uids) (-selected-messages)))
-    (athunk-do
+    (athunk-run
      (athunk-let*
-         ((mailboxes (-aget-mailbox-listing acct))
-          (_ (let ((dest (or (plist-get (alist-get acct minimail-accounts)
+         ((mailboxes <- (-aget-mailbox-listing acct))
+          (_ <- (let ((dest (or (plist-get (alist-get acct minimail-accounts)
                                         :trash-mailbox)
                              (-find-mailbox-by-attribute '\\Trash mailboxes)
                              (user-error "Trash mailbox not found"))))
@@ -1029,10 +1050,10 @@ Return a cons cell consisting of the account symbol and mailbox name."
 (defun minimail-move-to-junk ()
   (interactive nil minimail-mailbox-mode minimail-message-mode)
   (pcase-let* ((`(,acct ,mbx ,uids) (-selected-messages)))
-    (athunk-do
+    (athunk-run
      (athunk-let*
-         ((mailboxes (-aget-mailbox-listing acct))
-          (_ (let ((dest (or (plist-get (alist-get acct minimail-accounts)
+         ((mailboxes <- (-aget-mailbox-listing acct))
+          (_ <- (let ((dest (or (plist-get (alist-get acct minimail-accounts)
                                         :junk-mailbox)
                              (-find-mailbox-by-attribute '\\Junk mailboxes)
                              (user-error "Junk mailbox not found"))))
@@ -1166,16 +1187,16 @@ Return a cons cell consisting of the account symbol and mailbox name."
     (user-error "This should be called only from a mailbox buffer."))
   (let ((buffer (current-buffer)))
     (setq -mode-line-suffix ":Loading")
-    (athunk-do
+    (athunk-run
      (let-alist -local-state
        (athunk-let*
-           ((messages (athunk-condition-case err
-                          (if .search
-                              (-afetch-search .account .mailbox .search)
-                            (-afetch-mailbox .account .mailbox 100))
-                        (t (with-current-buffer buffer
-                             (setq -mode-line-suffix ":Error"))
-                           (signal (car err) (cdr err))))))
+           ((messages <- (athunk-condition-case err
+                             (if .search
+                                 (-afetch-search .account .mailbox .search)
+                               (-afetch-mailbox .account .mailbox 100))
+                           (t (with-current-buffer buffer
+                                (setq -mode-line-suffix ":Error"))
+                              (signal (car err) (cdr err))))))
          (with-current-buffer buffer
            (setq -mode-line-suffix nil)
            (let ((inhibit-read-only t))
@@ -1341,13 +1362,13 @@ window shorter than 6 lines."
     (setq -mode-line-suffix ":Loading")
     (setf (alist-get 'next-message -local-state)
           (list account mailbox uid))
-    (athunk-do
+    (athunk-run
      (athunk-let*
-         ((msgbuf (athunk-condition-case err
-                      (-afetch-message account mailbox uid)
-                    (t (with-current-buffer buffer
-                         (setq -mode-line-suffix ":Error"))
-                       (signal (car err) (cdr err))))))
+         ((msgbuf <- (athunk-condition-case err
+                         (-afetch-message account mailbox uid)
+                       (t (with-current-buffer buffer
+                            (setq -mode-line-suffix ":Error"))
+                          (signal (car err) (cdr err))))))
        (when (buffer-live-p buffer)
          (with-current-buffer buffer
            (when (equal (alist-get 'next-message -local-state)

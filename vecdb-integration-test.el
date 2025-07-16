@@ -1,6 +1,6 @@
 ;;; vecdb-integration-test.el --- Integration tests for vecdb -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025 Google LLC
+;; Copyright (c) 2025  Free Software Foundation, Inc.
 ;;
 ;; Author: Andrew Hyatt <ahyatt@gmail.com>
 ;; Maintainer: Andrew Hyatt <ahyatt@gmail.com>
@@ -154,8 +154,8 @@ The collection is created before BODY and deleted afterwards."
         (vecdb-delete current-provider collection)))))
 
 (vecdb-test--deftest-for-providers vecdb-test-create-exists-delete-collection
-                                   #'vecdb-test-create-exists-delete-collection-body
-                                   "Test `vecdb-create', `vecdb-exists', and `vecdb-delete'.")
+  #'vecdb-test-create-exists-delete-collection-body
+  "Test `vecdb-create', `vecdb-exists', and `vecdb-delete'.")
 
 (defun vecdb-test-upsert-get-delete-items-body (current-provider)
   "Core logic for testing upsert and get items."
@@ -179,8 +179,8 @@ The collection is created before BODY and deleted afterwards."
                             (should-not (vecdb-get-item current-provider current-collection (vecdb-item-id item)))))))
 
 (vecdb-test--deftest-for-providers vecdb-test-upsert-get-delete-items
-                                   #'vecdb-test-upsert-get-delete-items-body
-                                   "Test `vecdb-upsert-items', `vecdb-get-item' and `vecdb-delete-items'.")
+  #'vecdb-test-upsert-get-delete-items-body
+  "Test `vecdb-upsert-items', `vecdb-get-item' and `vecdb-delete-items'.")
 
 (defun vecdb-test-search-by-vector-body (current-provider)
   "Core logic for testing search by vector."
@@ -206,9 +206,9 @@ The collection is created before BODY and deleted afterwards."
                                               items))))))
 
 (vecdb-test--deftest-for-providers
- vecdb-test-search-by-vector
- #'vecdb-test-search-by-vector-body
- "Test `vecdb-search-by-vector'.")
+  vecdb-test-search-by-vector
+  #'vecdb-test-search-by-vector-body
+  "Test `vecdb-search-by-vector'.")
 
 (provide 'vecdb-integration-test)
 

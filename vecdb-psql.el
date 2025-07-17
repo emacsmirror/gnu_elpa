@@ -30,8 +30,8 @@
 (require 'map)
 (require 'seq)
 
-(cl-defstruct (vecdb-psql (:include vecdb-provider
-                                    (name "postgres")))
+(cl-defstruct (vecdb-psql-provider (:include vecdb-provider
+                                             (name "postgres")))
   "Provider for the vector database.
 DBNAME is the database name, which must have been created by the user."
   dbname
@@ -44,28 +44,33 @@ DBNAME is the database name, which must have been created by the user."
 
 (defun vecdb-psql-get-connection (provider)
   "Get a connection to the database specified by PROVIDER."
-  (let* ((key (vecdb-psql-dbname provider))
+  (let* ((key (vecdb-psql-provider-dbname provider))
          (connection (gethash key vecdb-psql-connection-cache)))
     (unless connection
       (setq connection
             (pg-connect
-             (vecdb-psql-dbname provider)
-             (vecdb-psql-username provider)
-             (vecdb-psql-password provider)))
+             (vecdb-psql-provider-dbname provider)
+             (vecdb-psql-provider-username provider)
+             (vecdb-psql-provider-password provider)))
       (puthash key connection vecdb-psql-connection-cache))
     connection))
 
-(cl-defmethod vecdb-create ((provider vecdb-psql)
+(defun vecdb-psql-table-name (collection-name)
+  "Turn COLLECTION-NAME into a safe table name."
+  (replace-regexp-in-string "[^a-zA-Z0-9_]" "_" (downcase collection-name)))
+
+(cl-defmethod vecdb-create ((provider vecdb-psql-provider)
                             (collection vecdb-collection))
   "Create COLLECTION in database PROVIDER."
   (pg-exec (vecdb-psql-get-connection provider)
            (format "CREATE TABLE IF NOT EXISTS %s (
                      id INTEGER PRIMARY KEY,
-                     vector VECTOR(%d) NOT NULL,
+                     vector VECTOR(%d) NOT NULL%s
                      %s
                    );"
-                   (vecdb-collection-name collection)
+                   (vecdb-psql-table-name (vecdb-collection-name collection))
                    (vecdb-collection-vector-size collection)
+                   (if (vecdb-collection-payload-fields collection) "," "")
                    (mapconcat
                     (lambda (field)
                       (format "%s %s NULL"
@@ -79,25 +84,25 @@ DBNAME is the database name, which must have been created by the user."
                     ", ")))
   (pg-exec (vecdb-psql-get-connection provider)
            (format "CREATE INDEX IF NOT EXISTS %s_embedding_hnsw_idx ON %s USING hnsw (vector vector_cosine_ops)"
-                   (vecdb-collection-name collection)
-                   (vecdb-collection-name collection)))
+                   (vecdb-psql-table-name (vecdb-collection-name collection))
+                   (vecdb-psql-table-name (vecdb-collection-name collection))))
   (mapc (lambda (field)
           (pg-exec (vecdb-psql-get-connection provider)
                    (format "CREATE INDEX IF NOT EXISTS %s_%s_idx ON %s (%s)"
-                           (vecdb-collection-name collection)
+                           (vecdb-psql-table-name (vecdb-collection-name collection))
                            (car field)
-                           (vecdb-collection-name collection)
+                           (vecdb-psql-table-name (vecdb-collection-name collection))
                            (car field))))
         (vecdb-collection-payload-fields collection)))
 
-(cl-defmethod vecdb-delete ((provider vecdb-psql)
+(cl-defmethod vecdb-delete ((provider vecdb-psql-provider)
                             (collection vecdb-collection))
   "Delete COLLECTION from database PROVIDER."
   (pg-exec (vecdb-psql-get-connection provider)
            (format "DROP TABLE IF EXISTS %s;"
-                   (vecdb-collection-name collection))))
+                   (vecdb-psql-table-name (vecdb-collection-name collection)))))
 
-(cl-defmethod vecdb-exists ((provider vecdb-psql)
+(cl-defmethod vecdb-exists ((provider vecdb-psql-provider)
                             (collection vecdb-collection))
   "Check if the COLLECTION exists in the database specified by PROVIDER."
   (let ((result
@@ -106,7 +111,7 @@ DBNAME is the database name, which must have been created by the user."
                             SELECT FROM information_schema.tables
                             WHERE table_name = '%s'
                           );"
-                          (vecdb-collection-name collection)))))
+                          (vecdb-psql-table-name (vecdb-collection-name collection))))))
     (and result
          (equal (caar (pg-result result :tuples)) t))))
 
@@ -115,15 +120,15 @@ DBNAME is the database name, which must have been created by the user."
   (cl-loop for (k _v) on plist by #'cddr
            collect (substring (symbol-name k) 1)))
 
-(cl-defmethod vecdb-upsert-items ((provider vecdb-psql)
+(cl-defmethod vecdb-upsert-items ((provider vecdb-psql-provider)
                                   (collection vecdb-collection)
                                   data-list &optional _)
   "Upsert items into the COLLECTION in the database PROVIDER.
 All items in DATA-LIST must have the same paylaods."
   (pg-exec (vecdb-psql-get-connection provider)
            (format "INSERT INTO %s (id, vector, %s) VALUES %s
-                    ON CONFLICT (id) DO UPDATE SET vector = EXCLUDED.vector, %s;"
-                   (vecdb-collection-name collection)
+                    ON CONFLICT (id) DO UPDATE SET vector = EXCLUDED.vector%s %s;"
+                   (vecdb-psql-table-name (vecdb-collection-name collection))
                    ;; We assume every vecdb-item has the same payload structure
                    (mapconcat #'identity (vecdb-psql--plist-keys
                                           (vecdb-item-payload (car data-list)))
@@ -145,6 +150,7 @@ All items in DATA-LIST must have the same paylaods."
                                ", ")))
                     data-list
                     ", ")
+                   (if (vecdb-collection-payload-fields collection) ", " "")
                    (mapconcat
                     (lambda (field)
                       (format "%s = EXCLUDED.%s" (car field) (car field)))
@@ -165,7 +171,7 @@ All items in DATA-LIST must have the same paylaods."
                                                        :test #'equal))
                                      row))))))
 
-(cl-defmethod vecdb-get-item ((provider vecdb-psql)
+(cl-defmethod vecdb-get-item ((provider vecdb-psql-provider)
                               (collection vecdb-collection)
                               id)
   "Get an item from COLLECTION by ID.
@@ -173,19 +179,20 @@ PROVIDER specifies the database that the collection is in."
   (let ((result
          (pg-result
           (pg-exec (vecdb-psql-get-connection provider)
-                   (format "SELECT id, vector::vector, %s FROM %s WHERE id = %d;"
+                   (format "SELECT id, vector::vector%s %s FROM %s WHERE id = %d;"
+                           (if (vecdb-collection-payload-fields collection) ", " "")
                            (mapconcat
                             (lambda (field)
-                              (car field))
+                              (format "%s" (car field)))
                             (vecdb-collection-payload-fields collection)
                             ", ")
-                           (vecdb-collection-name collection)
+                           (vecdb-psql-table-name (vecdb-collection-name collection))
                            id))
           :tuples)))
     (when result
       (vecdb-psql--full-row-to-item (car result) collection))))
 
-(cl-defmethod vecdb-delete-items ((provider vecdb-psql)
+(cl-defmethod vecdb-delete-items ((provider vecdb-psql-provider)
                                   (collection vecdb-collection)
                                   ids &optional _)
   "Delete items from COLLECTION by IDs.
@@ -193,10 +200,10 @@ PROVIDER is the database that the collection is in."
   (when ids
     (pg-exec (vecdb-psql-get-connection provider)
              (format "DELETE FROM %s WHERE id IN (%s);"
-                     (vecdb-collection-name collection)
+                     (vecdb-psql-table-name (vecdb-collection-name collection))
                      (mapconcat #'number-to-string ids ", ")))))
 
-(cl-defmethod vecdb-search-by-vector ((provider vecdb-psql)
+(cl-defmethod vecdb-search-by-vector ((provider vecdb-psql-provider)
                                       (collection vecdb-collection)
                                       vector
                                       &optional limit)
@@ -209,14 +216,15 @@ PROVIDER is the database that the collection is in."
               (vecdb-psql--full-row-to-item row collection))
             (pg-result
              (pg-exec (vecdb-psql-get-connection provider)
-                      (format "SELECT id, vector::vector, %s FROM %s
+                      (format "SELECT id, vector::vector%s %s FROM %s
                       ORDER BY vector <-> '[%s]'::vector %s;"
+                              (if (vecdb-collection-payload-fields collection) ", " "")
                               (mapconcat
                                (lambda (field)
-                                 (car field))
+                                 (format "%s" (car field)))
                                (vecdb-collection-payload-fields collection)
                                ", ")
-                              (vecdb-collection-name collection)
+                              (vecdb-psql-table-name (vecdb-collection-name collection))
                               (mapconcat
                                (lambda (v)
                                  (format "%s" v))

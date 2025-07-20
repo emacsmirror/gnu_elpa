@@ -126,22 +126,24 @@ DBNAME is the database name, which must have been created by the user."
   "Upsert items into the COLLECTION in the database PROVIDER.
 All items in DATA-LIST must have the same paylaods."
   (pg-exec (vecdb-psql-get-connection provider)
-           (format "INSERT INTO %s (id, vector, %s) VALUES %s
+           (format "INSERT INTO %s (id, vector%s %s) VALUES %s
                     ON CONFLICT (id) DO UPDATE SET vector = EXCLUDED.vector%s %s;"
                    (vecdb-psql-table-name (vecdb-collection-name collection))
+                   (if (vecdb-collection-payload-fields collection) ", " "")
                    ;; We assume every vecdb-item has the same payload structure
                    (mapconcat #'identity (vecdb-psql--plist-keys
                                           (vecdb-item-payload (car data-list)))
                               ", ")
                    (mapconcat
                     (lambda (item)
-                      (format "(%d, '[%s]'::vector, %s)"
+                      (format "(%d, '[%s]'::vector%s %s)"
                               (vecdb-item-id item)
                               (mapconcat
                                (lambda (v)
                                  (format "%s" v))
                                (vecdb-item-vector item)
                                ", ")
+                              (if (vecdb-collection-payload-fields collection) ", " "")
                               (mapconcat
                                (lambda (key)
                                  (format "'%s'" (plist-get (vecdb-item-payload item)

@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "*" ]
+
+jobs:
+  fast-tests:
+    runs-on: ubuntu-latest
+    environment: Continuous Integration
+    strategy:
+      matrix:
+        emacs_version:
+          # Add more lines like this if you want to test on different Emacs versions.
+          - 28.1
+          - 29.4
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+      chromadb:
+        image: chromadb/chroma
+      qdrant:
+        image: qdrant/qdrant
+  steps:
+    - name: Set up Emacs
+      uses: jcs090218/setup-emacs@master
+      with:
+        version: ${{matrix.emacs_version}}
+
+    - name: Install Eldev
+      uses: emacs-eldev/setup-eldev@v1
+
+    - name: Check out the source code
+      uses: actions/checkout@v4
+
+    - name: Byte-compile the project
+      run: |
+        eldev -dtT compile --warnings-as-errors
+
+    - name: Lint the project
+      run: |
+        eldev -p -dtT lint
+
+    - name: Test the project
+      # We don't set up the env variables so no integration tests will be run
+      run: |
+        eldev -p -dtT test
+  integration-tests:
+    runs-on: ubuntu-latest
+    environment: Continuous Integration
+    steps:
+    - name: Set up Emacs
+      uses: jcs090218/setup-emacs@master
+      with:
+        version: 29.4
+
+    - name: Install Eldev
+      uses: emacs-eldev/setup-eldev@v1
+
+    - name: Check out the source code
+      uses: actions/checkout@v4
+
+    - name: Postgres setup
+      # Create the "test" database
+      run: |
+        psql -h localhost -U postgres -c "CREATE DATABASE test;"
+    - name: Test the project
+      env:
+        CHROMA_URL: http://localhost:8000
+        QDRANT_URL: http://localhost:6333
+        PSQL_DB: test
+        PSQL_USERNAME: postgres
+      run: |
+        eldev -p -dtT test

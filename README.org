@@ -86,3 +86,14 @@ However, the full set of options, here demonstrating the equivalent settings to 
                             :tenant "default"
                             :database "default"))
 #+end_src
+** Postgres with pgvector
+The popular database Postgres has an extension that allows it to have vector database functionality, [[https://github.com/pgvector/pgvector][pgvector]].  This needs the =pg-el= library.
+
+A provider defines a database, and the collection will define a table with the collection name in that database.
+
+For example,
+#+begin_src emacs-lisp
+(defvar my-postgres-provider (make-vecdb-psqlprovider :dbname "mydatabase" :username "myuser"))
+#+end_src
+
+This also takes an optional password as well.  For now, this just uses localhost as a default.

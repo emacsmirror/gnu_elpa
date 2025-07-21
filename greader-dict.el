@@ -140,6 +140,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 
 ;;; Code:
+
+(require 'greader)
+
 (defgroup greader-dict nil
   "String substitution module for greader."
   :group 'greader)

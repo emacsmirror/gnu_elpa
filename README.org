@@ -93,7 +93,7 @@ A provider defines a database, and the collection will define a table with the c
 
 For example,
 #+begin_src emacs-lisp
-(defvar my-postgres-provider (make-vecdb-psql :dbname "mydatabase" :username "myuser"))
+(defvar my-postgres-provider (make-vecdb-psqlprovider :dbname "mydatabase" :username "myuser"))
 #+end_src
 
 This also takes an optional password as well.  For now, this just uses localhost as a default.

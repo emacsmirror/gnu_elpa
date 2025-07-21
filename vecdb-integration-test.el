@@ -105,7 +105,7 @@ itself might globally skip if no providers at all are configured)."
   (declare (indent defun))
   (let ((chroma-test-name (intern (format "%s-chroma" base-name)))
         (qdrant-test-name (intern (format "%s-qdrant" base-name)))
-        (psql-test-name (intern(format "%s-psql" base-name)))
+        (psql-test-name (intern (format "%s-psql" base-name)))
         (base-doc (or docstring (format "Test %s for a vector database provider." base-name))))
     `(progn
        (ert-deftest ,chroma-test-name ()

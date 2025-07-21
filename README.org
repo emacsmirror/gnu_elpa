@@ -87,7 +87,7 @@ However, the full set of options, here demonstrating the equivalent settings to 
                             :database "default"))
 #+end_src
 ** Postgres with pgvector
-The popular database Postgres has an extention that allows it to have vector database functionality, [[https://github.com/pgvector/pgvector][pgvector]].  This needs the =pg-el= library.
+The popular database Postgres has an extension that allows it to have vector database functionality, [[https://github.com/pgvector/pgvector][pgvector]].  This needs the =pg-el= library.
 
 A provider defines a database, and the collection will define a table with the collection name in that database.
 

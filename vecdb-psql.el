@@ -59,6 +59,22 @@ DBNAME is the database name, which must have been created by the user."
   "Turn COLLECTION-NAME into a safe table name."
   (replace-regexp-in-string "[^a-zA-Z0-9_]" "_" (downcase collection-name)))
 
+(defun vecdb-psql-type (collection-type)
+  "Convert COLLECTION-TYPE to a PostgreSQL type string."
+  (pcase collection-type
+    ('string "TEXT")
+    ('integer "INTEGER")
+    ('float "FLOAT")
+    (_ (error "Unsupported field type: %s" collection-type))))
+
+(defun vecdb-psql-oid (collection-type)
+  "Convert COLLECTION-TYPE to a psql OID."
+  (pcase collection-type
+    ('string "text")
+    ('integer "int8")
+    ('float "float8")
+    (_ (error "Unsupported field type: %s" collection-type))))
+
 (cl-defmethod vecdb-create ((provider vecdb-psql-provider)
                             (collection vecdb-collection))
   "Create COLLECTION in database PROVIDER."
@@ -75,11 +91,7 @@ DBNAME is the database name, which must have been created by the user."
                     (lambda (field)
                       (format "%s %s NULL"
                               (car field)
-                              (pcase (cdr field)
-                                ('string "TEXT")
-                                ('integer "INTEGER")
-                                ('float "FLOAT")
-                                (_ (error "Unsupported field type: %s" (cdr field))))))
+                              (vecdb-psql-type (cdr field))))
                     (vecdb-collection-payload-fields collection)
                     ", ")))
   (pg-exec (vecdb-psql-get-connection provider)
@@ -124,40 +136,44 @@ DBNAME is the database name, which must have been created by the user."
                                   (collection vecdb-collection)
                                   data-list &optional _)
   "Upsert items into the COLLECTION in the database PROVIDER.
-All items in DATA-LIST must have the same paylaods."
-  (pg-exec (vecdb-psql-get-connection provider)
-           (format "INSERT INTO %s (id, vector%s %s) VALUES %s
-                    ON CONFLICT (id) DO UPDATE SET vector = EXCLUDED.vector%s %s;"
-                   (vecdb-psql-table-name (vecdb-collection-name collection))
-                   (if (vecdb-collection-payload-fields collection) ", " "")
-                   ;; We assume every vecdb-item has the same payload structure
-                   (mapconcat #'identity (vecdb-psql--plist-keys
-                                          (vecdb-item-payload (car data-list)))
-                              ", ")
-                   (mapconcat
-                    (lambda (item)
-                      (format "(%d, '[%s]'::vector%s %s)"
-                              (vecdb-item-id item)
-                              (mapconcat
-                               (lambda (v)
-                                 (format "%s" v))
-                               (vecdb-item-vector item)
-                               ", ")
-                              (if (vecdb-collection-payload-fields collection) ", " "")
-                              (mapconcat
-                               (lambda (key)
-                                 (format "'%s'" (plist-get (vecdb-item-payload item)
-                                                           (intern (format ":%s" key)))))
-                               (vecdb-psql--plist-keys (vecdb-item-payload item))
-                               ", ")))
-                    data-list
-                    ", ")
-                   (if (vecdb-collection-payload-fields collection) ", " "")
-                   (mapconcat
-                    (lambda (field)
-                      (format "%s = EXCLUDED.%s" (car field) (car field)))
-                    (vecdb-collection-payload-fields collection)
-                    ", "))))
+All items in DATA-LIST must have the same payloads."
+  (let ((arg-count 0))
+    (funcall #'pg-exec-prepared
+             (vecdb-psql-get-connection provider)
+             (format "INSERT INTO %s (id, vector%s%s) VALUES %s
+                    ON CONFLICT (id) DO UPDATE SET vector = EXCLUDED.vector%s%s;"
+                     (vecdb-psql-table-name (vecdb-collection-name collection))
+                     (if (vecdb-collection-payload-fields collection) ", " "")
+                     ;; We assume every vecdb-item has the same payload structure
+                     (mapconcat #'identity (vecdb-psql--plist-keys
+                                            (vecdb-item-payload (car data-list)))
+                                ", ")
+                     (mapconcat (lambda (item)
+                                  (format "(%s)"
+                                          (string-join (cl-loop for i from 1 below (+ 2 (length (vecdb-item-payload item)))
+                                                                do (cl-incf arg-count)
+                                                                collect (format "$%d" arg-count))
+                                                       ", ")))
+                                data-list
+                                ", ")
+                     (if (vecdb-collection-payload-fields collection) ", " "")
+                     (mapconcat
+                      (lambda (field)
+                        (format "%s = EXCLUDED.%s" (car field) (car field)))
+                      (vecdb-collection-payload-fields collection)
+                      ", "))
+             (mapcan (lambda (item)
+                       (append
+                        (list
+                         (cons (vecdb-item-id item) "int8")
+                         (cons (vecdb-item-vector item) "vector"))
+                        (mapcar (lambda (payload-key)
+                                  (cons (plist-get (vecdb-item-payload item) payload-key)
+                                        (vecdb-psql-oid (assoc-default
+                                                         (intern (substring (symbol-name payload-key) 1))
+                                                         (vecdb-collection-payload-fields collection)))))
+                                (map-keys (vecdb-item-payload (car data-list))))))
+                     data-list))))
 
 (defun vecdb-psql--full-row-to-item (row collection)
   "Convert a full database row ROW into a vecdb-item for COLLECTION."
@@ -180,16 +196,16 @@ All items in DATA-LIST must have the same paylaods."
 PROVIDER specifies the database that the collection is in."
   (let ((result
          (pg-result
-          (pg-exec (vecdb-psql-get-connection provider)
-                   (format "SELECT id, vector::vector%s %s FROM %s WHERE id = %d;"
-                           (if (vecdb-collection-payload-fields collection) ", " "")
-                           (mapconcat
-                            (lambda (field)
-                              (format "%s" (car field)))
-                            (vecdb-collection-payload-fields collection)
-                            ", ")
-                           (vecdb-psql-table-name (vecdb-collection-name collection))
-                           id))
+          (pg-exec-prepared (vecdb-psql-get-connection provider)
+                            (format "SELECT id, vector::vector%s %s FROM %s WHERE id = $1;"
+                                    (if (vecdb-collection-payload-fields collection) ", " "")
+                                    (mapconcat
+                                     (lambda (field)
+                                       (format "%s" (car field)))
+                                     (vecdb-collection-payload-fields collection)
+                                     ", ")
+                                    (vecdb-psql-table-name (vecdb-collection-name collection)))
+                            (list (cons id "int8")))
           :tuples)))
     (when result
       (vecdb-psql--full-row-to-item (car result) collection))))
@@ -200,6 +216,8 @@ PROVIDER specifies the database that the collection is in."
   "Delete items from COLLECTION by IDs.
 PROVIDER is the database that the collection is in."
   (when ids
+    ;; TODO: This should ideally be a prepared statement, but I dont know how to do
+    ;; this with psql.
     (pg-exec (vecdb-psql-get-connection provider)
              (format "DELETE FROM %s WHERE id IN (%s);"
                      (vecdb-psql-table-name (vecdb-collection-name collection))
@@ -217,22 +235,18 @@ PROVIDER is the database that the collection is in."
     (mapcar (lambda (row)
               (vecdb-psql--full-row-to-item row collection))
             (pg-result
-             (pg-exec (vecdb-psql-get-connection provider)
-                      (format "SELECT id, vector::vector%s %s FROM %s
-                      ORDER BY vector <-> '[%s]'::vector %s;"
-                              (if (vecdb-collection-payload-fields collection) ", " "")
-                              (mapconcat
-                               (lambda (field)
-                                 (format "%s" (car field)))
-                               (vecdb-collection-payload-fields collection)
-                               ", ")
-                              (vecdb-psql-table-name (vecdb-collection-name collection))
-                              (mapconcat
-                               (lambda (v)
-                                 (format "%s" v))
-                               vector
-                               ", ")
-                              limit-clause))
+             (pg-exec-prepared (vecdb-psql-get-connection provider)
+                               (format "SELECT id, vector::vector%s %s FROM %s
+                      ORDER BY vector <-> $1 %s;"
+                                       (if (vecdb-collection-payload-fields collection) ", " "")
+                                       (mapconcat
+                                        (lambda (field)
+                                          (format "%s" (car field)))
+                                        (vecdb-collection-payload-fields collection)
+                                        ", ")
+                                       (vecdb-psql-table-name (vecdb-collection-name collection))
+                                       limit-clause)
+                               (list (cons vector "vector")))
              :tuples))))
 
 (provide 'vecdb-psql)

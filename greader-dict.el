@@ -592,7 +592,8 @@ to the dictionary."
 ;; a word to be replaced.
 (defun greader-dict-add-entry (arg)
   "Add an entry to the dictionary.
-If called interactively and point is on a word, this function proposes to add that word as
+If called interactively and point is on a word, this function proposes
+to add that word as
 default.
 In this case, you can also use history commands to modify key already
 present in the dictionary.

@@ -8,31 +8,14 @@ on:
     branches: [ "*" ]
 
 jobs:
-  tests:
+  simple-tests:
     runs-on: ubuntu-latest
     environment: Continuous Integration
     strategy:
       matrix:
         emacs_version:
-          # Add more lines like this if you want to test on different Emacs versions.
-          - 28.1
+          - 29.1
           - 29.4
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_HOST_AUTH_METHOD: trust
-        ports:
-          - 5432:5432
-      chromadb:
-        image: chromadb/chroma
-        ports:
-          - 8000:8000
-      qdrant:
-        image: qdrant/qdrant
-        ports:
-          - 6333:6333
     steps:
     - name: Set up Emacs
       uses: jcs090218/setup-emacs@master
@@ -57,10 +40,40 @@ jobs:
       # We don't set up the env variables so no integration tests will be run
       run: |
         eldev -p -dtT test
+  integration-tests:
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+      chromadb:
+        image: chromadb/chroma
+        ports:
+          - 8000:8000
+      qdrant:
+        image: qdrant/qdrant
+        ports:
+          - 6333:6333
+    steps:
+    - name: Set up Emacs
+      uses: jcs090218/setup-emacs@master
+      with:
+        version: 29.4
+
+    - name: Install Eldev
+      uses: emacs-eldev/setup-eldev@v1
+
+    - name: Check out the source code
+      uses: actions/checkout@v4
+
     - name: Postgres setup
       # Create the "test" database
       run: |
         psql -h localhost -U postgres -c "CREATE DATABASE test;"
+
     - name: Test the project
       env:
         CHROMA_URL: http://localhost:8000

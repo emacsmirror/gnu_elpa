@@ -41,6 +41,8 @@ jobs:
       run: |
         eldev -p -dtT test
   integration-tests:
+    runs-on: ubuntu-latest
+    environment: Continuous Integration
     services:
       postgres:
         image: pgvector/pgvector:pg16

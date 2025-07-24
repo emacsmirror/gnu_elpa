@@ -80,6 +80,7 @@ jobs:
       env:
         CHROMA_URL: http://localhost:8000
         QDRANT_URL: http://localhost:6333
+        QDRANT_API_KEY: ""
         PSQL_DB: test
         PSQL_USERNAME: postgres
       run: |

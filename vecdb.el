@@ -76,7 +76,7 @@ An ID may be an integer or a string, and is used to uniquely identify the item."
 
 (cl-defgeneric vecdb-get-item (provider collection id)
   "Get items with ID from the COLLECTION with PROVIDER.
-If the item does not exist, return `nil'."
+If the item does not exist, return nil."
   (ignore collection id)
   (signal 'not-implemented
           (list "vecdb-get not implemented for" (vecdb-provider-name provider))))

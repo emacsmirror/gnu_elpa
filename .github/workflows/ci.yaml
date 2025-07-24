@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "*" ]
+
+jobs:
+  simple-tests:
+    runs-on: ubuntu-latest
+    environment: Continuous Integration
+    strategy:
+      matrix:
+        emacs_version:
+          - 29.1
+          - 29.4
+    steps:
+    - name: Set up Emacs
+      uses: jcs090218/setup-emacs@master
+      with:
+        version: ${{matrix.emacs_version}}
+
+    - name: Install Eldev
+      uses: emacs-eldev/setup-eldev@v1
+
+    - name: Check out the source code
+      uses: actions/checkout@v4
+
+    - name: Byte-compile the project
+      run: |
+        eldev -dtT compile --warnings-as-errors
+
+    - name: Lint the project
+      run: |
+        eldev -p -dtT lint
+
+    - name: Test the project
+      # We don't set up the env variables so no integration tests will be run
+      run: |
+        eldev -p -dtT test
+  integration-tests:
+    runs-on: ubuntu-latest
+    environment: Continuous Integration
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+      chromadb:
+        image: chromadb/chroma
+        ports:
+          - 8000:8000
+      qdrant:
+        image: qdrant/qdrant
+        ports:
+          - 6333:6333
+    steps:
+    - name: Set up Emacs
+      uses: jcs090218/setup-emacs@master
+      with:
+        version: 29.4
+
+    - name: Install Eldev
+      uses: emacs-eldev/setup-eldev@v1
+
+    - name: Check out the source code
+      uses: actions/checkout@v4
+
+    - name: Postgres setup
+      # Create the "test" database
+      run: |
+        psql -h localhost -U postgres -c "CREATE DATABASE test;"
+
+    - name: Test the project
+      env:
+        CHROMA_URL: http://localhost:8000
+        QDRANT_URL: http://localhost:6333
+        QDRANT_API_KEY: ""
+        PSQL_DB: test
+        PSQL_USERNAME: postgres
+      run: |
+        eldev -p -dtT test

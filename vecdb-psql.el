@@ -79,6 +79,8 @@ DBNAME is the database name, which must have been created by the user."
                             (collection vecdb-collection))
   "Create COLLECTION in database PROVIDER."
   (pg-exec (vecdb-psql-get-connection provider)
+           (format "CREATE EXTENSION IF NOT EXISTS vector;"))
+  (pg-exec (vecdb-psql-get-connection provider)
            (format "CREATE TABLE IF NOT EXISTS %s (
                      id INTEGER PRIMARY KEY,
                      vector VECTOR(%d) NOT NULL%s

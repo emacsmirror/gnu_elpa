@@ -4,8 +4,8 @@
 
 ;; Author: Andrew Hyatt <ahyatt@gmail.com>
 ;; Homepage: https://github.com/ahyatt/vecdb
-;; Package-Requires: ((emacs "29.1") (plz "0.8"))
-;; Package-Version: 0.1
+;; Package-Requires: ((emacs "29.1") (plz "0.8") (pg "0.56"))
+;; Package-Version: 0.2
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
 ;; This program is free software; you can redistribute it and/or

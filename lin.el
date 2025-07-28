@@ -91,7 +91,8 @@
     pdf-outline-buffer-mode-hook
     proced-mode-hook
     tabulated-list-mode-hook
-    tar-mode-hook)
+    tar-mode-hook
+    world-clock-mode-hook)
   "List of hooks that should be used by the `lin-global-mode'.
 Lin activates `hl-line-mode' and remaps its face to `lin-face'.
 This makes it possible to tweak the `lin-face' in order to

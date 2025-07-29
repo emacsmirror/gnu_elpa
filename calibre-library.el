@@ -160,17 +160,18 @@ are marked return those books otherwise return the book at point."
   "Clear any marks on a book and move to the next line."
   (interactive "p" calibre-library-mode)
   (let ((book (calibre-library-book-at-point)))
-    (beginning-of-line)
-    (let ((mark (char-after)))
-      (unless (char-equal mark 32)
-        (cond
-         ((char-equal mark calibre-mod-marker)
-          (calibre-edit-revert book)
-          (tabulated-list-put-tag " " t))
-         ((char-equal mark calibre-mark-marker)
-          (if (calibre-edit-modified-p book)
-              (calibre-edit-mark-modified book)
-            (tabulated-list-put-tag " " t))))))))
+    (when book
+      (beginning-of-line)
+      (let ((mark (char-after)))
+        (unless (char-equal mark 32)
+          (cond
+           ((char-equal mark calibre-mod-marker)
+            (calibre-edit-revert book)
+            (tabulated-list-put-tag " " t))
+           ((char-equal mark calibre-mark-marker)
+            (if (calibre-edit-modified-p book)
+                (calibre-edit-mark-modified book)
+              (tabulated-list-put-tag " " t)))))))))
 
 (defun calibre-library-unmark-all (&optional mark)
   "Clear all marks from the library buffer.

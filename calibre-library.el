@@ -187,7 +187,9 @@ argument prompts for MARK."
                   (and (not mark) (not (char-equal current-mark 32))))
           (tabulated-list-put-tag " " nil)))
       (forward-line))
-    (calibre-library--find-book book)))
+    (if book
+        (calibre-library--find-book book)
+      (goto-char (point-max)))))
 
 (defun calibre-library-get-marked (&optional mark)
   "Return books marked with MARK.

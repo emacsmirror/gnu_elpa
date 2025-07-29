@@ -273,6 +273,22 @@ See `iso-date-shift' for the values SHIFT can take."
    (equal start date)
    (equal end date)))
 
+(defun iso-date-list-dates-between (start end)
+  "Return a list with all dates between START and END.
+START and END should be ISO 8601 date strings.
+
+Returned dates are also in that format."
+  (let* ((time1 (iso-date-to-internal start))
+         (time2 (iso-date-to-internal end))
+         (pointer time1)
+         (one-day (make-decoded-time :day 1))
+         dates)
+    (while (not (equal pointer time2))
+      (push (format-time-string "%F" pointer) dates)
+      (setq pointer (encode-time (decoded-time-add (decode-time pointer) one-day))))
+    (push (format-time-string "%F" time2) dates)
+    (reverse dates)))
+
 ;;;; thingatpt.el integration
 
 (defun iso-date-configure-thingatpt ()

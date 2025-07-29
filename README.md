@@ -68,6 +68,7 @@ For extracting values:
 Others:
 
 - iso-date-between-dates-p
+- iso-date-list-dates-between
 
 Last but not least, this library can add `date` as a thing recognized by the `thingatpt` library. Just add the following to your init file:
 

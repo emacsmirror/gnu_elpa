@@ -295,7 +295,8 @@ If called with a prefix argument prompt the user for the format."
 (define-derived-mode calibre-library-mode tabulated-list-mode
   "Library Mode"
   (setf tabulated-list-padding 2
-        mode-line-process '(calibre-exec--executing ":Updating"))
+        mode-line-process '((calibre-exec--executing ":Updating")
+                            (calibre-device--transferring ":Transferring")))
   (setq-local revert-buffer-function #'calibre-library-revert)
   (setq-local font-lock-defaults
               '(calibre-font-lock-keywords t nil nil beginning-of-line))

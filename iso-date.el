@@ -229,7 +229,7 @@ This is an alternative to the plist-based modification offered by
 
 When ARG is non-nil (interactively, with a prefix argument), prompt for
 a date using `org-read-date'."
-  (interactive "P")
+  (interactive "*P")
   (if (not arg)
       (insert (format-time-string "%F"))
     (require 'org)
@@ -239,7 +239,7 @@ a date using `org-read-date'."
   "Advance ISO date at point by one day.
 
 With a prefix argument N, advance by N days."
-  (interactive "p")
+  (interactive "*p")
   (when-let* ((bounds (iso-date-bounds))
               (date (iso-date-at-point)))
     (save-excursion
@@ -250,14 +250,14 @@ With a prefix argument N, advance by N days."
   "Advance ISO date at point by one day.
 
 With a prefix argument N, advance by (- N) days."
-  (interactive "p")
+  (interactive "*p")
   (iso-date-at-point-day-up (- n)))
 
 (defun iso-date-at-point-do-shift (shift)
   "Advance ISO date at point by SHIFT.
 
 See `iso-date-shift' for the values SHIFT can take."
-  (interactive "sShift (e.g. +3d): ")
+  (interactive "*sShift (e.g. +3d): ")
   (when-let* ((bounds (iso-date-bounds))
               (date (iso-date-at-point)))
     (save-excursion

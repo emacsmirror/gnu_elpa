@@ -83,7 +83,6 @@
  (aumix-mode		:url nil)
  (auth-source-xoauth2-plugin   :url "https://gitlab.com/manphiz/auth-source-xoauth2-plugin")
  (auto-correct		:url nil)
- (auto-header           :url "https://codeberg.org/pkal/auto-header.el")
  (auto-overlays		:url nil ;"http://www.dr-qubit.org/git/predictive.git"
   :doc "docs/auto-overlay-manual.texinfo")
  (autocrypt             :url "https://codeberg.org/pkal/autocrypt.el")
@@ -358,7 +357,6 @@
  (external-completion   :core "lisp/external-completion.el")
  (exwm			:url "https://github.com/emacs-exwm/exwm.git")
  (f90-interface-browser :url nil) ;; Was "https://github.com/wence-/f90-iface"
- (face-shift            :url "https://codeberg.org/pkal/face-shift.el")
  (filechooser		:url "https://codeberg.org/rahguzar/filechooser"
   :ignored-files ("LICENSE"))
  (filladapt		:url nil)
@@ -588,7 +586,6 @@
  (objed        		:url "https://github.com/clemera/objed")
  (omn-mode            	:url "https://github.com/phillord/omn-mode")
  (on-screen           	:url nil) ;;Was "https://github.com/michael-heerdegen/on-screen.el"
- (openpgp               :url "https://codeberg.org/pkal/openpgp.el")
  (orderless		:url "https://github.com/oantolin/orderless"
   :doc "orderless.texi"
   :readme "README.org")
@@ -851,7 +848,6 @@
  (trinary		:url "https://github.com/emacs-elsa/trinary-logic")
  (triples		:url "https://github.com/ahyatt/triples"
   :readme "README.org")
- (typo                  :url "https://codeberg.org/pkal/typo.el")
  (ulisp-repl		:url "https://git.sr.ht/~fitzsim/ulisp-repl")
  ;; FIXME: The upstream of `undo-tree' has diverged.  I tried to
  ;; contact Toby but he's quite busy.  He mentioned thinking of using the

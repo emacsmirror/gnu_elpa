@@ -1510,26 +1510,26 @@ If FILE-SYSTEM is non-nil, return file system attributes."
 	      '(created changed changes-done-hint moved deleted unmounted))
 	     ((memq 'attribute-change flags) '(attribute-changed unmounted))))
 	   (p (apply
-	       #'start-process
+	       #'tramp-start-process v
 	       "gvfs-monitor" (generate-new-buffer " *gvfs-monitor*")
 	       `("gio" "monitor" ,(tramp-gvfs-url-file-name file-name)))))
       (if (not (processp p))
 	  (tramp-error
 	   v 'file-notify-error "Monitoring not supported for `%s'" file-name)
+	;; Needed for process filter.
 	(process-put p 'tramp-events events)
 	(process-put p 'tramp-watch-name localname)
 	(set-process-filter p #'tramp-gvfs-monitor-process-filter)
 	(set-process-sentinel p #'tramp-file-notify-process-sentinel)
-	(tramp-post-process-creation p v)
 	;; There might be an error if the monitor is not supported.
 	;; Give the filter a chance to read the output.
 	(while (tramp-accept-process-output p))
 	(unless (process-live-p p)
 	  (tramp-error
 	   p 'file-notify-error "Monitoring not supported for `%s'" file-name))
-	;; Set "gio-file-monitor" property.  We believe, that "gio
+	;; Set "file-monitor" property.  We believe, that "gio
 	;; monitor" uses polling when applied for mounted files.
-	(tramp-set-connection-property p "gio-file-monitor" 'GPollFileMonitor)
+	(tramp-set-connection-property p "file-monitor" 'GPollFileMonitor)
 	p))))
 
 (defun tramp-gvfs-monitor-process-filter (proc string)

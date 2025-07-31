@@ -196,6 +196,8 @@ block. We cover that case as well ([[#h:1a81e255-0510-4ee0-bc3a-374de048ef46][Th
 :CUSTOM_ID: h:1a81e255-0510-4ee0-bc3a-374de048ef46
 :END:
 
+[ The parameter =:not-regexp= for the ~denote-org-dblock-insert-missing-links~ is part of {{{development-version}}}. ]
+
 #+findex: denote-org-dblock-insert-missing-links
 The =denote-missing-links= block is available with the command
 ~denote-org-dblock-insert-missing-links~. It is like the

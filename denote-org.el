@@ -407,23 +407,27 @@ Also see `denote-org-dblock--files-missing-only'."
    (t
     (denote-directory-files files-matching-regexp :omit-current nil exclude-regexp))))
 
-(defun denote-org-dblock--get-missing-links (regexp)
+(defun denote-org-dblock--get-missing-links (regexp exclude-regexp)
   "Return list of missing links to all notes matching REGEXP.
 Missing links are those for which REGEXP does not have a match in
-the current buffer."
-  (when-let* ((all-files (denote-directory-files regexp :omit-current))
+the current buffer.
+
+EXCLUDE-REGEXP is filtered out of the matching files."
+  (when-let* ((all-files (denote-directory-files regexp :omit-current nil exclude-regexp))
               (linked-files (denote-get-links nil all-files)))
     (seq-difference all-files linked-files)))
 
-(defun denote-org-dblock--files-missing-only (files-matching-regexp &optional sort-by-component reverse)
+(defun denote-org-dblock--files-missing-only (files-matching-regexp &optional sort-by-component reverse exclude-regexp)
   "Return list of missing links to FILES-MATCHING-REGEXP.
 SORT-BY-COMPONENT and REVERSE have the same meaning as
 `denote-sort-files'.  If both are nil, do not try to perform any
 sorting.
 
+EXCLUDE-REGEXP is filtered out of the matching files.
+
 Also see `denote-org-dblock--files'."
   (denote-sort-files
-   (denote-org-dblock--get-missing-links files-matching-regexp)
+   (denote-org-dblock--get-missing-links files-matching-regexp exclude-regexp)
    sort-by-component
    reverse))
 
@@ -485,10 +489,6 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
 
 ;;;;; Dynamic block to insert missing links
 
-;; TODO 2024-12-03: Do we need the :not-regexp here?  I think yes,
-;; though I prefer to have a user of this kind of dblock send me their
-;; feedback.
-
 (define-obsolete-function-alias
   'denote-org-extras-dblock-insert-missing-links
   'denote-org-dblock-insert-missing-links
@@ -503,6 +503,7 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
    org-mode)
   (org-create-dblock (list :name "denote-missing-links"
                            :regexp regexp
+                           :not-regexp nil
                            :excluded-dirs-regexp nil
                            :sort-by-component nil
                            :reverse-sort nil
@@ -515,12 +516,13 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
   "Function to update `denote-links' Org Dynamic blocks.
 Used by `org-dblock-update' with PARAMS provided by the dynamic block."
   (let* ((rx (denote-org--parse-rx (plist-get params :regexp)))
+         (not-rx (denote-org--parse-rx (plist-get params :not-regexp)))
          (sort (plist-get params :sort-by-component))
          (reverse (plist-get params :reverse-sort))
          (block-name (plist-get params :block-name))
          (denote-excluded-directories-regexp (or (plist-get params :excluded-dirs-regexp)
                                                  denote-excluded-directories-regexp))
-         (files (denote-org-dblock--files-missing-only rx sort reverse)))
+         (files (denote-org-dblock--files-missing-only rx sort reverse not-rx)))
     (when block-name (insert "#+name: " block-name "\n"))
     (denote-org--insert-links files (plist-get params :id-only) (plist-get params :include-date))
     (join-line))) ; remove trailing empty line

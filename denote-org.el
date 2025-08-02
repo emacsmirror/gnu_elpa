@@ -485,9 +485,9 @@ point to a file with a Denote file name."
 ;;    (info "(org) Dynamic Blocks")
 ;;
 ;; The dynamic blocks defined herein are documented at length in the
-;; Denote manual.  See the following node and its subsections:
+;; Denote-Org manual.  See the following node and its subsections:
 ;;
-;;    (info "(denote) Use Org dynamic blocks")
+;;    (info "(denote-org) Use Org dynamic blocks")
 
 ;;;;; Common helper functions
 

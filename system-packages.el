@@ -359,6 +359,7 @@ of passing additional arguments to the package manager."
   (let ((command
          (cdr (assoc action (cdr (assoc system-packages-package-manager
                                         system-packages-supported-package-managers)))))
+        (pack (when pack (shell-quote-argument pack)))
         (noconfirm (when system-packages-noconfirm
                      (cdr (assoc 'noconfirm
                                  (cdr (assoc system-packages-package-manager

@@ -20,6 +20,11 @@ There are also commands to insert or manipulate ISO dates:
 - iso-date-at-point-day-down
 - iso-date-at-point-do-shift
 
+Or display information about them:
+
+- iso-date-echo-difference
+- iso-date-pretty-print
+
 ## For developers
 
 This library provides the `iso-date` function. Without arguments, it returns an ISO date string for current day:

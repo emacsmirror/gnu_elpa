@@ -222,6 +222,8 @@ This is an alternative to the plist-based modification offered by
     (calc)
     (calc-push-list `((date ,abs)))))
 
+;;;; Insertion and manipulation
+
 (declare-function org-read-date "org")
 
 (defun iso-date-insert (&optional arg)
@@ -263,6 +265,25 @@ See `iso-date-shift' for the values SHIFT can take."
     (save-excursion
       (delete-region (car bounds) (cdr bounds))
       (insert (iso-date-shift shift date)))))
+
+;;;; Displaying useful information
+
+(defun iso-date-echo-difference (date)
+  "Echo day difference between current date and DATE."
+  (interactive (list (iso-date--read)))
+  (let ((day-difference (- (date-to-day date) (time-to-days nil))))
+    (cond ((> day-difference 0)
+           (message "This date will arrive in %d days" day-difference))
+          ((< day-difference 0)
+           (message "This date was %d days ago" (- day-difference)))
+          (t
+           (message "This is today's date")))))
+
+(defun iso-date-pretty-print (date)
+  "Echo a pretty representation for DATE.
+Format is defined by the variable `calendar-date-display-form'."
+  (interactive (list (iso-date--read)))
+  (message (calendar-date-string (iso-date-to-calendar date))))
 
 ;;;; Misc.
 

@@ -81,9 +81,9 @@ This function does not do internal conversions, so the resulting date
 can be non-existant.  It will, however, be faithful to what DATE really
 shows."
   (when (string-match iso-date-regexp date)
-    (let ((day (match-string 3 date))
-          (month (match-string 2 date))
-          (year (match-string 1 date)))
+    (let ((day (match-string-no-properties 3 date))
+          (month (match-string-no-properties 2 date))
+          (year (match-string-no-properties 1 date)))
       (mapcar #'string-to-number (list month day year)))))
 
 (defun iso-date-from-calendar (date)
@@ -150,8 +150,8 @@ that format.
 This is an alternative to the plist-based modification offered by
 `iso-date'."
   (when (string-match "\\`[ \t]*\\([+-]?[0-9]+\\)\\([a-z]\\)[ \t]*\\'" shift)
-    (let ((num (string-to-number (match-string 1 shift)))
-          (unit (match-string 2 shift)))
+    (let ((num (string-to-number (match-string-no-properties 1 shift)))
+          (unit (match-string-no-properties 2 shift)))
       (iso-date
        :start-date date
        (pcase unit
@@ -167,17 +167,17 @@ This is an alternative to the plist-based modification offered by
 (defun iso-date-year (date)
   "Return year component from ISO DATE, as an integer."
   (when (string-match iso-date-regexp date)
-    (string-to-number (match-string 1 date))))
+    (string-to-number (match-string-no-properties 1 date))))
 
 (defun iso-date-month (date)
   "Return month component from ISO DATE, as an integer."
   (when (string-match iso-date-regexp date)
-    (string-to-number (match-string 2 date))))
+    (string-to-number (match-string-no-properties 2 date))))
 
 (defun iso-date-day (date)
   "Return day component from ISO DATE, as an integer."
   (when (string-match iso-date-regexp date)
-    (string-to-number (match-string 3 date))))
+    (string-to-number (match-string-no-properties 3 date))))
 
 ;;;; Validation
 
@@ -319,7 +319,7 @@ Returned dates are also in that format."
 (defun iso-date-at-point ()
   "Return ISO date at point."
   (when (thing-at-point-looking-at iso-date-regexp 10)
-    (match-string 0)))
+    (match-string-no-properties 0)))
 
 ;;;###autoload
 (defun iso-date-bounds ()

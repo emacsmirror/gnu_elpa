@@ -1,4 +1,4 @@
-;;; iso-date.el -- Utilities for working with ISO dates -*- lexical-binding: t -*-
+;;; iso-date.el --- Utilities for working with ISO dates -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2025  Lucas Quintana
 
@@ -45,6 +45,12 @@
 (require 'calendar)
 (require 'thingatpt)
 (require 'time-date)
+
+(declare-function org-read-date "org")
+(declare-function org-agenda-list "org-agenda")
+(declare-function diary-check-diary-file "diary-lib")
+(declare-function calc-push-list "calc")
+(declare-function calc "calc")
 
 (defconst iso-date-regexp
   (rx (group (= 4 digit)) "-"
@@ -192,17 +198,14 @@ This is an alternative to the plist-based modification offered by
 (defun iso-date-show-calendar (date)
   "Display calendar and go to DATE."
   (interactive (list (iso-date--read)))
-  (require 'calendar)
   (calendar)
   (calendar-goto-date (iso-date-to-calendar date)))
 
 (defun iso-date-show-org-agenda (date)
   "Show Org agenda for DATE."
   (interactive (list (iso-date--read)))
-  (require 'org-agenda)
+  (require 'org)
   (org-agenda-list nil date))
-
-(declare-function diary-check-diary-file "diary-lib")
 
 (defun iso-date-show-diary (date)
   "Display a buffer with diary entries for DATE."
@@ -211,20 +214,15 @@ This is an alternative to the plist-based modification offered by
   (diary-check-diary-file)
   (diary-list-entries (iso-date-to-calendar date) 1))
 
-(declare-function calc-push-list "calc")
-
 (defun iso-date-send-to-calc (date)
   "Insert DATE into a calc window."
   (interactive (list (iso-date--read)))
   (require 'calc)
-  (require 'calendar)
   (let ((abs (calendar-absolute-from-gregorian (iso-date-to-calendar date))))
     (calc)
     (calc-push-list `((date ,abs)))))
 
 ;;;; Insertion and manipulation
-
-(declare-function org-read-date "org")
 
 (defun iso-date-insert (&optional arg)
   "Insert an ISO date at point.

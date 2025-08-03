@@ -327,5 +327,21 @@ Returned dates are also in that format."
   (when (thing-at-point-looking-at iso-date-regexp 10)
     (cons (match-beginning 0) (match-end 0))))
 
+;;;; embark.el integration
+
+(eval-after-load 'embark
+  '(progn
+     (embark-define-thingatpt-target iso-date)
+     (defvar-keymap embark-iso-date-map
+       :parent embark-general-map
+       "RET" #'iso-date-show-calendar
+       "a" #'iso-date-show-org-agenda
+       "c" #'iso-date-show-calendar
+       "d" #'iso-date-show-diary
+       "f" #'iso-date-echo-difference
+       "p" #'iso-date-pretty-print)
+     (add-to-list 'embark-target-finders 'embark-target-iso-date-at-point)
+     (add-to-list 'embark-keymap-alist '(iso-date embark-iso-date-map))))
+
 (provide 'iso-date)
 ;;; iso-date.el ends here

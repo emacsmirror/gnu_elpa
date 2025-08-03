@@ -310,31 +310,22 @@ Returned dates are also in that format."
 
 ;;;; thingatpt.el integration
 
-(defun iso-date-configure-thingatpt ()
-  "Configure `date' as a valid thing understood by `thing-at-point'."
-  (put 'date 'bounds-of-thing-at-point
-       (lambda ()
-         (let ((thing (thing-at-point-looking-at iso-date-regexp 10)))
-           (when thing
-             (cons (match-beginning 0) (match-end 0))))))
-  (put 'date 'thing-at-point
-       (lambda ()
-         (let ((boundary-pair (bounds-of-thing-at-point 'date)))
-           (when boundary-pair
-             (buffer-substring-no-properties
-              (car boundary-pair) (cdr boundary-pair)))))))
+;;;###autoload
+(progn
+  (put 'iso-date 'thing-at-point #'iso-date-at-point)
+  (put 'iso-date 'bounds-of-thing-at-point #'iso-date-bounds))
 
+;;;###autoload
 (defun iso-date-at-point ()
   "Return ISO date at point."
-  (unless (get 'date 'thing-at-point)
-    (iso-date-configure-thingatpt))
-  (thing-at-point 'date t))
+  (when (thing-at-point-looking-at iso-date-regexp 10)
+    (match-string 0)))
 
+;;;###autoload
 (defun iso-date-bounds ()
   "Return bounds of ISO date at point."
-  (unless (get 'date 'thing-at-point)
-    (iso-date-configure-thingatpt))
-  (bounds-of-thing-at-point 'date))
+  (when (thing-at-point-looking-at iso-date-regexp 10)
+    (cons (match-beginning 0) (match-end 0))))
 
 (provide 'iso-date)
 ;;; iso-date.el ends here

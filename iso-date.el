@@ -112,6 +112,7 @@ See also `iso-date-to-internal'."
 
 ;;;; Creation of strings
 
+;;;###autoload
 (defun iso-date (&rest keywords)
   "Return an ISO 8601 date string for current day.
 

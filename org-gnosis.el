@@ -114,6 +114,7 @@ TOPIC-ID is fallback."
 
 Optional argument FLATTEN, when non-nil, flattens the result."
   (org-gnosis-db-init-if-needed) ;; Init database if needed
+  ;; Check for database upgrades
   (let* ((restrictions (or restrictions '(= 1 1)))
 	 (flatten (or flatten nil))
 	 (output (emacsql org-gnosis-db
@@ -298,6 +299,7 @@ Returns file data with FILENAME."
   (with-temp-buffer
     (insert-file-contents filename)
     (org-mode)
+    (org-set-regexps-and-options 'tags-only)
     (let* ((data (org-gnosis-buffer-data))
 	   (links (org-gnosis-collect-id-links)))
       ;; Append links even if they are nil
@@ -359,7 +361,7 @@ If JOURNAL is non-nil, update file as a journal entry."
 		    (org-gnosis--delete 'nodes `(= id ,node)))))))
 
 (defun org-gnosis-update-file (&optional file)
-  "Update contents of FILE in databse.
+  "Update contents of FILE in database.
 
 Removes all contents of FILE in database, adding them anew."
   (let* ((file (or file (file-name-nondirectory (buffer-file-name))))
@@ -414,7 +416,7 @@ TIMESTRING defaults to `org-gnosis-timestring'"
 					    (replace-regexp-in-string " " "_" title))))
     (format "%s--%s.org%s" (format-time-string timestring) filename
 	    (if org-gnosis-create-as-gpg ".gpg" ""))))
-;; TODO: Add filetags
+
 (defun org-gnosis--create-file (title &optional directory extras)
   "Create a node FILE for TITLE.
 
@@ -463,6 +465,7 @@ instead."
 If there is no ID for TITLE, create a new FILE with TITLE as TOPIC in
 DIRECTORY."
   (interactive)
+  (org-gnosis-db-rebuild)
   (let* ((title (or title (if org-gnosis-show-tags
 			      (org-gnosis-find--with-tags)
 			    (funcall org-gnosis-completing-read-func
@@ -639,7 +642,6 @@ If file or id are not found, use `org-open-at-point'."
 	  (t (org-open-at-point)))
     (org-gnosis-mode 1)))
 
-;; Should we use `org-get'?
 (defun org-gnosis-get--todos (file)
   "Get TODO items for FILE."
   (let ((todos))
@@ -712,8 +714,7 @@ ELEMENT should be the output of `org-element-parse-buffer'."
     (nreverse checked-items)))
 
 (defun org-gnosis-mark-todo-as-done (todo-title)
-  "Mark scheduled TODO with TODO-TITLE as DONE if not already done today.
-ENTRY: Journal entry linked under the heading."
+  "Mark scheduled TODO with TODO-TITLE as DONE if not already done today."
   (let* ((file (org-gnosis-find-file-with-heading todo-title org-gnosis-todo-files))
          (today (format-time-string "%Y-%m-%d")))
     (when file
@@ -753,7 +754,7 @@ ENTRY: Journal entry linked under the heading."
 
 ;; Org-Gnosis Database
 
-(defconst org-gnosis-db-version 1)
+(defconst org-gnosis-db-version 2)
 
 (defconst org-gnosis-db--table-schemata
   '((nodes
@@ -805,7 +806,7 @@ ENTRY: Journal entry linked under the heading."
 (defun org-gnosis-db-sync ()
   "Sync `org-gnosis-db'."
   (interactive)
-  (org-gnosis-db-init)
+  (org-gnosis-db-init-if-needed)
   (let ((files (cl-remove-if-not
 		(lambda (file)
 		  (and (string-match-p "^[0-9]"
@@ -816,26 +817,44 @@ ENTRY: Journal entry linked under the heading."
 	     do (org-gnosis-update-file file)))
   (org-gnosis-db-sync--journal))
 
+(defun org-gnosis-db-rebuild ()
+  "Rebuild database by dropping all tables and syncing from files."
+  (let ((current-version (caar (emacsql org-gnosis-db [:pragma user-version]))))
+    (when (and (< current-version org-gnosis-db-version)
+	       (y-or-n-p
+		(format
+		 "Database version %d is outdated (current: %d).  Rebuild database from files? "
+		 current-version org-gnosis-db-version)))
+      (message "Rebuilding org-gnosis database...")
+      (emacsql-with-transaction org-gnosis-db
+        ;; Drop all existing tables
+        (org-gnosis-db-delete-tables)
+        ;; Recreate tables with current schema
+        (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
+          (emacsql org-gnosis-db [:create-table $i1 $S2] table schema))
+        ;; Sync all files to repopulate
+	(org-gnosis-db-sync)
+        ;; Set current version
+	(emacsql org-gnosis-db `[:pragma (= user-version ,org-gnosis-db-version)]))
+      (message "Database rebuild completed!"))))
+
 (defun org-gnosis-db-init ()
   "Initialize database.
 
-If database tables exist, delete them & recreate the db."
-  (org-gnosis-db-delete-tables)
-  (when (length< (emacsql org-gnosis-db
-			  [:select name :from sqlite-master :where (= type 'table)])
-		 3)
-    (emacsql-with-transaction org-gnosis-db
-      (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
-	(emacsql org-gnosis-db [:create-table $i1 $S2] table schema))
-      (emacsql org-gnosis-db [:pragma (= user-version org-gnosis-db-version)]))))
+Create all tables and set version for new database."
+  (message "Creating new org-gnosis database...")
+  (emacsql-with-transaction org-gnosis-db
+    (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
+      (emacsql org-gnosis-db [:create-table $i1 $S2] table schema))
+    (emacsql org-gnosis-db [:pragma (= user-version org-gnosis-db-version)])))
 
 (defun org-gnosis-db-init-if-needed ()
-  "Init database if it has not been initizalized."
-  (when (length< (emacsql org-gnosis-db
-			  [:select name :from sqlite-master :where (= type 'table)])
-		 4)
-    (message "Creating org-gnosis database...")
-    (org-gnosis-db-init)))
+  "Init database if it has not been initialized."
+  (let ((tables (emacsql org-gnosis-db
+			  [:select name :from sqlite-master :where (= type 'table)])))
+    (when (< (length tables) 3)
+      (message "Creating org-gnosis database...")
+      (org-gnosis-db-init))))
 
 (provide 'org-gnosis)
 ;;; org-gnosis.el ends here

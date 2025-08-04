@@ -82,19 +82,6 @@ Example installation & configuration using ~use-package~
     (define-prefix-command 'my/notes-map)
     (define-prefix-command 'my/journal-map)
     :config
-    ;; Common settings you might want to tweak to your liking
-    (setf org-gnosis-dir "~/Notes"
-  	;; Whe non-nil, create notes as gpg encrypted files
-  	org-gnosis-create-as-gpg nil
-  	;; TODO files, commonly used for templates.
-  	org-gnosis-todo-files org-agenda-files
-  	;; Used in #'org-gnosis-todos for template generation
-  	org-gnosis-bullet-point-char "+"
-  	;; Default completing-read function
-  	org-gnosis-completing-read-func #'org-completing-read
-  	;; Recommended if you use a vertical completion system (e.g vertico)
-  	org-gnosis-show-tags t)
-
     (defun example/org-gnosis-book-template ()
       (let ((date (format-time-string "%Y-%m-%d"))
   	  (book-title (completing-read
@@ -115,10 +102,24 @@ Example installation & configuration using ~use-package~
   	 ("j" . org-gnosis-journal)
   	 ("f" . org-gnosis-journal-find)
   	 ("i" . org-gnosis-journal-insert)
-  	 :map org-mode-map
+  	 :map org-gnosis-mode-map
   	 ("C-c C-." . org-gnosis-insert-tag)
-  	 ("C-c i" . org-id-get-create)))
+  	 ("C-c i" . org-id-get-create))
+    :custom
+    (org-gnosis-dir "~/Notes")
+    ;; Whe non-nil, create notes as gpg encrypted files, see epa config
+    (org-gnosis-create-as-gpg t)
+    ;; TODO files, commonly used for templates.
+    (org-gnosis-todo-files org-agenda-files)
+    ;; Used in #'org-gnosis-todos for template generation
+    (org-gnosis-bullet-point-char "+")
+    ;; Default completing-read function
+    (org-gnosis-completing-read-func #'org-completing-read)
+    ;; Recommended if you use a vertical completion system (e.g vertico)
+    (org-gnosis-show-tags t))
 #+end_src
+
++ See [[Encryption]] for recommended settings when using =gpg=
 * Taking Notes With Org Gnosis
 
 For Org Gnosis there are 2 types of notes,
@@ -200,6 +201,69 @@ ids, your current note collection should be able to work with
 ~org-gnosis~ without you having to change anything.
 
 To sync your note collection use {{{kbd(M-x org-gnosis-db-sync)}}}
+* Configuration
+** Completions
+To customize completions of =org-gnosis=, you can adjust the value
+=org-gnosis-completing-read-func=.
+*** Diacritic Insensitive completions
+If you want to have diacritic insensitive completions you can use
+something like this:
+
+#+begin_src emacs-lisp
+  (use-package ucs-normalize
+    :functions (my/strip-diacritics)
+    :config
+    (defun my/strip-diacritics (s)
+      "Remove diacritics from string S."
+      (let ((decomposed (ucs-normalize-NFD-string s)))
+        (replace-regexp-in-string "\\p{Mn}+" "" decomposed))))
+
+  (use-package org-gnosis
+    :ensure t
+    :after ucs-normalize
+    :config
+    (defun my/completing-read (prompt collection)
+      "Prompt user with completing-read that ignores diacritics on completion.
+  Useful if you write in langs like Greek :)."
+      (let* ((stripped-alist (mapcar (lambda (item)
+                                       (cons (my/strip-diacritics item) item))
+                                     collection))
+             (map (let ((m (make-sparse-keymap)))
+                    (set-keymap-parent m minibuffer-local-completion-map)
+                    (define-key m " " #'self-insert-command)
+                    m))
+             (completion-table
+              (lambda (string pred action)
+  	      (if (eq action 'metadata)
+                    '(metadata (category . diacritic-completion))
+  		(complete-with-action
+  		 action stripped-alist
+  		 (my/strip-diacritics string) pred))))
+             (result (minibuffer-with-setup-hook
+  		       (lambda () (use-local-map map))
+                       (completing-read prompt completion-table))))
+        (or (cdr (assoc result stripped-alist)) result)))
+    :custom
+    (org-gnosis-completing-read-func #'my/completing-read))
+#+end_src
+** Encryption
+Emacs provides built-in support for GPG encryption through =epg= and
+=epa=.
+
+You can use =epa= (EasyPG Assistant) to customize how you want your
+files encrypted, such as setting a default key to encrypt your files.
+
+Example:
+#+begin_src emacs-lisp
+  (use-package epa
+    :defer t
+    :config
+    (setf epa-keys-select-method 'minibuffer
+  	epa-file-encrypt-to '("62B758D0F6719938BC09CECA339F736C3A720928")
+  	;; Do not prompt for key selection, we are only using the above key.
+  	epa-file-select-keys 'silent))
+
+#+end_src
 * Contributing
 ** Sources
 + Main repository: <https://git.thanosapollo.org/org-gnosis/>

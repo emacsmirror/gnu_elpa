@@ -94,6 +94,16 @@
   (unless (file-directory-p dir)
     (make-directory dir)))
 
+(defun org-gnosis--find-master-id (id-stack level topic-id)
+  "Find the appropriate master ID for a headline at LEVEL.
+ID-STACK contains parent IDs, LEVEL is current headline level,
+TOPIC-ID is fallback."
+  (if (= level 1)
+      topic-id
+    (or (cl-loop for i from (- level 2) downto 0
+                 for parent-id = (nth i id-stack)
+                 when parent-id return parent-id)
+        topic-id)))
 (defun org-gnosis-select (value table &optional restrictions flatten)
   "Select VALUE from TABLE, optionally with RESTRICTIONS.
 

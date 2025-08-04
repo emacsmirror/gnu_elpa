@@ -179,18 +179,16 @@ to have an ID."
 
 (defun org-gnosis-get-id ()
   "Return id for heading at point."
-  (if (bound-and-true-p org-gnosis-mode)
-      (save-excursion
-	(let ((heading-level (org-current-level))
-	      (id (org-id-get)))
-	  (cond (id id)
-		((and (null id) (= heading-level 1))
-		 (goto-char (point-min))
-		 (org-id-get))
-		(t
-		 (outline-up-heading 1 t)
-		 (org-gnosis-get-id)))))
-    (error "Org Gnosis Mode not enabled")))
+  (save-excursion
+    (let ((heading-level (org-current-level))
+	  (id (org-id-get)))
+      (cond (id id)
+	    ((and (null id) (= heading-level 1))
+	     (goto-char (point-min))
+	     (org-id-get))
+	    (t
+	     (outline-up-heading 1 t)
+	     (org-gnosis-get-id))))))
 
 (defun org-gnosis-collect-id-links ()
   "Collect ID links and current headline ID as (link-id . headline-id) pairs."
@@ -203,9 +201,7 @@ to have an ID."
         (let ((link (match-string-no-properties 0)))
           (when (string-match "id:\\([^]]+\\)" link)
             (let ((target-id (match-string 1 link))
-                  (source-id (save-excursion
-                              (org-back-to-heading-or-point-min t)
-                              (org-id-get))))
+                  (source-id (org-gnosis-get-id)))
               (when (and target-id source-id)
                 (push (cons target-id source-id) links)))))))
     (nreverse links)))

@@ -1,4 +1,4 @@
-;;; iso-date.el -- Utilities for working with ISO dates -*- lexical-binding: t -*-
+;;; iso-date.el --- Utilities for working with ISO dates -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2025  Lucas Quintana
 
@@ -46,6 +46,12 @@
 (require 'thingatpt)
 (require 'time-date)
 
+(declare-function org-read-date "org")
+(declare-function org-agenda-list "org-agenda")
+(declare-function diary-check-diary-file "diary-lib")
+(declare-function calc-push-list "calc")
+(declare-function calc "calc")
+
 (defconst iso-date-regexp
   (rx (group (= 4 digit)) "-"
       (group (= 2 digit)) "-"
@@ -75,9 +81,9 @@ This function does not do internal conversions, so the resulting date
 can be non-existant.  It will, however, be faithful to what DATE really
 shows."
   (when (string-match iso-date-regexp date)
-    (let ((day (match-string 3 date))
-          (month (match-string 2 date))
-          (year (match-string 1 date)))
+    (let ((day (match-string-no-properties 3 date))
+          (month (match-string-no-properties 2 date))
+          (year (match-string-no-properties 1 date)))
       (mapcar #'string-to-number (list month day year)))))
 
 (defun iso-date-from-calendar (date)
@@ -144,8 +150,8 @@ that format.
 This is an alternative to the plist-based modification offered by
 `iso-date'."
   (when (string-match "\\`[ \t]*\\([+-]?[0-9]+\\)\\([a-z]\\)[ \t]*\\'" shift)
-    (let ((num (string-to-number (match-string 1 shift)))
-          (unit (match-string 2 shift)))
+    (let ((num (string-to-number (match-string-no-properties 1 shift)))
+          (unit (match-string-no-properties 2 shift)))
       (iso-date
        :start-date date
        (pcase unit
@@ -161,17 +167,17 @@ This is an alternative to the plist-based modification offered by
 (defun iso-date-year (date)
   "Return year component from ISO DATE, as an integer."
   (when (string-match iso-date-regexp date)
-    (string-to-number (match-string 1 date))))
+    (string-to-number (match-string-no-properties 1 date))))
 
 (defun iso-date-month (date)
   "Return month component from ISO DATE, as an integer."
   (when (string-match iso-date-regexp date)
-    (string-to-number (match-string 2 date))))
+    (string-to-number (match-string-no-properties 2 date))))
 
 (defun iso-date-day (date)
   "Return day component from ISO DATE, as an integer."
   (when (string-match iso-date-regexp date)
-    (string-to-number (match-string 3 date))))
+    (string-to-number (match-string-no-properties 3 date))))
 
 ;;;; Validation
 
@@ -192,17 +198,14 @@ This is an alternative to the plist-based modification offered by
 (defun iso-date-show-calendar (date)
   "Display calendar and go to DATE."
   (interactive (list (iso-date--read)))
-  (require 'calendar)
   (calendar)
   (calendar-goto-date (iso-date-to-calendar date)))
 
 (defun iso-date-show-org-agenda (date)
   "Show Org agenda for DATE."
   (interactive (list (iso-date--read)))
-  (require 'org-agenda)
+  (require 'org)
   (org-agenda-list nil date))
-
-(declare-function diary-check-diary-file "diary-lib")
 
 (defun iso-date-show-diary (date)
   "Display a buffer with diary entries for DATE."
@@ -211,20 +214,15 @@ This is an alternative to the plist-based modification offered by
   (diary-check-diary-file)
   (diary-list-entries (iso-date-to-calendar date) 1))
 
-(declare-function calc-push-list "calc")
-
 (defun iso-date-send-to-calc (date)
   "Insert DATE into a calc window."
   (interactive (list (iso-date--read)))
   (require 'calc)
-  (require 'calendar)
   (let ((abs (calendar-absolute-from-gregorian (iso-date-to-calendar date))))
     (calc)
     (calc-push-list `((date ,abs)))))
 
 ;;;; Insertion and manipulation
-
-(declare-function org-read-date "org")
 
 (defun iso-date-insert (&optional arg)
   "Insert an ISO date at point.
@@ -312,31 +310,38 @@ Returned dates are also in that format."
 
 ;;;; thingatpt.el integration
 
-(defun iso-date-configure-thingatpt ()
-  "Configure `date' as a valid thing understood by `thing-at-point'."
-  (put 'date 'bounds-of-thing-at-point
-       (lambda ()
-         (let ((thing (thing-at-point-looking-at iso-date-regexp 10)))
-           (when thing
-             (cons (match-beginning 0) (match-end 0))))))
-  (put 'date 'thing-at-point
-       (lambda ()
-         (let ((boundary-pair (bounds-of-thing-at-point 'date)))
-           (when boundary-pair
-             (buffer-substring-no-properties
-              (car boundary-pair) (cdr boundary-pair)))))))
+;;;###autoload
+(progn
+  (put 'iso-date 'thing-at-point #'iso-date-at-point)
+  (put 'iso-date 'bounds-of-thing-at-point #'iso-date-bounds))
 
+;;;###autoload
 (defun iso-date-at-point ()
   "Return ISO date at point."
-  (unless (get 'date 'thing-at-point)
-    (iso-date-configure-thingatpt))
-  (thing-at-point 'date t))
+  (when (thing-at-point-looking-at iso-date-regexp 10)
+    (match-string-no-properties 0)))
 
+;;;###autoload
 (defun iso-date-bounds ()
   "Return bounds of ISO date at point."
-  (unless (get 'date 'thing-at-point)
-    (iso-date-configure-thingatpt))
-  (bounds-of-thing-at-point 'date))
+  (when (thing-at-point-looking-at iso-date-regexp 10)
+    (cons (match-beginning 0) (match-end 0))))
+
+;;;; embark.el integration
+
+(eval-after-load 'embark
+  '(progn
+     (embark-define-thingatpt-target iso-date)
+     (defvar-keymap embark-iso-date-map
+       :parent embark-general-map
+       "RET" #'iso-date-show-calendar
+       "a" #'iso-date-show-org-agenda
+       "c" #'iso-date-show-calendar
+       "d" #'iso-date-show-diary
+       "f" #'iso-date-echo-difference
+       "p" #'iso-date-pretty-print)
+     (add-to-list 'embark-target-finders 'embark-target-iso-date-at-point)
+     (add-to-list 'embark-keymap-alist '(iso-date embark-iso-date-map))))
 
 (provide 'iso-date)
 ;;; iso-date.el ends here

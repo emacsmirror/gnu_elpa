@@ -844,6 +844,16 @@ the command to run, e.g., the semi-standard \"jj git push -c @-\"."
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.jjdescription\\'" . log-edit-mode))
+;;;###autoload
+(add-hook 'vc-log-mode-hook #'vc-jj-ensure-log-edit-callback)
+;;;###autoload
+(defun vc-jj-ensure-log-edit-callback ()
+  "Set up `log-edit-callback' when editing jj commit messages."
+  (unless log-edit-callback
+    (setq-local log-edit-callback (lambda ()
+                                    (interactive)
+                                    (save-buffer)
+                                    (kill-buffer)))))
 
 (provide 'vc-jj)
 ;;; vc-jj.el ends here

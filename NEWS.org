@@ -31,6 +31,10 @@
   =vc-find-revision=, like =vc-revision-other-window=, now do not error.
 - Identify the "removed" vc file state. Previously, removed files
   would be incorrectly labeled as "ignored."
+- vc-jj now sets up =log-edit-callback= so =log-edit-done= works properly
+  when editing =.jjdescription= files.  This makes Emacs work properly
+  as external editor when calling =jj commit= or similar from the
+  terminal.
 
 ** [[https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.2...v0.3][0.3]] - 2025-06-15
 

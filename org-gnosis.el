@@ -104,6 +104,11 @@ TOPIC-ID is fallback."
                  for parent-id = (nth i id-stack)
                  when parent-id return parent-id)
         topic-id)))
+
+(defun org-gnosis--combine-tags (inherited-tags headline-tags)
+  "Combine INHERITED-TAGS and HEADLINE-TAGS, removing duplicates."
+  (delete-dups (append (or inherited-tags '()) (or headline-tags '()))))
+
 (defun org-gnosis-select (value table &optional restrictions flatten)
   "Select VALUE from TABLE, optionally with RESTRICTIONS.
 

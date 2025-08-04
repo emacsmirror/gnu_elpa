@@ -4,14 +4,12 @@ ISO dates (such as `2025-07-28`), being as they are a well-known standard in sof
 
 ## For users
 
-This library offers some commands which let you use ISO dates with several Emacs packages:
+This library offers some commands which let you use ISO dates with several stock Emacs packages:
 
 - iso-date-show-calendar
 - iso-date-show-org-agenda
 - iso-date-show-diary
 - iso-date-send-to-calc
-
-They are particularly useful as `embark` actions (see [this pull request](https://github.com/oantolin/embark/pull/769) for context).
 
 There are also commands to insert or manipulate ISO dates:
 
@@ -24,6 +22,12 @@ Or display information about them:
 
 - iso-date-echo-difference
 - iso-date-pretty-print
+
+The package also offers integration with `embark` (see [this pull request](https://github.com/oantolin/embark/pull/769) for context). A target for ISO dates is provided (`iso-date`), and several of the previous commands are bound in `embark-iso-date-map`. In order to activate it, just add the following to your init file:
+
+```elisp
+(require 'embark-iso-date)
+```
 
 ## For developers
 
@@ -75,13 +79,7 @@ Others:
 - iso-date-between-dates-p
 - iso-date-list-dates-between
 
-Last but not least, this library can add `date` as a thing recognized by the `thingatpt` library. Just add the following to your init file:
-
-```elisp
-(iso-date-configure-thingatpt)
-```
-
-The `iso-date-at-point` and `iso-date-bounds` functions are already provided. They configure `thingatpt` when first used.
+Last but not least, this library adds `iso-date` as a thing recognized by the `thingatpt` library. The `iso-date-at-point` and `iso-date-bounds` functions are provided.
 
 ------
 

@@ -199,13 +199,20 @@ to have an ID."
       (while (re-search-forward org-link-any-re end t)
         (let ((link (match-string-no-properties 0)))
           (when (string-match "id:\\([^]]+\\)" link)
-            (push (cons (match-string 1 link) (org-gnosis-get-id)) links)))))
+            (let ((target-id (match-string 1 link))
+                  (source-id (save-excursion
+                              (org-back-to-heading-or-point-min t)
+                              (org-id-get))))
+              (when (and target-id source-id)
+                (push (cons target-id source-id) links)))))))
     (nreverse links)))
 
 (defun org-gnosis-get-data--topic (&optional parsed-data)
-  "Retrieve the title and ID from the current org buffer or given PARSED-DATA."
-  (let* ((parsed-data (or parsed-data (org-element-parse-buffer)))
-         (id (org-element-map parsed-data 'property-drawer
+  "Retrieve the title and ID from the current org buffer or given PARSED-DATA.
+Returns (title tags id) or signals error if required data is missing."
+  (unless parsed-data
+    (setq parsed-data (org-element-parse-buffer)))
+  (let* ((id (org-element-map parsed-data 'property-drawer
                (lambda (drawer)
                  (org-element-map (org-element-contents drawer) 'node-property
                    (lambda (prop)
@@ -213,26 +220,30 @@ to have an ID."
                        (org-element-property :value prop)))
                    nil t))
                nil t))
-	 (title (org-gnosis-adjust-title
-		 (org-element-map parsed-data 'keyword
-                  (lambda (kw)
-                    (when (string= (org-element-property :key kw) "TITLE")
-                      (org-element-property :value kw)))
-                  nil t)
-		 id))
-	 (tags (org-gnosis-get-filetags)))
+	 (title-raw (org-element-map parsed-data 'keyword
+                      (lambda (kw)
+                        (when (string= (org-element-property :key kw) "TITLE")
+                          (org-element-property :value kw)))
+                      nil t))
+	 (title (when title-raw (org-gnosis-adjust-title title-raw id)))
+	 (tags (org-gnosis-get-filetags parsed-data)))
+    ;; Validate required fields
+    (unless id
+      (error "Org buffer must have an ID property"))
+    (unless (and title (not (string-empty-p title)))
+      (error "Org buffer must have a non-empty TITLE"))
     (list title tags id)))
 
-;; This one is used for topics
 (defun org-gnosis-get-filetags (&optional parsed-data)
-  "Return the filetags of the buffer's PARSED-DATA as a comma-separated string."
+  "Return the filetags of the buffer's PARSED-DATA as a list of strings."
   (let* ((parsed-data (or parsed-data (org-element-parse-buffer)))
          (filetags (org-element-map parsed-data 'keyword
                      (lambda (kw)
                        (when (string-equal (org-element-property :key kw) "FILETAGS")
                          (org-element-property :value kw)))
                      nil t)))
-    (and filetags (remove "" (split-string filetags ":")))))
+    (when (and filetags (not (string-empty-p (string-trim filetags))))
+      (remove "" (split-string filetags ":")))))
 
 (defun org-gnosis-parse-topic (parsed-data)
   "Parse topic information from the PARSED-DATA."
@@ -247,18 +258,36 @@ to have an ID."
 (defun org-gnosis-buffer-data (&optional data)
   "Parse DATA in current buffer for topics & headlines with their ID, tags, links."
   (let* ((parsed-data (or data (org-element-parse-buffer)))
-         (topic (org-gnosis-parse-topic parsed-data))
-         (all-ids (when topic (list (plist-get topic :id))))
-         (inherited-tags (plist-get topic :tags))
-         (headlines '()))
-    (org-element-map parsed-data 'headline
-      (lambda (headline)
-        (let ((parsed-headline (org-gnosis-parse-headline
-				headline inherited-tags (plist-get topic :id))))
-          (when parsed-headline
-            (push parsed-headline headlines)
-            (push (plist-get parsed-headline :id) all-ids)))))
-    (nreverse (cons topic headlines))))
+         (topic (org-gnosis-parse-topic parsed-data)))
+    (unless topic (error "Buffer must have a topic with ID"))
+    (let ((headlines '())
+          (tag-stack (list (plist-get topic :tags)))
+          (id-stack (list (plist-get topic :id)))
+          (topic-id (plist-get topic :id)))
+      (org-element-map parsed-data 'headline
+        (lambda (headline)
+          (let* ((level (org-element-property :level headline))
+                 (headline-tags (org-element-property :tags headline))
+                 (current-id (org-element-property :ID headline)))
+            ;; Adjust stacks to proper level
+            (while (>= (length id-stack) level)
+              (pop id-stack))
+            (while (>= (length tag-stack) level)
+              (pop tag-stack))
+            ;; Calculate combined tags
+            (let* ((inherited-tags (or (car tag-stack) '()))
+                   (combined-tags (org-gnosis--combine-tags inherited-tags headline-tags)))
+              ;; Calculate master ID from current stack state
+              (let ((master-id (when current-id
+                                (org-gnosis--find-master-id id-stack level topic-id))))
+                ;; Push current values to stacks for children
+                (push current-id id-stack)
+                (push combined-tags tag-stack)
+                ;; Only parse headlines with IDs
+                (when current-id
+                  (when-let* ((parsed (org-gnosis-parse-headline headline combined-tags master-id)))
+                    (push parsed headlines))))))))
+      (nreverse (cons topic headlines)))))
 
 (defun org-gnosis-get-file-info (filename)
   "Get data for FILENAME.
@@ -276,32 +305,43 @@ Returns file data with FILENAME."
   "Add contents of FILE to database.
 
 If JOURNAL is non-nil, update file as a journal entry."
-  (let* ((info (org-gnosis-get-file-info file))
-	 (data (butlast info))
-	 (table (if journal 'journal 'nodes))
-	 (filename (file-name-nondirectory file))
-	 (links (and (> (length info) 1) (apply #'append (last info))))
-	 (titles (org-gnosis-select 'title table nil t)))
-    ;; Add gnosis topic
-    (message "Parsing: %s" filename)
-    (cl-loop for item in data
-	     do (let ((title (org-gnosis-adjust-title
-			      (plist-get item :title)))
-		      (id (plist-get item :id))
-		      (master (plist-get item :master))
-		      (tags (plist-get item :tags))
-		      (level (plist-get item :level)))
-		  (when (member title titles)
-		    (error "Title: '%s' already exists" title))
-		  (org-gnosis--insert-into table `([,id ,filename ,title ,level ,tags]))
-		  (cl-loop for tag in tags
-			   do
-			   (org-gnosis--insert-into 'tags `([,tag]))
-			   (org-gnosis--insert-into 'node-tag `([,id ,tag]))
-			   (when (stringp master)
-			     (org-gnosis--insert-into 'links `([,id ,master]))))))
-    (cl-loop for link in links
-	     do (org-gnosis--insert-into 'links `[,(cdr link) ,(car link)]))))
+  (condition-case err
+      (let* ((info (org-gnosis-get-file-info file))
+	     (data (butlast info))
+	     (table (if journal 'journal 'nodes))
+	     (filename (file-name-nondirectory file))
+	     (links (and (> (length info) 1) (apply #'append (last info))))
+	     (titles (org-gnosis-select 'title table nil t)))
+	;; Add gnosis topic and nodes
+	(message "Parsing: %s" filename)
+	(emacsql-with-transaction org-gnosis-db
+	  (cl-loop for item in data
+		   do (let ((title (org-gnosis-adjust-title
+				    (plist-get item :title)))
+			    (id (plist-get item :id))
+			    (master (plist-get item :master))
+			    (tags (plist-get item :tags))
+			    (level (plist-get item :level)))
+			;; Handle duplicate titles gracefully
+			(when (member title titles)
+			  (let ((counter 1))
+			    (while (member (format "%s (%d)" title counter) titles)
+			      (setq counter (1+ counter)))
+			    (setq title (format "%s (%d)" title counter))
+			    (message "Duplicate title found, renamed to: %s" title)))
+			(org-gnosis--insert-into table `([,id ,filename ,title ,level ,tags]))
+			;; Insert tags
+			(cl-loop for tag in tags
+				 do
+				 (ignore-errors (org-gnosis--insert-into 'tags `([,tag])))
+				 (org-gnosis--insert-into 'node-tag `([,id ,tag])))
+			;; Insert master relationship as link
+			(when (and master (stringp master))
+			  (org-gnosis--insert-into 'links `([,id ,master])))))
+	  ;; Insert ID links
+	  (cl-loop for link in links
+		   do (org-gnosis--insert-into 'links `[,(cdr link) ,(car link)]))))
+    (error (message "Error updating %s: %s" file err))))
 
 (defun org-gnosis--delete-file (&optional file)
   "Delete contents for FILE in database."
@@ -527,11 +567,16 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
   "Visit backlinks for current node."
   (interactive)
   (let* ((id (org-gnosis-get-id))
-	 (links (org-gnosis-select 'source 'links `(= dest ,id) t))
-	 (titles (cl-loop for link in links
-			  collect (org-gnosis-select 'title 'nodes `(= id ,link) t))))
-    (org-gnosis-find
-     (completing-read "Backlink: " (apply #'append titles)))))
+	 (backlinks (org-gnosis-select '[source] 'links `(= dest ,id)))
+	 (titles (cl-loop for backlink in backlinks
+			  for source-id = (car backlink)
+			  for title = (caar (org-gnosis-select 'title 'nodes
+							       `(= id ,source-id)))
+			  when title collect title)))
+    (if titles
+	(org-gnosis-find
+	 (completing-read "Backlink: " titles))
+      (message "No backlinks found for current node"))))
 
 ;;;###autoload
 (defun org-gnosis-journal-find (&optional title)

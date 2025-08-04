@@ -149,7 +149,11 @@ that format.
 
 This is an alternative to the plist-based modification offered by
 `iso-date'."
-  (when (string-match "\\`[ \t]*\\([+-]?[0-9]+\\)\\([a-z]\\)[ \t]*\\'" shift)
+  (when (string-match
+         (rx
+          (group (optional (or "+" "-")) (one-or-more digit))
+          (group (any letter)))
+         shift)
     (let ((num (string-to-number (match-string-no-properties 1 shift)))
           (unit (match-string-no-properties 2 shift)))
       (iso-date

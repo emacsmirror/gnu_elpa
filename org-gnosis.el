@@ -137,34 +137,44 @@ Optional argument FLATTEN, when non-nil, flattens the result."
 
 If node title contains an id link, it's inserted as link for NODE-ID
 in the database."
-  (when (stringp input)
-    (let* ((id-links '())
-	   (new-input (replace-regexp-in-string
-                       "\\[\\[id:[^]]+\\]\\[\\(.*?\\)\\]\\]"
-                       (lambda (match)
-                         (push (match-string 1 match) id-links)
-                         (match-string 1 match))
-                       input)))
-      (when (and node-id id-links)
-	(emacsql-with-transaction org-gnosis-db
-	  (cl-loop for link in (reverse id-links)
-		   do (org-gnosis--insert-into 'links `([,node-id ,link])))))
-      new-input)))
+  (cl-assert (and (stringp input) (not (string-empty-p input))) nil
+	     "Input must be a non-empty string, got: %S")
+  (let* ((id-links '())
+	 (new-input (replace-regexp-in-string
+                     "\\[\\[id:[^]]+\\]\\[\\(.*?\\)\\]\\]"
+                     (lambda (match)
+                       (let ((link-text (match-string 1 match)))
+                         (when (and link-text (not (string-empty-p link-text)))
+                           (push link-text id-links))
+                         link-text))
+                     input)))
+    ;; Only insert links if we have a valid node-id and found links
+    (when (and node-id id-links (not (string-empty-p node-id)))
+      (condition-case err
+          (emacsql-with-transaction org-gnosis-db
+            (cl-loop for link in (reverse id-links)
+                     do (org-gnosis--insert-into 'links `([,node-id ,link]))))
+        (error "Warning: Failed to insert title links for %s: %S" node-id err)))
+    new-input))
 
-(defun org-gnosis-parse-headline (headline inherited-tags topic-id)
+(defun org-gnosis-parse-headline (headline inherited-tags master-id)
   "Parse a HEADLINE and return a plist with its info.
 
 INHERITED-TAGS: Upper level headline tags.
-TOPIC-ID: Topic hash id."
+MASTER-ID: ID of the parent headline or topic.
+
+Note: This function assumes the headline has already been validated
+to have an ID."
   (let* ((title (org-element-property :raw-value headline))
          (id (org-element-property :ID headline))
          (level (org-element-property :level headline))
-         (tags (or (org-element-property :tags headline) inherited-tags))
-         (all-tags (delete-dups (append inherited-tags tags)))
-         (master (if (= level 1) topic-id
-                   (org-element-property :ID (org-element-property :parent headline)))))
-    (and id
-         (list :title title :id id :tags all-tags :master master :level level))))
+         (headline-tags (org-element-property :tags headline))
+         (all-tags (org-gnosis--combine-tags inherited-tags headline-tags)))
+    (list :title (string-trim title)
+          :id id
+          :tags all-tags
+          :master master-id
+          :level level)))
 
 (defun org-gnosis-get-id ()
   "Return id for heading at point."

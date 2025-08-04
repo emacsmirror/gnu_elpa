@@ -333,7 +333,7 @@ If JOURNAL is non-nil, update file as a journal entry."
 			      (setq counter (1+ counter)))
 			    (setq title (format "%s (%d)" title counter))
 			    (message "Duplicate title found, renamed to: %s" title)))
-			(org-gnosis--insert-into table `([,id ,filename ,title ,level ,tags]))
+			(org-gnosis--insert-into table `([,id ,filename ,title ,level ,(prin1-to-string tags)]))
 			;; Insert tags
 			(cl-loop for tag in tags
 				 do

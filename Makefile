@@ -1,5 +1,5 @@
 .POSIX:
-.PHONY: all doc clean
+.PHONY: all doc clean test test-parsing test-integration
 .SUFFIXES: .el .elc
 
 EMACS = emacs
@@ -16,5 +16,12 @@ doc:	$(ORG)
 	--eval "(with-current-buffer (find-file \"$(ORG)\") (org-texinfo-export-to-texinfo) (org-texinfo-export-to-info) (save-buffer))" \
 	--kill
 
+test: test-parsing test-integration
+
+test-parsing:
+	$(EMACS) --batch \
+	-l tests/org-gnosis-test-parsing.el \
+	-f ert-run-tests-batch-and-exit
+
 clean:
-	rm -f $(TEXI) $(INFO)
+	rm -f $(TEXI) $(INFO) *pkg* *autoloads*

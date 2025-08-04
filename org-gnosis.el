@@ -395,9 +395,11 @@ Delete file contents in database & file."
                    (tags (cadr item))
                    (propertized-tags
 		    (when tags
-                      (concat (propertize "#" 'face 'org-gnosis-face-tags)
-                              (propertize (mapconcat #'identity tags "#")
-					  'face 'org-gnosis-face-tags)))))
+		      (let ((tag-list (if (stringp tags) (read tags) tags)))
+			(when (and tag-list (not (equal tag-list '())))
+                          (concat (propertize "#" 'face 'org-gnosis-face-tags)
+                                  (propertize (mapconcat #'identity tag-list "#")
+					      'face 'org-gnosis-face-tags)))))))
               (if propertized-tags
                   (format "%s  %s" title propertized-tags)
 		title)))

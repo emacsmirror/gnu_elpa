@@ -21,6 +21,7 @@
 
 ;;; Code:
 
+(eval-when-compile (require 'embark))
 (require 'iso-date)
 
 (eval-after-load 'embark

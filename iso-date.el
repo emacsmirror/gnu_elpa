@@ -197,10 +197,13 @@ This is an alternative to the plist-based modification offered by
 
 (defun iso-date--read ()
   "Read date in YYYY-MM-DD format."
-  (let ((date (read-string "Date (YYYY-MM-DD): ")))
-    (unless (string-match-p iso-date-regexp date)
-      (user-error "Date not in YYYY-MM-DD format"))
-    date))
+  (catch :ok
+    (while (let ((date (read-string "Date (YYYY-MM-DD): ")))
+             (when (string-match iso-date-regexp date)
+               (throw :ok (match-string-no-properties 0 date)))
+             (message "Date not in YYYY-MM-DD format")
+             (sit-for 1)
+             t))))
 
 (defun iso-date-show-calendar (date)
   "Display calendar and go to DATE."

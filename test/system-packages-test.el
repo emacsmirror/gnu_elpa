@@ -18,7 +18,12 @@
            (let ((system-packages-use-sudo nil)
                  (system-packages-package-manager 'pacman))
              (system-packages-get-command 'install))
-           "pacman -S ")))
+           "pacman -S "))
+  (should (string=
+           (let ((system-packages-use-sudo nil)
+                 (system-packages-package-manager 'dnf))
+             (system-packages-get-command 'install "pkgconfig(enchant-2)"))
+           "dnf install pkgconfig\\(enchant-2\\)")))
 
 (ert-deftest system-packages-get-install-noconfirm ()
   "Return correct installation command."

@@ -320,9 +320,8 @@ This is used in the command `disproject-vc-status'."
            (eq 'Git (disproject-project-backend project)))))
 
 (defun disproject-prefix--magit-todos-apt? ()
-  "Return non-nil if `magit-todos' commands are apt to show."
-  (and (featurep 'magit-todos)
-       (disproject-prefix--magit-apt?)))
+  "Return non-nil if the `magit-todos' is available."
+  (locate-library "magit-todos"))
 
 (defun disproject-prefix--customize-dirlocals-apt? ()
   "Return non-nil if `customize-dirlocals' function exists."

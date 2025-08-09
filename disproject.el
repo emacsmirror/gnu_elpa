@@ -195,7 +195,7 @@ node `(transient) Suffix Specifications' for documentation on
 specification forms.
 
 Any key sequence starting with alphanumeric characters or dash
-(regexp \"[a-zA-Z0-9-]\") is reserved for the user.
+\(regexp \"[a-zA-Z0-9-]\") is reserved for the user.
 
 `disproject-find-special-file' is provided as a convenient way to
 create commands for finding special files.  See its documentation

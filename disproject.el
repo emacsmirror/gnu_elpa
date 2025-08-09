@@ -2120,7 +2120,7 @@ menu."
     ("G" "regexp (+external)" disproject-or-external-find-regexp)
     ("r" "regexp and replace" disproject-query-replace-regexp)
     ("l" "special file" disproject-find-special-file-dispatch)
-    ("L" "line occurrence" disproject-find-line)
+    ("L" "line in buffers" disproject-find-line)
     ("T" "todos" disproject-magit-todos-list
      :if disproject-prefix--magit-todos-apt?)]]
   [("SPC" "Custom dispatch" disproject-custom-dispatch

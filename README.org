@@ -450,6 +450,28 @@ you get all the parameters included:
   processing using Org facilities (a feature that is outside Denote's
   purview).
 
+** Org dynamic block to insert sequences
+#+findex: denote-org-dblock-insert-sequence
+The Denote-Sequence package enables using the Denote signature as a hierarchical indicator inspired by the Folgezettel principle in the Zettelkasten methodology.
+
+The =denote-sequence= block can be inserted at point with the command
+~denote-org-dblock-insert-sequence~ or by manually including the
+following in an Org file:
+
+: #+BEGIN: denote-sequence :sequence "1=1" :depth 2
+:
+: #+END:
+
+Both parameters are required.
+
+- The sequence is the root of the hierarchy displayed in the dynamic block.
+
+- The depth is the relative depth from the root note. So in the example above, the notes with sequence =1=1=1= and =1=1=2= will be included in the list, but not =1=1=2=1=.
+
+- The list of links Links is indented to visualise their hierarchical structure.
+
+- When the sequence is an empty string, all notes with sequences are included in the list, up to the specified depth.
+
 * Create a note from the current Org subtree
 :PROPERTIES:
 :CUSTOM_ID: h:d0c7cb79-21e5-4176-a6af-f4f68578c8dd

@@ -2253,8 +2253,8 @@ Note that this matches DECLARATIVES.")
   "Regexp matching any declaration.")
 
 (defconst cobol--blank-line-re
-  (cobol--with-opt-whitespace-line "\\.?$")
-  "Regexp matching a blank line with optional period.")
+  (rx (** 0 6 any) (* (or " " "	")) (? ".") eol)
+  "Regexp matching a non comment blank line with optional period.")
 
 ;;; Font lock
 

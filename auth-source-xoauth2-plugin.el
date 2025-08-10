@@ -63,7 +63,8 @@ expected that `token_url', `client_id', `client_secret', and
           (when (equal auth "xoauth2")
             (auth-source-do-debug
              ":auth set to `xoauth2'.  Will get access token.")
-            (map-let (:auth-url
+            (map-let (:user
+                      :auth-url
                       :token-url
                       :scope
                       :client-id
@@ -74,7 +75,7 @@ expected that `token_url', `client_id', `client_secret', and
               (auth-source-do-debug "Using oauth2 to auth and store token...")
               (let ((token (oauth2-auth-and-store
                             auth-url token-url scope client-id client-secret
-                            redirect-uri state)))
+                            redirect-uri state user)))
                 (auth-source-do-trivia "oauth2 token: %s" (pp-to-string token))
                 (auth-source-do-debug "Refreshing token...")
                 (oauth2-refresh-access token)

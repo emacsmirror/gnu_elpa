@@ -107,6 +107,8 @@ Evaluate:
 (info "(org) Dynamic Blocks")
 #+end_src
 
+The ~org-dynamic-block-insert-dblock~ function (=C-c C-x x=) provides a dropdown menu of all available dynamic blocks.
+
 ** Org dynamic blocks to insert links
 :PROPERTIES:
 :CUSTOM_ID: h:50160fae-6515-4d7d-9737-995ad925e64b

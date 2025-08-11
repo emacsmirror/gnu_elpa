@@ -1022,9 +1022,9 @@ When no FILES are provided, use all files with a sequence signature."
 (with-eval-after-load 'denote-sequence
   (defun denote-org--insert-sequence (files)
     "Insert indented list of links to sequence FILES."
-    (let ((root-sequence (denote-retrieve-filename-signature (car files)))
-	  (root-depth (denote-sequence-depth root-sequence))
-	  (links '()))
+    (let* ((root-sequence (denote-retrieve-filename-signature (car files)))
+	   (root-depth (denote-sequence-depth root-sequence))
+	   (links '()))
       (message "Inserting %s links" (length files))
       (dolist (file files)
 	(let* ((sequence (denote-retrieve-filename-signature file))

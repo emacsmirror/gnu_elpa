@@ -485,9 +485,9 @@ point to a file with a Denote file name."
 ;;    (info "(org) Dynamic Blocks")
 ;;
 ;; The dynamic blocks defined herein are documented at length in the
-;; Denote manual.  See the following node and its subsections:
+;; Denote-Org manual.  See the following node and its subsections:
 ;;
-;;    (info "(denote) Use Org dynamic blocks")
+;;    (info "(denote-org) Use Org dynamic blocks")
 
 ;;;;; Common helper functions
 
@@ -959,6 +959,88 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
     (when rx (denote-org-dblock-add-files-as-headings rx add-links sort reverse excluded-dirs not-rx)))
   (join-line)) ; remove trailing empty line
 
+;;;;; Dynamic block to insert hierarchic sequences
+
+;;;###autoload
+(with-eval-after-load 'denote-sequence
+  (defun denote-org-dblock-insert-sequence (file depth)
+    "Create Org dynamic block to list all chilren of FILE up to a relative DEPTH.
+DEPTH of the root FILE is 1. Using 2 lists children, 3 grandchildren, and so on."
+    (interactive
+     (list
+      (denote-sequence-file-prompt
+       (format "List descendants of:"
+               (propertize
+		(denote--rename-dired-file-or-current-file-or-prompt)
+		'face 'denote-faces-prompt-current-name)))
+      (read-number "Maximum relative depth from root node: " 2))
+     (org-mode))
+    (org-create-dblock (list :name "denote-sequence"
+                             :sequence (denote-retrieve-filename-signature file)
+			     :depth depth))
+    (org-update-dblock)))
+
+;;;###autoload
+(with-eval-after-load 'denote-sequence
+  (defun org-dblock-write:denote-sequence (params)
+    "Function to update `denote-sequence' Org Dynamic blocks.
+When sequence is an empty string, then use all Denote files with a sequence.
+
+Used by `org-dblock-update' with PARAMS provided by the dynamic block."
+    (let* ((block-name (plist-get params :block-name))
+	   (sequence (plist-get params :sequence))
+	   (depth (plist-get params :depth))
+	   ;; This will not work for people with bespoke `denote-file-name-components-order'
+	   (parent (denote-directory-files (concat sequence "-")))
+	   (children (denote-sequence-get-relative sequence 'all-children))
+	   (family (if children
+		       (append parent children)
+		     (denote-sequence-get-all-files)))
+	   (files (denote-sequence-get-files-with-max-depth depth family)))
+      (when block-name (insert "#+name: " block-name "\n"))
+      (denote-org--insert-sequence files)
+      (join-line))))
+
+(with-eval-after-load 'denote-sequence
+  (defun denote-sequence-get-files-with-max-depth (max-depth &optional files)
+    "Return members of FILES with sequence depth less or equal than MAX-DEPTH.
+When no FILES are provided, use all files with a sequence signature."
+    (unless files
+      (setq files (denote-sequence-get-all-files)))
+    (let* ((hierarchy '())
+	   (files (denote-sequence-sort-files files))
+	   (root-sequence (denote-retrieve-filename-signature (car files)))
+           (root-depth (denote-sequence-depth root-sequence)))
+      (message (number-to-string root-depth))
+      (dolist (file files)
+	(let* ((sequence (denote-retrieve-filename-signature file))
+               (depth (denote-sequence-depth sequence)))
+          (when (<= depth (- (+ root-depth max-depth) 1))
+            (push file hierarchy))))
+      (nreverse hierarchy))))
+
+(with-eval-after-load 'denote-sequence
+  (defun denote-org--insert-sequence (files)
+    "Insert indented list of links to sequence FILES."
+    (let* ((root-sequence (denote-retrieve-filename-signature (car files)))
+	   (root-depth (denote-sequence-depth root-sequence))
+	   (links '()))
+      (message "Inserting %s links" (length files))
+      (dolist (file files)
+	(let* ((sequence (denote-retrieve-filename-signature file))
+	       (description (denote-get-link-description file))
+	       (link-title (concat sequence ": " description))
+               (link (denote-format-link file link-title 'org nil))
+	       (depth (- (denote-sequence-depth sequence) root-depth))
+	       (indent (make-string (* depth 2) ?\s))
+	       (link-as-list-item (format (concat indent denote-link--prepare-links-format) link)))
+	  (push link-as-list-item links)))
+      (setq links (nreverse links))
+      (dolist (link links)
+	(insert link)))))
+
+;;; 
+
 ;; NOTE 2024-03-30: This is how the autoload is done in org.el.
 ;;;###autoload
 (eval-after-load 'org
@@ -967,7 +1049,8 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
      (org-dynamic-block-define "denote-missing-links" 'denote-org-dblock-insert-missing-links)
      (org-dynamic-block-define "denote-backlinks" 'denote-org-dblock-insert-backlinks)
      (org-dynamic-block-define "denote-files" 'denote-org-dblock-insert-files)
-     (org-dynamic-block-define "denote-files-as-headings" 'denote-org-dblock-insert-files-as-headings)))
+     (org-dynamic-block-define "denote-files-as-headings" 'denote-org-dblock-insert-files-as-headings)
+     (org-dynamic-block-define "denote-sequence" 'denote-org-dblock-insert-sequence)))
 
 (provide 'denote-org)
 ;;; denote-org.el ends here

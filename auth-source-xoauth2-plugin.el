@@ -48,21 +48,27 @@ if one sets `auth' to `xoauth2' in your auth-source-entry.  It is
 expected that `token_url', `client_id', `client_secret', and
 `refresh_token' are properly set along `host', `user', and
 `port' (note the snake_case)."
-  (auth-source-do-trivia "Advising auth-source-search")
+  (auth-source-do-trivia "[xoauth2-plugin] Advising auth-source-search")
   (let (check-secret)
     (when (memq :secret (nth 5 args))
       (auth-source-do-trivia
-       "Required fields include :secret.  As we are requesting access token to replace the secret, we'll temporary remove :secret from the require list and check that it's properly set to a valid access token later.")
+       (concat "[xoauth2-plugin] Required fields include :secret.  As we are "
+               "requesting access token to replace the secret, we'll "
+               "temporary remove :secret from the require list and check that "
+               "it's properly set to a valid access token later."))
       (setf (nth 5 args) (remove :secret (nth 5 args)))
       (setq check-secret t))
     (let ((orig-res (apply orig-fun args))
           res)
       (dolist (auth-data orig-res)
-        (auth-source-do-trivia "Matched auth data: %s" (pp-to-string auth-data))
+        (auth-source-do-trivia "[xoauth2-plugin] Matched auth data: %s"
+                               (pp-to-string auth-data))
         (let ((auth (plist-get auth-data :auth)))
           (when (equal auth "xoauth2")
             (auth-source-do-debug
-             ":auth set to `xoauth2'.  Will get access token.")
+             (concat "[xoauth2-plugin] account \"%s\" has :auth set to "
+                     "`xoauth2'.  Will get access token.")
+             user)
             (map-let (:user
                       :auth-url
                       :token-url
@@ -72,25 +78,31 @@ expected that `token_url', `client_id', `client_secret', and
                       :redirect-uri
                       :state)
                 auth-data
-              (auth-source-do-debug "Using oauth2 to auth and store token...")
+              (auth-source-do-debug
+               "[xoauth2-plugin] Using oauth2 to auth and store token...")
               (let ((token (oauth2-auth-and-store
                             auth-url token-url scope client-id client-secret
                             redirect-uri state user)))
-                (auth-source-do-trivia "oauth2 token: %s" (pp-to-string token))
-                (auth-source-do-debug "Refreshing token...")
-                (oauth2-refresh-access token)
-                (auth-source-do-debug "Refresh successful.")
-                (auth-source-do-trivia "oauth2 token after refresh: %s"
+                (auth-source-do-trivia "[xoauth2-plugin] oauth2 token: %s"
                                        (pp-to-string token))
+                (auth-source-do-debug "[xoauth2-plugin] Refreshing token...")
+                (oauth2-refresh-access token)
+                (auth-source-do-debug "[xoauth2-plugin] Refresh successful.")
+                (auth-source-do-trivia
+                 "[xoauth2-plugin] OAuth2 token after refresh: %s"
+                 (pp-to-string token))
                 (let ((access-token (oauth2-token-access-token token)))
                   (auth-source-do-trivia
                    "Updating :secret with access-token: %s" access-token)
                   (setq auth-data
                         (plist-put auth-data :secret access-token)))))))
 
+        (auth-source-do-debug "[xoauth2-plugin] auth-data after processing: %s"
+                              (pp-to-string auth-data))
         (unless (and check-secret
                      (not (plist-get auth-data :secret)))
-          (auth-source-do-debug "Updating auth-source-search results.")
+          (auth-source-do-debug
+           "[xoauth2-plugin] Updating auth-source-search results.")
           (push auth-data res)))
       res)))
 

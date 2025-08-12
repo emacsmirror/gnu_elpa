@@ -162,7 +162,23 @@ expected that `token_url', `client_id', `client_secret', and
                   (auth-source-do-trivia
                    "Updating :secret with access-token: %s" access-token)
                   (setq auth-data
-                        (plist-put auth-data :secret access-token)))))))
+                        (plist-put auth-data :secret access-token))
+                  ;; Fill fields that may help 3rd party usage,
+                  ;; e.g. offlineimap.
+                  (setq auth-data
+                        (plist-put auth-data :auth-url auth-url))
+                  (setq auth-data
+                        (plist-put auth-data :token-url token-url))
+                  (setq auth-data
+                        (plist-put auth-data :client-id client-id))
+                  (setq auth-data
+                        (plist-put auth-data :client-secret client-secret))
+                  (setq auth-data
+                        (plist-put auth-data :access-token
+                                   (oauth2-token-access-token token)))
+                  (setq auth-data
+                        (plist-put auth-data :refresh-token
+                                   (oauth2-token-refresh-token token))))))))
 
         (auth-source-do-debug "[xoauth2-plugin] auth-data after processing: %s"
                               (pp-to-string auth-data))

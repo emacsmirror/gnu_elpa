@@ -38,7 +38,36 @@
 (require 'cl-lib)
 (require 'map)
 (require 'oauth2)
+(require 'org)
 (require 'smtpmail)
+
+(defvar auth-source-xoauth2-plugin-predefined-issuers
+  '(thunderbird
+    (google
+     ( :client-id "406964657835-aq8lmia8j95dhl1a2bvharmfk3t1hgqj.apps.googleusercontent.com"
+       :client-secret "kSmqreRr0qwBWJgbf5Y-PjSU"
+       :auth-url "https://accounts.google.com/o/oauth2/auth"
+       :token-url "https://www.googleapis.com/oauth2/v3/token"
+       :redirect-uri "http://localhost/"
+       :scope "https://mail.google.com/"
+       :use-pkce "true" )
+     microsoft
+     ( :client-id "9e5f94bc-e8a4-4e73-b8be-63364c29d753"
+       ;; :client-secret ""
+       :auth-url "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+       :token-url "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+       :redirect-uri "http://localhost"
+       :scope "https://outlook.office.com/IMAP.AccessAsUser.All https://outlook.office.com/POP.AccessAsUser.All https://outlook.office.com/SMTP.Send offline_access"
+       :use-pkce "true" ))))
+
+(defvar auth-source-xoauth2-plugin-default-predefined-source "thunderbird"
+  "The default predefined issuers provider.")
+
+(defun auth-source-xoauth2-plugin--get-predefined-credentials (source provider)
+  "Helper function to get the predefined credentials of PROVIDER from SOURCE."
+  (plist-get (plist-get auth-source-xoauth2-plugin-predefined-issuers
+                        (intern source) 'string=)
+             (intern provider) 'string=))
 
 (defun auth-source-xoauth2-plugin--search-backends (orig-fun &rest args)
   "Perform `auth-source-search' and set password as access-token when requested.
@@ -69,6 +98,23 @@ expected that `token_url', `client_id', `client_secret', and
              (concat "[xoauth2-plugin] account \"%s\" has :auth set to "
                      "`xoauth2'.  Will get access token.")
              user)
+            (map-let (:auth-source-xoauth2-predefined-service
+                      (:auth-source-xoauth2-predefined-source
+                       auth-source-xoauth2-predefined-source
+                       auth-source-xoauth2-plugin-default-predefined-source))
+                auth-data
+              (when auth-source-xoauth2-predefined-service
+                (auth-source-do-trivia
+                 (concat "[xoauth2-plugin] Using service \"%s\" with "
+                         "credentials provided by source \"%s\"")
+                 auth-source-xoauth2-predefined-service
+                 auth-source-xoauth2-predefined-source)
+                (setq auth-data
+                      (org-combine-plists
+                       auth-data
+                       (auth-source-xoauth2-plugin--get-predefined-credentials
+                        auth-source-xoauth2-predefined-source
+                        auth-source-xoauth2-predefined-service)))))
             (map-let (:user
                       :auth-url
                       :token-url
@@ -76,13 +122,14 @@ expected that `token_url', `client_id', `client_secret', and
                       :client-id
                       :client-secret
                       :redirect-uri
-                      :state)
+                      :state
+                      :use-pkce)
                 auth-data
               (auth-source-do-debug
                "[xoauth2-plugin] Using oauth2 to auth and store token...")
               (let ((token (oauth2-auth-and-store
                             auth-url token-url scope client-id client-secret
-                            redirect-uri state user)))
+                            redirect-uri state user use-pkce)))
                 (auth-source-do-trivia "[xoauth2-plugin] oauth2 token: %s"
                                        (pp-to-string token))
                 (auth-source-do-debug "[xoauth2-plugin] Refreshing token...")

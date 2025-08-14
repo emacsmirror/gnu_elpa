@@ -1002,6 +1002,13 @@ When no FILES are provided, use all files with a sequence signature."
             (push file hierarchy))))
       (nreverse hierarchy)))
 
+  (defun denote-org-sequence--format-word-regexp (sequence)
+    "Return word regexp matching SEQUENCE.
+If sequence does not start with a =, then include it."
+    (if (string-prefix-p "=" sequence)
+        (format "\\<%s\\>" sequence)
+      (format "\\<=%s\\>" sequence)))
+
   (defun org-dblock-write:denote-sequence (params)
     "Function to update `denote-sequence' Org Dynamic blocks.
 When sequence is an empty string, then use all Denote files with a sequence.
@@ -1010,7 +1017,8 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
     (let* ((block-name (plist-get params :block-name))
            (sequence (plist-get params :sequence))
            (depth (plist-get params :depth))
-           (parent (denote-directory-files (format "\\<%s\\>" sequence)))
+           (parent-regexp (denote-org-sequence--format-word-regexp sequence))
+           (parent (denote-directory-files parent-regexp))
            (children (denote-sequence-get-relative sequence 'all-children))
            (family (if children
                        (append parent children)

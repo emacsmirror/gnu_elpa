@@ -1026,17 +1026,17 @@ If sequence does not start with a =, then include it."
 When sequence is an empty string, then use all Denote files with a sequence.
 
 Used by `org-dblock-update' with PARAMS provided by the dynamic block."
-    (when-let* ((block-name (plist-get params :block-name))
-                (sequence (plist-get params :sequence))
-                (depth (plist-get params :depth))
-                (parent-regexp (denote-org-sequence--format-word-regexp sequence))
-                (parent (denote-directory-files parent-regexp))
-                (children (denote-sequence-get-relative sequence 'all-children))
-                (family (append parent children))
-                (files (denote-org-sequence--get-files-with-max-depth depth family)))
-      (when block-name (insert "#+name: " block-name "\n"))
-      (denote-org--insert-sequence files)
-      (join-line))))
+    (let ((block-name (plist-get params :block-name)))
+      (when-let* ((sequence (plist-get params :sequence))
+                  (depth (plist-get params :depth))
+                  (parent-regexp (denote-org-sequence--format-word-regexp sequence))
+                  (parent (denote-directory-files parent-regexp))
+                  (children (denote-sequence-get-relative sequence 'all-children))
+                  (family (append parent children))
+                  (files (denote-org-sequence--get-files-with-max-depth depth family)))
+        (when block-name (insert "#+name: " block-name "\n"))
+        (denote-org--insert-sequence files)
+        (join-line)))))
 
 ;; NOTE 2024-03-30: This is how the autoload is done in org.el.
 ;;;###autoload

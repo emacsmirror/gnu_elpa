@@ -986,16 +986,16 @@ DEPTH of the root FILE is 1. Using 2 lists children, 3 grandchildren, and so on.
 With optional FILES operate on them, otherwise use the return value of
 `denote-sequence-get-all-files'."
     (let* ((all-files (or files (denote-sequence-get-all-files)))
-           (hierarchy nil)
            (sorted-files (denote-sequence-sort-files all-files))
            (root-sequence (denote-retrieve-filename-signature (car sorted-files)))
            (root-depth (denote-sequence-depth root-sequence)))
-      (dolist (file sorted-files)
-        (let* ((sequence (denote-retrieve-filename-signature file))
-               (depth (denote-sequence-depth sequence)))
-          (when (<= depth (- (+ root-depth max-depth) 1))
-            (push file hierarchy))))
-      (nreverse hierarchy)))
+      (let ((hierarchy nil))
+        (dolist (file sorted-files)
+          (let* ((sequence (denote-retrieve-filename-signature file))
+                 (depth (denote-sequence-depth sequence)))
+            (when (<= depth (- (+ root-depth max-depth) 1))
+              (push file hierarchy))))
+        (nreverse hierarchy))))
 
   (defun denote-org-sequence--format-word-regexp (sequence)
     "Return word regexp matching SEQUENCE.

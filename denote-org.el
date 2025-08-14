@@ -1027,8 +1027,7 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
     "Insert indented list of links to sequence FILES."
     (let* ((root-sequence (denote-retrieve-filename-signature (car files)))
            (root-depth (denote-sequence-depth root-sequence))
-           (links '()))
-      (message "Inserting %s links" (length files))
+           (links nil))
       (dolist (file files)
         (let* ((sequence (denote-retrieve-filename-signature file))
                (description (denote-get-link-description file))
@@ -1038,9 +1037,8 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
                (indent (make-string (* depth 2) ?\s))
                (link-as-list-item (format (concat indent denote-link--prepare-links-format) link)))
           (push link-as-list-item links)))
-      (setq links (nreverse links))
-      (dolist (link links)
-        (insert link)))))
+      (dolist (link (nreverse links))
+        (insert link))))
 
 ;; NOTE 2024-03-30: This is how the autoload is done in org.el.
 ;;;###autoload

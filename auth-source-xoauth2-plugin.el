@@ -135,7 +135,8 @@ expected that `token_url', `client_id', `client_secret', and
                        (auth-source-xoauth2-plugin--get-predefined-credentials
                         auth-source-xoauth2-predefined-source
                         auth-source-xoauth2-predefined-service)))))
-            (map-let (:user
+            (map-let (:host
+                      :user
                       :auth-url
                       :token-url
                       :scope
@@ -149,11 +150,11 @@ expected that `token_url', `client_id', `client_secret', and
                "[xoauth2-plugin] Using oauth2 to auth and store token...")
               (let ((token (oauth2-auth-and-store
                             auth-url token-url scope client-id client-secret
-                            redirect-uri state user use-pkce)))
+                            redirect-uri state user host use-pkce)))
                 (auth-source-do-trivia "[xoauth2-plugin] oauth2 token: %s"
                                        (pp-to-string token))
                 (auth-source-do-debug "[xoauth2-plugin] Refreshing token...")
-                (oauth2-refresh-access token)
+                (oauth2-refresh-access token host)
                 (auth-source-do-debug "[xoauth2-plugin] Refresh successful.")
                 (auth-source-do-trivia
                  "[xoauth2-plugin] OAuth2 token after refresh: %s"

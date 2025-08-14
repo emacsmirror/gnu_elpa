@@ -997,6 +997,23 @@ With optional FILES operate on them, otherwise use the return value of
               (push file hierarchy))))
         (nreverse hierarchy))))
 
+  (defun denote-org--insert-sequence (files)
+    "Insert indented list of links to sequence FILES."
+    (let* ((root-sequence (denote-retrieve-filename-signature (car files)))
+           (root-depth (denote-sequence-depth root-sequence))
+           (links nil))
+      (dolist (file files)
+        (let* ((sequence (denote-retrieve-filename-signature file))
+               (description (denote-get-link-description file))
+               (link-title (concat sequence ": " description))
+               (link (denote-format-link file link-title 'org nil))
+               (depth (- (denote-sequence-depth sequence) root-depth))
+               (indent (make-string (* depth 2) ?\s))
+               (link-as-list-item (format (concat indent denote-link--prepare-links-format) link)))
+          (push link-as-list-item links)))
+      (dolist (link (nreverse links))
+        (insert link))))
+
   (defun denote-org-sequence--format-word-regexp (sequence)
     "Return word regexp matching SEQUENCE.
 If sequence does not start with a =, then include it."
@@ -1022,23 +1039,6 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
       (when block-name (insert "#+name: " block-name "\n"))
       (denote-org--insert-sequence files)
       (join-line)))
-
-  (defun denote-org--insert-sequence (files)
-    "Insert indented list of links to sequence FILES."
-    (let* ((root-sequence (denote-retrieve-filename-signature (car files)))
-           (root-depth (denote-sequence-depth root-sequence))
-           (links nil))
-      (dolist (file files)
-        (let* ((sequence (denote-retrieve-filename-signature file))
-               (description (denote-get-link-description file))
-               (link-title (concat sequence ": " description))
-               (link (denote-format-link file link-title 'org nil))
-               (depth (- (denote-sequence-depth sequence) root-depth))
-               (indent (make-string (* depth 2) ?\s))
-               (link-as-list-item (format (concat indent denote-link--prepare-links-format) link)))
-          (push link-as-list-item links)))
-      (dolist (link (nreverse links))
-        (insert link))))
 
 ;; NOTE 2024-03-30: This is how the autoload is done in org.el.
 ;;;###autoload

@@ -1014,12 +1014,20 @@ With optional FILES operate on them, otherwise use the return value of
       (dolist (link (nreverse links))
         (insert link))))
 
+  ;; TODO 2025-08-14: Once these are stable, consider moving them to denote-sequence.el
   (defun denote-org-sequence--format-word-regexp (sequence)
     "Return word regexp matching SEQUENCE.
 If sequence does not start with a =, then include it."
-    (if (string-prefix-p "=" sequence)
-        (format "\\W%s" sequence)
-      (format "\\W=%s" sequence)))
+    (unless (string-prefix-p "=" sequence)
+      (setq sequence (concat "=" sequence)))
+    (format "%s\\b" (regexp-quote sequence)))
+
+  (defun denote-org-sequence--get-file (sequence)
+    "Get file matching SEQUENCE."
+    (let ((file (denote-directory-files (denote-org-sequence--format-word-regexp sequence))))
+      (if (length> file 1)
+          (error "Sequence `%s' does not have a unique match" sequence)
+        file)))
 
   (defun org-dblock-write:denote-sequence (params)
     "Function to update `denote-sequence' Org Dynamic blocks.
@@ -1029,8 +1037,7 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
     (let ((block-name (plist-get params :block-name)))
       (when-let* ((sequence (plist-get params :sequence))
                   (depth (plist-get params :depth))
-                  (parent-regexp (denote-org-sequence--format-word-regexp sequence))
-                  (parent (denote-directory-files parent-regexp))
+                  (parent (denote-org-sequence--get-file sequence))
                   (children (denote-sequence-get-relative sequence 'all-children))
                   (family (append parent children))
                   (files (denote-org-sequence--get-files-with-max-depth depth family)))

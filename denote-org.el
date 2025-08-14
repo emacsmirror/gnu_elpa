@@ -1005,6 +1005,12 @@ With optional FILES operate on them, otherwise use the return value of
       (dolist (file files)
         (let* ((sequence (denote-retrieve-filename-signature file))
                (description (denote-get-link-description file))
+               ;; TODO 2025-08-14: The default `denote-link-description-format'
+               ;; includes the signature, which then duplicates the
+               ;; signature in the description.  We should either
+               ;; introduce a user option to change this behaviour
+               ;; here or at least hardcode `denote-link-description-format'
+               ;; to something that is more appropriate.
                (link-title (concat sequence ": " description))
                (link (denote-format-link file link-title 'org nil))
                (depth (- (denote-sequence-depth sequence) root-depth))

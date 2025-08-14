@@ -973,11 +973,7 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
 DEPTH of the root FILE is 1. Using 2 lists children, 3 grandchildren, and so on."
     (interactive
      (list
-      (denote-sequence-file-prompt
-       (format "List descendants of:"
-               (propertize
-                (denote--rename-dired-file-or-current-file-or-prompt)
-                'face 'denote-faces-prompt-current-name)))
+      (denote-sequence-file-prompt "List descendants of")
       (denote-sequence-depth-prompt "Maximum relative depth from root node: " 2))
      org-mode)
     (org-create-dblock (list :name "denote-sequence"

@@ -1039,8 +1039,6 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
       (dolist (link links)
         (insert link)))))
 
-;;; 
-
 ;; NOTE 2024-03-30: This is how the autoload is done in org.el.
 ;;;###autoload
 (eval-after-load 'org

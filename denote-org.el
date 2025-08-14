@@ -1018,8 +1018,8 @@ With optional FILES operate on them, otherwise use the return value of
     "Return word regexp matching SEQUENCE.
 If sequence does not start with a =, then include it."
     (if (string-prefix-p "=" sequence)
-        (format "\\<%s\\>" sequence)
-      (format "\\<=%s\\>" sequence)))
+        (format "\\W%s" sequence)
+      (format "\\W=%s" sequence)))
 
   (defun org-dblock-write:denote-sequence (params)
     "Function to update `denote-sequence' Org Dynamic blocks.

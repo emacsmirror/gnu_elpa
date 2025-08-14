@@ -1010,8 +1010,7 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
     (let* ((block-name (plist-get params :block-name))
            (sequence (plist-get params :sequence))
            (depth (plist-get params :depth))
-           ;; This will not work for people with bespoke `denote-file-name-components-order'
-           (parent (denote-directory-files (concat sequence "-")))
+           (parent (denote-directory-files (format "\\<%s\\>" sequence)))
            (children (denote-sequence-get-relative sequence 'all-children))
            (family (if children
                        (append parent children)

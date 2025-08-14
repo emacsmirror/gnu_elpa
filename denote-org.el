@@ -986,16 +986,15 @@ DEPTH of the root FILE is 1. Using 2 lists children, 3 grandchildren, and so on.
     (org-update-dblock))
 
   (defun denote-org-sequence--get-files-with-max-depth (max-depth &optional files)
-    "Return members of FILES with sequence depth less or equal than MAX-DEPTH.
-When no FILES are provided, use all files with a sequence signature."
-    (unless files
-      (setq files (denote-sequence-get-all-files)))
-    (let* ((hierarchy '())
-           (files (denote-sequence-sort-files files))
-           (root-sequence (denote-retrieve-filename-signature (car files)))
+    "Return members of FILES with sequence depth less or equal to MAX-DEPTH.
+With optional FILES operate on them, otherwise use the return value of
+`denote-sequence-get-all-files'."
+    (let* ((all-files (or files (denote-sequence-get-all-files)))
+           (hierarchy nil)
+           (sorted-files (denote-sequence-sort-files all-files))
+           (root-sequence (denote-retrieve-filename-signature (car sorted-files)))
            (root-depth (denote-sequence-depth root-sequence)))
-      (message (number-to-string root-depth))
-      (dolist (file files)
+      (dolist (file sorted-files)
         (let* ((sequence (denote-retrieve-filename-signature file))
                (depth (denote-sequence-depth sequence)))
           (when (<= depth (- (+ root-depth max-depth) 1))

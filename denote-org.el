@@ -993,7 +993,7 @@ With optional FILES operate on them, otherwise use the return value of
         (dolist (file sorted-files)
           (let* ((sequence (denote-retrieve-filename-signature file))
                  (depth (denote-sequence-depth sequence)))
-            (when (<= depth (- (+ root-depth max-depth) 1))
+            (when (<= depth (- (+ root-depth (or max-depth most-positive-fixnum)) 1))
               (push file hierarchy))))
         (nreverse hierarchy))))
 
@@ -1025,9 +1025,9 @@ With optional FILES operate on them, otherwise use the return value of
 When sequence is an empty string, then use all Denote files with a sequence.
 
 Used by `org-dblock-update' with PARAMS provided by the dynamic block."
-    (let ((block-name (plist-get params :block-name)))
+    (let ((block-name (plist-get params :block-name))
+          (depth (plist-get params :depth)))
       (when-let* ((sequence (plist-get params :sequence))
-                  (depth (plist-get params :depth))
                   (parent (denote-sequence-get-path sequence))
                   (children (denote-sequence-get-relative sequence 'all-children))
                   (family (push parent children))

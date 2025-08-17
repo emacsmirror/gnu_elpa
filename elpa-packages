@@ -440,6 +440,7 @@
   :ignored-files ("LICENSE"))
  (ioccur		:url "https://github.com/thierryvolpiatto/ioccur.git")
  (isearch-mb		:url "https://github.com/astoff/isearch-mb")
+ (iso-date              :url "https://github.com/lmq-10/iso-date")
  (iterators		:url nil)
  (ivy			:url "https://github.com/abo-abo/swiper"
   :manual-sync t

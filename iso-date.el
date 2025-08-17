@@ -1,6 +1,6 @@
 ;;; iso-date.el --- Utilities for working with ISO dates -*- lexical-binding: t -*-
 
-;; Copyright (C) 2025  Lucas Quintana
+;; Copyright (C) 2025  Free Software Foundation, Inc.
 
 ;; Author: Lucas Quintana <lmq10@protonmail.com>
 ;; Maintainer: Lucas Quintana <lmq10@protonmail.com>

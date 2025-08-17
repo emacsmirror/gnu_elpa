@@ -6,7 +6,7 @@
 ;; Maintainer: Lucas Quintana <lmq10@protonmail.com>
 ;; URL: https://github.com/lmq-10/iso-date
 ;; Created: 2025-07-28
-;; Version: 1.0.2
+;; Version: 1.0.3
 ;; Package-Requires: ((emacs "28.1"))
 
 ;; This file is not part of GNU Emacs.

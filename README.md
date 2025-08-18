@@ -1,7 +1,5 @@
 # rcirc-mentions: Collect mentions of your nick or keywords in a separate mentions buffer
 
-[![GNU ELPA](https://elpa.nongnu.org/nongnu/highlight-parentheses.svg)](https://elpa.gnu.org/packages/rcirc-mentions.html)
-
 The builtin `rcirc-track-minor-mode` provides a way to be informed when your
 nick was mentioned in some channel and provides key bindings to quickly jump to
 that channel.  But what if you cannot interact immediately?  That's where the

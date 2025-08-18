@@ -22,9 +22,9 @@ You can quickly switch to the mentions buffer from rcirc buffers where
 the keymap is `rcirc-mentions-log-mode-map`.
 
 The mentions buffer uses a separate major mode, `rcirc-mentions-buffer-mode`,
-which provides some navigation commands, e.g., `rcirc-mentions-next` (`<tab>`)
-to move to the next mention, and `rcirc-mentions-prev` (`C-<tab>`) to move to
-the previous mention.
+which provides some navigation commands, e.g., `rcirc-mentions-next` (`n`) to
+move to the next mention, and `rcirc-mentions-prev` (`p`) to move to the
+previous mention.
 
 ## Installation & Usage
 

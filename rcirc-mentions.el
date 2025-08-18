@@ -46,8 +46,8 @@
 ;;
 ;; The mentions buffer uses a separate major mode,
 ;; `rcirc-mentions-buffer-mode', which provides some navigation commands, e.g.,
-;; `rcirc-mentions-next' (`<tab>') to move to the next mention, and
-;; `rcirc-mentions-prev' (`C-<tab>') to move to the previous mention.
+;; `rcirc-mentions-next' (`n') to move to the next mention, and
+;; `rcirc-mentions-prev' (`p') to move to the previous mention.
 ;;
 ;;; Code:
 
@@ -103,7 +103,6 @@ current and future `rcirc-mode' buffers."
   "Determine the mention types of the last message.
 Assumes being called when the channel buffer is current and narrowed to
 the newly inserted message."
-  (message "rcirc-mentions: %S" text)
   (let (types)
     (with-temp-buffer
       (insert text)
@@ -140,13 +139,13 @@ the newly inserted message."
 
 (defun rcirc-mentions-next ()
   (interactive)
-  (when-let* ((b (next-button (point))))
-    (goto-char (overlay-start b))))
+  (when-let ((b (next-button (point))))
+    (goto-char (button-start b))))
 
 (defun rcirc-mentions-prev ()
   (interactive)
   (when-let* ((b (previous-button (point))))
-    (goto-char (overlay-start b))))
+    (goto-char (button-start b))))
 
 (define-derived-mode rcirc-mentions-buffer-mode fundamental-mode
   "RcircMentions"
@@ -156,18 +155,27 @@ the newly inserted message."
   (font-lock-mode 1))
 
 (keymap-set rcirc-mentions-buffer-mode-map
-            "<tab>" #'rcirc-mentions-next)
+            "n" #'rcirc-mentions-next)
 (keymap-set rcirc-mentions-buffer-mode-map
-            "C-<tab>" #'rcirc-mentions-prev)
+            "p" #'rcirc-mentions-prev)
 
 (defun rcirc-mentions--update-mentions-buffer (types)
   "Update the mentions buffer with a mention of TYPES.
 TYPES is a list with symbols `nick' and/or `keyword'.
-Assumes being called while the current buffer is the buffer with
-the activity and is narrowed to the region where just the new activity
-has been inserted."
-  (let* ((msg (buffer-substring (point-min) (1- (point-max))))
-         (activity-marker (set-marker (make-marker) (point-min)))
+
+Assumes that the channel buffer containing the message is current."
+  ;; We could have added text as an argument but that's not highlighted, so we
+  ;; try to figure out the last message ourself.  Point is after the prompt.
+  ;; The rcirc-text property changes at the end of the last message and then
+  ;; again at its start.  From there, we go to the beginning of the line to
+  ;; also include the mentioning nick.
+  (let* ((end (previous-single-property-change (point) 'rcirc-text))
+         (start (save-excursion
+                  (goto-char (previous-single-property-change end 'rcirc-text))
+                  (beginning-of-line)
+                  (point)))
+         (msg (buffer-substring start end))
+         (activity-marker (set-marker (make-marker) start))
          (action
           (lambda (_button)
             (let ((buf (marker-buffer activity-marker)))
@@ -178,8 +186,7 @@ has been inserted."
                         (goto-char activity-marker))
                     (message "The buffer %s has been truncated." buf))
                 (message "The originating buffer has disappeared."))))))
-    (with-current-buffer (get-buffer-create
-                          rcirc-mentions-buffer-name)
+    (with-current-buffer (get-buffer-create rcirc-mentions-buffer-name)
       (rcirc-mentions-buffer-mode)
       (let ((inhibit-read-only t)
             ;; Stay at the current position in the buffer when we are

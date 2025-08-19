@@ -4,7 +4,7 @@
 ;;
 ;; Author: Tassilo Horn <tsdh@gnu.org>
 ;; Contributors: Philip Kaludercic <philipk@posteo.net>
-;; Version: 1.0.1
+;; Version: 1.0.2
 ;; Keywords: rcirc, irc
 ;; URL: https://sr.ht/~tsdh/rcirc-mentions/
 ;; Package-Requires: ((emacs "29.1"))

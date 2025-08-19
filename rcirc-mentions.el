@@ -3,7 +3,8 @@
 ;; Copyright (C) 2025 Tassilo Horn
 ;;
 ;; Author: Tassilo Horn <tsdh@gnu.org>
-;; Version: 1.0.0
+;; Contributors: Philip Kaludercic <philipk@posteo.net>
+;; Version: 1.0.1
 ;; Keywords: rcirc, irc
 ;; URL: https://sr.ht/~tsdh/rcirc-mentions/
 ;; Package-Requires: ((emacs "29.1"))
@@ -51,13 +52,18 @@
 ;;
 ;;; Code:
 
+(require 'rcirc)
+
+(defgroup rcirc-mentions '()
+  "Log mentions of your nick or keywords."
+  :group 'rcirc)
+
 (defcustom rcirc-mentions-buffer-name "*rcirc mentions*"
   "The name of the mentions buffer.
 Mentions of your nick or a keyword in `rcirc-keywords' will be logged in
 a buffer of this name if the mention occurs in a buffer where
 `rcirc-mentions-log-mode' is enabled."
-  :type 'string
-  :version "31.1")
+  :type 'string)
 
 (defvar-keymap rcirc-mentions-log-mode-map
   :doc "The keymap of `rcirc-mentions-log-mode'."
@@ -99,10 +105,9 @@ current and future `rcirc-mode' buffers."
         (when (derived-mode-p #'rcirc-mode)
           (rcirc-mentions-log-mode state))))))
 
-(defun rcirc-mentions--determine-mention-types (my-nick sender text)
-  "Determine the mention types of the last message.
-Assumes being called when the channel buffer is current and narrowed to
-the newly inserted message."
+(defun rcirc-mentions--determine-mention-types (my-nick _sender text)
+  "Determine the mention types of the message TEXT from SENDER.
+MY-NICK is your nick for this connection."
   (let (types)
     (with-temp-buffer
       (insert text)
@@ -113,22 +118,15 @@ the newly inserted message."
         (setq types (cons 'nick types)))
       ;; Check if the new text contains a keyword.
       (goto-char (point-min))
-      (let ((keywords (delq nil
-                            (mapcar
-                             ;; If the sender's nick matches a keyword,
-                             ;; well, then don't consider that keyword.
-                             (lambda (keyword)
-                               (unless (string-match-p
-                                        (concat "\\b" keyword "\\b")
-                                        sender)
-                                 keyword))
-                             rcirc-keywords))))
-        (when (and keywords
-                   (re-search-forward (regexp-opt keywords 'words) nil t))
-          (setq types (cons 'keyword types)))))
+      (when (and rcirc-keywords
+                 (re-search-forward (regexp-opt rcirc-keywords 'words) nil t))
+        (setq types (cons 'keyword types))))
     types))
 
-(defun rcirc-mentions--print-function (process sender response target text)
+(defun rcirc-mentions--print-function (process sender response _target text)
+  "The function being added to `rcirc-print-functions'.
+Those are called with the PROCESS of the connection, the SENDER, the
+RESPONSE, the TARGET and the message TEXT."
   (when (and rcirc-mentions-log-mode
              (and (string= response "PRIVMSG")
                   (not (string= sender (rcirc-nick process)))))
@@ -138,26 +136,29 @@ the newly inserted message."
         (rcirc-mentions--update-mentions-buffer types)))))
 
 (defun rcirc-mentions-next ()
+  "Move to the next mention."
   (interactive)
-  (when-let ((b (next-button (point))))
+  (when-let* ((b (next-button (point))))
     (goto-char (button-start b))))
 
 (defun rcirc-mentions-prev ()
+  "Move to the previous mention."
   (interactive)
   (when-let* ((b (previous-button (point))))
     (goto-char (button-start b))))
 
-(define-derived-mode rcirc-mentions-buffer-mode fundamental-mode
+(defvar-keymap rcirc-mentions-buffer-mode-map
+  "n" #'rcirc-mentions-next
+  "p" #'rcirc-mentions-prev)
+
+;; TODO: perhaps should this be based on `tabulated-list-mode'?
+(define-derived-mode rcirc-mentions-buffer-mode special-mode
   "RcircMentions"
   "Major mode in the rcirc mentions buffer."
-  (setq buffer-read-only t)
+  ;; special-mode already sets buffer-read-only.
+  ;;
   ;; We want to see the original fontification of the channel buffer.
   (font-lock-mode 1))
-
-(keymap-set rcirc-mentions-buffer-mode-map
-            "n" #'rcirc-mentions-next)
-(keymap-set rcirc-mentions-buffer-mode-map
-            "p" #'rcirc-mentions-prev)
 
 (defun rcirc-mentions--update-mentions-buffer (types)
   "Update the mentions buffer with a mention of TYPES.
@@ -236,4 +237,4 @@ See `rcirc-mentions-log-mode' and `rcirc-mentions-buffer-name'."
       (switch-to-buffer buf))))
 
 (provide 'rcirc-mentions)
-
+;;; rcirc-mentions.el ends here

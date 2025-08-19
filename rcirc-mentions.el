@@ -1,6 +1,6 @@
 ;;; rcirc-mentions.el --- Log mentions of your nick or keywords in a separate buffer  -*- lexical-binding: t; -*-
 ;;
-;; Copyright (C) 2025 Tassilo Horn
+;; Copyright (C) 2025 Free Software Foundation, Inc.
 ;;
 ;; Author: Tassilo Horn <tsdh@gnu.org>
 ;; Contributors: Philip Kaludercic <philipk@posteo.net>

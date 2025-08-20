@@ -698,7 +698,8 @@
  (rainbow-mode		:url nil)
  (rbit			:url nil)
  (rcirc-color		:url nil)
- (rcirc-mentions	:url "https://git.sr.ht/~tsdh/rcirc-mentions")
+ (rcirc-mentions	:url "https://git.sr.ht/~tsdh/rcirc-mentions"
+  :readme "README.md")
  (rcirc-menu		:url nil)
  (rcirc-sqlite		:url "https://codeberg.org/mattof/rcirc-sqlite"
   :ignored-files ("LICENSE")

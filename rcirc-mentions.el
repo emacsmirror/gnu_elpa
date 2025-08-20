@@ -231,10 +231,11 @@ Assumes that the channel buffer containing the message is current."
   "Switch to the mentions buffer if it exists.
 See `rcirc-mentions-log-mode' and `rcirc-mentions-buffer-name'."
   (interactive)
-  (when-let* ((buf (get-buffer rcirc-mentions-buffer-name)))
-    (if-let* ((win (get-buffer-window buf)))
-        (select-window win)
-      (switch-to-buffer buf))))
+  (if-let* ((buf (get-buffer rcirc-mentions-buffer-name)))
+      (if-let* ((win (get-buffer-window buf)))
+          (select-window win)
+        (switch-to-buffer buf))
+    (message "No mentions so far...")))
 
 (provide 'rcirc-mentions)
 ;;; rcirc-mentions.el ends here

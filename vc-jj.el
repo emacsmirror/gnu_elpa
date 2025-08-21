@@ -657,17 +657,7 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
 (defun vc-jj-root (file)
   "Return the root of the repository containing FILE.
 Return NIL if FILE is not in a jj repository."
-  ;; `default-directory' must be an absolute directory name ending
-  ;; with a slash, so we go to some lengths to guarantee this, even
-  ;; for e.g. (vc-jj-root ".")
-  (let* ((absolute-file (expand-file-name file))
-         (default-directory
-          (file-name-as-directory (if (file-directory-p absolute-file)
-                                      absolute-file
-                                    (file-name-directory absolute-file)))))
-    (with-temp-buffer
-      (when (= 0 (call-process vc-jj-program nil (list t nil) nil "root"))
-        (file-name-as-directory (buffer-substring (point-min) (1- (point-max))))))))
+  (vc-find-root file ".jj"))
 
 (defalias 'vc-jj-responsible-p #'vc-jj-root)
 

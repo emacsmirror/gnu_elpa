@@ -21,27 +21,27 @@
 
 ;;; Code:
 
-(require 'embark)
+(require 'embark nil t)
 (require 'iso-date)
 
-(embark-define-thingatpt-target iso-date)
-
-(defvar-keymap embark-iso-date-map
-  :parent embark-general-map
-  "RET" #'iso-date-show-calendar
-  "a" #'iso-date-show-org-agenda
-  "c" #'iso-date-show-calendar
-  "d" #'iso-date-show-diary
-  "f" #'iso-date-echo-difference
-  "p" #'iso-date-pretty-print
-  "x" #'iso-date-send-to-calc
-  "<up>" #'iso-date-at-point-day-up
-  "<down>" #'iso-date-at-point-day-down)
-
-(add-to-list 'embark-repeat-actions 'iso-date-at-point-day-up)
-(add-to-list 'embark-repeat-actions 'iso-date-at-point-day-down)
-(add-to-list 'embark-target-finders 'embark-target-iso-date-at-point)
-(add-to-list 'embark-keymap-alist '(iso-date embark-iso-date-map))
+(with-no-warnings
+  (with-eval-after-load 'embark
+    (embark-define-thingatpt-target iso-date)
+    (defvar-keymap embark-iso-date-map
+      :parent embark-general-map
+      "RET" #'iso-date-show-calendar
+      "a" #'iso-date-show-org-agenda
+      "c" #'iso-date-show-calendar
+      "d" #'iso-date-show-diary
+      "f" #'iso-date-echo-difference
+      "p" #'iso-date-pretty-print
+      "x" #'iso-date-send-to-calc
+      "<up>" #'iso-date-at-point-day-up
+      "<down>" #'iso-date-at-point-day-down)
+    (add-to-list 'embark-repeat-actions 'iso-date-at-point-day-up)
+    (add-to-list 'embark-repeat-actions 'iso-date-at-point-day-down)
+    (add-to-list 'embark-target-finders 'embark-target-iso-date-at-point)
+    (add-to-list 'embark-keymap-alist '(iso-date embark-iso-date-map))))
 
 (provide 'embark-iso-date)
 ;;; embark-iso-date.el ends here

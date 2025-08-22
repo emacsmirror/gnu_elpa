@@ -2133,8 +2133,10 @@ menu."
     ("L" "line in buffers" disproject-find-line)
     ("T" "todos" disproject-magit-todos-list
      :if disproject-prefix--magit-todos-apt?)]]
-  [("SPC" "Custom dispatch" disproject-custom-dispatch
-    :transient transient--do-replace)])
+  [ :advice disproject-with-env-apply
+    :advice* disproject-with-env-apply
+    ("SPC" "Custom dispatch" disproject-custom-dispatch
+     :transient transient--do-replace)])
 
 (transient-define-prefix disproject-custom-dispatch ()
   "Dispatch custom suffix commands.
@@ -2154,10 +2156,11 @@ character.  These characters represent the following states:
   [:class transient-subgroups
    :setup-children disproject-custom--setup-suffixes]
   [ :class transient-row
+    :advice disproject-with-env-apply
+    :advice* disproject-with-env-apply
     ("SPC" "Main dispatch" disproject-dispatch
      :transient transient--do-replace)
     ("!" "Alternative compile" disproject-compile
-     :advice disproject-with-env-apply
      :buffer-id "compile")])
 
 (transient-define-prefix disproject-find-special-file-dispatch ()

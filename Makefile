@@ -12,12 +12,17 @@ EMACS_Q = $(EMACS) --quick
 
 EMACS_BATCH = $(EMACS_Q) --batch
 
-.PHONY: all clean clean-doc doc info texi
+.PHONY: all clean clean-doc doc info run texi
 
 all: doc
 
 clean:
 	rm *.info
+
+# Run Emacs for interactive testing.
+
+run:
+	$(EMACS_Q) --load $(SRCDIR)/$(PKG)
 
 # Build documentation.
 

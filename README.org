@@ -89,7 +89,7 @@ Over 2900 Free SVG icons for popular brands.
 - Version: 10.4.0 (December 2023)
 - Licence: CC0-1.0 license
 - Number of icons: 2926
-- Sources: https://github.com/twbs/icons
+- Sources: https://github.com/simple-icons/simple-icons
 - Collection: =simple=
 
 ** [[https://icons.getbootstrap.com/][Bootstrap]] (> 2000 icons)

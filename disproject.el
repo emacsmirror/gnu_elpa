@@ -240,8 +240,7 @@ This is called whenever the function
 (defcustom disproject-shell-command #'project-eshell
   "Command used for opening a shell in a project.
 
-This is called whenever the function `disproject-shell-command'
-is invoked."
+This is called whenever the function `disproject-shell' is invoked."
   :type 'function
   :group 'disproject
   :group 'disproject-commands)

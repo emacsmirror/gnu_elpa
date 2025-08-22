@@ -1394,8 +1394,11 @@ buffer."
                  (`(,functions . ,(and (map ('inhibit-multiple-displays
                                              inhibit-multiple-displays))
                                        action-alist))
-                  (unless (and inhibit-multiple-displays
-                               (> (minibuffer-depth) minibuffer-depth))
+                  (unless (or (and inhibit-multiple-displays
+                                   (> (minibuffer-depth) minibuffer-depth))
+                              ;; HACK: Don't apply display-buffer overrides on
+                              ;; prefix menus.
+                              (get this-command 'transient--prefix))
                     (prog1 (seq-some (lambda (fun)
                                        (funcall fun buffer
                                                 (append action-alist alist)))

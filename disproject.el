@@ -1554,9 +1554,9 @@ file (\".dir-locals-2.el\" by default)."
                    (disproject-dir-locals-2-file)
                  (disproject-dir-locals-file)))))
 
+;; DEPRECATED: Remove at least six months after release with this notice.
 (make-obsolete 'disproject-dir-locals 'disproject-find-dir-locals-file "2.2.0")
 
-;; DEPRECATED: Remove at least six months after release with this notice.
 (transient-define-suffix disproject-display-buffer-action-set ()
   "Set the transient scope's `display-buffer-overriding-action' value.
 

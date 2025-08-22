@@ -1027,11 +1027,13 @@ When sequence is an empty string, then use all Denote files with a sequence.
 Used by `org-dblock-update' with PARAMS provided by the dynamic block."
     (let ((block-name (plist-get params :block-name))
           (depth (plist-get params :depth)))
-      (when-let* ((sequence (plist-get params :sequence))
-                  (parent (denote-sequence-get-path sequence))
-                  (children (denote-sequence-get-relative sequence 'all-children))
-                  (family (push parent children))
-                  (files (denote-org-sequence--get-files-with-max-depth depth family)))
+      (let* ((sequence (plist-get params :sequence))
+             (parent (denote-sequence-get-path sequence))
+             (children (denote-sequence-get-relative sequence 'all-children))
+             (family (if (eq sequence "")
+			 nil
+		       (push parent children)))
+             (files (denote-org-sequence--get-files-with-max-depth depth family)))
         (when block-name (insert "#+name: " block-name "\n"))
         (denote-org--insert-sequence files)
         (join-line)))))

@@ -399,12 +399,12 @@ the return value will be:
   (pcase-exhaustive group-spec
     ('()
      nil)
-    ;; Don't process GROUP-SPEC if it's not a sequence.  Note that since
-    ;; variables this is a limitation of parsing at this point, since that means
-    ;; symbols (which may expand to groups later) won't be processed, either.
+    ;; Don't process GROUP-SPEC if it's not a sequence.  As a limitation of
+    ;; complexity in implementation, this includes transient group variables,
+    ;; which will also not be processed.
     ((pred (not seqp))
      group-spec)
-    ;; Make sure to operate on a list-ified GROUP-SPEC, which should avoid
+    ;; Optimization: operate on a list-ified GROUP-SPEC, which should avoid
     ;; generating a bunch of vectors from descending in recursion.
     ((pred vectorp)
      (apply #'disproject--group-insert-defaults

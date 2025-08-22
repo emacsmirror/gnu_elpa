@@ -1482,40 +1482,39 @@ See type `disproject-compilation-suffix' for documentation on
 transient suffix slots."
   :class disproject-compilation-suffix
   (interactive)
-  (disproject-with-env
-    (disproject-with-root
-      (let* ((obj
-              (transient-suffix-object))
-             (always-read?
-              (oref obj always-read?))
-             (command
-              (if-let* ((cmd (disproject-shell-command-suffix-cmd obj)))
-                  ;; We don't need to read if `compilation-read-command' is t,
-                  ;; since the command should already be considered safe from
-                  ;; `disproject-custom--suffixes-allowed?'.
-                  (if (or always-read? current-prefix-arg)
-                      (compilation-read-command cmd)
-                    cmd)
-                (let ((cmd (eval compile-command)))
-                  (if (or compilation-read-command current-prefix-arg)
-                      (compilation-read-command cmd)
-                    cmd))))
-             (comint?
-              (if (slot-boundp obj 'comint?)
-                  (oref obj comint?)
-                ;; TODO: Default to a customizable variable when
-                ;; the slot is unbound.
-                nil))
-             (scope
-              (disproject--scope))
-             (project-name
-              (project-name (disproject-project-instance
-                             (disproject-scope-selected-project-ensure scope))))
-             (buf-name
-              (disproject-process-suffix-buffer-name obj project-name))
-             (compilation-buffer-name-function
-              (cl-constantly buf-name)))
-        (compile command comint?)))))
+  (disproject-with-root
+    (let* ((obj
+            (transient-suffix-object))
+           (always-read?
+            (oref obj always-read?))
+           (command
+            (if-let* ((cmd (disproject-shell-command-suffix-cmd obj)))
+                ;; We don't need to read if `compilation-read-command' is t,
+                ;; since the command should already be considered safe from
+                ;; `disproject-custom--suffixes-allowed?'.
+                (if (or always-read? current-prefix-arg)
+                    (compilation-read-command cmd)
+                  cmd)
+              (let ((cmd (eval compile-command)))
+                (if (or compilation-read-command current-prefix-arg)
+                    (compilation-read-command cmd)
+                  cmd))))
+           (comint?
+            (if (slot-boundp obj 'comint?)
+                (oref obj comint?)
+              ;; TODO: Default to a customizable variable when
+              ;; the slot is unbound.
+              nil))
+           (scope
+            (disproject--scope))
+           (project-name
+            (project-name (disproject-project-instance
+                           (disproject-scope-selected-project-ensure scope))))
+           (buf-name
+            (disproject-process-suffix-buffer-name obj project-name))
+           (compilation-buffer-name-function
+            (cl-constantly buf-name)))
+      (compile command comint?))))
 
 (transient-define-suffix disproject-custom-prune-allowed-suffixes ()
   "Prune `disproject-custom-allowed-suffixes' entries.
@@ -1545,7 +1544,7 @@ commands."
 (transient-define-suffix disproject-dired ()
   "Open Dired in project root."
   (interactive)
-  (disproject-with-environment
+  (disproject-with-root
     (call-interactively #'project-dired)))
 
 (transient-define-suffix disproject-dir-locals ()
@@ -1554,7 +1553,7 @@ commands."
 If prefix arg is non-nil, open the personal secondary
 file (\".dir-locals-2.el\" by default)."
   (interactive)
-  (disproject-with-environment
+  (disproject-with-root
     (find-file (if current-prefix-arg
                    (disproject-dir-locals-2-file)
                  (disproject-dir-locals-file)))))
@@ -1614,7 +1613,7 @@ documentation on transient suffix slots."
 (transient-define-suffix disproject-execute-extended-command ()
   "Execute an extended command in project root."
   (interactive)
-  (disproject-with-environment
+  (disproject-with-root
     (call-interactively #'execute-extended-command)))
 
 (transient-define-suffix disproject-find-dir ()
@@ -1623,7 +1622,7 @@ documentation on transient suffix slots."
 The command used can be customized with
 `disproject-find-dir-command'."
   (interactive)
-  (disproject-with-environment
+  (disproject-with-root
     (call-interactively disproject-find-dir-command)))
 
 (transient-define-suffix disproject-find-dir-locals-file ()
@@ -1662,13 +1661,13 @@ The primary dir-locals file may be accessed with
 The command used can be customized with
 `disproject-find-file-command'."
   (interactive)
-  (disproject-with-environment
+  (disproject-with-root
     (call-interactively disproject-find-file-command)))
 
 (transient-define-suffix disproject-find-line ()
   "Find matching line in open project buffers."
   (interactive)
-  (disproject-with-environment
+  (disproject-with-root
     (call-interactively disproject-find-line-command)))
 
 (transient-define-suffix disproject-find-regexp ()
@@ -1677,7 +1676,7 @@ The command used can be customized with
 The command used can be customized with
 `disproject-find-regexp-command'."
   (interactive)
-  (disproject-with-environment
+  (disproject-with-root
     (call-interactively disproject-find-regexp-command)))
 
 (transient-define-suffix disproject-find-special-file ()
@@ -1706,7 +1705,7 @@ on transient suffix slots."
   "View the Flymake diagnostics of the project."
   (interactive)
   (declare-function flymake-show-project-diagnostics "flymake")
-  (disproject-with-environment
+  (disproject-with-root
     (call-interactively #'flymake-show-project-diagnostics)))
 
 (transient-define-suffix disproject-forget-project ()
@@ -1783,20 +1782,20 @@ programs path."
 (transient-define-suffix disproject-kill-buffers ()
   "Kill all buffers related to project."
   (interactive)
-  (disproject-with-environment
+  (disproject-with-root
     (call-interactively #'project-kill-buffers)))
 
 (transient-define-suffix disproject-list-buffers ()
   "Display a list of open buffers for project."
   (interactive)
-  (disproject-with-environment
+  (disproject-with-root
     (call-interactively #'project-list-buffers)))
 
 (transient-define-suffix disproject-magit-todos-list ()
   "Open a `magit-todos-list' buffer for project."
   (interactive)
   (declare-function magit-todos-list-internal "magit-todos")
-  (disproject-with-environment
+  (disproject-with-root
     (magit-todos-list-internal default-directory)))
 
 (transient-define-suffix disproject-or-external-find-file ()
@@ -1805,7 +1804,7 @@ programs path."
 The command used can be customized with
 `disproject-or-external-find-file-command'."
   (interactive)
-  (disproject-with-environment
+  (disproject-with-root
     (call-interactively disproject-or-external-find-file-command)))
 
 (transient-define-suffix disproject-or-external-find-regexp ()
@@ -1814,13 +1813,13 @@ The command used can be customized with
 The command used can be customized with
 `disproject-or-external-find-regexp-command'."
   (interactive)
-  (disproject-with-environment
+  (disproject-with-root
     (call-interactively disproject-or-external-find-regexp-command)))
 
 (transient-define-suffix disproject-query-replace-regexp ()
   "Search project for regexp and query-replace matches."
   (interactive)
-  (disproject-with-environment
+  (disproject-with-root
     (call-interactively #'project-query-replace-regexp)))
 
 (transient-define-suffix disproject-remember-projects-open ()
@@ -1843,7 +1842,7 @@ The command used can be customized with
 The command used can be customized with the variable
 `disproject-shell-command'."
   (interactive)
-  (disproject-with-environment
+  (disproject-with-root
     (call-interactively disproject-shell-command)))
 
 (transient-define-suffix disproject-shell-command ()
@@ -1864,25 +1863,24 @@ See type `disproject-shell-command-suffix' for documentation on
 transient suffix slots."
   :class disproject-shell-command-suffix
   (interactive)
-  (disproject-with-env
-    (disproject-with-root
-      (let* ((scope (disproject--scope))
-             (obj (transient-suffix-object))
-             (always-read? (oref obj always-read?))
-             (command (if-let* ((cmd (disproject-shell-command-suffix-cmd obj)))
-                          (if (or always-read? current-prefix-arg)
-                              (read-shell-command "Async shell command: " cmd)
-                            cmd)
-                        (read-shell-command "Async shell command: ")))
-             (project-name (project-name
-                            (disproject-project-instance
-                             (disproject-scope-selected-project-ensure scope))))
-             (buf-name (disproject-process-suffix-buffer-name obj project-name))
-             (allow-multiple-buffers? (oref obj allow-multiple-buffers?))
-             (async-shell-command-buffer (if allow-multiple-buffers?
-                                             async-shell-command-buffer
-                                           'confirm-kill-process)))
-        (async-shell-command command buf-name)))))
+  (disproject-with-root
+    (let* ((scope (disproject--scope))
+           (obj (transient-suffix-object))
+           (always-read? (oref obj always-read?))
+           (command (if-let* ((cmd (disproject-shell-command-suffix-cmd obj)))
+                        (if (or always-read? current-prefix-arg)
+                            (read-shell-command "Async shell command: " cmd)
+                          cmd)
+                      (read-shell-command "Async shell command: ")))
+           (project-name (project-name
+                          (disproject-project-instance
+                           (disproject-scope-selected-project-ensure scope))))
+           (buf-name (disproject-process-suffix-buffer-name obj project-name))
+           (allow-multiple-buffers? (oref obj allow-multiple-buffers?))
+           (async-shell-command-buffer (if allow-multiple-buffers?
+                                           async-shell-command-buffer
+                                         'confirm-kill-process)))
+      (async-shell-command command buf-name))))
 
 (transient-define-suffix disproject-switch-project ()
   "Switch project to dispatch commands on.
@@ -1915,13 +1913,13 @@ to."
 The command used can be customized with
 `disproject-switch-to-buffer-command'."
   (interactive)
-  (disproject-with-environment
+  (disproject-with-root
     (call-interactively disproject-switch-to-buffer-command)))
 
 (transient-define-suffix disproject-synchronous-shell-command ()
   "Run `project-shell-command' in selected project."
   (interactive)
-  (disproject-with-env
+  (disproject-with-root
     (call-interactively #'project-shell-command)))
 
 (transient-define-suffix disproject-vc-status ()
@@ -1943,7 +1941,7 @@ be called interactively."
               "VC")
             " status"))
   (interactive)
-  (disproject-with-environment
+  (disproject-with-root
     (let* ((scope (disproject--scope))
            (project (disproject-scope-selected-project-ensure scope))
            (backend (disproject-project-backend project)))

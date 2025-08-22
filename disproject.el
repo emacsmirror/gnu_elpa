@@ -1638,7 +1638,7 @@ The secondary dir-locals file may be accessed with
   :file #'disproject-dir-locals-file
   :find-file-function #'disproject--find-dir-locals-file
   (interactive)
-  (disproject-find-special-file))
+  (call-interactively #'disproject-find-special-file))
 
 (transient-define-suffix disproject-find-dir-locals-2-file ()
   "Find secondary `dir-locals-file' in project root.
@@ -1653,7 +1653,7 @@ The primary dir-locals file may be accessed with
   :file #'disproject-dir-locals-2-file
   :find-file-function #'disproject--find-dir-locals-file
   (interactive)
-  (disproject-find-special-file))
+  (call-interactively #'disproject-find-special-file))
 
 (transient-define-suffix disproject-find-file ()
   "Find file in project.
@@ -1713,21 +1713,21 @@ on transient suffix slots."
   (interactive)
   (let ((set-message-function 'set-multi-message))
     (call-interactively #'project-forget-project)
-    (disproject-custom-prune-allowed-suffixes)))
+    (call-interactively #'disproject-custom-prune-allowed-suffixes)))
 
 (transient-define-suffix disproject-forget-projects-under ()
   "Forget projects under a directory."
   (interactive)
   (let ((set-message-function 'set-multi-message))
     (call-interactively #'project-forget-projects-under)
-    (disproject-custom-prune-allowed-suffixes)))
+    (call-interactively #'disproject-custom-prune-allowed-suffixes)))
 
 (transient-define-suffix disproject-forget-zombie-projects ()
   "Forget zombie projects."
   (interactive)
   (let ((set-message-function 'set-multi-message))
     (call-interactively #'project-forget-zombie-projects)
-    (disproject-custom-prune-allowed-suffixes)))
+    (call-interactively #'disproject-custom-prune-allowed-suffixes)))
 
 (transient-define-suffix disproject-git-clone-fallback (repository
                                                         directory

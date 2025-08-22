@@ -922,7 +922,7 @@ through a shared object in the transient scope."))
 (defclass disproject-find-special-file-suffix (transient-suffix)
   ((file :initarg :file
          :initform "."
-         :type (or string (list-of string) symbol)
+         :type (or string (list-of string) function)
          :documentation "The special file's base name.
 
 This slot's value should be a string, list of strings, or a

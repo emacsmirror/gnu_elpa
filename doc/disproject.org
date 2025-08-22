@@ -1,0 +1,661 @@
+#+title: Disproject User Manual
+#+author: Alvin Hsu
+#+email: aurtzy@gmail.com
+#+language:en
+#+texinfo_dir_category: Emacs
+#+texinfo_dir_name: Disproject
+#+texinfo_dir_desc: Dispatch project commands with transient menus
+#+macro: version 2.1.0
+# Org doesn't recognize the "Class:" prefix in description lists, so we need to
+# manually add them to the data type index; use this macro for convenience.
+#+macro: tpindex @@texinfo:@tpindex $1@@
+# This needs to be manually added to definition prefixes that aren't supported
+# (like "Class:").
+#+macro: dashprefix \nbsp---
+
+This manual is for Disproject version {{{version}}}.
+
+#+texinfo: @insertcopying
+
+* Introduction
+:PROPERTIES:
+:DESCRIPTION: An overview of Disproject.
+:END:
+
+Disproject is an Emacs package that implements transient menus for managing and
+interacting with project files.  It aims to provide a featureful, extensible
+interface from which users can intuitively dispatch commands.
+
+Some of its notable features include:
+- a "main menu", with access to most of the built-in project library's
+  interactive commands and other project-aware commands.
+- auto-detection of the current project when the menu is initially opened.
+- a menu for finding common "special" project files.
+- a menu for custom project-local suffix commands.
+- display-buffer override options, to control where commands should display
+  buffers to.
+
+
+This package was inspired by the ~project-switch-project~ command, from the
+built-in project library.  Users may also draw similarities to the Projectile
+library's ~projectile-commander~.
+
+The following chapters in this manual will cover usage of Disproject as well as
+the various customization options that are available to the user.
+
+* Getting Started
+:PROPERTIES:
+:DESCRIPTION: Basic usage of Disproject.
+:END:
+
+Disproject is usable out of the box.  After it is loaded, the only command that
+needs to be known is ~disproject-dispatch~, which opens a transient interface -
+referred to as the "main menu" - with access to a collection of commands that
+the user can choose from to execute on projects.
+
+It may be desirable to set a key-bind for the main menu.  One suggested key-bind
+is =C-x p=, which replaces the default project prefix keymap that Disproject is
+designed to substitute.  The following configuration can be added to the user's
+init file to apply this suggestion when starting up Emacs:
+
+#+begin_src emacs-lisp
+  (use-package disproject
+    ;; Replace `project-prefix-map' with `disproject-dispatch'.
+    :bind ( :map ctl-x-map
+            ("p" . disproject-dispatch)))
+#+end_src
+
+Note that configuration examples documented in this manual commonly make use of
+the ~use-package~ macro; if needed, see [[info:use-package]] for more information.
+
+- Command: disproject-dispatch ::
+  ~disproject-prefix~ prefix command.  The "main menu" for dispatching project
+  commands.
+
+* Swappable Commands
+:PROPERTIES:
+:DESCRIPTION: Swapping out commands in the main menu.
+:END:
+
+Some suffix commands in the main menu expose customizable variables that
+determine what command is internally used.  This can be useful for users who
+would prefer to use a different command in place of another; for example, to
+have "Shell" in the menu execute ~project-shell~ instead of ~project-eshell~.
+These customizable commands are known as "swappable commands".
+
+Configuring these variables might look something like so:
+
+#+begin_src emacs-lisp
+  (use-package disproject
+    :custom
+    ;; Set the `disproject-shell-command' variable so that `disproject-shell' uses
+    ;; `shell' instead of the default `eshell'.
+    (disproject-shell-command #'project-shell)
+    ;; Use `find-file' for `disproject-find-file'.
+    (disproject-find-file-command #'find-file))
+#+end_src
+
+All swappable commands can be found under the =disproject-swappable-commands=
+group in the Customize interface (see [[info:emacs:Browsing Custom]]).  Users may
+also invoke Transient's help mode (see [[info:transient:Getting Help for Suffix
+Commands]]) inside the menu to directly find a suffix command's customizable
+variable, if one is available.
+
+- User Option: disproject-find-dir-command ::
+  Command used by ~disproject-find-dir~.
+- User Option: disproject-find-file-command ::
+  Command used by ~disproject-find-file~.
+- User Option: disproject-find-line-command ::
+  Command used by ~disproject-find-line~.
+- User Option: disproject-find-regexp-command ::
+  Command used by ~disproject-find-regexp~.
+- User Option: disproject-or-external-find-file-command ::
+  Command used by ~disproject-or-external-find-file~.
+- User Option: disproject-or-external-find-regexp-command ::
+  Command used by ~disproject-or-external-find-regexp~.
+- User Option: disproject-shell-command ::
+  Command used by ~disproject-shell~.
+- User Option: disproject-switch-to-buffer-command ::
+  Command used by ~disproject-switch-to-buffer~.
+- User Option: disproject-vc-status-commands ::
+  Alist of mappings from VC backend symbol to a command, used by
+  ~disproject-vc-status~.
+
+  The backend symbol should be one of the symbols found in the variable
+  ~project-vc-backend-markers-alist~.  If an alist entry for some VC backend is
+  not available or the entry's command does not exist, the command associated
+  with a nil backend will be used as a fallback (by default,
+  ~project-vc-status~).
+
+  For instance, a user might run the following to use a hypothetical
+  ~foo-svn-status~ command for SVN projects:
+  #+begin_src emacs-lisp
+    (setf (alist-get 'SVN disproject-vc-status-commands) #'foo-svn-status)
+  #+end_src
+
+  Magit support is included out of the box; the ~magit-status~ command will be
+  used instead for git repositories, if it is available.
+
+
+Swappable commands are always run with ~default-directory~ set to the selected
+project's root directory.  Other variables are also set in this context; see
+[[*Project Environments]] for a full list.
+
+This feature is intentionally simple to make it a convenient method for swapping
+out menu commands.  If a more powerful means of customization is desired, see
+[[*Project Environments]] and see [[info:transient:Modifying Existing Transients]].
+
+* Advanced Features
+:PROPERTIES:
+:DESCRIPTION: Extending Disproject with Transient.
+:END:
+
+Disproject comes with preset commands to make it usable out of the box for most
+tasks, but it is expected that the default configuration will not be able to
+accommodate all use cases.  As such, this package is designed with this in mind,
+and includes additional facilities - on top of those provided by Transient - for
+users to modify and extend existing menus.
+
+Note: the features described here involve the use of Transient specifications
+syntax.  While examples are provided in the following sub-chapters which should
+include enough context to enable usage, users are encouraged to learn the syntax
+so that they can more extensively utilize Transient's capabilities in their
+configurations (see [[info:transient:Binding Suffix and Infix Commands]]).
+
+** Project Environments
+:PROPERTIES:
+:DESCRIPTION: Ensuring suffix commands run in the right contexts.
+:END:
+
+Transient makes it easy to extend existing menus with additional commands (see
+[[info:transient:Modifying Existing Transients]]); however, users should be aware of
+the facilities discussed in this sub-chapter before doing so, which will help
+with ensuring that commands are run in the right contexts.
+
+Some options in the menu make up what is referred to as the "project
+environment".  These settings affect the general behavior of suffix commands in
+the interface.  For instance, the selected-project value (displayed at the top
+of the menu) determines where commands should be executed.
+
+The project environment has to be applied to commands, such that the relevant
+variables are set before execution.  Most of the time, this will be
+automatically handled by Disproject when extending menus.  In other cases
+described below, users will have to manage it themselves.
+
+- Function: disproject-with-env-apply THUNK ::
+  Set up a project environment and execute THUNK (a 0-arity function) in that
+  context.
+
+  This function is intended to be used with Transient's advice feature (see
+  [[info:transient:Suffix Slots]]).  Advice is already set for transient groups in
+  Disproject's existing menus (an exception being the selected-project header
+  group), so the following example would be sufficient for adding to them:
+
+  #+begin_src emacs-lisp
+    (transient-append-suffix 'disproject-dispatch "F"
+      '("C-f" "file (but with Ctrl)" project-find-file))
+  #+end_src
+
+  However, if new transient groups are to be added, this function will have to
+  be specified in order to apply the environment to the group's commands, like
+  so:
+
+  #+begin_src emacs-lisp
+    (transient-insert-suffix 'disproject-dispatch '(-1)
+      ["Other commands"
+       :advice disproject-with-env-apply
+       ("/f" "Find file in project" project-find-file)])
+  #+end_src
+
+  The following settings are applied in the environment:
+  - ~project-current-directory-override~ ::
+    Set to the selected project's root directory.
+  - ~display-buffer-overriding-action~ ::
+    Set to the selected ~display-buffer~ action override.
+  - Environment variables ::
+    Set project-local process environment variables with a library that supports
+    doing so, if available.
+
+    Supported libraries include: =envrc.el=; =mise.el=.
+- Macro: disproject-with-env BODY ... ::
+  Macro version of ~disproject-with-env-apply~.
+- Function: disproject-with-root-apply THUNK ::
+  Execute THUNK with ~default-directory~ set to the current project's root
+  directory.  Respects ~project-current-directory-override~.
+
+  This function can be used to coerce code into becoming project-aware:
+  #+begin_src emacs-lisp
+    (defun my-project-find-file ()
+      (interactive)
+      ;; This uses the macro version of `disproject-with-root-apply'.
+      (disproject-with-root
+        ;; Prompt will always start from project root directory.
+        (call-interactively #'find-file)))
+
+    (transient-append-suffix 'disproject-dispatch "F"
+      '("C-f" "file (with find-file)" my-project-find-file))
+  #+end_src
+- Macro: disproject-with-root BODY ... ::
+  Macro version of ~disproject-with-root-apply~.
+- Function: disproject-with-env+root-apply THUNK ::
+  Set up a project environment and execute THUNK in the project's root
+  directory.
+
+  This may be useful as a convenient combination of ~disproject-with-env-apply~
+  and ~disproject-with-root~ in exceptional cases where it is acceptable to
+  always set ~default-directory~ for commands.
+- Macro: disproject-with-environment BODY ... ::
+- Macro: disproject-with-env+root BODY ... ::
+  Macro versions of ~disproject-with-env+root-apply~.
+
+  ~disproject-with-environment~ is provided for legacy purposes, and should not
+  be used.
+{{{tpindex(disproject-prefix)}}}
+- {{{dashprefix}}} Class: disproject-prefix ::
+  Derives from ~transient-prefix~.  General class for Disproject prefix
+  commands.
+
+  This class adds automatic management of project environment state, such that
+  it is preserved and passed between other ~disproject-prefix~ menus.
+
+** Special Files Menu
+:PROPERTIES:
+:DESCRIPTION: Finding common project files.
+:END:
+
+Some file names are commonly found in different (unrelated) projects, like the
+dir-locals file or build files such as =Makefile=.  Finding files can usually be
+accomplished by commands like ~disproject-find-file~, but it may feel repetitive
+having to search for these "special files" where the exact names are already
+known.  To help with this, Disproject provides a menu that can be customized
+with suffix commands to conveniently create and open particular files.
+
+This menu revolves around the suffix command ~disproject-find-special-file~,
+where suffix specifications can use keywords to customize the command's
+behavior, such as the particular file to find.  Here is an example configuration
+of the special files menu:
+
+#+begin_src emacs-lisp
+  (use-package disproject
+    :custom
+    (disproject-find-special-file-suffixes
+     '(["Other options"
+        ;; This switch enables using the Customize interface to edit files.  This
+        ;; is /not/ implemented by `disproject-find-special-file'; it has to be
+        ;; implemented per-command.  The provided dir-locals suffix commands
+        ;; implement this using `customize-dirlocals' (for Emacs 30.1+).
+        (disproject-infix-customize-switch)]
+       ["Special files"
+        ("c" disproject-find-special-file :file "CHANGELOG")
+        ("g g" disproject-find-special-file :file "guix.scm")
+        ("g m" disproject-find-special-file :file "manifest.scm")
+        ;; Suffix commands for finding dir-locals files are already provided by
+        ;; Disproject, so we can just use them here.
+        (disproject-find-dir-locals-file)
+        (disproject-find-dir-locals-2-file)
+        ;; Prefer creating Makefile, if none of these files are found.
+        ("m" disproject-find-special-file :file ("Makefile" "makefile"
+                                                 "GNUmakefile"))
+        ;; Prefer creating README.org, if none of these files are found.
+        ("r" disproject-find-special-file :file ("README.org" "README"
+                                                 "README.md"))])))
+#+end_src
+
+By default, commands for opening ~dir-locals-file~ and the secondary dir-locals
+file are included.
+
+- Command: disproject-find-special-file-dispatch ::
+  ~disproject-prefix~ prefix command.  The "special files" menu, which is
+  customizable using the variable ~disproject-find-special-file-suffixes~.
+
+  Any key-bind sequence starting with alphanumeric characters or dash (regexp
+  =[a-zA-Z0-9-]=) is reserved for the user.
+- User Option: disproject-find-special-file-suffixes ::
+  Transient specifications to be parsed into suffix commands for
+  ~disproject-find-special-file-dispatch~.
+
+  This variable should contain a list of group specifications (see
+  [[info:transient:Group Specifications]]).  As a shorthand, the value may also be a
+  list of suffix specifications if only one column of commands is needed (see
+  [[info:transient:Suffix Specifications]]).
+{{{tpindex(disproject-find-special-file-suffix)}}}
+- {{{dashprefix}}} Class: disproject-find-special-file-suffix ::
+  Derives from ~transient-suffix~.  Suffix class for commands that find specific
+  files.
+
+  Added/changed slots:
+  - ~file~ (default: ".") ::
+    The special file's base name.
+
+    This slot's value should be one of the following types:
+    - ~string~ ::
+      Literal file name.
+    - ~(list-of string)~ ::
+      List of acceptable special file names for the command.
+
+      If none of the provided file names can be found in the project, the first
+      element will be treated as the preferred file name to create.
+    - ~function~ ::
+      Function that returns a string as the literal file name.
+  - ~find-file-function~ (default: #'find-file) ::
+    Function that will be passed the value of the ~file~ slot to open or create
+    it.
+- Command: disproject-find-special-file ::
+  ~disproject-find-special-file-suffix~ suffix command.  Finds a special file in
+  project.
+
+  This command is intended to be configured by the user in suffix
+  specifications, as shown in the code example above.
+- Command: disproject-find-dir-locals-file ::
+  ~disproject-find-special-file-suffix~ suffix command. Pre-configured to find
+  ~dir-locals-file~.  Calls ~disproject-find-special-file~ under the hood.
+- Command: disproject-find-dir-locals-2-file ::
+  ~disproject-find-special-file-suffix~ suffix command.  Pre-configured to find
+  the secondary ~dir-locals-file~.  Calls ~disproject-find-special-file~ under
+  the hood.
+- Command: disproject-infix-customize-switch ::
+  ~transient-switch~ infix command for =--customize=.  Enables using the
+  Customize interface for suffixes that support it.
+
+** Custom Dispatch Menu
+:PROPERTIES:
+:DESCRIPTION: Project-local, ad-hoc suffix commands.
+:END:
+
+The custom dispatch menu is dynamic, and can change depending on what project is
+selected.  This is particularly useful for providing commands that don't make
+sense to include "globally" in the main menu due to being project-dependent,
+like build commands.  Usually, this can be satisfied by interactive commands
+like "Compile" in the main menu, but in more complex cases, it may be helpful to
+have a convenient way of defining ad-hoc, project-specific commands that are
+made accessible through Disproject's interface as well.  This is what the custom
+dispatch menu is for.
+
+The menu is configured with the variable ~disproject-custom-suffixes~.  Using a
+dir-locals file to set it, a configuration might look something like this:
+
+#+begin_src lisp-data
+  ((nil . ((disproject-custom-suffixes
+            .
+            (("f" "Find a file from project"
+              (lambda () (interactive)
+                (disproject-with-root
+                  (call-interactively #'find-file))))
+             ;; These two "make" commands cannot run at the same time, since they
+             ;; will be associated with the same buffer.
+             ("m" "Run make" disproject-compile
+              :cmd "echo Running make...; make -k"
+              :buffer-id "make")
+             ("M" "Run make test" disproject-compile
+              :cmd "echo Running tests...; make test"
+              :buffer-id "make")
+             ("p" "Print something" disproject-shell-command
+              :cmd "sleep 10; echo something!"
+              ;; Allow running multiple processes of this command simultaneously
+              ;; instead of prompting to kill the actively running one.
+              :allow-multiple-buffers? t)
+             ("S" "Start `shell' in project root" project-shell))))))
+#+end_src
+
+- Command: disproject-custom-dispatch ::
+  ~disproject-prefix~ prefix command.  The "custom dispatch" menu, which
+  displays project-local suffix commands as specified by
+  ~disproject-custom-suffixes~.
+
+  Any key-bind sequence starting with alphanumeric characters or dash (regexp
+  =[a-zA-Z0-9-]=) is reserved for the user.
+- User Option: disproject-custom-suffixes ::
+  Transient specifications to be parsed into suffixes for
+  ~disproject-custom-dispatch~.
+
+  This variable should contain a list of group specifications (see
+  [[info:transient:Group Specifications]]).  Alternatively, a list of suffix
+  specifications is also accepted as a shorthand for a single column of commands
+  (see [[info:transient:Suffix Specifications]]).
+{{{tpindex(disproject-process-suffix)}}}
+- {{{dashprefix}}} Class: disproject-process-suffix ::
+  Derives from ~transient-suffix~.  Class for suffix commands that will spawn a
+  process, associated with some buffer.
+
+  Added/changed slots:
+  - ~buffer-id~ (default: nil) ::
+    String.  Unique identifier for the process buffer associated with this
+    suffix command.
+
+    If multiple commands have the same buffer identifier, they are considered
+    incompatible, which means only one of them can run at a given time in some
+    contexts.
+
+    When this slot's value is nil, implementations should fall back to the
+    ~description~ slot.  If the description's value is a string, it is used
+    as-is.  Otherwise, it is assumed to be an unstable value, and the
+    ~default-buffer-id~ slot is used instead.
+  - ~display-status?~ (default: t) ::
+    Non-nil to display the status of the associated process buffer.
+
+    When enabled, a colorful indicator is prefixed to the suffix's description
+    in the menu.  An "a" indicates that the process is running ("active"); an
+    "i" indicates that the process is not running ("inactive").
+  - ~allow-multiple-buffers?~ (default: nil) ::
+    Non-nil if multiple processes may run at the same time.
+
+    This will produce more than one process buffer (one per process).
+
+    If allowed, ~display-status?~ will be ignored and force-disabled, as the
+    indicator is only reliable for tracking one buffer.  Suffix command
+    implementations may also behave differently; for example, executing a
+    command while a process is still running could create a new buffer instead
+    of prompting to kill the existing one.
+  - ~default-buffer-id~ (default: "default") ::
+    Class-allocated slot.  Fallback for ~buffer-id~ if no reliable unique
+    identifier can be obtained.
+{{{tpindex(disproject-shell-command-suffix)}}}
+- {{{dashprefix}}} Class: disproject-shell-command-suffix ::
+  Derives from ~disproject-process-suffix~.  Class for suffix commands that run
+  a shell command.
+
+  Added/changed slots:
+  - ~cmd~ (default: nil) ::
+    String or interactive function returning a shell command, which is used to
+    spawn a process.
+
+    If the value is a string, it is used as the shell command.  Otherwise, it
+    should be an interactive function that returns such a string.  As a
+    fallback, a prompt will be made for the shell command if the value is nil.
+
+    Suffix command implementations should handle spawning processes based on
+    this value.
+  - ~always-read?~ (default: nil) ::
+    Non-nil to always read shell command, even when ~cmd~ is non-nil.
+
+    Suffix command implementations should handle reading based off of this
+    value.
+- Command: disproject-shell-command ::
+  ~disproject-shell-command-suffix~ suffix command.  Runs a shell command
+  asynchronously from the selected project's root directory.
+
+  This command uses ~async-shell-command~ to run the provided shell command.
+
+  If called with a prefix argument (or slot ~always-read?~ is non-nil), always
+  prompt, with the ~cmd~ slot as the default value.
+
+  If the ~allow-multiple-buffers?~ slot is nil, the variable
+  ~async-shell-command-buffer~ will be set to ='confirm-kill-process= so the
+  process status can be accurately reflected.
+{{{tpindex(disproject-compilation-suffix)}}}
+- {{{dashprefix}}} Class: disproject-compilation-suffix ::
+  Derives from ~disproject-shell-command-suffix~.  Class for suffix commands
+  that utilize ~compile~ to run a shell command.
+
+  Added/changed slots:
+  - ~comint?~ (default: nil) ::
+    Non-nil to enable Comint mode in the compilation (process) buffer.
+
+    Suffix command implementations should check this value in order to
+    conditionally enable the mode.
+- Command: disproject-compile ::
+  ~disproject-compilation-suffix~ suffix command.  Runs a shell command with
+  ~compile~ in the selected project's root directory.
+
+  If the ~cmd~ slot is nil, prompt for a command, with the variable
+  ~compile-command~ as a default value.
+
+  If called with a prefix argument (or slot ~always-read?~ is non-nil), always
+  prompt, with ~cmd~ as the default value.
+
+** Display-buffer Action Menu
+:PROPERTIES:
+:DESCRIPTION: Control where commands will display buffers to.
+:END:
+
+This menu is dedicated to housing suffix commands that set the display-buffer
+action override option.
+
+The suffix command ~disproject-display-buffer-action-set~ can be used to add new
+options.  For example, a user might specify the following to (redundantly) add
+"other window" and "new frame" commands:
+
+#+begin_src emacs-lisp
+  (transient-insert-suffix 'disproject-display-buffer-action-dispatch "s"
+    '("O" "other window" disproject-display-buffer-action-set
+      :display-buffer-action (display-buffer-use-some-window
+                              (inhibit-same-window . t))))
+  (transient-append-suffix 'disproject-display-buffer-action-dispatch "F"
+    '("C-F" "new frame" disproject-display-buffer-action-set
+      :display-buffer-action (display-buffer-pop-up-frame
+                              (inhibit-multiple-displays . t))))
+
+#+end_src
+
+- Command: disproject-display-buffer-action-dispatch ::
+  ~disproject-prefix~ prefix command.  Menu for selecting display-buffer action
+  overrides to apply to project commands.
+{{{tpindex(disproject-display-buffer-action-suffix)}}}
+- {{{dashprefix}}} Class: disproject-display-buffer-action-suffix ::
+  Derives from ~transient-suffix~.  Class for suffix commands that manage and
+  set the display-buffer action override in transient state.
+
+  Added/changed slots:
+  - ~display-buffer-action~ (default: nil) ::
+    Value to be used for ~display-buffer-overriding-action~.
+
+    The action alist must contain an entry under the =description= key which
+    describes the action.  This is used to indicate what override is currently
+    set in parent menus.
+
+    Some actions can have issues with overriding multiple display-buffer calls
+    in a single command; this is particularly noticeable with some
+    frame-oriented actions, which will (likely undesirably) spawn a frame every
+    time a window is displayed.  In these cases, setting the
+    =inhibit-multiple-displays= entry to t in the display-buffer-action alist
+    will adjust the override such that it applies at most once for a command.
+
+    Suffix command implementations must handle storing this value somewhere so
+    that it can be later accessed and applied; for example, through a shared
+    object in transient scope.
+- Command: disproject-display-buffer-action-set ::
+  ~disproject-display-buffer-action-suffix~ suffix command.  Sets the overriding
+  ~display-buffer~ action in transient state, to be eventually applied to suffix
+  commands executed from Disproject menus.
+
+  For convenience, the action alist's =description= entry falls back to the
+  suffix command description if one is not provided.  Using the "other window"
+  example provided above to illustrate this: "other window" will be used in both
+  the suffix command description and the action alist's =description= entry.
+
+  This does not do anything if executed outside of a prefix menu.
+
+* Deprecation Policy
+:PROPERTIES:
+:DESCRIPTION: Deprecation procedures followed by this project.
+:END:
+
+Efforts are made to ensure backward compatibility with previous versions of this
+software.  As a natural course of development, however, revisions to the code
+may introduce incompatibilities.  This chapter notes procedures that are
+followed to communicate deprecations and roll out changes to the interface.
+
+This project uses [[https://semver.org/][Semantic Versioning]].
+
+Depending on the type of change being made, stability guarantees may vary.
+Changes generally fall into one of the following categories:
+
+- Internal interfaces ::
+  This includes any facilities with a double-dash separator (=--=) in the symbol
+  name.
+
+  No stability guarantees are provided for internal interfaces; however, users
+  may feel free to discuss the possibility of stabilizing them upstream so that
+  they can be more reliably depended on.
+- Public interfaces ::
+  This covers any global symbols that are not considered internal, like
+  ~disproject-dired~.
+
+  Changes or removals of public interfaces are subject to at least a six-month
+  deprecation period.
+- Transient prefix menus ::
+  This includes changes like modifying a key-bind for some suffix command in
+  ~disproject-dispatch~.
+
+  Changes inside menus are handled on a case-by-case basis, depending on the
+  scope of the change, difficulty of deprecation, and potential disruption to
+  the user.  A key-bind or location change may a short or no deprecation period,
+  whereas removal of some suffix command from a menu may warrant a more
+  extensive deprecation period, perhaps by keeping it accessible, but hiding it
+  and adding a warning message.
+
+
+When a deprecation is applied to some facility, users can expect it to exist
+until at least the next major version bump after the period has elapsed, with
+the changes and replacements (if any) documented in the CHANGELOG file.
+
+* Class Index
+:PROPERTIES:
+:APPENDIX:   t
+:INDEX:    tp
+:DESCRIPTION: Index of class types provided by Disproject.
+:END:
+
+* Command and Function Index
+:PROPERTIES:
+:APPENDIX:   t
+:INDEX:    fn
+:DESCRIPTION: Documented commands and functions.
+:END:
+
+* Variable Index
+:PROPERTIES:
+:APPENDIX:   t
+:INDEX:    vr
+:DESCRIPTION: User-customizable options.
+:END:
+
+* GNU Free Documentation License
+:PROPERTIES:
+:APPENDIX: t
+:DESCRIPTION: The license for this manual.
+:END:
+#+texinfo: @include doclicense.texi
+
+* GNU General Public License
+:PROPERTIES:
+:APPENDIX: t
+:DESCRIPTION: Conditions for copying Disproject.
+:END:
+#+texinfo: @include gpl.texi
+
+* Copying
+:PROPERTIES:
+:COPYING: t
+:END:
+
+Copyright \copy 2025 Alvin Hsu.
+
+#+begin_quote
+Permission is granted to copy, distribute and/or modify this document under the
+terms of the GNU Free Documentation License, Version 1.3 or any later version
+published by the Free Software Foundation; with no Invariant Sections, no
+Front-Cover Texts, and no Back-Cover Texts. A copy of the license is included in
+the section entitled "GNU Free Documentation License".
+#+end_quote
+

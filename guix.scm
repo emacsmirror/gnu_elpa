@@ -1,5 +1,6 @@
 (use-modules (gnu packages base)
              (gnu packages emacs-xyz)
+             (gnu packages texinfo)
              (gnu packages version-control)
              (guix build-system emacs)
              (guix download)
@@ -20,6 +21,13 @@
                  #:recursive? #t
                  #:select? (git-predicate repository-root-directory)))
     (build-system emacs-build-system)
+    (arguments
+     (list
+      #:phases #~(modify-phases %standard-phases
+                   (add-before 'install 'build-info-manual
+                     (lambda _
+                       (invoke "make" "info"))))))
+    (native-inputs (list gnu-make texinfo))
     (propagated-inputs
      (let ((transform (options->transformation
                        '((with-commit . "emacs-transient=v0.9.2")))))

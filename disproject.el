@@ -2250,6 +2250,8 @@ defining commands that can modify the override state."
   "Customizable Disproject suffixes
 (Use `C-h o' on symbols for more documentation)"
   (disproject-compile)
+  (disproject-display-buffer-action-set)
+  (disproject-find-special-file)
   (disproject-shell-command))
 
 (define-short-documentation-group disproject-environment

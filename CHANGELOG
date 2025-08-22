@@ -31,6 +31,7 @@
 - Include ~disproject-global-header-group~ in ~disproject-custom-dispatch~ and
   ~disproject-find-special-file-dispatch~.  This makes the "Global options"
   section available in these menus.
+- Add a user manual.
 
 *** Changed
 

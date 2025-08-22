@@ -43,6 +43,11 @@
 - Show ~disproject-magit-todos-list~ if the magit-todos library is available, as
   opposed to only showing it when the library is loaded.  This permits using the
   command as an autoload, if desired.
+- Set advice slots for relevant transient groups to ~disproject-with-env-apply~.
+  This makes it no longer necessary to use project environment functions for
+  project-aware commands when adding to those transient groups.
+- Rename ~disproject-commands~ customization group to
+  ~disproject-swappable-commands~.
 
 *** Deprecated
 
@@ -50,6 +55,11 @@
   at least 6 months from this release.
 - Deprecate ~disproject-dir-locals~.  Removal is set for at least 6 months from
   this release.
+
+*** Fixed
+
+- Fix ~disproject-find-special-file-suffix~ =file= slot type not accepting
+  anonymous functions.
 
 ** [[https://github.com/aurtzy/disproject/tree/v2.1.0][2.1.0]] - 2025-05-29
 

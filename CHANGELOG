@@ -48,6 +48,8 @@
   project-aware commands when adding to those transient groups.
 - Rename ~disproject-commands~ customization group to
   ~disproject-swappable-commands~.
+- Set the bottom transient group class for ~disproject-dispatch~ to
+  ~transient-row~.
 
 *** Deprecated
 

@@ -246,9 +246,9 @@ a date using `org-read-date'."
     (insert (org-read-date))))
 
 (defun iso-date-at-point-day-up (&optional n)
-  "Advance ISO date at point by one day.
+  "Increment ISO date at point by one day.
 
-With a prefix argument N, advance by N days."
+With a prefix argument N, increment by N days."
   (interactive "*p")
   (when-let* ((bounds (iso-date-bounds))
               (date (iso-date-at-point)))
@@ -257,9 +257,9 @@ With a prefix argument N, advance by N days."
       (insert (iso-date :start-date date :day n)))))
 
 (defun iso-date-at-point-day-down (&optional n)
-  "Advance ISO date at point by one day.
+  "Decrement ISO date at point by one day.
 
-With a prefix argument N, advance by (- N) days."
+With a prefix argument N, decrement by N days."
   (interactive "*p")
   (iso-date-at-point-day-up (- n)))
 

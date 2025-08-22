@@ -61,8 +61,8 @@
   :group 'convenience
   :group 'project)
 
-(defgroup disproject-commands nil
-  "Customizable Disproject main dispatch commands.
+(defgroup disproject-swappable-commands nil
+  "Customizable commands in Disproject's main menu.
 
 See documentation on `disproject-with-env-apply' and
 `disproject-with-root-apply' for variables that are set according
@@ -149,7 +149,7 @@ This is called whenever the function `disproject-find-dir' is
 invoked."
   :type 'function
   :group 'disproject
-  :group 'disproject-commands)
+  :group 'disproject-swappable-commands)
 
 (defcustom disproject-find-file-command #'project-find-file
   "Command used for opening a file in a project.
@@ -158,7 +158,7 @@ This is called whenever the function `disproject-find-file' is
 invoked."
   :type 'function
   :group 'disproject
-  :group 'disproject-commands)
+  :group 'disproject-swappable-commands)
 
 (defcustom disproject-find-line-command #'disproject-default-find-line
   "Command to find line occurrences in a project's open buffers.
@@ -167,7 +167,7 @@ This is called whenever the function `disproject-find-line' is
 invoked."
   :type 'function
   :group 'disproject
-  :group 'disproject-commands)
+  :group 'disproject-swappable-commands)
 
 (defcustom disproject-find-regexp-command #'project-find-regexp
   "Command used for finding regexp matches in a project.
@@ -176,7 +176,7 @@ This is called whenever the function `disproject-find-regexp' is
 invoked."
   :type 'function
   :group 'disproject
-  :group 'disproject-commands)
+  :group 'disproject-swappable-commands)
 
 (defcustom disproject-find-special-file-suffixes
   '(["Other options"
@@ -225,7 +225,7 @@ This is called whenever the function
 `disproject-or-external-find-file' is invoked."
   :type 'function
   :group 'disproject
-  :group 'disproject-commands)
+  :group 'disproject-swappable-commands)
 
 (defcustom disproject-or-external-find-regexp-command
   #'project-or-external-find-regexp
@@ -235,7 +235,7 @@ This is called whenever the function
 `disproject-or-external-find-file' is invoked."
   :type 'function
   :group 'disproject
-  :group 'disproject-commands)
+  :group 'disproject-swappable-commands)
 
 (defcustom disproject-shell-command #'project-eshell
   "Command used for opening a shell in a project.
@@ -243,7 +243,7 @@ This is called whenever the function
 This is called whenever the function `disproject-shell' is invoked."
   :type 'function
   :group 'disproject
-  :group 'disproject-commands)
+  :group 'disproject-swappable-commands)
 
 (defcustom disproject-switch-to-buffer-command #'project-switch-to-buffer
   "Command used for switching project buffers.
@@ -252,7 +252,7 @@ This is called whenever the function
 `disproject-switch-to-buffer' is invoked."
   :type 'function
   :group 'disproject
-  :group 'disproject-commands)
+  :group 'disproject-swappable-commands)
 
 (defcustom disproject-vc-status-commands '((Git . magit-status)
                                            (nil . project-vc-dir))
@@ -270,7 +270,7 @@ fallback.  A fallback should always be specified.
 This is used in the command `disproject-vc-status'."
   :type 'alist
   :group 'disproject
-  :group 'disproject-commands)
+  :group 'disproject-swappable-commands)
 
 
 ;;;

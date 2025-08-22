@@ -45,6 +45,7 @@
 ;;; Code:
 
 (require 'calendar)
+(require 'cl-lib)
 (require 'thingatpt)
 (require 'time-date)
 
@@ -115,31 +116,30 @@ See also `iso-date-to-internal'."
 ;;;; Creation of strings
 
 ;;;###autoload
-(defun iso-date (&rest keywords)
+(cl-defun iso-date (&key start-date day week month year)
   "Return an ISO 8601 date string for current day.
 
-KEYWORDS allow to modify the date returned.  They are passed to
-`make-decoded-time'.  For instance, the following returns a date string
-for yesterday:
+You can add or subtract an specified amount of DAYs, WEEKs, MONTHs
+and/or YEARs using the corresponding keywords.  For instance, the
+following returns a date string for yesterday:
 
 \(iso-date :day -1)
 
 A special keyword named START-DATE allows to set the starting day which
-will be modified by the rest of KEYWORDS.  It should be an ISO 8601 date
+will be modified by the rest of keywords.  It should be an ISO 8601 date
 string.  For instance, to add a month to a specific date:
 
 \(iso-date :start-date \"2000-12-18\" :month +1)"
   (format-time-string
    "%F"
-   (when keywords
+   (when (or start-date day week month year)
      (encode-time
       (decoded-time-add
-       (if-let* ((date (plist-get keywords :start-date)))
-           (progn
-             (setq keywords (remove :start-date (remove date keywords)))
-             (parse-time-string date))
-         (decode-time))
-       (apply #'make-decoded-time keywords))))))
+       (if start-date (parse-time-string start-date) (decode-time))
+       (make-decoded-time
+        :month month
+        :year year
+        :day (if week (+ (* week 7) (or day 0)) day)))))))
 
 (defun iso-date-shift (shift date)
   "Apply SHIFT to DATE, return result.

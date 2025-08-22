@@ -2133,7 +2133,8 @@ menu."
     ("L" "line in buffers" disproject-find-line)
     ("T" "todos" disproject-magit-todos-list
      :if disproject-prefix--magit-todos-apt?)]]
-  [ :advice disproject-with-env-apply
+  [ :class transient-row
+    :advice disproject-with-env-apply
     :advice* disproject-with-env-apply
     ("SPC" "Custom dispatch" disproject-custom-dispatch
      :transient transient--do-replace)])

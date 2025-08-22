@@ -457,33 +457,38 @@ keyword."
 
 (defun disproject-custom--setup-suffixes (_)
   "Set up suffixes according to `disproject-custom-suffixes'."
-  (transient-parse-suffixes
-   'disproject-custom-dispatch
-   (let* ((scope (disproject--scope))
-          (custom-suffixes (disproject-project-custom-suffixes
-                            (disproject-scope-selected-project-ensure scope)))
-          ;; DEPRECATED: Remove at least 6 months after release with this notice.
-          ;; Since we originally only supported a single column, just convert
-          ;; any custom spec suffixes found in a shallow search.
-          (custom-suffixes
-           (seq-map
-            (lambda (spec)
-              (if (disproject-custom--custom-spec? spec)
-                  (progn
-                    (unless disproject-custom--showed-custom-spec-deprecation?
-                      (message "\
+  (let* ((scope (disproject--scope))
+         (suffixes (disproject-project-custom-suffixes
+                    (disproject-scope-selected-project-ensure scope)))
+         ;; DEPRECATED: Remove at least 6 months after release with this notice.
+         ;; Since we originally only supported a single column, just convert
+         ;; any custom spec suffixes found in a shallow search.
+         (suffixes
+          (seq-map
+           (lambda (spec)
+             (if (disproject-custom--custom-spec? spec)
+                 (progn
+                   (unless disproject-custom--showed-custom-spec-deprecation?
+                     (message "\
 Defining custom suffixes with Disproject's custom syntax is deprecated;\
  use transient specifications instead\
  (see `disproject-custom-suffixes' for updated documentation).")
-                      (setq disproject-custom--showed-custom-spec-deprecation? t))
-                    (disproject-custom--suffix spec))
-                spec))
-            custom-suffixes)))
-     ;; As a shorthand (and for backwards compatibility), vector brackets can
-     ;; be omitted if only one column of suffixes is needed.
-     (if (nlistp (seq-elt custom-suffixes 0))
-         custom-suffixes
-       `(["Custom suffixes" ,@custom-suffixes])))))
+                     (setq disproject-custom--showed-custom-spec-deprecation? t))
+                   (disproject-custom--suffix spec))
+               spec))
+           suffixes))
+         ;; As a shorthand (and for backwards compatibility), vector brackets
+         ;; can be omitted if only one column of suffixes is needed.
+         (suffixes (if (nlistp (seq-elt suffixes 0))
+                       suffixes
+                     `(["Custom suffixes" ,@suffixes])))
+         (suffixes (seq-map (lambda (element)
+                              (disproject--group-insert-defaults
+                               element nil
+                               :advice #'disproject-with-env-apply
+                               :advice* #'disproject-with-env-apply))
+                            suffixes)))
+    (transient-parse-suffixes 'disproject-custom-dispatch suffixes)))
 
 (defun disproject--setup-find-special-file-suffixes (_)
   "Set up suffixes according to `disproject-find-special-file-suffixes'."
@@ -2151,6 +2156,7 @@ character.  These characters represent the following states:
     ("SPC" "Main dispatch" disproject-dispatch
      :transient transient--do-replace)
     ("!" "Alternative compile" disproject-compile
+     :advice disproject-with-env-apply
      :buffer-id "compile")])
 
 (transient-define-prefix disproject-find-special-file-dispatch ()

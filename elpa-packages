@@ -813,6 +813,7 @@
  (tex-item		:url "https://github.com/ultronozm/tex-item.el")
  (tex-parens    	:url "https://github.com/ultronozm/tex-parens.el")
  (theme-buffet		:url "https://git.sr.ht/~bboal/theme-buffet")
+ (timeout               :url "https://github.com/karthink/timeout")
  (timerfunctions	:url nil)
  (tiny			:url "https://github.com/abo-abo/tiny")
  (tmr			:url "https://github.com/protesilaos/tmr"

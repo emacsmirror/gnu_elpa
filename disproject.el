@@ -2094,23 +2094,29 @@ menu."
    ("C-p" "Manage projects" disproject-manage-projects-dispatch)]
   disproject--global-options-group
   ["Main commands"
-   [("b" "Switch buffer" disproject-switch-to-buffer)
-    ("B" "Buffer list" disproject-list-buffers)
-    ("c" "Compile" disproject-compile
-     :buffer-id "compile")
-    ("d" "Dired" disproject-dired)
-    ("k" "Kill buffers" disproject-kill-buffers)
-    ("s" "Shell" disproject-shell)
-    ("v" disproject-vc-status
-     :inapt-if-not disproject-prefix--version-control-apt?)
-    ("w" "Diagnostics" disproject-flymake-diagnostics
-     :if disproject-prefix--feature-flymake?)]
-   [("!" "Shell command" disproject-synchronous-shell-command)
-    ("&" "Async shell command" disproject-shell-command
-     :buffer-id "shell-command"
-     :allow-multiple-buffers? t)
-    ("M-x" "Extended command" disproject-execute-extended-command)]
+   [ :advice disproject-with-env-apply
+     :advice* disproject-with-env-apply
+     ("b" "Switch buffer" disproject-switch-to-buffer)
+     ("B" "Buffer list" disproject-list-buffers)
+     ("c" "Compile" disproject-compile
+      :buffer-id "compile")
+     ("d" "Dired" disproject-dired)
+     ("k" "Kill buffers" disproject-kill-buffers)
+     ("s" "Shell" disproject-shell)
+     ("v" disproject-vc-status
+      :inapt-if-not disproject-prefix--version-control-apt?)
+     ("w" "Diagnostics" disproject-flymake-diagnostics
+      :if disproject-prefix--feature-flymake?)]
+   [ :advice disproject-with-env-apply
+     :advice* disproject-with-env-apply
+     ("!" "Shell command" disproject-synchronous-shell-command)
+     ("&" "Async shell command" disproject-shell-command
+      :buffer-id "shell-command"
+      :allow-multiple-buffers? t)
+     ("M-x" "Extended command" disproject-execute-extended-command)]
    ["Find"
+    :advice disproject-with-env-apply
+    :advice* disproject-with-env-apply
     ("D" "directory" disproject-find-dir)
     ("f" "file" disproject-find-file)
     ("F" "file (+external)" disproject-or-external-find-file)

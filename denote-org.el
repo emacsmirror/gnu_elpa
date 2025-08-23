@@ -1025,15 +1025,14 @@ With optional FILES operate on them, otherwise use the return value of
 When sequence is an empty string, then use all Denote files with a sequence.
 
 Used by `org-dblock-update' with PARAMS provided by the dynamic block."
-    (let ((block-name (plist-get params :block-name))
-          (depth (plist-get params :depth)))
-      (let* ((sequence (plist-get params :sequence))
-             (parent (denote-sequence-get-path sequence))
-             (children (denote-sequence-get-relative sequence 'all-children))
-             (family (if (eq sequence "")
-			 nil
-		       (push parent children)))
-             (files (denote-org-sequence--get-files-with-max-depth depth family)))
+    (let* ((block-name (plist-get params :block-name))
+           (depth (plist-get params :depth))
+           (sequence (plist-get params :sequence))
+           (all-p (or (string= sequence "") (string= sequence ".+")))
+           (parent (unless all-p (denote-sequence-get-path sequence)))
+           (children (unless all-p (denote-sequence-get-relative sequence 'all-children)))
+           (family (unless all-p (push parent children))))
+      (when-let* ((files (denote-org-sequence--get-files-with-max-depth depth family)))
         (when block-name (insert "#+name: " block-name "\n"))
         (denote-org--insert-sequence files)
         (join-line)))))

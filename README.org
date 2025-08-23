@@ -476,6 +476,10 @@ The =:sequence= is required, while =:depth= is optional.
   block. It consists of the text of the sequence, whose numeric format
   is like ~1=1~ or, for its alphanumeric counterpart, =1a=.
 
+  A value of =:sequence= which is an empty string =""= or the regular
+  expression for "match anything at least once", namely =".+"=, mean
+  to collect all the sequences with their children.
+
 - The depth is the relative depth from the root note: the number 2 is
   for the children of the given sequence, 3 for grandchildren, and so
   on. A value of ~nil~ means to find all descendants of the given

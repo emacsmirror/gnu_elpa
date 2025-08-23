@@ -55,6 +55,9 @@
 (declare-function calc-push-list "calc")
 (declare-function calc "calc")
 
+(defvar org-read-date-prefer-future)
+(defvar org-read-date-popup-calendar)
+
 (defconst iso-date-regexp
   (rx (group (= 4 digit)) "-"
       (group (= 2 digit)) "-"
@@ -62,6 +65,35 @@
   "Regexp matching an ISO 8601 date string.
 
 This means a date formatted as YYYY-MM-DD.")
+
+;;;; User options
+
+(defgroup iso-date ()
+  "Utilities for working with ISO dates."
+  :group 'calendar
+  :group 'convenience)
+
+(defcustom iso-date-insert-reverse-argument nil
+  "Non-nil if `iso-date-insert' should reverse the prefix argument meaning.
+
+By default, it always inserts current date, and prompts for another date
+with a prefix argument.  When this setting is non-nil, this is reversed."
+  :group 'iso-date
+  :type 'boolean)
+
+(defcustom iso-date-insert-prefer-future t
+  "Non-nil if `iso-date-insert' prompt should prefer future dates.
+
+By default, this is true, to retain the same behaviour of
+`org-read-date'.  See `org-read-date-prefer-future'."
+  :type 'boolean)
+
+(defcustom iso-date-insert-popup-calendar t
+  "Non-nil if `iso-date-insert' prompt should pop up a calendar.
+
+By default, this is true, to retain the same behaviour of
+`org-read-date'.  See `org-read-date-popup-calendar'."
+  :type 'boolean)
 
 ;;;; Conversion
 
@@ -234,16 +266,25 @@ This is an alternative to the plist-based modification offered by
 
 ;;;; Insertion and manipulation
 
+;;;###autoload
 (defun iso-date-insert (&optional arg)
   "Insert an ISO date at point.
 
 When ARG is non-nil (interactively, with a prefix argument), prompt for
-a date using `org-read-date'."
+a date using `org-read-date'.
+
+When `iso-date-insert-reverse-argument' is non-nil, the meaning of the
+prefix argument is reversed.
+
+See `iso-date-insert-prefer-future' and `iso-date-insert-popup-calendar'
+to further customize the behavior of the command."
   (interactive "*P")
-  (if (not arg)
+  (if (eq (not arg) (not iso-date-insert-reverse-argument))
       (insert (format-time-string "%F"))
     (require 'org)
-    (insert (org-read-date))))
+    (let ((org-read-date-prefer-future iso-date-insert-prefer-future)
+          (org-read-date-popup-calendar iso-date-insert-popup-calendar))
+      (insert (org-read-date)))))
 
 (defun iso-date-at-point-day-up (&optional n)
   "Increment ISO date at point by one day.

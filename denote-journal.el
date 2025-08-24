@@ -43,6 +43,8 @@
   :link '(url-link :tag "Denote homepage" "https://protesilaos.com/emacs/denote")
   :link '(url-link :tag "Denote Journal homepage" "https://protesilaos.com/emacs/denote-journal"))
 
+;;;; User options
+
 (defcustom denote-journal-directory
   (expand-file-name "journal" denote-directory)
   "Directory for storing daily journal entries.
@@ -114,6 +116,8 @@ journal entry (refer to the `tmr' package on GNU ELPA)."
   :group 'denote-journal
   :type 'hook)
 
+;;;; Common helper functions
+
 (defun denote-journal-directory ()
   "Return the variable `denote-journal-directory' as a directory.
 If the path does not exist, then make it first."
@@ -176,6 +180,8 @@ is non-nil, prompt the user for a template among
   (when denote-templates
     (or (alist-get 'journal denote-templates)
         (denote-template-prompt))))
+
+;;;; New entry without special conditions
 
 ;;;###autoload
 (defun denote-journal-new-entry (&optional date)
@@ -272,6 +278,8 @@ It is internally processed by `denote-valid-date-p'."
     (when current-prefix-arg
       (denote-date-prompt))))
   (find-file (denote-journal-path-to-new-or-existing-entry date)))
+
+;;;; Link or create functionality
 
 ;;;###autoload
 (defun denote-journal-link-or-create-entry (&optional date id-only)

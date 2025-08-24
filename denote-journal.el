@@ -109,6 +109,18 @@ custom string, or a symbol:
                  day-date-month-year-12h)
           (string :tag "Custom string with `format-time-string' specifiers")))
 
+(defcustom denote-journal-interval 'daily
+  "The interval used by `denote-journal-new-or-existing-entry'.
+The value is a symbol of `daily', `weekly', `monthly', or `yearly'.  Any
+other value is understood as `daily'."
+  :type '(choice
+          (const daily)
+          (const weekly)
+          (const monthly)
+          (const yearly))
+  :package-version '(denote . "0.2.0")
+  :group 'denote-journal)
+
 (defcustom denote-journal-hook nil
   "Normal hook called after `denote-journal-new-entry'.
 Use this to, for example, set a timer after starting a new
@@ -207,10 +219,27 @@ is internally processed by `denote-valid-date-p'."
      (denote-journal--get-template))
     (run-hooks 'denote-journal-hook)))
 
-(defun denote-journal--filename-date-regexp (&optional date)
-  "Regular expression to match journal entries for today or optional DATE.
+;;;; New or existing entry based on `denote-journal-interval'
+
+(defun denote-journal--filename-regexp (date interval)
+  "Regular expression for Denote files with DATE matched to INTERVAL.
+INTERVAL is one among the symbols used by `denote-journal-interval'.
 DATE has the same format as that returned by `denote-valid-date-p'."
-  (let* ((identifier (format "%sT[0-9]\\{6\\}" (format-time-string "%Y%m%d" date)))
+  (let* ((identifier
+          (pcase interval
+            ('weekly
+             (let* ((day-of-week (string-to-number (format-time-string "%u" date)))
+                    (monday (time-subtract date (seconds-to-time (* (1- day-of-week) 24 3600))))
+                    (date-strings
+                     (let ((list nil))
+                       (dotimes (i 7)
+                         (push (format-time-string "%Y%m%d" (time-add monday (seconds-to-time (* i 24 3600)))) list))
+                       (nreverse list)))
+                    (date-regexp (regexp-opt date-strings)))
+               (format "%sT[0-9]\\{6\\}" date-regexp)))
+            ('monthly (format "%s[0-9]\\{2\\}T[0-9]\\{6\\}" (format-time-string "%Y%m" date)))
+            ('yearly (format "%s[0-9]\\{4\\}T[0-9]\\{6\\}" (format-time-string "%Y" date)))
+            (_ (format "%sT[0-9]\\{6\\}" (format-time-string "%Y%m%d" date)))))
          (order denote-file-name-components-order)
          (id-index (seq-position order 'identifier))
          (kw-index (seq-position order 'keywords)))
@@ -218,11 +247,30 @@ DATE has the same format as that returned by `denote-valid-date-p'."
         (format "%s.*?%s" identifier (denote-journal--keyword-regex))
       (format "%s.*?@@%s" (denote-journal--keyword-regex) identifier))))
 
-(defun denote-journal--entry-today (&optional date)
-  "Return list of files matching a journal for today or optional DATE.
+(defun denote-journal--date-in-interval-p (date interval)
+  "Return DATE if it is within the INTEVAL else nil.
+INTERVAL is one among the symbols used by `denote-journal-interval'.
+DATE has the same format as that returned by `denote-valid-date-p'."
+  (if (denote-valid-date-p date)
+      (let* ((current (current-time))
+             (specifiers (pcase interval
+                           ('weekly "%Y-%V")
+                           ('monthly "%Y-%m")
+                           ('yearly "%Y"))))
+        (cond
+         ((null specifiers)
+          date)
+         ((string= (format-time-string specifiers date)
+                   (format-time-string specifiers current))
+          date)))
+    (error "The date `%s' does not satisfy `denote-valid-date-p'" date)))
+
+(defun denote-journal--get-entry (date interval)
+  "Return list of files matching a journal for DATE given INTERVAL.
+INTERVAL is one among the symbols used by `denote-journal-interval'.
 DATE has the same format as that returned by `denote-valid-date-p'."
   (let ((denote-directory (denote-journal-directory)))
-    (denote-directory-files (denote-journal--filename-date-regexp date))))
+    (denote-directory-files (denote-journal--filename-regexp date interval))))
 
 (defun denote-journal-select-file-prompt (files)
   "Prompt for file among FILES if >1, else return the `car'.
@@ -236,7 +284,7 @@ Perform the operation relative to the variable `denote-journal-directory'."
     (concat denote-directory file)))
 
 ;;;###autoload
-(defun denote-journal-path-to-new-or-existing-entry (&optional date)
+(defun denote-journal-path-to-new-or-existing-entry (&optional date interval)
   "Return path to existing or new journal file.
 With optional DATE, do it for that date, else do it for today.  DATE is
 a string and has the same format as that covered in the documentation of
@@ -244,9 +292,14 @@ the `denote' function.  It is internally processed by `denote-valid-date-p'.
 
 If there are multiple journal entries for the date, prompt for one among
 them using minibuffer completion.  If there is only one, return it.  If
-there is no journal entry, create it."
-  (let* ((internal-date (or (denote-valid-date-p date) (current-time)))
-         (files (denote-journal--entry-today internal-date))
+there is no journal entry, create it.
+
+With optional INTERVAL as a symbol among those accepted by
+`denote-journal-interval', match DATE to INTERVAL and then return the
+results accordingly.  If INTERVAL is nil, then it has the same measing
+as `daily', per `denote-journal-interval'."
+  (let* ((internal-date (or (denote-journal--date-in-interval-p date interval) (current-time)))
+         (files (denote-journal--get-entry internal-date))
          (denote-kill-buffers nil))
     (if files
         (denote-journal-select-file-prompt files)
@@ -374,7 +427,7 @@ CALENDAR-DATE is a list of three numbers, in the form of (MONTH DAY YEAR)."
   "Return path to Denote journal entry corresponding to CALENDAR-DATE.
 CALENDAR-DATE is a list of three numbers, in the form of (MONTH DAY YEAR)."
   (when-let* ((date (denote-journal-calendar--date-to-time calendar-date)))
-    (denote-journal--entry-today date)))
+    (denote-journal--get-entry date)))
 
 (defun denote-journal-calendar-find-file ()
   "Show the Denote journal entry for the `calendar' date at point.

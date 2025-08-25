@@ -298,8 +298,8 @@ With optional INTERVAL as a symbol among those accepted by
 `denote-journal-interval', match DATE to INTERVAL and then return the
 results accordingly.  If INTERVAL is nil, then it has the same measing
 as `daily', per `denote-journal-interval'."
-  (let* ((internal-date (or (denote-journal--date-in-interval-p date interval) (current-time)))
-         (files (denote-journal--get-entry internal-date))
+  (let* ((internal-date (denote-journal--date-in-interval-p date interval))
+         (files (denote-journal--get-entry internal-date interval))
          (denote-kill-buffers nil))
     (if files
         (denote-journal-select-file-prompt files)
@@ -330,7 +330,10 @@ It is internally processed by `denote-valid-date-p'."
    (list
     (when current-prefix-arg
       (denote-date-prompt))))
-  (find-file (denote-journal-path-to-new-or-existing-entry date)))
+  (if-let* ((date-to-use (or date (current-time)))
+            (file (denote-journal-path-to-new-or-existing-entry date-to-use denote-journal-interval)))
+      (find-file file)
+    (error "Cannot get a new or existing journal entry")))
 
 ;;;; Link or create functionality
 

@@ -65,6 +65,36 @@
            (let ((denote-journal-title-format 'day-date-month-year-24h))
              (denote-journal-daily--title-format)))))
 
+(ert-deftest djt--denote-journal--filename-regexp ()
+  "Test that `denote-journal--filename-regexp' returns the expected regular expression."
+  (let ((time (denote-valid-date-p "2025-08-23")))
+    (let ((denote-file-name-components-order '(identifier signature title keywords)))
+      (should (string=
+               (denote-journal--filename-regexp time 'daily)
+               "20250823T[0-9]\\{6\\}.*?_journal"))
+      (should (string=
+               (denote-journal--filename-regexp time 'weekly)
+               "\\(?:202508\\(?:1[89]\\|2[0-4]\\)\\)T[0-9]\\{6\\}.*?_journal"))
+      (should (string=
+               (denote-journal--filename-regexp time 'monthly)
+               "202508[0-9]\\{2\\}T[0-9]\\{6\\}.*?_journal"))
+      (should (string=
+               (denote-journal--filename-regexp time 'yearly)
+               "2025[0-9]\\{4\\}T[0-9]\\{6\\}.*?_journal")))
+
+    (let ((denote-file-name-components-order '(keywords signature title identifier)))
+      (should (string=
+               (denote-journal--filename-regexp time 'daily)
+               "_journal.*?@@20250823T[0-9]\\{6\\}"))
+      (should (string=
+               (denote-journal--filename-regexp time 'weekly)
+               "_journal.*?@@\\(?:202508\\(?:1[89]\\|2[0-4]\\)\\)T[0-9]\\{6\\}"))
+      (should (string=
+               (denote-journal--filename-regexp time 'monthly)
+               "_journal.*?@@202508[0-9]\\{2\\}T[0-9]\\{6\\}"))
+      (should (string=
+               (denote-journal--filename-regexp time 'yearly)
+               "_journal.*?@@2025[0-9]\\{4\\}T[0-9]\\{6\\}")))))
 (provide 'denote-journal-test)
 ;;; denote-journal-test.el ends here
 

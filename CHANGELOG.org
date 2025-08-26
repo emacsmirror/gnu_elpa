@@ -13,6 +13,22 @@ the manual: <https://protesilaos.com/emacs/show-font>.
 
 #+toc: headlines 1 insert TOC here, with one headline level
 
+* Version 0.4.0 on 2025-08-26
+:PROPERTIES:
+:CUSTOM_ID: h:d62cc2cd-16ec-4b6f-9d2d-37061c7fe177
+:END:
+
+This version expands the capabilities of the font preview mechanism to
+handle emoji and icon fonts (i.e. those with codepoints in the Unicode
+Private Use Area).
+
+Both the ~show-font-select-preview~ and ~show-font-tabulated~ commands
+now handle these types of font.
+
+Previews for emoji or icon fonts are done using the string of
+characters set to the variable ~show-font-emoji-sample~ or
+~show-font-icon-sample~. These symbols are user options.
+
 * Version 0.3.0 on 2025-04-26
 :PROPERTIES:
 :CUSTOM_ID: h:e57d0359-f7dc-4abd-802e-27b854d633bf

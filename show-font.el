@@ -43,6 +43,22 @@
   :link '(info-link "(show-font) Top")
   :link '(url-link :tag "Homepage" "https://protesilaos.com/emacs/show-font"))
 
+;; NOTE 2025-04-24: We do not need to check for capital letters.  A
+;; font that does not support those is a weird case that is not our
+;; problem.
+(defconst show-font-latin-characters
+  (number-sequence ?a ?z)
+  "The Latin lower-case characters.")
+
+(defconst show-font-icon-characters
+  (number-sequence #xE000 #xF8FF)
+  "A sequence of characters in the Unicode Private Use Area.
+The PUA is typically used by icon fonts.")
+
+(defconst show-font-emoji-characters
+  '(#x1F600 #x1F601 #x1F602 #x1F349)
+  "A sequence of characters in the emoji range.")
+
 ;; TODO 2024-09-06: How best to handle multiple languages?  Say there
 ;; is a font that only works with Greek characters.  We need to know
 ;; what characters the font supports.  Then we return the relevant
@@ -79,8 +95,6 @@ This is displayed in the buffer produced by the command
   :package-version '(show-font . "0.4.0")
   :type 'string
   :group 'show-font)
-
-(defvar show-font-icon-characters)
 
 (defcustom show-font-icon-sample
   (mapconcat #'char-to-string (seq-take show-font-icon-characters 10))
@@ -211,22 +225,6 @@ action alist."
   "Face for buttons, like to install a missing font.")
 
 ;;;; Helper functions
-
-;; NOTE 2025-04-24: We do not need to check for capital letters.  A
-;; font that does not support those is a weird case that is not our
-;; problem.
-(defconst show-font-latin-characters
-  (number-sequence ?a ?z)
-  "The Latin lower-case characters.")
-
-(defconst show-font-icon-characters
-  (number-sequence #xE000 #xF8FF)
-  "A sequence of characters in the Unicode Private Use Area.
-The PUA is typically used by icon fonts.")
-
-(defconst show-font-emoji-characters
-  '(#x1F600 #x1F601 #x1F602 #x1F349)
-  "A sequence of characters in the emoji range.")
 
 (defun show-font-pangram-p (string &optional characters)
   "Return non-nil if STRING is a pangram.

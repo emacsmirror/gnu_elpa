@@ -51,7 +51,7 @@
   '((fox . "The quick brown fox jumps over the lazy dog")
     (wizards . "Grumpy wizards make toxic brew for the evil queen and jack")
     (gunboats . "A quick movement of the enemy will jeopardize six gunboats")
-    (prot . "Prot may find zesty owls join quiet vixens as the night beckons"))
+    (prot . "Prot may find zesty owls and quiet jays vexing the black cat."))
   "Default list of pangrams.")
 
 (defcustom show-font-pangram 'prot

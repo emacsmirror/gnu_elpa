@@ -179,6 +179,13 @@ can be used to showcase common patterns and letter combinations in
 words. The default value should cover many such examples. Those are
 displayed in the buffer produced by the command ~show-font-select-preview~.
 
+#+vindex: show-font-emoji-sample
+The user option ~show-font-emoji-sample~ is a string with characters
+that can be displayed by an emoji font. It is used in the buffer
+produced by the commands ~show-font-select-preview~ and
+~show-font-tabulated~. [ Support for emoji fonts is part of
+{{{development-version}}}. ]
+
 Finally, the following faces control the appearance of various
 elements.
 

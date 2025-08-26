@@ -75,7 +75,7 @@ experimenting with `show-font-pangram-p'."
   "😀😁😂🤣😃😄😅😆😉😊😋😎😍😘🥰"
   "Character sample to showcase icon or emoji fonts.
 This is displayed in the buffer produced by the command
-`show-font-select-preview'."
+`show-font-select-preview' and `show-font-tabulated'."
   :package-version '(show-font . "0.4.0")
   :type 'string
   :group 'show-font)

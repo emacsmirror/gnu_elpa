@@ -67,7 +67,7 @@ The PUA is typically used by icon fonts.")
   '((fox . "The quick brown fox jumps over the lazy dog")
     (wizards . "Grumpy wizards make toxic brew for the evil queen and jack")
     (gunboats . "A quick movement of the enemy will jeopardize six gunboats")
-    (prot . "Prot may find zesty owls and quiet jays vexing the black cat."))
+    (prot . "Prot may find zesty owls and quiet jays vexing the black cat"))
   "Default list of pangrams.")
 
 (defcustom show-font-pangram 'prot

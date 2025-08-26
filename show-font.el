@@ -395,77 +395,70 @@ FILE must be of type TTF or OTF and must not already be installed (per
   "Prepare pangram text at varying font heights for the current font file.
 With optional FAMILY, prepare a preview for the given font family
 instead of that of the file."
-  (cond
-   ((not (display-graphic-p))
-    (propertize "Fonts cannot be displayed in a terminal or TTY." 'face 'show-font-title))
-   ((and (not family)
-         (not (show-font-installed-file-p buffer-file-name)))
-    nil)
-   ((show-font--displays-emoji-p family)
-    (let  ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
-           (character-sample nil))
-      (dolist (face faces)
-        (push (propertize show-font-emoji-sample 'face (list face :family family)) character-sample))
-      (concat
-       (propertize (or family (show-font--get-attribute-from-file "fullname")) 'face (list 'show-font-title :family "Monospace"))
-       "\n"
-       (make-separator-line)
-       "\n"
-       (mapconcat #'identity (nreverse character-sample) "\n"))))
-   ((show-font--displays-icon-p family)
-    (let  ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
-           (character-sample nil))
-      (dolist (face faces)
-        (push (propertize show-font-icon-sample 'face (list face :family family)) character-sample))
-      (concat
-       (propertize (or family (show-font--get-attribute-from-file "fullname")) 'face (list 'show-font-title :family "Monospace"))
-       "\n"
-       (make-separator-line)
-       "\n"
-       (mapconcat #'identity (nreverse character-sample) "\n"))))
-   (t
-    (let* ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
-           (list-of-lines nil)
-           (list-of-blocks nil)
-           (list-of-sentences nil)
-           (pangram (show-font--get-pangram))
-           (name (or family (show-font--get-attribute-from-file "fullname")))
-           (family (or family (show-font--get-attribute-from-file "family")))
-           (character-sample show-font-character-sample)
-           (propertize-sample-p (show-font--string-p character-sample)))
-      (dolist (face faces)
-        (push (propertize pangram 'face (list face :family family)) list-of-lines)
-        (push (propertize pangram 'face (list face :family family :slant 'italic)) list-of-lines)
-        (push (propertize pangram 'face (list face :family family :weight 'bold)) list-of-lines)
-        (push (propertize pangram 'face (list face :family family :slant 'italic :weight 'bold)) list-of-lines)
-        (when propertize-sample-p
-          (push (propertize character-sample 'face (list face :family family)) list-of-blocks)
-          (push (propertize character-sample 'face (list face :family family :slant 'italic)) list-of-blocks)
-          (push (propertize character-sample 'face (list face :family family :weight 'bold)) list-of-blocks)
-          (push (propertize character-sample 'face (list face :family family :slant 'italic :weight 'bold)) list-of-blocks))
-        (when show-font-sentences-sample
-          (dolist (sentence show-font-sentences-sample)
-            (when (show-font--string-p sentence)
-              (push (propertize sentence 'face (list face :family family)) list-of-sentences)
-              (push (propertize sentence 'face (list face :family family :slant 'italic)) list-of-sentences)
-              (push (propertize sentence 'face (list face :family family :weight 'bold)) list-of-sentences)
-              (push (propertize sentence 'face (list face :family family :slant 'italic :weight 'bold)) list-of-sentences)))))
-      (concat
-       (propertize name 'face (list 'show-font-title :family family))
-       "\n"
-       (make-separator-line)
-       (if (not (equal name family))
-           (concat
-            "\n"
-            (propertize "Rendered with parent family: " 'face (list 'show-font-regular :family family))
-            (propertize family 'face (list 'show-font-regular :family family))
-            "\n"
-            (make-separator-line))
-         "")
-       "\n"
-       (mapconcat #'identity (nreverse list-of-lines) "\n") "\n"
-       (mapconcat #'identity (nreverse list-of-blocks) "\n") "\n" "\n"
-       (mapconcat #'identity (nreverse list-of-sentences) "\n") "\n")))))
+  (let ((icon-or-emoji-n (lambda (family sample)
+                           (let  ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
+                                  (character-sample nil))
+                             (dolist (face faces)
+                               (push (propertize sample 'face (list face :family family)) character-sample))
+                             (concat
+                              (propertize (or family (show-font--get-attribute-from-file "fullname")) 'face (list 'show-font-title :family "Monospace"))
+                              "\n"
+                              (make-separator-line)
+                              "\n"
+                              (mapconcat #'identity (nreverse character-sample) "\n"))))))
+    (cond
+     ((not (display-graphic-p))
+      (propertize "Fonts cannot be displayed in a terminal or TTY." 'face 'show-font-title))
+     ((and (not family)
+           (not (show-font-installed-file-p buffer-file-name)))
+      nil)
+     ((show-font--displays-emoji-p family)
+      (funcall icon-or-emoji-n family show-font-emoji-sample))
+     ((show-font--displays-icon-p family)
+      (funcall icon-or-emoji-n family show-font-icon-sample))
+     (t
+      (let* ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
+             (list-of-lines nil)
+             (list-of-blocks nil)
+             (list-of-sentences nil)
+             (pangram (show-font--get-pangram))
+             (name (or family (show-font--get-attribute-from-file "fullname")))
+             (family (or family (show-font--get-attribute-from-file "family")))
+             (character-sample show-font-character-sample)
+             (propertize-sample-p (show-font--string-p character-sample)))
+        (dolist (face faces)
+          (push (propertize pangram 'face (list face :family family)) list-of-lines)
+          (push (propertize pangram 'face (list face :family family :slant 'italic)) list-of-lines)
+          (push (propertize pangram 'face (list face :family family :weight 'bold)) list-of-lines)
+          (push (propertize pangram 'face (list face :family family :slant 'italic :weight 'bold)) list-of-lines)
+          (when propertize-sample-p
+            (push (propertize character-sample 'face (list face :family family)) list-of-blocks)
+            (push (propertize character-sample 'face (list face :family family :slant 'italic)) list-of-blocks)
+            (push (propertize character-sample 'face (list face :family family :weight 'bold)) list-of-blocks)
+            (push (propertize character-sample 'face (list face :family family :slant 'italic :weight 'bold)) list-of-blocks))
+          (when show-font-sentences-sample
+            (dolist (sentence show-font-sentences-sample)
+              (when (show-font--string-p sentence)
+                (push (propertize sentence 'face (list face :family family)) list-of-sentences)
+                (push (propertize sentence 'face (list face :family family :slant 'italic)) list-of-sentences)
+                (push (propertize sentence 'face (list face :family family :weight 'bold)) list-of-sentences)
+                (push (propertize sentence 'face (list face :family family :slant 'italic :weight 'bold)) list-of-sentences)))))
+        (concat
+         (propertize name 'face (list 'show-font-title :family family))
+         "\n"
+         (make-separator-line)
+         (if (not (equal name family))
+             (concat
+              "\n"
+              (propertize "Rendered with parent family: " 'face (list 'show-font-regular :family family))
+              (propertize family 'face (list 'show-font-regular :family family))
+              "\n"
+              (make-separator-line))
+           "")
+         "\n"
+         (mapconcat #'identity (nreverse list-of-lines) "\n") "\n"
+         (mapconcat #'identity (nreverse list-of-blocks) "\n") "\n" "\n"
+         (mapconcat #'identity (nreverse list-of-sentences) "\n") "\n"))))))
 
 (defun show-font--prepare-text (family)
   "Use appropriate text for preview text of FAMILY.

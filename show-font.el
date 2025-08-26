@@ -70,6 +70,16 @@ experimenting with `show-font-pangram-p'."
   :group 'show-font)
 
 ;; See TODO above about multiple languages.
+
+(defcustom show-font-emoji-sample
+  "😀😁😂🤣😃😄😅😆😉😊😋😎😍😘🥰"
+  "Character sample to showcase icon or emoji fonts.
+This is displayed in the buffer produced by the command
+`show-font-select-preview'."
+  :package-version '(show-font . "0.4.0")
+  :type 'string
+  :group 'show-font)
+
 (defcustom show-font-character-sample
   "
 ABCDEFGHIJKLMNOPQRSTUVWXYZ
@@ -198,6 +208,15 @@ action alist."
   (number-sequence ?a ?z)
   "The Latin lower-case characters.")
 
+(defconst show-font-icon-characters
+  (number-sequence #xE000 #xF8FF)
+  "A sequence of characters in the Unicode Private Use Area.
+The PUA is typically used by icon fonts.")
+
+(defconst show-font-emoji-characters
+  '(#x1F600 #x1F601 #x1F602 #x1F349)
+  "A sequence of characters in the emoji range.")
+
 (defun show-font-pangram-p (string &optional characters)
   "Return non-nil if STRING is a pangram.
 With optional CHARACTERS as a list of single character strings, test
@@ -285,6 +304,15 @@ With optional LAX if FAMILY can display at least one among the
 CHARACTERS."
   (show-font--displays-characters-p family show-font-latin-characters lax))
 
+;; NOTE 2025-08-26: I am treating icons and emoji as the same for the
+;; time being, though there might be a good reason to treat them
+;; separately.
+(defun show-font--displays-icons-p (family)
+  "Return non-nil if FAMILY is likely an icon or emoji font."
+  (and (not (show-font--displays-latin-p family))
+       (or (show-font--displays-characters-p family show-font-icon-characters :lax)
+           (show-font--displays-characters-p family show-font-emoji-characters :lax))))
+
 (defun show-font-installed-p (family &optional regexp)
   "Return non-nil if font family FAMILY is installed on the system.
 FAMILY is a string like those of `show-font-get-installed-font-families'.
@@ -361,6 +389,17 @@ instead of that of the file."
    ((and (not family)
          (not (show-font-installed-file-p buffer-file-name)))
     nil)
+   ((show-font--displays-icons-p family)
+    (let  ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
+           (emoji-sample nil))
+      (dolist (face faces)
+        (push (propertize show-font-emoji-sample 'face face) emoji-sample))
+      (concat
+       (propertize (or family (show-font--get-attribute-from-file "fullname")) 'face (list 'show-font-title :family "Monospace"))
+       "\n"
+       (make-separator-line)
+       "\n"
+       (mapconcat #'identity (nreverse emoji-sample) "\n"))))
    (t
     (let* ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
            (list-of-lines nil)
@@ -409,7 +448,8 @@ instead of that of the file."
   "Use appropriate text for preview text of FAMILY.
 If FAMILY is nil, use the one of the current font file."
   (cond
-   ((show-font--displays-latin-p family :lax)
+   ((or (show-font--displays-icons-p family)
+        (show-font--displays-latin-p family :lax))
     (show-font--prepare-text-subr family))
    (t
     (propertize (format "The font family `%s' cannot display characters we know about" family) 'face 'show-font-title))))
@@ -506,19 +546,23 @@ FAMILY is a string that satisfies `show-font-installed-p'."
 Optional REGEXP has the meaning documented in the function
 `show-font-get-installed-font-families'."
   (if-let* ((families (show-font-get-installed-font-families regexp)))
-      ;; FIXME 2025-04-24: How to identify icon fonts?
       (mapcar
        (lambda (family)
-         (let ((latin-p (show-font--displays-latin-p family)))
+         (let ((icon-or-emoji-p (show-font--displays-icons-p family))
+               (latin-p (show-font--displays-latin-p family)))
            (list
             family
             (vector
-             (if latin-p
-                 (propertize family 'face (list 'show-font-title-in-listing :family family))
+             (if (or latin-p icon-or-emoji-p)
+                 (propertize family 'face (list 'show-font-title-in-listing :family (if latin-p family "Monospace")))
                (propertize family 'face (list :inherit '(error show-font-title-in-listing))))
-             (if latin-p
-                 (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family))
-               (propertize "No preview" 'face (list :inherit '(error show-font-regular))))))))
+             (cond
+              (icon-or-emoji-p
+               (propertize show-font-emoji-sample 'face (list 'show-font-regular :family family)))
+              (latin-p
+               (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family)))
+              (t
+               (propertize "No preview" 'face (list :inherit '(error show-font-regular)))))))))
        families)
     (if regexp
         (error "No font families match regexp `%s'" regexp)
@@ -529,7 +573,7 @@ Optional REGEXP has the meaning documented in the function
 Only `let' bind this while calling `show-font-tabulated-mode'.")
 
 (define-derived-mode show-font-tabulated-mode tabulated-list-mode "Show fonts"
-  "Major mode to display a Modus themes palette."
+  "Major mode to display font previews."
   :interactive nil
   (setq-local tabulated-list-format
               [("Font family" 60 t)

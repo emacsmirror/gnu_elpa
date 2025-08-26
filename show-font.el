@@ -73,7 +73,18 @@ experimenting with `show-font-pangram-p'."
 
 (defcustom show-font-emoji-sample
   "😀😁😂🤣😃😄😅😆😉😊😋😎😍😘🥰"
-  "Character sample to showcase icon or emoji fonts.
+  "Character sample to showcase emoji fonts.
+This is displayed in the buffer produced by the command
+`show-font-select-preview' and `show-font-tabulated'."
+  :package-version '(show-font . "0.4.0")
+  :type 'string
+  :group 'show-font)
+
+(defvar show-font-icon-characters)
+
+(defcustom show-font-icon-sample
+  (mapconcat #'char-to-string (seq-take show-font-icon-characters 10))
+  "Character sample to showcase icon fonts.
 This is displayed in the buffer produced by the command
 `show-font-select-preview' and `show-font-tabulated'."
   :package-version '(show-font . "0.4.0")
@@ -304,14 +315,15 @@ With optional LAX if FAMILY can display at least one among the
 CHARACTERS."
   (show-font--displays-characters-p family show-font-latin-characters lax))
 
-;; NOTE 2025-08-26: I am treating icons and emoji as the same for the
-;; time being, though there might be a good reason to treat them
-;; separately.
-(defun show-font--displays-icons-p (family)
-  "Return non-nil if FAMILY is likely an icon or emoji font."
+(defun show-font--displays-emoji-p (family)
+  "Return non-nil if FAMILY is likely an emoji font."
   (and (not (show-font--displays-latin-p family))
-       (or (show-font--displays-characters-p family show-font-icon-characters :lax)
-           (show-font--displays-characters-p family show-font-emoji-characters :lax))))
+       (show-font--displays-characters-p family show-font-emoji-characters :lax)))
+
+(defun show-font--displays-icon-p (family)
+  "Return non-nil if FAMILY is likely an icon font."
+  (and (not (show-font--displays-latin-p family))
+       (show-font--displays-characters-p family show-font-icon-characters :lax)))
 
 (defun show-font-installed-p (family &optional regexp)
   "Return non-nil if font family FAMILY is installed on the system.
@@ -389,17 +401,28 @@ instead of that of the file."
    ((and (not family)
          (not (show-font-installed-file-p buffer-file-name)))
     nil)
-   ((show-font--displays-icons-p family)
+   ((show-font--displays-emoji-p family)
     (let  ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
-           (emoji-sample nil))
+           (character-sample nil))
       (dolist (face faces)
-        (push (propertize show-font-emoji-sample 'face face) emoji-sample))
+        (push (propertize show-font-emoji-sample 'face (list face :family family)) character-sample))
       (concat
        (propertize (or family (show-font--get-attribute-from-file "fullname")) 'face (list 'show-font-title :family "Monospace"))
        "\n"
        (make-separator-line)
        "\n"
-       (mapconcat #'identity (nreverse emoji-sample) "\n"))))
+       (mapconcat #'identity (nreverse character-sample) "\n"))))
+   ((show-font--displays-icon-p family)
+    (let  ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
+           (character-sample nil))
+      (dolist (face faces)
+        (push (propertize show-font-icon-sample 'face (list face :family family)) character-sample))
+      (concat
+       (propertize (or family (show-font--get-attribute-from-file "fullname")) 'face (list 'show-font-title :family "Monospace"))
+       "\n"
+       (make-separator-line)
+       "\n"
+       (mapconcat #'identity (nreverse character-sample) "\n"))))
    (t
     (let* ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
            (list-of-lines nil)
@@ -448,7 +471,8 @@ instead of that of the file."
   "Use appropriate text for preview text of FAMILY.
 If FAMILY is nil, use the one of the current font file."
   (cond
-   ((or (show-font--displays-icons-p family)
+   ((or (show-font--displays-emoji-p family)
+        (show-font--displays-icon-p family)
         (show-font--displays-latin-p family :lax))
     (show-font--prepare-text-subr family))
    (t
@@ -548,17 +572,20 @@ Optional REGEXP has the meaning documented in the function
   (if-let* ((families (show-font-get-installed-font-families regexp)))
       (mapcar
        (lambda (family)
-         (let ((icon-or-emoji-p (show-font--displays-icons-p family))
+         (let ((emoji-p (show-font--displays-emoji-p family))
+               (icon-p (show-font--displays-icon-p family))
                (latin-p (show-font--displays-latin-p family)))
            (list
             family
             (vector
-             (if (or latin-p icon-or-emoji-p)
+             (if (or icon-p emoji-p)
                  (propertize family 'face (list 'show-font-title-in-listing :family (if latin-p family "Monospace")))
                (propertize family 'face (list :inherit '(error show-font-title-in-listing))))
              (cond
-              (icon-or-emoji-p
+              (emoji-p
                (propertize show-font-emoji-sample 'face (list 'show-font-regular :family family)))
+              (icon-p
+               (propertize show-font-icon-sample 'face (list 'show-font-regular :family family)))
               (latin-p
                (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family)))
               (t

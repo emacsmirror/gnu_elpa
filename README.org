@@ -180,11 +180,12 @@ words. The default value should cover many such examples. Those are
 displayed in the buffer produced by the command ~show-font-select-preview~.
 
 #+vindex: show-font-emoji-sample
-The user option ~show-font-emoji-sample~ is a string with characters
-that can be displayed by an emoji font. It is used in the buffer
-produced by the commands ~show-font-select-preview~ and
-~show-font-tabulated~. [ Support for emoji fonts is part of
-{{{development-version}}}. ]
+#+vindex: show-font-icon-sample
+The user options ~show-font-emoji-sample~ and ~show-font-icon-sample~
+take a string value with characters that can be displayed by an emoji
+or icon font, respectively. The sample is used in the buffer produced
+by the commands ~show-font-select-preview~ and ~show-font-tabulated~.
+[ Support for emoji and icon fonts is part of {{{development-version}}}. ]
 
 Finally, the following faces control the appearance of various
 elements.

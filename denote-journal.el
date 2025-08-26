@@ -248,7 +248,7 @@ DATE has the same format as that returned by `denote-valid-date-p'."
       (format "%s.*?@@%s" (denote-journal--keyword-regex) identifier))))
 
 (defun denote-journal--date-in-interval-p (date interval)
-  "Return DATE if it is within the INTEVAL else nil.
+  "Return DATE if it is within the INTERVAL else nil.
 INTERVAL is one among the symbols used by `denote-journal-interval'.
 DATE has the same format as that returned by `denote-valid-date-p'."
   (if (denote-valid-date-p date)

@@ -95,6 +95,23 @@
       (should (string=
                (denote-journal--filename-regexp time 'yearly)
                "_journal.*?@@2025[0-9]\\{4\\}T[0-9]\\{6\\}")))))
+
+(ert-deftest djt--denote-journal--date-in-interval-p ()
+  "Test that `denote-journal--date-in-interval-p' does the right thing."
+  (cl-letf* ((current-date (denote-valid-date-p "2025-08-23"))
+             (older-date (denote-valid-date-p "2024-08-23"))
+             ;; This will change the meaning of `current-time',
+             ;; otherwise we cannot have a fixed test here.
+             ((symbol-function #'current-time) (lambda () current-date)))
+    (should (eq (denote-journal--date-in-interval-p current-date 'daily) current-date))
+    (should (eq (denote-journal--date-in-interval-p current-date 'weekly) current-date))
+    (should (eq (denote-journal--date-in-interval-p current-date 'monthly) current-date))
+    (should (eq (denote-journal--date-in-interval-p current-date 'yearly) current-date))
+    (should (eq (denote-journal--date-in-interval-p older-date 'daily) older-date))
+    (should (null (denote-journal--date-in-interval-p older-date 'weekly)))
+    (should (null (denote-journal--date-in-interval-p older-date 'monthly)))
+    (should (null (denote-journal--date-in-interval-p older-date 'yearly)))))
+
 (provide 'denote-journal-test)
 ;;; denote-journal-test.el ends here
 

@@ -2470,16 +2470,15 @@ nil to let the next function try.")
 Return commit at point, or commit range in region if it is
 active.  This function is suitable for use in
 `debbugs-gnu-read-commit-range-hook'."
+  ;; Always return a range, since it is what "git format-patch" expects for a
+  ;; single commit.
   (when (derived-mode-p #'vc-git-log-view-mode)
     (list (if (use-region-p)
               (let ((beg (log-view-current-entry (region-beginning)))
                     (end (log-view-current-entry (region-end))))
-                (if (= (car beg) (car end))
-                    ;; Region spans only a single entry.
-                    (cadr beg)
-                  ;; Later revs are at the top of buffer.
-                  (format "%s~1..%s" (cadr end) (cadr beg))))
-            (log-view-current-tag)))))
+                (format "%s~1..%s" (cadr end) (cadr beg)))
+            (let ((current-tag (log-view-current-tag)))
+              (format "%s~1..%s" current-tag current-tag))))))
 (add-hook 'debbugs-gnu-read-commit-range-hook
           #'debbugs-gnu-read-commit-range-from-vc-log)
 

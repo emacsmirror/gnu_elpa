@@ -582,9 +582,7 @@ Optional REGEXP has the meaning documented in the function
               (t
                (propertize "No preview" 'face (list :inherit '(error show-font-regular)))))))))
        families)
-    (if regexp
-        (error "No font families match regexp `%s'" regexp)
-      (error "No font families found"))))
+    (error "No font families found")))
 
 (defvar show-font-tabulated-current-regexp nil
   "Regexp for `show-font-get-installed-font-families'.

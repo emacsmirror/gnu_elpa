@@ -85,7 +85,7 @@ is needed."
   (vc-jj-test-with-repo repo
     (write-region "New file" nil "README")
     (should (eq (vc-jj-state "README") 'added))
-    (should (equal (vc-jj-dir-status-files repo nil (lambda (x y) x))
+    (should (equal (vc-jj-dir-status-files repo nil (lambda (x _y) x))
                    '(("README" added))))))
 
 (ert-deftest vc-jj-test-added-tracked ()
@@ -96,7 +96,7 @@ is needed."
     (write-region "In second commit" nil "second-file")
     (should (eq (vc-jj-state "second-file") 'added))
     (should (eq (vc-jj-state "first-file") 'up-to-date))
-    (should (equal (vc-jj-dir-status-files repo nil (lambda (x y) x))
+    (should (equal (vc-jj-dir-status-files repo nil (lambda (x _y) x))
                    '(("second-file" added) ("first-file" up-to-date))))))
 
 (ert-deftest vc-jj-delete-file ()
@@ -109,7 +109,7 @@ is needed."
     (should (eq (vc-jj-state "first-file") 'removed))
     (write-region "Second file" nil "second-file")
     (should (eq (vc-jj-state "second-file") 'added))
-    (should (equal (vc-jj-dir-status-files repo nil (lambda (x y) x))
+    (should (equal (vc-jj-dir-status-files repo nil (lambda (x _y) x))
                    '(("second-file" added) ("first-file" removed))))))
 
 (ert-deftest vc-jj-test-conflict ()

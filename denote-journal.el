@@ -251,18 +251,19 @@ DATE has the same format as that returned by `denote-valid-date-p'."
   "Return DATE if it is within the INTERVAL else nil.
 INTERVAL is one among the symbols used by `denote-journal-interval'.
 DATE has the same format as that returned by `denote-valid-date-p'."
-  (if-let ((date (denote-valid-date-p date)))
-      (let* ((current (current-time))
-             (specifiers (pcase interval
-                           ('weekly "%Y-%V")
-                           ('monthly "%Y-%m")
-                           ('yearly "%Y"))))
-        (cond
-         ((null specifiers)
-          date)
-         ((string= (format-time-string specifiers date)
-                   (format-time-string specifiers current))
-          date)))
+  (if-let* ((date (denote-valid-date-p date))
+            (current (current-time))
+            (specifiers (pcase interval
+                          ('weekly "%Y-%V")
+                          ('monthly "%Y-%m")
+                          ('yearly "%Y")
+                          (_ t))))
+      (cond
+       ((eq specifiers t)
+        date)
+       ((string= (format-time-string specifiers date)
+                 (format-time-string specifiers current))
+        date))
     (error "The date `%s' does not satisfy `denote-valid-date-p'" date)))
 
 (defun denote-journal--get-entry (date interval)

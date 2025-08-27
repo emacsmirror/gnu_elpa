@@ -750,7 +750,7 @@ element, or can be a change id, in which case we query for the first
 line of its description."
   (let ((description
          (if (listp elem)
-             (second elem)
+             (cl-second elem)
            (vc-jj--command-parseable "log" "-r" elem "--no-graph" "-T" "self.description().first_line()"))))
     (format " %s" (propertize description 'face 'completions-annotations))))
 

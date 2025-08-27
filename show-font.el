@@ -5,7 +5,7 @@
 ;; Author: Protesilaos Stavrou <info@protesilaos.com>
 ;; Maintainer: Protesilaos Stavrou <info@protesilaos.com>
 ;; URL: https://github.com/protesilaos/show-font
-;; Version: 0.4.0
+;; Version: 0.4.1
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: convenience, writing, font
 
@@ -569,9 +569,13 @@ Optional REGEXP has the meaning documented in the function
            (list
             family
             (vector
-             (if (or icon-p emoji-p)
-                 (propertize family 'face (list 'show-font-title-in-listing :family (if latin-p family "Monospace")))
-               (propertize family 'face (list :inherit '(error show-font-title-in-listing))))
+             (cond
+              ((or icon-p emoji-p)
+               (propertize family 'face (list 'show-font-title-in-listing)))
+              (latin-p
+               (propertize family 'face (list 'show-font-title-in-listing :family family)))
+              (t
+               (propertize family 'face (list :inherit '(error show-font-title-in-listing)))))
              (cond
               (emoji-p
                (propertize show-font-emoji-sample 'face (list 'show-font-regular :family family)))

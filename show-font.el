@@ -393,17 +393,17 @@ FILE must be of type TTF or OTF and must not already be installed (per
   "Prepare pangram text at varying font heights for the current font file.
 With optional FAMILY, prepare a preview for the given font family
 instead of that of the file."
-  (let ((icon-or-emoji-n (lambda (family sample)
-                           (let  ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
-                                  (character-sample nil))
-                             (dolist (face faces)
-                               (push (propertize sample 'face (list face :family family)) character-sample))
-                             (concat
-                              (propertize (or family (show-font--get-attribute-from-file "fullname")) 'face (list 'show-font-title :family "Monospace"))
-                              "\n"
-                              (make-separator-line)
-                              "\n"
-                              (mapconcat #'identity (nreverse character-sample) "\n"))))))
+  (let ((icon-or-emoji-fn (lambda (family sample)
+                            (let  ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
+                                   (character-sample nil))
+                              (dolist (face faces)
+                                (push (propertize sample 'face (list face :family family)) character-sample))
+                              (concat
+                               (propertize (or family (show-font--get-attribute-from-file "fullname")) 'face 'show-font-title)
+                               "\n"
+                               (make-separator-line)
+                               "\n"
+                               (mapconcat #'identity (nreverse character-sample) "\n"))))))
     (cond
      ((not (display-graphic-p))
       (propertize "Fonts cannot be displayed in a terminal or TTY." 'face 'show-font-title))
@@ -411,9 +411,9 @@ instead of that of the file."
            (not (show-font-installed-file-p buffer-file-name)))
       nil)
      ((show-font--displays-emoji-p family)
-      (funcall icon-or-emoji-n family show-font-emoji-sample))
+      (funcall icon-or-emoji-fn family show-font-emoji-sample))
      ((show-font--displays-icon-p family)
-      (funcall icon-or-emoji-n family show-font-icon-sample))
+      (funcall icon-or-emoji-fn family show-font-icon-sample))
      (t
       (let* ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
              (list-of-lines nil)

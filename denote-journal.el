@@ -251,7 +251,7 @@ DATE has the same format as that returned by `denote-valid-date-p'."
   "Return DATE if it is within the INTERVAL else nil.
 INTERVAL is one among the symbols used by `denote-journal-interval'.
 DATE has the same format as that returned by `denote-valid-date-p'."
-  (if (denote-valid-date-p date)
+  (if-let ((date (denote-valid-date-p date)))
       (let* ((current (current-time))
              (specifiers (pcase interval
                            ('weekly "%Y-%V")

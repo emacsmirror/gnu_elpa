@@ -725,6 +725,8 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
 The regex matches each line's commit information and captures
 four groups: change id, author, datetime, line number.")
 
+(declare-function vc-annotate-convert-time "vc-annotate" (&optional time))
+
 (defun vc-jj-annotate-time ()
   "Return the time for the annotated line."
   (and-let*

@@ -33,6 +33,7 @@
 (require 'seq)
 (require 'vc)
 (require 'vc-git)
+(require 'log-view)
 (require 'ansi-color)
 (require 'iso8601)
 (require 'time-date)
@@ -507,12 +508,6 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
 ;; (defun vc-jj-log-incoming (buffer remote-location)
 ;;   ;; TODO
 ;;   )
-
-(defvar log-view-message-re)
-(defvar log-view-file-re)
-(defvar log-view-font-lock-keywords)
-(defvar log-view-per-file-logs)
-(defvar log-view-expanded-log-entry-function)
 
 (defvar vc-jj--logline-re
   (rx

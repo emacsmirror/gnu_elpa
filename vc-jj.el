@@ -841,7 +841,7 @@ the command to run, e.g., the semi-standard \"jj git push -c @-\"."
 ;;;###autoload
 (defun vc-jj-ensure-log-edit-callback ()
   "Set up `log-edit-callback' when editing jj commit messages."
-  (unless log-edit-callback
+  (unless (bound-and-true-p log-edit-callback)
     (setq-local log-edit-callback (lambda ()
                                     (interactive)
                                     (save-buffer)

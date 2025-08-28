@@ -552,6 +552,7 @@
   :news "CHANGELOG.md")
  (mmm-mode		:url "https://github.com/dgutov/mmm-mode"
   :doc "mmm.texi")
+ (mode-line-maker       :url "https://github.com/rougier/mode-line-maker")
  (modus-themes		:url "https://github.com/protesilaos/modus-themes"
   :doc "doc/modus-themes.org"
   :readme "README.md"

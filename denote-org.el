@@ -845,11 +845,12 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
 
 (defun denote-org-dblock--extract-regexp (regexp)
   "Extract REGEXP from the buffer and trim it of surrounding spaces."
-  (when-let* ((_ (save-excursion (re-search-forward regexp nil :no-error)))
-              (match-end (match-end 0))
-              (line-end (line-end-position))
-              (text (buffer-substring-no-properties match-end line-end)))
-    (string-trim text)))
+  (save-excursion
+    (when-let* ((_ (re-search-forward regexp nil :no-error))
+                (match-end (match-end 0))
+                (line-end (line-end-position))
+                (text (buffer-substring-no-properties match-end line-end)))
+      (string-trim text))))
 
 (defun denote-org-dblock--get-file-contents-as-heading (file add-links)
   "Insert the contents of Org FILE, formatting the #+title as a heading.

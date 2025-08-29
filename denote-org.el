@@ -852,9 +852,11 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
                 (text (buffer-substring-no-properties match-end line-end)))
       (string-trim text))))
 
-(defun denote-org-dblock--get-file-contents-as-heading (file add-links)
+(defun denote-org-dblock--get-file-contents-as-heading (file add-links exclude-tags)
   "Insert the contents of Org FILE, formatting the #+title as a heading.
-With optional ADD-LINKS, make the title link to the original file."
+With optional ADD-LINKS, make the title link to the original file.  With
+optional EXCLUDE-TAGS, do not add the #+filetags to the end of the
+heading."
   (when-let* ((_ (denote-file-has-denoted-filename-p file))
               (identifier (denote-retrieve-filename-identifier file))
               (file-type (denote-filetype-heuristics file))
@@ -865,7 +867,9 @@ With optional ADD-LINKS, make the title link to the original file."
             tags)
         (insert-file-contents file)
         (setq title (denote-org-dblock--extract-regexp (denote--title-key-regexp file-type)))
-        (setq tags (denote-org-dblock--extract-regexp (denote--keywords-key-regexp file-type)))
+        (setq tags (if exclude-tags
+                       ""
+                     (denote-org-dblock--extract-regexp (denote--keywords-key-regexp file-type))))
         (when-let* ((_ (re-search-forward "^$" nil :no-error 1))
                     (match-end (+ (match-end 0) 1))
                     (_ (>= (point-max) match-end)))
@@ -875,13 +879,14 @@ With optional ADD-LINKS, make the title link to the original file."
           (if add-links
               (insert (format "* [[denote:%s][%s]] %s\n\n" identifier title tags))
             (insert (format "* %s %s\n\n" title tags)))
-          (org-align-tags :all))
+          (unless exclude-tags
+            (org-align-tags :all)))
         (while (re-search-forward "^\\(*+?\\) " nil :no-error)
           (replace-match (format "*%s " "\\1")))
         (denote-org-escape-code-in-region beginning-of-contents (point-max)))
       (buffer-string))))
 
-(defun denote-org-dblock-add-files-as-headings (regexp &optional add-links sort-by-component reverse excluded-dirs-regexp exclude-regexp)
+(defun denote-org-dblock-add-files-as-headings (regexp &optional add-links sort-by-component reverse excluded-dirs-regexp exclude-regexp exclude-tags)
   "Insert files matching REGEXP.
 
 If optional ADD-LINKS is non-nil, first insert a link to the file
@@ -900,12 +905,15 @@ Optional EXCLUDED-DIRS-REGEXP is the `let' bound value of
 that user option is used.
 
 Optional EXCLUDE-REGEXP is a more general way to exclude files whose
-name matches the given regular expression."
+name matches the given regular expression.
+
+Optional EXCLUDE-TAGS excludes the #+filetags from the end of the
+heading, where they are otherwise placed."
   (let* ((denote-excluded-directories-regexp (or excluded-dirs-regexp denote-excluded-directories-regexp))
          (files (denote-org-dblock--files regexp sort-by-component reverse exclude-regexp))
          (files-contents (mapcar
                           (lambda (file)
-                            (denote-org-dblock--get-file-contents-as-heading file add-links))
+                            (denote-org-dblock--get-file-contents-as-heading file add-links exclude-tags))
                           files)))
     (insert (string-join files-contents))))
 
@@ -942,7 +950,8 @@ as its own heading."
                            :excluded-dirs-regexp nil
                            :sort-by-component sort-by-component
                            :reverse-sort nil
-                           :add-links nil))
+                           :add-links nil
+                           :exclude-tags nil))
   (org-update-dblock))
 
 ;;;###autoload
@@ -955,9 +964,10 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
          (reverse (plist-get params :reverse-sort))
          (block-name (plist-get params :block-name))
          (add-links (plist-get params :add-links))
+         (exclude-tags (plist-get params :exclude-tags))
          (excluded-dirs (plist-get params :excluded-dirs-regexp)))
     (when block-name (insert "#+name: " block-name "\n"))
-    (when rx (denote-org-dblock-add-files-as-headings rx add-links sort reverse excluded-dirs not-rx)))
+    (when rx (denote-org-dblock-add-files-as-headings rx add-links sort reverse excluded-dirs not-rx exclude-tags)))
   (join-line)) ; remove trailing empty line
 
 ;;;;; Dynamic block to insert hierarchic sequences

@@ -397,7 +397,7 @@ In its simplest form, this dynamic block looks like this, with
 Though when you use the command ~denote-org-dblock-insert-files-as-headings~
 you get all the parameters included:
 
-: #+BEGIN: denote-files-as-headings :regexp "YOUR REGEXP HERE" :not-regexp nil :excluded-dirs-regexp nil :sort-by-component title :reverse-sort nil :add-links t
+: #+BEGIN: denote-files-as-headings :regexp "YOUR REGEXP HERE" :not-regexp nil :excluded-dirs-regexp nil :sort-by-component title :reverse-sort nil :add-links nil :exclude-tags nil
 :
 : #+END:
 
@@ -444,6 +444,11 @@ you get all the parameters included:
   each file) are generated as links, pointing to the original file.
   This has the same meaning as with the ~denote-link~ command and
   related facilities (those are explained at length in the Denote manual).
+
+- The =:exclude-tags= parameter is optional. It controls whether the
+  =#+filetags= of the matching file are appended to the title as tags.
+  This is what happens by default. If =:exclude-tags= is non-nil, then
+  the tags are omitted. [ Part of {{{development-version}}}. ]
 
 - An optional =:block-name= parameter can be specified with a string
   value to add a =#+name= to the results. This is useful for further
@@ -706,7 +711,7 @@ Denote Org is meant to be a collective effort.  Every bit of help matters.
 
 + Author/maintainer :: Protesilaos Stavrou.
 + Contributions to code or the manual :: Peter Prevos.
-+ Ideas and user feedback :: GCamp6.
++ Ideas and user feedback :: GCamp6, Matt Nolan.
 
 * GNU Free Documentation License
 :PROPERTIES:

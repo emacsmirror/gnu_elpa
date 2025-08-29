@@ -730,7 +730,7 @@ file and then insert its contents.  In this case, format the
 contents as a typographic list.  If ADD-LINKS is `id-only', then
 insert links as `denote-link' does when supplied with an ID-ONLY
 argument."
-  (when (denote-file-is-note-p file)
+  (when (denote-file-has-denoted-filename-p file)
     (with-temp-buffer
       (when add-links
         (insert
@@ -854,7 +854,7 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
 (defun denote-org-dblock--get-file-contents-as-heading (file add-links)
   "Insert the contents of Org FILE, formatting the #+title as a heading.
 With optional ADD-LINKS, make the title link to the original file."
-  (when-let* (((denote-file-is-note-p file))
+  (when-let* ((_ (denote-file-has-denoted-filename-p file))
               (identifier (denote-retrieve-filename-identifier file))
               (file-type (denote-filetype-heuristics file))
               ((eq file-type 'org)))

@@ -857,7 +857,7 @@ With optional ADD-LINKS, make the title link to the original file."
   (when-let* ((_ (denote-file-has-denoted-filename-p file))
               (identifier (denote-retrieve-filename-identifier file))
               (file-type (denote-filetype-heuristics file))
-              ((eq file-type 'org)))
+              (_ (eq file-type 'org)))
     (with-temp-buffer
       (let ((beginning-of-contents (point))
             title

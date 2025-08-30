@@ -251,7 +251,7 @@ DATE has the same format as that returned by `denote-valid-date-p'."
   "Return DATE if it is within the INTERVAL else nil.
 INTERVAL is one among the symbols used by `denote-journal-interval'.
 DATE has the same format as that returned by `denote-valid-date-p'."
-  (if-let* ((date (or (denote-valid-date-p date) (current-time)))
+  (if-let* ((date (denote-valid-date-p date))
             (current (current-time))
             (specifiers (pcase interval
                           ('weekly "%Y-%V")
@@ -299,7 +299,7 @@ With optional INTERVAL as a symbol among those accepted by
 `denote-journal-interval', match DATE to INTERVAL and then return the
 results accordingly.  If INTERVAL is nil, then it has the same measing
 as `daily', per `denote-journal-interval'."
-  (let* ((internal-date (denote-journal--date-in-interval-p date interval))
+  (let* ((internal-date (denote-journal--date-in-interval-p (or date (current-time)) interval))
          (files (denote-journal--get-entry internal-date interval))
          (denote-kill-buffers nil))
     (if files

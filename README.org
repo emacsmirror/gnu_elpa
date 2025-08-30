@@ -269,7 +269,7 @@ The ~denote-journal-calendar-mode~ also activates the key map called
 aforementioned commands: =F= for ~denote-journal-calendar-find-file~
 and =N= for ~denote-journal-calendar-new-or-existing~.
 
-** The ~denote-journal-directory~
+** The ~denote-journal-directory~ option
 :PROPERTIES:
 :CUSTOM_ID: h:the-denote-journal-directory
 :END:

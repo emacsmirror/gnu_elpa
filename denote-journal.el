@@ -326,7 +326,10 @@ date selection module.
 
 When called from Lisp, DATE is a string and has the same format
 as that covered in the documentation of the `denote' function.
-It is internally processed by `denote-valid-date-p'."
+It is internally processed by `denote-valid-date-p'.
+
+Consult the user option `denote-journal-interval' to determine when to
+create a new file or visit an existing one."
   (interactive
    (list
     (when current-prefix-arg

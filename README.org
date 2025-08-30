@@ -212,6 +212,13 @@ prompt, though users can opt in to the more advanced
 minibuffer+calendar date picker that Org uses for its own date
 selection operations.
 
+#+vindex: denote-journal-interval
+This command consults the user option ~denote-journal-interval~ to
+determine when to create a new file or visit an existing one. The
+~denote-journal-interval~ can be set to a value of =daily=, =weekly=,
+=monthly=, or =yearly=. Any other value is internall treated as
+=daily=. [ The ~denote-journal-interval~ is part of {{{development-version}}}. ]
+
 ** Link to a journal entry or create it if missing
 :PROPERTIES:
 :CUSTOM_ID: h:link-to-a-journal-entry-or-create-it-if-missing

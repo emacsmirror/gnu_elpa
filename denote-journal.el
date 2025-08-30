@@ -66,6 +66,30 @@ It is used by `denote-journal-new-entry' (or related)."
   :type '(choice (string :tag "Keyword")
                  (repeat :tag "List of keywords" string)))
 
+(defcustom denote-journal-signature nil
+  "The signature to use in new journal entries.
+This is used by `denote-journal-new-entry' and related commands.
+
+The value can be one of the following:
+
+- nil, which means to not use a predefined signature;
+- a string, which is used as-is;
+- a function that returns a string, which is then used as-is.
+
+In the case of a function, users may wish to integrate the
+`denote-journal' package with `denote-sequence'.  For example, each new
+journal entry should be defined as a new parent sequence.  Thus:
+
+    (setq denote-journal-signature
+          (lambda ()
+            (denote-sequence-get-new 'parent)))"
+  :type '(choice
+          (const :tag "No predefined signature" nil)
+          (string :tag "The predefined signature to use for new entries")
+          (function :tag "Function that returns a string"))
+  :group 'denote-journal
+  :package-version '(denote . "0.2.0"))
+
 (defcustom denote-journal-title-format 'day-date-month-year-24h
   "Date format to construct the title with `denote-journal-new-entry'.
 The value it can take is either nil, a
@@ -147,6 +171,17 @@ If the path does not exist, then make it first."
       (list denote-journal-keyword)
     denote-journal-keyword))
 
+(defun denote-journal-signature ()
+  "Return the value of the variable `denote-journal-signature'."
+  (cond
+   ((stringp denote-journal-signature) denote-journal-signature)
+   ((functionp denote-journal-signature)
+    (if-let* ((value (funcall denote-journal-signature))
+              (_ (stringp value)))
+        value
+      (error "The `denote-journal-signature' is bound to a function that does not return a string")))
+   (t nil)))
+
 (defun denote-journal--keyword-regex ()
   "Return a regular expression string that matches the journal keyword(s)."
   (let ((keywords-sorted (mapcar #'regexp-quote (denote-keywords-sort (denote-journal-keyword)))))
@@ -216,7 +251,8 @@ is internally processed by `denote-valid-date-p'."
      (denote-journal-daily--title-format internal-date)
      (denote-journal-keyword)
      nil nil date
-     (denote-journal--get-template))
+     (denote-journal--get-template)
+     (denote-journal-signature))
     (run-hooks 'denote-journal-hook)))
 
 ;;;; New or existing entry based on `denote-journal-interval'

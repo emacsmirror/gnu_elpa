@@ -193,13 +193,14 @@ The command ~denote-journal-new-or-existing-entry~ locates an existing
 journal entry and opens it for editing or creates a new one.
 
 A journal entry is an editable file that has ~denote-journal-keyword~
-as part of its file name. If there are multiple journal entries for
-the current date, ~denote-journal-new-or-existing-entry~ prompts to
-select one among them using minibuffer completion. If there is only
-one matching file, it visits it outright. If there is no journal
-entry, it creates a new one by calling ~denote-journal-new-entry~
-([[#h:create-new-journal-entry][Create new journal entry]]). Depending on one's workflow, this can also
-be done via ~org-capture~  ([[#h:create-a-journal-entry-using-org-capture][Create a journal entry using Org capture]]).
+as part of its file name ([[#h:e1fe2ec8-9acf-41ec-b2d8-a94b21735d30][The ~denote-journal-signature~ option]]). If
+there are multiple journal entries for the current date,
+~denote-journal-new-or-existing-entry~ prompts to select one among
+them using minibuffer completion. If there is only one matching file,
+it visits it outright. If there is no journal entry, it creates a new
+one by calling ~denote-journal-new-entry~ ([[#h:create-new-journal-entry][Create new journal entry]]).
+Depending on one's workflow, this can also be done via ~org-capture~
+([[#h:create-a-journal-entry-using-org-capture][Create a journal entry using Org capture]]).
 
 When called with a prefix argument (=C-u= with default key bindings),
 the command ~denote-journal-new-or-existing-entry~ prompts for a date
@@ -284,6 +285,34 @@ Journal entries will thus be in a flat listing together with all other
 notes. They can still be retrieved easily by searching for the
 ~denote-journal-keyword~ (read the Denote manual about "Features of
 the file-naming scheme for searching or filtering").
+
+** The ~denote-journal-signature~ option
+:PROPERTIES:
+:CUSTOM_ID: h:e1fe2ec8-9acf-41ec-b2d8-a94b21735d30
+:END:
+
+[ The ~denote-journal-signature~ is part of {{{development-version}}}. ]
+
+#+vindex: denote-journal-signature
+The user option ~denote-journal-signature~ specifies a predefined
+signature to use in new journal entries. This is used by
+~denote-journal-new-entry~ and all related commands ([[#h:create-new-journal-entry][Create new journal entry]]).
+
+The value of this user option can be one of the following:
+
+- ~nil~, which means to not use a predefined signature;
+- a string, which is used as-is;
+- a function that returns a string, which is then used as-is.
+
+In the case of a function, users may wish to integrate the
+~denote-journal~ package with ~denote-sequence~. For example, each new
+journal entry should be defined as a new parent sequence. Thus:
+
+#+begin_src emacs-lisp
+(setq denote-journal-signature
+      (lambda ()
+        (denote-sequence-get-new 'parent)))
+#+end_src
 
 ** Title format of new journal entries
 :PROPERTIES:
@@ -431,7 +460,7 @@ Denote Journal is meant to be a collective effort.  Every bit of help matters.
 + Contributions to code or the manual :: Alan Schmitt, Ettore Berardi,
   Honza Pokorny, Stefan Monnier, Vineet C. Kulkarni, gk2803, jbwfu.
 
-+ Ideas and/or user feedback :: Alan Schmitt, Kevin McCarthy.
++ Ideas and/or user feedback :: Alan Schmitt, Kevin McCarthy, Halogen3576.
 
 * GNU Free Documentation License
 :PROPERTIES:

@@ -29,7 +29,7 @@
 
 ;;; Code:
 
-(require 'tramp-loaddefs)
+(require 'tramp-loaddefs nil t)  ; guard against load during autoload gen
 (require 'ansi-color)
 (require 'auth-source)
 (require 'format-spec)
@@ -251,7 +251,7 @@ value is the default binding of the variable."
 ;;
 ;; * Use `ensure-list'.
 ;;
-;; * Starting with Emacs 29.1, use `buffer-match-p'.
+;; * Starting with Emacs 29.1, use `buffer-match-p' and `match-buffers'.
 ;;
 ;; * Starting with Emacs 29.1, use `string-split'.
 ;;

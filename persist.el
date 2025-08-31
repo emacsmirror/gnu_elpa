@@ -66,18 +66,20 @@ variable is not set to the value.")
    (or (get symbol 'persist-location)
        persist--directory-location)))
 
-(defun persist--defvar-1 (symbol location)
+(defun persist--defvar-1 (symbol location initvalue)
   "Set symbol up for persistence."
   (when location
     (persist-location symbol location))
-  (persist-symbol symbol (symbol-value symbol))
+  (persist-symbol symbol initvalue)
   (persist-load symbol))
 
 (defmacro persist-defvar (symbol initvalue docstring &optional location)
   "Define SYMBOL as a persistent variable and return SYMBOL.
 
 This form is nearly equivalent to `defvar', except that the
-variable persists between Emacs sessions.
+variable persists between Emacs sessions.  When this form is
+evaluated, the variable's default value is always set to
+INITVALUE.
 
 It does not support the optional parameters.  Both INITVALUE and
 DOCSTRING need to be given."
@@ -95,9 +97,12 @@ DOCSTRING need to be given."
   ;; Define inside progn so the byte compiler sees defvar
   `(progn
      (defvar ,symbol ,initvalue ,docstring)
-     ;; Access initvalue through its symbol because the defvar form
-     ;; has to stay at first level within a progn
-     (persist--defvar-1 ',symbol ,location)
+     ;; `defvar' must stay at top level within `progn'.  Pass init
+     ;; value to `persist--defvar-1' since the `defvar' form may not
+     ;; set the symbol's value and we don't want to set the
+     ;; persist-default property to the current value of the symbol.
+     ;; See bug#75779 for details.
+     (persist--defvar-1 ',symbol ,location ,initvalue)
      ',symbol))
 
 (defun persist-location (symbol directory)

@@ -78,7 +78,7 @@
 ;; Usage example:
 ;;
 ;; You can use the theme as a regular theme or you can call
-;; (nano-light) / (nano-dark) explicitely to install the light or dark
+;; (nano-light) / (nano-dark) explicitly to install the light or dark
 ;; version.
 ;;
 ;; With GUI, you can mix frames with light and dark mode. Just call

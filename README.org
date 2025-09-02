@@ -33,7 +33,7 @@ the standard FSF copyright assignment in place; feel free to contact
 us for details.  Note that "trivial" (below 15 lines or obvious) code
 suggestions in bug reports are fine.
 
-* Other Emacs package for Jujutsu
+* Other Emacs packages for Jujutsu
 
 The scope of the =vc-jj.el= project is to add jj support to the Emacs
 built-in =vc= and =project= libraries.  In case you look for a package

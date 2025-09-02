@@ -32,3 +32,16 @@ distributed via GNU elpa, non-trivial code contributions need to have
 the standard FSF copyright assignment in place; feel free to contact
 us for details.  Note that "trivial" (below 15 lines or obvious) code
 suggestions in bug reports are fine.
+
+* Other Emacs package for Jujutsu
+
+The scope of the =vc-jj.el= project is to add jj support to the Emacs
+built-in =vc= and =project= libraries.  In case you look for a package
+with more specialized jujutsu support, here are some that might fit
+the bill:
+
+- [[https://github.com/bolivier/jj-mode.el][bolivier/jj-mode.el]] :: “Jujutsu version control mode for Emacs
+  inspired by Magit”
+- [[https://github.com/bennyandresen/jujutsu.el][bennyandresen/jujutsu.el]] :: “An Emacs interface for jujutsu, inspired
+  by magit and humbly not attempting to match it in scope.”
+- [[https://git.sr.ht/~puercopop/jujutsushi][~puercopop/jujutsushi]] :: “A emacs interface to jujutsu”

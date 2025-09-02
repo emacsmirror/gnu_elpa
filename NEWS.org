@@ -10,6 +10,9 @@
   like =vc-switch-branch=, which are implemented on top of
   =vc-retrieve-tag=.
 
+- Added list of other jj support packages for Emacs to the
+  documentation -- not everyone is looking for vc integration :)
+
 *** Changed
 
 *** Removed
@@ -35,6 +38,8 @@
   when editing =.jjdescription= files.  This makes Emacs work properly
   as external editor when calling =jj commit= or similar from the
   terminal.
+- vc-jj installation now proceeds without warnings from the byte
+  compiler.
 
 ** [[https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.2...v0.3][0.3]] - 2025-06-15
 

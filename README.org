@@ -11,7 +11,6 @@ This package is distributed via GNU Elpa
 (https://elpa.gnu.org/packages/vc-jj.html) and can be installed via
 =M-x package-install=.
 
-
 ** Jujutsu configuration
 
 Emacs has built-in support for git-style diff and conflict markers, so

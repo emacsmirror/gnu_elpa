@@ -43,10 +43,12 @@
         (mapcar #'expand-file-name files)
       files)))
 
+;;;###autoload
 (defun project-try-jj (dir)
   (when-let* ((root (locate-dominating-file dir ".jj")))
     (cons 'jj root)))
 
+;;;###autoload
 (with-eval-after-load 'project
   (add-hook 'project-find-functions #'project-try-jj))
 

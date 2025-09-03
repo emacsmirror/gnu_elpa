@@ -18,7 +18,7 @@ check out [[https://stackoverflow.com/a/76389679/2337550][this stackoverflow ans
 
 `auth-source-xoauth2-plugin' is on [[https://elpa.gnu.org/packages/auth-source-xoauth2-plugin.html][GNU ELPA]], and you can install it
 with `package-install' (see also [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Package-Installation.html][the Emacs document on how to use
-package-install]]).  Or you can clone the repository from [[https://gitlab.com/manphiz/auth-source-xoauth2-plugin/][GitLab]] or
+package-install]]).  Or you can clone the repository from [[https://gitlab.com/manphiz/auth-source-xoauth2-plugin/][GitLab]], or
 simply download the ~auth-source-xoauth2-plugin.el~ file and put it
 anywhere in your Emacs' `load-path'.
 
@@ -53,13 +53,63 @@ the following:
 To disable, just toggle the minor mode off by calling `M-x
 auth-source-xoauth2-plugin-mode' again.
 
+* auth-source settings
+
 When xoauth2 authentication is enabled, it will try to get the
 following data from the auth-source entry: `auth-url', `token-url',
 `scope', `client-id', `client-secret', `redirect-uri', and optionally
-`state'.  An example Authinfo entry (in JSON format as
-`~/.authinfo.json.gpg') for an Gmail account may look like below (you
-need to fill in the data between `<' and `>' based on your account
-settings):
+`state'.
+
+There are two ways to set those info:
+1. Use a predefined source which has already registered their app to
+   the service (e.g. thunderbird) and you can just use their public
+   authentication info, such as `client_id', `client_secret', etc.
+2. Register your own app for oauth2 authentication and set those info
+   yourself.
+
+** Use predefined services
+
+Using a predefined service is very easy.  An example `authinfo' entry
+(in JSON format as `~/.authinfo.json.gpg') for Gmail will look like
+below (you need to fill in the info of your account between "<" and
+">"):
+
+#+BEGIN_SRC js
+  [
+    ...
+    {
+      "machine": "<your_imap_address_or_email>",
+      "login": "<your_email>",
+      "port": "imaps",
+      "auth": "xoauth2",
+      "auth-source-xoauth2-predefined-service": "google"
+    },
+    ...
+  ]
+#+END_SRC
+
+This will then use the OAuth2 credentials from Thunderbird for
+authentication.  Currently `google' and `microsoft' are supported from
+Thunderbird for use with Gmail and Outlook which the author has
+tested.  It is possible to add support for more services (e.g. yahoo)
+and other sources (e.g. Evolution).  Suggestions and patches are
+welcome.
+
+Once correctly set up, the plugin will then use `oauth2.el' to
+retrieve the access-token with those information, use it to construct
+the oauth2 authentication string, and let `auth-source' do the rest.
+
+** Use your own registered app
+
+If you would like more control over your authentication credentials,
+you can register your own app on your email service provider for
+OAuth2 authentication.  The registration process is outside the scope
+of this document, but the gist is to make sure that you set the access
+control of your app (also `scope') to enable using IMAP and SMTP for
+email.
+
+Once that's done, you can fill in the credentials from your app to
+achieve the same.  For an Gmail account it may look like below:
 
 #+BEGIN_SRC js
   [
@@ -80,9 +130,7 @@ settings):
   ]
 #+END_SRC
 
-It will then use `oauth2.el' to retrieve the access-token with those
-information, use it to construct the oauth2 authentication string, and
-let `auth-source' do the rest.
+The rest will work in the same way.
 
 * Comparison with other xoauth2 implementations
 

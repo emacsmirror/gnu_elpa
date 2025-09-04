@@ -4,7 +4,7 @@
 
 ;; Author: Xiyue Deng <manphiz@gmail.com>
 ;; Version: 0.2.1
-;; Package-Requires: ((emacs "28.1") (oauth2 "0.17"))
+;; Package-Requires: ((emacs "28.1") (oauth2 "0.18"))
 
 ;; This file is not part of GNU Emacs.
 

@@ -302,7 +302,7 @@ DATE has the same format as that returned by `denote-valid-date-p'."
         date))
     (error "The date `%s' does not satisfy `denote-valid-date-p'" date)))
 
-(defun denote-journal--get-entry (date &optional interval)
+(defun denote-journal--get-entry (date interval)
   "Return list of files matching a journal for DATE given INTERVAL.
 INTERVAL is one among the symbols used by `denote-journal-interval'.
 DATE has the same format as that returned by `denote-valid-date-p'."
@@ -470,7 +470,7 @@ CALENDAR-DATE is a list of three numbers, in the form of (MONTH DAY YEAR)."
   "Return path to Denote journal entry corresponding to CALENDAR-DATE.
 CALENDAR-DATE is a list of three numbers, in the form of (MONTH DAY YEAR)."
   (when-let* ((date (denote-journal-calendar--date-to-time calendar-date)))
-    (denote-journal--get-entry date)))
+    (denote-journal--get-entry date denote-journal-interval)))
 
 (defun denote-journal-calendar-find-file ()
   "Show the Denote journal entry for the `calendar' date at point.

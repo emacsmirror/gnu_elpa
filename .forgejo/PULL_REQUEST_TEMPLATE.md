@@ -1,4 +1,3 @@
-# Description
 
 Please include a summary of the changes and, if applicable, which
 issue(s) are fixed.
@@ -6,6 +5,8 @@ issue(s) are fixed.
 Fixes #(issue)
 
 # Checklist:
+
+(Check all items that apply, don't worry about leaving something unchecked)
 
 - [ ] My code has docstrings
 - [ ] My code has comments where it does non-obvious things

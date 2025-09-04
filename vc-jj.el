@@ -115,7 +115,7 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 (defun vc-jj--filename-to-fileset (filename)
   "Convert FILENAME to a jj fileset expression.
 The fileset expression returned is relative to the jj repository root."
-  (when-let ((path (file-relative-name filename (vc-jj-root filename))))
+  (when-let* ((path (file-relative-name filename (vc-jj-root filename))))
     (concat "root:\"" (string-replace "\"" "\\\"" path) "\"")))
 
 (defun vc-jj--process-lines (&rest args)

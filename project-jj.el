@@ -26,6 +26,7 @@
 (require 'project)
 
 (cl-defmethod project-root ((project (head jj)))
+  "Return the root directory of PROJECT."
   (cdr project))
 
 (cl-defmethod project-files ((project (head jj)) &optional dirs)
@@ -45,6 +46,7 @@
 
 ;;;###autoload
 (defun project-try-jj (dir)
+  "Return the jujutsu project containing DIR or nil."
   (when-let* ((root (locate-dominating-file dir ".jj")))
     (cons 'jj root)))
 

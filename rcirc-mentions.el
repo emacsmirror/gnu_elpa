@@ -4,7 +4,7 @@
 ;;
 ;; Author: Tassilo Horn <tsdh@gnu.org>
 ;; Contributors: Philip Kaludercic <philipk@posteo.net>
-;; Version: 1.0.3
+;; Version: 1.0.4
 ;; Keywords: rcirc, irc
 ;; URL: https://sr.ht/~tsdh/rcirc-mentions/
 ;; Package-Requires: ((emacs "29.1"))
@@ -81,8 +81,8 @@ Also see `rcirc-mentions-global-log-mode' to enable/disable
   :lighter " Mentions"
   :interactive (rcirc-mode)
   (if rcirc-mentions-log-mode
-      (add-hook 'rcirc-print-functions #'rcirc-mentions--print-function)
-    (remove-hook 'rcirc-print-functions #'rcirc-mentions--print-function)))
+      (add-hook 'rcirc-print-functions #'rcirc-mentions--print-function nil t)
+    (remove-hook 'rcirc-print-functions #'rcirc-mentions--print-function t)))
 
 ;;;###autoload
 (define-minor-mode rcirc-mentions-global-log-mode

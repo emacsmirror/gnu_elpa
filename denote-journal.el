@@ -302,7 +302,7 @@ DATE has the same format as that returned by `denote-valid-date-p'."
         date))
     (error "The date `%s' does not satisfy `denote-valid-date-p'" date)))
 
-(defun denote-journal--get-entry (date interval)
+(defun denote-journal--get-entry (date &optional interval)
   "Return list of files matching a journal for DATE given INTERVAL.
 INTERVAL is one among the symbols used by `denote-journal-interval'.
 DATE has the same format as that returned by `denote-valid-date-p'."

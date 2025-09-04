@@ -1,0 +1,46 @@
+#+TITLE: Initial set up using OAuth2 and auth-source-xoauth2-plugin
+#+DATE: 2025-09-03
+
+This document shows the initial set up of an Email account using
+OAuth2 and the auth-source-xoauth2-plugin.  You need to first set up
+the plugin following the steps in [[file:../README.org][README.org]].
+
+Once you enable the plugin, you can intiate the connection either
+through IMAP (e.g. in Gnus or other Email clients like notmuch, mu4e,
+etc.)  The Emacs will prompt you with a URL in the minibuffer and
+waiting for you to enter a code.  It will also launch a web browser
+and open a webpage to the Email service provider like below:
+
+[[./oauth2-gmail-1.png]]
+
+#+BEGIN_EXAMPLE
+Note: this uses Gmail as an example and should be similar for Outlook.
+If no web browser is launched automatically, you can copy the link
+from the minibuffer and open it in a web browser manually.  Your Email
+address should have been auto filled in.
+
+You may also notice that there is an icon of Thunderbird, which is
+because we are using the predefined client info from Thunderbird.  If
+you are using your own app it will be slightly different, but the
+process is still the same.
+#+END_EXAMPLE
+
+After this there will be a few pages to ask for your consent to allow
+access to your account.  In the end, it will redirect to a page
+seemingly failing to open like an error, but it is actually what we
+are expecting:
+
+[[./oauth2-gmail-2.png]]
+
+Please notice in the URL box, there is a URL parameter of code, which
+is exactly what we need.  You just copy the part after ~code=~ and
+paste it in the Emacs minibuffer (which is asking for the code) to
+finish the set up.
+
+#+BEGIN_EXAMPLE
+Note: beware that there may be other URL parameter after the `code='
+part.  You don't want to include that, or the code will be invalid.
+#+END_EXAMPLE
+
+Now everything should be in place and the plugin will handle future
+authentications automatically without any manual intervention.

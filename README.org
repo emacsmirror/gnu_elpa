@@ -132,6 +132,13 @@ achieve the same.  For an Gmail account it may look like below:
 
 The rest will work in the same way.
 
+*** Initial set up
+
+Once auth-source is configured correctly, you can proceed to initiate
+the connections.  Please check out [[file:docs/oauth2-initial-set-up.org][the steps for initial set up]].  Once
+everything goes through the plugin will handle the future
+authentication automatically.
+
 * Comparison with other xoauth2 implementations
 
 ** auth-source-xoauth2

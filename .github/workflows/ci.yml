@@ -19,7 +19,7 @@ jobs:
     - uses: actions/checkout@v5
       with:
         node-version: '22'
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v6
     - uses: purcell/setup-emacs@master
       with:
         version: ${{ matrix.emacs_version }}

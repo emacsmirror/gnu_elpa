@@ -29,19 +29,19 @@
 
 ;; Usage:
 
-;; (add-to-list 'load-path (b/lisp "ffs"))
+;; (add-to-list 'load-path (+emacs.d "lisp/ffs"))
 ;; (run-with-idle-timer 0.5 nil #'require 'ffsanim)
 ;; (with-eval-after-load 'ffsanim
-;;   (defvar b/original-default-height)
-;;   (defvar b/ffsanim-default-height 300)
+;;   (defvar +original-default-height)
+;;   (defvar +ffsanim-default-height 300)
 ;;   (global-set-key
 ;;    (kbd "C-c f s")
 ;;    (lambda ()
 ;;      (interactive)
 ;;      (setq
-;;       b/original-default-height (face-attribute 'default :height))
+;;       +original-default-height (face-attribute 'default :height))
 ;;      (set-face-attribute
-;;       'default nil :height b/ffsanim-default-height)
+;;       'default nil :height +ffsanim-default-height)
 ;;      (message " ")
 ;;      (ffsanim)))
 ;;   (define-key
@@ -50,7 +50,7 @@
 ;;      (interactive)
 ;;      (quit-window)
 ;;      (set-face-attribute
-;;       'default nil :height b/original-default-height)
+;;       'default nil :height +original-default-height)
 ;;      (message " "))))
 
 ;;; Code:

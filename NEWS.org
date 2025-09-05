@@ -1,0 +1,27 @@
+Summary of changes to auth-source-xoauth2-plugin
+------------------------------------------------
+
+* 0.3
+
+** Add support for predefined credentials
+
+This greatly simplifies the set-up in auth-source (details in
+README.org).
+
+* 0.2.1
+
+** Quick fix for the wrong usage of add-to-list
+
+* 0.2
+
+** Workaround smtpmail limitations when handling xoauth2
+
+* 0.1
+
+** Initial release
+
+Thanks Philip Kaludercic for the detailed comments and suggestions!
+
+# Local variables:
+# mode: outline
+# End:

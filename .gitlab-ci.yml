@@ -1,0 +1,23 @@
+.build:
+  stage: build
+  script:
+    - curl -fsSL https://raw.github.com/emacs-eldev/eldev/master/bin/eldev > eldev && chmod a+x eldev
+    - ./eldev compile
+    - ./eldev lint
+
+build-28.2:
+  image: "silex/emacs:28.2-ci"
+  extends: .build
+
+build-29.4:
+  image: "silex/emacs:29.4-ci"
+  extends: .build
+
+build-30.2:
+  image: "silex/emacs:30.2-ci"
+  extends: .build
+
+build-master:
+  image: "silex/emacs:master-ci"
+  extends: .build
+

@@ -272,7 +272,7 @@ families in distinct variables.")
 Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")
 
-(defconst show-font-math-families
+(defconst show-font-mathematics-families
   '("MathJax_Fraktur" "MathJax_Main" "MathJax_SansSerif")
   "List of families that specialise in rendering Mathematical formulas.
 Also see `show-font-greek-families' for the rationale of grouping font
@@ -382,7 +382,7 @@ return nil."
 
 (defun show-font--prefers-mathematics-p (family)
   "Return non-nil if FAMILY is a known Mathematics font."
-  (member family show-font-math-families))
+  (member family show-font-mathematics-families))
 
 ;;;###autoload
 (defun show-font-handler (operation &rest args)

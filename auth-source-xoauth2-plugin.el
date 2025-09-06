@@ -67,8 +67,8 @@
 (defun auth-source-xoauth2-plugin--get-predefined-credentials (source provider)
   "Helper function to get the predefined credentials of PROVIDER from SOURCE."
   (plist-get (plist-get auth-source-xoauth2-plugin-predefined-issuers
-                        (intern source) 'string=)
-             (intern provider) 'string=))
+                        (intern source))
+             (intern provider)))
 
 (defun auth-source-xoauth2-plugin--search-backends (orig-fun &rest args)
   "Perform `auth-source-search' and set password as access-token when requested.

@@ -597,7 +597,7 @@ If DISPLAYS-NOT-PREFERS is non-nil, then derive a function like
                                        language)))
         (language-sample (symbol-value (intern-soft (format "show-font-%s-sample" language)))))
     (unless (and check-fn language-sample)
-      (error "The language `%s' does not yield the expected results"))
+      (error "The language `%s' does not yield the expected results" language))
     (when (funcall check-fn family)
       (let ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
             (character-sample nil))

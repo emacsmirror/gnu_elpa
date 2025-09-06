@@ -594,6 +594,17 @@ Optional REGEXP has the meaning documented in the function
   "Regexp for `show-font-get-installed-font-families'.
 Only `let' bind this while calling `show-font-tabulated-mode'.")
 
+(defun show-font-tabulated-copy-name ()
+  "Copy the name of the font family of the current line into the `kill-ring'."
+  (interactive nil 'show-font-tabulated-mode)
+  (unless (derived-mode-p 'show-font-tabulated-mode)
+    (user-error "Can only do this inside the `show-font-tabulated-mode'"))
+  (if-let* ((family (tabulated-list-get-id)))
+      (prog1
+          (kill-new family)
+        (message "Copied the `%s' font family" (propertize family 'face 'bold)))
+    (error "No font family on the current line")))
+
 (defun show-font-tabulated-select-preview ()
   "Preview the font on the current line in `show-font-tabulated-mode'."
   (interactive nil 'show-font-tabulated-mode)
@@ -605,6 +616,7 @@ Only `let' bind this while calling `show-font-tabulated-mode'.")
 
 (defvar show-font-tabulated-mode-map
   (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "w") #'show-font-tabulated-copy-name)
     (define-key map (kbd "RET") #'show-font-tabulated-select-preview)
     map)
   "Key map for the `show-font-tabulated-mode'.")

@@ -179,6 +179,15 @@ This is displayed in the buffer produced by the command
   :type 'string
   :group 'show-font)
 
+(defcustom show-font-symbols-sample
+  "←→↑↓ ─│┌┐└┘ €¥£₩ ■□▲▶▼◀◆ ● ±×÷≠≤≥∞ ♩♪♫♬"
+  "Character sample to showcase Symbols.
+This is displayed in the buffer produced by the command
+`show-font-select-preview' and `show-font-tabulated'."
+  :package-version '(show-font . "0.5.0")
+  :type 'string
+  :group 'show-font)
+
 (defcustom show-font-character-sample
   "
 ABCDEFGHIJKLMNOPQRSTUVWXYZ
@@ -275,6 +284,12 @@ families in distinct variables.")
 (defconst show-font-mathematics-families
   '("MathJax_Fraktur" "MathJax_Main" "MathJax_SansSerif")
   "List of families that specialise in rendering Mathematical formulas.
+Also see `show-font-greek-families' for the rationale of grouping font
+families in distinct variables.")
+
+(defconst show-font-symbols-families
+  '("Symbola")
+  "List of families that specialise in rendering symbols.
 Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")
 
@@ -383,6 +398,10 @@ return nil."
 (defun show-font--prefers-mathematics-p (family)
   "Return non-nil if FAMILY is a known Mathematics font."
   (member family show-font-mathematics-families))
+
+(defun show-font--prefers-symbols-p (family)
+  "Return non-nil if FAMILY is a known Mathematics font."
+  (member family show-font-symbols-families))
 
 ;;;###autoload
 (defun show-font-handler (operation &rest args)
@@ -606,6 +625,7 @@ instead of that of the file."
     nil)
    ((show-font--generic-preview family 'mathematics :generic-title-family nil))
    ((show-font--generic-preview family 'emoji :generic-title-family :displays-not-prefers))
+   ((show-font--generic-preview family 'symbols :generic-title-family nil))
    ((show-font--generic-preview family 'icon :generic-title-family :displays-not-prefers))
    ((show-font--generic-preview family 'chinese nil nil))
    ;; NOTE 2025-09-06: Many Latin fonts support Greek characters.
@@ -759,6 +779,7 @@ Optional REGEXP has the meaning documented in the function
        (lambda (family)
          (let ((emoji-p (show-font--displays-emoji-p family))
                (icon-p (show-font--displays-icon-p family))
+               (symbols-p (show-font--prefers-symbols-p family))
                (mathematics-p (show-font--prefers-mathematics-p family))
                (chinese-p (show-font--prefers-chinese-p family))
                (japanese-p (show-font--prefers-japanese-p family))
@@ -774,7 +795,7 @@ Optional REGEXP has the meaning documented in the function
             family
             (vector
              (cond
-              ((or icon-p emoji-p mathematics-p)
+              ((or emoji-p icon-p mathematics-p symbols-p)
                (propertize family 'face (list 'show-font-title-in-listing)))
               ((or chinese-p japanese-p korean-p russian-p greek-p latin-p)
                (propertize family 'face (list 'show-font-title-in-listing :family family)))
@@ -783,6 +804,8 @@ Optional REGEXP has the meaning documented in the function
              (cond
               (emoji-p
                (propertize show-font-emoji-sample 'face (list 'show-font-regular :family family)))
+              (symbols-p
+               (propertize show-font-symbols-sample 'face (list 'show-font-regular :family family)))
               (icon-p
                (propertize show-font-icon-sample 'face (list 'show-font-regular :family family)))
               (mathematics-p

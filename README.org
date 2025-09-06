@@ -189,10 +189,27 @@ displayed in the buffer produced by the command ~show-font-select-preview~.
 
 #+vindex: show-font-emoji-sample
 #+vindex: show-font-icon-sample
+#+vindex: show-font-mathematics-sample
 The user options ~show-font-emoji-sample~ and ~show-font-icon-sample~
 take a string value with characters that can be displayed by an emoji
 or icon font, respectively. The sample is used in the buffer produced
 by the commands ~show-font-select-preview~ and ~show-font-tabulated~.
+A ~show-font-mathematics-sample~ is also available for font that
+specialise in mathematics. [ The ~show-font-mathematics-sample~ is
+part of {{{development-version}}}. ]
+
+#+vindex: show-font-chinese-sample
+#+vindex: show-font-greek-sample
+#+vindex: show-font-japanese-sample
+#+vindex: show-font-korean-sample
+#+vindex: show-font-russian-sample
+The package also supports Chinese, Greek, Japanese, Korean, and
+Russian (and the plan is to extend it further). Relevant user options
+for the character sample of the respective languages are:
+~show-font-chinese-sample~, ~show-font-greek-sample~,
+~show-font-japanese-sample~, ~show-font-korean-sample~,
+~show-font-russian-sample~. [ All these languages are part of
+{{{development-version}}}. ]
 
 Finally, the following faces control the appearance of various
 elements.

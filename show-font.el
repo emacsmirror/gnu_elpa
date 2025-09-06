@@ -59,6 +59,26 @@ The PUA is typically used by icon fonts.")
   '(#x1F600 #x1F601 #x1F602 #x1F349)
   "A sequence of characters in the emoji range.")
 
+(defconst show-font-greek-characters
+  (number-sequence ?α ?ω)
+  "The Greek lower-case characters.")
+
+(defconst show-font-chinese-characters
+  '(#x4E00 #x4EBA #x5927 #x5B66)
+  "A sequence of common Chinese characters.")
+
+(defconst show-font-japanese-characters
+  '(#x3042 #x3044 #x3046 #x30A2 #x30A4 #x30A6)
+  "A sequence of common Japanese characters.")
+
+(defconst show-font-korean-characters
+  '(#xAC00 #xAC01 #xAC02 #xD55C #xAE00)
+  "A sequence of common Korean characters.")
+
+(defconst show-font-russian-characters
+  (number-sequence ?а ?я)
+  "The Russian lower-case characters.")
+
 ;; TODO 2024-09-06: How best to handle multiple languages?  Say there
 ;; is a font that only works with Greek characters.  We need to know
 ;; what characters the font supports.  Then we return the relevant
@@ -87,12 +107,66 @@ experimenting with `show-font-pangram-p'."
 
 ;; See TODO above about multiple languages.
 
+(defcustom show-font-chinese-sample
+  "普罗泰西劳斯无法阅读中文" ; Protesilaos cannot read Chinese
+  "Character sample to showcase Chinese fonts.
+This is displayed in the buffer produced by the command
+`show-font-select-preview' and `show-font-tabulated'."
+  :package-version '(show-font . "0.5.0")
+  :type 'string
+  :group 'show-font)
+
 (defcustom show-font-emoji-sample
   "😀😁😂🤣😃😄😅😆😉😊😋😎😍😘🥰"
   "Character sample to showcase emoji fonts.
 This is displayed in the buffer produced by the command
 `show-font-select-preview' and `show-font-tabulated'."
   :package-version '(show-font . "0.4.0")
+  :type 'string
+  :group 'show-font)
+
+(defcustom show-font-greek-sample
+  "Πρωτεσίλαος ο προγραμματιστής του οποίου τα έργα βρίθουν αστειισμών"
+  "Character sample to showcase Greek fonts.
+This is displayed in the buffer produced by the command
+`show-font-select-preview' and `show-font-tabulated'."
+  :package-version '(show-font . "0.5.0")
+  :type 'string
+  :group 'show-font)
+
+(defcustom show-font-japanese-sample
+  "プロテシラオスは日本語を読むことができません" ; Protesilaos cannot read Japanese
+  "Character sample to showcase Japanese fonts.
+This is displayed in the buffer produced by the command
+`show-font-select-preview' and `show-font-tabulated'."
+  :package-version '(show-font . "0.5.0")
+  :type 'string
+  :group 'show-font)
+
+(defcustom show-font-korean-sample
+  "프로테실라오스는 한국어를 읽을 수 없습니다" ; Protesilaos cannot read Korean
+  "Character sample to showcase Korean fonts.
+This is displayed in the buffer produced by the command
+`show-font-select-preview' and `show-font-tabulated'."
+  :package-version '(show-font . "0.5.0")
+  :type 'string
+  :group 'show-font)
+
+(defcustom show-font-mathematics-sample
+  "x = (-b ± √(b² - 4ac)) / 2a"
+  "Character sample to showcase mathematical fonts.
+This is displayed in the buffer produced by the command
+`show-font-select-preview' and `show-font-tabulated'."
+  :package-version '(show-font . "0.5.0")
+  :type 'string
+  :group 'show-font)
+
+(defcustom show-font-russian-sample
+  "Протесилаос не умеет читать по-русски" ; Protesilaos cannot read Russian
+  "Character sample to showcase Russian fonts.
+This is displayed in the buffer produced by the command
+`show-font-select-preview' and `show-font-tabulated'."
+  :package-version '(show-font . "0.5.0")
   :type 'string
   :group 'show-font)
 
@@ -324,6 +398,36 @@ CHARACTERS."
 With optional LAX if FAMILY can display at least one among the
 CHARACTERS."
   (show-font--displays-characters-p family show-font-latin-characters lax))
+
+(defun show-font--displays-greek-p (family &optional lax)
+  "Return non-nil if the font FAMILY can display Greek.
+With optional LAX if FAMILY can display at least one among the
+CHARACTERS."
+  (show-font--displays-characters-p family show-font-greek-characters lax))
+
+(defun show-font--displays-chinese-p (family &optional lax)
+  "Return non-nil if the font FAMILY can display Chinese.
+With optional LAX if FAMILY can display at least one among the
+CHARACTERS."
+  (show-font--displays-characters-p family show-font-chinese-characters lax))
+
+(defun show-font--displays-japanese-p (family &optional lax)
+  "Return non-nil if the font FAMILY can display Japanese.
+With optional LAX if FAMILY can display at least one among the
+CHARACTERS."
+  (show-font--displays-characters-p family show-font-japanese-characters lax))
+
+(defun show-font--displays-korean-p (family &optional lax)
+  "Return non-nil if the font FAMILY can display Korean.
+With optional LAX if FAMILY can display at least one among the
+CHARACTERS."
+  (show-font--displays-characters-p family show-font-korean-characters lax))
+
+(defun show-font--displays-russian-p (family &optional lax)
+  "Return non-nil if the font FAMILY can display Russian.
+With optional LAX if FAMILY can display at least one among the
+CHARACTERS."
+  (show-font--displays-characters-p family show-font-russian-characters lax))
 
 (defun show-font--displays-emoji-p (family)
   "Return non-nil if FAMILY is likely an emoji font."

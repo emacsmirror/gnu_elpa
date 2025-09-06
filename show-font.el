@@ -500,7 +500,7 @@ buffer."
     (with-current-buffer (or buffer (current-buffer))
       (let ((inhibit-read-only t))
         (save-excursion
-          (if-let* ((text (show-font--prepare-text nil)))
+          (if-let* ((text (show-font--prepare-text-subr nil)))
               (insert text)
             (show-font--insert-button)))))))
 
@@ -540,7 +540,7 @@ FAMILY is a string that satisfies `show-font-installed-p'."
   (if (show-font-installed-p family)
       (show-font-with-preview-buffer (format "*show-font preview of `%s'*" family)
         (save-excursion
-          (insert (show-font--prepare-text family)))
+          (insert (show-font--prepare-text-subr family)))
         (setq-local revert-buffer-function
                     (lambda (_ignore-auto _noconfirm)
                       (show-font-select-preview family))))

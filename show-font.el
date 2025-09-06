@@ -168,6 +168,14 @@ action alist."
           (function :tag "Custom function to return an action alist"))
   :risky t)
 
+(defconst show-font-hidden-families
+  '("D050000L" "Droid Sans Fallback" "MathJax_AMS" "MathJax_Caligraphic" "MathJax_Math"
+    "MathJax_Size1" "MathJax_Size2" "MathJax_Size3" "MathJax_Size4" "MathJax_Script"
+    "MathJax_Typewriter" "MathJax_Vector" "MathJax_Vector-Bold" "MathJax_WinChrome"
+    "MathJax_WinIE6" "Standard Symbols PS" "Unifont CSUR" "Unifont Sample" "Unifont Upper"
+    "Unifont-JP")
+  "List of families to omit from the `show-font-tabulated'.")
+
 ;;;; Faces
 
 (defgroup show-font-faces nil
@@ -277,10 +285,12 @@ matched against the output of the `fc-scan' executable."
         (car (split-string output ","))
       output)))
 
-(defun show-font-get-installed-font-families (&optional regexp)
+(defun show-font-get-installed-font-families (&optional regexp show-hidden)
   "Return list of installed font families names.
 With optional REGEXP filter the list to only include fonts whose name
-matches the given regular expression."
+matches the given regular expression.
+
+With optional SHOW-HIDDEN, include the `show-font-hidden-families'."
   (let ((fonts (thread-last (x-family-fonts)
                             (mapcar
                              (lambda (font)
@@ -290,6 +300,8 @@ matches the given regular expression."
                             (delete-dups))))
     (when regexp
       (setq fonts (seq-filter (lambda (family) (string-match-p regexp family)) fonts)))
+    (unless show-hidden
+      (setq fonts (seq-remove (lambda (family) (member family show-font-hidden-families)) fonts)))
     (sort fonts #'string-lessp)))
 
 (defun show-font--displays-characters-p (family characters &optional lax)

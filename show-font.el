@@ -242,6 +242,42 @@ action alist."
           (function :tag "Custom function to return an action alist"))
   :risky t)
 
+(defconst show-font-greek-families
+  '("Gentium" "Gentium Book Plus" "Gentium Plus" "GentiumAlt")
+  "List of families that specialise in the Greek language.
+Such fonts typically also support Latin, but we want to highlight the
+fact that they are well suited for Greek.")
+
+(defconst show-font-chinese-families
+  '("Noto Sans CJK SC")
+  "List of families that specialise in Chinese.
+Also see `show-font-greek-families' for the rationale of grouping font
+families in distinct variables.")
+
+(defconst show-font-japanese-families
+  '("Noto Sans CJK JP")
+  "List of families that specialise in Japanese.
+Also see `show-font-greek-families' for the rationale of grouping font
+families in distinct variables.")
+
+(defconst show-font-korean-families
+  '("Noto Sans CJK KR")
+  "List of families that specialise in Korean.
+Also see `show-font-greek-families' for the rationale of grouping font
+families in distinct variables.")
+
+(defconst show-font-russian-families
+  '("PT Mono" "PT Sans" "PT Sans Caption" "PT Sans Narrow" "PT Serif" "PT Serif Caption")
+  "List of families that specialise in Russian.
+Also see `show-font-greek-families' for the rationale of grouping font
+families in distinct variables.")
+
+(defconst show-font-math-families
+  '("MathJax_Fraktur" "MathJax_Main" "MathJax_SansSerif")
+  "List of families that specialise in rendering Mathematical formulas.
+Also see `show-font-greek-families' for the rationale of grouping font
+families in distinct variables.")
+
 (defconst show-font-hidden-families
   '("D050000L" "Droid Sans Fallback" "MathJax_AMS" "MathJax_Caligraphic" "MathJax_Math"
     "MathJax_Size1" "MathJax_Size2" "MathJax_Size3" "MathJax_Size4" "MathJax_Script"
@@ -323,6 +359,30 @@ return nil."
         t
       (message "Still missing: %s" (mapconcat #'identity missing-characters ", "))
       nil)))
+
+(defun show-font--prefers-greek-p (family)
+  "Return non-nil if FAMILY is a known Greek font."
+  (member family show-font-greek-families))
+
+(defun show-font--prefers-chinese-p (family)
+  "Return non-nil if FAMILY is a known Chinese font."
+  (member family show-font-chinese-families))
+
+(defun show-font--prefers-japanese-p (family)
+  "Return non-nil if FAMILY is a known Japanese font."
+  (member family show-font-japanese-families))
+
+(defun show-font--prefers-korean-p (family)
+  "Return non-nil if FAMILY is a known Korean font."
+  (member family show-font-korean-families))
+
+(defun show-font--prefers-russian-p (family)
+  "Return non-nil if FAMILY is a known Russian font."
+  (member family show-font-russian-families))
+
+(defun show-font--prefers-mathematics-p (family)
+  "Return non-nil if FAMILY is a known Mathematics font."
+  (member family show-font-math-families))
 
 ;;;###autoload
 (defun show-font-handler (operation &rest args)

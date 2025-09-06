@@ -133,13 +133,17 @@ Emacs. This can be done in the following ways:
 
 #+findex: show-font-tabulated
 #+findex: show-font-list
+#+findex: show-font-tabulated-select-preview
 - The command ~show-font-tabulated~ (alias ~show-font-list~) produces
   a list with all the fonts available on the system. Each font on
   display is styled with its given character set. With an optional
-  prefix argument (=C-u= by default), it prompt for a string or
+  prefix argument (=C-u= by default), it prompts for a string or
   regular expression to limit the list of fonts to only the matching
   ones. In this tabulated interface, users can sort by column and may
-  prefer the slightly more compact listing.
+  prefer the slightly more compact listing. In this tabulated view,
+  the =RET= key calls the command ~show-font-tabulated-select-preview~,
+  which is the same as running the aforementioned ~show-font-select-preview~
+  with the font family referenced on the current line.
 
 #+findex: show-font-mode
 - The ~show-font-mode~ is a major mode that gets activated when the

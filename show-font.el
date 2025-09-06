@@ -565,85 +565,99 @@ FILE must be of type TTF or OTF and must not already be installed (per
   "Return non-nil if STRING is a string that is not empty."
   (and (stringp string) (not (string-blank-p string))))
 
+(defun show-font--generic-preview (family language generic-title-font displays-not-prefers)
+  "Return generic sample of FAMILY belonging to LANGUAGE.
+If GENERIC-TITLE-FONT is non-nil, do not try to render the title in
+FAMILY but use whatever the `default' face is.
+
+If DISPLAYS-NOT-PREFERS is non-nil, then derive a function like
+`show-font--displays-greek-p' instead of `show-font--prefers-greek-p'."
+  (let ((check-fn (intern-soft (format (if displays-not-prefers
+                                           "show-font--displays-%s-p"
+                                         "show-font--prefers-%s-p")
+                                       language)))
+        (language-sample (symbol-value (intern-soft (format "show-font-%s-sample" language)))))
+    (unless (and check-fn language-sample)
+      (error "The language `%s' does not yield the expected results"))
+    (when (funcall check-fn family)
+      (let ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
+            (character-sample nil))
+        (dolist (face faces)
+          (push (propertize language-sample 'face (list face :family family)) character-sample))
+        (concat
+         (propertize (or family (show-font--get-attribute-from-file "fullname"))
+                     'face (if generic-title-font
+                               'show-font-title
+                             (list 'show-font-title :family family)))
+         "\n"
+         (make-separator-line)
+         "\n"
+         (mapconcat #'identity (nreverse character-sample) "\n"))))))
+
 (defun show-font--prepare-text-subr (&optional family)
   "Prepare pangram text at varying font heights for the current font file.
 With optional FAMILY, prepare a preview for the given font family
 instead of that of the file."
-  (let ((icon-or-emoji-fn (lambda (family sample)
-                            (let  ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
-                                   (character-sample nil))
-                              (dolist (face faces)
-                                (push (propertize sample 'face (list face :family family)) character-sample))
-                              (concat
-                               (propertize (or family (show-font--get-attribute-from-file "fullname")) 'face 'show-font-title)
-                               "\n"
-                               (make-separator-line)
-                               "\n"
-                               (mapconcat #'identity (nreverse character-sample) "\n"))))))
-    (cond
-     ((not (display-graphic-p))
-      (propertize "Fonts cannot be displayed in a terminal or TTY." 'face 'show-font-title))
-     ((and (not family)
-           (not (show-font-installed-file-p buffer-file-name)))
-      nil)
-     ((show-font--displays-emoji-p family)
-      (funcall icon-or-emoji-fn family show-font-emoji-sample))
-     ((show-font--displays-icon-p family)
-      (funcall icon-or-emoji-fn family show-font-icon-sample))
-     (t
-      (let* ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
-             (list-of-lines nil)
-             (list-of-blocks nil)
-             (list-of-sentences nil)
-             (pangram (show-font--get-pangram))
-             (name (or family (show-font--get-attribute-from-file "fullname")))
-             (family (or family (show-font--get-attribute-from-file "family")))
-             (character-sample show-font-character-sample)
-             (propertize-sample-p (show-font--string-p character-sample)))
-        (dolist (face faces)
-          (push (propertize pangram 'face (list face :family family)) list-of-lines)
-          (push (propertize pangram 'face (list face :family family :slant 'italic)) list-of-lines)
-          (push (propertize pangram 'face (list face :family family :weight 'bold)) list-of-lines)
-          (push (propertize pangram 'face (list face :family family :slant 'italic :weight 'bold)) list-of-lines)
-          (when propertize-sample-p
-            (push (propertize character-sample 'face (list face :family family)) list-of-blocks)
-            (push (propertize character-sample 'face (list face :family family :slant 'italic)) list-of-blocks)
-            (push (propertize character-sample 'face (list face :family family :weight 'bold)) list-of-blocks)
-            (push (propertize character-sample 'face (list face :family family :slant 'italic :weight 'bold)) list-of-blocks))
-          (when show-font-sentences-sample
-            (dolist (sentence show-font-sentences-sample)
-              (when (show-font--string-p sentence)
-                (push (propertize sentence 'face (list face :family family)) list-of-sentences)
-                (push (propertize sentence 'face (list face :family family :slant 'italic)) list-of-sentences)
-                (push (propertize sentence 'face (list face :family family :weight 'bold)) list-of-sentences)
-                (push (propertize sentence 'face (list face :family family :slant 'italic :weight 'bold)) list-of-sentences)))))
-        (concat
-         (propertize name 'face (list 'show-font-title :family family))
-         "\n"
-         (make-separator-line)
-         (if (not (equal name family))
-             (concat
-              "\n"
-              (propertize "Rendered with parent family: " 'face (list 'show-font-regular :family family))
-              (propertize family 'face (list 'show-font-regular :family family))
-              "\n"
-              (make-separator-line))
-           "")
-         "\n"
-         (mapconcat #'identity (nreverse list-of-lines) "\n") "\n"
-         (mapconcat #'identity (nreverse list-of-blocks) "\n") "\n" "\n"
-         (mapconcat #'identity (nreverse list-of-sentences) "\n") "\n"))))))
-
-(defun show-font--prepare-text (family)
-  "Use appropriate text for preview text of FAMILY.
-If FAMILY is nil, use the one of the current font file."
   (cond
-   ((or (show-font--displays-emoji-p family)
-        (show-font--displays-icon-p family)
-        (show-font--displays-latin-p family :lax))
-    (show-font--prepare-text-subr family))
+   ((not (display-graphic-p))
+    (propertize "Fonts cannot be displayed in a terminal or TTY." 'face 'show-font-title))
+   ((and (not family)
+         (not (show-font-installed-file-p buffer-file-name)))
+    nil)
+   ((show-font--generic-preview family 'mathematics :generic-title-family nil))
+   ((show-font--generic-preview family 'emoji :generic-title-family :displays-not-prefers))
+   ((show-font--generic-preview family 'icon :generic-title-family :displays-not-prefers))
+   ((show-font--generic-preview family 'chinese nil nil))
+   ;; NOTE 2025-09-06: Many Latin fonts support Greek characters.
+   ;; If we check for `show-font--displays-greek-p' here we will end
+   ;; up with very few Latin fonts, which does not look right.
+   ((show-font--generic-preview family 'greek nil nil))
+   ((show-font--generic-preview family 'japanese nil nil))
+   ((show-font--generic-preview family 'korean nil nil))
+   ((show-font--generic-preview family 'russian nil nil))
    (t
-    (propertize (format "The font family `%s' cannot display characters we know about" family) 'face 'show-font-title))))
+    (let* ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
+           (list-of-lines nil)
+           (list-of-blocks nil)
+           (list-of-sentences nil)
+           (pangram (show-font--get-pangram))
+           (name (or family (show-font--get-attribute-from-file "fullname")))
+           (family (or family (show-font--get-attribute-from-file "family")))
+           (character-sample show-font-character-sample)
+           (propertize-sample-p (show-font--string-p character-sample)))
+      (dolist (face faces)
+        (push (propertize pangram 'face (list face :family family)) list-of-lines)
+        (push (propertize pangram 'face (list face :family family :slant 'italic)) list-of-lines)
+        (push (propertize pangram 'face (list face :family family :weight 'bold)) list-of-lines)
+        (push (propertize pangram 'face (list face :family family :slant 'italic :weight 'bold)) list-of-lines)
+        (when propertize-sample-p
+          (push (propertize character-sample 'face (list face :family family)) list-of-blocks)
+          (push (propertize character-sample 'face (list face :family family :slant 'italic)) list-of-blocks)
+          (push (propertize character-sample 'face (list face :family family :weight 'bold)) list-of-blocks)
+          (push (propertize character-sample 'face (list face :family family :slant 'italic :weight 'bold)) list-of-blocks))
+        (when show-font-sentences-sample
+          (dolist (sentence show-font-sentences-sample)
+            (when (show-font--string-p sentence)
+              (push (propertize sentence 'face (list face :family family)) list-of-sentences)
+              (push (propertize sentence 'face (list face :family family :slant 'italic)) list-of-sentences)
+              (push (propertize sentence 'face (list face :family family :weight 'bold)) list-of-sentences)
+              (push (propertize sentence 'face (list face :family family :slant 'italic :weight 'bold)) list-of-sentences)))))
+      (concat
+       (propertize name 'face (list 'show-font-title :family family))
+       "\n"
+       (make-separator-line)
+       (if (not (equal name family))
+           (concat
+            "\n"
+            (propertize "Rendered with parent family: " 'face (list 'show-font-regular :family family))
+            (propertize family 'face (list 'show-font-regular :family family))
+            "\n"
+            (make-separator-line))
+         "")
+       "\n"
+       (mapconcat #'identity (nreverse list-of-lines) "\n") "\n"
+       (mapconcat #'identity (nreverse list-of-blocks) "\n") "\n" "\n"
+       (mapconcat #'identity (nreverse list-of-sentences) "\n") "\n")))))
 
 (defun show-font--install-file-button (_button)
   "Wrapper for `show-font-install' to work as a button."

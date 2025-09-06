@@ -143,7 +143,11 @@ Emacs. This can be done in the following ways:
   prefer the slightly more compact listing. In this tabulated view,
   the =RET= key calls the command ~show-font-tabulated-select-preview~,
   which is the same as running the aforementioned ~show-font-select-preview~
-  with the font family referenced on the current line.
+  with the font family referenced on the current line. In this same
+  view, the =w= key calls the command ~show-font-tabulated-copy-name~,
+  which copies into the ~kill-ring~ the name of the font family on the current line.
+  [ The ~show-font-tabulated-select-preview~ and
+  ~show-font-tabulated-copy-name~ are part of {{{development-version}}}. ]
 
 #+findex: show-font-mode
 - The ~show-font-mode~ is a major mode that gets activated when the

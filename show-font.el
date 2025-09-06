@@ -833,7 +833,7 @@ Only `let' bind this while calling `show-font-tabulated-mode'.")
 
 (defun show-font-tabulated-copy-name ()
   "Copy the name of the font family of the current line into the `kill-ring'."
-  (interactive nil 'show-font-tabulated-mode)
+  (interactive nil show-font-tabulated-mode)
   (unless (derived-mode-p 'show-font-tabulated-mode)
     (user-error "Can only do this inside the `show-font-tabulated-mode'"))
   (if-let* ((family (tabulated-list-get-id)))
@@ -844,7 +844,7 @@ Only `let' bind this while calling `show-font-tabulated-mode'.")
 
 (defun show-font-tabulated-select-preview ()
   "Preview the font on the current line in `show-font-tabulated-mode'."
-  (interactive nil 'show-font-tabulated-mode)
+  (interactive nil show-font-tabulated-mode)
   (unless (derived-mode-p 'show-font-tabulated-mode)
     (user-error "Can only do this inside the `show-font-tabulated-mode'"))
   (if-let* ((family (tabulated-list-get-id)))

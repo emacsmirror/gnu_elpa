@@ -384,7 +384,7 @@ return nil."
 
 (show-font--define-prefer-check chinese)
 (show-font--define-prefer-check greek)
-(show-font--define-prefer-check japanese
+(show-font--define-prefer-check japanese)
 (show-font--define-prefer-check korean)
 (show-font--define-prefer-check mathematics)
 (show-font--define-prefer-check russian)

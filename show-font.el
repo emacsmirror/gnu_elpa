@@ -754,17 +754,29 @@ Optional REGEXP has the meaning documented in the function
 `show-font-get-installed-font-families'."
   (if-let* ((families (show-font-get-installed-font-families regexp)))
       (mapcar
+       ;; FIXME 2025-09-06: There is a lot of repetition here.  Write
+       ;; a function in the spirit of `show-font--generic-preview'.
        (lambda (family)
          (let ((emoji-p (show-font--displays-emoji-p family))
                (icon-p (show-font--displays-icon-p family))
+               (mathematics-p (show-font--prefers-mathematics-p family))
+               (chinese-p (show-font--prefers-chinese-p family))
+               (japanese-p (show-font--prefers-japanese-p family))
+               (korean-p (show-font--prefers-korean-p family))
+               (russian-p (show-font--prefers-russian-p family))
+               (greek-p (show-font--prefers-greek-p family))
                (latin-p (show-font--displays-latin-p family)))
            (list
+            ;; NOTE 2025-09-06: The `car' is the data we extract with
+            ;; `tabulated-list-get-id'.  Maybe we can use this to
+            ;; store, say, a plist with data we are interested in
+            ;; reusing.
             family
             (vector
              (cond
-              ((or icon-p emoji-p)
+              ((or icon-p emoji-p mathematics-p)
                (propertize family 'face (list 'show-font-title-in-listing)))
-              (latin-p
+              ((or chinese-p japanese-p korean-p russian-p greek-p latin-p)
                (propertize family 'face (list 'show-font-title-in-listing :family family)))
               (t
                (propertize family 'face (list :inherit '(error show-font-title-in-listing)))))
@@ -773,6 +785,18 @@ Optional REGEXP has the meaning documented in the function
                (propertize show-font-emoji-sample 'face (list 'show-font-regular :family family)))
               (icon-p
                (propertize show-font-icon-sample 'face (list 'show-font-regular :family family)))
+              (mathematics-p
+               (propertize show-font-mathematics-sample 'face (list 'show-font-regular :family family)))
+              (japanese-p
+               (propertize show-font-japanese-sample 'face (list 'show-font-regular :family family)))
+              (korean-p
+               (propertize show-font-korean-sample 'face (list 'show-font-regular :family family)))
+              (chinese-p
+               (propertize show-font-chinese-sample 'face (list 'show-font-regular :family family)))
+              (russian-p
+               (propertize show-font-russian-sample 'face (list 'show-font-regular :family family)))
+              (greek-p
+               (propertize show-font-greek-sample 'face (list 'show-font-regular :family family)))
               (latin-p
                (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family)))
               (t

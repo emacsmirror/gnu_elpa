@@ -535,6 +535,8 @@ Optional REGEXP has the same meaning as in the aforementioned function."
 When called interactively, prompt for FAMILY.  When called from Lisp,
 FAMILY is a string that satisfies `show-font-installed-p'."
   (interactive (list (show-font--select-preview-prompt)))
+  (unless (display-graphic-p)
+    (user-error "Can only preview fonts in graphical Emacs"))
   (if (show-font-installed-p family)
       (show-font-with-preview-buffer (format "*show-font preview of `%s'*" family)
         (save-excursion
@@ -625,6 +627,8 @@ With optional REGEXP as a prefix argument, prompt for a string or
 regular expression to list only fonts matching the given input.
 Otherwise, list all installed fonts."
   (interactive (list (when current-prefix-arg (show-font-regexp-prompt))))
+  (unless (display-graphic-p)
+    (user-error "Can only preview fonts in graphical Emacs"))
   (let ((buffer (get-buffer-create "*show-font-list*")))
     (with-current-buffer buffer
       (let ((show-font-tabulated-current-regexp regexp))

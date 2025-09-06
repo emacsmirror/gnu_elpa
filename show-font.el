@@ -375,33 +375,20 @@ return nil."
       (message "Still missing: %s" (mapconcat #'identity missing-characters ", "))
       nil)))
 
-(defun show-font--prefers-greek-p (family)
-  "Return non-nil if FAMILY is a known Greek font."
-  (member family show-font-greek-families))
+(defmacro show-font--define-prefer-check (language)
+  "Define a function to check if LANGUAGE has preferred fonts."
+  (let ((families (intern (format "show-font-%s-families" language))))
+    `(defun ,(intern (format "show-font--prefers-%s-p" language)) (family)
+       ,(format "Return non-nil if FAMILY is among %s." families)
+       (member family ,families))))
 
-(defun show-font--prefers-chinese-p (family)
-  "Return non-nil if FAMILY is a known Chinese font."
-  (member family show-font-chinese-families))
-
-(defun show-font--prefers-japanese-p (family)
-  "Return non-nil if FAMILY is a known Japanese font."
-  (member family show-font-japanese-families))
-
-(defun show-font--prefers-korean-p (family)
-  "Return non-nil if FAMILY is a known Korean font."
-  (member family show-font-korean-families))
-
-(defun show-font--prefers-russian-p (family)
-  "Return non-nil if FAMILY is a known Russian font."
-  (member family show-font-russian-families))
-
-(defun show-font--prefers-mathematics-p (family)
-  "Return non-nil if FAMILY is a known Mathematics font."
-  (member family show-font-mathematics-families))
-
-(defun show-font--prefers-symbols-p (family)
-  "Return non-nil if FAMILY is a known Mathematics font."
-  (member family show-font-symbols-families))
+(show-font--define-prefer-check chinese)
+(show-font--define-prefer-check greek)
+(show-font--define-prefer-check japanese
+(show-font--define-prefer-check korean)
+(show-font--define-prefer-check mathematics)
+(show-font--define-prefer-check russian)
+(show-font--define-prefer-check symbols)
 
 ;;;###autoload
 (defun show-font-handler (operation &rest args)

@@ -472,51 +472,23 @@ CHARACTERS."
         t)
     (error "No font object for family `%s'" family)))
 
-(defun show-font--displays-latin-p (family &optional lax)
-  "Return non-nil if the font FAMILY can display Latin.
-With optional LAX if FAMILY can display at least one among the
-CHARACTERS."
-  (show-font--displays-characters-p family show-font-latin-characters lax))
+(defmacro show-font--define-display-check (language)
+  "Define a `show-font--displays-characters-p' function for LANGUAGE."
+  `(defun ,(intern (format "show-font--displays-%s-p" language)) (family &optional lax)
+     ,(format
+       "Return non-nil if the font FAMILY can display %s.
+With optional LAX if FAMILY can display at least one among the CHARACTERS."
+       language)
+     (show-font--displays-characters-p family ,(intern (format "show-font-%s-characters" language)) lax)))
 
-(defun show-font--displays-greek-p (family &optional lax)
-  "Return non-nil if the font FAMILY can display Greek.
-With optional LAX if FAMILY can display at least one among the
-CHARACTERS."
-  (show-font--displays-characters-p family show-font-greek-characters lax))
-
-(defun show-font--displays-chinese-p (family &optional lax)
-  "Return non-nil if the font FAMILY can display Chinese.
-With optional LAX if FAMILY can display at least one among the
-CHARACTERS."
-  (show-font--displays-characters-p family show-font-chinese-characters lax))
-
-(defun show-font--displays-japanese-p (family &optional lax)
-  "Return non-nil if the font FAMILY can display Japanese.
-With optional LAX if FAMILY can display at least one among the
-CHARACTERS."
-  (show-font--displays-characters-p family show-font-japanese-characters lax))
-
-(defun show-font--displays-korean-p (family &optional lax)
-  "Return non-nil if the font FAMILY can display Korean.
-With optional LAX if FAMILY can display at least one among the
-CHARACTERS."
-  (show-font--displays-characters-p family show-font-korean-characters lax))
-
-(defun show-font--displays-russian-p (family &optional lax)
-  "Return non-nil if the font FAMILY can display Russian.
-With optional LAX if FAMILY can display at least one among the
-CHARACTERS."
-  (show-font--displays-characters-p family show-font-russian-characters lax))
-
-(defun show-font--displays-emoji-p (family)
-  "Return non-nil if FAMILY is likely an emoji font."
-  (and (not (show-font--displays-latin-p family))
-       (show-font--displays-characters-p family show-font-emoji-characters :lax)))
-
-(defun show-font--displays-icon-p (family)
-  "Return non-nil if FAMILY is likely an icon font."
-  (and (not (show-font--displays-latin-p family))
-       (show-font--displays-characters-p family show-font-icon-characters :lax)))
+(show-font--define-display-check chinese)
+(show-font--define-display-check emoji)
+(show-font--define-display-check greek)
+(show-font--define-display-check icon)
+(show-font--define-display-check japanese)
+(show-font--define-display-check korean)
+(show-font--define-display-check latin)
+(show-font--define-display-check russian)
 
 (defun show-font-installed-p (family &optional regexp)
   "Return non-nil if font family FAMILY is installed on the system.

@@ -225,6 +225,7 @@ expected that `token_url', `client_id', `client_secret', and
 Enable auth-source-xoauth2-plugin-mode to use xoauth2
 authentications for emails."
   :global t
+  :group 'auth-source
   (if auth-source-xoauth2-plugin-mode
       (auth-source-xoauth2-plugin--enable)
     (auth-source-xoauth2-plugin--disable)))

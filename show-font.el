@@ -774,10 +774,10 @@ Optional REGEXP has the meaning documented in the function
               (t
                (propertize family 'face (list :inherit '(error show-font-title-in-listing)))))
              (cond
-              (emoji-p
-               (propertize show-font-emoji-sample 'face (list 'show-font-regular :family family)))
               (symbols-p
                (propertize show-font-symbols-sample 'face (list 'show-font-regular :family family)))
+              (emoji-p
+               (propertize show-font-emoji-sample 'face (list 'show-font-regular :family family)))
               (icon-p
                (propertize show-font-icon-sample 'face (list 'show-font-regular :family family)))
               (mathematics-p

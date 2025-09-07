@@ -79,10 +79,6 @@ The PUA is typically used by icon fonts.")
   (number-sequence ?а ?я)
   "The Russian lower-case characters.")
 
-;; TODO 2024-09-06: How best to handle multiple languages?  Say there
-;; is a font that only works with Greek characters.  We need to know
-;; what characters the font supports.  Then we return the relevant
-;; pangram and sample text.
 (defconst show-font-pangrams
   '((fox . "The quick brown fox jumps over the lazy dog")
     (wizards . "Grumpy wizards make toxic brew for the evil queen and jack")
@@ -104,8 +100,6 @@ experimenting with `show-font-pangram-p'."
              show-font-pangrams)
           (string :tag "A custom pangram"))
   :group 'show-font)
-
-;; See TODO above about multiple languages.
 
 (defcustom show-font-chinese-sample
   "普罗泰西劳斯无法阅读中文" ; Protesilaos cannot read Chinese
@@ -413,7 +407,7 @@ Determine how to render the font file contents in a buffer."
   "Get font family ATTRIBUTE from the current file or given FILE.
 ATTRIBUTE is a string, such as \"family\" or \"fullname\", which is
 matched against the output of the `fc-scan' executable."
-  ;; TODO 2024-09-06: Make this work with other font backends.
+  ;; FIXME 2024-09-06: Make this work with other font backends.
   (unless (executable-find "fc-scan")
     (error "Cannot find `fc-scan' executable; will not render font"))
   (when-let* ((f (or file buffer-file-name))
@@ -488,7 +482,7 @@ matches the given regular expression."
   "Get list of font files available on the system."
   (unless (executable-find "fc-list")
     (error "Cannot find `fc-list' executable; will not find installed fonts"))
-  ;; TODO 2024-09-06: Make this work with other font backends.
+  ;; FIXME 2024-09-06: Make this work with other font backends.
   (process-lines "fc-list" "-f" (format "%%{%s}\n" "file")))
 
 (defun show-font-installed-file-p (file)
@@ -522,7 +516,7 @@ matches the given regular expression."
               (_ (show-font--install-confirmation destination)))
     (copy-file file destination 1) ; ask for confirmation to overwrite
     (message "Copied `%s' to `%s'; now updating the font cache" file destination)
-    ;; TODO 2024-09-06: How to do the same on all operating systems?
+    ;; FIXME 2024-09-06: How to do the same on all operating systems?
     (shell-command-to-string (format "fc-cache -f -v"))
     (message "Font installed; restart Emacs to notice the effect")))
 
@@ -557,6 +551,7 @@ If DISPLAYS-NOT-PREFERS is non-nil, then derive a function like
         (language-sample (symbol-value (intern-soft (format "show-font-%s-sample" language)))))
     (unless (and check-fn language-sample)
       (error "The language `%s' does not yield the expected results" language))
+    ;; FIXME 2025-09-07: We are missing the LAX option when calling the "displays" check.
     (when (funcall check-fn family)
       (let ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
             (character-sample nil))

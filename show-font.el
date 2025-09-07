@@ -288,7 +288,8 @@ Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")
 
 (defconst show-font-japanese-families
-  '("Noto Sans CJK JP" "Noto Sans Mono CJK JP")
+  '("Japan" "Noto Sans CJK JP" "Noto Sans Mono CJK JP"
+    "Noto Serif CJK JP" "Noto Serif Mono CJK JP"))
   "List of families that specialise in Japanese.
 Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")

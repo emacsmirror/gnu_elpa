@@ -168,6 +168,15 @@ This is displayed in the buffer produced by the command
   :type 'string
   :group 'show-font)
 
+(defcustom show-font-music-sample
+  "♩♪♫♬"
+  "Character sample to showcase music fonts.
+This is displayed in the buffer produced by the command
+`show-font-select-preview' and `show-font-tabulated'."
+  :package-version '(show-font . "0.5.0")
+  :type 'string
+  :group 'show-font)
+
 (defcustom show-font-russian-sample
   "Протесилаос не умеет читать по-русски" ; Protesilaos cannot read Russian
   "Character sample to showcase Russian fonts.
@@ -313,6 +322,12 @@ families in distinct variables.")
 Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")
 
+(defconst show-font-music-families
+  '("Denemo" "Emmentaler" "Musica" "Nada")
+  "List of families that specialise in rendering music notation.
+Also see `show-font-greek-families' for the rationale of grouping font
+families in distinct variables.")
+
 (defconst show-font-symbols-families
   '("Noto Sans Symbols" "Symbola")
   "List of families that specialise in rendering symbols.
@@ -414,6 +429,7 @@ return nil."
 (show-font--define-prefer-check japanese)
 (show-font--define-prefer-check korean)
 (show-font--define-prefer-check mathematics)
+(show-font--define-prefer-check music)
 (show-font--define-prefer-check russian)
 (show-font--define-prefer-check symbols)
 
@@ -609,6 +625,7 @@ instead of that of the file."
          (not (show-font-installed-file-p buffer-file-name)))
     nil)
    ((show-font--prepare-text-generic-sample 'prefers family 'mathematics :generic-title-family))
+   ((show-font--prepare-text-generic-sample 'prefers family 'music :generic-title-family))
    ((show-font--prepare-text-generic-sample 'prefers family 'symbols :generic-title-family))
    ((show-font--prepare-text-generic-sample 'displays family 'emoji :generic-title-family))
    ((show-font--prepare-text-generic-sample 'displays family 'icon :generic-title-family))
@@ -798,6 +815,7 @@ Optional REGEXP has the meaning documented in the function
           family
           (cond
            ((show-font--list-family-preview 'prefers family "mathematics" :generic-title-font))
+           ((show-font--list-family-preview 'prefers family "music" :generic-title-font))
            ((show-font--list-family-preview 'prefers family "symbols" :generic-title-font))
            ((show-font--list-family-preview 'displays family "emoji" :generic-title-font))
            ((show-font--list-family-preview 'displays family "icon" :generic-title-font))

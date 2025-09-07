@@ -316,7 +316,7 @@ families in distinct variables.")
     "MathJax_Size1" "MathJax_Size2" "MathJax_Size3" "MathJax_Size4" "MathJax_Script"
     "MathJax_Typewriter" "MathJax_Vector" "MathJax_Vector-Bold" "MathJax_WinChrome"
     "MathJax_WinIE6" "Standard Symbols PS" "Symbols Nerd Font Mono" "Unifont CSUR"
-    "Unifont Sample" "Unifont Upper" "Unifont-JP")
+    "Unifont Sample" "Unifont Upper" "Unifont-JP" "feta26")
   "List of families to omit from the `show-font-tabulated'.")
 
 ;;;; Faces

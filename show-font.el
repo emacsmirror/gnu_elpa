@@ -552,9 +552,13 @@ FAMILY but use whatever the `default' face is."
           (push (propertize sample 'face (list face :family family)) output-sample))
         (concat
          (propertize (or family (show-font--get-attribute-from-file "fullname"))
-                     'face (if generic-title-font
-                               'show-font-title
-                             (list 'show-font-title :family family)))
+                     'face (cond
+                            (generic-title-font
+                             'show-font-title-in-listing)
+                            ((show-font--displays-latin-p family)
+                             (list 'show-font-title-in-listing :family family))
+                            (t
+                             'show-font-title-in-listing)))
          "\n"
          (make-separator-line)
          "\n"
@@ -715,7 +719,7 @@ FAMILY is a string that satisfies `show-font-installed-p'."
      (format-prompt "Fonts matching REGEXP" default)
      nil 'show-font-regexp-history default)))
 
-(defun show-font--list-family-preview (check-type family language no-family-in-title)
+(defun show-font--list-family-preview (check-type family language generic-title-font)
   "Return generic `show-font--list-families' sample of FAMILY for LANGUAGE.
 Use CHECK-TYPE as a symbol of `displays' or `prefers' to run the
 corresponding checker function, like `show-font--displays-greek-p'
@@ -731,9 +735,13 @@ FAMILY but use whatever the `default' face is."
          (sample (symbol-value language-sample)))
     (when (funcall check-fn family)
       (vector
-       (propertize family 'face (if no-family-in-title
-                                    (list 'show-font-title-in-listing)
-                                  (list 'show-font-title-in-listing :family family)))
+       (propertize family 'face (cond
+                                 (generic-title-font
+                                  'show-font-title-in-listing)
+                                 ((show-font--displays-latin-p family)
+                                  (list 'show-font-title-in-listing :family family))
+                                 (t
+                                  'show-font-title-in-listing)))
        (propertize sample 'face (list 'show-font-regular :family family))))))
 
 (defun show-font--list-families (&optional regexp)
@@ -746,10 +754,10 @@ Optional REGEXP has the meaning documented in the function
          (list
           family
           (cond
-           ((show-font--list-family-preview 'prefers family "mathematics" t))
-           ((show-font--list-family-preview 'prefers family "symbols" t))
-           ((show-font--list-family-preview 'displays family "emoji" t))
-           ((show-font--list-family-preview 'displays family "icon" t))
+           ((show-font--list-family-preview 'prefers family "mathematics" :generic-title-font))
+           ((show-font--list-family-preview 'prefers family "symbols" :generic-title-font))
+           ((show-font--list-family-preview 'displays family "emoji" :generic-title-font))
+           ((show-font--list-family-preview 'displays family "icon" :generic-title-font))
            ((show-font--list-family-preview 'prefers family "chinese" nil))
            ((show-font--list-family-preview 'prefers family "greek" nil))
            ((show-font--list-family-preview 'prefers family "japanese" nil))

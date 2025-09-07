@@ -715,62 +715,50 @@ FAMILY is a string that satisfies `show-font-installed-p'."
      (format-prompt "Fonts matching REGEXP" default)
      nil 'show-font-regexp-history default)))
 
+(defun show-font--list-family-preview (check-type family language no-family-in-title)
+  "Return generic `show-font--list-families' sample of FAMILY for LANGUAGE.
+Use CHECK-TYPE as a symbol of `displays' or `prefers' to run the
+corresponding checker function, like `show-font--displays-greek-p'
+instead of `show-font--prefers-greek-p'.
+
+If GENERIC-TITLE-FONT is non-nil, do not try to render the title in
+FAMILY but use whatever the `default' face is."
+  (unless (memq check-type '(prefers displays))
+    (error "The CHECK-TYPE must be the symbol `prefers' or `displays'"))
+  (let* ((check-fn (intern-soft (format "show-font--%s-%s-p" check-type language)))
+         (language-sample (or (intern-soft (format "show-font-%s-sample" language))
+                              (error "There is no known sample for `%s'" language)))
+         (sample (symbol-value language-sample)))
+    (when (funcall check-fn family)
+      (vector
+       (propertize family 'face (if no-family-in-title
+                                    (list 'show-font-title-in-listing)
+                                  (list 'show-font-title-in-listing :family family)))
+       (propertize sample 'face (list 'show-font-regular :family family))))))
+
 (defun show-font--list-families (&optional regexp)
   "Return a list of propertized family strings for `show-font-list'.
 Optional REGEXP has the meaning documented in the function
 `show-font-get-installed-font-families'."
   (if-let* ((families (show-font-get-installed-font-families regexp)))
       (mapcar
-       ;; FIXME 2025-09-06: There is a lot of repetition here.  Write
-       ;; a function in the spirit of `show-font--generic-preview'.
        (lambda (family)
-         (let ((emoji-p (show-font--displays-emoji-p family))
-               (icon-p (show-font--displays-icon-p family))
-               (symbols-p (show-font--prefers-symbols-p family))
-               (mathematics-p (show-font--prefers-mathematics-p family))
-               (chinese-p (show-font--prefers-chinese-p family))
-               (japanese-p (show-font--prefers-japanese-p family))
-               (korean-p (show-font--prefers-korean-p family))
-               (russian-p (show-font--prefers-russian-p family))
-               (greek-p (show-font--prefers-greek-p family))
-               (latin-p (show-font--displays-latin-p family)))
-           (list
-            ;; NOTE 2025-09-06: The `car' is the data we extract with
-            ;; `tabulated-list-get-id'.  Maybe we can use this to
-            ;; store, say, a plist with data we are interested in
-            ;; reusing.
-            family
+         (list
+          family
+          (cond
+           ((show-font--list-family-preview 'prefers family "mathematics" t))
+           ((show-font--list-family-preview 'prefers family "symbols" t))
+           ((show-font--list-family-preview 'displays family "emoji" t))
+           ((show-font--list-family-preview 'displays family "icon" t))
+           ((show-font--list-family-preview 'prefers family "chinese" nil))
+           ((show-font--list-family-preview 'prefers family "greek" nil))
+           ((show-font--list-family-preview 'prefers family "japanese" nil))
+           ((show-font--list-family-preview 'prefers family "korean" nil))
+           ((show-font--list-family-preview 'prefers family "russian" nil))
+           (t
             (vector
-             (cond
-              ((or emoji-p icon-p mathematics-p symbols-p)
-               (propertize family 'face (list 'show-font-title-in-listing)))
-              ((or chinese-p japanese-p korean-p russian-p greek-p latin-p)
-               (propertize family 'face (list 'show-font-title-in-listing :family family)))
-              (t
-               (propertize family 'face (list :inherit '(error show-font-title-in-listing)))))
-             (cond
-              (symbols-p
-               (propertize show-font-symbols-sample 'face (list 'show-font-regular :family family)))
-              (emoji-p
-               (propertize show-font-emoji-sample 'face (list 'show-font-regular :family family)))
-              (icon-p
-               (propertize show-font-icon-sample 'face (list 'show-font-regular :family family)))
-              (mathematics-p
-               (propertize show-font-mathematics-sample 'face (list 'show-font-regular :family family)))
-              (japanese-p
-               (propertize show-font-japanese-sample 'face (list 'show-font-regular :family family)))
-              (korean-p
-               (propertize show-font-korean-sample 'face (list 'show-font-regular :family family)))
-              (chinese-p
-               (propertize show-font-chinese-sample 'face (list 'show-font-regular :family family)))
-              (russian-p
-               (propertize show-font-russian-sample 'face (list 'show-font-regular :family family)))
-              (greek-p
-               (propertize show-font-greek-sample 'face (list 'show-font-regular :family family)))
-              (latin-p
-               (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family)))
-              (t
-               (propertize "No preview" 'face (list :inherit '(error show-font-regular)))))))))
+             (propertize family 'face (list 'show-font-title-in-listing :family family))
+             (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family)))))))
        families)
     (error "No font families found")))
 

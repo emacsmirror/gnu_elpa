@@ -59,6 +59,10 @@ The PUA is typically used by icon fonts.")
   '(#x1F600 #x1F601 #x1F602 #x1F349)
   "A sequence of characters in the emoji range.")
 
+(defconst show-font-arabic-characters
+  (number-sequence #x0627 #x064A)
+  "The Arabic characters from alif to yeh.")
+
 (defconst show-font-greek-characters
   (number-sequence ?α ?ω)
   "The Greek lower-case characters.")
@@ -99,6 +103,15 @@ experimenting with `show-font-pangram-p'."
                (list 'const :tag (cdr element) (car element)))
              show-font-pangrams)
           (string :tag "A custom pangram"))
+  :group 'show-font)
+
+(defcustom show-font-arabic-sample
+  "بروتيسيلاوس لا يستطيع قراءة اللغة العربية" ; Protesilaos cannot read Arabic
+  "Character sample to showcase Arabic fonts.
+This is displayed in the buffer produced by the command
+`show-font-select-preview' and `show-font-tabulated'."
+  :package-version '(show-font . "0.5.0")
+  :type 'string
   :group 'show-font)
 
 (defcustom show-font-chinese-sample
@@ -254,6 +267,12 @@ action alist."
 Such fonts typically also support Latin, but we want to highlight the
 fact that they are well suited for Greek.")
 
+(defconst show-font-arabic-families
+  '("AlArabiya" "Noto Kufi Arabic" "Noto Naskh Arabic" "Noto Sans Arabic")
+  "List of families that specialise in Arabic.
+Also see `show-font-greek-families' for the rationale of grouping font
+families in distinct variables.")
+
 (defconst show-font-chinese-families
   '("Noto Sans CJK SC")
   "List of families that specialise in Chinese.
@@ -379,6 +398,7 @@ return nil."
        ,(format "Return non-nil if FAMILY is among %s." families)
        (member family ,families))))
 
+(show-font--define-prefer-check arabic)
 (show-font--define-prefer-check chinese)
 (show-font--define-prefer-check greek)
 (show-font--define-prefer-check japanese)
@@ -460,6 +480,7 @@ CHARACTERS is a sequence of numbers, corresponding to characters."
        language)
      (show-font--displays-characters-p family ,(intern (format "show-font-%s-characters" language)))))
 
+(show-font--define-display-check arabic)
 (show-font--define-display-check chinese)
 (show-font--define-display-check emoji)
 (show-font--define-display-check greek)
@@ -581,6 +602,7 @@ instead of that of the file."
    ((show-font--prepare-text-generic-sample 'prefers family 'symbols :generic-title-family))
    ((show-font--prepare-text-generic-sample 'displays family 'emoji :generic-title-family))
    ((show-font--prepare-text-generic-sample 'displays family 'icon :generic-title-family))
+   ((show-font--prepare-text-generic-sample 'prefers family 'arabic nil))
    ((show-font--prepare-text-generic-sample 'prefers family 'chinese nil))
    ;; NOTE 2025-09-06: Many Latin fonts support Greek characters.
    ;; If we check for `show-font--displays-greek-p' here we will end
@@ -769,6 +791,7 @@ Optional REGEXP has the meaning documented in the function
            ((show-font--list-family-preview 'prefers family "symbols" :generic-title-font))
            ((show-font--list-family-preview 'displays family "emoji" :generic-title-font))
            ((show-font--list-family-preview 'displays family "icon" :generic-title-font))
+           ((show-font--list-family-preview 'prefers family "arabic" nil))
            ((show-font--list-family-preview 'prefers family "chinese" nil))
            ((show-font--list-family-preview 'prefers family "greek" nil))
            ((show-font--list-family-preview 'prefers family "japanese" nil))

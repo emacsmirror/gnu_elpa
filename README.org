@@ -200,18 +200,19 @@ specialise in mathematics, while ~show-font-symbols-sample~ is for
 other symbols. [ The ~show-font-mathematics-sample~ and ~show-font-symbols-sample~
 part of {{{development-version}}}. ]
 
+#+vindex: show-font-arabic-sample
 #+vindex: show-font-chinese-sample
 #+vindex: show-font-greek-sample
 #+vindex: show-font-japanese-sample
 #+vindex: show-font-korean-sample
 #+vindex: show-font-russian-sample
-The package also supports Chinese, Greek, Japanese, Korean, and
-Russian (and the plan is to extend it further). Relevant user options
-for the character sample of the respective languages are:
-~show-font-chinese-sample~, ~show-font-greek-sample~,
-~show-font-japanese-sample~, ~show-font-korean-sample~,
-~show-font-russian-sample~. [ All these languages are part of
-{{{development-version}}}. ]
+The package also supports Arabic, Chinese, Greek, Japanese, Korean,
+and Russian (and the plan is to extend it further). Relevant user
+options for the character sample of the respective languages are:
+~show-font-arabic-sample~, ~show-font-chinese-sample~,
+~show-font-greek-sample~, ~show-font-japanese-sample~,
+~show-font-korean-sample~, ~show-font-russian-sample~. [ All these
+languages are part of {{{development-version}}}. ]
 
 Finally, the following faces control the appearance of various
 elements.

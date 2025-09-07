@@ -246,7 +246,10 @@ action alist."
   :risky t)
 
 (defconst show-font-greek-families
-  '("Gentium" "Gentium Book Plus" "Gentium Plus" "GentiumAlt")
+  '("Gentium" "Gentium Book Plus" "Gentium Plus" "GentiumAlt"
+    "GFS Artemisia" "GFS Baskerville" "GFS BodoniClassic" "GFS Complutum"
+    "GFS Didot" "GFS Didot Classic" "GFS Gazis" "GFS Neohellenic" "GFS Olga"
+    "GFS Porson" "GFS Solomos" "GFS Theokritos" )
   "List of families that specialise in the Greek language.
 Such fonts typically also support Latin, but we want to highlight the
 fact that they are well suited for Greek.")

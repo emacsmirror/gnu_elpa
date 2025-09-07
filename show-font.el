@@ -269,8 +269,9 @@ fact that they are well suited for Greek.")
 
 (defconst show-font-arabic-families
   '("AlArabiya" "AlBattar" "AlHor" "AlManzomah" "AlYarmook"
-    "Dimnah" "Hani" "Haramain" "Hor" "Kayrawan" "Khalid"
-    "Noto Kufi Arabic" "Noto Naskh Arabic" "Noto Sans Arabic")
+    "Dimnah" "Hani" "Haramain" "Hor" "Kayrawan" "Khalid" "Mashq"
+    "Nagham" "Noto Kufi Arabic" "Noto Naskh Arabic" "Noto Sans Arabic"
+    "Rehan" "Sharjah" "Sindbad")
   "List of families that specialise in Arabic.
 Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")

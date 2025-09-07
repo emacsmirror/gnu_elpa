@@ -586,7 +586,7 @@ instead of that of the file."
    ((show-font--prepare-text-generic-sample 'prefers family 'japanese nil))
    ((show-font--prepare-text-generic-sample 'prefers family 'korean nil))
    ((show-font--prepare-text-generic-sample 'prefers family 'russian nil))
-   (t
+   ((show-font--displays-latin-p family)
     (let* ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
            (list-of-lines nil)
            (list-of-blocks nil)
@@ -628,7 +628,15 @@ instead of that of the file."
        "\n"
        (mapconcat #'identity (nreverse list-of-lines) "\n") "\n"
        (mapconcat #'identity (nreverse list-of-blocks) "\n") "\n" "\n"
-       (mapconcat #'identity (nreverse list-of-sentences) "\n") "\n")))))
+       (mapconcat #'identity (nreverse list-of-sentences) "\n") "\n")))
+   (t
+    (concat
+     (propertize (or family (show-font--get-attribute-from-file "fullname"))
+                 'face 'show-font-title-in-listing)
+     "\n"
+     (make-separator-line)
+     "\n"
+     (propertize "No known preview for this font family" 'face 'error)))))
 
 (defun show-font--install-file-button (_button)
   "Wrapper for `show-font-install' to work as a button."
@@ -763,10 +771,14 @@ Optional REGEXP has the meaning documented in the function
            ((show-font--list-family-preview 'prefers family "japanese" nil))
            ((show-font--list-family-preview 'prefers family "korean" nil))
            ((show-font--list-family-preview 'prefers family "russian" nil))
-           (t
+           ((show-font--displays-latin-p family)
             (vector
              (propertize family 'face (list 'show-font-title-in-listing :family family))
-             (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family)))))))
+             (propertize (show-font--get-pangram) 'face (list 'show-font-regular :family family))))
+           (t
+            (vector
+             (propertize family 'face 'show-font-title-in-listing)
+             (propertize "No known preview" 'face 'error))))))
        families)
     (error "No font families found")))
 

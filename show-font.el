@@ -268,7 +268,9 @@ Such fonts typically also support Latin, but we want to highlight the
 fact that they are well suited for Greek.")
 
 (defconst show-font-arabic-families
-  '("AlArabiya" "Noto Kufi Arabic" "Noto Naskh Arabic" "Noto Sans Arabic")
+  '("AlArabiya" "AlBattar" "AlHor" "AlManzomah" "AlYarmook"
+    "Dimnah" "Hani" "Haramain" "Hor" "Kayrawan" "Khalid"
+    "Noto Kufi Arabic" "Noto Naskh Arabic" "Noto Sans Arabic")
   "List of families that specialise in Arabic.
 Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")

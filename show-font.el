@@ -295,7 +295,8 @@ Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")
 
 (defconst show-font-korean-families
-  '("Noto Sans CJK KR" "Noto Sans Mono CJK KR")
+  '("Noto Sans CJK KR" "Noto Sans Mono CJK KR"
+    "Noto Serif CJK KR" "Noto Serif Mono CJK KR"))
   "List of families that specialise in Korean.
 Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")

@@ -834,13 +834,6 @@ Only `let' bind this while calling `show-font-tabulated-mode'.")
       (show-font-select-preview family)
     (error "No font family on the current line")))
 
-(defvar show-font-tabulated-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "w") #'show-font-tabulated-copy-name)
-    (define-key map (kbd "RET") #'show-font-tabulated-select-preview)
-    map)
-  "Key map for the `show-font-tabulated-mode'.")
-
 (define-derived-mode show-font-tabulated-mode tabulated-list-mode "Show fonts"
   "Major mode to display font previews."
   :interactive nil
@@ -851,6 +844,10 @@ Only `let' bind this while calling `show-font-tabulated-mode'.")
               (show-font--list-families show-font-tabulated-current-regexp))
   (tabulated-list-init-header)
   (tabulated-list-print))
+
+(let ((map show-font-tabulated-mode-map))
+  (define-key map (kbd "w") #'show-font-tabulated-copy-name)
+  (define-key map (kbd "RET") #'show-font-tabulated-select-preview))
 
 ;;;###autoload
 (defun show-font-tabulated (&optional regexp)

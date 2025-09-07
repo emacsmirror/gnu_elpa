@@ -314,7 +314,7 @@ Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")
 
 (defconst show-font-symbols-families
-  '("Symbola")
+  '("Noto Sans Symbols" "Symbola")
   "List of families that specialise in rendering symbols.
 Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")

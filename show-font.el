@@ -279,7 +279,10 @@ families in distinct variables.")
 (defconst show-font-chinese-families
   '("Noto Sans CJK HK" "Noto Sans Mono CJK HK"
     "Noto Sans CJK SC" "Noto Sans CJK TC"
-    "Noto Sans Mono CJK SC" "Noto Sans Mono CJK TC")
+    "Noto Sans Mono CJK SC" "Noto Sans Mono CJK TC"
+    "Noto Serif CJK HK" "Noto Serif Mono CJK HK"
+    "Noto Serif CJK SC" "Noto Serif CJK TC"
+    "Noto Serif Mono CJK SC" "Noto Serif Mono CJK TC")
   "List of families that specialise in Chinese.
 Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")

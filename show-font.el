@@ -274,19 +274,21 @@ Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")
 
 (defconst show-font-chinese-families
-  '("Noto Sans CJK SC")
+  '("Noto Sans CJK HK" "Noto Sans Mono CJK HK"
+    "Noto Sans CJK SC" "Noto Sans CJK TC"
+    "Noto Sans Mono CJK SC" "Noto Sans Mono CJK TC")
   "List of families that specialise in Chinese.
 Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")
 
 (defconst show-font-japanese-families
-  '("Noto Sans CJK JP")
+  '("Noto Sans CJK JP" "Noto Sans Mono CJK JP")
   "List of families that specialise in Japanese.
 Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")
 
 (defconst show-font-korean-families
-  '("Noto Sans CJK KR")
+  '("Noto Sans CJK KR" "Noto Sans Mono CJK KR")
   "List of families that specialise in Korean.
 Also see `show-font-greek-families' for the rationale of grouping font
 families in distinct variables.")

@@ -533,7 +533,7 @@ FILE must be of type TTF or OTF and must not already be installed (per
   (and (stringp string) (not (string-blank-p string))))
 
 (defun show-font--prepare-text-generic-sample (check-type family language generic-title-font)
-  "Return generic sample of FAMILY belonging to LANGUAGE.
+  "Return generic `show-font--prepare-text-subr' sample of FAMILY for LANGUAGE.
 Use CHECK-TYPE as a symbol of `displays' or `prefers' to run the
 corresponding checker function, like `show-font--displays-greek-p'
 instead of `show-font--prefers-greek-p'.
@@ -542,25 +542,23 @@ If GENERIC-TITLE-FONT is non-nil, do not try to render the title in
 FAMILY but use whatever the `default' face is."
   (unless (memq check-type '(prefers displays))
     (error "The CHECK-TYPE must be the symbol `prefers' or `displays'"))
-  (let ((check-fn (intern-soft (format "show-font--%s-%s-p" check-type language)))
-        (language-sample (intern-soft (format "show-font-%s-sample" language))))
-    (unless (boundp language-sample)
-      (error "There is no know sample for `%s' called `%s'" language language-sample))
-    (let ((sample (symbol-value language-sample)))
-      (when (funcall check-fn family)
-        (let ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
-              (output-sample nil))
-          (dolist (face faces)
-            (push (propertize sample 'face (list face :family family)) output-sample))
-          (concat
-           (propertize (or family (show-font--get-attribute-from-file "fullname"))
-                       'face (if generic-title-font
-                                 'show-font-title
-                               (list 'show-font-title :family family)))
-           "\n"
-           (make-separator-line)
-           "\n"
-           (mapconcat #'identity (nreverse output-sample) "\n")))))))
+  (let* ((check-fn (intern-soft (format "show-font--%s-%s-p" check-type language)))
+         (language-sample (or (intern-soft (format "show-font-%s-sample" language))
+                              (error "There is no known sample for `%s'" language)))
+         (sample (symbol-value language-sample)))
+    (when (funcall check-fn family)
+      (let ((output-sample nil))
+        (dolist (face '(show-font-small show-font-regular show-font-medium show-font-large))
+          (push (propertize sample 'face (list face :family family)) output-sample))
+        (concat
+         (propertize (or family (show-font--get-attribute-from-file "fullname"))
+                     'face (if generic-title-font
+                               'show-font-title
+                             (list 'show-font-title :family family)))
+         "\n"
+         (make-separator-line)
+         "\n"
+         (mapconcat #'identity (nreverse output-sample) "\n"))))))
 
 (defun show-font--prepare-text-subr (&optional family)
   "Prepare pangram text at varying font heights for the current font file.

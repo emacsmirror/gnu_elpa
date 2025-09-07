@@ -797,8 +797,8 @@ Only `let' bind this while calling `show-font-tabulated-mode'.")
   "Major mode to display font previews."
   :interactive nil
   (setq-local tabulated-list-format
-              [("Font family" 60 t)
-               ("Sample text" 0 t)])
+              (vector (list (substitute-command-keys "Font family (\\<show-font-tabulated-mode-map>\\[show-font-tabulated-copy-name] to copy)") 60 t)
+                      (list (substitute-command-keys "Sample text (\\<show-font-tabulated-mode-map>\\[show-font-tabulated-select-preview] for full preview)") 0 t)))
   (setq-local tabulated-list-entries
               (show-font--list-families show-font-tabulated-current-regexp))
   (tabulated-list-init-header)

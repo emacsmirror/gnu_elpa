@@ -438,29 +438,24 @@ With optional SHOW-HIDDEN, include the `show-font-hidden-families'."
       (setq fonts (seq-remove (lambda (family) (member family show-font-hidden-families)) fonts)))
     (sort fonts #'string-lessp)))
 
-(defun show-font--displays-characters-p (family characters &optional lax)
+(defun show-font--displays-characters-p (family characters)
   "Return non-nil if the font FAMILY can display CHARACTERS.
-CHARACTERS is a sequence of numbers, corresponding to characters.
-
-With optional LAX if FAMILY can display at least one among the
-CHARACTERS."
+CHARACTERS is a sequence of numbers, corresponding to characters."
   (if-let* ((font-object (find-font (font-spec :family family))))
       (catch 'exit
         (dolist (character characters)
-          (or (and lax (font-has-char-p font-object character) (throw 'exit t))
-              (font-has-char-p font-object character)
+          (or (font-has-char-p font-object character)
               (throw 'exit nil)))
         t)
     (error "No font object for family `%s'" family)))
 
 (defmacro show-font--define-display-check (language)
   "Define a `show-font--displays-characters-p' function for LANGUAGE."
-  `(defun ,(intern (format "show-font--displays-%s-p" language)) (family &optional lax)
+  `(defun ,(intern (format "show-font--displays-%s-p" language)) (family)
      ,(format
-       "Return non-nil if the font FAMILY can display %s.
-With optional LAX if FAMILY can display at least one among the CHARACTERS."
+       "Return non-nil if the font FAMILY can display %s."
        language)
-     (show-font--displays-characters-p family ,(intern (format "show-font-%s-characters" language)) lax)))
+     (show-font--displays-characters-p family ,(intern (format "show-font-%s-characters" language)))))
 
 (show-font--define-display-check chinese)
 (show-font--define-display-check emoji)

@@ -4,9 +4,9 @@
 #+language: en
 #+options: ':t toc:nil author:t email:t num:t
 #+startup: content
-#+macro: stable-version 0.4.0
-#+macro: release-date 2025-08-26
-#+macro: development-version 1.0.0-dev
+#+macro: stable-version 1.0.0
+#+macro: release-date 2025-09-07
+#+macro: development-version 1.1.0-dev
 #+export_file_name: show-font.texi
 #+texinfo_filename: show-font.info
 #+texinfo_dir_category: Emacs misc features
@@ -146,8 +146,6 @@ Emacs. This can be done in the following ways:
   with the font family referenced on the current line. In this same
   view, the =w= key calls the command ~show-font-tabulated-copy-name~,
   which copies into the ~kill-ring~ the name of the font family on the current line.
-  [ The ~show-font-tabulated-select-preview~ and
-  ~show-font-tabulated-copy-name~ are part of {{{development-version}}}. ]
 
 #+findex: show-font-mode
 - The ~show-font-mode~ is a major mode that gets activated when the
@@ -198,9 +196,7 @@ or icon font, respectively. The sample is used in the buffer produced
 by the commands ~show-font-select-preview~ and ~show-font-tabulated~.
 A ~show-font-mathematics-sample~ is also available for font that
 specialise in mathematics, while ~show-font-symbols-sample~ is for
-other symbols and ~show-font-music-sample~ is for music notation. [
-The ~show-font-mathematics-sample~, ~show-font-symbols-sample~, and
-~show-font-music-sample~ are part of {{{development-version}}}. ]
+other symbols and ~show-font-music-sample~ is for music notation.
 
 #+vindex: show-font-arabic-sample
 #+vindex: show-font-chinese-sample
@@ -213,8 +209,7 @@ and Russian (and the plan is to extend it further). Relevant user
 options for the character sample of the respective languages are:
 ~show-font-arabic-sample~, ~show-font-chinese-sample~,
 ~show-font-greek-sample~, ~show-font-japanese-sample~,
-~show-font-korean-sample~, ~show-font-russian-sample~. [ All these
-languages are part of {{{development-version}}}. ]
+~show-font-korean-sample~, ~show-font-russian-sample~.
 
 Finally, the following faces control the appearance of various
 elements.

@@ -133,7 +133,7 @@ This is displayed in the buffer produced by the command
   :group 'show-font)
 
 (defcustom show-font-greek-sample
-  "Πρωτεσίλαος ο προγραμματιστής του οποίου τα έργα βρίθουν αστειισμών"
+  "Πρωτεσίλαος ο φιλόσοφος του οποίου τα έργα βρίθουν αστειισμών"
   "Character sample to showcase Greek fonts.
 This is displayed in the buffer produced by the command
 `show-font-select-preview' and `show-font-tabulated'."

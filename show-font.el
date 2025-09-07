@@ -110,7 +110,7 @@ experimenting with `show-font-pangram-p'."
   "Character sample to showcase Arabic fonts.
 This is displayed in the buffer produced by the command
 `show-font-select-preview' and `show-font-tabulated'."
-  :package-version '(show-font . "0.5.0")
+  :package-version '(show-font . "1.0.0")
   :type 'string
   :group 'show-font)
 
@@ -119,7 +119,7 @@ This is displayed in the buffer produced by the command
   "Character sample to showcase Chinese fonts.
 This is displayed in the buffer produced by the command
 `show-font-select-preview' and `show-font-tabulated'."
-  :package-version '(show-font . "0.5.0")
+  :package-version '(show-font . "1.0.0")
   :type 'string
   :group 'show-font)
 
@@ -137,7 +137,7 @@ This is displayed in the buffer produced by the command
   "Character sample to showcase Greek fonts.
 This is displayed in the buffer produced by the command
 `show-font-select-preview' and `show-font-tabulated'."
-  :package-version '(show-font . "0.5.0")
+  :package-version '(show-font . "1.0.0")
   :type 'string
   :group 'show-font)
 
@@ -146,7 +146,7 @@ This is displayed in the buffer produced by the command
   "Character sample to showcase Japanese fonts.
 This is displayed in the buffer produced by the command
 `show-font-select-preview' and `show-font-tabulated'."
-  :package-version '(show-font . "0.5.0")
+  :package-version '(show-font . "1.0.0")
   :type 'string
   :group 'show-font)
 
@@ -155,7 +155,7 @@ This is displayed in the buffer produced by the command
   "Character sample to showcase Korean fonts.
 This is displayed in the buffer produced by the command
 `show-font-select-preview' and `show-font-tabulated'."
-  :package-version '(show-font . "0.5.0")
+  :package-version '(show-font . "1.0.0")
   :type 'string
   :group 'show-font)
 
@@ -164,7 +164,7 @@ This is displayed in the buffer produced by the command
   "Character sample to showcase mathematical fonts.
 This is displayed in the buffer produced by the command
 `show-font-select-preview' and `show-font-tabulated'."
-  :package-version '(show-font . "0.5.0")
+  :package-version '(show-font . "1.0.0")
   :type 'string
   :group 'show-font)
 
@@ -173,7 +173,7 @@ This is displayed in the buffer produced by the command
   "Character sample to showcase music fonts.
 This is displayed in the buffer produced by the command
 `show-font-select-preview' and `show-font-tabulated'."
-  :package-version '(show-font . "0.5.0")
+  :package-version '(show-font . "1.0.0")
   :type 'string
   :group 'show-font)
 
@@ -182,7 +182,7 @@ This is displayed in the buffer produced by the command
   "Character sample to showcase Russian fonts.
 This is displayed in the buffer produced by the command
 `show-font-select-preview' and `show-font-tabulated'."
-  :package-version '(show-font . "0.5.0")
+  :package-version '(show-font . "1.0.0")
   :type 'string
   :group 'show-font)
 
@@ -200,7 +200,7 @@ This is displayed in the buffer produced by the command
   "Character sample to showcase Symbols.
 This is displayed in the buffer produced by the command
 `show-font-select-preview' and `show-font-tabulated'."
-  :package-version '(show-font . "0.5.0")
+  :package-version '(show-font . "1.0.0")
   :type 'string
   :group 'show-font)
 

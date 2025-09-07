@@ -532,35 +532,35 @@ FILE must be of type TTF or OTF and must not already be installed (per
   "Return non-nil if STRING is a string that is not empty."
   (and (stringp string) (not (string-blank-p string))))
 
-(defun show-font--generic-preview (family language generic-title-font displays-not-prefers)
+(defun show-font--prepare-text-generic-sample (check-type family language generic-title-font)
   "Return generic sample of FAMILY belonging to LANGUAGE.
-If GENERIC-TITLE-FONT is non-nil, do not try to render the title in
-FAMILY but use whatever the `default' face is.
+Use CHECK-TYPE as a symbol of `displays' or `prefers' to run the
+corresponding checker function, like `show-font--displays-greek-p'
+instead of `show-font--prefers-greek-p'.
 
-If DISPLAYS-NOT-PREFERS is non-nil, then derive a function like
-`show-font--displays-greek-p' instead of `show-font--prefers-greek-p'."
-  (let ((check-fn (intern-soft (format (if displays-not-prefers
-                                           "show-font--displays-%s-p"
-                                         "show-font--prefers-%s-p")
-                                       language)))
-        (language-sample (symbol-value (intern-soft (format "show-font-%s-sample" language)))))
-    (unless (and check-fn language-sample)
-      (error "The language `%s' does not yield the expected results" language))
-    ;; FIXME 2025-09-07: We are missing the LAX option when calling the "displays" check.
-    (when (funcall check-fn family)
-      (let ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
-            (character-sample nil))
-        (dolist (face faces)
-          (push (propertize language-sample 'face (list face :family family)) character-sample))
-        (concat
-         (propertize (or family (show-font--get-attribute-from-file "fullname"))
-                     'face (if generic-title-font
-                               'show-font-title
-                             (list 'show-font-title :family family)))
-         "\n"
-         (make-separator-line)
-         "\n"
-         (mapconcat #'identity (nreverse character-sample) "\n"))))))
+If GENERIC-TITLE-FONT is non-nil, do not try to render the title in
+FAMILY but use whatever the `default' face is."
+  (unless (memq check-type '(prefers displays))
+    (error "The CHECK-TYPE must be the symbol `prefers' or `displays'"))
+  (let ((check-fn (intern-soft (format "show-font--%s-%s-p" check-type language)))
+        (language-sample (intern-soft (format "show-font-%s-sample" language))))
+    (unless (boundp language-sample)
+      (error "There is no know sample for `%s' called `%s'" language language-sample))
+    (let ((sample (symbol-value language-sample)))
+      (when (funcall check-fn family)
+        (let ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
+              (output-sample nil))
+          (dolist (face faces)
+            (push (propertize sample 'face (list face :family family)) output-sample))
+          (concat
+           (propertize (or family (show-font--get-attribute-from-file "fullname"))
+                       'face (if generic-title-font
+                                 'show-font-title
+                               (list 'show-font-title :family family)))
+           "\n"
+           (make-separator-line)
+           "\n"
+           (mapconcat #'identity (nreverse output-sample) "\n")))))))
 
 (defun show-font--prepare-text-subr (&optional family)
   "Prepare pangram text at varying font heights for the current font file.
@@ -572,18 +572,18 @@ instead of that of the file."
    ((and (not family)
          (not (show-font-installed-file-p buffer-file-name)))
     nil)
-   ((show-font--generic-preview family 'mathematics :generic-title-family nil))
-   ((show-font--generic-preview family 'emoji :generic-title-family :displays-not-prefers))
-   ((show-font--generic-preview family 'symbols :generic-title-family nil))
-   ((show-font--generic-preview family 'icon :generic-title-family :displays-not-prefers))
-   ((show-font--generic-preview family 'chinese nil nil))
+   ((show-font--prepare-text-generic-sample 'prefers family 'mathematics :generic-title-family))
+   ((show-font--prepare-text-generic-sample 'prefers family 'symbols :generic-title-family))
+   ((show-font--prepare-text-generic-sample 'displays family 'emoji :generic-title-family))
+   ((show-font--prepare-text-generic-sample 'displays family 'icon :generic-title-family))
+   ((show-font--prepare-text-generic-sample 'prefers family 'chinese nil))
    ;; NOTE 2025-09-06: Many Latin fonts support Greek characters.
    ;; If we check for `show-font--displays-greek-p' here we will end
    ;; up with very few Latin fonts, which does not look right.
-   ((show-font--generic-preview family 'greek nil nil))
-   ((show-font--generic-preview family 'japanese nil nil))
-   ((show-font--generic-preview family 'korean nil nil))
-   ((show-font--generic-preview family 'russian nil nil))
+   ((show-font--prepare-text-generic-sample 'prefers family 'greek nil))
+   ((show-font--prepare-text-generic-sample 'prefers family 'japanese nil))
+   ((show-font--prepare-text-generic-sample 'prefers family 'korean nil))
+   ((show-font--prepare-text-generic-sample 'prefers family 'russian nil))
    (t
     (let* ((faces '(show-font-small show-font-regular show-font-medium show-font-large))
            (list-of-lines nil)

@@ -168,7 +168,10 @@ The command ~denote-journal-new-entry~ creates a new entry in the
 journal. Such a file has the ~denote-journal-keyword~, which is the
 string =journal= by default (read the Denote manual about the
 file-naming scheme). The user can set this keyword to an arbitrary
-string (single word is preferred) or a list of strings.
+string (single word is preferred), a list of strings, a function that
+returns a string or list of strings, or ~nil~ to not use any keywords.
+[ The optional function value of ~denote-journal-keyword~ is part of
+  {{{development-version}}}. ]
 
 New journal entries are stored in the ~denote-journal-directory~,
 while any command that generates a new journal entry calls the

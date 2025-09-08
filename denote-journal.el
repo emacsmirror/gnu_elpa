@@ -60,11 +60,25 @@ the variable `denote-journal-keyword'."
                  (const :tag "Use the `denote-directory'" nil)))
 
 (defcustom denote-journal-keyword "journal"
-  "Single word keyword or list of keywords to tag journal entries.
-It is used by `denote-journal-new-entry' (or related)."
+  "The keyword to use in new journal entries.
+This is used by `denote-journal-new-entry' and related commands.
+
+The value can be one among the following
+
+- nil, which means to not use any keyword;
+- a string, which means to use that as the keyword;
+- a list of strings, which means to use those as the keywords;
+- a function that returns a string or list of strings.
+
+The function may involve user input and can even be the
+`denote-keywords-prompt'."
   :group 'denote-journal
-  :type '(choice (string :tag "Keyword")
-                 (repeat :tag "List of keywords" string)))
+  :type '(choice
+          (const :tag "No keywords" nil)
+          (string :tag "Single Keyword")
+          (repeat :tag "List of keywords" string)
+          (function :tag "Function that returns a string or list of strings"))
+  :package-version '(denote . "0.2.0"))
 
 (defcustom denote-journal-signature nil
   "The signature to use in new journal entries.
@@ -167,9 +181,16 @@ If the path does not exist, then make it first."
 
 (defun denote-journal-keyword ()
   "Return the value of the variable `denote-journal-keyword' as a list."
-  (if (stringp denote-journal-keyword)
-      (list denote-journal-keyword)
-    denote-journal-keyword))
+  (cond
+   ((proper-list-p denote-journal-keyword)
+    denote-journal-keyword)
+   ((stringp denote-journal-keyword)
+    (list denote-journal-keyword))
+   ((functionp denote-journal-keyword)
+    (when-let* ((value (funcall denote-journal-keyword))
+                (denote-journal-keyword value))
+      (denote-journal-keyword)))
+   (t nil)))
 
 (defun denote-journal-signature ()
   "Return the value of the variable `denote-journal-signature'."

@@ -176,10 +176,9 @@ If the path does not exist, then make it first."
   (cond
    ((stringp denote-journal-signature) denote-journal-signature)
    ((functionp denote-journal-signature)
-    (if-let* ((value (funcall denote-journal-signature))
-              (_ (stringp value)))
-        value
-      (error "The `denote-journal-signature' is bound to a function that does not return a string")))
+    (when-let* ((value (funcall denote-journal-signature))
+                (_ (stringp value)))
+      value))
    (t nil)))
 
 (defun denote-journal--keyword-regex ()

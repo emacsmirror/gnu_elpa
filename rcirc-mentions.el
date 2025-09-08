@@ -128,8 +128,8 @@ MY-NICK is your nick for this connection."
 Those are called with the PROCESS of the connection, the SENDER, the
 RESPONSE, the TARGET and the message TEXT."
   (when (and rcirc-mentions-log-mode
-             (and (string= response "PRIVMSG")
-                  (not (string= sender (rcirc-nick process)))))
+             (string= response "PRIVMSG")
+             (not (string= sender (rcirc-nick process))))
     (let ((types (rcirc-mentions--determine-mention-types
                   (rcirc-nick process) sender text)))
       (when types

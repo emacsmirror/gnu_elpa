@@ -4,7 +4,7 @@
 ;;
 ;; Author: Tassilo Horn <tsdh@gnu.org>
 ;; Contributors: Philip Kaludercic <philipk@posteo.net>
-;; Version: 1.0.4
+;; Version: 1.0.5
 ;; Keywords: rcirc, irc
 ;; URL: https://sr.ht/~tsdh/rcirc-mentions/
 ;; Package-Requires: ((emacs "29.1"))
@@ -133,7 +133,7 @@ RESPONSE, the TARGET and the message TEXT."
     (let ((types (rcirc-mentions--determine-mention-types
                   (rcirc-nick process) sender text)))
       (when types
-        (rcirc-mentions--update-mentions-buffer types)))))
+        (rcirc-mentions--update-mentions-buffer types text)))))
 
 (defun rcirc-mentions-next ()
   "Move to the next mention."
@@ -160,19 +160,29 @@ RESPONSE, the TARGET and the message TEXT."
   ;; We want to see the original fontification of the channel buffer.
   (font-lock-mode 1))
 
-(defun rcirc-mentions--update-mentions-buffer (types)
-  "Update the mentions buffer with a mention of TYPES.
+(defun rcirc-mentions--update-mentions-buffer (types text)
+  "Update the mentions buffer with a mention of TYPES in TEXT.
 TYPES is a list with symbols `nick' and/or `keyword'.
 
 Assumes that the channel buffer containing the message is current."
-  ;; We could have added text as an argument but that's not highlighted, so we
-  ;; try to figure out the last message ourself.  Point is after the prompt.
-  ;; The rcirc-text property changes at the end of the last message and then
-  ;; again at its start.  From there, we go to the beginning of the line to
-  ;; also include the mentioning nick.
-  (let* ((end (previous-single-property-change (point) 'rcirc-text))
+  ;; Since TEXT is not fontified, we try to figure out the last message ourself
+  ;; by finding the last message with a rcirc-text property value equal to
+  ;; TEXT.
+  (let* ((end (save-excursion
+                (goto-char (point-max))
+                (while (not (string= (get-text-property
+                                      (max (point-min) (1- (point)))
+                                      'rcirc-text)
+                                     text))
+                  (if-let* ((pos (previous-single-property-change
+                                  (point) 'rcirc-text)))
+                      (goto-char pos)
+                    (error "Cannot find end of message with rcirc-text %S"
+                           text)))
+                (point)))
          (start (save-excursion
                   (goto-char (previous-single-property-change end 'rcirc-text))
+                  ;; Include the mentioning nick.
                   (beginning-of-line)
                   (point)))
          (msg (buffer-substring start end))

@@ -70,7 +70,7 @@ It is used by `denote-journal-new-entry' (or related)."
   "The signature to use in new journal entries.
 This is used by `denote-journal-new-entry' and related commands.
 
-The value can be one of the following:
+The value can be one among the following:
 
 - nil, which means to not use a predefined signature;
 - a string, which is used as-is;

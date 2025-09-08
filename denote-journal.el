@@ -177,8 +177,8 @@ If the path does not exist, then make it first."
    ((stringp denote-journal-signature) denote-journal-signature)
    ((functionp denote-journal-signature)
     (when-let* ((value (funcall denote-journal-signature))
-                (_ (stringp value)))
-      value))
+                (denote-journal-signature value))
+      (denote-journal-signature)))
    (t nil)))
 
 (defun denote-journal--keyword-regex ()

@@ -5,7 +5,7 @@
 ;; Author: rahguzar <rahguzar@mailbox.org>
 ;; Maintainer: rahguzar <rahguzar@mailbox.org>
 ;; Created: May 20, 2023
-;; Version: 0.2.3
+;; Version: 0.2.4
 ;; Keywords: convenience files tools unix
 ;; Homepage: https://codeberg.org/rahguzar/filechooser
 ;; Package-Requires: ((emacs "28.1") (compat "29.1"))
@@ -128,6 +128,10 @@ UI of choice: usually RET."
 (defvar filechooser--dired-selection nil)
 (defvar filechooser--dired-buffers nil)
 
+(defvar-keymap filechooser--special-event-map
+  :parent special-event-map
+  "<delete-frame>" #'filechooser-abort)
+
 ;;; Filters
 (defun filechooser--filters-group-fn (cand transform)
   "Group function for selecting filters.
@@ -220,8 +224,7 @@ MINIBUFFER is the value of minibuffer frame paramter."
                                                        "filechooser-miniframe"
                                                      "filechooser-frame"))
                                           (minibuffer . ,minibuffer))))
-                 (special-event-map (define-keymap :parent special-event-map
-                                      "<delete-frame>" #'filechooser-abort)))
+                 (special-event-map filechooser--special-event-map))
              (unwind-protect
                  (with-demoted-errors "%S"
                    (with-selected-frame ,framevar

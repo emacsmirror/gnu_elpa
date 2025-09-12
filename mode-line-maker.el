@@ -1,6 +1,6 @@
 ;;; mode-line-maker.el --- Mode-line helper tools -*- lexical-binding: t -*-
 
-;; Copyright (C) 2025 Nicolas Rougier
+;; Copyright (C) 2025 Free Software Foundation, Inc.
 
 ;; Maintainer: Nicolas P. Rougier <Nicolas.Rougier@inria.fr>
 ;; URL: https://github.com/rougier/mode-line-maker

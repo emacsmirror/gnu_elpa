@@ -42,6 +42,7 @@ eev/eev-lean4.el:;; Try: ({k2}l \"Copyright\")
 excorporate/excorporate-calfw.el:;; copyright assignment papers on file with the FSF.
 hyperbole/hib-doc-id.el:;;  Copyright:        
 hyperbole/kotl/kotl-autoloads.el
+matlab-mode/matlab-ts-mode.el:  ;; Backup over a copyright comment line
 mmm-mode/mmm-noweb.el:;; Copyright 1995 by Thorsten.Ohl @ Physik.TH-Darmstadt.de
 mmm-mode/mmm-noweb.el:;; Copyright 2003, 2004  Joe Kelsey <joe@zircon.seattle.wa.us>
 mmm-mode/mmm-rpm.el:;; Copyright (C) 2000 by Marcus Harnisch <Marcus.Harnisch@gmx.net>

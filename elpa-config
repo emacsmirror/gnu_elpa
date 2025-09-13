@@ -6,6 +6,7 @@
  (devel-url		"https://elpa.gnu.org/devel/")
  (branch-prefix		"externals/")
  (release-branch-prefix	"externals-release/")
+ ;; (dependencies-archive-contents ("archive-devel/archive-contents"))
  ;;(specs-file		"elpa-packages")
  ;;(debug		t)
  )

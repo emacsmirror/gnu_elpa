@@ -277,14 +277,7 @@ slide_cache_window_forward(DocState *doc_state, EmacsWinState *win_state)
 	int n = ++win_state->current_page_number;
 	int pagecount = doc_state->pagecount;
 
-	if (n >= pagecount)
-	{
-		fprintf(stderr,
-			"slide_cache_window_right: cannot slide past end (page "
-			"%d)\n",
-			n);
-		return false;
-	}
+	assert(n < pagecount && "emacs_next_page confirms n is valid");
 
 	if (n - MAX_CACHE_WINDOW_SIZE > 0
 	    && n + MAX_CACHE_WINDOW_SIZE < pagecount)
@@ -349,14 +342,7 @@ slide_cache_window_backward(DocState *doc_state, EmacsWinState *win_state)
 	int n = --win_state->current_page_number;
 	int pagecount = doc_state->pagecount;
 
-	if (n < 0)
-	{
-		fprintf(
-		    stderr,
-		    "slide_window_left: cannot slide past start (page %d)\n",
-		    win_state->current_page_number);
-		return false;
-	}
+	assert(n >= 0 && "emacs_prev_page confirms n is valid");
 
 	if (n - MAX_CACHE_WINDOW_SIZE > 0
 	    && n + MAX_CACHE_WINDOW_SIZE < pagecount)

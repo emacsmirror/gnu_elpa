@@ -687,7 +687,8 @@ emacs_redisplay_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 		submit_job(draw_page_thread, draw_args, &g_thread_pool);
 
 		pthread_mutex_lock(&cp->mutex);
-		pthread_cond_wait(&cp->cond, &cp->mutex);
+		while (cp->status != PAGE_STATUS_READY)
+			pthread_cond_wait(&cp->cond, &cp->mutex);
 		pthread_mutex_unlock(&cp->mutex);
 		display_img_to_overlay(env, win_state, cp->img_data,
 				       cp->img_size, current_doc_overlay);
@@ -793,18 +794,10 @@ emacs_next_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 		    = win_state
 			  ->cache_window[win_state->current_window_index + 1];
 
-		if (next_cp->status != PAGE_STATUS_READY)
-			load_page_dl(doc_state, next_cp);
-
-		DrawThreadArgs *draw_args = malloc(sizeof(DrawThreadArgs));
-		draw_args->doc_state = doc_state;
-		draw_args->win_state = win_state;
-		draw_args->cp = next_cp;
-		submit_job(draw_page_thread, draw_args, &g_thread_pool);
-
 		// Wait for the thread to signal before displaying
 		pthread_mutex_lock(&next_cp->mutex);
-		pthread_cond_wait(&next_cp->cond, &next_cp->mutex);
+		while (next_cp->status != PAGE_STATUS_READY)
+			pthread_cond_wait(&next_cp->cond, &next_cp->mutex);
 		pthread_mutex_unlock(&next_cp->mutex);
 		display_img_to_overlay(env, win_state, next_cp->img_data,
 				       next_cp->img_size, current_doc_overlay);
@@ -858,17 +851,9 @@ emacs_prev_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 		    = win_state
 			  ->cache_window[win_state->current_window_index - 1];
 
-		if (prev_cp->status != PAGE_STATUS_READY)
-			load_page_dl(doc_state, prev_cp);
-
-		DrawThreadArgs *draw_args = malloc(sizeof(DrawThreadArgs));
-		draw_args->doc_state = doc_state;
-		draw_args->win_state = win_state;
-		draw_args->cp = prev_cp;
-		submit_job(draw_page_thread, draw_args, &g_thread_pool);
-
 		pthread_mutex_lock(&prev_cp->mutex);
-		pthread_cond_wait(&prev_cp->cond, &prev_cp->mutex);
+		while (prev_cp->status != PAGE_STATUS_READY)
+			pthread_cond_wait(&prev_cp->cond, &prev_cp->mutex);
 		pthread_mutex_unlock(&prev_cp->mutex);
 		display_img_to_overlay(env, win_state, prev_cp->img_data,
 				       prev_cp->img_size, current_doc_overlay);

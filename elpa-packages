@@ -119,8 +119,8 @@
  (buffer-expose		:url "https://github.com/clemera/buffer-expose")
  (bufferlo		:url "https://github.com/florommel/bufferlo"
   :readme "README.org")
- ;; FIXME: https://github.com/Malabarba/elisp-bug-hunter/issues/31
  (buframe		:url "https://github.com/haji-ali/buframe.el")
+ ;; FIXME: https://github.com/Malabarba/elisp-bug-hunter/issues/31
  (bug-hunter		:url "https://github.com/Malabarba/elisp-bug-hunter")
  ;; (cc-mode		:core ("lisp/progmodes/cc-align.el"
  ;;                            "lisp/progmodes/cc-awk.el"

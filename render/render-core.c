@@ -1055,20 +1055,11 @@ emacs_doc_scale_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 
 	if (doc_state && win_state)
 	{
-		DrawThreadArgs *draw_args = malloc(sizeof(DrawThreadArgs));
-		draw_args->doc_state = doc_state;
-		draw_args->win_state = win_state;
-		draw_args->cp = win_state->current_cached_page;
 		double new_res = fz_clamp(scale_factor * 72, MINRES, MAXRES);
 		win_state->resolution = new_res;
 
-		if (draw_args->cp->status != PAGE_STATUS_READY)
-			load_page_dl(doc_state, draw_args->cp);
-		submit_job(draw_page_thread, draw_args, &g_thread_pool);
-		pthread_mutex_lock(&win_state->current_cached_page->mutex);
-		pthread_cond_wait(&win_state->current_cached_page->cond,
-				  &win_state->current_cached_page->mutex);
-		pthread_mutex_unlock(&win_state->current_cached_page->mutex);
+		build_cache_window(doc_state, win_state,
+				   win_state->current_page_number);
 
 		display_img_to_overlay(env, win_state,
 				       win_state->current_cached_page->img_data,
@@ -1113,21 +1104,8 @@ emacs_doc_rotate(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	if (doc_state && win_state)
 	{
 		win_state->rotate += rotation_deg;
-		DrawThreadArgs *draw_args = malloc(sizeof(DrawThreadArgs));
-		draw_args->doc_state = doc_state;
-		draw_args->win_state = win_state;
-		draw_args->cp = win_state->current_cached_page;
-
-		if (draw_args->cp->status != PAGE_STATUS_READY)
-			load_page_dl(doc_state, draw_args->cp);
-
-		submit_job(draw_page_thread, draw_args, &g_thread_pool);
-
-		// Wait for the thread to signal before displaying
-		pthread_mutex_lock(&win_state->current_cached_page->mutex);
-		pthread_cond_wait(&win_state->current_cached_page->cond,
-				  &win_state->current_cached_page->mutex);
-		pthread_mutex_unlock(&win_state->current_cached_page->mutex);
+		build_cache_window(doc_state, win_state,
+				   win_state->current_page_number);
 		display_img_to_overlay(env, win_state,
 				       win_state->current_cached_page->img_data,
 				       win_state->current_cached_page->img_size,

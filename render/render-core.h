@@ -79,9 +79,9 @@ void *
 draw_page_thread(void *arg);
 void
 build_cache_window(DocState *doc_state, EmacsWinState *win_state, int n);
-bool
+void
 slide_cache_window_forward(DocState *state, EmacsWinState *win_state);
-bool
+void
 slide_cache_window_backward(DocState *state, EmacsWinState *win_state);
 
 // Emacs module functions

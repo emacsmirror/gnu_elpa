@@ -249,12 +249,6 @@ build_cache_window(DocState *doc_state, EmacsWinState *win_state, int n)
 		}
 	}
 
-	// Wait for the current page's cache to be ready if it isn't
-	while (win_state->cache_window[win_state->current_window_index]->status
-	       != PAGE_STATUS_READY)
-		fprintf(stderr, "Waiting for page %d to be ready\n",
-			win_state->cache_window[win_state->current_window_index]
-			    ->page_num);
 	win_state->current_cached_page
 	    = win_state->cache_window[win_state->current_window_index];
 }
@@ -271,7 +265,7 @@ build_cache_window(DocState *doc_state, EmacsWinState *win_state, int n)
  * Return:       true if sliding succeeded, false if at end of document.
  */
 
-bool
+void
 slide_cache_window_forward(DocState *doc_state, EmacsWinState *win_state)
 {
 	int n = ++win_state->current_page_number;
@@ -306,22 +300,13 @@ slide_cache_window_forward(DocState *doc_state, EmacsWinState *win_state)
 			submit_job(draw_page_thread, draw_args, &g_thread_pool);
 		}
 		win_state->current_window_index = MAX_CACHE_WINDOW_SIZE;
+		win_state->current_cached_page
+		    = win_state->cache_window[win_state->current_window_index];
 	}
 	else
 	{
 		build_cache_window(doc_state, win_state, n);
 	}
-
-	// Wait for the current page's cache to be ready if it isn't
-	while (win_state->cache_window[win_state->current_window_index]->status
-	       != PAGE_STATUS_READY)
-		fprintf(stderr, "Waiting for page %d to be ready\n",
-			win_state->cache_window[win_state->current_window_index]
-			    ->page_num);
-	win_state->current_cached_page
-	    = win_state->cache_window[win_state->current_window_index];
-
-	return true;
 }
 
 /**
@@ -336,7 +321,7 @@ slide_cache_window_forward(DocState *doc_state, EmacsWinState *win_state)
  * Return:       true if sliding succeeded, false if at start of document.
  */
 
-bool
+void
 slide_cache_window_backward(DocState *doc_state, EmacsWinState *win_state)
 {
 	int n = --win_state->current_page_number;
@@ -373,22 +358,13 @@ slide_cache_window_backward(DocState *doc_state, EmacsWinState *win_state)
 			submit_job(draw_page_thread, draw_args, &g_thread_pool);
 		}
 		win_state->current_window_index = MAX_CACHE_WINDOW_SIZE;
+		win_state->current_cached_page
+		    = win_state->cache_window[win_state->current_window_index];
 	}
 	else
 	{
 		build_cache_window(doc_state, win_state, n);
 	}
-
-	// Wait for the current page's cache to be ready if it isn't
-	while (win_state->cache_window[win_state->current_window_index]->status
-	       != PAGE_STATUS_READY)
-		fprintf(stderr, "Waiting for page %d to be ready\n",
-			win_state->cache_window[win_state->current_window_index]
-			    ->page_num);
-	win_state->current_cached_page
-	    = win_state->cache_window[win_state->current_window_index];
-
-	return true;
 }
 
 /**
@@ -908,6 +884,11 @@ emacs_first_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 		build_cache_window(doc_state, win_state,
 				   win_state->current_page_number);
 		CachedPage *first_cp = win_state->current_cached_page;
+		// Wait for the thread to signal before displaying
+		pthread_mutex_lock(&first_cp->mutex);
+		while (first_cp->status != PAGE_STATUS_READY)
+			pthread_cond_wait(&first_cp->cond, &first_cp->mutex);
+		pthread_mutex_unlock(&first_cp->mutex);
 		display_img_to_overlay(env, win_state, first_cp->img_data,
 				       first_cp->img_size, current_doc_overlay);
 	}
@@ -958,6 +939,11 @@ emacs_last_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 		build_cache_window(doc_state, win_state,
 				   win_state->current_page_number);
 		CachedPage *last_cp = win_state->current_cached_page;
+		// Wait for the thread to signal before displaying
+		pthread_mutex_lock(&last_cp->mutex);
+		while (last_cp->status != PAGE_STATUS_READY)
+			pthread_cond_wait(&last_cp->cond, &last_cp->mutex);
+		pthread_mutex_unlock(&last_cp->mutex);
 		display_img_to_overlay(env, win_state, last_cp->img_data,
 				       last_cp->img_size, current_doc_overlay);
 	}
@@ -1007,6 +993,11 @@ emacs_goto_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 			build_cache_window(doc_state, win_state,
 					   win_state->current_page_number);
 			CachedPage *cp = win_state->current_cached_page;
+			// Wait for the thread to signal before displaying
+			pthread_mutex_lock(&cp->mutex);
+			while (cp->status != PAGE_STATUS_READY)
+				pthread_cond_wait(&cp->cond, &cp->mutex);
+			pthread_mutex_unlock(&cp->mutex);
 			display_img_to_overlay(env, win_state, cp->img_data,
 					       cp->img_size,
 					       current_doc_overlay);
@@ -1061,10 +1052,15 @@ emacs_doc_scale_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 		build_cache_window(doc_state, win_state,
 				   win_state->current_page_number);
 
-		display_img_to_overlay(env, win_state,
-				       win_state->current_cached_page->img_data,
-				       win_state->current_cached_page->img_size,
-				       current_doc_overlay);
+		CachedPage *cp = win_state->current_cached_page;
+		// Wait for the thread to signal before displaying
+		pthread_mutex_lock(&cp->mutex);
+		while (cp->status != PAGE_STATUS_READY)
+			pthread_cond_wait(&cp->cond, &cp->mutex);
+		pthread_mutex_unlock(&cp->mutex);
+
+		display_img_to_overlay(env, win_state, cp->img_data,
+				       cp->img_size, current_doc_overlay);
 	}
 	else
 	{
@@ -1106,10 +1102,14 @@ emacs_doc_rotate(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 		win_state->rotate += rotation_deg;
 		build_cache_window(doc_state, win_state,
 				   win_state->current_page_number);
-		display_img_to_overlay(env, win_state,
-				       win_state->current_cached_page->img_data,
-				       win_state->current_cached_page->img_size,
-				       current_doc_overlay);
+		CachedPage *cp = win_state->current_cached_page;
+		// Wait for the thread to signal before displaying
+		pthread_mutex_lock(&cp->mutex);
+		while (cp->status != PAGE_STATUS_READY)
+			pthread_cond_wait(&cp->cond, &cp->mutex);
+		pthread_mutex_unlock(&cp->mutex);
+		display_img_to_overlay(env, win_state, cp->img_data,
+				       cp->img_size, current_doc_overlay);
 	}
 	else
 	{

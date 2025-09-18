@@ -5,7 +5,7 @@
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <philipk@posteo.net>
 ;; Package-Requires: ((emacs "25.1"))
-;; Version: 0.1.2
+;; Version: 0.2.0
 ;; URL: https://codeberg.org/pkal/site-lisp.el
 ;; Keywords: lisp, local
 
@@ -39,6 +39,9 @@
 ;;; News:
 
 ;; * Allow `site-lisp-directory' to be a list of directories.
+;; * Add user option `site-lisp-collect-recursivly'.
+;; * Avoid unnecessary recompile by resetting mtime after
+;;   traversing the file system.
 
 ;;; Code:
 

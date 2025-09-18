@@ -47,19 +47,21 @@ code contributions.
 Source code
 -----------
 
-Site-lisp.el is developed on [SourceHut].
+Site-lisp.el is developed on [Codeberg].
 
 [SourceHut]:
-	https://git.sr.ht/~pkal/site-lisp/
+	https://codeberg.org/pkal/site-lisp.el/
 
 Bugs and Patches
 ----------------
 
-Bugs, patches, comments or questions can be submitted to my [public
-inbox].
+Bugs, patches, comments or questions can be submitted via [Codeberg's
+issue system] or by sending [me] an email.
 
-[public inbox]:
-	https://lists.sr.ht/~pkal/public-inbox
+[Codeberg's issue system]:
+	https://codeberg.org/pkal/site-lisp.el/issues
+[me]:
+	https://sdf.org/~pkal#contact
 
 Distribution
 ------------

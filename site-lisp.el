@@ -3,10 +3,10 @@
 ;; Copyright (C) 2021, 2022, 2023, 2024  Free Software Foundation, Inc.
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
-;; Maintainer: Philip Kaludercic <~pkal/public-inbox@lists.sr.ht>
+;; Maintainer: Philip Kaludercic <philipk@posteo.net>
 ;; Package-Requires: ((emacs "25.1"))
 ;; Version: 0.1.2
-;; URL: https://git.sr.ht/~pkal/site-lisp
+;; URL: https://codeberg.org/pkal/site-lisp.el
 ;; Keywords: lisp, local
 
 ;; This program is free software; you can redistribute it and/or modify

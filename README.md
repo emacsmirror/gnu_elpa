@@ -49,7 +49,7 @@ Source code
 
 Site-lisp.el is developed on [Codeberg].
 
-[SourceHut]:
+[Codeberg]:
 	https://codeberg.org/pkal/site-lisp.el/
 
 Bugs and Patches

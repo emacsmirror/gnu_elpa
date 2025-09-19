@@ -1,12 +1,12 @@
 ;;; system-packages.el --- functions to manage system packages -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2016-2023 Free Software Foundation, Inc.
+;; Copyright (C) 2016-2025 Free Software Foundation, Inc.
 
 ;; Author: J. Alexander Branham <alex.branham@gmail.com>
 ;; Maintainer: J. Alexander Branham <alex.branham@gmail.com>
 ;; URL: https://gitlab.com/jabranham/system-packages
 ;; Package-Requires: ((emacs "24.3"))
-;; Version: 1.0.13
+;; Version: 1.1.1
 
 ;; This file is part of GNU Emacs.
 
@@ -41,7 +41,7 @@
 
 ;;; Code:
 (defgroup system-packages nil
-  "Manages system packages"
+  "Manages system packages."
   :tag "System Packages"
   :prefix "system-packages"
   :group 'packages)

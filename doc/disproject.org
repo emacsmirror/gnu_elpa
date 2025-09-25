@@ -23,16 +23,19 @@ This manual is for Disproject version {{{version}}}.
 :END:
 
 Disproject is an Emacs package that implements transient menus for managing and
-interacting with project files.  It aims to provide a featureful, extensible
-interface from which users can intuitively dispatch commands.
+interacting with project files.  It aims to provide a featureful, yet extensible
+interface from which users can intuitively dispatch commands on projects.
 
 Some of its notable features include:
-- a "main menu", with access to most of the built-in project library's
-  interactive commands and other project-aware commands.
-- auto-detection of the current project when the menu is initially opened.
-- a menu for finding common "special" project files.
-- a menu for custom project-local suffix commands.
-- display-buffer override options, to control where commands should display
+- a main menu with access to many of the built-in project library's commands and
+  other project-aware commands;
+- auto-detection of current project as the default project to act on from the
+  menu;
+- options for switching to other projects from the menu in order to execute
+  commands elsewhere;
+- a menu for finding common "special" project files, like the dir-locals file;
+- a menu for custom project-local suffix commands;
+- and display-buffer override options, to control where commands should display
   buffers to.
 
 

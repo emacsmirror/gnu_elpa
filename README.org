@@ -1,27 +1,30 @@
 
 * Disproject
 
-Disproject is a package for [[https://www.gnu.org/software/emacs/][GNU Emacs]] that implements [[https://github.com/magit/transient][Transient]] menus for
-dispatching project-related commands on top of the =project.el= library.  It
-aims to provide a more featureful version of the ~project-switch-project~
-command, which it is inspired by.  Those who are familiar with Projectile may
-also find similarities to ~projectile-commander~.
+Disproject is a [[https://www.gnu.org/software/emacs/][GNU Emacs]] package that implements [[https://github.com/magit/transient][Transient]] menus for managing
+and interacting with project files.  It aims to provide a featureful, yet
+extensible interface from which users can intuitively dispatch commands on
+projects.
 
-In addition to numerous =project.el= commands made available in the menu, some
-other notable features include:
-- Auto-detect current project on menu start.
-- "Custom dispatch" menu for per-project transient suffixes like compilation
-  commands (see ~disproject-custom-suffixes~).
-- Switch between projects with open buffers.
-- Transient option to prefer displaying buffers to another window when executing
-  commands.
-- Ensure directory/project-based environments when executing commands from
-  outside a project (see [[https://github.com/purcell/envrc/issues/59][an envrc issue on this]]).  This behavior is supported
-  for the following packages: [[https://github.com/purcell/envrc][envrc]]; [[https://github.com/liuyinz/mise.el][mise.el]].
-- When available, pre-configured menu commands for: [[https://magit.vc/][magit]]; [[https://github.com/alphapapa/magit-todos][magit-todos]].
-- Customizable variables to substitute some commands in the menu and more (see
-  [[#Customization][Customization]]).
+Some of its notable features include:
+- a main menu with access to many of the built-in project library's commands and
+  other project-aware commands;
+- auto-detection of current project as the default project to act on from the
+  menu;
+- options for switching to other projects from the menu in order to execute
+  commands elsewhere;
+- a menu for finding common "special" project files, like the dir-locals file;
+- a menu for custom project-local suffix commands;
+- and display-buffer override options, to control where commands should display
+  buffers to.
 
+
+An Info manual is included with this program under the name =disproject=, which
+can also be viewed in the Org format at [[file:doc/disproject.org]].
+
+This package was inspired by the ~project-switch-project~ command, from the
+built-in project library.  Users may also draw similarities to the Projectile
+library's ~projectile-commander~.
 
 [[file:images/disproject-dispatch.png]]
 
@@ -57,10 +60,15 @@ in the user profile, run the following in this repository's root directory:
 
 ** Usage
 
-Disproject tries to provide usable defaults that don't require additional
-packages or significant configuration; however, it does not provide any keybind
-for ~disproject-dispatch~ by default.  The following is a suggested minimal
-setup using ~use-package~:
+# BEGIN Copied text from Getting Started section of manual.
+
+Disproject is usable out of the box.  After it is loaded, the only command that
+needs to be known is ~disproject-dispatch~, which opens a transient interface -
+referred to as the "main menu" - with access to a collection of commands that
+the user can choose from to execute on projects.
+
+The following configuration is a suggested minimal setup that can be added to
+the user's init file:
 
 #+begin_src emacs-lisp
   (use-package disproject
@@ -69,21 +77,6 @@ setup using ~use-package~:
             ("p" . disproject-dispatch)))
 #+end_src
 
-*** Customization
-:PROPERTIES:
-:CUSTOM_ID: customization
-:END:
+# END Copied text.
 
-A complete list of variables for customizing Disproject can be found by
-searching for the =disproject= group via =M-x customize-group=.
-
-Users may find that they would like to swap out certain commands in the main
-dispatch menu; for example, to replace the default ~project-eshell~ used in
-~disproject-shell~ with ~project-shell~.  In addition to the mentioned group,
-this particular subset of customizable variables can be found in the
-=disproject-commands= customization group.
-
-Note that custom commands are expected to respect certain variables in order for
-transient state to apply correctly; a list of the variables that are set can be
-found in ~disproject-with-env-apply~.  Functions for setting up variables from
-transient state can be found via =M-x shortdoc disproject-environment=.
+See [[file:doc/disproject.org][the manual]] for more information on using and configuring Disproject.

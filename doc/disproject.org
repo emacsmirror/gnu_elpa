@@ -56,10 +56,8 @@ needs to be known is ~disproject-dispatch~, which opens a transient interface -
 referred to as the "main menu" - with access to a collection of commands that
 the user can choose from to execute on projects.
 
-It may be desirable to set a key-bind for the main menu.  One suggested key-bind
-is =C-x p=, which replaces the default project prefix keymap that Disproject is
-designed to substitute.  The following configuration can be added to the user's
-init file to apply this suggestion when starting up Emacs:
+The following configuration is a suggested minimal setup that can be added to
+the user's init file:
 
 #+begin_src emacs-lisp
   (use-package disproject

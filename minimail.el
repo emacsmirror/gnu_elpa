@@ -32,6 +32,7 @@
 
 ;;; Code:
 
+(require 'let-alist)
 (require 'gnus-art)
 (require 'peg)      ;need peg.el from Emacs 30, which is ahead of ELPA
 (require 'rx)
@@ -1155,23 +1156,24 @@ Return a cons cell consisting of the account symbol and mailbox name."
     (from
      :name "From"
      :max-width 30
-     :getter ,(lambda (v _) (-get-in v 'envelope 'from))
+     :getter ,(lambda (v _) (let-alist v .envelope.from))
      :formatter -format-names)
     (subject
      :name "Subject"
      :max-width 60
      :getter ,(lambda (v _)
-                (replace-regexp-in-string ;TODO: sanitize here or while parsing?
-                 (rx control) ""
-                 (-get-in v 'envelope 'subject))))
+                (let-alist v
+                  (replace-regexp-in-string ;TODO: sanitize here or while parsing?
+                   (rx control) ""
+                   (or .envelope.subject "")))))
     (date
      :name "Date"
      :width 12
      :getter ,(lambda (v _)
-                (let ((current-time-list nil)
-                      (date (-get-in v 'envelope 'date)))
-                  (propertize (format "%09x" (encode-time date))
-                              '-data date)))
+                (let-alist v
+                  (propertize (format "%09x" (let ((current-time-list nil))
+                                               (encode-time .envelope.date)))
+                              '-data .envelope.date)))
      :formatter -format-date)))
 
 (defun -mailbox-after-insert-line (_table line &rest _)

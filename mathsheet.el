@@ -5,7 +5,7 @@
 ;; Author: Ian Martins <ianxm@jhu.edu>
 ;; Keywords: tools, education, math
 ;; Homepage: https://gitlab.com/ianxm/mathsheet
-;; Version: 1.2
+;; Version: 1.3
 ;; Package-Requires: ((peg "1.0")
 ;;                    (emacs "28.1"))
 
@@ -38,6 +38,8 @@
 
 (declare-function math-read-expr "calc-ext")
 (declare-function calc-set-language "calc-lang")
+(declare-function dired-do-shell-command "dired-aux")
+(declare-function dired-guess-shell-command "dired-aux")
 
 (defgroup mathsheet nil
   "Options for customizing Mathsheet."
@@ -268,15 +270,17 @@ which validation checks to perform."
           ;; absolute path without extension
           (fname (concat
                   (file-name-as-directory mathsheet-output-directory)
-                  (string-replace " " "-" (alist-get :name config)))))
+                  (string-replace " " "-" (alist-get :name config))
+                  ".pdf")))
       (mathsheet--write-worksheet
        fname
        (alist-get :instr config)
        problems
        (alist-get :cols config))
-      (message "Wrote %s problems to %s.pdf"
+      (message "Wrote %s problems to %s"
                (alist-get :count config)
-               fname))))
+               fname)
+      (mathsheet--open-worksheet fname))))
 
 (defun mathsheet--scan-problem ()
   "Scan a problem.
@@ -566,7 +570,7 @@ ordered."
            (unless (= index 0)
              (insert ".NCOL\n"))
            (dolist (row group)
-             (message "convert to eqn %s -> %s" (car row) (mathsheet--convert-to-eqn (car row)))
+             ;; (message "convert to eqn %s -> %s" (car row) (mathsheet--convert-to-eqn (car row)))
              (insert (format (if (nth 3 row)
                                  ".LI\n.EQ\n%s\n.EN\n.SP \\n[vs]p\n"
                                ".LI\n.EQ\n%s =\n.EN\n\\l'5\\_'\n.SP \\n[vs]p\n")
@@ -594,9 +598,20 @@ ordered."
     (let* ((default-directory mathsheet-output-directory)
            (ret (shell-command-on-region
                  (point-min) (point-max)
-                 (format "groff -mm -e -Tpdf - > %s" (concat fname ".pdf")))))
+                 (format "groff -mm -e -Tpdf - > %s" fname))))
       (unless (eq ret 0)
         (error "PDF generation failed")))))
+
+(defun mathsheet--open-worksheet (fname)
+  "Open the worksheet FNAME.
+
+FNAME is the file to open, probably a worksheet."
+  (dired-do-shell-command
+   (dired-guess-shell-command
+    (format "Open %s with " fname)
+    (list fname))
+   nil
+   (list fname)))
 
 (when (null forms-mode-map)
   (add-to-list

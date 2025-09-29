@@ -215,7 +215,7 @@
 (autoload 'vc-dir-hide-up-to-date "vc-dir")
 (autoload 'vc-dir-mark "vc-dir")
 (autoload 'vc-git-log-view-mode "vc-git")
-(autoload 'vc-git--call "vc-git")
+(autoload 'vc-git-command "vc-git")
 
 (declare-function log-view-current-entry "log-view" (&optional pos move))
 (declare-function log-view-current-tag "log-view" (&optional pos))
@@ -2358,8 +2358,7 @@ page for formatting specifier meanings."
 (defun debbugs-gnu--git-insert (&rest args)
   "Insert output of running git with ARGS.
 Throws error if git returns non-zero."
-  (unless (eql 0 (apply #'vc-git--call '(t t) args))
-    (error "git %s failed: %s" (car args) (buffer-string))))
+  (apply #'vc-git-command t 0 nil args))
 
 (defun debbugs-gnu--git-remote-info ()
   "Return (REMOTE . INFO-ALIST).

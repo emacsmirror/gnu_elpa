@@ -52,6 +52,9 @@
 ;;   as specified in `shell-command+-substitute-alist'.
 ;;
 ;;   man fprintf
+;;   vc log
+;;   find . -type f
+;;   clear
 ;;
 ;; See `shell-command+'s docstring for more details on how it's input
 ;; is interpreted.  See `shell-command+-features' if you want to
@@ -62,13 +65,9 @@
 
 ;;; News:
 
-;;;; Version 2.5.0 (30Sep25)
+;;;; Version ?.?.? (...)
 
-;; - Fix edge-cases with shell parsing.
-;; - Add new command `shell-command+-in-place'.
-;; - Remove deprecated option `shell-command+-enable-file-substitution'
-;; - Add command substitutions for "clear" and "git".
-;; - Move repository from SourceHut to Codeberg.
+;; TODO
 
 ;;; Code:
 
@@ -561,5 +560,4 @@ can be combined but will be processed in the following order:"
               (comment-region start (point)))))))))
 
 (provide 'shell-command+)
-
 ;;; shell-command+.el ends here

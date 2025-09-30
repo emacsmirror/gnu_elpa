@@ -289,7 +289,8 @@ prefix the command with \"../../../../\" or \"....\".")
   (pcase (shell-command+-tokenize command)
     (`(,_ "log") (vc-print-log))
     (`(,_ "log" ,ref) (vc-print-log ref))
-    (`(,_ "push") (vc-push))
+    ((and (guard (fboundp 'vc-push)) `(,_ "push"))
+     (vc-push))
     (`(,_ "pull") (vc-update))
     (`(,_ "fetch") (vc-log-incoming))
     (`(,_ "merge") (vc-merge))
@@ -300,8 +301,8 @@ prefix the command with \"../../../../\" or \"....\".")
 
 (defcustom shell-command+-clear-function
   (lambda ()
-    (when-let* ((win (get-buffer-window)))
-      (quit-window t win)))
+    (let ((win (get-buffer-window)))
+      (when win (quit-window t win))))
   "Function to invoke without any arguments when handling \"clear\"."
   :type 'function)
 

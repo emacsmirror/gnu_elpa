@@ -284,6 +284,20 @@ prefix the command with \"../../../../\" or \"....\".")
   (pcase-let ((`(,_ ,directory) (shell-command+-tokenize command)))
     (cd directory)))
 
+(defun shell-command+-cmd-git (command)
+  "Convert COMMAND into a `git' call."
+  (pcase (shell-command+-tokenize command)
+    (`(,_ "log") (vc-print-log))
+    (`(,_ "log" ,ref) (vc-print-log ref))
+    (`(,_ "push") (vc-push))
+    (`(,_ "pull") (vc-update))
+    (`(,_ "fetch") (vc-log-incoming))
+    (`(,_ "merge") (vc-merge))
+    (`(,_ "diff") (vc-diff))
+    (`(,_ "switch" ,branch)
+     (vc-switch-branch default-directory branch))
+    (_ (async-shell-command command))))
+
 (defcustom shell-command+-clear-function
   (lambda ()
     (when-let* ((win (get-buffer-window)))
@@ -311,6 +325,7 @@ prefix the command with \"../../../../\" or \"....\".")
     ("make" . compile)
     ("sudo" . shell-command+-cmd-sudo)
     ("cd" . shell-command+-cmd-cd)
+    ("git" . shell-command+-cmd-git)
     ("clear" . shell-command+-cmd-clear))
   "Association of command substitutes in Elisp.
 Each entry has the form (COMMAND . FUNC), where FUNC is passed

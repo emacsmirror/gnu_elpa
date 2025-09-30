@@ -4,7 +4,7 @@
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <philipk@posteo.net>
-;; Version: 2.4.2
+;; Version: 2.5.0
 ;; Keywords: unix, processes, convenience
 ;; Package-Requires: ((emacs "24.3"))
 ;; URL: https://codeberg.org/pkal/shell-command-plus.el
@@ -62,21 +62,13 @@
 
 ;;; News:
 
-;;;; Version 2.4.0 (???)
+;;;; Version 2.5.0 (30Sep25)
 
-;; - Allow adding or removing features using
-;;   `shell-command+-features'.
-;; - Add `shell-command+-default-region' user option.
-;; - Remove `shell-command+-use-eshell'.
-;; - Deprecate `shell-command+-enable-file-substitution'.
-;; - Minor bug fixes and stability improvements.
-;;
-;; Thanks to Visuwesh for many productive discussions on the mailing
-;; list:
-;;
-;; - https://lists.sr.ht/~pkal/public-inbox/%3C87czduxwt4.fsf%40gmail.com%3E
-;; - https://lists.sr.ht/~pkal/public-inbox/%3C878roixwds.fsf%40gmail.com%3E
-;; - https://lists.sr.ht/~pkal/public-inbox/%3C87edxmakqq.fsf%40gmail.com%3E
+;; - Fix edge-cases with shell parsing.
+;; - Add new command `shell-command+-in-place'.
+;; - Remove deprecated option `shell-command+-enable-file-substitution'
+;; - Add command substitutions for "clear" and "git".
+;; - Move repository from SourceHut to Codeberg.
 
 ;;; Code:
 

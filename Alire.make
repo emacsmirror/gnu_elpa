@@ -1,9 +1,10 @@
 # For compiling gpr-query Ada code with Alire
 
-include ../wisi/alire_rules.make
+ALIRE_RULES_DIR ?= ../wisi
+include $(ALIRE_RULES_DIR)/alire_rules.make
 
-install : bin/gpr_query$(EXE_EXT)
-	gprinstall -f -p -P emacs_gpr_query.gpr --prefix=~/.local --install-name=gpr_query
+install : alire-build
+	cp bin/gpr_query$(EXE_EXT) ~/.local/bin
 
 # Local Variables:
 # eval: (load-file "prj.el")

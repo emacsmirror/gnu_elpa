@@ -3,7 +3,7 @@
 ;; gpr-query supports Ada and any gcc language that supports the
 ;; AdaCore -fdump-xref switch (which includes C, C++).
 ;;
-;; Copyright (C) 2013 - 2023  Free Software Foundation, Inc.
+;; Copyright (C) 2013 - 2023, 2025  Free Software Foundation, Inc.
 
 ;; Author: Stephen Leake <stephen_leake@member.fsf.org>
 ;; Maintainer: Stephen Leake <stephen_leake@member.fsf.org>
@@ -54,7 +54,7 @@ Reading all the symbols can be slow in a very large project."
 override the database location by specifying
 \"--db=<writeable_file>\". See \"gpr_query --help\" for more
 options."
-  :type 'list)
+  :type '(list string))
 
 (defcustom gpr-query-env nil
   "Environment variables needed by the gpr_query executable.

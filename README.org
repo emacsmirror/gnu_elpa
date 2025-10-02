@@ -6,14 +6,17 @@ Currently Minimail provides the bare minimum necessary to read and
 reply to messages.  Here is a listing of implemented and planned
 features.
 
-- [X] Multi-account support
 - [X] Read messages, including MIME (rendering via Gnus)
 - [X] Compose, reply to and forward messages
-- [X] Full-text search
-- [X] Move messages (also archive, trash, junk)
-- [ ] Structured search
-- [ ] Sort by thread
-- [ ] Mark and operate on sets of messages (move etc.)
+- [X] Multi-account support
+- Search
+  - [X] Full text
+  - [ ] Structured (by sender, subject, etc.)
+- Sorting by thread
+  - [X] Simple algorithm based on subject lines
+  - [ ] Fancy algorithm based on reference message IDs.
+- [X] Move messages (also archive, move to trash, flag as junk)
+- [ ] Mark and operate on sets of messages (move, etc.)
 - [ ] Notifications (polling or IDLE)
 - [ ] OAuth
 

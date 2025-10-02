@@ -32,14 +32,14 @@
 
 ;;; Code:
 
-(require 'let-alist)
 (require 'gnus-art)
 (require 'peg)      ;need peg.el from Emacs 30, which is ahead of ELPA
-(require 'rx)
 (require 'smtpmail)
 (require 'vtable)
 
 (eval-when-compile
+  (require 'let-alist)
+  (require 'rx)
   (require 'subr-x))
 
 ;;; Syntactic sugar for cooperative multitasking
@@ -1062,6 +1062,9 @@ Return a cons cell consisting of the account symbol and mailbox name."
 
 ;;; Mailbox buffer
 
+(defvar-local -thread-tree nil
+  "The thread tree for the current buffer, as in RFC 5256.")
+
 (defvar-keymap minimail-mailbox-mode-map
   "RET" #'minimail-show-message
   "n" #'minimail-next-message
@@ -1072,6 +1075,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
   "s" #'minimail-search
   "g" #'revert-buffer
   "q" #'minimail-quit-windows
+  "T" #'minimail-sort-by-thread
   "SPC" #'minimail-message-scroll-up
   "S-SPC" #'minimail-message-scroll-down
   "DEL" #'minimail-message-scroll-down)
@@ -1101,7 +1105,8 @@ Return a cons cell consisting of the account symbol and mailbox name."
    ", "))
 
 (defun -format-date (date &rest _)
-  (setq date (-get-data date))
+  (when (stringp date)
+    (setq date (-get-data date)))
   (let* ((current-time-list nil)
          (timestamp (encode-time date))
          (today (let* ((v (decode-time)))
@@ -1201,6 +1206,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
                               (signal (car err) (cdr err))))))
          (with-current-buffer buffer
            (setq -mode-line-suffix nil)
+           (setq -thread-tree (-thread-by-subject messages))
            (let ((inhibit-read-only t))
              (if-let* ((vtable (vtable-current-table)))
                  (progn
@@ -1253,6 +1259,102 @@ Return a cons cell consisting of the account symbol and mailbox name."
       (quit-restore-window window (if kill 'kill 'bury)))
     (when-let* ((window (get-buffer-window)))
       (quit-window kill window))))
+
+;;;; Sorting by thread
+
+(defun -thread-position (uid)
+  "Position of UID in the thread tree when regarded as a flat list."
+  (let ((i 0))
+    (named-let recur ((tree -thread-tree))
+      (pcase (car tree)
+        ((pred null))
+        ((pred (eq uid)) i)
+        ((pred numberp) (cl-incf i) (recur (cdr tree)))
+        (subtree (or (recur subtree) (recur (cdr tree))))))))
+
+(defun -thread-root (uid)
+  "The root of the thread to which the given UID belongs."
+  (named-let recur ((root nil) (tree -thread-tree))
+    (pcase (car tree)
+      ((pred null))
+      ((pred (eq uid)) (or root uid))
+      ((and (pred numberp) n) (recur (or root n) (cdr tree)))
+      (subtree (or (recur root subtree) (recur root (cdr tree)))))))
+
+(defun -thread-level (uid)
+  "The nesting level of UID in the thread tree."
+  (named-let recur ((level 0) (tree -thread-tree))
+    (pcase (car tree)
+      ((pred null) nil)
+      ((pred (eq uid)) level)
+      ((pred numberp) (recur (1+ level) (cdr tree)))
+      (subtree (or (recur level subtree) (recur level (cdr tree)))))))
+
+(defun -thread-subject-prefix (uid)
+  "A prefix added to message subjects when sorting by thread."
+  (make-string (* 2 (or (-thread-level uid) 0)) ?\s))
+
+(defun -thread-by-subject (messages)
+  "Compute a message thread tree from MESSAGES based on subject strings.
+This is the ORDEREDSUBJECT algorithm described in RFC 5256.  The return
+value is as described in loc. cit. §4, with message UIDs as tree leaves."
+  (let* ((hash (make-hash-table :test #'equal))
+         (threads (progn
+                    (dolist (msg messages)
+                      (let-alist msg
+                        (push msg (gethash (replace-regexp-in-string
+                                            message-subject-re-regexp ""
+                                            (or .envelope.subject ""))
+                                           hash))))
+                    (mapcar (lambda (thread) (sort thread :key #'-message-timestamp))
+                            (hash-table-values hash))))
+         (sorted (sort threads :key (lambda (v) (-message-timestamp (car v))))))
+    (mapcar (lambda (thread)
+              (cons (let-alist (car thread) .uid)
+                    (mapcar (lambda (v) (let-alist v (list .uid))) (cdr thread))))
+            sorted)))
+
+(defun minimail-sort-by-thread (&optional descending)
+  "Sort messages with grouping by threads.
+
+Within a thread, sort each message after its parents.  Across threads,
+preserve the existing order, in the sense that thread A sorts before
+thread B if some message from A comes before all messages of B.  This
+makes sense when the current sort order is in the “most relevant at top”
+style.  If DESCENDING is non-nil, use the opposite convention."
+  (interactive nil minimail-mailbox-mode)
+  (let* ((table (or (vtable-current-table)
+                    (user-error "No table under point")))
+         (mhash (make-hash-table)) ;maps message id -> root id and position within thread
+         (rhash (make-hash-table)) ;maps root id -> position across threads
+         (lessp (lambda (o1 o2)
+                  (pcase-let ((`(,ri . ,pi) (gethash (let-alist o1 .uid) mhash))
+                              (`(,rj . ,pj) (gethash (let-alist o2 .uid) mhash)))
+                    (if (eq ri rj)
+                        (< pi pj)
+                      (< (gethash ri rhash)
+                         (gethash rj rhash))))))
+         objects)
+    (save-excursion
+      ;; Get objects in current sort order (unlike `vtable-objects').
+      (goto-char (vtable-beginning-of-table))
+      (while-let ((obj (vtable-current-object)))
+        (push obj objects)
+        (forward-line)))
+    (cl-callf nreverse objects)
+    (dolist (obj objects)
+      (let* ((count (hash-table-count mhash))
+             (msgid (let-alist obj .uid))
+             (rootid (or (-thread-root msgid) -1))
+             (pos (or (-thread-position msgid) -1)))
+        (puthash msgid (cons rootid pos) mhash)
+        (if descending
+            (puthash rootid count rhash)
+          (cl-callf (lambda (i) (or i count)) (gethash rootid rhash)))))
+    (setf (vtable-objects table) (sort objects :lessp lessp :in-place t))
+    ;; Little hack to force vtable to redisplay with our new sorting.
+    (cl-letf (((vtable-sort-by table) nil))
+      (vtable-revert-command))))
 
 ;;; Message buffer
 

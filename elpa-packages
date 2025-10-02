@@ -815,6 +815,8 @@
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("LICENSE"))
+ (termint		:url "https://github.com/milanglacier/termint.el"
+  :readme "README.md")
  (test-simple         	:url "https://github.com/rocky/emacs-test-simple")
  (tex-item		:url "https://github.com/ultronozm/tex-item.el")
  (tex-parens    	:url "https://github.com/ultronozm/tex-parens.el")

@@ -770,6 +770,11 @@ emacs_next_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 		    = win_state
 			  ->cache_window[win_state->current_window_index + 1];
 
+		if (next_cp->status != PAGE_STATUS_READY)
+		{
+			build_cache_window(doc_state, win_state,
+					   win_state->current_page_number);
+		}
 		// Wait for the thread to signal before displaying
 		pthread_mutex_lock(&next_cp->mutex);
 		while (next_cp->status != PAGE_STATUS_READY)
@@ -826,6 +831,12 @@ emacs_prev_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 		CachedPage *prev_cp
 		    = win_state
 			  ->cache_window[win_state->current_window_index - 1];
+
+		if (prev_cp->status != PAGE_STATUS_READY)
+		{
+			build_cache_window(doc_state, win_state,
+					   win_state->current_page_number);
+		}
 
 		pthread_mutex_lock(&prev_cp->mutex);
 		while (prev_cp->status != PAGE_STATUS_READY)

@@ -39,7 +39,7 @@ the section entitled "GNU Free Documentation License".
 @node Top
 @top Disproject User Manual
 
-This manual is for Disproject version 2.1.0.
+This manual is for Disproject version 2.2.0.
 
 @insertcopying
 

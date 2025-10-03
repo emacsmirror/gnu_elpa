@@ -5,7 +5,7 @@
 #+texinfo_dir_category: Emacs
 #+texinfo_dir_name: Disproject
 #+texinfo_dir_desc: Dispatch project commands with transient menus
-#+macro: version 2.1.0
+#+macro: version 2.2.0
 # Org doesn't recognize the "Class:" prefix in description lists, so we need to
 # manually add them to the data type index; use this macro for convenience.
 #+macro: tpindex @@texinfo:@tpindex $1@@

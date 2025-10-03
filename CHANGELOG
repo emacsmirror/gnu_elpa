@@ -4,6 +4,15 @@
 
 ** Unreleased
 
+** [[https://github.com/aurtzy/disproject/tree/v2.2.0][2.2.0]] - 2025-10-03
+
+This version introduces two new (customizable) menus: one for selecting
+~display-buffer~ overrides to apply to suffix commands, and another for finding
+common project files, dubbed "special files".
+
+An Info user manual has also been written to provide documentation on using and
+customizing Disproject, and should now be distributed with this package.
+
 *** Added
 
 - Add ~disproject-display-buffer-action-suffix~ class and

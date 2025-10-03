@@ -8,24 +8,28 @@
 
 - Add ~disproject-display-buffer-action-suffix~ class and
   ~disproject-display-buffer-action-set~ suffix command.  These facilities
-  provide a convenient means of generating suffix commands for setting
-  ~display-buffer~ action overrides.
+  provide a means of generating suffix commands that set ~display-buffer~ action
+  overrides.
 - Add ~disproject-display-buffer-action-dispatch~ prefix command, bound to =,=
-  in the main menu.  This provides a menu with some out-of-the-box suffix
-  commands (using ~disproject-display-buffer-action-set~) for managing the
+  in the main menu.  This provides a new menu with some out-of-the-box commands
+  (implemented with ~disproject-display-buffer-action-set~) for managing the
   ~display-buffer~ override.  Replaces transient switch =--prefer-other-window=,
-  although the =,o= binding is preserved for preferring other window.
+  although the other-window override is set to =o= to preserve the =,o= key
+  sequence.
 - Add ~disproject-find-special-file-suffix~ class and
-  ~disproject-find-special-file~ suffix command, which provide a convenient
-  means for creating suffixes that find designated files from a project's root.
+  ~disproject-find-special-file~ suffix command, which provide a means of
+  creating suffixes that find "special files" in projects.
 - Add ~disproject-find-dir-locals-file~ and ~disproject-find-dir-locals-2-file~
-  suffix commands.  These supersede ~disproject-dir-locals~.
+  suffix commands, bound to =l= and =L= (respectively) in
+  ~disproject-find-special-file-dispatch~.  These supersede
+  ~disproject-dir-locals~.
 - Add ~disproject-find-special-file-dispatch~ prefix, bound to =l= in the main
   menu (replacing ~disproject-dir-locals~).
-- Add ~disproject-find-special-file-suffixes~ for customizing
+- Add ~disproject-find-special-file-suffixes~ variable for customizing
   ~disproject-find-special-file-dispatch~.  By default, it includes suffixes for
   finding dir-locals files and a transient switch that enables using
-  ~customize-dirlocals~ (added in Emacs 30.1) to open them ([[https://github.com/aurtzy/disproject/issues/10][#10]]).
+  ~customize-dirlocals~ (added in Emacs 30.1) to open them with the Customize
+  interface ([[https://github.com/aurtzy/disproject/issues/10][#10]]).
 - Add ~disproject-global-header-group~ transient group, which inserts the
   selected-project header and "Global options" section.
 - Include ~disproject-global-header-group~ in ~disproject-custom-dispatch~ and
@@ -35,34 +39,28 @@
 
 *** Changed
 
+- Bump transient dependency version to 0.9.2.
 - Force-enable ~switch-to-buffer-obey-display-actions~ when a ~display-buffer~
   override is set.
-- Set =transient= slot for ~disproject-switch-project*~ commands in suffix
+- Set =transient= slot to t for ~disproject-switch-project*~ commands in suffix
   definitions.
 - Rename ~disproject-find-line~ description "line occurrence" to "line in
   buffers".
 - Show ~disproject-magit-todos-list~ if the magit-todos library is available, as
   opposed to only showing it when the library is loaded.  This permits using the
-  command as an autoload, if desired.
+  command as an autoload.
 - Set advice slots for relevant transient groups to ~disproject-with-env-apply~.
   This makes it no longer necessary to use project environment functions for
   project-aware commands when adding to those transient groups.
 - Rename ~disproject-commands~ customization group to
   ~disproject-swappable-commands~.
-- Set the bottom transient group class for ~disproject-dispatch~ to
+- Set the last transient group class for ~disproject-dispatch~ to
   ~transient-row~.
 
 *** Deprecated
 
-- Deprecate ~disproject-scope-prefer-other-window?~ method.  Removal is set for
-  at least 6 months from this release.
-- Deprecate ~disproject-dir-locals~.  Removal is set for at least 6 months from
-  this release.
-
-*** Fixed
-
-- Fix ~disproject-find-special-file-suffix~ =file= slot type not accepting
-  anonymous functions.
+- Deprecate ~disproject-scope-prefer-other-window?~ method.
+- Deprecate ~disproject-dir-locals~.
 
 ** [[https://github.com/aurtzy/disproject/tree/v2.1.0][2.1.0]] - 2025-05-29
 

@@ -32,9 +32,11 @@ See [[file:images/][images]] for more screenshots of Disproject menus.
 
 ** Installation
 
-*** MELPA
+[[https://melpa.org/#/disproject][file:https://melpa.org/packages/disproject-badge.svg]]
+[[https://stable.melpa.org/#/disproject][file:https://stable.melpa.org/packages/disproject-badge.svg]]
+[[https://packages.guix.gnu.org/packages/emacs-disproject][https://packages.guix.gnu.org/packages/emacs-disproject/badges/latest-version.svg]]
 
-[[https://melpa.org/#/disproject][file:https://melpa.org/packages/disproject-badge.svg]] [[https://stable.melpa.org/#/disproject][file:https://stable.melpa.org/packages/disproject-badge.svg]]
+*** MELPA
 
 Disproject is available in [[https://melpa.org/#/disproject][MELPA]] and [[https://stable.melpa.org/#/disproject][MELPA Stable]].  See [[https://melpa.org/#/getting-started][Getting Started]]
 instructions for using MELPA.

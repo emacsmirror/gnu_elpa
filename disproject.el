@@ -1820,7 +1820,7 @@ The command used can be customized with
     (call-interactively disproject-or-external-find-regexp-command)))
 
 (transient-define-suffix disproject-query-replace-regexp ()
-  "Search project for regexp and query-replace matches."
+  "Search project for regexp and `query-replace' matches."
   (interactive)
   (disproject-with-root
     (call-interactively #'project-query-replace-regexp)))

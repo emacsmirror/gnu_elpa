@@ -34,7 +34,7 @@ See [[file:images/][images]] for more screenshots of Disproject menus.
 
 [[https://melpa.org/#/disproject][file:https://melpa.org/packages/disproject-badge.svg]]
 [[https://stable.melpa.org/#/disproject][file:https://stable.melpa.org/packages/disproject-badge.svg]]
-[[https://packages.guix.gnu.org/packages/emacs-disproject][https://packages.guix.gnu.org/packages/emacs-disproject/badges/latest-version.svg]]
+[[https://packages.guix.gnu.org/packages/emacs-disproject][file:https://packages.guix.gnu.org/packages/emacs-disproject/badges/latest-version.svg]]
 
 *** MELPA
 

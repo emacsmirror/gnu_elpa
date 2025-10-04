@@ -281,7 +281,7 @@ All entries all optional, except for `:incoming-url'."
 (defface minimail-unread '((t :inherit bold))
   "Face for unread messages.")
 
-;;; Miscellaneous stuff
+;;; Internal variables and helper functions
 
 (defvar -account-state nil
   "Alist mapping accounts to assorted state information about them.")
@@ -333,6 +333,38 @@ The message is formed by calling `format' with STRING and ARGS."
 
 (defun -mailbox-display-name (account mailbox)
   (format "%s:%s" account mailbox))
+
+(defun -key-match-p (condition key)
+  "Check whether KEY satisfies CONDITION.
+KEY is a string or list of strings."
+  (pcase-exhaustive condition
+    ('t t)
+    ((or (pred symbolp) (pred stringp))
+     (if (listp key)
+         (seq-some (lambda (s) (string= condition s)) key)
+       (string= condition key)))
+    (`(regexp ,re)
+     (if (listp key)
+         (seq-some (lambda (s) (string-match-p re s)) key)
+       (string-match-p re key)))
+    (`(not ,cond . nil) (not (-key-match-p cond key)))
+    (`(or . ,conds) (seq-some (lambda (c) (-key-match-p c key)) conds))
+    (`(and . ,conds) (seq-every-p (lambda (c) (-key-match-p c key)) conds))))
+
+(defun -alist-query (key alist)
+  "Look up KEY in ALIST, a list of condition-value pairs."
+  (cdr (seq-some (lambda (it) (when (-key-match-p (car it) key) it))
+                 alist)))
+
+;;;; vtable hacks
+
+(defvar -vtable-insert-line-hook nil
+  "Hook run after inserting each line of a `vtable'.")
+
+(advice-add #'vtable--insert-line :after
+            (lambda (&rest _) (run-hooks '-vtable-insert-line-hook))
+            '((name . -vtable-insert-line-hook)))
+
 
 ;;; Low-level IMAP communication
 
@@ -553,8 +585,7 @@ it is nil."
              `(day month year hour min sec tz
                    -- `(,sec ,min ,hour ,day ,month ,year nil -1 ,tz)))
   (flag      ()
-             (substring (opt "\\") (+ achar))
-             `(s -- (intern s)))
+             (substring (opt "\\") (+ achar)))
   (to-eol    () ;;consume input until eol
              (* (and (not [cntrl]) (any))) crlf)
   (to-rparen () ;;consume input until closing parens
@@ -1084,6 +1115,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
   '("Mailbox" -mode-line-suffix)
   "Major mode for mailbox listings."
   :interactive nil
+  (add-hook '-vtable-insert-line-hook #'-apply-mailbox-line-face nil t)
   (setq-local
    revert-buffer-function #'-mailbox-refresh
    truncate-lines t))
@@ -1132,32 +1164,41 @@ Return a cons cell consisting of the account symbol and mailbox name."
                                       (decoded-time-zone date))))))
 
 (defvar minimail-flag-icons
-  '(((\\Flagged  . "★")
+  '((((not \\Seen) . #("\1" 0 1 (invisible t))) ;invisible column to sort unread first
+     (t            . #("\2" 0 1 (invisible t))))
+    ((\\Flagged  . "★")
      ($Important . #("★" 0 1 (face shadow))))
     ((\\Answered . "↩")
      ($Forwarded . "→")
      ($Junk      . #("⚠" 0 1 (face shadow)))
      ($Phishing  . #("⚠" 0 1 (face error))))))
 
+(defvar minimail-flag-faces
+  '(((not \\Seen) . minimail-unread)))
+
+(defun -apply-mailbox-line-face ()
+  (save-excursion
+    (when-let* ((end (prog1 (point) (goto-char (pos-bol 0))))
+                (flags (assq 'flags (vtable-current-object)))
+                (face (-alist-query (cdr flags) minimail-flag-faces)))
+      (add-face-text-property (point) end face))))
+
 (defvar minimail-mailbox-mode-columns
   `((id
      :name "#"
-     :getter ,(lambda (v _) (alist-get 'id v)))
+     :getter ,(lambda (msg _) (alist-get 'id msg)))
     (flags
      :name ""
-     :getter ,(lambda (v _)
-                (let ((flags (alist-get 'flags v)))
+     :getter ,(lambda (msg _)
+                (let-alist msg
                   (propertize
-                   (mapconcat
-                    (lambda (icons)
-                      (or (seq-some (pcase-lambda (`(,flag . ,icon))
-                                      (when (memq flag flags) icon))
-                                    icons)
-                          " "))
-                    minimail-flag-icons)
-                   'help-echo
-                   (lambda (&rest _)
-                     (format "Message flags: %s" flags))))))
+                   (mapconcat (lambda (column)
+                                (or (-alist-query .flags column) " "))
+                              minimail-flag-icons)
+                   'help-echo (lambda (&rest _)
+                                (if .flags
+                                    (string-join (cons "Message flags:" .flags) " ")
+                                  "No message flags"))))))
     (from
      :name "From"
      :max-width 30
@@ -1180,14 +1221,6 @@ Return a cons cell consisting of the account symbol and mailbox name."
                                                (encode-time .envelope.date)))
                               '-data .envelope.date)))
      :formatter -format-date)))
-
-(defun -mailbox-after-insert-line (_table line &rest _)
-  (when (derived-mode-p 'minimail-mailbox-mode)
-    (cond
-     ((not (memq '\\Seen (alist-get 'flags (car line))))
-      (add-face-text-property (pos-bol 0) (pos-eol 0) 'minimail-unread)))))
-
-(advice-add #'vtable--insert-line :after #'-mailbox-after-insert-line)
 
 (defun -mailbox-refresh (&rest _)
   (unless (derived-mode-p #'minimail-mailbox-mode)

@@ -280,8 +280,12 @@ All entries all optional, except for `:incoming-url'."
 
 (defcustom minimail-mailbox-mode-columns '((\\Sent flags date recipients subject)
                                            (t flags date from subject))
-  "Columns to display in `mailbox-mode' buffers."
-  :type '(repeat symbol))
+  "Columns to display in `minimail-mailbox-mode' buffers."
+  :type '(repeat alist))
+
+(defcustom minimail-mailbox-mode-sort-by '((t (date . descend)))
+  "Sorting criteria for `minimail-mailbox-mode' buffers."
+  :type '(repeat alist))
 
 (defface minimail-unread '((t :inherit bold))
   "Face for unread messages.")
@@ -357,10 +361,15 @@ KEY is a string or list of strings."
     (`(or . ,conds) (seq-some (lambda (c) (-key-match-p c key)) conds))
     (`(and . ,conds) (seq-every-p (lambda (c) (-key-match-p c key)) conds))))
 
-(defun -alist-query (key alist)
-  "Look up KEY in ALIST, a list of condition-value pairs."
-  (cdr (seq-some (lambda (it) (when (-key-match-p (car it) key) it))
-                 alist)))
+(defun -assoc-query (key alist)
+  "Look up KEY in ALIST, a list of condition-value pairs.
+Return the first matching cons cell."
+  (seq-some (lambda (it) (when (-key-match-p (car it) key) it)) alist))
+
+(defun -alist-query (key alist &optional default)
+  "Look up KEY in ALIST, a list of condition-value pairs.
+Return the first matching value."
+  (if-let* ((it (-assoc-query key alist))) (cdr it) default))
 
 (defun -settings-get (keyword account &optional mailbox)
   "Retrieve the most specific configuration value for KEYWORD.
@@ -385,10 +394,23 @@ KEYWORD, return the value of that variable."
      ((setq v (assq keyword
                     '((:full-name . user-full-name)
                       (:mail-address . user-mail-address)
-                      (:mailbox-columns . minimail-mailbox-mode-columns)
                       (:signature . message-signature)
                       (:signature-file . message-signature-file))))
       (symbol-value (cdr v))))))
+
+(defun -settings-alist-get (keyword account mailbox)
+  "Retrieve the most specific configuration value for KEYWORD.
+
+First, inspect `minimail-accounts' -> ACCOUNT -> KEYWORD.  If that alist
+contains a key matching MAILBOX, return that value.  Otherwise, inspect
+variable holding the fallback value for KEYWORD."
+  (if-let* ((alist (plist-get (alist-get account minimail-accounts) keyword))
+            (val (-assoc-query mailbox alist)))
+      (cdr val)
+    (let* ((vars '((:mailbox-columns . minimail-mailbox-mode-columns)
+                   (:mailbox-sort-by . minimail-mailbox-mode-sort-by)))
+           (var (alist-get keyword vars)))
+      (-alist-query mailbox (symbol-value var)))))
 
 ;;;; vtable hacks
 
@@ -827,6 +849,11 @@ being used."
       (with-current-buffer buffer
         (-parse-list)))))
 
+(defun -aget-mailbox-attributes (account mailbox)
+  (athunk-let*
+      ((mailboxes <- (-aget-mailbox-listing account)))
+    (-get-in mailboxes mailbox 'attributes)))
+
 (defun -aget-mailbox-status (account mailbox)
   (athunk-let*
       ((cmd (format "EXAMINE %s" (-imap-quote mailbox)))
@@ -1251,7 +1278,7 @@ Cf. RFC 5256, §2.1."
                 (let-alist msg
                   (propertize
                    (mapconcat (lambda (column)
-                                (or (-alist-query .flags column) " "))
+                                (-alist-query .flags column " "))
                               minimail-flag-icons)
                    'help-echo (lambda (&rest _)
                                 (if .flags
@@ -1308,7 +1335,7 @@ Cf. RFC 5256, §2.1."
     (athunk-run
      (let-alist -local-state
        (athunk-let*
-           ((mailboxes <- (-aget-mailbox-listing .account))
+           ((attrs <- (-aget-mailbox-attributes .account .mailbox))
             (messages <- (athunk-condition-case err
                              (if .search
                                  (-afetch-search .account .mailbox .search)
@@ -1325,18 +1352,22 @@ Cf. RFC 5256, §2.1."
                  (vtable-revert-command))
              (erase-buffer)
              (let* ((inhibit-read-only t)
-                    (attrs (-get-in mailboxes .mailbox 'attributes))
-                    (query (cons .mailbox attrs))
-                    (colnames (-settings-get :mailbox-columns .account query)))
-               (when (consp (car colnames))
-                 (setq colnames (-alist-query query colnames)))
+                    (colnames (-settings-alist-get :mailbox-columns
+                                                   .account
+                                                   (cons .mailbox attrs)))
+                    (sortnames (-settings-alist-get :mailbox-sort-by
+                                                    .account
+                                                    (cons .mailbox attrs))))
                (make-vtable
+                :objects messages
                 :keymap minimail-mailbox-mode-map
                 :columns (mapcar (lambda (v)
                                    (alist-get v minimail-mailbox-mode-column-alist))
                                  colnames)
-                :sort-by '((1 . descend))
-                :objects messages)))))))))
+                :sort-by (mapcan (pcase-lambda (`(,col . ,dir))
+                                   (when-let ((i (seq-position colnames col)))
+                                     `((,i . ,dir))))
+                                 sortnames))))))))))
 
 (defun minimail-show-message ()
   (interactive nil minimail-mailbox-mode)

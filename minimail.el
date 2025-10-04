@@ -553,16 +553,22 @@ it is nil."
   (number    () (substring (+ [0-9])) `(s -- (string-to-number s)))
   (achar     () (and (not [cntrl "(){] %*\"\\"]) (any))) ;characters allowed in an atom
   (atom      () (substring (+ achar)))  ;non-quoted identifier a.k.a. atom
-  (qchar     () (or (and (replace "\\" "") (any))    ;character of a quoted string
+  (qchar     () (or (and (char ?\\) [?\" ?\\]) ;character of a quoted string
                     (and (not dquote) (any))))
-  (qstring   () dquote (substring (* qchar)) dquote) ;quoted string
+  (qstring   () dquote (substring (* qchar)) dquote ;quoted string
+                `(s -- (replace-regexp-in-string (rx ?\\ (group nonl)) "\\1" s)))
   (literal   ()
-             (guard (re-search-forward "\\=~?{\\([0-9]+\\)}\r\n" nil t))
-             (region
+             (char ?{)
+             (guard (re-search-forward (rx point (group (+ digit)) "}\r\n") nil t))
+             (region ;little hack: assume match data didn't change between the guards
               (guard (progn (forward-char (string-to-number (match-string 1)))
                             t))))
-  (string    () (or qstring (and literal `(start end -- (buffer-substring-no-properties start end)))))
-  (qpstring  () ;;quoted string, QP-encoded
+  (lstring   () literal      ;a "safe" string extracted from a literal
+                `(start end -- (replace-regexp-in-string
+                                (rx control) ""
+                                (buffer-substring-no-properties start end))))
+  (string    () (or qstring lstring))
+  (qpstring  ()                         ;quoted string, QP-encoded
              string
              `(s -- (mail-decode-encoded-word-string s)))
   (astring   () (or atom string))
@@ -586,9 +592,9 @@ it is nil."
                    -- `(,sec ,min ,hour ,day ,month ,year nil -1 ,tz)))
   (flag      ()
              (substring (opt "\\") (+ achar)))
-  (to-eol    () ;;consume input until eol
+  (to-eol    ()                         ;consume input until eol
              (* (and (not [cntrl]) (any))) crlf)
-  (to-rparen () ;;consume input until closing parens
+  (to-rparen ()                    ;consume input until closing parens
              (* (or (and "(" to-rparen)
                     (and dquote (* qchar) dquote)
                     (and (not [cntrl "()\""]) (any))))
@@ -655,7 +661,7 @@ it is nil."
       (-imap-peg-rules
        (address "("
                 (list (and nqpstring `(s -- `(name . ,s)))
-                      sp (and nstring `(s -- `(adl . ,s)))
+                      sp (and nstring `(_ --)) ;discard useless addr-adl field
                       sp (and nstring `(s -- `(mailbox . ,s)))
                       sp (and nstring `(s -- `(host . ,s))))
                 ")")
@@ -705,13 +711,13 @@ it is nil."
        (content "BODY[] " literal `(start end -- `(content ,start . ,end)))
        (flags "FLAGS (" (list (* (opt sp) flag)) ")"
               `(v -- `(flags . ,v)))
-       (internaldate "INTERNALDATE " imapdate
-                     `(v -- `(date . ,v)))
+       (internal-date "INTERNALDATE " imapdate
+                     `(v -- `(internal-date . ,v)))
        (size "RFC822.SIZE " number `(n -- `(rfc822-size . ,n)))
        (uid "UID " number `(n -- `(uid . ,n)))
        (item untagged number `(n -- `(id . ,n))
              " FETCH ("
-             (* (opt sp) (or envelope body content flags internaldate size uid))
+             (* (opt sp) (or uid flags size envelope body content internal-date))
              ")" crlf))
     (car-safe
      (peg-run (peg (list (* (list item))))))))
@@ -1248,9 +1254,7 @@ Cf. RFC 5256, §2.1."
                    (let-alist (-get-data s)
                      (concat (when (not (vtable-sort-by .table)) ;means sorting by thread
                                (-thread-subject-prefix .uid))
-                             ;; TODO: sanitize here or while parsing?
-                             (replace-regexp-in-string (rx control) ""
-                                                       (or .envelope.subject ""))))))
+                             (or .envelope.subject "")))))
     (date
      :name "Date"
      :width 12

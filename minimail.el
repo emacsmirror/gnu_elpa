@@ -305,7 +305,8 @@ All entries all optional, except for `:incoming-url'."
 
 (defun -get-data (string)
   "Get data stored as a string property in STRING."
-  (get-text-property 0 '-data string))
+  (cl-assert (stringp string))
+  (get-text-property 0 'minimail string))
 
 (defvar -log-buffer nil
   "Name of the log buffer, or nil to disable logging.")
@@ -950,7 +951,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
                  ((mkcand (pcase-lambda (`(,mbx . ,props))
                             (unless (memq '\\Noselect (alist-get 'attributes props))
                               (propertize (-mailbox-display-name acct mbx)
-                                          '-data `(,props ,acct . ,mbx)))))
+                                          'minimail `(,props ,acct . ,mbx)))))
                   (mailboxes <- (athunk-condition-case err
                                     (-aget-mailbox-listing acct)
                                   (t (overlay-put ov 'display " (error):")
@@ -1249,7 +1250,7 @@ Cf. RFC 5256, §2.1."
      :getter ,(lambda (msg tbl)
                 (let-alist msg
                   (propertize (-base-subject (or .envelope.subject ""))
-                              '-data `((table . ,tbl) ,@msg))))
+                              'minimail `((table . ,tbl) ,@msg))))
      :formatter ,(lambda (s)
                    (let-alist (-get-data s)
                      (concat (when (not (vtable-sort-by .table)) ;means sorting by thread
@@ -1262,7 +1263,7 @@ Cf. RFC 5256, §2.1."
                 ;; The envelope date as Unix timestamp, formatted as a
                 ;; hex string.  This ensures the correct sorting.
                 (propertize (format "%09x" (-message-timestamp msg))
-                            '-data (let-alist msg .envelope.date)))
+                            'minimail (let-alist msg .envelope.date)))
      :formatter -format-date)))
 
 (defun -mailbox-refresh (&rest _)

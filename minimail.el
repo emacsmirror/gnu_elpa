@@ -298,6 +298,9 @@ All entries all optional, except for `:incoming-url'."
 (defvar-local -local-state nil
   "Place to store assorted buffer-local information.")
 
+(defvar-local -current-account nil)
+(defvar-local -current-mailbox nil)
+
 (defvar-local -mode-line-suffix nil)
 
 (defvar -minibuffer-update-hook nil
@@ -430,12 +433,10 @@ variable holding the fallback value for KEYWORD."
 ;; - IMAP URL syntax: https://datatracker.ietf.org/doc/html/rfc5092
 
 (defvar-local -imap-callbacks nil)
-(defvar-local -imap-capability nil)
 (defvar-local -imap-command-queue nil)
 (defvar-local -imap-idle-timer nil)
 (defvar-local -imap-last-tag nil)
 (defvar-local -next-position nil) ;TODO: necessary? can't we just rely on point position?
-(defvar-local -selected-mailbox nil)
 
 (defun -imap-connect (account)
   "Return a network stream connected to ACCOUNT."
@@ -480,7 +481,7 @@ In `minimail-accounts', incoming-url must have imaps or imap scheme, got %s" oth
     (-imap-enqueue
      proc nil
      (cond
-      ;; TODO: use ;AUTH=... notation as in RFC5092?
+      ;; TODO: use ;AUTH=... notation as in RFC 5092?
       ((string-empty-p user) "AUTHENTICATE ANONYMOUS\r\n")
       (t (format "AUTHENTICATE PLAIN %s"
                  (base64-encode-string (format "\0%s\0%s"
@@ -529,12 +530,12 @@ In `minimail-accounts', incoming-url must have imaps or imap scheme, got %s" oth
             (setf (alist-get tag -imap-callbacks nil t) nil)
             (-log-message "response: %s %s\n%s"
                           proc
-                          (or -selected-mailbox "(unselected)")
+                          (or -current-mailbox "(unselected)")
                           (buffer-string))
             (unwind-protect
-                (if (and mailbox (not (equal mailbox -selected-mailbox)))
+                (if (and mailbox (not (equal mailbox -current-mailbox)))
                     (error "Wrong mailbox: %s expected, %s selected"
-                           mailbox -selected-mailbox)
+                           mailbox -current-mailbox)
                   (with-restriction (point-min) end
                     (goto-char (point-min))
                     (funcall callback status message)))
@@ -551,14 +552,14 @@ TAG is an IMAP tag for the command.
 Ensure the given MAILBOX is selected before issuing the command, unless
 it is nil."
   (if (or (not mailbox)
-          (equal mailbox -selected-mailbox))
+          (equal mailbox -current-mailbox))
       (process-send-string proc (format "A%s %s\r\n" tag command))
     ;; Need to select a different mailbox
     (let ((newtag (cl-incf -imap-last-tag))
           (cont (lambda (status message)
                   (if (eq 'ok status)
                       (progn
-                        (setq -selected-mailbox mailbox)
+                        (setq -current-mailbox mailbox)
                         ;; Trick: this will cause the process filter
                         ;; to call `-imap-send' with the original
                         ;; command next.
@@ -990,7 +991,7 @@ If ACCOUNTS is nil, use all configured accounts.
 Return a cons cell consisting of the account symbol and mailbox name."
   (let* (cands
          ov
-         (accounts (or accounts
+         (accounts (or (ensure-list accounts)
                        (mapcar #'car minimail-accounts)
                        (user-error "No accounts configured")))
          (metadata '(metadata
@@ -1032,21 +1033,19 @@ Return a cons cell consisting of the account symbol and mailbox name."
 
 (defun -read-mailbox-maybe (prompt)
   "Read a mailbox using PROMPT, unless current buffer is related to a mailbox."
-  (let ((acct (alist-get 'account -local-state))
-        (mbx (alist-get 'mailbox -local-state)))
-    (if mbx (cons acct mbx) (-read-mailbox prompt (ensure-list acct)))))
+  (if -current-mailbox
+      (cons -current-account -current-mailbox)
+    (-read-mailbox prompt -current-account)))
 
 (defun -selected-messages ()
-  (let ((acct (alist-get 'account -local-state))
-        (mbx (alist-get 'mailbox -local-state)))
-    (cond
-     ((derived-mode-p 'minimail-message-mode)
-      (error "Not implemented"))
-     ((derived-mode-p 'minimail-mailbox-mode)
-      (list acct
-            mbx
-            (list (alist-get 'uid (or (vtable-current-object)
-                                      (user-error "No selected message")))))))))
+  (cond
+   ((derived-mode-p 'minimail-message-mode)
+    (error "Not implemented"))
+   ((derived-mode-p 'minimail-mailbox-mode)
+    (list -current-account
+          -current-mailbox
+          (list (alist-get 'uid (or (vtable-current-object)
+                                    (user-error "No selected message"))))))))
 
 ;;;###autoload
 (defun minimail-find-mailbox (account mailbox)
@@ -1060,8 +1059,8 @@ Return a cons cell consisting of the account symbol and mailbox name."
        (setq buffer (get-buffer-create name))
        (with-current-buffer buffer
          (minimail-mailbox-mode)
-         (setq-local -local-state `((account . ,account)
-                                    (mailbox . ,mailbox)))
+         (setq -current-account account)
+         (setq -current-mailbox mailbox)
          (-mailbox-refresh)))
      buffer)))
 
@@ -1078,9 +1077,9 @@ Return a cons cell consisting of the account symbol and mailbox name."
           (buffer (get-buffer-create name)))
      (with-current-buffer buffer
        (minimail-mailbox-mode)
-       (setq-local -local-state `((account . ,account)
-                                  (mailbox . ,mailbox)
-                                  (search . ,query)))
+       (setq -current-account account)
+       (setq -current-mailbox mailbox)
+       (setq -local-state `((search . ,query)))
        (-mailbox-refresh))
      buffer)))
 
@@ -1092,12 +1091,12 @@ Return a cons cell consisting of the account symbol and mailbox name."
        (_ <- (-amove-messages account mailbox destination uids)))
     (progress-reporter-done prog)
     (when-let*
-        ((mbxbuf (seq-some (lambda (b)
-                             (with-current-buffer b
+        ((mbxbuf (seq-some (lambda (buf)
+                             (with-current-buffer buf
                                (and (derived-mode-p 'minimail-mailbox-mode)
-                                    (eq account (alist-get 'account -local-state))
-                                    (equal mailbox (alist-get 'mailbox -local-state))
-                                    b)))
+                                    (eq account -current-account)
+                                    (equal mailbox -current-mailbox)
+                                    buf)))
                            (buffer-list))))
       (with-current-buffer mbxbuf
         (let* ((table (vtable-current-table))
@@ -1330,60 +1329,64 @@ Cf. RFC 5256, §2.1."
 (defun -mailbox-refresh (&rest _)
   (unless (derived-mode-p #'minimail-mailbox-mode)
     (user-error "This should be called only from a mailbox buffer."))
-  (let ((buffer (current-buffer)))
+  (let ((buffer (current-buffer))
+        (account -current-account)
+        (mailbox -current-mailbox)
+        (search (alist-get 'search -local-state)))
     (setq -mode-line-suffix ":Loading")
     (athunk-run
-     (let-alist -local-state
-       (athunk-let*
-           ((attrs <- (-aget-mailbox-attributes .account .mailbox))
-            (messages <- (athunk-condition-case err
-                             (if .search
-                                 (-afetch-search .account .mailbox .search)
-                               (-afetch-mailbox .account .mailbox 100))
-                           (t (with-current-buffer buffer
-                                (setq -mode-line-suffix ":Error"))
-                              (signal (car err) (cdr err))))))
-         (with-current-buffer buffer
-           (setq -mode-line-suffix nil)
-           (setq -thread-tree (-thread-by-subject messages))
-           (if-let* ((vtable (vtable-current-table)))
-               (progn
-                 (setf (vtable-objects vtable) messages)
-                 (vtable-revert-command))
-             (erase-buffer)
-             (let* ((inhibit-read-only t)
-                    (colnames (-settings-alist-get :mailbox-columns
-                                                   .account
-                                                   (cons .mailbox attrs)))
-                    (sortnames (-settings-alist-get :mailbox-sort-by
-                                                    .account
-                                                    (cons .mailbox attrs))))
-               (make-vtable
-                :objects messages
-                :keymap minimail-mailbox-mode-map
-                :columns (mapcar (lambda (v)
-                                   (alist-get v minimail-mailbox-mode-column-alist))
-                                 colnames)
-                :sort-by (mapcan (pcase-lambda (`(,col . ,dir))
-                                   (when-let ((i (seq-position colnames col)))
-                                     `((,i . ,dir))))
-                                 sortnames))))))))))
+     (athunk-let*
+         ((attrs <- (-aget-mailbox-attributes account mailbox))
+          (messages <- (athunk-condition-case err
+                           (if search
+                               (-afetch-search account mailbox search)
+                             (-afetch-mailbox account mailbox 100))
+                         (t (with-current-buffer buffer
+                              (setq -mode-line-suffix ":Error"))
+                            (signal (car err) (cdr err))))))
+       (with-current-buffer buffer
+         (setq -mode-line-suffix nil)
+         (setq -thread-tree (-thread-by-subject messages))
+         (if-let* ((vtable (vtable-current-table)))
+             (progn
+               (setf (vtable-objects vtable) messages)
+               (vtable-revert-command))
+           (erase-buffer)
+           (let* ((inhibit-read-only t)
+                  (key (cons mailbox attrs))
+                  (colnames (-settings-alist-get :mailbox-columns account key))
+                  (sortnames (-settings-alist-get :mailbox-sort-by account key)))
+             (make-vtable
+              :objects messages
+              :keymap minimail-mailbox-mode-map
+              :columns (mapcar (lambda (v)
+                                 (alist-get v minimail-mailbox-mode-column-alist))
+                               colnames)
+              :sort-by (mapcan (pcase-lambda (`(,col . ,dir))
+                                 (when-let ((i (seq-position colnames col)))
+                                   `((,i . ,dir))))
+                               sortnames)))))))))
 
 (defun minimail-show-message ()
   (interactive nil minimail-mailbox-mode)
-  (let-alist -local-state
-    (let ((message (vtable-current-object))
-          (mbxbuf (current-buffer))
-          (msgbuf (if (buffer-live-p .message-buffer)
-                      .message-buffer
-                    (setf (alist-get 'message-buffer -local-state)
-                          (generate-new-buffer (-message-buffer-name .account .mailbox ""))))))
-      (cl-pushnew '\\Seen (alist-get 'flags message))
-      (vtable-update-object (vtable-current-table) message)
-      (setq-local overlay-arrow-position (copy-marker (pos-bol)))
-      (with-current-buffer msgbuf
-        (-display-message .account .mailbox (alist-get 'uid message))
-        (setf (alist-get 'mailbox-buffer -local-state) mbxbuf)))))
+  (let ((account -current-account)
+        (mailbox -current-mailbox)
+        (message (vtable-current-object))
+        (mbxbuf (current-buffer))
+        (msgbuf (if-let* ((buffer (alist-get 'message-buffer -local-state))
+                          (_ (buffer-live-p buffer)))
+                    buffer
+                  (setf (alist-get 'message-buffer -local-state)
+                        (generate-new-buffer
+                         (-message-buffer-name -current-account
+                                               -current-mailbox
+                                               ""))))))
+    (cl-pushnew '\\Seen (alist-get 'flags message))
+    (vtable-update-object (vtable-current-table) message)
+    (setq-local overlay-arrow-position (copy-marker (pos-bol)))
+    (with-current-buffer msgbuf
+      (-display-message account mailbox (alist-get 'uid message))
+      (setf (alist-get 'mailbox-buffer -local-state) mbxbuf))))
 
 (defun minimail-next-message (count)
   (interactive "p" minimail-mailbox-mode minimail-message-mode)
@@ -1626,8 +1629,8 @@ window shorter than 6 lines."
                         (list account mailbox uid))
              (let ((inhibit-read-only t))
                (setq -mode-line-suffix nil)
-               (setf (alist-get 'account -local-state) account)
-               (setf (alist-get 'mailbox -local-state) mailbox)
+               (setq -current-account account)
+               (setq -current-mailbox mailbox)
                (-erase-message-buffer)
                (rename-buffer (-message-buffer-name account mailbox uid) t)
                (insert-buffer-substring msgbuf)
@@ -1655,7 +1658,9 @@ window shorter than 6 lines."
   (interactive (list (xor current-prefix-arg minimail-reply-cite-original))
                minimail-message-mode
                minimail-mailbox-mode)
-  (-with-associated-buffer message
+  (-with-associated-buffer message     ;FIXME: in mailbox mode, should
+                                       ;reply to message at point, not
+                                       ;the currently displayed one
     (when-let* ((window (get-buffer-window)))
       (select-window window))
     (let ((message-mail-user-agent 'minimail)
@@ -1726,7 +1731,7 @@ In `minimail-accounts', outgoing-url must have smtps or smtp scheme, got %s" oth
       ((`(,account . ,props)
         (or (seq-some (lambda (it)
                         (when (plist-member (cdr it) :outgoing-url) it))
-                      `(,(assq (alist-get 'account -local-state) minimail-accounts)
+                      `(,(assq -current-account minimail-accounts)
                         ,@minimail-accounts))
             (user-error "No mail account has been configured to send messages")))
        (setup (lambda ()

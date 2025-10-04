@@ -109,13 +109,14 @@ Return an athunk which resolves to the value of the last form in BODY."
          (result (make-vector n nil)))
     (lambda (cont)
       (dotimes (i n)
-        (funcall (pop athunks)
-                 (lambda (err val)
-                   (if err
-                       (funcall cont err val)
-                     (setf (aref result i) val)
-                     (when (zerop (cl-decf n))
-                       (run-with-timer 0 nil cont nil result)))))))))
+        (run-with-timer
+         0 nil (pop athunks)
+         (lambda (err val)
+           (if err
+               (funcall cont err val)
+             (setf (aref result i) val)
+             (when (zerop (cl-decf n))
+               (run-with-timer 0 nil cont nil result)))))))))
 
 (defmacro athunk-let (bindings &rest body)
   "Concurrently resolve athunks then evaluate BODY.

@@ -216,7 +216,7 @@ pending the computation is not canceled."
   (gv-letplace (getter setter) place
     `(when (eq 'athunk--cached (car ,getter)) ,(funcall setter nil))))
 
-;;; Variables and options
+;;; Customizable options
 
 (defgroup minimail nil
   "Simple, non-blocking IMAP email client."
@@ -265,8 +265,8 @@ All entries all optional, except for `:incoming-url'."
                                  :outgoing-url
                                  (:signature (choice
                                               (const :tag "None" ignore)
-		                              (const :tag "Use `.signature' file" t)
-		                              (string :tag "String to insert")
+                                              (const :tag "Use `.signature' file" t)
+                                              (string :tag "String to insert")
                                               (sexp :tag "Expression to evaluate")))
                                  (:signature-file file)))))
 
@@ -277,6 +277,11 @@ All entries all optional, except for `:incoming-url'."
 (defcustom minimail-connection-idle-timeout 60
   "Time in seconds a network connection can remain open without activity."
   :type 'boolean)
+
+(defcustom minimail-mailbox-mode-columns '((\\Sent flags date recipients subject)
+                                           (t flags date from subject))
+  "Columns to display in `mailbox-mode' buffers."
+  :type '(repeat symbol))
 
 (defface minimail-unread '((t :inherit bold))
   "Face for unread messages.")
@@ -356,6 +361,34 @@ KEY is a string or list of strings."
   "Look up KEY in ALIST, a list of condition-value pairs."
   (cdr (seq-some (lambda (it) (when (-key-match-p (car it) key) it))
                  alist)))
+
+(defun -settings-get (keyword account &optional mailbox)
+  "Retrieve the most specific configuration value for KEYWORD.
+
+If MAILBOX is non-nil, start looking up
+  `minimail-accounts' -> ACCOUNT -> :mailboxes -> MAILBOX -> KEYWORD
+If MAILBOX is nil or the above fails, try
+  `minimail-accounts' -> ACCOUNT -> KEYWORD
+If the above fails and there is a fallback variable associated to
+KEYWORD, return the value of that variable."
+  (let* ((aconf (cdr (assq account minimail-accounts)))
+         (mconf (when mailbox (plist-get :mailboxes aconf)))
+         v)
+    (cond
+     ((setq v (seq-some (pcase-lambda (`(,key . ,value))
+                          (and (-key-match-p key mailbox)
+                               (plist-member value keyword)))
+                        mconf))
+      (cadr v))
+     ((setq v (plist-member aconf keyword))
+      (cadr v))
+     ((setq v (assq keyword
+                    '((:full-name . user-full-name)
+                      (:mail-address . user-mail-address)
+                      (:mailbox-columns . minimail-mailbox-mode-columns)
+                      (:signature . message-signature)
+                      (:signature-file . message-signature-file))))
+      (symbol-value (cdr v))))))
 
 ;;;; vtable hacks
 
@@ -1204,7 +1237,7 @@ Cf. RFC 5256, §2.1."
                        .internal-date
                        '(0 0 0 1 1 1970 nil nil 0))))))
 
-(defvar minimail-mailbox-mode-columns
+(defvar minimail-mailbox-mode-column-alist
   ;; NOTE: We must slightly abuse the vtable API in several of our
   ;; column definitions.  The :getter attribute returns a string used
   ;; as sort key while :formatter fetches from it the actual display
@@ -1249,7 +1282,8 @@ Cf. RFC 5256, §2.1."
      :max-width 60
      :getter ,(lambda (msg tbl)
                 (let-alist msg
-                  (propertize (-base-subject (or .envelope.subject ""))
+                  (propertize (let ((s (-base-subject (or .envelope.subject ""))))
+                                (if (string-empty-p s) "\0" s))
                               'minimail `((table . ,tbl) ,@msg))))
      :formatter ,(lambda (s)
                    (let-alist (-get-data s)
@@ -1274,7 +1308,8 @@ Cf. RFC 5256, §2.1."
     (athunk-run
      (let-alist -local-state
        (athunk-let*
-           ((messages <- (athunk-condition-case err
+           ((mailboxes <- (-aget-mailbox-listing .account))
+            (messages <- (athunk-condition-case err
                              (if .search
                                  (-afetch-search .account .mailbox .search)
                                (-afetch-mailbox .account .mailbox 100))
@@ -1284,16 +1319,22 @@ Cf. RFC 5256, §2.1."
          (with-current-buffer buffer
            (setq -mode-line-suffix nil)
            (setq -thread-tree (-thread-by-subject messages))
-           (let ((inhibit-read-only t))
-             (if-let* ((vtable (vtable-current-table)))
-                 (progn
-                   (setf (vtable-objects vtable) messages)
-                   (vtable-revert-command))
-               (erase-buffer)
+           (if-let* ((vtable (vtable-current-table)))
+               (progn
+                 (setf (vtable-objects vtable) messages)
+                 (vtable-revert-command))
+             (erase-buffer)
+             (let* ((inhibit-read-only t)
+                    (attrs (-get-in mailboxes .mailbox 'attributes))
+                    (query (cons .mailbox attrs))
+                    (colnames (-settings-get :mailbox-columns .account query)))
+               (when (consp (car colnames))
+                 (setq colnames (-alist-query query colnames)))
                (make-vtable
                 :keymap minimail-mailbox-mode-map
-                :columns (mapcar (lambda (v) (alist-get v minimail-mailbox-mode-columns))
-                                 '(flags date from subject))
+                :columns (mapcar (lambda (v)
+                                   (alist-get v minimail-mailbox-mode-column-alist))
+                                 colnames)
                 :sort-by '((1 . descend))
                 :objects messages)))))))))
 

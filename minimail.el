@@ -1120,21 +1120,27 @@ Return a cons cell consisting of the account symbol and mailbox name."
    revert-buffer-function #'-mailbox-refresh
    truncate-lines t))
 
-(defun -format-names (names &rest _)
-  (string-join
-   (mapcar (lambda (data)
-             (propertize
-              (or (alist-get 'name data)
-                  (when-let* ((host (alist-get 'host data)))
-                    (concat (alist-get 'mailbox data "?") "@" host))
-                  "?")
-              'help-echo
-              (lambda (&rest _)
-                (let-alist data
-                  (mail-header-make-address
-                   .name (concat (or .mailbox "?") "@" (or .host "?")))))))
-           names)
-   ", "))
+(defun -base-subject (string)
+  "Simplify message subject STRING for sorting and threading purposes.
+Cf. RFC 5256, §2.1."
+  (replace-regexp-in-string message-subject-re-regexp "" (downcase string)))
+
+(defun -format-names (addresses &rest _)
+  (propertize
+   (mapconcat
+    (lambda (addr)
+      (let-alist addr
+        (or .name .mailbox "(unknown)")))
+    addresses
+    ", ")
+   'help-echo
+   (lambda (&rest _)
+     (mapconcat
+      (lambda (addr)
+        (let-alist addr
+          (mail-header-make-address .name (concat .mailbox "@" .host))))
+      addresses
+      "\n"))))
 
 (defun -format-date (date &rest _)
   (when (stringp date)
@@ -1183,7 +1189,19 @@ Return a cons cell consisting of the account symbol and mailbox name."
                 (face (-alist-query (cdr flags) minimail-flag-faces)))
       (add-face-text-property (point) end face))))
 
+(defun -message-timestamp (msg)
+  "The message's envelope date as a Unix timestamp."
+  (let-alist msg
+    (let ((current-time-list nil))
+      (encode-time (or .envelope.date
+                       .internal-date
+                       '(0 0 0 1 1 1970 nil nil 0))))))
+
 (defvar minimail-mailbox-mode-columns
+  ;; NOTE: We must slightly abuse the vtable API in several of our
+  ;; column definitions.  The :getter attribute returns a string used
+  ;; as sort key while :formatter fetches from it the actual display
+  ;; string, embedded as a string property.
   `((id
      :name "#"
      :getter ,(lambda (msg _) (alist-get 'id msg)))
@@ -1202,24 +1220,45 @@ Return a cons cell consisting of the account symbol and mailbox name."
     (from
      :name "From"
      :max-width 30
-     :getter ,(lambda (v _) (let-alist v .envelope.from))
-     :formatter -format-names)
+     :getter ,(lambda (msg _)
+                (let-alist msg
+                  (-format-names .envelope.from))))
+    (to
+     :name "To"
+     :max-width 30
+     :getter ,(lambda (msg _)
+                (let-alist msg
+                  (-format-names .envelope.to))))
+    (recipients
+     :name "Recipients"
+     :max-width 30
+     :getter ,(lambda (msg _)
+                (let-alist msg
+                  (-format-names (append .envelope.to
+                                         .envelope.cc
+                                         .envelope.bcc)))))
     (subject
      :name "Subject"
      :max-width 60
-     :getter ,(lambda (v _)
-                (let-alist v
-                  (replace-regexp-in-string ;TODO: sanitize here or while parsing?
-                   (rx control) ""
-                   (or .envelope.subject "")))))
+     :getter ,(lambda (msg tbl)
+                (let-alist msg
+                  (propertize (-base-subject (or .envelope.subject ""))
+                              '-data `((table . ,tbl) ,@msg))))
+     :formatter ,(lambda (s)
+                   (let-alist (-get-data s)
+                     (concat (when (not (vtable-sort-by .table)) ;means sorting by thread
+                               (-thread-subject-prefix .uid))
+                             ;; TODO: sanitize here or while parsing?
+                             (replace-regexp-in-string (rx control) ""
+                                                       (or .envelope.subject ""))))))
     (date
      :name "Date"
      :width 12
-     :getter ,(lambda (v _)
-                (let-alist v
-                  (propertize (format "%09x" (let ((current-time-list nil))
-                                               (encode-time .envelope.date)))
-                              '-data .envelope.date)))
+     :getter ,(lambda (msg _)
+                ;; The envelope date as Unix timestamp, formatted as a
+                ;; hex string.  This ensures the correct sorting.
+                (propertize (format "%09x" (-message-timestamp msg))
+                            '-data (let-alist msg .envelope.date)))
      :formatter -format-date)))
 
 (defun -mailbox-refresh (&rest _)
@@ -1335,9 +1374,7 @@ value is as described in loc. cit. §4, with message UIDs as tree leaves."
          (threads (progn
                     (dolist (msg messages)
                       (let-alist msg
-                        (push msg (gethash (replace-regexp-in-string
-                                            message-subject-re-regexp ""
-                                            (or .envelope.subject ""))
+                        (push msg (gethash (-base-subject (or .envelope.subject ""))
                                            hash))))
                     (mapcar (lambda (thread) (sort thread :key #'-message-timestamp))
                             (hash-table-values hash))))

@@ -75,6 +75,13 @@
   "TODO files used for the journal entries."
   :type '(repeat string))
 
+(defcustom org-gnosis-todo-keywords org-todo-keywords
+  "TODO Keywords used for parsing `org-gnosis-todo-files'.
+
+All items after the vertical bar \"|\" will be ignored, for
+compatability with `org-todo-keywords'."
+  :type '(repeat string))
+
 (defcustom org-gnosis-completing-read-func #'org-completing-read
   "Function to use for `completing-read'."
   :type 'function)
@@ -329,7 +336,8 @@ If JOURNAL is non-nil, update file as a journal entry."
 			      (setq counter (1+ counter)))
 			    (setq title (format "%s (%d)" title counter))
 			    (message "Duplicate title found, renamed to: %s" title)))
-			(org-gnosis--insert-into table `([,id ,filename ,title ,level ,(prin1-to-string tags)]))
+			(org-gnosis--insert-into table `([,id ,filename ,title ,level
+							      ,(prin1-to-string tags)]))
 			;; Insert tags
 			(cl-loop for tag in tags
 				 do
@@ -648,10 +656,13 @@ If file or id are not found, use `org-open-at-point'."
       (org-mode)
       (org-element-map (org-element-parse-buffer) 'headline
         (lambda (headline)
-          (when (string= (org-element-property :todo-keyword headline) "TODO")
+          (when (member (org-element-property :todo-keyword headline)
+			 (cl-loop for keyword in org-gnosis-todo-keywords
+				  until (and (stringp keyword) (string= keyword "|"))
+				  collect keyword))
             (let* ((title (org-element-property :raw-value headline))
-                   (timestamp (org-element-property :raw-value
-                           (org-element-property :scheduled headline))))
+                   (timestamp (org-element-property
+			       :raw-value (org-element-property :scheduled headline))))
               (push `(,title ,timestamp ,file) todos))))))
     (nreverse todos)))
 
@@ -799,7 +810,7 @@ ELEMENT should be the output of `org-element-parse-buffer'."
 			   (not (file-directory-p file))))
 			(directory-files org-gnosis-journal-dir t nil t))
 	   do (org-gnosis-update-file file)))
-
+;; TODO: Rebuil the database upon sync.
 ;;;###autoload
 (defun org-gnosis-db-sync ()
   "Sync `org-gnosis-db'."

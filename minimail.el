@@ -453,8 +453,7 @@ alist, and look up MAILBOX in it."
 
 (advice-add #'vtable--insert-line :after
             (lambda (&rest _) (run-hooks '-vtable-insert-line-hook))
-            '((name . -vtable-insert-line-hook)))
-
+            '((name . minimail)))
 
 ;;; Low-level IMAP communication
 
@@ -1344,7 +1343,7 @@ Cf. RFC 5256, §2.1."
                               'minimail `((table . ,tbl) ,@msg))))
      :formatter ,(lambda (s)
                    (let-alist (-get-data s)
-                     (concat (when (not (vtable-sort-by .table)) ;means sorting by thread
+                     (concat (when (alist-get 'sort-by-thread -local-state)
                                (-thread-subject-prefix .uid))
                              (or .envelope.subject "")))))
     (date
@@ -1541,16 +1540,23 @@ style.  If DESCEND is non-nil, use the opposite convention."
 (defun minimail-toggle-sort-by-thread ()
   "Toggle sorting messages by thread."
   (interactive nil minimail-mailbox-mode)
-  ;; FIXME: We should clear `sort-by-thread' when sorting by column.
   (let* ((old (alist-get 'sort-by-thread -local-state))
          (new (cadr (memq old '(nil ascend descend)))))
     (message "Sorting by thread: %s" (or new "disabled"))
-    ;; First re-sort the table by original criteria, either because
-    ;; that's the goal (new is nil) or in preparation for the thread
-    ;; sorting step.
+    ;; First re-sort the table by the original criteria, either
+    ;; because that's the final goal (new is nil) or in preparation
+    ;; for the thread sorting step.
     (vtable-revert)
-    (when new (-sort-messages-by-thread (eq new 'descend)))
-    (setf (alist-get 'sort-by-thread -local-state) new)))
+    (setf (alist-get 'sort-by-thread -local-state) new)
+    (when new (-sort-messages-by-thread (eq new 'descend)))))
+
+;; Ensure we preserve sorting by column in the following sequence of
+;; step: sort by thread, then sort by column, then refresh buffer.
+(advice-add #'vtable-sort-by-current-column :before
+            (lambda (&rest _)
+              (when (derived-mode-p 'minimail-mailbox-mode)
+                (setf (alist-get 'sort-by-thread -local-state) nil)))
+            '((name . minimail)))
 
 ;;; Message buffer
 
@@ -1647,11 +1653,11 @@ window shorter than 6 lines."
 
 (advice-add #'gnus-msg-mail :around
             (-message-mode-advice #'message-mail) ;FIXME: only works if message-mail-user-agent is set
-            '((name . -gnus-msg-mail)))
+            '((name . minimail)))
 
 (advice-add #'gnus-button-reply :around
             (-message-mode-advice #'message-reply) ;FIXME: same
-            '((name . -gnus-button-reply)))
+            '((name . minimail)))
 
 (defun -display-message (account mailbox uid)
   (let ((buffer (current-buffer)))

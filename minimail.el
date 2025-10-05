@@ -217,6 +217,18 @@ pending the computation is not canceled."
   (gv-letplace (getter setter) place
     `(when (eq 'athunk--cached (car ,getter)) ,(funcall setter nil))))
 
+(cl-defun athunk-run-polling (athunk &key (interval 1) (max-tries -1))
+  "Run ATHUNK, polling every INTERVAL seconds and blocking until done.
+Give up after MAX-TRIES, if that is non-negative."
+  (let (done err val)
+    (funcall athunk (lambda (e v) (setq done t err e val v)))
+    (while (not (or done (zerop max-tries)))
+      (cl-decf max-tries)
+      (sleep-for interval))
+    (when err (signal err val))
+    (when (not done) (error "athunk timed out"))
+    val))
+
 ;;; Customizable options
 
 (defgroup minimail nil
@@ -230,8 +242,8 @@ This is an alist where keys are names used to refer to each account and
 values are a plist with the following information:
 
 :mail-address
-  The email address of this account, used to override the global value
-  of `user-mail-address'.
+  The email address of this account, overrides the global value of
+  `user-mail-address'.
 
 :incoming-url
   Information about the IMAP server as a URL. Normally, it suffices to
@@ -250,10 +262,8 @@ values are a plist with the following information:
   details as in :incoming-url.
 
 :signature
-  Overrides the global value of `message-signature'.
-
-:signature-file
-  Overrides the global value of `message-signature-file'.
+  Message signature, as value accepted by `message-signature' or,
+  alternatively, (file FILENAME).
 
 All entries all optional, except for `:incoming-url'."
   :type '(alist
@@ -266,10 +276,10 @@ All entries all optional, except for `:incoming-url'."
                                  :outgoing-url
                                  (:signature (choice
                                               (const :tag "None" ignore)
-                                              (const :tag "Use `.signature' file" t)
+                                              (cons :tag "Use signature file"
+                                                    (const file) file)
                                               (string :tag "String to insert")
-                                              (sexp :tag "Expression to evaluate")))
-                                 (:signature-file file)))))
+                                              (function :tag "Function to call")))))))
 
 (defcustom minimail-reply-cite-original t
   "Whether to cite the original message when replying."
@@ -375,39 +385,48 @@ Return the first matching cons cell."
 Return the first matching value."
   (if-let* ((it (-assoc-query key alist))) (cdr it) default))
 
-(defun -settings-get (keyword account &optional mailbox)
+(defun -settings-scalar-get (keyword account &optional mailbox)
   "Retrieve the most specific configuration value for KEYWORD.
 
-If MAILBOX is non-nil, start looking up
-  `minimail-accounts' -> ACCOUNT -> :mailboxes -> MAILBOX -> KEYWORD
-If MAILBOX is nil or the above fails, try
-  `minimail-accounts' -> ACCOUNT -> KEYWORD
-If the above fails and there is a fallback variable associated to
-KEYWORD, return the value of that variable."
-  (let* ((aconf (cdr (assq account minimail-accounts)))
-         (mconf (when mailbox (plist-get :mailboxes aconf)))
-         v)
-    (cond
-     ((setq v (seq-some (pcase-lambda (`(,key . ,value))
-                          (and (-key-match-p key mailbox)
-                               (plist-member value keyword)))
-                        mconf))
-      (cadr v))
-     ((setq v (plist-member aconf keyword))
-      (cadr v))
-     ((setq v (assq keyword
-                    '((:full-name . user-full-name)
-                      (:mail-address . user-mail-address)
-                      (:signature . message-signature)
-                      (:signature-file . message-signature-file))))
-      (symbol-value (cdr v))))))
+1. Start looking up `minimail-accounts' -> ACCOUNT -> KEYWORD.
+   a. If the entry exists and is not an alist, return it.
+   b. If it is an alist, look up MAILBOX in it and return the
+      associated value.
+2. If not found and KEYWORD has a fallback variable associated to it,
+   return its value.
+3. Else, return nil."
+  (let* ((found (plist-member (alist-get account minimail-accounts) keyword))
+         (val (cadr found)))
+    (cond ((consp (car-safe val)) ;it's a query alist
+           (-alist-query (when mailbox
+                           (cons mailbox
+                                 ;; Due to caching, will essentially never block.
+                                 (athunk-run-polling
+                                  (-aget-mailbox-attributes account mailbox)
+                                  :interval 0.1 :max-tries 10)))
+                         val))
+          (found val)
+          (t (symbol-value
+              (alist-get keyword
+                         '((:full-name . user-full-name)
+                           (:mail-address . user-mail-address)
+                           (:signature . message-signature))))))))
 
 (defun -settings-alist-get (keyword account mailbox)
   "Retrieve the most specific configuration value for KEYWORD.
 
-First, inspect `minimail-accounts' -> ACCOUNT -> KEYWORD.  If that alist
-contains a key matching MAILBOX, return that value.  Otherwise, inspect
-variable holding the fallback value for KEYWORD."
+Inspect `minimail-accounts' -> ACCOUNT -> KEYWORD, which should be an
+alist; if it contains a key matching MAILBOX, return that value.
+
+Otherwise, take the fallback value for KEYWORD, which should also be an
+alist, and look up MAILBOX in it."
+  (when (stringp mailbox)
+    (setq mailbox
+          (cons mailbox
+                ;; Due to caching, will essentially never block.
+                (athunk-run-polling
+                 (-aget-mailbox-attributes account mailbox)
+                 :interval 0.1 :max-tries 10))))
   (if-let* ((alist (plist-get (alist-get account minimail-accounts) keyword))
             (val (-assoc-query mailbox alist)))
       (cdr val)
@@ -1337,8 +1356,7 @@ Cf. RFC 5256, §2.1."
     (setq -mode-line-suffix ":Loading")
     (athunk-run
      (athunk-let*
-         ((attrs <- (-aget-mailbox-attributes account mailbox))
-          (messages <- (athunk-condition-case err
+         ((messages <- (athunk-condition-case err
                            (if search
                                (-afetch-search account mailbox search)
                              (-afetch-mailbox account mailbox 100))
@@ -1354,9 +1372,8 @@ Cf. RFC 5256, §2.1."
                (vtable-revert-command))
            (erase-buffer)
            (let* ((inhibit-read-only t)
-                  (key (cons mailbox attrs))
-                  (colnames (-settings-alist-get :mailbox-columns account key))
-                  (sortnames (-settings-alist-get :mailbox-sort-by account key)))
+                  (colnames (-settings-alist-get :mailbox-columns account mailbox))
+                  (sortnames (-settings-alist-get :mailbox-sort-by account mailbox)))
              (make-vtable
               :objects messages
               :keymap minimail-mailbox-mode-map
@@ -1729,22 +1746,26 @@ In `minimail-accounts', outgoing-url must have smtps or smtp scheme, got %s" oth
 ;;;###autoload
 (defun minimail-message-mail (&optional to subject &rest rest)
   (pcase-let*
-      ((`(,account . ,props)
-        (or (seq-some (lambda (it)
-                        (when (plist-member (cdr it) :outgoing-url) it))
+      ((account ;some account set up for sending, prioritizing the current one
+        (or (seq-some (pcase-lambda (`(,account . ,props))
+                        (when (plist-member props :outgoing-url) account))
                       `(,(assq -current-account minimail-accounts)
                         ,@minimail-accounts))
             (user-error "No mail account has been configured to send messages")))
+       (mailbox (and (eq -current-account account) -current-mailbox))
+       (name (-settings-scalar-get :full-name account mailbox))
+       (addr (-settings-scalar-get :mail-address account mailbox))
+       (`(,sig . ,sigfile)
+        (pcase (-settings-scalar-get :signature account mailbox)
+          (`(file ,fname . nil) (cons t fname))
+          (v (cons v message-signature-file))))
        (setup (lambda ()
-                (setq-local
-                 user-full-name (or (plist-get props :full-name)
-                                    user-full-name)
-                 user-mail-address (or (plist-get props :mail-address)
-                                       user-mail-address)
-                 message-signature (or (plist-get props :signature)
-                                       message-signature)
-                 message-signature-file (or (plist-get props :signature-file)
-                                            message-signature-file)))))
+                (setq-local -current-account account
+                            -current-mailbox mailbox
+                            user-full-name name
+                            user-mail-address addr
+                            message-signature sig
+                            message-signature-file sigfile))))
     (let ((message-mail-user-agent 'message-user-agent)
           (message-mode-hook (cons setup message-mode-hook)))
       (apply #'message-mail to subject rest))

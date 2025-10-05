@@ -27,12 +27,7 @@
 ;;; athunk stuff
 
 (defun -with-polling (athunk &optional secs)
-  (setq secs (or secs 0.001))
-  (let (done err val)
-    (funcall athunk (lambda (e v) (setq done t err e val v)))
-    (while (not done) (sleep-for secs))
-    (when err (signal err val))
-    val))
+  (athunk-run-polling athunk :interval 0.001 :max-tries 1000))
 
 (defmacro -should-take-seconds (secs &rest body)
   "Assert that BODY takes approximately SECS seconds to run."
@@ -49,9 +44,9 @@
      (should (eq y 3)))))
 
 (ert-deftest minimail-tests-sleep ()
-  (-should-take-seconds 1
+  (-should-take-seconds 0.25
     (-with-polling
-     (athunk-let* ((x <- (athunk-sleep 1 'xxx)))
+     (athunk-let* ((x <- (athunk-sleep 0.25 'xxx)))
        (should (eq x 'xxx))))))
 
 (ert-deftest minimail-tests-gather ()

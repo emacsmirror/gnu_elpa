@@ -291,11 +291,22 @@ All entries all optional, except for `:incoming-url'."
 
 (defcustom minimail-mailbox-mode-columns '((\\Sent flags date recipients subject)
                                            (t flags date from subject))
-  "Columns to display in `minimail-mailbox-mode' buffers."
+  "Columns to display in `minimail-mailbox-mode' buffers.
+This is an alist mapping mailbox selectors to lists of column names as
+defined in `minimail-mailbox-mode-column-alist'."
   :type '(repeat alist))
 
-(defcustom minimail-mailbox-mode-sort-by '((t (date . descend)))
-  "Sorting criteria for `minimail-mailbox-mode' buffers."
+(defcustom minimail-mailbox-mode-sort-by '((t (date . descend) (thread . ascend)))
+  "Sorting criteria for `minimail-mailbox-mode' buffers.
+This is an alist mapping mailbox selectors to lists of the form
+
+  ((COLUMN . DIRECTION) ...)
+
+COLUMN is a column name, as in `minimail-mailbox-mode-columns'.
+DIRECTION is either `ascend' or `descend'.
+
+As a special case, an entry of the form (thead . DIRECTION) enables
+sorting by thread."
   :type '(repeat alist))
 
 (defface minimail-unread '((t :inherit bold))
@@ -1192,7 +1203,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
   "s" #'minimail-search
   "g" #'revert-buffer
   "q" #'minimail-quit-windows
-  "T" #'minimail-sort-by-thread
+  "T" #'minimail-toggle-sort-by-thread
   "SPC" #'minimail-message-scroll-up
   "S-SPC" #'minimail-message-scroll-down
   "DEL" #'minimail-message-scroll-down)
@@ -1374,6 +1385,8 @@ Cf. RFC 5256, §2.1."
            (let* ((inhibit-read-only t)
                   (colnames (-settings-alist-get :mailbox-columns account mailbox))
                   (sortnames (-settings-alist-get :mailbox-sort-by account mailbox)))
+             (setf (alist-get 'sort-by-thread -local-state)
+                   (alist-get 'thread sortnames))
              (make-vtable
               :objects messages
               :keymap minimail-mailbox-mode-map
@@ -1383,7 +1396,9 @@ Cf. RFC 5256, §2.1."
               :sort-by (mapcan (pcase-lambda (`(,col . ,dir))
                                  (when-let ((i (seq-position colnames col)))
                                    `((,i . ,dir))))
-                               sortnames)))))))))
+                               sortnames))))
+         (when-let* ((how (alist-get 'sort-by-thread -local-state)))
+           (-sort-messages-by-thread (eq how 'descend))))))))
 
 (defun minimail-show-message ()
   (interactive nil minimail-mailbox-mode)
@@ -1482,15 +1497,14 @@ value is as described in loc. cit. §4, with message UIDs as tree leaves."
                     (mapcar (lambda (v) (let-alist v (list .uid))) (cdr thread))))
             sorted)))
 
-(defun minimail-sort-by-thread (&optional descending)
+(defun -sort-messages-by-thread (&optional descend)
   "Sort messages with grouping by threads.
 
 Within a thread, sort each message after its parents.  Across threads,
 preserve the existing order, in the sense that thread A sorts before
 thread B if some message from A comes before all messages of B.  This
 makes sense when the current sort order is in the “most relevant at top”
-style.  If DESCENDING is non-nil, use the opposite convention."
-  (interactive nil minimail-mailbox-mode)
+style.  If DESCEND is non-nil, use the opposite convention."
   (let* ((table (or (vtable-current-table)
                     (user-error "No table under point")))
          (mhash (make-hash-table)) ;maps message id -> root id and position within thread
@@ -1516,13 +1530,27 @@ style.  If DESCENDING is non-nil, use the opposite convention."
              (rootid (or (-thread-root msgid) -1))
              (pos (or (-thread-position msgid) -1)))
         (puthash msgid (cons rootid pos) mhash)
-        (if descending
+        (if descend
             (puthash rootid count rhash)
           (cl-callf (lambda (i) (or i count)) (gethash rootid rhash)))))
     (setf (vtable-objects table) (sort objects :lessp lessp :in-place t))
     ;; Little hack to force vtable to redisplay with our new sorting.
     (cl-letf (((vtable-sort-by table) nil))
       (vtable-revert-command))))
+
+(defun minimail-toggle-sort-by-thread ()
+  "Toggle sorting messages by thread."
+  (interactive nil minimail-mailbox-mode)
+  ;; FIXME: We should clear `sort-by-thread' when sorting by column.
+  (let* ((old (alist-get 'sort-by-thread -local-state))
+         (new (cadr (memq old '(nil ascend descend)))))
+    (message "Sorting by thread: %s" (or new "disabled"))
+    ;; First re-sort the table by original criteria, either because
+    ;; that's the goal (new is nil) or in preparation for the thread
+    ;; sorting step.
+    (vtable-revert)
+    (when new (-sort-messages-by-thread (eq new 'descend)))
+    (setf (alist-get 'sort-by-thread -local-state) new)))
 
 ;;; Message buffer
 

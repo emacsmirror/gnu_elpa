@@ -67,7 +67,9 @@
          (default (copy-hash-table hash)))
     (persist-test-persist-save hash default
                                (puthash 'foo "bar" (symbol-value sym))
-                               "#s(hash-table size 65 test eql rehash-size 1.5 rehash-threshold 0.8125 data (foo \"bar\"))")))
+                               (if (<= 30 emacs-major-version)
+                                   "#s(hash-table data (foo \"bar\"))\n"
+                                 "#s(hash-table size 65 test eql rehash-size 1.5 rehash-threshold 0.8125 data (foo \"bar\"))"))))
 
 (ert-deftest test-persist-save-record ()
   "Test saving record."

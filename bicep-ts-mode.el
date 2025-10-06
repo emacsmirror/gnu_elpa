@@ -237,6 +237,7 @@ Changes may require an Emacs-restart to take effect."
   (bicep--download-langserver)
   (bicep--register-langserver))
 
+;;;###autoload
 (defun bicep--register-langserver ()
   (defvar eglot-server-programs)
   (and (file-exists-p (bicep-langserver-path))

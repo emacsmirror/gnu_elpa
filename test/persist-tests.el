@@ -114,6 +114,12 @@
   (persist-defvar test-persist-variable-default 'INIT "Docstring.")
   (should (equal 'INIT (persist-default 'test-persist-variable-default))))
 
+(ert-deftest test-persist-default-nil-initvalue ()
+  (persist-defvar test-persist-variable-default nil "Docstring.")
+  (setq test-persist-variable-default 'CHANGED)
+  (persist-defvar test-persist-variable-default nil "Docstring.")
+  (should (null (persist-default 'test-persist-variable-default))))
+
 (ert-deftest test-persist-location ()
   (unwind-protect
       (let ((sym (cl-gensym)))

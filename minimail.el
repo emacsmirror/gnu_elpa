@@ -236,7 +236,8 @@ Give up after MAX-TRIES, if that is non-negative."
   :prefix "minimail-"
   :group 'mail)
 
-(defcustom minimail-accounts nil
+(defcustom minimail-accounts
+  '((yhetil :incoming-url "imaps://:@yhetil.org/yhetil.emacs"))
   "Account configuration for the Minimail client.
 This is an alist where keys are names used to refer to each account and
 values are a plist with the following information:

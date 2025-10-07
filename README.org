@@ -2,9 +2,8 @@
 
 Minimail is a simple, non-blocking IMAP email client for Emacs.
 
-Currently Minimail provides the bare minimum necessary to read and
-reply to messages.  Here is a listing of implemented and planned
-features.
+Minimail currently covers the basics needed for reading and replying
+to messages.  Below is a listing of implemented and planned features.
 
 - [X] Read messages, including MIME (rendering via Gnus)
 - [X] Compose, reply to and forward messages
@@ -17,17 +16,24 @@ features.
   - [ ] Fancy algorithm based on reference message IDs.
 - [X] Move messages (also archive, move to trash, flag as junk)
 - [ ] Mark and operate on sets of messages (move, etc.)
+- [ ] "Load more messages" button
 - [ ] Notifications (polling or IDLE)
 - [ ] OAuth
 
 Being non-blocking doesn't mean Minimail has excellent performance
 (spoiler: it doesn't, yet); it simply means that it has one of the
 necessary condition for such.  In fact, Minimail currently doesn't
-include any other kind of optimization:
+include any of these possible optimizations:
 
-- [ ] Message caching
+- [ ] Caching
 - [ ] Connection pool (for concurrent requests)
 - [ ] Prefetching of messages in the background
+
+** Try it out
+
+Minimail comes pre-configured to access the Emacs mailing lists served
+by [[https://yhetil.org/][Yhetil]] via anonymous IMAP.  Just type =minimail-find-mailbox= to
+try it out.
 
 ** Configuration
 
@@ -45,13 +51,13 @@ Just set =mail-user-agent= to =minimail= and customize the variable
          :mail-address "webmaster@evilcorp.com"
          :incoming-url "imaps://imap.gmail.com"
          :outgoing-url "smtps://smtp.gmail.com"
-         :signature-file "~/.signature")
+         :signature (file "~/work/.signature"))
         (uni
          :mail-address "somebody@math.niceuni.edu"
          ;; Include a username in the server URLs if it doesn't match
          ;; your email address.
-         ;; Use the `imap' and `smtp' as URL scheme if your server
-         ;; only supports STARTTLS.
+         ;; Use `imap' and `smtp' as URL scheme if your server only
+         ;; supports STARTTLS.
          :incoming-url "imap://username@imap.niceuni.edu"
          :outgoing-url "smtp://username@smtp.niceuni.edu")))
 #+end_src

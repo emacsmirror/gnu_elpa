@@ -6,6 +6,10 @@
 
 *** Added
 
+- Added support for =vc-region-history=.  Note that this requires the
+  repository to be co-located since we call =vc-git-region-history=, but
+  repositories are co-located by default since jujutsu 0.34.
+
 *** Changed
 
 *** Removed

@@ -309,6 +309,10 @@ As a special case, an entry of the form (thead . DIRECTION) enables
 sorting by thread."
   :type '(repeat alist))
 
+(defcustom minimail-fetch-limit 100
+  "Maximum number of messages to fetch at a time when displaying a mailbox."
+  :type 'natnum)
+
 (defface minimail-unread '((t :inherit bold))
   "Face for unread messages.")
 
@@ -419,7 +423,8 @@ Return the first matching value."
           (found val)
           (t (symbol-value
               (alist-get keyword
-                         '((:full-name . user-full-name)
+                         '((:fetch-limit . minimail-fetch-limit)
+                           (:full-name . user-full-name)
                            (:mail-address . user-mail-address)
                            (:signature . message-signature))))))))
 
@@ -1376,17 +1381,18 @@ Cf. RFC 5256, §2.1."
 (defun -mailbox-refresh (&rest _)
   (unless (derived-mode-p #'minimail-mailbox-mode)
     (user-error "This should be called only from a mailbox buffer."))
-  (let ((buffer (current-buffer))
-        (account -current-account)
-        (mailbox -current-mailbox)
-        (search (alist-get 'search -local-state)))
+  (let* ((buffer (current-buffer))
+         (account -current-account)
+         (mailbox -current-mailbox)
+         (limit (-settings-scalar-get :fetch-limit account mailbox))
+         (search (alist-get 'search -local-state)))
     (setq -mode-line-suffix ":Loading")
     (athunk-run
      (athunk-let*
          ((messages <- (athunk-condition-case err
                            (if search
                                (-afetch-search account mailbox search)
-                             (-afetch-mailbox account mailbox 100))
+                             (-afetch-mailbox account mailbox limit))
                          (t (with-current-buffer buffer
                               (setq -mode-line-suffix ":Error"))
                             (signal (car err) (cdr err))))))

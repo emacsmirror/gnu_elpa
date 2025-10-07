@@ -893,26 +893,28 @@ being used."
       (-parse-select))))
 
 (defun -afetch-id (account mailbox uid)
-  "Fetch a message ID given its UID, MAILBOX and ACCOUNT."
+  "Fetch the current ID of a message given its UID, MAILBOX and ACCOUNT."
   (athunk-let*
       ((buffer <- (-amake-request account mailbox
-                                  (format "%sFETCH %s (UID)"
-                                          (if uid "UID " "")
-                                          (or uid "*")))))
-    ;;FIXME: uid=nil was supposed to retrieve the highest id, but
-    ;;servers seem to implement some kind of caching that make it not
-    ;;work.
+                                  (format "UID FETCH %s (UID)" uid))))
+    ;; NOTE: The command "FETCH * (UID)" is supposed to retrieve the
+    ;; highest id, but servers seem to implement some kind of caching
+    ;; that makes it not work.
     (with-current-buffer buffer
       (alist-get 'id (car (-parse-fetch))))))
 
-(defun -afetch-mailbox (account mailbox num &optional end)
+(defun -afetch-mailbox (account mailbox limit &optional after)
+  "Fetch a mailbox message listing with up to LIMIT elements.
+If AFTER nil, retrieve the newest messages.  Otherwise, retrieve
+messages following (but not including) the given UID."
   (athunk-let*
-      ((status <- (-aget-mailbox-status account mailbox))
-       (endid (alist-get 'exists status))
-       (last (if end (1- endid) endid)) ;FIXME?
-       (first (max 1 (- last num -1)))
+      ((end <- (if after
+                    (-afetch-id account mailbox after)
+                  (athunk-let ((status <- (-aget-mailbox-status account mailbox)))
+                    (1+ (alist-get 'exists status)))))
+       (start (max 1 (- end limit)))
        (cmd (format "FETCH %s:%s (UID FLAGS RFC822.SIZE ENVELOPE)"
-                    first last))
+                    start (1- end)))
        (buffer <- (-amake-request account mailbox cmd)))
     (with-current-buffer buffer
       (-parse-fetch))))

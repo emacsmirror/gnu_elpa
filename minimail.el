@@ -179,7 +179,7 @@ See `condition-case' for the exact meaning of VAR and HANDLERS."
                 (lambda (,esym ,vsym)
                   (condition-case ,hsym
                       (condition-case ,var
-                          (when ,esym (signal ,esym ,vsym))
+                          (if ,esym (signal ,esym ,vsym) ,vsym)
                         ,@handlers)
                     (:success (funcall ,csym nil ,hsym))
                     (t (funcall ,csym (car ,hsym) (cdr ,hsym)))))))))
@@ -1208,6 +1208,22 @@ Return a cons cell consisting of the account symbol and mailbox name."
                              (-find-mailbox-by-attribute '\\Junk mailboxes)
                              (user-error "Junk mailbox not found"))))
                (-amove-messages-and-redisplay acct mbx dest uids))))))))
+
+(defun minimail-execute-server-command (account mailbox command)
+  "Execute an IMAP command for debugging purposes."
+  (interactive (pcase-let* ((`(,account . ,mailbox)
+                             (-read-mailbox-maybe "IMAP command in: ")))
+                 (list account mailbox
+                       (read-from-minibuffer
+                        (format-prompt "IMAP command in %s" nil
+                                       (-mailbox-display-name account mailbox))))))
+  (athunk-run
+   (athunk-let*
+       ((result <- (athunk-condition-case v
+                       (-amake-request account mailbox command)
+                     (:success `(ok ,(with-current-buffer v (buffer-string))))
+                     (-imap-error (cdr v)))))
+     (message "IMAP command: %s\n%s" (car result) (cadr result)))))
 
 ;;; Mailbox buffer
 

@@ -34,6 +34,7 @@
 (require 'vc)
 (require 'vc-git)
 (require 'log-view)
+(require 'log-edit)
 (require 'ansi-color)
 (require 'iso8601)
 (require 'time-date)
@@ -444,12 +445,9 @@ parents.map(|c| concat(
 
 (defun vc-jj-checkin (files comment &optional _rev)
   "Run \"jj commit\" with supplied FILES and COMMENT."
-  ;; FIXME 2025-06-24: Find a more robust solution than
-  ;; `replace-regexp-in-string' on the "Summary" header if possible.
-  ;; Also ideally future-proof by considering the presence of other
-  ;; headers, e.g., `log-edit-headers-alist'.
-  (setq comment (replace-regexp-in-string "\\`Summary: " "" comment))
-  (let ((args (append (vc-switches 'jj 'checkin) (list "commit" "-m" comment))))
+  (let* ((comment (car (log-edit-extract-headers () comment)))
+         (args (append (vc-switches 'jj 'checkin)
+                       (list "commit" "-m" comment))))
     (apply #'vc-jj--command-dispatched nil 0 files args)))
 
 (defun vc-jj-find-revision (file rev buffer)
@@ -627,15 +625,10 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
   (vc-jj--command-parseable "log" "--no-graph" "-n" "1"
                             "-r" rev "-T" "description"))
 
-(declare-function log-edit-mode "log-edit" ())
-(declare-function log-edit-toggle-header "log-edit" (header value))
-(declare-function log-edit-extract-headers "log-edit" (headers string))
-(declare-function log-edit--toggle-amend "log-edit" (last-msg-fn))
-
 ;; TODO: protect immutable changes
 (defun vc-jj-modify-change-comment (_files rev comment)
-  (let ((args (log-edit-extract-headers () comment)))
-    (vc-jj--command-dispatched nil 0 nil "desc" rev "-m" (pop args) "--quiet")))
+  (let ((comment (car (log-edit-extract-headers () comment))))
+    (vc-jj--command-dispatched nil 0 nil "desc" rev "-m" comment "--quiet")))
 
 (defun vc-jj--reload-log-buffers ()
   (and vc-parent-buffer

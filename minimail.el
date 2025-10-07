@@ -332,9 +332,6 @@ sorting by thread."
 (defvar -minibuffer-update-hook nil
   "Hook run when minibuffer completion candidates are updated.")
 
-(defvar -debug-buffer nil
-  "If non-nil, name of a buffer to display debug information.")
-
 (define-error '-imap-error "error in IMAP response")
 
 (defmacro -get-in (alist key &rest rest)
@@ -346,26 +343,47 @@ sorting by thread."
   (cl-assert (stringp string))
   (get-text-property 0 'minimail string))
 
-(defvar -log-buffer nil
-  "Name of the log buffer, or nil to disable logging.")
+(defvar -logging-options nil
+  "Whether to log server responses and other debug information.")
 
-(defun -log-message-1 (&rest args)
+(defun -log-message-1 (args)
   "Helper function for `minimail--log-message'.
 ARGS is the entire argument list of `minimail--log-message'."
-  (with-current-buffer (get-buffer-create -log-buffer)
-    (setq-local outline-regexp "")
-    (goto-char (point-max))
-    (when-let* ((w (get-buffer-window)))
-      (set-window-point w (point)))
-    (insert #(""  0 1 (invisible t))
-            (propertize (format-time-string "[%T] ") 'face 'error)
-            (apply #'format args)
-            ?\n)))
+  (let* ((props (ensure-list -logging-options))
+         (truncate (plist-get :truncate-literals props))
+         (maxsize (plist-get :max-size props))
+         (bufname (or (plist-get :buffer-name props) "*minimail-log*"))
+         (buffer (or (get-buffer bufname)
+                     (with-current-buffer (get-buffer-create bufname)
+                       (view-mode)
+                       (setq-local outline-regexp "")
+                       (setq buffer-undo-list t)
+                       (current-buffer)))))
+    (with-current-buffer buffer
+      (save-excursion
+        (goto-char (point-max))
+        (let ((inhibit-read-only t)
+              (start (point)))
+          (insert (format-time-string "[%T] "))
+          (put-text-property start (1+ start) 'invisible t)
+          (put-text-property start (point) 'face 'warning)
+          (insert (apply #'format args))
+          (unless (eq (char-before) ?\n) (insert ?\n))
+          (when truncate
+            (goto-char start)
+            (while (re-search-forward "{\\([0-9]+\\)}\r\n" nil t)
+              (let ((limit (+ (point) (string-to-number (match-string 1)))))
+                (when (re-search-forward "\r\n\r\n" limit t)
+                  (delete-region (match-beginning 0) limit)
+                  (insert (format "\n[%s bytes truncated]\n" (- limit (point))))))))
+          (when maxsize
+            (goto-char (- (point-max) maxsize))
+            (delete-region (point-min) (pos-bol))))))))
 
 (defmacro -log-message (string &rest args)
   "Write a message to buffer pointed by `minimail--log-buffer', if non-nil.
 The message is formed by calling `format' with STRING and ARGS."
-  `(when -log-buffer (-log-message-1 ,string ,@args)))
+  `(when -logging-options (-log-message-1 (list ,string ,@args))))
 
 (defvar minimail-mailbox-history nil
   "History variable for mailbox selection.")

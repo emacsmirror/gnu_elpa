@@ -934,5 +934,13 @@ the command to run, e.g., the semi-standard \"jj git push -c @-\"."
                                     (save-buffer)
                                     (kill-buffer)))))
 
+;; Support for vc-region-history via the git version which works fine
+;; at least when co-located with git.
+(defun vc-jj-region-history (file buffer lfrom lto)
+  (vc-git-region-history file buffer lfrom lto))
+
+(define-derived-mode vc-jj-region-history-mode vc-git-region-history-mode
+  "JJ/Git-Region-History")
+
 (provide 'vc-jj)
 ;;; vc-jj.el ends here

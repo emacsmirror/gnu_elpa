@@ -1,4 +1,10 @@
-/channels.scm
-/COPYING
-/guix.scm
-/manifest.scm
+.dir-locals.el
+.elpaignore
+.gitignore
+channels.scm
+doc/disproject.texi
+guix.scm
+images
+Makefile
+manifest.scm
+README.org

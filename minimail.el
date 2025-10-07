@@ -617,8 +617,12 @@ it is nil."
 ;; References:
 ;; - Formal syntax: https://datatracker.ietf.org/doc/html/rfc3501#section-9
 
-(defalias '-imap-quote #'json-serialize ;good enough approximation
-  "Make a quoted string as per IMAP spec.")
+(defun -imap-quote (s)
+  "Make a UTF-7 encoded quoted string as per IMAP spec."
+  (when (string-match-p (rx (not ascii)) s)
+    (setq s (encode-coding-string s 'utf-7-imap)))
+  (setq s (replace-regexp-in-string (rx (group (or ?\\ ?\"))) "\\\\\\1" s))
+  (concat "\"" s "\""))
 
 (defconst -imap-months
   ["Jan" "Feb" "Mar" "Apr" "May" "Jun" "Jul" "Aug" "Sep" "Oct" "Nov" "Dec"])
@@ -709,10 +713,10 @@ it is nil."
        (flags (list (* (opt sp) flag)))
        (item untagged "LIST (" flags ") "
              (or astring anil)
-             sp astring
+             sp astring7
              `(f d n -- `(,n (delimiter . ,d) (attributes . ,f))))
        (status untagged "STATUS "
-               (list astring " ("
+               (list astring7 " ("
                      (* (opt sp)
                         (or (and "MESSAGES " number `(n -- `(messages . ,n)))
                             (and "RECENT " number `(n -- `(recent . ,n)))

@@ -1,10 +1,11 @@
 ;;; disproject.el --- Dispatch project commands with Transient  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024-2025 aurtzy
+;; Copyright (C) 2024-2025 Alvin Hsu
 ;; Copyright (C) 2008-2023 The Magit Project Contributors
 ;; Copyright (C) 1985-1987, 1992-2025 Free Software Foundation, Inc.
 
-;; Author: aurtzy <aurtzy@gmail.com>
+;; Author: Alvin Hsu <aurtzy@gmail.com>
+;; Maintainer: Alvin Hsu <aurtzy@gmail.com>
 ;; URL: https://github.com/aurtzy/disproject
 ;; Keywords: convenience, files, vc
 

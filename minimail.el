@@ -659,6 +659,9 @@ it is nil."
              string
              `(s -- (mail-decode-encoded-word-string s)))
   (astring   () (or atom string))
+  (astring7  ()
+             astring
+             `(s -- (if (string-search "&" s) (decode-coding-string s 'utf-7-imap) s)))
   (nstring   () (or anil string))
   (nqpstring () (or anil qpstring))
   (timezone  ()
@@ -798,13 +801,16 @@ it is nil."
        (content "BODY[] " literal `(start end -- `(content ,start . ,end)))
        (flags "FLAGS (" (list (* (opt sp) flag)) ")"
               `(v -- `(flags . ,v)))
+       (x-gm-labels "X-GM-LABELS (" (list (* (opt sp) astring7)) ")"
+                    `(v -- `(x-gm-labels . ,v)))
        (internal-date "INTERNALDATE " imapdate
                      `(v -- `(internal-date . ,v)))
        (size "RFC822.SIZE " number `(n -- `(rfc822-size . ,n)))
        (uid "UID " number `(n -- `(uid . ,n)))
        (item untagged number `(n -- `(id . ,n))
              " FETCH ("
-             (* (opt sp) (or uid flags size envelope body content internal-date))
+             (* (opt sp) (or uid flags size envelope body content
+                             internal-date x-gm-labels))
              ")" crlf))
     (car-safe
      (peg-run (peg (list (* (list item))))))))
@@ -908,16 +914,21 @@ being used."
 If AFTER nil, retrieve the newest messages.  Otherwise, retrieve
 messages following (but not including) the given UID."
   (athunk-let*
-      ((end <- (if after
+      ((caps <- (-aget-capability account))
+       (end <- (if after
                     (-afetch-id account mailbox after)
                   (athunk-let ((status <- (-aget-mailbox-status account mailbox)))
                     (1+ (alist-get 'exists status)))))
        (start (max 1 (- end limit)))
-       (cmd (format "FETCH %s:%s (UID FLAGS RFC822.SIZE ENVELOPE)"
-                    start (1- end)))
-       (buffer <- (-amake-request account mailbox cmd)))
-    (with-current-buffer buffer
-      (-parse-fetch))))
+       (cmd (format "FETCH %s:%s (UID FLAGS RFC822.SIZE ENVELOPE%s)"
+                    start (1- end)
+                    (if (memq 'x-gm-ext-1 caps) " X-GM-LABELS" "")))
+       (buffer <- (-amake-request account mailbox cmd))
+       (messages (with-current-buffer buffer (-parse-fetch))))
+    (when (memq 'x-gm-ext-1 caps)  ;treat GM labels as good old flags
+      (dolist (msg messages)
+        (cl-callf nconc (alist-get 'flags msg) (alist-get 'x-gm-labels msg))))
+    messages))
 
 (defun -afetch-message (account mailbox uid)
   (athunk-let*
@@ -1271,7 +1282,7 @@ Cf. RFC 5256, §2.1."
   '((((not \\Seen) . #("\1" 0 1 (invisible t))) ;invisible column to sort unread first
      (t            . #("\2" 0 1 (invisible t))))
     ((\\Flagged  . "★")
-     ($Important . #("★" 0 1 (face shadow))))
+     ((or $Important \\Important) . #("★" 0 1 (face shadow))))
     ((\\Answered . "↩")
      ($Forwarded . "→")
      ($Junk      . #("⚠" 0 1 (face shadow)))

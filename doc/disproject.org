@@ -600,10 +600,10 @@ Changes generally fall into one of the following categories:
 
   Changes inside menus are handled on a case-by-case basis, depending on the
   scope of the change, difficulty of deprecation, and potential disruption to
-  the user.  A key-bind or location change may a short or no deprecation period,
-  whereas removal of some suffix command from a menu may warrant a more
-  extensive deprecation period, perhaps by keeping it accessible, but hiding it
-  and adding a warning message.
+  the user.  A key-bind or location change may have a short deprecation period
+  or none at all, whereas removal of some suffix command from a menu may warrant
+  a more extensive deprecation period, perhaps by keeping it accessible, but
+  hiding it and adding a warning message.
 
 
 When a deprecation is applied to some facility, users can expect it to exist

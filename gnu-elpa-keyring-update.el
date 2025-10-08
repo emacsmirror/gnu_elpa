@@ -1,11 +1,11 @@
 ;;; gnu-elpa-keyring-update.el --- Update Emacs's GPG keyring for GNU ELPA  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2019-2024  Free Software Foundation, Inc.
+;; Copyright (C) 2019-2025  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
 ;; Keywords: maint, tools
 ;; Package-Type: multi
-;; Version: 2022.12.1
+;; Version: 2025.10.1
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

@@ -461,8 +461,8 @@ Denote Journal is meant to be a collective effort.  Every bit of help matters.
 + Author/maintainer :: Protesilaos Stavrou.
 
 + Contributions to code or the manual :: Abdelhak Bougouffa, Alan
-  Schmitt, Ettore Berardi, Honza Pokorny, Stefan Monnier, Vineet C.
-  Kulkarni, gk2803, jbwfu.
+  Schmitt, Ettore Berardi, Honza Pokorny, Josh Kingsley, Stefan
+  Monnier, Vineet C. Kulkarni, gk2803, jbwfu.
 
 + Ideas and/or user feedback :: Alan Schmitt, Kevin McCarthy, Halogen3576.
 

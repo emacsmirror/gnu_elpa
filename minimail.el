@@ -1079,7 +1079,8 @@ Return a cons cell consisting of the account symbol and mailbox name."
             (athunk-run
              (athunk-let*
                  ((mkcand (pcase-lambda (`(,mbx . ,props))
-                            (unless (memq '\\Noselect (alist-get 'attributes props))
+                            (unless (-key-match-p '(or \\Noselect \\NonExistent)
+                                                  (alist-get 'attributes props))
                               (propertize (-mailbox-display-name acct mbx)
                                           'minimail `(,props ,acct . ,mbx)))))
                   (mailboxes <- (athunk-condition-case err

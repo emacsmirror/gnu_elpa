@@ -398,9 +398,7 @@ KEY is a string or list of strings."
   (pcase-exhaustive condition
     ('t t)
     ((or (pred symbolp) (pred stringp))
-     (if (listp key)
-         (seq-some (lambda (s) (string= condition s)) key)
-       (string= condition key)))
+     (if (listp key) (assoc-string condition key) (string= condition key)))
     (`(regexp ,re)
      (if (listp key)
          (seq-some (lambda (s) (string-match-p re s)) key)
@@ -1322,10 +1320,8 @@ Cf. RFC 5256, §2.1."
                                       timestamp
                                       (decoded-time-zone date))))))
 
-(defvar minimail-flag-icons
-  '((((not \\Seen) . #("\1" 0 1 (invisible t))) ;invisible column to sort unread first
-     (t            . #("\2" 0 1 (invisible t))))
-    ((\\Flagged  . "★")
+(defvar minimail-flag-icons             ;TODO: Use define-icon
+  '(((\\Flagged  . "★")
      ((or $Important \\Important) . #("★" 0 1 (face shadow))))
     ((\\Answered . "↩")
      ($Forwarded . "→")
@@ -1360,16 +1356,22 @@ Cf. RFC 5256, §2.1."
      :getter ,(lambda (msg _) (alist-get 'id msg)))
     (flags
      :name ""
+     :width ,(1- (* 2 (length minimail-flag-icons)))
      :getter ,(lambda (msg _)
                 (let-alist msg
                   (propertize
-                   (mapconcat (lambda (column)
-                                (-alist-query .flags column " "))
-                              minimail-flag-icons)
-                   'help-echo (lambda (&rest _)
-                                (if .flags
-                                    (string-join (cons "Message flags:" .flags) " ")
-                                  "No message flags"))))))
+                   (if (assoc-string '\\Seen .flags) "1" "0") ;use columm to sort unread first
+                   'minimail
+                   (propertize
+                    (mapconcat (lambda (column)
+                                 (-alist-query .flags column " "))
+                               minimail-flag-icons
+                               " ")
+                    'help-echo (lambda (&rest _)
+                                 (if .flags
+                                     (string-join (cons "Message flags:" .flags) " ")
+                                   "No message flags"))))))
+     :formatter -get-data)
     (from
      :name "From"
      :max-width 30

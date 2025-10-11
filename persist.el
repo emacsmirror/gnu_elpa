@@ -6,7 +6,7 @@
 ;; Maintainer: Joseph Turner <persist-el@breatheoutbreathe.in>
 ;; Package-Type: multi
 ;; Package-Requires: ((emacs "26.1") (compat "30.0.2.0"))
-;; Version: 0.7
+;; Version: 0.8
 
 ;; The contents of this file are subject to the GPL License, Version 3.0.
 

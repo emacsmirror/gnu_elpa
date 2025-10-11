@@ -549,6 +549,7 @@
  (minibuffer-header	:url "https://github.com/rougier/minibuffer-header"
   :ignored-files ("LICENSE.txt"))
  (minibuffer-line	:url nil)
+ (minimail		:url "https://github.com/astoff/minimail/")
  (minimap		:url nil)
  (minuet		:url "https://github.com/milanglacier/minuet-ai.el"
   :ignored-files ("LICENSE")

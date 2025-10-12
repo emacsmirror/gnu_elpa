@@ -495,20 +495,26 @@ Interactively, read a page name with completion."
      :active (car devdocs--forward-stack)
      :help "Return from a previously displayed documentation entry"]))
 
+(defun devdocs--bookmark-handler (bm)
+  "Display DevDocs location of bookmark BM."
+  (declare-function bookmark-prop-get "bookmark")
+  (pop-to-buffer
+   (devdocs-goto-page
+    (bookmark-prop-get bm 'devdocs-doc)
+    (bookmark-prop-get bm 'devdocs-path))))
+
 (defun devdocs--make-bookmark ()
   "This implements the `bookmark-make-record-function' type for a devdocs page."
-  (let-alist (or (car devdocs--stack) (user-error "Not in a DevDocs buffer"))
-    (let* ((title (concat .doc.slug "/" .path)))
-      (cons (concat "devdocs/" title)
-            `((defaults . (,title))
-              (devdocs-doc . ,.doc)
-              (devdocs-path . ,.path)
-              (buf . "*devdocs*")
-              (handler . ,(lambda (bmk)
-                            (pop-to-buffer
-                             (devdocs-goto-page
-                              (bookmark-prop-get bmk 'devdocs-doc)
-                              (bookmark-prop-get bmk 'devdocs-path))))))))))
+  (let-alist (or (car devdocs--stack)
+                 (user-error "Not in a DevDocs buffer"))
+    `((defaults ,(concat .doc.slug "/" .path))
+      (devdocs-doc . ,.doc)
+      (devdocs-path . ,.path)
+      (filename . ,(format-mode-line devdocs-header-line
+                                     nil nil
+                                     (current-buffer)))
+      (buf . "*devdocs*")
+      (handler . devdocs--bookmark-handler))))
 
 ;;; HTML rendering
 

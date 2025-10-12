@@ -51,8 +51,10 @@
 
 Currently, the only requirement to use this (besides Emacs with SVG
 image support) is the Node JavaScript interpreter."
-  (not (null (let ((default-directory mathjax--installation-directory))
-               (executable-find "node")))))
+  (and (image-type-available-p 'svg)
+       (let ((default-directory mathjax--installation-directory))
+         (executable-find "node"))
+       t))
 
 (defun mathjax--get-state ()
   "Return a cons cell consisting of a MathJax process and a list of callbacks."

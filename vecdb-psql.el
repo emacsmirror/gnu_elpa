@@ -48,10 +48,10 @@ DBNAME is the database name, which must have been created by the user."
          (connection (gethash key vecdb-psql-connection-cache)))
     (unless connection
       (setq connection
-            (pg-connect
+            (pg-connect-plist
              (vecdb-psql-provider-dbname provider)
              (vecdb-psql-provider-username provider)
-             (vecdb-psql-provider-password provider)))
+             :password (vecdb-psql-provider-password provider)))
       (puthash key connection vecdb-psql-connection-cache))
     connection))
 

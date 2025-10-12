@@ -5,7 +5,7 @@
 ;; Author: Augusto Stoffel <arstoffel@gmail.com>
 ;; Keywords: help
 ;; URL: https://github.com/astoff/devdocs.el
-;; Package-Requires: ((emacs "27.1") (compat "29.1") (mathjax "0.1"))
+;; Package-Requires: ((emacs "27.1") (compat "30.1"))
 ;; Version: 0.6.1
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -34,7 +34,7 @@
 
 ;;; Code:
 
-(require 'mathjax)
+(require 'mathjax nil t)                ;optional dependency
 (require 'seq)
 (require 'shr)
 (require 'url-expand)
@@ -124,13 +124,14 @@ experimental and may change in the future.")
                         'devdocs--rendering-functions
                         "0.7")
 
-(defcustom devdocs-use-mathjax (mathjax-available-p)
+(defcustom devdocs-use-mathjax (and (fboundp 'mathjax-available-p)
+                                    (mathjax-available-p))
   "Whether to render mathematical formulas using MathJax.
 Set this to `block' to render only displayed formulas.  Any other
 non-nil value means to render displayed as well as inline formulas.
 
-This feature requires the Node program.  Make sure to run the command
-`devdocs-setup-mathjax' to install the necessary libraries."
+This feature requires the `mathjax' ELPA package as well as the Node
+program."
   :type '(choice (const :tag "Show math as plain text" nil)
                  (const :tag "Render only displayed formulas" block)
                  (const :tag "Render all formulas" t)))
@@ -603,6 +604,8 @@ fragment part of ENTRY.path."
     (when (pcase devdocs-use-mathjax
             ('block (string= (dom-attr dom 'display) 'block))
             (_ devdocs-use-mathjax))
+      (declare-function mathjax-display "ext:mathjax")
+      (declare-function mathjax-refill-hack "ext:mathjax")
       (mathjax-display start (point) dom
                        :after (unless (and (boundp 'shr-fill-text) ;Emacs≥30
                                            (not shr-fill-text))

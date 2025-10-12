@@ -176,43 +176,42 @@ The collection is created before BODY and deleted afterwards."
         (vecdb-delete current-provider collection)))))
 
 (vecdb-test--deftest-for-providers vecdb-test-create-exists-delete-collection
-  #'vecdb-test-create-exists-delete-collection-body
-  "Test `vecdb-create', `vecdb-exists', and `vecdb-delete'.")
+                                   #'vecdb-test-create-exists-delete-collection-body
+                                   "Test `vecdb-create', `vecdb-exists', and `vecdb-delete'.")
 
 (defun vecdb-test-upsert-get-delete-items-body (current-provider)
   "Core logic for testing upsert and get items."
   (let* ((collection-name "test-collection-ug")
          (vector-size 3)
          (items (list
-                 (make-vecdb-item :id 1 :vector [0 1 2] :payload '(:val 1))
-                 (make-vecdb-item :id 2 :vector [0 1 2] :payload '(:val 2))
-                 (make-vecdb-item :id 3 :vector [0 1 2] :payload '(:val 3)))))
-    (with-test-collection current-provider current-collection collection-name `(:vector-size ,vector-size :payload-fields ((val . integer)))
-                          (vecdb-upsert-items current-provider current-collection items t)
-                          (dolist (item items)
-                            (let ((retrieved-item (vecdb-get-item current-provider current-collection (vecdb-item-id item))))
-                              (should retrieved-item)
-                              (should (equal (vecdb-item-id item) (vecdb-item-id retrieved-item)))
-                              ;; We don't test to see if the vector is equal,
-                              ;; because it could be normalized.
-                              (should (equal (vecdb-item-payload item) (vecdb-item-payload retrieved-item)))))
+                 (make-vecdb-item :id 10000000000 :vector [0 1 2] :payload '(:my-val 1))
+                 (make-vecdb-item :id 20000000000 :vector [0 1 2] :payload '(:my-val 2))
+                 (make-vecdb-item :id 30000000000 :vector [0 1 2] :payload '(:my-val 3)))))
+    (with-test-collection current-provider current-collection collection-name `(:vector-size ,vector-size :payload-fields ((my-val . integer)))
+                          (vecdb-upsert-items current-provider current-collection items t)(dolist (item items)
+                                                                                            (let ((retrieved-item (vecdb-get-item current-provider current-collection (vecdb-item-id item))))
+                                                                                              (should retrieved-item)
+                                                                                              (should (equal (vecdb-item-id item) (vecdb-item-id retrieved-item)))
+                                                                                              ;; We don't test to see if the vector is equal,
+                                                                                              ;; because it could be normalized.
+                                                                                              (should (equal (vecdb-item-payload item) (vecdb-item-payload retrieved-item)))))
                           (vecdb-delete-items current-provider current-collection (mapcar #'vecdb-item-id items) t)
                           (dolist (item items)
                             (should-not (vecdb-get-item current-provider current-collection (vecdb-item-id item)))))))
 
 (vecdb-test--deftest-for-providers vecdb-test-upsert-get-delete-items
-  #'vecdb-test-upsert-get-delete-items-body
-  "Test `vecdb-upsert-items', `vecdb-get-item' and `vecdb-delete-items'.")
+                                   #'vecdb-test-upsert-get-delete-items-body
+                                   "Test `vecdb-upsert-items', `vecdb-get-item' and `vecdb-delete-items'.")
 
 (defun vecdb-test-search-by-vector-body (current-provider)
   "Core logic for testing search by vector."
   (let* ((collection-name "test-collection-sv")
          (vector-size 3)
-         (item1 (make-vecdb-item :id 1 :vector [0.1 0.2 0.3] :payload '(:val 1)))
-         (item2 (make-vecdb-item :id 2 :vector [0.4 0.5 0.6] :payload '(:val 2)))
-         (item3 (make-vecdb-item :id 3 :vector [0.7 0.8 0.9] :payload '(:val 3)))
+         (item1 (make-vecdb-item :id 10000000000 :vector [0.1 0.2 0.3] :payload '(:my-val 1)))
+         (item2 (make-vecdb-item :id 20000000000 :vector [0.4 0.5 0.6] :payload '(:my-val 2)))
+         (item3 (make-vecdb-item :id 30000000000 :vector [0.7 0.8 0.9] :payload '(:my-val 3)))
          (items (list item1 item2 item3)))
-    (with-test-collection current-provider current-collection collection-name `(:vector-size ,vector-size :payload-fields ((val . integer)))
+    (with-test-collection current-provider current-collection collection-name `(:vector-size ,vector-size :payload-fields ((my-val . integer)))
                           (vecdb-upsert-items current-provider current-collection items t)
                           ;; Search for a vector similar to item2
                           (let ((results (vecdb-search-by-vector current-provider current-collection [0.41 0.51 0.61] 3)))
@@ -228,9 +227,9 @@ The collection is created before BODY and deleted afterwards."
                                               items))))))
 
 (vecdb-test--deftest-for-providers
-  vecdb-test-search-by-vector
-  #'vecdb-test-search-by-vector-body
-  "Test `vecdb-search-by-vector'.")
+ vecdb-test-search-by-vector
+ #'vecdb-test-search-by-vector-body
+ "Test `vecdb-search-by-vector'.")
 
 (provide 'vecdb-integration-test)
 

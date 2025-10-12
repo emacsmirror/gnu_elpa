@@ -544,13 +544,9 @@ fragment part of ENTRY.path."
       (let* ((inhibit-read-only t)
              (shr-external-rendering-functions
               (append
-               (alist-get .doc.slug
-                          devdocs--rendering-functions
-                          nil nil #'string=)
-               (alist-get .doc.type
-                          devdocs--rendering-functions
-                          nil nil #'string=)
-               (alist-get t devdocs--rendering-functions)
+               (cdr (assoc .doc.slug devdocs--rendering-functions #'string=))
+               (cdr (assoc .doc.type devdocs--rendering-functions #'string=))
+               (cdr (assq t devdocs--rendering-functions))
                shr-external-rendering-functions))
              (file (expand-file-name (format "%s/%s.html"
                                              .doc.slug
@@ -728,6 +724,31 @@ If INITIAL-INPUT is not nil, insert it into the minibuffer."
                                    (provided-mode-derived-p
                                     (buffer-local-value 'major-mode buffer)
                                     'devdocs-mode))))
+
+;;; Formatting workarounds
+
+(defun devdocs--add-default-rendering-function (doc tag function)
+  "Add a rendering FUNCTION for TAG in DOC, if not already defined."
+  (unless (assq tag (alist-get doc devdocs--rendering-functions))
+    (push (cons tag function)
+          (alist-get doc devdocs--rendering-functions))))
+
+(devdocs--add-default-rendering-function
+ 'clojure 'span
+ (lambda (dom)
+   (if (equal "var-type" (alist-get 'id (nth 1 dom)))
+       (progn (shr-insert " [")
+              (shr-tag-span dom)
+              (shr-insert "]"))
+     (shr-tag-span dom))))
+
+(devdocs--add-default-rendering-function
+ 'sphinx 'span
+ (lambda (dom)
+   (when-let* ((class (alist-get 'class (nth 1 dom)))
+               (_ (string-match-p "\\bclassifier\\b" class)))
+     (shr-insert ": "))
+   (shr-tag-span dom)))
 
 ;;; Compatibility with the old devdocs package
 

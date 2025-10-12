@@ -197,13 +197,10 @@ On failure, return nil.  Upon success, return DIRECTORY."
 ;;;###autoload         (load "vc-jj" nil t)
 ;;;###autoload         (vc-jj-registered file))))
 (defun vc-jj-registered (file)
-  "Check whether FILE is registered with jj."
-  (and-let* ((vc-jj-program (executable-find vc-jj-program))
-             (default-directory (vc-jj-root file)))
-    (with-temp-buffer
-      (and (= 0 (call-process vc-jj-program nil (list t nil) nil
-                              "file" "list" "--" (vc-jj--filename-to-fileset file)))
-           (/= (point-min) (point-max))))))
+  "Check whether FILE is registered with jj.
+Return non-nil when FILE is file tracked by JJ and nil when not."
+  (when-let ((default-directory (vc-jj-root file)))
+    (vc-jj--process-lines "file" "list" "--" (vc-jj--filename-to-fileset file))))
 
 (defun vc-jj-state (file)
   "JJ implementation of `vc-state' for FILE.

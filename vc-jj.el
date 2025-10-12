@@ -175,13 +175,6 @@ stderr and1 `vc-do-command' cannot separate output to stdout and stderr."
            nil
            (append global-switches flags filesets))))
 
-;;;###autoload (defun vc-jj-registered (file)
-;;;###autoload   "Return non-nil if FILE is registered with jj."
-;;;###autoload   (if (and (vc-find-root file ".jj")   ; Short cut.
-;;;###autoload            (executable-find "jj"))
-;;;###autoload       (progn
-;;;###autoload         (load "vc-jj" nil t)
-;;;###autoload         (vc-jj-registered file))))
 (defun vc-jj-registered (file)
   "Check whether FILE is registered with jj."
   (and-let* ((vc-jj-program (executable-find vc-jj-program))

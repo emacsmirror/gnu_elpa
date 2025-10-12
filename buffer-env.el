@@ -171,27 +171,27 @@ Keys are file names, values are lists of form
   "Check if FILE is safe to execute, or ask for permission.
 Files marked as safe to execute are permanently stored in
 `buffer-env-safe-files' via the Custom mechanism."
-  (let ((hash (with-temp-buffer
-                (insert-file-contents-literally file)
-                (secure-hash 'sha256 (current-buffer)))))
-    (or (member (cons file hash) buffer-env-safe-files)
-        (pcase (car (read-multiple-choice
-                     (format-message "[buffer-env] Execute script `%s'?" file)
-                     '((?! "always")
-                       (?y "yes")
-                       (?n "no"))
-                     "\
+  (let ((help "\
 Please decide if you trust this script and would like to execute it.
 
 If you choose ‘yes’ or ‘no’, the decision holds in this Emacs
 session only and provided the file modification time is unchanged.
 
 If you choose `always', the decision persists for as long as the
-content of the file remains unchanged.  See ‘buffer-env-safe-files’
-for more details."))
-          (?! (customize-save-variable
-               'buffer-env-safe-files
-               (push (cons file hash) buffer-env-safe-files)))
+content of the file remains unchanged.  See `buffer-env-safe-files'
+for more details.")
+        (hash (with-temp-buffer
+                (insert-file-contents-literally file)
+                (secure-hash 'sha256 (current-buffer)))))
+    (or (member (cons file hash) buffer-env-safe-files)
+        (pcase (car (read-multiple-choice
+                     (format-message "[buffer-env] Execute script `%s'?" file)
+                     '((?! "always") (?y "yes") (?n "no"))
+                     help))
+          (?! (setf (alist-get file buffer-env-safe-files nil nil #'string=)
+                    hash)
+              (customize-save-variable 'buffer-env-safe-files
+                                       buffer-env-safe-files))
           (?y t)))))
 
 (defun buffer-env--locate-script ()

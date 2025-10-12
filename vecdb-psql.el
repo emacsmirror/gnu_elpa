@@ -36,7 +36,9 @@
 DBNAME is the database name, which must have been created by the user."
   dbname
   username
-  (password ""))
+  (password "")
+  (host "localhost")
+  (port 5432))
 
 (defconst vecdb-psql-connection-cache
   (make-hash-table :test 'equal)
@@ -51,7 +53,9 @@ DBNAME is the database name, which must have been created by the user."
             (pg-connect-plist
              (vecdb-psql-provider-dbname provider)
              (vecdb-psql-provider-username provider)
-             :password (vecdb-psql-provider-password provider)))
+             :password (vecdb-psql-provider-password provider)
+             :host (vecdb-psql-provider-host provider)
+             :port (vecdb-psql-provider-port provider)))
       (puthash key connection vecdb-psql-connection-cache))
     connection))
 

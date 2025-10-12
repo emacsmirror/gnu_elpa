@@ -63,26 +63,27 @@ DBNAME is the database name, which must have been created by the user."
   "Convert COLLECTION-TYPE to a PostgreSQL type string."
   (pcase collection-type
     ('string "TEXT")
-    ('integer "INTEGER")
+    ('integer "INT8")
     ('float "FLOAT")
     (_ (error "Unsupported field type: %s" collection-type))))
 
 (defun vecdb-psql-oid (collection-type)
   "Convert COLLECTION-TYPE to a psql OID."
   (pcase collection-type
-    ('string "text")
-    ('integer "int8")
-    ('float "float8")
+    ('string "TEXT")
+    ('integer "INT8")
+    ('float "FLOAT8")
     (_ (error "Unsupported field type: %s" collection-type))))
 
 (cl-defmethod vecdb-create ((provider vecdb-psql-provider)
                             (collection vecdb-collection))
   "Create COLLECTION in database PROVIDER."
+  (pg-vector-setup (vecdb-psql-get-connection provider))
   (pg-exec (vecdb-psql-get-connection provider)
            (format "CREATE EXTENSION IF NOT EXISTS vector;"))
   (pg-exec (vecdb-psql-get-connection provider)
            (format "CREATE TABLE IF NOT EXISTS %s (
-                     id INTEGER PRIMARY KEY,
+                     id INT8 PRIMARY KEY,
                      vector VECTOR(%d) NOT NULL%s
                      %s
                    );"
@@ -91,7 +92,7 @@ DBNAME is the database name, which must have been created by the user."
                    (if (vecdb-collection-payload-fields collection) "," "")
                    (mapconcat
                     (lambda (field)
-                      (format "%s %s NULL"
+                      (format "\"%s\" %s NULL"
                               (car field)
                               (vecdb-psql-type (cdr field))))
                     (vecdb-collection-payload-fields collection)
@@ -102,7 +103,7 @@ DBNAME is the database name, which must have been created by the user."
                    (vecdb-psql-table-name (vecdb-collection-name collection))))
   (mapc (lambda (field)
           (pg-exec (vecdb-psql-get-connection provider)
-                   (format "CREATE INDEX IF NOT EXISTS %s_%s_idx ON %s (%s)"
+                   (format "CREATE INDEX IF NOT EXISTS \"%s_%s_idx\" ON %s (\"%s\")"
                            (vecdb-psql-table-name (vecdb-collection-name collection))
                            (car field)
                            (vecdb-psql-table-name (vecdb-collection-name collection))
@@ -139,6 +140,7 @@ DBNAME is the database name, which must have been created by the user."
                                   data-list &optional _)
   "Upsert items into the COLLECTION in the database PROVIDER.
 All items in DATA-LIST must have the same payloads."
+  (pg-vector-setup (vecdb-psql-get-connection provider))
   (let ((arg-count 0))
     (funcall #'pg-exec-prepared
              (vecdb-psql-get-connection provider)
@@ -147,8 +149,9 @@ All items in DATA-LIST must have the same payloads."
                      (vecdb-psql-table-name (vecdb-collection-name collection))
                      (if (vecdb-collection-payload-fields collection) ", " "")
                      ;; We assume every vecdb-item has the same payload structure
-                     (mapconcat #'identity (vecdb-psql--plist-keys
-                                            (vecdb-item-payload (car data-list)))
+                     (mapconcat (lambda (field) (format "\"%s\"" field))
+                                (vecdb-psql--plist-keys
+                                 (vecdb-item-payload (car data-list)))
                                 ", ")
                      (mapconcat (lambda (item)
                                   (format "(%s)"
@@ -161,7 +164,7 @@ All items in DATA-LIST must have the same payloads."
                      (if (vecdb-collection-payload-fields collection) ", " "")
                      (mapconcat
                       (lambda (field)
-                        (format "%s = EXCLUDED.%s" (car field) (car field)))
+                        (format "\"%s\" = EXCLUDED.\"%s\"" (car field) (car field)))
                       (vecdb-collection-payload-fields collection)
                       ", "))
              (mapcan (lambda (item)
@@ -203,7 +206,7 @@ PROVIDER specifies the database that the collection is in."
                                     (if (vecdb-collection-payload-fields collection) ", " "")
                                     (mapconcat
                                      (lambda (field)
-                                       (format "%s" (car field)))
+                                       (format "\"%s\"" (car field)))
                                      (vecdb-collection-payload-fields collection)
                                      ", ")
                                     (vecdb-psql-table-name (vecdb-collection-name collection)))
@@ -243,7 +246,7 @@ PROVIDER is the database that the collection is in."
                                        (if (vecdb-collection-payload-fields collection) ", " "")
                                        (mapconcat
                                         (lambda (field)
-                                          (format "%s" (car field)))
+                                          (format "\"%s\"" (car field)))
                                         (vecdb-collection-payload-fields collection)
                                         ", ")
                                        (vecdb-psql-table-name (vecdb-collection-name collection))

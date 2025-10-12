@@ -343,6 +343,7 @@ already installed, reinstall it."
    buffer-undo-list t
    header-line-format devdocs-header-line
    revert-buffer-function #'devdocs--revert-buffer
+   bookmark-make-record-function #'devdocs--make-bookmark
    truncate-lines t))
 
 (defun devdocs--revert-buffer (&rest _args)
@@ -493,6 +494,21 @@ Interactively, read a page name with completion."
     ["Forward in History" devdocs-go-forward
      :active (car devdocs--forward-stack)
      :help "Return from a previously displayed documentation entry"]))
+
+(defun devdocs--make-bookmark ()
+  "This implements the `bookmark-make-record-function' type for a devdocs page."
+  (let-alist (or (car devdocs--stack) (user-error "Not in a DevDocs buffer"))
+    (let* ((title (concat .doc.slug "/" .path)))
+      (cons (concat "devdocs/" title)
+            `((defaults . (,title))
+              (devdocs-doc . ,.doc)
+              (devdocs-path . ,.path)
+              (buf . "*devdocs*")
+              (handler . ,(lambda (bmk)
+                            (pop-to-buffer
+                             (devdocs-goto-page
+                              (bookmark-prop-get bmk 'devdocs-doc)
+                              (bookmark-prop-get bmk 'devdocs-path))))))))))
 
 ;;; HTML rendering
 

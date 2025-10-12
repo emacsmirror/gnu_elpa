@@ -114,10 +114,14 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 		 (repeat :tag "Argument List" :value ("") string)))
 
 (defun vc-jj--filename-to-fileset (filename)
-  "Convert FILENAME to a jj fileset expression.
-The fileset expression returned is relative to the jj repository root."
-  (when-let* ((path (file-relative-name filename (vc-jj-root filename))))
-    (concat "root:\"" (string-replace "\"" "\\\"" path) "\"")))
+  "Convert FILENAME to a JJ fileset expression.
+The fileset expression returned is relative to the JJ repository root.
+
+When FILENAME is not inside a JJ repository, throw an error."
+  (if-let ((root (vc-jj-root filename))
+           (default-directory root))
+      (format "root:%S" (file-relative-name filename root))
+    (error "File is not inside a JJ repository: %s" filename)))
 
 (defun vc-jj--process-lines (&rest args)
   "Run jj with ARGS, returning its output to stdout as a list of strings.

@@ -495,6 +495,7 @@ Interactively, read a page name with completion."
      :active (car devdocs--forward-stack)
      :help "Return from a previously displayed documentation entry"]))
 
+;;;###autoload
 (defun devdocs--bookmark-handler (bm)
   "Display DevDocs location of bookmark BM."
   (declare-function bookmark-prop-get "bookmark")

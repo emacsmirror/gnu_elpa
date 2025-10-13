@@ -2228,7 +2228,8 @@ defining commands that can modify the override state."
     :display-buffer-action (display-buffer-use-some-window
                             (inhibit-same-window . t)))
    ("s" "same window" disproject-display-buffer-action-set
-    :display-buffer-action (display-buffer-same-window))]
+    :display-buffer-action (display-buffer-same-window
+                            (inhibit-same-window . nil)))]
   [("," "Clear override" disproject-display-buffer-action-set)])
 
 (transient-augment-suffix disproject-display-buffer-action-dispatch

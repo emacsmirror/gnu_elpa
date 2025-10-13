@@ -1,0 +1,4 @@
+.elpaignore
+.gitignore
+Makefile
+minimail-tests.el

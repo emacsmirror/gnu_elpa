@@ -1,6 +1,6 @@
 ;;; minimail-tests.el --- tests for minimail.el      -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025  Augusto Stoffel
+;; Copyright (C) 2025  Free Software Foundation, Inc.
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

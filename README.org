@@ -162,11 +162,12 @@ line to update the block.
 
 - The =:sort-by-component= parameter is optional. It sorts the files
   by the given Denote file name component. The value it accepts is an
-  unquoted symbol among =title=, =keywords=, =signature=, =identifier=,
-  =random=. When using the command ~denote-org-dblock-insert-files~,
-  this parameter is automatically inserted together with the
-  (=:regexp= parameter) and the user is prompted for a file name
-  component. [ The =random= sort is part of {{{development-version}}}. ]
+  unquoted symbol among =title=, =keywords=, =signature=,
+  =identifier=, =random=, =last-modified=. When using the command
+  ~denote-org-dblock-insert-files~, this parameter is automatically
+  inserted together with the (=:regexp= parameter) and the user is
+  prompted for a file name component. [ The =random= and
+  =last-modified= sort are part of {{{development-version}}}. ]
 
 - The =:reverse-sort= parameter is optional. It reverses the order in
   which files appear in. This is meaningful even without the presence
@@ -318,11 +319,12 @@ parameters, which are described further below:
 
 - The =:sort-by-component= parameter is optional. It sorts the files
   by the given Denote file name component. The value it accepts is an
-  unquoted symbol among =title=, =keywords=, =signature=, =identifier=,
-  =random=. When using the command ~denote-org-dblock-insert-files~,
-  this parameter is automatically inserted together with the
-  (=:regexp= parameter) and the user is prompted for a file name
-  component. [ The =random= sort is part of {{{development-version}}}. ]
+  unquoted symbol among =title=, =keywords=, =signature=,
+  =identifier=, =random=, =last-modified=. When using the command
+  ~denote-org-dblock-insert-files~, this parameter is automatically
+  inserted together with the (=:regexp= parameter) and the user is
+  prompted for a file name component. [ The =random= and
+  =last-modified= sort are part of {{{development-version}}}. ]
 
 - The =:reverse-sort= parameter is optional. It reverses the order in
   which files appear in. This is meaningful even without the presence
@@ -428,11 +430,12 @@ you get all the parameters included:
 
 - The =:sort-by-component= parameter is optional. It sorts the files
   by the given Denote file name component. The value it accepts is an
-  unquoted symbol among =title=, =keywords=, =signature=, =identifier=,
-  =random=. When using the command ~denote-org-dblock-insert-files~,
-  this parameter is automatically inserted together with the
-  (=:regexp= parameter) and the user is prompted for a file name
-  component. [ The =random= sort is part of {{{development-version}}}. ]
+  unquoted symbol among =title=, =keywords=, =signature=,
+  =identifier=, =random=, =last-modified=. When using the command
+  ~denote-org-dblock-insert-files~, this parameter is automatically
+  inserted together with the (=:regexp= parameter) and the user is
+  prompted for a file name component. [ The =random= and
+  =last-modified= sort are part of {{{development-version}}}. ]
 
 - The =:reverse-sort= parameter is optional. It reverses the order in
   which files appear in. This is meaningful even without the presence

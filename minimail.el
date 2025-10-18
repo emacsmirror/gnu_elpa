@@ -1452,6 +1452,9 @@ Cf. RFC 5256, §2.1."
                    (alist-get 'thread sortnames))
              (make-vtable
               :objects messages
+              ;; FIXME: Sorting trick and unread face break variable
+              ;; pitch display, likely solved in Emacs 31.
+              :face 'default
               :keymap minimail-mailbox-mode-map
               :columns (mapcar (lambda (v)
                                  (alist-get v minimail-mailbox-mode-column-alist))

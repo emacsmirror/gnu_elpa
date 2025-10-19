@@ -523,7 +523,7 @@ buffer without the extension, if any."
 	(narrow-to-region start-position end-position)
 	(goto-char start-position)
 	(unless (file-exists-p greader-audiobook-base-directory)
-	  (make-directory greader-audiobook-base-directory))
+	  (make-directory greader-audiobook-base-directory t))
 	(let* ((book-directory (concat (file-name-sans-extension
 					(buffer-name))
 				       "/"))

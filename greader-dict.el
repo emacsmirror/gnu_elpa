@@ -156,7 +156,6 @@
 
 (defvar-local  greader-dictionary nil)
 
-(defvar-local  greader-dictionary nil)
 (defvar greader-dict-match-indicator "\%\*"
   "Regexp that will be used for match delimiter.")
 (defvar greader-dict--timer nil)

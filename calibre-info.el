@@ -27,56 +27,73 @@
 
 (declare-function calibre-library-book-at-point "calibre-library" ())
 
+(defvar-local calibre-info-buffer-book nil)
+
+(define-derived-mode calibre-info-mode special-mode
+  "Book Information"
+  (setq-local revert-buffer-function #'calibre-info-revert))
+
+(defun calibre-info-render-book (book buffer)
+  "Render BOOK information into BUFFER."
+  (with-current-buffer buffer
+    (calibre-info-mode)
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (insert "Title: " (calibre-book-title book) "\n")
+      (insert "Authors:\n")
+      (dolist (author (calibre-book-authors book))
+        (insert " " author "\n"))
+      (when (calibre-book-publisher book)
+        (insert "Publisher: " (calibre-book-publisher book) "\n"))
+      (insert "Published: "
+              (if (calibre-book-pubdate book)
+                  (format-time-string calibre-library-time-format
+                                      (calibre-book-pubdate book))
+                "Invalid")
+              "\n")
+      (insert "Last modified: "
+              (if (calibre-book-last-modified book)
+                  (format-time-string calibre-library-time-format
+                                      (calibre-book-last-modified book))
+                "Invalid")
+              "\n")
+      (when (calibre-book-series book)
+        (insert "Series: " (calibre-book-series book)
+                " (book " (number-to-string
+                           (calibre-book-series-index book))
+                ")\n"))
+      (when (calibre-book-tags book)
+        (insert "Tags:\n")
+        (dolist (tag (calibre-book-tags book))
+          (insert " " tag "\n")))
+      (insert "\n")
+      (insert "Formats:\n")
+      (dolist (format (calibre-book-formats book))
+        (insert " " (upcase (symbol-name format)) "\n"))
+      (when (calibre-book-summary book)
+        (insert "\n")
+        (insert
+         (with-temp-buffer
+           (insert (calibre-book-summary book))
+           (goto-char (point-min))
+           (while (not (eobp))
+             (fill-paragraph)
+             (forward-paragraph))
+           (buffer-substring (point-min) (point-max))))))))
+
+(defun calibre-info-revert (_ignore-auto _noconfirm)
+  "Revert the current information buffer."
+  (calibre-info-render-book calibre-info-buffer-book
+                            (current-buffer)))
+
 (defun calibre-info-view-book (book)
   "Display information about BOOK."
   (interactive (list (calibre-library-book-at-point))
                calibre-library-mode)
   (let ((buffer (get-buffer-create (format "*%s*" (calibre-book-title book)))))
     (with-current-buffer buffer
-      (let ((inhibit-read-only t))
-        (erase-buffer)
-        (insert "Title: " (calibre-book-title book) "\n")
-        (insert "Authors:\n")
-        (dolist (author (calibre-book-authors book))
-          (insert " " author "\n"))
-        (when (calibre-book-publisher book)
-          (insert "Publisher: " (calibre-book-publisher book) "\n"))
-        (insert "Published: "
-                (if (calibre-book-pubdate book)
-                    (format-time-string calibre-library-time-format
-                                        (calibre-book-pubdate book))
-                  "Invalid")
-                "\n")
-        (insert "Last modified: "
-                (if (calibre-book-last-modified book)
-                    (format-time-string calibre-library-time-format
-                                        (calibre-book-last-modified book))
-                  "Invalid")
-                "\n")
-        (when (calibre-book-series book)
-          (insert "Series: " (calibre-book-series book)
-                  " (book " (number-to-string
-                             (calibre-book-series-index book))
-                  ")\n"))
-        (when (calibre-book-tags book)
-          (insert "Tags:\n")
-          (dolist (tag (calibre-book-tags book))
-            (insert " " tag "\n")))
-        (insert "\n")
-        (insert "Formats:\n")
-        (dolist (format (calibre-book-formats book))
-          (insert " " (upcase (symbol-name format)) "\n"))
-        (when (calibre-book-summary book)
-          (insert "\n")
-          (insert
-           (with-temp-buffer
-             (insert (calibre-book-summary book))
-             (goto-char (point-min))
-             (while (not (eobp))
-               (fill-paragraph)
-               (forward-paragraph))
-             (buffer-substring (point-min) (point-max))))))
-      (read-only-mode t))
+      (setq-local calibre-info-buffer-book book))
+    (calibre-info-render-book book buffer)
     (display-buffer buffer)))
 
 (provide 'calibre-info)

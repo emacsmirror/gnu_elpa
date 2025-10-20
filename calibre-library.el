@@ -30,6 +30,7 @@
 (require 'calibre-search)
 (require 'calibre-virtual-library)
 (require 'calibre-edit)
+(require 'calibre-info)
 
 (defcustom calibre-external-programs nil
   "A mapping of formats to external programs used to read them.
@@ -289,6 +290,7 @@ If called with a prefix argument prompt the user for the format."
   "a" #'calibre-library-add-book
   "v" #'calibre-select-virtual-library
   "s" #'calibre-search
+  "i" #'calibre-info-view-book
   "RET" #'calibre-library-open-book
   "o" #'calibre-library-open-book-other-window)
 

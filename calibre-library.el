@@ -306,7 +306,7 @@ If called with a prefix argument prompt the user for the format."
 
 ;;;###autoload
 (defun calibre-library ()
-  "List all books in Calibre Library `calibrary-dir'."
+  "List all books in the active Calibre Library."
   (interactive)
   (let ((buffer (get-buffer-create calibre-library-buffer)))
     (with-current-buffer buffer

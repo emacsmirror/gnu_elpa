@@ -1,10 +1,10 @@
 ;;; calibre.el --- Interact with Calibre libraries from Emacs -*- lexical-binding:t -*-
 
-;; Copyright (C) 2023  Free Software Foundation, Inc.
+;; Copyright (C) 2023,2025  Free Software Foundation, Inc.
 
 ;; Author: Kjartan Oli Agustsson <kjartanoli@disroot.org>
 ;; Maintainer: Kjartan Oli Agustsson <kjartanoli@disroot.org>
-;; Version: 1.4.1
+;; Version: 1.5.0
 ;; Package-Requires: ((emacs "27.1") (compat "29.1.4.1"))
 ;; URL: https://git.disroot.org/kjartanoli/calibre.el
 

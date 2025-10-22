@@ -357,9 +357,8 @@ sorting by thread."
   "Helper function for `minimail--log-message'.
 ARGS is the entire argument list of `minimail--log-message'."
   (let* ((props (ensure-list -logging-options))
-         (truncate (plist-get :truncate-literals props))
-         (maxsize (plist-get :max-size props))
-         (bufname (or (plist-get :buffer-name props) "*minimail-log*"))
+         (maxsize (plist-get props :max-size))
+         (bufname (or (plist-get props :buffer-name) "*minimail-log*"))
          (buffer (or (get-buffer bufname)
                      (with-current-buffer (get-buffer-create bufname)
                        (view-mode)
@@ -376,13 +375,13 @@ ARGS is the entire argument list of `minimail--log-message'."
           (put-text-property start (point) 'face 'warning)
           (insert (apply #'format args))
           (unless (eq (char-before) ?\n) (insert ?\n))
-          (when truncate
-            (goto-char start)
-            (while (re-search-forward "{\\([0-9]+\\)}\r\n" nil t)
-              (let ((limit (+ (point) (string-to-number (match-string 1)))))
-                (when (re-search-forward "\r\n\r\n" limit t)
-                  (delete-region (match-beginning 0) limit)
-                  (insert (format "\n[%s bytes truncated]\n" (- limit (point))))))))
+          (goto-char start)
+          (while (re-search-forward "{\\([0-9]+\\)}\r\n" nil t)
+            (let* ((start (prog1 (point)
+                            (forward-char (string-to-number (match-string 1)))))
+                   (ov (make-overlay start (point))))
+              (overlay-put ov 'display (buttonize "[...]" #'delete-overlay ov
+                                                  "Show literal data"))))
           (when maxsize
             (goto-char (- (point-max) maxsize))
             (delete-region (point-min) (pos-bol))))))))

@@ -1333,7 +1333,6 @@ Return a cons cell consisting of the account symbol and mailbox name."
   :parent (make-composed-keymap (list minimail-base-keymap vtable-map)
                                 special-mode-map)
   "RET" #'minimail-show-message
-  "q" #'minimail-quit-windows
   "T" #'minimail-toggle-sort-by-thread
   "g" #'revert-buffer)
 
@@ -1341,6 +1340,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
   '("Mailbox" -mode-line-suffix)
   "Major mode for mailbox listings."
   :interactive nil
+  (add-hook 'quit-window-hook #'-quit-message-window nil t)
   (add-hook '-vtable-insert-line-hook #'-apply-mailbox-line-face nil t)
   (setq-local
    revert-buffer-function #'-mailbox-refresh
@@ -1598,14 +1598,12 @@ Cf. RFC 5256, §2.1."
   (interactive "p" minimail-mailbox-mode minimail-message-mode)
   (minimail-next-message (- count)))
 
-(defun minimail-quit-windows (&optional kill) ;FIXME: use quit-window-hook instead
-  (interactive "P" minimail-mailbox-mode minimail-message-mode)
-  (-with-associated-buffer mailbox
-    (when-let* ((msgbuf (alist-get 'message-buffer -local-state))
-                (window (get-buffer-window msgbuf)))
-      (quit-restore-window window (if kill 'kill 'bury)))
-    (when-let* ((window (get-buffer-window)))
-      (quit-window kill window))))
+(defun -quit-message-window (&optional kill)
+  "If there is a window showing a message from this mailbox, quit it.
+If KILL is non-nil, kill the message buffer instead of burying it."
+  (when-let* ((msgbuf (alist-get 'message-buffer -local-state))
+              (window (get-buffer-window msgbuf)))
+    (quit-restore-window window (if kill 'kill 'bury))))
 
 ;;;; Sorting by thread
 

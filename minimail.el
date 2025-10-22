@@ -1095,23 +1095,25 @@ messages following (but not including) the given UID."
 
 ;;; Commands
 
-(defmacro -with-associated-buffer (buffer &rest body)
-  (declare (indent 1))
-  (let ((bsym (gensym)))
-    `(let ((,bsym (if (derived-mode-p ',(intern (format "minimail-%s-mode" buffer)))
-                      (current-buffer)
-                    (-get-in -local-state ',(intern (format "%s-buffer" buffer))))))
-       (unless (buffer-live-p ,bsym)
-         (user-error "No %s buffer" ',buffer))
-       (with-current-buffer ,bsym ,@body))))
-
 (defun -mailbox-buffer (&optional noerror)
+  "Return the relevant mailbox buffer for the current context.
+If not found and NOERROR is nil, signal an error."
   (let ((buffer (if (derived-mode-p 'minimail-mailbox-mode)
                     (current-buffer)
                   (alist-get 'mailbox-buffer -local-state))))
     (prog1 buffer
       (unless (or noerror (buffer-live-p buffer))
         (user-error "No mailbox buffer")))))
+
+(defun -message-buffer (&optional noerror)
+  "Return the relevant message buffer for the current context.
+If not found and NOERROR is nil, signal an error."
+  (let ((buffer (if (derived-mode-p 'minimail-message-mode)
+                    (current-buffer)
+                  (alist-get 'message-buffer -local-state))))
+    (prog1 buffer
+      (unless (or noerror (buffer-live-p buffer))
+        (user-error "No message buffer")))))
 
 (defun -mailbox-annotate (cand)
   "Return an annotation for `devdocs--read-entry' candidate CAND."
@@ -1585,7 +1587,7 @@ Cf. RFC 5256, §2.1."
 
 (defun minimail-next-message (count)
   (interactive "p" minimail-mailbox-mode minimail-message-mode)
-  (-with-associated-buffer mailbox
+  (with-current-buffer (-mailbox-buffer)
     (if (not overlay-arrow-position)
         (goto-char (point-min))
       (goto-char overlay-arrow-position)
@@ -1804,28 +1806,29 @@ window shorter than 6 lines."
 
 (defun minimail-message-scroll-up (arg &optional reverse)
   (interactive "^P" minimail-message-mode minimail-mailbox-mode)
-  (-with-associated-buffer message
+  (with-current-buffer (-message-buffer)
     (condition-case nil
-        (when-let* ((window (get-buffer-window)))
-          (with-selected-window window
-            (funcall (if reverse #'scroll-down-command #'scroll-up-command)
-                     arg)))
-      (t (-with-associated-buffer mailbox
-           (minimail-next-message
-            (funcall (if reverse '- '+)
-                     (cl-signum (prefix-numeric-value arg)))))))))
+        (if-let* ((window (get-buffer-window)))
+            (with-selected-window window
+              (funcall (if reverse #'scroll-down-command #'scroll-up-command)
+                       arg))
+          (display-buffer (current-buffer) -display-message-base-action))
+      (beginning-of-buffer (with-current-buffer (-mailbox-buffer)
+                             (minimail-next-message -1)))
+      (end-of-buffer (with-current-buffer (-mailbox-buffer)
+                       (minimail-next-message 1))))))
 
 (defun minimail-message-scroll-down (arg)
-  (interactive "^P" minimail-message-mode)
+  (interactive "^P" minimail-message-mode minimail-mailbox-mode)
   (minimail-message-scroll-up arg t))
 
 (defun minimail-reply (cite &optional to-address wide)
   (interactive (list (xor current-prefix-arg minimail-reply-cite-original))
                minimail-message-mode
                minimail-mailbox-mode)
-  (-with-associated-buffer message     ;FIXME: in mailbox mode, should
-                                       ;reply to message at point, not
-                                       ;the currently displayed one
+  (with-current-buffer (-message-buffer) ;FIXME: in mailbox mode, should
+                                         ;reply to message at point, not
+                                         ;the currently displayed one
     (when-let* ((window (get-buffer-window)))
       (select-window window))
     (let ((message-mail-user-agent 'minimail)
@@ -1851,7 +1854,7 @@ window shorter than 6 lines."
 
 (defun minimail-forward ()
   (interactive nil minimail-message-mode minimail-mailbox-mode)
-  (-with-associated-buffer message
+  (with-current-buffer (-message-buffer)
     (when-let* ((window (get-buffer-window)))
       (select-window window))
     (let ((message-mail-user-agent 'minimail))

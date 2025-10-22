@@ -662,8 +662,8 @@ modify: "
 					     " with: ")
 				     (gethash key
 					      greader-dictionary)))
-	    (when (string-match "\\W" value)
-	      (user-error "Replacement cannot contain non-word constituents.
+	    (when (string-match "[[:punct:]]" value)
+	      (user-error "Replacement cannot contain punctuation signs.
 If you want to listen a sign, please include it literally \(wrote by
 letters\) in the replacement"))
 	    (greader-dict-add key value))
@@ -672,6 +672,10 @@ letters\) in the replacement"))
 	(setq value (read-string (concat "substitute " key " with: ")
 				 nil nil
 				 (gethash key greader-dictionary)))
+	(when (string-match "[[:punct:]]" value)
+	  (user-error "Replacement cannot contain punctuation signs.
+If you want to listen a sign, please include it literally \(wrote by
+letters\) in the replacement"))
 	(greader-dict-add key value)))))
   (deactivate-mark t))
 

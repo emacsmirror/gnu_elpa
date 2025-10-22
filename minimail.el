@@ -1317,20 +1317,25 @@ Return a cons cell consisting of the account symbol and mailbox name."
 (defvar-local -thread-tree nil
   "The thread tree for the current buffer, as in RFC 5256.")
 
-(defvar-keymap minimail-mailbox-mode-map
-  "RET" #'minimail-show-message
+(defvar-keymap minimail-base-keymap
+  :doc "Common keymap for Minimail mailbox and message buffers."
   "n" #'minimail-next-message
   "p" #'minimail-previous-message
   "r" #'minimail-reply
   "R" #'minimail-reply-all
   "f" #'minimail-forward
   "s" #'minimail-search
-  "g" #'revert-buffer
-  "q" #'minimail-quit-windows
-  "T" #'minimail-toggle-sort-by-thread
   "SPC" #'minimail-message-scroll-up
   "S-SPC" #'minimail-message-scroll-down
   "DEL" #'minimail-message-scroll-down)
+
+(defvar-keymap minimail-mailbox-mode-map
+  :parent (make-composed-keymap (list minimail-base-keymap vtable-map)
+                                special-mode-map)
+  "RET" #'minimail-show-message
+  "q" #'minimail-quit-windows
+  "T" #'minimail-toggle-sort-by-thread
+  "g" #'revert-buffer)
 
 (define-derived-mode minimail-mailbox-mode special-mode
   '("Mailbox" -mode-line-suffix)
@@ -1505,15 +1510,15 @@ Cf. RFC 5256, §2.1."
        (with-current-buffer buffer
          (setq -mode-line-suffix nil)
          (let* ((inhibit-read-only t)
+                (vtable-map (make-sparse-keymap)) ;only way to disable extra keymap
                 (colnames (-settings-alist-get :mailbox-columns account mailbox))
                 (sortnames (-settings-alist-get :mailbox-sort-by account mailbox)))
-                                        ;(erase-buffer)
+           ;;(erase-buffer)
            (make-vtable
             :objects messages
             ;; FIXME: Sorting trick and unread face break variable
             ;; pitch display, likely solved in Emacs 31.
             :face 'default
-            :keymap minimail-mailbox-mode-map
             :columns (mapcar (lambda (v)
                                (alist-get v minimail-mailbox-mode-column-alist))
                              colnames)
@@ -1719,17 +1724,8 @@ style.  If DESCEND is non-nil, use the opposite convention."
 ;;; Message buffer
 
 (defvar-keymap minimail-message-mode-map
-  :doc "Keymap for Help mode."
-  :parent (make-composed-keymap button-buffer-map special-mode-map)
-  "n" #'minimail-next-message
-  "p" #'minimail-previous-message
-  "r" #'minimail-reply
-  "R" #'minimail-reply-all
-  "f" #'minimail-forward
-  "s" #'minimail-search
-  "SPC" #'minimail-message-scroll-up
-  "S-SPC" #'minimail-message-scroll-down
-  "DEL" #'minimail-message-scroll-down)
+  :parent (make-composed-keymap (list minimail-base-keymap button-buffer-map)
+                                special-mode-map))
 
 (define-derived-mode minimail-message-mode special-mode
   '("Message" -mode-line-suffix)

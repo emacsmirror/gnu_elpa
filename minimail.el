@@ -336,6 +336,9 @@ sorting by thread."
 (defvar -minibuffer-update-hook nil
   "Hook run when minibuffer completion candidates are updated.")
 
+(defvar -message-rendering-function #'-gnus-render-message
+  "Function used to render a message buffer for display.")
+
 (define-error '-imap-error "error in IMAP response")
 
 (defmacro -get-in (alist key &rest rest)
@@ -978,9 +981,6 @@ Return the request response buffer narrowed to the message content."
       (pcase-let* ((data (car (-parse-fetch)))
                    (`(,start . ,end) (alist-get 'content data)))
         (narrow-to-region start end)
-        (goto-char (point-min))
-        ;; Somehow needed to make quoted-printable decoding work...
-        (replace-string-in-region "\r\n" "\n")
         buffer))))
 
 (defun -afetch-message-info (account mailbox set &optional brief sequential)
@@ -1573,6 +1573,11 @@ Cf. RFC 5256, §2.1."
         (-display-message account mailbox .uid)
         (setf (alist-get 'mailbox-buffer -local-state) mbxbuf)))))
 
+(defun minimail-show-message-raw ()
+  (interactive nil minimail-mailbox-mode)
+  (let ((-message-rendering-function #'ignore))
+    (minimail-show-message)))
+
 (defun minimail-next-message (count)
   (interactive "p" minimail-mailbox-mode minimail-message-mode)
   (-with-associated-buffer mailbox
@@ -1736,39 +1741,6 @@ style.  If DESCEND is non-nil, use the opposite convention."
 (defun -message-buffer-name (account mailbox uid)
   (format "%s:%s[%s]" account mailbox uid))
 
-(defun -render-message ()
-  "Render message in current buffer using the Gnus machinery."
-  ;; Based on mu4e-view.el
-  (let* ((ct (mail-fetch-field "Content-Type"))
-         (ct (and ct (mail-header-parse-content-type ct)))
-         (charset (intern-soft (mail-content-type-get ct 'charset)))
-         (charset (if (and charset (coding-system-p charset))
-                      charset
-                    (detect-coding-region (point-min) (point-max) t))))
-    (setq-local
-     nobreak-char-display nil
-     gnus-newsgroup-charset charset
-     gnus-blocked-images "."            ;FIXME: make customizable
-     gnus-article-buffer (current-buffer)
-     gnus-summary-buffer nil
-     gnus-article-wash-types nil
-     gnus-article-image-alist nil)
-    ;; just continue if some of the decoding fails.
-    (ignore-errors (run-hooks 'gnus-article-decode-hook))
-    (setq gnus-article-decoded-p gnus-article-decode-hook)
-    (save-restriction
-      (message-narrow-to-headers-or-head)
-      (setf (alist-get 'references -local-state)
-            (message-fetch-field "references"))
-      (setf (alist-get 'message-id -local-state)
-            (message-fetch-field "message-id" t)))
-    (gnus-display-mime)
-    (when gnus-mime-display-attachment-buttons-in-header
-      (gnus-mime-buttonize-attachments-in-header))
-    (when-let* ((window (get-buffer-window gnus-article-buffer)))
-      (set-window-point window (point-min)))
-    (set-buffer-modified-p nil)))
-
 (defun -message-window-adjust-height (window)
   "Try to resize a message WINDOW sensibly.
 If the window above it is a mailbox window, make the message window
@@ -1789,31 +1761,15 @@ window shorter than 6 lines."
     (direction . below)
     (window-height . -message-window-adjust-height)))
 
-(defun -cleanup-mime-handles ()
-  (mm-destroy-parts gnus-article-mime-handles)
-  (setq gnus-article-mime-handles nil)
-  (setq gnus-article-mime-handle-alist nil))
-
 (defun -erase-message-buffer ()
   (erase-buffer)
   (dolist (ov (overlays-in (point-min) (point-max)))
     (delete-overlay ov))
   (-cleanup-mime-handles))
 
-(defun -message-mode-advice (newfn)
-  (lambda (fn &rest args)
-    (apply (if (derived-mode-p 'minimail-message-mode) newfn fn) args)))
-
-(advice-add #'gnus-msg-mail :around
-            (-message-mode-advice #'message-mail) ;FIXME: only works if message-mail-user-agent is set
-            '((name . minimail)))
-
-(advice-add #'gnus-button-reply :around
-            (-message-mode-advice #'message-reply) ;FIXME: same
-            '((name . minimail)))
-
 (defun -display-message (account mailbox uid)
-  (let ((buffer (current-buffer)))
+  (let ((render -message-rendering-function)
+        (buffer (current-buffer)))
     (unless (derived-mode-p #'minimail-message-mode)
       (let ((inhibit-read-only t))
         (erase-buffer)
@@ -1839,7 +1795,17 @@ window shorter than 6 lines."
                (-erase-message-buffer)
                (rename-buffer (-message-buffer-name account mailbox uid) t)
                (insert-buffer-substring msgbuf)
-               (-render-message)))))))
+               (decode-coding-region (point-min) (point-max) 'raw-text-dos)
+               (save-restriction
+                 (message-narrow-to-headers-or-head)
+                 (setf (alist-get 'references -local-state)
+                       (message-fetch-field "references"))
+                 (setf (alist-get 'message-id -local-state)
+                       (message-fetch-field "message-id" t)))
+               (funcall render)
+               (set-buffer-modified-p nil)
+               (when-let* ((w (get-buffer-window (current-buffer))))
+                 (set-window-point w (point-min)))))))))
     (display-buffer buffer -display-message-base-action)))
 
 (defun minimail-message-scroll-up (arg &optional reverse)
@@ -1896,6 +1862,51 @@ window shorter than 6 lines."
       (select-window window))
     (let ((message-mail-user-agent 'minimail))
       (message-forward))))
+
+;;;; Gnus graft
+;; Cf. `mu4e--view-render-buffer' from mu4e-view.el
+
+(defun -gnus-render-message ()
+  "Render message in the current buffer using the Gnus machinery."
+  ;; Gnus has the curious habit of not declaring its buffer-local
+  ;; variables as such, so we need to take care to include all
+  ;; relevant variables here.
+  (setq-local
+   gnus-article-buffer (current-buffer)
+   gnus-article-charset nil
+   gnus-article-current nil
+   gnus-article-current-summary nil
+   gnus-article-decoded-p nil
+   gnus-article-ignored-charsets nil
+   gnus-article-image-alist nil
+   gnus-article-mime-handle-alist nil
+   gnus-article-mime-handles nil
+   gnus-article-wash-types nil
+   gnus-blocked-images ""               ;FIXME: make customizable
+   gnus-newsgroup-charset nil
+   gnus-newsgroup-name nil
+   gnus-summary-buffer nil
+   message-mail-user-agent t            ;for mouse buttons
+   nobreak-char-display nil)
+  (run-hook-wrapped 'gnus-article-decode-hook
+                    (lambda (fun)
+                      (condition-case err
+                          (funcall fun)
+                        (t (-log-message "gnus-article-decode-hook error: %s: %S"
+                                         fun err)))))
+  (setq gnus-article-decoded-p gnus-article-decode-hook)
+  (gnus-display-mime)
+  (when gnus-mime-display-attachment-buttons-in-header
+    (gnus-mime-buttonize-attachments-in-header)))
+
+(defun -cleanup-mime-handles ()
+  (mm-destroy-parts gnus-article-mime-handles)
+  (setq gnus-article-mime-handles nil)
+  (setq gnus-article-mime-handle-alist nil))
+
+(advice-add #'gnus-article-check-buffer :before-until
+            (lambda () (derived-mode-p #'minimail-message-mode))
+            '((name . minimail)))
 
 ;;; MUA definition
 

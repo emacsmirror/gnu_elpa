@@ -5,7 +5,7 @@ Minimail is a simple, non-blocking IMAP email client for Emacs.
 Minimail currently covers the basics needed for reading and replying
 to messages.  Below is a listing of implemented and planned features.
 
-- [X] Read messages, including MIME (rendering via Gnus)
+- [X] Read messages, including MIME content (rendering via Gnus)
 - [X] Compose, reply to and forward messages
 - [X] Multi-account support
 - Search
@@ -16,7 +16,7 @@ to messages.  Below is a listing of implemented and planned features.
   - [ ] Fancy algorithm based on reference message IDs.
 - [X] Move messages (also archive, move to trash, flag as junk)
 - [ ] Mark and operate on sets of messages (move, etc.)
-- [ ] "Load more messages" button
+- [X] "Load more messages" button
 - [ ] Notifications (polling or IDLE)
 - [ ] OAuth
 
@@ -26,6 +26,7 @@ necessary condition for such.  In fact, Minimail currently doesn't
 include any of these possible optimizations:
 
 - [ ] Caching
+- [ ] Support for CONDSTORE capability
 - [ ] Connection pool (for concurrent requests)
 - [ ] Prefetching of messages in the background
 

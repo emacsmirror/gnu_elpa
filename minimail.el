@@ -493,10 +493,11 @@ alist, and look up MAILBOX in it."
             '((name . minimail)))
 
 (defun -ensure-vtable (&optional noerror)
-  "Return table under point or give an error.
-But first move point inside table if at end of buffer."
+  "Return table under point or signal an error.
+But first move point inside table if near the end of buffer."
   (when (eobp) (goto-char (pos-bol 0)))
   (or (vtable-current-table)
+      (progn (goto-char (pos-bol 0)) (vtable-current-table))
       (unless noerror
         (user-error "No table under point"))))
 
@@ -917,7 +918,8 @@ being used."
 (defun -format-sequence-set (set)
   "Format a set of message IDs as a string.
 SET can be a number, t to represent the highest ID, an element of the
-form (range START END) or a list of the above."
+form (range START END) or a list of the above.  Ranges, in IMAP fashion,
+are 1-based and inclusive of the end."
   (pcase-exhaustive set
     ('t "*")
     ((pred numberp set) (number-to-string set))
@@ -1003,18 +1005,21 @@ rather than UIDs."
         (cl-callf nconc (cdr (assq 'flags msg)) (let-alist msg .x-gm-labels))))
     messages))
 
-(defun -afetch-old-messages (account mailbox limit &optional after)
+(defun -afetch-old-messages (account mailbox limit &optional before)
   "Fetch a mailbox message listing with up to LIMIT elements.
-If AFTER is nil, retrieve the newest messages.  Otherwise, retrieve
-messages following (but not including) the given UID."
+If BEFORE is nil, retrieve the newest messages.  Otherwise, retrieve
+messages with UID smaller than BEFORE."
   (athunk-let*
-      ((end <- (if after
-                   (-afetch-id account mailbox after)
+      ((end <- (if before
+                   (-afetch-id account mailbox before)
                  (athunk-let ((status <- (-aget-mailbox-status account mailbox)))
                    (1+ (alist-get 'exists status)))))
        (start (max 1 (- end limit)))
-       (messages <- (-afetch-message-info account mailbox `(range ,start ,end)
-                                          nil t)))
+       (messages <- (if (> end 1)
+                        (-afetch-message-info account mailbox
+                                              `(range ,start ,(1- end))
+                                              nil t)
+                      (athunk-wrap nil))))
     messages))
 
 (defun -afetch-new-messages (account mailbox messages)
@@ -1334,6 +1339,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
   :parent (make-composed-keymap (list minimail-base-keymap vtable-map)
                                 special-mode-map)
   "RET" #'minimail-show-message
+  "+" #'minimail-load-more-messages
   "T" #'minimail-toggle-sort-by-thread
   "g" #'revert-buffer)
 
@@ -1344,7 +1350,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
   (add-hook 'quit-window-hook #'-quit-message-window nil t)
   (add-hook '-vtable-insert-line-hook #'-apply-mailbox-line-face nil t)
   (setq-local
-   revert-buffer-function #'-mailbox-refresh
+   revert-buffer-function #'-mailbox-buffer-refresh
    truncate-lines t))
 
 (defun -base-subject (string)
@@ -1491,6 +1497,29 @@ Cf. RFC 5256, §2.1."
                             'minimail (let-alist msg .envelope.date)))
      :formatter -format-date)))
 
+(defun -mailbox-buffer-update (messages)
+  "Set vtable objects to MESSAGES and do all necessary adjustments."
+  (setf (vtable-objects (-ensure-vtable)) messages)
+  (let ((uid (alist-get 'uid (vtable-current-object))))
+    (vtable-revert-command)
+    (when-let* ((msg (seq-find (lambda (msg) (let-alist msg (eq .uid uid)))
+                               messages)))
+      (vtable-goto-object msg)))
+  (setq -thread-tree (-thread-by-subject messages))
+  (when-let* ((how (alist-get 'sort-by-thread -local-state)))
+    (-sort-messages-by-thread (eq how 'descend)))
+  (save-excursion
+    (goto-char (point-max))
+    (let ((inhibit-read-only t)
+          (ids (mapcar (lambda (msg) (let-alist msg .id)) messages)))
+      (when (get-text-property (1- (pos-eol 0)) 'button)
+        (delete-region (pos-bol 0) (point)))
+      (when (> (seq-min ids) 1)
+        (insert (format "Showing %s of %s messages " (length messages) (seq-max ids))
+                (buttonize "[load more]"
+                           (lambda (_) (minimail-load-more-messages)))
+                "\n")))))
+
 (defun -mailbox-buffer-populate (&rest _)
   "Fetch messages for the first time and create a vtable in the current buffer."
   (let* ((buffer (current-buffer))
@@ -1515,10 +1544,11 @@ Cf. RFC 5256, §2.1."
                 (colnames (-settings-alist-get :mailbox-columns account mailbox))
                 (sortnames (-settings-alist-get :mailbox-sort-by account mailbox)))
            (make-vtable
-            :objects messages
-            ;; FIXME: Sorting trick and unread face break variable
-            ;; pitch display, likely solved in Emacs 31.
-            :face 'default
+            :objects messages ;Ideally we would create the table empty
+                              ;and populate later
+            :face 'default ;FIXME: Sorting trick and unread face break
+                           ;variable pitch display, likely solved in
+                           ;Emacs 31.
             :columns (mapcar (lambda (v)
                                (alist-get v minimail-mailbox-mode-column-alist))
                              colnames)
@@ -1528,11 +1558,9 @@ Cf. RFC 5256, §2.1."
                              sortnames))
            (setf (alist-get 'sort-by-thread -local-state)
                  (alist-get 'thread sortnames)))
-         (setq -thread-tree (-thread-by-subject messages))
-         (when-let* ((how (alist-get 'sort-by-thread -local-state)))
-           (-sort-messages-by-thread (eq how 'descend))))))))
+         (-mailbox-buffer-update messages))))))
 
-(defun -mailbox-refresh (&rest _)
+(defun -mailbox-buffer-refresh (&rest _)
   (unless (derived-mode-p #'minimail-mailbox-mode)
     (user-error "This should be called only from a mailbox buffer."))
   (let* ((buffer (current-buffer))
@@ -1551,11 +1579,32 @@ Cf. RFC 5256, §2.1."
                             (signal (car err) (cdr err))))))
        (with-current-buffer buffer
          (setq -mode-line-suffix nil)
-         (setf (vtable-objects (-ensure-vtable)) messages)
-         (vtable-revert-command)
-         (setq -thread-tree (-thread-by-subject messages))
-         (when-let* ((how (alist-get 'sort-by-thread -local-state)))
-           (-sort-messages-by-thread (eq how 'descend))))))))
+         (-mailbox-buffer-update messages))))))
+
+(defun minimail-load-more-messages (&optional count)
+  (interactive (list (when current-prefix-arg
+                       (prefix-numeric-value current-prefix-arg)))
+               minimail-mailbox-mode)
+  (let* ((buffer (current-buffer))
+         (account -current-account)
+         (mailbox -current-mailbox)
+         (messages (vtable-objects (-ensure-vtable)))
+         (search (alist-get 'search -local-state))
+         (limit (or count (-settings-scalar-get :fetch-limit account mailbox)))
+         (before (seq-min (mapcar (lambda (msg) (let-alist msg .uid)) messages))))
+    (when search (error "Not implemented"))
+    (setq -mode-line-suffix ":Loading")
+    (athunk-run
+     (athunk-let*
+         ((old <- (athunk-condition-case err
+                      (-afetch-old-messages account mailbox limit before)
+                    (t (with-current-buffer buffer
+                         (setq -mode-line-suffix ":Error"))
+                       (signal (car err) (cdr err))))))
+       (with-current-buffer buffer
+         (setq -mode-line-suffix nil)
+         (unless old (user-error "No more old messages"))
+         (-mailbox-buffer-update (nconc old messages)))))))
 
 (defun minimail-show-message ()
   (interactive nil minimail-mailbox-mode)

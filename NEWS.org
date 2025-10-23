@@ -33,7 +33,7 @@
   =vc-jj-log-view-mode=: =vc-jj-bookmark-set=, =vc-jj-bookmark-delete=, and
   =vc-jj-bookmark-rename=.  These have bindings under the "b" prefix key
   in =vc-jj-log-view-mode=: =vc= buffers.
-
+- Added =vc-jj-clone=, making it possible to run =vc-clone=.
 - Added list of other jj support packages for Emacs to the
   documentation -- not everyone is looking for vc integration :)
 

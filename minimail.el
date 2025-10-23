@@ -1514,7 +1514,6 @@ Cf. RFC 5256, §2.1."
                 (vtable-map (make-sparse-keymap)) ;only way to disable extra keymap
                 (colnames (-settings-alist-get :mailbox-columns account mailbox))
                 (sortnames (-settings-alist-get :mailbox-sort-by account mailbox)))
-           ;;(erase-buffer)
            (make-vtable
             :objects messages
             ;; FIXME: Sorting trick and unread face break variable
@@ -1730,8 +1729,7 @@ style.  If DESCEND is non-nil, use the opposite convention."
   '("Message" -mode-line-suffix)
   "Major mode for email messages."
   :interactive nil
-  (setq buffer-undo-list t)
-  (add-hook 'kill-buffer-hook #'-cleanup-mime-handles nil t))
+  (setq buffer-undo-list t))
 
 (defun -message-buffer-name (account mailbox uid)
   (format "%s:%s[%s]" account mailbox uid))
@@ -1756,19 +1754,11 @@ window shorter than 6 lines."
     (direction . below)
     (window-height . -message-window-adjust-height)))
 
-(defun -erase-message-buffer ()
-  (erase-buffer)
-  (dolist (ov (overlays-in (point-min) (point-max)))
-    (delete-overlay ov))
-  (-cleanup-mime-handles))
-
 (defun -display-message (account mailbox uid)
   (let ((render -message-rendering-function)
         (buffer (current-buffer)))
     (unless (derived-mode-p #'minimail-message-mode)
-      (let ((inhibit-read-only t))
-        (erase-buffer)
-        (minimail-message-mode)))
+      (minimail-message-mode))
     (setq -mode-line-suffix ":Loading")
     (setf (alist-get 'next-message -local-state)
           (list account mailbox uid))
@@ -1785,9 +1775,11 @@ window shorter than 6 lines."
                         (list account mailbox uid))
              (let ((inhibit-read-only t))
                (setq -mode-line-suffix nil)
+               (erase-buffer)
+               (dolist (ov (overlays-in (point-min) (point-max)))
+                 (delete-overlay ov))
                (setq -current-account account)
                (setq -current-mailbox mailbox)
-               (-erase-message-buffer)
                (rename-buffer (-message-buffer-name account mailbox uid) t)
                (insert-buffer-substring msgbuf)
                (decode-coding-region (point-min) (point-max) 'raw-text-dos)
@@ -1864,6 +1856,8 @@ window shorter than 6 lines."
 
 (defun -gnus-render-message ()
   "Render message in the current buffer using the Gnus machinery."
+  (add-hook 'kill-buffer-hook #'-gnus-cleanup-mime-handles nil t)
+  (-gnus-cleanup-mime-handles)  ;in case we're reusing this buffer
   ;; Gnus has the curious habit of not declaring its buffer-local
   ;; variables as such, so we need to take care to include all
   ;; relevant variables here.
@@ -1895,10 +1889,8 @@ window shorter than 6 lines."
   (when gnus-mime-display-attachment-buttons-in-header
     (gnus-mime-buttonize-attachments-in-header)))
 
-(defun -cleanup-mime-handles ()
-  (mm-destroy-parts gnus-article-mime-handles)
-  (setq gnus-article-mime-handles nil)
-  (setq gnus-article-mime-handle-alist nil))
+(defun -gnus-cleanup-mime-handles ()
+  (mm-destroy-parts gnus-article-mime-handles))
 
 (advice-add #'gnus-article-check-buffer :before-until
             (lambda () (derived-mode-p #'minimail-message-mode))

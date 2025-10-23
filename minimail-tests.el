@@ -108,9 +108,9 @@
 " )
     (goto-char (point-min))
     (let ((v (-parse-list)))
-      (should (length= v 3))
+      (should (length= v 4))
       (should (equal (mapcar #'car v)
-                     '("INBOX" "[Gmail]" "[Gmail]/All Mail"))))))
+                     '("INBOX" "INBOX" "[Gmail]" "[Gmail]/All Mail"))))))
 
 ;;; Message threading
 

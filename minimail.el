@@ -770,10 +770,7 @@ it is nil."
                             (and "UNSEEN " number `(n -- `(unseen . ,n)))))
                      ")"))
        (response (list (* (or item status) crlf))))
-    (let* ((lines (car (peg-run (peg response))))
-           (grouped (seq-group-by #'car lines)))
-      (mapcar (pcase-lambda (`(,k . ,v)) `(,k . ,(mapcan #'cdr v)))
-              grouped))))
+    (car (peg-run (peg response) #'-imap-parse-error))))
 
 (defun -parse-select ()
   (with-peg-rules
@@ -938,14 +935,17 @@ form (range START END) or a list of the above."
          (url (url-generic-parse-url (plist-get props :incoming-url)))
          (path (string-remove-prefix "/" (car (url-path-and-query url))))
          (caps <- (-aget-capability account))
-         (cmd (format "LIST %s *%s"
+         (return (delq nil (list (when (memq 'special-use caps)
+                                   "SPECIAL-USE")
+                                 (when (memq 'list-status caps)
+                                   "STATUS (MESSAGES UIDNEXT UNSEEN)"))))
+         (cmd (format (if return "LIST %s * RETURN (%s)" "LIST %s *")
                       (-imap-quote path)
-                      (if (memq 'list-status caps)
-                          " RETURN (SPECIAL-USE STATUS (MESSAGES UIDNEXT UNSEEN))" ;FIXME check special-use cap
-                        "")))
+                      (string-join return " ")))
          (buffer <- (-amake-request account nil cmd)))
       (with-current-buffer buffer
-        (-parse-list)))))
+        (mapcar (pcase-lambda (`(,k . ,v)) `(,k . ,(mapcan #'cdr v)))
+                (seq-group-by #'car (-parse-list)))))))
 
 (defun -aget-mailbox-attributes (account mailbox)
   (athunk-let*

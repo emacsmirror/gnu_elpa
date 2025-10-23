@@ -757,7 +757,8 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
 (defun vc-jj-diff (files &optional rev1 rev2 buffer _async)
   "Display diffs for FILES between revisions REV1 and REV2."
   ;; TODO: handle async
-  (setq buffer (get-buffer-create (or buffer "*vc-diff*")))
+  (setq buffer (get-buffer-create (or buffer "*vc-diff*"))
+        files (mapcar #'vc-jj--filename-to-fileset files))
   (cond
    ((not (or rev1 rev2))
     (setq rev1 "@-"))

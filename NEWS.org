@@ -16,6 +16,8 @@
 
 *** Fixed
 
+- Fixed =vc-jj-diff= not transforming filenames into jj fileset syntax. This means commands like =vc-diff= and =log-view-diff= do not fail.
+
 ** [[https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.3...v0.4][0.4]] - 2025-09-03
 
 *** Added

@@ -252,16 +252,27 @@ if set to t, when you call function `greader-read', that function sets a
   (setq greader-reading-mode nil))
 
 (define-obsolete-variable-alias 'greader-map 'greader-mode-map "2022")
+
+(defcustom greader-keymap-prefix "C-r"
+  "The prefix for `greader-mode' commands."
+  :type 'string
+  :group 'greader)
+
+(defvar greader-prefix-keymap
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "s")   #'greader-toggle-tired-mode)
+    (define-key map (kbd "r")   #'isearch-backward)
+    (define-key map (kbd "SPC") #'greader-read)
+    (define-key map (kbd "l")   #'greader-set-language)
+    (define-key map (kbd "t")   #'greader-toggle-timer)
+    (define-key map (kbd "f")   #'greader-get-attributes)
+    (define-key map (kbd "b")   #'greader-change-backend)
+    (define-key map (kbd "c") #'greader-compile-at-point)
+    map))
+
 (defvar greader-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-r s")   #'greader-toggle-tired-mode)
-    (define-key map (kbd "C-r r")   #'isearch-backward)
-    (define-key map (kbd "C-r SPC") #'greader-read)
-    (define-key map (kbd "C-r l")   #'greader-set-language)
-    (define-key map (kbd "C-r t")   #'greader-toggle-timer)
-    (define-key map (kbd "C-r f")   #'greader-get-attributes)
-    (define-key map (kbd "C-r b")   #'greader-change-backend)
-    (define-key map (kbd "C-r c") #'greader-compile-at-point)
+    (define-key map (kbd greader-keymap-prefix) greader-prefix-keymap)
     map))
 
 (defvar greader-reading-map
@@ -274,6 +285,9 @@ if set to t, when you call function `greader-read', that function sets a
     (define-key map (kbd "<left>")   #'greader-backward)
     (define-key map (kbd "<right>")   #'greader-forward)
     map))
+
+(eval-after-load 'greader-dict
+  '(define-key greader-prefix-keymap "d" greader-dict-prefix-map))
 (defvar greader-queue-mode)
 ;;;###autoload
 (define-minor-mode greader-mode
@@ -1857,6 +1871,15 @@ to the next sentence, or when you stop the reading."
   (force-mode-line-update))
 
 
+
+(defun greader-set-map-prefix (keys)
+  "Set `greader-keymap-prefix' to KEYS for the current session."
+  (interactive "kSet greader prefix to: ")
+  (let ((key-str (key-description keys)))
+    (define-key greader-mode-map (kbd greader-keymap-prefix) nil)
+    (setq greader-keymap-prefix key-str)
+    (define-key greader-mode-map (kbd greader-keymap-prefix) greader-prefix-keymap)
+    (message "greader prefix set to %s for the current session." key-str)))
 
 (provide 'greader)
 ;;; greader.el ends here

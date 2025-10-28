@@ -362,8 +362,7 @@ as a word definition."
 	       (concat (match-string 1)
 		       (gethash match greader-dictionary)
 		       (match-string 3))))
-	  (replace-match replacement nil t))
-	(goto-char (point-min))))))
+	  (replace-match replacement nil t))))))
 
 ;; This function adds to the `greader-dictionary' variable the
 ;; key/value pair that you pass as arguments.
@@ -374,7 +373,9 @@ A value of 0 indicates saving immediately."
 (defun greader-dict-add (word replacement)
   "Add the WORD REPLACEMENT pair to `greader-dictionary'.
 If you want to add a partial replacement, you should
-add `\*'to the end of the WORD string parameter."
+add `\*'to the end of the WORD string parameter.
+This function only checks that WORD and REPLACEMENT are not the same.
+Other checks for record integrity are responsibility of the caller."
   ;; We prevent an infinite loop if disallowing that key and values
   ;; are the same.
   (unless replacement
@@ -617,7 +618,8 @@ the current sentence."
 					key)
 				       " with:
 ")
-			       nil nil(gethash key greader-dictionary)))
+			       nil nil(gethash key
+					       greader-dictionary)))
       (greader-dict-add key value))
      ((region-active-p)
       (when (= (count-words(region-beginning) (region-end)) 1)
@@ -650,13 +652,22 @@ modify: "
 					    'word))))
 	    (setq value (read-string (concat "substitute word " key
 					     " with: ")
-				     (gethash key greader-dictionary)))
+				     (gethash key
+					      greader-dictionary)))
+	    (when (string-match "[[:punct:]]" value)
+	      (user-error "Replacement cannot contain punctuation signs.
+If you want to listen a sign, please include it literally \(wrote by
+letters\) in the replacement"))
 	    (greader-dict-add key value))
 	(setq key (read-string "Word to add or modify: " nil nil
 			       (greader-dict--get-matches 'word)))
 	(setq value (read-string (concat "substitute " key " with: ")
 				 nil nil
 				 (gethash key greader-dictionary)))
+	(when (string-match "[[:punct:]]" value)
+	  (user-error "Replacement cannot contain punctuation signs.
+If you want to listen a sign, please include it literally \(wrote by
+letters\) in the replacement"))
 	(greader-dict-add key value)))))
   (deactivate-mark t))
 
@@ -966,7 +977,12 @@ in the current sentence."
   (string-suffix-p greader-dict-filter-indicator key))
 
 (defun greader-dict-filter-add (key value)
-  "Add KEY as a filter with associated VALUE."
+  "Add KEY as a filter with associated VALUE.
+KEY should be a regexp, and value can contain \"shi-groups\".
+You should hobey using punctuation signs in your replacement, apart
+from those that constitute the pattern.
+Adding a punctuation sign in the replacement part of a filter is
+considered undefined behavior."
   (interactive
    (let*
        ((key (read-string "filter (regexp) to add or modify: " nil nil

@@ -66,6 +66,19 @@
 ;; - https://nullprogram.com/blog/2019/03/10/
 ;; - https://lists.gnu.org/archive/html/emacs-devel/2023-03/msg00630.html
 
+(defmacro athunk--λ (args &rest body)
+  "Like `lambda', but sneak location of definition in the docstring."
+  (declare (indent 1))
+  `(lambda ,args
+     ,(when-let* ((pos (byte-compile--warning-source-offset)))
+        (save-excursion
+          (goto-char pos)
+          (format "%s:%s:%s"
+                  (file-name-nondirectory byte-compile-current-file)
+                  (1+ (count-lines (point-min) (pos-bol)))
+                  (1+ (current-column)))))
+     ,(macroexp-progn body)))
+
 (defmacro athunk--let*-1 (cont bindings form)
   "Helper macro for `athunk-let*'."
   (declare (indent 1))
@@ -83,7 +96,7 @@
        (let ((esym (gensym))                ;the error, possibly nil
              (vsym (gensym)))               ;the computed value
          `(funcall ,(protect athunk)
-                   (lambda (,esym ,vsym)
+                   (athunk--λ (,esym ,vsym)
                      (if ,esym
                          (funcall ,cont ,esym ,vsym)
                        (let ((,var ,vsym))

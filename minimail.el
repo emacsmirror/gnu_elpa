@@ -600,13 +600,12 @@ In `minimail-accounts', incoming-url must have imaps or imap scheme, got %s" oth
           (setq -next-position pos)
           (goto-char (min pos (point-max)))))
       (if (re-search-forward (rx bol
-                                 ?A (group (+ digit))
+                                 ?T (group (+ digit))
                                  ?\s (group (+ alpha))
                                  ?\s (group (* (not control)))
                                  (? ?\r) ?\n)
                              nil t)
-          (pcase-let* ((end (match-beginning 0))
-                       (cont (match-end 0))
+          (pcase-let* ((cont (match-end 0))
                        (tag (string-to-number (match-string 1)))
                        (status (intern (downcase (match-string 2))))
                        (message (match-string 3))
@@ -620,7 +619,7 @@ In `minimail-accounts', incoming-url must have imaps or imap scheme, got %s" oth
                 (if (and mailbox (not (equal mailbox -current-mailbox)))
                     (error "Wrong mailbox: %s expected, %s selected"
                            mailbox -current-mailbox)
-                  (with-restriction (point-min) end
+                  (with-restriction (point-min) cont
                     (goto-char (point-min))
                     (funcall callback status message)))
               (delete-region (point-min) cont)
@@ -637,7 +636,7 @@ Ensure the given MAILBOX is selected before issuing the command, unless
 it is nil."
   (if (or (not mailbox)
           (equal mailbox -current-mailbox))
-      (process-send-string proc (format "A%s %s\r\n" tag command))
+      (process-send-string proc (format "T%s %s\r\n" tag command))
     ;; Need to select a different mailbox
     (let ((newtag (cl-incf -imap-last-tag))
           (cont (lambda (status message)
@@ -652,7 +651,7 @@ it is nil."
                       (setf (alist-get tag -imap-callbacks nil t) nil)
                       (funcall callback status message))))))
       (push `(,newtag nil . ,cont) -imap-callbacks)
-      (process-send-string proc (format "A%s SELECT %s\r\n"
+      (process-send-string proc (format "T%s SELECT %s\r\n"
                                         newtag (-imap-quote mailbox))))))
 
 (defun -imap-enqueue (proc mailbox command callback)
@@ -914,7 +913,7 @@ being used."
                (set-buffer-multibyte nil)
                (insert-buffer-substring buffer)
                (goto-char (point-min)))
-             (run-with-idle-timer 0 nil continue))))))))
+             (run-with-timer 0 nil continue))))))))
 
 (defvar -aget-capability nil
   "Synchronization data for the function of same name.")
@@ -1326,19 +1325,20 @@ Return a cons cell consisting of the account symbol and mailbox name."
 
 (defun minimail-execute-server-command (account mailbox command)
   "Execute an IMAP command for debugging purposes."
-  (interactive (pcase-let* ((`(,account . ,mailbox)
-                             (-read-mailbox-maybe "IMAP command in: ")))
+  (interactive (pcase-let ((`(,account . ,mailbox)
+                            (-read-mailbox-maybe "IMAP command in: ")))
                  (list account mailbox
                        (read-from-minibuffer
                         (format-prompt "IMAP command in %s" nil
                                        (-mailbox-display-name account mailbox))))))
-  (athunk-run
-   (athunk-let*
-       ((result <- (athunk-condition-case v
-                       (-amake-request account mailbox command)
-                     (:success `(ok ,(with-current-buffer v (buffer-string))))
-                     (-imap-error (cdr v)))))
-     (message "IMAP command: %s\n%s" (car result) (cadr result)))))
+  (pcase-let ((`(,status ,message)
+               (athunk-run-polling
+                (athunk-condition-case v
+                    (-amake-request account mailbox command)
+                  (:success `(ok ,(with-current-buffer v (buffer-string))))
+                  (-imap-error (cdr v)))
+                :interval 0.1 :max-tries 100)))
+    (prog1 status (princ message))))
 
 ;;; Mailbox buffer
 

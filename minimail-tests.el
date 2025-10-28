@@ -26,7 +26,7 @@
 
 ;;; athunk stuff
 
-(defun -with-polling (athunk &optional secs)
+(defun -with-polling (athunk)
   (athunk-run-polling athunk :interval 0.001 :max-tries 1000))
 
 (defmacro -should-take-seconds (secs &rest body)
@@ -67,34 +67,20 @@
        (should (eq y 2))
        (should (eq z 3))))))
 
-(ert-deftest minimail-tests-memoization ()
-  (-with-polling
-   (let* ((count 0)
-          (place nil)
-          (getter (lambda (v)
-                    (athunk-memoize (alist-get 'key place)
-                      (athunk-let* ((_ <- (athunk-sleep 0)))
-                        (cl-incf count)
-                        v)))))
-     (athunk-let ((x (funcall getter 10))
-                  (y (funcall getter 20)))
-       (should (eq x 10))
-       (should (eq y 10))
-       (should (eq count 1))))))
-
-(ert-deftest minimail-tests-memoization-reset ()
-  (-with-polling
-   (let* ((place nil)
-          (getter (lambda (v)
-                    (athunk-memoize (alist-get 'key place)
-                      (athunk-wrap v)))))
-     (athunk-let*
-         ((x <- (funcall getter 1))
-          (y <- (progn
-               (athunk-unmemoize (alist-get 'key place))
-               (funcall getter 2))))
-       (should (eq x 1))
-       (should (eq y 2))))))
+(ert-deftest minimail-tests-mutex ()
+  (let (queue busy result)
+    (dotimes (i 3)
+      (athunk-run
+       (athunk-with-mutex queue
+                          (athunk-let*
+                              ((_ (when busy (push t result)))
+                               (_ (setq busy t))
+                               (_ <- (athunk-sleep 0.1)))
+                            (setq busy nil)
+                            (push i result)))))
+    (-with-polling (athunk-sleep 0.35))
+    (should (equal result '(2 1 0)))
+    (should (equal queue '(1)))))
 
 ;;; IMAP parsing
 

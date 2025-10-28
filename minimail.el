@@ -205,33 +205,28 @@ See `condition-case' for the exact meaning of VAR and HANDLERS."
   (declare (indent 0))
   `(athunk-condition-case nil ,(macroexp-progn body) (error nil)))
 
-(defmacro athunk-memoize (place &rest body)
-  "Like `with-memoization' for asynchronous code.
-BODY should evaluate to an athunk.  When it's resolved, store the result
-in PLACE.  If there is already a value stored in PLACE, use it instead."
-  (declare (indent 1))
-  ;; TODO: error handling
-  `(lambda (cont)
-     (pcase-exhaustive ,place
-       (`(athunk--cached . ,val)
-        (funcall cont nil val))
-       (`(athunk--pending . ,conts)
-        (nconc conts `(,cont)))
-       ('nil
-        (setf ,place `(athunk--pending ,cont))
-        (funcall ,(macroexp-progn body)
-                 (lambda (err val)
-                   (let ((conts (cdr ,place)))
-                     (setf ,place (unless err `(athunk--cached . ,val)))
-                     (dolist (k conts)
-                       (funcall k err val))))))))) ;FIXME: should ignore errors?
+(defun athunk--semaphore (state athunk)
+  (lambda (cont)
+    (let ((task (lambda ()
+                  (funcall athunk
+                           (lambda (err val)
+                             (if-let* ((next (pop (cdr state))))
+                                 (run-with-timer 0 nil next)
+                               (cl-incf (car state)))
+                             (funcall cont err val))))))
+      (if (zerop (car state))
+          (nconc state (list task))
+        (cl-decf (car state))
+        (funcall task)))))
 
-(defmacro athunk-unmemoize (place)
-  "Forget the memoized value in PLACE.
-This only has an effect if the value has been already computed; if it is
-pending the computation is not canceled."
-  (gv-letplace (getter setter) place
-    `(when (eq 'athunk--cached (car ,getter)) ,(funcall setter nil))))
+(defmacro athunk-with-mutex (place athunk)
+  "Return a new athunk which acquires a mutex before running ATHUNK.
+Note that the expression ATHUNK is evaluated before acquiring the mutex.
+
+PLACE is a generalized variable pointing to the mutex state.  It is
+initialized automatically."
+  (declare (indent 1))
+  `(athunk--semaphore (with-memoization ,place (list 1)) ,athunk))
 
 (cl-defun athunk-run-polling (athunk &key (interval 1) (max-tries -1))
   "Run ATHUNK, polling every INTERVAL seconds and blocking until done.
@@ -921,12 +916,20 @@ being used."
                (goto-char (point-min)))
              (run-with-idle-timer 0 nil continue))))))))
 
+(defvar -aget-capability nil
+  "Synchronization data for the function of same name.")
+
 (defun -aget-capability (account)
-  (athunk-memoize (-get-in -account-state account 'capability)
+  (athunk-with-mutex (alist-get account -aget-capability)
     (athunk-let*
-        ((buffer <- (-amake-request account nil "CAPABILITY")))
-      (with-current-buffer buffer
-        (-parse-capability)))))
+        ((cached (-get-in -account-state account 'capability))
+         (new <- (if cached
+                     (athunk-wrap nil)
+                   (athunk-let*
+                       ((buffer <- (-amake-request account nil "CAPABILITY")))
+                     (with-current-buffer buffer
+                       (-parse-capability))))))
+      (or cached (setf (-get-in -account-state account 'capability) new)))))
 
 (defun -format-sequence-set (set)
   "Format a set of message IDs as a string.
@@ -941,26 +944,32 @@ are 1-based and inclusive of the end."
     ((pred (not null))
      (mapconcat #'-format-sequence-set set ","))))
 
+(defvar -aget-mailbox-listing nil
+  "Synchronization data for the function of same name.")
+
 (defun -aget-mailbox-listing (account &optional refresh)
-  (when refresh
-    (athunk-unmemoize (-get-in -account-state account 'mailboxes)))
-  (athunk-memoize (-get-in -account-state account 'mailboxes)
+  (athunk-with-mutex (alist-get account -aget-mailbox-listing)
     (athunk-let*
-        ((props (alist-get account minimail-accounts))
-         (url (url-generic-parse-url (plist-get props :incoming-url)))
-         (path (string-remove-prefix "/" (car (url-path-and-query url))))
-         (caps <- (-aget-capability account))
-         (return (delq nil (list (when (memq 'special-use caps)
-                                   "SPECIAL-USE")
-                                 (when (memq 'list-status caps)
-                                   "STATUS (MESSAGES UIDNEXT UNSEEN)"))))
-         (cmd (format (if return "LIST %s * RETURN (%s)" "LIST %s *")
-                      (-imap-quote path)
-                      (string-join return " ")))
-         (buffer <- (-amake-request account nil cmd)))
-      (with-current-buffer buffer
-        (mapcar (pcase-lambda (`(,k . ,v)) `(,k . ,(mapcan #'cdr v)))
-                (seq-group-by #'car (-parse-list)))))))
+        ((cached (unless refresh (-get-in -account-state account 'mailboxes)))
+         (new <- (if cached
+                     (athunk-wrap nil)
+                   (athunk-let*
+                       ((props (alist-get account minimail-accounts))
+                        (url (url-generic-parse-url (plist-get props :incoming-url)))
+                        (path (string-remove-prefix "/" (car (url-path-and-query url))))
+                        (caps <- (-aget-capability account))
+                        (return (delq nil (list (when (memq 'special-use caps)
+                                                  "SPECIAL-USE")
+                                                (when (memq 'list-status caps)
+                                                  "STATUS (MESSAGES UIDNEXT UNSEEN)"))))
+                        (cmd (format (if return "LIST %s * RETURN (%s)" "LIST %s *")
+                                     (-imap-quote path)
+                                     (string-join return " ")))
+                        (buffer <- (-amake-request account nil cmd)))
+                     (with-current-buffer buffer
+                       (mapcar (pcase-lambda (`(,k . ,v)) `(,k . ,(mapcan #'cdr v)))
+                               (seq-group-by #'car (-parse-list))))))))
+      (or cached (setf (-get-in -account-state account 'mailboxes) new)))))
 
 (defun -aget-mailbox-attributes (account mailbox)
   (athunk-let*

@@ -325,8 +325,8 @@ sorting by thread."
   "Maximum number of messages to fetch at a time when displaying a mailbox."
   :type 'natnum)
 
-(defface minimail-unread '((t :inherit bold))
-  "Face for unread messages.")
+(defface minimail-unseen '((t :inherit bold))
+  "Face for unseen messages.")
 
 ;;; Internal variables and helper functions
 
@@ -1433,7 +1433,7 @@ Cf. RFC 5256, §2.1."
      ($Phishing  . #("⚠" 0 1 (face error))))))
 
 (defvar minimail-flag-faces
-  '(((not \\Seen) . minimail-unread)))
+  '(((not \\Seen) . minimail-unseen)))
 
 (defun -apply-mailbox-line-face ()
   (save-excursion

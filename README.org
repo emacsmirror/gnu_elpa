@@ -1,0 +1,13 @@
+* To use
+** TODO installation instructions
+
+** Configuration
+
+#+begin_src elisp
+  ;; Recommended: bind to keyboard
+  (bind-key "C-c x" #'xc)
+
+  ;; If using Treemacs, initialize the integration
+  (with-eval-after-load 'treemacs
+    (xc--treemacs-init))
+#+end_src

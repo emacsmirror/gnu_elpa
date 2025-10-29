@@ -9,5 +9,5 @@
 
   ;; If using Treemacs, initialize the integration
   (with-eval-after-load 'treemacs
-    (xc--treemacs-init))
+    (xc-treemacs-init))
 #+end_src

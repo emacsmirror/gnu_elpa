@@ -1,17 +1,51 @@
-;; ex.el -- Emacs integration with the xc task runner
+;;; ex.el --- Emacs interface for xc  -*- lexical-binding: t; -*-
 
-;; This file is not a part of GNU Emacs
+;; Copyright © 2025 Ryan Prior <rprior@protonmail.com>
+;; Author: Ryan Prior
+;; URL: https://codeberg.org/ryanprior/xc.el
+;; Package-Version: 20251029.1
+;; Keywords: task-runner xc markdown org-mode
+;; Version: 1
+
+;; This file is not part of GNU Emacs.
+
+;;; License:
+
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Code:
+
+(defgroup xc nil
+  "An Emacs interface for xc"
+  :prefix "xc-"
+  :group 'tools
+  :link '(url-link :tag "Codeberg" "https://codeberg.org/ryanprior/xc.el"))
 
 (defcustom xc-executable nil
   "The executable of the xc task runner
 
 Either a string containing the name or the path of the executable, or
-nil to use the default `xc'.")
+nil to use the default `xc'."
+  :group 'xc
+  :type 'string)
 
 (defcustom xc-type nil
   "Type of documentation xc should look for
 
-Either `org' or `md', or nil for default.")
+Either `org' or `md', or nil for default."
+  :group 'xc
+  :type 'string)
 
 (defun xc--run (args)
   (with-temp-buffer
@@ -32,6 +66,7 @@ Either `org' or `md', or nil for default.")
                           xc--run)))
     (split-string xc-output)))
 
+;;;###autoload
 (defun xc (task)
   "Run TASK using `xc'"
   (interactive (list (completing-read "Task: " (xc--tasks))))
@@ -67,8 +102,10 @@ Either `org' or `md', or nil for default.")
          (default-directory btn-path))
     (xc--tasks)))
 
-(defun xc--treemacs-init ()
+;;;###autoload
+(defun xc-treemacs-init ()
   "Initialize xc-Treemacs integration"
+  (interactive)
   (require 'treemacs-treelib)
   (treemacs-define-entry-node-type xc-tasks
     :key 'xc-tasks
@@ -89,3 +126,6 @@ Either `org' or `md', or nil for default.")
    :extension 'xc-tasks
    :position 'top
    :predicate #'xc--treemacs-tasks-p))
+
+(provide 'xc)
+;;; xc.el ends here

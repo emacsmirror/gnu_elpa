@@ -1,5 +1,15 @@
 * To use
-** TODO installation instructions
+** Installation instructions
+
+You can install this package directly from Codeberg like so:
+
+#+begin_src elisp
+  (use-package xc
+    :vc (:url "https://codeberg.org/ryanprior/xc.el.git" :branch "main"))
+#+end_src
+
+If you would like to help me get this into GNU Elpa, feel free to bug me.
+(Otherwise I will probably get around to it once eventually.)
 
 ** Configuration
 
@@ -7,7 +17,7 @@
   ;; Recommended: bind to keyboard
   (bind-key "C-c x" #'xc)
 
-  ;; If using Treemacs, initialize the integration
+  ;; If you use Treemacs, initialize the integration:
   (with-eval-after-load 'treemacs
     (xc-treemacs-init))
 #+end_src

@@ -25,7 +25,8 @@ Being non-blocking doesn't mean Minimail has excellent performance
 necessary condition for such.  In fact, Minimail currently doesn't
 include any of these possible optimizations:
 
-- [ ] Caching
+- [X] Caching
+  - in memory, no persistence
 - [ ] Support for CONDSTORE capability
 - [ ] Connection pool (for concurrent requests)
 - [ ] Prefetching of messages in the background
@@ -73,7 +74,7 @@ machine imap.gmail.com login somebody@gmail.com password xxxxxxxxxxxxxxxx
 machine smtp.gmail.com login somebody@gmail.com password xxxxxxxxxxxxxxxx
 
 machine imap.gmail.com login webmaster@evilcorp.com password yyyyyyyyyyyyyyyy
-machine smtp.gmail.com login webmaster@evilcopr.com password yyyyyyyyyyyyyyyy
+machine smtp.gmail.com login webmaster@evilcorp.com password yyyyyyyyyyyyyyyy
 
 machine imap.niceuni.edu login username password zzzzzzzzzzzzzzzz
 machine smtp.niceuni.edu login username password zzzzzzzzzzzzzzzz

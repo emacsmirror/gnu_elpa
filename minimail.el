@@ -188,8 +188,6 @@ See `condition-case' for the exact meaning of VAR and HANDLERS."
         (esym (gensym))                 ;the error, possibly nil
         (vsym (gensym))                 ;the computed value
         (hsym (gensym)))                ;helper symbol to hold an error
-    (unless (assq :success  handlers)
-      (push  `(:success ,vsym) handlers))
     `(lambda (,csym)
        (funcall ,form
                 (lambda (,esym ,vsym)
@@ -205,7 +203,7 @@ See `condition-case' for the exact meaning of VAR and HANDLERS."
   (declare (indent 0))
   `(athunk-condition-case nil ,(macroexp-progn body) (error nil)))
 
-(defun athunk--semaphore (state athunk)
+(defun athunk--semaphore (state athunk priority)
   (lambda (cont)
     (let ((task (lambda ()
                   (funcall athunk
@@ -214,19 +212,22 @@ See `condition-case' for the exact meaning of VAR and HANDLERS."
                                  (run-with-timer 0 nil next)
                                (cl-incf (car state)))
                              (funcall cont err val))))))
-      (if (zerop (car state))
-          (nconc state (list task))
-        (cl-decf (car state))
-        (funcall task)))))
+      (cond
+       ((> (car state) 0) (cl-decf (car state)) (funcall task))
+       (priority (push task (cdr state)))
+       (t (nconc state (list task)))))))
 
-(defmacro athunk-with-mutex (place athunk)
-  "Return a new athunk which acquires a mutex before running ATHUNK.
-Note that the expression ATHUNK is evaluated before acquiring the mutex.
+(cl-defmacro athunk-with-semaphore (place athunk &key (concurrency 1) use-lifo-queue)
+  "Return an athunk which acquires a semaphore then runs ATHUNK.
+Note that the expression ATHUNK is evaluated before acquiring the
+semaphore.
 
-PLACE is a generalized variable pointing to the mutex state.  It is
+PLACE is a generalized variable pointing to the semaphore state.  It is
 initialized automatically."
   (declare (indent 1))
-  `(athunk--semaphore (with-memoization ,place (list 1)) ,athunk))
+  `(athunk--semaphore (with-memoization ,place (list ,concurrency))
+                      ,athunk
+                      ,use-lifo-queue))
 
 (cl-defun athunk-run-polling (athunk &key (interval 1) (max-tries -1))
   "Run ATHUNK, polling every INTERVAL seconds and blocking until done.
@@ -300,6 +301,10 @@ All entries all optional, except for `:incoming-url'."
 (defcustom minimail-connection-idle-timeout 60
   "Time in seconds a network connection can remain open without activity."
   :type 'boolean)
+
+(defcustom minimail-message-cache-size 20
+  "Maximum number of messages to keep cached in memory."
+  :type 'natnum)
 
 (defcustom minimail-mailbox-mode-columns '((\\Sent flags date recipients subject)
                                            (t flags date from subject))
@@ -915,20 +920,16 @@ being used."
                (goto-char (point-min)))
              (run-with-timer 0 nil continue))))))))
 
-(defvar -aget-capability nil
-  "Synchronization data for the function of same name.")
-
 (defun -aget-capability (account)
-  (athunk-with-mutex (alist-get account -aget-capability)
-    (athunk-let*
-        ((cached (-get-in -account-state account 'capability))
-         (new <- (if cached
-                     (athunk-wrap nil)
-                   (athunk-let*
-                       ((buffer <- (-amake-request account nil "CAPABILITY")))
-                     (with-current-buffer buffer
-                       (-parse-capability))))))
-      (or cached (setf (-get-in -account-state account 'capability) new)))))
+  (athunk-let*
+      ((cached (-get-in -account-state account 'capability))
+       (new <- (if cached ;race condition here, but it's innocuous :-)
+                   (athunk-wrap nil)
+                 (athunk-let*
+                     ((buffer <- (-amake-request account nil "CAPABILITY")))
+                   (with-current-buffer buffer
+                     (-parse-capability))))))
+    (or cached (setf (-get-in -account-state account 'capability) new))))
 
 (defun -format-sequence-set (set)
   "Format a set of message IDs as a string.
@@ -947,7 +948,7 @@ are 1-based and inclusive of the end."
   "Synchronization data for the function of same name.")
 
 (defun -aget-mailbox-listing (account &optional refresh)
-  (athunk-with-mutex (alist-get account -aget-mailbox-listing)
+  (athunk-with-semaphore (alist-get account -aget-mailbox-listing)
     (athunk-let*
         ((cached (unless refresh (-get-in -account-state account 'mailboxes)))
          (new <- (if cached
@@ -993,17 +994,33 @@ are 1-based and inclusive of the end."
     (with-current-buffer buffer
       (alist-get 'id (car (-parse-fetch))))))
 
+(defvar -message-cache nil)
+
+(defvar -afetch-message-body nil
+  "Synchronization data for the function of same name.")
+
 (defun -afetch-message-body (account mailbox uid)
   "Fetch body of message with the given UID in ACCOUNT's MAILBOX.
 Return the request response buffer narrowed to the message content."
-  (athunk-let*
-      ((cmd (format "UID FETCH %s (BODY[])" uid))
-       (buffer <- (-amake-request account mailbox cmd)))
-    (with-current-buffer buffer
-      (pcase-let* ((data (car (-parse-fetch)))
-                   (`(,start . ,end) (alist-get 'content data)))
-        (narrow-to-region start end)
-        buffer))))
+  (athunk-with-semaphore (alist-get account -afetch-message-body)
+    (athunk-let*
+        ((key (list account mailbox uid))
+         (cached (assoc key -message-cache))
+         (buffer <- (if cached
+                        (athunk-wrap nil)
+                      (-amake-request account mailbox
+                                      (format "UID FETCH %s (BODY[])" uid)))))
+      (if cached
+          (prog1 (cdr cached)
+            (setq -message-cache (cons cached (delq cached -message-cache))))
+        (with-current-buffer buffer
+          (pcase-let* ((response (car (-parse-fetch)))
+                       (`(,start . ,end) (alist-get 'content response))
+                       (content (buffer-substring-no-properties start end)))
+            (push (cons key content) -message-cache)
+            (cl-callf2 ntake minimail-message-cache-size -message-cache)
+            content))))
+    :use-lifo-queue t))
 
 (defun -afetch-message-info (account mailbox set &optional brief sequential)
   "Fetch metadata for the given message SET in ACCOUNT's MAILBOX.
@@ -1835,11 +1852,11 @@ window shorter than 6 lines."
           (list account mailbox uid))
     (athunk-run
      (athunk-let*
-         ((msgbuf <- (athunk-condition-case err
-                         (-afetch-message-body account mailbox uid)
-                       (t (with-current-buffer buffer
-                            (setq -mode-line-suffix ":Error"))
-                          (signal (car err) (cdr err))))))
+         ((text <- (athunk-condition-case err
+                       (-afetch-message-body account mailbox uid)
+                     (t (with-current-buffer buffer
+                          (setq -mode-line-suffix ":Error"))
+                        (signal (car err) (cdr err))))))
        (when (buffer-live-p buffer)
          (with-current-buffer buffer
            (when (equal (alist-get 'next-message -local-state)
@@ -1851,9 +1868,9 @@ window shorter than 6 lines."
                  (delete-overlay ov))
                (setq -current-account account)
                (setq -current-mailbox mailbox)
+               (setf (alist-get 'uid -local-state) uid)
                (rename-buffer (-message-buffer-name account mailbox uid) t)
-               (insert-buffer-substring msgbuf)
-               (decode-coding-region (point-min) (point-max) 'raw-text-dos)
+               (decode-coding-string text 'raw-text-dos nil buffer)
                (save-restriction
                  (message-narrow-to-headers-or-head)
                  (setf (alist-get 'references -local-state)

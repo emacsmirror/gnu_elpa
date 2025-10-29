@@ -26,9 +26,6 @@
 
 ;;; athunk stuff
 
-(defun -with-polling (athunk)
-  (athunk-run-polling athunk :interval 0.001 :max-tries 1000))
-
 (defmacro -should-take-seconds (secs &rest body)
   "Assert that BODY takes approximately SECS seconds to run."
   (declare (indent 1))
@@ -38,47 +35,52 @@
        (should (< ,secs (float-time (time-since ,time)) ,(* secs 1.05))))))
 
 (ert-deftest minimail-tests-let* ()
-  (-with-polling
+  (athunk-run-polling
    (athunk-let* ((x <- (athunk-wrap 2))
                  (y <- (athunk-wrap (1+ x))))
-     (should (eq y 3)))))
+     (should (eq y 3)))
+   :interval 0.001 :max-tries 1000))
 
 (ert-deftest minimail-tests-sleep ()
   (-should-take-seconds 0.25
-    (-with-polling
+    (athunk-run-polling
      (athunk-let* ((x <- (athunk-sleep 0.25 'xxx)))
-       (should (eq x 'xxx))))))
+       (should (eq x 'xxx)))
+     :interval 0.001 :max-tries 1000)))
 
 (ert-deftest minimail-tests-gather ()
   (-should-take-seconds 0.3
-    (-with-polling
+    (athunk-run-polling
      (athunk-let* ((vec <- (athunk-gather (list (athunk-sleep 0.1 1)
                                                 (athunk-sleep 0.3 2)
                                                 (athunk-sleep 0.2 3)))))
-       (should (equal vec [1 2 3]))))))
+       (should (equal vec [1 2 3])))
+     :interval 0.001 :max-tries 1000)))
 
 (ert-deftest minimail-tests-let ()
   (-should-take-seconds 0.2
-    (-with-polling
+    (athunk-run-polling
      (athunk-let ((x <- (athunk-sleep 0.2 1))
                   (y <- (athunk-sleep 0.1 2))
                   (z 3))
        (should (eq x 1))
        (should (eq y 2))
-       (should (eq z 3))))))
+       (should (eq z 3)))
+     :interval 0.001 :max-tries 1000)))
 
 (ert-deftest minimail-tests-mutex ()
   (let (queue busy result)
     (dotimes (i 3)
       (athunk-run
-       (athunk-with-mutex queue
-                          (athunk-let*
-                              ((_ (when busy (push t result)))
-                               (_ (setq busy t))
-                               (_ <- (athunk-sleep 0.1)))
-                            (setq busy nil)
-                            (push i result)))))
-    (-with-polling (athunk-sleep 0.35))
+       (athunk-with-semaphore
+           queue (athunk-let*
+                     ((_ (when busy (push t result)))
+                      (_ (setq busy t))
+                      (_ <- (athunk-sleep 0.1)))
+                   (setq busy nil)
+                   (push i result)))))
+    (athunk-run-polling (athunk-sleep 0.35)
+                        :interval 0.001 :max-tries 1000)
     (should (equal result '(2 1 0)))
     (should (equal queue '(1)))))
 

@@ -1,3 +1,12 @@
+* About
+
+xc.el provides an Emacs interface for [[https://xcfile.dev/][xc]].
+
+** Action shot
+
+#+caption: Emacs screenshot showing a buffer editing README.md with a Treemacs sidebar displaying available XC tasks in a tree.
+[[file:./screenshot-v1.png]]
+
 * To use
 ** Installation instructions
 

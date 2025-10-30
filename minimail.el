@@ -1809,6 +1809,9 @@ style.  If DESCEND is non-nil, use the opposite convention."
 
 ;;; Message buffer
 
+(defvar -message-erase-function #'erase-buffer
+  "Function called to erase a message buffer.")
+
 (defvar-keymap minimail-message-mode-map
   :parent (make-composed-keymap (list minimail-base-keymap button-buffer-map)
                                 special-mode-map))
@@ -1863,14 +1866,13 @@ window shorter than 6 lines."
                         (list account mailbox uid))
              (let ((inhibit-read-only t))
                (setq -mode-line-suffix nil)
-               (erase-buffer)
-               (dolist (ov (overlays-in (point-min) (point-max)))
-                 (delete-overlay ov))
+               (funcall -message-erase-function)
                (setq -current-account account)
                (setq -current-mailbox mailbox)
                (setf (alist-get 'uid -local-state) uid)
                (rename-buffer (-message-buffer-name account mailbox uid) t)
                (decode-coding-string text 'raw-text-dos nil buffer)
+               ;(setq last-coding-system-used nil)
                (save-restriction
                  (message-narrow-to-headers-or-head)
                  (setf (alist-get 'references -local-state)
@@ -1944,8 +1946,14 @@ window shorter than 6 lines."
 
 (defun -gnus-render-message ()
   "Render message in the current buffer using the Gnus machinery."
-  (add-hook 'kill-buffer-hook #'-gnus-cleanup-mime-handles nil t)
-  (-gnus-cleanup-mime-handles)  ;in case we're reusing this buffer
+  (add-hook 'kill-buffer-hook
+            (lambda () (mm-destroy-parts gnus-article-mime-handles))
+            nil t)
+  (add-function :before (local '-message-erase-function)
+                (lambda ()
+                  (mm-destroy-parts gnus-article-mime-handles)
+                  (dolist (ov (overlays-in (point-min) (point-max)))
+                    (delete-overlay ov))))
   ;; Gnus has the curious habit of not declaring its buffer-local
   ;; variables as such, so we need to take care to include all
   ;; relevant variables here.
@@ -1976,9 +1984,6 @@ window shorter than 6 lines."
   (gnus-display-mime)
   (when gnus-mime-display-attachment-buttons-in-header
     (gnus-mime-buttonize-attachments-in-header)))
-
-(defun -gnus-cleanup-mime-handles ()
-  (mm-destroy-parts gnus-article-mime-handles))
 
 (advice-add #'gnus-article-check-buffer :before-until
             (lambda () (derived-mode-p #'minimail-message-mode))

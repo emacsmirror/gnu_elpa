@@ -332,6 +332,7 @@ the corresponding buffer (e.g. by closing Emacs)."
 
 ;; Make byte-compiler quiet.
 (defvar gnus-posting-styles)
+(defvar bookmark-make-record-function)
 
 ;;;###autoload
 (define-minor-mode debbugs-org-mode
@@ -342,6 +343,9 @@ the corresponding buffer (e.g. by closing Emacs)."
   (set (make-local-variable 'debbugs-gnu-local-query) debbugs-gnu-current-query)
   (set (make-local-variable 'debbugs-gnu-local-filter)
        debbugs-gnu-current-filter)
+  ;; Needed for bookmarks only.
+  (set (make-local-variable 'debbugs-gnu-local-suppress)
+       debbugs-gnu-current-suppress)
   ;; FIXME: Does not show any effect.
   (set (make-local-variable 'org-priority-faces) debbugs-org-priority-faces)
   (set (make-local-variable 'gnus-posting-styles)
@@ -357,6 +361,7 @@ the corresponding buffer (e.g. by closing Emacs)."
 	       ;; `gnus-posting-styles' is eval'ed after
 	       ;; `message-simplify-subject'.  So we cannot use m-s-s.
 	       (setq subject ,debbugs-gnu-subject)))))))
+  (setq-local bookmark-make-record-function #'debbugs-gnu-bookmark-make-record)
   (debbugs-org-regenerate-status))
 
 ;;;###autoload

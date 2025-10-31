@@ -1751,10 +1751,10 @@ interesting to you."
            nil t)
       (put-text-property
        (match-beginning 0) (match-end 0)
-       'face 'debbugs-gnu-marked))
+       'face 'debbugs-gnu-marked)
       (put-text-property
        (match-beginning 1) (match-end 1)
-       'help-echo "Client-side attribute")
+       'help-echo "Client-side attribute"))
     (goto-char (point-min)))
   (set-buffer-modified-p nil)
   (special-mode))

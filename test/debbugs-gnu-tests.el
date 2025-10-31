@@ -52,9 +52,9 @@
             (debbugs-gnu-current-query nil))
     (should
      (equal '(nil nil nil)
-            (debbugs-gnu-search nil '((submitter . "Phineas") (package . "emacs")) nil nil nil)))
-    (should (equal debbugs-gnu-current-query '((package . "emacs") (submitter . "Phineas"))))
-    (should (equal (debbugs-gnu-bookmark-name debbugs-gnu-current-query) "Bugs reported by Phineas in emacs package"))))
+            (debbugs-gnu-search nil '((submitter . "me") (package . "emacs")) nil nil nil)))
+    (should (equal debbugs-gnu-current-query '((package . "emacs") (submitter . "me"))))
+    (should (equal (debbugs-gnu-bookmark-name debbugs-gnu-current-query) "Bugs reported by me in emacs package"))))
 
 (ert-deftest--debbugs debbugs-test-gnu-search-tagged-bugs ()
   "Test `debbugs-gnu-search' on tagged bugs."

@@ -1,6 +1,6 @@
 ;;; debbugs-bookmarks.el --- Bookmark support for debbugs  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025  Matthias Meulien
+;; Copyright (C) 2025 Free Software Foundation, Inc.
 
 ;; Author: Matthias Meulien <orontee@gmail.com>
 ;; Keywords: convenience
@@ -38,23 +38,24 @@
 (declare-function bookmark-default-handler "bookmark" (bmk))
 (declare-function bookmark-get-bookmark-record "bookmark" (bmk))
 
-(declare-function debbugs-gnu-show-reports "debbugs-gnu" (&optional offline))
+(declare-function debbugs-gnu "debbugs-gnu")
+(declare-function debbugs-gnu-show-reports "debbugs-gnu")
+(declare-function debbugs-org-show-reports "debbugs-org")
 
 (defvar debbugs-gnu-current-buffer)
 (defvar debbugs-gnu-current-filter)
-(defvar debbugs-gnu-current-print-function)
 (defvar debbugs-gnu-current-query)
 (defvar debbugs-gnu-current-suppress)
 (defvar debbugs-gnu-local-query)
 (defvar debbugs-gnu-local-filter)
-(defvar debbugs-gnu-local-print-function)
 (defvar debbugs-gnu-local-suppress)
+(defvar debbugs-gnu-show-reports-function)
 
 (defun debbugs-gnu-bookmark-name (query)
   "Candidate for bookmark name.
-The name depends on whether the query specifies bug identifiers or a
-phrase.  When a phrase is specified, the subject may override the phrase
-and packages if any are mentionned.
+The name depends on whether QUERY specifies bug identifiers or a phrase.
+When a phrase is specified, the subject may override the phrase and
+packages if any are mentioned.
 
 Examples of generated names follows:
 - Bug #20777
@@ -64,8 +65,7 @@ Examples of generated names follows:
 - Bugs with subject \"display\" in packages emacs,org
 - Bugs about \"something\" reported by someone@example.org
 - Tagged bugs
-- Bugs
-"
+- Bugs"
   (let* ((bugs (cdr (assq 'bugs query)))
 	 (bug-count (length bugs))
 	 (bugs-substring
@@ -118,9 +118,11 @@ such buffers."
       (filename . nil)
       (handler . debbugs-gnu-bookmark-jump)
       (debbugs-gnu-current-filter . ,debbugs-gnu-local-filter)
-      (debbugs-gnu-current-print-function . ,debbugs-gnu-local-print-function)
       (debbugs-gnu-current-query . ,debbugs-gnu-local-query)
-      (debbugs-gnu-current-suppress . ,debbugs-gnu-local-suppress))))
+      (debbugs-gnu-current-suppress . ,debbugs-gnu-local-suppress)
+      (debbugs-gnu-show-reports-function
+       . ,(if (eq major-mode 'debbugs-gnu-mode)
+              #'debbugs-gnu-show-reports #'debbugs-org-show-reports)))))
 
 (put 'debbugs-gnu-bookmark-jump 'bookmark-handler-type "Debbugs")
 
@@ -130,11 +132,11 @@ such buffers."
 This implements the `handler' function interface for the record
 type returned by `debbugs-gnu-bookmark-make-record'."
   (let* ((debbugs-gnu-current-filter (bookmark-prop-get bmk 'debbugs-gnu-current-filter))
-	 (debbugs-gnu-current-print-function (bookmark-prop-get bmk 'debbugs-gnu-current-print-function))
 	 (debbugs-gnu-current-query (bookmark-prop-get bmk 'debbugs-gnu-current-query))
 	 (debbugs-gnu-current-suppress (bookmark-prop-get bmk 'debbugs-gnu-current-suppress))
+         (debbugs-gnu-show-reports-function (bookmark-prop-get bmk 'debbugs-gnu-show-reports-function))
          (buf (progn ;; Don't use save-window-excursion (bug#39722)
-		(debbugs-gnu-show-reports)
+		(debbugs-gnu nil)
                 debbugs-gnu-current-buffer)))
     (bookmark-default-handler
      `("" (buffer . ,buf) . ,(bookmark-get-bookmark-record bmk)))))

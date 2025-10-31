@@ -186,6 +186,7 @@
 ;;; Code:
 
 (require 'debbugs)
+(require 'debbugs-bookmarks)
 (require 'debbugs-compat)
 (require 'tabulated-list)
 (require 'add-log)
@@ -1365,6 +1366,8 @@ Interactively, it is non-nil with the prefix argument."
   :type 'natnum
   :version "30.1")
 
+(defvar bookmark-make-record-function)
+
 (define-derived-mode debbugs-gnu-mode tabulated-list-mode "Debbugs"
   "Major mode for listing bug reports.
 The bugs are taken from the cache when the list is refreshed.
@@ -1383,6 +1386,7 @@ modified on the debbugs server, consider typing \\`C-u g'.
   (set (make-local-variable 'debbugs-gnu-local-print-function)
        debbugs-gnu-current-print-function)
   (set (make-local-variable 'tabulated-list-entries) nil)
+  (setq-local bookmark-make-record-function #'debbugs-gnu-bookmark-make-record)
   (setq tabulated-list-format
         `[("Id" ,debbugs-gnu-width-id debbugs-gnu-sort-id)
 	  ("State" ,debbugs-gnu-width-state debbugs-gnu-sort-state)

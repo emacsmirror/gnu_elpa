@@ -28,6 +28,7 @@
 
 (require 'ert)
 (require 'debbugs-gnu)
+(require 'debbugs-bookmarks)
 (require 'debbugs-test-helpers)
 
 ;;; Tests:
@@ -35,12 +36,36 @@
 (ert-deftest--debbugs debbugs-test-gnu-search ()
   "Test `debbugs-gnu-search'."
   (cl-letf (((symbol-function #'debbugs-gnu)
-             #'list))
+             #'list)
+            (debbugs-gnu-current-query nil))
     (should
      (equal '(nil ("guix" "guix-patches") nil)
             (debbugs-gnu-search "frogs" '((pending . "pending")) nil '("guix" "guix-patches") nil)))
     (should (equal debbugs-gnu-current-query '((phrase . "frogs"))))
-    (should (equal debbugs-gnu-current-filter '((pending . "pending"))))))
+    (should (equal debbugs-gnu-current-filter '((pending . "pending"))))
+    (should (equal (debbugs-gnu-bookmark-name debbugs-gnu-current-query) "Bugs about \"frogs\""))))
+
+(ert-deftest--debbugs debbugs-test-gnu-search-with-submitter-and-package ()
+  "Test `debbugs-gnu-search' with submitter and package."
+  (cl-letf (((symbol-function #'debbugs-gnu)
+             #'list)
+            (debbugs-gnu-current-query nil))
+    (should
+     (equal '(nil nil nil)
+            (debbugs-gnu-search nil '((submitter . "Phineas") (package . "emacs")) nil nil nil)))
+    (should (equal debbugs-gnu-current-query '((package . "emacs") (submitter . "Phineas"))))
+    (should (equal (debbugs-gnu-bookmark-name debbugs-gnu-current-query) "Bugs reported by Phineas in emacs package"))))
+
+(ert-deftest--debbugs debbugs-test-gnu-search-tagged-bugs ()
+  "Test `debbugs-gnu-search' on tagged bugs."
+  (cl-letf (((symbol-function #'debbugs-gnu)
+             #'list)
+            (debbugs-gnu-current-query nil))
+    (should
+     (equal '(nil ("guix" "guix-patches") nil)
+            (debbugs-gnu-search "frogs" '((severity . "tagged")) nil '("guix" "guix-patches") nil)))
+    (should (equal debbugs-gnu-current-query '((severity . "tagged") (phrase . "frogs"))))
+    (should (equal (debbugs-gnu-bookmark-name debbugs-gnu-current-query) "Tagged bugs about \"frogs\""))))
 
 (provide 'debbugs-gnu-tests)
 

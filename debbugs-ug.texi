@@ -500,7 +500,7 @@ column shows bugs which have been marked locally.  The title text is
 italic (@code{debbugs-gnu-marked-stale}) if the marked bug hasn't been
 touched for more than a week.
 
-The minor mode @code{debbugs-gnu-mode} is active in bug report
+The major mode @code{debbugs-gnu-mode} is active in bug report
 buffers.  This enables the following key strokes:
 
 @multitable @columnfractions .20 .80
@@ -623,6 +623,11 @@ Both tagged and marked bugs are kept persistent in the file
 @vindex debbugs-gnu-suppress-closed
 The user option @code{debbugs-gnu-suppress-closed} controls whether
 closed bugs are shown in the initial list.
+
+Tabulated list of bug reports can be bookmarked with the usual
+@code{bookmark-set} command.  The corresponding handler saves search
+query, not results; thus jumping to a bookmarked list of bug reports
+performs the same search that generated the bookmarked list.
 
 @vindex debbugs-gnu-mail-backend
 @kindex @kbd{@key{RET}}

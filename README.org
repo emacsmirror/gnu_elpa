@@ -34,8 +34,8 @@ include any of these possible optimizations:
 ** Try it out
 
 Minimail comes pre-configured to access the Emacs mailing lists served
-by [[https://yhetil.org/][Yhetil]] via anonymous IMAP.  Just type =minimail-find-mailbox= to
-try it out.
+by [[https://yhetil.org/][Yhetil]] via anonymous IMAP.  Just type =M-x minimail-show-mailboxes RET=
+to try it out.
 
 ** Configuration
 
@@ -82,6 +82,8 @@ machine smtp.niceuni.edu login username password zzzzzzzzzzzzzzzz
 
 ** Usage
 
-Type =M-x minimail-find-mailbox RET= and select a mailbox from the
-list to read your messages.  In a mailbox or message buffer, hit =h=
+This package has two main entry points.  The command
+=minimail-show-mailboxes= displays the mailbox hierarchy of your
+accounts, while =minimail-find-mailbox= directly opens a mailbox you
+choose from the minibuffer.  In a mailbox or message buffer, hit =h=
 to see a list of available commands.

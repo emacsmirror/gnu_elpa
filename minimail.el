@@ -38,6 +38,7 @@
 (require 'gnus-art)
 (require 'peg)      ;need peg.el from Emacs 30, which is ahead of ELPA
 (require 'smtpmail)
+(require 'tree-widget)
 (require 'vtable)
 
 (eval-when-compile
@@ -1157,15 +1158,18 @@ If not found and NOERROR is nil, signal an error."
       (unless (or noerror (buffer-live-p buffer))
         (user-error "No message buffer")))))
 
-(defun -mailbox-annotate (cand)
-  "Return an annotation for `devdocs--read-entry' candidate CAND."
-  (let-alist (car (-get-data cand))
+(defun -mailbox-annotation (mbx)
+  (let-alist mbx
     (when .messages
-      (if (cl-plusp .unseen)
-          (format #("  %s messages, %s unseen" 1 2 (display (space :align-to 40)))
-                  .messages .unseen)
-        (format #("  %s messages" 1 2 (display (space :align-to 40)))
-                  .messages)))))
+      (let ((suffix (if (eq 1 .messages) "" "s")))
+        (if (cl-plusp .unseen)
+            (format "%s message%s, %s unseen" .messages suffix .unseen)
+          (format "%s message%s" .messages suffix))))))
+
+(defun -mailbox-annotate (cand)
+  "Return an annotation for `minimail--read-mailbox' candidate CAND."
+  (when-let* ((annot (-mailbox-annotation (car (-get-data cand)))))
+    (format #("  %s" 1 2 (display (space :align-to 40))) annot)))
 
 (defun -read-mailbox (prompt &optional accounts)
   "Read the name of a mailbox from one of the ACCOUNTS using PROMPT.
@@ -1988,6 +1992,113 @@ window shorter than 6 lines."
 (advice-add #'gnus-article-check-buffer :before-until
             (lambda () (derived-mode-p #'minimail-message-mode))
             '((name . minimail)))
+
+;;; Overview buffer
+
+(defvar-local -tree-widgets nil)
+
+(defvar-keymap minimail-overview-mode-map
+  :parent (make-composed-keymap widget-keymap special-mode-map))
+
+(define-derived-mode minimail-overview-mode special-mode
+  '("Minimail" -mode-line-suffix)
+  "Major mode for browsing a mailbox tree."
+  :interactive nil
+  (setq buffer-undo-list t)
+  (tree-widget-set-theme "folder")
+  (setq-local revert-buffer-function (lambda (&rest _)
+                                       (-overview-buffer-populate t))))
+
+(defun -overview-tree-expand (widget)
+  (let ((acct (widget-get widget :account))
+        (path (widget-get widget :path)))
+    (mapcan
+     (lambda (mbx)
+       (let-alist mbx
+         (when (equal path (cdr .path))
+           (let ((node (if (-key-match-p '(or \\Noselect \\NonExistent) .attributes)
+                           `(item :tag ,(car .path))
+                         `(link :tag ,(car .path)
+                                :format "%[%t%]%d"
+                                :button-prefix ""
+                                :button-suffix ""
+                                :doc ,(if-let* ((annot (-mailbox-annotation mbx)))
+                                          (format #(" %s" 1 3 (face completions-annotations))
+                                                  annot)
+                                        "")
+                                :action
+                                ,(lambda (&rest _)
+                                   (minimail-find-mailbox acct .name))))))
+             (if (-key-match-p '\\HasNoChildren .attributes)
+                 `(,node)
+               `((tree-widget
+                  :tag ,(car .path)
+                  :account ,acct
+                  :path ,.path
+                  :expander -overview-tree-expand
+                  :node ,node)))))))
+     (widget-get (alist-get acct -tree-widgets) :mailboxes))))
+
+(defun -overview-buffer-populate (&optional refresh)
+  "Insert mailbox tree widgets to the current buffer.
+Unless REFRESH is non-nil, use cached mailbox information."
+  (let ((inhibit-read-only t)
+        (buffer (current-buffer))
+        (accounts (or (mapcar #'car minimail-accounts)
+                      (user-error "No accounts configured"))))
+    (setq -mode-line-suffix ":Loading")
+    (when (and (bolp) (eolp))
+      (dolist (acct accounts)
+        (setf (alist-get acct -tree-widgets)
+              (widget-create 'tree-widget
+                             :tag (symbol-name acct)
+                             :account acct
+                             :path nil
+                             :open t
+                             :expander-p #'always ;don't cache children
+                             :expander #'-overview-tree-expand)))
+      (goto-char (point-min)))
+    (dolist (acct accounts)
+      (athunk-run
+       (athunk-let*
+           ((mailboxes <- (athunk-condition-case err
+                              (-aget-mailbox-listing acct refresh)
+                            (t (setq -mode-line-suffix ":Error")
+                               (signal (car err) (cdr err)))))
+            ;; Add name an path property to the mailbox items.
+            (props (alist-get acct minimail-accounts))
+            (url (url-generic-parse-url (plist-get props :incoming-url)))
+            (basepath (string-remove-prefix "/" (car (url-path-and-query url))))
+            (mailboxes (mapcar (pcase-lambda (`(,name . ,props))
+                                 (let* ((delim (let-alist props .delimiter))
+                                        (path (nreverse
+                                               (append
+                                                (unless (string-empty-p basepath)
+                                                  (list basepath))
+                                                (split-string
+                                                 (string-remove-prefix basepath name)
+                                                 (regexp-quote delim) t)))))
+                                   `((name . ,name) (path . ,path) ,@props)))
+                               mailboxes)))
+         (with-current-buffer buffer
+           (widget-put (alist-get acct -tree-widgets) :mailboxes mailboxes)
+           (cl-remf accounts acct)
+           (unless accounts (setq -mode-line-suffix nil))
+           (let ((tree (alist-get acct -tree-widgets)))
+             (when (widget-get tree :open)
+               ;; Close and open to refresh children.
+               ;; FIXME: Keep open/closed state of children as well, keep point.
+               (widget-put tree :open nil)
+               (widget-apply tree :action)))))))))
+
+;;;###autoload
+(defun minimail-show-mailboxes ()
+  "Browse the mailbox tree of your email accounts."
+  (interactive)
+  (pop-to-buffer "*minimail-accounts*")
+  (unless (derived-mode-p 'minimail-overview-mode)
+    (minimail-overview-mode)
+    (-overview-buffer-populate)))
 
 ;;; MUA definition
 

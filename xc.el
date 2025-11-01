@@ -6,7 +6,7 @@
 ;; Package-Version: 20251029.1
 ;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: processes docs
-;; Version: 1.1
+;; Version: 1.2
 
 ;; This file is not part of GNU Emacs.
 
@@ -79,13 +79,24 @@ If FILE is provided, look for tasks in that file specifically."
 ;;;###autoload
 (defun xc (task)
   "Run TASK using `xc'."
-  (interactive (list (completing-read "Task: " (xc--tasks))))
-  (let* ((output-buffer (concat "*xc-" task "*")))
-    (thread-first xc-executable
-                  (concat " " task
-                          (and xc-type (concat " -type " xc-type)))
-                  (async-shell-command output-buffer))
-    (pop-to-buffer output-buffer)))
+  (interactive (if-let ((xc-tasks (xc--tasks)))
+                   (list (completing-read "Task: " xc-tasks nil t))
+                 (progn
+                   (thread-last
+                     (if (project-current)
+                         (project-root (project-current))
+                       default-directory)
+                     (format "No tasks for %s")
+                     (display-warning "xc"))
+                   '(nil))))
+  (when task
+    (let* ((output-buffer (concat "*xc-" task "*")))
+      (thread-first xc-executable
+                    (or "xc")
+                    (concat " " task
+                            (and xc-type (concat " -type " xc-type)))
+                    (async-shell-command output-buffer))
+      (pop-to-buffer output-buffer))))
 
 (defun xc-treemacs-RET-task-action (&optional _)
   "Run the task associated with the Treemacs button at point."

@@ -212,35 +212,33 @@ there is no such state in jj since jj automatically registers new files."
   ;;   starts with "A "), the "removed" state (when output starts with
   ;;   "D ") and "edited" state (when output starts with "M ").  No
   ;;   output is also possible (this could mean the "conflict",
-  ;;   "ignored" or "unchanged" state), but we deduce these with the
-  ;;   command below instead.
-  ;; 
-  ;; - "jj file list -T 'conflict' FILE" gets us the "conflict" state
-  ;;   (when output is "true"), the "ignored" state (when there is no
-  ;;   output) and states for tracked files (when output is "false",
-  ;;   either the "added", "removed", "edited" or "up-to-date" state).
-  ;;   We deduce the "added", "removed" and "edited" states with the
-  ;;   command above.
+  ;;   "ignored" or "unchanged" state), so we deduce these with the
+  ;;   next command:
   ;;
-  ;;   The only remaining possibility is the "up-to-date" state, which
-  ;;   we can deduce because when all other states have not been
-  ;;   matched against.
+  ;; - "jj file list -T 'conflict' FILE" prints "true" when the file
+  ;;   is in "conflict" state, prints an empty string when the file is
+  ;;   in "ignored" state, and "false" for any other state -- but most
+  ;;   of these are already covered by the previous command, so we
+  ;;   deduce "up-to-date".
   (let* ((default-directory (vc-jj-root file))
          (file (vc-jj--filename-to-fileset file))
-         (changed
-          (vc-jj--command-parseable "diff" "--summary" "--" file))
-         (conflicted-ignored
-          (vc-jj--command-parseable "file" "list" "-T" "conflict" "--" file)))
+         (changed (vc-jj--command-parseable "diff" "--summary" "--" file)))
     (cond
      ((string-prefix-p "A " changed) 'added)
      ((string-prefix-p "D " changed) 'removed)
      ((string-prefix-p "M " changed) 'edited)
-     ((string= conflicted-ignored "true") 'conflict)
-     ((string-empty-p conflicted-ignored) 'ignored)
-     ;; If the file hasn't matched anything yet, this leaves only one
-     ;; possible state: up-to-date
-     ((string= conflicted-ignored "false") 'up-to-date)
-     (t (error "VC state of %s is not recognized" file)))))
+     (t (let ((conflicted-ignored
+               (vc-jj--command-parseable "file" "list" "-T" "conflict" "--"
+                                         file)))
+          (cond
+           ((string= conflicted-ignored "true") 'conflict)
+           ((string-empty-p conflicted-ignored) 'ignored)
+           ;; If the file hasn't matched anything yet, this leaves
+           ;; only one possible state: up-to-date
+           ((string= conflicted-ignored "false") 'up-to-date)
+           (t
+            (warn "VC state of %s is not recognized, assuming up-to-date" file)
+            'up-to-date)))))))
 
 (defun vc-jj-dir-status-files (dir _files update-function)
   "Calculate a list of (FILE STATE EXTRA) entries for DIR.

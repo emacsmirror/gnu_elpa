@@ -5,7 +5,7 @@
 ;; Author: Protesilaos Stavrou <info@protesilaos.com>
 ;; Maintainer: Protesilaos Stavrou <info@protesilaos.com>
 ;; URL: https://github.com/protesilaos/denote-journal
-;; Version: 0.2.0
+;; Version: 0.2.1
 ;; Package-Requires: ((emacs "28.1") (denote "4.0.0"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -528,6 +528,7 @@ among them."
     map)
   "Key map for `denote-journal-calendar-mode'.")
 
+;;;###autoload
 (define-minor-mode denote-journal-calendar-mode
   "Mark Denote journal entries using `denote-journal-calendar' face.
 Add the function `denote-journal-calendar-mode' to the

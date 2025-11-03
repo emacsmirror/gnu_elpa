@@ -12,8 +12,10 @@ to messages.  Below is a listing of implemented and planned features.
   - [X] Full text
   - [ ] Structured (by sender, subject, etc.)
 - Sorting by thread
-  - [X] Simple algorithm based on subject lines
-  - [ ] Fancy algorithm based on reference message IDs.
+  - [X] “Shallow” threading (just one nesting level, sorted by date)
+    using server-side thread information if available or subject lines
+    as a fallback.
+  - [ ] Hierarchical threads based on reference message IDs.
 - [X] Move messages (also archive, move to trash, flag as junk)
 - [ ] Mark and operate on sets of messages (move, etc.)
 - [X] "Load more messages" button

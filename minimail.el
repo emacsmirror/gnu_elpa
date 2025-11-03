@@ -699,6 +699,7 @@ it is nil."
   (dquote   ()  (char ?\"))
   (crlf      () "\r\n")
   (anil      () "NIL" `(-- nil))
+  (tagged    () (bol) (char ?T) (+ [0-9]) sp) ;we always format our tags as T<number>
   (untagged  () (bol) "* ")
   (number    () (substring (+ [0-9])) `(s -- (string-to-number s)))
   (achar     () (and (not [cntrl "(){] %*\"\\"]) (any))) ;characters allowed in an atom
@@ -853,24 +854,25 @@ it is nil."
                          sp qstring
                          `(s -- '(media-type . "MULTIPART") `(media-subtype . ,s)))
                    ")")
-       ;; (body "BODY " (or body-single body-multi)
-       ;;       `(s -- `(body . ,s)))
-       (body "BODY " ;; (funcall (lambda () (forward-sexp) t))
-             balanced
-             )
+       ;; (body "BODY " (or body-single body-multi) `(s -- `(body . ,s)))
+       (body "BODY " balanced)
        (content "BODY[] " literal `(start end -- `(content ,start . ,end)))
        (flags "FLAGS (" (list (* (opt sp) flag)) ")"
               `(v -- `(flags . ,v)))
        (x-gm-labels "X-GM-LABELS (" (list (* (opt sp) astring7)) ")"
                     `(v -- `(x-gm-labels . ,v)))
+       (thread-id (or (and "THREADID " (or anil (and "(" atom ")")))
+                      (and "X-GM-THRID " number))
+                  `(v -- `(thread-id . ,v)))
+       (email-id (or (and "EMAILID (" atom ")") (and "X-GM-MSGID " number))
+                 `(v -- `(email-id . ,v)))
        (internal-date "INTERNALDATE " imapdate
                      `(v -- `(internal-date . ,v)))
        (size "RFC822.SIZE " number `(n -- `(rfc822-size . ,n)))
        (uid "UID " number `(n -- `(uid . ,n)))
        (item untagged number `(n -- `(id . ,n))
              " FETCH ("
-             (* (opt sp) (or uid flags size envelope body content
-                             internal-date x-gm-labels))
+             (* (opt sp) (or uid flags size envelope content thread-id x-gm-labels))
              ")" crlf))
     (car-safe
      (peg-run (peg (list (* (list item))))))))
@@ -1032,10 +1034,13 @@ If SEQUENTIAL is non-nil, SEQ is regarded as a set of sequential IDs
 rather than UIDs."
   (athunk-let*
       ((caps <- (-aget-capability account))
-       (cmd (format "%sFETCH %s (UID FLAGS%s%s)"
+       (cmd (format "%sFETCH %s (UID FLAGS%s%s%s)"
                     (if sequential "" "UID ")
                     (-format-sequence-set set)
                     (if (memq 'x-gm-ext-1 caps) " X-GM-LABELS" "")
+                    (cond ((memq 'objectid caps) " THREADID")
+                          ((memq 'x-gm-ext-1 caps) " X-GM-THRID")
+                          (t ""))
                     (if brief "" " RFC822.SIZE ENVELOPE")))
        (buffer <- (-amake-request account mailbox cmd))
        (messages (with-current-buffer buffer (-parse-fetch))))
@@ -1548,7 +1553,7 @@ Cf. RFC 5256, §2.1."
     (when-let* ((msg (seq-find (lambda (msg) (let-alist msg (eq .uid uid)))
                                messages)))
       (vtable-goto-object msg)))
-  (setq -thread-tree (-thread-by-subject messages))
+  (setq -thread-tree (-thread-tree-shallow messages))
   (when-let* ((how (alist-get 'sort-by-thread -local-state)))
     (-sort-messages-by-thread (eq how 'descend)))
   (save-excursion
@@ -1731,23 +1736,27 @@ If KILL is non-nil, kill the message buffer instead of burying it."
   "A prefix added to message subjects when sorting by thread."
   (make-string (* 2 (or (-thread-level uid) 0)) ?\s))
 
-(defun -thread-by-subject (messages)
-  "Compute a message thread tree from MESSAGES based on subject strings.
-This is the ORDEREDSUBJECT algorithm described in RFC 5256.  The return
-value is as described in loc. cit. §4, with message UIDs as tree leaves."
+(defun -thread-tree-shallow (messages)
+  "Compute a shallow message thread tree from MESSAGES.
+Use server-side thread identifiers if available; otherwise, infer the
+thread structure from the message sujects, as in the ORDEREDSUBJECT
+algorithm described in RFC 5256.  The return value is as described in
+loc. cit. §4, with message UIDs as tree leaves."
   (let* ((hash (make-hash-table :test #'equal))
          (threads (progn
                     (dolist (msg messages)
                       (let-alist msg
-                        (push msg (gethash (-base-subject (or .envelope.subject ""))
+                        (push msg (gethash (or .thread-id
+                                               (-base-subject
+                                                (or .envelope.subject "")))
                                            hash))))
-                    (mapcar (lambda (thread) (sort thread :key #'-message-timestamp))
-                            (hash-table-values hash))))
-         (sorted (sort threads :key (lambda (v) (-message-timestamp (car v))))))
+                    (mapcar (lambda (thread)
+                              (sort thread :key #'-message-timestamp :in-place t))
+                            (hash-table-values hash)))))
     (mapcar (lambda (thread)
               (cons (let-alist (car thread) .uid)
                     (mapcar (lambda (v) (let-alist v (list .uid))) (cdr thread))))
-            sorted)))
+            threads)))
 
 (defun -sort-messages-by-thread (&optional descend)
   "Sort messages with grouping by threads.
@@ -1757,8 +1766,7 @@ preserve the existing order, in the sense that thread A sorts before
 thread B if some message from A comes before all messages of B.  This
 makes sense when the current sort order is in the “most relevant at top”
 style.  If DESCEND is non-nil, use the opposite convention."
-  (let* ((table (or (vtable-current-table)
-                    (user-error "No table under point")))
+  (let* ((table (-ensure-vtable))
          (mhash (make-hash-table)) ;maps message id -> root id and position within thread
          (rhash (make-hash-table)) ;maps root id -> position across threads
          (lessp (lambda (o1 o2)

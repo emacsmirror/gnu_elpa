@@ -340,28 +340,29 @@ the corresponding buffer (e.g. by closing Emacs)."
 
 \\{debbugs-org-mode-map}"
   :lighter " Debbugs" :keymap debbugs-org-mode-map
-  (set (make-local-variable 'debbugs-gnu-local-query) debbugs-gnu-current-query)
-  (set (make-local-variable 'debbugs-gnu-local-filter)
-       debbugs-gnu-current-filter)
-  ;; Needed for bookmarks only.
-  (set (make-local-variable 'debbugs-gnu-local-suppress)
-       debbugs-gnu-current-suppress)
-  ;; FIXME: Does not show any effect.
-  (set (make-local-variable 'org-priority-faces) debbugs-org-priority-faces)
-  (set (make-local-variable 'gnus-posting-styles)
-       `((".*"
-	  (eval
-	   (when (buffer-live-p gnus-article-copy)
-	     (with-current-buffer gnus-article-copy
-	       (set (make-local-variable 'message-prune-recipient-rules)
-		    '((".*@debbugs.*" "emacs-pretest-bug")
-		      (".*@debbugs.*" "bug-gnu-emacs")
-		      ("[0-9]+@debbugs.*" "submit@debbugs.gnu.org")
-		      ("[0-9]+@debbugs.*" "quiet@debbugs.gnu.org")))
-	       ;; `gnus-posting-styles' is eval'ed after
-	       ;; `message-simplify-subject'.  So we cannot use m-s-s.
-	       (setq subject ,debbugs-gnu-subject)))))))
-  (setq-local bookmark-make-record-function #'debbugs-gnu-bookmark-make-record)
+  (setq-local
+   debbugs-gnu-local-query debbugs-gnu-current-query
+   debbugs-gnu-local-filter debbugs-gnu-current-filter
+   ;; Needed for bookmarks only.
+   debbugs-gnu-local-suppress debbugs-gnu-current-suppress
+   debbugs-gnu-local-message debbugs-gnu-current-message
+   ;; FIXME: Does not show any effect.
+   org-priority-faces debbugs-org-priority-faces
+   gnus-posting-styles
+   `((".*"
+      (eval
+       (when (buffer-live-p gnus-article-copy)
+	 (with-current-buffer gnus-article-copy
+	   (setq-local
+            message-prune-recipient-rules
+	    '((".*@debbugs.*" "emacs-pretest-bug")
+	      (".*@debbugs.*" "bug-gnu-emacs")
+	      ("[0-9]+@debbugs.*" "submit@debbugs.gnu.org")
+	      ("[0-9]+@debbugs.*" "quiet@debbugs.gnu.org")))
+	   ;; `gnus-posting-styles' is eval'ed after
+	   ;; `message-simplify-subject'.  So we cannot use m-s-s.
+	   (setq subject ,debbugs-gnu-subject))))))
+   bookmark-make-record-function #'debbugs-gnu-bookmark-make-record)
   (debbugs-org-regenerate-status))
 
 ;;;###autoload

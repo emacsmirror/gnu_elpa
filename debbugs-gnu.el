@@ -865,12 +865,12 @@ value, like in `debbugs-gnu-get-bugs' or `debbubgs-gnu-tagged'."
     (setq debbugs-gnu-current-suppress t))
 
   ;; Add queries.
-  (dolist (severity (if (consp severities) severities (list severities)))
+  (dolist (severity (if (listp severities) severities (list severities)))
     (when (not (zerop (length severity)))
       (when (string-equal severity "tagged")
 	(setq debbugs-gnu-current-suppress nil))
       (add-to-list 'debbugs-gnu-current-query (cons 'severity severity))))
-  (dolist (package (if (consp packages) packages (list packages)))
+  (dolist (package (if (listp packages) packages (list packages)))
     (when (not (zerop (length package)))
       (add-to-list 'debbugs-gnu-current-query (cons 'package package))))
   (when archivedp
@@ -880,7 +880,7 @@ value, like in `debbugs-gnu-get-bugs' or `debbubgs-gnu-tagged'."
     (setq debbugs-gnu-current-suppress t)
     (add-to-list 'debbugs-gnu-current-query '(status . "open"))
     (add-to-list 'debbugs-gnu-current-query '(status . "forwarded")))
-  (dolist (tag (if (consp tags) tags (list tags)))
+  (dolist (tag (if (listp tags) tags (list tags)))
     (when (not (zerop (length tag)))
       (add-to-list 'debbugs-gnu-current-query (cons 'tag tag))))
 
@@ -1375,18 +1375,16 @@ In order to retrieve the actual bug status after it has been
 modified on the debbugs server, consider typing \\`C-u g'.
 
 \\{debbugs-gnu-mode-map}"
-  (set (make-local-variable 'debbugs-gnu-sort-state) 'number)
-  (set (make-local-variable 'debbugs-gnu-limit) nil)
-  (set (make-local-variable 'debbugs-gnu-local-query)
-       debbugs-gnu-current-query)
-  (set (make-local-variable 'debbugs-gnu-local-filter)
-       debbugs-gnu-current-filter)
-  (set (make-local-variable 'debbugs-gnu-local-suppress)
-       debbugs-gnu-current-suppress)
-  (set (make-local-variable 'debbugs-gnu-local-print-function)
-       debbugs-gnu-current-print-function)
-  (set (make-local-variable 'tabulated-list-entries) nil)
-  (setq-local bookmark-make-record-function #'debbugs-gnu-bookmark-make-record)
+  (setq-local
+   debbugs-gnu-sort-state 'number
+   debbugs-gnu-limit nil
+   debbugs-gnu-local-query debbugs-gnu-current-query
+   debbugs-gnu-local-filter debbugs-gnu-current-filter
+   debbugs-gnu-local-suppress debbugs-gnu-current-suppress
+   debbugs-gnu-local-message debbugs-gnu-current-message
+   debbugs-gnu-local-print-function debbugs-gnu-current-print-function
+   bookmark-make-record-function #'debbugs-gnu-bookmark-make-record
+   tabulated-list-entries nil)
   (setq tabulated-list-format
         `[("Id" ,debbugs-gnu-width-id debbugs-gnu-sort-id)
 	  ("State" ,debbugs-gnu-width-state debbugs-gnu-sort-state)
@@ -1821,9 +1819,10 @@ IDS is the list of bug IDs."
 	;; the same face.
 	(while (< rmail-current-message rmail-total-messages)
 	  (rmail-show-message (1+ rmail-current-message)))))
-    ;; (set (make-local-variable 'debbugs-gnu-bug-number) id)
-    ;; (set (make-local-variable 'debbugs-gnu-subject)
-    ;; 	 (format "Re: bug#%d: %s" id (alist-get 'subject status)))
+    ;; (setq-local
+    ;;  debbugs-gnu-bug-number id
+    ;;  debbugs-gnu-subject
+    ;;  (format "Re: bug#%d: %s" id (alist-get 'subject status)))
     (rmail-summary)
     (define-key rmail-summary-mode-map "C" #'debbugs-gnu-send-control-message)
     (define-key rmail-summary-mode-map "E" #'debbugs-gnu-make-control-message)
@@ -1892,9 +1891,10 @@ MERGED is the list of bugs merged with this one."
 	  ;; the same face.
 	  (while (< rmail-current-message rmail-total-messages)
 	    (rmail-show-message (1+ rmail-current-message))))))
-    (set (make-local-variable 'debbugs-gnu-bug-number) id)
-    (set (make-local-variable 'debbugs-gnu-subject)
-	 (format "Re: bug#%d: %s" id (alist-get 'subject status)))
+    (setq-local
+     debbugs-gnu-bug-number id
+     debbugs-gnu-subject
+     (format "Re: bug#%d: %s" id (alist-get 'subject status)))
     (rmail-summary)
     (define-key rmail-summary-mode-map "C" #'debbugs-gnu-send-control-message)
     (define-key rmail-summary-mode-map "E" #'debbugs-gnu-make-control-message)
@@ -1918,9 +1918,10 @@ MERGED is the list of bugs merged with this one."
    (cons (current-buffer)
 	 (current-window-configuration)))
   (with-current-buffer (window-buffer (selected-window))
-    (set (make-local-variable 'debbugs-gnu-bug-number) id)
-    (set (make-local-variable 'debbugs-gnu-subject)
-	 (format "Re: bug#%d: %s" id (alist-get 'subject status)))
+    (setq-local
+     debbugs-gnu-bug-number id
+     debbugs-gnu-subject
+     (format "Re: bug#%d: %s" id (alist-get 'subject status)))
     (debbugs-gnu-summary-mode 1)))
 
 (defcustom debbugs-gnu-summary-keep-subject
@@ -1969,30 +1970,32 @@ This is checked against `debbugs-gnu-summary-keep-subject'."
 
 \\{debbugs-gnu-summary-mode-map}"
   :lighter " Debbugs" :keymap debbugs-gnu-summary-mode-map
-  (set (make-local-variable 'gnus-posting-styles)
-       `(;; We apply them first, because we want to keep our own
-         ;; posting-styles prior the others.
-         ,@(and debbugs-gnu-summary-keep-posting-styles
-                (default-value 'gnus-posting-styles))
-         (".*"
-	  (eval
-	   (when (buffer-live-p gnus-article-copy)
-	     (with-current-buffer gnus-article-copy
-	       (set (make-local-variable 'message-prune-recipient-rules)
-		    '((".*@debbugs.*" "emacs-pretest-bug")
-		      (".*@debbugs.*" "bug-gnu-emacs")
-		      ("[0-9]+@debbugs.*" "submit@debbugs.gnu.org")
-		      ("[0-9]+@debbugs.*" "quiet@debbugs.gnu.org")))
-	       (set (make-local-variable 'message-alter-recipients-function)
-		    (lambda (address)
-		      (if (string-match "\\([0-9]+\\)@donarmstrong"
-					(car address))
-			  (let ((new (format "%s@debbugs.gnu.org"
-					     (match-string 1 (car address)))))
-			    (cons new new))
-			address))))))
-	  ,@(and (stringp debbugs-gnu-subject)
-	         '((subject debbugs-gnu-keep-subject)))))))
+(setq-local
+ gnus-posting-styles
+ `(;; We apply them first, because we want to keep our own
+   ;; posting-styles prior the others.
+   ,@(and debbugs-gnu-summary-keep-posting-styles
+          (default-value 'gnus-posting-styles))
+   (".*"
+    (eval
+     (when (buffer-live-p gnus-article-copy)
+       (with-current-buffer gnus-article-copy
+	 (setq-local
+          message-prune-recipient-rules
+	  '((".*@debbugs.*" "emacs-pretest-bug")
+	    (".*@debbugs.*" "bug-gnu-emacs")
+	    ("[0-9]+@debbugs.*" "submit@debbugs.gnu.org")
+	    ("[0-9]+@debbugs.*" "quiet@debbugs.gnu.org"))
+          message-alter-recipients-function
+          (lambda (address)
+	    (if (string-match "\\([0-9]+\\)@donarmstrong"
+			      (car address))
+	        (let ((new (format "%s@debbugs.gnu.org"
+				   (match-string 1 (car address)))))
+	          (cons new new))
+	      address))))))
+    ,@(and (stringp debbugs-gnu-subject)
+	   '((subject debbugs-gnu-keep-subject)))))))
 
 (defun debbugs-gnu-guess-current-id ()
   "Guess the ID based on \"#23\".

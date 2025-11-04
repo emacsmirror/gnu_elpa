@@ -46,9 +46,11 @@
 (defvar debbugs-gnu-current-filter)
 (defvar debbugs-gnu-current-query)
 (defvar debbugs-gnu-current-suppress)
+(defvar debbugs-gnu-current-message)
 (defvar debbugs-gnu-local-query)
 (defvar debbugs-gnu-local-filter)
 (defvar debbugs-gnu-local-suppress)
+(defvar debbugs-gnu-local-message)
 (defvar debbugs-gnu-show-reports-function)
 
 (defun debbugs-gnu-bookmark-name (query)
@@ -66,20 +68,22 @@ Examples of generated names follows:
 - Bugs about \"something\" reported by someone@example.org
 - Tagged bugs
 - Bugs"
-  (let* ((bugs (cdr (assq 'bugs query)))
+  (let* ((org (when (bound-and-true-p debbugs-org-mode) "Org "))
+         (bugs (cdr (assq 'bugs query)))
 	 (bug-count (length bugs))
 	 (bugs-substring
 	  (cond
 	   ((eq bug-count 0) nil)
-	   ((eq bug-count 1) (concat "Bug #" (int-to-string (car bugs))))
-	   ((concat "Bugs "
+	   ((eq bug-count 1) (concat org "Bug #" (int-to-string (car bugs))))
+	   ((concat org "Bugs "
                     (string-join
                      (mapcar (lambda (elt) (concat "#" (int-to-string elt)))
                              bugs)
                      ", "))))))
     (if bugs-substring
         bugs-substring
-      (let* ((packages (mapcar 'cdr
+      (let* ((org (when (bound-and-true-p debbugs-org-mode) "Org"))
+             (packages (mapcar 'cdr
 			       (seq-filter
 			        (lambda (elt) (eq (car elt) 'package))
 			        query)))
@@ -103,8 +107,8 @@ Examples of generated names follows:
               (when submitter (concat "reported by " submitter))))
         (string-join (append (seq-filter
                               (lambda (x) x)
-                              (list first-token phrase-token submitter-token
-                                    packages-token)))
+                              (list org first-token phrase-token
+                                    submitter-token packages-token)))
                      " ")))))
 
 ;;;###autoload
@@ -120,6 +124,7 @@ such buffers."
       (debbugs-gnu-current-filter . ,debbugs-gnu-local-filter)
       (debbugs-gnu-current-query . ,debbugs-gnu-local-query)
       (debbugs-gnu-current-suppress . ,debbugs-gnu-local-suppress)
+      (debbugs-gnu-current-message . ,debbugs-gnu-local-message)
       (debbugs-gnu-show-reports-function
        . ,(if (eq major-mode 'debbugs-gnu-mode)
               #'debbugs-gnu-show-reports #'debbugs-org-show-reports)))))
@@ -131,11 +136,18 @@ such buffers."
   "Provide the `bookmark-jump' behavior for a Debbugs buffer.
 This implements the `handler' function interface for the record
 type returned by `debbugs-gnu-bookmark-make-record'."
-  (let* ((debbugs-gnu-current-filter (bookmark-prop-get bmk 'debbugs-gnu-current-filter))
-	 (debbugs-gnu-current-query (bookmark-prop-get bmk 'debbugs-gnu-current-query))
-	 (debbugs-gnu-current-suppress (bookmark-prop-get bmk 'debbugs-gnu-current-suppress))
-         (debbugs-gnu-show-reports-function (bookmark-prop-get bmk 'debbugs-gnu-show-reports-function))
+  (let* ((debbugs-gnu-current-filter
+          (bookmark-prop-get bmk 'debbugs-gnu-current-filter))
+	 (debbugs-gnu-current-query
+          (bookmark-prop-get bmk 'debbugs-gnu-current-query))
+	 (debbugs-gnu-current-suppress
+          (bookmark-prop-get bmk 'debbugs-gnu-current-suppress))
          (buf (progn ;; Don't use save-window-excursion (bug#39722)
+	        (setq debbugs-gnu-current-message
+                      (bookmark-prop-get bmk 'debbugs-gnu-current-message)
+                      debbugs-gnu-show-reports-function
+                      (bookmark-prop-get
+                       bmk 'debbugs-gnu-show-reports-function))
 		(debbugs-gnu nil)
                 debbugs-gnu-current-buffer)))
     (bookmark-default-handler

@@ -529,32 +529,17 @@ Optional argument EVENT ."
 (defun greader-build-args ()
   "Build the string that will be passed to the back-end."
   (greader-reset)
-  (let (args arg)
-    (setq arg
-	  (greader-call-backend 'rate))
-    (setq args (append `(,arg) args))
-    (cond ((greader-call-backend 'lang)
-	   (setq arg
-		 (greader-call-backend 'lang))
-	   (setq args (append `(,arg) args))))
-    (cond ((greader-call-backend 'punctuation)
-	   (setq arg (greader-call-backend 'punctuation))
-	   (setq args (append `(,arg) args))))
-    (setq greader-backend (greader-call-backend 'executable))
-    (cond
-     (
-      (not
-       (eq
-	(greader-call-backend 'extra)
-	'not-implemented))
-      (setq arg (greader-call-backend 'extra))
-      (setq args (append `(,arg) args))))
-    (catch 'deleted
-      (dolist (argument args)
-	(when (equal argument 'not-implemented)
-	  (setq args (delete argument args))
-	  (throw 'deleted t))))
-    (setq greader-backend (append `(,greader-backend) args))))
+  (let (args)
+    (push (greader-call-backend 'rate) args)
+    (when-let ((lang (greader-call-backend 'lang)))
+      (push lang args))
+    (when-let ((punc (greader-call-backend 'punctuation)))
+      (push punc args))
+    (when-let ((extra (greader-call-backend 'extra)))
+      (unless (eq extra 'not-implemented)
+        (push extra args)))
+    (setq greader-backend (append greader-backend
+                                (delete 'not-implemented (nreverse args))))))
 
 (defun greader-reset ()
   "Reset greader."

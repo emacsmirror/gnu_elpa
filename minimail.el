@@ -338,8 +338,14 @@ sorting by thread."
                  (const :tag "Hierarchical" hierarchical)
                  (const :tag "Don't compute threads" nil)))
 
-(defface minimail-unseen '((t :inherit bold))
-  "Face for unseen messages.")
+(defcustom minimail-subject-faces '(((not \\Seen) . minimail-unseen)
+                                    (t . vtable))
+  "Face to apply to subject strings based on the message flags.
+This is used in `minimail-mailbox-mode' buffers."
+  :type '(repeat alist))
+
+(defface minimail-unseen '((t :weight bold :inherit vtable))
+  "Face to indicate unseen messages.")
 
 ;;; Internal variables and helper functions
 
@@ -506,13 +512,6 @@ alist, and look up MAILBOX in it."
     (nreverse result)))
 
 ;;;; vtable hacks
-
-(defvar -vtable-insert-line-hook nil
-  "Hook run after inserting each line of a `vtable'.")
-
-(advice-add #'vtable--insert-line :after
-            (lambda (&rest _) (run-hooks '-vtable-insert-line-hook))
-            '((name . minimail)))
 
 (defun -ensure-vtable (&optional noerror)
   "Return table under point or signal an error.
@@ -1404,7 +1403,6 @@ Return a cons cell consisting of the account symbol and mailbox name."
   "Major mode for mailbox listings."
   :interactive nil
   (add-hook 'quit-window-hook #'-quit-message-window nil t)
-  (add-hook '-vtable-insert-line-hook #'-apply-mailbox-line-face nil t)
   (setq-local
    revert-buffer-function #'-mailbox-buffer-refresh
    truncate-lines t))
@@ -1414,7 +1412,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
 Cf. RFC 5256, §2.1."
   (replace-regexp-in-string message-subject-re-regexp "" (downcase string)))
 
-(defun -format-names (addresses &rest _)
+(defun -format-names (addresses)
   (propertize
    (mapconcat
     (lambda (addr)
@@ -1431,9 +1429,7 @@ Cf. RFC 5256, §2.1."
       addresses
       "\n"))))
 
-(defun -format-date (date &rest _)
-  (when (stringp date)
-    (setq date (-get-data date)))
+(defun -format-date (date)
   (let* ((current-time-list nil)
          (timestamp (encode-time date))
          (today (let* ((v (decode-time)))
@@ -1466,16 +1462,6 @@ Cf. RFC 5256, §2.1."
      ($Junk      . #("⚠" 0 1 (face shadow)))
      ($Phishing  . #("⚠" 0 1 (face error))))))
 
-(defvar minimail-flag-faces
-  '(((not \\Seen) . minimail-unseen)))
-
-(defun -apply-mailbox-line-face ()
-  (save-excursion
-    (when-let* ((end (prog1 (point) (goto-char (pos-bol 0))))
-                (flags (assq 'flags (vtable-current-object)))
-                (face (-alist-query (cdr flags) minimail-flag-faces)))
-      (add-face-text-property (point) end face))))
-
 (defun -message-timestamp (msg)
   "The message's envelope date as a Unix timestamp."
   (let-alist msg
@@ -1505,6 +1491,7 @@ Cf. RFC 5256, §2.1."
                                  (-alist-query .flags column " "))
                                minimail-flag-icons
                                " ")
+                    'face 'vtable
                     'help-echo (lambda (&rest _)
                                  (if .flags
                                      (string-join (cons "Message flags:" .flags) " ")
@@ -1532,17 +1519,19 @@ Cf. RFC 5256, §2.1."
                                          .envelope.bcc)))))
     (subject
      :name "Subject"
-     :max-width 60
-     :getter ,(lambda (msg tbl)
+     :max-width 80
+     :getter ,(lambda (msg _tbl)
                 (let-alist msg
                   (propertize (let ((s (-base-subject (or .envelope.subject ""))))
                                 (if (string-empty-p s) "\0" s))
-                              'minimail `((table . ,tbl) ,@msg))))
+                              'minimail msg)))
      :formatter ,(lambda (s)
                    (let-alist (-get-data s)
-                     (concat (when (alist-get 'sort-by-thread -local-state)
-                               (-thread-subject-prefix .uid))
-                             (or .envelope.subject "")))))
+                     (concat
+                      (when (alist-get 'sort-by-thread -local-state)
+                        (-thread-subject-prefix .uid))
+                      (propertize (or .envelope.subject "")
+                                  'face (-alist-query .flags minimail-subject-faces))))))
     (date
      :name "Date"
      :width 12
@@ -1551,7 +1540,9 @@ Cf. RFC 5256, §2.1."
                 ;; hex string.  This ensures the correct sorting.
                 (propertize (format "%09x" (-message-timestamp msg))
                             'minimail (let-alist msg .envelope.date)))
-     :formatter -format-date)))
+     :formatter ,(lambda (s)
+                   (propertize (-format-date (-get-data s))
+                               'face 'vtable)))))
 
 (defun -mailbox-buffer-update (messages)
   "Set vtable objects to MESSAGES and do all necessary adjustments."
@@ -1609,9 +1600,6 @@ Cf. RFC 5256, §2.1."
            (make-vtable
             :objects messages ;Ideally we would create the table empty
                               ;and populate later
-            :face 'default ;FIXME: Sorting trick and unread face break
-                           ;variable pitch display, likely solved in
-                           ;Emacs 31.
             :columns (mapcar (lambda (v)
                                (alist-get v minimail-mailbox-mode-column-alist))
                              colnames)
@@ -1683,8 +1671,8 @@ Cf. RFC 5256, §2.1."
                           (-message-buffer-name account mailbox ""))))))
     (let-alist message
       (unless (member "\\Seen" .flags)
-        (push "\\Seen" (cdr (assq 'flags message))))
-      (vtable-update-object (vtable-current-table) message)
+        (push "\\Seen" (cdr (assq 'flags message)))
+        (vtable-update-object (vtable-current-table) message))
       (setq-local overlay-arrow-position (copy-marker (pos-bol)))
       (with-current-buffer msgbuf
         (-display-message account mailbox .uid)

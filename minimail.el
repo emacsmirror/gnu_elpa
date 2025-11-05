@@ -250,7 +250,8 @@ Give up after MAX-TRIES, if that is non-negative."
   :group 'mail)
 
 (defcustom minimail-accounts
-  '((yhetil :incoming-url "imaps://:@yhetil.org/yhetil.emacs"))
+  '((yhetil :incoming-url "imaps://:@yhetil.org/yhetil.emacs"
+            :thread-style hierarchical))
   "Account configuration for the Minimail client.
 This is an alist where keys are names used to refer to each account and
 values are a plist with the following information:
@@ -330,6 +331,12 @@ sorting by thread."
 (defcustom minimail-fetch-limit 100
   "Maximum number of messages to fetch at a time when displaying a mailbox."
   :type 'natnum)
+
+(defcustom minimail-thread-style 'shallow
+  "How to display message threads."
+  :type '(choice (const :tag "Shallow" shallow)
+                 (const :tag "Hierarchical" hierarchical)
+                 (const :tag "Don't compute threads" nil)))
 
 (defface minimail-unseen '((t :inherit bold))
   "Face for unseen messages.")
@@ -462,7 +469,8 @@ Return the first matching value."
                          '((:fetch-limit . minimail-fetch-limit)
                            (:full-name . user-full-name)
                            (:mail-address . user-mail-address)
-                           (:signature . message-signature))))))))
+                           (:signature . message-signature)
+                           (:thread-style . minimail-thread-style))))))))
 
 (defun -settings-alist-get (keyword account mailbox)
   "Retrieve the most specific configuration value for KEYWORD.
@@ -1553,7 +1561,14 @@ Cf. RFC 5256, §2.1."
     (when-let* ((msg (seq-find (lambda (msg) (let-alist msg (eq .uid uid)))
                                messages)))
       (vtable-goto-object msg)))
-  (setq -thread-tree (-thread-tree-shallow messages))
+  (setq -thread-tree (funcall (pcase-exhaustive
+                                  (-settings-scalar-get :thread-style
+                                                        -current-account
+                                                        -current-mailbox)
+                                ('shallow #'-thread-tree-shallow)
+                                ('hierarchical #'-thread-tree-hierarchical)
+                                ('nil #'ignore))
+                              messages))
   (when-let* ((how (alist-get 'sort-by-thread -local-state)))
     (-sort-messages-by-thread (eq how 'descend)))
   (save-excursion
@@ -1757,6 +1772,35 @@ loc. cit. §4, with message UIDs as tree leaves."
               (cons (let-alist (car thread) .uid)
                     (mapcar (lambda (v) (let-alist v (list .uid))) (cdr thread))))
             threads)))
+
+(defun -thread-tree-hierarchical (messages)
+  "Compute a hierarchical message thread tree from MESSAGES.
+This relies solely on Message-ID and In-Reply-To headers from the IMAP
+envelope and doesn't use server-side threading information.  The return
+value is as described in RFC 5256, §4, with message UIDs as tree leaves."
+  (let* ((msgid (make-hash-table :test #'equal)) ;map Message-ID -> UID
+         (children (make-hash-table))            ;map UID -> list of children messages
+         (roots nil))                            ;list of root messages
+    (dolist (msg messages)
+      (let-alist msg
+        (when .envelope.message-id
+          (puthash .envelope.message-id .uid msgid))))
+    (dolist (msg messages)
+      (if-let* ((inreply (let-alist msg
+                           (and .envelope.in-reply-to
+                                (string-match "<.*?>" .envelope.in-reply-to)
+                                (match-string-no-properties 0 .envelope.in-reply-to))))
+                (parent (gethash inreply msgid)))
+          (push msg (gethash parent children))
+        (push msg roots)))
+    (cl-labels
+        ((recur (msg)
+           (let-alist msg
+             (pcase (gethash .uid children)
+               ('nil (list .uid))
+               (`(,one) (cons .uid (recur one)))
+               (many (cons .uid (mapcar #'recur (sort many :key #'-message-timestamp))))))))
+      (mapcar #'recur roots))))
 
 (defun -sort-messages-by-thread (&optional descend)
   "Sort messages with grouping by threads.

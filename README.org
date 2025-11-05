@@ -15,7 +15,8 @@ to messages.  Below is a listing of implemented and planned features.
   - [X] “Shallow” threading (just one nesting level, sorted by date)
     using server-side thread information if available or subject lines
     as a fallback.
-  - [ ] Hierarchical threads based on reference message IDs.
+  - [X] Optionally, hierarchical threads based on reference message
+    IDs.
 - [X] Move messages (also archive, move to trash, flag as junk)
 - [ ] Mark and operate on sets of messages (move, etc.)
 - [X] "Load more messages" button

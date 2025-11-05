@@ -97,6 +97,57 @@ Greader provides several minor modes to extend its functionality:
 *   **`greader-translate-mode`:** On-the-fly translation of the buffer.
 *   **`greader-enriched-mode`:** Announce links and other clickable elements.
 *   **`greader-dict-mode`:** Use custom dictionaries for pronunciation.
+    `greader-dict-mode` allows you to create custom pronunciation rules for words or patterns. This is useful for correcting mispronunciations by the text-to-speech engine.
+
+    ### How it Works
+
+    You can define two types of dictionary entries:
+
+    *   **Word:** A whole-word substitution. For example, if you define a "word" entry for "Emacs", it will only replace "Emacs" when it appears as a standalone word, not in "EmacsLisp".
+    *   **Match:** A literal substring substitution. For example, a "match" entry for "read" could apply to "reading" and "reader". Matches can also be regular expressions for more complex patterns.
+
+    ### Dictionary Visibility
+
+    Greader supports three levels of dictionary visibility:
+
+    *   **`global`:** The default dictionary, applied everywhere.
+    *   **`mode`:** A dictionary specific to a major mode (e.g., a dictionary for `org-mode` buffers).
+    *   **`buffer`:** A dictionary that applies only to the current buffer.
+
+    You can change the visibility for the current buffer using the `greader-dict-change-dictionary` command (`C-r d c`).
+
+    To set a default visibility for a specific mode, you can add a hook to your Emacs configuration. For example, to use `mode` visibility for `info-mode`:
+
+    ```emacs-lisp
+    (add-hook 'info-mode-hook
+              (lambda ()
+                (greader-dict-mode 1)
+                (greader-dict--set-file 'mode)))
+    ```
+
+    ### Usage
+
+    *   **Enable the mode:** `M-x greader-dict-mode`
+    *   **Add an entry:** `C-r d a` (`greader-dict-add-entry`).
+        *   With no prefix, it adds a "word" entry.
+        *   With a prefix argument (`C-u`), it adds a "match" entry.
+        *   If a region is active, it will propose adding the selected text as a "match".
+    *   **Remove an entry:** `C-r d k` (`greader-dict-remove-entry`).
+    *   **Modify a key:** `C-r d m` (`greader-dict-modify-key`).
+    *   **Change dictionary visibility:** `C-r d c` (`greader-dict-change-dictionary`).
+
+    ### Filters
+
+    Filters are an advanced feature that allows you to use arbitrary regular expressions for substitutions. They are more powerful than "word" or "match" entries but can be less efficient.
+
+    *   **Toggle filters:** `M-x greader-dict-toggle-filters`
+    *   **Add a filter:** `greader-dict-filter-add`
+    *   **Remove a filter:** `greader-dict-filter-remove`
+    *   **Modify a filter:** `greader-dict-filter-modify`
+
+    ### Pronounce in Another Language
+
+    You can use `greader-dict-pronounce-in-other-language` (`C-r d l`) to hear how a word is pronounced in a different language, using your configured TTS backend.
 *   **`greader-study-mode`:** Repeatedly read a buffer or region.
 *   **`greader-estimated-time-mode`:** Display estimated reading time.
 *   **`greader-auto-bookmark-mode`:** Automatically save a bookmark when you stop reading.

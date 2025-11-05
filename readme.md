@@ -2,6 +2,17 @@
 
 Greader is an Emacs package that reads the content of the current buffer aloud, keeping the point in sync with the spoken text. It integrates with various text-to-speech engines and provides several features to enhance the reading experience.
 
+## Table of Contents
+
+*   [Main Features](#main-features)
+*   [Installation](#installation)
+*   [Basic Usage](#basic-usage)
+*   [Keybindings](#keybindings)
+*   [Commands](#commands)
+*   [Minor Modes](#minor-modes)
+*   [Customization](#customization)
+*   [License](#license)
+
 ## Main Features
 
 *   **Text-to-Speech:** Reads any buffer aloud using different backends.
@@ -64,50 +75,25 @@ The following commands work when you are in `greader-reading-mode', which happen
 
 The `greader-read` command is the core function for starting text-to-speech synthesis in Greader. It can be invoked with `C-r <spc>`.
 
-**Basic Functionality:**
-
-*   When called, `greader-read` starts reading the buffer's content from the current cursor position.
-*   The reading proceeds sentence by sentence, advancing the cursor as it goes.
-
-**Prefix Argument:**
-
-*   You can call `greader-read` with a prefix argument (e.g., `C-u C-r <spc>`).
-*   When you do this, the cursor will jump to the position where you last started a reading session before the current one, and then it will start reading from there.
-*   This is useful for quickly returning to a previous reading position.
-*   This functionality relies on a register that stores the last reading position, and it can be disabled by setting the `greader-use-prefix` variable to `nil`.
-
-**Reading a Region:**
-
-*   If you select a region of text before calling `greader-read`, Greader will only read the selected text.
-To read the region, greader uses buffer narrowing, so the navigation
-keys will only work in the currently displayed buffer region. For a
-similar but alternative version, see `greader-queue-mode`.
-
-**Other Features:**
-
-*   **Tired Mode:** `greader-read` integrates with a "tired mode" that can be toggled on and off. When tired mode is active, Greader can automatically adjust its behavior for evening reading.
-*   **Timer:** The command also works with a timer, allowing you to read for a set amount of time.
+*   **Basic Functionality:** When called, `greader-read` starts reading the buffer content from the current cursor position, advancing sentence by sentence.
+*   **Prefix Argument (`C-u C-r <spc>`):** Jumps to the last reading position and starts reading from there. This can be disabled by setting `greader-use-prefix` to `nil`.
+*   **Reading a Region:** If a region is selected, Greader will only read the selected text. Note that this uses buffer narrowing, so navigation is limited to the selected region. For an alternative, see `greader-queue-mode`.
+*   **Other Features:** `greader-read` also integrates with "tired mode" for automatic adjustments and a timer for reading for a set duration.
 
 ## Minor Modes
 
 Greader provides several minor modes to extend its functionality:
 
 *   **`greader-continuous-mode`:** Automatically turn pages in modes like `info-mode`.
-    This minor mode allows Greader to automatically turn pages in multi-page modes. When active, instead of stopping at the end of the buffer, Greader will call the appropriate function to display the next page and continue reading.
-
-    Greader tries to automatically guess the function to call to turn the page. It does this by checking the command bound to the `SPC` key. This works in many modes, like `info-mode`.
-
-    You can customize this behavior for other modes by using the `greader-continuous-modes` variable. This variable is an alist that maps major modes to the function that should be called to turn the page.
-
-    For example, to make `greader-continuous-mode` work with `nov-mode`, you would add the following to your configuration:
-
-    ```emacs-lisp
-    (add-to-list 'greader-continuous-modes '(nov-mode . nov-next-document))
-    ```
-
-    You can also exclude certain major modes from this behavior using the `greader-continuous-excluded-modes` variable.
-
-    If the page-turning function in a mode is not bound to `SPC`, you can specify a different key with the `greader-continuous-key` variable.
+    *   This minor mode allows Greader to automatically turn pages in multi-page modes. When active, instead of stopping at the end of the buffer, Greader will call the appropriate function to display the next page and continue reading.
+    *   Greader tries to automatically guess the function to call to turn the page. It does this by checking the command bound to the `SPC` key. This works in many modes, like `info-mode`.
+    *   You can customize this behavior for other modes by using the `greader-continuous-modes` variable. This variable is an alist that maps major modes to the function that should be called to turn the page.
+    *   For example, to make `greader-continuous-mode` work with `nov-mode`, you would add the following to your configuration:
+        ```emacs-lisp
+        (add-to-list 'greader-continuous-modes '(nov-mode . nov-next-document))
+        ```
+    *   You can also exclude certain major modes from this behavior using the `greader-continuous-excluded-modes` variable.
+    *   If the page-turning function in a mode is not bound to `SPC`, you can specify a different key with the `greader-continuous-key` variable.
 *   **`greader-translate-mode`:** On-the-fly translation of the buffer.
 *   **`greader-enriched-mode`:** Announce links and other clickable elements.
 *   **`greader-dict-mode`:** Use custom dictionaries for pronunciation.
@@ -117,34 +103,34 @@ Greader provides several minor modes to extend its functionality:
 
 ### `greader-translate-mode`
 
-Il `greader-translate-mode` è un minor mode che permette la traduzione "al volo" del buffer che si sta leggendo. Quando questa modalità è attiva, ogni frase viene tradotta prima di essere inviata al motore di sintesi vocale.
+`greader-translate-mode` is a minor mode that allows for on-the-fly translation of the buffer being read. When this mode is active, each sentence is translated before being sent to the text-to-speech engine.
 
-#### Utilizzo
+#### Usage
 
-1.  Abilitare il minor mode con `M-x greader-translate-mode`.
-2.  Avviare la lettura con `greader-read` (`C-r <spc>`). Il testo verrà tradotto e letto nella lingua di destinazione.
+1.  Enable the minor mode with `M-x greader-translate-mode`.
+2.  Start reading with `greader-read` (`C-r <spc>`). The text will be translated and read in the destination language.
 
-#### Configurazione
+#### Configuration
 
-Perché la traduzione funzioni, è necessario configurare alcune variabili:
+For the translation to work, you need to configure a few variables:
 
-*   **`greader-translate-lang-src`**: Imposta la lingua di origine del testo. Questo valore deve essere un codice lingua valido (es. `"en"` per l'inglese, `"fr"` per il francese).
+*   **`greader-translate-lang-src`**: Sets the source language of the text. This value must be a valid language code (e.g., `"en"` for English, `"fr"` for French).
 
     ```emacs-lisp
     (setq greader-translate-lang-src "en")
     ```
 
-*   **Lingua di destinazione**: La lingua in cui tradurre viene impostata tramite il comando `greader-set-language` (`C-r l`), che a sua volta imposta la lingua per il backend di sintesi vocale.
+*   **Destination Language**: The language to translate to is set via the `greader-set-language` command (`C-r l`), which in turn sets the language for the speech synthesis backend.
 
-*   **`greader-translate-function`**: Permette di specificare la funzione da utilizzare per la traduzione. L'impostazione predefinita è `greader-translate-with-google`, che si affida al pacchetto `google-translate`.
+*   **`greader-translate-function`**: Allows you to specify the function to use for translation. The default setting is `greader-translate-with-google`, which relies on the `google-translate` package.
 
-*   **`greader-translate-timeout`**: Specifica il tempo massimo in secondi per attendere una risposta dal servizio di traduzione prima di generare un errore. Il valore predefinito è 30 secondi.
+*   **`greader-translate-timeout`**: Specifies the maximum time in seconds to wait for a response from the translation service before generating an error. The default value is 30 seconds.
 
-#### Prerequisiti e Implicazioni
+#### Prerequisites and Implications
 
-*   **Dipendenze**: Questa funzionalità richiede l'installazione del pacchetto `google-translate` e delle sue dipendenze.
-*   **Connessione Internet**: È necessaria una connessione a Internet per contattare i servizi di traduzione.
-*   **Privacy**: L'utilizzo di `greader-translate-with-google` implica l'invio del testo del buffer a servizi esterni (come Google Translate). Questo potrebbe avere implicazioni per la privacy. Gli utenti sono soggetti ai termini di servizio e alle politiche sulla privacy del fornitore del servizio di traduzione. Si consiglia di essere consapevoli di quali dati vengono inviati.
+*   **Dependencies**: This feature requires the installation of the `google-translate` package and its dependencies.
+*   **Internet Connection**: An internet connection is required to contact the translation services.
+*   **Privacy**: Using `greader-translate-with-google` involves sending the buffer's text to external services (like Google Translate). This may have privacy implications. Users are subject to the terms of service and privacy policies of the translation service provider. It is recommended to be aware of what data is being sent.
 
 ## Customization
 

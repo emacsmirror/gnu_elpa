@@ -1239,12 +1239,12 @@ Return a cons cell consisting of the account symbol and mailbox name."
 (defun -selected-messages ()
   (cond
    ((derived-mode-p 'minimail-message-mode)
-    (error "Not implemented"))
+    (list -current-account -current-mailbox (alist-get 'uid -local-state)))
    ((derived-mode-p 'minimail-mailbox-mode)
     (list -current-account
           -current-mailbox
-          (list (alist-get 'uid (or (vtable-current-object)
-                                    (user-error "No selected message"))))))))
+          (alist-get 'uid (or (vtable-current-object)
+                              (user-error "No selected message")))))))
 
 ;;;###autoload
 (defun minimail-find-mailbox (account mailbox)
@@ -1299,14 +1299,20 @@ Return a cons cell consisting of the account symbol and mailbox name."
                            (buffer-list))))
       (with-current-buffer mbxbuf
         (let* ((table (vtable-current-table))
-               (objs (vtable-objects table)))
-          (dolist (obj objs)
-            (when (memq (alist-get 'uid obj) uids)
-              (vtable-remove-object table obj))))))))
+               (current (when-let* ((msgbuf (alist-get 'message-buffer -local-state))
+                                    (_ (buffer-live-p msgbuf)))
+                          (with-current-buffer msgbuf
+                            (alist-get 'uid -local-state))))
+               (messages (vtable-objects table)))
+          (dolist (msg messages)
+            (when (memq (alist-get 'uid msg) uids)
+              (vtable-remove-object table msg)))
+          (when (memq current uids)     ;move to next message
+            (minimail-show-message)))))))
 
 (defun minimail-move-to-mailbox (&optional destination)
   (interactive nil minimail-mailbox-mode minimail-message-mode)
-  (pcase-let* ((`(,acct ,mbx ,uids) (-selected-messages))
+  (pcase-let* ((`(,acct ,mbx . ,uids) (-selected-messages))
                (prompt (if (length= uids 1)
                            "Move message to: "
                          (format "Move %s messages to: " (length uids))))
@@ -1316,45 +1322,45 @@ Return a cons cell consisting of the account symbol and mailbox name."
 
 (defun -find-mailbox-by-attribute (attr mailboxes)
   (seq-some (pcase-lambda (`(,mbx . ,items))
-              (when (memq attr (alist-get 'attributes items)) mbx))
+              (when (-key-match-p attr (alist-get 'attributes items)) mbx))
             mailboxes))
 
 (defun minimail-move-to-archive ()
   (interactive nil minimail-mailbox-mode minimail-message-mode)
-  (pcase-let* ((`(,acct ,mbx ,uids) (-selected-messages)))
+  (pcase-let* ((`(,acct ,mbx . ,uids) (-selected-messages)))
     (athunk-run
      (athunk-let*
          ((mailboxes <- (-aget-mailbox-listing acct))
-          (_ <- (let ((dest (or (plist-get (alist-get acct minimail-accounts)
-                                        :archive-mailbox)
-                             (-find-mailbox-by-attribute '\\Archive mailboxes)
-                             (-find-mailbox-by-attribute '\\All mailboxes)
-                             (user-error "Archive mailbox not found"))))
-               (-amove-messages-and-redisplay acct mbx dest uids))))))))
+          (dest (or (plist-get (alist-get acct minimail-accounts)
+                               :archive-mailbox)
+                    (-find-mailbox-by-attribute '\\Archive mailboxes)
+                    (-find-mailbox-by-attribute '\\All mailboxes)
+                    (user-error "Archive mailbox not found")))
+          (_ <- (-amove-messages-and-redisplay acct mbx dest uids)))))))
 
 (defun minimail-move-to-trash ()
   (interactive nil minimail-mailbox-mode minimail-message-mode)
-  (pcase-let* ((`(,acct ,mbx ,uids) (-selected-messages)))
+  (pcase-let* ((`(,acct ,mbx . ,uids) (-selected-messages)))
     (athunk-run
      (athunk-let*
          ((mailboxes <- (-aget-mailbox-listing acct))
-          (_ <- (let ((dest (or (plist-get (alist-get acct minimail-accounts)
-                                        :trash-mailbox)
-                             (-find-mailbox-by-attribute '\\Trash mailboxes)
-                             (user-error "Trash mailbox not found"))))
-               (-amove-messages-and-redisplay acct mbx dest uids))))))))
+          (dest (or (plist-get (alist-get acct minimail-accounts)
+                               :trash-mailbox)
+                    (-find-mailbox-by-attribute '\\Trash mailboxes)
+                    (user-error "Trash mailbox not found")))
+          (_ <- (-amove-messages-and-redisplay acct mbx dest uids)))))))
 
 (defun minimail-move-to-junk ()
   (interactive nil minimail-mailbox-mode minimail-message-mode)
-  (pcase-let* ((`(,acct ,mbx ,uids) (-selected-messages)))
+  (pcase-let* ((`(,acct ,mbx . ,uids) (-selected-messages)))
     (athunk-run
      (athunk-let*
          ((mailboxes <- (-aget-mailbox-listing acct))
-          (_ <- (let ((dest (or (plist-get (alist-get acct minimail-accounts)
-                                        :junk-mailbox)
-                             (-find-mailbox-by-attribute '\\Junk mailboxes)
-                             (user-error "Junk mailbox not found"))))
-               (-amove-messages-and-redisplay acct mbx dest uids))))))))
+          (dest (or (plist-get (alist-get acct minimail-accounts)
+                               :junk-mailbox)
+                    (-find-mailbox-by-attribute '\\Junk mailboxes)
+                    (user-error "Junk mailbox not found")))
+          (_ <- (-amove-messages-and-redisplay acct mbx dest uids)))))))
 
 (defun minimail-execute-server-command (account mailbox command)
   "Execute an IMAP command for debugging purposes."
@@ -1386,6 +1392,10 @@ Return a cons cell consisting of the account symbol and mailbox name."
   "R" #'minimail-reply-all
   "f" #'minimail-forward
   "s" #'minimail-search
+  "A" #'minimail-move-to-archive
+  "J" #'minimail-move-to-junk
+  "D" #'minimail-move-to-trash
+  "M" #'minimail-move-to-mailbox
   "SPC" #'minimail-message-scroll-up
   "S-SPC" #'minimail-message-scroll-down
   "DEL" #'minimail-message-scroll-down)

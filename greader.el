@@ -638,7 +638,8 @@ function, point jumps at the last position you called command `greader-read'."
 	  (greader-read-asynchronous ". end"))))))
 
 (defun greader-stop ()
-  "Stops reading of document."
+  "Stop reading of document.
+If `greader-dict-mode' and/or `greader-dict-toggle-filters' are active, the dictionary of pronunciation rules will be updated after calling all the hooks."
   (interactive)
   (cond
    ((and (> greader-elapsed-time 0) greader-timer-flag)
@@ -651,7 +652,9 @@ function, point jumps at the last position you called command `greader-read'."
     (setq-local greader-stop-timer 0)))
   (greader-set-greader-keymap)
   (greader-tts-stop)
-  (run-hooks 'greader-after-stop-hook))
+  (run-hooks 'greader-after-stop-hook)
+  (when (or greader-dict-mode greader-dict-toggle-filters)
+    (greader-dict--update)))
 
 (defun greader-debug (arg)
   "Used to get some fast debugging.

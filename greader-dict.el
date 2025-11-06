@@ -484,11 +484,7 @@ by adding every match found in the text as a word."
   (with-greader-dict-temp-buffer
     (insert text)
     (goto-char (point-min))
-    (when
-	(buffer-local-value 'greader-dict-toggle-filters
-			    greader-dict--current-reading-buffer)
-      (setq greader-filters (buffer-local-value 'greader-filters
-						greader-dict--current-reading-buffer))
+    (when greader-dict-toggle-filters
       (greader-dict-filters-apply))
     (if
 	(buffer-local-value 'greader-dict-mode

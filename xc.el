@@ -6,7 +6,7 @@
 ;; Package-Version: 20251029.1
 ;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: processes docs
-;; Version: 1.4
+;; Version: 1.5
 
 ;; This file is not part of GNU Emacs.
 
@@ -124,25 +124,27 @@ If FILE is provided, look for tasks in that file specifically."
          (default-directory btn-path))
     (xc--tasks)))
 
+(eval-after-load 'treemacs-treelib
+  (lambda ()
+    (treemacs-define-entry-node-type xc-tasks
+      :key 'xc-tasks
+      :label "[XC TASKS]"
+      :open-icon (treemacs-get-icon-value 'list)
+      :closed-icon (treemacs-get-icon-value 'list)
+      :children (xc--treemacs-get-tasks)
+      :child-type 'xc-task-node)
+    (treemacs-define-leaf-node-type xc-task-node
+      :icon "• "
+      :label (propertize item 'face 'font-lock-string-face)
+      :key item
+      :ret-action #'xc-treemacs-RET-task-action
+      :double-click-action #'xc-treemacs-DBLCLICK-task-action)))
+
 ;;;###autoload
 (defun xc-treemacs-init ()
   "Initialize xc-Treemacs integration."
   (interactive)
-  (treemacs-define-entry-node-type xc-tasks
-    :key 'xc-tasks
-    :label "[XC TASKS]"
-    :open-icon (treemacs-get-icon-value 'list)
-    :closed-icon (treemacs-get-icon-value 'list)
-    :children (xc--treemacs-get-tasks)
-    :child-type 'xc-task-node)
-
-  (treemacs-define-leaf-node-type xc-task-node
-    :icon "• "
-    :label (propertize item 'face 'font-lock-string-face)
-    :key item
-    :ret-action #'xc-treemacs-RET-task-action
-    :double-click-action #'xc-treemacs-DBLCLICK-task-action)
-
+  (require 'treemacs-treelib)
   (treemacs-enable-project-extension
    :extension 'xc-tasks
    :position 'top

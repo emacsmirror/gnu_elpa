@@ -1,4 +1,4 @@
-;;; xc.el --- Emacs interface for xc  -*- lexical-binding: t; no-byte-compile: t; -*-
+;;; xc.el --- Emacs interface for xc  -*- lexical-binding: t; -*-
 
 ;; Copyright © 2025 Ryan Prior <rprior@protonmail.com>
 ;; Author: Ryan Prior
@@ -6,7 +6,7 @@
 ;; Package-Version: 20251029.1
 ;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: processes docs
-;; Version: 1.6
+;; Version: 1.7
 
 ;; This file is not part of GNU Emacs.
 
@@ -32,6 +32,10 @@
 ;; Use `xc-treemacs-init' to enable Treemacs integration.
 
 ;;; Code:
+
+(require 'treemacs-treelib nil t) ;; Depend on treemacs only if available
+(declare-function 'treemacs-define-entry-node-type "treemacs-treelib.el")
+(declare-function 'treemacs-define-leaf-node-type "treemacs-treelib.el")
 
 (defgroup xc nil
   "An Emacs interface for xc."
@@ -124,27 +128,25 @@ If FILE is provided, look for tasks in that file specifically."
          (default-directory btn-path))
     (xc--tasks)))
 
-(eval-after-load 'treemacs-treelib
-  (lambda ()
-    (treemacs-define-entry-node-type xc-tasks
-      :key 'xc-tasks
-      :label "[XC TASKS]"
-      :open-icon (treemacs-get-icon-value 'list)
-      :closed-icon (treemacs-get-icon-value 'list)
-      :children (xc--treemacs-get-tasks)
-      :child-type 'xc-task-node)
-    (treemacs-define-leaf-node-type xc-task-node
-      :icon "• "
-      :label (propertize item 'face 'font-lock-string-face)
-      :key item
-      :ret-action #'xc-treemacs-RET-task-action
-      :double-click-action #'xc-treemacs-DBLCLICK-task-action)))
+(when (featurep 'treemacs-treelib)
+  (treemacs-define-entry-node-type xc-tasks
+    :key 'xc-tasks
+    :label "[XC TASKS]"
+    :open-icon (treemacs-get-icon-value 'list)
+    :closed-icon (treemacs-get-icon-value 'list)
+    :children (xc--treemacs-get-tasks)
+    :child-type 'xc-task-node)
+  (treemacs-define-leaf-node-type xc-task-node
+    :icon "• "
+    :label (propertize item 'face 'font-lock-string-face)
+    :key item
+    :ret-action #'xc-treemacs-RET-task-action
+    :double-click-action #'xc-treemacs-DBLCLICK-task-action))
 
 ;;;###autoload
 (defun xc-treemacs-init ()
   "Initialize xc-Treemacs integration."
   (interactive)
-  (require 'treemacs-treelib)
   (treemacs-enable-project-extension
    :extension 'xc-tasks
    :position 'top

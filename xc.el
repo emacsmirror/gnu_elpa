@@ -1,4 +1,4 @@
-;;; xc.el --- Emacs interface for xc  -*- lexical-binding: t; -*-
+;;; xc.el --- Emacs interface for xc  -*- lexical-binding: t; no-byte-compile: t; -*-
 
 ;; Copyright © 2025 Ryan Prior <rprior@protonmail.com>
 ;; Author: Ryan Prior
@@ -6,7 +6,7 @@
 ;; Package-Version: 20251029.1
 ;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: processes docs
-;; Version: 1.5
+;; Version: 1.6
 
 ;; This file is not part of GNU Emacs.
 

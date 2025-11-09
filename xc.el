@@ -6,7 +6,7 @@
 ;; Package-Version: 20251029.1
 ;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: processes docs
-;; Version: 1.2
+;; Version: 1.3
 
 ;; This file is not part of GNU Emacs.
 
@@ -79,8 +79,8 @@ If FILE is provided, look for tasks in that file specifically."
 ;;;###autoload
 (defun xc (task)
   "Run TASK using `xc'."
-  (interactive (if-let ((xc-tasks (xc--tasks)))
-                   (list (completing-read "Task: " xc-tasks nil t))
+  (interactive (if-let ((tasks (xc--tasks)))
+                   (list (completing-read "Task: " tasks nil t))
                  (progn
                    (thread-last
                      (if (project-current)

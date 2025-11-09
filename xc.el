@@ -72,18 +72,18 @@ Either `org' or `md', or nil for default."
   "Get available tasks using xc.
 
 If FILE is provided, look for tasks in that file specifically."
-  (when-let ((xc-output (thread-first
-                          "-short"
-                          (concat
-                           (and xc-type (concat " -type " xc-type))
-                           (and file (concat " -file " file)))
-                          xc--run)))
+  (when-let* ((xc-output (thread-first
+                           "-short"
+                           (concat
+                            (and xc-type (concat " -type " xc-type))
+                            (and file (concat " -file " file)))
+                           xc--run)))
     (split-string xc-output)))
 
 ;;;###autoload
 (defun xc (task)
   "Run TASK using `xc'."
-  (interactive (if-let ((tasks (xc--tasks)))
+  (interactive (if-let* ((tasks (xc--tasks)))
                    (list (completing-read "Task: " tasks nil t))
                  (progn
                    (thread-last

@@ -31,6 +31,12 @@
 ;; Use `xc' to launch a task defined in your README
 ;; Use `xc-treemacs-init' to enable Treemacs integration.
 
+;; The common use case for `xc' is to run build, test, deploy type commands
+;; that are documented in your README. Putting the documented steps on
+;; the ``hot path'' ensures they don't get out-of-date and aids in
+;; discoverability. A unique feature of `xc' is that it supports both
+;; Markdown and org-mode READMEs.
+
 ;;; Code:
 
 (require 'treemacs-treelib nil t) ;; Depend on treemacs only if available

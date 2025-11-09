@@ -6,7 +6,7 @@
 ;; Package-Version: 20251029.1
 ;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: processes docs
-;; Version: 1.3
+;; Version: 1.4
 
 ;; This file is not part of GNU Emacs.
 
@@ -128,7 +128,6 @@ If FILE is provided, look for tasks in that file specifically."
 (defun xc-treemacs-init ()
   "Initialize xc-Treemacs integration."
   (interactive)
-  (require 'treemacs-treelib)
   (treemacs-define-entry-node-type xc-tasks
     :key 'xc-tasks
     :label "[XC TASKS]"

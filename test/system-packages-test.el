@@ -37,8 +37,9 @@
   (should (string=
            (let ((system-packages-use-sudo nil)
                  (system-packages-package-manager 'dnf))
-             (system-packages-get-command 'install "pkgconfig(enchant-2)"))
-           "dnf install pkgconfig\\(enchant-2\\)")))
+             (system-packages-get-command
+              'install (list "enchant" "pkgconfig(enchant-2)")))
+           "dnf install enchant pkgconfig\\(enchant-2\\)")))
 
 (ert-deftest system-packages-get-install-noconfirm ()
   "Return correct installation command."
@@ -66,5 +67,13 @@
   (should-error
    (let ((system-packages-package-manager 'pacaur))
      (system-packages-get-command 'install))))
+
+(ert-deftest system-packages-package-installed-p ()
+  "Return correct package installation status."
+  (should (system-packages-package-installed-p "emacs"))
+  (should (system-packages-package-installed-p (list "bash" "emacs")))
+  (should (not (system-packages-package-installed-p "no-such-package")))
+  (should (not (system-packages-package-installed-p
+                (list "no-such-package" "no-such-package-2")))))
 
 ;;; system-packages-test.el ends here

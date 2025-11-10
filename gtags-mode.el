@@ -5,7 +5,7 @@
 ;; Author: Jimmy Aguilar Mena
 ;; URL: https://github.com/Ergus/gtags-mode
 ;; Keywords: xref, project, imenu, gtags, global
-;; Version: 1.9.3
+;; Version: 1.9.4
 ;; Package-Requires: ((emacs "28"))
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -469,13 +469,13 @@ rely on their original or user configured default behavior."
     (gtags-mode--with-feature 'hooks
       (add-hook 'after-save-hook #'gtags-mode--after-save-hook))
     (gtags-mode--with-feature 'imenu
-      (advice-add imenu-create-index-function :before-until #'gtags-mode--imenu-advice)))
+      (advice-add 'imenu-create-index-function :before-until #'gtags-mode--imenu-advice)))
    (t
     (remove-hook 'project-find-functions #'gtags-mode--local-plist)
     (remove-hook 'xref-backend-functions #'gtags-mode--local-plist)
     (remove-hook 'completion-at-point-functions #'gtags-mode-completion-function)
     (remove-hook 'after-save-hook #'gtags-mode--after-save-hook)
-    (advice-remove imenu-create-index-function #'gtags-mode--imenu-advice))))
+    (advice-remove 'imenu-create-index-function #'gtags-mode--imenu-advice))))
 
 (provide 'gtags-mode)
 ;;; gtags-mode.el ends here

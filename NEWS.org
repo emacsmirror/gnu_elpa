@@ -9,6 +9,7 @@
 - Added support for =vc-region-history=.  Note that this requires the
   repository to be co-located since we call =vc-git-region-history=, but
   repositories are co-located by default since jujutsu 0.34.
+- Added =vc-jj-clone=, making it possible to run =vc-clone=.
 
 *** Changed
 
@@ -33,7 +34,6 @@
   =vc-jj-log-view-mode=: =vc-jj-bookmark-set=, =vc-jj-bookmark-delete=, and
   =vc-jj-bookmark-rename=.  These have bindings under the "b" prefix key
   in =vc-jj-log-view-mode=: =vc= buffers.
-- Added =vc-jj-clone=, making it possible to run =vc-clone=.
 - Added list of other jj support packages for Emacs to the
   documentation -- not everyone is looking for vc integration :)
 

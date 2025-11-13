@@ -986,13 +986,23 @@ delete."
 ;;;; diff
 
 (defun vc-jj-diff (files &optional rev1 rev2 buffer _async)
-  "Display diffs for FILES between revisions REV1 and REV2."
+  "Display diffs for FILES between revisions REV1 and REV2.
+FILES is a list of file paths. REV1 and REV2 are the full change IDs of
+two revisions.  REV1 is the earlier revision and REV2 is the later
+revision.
+
+When BUFFER is non-nil, it is the buffer object or name to insert the
+diff into.  Otherwise, when nil, insert the diff into the *vc-diff*
+buffer. If _ASYNC is non-nil, run asynchronously.  This is currently
+unsupported."
   ;; TODO: handle async
   (setq buffer (get-buffer-create (or buffer "*vc-diff*"))
         files (mapcar #'vc-jj--filename-to-fileset files))
   (cond
    ((not (or rev1 rev2))
-    (setq rev1 "@-"))
+    ;; Use `vc-jj-previous-revision' instead of "@-" because the
+    ;; former handles edge cases like e.g. multiple parents
+    (setq rev1 (vc-jj-previous-revision nil "@")))
    ((null rev1)
     (setq rev1 "root()")))
   (setq rev2 (or rev2 "@"))

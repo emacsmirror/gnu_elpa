@@ -308,14 +308,16 @@ All entries all optional, except for `:incoming-url'."
   "Maximum number of messages to keep cached in memory."
   :type 'natnum)
 
-(defcustom minimail-mailbox-mode-columns '((\\Sent flags date recipients subject)
-                                           (t flags date from subject))
+(defcustom minimail-mailbox-mode-columns
+  '((\\Sent flag-flagged flag-answered date recipients subject)
+    (t flag-flagged flag-answered date from subject))
   "Columns to display in `minimail-mailbox-mode' buffers.
 This is an alist mapping mailbox selectors to lists of column names as
 defined in `minimail-mailbox-mode-column-alist'."
   :type '(repeat alist))
 
-(defcustom minimail-mailbox-mode-sort-by '((t (date . descend) (thread . ascend)))
+(defcustom minimail-mailbox-mode-sort-by
+  '((t (date . descend) (thread . ascend)))
   "Sorting criteria for `minimail-mailbox-mode' buffers.
 This is an alist mapping mailbox selectors to lists of the form
 
@@ -1051,9 +1053,10 @@ rather than UIDs."
                     (if brief "" " RFC822.SIZE ENVELOPE")))
        (buffer <- (-amake-request account mailbox cmd))
        (messages (with-current-buffer buffer (-parse-fetch))))
-    (when (memq 'x-gm-ext-1 caps)   ;treat GM labels as good old flags
+    (when (memq 'x-gm-ext-1 caps)     ;treat Important label as a flag
       (dolist (msg messages)
-        (cl-callf nconc (cdr (assq 'flags msg)) (let-alist msg .x-gm-labels))))
+        (when (member "\\Important" (alist-get 'x-gm-labels msg))
+          (push "$Important" (alist-get 'flags msg)))))
     messages))
 
 (defun -afetch-old-messages (account mailbox limit &optional before)
@@ -1464,14 +1467,6 @@ Cf. RFC 5256, §2.1."
                                       timestamp
                                       (decoded-time-zone date))))))
 
-(defvar minimail-flag-icons             ;TODO: Use define-icon
-  '(((\\Flagged  . "★")
-     ((or $Important \\Important) . #("★" 0 1 (face shadow))))
-    ((\\Answered . "↩")
-     ($Forwarded . "→")
-     ($Junk      . #("⚠" 0 1 (face shadow)))
-     ($Phishing  . #("⚠" 0 1 (face error))))))
-
 (defun -message-timestamp (msg)
   "The message's envelope date as a Unix timestamp."
   (let-alist msg
@@ -1479,6 +1474,48 @@ Cf. RFC 5256, §2.1."
       (encode-time (or .envelope.date
                        .internal-date
                        '(0 0 0 1 1 1970 nil nil 0))))))
+
+(define-icon -message-unseen nil
+  '((emoji "✉️") (symbol "●") (text "."))
+  "Icon for unseen messages."
+  :help-echo "Unseen"
+  :version "0.3")
+
+(define-icon -message-flagged nil
+  '((emoji "⭐") (symbol "★") (text "!"))
+  "Icon for flagged messages."
+  :help-echo "Flagged"
+  :version "0.3")
+
+(define-icon -message-important nil
+  '((emoji "🔸") (symbol "⬥") (text "i"))
+  "Icon for important messages."
+  :help-echo "Important"
+  :version "0.3")
+
+(define-icon -message-answered nil
+  '((emoji "↩️") (symbol "↩") (text "A"))
+  "Icon for answered messages."
+  :help-echo "Answered"
+  :version "0.3")
+
+(define-icon -message-forwarded nil
+  '((emoji "➡️") (symbol "→") (text "F"))
+  "Icon for answered messages."
+  :help-echo "Forwarded"
+  :version "0.3")
+
+(define-icon -message-junk nil
+  '((emoji "♻️") (symbol "♻") (text "J"))
+  "Icon for junk messages."
+  :help-echo "Junk"
+  :version "0.3")
+
+(define-icon -message-phishing nil
+  '((emoji "⚠️") (symbol "⚠") (text "J" :face warning))
+  "Icon for phishing messages."
+  :help-echo "Phishing"
+  :version "0.3")
 
 (defvar minimail-mailbox-mode-column-alist
   ;; NOTE: We must slightly abuse the vtable API in several of our
@@ -1488,25 +1525,28 @@ Cf. RFC 5256, §2.1."
   `((id
      :name "#"
      :getter ,(lambda (msg _) (alist-get 'id msg)))
-    (flags
-     :name ""
-     :width ,(1- (* 2 (length minimail-flag-icons)))
+    (flag-seen
+     :name "Seen"
      :getter ,(lambda (msg _)
-                (let-alist msg
-                  (propertize
-                   (if (assoc-string '\\Seen .flags) "1" "0") ;use columm to sort unread first
-                   'minimail
-                   (propertize
-                    (mapconcat (lambda (column)
-                                 (-alist-query .flags column " "))
-                               minimail-flag-icons
-                               " ")
-                    'face 'vtable
-                    'help-echo (lambda (&rest _)
-                                 (if .flags
-                                     (string-join (cons "Message flags:" .flags) " ")
-                                   "No message flags"))))))
-     :formatter -get-data)
+                (let ((icon (-alist-query (alist-get 'flags msg)
+                                          '(((not \\Seen) . -message-unseen)))))
+                  (if icon (icon-string icon) ""))))
+    (flag-flagged
+     :name "Flagged"
+     :getter ,(lambda (msg _)
+                (let ((icon (-alist-query (alist-get 'flags msg)
+                                          '((\\Flagged  . -message-flagged)
+                                            ($Important . -message-important)
+                                            ($Phishing  . -message-phishing)
+                                            ($Junk      . -message-junk)))))
+                  (if icon (icon-string icon) ""))))
+    (flag-answered
+     :name "Answered"
+     :getter ,(lambda (msg _)
+                (let ((icon (-alist-query (alist-get 'flags msg)
+                                          '((\\Answered . -message-answered)
+                                            ($Forwarded . -message-forwarded)))))
+                  (if icon (icon-string icon) ""))))
     (from
      :name "From"
      :max-width 30

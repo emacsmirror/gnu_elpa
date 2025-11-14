@@ -4,7 +4,7 @@
 
 ;; Author: Xiyue Deng <manphiz@gmail.com>
 ;; Homepage: https://gitlab.com/manphiz/auth-source-xoauth2-plugin
-;; Version: 0.3.1
+;; Version: 0.3.2
 ;; Package-Requires: ((emacs "28.1") (oauth2 "0.18"))
 
 ;; This file is not part of GNU Emacs.

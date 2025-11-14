@@ -49,7 +49,7 @@
        :client-secret "kSmqreRr0qwBWJgbf5Y-PjSU"
        :auth-url "https://accounts.google.com/o/oauth2/auth"
        :token-url "https://www.googleapis.com/oauth2/v3/token"
-       :redirect-uri "http://localhost/"
+       :redirect-uri "https://localhost/"
        :scope "https://mail.google.com/"
        :use-pkce "true" )
      microsoft
@@ -57,7 +57,7 @@
        ;; :client-secret ""
        :auth-url "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
        :token-url "https://login.microsoftonline.com/common/oauth2/v2.0/token"
-       :redirect-uri "http://localhost"
+       :redirect-uri "https://localhost"
        :scope "https://outlook.office.com/IMAP.AccessAsUser.All https://outlook.office.com/POP.AccessAsUser.All https://outlook.office.com/SMTP.Send offline_access"
        :use-pkce "true" ))))
 

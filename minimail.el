@@ -1552,6 +1552,12 @@ Cf. RFC 5256, §2.1."
                             'minimail (let-alist msg .envelope.date)))
      :formatter ,(lambda (s)
                    (propertize (-format-date (-get-data s))
+                               'face 'vtable)))
+    (size
+     :name "Size"
+     :getter ,(lambda (msg _) (let-alist msg .rfc822-size))
+     :formatter ,(lambda (v)
+                   (propertize (file-size-human-readable-iec v)
                                'face 'vtable)))))
 
 (defun -mailbox-buffer-update (messages)

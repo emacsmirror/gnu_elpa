@@ -1,6 +1,6 @@
 ;;; json-mode.el --- Major mode for editing JSON files  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2015-2020 Free Software Foundation, Inc.
+;; Copyright (C) 2015-2025 Free Software Foundation, Inc.
 
 ;; Author: Simen Heggestøyl <simenheg@gmail.com>
 ;; Maintainer: Simen Heggestøyl <simenheg@gmail.com>
@@ -40,9 +40,12 @@
   :tag "JSON Mode"
   :group 'data)
 
+;; FIXME: The more "conventional" name would be `json-indent-level'.
+;; Or even better just use `smie-indent-basic'.
 (defcustom json-mode-indent-level 2
   "Basic size of one indentation step."
-  :type 'integer)
+  :type 'integer
+  :safe #'integerp)
 
 (defface json-mode-object-name-face
   '((t :inherit font-lock-variable-name-face))
@@ -185,6 +188,7 @@ integers."
   (add-hook 'which-func-functions #'json--which-func nil t)
   (setq-local comment-start "// ")
   (setq-local comment-end "")
+  (setq-local editorconfig-indent-size-vars '(json-mode-indent-level))
   (smie-setup json-mode--smie-grammar #'json-mode--smie-rules))
 
 (defun json--jit-wrap (beg end)

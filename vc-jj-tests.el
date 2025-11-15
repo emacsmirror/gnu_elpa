@@ -278,5 +278,54 @@ See https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/63."
       (should (eq (vc-jj-dir-status-files repo nil (lambda (x y) x))
                   nil)))))
 
+(ert-deftest vc-jj-previous-revision-in-merge ()
+  "Test vc-previous-revision for a change with multiple parents.
+We expect this function to return the first parent specified."
+  (vc-jj-test-with-repo repo
+    (let ((root "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
+          branch-1 branch-2 branch-merged
+          branch-parent branch-parent-with-file)
+      ;; - construct a diamond graph
+      ;; - add a file to the second parent of the merge commit
+      ;; - check that we find the first parent
+      ;; - check that we find the second parent when looking for a
+      ;;   parent with the new file
+      (shell-command (concat "jj new " root))
+      (write-region "Hello!" nil "README")
+      (setq branch-1 (vc-jj-working-revision "README"))
+      (shell-command (concat "jj new " root))
+      (write-region "Hello!" nil "README")
+      (write-region "Hello!" nil "README-onlyhere")
+      (setq branch-2 (vc-jj-working-revision "README"))
+      (shell-command (concat "jj new " branch-1 " " branch-2))
+      (setq branch-merged (vc-jj-working-revision "README"))
+      (setq branch-parent (vc-jj-previous-revision nil branch-merged))
+      (setq branch-parent-with-file (vc-jj-previous-revision "README-onlyhere" branch-merged))
+      (should (string= branch-parent branch-1))
+      (should (string= branch-parent-with-file branch-2)))))
+
+(ert-deftest vc-jj-next-revision-in-merge ()
+  "Test vc-next-revision for a change with multiple children.
+We check that we get the revision where a given file was added."
+  (vc-jj-test-with-repo repo
+    (let ( branch-root branch-1 branch-2 branch-child branch-child-1 branch-child-2)
+      (write-region "Hello!" nil "README")
+      (setq branch-root (vc-jj-working-revision "README"))
+      (shell-command (concat "jj new " branch-root))
+      (write-region "Hello!" nil "README-onlyhere")
+      (setq branch-1 (vc-jj-working-revision "README-onlyhere"))
+      (shell-command (concat "jj new " branch-root))
+      (write-region "Persisting branch 2" nil "README-branch2")
+      (setq branch-2 (vc-jj-working-revision "README-branch2"))
+      (setq branch-child (vc-jj-next-revision nil branch-root))
+      ;; Slight pun: these files only exist in the child branches
+      (setq branch-child-1 (vc-jj-next-revision "README-onlyhere" branch-root))
+      (setq branch-child-2 (vc-jj-next-revision "README-branch2" branch-root))
+      ;; We don't want to rely on the exact order in which the
+      ;; children are printed
+      (should (or (string= branch-child branch-1) (string= branch-child branch-2)))
+      (should (string= branch-child-1 branch-1))
+      (should (string= branch-child-2 branch-2)))))
+
 (provide 'vc-jj-tests)
 ;;; vc-jj-tests.el ends here

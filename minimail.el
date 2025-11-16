@@ -1173,18 +1173,16 @@ If not found and NOERROR is nil, signal an error."
       (unless (or noerror (buffer-live-p buffer))
         (user-error "No message buffer")))))
 
-(defun -mailbox-annotation (mbx)
-  (let-alist mbx
+(defun -mailbox-annotation (mailbox)
+  "Return an annotation for MAILBOX.
+MAILBOX can be an alist as returned by `minimail--aget-mailbox-listing'
+or a string containing such an alist as a property."
+  (let-alist (if (stringp mailbox) (car (-get-data mailbox)) mailbox)
     (when .messages
       (let ((suffix (if (eq 1 .messages) "" "s")))
         (if (cl-plusp .unseen)
-            (format "%s message%s, %s unseen" .messages suffix .unseen)
-          (format "%s message%s" .messages suffix))))))
-
-(defun -mailbox-annotate (cand)
-  "Return an annotation for `minimail--read-mailbox' candidate CAND."
-  (when-let* ((annot (-mailbox-annotation (car (-get-data cand)))))
-    (format #("  %s" 1 2 (display (space :align-to 40))) annot)))
+            (format " %s message%s, %s unseen" .messages suffix .unseen)
+          (format " %s message%s" .messages suffix))))))
 
 (defun -read-mailbox (prompt &optional accounts)
   "Read the name of a mailbox from one of the ACCOUNTS using PROMPT.
@@ -1197,7 +1195,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
                        (user-error "No accounts configured")))
          (metadata '(metadata
                      (category . minimail-mailbox)
-                     (annotation-function . -mailbox-annotate)))
+                     (annotation-function . -mailbox-annotation)))
          (coll (lambda (string predicate action)
                  (if (eq action 'metadata)
                      metadata
@@ -2184,10 +2182,8 @@ window shorter than 6 lines."
                                 :format "%[%t%]%d"
                                 :button-prefix ""
                                 :button-suffix ""
-                                :doc ,(if-let* ((annot (-mailbox-annotation props)))
-                                          (format #(" %s" 1 3 (face completions-annotations))
-                                                  annot)
-                                        "")
+                                :doc ,(propertize (or (-mailbox-annotation props) "")
+                                                  'face 'completions-annotations)
                                 :icon ,(seq-some
                                         (pcase-lambda (`(,cond . ,icon))
                                           (when (-key-match-p cond .attributes) icon))

@@ -2101,16 +2101,82 @@ window shorter than 6 lines."
   "Major mode for browsing a mailbox tree."
   :interactive nil
   (setq buffer-undo-list t)
-  (tree-widget-set-theme "folder")
+  (add-hook 'tree-widget-before-create-icon-functions #'-overview-create-icon nil t)
   (setq-local revert-buffer-function (lambda (&rest _)
                                        (-overview-buffer-populate t))))
+
+(define-icon -mailbox nil
+  '((emoji "🗂️") (text ""))
+  "Generic icon for mailboxes."
+  :version "0.3")
+
+(define-icon -mailbox-closed -mailbox
+  '((emoji "📁") (symbol "⊞ ")(text "[+]"))
+  "Icon for mailboxes with children, when closed."
+  :version "0.3")
+
+(define-icon -mailbox-open -mailbox
+  '((emoji "📂") (symbol "⊟ ") (text "[-]"))
+  "Icon for mailboxes with children, when open."
+  :version "0.3")
+
+(define-icon -mailbox-archive -mailbox
+  '((emoji "🗃️"))
+  "Icon for archive mailboxes."
+  :version "0.3")
+
+(define-icon -mailbox-drafts -mailbox
+  '((emoji "📝"))
+  "Icon for drafts mailboxes."
+  :version "0.3")
+
+(define-icon -mailbox-flagged -mailbox
+  '((emoji "⭐"))
+  "Icon for flagged mailboxes."
+  :version "0.3")
+
+(define-icon -mailbox-important -mailbox
+  '((emoji "🔶"))
+  "Icon for important mailboxes."
+  :version "0.3")
+
+(define-icon -mailbox-inbox -mailbox
+  '((emoji "📥"))
+  "Icon for inbox mailboxes."
+  :version "0.3")
+
+(define-icon -mailbox-junk -mailbox
+  '((emoji "♻️"))
+  "Icon for junk mailboxes."
+  :version "0.3")
+
+(define-icon -mailbox-sent -mailbox
+  '((emoji "📤"))
+  "Icon for sent mailboxes."
+  :version "0.3")
+
+(define-icon -mailbox-trash -mailbox
+  '((emoji "🗑️"))
+  "Icon for trash mailboxes."
+  :version "0.3")
+
+(defun -overview-create-icon (icon)
+  (widget-put icon :glyph-name nil)
+  (widget-put icon :tag
+              (icon-string
+               (pcase (widget-type icon)
+                 ('tree-widget-leaf-icon
+                  (widget-put icon :tab-order -1)
+                  (widget-get (widget-get icon :node) :icon))
+                 ('tree-widget-open-icon '-mailbox-open)
+                 (_ '-mailbox-closed)))))
 
 (defun -overview-tree-expand (widget)
   (let ((acct (widget-get widget :account))
         (path (widget-get widget :path)))
     (mapcan
-     (lambda (mbx)
-       (let-alist mbx
+     (pcase-lambda (`(,name . ,props))
+       (let-alist props
          (when (equal path (cdr .path))
            (let ((node (if (-key-match-p '(or \\Noselect \\NonExistent) .attributes)
                            `(item :tag ,(car .path))
@@ -2118,21 +2184,30 @@ window shorter than 6 lines."
                                 :format "%[%t%]%d"
                                 :button-prefix ""
                                 :button-suffix ""
-                                :doc ,(if-let* ((annot (-mailbox-annotation mbx)))
+                                :doc ,(if-let* ((annot (-mailbox-annotation props)))
                                           (format #(" %s" 1 3 (face completions-annotations))
                                                   annot)
                                         "")
-                                :action
-                                ,(lambda (&rest _)
-                                   (minimail-find-mailbox acct .name))))))
-             (if (-key-match-p '\\HasNoChildren .attributes)
+                                :icon ,(seq-some
+                                        (pcase-lambda (`(,cond . ,icon))
+                                          (when (-key-match-p cond .attributes) icon))
+                                        '(((or \\All \\Archive) . -mailbox-archive)
+                                          (\\Drafts             . -mailbox-drafts)
+                                          (\\Flagged            . -mailbox-flagged)
+                                          (\\Important          . -mailbox-important)
+                                          (\\Junk               . -mailbox-junk)
+                                          (\\Sent               . -mailbox-sent)
+                                          (\\Trash              . -mailbox-trash)
+                                          (t                    . -mailbox)))
+                                :action ,(lambda (&rest _)
+                                           (minimail-find-mailbox acct name))))))
+             (if (-key-match-p '(or \\HasNoChildren \\Noinferiors) .attributes)
                  `(,node)
                `((tree-widget
-                  :tag ,(car .path)
+                  :node ,node
                   :account ,acct
                   :path ,.path
-                  :expander -overview-tree-expand
-                  :node ,node)))))))
+                  :expander -overview-tree-expand)))))))
      (widget-get (alist-get acct -tree-widgets) :mailboxes))))
 
 (defun -overview-buffer-populate (&optional refresh)
@@ -2161,7 +2236,7 @@ Unless REFRESH is non-nil, use cached mailbox information."
                               (-aget-mailbox-listing acct refresh)
                             (t (setq -mode-line-suffix ":Error")
                                (signal (car err) (cdr err)))))
-            ;; Add name an path property to the mailbox items.
+            ;; Add path property to the mailbox items.
             (props (alist-get acct minimail-accounts))
             (url (url-generic-parse-url (plist-get props :incoming-url)))
             (basepath (string-remove-prefix "/" (car (url-path-and-query url))))
@@ -2174,7 +2249,7 @@ Unless REFRESH is non-nil, use cached mailbox information."
                                                 (split-string
                                                  (string-remove-prefix basepath name)
                                                  (regexp-quote delim) t)))))
-                                   `((name . ,name) (path . ,path) ,@props)))
+                                   `(,name (path . ,path) ,@props)))
                                mailboxes)))
          (with-current-buffer buffer
            (widget-put (alist-get acct -tree-widgets) :mailboxes mailboxes)

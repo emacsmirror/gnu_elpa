@@ -468,7 +468,7 @@ Return the first matching value."
                            (cons mailbox
                                  ;; Due to caching, will essentially never block.
                                  (athunk-run-polling
-                                  (-aget-mailbox-attributes account mailbox)
+                                  (-aget-mailbox-flags account mailbox)
                                   :interval 0.1 :max-tries 10)))
                          val))
           (found val)
@@ -493,7 +493,7 @@ alist, and look up MAILBOX in it."
           (cons mailbox
                 ;; Due to caching, will essentially never block.
                 (athunk-run-polling
-                 (-aget-mailbox-attributes account mailbox)
+                 (-aget-mailbox-flags account mailbox)
                  :interval 0.1 :max-tries 10))))
   (if-let* ((alist (plist-get (alist-get account minimail-accounts) keyword))
             (val (-assoc-query mailbox alist)))
@@ -783,7 +783,7 @@ it is nil."
        (item untagged "LIST (" flags ") "
              (or astring anil)
              sp astring7
-             `(f d n -- `(,n (delimiter . ,d) (attributes . ,f))))
+             `(f d n -- `(,n (delimiter . ,d) (flags . ,f))))
        (status untagged "STATUS "
                (list astring7 " ("
                      (* (opt sp)
@@ -983,10 +983,10 @@ are 1-based and inclusive of the end."
                                (seq-group-by #'car (-parse-list))))))))
       (or cached (setf (-get-in -account-state account 'mailboxes) new)))))
 
-(defun -aget-mailbox-attributes (account mailbox)
-  (athunk-let*
-      ((mailboxes <- (-aget-mailbox-listing account)))
-    (-get-in mailboxes mailbox 'attributes)))
+(defun -aget-mailbox-flags (account mailbox)
+  "Return the list of flags of ACCOUNT's MAILBOX."
+  (athunk-let* ((mailboxes <- (-aget-mailbox-listing account)))
+    (-get-in mailboxes mailbox 'flags)))
 
 (defun -aget-mailbox-status (account mailbox)
   (athunk-let*
@@ -1210,7 +1210,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
              (athunk-let*
                  ((mkcand (pcase-lambda (`(,mbx . ,props))
                             (unless (-key-match-p '(or \\Noselect \\NonExistent)
-                                                  (alist-get 'attributes props))
+                                                  (alist-get 'flags props))
                               (propertize (-mailbox-display-name acct mbx)
                                           'minimail `(,props ,acct . ,mbx)))))
                   (mailboxes <- (athunk-condition-case err
@@ -1321,9 +1321,12 @@ Return a cons cell consisting of the account symbol and mailbox name."
                          (cdr (-read-mailbox prompt (list acct))))))
     (athunk-run (-amove-messages-and-redisplay acct mbx dest uids))))
 
-(defun -find-mailbox-by-attribute (attr mailboxes)
+(defun -find-mailbox-by-flag (flag mailboxes)
+  "Return the first item of MAILBOXES which has the given FLAG.
+FLAG can be a string or, more generally, a condition for
+`minimail--key-match-p'."
   (seq-some (pcase-lambda (`(,mbx . ,items))
-              (when (-key-match-p attr (alist-get 'attributes items)) mbx))
+              (when (-key-match-p flag (alist-get 'flags items)) mbx))
             mailboxes))
 
 (defun minimail-move-to-archive ()
@@ -1334,8 +1337,8 @@ Return a cons cell consisting of the account symbol and mailbox name."
          ((mailboxes <- (-aget-mailbox-listing acct))
           (dest (or (plist-get (alist-get acct minimail-accounts)
                                :archive-mailbox)
-                    (-find-mailbox-by-attribute '\\Archive mailboxes)
-                    (-find-mailbox-by-attribute '\\All mailboxes)
+                    (-find-mailbox-by-flag '\\Archive mailboxes)
+                    (-find-mailbox-by-flag '\\All mailboxes)
                     (user-error "Archive mailbox not found")))
           (_ <- (-amove-messages-and-redisplay acct mbx dest uids)))))))
 
@@ -1347,7 +1350,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
          ((mailboxes <- (-aget-mailbox-listing acct))
           (dest (or (plist-get (alist-get acct minimail-accounts)
                                :trash-mailbox)
-                    (-find-mailbox-by-attribute '\\Trash mailboxes)
+                    (-find-mailbox-by-flag '\\Trash mailboxes)
                     (user-error "Trash mailbox not found")))
           (_ <- (-amove-messages-and-redisplay acct mbx dest uids)))))))
 
@@ -1359,7 +1362,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
          ((mailboxes <- (-aget-mailbox-listing acct))
           (dest (or (plist-get (alist-get acct minimail-accounts)
                                :junk-mailbox)
-                    (-find-mailbox-by-attribute '\\Junk mailboxes)
+                    (-find-mailbox-by-flag '\\Junk mailboxes)
                     (user-error "Junk mailbox not found")))
           (_ <- (-amove-messages-and-redisplay acct mbx dest uids)))))))
 
@@ -2176,7 +2179,7 @@ window shorter than 6 lines."
      (pcase-lambda (`(,name . ,props))
        (let-alist props
          (when (equal path (cdr .path))
-           (let ((node (if (-key-match-p '(or \\Noselect \\NonExistent) .attributes)
+           (let ((node (if (-key-match-p '(or \\Noselect \\NonExistent) .flags)
                            `(item :tag ,(car .path))
                          `(link :tag ,(car .path)
                                 :format "%[%t%]%d"
@@ -2186,7 +2189,7 @@ window shorter than 6 lines."
                                                   'face 'completions-annotations)
                                 :icon ,(seq-some
                                         (pcase-lambda (`(,cond . ,icon))
-                                          (when (-key-match-p cond .attributes) icon))
+                                          (when (-key-match-p cond .flags) icon))
                                         '(((or \\All \\Archive) . -mailbox-archive)
                                           (\\Drafts             . -mailbox-drafts)
                                           (\\Flagged            . -mailbox-flagged)
@@ -2197,7 +2200,7 @@ window shorter than 6 lines."
                                           (t                    . -mailbox)))
                                 :action ,(lambda (&rest _)
                                            (minimail-find-mailbox acct name))))))
-             (if (-key-match-p '(or \\HasNoChildren \\Noinferiors) .attributes)
+             (if (-key-match-p '(or \\HasNoChildren \\Noinferiors) .flags)
                  `(,node)
                `((tree-widget
                   :node ,node

@@ -619,7 +619,7 @@ if(root,
   label(if(current_working_copy, \"working_copy\"),
     concat(
       separate(\" \",
-        change_id.shortest(8).prefix() ++ \"​\" ++ change_id.shortest(8).rest(),
+        change_id ++ \"​\" ++ change_id.shortest(8).prefix() ++ \"​\" ++ change_id.shortest(8).rest(),
         if(author.name(), author.name(), if(author.email(), author.email().local(), email_placeholder)),
         commit_timestamp(self).format(\"%Y-%m-%d\"),
         bookmarks,
@@ -682,7 +682,10 @@ if(root,
     ;; graph
     (+? nonl)
     " "
-    ;; change-id
+    ;; full change id
+    (group (+ (any "K-Zk-z")))
+    space
+    ;; displayed change id
     (group (+ (any "K-Zk-z")))
     space
     (group (+ (any "K-Zk-z")))
@@ -842,18 +845,19 @@ delete."
   ;; Allow expanding short log entries.
   (setq truncate-lines t)
   (setq-local log-view-expanded-log-entry-function
-    'vc-jj--expanded-log-entry)
+              'vc-jj--expanded-log-entry)
   (setq-local log-view-font-lock-keywords
-    `((,vc-jj--logline-re
-        (1 'log-view-message)
-        (2 'change-log-list)
-        (3 'change-log-name)
-        (4 'change-log-date)
-        (5 'change-log-file)
-        (6 'change-log-list)
-        (7 'change-log-function)
-        (8 'change-log-function))))
-
+              `((,vc-jj--logline-re
+                 (1 '(face nil invisible t))
+                 (2 'log-view-message)
+                 (3 'change-log-list)
+                 (4 'change-log-name)
+                 (5 'change-log-date)
+                 (6 'change-log-file)
+                 (7 'change-log-list)
+                 (8 'change-log-function)
+                 (9 'change-log-function))))
+  
   (keymap-set vc-jj-log-view-mode-map "r" #'vc-jj-log-view-edit-change)
   (keymap-set vc-jj-log-view-mode-map "x" #'vc-jj-log-view-abandon-change)
   (keymap-set vc-jj-log-view-mode-map "i" #'vc-jj-log-view-new-change)

@@ -71,16 +71,16 @@ NAME: Name of the tenant
 PROJECT-ROOTS: An alist of (name . root)"
   :group 'zuul
   :type '(repeat (plist :options ((:name string)
-                                  (:project-roots
-                                   (alist :key-type string
-                                          :value-type string))))))
+                                   (:project-roots
+                                     (alist :key-type string
+                                       :value-type string))))))
 
 (defcustom zuul-build-annotation
   '((:name build :function zuul--build-name-str)
-    (:name status :function zuul--build-status-str)
-    (:name pipeline :function zuul--build-pipeline-str :face zuul-pipeline-face)
-    (:name duration :function zuul--build-duration-str :align right :face zuul-duration-face)
-    (:name start-time :function zuul--build-start-time-str :face zuul-time-face))
+     (:name status :function zuul--build-status-str)
+     (:name pipeline :function zuul--build-pipeline-str :face zuul-pipeline-face)
+     (:name duration :function zuul--build-duration-str :align right :face zuul-duration-face)
+     (:name start-time :function zuul--build-start-time-str :face zuul-time-face))
   "A list of annotations to display for a build.
 
 Each entry in the list is a property list with the following properties:
@@ -90,16 +90,16 @@ Each entry in the list is a property list with the following properties:
 - :face"
   :group 'zuul
   :type '(repeat (plist :options ((:name symbol)
-                                  (:function symbol)
-                                  (:align symbol)
-                                  (:face symbol)))))
+                                   (:function symbol)
+                                   (:align symbol)
+                                   (:face symbol)))))
 
 (defcustom zuul-buildset-annotation
   '((:name patchset :function zuul--buildset-patchset-str)
-    (:name status :function zuul--buildset-status-str)
-    (:name duration :function zuul--buildset-duration-str :face zuul-duration-face)
-    (:name summary :function zuul--buildset-summary-str :face zuul-buildset-summary-face)
-    (:name start-time :function zuul--buildset-start-time-str :face zuul-time-face))
+     (:name status :function zuul--buildset-status-str)
+     (:name duration :function zuul--buildset-duration-str :face zuul-duration-face)
+     (:name summary :function zuul--buildset-summary-str :face zuul-buildset-summary-face)
+     (:name start-time :function zuul--buildset-start-time-str :face zuul-time-face))
   "A list of annotations to display for a buildset.
 
 Each entry in the list is a property list with the following properties:
@@ -109,18 +109,18 @@ Each entry in the list is a property list with the following properties:
 - :face"
   :group 'zuul
   :type '(repeat (plist :options ((:name symbol)
-                                  (:function symbol)
-                                  (:align symbol)
-                                  (:face symbol)))))
+                                   (:function symbol)
+                                   (:align symbol)
+                                   (:face symbol)))))
 
 (defcustom zuul-build-command-annotation
   '((:name command :function zuul--data-host-cmd-str :width 50)
-    (:name task-name :function zuul--data-task-name-str :face zuul-unknown-face)
-    (:name host-result :function zuul--data-host-result-str)
-    (:name task-duration :function zuul--data-task-duration-str :align right :face zuul-duration-face)
-    (:name phase :function zuul--data-playbook-phase-str :face zuul-playbook-phase-face)
-    (:name task-role :function zuul--data-task-role-str :face zuul-task-role-face)
-    (:name host :function zuul--data-host-name-str :face zuul-host-face))
+     (:name task-name :function zuul--data-task-name-str :face zuul-unknown-face)
+     (:name host-result :function zuul--data-host-result-str)
+     (:name task-duration :function zuul--data-task-duration-str :align right :face zuul-duration-face)
+     (:name phase :function zuul--data-playbook-phase-str :face zuul-playbook-phase-face)
+     (:name task-role :function zuul--data-task-role-str :face zuul-task-role-face)
+     (:name host :function zuul--data-host-name-str :face zuul-host-face))
   "A list of annotations to display for a build command.
 
 Each entry in the list is a property list with the following properties:
@@ -130,17 +130,17 @@ Each entry in the list is a property list with the following properties:
 - :face"
   :group 'zuul
   :type '(repeat (plist :options ((:name symbol)
-                                  (:function symbol)
-                                  (:align symbol)
-                                  (:face symbol)))))
+                                   (:function symbol)
+                                   (:align symbol)
+                                   (:face symbol)))))
 
 (defcustom zuul-build-imenu-annotation
   '((:name task-name :function zuul--data-task-name-str)
-    (:name host-result :function zuul--data-host-result-str)
-    (:name task-duration :function zuul--data-task-duration-str :align right :face zuul-duration-face)
-    (:name phase :function zuul--data-playbook-phase-str :face zuul-playbook-phase-face)
-    (:name task-role :function zuul--data-task-role-str :face zuul-task-role-face)
-    (:name host :function zuul--data-host-name-str :face zuul-host-face))
+     (:name host-result :function zuul--data-host-result-str)
+     (:name task-duration :function zuul--data-task-duration-str :align right :face zuul-duration-face)
+     (:name phase :function zuul--data-playbook-phase-str :face zuul-playbook-phase-face)
+     (:name task-role :function zuul--data-task-role-str :face zuul-task-role-face)
+     (:name host :function zuul--data-host-name-str :face zuul-host-face))
   "A list of annotations to display for `imenu'.
 
 Each entry in the list is a property list with the following properties:
@@ -150,12 +150,12 @@ Each entry in the list is a property list with the following properties:
 - :face"
   :group 'zuul
   :type '(repeat (plist :options ((:name symbol)
-                                  (:function symbol)
-                                  (:align symbol)
-                                  (:face symbol)))))
+                                   (:function symbol)
+                                   (:align symbol)
+                                   (:face symbol)))))
 
 (defcustom zuul-build-display-buffer-action '(display-buffer-same-window
-                                              (inhibit-same-window . nil))
+                                               (inhibit-same-window . nil))
   "The configuration for `display-buffer' when opening a build."
   :group 'zuul
   :type 'sexp)
@@ -168,19 +168,19 @@ Each entry in the list is a property list with the following properties:
 (defcustom zuul-sort-priority-functions
   `((lambda (it)
       (if-let ((start-time (zuul--start-time it)))
-          (float-time (date-to-time start-time))
+        (float-time (date-to-time start-time))
         0.0))
-    (lambda (it)
-      (pcase (zuul--status it)
-        ("SUCCESS" 0)
-        ("QUEUED" 1)
-        ("FAILURE" 3)
-        (_ 2)))
-    (lambda (it)
-      (pcase (let-alist (zuul-data it) .pipeline)
-        ("check" 1)
-        ("gate" 2)
-        (_ 3))))
+     (lambda (it)
+       (pcase (zuul--status it)
+         ("SUCCESS" 0)
+         ("QUEUED" 1)
+         ("FAILURE" 3)
+         (_ 2)))
+     (lambda (it)
+       (pcase (let-alist (zuul-data it) .pipeline)
+         ("check" 1)
+         ("gate" 2)
+         (_ 3))))
   "A list of functions to use to sort builds."
   :group 'zuul
   :type '(repeat sexp))
@@ -275,14 +275,14 @@ Each entry in the list is a property list with the following properties:
 ;;;; Data structures
 
 (cl-defstruct (zuul-buildset
-               (:constructor zuul--buildset-create)
-               (:conc-name zuul--buildset-))
+                (:constructor zuul--buildset-create)
+                (:conc-name zuul--buildset-))
   (data nil)
   (builds nil))
 
 (cl-defstruct (zuul-build
-               (:constructor zuul--build-create)
-               (:conc-name zuul--build-))
+                (:constructor zuul--build-create)
+                (:conc-name zuul--build-))
   (data nil))
 
 ;;;; Functions
@@ -293,10 +293,10 @@ Each entry in the list is a property list with the following properties:
 (cl-defmethod zuul-build ((entities list))
   "Select and return a build from ENTITIES."
   (cond ((zuul-buildset-p (seq-first entities))
-         (zuul-build (zuul--builds entities)))
-        ((zuul-build-p (seq-first entities))
-         (zuul--select-build entities))
-        (t nil)))
+          (zuul-build (zuul--builds entities)))
+    ((zuul-build-p (seq-first entities))
+      (zuul--select-build entities))
+    (t nil)))
 
 (cl-defmethod zuul-build ((buildset zuul-buildset))
   "Select and return a build from BUILDSET."
@@ -326,29 +326,29 @@ the parameter to pass to it.  Examples of query functions are:
 - `zuul-get-buildsets'
 - `zuul-get-builds'"
   (when-let ((builds-or-buildsets
-              (apply (if (functionp query)
-                         (funcall query)
-                       query))))
+               (apply (if (functionp query)
+                        (funcall query)
+                        query))))
     (zuul--open-build-log builds-or-buildsets)))
 
 (defun zuul--open-build-log (builds-or-buildsets)
   "Open a build log from an item in list BUILDS-OR-BUILDSETS."
   (when (or (and (listp builds-or-buildsets)
-                 (or (zuul-buildset-p (seq-first builds-or-buildsets))
-                     (zuul-build-p (seq-first builds-or-buildsets))))
-            (or (zuul-buildset-p builds-or-buildsets)
-                (zuul-build-p builds-or-buildsets)))
+              (or (zuul-buildset-p (seq-first builds-or-buildsets))
+                (zuul-build-p (seq-first builds-or-buildsets))))
+          (or (zuul-buildset-p builds-or-buildsets)
+            (zuul-build-p builds-or-buildsets)))
     (when-let* ((zuul--builds (or zuul--builds t))
-                (zuul--build (zuul-build builds-or-buildsets)))
+                 (zuul--build (zuul-build builds-or-buildsets)))
       (let-alist (zuul-data zuul--build)
-        (let* ((buffer (format "[%s/%s]-%s" .change .patchset .job_name))
-               (project-root (zuul--project-root .project))
-               (build-output
-                (zuul--get-build-output .uuid
-                                        :json t
-                                        :parser #'zuul--build-json-parser)))
+        (let* ((buffer (format "[%s/%s]-%s" .ref.change .ref.patchset .job_name))
+                (project-root (zuul--project-root .project))
+                (build-output
+                  (zuul--get-build-output .uuid
+                    :json t
+                    :parser #'zuul--build-json-parser)))
           (if (not build-output)
-              (message "Build has no output")
+            (message "Build has no output")
             (with-current-buffer (get-buffer-create buffer)
               (setq-local default-directory project-root)
               (erase-buffer)
@@ -361,53 +361,53 @@ the parameter to pass to it.  Examples of query functions are:
               (compilation--ensure-parse (point-max))
               (goto-char (point-max))
               (select-window
-               (display-buffer buffer zuul-build-display-buffer-action)))))))))
+                (display-buffer buffer zuul-build-display-buffer-action)))))))))
 
 (cl-defun zuul-get-builds (&key
-                           change
-                           project
-                           patchset
-                           branch
-                           ref
-                           (limit "10000"))
+                            change
+                            project
+                            patchset
+                            branch
+                            ref
+                            (limit "10000"))
   "Return a list of `zuul-build' objects.
 
 Optionally provide CHANGE, PROJECT, PATCHSET, BRANCH, REF and LIMIT."
   (let* ((params `(("limit" ,limit)
-                   ,(and change `("change" ,change))
-                   ,(and patchset `("patchset" ,patchset))
-                   ,(and project `("project" ,project))
-                   ,(and branch `("branch" ,branch))
-                   ,(and ref `("ref" ,ref))))
-         (response
-          (zuul--rest-request
-           (concat "/api/tenant/" zuul-tenant "/builds")
-           :params (seq-remove #'null params))))
+                    ,(and change `("change" ,change))
+                    ,(and patchset `("patchset" ,patchset))
+                    ,(and project `("project" ,project))
+                    ,(and branch `("branch" ,branch))
+                    ,(and ref `("ref" ,ref))))
+          (response
+            (zuul--rest-request
+              (concat "/api/tenant/" zuul-tenant "/builds")
+              :params (seq-remove #'null params))))
     (seq-map (lambda (it) (zuul--build-create :data it)) response)))
 
 (cl-defun zuul-get-buildsets (&key
-                              change
-                              project
-                              patchset
-                              result
-                              (limit "200"))
+                               change
+                               project
+                               patchset
+                               result
+                               (limit "200"))
   "Return a list of `zuul-buildset' objects.
 
-Optionally provide parameters CHANGE, PROJECT, PATCHSET and LIMIT."
+Optionally provide parameters CHANGE, PROJECT, PATCHSET, RESULT and LIMIT."
   (let* ((params `(("limit" ,limit)
-                   ,(and change `("change" ,change))
-                   ,(and patchset `("patchset" ,patchset))
-                   ,(and result `("result" ,result))
-                   ,(and project `("project" ,project))))
-         (response
-          (zuul--rest-request
-           (concat "/api/tenant/" zuul-tenant "/buildsets")
-           :params (seq-remove #'null params)
-           :parser #'zuul--request-json-parser))
-         (buildsets (seq-map (lambda (it) (zuul--buildset-create :data it)) response)))
+                    ,(and change `("change" ,change))
+                    ,(and patchset `("patchset" ,patchset))
+                    ,(and result `("result" ,result))
+                    ,(and project `("project" ,project))))
+          (response
+            (zuul--rest-request
+              (concat "/api/tenant/" zuul-tenant "/buildsets")
+              :params (seq-remove #'null params)
+              :parser #'zuul--request-json-parser))
+          (buildsets (seq-map (lambda (it) (zuul--buildset-create :data it)) response)))
     (if (and zuul-add-builds-to-buildset
-             (not (seq-empty-p buildsets)))
-        (zuul--add-builds-to-buildsets buildsets)
+          (not (seq-empty-p buildsets)))
+      (zuul--add-builds-to-buildsets buildsets)
       buildsets)))
 
 ;;;; Commands
@@ -422,74 +422,72 @@ Optionally provide parameters CHANGE, PROJECT, PATCHSET and LIMIT."
   (interactive)
   (let ((zuul--builds zuul--current-builds))
     (zuul--open-build-log
-     (zuul--buildsets zuul--current-build))))
+      (zuul--buildsets zuul--current-build))))
 
 (defun zuul-open-build-in-browser ()
   "Open build in browser."
   (interactive)
   (let-alist (zuul-data zuul--current-build)
     (browse-url
-     (concat zuul-base-url
-             "/t/" zuul-tenant
-             "/build/" .uuid "/console"))))
+      (concat zuul-base-url
+        "/t/" zuul-tenant
+        "/build/" .uuid "/console"))))
 
 (defun zuul-run-build-command ()
   "Run build command from build log."
   (interactive)
   (when-let ((command (zuul--build-log-command)))
-    (if (fboundp 'detached-compile)
-        (detached-compile command)
-      (compile command))))
+    (compile command)))
 
 (defun zuul-next-build ()
   "Switch to next build."
   (interactive)
   (let* ((zuul--build zuul--current-build)
-         (zuul--builds zuul--current-builds)
-         (builds-with-index (zuul--current-builds-with-index))
-         (build-index (zuul--current-build-index builds-with-index))
-         (next-index
-          (mod
-           (1+ build-index)
-           (length builds-with-index)))
-         (next-build
-          (cdr (assoc next-index builds-with-index))))
+          (zuul--builds zuul--current-builds)
+          (builds-with-index (zuul--current-builds-with-index))
+          (build-index (zuul--current-build-index builds-with-index))
+          (next-index
+            (mod
+              (1+ build-index)
+              (length builds-with-index)))
+          (next-build
+            (cdr (assoc next-index builds-with-index))))
     (zuul--open-build-log next-build)))
 
 (defun zuul-previous-build ()
   "Switch to previous build."
   (interactive)
   (let* ((zuul--build zuul--current-build)
-         (zuul--builds zuul--current-builds)
-         (builds-with-index (zuul--current-builds-with-index))
-         (build-index (zuul--current-build-index builds-with-index))
-         (previous-index
-          (mod
-           (1- build-index)
-           (length builds-with-index)))
-         (previous-build
-          (cdr (assoc previous-index builds-with-index))))
+          (zuul--builds zuul--current-builds)
+          (builds-with-index (zuul--current-builds-with-index))
+          (build-index (zuul--current-build-index builds-with-index))
+          (previous-index
+            (mod
+              (1- build-index)
+              (length builds-with-index)))
+          (previous-build
+            (cdr (assoc previous-index builds-with-index))))
     (zuul--open-build-log previous-build)))
 
 (defun zuul-quit-build ()
   "Kill buffers associated with build."
   (interactive)
   (let ((zuul--build zuul--current-build)
-        (zuul-log-buffers
-         (seq-filter (lambda (it)
-                       (eq 'zuul-log-mode
+         (zuul-log-buffers
+           (seq-filter (lambda (it)
+                         (eq 'zuul-log-mode
                            (with-current-buffer it
                              major-mode)))
-                     (buffer-list))))
+             (buffer-list))))
     (thread-last zuul-log-buffers
-                 (seq-filter (lambda (it)
-                               (with-current-buffer it
-                                 (=
-                                  (let-alist (zuul-data zuul--current-build)
-                                    .change)
-                                  (let-alist (zuul-data zuul--build)
-                                    .change)))))
-                 (seq-do #'kill-buffer))))
+      (seq-filter (lambda (it)
+                    (with-current-buffer it
+                      (=
+                        (let-alist (zuul-data zuul--current-build)
+                          .change)
+                        (let-alist (zuul-data zuul--build)
+                          .change)))))
+      (seq-do #'kill-buffer))))
 
 (defun zuul-previous-command ()
   "Navigate to previous command."
@@ -512,73 +510,73 @@ Optionally provide parameters CHANGE, PROJECT, PATCHSET and LIMIT."
 (defun zuul--tenant-config ()
   "Return TENANT configuration."
   (with-connection-local-variables
-   (seq-find
-    (lambda (it)
-      (string= (plist-get it :name) zuul-tenant))
-    zuul-tenant-configs)))
+    (seq-find
+      (lambda (it)
+        (string= (plist-get it :name) zuul-tenant))
+      zuul-tenant-configs)))
 
 (defun zuul--project-root (project)
   "Return the path to the root of PROJECT."
   (if-let ((tenant-config (zuul--tenant-config))
-           (project-root (cdr
-                          (assoc project
-                                 (plist-get tenant-config :project-roots)))))
-      (concat (file-remote-p default-directory) project-root)
+            (project-root (cdr
+                            (assoc project
+                              (plist-get tenant-config :project-roots)))))
+    (concat (file-remote-p default-directory) project-root)
     (message "Project root for %s wasn't found, falling back to `default-directory'" project)
     default-directory))
 
 (cl-defun zuul--get-build-output (build-uuid &key
-                                             json
-                                             (parser #'buffer-string)
-                                             (buffer zuul--response-buffer))
+                                   json
+                                   (parser #'buffer-string)
+                                   (buffer zuul--response-buffer))
   "Return the build output for BUILD-UUID.
 
 Optionally provide extra parameters JSON, PARSER or BUFFER."
   (let* ((build
-          (zuul--rest-request
-           (concat "/api/tenant/" zuul-tenant "/builds")
-           :params `(("uuid" ,build-uuid)))))
+           (zuul--rest-request
+             (concat "/api/tenant/" zuul-tenant "/builds")
+             :params `(("uuid" ,build-uuid)))))
     (if (seq-empty-p build)
-        (message "Build with uuid=%s can't be found" build-uuid)
+      (message "Build with uuid=%s can't be found" build-uuid)
       (when-let ((log-url (alist-get 'log_url (seq-elt build 0))))
         (zuul--request
-         (concat log-url "job-output" (if json ".json" ".txt"))
-         :buffer buffer
-         :parser parser)))))
+          (concat log-url "job-output" (if json ".json" ".txt"))
+          :buffer buffer
+          :parser parser)))))
 
 (defun zuul--add-builds-to-buildsets (buildsets)
   "Add builds to BUILDSETS."
   (when-let* ((builds
-               (let-alist (zuul-data (seq-first buildsets))
-                 (zuul-get-builds :change .change
-                                  :project .project)))
-              (patchset-builds
-               (seq-group-by (lambda (it)
-                               (let-alist (zuul-data it) .patchset))
-                             builds)))
+                (let-alist (zuul-data (seq-first buildsets))
+                  (zuul-get-builds :change .change
+                    :project .project)))
+               (patchset-builds
+                 (seq-group-by (lambda (it)
+                                 (let-alist (zuul-data it) .patchset))
+                   builds)))
     (seq-map (lambda (it)
                (let-alist (zuul-data it)
                  (when-let ((builds (alist-get .patchset patchset-builds nil nil #'string=)))
                    (setf (zuul--buildset-builds it) builds)))
                it)
-             buildsets)))
+      buildsets)))
 
 (cl-defun zuul--completing-read (candidates &key
-                                            category
-                                            prompt)
+                                  category
+                                  prompt)
   "Select a candidate from CANDIDATES.
 
 Optionally provide CATEGORY and PROMPT."
   (unless (seq-empty-p candidates)
     (when-let* ((metadata `(metadata
-                            (category . ,category)
-                            (cycle-sort-function . identity)
-                            (display-sort-function . identity)))
-                (collection (lambda (string predicate action)
-                              (if (eq action 'metadata)
-                                  metadata
-                                (complete-with-action action candidates string predicate))))
-                (selected (completing-read prompt collection nil t)))
+                             (category . ,category)
+                             (cycle-sort-function . identity)
+                             (display-sort-function . identity)))
+                 (collection (lambda (string predicate action)
+                               (if (eq action 'metadata)
+                                 metadata
+                                 (complete-with-action action candidates string predicate))))
+                 (selected (completing-read prompt collection nil t)))
       (cdr (assoc selected candidates)))))
 
 (defun zuul--get-status-face (status)
@@ -593,7 +591,7 @@ Optionally provide CATEGORY and PROMPT."
   "Sort BUILDS."
   (seq-do (lambda (priority-fun)
             (setq builds (seq-sort-by priority-fun #'> builds)))
-          zuul-sort-priority-functions)
+    zuul-sort-priority-functions)
   builds)
 
 (defun zuul--locate-file (filename)
@@ -603,32 +601,32 @@ Build outputs can contain absolute file paths from a remote
 machine.  This function tries to locate find the best matching project file
 relative to the projects root."
   (or
-   (thread-last zuul--project-files
-                (seq-filter (lambda (it) (string-suffix-p it filename)))
-                (seq-sort-by #'length #'>)
-                (seq-first))
-   filename))
+    (thread-last zuul--project-files
+      (seq-filter (lambda (it) (string-suffix-p it filename)))
+      (seq-sort-by #'length #'>)
+      (seq-first))
+    filename))
 
 (defun zuul--select-build (builds)
   "Select and return a build selected from BUILDS."
   (unless (seq-empty-p builds)
     (setq zuul--builds
-          (zuul--sort-builds builds))
+      (zuul--sort-builds builds))
     (zuul--completing-read
-     (zuul--candidate-annotations
-      zuul--builds
-      zuul-build-annotation)
-     :category 'zuul-build
-     :prompt "Select build: ")))
+      (zuul--candidate-annotations
+        zuul--builds
+        zuul-build-annotation)
+      :category 'zuul-build
+      :prompt "Select build: ")))
 
 (defun zuul--select-buildset (buildsets)
   "Select and return a buildset from BUILDSETS."
   (unless (seq-empty-p buildsets)
     (zuul--completing-read
-     (zuul--candidate-annotations
-      buildsets zuul-buildset-annotation)
-     :category 'zuul-buildset
-     :prompt "Select buildset: ")))
+      (zuul--candidate-annotations
+        buildsets zuul-buildset-annotation)
+      :category 'zuul-buildset
+      :prompt "Select buildset: ")))
 
 (defun zuul--current-builds-with-index ()
   "Return current builds with index."
@@ -637,8 +635,8 @@ relative to the projects root."
 (defun zuul--current-build-index (builds-with-index)
   "Return index of current build in BUILDS-WITH-INDEX."
   (thread-last builds-with-index
-               (seq-find (lambda (it) (zuul--build-equal-p (cdr it) zuul--current-build)) builds-with-index)
-               (car)))
+    (seq-find (lambda (it) (zuul--build-equal-p (cdr it) zuul--current-build)) builds-with-index)
+    (car)))
 
 ;;;;; Accessors
 
@@ -649,13 +647,13 @@ relative to the projects root."
   "Return buildsets which BUILD relates to."
   (let-alist (zuul-data build)
     (zuul-get-buildsets :change .change
-                        :project .project)))
+      :project .project)))
 
 (cl-defmethod zuul--buildsets ((buildset zuul-buildset))
   "Return all other buildsets which relates to BUILDSET."
   (let-alist (zuul-data buildset)
     (zuul-get-buildsets :change .change
-                        :project .project)))
+      :project .project)))
 
 (cl-defgeneric zuul--builds (entity)
   "Return builds for ENTITY.")
@@ -664,22 +662,22 @@ relative to the projects root."
   "Return all builds from the same buildset as BUILD."
   (let-alist (zuul-data build)
     (zuul-get-builds :change .change
-                     :project .project
-                     :patchset .patchset)))
+      :project .project
+      :patchset .patchset)))
 
 (cl-defmethod zuul--builds ((buildset zuul-buildset))
   "Return all builds from BUILDSET."
   (if-let ((builds (zuul--buildset-builds buildset)))
-      builds
+    builds
     (let-alist (zuul-data buildset)
       (zuul-get-builds :change .change
-                       :project .project
-                       :patchset .patchset))))
+        :project .project
+        :patchset .patchset))))
 
 (cl-defmethod zuul--builds ((buildsets list))
   "Select a buildset from BUILDSETS and return all its builds."
   (zuul--builds
-   (zuul--select-buildset buildsets)))
+    (zuul--select-buildset buildsets)))
 
 (cl-defgeneric zuul--status (entity)
   "Return the status of ENTITY.")
@@ -688,18 +686,18 @@ relative to the projects root."
   "Return the status of BUILDSET."
   (let-alist (zuul-data buildset)
     (if .result
-        .result
+      .result
       (if .first_build_start_time
-          "RUNNING"
+        "RUNNING"
         "QUEUED"))))
 
 (cl-defmethod zuul--status ((build zuul-build))
   "Return the status of BUILD."
   (let-alist (zuul-data build)
     (if .result
-        .result
+      .result
       (if .start_time
-          "RUNNING"
+        "RUNNING"
         "QUEUED"))))
 
 (cl-defgeneric zuul--start-time (entity)
@@ -718,43 +716,43 @@ relative to the projects root."
 (defun zuul--build-equal-p (build1 build2)
   "Return t if BUILD1 and BUILD2 are equal."
   (string= (let-alist (zuul-data build1) .uuid)
-           (let-alist (zuul-data build2) .uuid)))
+    (let-alist (zuul-data build2) .uuid)))
 
 ;;;;; Request
 
 (cl-defun zuul--request (url &key
-                             (parser #'zuul--request-json-parser)
-                             (method "GET")
-                             (buffer zuul--response-buffer)
-                             (headers '(("Content-Type" . "application/json"))))
+                          (parser #'zuul--request-json-parser)
+                          (method "GET")
+                          (buffer zuul--response-buffer)
+                          (headers '(("Content-Type" . "application/json"))))
   "Perform a request to URL.
 
 Optionally provide extra parameters PARSER, METHOD, BUFFER or HEADERS."
   (with-current-buffer (get-buffer-create buffer)
     (erase-buffer)
     (let ((url-request-method method)
-          (url-request-extra-headers headers))
+           (url-request-extra-headers headers))
       (url-insert-file-contents url))
     (funcall parser)))
 
 (cl-defun zuul--rest-request (endpoint &key
-                                       params
-                                       (parser #'zuul--request-json-parser)
-                                       (method "GET")
-                                       (buffer zuul--response-buffer)
-                                       (headers '(("Content-Type" . "application/json"))))
+                               params
+                               (parser #'zuul--request-json-parser)
+                               (method "GET")
+                               (buffer zuul--response-buffer)
+                               (headers '(("Content-Type" . "application/json"))))
   "Perform a REST API request to ENDPOINT.
 
 Optionally provide extra parameters PARAMS, PARSER, METHOD, BUFFER or HEADERS."
   (let ((url (concat zuul-base-url endpoint
-                     (when params
-                       (format "?%s" (url-build-query-string params))))))
+               (when params
+                 (format "?%s" (url-build-query-string params))))))
     (zuul--request
-     url
-     :parser parser
-     :method method
-     :buffer buffer
-     :headers headers)))
+      url
+      :parser parser
+      :method method
+      :buffer buffer
+      :headers headers)))
 
 ;;;;; Parsers
 
@@ -769,9 +767,9 @@ Optionally provide extra parameters PARAMS, PARSER, METHOD, BUFFER or HEADERS."
         (replace-match (concat "" (match-string 2))))))
 
   (json-parse-buffer :array-type 'array
-                     :object-type 'alist
-                     :null-object nil
-                     :false-object nil))
+    :object-type 'alist
+    :null-object nil
+    :false-object nil))
 
 (defun zuul--request-debug-parser ()
   "Parser that show a pretty-printed result of the request."
@@ -783,55 +781,55 @@ Optionally provide extra parameters PARAMS, PARSER, METHOD, BUFFER or HEADERS."
   "Parse the output of a json build."
   (let ((build (zuul--request-json-parser)))
     (string-join
-     (flatten-list
-      (seq-map #'zuul--build-playbook-output build))
-     "\n")))
+      (flatten-list
+        (seq-map #'zuul--build-playbook-output build))
+      "\n")))
 
 (defun zuul--build-playbook-output (playbook)
   "Return the output from the PLAYBOOK."
   (let ((zuul--build-data))
     (let-alist playbook
       (let* ((zuul--build-playbook-id .playbook)
-             (zuul--build-data `(,@zuul--build-data :playbook ,playbook)))
+              (zuul--build-data `(,@zuul--build-data :playbook ,playbook)))
         (thread-last .plays
-                     (seq-map #'zuul--build-play-output)
-                     (seq-remove #'null))))))
+          (seq-map #'zuul--build-play-output)
+          (seq-remove #'null))))))
 
 (defun zuul--build-play-output (play)
   "Return the output from the PLAY."
   (let-alist play
     (let* ((zuul--build-play-id .play.id)
-           (zuul--build-data `(,@zuul--build-data :play ,play)))
+            (zuul--build-data `(,@zuul--build-data :play ,play)))
       (thread-last .tasks
-                   (seq-map #'zuul--build-task-output)
-                   (seq-remove #'null)))))
+        (seq-map #'zuul--build-task-output)
+        (seq-remove #'null)))))
 
 (defun zuul--build-task-output (task)
   "Return the output from the TASK."
   (let-alist task
     (let* ((zuul--build-task-id .task.id)
-           (zuul--build-data `(,@zuul--build-data :task ,task)))
+            (zuul--build-data `(,@zuul--build-data :task ,task)))
       (thread-last .hosts
-                   (seq-map #'zuul--build-host-output)
-                   (seq-remove #'null)))))
+        (seq-map #'zuul--build-host-output)
+        (seq-remove #'null)))))
 
 (defun zuul--build-host-output (host)
   "Return the command and its output from the HOST."
   (pcase-let* ((`(,hostname . ,data) host)
-               (cmd (let-alist data .cmd))
-               (output (let-alist data .stdout))
-               (host-id (let-alist data .zuul_log_id))
-               (zuul--build-data `(,@zuul--build-data :host ,host)))
+                (cmd (let-alist data .cmd))
+                (output (let-alist data .stdout))
+                (host-id (let-alist data .zuul_log_id))
+                (zuul--build-data `(,@zuul--build-data :host ,host)))
     (when-let ((cmd-str
-                (when cmd
-                  (format "zuul@%s$ %s"
-                          hostname
-                          (if (stringp cmd)
-                              cmd
-                            (string-join cmd " "))))))
+                 (when cmd
+                   (format "zuul@%s$ %s"
+                     hostname
+                     (if (stringp cmd)
+                       cmd
+                       (string-join cmd " "))))))
       (zuul--propertize-face cmd-str 'bold-italic)
       (if (or (null output) (string-empty-p output))
-          (setq output (concat cmd-str "\n"))
+        (setq output (concat cmd-str "\n"))
         (setq output (concat cmd-str "\n" output "\n")))
       (put-text-property 0 (length output) 'zuul-playbook zuul--build-playbook-id output)
       (put-text-property 0 (length output) 'zuul-play zuul--build-play-id output)
@@ -843,20 +841,20 @@ Optionally provide extra parameters PARAMS, PARSER, METHOD, BUFFER or HEADERS."
 (defun zuul--build-log-command ()
   "Select a command from the build log."
   (let ((host-data)
-        (prop))
+         (prop))
     (save-excursion
       (goto-char (point-min))
       (while (setq prop (text-property-search-forward 'zuul-host))
         (let* ((text-properties (text-properties-at (prop-match-beginning prop)))
-               (data (plist-get text-properties 'zuul-data)))
+                (data (plist-get text-properties 'zuul-data)))
           (push data host-data))))
     (when-let ((selected
-                (zuul--completing-read
-                 (zuul--candidate-annotations
-                  host-data
-                  zuul-build-command-annotation)
-                 :category 'zuul-commands
-                 :prompt "Select command: ")))
+                 (zuul--completing-read
+                   (zuul--candidate-annotations
+                     host-data
+                     zuul-build-command-annotation)
+                   :category 'zuul-commands
+                   :prompt "Select command: ")))
       (zuul--data-host-cmd-str selected))))
 
 ;;;;; Annotation functions
@@ -864,86 +862,86 @@ Optionally provide extra parameters PARAMS, PARSER, METHOD, BUFFER or HEADERS."
 (defun zuul--candidate-annotations (candidates annotation-config)
   "Return annotated CANDIDATES according to ANNOTATION-CONFIG."
   (let* ((annotations
-          (seq-map (lambda (candidate)
-                     (cl-loop for config in annotation-config
-                              collect `(,(plist-get config :name) .
-                                        ,(funcall (plist-get config :function) candidate))))
-                   candidates))
-         (annotation-widths
-          (cl-loop for config in annotation-config
-                   collect
-                   `(,(plist-get config :name) .
-                     ,(thread-last annotations
-                                   (seq-map (lambda (it) (length (alist-get (plist-get config :name) it))))
-                                   (funcall (lambda (it)
-                                              (if-let ((max-width (plist-get config :width)))
-                                                  (min (seq-max it) max-width)
-                                                (seq-max it)))))))))
+           (seq-map (lambda (candidate)
+                      (cl-loop for config in annotation-config
+                        collect `(,(plist-get config :name) .
+                                   ,(funcall (plist-get config :function) candidate))))
+             candidates))
+          (annotation-widths
+            (cl-loop for config in annotation-config
+              collect
+              `(,(plist-get config :name) .
+                 ,(thread-last annotations
+                    (seq-map (lambda (it) (length (alist-get (plist-get config :name) it))))
+                    (funcall (lambda (it)
+                               (if-let ((max-width (plist-get config :width)))
+                                 (min (seq-max it) max-width)
+                                 (seq-max it)))))))))
     (cl-mapcar (lambda (candidate annotation)
                  `(,(cl-loop for config in annotation-config
-                             concat
-                             (let* ((padding 3)
-                                    (str (alist-get (plist-get config :name) annotation))
-                                    (width (alist-get (plist-get config :name) annotation-widths))
-                                    (new-str
-                                     (if-let* ((align (plist-get config :align))
-                                               (align-right (eq 'right align)))
-                                         (concat (make-string (- width (length str)) ?\s)
-                                                 str (make-string padding ?\s))
-                                       (concat
-                                        (truncate-string-to-width str width 0 ?\s)
-                                        (make-string padding ?\s)))))
-                               (if-let ((face (plist-get config :face)))
-                                   (zuul--propertize-face new-str face)
-                                 new-str)))
-                   . ,candidate))
-               candidates annotations)))
+                      concat
+                      (let* ((padding 3)
+                              (str (alist-get (plist-get config :name) annotation))
+                              (width (alist-get (plist-get config :name) annotation-widths))
+                              (new-str
+                                (if-let* ((align (plist-get config :align))
+                                           (align-right (eq 'right align)))
+                                  (concat (make-string (- width (length str)) ?\s)
+                                    str (make-string padding ?\s))
+                                  (concat
+                                    (truncate-string-to-width str width 0 ?\s)
+                                    (make-string padding ?\s)))))
+                        (if-let ((face (plist-get config :face)))
+                          (zuul--propertize-face new-str face)
+                          new-str)))
+                    . ,candidate))
+      candidates annotations)))
 
 (defun zuul--project-files ()
   "Return a list of project files, relative to project root."
   (let* ((project (project-current nil))
-         (root (expand-file-name (project-root project)))
-         (files (project-files project)))
+          (root (expand-file-name (project-root project)))
+          (files (project-files project)))
     (seq-map (lambda (it) (string-remove-prefix root it)) files)))
 
 (defun zuul--eldoc-function (_callback)
   "A member of `eldoc-documentation-functions', for signatures."
   (when-let* ((text-properties (text-properties-at (point)))
-              (data (plist-get text-properties 'zuul-data)))
+               (data (plist-get text-properties 'zuul-data)))
     (string-join
-     `(,(format "%s playbook" (zuul--data-playbook-phase-str data))
-       ,(zuul--data-playbook-name-str data)
-       ,(format "Play: %s" (zuul--data-play-name-str data))
-       ,(concat "Task: ["
-                (when-let ((role-str (zuul--data-task-role-str data)))
-                  (unless (string-empty-p role-str)
-                    (concat role-str ": ")))
-                (zuul--data-task-name-str data)
-                "] "
-                (string-trim (zuul--data-task-duration-str data)))
-       ,(format "Host: %s" (zuul--data-host-name-str data)))
-     " ")))
+      `(,(format "%s playbook" (zuul--data-playbook-phase-str data))
+         ,(zuul--data-playbook-name-str data)
+         ,(format "Play: %s" (zuul--data-play-name-str data))
+         ,(concat "Task: ["
+            (when-let ((role-str (zuul--data-task-role-str data)))
+              (unless (string-empty-p role-str)
+                (concat role-str ": ")))
+            (zuul--data-task-name-str data)
+            "] "
+            (string-trim (zuul--data-task-duration-str data)))
+         ,(format "Host: %s" (zuul--data-host-name-str data)))
+      " ")))
 
 (defun zuul--imenu-index ()
   "Create an `imenu' index for the build log."
   (let ((property)
-        (index)
-        (annotations))
+         (index)
+         (annotations))
     (save-excursion
       (goto-char (point-min))
       (while (setq property (text-property-search-forward 'zuul-task))
         (let* ((text-properties (text-properties-at (prop-match-beginning property)))
-               (data (plist-get text-properties 'zuul-data)))
+                (data (plist-get text-properties 'zuul-data)))
           (push `(,data . ,(prop-match-beginning property))
-                index))))
+            index))))
     (setq annotations
-          (seq-map #'car
-                   (zuul--candidate-annotations
-                    (seq-map #'car index)
-                    zuul-build-imenu-annotation)))
+      (seq-map #'car
+        (zuul--candidate-annotations
+          (seq-map #'car index)
+          zuul-build-imenu-annotation)))
     (cl-mapcar (lambda (annotation index-item)
                  (setf (car index-item) annotation))
-               annotations index)
+      annotations index)
     index))
 
 ;;;;; String representations
@@ -951,25 +949,25 @@ Optionally provide extra parameters PARAMS, PARSER, METHOD, BUFFER or HEADERS."
 (defun zuul--buildset-summary-str (buildset)
   "Return a summary of BUILDSET."
   (if-let* ((summary
-             (thread-last (zuul--builds buildset)
-                          (seq-group-by (lambda (it) (zuul--status it)))
-                          (seq-map (lambda (it)
-                                     (pcase-let ((`(,type . ,builds) it))
-                                       (format "%s(%s)" type (length builds))))))))
-      (string-join summary " ")
+              (thread-last (zuul--builds buildset)
+                (seq-group-by (lambda (it) (zuul--status it)))
+                (seq-map (lambda (it)
+                           (pcase-let ((`(,type . ,builds) it))
+                             (format "%s(%s)" type (length builds))))))))
+    (string-join summary " ")
     ""))
 
 (defun zuul--buildset-duration-str (buildset)
   "Return duration of BUILDSET."
   (let-alist (zuul-data buildset)
     (if-let* ((start-time .first_build_start_time)
-              (end-time .last_build_end_time)
-              (duration
-               (float-time
-                (time-subtract
-                 (date-to-time end-time)
-                 (date-to-time start-time)))))
-        (zuul--duration-str duration)
+               (end-time .last_build_end_time)
+               (duration
+                 (float-time
+                   (time-subtract
+                     (date-to-time end-time)
+                     (date-to-time start-time)))))
+      (zuul--duration-str duration)
       "")))
 
 (defun zuul--buildset-patchset-str (buildset)
@@ -984,8 +982,8 @@ Optionally provide extra parameters PARAMS, PARSER, METHOD, BUFFER or HEADERS."
   "Return status of BUILDSET."
   (let ((status (zuul--status buildset)))
     (zuul--propertize-face
-     status
-     (funcall zuul-status-face-function status))))
+      status
+      (funcall zuul-status-face-function status))))
 
 (defun zuul--build-name-str (build)
   "Return the name of the BUILD."
@@ -1000,34 +998,34 @@ Optionally provide extra parameters PARAMS, PARSER, METHOD, BUFFER or HEADERS."
   "Return the duration of BUILD."
   (let-alist (zuul-data build)
     (if-let ((duration .duration))
-        (zuul--duration-str duration)
+      (zuul--duration-str duration)
       "")))
 
 (defun zuul--build-start-time-str (build)
   "Return start time for BUILD."
   (if-let* ((start-time (zuul--start-time build)))
-      (zuul--propertize-face start-time 'zuul-time-face)
+    (zuul--propertize-face start-time 'zuul-time-face)
     ""))
 
 (defun zuul--build-status-str (build)
   "Return status for BUILD."
   (let ((status (zuul--status build)))
     (zuul--propertize-face
-     status
-     (funcall zuul-status-face-function status))))
+      status
+      (funcall zuul-status-face-function status))))
 
 (defun zuul--duration-str (duration)
   "Return a string representation of DURATION."
   (let* ((time (format-seconds "%h:%m:%s" duration))
-         (re (rx  (group (one-or-more digit)) ":"
-                  (group (one-or-more digit)) ":"
-                  (group (one-or-more digit)))))
+          (re (rx  (group (one-or-more digit)) ":"
+                (group (one-or-more digit)) ":"
+                (group (one-or-more digit)))))
     (string-match re time)
     (cond ((not (= 0 (string-to-number (match-string 1 time))))
-           (format-seconds "%2hh %2mm %2ss" duration))
-          ((not (= 0 (string-to-number (match-string 2 time))))
-           (format-seconds "%2mm %2ss" duration))
-          (t (format-seconds "%2ss" duration)))))
+            (format-seconds "%2hh %2mm %2ss" duration))
+      ((not (= 0 (string-to-number (match-string 2 time))))
+        (format-seconds "%2mm %2ss" duration))
+      (t (format-seconds "%2ss" duration)))))
 
 (defun zuul--data-playbook-name-str (data)
   "Return name of playbook in DATA."
@@ -1038,7 +1036,7 @@ Optionally provide extra parameters PARAMS, PARSER, METHOD, BUFFER or HEADERS."
   "Return the phase of playbook in DATA."
   (let-alist (plist-get data :playbook)
     (concat (upcase (substring .phase 0 1))
-            (substring .phase 1))))
+      (substring .phase 1))))
 
 (defun zuul--data-play-name-str (data)
   "Return the name of play in DATA."
@@ -1059,10 +1057,10 @@ Optionally provide extra parameters PARAMS, PARSER, METHOD, BUFFER or HEADERS."
   "Return the duration of task in DATA."
   (let-alist (plist-get data :task)
     (let ((duration
-           (float-time
-            (time-subtract
-             (date-to-time .task.duration.end)
-             (date-to-time .task.duration.start)))))
+            (float-time
+              (time-subtract
+                (date-to-time .task.duration.end)
+                (date-to-time .task.duration.start)))))
       (zuul--duration-str duration))))
 
 (defun zuul--data-host-name-str (data)
@@ -1073,22 +1071,22 @@ Optionally provide extra parameters PARAMS, PARSER, METHOD, BUFFER or HEADERS."
 (defun zuul--data-host-cmd-str (data)
   "Return the command of the host in DATA."
   (pcase-let* ((`(,_hostname . ,data) (plist-get data :host))
-               (cmd-str (let-alist data .cmd)))
+                (cmd-str (let-alist data .cmd)))
     (if (stringp cmd-str)
-        cmd-str
+      cmd-str
       (string-join cmd-str " "))))
 
 (defun zuul--data-host-result-str (data)
   "Return the result of the host in DATA."
   (pcase-let* ((`(,_hostname . ,data) (plist-get data :host))
-               (result
-                (let-alist data
-                  (if .failed
+                (result
+                  (let-alist data
+                    (if .failed
                       "FAILURE"
-                    "SUCCESS"))))
+                      "SUCCESS"))))
     (zuul--propertize-face
-     result
-     (funcall zuul-status-face-function result))))
+      result
+      (funcall zuul-status-face-function result))))
 
 (defun zuul--propertize-face (str value)
   "Put face VALUE on STR."
@@ -1099,9 +1097,9 @@ Optionally provide extra parameters PARAMS, PARSER, METHOD, BUFFER or HEADERS."
   "Return main modeline string."
   (let-alist (zuul-data zuul--current-build)
     (format "[%s,%s] %s"
-            .change
-            .patchset
-            (zuul--build-name-str zuul--current-build))))
+      .change
+      .patchset
+      (zuul--build-name-str zuul--current-build))))
 
 (defun zuul--build-mode-line-status ()
   "Return the status of the modeline."
@@ -1111,9 +1109,9 @@ Optionally provide extra parameters PARAMS, PARSER, METHOD, BUFFER or HEADERS."
 (defun zuul--build-mode-line-id ()
   "Return the id of the modeline."
   (format "(%s/%s)"
-          (1+ (zuul--current-build-index
-               (zuul--current-builds-with-index)))
-          (length (zuul--current-builds-with-index))))
+    (1+ (zuul--current-build-index
+          (zuul--current-builds-with-index)))
+    (length (zuul--current-builds-with-index))))
 
 ;;;;; Other
 
@@ -1127,7 +1125,7 @@ Optionally provide extra parameters PARAMS, PARSER, METHOD, BUFFER or HEADERS."
           (goto-char (prop-match-beginning property))
           (search-forward "$")
           (let* ((ov-prompt (make-overlay (prop-match-beginning property) (point)))
-                 (ov-input (make-overlay (point) (line-end-position))))
+                  (ov-input (make-overlay (point) (line-end-position))))
             (overlay-put ov-prompt 'face 'zuul-command-prompt-face)
             (overlay-put ov-input 'face 'zuul-prompt-input-face)))))))
 

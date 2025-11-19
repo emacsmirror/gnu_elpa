@@ -778,10 +778,10 @@ user first."
             (when (not new-bookmark-p)
               (let* ((bookmark-rev
                       (car (vc-jj--process-lines "show" bookmark "--no-patch"
-                                                 "-T" "self.change_id().shortest() ++ \"\n\"")))
+                                                 "-T" "self.change_id() ++ \"\n\"")))
                      (bookmark-descendants
                       (vc-jj--process-lines "log" "--no-graph" "-r" (concat bookmark-rev "..")
-                                            "-T" "self.change_id().shortest() ++ \"\n\"")))
+                                            "-T" "self.change_id() ++ \"\n\"")))
                 (not (member target-rev bookmark-descendants))))))
       (when backwards-move-p
         (unless (yes-or-no-p

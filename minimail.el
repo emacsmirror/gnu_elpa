@@ -349,6 +349,12 @@ This is used in `minimail-mailbox-mode' buffers."
 (defface minimail-unseen '((t :weight bold :inherit vtable))
   "Face to indicate unseen messages.")
 
+(defface minimail-mode-line-loading '((t :inherit mode-line-emphasis))
+  "Face to indicate a background operation in the mode line.")
+
+(defface minimail-mode-line-error '((t :inherit error))
+  "Face to indicate an error in the mode line.")
+
 ;;; Internal variables and helper functions
 
 (defvar -account-state nil
@@ -359,8 +365,6 @@ This is used in `minimail-mailbox-mode' buffers."
 
 (defvar-local -current-account nil)
 (defvar-local -current-mailbox nil)
-
-(defvar-local -mode-line-suffix nil)
 
 (defvar -minibuffer-update-hook nil
   "Hook run when minibuffer completion candidates are updated.")
@@ -513,6 +517,16 @@ alist, and look up MAILBOX in it."
           (push it result))))
     (nreverse result)))
 
+(defun -set-mode-line-suffix (state)
+  (setq mode-line-process
+        (pcase state
+          ('loading
+           `(":" (:propertize "Loading"
+                              face minimail-mode-line-loading)))
+          (`(,error . ,data)
+           `(":" (:propertize "Error"
+                              help-echo ,(format "%s: %s" error data)
+                              face minimail-mode-line-error))))))
 ;;;; vtable hacks
 
 (defun -ensure-vtable (&optional noerror)
@@ -1412,8 +1426,7 @@ FLAG can be a string or, more generally, a condition for
   "T" #'minimail-toggle-sort-by-thread
   "g" #'revert-buffer)
 
-(define-derived-mode minimail-mailbox-mode special-mode
-  '("Mailbox" -mode-line-suffix)
+(define-derived-mode minimail-mailbox-mode special-mode "Mailbox"
   "Major mode for mailbox listings."
   :interactive nil
   (add-hook 'quit-window-hook #'-quit-message-window nil t)
@@ -1638,7 +1651,7 @@ Cf. RFC 5256, §2.1."
          (mailbox -current-mailbox)
          (limit (-settings-scalar-get :fetch-limit account mailbox))
          (search (alist-get 'search -local-state)))
-    (setq -mode-line-suffix ":Loading")
+    (-set-mode-line-suffix 'loading)
     (athunk-run
      (athunk-let*
          ((messages <- (athunk-condition-case err
@@ -1646,10 +1659,10 @@ Cf. RFC 5256, §2.1."
                                (-afetch-search account mailbox search limit)
                              (-afetch-old-messages account mailbox limit))
                          (t (with-current-buffer buffer
-                              (setq -mode-line-suffix ":Error"))
+                              (-set-mode-line-suffix err))
                             (signal (car err) (cdr err))))))
        (with-current-buffer buffer
-         (setq -mode-line-suffix nil)
+         (-set-mode-line-suffix nil)
          (let* ((inhibit-read-only t)
                 (vtable-map (make-sparse-keymap)) ;only way to disable extra keymap
                 (colnames (-settings-alist-get :mailbox-columns account mailbox))
@@ -1677,16 +1690,16 @@ Cf. RFC 5256, §2.1."
          (messages (vtable-objects (-ensure-vtable)))
          (search (alist-get 'search -local-state)))
     (when search (error "Not implemented"))
-    (setq -mode-line-suffix ":Loading")
+    (-set-mode-line-suffix 'loading)
     (athunk-run
      (athunk-let*
          ((messages <- (athunk-condition-case err
                            (-afetch-new-messages account mailbox messages)
                          (t (with-current-buffer buffer
-                              (setq -mode-line-suffix ":Error"))
+                              (-set-mode-line-suffix err))
                             (signal (car err) (cdr err))))))
        (with-current-buffer buffer
-         (setq -mode-line-suffix nil)
+         (-set-mode-line-suffix nil)
          (-mailbox-buffer-update messages))))))
 
 (defun minimail-load-more-messages (&optional count)
@@ -1701,16 +1714,16 @@ Cf. RFC 5256, §2.1."
          (limit (or count (-settings-scalar-get :fetch-limit account mailbox)))
          (before (seq-min (mapcar (lambda (msg) (let-alist msg .uid)) messages))))
     (when search (error "Not implemented"))
-    (setq -mode-line-suffix ":Loading")
+    (-set-mode-line-suffix 'loading)
     (athunk-run
      (athunk-let*
          ((old <- (athunk-condition-case err
                       (-afetch-old-messages account mailbox limit before)
                     (t (with-current-buffer buffer
-                         (setq -mode-line-suffix ":Error"))
+                         (-set-mode-line-suffix err))
                        (signal (car err) (cdr err))))))
        (with-current-buffer buffer
-         (setq -mode-line-suffix nil)
+         (-set-mode-line-suffix nil)
          (unless old (user-error "No more old messages"))
          (-mailbox-buffer-update (nconc old messages)))))))
 
@@ -1917,8 +1930,7 @@ style.  If DESCEND is non-nil, use the opposite convention."
   :parent (make-composed-keymap (list minimail-base-keymap button-buffer-map)
                                 special-mode-map))
 
-(define-derived-mode minimail-message-mode special-mode
-  '("Message" -mode-line-suffix)
+(define-derived-mode minimail-message-mode special-mode "Message"
   "Major mode for email messages."
   :interactive nil
   (setq buffer-undo-list t))
@@ -1951,7 +1963,7 @@ window shorter than 6 lines."
         (buffer (current-buffer)))
     (unless (derived-mode-p #'minimail-message-mode)
       (minimail-message-mode))
-    (setq -mode-line-suffix ":Loading")
+    (-set-mode-line-suffix 'loading)
     (setf (alist-get 'next-message -local-state)
           (list account mailbox uid))
     (athunk-run
@@ -1959,14 +1971,14 @@ window shorter than 6 lines."
          ((text <- (athunk-condition-case err
                        (-afetch-message-body account mailbox uid)
                      (t (with-current-buffer buffer
-                          (setq -mode-line-suffix ":Error"))
+                          (-set-mode-line-suffix err))
                         (signal (car err) (cdr err))))))
        (when (buffer-live-p buffer)
          (with-current-buffer buffer
            (when (equal (alist-get 'next-message -local-state)
                         (list account mailbox uid))
              (let ((inhibit-read-only t))
-               (setq -mode-line-suffix nil)
+               (-set-mode-line-suffix nil)
                (funcall -message-erase-function)
                (setq -current-account account)
                (setq -current-mailbox mailbox)
@@ -2097,8 +2109,7 @@ window shorter than 6 lines."
 (defvar-keymap minimail-overview-mode-map
   :parent (make-composed-keymap widget-keymap special-mode-map))
 
-(define-derived-mode minimail-overview-mode special-mode
-  '("Minimail" -mode-line-suffix)
+(define-derived-mode minimail-overview-mode special-mode "Minimail"
   "Major mode for browsing a mailbox tree."
   :interactive nil
   (setq buffer-undo-list t)
@@ -2216,7 +2227,7 @@ Unless REFRESH is non-nil, use cached mailbox information."
         (buffer (current-buffer))
         (accounts (or (mapcar #'car minimail-accounts)
                       (user-error "No accounts configured"))))
-    (setq -mode-line-suffix ":Loading")
+    (-set-mode-line-suffix 'loading)
     (when (and (bolp) (eolp))
       (dolist (acct accounts)
         (setf (alist-get acct -tree-widgets)
@@ -2233,7 +2244,7 @@ Unless REFRESH is non-nil, use cached mailbox information."
        (athunk-let*
            ((mailboxes <- (athunk-condition-case err
                               (-aget-mailbox-listing acct refresh)
-                            (t (setq -mode-line-suffix ":Error")
+                            (t (-set-mode-line-suffix err)
                                (signal (car err) (cdr err)))))
             ;; Add path property to the mailbox items.
             (props (alist-get acct minimail-accounts))
@@ -2253,7 +2264,7 @@ Unless REFRESH is non-nil, use cached mailbox information."
          (with-current-buffer buffer
            (widget-put (alist-get acct -tree-widgets) :mailboxes mailboxes)
            (cl-remf accounts acct)
-           (unless accounts (setq -mode-line-suffix nil))
+           (unless accounts (-set-mode-line-suffix nil))
            (let ((tree (alist-get acct -tree-widgets)))
              (when (widget-get tree :open)
                ;; Close and open to refresh children.

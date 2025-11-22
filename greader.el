@@ -299,12 +299,24 @@ if set to t, when you call function `greader-read', that function sets a
     (when greader-queue-mode
       (greader-queue-mode -1))
     (greader-load-backends))))
+(defvar greader--current-buffer nil
+  "This variable is used by `greader-reading-mode' to know which buffer is currently being read.")
+
+(defun greader-current-buffer-p (&optional buffer)
+  "Return t if BUFFER is the current reading buffer, nil otherwise."
+  (unless buffer
+    (setq buffer (current-buffer)))
+  (equal buffer greader--current-buffer))
+
 ;;;###autoload
 (define-minor-mode greader-reading-mode
   nil
   :interactive nil
   :keymap greader-reading-map
-  :lighter " reading...")
+  :lighter " reading..."
+  (if greader-reading-mode
+      (setq greader--current-buffer (current-buffer))
+    (setq greader--current-buffer nil)))
 
 (defun greader-set-bookmark-for-greader ()
   "Imposta il segnalibro ad ogni interruzione della lettura."
@@ -539,7 +551,7 @@ Optional argument EVENT ."
       (unless (eq extra 'not-implemented)
         (push extra args)))
     (setq greader-backend (append greader-backend
-                                (delete 'not-implemented (nreverse args))))))
+                                  (delete 'not-implemented (nreverse args))))))
 
 (defun greader-reset ()
   "Reset greader."

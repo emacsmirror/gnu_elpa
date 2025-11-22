@@ -142,7 +142,7 @@ Install the `swiper` package from GNU ELPA or MELPA.
 
 ![Screenshot of Swiper in Emacs][swiper-shot]
 
-There's also a ~ten minute [video demo][swiper-demo].
+There’s also a ~ten minute [video demo][swiper-demo].
 
 # Frequently asked questions
 

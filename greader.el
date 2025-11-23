@@ -308,6 +308,14 @@ if set to t, when you call function `greader-read', that function sets a
     (setq buffer (current-buffer)))
   (equal buffer greader--current-buffer))
 
+(defun greader--set-current-buffer (&optional buffer)
+  "Set `greader--current-buffer' using BUFFER.
+If BUFFER is omitted or nil, use `current-buffer' as BUFFER."
+  (unless buffer
+    (setq buffer (current-buffer)))
+  (unless greader--current-buffer
+    (setq greader--current-buffer buffer)))
+
 ;;;###autoload
 (define-minor-mode greader-reading-mode
   nil
@@ -315,8 +323,11 @@ if set to t, when you call function `greader-read', that function sets a
   :keymap greader-reading-map
   :lighter " reading..."
   (if greader-reading-mode
-      (setq greader--current-buffer (current-buffer))
-    (setq greader--current-buffer nil)))
+      (progn
+	(setq greader--current-buffer (current-buffer))
+	(add-hook 'greader-before-get-sentence-hook #'greader--set-current-buffer))
+    (setq greader--current-buffer nil)
+    (remove-hook 'greader-before-get-sentence-hook #'greader--set-current-buffer)))
 
 (defun greader-set-bookmark-for-greader ()
   "Imposta il segnalibro ad ogni interruzione della lettura."

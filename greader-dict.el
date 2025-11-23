@@ -221,18 +221,22 @@ buffer."
   (declare (indent defun))
   `(with-temp-buffer
      (setq greader-dictionary (buffer-local-value 'greader-dictionary
-						  greader-dict--current-reading-buffer))
+						  (or
+						   greader--current-buffer
+						   greader-dict--current-reading-buffer)))
      (setq greader-dict-filename (buffer-local-value
 				  'greader-dict-filename
-				  greader-dict--current-reading-buffer))
+				  (or greader--current-buffer greader-dict--current-reading-buffer)))
      (setq greader-dict-local-language (buffer-local-value
 					'greader-dict-local-language
-					greader-dict--current-reading-buffer))
+					(or greader--current-buffer greader-dict--current-reading-buffer)))
      (setq greader-filters (buffer-local-value 'greader-filters
-					       greader-dict--current-reading-buffer))
+					       (or
+						greader--current-buffer
+						greader-dict--current-reading-buffer)))
      (setq greader-dict-toggle-filters (buffer-local-value
 					'greader-dict-toggle-filters
-					greader-dict--current-reading-buffer))
+					(or greader--current-buffer greader-dict--current-reading-buffer)))
      ,@body))
 
 ;; filters.

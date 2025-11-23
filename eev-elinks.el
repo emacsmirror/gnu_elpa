@@ -1169,11 +1169,12 @@ when this is true remove the prefix D from FNAME, and put the sexp
 ;;
 ;; Skel: (find-find-links-links-new "pdflike-page" "page bufname offset" "")
 ;;
-(defun find-pdflike-page-links (&optional page bufname offset &rest pos-spec-list)
+(defun find-pdflike-page-links (&optional page bufname offset target &rest pos-spec-list)
 "Visit a temporary buffer containing hyperlinks to a pdf-like document.
 See: (find-pdf-like-intro)
      (find-pdf-like-intro \"refining hyperlinks to pages\")"
   (interactive)
+  (if target (setq offset (- page target)))
   (setq page    (or page (ee-current-page)))
   (setq bufname (or bufname (buffer-name)))
   (setq offset  (or offset ee-page-offset))

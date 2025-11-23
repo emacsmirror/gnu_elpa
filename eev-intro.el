@@ -19,7 +19,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20250913
+;; Version:    20251121
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eev-intro.el>
@@ -6510,8 +6510,8 @@ scripts etc\]
 ;; (find-eev "eepitch.readme")
 
 (defun find-eepitch-intro (&rest rest) (interactive)
-  (let ((ee-buffer-name "*(find-eepitch-intro)*"))
-    (apply 'find-eintro "\
+       (let ((ee-buffer-name "*(find-eepitch-intro)*"))
+	 (apply 'find-eintro "\
 \(Re)generate: (find-eepitch-intro)
 Source code:  (find-eev \"eev-intro.el\" \"find-eepitch-intro\")
 More intros:  (find-eev-quick-intro)
@@ -7157,65 +7157,294 @@ In an eepitch block like this one
 the first two red star lines are typically only used when we want to kill
 a current shell target - if it exists - and then create a new one.
 
-For \"badly-behaved targets\" - I will explain the term precisely in the
-next section - it is hard to define a function `eepitch-BBT' that would
-work well enough in an eepitch block like this one,
+For \"badly-behaved targets\" we may need eepitch blocks that are much
+more complex than that. For example, for Slime we need this:
 
- (eepitch-BBT)
- (eepitch-kill)
- (eepitch-BBT)
+ (eepitch-slime-kill 'show-only)
+ (eepitch-slime-kill)
+ (eepitch-b '(slime \"sbcl\"))
+ (eepitch-slime-select)
 
-and it is more practical to have a eepitch block with functions specific
-for the target BBT, like this one:
-
- (eepitch-BBT-kill)
- (eepitch-BBT-start)
- (eepitch-BBT-select)
-
-but sometimes it is better to replace the middle red star line by
-several lines, and make them remind us how to go back to our source
-buffer. For example, here,
-
- (eepitch-gdb-kill)
- To restart gdb:
-    (eepitch-set-source-and-M-x-b 2)
-    (gdb \"gdb -i=mi\")
- (eepitch-gdb-select)
-
-the sexp `(gdb \"gdb -i=mi\")' asks some questions, messes up our window
-configuration, and only leaves us at the target buffer after too many
-keystrokes.
-
-Note that running the sexp `(eepitch-set-source-and-M-x-b 2)' prints
-instructions in the echo area - it says:
-
-  \"`M-x b' will set the eepitch target and return to `*(find-eepitch-intro)*'\"
-
-So after the `(gdb \"gdb -i=mi\")' finishes we need to run `M-x b'. The
-sexp `(eepitch-set-source-and-M-x-b 2)' has saved the source buffer -
-\"*(find-eepitch-intro)*\" - and the line that we need to return to,
-that is 2 lines below the `(eepitch-set-source-and-M-x-b 2)' itself;
-when we type `M-x b' Emacs interprets that as: this is the target
-<b>uffer - go <b>ack to the source <b>uffer and use this window setup:
-
-   _____________________
-  |          |          |
-  |  source  |  target  |
-  |  buffer  |  buffer  |
-  |          |          |
-  |__________|__________|
+I will explain its parts in the following subsections.
 
 
 
+4.1. Killing Slime
+------------------
+Slime uses several buffers, and the best way to kill a previous instance
+of Slime is with:
 
-4.1. What are badly-behaved targets?
-------------------------------------
-(Examples: gdb, slime)
-(Compare with Sly)
+ (eepitch-slime-kill 'show-only)
+ (eepitch-slime-kill)
 
-UNFINISHED!!!
-See: (find-eev \"eepitch.el\" \"badly-behaved\")
+The first `eepitch-slime-kill' above only shows the buffers that will,
+or would, be killed, by the second \"kill\". It shows something like
+this in the echo area:
 
+  (Buffers that will be killed: (\"*slime-events*\"
+   \"*slime-repl sbcl*\" \"*inferior-lisp*\"))
+
+The second `eepitch-slime-kill' kills those buffers, but some of them
+issue messages when they die that take over the echo area. These
+messages are shown,
+
+   (Buffers killed: (\"*slime-events*\" \"*slime-repl sbcl*\"
+    \"*slime-repl sbcl<2>*\" \"*inferior-lisp*\"))
+   Lisp connection closed unexpectedly: connection broken by remote peer
+
+but the user only sees the last one, with \"Lisp connection closed
+unexpectedly\". Adding this line
+
+ (eepitch-slime-kill 'show-only)
+
+makes things less mysterious, and less blackbox-ish.
+
+
+
+4.2. `eepitch-b'
+----------------
+The third line of
+
+ (eepitch-slime-kill 'show-only)
+ (eepitch-slime-kill)
+ (eepitch-b '(slime \"sbcl\"))
+ (eepitch-slime-select)
+
+starts with an `eepitch-b', that is a variant of `eepitch' that we can
+use in cases in which it is so hard to detect automatically when the
+target is ready that it is better to leave that task to the user. In
+short...
+
+  `eepitch-b' considers that the target is ready
+  when the user types <f9>
+  to signal that the target is ready.
+
+`eepitch-b' was inspired by the difficulties of writing a function based
+on `eepitch-sly' that would work for Slime (Sly is a fork of Slime).
+
+Writing a `eepitch-sly' was very hard, because the plain `eepitch'
+expects \"shell-like programs\", and to make Sly behave like a
+shell-like program I had to find a way to \"wait for hooks\" in exactly
+the right way. The technical details are explained in these places:
+
+  (find-eev \"eepitch.el\" \"eepitch\" \"(defun eepitch \")
+  (find-eev \"eepitch.el\" \"wait-for-hooks\")
+
+Slime was much more badly-behaved than Sly. At some point I discovered -
+with a LOT of help - that I could consider that Sly \"was ready\" when
+it ran the hook `sly-mrepl-hook'... but with Slime I decided to delegate
+that to the user.
+
+The line
+
+ (eepitch-b '(slime \"sbcl\"))
+
+works like this: it saves the current position in these variables,
+
+  (find-evariable 'eepitch-b-source-buffer)
+  (find-evariable 'eepitch-b-source-marker)
+
+it runs `(slime \"sbcl\")', and it waits until the user types <f9>.
+When the user types <f9> this means:
+
+  1) the user is saying that Slime is ready,
+  2) the point is at the target buffer for eepitch, and
+  3) now please rearrange the windows like this:
+
+     ____________________
+    |          |         |
+    |  source  |  slime  |
+    |  buffer  |  mrepl  |
+    |          |         |
+    |__________|_________|
+
+
+
+4.3. Configuring `eepitch-b'
+----------------------------
+At this moment eev doesn't bind <f9> by default.
+To bind it correctly you need the last block of:
+
+  (find-dot-emacs-links \"eev angges melpa epl eepitchb\")
+
+that contains these lines:
+
+  ;; See: (find-eepitch-intro \"4.3. Configuring `eepitch-b'\")
+  (define-key eev-mode-map (kbd \"<f9>\") 'eepitch-b-set-target-and-show)
+
+
+
+
+4.4. `eepitch-slime-select'
+---------------------------
+The last line of
+
+ (eepitch-slime-kill 'show-only)
+ (eepitch-slime-kill)
+ (eepitch-b '(slime \"sbcl\"))
+ (eepitch-slime-select)
+
+calls `eepitch-slime-select', whose definition is:
+
+  (defun eepitch-slime-select ()
+    (eepitch '(find-ebuffer-in-mode 'slime-repl-mode)))
+
+In most cases when we use Slime we are only interested in using one of
+its buffers as a target for eepitch. The name of that buffer is
+something like \"*slime-repl sbcl*\" or \"*slime-repl sbcl<n>*\", and it
+will be the only buffer whose major mode is `slime-repl-mode'. The
+
+  (find-ebuffer-in-mode 'slime-repl-mode)
+
+switches to that buffer if there is exactly one buffer with that major
+mode, and yields an error if there zero or two or more.
+
+
+
+
+4.5. Slime and Maxima
+---------------------
+My current favorite way of debugging Maxima with _Sly_ is with this,
+
+  (find-try-sly-intro \"8. Inspect Maxima with Sly\")
+
+that may need some updates, but it works, or used to work.
+
+My current favorite way of debugging Maxima with _Slime_ is with this -
+but I haven't documented its full setup yet:
+
+ (eepitch-slime-kill 'show-only)
+ (eepitch-slime-kill)
+ (eepitch-b '(slime \"sbcl\"))
+ (eepitch-slime-select)
+   (eepitch-maxima)
+   (eepitch-kill)
+   (eepitch-maxima)
+      load(\"startslime\");
+ (eepitch-b '(slime-connect \"localhost\" 4005))
+ (eepitch-slime-set-pkgbuffers)
+ (eepitch-slime-select-pkgbuffer \"MAXIMA\")
+ (eepitch-maxima)
+
+We understood its first four lines in the previous subsections. The
+following four lines,
+
+   (eepitch-maxima)
+   (eepitch-kill)
+   (eepitch-maxima)
+      load(\"startslime\");
+
+are easy to understand - it deletes a previous Maxima if there was one
+running, it creates a new Maxima, and it makes it load \"startslime\",
+that is this file:
+
+  (find-angg \".maxima/startslime.lisp\")
+
+Loading \"startslime\" takes several seconds, and we need to wait until
+it finishes before typing more <f8>s. At that point we have two
+interesting targets, and we can switch between them with:
+
+ (eepitch-slime-select)
+ (eepitch-maxima)
+
+The next line is 
+
+ (eepitch-b '(slime-connect \"localhost\" 4005))
+
+and it will only work correctly if it is run after the
+
+  load(\"startslime\");
+
+has finished executing, because \"startslime\" makes Maxima listen on a
+certain port, and the `slime-connect' makes Slime connect to that port.
+
+When Slime connects to Maxima this won't work anymore,
+
+ (eepitch-slime-select)
+
+because now there are two buffers in `slime-repl-mode'. It aborts with
+this message:
+
+  Error - buffers with major mode slime-repl-mode:
+  (\"*slime-repl sbcl*\" \"*slime-repl sbcl<2>*\")
+
+
+
+
+4.6. The pkgbuffers
+-------------------
+These lines
+
+ (eepitch-slime-set-pkgbuffers)
+ (eepitch-slime-select-pkgbuffer \"MAXIMA\")
+
+let us handle several buffers in `slime-repl-mode'. The first line sets
+the variable `eepitch-slime-pkgbuffers' and shows its value in the echo
+area - it will be something like this:
+
+  ((\"COMMON-LISP-USER\" . \"*slime-repl sbcl*\")
+   (\"MAXIMA\" . \"*slime-repl sbcl<2>*\"))
+
+This variable lets us convert between the name of a Common Lisp package
+and the name of the Slime REPL buffer that was \"in that package\" when
+`eepitch-slime-set-pkgbuffers' was run. If you have everything working,
+you can try this
+
+ (eepitch-slime-select-pkgbuffer \"COMMON-LISP-USER\")
+*package*
+ (eepitch-slime-select-pkgbuffer \"MAXIMA\")
+*package*
+
+to start to understand the precise meaning of being \"in a certain
+package\".
+
+At that point we have three targets, and we can select between them
+with:
+
+ (eepitch-slime-select-pkgbuffer \"COMMON-LISP-USER\")
+ (eepitch-slime-select-pkgbuffer \"MAXIMA\")
+ (eepitch-maxima)
+
+
+
+
+4.7. Attention
+--------------
+My main motivation for writing the tools for creating eepitch blocks
+like this one
+
+ (eepitch-slime-kill 'show-only)
+ (eepitch-slime-kill)
+ (eepitch-b '(slime \"sbcl\"))
+ (eepitch-slime-select)
+   (eepitch-maxima)
+   (eepitch-kill)
+   (eepitch-maxima)
+      load(\"startslime\");
+ (eepitch-b '(slime-connect \"localhost\" 4005))
+ (eepitch-slime-set-pkgbuffers)
+ (eepitch-slime-select-pkgbuffer \"MAXIMA\")
+ (eepitch-maxima)
+
+is that I needed to have a way to restart some eepitch targets without
+paying much attention to the \"restarting\" part; I wanted to be able to
+keep my mind on, say, the Maxima functions that I am trying to
+understand and the tests that I am writing for them - and \"restarting
+Maxima and Slime\" should take very little of my attention.
+
+In the block above I only need to pay attention when I'm on the lines
+with `eepitch-b' and on the load(\"startslime\"); those lines require
+waiting until something is finished, and some of them require an <f9> or
+answering a yes-or-no prompt. The other lines only require <f8>s, and I
+can type those <f8>s at any speed.
+
+Before `eepitch-b' and the other techniques above a badly-behaved
+target, like Sly, would only become \"usable\" to me - in the sense of:
+\"restarting it takes very little attention\" - after hours or days of
+work, and, for some very badly-behaved targets, like, Slime, they would
+be unusable for me for years. With the techniques above they become
+usable, but with eepitch blocks that take _some_ attention - and I can
+start with that, and optimize their eepitch blocks gradually.
 
 
 

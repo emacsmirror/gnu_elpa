@@ -19,7 +19,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20250913
+;; Version:    20251123
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eev-testblocks.el>
@@ -40,40 +40,43 @@
 ;;   http://anggtwu.net/emacsconf2021.html
 ;;   http://anggtwu.net/LATEX/2021emacsconf.pdf
 
-;; «.eeit»			(to "eeit")
-;; «.ee-insert-test»		(to "ee-insert-test")
-;; «.ee-insert-test-block»	(to "ee-insert-test-block")
-;; «.examples»			(to "examples")
-;;   «.c-mode»			(to "c-mode")
-;;   «.elixir-mode»		(to "elixir-mode")
-;;   «.fennel-mode»		(to "fennel-mode")
-;;   «.f90-mode»		(to "f90-mode")
-;;   «.gnuplot-mode»		(to "gnuplot-mode")
-;;   «.haskell-mode»		(to "haskell-mode")
-;;   «.js-mode»			(to "js-mode")
-;;   «.julia-mode»		(to "julia-mode")
-;;   «.latex-mode»		(to "latex-mode")
-;;   «.lisp»			(to "lisp")
-;;   «.lisp-mode»		(to "lisp-mode")
-;;     «.slime»			(to "slime")
-;;   «.lua-mode»		(to "lua-mode")
-;;   «.makefile-gmake»		(to "makefile-gmake")
-;;   «.makefile-mode»		(to "makefile-mode")
-;;   «.maxima-mode»		(to "maxima-mode")
-;;   «.octave-mode»		(to "octave-mode")
-;;   «.org-mode»		(to "org-mode")
-;;   «.php-mode»		(to "php-mode")
-;;   «.python-mode»		(to "python-mode")
-;;   «.racket-mode»		(to "racket-mode")
-;;   «.raku-mode»		(to "raku-mode")
-;;   «.ruby-mode»		(to "ruby-mode")
-;;   «.scheme-mode»		(to "scheme-mode")
-;;   «.sml-mode»		(to "sml-mode")
-;;   «.sh-mode»			(to "sh-mode")
-;;   «.sql-mode»		(to "sql-mode")
-;;   «.subed-vtt-mode»		(to "subed-vtt-mode")
-;;   «.tcl-mode»		(to "tcl-mode")
-;;   «.tuareg-mode»		(to "tuareg-mode")
+;; «.eeit»				(to "eeit")
+;; «.ee-insert-test»			(to "ee-insert-test")
+;; «.ee-insert-test-block»		(to "ee-insert-test-block")
+;; «.examples»				(to "examples")
+;;   «.c-mode»				(to "c-mode")
+;;   «.elixir-mode»			(to "elixir-mode")
+;;   «.fennel-mode»			(to "fennel-mode")
+;;   «.f90-mode»			(to "f90-mode")
+;;   «.gnuplot-mode»			(to "gnuplot-mode")
+;;   «.haskell-mode»			(to "haskell-mode")
+;;   «.js-mode»				(to "js-mode")
+;;   «.julia-mode»			(to "julia-mode")
+;;   «.latex-mode»			(to "latex-mode")
+;;   «.lisp-mode»			(to "lisp-mode")
+;;     «.lisp-mode-slime»		(to "lisp-mode-slime")
+;;     «.lisp-mode-sly»			(to "lisp-mode-sly")
+;;     «.lisp-mode-maxima»		(to "lisp-mode-maxima")
+;;     «.lisp-mode-maxima-sly»		(to "lisp-mode-maxima-sly")
+;;     «.lisp-mode-maxima-slime»	(to "lisp-mode-maxima-slime")
+;;   «.lua-mode»			(to "lua-mode")
+;;   «.makefile-gmake»			(to "makefile-gmake")
+;;   «.makefile-mode»			(to "makefile-mode")
+;;   «.maxima-mode»			(to "maxima-mode")
+;;   «.octave-mode»			(to "octave-mode")
+;;   «.org-mode»			(to "org-mode")
+;;   «.php-mode»			(to "php-mode")
+;;   «.python-mode»			(to "python-mode")
+;;   «.racket-mode»			(to "racket-mode")
+;;   «.raku-mode»			(to "raku-mode")
+;;   «.ruby-mode»			(to "ruby-mode")
+;;   «.scheme-mode»			(to "scheme-mode")
+;;   «.sml-mode»			(to "sml-mode")
+;;   «.sh-mode»				(to "sh-mode")
+;;   «.sql-mode»			(to "sql-mode")
+;;   «.subed-vtt-mode»			(to "subed-vtt-mode")
+;;   «.tcl-mode»			(to "tcl-mode")
+;;   «.tuareg-mode»			(to "tuareg-mode")
 
 
 
@@ -263,11 +266,22 @@ include(\"%s\")
 ))))
 
 
+
+
+
 ;; «lisp-mode»  (to ".lisp-mode")
 (defun ee-insert-test-lisp-mode ()
-  (funcall (ee-intern "ee-insert-test-lisp-mode-%s" current-prefix-arg)))
+  "Insert a test block for Lisp. Use a numeric prefix to select a variant.
+With just `M-x eeit' run `ee-insert-test-lisp-mode-nil', that calls SBCL.
+With an invalid prefix, like `M-9 M-x eeit', display a help message."
+  (let ((f (ee-intern "ee-insert-test-lisp-mode-%s" current-prefix-arg)))
+    (if (fboundp f)
+	(funcall f)
+      (error "Valid prefixes: 1.slime, 2.sly, 3.maxima, 4.maxima+slime, 5.maxima+sly"))))
+
 
 (defun ee-insert-test-lisp-mode-nil ()
+  "Use `M-x eeit' on a Lisp mode buffer to run this."
   (interactive)
   (insert (ee-adjust-red-stars (format "
 #|
@@ -280,16 +294,16 @@ include(\"%s\")
 " (buffer-name)))))
 
 
-;; «slime»  (to ".slime")
-;; See: (find-eev "eepitch.el" "eepitch-slime")
+;; «lisp-mode-slime»  (to ".lisp-mode-slime")
+;; See: (find-eev "eepitch.el" "eepitch-b-slime")
 (defun ee-insert-test-lisp-mode-1 ()
+  "Use `M-1 M-x eeit' on a Lisp mode buffer to run this."
   (interactive)
   (insert (ee-adjust-red-stars (format "
 #|
+ (eepitch-slime-kill 'show-only)
  (eepitch-slime-kill)
- To restart Slime:
-    (eepitch-set-source-and-M-x-b 2)
-    (slime \"sbcl\")
+ (eepitch-b '(slime \"sbcl\"))
  (eepitch-slime-select)
 (load \"%s\")
 
@@ -297,8 +311,107 @@ include(\"%s\")
 " (buffer-name)))))
 
 
+;; «lisp-mode-sly»  (to ".lisp-mode-sly")
+;; See: (find-eev "eepitch.el" "eepitch-b-sly")
+(defun ee-insert-test-lisp-mode-2 ()
+  "Use `M-2 M-x eeit' on a Lisp mode buffer to run this."
+  (interactive)
+  (insert (ee-adjust-red-stars (format "
+#|
+ (eepitch-sly-kill 'show-only)
+ (eepitch-sly-kill)
+ (eepitch-sly)
+(load \"%s\")
+
+|#
+" (buffer-name)))))
+
+
+;; «lisp-mode-maxima»  (to ".lisp-mode-maxima")
+(defun ee-insert-test-lisp-mode-3 ()
+  "Use `M-3 M-x eeit' on a Lisp mode buffer to run this."
+  (interactive)
+  (insert (ee-adjust-red-stars (format "
+#|
+ (eepitch-maxima)
+ (eepitch-kill)
+ (eepitch-maxima)
+load(\"%s\");
+to_lisp();
+  (load \"%s\")
+  (to-maxima)
+
+|#
+" (buffer-name) (buffer-name)))))
+
+
+;; «lisp-mode-maxima-slime»  (to ".lisp-mode-maxima-slime")
+;; See: (find-eev "eepitch.el" "eepitch-b-slime")
+;;      (find-angg ".maxima/startslime.lisp")
+(defun ee-insert-test-lisp-mode-4 ()
+  "Use `M-4 M-x eeit' on a Lisp mode buffer to run this."
+  (interactive)
+  (insert (ee-adjust-red-stars (format "
+#|
+ (eepitch-slime-kill 'show-only)
+ (eepitch-slime-kill)
+ (eepitch-b '(slime \"sbcl\"))
+ (eepitch-slime-select)
+   (eepitch-maxima)
+   (eepitch-kill)
+   (eepitch-maxima)
+      load(\"startslime\");
+ (eepitch-b '(slime-connect \"localhost\" 4005))
+ (eepitch-slime-set-pkgbuffers)
+ (eepitch-slime-select-pkgbuffer \"COMMON-LISP-USER\")
+ (eepitch-slime-select-pkgbuffer \"MAXIMA\")
+(load \"%s\")
+ (eepitch-maxima)
+load(\"%s\");
+
+|#
+" (buffer-name) (buffer-name)))))
+
+
+;; «lisp-mode-maxima-sly»  (to ".lisp-mode-maxima-sly")
+;; See: (find-eev "eepitch.el" "eepitch-b-sly")
+;;      (find-angg ".maxima/startsly.lisp")
+(defun ee-insert-test-lisp-mode-5 ()
+  "Use `M-5 M-x eeit' on a Lisp mode buffer to run this."
+  (interactive)
+  (insert (ee-adjust-red-stars (format "
+#|
+ (eepitch-sly-kill 'show-only)
+ (eepitch-sly-kill)
+ (eepitch-sly)
+   (eepitch-maxima)
+   (eepitch-kill)
+   (eepitch-maxima)
+      load(\"startsly\");
+ (eepitch-b '(sly-connect \"localhost\" 56789))
+ (eepitch-sly-set-pkgbuffers)
+ (eepitch-sly-select-pkgbuffer \"common-lisp-user\")
+ (eepitch-sly-select-pkgbuffer \"maxima\")
+(load \"%s\")
+ (eepitch-maxima)
+load(\"%s\");
+
+|#
+" (buffer-name) (buffer-name)))))
+
+
+
+
+
+
+
+
+
+
+
 ;; «lua-mode»  (to ".lua-mode")
 (defun ee-insert-test-lua-mode ()
+  "Insert a test block for Lua. With a numeric prefix N, use N `='s."
   (interactive)
   (let ((equals (make-string (or current-prefix-arg 0) ?=)))
     (insert (ee-adjust-red-stars (format "

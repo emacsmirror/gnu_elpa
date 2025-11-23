@@ -19,7 +19,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20250425
+;; Version:    20251022
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eev-tlinks.el>
@@ -3000,6 +3000,7 @@ wget -nc -O {yyyy}-{mm}-{dd}-emacs-news.org \\
 ;; (find-eepitch-intro \"3. Test blocks\")
 ;; (find-eepitch-intro \"3.1. `find-eeit-links'\")
 ;; (find-eev \"eev-testblocks.el\" \"examples\")
+;; (find-eev \"eev-testblocks.el\" \"{majormodestr}\")
 
 ;; Current definition:
 ;; (find-efunction              '{eeitfun})
@@ -3969,6 +3970,7 @@ is nil, use the result of (ee-1stclassvideos)."
        (find-dot-emacs-links "eev angges")
        (find-dot-emacs-links "eev angges melpa edrxmaxima mfms")
        (find-dot-emacs-links "eev angges melpa lean4 edrxmaxima mfms")
+       (find-dot-emacs-links "eev angges melpa epl eepitchb")
        ;; Convention: the first sexp always regenerates the buffer.
        (find-efunction 'find-dot-emacs-links)
        ";;"
@@ -4054,6 +4056,12 @@ is nil, use the result of (ee-1stclassvideos)."
 (setq   eepitch-preprocess-regexp \"^\")
 (defun eepitch-preprocess-line (line)
   (replace-regexp-in-string eepitch-preprocess-regexp \"\" line))
+")
+
+;; Test: (find-estring-elisp (ee-dot-emacs-eepitchb))
+(defun ee-dot-emacs-eepitchb (&rest rest) "\
+;; See: (find-eepitch-intro \"4.3. Configuring `eepitch-b'\")
+(define-key eev-mode-map (kbd \"<f9>\") 'eepitch-b-set-target-and-show)
 ")
 
 ;; Test: (find-estring-elisp (ee-dot-emacs-lean4))
@@ -4379,6 +4387,9 @@ import {pkg_}
 dist = importlib.metadata.distribution('{distr}')
 dist = importlib.metadata.distribution('{pkg}')
 pprint.pprint(dist.files)
+dist.files[1]
+dist.files[1].locate()
+
 md = dist.metadata
 print('\\n'.join(md.keys()))
 md['Name']

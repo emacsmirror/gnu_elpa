@@ -1,3 +1,85 @@
+2025-11-23  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eepitch.el (eepitch-b-show-source, eepitch-b-set-source)
+	(eepitch-b-show-target, eepitch-b-set-target)
+	(eepitch-b-show-source-and-target, eepitch-b)
+	(eepitch-b-set-target-and-show, ee-buffers-in-modes)
+	(ee-buffers-in-mode, ee-buffers-with-minor-mode)
+	(ee-buffers-with-name-matching, ee-kill-buffers)
+	(ee-kill-buffers-in-modes, ee-kill-buffers-in-mode)
+	(ee-kill-buffers-with-minor-mode)
+	(ee-kill-buffers-with-name-matching, find-ebuffer-in-mode)
+	(eepitch-gdb-kill, eepitch-gdb-select)
+	(ee-slime-inferior-lisp-buffers, ee-slime-buffers)
+	(eepitch-slime-kill, eepitch-slime-select)
+	(eepitch-slime-pkgbuffers, eepitch-slime-set-pkgbuffers)
+	(eepitch-slime-get-pkgbuffer, eepitch-slime-select-pkgbuffer)
+	(eepitch-sly-kill, eepitch-sly-select, eepitch-sly-pkgbuffers)
+	(eepitch-sly-set-pkgbuffers, eepitch-sly-get-pkgbuffer)
+	(eepitch-sly-select-pkgbuffer): these are all the functions in the
+	section "badly-behaved targets" of eepitch.el - I rewrote the code
+	and the comments for most of them.
+
+	* eev-testblocks.el (ee-insert-test-lisp-mode)
+	(ee-insert-test-lisp-mode-nil, ee-insert-test-lisp-mode-1)
+	(ee-insert-test-lisp-mode-2, ee-insert-test-lisp-mode-3)
+	(ee-insert-test-lisp-mode-4, ee-insert-test-lisp-mode-5):
+	rewritten.
+
+2025-11-21  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eev-intro.el (find-eepitch-intro): rewrote the sections about
+	badly-behaved targets (sections 4 to 4.7).
+
+2025-11-16  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eepitch.el (eepitch-slime-pkgbuffers): new variable.
+	(eepitch-slime-pkgbuffers, eepitch-slime-set-pkgbuffers)
+	(eepitch-slime-get-pkgbuffer, eepitch-slime-select-pkgbuffer): new
+	functions.
+
+2025-10-22  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eepitch.el (ee-buffers-with-name-matching)
+	(ee-kill-buffers-with-name-matching): new functions.
+	(eepitch-sly-kill): use `ee-kill-buffers-with-name-matching'.
+	(eepitch-b): new function.
+	(eepitch-b-set-target): FIX?
+
+	* eev-tlinks.el (ee-dot-emacs-eepitchb): new function.
+
+2025-10-08  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eepitch.el (ee-buffers-with-minor-mode, ee-kill-buffers)
+	(ee-kill-buffers-with-minor-mode): new functions.
+	(eepitch-sly-kill, eepitch-sly-start, eepitch-sly-select)
+	(eepitch-sly-connect): new functions.
+	(eepitch-sly-pkgbuffers): new variable.
+	(eepitch-sly-pkgbuffers, eepitch-sly-set-pkgbuffers)
+	(eepitch-sly-get-pkgbuffer, eepitch-sly-select-pkgbuffer): new
+	functions.
+
+2025-10-05  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eev-elinks.el (find-pdflike-page-links): new argument: target.
+
+2025-09-27  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eepitch.el (eepitch-gdb-start, eepitch-slime-start): made the
+	arguments optional.
+
+	* eev-testblocks.el (ee-insert-test-lisp-mode-2): new function.
+	(ee-insert-test-lisp-mode-3): new function.
+	(ee-insert-test-lisp-mode-4): new function.
+	(ee-insert-test-lisp-mode-5): new function.
+
+	* eev-tlinks.el: added a link like `(find-eev "eev-testblocks.el"
+	"lua-mode")'.
+
+2025-09-16  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eepitch.el (eepitch-gdb-select): fixed a typo.
+
 2025-09-14  Eduardo Ochs  <eduardoochs@gmail.com>
 
 	* eev-mode.el (ee-kill-this-buffer): use `kill-current-buffer'

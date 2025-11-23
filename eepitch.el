@@ -19,7 +19,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20250914
+;; Version:    20251123
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eepitch.el>
@@ -54,9 +54,11 @@
 ;;   «.eepitch-sly»		(to "eepitch-sly")
 ;; «.badly-behaved»		(to "badly-behaved")
 ;;   «.eepitch-b»		(to "eepitch-b")
-;;   «.ee-buffers-in-mode»	(to "ee-buffers-in-mode")
-;;   «.eepitch-gdb»		(to "eepitch-gdb")
-;;   «.eepitch-slime»		(to "eepitch-slime")
+;;   «.ee-kill-buffers»		(to "ee-kill-buffers")
+;;   «.find-ebuffer-in-mode»	(to "find-ebuffer-in-mode")
+;;   «.eepitch-b-gdb»		(to "eepitch-b-gdb")
+;;   «.eepitch-b-slime»		(to "eepitch-b-slime")
+;;   «.eepitch-b-sly»		(to "eepitch-b-sly")
 ;;
 ;; «.eepitch-langs»		(to "eepitch-langs")
 ;; «.eepitch-langs-vterm»	(to "eepitch-langs-vterm")
@@ -1082,51 +1084,32 @@ If the mrepl doesn't start in 30 seconds this function yields an error."
 ;;;                      |___/                                          
 ;;
 ;; «badly-behaved»  (to ".badly-behaved")
+;; WARNING: EXPERIMENTAL! ADVANCED! NEEDS CONFIGURATION!
 ;; See: (find-eepitch-intro "4. Badly-behaved targets")
 ;;      (find-eepitch-intro "4. Badly-behaved targets" "For example")
-;; Warning: EXPERIMENTAL! BADLY DOCUMENTED! BADLY TESTED!
-;;
-;; Sometimes a target is so badly behaved - for example: Slime - that
-;; I don't know how to write a sexp like this for it,
-;;
-;;   (eepitch CODE)
-;;
-;; that would pitch to the right target buffer... in the case of Slime
-;; the target buffer is a buffer with a name like "*slime-repl sbcl*"
-;; or "*slime-repl sbcl*<4>", that is in `slime-repl-mode', and that
-;; has an active `slime-buffer-connection', but there may be several
-;; buffers like that, and writing a trick with hooks that would select
-;; the right buffer - as `find-slyprocess' does, above - turned out to
-;; be too hard...
-;;
-;; In cases like that the best solution is to treat the `eepitch' in
-;; `(eepitch CODE)' as a black box that needs to be opened, that needs
-;; to have its components run step by step by hand, and that the user
-;; needs to select the right target buffer by running `M-x b' on it.
-;; For example, in...
-;;
-;;   [I need to rewrite the rest!]
-
+;;      (find-eepitch-intro "4.2. `eepitch-b'")
+;;      (find-eepitch-intro "4.3. Configuring `eepitch-b'")
 
 ;; «eepitch-b»  (to ".eepitch-b")
 ;; The basic functions for the support for badly-behaved targets.
+;;   See: (find-eepitch-intro "4.2. `eepitch-b'")
+;; Tests: (eepitch-b-set-source)
+;;        (find-2a nil '(eepitch-b-show-source))
+;;        (eepitch-b-set-source 2)
+;;        (find-2a nil '(eepitch-b-show-source))
+;;        (eepitch-to-buffer "TODO")
+;;        (eepitch-b-set-source 3)
+;;        (delete-other-windows)
+;;        (eepitch-b-show-source-and-target)
 ;;
 (defvar eepitch-b-source-buffer "")
 (defvar eepitch-b-source-marker nil)
 
+;; Low-level functions
 (defun eepitch-b-show-source ()
   (interactive)
   (find-emarker eepitch-b-source-marker))
 
-(defun eepitch-b-show-target ()
-  (interactive)
-  (find-ebuffer eepitch-buffer-name))
-
-;; Test:
-;; (eepitch-b-set-source)
-;; (find-2a nil '(eepitch-b-show-source))
-;; (eepitch-b-set-source 2)
-;; (find-2a nil '(eepitch-b-show-source))
 (defun eepitch-b-set-source (&optional n)
   (interactive)
   (setq eepitch-b-source-buffer (buffer-name))
@@ -1135,60 +1118,99 @@ If the mrepl doesn't start in 30 seconds this function yields an error."
 	  (if n (forward-line n))
 	  (point-marker))))
 
-;; Test:
-;; (eepitch-to-buffer "TODO")
-;; (eepitch-b-set-source 3)
-;; (eek "C-x 1")
-;; (eepitch-b-show-source-and-target)
+(defun eepitch-b-show-target ()
+  (interactive)
+  (find-ebuffer eepitch-buffer-name))
+
+(defun eepitch-b-set-target ()
+  (interactive)
+  (setq eepitch-buffer-name (buffer-name))
+  (setq eepitch-code `(find-ebuffer ,(buffer-name))))
+
 (defun eepitch-b-show-source-and-target ()
   (interactive)
   (find-2a '(eepitch-b-show-source) '(eepitch-b-show-target))
   (message "%S -> %S" eepitch-b-source-buffer eepitch-buffer-name)
-  (format  "`%s' -> `%s'" eepitch-b-source-buffer eepitch-buffer-name))
+  (format "`%s' -> `%s'" eepitch-b-source-buffer eepitch-buffer-name))
 
-(defun eepitch-b-set-target ()
-  "An internal function used by `eepitch-set-source-and-M-x-b'."
+;; High-level functions.
+;; See: (find-eepitch-intro "4.2. `eepitch-b'")
+;;      (find-eepitch-intro "4.3. Configuring `eepitch-b'")
+;;      (find-eepitch-intro "4.3. Configuring `eepitch-b'" "<f9>")
+;;
+(defun eepitch-b (sexp)
+  "This is like `eepitch', but SEXP may be a badly-behaved target.
+This function sets the source, runs SEXP, and it waits until the user
+types <f9> to set the target; then it creates a two-window setting with
+the source at the left and the target at the right."
+  (eepitch-b-set-source 1)
+  (eval sexp)
+  "Type <f9> to tell to `eepitch-b' that we're on the target buffer.")
+
+(defun eepitch-b-set-target-and-show ()
+  "Run this to signal to `eepitch-b' that we're on the target buffer.
+Read the comments in the source to see how to configure this."
   (interactive)
-  (setq eepitch-buffer-name (buffer-name))
+  (eepitch-b-set-target)
   (eepitch-b-show-source-and-target))
 
-;; See: (find-eepitch-intro "4. Badly-behaved targets" "For example")
-(defun eepitch-set-source-and-M-x-b (&optional n)
-  (interactive)
-  (eepitch-b-set-source n)
-  (defalias 'b 'eepitch-b-set-target)
-  (format "`M-x b' will set the eepitch target and return to `%s'"
-	  eepitch-b-source-buffer))
-
-;; Unused at the moment!
-(defun eepitch-b-insert ()
-  (interactive)
-  (let* ((sexp `(eepitch-to-buffer ,eepitch-buffer-name))
-	 (line (format " %s\n" (ee-S sexp))))
-    (move-beginning-of-line nil)
-    (insert line)))
 
 
-;; «ee-buffers-in-mode»  (to ".ee-buffers-in-mode")
-;; These functions are used by some badly behaved targets - like gdb.
-;;
-(defun ee-buffers-in-mode (majormode)
-  (ee-buffers-in-modes (list majormode)))
+
+;;;  _  ___ _ _   _            __  __               
+;;; | |/ (_) | | | |__  _   _ / _|/ _| ___ _ __ ___ 
+;;; | ' /| | | | | '_ \| | | | |_| |_ / _ \ '__/ __|
+;;; | . \| | | | | |_) | |_| |  _|  _|  __/ |  \__ \
+;;; |_|\_\_|_|_| |_.__/ \__,_|_| |_|  \___|_|  |___/
+;;;                                                 
+;; «ee-kill-buffers»  (to ".ee-kill-buffers")
+;; Some badly-behaved targets use the functions in this block to kill
+;; the buffers associated to a target. See this for an example:
+;; (find-eepitch-intro "4.1. Killing Slime")
 
 (defun ee-buffers-in-modes (majormodes)
   (sort (cl-loop for b in (buffer-list)
 		 if (member (with-current-buffer b major-mode) majormodes)
 		 collect (buffer-name b))))
 
-(defun ee-kill-buffers-in-mode (majormode)
-  (ee-kill-buffers-in-modes (list majormode)))
+(defun ee-buffers-in-mode (majormode)
+  (ee-buffers-in-modes (list majormode)))
 
-(defun ee-kill-buffers-in-modes (majormodes)
-  (let* ((bufs (ee-buffers-in-modes majormodes)))
-    (cl-loop for b in bufs
+(defun ee-buffers-with-minor-mode (minormode)
+  (sort (cl-loop for b in (buffer-list)
+		 if (with-current-buffer b (symbol-value minormode))
+		 collect (buffer-name b))))
+
+(defun ee-buffers-with-name-matching (regexp)
+  (sort (cl-loop for b in (buffer-list)
+		 if (string-match regexp (buffer-name b))
+		 collect (buffer-name b))))
+
+(defun ee-kill-buffers (buffernames &optional show-only)
+  (if show-only
+      `(Buffers that will be killed: ,(or buffernames 'none))
+    (cl-loop for b in buffernames
 	     do (ee-kill-buffer b))
-    `(Buffers killed: ,(or bufs 'none))))
+    `(Buffers killed: ,(or buffernames 'none))))
 
+(defun ee-kill-buffers-in-modes (majormodes &optional show-only)
+  (ee-kill-buffers (ee-buffers-in-modes majormodes) show-only))
+
+(defun ee-kill-buffers-in-mode (majormode &optional show-only)
+  (ee-kill-buffers-in-modes (list majormode) show-only))
+
+(defun ee-kill-buffers-with-minor-mode (minormode &optional show-only)
+  (ee-kill-buffers (ee-buffers-with-minor-mode minormode) show-only))
+
+(defun ee-kill-buffers-with-name-matching (regexp &optional show-only)
+  (ee-kill-buffers (ee-buffers-with-name-matching regexp) show-only))
+
+
+;; «find-ebuffer-in-mode»  (to ".find-ebuffer-in-mode")
+;; Some badly-behaved targets use this to select a target buffer.
+;; See the explanation for `eepitch-slime-select' in:
+;; (find-eepitch-intro "4.4. `eepitch-slime-select'")
+;;
 (defun find-ebuffer-in-mode (majormode &rest pos-spec-list)
   "Similar to `find-ebuffer', but goes to the only buffer in MAJORMODE.
 If the number of buffers with major mode MAJORMODE is not exactly one,
@@ -1200,32 +1222,100 @@ raise an error."
 	     majormode (or buffers 'none)))))
 
 
-;; «eepitch-gdb»  (to ".eepitch-gdb")
-;; See: (find-eepitch-intro "4. Badly-behaved targets" "For example")
 
+;; «eepitch-b-gdb»  (to ".eepitch-b-gdb")
+;; GDB is a simple badly-behaved target.
+;; A typical eepitch block for GDB looks like this:
+;;
+;;    (eepitch-gdb-kill)
+;;    (eepitch-b '(gdb "gdb -i=mi"))
+;;    (eepitch-gdb-select)
+;;
+;; Compare that with the simpler example of eepitching to slime, in:
+;; (find-eepitch-intro "4. Badly-behaved targets")
+;;
 (defun eepitch-gdb-kill ()
   (ee-kill-buffers-in-mode 'gud-mode))
 
-(defun eepitch-gdb-start (command-line)
-  (eepitch-set-source-and-M-x-b 1)
-  (gdb command-line))
-
 (defun eepitch-gdb-select ()
-  (eepitch '(find-buffer-in-mode 'gud-mode)))
+  (eepitch '(find-ebuffer-in-mode 'gud-mode)))
 
 
-;; «eepitch-slime»  (to ".eepitch-slime")
-;; See: (find-eev "eev-testblocks.el" "slime")
+
+;; «eepitch-b-slime»  (to ".eepitch-b-slime")
+;; Slime is a very badly-behaved target.
+;; These are the functions specific to it.
+;; See: (find-eepitch-intro "4.1. Killing Slime")
+;;      (find-eepitch-intro "4.4. `eepitch-slime-select'")
+;;      (find-eev "eev-testblocks.el" "lisp-mode-slime")
+;;      (find-eev "eev-testblocks.el" "lisp-mode-maxima-slime")
 ;;
-(defun eepitch-slime-kill ()
-  (ee-kill-buffers-in-mode 'slime-repl-mode))
+(defun ee-slime-inferior-lisp-buffers ()
+  (cl-loop for b in (ee-buffers-with-name-matching "^\\*inferior-lisp")
+	   if (with-current-buffer b slime-inferior-lisp-args)
+	   collect b))
 
-(defun eepitch-slime-start (command)
-  (eepitch-set-source-and-M-x-b 1)
-  (slime command))
+(defun ee-slime-buffers ()
+  (append (ee-buffers-with-name-matching "^\\*slime-")
+	  (ee-slime-inferior-lisp-buffers)))
+
+(defun eepitch-slime-kill (&optional show-only)
+  (ee-kill-buffers (ee-slime-buffers) show-only))
 
 (defun eepitch-slime-select ()
   (eepitch '(find-ebuffer-in-mode 'slime-repl-mode)))
+
+;; This is for when we have several buffers in `slime-repl-mode'.
+;; See: (find-eepitch-intro "4.5. Slime and Maxima")
+;;      (find-eepitch-intro "4.6. The pkgbuffers")
+;;      (find-eev "eev-testblocks.el" "lisp-mode-maxima-slime")
+;;
+(defvar eepitch-slime-pkgbuffers nil)
+
+(defun eepitch-slime-pkgbuffers ()
+  (cl-loop for b in (ee-buffers-in-mode 'slime-repl-mode)
+	   for p = (with-current-buffer b (slime-current-package))
+	   collect (cons p b)))
+
+(defun eepitch-slime-set-pkgbuffers ()
+  (setq eepitch-slime-pkgbuffers (eepitch-slime-pkgbuffers)))
+
+(defun eepitch-slime-get-pkgbuffer (pkg)
+  (alist-get pkg eepitch-slime-pkgbuffers nil nil 'equal))
+
+(defun eepitch-slime-select-pkgbuffer (pkg)
+  (eepitch-to-buffer (eepitch-slime-get-pkgbuffer pkg)))
+
+
+;; «eepitch-b-sly»  (to ".eepitch-b-sly")
+;; This is similar to `eepitch-b-slime', for for Sly.
+;; See: (find-eev "eev-testblocks.el" "lisp-mode-sly")
+;;
+(defun eepitch-sly-kill (&optional show-only)
+  (ee-kill-buffers-with-name-matching "^\\*sly-" show-only))
+
+(defun eepitch-sly-select ()
+  (eepitch '(find-ebuffer-in-mode 'sly-mrepl-mode)))
+
+(defvar eepitch-sly-pkgbuffers nil)
+
+(defun eepitch-sly-pkgbuffers ()
+  (cl-loop for b in (ee-buffers-in-mode 'sly-mrepl-mode)
+	   for p = (with-current-buffer b (sly-current-package))
+	   collect (cons p b)))
+
+(defun eepitch-sly-set-pkgbuffers ()
+  (setq eepitch-sly-pkgbuffers (eepitch-sly-pkgbuffers)))
+
+(defun eepitch-sly-get-pkgbuffer (pkg)
+  (alist-get pkg eepitch-sly-pkgbuffers nil nil 'equal))
+
+(defun eepitch-sly-select-pkgbuffer (pkg)
+  (eepitch-to-buffer (eepitch-sly-get-pkgbuffer pkg)))
+
+
+
+
 
 
 

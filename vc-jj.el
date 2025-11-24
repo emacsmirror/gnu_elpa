@@ -674,7 +674,7 @@ When called in a `vc-jj-log-view-mode' buffer, prompt for a bookmark to
 set at the revision at point.  If the bookmark already exists and would
 be moved backwards or sideways in the revision history, confirm with the
 user first."
-  (interactive)
+  (interactive nil vc-jj-log-view-mode)
   (when (derived-mode-p 'vc-jj-log-view-mode)
     (let* ((target-rev (log-view-current-tag))
            (bookmarks (vc-jj--process-lines "bookmark" "list" "-T" "self.name() ++ \"\n\""))
@@ -708,7 +708,7 @@ When called in a `vc-jj-log-view-mode' buffer, rename the bookmark
 pointing to the revision at point.  If there are multiple bookmarks
 pointing to the revision, prompt the user to one of these bookmarks to
 rename."
-  (interactive)
+  (interactive nil vc-jj-log-view-mode)
   (when (derived-mode-p 'vc-jj-log-view-mode)
     (let* ((target-rev (log-view-current-tag))
            (bookmarks-at-rev
@@ -730,7 +730,7 @@ When called in a `vc-jj-log-view-mode' buffer, delete the bookmark of
 the revision at point.  If there are multiple bookmarks attached to the
 revision, prompt the user to choose one or more of these bookmarks to
 delete."
-  (interactive)
+  (interactive nil vc-jj-log-view-mode)
   (when (derived-mode-p 'vc-jj-log-view-mode)
     (let* ((rev (log-view-current-tag))
            (revision-bookmarks

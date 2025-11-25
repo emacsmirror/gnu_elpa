@@ -1065,13 +1065,8 @@ rather than UIDs."
                           ((memq 'x-gm-ext-1 caps) " X-GM-THRID")
                           (t ""))
                     (if brief "" " RFC822.SIZE ENVELOPE")))
-       (buffer <- (-amake-request account mailbox cmd))
-       (messages (with-current-buffer buffer (-parse-fetch))))
-    (when (memq 'x-gm-ext-1 caps)     ;treat Important label as a flag
-      (dolist (msg messages)
-        (when (member "\\Important" (alist-get 'x-gm-labels msg))
-          (push "$Important" (alist-get 'flags msg)))))
-    messages))
+       (buffer <- (-amake-request account mailbox cmd)))
+    (with-current-buffer buffer (-parse-fetch))))
 
 (defun -afetch-old-messages (account mailbox limit &optional before)
   "Fetch a mailbox message listing with up to LIMIT elements.
@@ -1541,21 +1536,26 @@ Cf. RFC 5256, §2.1."
      :getter ,(lambda (msg _) (alist-get 'id msg)))
     (flag-seen
      :name "Seen"
+     :min-width 1
      :getter ,(lambda (msg _)
                 (let ((icon (-alist-query (alist-get 'flags msg)
                                           '(((not \\Seen) . -message-unseen)))))
                   (if icon (icon-string icon) ""))))
     (flag-flagged
      :name "Flagged"
-     :getter ,(lambda (msg _)
-                (let ((icon (-alist-query (alist-get 'flags msg)
-                                          '((\\Flagged  . -message-flagged)
-                                            ($Important . -message-important)
-                                            ($Phishing  . -message-phishing)
-                                            ($Junk      . -message-junk)))))
-                  (if icon (icon-string icon) ""))))
+     :min-width 1
+     :getter
+     ,(lambda (msg _)
+        (let ((icon (-alist-query (append (alist-get 'x-gm-labels msg)
+                                          (alist-get 'flags msg))
+                                  '((\\Flagged  . -message-flagged)
+                                    ((or $Important \\Important) . -message-important)
+                                    ($Phishing  . -message-phishing)
+                                    ($Junk      . -message-junk)))))
+          (if icon (icon-string icon) ""))))
     (flag-answered
      :name "Answered"
+     :min-width 1
      :getter ,(lambda (msg _)
                 (let ((icon (-alist-query (alist-get 'flags msg)
                                           '((\\Answered . -message-answered)

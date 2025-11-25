@@ -1160,6 +1160,31 @@ messages with UID smaller than BEFORE."
        (_ <- (-amake-request account mailbox cmd)))
     t))
 
+(defun -astore-message-flags (account mailbox uids flags &optional remove)
+  (athunk-let*
+      ((cmd (format "UID STORE %s %sFLAGS (%s)"
+                    (-format-sequence-set uids)
+                    (if remove "-" "+")
+                    (mapconcat (lambda (v) (if (symbolp v) (symbol-name v) v))
+                               (ensure-list flags)
+                               " ")))
+       (buffer <- (-amake-request account mailbox cmd))
+       (result (with-current-buffer buffer (-parse-fetch))))
+    ;; Possibly update displayed mailbox
+    (dolist (buffer (buffer-list))
+      (with-current-buffer buffer
+        (when-let* ((table (and (eq -current-account account)
+                                (equal -current-mailbox mailbox)
+                                (derived-mode-p 'minimail-mailbox-mode)
+                                (vtable-current-table))))
+          (dolist (msg (vtable-objects table))
+            (when-let* ((uid (alist-get 'uid msg))
+                        (new (seq-find (lambda (it) (eq (alist-get 'uid it) uid))
+                                       result)))
+              (setf (alist-get 'flags msg) (alist-get 'flags new))
+              (vtable-update-object table msg))))))
+    result))
+
 ;;; Commands
 
 (defun -mailbox-buffer (&optional noerror)
@@ -2027,6 +2052,9 @@ window shorter than 6 lines."
       (select-window window))
     (let ((message-mail-user-agent 'minimail)
           (message-reply-buffer (current-buffer))
+          (account -current-account)
+          (mailbox -current-mailbox)
+          (uid (alist-get 'uid -local-state))
           (msgid (alist-get 'message-id -local-state))
           (refs (alist-get 'references -local-state)))
       (message-reply to-address wide)
@@ -2038,6 +2066,11 @@ window shorter than 6 lines."
           (when refs (insert refs ?\s))
           (insert msgid ?\n)
           (narrow-to-region (point) (point-max))))
+      (push (lambda ()
+              (athunk-run
+               (-astore-message-flags account mailbox uid '\\Answered)))
+            ;;FIXME: Use this or rather `message-sent-hook'?
+            message-send-actions)
       (when cite (message-yank-original)))))
 
 (defun minimail-reply-all (cite &optional to-address)
@@ -2051,8 +2084,15 @@ window shorter than 6 lines."
   (with-current-buffer (-message-buffer)
     (when-let* ((window (get-buffer-window)))
       (select-window window))
-    (let ((message-mail-user-agent 'minimail))
-      (message-forward))))
+    (let ((message-mail-user-agent 'minimail)
+          (account -current-account)
+          (mailbox -current-mailbox)
+          (uid (alist-get 'uid -local-state)))
+      (message-forward)
+      (push (lambda ()
+              (athunk-run
+               (-astore-message-flags account mailbox uid '$Forwarded)))
+            message-send-actions))))
 
 ;;;; Gnus graft
 ;; Cf. `mu4e--view-render-buffer' from mu4e-view.el

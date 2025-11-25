@@ -1,38 +1,42 @@
 #+title: Minimail
 
-Minimail is a simple, non-blocking IMAP email client for Emacs.
+#+html: <a href="https://elpa.gnu.org/packages/minimail.html"><img alt="GNU ELPA" src="https://elpa.gnu.org/packages/minimail.svg"/></a>
+#+html: <img src="https://raw.githubusercontent.com/astoff/minimail/refs/heads/images/monolith.jpg" align="right" width="50%">
 
-Minimail currently covers the basics needed for reading and replying
-to messages.  Below is a listing of implemented and planned features.
+Minimail is a simple, non-blocking IMAP email client for Emacs.  It is
+a rather new package but covers the basics needed for reading and
+replying to messages:
 
-- [X] Read messages, including MIME content (rendering via Gnus)
-- [X] Compose, reply to and forward messages
-- [X] Multi-account support
-- Search
-  - [X] Full text
-  - [ ] Structured (by sender, subject, etc.)
-- Sorting by thread
-  - [X] “Shallow” threading (just one nesting level, sorted by date)
+- Displaying messages, including MIME content (rendering via Gnus)
+- Composing, replying to and forwarding messages
+- Multi-account support
+- Search (currently only full text)
+- Moving messages between mailboxes (also archive, move to trash, move
+  to junk folder)
+- Sorting by thread, in two modes:
+  - “Shallow” threading (just one nesting level, sorted by date)
     using server-side thread information if available or subject lines
     as a fallback.
-  - [X] Optionally, hierarchical threads based on reference message
-    IDs.
-- [X] Move messages (also archive, move to trash, flag as junk)
-- [ ] Mark and operate on sets of messages (move, etc.)
-- [X] "Load more messages" button
-- [ ] Notifications (polling or IDLE)
-- [ ] OAuth
+  - Optionally, hierarchical threads based on reference message IDs.
 
-Being non-blocking doesn't mean Minimail has excellent performance
-(spoiler: it doesn't, yet); it simply means that it has one of the
-necessary condition for such.  In fact, Minimail currently doesn't
-include any of these possible optimizations:
+Here is a list of planned features:
 
-- [X] Caching
-  - in memory, no persistence
-- [ ] Support for CONDSTORE capability
-- [ ] Connection pool (for concurrent requests)
-- [ ] Prefetching of messages in the background
+- Structured search (by sender, subject, etc.)
+- Marking and operating on sets of messages (move, etc.)
+- Watching for new messages and notifications
+- Login via OAuth
+- Various optimizations, perhaps a persistent cache
+
+Minimail is an [[https://www.rfc-editor.org/rfc/rfc1733][online]] IMAP client.  It is intended to coexist
+peacefully with other clients accessing the same account.  Moreover,
+it is intended to remain no more complicated than your regular webmail
+app.  In line with that, the following are some features which are not
+planned:
+
+- Filtering (use server-side filtering instead)
+- Offline access
+- POP, NNTP, RSS, Maildir, instant messaging, microblogging, social
+  media, virtual reality, etc.
 
 ** Try it out
 
@@ -52,7 +56,7 @@ Just set =mail-user-agent= to =minimail= and customize the variable
          :mail-address "somebody@gmail.com"
          :incoming-url "imaps://imap.gmail.com"
          :outgoing-url "smtps://smtp.gmail.com")
-        (work ;; Assuming Evil Corp uses "Google Workspace" as email provider
+        (work ;; Assuming Evil Corp. uses "Google Workspace" as email provider
          :mail-address "webmaster@evilcorp.com"
          :incoming-url "imaps://imap.gmail.com"
          :outgoing-url "smtps://smtp.gmail.com"

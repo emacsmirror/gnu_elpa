@@ -140,8 +140,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 
 ;;; Code:
-
-(require 'greader)
+(defvar greader--current-buffer)
 
 (defgroup greader-dict nil
   "String substitution module for greader."

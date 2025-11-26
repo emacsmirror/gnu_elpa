@@ -51,13 +51,6 @@
     map))
 
 ;;;; Constructing the string to display
-(defun consult-hoogle--builder (input)
-  "Build command line given INPUT."
-  (pcase-let ((`(,arg . ,opts) (consult--command-split input)))
-    (unless (string-blank-p arg)
-      (cons (append hoogle-base-args opts (list arg))
-            (cdr (consult--default-regexp-compiler input 'basic t))))))
-
 (defun consult-hoogle--fontify (text)
   "Fontify TEXT, returning the fontified text.
 This is adapted from `haskell-fontify-as-mode' but for better performance
@@ -155,25 +148,35 @@ we use the same buffer throughout."
                          'consult--completion-candidate-hook)))
     (get-text-property 0 'consult--candidate candidate)))
 
-(defalias 'consult-hoogle--source
-  (consult--process-collection #'consult-hoogle--builder
-    :transform (consult--async-transform #'consult-hoogle--format)
-    :highlight t)
-  "Async consult source to obtain search results from hoogle.")
+(defun consult-hoogle--source (&optional command)
+  "Return an async source to search with hoogle using COMMAND."
+  (let* ((command (or command hoogle-base-args))
+         (exe (or (executable-find (car command))
+                  (error "Executable %s not found on path" (car command))))
+         (command `(,exe . ,(cdr command))))
+    (consult--process-collection
+        (lambda (input)
+          (pcase-let ((`(,arg . ,opts) (consult--command-split input)))
+            (unless (string-blank-p arg)
+              (cons (append command opts (list arg))
+                    (cdr (consult--default-regexp-compiler input 'basic t))))))
+      :transform (consult--async-transform #'consult-hoogle--format)
+      :highlight t)))
 
-(defun consult-hoogle--search (&optional state action)
-  "Search the local hoogle database and take ACTION with the selection.
+(defun consult-hoogle--search (&optional command state action)
+  "Search local hoogle database using COMMAND and take ACTION with the selection.
 STATE is the optional state function passed to the `consult--read'."
   (let ((consult-async-min-input 0)
         (hoogle-base-find-candidate #'consult-hoogle--candidate)
         (hoogle-base-modify-query-function #'consult-hoogle--modify-async-input)
+        (source (consult-hoogle--source command))
         (fun (or action (lambda (alist) (hoogle-base--browse-url 'item alist)))))
     (with-current-buffer (get-buffer-create " *Hoogle Fontification*" t)
       (setq-local delay-mode-hooks t)
       (hoogle-base--haskell-mode))
     (unwind-protect
         (funcall fun (consult--read
-                      #'consult-hoogle--source
+                      source
                       :prompt "Hoogle: "
                       :require-match t
                       :lookup #'consult--lookup-candidate
@@ -190,13 +193,13 @@ STATE is the optional state function passed to the `consult--read'."
 
 ;;;; Interactive Commands
 ;;;###autoload
-(defun consult-hoogle (arg)
-  "Search the local hoogle database.
+(defun consult-hoogle (arg &optional command)
+  "Search the local hoogle database with COMMAND (by default `hoogle-base-args').
 By default this shows the documentation for the current candidate in a side
 window.  This can be disabled by a prefix ARG."
   (interactive (list current-prefix-arg))
-  (if arg (consult-hoogle--search)
-    (consult-hoogle--search #'consult-hoogle--show-details)))
+  (if arg (consult-hoogle--search command)
+    (consult-hoogle--search command #'consult-hoogle--show-details)))
 
 ;;;###autoload
 (defun consult-hoogle-project (arg)
@@ -207,9 +210,8 @@ customized to configure an alternate command.
 By default this shows the documentation for the current candidate in a side
 window.  This can be disabled by a prefix ARG."
   (interactive (list current-prefix-arg))
-  (let ((hoogle-base-args hoogle-base-project-args)
-        (default-directory (funcall hoogle-base-project-root-function)))
-    (consult-hoogle arg)))
+  (let ((default-directory (funcall hoogle-base-project-root-function)))
+    (consult-hoogle arg consult-hoogle-project-args)))
 
 (defun consult-hoogle-scroll-docs-down (&optional arg)
   "Scroll the window with documentation ARG lines down."

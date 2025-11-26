@@ -784,7 +784,7 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
       0)))
 
 (defun vc-jj-annotate-command (file buf &optional rev)
-  "Fill BUF with per-line commit history of FILE at REV."
+  "Fill BUF with per-line change history of FILE at REV."
   (let ((rev (or rev "@"))
         (file (file-relative-name file)))
     ;; Contrary to most other jj commands, 'jj file annotate' takes a
@@ -809,7 +809,7 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
   ;; TODO: find out if the output changes when the file got renamed
   ;; somewhere in its history
   "Regex for the output of \"jj file annotate\".
-The regex matches each line's commit information and captures
+The regex matches each line's change information and captures
 four groups: change id, author, datetime, line number.")
 
 (declare-function vc-annotate-convert-time "vc-annotate" (&optional time))
@@ -929,7 +929,7 @@ the command to run, e.g., the semi-standard \"jj git push -c @-\"."
 (add-hook 'log-edit-mode-hook #'vc-jj-ensure-log-edit-callback)
 ;;;###autoload
 (defun vc-jj-ensure-log-edit-callback ()
-  "Set up `log-edit-callback' when editing jj commit messages."
+  "Set up `log-edit-callback' when editing jj change descriptions."
   (unless (bound-and-true-p log-edit-callback)
     (setq-local log-edit-callback (lambda ()
                                     (interactive)

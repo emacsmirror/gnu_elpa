@@ -25,24 +25,30 @@
 
 (require 'project)
 
-(cl-defmethod project-root ((project (head jj)))
-  "Return the root directory of PROJECT."
-  (cdr project))
-
-(cl-defmethod project-files ((project (head jj)) &optional dirs)
+;;;###autoload
+(cl-defmethod project-files :around ((project (head vc)) &optional dirs)
   "Return a list of files in directories DIRS in PROJECT."
-  ;; There is a bit of filename frobbing going on in this method.  The
-  ;; reason is that while jj reads and writes relative filenames, we
-  ;; get passed absolute filenames in DIRS and must return absolute
-  ;; (tilde-expanded) filenames.
-  (let* ((default-directory (expand-file-name (project-root project)))
-         (args (cons "--" (mapcar #'file-relative-name dirs)))
-         (absolutify (or (not project-files-relative-names)
-                         (> (length dirs) 1)))
-         (files (apply #'process-lines "jj" "file" "list" args)))
-    (if absolutify
-        (mapcar #'expand-file-name files)
-      files)))
+  ;; Intercept the primary/default `project-files' method.  Vc-jj does
+  ;; not register itself as a new project backend: it hooks into the
+  ;; existing VC integration into project.el (see `project-try-vc' in
+  ;; `project-find-functions').  Because of that, we cannot provide a
+  ;; standalone `project-files' method for a distinct backend class.
+  ;; Therefore, we wrap the primary method with an :around method and
+  ;; selectively override its behavior when the VC backend is JJ.
+  (if (eq (cadr project) 'JJ)
+      ;; There is a bit of filename frobbing going on in this method.
+      ;; The reason is that while jj reads and writes relative
+      ;; filenames, we get passed absolute filenames in DIRS and must
+      ;; return absolute (tilde-expanded) filenames.
+      (let* ((default-directory (expand-file-name (project-root project)))
+             (args (cons "--" (mapcar #'file-relative-name dirs)))
+             (absolutify (or (not project-files-relative-names)
+                             (> (length dirs) 1)))
+             (files (apply #'process-lines "jj" "file" "list" args)))
+        (if absolutify
+            (mapcar #'expand-file-name files)
+          files))
+    (cl-call-next-method)))
 
 ;;;###autoload
 (with-eval-after-load 'project

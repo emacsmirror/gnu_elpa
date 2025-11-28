@@ -734,9 +734,11 @@ delete."
   (when (derived-mode-p 'vc-jj-log-view-mode)
     (let* ((rev (log-view-current-tag))
            (revision-bookmarks
-            (string-split (vc-jj--command-parseable "show" "-r" rev "--no-patch"
-                                                    "-T" "self.local_bookmarks() ++ \"\n\"")
-                          " " t "\n"))
+            (string-split
+             (vc-jj--command-parseable
+              "show" "-r" rev "--no-patch"
+              "-T" "self.local_bookmarks().map(|b| b.name()) ++ \"\n\"")
+             " " t "\n"))
            (bookmarks
             (if (< 1 (length revision-bookmarks))
                 (completing-read-multiple "Delete bookmarks: " revision-bookmarks nil t)

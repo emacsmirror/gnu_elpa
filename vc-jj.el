@@ -83,6 +83,87 @@
   :type 'string
   :risky t)
 
+(defcustom vc-jj-root-log-format
+  (list
+   ;; Log format (passed as the template for "jj log")
+   "
+if(root,
+  format_root_commit(self),
+  label(if(current_working_copy, \"working_copy\"),
+    concat(
+      separate(\" \",
+        change_id ++ \"​\" ++ change_id.shortest(8).prefix() ++ \"​\" ++ change_id.shortest(8).rest(),
+        if(author.name(), author.name(), if(author.email(), author.email().local(), email_placeholder)),
+        commit_timestamp(self).format(\"%Y-%m-%d\"),
+        bookmarks,
+        tags,
+        working_copies,
+        if(git_head, label(\"git_head\", \"git_head()\")),
+        format_short_commit_id(commit_id),
+        if(conflict, label(\"conflict\", \"conflict\")),
+        if(config(\"ui.show-cryptographic-signatures\").as_boolean(),
+          format_short_cryptographic_signature(signature)),
+        if(empty, label(\"empty\", \"(empty)\")),
+        if(description,
+          description.first_line(),
+          label(if(empty, \"empty\"), description_placeholder),
+        ),
+      ) ++ \"\n\",
+    ),
+  )
+)"
+   ;; Log entry regexp
+   (rx
+    line-start
+    ;; Graph
+    (+? nonl) " "
+    ;; Full change ID
+    (group (+ (any "K-Zk-z")))
+    space
+    ;; Visible change ID
+    (group (+ (any "K-Zk-z")))
+    space
+    (group (+ (any "K-Zk-z")))
+    " "
+    ;; Author
+    (group (* nonl)) " "
+    ;; Time
+    (group (= 4 (any num)) "-" (= 2 (any num)) "-" (= 2 (any num)))
+    ;; Tags and  bookmarks
+    (group (*? nonl)) " "
+    ;; Commit ID
+    (group (+ (any hex))) " "
+    ;; Special states
+    (group (opt "conflict "))
+    (group (opt "(empty) "))
+    (group (opt "(no description set)"))
+    ;; Description
+    (* nonl) line-end)
+   ;; Font lock keywords
+   '((1 '(face nil invisible t))        ; Full change ID
+     (2 'log-view-message)              ; Short change ID
+     (3 'change-log-list)               ; Rest of Change ID
+     (4 'change-log-name)               ; Author name
+     (5 'change-log-date)               ; Date
+     (6 'vc-jj-log-view-bookmark)       ; Bookmark names
+     (7 'vc-jj-log-view-commit)         ; Commit ID
+     (8 'vc-conflict-state)             ; Conflict marker
+     (9 'change-log-function)           ; No description marker
+     (10 'change-log-function)))        ; Revision description
+  "JJ log format for `vc-print-root-log'.
+This option determines the format and fontification of the JJ Log View
+buffer created from `vc-print-root-log'.
+
+It should be a list of the form (FORMAT REGEXP KEYWORDS), where FORMAT
+is a format string (a JJ template passed to \"jj log\"), REGEXP is a
+regular expression matching a single entry in the \"jj log\" output, and
+KEYWORDS is a list of font lock keywords (see
+`font-lock-keywords'and `(elisp) Search-based Fontification') for
+highlighting the Log View buffer.
+
+REGEXP may define capture groups that KEYWORDS can use to fontify
+various regions of the Log View buffer.")
+
 (defcustom vc-jj-global-switches '("--no-pager" "--color" "never")
   "Global switches to pass to any jj command."
   :type '(choice (const :tag "None" nil)
@@ -620,35 +701,6 @@ the command to run, e.g., the semi-standard \"jj git push -c @-\"."
 
 ;;;; print-log
 
-(defvar vc-jj--log-default-template
-  "
-if(root,
-  format_root_commit(self),
-  label(if(current_working_copy, \"working_copy\"),
-    concat(
-      separate(\" \",
-        change_id ++ \"​\" ++ change_id.shortest(8).prefix() ++ \"​\" ++ change_id.shortest(8).rest(),
-        if(author.name(), author.name(), if(author.email(), author.email().local(), email_placeholder)),
-        commit_timestamp(self).format(\"%Y-%m-%d\"),
-        bookmarks,
-        tags,
-        working_copies,
-        if(git_head, label(\"git_head\", \"git_head()\")),
-        format_short_commit_id(commit_id),
-        if(conflict, label(\"conflict\", \"conflict\")),
-        if(config(\"ui.show-cryptographic-signatures\").as_boolean(),
-          format_short_cryptographic_signature(signature)),
-        if(empty, label(\"empty\", \"(empty)\")),
-        if(description,
-          description.first_line(),
-          label(if(empty, \"empty\"), description_placeholder),
-        ),
-      ) ++ \"\n\",
-    ),
-  )
-)
-")
-
 (defun vc-jj-print-log (files buffer &optional _shortlog start-revision limit)
   "Print commit log associated with FILES into specified BUFFER."
   ;; FIXME: limit can be a revision string, in which case we should
@@ -661,9 +713,9 @@ if(root,
                (if start-revision
                  (list "-r" (concat "::" start-revision))
                  (list "-r" "::"))
-               (list "-T" vc-jj--log-default-template "--")
+               (list "-T" (car vc-jj-root-log-format))
                (unless (string-equal (vc-jj-root (car files)) (car files))
-                 files))))
+                 (flatten-list "--" files)))))
     (with-current-buffer buffer
       (apply #'vc-jj--command-dispatched buffer
         'async nil "log" args))))
@@ -848,7 +900,7 @@ delete."
   ;; Don't have file markers, so use impossible regexp.
   (setq-local log-view-file-re regexp-unmatchable)
   (setq-local log-view-per-file-logs nil)
-  (setq-local log-view-message-re vc-jj--logline-re)
+  (setq-local log-view-message-re (cadr vc-jj-root-log-format))
   ;; Allow expanding short log entries.
   (setq truncate-lines t)
   (setq-local log-view-expanded-log-entry-function

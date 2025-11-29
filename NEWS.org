@@ -16,6 +16,7 @@
   - Fontify conflict indicators (=vc-conflict-state=)
   - Fontify commit IDs (=vc-jj-log-view-commit=)
   - Fontify bookmark names (=vc-jj-log-view-bookmark=)
+- New user option: =vc-jj-root-log-format=. =vc-jj-root-log-format= controls the format and fontification of the Log View buffer created from =vc-print-root-log=.
 
 *** Changed
 

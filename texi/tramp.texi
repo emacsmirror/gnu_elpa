@@ -4737,7 +4737,9 @@ It works only for some connection methods defined in
 It does not support interactive user authentication.  With
 @option{ssh}-based methods, this can be avoided by using a password
 agent like @command{ssh-agent}, using public key authentication, or
-using @option{ControlMaster} options.
+using @option{ControlMaster} options.@*
+Other interactive authentication requests, like one-time passwords or
+security key confirmation messages, do not work either.
 
 @item
 It cannot be applied for @option{ssh}-based methods, which use the
@@ -5366,7 +5368,7 @@ The package works successfully on @w{Emacs 28}, @w{Emacs 29}, @w{Emacs
 
 While Unix and Unix-like systems are the primary remote targets,
 @value{tramp} has equal success connecting to other platforms, such as
-MS Windows 7/8/10.
+MS Windows 10/11.
 
 
 @item
@@ -5381,7 +5383,8 @@ responsiveness slows down.  Some suggestions within the scope of
 @itemize @minus
 @item
 Use an external method, such as @option{scp}, which are faster than
-internal methods for large files.
+internal methods for large files.  Set
+@code{tramp-use-scp-direct-remote-copying} to non-@code{nil}.
 
 @item
 Keep the file @code{tramp-persistency-file-name}, which is where
@@ -6846,6 +6849,11 @@ they are kept.  Example:
 @end group
 @end lisp
 @end defun
+
+@findex tramp-expand-script
+Shell scripts intended for the @code{tramp-sh} backend are used as a
+format string.  They must observe the restrictions for format
+specifiers, as documented in @code{tramp-expand-script}.
 
 
 @node Traces and Profiles

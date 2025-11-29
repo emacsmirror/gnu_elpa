@@ -896,10 +896,18 @@ delete."
     (setq rev1 "root()")))
   (setq rev2 (or rev2 "@"))
   (let ((inhibit-read-only t)
-        (args (append (vc-switches 'jj 'diff) (list "--") files)))
+        ;; When REV1 and REV2 are the same revision, "-f REV1 -t REV2"
+        ;; (erroneously) returns an empty diff.  So we check for that
+        ;; case and use "-r REV1" instead, which returns the correct
+        ;; diff
+        (args (append (if (string= rev1 rev2)
+                          (list "-r" rev1)
+                        (list "-f" rev1 "-t" rev2))
+                      (vc-switches 'jj 'diff)
+                      (list "--") files)))
     (with-current-buffer buffer
       (erase-buffer))
-    (apply #'call-process vc-jj-program nil buffer nil "diff" "--from" rev1 "--to" rev2 args)
+    (apply #'call-process vc-jj-program nil buffer nil "diff" args)
     (if (seq-some (lambda (line) (string-prefix-p "M " line))
                   (apply #'vc-jj--process-lines "diff" "--summary" "--" files))
         1

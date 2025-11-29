@@ -702,23 +702,40 @@ the command to run, e.g., the semi-standard \"jj git push -c @-\"."
 ;;;; print-log
 
 (defun vc-jj-print-log (files buffer &optional _shortlog start-revision limit)
-  "Print commit log associated with FILES into specified BUFFER."
-  ;; FIXME: limit can be a revision string, in which case we should
-  ;; print revisions between start-revision and limit
+  "Print commit log associated with FILES into specified BUFFER.
+If _SHORTLOG is non-nil, use a short log format similar to
+`vc-jj-root-log-format'.  If START-REVISION is non-nil, it is a string
+of the newest revision in the log to show.  If LIMIT is a number, show
+no more than this many entries.  If LIMIT is a non-empty string, use it
+as a base revision."
   (vc-setup-buffer buffer)
   (let ((inhibit-read-only t)
-        (args (append
-               (and limit
-                    (list "-n" (number-to-string limit)))
-               (if start-revision
-                 (list "-r" (concat "::" start-revision))
-                 (list "-r" "::"))
-               (list "-T" (car vc-jj-root-log-format))
-               (unless (string-equal (vc-jj-root (car files)) (car files))
-                 (flatten-list "--" files)))))
+        (files
+         ;; There is a special case when FILES has just the root of
+         ;; the project as its only element (e.g., when calling
+         ;; `vc-print-root-log').  In this case, we do not specify a
+         ;; fileset to jj because doing do would cause the log to only
+         ;; show ancestors of START-REVISION (even if the fileset is
+         ;; "all()").  This behavior is undesirable in
+         ;; `vc-print-root-log' (in a JJ context of bookmarks), since
+         ;; users expect to see descendants as well
+         (unless (file-equal-p (vc-jj-root (car files)) (car files))
+           files))
+        (args (append (pcase limit
+                        ;; When LIMIT is a number, only show up to
+                        ;; that many revisions
+                        ((pred numberp)
+                         (list "-n" (number-to-string limit)
+                               "-r" (concat "::" start-revision)))
+                        ;; When LIMIT is a string, it is a revision.
+                        ;; In that case, show the revisions between
+                        ;; LIMIT and START-REVISION, not including the
+                        ;; revision LIMIT.
+                        ((pred stringp)
+                         (list "-r" (format "%s::%s & ~%s" limit start-revision limit))))
+                      (list "-T" (car vc-jj-root-log-format)))))
     (with-current-buffer buffer
-      (apply #'vc-jj--command-dispatched buffer
-        'async nil "log" args))))
+      (apply #'vc-jj--command-dispatched buffer 'async files "log" args))))
 
 ;;;; log-outgoing
 

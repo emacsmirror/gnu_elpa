@@ -594,14 +594,18 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
 
 
 (defun vc-jj-expanded-log-entry (revision)
+  "Return a string of the commit details of REVISION.
+Called by `log-view-toggle-entry-display' in a JJ Log View buffer."
   (with-temp-buffer
-    (vc-jj--command-dispatched t 0 nil
-      "log"
-      "-r" revision
-      "-T" "builtin_log_detailed"
-      "--color" "never"
-      "--no-graph"
-      "--")
+    (vc-jj--command-dispatched
+     t 0 nil "log"
+     ;; REVISION may be divergent (i.e., several revisions with the
+     ;; same change ID).  In those cases, we opt to avoid jj erroring
+     ;; via "-r change_id(REVISION)" and show only all the divergent
+     ;; commits.  This is preferable to confusing or misinforming the
+     ;; user by showing only some of the divergent commits.
+     "-r" (format "change_id(%s)" revision)
+     "--no-graph" "-T" "builtin_log_detailed")
     (buffer-string)))
 
 (defun vc-jj-previous-revision (file rev)

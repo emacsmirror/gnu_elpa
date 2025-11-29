@@ -113,6 +113,14 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 		 (string :tag "Argument String")
 		 (repeat :tag "Argument List" :value ("") string)))
 
+(defface vc-jj-log-view-commit
+  '((t :weight light :inherit (shadow italic)))
+  "Face for commit IDs in `vc-jj-log-view-mode' buffers.")
+
+(defface vc-jj-log-view-bookmark
+  '((t :weight bold :inherit log-view-message))
+  "Face for bookmark names in `vc-jj-log-view-mode' buffers.")
+
 ;;; Internal Utilities
 
 ;; Note that 'JJ' should come before 'Git' in `vc-handled-backends',
@@ -708,10 +716,9 @@ if(root,
       (+ (any hex)))
     " "
     ;; special states
-    (? (group (or (: "(empty) ")
-                "")))
-    (? (group (or (: "(no description set)" (* nonl))
-                "")))
+    (group (opt "conflict "))
+    (group (opt "(empty) "))
+    (group (opt "(no description set)"))
     ;; regular description
     (* nonl)
     line-end)
@@ -853,11 +860,12 @@ delete."
                  (3 'change-log-list)
                  (4 'change-log-name)
                  (5 'change-log-date)
-                 (6 'change-log-file)
-                 (7 'change-log-list)
-                 (8 'change-log-function)
-                 (9 'change-log-function))))
-  
+                 (6 'vc-jj-log-view-bookmark)
+                 (7 'vc-jj-log-view-commit)
+                 (8 'vc-conflict-state)
+                 (9 'change-log-function)
+                 (10 'change-log-function))))
+
   (keymap-set vc-jj-log-view-mode-map "r" #'vc-jj-log-view-edit-change)
   (keymap-set vc-jj-log-view-mode-map "x" #'vc-jj-log-view-abandon-change)
   (keymap-set vc-jj-log-view-mode-map "i" #'vc-jj-log-view-new-change)

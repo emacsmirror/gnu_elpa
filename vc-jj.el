@@ -701,9 +701,9 @@ the command to run, e.g., the semi-standard \"jj git push -c @-\"."
 
 ;;;; print-log
 
-(defun vc-jj-print-log (files buffer &optional _shortlog start-revision limit)
+(defun vc-jj-print-log (files buffer &optional shortlog start-revision limit)
   "Print commit log associated with FILES into specified BUFFER.
-If _SHORTLOG is non-nil, use a short log format similar to
+If SHORTLOG is non-nil, use a short log format similar to
 `vc-jj-root-log-format'.  If START-REVISION is non-nil, it is a string
 of the newest revision in the log to show.  If LIMIT is a number, show
 no more than this many entries.  If LIMIT is a non-empty string, use it
@@ -733,7 +733,9 @@ as a base revision."
                         ;; revision LIMIT.
                         ((pred stringp)
                          (list "-r" (format "%s::%s & ~%s" limit start-revision limit))))
-                      (list "-T" (car vc-jj-root-log-format)))))
+                      (if shortlog
+                          (list "-T" (car vc-jj-root-log-format))
+                        (list "--no-graph" "-T" "builtin_log_detailed")))))
     (with-current-buffer buffer
       (apply #'vc-jj--command-dispatched buffer 'async files "log" args))))
 
@@ -913,27 +915,49 @@ delete."
       (revert-buffer))))
 
 (define-derived-mode vc-jj-log-view-mode log-view-mode "JJ-Log-View"
+  "Log View mode specific for JJ."
   (require 'add-log) ;; We need the faces add-log.
   ;; Don't have file markers, so use impossible regexp.
   (setq-local log-view-file-re regexp-unmatchable)
   (setq-local log-view-per-file-logs nil)
-  (setq-local log-view-message-re (cadr vc-jj-root-log-format))
+  ;; The `log-view-message-re' is a regexp matching a revision.  Its
+  ;; first match group must match the revision number itself
+  (setq-local log-view-message-re
+              (if (not (memq vc-log-view-type '(long log-search with-diff)))
+                  (cadr vc-jj-root-log-format)
+                (rx bol "Commit ID: " (1+ (any alnum)) "\n"
+                    "Change ID: " (group (1+ (any alpha))))))
   ;; Allow expanding short log entries.
-  (setq truncate-lines t)
-  (setq-local log-view-expanded-log-entry-function
-              'vc-jj--expanded-log-entry)
+  (when (memq vc-log-view-type '(short log-outgoing log-incoming mergebase))
+    (setq truncate-lines t)
+    (setq-local log-view-expanded-log-entry-function 'vc-jj--expanded-log-entry))
+  ;; Fontify according to regexp capture groups (for "short" format
+  ;; log views, the relevant regexp is `vc-jj-root-log-format')
   (setq-local log-view-font-lock-keywords
-              `((,vc-jj--logline-re
-                 (1 '(face nil invisible t))
-                 (2 'log-view-message)
-                 (3 'change-log-list)
-                 (4 'change-log-name)
-                 (5 'change-log-date)
-                 (6 'vc-jj-log-view-bookmark)
-                 (7 'vc-jj-log-view-commit)
-                 (8 'vc-conflict-state)
-                 (9 'change-log-function)
-                 (10 'change-log-function))))
+              (if (not (memq vc-log-view-type '(long log-search with-diff)))
+                  (list (cons (nth 1 vc-jj-root-log-format)
+                              (nth 2 vc-jj-root-log-format)))
+                `((,log-view-message-re
+                   (1 'change-log-acknowledgment))
+                  (,(rx bol "Commit ID" (0+ (any space)) ": " (group (1+ (any alnum))) "\n")
+                   (1 'vc-jj-log-view-commit))
+                  (,(rx bol "Bookmarks" (0+ (any space)) ": " (group (1+ not-newline)) "\n")
+                   (1 'vc-jj-log-view-bookmark))
+                  (,(rx bol (or "Author" "Committer") (0+ (any space)) ": "
+                        ;; Name
+                        (group (+? anything))
+                        ;; Email (based on `goto-address-mail-regexp')
+                        (group " <"
+                               (+ (or alnum (any "-=._+")))
+                               "@"
+                               (+ (seq (+ (or alnum (any "-_"))) "."))
+                               (+ alnum)
+                               "> ")
+                        ;; Date and time
+                        "(" (group (+ (or digit space (any "-:")))) ")\n")
+                   (1 'change-log-name)
+                   (2 'change-log-email)
+                   (3 'change-log-date)))))
 
   (keymap-set vc-jj-log-view-mode-map "r" #'vc-jj-log-view-edit-change)
   (keymap-set vc-jj-log-view-mode-map "x" #'vc-jj-log-view-abandon-change)

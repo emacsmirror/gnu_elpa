@@ -45,8 +45,7 @@
   :link '(url-link :tag "Denote homepage" "https://protesilaos.com/emacs/denote")
   :link '(url-link :tag "Denote Silo homepage" "https://protesilaos.com/emacs/denote-silo"))
 
-(defcustom denote-silo-directories
-  `(,denote-directory)
+(defcustom denote-silo-directories (list denote-directory)
   "List of file paths pointing to Denote silos.
 Each file path points to a directory, which takes the same value
 as the variable `denote-directory'."

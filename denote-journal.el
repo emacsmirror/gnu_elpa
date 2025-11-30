@@ -445,6 +445,23 @@ file's title.  This has the same meaning as in `denote-link'."
     (pcase-let ((`(,year ,month ,day) numbers))
       (list month day year))))
 
+;; NOTE 2025-11-30: These two are bound by the M-x calendar.  Copying
+;; from the Commentary of calendar.el:
+
+    ;; A note on free variables:
+
+    ;; The calendar passes around a few dynamically bound variables, which
+    ;; unfortunately have rather common names.  They are meant to be
+    ;; available for external functions, so the names can't be changed.
+
+    ;; displayed-month, displayed-year: bound in calendar-generate, the
+    ;;   central month of the 3 month calendar window
+    ;; original-date, number: bound in diary-list-entries, the arguments
+    ;;   with which that function was called.
+    ;; date, entry: bound in diary-list-sexp-entries (qv)
+(defvar displayed-month)
+(defvar displayed-year)
+
 (defun denote-journal-calendar--get-files (calendar-date)
   "Return files around CALENDAR-DATE in variable `denote-journal-directory'."
   (pcase-let* ((denote-directory (denote-journal-directory))

@@ -487,7 +487,7 @@ file's title.  This has the same meaning as in `denote-link'."
      (format "\\(%1$s.*%2$s\\)\\|\\(%2$s.*%1$s\\)" time-regexp keyword-regexp))))
 
 (defun denote-journal-calendar-mark-dates ()
-  "Mark all visible days in the `calendar' for which there is a Denote journal entry."
+  "Mark visible days in the `calendar' that have a Denote journal entry."
   (interactive)
   (when-let* ((date (calendar-cursor-to-date))
               (files (denote-journal-calendar--get-files date))

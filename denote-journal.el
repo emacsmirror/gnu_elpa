@@ -209,12 +209,12 @@ If the path does not exist, then make it first."
 
 (defun denote-journal-file-is-journal-p (file)
   "Return non-nil if FILE is a journal entry."
-  (and (denote-file-is-note-p file)
+  (and (denote-file-has-denoted-filename-p file)
        (string-match-p (denote-journal--keyword-regex) (file-name-nondirectory file))))
 
 (defun denote-journal-filename-is-journal-p (filename)
   "Return non-nil if FILENAME is a valid name for a journal entry."
-  (and (denote-filename-is-note-p filename)
+  (and (denote-file-has-denoted-filename-p filename)
        (string-match-p (denote-journal--keyword-regex) (file-name-nondirectory filename))))
 
 (defun denote-journal-daily--title-format (&optional date)

@@ -177,7 +177,7 @@ If the path does not exist, then make it first."
         (when (not (file-directory-p denote-journal-directory))
           (make-directory directory :parents))
         directory)
-    (denote-directory)))
+    (car (denote-directories))))
 
 (defun denote-journal-keyword ()
   "Return the value of the variable `denote-journal-keyword' as a list."

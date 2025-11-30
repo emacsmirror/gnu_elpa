@@ -610,7 +610,7 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
 ;;;;; Dynamic block to insert entire file contents
 
 (defun denote-org-escape-code-in-region (beg end)
-  "Like `org-escape-code-in-region' to escape only #+ by appending a zero width space to it.
+  "Like `org-escape-code-in-region' for #+ with zero width space prefix.
 Operate on the region between positions BEG and END."
   (save-excursion
     (goto-char end)

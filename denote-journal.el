@@ -440,7 +440,7 @@ file's title.  This has the same meaning as in `denote-link'."
 (defun denote-journal-calendar--file-to-date (file)
   "Convert FILE to calendar date by interpreting its identifier."
   (when-let* ((identifier (denote-retrieve-filename-identifier file))
-              (date (denote--id-to-date identifier))
+              (date (denote-id-to-date identifier))
               (numbers (mapcar #'string-to-number (split-string date "-"))))
     (pcase-let ((`(,year ,month ,day) numbers))
       (list month day year))))

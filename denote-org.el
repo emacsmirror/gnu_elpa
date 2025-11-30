@@ -214,7 +214,7 @@ Also see `denote-org-link-to-heading'."
   (interactive)
   (when-let* ((heading-id (denote-org--get-file-id-and-heading-id-or-context))
               (heading-text (substring-no-properties (denote-link-ol-get-heading))))
-    (denote-link--prepare-backlinks heading-id ".*\\.org" (denote-org--get-backlinks-buffer-name heading-text))))
+    (denote-make-links-buffer heading-id ".*\\.org" (denote-org--get-backlinks-buffer-name heading-text))))
 
 ;;;; Extract subtree into its own note
 

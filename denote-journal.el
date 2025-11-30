@@ -96,7 +96,7 @@ journal entry should be defined as a new parent sequence.  Thus:
 
     (setq denote-journal-signature
           (lambda ()
-            (denote-sequence-get-new 'parent)))"
+            (denote-sequence-get-new (quote parent))))"
   :type '(choice
           (const :tag "No predefined signature" nil)
           (string :tag "The predefined signature to use for new entries")

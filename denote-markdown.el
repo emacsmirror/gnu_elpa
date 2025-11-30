@@ -59,9 +59,9 @@
 TYPE is a symbol among `denote', `file', `obsidian', and `reverse-obsidian'."
   (pcase type
     ('denote "(denote:\\(?1:.*?\\))")
-    ('file (format "(.*?\\(?1:%s\\).*?)" denote-id-regexp))
+    ('file (format "(.*?\\(?1:%s\\).*?)" denote-date-identifier-regexp))
     ('obsidian "\\(?2:\\[.*?\\]\\)(denote:\\(?1:.*?\\))")
-    ('reverse-obsidian (format "\\(?2:\\[.*?\\(?:%s\\).*?\\]\\)(\\(?1:.*?\\(?:%s\\).*?\\))" denote-id-regexp denote-id-regexp))
+    ('reverse-obsidian (format "\\(?2:\\[.*?\\(?:%s\\).*?\\]\\)(\\(?1:.*?\\(?:%s\\).*?\\))" denote-date-identifier-regexp denote-date-identifier-regexp))
     (_ (error "`%s' is an unknown type of link" type))))
 
 ;;;###autoload

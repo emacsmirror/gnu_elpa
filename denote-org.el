@@ -878,6 +878,14 @@ Used by `org-dblock-update' with PARAMS provided by the dynamic block."
 ;;;###autoload (autoload 'org-dblock-write:denote-sequence "denote-org")
 
 (with-eval-after-load 'denote-sequence
+  (declare-function denote-sequence-file-prompt "denote-sequence" (&optional prompt-text files-with-sequences))
+  (declare-function denote-sequence-depth-prompt "denote-sequence" (&optional prompt-text default-value))
+  (declare-function denote-sequence-get-all-files "denote-sequence" (&optional files as-sequence-path-pairs))
+  (declare-function denote-sequence-sort-files "denote-sequence" (files-with-sequence))
+  (declare-function denote-sequence-depth "denote-sequence" (sequence))
+  (declare-function denote-sequence-get-path "denote-sequence" (sequence))
+  (declare-function denote-sequence-get-relative "denote-sequence" (sequence type &optional files))
+
   (defun denote-org-dblock-insert-sequence (file depth)
     "Create Org dynamic block to list all chilren of FILE up to a relative DEPTH.
 DEPTH of the root FILE is 1. Using 2 lists children, 3 grandchildren, and so on."

@@ -145,7 +145,7 @@ Also see `denote-markdown-convert-links-to-denote-type'."
                   (id nil)
                   (description nil))
               (save-match-data
-                (setq file (expand-file-name (match-string-no-properties 1) (denote-directory))
+                (setq file (expand-file-name (match-string-no-properties 1) (car (denote-directories)))
                       id (denote-retrieve-filename-identifier file)
                       description (denote-get-link-description file)))
               (when id

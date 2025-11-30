@@ -171,7 +171,7 @@ If CUSTOM_ID is present but `denote-org-store-link-to-heading' is not
 set to `context', then return a patternf of the following form:
 
     ID::#HEADING-ID"
-  (when-let* ((id (denote-retrieve-filename-identifier-with-error buffer-file-name)))
+  (when-let* ((id (denote-retrieve-filename-identifier buffer-file-name)))
     (let ((context-p (eq denote-org-store-link-to-heading 'context))
           (heading-id (org-entry-get (point) "CUSTOM_ID")))
       (cond

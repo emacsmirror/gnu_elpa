@@ -938,6 +938,12 @@ With optional FILES operate on them, otherwise use the return value of
       (dolist (link (nreverse links))
         (insert link))))
 
+  ;; NOTE 2025-11-30: I am surprised that I need to declare
+  ;; those---they are right above.  But it makes sense given that here
+  ;; we are in a `with-eval-after-load'.  Still strange though.
+  (declare-function denote-org--insert-sequence "denote-org" (files))
+  (declare-function denote-org-sequence--get-files-with-max-depth "denote-org" (max-depth &optional files))
+
   (defun org-dblock-write:denote-sequence (params)
     "Function to update `denote-sequence' Org Dynamic blocks.
 When sequence is an empty string, then use all Denote files with a sequence.

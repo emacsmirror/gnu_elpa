@@ -775,14 +775,14 @@ user first."
            ;; currently on, this means that the bookmark will be moved
            ;; sideways or backwards
            (backwards-move-p
-            (when (not new-bookmark-p)
-              (let* ((bookmark-rev
-                      (car (vc-jj--process-lines "show" bookmark "--no-patch"
-                                                 "-T" "self.change_id() ++ \"\n\"")))
-                     (bookmark-descendants
-                      (vc-jj--process-lines "log" "--no-graph" "-r" (concat bookmark-rev "..")
-                                            "-T" "self.change_id() ++ \"\n\"")))
-                (not (member target-rev bookmark-descendants))))))
+            (unless new-bookmark-p
+              ;; If `vc-jj--process-lines' returns nil, then that
+              ;; means the jj command returned no revisions.  This
+              ;; REVSET is the intersection between BOOKMARK, its
+              ;; descendants, and TARGET-REV.  That intersection is
+              ;; non-empty only when TARGET-REV is BOOKMARK or a
+              ;; descendant or BOOKMARK
+              (not (vc-jj--process-lines "log" "-r" (format "%s & %s::" target-rev bookmark))))))
       (when backwards-move-p
         (unless (yes-or-no-p
                  (format-prompt "Moving bookmark %s to revision %s would move it either backwards or sideways. Is this okay?"

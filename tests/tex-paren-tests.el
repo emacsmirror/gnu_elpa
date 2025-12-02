@@ -26,6 +26,19 @@
 (require 'ert)
 (require 'tex-parens)
 
+(defmacro tex-parens-test-with-buffer (contents &rest body)
+  "Evaluate BODY within a temporary buffer containing CONTENTS.
+The buffer has `tex-parens-mode' enabled so navigation/editing
+commands behave as they would in real TeX buffers."  ; doc
+  (declare (indent 1))
+  `(with-temp-buffer
+     (insert ,contents)
+     (goto-char (point-min))
+     (tex-parens-mode 1)
+     (unwind-protect
+         (progn ,@body)
+       (tex-parens-mode -1))))
+
 (ert-deftest test-tex-parens--reduce-append ()
   "Test the tex-parens--reduce-append function."
 
@@ -79,6 +92,66 @@
   (should (eq (tex-parens--close-of-open "]") nil))
   (should (eq (tex-parens--close-of-open "}") nil))
   (should (eq (tex-parens--close-of-open "random text") nil)))
+
+(ert-deftest test-tex-parens-forward-and-backward-list ()
+  "Forward/backward list navigation respects begin/end pairs."
+  (tex-parens-test-with-buffer "\\begin{proof}\nBody\n\\end{proof}"
+    (let ((body-pos (progn (search-forward "Body") (match-beginning 0))))
+      (goto-char body-pos)
+      (let ((end-pos (progn (tex-parens-forward-list) (point))))
+        (should (> end-pos body-pos))
+        (tex-parens-backward-list)
+        (should (= (point) (point-min)))))))
+
+(ert-deftest test-tex-parens-down-up-list-nested-math ()
+  "Down/up list works with nested math delimiters."
+  (tex-parens-test-with-buffer "\\left( a + \\left[ b \\right] \\right)"
+    (let ((inner-close (save-excursion
+                         (goto-char (point-min))
+                         (search-forward "\\right]")
+                         (point)))
+          (outer-close (save-excursion
+                         (goto-char (point-min))
+                         (search-forward "\\right)")
+                         (point))))
+      (tex-parens-down-list)
+      (should (looking-at " a"))
+      (tex-parens-down-list)
+      (should (looking-at " b"))
+      (tex-parens-up-list)
+      (should (= (point) inner-close))
+      (tex-parens-up-list)
+      (should (= (point) outer-close)))))
+
+(ert-deftest test-tex-parens-forward-backward-sexp-dollar-math ()
+  "forward-/backward-sexp treat inline math as a single expression."
+  (tex-parens-test-with-buffer "$a+b$ text"
+    (tex-parens-forward-sexp)
+    (should (eq (char-before) ?$))
+    (tex-parens-backward-sexp)
+    (should (= (point) (point-min)))))
+
+(ert-deftest test-tex-parens-delete-pair-removes-delimiters ()
+  "delete-pair drops the surrounding Tex delimiters."
+  (tex-parens-test-with-buffer "\\left(a+b\\right)"
+    (tex-parens-delete-pair)
+    (should (equal (buffer-string) "a+b"))))
+
+(ert-deftest test-tex-parens-burp-left-slurps-previous-sexp ()
+  "burp-left pulls the preceding sexp into the delimiter pair."
+  (tex-parens-test-with-buffer "a \\left( b \\right)"
+    (search-forward "\\left")
+    (goto-char (match-beginning 0))
+    (tex-parens-burp-left)
+    (should (equal (buffer-string) "\\left(a  b \\right)"))))
+
+(ert-deftest test-tex-parens-adjust-delimiter-size ()
+  "Adjusting delimiter size rewrites the modifier pair."
+  (tex-parens-test-with-buffer "\\left( x \\right)"
+    (tex-parens-adjust-delimiter-size 'increase)
+    (should (equal (buffer-string) "\\bigl( x \\bigr)"))
+    (tex-parens-adjust-delimiter-size 'decrease)
+    (should (equal (buffer-string) "\\left( x \\right)"))))
 
 (provide 'tex-paren-tests)
 ;;; tex-paren-tests.el ends here

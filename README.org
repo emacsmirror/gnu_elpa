@@ -108,3 +108,7 @@ We provide the commands =tex-parens-increase-delimiter-size= and =tex-parens-dec
   (repeat-mode 1))
 #+end_src
 
+* Testing
+Run the automated ERT suite with =make check=.  The =Makefile= invokes
+Emacs in batch mode (=emacs -Q --batch -L . -l tests/tex-paren-tests.el=)
+so contributors and CI can verify changes consistently.

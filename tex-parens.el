@@ -42,6 +42,7 @@
 
 (eval-when-compile (require 'rx))
 (require 'cl-lib)
+(require 'seq)
 
 (defgroup tex-parens ()
   "Navigation and editing commands for TeX environments and delimiters."

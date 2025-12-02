@@ -41,6 +41,7 @@
 ;;; Code:
 
 (eval-when-compile (require 'rx))
+(require 'cl-lib)
 
 (defgroup tex-parens ()
   "Navigation and editing commands for TeX environments and delimiters."
@@ -161,26 +162,35 @@ delimiters which are visibly `left'/`opening' or `right'/`closing'."
 (defvar tex-parens--saved-beginning-of-defun-function nil)
 (defvar tex-parens--saved-end-of-defun-function nil)
 
+(defconst tex-parens--preview-auto-reveal-functions
+  '(tex-parens-down-list
+    tex-parens-backward-down-list)
+  "Functions tex-parens adds to `preview-auto-reveal-commands'.")
+
+(defconst tex-parens--TeX-fold-auto-reveal-functions
+  '(tex-parens-down-list
+    tex-parens-backward-down-list
+    tex-parens-up-list
+    tex-parens-backward-up-list
+    tex-parens-forward-list
+    tex-parens-backward-list
+    tex-parens-forward-sexp
+    tex-parens-backward-sexp)
+  "Functions tex-parens adds to `TeX-fold-auto-reveal-commands'.")
+
+(defun tex-parens--install-auto-reveal-hooks ()
+  "Register tex-parens navigation commands with auto-reveal hooks."
+  (when (boundp 'preview-auto-reveal-commands)
+    (dolist (func tex-parens--preview-auto-reveal-functions)
+      (cl-pushnew func preview-auto-reveal-commands :test #'eq)))
+  (when (boundp 'TeX-fold-auto-reveal-commands)
+    (dolist (func tex-parens--TeX-fold-auto-reveal-functions)
+      (cl-pushnew func TeX-fold-auto-reveal-commands :test #'eq))))
+
 (defun tex-parens-setup ()
   "Set up tex-parens.  Intended as a hook for `tex-mode' or `TeX-mode'."
 
-  ;; If AUCTeX 14.0.5+ is installed, then we make some of the
-  ;; navigation commands automatically open previews and folds.
-  (when (boundp 'preview-auto-reveal-commands)
-    (dolist (func (list #'tex-parens-down-list
-                        #'tex-parens-backward-down-list))
-      (add-to-list 'preview-auto-reveal-commands func)))
-
-  (when (boundp 'TeX-fold-auto-reveal-commands)
-    (dolist (func (list #'tex-parens-down-list
-                        #'tex-parens-backward-down-list
-                        #'tex-parens-up-list
-                        #'tex-parens-backward-up-list
-                        #'tex-parens-forward-list
-                        #'tex-parens-backward-list
-                        #'tex-parens-forward-sexp
-                        #'tex-parens-backward-sexp))
-      (add-to-list 'TeX-fold-auto-reveal-commands func)))
+  (tex-parens--install-auto-reveal-hooks)
 
   (setq-local tex-parens--saved-beginning-of-defun-function
               beginning-of-defun-function)

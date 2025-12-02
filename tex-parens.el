@@ -968,8 +968,8 @@ and point is before (zot), \\[raise-sexp] will give you
 (defun tex-parens--slurp-left ()
   "Slurp the next sexp into the current one, to the left."
   (tex-parens--ensure-caches)
-  (when-let ((pos (point))
-             (match (when (looking-at tex-parens--regexp+) (match-string 0))))
+  (when-let* ((pos (point))
+              (match (when (looking-at tex-parens--regexp+) (match-string 0))))
     (delete-region (point) (+ (point) (length match)))
     (condition-case nil
         (progn

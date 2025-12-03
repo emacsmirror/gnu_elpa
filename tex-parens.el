@@ -146,21 +146,21 @@ delimiters which are visibly `left'/`opening' or `right'/`closing'."
 ;; This is so for slurp/barf commands, but not for other navigation
 ;; and editing commands, which one might wish to apply directly to the
 ;; brackets surrounding the optional argument.
-(defvar tex-parens--pairs nil)
-(defvar tex-parens--pairs-swap nil)
-(defvar tex-parens--delims nil)
-(defvar tex-parens--regexp nil)
-(defvar tex-parens--regexp+ nil)
-(defvar tex-parens--regexp-open nil)
-(defvar tex-parens--regexp-open+ nil)
-(defvar tex-parens--regexp-close nil)
-(defvar tex-parens--regexp-reverse nil)
-(defvar tex-parens--regexp-reverse+ nil)
-(defvar tex-parens--left-modifier-regexp nil)
-(defvar tex-parens--left-delimiter-regexp nil)
+(defvar-local tex-parens--pairs nil)
+(defvar-local tex-parens--pairs-swap nil)
+(defvar-local tex-parens--delims nil)
+(defvar-local tex-parens--regexp nil)
+(defvar-local tex-parens--regexp+ nil)
+(defvar-local tex-parens--regexp-open nil)
+(defvar-local tex-parens--regexp-open+ nil)
+(defvar-local tex-parens--regexp-close nil)
+(defvar-local tex-parens--regexp-reverse nil)
+(defvar-local tex-parens--regexp-reverse+ nil)
+(defvar-local tex-parens--left-modifier-regexp nil)
+(defvar-local tex-parens--left-delimiter-regexp nil)
 
-(defvar tex-parens--saved-beginning-of-defun-function nil)
-(defvar tex-parens--saved-end-of-defun-function nil)
+(defvar-local tex-parens--saved-beginning-of-defun-function nil)
+(defvar-local tex-parens--saved-end-of-defun-function nil)
 
 (defconst tex-parens--preview-auto-reveal-functions
   '(tex-parens-down-list

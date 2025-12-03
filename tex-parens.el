@@ -187,17 +187,8 @@ delimiters which are visibly `left'/`opening' or `right'/`closing'."
     (dolist (func tex-parens--TeX-fold-auto-reveal-functions)
       (cl-pushnew func TeX-fold-auto-reveal-commands :test #'eq))))
 
-(defun tex-parens-setup ()
-  "Set up tex-parens.  Intended as a hook for `tex-mode' or `TeX-mode'."
-
-  (tex-parens--install-auto-reveal-hooks)
-
-  (setq-local tex-parens--saved-beginning-of-defun-function
-              beginning-of-defun-function)
-  (setq-local beginning-of-defun-function #'tex-parens--beginning-of-defun)
-  (setq-local tex-parens--saved-end-of-defun-function
-              end-of-defun-function)
-  (setq-local end-of-defun-function #'tex-parens--end-of-defun)
+(defun tex-parens--ensure-caches ()
+  "Build tex-parens delimiter and regexp caches for the current buffer."
   (setq tex-parens--pairs (tex-parens--generate-pairs))
   (setq tex-parens--pairs-swap
         (mapcar (lambda (x) (cons (cdr x) (car x))) tex-parens--pairs))
@@ -241,7 +232,20 @@ delimiters which are visibly `left'/`opening' or `right'/`closing'."
   (setq tex-parens--left-modifier-regexp
         (regexp-opt (mapcar #'car tex-parens-left-right-modifier-pairs)))
   (setq tex-parens--left-delimiter-regexp
-        (regexp-opt (mapcar #'car tex-parens-left-right-delimiter-pairs)))
+        (regexp-opt (mapcar #'car tex-parens-left-right-delimiter-pairs))))
+
+(defun tex-parens-setup ()
+  "Set up tex-parens.  Intended as a hook for `tex-mode' or `TeX-mode'."
+
+  (tex-parens--install-auto-reveal-hooks)
+
+  (setq-local tex-parens--saved-beginning-of-defun-function
+              beginning-of-defun-function)
+  (setq-local beginning-of-defun-function #'tex-parens--beginning-of-defun)
+  (setq-local tex-parens--saved-end-of-defun-function
+              end-of-defun-function)
+  (setq-local end-of-defun-function #'tex-parens--end-of-defun)
+  (tex-parens--ensure-caches)
 
   ;; It would be natural to uncomment the following line, but I had
   ;; problems with it at some point, perhaps related to the fact that

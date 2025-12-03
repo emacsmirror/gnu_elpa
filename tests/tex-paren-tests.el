@@ -24,6 +24,7 @@
 ;;; Code:
 
 (require 'ert)
+(require 'tex-mode)
 (require 'tex-parens)
 
 (defmacro tex-parens-test-with-buffer (contents &rest body)
@@ -130,6 +131,41 @@ commands behave as they would in real TeX buffers."  ; doc
     (should (eq (char-before) ?$))
     (tex-parens-backward-sexp)
     (should (= (point) (point-min)))))
+
+(ert-deftest test-tex-parens-begin-optional-argument ()
+  "Optional arguments on begin/end pairs keep navigation intact."
+  (tex-parens-test-with-buffer "\\begin{theorem}[Foo]\nbody\n\\end{theorem}"
+    (let ((body-pos (progn (search-forward "body") (match-beginning 0))))
+      (goto-char body-pos)
+      (let ((end-pos (progn (tex-parens-forward-list) (point))))
+        (should (> end-pos body-pos))))))
+
+(ert-deftest test-tex-parens-left-dot-right-bar ()
+  "`\left.' and `\right|' delimiters are treated as a pair."
+  (tex-parens-test-with-buffer "\\left. f(x) \\right|_{0}^{1}"
+    (let ((closing-end (save-excursion
+                         (search-forward "\\right|")
+                         (point))))
+      (tex-parens-forward-sexp)
+      (should (= (point) closing-end)))))
+
+(ert-deftest test-tex-parens-left-dot-right-dot ()
+  "Invisible \left./\right. delimiters still form a balanced pair."
+  (tex-parens-test-with-buffer "\\left. g(x) \\right."
+    (let ((end-pos (save-excursion
+                     (search-forward "\\right.")
+                     (point))))
+      (tex-parens-forward-sexp)
+      (should (= (point) end-pos)))))
+
+(ert-deftest test-tex-parens-ignores-commented-delimiters ()
+  "Delimiters in comments are skipped when searching forward."
+  (tex-parens-test-with-buffer "% \\left(ignored\\right)\n\\left(actual\\right)"
+    (tex-mode)
+    (tex-parens-mode 1)
+    (goto-char (point-min))
+    (should (equal (tex-parens--forward-delim) "\\left("))
+    (should (> (line-number-at-pos) 1))))
 
 (ert-deftest test-tex-parens-delete-pair-removes-delimiters ()
   "delete-pair drops the surrounding Tex delimiters."

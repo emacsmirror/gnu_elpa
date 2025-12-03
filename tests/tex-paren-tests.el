@@ -104,6 +104,31 @@ commands behave as they would in real TeX buffers."  ; doc
         (tex-parens-backward-list)
         (should (= (point) (point-min)))))))
 
+(ert-deftest test-tex-parens-forward-list-equation-env ()
+  "Regression test: `tex-parens-forward-list' handles equation envs."
+  (tex-parens-test-with-buffer "\\begin{equation}\na=b\n\\end{equation}"
+    (let ((body-pos (progn (search-forward "a=b") (match-beginning 0)))
+          (env-start (point-min))
+          (env-end (save-excursion
+                     (search-forward "\\end{equation}")
+                     (point))))
+      (goto-char body-pos)
+      (tex-parens-forward-list)
+      (should (= (point) env-end))
+      (tex-parens-backward-list)
+      (should (= (point) env-start)))))
+
+(ert-deftest test-tex-parens-forward-list-equation-star-env ()
+  "Regression test: equation* blocks stay balanced for forward-list."
+  (tex-parens-test-with-buffer "\\begin{equation*}\nE=mc^2\n\\end{equation*}"
+    (let ((body-pos (progn (search-forward "E=mc^2") (match-beginning 0)))
+          (env-end (save-excursion
+                     (search-forward "\\end{equation*}")
+                     (point))))
+      (goto-char body-pos)
+      (tex-parens-forward-list)
+      (should (= (point) env-end)))))
+
 (ert-deftest test-tex-parens-down-up-list-nested-math ()
   "Down/up list works with nested math delimiters."
   (tex-parens-test-with-buffer "\\left( a + \\left[ b \\right] \\right)"

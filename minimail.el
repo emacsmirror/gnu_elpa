@@ -1187,25 +1187,23 @@ messages with UID smaller than BEFORE."
 
 ;;; Commands
 
-(defun -mailbox-buffer (&optional noerror)
-  "Return the relevant mailbox buffer for the current context.
-If not found and NOERROR is nil, signal an error."
-  (let ((buffer (if (derived-mode-p 'minimail-mailbox-mode)
-                    (current-buffer)
-                  (alist-get 'mailbox-buffer -local-state))))
-    (prog1 buffer
-      (unless (or noerror (buffer-live-p buffer))
-        (user-error "No mailbox buffer")))))
-
-(defun -message-buffer (&optional noerror)
-  "Return the relevant message buffer for the current context.
-If not found and NOERROR is nil, signal an error."
-  (let ((buffer (if (derived-mode-p 'minimail-message-mode)
-                    (current-buffer)
-                  (alist-get 'message-buffer -local-state))))
-    (prog1 buffer
-      (unless (or noerror (buffer-live-p buffer))
-        (user-error "No message buffer")))))
+(defun -find-buffer (type &optional noerror)
+  "Return a TYPE buffer with same account and mailbox as the current ones.
+TYPE can be `mailbox' or `message'.
+If there is no such buffer and NOERROR is nil, signal an error."
+  (let ((account -current-account)
+        (mailbox -current-mailbox)
+        (mode (pcase-exhaustive type
+                ('mailbox 'minimail-mailbox-mode)
+                ('message 'minimail-message-mode))))
+    (or (save-current-buffer
+          (seq-find (lambda (buffer)
+                      (set-buffer buffer)
+                      (and (eq account -current-account)
+                           (equal mailbox -current-mailbox)
+                           (derived-mode-p mode)))
+                    (buffer-list)))
+        (unless noerror (user-error "No %s buffer" type)))))
 
 (defun -mailbox-annotation (mailbox)
   "Return an annotation for MAILBOX.
@@ -1324,21 +1322,15 @@ Return a cons cell consisting of the account symbol and mailbox name."
                               (-mailbox-display-name account destination))))
        (_ <- (-amove-messages account mailbox destination uids)))
     (progress-reporter-done prog)
-    (when-let*
-        ((mbxbuf (seq-some (lambda (buf)
-                             (with-current-buffer buf
-                               (and (derived-mode-p 'minimail-mailbox-mode)
-                                    (eq account -current-account)
-                                    (equal mailbox -current-mailbox)
-                                    buf)))
-                           (buffer-list))))
+    (when-let* ((-current-account account)
+                (-current-mailbox mailbox)
+                (mbxbuf (-find-buffer 'mailbox t)))
       (with-current-buffer mbxbuf
         (let* ((table (vtable-current-table))
-               (current (when-let* ((msgbuf (alist-get 'message-buffer -local-state))
-                                    (_ (buffer-live-p msgbuf)))
+               (messages (vtable-objects table))
+               (current (when-let* ((msgbuf (-find-buffer 'message t)))
                           (with-current-buffer msgbuf
-                            (alist-get 'uid -local-state))))
-               (messages (vtable-objects table)))
+                            (alist-get 'uid -local-state)))))
           (dolist (msg messages)
             (when (memq (alist-get 'uid msg) uids)
               (vtable-remove-object table msg)))
@@ -1754,24 +1746,14 @@ Cf. RFC 5256, §2.1."
 
 (defun minimail-show-message ()
   (interactive nil minimail-mailbox-mode)
-  (let* ((account -current-account)
-         (mailbox -current-mailbox)
-         (message (vtable-current-object))
-         (mbxbuf (current-buffer))
-         (msgbuf (if-let* ((buffer (alist-get 'message-buffer -local-state))
-                           (_ (buffer-live-p buffer)))
-                     buffer
-                   (setf (alist-get 'message-buffer -local-state)
-                         (generate-new-buffer
-                          (-message-buffer-name account mailbox ""))))))
+  (let* ((message (or (vtable-current-object)
+                      (user-error "No message under point"))))
     (let-alist message
       (unless (member "\\Seen" .flags)
         (push "\\Seen" (cdr (assq 'flags message)))
         (vtable-update-object (vtable-current-table) message))
       (setq-local overlay-arrow-position (copy-marker (pos-bol)))
-      (with-current-buffer msgbuf
-        (-display-message account mailbox .uid)
-        (setf (alist-get 'mailbox-buffer -local-state) mbxbuf)))))
+      (athunk-run (-adisplay-message -current-account -current-mailbox .uid)))))
 
 (defun minimail-show-message-raw ()
   (interactive nil minimail-mailbox-mode)
@@ -1780,7 +1762,7 @@ Cf. RFC 5256, §2.1."
 
 (defun minimail-next-message (count)
   (interactive "p" minimail-mailbox-mode minimail-message-mode)
-  (with-current-buffer (-mailbox-buffer)
+  (with-current-buffer (-find-buffer 'mailbox)
     (if (not overlay-arrow-position)
         (goto-char (point-min))
       (goto-char overlay-arrow-position)
@@ -1796,7 +1778,7 @@ Cf. RFC 5256, §2.1."
 (defun -quit-message-window (&optional kill)
   "If there is a window showing a message from this mailbox, quit it.
 If KILL is non-nil, kill the message buffer instead of burying it."
-  (when-let* ((msgbuf (alist-get 'message-buffer -local-state))
+  (when-let* ((msgbuf (-find-buffer 'message t))
               (window (get-buffer-window msgbuf)))
     (quit-restore-window window (if kill 'kill 'bury))))
 
@@ -1983,58 +1965,64 @@ window shorter than 6 lines."
     (direction . below)
     (window-height . -message-window-adjust-height)))
 
-(defun -display-message (account mailbox uid)
+(defun -adisplay-message (account mailbox uid)
+  "Display the message identified by ACCOUNT, MAILBOX and UID.
+Return an athunk which yields the buffer displaying the message.
+If the operation of displaying the message is canceled, say because
+the user selected another message in the meanwhile, yield nil."
   (let ((render -message-rendering-function)
-        (buffer (current-buffer)))
-    (unless (derived-mode-p #'minimail-message-mode)
-      (minimail-message-mode))
-    (-set-mode-line-suffix 'loading)
-    (setf (alist-get 'next-message -local-state)
-          (list account mailbox uid))
-    (athunk-run
-     (athunk-let*
-         ((text <- (athunk-condition-case err
-                       (-afetch-message-body account mailbox uid)
-                     (t (with-current-buffer buffer
-                          (-set-mode-line-suffix err))
-                        (signal (car err) (cdr err))))))
-       (when (buffer-live-p buffer)
-         (with-current-buffer buffer
-           (when (equal (alist-get 'next-message -local-state)
-                        (list account mailbox uid))
-             (let ((inhibit-read-only t))
-               (-set-mode-line-suffix nil)
-               (funcall -message-erase-function)
-               (setq -current-account account)
-               (setq -current-mailbox mailbox)
-               (setf (alist-get 'uid -local-state) uid)
-               (rename-buffer (-message-buffer-name account mailbox uid) t)
-               (decode-coding-string text 'raw-text-dos nil buffer)
-               ;(setq last-coding-system-used nil)
-               (save-restriction
-                 (message-narrow-to-headers-or-head)
-                 (setf (alist-get 'references -local-state)
-                       (message-fetch-field "references"))
-                 (setf (alist-get 'message-id -local-state)
-                       (message-fetch-field "message-id" t)))
-               (funcall render)
-               (set-buffer-modified-p nil)
-               (when-let* ((w (get-buffer-window (current-buffer))))
-                 (set-window-point w (point-min)))))))))
-    (display-buffer buffer -display-message-base-action)))
+        (buffer (or (-find-buffer 'message t)
+                    (generate-new-buffer
+                     (-message-buffer-name account mailbox "")))))
+    (with-current-buffer buffer
+      (unless (derived-mode-p #'minimail-message-mode)
+        (minimail-message-mode))
+      (-set-mode-line-suffix 'loading)
+      (setf (alist-get 'next-message -local-state)
+            (list account mailbox uid)))
+    (display-buffer buffer -display-message-base-action)
+    (athunk-let*
+        ((text <- (athunk-condition-case err
+                      (-afetch-message-body account mailbox uid)
+                    (t (with-current-buffer buffer
+                         (-set-mode-line-suffix err))
+                       (signal (car err) (cdr err))))))
+      (when (buffer-live-p buffer)
+        (with-current-buffer buffer
+          (when (equal (alist-get 'next-message -local-state)
+                       (list account mailbox uid))
+            (let ((inhibit-read-only t))
+              (-set-mode-line-suffix nil)
+              (funcall -message-erase-function)
+              (setq -current-account account)
+              (setq -current-mailbox mailbox)
+              (setf (alist-get 'uid -local-state) uid)
+              (rename-buffer (-message-buffer-name account mailbox uid) t)
+              (decode-coding-string text 'raw-text-dos nil buffer)
+              (save-restriction
+                (message-narrow-to-headers-or-head)
+                (setf (alist-get 'references -local-state)
+                      (message-fetch-field "references"))
+                (setf (alist-get 'message-id -local-state)
+                      (message-fetch-field "message-id" t)))
+              (funcall render)
+              (set-buffer-modified-p nil)
+              (when-let* ((window (get-buffer-window (current-buffer))))
+                (set-window-point window (point-min)))
+              buffer)))))))
 
 (defun minimail-message-scroll-up (arg &optional reverse)
   (interactive "^P" minimail-message-mode minimail-mailbox-mode)
-  (with-current-buffer (-message-buffer)
+  (with-current-buffer (-find-buffer 'message)
     (condition-case nil
         (if-let* ((window (get-buffer-window)))
             (with-selected-window window
               (funcall (if reverse #'scroll-down-command #'scroll-up-command)
                        arg))
           (display-buffer (current-buffer) -display-message-base-action))
-      (beginning-of-buffer (with-current-buffer (-mailbox-buffer)
+      (beginning-of-buffer (with-current-buffer (-find-buffer 'mailbox)
                              (minimail-next-message -1)))
-      (end-of-buffer (with-current-buffer (-mailbox-buffer)
+      (end-of-buffer (with-current-buffer (-find-buffer 'mailbox)
                        (minimail-next-message 1))))))
 
 (defun minimail-message-scroll-down (arg)
@@ -2045,33 +2033,39 @@ window shorter than 6 lines."
   (interactive (list (xor current-prefix-arg minimail-reply-cite-original))
                minimail-message-mode
                minimail-mailbox-mode)
-  (with-current-buffer (-message-buffer) ;FIXME: in mailbox mode, should
-                                         ;reply to message at point, not
-                                         ;the currently displayed one
-    (when-let* ((window (get-buffer-window)))
-      (select-window window))
-    (let ((message-mail-user-agent 'minimail)
-          (message-reply-buffer (current-buffer))
-          (account -current-account)
-          (mailbox -current-mailbox)
-          (uid (alist-get 'uid -local-state))
-          (msgid (alist-get 'message-id -local-state))
-          (refs (alist-get 'references -local-state)))
-      (message-reply to-address wide)
-      (when msgid
-        (save-excursion
-          (goto-char (point-min))
-          (insert "In-Reply-To: " msgid ?\n)
-          (insert "References: ")
-          (when refs (insert refs ?\s))
-          (insert msgid ?\n)
-          (narrow-to-region (point) (point-max))))
-      (push (lambda ()
-              (athunk-run
-               (-astore-message-flags account mailbox uid '\\Answered)))
-            ;;FIXME: Use this or rather `message-sent-hook'?
-            message-send-actions)
-      (when cite (message-yank-original)))))
+  (athunk-run
+   (athunk-let*
+       ((buffer <- (if (derived-mode-p 'minimail-message-mode)
+                       (athunk-wrap (current-buffer))
+                     (let-alist (vtable-current-object)
+                       (-adisplay-message -current-account
+                                          -current-mailbox
+                                          .uid)))))
+     (with-current-buffer (or buffer (user-error "No message buffer"))
+       (when-let* ((window (get-buffer-window)))
+         (select-window window))
+       (let ((message-mail-user-agent 'minimail)
+             (message-reply-buffer (current-buffer))
+             (account -current-account)
+             (mailbox -current-mailbox)
+             (uid (alist-get 'uid -local-state))
+             (msgid (alist-get 'message-id -local-state))
+             (refs (alist-get 'references -local-state)))
+         (message-reply to-address wide)
+         (when msgid
+           (save-excursion
+             (goto-char (point-min))
+             (insert "In-Reply-To: " msgid ?\n)
+             (insert "References: ")
+             (when refs (insert refs ?\s))
+             (insert msgid ?\n)
+             (narrow-to-region (point) (point-max))))
+         (push (lambda ()
+                 (athunk-run
+                  (-astore-message-flags account mailbox uid '\\Answered)))
+               ;;FIXME: Use this or rather `message-sent-hook'?
+               message-send-actions)
+         (when cite (message-yank-original)))))))
 
 (defun minimail-reply-all (cite &optional to-address)
   (interactive (list (xor current-prefix-arg minimail-reply-cite-original))
@@ -2081,18 +2075,26 @@ window shorter than 6 lines."
 
 (defun minimail-forward ()
   (interactive nil minimail-message-mode minimail-mailbox-mode)
-  (with-current-buffer (-message-buffer)
-    (when-let* ((window (get-buffer-window)))
-      (select-window window))
-    (let ((message-mail-user-agent 'minimail)
-          (account -current-account)
-          (mailbox -current-mailbox)
-          (uid (alist-get 'uid -local-state)))
-      (message-forward)
-      (push (lambda ()
-              (athunk-run
-               (-astore-message-flags account mailbox uid '$Forwarded)))
-            message-send-actions))))
+  (athunk-run
+   (athunk-let*
+       ((buffer <- (if (derived-mode-p 'minimail-message-mode)
+                       (athunk-wrap (current-buffer))
+                     (let-alist (vtable-current-object)
+                       (-adisplay-message -current-account
+                                          -current-mailbox
+                                          .uid)))))
+     (with-current-buffer (or buffer (user-error "No message buffer"))
+       (when-let* ((window (get-buffer-window)))
+         (select-window window))
+       (let ((message-mail-user-agent 'minimail)
+             (account -current-account)
+             (mailbox -current-mailbox)
+             (uid (alist-get 'uid -local-state)))
+         (message-forward)
+         (push (lambda ()
+                 (athunk-run
+                  (-astore-message-flags account mailbox uid '$Forwarded)))
+               message-send-actions))))))
 
 ;;;; Gnus graft
 ;; Cf. `mu4e--view-render-buffer' from mu4e-view.el

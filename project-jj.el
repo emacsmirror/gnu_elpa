@@ -36,18 +36,10 @@
   ;; Therefore, we wrap the primary method with an :around method and
   ;; selectively override its behavior when the VC backend is JJ.
   (if (eq (cadr project) 'JJ)
-      ;; There is a bit of filename frobbing going on in this method.
-      ;; The reason is that while jj reads and writes relative
-      ;; filenames, we get passed absolute filenames in DIRS and must
-      ;; return absolute (tilde-expanded) filenames.
       (let* ((default-directory (expand-file-name (project-root project)))
              (args (cons "--" (mapcar #'file-relative-name dirs)))
-             (absolutify (or (not project-files-relative-names)
-                             (> (length dirs) 1)))
              (files (apply #'process-lines "jj" "file" "list" args)))
-        (if absolutify
-            (mapcar #'expand-file-name files)
-          files))
+        (mapcar #'expand-file-name files))
     (cl-call-next-method)))
 
 ;;;###autoload

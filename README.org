@@ -13,6 +13,33 @@ This package is distributed via GNU Elpa
 (https://elpa.gnu.org/packages/vc-jj.html) and can be installed via
 ~M-x package-install~.
 
+** Usage
+
+Vc-jj supports Emacs 28 and later. Most but not all of the VC and
+VC-related commands (vc.el, log-edit, log-view, and project.el) are
+currently supported.  Supported commands include:
++ ~project-vc-dir~
++ ~vc-print-root-log~
++ ~vc-print-log~
++ ~vc-next-action~
++ ~vc-diff~
++ ~vc-root-diff~
++ ~vc-rename-file~
++ ~vc-delete-file~
++ ~vc-revision-other-window~
++ ~vc-clone~
++ ~vc-annotate~
++ ~log-view-modify-change-comment~
+
+Additionally, vc-jj aims to provide jujutsu-specific conveniences and
+commands.  For example, in Log View buffers, there are commands to
+help users manipulate revision logs in a jujutsu-friendly way,
+directly within Log View buffers: ~vc-jj-log-view-bookmark-set~,
+~vc-jj-log-view-abandon-change~, ~vc-jj-log-view-edit-change~ and more.
+  
+To see all available commands call =C-h a vc-jj RET=.  To see all
+available customization options, call =M-x customize-group vc-jj RET=.
+
 ** Jujutsu configuration
 
 Emacs has built-in support for git-style diff and conflict markers, so
@@ -22,17 +49,25 @@ configuration, for example via ~jj config edit --user~ or ~jj config edit
 
 #+begin_src toml
 [ui]
-ui.diff-formatter = ":git"
+diff-formatter = ":git"
 conflict-marker-style = "git"
 #+end_src
 
+Jujutsu offers many configuration options.  Vc-jj has not thoroughly
+tested its compatibility with these options, but it is expected that
+vc-jj work well even if the user configures many of them.
+
 ** Contributing
 
-We welcome bug reports and pull requests!  Since =vc-jj.el= is
-distributed via GNU elpa, non-trivial code contributions need to have
-the standard FSF copyright assignment in place; feel free to contact
-us for details.  Note that "trivial" (below 15 lines or obvious) code
-suggestions in bug reports are fine.
+We welcome bug reports and pull requests!  =vc-jj.el= tries its best to
+support Emacs 28.1 and above, but users may notice bugs related to
+Emacs version incompatibilities.  In such cases, please consider
+submitting a bug report---we will try our best to address it.
+
+Since =vc-jj.el= is distributed via GNU elpa, non-trivial code
+contributions need to have the standard FSF copyright assignment in
+place; feel free to contact us for details.  Note that "trivial"
+(below 15 lines or obvious) code suggestions in bug reports are fine.
 
 ** Development
 

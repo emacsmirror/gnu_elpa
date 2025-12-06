@@ -242,7 +242,8 @@ When FILENAME is not inside a JJ repository, throw an error."
       (setq-local compilation-arguments
                   (list compile-command nil
                         (lambda (_name-of-mode) buffer)
-                        nil))))
+                        nil))
+      (ansi-color-filter-region (point-min) (point-max))))
   (vc-set-async-update buffer))
 
 (defun vc-jj--process-lines (&rest args)
@@ -250,12 +251,13 @@ When FILENAME is not inside a JJ repository, throw an error."
 In contrast to `process-lines', discard output to stderr since jj prints
 warnings to stderr even when run with '--quiet'."
   (with-temp-buffer
-    (let ((status (apply #'call-process vc-jj-program nil
+    (let ((status (apply #'process-file vc-jj-program nil
                          ;; (current-buffer)
                          (list (current-buffer) nil)
                          nil args)))
       (unless (eq status 0)
-        (error "'jj' exited with status %s" status))
+	(error "'jj' exited with status %s" status))
+      (ansi-color-filter-region (point-min) (point-max))
       (goto-char (point-min))
       (let (lines)
         (while (not (eobp))
@@ -277,11 +279,12 @@ the output can be safely parsed.  Does not support many of the features
 of `vc-jj--command-dispatched', such as async execution and checking of
 process status."
   (with-temp-buffer
-    (let ((status (apply #'call-process vc-jj-program nil
+    (let ((status (apply #'process-file vc-jj-program nil
                          (list (current-buffer) nil)
                          nil args)))
       (unless (eq status 0)
-        (error "'jj' exited with status %s" status))
+	(error "'jj' exited with status %s" status))
+      (ansi-color-filter-region (point-min) (point-max))
       (buffer-substring-no-properties (point-min) (point-max)))))
 
 (defun vc-jj--command-dispatched (buffer okstatus file-or-list &rest flags)
@@ -410,11 +413,12 @@ For a description of the states relevant to jj, see `vc-jj-state'."
     (let* ((dir (expand-file-name dir))
            (default-directory dir)
            (project-root (vc-jj-root dir))
-           (registered-files (vc-jj--process-lines "file" "list" "--" dir))
+           (fileset (vc-jj--filename-to-fileset dir))
+           (registered-files (vc-jj--process-lines "file" "list" "--" fileset))
            (ignored-files (seq-difference (cl-delete-if #'file-directory-p
                                                         (directory-files dir nil nil t))
                                           registered-files))
-           (changed (vc-jj--process-lines "diff" "--summary" "--" dir))
+           (changed (vc-jj--process-lines "diff" "--summary" "--" fileset))
            (added-files (mapcan (lambda (entry)
                                   (and (string-prefix-p "A " entry)
                                        (list (substring entry 2))))
@@ -433,7 +437,8 @@ For a description of the states relevant to jj, see `vc-jj-state'."
            (conflicted-files (mapcar (lambda (entry)
                                        (file-relative-name (expand-file-name entry project-root) dir))
                                      (vc-jj--process-lines "file" "list"
-                                                           "-T" "if(conflict, path ++ \"\\n\")" "--" dir)))
+                                                           "-T" "if(conflict, path ++ \"\\n\")"
+                                                           "--" fileset)))
            (up-to-date-files (cl-remove-if (lambda (entry) (or (member entry conflicted-files)
                                                               (member entry edited-files)
                                                               (member entry added-files)
@@ -582,8 +587,8 @@ parents.map(|c| concat(
 (defun vc-jj-create-repo ()
   "Create an empty jj repository in the current directory."
   (if current-prefix-arg
-      (call-process vc-jj-program nil nil nil "git" "init" "--colocate")
-    (call-process vc-jj-program nil nil nil "git" "init")))
+      (process-file vc-jj-program nil nil nil "git" "init" "--colocate")
+    (process-file vc-jj-program nil nil nil "git" "init")))
 
 ;;;; register
 
@@ -1064,12 +1069,9 @@ unsupported."
                       (vc-switches 'jj 'diff)
                       (list "--") files)))
     (with-current-buffer buffer
-      (erase-buffer))
-    (apply #'call-process vc-jj-program nil buffer nil "diff" args)
-    (if (seq-some (lambda (line) (string-prefix-p "M " line))
-                  (apply #'vc-jj--process-lines "diff" "--summary" "--" files))
-        1
-      0)))
+      (prog1
+          (apply #'vc-jj--command-dispatched buffer 0 nil "diff" args)
+        (ansi-color-filter-region (point-min) (point-max))))))
 
 ;;;; revision-completion-table
 

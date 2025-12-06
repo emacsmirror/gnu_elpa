@@ -36,10 +36,12 @@
   ;; Therefore, we wrap the primary method with an :around method and
   ;; selectively override its behavior when the VC backend is JJ.
   (if (eq (cadr project) 'JJ)
-      (let* ((default-directory (expand-file-name (project-root project)))
-             (args (cons "--" (mapcar #'file-relative-name dirs)))
-             (files (apply #'process-lines "jj" "file" "list" args)))
-        (mapcar #'expand-file-name files))
+      (progn
+        (require 'vc-jj)
+        (let* ((default-directory (expand-file-name (project-root project)))
+               (files (vc-jj--process-lines (mapcar #'file-relative-name dirs)
+                                            "file" "list")))
+          (mapcar #'expand-file-name files)))
     (cl-call-next-method)))
 
 ;;;###autoload

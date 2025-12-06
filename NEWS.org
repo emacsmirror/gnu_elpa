@@ -26,6 +26,7 @@
   - Fontify bookmark names (~vc-jj-log-view-bookmark~)
 - New user option: ~vc-jj-root-log-format~. ~vc-jj-root-log-format~ controls the format and fontification of the Log View buffer created from ~vc-print-root-log~.
 - Added functionality for ~vc-print-log~ (the "long" revision log format).
+- Support editing project files on a remote host using Tramp.
 
 *** Changed
 

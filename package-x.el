@@ -318,22 +318,39 @@ This should be invoked from the gnus *Summary* buffer."
   (with-current-buffer gnus-article-buffer
     (package-upload-buffer)))
 
-(defun package-install-temporarily (pkg)
+(defun package-install-temporarily (pkg &optional archive)
   "Install and enable a package PKG non-persistently.
 The package will not be loaded in future sessions, but will appear to be
-so for the remaining one."
+so for the remaining one.  The optional argument ARCHIVE may specify a
+key from `package-archives' to indicate what package archive to download
+the package from.  When invoked interactively, you can use a prefix
+argument to specify ARCHIVE."
   (interactive
-   (list (intern (completing-read
-                  "Install package: "
-                  (progn
-                    ;; Initialize the package system to get the list
-                    ;; of package symbols for completion.
-                    (package--archives-initialize)
-                    package-archive-contents)
-                  nil t))))
+   (let* ((pkg (intern (completing-read
+                        "Install package: "
+                        (progn
+                          ;; Initialize the package system to get the list
+                          ;; of package symbols for completion.
+                          (package--archives-initialize)
+                          package-archive-contents)
+                        nil t)))
+          (pkgs (cdr (assq pkg package-archive-contents)))
+          (archive
+           (and current-prefix-arg
+                (completing-read
+                 "Archive: " (mapcar #'package-desc-archive pkgs) nil t))))
+     (list pkg archive)))
   (let ((package-user-dir (make-temp-file "elpa" t))
         (package-alist (copy-tree package-alist t)))
-    (package-install pkg t)))
+    (package-install
+     (if archive
+         (catch 'found
+           (dolist (desc (cdr (assq pkg package-archive-contents)))
+             (when (equal (package-desc-archive desc) archive)
+               (throw 'found desc)))
+           (error "No package %S in archive %S" pkg archive))
+       pkg)
+     t)))
 
 (provide 'package-x)
 

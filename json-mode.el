@@ -4,7 +4,7 @@
 
 ;; Author: Simen Heggestøyl <simenheg@gmail.com>
 ;; Maintainer: Simen Heggestøyl <simenheg@gmail.com>
-;; Version: 0.3
+;; Version: 0.3.1
 ;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: data
 
@@ -188,7 +188,7 @@ integers."
   (add-hook 'which-func-functions #'json--which-func nil t)
   (setq-local comment-start "// ")
   (setq-local comment-end "")
-  ;; (setq-local editorconfig-indent-size-vars '(json-mode-indent-level))
+  (setq-local editorconfig-indent-size-vars '(json-mode-indent-level))
   (smie-setup json-mode--smie-grammar #'json-mode--smie-rules))
 
 (defun json--jit-wrap (beg end)

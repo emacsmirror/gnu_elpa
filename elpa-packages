@@ -840,6 +840,7 @@
   :branch "externals/tramp"
   :make ("autoloads" "info")
   :doc "texi/tramp.texi")
+ (tramp-hlo             :url "https://github.com/jsadusk/tramp-hlo")
  (tramp-nspawn		:url "https://github.com/bjc/tramp-nspawn"
   :ignored-files ("COPYING"))
  (tramp-theme		:url nil)

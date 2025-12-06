@@ -332,7 +332,7 @@ so for the remaining one."
                     package-archive-contents)
                   nil t))))
   (let ((package-user-dir (make-temp-file "elpa" t))
-        (package-alist (copy-list package-alist)))
+        (package-alist (copy-tree package-alist t)))
     (package-install pkg t)))
 
 (provide 'package-x)

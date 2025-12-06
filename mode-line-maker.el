@@ -254,7 +254,7 @@ for the prefix and the suffix."
 It takes care of truncating the left part, the right part or both
 depending on the 'mode-line-maker-truncation-rule'.  ALIGNMENT can be
 specified to replace the default 'mode-line-maker-alignment'.  PIXELWISE
-specified whether pixel perfect alignment shoudl be computed (slower)."
+specified whether pixel perfect alignment should be computed (slower)."
 
   (let* ((right (format-mode-line right))
          (right-width (string-width right))

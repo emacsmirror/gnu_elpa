@@ -247,15 +247,30 @@ When FILENAME is not inside a JJ repository, throw an error."
       (ansi-color-filter-region (point-min) (point-max))))
   (vc-set-async-update buffer))
 
-(defun vc-jj--process-lines (&rest args)
-  "Run jj with ARGS, returning its output to stdout as a list of strings.
-In contrast to `process-lines', discard output to stderr since jj prints
-warnings to stderr even when run with '--quiet'."
+(defun vc-jj--process-lines (file-or-list &rest args)
+  "Run jj with FILE-OR-LIST and ARGS, returning stdout as a list of strings.
+Return the process\\='s stdout as a list of strings, one string for
+every line in stdout, with ANSI escape sequences removed from each
+string.  An error is signaled if jj exits with a non-zero status.
+
+All stderr is discarded (since jj prints warnings to stderr even when
+run with '--quiet').  As a result, the returned strings are safe for
+parsing.
+
+Unlike `vc-jj--command-dispatched', this function is synchronous and
+does not report on the status of the process.
+
+FILE-OR-LIST may be a string, a list of strings, or nil.  When non-nil,
+the file names are appended to ARGS as a jj fileset and passed to jj.
+If the caller would like to pass a file or list of files as paths not
+converted to a jj fileset, they must be passed in ARGS.
+
+See also `vc-jj--command-parseable' and `vc-jj--command-dispatched.'"
   (with-temp-buffer
-    (let ((status (apply #'process-file vc-jj-program nil
-                         ;; (current-buffer)
-                         (list (current-buffer) nil)
-                         nil args)))
+    (let* ((fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
+           (status (apply #'process-file vc-jj-program nil
+                          (list (current-buffer) nil) nil
+                          (append args (when fileset (cons "--" fileset))))))
       (unless (eq status 0)
 	(error "'jj' exited with status %s" status))
       (ansi-color-filter-region (point-min) (point-max))
@@ -269,41 +284,62 @@ warnings to stderr even when run with '--quiet'."
           (forward-line 1))
         (nreverse lines)))))
 
-(defun vc-jj--command-parseable (&rest args)
-  "Run jj with ARGS, returning its output as string.
+(defun vc-jj--command-parseable (file-or-list &rest args)
+  "Call jj with FILE-OR-LIST and ARGS, returning stdout as a string.
+Return is the process\\='s stdout with ANSI escape sequences removed.
+An error is signaled if jj exits with a non-zero status.
 
-Note: any filenames in ARGS should be converted via
-`vc-jj--filename-to-fileset'.
+All stderr is discarded (since jj prints warnings to stderr even when
+run with '--quiet').  As a result, the returned string is safe for
+parsing.
 
-In contrast to `vc-jj--command-dispatched', discard output to stderr so
-the output can be safely parsed.  Does not support many of the features
-of `vc-jj--command-dispatched', such as async execution and checking of
-process status."
+Unlike `vc-jj--command-dispatched', this function is synchronous and
+does not report on the status of the process.
+
+FILE-OR-LIST may be a string, a list of strings, or nil.  When non-nil,
+the file names are appended to ARGS as a jj fileset and passed to jj.
+If the caller would like to pass a file or list of files as paths not
+converted to a jj fileset, they must be passed in ARGS.
+
+See also `vc-jj--process-lines'."
   (with-temp-buffer
-    (let ((status (apply #'process-file vc-jj-program nil
-                         (list (current-buffer) nil)
-                         nil args)))
+    (let* ((fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
+           (status (apply #'process-file vc-jj-program nil
+                          (list (current-buffer) nil) nil
+                          (append args (when fileset (cons "--" fileset))))))
       (unless (eq status 0)
 	(error "'jj' exited with status %s" status))
       (ansi-color-filter-region (point-min) (point-max))
       (buffer-substring-no-properties (point-min) (point-max)))))
 
-(defun vc-jj--command-dispatched (buffer okstatus file-or-list &rest flags)
-  "Execute `vc-jj-program', notifying the user and checking for errors.
-See `vc-do-command' for documentation of the BUFFER, OKSTATUS,
-FILE-OR-LIST and FLAGS arguments.
+(defun vc-jj--command-dispatched (buffer okstatus file-or-list &rest args)
+  "Run `vc-jj-program' with ARGS.
+The meaning of BUFFER, OKSTATUS, and ARGS is the same as in
+`vc-do-command'; see its documentation for details.  All stderr output
+from the process is discarded so that the returned string is safe for
+parsing.
 
-Note: if we need to parse jj's output `vc-jj--command-parseable' should
-be used instead of this function, since jj might print warnings to
-stderr and1 `vc-do-command' cannot separate output to stdout and stderr."
-  (let* ((filesets (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
+If it is necessary to analyze or interpret jj\\='s output
+programmatically, use `vc-jj--command-parseable' or
+`vc-jj--process-lines' instead.  Those functions are separate from this
+one because jj may write warnings to stderr, and `vc-do-command' (which
+the this function uses and the above ones do not) does not distinguish
+stdout from stderr, making the output unsafe to process automatically.
+
+FILE-OR-LIST may be a string, a list of strings, or nil.  When non-nil,
+the file names are appended to ARGS as a jj fileset and passed to jj.
+If the caller would like to pass a file or list of files as paths not
+converted to a jj fileset, they must be passed in ARGS.
+
+See also `vc-jj--command-parseable' and `vc-jj--process-lines'."
+  (let* ((fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
          (global-switches (ensure-list vc-jj-global-switches)))
     (apply #'vc-do-command (or buffer "*vc*") okstatus vc-jj-program
-           ;; Note that we pass NIL for FILE-OR-LIST to avoid
+           ;; Note that we pass nil for FILE-OR-LIST to avoid
            ;; vc-do-command mangling of filenames; we pass the fileset
            ;; expressions in ARGS instead.
            nil
-           (append global-switches flags filesets))))
+           (append global-switches args (when fileset (cons "--" fileset))))))
 
 ;;; BACKEND PROPERTIES
 
@@ -332,8 +368,7 @@ stderr and1 `vc-do-command' cannot separate output to stdout and stderr."
   "Check whether FILE is registered with jj.
 Return non-nil when FILE is file tracked by JJ and nil when not."
   (when-let ((default-directory (vc-jj-root file)))
-    (vc-jj--process-lines "file" "list" "--"
-                          (vc-jj--filename-to-fileset file))))
+    (vc-jj--process-lines file "file" "list")))
 
 ;;;; state
 
@@ -367,15 +402,13 @@ there is no such state in jj since jj automatically registers new files."
   ;;   of these are already covered by the previous command, so we
   ;;   deduce "up-to-date".
   (let* ((default-directory (vc-jj-root file))
-         (file (vc-jj--filename-to-fileset file))
-         (changed (vc-jj--command-parseable "diff" "--summary" "--" file)))
+         (changed (vc-jj--command-parseable file "diff" "--summary")))
     (cond
      ((string-prefix-p "A " changed) 'added)
      ((string-prefix-p "D " changed) 'removed)
      ((string-prefix-p "M " changed) 'edited)
      (t (let ((conflicted-ignored
-               (vc-jj--command-parseable "file" "list" "-T" "conflict" "--"
-                                         file)))
+               (vc-jj--command-parseable file "file" "list" "-T" "conflict")))
           (cond
            ((string= conflicted-ignored "true") 'conflict)
            ((string-empty-p conflicted-ignored) 'ignored)
@@ -414,12 +447,11 @@ For a description of the states relevant to jj, see `vc-jj-state'."
     (let* ((dir (expand-file-name dir))
            (default-directory dir)
            (project-root (vc-jj-root dir))
-           (fileset (vc-jj--filename-to-fileset dir))
-           (registered-files (vc-jj--process-lines "file" "list" "--" fileset))
+           (registered-files (vc-jj--process-lines dir "file" "list"))
            (ignored-files (seq-difference (cl-delete-if #'file-directory-p
                                                         (directory-files dir nil nil t))
                                           registered-files))
-           (changed (vc-jj--process-lines "diff" "--summary" "--" fileset))
+           (changed (vc-jj--process-lines dir "diff" "--summary"))
            (added-files (mapcan (lambda (entry)
                                   (and (string-prefix-p "A " entry)
                                        (list (substring entry 2))))
@@ -437,9 +469,8 @@ For a description of the states relevant to jj, see `vc-jj-state'."
            ;; expand-file-name / file-relative-name
            (conflicted-files (mapcar (lambda (entry)
                                        (file-relative-name (expand-file-name entry project-root) dir))
-                                     (vc-jj--process-lines "file" "list"
-                                                           "-T" "if(conflict, path ++ '\n')"
-                                                           "--" fileset)))
+                                     (vc-jj--process-lines dir "file" "list"
+                                                           "-T" "if(conflict, path ++ '\n')")))
            (up-to-date-files (cl-remove-if (lambda (entry) (or (member entry conflicted-files)
                                                               (member entry edited-files)
                                                               (member entry added-files)
@@ -473,7 +504,7 @@ anyway.)"
         description bookmarks conflict divergent hidden immutable
         &rest parent-info)
       (let ((default-directory (file-name-as-directory dir)))
-        (vc-jj--process-lines "log" "--no-graph" "-r" "@" "-T"
+        (vc-jj--process-lines nil "log" "--no-graph" "-r" "@" "-T"
                               "concat(
 self.change_id().short(8), '\n',
 self.change_id().shortest(), '\n',
@@ -552,7 +583,7 @@ parents.map(|c| concat(
     ;; 'jj log' might print a warning at the start of its output,
     ;; e.g., "Warning: Refused to snapshot some files."  The output we
     ;; want will be printed afterwards.
-    (car (last (vc-jj--process-lines "log" "--no-graph"
+    (car (last (vc-jj--process-lines nil "log" "--no-graph"
                                      "-r" "@"
                                      "-T" "change_id ++ '\n'")))))
 
@@ -568,7 +599,7 @@ parents.map(|c| concat(
   "Return a mode line string and tooltip for FILE."
   (pcase-let* ((long-rev (vc-jj-working-revision file))
                (`(,short-rev ,description)
-                (vc-jj--process-lines "log" "--no-graph" "-r" long-rev
+                (vc-jj--process-lines nil "log" "--no-graph" "-r" long-rev
                                       "-T" "self.change_id().shortest() ++ '\n' ++ description.first_line() ++ '\n'"))
                (def-ml (vc-default-mode-line-string 'JJ file))
                (help-echo (get-text-property 0 'help-echo def-ml))
@@ -600,7 +631,7 @@ parents.map(|c| concat(
   ;; run "jj file track" for the case where some of FILES are excluded
   ;; via the "snapshot.auto-track" setting or via git's mechanisms
   ;; such as the .gitignore file.
-  (vc-jj--command-dispatched nil 0 files "file" "track" "--"))
+  (vc-jj--command-dispatched nil 0 files "file" "track"))
 
 ;;;; responsible-p
 
@@ -625,7 +656,7 @@ parents.map(|c| concat(
 
 (defun vc-jj-find-revision (file rev buffer)
   "Read revision REV of FILE into BUFFER and return the buffer."
-  (let ((revision (vc-jj--command-parseable "file" "show" "-r" rev "--" (vc-jj--filename-to-fileset file))))
+  (let ((revision (vc-jj--command-parseable file "file" "show" "-r" rev)))
     (with-current-buffer buffer
       (erase-buffer)
       (insert revision)))
@@ -705,7 +736,7 @@ push\")."
 
 (defun vc-jj-get-change-comment (_files rev)
   "Get the change comment of revision REV."
-  (vc-jj--command-parseable "log" "--no-graph" "-n" "1"
+  (vc-jj--command-parseable nil "log" "--no-graph" "-n" "1"
                             "-r" rev "-T" "description"))
 
 ;;;; modify-change-comment
@@ -794,7 +825,7 @@ reverting.  If that revision no longer exists, do not move the point."
         ;; something has gone wrong (because that would likely be the
         ;; case with the default behavior, without this function)
         (message "Buffer reverted and point restored to revision %s"
-                 (propertize (vc-jj--command-parseable "show" "--no-patch"
+                 (propertize (vc-jj--command-parseable nil "show" "--no-patch"
                                                        "-r" rev
                                                        "-T" "change_id.shortest()")
                              'face 'log-view-message))))))
@@ -802,17 +833,15 @@ reverting.  If that revision no longer exists, do not move the point."
 (defun vc-jj--expanded-log-entry (revision)
   "Return a string of the commit details of REVISION.
 Called by `log-view-toggle-entry-display' in a JJ Log View buffer."
-  (with-temp-buffer
-    (vc-jj--command-dispatched
-     t 0 nil "log"
-     ;; REVISION may be divergent (i.e., several revisions with the
-     ;; same change ID).  In those cases, we opt to avoid jj erroring
-     ;; via "-r change_id(REVISION)" and show only all the divergent
-     ;; commits.  This is preferable to confusing or misinforming the
-     ;; user by showing only some of the divergent commits.
-     "-r" (format "change_id(%s)" revision)
-     "--no-graph" "-T" "builtin_log_detailed")
-    (buffer-string)))
+  (vc-jj--command-parseable
+   nil "log" "--no-graph"
+   ;; REVISION may be divergent (i.e., several revisions with the same
+   ;; change ID).  In those cases, we opt to avoid jj erroring via "-r
+   ;; change_id(REVISION)" and show only all the divergent commits.
+   ;; This is preferable to confusing or misinforming the user by
+   ;; showing only some of the divergent commits.
+   "-r" (format "change_id(%s)" revision)
+   "-T" "builtin_log_detailed"))
 
 (defvar auto-revert-mode)
 
@@ -854,7 +883,7 @@ Call \"jj abandon\" on the revision at point."
   (let ((rev (log-view-current-tag)))
     (when (y-or-n-p (format "Abandon revision %s?"
                             (propertize
-                             (vc-jj--command-parseable "show" "--no-patch"
+                             (vc-jj--command-parseable nil "show" "--no-patch"
                                                        "-r" rev
                                                        "-T" "change_id.shortest()")
                              'face 'log-view-message)))
@@ -879,7 +908,7 @@ user first."
   (interactive nil vc-jj-log-view-mode)
   (when (derived-mode-p 'vc-jj-log-view-mode)
     (let* ((target-rev (log-view-current-tag))
-           (bookmarks (vc-jj--process-lines "bookmark" "list" "-T" "self.name() ++ '\n'"))
+           (bookmarks (vc-jj--process-lines nil "bookmark" "list" "-T" "self.name() ++ '\n'"))
            (bookmark (completing-read "Move or create bookmark: " bookmarks))
            (new-bookmark-p (not (member bookmark bookmarks)))
            ;; If the bookmark already exists and target-rev is not a
@@ -894,7 +923,7 @@ user first."
               ;; descendants, and TARGET-REV.  That intersection is
               ;; non-empty only when TARGET-REV is BOOKMARK or a
               ;; descendant or BOOKMARK
-              (not (vc-jj--process-lines "log" "-r" (format "%s & %s::" target-rev bookmark))))))
+              (not (vc-jj--process-lines nil "log" "-r" (format "%s & %s::" target-rev bookmark))))))
       (when backwards-move-p
         (unless (yes-or-no-p
                  (format-prompt "Moving bookmark %s to revision %s would move it either backwards or sideways. Is this okay?"
@@ -914,14 +943,14 @@ rename."
   (when (derived-mode-p 'vc-jj-log-view-mode)
     (let* ((target-rev (log-view-current-tag))
            (bookmarks-at-rev
-            (or (vc-jj--process-lines "bookmark" "list" "-r" target-rev
+            (or (vc-jj--process-lines nil "bookmark" "list" "-r" target-rev
                                       "-T" "if(!self.remote(), self.name() ++ '\n')")
                 ;; FIXME(KrisB 2025-12-09): Is there a more
                 ;; idiomatic/cleaner way to exit with a message than a
                 ;; `user-error' in the middle of a let binding?
                 (user-error "No bookmarks at %s"
                             (propertize
-                             (vc-jj--command-parseable "show" "--no-patch"
+                             (vc-jj--command-parseable nil "show" "--no-patch"
                                                        "-r" target-rev
                                                        "-T" "change_id.shortest()")
                              'face 'log-view-message))))
@@ -947,7 +976,7 @@ delete."
            (revision-bookmarks
             (string-split
              (vc-jj--command-parseable
-              "show" "-r" rev "--no-patch"
+              nil "show" "-r" rev "--no-patch"
               "-T" "self.local_bookmarks().map(|b| b.name()) ++ '\n'")
              " " t "\n"))
            (bookmarks
@@ -1096,7 +1125,8 @@ line of its description."
   (let ((description
          (if (listp elem)
              (cl-second elem)
-           (vc-jj--command-parseable "log" "-r" elem "--no-graph" "-T" "self.description().first_line()"))))
+           (vc-jj--command-parseable nil "log" "--no-graph"
+                                     "-r" elem "-T" "self.description().first_line()"))))
     (format " %s" (propertize description 'face 'completions-annotations))))
 
 (defun vc-jj-revision-completion-table (files)
@@ -1105,8 +1135,8 @@ line of its description."
           (mapcar
            ;; Boldly assuming that jj's change ids won't suddenly change length
            (lambda (line) (list (substring line 0 31) (substring line 32)))
-           (apply #'vc-jj--process-lines "log" "--no-graph"
-                  "-T" "self.change_id() ++ self.description().first_line() ++ '\n'" "--" files))))
+           (apply #'vc-jj--process-lines files "log" "--no-graph"
+                  "-T" "self.change_id() ++ self.description().first_line() ++ '\n'"))))
     (lambda (string pred action)
       (if (eq action 'metadata)
           `(metadata . ((display-sort-function . ,#'identity)
@@ -1117,14 +1147,16 @@ line of its description."
 
 (defun vc-jj-annotate-command (file buf &optional rev)
   "Fill BUF with per-line change history of FILE at REV."
-  (let ((rev (or rev "@"))
-        (file (file-relative-name file)))
+  (let ((rev (or rev "@")))
     ;; Contrary to most other jj commands, 'jj file annotate' takes a
     ;; path instead of a fileset expression, so we append FILE to the
     ;; unprocessed argument list here.
     (apply #'vc-jj--command-dispatched buf 'async nil "file" "annotate"
            (append (vc-switches 'jj 'annotate)
-                   (list "-r" rev file)))))
+                   (list "-r" rev
+                         ;; "jj file annotate" expects a file path,
+                         ;; not a fileset expression
+                         (file-relative-name file))))))
 
 ;;;; annotate-time
 
@@ -1236,7 +1268,7 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
   (let ((default-directory
          (if directory (file-name-as-directory directory)
            default-directory)))
-    (vc-jj--command-dispatched nil 0 file "file" (if remove "track" "untrack") "--")))
+    (vc-jj--command-dispatched nil 0 file "file" (if remove "track" "untrack"))))
 
 ;;;; ignore-completion-table
 
@@ -1256,15 +1288,14 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
 Return the revision number that precedes REV for FILE, or nil if no such
 revision exists."
   (if file
-      (vc-jj--command-parseable "log" "--no-graph" "--limit" "1"
+      (vc-jj--command-parseable file "log" "--no-graph" "--limit" "1"
                                 "-r" (format "ancestors(%s) & ~%s" rev rev)
-                                "-T" "change_id"
-                                "--" (vc-jj--filename-to-fileset file))
+                                "-T" "change_id")
     ;; The jj manual states that "for merges, [first_parent] only
     ;; returns the first parent instead of returning all parents";
     ;; given the choice, we do want to return the first parent of a
     ;; merge change.
-    (vc-jj--command-parseable "log" "--no-graph"
+    (vc-jj--command-parseable nil "log" "--no-graph"
                               "-r" (concat "first_parent(" rev ")")
                               "-T" "change_id")))
 
@@ -1277,17 +1308,16 @@ revision exists."
 Return the revision that follows REV for FILE, or nil if no such
 revision exists."
   (if file
-      (vc-jj--command-parseable "log" "--no-graph" "--limit" "1"
+      (vc-jj--command-parseable file "log" "--no-graph" "--limit" "1"
                                 "-r" (concat "descendants(" rev ")")
-                                 "-T" "change_id"
-                                 "--" (vc-jj--filename-to-fileset file))
+                                "-T" "change_id")
     ;; Note: experimentally, jj (as of 0.35.0) prints children in LIFO
     ;; order (newest child first), but we should not rely on that
     ;; behavior and since none of the children of a change are
     ;; special, we return an arbitrary one.
-    (car (vc-jj--process-lines "log" "--no-graph"
-                                 "-r" (concat "children(" rev ")")
-                                 "-T" "change_id ++ '\n'"))))
+    (car (vc-jj--process-lines nil "log" "--no-graph"
+                               "-r" (concat "children(" rev ")")
+                               "-T" "change_id ++ '\n'"))))
 
 ;;;; log-edit-mode
 

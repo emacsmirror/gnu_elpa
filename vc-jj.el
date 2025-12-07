@@ -755,6 +755,27 @@ as a base revision."
 
 ;;;; log-view-mode
 
+(defun vc-jj-log-view-restore-position ()
+  " Restore the position of point prior to reverting.
+When this function is added to `revert-buffer-restore-functions' in a
+`vc-jj-log-view-mode' buffer, after reverting the buffer, restore the
+position of the point to the revision the point was on prior to
+reverting.  If that revision no longer exists, do not move the point."
+  (when-let* ((rev (log-view-current-tag)))
+    (lambda ()
+      (when (re-search-forward rev nil t)
+        (goto-char (match-beginning 0))
+        (beginning-of-line)
+        ;; Report to the user that we've restored the point, otherwise
+        ;; they might think the buffer was not reverted or that
+        ;; something has gone wrong (because that would likely be the
+        ;; case with the default behavior, without this function)
+        (message "Buffer reverted and point restored to revision %s"
+                 (propertize (vc-jj--command-parseable "show" "--no-patch"
+                                                       "-r" rev
+                                                       "-T" "change_id.shortest()")
+                             'face 'log-view-message))))))
+
 (defun vc-jj--expanded-log-entry (revision)
   "Return a string of the commit details of REVISION.
 Called by `log-view-toggle-entry-display' in a JJ Log View buffer."
@@ -922,7 +943,8 @@ delete."
     (setq truncate-lines t)
     (setq-local log-view-expanded-log-entry-function 'vc-jj--expanded-log-entry))
   ;; Fontify according to regexp capture groups (for "short" format
-  ;; log views, the relevant regexp is `vc-jj-root-log-format')
+  ;; log views, the relevant regexp is found in
+  ;; `vc-jj-root-log-format')
   (setq-local log-view-font-lock-keywords
               (if (not (memq vc-log-view-type '(long log-search with-diff)))
                   (list (cons (nth 1 vc-jj-root-log-format)
@@ -948,6 +970,9 @@ delete."
                    (1 'change-log-name)
                    (2 'change-log-email)
                    (3 'change-log-date)))))
+  
+  (when (boundp 'revert-buffer-restore-functions) ; Emacs 30.1
+    (add-hook 'revert-buffer-restore-functions #'vc-jj-log-view-restore-position nil t))
 
   (keymap-set vc-jj-log-view-mode-map "r" #'vc-jj-log-view-edit-change)
   (keymap-set vc-jj-log-view-mode-map "x" #'vc-jj-log-view-abandon-change)

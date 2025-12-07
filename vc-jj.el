@@ -777,21 +777,32 @@ Called by `log-view-toggle-entry-display' in a JJ Log View buffer."
   (revert-buffer))
 
 (defun vc-jj-log-view-edit-change ()
-  (interactive)
+  "Edit the jj revision at point.
+Call \"jj edit\" on the revision at point."
+  (interactive nil vc-jj-log-view-mode)
   (let ((rev (log-view-current-tag)))
     (vc-jj-retrieve-tag nil rev nil)
     (vc-jj--reload-log-buffers)))
 
 (defun vc-jj-log-view-abandon-change ()
-  (interactive)
-  ;; TODO: should probably ask for confirmation, although this would be
-  ;; different from the cli
+  "Abandon the jj revision at point.
+Call \"jj abandon\" on the revision at point."
+  (interactive nil vc-jj-log-view-mode)
   (let ((rev (log-view-current-tag)))
-    (vc-jj--command-dispatched nil 0 nil "abandon" rev "--quiet")
-    (vc-jj--reload-log-buffers)))
+    (when (y-or-n-p (format "Abandon revision %s?"
+                            (propertize
+                             (vc-jj--command-parseable "show" "--no-patch"
+                                                       "-r" rev
+                                                       "-T" "change_id.shortest()")
+                             'face 'log-view-message)))
+      (vc-jj--command-dispatched nil 0 nil "abandon" rev "--quiet")
+      (vc-jj--reload-log-buffers))))
 
 (defun vc-jj-log-view-new-change ()
-  (interactive)
+  "Create a new, empty change on the revision at point.
+Call \"jj new\", creating a new revision whose parent is the revision at
+point."
+  (interactive nil vc-jj-log-view-mode)
   (let ((rev (log-view-current-tag)))
     (vc-jj--command-dispatched nil 0 nil "new" rev "--quiet")
     (vc-jj--reload-log-buffers)))

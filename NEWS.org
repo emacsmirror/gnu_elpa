@@ -21,6 +21,8 @@
 
 *** Changed
 
+- Only abandon revision with ~vc-jj-log-view-abandon-change~ once the user confirms their decision.
+
 *** Removed
 
 *** Fixed

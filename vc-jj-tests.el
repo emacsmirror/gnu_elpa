@@ -327,5 +327,114 @@ We check that we get the revision where a given file was added."
       (should (string= branch-child-1 branch-1))
       (should (string= branch-child-2 branch-2)))))
 
+(ert-deftest vc-jj-diff-in-merge ()
+  "Test `vc-jj-diff' for a change with multiple parents.
+A revision with multiple parent revisions is a merge commit.  Test that
+`vc-jj-diff' outputs a diff between the working copy and the appropriate
+parent when (1) no revisions have been specified to it (the REV1 and
+REV2 arguments) and (2) when only REV1 has been specified to it."
+  ;; The revision log of this test looks like this (the output of "jj
+  ;; log -p"):
+  ;;
+  ;; @    lxqzqwul john@example.com 2025-12-07 04:28:07 2cb61b72
+  ;; ├─╮  (empty) merge
+  ;; │ ○  xvqrvwts john@example.com 2025-12-07 04:28:06 0a819418
+  ;; │ │  3
+  ;; │ │  Modified regular file first file:
+  ;; │ │     1    1: foo
+  ;; │ │          2: baz
+  ;; │ │  Added regular file second file:
+  ;; │ │          1: bar
+  ;; ○ │  rrwwokxl john@example.com 2025-12-07 04:28:04 352abbc6
+  ;; ├─╯  (empty) 2
+  ;; ○  vroztsyt john@example.com 2025-12-07 04:28:04 4bf3ab70
+  ;; │  1
+  ;; │  Added regular file first file:
+  ;; │          1: foo
+  ;; ┴  zzzzzzzz root() 00000000
+  (vc-jj-test-with-repo repo
+    (let ((root "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
+          (vc-jj-diff-switches '("--git"))
+          parent-rev-1 parent-rev-2
+          merge-rev merge-rev-parent)
+      ;; Create the first commit and first file
+      (shell-command (concat "jj new -m \"1\" " root))
+      (write-region "foo\n" nil "first file")
+      ;; Create first branch (first parent commit) with no new files
+      (shell-command (concat "jj new -m \"2\" @"))
+      (setq parent-rev-1 (shell-command-to-string "jj show --no-patch -r @ -T change_id"))
+      ;; Create second branch (second parent commit) with a new file
+      ;; and changes to the "first file" file
+      (shell-command (concat "jj new -m \"3\" @-"))
+      (write-region "bar\n" nil "second file")
+      (write-region "baz\n" nil "first file" t)
+      (setq parent-rev-2 (shell-command-to-string "jj show --no-patch -r @ -T change_id"))
+      ;; Create working copy that is a merge commit (revision with two
+      ;; parents)
+      (shell-command (concat "jj new -m \"merge\" " parent-rev-1 " " parent-rev-2))
+      (setq merge-rev (shell-command-to-string "jj show --no-patch -r @ -T change_id")
+            merge-rev-parent (vc-jj-previous-revision nil merge-rev))
+
+      ;; Helpful for debugging
+      (message (shell-command-to-string "jj log -p"))
+      
+      ;; No revisions and no file (show entire diff)
+      (with-temp-buffer
+        (vc-jj-diff nil nil nil (current-buffer))
+        ;; The parent of the working copy (MERGE_REV_PARENT) is
+        ;; PARENT-REV-1 (the revision chronologically created first)
+        (should (string= merge-rev-parent parent-rev-1))
+        (should (string= (buffer-substring-no-properties (point-min) (point-max))
+                         (shell-command-to-string
+                          ;; We do not do "jj diff --git -r @" because
+                          ;; denotes the changes in @, whereas VC
+                          ;; expect the changes between @ and its
+                          ;; first parent earlier revision
+                          (format "jj diff --git -f 'first_parent(@)' -t @"))))
+        (should (string= (buffer-substring-no-properties (point-min) (point-max))
+                         ;; The diff should be the changes added in
+                         ;; PARENT-REV-2 ("second file" and "baz\n" to
+                         ;; the end of "first file"), since those were
+                         ;; the only changes in between PARENT-REV-1
+                         ;; and MERGE-REV-PARENT
+                         (string-join '("diff --git a/first file b/first file"
+                                        "index 257cc5642c..0c071e1d07 100644"
+                                        "--- a/first file"
+                                        "+++ b/first file"
+                                        "@@ -1,1 +1,2 @@"
+                                        " foo"
+                                        "+baz"
+                                        "diff --git a/second file b/second file"
+                                        "new file mode 100644"
+                                        "index 0000000000..5716ca5987"
+                                        "--- /dev/null"
+                                        "+++ b/second file"
+                                        "@@ -0,0 +1,1 @@"
+                                        "+bar\n")
+                                      "\n"))))
+      
+      ;; No revisions and specify a file present only in the second,
+      ;; older parent (show diff only for that file)
+      (with-temp-buffer
+        ;; Show the diff between the working copy (MERGE_REV_PARENT)
+        ;; and its first parent, but ONLY for the "second file" file
+        (vc-jj-diff '("second file") nil nil (current-buffer))
+        (should (string= merge-rev-parent parent-rev-1))
+        (should (string= (buffer-substring-no-properties (point-min) (point-max))
+                         (shell-command-to-string
+                          (format "jj diff --git -f 'first_parent(@)' -t @ -- 'second file'"))))
+        (should (string= (buffer-substring-no-properties (point-min) (point-max))
+                         ;; The diff should only be the addition of
+                         ;; the "second file" file (contra the above
+                         ;; case)
+                         (string-join '("diff --git a/second file b/second file"
+                                        "new file mode 100644"
+                                        "index 0000000000..5716ca5987"
+                                        "--- /dev/null"
+                                        "+++ b/second file"
+                                        "@@ -0,0 +1,1 @@"
+                                        "+bar\n")
+                                      "\n")))))))
+
 (provide 'vc-jj-tests)
 ;;; vc-jj-tests.el ends here

@@ -770,11 +770,30 @@ Called by `log-view-toggle-entry-display' in a JJ Log View buffer."
      "--no-graph" "-T" "builtin_log_detailed")
     (buffer-string)))
 
+(defvar auto-revert-mode)
+
+;; FIXME 2025-12-07: This only reverts the parent buffer, but there
+;; more often than not multiple files in a project that could be
+;; reverted.  Do we revert those too?  (Note: there is
+;; `vc-auto-revert-mode' in Emacs 31.1.)
 (defun vc-jj--reload-log-buffers ()
-  (and vc-parent-buffer
-    (with-current-buffer vc-parent-buffer
-      (revert-buffer)))
-  (revert-buffer))
+  "Revert the log view buffer and its parent buffer.
+Revert the parent buffer of the current log view buffer then revert the
+log view buffer.
+
+The \"parent buffer\" of the log view buffer is the buffer referenced by
+the variable `vc-parent-buffer'; it is the buffer in which the log view
+buffer was created."
+  (when (derived-mode-p 'vc-jj-log-view-mode)
+    (when vc-parent-buffer
+      (with-current-buffer vc-parent-buffer
+        ;; It's only necessary to ask when `auto-revert-mode' isn't
+        ;; already enabled in the `vc-parent-buffer'.  If it is, then
+        ;; it is safe to assume the user wants that buffer reverted
+        ;; automatically
+        (revert-buffer nil auto-revert-mode)))
+    ;; Revert the log view buffer
+    (revert-buffer)))
 
 (defun vc-jj-log-view-edit-change ()
   "Edit the jj revision at point.

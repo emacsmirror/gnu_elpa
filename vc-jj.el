@@ -755,46 +755,6 @@ as a base revision."
 
 ;;;; log-view-mode
 
-(defvar vc-jj--logline-re
-  (rx
-    line-start
-    ;; graph
-    (+? nonl)
-    " "
-    ;; full change id
-    (group (+ (any "K-Zk-z")))
-    space
-    ;; displayed change id
-    (group (+ (any "K-Zk-z")))
-    space
-    (group (+ (any "K-Zk-z")))
-    " "
-    ;; author
-    (group (* nonl))
-    " "
-    ;; time
-    (group
-      (= 4 (any num)) "-" (= 2 (any num)) "-" (= 2 (any num)))
-      ;; " "
-      ;; (= 2 (any num)) ":" (= 2 (any num)) ":" (= 2 (any num)))
-    ;; tags, bookmarks, commit-id
-    (group
-      (*? nonl))
-
-    " "
-    ;; commit-id
-    (group
-      (+ (any hex)))
-    " "
-    ;; special states
-    (group (opt "conflict "))
-    (group (opt "(empty) "))
-    (group (opt "(no description set)"))
-    ;; regular description
-    (* nonl)
-    line-end)
-  "Regular expression matching one line in the outpout of 'jj log'.")
-
 (defun vc-jj--expanded-log-entry (revision)
   "Return a string of the commit details of REVISION.
 Called by `log-view-toggle-entry-display' in a JJ Log View buffer."

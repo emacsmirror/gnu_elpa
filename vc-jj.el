@@ -743,8 +743,9 @@ push\")."
 ;;;; get-change-comment
 
 (defun vc-jj-get-change-comment (_files rev)
-  "Get the change comment of revision REV."
-  (vc-jj--command-parseable nil "log" "--no-graph" "-n" "1"
+  "Return the description of REV.
+_FILES currently has no effect on this function."
+  (vc-jj--command-parseable nil "show" "--no-patch"
                             "-r" rev "-T" "description"))
 
 ;;;; modify-change-comment

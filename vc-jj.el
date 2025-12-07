@@ -934,8 +934,21 @@ delete."
       (apply #'vc-jj--command-dispatched nil 0 nil "--quiet" "bookmark" "delete" bookmarks)
       (revert-buffer))))
 
+(defvar vc-jj-log-view-mode-map
+  (let ((map (make-sparse-keymap)))
+    (keymap-set map "r" #'vc-jj-log-view-edit-change)
+    (keymap-set map "x" #'vc-jj-log-view-abandon-change)
+    (keymap-set map "i" #'vc-jj-log-view-new-change)
+    (keymap-set map "b s" #'vc-jj-log-view-bookmark-set)
+    (keymap-set map "b r" #'vc-jj-log-view-bookmark-rename)
+    (keymap-set map "b D" #'vc-jj-log-view-bookmark-delete)
+    map)
+  "Keymap for `vc-jj-log-view-mode'.")
+
 (define-derived-mode vc-jj-log-view-mode log-view-mode "JJ-Log-View"
   "Log View mode specific for JJ."
+  :keymap vc-jj-log-view-mode-map
+
   (require 'add-log) ;; We need the faces add-log.
   ;; Don't have file markers, so use impossible regexp.
   (setq-local log-view-file-re regexp-unmatchable)
@@ -981,14 +994,7 @@ delete."
                    (3 'change-log-date)))))
   
   (when (boundp 'revert-buffer-restore-functions) ; Emacs 30.1
-    (add-hook 'revert-buffer-restore-functions #'vc-jj-log-view-restore-position nil t))
-
-  (keymap-set vc-jj-log-view-mode-map "r" #'vc-jj-log-view-edit-change)
-  (keymap-set vc-jj-log-view-mode-map "x" #'vc-jj-log-view-abandon-change)
-  (keymap-set vc-jj-log-view-mode-map "i" #'vc-jj-log-view-new-change)
-  (keymap-set vc-jj-log-view-mode-map "b s" #'vc-jj-log-view-bookmark-set)
-  (keymap-set vc-jj-log-view-mode-map "b r" #'vc-jj-log-view-bookmark-rename)
-  (keymap-set vc-jj-log-view-mode-map "b D" #'vc-jj-log-view-bookmark-delete))
+    (add-hook 'revert-buffer-restore-functions #'vc-jj-log-view-restore-position nil t)))
 
 ;;;; show-log-entry
 

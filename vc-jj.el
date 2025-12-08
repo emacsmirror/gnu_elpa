@@ -1144,7 +1144,7 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
   "JJ-specific version of `vc-previous-revision'."
   (if file
       (vc-jj--command-parseable "log" "--no-graph" "--limit" "1"
-                                "-r" (concat "ancestors(" rev ")")
+                                "-r" (format "ancestors(%s) & ~%s" rev rev)
                                 "-T" "change_id"
                                 "--" (vc-jj--filename-to-fileset file))
     ;; The jj manual states that "for merges, [first_parent] only

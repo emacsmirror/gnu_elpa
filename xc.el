@@ -3,10 +3,10 @@
 ;; Copyright © 2025 Ryan Prior <rprior@protonmail.com>
 ;; Author: Ryan Prior
 ;; URL: https://codeberg.org/ryanprior/xc.el
-;; Package-Version: 20251029.1
+;; Package-Version: 20251208.1
 ;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: processes docs
-;; Version: 1.7
+;; Version: 1.8
 
 ;; This file is not part of GNU Emacs.
 
@@ -64,12 +64,22 @@ Either `org' or `md', or nil for default."
   :group 'xc
   :type 'string)
 
+(defun xc--executable ()
+  "Return non-nil when xc executable is found, or shows a warning."
+  (if-let* ((name (or xc-executable "xc"))
+            (exec (executable-find name)))
+      exec
+    (if (string-equal name "xc")
+        (display-warning 'xc "could not find `xc' on your PATH. Install it, adjust your PATH, or customize `xc-executable' to point to it.")
+      (display-warning 'xc (format "no such file \"%s\" (from custom `xc-executable' value.)" xc-executable)))
+    nil))
+
 (defun xc--run (args)
   "Run xc with provided ARGS; nil if it fails."
   (with-temp-buffer
-    (let* ((xc (or xc-executable "xc"))
-           (command (concat xc " " args))
-           (exit-code (call-process-shell-command command nil (current-buffer) t)))
+    (when-let* ((xc (xc--executable))
+                (command (concat xc " " args))
+                (exit-code (call-process-shell-command command nil (current-buffer) t)))
       (if (zerop exit-code)
           (buffer-string)
         nil))))
@@ -97,12 +107,11 @@ If FILE is provided, look for tasks in that file specifically."
                          (project-root (project-current))
                        default-directory)
                      (format "No tasks for %s")
-                     (display-warning "xc"))
+                     (display-warning 'xc))
                    '(nil))))
   (when task
     (let* ((output-buffer (concat "*xc-" task "*")))
-      (thread-first xc-executable
-                    (or "xc")
+      (thread-first (xc--executable)
                     (concat " " task
                             (and xc-type (concat " -type " xc-type)))
                     (async-shell-command output-buffer))

@@ -21,8 +21,11 @@
 
 *** Changed
 
+- Commands specific to vc-jj in the JJ Log View buffer have been renamed to have a "vc-jj-log-view-" prefix.
 - Only abandon revision with ~vc-jj-log-view-abandon-change~ once the user confirms their decision.
-
+- Bookmark operations in the JJ Log View buffer (e.g., ~vc-jj-log-view-bookmark-delete~, ~vc-jj-log-view-abandon-change~) no longer prompt to confirm reverting the parent buffer (~vc-parent-buffer~) when ~auto-revert-mode~ is already enabled in that buffer.
+- In Emacs 30.1 and newer, reverting a JJ Log View buffer will, when possible, keep point on the same revision as before the revert. To undo this, add a function to ~vc-jj-log-view-mode-hook~ that removes ~vc-jj-log-view-restore-position~ from the local value of ~revert-buffer-restore-functions~.
+  
 *** Removed
 
 *** Fixed

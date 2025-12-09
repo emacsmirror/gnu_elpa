@@ -4,6 +4,7 @@
 
 ;; Author: Wojciech Siewierski
 ;;         Rudolf Schlatte <rudi@constantly.at>
+;;         Kristoffer Balintona <krisbalintona@gmail.com>
 ;; URL: https://codeberg.org/emacs-jj-vc/vc-jj.el
 ;; Version: 0.4
 ;; Package-Requires: ((emacs "28.1") (compat "29.4"))

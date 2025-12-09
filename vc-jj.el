@@ -25,39 +25,45 @@
 
 ;;; Commentary:
 
-;; A backend for vc.el to handle Jujutsu (jj) repositories.
+;; This package provides a backend for vc.el to handle Jujutsu (jj)
+;; repositories.  Jujutsu uses a change-centric model that differs in
+;; important ways from Git’s commit-centric model.  Vc-jj adapts
+;; vc.el’s abstractions to match jj terminology and behavior.
 ;;
-;; Jujutsu is a distributed version control system that uses the same
-;; on-disk storage format as git (although other storage backends are
-;; possible).  Jj repositories are "co-located" by default, which
-;; means they contain both a '.jj' and a '.git' directory in the
-;; repository root.  Therefore, vc-jj can re-use some functionality of
-;; vc-git, like handling of '.gitignore' files.  It is possible to run
-;; git commands in a co-located repository, although git will complain
-;; about being in "detached HEAD" state.
+;; Users may see and customize all options by pressing
 ;;
-;; Note that 'JJ' should come before 'Git' in `vc-handled-backends' so
-;; that 'vc' chooses the jj backend.
+;;  'M-x customize-group vc-jj RET'
 ;;
-;; In jj terminology, vc "revisions" are called "changes" and are
-;; identified by a "change ID"; the code in vc-jj tries to adhere to
-;; this terminology.
-;;
-;; In contrast to git, there is no staging area or check-in operation:
-;; as the user modifies a file, the changes are automatically
-;; recorded.  Note that the change ID stays constant when the current
-;; change is being modified, e.g., by editing a file.  Underlying each
-;; change is a (git-type) commit with a commit ID; the commit ID
-;; changes when a change gets modified.  Most jj commands accept both
-;; change IDs and commit IDs.  We display both change ID and commit ID
-;; where appropriate, for example in the extra headers of vc-dir
-;; buffers.
-;;
+;; and using the Customize menu.
 
+;; STATUS AND LIMITATIONS
+;;
+;; Vc-jj implements most commonly used vc.el commands (such as
+;; `vc-dir', `vc-diff', `vc-print-log', and file state queries), but
+;; some operations are not yet supported or behave differently from
+;; vc-git due to jj’s model.
+
+;; FILE STRUCTURE
+;; 
 ;; After the "Customization" and "Internal Utilities" sections, the
 ;; organization of this file follows the "BACKEND PROPERTIES" section
-;; at the beginning of 'vc.el', implementing the functions listed
-;; there in the same order.
+;; of the preamble of the 'vc.el' file: each outline heading
+;; corresponding to a vc backend method and the contents of each
+;; heading relate to implementing that backend method.
+
+;; FEEDBACK AND CONTRIBUTIONS
+;;
+;; Bug reports and contributions are welcome, especially for
+;; unimplemented vc.el backend methods.  The home of this project is
+;; found here: https://codeberg.org/emacs-jj-vc/vc-jj.el.  Users may
+;; file bug reports in the "Issues" tab and create pull requests in
+;; the "Pull requests" tab.
+;;
+;; Vc-jj prefers jujutsu's terminology and attempts to adhere to it,
+;; so we ask contributors to try their best to use the terminology
+;; specific to jujutsu as opposed to other version control systems,
+;; such as Git.  A brief description of these differences can be found
+;; above.
 
 ;;; Code:
 
@@ -538,7 +544,7 @@ parents.map(|c| concat(
   "Return the current change id of the repository containing FILE."
   (when-let* ((default-directory (vc-jj-root file)))
     ;; 'jj log' might print a warning at the start of its output,
-    ;; e.g., "Warning: Refused to snapshot some files".  The output we
+    ;; e.g., "Warning: Refused to snapshot some files."  The output we
     ;; want will be printed afterwards.
     (car (last (vc-jj--process-lines "log" "--no-graph"
                                      "-r" "@"

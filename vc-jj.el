@@ -163,7 +163,8 @@ KEYWORDS is a list of font lock keywords (see
 highlighting the Log View buffer.
 
 REGEXP may define capture groups that KEYWORDS can use to fontify
-various regions of the Log View buffer.")
+various regions of the Log View buffer."
+  :type '(list string regexp (repeat sexp)))
 
 (defcustom vc-jj-global-switches '("--no-pager" "--color" "never")
   "Global switches to pass to any jj command."

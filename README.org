@@ -2,21 +2,21 @@
 
 * jj (Jujutsu) integration with Emacs vc.el and project.el
 
-Support for Emacs built-in [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Version-Control.html][=vc.el=]] and [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Projects.html][=project.el=]] for the [[https://github.com/jj-vcs/jj][Jujutsu]]
+Support for Emacs built-in [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Version-Control.html][~vc.el~]] and [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Projects.html][~project.el~]] for the [[https://github.com/jj-vcs/jj][Jujutsu]]
 version control system.
 
 ** Installation
 
 This package is distributed via GNU Elpa
 (https://elpa.gnu.org/packages/vc-jj.html) and can be installed via
-=M-x package-install=.
+~M-x package-install~.
 
 ** Jujutsu configuration
 
 Emacs has built-in support for git-style diff and conflict markers, so
 you might want to set the following options in your Jujutsu
-configuration, for example via =jj config edit --user= or =jj config edit
---repo=:
+configuration, for example via ~jj config edit --user~ or ~jj config edit
+--repo~:
 
 #+begin_src toml
 [ui]
@@ -44,7 +44,7 @@ directory then activate =coverage-mode= inside =vc-jj.el=.
 * Other Emacs packages for Jujutsu
 
 The scope of the =vc-jj.el= project is to add jj support to the Emacs
-built-in =vc= and =project= libraries.  In case you look for a package
+built-in ~vc~ and ~project~ libraries.  In case you look for a package
 with more specialized jujutsu support, here are some that might fit
 the bill:
 

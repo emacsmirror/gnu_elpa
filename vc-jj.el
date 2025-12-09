@@ -891,8 +891,17 @@ rename."
   (when (derived-mode-p 'vc-jj-log-view-mode)
     (let* ((target-rev (log-view-current-tag))
            (bookmarks-at-rev
-            (vc-jj--process-lines "bookmark" "list" "-r" target-rev
-                                  "-T" "if(!self.remote(), self.name() ++ \"\n\")"))
+            (or (vc-jj--process-lines "bookmark" "list" "-r" target-rev
+                                      "-T" "if(!self.remote(), self.name() ++ \"\n\")")
+                ;; FIXME(KrisB 2025-12-09): Is there a more
+                ;; idiomatic/cleaner way to exit with a message than a
+                ;; `user-error' in the middle of a let binding?
+                (user-error "No bookmarks at %s"
+                            (propertize
+                             (vc-jj--command-parseable "show" "--no-patch"
+                                                       "-r" target-rev
+                                                       "-T" "change_id.shortest()")
+                             'face 'log-view-message))))
            (bookmark-old
             (if (= 1 (length bookmarks-at-rev))
                 (car bookmarks-at-rev)

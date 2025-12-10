@@ -816,6 +816,16 @@ as a base revision."
 
 ;;;; log-search
 
+(defun vc-jj-log-search (buffer pattern)
+  "Display the log of all revisions whose description matches PATTERN.
+PATTERN is a regular expression.  The log is in long format and
+outputted into BUFFER."
+  (let ((args (list "log" "--no-graph"
+                    "-r" (format "description(\"%s\")" (or pattern ""))
+                    "-T" "builtin_log_detailed")))
+    (vc-setup-buffer buffer)
+    (apply #'vc-jj--command-dispatched buffer 'async nil args)))
+
 ;;;; log-view-mode
 
 (defun vc-jj-log-view-restore-position ()

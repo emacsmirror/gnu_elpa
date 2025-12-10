@@ -6,6 +6,8 @@
 
 *** Added
 
+- Added support for ~vc-log-search~.
+
 *** Changed
 
 *** Removed

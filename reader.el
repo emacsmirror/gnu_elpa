@@ -104,7 +104,7 @@ WINDOW must be a valid window and defaults to the selected one."
   (push (apply #'apply-partially cmd args) reader--command-queue)
   (unless (or (active-minibuffer-window)
               (memq #'reader--process-command-queue post-command-hook))
-    (add-hook 'post-command-hook #'reader--process-command-queue)))
+    (add-hook 'post-command-hook #'reader--process-command-queue nil t)))
 
 (defmacro reader--define-queue-command (name arglist docstring interactive &rest body)
   "Define NAME as a reader command.
@@ -598,7 +598,8 @@ Intended for use in `kill-buffer-hook'."
   (when (derived-mode-p 'reader-mode)
     (ignore-errors
       (reader-dyn--close-doc))))
-(add-hook 'kill-buffer-hook 'reader--clear-doc-memory)
+(add-hook 'kill-buffer-hook 'reader--clear-doc-memory nil t)
+
 
 (defun reader-close-doc ()
   "Close the current document, also prompt the user for confirmation."

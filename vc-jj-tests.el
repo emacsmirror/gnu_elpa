@@ -76,7 +76,7 @@ is needed."
        ;; On macOS, the generated filename "/var/folders/..." was in
        ;; reality "/private/var/folders/...", which got unfolded by
        ;; `vc-jj-root' within some tests -- do this here already
-       (let ((,name (vc-jj-root ,name))
+       (let ((,name (file-truename (vc-jj-root ,name)))
              (default-directory ,name))
          ,@body))))
 

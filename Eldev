@@ -1,0 +1,18 @@
+; -*- mode: emacs-lisp; lexical-binding: t -*-
+
+;; Install eldev: https://emacs-eldev.github.io/eldev/#installation
+
+;; Uncomment some calls below as needed for your project.
+(eldev-use-package-archive 'gnu-elpa)
+;(eldev-use-package-archive 'nongnu-elpa)
+;(eldev-use-package-archive 'melpa)
+
+(eldev-use-plugin 'autoloads)
+;; Turn on test coverage.
+(eldev-use-plugin 'undercover)
+
+;; Use 'M-x coverage-mode' to see test coverage in 'vc-jj.el'.  Run
+;; the following command to generate the 'coverage/.resultset.json'
+;; file used by coverage-mode:
+
+;; eldev test --undercover simplecov,dontsend

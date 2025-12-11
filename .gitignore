@@ -3,3 +3,10 @@
 # ELPA-generated files.
 /vc-jj-autoloads.el
 /vc-jj-pkg.el
+
+# Eldev files
+/.eldev
+/Eldev-local
+
+# Test coverage reports (eldev test --undercover simplecov,dontsend)
+/coverage

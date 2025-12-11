@@ -32,6 +32,15 @@ the standard FSF copyright assignment in place; feel free to contact
 us for details.  Note that "trivial" (below 15 lines or obvious) code
 suggestions in bug reports are fine.
 
+** Development
+
+The code in file =vc-jj.el= is organized according to the structure set
+out in the preamble of the file =vc.el= in the Emacs source tree.
+
+Test code coverage can be checked via the [[https://emacs-eldev.github.io/eldev/][Eldev]] tool and [[https://github.com/trezona-lecomte/coverage][coverage]]:
+run ~eldev test --undercover simplecov,dontsend~ in the project root
+directory then activate =coverage-mode= inside =vc-jj.el=.
+
 * Other Emacs packages for Jujutsu
 
 The scope of the =vc-jj.el= project is to add jj support to the Emacs

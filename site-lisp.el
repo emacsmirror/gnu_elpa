@@ -1,11 +1,11 @@
 ;;; site-lisp.el --- Manage site-lisp directories  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021, 2022, 2023, 2024  Free Software Foundation, Inc.
+;; Copyright (C) 2021, 2022, 2023, 2024, 2025  Free Software Foundation, Inc.
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <philipk@posteo.net>
 ;; Package-Requires: ((emacs "25.1"))
-;; Version: 0.2.0
+;; Version: 0.3.0-pre
 ;; URL: https://codeberg.org/pkal/site-lisp.el
 ;; Keywords: lisp, local
 
@@ -24,6 +24,11 @@
 
 ;;; Commentary:
 
+;; NOTE: This package has been deprecated by the "User Lisp
+;; Directory", added in Emacs 31.  This package provides a
+;; compatibility wrapper for `prepare-user-lisp' that you can invoke
+;; manually to make the switch easier in the future.
+
 ;; This package automates the management of local Lisp code.  Similar
 ;; to package.el, it will byte-compile files, scrape for autoload
 ;; cookies and update the `load-path', but "installing" a package just
@@ -38,10 +43,10 @@
 
 ;;; News:
 
-;; * Allow `site-lisp-directory' to be a list of directories.
-;; * Add user option `site-lisp-collect-recursivly'.
-;; * Avoid unnecessary recompile by resetting mtime after
-;;   traversing the file system.
+;; * Add transition code for Emacs 31's "User Lisp" directories.  You
+;;   can replace `site-lisp-initialise' with `prepare-user-lisp' in
+;;   your configuration to make switching to the build-in version
+;;   easier as soon as you upgrade.
 
 ;;; Code:
 
@@ -153,6 +158,45 @@ If this directory doesn't exist, nothing is done."
 
 ;;;###autoload
 (defalias 'site-lisp-initialise #'site-lisp-reload)
+
+
+;;;; Compatibility with Emacs 31's "User Lisp" directory
+
+(defun site-lisp--prepare-user-lisp (&optional just-activate autoload-file force)
+  "A compatibility function for Emacs 31's `prepare-user-lisp'.
+Write the autoload file to AUTOLOAD-FILE.  If JUST-ACTIVATE is non-nil,
+then the more expensive operations (byte-compilation and autoload
+scraping) are skipped, in effect only processing any previous autoloads.
+If AUTOLOAD-FILE is nil, store the autoload data in a file next to DIR.
+If FORCE is non-nil, or if invoked interactively with a prefix argument,
+re-create the entire autoload file and byte-compile everything
+unconditionally."
+  (interactive)
+  (let* ((user-lisp-dir
+          (or (bound-and-true-p user-lisp-directory)
+              (locate-user-emacs-file "user-lisp")))
+         (site-lisp-autoload-file
+          (expand-file-name
+           (or autoload-file ".user-lisp-autoloads.el")
+           user-lisp-dir))
+         (site-lisp-collect-recursivly t))
+    (when force
+      (mapc #'delete-file (directory-files-recursively user-lisp-dir ".elc"))
+      (delete-file site-lisp-autoload-file))
+    (if just-activate
+        (dolist (dir (directory-files-recursively user-lisp-dir "" t #'file-directory-p)
+                     (load site-lisp-autoload-file t))
+          (add-to-list 'load-path dir))
+      (site-lisp-prepare user-lisp-dir))))
+
+(if (fboundp 'prepare-user-lisp)
+    (make-obsolete
+     'site-lisp-initialise
+     (format "Site Lisp has been obsoleted by User Lisp.  \
+You can uninstall this package and move your files into \"%s\"."
+             (locate-user-emacs-file "user-lisp"))
+     "0.3.0")
+  (defalias 'prepare-user-lisp #'site-lisp--prepare-user-lisp))
 
 (provide 'site-lisp)
 ;;; site-lisp.el ends here

@@ -147,21 +147,16 @@
   :group 'greader)
 
 ;; variable definitions
-(defvar greader-dict-match-indicator "\%\*"
-  "Regexp that will be used for match delimiter.")
-
-(defvar greader-dict-match-indicator "\%\*"
+(defvar greader-dict-match-indicator "%*"
   "Regexp that will be used for match delimiter.")
 
 (defvar-local  greader-dictionary nil)
 
-(defvar greader-dict-match-indicator "\%\*"
-  "Regexp that will be used for match delimiter.")
 (defvar greader-dict--timer nil)
 (defvar greader-dict--item-type-alist '((match
-					 . "\%\*")
+					 . "%*")
 					(filter
-					 . "\%f")
+					 . "%f")
 					(word . ""))
   "Item types and relative prefixes.")
 

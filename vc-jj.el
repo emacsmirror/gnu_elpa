@@ -223,6 +223,7 @@ When FILENAME is not inside a JJ repository, throw an error."
     (error "File is not inside a JJ repository: %s" filename)))
 
 (defun vc-jj--set-up-process-buffer (buffer root command)
+  "Prepare BUFFER for execution of COMMAND in directory ROOT."
   (with-current-buffer buffer
     (vc-run-delayed
       (vc-compilation-mode 'jj)
@@ -296,10 +297,14 @@ stderr and1 `vc-do-command' cannot separate output to stdout and stderr."
 ;;; BACKEND PROPERTIES
 
 ;;;; revision-granularity
-(defun vc-jj-revision-granularity () 'repository)
+(defun vc-jj-revision-granularity ()
+  "Jj implementation of vc property `revision-granularity'."
+  'repository)
 
 ;;;; update-on-retrieve-tag
-(defun vc-jj-update-on-retrieve-tag () nil)
+(defun vc-jj-update-on-retrieve-tag ()
+  "JJ-specific implementation of `update-on-retrieve-tag' property."
+  nil)
 
 ;;; STATE-QUERYING FUNCTIONS
 
@@ -540,7 +545,9 @@ parents.map(|c| concat(
 
 ;;;; checkout-model
 
-(defun vc-jj-checkout-model (_files) 'implicit)
+(defun vc-jj-checkout-model (_files)
+  "JJ-specific implementation of `vc-checkout-model'."
+  'implicit)
 
 ;;;; mode-line-string
 
@@ -639,9 +646,9 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
   "History variable for `vc-jj-pull'.")
 
 (defun vc-jj-pull (prompt)
-  "Pull changes from an upstream repository, invoked via \\[vc-update].
-Normally, this runs \"jj git fetch\".  If PROMPT is non-nil, prompt for
-the jj command to run."
+  "JJ-specific implementation of `vc-pull'.
+If PROMPT is non-nil, prompt for the jj command to run (default is \"jj
+git fetch\")."
   (let* ((command (if prompt
                       (split-string-shell-command
 		       (read-shell-command
@@ -662,9 +669,9 @@ the jj command to run."
   "History variable for `vc-jj-push'.")
 
 (defun vc-jj-push (prompt)
-  "Push changes to an upstream repository, invoked via \\[vc-push].
-Normally, this runs \"jj git push\".  If PROMPT is non-nil, prompt for
-the command to run, e.g., the semi-standard \"jj git push -c @-\"."
+  "JJ-specific implementation of `vc-push'.
+If PROMPT is non-nil, prompt for the command to run (default is \"jj git
+push\")."
   (let* ((command (if prompt
                       (split-string-shell-command
 		       (read-shell-command
@@ -684,6 +691,7 @@ the command to run, e.g., the semi-standard \"jj git push -c @-\"."
 ;;;; get-change-comment
 
 (defun vc-jj-get-change-comment (_files rev)
+  "Get the change comment of revision REV."
   (vc-jj--command-parseable "log" "--no-graph" "-n" "1"
                             "-r" rev "-T" "description"))
 
@@ -691,6 +699,7 @@ the command to run, e.g., the semi-standard \"jj git push -c @-\"."
 
 ;; TODO: protect immutable changes
 (defun vc-jj-modify-change-comment (_files rev comment)
+  "Set the change comment of revision REV to COMMENT."
   (let ((comment (car (log-edit-extract-headers () comment))))
     (vc-jj--command-dispatched nil 0 nil "desc" rev "-m" comment "--quiet")))
 
@@ -757,7 +766,7 @@ as a base revision."
 ;;;; log-view-mode
 
 (defun vc-jj-log-view-restore-position ()
-  " Restore the position of point prior to reverting.
+  "Restore the position of point prior to reverting.
 When this function is added to `revert-buffer-restore-functions' in a
 `vc-jj-log-view-mode' buffer, after reverting the buffer, restore the
 position of the point to the revision the point was on prior to
@@ -1018,13 +1027,13 @@ delete."
 
 (defun vc-jj-diff (files &optional rev1 rev2 buffer _async)
   "Display diffs for FILES between revisions REV1 and REV2.
-FILES is a list of file paths. REV1 and REV2 are the full change IDs of
+FILES is a list of file paths.  REV1 and REV2 are the full change IDs of
 two revisions.  REV1 is the earlier revision and REV2 is the later
 revision.
 
 When BUFFER is non-nil, it is the buffer object or name to insert the
 diff into.  Otherwise, when nil, insert the diff into the *vc-diff*
-buffer. If _ASYNC is non-nil, run asynchronously.  This is currently
+buffer.  If _ASYNC is non-nil, run asynchronously.  This is currently
 unsupported."
   ;; TODO: handle async
   (setq buffer (get-buffer-create (or buffer "*vc-diff*"))
@@ -1140,6 +1149,9 @@ four groups: change id, author, datetime, line number.")
 ;;;; region-history
 
 (defun vc-jj-region-history (file buffer lfrom lto)
+  "JJ-specific version of `vc-region-history'.
+Insert into BUFFER the history (log comments and diffs) of the content
+of FILE between lines LFROM and LTO."
   ;; Support for vc-region-history via the git version which works
   ;; fine at least when co-located with git.
   (vc-git-region-history file buffer lfrom lto))
@@ -1212,7 +1224,9 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
 ;;;; previous-revision
 
 (defun vc-jj-previous-revision (file rev)
-  "JJ-specific version of `vc-previous-revision'."
+  "JJ-specific version of `vc-previous-revision'.
+Return the revision number that precedes REV for FILE, or nil if no such
+revision exists."
   (if file
       (vc-jj--command-parseable "log" "--no-graph" "--limit" "1"
                                 "-r" (format "ancestors(%s) & ~%s" rev rev)
@@ -1231,7 +1245,9 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
 ;;;; next-revision
 
 (defun vc-jj-next-revision (file rev)
-  "JJ-specific version of `vc-next-revision'."
+  "JJ-specific version of `vc-next-revision'.
+Return the revision that follows REV for FILE, or nil if no such
+revision exists."
   (if file
       (vc-jj--command-parseable "log" "--no-graph" "--limit" "1"
                                 "-r" (concat "descendants(" rev ")")

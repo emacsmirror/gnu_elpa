@@ -202,7 +202,7 @@
 (defvar-local greader-filters nil
   "Hash table containing our filters.")
 
-(defvar greader-dict-filter-indicator "\%f")
+(defvar greader-dict-filter-indicator "%f")
 
 ;; This macro calls `with-temp-buffer', setting all the necessary
 ;; local variables to useful values. This means that all sensible

@@ -205,13 +205,13 @@ window.  This can be disabled by a prefix ARG."
 (defun consult-hoogle-project (arg)
   "Search the local hoogle database for current project.
 By default uses cabal-hoogle and the database should have been generated
-by running `cabal-hoogle generate'.  `consult-hoogle-project-args' can be
+by running `cabal-hoogle generate'.  `hoogle-base-project-args' can be
 customized to configure an alternate command.
 By default this shows the documentation for the current candidate in a side
 window.  This can be disabled by a prefix ARG."
   (interactive (list current-prefix-arg))
   (let ((default-directory (funcall hoogle-base-project-root-function)))
-    (consult-hoogle arg consult-hoogle-project-args)))
+    (consult-hoogle arg hoogle-base-project-args)))
 
 (defun consult-hoogle-scroll-docs-down (&optional arg)
   "Scroll the window with documentation ARG lines down."

@@ -40,6 +40,9 @@
 ;;
 
 ;;; Code:
+(eval-when-compile
+  (require 'cl-lib))
+
 (defgroup system-packages nil
   "Manages system packages."
   :tag "System Packages"
@@ -362,7 +365,10 @@ of passing additional arguments to the package manager."
   (let ((command
          (cdr (assoc action (cdr (assoc system-packages-package-manager
                                         system-packages-supported-package-managers)))))
-        (pack (when pack (shell-quote-argument pack)))
+        (pack (cond ((stringp pack)
+                     (shell-quote-argument pack))
+                    (pack
+                     (mapconcat #'shell-quote-argument pack " "))))
         (noconfirm (when system-packages-noconfirm
                      (cdr (assoc 'noconfirm
                                  (cdr (assoc system-packages-package-manager
@@ -405,19 +411,22 @@ manger."
 ;;;###autoload
 (defun system-packages-ensure (pack &optional args)
   "Ensure PACK is installed on system.
-Search for PACK with `system-packages-package-installed-p', and
-install the package if not found.  Use ARGS to pass options to
-the package manager."
+Search for PACK (or each element of PACK, if it is a list) with
+`system-packages-package-installed-p', and install the package(s) if not
+found.  Use ARGS to pass options to the package manager."
   (interactive "sPackage to ensure is present: ")
   (if (system-packages-package-installed-p pack)
       t
     (system-packages-install pack args)))
 
 ;;;###autoload
-(defalias 'system-packages-package-installed-p #'executable-find
+(defun system-packages-package-installed-p (pack)
   "Return t if PACK is installed.
-Currently an alias for `executable-find', so it will give wrong
-results if the package and executable names are different.")
+Currently relies on `executable-find', so it will give wrong
+results if the package and executable names are different."
+  (if (listp pack)
+      (cl-loop for p in pack always (executable-find p))
+    (executable-find pack)))
 
 ;;;###autoload
 (defun system-packages-search (pack &optional args)

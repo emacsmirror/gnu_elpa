@@ -214,6 +214,11 @@ Execute BODY in a temporary bufer as if we where in the reading
 buffer."
   (declare (indent defun))
   `(with-temp-buffer
+     (setq greader-dict--current-reading-buffer (buffer-local-value
+						 'greader-dict--current-reading-buffer
+						 (or
+						  greader--current-buffer
+						  (current-buffer))))
      (setq greader-dictionary (buffer-local-value 'greader-dictionary
 						  (or
 						   greader--current-buffer
@@ -487,7 +492,7 @@ by adding every match found in the text as a word."
       (greader-dict-filters-apply))
     (if
 	(buffer-local-value 'greader-dict-mode
-			    greader-dict--current-reading-buffer)
+			    (or greader--current-buffer greader-dict--current-reading-buffer))
 	(progn
 	  ;; We check if text is actually just one word, and in that case
 	  ;; insert a new line at end of temp buffer.
@@ -702,7 +707,7 @@ argument, only if `greader-dict-mode' is enabled."
 						"/" t)))))
     (unless (equal language-part (buffer-local-value
 				  'greader-dict-local-language
-				  greader-dict--current-reading-buffer))
+				  (or greader--current-buffer greader-dict--current-reading-buffer)))
       (setq greader-dict-directory (string-remove-suffix (concat
 							  language-part
 							  "/")
@@ -710,11 +715,12 @@ argument, only if `greader-dict-mode' is enabled."
       (setq greader-dict-directory
 	    (concat greader-dict-directory (buffer-local-value
 					    'greader-dict-local-language
-					    greader-dict--current-reading-buffer)
+					    (or
+					     greader--current-buffer greader-dict--current-reading-buffer))
 		    "/"))))
   (concat greader-dict-directory (buffer-local-value
 				  'greader-dict-filename
-				  greader-dict--current-reading-buffer)))
+				  (or greader--current-buffer greader-dict--current-reading-buffer))))
 
 (defun greader-dict--set-file (type)
   "Set `greader-dict-filename' according to TYPE.

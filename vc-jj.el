@@ -945,9 +945,6 @@ rename."
            (bookmarks-at-rev
             (or (vc-jj--process-lines nil "bookmark" "list" "-r" target-rev
                                       "-T" "if(!self.remote(), self.name() ++ '\n')")
-                ;; FIXME(KrisB 2025-12-09): Is there a more
-                ;; idiomatic/cleaner way to exit with a message than a
-                ;; `user-error' in the middle of a let binding?
                 (user-error "No bookmarks at %s"
                             (propertize
                              (vc-jj--command-parseable nil "show" "--no-patch"

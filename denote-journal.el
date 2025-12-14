@@ -336,7 +336,7 @@ Perform the operation relative to the variable `denote-journal-directory'."
          (denote-directory default-directory)
          (relative-files (mapcar #'denote-get-file-name-relative-to-denote-directory files))
          (file (if (> (length files) 1)
-                   (completing-read "Select journal entry: " (denote--completion-table 'file relative-files) nil t)
+                   (completing-read "Select journal entry: " (denote-get-completion-table relative-files '(category . file)) nil t)
                  (car relative-files))))
     (concat denote-directory file)))
 

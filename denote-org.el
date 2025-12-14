@@ -80,7 +80,10 @@ the current file."
     (completing-read
      (format "Select heading inside `%s': "
              (propertize (file-name-nondirectory current-file) 'face 'denote-faces-prompt-current-name))
-     (denote--completion-table-no-sort 'imenu (denote-org--get-outline current-file))
+     (denote-get-completion-table
+      (denote-org--get-outline current-file)
+      '(category . imenu)
+      '(display-sort-function . identity))
      nil :require-match)))
 
 (defun denote-org--get-heading-and-id-from-line (line file)

@@ -1,6 +1,6 @@
 ;;; peg.el --- Parsing Expression Grammars in Emacs Lisp  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2008-2022  Free Software Foundation, Inc.
+;; Copyright (C) 2008-2025  Free Software Foundation, Inc.
 ;;
 ;; Author: Helmut Eller <eller.helmut@gmail.com>
 ;; Maintainer: Stefan Monnier <monnier@iro.umontreal.ca>
@@ -318,12 +318,18 @@ EXPS is a list of rules/expressions that failed.")
 PEXS is a sequence of PEG expressions, implicitly combined with `and'.
 Returns STACK if the match succeed and signals an error on failure,
 moving point along the way.
-PEXS can also be a list of PEG rules, in which case the first rule is used."
+For backward compatibility (and convenience) PEXS can also be a list of
+RULES in which case we run the first such rule.  In case of ambiguity,
+prefix PEXS with \"\" so it doesn't look like a list of rules."
   (if (and (consp (car pexs))
            (symbolp (caar pexs))
-           (not (ignore-errors (peg-normalize (car pexs)))))
-      ;; `pexs' is a list of rules: use the first rule as entry point.
-      `(with-peg-rules ,pexs (peg-run (peg ,(caar pexs)) #'peg-signal-failure))
+           (not (or (get (peg--rule-id (caar pexs)) 'peg--rule-definition)
+                    (ignore-errors
+                      (not (eq 'call (car (peg-normalize (car pexs)))))))))
+      ;; The first of `pexs' has not been defined as a rule, so assume
+      ;; that none of them have been and they should be fed to
+      ;; `with-peg-rules'
+      `(with-peg-rules ,pexs (peg-parse ,(caar pexs)))
     `(peg-run (peg ,@pexs) #'peg-signal-failure)))
 
 (defmacro peg (&rest pexs)

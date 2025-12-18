@@ -36,7 +36,7 @@ commands.  For example, in Log View buffers, there are commands to
 help users manipulate revision logs in a jujutsu-friendly way,
 directly within Log View buffers: ~vc-jj-log-view-bookmark-set~,
 ~vc-jj-log-view-abandon-change~, ~vc-jj-log-view-edit-change~ and more.
-  
+
 To see all available commands call =C-h a vc-jj RET=.  To see all
 available customization options, call =M-x customize-group vc-jj RET=.
 
@@ -44,8 +44,7 @@ available customization options, call =M-x customize-group vc-jj RET=.
 
 Emacs has built-in support for git-style diff and conflict markers, so
 you might want to set the following options in your Jujutsu
-configuration, for example via ~jj config edit --user~ or ~jj config edit
---repo~:
+configuration, for example via ~jj config edit --user~ or ~jj config edit --repo~:
 
 #+begin_src toml
 [ui]
@@ -65,14 +64,14 @@ storage backend jujutsu supports is Git, although other storage
 backends may be supported in the future.
 
 Since version 0.34.0, jujutsu repositories are "colocated" by default.
-Earlier versions of jujutsu may colocate a Git repository with ~jj git
-clone --colocate REPOSITORY-URL~.  Colocated repositories are ones that
-contain both a ".jj" and a ".git" directory in the repository root,
-allowing users to use both Jujutsu and Git commands in the same
-repository, without one getting in the way of the other.  (Although
-Git will complain about being in "detached HEAD" state.)  Because of
-this colocation, vc-jj can reuse some vc-git functionality where
-appropriate, such as handling '.gitignore' files.
+Earlier versions of jujutsu may colocate a Git repository with ~jj git clone --colocate REPOSITORY-URL~.
+Colocated repositories are ones that contain both a ~.jj~ and a ~.git~
+directory in the repository root, allowing users to use both Jujutsu
+and Git commands in the same repository, without one getting in the
+way of the other.  (Although Git will complain about being in
+"detached HEAD" state.)  Because of this colocation, vc-jj can reuse
+some vc-git functionality where appropriate, such as handling
+~.gitignore~ files.
 
 ** Jujutsu terminology and concepts
 

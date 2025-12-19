@@ -31,9 +31,9 @@ currently supported.  Supported commands include:
 + ~vc-annotate~
 + ~log-view-modify-change-comment~
 
-Additionally, vc-jj aims to provide jujutsu-specific conveniences and
+Additionally, vc-jj aims to provide Jujutsu-specific conveniences and
 commands.  For example, in Log View buffers, there are commands to
-help users manipulate revision logs in a jujutsu-friendly way,
+help users manipulate revision logs in a Jujutsu-friendly way,
 directly within Log View buffers: ~vc-jj-log-view-bookmark-set~,
 ~vc-jj-log-view-abandon-change~, ~vc-jj-log-view-edit-change~ and more.
 
@@ -60,11 +60,11 @@ vc-jj work well even if the user configures many of them.
 
 Jujutsu is a distributed version control system that is separated from
 the format in which files are stored on-disk.  Currently, the only
-storage backend jujutsu supports is Git, although other storage
+storage backend Jujutsu supports is Git, although other storage
 backends may be supported in the future.
 
-Since version 0.34.0, jujutsu repositories are "colocated" by default.
-Earlier versions of jujutsu may colocate a Git repository with
+Since version 0.34.0, Jujutsu repositories are "colocated" by default.
+Earlier versions of Jujutsu may colocate a Git repository with
 ~jj git clone --colocate REPOSITORY-URL~.  Colocated repositories are
 ones that contain both a =.jj= and a =.git= directory in the
 repository root, allowing users to use both Jujutsu and Git commands
@@ -75,18 +75,18 @@ where appropriate, such as handling =.gitignore= files.
 
 ** Jujutsu terminology and concepts
 
-To those used to other version control systems, like Git, jujutsu's
+To those used to other version control systems, like Git, Jujutsu's
 version control model may be unfamiliar.
 
-Below is an attempt at a brief description of jujutsu-specific
+Below is an attempt at a brief description of Jujutsu-specific
 terminology and concepts.
 
 In Jujutsu, there are both "commits" and "changes."  In Git, the
 primary unit of history is the commit, which is immutable and
-identified by a commit hash.  In jujutsu, the primary unit is the
-change.  A jujutsu "*commit*" is the same as in Git: a snapshot in time
+identified by a commit hash.  In Jujutsu, the primary unit is the
+change.  A Jujutsu "*commit*" is the same as in Git: a snapshot in time
 of the repository.  In Jujutsu, "*revision*" can be used interchangeably
-with "commit."  A *"change"*, on the other hand, is unique to jujutsu:
+with "commit."  A *"change"*, on the other hand, is unique to Jujutsu:
 it can be thought of as a /logical unit of work/.  A change is like the
 entire evolution of a commit as it changes over time.  Each change has
 an underlying commit.
@@ -99,7 +99,7 @@ As the user modifies the repository, all changes are automatically
 recorded and all non-ignored files are automatically tracked.
 Consequently, unlike Git, there is no staging area or check-in
 operation.  Instead, all modifications occur in the current change ---
-the "*working copy*."  As files are edited, added, and deleted, jujutsu
+the "*working copy*."  As files are edited, added, and deleted, Jujutsu
 will take *snapshots* of the repository and automatically *rewrite* the
 underlying commit of the working copy, keeping the change intact but
 changing the corresponding underlying commit.
@@ -132,9 +132,9 @@ they point to, unlike Git branches.  Users familiar with Mercurial
 will find that Jujutsu bookmarks are more similar to [[https://wiki.mercurial-scm.org/Bookmarks][Mercurial
 bookmarks]] than Git branches.
 
-Users may read more about the concepts and terms used in jujutsu here:
+Users may read more about the concepts and terms used in Jujutsu here:
 https://docs.jj-vcs.dev/latest/.  In particular, a glossary of all
-jujutsu-specific terms can be found here:
+Jujutsu-specific terms can be found here:
 https://docs.jj-vcs.dev/latest/glossary/.
 
 * Contributing
@@ -163,7 +163,7 @@ project root directory, then in Emacs open =vc-jj.el= and activate
 
 The scope of the =vc-jj.el= project is to add jj support to the Emacs
 built-in =vc= and =project= libraries.  In case you look for a package
-with more specialized jujutsu support, here are some that might fit
+with more specialized Jujutsu support, here are some that might fit
 the bill:
 
 - [[https://github.com/0WD0/majutsu][0WD0/majutsu]] :: “Majutsu provides a Magit-style interface for
@@ -173,4 +173,4 @@ the bill:
   inspired by Magit”
 - [[https://github.com/bennyandresen/jujutsu.el][bennyandresen/jujutsu.el]] :: “An Emacs interface for jujutsu, inspired
   by magit and humbly not attempting to match it in scope.”
-- [[https://git.sr.ht/~puercopop/jujutsushi][~puercopop/jujutsushi]] :: “A emacs interface to jujutsu”
+- [[https://git.sr.ht/~puercopop/jujutsushi][~puercopop/jujutsushi]] :: “A emacs interface to Jujutsu”

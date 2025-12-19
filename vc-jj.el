@@ -772,6 +772,24 @@ _FILES currently has no effect on this function."
 
 ;;;; find-admin-dir
 
+;;;; add-working-tree
+;; Emacs 31 method
+
+;;;; delete-working-tree
+;; Emacs 31 method
+
+;;;; move-working-tree
+;; Emacs 31 method
+
+;;;; delete-revision
+;; Emacs 31 method
+
+;;;; delete-revisions-from-end
+;; Emacs 31 method
+
+;;;; uncommit-revisions-from-end
+;; Emacs 31 method
+
 ;;; HISTORY FUNCTIONS
 
 ;;;; print-log

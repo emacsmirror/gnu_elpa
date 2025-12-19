@@ -784,6 +784,10 @@ _FILES currently has no effect on this function."
 ;;;; delete-revision
 ;; Emacs 31 method
 
+(defun vc-jj-delete-revision (rev)
+  "Abandon REV."
+  (vc-jj--command-dispatched nil 0 nil "abandon" rev))
+
 ;;;; delete-revisions-from-end
 ;; Emacs 31 method
 
@@ -936,7 +940,7 @@ Call \"jj abandon\" on the revision at point."
                                                        "-r" rev
                                                        "-T" "change_id.shortest()")
                              'face 'log-view-message)))
-      (vc-jj--command-dispatched nil 0 nil "abandon" rev "--quiet")
+      (vc-jj-delete-revision rev)
       (vc-jj--reload-log-buffers))))
 
 (defun vc-jj-log-view-new-change ()

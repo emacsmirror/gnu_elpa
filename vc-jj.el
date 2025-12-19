@@ -366,6 +366,13 @@ See also `vc-jj--command-parseable' and `vc-jj--process-lines'."
 
 (defalias 'vc-jj-async-checkins #'always)
 
+;;;; working-revision-symbol
+;; Emacs 31 method
+
+;; Use `defalias' and `cl-constantly' like
+;; `vc-git-working-revision-symbol' does
+(defalias 'vc-jj-working-revision-symbol (cl-constantly "@"))
+
 ;;; STATE-QUERYING FUNCTIONS
 
 ;;;; registered

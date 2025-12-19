@@ -361,6 +361,11 @@ See also `vc-jj--command-parseable' and `vc-jj--process-lines'."
   "JJ-specific implementation of `update-on-retrieve-tag' property."
   nil)
 
+;;;; async-checkins
+;; Emacs 31 method
+
+(defalias 'vc-jj-async-checkins #'always)
+
 ;;; STATE-QUERYING FUNCTIONS
 
 ;;;; registered

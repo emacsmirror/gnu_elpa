@@ -46,10 +46,10 @@
 ;; FILE STRUCTURE
 ;;
 ;; After the "Customization" and "Internal Utilities" sections, the
-;; organization of this file follows the "BACKEND PROPERTIES" section
+;; organization of this file matches the "BACKEND PROPERTIES" section
 ;; of the preamble of the 'vc.el' file: each outline heading
-;; corresponding to a vc backend method and the contents of each
-;; heading relate to implementing that backend method.
+;; corresponds to a vc backend method and the contents of each heading
+;; relate to implementing that backend method.
 
 ;; FEEDBACK AND CONTRIBUTIONS
 ;;
@@ -63,7 +63,15 @@
 ;; so we ask contributors to try their best to use the terminology
 ;; specific to jujutsu as opposed to other version control systems,
 ;; such as Git.  A brief description of these differences can be found
-;; above.
+;; in the README.
+;;
+;; Additionally, contributors should adhere to the following
+;; capitalization and terminology conventions:
+;; - "Jujutsu" refers to the Jujutsu version control system.
+;; - "jj" refers to the Jujutsu command-line tool or its commands.
+;; - "Jj" is used when "jj" would otherwise begin a sentence.
+;; - "vc-jj" may be used to refer to this Emacs package.
+;; - "Vc-jj" is used when "vc-jj" would otherwise begin a sentence.
 
 ;;; Code:
 

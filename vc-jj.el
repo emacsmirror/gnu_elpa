@@ -1246,6 +1246,18 @@ of FILE between lines LFROM and LTO."
 
 ;;;; last-change
 
+;;;; revision-published-p
+;; Emacs 31 method
+
+(defun vc-jj-revision-published-p (rev)
+  "Whether REV is pushed or not.
+Return t when REV has been pushed to a remote repository, and nil
+otherwise."
+  (member rev
+          (vc-jj--process-lines nil "log" "--no-graph"
+                                "-r" "mutable()"
+                                "-T" "self.change_id() ++ '\n'")))
+
 ;;; TAG/BRANCH SYSTEM
 
 ;;;; create-tag

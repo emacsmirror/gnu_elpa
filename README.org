@@ -91,18 +91,18 @@ it can be thought of as a /logical unit of work/.  A change is like the
 entire evolution of a commit as it changes over time.  Each change has
 an underlying commit.
 
+Every change has a corresponding change ID and every commit has a
+corresponding commit ID.  Most jj commands accept both change IDs and
+commit IDs.
+
 As the user modifies the repository, all changes are automatically
 recorded and all non-ignored files are automatically tracked.
-Consequently, unlike Git, there is no straging area or check-in
+Consequently, unlike Git, there is no staging area or check-in
 operation.  Instead, all modifications occur in the current change ---
 the "*working copy*."  As files are edited, added, and deleted, jujutsu
 will take *snapshots* of the repository and automatically *rewrite* the
 underlying commit of the working copy, keeping the change intact but
 changing the corresponding underlying commit.
-
-Every change has a corresponding change ID and every commit has a
-corresponding commit ID.  Most jj commands accept both change IDs and
-commit IDs.
 
 Because of the conceptual differences between Git and Jujutsu,
 commands that assume a stage/commit workflow behave differently or are
@@ -115,15 +115,22 @@ identity via the change ID.  Users will find that it is much more
 natural to make changes in a repository by rewriting, playing with,
 and modifying the change log.
 
-Finally, in Jujutsu, there are *bookmarks*.  Although each git *branch*
-corresponds to a Jujutsu bookmark and vice versa, a bookmark is merely
-an alias or named pointer to a commit.  (Bookmarks automatically
-follow a commit if it gets rewritten.)  The working copy (current
-change) may be on a bookmark's commit, but it is not "attached" to it
-in the way a commit in Git corresponds to a certain branch: bookmarks
-do not move when new changes are made atop them.  Users familiar with
-Mercurial will find that Jujutsu bookmarks are more similar to
-[[https://wiki.mercurial-scm.org/Bookmarks][Mercurial bookmarks]] than Git branches.
+Finally, in Jujutsu, there are *bookmarks*.  Although each Git *branch*
+has a corresponding Jujutsu bookmark and vice versa (in colocated
+repositories), a bookmark is merely an alias, or named pointer, to a
+commit.  Although bookmarks are pointers to commits, when a commit
+with a bookmark is rewritten, the bookmark automatically moves to the
+new commit, so bookmarks can effectively be treated as pointers to
+changes.
+
+In contrast to Git, the working copy (current change) may be on a
+bookmark's commit, but it is not "attached" to it in the way a Git
+commit is attached to a branch: in Jujutsu, there is no currently
+checked out or active bookmark.  As such, bookmarks do not
+automatically advance when new changes are created atop the commit
+they point to, unlike Git branches.  Users familiar with Mercurial
+will find that Jujutsu bookmarks are more similar to [[https://wiki.mercurial-scm.org/Bookmarks][Mercurial
+bookmarks]] than Git branches.
 
 Users may read more about the concepts and terms used in jujutsu here:
 https://docs.jj-vcs.dev/latest/.  In particular, a glossary of all

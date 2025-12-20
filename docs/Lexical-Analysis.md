@@ -6,13 +6,17 @@ The lexical analysis is internally indexed on a local variable `parser-generator
 
 All parsers expect a list as response from the lexical-analysis, the first item in the list should be a list of one or more tokens. The second is "move index"-flag, if it is non-nil it is expected to be a integer representing the index to temporarily move the index to and perform a new lex at. The third item is the new state after the lex. Return values 2 and 3 are optional.
 
-To enable exporting, the functions need to be specified in a way that the entire body is within the same block, do that using `(let)` or `(progn)` for example.
+To enable exporting, the variables `'parser-generator-lex-analyzer--function-export-string` and `'parser-generator-lex-analyzer--get-function-export-string` need to declared as string representations of their original source code, this is because Emacs compilation obfuscates lambda source code at the some time in compilation.
 
 ```emacs-lisp
   (setq
-   parser-generator-lex-analyzer--function
-   (lambda (index _state)
-     (let* ((string '(("a" 1 . 2) ("a" 2 . 3) ("b" 3 . 4) ("b" 4 . 5)))
+   parser-generator-lex-analyzer--get-function-export-string
+   "(lambda (token)
+     (car token))")
+  (setq
+   parser-generator-lex-analyzer--function-export-string
+   "(lambda (index _state)
+     (let* ((string '((\"a\" 1 . 2) (\"a\" 2 . 3) (\"b\" 3 . 4) (\"b\" 4 . 5)))
             (string-length (length string))
             (max-index index)
             (tokens))
@@ -21,7 +25,7 @@ To enable exporting, the functions need to be specified in a way that the entire
                (< (1- index) max-index))
          (push (nth (1- index) string) tokens)
          (setq index (1+ index)))
-       (list tokens))))
+       (list tokens)))")
 ```
 
 ## Token

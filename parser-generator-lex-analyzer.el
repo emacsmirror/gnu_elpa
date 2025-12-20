@@ -21,9 +21,19 @@
   "Get token contents.  Any return is valid even nil.")
 
 (defvar
+  parser-generator-lex-analyzer--get-function-export-string
+  ""
+  "String version of get function, used only when generating exports. This is needed because Emacs compilation obfuscates lambda source code after so it is not printable anymore. Easiest way to populate this is to copy the lambda source code into a string and manually escape double quotes.")
+
+(defvar
   parser-generator-lex-analyzer--function
   nil
   "Get next token like \='(a b . c) or nil, expects signal if input-tape is invalid.")
+
+(defvar
+  parser-generator-lex-analyzer--function-export-string
+  ""
+  "String version of get function, used only when generating exports. This is needed because Emacs compilation obfuscates lambda source code after so it is not printable anymore. Easiest way to populate this is to copy the lambda source code into a string and manually escape double quotes.")
 
 (defvar
   parser-generator-lex-analyzer--state-init

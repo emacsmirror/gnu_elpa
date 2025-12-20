@@ -19,7 +19,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20250516
+;; Version:    20251216
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eev-videolinks.el>
@@ -87,6 +87,8 @@
 ;;   «.eev2024»				(to "eev2024")
 ;;   «.2024pianoroll»			(to "2024pianoroll")
 ;;   «.2025modern»			(to "2025modern")
+;;   «.eev2025»				(to "eev2025")
+;;   «.2025badly»			(to "2025badly")
 ;; «.ee-1stclassvideos-field»		(to "ee-1stclassvideos-field")
 ;; «.second-class-videos»		(to "second-class-videos")
 ;;   «.code-eevvideo»			(to "code-eevvideo")
@@ -1025,7 +1027,7 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «2025modern»  (to ".2025modern")
     ;; Play: (find-2025modernvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "2025modern")
+    ;; Subs: (find-2025modernsubs "0:00")
     ("2025modern"
      :title "Some problems of modernizing Emacs (incomplete - slides 0 to 6 only)"
      :mp4   "http://anggtwu.net/eev-videos/2025-modern.mp4"
@@ -1036,6 +1038,35 @@ of the videos and play them with mpv. Compare with
      :length  "20:38"
      :subs    ".vtt"
      :comment "A video about vector-like lambdas, `cl-print', and buttons.")
+    ;;
+    ;; «eev2025»  (to ".eev2025")
+    ;; Play: (find-eev2025video "0:00")
+    ;; Subs: (find-eev2025hsubs "0:00")
+    ("eev2025"
+     :title "Some problems of modernizing Emacs (EmacsConf 2025)"
+     :mp4   "http://anggtwu.net/eev-videos/emacsconf2025.mp4"
+     :yt    "http://www.youtube.com/watch?v=Y75Q2IN8Y_M"
+     :page  "http://anggtwu.net/emacsconf2025.html"
+     :hsubs "http://anggtwu.net/emacsconf2025.html#0:00"
+     :date    "2025dec07"
+     :length  "25:22"
+     :subs    ".vtt"
+     :index   t
+     :comment "(to be written)")
+    ;;
+    ;; «2025badly»  (to ".2025badly")
+    ;; Play: (find-2025badlyvideo "0:00")
+    ;; Subs: (find-1stclassvideoindex "2025badly")
+    ("2025badly"
+     :title "Badly-behaved targets, or: eev, Slime, Sly, and Maxima"
+     :mp4   "http://anggtwu.net/eev-videos/2025-badly-behaved.mp4"
+     :yt    "http://www.youtube.com/watch?v=kbeHTmDBV44"
+     :page  "http://anggtwu.net/2025-badly-behaved.html"
+     :hsubs "http://anggtwu.net/2025-badly-behaved.html#0:00"
+     :date    "2025dec16"
+     :length  "17:48"
+     :subs    ".vtt"
+     :comment "A very technical video about Common Lisp and eepitch.")
     ))
 
 

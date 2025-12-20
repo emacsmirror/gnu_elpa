@@ -21,7 +21,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20250831
+;; Version:    20251219
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eev-blinks.el>
@@ -62,6 +62,7 @@
 ;; «.find-ehashtable»		(to "find-ehashtable")
 ;; «.find-estruct»		(to "find-estruct")
 ;; «.find-clprin1»		(to "find-clprin1")
+;; «.find-clprin2»		(to "find-clprin2")
 ;; «.find-sh»			(to "find-sh")
 ;; «.find-man»			(to "find-man")
 ;; «.find-man-bug»		(to "find-man-bug")
@@ -1157,6 +1158,10 @@ fieldname value\", like this:
 ;; For functions that use `pp-to-string', see:
 ;;   (to "find-epp")
 ;;
+;; `find-clprin1' and `find-clprin2' are mentioned in these videos:
+;;   (find-1stclassvideo-links "eev2025")
+;;   (find-1stclassvideo-links "2025modern")
+;;
 ;; Some elisp classes have special `cl-print-object' methods that tell
 ;; Emacs how to pretty-print their objects. The lower-level way of
 ;; converting objects to strings in Emacs ignore these special
@@ -1166,19 +1171,19 @@ fieldname value\", like this:
 ;;   (find-efunction 'cl-prin1-to-string)
 ;;
 ;; In this section we define the functions `find-clprin1',
-;; `find-clprin1s', `find-clprin1ind', and `find-clprin2',, that are
-;; based on `cl-prin1-to-string'. Try:
+;; `find-clprin1s', and `find-clprin2', that are based on
+;; `cl-prin1-to-string'. Try:
 ;;
-;;                          (cl-defstruct mytriple a b c)
-;;                                  (make-mytriple :a 22 :c "44")
-;;   (find-2a nil '(find-clprin1    (make-mytriple :a 22 :c "44")))
-;;   (find-2a nil '(find-clprin1ind (make-mytriple :a 22 :c "44")))
-;;                                  (cl-find-class 'cl-structure-class)
-;;   (find-2a nil '(find-clprin1ind (cl-find-class 'cl-structure-class)))
+;;                       (cl-defstruct mytriple a b c)
+;;                               (make-mytriple :a 22 :c "44")
+;;   (find-2a nil '(find-clprin1 (make-mytriple :a 22 :c "44")))
+;;   (find-2a nil '(find-clprin2 (make-mytriple :a 22 :c "44")))
+;;   (find-2a nil '(find-clprin2 (cl-find-class 'cl-structure-class)))
 ;;
-;; The `s' in `find-clprin1s' is a plural, and the `ind' in
-;; `find-clprin1ind' means "indent in a nice way". `clprin2' is an
-;; alias for `clprin1ind'.
+;; The `s' in `find-clprin1s' is a plural. I started using the suffix
+;; `clprin1ind', then switched to `clprin2' at some point; `1ind'
+;; meant "1, indented". The `*-clprin2' functions are defined and
+;; explained in the next section.
 ;;
 ;; Here are some examples of classes with special `cl-print-object'
 ;; methods:
@@ -1194,7 +1199,7 @@ fieldname value\", like this:
 ;;
 (defun find-clprin1 (o &rest pos-spec-list)
 "Visit a temporary buffer containing a `cl-prin1'-printed version of O."
-  (apply 'find-estring-elisp (cl-prin1-to-string o) pos-spec-list))
+  (apply 'find-estring-elisp (ee-clprin1 o) pos-spec-list))
 
 ;; Tests: (find-clprin1  (cl--class-slots (cl-find-class 'cl-structure-class)))
 ;;        (find-clprin1s (cl--class-slots (cl-find-class 'cl-structure-class)))
@@ -1205,29 +1210,46 @@ of objects and each one of these objects is `cl-prin1'-printed in a
 different line."
   (apply 'find-estring-elisp (ee-clprin1s o) pos-spec-list))
 
-;; Test: (find-clprin1ind (cl-find-class 'cl-structure-class))
-(defun find-clprin1ind (o &rest pos-spec-list)
-"Visit a temporary buffer containing a `cl-prin1'-printed version of O.
-This is a variant of `find-clprin1' that tries to insert newlines at the
-right places in the output of `cl-prin1-to-string' and then runs
-`ee-indent-as-elisp' in the result."
-  (apply 'find-estring-elisp (ee-clprin1ind o) pos-spec-list))
-
-(defalias 'find-clprin2 'find-clprin1ind)
+;; Low-level functions used by `find-clprin1' and `find-clprin1s':
+(defun ee-clprin1  (o) (cl-prin1-to-string o))
+(defun ee-clprin1s (o) (mapconcat 'cl-prin1-to-string o "\n"))
 
 
-;; Low-level functions used by `find-clprin1' and friends.
-;; I sometimes use them with `-->', the main threading macro of
-;; dash.el. For example:
-;;   (--> 'cl-structure-class cl-find-class)
-;;   (--> 'cl-structure-class cl-find-class cl-type-of)
-;;   (--> 'cl-structure-class cl-find-class cl--class-slots)
-;;   (--> 'cl-structure-class cl-find-class cl--class-slots ee-clprin1)
-;;   (--> 'cl-structure-class cl-find-class cl--class-slots ee-clprin1s)
-;;   (--> 'cl-structure-class cl-find-class ee-clprin1)
-;;   (--> 'cl-structure-class cl-find-class find-clprin1ind)
 
-;; Test: (ee-indent-as-elisp "(defun foo ()\n(interactive)\n42)")
+;;;   __ _           _            _            _       ____  
+;;;  / _(_)_ __   __| |       ___| |_ __  _ __(_)_ __ |___ \ 
+;;; | |_| | '_ \ / _` |_____ / __| | '_ \| '__| | '_ \  __) |
+;;; |  _| | | | | (_| |_____| (__| | |_) | |  | | | | |/ __/ 
+;;; |_| |_|_| |_|\__,_|      \___|_| .__/|_|  |_|_| |_|_____|
+;;;                                |_|                       
+;;
+;; «find-clprin2»  (to ".find-clprin2")
+;; `find-clprin2' is a `find-clprin1' with extra steps: it adds
+;; newlines at certain positions of the output of `cl-prin1-to-string'
+;; and runs `ee-indent-as-elisp' on the result. The newlines are added
+;; in places that make (most) "named plists" be indented nicely.
+;;
+;;   This is a plist:             (:keyA 123 :keyB 234)
+;;   This is a "named plist":  (AB :keyA 123 :keyB 234)
+;;
+;; Try:
+;;                       "(defun foo ()\n(interactive)\n42)"
+;;   (ee-indent-as-elisp "(defun foo ()\n(interactive)\n42)")
+;;                   (ee-clprin1 '(AB :keyA 123 :keyB 234))
+;;                   (ee-clprin2 '(AB :keyA 123 :keyB 234))
+;;   (find-2a nil '(find-clprin1 '(AB :keyA 123 :keyB 234)))
+;;   (find-2a nil '(find-clprin2 '(AB :keyA 123 :keyB 234)))
+;;
+;; The sexps with `*-clprin2' above will show this:
+;;
+;;   (AB
+;;    :keyA 123
+;;    :keyB 234)
+;;
+;; Here is a big example. Compare:
+;;   (find-2a nil '(find-clprin1 (cl-find-class 'cl-structure-class)))
+;;   (find-2a nil '(find-clprin2 (cl-find-class 'cl-structure-class)))
+;;
 (defun ee-indent-as-elisp (str)
   (with-temp-buffer
     (emacs-lisp-mode)
@@ -1235,21 +1257,46 @@ right places in the output of `cl-prin1-to-string' and then runs
     (indent-region (point-min) (point-max))
     (buffer-substring (point-min) (point-max))))
 
-(defun ee-clprin1  (o) (cl-prin1-to-string o))
-(defun ee-clprin1s (o) (mapconcat 'cl-prin1-to-string o "\n"))
-
-;; (find-estring-elisp (ee-clprin1    (cl-find-class 'cl-structure-class)))
-;; (find-estring-elisp (ee-clprin1ind (cl-find-class 'cl-structure-class)))
-(defun ee-clprin1ind (o)
+(defun ee-clprin2 (o)
   "Like `cl-prin1-to-string', but indents the result in a nice way."
-  (let* ((str1 (cl-prin1-to-string o))
+  (let* ((str1 (ee-clprin1 o))
 	 (str2 (replace-regexp-in-string " :"  "\n:"  str1))
 	 (str3 (replace-regexp-in-string " #s" "\n#s" str2))
 	 (str4 (replace-regexp-in-string "•[ \n]+" " " str3)) ; a hack!
 	 (str5 (ee-indent-as-elisp str4)))
     str5))
 
-(defalias 'ee-clprin2 'ee-clprin1ind)
+(defun ee-clprin2s (o)
+  (ee-indent-as-elisp (format "(%s)" (mapconcat 'ee-clprin2 o "\n"))))
+
+(defun find-clprin2 (o &rest pos-spec-list)
+"Visit a temporary buffer containing a `cl-prin1'-printed version of O.
+This is a variant of `find-clprin1' that tries to insert newlines at the
+right places in the output of `cl-prin1-to-string' and then runs
+`ee-indent-as-elisp' in the result."
+  (apply 'find-estring-elisp (ee-clprin2 o) pos-spec-list))
+
+;; Test: (find-clprin2s ee-1stclassvideos-info)
+(defun find-clprin2s (o &rest pos-spec-list)
+"Visit a temporary buffer containing a `cl-prin2'-printed version of O.
+This is a variant of `find-clprin2s' in which O is expected to be a list
+of objects and each one of these objects is `cl-prin2'-printed."
+  (apply 'find-estring-elisp (ee-clprin2s o) pos-spec-list))
+
+;; Some examples in "2025modern" use the old suffix...
+(defalias 'find-clprin1ind 'find-clprin2)
+(defalias   'ee-clprin1ind   'ee-clprin2)
+
+;; I sometimes use the functions above with `-->', the main threading
+;; macro of dash.el. For example:
+;;   (--> 'cl-structure-class cl-find-class)
+;;   (--> 'cl-structure-class cl-find-class cl-type-of)
+;;   (--> 'cl-structure-class cl-find-class cl--class-slots)
+;;   (--> 'cl-structure-class cl-find-class cl--class-slots ee-clprin1)
+;;   (--> 'cl-structure-class cl-find-class cl--class-slots ee-clprin1s)
+;;   (--> 'cl-structure-class cl-find-class ee-clprin1)
+;;   (--> 'cl-structure-class cl-find-class find-clprin2)
+
 
 
 
@@ -1942,6 +1989,19 @@ See the comments in the source!"
 	     (closurep o))
 	(ee-closure-to-lambda o)
       o)))
+
+(defun ee-closure-to-named-plist (c &optional head)
+  "Convert a \"vector-like lambda\" to a \"named plist\".
+This function is used in the videos `2025modern' and `eev2025'."
+  (let ((list (ee-closure-to-list c)))
+    (seq-let [args code consts stackdepth docstring iform] list
+      `(,(or head 'interpreted-function)
+	:args       ,args
+	:code       ,code
+	:consts     ,consts
+	:stackdepth ,stackdepth
+	:docstring  ,docstring
+	:iform      ,iform))))
 
 
 

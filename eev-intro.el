@@ -19,7 +19,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20251121
+;; Version:    20251219
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eev-intro.el>
@@ -361,7 +361,7 @@ subtitles. To learn how to use links like those, visit this URL:
                                (find-video-links-intro)
 
 Installing eev does NOT activate eev-mode. To activate eev-mode
-and open this tutorial, run `M-x eev-beginner'.
+and open this tutorial, and run `M-x eev-beginner'.
 
 \"Installing\" eev doesn't \"load\" eev. The difference between
 installing and loading is explained here:
@@ -2480,8 +2480,7 @@ and then execute each one with `C-e C-x C-e':
 
 
 
-
-5.2. With `package-vc-install'
+5.3. With `package-vc-install'
 ------------------------------
 This installs the version of eev that is in the git repository.
 Copy and paste these lines to an Emacs buffer, and then execute
@@ -2500,10 +2499,80 @@ This will install eev in \"~/.emacs.d/elpa/eev/\". Try:
 
 
 
+5.4. With `use-package' and straight.el
+---------------------------------------
+Some people use non-default package managers for Emacs, like
+straight.el and use-package. I have very little experience with
+them, but it SEEMS that this is a good recipe for using eev with
+`use-package':
 
-5.3. From the tarball in ELPA
+;; From:
+;; https://lists.gnu.org/archive/html/help-gnu-emacs/2021-10/msg00031.html
+;; https://lists.gnu.org/archive/html/help-gnu-emacs/2021-10/msg00034.html
+;; See: (find-eev-install-intro \"5.4. `use-package'\")
+;;
+(use-package eev
+  :straight (:host github :repo \"edrx/eev\")
+  :config (progn
+           ;; See: (find-eev \"eev-load.el\" \"autoloads\")
+           ;; https://anggtwu.net/eev-current/eev-load.el.html#autoloads
+           (require 'eev-load)
+           ;; (eev-mode 1)     ; optional
+           ;; (eev-beginner)   ; optional
+           ))
+
+
+
+5.5. With Guix
+--------------
+The author of the Guix package for eev - Untrusem - told me that
+his package is a work in progress, and that he believes that these
+instructions will start working in the middle of december/2025.
+Add this to your guix channel file:
+
+  (channel
+   (name 'rain-and-roses
+   (url \"https://codeberg.org/untrusem/rain-and-roses.git\")
+   (branch \"trunk\"))
+
+then run this in a shell:
+
+  guix pull
+  guix install emacs-eev
+
+See the next section for some things that don't work in the Guix
+package.
+
+
+
+5.6. A note about read-onlyness
+-------------------------------
+Many functions in eev are \"documented\" by tests in comments in the
+source code. These test are marked with \";; Test:\", and they suppose
+that the person who will try to run them knows how to undo their
+actions. For example, in this section
+
+  (find-eev \"eev-blinks.el\" \"find-einsert\")
+
+two of the tests are:
+
+;; Test: (ee-insert \"\\n;; \" '(?a ?z) 32 \"Foo\")
+;; Test: (find-einsert '(\"Greek:\\n\" (913 969) 10 \"Bold:\\n\" (120276 120327)))
+
+The first one inserts a line in the current buffer, and the way to undo
+its action is to run `undo'; the second one creates a temporary buffer,
+and the way to undo its action is to kill that buffer with `M-k'.
+
+In Guix the .el files of Emacs packages are read-only, and tests like
+the one with `ee-insert' above will fail.
+
+
+
+
+
+5.4. From the tarball in ELPA
 -----------------------------
-[This section is very old! TODO: rewrite it!]
+[Now Emacs28 is easy to install and W$, and this section is obsolete]
 
 ...as an Emacs package, by downloading a file named
 eev-YYYYMMDD.tar from either ELPA or anggtwu.net using
@@ -2530,9 +2599,9 @@ There is a link to download Emacs28-pretest here:
 
 
 
-5.1. Using the tarball
+5.5. Using the tarball
 ----------------------
-[Obsolete, deleted, except for this last paragraph:]
+[VERY obsolete, deleted, except for this last paragraph:]
 
 Every time that Emacs gets stuck into something that you don't know
 how to leave, or how to undo, you should kill the Emacs window and
@@ -2604,31 +2673,6 @@ and then run `M-x package-install-file' and give it the name of
 the local copy of the .tar. See:
 
   (find-enode \"Package Files\" \"M-x package-install-file\")
-
-
-
-
-5.5. `use-package'
-------------------
-Some people use non-default package managers for Emacs, like
-straight.el and use-package. I have very little experience with
-them, but it SEEMS that this is a good recipe for using eev with
-`use-package':
-
-;; From:
-;; https://lists.gnu.org/archive/html/help-gnu-emacs/2021-10/msg00031.html
-;; https://lists.gnu.org/archive/html/help-gnu-emacs/2021-10/msg00034.html
-;; See: (find-eev-install-intro \"5.5. `use-package'\")
-;;
-(use-package eev
-  :straight (:host github :repo \"edrx/eev\")
-  :config (progn
-           ;; See: (find-eev \"eev-load.el\" \"autoloads\")
-           ;; http://anggtwu.net/eev-current/eev-load.el.html#autoloads
-           (require 'eev-load)
-           ;; (eev-mode 1)     ; optional
-           ;; (eev-beginner)   ; optional
-           ))
 
 
 
@@ -6509,9 +6553,10 @@ scripts etc\]
 ;; Skel: (find-intro-links "eepitch")
 ;; (find-eev "eepitch.readme")
 
-(defun find-eepitch-intro (&rest rest) (interactive)
-       (let ((ee-buffer-name "*(find-eepitch-intro)*"))
-	 (apply 'find-eintro "\
+(defun find-eepitch-intro (&rest rest)
+  (interactive)
+  (let ((ee-buffer-name "*(find-eepitch-intro)*"))
+    (apply 'find-eintro "\
 \(Re)generate: (find-eepitch-intro)
 Source code:  (find-eev \"eev-intro.el\" \"find-eepitch-intro\")
 More intros:  (find-eev-quick-intro)
@@ -18591,6 +18636,12 @@ Quicklisp or by Sly.
 
 This is rewrite of:
   (find-try-sly-links)
+
+UPDATE: in dec/2025 I recorded this video
+  (find-1stclassvideo-links \"2025badly\")
+  https://anggtwu.net/2025-badly-behaved.html
+about test blocks for Maxima, Sly, and Slime.
+TODO: integrate its ideas with this intro!
 
 
 

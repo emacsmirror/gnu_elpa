@@ -1286,6 +1286,17 @@ raise an error."
 (defun eepitch-slime-select-pkgbuffer (pkg)
   (eepitch-to-buffer (eepitch-slime-get-pkgbuffer pkg)))
 
+;; For Maxima with Slime.
+;; Used by: (find-eev "eev-testblocks.el" "lisp-mode-maxima-slime")
+(defun find-3ee-maxima-slime ()
+  (find-3ee '(eepitch-maxima)
+	    '(eepitch-slime-select-pkgbuffer "MAXIMA")))
+
+(defun find-4eee-maxima-slime ()
+  (find-4eee '(eepitch-maxima)
+	     '(eepitch-slime-select-pkgbuffer "COMMON-LISP-USER")
+	     '(eepitch-slime-select-pkgbuffer "MAXIMA")))
+
 
 ;; «eepitch-b-sly»  (to ".eepitch-b-sly")
 ;; This is similar to `eepitch-b-slime', for for Sly.
@@ -1313,6 +1324,16 @@ raise an error."
 (defun eepitch-sly-select-pkgbuffer (pkg)
   (eepitch-to-buffer (eepitch-sly-get-pkgbuffer pkg)))
 
+;; For Maxima with Sly.
+;; Used by: (find-eev "eev-testblocks.el" "lisp-mode-maxima-sly")
+(defun find-3ee-maxima-sly ()
+  (find-3ee '(eepitch-maxima)
+	    '(eepitch-sly-select-pkgbuffer "maxima")))
+
+(defun find-4eee-maxima-sly ()
+  (find-4eee '(eepitch-maxima)
+	     '(eepitch-sly-select-pkgbuffer "common-lisp-user")
+	     '(eepitch-sly-select-pkgbuffer "maxima")))
 
 
 

@@ -1,3 +1,49 @@
+2025-12-19  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eev.el: bumped the version.
+
+	* eev-intro.el (find-try-sly-intro): mention "2025badly".
+
+	* eev-blinks.el (ee-clprin2s, find-clprin2s): new functions.
+
+2025-12-16  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eev-videolinks.el (ee-1stclassvideos-info): new video, with
+	subtitles: "2025badlybt".
+
+2025-12-15  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eev-tlinks.el (find-sbcl-links): small changes.
+	(find-slime-sly-links): new function.
+
+	* eepitch.el (find-3ee-maxima-slime, find-4eee-maxima-slime)
+	(find-3ee-maxima-sly, find-4eee-maxima-sly): new functions.
+
+	* eev-testblocks.el (ee-insert-test-lisp-mode-4): use
+	`find-4eee-maxima-slime' and `find-3ee-maxima-slime'.
+	(ee-insert-test-lisp-mode-5): use `find-4eee-maxima-sly' and
+	`find-3ee-maxima-sly'.
+
+2025-12-10  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eev-intro.el (find-eev-install-intro): added the subsections
+	"5.5. With Guix" and "5.5.1. A note about read-onlyness";
+	renumbered some very old sections.
+
+2025-12-08  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eev-videolinks.el (ee-1stclassvideos-info): new video, with
+	subtitles: "eev2025".
+
+2025-12-06  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eev-blinks.el (ee-closure-to-named-plist): new function.
+	(find-clprin1, find-clprin1s, ee-clprin1, ee-clprin1s)
+	(ee-indent-as-elisp, ee-clprin2, find-clprin2, find-clprin1ind)
+	(ee-clprin1ind): Trivial changes in the code, lots of changes in
+	the comments - because these functions were used in my video for
+	the EmacsConf 2025.
+
 2025-11-23  Eduardo Ochs  <eduardoochs@gmail.com>
 
 	* eepitch.el (eepitch-b-show-source, eepitch-b-set-source)

@@ -1485,7 +1485,8 @@ If D is t then try to use `ee-package-dir' to get the directory."
 # (ee-package-dir '{pkg})
 # (find-epp        (package-get-descriptor '{pkg}))
 # (find-estruct    (package-get-descriptor '{pkg}))
-# (find-clprin1ind (package-get-descriptor '{pkg}))
+# (find-clprin2    (package-get-descriptor '{pkg}))
+# (find-clprin2s   (package-desc-extras (package-get-descriptor '0x0)))
 
 # (package-initialize)
 # (package-refresh-contents)
@@ -1495,6 +1496,7 @@ If D is t then try to use `ee-package-dir' to get the directory."
 # (find-fline    (ee-package-dir '{pkg}))
 # (find-epp     (ee-package-desc '{pkg}))
 # (find-estruct (ee-package-desc '{pkg}))
+# (find-clprin2 (ee-package-desc '{pkg}))
 # (kill-new      (ee-package-url '{pkg}))
 # (insert \"\\n# \" (ee-package-url '{pkg}))
 # (package-delete (ee-package-desc '{pkg}))

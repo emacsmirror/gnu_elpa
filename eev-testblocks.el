@@ -19,7 +19,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20251123
+;; Version:    20251215
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eev-testblocks.el>
@@ -349,7 +349,7 @@ to_lisp();
 ;; See: (find-eev "eepitch.el" "eepitch-b-slime")
 ;;      (find-angg ".maxima/startslime.lisp")
 (defun ee-insert-test-lisp-mode-4 ()
-  "Use `M-4 M-x eeit' on a Lisp mode buffer to run this."
+"For Maxima with Slime. Use `M-4 M-x eeit' on a Lisp mode buffer to run this."
   (interactive)
   (insert (ee-adjust-red-stars (format "
 #|
@@ -363,6 +363,8 @@ to_lisp();
       load(\"startslime\");
  (eepitch-b '(slime-connect \"localhost\" 4005))
  (eepitch-slime-set-pkgbuffers)
+ (find-4eee-maxima-slime)
+ (find-3ee-maxima-slime)
  (eepitch-slime-select-pkgbuffer \"COMMON-LISP-USER\")
  (eepitch-slime-select-pkgbuffer \"MAXIMA\")
 (load \"%s\")
@@ -377,7 +379,7 @@ load(\"%s\");
 ;; See: (find-eev "eepitch.el" "eepitch-b-sly")
 ;;      (find-angg ".maxima/startsly.lisp")
 (defun ee-insert-test-lisp-mode-5 ()
-  "Use `M-5 M-x eeit' on a Lisp mode buffer to run this."
+"For Maxima with Sly. Use `M-4 M-x eeit' on a Lisp mode buffer to run this."
   (interactive)
   (insert (ee-adjust-red-stars (format "
 #|
@@ -390,6 +392,8 @@ load(\"%s\");
       load(\"startsly\");
  (eepitch-b '(sly-connect \"localhost\" 56789))
  (eepitch-sly-set-pkgbuffers)
+ (find-4eee-maxima-sly)
+ (find-3ee-maxima-sly)
  (eepitch-sly-select-pkgbuffer \"common-lisp-user\")
  (eepitch-sly-select-pkgbuffer \"maxima\")
 (load \"%s\")

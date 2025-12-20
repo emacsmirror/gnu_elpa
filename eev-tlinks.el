@@ -19,7 +19,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20251022
+;; Version:    20251215
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eev-tlinks.el>
@@ -34,7 +34,7 @@
 
 ;; The functions defined here - `find-latex-links' and other ones -
 ;; produce buffers made of a series of hyperlinks followed by a
-;; templated text. The templated text is usually preceded by a line
+;; templated text. The templated text is often preceded by a line
 ;; like `(ee-copy-rest NLINES CODE)'; see the explanation of
 ;; `ee-copy-rest' below to understand how this is used.
 ;;
@@ -186,6 +186,7 @@
 ;; «.find-qdraw-links»			(to "find-qdraw-links")
 ;; «.find-quicklisp-links»		(to "find-quicklisp-links")
 ;; «.find-sbcl-links»			(to "find-sbcl-links")
+;; «.find-slime-sly-links»		(to "find-slime-sly-links")
 ;; «.find-linki-links»			(to "find-linki-links")
 ;; «.find-gitdoc-links»			(to "find-gitdoc-links")
 ;; «.find-luainit-links»		(to "find-luainit-links")
@@ -5598,8 +5599,13 @@ myqdraw([xr({xr}),yr({yr})], myexs());
 (apropos \"{name}\")
 (describe '{name})
 
- (eepitch-sly)
- (eepitch-kill)
+ (eepitch-slime-kill 'show-only)
+ (eepitch-slime-kill)
+ (eepitch-b '(slime \"sbcl\"))
+ (eepitch-slime-select)
+
+ (eepitch-sly-kill 'show-only)
+ (eepitch-sly-kill)
  (eepitch-sly)
 (apropos \"{name}\")
 (describe '{name})
@@ -5615,6 +5621,42 @@ myqdraw([xr({xr}),yr({yr})], myexs());
    pos-spec-list))
 
 
+
+
+;; «find-slime-sly-links»  (to ".find-slime-sly-links")
+;; Skel: (find-find-links-links-new "slime-sly" "" "")
+;; Test: (find-slime-sly-links)
+;;
+(defun find-slime-sly-links (&rest pos-spec-list)
+"Visit a temporary buffer containing hyperlinks for slime-sly."
+  (interactive)
+  (apply
+   'find-elinks-elisp
+   `((find-slime-sly-links ,@pos-spec-list)
+     ;; Convention: the first sexp always regenerates the buffer.
+     (find-efunction 'find-slime-sly-links)
+     ""
+     ,(ee-template0 "\
+;; Use the sexps below to switch between Slime and Sly.
+;; After installing the other package you need to restart Emacs.
+
+;; (find-epackage-links 'slime)
+;; (find-epackage-links 'sly)
+
+(progn
+  (package-initialize)
+  (package-refresh-contents)
+  (ignore-errors (package-delete (package-get-descriptor 'slime)))
+  (ignore-errors (package-delete (package-get-descriptor 'sly)))
+  )
+
+;;-- Choose one:
+;; (package-install 'slime)
+;; (package-install 'sly)
+
+")
+     )
+   pos-spec-list))
 
 
 

@@ -34,10 +34,10 @@
     (error "Table for terminals is undefined!"))
   (unless parser-generator--table-translations
     (error "Table for translations by production-number is undefined!"))
-  (unless parser-generator-lex-analyzer--get-function-export-string
-    (error "Missing lex-analyzer get function exporting string!"))
-  (unless parser-generator-lex-analyzer--function-export-string
-    (error "Missing lex-analyzer function export string!"))
+  (unless parser-generator-lex-analyzer--get-function-export-source
+    (error "Missing lex-analyzer get function exporting source!"))
+  (unless parser-generator-lex-analyzer--function-export-source
+    (error "Missing lex-analyzer function export source!"))
 
   (let ((code))
     (with-temp-buffer
@@ -167,14 +167,14 @@
        (format
         "(defvar\n  %s-lex-analyzer--get-function\n  %s\n  \"The lex-analyzer get function.\")\n\n"
         namespace
-        parser-generator-lex-analyzer--get-function-export-string))
+        parser-generator-lex-analyzer--get-function-export-source))
 
       ;; Lex-Analyzer Function
       (insert
        (format
         "(defvar\n  %s-lex-analyzer--function\n  %s\n  \"The lex-analyzer function.\")\n\n"
         namespace
-        parser-generator-lex-analyzer--function-export-string))
+        parser-generator-lex-analyzer--function-export-source))
 
       ;; Lex-Analyzer Reset Function
       (insert

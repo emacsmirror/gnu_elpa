@@ -38,9 +38,7 @@
    )
   (parser-generator-process-grammar)
   (parser-generator-ll-generate-table)
-
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (let* ((string '((b 1 . 2) (b 2 . 3) (a 3 . 4)))
             (string-length (length string))
@@ -52,28 +50,10 @@
          (push (nth (1- index) string) tokens)
          (setq index (1+ index)))
        (list (nreverse tokens) nil index nil))))
-  (setq
-   parser-generator-lex-analyzer--function-export-string
-   "(lambda (index _state)
-     (let* ((string '((b 1 . 2) (b 2 . 3) (a 3 . 4)))
-            (string-length (length string))
-            (max-index index)
-            (tokens))
-       (while (and
-               (< (1- index) string-length)
-               (< (1- index) max-index))
-         (push (nth (1- index) string) tokens)
-         (setq index (1+ index)))
-       (list (nreverse tokens) nil index nil)))")
 
-  (setq
-   parser-generator-lex-analyzer--get-function
+  (parser-generator-lex-analyzer-set-get-function
    (lambda (token)
      (car token)))
-  (setq
-   parser-generator-lex-analyzer--get-function-export-string
-   "(lambda (token)
-     (car token))")
 
   (let ((export (parser-generator-ll-export-to-elisp "ba")))
     (with-temp-buffer
@@ -100,8 +80,7 @@
           (ba-translate))))))
   (message "Passed exported test for example 5.16 p. 352")
 
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (let* ((string '((b 1 . 2) (b 2 . 3) (b 3 . 4) (a 4 . 5)))
             (string-length (length string))
@@ -113,19 +92,6 @@
          (push (nth (1- index) string) tokens)
          (setq index (1+ index)))
        (list (nreverse tokens) nil index nil))))
-  (setq
-   parser-generator-lex-analyzer--function-export-string
-   "(lambda (index _state)
-     (let* ((string '((b 1 . 2) (b 2 . 3) (b 3 . 4) (a 4 . 5)))
-            (string-length (length string))
-            (max-index index)
-            (tokens))
-       (while (and
-               (< (1- index) string-length)
-               (< (1- index) max-index))
-         (push (nth (1- index) string) tokens)
-         (setq index (1+ index)))
-       (list (nreverse tokens) nil index nil)))")
 
   (let ((export (parser-generator-ll-export-to-elisp "ba2")))
     (with-temp-buffer
@@ -162,9 +128,7 @@
    )
   (parser-generator-process-grammar)
   (parser-generator-ll-generate-table)
-
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (let* ((string '((a 1 . 2) (b 2 . 3) (b 3 . 4) (a 4 . 5) (b 5 . 6)))
             (string-length (length string))
@@ -176,28 +140,10 @@
          (push (nth (1- index) string) tokens)
          (setq index (1+ index)))
        (list (nreverse tokens) nil index nil))))
-  (setq
-   parser-generator-lex-analyzer--function-export-string
-   "(lambda (index _state)
-     (let* ((string '((a 1 . 2) (b 2 . 3) (b 3 . 4) (a 4 . 5) (b 5 . 6)))
-            (string-length (length string))
-            (max-index index)
-            (tokens))
-       (while (and
-               (< (1- index) string-length)
-               (< (1- index) max-index))
-         (push (nth (1- index) string) tokens)
-         (setq index (1+ index)))
-       (list (nreverse tokens) nil index nil)))")
 
-  (setq
-   parser-generator-lex-analyzer--get-function
+  (parser-generator-lex-analyzer-set-get-function
    (lambda (token)
      (car token)))
-  (setq
-   parser-generator-lex-analyzer--get-function-export-string
-   "(lambda (token)
-     (car token))")
 
   (let ((export (parser-generator-ll-export-to-elisp "ba3")))
     (with-temp-buffer

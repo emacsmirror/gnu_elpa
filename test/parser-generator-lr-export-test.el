@@ -35,9 +35,7 @@
     (parser-generator-set-look-ahead-number 1)
     (parser-generator-process-grammar)
     (parser-generator-lr-generate-parser-tables)
-
-    (setq
-     parser-generator-lex-analyzer--function
+    (parser-generator-lex-analyzer-set-function
      (lambda (index _state)
        (with-current-buffer "*a*"
          (when (<= (+ index 1) (point-max))
@@ -45,8 +43,7 @@
                  (end (+ index 1)))
              (let ((token (buffer-substring-no-properties start end)))
                (list `(,token ,start . ,end) nil end nil)))))))
-    (setq
-     parser-generator-lex-analyzer--get-function
+    (parser-generator-lex-analyzer-set-get-function
      (lambda (token)
        (with-current-buffer "*a*"
          (let ((start (car (cdr token)))
@@ -62,24 +59,6 @@
      (equal
       "bbaa"
       (parser-generator-lr-translate)))
-
-    (setq
-     parser-generator-lex-analyzer--function-export-string
-     "(lambda (index _state)
-       (with-current-buffer \"*a*\"
-         (when (<= (+ index 1) (point-max))
-           (let ((start index)
-                 (end (+ index 1)))
-             (let ((token (buffer-substring-no-properties start end)))
-               (list `(,token ,start . ,end) nil end nil))))))")
-    (setq
-     parser-generator-lex-analyzer--get-function-export-string
-     "(lambda (token)
-       (with-current-buffer \"*a*\"
-         (let ((start (car (cdr token)))
-               (end (cdr (cdr token))))
-           (when (<= end (point-max))
-             (buffer-substring-no-properties start end)))))")
 
     ;; Export parser
     (let ((export (parser-generator-lr-export-to-elisp "ba")))
@@ -182,9 +161,7 @@
   (parser-generator-set-look-ahead-number 1)
   (parser-generator-process-grammar)
   (parser-generator-lr-generate-parser-tables)
-
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (let* ((string '((a 1 . 2) (a 2 . 3) (b 3 . 4) (b 4 . 5)))
             (string-length (length string))
@@ -196,28 +173,10 @@
          (push (nth (1- index) string) tokens)
          (setq index (1+ index)))
        (list (nreverse tokens) nil index nil))))
-  (setq
-   parser-generator-lex-analyzer--function-export-string
-   "(lambda (index _state)
-     (let* ((string '((a 1 . 2) (a 2 . 3) (b 3 . 4) (b 4 . 5)))
-            (string-length (length string))
-            (max-index index)
-            (tokens))
-       (while (and
-               (< (1- index) string-length)
-               (< (1- index) max-index))
-         (push (nth (1- index) string) tokens)
-         (setq index (1+ index)))
-       (list (nreverse tokens) nil index nil)))")
 
-  (setq
-   parser-generator-lex-analyzer--get-function
+  (parser-generator-lex-analyzer-set-get-function
    (lambda (token)
      (car token)))
-  (setq
-   parser-generator-lex-analyzer--get-function-export-string
-   "(lambda (token)
-     (car token))")
 
   ;; Test parse
   (should
@@ -263,9 +222,7 @@
     (parser-generator-set-look-ahead-number 1)
     (parser-generator-process-grammar)
     (parser-generator-lr-generate-parser-tables)
-
-    (setq
-     parser-generator-lex-analyzer--function
+    (parser-generator-lex-analyzer-set-function
      (lambda (index _state)
        (with-current-buffer "*a*"
          (when (<= (+ index 1) (point-max))
@@ -273,32 +230,14 @@
                  (end (+ index 1)))
              (let ((token (buffer-substring-no-properties start end)))
                (list `(,token ,start . ,end) nil end nil)))))))
-    (setq
-     parser-generator-lex-analyzer--function-export-string
-     "(lambda (index _state)
-       (with-current-buffer \"*a*\"
-         (when (<= (+ index 1) (point-max))
-           (let ((start index)
-                 (end (+ index 1)))
-             (let ((token (buffer-substring-no-properties start end)))
-               (list `(,token ,start . ,end) nil end nil))))))")
 
-    (setq
-     parser-generator-lex-analyzer--get-function
+    (parser-generator-lex-analyzer-set-get-function
      (lambda (token)
        (with-current-buffer "*a*"
          (let ((start (car (cdr token)))
                (end (cdr (cdr token))))
            (when (<= end (point-max))
              (buffer-substring-no-properties start end))))))
-    (setq
-     parser-generator-lex-analyzer--get-function-export-string
-     "(lambda (token)
-       (with-current-buffer \"*a*\"
-         (let ((start (car (cdr token)))
-               (end (cdr (cdr token))))
-           (when (<= end (point-max))
-             (buffer-substring-no-properties start end)))))")
 
     (should
      (equal
@@ -351,10 +290,7 @@
   (parser-generator-set-look-ahead-number 0)
   (parser-generator-process-grammar)
   (parser-generator-lr-generate-parser-tables)
-
-  ;; Setup lex-analyzer
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (with-current-buffer "*a*"
        (when (<= (+ index 1) (point-max))
@@ -362,18 +298,8 @@
                (end (+ index 1)))
            (let ((token (buffer-substring-no-properties start end)))
              (list `(,token ,start . ,end) nil end nil)))))))
-  (setq
-   parser-generator-lex-analyzer--function-export-string
-   "(lambda (index _state)
-     (with-current-buffer \"*a*\"
-       (when (<= (+ index 1) (point-max))
-         (let ((start index)
-               (end (+ index 1)))
-           (let ((token (buffer-substring-no-properties start end)))
-             (list `(,token ,start . ,end) nil end nil))))))")
 
-  (setq
-   parser-generator-lex-analyzer--get-function
+  (parser-generator-lex-analyzer-set-get-function
    (lambda (token)
      (with-current-buffer "*a*"
        (let ((start (car (cdr token)))
@@ -382,16 +308,6 @@
            (buffer-substring-no-properties
             start
             end))))))
-  (setq
-   parser-generator-lex-analyzer--get-function-export-string
-   "(lambda (token)
-     (with-current-buffer \"*a*\"
-       (let ((start (car (cdr token)))
-             (end (cdr (cdr token))))
-         (when (<= end (point-max))
-           (buffer-substring-no-properties
-            start
-            end)))))")
 
   (should
    (equal
@@ -443,9 +359,7 @@
     (parser-generator-set-look-ahead-number 1)
     (parser-generator-process-grammar)
     (parser-generator-lr-generate-parser-tables)
-
-    (setq
-     parser-generator-lex-analyzer--function
+    (parser-generator-lex-analyzer-set-function
      (lambda (index _state)
        (with-current-buffer "*a*"
          (when (<= (+ index 1) (point-max))
@@ -453,8 +367,7 @@
                  (end (+ index 1)))
              (let ((token (buffer-substring-no-properties start end)))
                (list `(,token ,start . ,end) nil end nil)))))))
-    (setq
-     parser-generator-lex-analyzer--get-function
+    (parser-generator-lex-analyzer-set-get-function
      (lambda (token)
        (with-current-buffer "*a*"
          (let ((start (car (cdr token)))
@@ -468,24 +381,6 @@
       (parser-generator-lr-translate)))
 
     (message "Passed translate before export")
-
-    (setq
-     parser-generator-lex-analyzer--function-export-string
-     "(lambda (index _state)
-       (with-current-buffer \"*a*\"
-         (when (<= (+ index 1) (point-max))
-           (let ((start index)
-                 (end (+ index 1)))
-             (let ((token (buffer-substring-no-properties start end)))
-               (list `(,token ,start . ,end) nil end nil))))))")
-    (setq
-     parser-generator-lex-analyzer--get-function-export-string
-     "(lambda (token)
-       (with-current-buffer \"*a*\"
-         (let ((start (car (cdr token)))
-               (end (cdr (cdr token))))
-           (when (<= end (point-max))
-             (buffer-substring-no-properties start end)))))")
 
     ;; Export parser
     (let ((export (parser-generator-lr-export-to-elisp "fa")))

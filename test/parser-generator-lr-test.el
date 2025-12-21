@@ -314,8 +314,7 @@
   ;; $ -> accept
 
   ;; Test grammar that can be only solved by using global and context-sensitive attributes
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (with-current-buffer "*buffer*"
        (let ((token))
@@ -348,8 +347,7 @@
             (t (error "Unexpected input at %d!" index)))
            (list token))))))
 
-  (setq
-   parser-generator-lex-analyzer--get-function
+  (parser-generator-lex-analyzer-set-get-function
    (lambda (token)
      (with-current-buffer "*buffer*"
        (let ((start (car (cdr token)))
@@ -941,8 +939,7 @@
   (parser-generator-set-look-ahead-number 1)
   (parser-generator-process-grammar)
   (parser-generator-lr-generate-parser-tables)
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (let* ((string '((a 1 . 2) (a 2 . 3) (b 3 . 4) (b 4 . 5)))
             (string-length (length string))
@@ -954,8 +951,7 @@
          (push (nth (1- index) string) tokens)
          (setq index (1+ index)))
        (list (car tokens) nil index nil))))
-  (setq
-   parser-generator-lex-analyzer--get-function
+  (parser-generator-lex-analyzer-set-get-function
    (lambda (token)
      (car token)))
   (should
@@ -964,8 +960,7 @@
     (parser-generator-lr-parse)))
   (message "Passed test with terminals as symbols")
 
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (let* ((string '((a 1 . 2) (a 2 . 3) (b 3 . 4) (b 4 . 5) (b 5 . 6)))
             (string-length (length string))
@@ -993,8 +988,7 @@
    (message "goto-tables: %s" (parser-generator-lr--get-expanded-goto-tables))
    (message "action-tables: %s" (parser-generator-lr--get-expanded-action-tables)))
 
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (let* ((string '(("a" 1 . 2) ("a" 2 . 3) ("b" 3 . 4) ("b" 4 . 5)))
             (string-length (length string))
@@ -1013,8 +1007,7 @@
     (parser-generator-lr-parse)))
   (message "Passed test with terminals as string")
 
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (let* ((string '(("a" 1 . 2) ("a" 2 . 3) ("b" 3 . 4) ("b" 4 . 5) ("b" 5 . 6)))
             (string-length (length string))
@@ -1031,8 +1024,7 @@
    (parser-generator-lr--parse t))
   (message "Passed test with terminals as string, invalid syntax")
 
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (let* ((string '(("a" 1 . 2) ("a" 2 . 3) ("b" 3 . 4) ("b" 4 . 5)))
             (string-length (length string))
@@ -1093,8 +1085,7 @@
   (parser-generator-process-grammar)
   (parser-generator-lr-generate-parser-tables)
 
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (with-current-buffer "*PHP8.0*"
        (let ((token)
@@ -1215,9 +1206,7 @@
   (parser-generator-set-look-ahead-number 1)
   (parser-generator-process-grammar)
   (parser-generator-lr-generate-parser-tables)
-  
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (with-current-buffer "*PHP8.0*"
        (let ((token)
@@ -1532,8 +1521,7 @@
     (parser-generator-lr-generate-parser-tables)
 
     ;; Setup lex-analyzer
-    (setq
-     parser-generator-lex-analyzer--function
+    (parser-generator-lex-analyzer-set-function
      (lambda (index _state)
        (with-current-buffer buffer
          (when (<= (+ index 1) (point-max))
@@ -1542,8 +1530,7 @@
              (let ((token (buffer-substring-no-properties start end)))
                (list `(,token ,start . ,end) nil end nil)))))))
 
-    (setq
-     parser-generator-lex-analyzer--get-function
+    (parser-generator-lex-analyzer-set-get-function
      (lambda (token)
        (with-current-buffer buffer
          (let ((start (car (cdr token)))
@@ -1594,8 +1581,7 @@
     (parser-generator-lr-generate-parser-tables)
 
     ;; Setup lex-analyzer
-    (setq
-     parser-generator-lex-analyzer--function
+    (parser-generator-lex-analyzer-set-function
      (lambda (index _state)
        (with-current-buffer buffer
          (when (<= (+ index 1) (point-max))
@@ -1603,8 +1589,7 @@
                  (end (+ index 1)))
              (let ((token (buffer-substring-no-properties start end)))
                (list `(,token ,start . ,end) nil end nil)))))))
-    (setq
-     parser-generator-lex-analyzer--get-function
+    (parser-generator-lex-analyzer-set-get-function
      (lambda (token)
        (with-current-buffer buffer
          (let ((start (car (cdr token)))
@@ -1807,8 +1792,7 @@
     (parser-generator-lr-generate-parser-tables)
 
     ;; Setup lex-analyzer
-    (setq
-     parser-generator-lex-analyzer--function
+    (parser-generator-lex-analyzer-set-function
      (lambda (index _state)
        (with-current-buffer buffer
          (when (<= (+ index 1) (point-max))
@@ -1817,8 +1801,7 @@
              (let ((token (buffer-substring-no-properties start end)))
                (list `(,token ,start . ,end) nil end nil)))))))
 
-    (setq
-     parser-generator-lex-analyzer--get-function
+    (parser-generator-lex-analyzer-set-get-function
      (lambda (token)
        (with-current-buffer buffer
          (let ((start (car (cdr token)))
@@ -1875,8 +1858,7 @@
     (parser-generator-lr-generate-parser-tables)
 
     ;; Setup lex-analyzer
-    (setq
-     parser-generator-lex-analyzer--function
+    (parser-generator-lex-analyzer-set-function
      (lambda (index _state)
        (with-current-buffer buffer
          (when (< index (point-max))
@@ -1885,8 +1867,7 @@
              (let ((token (buffer-substring-no-properties start end)))
                (list `(,token ,start . ,end) nil end nil)))))))
 
-    (setq
-     parser-generator-lex-analyzer--get-function
+    (parser-generator-lex-analyzer-set-get-function
      (lambda (token)
        (with-current-buffer buffer
          (let ((start (car (cdr token)))
@@ -1936,9 +1917,7 @@
     (parser-generator-set-e-identifier 'e)
     (parser-generator-process-grammar)
     (parser-generator-lr-generate-parser-tables)
-
-    (setq
-     parser-generator-lex-analyzer--function
+    (parser-generator-lex-analyzer-set-function
      (lambda (index _state)
        (with-current-buffer buffer
          (when (<= (+ index 1) (point-max))
@@ -1947,8 +1926,7 @@
              (let ((token (buffer-substring-no-properties start end)))
                (list `(,token ,start . ,end) nil end nil)))))))
 
-    (setq
-     parser-generator-lex-analyzer--get-function
+    (parser-generator-lex-analyzer-set-get-function
      (lambda (token)
        (with-current-buffer buffer
          (let ((start (car (cdr token)))
@@ -1983,9 +1961,7 @@
     (parser-generator-set-look-ahead-number 1)
     (parser-generator-process-grammar)
     (parser-generator-lr-generate-parser-tables)
-
-    (setq
-     parser-generator-lex-analyzer--function
+    (parser-generator-lex-analyzer-set-function
      (lambda (index _state)
        (with-current-buffer buffer
          (unless (>= index (point-max))
@@ -2014,8 +1990,7 @@
               (t (error "Invalid syntax! Could not lex-analyze at %s!" (point))))
              (list token nil (match-end 0) nil))))))
 
-    (setq
-     parser-generator-lex-analyzer--get-function
+    (parser-generator-lex-analyzer-set-get-function
      (lambda (token)
        (with-current-buffer buffer
          (let ((start (car (cdr token)))
@@ -2086,9 +2061,7 @@
     (parser-generator-set-look-ahead-number 1)
     (parser-generator-process-grammar)
     (parser-generator-lr-generate-parser-tables)
-
-    (setq
-     parser-generator-lex-analyzer--function
+    (parser-generator-lex-analyzer-set-function
      (lambda (index _state)
        (with-current-buffer "*a*"
          (unless (>= index (point-max))
@@ -2115,8 +2088,7 @@
               (t (error "Invalid syntax! Could not lex-analyze at %s!" (point))))
              (list token nil (match-end 0) nil))))))
 
-    (setq
-     parser-generator-lex-analyzer--get-function
+    (parser-generator-lex-analyzer-set-get-function
      (lambda (token)
        (with-current-buffer "*a*"
          (let ((start (car (cdr token)))

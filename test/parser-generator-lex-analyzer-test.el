@@ -22,8 +22,7 @@
 
   (should-error
    (parser-generator-lex-analyzer--peek-next-look-ahead))
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (let* ((string '(("a" 1 . 2) ("b" 2 . 3) ("c" 3 . 4) ("d" 4 . 5)))
             (string-length (length string))
@@ -64,8 +63,7 @@
     '(("a" 1 . 2) ("b" 2 . 3) ("c" 3 . 4) ("d" 4 . 5) ($) ($) ($) ($) ($) ($))
     (parser-generator-lex-analyzer--peek-next-look-ahead)))
 
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (let* ((string '(("a" 1 . 2) ("b" 2 . 3) ("c" 3 . 4) ("d" 4 . 5)))
             (string-length (length string))
@@ -87,8 +85,7 @@
    (parser-generator-lex-analyzer--peek-next-look-ahead))
 
   (setq parser-generator--look-ahead-number 6)
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index state)
      (let* ((string '(("a" 1 . 2) ("b" 2 . 3) ("c" 3 . 4) ("d" 4 . 5) ("e" 5 . 6)))
             (string-length (length string))
@@ -146,8 +143,7 @@
 
   (should-error
    (parser-generator-lex-analyzer--pop-token))
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index _state)
      (let* ((string '(("a" 1 . 2) ("b" 2 . 3)))
             (string-length (length string))
@@ -181,8 +177,7 @@
     (parser-generator-lex-analyzer--pop-token)))
 
   (setq parser-generator--look-ahead-number 1)
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index state)
      (let* ((string '(("a" 1 . 2) ("b" 2 . 3) ("c" 3 . 4) ("d" 4 . 5) ("e" 5 . 6)))
             (string-length (length string))
@@ -254,8 +249,7 @@
   "Test `parser-generator-lex-analyzer--get-function'."
   (message "Starting tests for (parser-generator-lex-analyzer--get-function)")
 
-  (setq
-   parser-generator-lex-analyzer--get-function
+  (parser-generator-lex-analyzer-set-get-function
    (lambda (token)
      (car token)))
 
@@ -286,8 +280,7 @@
 
   (with-temp-buffer
     (insert "Abraham Lincoln")
-    (setq
-     parser-generator-lex-analyzer--get-function
+    (parser-generator-lex-analyzer-set-get-function
      (lambda (token)
        (buffer-substring-no-properties (car (cdr token)) (cdr (cdr token)))))
     (should

@@ -377,7 +377,7 @@ REV2 arguments) and (2) when only REV1 has been specified to it."
 
       ;; Helpful for debugging
       (message (shell-command-to-string "jj log -p"))
-      
+
       ;; No revisions and no file (show entire diff)
       (with-temp-buffer
         (vc-jj-diff nil nil nil (current-buffer))
@@ -412,7 +412,7 @@ REV2 arguments) and (2) when only REV1 has been specified to it."
                                         "@@ -0,0 +1,1 @@"
                                         "+bar\n")
                                       "\n"))))
-      
+
       ;; No revisions and specify a file present only in the second,
       ;; older parent (show diff only for that file)
       (with-temp-buffer

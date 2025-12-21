@@ -6,7 +6,7 @@
 ;;         Rudolf Schlatte <rudi@constantly.at>
 ;;         Kristoffer Balintona <krisbalintona@gmail.com>
 ;; URL: https://codeberg.org/emacs-jj-vc/vc-jj.el
-;; Version: 0.4
+;; Version: 0.5
 ;; Package-Requires: ((emacs "28.1") (compat "29.4"))
 ;; Keywords: vc tools
 
@@ -44,7 +44,7 @@
 ;; vc-git due to jj’s model.
 
 ;; FILE STRUCTURE
-;; 
+;;
 ;; After the "Customization" and "Internal Utilities" sections, the
 ;; organization of this file follows the "BACKEND PROPERTIES" section
 ;; of the preamble of the 'vc.el' file: each outline heading
@@ -182,25 +182,25 @@ various regions of the Log View buffer."
   "String or list of strings specifying switches for \"jj file annotate\".
 If nil, use the value of `vc-annotate-switches'.  If t, use no switches."
   :type '(choice (const :tag "Unspecified" nil)
-		 (const :tag "None" t)
-		 (string :tag "Argument String")
-		 (repeat :tag "Argument List" :value ("") string)))
+                 (const :tag "None" t)
+                 (string :tag "Argument String")
+                 (repeat :tag "Argument List" :value ("") string)))
 
 (defcustom vc-jj-checkin-switches nil
   "String or list of strings specifying switches for \"jj commit\".
 If nil, use the value of `vc-checkin-switches'.  If t, use no switches."
   :type '(choice (const :tag "Unspecified" nil)
-		 (const :tag "None" t)
-		 (string :tag "Argument String")
-		 (repeat :tag "Argument List" :value ("") string)))
+                 (const :tag "None" t)
+                 (string :tag "Argument String")
+                 (repeat :tag "Argument List" :value ("") string)))
 
 (defcustom vc-jj-diff-switches '("--git")
   "String or list of strings specifying switches for \"jj diff\".
 If nil, use the value of `vc-diff-switches'.  If t, use no switches."
   :type '(choice (const :tag "Unspecified" nil)
-		 (const :tag "None" t)
-		 (string :tag "Argument String")
-		 (repeat :tag "Argument List" :value ("") string)))
+                 (const :tag "None" t)
+                 (string :tag "Argument String")
+                 (repeat :tag "Argument List" :value ("") string)))
 
 (defface vc-jj-log-view-commit
   '((t :weight light :inherit (shadow italic)))
@@ -255,16 +255,16 @@ warnings to stderr even when run with '--quiet'."
                          (list (current-buffer) nil)
                          nil args)))
       (unless (eq status 0)
-	(error "'jj' exited with status %s" status))
+        (error "'jj' exited with status %s" status))
       (goto-char (point-min))
       (let (lines)
-	(while (not (eobp))
-	  (setq lines (cons (buffer-substring-no-properties
-			     (line-beginning-position)
-			     (line-end-position))
-			    lines))
-	  (forward-line 1))
-	(nreverse lines)))))
+        (while (not (eobp))
+          (setq lines (cons (buffer-substring-no-properties
+                             (line-beginning-position)
+                             (line-end-position))
+                            lines))
+          (forward-line 1))
+        (nreverse lines)))))
 
 (defun vc-jj--command-parseable (&rest args)
   "Run jj with ARGS, returning its output as string.
@@ -281,7 +281,7 @@ process status."
                          (list (current-buffer) nil)
                          nil args)))
       (unless (eq status 0)
-	(error "'jj' exited with status %s" status))
+        (error "'jj' exited with status %s" status))
       (buffer-substring-no-properties (point-min) (point-max)))))
 
 (defun vc-jj--command-dispatched (buffer okstatus file-or-list &rest flags)
@@ -658,7 +658,7 @@ If PROMPT is non-nil, prompt for the jj command to run (default is \"jj
 git fetch\")."
   (let* ((command (if prompt
                       (split-string-shell-command
-		       (read-shell-command
+                       (read-shell-command
                         (format "jj git fetch command: ")
                         (concat vc-jj-program " git fetch")
                         'vc-jj-pull-history))
@@ -681,7 +681,7 @@ If PROMPT is non-nil, prompt for the command to run (default is \"jj git
 push\")."
   (let* ((command (if prompt
                       (split-string-shell-command
-		       (read-shell-command
+                       (read-shell-command
                         (format "jj git push command: ")
                         (concat vc-jj-program " git push")
                         'vc-jj-push-history))
@@ -1009,7 +1009,7 @@ delete."
                    (1 'change-log-name)
                    (2 'change-log-email)
                    (3 'change-log-date)))))
-  
+
   (when (boundp 'revert-buffer-restore-functions) ; Emacs 30.1
     (add-hook 'revert-buffer-restore-functions #'vc-jj-log-view-restore-position nil t)))
 

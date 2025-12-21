@@ -2,16 +2,14 @@
 
 * Recent changes
 
-** Unreleased
+** [[https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.4...v0.5][0.5]] - 2025-12-21
 
 *** Added
 
-- Added support for ~vc-region-history~.  Note that this requires the
-  repository to be co-located since we call ~vc-git-region-history~, but
-  repositories are co-located by default since jujutsu 0.34.
+- Added support for ~vc-region-history~.  Note that this requires the repository to be co-located since we call ~vc-git-region-history~, but repositories are co-located by default since jujutsu 0.34.
 - Added ~vc-jj-clone~, making it possible to run ~vc-clone~.
-- Define a new face: ~vc-jj-log-view-commit~. This is the face used for commit IDs in JJ Log View buffers.
-- Define a new face: ~vc-jj-log-view-bookmark~. This is the face used for bookmark names in JJ Log View buffers.
+- Define a new face: ~vc-jj-log-view-commit~.  This is the face used for commit IDs in JJ Log View buffers.
+- Define a new face: ~vc-jj-log-view-bookmark~.  This is the face used for bookmark names in JJ Log View buffers.
 - In the JJ Log View buffer:
   - Fontify conflict indicators (~vc-conflict-state~)
   - Fontify commit IDs (~vc-jj-log-view-commit~)
@@ -22,16 +20,14 @@
 *** Changed
 
 - Commands specific to vc-jj in the JJ Log View buffer have been renamed to have a "vc-jj-log-view-" prefix.
-- Only abandon revision with ~vc-jj-log-view-abandon-change~ once the user confirms their decision.
+- Only abandon a change with ~vc-jj-log-view-abandon-change~ once the user confirms their decision.
 - Bookmark operations in the JJ Log View buffer (e.g., ~vc-jj-log-view-bookmark-delete~, ~vc-jj-log-view-abandon-change~) no longer prompt to confirm reverting the parent buffer (~vc-parent-buffer~) when ~auto-revert-mode~ is already enabled in that buffer.
 - In Emacs 30.1 and newer, reverting a JJ Log View buffer will, when possible, keep point on the same revision as before the revert. To undo this, add a function to ~vc-jj-log-view-mode-hook~ that removes ~vc-jj-log-view-restore-position~ from the local value of ~revert-buffer-restore-functions~.
-  
-*** Removed
 
 *** Fixed
 
-- Fixed ~vc-jj-diff~ not transforming filenames into jj fileset syntax. This means commands like ~vc-diff~ and ~log-view-diff~ do not fail.
-- Fixed a bug related to vc-jj's integration with project.el in cases where a .git repo is within a subdirectory of a .jj repo.  Previously, when inside the .git repo, project.el would erroneously detect the .jj repo to be current one (instead of the .git repo, which is closer).  Now, project.el correctly detects the closer .git repo.
+- Fixed ~vc-jj-diff~ not transforming filenames into jj fileset syntax. This fixes commands like ~vc-diff~ and ~log-view-diff~ among others.
+- Fixed a bug related to vc-jj's integration with project.el in cases where a git repo is located within a subdirectory of a jj repo.  Previously, when inside the git repo, project.el would erroneously detect the jj repo to be current one (instead of the git repo, which is closer).  Now, project.el correctly detects the closer git repo.
 - ~vc-jj-bookmark-delete~ now properly recognizes the names of local bookmarks that are pushable to a remote.
 - Prevent the possibility of operating on the wrong revisions when in stale JJ Log View buffers (Log View buffers that are not up-to-date with the repository).
 - Show the correct diff in log-edit buffers created by ~log-view-modify-change-comment~.

@@ -132,9 +132,8 @@ Each production RHS can optionally contain a lambda-expression that will be call
  )
 (parser-generator-process-grammar)
 (parser-generator-ll-generate-table)
-(setq
- parser-generator-lex-analyzer--function-export-string
- "(lambda (index)
+(parser-generator-lex-analyzer-set-function
+ (lambda (index)
    (let* ((string '((b 1 . 2) (b 2 . 3) (a 3 . 4)))
           (string-length (length string))
           (max-index index)
@@ -144,11 +143,10 @@ Each production RHS can optionally contain a lambda-expression that will be call
              (< (1- index) max-index))
        (push (nth (1- index) string) tokens)
        (setq index (1+ index)))
-     (nreverse tokens)))")
-(setq
- parser-generator-lex-analyzer--get-function-export-string
- "(lambda (token)
-   (car token))")
+     (nreverse tokens))))
+(parser-generator-lex-analyzer-set-get-function
+ (lambda (token)
+   (car token)))
 (let ((export (parser-generator-ll-export-to-elisp "ba")))
   (with-temp-buffer
     (insert export)

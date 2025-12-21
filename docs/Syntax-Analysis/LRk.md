@@ -251,8 +251,7 @@ The export should be executed after a parser has been generated, example:
   (parser-generator-set-look-ahead-number 1)
   (parser-generator-process-grammar)
   (parser-generator-lr-generate-parser-tables)
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index)
      (let* ((string '((a 1 . 2) (a 2 . 3) (b 3 . 4) (b 4 . 5)))
             (string-length (length string))
@@ -264,8 +263,7 @@ The export should be executed after a parser has been generated, example:
          (push (nth (1- index) string) tokens)
          (setq index (1+ index)))
        (nreverse tokens))))
-  (setq
-   parser-generator-lex-analyzer--get-function
+  (parser-generator-lex-analyzer-set-get-function
    (lambda (token)
      (car token)))
 
@@ -274,24 +272,6 @@ The export should be executed after a parser has been generated, example:
    (equal
     '(2 2 2 1 1)
     (parser-generator-lr-parse)))
-
-  (setq
-   parser-generator-lex-analyzer--function-export-string
-   "(lambda (index)
-     (let* ((string '((a 1 . 2) (a 2 . 3) (b 3 . 4) (b 4 . 5)))
-            (string-length (length string))
-            (max-index index)
-            (tokens))
-       (while (and
-               (< (1- index) string-length)
-               (< (1- index) max-index))
-         (push (nth (1- index) string) tokens)
-         (setq index (1+ index)))
-       (nreverse tokens)))")
-  (setq
-   parser-generator-lex-analyzer--get-function-export-string
-   "(lambda (token)
-     (car token))")
 
   ;; Export parser
   (let ((export (parser-generator-lr-export-to-elisp "e--")))

@@ -205,8 +205,7 @@ The export should be executed after a parser has been generated, example:
   (parser-generator-lr-generate-parser-tables)
 
   ;; Setup lex-analyzer
-  (setq
-   parser-generator-lex-analyzer--function
+  (parser-generator-lex-analyzer-set-function
    (lambda (index)
      (with-current-buffer buffer
        (when (<= (+ index 1) (point-max))
@@ -214,8 +213,7 @@ The export should be executed after a parser has been generated, example:
                (end (+ index 1)))
            (let ((token (buffer-substring-no-properties start end)))
              `(,token ,start . ,end)))))))
-  (setq
-   parser-generator-lex-analyzer--get-function
+  (parser-generator-lex-analyzer-set-get-function
    (lambda (token)
      (with-current-buffer buffer
        (let ((start (car (cdr token)))
@@ -229,27 +227,6 @@ The export should be executed after a parser has been generated, example:
    (equal
     '(5 3 5 2)
     (parser-generator-lr-parse)))
-
-  ;; Setup lex-analyzer
-  (setq
-   parser-generator-lex-analyzer--function-export-string-export-string
-   "(lambda (index)
-     (with-current-buffer buffer
-       (when (<= (+ index 1) (point-max))
-         (let ((start index)
-               (end (+ index 1)))
-           (let ((token (buffer-substring-no-properties start end)))
-             `(,token ,start . ,end))))))")
-  (setq
-   parser-generator-lex-analyzer--get-function-export-string
-   "(lambda (token)
-     (with-current-buffer buffer
-       (let ((start (car (cdr token)))
-             (end (cdr (cdr token))))
-         (when (<= end (point-max))
-           (buffer-substring-no-properties
-            start
-            end)))))")
 
   ;; Export parser
   (let ((export (parser-generator-lr-export-to-elisp "e--")))

@@ -273,6 +273,9 @@
   :ignored-files ("COPYING" "doclicense.texi"))
  (disk-usage		:url "https://gitlab.com/ambrevar/emacs-disk-usage")
  (dismal		:url nil)
+ (disproject		:url "https://github.com/aurtzy/disproject"
+  :doc "doc/disproject.org"
+  :news "CHANGELOG")
  (djvu			:url nil)
  (do-at-point           :url "https://codeberg.org/pkal/do-at-point.el")
  (doc-toc		:url "https://github.com/dalanicolai/doc-tools-toc"

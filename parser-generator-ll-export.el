@@ -181,12 +181,9 @@
        (format
         "(defvar\n  %s-lex-analyzer--reset-function\n  "
         namespace))
-      (if parser-generator-lex-analyzer--reset-function
+      (if (not (equal parser-generator-lex-analyzer--reset-function-export-source ""))
           (insert
-           (format
-            "(lambda %S %S)\n"
-            (aref parser-generator-lex-analyzer--reset-function 0)
-            (car (aref parser-generator-lex-analyzer--reset-function 1))))
+           parser-generator-lex-analyzer--reset-function-export-source)
         (insert "nil\n"))
       (insert "  \"The lex-analyzer reset function.\")\n\n")
 

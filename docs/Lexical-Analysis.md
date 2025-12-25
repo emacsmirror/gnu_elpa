@@ -1,6 +1,6 @@
 # Lexical Analysis
 
-Set lexical analysis function by setting variable `parser-generator-lex-analyzer--function`. Optionally set reset function by setting variable `parser-generator-lex-analyzer--reset-function`. 
+Set lexical analysis function by using function `(parser-generator-lex-analyzer-set-function)`. Optionally set reset function by using function `(parser-generator-lex-analyzer-set-reset-function)`. 
 
 The lexical analysis is internally indexed on a local variable `parser-generator-lex-analyzer--index` and has it optional state in the local variable `parser-generation-lex-analyzer--state`. The initial values for the index and state can be set in variables `parser-generation-lex-analyzer--index-init` and `parser-generator-lex-analyzer--state-init`.
 

@@ -46,6 +46,11 @@
   "Function used when resetting lex-analyzer.")
 
 (defvar
+  parser-generator-lex-analyzer--reset-function-export-source
+  ""
+  "String version of function used when resetting lex-analyzer, used in exports.")
+
+(defvar
   parser-generator-lex-analyzer--index-init
   1
   "Initial value of index.")
@@ -91,6 +96,16 @@
       ,fun)
      (setq
       parser-generator-lex-analyzer--function-export-source
+      ,(format "%S" fun))))
+
+(defmacro parser-generator-lex-analyzer-set-reset-function (fun)
+  "Sets the lexer reset function to FUN."
+  `(progn
+     (setq
+      parser-generator-lex-analyzer--reset-function
+      ,fun)
+     (setq
+      parser-generator-lex-analyzer--reset-function-export-source
       ,(format "%S" fun))))
 
 

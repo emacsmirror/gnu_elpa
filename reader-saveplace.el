@@ -35,16 +35,18 @@
 (require 'reader-bookmark)
 
 ;;;###autoload
-(defun reader--saveplace-find-file (orig-fun &rest args)
-  "Restores saved place in `reader-mode' buffers or calls ORIG-FUN with ARGS.
+(defun reader--saveplace-find-file ()
+  "Restores saved place in `reader-mode' buffers.
 
-Advice around `save-place-find-file'. See also `reader--saveplace-to-alist'."
+To be added to `save-place-after-find-file-hook'. See also `reader--saveplace-to-alist'."
   (or save-place-loaded (save-place-load-alist-from-file))
-  (if (derived-mode-p 'reader-mode)
-      (if-let* ((place (assoc buffer-file-name save-place-alist))
-		(bookmark (aref (cdr place)  0))) ; get back the bookmark
-          (reader-bookmark-jump bookmark))
-    (apply orig-fun args)))
+  (when (derived-mode-p 'reader-mode)
+    (if-let* ((place (assoc buffer-file-name save-place-alist))
+	      (bookmark (aref (cdr place)  0))) ; get back the bookmark
+        (reader-bookmark-jump bookmark))))
+
+;;;###autoload
+(add-hook 'save-place-after-find-file-hook #'reader--saveplace-find-file)
 
 ;;;###autoload
 (defun reader--saveplace-to-alist (orig-fun &rest args)
@@ -60,6 +62,9 @@ Advice around `save-place-to-alist'. See also `reader--saveplace-find-file'."
 	;; store bookmark inside a vector
 	(push (cons filename (vector bookmark)) save-place-alist))
     (apply orig-fun args)))
+
+;;;###autoload
+(advice-add 'save-place-to-alist :around #'reader--saveplace-to-alist)
 
 (provide 'reader-saveplace)
 ;;; reader-saveplace.el ends here

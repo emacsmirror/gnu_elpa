@@ -28,11 +28,11 @@
         ;; Emacs 29.1
         ;; Batch jobs that are supposed to run for a long time should
         ;; adjust the limit back down to 0.1
-        (when (>= (string-to-number emacs-version) 29.1)
-          (message ";; Adjusting gc-cons-percentage to 0.1 since Emacs version is 29.1 or newer")
-          (setq
-           gc-cons-percentage
-           0.1))
+        ;; (when (>= (string-to-number emacs-version) 29.1)
+        ;;   (message ";; Adjusting gc-cons-percentage to 0.1 since Emacs version is 29.1 or newer")
+        ;;   (setq
+        ;;    gc-cons-percentage
+        ;;    0.1))
 
         (let* ((global-declaration
                 (phps-mode-automation-parser-generator--global-declaration))

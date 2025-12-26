@@ -101,47 +101,49 @@
            parser-generator--eof-identifier
            phps-mode-automation-grammar--eof-identifier))
 
-        (parser-generator-lex-analyzer-set-function
-         (lambda (index old-state)
-           (let* ((lexer-response
-                   (phps-mode-lexer--re2c index old-state))
-                  (tokens
-                   (nth 0 lexer-response))
-                  (move-to-index
-                   (nth 1 lexer-response))
-                  (new-state
-                   (nth 2 lexer-response)))
-             (unless move-to-index
-               (let ((token-type (car (car tokens))))
-                 (cond
-                  ((or
-                    (equal token-type 'T_OPEN_TAG)
-                    (equal token-type 'T_COMMENT)
-                    (equal token-type 'T_DOC_COMMENT)
-                    )
-                   (setq
-                    move-to-index
-                    (cdr (cdr (car tokens)))))
-                  ((equal token-type 'T_OPEN_TAG_WITH_ECHO)
-                   (setf (car (car tokens)) 'T_ECHO))
-                  ((equal token-type 'T_CLOSE_TAG)
-                   (setf (car (car tokens)) ";"))
-                  )))
-             (list tokens move-to-index new-state))))
+        (when (fboundp 'parser-generator-lex-analyzer-set-function)
+          (parser-generator-lex-analyzer-set-function
+           (lambda (index old-state)
+             (let* ((lexer-response
+                     (phps-mode-lexer--re2c index old-state))
+                    (tokens
+                     (nth 0 lexer-response))
+                    (move-to-index
+                     (nth 1 lexer-response))
+                    (new-state
+                     (nth 2 lexer-response)))
+               (unless move-to-index
+                 (let ((token-type (car (car tokens))))
+                   (cond
+                    ((or
+                      (equal token-type 'T_OPEN_TAG)
+                      (equal token-type 'T_COMMENT)
+                      (equal token-type 'T_DOC_COMMENT)
+                      )
+                     (setq
+                      move-to-index
+                      (cdr (cdr (car tokens)))))
+                    ((equal token-type 'T_OPEN_TAG_WITH_ECHO)
+                     (setf (car (car tokens)) 'T_ECHO))
+                    ((equal token-type 'T_CLOSE_TAG)
+                     (setf (car (car tokens)) ";"))
+                    )))
+               (list tokens move-to-index new-state)))))
 
         (when (boundp 'parser-generator-lex-analyzer--state-init)
           (setq
            parser-generator-lex-analyzer--state-init
            phps-mode-automation-grammar--lex-analyzer-init-state))
 
-        (parser-generator-lex-analyzer-set-get-function
-         (lambda (token)
-           (let ((start (car (cdr token)))
-                 (end (cdr (cdr token))))
-             (when (<= end (point-max))
-               (buffer-substring-no-properties
-                start
-                end)))))
+        (when (fboundp 'parser-generator-lex-analyzer-set-get-function)
+          (parser-generator-lex-analyzer-set-get-function
+           (lambda (token)
+             (let ((start (car (cdr token)))
+                   (end (cdr (cdr token))))
+               (when (<= end (point-max))
+                 (buffer-substring-no-properties
+                  start
+                  end))))))
 
         (when (boundp 'parser-generator-lr--allow-default-conflict-resolution)
           (setq

@@ -10,11 +10,11 @@ clean:
 
 .PHONY: parser
 parser:
-	$(EMACS_CMD) -L ~/.emacs.d/elpa/parser-generator-0.2.7/ -l phps-mode-lexer.el -l admin/phps-mode-automation.el -eval "(progn (require 'parser-generator-lr-export)(setq debug-on-error t)(phps-mode-automation))"
+	$(EMACS_CMD) -L ~/.emacs.d/elpa/parser-generator-0.2.8/ -l phps-mode-lexer.el -l admin/phps-mode-automation.el -eval "(progn (require 'parser-generator-lr-export)(setq debug-on-error t)(phps-mode-automation))"
 
 .PHONY: parser-resumed
 parser-resumed:
-	$(EMACS_CMD) -L ~/.emacs.d/elpa/parser-generator-0.2.7/ -l phps-mode-lexer.el -l admin/phps-mode-automation.el -l resume.el -eval "(progn (require 'parser-generator-lr-export)(setq debug-on-error t)(phps-mode-automation))"
+	$(EMACS_CMD) -L ~/.emacs.d/elpa/parser-generator-0.2.8/ -l phps-mode-lexer.el -l admin/phps-mode-automation.el -l resume.el -eval "(progn (require 'parser-generator-lr-export)(setq debug-on-error t)(phps-mode-automation))"
 
 .PHONY: compile
 compile:

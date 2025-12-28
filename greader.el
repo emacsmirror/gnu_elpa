@@ -685,7 +685,9 @@ calling all the hooks."
   (greader-set-greader-keymap)
   (greader-tts-stop)
   (run-hooks 'greader-after-stop-hook)
-  (when (or greader-dict-mode greader-dict-toggle-filters)
+  (when (and (featurep 'greader-dict)
+             (or greader-dict-mode
+                 greader-dict-toggle-filters))
     (greader-dict--update)))
 
 (defun greader-debug (arg)

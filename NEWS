@@ -1,5 +1,11 @@
 GNU Emacs url-http-oauth NEWS -- history of user-visible changes.
 
+* New in url-http-oauth 0.8.5
+
+Released 2025-12-29
+
+** Improve compatibility with certain oauth servers
+
 * New in url-http-oauth 0.8.4
 
 Released 2025-06-26

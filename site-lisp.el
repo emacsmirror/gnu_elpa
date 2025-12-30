@@ -5,7 +5,7 @@
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <philipk@posteo.net>
 ;; Package-Requires: ((emacs "25.1"))
-;; Version: 0.3.0-pre
+;; Version: 0.3.0
 ;; URL: https://codeberg.org/pkal/site-lisp.el
 ;; Keywords: lisp, local
 

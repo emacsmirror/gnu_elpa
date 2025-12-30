@@ -6,6 +6,9 @@ of other scripts inside of [Emacs] easier.  All you need to do is
 place a file or directory within a well-known location and
 site-lisp.el should take care of the rest.
 
+**From Emacs 31 onwards, this package has been obsoleted by the "User
+Lisp" directory, see the Info node `(emacs) User Lisp Directory`**
+
 [Emacs]:
 	https://www.gnu.org/software/emacs/
 

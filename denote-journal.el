@@ -326,7 +326,7 @@ DATE has the same format as that returned by `denote-valid-date-p'."
   "Return list of files matching a journal for DATE given INTERVAL.
 INTERVAL is one among the symbols used by `denote-journal-interval'.
 DATE has the same format as that returned by `denote-valid-date-p'."
-  (denote-directory-files (denote-journal--filename-regexp date interval) nil nil nil nil (denote-journal-directory)))
+  (denote-directory-files (denote-journal--filename-regexp date interval) nil nil nil nil (list (denote-journal-directory))))
 
 (defun denote-journal-select-file-prompt (files)
   "Prompt for file among FILES if >1, else return the `car'.

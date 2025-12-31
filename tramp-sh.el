@@ -3369,6 +3369,7 @@ will be used."
                 (insert
 		 (tramp-get-buffer-string (tramp-get-connection-buffer v))))
 	      (when (and display (get-buffer-window outbuf t)) (redisplay))))
+
 	;; When the user did interrupt, we should do it also.  We use
 	;; return code -1 as marker.
 	(quit
@@ -5229,7 +5230,7 @@ If there is a modified buffer, retry it after 60 seconds."
        (and-let* (((or (buffer-modified-p buf)
 		       (with-current-buffer buf
 			 ;; We don't know whether autorevert.el has
-			 ;; been loaded alreaddy.
+			 ;; been loaded already.
 			 (tramp-compat-funcall 'auto-revert-active-p))))
 		  (bfn (buffer-file-name buf))
 		  (v (tramp-ensure-dissected-file-name bfn))

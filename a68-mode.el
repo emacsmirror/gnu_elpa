@@ -72,6 +72,9 @@
   :type 'integer
   :safe #'integerp)
 
+(defface a68-operator-face '((t :weight bold :foreground "white"))
+  "Face for printing Algol 68 operators.")
+
 (defface a68-string-break-face '((t :inherit font-lock-string-face))
   "Face for printing Algol 68 string breaks.")
 
@@ -80,6 +83,9 @@
 
 (defface a68-bits-flip-face '((t :weight bold))
   "Face for printing set bits in binary Algol 68 bits denotations.")
+
+(defface a68-numbers-face '((t :weight bold :foreground "red"))
+  "Face for printing integer and real Algol 68 denotations")
 
 (defvar a68-mode-map
   (let ((map (make-sparse-keymap)))
@@ -198,19 +204,22 @@
 
   ;; SUPPER stropping.
   (defconst a68-std-modes-supper
-    '("int" "real" "bool" "char" "format" "void"
-      "compl" "bits" "bytes" "string" "sema" "file" "channel")
+    '("proc" "flex" "int" "real" "bool" "char" "format" "void" "op"
+      "compl" "bits" "bytes" "string" "sema" "file" "channel" "ref"
+      "loc" "heap" "struct" "long" "short" "union")
     "List of Algol 68 standard modes in SUPPER stropping.")
 
+  (defconst a68-constants-supper
+    '("nil" "false" "true" "skip" "empty"))
+
   (defconst a68-keywords-supper
-    '("true" "false" "empty" "at"
+    '("empty" "at"
       "pr" "pragmat"
       "up" "down"
       "andth" "orel" "is" "isnt"
-      "long" "short" "ref" "loc" "heap" "struct" "flex" "proc"
-      "union" "op" "prio" "mode" "begin" "end" "exit" "par" "if"
+      "prio" "mode" "begin" "end" "exit" "par" "if"
       "then" "elif" "else" "fi" "case" "in" "ouse" "out" "esac"
-      "nil" "of" "go" "goto" "skip" "for" "from" "by" "to" "while"
+      "of" "go" "goto" "for" "from" "by" "to" "while"
       "module" "def" "fed" "postlude" "access" "pub"
       "do" "od" "unsafe" "assert")
     "List of Algol 68 keywords in SUPPER stropping."))
@@ -232,9 +241,13 @@
 
 (defconst a68-font-lock-keywords-common
   (list
-   ;; Radix in bit denotations.
-   '("\\(\\(8\\|16\\|10\\)r\\)[ \t]*[0-9a-f]+" 1 ''a68-bits-radix-face)
-   ;; Binary bit denotations also highlight set bits.
+   ;; Radix in bits denotations.
+   '("\\(\\(4\\|8\\|16\\)r\\)[ \t]*[0-9a-f]+" 1 ''a68-bits-radix-face)
+   ;; Digits in bits denotations.
+   '("\\(\\(4\\|8\\|16\\)r\\)[ \t]*\\([0-9a-f]+\\)" 3 ''a68-numbers-face)
+   ;; Digits in binary bits denotations.
+   '("\\<2r[ \t]*\\([01]+\\)" 1 ''a68-numbers-face)
+   ;; Binary bits denotations also highlight set bits.
    '("\\<\\(2r\\)[ \t]*[01]+" (1 ''a68-bits-radix-face)
      ("1" (re-search-backward "2r" nil t) nil (0 ''a68-bits-flip-face)))
    ;; String breaks.  Apostrophe is not (currently) a worthy character
@@ -281,9 +294,15 @@
               word-end)
           ''font-lock-type-face)
     (cons (rx word-start
+              (eval `(or ,@a68-constants-supper))
+              word-end)
+          ''font-lock-constant-face)
+    (cons (rx word-start
               (or "true" "false")
               word-end)
           ''font-lock-constant-face)
+    ;; Numbers.
+    (cons "\\<\\([0-9][0-9.]*\\)\\>" ''a68-numbers-face)
     ;; Tags.
     (cons "\\<\\([a-z][a-z]+_?\\)+\\>" ''font-lock-variable-name-face)
     ;; Mode names start with an upper case letter.
@@ -291,7 +310,7 @@
     ;; we mandate type faced strings to have at least one
     ;; lower-case letter.
     (cons "\\<\\([A-Z][A-Za-z0-9_]*[a-z][A-Za-z0-9_]*\\)\\>" ''font-lock-type-face)
-    (cons "\\<\\([A-Z][A-Z0-9_]*\\)\\>" ''font-lock-keyword-face)))
+    (cons "\\<\\([A-Z][A-Z0-9_]*\\)\\>" ''a68-operator-face)))
   "Highlighting expressions for Algol 68 mode in SUPPER stropping.")
 
 ;;;; Syntax-based text properties.
@@ -400,7 +419,8 @@ with the equivalent upcased form."
              ("op" ids "=" args ids ":" exp))
     (proc-decl (proc-decl "," proc-decl)
                ("op" ids "=" args ids ":" exp)
-               ("proc" ids "=" ids ":" exp))
+               ("proc" ids "=" ids ":" exp)
+               ("pub" "-proc-" ids "=" ids ":" exp))
     ;; Compilation inputs
     ;; ==================
     (compilation-input (labeled-enclosed-clause)
@@ -891,6 +911,15 @@ with the equivalent upcased form."
       (if (looking-at "[ \t\n]*\\<include\\>")
           "-pr-"
         "pr"))
+     ;; A -proc- follows pub.
+     ((looking-at "\\<proc\\>")
+      (cond
+       ((looking-back "\\<pub\\>[ \t\n]*" nil)
+        (goto-char (+ (point) 4))
+        "-proc-")
+       (t
+        (goto-char (+ (point) 4))
+        "proc")))
      ;; The symbols "by", "from", "to", "while" and "do" mark the start
      ;; of a loop-clause if they are the first symbol of an
      ;; enclosed-clause, and is thus preceded by a symbol which may
@@ -1009,6 +1038,14 @@ with the equivalent upcased form."
      ((looking-back "):" (- (point) 2))
       (goto-char (- (point) 2))
       "):")
+     ;; A -proc- follows pub.
+     ((looking-back "\\<proc\\>")
+      (goto-char (- (point) 4))
+      (cond
+       ((looking-back "\\<pub\\>[ \t\n]*" nil)
+        "-proc-")
+       (t
+        "proc")))
      ;; See comments in a68--smie-forward-token for an explanation of
      ;; the handling of loop insertions -from- -to- -by- -while-.
      ((looking-back "\\<from\\>" (- (point) 4))
@@ -1175,6 +1212,15 @@ UPPER stropping version."
       (if (looking-at "[ \t\n]*\\<include\\>")
           "-pr-"
         "PR"))
+     ;; A -proc- follows pub.
+     ((looking-at "\\<PROC\\>")
+      (cond
+       ((looking-back "\\<PUB\\>[ \t\n]*" nil)
+        (goto-char (+ (point) 4))
+        "-proc-")
+       (t
+        (goto-char (+ (point) 4))
+        "PROC")))
      ;; The symbols "by", "from", "to", "while" and "do" mark the
      ;; start of a loop-clause if they are the first symbol of an
      ;; enclosed-clause, and is thus preceded by a symbol which may
@@ -1283,6 +1329,14 @@ UPPER stropping version."
      ((looking-back "):" (- (point) 2))
       (goto-char (- (point) 2))
       "):")
+     ;; A -proc- follows pub.
+     ((looking-back "\\<PROC\\>")
+      (goto-char (- (point) 4))
+      (cond
+       ((looking-back "\\<PUB\\>[ \t\n]*" nil)
+        "-proc-")
+       (t
+        "PROC")))
      ;; See comments in a68--smie-forward-token for an explanation of
      ;; the handling of loop insertions -from- -to- -by- -while-.
      ((looking-back "\\<FROM\\>" (- (point) 4))
@@ -1425,7 +1479,8 @@ UPPER stropping version."
     (`(:before . "begin")
      (when (or (smie-rule-hanging-p)
                (or
-                (and (or (smie-rule-parent-p "proc")
+                (and (or (smie-rule-parent-p "pub")
+                         (smie-rule-parent-p "proc")
                          (smie-rule-parent-p "op"))
                      (smie-rule-prev-p ":"))
                 (smie-rule-parent-p "program")

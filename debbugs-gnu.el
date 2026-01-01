@@ -1,6 +1,6 @@
 ;;; debbugs-gnu.el --- interface for the GNU bug tracker  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2011-2025 Free Software Foundation, Inc.
+;; Copyright (C) 2011-2026 Free Software Foundation, Inc.
 
 ;; Author: Lars Magne Ingebrigtsen <larsi@gnus.org>
 ;;         Michael Albinus <michael.albinus@gmx.de>

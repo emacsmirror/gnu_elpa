@@ -1,6 +1,6 @@
 ;;; debbugs-tests.el --- tests for debbugs.el -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024-2025 Free Software Foundation, Inc.
+;; Copyright (C) 2024-2026 Free Software Foundation, Inc.
 
 ;; Author: Morgan Smith <Morgan.J.Smith@outlook.com>
 ;; Package: debbugs

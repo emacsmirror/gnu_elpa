@@ -1,6 +1,6 @@
 ;;; debbugs-bookmarks.el --- Bookmark support for debbugs  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025 Free Software Foundation, Inc.
+;; Copyright (C) 2025-2026 Free Software Foundation, Inc.
 
 ;; Author: Matthias Meulien <orontee@gmail.com>
 ;; Keywords: convenience

@@ -1,6 +1,6 @@
 ;;; debbugs-checkdoc-config.el --- Configuration for running checkdoc on debbugs -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025 Free Software Foundation, Inc.
+;; Copyright (C) 2025-2026 Free Software Foundation, Inc.
 
 ;; Author: Morgan Smith <Morgan.J.Smith@outlook.com>
 ;; Package: debbugs

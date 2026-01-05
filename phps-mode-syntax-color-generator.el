@@ -159,6 +159,7 @@
                   (T_USE font-lock-keyword-face table)
                   (T_VAR font-lock-keyword-face table)
                   (T_VARIABLE font-lock-variable-name-face table)
+                  (T_VOID_CAST font-lock-constant-face table)
                   (T_WHILE font-lock-keyword-face table)
                   (T_XOR_EQUAL font-lock-constant-face table)
                   (T_YIELD font-lock-keyword-face table)

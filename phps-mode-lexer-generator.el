@@ -102,6 +102,12 @@
   "[ \n\r\t]+"
   "White-space.")
 
+(defconst phps-mode-lexer--optional-whitespace
+  "[ \n\r\t]*"
+  "Optional white-space.")
+
+;; TODO Implement MULTI_LINE_COMMENT, SINGLE_LINE_COMMENT, HASH_COMMENT, WHITESPACE_OR_COMMENTS and OPTIONAL_WHITESPACE_OR_COMMENTS here
+
 (defconst phps-mode-lexer--tabs-and-spaces
   "[ \t]*"
   "Tabs and white-spaces.")
@@ -520,7 +526,7 @@
       (concat
        "("
        phps-mode-lexer--tabs-and-spaces
-       "\\(int\\|integer\\)"
+       "int"
        phps-mode-lexer--tabs-and-spaces
        ")")))
    (lambda() (phps-mode-lexer--return-token 'T_INT_CAST)))
@@ -533,10 +539,56 @@
       (concat
        "("
        phps-mode-lexer--tabs-and-spaces
-       "\\(double\\|float\\)"
+       "integer"
+       phps-mode-lexer--tabs-and-spaces
+       ")")))
+   (lambda()
+     (when (phps-mode-lexer--parser-mode)
+       (signal
+        'phps-lexer-error
+        (list
+         (format
+          "Non-canonical cast (integer) is deprecated, use the (int) cast instead at %d"
+          (match-beginning 0))
+         (match-beginning 0)
+         (match-end 0))))
+     (phps-mode-lexer--return-token 'T_INT_CAST)))
+
+  (phps-mode-lexer-generator--add-rule
+   phps-mode-lexer-generator--table
+   'ST_IN_SCRIPTING
+   (lambda()
+     (looking-at
+      (concat
+       "("
+       phps-mode-lexer--tabs-and-spaces
+       "float"
        phps-mode-lexer--tabs-and-spaces
        ")")))
    (lambda() (phps-mode-lexer--return-token 'T_DOUBLE_CAST)))
+
+  (phps-mode-lexer-generator--add-rule
+   phps-mode-lexer-generator--table
+   'ST_IN_SCRIPTING
+   (lambda()
+     (looking-at
+      (concat
+       "("
+       phps-mode-lexer--tabs-and-spaces
+       "double"
+       phps-mode-lexer--tabs-and-spaces
+       ")")))
+   (lambda()
+     (when (phps-mode-lexer--parser-mode)
+       (signal
+        'phps-lexer-error
+        (list
+         (format
+          "Non-canonical cast (double) is deprecated, use the (float) cast instead at %d"
+          (match-beginning 0))
+         (match-beginning 0)
+         (match-end 0))))
+     (phps-mode-lexer--return-token 'T_DOUBLE_CAST)))
 
   (phps-mode-lexer-generator--add-rule
    phps-mode-lexer-generator--table
@@ -569,10 +621,33 @@
       (concat
        "("
        phps-mode-lexer--tabs-and-spaces
-       "\\(string\\|binary\\)"
+       "string"
        phps-mode-lexer--tabs-and-spaces
        ")")))
    (lambda() (phps-mode-lexer--return-token 'T_STRING_CAST)))
+
+  (phps-mode-lexer-generator--add-rule
+   phps-mode-lexer-generator--table
+   'ST_IN_SCRIPTING
+   (lambda()
+     (looking-at
+      (concat
+       "("
+       phps-mode-lexer--tabs-and-spaces
+       "binary"
+       phps-mode-lexer--tabs-and-spaces
+       ")")))
+   (lambda()
+     (when (phps-mode-lexer--parser-mode)
+       (signal
+        'phps-lexer-error
+        (list
+         (format
+          "Non-canonical cast (binary) is deprecated, use the (string) cast instead at %d"
+          (match-beginning 0))
+         (match-beginning 0)
+         (match-end 0))))
+     (phps-mode-lexer--return-token 'T_STRING_CAST)))
 
   (phps-mode-lexer-generator--add-rule
    phps-mode-lexer-generator--table
@@ -608,7 +683,7 @@
       (concat
        "("
        phps-mode-lexer--tabs-and-spaces
-       "\\(bool\\|boolean\\)"
+       "bool"
        phps-mode-lexer--tabs-and-spaces
        ")")))
    (lambda() (phps-mode-lexer--return-token 'T_BOOL_CAST)))
@@ -621,9 +696,45 @@
       (concat
        "("
        phps-mode-lexer--tabs-and-spaces
+       "boolean"
+       phps-mode-lexer--tabs-and-spaces
+       ")")))
+   (lambda()
+     (when (phps-mode-lexer--parser-mode)
+       (signal
+        'phps-lexer-error
+        (list
+         (format
+          "Non-canonical cast (boolean) is deprecated, use the (bool) cast instead at %d"
+          (match-beginning 0))
+         (match-beginning 0)
+         (match-end 0))))
+     (phps-mode-lexer--return-token 'T_BOOL_CAST)))
+
+  (phps-mode-lexer-generator--add-rule
+   phps-mode-lexer-generator--table
+   'ST_IN_SCRIPTING
+   (lambda()
+     (looking-at
+      (concat
+       "("
+       phps-mode-lexer--tabs-and-spaces
        "unset"
        phps-mode-lexer--tabs-and-spaces ")")))
    (lambda() (phps-mode-lexer--return-token 'T_UNSET_CAST)))
+
+  (phps-mode-lexer-generator--add-rule
+   phps-mode-lexer-generator--table
+   'ST_IN_SCRIPTING
+   (lambda()
+     (looking-at
+      (concat
+       "("
+       phps-mode-lexer--tabs-and-spaces
+       "void"
+       phps-mode-lexer--tabs-and-spaces ")")))
+   (lambda() (phps-mode-lexer--return-token 'T_VOID_CAST)))
+  ;; TODO New token above
 
   (phps-mode-lexer-generator--add-rule
    phps-mode-lexer-generator--table
@@ -966,6 +1077,9 @@
    'ST_IN_SCRIPTING
    (lambda() (looking-at ">>"))
    (lambda() (phps-mode-lexer--return-token 'T_SR)))
+
+  ;; TODO WAS HERE
+  ;; TODO Should be OPTIONAL_WHITESPACE_OR_COMMENTS below
 
   (phps-mode-lexer-generator--add-rule
    phps-mode-lexer-generator--table

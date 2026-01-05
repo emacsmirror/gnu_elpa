@@ -1,6 +1,6 @@
 ;;; colorful-mode.el --- Preview any color in your buffer in real time -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024-2025 Free Software Foundation, Inc
+;; Copyright (C) 2024-2026 Free Software Foundation, Inc
 
 ;; Author: Elias G. Perez <eg642616@gmail.com>
 ;; Maintainer: Shen, Jen-Chieh <jcs090218@gmail.com>

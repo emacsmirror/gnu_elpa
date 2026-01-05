@@ -106,7 +106,45 @@
   "[ \n\r\t]*"
   "Optional white-space.")
 
-;; TODO Implement MULTI_LINE_COMMENT, SINGLE_LINE_COMMENT, HASH_COMMENT, WHITESPACE_OR_COMMENTS and OPTIONAL_WHITESPACE_OR_COMMENTS here
+(defconst phps-mode-lexer--multi-line-comment
+  "/\\*\\([^*\x00]*\\*+\\)\\([^*/\x00][^*\x00]*\\*+\\)*/"
+  "Multi-line comment.")
+
+(defconst phps-mode-lexer--single-line-comment
+  "//[^\x00\n\r]*[\n\r]"
+  "Single-line comment.")
+
+(defconst phps-mode-lexer--hash-comment
+  "#\\(\\([^\\[\x00][^\x00\n\r]*[\n\r]\\)\\|[\n\r]\\)"
+  "Single-line comment.")
+
+(defconst phps-mode-lexer--whitespace-or-comments
+  (concat
+   "\\("
+   phps-mode-lexer--whitespace
+   "\\|"
+   phps-mode-lexer--multi-line-comment
+   "\\|"
+   phps-mode-lexer--single-line-comment
+   "\\|"
+   phps-mode-lexer--hash-comment
+   "\\)+"
+   )
+  "Single-line comment.")
+
+(defconst phps-mode-lexer--optional-whitespace-or-comments
+  (concat
+   "\\("
+   phps-mode-lexer--whitespace
+   "\\|"
+   phps-mode-lexer--multi-line-comment
+   "\\|"
+   phps-mode-lexer--single-line-comment
+   "\\|"
+   phps-mode-lexer--hash-comment
+   "\\)*"
+   )
+  "Single-line comment.")
 
 (defconst phps-mode-lexer--tabs-and-spaces
   "[ \t]*"
@@ -207,7 +245,7 @@
      (looking-at
       (concat
        "yield"
-       phps-mode-lexer--whitespace
+       phps-mode-lexer--whitespace-or-comments
        "from"
        "[^a-zA-Z0-9_\x80-\xff]")))
    (lambda() (phps-mode-lexer--return-token-with-indent 'T_YIELD_FROM)))
@@ -416,7 +454,12 @@
    phps-mode-lexer-generator--table
    'ST_IN_SCRIPTING
    (lambda()
-     (looking-at (concat "\\(enum\\)" phps-mode-lexer--whitespace "\\(extends\\|implements\\)")))
+     (looking-at
+      (concat
+       "enum"
+       phps-mode-lexer--whitespace-or-comments
+       "\\(extends\\|implements\\)"
+       )))
    (lambda()
      (phps-mode-lexer--yyless 4)
      (phps-mode-lexer--return-token-with-str 'T_STRING)))
@@ -424,7 +467,12 @@
   (phps-mode-lexer-generator--add-rule
    phps-mode-lexer-generator--table
    'ST_IN_SCRIPTING
-   (lambda() (looking-at (concat "\\(enum\\)" phps-mode-lexer--whitespace "[a-zA-Z_\x80-\xff]")))
+   (lambda() (looking-at
+              (concat
+               "enum"
+               phps-mode-lexer--whitespace-or-comments
+               "[a-zA-Z_\x80-\xff]"
+               )))
    (lambda()
      (phps-mode-lexer--yyless 4)
      (phps-mode-lexer--return-token-with-indent 'T_ENUM (match-beginning 1) (match-end 1))))
@@ -734,7 +782,6 @@
        "void"
        phps-mode-lexer--tabs-and-spaces ")")))
    (lambda() (phps-mode-lexer--return-token 'T_VOID_CAST)))
-  ;; TODO New token above
 
   (phps-mode-lexer-generator--add-rule
    phps-mode-lexer-generator--table
@@ -1078,13 +1125,15 @@
    (lambda() (looking-at ">>"))
    (lambda() (phps-mode-lexer--return-token 'T_SR)))
 
-  ;; TODO WAS HERE
-  ;; TODO Should be OPTIONAL_WHITESPACE_OR_COMMENTS below
-
   (phps-mode-lexer-generator--add-rule
    phps-mode-lexer-generator--table
    'ST_IN_SCRIPTING
-   (lambda() (looking-at (concat "&" "[ \t\r\n]*" "\\(\\$\\|\\.\\.\\.\\)")))
+   (lambda() (looking-at
+              (concat
+               "&"
+               phps-mode-lexer--optional-whitespace-or-comments
+               "\\(\\$\\|\\.\\.\\.\\)"
+               )))
    (lambda()
      (phps-mode-lexer--yyless 1)
      (phps-mode-lexer--return-token

@@ -157,6 +157,8 @@
  ;; The `cl-print' code doesn't try to work outside of Emacs any more.
  ;;(cl-print		:core "lisp/emacs-lisp/cl-print.el")
  (clipboard-collector 	:url "https://github.com/clemera/clipboard-collector")
+ ;; (cm-mode		:url "https://github.com/joostkremers/criticmarkup-emacs"
+ ;;  :readme "README.md")
  (cobol-mode          	:url "https://git.sr.ht/~hjelmtech/cobol-mode")
  (code-cells		:url "https://github.com/astoff/code-cells.el"
   :ignored-files ("LICENSE"))
@@ -748,6 +750,9 @@
  (shell-command+	:url "https://codeberg.org/pkal/shell-command-plus.el")
  (shell-quasiquote	:url nil)
  (shen-mode		:url nil)
+ (shift-number	       :url "https://codeberg.org/ideasman42/emacs-shift-number"
+  :ignored-files ("LICENSE")
+  :readme "readme.rst")
  (show-font		:url "https://github.com/protesilaos/show-font"
   :doc "README.org"
   :news "CHANGELOG.org"

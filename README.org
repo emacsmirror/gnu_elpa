@@ -202,6 +202,9 @@ The ~listen-mode~ minor mode runs a timer which plays the next track in the curr
 
 *Fixes*
 - Race condition in MPV support.  (Fixes [[https://github.com/alphapapa/listen.el/issues/40][#40]].  Thanks to [[https://github.com/SemyonSinchenko][Semyon Sinchenko]] and [[https://github.com/Sjmarf][Sjmarf]] for reporting.)
+
+*Compatibility*
+- Accept Vorbis comments up to 16 MB in size.  (See [[https://github.com/alphapapa/listen.el/pull/34][#34]].  Thanks to [[https://github.com/Etenil][@Etenil]] for reporting, and [[https://github.com/MinallW][Miguel Ángel Suárez Calles]] for testing.)
 ** v0.10
 
 *Additions*

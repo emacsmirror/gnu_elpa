@@ -198,6 +198,9 @@ The ~listen-mode~ minor mode runs a timer which plays the next track in the curr
 - Similarly, you might even see an icon in your task switcher indicating that Emacs is playing sound (e.g. with KDE Plasma).
 * Changelog
 
+** v0.10.1-pre
+
+Nothing new yet.
 ** v0.10
 
 *Additions*

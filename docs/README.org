@@ -237,7 +237,8 @@ The ~listen-mode~ minor mode runs a timer which plays the next track in the curr
 
 ** v0.10.1-pre
 
-Nothing new yet.
+*Fixes*
++ Race condition in MPV support.  (Fixes [[https://github.com/alphapapa/listen.el/issues/40][#40]].  Thanks to [[https://github.com/SemyonSinchenko][Semyon Sinchenko]] and [[https://github.com/Sjmarf][Sjmarf]] for reporting.)
 
 ** v0.10
 

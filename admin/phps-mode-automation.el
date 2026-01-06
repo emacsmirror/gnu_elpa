@@ -28,6 +28,9 @@
         ;; Emacs 29.1
         ;; Batch jobs that are supposed to run for a long time should
         ;; adjust the limit back down to 0.1
+        ;;
+        ;; Not using this will result in OS killing user session due to
+        ;; out of memory after a few days.
         (when (>= (string-to-number emacs-version) 29.1)
           (message ";; Adjusting gc-cons-percentage to 0.1 since Emacs version is 29.1 or newer")
           (setq

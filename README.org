@@ -964,7 +964,7 @@ This is an example of the first configuration method:
 
   (defvar my:bufferlo-consult--source-other-buffers
     (list :name "Bufferlo Other Buffers"
-          :narrow   ?b
+          :narrow   ?o
           :category 'buffer
           :face     'consult-buffer
           :history  'buffer-name-history
@@ -1030,9 +1030,10 @@ the narrowing key (~:narrow ?.~).
 This is the second, simpler ~consult~ integration method using its native
 buffer filter. This shows local bufferlo buffers as the default ~consult~
 buffer list. To view non-local buffers, "narrow" the list using key sequence
-"< O" (where "<" is the default consult narrowing character) and the ~consult~
+"< o" (where "<" is the default consult narrowing character) and the ~consult~
 buffer list switches to to non-local buffers. To return to the local buffer
-list, enter the key sequence "< <" to undo list narrowing.
+list, enter the key sequence "< <" to undo list narrowing. See [[https://github.com/minad/consult?tab=readme-ov-file#narrowing-and-grouping][Consult
+Narrowing and Grouping]] and [[https://github.com/minad/consult?tab=readme-ov-file#virtual-buffers][Virtual Buffers (aka Buffer Switching)]].
 
 #+begin_src emacs-lisp
   ;; This defaults to #'buffer-list which shows all buffers.

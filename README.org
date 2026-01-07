@@ -37,7 +37,7 @@ frontmatter field ~reviewdate~. with the command
 
 To make this easy, bind this command to a key, f.e.:
 
-~define-key global-map (kbd "C-c n x") #'my-denote-review-set-date)~
+~(define-key global-map (kbd "C-c n x") #'my-denote-review-set-date)~
 
 - When the frontmatter of the note doesn't contain the ~reviewdate~
   field, it will be inserted, with the current date as review date.

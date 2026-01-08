@@ -460,8 +460,7 @@ Denote Journal is meant to be a collective effort.  Every bit of help matters.
   Schmitt, Ettore Berardi, Honza Pokorny, Josh Kingsley, Stefan
   Monnier, Vineet C. Kulkarni, gk2803, jbwfu.
 
-+ Ideas and/or user feedback :: Alan Schmitt, Donald Brady, Kevin
-  McCarthy, Halogen3576, kamchy.
++ Ideas and/or user feedback :: Alan Schmitt, Kevin McCarthy, Halogen3576.
 
 * GNU Free Documentation License
 :PROPERTIES:

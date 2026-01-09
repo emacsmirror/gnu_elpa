@@ -1173,11 +1173,10 @@ For a more specialised case, see `denote-sequence-find-relatives-dired'."
                              (car roots)
                            (denote-directories-get-common-root)))
               (files (funcall files-fn))
-              (dired-name (denote-format-buffer-name
+              (buffer-name (denote-format-buffer-name
                            (format-message "prefix `%s'; depth `%s'" (or prefix "ALL") (or depth "ALL"))
-                           :is-special-buffer))
-              (buffer-name dired-name))
-        (denote-sort-dired--prepare-buffer directory files-fn dired-name buffer-name)
+                           :is-special-buffer)))
+        (denote-sort-dired--prepare-buffer directory files-fn buffer-name)
       (message "No matching files"))))
 
 ;;;###autoload

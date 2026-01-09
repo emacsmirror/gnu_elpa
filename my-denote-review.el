@@ -47,7 +47,7 @@
 
 ;; Regexps for different filetypes
 
-(defun search-regexp-for-filetype ()
+(defun my-denote-review-search-regexp-for-filetype ()
   "Regexp to search for the reviewdate.
 Defaults to regexp for org filetype."
   (cond ((string= denote-file-type "markdown-yaml")
@@ -58,7 +58,7 @@ Defaults to regexp for org filetype."
          "\\(^reviewdate:[ \t]\\)\\([^\t\n]+\\)")
         (t "\\(^#\\+reviewdate:[ \t]\\[\\)\\([^\t\n]+\\)\\]")))
 
-(defun insert-regexp-location-for-filetype ()
+(defun my-denote-review-insert-regexp-location-for-filetype ()
   "Regexp to search for the identifier string in frontmatter."
   (if (or
        (string= denote-file-type 'markdown-yaml)
@@ -74,11 +74,11 @@ Defaults to regexp for org filetype."
 Format according to denote-file-type. 
 Insert just after the identifier line."
   (cond ((string= denote-file-type "markdown-yaml")
-	 (format "reviewdate: %s" mydate))
+         (format "reviewdate: %s" mydate))
         ((string= denote-file-type "markdown-toml")
-	 (format "reviewdate = %s" mydate))
+         (format "reviewdate = %s" mydate))
         ((string= denote-file-type "text")
-	 (format "reviewdate: %s" mydate))
+         (format "reviewdate: %s" mydate))
         (t (format "#+reviewdate: [%s]" mydate))))
 
 (defun my-denote-review-insert-date (&optional thisdate insert-regexp)
@@ -99,11 +99,13 @@ Replace an existing reviewdate."
 (interactive)
 (save-excursion
  (goto-char (point-min))
- (if (re-search-forward (search-regexp-for-filetype)
+ (if (re-search-forward (my-denote-review-search-regexp-for-filetype)
                         my-denote-review-max-search-point t)
      (replace-match
       (my-denote-review-insert-reviewdate-line (format-time-string "%F")))
-   (my-denote-review-insert-date nil (insert-regexp-location-for-filetype)))))
+   (my-denote-review-insert-date
+    nil
+    (my-denote-review-insert-regexp-location-for-filetype)))))
 
 (defun my-denote-review-get-date (search-regexp)
   "Get the reviewdate from current buffer."
@@ -129,15 +131,15 @@ Only do this when no reviewdate already exist."
   "Opens FILENAME and insert a reviewdate.
 When CURRENT-DATE-P is not null, use current date."
   (let ((fpath filename)
-	(fname (file-name-nondirectory filename))
-	(mybuffer '())
-        (search-regexp (search-regexp-for-filetype))
-        (insert-regexp (insert-regexp-location-for-filetype)))
+        (fname (file-name-nondirectory filename))
+        (mybuffer '())
+        (search-regexp (my-denote-review-search-regexp-for-filetype))
+        (insert-regexp (my-denote-review-insert-regexp-location-for-filetype)))
     (find-file fpath)
     (if (null current-date-p)
         (my-denote-review-set-initial-date
          (my-denote-review-get-date-from-filename fname)
-	 search-regexp insert-regexp)
+         search-regexp insert-regexp)
       (my-denote-review-set-initial-date (format-time-string "%F")
                                          search-regexp
                                          insert-regexp))
@@ -163,7 +165,7 @@ Does not overwrite existing reviewdates."
   "Prompt for a path when needed."
   (if (listp denote-directory)
       (completing-read "Select a directory (using completion): "
-		       denote-directory)
+                       denote-directory)
     denote-directory))
 
 (defun my-denote-review-get-keyword-list (denotepath)
@@ -180,20 +182,20 @@ Does not overwrite existing reviewdates."
 (defun my-denote-review-select-keyword ()
   "Select a keyword or `All' using completion."
   (let ((denotepath (my-denote-review-get-path)))
-	(cons denotepath
-	      (completing-read
-	       "Select a keyword (using completion) :"
-	       (append (list "All")
-		       (my-denote-review-get-keyword-list denotepath))))))
+    (cons denotepath
+          (completing-read
+           "Select a keyword (using completion) :"
+           (append (list "All")
+                   (my-denote-review-get-keyword-list denotepath))))))
 
 ;; Collect data to fill the tabular mode list
 
 (defun my-denote-review-check-date-of-file (myfile search-regexp)
-    "Get the reviewdate of MYFILE."
+  "Get the reviewdate of MYFILE."
   (let ((mybuffer (find-file myfile))
         myreviewdate)
     (setq myreviewdate (my-denote-review-get-date
-			search-regexp))
+                        search-regexp))
     (kill-buffer mybuffer)
     myreviewdate))
 
@@ -203,14 +205,14 @@ Filter filenames according to DENOTEPATH-AND-KEYWORD.
 DENOTEPATH-AND-KEYWORD is a cons of a path and a keyword.
 Create a list in the format required by `tabulated-list-mode'."
   (let ((list-of-files '())
-        (search-regexp (search-regexp-for-filetype))
-	(denote-directory (car denotepath-and-keyword)))
+        (search-regexp (my-denote-review-search-regexp-for-filetype))
+        (denote-directory (car denotepath-and-keyword)))
     (save-excursion
       (mapc
        (lambda (myfile)
          (when (or (string= (cdr denotepath-and-keyword) "All")
                    (string-match
-		    (format "_%s" (cdr denotepath-and-keyword)) myfile))
+                    (format "_%s" (cdr denotepath-and-keyword)) myfile))
            (let ((reviewdate (my-denote-review-check-date-of-file
                               myfile
                               search-regexp)))
@@ -277,8 +279,8 @@ Initially sort by reviewdate."
 
 (defun my-denote-review-display-list (denotepath-and-keyword)
   "Show buffer with reviewdates.
-DENOTEPATH-AND-KEYWORD is a cons of a path and a keyword.
-Filter by keyword."
+ DENOTEPATH-AND-KEYWORD is a cons of a path and a keyword.
+ Filter by keyword."
   (interactive (list (my-denote-review-select-keyword)))
   (with-current-buffer (get-buffer-create "*my-denote-review-results*")
     (my-denote-review-mode)
@@ -286,9 +288,9 @@ Filter by keyword."
     (tabulated-list-print t)
     (display-buffer (current-buffer))
     (setq mode-line-buffer-identification
-	  (format "*my-denote-review-results* [%s | %s]"
-		  (car denotepath-and-keyword)
-		  (cdr denotepath-and-keyword)))
+          (format "*my-denote-review-results* [%s | %s]"
+                  (car denotepath-and-keyword)
+                  (cdr denotepath-and-keyword)))
     (force-mode-line-update)))
 
 (provide 'my-denote-review)

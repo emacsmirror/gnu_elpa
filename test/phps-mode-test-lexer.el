@@ -341,6 +341,42 @@
      '((T_OPEN_TAG 1 . 7) (T_VARIABLE 8 . 10) ("=" 11 . 12) (T_LNUMBER 13 . 14) (T_POW 15 . 17) (T_LNUMBER 18 . 19) (";" 19 . 20) (T_VARIABLE 21 . 23) (T_POW_EQUAL 24 . 27) (T_LNUMBER 28 . 29) (";" 29 . 30))
      )))
 
+  (phps-mode-test--with-buffer
+   "<?php\n$title = ' PHP 8.5 Released ';\n\n$slug = $title\n    |> trim(...)\n    |> (fn($str) => str_replace(' ', '-', $str))\n    |> (fn($str) => str_replace('.', '', $str))\n    |> strtolower(...);\n\nvar_dump($slug);\n// string(15) \"php-85-released\""
+   "PHP 8.5 - Pipe Operator"
+   (should
+    (equal
+     phps-mode-lex-analyzer--tokens
+     '((T_OPEN_TAG 1 . 7) (T_VARIABLE 7 . 13) ("=" 14 . 15) (T_CONSTANT_ENCAPSED_STRING 16 . 36) (";" 36 . 37) (T_VARIABLE 39 . 44) ("=" 45 . 46) (T_VARIABLE 47 . 53) (T_PIPE 58 . 60) (T_STRING 61 . 65) ("(" 65 . 66) (T_ELLIPSIS 66 . 69) (")" 69 . 70) (T_PIPE 75 . 77) ("(" 78 . 79) (T_FN 79 . 81) ("(" 81 . 82) (T_VARIABLE 82 . 86) (")" 86 . 87) (T_DOUBLE_ARROW 88 . 90) (T_STRING 91 . 102) ("(" 102 . 103) (T_CONSTANT_ENCAPSED_STRING 103 . 106) ("," 106 . 107) (T_CONSTANT_ENCAPSED_STRING 108 . 111) ("," 111 . 112) (T_VARIABLE 113 . 117) (")" 117 . 118) (")" 118 . 119) (T_PIPE 124 . 126) ("(" 127 . 128) (T_FN 128 . 130) ("(" 130 . 131) (T_VARIABLE 131 . 135) (")" 135 . 136) (T_DOUBLE_ARROW 137 . 139) (T_STRING 140 . 151) ("(" 151 . 152) (T_CONSTANT_ENCAPSED_STRING 152 . 155) ("," 155 . 156) (T_CONSTANT_ENCAPSED_STRING 157 . 159) ("," 159 . 160) (T_VARIABLE 161 . 165) (")" 165 . 166) (")" 166 . 167) (T_PIPE 172 . 174) (T_STRING 175 . 185) ("(" 185 . 186) (T_ELLIPSIS 186 . 189) (")" 189 . 190) (";" 190 . 191) (T_STRING 193 . 201) ("(" 201 . 202) (T_VARIABLE 202 . 207) (")" 207 . 208) (";" 208 . 209) (T_COMMENT 210 . 241))
+     )))
+
+  (phps-mode-test--with-buffer
+   "<?php\nreadonly class Color\n{\n    public function __construct(\n        public int $red,\n        public int $green,\n        public int $blue,\n        public int $alpha = 255,\n    ) {}\n\n    public function withAlpha(int $alpha): self\n    {\n        return clone($this, [\n            'alpha' => $alpha,\n        ]);\n    }\n}\n\n$blue = new Color(79, 91, 147);\n$transparentBlue = $blue->withAlpha(128);"
+   "PHP 8.5 - Clone With"
+   (should
+    (equal
+     phps-mode-lex-analyzer--tokens
+     '((T_OPEN_TAG 1 . 7) (T_READONLY 7 . 15) (T_CLASS 16 . 21) (T_STRING 22 . 27) ("{" 28 . 29) (T_PUBLIC 34 . 40) (T_FUNCTION 41 . 49) (T_STRING 50 . 61) ("(" 61 . 62) (T_PUBLIC 71 . 77) (T_STRING 78 . 81) (T_VARIABLE 82 . 86) ("," 86 . 87) (T_PUBLIC 96 . 102) (T_STRING 103 . 106) (T_VARIABLE 107 . 113) ("," 113 . 114) (T_PUBLIC 123 . 129) (T_STRING 130 . 133) (T_VARIABLE 134 . 139) ("," 139 . 140) (T_PUBLIC 149 . 155) (T_STRING 156 . 159) (T_VARIABLE 160 . 166) ("=" 167 . 168) (T_LNUMBER 169 . 172) ("," 172 . 173) (")" 178 . 179) ("{" 180 . 181) ("}" 181 . 182) (T_PUBLIC 188 . 194) (T_FUNCTION 195 . 203) (T_STRING 204 . 213) ("(" 213 . 214) (T_STRING 214 . 217) (T_VARIABLE 218 . 224) (")" 224 . 225) (":" 225 . 226) (T_STRING 227 . 231) ("{" 236 . 237) (T_RETURN 246 . 252) (T_CLONE 253 . 258) ("(" 258 . 259) (T_VARIABLE 259 . 264) ("," 264 . 265) ("[" 266 . 267) (T_CONSTANT_ENCAPSED_STRING 280 . 287) (T_DOUBLE_ARROW 288 . 290) (T_VARIABLE 291 . 297) ("," 297 . 298) ("]" 307 . 308) (")" 308 . 309) (";" 309 . 310) ("}" 315 . 316) ("}" 317 . 318) (T_VARIABLE 320 . 325) ("=" 326 . 327) (T_NEW 328 . 331) (T_STRING 332 . 337) ("(" 337 . 338) (T_LNUMBER 338 . 340) ("," 340 . 341) (T_LNUMBER 342 . 344) ("," 344 . 345) (T_LNUMBER 346 . 349) (")" 349 . 350) (";" 350 . 351) (T_VARIABLE 352 . 368) ("=" 369 . 370) (T_VARIABLE 371 . 376) (T_OBJECT_OPERATOR 376 . 378) (T_STRING 378 . 387) ("(" 387 . 388) (T_LNUMBER 388 . 391) (")" 391 . 392) (";" 392 . 393))
+     )))
+
+  (phps-mode-test--with-buffer
+   "<?php\n#[\\NoDiscard]\nfunction getPhpVersion(): string\n{\n    return 'PHP 8.5';\n}\n\ngetPhpVersion();\n// Warning: The return value of function getPhpVersion() should\n// either be used or intentionally ignored by casting it as (void)"
+   "PHP 8.5 - #[\\NoDiscard] Attribute"
+   (should
+    (equal
+     phps-mode-lex-analyzer--tokens
+     '((T_OPEN_TAG 1 . 7) (T_ATTRIBUTE 7 . 9) (T_NAME_FULLY_QUALIFIED 9 . 19) ("]" 19 . 20) (T_FUNCTION 21 . 29) (T_STRING 30 . 43) ("(" 43 . 44) (")" 44 . 45) (":" 45 . 46) (T_STRING 47 . 53) ("{" 54 . 55) (T_RETURN 60 . 66) (T_CONSTANT_ENCAPSED_STRING 67 . 76) (";" 76 . 77) ("}" 78 . 79) (T_STRING 81 . 94) ("(" 94 . 95) (")" 95 . 96) (";" 96 . 97) (T_COMMENT 98 . 161) (T_COMMENT 162 . 228))
+     )))
+
+  (phps-mode-test--with-buffer
+   "<?php\nfinal class PostsController\n{\n    #[AccessControl(static function (\n        Request $request,\n        Post $post,\n    ): bool {\n        return $request->user === $post->getAuthor();\n    })]\n    public function update(\n        Request $request,\n        Post $post,\n    ): Response {\n        // ...\n    }\n}"
+   "PHP 8.5 - Closures and First-Class Callables in Constant Expressions"
+   (should
+    (equal
+     phps-mode-lex-analyzer--tokens
+     '((T_OPEN_TAG 1 . 7) (T_FINAL 7 . 12) (T_CLASS 13 . 18) (T_STRING 19 . 34) ("{" 35 . 36) (T_ATTRIBUTE 41 . 43) (T_STRING 43 . 56) ("(" 56 . 57) (T_STATIC 57 . 63) (T_FUNCTION 64 . 72) ("(" 73 . 74) (T_STRING 83 . 90) (T_VARIABLE 91 . 99) ("," 99 . 100) (T_STRING 109 . 113) (T_VARIABLE 114 . 119) ("," 119 . 120) (")" 125 . 126) (":" 126 . 127) (T_STRING 128 . 132) ("{" 133 . 134) (T_RETURN 143 . 149) (T_VARIABLE 150 . 158) (T_OBJECT_OPERATOR 158 . 160) (T_STRING 160 . 164) (T_IS_IDENTICAL 165 . 168) (T_VARIABLE 169 . 174) (T_OBJECT_OPERATOR 174 . 176) (T_STRING 176 . 185) ("(" 185 . 186) (")" 186 . 187) (";" 187 . 188) ("}" 193 . 194) (")" 194 . 195) ("]" 195 . 196) (T_PUBLIC 201 . 207) (T_FUNCTION 208 . 216) (T_STRING 217 . 223) ("(" 223 . 224) (T_STRING 233 . 240) (T_VARIABLE 241 . 249) ("," 249 . 250) (T_STRING 259 . 263) (T_VARIABLE 264 . 269) ("," 269 . 270) (")" 275 . 276) (":" 276 . 277) (T_STRING 278 . 286) ("{" 287 . 288) (T_COMMENT 297 . 303) ("}" 308 . 309) ("}" 310 . 311))
+     )))
+
   )
 
 (defun phps-mode-test-lexer--complex-tokens ()

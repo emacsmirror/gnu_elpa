@@ -45,18 +45,53 @@
   "Point to stop `re-search-forward' after some lines."
   :type 'natnum)
 
+;; Regexps for different filetypes
+
+(defun search-regexp-for-filetype ()
+  "Regexp to search for the reviewdate.
+Defaults to regexp for org filetype."
+  (cond ((string= denote-file-type "markdown-yaml")
+         "\\(^reviewdate:[ \t]\\)\\([^\t\n]+\\)")
+        ((string= denote-file-type "markdown-toml")
+         "\\(^reviewdate[ \t]\\)= \\([^\t\n]+\\)")
+        ((string= denote-file-type "text")
+         "\\(^reviewdate:[ \t]\\)\\([^\t\n]+\\)")
+        (t "\\(^#\\+reviewdate:[ \t]\\[\\)\\([^\t\n]+\\)\\]")))
+
+(defun insert-regexp-location-for-filetype ()
+  "Regexp to search for the identifier string in frontmatter."
+  (if (or
+       (string= denote-file-type 'markdown-yaml)
+       (string= denote-file-type 'markdown-toml)
+       (string= denote-file-type 'text))
+      "^identifier"
+    "^#\\+identifier"))
+
 ;; Setting and getting the reviewdate
 
-(defun my-denote-review-insert-date (&optional thisdate)
- "Insert current date as reviewdate.
+(defun my-denote-review-insert-reviewdate-line (mydate)
+  "Insert the review date MYDATE frontmatter line.
+Format according to denote-file-type. 
+Insert just after the identifier line."
+  (cond ((string= denote-file-type "markdown-yaml")
+	 (format "reviewdate: %s" mydate))
+        ((string= denote-file-type "markdown-toml")
+	 (format "reviewdate = %s" mydate))
+        ((string= denote-file-type "text")
+	 (format "reviewdate: %s" mydate))
+        (t (format "#+reviewdate: [%s]" mydate))))
+
+(defun my-denote-review-insert-date (&optional thisdate insert-regexp)
+  "Insert current date in ISO 8601 format as reviewdate.
 Or use THISDATE, when not nil."
- (goto-char (point-min))
- (let ((mydate (format-time-string "%F")))
-         (unless (null thisdate)
-           (setq mydate thisdate))
- (re-search-forward "^$" nil t)
- (replace-match (format "#+reviewdate: [%s]" mydate))
- (newline)))
+  (goto-char (point-min))
+  (let ((mydate (format-time-string "%F")))
+    (unless (null thisdate)
+      (setq mydate thisdate))
+    (re-search-forward insert-regexp nil t)
+    (end-of-line)
+    (newline)
+    (insert (my-denote-review-insert-reviewdate-line mydate))))
 
 (defun my-denote-review-set-date ()
 "Set the reviewdate in the current buffer.
@@ -64,11 +99,11 @@ Replace an existing reviewdate."
 (interactive)
 (save-excursion
  (goto-char (point-min))
- (if (re-search-forward "^#\\+reviewdate:[ \t][^\t\n]+"
+ (if (re-search-forward (search-regexp-for-filetype)
                         my-denote-review-max-search-point t)
      (replace-match
-      (format "#+reviewdate: [%s]" (format-time-string "%F")))
-   (my-denote-review-insert-date))))
+      (my-denote-review-insert-reviewdate-line (format-time-string "%F")))
+   (my-denote-review-insert-date nil (insert-regexp-location-for-filetype)))))
 
 (defun my-denote-review-get-date (search-regexp)
   "Get the reviewdate from current buffer."
@@ -80,12 +115,11 @@ Replace an existing reviewdate."
 
 ;; Bulk operation, to be run from Dired.
 
-(defun my-denote-review-set-initial-date (thisdate)
+(defun my-denote-review-set-initial-date (thisdate search-regexp insert-regexp)
   "Insert reviewdate with THISDATE.
 Only do this when no reviewdate already exist."
-  (when (null (my-denote-review-get-date
-	       "\\(^#\\+reviewdate:[ \t]\\[\\)\\([^\t\n]+\\)\\]"))
-    (my-denote-review-insert-date thisdate)))
+  (when (null (my-denote-review-get-date search-regexp))
+    (my-denote-review-insert-date thisdate insert-regexp)))
 
 (defun my-denote-review-get-date-from-filename (filename)
   "Convert identifier in FILENAME into a date."
@@ -94,16 +128,21 @@ Only do this when no reviewdate already exist."
 (defun my-denote-review-bulk-set-date (filename current-date-p)
   "Opens FILENAME and insert a reviewdate.
 When CURRENT-DATE-P is not null, use current date."
-  (let (fpath fname mybuffer len)
-    (setq fpath filename)
-    (setq fname (file-name-nondirectory fpath))
-    (setq mybuffer (find-file fpath))
+  (let ((fpath filename)
+	(fname (file-name-nondirectory filename))
+	(mybuffer '())
+        (search-regexp (search-regexp-for-filetype))
+        (insert-regexp (insert-regexp-location-for-filetype)))
+    (find-file fpath)
     (if (null current-date-p)
         (my-denote-review-set-initial-date
-         (my-denote-review-get-date-from-filename fname))
-      (my-denote-review-set-initial-date (format-time-string "%F")))
+         (my-denote-review-get-date-from-filename fname)
+	 search-regexp insert-regexp)
+      (my-denote-review-set-initial-date (format-time-string "%F")
+                                         search-regexp
+                                         insert-regexp))
     (save-buffer)
-    (kill-buffer mybuffer)))
+    (kill-buffer fname)))
 
 (defun my-denote-review-set-date-dired-marked-files ()
   "Insert a reviewdate in the marked files.
@@ -149,12 +188,12 @@ Does not overwrite existing reviewdates."
 
 ;; Collect data to fill the tabular mode list
 
-(defun my-denote-review-check-date-of-file (myfile)
+(defun my-denote-review-check-date-of-file (myfile search-regexp)
     "Get the reviewdate of MYFILE."
   (let ((mybuffer (find-file myfile))
         myreviewdate)
     (setq myreviewdate (my-denote-review-get-date
-			"\\(^#\\+reviewdate:[ \t]\\[\\)\\([^\t\n]+\\)\\]"))
+			search-regexp))
     (kill-buffer mybuffer)
     myreviewdate))
 
@@ -163,21 +202,25 @@ Does not overwrite existing reviewdates."
 Filter filenames according to DENOTEPATH-AND-KEYWORD.
 DENOTEPATH-AND-KEYWORD is a cons of a path and a keyword.
 Create a list in the format required by `tabulated-list-mode'."
-  (let ((list-of-files '()))
+  (let ((list-of-files '())
+        (search-regexp (search-regexp-for-filetype))
+	(denote-directory (car denotepath-and-keyword)))
     (save-excursion
       (mapc
        (lambda (myfile)
          (when (or (string= (cdr denotepath-and-keyword) "All")
                    (string-match
 		    (format "_%s" (cdr denotepath-and-keyword)) myfile))
-           (let ((reviewdate (my-denote-review-check-date-of-file myfile)))
+           (let ((reviewdate (my-denote-review-check-date-of-file
+                              myfile
+                              search-regexp)))
              (unless (null reviewdate)
                (push (list myfile
                            (vector
                             reviewdate
                             (file-name-nondirectory myfile)))
                      list-of-files)))))
-       (directory-files (car denotepath-and-keyword) t "\.org$" )))
+       (denote-directory-files nil t nil)))
     (when (null list-of-files)
       (error (format
               "No files with a reviewdate found (filter: keyword %s)"

@@ -3,11 +3,12 @@
 `my-denote-review' aims to provide a practical and simple manner to
 implement a review process for some of your [[ https://protesilaos.com/emacs/denote][denote]] notes.
 
-It is made for notes in org mode format.
-
 `my-denote-review' adds a single line to the frontmatter:
 
 ~#+reviewdate: [2024-06-12]~
+
+The format of this line is according to `denote-file-type' (defaults
+to org).
 
 ** Usage
 
@@ -20,7 +21,7 @@ The ~#+reviewdate~ frontmatter can be inserted or updated with a single
 key binding.
 
 To get started, select a number of denote notes in Dired and bulk
-insert the ~#+reviewdate~ frontmatter (see below). Default this
+insert the ~reviewdate~ frontmatter (see below). Default this
 inserts a review date derived from the identifier in the file name.
 With the Universal Argument (~C-u~) this current date is used as
 review date.
@@ -135,8 +136,7 @@ point a few lines below your frontmatter and issue the command
 ~my-denote-review-max-search-point~ could be.
 
 ** Limitations
-Currenlty only org-mode denote notes are supported.
-`my-denote-review' does not dive into subdirectories.
+`my-denote-review' doesn't support denote-silos yet.
 
 ** Source code. bugs and patches
 ~my-denote-review~ is developed at

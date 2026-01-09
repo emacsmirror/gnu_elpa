@@ -159,6 +159,9 @@ built-in =vc= and =project= libraries.  In case you look for a package
 with more specialized jujutsu support, here are some that might fit
 the bill:
 
+- [[https://github.com/0WD0/majutsu][0WD0/majutsu]] :: “Majutsu provides a Magit-style interface for
+  Jujutsu (jj), offering an efficient way to interact with JJ
+  repositories from within Emacs.”
 - [[https://github.com/bolivier/jj-mode.el][bolivier/jj-mode.el]] :: “Jujutsu version control mode for Emacs
   inspired by Magit”
 - [[https://github.com/bennyandresen/jujutsu.el][bennyandresen/jujutsu.el]] :: “An Emacs interface for jujutsu, inspired

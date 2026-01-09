@@ -69,7 +69,7 @@ as the variable `denote-directory'."
   (let ((default (car denote-silo-directory-history)))
     (completing-read
      (format-prompt "Select a silo" default)
-     (apply 'denote-get-completion-table denote-silo-directories denote-file-prompt-extra-metadata)
+     (denote-get-completion-table denote-silo-directories '(category . file))
      nil :require-match nil 'denote-silo-directory-history default)))
 
 (defun denote-silo-path-is-silo-p (path)

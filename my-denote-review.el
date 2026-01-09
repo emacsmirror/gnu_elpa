@@ -1,6 +1,6 @@
 ;;; my-denote-review --- organize notes review -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025  Matto Fransen
+;; Copyright (C) 2026  Matto Fransen
 
 ;; Author:  Matto Fransen <matto@matto.nl>
 ;; Maintainer:  Matto Fransen <matto@matto.nl>
@@ -52,7 +52,7 @@
 Or use THISDATE, when not nil."
  (goto-char (point-min))
  (let ((mydate (format-time-string "%F")))
-         (when (not (null thisdate))
+         (unless (null thisdate)
            (setq mydate thisdate))
  (re-search-forward "^$" nil t)
  (replace-match (format "#+reviewdate: [%s]" mydate))
@@ -70,11 +70,11 @@ Replace an existing reviewdate."
       (format "#+reviewdate: [%s]" (format-time-string "%F")))
    (my-denote-review-insert-date))))
 
-(defun my-denote-review-get-date ()
+(defun my-denote-review-get-date (search-regexp)
   "Get the reviewdate from current buffer."
     (save-excursion
       (goto-char (point-min))
-      (when (re-search-forward "\\(^#\\+reviewdate:[ \t]\\[\\)\\([^\t\n]+\\)\\]"
+      (when (re-search-forward search-regexp
                                my-denote-review-max-search-point t)
         (match-string-no-properties 2))))
 
@@ -83,7 +83,8 @@ Replace an existing reviewdate."
 (defun my-denote-review-set-initial-date (thisdate)
   "Insert reviewdate with THISDATE.
 Only do this when no reviewdate already exist."
-  (when (null (my-denote-review-get-date))
+  (when (null (my-denote-review-get-date
+	       "\\(^#\\+reviewdate:[ \t]\\[\\)\\([^\t\n]+\\)\\]"))
     (my-denote-review-insert-date thisdate)))
 
 (defun my-denote-review-get-date-from-filename (filename)
@@ -152,7 +153,8 @@ Does not overwrite existing reviewdates."
     "Get the reviewdate of MYFILE."
   (let ((mybuffer (find-file myfile))
         myreviewdate)
-    (setq myreviewdate (my-denote-review-get-date))
+    (setq myreviewdate (my-denote-review-get-date
+			"\\(^#\\+reviewdate:[ \t]\\[\\)\\([^\t\n]+\\)\\]"))
     (kill-buffer mybuffer)
     myreviewdate))
 
@@ -169,7 +171,7 @@ Create a list in the format required by `tabulated-list-mode'."
                    (string-match
 		    (format "_%s" (cdr denotepath-and-keyword)) myfile))
            (let ((reviewdate (my-denote-review-check-date-of-file myfile)))
-             (when (not (null reviewdate))
+             (unless (null reviewdate)
                (push (list myfile
                            (vector
                             reviewdate

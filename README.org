@@ -1,7 +1,7 @@
 * my-denote-review
 
 `my-denote-review' aims to provide a practical and simple manner to
-implement a review process for some of your denote notes.
+implement a review process for some of your [[ https://protesilaos.com/emacs/denote][denote]] notes.
 
 It is made for notes in org mode format.
 
@@ -62,6 +62,8 @@ Example screenshot of the list with some notes:
 
 #+CAPTION: /Tabulated list to select a note to review/
 [[./images/denote-review-tabulated-view.png]]
+
+[Note: The filenames in the screenshots based on headers in the README from Protesilaos Stavrou, see https://protesilaos.com/emacs/denote ]
 
 Default the list is ordered by review date, from the oldest to the
 newest. Click on a column header to change the order.
@@ -131,6 +133,10 @@ have a large frontmatter, a higher number might be needed. Set the
 point a few lines below your frontmatter and issue the command
 ~C-x =~ to see what a better value for
 ~my-denote-review-max-search-point~ could be.
+
+** Limitations
+Currenlty only org-mode denote notes are supported.
+`my-denote-review' does not dive into subdirectories.
 
 ** Source code. bugs and patches
 ~my-denote-review~ is developed at

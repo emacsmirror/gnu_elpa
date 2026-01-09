@@ -1086,6 +1086,12 @@
   (phps-mode-lexer-generator--add-rule
    phps-mode-lexer-generator--table
    'ST_IN_SCRIPTING
+   (lambda() (looking-at "|>"))
+   (lambda() (phps-mode-lexer--return-token 'T_PIPE)))
+
+  (phps-mode-lexer-generator--add-rule
+   phps-mode-lexer-generator--table
+   'ST_IN_SCRIPTING
    (lambda() (looking-at "||"))
    (lambda() (phps-mode-lexer--return-token 'T_BOOLEAN_OR)))
 

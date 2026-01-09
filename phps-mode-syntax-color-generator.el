@@ -124,6 +124,7 @@
                   (T_OPEN_TAG_WITH_ECHO font-lock-constant-face table)
                   (T_OR_EQUAL font-lock-constant-face table)
                   (T_PAAMAYIM_NEKUDOTAYIM font-lock-keyword-face table)
+                  (T_PIPE font-lock-constant-face table)
                   (T_PLUS_EQUAL font-lock-constant-face table)
                   (T_POW font-lock-constant-face table)
                   (T_POW_EQUAL font-lock-constant-face table)

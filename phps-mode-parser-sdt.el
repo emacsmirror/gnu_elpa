@@ -5630,11 +5630,9 @@
      ))
  phps-mode-parser--table-translations)
 
-;; TODO WAS HERE
-
-;; 386 ((new_dereferenceable) (T_NEW attributes anonymous_class))
+;; 401 ((new_dereferenceable) (T_NEW attributes anonymous_class))
 (puthash
- 386
+ 401
  (lambda(args _terminals)
    `(
      ast-type
@@ -5646,9 +5644,9 @@
      ))
  phps-mode-parser--table-translations)
 
-;; 387 ((new_non_dereferenceable) (T_NEW class_name_reference))
+;; 402 ((new_non_dereferenceable) (T_NEW class_name_reference))
 (puthash
- 387
+ 402
  (lambda(args _terminals)
    `(
      ast-type
@@ -5658,9 +5656,9 @@
      ))
  phps-mode-parser--table-translations)
 
-;; 388 ((expr) (variable))
+;; 403 ((expr) (variable))
 (puthash
- 388
+ 403
  (lambda(args _terminals)
    `(
      ast-type
@@ -5669,9 +5667,9 @@
      ,args))
  phps-mode-parser--table-translations)
 
-;; 389 ((expr) (T_LIST "(" array_pair_list ")" "=" expr))
+;; 404 ((expr) (T_LIST "(" array_pair_list ")" "=" expr))
 (puthash
- 389
+ 404
  (lambda(args _terminals)
    (let ((array-pair-list (nth 2 args)))
      (dolist (array-item array-pair-list)
@@ -5714,9 +5712,9 @@
      ))
  phps-mode-parser--table-translations)
 
-;; 390 ((expr) ("[" array_pair_list "]" "=" expr))
+;; 405 ((expr) ("[" array_pair_list "]" "=" expr))
 (puthash
- 390
+ 405
  (lambda(args _terminals)
    (let ((array-pair-list (nth 1 args)))
      (dolist (array-item array-pair-list)
@@ -5760,9 +5758,9 @@
      ))
  phps-mode-parser--table-translations)
 
-;; 391 ((expr) (variable "=" expr))
+;; 406 ((expr) (variable "=" expr))
 (puthash
- 391
+ 406
  (lambda(args terminals)
    ;; Save variable declaration in bookkeeping buffer
    (let ((variable-type (plist-get (nth 0 args) 'ast-type)))
@@ -5818,9 +5816,9 @@
      ,(cdr (cdr (nth 0 terminals)))))
  phps-mode-parser--table-translations)
 
-;; 392 ((expr) (variable "=" ampersand variable))
+;; 407 ((expr) (variable "=" ampersand variable))
 (puthash
- 392
+ 407
  (lambda(args terminals)
    ;; Save variable declaration in bookkeeping buffer
    (let ((variable-type1 (plist-get (nth 0 args) 'ast-type)))
@@ -5876,9 +5874,21 @@
      ))
  phps-mode-parser--table-translations)
 
-;; 393 ((expr) (T_CLONE expr))
+;; 408 ((expr) (T_CLONE clone_argument_list))
 (puthash
- 393
+ 408
+ (lambda(args _terminals)
+   `(
+     ast-type
+     expr-clone
+     clone-argument-list
+     ,(nth 1 args)
+     ))
+ phps-mode-parser--table-translations)
+
+;; 409 ((expr) (T_CLONE expr))
+(puthash
+ 409
  (lambda(args _terminals)
    `(
      ast-type
@@ -5888,9 +5898,9 @@
      ))
  phps-mode-parser--table-translations)
 
-;; 394 ((expr) (variable T_PLUS_EQUAL expr))
+;; 410 ((expr) (variable T_PLUS_EQUAL expr))
 (puthash
- 394
+ 410
  (lambda(args _terminals)
    `(
      ast-type
@@ -5902,9 +5912,9 @@
      ))
  phps-mode-parser--table-translations)
 
-;; 395 ((expr) (variable T_MINUS_EQUAL expr))
+;; 411 ((expr) (variable T_MINUS_EQUAL expr))
 (puthash
- 395
+ 411
  (lambda(args _terminals)
    `(
      ast-type
@@ -5916,9 +5926,9 @@
      ))
  phps-mode-parser--table-translations)
 
-;; 396 ((expr) (variable T_MUL_EQUAL expr))
+;; 412 ((expr) (variable T_MUL_EQUAL expr))
 (puthash
- 396
+ 412
  (lambda(args _terminals)
    `(
      ast-type
@@ -5930,9 +5940,9 @@
      ))
  phps-mode-parser--table-translations)
 
-;; 397 ((expr) (variable T_POW_EQUAL expr))
+;; 413 ((expr) (variable T_POW_EQUAL expr))
 (puthash
- 397
+ 413
  (lambda(args _terminals)
    `(
      ast-type
@@ -5943,6 +5953,8 @@
      ,(nth 1 args)
      ))
  phps-mode-parser--table-translations)
+
+;; TODO WAS HERE
 
 ;; 398 ((expr) (variable T_DIV_EQUAL expr))
 (puthash

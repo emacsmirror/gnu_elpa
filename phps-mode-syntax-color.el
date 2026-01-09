@@ -1,6 +1,6 @@
 ;;; phps-mode-syntax-color.el --- Syntax coloring for major mode -*- lexical-binding: t -*-
 
-;; Copyright (C) 2018-2025  Free Software Foundation, Inc.
+;; Copyright (C) 2018-2026  Free Software Foundation, Inc.
 
 
 ;;; Commentary:

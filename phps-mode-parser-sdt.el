@@ -1,6 +1,6 @@
 ;;; phps-mode-parser-sdt.el --- Syntax directed translation for grammar -*- lexical-binding: t -*-
 
-;; Copyright (C) 2018-2025  Free Software Foundation, Inc.
+;; Copyright (C) 2018-2026  Free Software Foundation, Inc.
 
 
 ;;; Commentary:

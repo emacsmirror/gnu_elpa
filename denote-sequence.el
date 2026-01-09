@@ -852,7 +852,7 @@ completion candidates.  Else use `denote-sequence-get-all-files'."
          ;; relative file paths of the completion candidates.
          (default-directory (if single-dir-p
                                 (car roots)
-                              (denote-directories-get-common-root roots))))
+                              (denote-directories-get-common-root))))
     (if-let* ((files (or files-with-sequences (denote-sequence-get-all-files)))
               (relative-files (if single-dir-p
                                   (mapcar #'denote-get-file-name-relative-to-denote-directory files)
@@ -1171,7 +1171,7 @@ For a more specialised case, see `denote-sequence-find-relatives-dired'."
                          files-sorted)))))
     (if-let* ((directory (if single-dir-p
                              (car roots)
-                           (denote-directories-get-common-root roots)))
+                           (denote-directories-get-common-root)))
               (files (funcall files-fn))
               (dired-name (denote-format-buffer-name
                            (format-message "prefix `%s'; depth `%s'" (or prefix "ALL") (or depth "ALL"))

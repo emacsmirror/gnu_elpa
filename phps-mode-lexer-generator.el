@@ -469,7 +469,7 @@
    'ST_IN_SCRIPTING
    (lambda() (looking-at
               (concat
-               "enum"
+               "\\(enum\\)"
                phps-mode-lexer--whitespace-or-comments
                "[a-zA-Z_\x80-\xff]"
                )))

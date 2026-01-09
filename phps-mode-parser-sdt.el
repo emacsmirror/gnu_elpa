@@ -4455,7 +4455,7 @@
 (puthash 295 (lambda(args _terminals) (append (nth 0 args) (list (nth 2 args)))) phps-mode-parser--table-translations)
 
 ;; 296 ((clone_argument_list) ("(" ")"))
-(puthash 296 (lambda(args _terminals) (list)) phps-mode-parser--table-translations)
+(puthash 296 (lambda(_args _terminals) (list)) phps-mode-parser--table-translations)
 
 ;; 297 ((clone_argument_list) ("(" non_empty_clone_argument_list possible_comma ")"))
 (puthash 297 (lambda(args _terminals) (nth 1 args)) phps-mode-parser--table-translations)
@@ -4466,7 +4466,7 @@
 ;; 299 ((clone_argument_list) ("(" T_ELLIPSIS ")"))
 (puthash
  299
- (lambda(args _terminals)
+ (lambda(_args _terminals)
    `(
      ast-type
      clone-argument-ellipsis
@@ -4529,7 +4529,7 @@
 (puthash
  304
  (lambda(args _terminals)
-   ``(
+   `(
      ast-type
      ellipsis-argument
      value
@@ -5486,7 +5486,7 @@
 ;; 390 ((for_cond_exprs) (non_empty_for_exprs "," expr))
 (puthash
  390
- (lambda(_args _terminals)
+ (lambda(args _terminals)
    `(
      ast-type
      non-empty-for-cond-exprs
@@ -5500,7 +5500,7 @@
 ;; 391 ((for_cond_exprs) (expr))
 (puthash
  391
- (lambda(_args _terminals)
+ (lambda(args _terminals)
    `(
      ast-type
      for-cond-exprs

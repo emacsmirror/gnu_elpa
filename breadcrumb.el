@@ -344,13 +344,24 @@ to ROOT."
                   (define-key m bc--mode-line-key l)
                   m))))
 
+(defvar-local bc--cached-project-root nil
+  ;; This is a fairly "dumb" cache, but hopefully good enough for most
+  ;; cases.  A better smarter cache that could realize when certain
+  ;; project things happened would live in project.el which has much
+  ;; more project-smarts, but that's apparently very hard, so do it
+  ;; here (github#18)
+  "Cache the expensive `project-root' call.")
+
 (defun bc--project-crumbs-1 (bfn)
   "Helper for `breadcrumb-project-crumbs'.
 Given BFN, the `buffer-file-name', produce a list of
 propertized crumbs."
   (cl-loop
    with project = (project-current)
-   with root = (if project (project-root project) default-directory)
+   with root = (if project (or bc--cached-project-root
+                               (setq bc--cached-project-root
+                                     (project-root project)))
+                 default-directory)
    with pname = (if project (project-name project)
                   (file-name-nondirectory (directory-file-name root)))
    with relname = (file-relative-name (or bfn default-directory)

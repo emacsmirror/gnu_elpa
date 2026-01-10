@@ -180,13 +180,14 @@ Does not overwrite existing reviewdates."
 
 (defun my-denote-review-get-keyword-list (denotepath)
   "Fetch keywords from the filenames in directory DENOTEPATH."
-  (let ((keyword-list '()))
+  (let ((keyword-list '())
+        (denote-directory denotepath))
     (mapc
       (lambda (myfile)
         (dolist (mykeyword
                  (denote-extract-keywords-from-path myfile))
           (add-to-list 'keyword-list mykeyword)))
-      (directory-files denotepath t "\.org$" ))
+      (denote-directory-files nil t nil))
     (sort keyword-list)))
 
 (defun my-denote-review-select-keyword ()

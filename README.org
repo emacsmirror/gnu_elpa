@@ -10,8 +10,7 @@ implement a review process for some of your [[ https://protesilaos.com/emacs/den
 The format of this line is according to `denote-file-type' (defaults
 to org).
 
-** Usage
-
+* Usage
 The aim is to implement a process for reviewing your denote notes in a
 practical and simple manner.
 
@@ -31,7 +30,7 @@ On a regular bases, review some notes:
 - Request a list of notes sorted by review date.
 - Review one or more notes and update their review date.
 
-** Commands
+* Commands
 - ~my-denote-review-set-date~:
   Insert current date as reviewdate or set existing reviewdate to current date.
 - ~my-denote-review-set-date-dired-marked-files~:
@@ -39,7 +38,7 @@ On a regular bases, review some notes:
 - ~my-denote-review-display-list~:
   Create a tabulated list of notes order by review date.
 
-*** Add or update the review date of a note
+** Add or update the review date of a note
 Open and revew a denote note. Add or update the date in the the
 frontmatter field ~reviewdate~. with the command
 ~M-x my-denote-review-set-date~.
@@ -58,7 +57,7 @@ Example screenshot of the frontmatter of a note:
 #+CAPTION: /Example note showing frontmatter with the latest review date/
 [[./images/denote-review-frontmatter.png]]
 
-*** List notes with a review date
+** List notes with a review date
 The command ~M-x my-denote-review-display-list~ creates a tabulated list of the
 notes that contain the ~reviewdate~ frontmatter. Notes without a ~reviewdate~
 are ignored.
@@ -107,7 +106,7 @@ General tabulated list key bindings:
 
 For more, use ~M-x describe-mode~ (~C-h m~) in the buffer.
 
-*** Bulk insert a review date according to the identifier
+** Bulk insert a review date according to the identifier
 There is no undo for this function. To play it safe, first commit your
 notes to a revision management system like Git, or make a backup of
 the directory.
@@ -126,7 +125,7 @@ For example, the note
 Notes where the ~reviewdate~ field is already part of the
 frontmatter will be left untouched.
 
-*** Bulk insert the current date as review date
+** Bulk insert the current date as review date
 There is no undo for this function. To play it safe, first commit your
 notes to a revision management system like Git, or make a backup of
 the directory.
@@ -144,7 +143,7 @@ with the current date as review date.
 Notes where the ~reviewdate~ field is already part of the
 frontmatter, will be left untouched.
 
-** ~my-denote-review-max-search-point~
+* ~my-denote-review-max-search-point~
 The custom variable ~my-denote-review-max-search-point~ defines the point
 where the search-forward command stops.
 
@@ -163,13 +162,13 @@ point a few lines below your frontmatter and issue the command
 ~C-x =~ to see what a better value for
 ~my-denote-review-max-search-point~ could be.
 
-** Source code. bugs and patches
+* Source code. bugs and patches
 ~my-denote-review~ is developed at
 https://codeberg.org/mattof/my-denote-review
 
 Please use the "Issues" option in the Codeberg repository.
 
-** Limitations
+* Limitations
 
 The file extension of a note does not affect ~my-denote-review~.
 
@@ -177,7 +176,7 @@ Searching for the review date frontmatter uses a pattern that depends
 on the value of the variable `denote-file-type'.  Just as the format
 for inserting and updating the review date.
 
-** Distribution
+* Distribution
 ~my-denote-review.el~ and all other source files in this
 directory are distributed under the GNU Public License, Version 3,
 or any later version.

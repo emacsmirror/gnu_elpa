@@ -35,7 +35,7 @@ On a regular bases, review some notes:
 - ~my-denote-review-set-date~:
   Insert current date as reviewdate or set existing reviewdate to current date.
 - ~my-denote-review-set-date-dired-marked-files~:
-  Insert current date as review date in notes marked in Dired.
+  Insert the creation date or the current date as review date in notes marked in Dired.
 - ~my-denote-review-display-list~:
   Create a tabulated list of notes order by review date.
 
@@ -108,8 +108,11 @@ General tabulated list key bindings:
 For more, use ~M-x describe-mode~ (~C-h m~) in the buffer.
 
 *** Bulk insert a review date according to the identifier
+There is no undo for this function. To play it safe, first commit your
+notes to a revision management system like Git, or make a backup of
+the directory.
 
-- Open the denote directory in Dired.
+- Open a denote directory in Dired.
 - Mark one or more notes.
 - Issue the command ~M-x my-denote-review-set-date-dired-marked-files~.
 
@@ -124,6 +127,10 @@ Notes where the ~reviewdate~ field is already part of the
 frontmatter will be left untouched.
 
 *** Bulk insert the current date as review date
+There is no undo for this function. To play it safe, first commit your
+notes to a revision management system like Git, or make a backup of
+the directory.
+
 How to bulk insert the current date as review date:
 
 - Open the denote directory in Dired.

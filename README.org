@@ -3,7 +3,7 @@
 `my-denote-review' aims to provide a practical and simple manner to
 implement a review process for some of your [[ https://protesilaos.com/emacs/denote][denote]] notes.
 
-`my-denote-review' adds a single line to the frontmatter:
+`my-denote-review' adds a single line to the frontmatter, f.e.:
 
 ~#+reviewdate: [2024-06-12]~
 
@@ -16,8 +16,8 @@ The aim is to implement a process for reviewing your denote notes in a
 practical and simple manner.
 
 Not all notes have to be part of this system. Only notes that contain the
-~#+reviewdate~ field in the frontmatter will be part of it.
-The ~#+reviewdate~ frontmatter can be inserted or updated with a single
+~reviewdate~ field in the frontmatter will be part of it.
+The ~reviewdate~ frontmatter can be inserted or updated with a single
 key binding.
 
 To get started, select a number of denote notes in Dired and bulk
@@ -29,7 +29,15 @@ review date.
 On a regular bases, review some notes:
 
 - Request a list of notes sorted by review date.
-- Review one or more notes and set or update their review date.
+- Review one or more notes and update their review date.
+
+** Commands
+- ~my-denote-review-set-date~:
+  Insert current date as reviewdate or set existing reviewdate to current date.
+- ~my-denote-review-set-date-dired-marked-files~:
+  Insert current date as review date in notes marked in Dired.
+- ~my-denote-review-display-list~:
+  Create a tabulated list of notes order by review date.
 
 *** Add or update the review date of a note
 Open and revew a denote note. Add or update the date in the the
@@ -44,7 +52,7 @@ To make this easy, bind this command to a key, f.e.:
   field, it will be inserted, with the current date as review date.
 - When the  ~reviewdate~ field is already part of the frontmatter,
   the review date will be updated with the current date.
-  
+
 Example screenshot of the frontmatter of a note:
 
 #+CAPTION: /Example note showing frontmatter with the latest review date/
@@ -55,11 +63,11 @@ The command ~M-x my-denote-review-display-list~ creates a tabulated list of the
 notes that contain the ~reviewdate~ frontmatter. Notes without a ~reviewdate~
 are ignored.
 
-The script reads value of the variable ~denote-directory~. When this
-is a list, the script prompts the user to select a directory, using
-completion.
+It evaluates the value of the variables ~denote-directory~ and
+~denote-silo-directories~. When there is more than one directory, it
+prompts the user to select a directory, using completion.
 
-Example screenshot of the list with some notes:
+Example screenshot of the tabulated list with some notes:
 
 #+CAPTION: /Tabulated list to select a note to review/
 [[./images/denote-review-tabulated-view.png]]
@@ -71,6 +79,7 @@ newest. Click on a column header to change the order.
 
 - Click on a column to order according to the column contents.
 - Click again to reverse the order.
+- The key ~S~ (shift-s) in a column performs the same actions.
 
 Move point up or down to select a note. Open or view the note with
 one of the keys ~RET~, ~e~, or ~o~. Or request a random file from
@@ -79,12 +88,24 @@ refresh the list with ~g~.
 
 Key bindings in the tabulated list:
 
-- ~RET~ : open and edit the note in another window.
-- ~e~ : open and edit the note.
-- ~o~  : open the note in read only mode in another window.
-- ~r~ : open a random note from the list in another window.
-- ~g~ : update the tabulated list.
-- ~q~ : close the buffer with the tabulated list.
+Specific key bindings:
+
+- ~RET~ : Open and edit the note in another window.
+- ~e~ : Open and edit the note.
+- ~o~  : Open the note in read only mode in another window.
+- ~r~ : Open a random note from the list in another window.
+
+General tabulated list key bindings:
+
+- ~g~ : Update the tabulated list.
+- ~n~ : Goto next line.
+- ~p~ : Goto previous line.
+- ~SPC~ : Scroll up.
+- ~DEL~ : (Backspace) Scroll down.
+- ~S-SPC~: Scroll down.
+- ~q~ : Close the buffer with the tabulated list.
+
+For more, use ~M-x describe-mode~ (~C-h m~) in the buffer.
 
 *** Bulk insert a review date according to the identifier
 
@@ -95,14 +116,14 @@ Key bindings in the tabulated list:
 This will insert the ~reviewdate~ frontmatter in all selected notes,
 with a date according to the identifier in the filename.
 
-Notes where the ~reviewdate~ field is already part of the
-frontmatter, will be left untouched.
-
 For example, the note
 ~20240117T203111--add-a-query-link__demo_denote.org~ will get
 ~2024-01-17~ as review date.
 
-*** Bulk insert the current date as review date 
+Notes where the ~reviewdate~ field is already part of the
+frontmatter will be left untouched.
+
+*** Bulk insert the current date as review date
 How to bulk insert the current date as review date:
 
 - Open the denote directory in Dired.
@@ -135,17 +156,21 @@ point a few lines below your frontmatter and issue the command
 ~C-x =~ to see what a better value for
 ~my-denote-review-max-search-point~ could be.
 
-** Limitations
-`my-denote-review' doesn't support denote-silos yet.
-
 ** Source code. bugs and patches
 ~my-denote-review~ is developed at
 https://codeberg.org/mattof/my-denote-review
 
 Please use the "Issues" option in the Codeberg repository.
 
+** Limitations
+
+The file extension of a note does not affect ~my-denote-review~.
+
+Searching for the review date frontmatter uses a pattern that depends
+on the value of the variable `denote-file-type'.  Just as the format
+for inserting and updating the review date.
+
 ** Distribution
 ~my-denote-review.el~ and all other source files in this
 directory are distributed under the GNU Public License, Version 3,
 or any later version.
-

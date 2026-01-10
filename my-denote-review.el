@@ -29,10 +29,10 @@
 ;; It is soleley made for denote notes in org mode format with the
 ;; default filenaming scheme.
 
-;; `my-denote-review' adds a single line to the frontmatter:
+;; `my-denote-review' adds a single line to the frontmatter, f.e.:
 ;; #+reviewdate: [2024-06-12]
 
-;; In tabulated list mode the notes are shown with their last
+;; In `tabulated list mode' the notes are shown with their last
 ;; review date, sorted from oldest to newest review date.
 ;; Click on a column header to change the order.
 
@@ -50,11 +50,11 @@
 (defun my-denote-review-search-regexp-for-filetype ()
   "Regexp to search for the reviewdate.
 Defaults to regexp for org filetype."
-  (cond ((string= denote-file-type "markdown-yaml")
+  (cond ((string= denote-file-type 'markdown-yaml)
          "\\(^reviewdate:[ \t]\\)\\([^\t\n]+\\)")
-        ((string= denote-file-type "markdown-toml")
+        ((string= denote-file-type 'markdown-toml)
          "\\(^reviewdate[ \t]\\)= \\([^\t\n]+\\)")
-        ((string= denote-file-type "text")
+        ((string= denote-file-type 'text)
          "\\(^reviewdate:[ \t]\\)\\([^\t\n]+\\)")
         (t "\\(^#\\+reviewdate:[ \t]\\[\\)\\([^\t\n]+\\)\\]")))
 
@@ -71,7 +71,7 @@ Defaults to regexp for org filetype."
 
 (defun my-denote-review-insert-reviewdate-line (mydate)
   "Insert the review date MYDATE frontmatter line.
-Format according to denote-file-type. 
+Format according to variable `denote-file-type'.
 Insert just after the identifier line."
   (cond ((string= denote-file-type "markdown-yaml")
          (format "reviewdate: %s" mydate))
@@ -83,7 +83,8 @@ Insert just after the identifier line."
 
 (defun my-denote-review-insert-date (&optional thisdate insert-regexp)
   "Insert current date in ISO 8601 format as reviewdate.
-Or use THISDATE, when not nil."
+Or use THISDATE, when not nil.
+INSERT-REGEXP is regepx to search for appropriate insert location."
   (goto-char (point-min))
   (let ((mydate (format-time-string "%F")))
     (unless (null thisdate)
@@ -108,7 +109,8 @@ Replace an existing reviewdate."
     (my-denote-review-insert-regexp-location-for-filetype)))))
 
 (defun my-denote-review-get-date (search-regexp)
-  "Get the reviewdate from current buffer."
+  "Get the reviewdate from current buffer.
+SEARCH-REGEXP set to match format based on variable `denote-file-type'"
     (save-excursion
       (goto-char (point-min))
       (when (re-search-forward search-regexp
@@ -119,7 +121,10 @@ Replace an existing reviewdate."
 
 (defun my-denote-review-set-initial-date (thisdate search-regexp insert-regexp)
   "Insert reviewdate with THISDATE.
-Only do this when no reviewdate already exist."
+Only do this when no reviewdate already exist.
+SEARCH-REGEXP is regexp to search for existing reviewdate.
+INSERT-REGEXP is regepx to search for appropriate insert location.
+Both regexp's set to match format based on variable `denote-file-type'"
   (when (null (my-denote-review-get-date search-regexp))
     (my-denote-review-insert-date thisdate insert-regexp)))
 
@@ -163,10 +168,15 @@ Does not overwrite existing reviewdates."
 
 (defun my-denote-review-get-path ()
   "Prompt for a path when needed."
-  (if (listp denote-directory)
-      (completing-read "Select a directory (using completion): "
-                       denote-directory)
-    denote-directory))
+  (let ((mypath '()))
+    (when (boundp 'denote-directory)
+      (setq mypath (append mypath denote-directory)))
+    (when (boundp 'denote-silo-directories)
+      (setq mypath (append mypath denote-silo-directories)))
+    (if (listp mypath)
+    (completing-read
+     "Select a directory (using completion): " mypath)
+    denote-directory)))
 
 (defun my-denote-review-get-keyword-list (denotepath)
   "Fetch keywords from the filenames in directory DENOTEPATH."
@@ -191,7 +201,9 @@ Does not overwrite existing reviewdates."
 ;; Collect data to fill the tabular mode list
 
 (defun my-denote-review-check-date-of-file (myfile search-regexp)
-  "Get the reviewdate of MYFILE."
+  "Get the reviewdate of MYFILE.
+SEARCH-REGEXP is regexp to search for reviewdate.
+It is set to match format based on variable `denote-file-type'"
   (let ((mybuffer (find-file myfile))
         myreviewdate)
     (setq myreviewdate (my-denote-review-get-date
@@ -279,7 +291,7 @@ Initially sort by reviewdate."
 
 (defun my-denote-review-display-list (denotepath-and-keyword)
   "Show buffer with reviewdates.
- DENOTEPATH-AND-KEYWORD is a cons of a path and a keyword.
+DENOTEPATH-AND-KEYWORD is a cons of a path and a keyword.
  Filter by keyword."
   (interactive (list (my-denote-review-select-keyword)))
   (with-current-buffer (get-buffer-create "*my-denote-review-results*")

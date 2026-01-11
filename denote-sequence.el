@@ -1259,9 +1259,8 @@ the target sequence."
 
 (defun denote-sequence-reparent-recursive (current-file file-with-sequence)
   "Re-parent CURRENT-FILE and all its descendants to FILE-WITH-SEQUENCE.
-
-This is a convenience wrapper around `denote-sequence-reparent' that
-forces recursive behaviour by simulating a universal argument."
+This is a convenience wrapper around `denote-sequence-reparent' to force
+the recursive behaviour."
   (interactive
    (list
     (denote-sequence--get-current-file-for-renaming)

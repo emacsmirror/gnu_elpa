@@ -1210,27 +1210,27 @@ file at point in a Dired buffer, or the variable `buffer-file-name'."
 (defun denote-sequence-reparent (current-file file-with-sequence &optional recursive)
   "Re-parent CURRENT-FILE to be a child of FILE-WITH-SEQUENCE.
 
-  If CURRENT-FILE has a sequence (the Denote file name signature), change
-  it.  Else create a new one.
+If CURRENT-FILE has a sequence (the Denote file name signature), change
+it.  Else create a new one.
 
-  If RECURSIVE is non-nil, also reparent all children and descendants of
-  CURRENT-FILE (recursively).  When called interactively, RECURSIVE is
-  enabled only with a universal argument (\\[universal-argument]).
+If RECURSIVE is non-nil, also reparent all children and descendants of
+CURRENT-FILE (recursively).  When called interactively, RECURSIVE is
+enabled only with a universal argument (\\[universal-argument]).
 
-  When called interactively, CURRENT-FILE is either the current file, or a
-  special Org buffer (like those of `org-capture'), or the file at point in
-  Dired.
+When called interactively, CURRENT-FILE is either the current file, or a
+special Org buffer (like those of `org-capture'), or the file at point
+in Dired.
 
-  When called interactively, prompt for FILE-WITH-SEQUENCE showing only
-  the files in the variable `denote-directory' which have a sequence.  If
-  no such files exist, throw an error.
+When called interactively, prompt for FILE-WITH-SEQUENCE showing only
+the files in the variable `denote-directory' which have a sequence.  If
+no such files exist, throw an error.
 
-  When called from Lisp, CURRENT-FILE is a string pointing to a file.
+When called from Lisp, CURRENT-FILE is a string pointing to a file.
 
-  When called from Lisp, FILE-WITH-SEQUENCE is either a file with a
-  sequence (per `denote-sequence-file-p') or the sequence string as
-  such (per `denote-sequence-p').  In both cases, what matters is to know
-  the target sequence."
+When called from Lisp, FILE-WITH-SEQUENCE is either a file with a
+sequence (per `denote-sequence-file-p') or the sequence string as
+such (per `denote-sequence-p').  In both cases, what matters is to know
+the target sequence."
   (interactive
    (list
     (denote-sequence--get-current-file-for-renaming)

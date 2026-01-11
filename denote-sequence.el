@@ -1207,30 +1207,30 @@ file at point in a Dired buffer, or the variable `buffer-file-name'."
       denote-last-path
     (denote--rename-dired-file-or-current-file-or-prompt)))
 
-;; TODO 2025-01-14: We need to have an operation that reparents
-;; recursively.  This can be done inside of the `denote-sequence-reparent',
-;; where if it finds that the current file has children, it prompts
-;; for a confirmation and then continues to reparent all of them.
-;;;###autoload
-(defun denote-sequence-reparent (current-file file-with-sequence)
-  "Re-parent the CURRENT-FILE to be a child of FILE-WITH-SEQUENCE.
-If CURRENT-FILE has a sequence (the Denote file name signature), change
-it.  Else create a new one.
+(defun denote-sequence-reparent (current-file file-with-sequence &optional recursive)
+  "Re-parent CURRENT-FILE to be a child of FILE-WITH-SEQUENCE.
 
-When called interactively, CURRENT-FILE is either the current file, or a
-special Org buffer (like those of `org-capture'), or the file at point in
-Dired.
+  If CURRENT-FILE has a sequence (the Denote file name signature), change
+  it.  Else create a new one.
 
-When called interactively, prompt for FILE-WITH-SEQUENCE showing only
-the files in the variable `denote-directory' which have a sequence.  If
-no such files exist, throw an error.
+  If RECURSIVE is non-nil, also reparent all children and descendants of
+  CURRENT-FILE (recursively).  When called interactively, RECURSIVE is
+  enabled only with a universal argument (\\[universal-argument]).
 
-When called from Lisp, CURRENT-FILE is a string pointing to a file.
+  When called interactively, CURRENT-FILE is either the current file, or a
+  special Org buffer (like those of `org-capture'), or the file at point in
+  Dired.
 
-When called from Lisp, FILE-WITH-SEQUENCE is either a file with a
-sequence (per `denote-sequence-file-p') or the sequence string as
-such (per `denote-sequence-p').  In both cases, what matters is to know
-the target sequence."
+  When called interactively, prompt for FILE-WITH-SEQUENCE showing only
+  the files in the variable `denote-directory' which have a sequence.  If
+  no such files exist, throw an error.
+
+  When called from Lisp, CURRENT-FILE is a string pointing to a file.
+
+  When called from Lisp, FILE-WITH-SEQUENCE is either a file with a
+  sequence (per `denote-sequence-file-p') or the sequence string as
+  such (per `denote-sequence-p').  In both cases, what matters is to know
+  the target sequence."
   (interactive
    (list
     (denote-sequence--get-current-file-for-renaming)
@@ -1238,12 +1238,43 @@ the target sequence."
      (format "Reparent `%s' to be a child of"
              (propertize
               (denote--rename-dired-file-or-current-file-or-prompt)
-              'face 'denote-faces-prompt-current-name)))))
-  (let* ((target-sequence (or (denote-sequence-file-p file-with-sequence)
+              'face 'denote-faces-prompt-current-name)))
+    current-prefix-arg))
+  (let* ((root-sequence (denote-retrieve-filename-signature current-file))
+         (target-sequence (or (denote-sequence-file-p file-with-sequence)
                               (denote-sequence-p file-with-sequence)
-                              (user-error "No sequence of `denote-sequence-p' found in `%s'" file-with-sequence)))
-         (new-sequence (denote-sequence--get-new-child target-sequence)))
-    (denote-rename-file current-file 'keep-current 'keep-current new-sequence 'keep-current 'keep-current)))
+                              (user-error "No sequence of `denote-sequence-p' found in `%s'"
+                                          file-with-sequence)))
+         (new-sequence (denote-sequence--get-new-child target-sequence))
+         (descendants (when (and recursive root-sequence)
+                        (denote-sequence-get-relative root-sequence 'all-children))))
+    ;; Reparent root file
+    (denote-rename-file current-file 'keep-current 'keep-current new-sequence
+                        'keep-current 'keep-current)
+    ;; Recursive reparenting only when requested
+    (when descendants
+      (dolist (child descendants)
+        (let* ((child-sequence (denote-retrieve-filename-signature child))
+               (child-sequence-suffix (string-remove-prefix root-sequence child-sequence))
+               (new-child-sequence (concat new-sequence child-sequence-suffix)))
+          (denote-rename-file child 'keep-current 'keep-current new-child-sequence
+                              'keep-current 'keep-current))))))
+
+(defun denote-sequence-reparent-recursive (current-file file-with-sequence)
+  "Re-parent CURRENT-FILE and all its descendants to FILE-WITH-SEQUENCE.
+
+This is a convenience wrapper around `denote-sequence-reparent' that
+forces recursive behaviour by simulating a universal argument."
+  (interactive
+   (list
+    (denote-sequence--get-current-file-for-renaming)
+    (denote-sequence-file-prompt
+     (format "Reparent `%s' (recursively) to be a child of"
+             (propertize
+              (denote--rename-dired-file-or-current-file-or-prompt)
+              'face 'denote-faces-prompt-current-name)))))
+  (let ((current-prefix-arg '(4)))
+    (call-interactively #'denote-sequence-reparent)))
 
 ;;;###autoload
 (defun denote-sequence-rename-as-parent (current-file)

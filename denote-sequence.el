@@ -1213,9 +1213,9 @@ file at point in a Dired buffer, or the variable `buffer-file-name'."
 If CURRENT-FILE has a sequence (the Denote file name signature), change
 it.  Else create a new one.
 
-If RECURSIVE is non-nil, also reparent all children and descendants of
-CURRENT-FILE (recursively).  When called interactively, RECURSIVE is
-enabled only with a universal argument (\\[universal-argument]).
+If optional RECURSIVE is non-nil, also reparent all children and
+descendants of CURRENT-FILE.  When called interactively, RECURSIVE is
+the prefix argument (\\[universal-argument] by default).
 
 When called interactively, CURRENT-FILE is either the current file, or a
 special Org buffer (like those of `org-capture'), or the file at point
@@ -1273,8 +1273,7 @@ forces recursive behaviour by simulating a universal argument."
              (propertize
               (denote--rename-dired-file-or-current-file-or-prompt)
               'face 'denote-faces-prompt-current-name)))))
-  (let ((current-prefix-arg '(4)))
-    (call-interactively #'denote-sequence-reparent)))
+  (denote-sequence-reparent current-file file-with-sequence :recursive))
 
 ;;;###autoload
 (defun denote-sequence-rename-as-parent (current-file)

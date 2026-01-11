@@ -51,12 +51,12 @@ load_page_dl(DocState *state, CachedPage *cp)
 			loaded_page
 			    = fz_load_page(ctx, state->doc, cp->page_num);
 			state->page_bbox = fz_bound_page(ctx, loaded_page);
-			cp->display_list = fz_new_display_list_from_page(
-			    state->ctx, loaded_page);
+			cp->display_list
+			    = fz_new_display_list_from_page(ctx, loaded_page);
 		}
 		fz_always(ctx)
 		{
-			fz_drop_page(state->ctx, loaded_page);
+			fz_drop_page(ctx, loaded_page);
 			loaded_page = NULL;
 		}
 		fz_catch(ctx) fz_rethrow(ctx);

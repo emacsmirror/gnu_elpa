@@ -1,4 +1,4 @@
-;;; my-denote-review --- organize notes review -*- lexical-binding: t; -*-
+;;; my-denote-review --- implements review process for denote notes -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026  Matto Fransen
 
@@ -41,6 +41,13 @@
 ;;; Code:
 
 (require 'denote)
+
+(defgroup my-denote-review nil
+  "implements review process for denote notes"
+  :prefix "my-denote-review-"
+  :link '(custom-manual "(my-denote-review) Top")
+  :group 'denote)
+
 (defcustom my-denote-review-max-search-point 300
   "Point to stop `re-search-forward' after some lines."
   :type 'natnum)
@@ -137,7 +144,6 @@ Both regexp's set to match format based on variable `denote-file-type'"
 When CURRENT-DATE-P is not null, use current date."
   (let ((fpath filename)
         (fname (file-name-nondirectory filename))
-        (mybuffer '())
         (search-regexp (my-denote-review-search-regexp-for-filetype))
         (insert-regexp (my-denote-review-insert-regexp-location-for-filetype)))
     (find-file fpath)
@@ -160,7 +166,8 @@ Does not overwrite existing reviewdates."
   (if (eq major-mode 'dired-mode)
       (let ((marked-files (dired-get-marked-files)))
         (mapcar (lambda (file)
-                  (my-denote-review-bulk-set-date file current-prefix-arg))
+                  (when (denote-file-is-writable-and-supported-p file)
+                    (my-denote-review-bulk-set-date file current-prefix-arg)))
                 marked-files))
     (error (format "Command can only be used in a Dired buffer."))))
 
@@ -242,6 +249,36 @@ Create a list in the format required by `tabulated-list-mode'."
               (cdr denotepath-and-keyword))))
     list-of-files))
 
+(defun my-denote-review-collect-files--revert (denotepath-and-keyword)
+  "Re-populated `tabulated-list-entries'."
+  (let ((list-of-files '())
+        (search-regexp (my-denote-review-search-regexp-for-filetype))
+        (denote-directory (car denotepath-and-keyword)))
+    (save-excursion
+      (mapc
+       (lambda (myfile)
+         (when (or (string= (cdr denotepath-and-keyword) "All")
+                   (string-match
+                    (format "_%s" (cdr denotepath-and-keyword)) myfile))
+           (let ((reviewdate (my-denote-review-check-date-of-file
+                              myfile
+                              search-regexp)))
+             (unless (null reviewdate)
+               (push (list myfile
+                           (vector
+                            reviewdate
+                            (file-name-nondirectory myfile)))
+                     list-of-files)))))
+       (denote-directory-files nil t nil)))
+    (when (null list-of-files)
+      (error (format
+              "No files with a reviewdate found (filter: keyword %s)"
+              (cdr denotepath-and-keyword))))
+    (setq tabulated-list-entries list-of-files)
+    (setq tabulated-list-sort-key (cons "Reviewdate" nil))
+    (tabulated-list-init-header)
+    (tabulated-list-print t)))
+
 ;; Mode map for tabulated list and actions.
 
 (defun my-denote-review-goto-file ()
@@ -297,7 +334,11 @@ DENOTEPATH-AND-KEYWORD is a cons of a path and a keyword.
   (interactive (list (my-denote-review-select-keyword)))
   (with-current-buffer (get-buffer-create "*my-denote-review-results*")
     (my-denote-review-mode)
-    (setq tabulated-list-entries (my-denote-review-collect-files denotepath-and-keyword))
+    (setq tabulated-list-entries (my-denote-review-collect-files
+                                  denotepath-and-keyword))
+    (add-hook 'tabulated-list-revert-hook
+              (lambda () (my-denote-review-collect-files--revert
+              denotepath-and-keyword)))
     (tabulated-list-print t)
     (display-buffer (current-buffer))
     (setq mode-line-buffer-identification

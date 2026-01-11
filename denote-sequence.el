@@ -1243,22 +1243,19 @@ the target sequence."
   (let* ((root-sequence (denote-retrieve-filename-signature current-file))
          (target-sequence (or (denote-sequence-file-p file-with-sequence)
                               (denote-sequence-p file-with-sequence)
-                              (user-error "No sequence of `denote-sequence-p' found in `%s'"
-                                          file-with-sequence)))
+                              (user-error "No sequence of `denote-sequence-p' found in `%s'" file-with-sequence)))
          (new-sequence (denote-sequence--get-new-child target-sequence))
          (descendants (when (and recursive root-sequence)
-                        (denote-sequence-get-relative root-sequence 'all-children))))
-    ;; Reparent root file
-    (denote-rename-file current-file 'keep-current 'keep-current new-sequence
-                        'keep-current 'keep-current)
-    ;; Recursive reparenting only when requested
+                        (denote-sequence-get-relative root-sequence 'all-children)))
+         (rename-fn (lambda (file sequence)
+                      (denote-rename-file file 'keep-current 'keep-current sequence 'keep-current 'keep-current))))
+    (funcall rename-fn current-file new-sequence)
     (when descendants
       (dolist (child descendants)
         (let* ((child-sequence (denote-retrieve-filename-signature child))
                (child-sequence-suffix (string-remove-prefix root-sequence child-sequence))
                (new-child-sequence (concat new-sequence child-sequence-suffix)))
-          (denote-rename-file child 'keep-current 'keep-current new-child-sequence
-                              'keep-current 'keep-current))))))
+          (funcall rename-fn child new-child-sequence))))))
 
 (defun denote-sequence-reparent-recursive (current-file file-with-sequence)
   "Re-parent CURRENT-FILE and all its descendants to FILE-WITH-SEQUENCE.

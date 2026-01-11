@@ -115,33 +115,34 @@ Optional FORMAT is the exact link pattern to use."
   "As part of making `denote-org' a standalone package")
 
 ;;;###autoload
-(defun denote-org-link-to-heading ()
+(defun denote-org-link-to-heading (&optional current-file)
   "Link to file and then specify a heading to extend the link to.
-
-The resulting link has the following pattern:
+With optional CURRENT-FILE as a prefix argument, use the current Org
+file as the target.  Else prompt for another Org file .  The resulting
+link has the following pattern:
 
 [[denote:IDENTIFIER::#ORG-HEADING-CUSTOM-ID]][Description::Heading text]].
 
-Because only Org files can have links to individual headings,
-limit the list of possible files to those which include the .org
-file extension (remember that Denote works with many file types,
-per the user option `denote-file-type').
+Because only Org files can have links to individual headings, limit the
+list of possible files to those which include the .org file
+extension (remember that Denote works with many file types, per the user
+option `denote-file-type').
 
-The user option `denote-org-store-link-to-heading'
-determined whether the `org-store-link' function can save a link
-to the current heading.  Such links look the same as those of
-this command, though the functionality defined herein is
-independent of it.
+The user option `denote-org-store-link-to-heading' determined whether
+the `org-store-link' function can save a link to the current heading.
+Such links look the same as those of this command, though the
+functionality defined herein is independent of it.
 
 To only link to a file, use the `denote-link' command.
 
 Also see `denote-org-backlinks-for-heading'."
-  (declare (interactive-only t))
-  (interactive nil org-mode)
+  (interactive "P" org-mode)
   (unless (derived-mode-p 'org-mode)
     (user-error "Links to headings only work between Org files"))
   (let ((context-p (eq denote-org-store-link-to-heading 'context)))
-    (when-let* ((file (denote-file-prompt ".*\\.org"))
+    (when-let* ((file (if current-file
+                          buffer-file-name
+                        (denote-file-prompt ".*\\.org")))
                 (file-text (denote-get-link-description file))
                 (heading (denote-org-outline-prompt file))
                 (line (string-to-number (car (split-string heading "\t"))))

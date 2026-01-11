@@ -127,9 +127,17 @@ thread_routine(void *arg)
 		// Fetch a task
 		ThreadJob *job = job_queue_pop(&pool->job_queue);
 
-		if (job == NULL)
+		if (!job || job == NULL)
 		{
-			fprintf(stderr, "The job points to NULL!!!\n");
+			// Hand off leadership and continue loop so other
+			// threads can become leader
+			pthread_mutex_lock(&pool->leader_mutex);
+			pool->leader_exists = 0;
+			pthread_cond_signal(&pool->leader_cond);
+			pthread_mutex_unlock(&pool->leader_mutex);
+			continue;
+			fprintf(stderr,
+				"Not a valid job. The job points to NULL!!!\n");
 		}
 
 		// Hand off leadership

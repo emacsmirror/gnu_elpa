@@ -142,6 +142,14 @@ draw_page_thread(void *arg)
 	cp->img_size = 0;
 
 	// Prepare for assigning data from fz_buffer
+	if (!buf)
+	{
+		cp->status = PAGE_STATUS_ERROR;
+		cp->img_size = 0;
+		cp->img_data = NULL;
+		return NULL;
+	}
+
 	cp->img_size = buf->len;
 	cp->img_data = (char *)malloc(cp->img_size);
 

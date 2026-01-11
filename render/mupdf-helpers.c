@@ -229,15 +229,36 @@ free_cache_window(DocState *doc_state, EmacsWinState *win_state)
  */
 
 void
-free_cached_pages_pool(DocState *state)
+free_cached_pages_pool(DocState *doc_state)
 {
-	fprintf(stderr, "Freeing the entire cached pages pool for current "
-			"document...\n");
-	for (int i = 0; i < state->pagecount; i++)
+	if (!doc_state)
+		return;
+
+	if (!doc_state->cached_pages_pool && !doc_state->cached_pages_block)
+		return;
+
+	for (int i = 0; i < doc_state->pagecount; ++i)
 	{
-		pthread_mutex_destroy(&state->cached_pages_pool[i]->mutex);
-		pthread_cond_destroy(&state->cached_pages_pool[i]->cond);
+		CachedPage *cp = doc_state->cached_pages_pool
+				     ? doc_state->cached_pages_pool[i]
+				     : NULL;
+		if (!cp)
+			continue;
+
+		pthread_cond_destroy(&cp->cond);
+		pthread_mutex_destroy(&cp->mutex);
+
+		if (cp->img_data)
+		{
+			free(cp->img_data);
+			cp->img_data = NULL;
+			cp->img_size = 0;
+		}
 	}
-	free(state->cached_pages_pool[0]);
-	free(state->cached_pages_pool);
+
+	free(doc_state->cached_pages_pool);
+	doc_state->cached_pages_pool = NULL;
+
+	free(doc_state->cached_pages_block);
+	doc_state->cached_pages_block = NULL;
 }

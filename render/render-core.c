@@ -413,12 +413,17 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 {
 	(void)nargs;
 	(void)data;
+
 	size_t str_length = 0;
+	emacs_value ret = EMACS_NIL;
 
 	emacs_value curr_win = EMACS_CURR_WIN;
 	emacs_value current_doc_overlay = init_overlay(env, curr_win);
+
 	DocState *doc_state = init_doc_state_ptr(env);
 	EmacsWinState *win_state = init_win_state_ptr(env, doc_state, curr_win);
+
+	int pages_inited = 0;
 
 	if (!doc_state || !win_state)
 	{
@@ -429,47 +434,83 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	reset_doc_state(doc_state);
 	reset_win_state(win_state);
 
+	/* Make sure these start NULL so cleanup is safe */
+	doc_state->cached_pages_pool = NULL;
+	doc_state->cached_pages_block = NULL;
+
 	if (!elisp_2_c_str(env, args[0], &doc_state->path, &str_length))
 	{
 		emacs_message(env,
 			      "Failed to convert Emacs string to C string.");
-		return EMACS_NIL;
+		goto cleanup;
 	}
 
-	init_main_ctx(doc_state); // Creates mupdf context with locks
-	if (load_mupdf_doc(doc_state)
-	    == EXIT_FAILURE) // Opens the doc and sets pagecount
+	init_main_ctx(doc_state);
+
+	if (load_mupdf_doc(doc_state) == EXIT_FAILURE)
 	{
 		emacs_message(env,
 			      "The document could not be loaded by MuPDF.");
-		return EMACS_NIL;
+		goto cleanup;
 	}
+
 	outline2plist(env, doc_state->outline);
 
+	/* Allocate pointer array (pool) */
 	doc_state->cached_pages_pool = malloc(
 	    doc_state->pagecount * sizeof(*doc_state->cached_pages_pool));
-	CachedPage *block = calloc(doc_state->pagecount, sizeof *block);
+	if (!doc_state->cached_pages_pool)
+	{
+		emacs_message(env, "Failed to allocate cached_pages_pool.");
+		goto cleanup;
+	}
+
+	/* Allocate contiguous block */
+	doc_state->cached_pages_block = calloc(
+	    doc_state->pagecount, sizeof(*doc_state->cached_pages_block));
+	if (!doc_state->cached_pages_block)
+	{
+		emacs_message(env, "Failed to allocate cached_pages_block.");
+		goto cleanup;
+	}
 
 	for (int i = 0; i < doc_state->pagecount; ++i)
 	{
-		doc_state->cached_pages_pool[i] = &block[i];
-		doc_state->cached_pages_pool[i]->page_num = i;
-		pthread_mutex_init(&doc_state->cached_pages_pool[i]->mutex,
-				   NULL);
-		pthread_cond_init(&doc_state->cached_pages_pool[i]->cond, NULL);
-		doc_state->cached_pages_pool[i]->status = PAGE_STATUS_EMPTY;
+		CachedPage *cp = &doc_state->cached_pages_block[i];
+
+		doc_state->cached_pages_pool[i] = cp;
+		cp->page_num = i;
+		cp->status = PAGE_STATUS_EMPTY;
+
+		if (pthread_mutex_init(&cp->mutex, NULL) != 0)
+		{
+			emacs_message(env, "Failed to init page mutex.");
+			goto cleanup;
+		}
+		if (pthread_cond_init(&cp->cond, NULL) != 0)
+		{
+			emacs_message(env, "Failed to init page condvar.");
+			goto cleanup;
+		}
+		pages_inited++;
 	}
 
 	build_cache_window(doc_state, win_state,
 			   win_state->current_page_number);
+
 	set_current_pagecount(env, doc_state);
 	set_current_page_number(env, win_state->current_page_number);
 	set_current_render_status(env);
 	doc_state->frame_scale = get_frame_scale_factor(env);
 
 	CachedPage *cp = win_state->current_cached_page;
+	if (!cp)
+	{
+		emacs_message(env,
+			      "Internal error: current_cached_page is NULL.");
+		goto cleanup;
+	}
 
-	// Wait until getting a signal from render threads
 	pthread_mutex_lock(&cp->mutex);
 	while (cp->status != PAGE_STATUS_READY)
 		pthread_cond_wait(&cp->cond, &cp->mutex);
@@ -477,8 +518,136 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 
 	display_img_to_overlay(env, win_state, cp->img_data, cp->img_size,
 			       current_doc_overlay);
-	return EMACS_T;
+
+	ret = EMACS_T;
+	return ret;
+
+cleanup:
+	/* destroy already-inited page primitives */
+	if (doc_state && doc_state->cached_pages_block)
+	{
+		for (int i = 0; i < pages_inited; ++i)
+		{
+			CachedPage *cp = &doc_state->cached_pages_block[i];
+			pthread_cond_destroy(&cp->cond);
+			pthread_mutex_destroy(&cp->mutex);
+		}
+	}
+
+	/* free pool + block */
+	if (doc_state)
+	{
+		if (doc_state->cached_pages_pool)
+		{
+			free(doc_state->cached_pages_pool);
+			doc_state->cached_pages_pool = NULL;
+		}
+		if (doc_state->cached_pages_block)
+		{
+			free(doc_state->cached_pages_block);
+			doc_state->cached_pages_block = NULL;
+		}
+
+		if (doc_state->outline)
+		{
+			fz_drop_outline(doc_state->ctx, doc_state->outline);
+			doc_state->outline = NULL;
+		}
+		if (doc_state->doc)
+		{
+			fz_drop_document(doc_state->ctx, doc_state->doc);
+			doc_state->doc = NULL;
+		}
+		if (doc_state->ctx)
+		{
+			fz_drop_context(doc_state->ctx);
+			doc_state->ctx = NULL;
+		}
+
+		if (doc_state->path)
+		{
+			free(doc_state->path);
+			doc_state->path = NULL;
+		}
+	}
+
+	return ret;
 }
+
+/* emacs_value */
+/* emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void
+ * *data) */
+/* { */
+/* 	(void)nargs; */
+/* 	(void)data; */
+/* 	size_t str_length = 0; */
+
+/* 	emacs_value curr_win = EMACS_CURR_WIN; */
+/* 	emacs_value current_doc_overlay = init_overlay(env, curr_win); */
+/* 	DocState *doc_state = init_doc_state_ptr(env); */
+/* 	EmacsWinState *win_state = init_win_state_ptr(env, doc_state, curr_win);
+ */
+
+/* 	if (!doc_state || !win_state) */
+/* 	{ */
+/* 		emacs_message(env, "Document cannot be loaded into memory."); */
+/* 		return EMACS_NIL; */
+/* 	} */
+
+/* 	reset_doc_state(doc_state); */
+/* 	reset_win_state(win_state); */
+
+/* 	if (!elisp_2_c_str(env, args[0], &doc_state->path, &str_length)) */
+/* 	{ */
+/* 		emacs_message(env, */
+/* 			      "Failed to convert Emacs string to C string."); */
+/* 		return EMACS_NIL; */
+/* 	} */
+
+/* 	init_main_ctx(doc_state); // Creates mupdf context with locks */
+/* 	if (load_mupdf_doc(doc_state) */
+/* 	    == EXIT_FAILURE) // Opens the doc and sets pagecount */
+/* 	{ */
+/* 		emacs_message(env, */
+/* 			      "The document could not be loaded by MuPDF."); */
+/* 		return EMACS_NIL; */
+/* 	} */
+/* 	outline2plist(env, doc_state->outline); */
+
+/* 	doc_state->cached_pages_pool = malloc( */
+/* 	    doc_state->pagecount * sizeof(*doc_state->cached_pages_pool)); */
+/* 	CachedPage *block = calloc(doc_state->pagecount, sizeof *block); */
+
+/* 	for (int i = 0; i < doc_state->pagecount; ++i) */
+/* 	{ */
+/* 		doc_state->cached_pages_pool[i] = &block[i]; */
+/* 		doc_state->cached_pages_pool[i]->page_num = i; */
+/* 		pthread_mutex_init(&doc_state->cached_pages_pool[i]->mutex, */
+/* 				   NULL); */
+/* 		pthread_cond_init(&doc_state->cached_pages_pool[i]->cond, NULL);
+ */
+/* 		doc_state->cached_pages_pool[i]->status = PAGE_STATUS_EMPTY; */
+/* 	} */
+
+/* 	build_cache_window(doc_state, win_state, */
+/* 			   win_state->current_page_number); */
+/* 	set_current_pagecount(env, doc_state); */
+/* 	set_current_page_number(env, win_state->current_page_number); */
+/* 	set_current_render_status(env); */
+/* 	doc_state->frame_scale = get_frame_scale_factor(env); */
+
+/* 	CachedPage *cp = win_state->current_cached_page; */
+
+/* 	// Wait until getting a signal from render threads */
+/* 	pthread_mutex_lock(&cp->mutex); */
+/* 	while (cp->status != PAGE_STATUS_READY) */
+/* 		pthread_cond_wait(&cp->cond, &cp->mutex); */
+/* 	pthread_mutex_unlock(&cp->mutex); */
+
+/* 	display_img_to_overlay(env, win_state, cp->img_data, cp->img_size, */
+/* 			       current_doc_overlay); */
+/* 	return EMACS_T; */
+/* } */
 
 /**
  * Redisplay the current document page in Emacs.

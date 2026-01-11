@@ -53,6 +53,7 @@ typedef struct
 	fz_locks_context locks;
 	fz_document *doc;
 	CachedPage **cached_pages_pool;
+	CachedPage *cached_pages_block;
 	char *path;
 	int pagecount;
 	fz_rect page_bbox;

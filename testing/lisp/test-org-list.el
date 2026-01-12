@@ -1206,7 +1206,25 @@ b. Item 2<point>"
   - [X] item2"
 		   (let ((org-checkbox-hierarchical-statistics nil))
 		     (org-update-checkbox-count))
-		   (buffer-string)))))
+		   (buffer-string))))
+  (let ((checklist (concat "- [%]\n"          ; 0/101 = 0%
+                           (mapconcat #'identity
+                                      (make-list 101 "  - [ ]") "\n"))))
+    (should (string-match "\\[0%\\]" (org-test-with-temp-text checklist
+                                       (org-update-checkbox-count)
+                                       (buffer-string)))))
+  (let ((checklist (concat "- [%]\n  - [X]\n" ; 1/101 = 0.99% -> 1%
+                           (mapconcat #'identity
+                                      (make-list 100 "  - [ ]") "\n"))))
+    (should (string-match "\\[1%\\]" (org-test-with-temp-text checklist
+                                       (org-update-checkbox-count)
+                                       (buffer-string)))))
+  (let ((checklist (concat "- [%]\n  - [ ]\n" ; 200/201 = 99.5% -> 99%
+                           (mapconcat #'identity
+                                      (make-list 200 "  - [X]") "\n"))))
+    (should (string-match "\\[99%\\]" (org-test-with-temp-text checklist
+                                        (org-update-checkbox-count)
+                                        (buffer-string))))))
 
 
 ;;; API

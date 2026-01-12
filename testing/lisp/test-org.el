@@ -4238,6 +4238,63 @@ text"
       (org-ctrl-c-ctrl-c))
     (should-not org-columns-overlays)))
 
+(ert-deftest test-org/update-todo-statistics-cookies ()
+  "Test updating TODO statistics cookies."
+  (let ((N 3)
+        (parent "* [/]"))
+    (dolist (n (number-sequence 0 N))
+      (let* ((match (format "\\[%d/%d\\]" n N))
+             (done (mapconcat #'(lambda (n) (format "** DONE D%d" n))
+                              (number-sequence 1 n) "\n"))
+             (todo (mapconcat #'(lambda (n) (format "** TODO T%d" n))
+                              (number-sequence 1 (- N n)) "\n"))
+             (tree (concat parent "\n" done "\n" todo)))
+        (should (string-match match
+                              (org-test-with-temp-text tree
+                                (org-update-statistics-cookies t)
+                                (buffer-string)))))))
+  (let ((N 3)
+        (pvals '(0 33 66 100))
+        (parent "* [%]"))
+    (dolist (n (number-sequence 0 N))
+      (let* ((match (format "\\[%d%%\\]" (elt pvals n)))
+             (done (mapconcat #'(lambda (n) (format "** DONE D%d" n))
+                              (number-sequence 1 n) "\n"))
+             (todo (mapconcat #'(lambda (n) (format "** TODO T%d" n))
+                              (number-sequence 1 (- N n)) "\n"))
+             (tree (concat parent "\n" done "\n" todo)))
+        (should (string-match match
+                              (org-test-with-temp-text tree
+                                (org-update-statistics-cookies t)
+                                (buffer-string)))))))
+  (let ((N 101)
+        (parent "* [%]"))
+    (let ((match "\\[0%\\]")            ; 0/101 -> 0%
+          (tree (concat parent "\n"
+                        (mapconcat #'(lambda (n) (format "** TODO T%d" n))
+                                   (number-sequence 1 N) "\n"))))
+      (should (string-match match
+                            (org-test-with-temp-text tree
+                              (org-update-statistics-cookies t)
+                              (buffer-string)))))
+    (let ((match "\\[1%\\]")            ; 1/101 -> 0.99% -> 1%
+          (tree (concat parent "\n** DONE D1\n"
+                        (mapconcat #'(lambda (n) (format "** TODO T%d" n))
+                                   (number-sequence 1 (1- N)) "\n"))))
+      (should (string-match match
+                            (org-test-with-temp-text tree
+                              (org-update-statistics-cookies t)
+                              (buffer-string))))))
+  (let ((N 201)
+        (parent "* [%]"))
+    (let ((match "\\[99%\\]")           ; 200/201 -> 99.5% -> 99%
+          (tree (concat parent "\n** TODO T1\n"
+                        (mapconcat #'(lambda (n) (format "** DONE D%d" n))
+                                   (number-sequence 1 N) "\n"))))
+      (should (string-match match
+                            (org-test-with-temp-text tree
+                              (org-update-statistics-cookies t)
+                              (buffer-string)))))))
 
 ;;; Navigation
 

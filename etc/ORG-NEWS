@@ -40,9 +40,21 @@ Please send Org bug reports to mailto:emacs-orgmode@gnu.org.
 
 # This also includes changes in function behavior from Elisp perspective.
 
+*** New function ~org-format-percent-cookie~
+
+Given the completed and total number of tasks, format the percent
+cookie =[N%]=.
+
 ** Removed or renamed functions and variables
 
 ** Miscellaneous
+
+*** The percent cookie is now non-zero when any sub-task is complete
+
+With a large number of tasks (N > 100) the percent cookie previously
+showed =0%= when a non-zero amount have been completed, e.g. 1/101.
+Those cases now show =1%= instead.  The same is true for the checkbox
+status summary type =X%= when defining columns for column view.
 
 * Version 9.8
 ** Important announcements and breaking changes

@@ -10189,9 +10189,8 @@ statistics everywhere."
                   (outline-next-heading)))
 	      (setq new
                     (if is-percent
-                        (format "[%d%%]" (floor (* 100.0 cnt-done)
-					        (max 1 cnt-all)))
-                      (format "[%d/%d]" cnt-done cnt-all))
+                        (org-format-percent-cookie cnt-done cnt-all)
+		      (format "[%d/%d]" cnt-done cnt-all))
                     ndel (- (match-end 0) checkbox-beg))
               (goto-char (match-end 0))
               (unless (string-equal new (buffer-substring checkbox-beg (match-end 0)))

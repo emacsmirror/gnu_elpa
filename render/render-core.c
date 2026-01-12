@@ -705,12 +705,12 @@ emacs_close_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 
 	// If we have an overlay for the currently selected window, clear win
 	// cache
-	if (!env->eq(env, overlay, EMACS_NIL))
-	{
-		EmacsWinState *win_state = get_win_state_ptr(env, overlay);
-		if (win_state)
-			free_cache_window(state, win_state);
-	}
+	if (env->eq(env, overlay, EMACS_NIL))
+		return EMACS_NIL;
+
+	EmacsWinState *win_state = get_win_state_ptr(env, overlay);
+	if (win_state)
+		free_cache_window(state, win_state);
 
 	// Always free the document pool
 	free_cached_pages_pool(state);

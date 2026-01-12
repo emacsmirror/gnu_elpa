@@ -1,9 +1,9 @@
-* my-denote-review
+* denote-review
 
-`my-denote-review' aims to provide a practical and simple manner to
+`denote-review' aims to provide a practical and simple manner to
 implement a review process for some of your [[ https://protesilaos.com/emacs/denote][denote]] notes.
 
-`my-denote-review' adds a single line to the frontmatter, f.e.:
+`denote-review' adds a single line to the frontmatter, f.e.:
 
 ~#+reviewdate: [2024-06-12]~
 
@@ -31,21 +31,21 @@ On a regular bases, review some notes:
 - Review one or more notes and update their review date.
 
 * Commands
-- ~my-denote-review-set-date~:
+- ~denote-review-set-date~:
   Insert current date as reviewdate or set existing reviewdate to current date.
-- ~my-denote-review-set-date-dired-marked-files~:
+- ~denote-review-set-date-dired-marked-files~:
   Insert the creation date or the current date as review date in notes marked in Dired.
-- ~my-denote-review-display-list~:
+- ~denote-review-display-list~:
   Create a tabulated list of notes order by review date.
 
 ** Add or update the review date of a note
 Open and revew a denote note. Add or update the date in the the
 frontmatter field ~reviewdate~. with the command
-~M-x my-denote-review-set-date~.
+~M-x denote-review-set-date~.
 
 To make this easy, bind this command to a key, f.e.:
 
-~(define-key global-map (kbd "C-c n x") #'my-denote-review-set-date)~
+~(define-key global-map (kbd "C-c n x") #'denote-review-set-date)~
 
 - When the frontmatter of the note doesn't contain the ~reviewdate~
   field, it will be inserted, with the current date as review date.
@@ -54,12 +54,12 @@ To make this easy, bind this command to a key, f.e.:
 
 The default location of the ~reviewdate~ frontmatter is right below
 the identifier frontmatter line. This can be customized by setting
-the useroption ~my-denote-review-insert-after~.
+the useroption ~denote-review-insert-after~.
 
 For example, to insert the ~reviewdate~ right below the "date"
 frontmatter, add the following to your Emacs configuration:
 
-~(setopt my-denote-review-insert-after "date")~
+~(setopt denote-review-insert-after "date")~
 
 Example screenshot of the frontmatter of a note:
 
@@ -67,7 +67,7 @@ Example screenshot of the frontmatter of a note:
 [[./images/denote-review-frontmatter.png]]
 
 ** List notes with a review date
-The command ~M-x my-denote-review-display-list~ creates a tabulated list of the
+The command ~M-x denote-review-display-list~ creates a tabulated list of the
 notes that contain the ~reviewdate~ frontmatter. Notes without a ~reviewdate~
 are ignored.
 
@@ -122,7 +122,7 @@ the directory.
 
 - Open a denote directory in Dired.
 - Mark one or more notes.
-- Issue the command ~M-x my-denote-review-set-date-dired-marked-files~.
+- Issue the command ~M-x denote-review-set-date-dired-marked-files~.
 
 This will insert the ~reviewdate~ frontmatter in all selected notes,
 with a date according to the identifier in the filename.
@@ -144,7 +144,7 @@ How to bulk insert the current date as review date:
 - Open the denote directory in Dired.
 - Mark one or more notes.
 - Enter the Universal Argument ~C-u~
-- Issue the command ~M-x my-denote-review-set-date-dired-marked-files~.
+- Issue the command ~M-x denote-review-set-date-dired-marked-files~.
 
 This will insert the ~reviewdate~ frontmatter in all selected notes,
 with the current date as review date.
@@ -152,16 +152,16 @@ with the current date as review date.
 Notes where the ~reviewdate~ field is already part of the
 frontmatter, will be left untouched.
 
-* ~my-denote-review-max-search-point~
-The custom variable ~my-denote-review-max-search-point~ defines the point
+* ~denote-review-max-search-point~
+The custom variable ~denote-review-max-search-point~ defines the point
 where the search-forward command stops.
 
 Not all notes have to contain the ~#+reviewdate~ frontmatter.
 
-`my-denote-review' uses the `re-search-forward' command to search
+`denote-review' uses the `re-search-forward' command to search
 for the ~#+reviewdate~ frontmatter. To prevent needless searching until the
 end of the file, the command is stopped at the point defined by
-~my-denote-review-max-search-point~.
+~denote-review-max-search-point~.
 
 Default this is set at ~300~.
 
@@ -169,23 +169,23 @@ If you use additional frontmatter fields, or for some other reason
 have a large frontmatter, a higher number might be needed. Set the
 point a few lines below your frontmatter and issue the command
 ~C-x =~ to see what a better value for
-~my-denote-review-max-search-point~ could be.
+~denote-review-max-search-point~ could be.
 
 * Source code. bugs and patches
-~my-denote-review~ is developed at
-https://codeberg.org/mattof/my-denote-review
+~denote-review~ is developed at
+https://codeberg.org/mattof/denote-review
 
 Please use the "Issues" option in the Codeberg repository.
 
 * Limitations
 
-The file extension of a note does not affect ~my-denote-review~.
+The file extension of a note does not affect ~denote-review~.
 
 Searching for the review date frontmatter uses a pattern that depends
 on the value of the variable `denote-file-type'.  Just as the format
 for inserting and updating the review date.
 
 * Distribution
-~my-denote-review.el~ and all other source files in this
+~denote-review.el~ and all other source files in this
 directory are distributed under the GNU Public License, Version 3,
 or any later version.

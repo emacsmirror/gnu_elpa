@@ -1,6 +1,6 @@
 \input texinfo   @c -*-texinfo-*-
 @c %**start of header
-@setfilename my-denote-review.info
+@setfilename denote-review.info
 @settitle Review method for denote 
 @c %**end of header
 @copying
@@ -62,10 +62,10 @@ The document was typeset with
 @node Introduction
 @chapter Introduction
 
-`my-denote-review' aims to provide a practical and simple manner to
+`denote-review' aims to provide a practical and simple manner to
 implement a review process for some of your denote notes.
 
-`my-denote-review' adds a single line to the frontmatter, f.e.:
+`denote-review' adds a single line to the frontmatter, f.e.:
 
 @code{#+reviewdate: [2024-06-12]}
 
@@ -90,9 +90,9 @@ Review one or more notes and update their review date.
 @node Installation
 @chapter Installation
 
-Copy the file @file{my-denote-review.el} in your load path and either
+Copy the file @file{denote-review.el} in your load path and either
 visit the file and issue the command @code{M-x eval-buffer} to
-evaluate the code or add a line @code{(require 'my-denote-review)} to
+evaluate the code or add a line @code{(require 'denote-review)} to
 your Emacs configuration file.
 
 @node Getting started
@@ -100,29 +100,29 @@ your Emacs configuration file.
 
 To get started, select a number of denote notes in Dired and bulk
 insert the ~reviewdate~ frontmatter.
-@ref{my-denote-review-set-date-dired-marked-files}
+@ref{denote-review-set-date-dired-marked-files}
 
 Default this inserts a review date derived from the identifier in the
 file name.  With the Universal Argument (~C-u~) this current date is
 used as review date.
 
 Next, request the list of notes to review
-@ref{my-denote-review-display-list}
+@ref{denote-review-display-list}
 
 Select and review one or notes, and for each note update the
 reviewdate.
-@ref{my-denote-review-set-date}
+@ref{denote-review-set-date}
 
 @node Commands
 @chapter Commands
 
-@node my-denote-review-set-date
-@section my-denote-review-set-date
-@findex my-denote-review-set-date
+@node denote-review-set-date
+@section denote-review-set-date
+@findex denote-review-set-date
 
 Open a denote note.
 
-Issue the command @code{M-x my-denote-review-set-date} to set the
+Issue the command @code{M-x denote-review-set-date} to set the
 current date as review date.
 
 When the current note doesn't have a frontmatter line with the
@@ -131,13 +131,13 @@ frontmatter will be updated to the current date.
 
 To make this easy, bind this command to a key, f.e.:
 
-@code{(define-key global-map (kbd "C-c n x") #'my-denote-review-set-date)}
+@code{(define-key global-map (kbd "C-c n x") #'denote-review-set-date)}
 
-@node my-denote-review-display-list
-@section my-denote-review-display-list
-@findex my-denote-review-display-list
+@node denote-review-display-list
+@section denote-review-display-list
+@findex denote-review-display-list
 
-Issue the command @code{M-x my-denote-review-display-list} to open
+Issue the command @code{M-x denote-review-display-list} to open
 a list with notes. The list shows only notes with the review date frontmatter.
 Notes without a review date are ignored.
 
@@ -174,11 +174,11 @@ Scoll the tabulated list with @key{SPC} (scroll up) and @key{DEL} or
 
 Close the buffer with the tabulated list with @key{q}.
 
-@node my-denote-review-set-date-dired-marked-files
-@section my-denote-review-set-date-dired-marked-files
-@findex my-denote-review-set-date-dired-marked-files
+@node denote-review-set-date-dired-marked-files
+@section denote-review-set-date-dired-marked-files
+@findex denote-review-set-date-dired-marked-files
 
-Issue the command @code{my-denote-review-set-date-dired-marked-files}
+Issue the command @code{denote-review-set-date-dired-marked-files}
 to bulk insert the review date frontmatter in one or more notes.
 
 There is no undo for this function. To play it safe, first commit your
@@ -196,7 +196,7 @@ Open a denote directory in Dired.
 @item
 Mark one or more notes (with @key{m})
 @item
-Issue the command @code{M-x my-denote-review-set-date-dired-marked-files}.
+Issue the command @code{M-x denote-review-set-date-dired-marked-files}.
 @end itemize
 
 This will insert the review date frontmatter in all selected notes,
@@ -222,7 +222,7 @@ Mark one or more notes (with @key{m})
 @item
 Enter the Universal Argument @key{C-u}
 @item
-Issue the command @code{M-x my-denote-review-set-date-dired-marked-files}.
+Issue the command @code{M-x denote-review-set-date-dired-marked-files}.
 @end itemize
 
 This will insert the review date frontmatter in all selected notes,
@@ -234,20 +234,20 @@ frontmatter, will be left untouched.
 @node Customization
 @chapter Customization
 
-@defopt my-denote-review-insert-after
+@defopt denote-review-insert-after
 Location of the review date frontmatter line.
 @end defopt
 
 The default location of the review date frontmatter is right below
 the identifier frontmatter line. This can be customized by setting
-the user option @code{my-denote-review-insert-after}.
+the user option @code{denote-review-insert-after}.
 
 For example, to insert the ~reviewdate~ right below the "date"
 frontmatter, add the following to your Emacs configuration:
 
-@code{(setopt my-denote-review-insert-after "date")}
+@code{(setopt denote-review-insert-after "date")}
 
-@defopt my-denote-review-max-search-point
+@defopt denote-review-max-search-point
 Location at which the search-forward command stops.
 @end defopt
 
@@ -255,7 +255,7 @@ Not all notes have to contain the review date frontmatter.
 
 To prevent needless searching until the end of the file, the
 search command is stopped a point defined by 
-@code{my-denote-review-max-search-point}.
+@code{denote-review-max-search-point}.
 
 Default this is set at @code{300}.
 
@@ -263,7 +263,7 @@ If you use additional frontmatter fields, or for some other reason
 have a large frontmatter, a higher number might be needed. Set the
 point a few lines below your frontmatter and issue the command
 @key{C-x =} to see what a better value for
-@code{my-denote-review-max-search-point} could be.
+@code{denote-review-max-search-point} could be.
 
 @node Command Index
 @unnumbered Command and Function Index

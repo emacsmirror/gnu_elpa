@@ -52,6 +52,15 @@ To make this easy, bind this command to a key, f.e.:
 - When the  ~reviewdate~ field is already part of the frontmatter,
   the review date will be updated with the current date.
 
+The default location of the ~reviewdate~ frontmatter is right below
+the identifier frontmatter line. This can be customized by setting
+the useroption ~my-denote-review-insert-after~.
+
+For example, to insert the ~reviewdate~ right below the "date"
+frontmatter, add the following to your Emacs configuration:
+
+~(setopt my-denote-review-insert-after "date")~
+
 Example screenshot of the frontmatter of a note:
 
 #+CAPTION: /Example note showing frontmatter with the latest review date/

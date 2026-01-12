@@ -52,6 +52,10 @@
   "Point to stop `re-search-forward' after some lines."
   :type 'natnum)
 
+(defcustom my-denote-review-insert-after "identifier"
+  "Frontmatter after which to insert review date line."
+  :type 'string)
+
 ;; Regexps for different filetypes
 
 (defun my-denote-review-search-regexp-for-filetype ()
@@ -71,8 +75,8 @@ Defaults to regexp for org filetype."
        (eq denote-file-type 'markdown-yaml)
        (eq denote-file-type 'markdown-toml)
        (eq denote-file-type 'text))
-      "^identifier"
-    "^#\\+identifier"))
+      (format "^%s" my-denote-review-insert-after)
+    (format "^#\\+%s" my-denote-review-insert-after)))
 
 ;; Setting and getting the reviewdate
 
@@ -336,7 +340,6 @@ DENOTEPATH-AND-KEYWORD is a cons of a path and a keyword.
       (my-denote-review-mode)
       (setq tabulated-list-entries (my-denote-review-collect-files
                                     denotepath-and-keyword))
-      (setf datastore denotepath-and-keyword)
       (add-hook 'tabulated-list-revert-hook
                 (lambda ()
                   (my-denote-review-collect-files--revert denotepath-and-keyword)) 0 t)

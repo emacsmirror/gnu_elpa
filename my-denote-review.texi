@@ -53,7 +53,8 @@ The document was typeset with
 * Getting started::
 * Commands::
 * Customization::
-* Copying This Manual::
+* Command Index::
+* GNU Free Documentation License::
 @end menu
 
 @c Update all node entries with `C-c C-u C-n'.
@@ -233,10 +234,21 @@ frontmatter, will be left untouched.
 @node Customization
 @chapter Customization
 
-There is only one variable to customize.
+@defopt my-denote-review-insert-after
+Location of the review date frontmatter line.
+@end defopt
+
+The default location of the review date frontmatter is right below
+the identifier frontmatter line. This can be customized by setting
+the user option @code{my-denote-review-insert-after}.
+
+For example, to insert the ~reviewdate~ right below the "date"
+frontmatter, add the following to your Emacs configuration:
+
+@code{(setopt my-denote-review-insert-after "date")}
 
 @defopt my-denote-review-max-search-point
-Defines where the search-forward command stops.
+Location at which the search-forward command stops.
 @end defopt
 
 Not all notes have to contain the review date frontmatter.
@@ -253,22 +265,17 @@ point a few lines below your frontmatter and issue the command
 @key{C-x =} to see what a better value for
 @code{my-denote-review-max-search-point} could be.
 
-@node Copying This Manual
-@appendix Copying This Manual
+@node Command Index
+@unnumbered Command and Function Index
+@printindex fn
+
+@node GNU Free Documentation License
+@appendix GNU Free Documentation License
 
 * GNU Free Documentation License::  License for copying this manual.
-
 
 @c Get fdl.texi from https://www.gnu.org/licenses/fdl.html
 @include fdl.texi
 
-@node Command index
-
-@printindex fn
-
-node Index
-@unnumbered Index
-
-@printindex cp
 
 @bye

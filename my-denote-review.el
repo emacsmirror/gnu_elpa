@@ -5,7 +5,7 @@
 ;; Author:  Matto Fransen <matto@matto.nl>
 ;; Maintainer:  Matto Fransen <matto@matto.nl>
 ;; Version: 1.0.0
-;; Keywords: writing
+;; Keywords: files
 ;; Package-Requires: ((emacs "28.0"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -57,20 +57,20 @@
 (defun my-denote-review-search-regexp-for-filetype ()
   "Regexp to search for the reviewdate.
 Defaults to regexp for org filetype."
-  (cond ((string= denote-file-type 'markdown-yaml)
+  (cond ((eq denote-file-type 'markdown-yaml)
          "\\(^reviewdate:[ \t]\\)\\([^\t\n]+\\)")
-        ((string= denote-file-type 'markdown-toml)
+        ((eq denote-file-type 'markdown-toml)
          "\\(^reviewdate[ \t]\\)= \\([^\t\n]+\\)")
-        ((string= denote-file-type 'text)
+        ((eq denote-file-type 'text)
          "\\(^reviewdate:[ \t]\\)\\([^\t\n]+\\)")
         (t "\\(^#\\+reviewdate:[ \t]\\[\\)\\([^\t\n]+\\)\\]")))
 
 (defun my-denote-review-insert-regexp-location-for-filetype ()
   "Regexp to search for the identifier string in frontmatter."
   (if (or
-       (string= denote-file-type 'markdown-yaml)
-       (string= denote-file-type 'markdown-toml)
-       (string= denote-file-type 'text))
+       (eq denote-file-type 'markdown-yaml)
+       (eq denote-file-type 'markdown-toml)
+       (eq denote-file-type 'text))
       "^identifier"
     "^#\\+identifier"))
 
@@ -80,11 +80,11 @@ Defaults to regexp for org filetype."
   "Insert the review date MYDATE frontmatter line.
 Format according to variable `denote-file-type'.
 Insert just after the identifier line."
-  (cond ((string= denote-file-type "markdown-yaml")
+  (cond ((eq denote-file-type 'markdown-yaml)
          (format "reviewdate: %s" mydate))
-        ((string= denote-file-type "markdown-toml")
+        ((eq denote-file-type 'markdown-toml)
          (format "reviewdate = %s" mydate))
-        ((string= denote-file-type "text")
+        ((eq denote-file-type 'text)
          (format "reviewdate: %s" mydate))
         (t (format "#+reviewdate: [%s]" mydate))))
 
@@ -333,19 +333,20 @@ DENOTEPATH-AND-KEYWORD is a cons of a path and a keyword.
  Filter by keyword."
   (interactive (list (my-denote-review-select-keyword)))
   (with-current-buffer (get-buffer-create "*my-denote-review-results*")
-    (my-denote-review-mode)
-    (setq tabulated-list-entries (my-denote-review-collect-files
-                                  denotepath-and-keyword))
-    (add-hook 'tabulated-list-revert-hook
-              (lambda () (my-denote-review-collect-files--revert
-              denotepath-and-keyword)))
-    (tabulated-list-print t)
-    (display-buffer (current-buffer))
-    (setq mode-line-buffer-identification
-          (format "*my-denote-review-results* [%s | %s]"
-                  (car denotepath-and-keyword)
-                  (cdr denotepath-and-keyword)))
-    (force-mode-line-update)))
+      (my-denote-review-mode)
+      (setq tabulated-list-entries (my-denote-review-collect-files
+                                    denotepath-and-keyword))
+      (setf datastore denotepath-and-keyword)
+      (add-hook 'tabulated-list-revert-hook
+                (lambda ()
+                  (my-denote-review-collect-files--revert denotepath-and-keyword)) 0 t)
+      (tabulated-list-print t)
+      (display-buffer (current-buffer))
+      (setq mode-line-buffer-identification
+            (format "*my-denote-review-results* [%s | %s]"
+                    (car denotepath-and-keyword)
+                    (cdr denotepath-and-keyword)))
+      (force-mode-line-update)))
 
 (provide 'my-denote-review)
 ;;; my-denote-review.el ends here

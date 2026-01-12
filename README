@@ -333,7 +333,28 @@ Adding a basic package is very simple.  There are thorough
 instructions below, but the gist of it is that you:
 
 1. Notify [[mailto:emacs-devel@gnu.org][emacs-devel@gnu.org]].
-2. Push your package's code to its branch on elpa.git with:
+2. Review the package code.
+3. Review the package name.  If the package is already in wide use
+   then the advantages of a name change may not outweigh the costs.
+   But if a package is new, that might not be so.  Many developers
+   come up with names as an afterthought, but inclusion in ELPA is an
+   opportunity to assess the choice.  Here are some things worth
+   considering:
+   - Does the name conflict, or almost-conflict in a way that would
+     generate confusion, with another package?  Is the proposed name
+     too generic, or suggestive of a fundamental role in the Lisp
+     ecosystem, beyond what the package really deserves?
+   - Does the name help users know whether the package might be useful
+     to that user?  Names can't help as much as package descriptions,
+     but in-jokes and the like should usually be avoided.  If the name
+     fails to give a basic suggestion of what the package does,
+     suggest a replacement.
+   - Is it clear how the name should be pronounced?  If someone says
+     it, might a hearer already familiar with the package have
+     difficulty knowing which package is meant?  Would someone hearing
+     about the package for the first time have a lot of difficulty
+     transcribing the name in order to search for it?
+3. Push your package's code to its branch on elpa.git with:
 
    #+begin_src shell
    git push elpa <mybranch>:refs/heads/externals/<pkgname>
@@ -342,10 +363,10 @@ instructions below, but the gist of it is that you:
    where =<mybranch>= will probably be =master= for most people.
    [ Note: The name "externals/" is the result of an accident of history.  ]
 
-3. Edit the =elpa-packages= file to add an entry for =<pkgname>=.
+4. Edit the =elpa-packages= file to add an entry for =<pkgname>=.
    It has to have an =:url= property specified but that
    property can be nil.
-4. =git add elpa-packages=, =git commit= and =git push=.
+5. =git add elpa-packages=, =git commit= and =git push=.
 
 If you don't have push access to the repository, someone will do steps
 2-4 for you.

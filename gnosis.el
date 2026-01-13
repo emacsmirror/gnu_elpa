@@ -2412,13 +2412,15 @@ Return thema ids for themata that match QUERY."
         (add-to-list 'global-mode-string
                      '(:eval
                        (if (and gnosis-due-themata-total (> gnosis-due-themata-total 0))
-                           (format " G:%d" gnosis-due-themata-total)
+                           (propertize (format " [%d] " gnosis-due-themata-total) 'face 'warning
+                                       'gnosis-modeline t)
                          "")))
         (force-mode-line-update))
     (setq global-mode-string
           (seq-remove (lambda (item)
-                        (and (listp item) (eq (car item) :eval)
-                             (string-prefix-p " G:" (format "%s" (eval (cadr item))))))
+                        (and (listp item)
+                             (eq (car item) :eval)
+                             (get-text-property 0 'gnosis-modeline (format "%s" (eval (cadr item))))))
                       global-mode-string))
     (force-mode-line-update)))
 

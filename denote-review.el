@@ -171,11 +171,10 @@ when called with the Universal Argument use current date.
 Does not overwrite existing reviewdates."
   (interactive)
   (if (eq major-mode 'dired-mode)
-      (let ((marked-files (dired-get-marked-files)))
-        (mapcar (lambda (file)
-                  (when (denote-file-is-writable-and-supported-p file)
-                    (denote-review-bulk-set-date file current-prefix-arg)))
-                marked-files))
+      (mapcar (lambda (file)
+                (when (denote-file-is-writable-and-supported-p file)
+                  (denote-review-bulk-set-date file current-prefix-arg)))
+              (dired-get-marked-files))
     (error (format "Command can only be used in a Dired buffer."))))
 
 ;; Collect keywords and prompt for a keyword to filter by.

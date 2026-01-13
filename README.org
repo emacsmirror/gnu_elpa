@@ -185,7 +185,13 @@ Searching for the review date frontmatter uses a pattern that depends
 on the value of the variable `denote-file-type'.  Just as the format
 for inserting and updating the review date.
 
+* Contribute
+
+A copyright assignment to the FSF is required for all non-trivial code
+contributions.
+
 * Distribution
+
 ~denote-review.el~ and all other source files in this
 directory are distributed under the GNU Public License, Version 3,
 or any later version.

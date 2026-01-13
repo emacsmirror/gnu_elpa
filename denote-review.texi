@@ -1,12 +1,18 @@
 \input texinfo   @c -*-texinfo-*-
 @c %**start of header
 @setfilename denote-review.info
-@settitle Review method for denote 
+@settitle Review method for denote
+@documentencoding UTF-8
+@documentlanguage en
 @c %**end of header
-@copying
-Review method for denote.
 
-Copyright @copyright{} 2026  Matto Fransen
+@dircategory Emacs misc features
+@direntry
+* denote-review (denote-review). Review method for denote.
+@end direntry
+
+@copying
+Copyright @copyright{} 2026 Free Software Foundation, Inc.
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -27,9 +33,7 @@ The document was typeset with
 @end copying
 
 @titlepage
-@title Review method for denote 
-@subtitle Review method for denote
-@author Matto Fransen
+@title Review method for denote
 @page
 @vskip 0pt plus 1filll
 @insertcopying
@@ -40,7 +44,7 @@ The document was typeset with
 
 @ifnottex
 @node Top, Introduction, (dir), (dir)
-@top Review method for denote 
+@top Review method for denote
 
 @insertcopying
 @end ifnottex
@@ -254,7 +258,7 @@ Location at which the search-forward command stops.
 Not all notes have to contain the review date frontmatter.
 
 To prevent needless searching until the end of the file, the
-search command is stopped a point defined by 
+search command is stopped a point defined by
 @code{denote-review-max-search-point}.
 
 Default this is set at @code{300}.

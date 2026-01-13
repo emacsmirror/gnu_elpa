@@ -1,12 +1,13 @@
 ;;; denote-review --- implements review process for denote notes -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026  Matto Fransen
+;; Copyright (C) 2026 Free Software Foundation, Inc.
 
 ;; Author:  Matto Fransen <matto@matto.nl>
 ;; Maintainer:  Matto Fransen <matto@matto.nl>
+;; Url: https://codeberg.org/mattof/denote-review
 ;; Version: 1.0.0
 ;; Keywords: files
-;; Package-Requires: ((emacs "28.1") (denote "4.0.0"))
+;; Package-Requires: ((emacs "28.1") (denote "4.1.3"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -36,7 +37,9 @@
 ;; review date, sorted from oldest to newest review date.
 ;; Click on a column header to change the order.
 
-;; See the README for full explanation.
+;; See the README for full explanation and the manual:
+;; Evaluate:
+;;   (info "(denote-review) Top")
 
 ;;; Code:
 

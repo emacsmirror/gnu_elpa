@@ -676,18 +676,19 @@ It is hooked to `window-configuration-change-hook' to keep detecting."
              (page (or last-win-page reader--recent-pagenumber-fallback))
              (scale (or last-win-scale reader--recent-scale-fallback)))
         (reader-dyn--window-create window)
-        (set-window-parameter window 'page last-win-page)
+        (set-window-parameter window 'page page)
         (with-selected-window window
           (reader-goto-page page)
           (reader-doc-scale-page scale)
           (reader--center-page))))))
 
 (defun reader--cleanup-stale-overlay (window)
-  "Clean up WINDOW's overlay if it belongs to a different buffer."
+  "Clean up WINDOW's overlay and other parameters if it belongs to a different buffer."
   (when (windowp window)
     (when-let* ((overlay (window-parameter window 'overlay))
 		((overlayp overlay))
 		((not (eq (overlay-buffer overlay) (window-buffer window)))))
+      (reader-dyn--window-close overlay)
       (set-window-parameter window 'overlay nil)
       (set-window-parameter window 'page nil)
       (set-window-parameter window 'scale nil))))

@@ -338,8 +338,8 @@ set_current_pagecount(emacs_env *env, DocState *state)
  * init_overlay - Create and register an overlay covering the whole buffer.
  * @env:    The Emacs environment pointer.
  *
- * Makes an overlay spanning the entire buffer. Stores the overlay object in the
- * Elisp variable `reader-current-doc-overlay` for later use.
+ * Makes an overlay spanning the entire buffer for the given window . Stores the
+ * overlay object in the the window parameter.
  */
 
 emacs_value
@@ -349,6 +349,16 @@ init_overlay(emacs_env *env, emacs_value window)
 	    = env->funcall(env, env->intern(env, "point-min"), 0, NULL);
 	emacs_value end
 	    = env->funcall(env, env->intern(env, "point-max"), 0, NULL);
+
+	// Check if there is an existing overlay for the window and deletes it
+	emacs_value existing_overlay = env->funcall(
+	    env, env->intern(env, "window-parameter"), 2,
+	    (emacs_value[]){ window, env->intern(env, "overlay") });
+
+	if (!env->eq(env, existing_overlay, EMACS_NIL))
+		env->funcall(env, env->intern(env, "reader-dyn--window-close"),
+			     1, &existing_overlay);
+
 	emacs_value overlay
 	    = env->funcall(env, env->intern(env, "make-overlay"), 2,
 			   (emacs_value[]){ start, end });

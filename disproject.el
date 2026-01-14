@@ -300,15 +300,15 @@ This is used in the command `disproject-vc-status'."
 
 (defun disproject-prefix--in-default-project? ()
   "Return non-nil if the selected project is also the default project."
-  (if-let* ((scope (transient-scope)))
-      (disproject-scope-project-is-default? scope)))
+  (and-let* ((scope (transient-scope)))
+    (disproject-scope-project-is-default? scope)))
 
 (defun disproject-prefix--magit-apt? ()
   "Return non-nil if magit commands are apt to show."
-  (and (featurep 'magit)
-       (if-let* ((scope (transient-scope))
-                 (project (disproject-scope-selected-project scope)))
-           (eq 'Git (disproject-project-backend project)))))
+  (and-let* ((_ (featurep 'magit))
+             (scope (transient-scope))
+             (project (disproject-scope-selected-project scope)))
+    (eq 'Git (disproject-project-backend project))))
 
 (defun disproject-prefix--magit-todos-apt? ()
   "Return non-nil if the `magit-todos' is available."
@@ -559,8 +559,8 @@ project as a last step of initialization."
   "Return a `disproject-project' instance for DIRECTORY, or maybe nil.
 
 DIRECTORY is passed to `project-current' to detect a project."
-  (if-let* ((project (project-current nil directory)))
-      (disproject-project :root (project-root project))))
+  (and-let* ((project (project-current nil directory)))
+    (disproject-project :root (project-root project))))
 
 (cl-defmethod disproject-project-backend ((obj disproject-project))
   "Return the OBJ project backend.
@@ -800,28 +800,28 @@ If the `display-status?' slot is non-nil and
 formatted with an indicator that describes the associated process
 buffer's current status."
   ;; Preserve the transient "bug" warning if there is no description.
-  (if-let* ((description (cl-call-next-method)))
-      (if-let* (((and (oref obj display-status?)
-                      (null (oref obj allow-multiple-buffers?))))
-                (project (disproject-scope-selected-project (disproject--scope)))
-                (project-name (project-name
-                               (disproject-project-instance project)))
-                (buf-name (disproject-process-suffix-buffer-name obj project-name))
-                (buffer (get-buffer buf-name)))
-          (progn
-            ;; Refresh transient if process status changes.
-            (disproject-add-sentinel-refresh-transient buf-name)
-            (concat (cond
-                     ((null buffer)
-                      "")
-                     ((get-buffer-process buffer)
-                      (concat (propertize "[a]" 'face 'transient-enabled-suffix)
-                              " "))
-                     (t
-                      (concat (propertize "[i]" 'face 'transient-inactive-value)
-                              " ")))
-                    description))
-        description)))
+  (and-let* ((description (cl-call-next-method)))
+    (if-let* (((and (oref obj display-status?)
+                    (null (oref obj allow-multiple-buffers?))))
+              (project (disproject-scope-selected-project (disproject--scope)))
+              (project-name (project-name
+                             (disproject-project-instance project)))
+              (buf-name (disproject-process-suffix-buffer-name obj project-name))
+              (buffer (get-buffer buf-name)))
+        (progn
+          ;; Refresh transient if process status changes.
+          (disproject-add-sentinel-refresh-transient buf-name)
+          (concat (cond
+                   ((null buffer)
+                    "")
+                   ((get-buffer-process buffer)
+                    (concat (propertize "[a]" 'face 'transient-enabled-suffix)
+                            " "))
+                   (t
+                    (concat (propertize "[i]" 'face 'transient-inactive-value)
+                            " ")))
+                  description))
+      description)))
 
 
 ;;;;; `disproject-shell-command-suffix' class.
@@ -1289,8 +1289,8 @@ value is passed, this function will not do anything."
                                 :test #'equal)))
     (cl-remove-duplicates
      (seq-mapcat (lambda (directory)
-                   (if-let* ((project (project-current nil directory)))
-                       (list project)))
+                   (and-let* ((project (project-current nil directory)))
+                     (list project)))
                  directories)
      :test (lambda (p1 p2) (equal (project-root p1) (project-root p2))))))
 
@@ -1585,19 +1585,19 @@ documentation on transient suffix slots."
   :class disproject-display-buffer-action-suffix
   :transient #'transient--do-return
   (interactive)
-  (if-let* ((scope (disproject--scope))
-            (suffix (transient-suffix-object)))
-      (setf (disproject-scope-display-buffer-action scope)
-            (let ((action (oref suffix display-buffer-action)))
-              (pcase-exhaustive action
-                ('nil
-                 nil)
-                (`(,_functions . ,(map ('description (pred (not null)))))
-                 action)
-                (`(,functions . ,alist)
-                 `(,functions . ((description
-                                  . ,(transient-format-description suffix))
-                                 ,@alist))))))))
+  (and-let* ((scope (disproject--scope))
+             (suffix (transient-suffix-object)))
+    (setf (disproject-scope-display-buffer-action scope)
+          (let ((action (oref suffix display-buffer-action)))
+            (pcase-exhaustive action
+              ('nil
+               nil)
+              (`(,_functions . ,(map ('description (pred (not null)))))
+               action)
+              (`(,functions . ,alist)
+               `(,functions . ((description
+                                . ,(transient-format-description suffix))
+                               ,@alist))))))))
 
 (transient-define-suffix disproject-execute-extended-command ()
   "Execute an extended command in project root."

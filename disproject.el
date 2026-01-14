@@ -8,7 +8,6 @@
 ;; Maintainer: Alvin Hsu <aurtzy@gmail.com>
 ;; URL: https://github.com/aurtzy/disproject
 ;; Keywords: convenience, files, vc
-
 ;; Version: 2.2.0
 ;; Package-Requires: ((emacs "29.4") (transient "0.9.2"))
 
@@ -36,9 +35,7 @@
 ;;; Code:
 
 
-;;;
-;;; Initial code.
-;;;
+;;;; Initial code.
 
 (require 'cus-edit)
 (require 'eieio)
@@ -50,12 +47,10 @@
 (require 'transient)
 
 
-;;;
-;;; Options.
-;;;
+;;;; Options.
 
 
-;;;; Customization groups.
+;;;;; Customization groups.
 
 (defgroup disproject nil
   "Transient interface for managing and interacting with projects."
@@ -73,7 +68,7 @@ order to apply as expected."
   :group 'disproject)
 
 
-;;;; Variables.
+;;;;; Variables.
 
 (defcustom disproject-custom-allowed-suffixes '()
   "Allowed values for `disproject-custom-suffixes'."
@@ -274,14 +269,10 @@ This is used in the command `disproject-vc-status'."
   :group 'disproject-swappable-commands)
 
 
-;;;
-;;; Faces.
-;;;
+;;;; Faces.
 
 
-;;;
-;;; Conditional feature predicates/forms.
-;;;
+;;;; Conditional feature predicates/forms.
 ;; NOTE: The `disproject-prefix-*' predicates are specifically meant for usage
 ;; during transient setup of `disproject-prefix' prefixes (or subclasses of).
 ;; Calling these in any other situation may lead to unexpected/undesired
@@ -338,12 +329,10 @@ project."
     t))
 
 
-;;;
-;;; Transient groups.
-;;;
+;;;; Transient groups.
 
 
-;;;; Definitions.
+;;;;; Definitions.
 
 (transient-define-group disproject-global-header-group
   disproject--selected-project-header-group
@@ -359,9 +348,9 @@ project."
   [:description disproject--selected-project-description ""])
 
 
-;;;; Dynamic group definitions.
+;;;;; Dynamic group definitions.
 
-;;;;; Auxiliary.
+;;;;;; Auxiliary.
 
 (defun disproject--group-insert-defaults (group-spec &optional reached-keywords?
                                                      &rest keyword-values)
@@ -451,7 +440,7 @@ specification that uses some transient suffix class with this
 keyword."
   (and (listp spec) (memq :command-type spec)))
 
-;;;;; Setup functions.
+;;;;;; Setup functions.
 
 (defvar disproject-custom--showed-custom-spec-deprecation? nil
   "Whether deprecation message for the custom specification syntax has been shown.")
@@ -509,12 +498,10 @@ Defining custom suffixes with Disproject's custom syntax is deprecated;\
     (transient-parse-suffixes 'disproject-find-special-file-dispatch suffixes)))
 
 
-;;;
-;;; Classes.
-;;;
+;;;; Classes.
 
 
-;;;; `disproject-project' class.
+;;;;; `disproject-project' class.
 
 (defclass disproject-project ()
   ;; root must be a path to a valid project.  An `initialize-instance' method
@@ -614,7 +601,7 @@ This internally uses `project-try-vc' to determine the backend."
             (default-value 'disproject-custom-suffixes)))))
 
 
-;;;; `disproject-scope' class.
+;;;;; `disproject-scope' class.
 
 (defclass disproject-scope ()
   ((selected-project :initarg :selected-project
@@ -740,7 +727,7 @@ different scope objects to be created (which is not usually desired)."
       (transient-scope 'disproject-dispatch 'disproject-prefix)))
 
 
-;;;; `disproject-process-suffix' class.
+;;;;; `disproject-process-suffix' class.
 
 (defclass disproject-process-suffix (transient-suffix)
   ((buffer-id :initarg :buffer-id
@@ -837,7 +824,7 @@ buffer's current status."
         description)))
 
 
-;;;; `disproject-shell-command-suffix' class.
+;;;;; `disproject-shell-command-suffix' class.
 
 (defclass disproject-shell-command-suffix (disproject-process-suffix)
   ((cmd :initarg :cmd
@@ -883,7 +870,7 @@ When unable to convert to a string, throw an error."
      (t (user-error "Not a string or command: %s" cmd)))))
 
 
-;;;; `disproject-compilation-suffix' class.
+;;;;; `disproject-compilation-suffix' class.
 
 (defclass disproject-compilation-suffix (disproject-shell-command-suffix)
   ((comint? :initarg :comint?
@@ -897,7 +884,7 @@ order to conditionally enable the mode.")
   "Class for suffixes that utilize the `compile' command for shell commands.")
 
 
-;;;; `disproject-display-buffer-action-suffix' class.
+;;;;; `disproject-display-buffer-action-suffix' class.
 
 (defclass disproject-display-buffer-action-suffix (transient-suffix)
   ((display-buffer-action :initarg :display-buffer-action
@@ -918,7 +905,7 @@ through a shared object in the transient scope."))
   "Class for suffixes that manage `display-buffer' action settings.")
 
 
-;;;; `disproject-find-special-file-suffix' class.
+;;;;; `disproject-find-special-file-suffix' class.
 
 (defclass disproject-find-special-file-suffix (transient-suffix)
   ((file :initarg :file
@@ -987,7 +974,7 @@ same as `transient-suffix' for formatting descriptions."
       (propertize "(BUG: no description; no project in scope)" 'face 'error))))
 
 
-;;;; `disproject-prefix' class.
+;;;;; `disproject-prefix' class.
 
 (defclass disproject-prefix (transient-prefix) ()
   "General Disproject prefix class.
@@ -1011,7 +998,7 @@ if it hasn't already been initialized."
       (oset obj scope (disproject-scope)))))
 
 
-;;;; `disproject--selected-project-prefix' class.
+;;;;; `disproject--selected-project-prefix' class.
 
 (defclass disproject--selected-project-prefix (disproject-prefix) ()
   "Class for Disproject prefixes that require a project to be selected.")
@@ -1022,7 +1009,7 @@ if it hasn't already been initialized."
   (disproject-scope-selected-project-ensure (oref obj scope)))
 
 
-;;;; `disproject--custom-suffixes-prefix' class.
+;;;;; `disproject--custom-suffixes-prefix' class.
 
 (defclass disproject--custom-suffixes-prefix
   (disproject--selected-project-prefix) ()
@@ -1035,16 +1022,14 @@ if it hasn't already been initialized."
    (disproject-scope-selected-project-ensure (oref obj scope))))
 
 
-;;;
-;;; Commands.
-;;;
+;;;; Commands.
 
 
-;;;; Interactive functions.
+;;;;; Interactive functions.
 
-;;;;; Auxiliary.
+;;;;;; Auxiliary.
 
-;;;;; Definitions.
+;;;;;; Definitions.
 
 (defun disproject-default-find-line (regexp)
   "Find matching line in buffers associated with the current project.
@@ -1061,11 +1046,11 @@ This uses `multi-occur' under the hood."
     (error "No project in current directory: %s" default-directory)))
 
 
-;;;; Transient infixes.
+;;;;; Transient infixes.
 
-;;;;; Auxiliary.
+;;;;;; Auxiliary.
 
-;;;;; Definitions.
+;;;;;; Definitions.
 
 (transient-define-infix disproject-infix-customize-switch ()
   :description "Use Customize interface"
@@ -1075,9 +1060,9 @@ This uses `multi-occur' under the hood."
   :if #'disproject-prefix--customize-dirlocals-apt?)
 
 
-;;;; Transient suffixes.
+;;;;; Transient suffixes.
 
-;;;;; Auxiliary.
+;;;;;; Auxiliary.
 
 (defun disproject-add-sentinel-refresh-transient (buffer-name)
   "Add function to a buffer's process sentinel to refresh transient, if active.
@@ -1323,7 +1308,7 @@ project."
   (setf (disproject-scope-selected-project (disproject--scope))
         (disproject-project :root search-directory)))
 
-;;;;; Suffix environment.
+;;;;;; Suffix environment.
 
 (defvar disproject--environment-buffer-name " disproject-environment"
   "Name of buffer which commands will be run from.")
@@ -1467,7 +1452,7 @@ This is an alias for `disproject-with-env+root'."
   (declare (indent 0) (debug t))
   `(disproject-with-env+root ,@body))
 
-;;;;; Definitions.
+;;;;;; Definitions.
 
 (transient-define-suffix disproject-compile ()
   "Run a shell command with `compile' in project root.
@@ -1959,9 +1944,9 @@ be called interactively."
          (alist-get nil disproject-vc-status-commands))))))
 
 
-;;;; Transient prefixes.
+;;;;; Transient prefixes.
 
-;;;;; Auxiliary.
+;;;;;; Auxiliary.
 
 (defun disproject--assert-type (variable value)
   "Assert that VALUE matches the type for custom VARIABLE.
@@ -2083,7 +2068,7 @@ n -- to ignore them and use the default custom suffixes.
               (propertize root 'face 'transient-value)
             (propertize "None detected" 'face 'transient-inapt-suffix))))
 
-;;;;; Definitions.
+;;;;;; Definitions.
 
 ;;;###autoload (autoload 'disproject-dispatch "disproject" nil t)
 (transient-define-prefix disproject-dispatch ()
@@ -2251,9 +2236,7 @@ defining commands that can modify the override state."
             ")")))
 
 
-;;;
-;;; Short-documentation groups.
-;;;
+;;;; Short-documentation groups.
 
 (define-short-documentation-group disproject-customizable-suffixes
   "Customizable Disproject suffixes

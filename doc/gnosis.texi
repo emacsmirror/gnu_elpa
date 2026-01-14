@@ -26,7 +26,7 @@
 @top Gnosis User Manual
 
 Gnosis is a learning tool designed to enhance memory retention by
-integrating a note-taking system with spaced repetition and
+integrating a thema-taking system with spaced repetition and
 self-testing.
 
 @noindent
@@ -64,7 +64,7 @@ Git repositories:
 * Linking gnosis themata to org-gnosis content::
 * Customization::
 * Gnosis Algorithm::
-* Editing notes::
+* Editing themata::
 * Sync between devices::
 * Interactions with other software::
 * Contributing::
@@ -114,10 +114,13 @@ Contributing
 Gnosis consists of a note taking module (@samp{org-gnosis}) and a self
 testing module.
 
-Users can use each module independently, but Gnosis is designed for a
-workflow that starts with writing a note on a topic. After completing
-a note, the user creates themas (questions/flashcards) for that topic,
-which are used for reviews based on the @ref{Gnosis Algorithm}.
+Users can utilize each Gnosis module independently, but the intended
+workflow begins with writing a note on a specific topic. After
+completing the note, the user creates themata (flashcard-like
+questions) related to the topic.
+
+These themata are then used for spaced repetition reviews utilizing
+the @ref{Gnosis Algorithm}.
 
 @node Getting started Tutorial
 @chapter Getting started Tutorial
@@ -192,7 +195,7 @@ topics to current thema.
 
 Optionally, you can use also add tags for each note.
 
-Themas can have multiple hypotheses and answers (@strong{depending on
+Themata can have multiple hypotheses and answers (@strong{depending on
 their type}), separated by @samp{gnosis-export-separator}, which defaults to
 @samp{"\n-"} @emph{(a new line followed by a dash)}.
 
@@ -436,8 +439,8 @@ next interval value: 0 days (0), 1 day later (1), 2 days later
 Upon failing to review a note without completing it's proto successful reviews,
 it's next review date will be on the same date.
 
-@node Editing notes
-@chapter Editing notes
+@node Editing themata
+@chapter Editing themata
 
 @itemize
 @item

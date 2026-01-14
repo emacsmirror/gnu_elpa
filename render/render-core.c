@@ -1077,7 +1077,18 @@ emacs_doc_window_close(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	EmacsWinState *win_state = get_win_state_ptr(env, overlay);
 	if (win_state)
 		free(win_state);
-	env->funcall(env, env->intern(env, "delete-overlay"), 1, &overlay);
+	emacs_value overlayp
+	    = env->funcall(env, env->intern(env, "overlayp"), 1, &overlay);
+	if (env->eq(env, overlayp, EMACS_T))
+	{
+		env->funcall(env, env->intern(env, "delete-overlay"), 1,
+			     &overlay);
+	}
+	else
+	{
+		return EMACS_NIL;
+	}
+
 	return EMACS_T;
 }
 

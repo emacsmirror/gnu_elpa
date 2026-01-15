@@ -143,6 +143,18 @@ See `%s' for the actual definition."
 	 (reader--enqueue-command #',(intern non-queue-function-name)
 				  ,(remq '&optional (push 'list arglist)))))))
 
+(defun reader--read-doc-name ()
+  "Read a document file name."
+  (let* ((regexp (regexp-opt reader-supported-formats t))
+	 (prompt "Open document: ")
+	 (file (read-file-name
+		prompt nil nil t nil
+		(lambda (f)
+		  (or (file-directory-p f)
+		      (string-match-p regexp f))))))
+    (if (file-directory-p file)
+	(reader--read-doc-name) file)))
+
 ;;;###autoload
 (defun reader-open-doc (document)
   "Open DOCUMENT for viewing.
@@ -152,17 +164,7 @@ dynamic module to render the first page and displays it in a new buffer.
 
 The only formats that can be opened `reader-supported-formats', any
 other file format will simply not show up as a candidate."
-  (interactive (let* ((regexp (concat "\\." (regexp-opt reader-supported-formats t) "$"))
-		      (file nil))
-		 (while (or (null file) (file-directory-p file))
-		   (setq file
-			 (read-file-name
-			  "Open document: "
-			  nil nil t nil
-			  (lambda (f)
-			    (or (file-directory-p f)
-				(string-match-p regexp f))))))
-		 (list (expand-file-name file))))
+  (interactive (list (expand-file-name (reader--read-doc-name))))
   (switch-to-buffer (create-file-buffer document))
   (setq buffer-file-name document)
   (insert "\n")

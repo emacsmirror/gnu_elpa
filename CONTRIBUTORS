@@ -26,6 +26,10 @@ prom (Codeberg user):
 - fixed and updated support for MS Windows in the Makefile.
 - updated  README.org with MS Windows instructions.
 
+Li Xin <teeoius@proton.me>:
+- fixed a bug in pthread’s missed signals (PR #163).
+
+
 * Other Contributions (Not Legally Significant)
 
 shuxiao9058 (Codeberg user):

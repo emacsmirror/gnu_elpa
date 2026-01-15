@@ -92,7 +92,7 @@ WINDOW must be a valid window and defaults to the selected one."
   "Queue of reader commands to be executed sequentially.")
 
 (defun reader--process-command-queue ()
-  "Process the next command in the queue, ensuring UI updates."
+  "Process the next command in the queue."
   (when-let* ((cmd (pop reader--command-queue))
 	      (delay 0.0001))
     (funcall cmd)
@@ -225,8 +225,7 @@ selected window to reflect the new scale."
 (defun reader-enlarge-size (&optional scaling-factor)
   "Enlarge the size of the current page by the `reader-enlarge-factor'.
 
-Optionally scale it by the SCALING-FACTOR. Scales on selected
-window."
+Optionally scale it by the SCALING-FACTOR.  Scales on selected window."
   (interactive (list (float
 		      (* (reader-current-doc-scale-value) reader-enlarge-factor))))
   (reader-doc-scale-page scaling-factor)
@@ -235,8 +234,7 @@ window."
 (defun reader-shrink-size (&optional scaling-factor)
   "Shrink the size of the current page by the `reader-shrink-factor'.
 
-Optionally scale it by the SCALING-FACTOR. Scales on selected
-window."
+Optionally scale it by the SCALING-FACTOR.  Scales on selected window."
   (interactive (list (float
 		      (* (reader-current-doc-scale-value) reader-shrink-factor))))
   (reader-doc-scale-page scaling-factor)
@@ -327,7 +325,7 @@ WINDOW must be a valid window and defaults to the selected one."
   "Set number of columns WINDOW is scrolled from left margin to NCOL.
 
 If setting NCOL makes the document page disappear, it sets the maximum
-horizontal scroll possible without doing that. If UNCONSTRAINED is
+horizontal scroll possible without doing that.  If UNCONSTRAINED is
 non-nil, it allows setting NCOL even if it makes the page disappear.
 
 See also `set-window-hscroll'."

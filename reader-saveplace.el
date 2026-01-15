@@ -19,7 +19,7 @@
 ;;; Commentary:
 
 ;; Bookmarks need to be stored inside a vector due to hard-coded logic
-;; within `save-place--normalize-alist'. Specifically, it performs
+;; within `save-place--normalize-alist'.  Specifically, it performs
 ;; operations on an element assuming it's a list, and this leads to
 ;; issues when we try to use it like a bookmark.
 
@@ -36,9 +36,9 @@
 
 ;;;###autoload
 (defun reader--saveplace-find-file ()
-  "Restores saved place in `reader-mode' buffers.
+  "Restore saved place in `reader-mode' buffers.
 
-To be added to `save-place-after-find-file-hook'. See also `reader--saveplace-to-alist'."
+To be added to `save-place-after-find-file-hook'.  See also `reader--saveplace-to-alist'."
   (or save-place-loaded (save-place-load-alist-from-file))
   (when (derived-mode-p 'reader-mode)
     (if-let* ((place (assoc buffer-file-name save-place-alist))
@@ -50,9 +50,9 @@ To be added to `save-place-after-find-file-hook'. See also `reader--saveplace-to
 
 ;;;###autoload
 (defun reader--saveplace-to-alist (orig-fun &rest args)
-  "Saves place in `reader-mode' buffers or calls ORIG-FUN with ARGS.
+  "Save place in `reader-mode' buffers or call ORIG-FUN with ARGS.
 
-Advice around `save-place-to-alist'. See also `reader--saveplace-find-file'."
+Advice around `save-place-to-alist'.  See also `reader--saveplace-find-file'."
   (if (derived-mode-p 'reader-mode)
       (when-let* ((filename buffer-file-name)
 		  (bookmark-record (reader-bookmark-make-record))

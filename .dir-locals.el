@@ -3,7 +3,8 @@
 
 ((nil . ((mode . envrc)
 	 (require-final-newline . t)
-	 (show-trailing-whitespace . t)))
+	 (show-trailing-whitespace . t)
+	 (sentence-end-double-space . t)))
  (c-mode . ((eval . (eglot-ensure))
 	    (before-save-hook . (eglot-format-buffer))
 	    (indent-tabs-mode . t)

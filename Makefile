@@ -115,9 +115,9 @@ OBJS := $(SRCS:%.c=%.o)
 EL_SRCS := $(filter-out .* reader-autoloads.el,$(wildcard *.el))
 ELC := $(EL_SRCS:%.el=%.elc)
 
-.PHONY: all clean
+.PHONY: all clean checkdoc
 
-all: $(LIB_NAME) reader-autoloads.el $(ELC)
+all: $(LIB_NAME) reader-autoloads.el $(ELC) checkdoc
 
 $(LIB_NAME): $(OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS)
@@ -131,6 +131,9 @@ $(LIB_NAME): $(OBJS)
 reader-autoloads.el: $(EL_SRCS)
 	rm -f reader-autoloads.el
 	$(EMACS) --eval '(loaddefs-generate default-directory (file-name-concat default-directory "reader-autoloads.el"))'
+
+checkdoc: $(EL_SRCS)
+	$(EMACS) $(foreach file, $(EL_SRCS), --eval '(checkdoc-file "$(file)")')
 
 clean:
 	rm -f reader-autoloads.el

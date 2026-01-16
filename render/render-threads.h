@@ -69,6 +69,6 @@ thread_routine(void *arg);
 void
 threadpool_init(ThreadPool *pool);
 void
-threadpool_destroy(ThreadPool *pool);
+threadpool_shutdown(ThreadPool *pool);
 
 #endif

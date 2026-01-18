@@ -10,12 +10,13 @@ core
 
 # Generated during deployment
 /.pkg-descs.mk
+/doc/
 /packages/
 /other-packages
 /archive/
 /archive-devel/
 GNUmakefile
-manifest.scm
+/manifest.scm
 /admin
 
 # Testing file

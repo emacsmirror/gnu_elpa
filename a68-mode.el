@@ -87,6 +87,9 @@
 (defface a68-numbers-face '((t :weight bold :foreground "red"))
   "Face for printing integer and real Algol 68 denotations")
 
+(defface a68-generator-face '((t :weight bold :foreground "purple"))
+  "Face for printing Algol 68 generators")
+
 (defvar a68-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-j") #'newline-and-indent)
@@ -202,15 +205,21 @@
       "UNSAFE" "ASSERT")
     "List of Algol 68 keywords in UPPER stropping.")
 
+  (defconst a68-generators-upper
+    '("LOC" "HEAP"))
+
   ;; SUPPER stropping.
   (defconst a68-std-modes-supper
     '("proc" "flex" "int" "real" "bool" "char" "format" "void" "op"
-      "compl" "bits" "bytes" "string" "sema" "file" "channel" "ref"
-      "loc" "heap" "struct" "long" "short" "union")
+      "compl" "bits" "bytes" "string" "sema" "ref"
+      "struct" "long" "short" "union")
     "List of Algol 68 standard modes in SUPPER stropping.")
 
   (defconst a68-constants-supper
     '("nil" "false" "true" "skip" "empty"))
+
+  (defconst a68-generators-supper
+    '("loc" "heap"))
 
   (defconst a68-keywords-supper
     '("empty" "at"
@@ -274,6 +283,10 @@
                    (or "TRUE" "FALSE")
                    word-end)
                ''font-lock-constant-face)
+         (cons (rx word-start
+              (eval `(or ,@a68-generators-upper))
+              word-end)
+          ''a68-generator-face)
          '("\\<\\([A-Z]+[A-Z_]*\\>\\)\\(_+\\)?"
            (1 'font-lock-type-face)
            (2 'font-lock-warning-face nil t))
@@ -298,9 +311,16 @@
               word-end)
           ''font-lock-constant-face)
     (cons (rx word-start
-              (or "true" "false")
+              (eval `(or ,@a68-generators-supper))
               word-end)
-          ''font-lock-constant-face)
+          ''a68-generator-face)
+    ;; Parentheses can be used like begin/end so font-lock them as
+    ;; keywords.
+    (cons "[()]" ''font-lock-keyword-face)
+    ;; Ditto for vertical bars.
+    (cons "|" ''font-lock-keyword-face)
+    ;; ~ is an alternative representation of skip.
+    (cons "~" ''font-lock-constant-face)
     ;; Numbers.
     (cons "\\<\\([0-9][0-9.]*\\)\\>" ''a68-numbers-face)
     ;; Tags.

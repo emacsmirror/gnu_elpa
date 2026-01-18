@@ -1,6 +1,6 @@
 ;; -*- lisp-data -*-
 
-;; Copyright (C) 2020-2025 Free Software Foundation, Inc.
+;; Copyright (C) 2020-2026 Free Software Foundation, Inc.
 
 ;; List of packages that are maintained externally.
 ;; The list is made of elements of the form (NAME KIND URL OPTS...).
@@ -157,8 +157,8 @@
  ;; The `cl-print' code doesn't try to work outside of Emacs any more.
  ;;(cl-print		:core "lisp/emacs-lisp/cl-print.el")
  (clipboard-collector 	:url "https://github.com/clemera/clipboard-collector")
- ;; (cm-mode		:url "https://github.com/joostkremers/criticmarkup-emacs"
- ;;  :readme "README.md")
+ (cm-mode		:url "https://github.com/joostkremers/criticmarkup-emacs"
+  :readme "README.md")
  (cobol-mode          	:url "https://git.sr.ht/~hjelmtech/cobol-mode")
  (code-cells		:url "https://github.com/astoff/code-cells.el"
   :ignored-files ("LICENSE"))

@@ -1,11 +1,3 @@
-(eval-when-compile
-  (defvar el-get-sources)
-)
-
-(declare-function el-get-post-install 'el-get)
-
-(add-to-list 'load-path "~/.emacs.d/el-get/el-get")
-
 ;;; el-get-install.el --- installer for the lazy
 ;;
 ;; Copyright (C) 2010 Dimitri Fontaine
@@ -23,6 +15,14 @@
 ;;
 ;; So the idea is that you copy/paste this code into your *scratch* buffer,
 ;; hit C-j, and you have a working el-get.
+
+(eval-when-compile
+  (defvar el-get-sources)
+)
+
+(declare-function el-get-post-install 'el-get)
+
+(add-to-list 'load-path "~/.emacs.d/el-get/el-get")
 
 (let ((el-get-root
        (file-name-as-directory

@@ -303,8 +303,9 @@ starts with `cm-author'."
     (define-key map (kbd "C-c *") 'cm-prefix-map)
     map)
   "Keymap for `cm-mode'.
-This keymap contains only one binding: `C-c *', which is bound to
-`cm-prefix-map', the keymap that holds the actual key bindings.")
+This keymap contains only one binding: `C-c *', which is bound to the
+variable `cm-prefix-map', which is in turn bound to the keymap that
+holds the actual key bindings.")
 
 (defvar cm-prefix-map
   (let ((map (make-sparse-keymap)))

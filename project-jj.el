@@ -39,8 +39,8 @@
       (progn
         (require 'vc-jj)
         (let* ((default-directory (expand-file-name (project-root project)))
-               (files (vc-jj--process-lines (mapcar #'file-relative-name dirs)
-                                            "file" "list")))
+               (args (cons "--" (mapcar #'file-relative-name dirs)))
+               (files (apply #'vc-jj--process-lines "file" "list" args)))
           (mapcar #'expand-file-name files)))
     (cl-call-next-method)))
 

@@ -165,11 +165,12 @@ in the database."
         (error "Warning: Failed to insert title links for %s: %S" node-id err)))
     new-input))
 
-(defun org-gnosis-parse-headline (headline inherited-tags master-id)
+(defun org-gnosis-parse-headline (headline inherited-tags master-id title-stack)
   "Parse a HEADLINE and return a plist with its info.
 
 INHERITED-TAGS: Upper level headline tags.
 MASTER-ID: ID of the parent headline or topic.
+TITLE-STACK: List of parent titles for building hierarchical title.
 
 Note: This function assumes the headline has already been validated
 to have an ID."
@@ -177,8 +178,13 @@ to have an ID."
          (id (org-element-property :ID headline))
          (level (org-element-property :level headline))
          (headline-tags (org-element-property :tags headline))
-         (all-tags (org-gnosis--combine-tags inherited-tags headline-tags)))
-    (list :title (string-trim title)
+         (all-tags (org-gnosis--combine-tags inherited-tags headline-tags))
+         (full-title (if title-stack
+                         (concat (mapconcat #'identity title-stack ":")
+                                 ":"
+                                 (string-trim title))
+                       (string-trim title))))
+    (list :title full-title
           :id id
           :tags all-tags
           :master master-id
@@ -269,29 +275,38 @@ Returns (title tags id) or signals error if required data is missing."
     (let ((headlines '())
           (tag-stack (list (plist-get topic :tags)))
           (id-stack (list (plist-get topic :id)))
-          (topic-id (plist-get topic :id)))
+          (title-stack '())
+          (topic-id (plist-get topic :id))
+          (topic-title (plist-get topic :title)))
       (org-element-map parsed-data 'headline
         (lambda (headline)
           (let* ((level (org-element-property :level headline))
                  (headline-tags (org-element-property :tags headline))
-                 (current-id (org-element-property :ID headline)))
+                 (current-id (org-element-property :ID headline))
+                 (current-title (org-element-property :raw-value headline)))
             ;; Adjust stacks to proper level
             (while (>= (length id-stack) level)
               (pop id-stack))
             (while (>= (length tag-stack) level)
               (pop tag-stack))
+            (while (>= (length title-stack) level)
+              (pop title-stack))
             ;; Calculate combined tags
             (let* ((inherited-tags (or (car tag-stack) '()))
-                   (combined-tags (org-gnosis--combine-tags inherited-tags headline-tags)))
+                   (combined-tags (org-gnosis--combine-tags inherited-tags headline-tags))
+                   ;; Build parent titles: topic title + title stack
+                   (parent-titles (cons topic-title (reverse title-stack))))
               ;; Calculate master ID from current stack state
               (let ((master-id (when current-id
                                 (org-gnosis--find-master-id id-stack level topic-id))))
                 ;; Push current values to stacks for children
                 (push current-id id-stack)
                 (push combined-tags tag-stack)
+                (push (string-trim current-title) title-stack)
                 ;; Only parse headlines with IDs
                 (when current-id
-                  (when-let* ((parsed (org-gnosis-parse-headline headline combined-tags master-id)))
+                  (when-let* ((parsed (org-gnosis-parse-headline headline combined-tags master-id
+                                                                  parent-titles)))
                     (push parsed headlines))))))))
       (nreverse (cons topic headlines)))))
 

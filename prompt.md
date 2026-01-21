@@ -319,21 +319,21 @@ represents the **default setting** applied to Gemini.
 
 ```lisp
 (use-package minuet
-    :config
-    (setq minuet-provider 'gemini)
+  :config
+  (setq minuet-provider 'gemini)
 
-    (defvar my-minuet-gemini-prompt minuet-default-prompt-prefix-first)
+  (defvar my-minuet-gemini-prompt minuet-default-prompt-prefix-first)
 
-    (defvar my-minuet-gemini-chat-input-template
-        "{{{:language-and-tab}}}
+  (defvar my-minuet-gemini-chat-input-template
+    "{{{:language-and-tab}}}
 <contextBeforeCursor>
 {{{:context-before-cursor}}}<cursorPosition>
 <contextAfterCursor>
 {{{:context-after-cursor}}}")
 
-    (defvar my-minuet-gemini-fewshots
-        `((:role "user"
-           :content "# language: javascript
+  (defvar my-minuet-gemini-fewshots
+    `((:role "user"
+       :content "# language: javascript
 <contextBeforeCursor>
 function transformData(data, options) {
     const result = [];
@@ -347,30 +347,14 @@ const processedData = transformData(rawData, {
     uppercase: true,
     removeSpaces: false
 });")
-          ,(cadr minuet-default-fewshots)))
+      ,(cadr minuet-default-fewshots)))
 
-    (minuet-set-optional-options minuet-gemini-options
-                                 :prompt 'my-minuet-gemini-prompt
-                                 :system)
-    (minuet-set-optional-options minuet-gemini-options
-                                 :template 'my-minuet-gemini-chat-input-template
-                                 :chat-input)
-    (plist-put minuet-gemini-options :fewshots 'my-minuet-gemini-fewshots)
-
-    (minuet-set-optional-options minuet-gemini-options
-                                 :generationConfig
-                                 '(:maxOutputTokens 256
-                                   :topP 0.9))
-    (minuet-set-optional-options minuet-gemini-options
-                                 :safetySettings
-                                 [(:category "HARM_CATEGORY_DANGEROUS_CONTENT"
-                                   :threshold "BLOCK_NONE")
-                                  (:category "HARM_CATEGORY_HATE_SPEECH"
-                                   :threshold "BLOCK_NONE")
-                                  (:category "HARM_CATEGORY_HARASSMENT"
-                                   :threshold "BLOCK_NONE")
-                                  (:category "HARM_CATEGORY_SEXUALLY_EXPLICIT"
-                                   :threshold "BLOCK_NONE")])
-
-    )
+  (minuet-set-optional-options minuet-gemini-options
+                               :prompt 'my-minuet-gemini-prompt
+                               :system)
+  (minuet-set-optional-options minuet-gemini-options
+                               :template 'my-minuet-gemini-chat-input-template
+                               :chat-input)
+  (plist-put minuet-gemini-options :fewshots 'my-minuet-gemini-fewshots)
+  )
 ```

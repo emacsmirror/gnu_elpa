@@ -10,6 +10,7 @@
 - [Selecting a Provider or Model](#selecting-a-provider-or-model)
   - [Understanding Model Speed](#understanding-model-speed)
 - [Prompt](#prompt)
+  - [Prefix-First vs. Suffix-First](#prefix-first-vs-suffix-first)
 - [Configuration](#configuration)
   - [minuet-provider](#minuet-provider)
   - [minuet-context-window](#minuet-context-window)
@@ -342,6 +343,45 @@ Note that `minuet` employs two distinct prompt systems:
 1. A system designed for chat-based LLMs (OpenAI, OpenAI-Compatible, Claude, and
    Gemini)
 2. A separate system designed for Codestral and OpenAI-FIM-compatible models
+
+## Prefix-First vs. Suffix-First
+
+When use chat-based LLMs, there are two ways for constructing the prompt:
+placing the prefix (context before the cursor) before the suffix (context after
+the cursor), or placing the suffix before the prefix.
+
+By default, `minuet` uses the **prefix-first** style for the Gemini provider,
+and the **suffix-first** style for OpenAI, OpenAI-Compatible, and Claude
+providers. It is recommended that you experiment with both strategies to
+determine which yields the best results, particularly if you are using an
+OpenAI-compatible provider with various models.
+
+Below is an example code snippet demonstrating how to switch between these two
+prompt construction methods:
+
+<details>
+
+```lisp
+;; Prefix-first style
+(plist-put minuet-openai-compatible-options :fewshots 'minuet-default-fewshots-prefix-first)
+(minuet-set-nested-plist minuet-openai-compatible-options
+                         'minuet-default-prompt-prefix-first
+                         :system :prompt)
+(minuet-set-nested-plist minuet-openai-compatible-options
+                         'minuet-default-chat-input-template-prefix-first
+                         :chat-input :template)
+
+;; Suffix-first style
+(plist-put minuet-openai-compatible-options :fewshots 'minuet-default-fewshots)
+(minuet-set-nested-plist minuet-openai-compatible-options
+                         'minuet-default-prompt
+                         :system :prompt)
+(minuet-set-nested-plist minuet-openai-compatible-options
+                         'minuet-default-chat-input-template
+                         :chat-input :template)
+```
+
+</details>
 
 # Configuration
 

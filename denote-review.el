@@ -46,7 +46,7 @@
 (require 'denote)
 
 (defgroup denote-review nil
-  "implements review process for denote notes"
+  "Implements review process for denote notes."
   :prefix "denote-review-"
   :link '(custom-manual "(denote-review) Top")
   :group 'denote)
@@ -108,6 +108,7 @@ INSERT-REGEXP is regepx to search for appropriate insert location."
     (newline)
     (insert (denote-review-insert-reviewdate-line mydate))))
 
+;;;###autoload
 (defun denote-review-set-date ()
   "Set the reviewdate in the current buffer.
 Replace an existing reviewdate."
@@ -146,6 +147,7 @@ Both regexp's set to match format based on variable `denote-file-type'"
   "Convert identifier in FILENAME into a date."
   (denote-id-to-date (substring filename 0 15)))
 
+;;;###autoload
 (defun denote-review-bulk-set-date (filename current-date-p)
   "Opens FILENAME and insert a reviewdate.
 When CURRENT-DATE-P is not null, use current date."
@@ -256,7 +258,8 @@ Create a list in the format required by `tabulated-list-mode'."
     list-of-files))
 
 (defun denote-review-collect-files--revert (denotepath-and-keyword)
-  "Re-populated `tabulated-list-entries'."
+  "Re-populated `tabulated-list-entries'.
+DENOTEPATH-AND-KEYWORD is a cons of a path and a keyword."
   (let ((list-of-files '())
         (search-regexp (denote-review-search-regexp-for-filetype))
         (denote-directory (car denotepath-and-keyword)))
@@ -333,10 +336,11 @@ Initially sort by reviewdate."
   (setq tabulated-list-sort-key (cons "Reviewdate" nil))
   (tabulated-list-init-header))
 
+;;;###autoload
 (defun denote-review-display-list (denotepath-and-keyword)
   "Show buffer with reviewdates.
 DENOTEPATH-AND-KEYWORD is a cons of a path and a keyword.
- Filter by keyword."
+Filter by keyword."
   (interactive (list (denote-review-select-keyword)))
   (with-current-buffer (get-buffer-create "*denote-review-results*")
       (denote-review-mode)

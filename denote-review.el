@@ -1,4 +1,4 @@
-;;; denote-review --- implements review process for denote notes -*- lexical-binding: t; -*-
+;;; denote-review.el --- implements review process for denote notes -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Free Software Foundation, Inc.
 
@@ -109,18 +109,18 @@ INSERT-REGEXP is regepx to search for appropriate insert location."
     (insert (denote-review-insert-reviewdate-line mydate))))
 
 (defun denote-review-set-date ()
-"Set the reviewdate in the current buffer.
+  "Set the reviewdate in the current buffer.
 Replace an existing reviewdate."
-(interactive)
-(save-excursion
- (goto-char (point-min))
- (if (re-search-forward (denote-review-search-regexp-for-filetype)
-                        denote-review-max-search-point t)
-     (replace-match
-      (denote-review-insert-reviewdate-line (format-time-string "%F")))
-   (denote-review-insert-date
-    nil
-    (denote-review-insert-regexp-location-for-filetype)))))
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (if (re-search-forward (denote-review-search-regexp-for-filetype)
+                           denote-review-max-search-point t)
+        (replace-match
+         (denote-review-insert-reviewdate-line (format-time-string "%F")))
+      (denote-review-insert-date
+       nil
+       (denote-review-insert-regexp-location-for-filetype)))))
 
 (defun denote-review-get-date (search-regexp)
   "Get the reviewdate from current buffer.

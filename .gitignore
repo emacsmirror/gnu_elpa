@@ -11,3 +11,6 @@
 # Undo-tree save-files
 *.~undo-tree
 
+# ELPA-generated files.
+/denote-review-autoloads.el
+/denote-review-pkg.el

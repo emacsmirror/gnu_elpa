@@ -244,6 +244,8 @@
   :ignored-files ("COPYING"))
  (denote-org		:url "https://github.com/protesilaos/denote-org"
   :doc "README.org")
+ (denote-review		:url "https://codeberg.org/mattof/denote-review"
+  :ignored-files ("LICENSE"))
  (denote-search		:url "https://github.com/lmq-10/denote-search"
   :ignored-files ("COPYING" "doclicense.texi")
   :readme "README.md"

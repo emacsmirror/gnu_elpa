@@ -5,7 +5,7 @@
 ;; Author:  Matto Fransen <matto@matto.nl>
 ;; Maintainer:  Matto Fransen <matto@matto.nl>
 ;; Url: https://codeberg.org/mattof/denote-review
-;; Version: 1.0.0
+;; Version: 1.0.1
 ;; Keywords: files
 ;; Package-Requires: ((emacs "28.1") (denote "4.1.3"))
 
@@ -126,11 +126,11 @@ Replace an existing reviewdate."
 (defun denote-review-get-date (search-regexp)
   "Get the reviewdate from current buffer.
 SEARCH-REGEXP set to match format based on variable `denote-file-type'"
-    (save-excursion
-      (goto-char (point-min))
-      (when (re-search-forward search-regexp
-                               denote-review-max-search-point t)
-        (match-string-no-properties 2))))
+  (save-excursion
+    (goto-char (point-min))
+    (when (re-search-forward search-regexp
+                             denote-review-max-search-point t)
+      (match-string-no-properties 2))))
 
 ;; Bulk operation, to be run from Dired.
 
@@ -161,8 +161,8 @@ When CURRENT-DATE-P is not null, use current date."
          (denote-review-get-date-from-filename fname)
          search-regexp insert-regexp)
       (denote-review-set-initial-date (format-time-string "%F")
-                                         search-regexp
-                                         insert-regexp))
+                                      search-regexp
+                                      insert-regexp))
     (save-buffer)
     (kill-buffer fname)))
 
@@ -189,20 +189,20 @@ Does not overwrite existing reviewdates."
     (when (boundp 'denote-silo-directories)
       (setq mypath (append mypath denote-silo-directories)))
     (if (listp mypath)
-    (completing-read
-     "Select a directory (using completion): " mypath)
-    denote-directory)))
+        (completing-read
+         "Select a directory (using completion): " mypath)
+      denote-directory)))
 
 (defun denote-review-get-keyword-list (denotepath)
   "Fetch keywords from the filenames in directory DENOTEPATH."
   (let ((keyword-list '())
         (denote-directory denotepath))
     (mapc
-      (lambda (myfile)
-        (dolist (mykeyword
-                 (denote-extract-keywords-from-path myfile))
-          (add-to-list 'keyword-list mykeyword)))
-      (denote-directory-files nil t nil))
+     (lambda (myfile)
+       (dolist (mykeyword
+                (denote-extract-keywords-from-path myfile))
+         (add-to-list 'keyword-list mykeyword)))
+     (denote-directory-files nil t nil))
     (sort keyword-list)))
 
 (defun denote-review-select-keyword ()
@@ -343,19 +343,19 @@ DENOTEPATH-AND-KEYWORD is a cons of a path and a keyword.
 Filter by keyword."
   (interactive (list (denote-review-select-keyword)))
   (with-current-buffer (get-buffer-create "*denote-review-results*")
-      (denote-review-mode)
-      (setq tabulated-list-entries (denote-review-collect-files
-                                    denotepath-and-keyword))
-      (add-hook 'tabulated-list-revert-hook
-                (lambda ()
-                  (denote-review-collect-files--revert denotepath-and-keyword)) 0 t)
-      (tabulated-list-print t)
-      (display-buffer (current-buffer))
-      (setq mode-line-buffer-identification
-            (format "*denote-review-results* [%s | %s]"
-                    (car denotepath-and-keyword)
-                    (cdr denotepath-and-keyword)))
-      (force-mode-line-update)))
+    (denote-review-mode)
+    (setq tabulated-list-entries (denote-review-collect-files
+                                  denotepath-and-keyword))
+    (add-hook 'tabulated-list-revert-hook
+              (lambda ()
+                (denote-review-collect-files--revert denotepath-and-keyword)) 0 t)
+    (tabulated-list-print t)
+    (display-buffer (current-buffer))
+    (setq mode-line-buffer-identification
+          (format "*denote-review-results* [%s | %s]"
+                  (car denotepath-and-keyword)
+                  (cdr denotepath-and-keyword)))
+    (force-mode-line-update)))
 
 (provide 'denote-review)
 ;;; denote-review.el ends here

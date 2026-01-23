@@ -968,13 +968,6 @@ Optionally, provide THEMA-IDS of which the overdue ones will be returned."
 	   when (not (equal (cadr thema) (gnosis-algorithm-date)))
 	   collect (car thema)))
 
-(defun gnosis-review-get-due-themata--no-overdue (&optional thema-ids)
-  "Return due themata, without overdue.
-
-Optionally, provide a list for due THEMA-IDS."
-  (let ((thema-ids (or thema-ids (length (gnosis-review-get-due-themata)))))
-    (cl-set-difference thema-ids (gnosis-review-get-overdue-themata thema-ids))))
-
 (defun gnosis-review-last-interval (id)
   "Return last review interval for thema ID."
   (let* ((last-rev (gnosis-get 'last-rev 'review-log `(= id ,id)))
@@ -1374,7 +1367,8 @@ FN: Review function, defaults to `gnosis-review-session'"
       ("Overdue themata"
        (funcall fn (gnosis-review-get-overdue-themata)))
       ("Due themata (Without Overdue)"
-       (funcall fn (gnosis-review-get-due-themata--no-overdue)))
+       (funcall fn (cl-set-difference (mapcar #'car (gnosis-review-get--due-themata))
+				      (gnosis-review-get-overdue-themata))))
       ("All themata of deck"
        (funcall fn (gnosis-collect-thema-ids :deck (gnosis--get-deck-id))))
       ("All themata of tag(s)"

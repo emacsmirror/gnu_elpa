@@ -66,7 +66,7 @@
 (unless (file-directory-p gnosis-dir)
   (make-directory gnosis-dir))
 
-(defcustom gnosis-cloze-string "[...]"
+(defcustom gnosis-cloze-string "(...)"
   "Gnosis string to represent a cloze."
   :type 'string)
 

@@ -542,12 +542,12 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
          (node (org-gnosis--find "Select gnosis node: "
                                  (org-gnosis-select '[title tags] table)
                                  (org-gnosis-select 'title table)))
-         (id-result (org-gnosis-select 'id table `(= ,node title) t))
-         (id (and id-result (car id-result)))
+         (id (car (org-gnosis-select 'id table `(= ,node title) t)))
+	 (title (car (last (split-string node ":"))))
          (desc (cond ((use-region-p)
                       (buffer-substring-no-properties (region-beginning) (region-end)))
                      (arg (read-string "Description: "))
-                     (t node))))
+                     (t title))))
     (unless id
       (save-window-excursion
         (org-gnosis--create-file node (if journal-p org-gnosis-journal-dir org-gnosis-dir))

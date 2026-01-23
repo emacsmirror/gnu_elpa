@@ -1,4 +1,7 @@
 * denote-review
+:PROPERTIES:
+:CUSTOM_ID: h:y9nifdn0jtk0
+:END:
 
 `denote-review' aims to provide a practical and simple manner to
 implement a review process for some of your [[ https://protesilaos.com/emacs/denote][denote]] notes.
@@ -7,10 +10,15 @@ implement a review process for some of your [[ https://protesilaos.com/emacs/den
 
 ~#+reviewdate: [2024-06-12]~
 
+This line embeds the date of your latest review of the note.
+
 The format of this line is according to `denote-file-type' (defaults
 to org).
 
 * Usage
+:PROPERTIES:
+:CUSTOM_ID: h:51qifdn0jtk0
+:END:
 The aim is to implement a process for reviewing your denote notes in a
 practical and simple manner.
 
@@ -31,6 +39,9 @@ On a regular bases, review some notes:
 - Review one or more notes and update their review date.
 
 * Commands
+:PROPERTIES:
+:CUSTOM_ID: h:h9rifdn0jtk0
+:END:
 - ~denote-review-set-date~:
   Insert current date as reviewdate or set existing reviewdate to current date.
 - ~denote-review-set-date-dired-marked-files~:
@@ -39,6 +50,9 @@ On a regular bases, review some notes:
   Create a tabulated list of notes order by review date.
 
 ** Add or update the review date of a note
+:PROPERTIES:
+:CUSTOM_ID: h:jnsifdn0jtk0
+:END:
 Open and revew a denote note. Add or update the date in the the
 frontmatter field ~reviewdate~. with the command
 ~M-x denote-review-set-date~.
@@ -67,6 +81,9 @@ Example screenshot of the frontmatter of a note:
 [[./images/denote-review-frontmatter.png]]
 
 ** List notes with a review date
+:PROPERTIES:
+:CUSTOM_ID: h:e6uifdn0jtk0
+:END:
 The command ~M-x denote-review-display-list~ creates a tabulated list of the
 notes that contain the ~reviewdate~ frontmatter. Notes without a ~reviewdate~
 are ignored.
@@ -116,6 +133,9 @@ General tabulated list key bindings:
 For more, use ~M-x describe-mode~ (~C-h m~) in the buffer.
 
 ** Bulk insert a review date according to the identifier
+:PROPERTIES:
+:CUSTOM_ID: h:wqvifdn0jtk0
+:END:
 There is no undo for this function. To play it safe, first commit your
 notes to a revision management system like Git, or make a backup of
 the directory.
@@ -135,6 +155,9 @@ Notes where the ~reviewdate~ field is already part of the
 frontmatter will be left untouched.
 
 ** Bulk insert the current date as review date
+:PROPERTIES:
+:CUSTOM_ID: h:11xifdn0jtk0
+:END:
 There is no undo for this function. To play it safe, first commit your
 notes to a revision management system like Git, or make a backup of
 the directory.
@@ -153,6 +176,9 @@ Notes where the ~reviewdate~ field is already part of the
 frontmatter, will be left untouched.
 
 * ~denote-review-max-search-point~
+:PROPERTIES:
+:CUSTOM_ID: h:ueyifdn0jtk0
+:END:
 The custom variable ~denote-review-max-search-point~ defines the point
 where the search-forward command stops.
 
@@ -171,13 +197,31 @@ point a few lines below your frontmatter and issue the command
 ~C-x =~ to see what a better value for
 ~denote-review-max-search-point~ could be.
 
+* Installation
+:PROPERTIES:
+:CUSTOM_ID: h:mbxaimc0vtk0
+:END:
+
+Install from GNU ELPA.
+
+#+begin_src
+M-x package-refresh-contents
+M-x package-install
+#+end_src
+
 * Source code. bugs and patches
+:PROPERTIES:
+:CUSTOM_ID: h:tpzifdn0jtk0
+:END:
 ~denote-review~ is developed at
 https://codeberg.org/mattof/denote-review
 
 Please use the "Issues" option in the Codeberg repository.
 
 * Limitations
+:PROPERTIES:
+:CUSTOM_ID: h:3z0jfdn0jtk0
+:END:
 
 The file extension of a note does not affect ~denote-review~.
 
@@ -186,11 +230,17 @@ on the value of the variable `denote-file-type'.  Just as the format
 for inserting and updating the review date.
 
 * Contribute
+:PROPERTIES:
+:CUSTOM_ID: h:272jfdn0jtk0
+:END:
 
 A copyright assignment to the FSF is required for all non-trivial code
 contributions.
 
 * Distribution
+:PROPERTIES:
+:CUSTOM_ID: h:3e3jfdn0jtk0
+:END:
 
 ~denote-review.el~ and all other source files in this
 directory are distributed under the GNU Public License, Version 3,

@@ -94,10 +94,22 @@ Review one or more notes and update their review date.
 @node Installation
 @chapter Installation
 
-Copy the file @file{denote-review.el} in your load path and either
-visit the file and issue the command @code{M-x eval-buffer} to
-evaluate the code or add a line @code{(require 'denote-review)} to
-your Emacs configuration file.
+`denote-review' can be install from GNU ELPA.
+
+@itemize
+@item
+@code{M-x package-refresh-contents}
+@item
+@code{M-x package-install}
+@end itemize
+
+Or use @code{use-package}.
+
+To manually install @code{denote-review}, copy the file
+@file{denote-review.el} in your load path and either visit the file
+and issue the command @code{M-x eval-buffer} to evaluate the code or
+add a line @code{(require 'denote-review)} to your Emacs configuration
+file.
 
 @node Getting started
 @chapter Getting started
@@ -142,7 +154,13 @@ To make this easy, bind this command to a key, f.e.:
 @findex denote-review-display-list
 
 Issue the command @code{M-x denote-review-display-list} to open
-a list with notes. The list shows only notes with the review date frontmatter.
+a list with notes.
+
+This command prompts for a keyword, using completion.
+Select a keyword to display only notes with that keyword, or don't
+select any keyword to display all notes.
+
+The list shows only notes with the review date frontmatter.
 Notes without a review date are ignored.
 
 The list is created in the tabulated list mode.

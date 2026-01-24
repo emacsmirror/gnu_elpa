@@ -1,19 +1,27 @@
 -*- mode: org -*-
 
-* 1.4
+* 1.5.3 <2023-08-21 Mon>
+** Commands changed:
+*** latex-table-wizard-align
+Makes it so calling latex-table-wizard-align always start the cycle
+with left alignment.  This behavior was suggested by fountainer
+* 1.5.2 <2023-05-16 Tue>
+** User option changed: latex-table-wizard-row-delimiters 
+Default value changed from "\\\\\\\\" to "\\\\".
+* 1.4.0 <2023-05-02 Tue>
 ** New commands:
 *** latex-table-wizard-edit-cell
 *** latex-table-wizard-copy-cell-content
 *** latex-table-wizard-yank-cell-content
 *** latex-table-wizard-kill-cell-content
-* 1.3.1
+* 1.3.1 <2023-04-13 Thu>
 ** Added new hook: latex-table-wizard-after-table-modified-hook
-This hook is ran whenever a latex-table-wizard command is called that
-potentially changes the table.  This fixes a bug that previously
+This hook is ran whenever a latex-table-wizard command that
+potentially changes the table is called.  This fixes a bug that previously
 occurred when the user would swap around things in a table
 "vacuously", such that after the command the content of the table was
 exactly the same as before.
-* 1.3.0
+* 1.3.0 <2023-04-10 Mon>
 ** New commands:
 *** latex-table-wizard-kill-row-content
 *** latex-table-wizard-kill-column-content
@@ -23,19 +31,18 @@ exactly the same as before.
 *** latex-table-wizard-comment-out-content
 ** Commands changed:
 *** latex-table-wizard-kill-column
-aliased to new command "latex-table-wizard-kill-column-content"
+Aliased to new command "latex-table-wizard-kill-column-content".
 *** latex-table-wizard-kill-row
-aliased to new command "latex-table-wizard-kill-row-content"
+Aliased to new command "latex-table-wizard-kill-row-content".
 *** latex-table-wizard-right, latex-table-wizard-left, latex-table-wizard-down, latex-table-wizard-up
-added a second optional argument NOCYCLE that makes the command return
+Added a second optional argument NOCYCLE that makes the command return
 nil (instead of moving point), in case the movement in the chosen
 direction hits the boundaries of the table.
-
 * 1.2.0 <2022-12-20 Tue>
 ** New user option: latex-table-wizard-allow-detached-args
 Same as texmathp-allow-detached-args and
 reftex-allow-detached-macro-args, but for the purposes of parsing the
-table (especially determining where the table content starts).  By
+table (especially, determining where the table content starts).  By
 default, nil.
 ** New user option: latex-table-wizard-warn-about-detached-args
 If t (default value) and latex-table-wizard-allow-detached-args is
@@ -43,12 +50,11 @@ nil, the user is warned about suspect cases of detachment of a macro
 and its arguments when the table is parsed.
 * 1.1.0 <2022-12-18 Sun>
 ** Four interactive commands added
-
-+ latex-table-wizard-align-left
-+ latex-table-wizard-align-right
-+ latex-table-wizard-center
-+ latex-table-wizard-compress
-
-Each of these commands performs one of the transformations that
+Each of these commands performs one of the transformation that
 latex-table-wizard-align cycles through.  Unlike this command, these
 new ones are not exposed through the transient interface.
+*** latex-table-wizard-align-left
+*** latex-table-wizard-align-right
+*** latex-table-wizard-center
+*** latex-table-wizard-compress
+

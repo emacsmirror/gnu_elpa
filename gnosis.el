@@ -298,14 +298,14 @@ When VERIFICATION is non-nil, skip `y-or-n-p' prompt."
                 (cl-rotatef (nth (1- i) seq) (nth j seq)))  ; Swap elements.
            finally return seq))
 
-(defun gnosis-completing-read (prompt seq)
+(defun gnosis-completing-read (prompt seq &optional require-match)
   "Call `gnosis-completing-read-function' with shuffled SEQ.
 
 PROMPT: Prompt for `gnosis-completing-read-function'
 History is disabled."
   (let ((history-add-new-input nil))
     (funcall gnosis-completing-read-function prompt
-	     (gnosis-shuffle (copy-sequence seq)))))
+	     (gnosis-shuffle (copy-sequence seq)) nil require-match)))
 
 (defun gnosis-insert-separator ()
   "Insert a dashed line spanning the entire width of the buffer."

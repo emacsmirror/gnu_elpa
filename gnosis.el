@@ -1230,7 +1230,7 @@ This is a helper function for `gnosis-review-session'."
   (let ((success (gnosis-review--display-thema thema))
 	(thema-count (or thema-count 0)))
     (cl-incf thema-count)
-    (unless success (gnosis-monkeytype-thema thema))
+    (unless success (gnosis-monkeytype-answer thema))
     (gnosis-review-actions success thema thema-count)
     (jump-to-register :gnosis-pre-image)
     (gnosis-review-update-header thema-count)

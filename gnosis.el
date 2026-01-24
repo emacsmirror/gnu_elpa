@@ -429,7 +429,7 @@ This will not be applied to sentences that start with double space."
 	       (when (and hint (not (string-empty-p hint)) (not (string= hint "nil"))
 			  (not (string= "\"\"" hint))
 			  (search-backward cloze-string nil t))
-                 (replace-match (propertize (format "[%s]" hint)
+                 (replace-match (propertize (format "(%s)" hint)
 					    'face 'gnosis-face-cloze))
                  (goto-char (match-end 0)))) ; Move point to end of match
       (buffer-string))))

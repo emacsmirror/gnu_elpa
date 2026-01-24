@@ -901,6 +901,7 @@ START is the search starting position, used internally for recursion."
 (defun gnosis-link-view--exit ()
   "Exit link view mode."
   (interactive nil gnosis-link-view-mode)
+  (gnosis-link-view-mode -1)
   (jump-to-register :gnosis-link-view)
   (exit-recursive-edit))
 
@@ -912,9 +913,11 @@ START is the search starting position, used internally for recursion."
   :interactive nil
   :lighter " Gnosis Link View"
   :keymap gnosis-link-view-mode-map
-  (setq header-line-format
-	(substitute-command-keys
-	 " Return to review with: \\[gnosis-link-view--exit]")))
+  (if gnosis-link-view-mode
+      (setq-local header-line-format
+		  (substitute-command-keys
+		   " Return to review with: \\[gnosis-link-view--exit]"))
+    (setq-local header-line-format nil)))
 
 ;; TODO: Rewrite this! Tags should be an input of strings,
 ;; interactive handling should be done by "helper" funcs

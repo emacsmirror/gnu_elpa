@@ -66,10 +66,6 @@
 (unless (file-directory-p gnosis-dir)
   (make-directory gnosis-dir))
 
-(defcustom gnosis-cloze-string "(...)"
-  "Gnosis string to represent a cloze."
-  :type 'string)
-
 (defcustom gnosis-string-difference 1
   "Threshold value for string comparison in Gnosis.
 
@@ -151,6 +147,8 @@ When nil, review new themata last."
   "Gnosis database.")
 
 (autoload 'gnosis-dashboard "gnosis-dashboard" nil t)
+
+(defvar gnosis-cloze-string "(...)")
 
 (defvar gnosis-testing nil
   "Change this to non-nil when running manual tests.")

@@ -448,7 +448,9 @@ EXTRAS: The template to be inserted at the start."
   (let* ((file (expand-file-name
 		(org-gnosis--create-name title)
 		(or directory org-gnosis-dir)))
-	 (buffer (find-file-noselect file)))
+	 (buffer (find-file-noselect file))
+	 ;; `org-id-track-globally' can cause unexpected issues.
+	 (org-id-track-globally nil))
     (with-current-buffer buffer
       (unless (or (file-exists-p file)
 		  (> (buffer-size) 0))

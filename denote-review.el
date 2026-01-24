@@ -87,13 +87,12 @@ Defaults to regexp for org filetype."
   "Insert the review date DATE frontmatter line.
 Format according to variable `denote-file-type'.
 Insert just after the identifier line."
-  (cond ((eq denote-file-type 'markdown-yaml)
-         (format "reviewdate: %s" date))
-        ((eq denote-file-type 'markdown-toml)
-         (format "reviewdate = %s" date))
-        ((eq denote-file-type 'text)
-         (format "reviewdate: %s" date))
-        (t (format "#+reviewdate: [%s]" date))))
+  (format (pcase denote-file-type
+            ('markdown-yaml "reviewdate: %s")
+            ('markdown-toml "reviewdate = %s")
+            ('text          "reviewdate: %s")
+            (_              "#+reviewdate: [%s]"))
+          date))
 
 (defun denote-review-insert-date (&optional thisdate insert-regexp)
   "Insert current date in ISO 8601 format as reviewdate.
@@ -184,9 +183,7 @@ Does not overwrite existing reviewdates."
 
 (defun denote-review-get-path ()
   "Prompt for a path when needed."
-  (let ((path '()))
-    (when (boundp 'denote-directory)
-      (setq path denote-directory))
+  (let ((path denote-directory))
     (when (boundp 'denote-silo-directories)
       (setq path (append path denote-silo-directories)))
     (if (listp path)
@@ -196,15 +193,10 @@ Does not overwrite existing reviewdates."
 
 (defun denote-review-get-keyword-list (denotepath)
   "Fetch keywords from the filenames in directory DENOTEPATH."
-  (let ((keyword-list '())
-        (denote-directory denotepath))
-    (mapc
-     (lambda (myfile)
-       (dolist (mykeyword
-                (denote-extract-keywords-from-path myfile))
-         (add-to-list 'keyword-list mykeyword)))
-     (denote-directory-files nil t nil))
-    (sort keyword-list)))
+  (let ((denote-directory denotepath))
+    (sort (delete-dups
+           (mapcan #'denote-extract-keywords-from-path
+	           (denote-directory-files nil t nil))))))
 
 (defun denote-review-select-keyword ()
   "Select a keyword or `All' using completion."
@@ -220,10 +212,10 @@ Does not overwrite existing reviewdates."
   "Get the reviewdate of FILENAME.
 SEARCH-REGEXP is regexp to search for reviewdate.
 It is set to match format based on variable `denote-file-type'"
- (with-temp-buffer
-   (insert-file-contents filename)
-   (denote-review-get-date
-    search-regexp)))
+  (with-temp-buffer
+    (insert-file-contents filename)
+    (denote-review-get-date
+     search-regexp)))
 
 (defun denote-review-collect-files (denotepath-and-keyword)
   "Fetch reviewdate from the files in DENOTEPATH-AND-KEYWORD.
@@ -232,28 +224,20 @@ DENOTEPATH-AND-KEYWORD is a cons of a path and a keyword.
 Create a list in the format required by `tabulated-list-mode'."
   (let ((search-regexp (denote-review-search-regexp-for-filetype))
         (denote-directory (car denotepath-and-keyword)))
-    (or (mapcan (lambda (myfile)
+    (or (mapcan (lambda (filename)
 		  (and (or (string= (cdr denotepath-and-keyword) "")
 			   (string-match
-			    (format "_%s" (cdr denotepath-and-keyword)) myfile))
+                            (rx "_" (literal (cdr denotepath-and-keyword)))
+                            filename))
 		       (and-let* ((reviewdate (denote-review-check-date-of-file
-					       myfile
+					       filename
 					       search-regexp)))
-			 `((,myfile
+			 `((,filename
 			    [,reviewdate
-			     ,(file-name-nondirectory myfile)])))))
+			     ,(file-name-nondirectory filename)])))))
 		(denote-directory-files nil t nil))
 	(error (format "No files with a reviewdate found (filter: keyword %s)"
 		       (cdr denotepath-and-keyword))))))
-
-(defun denote-review-collect-files--revert (denotepath-and-keyword)
-  "Re-populated `tabulated-list-entries'.
-DENOTEPATH-AND-KEYWORD is a cons of a path and a keyword."
-  (setq tabulated-list-entries
-        (denote-review-collect-files denotepath-and-keyword))
-  (setq tabulated-list-sort-key (cons "Reviewdate" nil))
-  (tabulated-list-init-header)
-  (tabulated-list-print t))
 
 ;; Mode map for tabulated list and actions.
 
@@ -310,12 +294,8 @@ Filter by keyword."
   (interactive (list (denote-review-select-keyword)))
   (with-current-buffer (get-buffer-create "*denote-review-results*")
     (denote-review-mode)
-    (setq tabulated-list-entries (denote-review-collect-files
-                                  denotepath-and-keyword))
-    (add-hook 'tabulated-list-revert-hook
-              (lambda ()
-                (denote-review-collect-files--revert denotepath-and-keyword))
-	      nil t)
+    (setq tabulated-list-entries (lambda () (denote-review-collect-files
+                                             denotepath-and-keyword)))
     (tabulated-list-print t)
     (display-buffer (current-buffer))
     (setq mode-line-buffer-identification

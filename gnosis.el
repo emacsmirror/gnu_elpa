@@ -1950,6 +1950,7 @@ generate new thema id."
   :doc "gnosis org mode map"
   "C-c C-c" #'gnosis-save
   "C-c C-q" #'gnosis-tags-prompt
+  "C-c C-o" #'org-gnosis-goto-id
   "C-c C-k" #'gnosis-edit-quit)
 
 (define-derived-mode gnosis-edit-mode org-mode "Gnosis Org"

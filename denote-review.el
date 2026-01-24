@@ -5,7 +5,7 @@
 ;; Author:  Matto Fransen <matto@matto.nl>
 ;; Maintainer:  Matto Fransen <matto@matto.nl>
 ;; Url: https://codeberg.org/mattof/denote-review
-;; Version: 1.0.1
+;; Version: 1.0.2
 ;; Keywords: files
 ;; Package-Requires: ((emacs "28.1") (denote "4.1.3"))
 
@@ -144,7 +144,6 @@ Both regexp's set to match format based on variable `denote-file-type'"
   "Convert identifier in FILENAME into a date."
   (denote-id-to-date (substring filename 0 15)))
 
-;;;###autoload
 (defun denote-review-bulk-set-date (filename current-date-p)
   "Opens FILENAME and insert a reviewdate.
 When CURRENT-DATE-P is not null, use current date."
@@ -163,6 +162,7 @@ When CURRENT-DATE-P is not null, use current date."
                                         insert-regexp))
       (write-region nil nil filename))))
 
+;;;###autoload
 (defun denote-review-set-date-dired-marked-files ()
   "Insert a reviewdate in the marked files.
 Set a reviewdate according the identifier in the filename,
@@ -171,9 +171,14 @@ Does not overwrite existing reviewdates."
   (interactive)
   (unless (derived-mode-p 'dired-mode)
     (error (format "Command can only be used in a Dired buffer.")))
-  (dolist (file (dired-get-marked-files))
-    (when (denote-file-is-writable-and-supported-p file)
-      (denote-review-bulk-set-date file current-prefix-arg))))
+  (let ((count (length (dired-get-marked-files))))
+    (when (yes-or-no-p
+           (if (= count 1)
+               (format "Change 1 file? %s" (car (dired-get-marked-files)))
+             (format "Change %d files? " (length (dired-get-marked-files)))))
+      (dolist (file (dired-get-marked-files))
+        (when (denote-file-is-writable-and-supported-p file)
+          (denote-review-bulk-set-date file current-prefix-arg))))))
 
 ;; Collect keywords and prompt for a keyword to filter by.
 

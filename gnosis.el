@@ -883,6 +883,39 @@ START is the search starting position, used internally for recursion."
               (gnosis-extract-id-links input (match-end 0)))
       nil)))
 
+(defun gnosis-get-linked-nodes (id)
+  "Return the title of linked org-gnosis node(s) for thema ID."
+  (let* ((links (gnosis-select 'dest 'links `(= source ,id) t))
+	 (org-gnosis-nodes (cl-loop for node-id in links
+				    collect (org-gnosis-select 'title 'nodes `(= id ,node-id) t))))
+    (if links (apply #'append org-gnosis-nodes)
+      (user-error (format "No linked nodes found for thema: %d" id)))))
+
+(defun gnosis-view-linked-node (id)
+  "Visit linked node(s) for thema ID."
+  (let* ((node (gnosis-completing-read "Select node: " (gnosis-get-linked-nodes id) t)))
+    (window-configuration-to-register :gnosis-link-view)
+    (org-gnosis-find node)
+    (gnosis-link-view-mode)))
+
+(defun gnosis-link-view--exit ()
+  "Exit link view mode."
+  (interactive nil gnosis-link-view-mode)
+  (jump-to-register :gnosis-link-view)
+  (exit-recursive-edit))
+
+(defvar-keymap gnosis-link-view-mode-map
+  :doc "Keymap for `gnosis-link-view-mode'."
+  "C-c C-c" #'gnosis-link-view--exit)
+
+(define-minor-mode gnosis-link-view-mode "Gnosis Link View."
+  :interactive nil
+  :lighter " Gnosis Link View"
+  :keymap gnosis-link-view-mode-map
+  (setq header-line-format
+	(substitute-command-keys
+	 " Return to review with: \\[gnosis-link-view--exit]")))
+
 ;; TODO: Rewrite this! Tags should be an input of strings,
 ;; interactive handling should be done by "helper" funcs
 (cl-defun gnosis-collect-thema-ids (&key (tags nil) (due nil) (deck nil) (query nil))
@@ -1337,6 +1370,12 @@ be called with new SUCCESS value plus THEMA & THEMA-COUNT."
   (gnosis-display-next-review thema success)
   (gnosis-review-actions success thema thema-count))
 
+(defun gnosis-review-action--view-link (success thema thema-count)
+  "View linked node(s) for THEMA."
+  (gnosis-view-linked-node thema)
+  (recursive-edit)
+  (gnosis-review-actions success thema thema-count))
+
 (defun gnosis-review-actions (success id thema-count)
   "Specify action during review of thema.
 
@@ -1346,17 +1385,18 @@ THEMA-COUNT: Total themata reviewed
 
 To customize the keybindings, adjust `gnosis-review-keybindings'."
   (let* ((prompt
-	  "Action: %sext gnosis, %sverride result, %suspend thema, %sdit thema, %suit: ")
+	  "Action: %sext gnosis, %sverride result, %suspend thema, %sdit thema, %siew link, %suit: ")
 	 (choice (read-char-choice
 		  (apply #'format prompt
 			 (mapcar
-			  (lambda (str) (propertize str 'face 'match)) '("n" "o" "s" "e" "q")))
-		  '(?n ?o ?s ?e ?q))))
+			  (lambda (str) (propertize str 'face 'match)) '("n" "o" "s" "e" "v" "q")))
+		  '(?n ?o ?s ?e ?v ?q))))
     (pcase choice
       (?n (gnosis-review-result id success))
       (?o (gnosis-review-action--override success id thema-count))
       (?s (gnosis-review-action--suspend success id thema-count))
       (?e (gnosis-review-action--edit success id thema-count))
+      (?v (gnosis-review-action--view-link success id thema-count))
       (?q (gnosis-review-action--quit success id)))))
 
 ;;;###autoload

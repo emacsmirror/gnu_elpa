@@ -1205,7 +1205,8 @@ If NEW? is non-nil, increment new themata log by 1."
 		    "\\[\\[\\([^]]+\\)\\]\\[\\([^]]+\\)\\]\\]" "\\2" ;; remove links
 		    (nth 0 thema-context)))
 	 (type (nth 1 thema-context))
-	 (answer (nth 2 thema-context)))
+	 (answer (cl-loop for answer in (nth 2 thema-context)
+			  collect (gnosis-utils-trim-quotes answer))))
     (cond ((string= type "basic")
 	   (gnosis-monkeytype (concat keimenon "\n" (car answer)) type
 			      answer))

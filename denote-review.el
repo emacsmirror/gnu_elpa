@@ -64,13 +64,11 @@
 (defun denote-review-search-regexp-for-filetype ()
   "Regexp to search for the reviewdate.
 Defaults to regexp for org filetype."
-  (cond ((eq denote-file-type 'markdown-yaml)
-         "\\(^reviewdate:[ \t]\\)\\([^\t\n]+\\)")
-        ((eq denote-file-type 'markdown-toml)
-         "\\(^reviewdate[ \t]\\)= \\([^\t\n]+\\)")
-        ((eq denote-file-type 'text)
-         "\\(^reviewdate:[ \t]\\)\\([^\t\n]+\\)")
-        (t "\\(^#\\+reviewdate:[ \t]\\[\\)\\([^\t\n]+\\)\\]")))
+       (pcase denote-file-type
+         ('markdown-yaml "\\(^reviewdate:[ \t]\\)\\([^\t\n]+\\)")
+         ('markdown-toml "\\(^reviewdate[ \t]\\)= \\([^\t\n]+\\)")
+         ('text          "\\(^reviewdate:[ \t]\\)\\([^\t\n]+\\)")
+         (_              "\\(^#\\+reviewdate:[ \t]\\[\\)\\([^\t\n]+\\)\\]")))
 
 (defun denote-review-insert-regexp-location-for-filetype ()
   "Regexp to search for the identifier string in frontmatter."
@@ -86,7 +84,7 @@ Defaults to regexp for org filetype."
 (defun denote-review-insert-reviewdate-line (date)
   "Insert the review date DATE frontmatter line.
 Format according to variable `denote-file-type'.
-Insert just after the identifier line."
+    Insert just after the identifier line."
   (format (pcase denote-file-type
             ('markdown-yaml "reviewdate: %s")
             ('markdown-toml "reviewdate = %s")
@@ -199,7 +197,7 @@ Does not overwrite existing reviewdates."
 	           (denote-directory-files nil t nil))))))
 
 (defun denote-review-select-keyword ()
-  "Select a keyword or `All' using completion."
+  "Select a keyword or '' using completion."
   (let ((denotepath (denote-review-get-path)))
     (cons denotepath
           (completing-read

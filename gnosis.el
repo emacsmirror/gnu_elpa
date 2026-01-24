@@ -888,8 +888,7 @@ START is the search starting position, used internally for recursion."
   (let* ((links (gnosis-select 'dest 'links `(= source ,id) t))
 	 (org-gnosis-nodes (cl-loop for node-id in links
 				    collect (org-gnosis-select 'title 'nodes `(= id ,node-id) t))))
-    (if links (apply #'append org-gnosis-nodes)
-      (user-error (format "No linked nodes found for thema: %d" id)))))
+    (and links (apply #'append org-gnosis-nodes))))
 
 (defun gnosis-view-linked-node (id)
   "Visit linked node(s) for thema ID."
@@ -1375,8 +1374,11 @@ be called with new SUCCESS value plus THEMA & THEMA-COUNT."
 
 (defun gnosis-review-action--view-link (success thema thema-count)
   "View linked node(s) for THEMA."
-  (gnosis-view-linked-node thema)
-  (recursive-edit)
+  (if (gnosis-get-linked-nodes thema)
+    (progn (gnosis-view-linked-node thema)
+	   (recursive-edit))
+    (message (format "No linked nodes for thema: %d" thema))
+    (sleep-for 0.5))
   (gnosis-review-actions success thema thema-count))
 
 (defun gnosis-review-actions (success id thema-count)

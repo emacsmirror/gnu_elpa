@@ -48,7 +48,7 @@
   "Face for correctly typed text."
   :group 'gnosis)
 
-(defcustom gnosis-monkeytype-themata '("basic" "cloze" "mc-cloze")
+(defcustom gnosis-monkeytype-themata '("basic" "cloze" "mc-cloze" "mcq")
   "Thema Types to monketype."
   :type '(repeat string)
   :group 'gnosis)

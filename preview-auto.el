@@ -548,6 +548,8 @@ cancel the preview, so that the preview is not misplaced."
                     (regexp-quote TeX-esc)
                     (regexp-quote TeX-esc)
                     "\\)*\\)\\(%+[ \t]*\\)")))
+    (unless (memq #'preview-mark-point pre-command-hook)
+      (add-hook 'pre-command-hook #'preview-mark-point nil t))
     (unless (memq #'preview-move-point post-command-hook)
       (add-hook 'post-command-hook #'preview-move-point nil t))
     (add-hook 'after-change-functions #'preview-auto--after-change nil t)

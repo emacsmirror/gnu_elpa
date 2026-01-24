@@ -1211,6 +1211,14 @@ If NEW? is non-nil, increment new themata log by 1."
 			      answer))
 	  (t (gnosis-monkeytype keimenon type answer)))))
 
+(defun gnosis-monkeytype-answer (thema)
+  "Monkeytype answer for THEMA id."
+  (let* ((thema-context (gnosis-select '[type answer] 'themata `(= id ,thema) t))
+	 (type (nth 0 thema-context))
+	 (answer (cl-loop for answer in (nth 1 thema-context)
+			  collect (gnosis-utils-trim-quotes answer))))
+    (gnosis-monkeytype (mapconcat #'identity answer " ") type answer)))
+
 (defun gnosis-review-process-thema (thema &optional thema-count)
   "Process review for THEMA and update session statistics.
 

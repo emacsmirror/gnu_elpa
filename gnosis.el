@@ -1199,7 +1199,10 @@ If NEW? is non-nil, increment new themata log by 1."
   (gnosis-review #'gnosis-monkeytype-session))
 
 (defun gnosis-monkeytype-thema (thema)
-  "Process monkeytyping for THEMA id."
+  "Process monkeytyping for THEMA id.
+
+This is used to type the keimenon of thema, with the answers highlighted.
+To monkeytype only the wrong answers use `gnosis-monkeytype-answer'."
   (let* ((thema-context (gnosis-select '[keimenon type answer] 'themata `(= id ,thema) t))
 	 (keimenon (replace-regexp-in-string
 		    "\\[\\[\\([^]]+\\)\\]\\[\\([^]]+\\)\\]\\]" "\\2" ;; remove links

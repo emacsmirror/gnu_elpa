@@ -5,7 +5,7 @@
 ;; Author:  Matto Fransen <matto@matto.nl>
 ;; Maintainer:  Matto Fransen <matto@matto.nl>
 ;; Url: https://codeberg.org/mattof/denote-review
-;; Version: 1.0.2
+;; Version: 1.0.3
 ;; Keywords: files
 ;; Package-Requires: ((emacs "28.1") (denote "4.1.3"))
 

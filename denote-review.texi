@@ -8,7 +8,7 @@
 
 @dircategory Emacs misc features
 @direntry
-* denote-review (denote-review). Review method for denote.
+* denote-review: (denote-review). Review method for denote.
 @end direntry
 
 @copying

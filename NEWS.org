@@ -1,3 +1,18 @@
+* 0.6.0
+#+DATE: 2026/01/26
+** New features
++ View links to org-gnosis nodes during review.
++ /Monkeytype/ wrong answers upon failed recalls.
+
+** gnosis-modeline-mode
++ Add 'warning face property for due themata indication.
+
+** cloze themata
++ [fix] Properly center keimenon during reviews.
+
+** Other
++ gnosis-cloze-string value defaults to ="(...)"=.
+
 * 0.5.8
 #+DATE: 2025/11/08
 + Update database to version 5.

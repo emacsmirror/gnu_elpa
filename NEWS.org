@@ -6,7 +6,20 @@
 
 This document contains the release notes that are included in each
 tagged commit on the project's main git repository:
-<https://git.thanosapollo.org/org-gnosis>.
+ <https://git.thanosapollo.org/org-gnosis>.
+
+* 0.1.2
+#+DATE: 2026/01/26
+** Important Changes
+Titles for nodes are now stacked with their parent headings.
+ #+BEGIN_QUOTE
+For example a node file with /"Roman Empire"/ as title and level 1
+heading /"Emperors"/, the node title for "Emperors" will be
+/"Roman Empire:Emperors"/
+#+END_QUOTE
+** Fixes
++ =org-gnosis-insert= when called with a selected region, the region
+  will be used as the link description.
 
 * 0.1.1
 + Minor bug fixes

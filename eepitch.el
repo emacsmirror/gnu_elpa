@@ -1,6 +1,6 @@
 ;; eepitch.el - record interactions with shells as readable notes, redo tasks.  -*- lexical-binding: nil; -*-
 
-;; Copyright (C) 2012,2015,2018-2025 Free Software Foundation, Inc.
+;; Copyright (C) 2012,2015,2018-2026 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GNU eev.
 ;;
@@ -19,7 +19,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20251123
+;; Version:    20251215
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eepitch.el>
@@ -1170,21 +1170,24 @@ Read the comments in the source to see how to configure this."
 
 (defun ee-buffers-in-modes (majormodes)
   (sort (cl-loop for b in (buffer-list)
-		 if (member (with-current-buffer b major-mode) majormodes)
-		 collect (buffer-name b))))
+                 if (member (with-current-buffer b major-mode) majormodes)
+                 collect (buffer-name b))
+        'string<))
 
 (defun ee-buffers-in-mode (majormode)
   (ee-buffers-in-modes (list majormode)))
 
 (defun ee-buffers-with-minor-mode (minormode)
   (sort (cl-loop for b in (buffer-list)
-		 if (with-current-buffer b (symbol-value minormode))
-		 collect (buffer-name b))))
+                 if (with-current-buffer b (symbol-value minormode))
+                 collect (buffer-name b))
+        'string<))
 
 (defun ee-buffers-with-name-matching (regexp)
   (sort (cl-loop for b in (buffer-list)
 		 if (string-match regexp (buffer-name b))
-		 collect (buffer-name b))))
+		 collect (buffer-name b))
+	'string<))
 
 (defun ee-kill-buffers (buffernames &optional show-only)
   (if show-only

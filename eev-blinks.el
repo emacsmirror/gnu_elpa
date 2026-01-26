@@ -2,7 +2,7 @@
 ;; The basic hyperlinks are the ones that do not depend on templates,
 ;; and that are not created by `code-c-d' and friends.
 
-;; Copyright (C) 1999-2025 Free Software Foundation, Inc.
+;; Copyright (C) 1999-2026 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GNU eev.
 ;;
@@ -21,7 +21,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20251219
+;; Version:    20251228
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eev-blinks.el>
@@ -746,6 +746,15 @@ buffer B is narrowed this function returns only its accessible
 portion."
   (with-current-buffer b
     (buffer-substring (point-min) (point-max))))
+
+;; Inspired by: (find-prepared-intro "1. Prepared shells")
+(defun ee-write-buffer-contents (b fname)
+  "Like `ee-buffer-contents', but writes the contents in the file FNAME."
+  (let* ((realfname (ee-expand fname))
+	 (contents  (ee-buffer-contents b))
+	 (nbytes    (length contents))) ; Counts chars, not bytes... fix this!
+    (write-region contents nil realfname)
+    (format "ee-write-buffer-contents: wrote %d bytes in %s" nbytes realfname)))
 
 
 
@@ -2206,6 +2215,30 @@ This function is used in the videos `2025modern' and `eev2025'."
 ")
 	     ,(ee-eaproposf0 regexp 'cl-find-class "(find-etypedescr '%s)\n"))
 	   rest)))
+
+;; Test: (find-eaproposl "eev")
+(defun find-eaproposl (regexp &rest rest)
+  "Go to a temporary buffer listing all libraries whose names match REGEXP."
+  (interactive "sApropos library (regexp): ")
+  (let* ((linktohere    `(find-eaproposl ,regexp))
+	 (*linktohere*   (format "*%S*" linktohere))
+	 (ee-buffer-name (or ee-buffer-name *linktohere*))
+	 (links          (cl-loop for fname in (mapcar 'car load-history)
+				  if (string-match regexp fname)
+				  collect `(find-eloadhistory-for ,fname)))
+	 (body           (ee-clprin1s links)))
+    (apply 'find-elinks-elisp
+	   `(,(ee-template0 "\
+;; (find-eaproposl {(ee-S regexp)})
+;; (find-eaproposf {(ee-S regexp)})
+;; (find-eaproposv {(ee-S regexp)})
+;; (find-eapropos  {(ee-S regexp)})
+;; (find-eapropos-links {(ee-S regexp)})
+;; (find-efunction 'find-eaproposl)
+
+{body}
+")) rest)))
+
 
 ;; Test: (find-estring (ee-eaproposf0 "^find-.*-links$" 'fboundp ": %s\n"))
 (defun ee-eaproposf0 (regexp predicate fmt)

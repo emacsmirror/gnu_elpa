@@ -1,6 +1,6 @@
 ;;; eev-edit.el -- tools for editing (mainly refining) elisp hyperlinks.  -*- lexical-binding: nil; -*-
 
-;; Copyright (C) 2012-2024 Free Software Foundation, Inc.
+;; Copyright (C) 2012-2026 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GNU eev.
 ;;
@@ -151,12 +151,12 @@ With a prefix argument run `ee-copy-preceding-tag-to-kill-ring' instead."
 (defvar ee-tag-re-utf-8 "«\\([!-~]+\\)»")
 (defun  ee-tag-re () ee-tag-re-utf-8)
 
-(defun ee-preceding-tag-flash ()
+(defun ee-preceding-tag-flash (&optional regexp)
   "Highlight (\"flash\") the preceding tag and return it.
 A \"tag\" is the string between \"«»\"s in an anchor."
   (interactive)
   (save-excursion
-    (if (re-search-backward (ee-tag-re))
+    (if (re-search-backward (or regexp (ee-tag-re)))
 	(let* ((start (match-beginning 1))
 	       (end   (match-end 1))
 	       (str   (ee-no-properties (match-string 1))))

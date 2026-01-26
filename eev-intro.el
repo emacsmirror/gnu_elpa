@@ -1,6 +1,6 @@
 ;;; eev-intro.el --- sandboxed tutorials for eev, like (find-eev-quick-intro)  -*- lexical-binding: nil; -*-
 
-;; Copyright (C) 2013-2025 Free Software Foundation, Inc.
+;; Copyright (C) 2013-2026 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GNU eev.
 ;;
@@ -7211,6 +7211,10 @@ more complex than that. For example, for Slime we need this:
  (eepitch-slime-select)
 
 I will explain its parts in the following subsections.
+
+There is a video about badly-behaved targets:
+  (find-1stclassvideo-links \"2025badly\")
+
 
 
 
@@ -15428,7 +15432,7 @@ password in the minibuffer (at the bottom of the screen).
  (eepitch-shell)
 echo '
   # Edrx:
-  deb http://deb.debian.org/debian/ bookworm contrib non-free
+  deb http://deb.debian.org/debian/ trixie contrib non-free
 ' | sudo tee -a /etc/apt/sources.list
 
  Lines with two red stars are comments.

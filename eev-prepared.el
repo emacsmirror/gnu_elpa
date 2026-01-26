@@ -1,6 +1,6 @@
 ;;; eev-prepared.el -- eev modules that use temporary dirs and prepared shells.  -*- lexical-binding: nil; -*-
 
-;; Copyright (C) 2012-2021 Free Software Foundation, Inc.
+;; Copyright (C) 2012-2021,2025-2026 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GNU eev.
 ;;
@@ -19,7 +19,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20240307
+;; Version:    20251228
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://angg.twu.net/eev-current/eev-prepared.el>
@@ -126,7 +126,7 @@ interpreting \"(S E)\"-pairs as this function."
 FMODE should be either nil or a string containing a sequence of
 octal digits; if it is not nil then do the equivalent of a
 \"chmod FMODE file\"."
-  (let ((fname (substitute-in-file-name (or altfile ee-file))))
+  (let ((fname (ee-expand (or altfile ee-file))))
     (write-region str nil fname)	; a standard kludge
     (if fmode (set-file-modes fname (ee-octal-to-num fmode)))))
 

@@ -1,6 +1,6 @@
 ;;; eev-videolinks.el --- support for [Video links:] blocks.  -*- lexical-binding: nil; -*-
 
-;; Copyright (C) 2021-2025 Free Software Foundation, Inc.
+;; Copyright (C) 2021-2026 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GNU eev.
 ;;
@@ -19,7 +19,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20251216
+;; Version:    20260126
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eev-videolinks.el>
@@ -89,6 +89,7 @@
 ;;   «.2025modern»			(to "2025modern")
 ;;   «.eev2025»				(to "eev2025")
 ;;   «.2025badly»			(to "2025badly")
+;;   «.2026lpp»				(to "2026lpp")
 ;; «.ee-1stclassvideos-field»		(to "ee-1stclassvideos-field")
 ;; «.second-class-videos»		(to "second-class-videos")
 ;;   «.code-eevvideo»			(to "code-eevvideo")
@@ -335,7 +336,8 @@ of the videos and play them with mpv. Compare with
 (defvar ee-1stclassvideos-info
   '(;;
     ;; «eev2019»  (to ".eev2019")
-    ;; Play: (find-eev2019video "0:00")
+    ;; Play: (find-eev2019video "00:00")
+    ;; Subs: (find-eev2019hsubs "00:00")
     ;; Index: (find-1stclassvideoindex "eev2019")
     ("eev2019"
      :title "How to record executable notes with eev - and how to play them back"
@@ -350,7 +352,8 @@ of the videos and play them with mpv. Compare with
      :comment "A good non-technical introduction to eev.")
     ;;
     ;; «eev2020»  (to ".eev2020")
-    ;; Play: (find-eev2020video "0:00")
+    ;; Play: (find-eev2020video "00:00")
+    ;; Subs: (find-eev2020hsubs "00:00")
     ;; Index: (find-1stclassvideoindex "eev2020")
     ("eev2020"
      :title "On why most of the best features in eev look like 5-minute hacks"
@@ -365,7 +368,8 @@ of the videos and play them with mpv. Compare with
      :comment "A good technical introduction to eev.")
     ;;
     ;; «eev2021»  (to ".eev2021")
-    ;; Play: (find-eev2021video "0:00")
+    ;; Play: (find-eev2021video "00:00")
+    ;; Subs: (find-eev2021video "00:00")
     ;; Index: (find-1stclassvideoindex "eev2021")
     ("eev2021"
      :title "Test blocks"
@@ -380,7 +384,8 @@ of the videos and play them with mpv. Compare with
      :comment "START BY THIS VIDEO!!!")
     ;;
     ;; «eev2021b»  (to ".eev2021b")
-    ;; Play: (find-eev2021bvideo "0:00")
+    ;; Play: (find-eev2021bvideo "00:00")
+    ;; Subs: (find-eev2021bhsubs "00:00")
     ;; Index: (find-1stclassvideoindex "eev2021b")
     ("eev2021b"
      :title "Test blocks in Dednat6"
@@ -395,7 +400,8 @@ of the videos and play them with mpv. Compare with
      :comment "How I use test blocks (see above) in real life.")
     ;;
     ;; «eevnav»  (to ".eevnav")
-    ;; Play: (find-eevnavvideo "0:00")
+    ;; Play: (find-eevnavvideo "00:00")
+    ;; Subs: (find-eevnavhsubs "00:01")
     ;; Index: (find-1stclassvideoindex "eevnav")
     ("eevnav"
      :title "How to install eev with M-x list-packages and how to navigate its tutorials"
@@ -410,7 +416,8 @@ of the videos and play them with mpv. Compare with
      :comment "If you are learning Emacs start by this video!")
     ;;
     ;; «eevtempl»  (to ".eevtempl")
-    ;; Play: (find-eevtemplvideo "0:00")
+    ;; Play: (find-eevtemplvideo "00:00")
+    ;; Subs: (find-eevtemplhsubs "00:00")
     ;; Index: (find-1stclassvideoindex "eevtempl")
     ("eevtempl"
      :title "Some template-based functions of eev that are not five-minute hacks"
@@ -426,7 +433,7 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «eevfherel»  (to ".eevfherel")
     ;; Play: (find-eevfherelvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "eevfherel")
+    ;; Subs: (find-eevfherelhsubs "0:00")
     ("eevfherel"
      :title "How to create hyperlinks to \"here\" with `find-here-links'"
      :mp4   "http://anggtwu.net/eev-videos/2020-find-here-links.mp4"
@@ -441,7 +448,6 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «eevtestbls»  (to ".eevtestbls")
     ;; Play: (find-eevtestblsvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "eevtestbls")
     ("eevtestbls"
      :title "Using test blocks in eev (jan/2021)"
      :mp4   "http://anggtwu.net/eev-videos/2021-test-blocks.mp4"
@@ -454,7 +460,6 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «eevvlinks»  (to ".eevvlinks")
     ;; Play: (find-eevvlinksvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "eevvlinks")
     ("eevvlinks"
      :title "How to use the `[Video links:]' blocks in the `intro's of eev"
      :mp4   "http://anggtwu.net/eev-videos/2021-video-links.mp4"
@@ -467,7 +472,6 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «oficina20210»  (to ".oficina20210")
     ;; Play: (find-oficina20210video "0:00")
-    ;; Index: (find-1stclassvideoindex "oficina20210")
     ("oficina20210"
      :title "Introdução ao Software Livre: Python, Shell, Lua, Emacs, eev"
      :mp4   "http://anggtwu.net/eev-videos/2021projeto-de-ensino.mp4"
@@ -480,8 +484,8 @@ of the videos and play them with mpv. Compare with
      :comment "A (long) non-technical introduction to Free Software, Emacs, and eev.")
     ;;
     ;; «oficina2021a»  (to ".oficina2021a")
-    ;; Play: (find-oficina2021avideo "0:00")
-    ;; Index: (find-1stclassvideoindex "oficina2021a")
+    ;; Play: (find-oficina2021avideo "00:00")
+    ;; Subs: (find-oficina2021ahsubs "00:00")
     ("oficina2021a"
      :title "Como instalar o eev no Emacs"
      :mp4   "http://anggtwu.net/eev-videos/2021-oficina-1.mp4"
@@ -497,7 +501,6 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «oficina2021b»  (to ".oficina2021b")
     ;; Play: (find-oficina2021bvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "oficina2021b")
     ("oficina2021b"
      :title "Exercícios de criar e guardar links (1)"
      :mp4   "http://anggtwu.net/eev-videos/2021-oficina-2.mp4"
@@ -509,8 +512,8 @@ of the videos and play them with mpv. Compare with
      :comment "A few very basic exercises for beginners. In portuguese.")
     ;;
     ;; «2021sapt»  (to ".2021sapt")
-    ;; Play: (find-2021saptvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "2021sapt")
+    ;; Play: (find-2021saptvideo "00:00")
+    ;; Subs: (find-2021sapthsubs "00:00")
     ("2021sapt"
      :title "Sobre aulas por Telegram"
      :mp4   "http://anggtwu.net/eev-videos/2021aulas-por-telegram.mp4"
@@ -525,7 +528,6 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «2021ssr»  (to ".2021ssr")
     ;; Play: (find-2021ssrvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "2021ssr")
     ("2021ssr"
      :title "Short videos about workflows - and how to upload them"
      :mp4  "http://anggtwu.net/eev-videos/2021-ssr.mp4"
@@ -537,7 +539,6 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «2021workshop1»  (to ".2021workshop1")
     ;; Play: (find-2021workshop1video "0:00")
-    ;; Index: (find-1stclassvideoindex "2021workshop1")
     ("2021workshop1"
      :title "The base cases 1 and 2 (workshop 2021-dec-04)"
      :mp4   "http://anggtwu.net/eev-videos/2021-workshop-1.mp4"
@@ -551,7 +552,6 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «2021workshop2»  (to ".2021workshop2")
     ;; Play: (find-2021workshop2video "0:00")
-    ;; Index: (find-1stclassvideoindex "2021workshop2")
     ("2021workshop2"
      :title "Creating a link to a file with a 2-window setting (workshop 2021-dec-04)"
      :mp4   "http://anggtwu.net/eev-videos/2021-workshop-2.mp4"
@@ -564,7 +564,6 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «2021workshop3»  (to ".2021workshop3")
     ;; Play: (find-2021workshop3video "0:00")
-    ;; Index: (find-1stclassvideoindex "2021workshop3")
     ("2021workshop3"
      :title "Material on `M-3 M-e' (workshop 2021-dec-04)"
      :mp4   "http://anggtwu.net/eev-videos/2021-workshop-3.mp4"
@@ -578,7 +577,6 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «2021workshop4»  (to ".2021workshop4")
     ;; Play: (find-2021workshop4video "0:00")
-    ;; Index: (find-1stclassvideoindex "2021workshop4")
     ("2021workshop4"
      :title "Invisible text (workshop 2021-dec-04)"
      :mp4  "http://anggtwu.net/eev-videos/2021-workshop-4.mp4"
@@ -591,7 +589,6 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «2021workshop5»  (to ".2021workshop5")
     ;; Play: (find-2021workshop5video "0:00")
-    ;; Index: (find-1stclassvideoindex "2021workshop5")
     ("2021workshop5"
      :title "Copy from left to right (workshop 2021-dec-04)"
      :mp4   "http://anggtwu.net/eev-videos/2021-workshop-5.mp4"
@@ -604,7 +601,6 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «2021workshop6»  (to ".2021workshop6")
     ;; Play: (find-2021workshop6video "0:00")
-    ;; Index: (find-1stclassvideoindex "2021workshop6")
     ("2021workshop6"
      :title "`find-extra-file-links' (workshop 2021-dec-04)"
      :mp4   "http://anggtwu.net/eev-videos/2021-workshop-6.mp4"
@@ -616,8 +612,8 @@ of the videos and play them with mpv. Compare with
      :comment "Some exercises on how to use `M-h M-e'.")
     ;;
     ;; «2021orgfornonusers»  (to ".2021orgfornonusers")
-    ;; Play: (find-2021orgfornonusersvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "2021orgfornonusers")
+    ;; Play: (find-2021orgfornonusersvideo "00:00")
+    ;; Subs: (find-2021orgfornonusershsubs "00:00")
     ("2021orgfornonusers"
      :title "Org for Non-Users (2021)"
      :mp4   "http://anggtwu.net/eev-videos/2021-org-for-non-users.mp4"
@@ -630,8 +626,8 @@ of the videos and play them with mpv. Compare with
      :comment "On why Org and eev follow opposite principles.")
     ;;
     ;; «2021ffll»  (to ".2021ffll")
-    ;; Play: (find-2021ffllvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "2021ffll")
+    ;; Play: (find-2021ffllvideo "00:00")
+    ;; Subs: (find-2021ffllhsubs "00:00")
     ("2021ffll"
      :title "How I write 5-minute hacks in eev using `M-x find-find-links-links-new'"
      :mp4   "http://anggtwu.net/eev-videos/2021-ffll.mp4"
@@ -645,8 +641,8 @@ of the videos and play them with mpv. Compare with
      :comment "A tutorial on a very advanced feature.")
     ;;
     ;; «2022eevmake0»  (to ".2022eevmake0")
-    ;; Play: (find-2022eevmake0video "0:00")
-    ;; Index: (find-1stclassvideoindex "2022eevmake0")
+    ;; Play: (find-2022eevmake0video "00:00")
+    ;; Subs: (find-2022eevmake0hsubs "00:00")
     ("2022eevmake0"
      :title "Using eev to test make(files)"
      :mp4   "http://anggtwu.net/eev-videos/2022-eev-make-0.mp4"
@@ -659,8 +655,8 @@ of the videos and play them with mpv. Compare with
      :comment "How to use test blocks in weird places. Unrehearsed.")
     ;;
     ;; «2022findeevangg»  (to ".2022findeevangg")
-    ;; Play: (find-2022findeevanggvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "2022findeevangg")
+    ;; Play: (find-2022findeevanggvideo "00:00")
+    ;; Subs: (find-2022findeevangghsubs "00:00")
     ("2022findeevangg"
      :title "Running executable notes from http://angg.twu.net/ with find-angg and find-wget"
      :mp4   "http://anggtwu.net/eev-videos/2022-find-eev-angg.mp4"
@@ -674,8 +670,8 @@ of the videos and play them with mpv. Compare with
      :comment "A very good video on a very useful trick.")
     ;;
     ;; «2022findelispintro»  (to ".2022findelispintro")
-    ;; Play: (find-2022findelispintrovideo "0:00")
-    ;; Index: (find-1stclassvideoindex "2022findelispintro")
+    ;; Play: (find-2022findelispintrovideo "00:00")
+    ;; Subs: (find-2022findelispintrohsubs "00:00")
     ("2022findelispintro"
      :title "Why eev has a weird elisp tutorial and how to use it"
      :mp4   "http://anggtwu.net/eev-videos/2022-find-elisp-intro.mp4"
@@ -689,8 +685,8 @@ of the videos and play them with mpv. Compare with
      :comment "A very good video on the design decisions behind `(find-elisp-intro)'.")
     ;;
     ;; «2022pict2elua»  (to ".2022pict2elua")
-    ;; Play: (find-2022pict2eluavideo "0:00")
-    ;; Index: (find-1stclassvideoindex "2022pict2elua")
+    ;; Play: (find-2022pict2eluavideo "00:00")
+    ;; Subs: (find-2022pict2eluahsubs "00:01")
     ("2022pict2elua"
      :title "Pict2e-lua: a library for diagrams that is being developed with eev and test blocks"
      :mp4   "http://anggtwu.net/eev-videos/2022-pict2e-lua.mp4"
@@ -705,7 +701,6 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «2022eevwconfigpt1»  (to ".2022eevwconfigpt1")
     ;; Play: (find-2022eevwconfigpt1video "0:00")
-    ;; Index: (find-1stclassvideoindex "2022eevwconfigpt1")
     ("2022eevwconfigpt1"
      :title "Configuração sem mágica: um experimento com o eev (versão em Português)"
      :mp4   "http://anggtwu.net/eev-videos/2022-eev-wconfig-pt-1.mp4"
@@ -718,7 +713,6 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «2022eevwconfigpt2»  (to ".2022eevwconfigpt2")
     ;; Play: (find-2022eevwconfigpt2video "0:00")
-    ;; Index: (find-1stclassvideoindex "2022eevwconfigpt2")
     ("2022eevwconfigpt2"
      :title "Configuração sem mágica: um experimento com o eev (versão em Português, parte 2)"
      :mp4   "http://anggtwu.net/eev-videos/2022-eev-wconfig-pt-2.mp4"
@@ -730,8 +724,8 @@ of the videos and play them with mpv. Compare with
      :comment "A video in Portuguese about eev-wconfig.el - second part.")
     ;;
     ;; «2022eevwconfig»  (to ".2022eevwconfig")
-    ;; Play: (find-2022eevwconfigvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "2022eevwconfig")
+    ;; Play: (find-2022eevwconfigvideo "00:00")
+    ;; Subs: (find-2022eevwconfighsubs "00:01")
     ("2022eevwconfig"
      :title "Eev-wconfig.el: a way without \"magic\" to configure eev on M$ Windows"
      :mp4   "http://anggtwu.net/eev-videos/2022-eev-wconfig.mp4"
@@ -745,8 +739,8 @@ of the videos and play them with mpv. Compare with
      :comment "This is mainly for beginners who use Windows.")
     ;;
     ;; «2022yttranscript»  (to ".2022yttranscript")
-    ;; Play: (find-2022yttranscriptvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "2022yttranscript")
+    ;; Play: (find-2022yttranscriptvideo "00:00")
+    ;; Subs: (find-2022yttranscripthsubs "00:01")
     ("2022yttranscript"
      :title "find-yttranscript-links: downloading transcripts of Youtube videos, in eev style"
      :mp4   "http://anggtwu.net/eev-videos/2022-yttranscript.mp4"
@@ -760,8 +754,8 @@ of the videos and play them with mpv. Compare with
      :comment "A video about `find-yttranscript-links'.")
     ;;
     ;; «2022tikz»  (to ".2022tikz")
-    ;; Play: (find-2022tikzvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "2022tikz")
+    ;; Play: (find-2022tikzvideo "00:00")
+    ;; Subs: (find-2022tikzhsubs "00:01")
     ("2022tikz"
      :title "Eev and TikZ, or: how to learn TikZ using a REPL"
      :mp4   "http://anggtwu.net/eev-videos/2022-eev-tikz.mp4"
@@ -776,7 +770,7 @@ of the videos and play them with mpv. Compare with
     ;;
     ;; «eev2022kla»  (to ".eev2022kla")
     ;; Play: (find-eev2022klavideo "0:00")
-    ;; Index: (find-1stclassvideoindex "eev2022kla")
+    ;; Subs: (find-eev2022klahsubs "0:00")
     ("eev2022kla"
      :title "Bidirectional links with eev (@ EmacsConf 2022)"
      :mp4   "http://anggtwu.net/eev-videos/emacsconf2022-kla.mp4"
@@ -789,8 +783,8 @@ of the videos and play them with mpv. Compare with
      :comment "A video about eev-kla.el.")
     ;;
     ;; «eev2022py»  (to ".eev2022py")
-    ;; Play: (find-eev2022pyvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "eev2022py")
+    ;; Play: (find-eev2022pyvideo "00:00")
+    ;; Subs: (find-eev2022pyhsubs "00:00")
     ("eev2022py"
      :title "Short hyperlinks to Python docs (eev @ EmacsConf2022)"
      :mp4   "http://anggtwu.net/eev-videos/emacsconf2022-py.mp4"
@@ -803,8 +797,8 @@ of the videos and play them with mpv. Compare with
      :comment "A video about eev-rstdoc.el.")
     ;;
     ;; «eev2023repls»  (to ".eev2023repls")
-    ;; Play: (find-eev2023replsvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "eev2023repls")
+    ;; Play: (find-eev2023replsvideo "00:00")
+    ;; Subs: (find-eev2023replshsubs "00:00")
     ("eev2023repls"
      :title "REPLs in strange places: Lua, LaTeX, LPeg, LPegRex, TikZ (@ EmacsConf 2023)"
      :mp4   "http://anggtwu.net/eev-videos/emacsconf2023-repls.mp4"
@@ -817,8 +811,8 @@ of the videos and play them with mpv. Compare with
      :comment "My presentation at the EmacsConf2023. See: (find-show2-intro)")
     ;;
     ;; «eev2023replsb»  (to ".eev2023replsb")
-    ;; Play: (find-eev2023replsbvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "eev2023replsb")
+    ;; Play: (find-eev2023replsbvideo "00:00")
+    ;; Subs: (find-eev2023replsbhsubs "00:00")
     ("eev2023replsb"
      :title "REPLs in strange places: updates, a demo, and how to try it"
      :mp4   "http://anggtwu.net/eev-videos/emacsconf2023-repls-b.mp4"
@@ -831,9 +825,8 @@ of the videos and play them with mpv. Compare with
      :comment "How to run the demos here: (find-show2-intro)")
     ;;
     ;; «2023slogans»  (to ".2023slogans")
-    ;; Info:  (find-1stclassvideo-links "2023slogans")
-    ;; HSubs: (find-2023sloganslsubs "0:00")
-    ;; LSubs: (find-2023sloganslsubs "0:00")
+    ;; Play: (find-2023slogansvideo "00:00")
+    ;; Subs: (find-2023sloganshsubs "00:00")
     ("2023slogans"
      :title "Precisamos de mais slogans (sobre as reclamações do CAEPRO)"
      :mp4   "http://anggtwu.net/eev-videos/2023-precisamos-de-mais-slogans.mp4"
@@ -847,8 +840,8 @@ of the videos and play them with mpv. Compare with
      :comment "A video in Portuguese about how I've been teaching (Maths).")
     ;;
     ;; «2023visaud»  (to ".2023visaud")
-    ;; Play:  (find-2023visaudvideo "0:00")
-    ;; HSubs: (find-2023visaudhsubs "0:00")
+    ;; Play: (find-2023visaudvideo "0:00")
+    ;; Subs: (find-2023visaudhsubs "0:00")
     ("2023visaud"
      :title "Visual vs. auditivo (sobre as reclamações do CAEPRO)"
      :mp4   "http://anggtwu.net/eev-videos/2023-visual-vs-auditivo.mp4"
@@ -862,8 +855,8 @@ of the videos and play them with mpv. Compare with
      :comment "Another video in Portuguese about how I've been teaching (Maths).")
     ;;
     ;; «2024git»  (to ".2024git")
-    ;; Play: (find-2024gitvideo "0:00")
-    ;; Index: (find-1stclassvideoindex "2024git")
+    ;; Play: (find-2024gitvideo "00:00")
+    ;; Subs: (find-2024githsubs "00:00")
     ("2024git"
      :title "Learning git with \"try it!\"s (and eev)"
      :mp4   "http://anggtwu.net/eev-videos/2024-eev-git.mp4"
@@ -876,8 +869,8 @@ of the videos and play them with mpv. Compare with
      :comment "A video about (find-git-intro). Very accessible.")
     ;;
     ;; «2024luaso»  (to ".2024luaso")
-    ;; Play: (find-2024luasovideo "0:00")
-    ;; Index: (find-1stclassvideoindex "2024luaso")
+    ;; Play: (find-2024luasovideo "00:00")
+    ;; Subs: (find-2024luasovideo "00:00")
     ("2024luaso"
      :title "Two ways of creating \".so\"s for Lua, one very fast, both using Emacs and eev"
      :mp4   "http://anggtwu.net/eev-videos/2024-find-luaso-links.mp4"
@@ -890,7 +883,8 @@ of the videos and play them with mpv. Compare with
      :comment "See: (find-lua-tutorial-intro)")
     ;;
     ;; «2024lean4of0»  (to ".2024lean4of0")
-    ;; Play: (find-2024lean4of0video "0:00")
+    ;; Play: (find-2024lean4of0video "00:00")
+    ;; Subs: (find-2024lean4of0video "00:00")
     ;; Index: (find-1stclassvideoindex "2024lean4of0")
     ("2024lean4of0"
      :title "Oficina de Lean4 - versão 0"
@@ -906,8 +900,8 @@ of the videos and play them with mpv. Compare with
      :comment "A video in Portuguese about a workshop on Lean4.")
     ;;
     ;; «2024lean4of0a2»  (to ".2024lean4of0a2")
-    ;; Play: (find-2024lean4of0a2video "0:00")
-    ;; Index: (find-1stclassvideoindex "2024lean4of0a2")
+    ;; Play: (find-2024lean4of0a2video "00:00")
+    ;; Subs: (find-2024lean4of0a2hsubs "00:00")
     ("2024lean4of0a2"
      :title "Oficina de Lean4 - versão 0 - aula 2"
      :mp4   "http://anggtwu.net/eev-videos/2024-lean4-oficina-0-aula-2.mp4"
@@ -1052,11 +1046,11 @@ of the videos and play them with mpv. Compare with
      :length  "25:22"
      :subs    ".vtt"
      :index   t
-     :comment "(to be written)")
+     :comment "A video about pretty-printing and notions of simplicity.")
     ;;
     ;; «2025badly»  (to ".2025badly")
     ;; Play: (find-2025badlyvideo "0:00")
-    ;; Subs: (find-1stclassvideoindex "2025badly")
+    ;; Subs: (find-2025badlyhsubs "0:00")
     ("2025badly"
      :title "Badly-behaved targets, or: eev, Slime, Sly, and Maxima"
      :mp4   "http://anggtwu.net/eev-videos/2025-badly-behaved.mp4"
@@ -1067,6 +1061,21 @@ of the videos and play them with mpv. Compare with
      :length  "17:48"
      :subs    ".vtt"
      :comment "A very technical video about Common Lisp and eepitch.")
+    ;;
+    ;; «2026lpp»  (to ".2026lpp")
+    ;; Play: (find-2026lppvideo "0:00")
+    ;; Subs: (find-2026lpphsubs "0:00")
+    ("2026lpp"
+     :title "Lógica pra pessoas que sabem resolver 2+x=5 mas... (WLD 2026)"
+     :mp4   "http://anggtwu.net/eev-videos/2026-logica-para-pessoas.mp4"
+     :yt    "http://www.youtube.com/watch?v=A-eQBQ_KbKo"
+     :page  "http://anggtwu.net/2026-logica-para-pessoas.html"
+     :hsubs "http://anggtwu.net/2026-logica-para-pessoas.html#0:00"
+     :lang  "portuguese"
+     :date    "2026jan14"
+     :length  "1:04:44"
+     :subs    ".vtt"
+     :comment "A video in Portuguese about Mathematics Education.")
     ))
 
 

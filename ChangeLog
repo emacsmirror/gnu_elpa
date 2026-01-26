@@ -1,3 +1,31 @@
+2026-01-26  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eev-videolinks.el (ee-1stclassvideos-info): new video, with
+	subtitles: "2025lpp".
+	(ee-1stclassvideos-info): added links to the subtitles in HTML of
+	most videos.
+
+2026-01-02  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eev-intro.el (find-windows-beginner-intro): replaced "bookworm"
+	by "trixie" in the section "3. Use eepitch to add a Debian
+	repository".
+
+2025-12-28  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eev-blinks.el (find-eaproposl): new function.
+
+	* eev-prepared.el (ee-write-string): use `ee-expand'.
+
+2025-12-27  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eepitch.el (ee-buffers-in-modes, ee-buffers-with-minor-mode)
+	(ee-buffers-with-name-matching): added `string<'.
+
+2025-12-22  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eev-blinks.el (ee-write-buffer-contents): new function.
+
 2025-12-19  Eduardo Ochs  <eduardoochs@gmail.com>
 
 	* eev.el: bumped the version.

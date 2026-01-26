@@ -77,10 +77,10 @@ when necessary).
 Source code
 -----------
 
-Do-at-point.el is developed on [Codeberg].
+Autocrypt.el is developed on [Codeberg].
 
 [Codeberg]:
-	https://codeberg.org/pkal/do-at-point.el
+	https://codeberg.org/pkal/autocrypt.el
 
 Bugs and Patches
 ----------------

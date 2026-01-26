@@ -1,6 +1,6 @@
 ;;; org-gnosis.el --- Roam-like Knowledge Management System  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024-2025  Free Software Foundation, Inc.
+;; Copyright (C) 2024-2026  Free Software Foundation, Inc.
 
 ;; Author: Thanos Apollo <public@thanosapollo.org>
 ;; Keywords: extensions

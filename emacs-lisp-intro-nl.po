@@ -3742,7 +3742,7 @@ msgstr ""
 "Wanneer je deze test leest wordt niet van je verwacht dat je alles "
 "meteen de eerste keer leert. Je hoeft slechts vluchtig kennis te maken "
 "met enkele van de genoemde onderdelen. Mijn hoop is ik de tekst "
-"zo gestructureerd heb en je genoeg hints gegeven hebt dat je "
+"zo gestructureerd heb en je genoeg hints gegeven heb dat je "
 "bewust bent van wat belangrijk is en je daarop concentreert."
 
 #. type: Plain text
@@ -5191,6 +5191,12 @@ msgid ""
 "which is not humanly readable.  Byte compiled code runs faster than humanly "
 "readable code."
 msgstr ""
+"Een ander aspect van interpreteren: de Lisp interpreter is in staat "
+"om twee soorten entiteiten te interpreteren: voor mensen leesbare "
+"code, op welke wij ons exclusief richten, en speciaal geproduceerde "
+"code, @dfn{byte compiled} code genoemd, die niet door mensen te "
+"lezen is. Byte compiled code draait sneller dan voor mensen leesbare "
+"code."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1599
@@ -5202,6 +5208,12 @@ msgid ""
 "@file{emacs/lisp} directory; the files to read are those with @file{.el} "
 "extensions."
 msgstr ""
+"Je transormeert voor mensen leesbare code in byte compiled code met "
+"een van de compile commandos zoals @code{byte-compile-file}. Byte "
+"compiled code is meestal opgeslagen in een bestand dat eindigt met de "
+"extensie @file{.elc}. Je ziet beide soorten bestanden in de "
+"@file{emacs/lisp} directory. De bestandeon om te lezen zijn die met "
+"de extensie @file{.el}. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1605
@@ -5212,6 +5224,11 @@ msgid ""
 "Reference Manual}, for a full description of byte compilation."
 msgstr ""
 
+"Praktisch gesproken, voor de meeste dingen die je doet om Emacs aan te passen "
+"of uit te breiden is er geen noodzaak voor byte compile, en ik bespreek dit "
+"onderwerp hier niet. @xref{Byte Compilation, , Byte Compilation, elisp, The GNU Emacs Lisp  "
+"Reference Manual}, voor een volledige beschrijving van byte compilation."
+
 #. type: Plain text
 #: emacs-lisp-intro.texi:1616
 msgid ""
@@ -5221,18 +5238,24 @@ msgid ""
 "from its use in everyday language, ``to ascertain the value or amount of; to "
 "appraise'', according to @cite{Webster's New Collegiate Dictionary}."
 msgstr ""
+"Wanneer de Lisp interpreter een expressie verwerkt, dan is de term "
+"voor die activiteit @dfn{evaluatie}. We zeggen dat de interpreter "
+"``de expressie evalueert''. Ik heb deze term verschillende keren "
+"eerder gebruikt. Het woord komt van het gebruik in alledaagse taal, "
+"``de waarde vaststellen'', ``taxeren'', volgens de "
+"@cite{Webster's New Collegiate Dictionary}."
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:1624
 #, no-wrap
 msgid "How the Lisp Interpreter Acts"
-msgstr ""
+msgstr "Hoe de Lisp interpreter acteert"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1627
 #, no-wrap
 msgid "@samp{returned value} explained"
-msgstr ""
+msgstr "@amp{teruggegeven waarde} uitgelegd"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1636
@@ -5246,12 +5269,20 @@ msgid ""
 "loop.  These actions are less common; and we can ignore them.)  Most "
 "frequently, the interpreter returns a value."
 msgstr ""
+"Na het evalueren van een expressie zal de Lisp interpreter hoogstwaarschijnlijk "
+"de waarde @dfn{teruggeven} die de computer produceert bij het uitvoeren van "
+"de instructies die die in de functiedefinitie vondt, of misschien geeft die "
+"de functie op en produceert een foutmelding. (De interpreter kan bij wijze "
+"van spreken ook naar een andere functie geworpen worden, of het kan proberen "
+"continue wat het doet voor altijd en eeuwig te herhalen in een oneindige "
+"loop. Deze activiteiten zijn minder gebruikelijk en wij kunnen ze negeren.) "
+"Meestal geeft de interpreter een waarde terug."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1637
 #, no-wrap
 msgid "@samp{side effect} defined"
-msgstr ""
+msgstr "@samp{zij-effect} gedefinieerd"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1643
@@ -5262,6 +5293,12 @@ msgid ""
 "such as printing results, are often side effects to the Lisp interpreter.  "
 "It is fairly easy to learn to use side effects."
 msgstr ""
+"Op hetzelfde moment dat de interpreter een waarde terug geeft kan "
+"het ook iets anders doen, zoals de cursor verplaatsen of een bestand "
+"kopiëren. Deze andere soort activiteit heet een @dfn{zij-effect}. "
+"Acties die wij belangrijk vinden, zoals het afdrukken van "
+"resultaten, zijn vaak zij-effecten voor de Lisp interpreter. Het is "
+"vrij eenvoudig te leren hoe deze zij-effecten te gebruiken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1647
@@ -5270,18 +5307,22 @@ msgid ""
 "interpreter to return a value and perhaps carry out a side effect; or else "
 "produce an error."
 msgstr ""
+"Samenvattend, het meest gebruikelijk is dat het evalueren van een "
+"symbolische expressie zorgt dat de Lisp interpreter een waarde teruggeeft en "
+"misschien ook een zij-effect uitvoert, of anders een fout "
+"produceert."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1650
 #, no-wrap
 msgid "Inner list evaluation"
-msgstr ""
+msgstr "Binnenste lijst evaluatie"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1651
 #, no-wrap
 msgid "Evaluating inner lists"
-msgstr ""
+msgstr "Het evalueren van een binnenste lijst"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1658
@@ -5291,6 +5332,12 @@ msgid ""
 "outer list is evaluated.  This explains why inner expressions are evaluated "
 "first: the values they return are used by the outer expressions."
 msgstr ""
+"Wanneer de evaluatie van toepassing is op een lijst die binnen een "
+"andere lijst zit, kan de buitenste lijst de waarde gebruiken van de "
+"eerste evaluatie als informatie bij het evalueren van de buitenste "
+"lijst. Dit verklaart waarom de binnenste expressies het eerst worden "
+"geëvalueerd: de waarden die zij teruggeven worden gebruikt door de "
+"buitenste expressies. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1662
@@ -5298,17 +5345,20 @@ msgid ""
 "We can investigate this process by evaluating another addition example.  "
 "Place your cursor after the following expression and type @kbd{C-x C-e}:"
 msgstr ""
+"Wij kunnen dit proces onderzoeken door het evalueren van een ander "
+"optelvoorbeeld. Plaats je cursor achter de volgende expressie en "
+"type @kbd{C-x C-e}: "
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:1665 emacs-lisp-intro.texi:1691
 #, no-wrap
 msgid "(+ 2 (+ 3 3))\n"
-msgstr ""
+msgstr "(+ 2 (+ 3 3))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1669
 msgid "The number 8 will appear in the echo area."
-msgstr ""
+msgstr "Het getal 8 zal in het echogebied verschijnen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1675
@@ -5319,6 +5369,12 @@ msgid ""
 "returns the value 8.  Since there are no more enclosing expressions to "
 "evaluate, the interpreter prints that value in the echo area."
 msgstr ""
+"Wat er gebeurt is dat de Lisp interpreter eerst de waarde van de "
+"binnenste expressie, @code{(+ 3 3)} evaluaeert, wat de waarde 6 "
+"teruggeeft. Vervolgens evalueert het de buitenste expressie alsof "
+"die als @code{(+ 2 6)} geschreven was, wat de waarde 8 teruggeeft. "
+"Omdat er geen omsluitende expressies meer te evalueren zijn, toont "
+"de interpreter de waarde in het echogebied."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1681
@@ -5329,6 +5385,11 @@ msgid ""
 "is an abbreviation for ``evaluate''.  The command evaluates the last "
 "symbolic expression."
 msgstr ""
+"Nu is de naam van het commando aangeroepen met de toetsaanslagen "
+"@kbd{C-x C-e} te begrijpen: de naam is @code{eval-last-sexp}. De letters "
+"@code{sexp} zijn een afkorting van ``symbolische expressie'', en "
+"@code{eval} is een afkorting van ``evalueer''. Het commando evalueert de "
+"laatste symbolische expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1685
@@ -5337,11 +5398,14 @@ msgid ""
 "cursor at the beginning of the next line immediately following the "
 "expression, or inside the expression."
 msgstr ""
+"Als een experiment kan je proberen de expressie te evalueren door de "
+"cursor aan het begin van de regel direct onder de expressie te "
+"plaatsen, of binnen de expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1688
 msgid "Here is another copy of the expression:"
-msgstr ""
+msgstr "Hier is een andere kopie van de expressie:"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1701
@@ -5354,6 +5418,13 @@ msgid ""
 "the echo area! This is because the command evaluates the expression @code{(+ "
 "3 3)}."
 msgstr ""
+"Als je de cursor aan het begin van de lege regel die onmiddelijk op "
+"de expressie volgt plaatst en je @kbd{C-x C-e} typt, krijg je nog "
+"steeds de waarde 8 getoond in het echogebied. Probeer nu de cursor "
+"binnen de expressie te plaatsen. Als je die rechts achter het "
+"een-na-laatste haakje plaatst (zodat het lijkt of die bovenop het "
+"laatste haakje zit), dan krijg je een 6 getoond het echogebied! Dit "
+"is omdat het commando de expressie @code{(+ 3 3)} evalueert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1710
@@ -5366,6 +5437,14 @@ msgid ""
 "function definition attached to that name.  If a symbol by itself is "
 "evaluated, something different happens, as we will see in the next section."
 msgstr ""
+"Plaats nu de cursor direct achter een getal. Typ @kbd{C-x C-e} en je "
+"krijgt het getal zelf. Wanneer je in Lisp een getal evalueert, dan "
+"krijg je het getal zelf---dit is hoe getallen verschillen van "
+"symbolen. Wanneer je een lijst evalueert die begint met een symbool "
+"zoals @code{+}, dan krijg je de waarde terug die het resultaat is "
+"van de computer die de instructies uitvoert die zijn gekoppeld aan "
+"die naam. Wanneer je het symbool op zichzelf evalueert, dan gebeurt "
+"er iets anders, zoals we in het volgende hoofdstuk zien. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1723

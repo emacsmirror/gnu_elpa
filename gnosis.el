@@ -1388,16 +1388,18 @@ THEMA-COUNT: Total themata reviewed
 
 To customize the keybindings, adjust `gnosis-review-keybindings'."
   (let* ((prompt
-	  "Action: %sext gnosis, %sverride result, %suspend thema, %sdit thema, %siew link, %suit: ")
+	  "Action: %sext, %sverride result, %suspend, %selete, %sdit thema, %siew link, %suit: ")
 	 (choice (read-char-choice
 		  (apply #'format prompt
 			 (mapcar
-			  (lambda (str) (propertize str 'face 'match)) '("n" "o" "s" "e" "v" "q")))
-		  '(?n ?o ?s ?e ?v ?q))))
+			  (lambda (str) (propertize str 'face 'match))
+			  '("n" "o" "s" "d" "e" "v" "q")))
+		  '(?n ?o ?s ?d ?e ?v ?q))))
     (pcase choice
       (?n (gnosis-review-result id success))
       (?o (gnosis-review-action--override success id thema-count))
       (?s (gnosis-review-action--suspend success id thema-count))
+      (?d (gnosis-delete-thema id))
       (?e (gnosis-review-action--edit success id thema-count))
       (?v (gnosis-review-action--view-link success id thema-count))
       (?q (gnosis-review-action--quit success id)))))

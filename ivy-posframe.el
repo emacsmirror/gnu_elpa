@@ -257,8 +257,8 @@ This variable is useful for `ivy-posframe-read-action' .")
     (or (ignore-errors
           (let ((info (elt exwm-workspace--workareas
                            exwm-workspace-current-index)))
-            (cons (elt info 0)
-                  (elt info 1))))
+            (cons (oref info x)
+                  (oref info y))))
         ;; Need user install xwininfo.
         (ignore-errors
           (posframe-refposhandler-xwininfo frame))

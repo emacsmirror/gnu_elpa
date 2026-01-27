@@ -129,7 +129,7 @@ msgstr ""
 #. type: ifnottex
 #: emacs-lisp-intro.texi:134
 msgid "Printed copies available from @uref{https://shop.fsf.org/}.  Published by:"
-msgstr "Gedrukte exemplaren verkrijgbaar van @uref{https://shop.fsf.org/}. Gepubliceerd door:"
+msgstr "Gedrukte exemplaren verkrijgbaar bij @uref{https://shop.fsf.org/}. Gepubliceerd door:"
 
 #. type: example
 #: emacs-lisp-intro.texi:141
@@ -162,10 +162,10 @@ msgid ""
 "Back-Cover Texts as in (a) below.  A copy of the license is included in the "
 "section entitled ``GNU Free Documentation License''."
 msgstr ""
-"Het is toegestaan dit document te kopieëren, distribueren en/of te wijzigen "
+"Het is toegestaan dit document te kopiëren, distribueren en/of te wijzigen "
 "onder de termen van de GNU Free Documentation License, Version 1.3 of een latere "
 "versie gepubliceerd door de Free Software Foundation; er is geen andere sectie "
-"met de voorpagina tekst ``A GNU Manual'', en et de achterpagina tekst als in (a) "
+"met de voorpagina tekst ``A GNU Manual'', en met de achterpagina tekst als in (a) "
 "hieronder. Een exemplaar van de licentie is opgenomen in de sectie met de titel "
 "``GNU Free Documentation License''."
 
@@ -176,7 +176,7 @@ msgid ""
 "this GNU manual.  Buying copies from the FSF supports it in developing GNU "
 "and promoting software freedom.''"
 msgstr "De FSF's achterkant tekst is: ``Je hebt de vrijheid deze GNU handleiding "
-"te kopieëren en te wijzigen. Met het kopen van exemplaren ondersteun je de FSF "
+"te kopiëren en te wijzigen. Met het kopen van exemplaren ondersteun je de FSF "
 "in het ontwikkelen van GNU en het promoten van software vrijheid.''"
 
 #. type: tex
@@ -312,7 +312,7 @@ msgstr "Defuns schrijven"
 #. type: menuentry
 #: emacs-lisp-intro.texi:297
 msgid "How to write function definitions."
-msgstr "Hoe functie definities te schrijven"
+msgstr "Hoe functiedefinities te schrijven"
 
 #. type: node
 #: emacs-lisp-intro.texi:297 emacs-lisp-intro.texi:4628
@@ -1029,7 +1029,7 @@ msgstr "Evaluatie oefening"
 #: emacs-lisp-intro.texi:376 emacs-lisp-intro.texi:2913
 #, no-wrap
 msgid "How To Write Function Definitions"
-msgstr "Hoe functie definities te schrijven"
+msgstr "Hoe functiedefinities te schrijven"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:390 emacs-lisp-intro.texi:2940
@@ -1059,7 +1059,7 @@ msgstr "Installeer"
 #. type: menuentry
 #: emacs-lisp-intro.texi:390 emacs-lisp-intro.texi:2940
 msgid "Install a function definition."
-msgstr "Installeer een functie definitie"
+msgstr "Installeer een functiedefinitie"
 
 #. type: node
 #: emacs-lisp-intro.texi:390 emacs-lisp-intro.texi:2940
@@ -1179,7 +1179,7 @@ msgstr "defun oefeningen"
 #: emacs-lisp-intro.texi:3139
 #, no-wrap
 msgid "Install a Function Definition"
-msgstr "Installeer een functie definitie"
+msgstr "Installeer een functiedefinitie"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:395 emacs-lisp-intro.texi:3172
@@ -1884,7 +1884,7 @@ msgstr "copy-region-as-kill"
 #. type: menuentry
 #: emacs-lisp-intro.texi:514 emacs-lisp-intro.texi:7530
 msgid "A definition for copying text."
-msgstr "Een definitie van tekst kopieëren."
+msgstr "Een definitie van tekst kopiëren."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:514 emacs-lisp-intro.texi:7530
@@ -1909,7 +1909,7 @@ msgstr "defvar"
 #. type: menuentry
 #: emacs-lisp-intro.texi:514 emacs-lisp-intro.texi:7530
 msgid "How to give a variable an initial value."
-msgstr "Hoe een variabele een initiele waarde te geven."
+msgstr "Hoe een variabele een initiële waarde te geven."
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:514 emacs-lisp-intro.texi:7530
@@ -2007,7 +2007,7 @@ msgstr "Complete kill-region"
 #. type: menuentry
 #: emacs-lisp-intro.texi:529 emacs-lisp-intro.texi:7980
 msgid "The function definition."
-msgstr "De functie definitie."
+msgstr "De functiedefinitie."
 
 #. type: findex
 #: emacs-lisp-intro.texi:529 emacs-lisp-intro.texi:7980
@@ -2040,7 +2040,7 @@ msgstr "Complete copy-region-as-kill"
 #. type: menuentry
 #: emacs-lisp-intro.texi:534 emacs-lisp-intro.texi:8346
 msgid "The complete function definition."
-msgstr "De complete functie definitie."
+msgstr "De complete functiedefinitie."
 
 #. type: node
 #: emacs-lisp-intro.texi:534 emacs-lisp-intro.texi:8346
@@ -2299,7 +2299,7 @@ msgstr "Inc voorbeeld onderdelen"
 #: emacs-lisp-intro.texi:579 emacs-lisp-intro.texi:585
 #: emacs-lisp-intro.texi:10529 emacs-lisp-intro.texi:10836
 msgid "The parts of the function definition."
-msgstr "De onderdelen van een functie definitie."
+msgstr "De onderdelen van een functiedefinitie."
 
 #. type: node
 #: emacs-lisp-intro.texi:579 emacs-lisp-intro.texi:10529
@@ -2312,7 +2312,7 @@ msgstr "inc voorbeeld samengesteld"
 #: emacs-lisp-intro.texi:579 emacs-lisp-intro.texi:585
 #: emacs-lisp-intro.texi:10529 emacs-lisp-intro.texi:10836
 msgid "Putting the function definition together."
-msgstr "De functie definitie samenstellen."
+msgstr "De functiedefinitie samenstellen."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:581 emacs-lisp-intro.texi:10803
@@ -2386,7 +2386,7 @@ msgstr "Recursive definitie onderdelen"
 #. type: menuentry
 #: emacs-lisp-intro.texi:601 emacs-lisp-intro.texi:11197
 msgid "Walk until you stop ..."
-msgstr "Loop todat je stopt ..."
+msgstr "Loop totdat je stopt ..."
 
 #. type: node
 #: emacs-lisp-intro.texi:601 emacs-lisp-intro.texi:11197
@@ -2590,7 +2590,7 @@ msgstr "forward-paragraph in het kort"
 #. type: menuentry
 #: emacs-lisp-intro.texi:633 emacs-lisp-intro.texi:12929
 msgid "Key parts of the function definition."
-msgstr "Belangrijke onderdelen van de functie definitie."
+msgstr "Belangrijke onderdelen van de functiedefinitie."
 
 #. type: node
 #: emacs-lisp-intro.texi:633 emacs-lisp-intro.texi:12929
@@ -2720,7 +2720,7 @@ msgstr "Syntax"
 #. type: menuentry
 #: emacs-lisp-intro.texi:658 emacs-lisp-intro.texi:14418
 msgid "What constitutes a word or symbol?"
-msgstr "Wat vormt een woord of een symboo?"
+msgstr "Wat vormt een woord of een symbool?"
 
 #. type: findex
 #: emacs-lisp-intro.texi:658 emacs-lisp-intro.texi:14418
@@ -2877,7 +2877,7 @@ msgstr "Een lijst van bestanden maken."
 #: emacs-lisp-intro.texi:15676 emacs-lisp-intro.texi:15677
 #, no-wrap
 msgid "Counting function definitions"
-msgstr "Functie definities tellen"
+msgstr "Functiedefinities tellen"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:678 emacs-lisp-intro.texi:16011
@@ -3514,7 +3514,7 @@ msgid ""
 "an ``extensible computing environment''.  However, that phrase is quite a "
 "mouthful.  It is easier to refer to Emacs simply as an editor.  Moreover, "
 "everything you do in Emacs---find the Mayan date and phases of the moon, "
-"simplify polynomials, debug code, manage files, read letters, write "
+"simplify polynomen, debug code, manage files, read letters, write "
 "books---all these activities are kinds of editing in the most general sense "
 "of the word.)"
 msgstr ""
@@ -3523,7 +3523,7 @@ msgstr ""
 "als een ``uitbreidbare computer omgeving'' te beschrijven. Dat is echter "
 "nogal een mond vol. Het is eenvoudiger om Emacs een editor te noemen. "
 "Bovendien is alles wat je in Emacs doet, zoals het vinden van de Maya-datum, "
-"fasen van de maan, het vereenvoudigen van polynomials, code debuggen, "
+"fasen van de maan, het vereenvoudigen van polynomen, code debuggen, "
 "bestanden beheren, brieven lezen, boeken schrijven, al deze activiteiten "
 "komen neer op tekst bewerken in de breedste zin van het woord.)"
 
@@ -3541,7 +3541,7 @@ msgid ""
 "would any other programming language."
 msgstr ""
 "Alhoewel men Emacs Lisp meestal alleen in samenhang met Emacs ziet, "
-"is het een volvoorwaardige computer programmeertaal. Je kunt Emacs Lisp "
+"is het een volwaardige computer programmeertaal. Je kunt Emacs Lisp "
 "net als elke andere programmeertaal gebruiken."
 
 #. type: Plain text
@@ -3553,7 +3553,7 @@ msgid ""
 "fundamentals of programming, and more importantly, to show you how you can "
 "teach yourself to go further."
 msgstr ""
-"Misschien wil je programeren begrijpen, misschien wil je Emacs "
+"Misschien wil je programmeren begrijpen, misschien wil je Emacs "
 "uitbreiden, of misschien wil je een programmeur worden. Deze "
 "introductie in Emacs Lisp is bedoeld om je op weg te helpen, je te "
 "begeleiden bij het leren van de beginselen van programmeren en, "
@@ -3582,7 +3582,7 @@ msgstr ""
 "Emacs bij de hand hebt dan kan je nog steeds dit boek lezen. Beschouw "
 "het in dat geval als een novel of een reisgids naar een land waar je "
 "niet geweest bent, interessant, maar niet hetzelfde als er "
-"daadwerklijk zijn."
+"daadwerkelijk zijn."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:826
@@ -3619,7 +3619,7 @@ msgid ""
 "features of Emacs is like learning new routes around your home town."
 msgstr ""
 "Naast het leren van Emacs als editor en Emacs Lisp als programmeertaal "
-"geven de voorbeelden en de rondleidig je de gelegenheid vertrouwd "
+"geven de voorbeelden en de rondleiding je de gelegenheid vertrouwd "
 "te raken met Emacs als een Lisp programmeeromgeving. GNU Emacs "
 "ondersteunt het programmeren en verschaft gereedschappen waar je "
 "comfortabel gebruik van wilt maken, zoals @kbd{M-.} (de toetsaanslag "
@@ -3742,8 +3742,8 @@ msgstr ""
 "Wanneer je deze test leest wordt niet van je verwacht dat je alles "
 "meteen de eerste keer leert. Je hoeft slechts vluchtig kennis te maken "
 "met enkele van de genoemde onderdelen. Mijn hoop is ik de tekst "
-"zo gestructureerd heb en je genoeg hints gegegeven hebt dat je "
-"bewust bent van wat belangijk is en je daarop concentreert."
+"zo gestructureerd heb en je genoeg hints gegeven hebt dat je "
+"bewust bent van wat belangrijk is en je daarop concentreert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:897
@@ -3753,7 +3753,7 @@ msgid ""
 "book is intended as an approachable hill, rather than as a daunting "
 "mountain."
 msgstr ""
-"Je zult in sommige paragraven moeten duiken, er is geen andere "
+"Je zult in sommige paragrafen moeten duiken, er is geen andere "
 "manier om die te lezen. Maar ik heb geprobeerd hun aantal zo klein "
 "mogelijk te houden. Dit boek is bedoeld als een toegankelijke "
 "heuvel in plaats van een ontmoedigende berg."
@@ -3845,7 +3845,7 @@ msgid ""
 "@file{cl-lib.el}, that adds many Common Lisp features to Emacs Lisp.)"
 msgstr ""
 "GNU Emacs Lisp is grotendeels geïnspireerd door Maclisp, dat in de jaren "
-"'60 in het MIT is geschreven. Het is ook enigzins geïnspireerd door "
+"'60 in het MIT is geschreven. Het is ook enigszins geïnspireerd door "
 "Common Lisp, dat in de jaren '80 een standaard werd. Emacs Lisp is "
 "echter een stuk eenvoudiger dan Common Lisp. (De standaard Emacs "
 "distributie bevat een optioneel uitbreidingsbestand @file{cl-lib.el}, "
@@ -3868,7 +3868,7 @@ msgid ""
 "release @kbd{t}.)"
 msgstr ""
 "Ook als je GNU Emacs niet kent heeft het lezen van dit document "
-"veel baat. Ik raad je echter aan om Emacs te leren, al is het alleen "
+"veel nut. Ik raad je echter aan om Emacs te leren, al is het alleen "
 "maar te leren hoe je over het scherm beweegt. Je kunt zelf "
 "het gebruik van Emacs leren met de ingebouwde tutorial. Om die "
 "te gebruiken, type je @kbd{C-h t}. (Dit betekent dat je "
@@ -3906,10 +3906,10 @@ msgstr ""
 "de @key{CTRL}-toets, de @key{META}-toets en de @kbd{\\}-toets "
 "allemaal tegelijk indrukt. Soms wordt een toetscombinatie als dit "
 "een keychord genoemd, omdat het vergelijkbaar is met de manier waarop je "
-"een accord op een piano speelt. Wanneer je toetsenbord geen @key{META}-toets "
+"een akkoord op een piano speelt. Wanneer je toetsenbord geen @key{META}-toets "
 "heeft, dan gebruik je de @key{ESC}-toets als prefix. In dat geval "
-"betekent @kbd{C-M-\\} dat je eerste de  @key{ESC} indrukt en loslaat "
-"en daarna type tegelijktijd de  @key{CTRL}-toets en de @kbd{\\}-toets. "
+"betekent @kbd{C-M-\\} dat je eerst de  @key{ESC} indrukt en loslaat "
+"en daarna tegelijkertijd de  @key{CTRL}-toets en de @kbd{\\}-toets indrukt. "
 "Maar meestal betekent @kbd{C-M-\\} dat je de @key{CTRL}-toets samen met "
 "de toets die als @key{ALT} is gelabeld indrukt en tegelijkertijd de "
 "@kbd{\\}-toets indrukt."
@@ -3923,7 +3923,7 @@ msgid ""
 "region of plain text by 6 spaces, mark the region, and then type @w{@kbd{C-u "
 "6 C-M-\\}}.  (If you do not specify a number, Emacs either passes the number "
 "4 to the command or otherwise runs the command differently than it would "
-"otherwise.)    @xref{Arguments, , Numeric Arguments, emacs, The GNU Emacs "
+"otherwise.)  @xref{Arguments, , Numeric Arguments, emacs, The GNU Emacs "
 "Manual}."
 msgstr ""
 "In aanvulling op het typen van een keychord, kan je wat je typt uitbreiden "
@@ -3953,8 +3953,8 @@ msgid ""
 "to the various dialects of Lisp in general, but when I speak of Emacs Lisp, "
 "I am referring to GNU Emacs Lisp in particular."
 msgstr ""
-"Een opmerking over terminogie: wanneer ik het woord Lisp alleen gebruik, "
-"dan refereer ik meeestal naar de verschillende dialecten van Lisp in het "
+"Een opmerking over terminologie: wanneer ik het woord Lisp alleen gebruik, "
+"dan refereer ik meestal naar de verschillende dialecten van Lisp in het "
 "algemeen, maar wanneer ik het over Emacs Lisp heb, dan refereer ik naar "
 "GNU Emacs Lisp in het bijzonder."
 
@@ -5006,13 +5006,13 @@ msgid ""
 "which the name refers can be changed readily.  (@xref{Install, , Install a "
 "Function Definition}.)"
 msgstr ""
-"Aan de andere kant kan maar aan een functie definitie tegelijk zijn "
+"Aan de andere kant kan maar aan een functiedefinitie tegelijk zijn "
 "gekoppeld. Anders zou de computer in verwarring raken over welke "
 "definitie te gebruiken. Wanneer dit onder mensen het geval zou zijn, "
 "dan kan er in de hele wereld maar een persoon de naam @samp{Bob} "
 "hebben. Echter de functiedefinie naar de naam naar refereert kan "
 "makkelijk worden aangepast. (@xref{Installeer, , Installeer een "
-"functie definitie}.)"
+"functiedefinitie}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1513
@@ -5157,7 +5157,7 @@ msgid ""
 "result may be used by the enclosing expression."
 msgstr ""
 "De laatste complicatie is het volgende: wanneer een functie waar de "
-"Lisp interpreter naar kijkt geen spciale form is, en deel van een "
+"Lisp interpreter naar kijkt geen speciale form is, en deel van een "
 "lijst uitmaakt, dan kijkt de interpreter of de lijst een lijst in "
 "zich bevat. Wanneer er een binnenste lijst is, dan zoekt de "
 "interpreter eerst uit wat het moet doen met die binnenste lijst en "
@@ -7585,7 +7585,7 @@ msgstr "Definitie installatie"
 #: emacs-lisp-intro.texi:3141
 #, no-wrap
 msgid "Function definition installation"
-msgstr "Functie definitie installatie"
+msgstr "functiedefinitie installatie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3152

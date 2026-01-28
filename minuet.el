@@ -969,10 +969,9 @@ many lines.  Without a prefix argument, accept only the first line."
   "Get the api-key from API-KEY.
 API-KEY can be a string (as an environment variable) or a function.
 Return nil if not exists or is an empty string."
-  (let ((key (if (stringp api-key)
-                 (getenv api-key)
-               (when (functionp api-key)
-                 (funcall api-key)))))
+  (let ((key (cond
+              ((stringp api-key) (getenv api-key))
+              ((functionp api-key) (funcall api-key)))))
     (when (or (null key)
               (string-empty-p key))
       (minuet--log
@@ -1277,15 +1276,13 @@ to be called when completion items arrive."
 CHAT is a list of plists with :role and :content keys"
   (let (new-chat)
     (dolist (message chat)
-      (let ((gemini-message
-             (pcase (plist-get message :role)
-               ("user"
-                `(:role "user" :parts [(:text ,(plist-get message :content))]))
-               ("assistant"
-                `(:role "model" :parts [(:text ,(plist-get message :content))]))
-               (_ nil))))
-        (when gemini-message
-          (push gemini-message new-chat))))
+      (when-let* ((gemini-message
+                   (pcase (plist-get message :role)
+                     ("user"
+                      `(:role "user" :parts [(:text ,(plist-get message :content))]))
+                     ("assistant"
+                      `(:role "model" :parts [(:text ,(plist-get message :content))])))))
+        (push gemini-message new-chat)))
     (nreverse new-chat)))
 
 (defun minuet--gemini-complete (context callback)

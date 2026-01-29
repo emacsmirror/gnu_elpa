@@ -32,7 +32,7 @@ msgstr "docstyle.texi"
 #: emacs-lisp-intro.texi:10
 #, no-wrap
 msgid "emacsver.texi"
-msgstr "emacsver.texi"
+msgstr "/dev/null"
 
 #. type: ifset
 #: emacs-lisp-intro.texi:40

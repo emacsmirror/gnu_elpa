@@ -62,3 +62,7 @@ flycheck_*.el
 # Undo-tree save-files
 *.~undo-tree
 
+# ELPA-generated files.
+/emacs-lisp-intro-nl-autoloads.el
+/emacs-lisp-intro-nl-pkg.el
+/emacs-lisp-intro-nl.texi

@@ -189,7 +189,7 @@
       "ALIEN" "RE" "IM"
       "MODE" "OP" "PRIO" "PROC"
       "OF" "AT" "IS" "ISNT" "EMPTY" "SKIP"
-      "PR" "PRAGMAT" "STRUCT" "UNION"
+      "PR" "PRAGMAT" "STRUCT" "UNION" "NEST"
       "CASE" "IN" "OUSE" "OUT" "ESAC"
       "FOR" "FORALL" "FROM" "TO" "BY" "WHILE" "DO" "OD"
       "EQ" "NE" "LT" "GT" "LE" "GE"
@@ -225,7 +225,7 @@
     '("empty" "at"
       "pr" "pragmat"
       "up" "down"
-      "andth" "orel" "is" "isnt"
+      "andth" "orel" "is" "isnt" "nest"
       "prio" "mode" "begin" "end" "exit" "par" "if"
       "then" "elif" "else" "fi" "case" "in" "ouse" "out" "esac"
       "of" "go" "goto" "for" "from" "by" "to" "while"
@@ -271,7 +271,8 @@
 (defconst a68-font-lock-keywords-upper
   (append
    a68-font-lock-keywords-common
-   (list (cons (rx word-start
+   (list (cons "'" ''font-lock-keyword-face)
+         (cons (rx word-start
                    (eval `(or ,@a68-keywords-upper))
                    word-end)
                ''font-lock-keyword-face)
@@ -298,6 +299,7 @@
   (append
    a68-font-lock-keywords-common
    (list
+    (cons "'" ''font-lock-keyword-face)
     (cons (rx word-start
               (eval `(or ,@a68-keywords-supper))
               word-end)
@@ -428,6 +430,7 @@ with the equivalent upcased form."
            (spec))
     (exp (ids)
          (exp "of" exp)
+         (exp "'" exp)
          (exp "[" exp "]")
          ("module" exp "def"  exp "fed")
          ("module" exp "def" exp "postlude" exp "fed"))
@@ -695,7 +698,8 @@ with the equivalent upcased form."
                     ("loc" declarer))
     ;; Selections
     ;; ----------
-    (selection (id "of" secondary))
+    (selection (id "of" secondary)
+               (id "'" secondary))
     ;; Slices
     ;; ------
     ;; XXX
@@ -775,7 +779,7 @@ with the equivalent upcased form."
 (defvar a68--smie-grammar-upper
   (smie-prec2->grammar
    (smie-bnf->prec2 (a68--upcase-strings-in-tree a68--bnf-grammar)
-                    '((assoc "OF" "[")
+                    '((assoc "OF" "'" "[")
                       (assoc ";")
                       (assoc "|" "|:")
                       (assoc ","))
@@ -785,7 +789,7 @@ with the equivalent upcased form."
 (defvar a68--smie-grammar-supper
   (smie-prec2->grammar
    (smie-bnf->prec2 a68--bnf-grammar
-                    '((assoc "of" "[")
+                    '((assoc "of" "'" "[")
                       (assoc ";")
                       (assoc ","))
                     '((assoc "=" "/" ":=" ":=:" ":/=:"
@@ -853,7 +857,7 @@ with the equivalent upcased form."
              (looking-back (regexp-opt '(":" ":=" ":/=:" "=" "," ";" "["
                                          "@" "begin" "if" "then" "elif"
                                          "else" "case" "in" "ouse" "out"
-                                         "of" "from" "by" "to" "while"
+                                         "of" "'" "from" "by" "to" "while"
                                          "do" "(" "|" "def" "postlude"))
                            (- (point) 8))
              ;; operator, so any nomad or monad.
@@ -1162,7 +1166,7 @@ UPPER stropping version."
              (looking-back (regexp-opt '(":" ":=" ":/=:" "=" "," ";" "["
                                          "@" "BEGIN" "IF" "THEN" "ELIF"
                                          "ELSE" "CASE" "IN" "OUSE" "OUT"
-                                         "OF" "FROM" "BY" "TO" "WHILE"
+                                         "OF" "'" "FROM" "BY" "TO" "WHILE"
                                          "DO" "(" "|" "DEF" "POSTLUDE"))
                            (- (point) 8))
              ;; operator, so any nomad or monad.

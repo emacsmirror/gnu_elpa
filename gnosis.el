@@ -1268,8 +1268,10 @@ This is a helper function for `gnosis-review-session'."
     (cl-incf thema-count)
     (unless success (gnosis-monkeytype-answer thema))
     (gnosis-review-actions success thema thema-count)
-    (jump-to-register :gnosis-pre-image)
-    (gnosis-review-update-header thema-count)
+    ;; Use jump-to-register after first review.
+    (and (not (null (get-register :gnosis-pre-image))) (jump-to-register :gnosis-pre-image))
+    (setq gnosis-review-themata (remove thema gnosis-review-themata))
+    (gnosis-review-update-header thema-count (length gnosis-review-themata))
     thema-count))
 
 (defun gnosis-review-update-header (reviewed-count &optional remaining-reviews)
@@ -1279,7 +1281,7 @@ REVIEWED-COUNT: Total number of items that have been reviewed in
 current session.
 REMAINING-REVIEWS: Total number of remaining items to be reviewed."
   (with-current-buffer (get-buffer-create gnosis-review-buffer-name)
-    (let ((remaining-reviews (or remaining-reviews gnosis-due-themata-total)))
+    (let ((remaining-reviews (or remaining-reviews (+1 (length gnosis-review-themata)))))
       (setq-local header-line-format
                   (gnosis-center-string
 		   (format "%s %s %s"

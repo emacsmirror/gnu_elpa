@@ -438,5 +438,16 @@ selected."
 
 ;;;###autoload (put 'do-at-point 'setup-func 'do-at-point)
 
+;;;###autoload
+(defun do-at-point-dwim ()
+  "Immediately execute first action for the first thing at point."
+  (interactive)
+  (unwind-protect
+      (progn
+        (do-at-point--mode 1)
+        (do-at-point-confirm t))
+    (when do-at-point--mode
+      (do-at-point--mode -1))))
+
 (provide 'do-at-point)
 ;;; do-at-point.el ends here

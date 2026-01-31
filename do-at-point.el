@@ -273,10 +273,11 @@ invoke `do-at-point' is bound transiently."
 
 (defvar do-at-point-persist-mode)
 
-(defun do-at-point-confirm (&optional quick)
+(defun do-at-point-confirm (&optional quick dry-run)
   "Dispatch an action on the current \"thing\" being selected.
-If the optional argument QUICK is non-nil, the first applicable
-action is selected."
+If the optional argument QUICK is non-nil, the first applicable action
+is selected.  If DRY-RUN is non-nil, then only display the name of the
+selected action."
   (interactive)
   (unless (and do-at-point--overlay
                (overlay-start do-at-point--overlay)
@@ -303,6 +304,8 @@ action is selected."
     (when func
       (message nil)               ;clear mini buffer
       (pcase (car (func-arity func))
+        ((guard dry-run)
+         (message "Would do: %s" (cadr choice)))
         (0 (funcall func))
         (1 (funcall func (buffer-substring (car bound) (cdr bound))))
         (2 (funcall func (car bound) (cdr bound)))
@@ -446,13 +449,16 @@ selected."
 ;;;###autoload (put 'do-at-point 'setup-func 'do-at-point)
 
 ;;;###autoload
-(defun do-at-point-dwim ()
-  "Immediately execute first action for the first thing at point."
-  (interactive)
+(defun do-at-point-dwim (dry-run)
+  "Immediately execute first action for the first thing at point.
+If invoked with a prefix argument (or non-interactively with a non-nil
+value for DRY-RUN), then this command will only display the name of the
+action it would perform."
+  (interactive "P")
   (unwind-protect
-      (progn
+      (let ((do-at-point-persist-mode nil))
         (do-at-point--mode 1)
-        (do-at-point-confirm t))
+        (do-at-point-confirm t dry-run))
     (when do-at-point--mode
       (do-at-point--mode -1))))
 

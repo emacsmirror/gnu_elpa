@@ -26,11 +26,13 @@ invoking
 Usage
 -----
 
-The main and presently only entry point for this package is the
-autoloaded `do-at-point` command itself.  Bind it to a convenient key,
-for example
+The main entry point for this package is the autoloaded `do-at-point`
+command itself.  Bind it to a convenient key, for example
 
     (global-set-key (kbd "C-'") #'do-at-point)
+	
+If you are feeling lucky, you can also bind `do-at-point-dwim` to a
+convenient key (e.g. <kbd>M-.</kbd>).
 
 There are some options that users may configure.  After having have
 loaded the package consult `M-x apropos-user-option RET do-at-point-

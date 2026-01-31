@@ -162,14 +162,14 @@ of this variable.")
      (?e "eww" ,#'eww-browse-url))
     (number
      (?* "Calc" ,(lambda () (calc-embedded '(t)))))
-    (word
-     (?$ "Spell check" ,(lambda () (ispell-word)))
-     (?d "Dictionary" ,#'dictionary-search)
-     (?t "Transpose" ,(lambda () (transpose-words (or current-prefix-arg 1)))))
     (symbol
      (?. "Xref" ,#'xref-find-definitions)
      (?o "Occur" ,(lambda (str)
                     (occur (concat "\\_<\\(" (regexp-quote str) "\\)\\_>")))))
+    (word
+     (?$ "Spell check" ,(lambda () (ispell-word)))
+     (?d "Dictionary" ,#'dictionary-search)
+     (?t "Transpose" ,(lambda () (transpose-words (or current-prefix-arg 1)))))
     (string)
     (sexp
      (?t "Transpose" ,(lambda () (transpose-sexps (or current-prefix-arg 1)))))

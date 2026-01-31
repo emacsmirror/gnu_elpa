@@ -1,6 +1,6 @@
 ;;; do-at-point.el --- Generic context-sensitive action dispatcher.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2023, 2024, 2025  Free Software Foundation, Inc.
+;; Copyright (C) 2023, 2024, 2025, 2026  Free Software Foundation, Inc.
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <philipk@posteo.net>
@@ -134,7 +134,12 @@ of this variable.")
             (let ((str (delete-and-extract-region start end)))
               (insert-for-yank (current-kill 0))
               (kill-new str t))))
-     (?\C-? "Delete" ,#'delete-region))
+     (?\C-? "Delete" ,#'delete-region)
+     ,@(and (fboundp 'iedit-mode)
+            `((?i "Iedit" ,(lambda (start end)
+                             (set-mark start)
+                             (goto-char end)
+                             (funcall-interactively 'iedit-mode))))))
     (email
      (?m "Compose message" ,(lambda (to) (compose-mail to))))
     (existing-filename

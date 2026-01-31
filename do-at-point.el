@@ -397,8 +397,9 @@ instead."
         (setq do-at-point--overlay ov)
         (do-at-point--update))
     (remove-hook 'post-command-hook #'do-at-point--update t)
-    (overlay-put do-at-point--overlay 'do-at-point-thing nil)
-    (delete-overlay do-at-point--overlay)
+    (when do-at-point--overlay
+      (overlay-put do-at-point--overlay 'do-at-point-thing nil)
+      (delete-overlay do-at-point--overlay))
     (setq do-at-point--overlay nil))
   (run-hooks 'do-at-point-hook))
 

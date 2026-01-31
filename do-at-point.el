@@ -5,7 +5,7 @@
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <philipk@posteo.net>
 ;; URL: https://codeberg.org/pkal/do-at-point.el
-;; Version: 0.1.2
+;; Version: 0.2.0-pre
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: convenience
 
@@ -44,19 +44,17 @@
 
 ;;; News:
 
-;;;; Version 0.1.2
+;;;; Version 0.2.0
 
-;; - New general actions: "delete-region" and "yank-and-swap".
-;;
-;; - New hook `do-at-point-mode-hook'.
-;;
-;; - New minor mode `do-at-point-persist-mode', bound to M-<return> by
-;;   default.  If enabled, it disables the disactivation of selections
-;;   after an action.  To enable it by default, evaluate
-;;
-;;     (add-hook 'do-at-point-hook #'do-at-point-persist-mode)
-;;
-;; - Allow customising the quick-confirm key (by Visuwesh).
+;; - Add new command `do-at-point-dwim'.  It will automatically run
+;;   the first action on the first thing `do-at-point' would select.
+;;   With a prefix argument, you can inspect what that action would
+;;   be.
+;; - Add new action on URLs to clone Git repositories into /tamp/
+;; - Add new action to attach files to Gnus
+;; - Add new action to run "rgrep" on some text
+;; - Add new action to integrate Iedit (if installed)
+;; - Prioritise matching symbols before words in the cycle order
 
 ;;; Code:
 

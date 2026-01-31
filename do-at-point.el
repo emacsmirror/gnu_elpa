@@ -303,7 +303,7 @@ selected action."
       (message nil)               ;clear mini buffer
       (pcase (car (func-arity func))
         ((guard dry-run)
-         (message "Would do: %s" (cadr choice)))
+         (message "Would do: %s on %s" (cadr choice) thing))
         (0 (funcall func))
         (1 (funcall func (buffer-substring (car bound) (cdr bound))))
         (2 (funcall func (car bound) (cdr bound)))

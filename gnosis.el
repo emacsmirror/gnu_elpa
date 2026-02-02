@@ -1281,7 +1281,7 @@ REVIEWED-COUNT: Total number of items that have been reviewed in
 current session.
 REMAINING-REVIEWS: Total number of remaining items to be reviewed."
   (with-current-buffer (get-buffer-create gnosis-review-buffer-name)
-    (let ((remaining-reviews (or remaining-reviews (+1 (length gnosis-review-themata)))))
+    (let ((remaining-reviews (or remaining-reviews (1+ (length gnosis-review-themata)))))
       (setq-local header-line-format
                   (gnosis-center-string
 		   (format "%s %s %s"

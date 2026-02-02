@@ -55,6 +55,8 @@
 ;; - Add new action to run "rgrep" on some text
 ;; - Add new action to integrate Iedit (if installed)
 ;; - Prioritise matching symbols before words in the cycle order
+;; - Improve robustness of `do-at-point-forward' and
+;;   `do-at-point-backward'.
 
 ;;; Code:
 
@@ -408,23 +410,32 @@ without having to re-select the object repeatedly."
   :global nil)
 
 (defun do-at-point-forward (n)
-  "Move focus N things ahead.
+   "Move focus N things ahead.
 By default, this will move one thing ahead."
-  (interactive "p")
-  (when do-at-point--overlay
-    (when (overlay-end do-at-point--overlay)
-      (goto-char (overlay-end do-at-point--overlay)))
-    (forward-thing (overlay-get do-at-point--overlay 'do-at-point-thing) n)))
+   (interactive "p")
+   (when do-at-point--overlay
+     (let ((begin (overlay-start do-at-point--overlay))
+           (thing (overlay-get do-at-point--overlay 'do-at-point-thing))
+           (same 0))                     ;retry-counter
+       (if (and begin thing)
+           ;; The `same' counter gives us two attempts to move to the
+           ;; next "thing."  If we just try once without repeating, we
+           ;; can stay on the same "thing", which sometimes is a
+           ;; problem with paragraphs.  If we don't limit the number
+           ;; of repetitions, we don't terminate if we are at the end
+           ;; of a buffer and there are no more things, hence we
+           ;; remain at the same point.
+           (while (and (<= same 1) (eq begin (car (bounds-of-thing-at-point thing))))
+             (let ((before (point)))
+               (forward-thing thing n)
+               (setq same (if (= before (point)) (1+ same) 0))))
+         (forward-thing thing n)))))
 
 (defun do-at-point-backward (n)
-  "Move focus N things back.
+   "Move focus N things back.
 Refer to the command `do-at-point-forward' for more details."
-  (interactive "p")
-  (when do-at-point--overlay
-    (when (overlay-start do-at-point--overlay)
-      (goto-char (overlay-start do-at-point--overlay)))
-    (forward-thing (overlay-get do-at-point--overlay 'do-at-point-thing)
-                   (- (or n 1)))))
+   (interactive "p")
+   (do-at-point-forward (- (or n 1))))
 
 ;;;###autoload
 (defun do-at-point (&optional thing)

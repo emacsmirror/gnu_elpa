@@ -5,7 +5,7 @@
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <philipk@posteo.net>
 ;; URL: https://codeberg.org/pkal/do-at-point.el
-;; Version: 0.2.0-pre
+;; Version: 0.2.0
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: convenience
 

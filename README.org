@@ -218,6 +218,12 @@ The code to do this:
         ("l" . upcase)))
 #+end_src
 
+#+vindex: altcaps-initial-case
+The user option ~altcaps-initial-case~ controls which letter case
+should come first while alternating betwen them. The value is the
+symbol =downcase= or =upcase=. Any other value is the same as
+=downcase=. [ The ~altcaps-initial-case~ is part of {{{development-version}}}. ]
+
 * Acknowledgements
 :PROPERTIES:
 :CUSTOM_ID: h:399afb8b-7bb3-40b4-b10f-3123714d9614

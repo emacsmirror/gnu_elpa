@@ -118,7 +118,9 @@ for a code sample):
 
 You do want to communicate mockery or sarcasm, though legibility
 still matters!  (Regardless, I encourage everyone to use a decent
-font that disambiguates characters.)"
+font that disambiguates characters.)
+
+Also see `altcaps-initial-case'."
   :type '(alist
           :key-type (string :tag "Single character string")
           :value-type (radio :tag "Letter casing"
@@ -127,12 +129,24 @@ font that disambiguates characters.)"
   :package-version '(altcaps . "1.2.0")
   :group 'altcaps)
 
+(defcustom altcaps-initial-case 'downcase
+  "Set the initial letter casing to alternate therefrom.
+The value is the symbol `downcase' or `upcase'.  Anything else means
+`downcase'.
+
+Also see `altcaps-force-character-casing'."
+  :type '(choice
+          (const :tag "Start with lower case" downcase)
+          (const :tag "Start with upper case" upcase))
+  :package-version '(altcaps . "1.3.0")
+  :group 'altcaps)
+
 (defun altcaps-transform (string)
   "Make STRING use alternating letter casing, ignoring blanks.
 Respect the preferred casing for characters in the user option
 `altcaps-force-character-casing'."
   (let ((characters (split-string (downcase string) ""))
-        (casing nil)
+        (casing altcaps-initial-case)
         (processed-characters nil))
     (dolist (character characters)
       (when (string-match-p "[[:alpha:]]" character)

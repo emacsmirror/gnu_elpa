@@ -1,3 +1,12 @@
+- [Launching the llama.cpp Server: Example Script](#launching-the-llamacpp-server-example-script) +
+  [**For Systems with More Than 16GB VRAM**](#for-systems-with-more-than-16gb-vram) +
+  [**For Systems with Less Than 16GB VRAM**](#for-systems-with-less-than-16gb-vram) +
+  [**For Systems with Less Than 8GB VRAM**](#for-systems-with-less-than-8gb-vram)
+  - [Example minuet config](#example-minuet-config)
+  - [**Acknowledgment**](#acknowledgment)
+- [Using Non-OpenAI-Compatible FIM APIs with DeepInfra](#using-non-openai-compatible-fim-apis-with-deepinfra)
+- [Using Vertex AI with Gemini Models](#using-vertex-ai-with-gemini-models)
+
 # Launching the llama.cpp Server: Example Script
 
 This guide provides several configuration variants for the `qwen2.5-coder` based
@@ -68,13 +77,11 @@ llama-server \
     (minuet-set-optional-options minuet-openai-fim-compatible-options :max_tokens 56))
 ```
 
-> [!NOTE]
-> Symbols like `<|fim_begin|>` and `<|fim_suffix|>` are special tokens
-> that serve as prompt boundaries. Some LLMs, like Qwen2.5-Coder, have
-> been trained with specific tokens to better understand prompt
-> composition.  Different LLMs use different special tokens during
-> training, so you should adjust these tokens according to your
-> preferred LLM.
+> [!NOTE] Symbols like `<|fim_begin|>` and `<|fim_suffix|>` are special tokens
+> that serve as prompt boundaries. Some LLMs, like Qwen2.5-Coder, have been
+> trained with specific tokens to better understand prompt composition.
+> Different LLMs use different special tokens during training, so you should
+> adjust these tokens according to your preferred LLM.
 
 ## **Acknowledgment**
 
@@ -89,7 +96,6 @@ with alternative providers.
 - **`:transform`**: A list of functions that accept a plist containing fields
   listed below. Each function processes and returns a transformed version of
   these attributes.
-
   - `:end_point`: The API endpoint for the completion request.
   - `:headers`: HTTP headers for the request.
   - `:body`: The request body for the API.
@@ -153,5 +159,42 @@ backend with the DeepInfra FIM API and Qwen-2.5-Coder-32B-Instruct model.
                (--> json
                     (plist-get it :token)
                     (plist-get it :text))))
+  )
+```
+
+# Using Vertex AI with Gemini Models
+
+```emacs-lisp
+(use-package minuet
+  :config
+  (setq minuet-provider 'gemini)
+  (plist-put minuet-gemini-options
+             :end-point
+             "https://aiplatform.googleapis.com/v1/projects/<your_project_id>/locations/global/publishers/google/models")
+  (plist-put minuet-gemini-options
+             :api-key
+             ;; A dummy value is provided as Vertex AI does not rely on the `x-goog-api-key` header.
+             (lambda () "123"))
+  (plist-put minuet-gemini-options
+             :transform
+             '(minuet-gemini-vertex-ai-transform))
+
+  (defvar vertex-api-key nil)
+  (defun minuet-gemini-vertex-ai-transform (data)
+    (setq vertex-api-key
+          (or vertex-api-key
+              ;; Retrieve the access token via gcloud.
+              (string-trim (shell-command-to-string "gcloud auth print-access-token"))))
+    `(:end-point ,(plist-get data :end-point)
+      ;; No transform needed for headers.
+      :headers ,(--> data
+                     (plist-get it :headers)
+                     ;; Vertex AI requires an Authorization header rather than x-goog-api-key.
+                     (map-delete it "x-goog-api-key")
+                     (map-insert it "Authorization"
+                                 (format "Bearer %s" vertex-api-key)))
+      ;; No transform needed for body
+      :body ,(plist-get data :body)))
+
   )
 ```

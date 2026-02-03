@@ -606,6 +606,9 @@ You should register the account and use the service from Google AI Studio
 instead of Google Cloud. You can get an API key via their
 [Google API page](https://makersuite.google.com/app/apikey).
 
+For instructions on using Vertex AI with Gemini models, see
+[recipes.md](./recipes.md).
+
 <details>
 
 The following config is the default.

@@ -58,18 +58,27 @@
    (cons "^[ \t]*\\(model\\|var\\)\\>"
          font-lock-keyword-face)
 
-   (cons (concat "\\<d\\(bern\\|beta\\|bin\\|cat\\|chisq\\|CRP\\|"
-                 "dexp\\|dirch\\|exp\\|\\(gen[.]\\)?gamma\\|hyper\\|"
-                 "interval\\|lnorm\\|logis\\|mnorm\\|mt\\|multi\\|"
-                 "negbin\\|norm\\(mix\\)?\\|par\\|pois\\|sum\\|t\\|"
-                 "unif\\|weib\\|wish\\)[ \t\n]*(")
+   (cons (concat "\\<d\\(bern\\|beta\\|bin\\|binom\\|"
+                 "cat\\|chisq\\|chisqr\\|CRP\\|"
+                 "dexp\\|dirch\\|dirich\\|"
+                 "exp\\|\\(gen[.]\\|inv\\)?gamma\\|hyper\\|"
+                 "interval\\|lkj_corr_cholesky\\|laplace\\|lnorm\\|logis\\|"
+                 "mnorm\\|mt\\|multi\\|multinom\\|mvt\\|"
+                 "negbin\\|nbinom\\|norm\\(mix\\)?\\|par\\|pois\\|sum\\|t\\|"
+                 "unif\\|weib\\|weibull\\|\\(inv\\)?wish\\|wishart\\)[ \t\n]*(")
          font-lock-constant-face)
 
-   (cons (concat "\\<\\(abs\\|cos\\|C\\|dim\\|\\(i\\)?cloglog\\|equals\\|"
-                 "exp\\|for\\|inprod\\|interp[.]line\\|inverse\\|length\\|"
-                 "\\(i\\)?logit\\|logdet\\|logfact\\|loggam\\|max\\|mean\\|"
-                 "mexp\\|min\\|phi\\|pow\\|probit\\|prod\\|rank\\|round\\|"
-                 "sd\\|sin\\|sort\\|sqrt\\|step\\|sum\\|t\\|trunc\\|T\\)[ \t\n]*(")
+   (cons (concat "\\<\\(abs\\|acos\\|acosh\\|asin\\|asinh\\|atan\\|atanh\\|"
+                 "asCol\\|asRow\\|backsolve\\|besselK\\|ceiling\\|chol\\|"
+                 "cos\\|C\\|dim\\|\\(i\\)?cloglog\\|cube\\|"
+                 "equals\\|exp\\|expit\\|floor\\|for\\|forwardsolve\\|"
+                 "inprod\\|interp[.]lin\\(e\\)?\\|inverse\\|"
+                 "lgamma\\|length\\|lfactorial\\|"
+                 "log\\|log1p\\|\\(i\\)?logit\\|logdet\\|logfact\\|loggam\\|"
+                 "max\\|mean\\|mexp\\|min\\|pmax\\|pmin\\|"
+                 "phi\\|pow\\|\\(i\\)?probit\\|prod\\|rank\\|ranked\\|round\\|"
+                 "sd\\|sin\\|solve\\|sort\\|sqrt\\|step\\|sum\\|"
+                 "t\\|tan\\|trunc\\|T\\)[ \t\n]*(")
          font-lock-function-name-face)
 
    ;; .bmd files

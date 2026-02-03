@@ -62,71 +62,6 @@ included in the section entitled “GNU Free Documentation License.”
 modify this GNU manual.”
 #+end_quote
 
-* Overview
-:PROPERTIES:
-:CUSTOM_ID: h:2426fc2a-3070-4a99-8cfd-6f06b577b052
-:END:
-
-Transform words to alternating letter casing in order to convey
-sarcasm or mockery.  For example, convert this:
-
-: I respect the authorities
-
-To this:
-
-: i ReSpEcT tHe AuThOrItIeS
-
-The ~altcaps~ package thus makes you more effective at textual
-communication.  Plus, you appear sophisticated.  tRuSt Me.
-
-Use any of the following commands to achieve the desired results:
-
-#+findex: altcaps-word
-- ~altcaps-word~ :: Convert word to alternating letter casing.  With
-  optional =NUM= as a numeric prefix argument, operate on =NUM= words
-  forward, defaulting to 1.  If =NUM= is negative, do so backward.
-  When =NUM= is a negative prefix without a number, it is interpreted
-  -1.
-
-#+findex: altcaps-region
-- ~altcaps-region~ :: Convert region words between =BEG= and =END= to
-  alternating case.  =BEG= and =END= are buffer positions.  When
-  called interactively, these are automatically determined as the
-  active region's boundaries, else the space between ~mark~ and
-  ~point~.
-
-#+findex: altcaps-dwim
-- ~altcaps-dwim~ :: Convert to alternating letter casing
-  Do-What-I-Mean style.  With an active region, call ~altcaps-region~.
-  Else invoke ~altcaps-word~ with optional =NUM=, per that command's
-  functionality (read its documentation).
-
-#+vindex: altcaps-force-character-casing
-The user option ~altcaps-force-character-casing~ forces the given
-letter casing for specified characters.  Its value is an alist of
-=(STRING . CASE)= pairs.  =STRING= is a string with a single
-character, while =CASE= is the ~upcase~ or ~downcase~ symbol (code
-sample further below).
-
-The idea is to always render certain characters in lower or upper
-case, in consideration of their legibility in context.  For example,
-the default altcaps algorithm produces this:
-
-: iLlIcIt IlLiBeRaL sIlLiNeSs
-
-Whereas if the value of this variable declares =i= to always be
-lowercase and =L= uppercase, then we get this:
-
-: iLLiCiT iLLiBeRaL siLLiNeSs
-
-The code to do this:
-
-#+begin_src emacs-lisp
-(setq altcaps-force-character-casing
-      '(("i" . downcase)
-        ("l" . upcase)))
-#+end_src
-
 * Installation
 :PROPERTIES:
 :CUSTOM_ID: h:d40db8b2-b481-4d6c-bb1e-8e79cf5dff62
@@ -216,6 +151,71 @@ With ~use-package~:
   (setq altcaps-force-character-casing
       '(("i" . downcase)
         ("l" . upcase))))
+#+end_src
+
+* Overview
+:PROPERTIES:
+:CUSTOM_ID: h:2426fc2a-3070-4a99-8cfd-6f06b577b052
+:END:
+
+Transform words to alternating letter casing in order to convey
+sarcasm or mockery.  For example, convert this:
+
+: I respect the authorities
+
+To this:
+
+: i ReSpEcT tHe AuThOrItIeS
+
+The ~altcaps~ package thus makes you more effective at textual
+communication.  Plus, you appear sophisticated.  tRuSt Me.
+
+Use any of the following commands to achieve the desired results:
+
+#+findex: altcaps-word
+- ~altcaps-word~ :: Convert word to alternating letter casing.  With
+  optional =NUM= as a numeric prefix argument, operate on =NUM= words
+  forward, defaulting to 1.  If =NUM= is negative, do so backward.
+  When =NUM= is a negative prefix without a number, it is interpreted
+  -1.
+
+#+findex: altcaps-region
+- ~altcaps-region~ :: Convert region words between =BEG= and =END= to
+  alternating case.  =BEG= and =END= are buffer positions.  When
+  called interactively, these are automatically determined as the
+  active region's boundaries, else the space between ~mark~ and
+  ~point~.
+
+#+findex: altcaps-dwim
+- ~altcaps-dwim~ :: Convert to alternating letter casing
+  Do-What-I-Mean style.  With an active region, call ~altcaps-region~.
+  Else invoke ~altcaps-word~ with optional =NUM=, per that command's
+  functionality (read its documentation).
+
+#+vindex: altcaps-force-character-casing
+The user option ~altcaps-force-character-casing~ forces the given
+letter casing for specified characters.  Its value is an alist of
+=(STRING . CASE)= pairs.  =STRING= is a string with a single
+character, while =CASE= is the ~upcase~ or ~downcase~ symbol (code
+sample further below).
+
+The idea is to always render certain characters in lower or upper
+case, in consideration of their legibility in context.  For example,
+the default altcaps algorithm produces this:
+
+: iLlIcIt IlLiBeRaL sIlLiNeSs
+
+Whereas if the value of this variable declares =i= to always be
+lowercase and =L= uppercase, then we get this:
+
+: iLLiCiT iLLiBeRaL siLLiNeSs
+
+The code to do this:
+
+#+begin_src emacs-lisp
+(setq altcaps-force-character-casing
+      '(("i" . downcase)
+        ("l" . upcase)))
 #+end_src
 
 * Acknowledgements

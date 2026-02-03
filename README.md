@@ -485,6 +485,12 @@ request, you can use function `minuet-set-optional-options`:
 (minuet-set-optional-options minuet-openai-options :top_p 0.9)
 ```
 
+`:transform` is a list of functions that receive a plist with
+`:end-point`, `:headers`, and `:body` and return a modified plist (or
+nil to keep it unchanged). The transformed values are used for the
+actual request, so this is the right place to tweak custom headers,
+payloads, or endpoints.
+
 ## OpenAI
 
 <details>
@@ -506,6 +512,7 @@ Below is the default value:
        :language-and-tab minuet--default-chat-input-language-and-tab-function
        :context-before-cursor minuet--default-chat-input-before-cursor-function
        :context-after-cursor minuet--default-chat-input-after-cursor-function)
+      :transform ()
       :optional nil)
     "config options for Minuet OpenAI provider")
 
@@ -552,6 +559,7 @@ Below is the default value:
        :language-and-tab minuet--default-chat-input-language-and-tab-function
        :context-before-cursor minuet--default-chat-input-before-cursor-function
        :context-after-cursor minuet--default-chat-input-after-cursor-function)
+      :transform ()
       :optional nil)
     "config options for Minuet Claude provider")
 ```
@@ -577,6 +585,7 @@ Below is the default value:
       :api-key "CODESTRAL_API_KEY"
       :template (:prompt minuet--default-fim-prompt-function
                  :suffix minuet--default-fim-suffix-function)
+      :transform ()
       :optional nil)
     "config options for Minuet Codestral provider")
 ```
@@ -616,6 +625,7 @@ The following config is the default.
        :language-and-tab minuet--default-chat-input-language-and-tab-function
        :context-before-cursor minuet--default-chat-input-before-cursor-function
        :context-after-cursor minuet--default-chat-input-after-cursor-function)
+      :transform ()
       :optional nil)
     "config options for Minuet Gemini provider")
 ```
@@ -680,6 +690,7 @@ The following config is the default.
        :language-and-tab minuet--default-chat-input-language-and-tab-function
        :context-before-cursor minuet--default-chat-input-before-cursor-function
        :context-after-cursor minuet--default-chat-input-after-cursor-function)
+      :transform ()
       :optional nil)
     "Config options for Minuet OpenAI compatible provider.")
 ```
@@ -738,6 +749,7 @@ The following config is the default.
       :name "Deepseek"
       :template (:prompt minuet--default-fim-prompt-function
                  :suffix minuet--default-fim-suffix-function)
+      :transform ()
       :optional nil)
     "config options for Minuet OpenAI FIM compatible provider")
 ```

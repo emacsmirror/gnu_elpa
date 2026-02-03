@@ -1182,7 +1182,8 @@ to be called when completion items arrive."
                  :model ,(plist-get options :model)
                  :messages ,(vconcat
                              `((:role "system"
-                                :content ,(minuet--make-system-prompt (plist-get options :system))))
+                                :content ,(minuet--make-system-prompt
+                                           (plist-get options :system))))
                              (minuet--eval-value (plist-get options :fewshots))
                              (--> (minuet--make-chat-llm-shot context options)
                                   minuet--create-chat-messages-from-list))))
@@ -1315,7 +1316,8 @@ to be called when completion items arrive."
          (fewshots (minuet--eval-value (plist-get options :fewshots)))
          (fewshots (minuet--transform-openai-chat-to-gemini-chat fewshots))
          (body `(,@(plist-get options :optional)
-                 :system_instruction (:parts (:text ,(minuet--make-system-prompt (plist-get options :system))))
+                 :system_instruction
+                 (:parts (:text ,(minuet--make-system-prompt (plist-get options :system))))
                  :contents ,(vconcat
                              fewshots
                              (--> (minuet--make-chat-llm-shot context options)

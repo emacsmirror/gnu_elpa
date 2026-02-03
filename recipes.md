@@ -185,8 +185,9 @@ backend with the DeepInfra FIM API and Qwen-2.5-Coder-32B-Instruct model.
           (or vertex-api-key
               ;; Retrieve the access token via gcloud.
               (string-trim (shell-command-to-string "gcloud auth print-access-token"))))
+
+      ;; No transform needed for end-point
     `(:end-point ,(plist-get data :end-point)
-      ;; No transform needed for headers.
       :headers ,(--> data
                      (plist-get it :headers)
                      ;; Vertex AI requires an Authorization header rather than x-goog-api-key.

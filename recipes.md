@@ -1,9 +1,9 @@
-- [Launching the llama.cpp Server: Example Script](#launching-the-llamacpp-server-example-script) +
-  [**For Systems with More Than 16GB VRAM**](#for-systems-with-more-than-16gb-vram) +
-  [**For Systems with Less Than 16GB VRAM**](#for-systems-with-less-than-16gb-vram) +
-  [**For Systems with Less Than 8GB VRAM**](#for-systems-with-less-than-8gb-vram)
+- [Launching the llama.cpp Server: Example Script](#launching-the-llamacpp-server-example-script)
+  - [For Systems with More Than 16GB VRAM](#for-systems-with-more-than-16gb-vram)
+  - [For Systems with Less Than 16GB VRAM](#for-systems-with-less-than-16gb-vram)
+  - [For Systems with Less Than 8GB VRAM](#for-systems-with-less-than-8gb-vram)
   - [Example minuet config](#example-minuet-config)
-  - [**Acknowledgment**](#acknowledgment)
+  - [Acknowledgment](#acknowledgment)
 - [Using Non-OpenAI-Compatible FIM APIs with DeepInfra](#using-non-openai-compatible-fim-apis-with-deepinfra)
 - [Using Vertex AI with Gemini Models](#using-vertex-ai-with-gemini-models)
 
@@ -12,7 +12,7 @@
 This guide provides several configuration variants for the `qwen2.5-coder` based
 on local computing power, specifically the available VRAM.
 
-### **For Systems with More Than 16GB VRAM**
+### For Systems with More Than 16GB VRAM
 
 ```bash
 llama-server \
@@ -21,7 +21,7 @@ llama-server \
     --ctx-size 0 --cache-reuse 256
 ```
 
-### **For Systems with Less Than 16GB VRAM**
+### For Systems with Less Than 16GB VRAM
 
 ```bash
 llama-server \
@@ -30,7 +30,7 @@ llama-server \
     --ctx-size 0 --cache-reuse 256
 ```
 
-### **For Systems with Less Than 8GB VRAM**
+### For Systems with Less Than 8GB VRAM
 
 ```bash
 llama-server \
@@ -83,7 +83,7 @@ llama-server \
 > Different LLMs use different special tokens during training, so you should
 > adjust these tokens according to your preferred LLM.
 
-## **Acknowledgment**
+## Acknowledgment
 
 - [llama.vim](https://github.com/ggml-org/llama.vim): A reference for CLI
   parameters used in launching the `llama.cpp` server.

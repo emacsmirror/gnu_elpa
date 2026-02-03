@@ -335,6 +335,7 @@ const processedData = transformData(rawData, {
      :language-and-tab minuet--default-chat-input-language-and-tab-function
      :context-before-cursor minuet--default-chat-input-before-cursor-function
      :context-after-cursor minuet--default-chat-input-after-cursor-function)
+    :transform ()
     :optional nil)
   "Config options for Minuet Claude provider.")
 
@@ -353,6 +354,7 @@ const processedData = transformData(rawData, {
      :language-and-tab minuet--default-chat-input-language-and-tab-function
      :context-before-cursor minuet--default-chat-input-before-cursor-function
      :context-after-cursor minuet--default-chat-input-after-cursor-function)
+    :transform ()
     :optional nil)
   "Config options for Minuet OpenAI provider.")
 
@@ -385,6 +387,7 @@ const processedData = transformData(rawData, {
      :language-and-tab minuet--default-chat-input-language-and-tab-function
      :context-before-cursor minuet--default-chat-input-before-cursor-function
      :context-after-cursor minuet--default-chat-input-after-cursor-function)
+    :transform ()
     :optional nil)
   "Config options for Minuet OpenAI compatible provider.")
 
@@ -417,6 +420,7 @@ const processedData = transformData(rawData, {
      :language-and-tab minuet--default-chat-input-language-and-tab-function
      :context-before-cursor minuet--default-chat-input-before-cursor-function
      :context-after-cursor minuet--default-chat-input-after-cursor-function)
+    :transform ()
     :optional nil)
   "Config options for Minuet Gemini provider.")
 
@@ -1166,42 +1170,53 @@ and :content keys."
 OPTIONS are the provider options.  the completion items from json.
 CONTEXT is to be used to build the prompt.  CALLBACK is the function
 to be called when completion items arrive."
-  (minuet--with-temp-response
-    (push
-     (plz 'post (plist-get options :end-point)
-       :headers
-       `(("Content-Type" . "application/json")
-         ("Accept" . "application/json")
-         ("Authorization" . ,(concat "Bearer " (minuet--get-api-key (plist-get options :api-key)))))
-       :timeout minuet-request-timeout
-       :body
-       (json-serialize
-        `(,@(plist-get options :optional)
-          :stream t
-          :model ,(plist-get options :model)
-          :messages ,(vconcat
-                      `((:role "system"
-                         :content ,(minuet--make-system-prompt (plist-get options :system))))
-                      (minuet--eval-value (plist-get options :fewshots))
-                      (--> (minuet--make-chat-llm-shot context options)
-                           minuet--create-chat-messages-from-list))))
-       :as 'string
-       :filter (minuet--make-process-stream-filter --response--)
-       :then
-       (lambda (json)
-         (when-let* ((result (minuet--stream-decode json #'minuet--openai-get-text-fn))
-                     (completion-items (minuet--parse-completion-itmes-default result))
-                     (completion-items (minuet--filter-context-sequence-in-items
-                                        completion-items
-                                        context))
-                     (completion-items (minuet--remove-spaces completion-items)))
-           ;; insert the current result into the completion items list
-           (funcall callback completion-items)))
-       :else
-       (lambda (err)
-         (minuet--handle-chat-completion-timeout
-          context err --response-- #'minuet--openai-get-text-fn "OpenAI" callback)))
-     minuet--current-requests)))
+  (let* ((transform-functions (plist-get options :transform))
+         (end-point (plist-get options :end-point))
+         (headers `(("Content-Type" . "application/json")
+                    ("Accept" . "application/json")
+                    ("Authorization" .
+                     ,(concat "Bearer " (minuet--get-api-key (plist-get options :api-key))))))
+         (body `(,@(plist-get options :optional)
+                 :stream t
+                 :model ,(plist-get options :model)
+                 :messages ,(vconcat
+                             `((:role "system"
+                                :content ,(minuet--make-system-prompt (plist-get options :system))))
+                             (minuet--eval-value (plist-get options :fewshots))
+                             (--> (minuet--make-chat-llm-shot context options)
+                                  minuet--create-chat-messages-from-list))))
+         (transformed `(:end-point ,end-point
+                        :headers ,headers
+                        :body ,body))
+         (transformed (progn (dolist (fn transform-functions)
+                               (setq transformed (or (funcall fn transformed) transformed)))
+                             transformed))
+         (end-point (plist-get transformed :end-point))
+         (headers (plist-get transformed :headers))
+         (body-json (json-serialize (plist-get transformed :body))))
+    (minuet--with-temp-response
+      (push
+       (plz 'post end-point
+         :headers headers
+         :timeout minuet-request-timeout
+         :body body-json
+         :as 'string
+         :filter (minuet--make-process-stream-filter --response--)
+         :then
+         (lambda (json)
+           (when-let* ((result (minuet--stream-decode json #'minuet--openai-get-text-fn))
+                       (completion-items (minuet--parse-completion-itmes-default result))
+                       (completion-items (minuet--filter-context-sequence-in-items
+                                          completion-items
+                                          context))
+                       (completion-items (minuet--remove-spaces completion-items)))
+             ;; insert the current result into the completion items list
+             (funcall callback completion-items)))
+         :else
+         (lambda (err)
+           (minuet--handle-chat-completion-timeout
+            context err --response-- #'minuet--openai-get-text-fn "OpenAI" callback)))
+       minuet--current-requests))))
 
 (defun minuet--openai-complete (context callback)
   "Complete code with OpenAI.
@@ -1223,43 +1238,54 @@ CONTEXT and CALLBACK will be passed to the base function."
   "Complete code with Claude.
 CONTEXT is to be used to build the prompt.  CALLBACK is the function
 to be called when completion items arrive."
-  (minuet--with-temp-response
-    (push
-     (plz 'post (plist-get minuet-claude-options :end-point)
-       :headers `(("Content-Type" . "application/json")
-                  ("Accept" . "application/json")
-                  ("x-api-key" . ,(minuet--get-api-key (plist-get minuet-claude-options :api-key)))
-                  ("anthropic-version" . "2023-06-01"))
-       :timeout minuet-request-timeout
-       :body
-       (json-serialize
-        (let ((options minuet-claude-options))
-          `(,@(plist-get options :optional)
-            :stream t
-            :model ,(plist-get options :model)
-            :system ,(minuet--make-system-prompt (plist-get options :system))
-            :max_tokens ,(plist-get options :max_tokens)
-            :messages ,(vconcat
-                        (minuet--eval-value (plist-get options :fewshots))
-                        (--> (minuet--make-chat-llm-shot context options)
-                             minuet--create-chat-messages-from-list)))))
-       :as 'string
-       :filter (minuet--make-process-stream-filter --response--)
-       :then
-       (lambda (json)
-         (when-let* ((result (minuet--stream-decode json #'minuet--claude-get-text-fn))
-                     (completion-items (minuet--parse-completion-itmes-default result))
-                     (completion-items (minuet--filter-context-sequence-in-items
-                                        completion-items
-                                        context))
-                     (completion-items (minuet--remove-spaces completion-items)))
-           ;; insert the current result into the completion items list
-           (funcall callback completion-items)))
-       :else
-       (lambda (err)
-         (minuet--handle-chat-completion-timeout
-          context err --response-- #'minuet--claude-get-text-fn "Claude" callback)))
-     minuet--current-requests)))
+  (let* ((options minuet-claude-options)
+         (transform-functions (plist-get options :transform))
+         (end-point (plist-get options :end-point))
+         (headers `(("Content-Type" . "application/json")
+                    ("Accept" . "application/json")
+                    ("x-api-key" . ,(minuet--get-api-key (plist-get options :api-key)))
+                    ("anthropic-version" . "2023-06-01")))
+         (body `(,@(plist-get options :optional)
+                 :stream t
+                 :model ,(plist-get options :model)
+                 :system ,(minuet--make-system-prompt (plist-get options :system))
+                 :max_tokens ,(plist-get options :max_tokens)
+                 :messages ,(vconcat
+                             (minuet--eval-value (plist-get options :fewshots))
+                             (--> (minuet--make-chat-llm-shot context options)
+                                  minuet--create-chat-messages-from-list))))
+         (transformed `(:end-point ,end-point
+                        :headers ,headers
+                        :body ,body))
+         (transformed (progn (dolist (fn transform-functions)
+                               (setq transformed (or (funcall fn transformed) transformed)))
+                             transformed))
+         (end-point (plist-get transformed :end-point))
+         (headers (plist-get transformed :headers))
+         (body-json (json-serialize (plist-get transformed :body))))
+    (minuet--with-temp-response
+      (push
+       (plz 'post end-point
+         :headers headers
+         :timeout minuet-request-timeout
+         :body body-json
+         :as 'string
+         :filter (minuet--make-process-stream-filter --response--)
+         :then
+         (lambda (json)
+           (when-let* ((result (minuet--stream-decode json #'minuet--claude-get-text-fn))
+                       (completion-items (minuet--parse-completion-itmes-default result))
+                       (completion-items (minuet--filter-context-sequence-in-items
+                                          completion-items
+                                          context))
+                       (completion-items (minuet--remove-spaces completion-items)))
+             ;; insert the current result into the completion items list
+             (funcall callback completion-items)))
+         :else
+         (lambda (err)
+           (minuet--handle-chat-completion-timeout
+            context err --response-- #'minuet--claude-get-text-fn "Claude" callback)))
+       minuet--current-requests))))
 
 (defun minuet--gemini-get-text-fn (json)
   "Function to get the completion from a JSON object for gemini."
@@ -1289,43 +1315,54 @@ CHAT is a list of plists with :role and :content keys"
   "Complete code with gemini.
 CONTEXT is to be used to build the prompt.  CALLBACK is the function
 to be called when completion items arrive."
-  (minuet--with-temp-response
-    (push
-     (plz 'post (format "%s/%s:streamGenerateContent?alt=sse"
-                        (plist-get minuet-gemini-options :end-point)
-                        (plist-get minuet-gemini-options :model))
-       :headers `(("Content-Type" . "application/json")
-                  ("x-goog-api-key" . ,(minuet--get-api-key (plist-get minuet-gemini-options :api-key)))
-                  ("Accept" . "application/json"))
-       :timeout minuet-request-timeout
-       :body
-       (json-serialize
-        (let* ((options minuet-gemini-options)
-               (fewshots (minuet--eval-value (plist-get options :fewshots)))
-               (fewshots (minuet--transform-openai-chat-to-gemini-chat fewshots)))
-          `(,@(plist-get options :optional)
-            :system_instruction (:parts (:text ,(minuet--make-system-prompt (plist-get options :system))))
-            :contents ,(vconcat
-                        fewshots
-                        (--> (minuet--make-chat-llm-shot context options)
-                             minuet--create-chat-messages-from-list
-                             minuet--transform-openai-chat-to-gemini-chat)))))
-       :as 'string
-       :filter (minuet--make-process-stream-filter --response--)
-       :then
-       (lambda (json)
-         (when-let* ((result (minuet--stream-decode json #'minuet--gemini-get-text-fn))
-                     (completion-items (minuet--parse-completion-itmes-default result))
-                     (completion-items (minuet--filter-context-sequence-in-items
-                                        completion-items
-                                        context))
-                     (completion-items (minuet--remove-spaces completion-items)))
-           (funcall callback completion-items)))
-       :else
-       (lambda (err)
-         (minuet--handle-chat-completion-timeout
-          context err --response-- #'minuet--gemini-get-text-fn "Gemini" callback)))
-     minuet--current-requests)))
+  (let* ((options minuet-gemini-options)
+         (transform-functions (plist-get options :transform))
+         (end-point (format "%s/%s:streamGenerateContent?alt=sse"
+                            (plist-get options :end-point)
+                            (plist-get options :model)))
+         (headers `(("Content-Type" . "application/json")
+                    ("x-goog-api-key" . ,(minuet--get-api-key (plist-get options :api-key)))
+                    ("Accept" . "application/json")))
+         (fewshots (minuet--eval-value (plist-get options :fewshots)))
+         (fewshots (minuet--transform-openai-chat-to-gemini-chat fewshots))
+         (body `(,@(plist-get options :optional)
+                 :system_instruction (:parts (:text ,(minuet--make-system-prompt (plist-get options :system))))
+                 :contents ,(vconcat
+                             fewshots
+                             (--> (minuet--make-chat-llm-shot context options)
+                                  minuet--create-chat-messages-from-list
+                                  minuet--transform-openai-chat-to-gemini-chat))))
+         (transformed `(:end-point ,end-point
+                        :headers ,headers
+                        :body ,body))
+         (transformed (progn (dolist (fn transform-functions)
+                               (setq transformed (or (funcall fn transformed) transformed)))
+                             transformed))
+         (end-point (plist-get transformed :end-point))
+         (headers (plist-get transformed :headers))
+         (body-json (json-serialize (plist-get transformed :body))))
+    (minuet--with-temp-response
+      (push
+       (plz 'post end-point
+         :headers headers
+         :timeout minuet-request-timeout
+         :body body-json
+         :as 'string
+         :filter (minuet--make-process-stream-filter --response--)
+         :then
+         (lambda (json)
+           (when-let* ((result (minuet--stream-decode json #'minuet--gemini-get-text-fn))
+                       (completion-items (minuet--parse-completion-itmes-default result))
+                       (completion-items (minuet--filter-context-sequence-in-items
+                                          completion-items
+                                          context))
+                       (completion-items (minuet--remove-spaces completion-items)))
+             (funcall callback completion-items)))
+         :else
+         (lambda (err)
+           (minuet--handle-chat-completion-timeout
+            context err --response-- #'minuet--gemini-get-text-fn "Gemini" callback)))
+       minuet--current-requests))))
 
 
 (defun minuet--setup-auto-suggestion ()

@@ -68,14 +68,14 @@ On GNU/Linux, all you need is: =gcc= and =make=. Then you can simply install thr
    #+begin_src emacs-lisp
      (setq package-vc-allow-build-commands t)
      (use-package reader
-       :vc (:url "https://codeberg.org/divyaranjan/emacs-reader"
+       :vc (:url "https://codeberg.org/MonadicSheep/emacs-reader"
      	    :make "all"))
    #+end_src
 
 -  =use-package= with =straight=
    #+begin_src emacs-lisp
      (use-package reader
-       :straight '(reader :type git :host codeberg :repo "divyaranjan/emacs-reader"
+       :straight '(reader :type git :host codeberg :repo "MonadicSheep/emacs-reader"
      	      :files ("*.el" "render-core.so")
      	      :pre-build ("make" "all")))
    #+end_src
@@ -120,7 +120,7 @@ And then use the straight or package-vc recipe from the [[* GNU/Linux][GNU/Linux
 
 #+begin_src emacs-lisp
   (use-package reader
-    :straight '(reader :type git :host codeberg :repo "divyaranjan/emacs-reader"
+    :straight '(reader :type git :host codeberg :repo "MonadicSheep/emacs-reader"
      		     :files ("*.el" "render-core.dylib")
      		     :pre-build ("make" "all")))
 #+end_src
@@ -137,13 +137,13 @@ First install the build dependencies:
 pacman -S make mingw-w64-x86_64-gcc git pkg-config mingw-w64-x86_64-libmupdf
 #+end_src
 
-After that, you can run =git clone https://codeberg.org/divyaranjan/emacs-reader.git= and then:
+After that, you can run =git clone https://codeberg.org/MonadicSheep/emacs-reader.git= and then:
 #+begin_src sh
 make all
 #+end_src
 
 ** Manual
-This section is about how to install this package manually. Intended to be used by developers and testers.
+This section is about how to install this package manually. Intended to be used by developers and testers.n
 
 After cloning the repository, follow the instructions from the previous section to install dependencies on your respective operating system.
 

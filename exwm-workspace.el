@@ -1303,6 +1303,9 @@ ALIST is an action alist, as accepted by function `display-buffer'."
         (window-id (string-to-number (frame-parameter frame 'window-id)))
         (container (xcb:generate-id exwm--connection))
         frame-colormap frame-visual frame-depth)
+    ;; Remove the internal frame border unless the user explicitly set one.
+    (unless (frame-parameter frame 'internal-border-width)
+      (set-frame-parameter frame 'internal-border-width 0))
     ;; Save window IDs
     (set-frame-parameter frame 'exwm-outer-id outer-id)
     (set-frame-parameter frame 'exwm-id window-id)
@@ -1662,8 +1665,6 @@ applied to all subsequently created X frames."
   (exwm-workspace--update-switch-by-name-map)
   ;; Prevent unexpected exit
   (setq exwm-workspace--fullscreen-frame-count 0)
-  (exwm-workspace--modify-all-x-frames-parameters
-   '((internal-border-width . 0)))
   (let ((initial-workspaces (frame-list)))
     (if (not (exwm-workspace--minibuffer-own-frame-p))
         ;; Initialize workspaces with minibuffers.
@@ -1673,8 +1674,9 @@ applied to all subsequently created X frames."
             (unless (frame-parameter i 'window-id)
               (setq initial-workspaces (delq i initial-workspaces))))
           (let ((f (car initial-workspaces)))
-            ;; Remove the possible internal border.
-            (set-frame-parameter f 'internal-border-width 0)))
+            ;; Remove the internal border, unless explicitly set by the user.
+            (unless (frame-parameter f 'internal-border-width)
+              (set-frame-parameter f 'internal-border-width 0))))
       (exwm-workspace--init-minibuffer-frame)
       ;; Remove/hide existing frames.
       (dolist (f initial-workspaces)
@@ -1741,7 +1743,6 @@ applied to all subsequently created X frames."
                                      (exwm-outer-id . nil)
                                      (exwm-id . nil)
                                      (exwm-container . nil)
-                                     ;; (internal-border-width . nil) ; integerp
                                      (fullscreen . nil)
                                      (buffer-predicate . nil))))))
   ;; Don't let dead frames linger.

@@ -713,7 +713,7 @@ msgstr "setq"
 #. type: menuentry
 #: emacs-lisp-intro.texi:323 emacs-lisp-intro.texi:1065
 msgid "Setting the value of a variable."
-msgstr "De waarde van een variabele setten."
+msgstr "De waarde van een variabele zetten."
 
 #. type: section
 #: emacs-lisp-intro.texi:323 emacs-lisp-intro.texi:1065
@@ -830,7 +830,7 @@ msgstr "Returns en zij-effecten..."
 #: emacs-lisp-intro.texi:1648 emacs-lisp-intro.texi:1649
 #, no-wrap
 msgid "Evaluating Inner Lists"
-msgstr "Geneste lijsten evaluaren"
+msgstr "Geneste lijsten evalueren"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:340 emacs-lisp-intro.texi:1620
@@ -931,7 +931,7 @@ msgstr "Een nuttige functie om boodschappen te zenden."
 #: emacs-lisp-intro.texi:360 emacs-lisp-intro.texi:2276
 #, no-wrap
 msgid "Setting the Value of a Variable"
-msgstr "De waarde van een variabele setten"
+msgstr "De waarde van een variabele zetten"
 
 #. type: node
 #: emacs-lisp-intro.texi:363 emacs-lisp-intro.texi:2292
@@ -5370,7 +5370,7 @@ msgid ""
 "evaluate, the interpreter prints that value in the echo area."
 msgstr ""
 "Wat er gebeurt is dat de Lisp interpreter eerst de waarde van de "
-"binnenste expressie, @code{(+ 3 3)} evaluaeert, wat de waarde 6 "
+"binnenste expressie, @code{(+ 3 3)} evalueert, wat de waarde 6 "
 "teruggeeft. Vervolgens evalueert het de buitenste expressie alsof "
 "die als @code{(+ 2 6)} geschreven was, wat de waarde 8 teruggeeft. "
 "Omdat er geen omsluitende expressies meer te evalueren zijn, toont "
@@ -5457,6 +5457,15 @@ msgid ""
 "any expression in Lisp, such as a symbol, number, list, or string.  A symbol "
 "that has a value is often called a @dfn{variable}."
 msgstr ""
+"In Emacs Lisp kan een symbool aan een waarde aan zich gekoppeld hebben, net "
+"zoals het een functiedefinitie aan zich gekoppeld kan hebben. Dit twee zijn "
+"verschillend. De functiedefinitie is een verzameling instructies die "
+"de computer zal gehoorzamen. Daartegenover is een waard is iets, "
+"zoals een getaal of een naam die kan variëren (daarom wordt zo'n "
+"symbool een variabele genoemd). De waarde van een symbool kan elke "
+"expressie in Lisp zijn, zoals een symbool, getal, lijst of string. "
+"Een symbool die een waarde heeft wordt vaak een @dfn{variable} "
+"genoemd."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1730
@@ -5467,6 +5476,12 @@ msgid ""
 "to the city in Massachusetts and have some information attached to the name "
 "as well, such as ``great programming center''."
 msgstr ""
+"Een symbool kan zowel een functiedefinitie als een waarde "
+"tegelijkertijd aan zich gekoppeld hebben. Of het kan slechts een van "
+"die tee hebben. De twee staan los van elkaar. Dit is ongeveer "
+"vergelijkbaar me de manier waarop Cambridge kan refereren naar een "
+"stad in Massachusetts en informatie aan de naam gekoppeld kan "
+"hebben, zoals ``geweldig programmeercentrum''."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1742
@@ -5477,6 +5492,11 @@ msgid ""
 "changed without affecting the contents of the drawer holding the function "
 "definition, and vice versa."
 msgstr ""
+"Een andere manier om hierover te denken is een symbool voor te "
+"stellen als een ladekast. De functiedefinitie wordt in de ene lade "
+"gestopt, de waarde in een andere, enzovoorts. Wat in de lade die de "
+"waarde bevat gestopt is kan worden veranderd zonder effect te hebben "
+"op de lade die de functiedefinitie bevat, en vice versa. "
 
 #. type: node
 #: emacs-lisp-intro.texi:1751
@@ -5488,25 +5508,25 @@ msgstr "fill-column voorbeeld"
 #: emacs-lisp-intro.texi:1752
 #, no-wrap
 msgid "@code{fill-column}, an Example Variable"
-msgstr ""
+msgstr "@code{fill-column}, een voorbeeldvariabele"
 
 #. type: findex
 #: emacs-lisp-intro.texi:1755
 #, no-wrap
 msgid "fill-column@r{, an example variable}"
-msgstr ""
+msgstr "fill-column@r{, een voorbeeldvariabele}"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1756
 #, no-wrap
 msgid "Example variable, @code{fill-column}"
-msgstr ""
+msgstr "Voorbeeldvariabele, @code{fill-column}"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1757
 #, no-wrap
 msgid "Variable, example of, @code{fill-column}"
-msgstr ""
+msgstr "Variabele, voorbeeld van, @code{fill-column}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1764
@@ -5518,12 +5538,19 @@ msgid ""
 "GNU Emacs, you can do this by putting the cursor after the symbol and typing "
 "@kbd{C-x C-e}:"
 msgstr ""
+"De variabele @code{fill-column} illustreert een symbool waar een "
+"waarde aan gekoppeld is. In elk GNU Emacs buffer is dit symbool op "
+"een bepaalde waarde gezet, meetal 72 of 70, maar soms een andere "
+"waarde. Om de waarde van dit symbool te vinden evalueer het op "
+"zichzelf. wanneer je dit in Info binnen GNU Emacs leest, dan doe je "
+"dit door de cursor achter het symbool te zetten en vervolgens "
+"@kbd{C-x C-e} te typen:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:1767
 #, no-wrap
 msgid "fill-column\n"
-msgstr ""
+msgstr "fill-column\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1778
@@ -5536,6 +5563,15 @@ msgid ""
 "view of the Lisp interpreter, a value returned is a value returned.  What "
 "kind of expression it came from ceases to matter once the value is known."
 msgstr ""
+"Nadat ik @kbd{C-x C-e} typte, toonde Emacs het getal 72 in mijn "
+"echogebied. Dit is waarde waar voor mij @code{fill-column} op is "
+"gezet terwijl ik dit schrijf. Het kan verschillend zijn voor in jouw "
+"Infobuffer. Merk op dat de waarde die de variabele teruggeeft op "
+"precies dezelfde manier wordt getoond als de waarde die teruggeven "
+"wordt door een functie die zijn instructies uitvoert. Vanuit het "
+"gezichtspunt van de Lisp interpreter is een teruggeven waarde een "
+"teruggegeven waarde. Van wat voor soort expresse het vandaan kwam "
+"doet er niet meer toe zodra de waarde bekend is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1783
@@ -5545,6 +5581,11 @@ msgid ""
 "@code{\"such as this\"}; to a list, such as @code{(spruce pine oak)}; we can "
 "even bind a variable to a function definition."
 msgstr ""
+"Een symbool kan elke waarde aan zich gekoppeld hebben, of om het "
+"jargon te gebruiken, we kunnen de variabele aan een waarde "
+"@dfn{binden}: aan een getal, zoals 72, aan een string @code{\"zoals "
+"deze\"}, aan een lijst, zoals @code{(spar den eik)}; we kunnen zelfs "
+"een variabele aan een functiedefinitie binden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1787
@@ -5552,24 +5593,27 @@ msgid ""
 "A symbol can be bound to a value in several ways.  @xref{setq, , Setting the "
 "Value of a Variable}, for information about one way to do this."
 msgstr ""
+"Een symbool kan op verschillende manieren aan een waarde worden "
+"gebonden. @xref{setq, , De waarde van een variabele zetten}, voor "
+"informatie over een manier om dit te doen."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:1789
 #, no-wrap
 msgid "Error Message for a Symbol Without a Function"
-msgstr ""
+msgstr "Foutmelding voor een symbool zonder functie"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1790
 #, no-wrap
 msgid "Symbol without function error"
-msgstr ""
+msgstr "Symbool zonder functie foutmelding"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1791
 #, no-wrap
 msgid "Error for symbol without function"
-msgstr ""
+msgstr "Fout van symbool zonder functie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1796
@@ -5578,6 +5622,9 @@ msgid ""
 "not place parentheses around the word.  This is because we did not intend to "
 "use it as a function name."
 msgstr ""
+"Bij het evalueren van @code{fill-column} om de de waarde daarvan als "
+"een variabele te ontdekken, plaatsten we geen haakjes rondom het "
+"woord. Dit is omdat we het niet als functienaam wilden gebruiken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1801
@@ -5586,17 +5633,21 @@ msgid ""
 "interpreter would attempt to find the function definition attached to it.  "
 "But @code{fill-column} has no function definition.  Try evaluating this:"
 msgstr ""
-
+"Wanneer @code{fill-column} het eerste of enige element van een lijst "
+"was, zou de Lisp interpreter proberen de er aangekoppelde "
+"functiedefinitie te vinden. Maar @code{fill-column} heeft geen "
+"functiedefinitie. Probeer dit te evalueren:"
+" "
 #. type: smallexample
 #: emacs-lisp-intro.texi:1804
 #, no-wrap
 msgid "(fill-column)\n"
-msgstr ""
+msgstr "(fill-column)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1809
 msgid "You will create a @file{*Backtrace*} buffer that says:"
-msgstr ""
+msgstr "Je maakt een @file{*Backtrace*} buffer dat het volgende toont:"
 
 #. type: group
 #: emacs-lisp-intro.texi:1822
@@ -5613,6 +5664,16 @@ msgid ""
 "  command-execute(eval-last-sexp)\n"
 "---------- Buffer: *Backtrace* ----------\n"
 msgstr ""
+"---------- Buffer: *Backtrace* ----------\n"
+"Debugger entered--Lisp error: (void-function fill-column)\n"
+"  (fill-column)\n"
+"  eval((fill-column) nil)\n"
+"  elisp--eval-last-sexp(nil)\n"
+"  eval-last-sexp(nil)\n"
+"  funcall-interactively(eval-last-sexp nil)\n"
+"  call-interactively(eval-last-sexp nil nil)\n"
+"  command-execute(eval-last-sexp)\n"
+"---------- Buffer: *Backtrace* ----------\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1828
@@ -5620,24 +5681,26 @@ msgid ""
 "(Remember, to quit the debugger and make the debugger window go away, type "
 "@kbd{q} in the @file{*Backtrace*} buffer.)"
 msgstr ""
+"(Onthoud, om de debugger te sluiten en het debugger window te laten verdwijnen "
+"type je @kbd{q} in het @file{*Backtrace*} buffer.)"
 
 #. type: subsection
 #: emacs-lisp-intro.texi:1830
 #, no-wrap
 msgid "Error Message for a Symbol Without a Value"
-msgstr ""
+msgstr "Foutmelding voor een symbool zonder waarde"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1831
 #, no-wrap
 msgid "Symbol without value error"
-msgstr ""
+msgstr "Symbool zonder waarde fout"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1832
 #, no-wrap
 msgid "Error for symbol without value"
-msgstr ""
+msgstr "Fout voor symbool zonder waarde"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1839
@@ -5647,11 +5710,15 @@ msgid ""
 "our 2 plus 2 addition.  In the following expression, put your cursor right "
 "after the @code{+}, before the first number 2, type @kbd{C-x C-e}:"
 msgstr ""
+"Wanneer je een symbool dat geen waarde aan het gekoppeld heeft probeert te "
+"evalueren, dan krijg je een foutmelding. Dit kan je zien door te experimenteren "
+"met onze 2 plus 2 optelling. Zet de cursor meteen achter de @code{+}, voor het "
+"eerste getal 2 in de volgende expressie, en typ @kbd{C-x C-e}:"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1848
 msgid "In GNU Emacs 22, you will create a @file{*Backtrace*} buffer that says:"
-msgstr ""
+msgstr "In GNU Emacs 22 maak je een @file{*Backtrace*} buffer dat het volgende toont:"
 
 #. type: group
 #: emacs-lisp-intro.texi:1860
@@ -5667,6 +5734,15 @@ msgid ""
 "  command-execute(eval-last-sexp)\n"
 "---------- Buffer: *Backtrace* ----------\n"
 msgstr ""
+"---------- Buffer: *Backtrace* ----------\n"
+"Debugger entered--Lisp error: (void-variable +)\n"
+"  eval(+)\n"
+"  elisp--eval-last-sexp(nil)\n"
+"  eval-last-sexp(nil)\n"
+"  funcall-interactively(eval-last-sexp nil)\n"
+"  call-interactively(eval-last-sexp nil nil)\n"
+"  command-execute(eval-last-sexp)\n"
+"---------- Buffer: *Backtrace* ----------\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1866
@@ -5674,6 +5750,8 @@ msgid ""
 "(Again, you can quit the debugger by typing @kbd{q} in the "
 "@file{*Backtrace*} buffer.)"
 msgstr ""
+"(Je sluit de debugger opnieuw door @kbd{q} in het "
+"@file{*Backtrace*} buffer te typen.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1872
@@ -5684,6 +5762,11 @@ msgid ""
 "error message, the function (the word @samp{this}) did not have a "
 "definition."
 msgstr ""
+"Deze backtrace verschilt van de allereerste foutmelding die we "
+"zagen, die toonde @samp{Debugger entered--Lisp error: (void-function "
+"dit)}. In dit geval heeft de functie geen waarde als variabele, "
+"terwijl in de andere foutmelding, de functie (het woord @samp{dit}) "
+"geen definitie had."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1880
@@ -5695,6 +5778,12 @@ msgid ""
 "we did before.  As a consequence, the Lisp interpreter evaluated the "
 "preceding s-expression, which in this case was @code{+} by itself."
 msgstr ""
+"Wat we in het experiment met de @code{+} deden liet de Lisp interpreter "
+"de @code{+} evaluaren en zoeken naar de waarde van de variabele in plaats "
+"van de functiedefinitie. Dit deze we door de cursor meteen achter het "
+"symbool te plaatsen dan achter het haakje van de omsluitende lijst, zoals "
+"we eerder deden. Als gevolg hiervan evalueerde de Lisp interpreter de "
+"voorafgaande s-expressie, in dit geval @code{+} op zichzelf."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1884
@@ -5703,12 +5792,15 @@ msgid ""
 "definition, the error message reported that the symbol's value as a variable "
 "was void."
 msgstr ""
+"Omdat @code{+} geen waarde aan zicht gekoppeld heeft en alleen een "
+"functiedefinitie, rapporteerde de foutmelding dat de waarde van het symbool "
+"als variabele leeg was."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1888
 #, no-wrap
 msgid "Passing information to functions"
-msgstr ""
+msgstr "Informatie naar functies doorgeven"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1893
@@ -5716,6 +5808,9 @@ msgid ""
 "To see how information is passed to functions, let's look again at our old "
 "standby, the addition of two plus two.  In Lisp, this is written as follows:"
 msgstr ""
+"Laten we nog eens naar onze oude voorbeeld kijken om te zien hoe "
+"informatie tussen functies doorgegeven wordt, de optelling van twee "
+"plus twee. In Lisp schrijven we dit als volgt:"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1901
@@ -5724,12 +5819,15 @@ msgid ""
 "area.  What the Lisp interpreter does is add the numbers that follow the "
 "@code{+}."
 msgstr ""
+"Wanneer je deze expressie evalueert verschijnt het getal in je "
+"echogebied. Wat de Lisp interpreter doet is het optellen van de "
+"getallen die volgen na de @code{+}."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1902
 #, no-wrap
 msgid "@samp{argument} defined"
-msgstr ""
+msgstr "@samp{argument} gedefinieerd"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1906
@@ -5738,6 +5836,9 @@ msgid ""
 "@code{+}.  These numbers are the information that is given to or "
 "@dfn{passed} to the function."
 msgstr ""
+"De getallen toegevoegd aan @code{+} heten de @dfn{argumenten} van de "
+"functie @code{+}. Deze getallen vormen de informatie die "
+"@dfn{doorgegeven} wordt aan de de functie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1926
@@ -5761,24 +5862,43 @@ msgid ""
 "definitions attached to it at the same time.  By contrast, in Emacs Lisp, a "
 "symbol cannot have two different function definitions at the same time.)}"
 msgstr ""
+"Het woord ``argument'' komt van de manier waarop het gebruikt wordt in "
+"wiskunde en refereert niet naar een dispuut tussen twee mensen. In plaats "
+"daarvan refereert het naar de informatie gegeven aan een functie, in dit "
+"geval aan de @code{+}. In Lisp zijn de argumenten van een functie de atomen "
+"of lijsten die volgen op de functie. De waarde die de evaluatie van deze "
+"atomen of lijsten teruggeeft worden doorgegeven aan de functie. Verschillende "
+"functies vereisen een verschillend aantal argumenten, sommige functies "
+"vereisen er geen.@footnote{Het is interessant om het pad te volgen "
+"dat voor het woord ``argument'' tot twee verschillende betekenissen "
+"leidde, eentje in wiskunde en eentje in dagelijks Engels. Volgens de @cite{Oxford English Dictionary} "
+"is het woord afgeleid van het Latijn voor @samp{duidelijk maken, bewijzen}. "
+"Via één tak van de afleiding kreeg het de betekenis ``het bewijsmateriaal "
+"aangereikt als bewijs'', met andere woorden ``de aangeboden informatie'', "
+"wat tot de betekenis van het woord in Lisp leidde. In de andere tak van de "
+"afleiding kreeg het de betekenis ``iets beweren op een manier waarop anderen "
+"een tegenbewering maken'', wat leidde tot de betekenis van het woord als "
+"dispuut. (Merk op dat het Engelse woord hier tegelijk aan twee betekenissen "
+"zich gekoppeld heeft. In tegenstelling kan in Emacs Lisp een symbool "
+"geen twee verschillende functiedefinities tegelijk kan hebben.)}"
 
 #. type: subsection
 #: emacs-lisp-intro.texi:1939
 #, no-wrap
 msgid "Arguments' Data Types"
-msgstr ""
+msgstr "Data typen van argumenten"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1941
 #, no-wrap
 msgid "Types of data"
-msgstr ""
+msgstr "Typen van data"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1942
 #, no-wrap
 msgid "Arguments' data types"
-msgstr ""
+msgstr "Data typen van argumenten"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1948
@@ -5788,12 +5908,17 @@ msgid ""
 "values that are numbers, since @code{+} adds numbers.  Other functions use "
 "different kinds of data for their arguments."
 msgstr ""
+"Het type data dat aan een functie moet worden doorgegeven hangt af "
+"van het soort informatie dat die gebruikt. De argumenten voor een "
+"functie zoals @code{+} moeten waarden hebben die getallen zijn, "
+"omdat @code{+} getallen optelt. Andere functies gebruiken andere "
+"vormen van data voor hun argumenten."
 
 #. type: findex
 #: emacs-lisp-intro.texi:1950
 #, no-wrap
 msgid "concat"
-msgstr ""
+msgstr "concat"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1956
@@ -5803,23 +5928,28 @@ msgid ""
 "Concatenating the two character strings @code{abc}, @code{def} produces the "
 "single string @code{abcdef}.  This can be seen by evaluating the following:"
 msgstr ""
+"De functie @code{concat} bijvoorbeeld koppelt of verbindt twee of "
+"meer tekstreeksen om een string te produceren. De argumeten zijn "
+"strings. Het concatenaten van de twee tekenreeksen @code{abc} en "
+"@code{def} produceert de enkele string @code{abcdef}. Dit is te zien "
+"door het volgende te evalueren:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:1959
 #, no-wrap
 msgid "(concat \"abc\" \"def\")\n"
-msgstr ""
+msgstr "(concat \"abc\" \"def\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1963
 msgid "The value produced by evaluating this expression is @code{\"abcdef\"}."
-msgstr ""
+msgstr "De waarde die het evalueren van deze expressie produceert is @code{\"abcdef\"}."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1964
 #, no-wrap
 msgid "substring"
-msgstr ""
+msgstr "substring"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1974
@@ -5833,17 +5963,26 @@ msgid ""
 "spaces and punctuation) from the beginning of the string.  Note that the "
 "characters in a string are numbered from zero, not one."
 msgstr ""
+"Een functie zoals @code{substring} gebruikt zowel een string en "
+"getallen als argumenten. De functie geeft een van de string terug, "
+"een @dfn{substring} van zijn eerste argument. Deze functie "
+"accepteert drie argumenten. Het eerste argument is de tekenreeks, "
+"het tweede en derde argument zijn de getallen die het begin "
+"(inclusief) en het einde (exclusief) van de substring aanduiden. De "
+"getallen zijn een telling van het aantal karakters (inclusief "
+"spaties en leestekens) vanaf het begin van de string. Merk op dat "
+"de karakters vanaf nul zijn genummerd, niet vanaf één."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1977
 msgid "For example, if you evaluate the following:"
-msgstr ""
+msgstr "Bijvoorbeeld, als je het volgende evalueert:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:1980
 #, no-wrap
 msgid "(substring \"The quick brown fox jumped.\" 16 19)\n"
-msgstr ""
+msgstr "(substring \"The quick brown fox jumped.\" 16 19)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1985
@@ -5851,6 +5990,8 @@ msgid ""
 "you will see @code{\"fox\"} appear in the echo area.  The arguments are the "
 "string and the two numbers."
 msgstr ""
+"dan zie je @code{\"fox\"} in het echogebied verschijnen. De "
+"argumenten zijn de string en twee getallen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1994
@@ -5864,12 +6005,19 @@ msgid ""
 "argument that is a string, not from another type of atom such as a number or "
 "symbol."
 msgstr ""
+"Merk op dat de aan @code{substring} doorgegeven string een enkelvoudig atoom is, "
+"alhoewel het is opgebouwd uit meerdere woorden gescheiden door spaties. Lisp rekent "
+"alles tussen de twee aanhalingstekens als onderdeel van de string, inclusief "
+"de spaties. Je kunt de @code{substring} functie als een soort van atoombreker "
+"zien, omdat het een anders ondeelbaar atoom neemt en daar een onderdeel uit haalt. "
+"@code{substring} is echter alleen in staat een substring uit een argument te "
+"halen dat een string is, niet van ander soort atoom zoals een getal of een symbool."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:1996
 #, no-wrap
 msgid "An Argument as the Value of a Variable or List"
-msgstr ""
+msgstr "Een argument als de waarde van een variabele of lijst"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2001
@@ -5878,17 +6026,21 @@ msgid ""
 "example, when the symbol @code{fill-column} by itself is evaluated, it "
 "returns a number.  This number can be used in an addition."
 msgstr ""
+"Een argument kan een symbool zijn die een waarde teruggeeft wanneer het wordt "
+"geëvalueerd. Wanneer bijvoorbeeld het symbool @code{fill-column} op zichzelf "
+"wordt geëvalueerd, geeft het een getal terug. Dit getal kan in een optelling "
+"worden gebruikt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2005
 msgid "Position the cursor after the following expression and type @kbd{C-x C-e}:"
-msgstr ""
+msgstr "Plaats de cursor achter de volgende expressie en typ @kbd{C-x C-e}:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:2008
 #, no-wrap
 msgid "(+ 2 fill-column)\n"
-msgstr ""
+msgstr "(+ 2 fill-column)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2014
@@ -5897,6 +6049,9 @@ msgid ""
 "@code{fill-column} alone.  For me, this is 74, because my value of "
 "@code{fill-column} is 72."
 msgstr ""
+"De waarde is een getal, twee groter dan wat je krijgt door het "
+"evalueren van alleen @code{fill-column}. Voor mij is dit 74, omdat "
+"mijn waarde van @code{fill-column} 72 is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2021
@@ -5908,12 +6063,19 @@ msgid ""
 "@w{@code{\" red foxes.\"}} and the list @code{(number-to-string (+ 2 "
 "fill-column))}."
 msgstr ""
+"Zoals we zojuist zagen kan een argument een symbool zijn dat een "
+"waarde teruggeeft wanneer het geëvalueerd wordt. Daarnaast kan een "
+"argument ene lijst zijn die een waarde teruggeeft wanneer die "
+"geëvalueerd wordt. Bijvoorbeeld in de volgende expressie zijn de "
+"argumenten voor de functie @code{concat} de strings @w{@code{\"De \"}} "
+"en @w{@code{\" rode vossen.\"}} en de lijst "
+"@code{(number-to-string (+ 2 fill-column))}."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:2024
 #, no-wrap
 msgid "(concat \"The \" (number-to-string (+ 2 fill-column)) \" red foxes.\")\n"
-msgstr ""
+msgstr "(concat \"De \" (number-to-string (+ 2 fill-column)) \" rode vossen.\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2034
@@ -5926,18 +6088,24 @@ msgid ""
 "addition function returns to a string.  @code{number-to-string} is also "
 "known as @code{int-to-string}.)"
 msgstr ""
+"Wanneer je deze expressie evalueert---en als, zoals met mijn Emacs, "
+"@code{fill-column} naar 72 evalueert---verschijnt @code{\"De 74 rode vossen.\"} "
+"in het echogebied. (Merk op dat je spaties achter het woord @samp{De} en voor het "
+"voord @samp{rode} zet zodat deze in de finale string verschijnen. De functie "
+"@code{number-to-string} converteert de integer die de optelling teruggeeft "
+"naar een string. @code{number-to-string} is ook bekend als @code{int-to-string}.)"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2037
 #, no-wrap
 msgid "Variable number of arguments"
-msgstr ""
+msgstr "Variabel aantal argumenten"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2038
 #, no-wrap
 msgid "Arguments, variable number of"
-msgstr ""
+msgstr "Argumenten, variabel aantal"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2045
@@ -5948,11 +6116,16 @@ msgid ""
 "you will see in the echo area is printed in this text after "
 "@samp{@result{}}, which you may read as ``evaluates to''."
 msgstr ""
+"Sommige functies, zoals  @code{concat}, @code{+} of @code{*} accepteren elk aantal "
+"argumenten. (De @code{*} is het symbool voor vermenigvuldiging.) Dit is te zien "
+"door het op de gebruikelijke manier evalueren van elk van de volgende expressies. "
+"Wat je in het echogebeid ziet verschijnen is deze tekst achter @samp{@result{}} "
+"wat je kunt lezen als ``evalueert naar''. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2048
 msgid "In the first set, the functions have no arguments:"
-msgstr ""
+msgstr "In de eerste groep hebben de functies geen argumenten:"
 
 #. type: group
 #: emacs-lisp-intro.texi:2052
@@ -5961,17 +6134,19 @@ msgid ""
 "(+)       @result{} 0\n"
 "\n"
 msgstr ""
+"(+)       @result{} 0\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:2054
 #, no-wrap
 msgid "(*)       @result{} 1\n"
-msgstr ""
+msgstr "(*)       @result{} 1\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2059
 msgid "In this set, the functions have one argument each:"
-msgstr ""
+msgstr "In deze groep hebben de functies elk één argument:"
 
 #. type: group
 #: emacs-lisp-intro.texi:2063
@@ -5980,17 +6155,19 @@ msgid ""
 "(+ 3)     @result{} 3\n"
 "\n"
 msgstr ""
+"(+ 3)     @result{} 3\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:2065
 #, no-wrap
 msgid "(* 3)     @result{} 3\n"
-msgstr ""
+msgstr "(* 3)     @result{} 3\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2070
 msgid "In this set, the functions have three arguments each:"
-msgstr ""
+msgstr "In deze groep hebben de functies elk drie argumenten:"
 
 #. type: group
 #: emacs-lisp-intro.texi:2074
@@ -5999,30 +6176,32 @@ msgid ""
 "(+ 3 4 5) @result{} 12\n"
 "\n"
 msgstr ""
+"(+ 3 4 5) @result{} 12\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:2076
 #, no-wrap
 msgid "(* 3 4 5) @result{} 60\n"
-msgstr ""
+msgstr "(* 3 4 5) @result{} 60\n"
 
 #. type: subsection
 #: emacs-lisp-intro.texi:2080
 #, no-wrap
 msgid "Using the Wrong Type Object as an Argument"
-msgstr ""
+msgstr "Het verkeerde object type als argument gebruiken"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2081
 #, no-wrap
 msgid "Wrong type of argument"
-msgstr ""
+msgstr "Verkeerde type argument"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2082
 #, no-wrap
 msgid "Argument, wrong type of"
-msgstr ""
+msgstr "Argument, verkeerde type"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2090
@@ -6033,12 +6212,18 @@ msgid ""
 "pass it the quoted symbol @code{hello} instead of a number.  Position the "
 "cursor after the following expression and type @kbd{C-x C-e}:"
 msgstr ""
+"Wanneer aan een functie een argument van een verkeerde type wordt "
+"doorgegeven, produceert de Lisp interpreter een foutmelding. "
+"Bijvoorbeeld verwacht de @code{+} functie dat de waarden van zijn "
+"argumenten getallen zijn. Als experiment kunnen we het gequote "
+"symbool @code{hello} in plaats van een getal doorgeven. Plaats de "
+"cursor achter de volgende expressie en typ @kbd{C-x C-e}:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:2093
 #, no-wrap
 msgid "(+ 2 'hello)\n"
-msgstr ""
+msgstr "(+ 2 'hello)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2101
@@ -6049,11 +6234,17 @@ msgid ""
 "number.  Only numbers can be added.  So @code{+} could not carry out its "
 "addition."
 msgstr ""
+"Wanneer je dit doet dan genereer je een foutmelding. Wat gebeurde is "
+"dat @code{+} geprobeerd het 2 op te tellen bij de waarde "
+"teruggegeven door @code{'hello}, maar de waarde teruggegeven door "
+"@code{'hello} is het symbool @code{hello}, geen getal. Alleen "
+"getallen kunnen worden opgeteld. Daardoor kon @code{+} zijn "
+"optelling niet uitvoeren."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2104
 msgid "You will create and enter a @file{*Backtrace*} buffer that says:"
-msgstr ""
+msgstr "Je maakt en betreedt een @file{*Backtrace*} buffer die toont:"
 
 #. type: group
 #: emacs-lisp-intro.texi:2119
@@ -6071,6 +6262,17 @@ msgid ""
 "  command-execute(eval-print-last-sexp)\n"
 "---------- Buffer: *Backtrace* ----------\n"
 msgstr ""
+"---------- Buffer: *Backtrace* ----------\n"
+"Debugger entered--Lisp error:\n"
+"         (wrong-type-argument number-or-marker-p hello)\n"
+"  +(2 hello)\n"
+"  eval((+ 2 'hello) nil)\n"
+"  elisp--eval-last-sexp(t)\n"
+"  eval-last-sexp(nil)\n"
+"  funcall-interactively(eval-print-last-sexp nil)\n"
+"  call-interactively(eval-print-last-sexp nil nil)\n"
+"  command-execute(eval-print-last-sexp)\n"
+"---------- Buffer: *Backtrace* ----------\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2126
@@ -6079,6 +6281,10 @@ msgid ""
 "learn how to read it.@footnote{@code{(quote hello)} is an expansion of the "
 "abbreviation @code{'hello}.}"
 msgstr ""
+"Zoals gebruikelijk probeert de foutmelding behulpzaam te zijn en "
+"klinkt logisch nadat je geleerd hebt hoe die te "
+"lezen.@footnote{@code{(quote hello)} is een expansie van de "
+"afkorting @code{'hello}.}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2131
@@ -6088,6 +6294,10 @@ msgid ""
 "@w{@samp{number-or-marker-p}}.  This word is trying to tell you what kind of "
 "argument the @code{+} expected."
 msgstr ""
+"Het eerste deel van de foutmelding is eenvoudig, het toont "
+"@samp{wrong type argument}. Daarna komt in mysterieus jargon het "
+"woord @w{@samp{number-or-marker-p}}. Dit woord probeert je aan te "
+"geven welk type argument de @code{+} verwachtte."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2144
@@ -6104,12 +6314,24 @@ msgid ""
 "location is from the beginning of the buffer.)  In Emacs Lisp, @code{+} can "
 "be used to add the numeric value of marker positions as numbers."
 msgstr ""
+"Het symbool @code{number-or-marker-p} geeft aan dat de Lisp interpreter "
+"probeert vast te stellen of de informatie die het kreeg een getal is of "
+"een marker (een speciaal object dat een bufferpositie vertegenwoordigt). "
+"Wat het doet is testen of de @code{+} getallen kreeg om op te tellen. "
+"Ook test of of het argument iets is dat een marker genoemd wordt, wat "
+"een specifieke eigenschap van Emacs Lisp is. (In Emacs worden locaties "
+"in een buffer geregistreerd als markers. Wanneer de mark is gezet met "
+"het @kbd{C-@@} of @kbd{C-@key{SPC}} commando, wordt zijn positie bewaard "
+"als een marker. De mark kan worden beschouwd als een getal--het aantal "
+"karakters van de lokatie ten opzichte van het begin van de buffer.) "
+"In Emacs Lisp kan @code{+} gebruikt worden om de numerieke waarde van de "
+"marker-posities als getallen op te tellen."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2145
 #, no-wrap
 msgid "@samp{predicate} defined"
-msgstr ""
+msgstr "@samp{predicate} gedefinieerd"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2156
@@ -20243,13 +20465,13 @@ msgstr ""
 #: emacs-lisp-intro.texi:11976
 #, no-wrap
 msgid "No Deferment Solution"
-msgstr ""
+msgstr "Geen uitstel oplossing"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11978
 #, no-wrap
 msgid "Solution without deferment"
-msgstr ""
+msgstr "Oplossing zonder uitstel"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11987

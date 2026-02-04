@@ -5,7 +5,7 @@
 ;; Author:  Matto Fransen <matto@matto.nl>
 ;; Maintainer:  Matto Fransen <matto@matto.nl>
 ;; Url: https://codeberg.org/mattof/denote-review
-;; Version: 1.0.4
+;; Version: 1.0.5
 ;; Keywords: files
 ;; Package-Requires: ((emacs "28.1") (denote "4.1.3"))
 
@@ -98,7 +98,9 @@ Or use THISDATE, when not nil.
 INSERT-REGEXP is regepx to search for appropriate insert location."
   (goto-char (point-min))
   (let ((date (or thisdate (format-time-string "%F"))))
-    (re-search-forward insert-regexp nil t)
+    (unless
+        (re-search-forward insert-regexp nil t)
+      (error (format "Frontmatter \"%s\" not found" denote-review-insert-after)))
     (goto-char (line-end-position))
     (insert "\n" (denote-review-insert-reviewdate-line date))))
 

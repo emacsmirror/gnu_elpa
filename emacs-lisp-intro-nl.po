@@ -1126,7 +1126,7 @@ msgstr "if"
 #. type: menuentry
 #: emacs-lisp-intro.texi:390 emacs-lisp-intro.texi:2940
 msgid "What if?"
-msgstr "Wat als"
+msgstr "Wat als?"
 
 #. type: node
 #: emacs-lisp-intro.texi:390 emacs-lisp-intro.texi:2940
@@ -1235,7 +1235,7 @@ msgstr "De interactieve versie"
 #. type: menuentry
 #: emacs-lisp-intro.texi:407 emacs-lisp-intro.texi:3560
 msgid "Prevent confusion::"
-msgstr "Voorkom confussie::"
+msgstr "Voorkom verwarring::"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:407 emacs-lisp-intro.texi:3560
@@ -1245,7 +1245,7 @@ msgstr "Delen van een let expressie::"
 #. type: menuentry
 #: emacs-lisp-intro.texi:407 emacs-lisp-intro.texi:3560
 msgid "Sample let Expression::"
-msgstr "Eenvoudige let expressie::"
+msgstr "Voorbeeld let expressie::"
 
 #. type: node
 #: emacs-lisp-intro.texi:407 emacs-lisp-intro.texi:3704
@@ -2467,7 +2467,7 @@ msgstr "Recursief voorbeeld arg van 3 of 4"
 #. type: menuentry
 #: emacs-lisp-intro.texi:612 emacs-lisp-intro.texi:11671
 msgid "Every::"
-msgstr "Elke::"
+msgstr "Every::"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:612 emacs-lisp-intro.texi:11671
@@ -2850,7 +2850,7 @@ msgstr "De data voorbereiden om in een grafiek te tonen"
 #. type: menuentry
 #: emacs-lisp-intro.texi:670 emacs-lisp-intro.texi:15326
 msgid "Data for Display in Detail::"
-msgstr "Data om te tonen in detail::"
+msgstr "Data in detail te tonen::"
 
 #. type: node
 #: emacs-lisp-intro.texi:670 emacs-lisp-intro.texi:15326
@@ -6454,8 +6454,8 @@ msgstr ""
 "aanhalingstekens. Dat is omdat je de waarde ziet die de "
 "@code{message} functie teruggeeft. In de meeste toepassingen van "
 "@code{message} in programma's die je schrijft wordt de tekst getoond "
-"in het echogebied als zij-effect, zonder aanhalingstekens. "
-"@xref{vermenigvuldig-met-zeven in detail, , @code{vermenigvuldig-met-zeven} in detail} "
+"in het echogebied als zij-effect, zonder aanhalingstekens.\n"
+"@xref{vermenigvuldig-met-zeven in detail, , @code{vermenigvuldig-met-zeven} in detail},\n"
 "voor een voorbeeld hiervan)."
 
 #. type: Plain text
@@ -8874,30 +8874,34 @@ msgid ""
 "      @dots{})\n"
 "  @var{body}@dots{})\n"
 msgstr ""
+"(let ((@var{variable} @var{value})\n"
+"      (@var{variable} @var{value})\n"
+"      @dots{})\n"
+"  @var{body}@dots{})\n"
 
 #. type: node
 #: emacs-lisp-intro.texi:3654
 #, no-wrap
 msgid "Sample let Expression"
-msgstr ""
+msgstr "Voorbeeld let expressie"
 
 #. type: subsection
 #: emacs-lisp-intro.texi:3655
 #, no-wrap
 msgid "Sample @code{let} Expression"
-msgstr ""
+msgstr "Voorbeeld @code{let} expressie"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:3656
 #, no-wrap
 msgid "Sample @code{let} expression"
-msgstr ""
+msgstr "Voorbeeld @code{let} expressie"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:3657
 #, no-wrap
 msgid "@code{let} expression sample"
-msgstr ""
+msgstr "@code{let} expressie voorbeeld"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3662
@@ -9306,13 +9310,13 @@ msgstr ""
 #: emacs-lisp-intro.texi:3899
 #, no-wrap
 msgid "if in more detail"
-msgstr ""
+msgstr "if in meer detail"
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:3900
 #, no-wrap
 msgid "@code{if} in more detail"
-msgstr ""
+msgstr "@code{if} in meer detail"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:3903
@@ -10039,7 +10043,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:9349 emacs-lisp-intro.texi:13402
 #, no-wrap
 msgid "Review"
-msgstr ""
+msgstr "Terugblik"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4389
@@ -10053,7 +10057,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:4391
 #, no-wrap
 msgid "eval-last-sexp"
-msgstr ""
+msgstr "eval-last-sexp"
 
 #. type: table
 #: emacs-lisp-intro.texi:4396
@@ -17327,7 +17331,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:9540 emacs-lisp-intro.texi:9541
 #, no-wrap
 msgid "Lists diagrammed"
-msgstr "Lists uitgetekend"
+msgstr "Lijsten uitgetekend"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9553
@@ -20195,19 +20199,19 @@ msgstr ""
 #: emacs-lisp-intro.texi:11673
 #, no-wrap
 msgid "Every"
-msgstr ""
+msgstr "Every"
 
 #. type: unnumberedsubsubsec
 #: emacs-lisp-intro.texi:11674
 #, no-wrap
 msgid "Recursive Pattern: @emph{every}"
-msgstr ""
+msgstr "Recursief patroon: @emph{every}"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11675
 #, no-wrap
 msgid "Every, type of recursive pattern"
-msgstr ""
+msgstr "Every, soort van recursief patroon"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11676
@@ -20329,7 +20333,7 @@ msgid ""
 "beginning of the list (the @sc{car} of the list), @item and make a recursive "
 "call on the rest (the @sc{cdr}) of the list.  @end itemize"
 msgstr ""
-"Maar wanneer de lijst tenminste een element bevat, "
+"Maar wanneer de lijst tenminste een element bevat,\n"
 "@itemize @minus\n"
 "@item\n"
 "acteer op het begin van de lijst (de @sc{car} van de lijst),\n"
@@ -20380,12 +20384,12 @@ msgstr ""
 #. type: Plain text
 #: emacs-lisp-intro.texi:11787
 msgid "The pattern is:"
-msgstr ""
+msgstr "Het patroon is:"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:11791
 msgid "If a list be empty, return zero or some other constant."
-msgstr ""
+msgstr "Als een lijst leeg is, geef nul terug of een andere constante."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:11800
@@ -20395,6 +20399,15 @@ msgid ""
 "combining function, with @item a recursive call by the function on the rest "
 "(the @sc{cdr}) of the list.  @end itemize"
 msgstr ""
+"Zo niet, acteer op het begin van de lijst (de @sc{car} van de lijst),\n "
+"@itemize @minus\n "
+"@item\n"
+"en combineer dat bewerkte element, met @code{+} of een andere combinerende"
+"functie met\n"
+"@item\n"
+"een recursieve aanroep met de functie op de rest van de lijst"
+"(de @sc{cdr} van de lijst)\n"
+"@end itemize"
 
 #. type: group
 #: emacs-lisp-intro.texi:11812
@@ -20406,6 +20419,11 @@ msgid ""
 "      0\n"
 "    (+ (car numbers-list) (add-elements (cdr numbers-list)))))\n"
 msgstr ""
+"(defun add-elements (numbers-list)\n"
+"  \"Add the elements of NUMBERS-LIST together.\"\n"
+"  (if (not numbers-list)\n"
+"      0\n"
+"    (+ (car numbers-list) (add-elements (cdr numbers-list)))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11817
@@ -20458,7 +20476,7 @@ msgstr ""
 #. type: Plain text
 #: emacs-lisp-intro.texi:11838
 msgid "The pattern has three parts:"
-msgstr ""
+msgstr "Het patroon heeft drie elementen:"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:11851
@@ -20468,6 +20486,14 @@ msgid ""
 "with @item a recursive call by the function on the rest (the @sc{cdr}) of "
 "the list.  @end itemize"
 msgstr ""
+"Anders, als het begin van de lijst (de @sc{car} van de lijst) voor een test slaagt\n "
+"@itemize @minus\n "
+"@item\n "
+"acteer op dat element van de lijst en combineer het met @code{cons} met\n"
+"@item\n"
+"een recursieve aanroep van de functie op de rest van de lijst "
+"(de @sc{cdr} van de lijst) of de lijst\n"
+"@end itemize "
 
 #. type: itemize
 #: emacs-lisp-intro.texi:11860
@@ -20476,6 +20502,15 @@ msgid ""
 "test @itemize @minus @item skip on that element, @item and, recursively call "
 "the function on the rest (the @sc{cdr}) of the list.  @end itemize"
 msgstr ""
+"Zoniet, als het begin van de lijst (de @sc{car} van de lijst) niet slaagt "
+"voor de test\n"
+"@itemize @minus\n"
+"@item\n"
+"Sla het elmeent over,\n"
+"@item\n"
+"en roep recursief de functie aan op de rest van de lijst  "
+"(de @sc{cdr} van de lijst)\n"
+"@end itemize"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11864
@@ -25236,13 +25271,13 @@ msgstr ""
 #: emacs-lisp-intro.texi:15329
 #, no-wrap
 msgid "Data for Display in Detail"
-msgstr "Data for Display in Detail"
+msgstr "Data in detail te tonen"
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:15330
 #, no-wrap
 msgid "The Data for Display in Detail"
-msgstr ""
+msgstr "De data om in detail te tonen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15337
@@ -28882,6 +28917,17 @@ msgid ""
 "@exdent Or nowadays, using an even more sophisticated set of options, emacs "
 "-Q -D @end smallexample }:"
 msgstr ""
+"Recente versies laten bijvoorbeeld de cursor standaard knipperen. Ik haat "
+"dat knipperen net zoals sommige andere features, daarom plaats ik het volgende "
+"in mijn @file{.emacs} bestand@footnote{Wanneer ik instanties van Emacs start "
+"die mijn @file{.emacs} of elk ander site-bestand niet laden zet ik ook het "
+"knipperen uit:\n "
+"@smallexample\n"
+"emacs -q --no-site-file -eval '(blink-cursor-mode nil)'\n "
+"@exdent Of tegenwoordig met gebruik van een meer gesofisticeerde verzameling opties "
+"emacs -Q -D\n"
+"@end smallexample\n"
+"}: "
 
 #. type: group
 #: emacs-lisp-intro.texi:17705
@@ -28893,6 +28939,11 @@ msgid ""
 "  ;; at the end of the buffer\n"
 "  (setq next-line-add-newlines t)\n"
 msgstr ""
+"(when (>= emacs-major-version 21)\n"
+"  (blink-cursor-mode 0)\n"
+"  ;; Insert newline when you press 'C-n' (next-line)\n"
+"  ;; at the end of the buffer\n"
+"  (setq next-line-add-newlines t)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17709

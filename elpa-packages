@@ -678,6 +678,13 @@
   :doc "plz-media-type.org")
  (plz-see		:url "https://github.com/astoff/plz-see.el"
   :readme "README.org")
+ ;; FIXME: `po-mode.el' is actually maintained as part of
+ ;; [Gettext](https://savannah.gnu.org/p/gettext) and kept within the main
+ ;; branch, in the `gettext-tools/emacs' subdirectory.
+ ;; The emacsmirror/po-mode repository is auto-extracted from that
+ ;; subdirectory in the main branch of http://git.sv.gnu.org:/git/gettext.git.
+ ;; It's really not ideal, but it is what it is for now.
+ (po-mode		:url "https://github.com/emacsmirror/po-mode")
  (poke			:url "https://git.savannah.gnu.org/git/poke/poke-el.git"
   :doc "poke-el.texi"
   :ignored-files ("COPYING"))

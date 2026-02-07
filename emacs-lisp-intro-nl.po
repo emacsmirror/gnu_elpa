@@ -20,7 +20,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:4 emacs-lisp-intro.texi:176
 #, no-wrap
 msgid "Programming in Emacs Lisp"
-msgstr "Programmeren in Emacs Lisp"
+msgstr "programmeren in Emacs Lisp"
 
 #. type: include
 #: emacs-lisp-intro.texi:5
@@ -192,17 +192,17 @@ msgid ""
 "        \\endgroup\\page\\hbox{}\\page}\n"
 msgstr ""
 "{\\begingroup%\n"
-"    \\hbox{}\\vskip 1.5in \\chaprm \\centerline{Een introduction in}%\n"
+"    \\hbox{}\\vskip 1.5in \\chaprm \\centerline{Een introductie in}%\n"
 "        \\endgroup}%\n"
 "{\\begingroup\\hbox{}\\vskip 0.25in \\chaprm%\n"
-"        \\centerline{Programmeren in Emacs Lisp}%\n"
+"        \\centerline{programmeren in Emacs Lisp}%\n"
 "        \\endgroup\\page\\hbox{}\\page}\n"
 
 #. type: titlefont{#1}
 #: emacs-lisp-intro.texi:174
 #, no-wrap
 msgid "An Introduction to"
-msgstr "Een inleiding in"
+msgstr "Een introductie in"
 
 #. type: center
 #: emacs-lisp-intro.texi:179
@@ -222,9 +222,8 @@ msgid ""
 "@evenheading @thispage @| @| @thischapter @oddheading @thissection @| @| "
 "@thispage"
 msgstr ""
-"@evenheading @thispage @| @| @thischapter "
-"@oddheading @thissection @| @| "
-"@thispage"
+"@evenheading @thispage @| @| @thischapter\n"
+"@oddheading @thissection @| @| @thispage"
 
 #. type: tex
 #: emacs-lisp-intro.texi:201
@@ -613,7 +612,7 @@ msgstr "Dank"
 #: emacs-lisp-intro.texi:1068 emacs-lisp-intro.texi:1069
 #, no-wrap
 msgid "Lisp Lists"
-msgstr "Lips Lists"
+msgstr "Lisp lijsten"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:323 emacs-lisp-intro.texi:1065
@@ -3518,7 +3517,7 @@ msgid ""
 "an ``extensible computing environment''.  However, that phrase is quite a "
 "mouthful.  It is easier to refer to Emacs simply as an editor.  Moreover, "
 "everything you do in Emacs---find the Mayan date and phases of the moon, "
-"simplify polynomen, debug code, manage files, read letters, write "
+"simplify polynomials, debug code, manage files, read letters, write "
 "books---all these activities are kinds of editing in the most general sense "
 "of the word.)"
 msgstr ""
@@ -3585,7 +3584,7 @@ msgstr ""
 "boek zittend bij een computer waarop Emacs draait. (Dit is wat ik "
 "graag doe, ik hou van gedrukte boeken.) Wanneer je geen draaiende "
 "Emacs bij de hand hebt dan kan je nog steeds dit boek lezen. Beschouw "
-"het in dat geval als een novel of een reisgids naar een land waar je "
+"het in dat geval als een roman of een reisgids naar een land waar je "
 "niet geweest bent, interessant, maar niet hetzelfde als er "
 "daadwerkelijk zijn."
 
@@ -3630,8 +3629,8 @@ msgstr ""
 "comfortabel gebruik van wilt maken, zoals @kbd{M-.} (de toetsaanslag "
 "waarmee je het @code{xref-find-definitions} commando start). "
 "Je leert ook over buffers en andere objecten die onderdeel van de "
-"omgeving uitmaken. Deze functionaliteiten van Emacs leren is als "
-"nieuwe routes door je geboorteplaats leren."
+"omgeving uitmaken. Deze functionaliteiten van Emacs ontdekken is als "
+"nieuwe routes door je geboorteplaats ontdekken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:851
@@ -3665,13 +3664,13 @@ msgstr ""
 "geen programmeur zijn. Wanneer je een programmeur bent, zal je niet "
 "tevreden zijn met deze introductie. De reden daarvoor is dat je "
 "waarschijnlijk een expert bent geworden in het lezen van "
-"referentie handleidingen en niet blij wordt van de manier waarop "
+"referentiehandleidingen en niet blij wordt van de manier waarop "
 "deze tekst is opgezet."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:861
 msgid "An expert programmer who reviewed this text said to me:"
-msgstr " expert programmeur die deze tekst heeft gereviewed zei me:"
+msgstr "Een expert-programmeur die deze tekst heeft gereviewed zei me:"
 
 #. type: i{#1}
 #: emacs-lisp-intro.texi:865
@@ -3679,7 +3678,7 @@ msgid ""
 "I prefer to learn from reference manuals.  I ``dive into'' each paragraph, "
 "and ``come up for air'' between paragraphs."
 msgstr ""
-"Ik geeft de voorkeur aan het bestuderen van referentie handleidingen. "
+"Ik geeft de voorkeur aan het bestuderen van referentiehandleidingen. "
 "Ik ``duik'' in elke paragraaf en ``kom boven voor lucht'' tussen de "
 "paragrafen. "
 
@@ -3695,9 +3694,9 @@ msgid ""
 msgstr ""
 "Wanneer ik aan het einde van een paragraaf ben verwacht ik dat het "
 "onderwerp klaar is, dat ik alles weet wat ik moet weten (met als "
-"mogelijke uitzondering in het geval de volgende paragraaf dieper "
+"mogelijke uitzondering het geval de volgende paragraaf dieper "
 "op de inhoud ingaat). Ik verwacht dat een goed geschreven "
-"referentie handleiding weinig herhaling bevat en dat het uitstekende "
+"referentiehandleiding weinig herhaling bevat en dat het uitstekende "
 "verwijzingen heeft naar de (enige) plek waar de informatie is die "
 "ik zoek."
 
@@ -3715,7 +3714,7 @@ msgid ""
 msgstr ""
 "Ten eerste probeer ik alles tenminste drie keer te behandelen: "
 "eerst om het te introduceren, dan om het in context te laten zien, "
-"en vervolgens in een andere context, of om het te reviewen."
+"en vervolgens in een andere context, of om het te herhalen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:886
@@ -3732,7 +3731,7 @@ msgstr ""
 "denken legt dit een te zware last op de lezer. In plaats daarvan "
 "probeer ik alleen uit te leggen wat de lezer op dat moment moet "
 "weten. (Soms voeg ik wat extra informatie toe zodat je later "
-"verrast wordt wanneer de aanvullende informatie formeel wordt "
+"niet verrast wordt wanneer de aanvullende informatie formeel wordt "
 "geïntroduceerd.)"
 
 #. type: Plain text
@@ -3746,7 +3745,7 @@ msgid ""
 msgstr ""
 "Wanneer je deze test leest wordt niet van je verwacht dat je alles "
 "meteen de eerste keer leert. Je hoeft slechts vluchtig kennis te maken "
-"met enkele van de genoemde onderdelen. Mijn hoop is ik de tekst "
+"met enkele van de genoemde onderdelen. Ik hoop dat ik de tekst "
 "zo gestructureerd heb en je genoeg hints gegeven heb dat je "
 "bewust bent van wat belangrijk is en je daarop concentreert."
 
@@ -3795,8 +3794,8 @@ msgid ""
 "And, of course, after you have read this @cite{Introduction}, you will find "
 "the @cite{Reference Manual} useful when you are writing your own programs."
 msgstr ""
-"Deze referentie handleiding heeft meer details dan deze introductie. "
-"In de referentie handleiding is alle informatie met betrekking tot "
+"Deze referentiehandleiding bevat meer details dan deze introductie. "
+"In de referentiehandleiding is alle informatie met betrekking tot "
 "een onderwerp op een plek geconcentreerd. Je zou die moeten gebruiken "
 "wanneer je bent zoals de hierboven genoemde programmeur. En nadat je "
 "deze @cite{Introductie} gelezen hebt is de @cite{Reference Manual} "
@@ -3822,11 +3821,11 @@ msgid ""
 "Lisp language makes it superior for other purposes as well, such as writing "
 "editor commands and integrated environments."
 msgstr ""
-"Lisp is oorspronkelijk ontwikkeld in het eind van de jaren '50 "
+"Lisp is oorspronkelijk eind jaren '50 ontwikkeld "
 "in het Massachusetts Institute of Technology voor onderzoek op het "
 "gebied van kunstmatige intelligentie. De grote kracht van de Lisp "
 "taal maakt het ook voor andere toepassingen superieur, zoals het "
-"schrijven van editor commando's en geïntegreerde omgevingen. "
+"schrijven van editor-commando's en geïntegreerde omgevingen. "
 
 #. type: cindex
 #: emacs-lisp-intro.texi:923
@@ -3900,8 +3899,8 @@ msgid ""
 "usually @kbd{C-M-\\} means press the @key{CTRL} key along with the key that "
 "is labeled @key{ALT} and, at the same time, press the @kbd{\\} key."
 msgstr ""
-"Ook verwijs ik vaak naar een Emacs's standaard commando's door de  "
-"toetscombinaties die je gebruikt om het commando aan te roepen  "
+"Ook verwijs ik vaak naar Emacs's standaard commando's door de  "
+"toetscombinaties te noemen die je gebruikt om het commando aan te roepen  "
 "en vervolgens de naam van het commando tussen haakjes, zoals dit:  "
 "@kbd{C-M-\\} (@code{indent-region}). Wat dit betekent is dat  "
 "het @code{indent-region} commando gebruikelijk wordt aangeroepen door  "
@@ -3949,7 +3948,7 @@ msgid ""
 msgstr ""
 "Wanneer je dit in Info met GNU Emacs leest, dan kun je het hele "
 "document lezen slechts door het indrukken van de spatiebalk, @key{SPC}. "
-"(Om mover Info te leren, type @kbd{C-h i} en selecteer daarna Info.)"
+"(Om meer over Info te leren, type @kbd{C-h i} en selecteer daarna Info.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:977
@@ -3975,8 +3974,8 @@ msgstr ""
 "Mijn dank aan iedereen die met met dit boek hielpen. Mijn speciale "
 "dank gaat uit naar @r{Jim Blandy}, @r{Noah Friedman}, @w{Jim "
 "Kingdon}, @r{Roland McGrath}, @w{Frank Ritter}, @w{Randy Smith}, "
-"@w{Richard M. Stallman}, en @w{Melissa Weisshaus}. Mijn gaat ook uit "
-"naar @w{Philip Johnson} and @w{David Stampe} voor hun geduldige "
+"@w{Richard M. Stallman} en @w{Melissa Weisshaus}. Mijn dank gaat ook uit "
+"naar @w{Philip Johnson} en @w{David Stampe} voor hun geduldige "
 "aanmoediging. Mijn vergissingen zijn van mij zelf. "
 
 #. type: flushright
@@ -4027,8 +4026,9 @@ msgid ""
 "@evenheading @thispage @| @| @thischapter @oddheading @thissection @| @| "
 "@thispage @global@pageno = 1"
 msgstr ""
-"@evenheading @thispage @| @| @thischapter @oddheading @thissection @| @| "
-"@thispage @global@pageno = 1"
+"@evenheading @thispage @| @| @thischapter\n"
+"@oddheading @thissection @| @| @thispage\n"
+"@global@pageno = 1"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1052
@@ -4050,13 +4050,13 @@ msgstr ""
 "``Lots of Isolated Silly Parentheses'' staat. Maar die stelling is "
 "ongegrond. Lisp staat voor  LISt Processing en de programmeertaal "
 "behandelt @emph{lijsten} (en lijsten van lijsten) door ze tussen haakjes "
-"te zetten. De haakjes markeren de grenzen van de list. Soms wordt een lijst "
+"te zetten. De haakjes markeren de grenzen van de lijst. Soms wordt een lijst "
 "voorafgegaan door een apostrof @samp{'}, in Lips heet dat een "
 "@dfn{single-quote}. @footnote{Een single-quote is een afkorting voor de "
 "speciale vorm @code{quote}. Je hoeft nu nog niet over speciale vormen na "
 "te denken.\n"
 "@ifnottex \n@xref{Complicaties}.\n@end ifnottex\n"
-"@iftex \n@xref{Lisp Interpreter}. \n@end iftex\n"
+"@iftex \n@xref{Lisp interpreter}. \n@end iftex\n"
 "} Lijsten zijn de basis van Lisp."
 
 #. type: Plain text
@@ -4067,8 +4067,8 @@ msgid ""
 "written as follows, which looks more like the kind of list you are likely to "
 "be familiar with:"
 msgstr ""
-"In Lisp ziet een lijst er zo uit: @code{'(roos viool madelief boterbloem)}.  "
-"Deze lijst wordt voorafgegaan door een enkele apostrof. Het kon net zo goed"
+"In Lisp ziet een lijst er zo uit: @code{'(roos viool madelief boterbloem)}. "
+"Deze lijst wordt voorafgegaan door een enkele apostrof. Het kon net zo goed "
 "als volgt geschreven worden, wat meer lijkt op de soort van lijsten waar "
 "je waarschijnlijk bekend mee bent:"
 
@@ -4160,7 +4160,7 @@ msgid ""
 "@samp{it}."
 msgstr ""
 "De componenten van deze lijst zijn de woorden @samp{deze}, "
-"@samp{lijst}, @samp{heeft} en de list @samp{(van binnen een lijst)}. "
+"@samp{lijst}, @samp{heeft} en de lijst @samp{(van binnen een lijst)}. "
 "De binnenste lijst bestaat uit de woorden @samp{van}, @samp{binnen}, "
 "@samp{een} en @samp{lijst}. "
 
@@ -4181,7 +4181,7 @@ msgstr ""
 "``onscheidbaar'' betekent. Wat Lisp betreft kunnen de woorden die we "
 "in de lijst gebruikt hebben niet in kleinere delen opgedeeld worden "
 "en nog steeds dezelfde betekenis als onderdeel van een programma "
-"hebben, net als getallen en enkele karakter symbolen zoals @samp{+}. "
+"hebben, net als getallen en enkele-karakter symbolen zoals @samp{+}. "
 "Aan de andere kant, in tegenstelling tot het oude atoom, kan een "
 "lijst in delen worden opgesplitst. (@xref{car cdr en cons, , "
 "@code{car} @code{cdr} en @code{cons} Fundamentele functies}.) "
@@ -4211,12 +4211,13 @@ msgid ""
 "called the @dfn{empty list}.  Unlike anything else, an empty list is "
 "considered both an atom and a list at the same time."
 msgstr ""
-"Technisch gesproken bestaat een lijst in Lisp uit haakjes rondom atomen "
-"gescheiden door witte ruimte of romdon andere lijsten of rondom zowel "
-"atoms als andere lijsten. Een list kan slechts een atoom bevatten, of "
-"helemaal niets bevatten. Een list met niets er in ziet er zo uit: @code{()}, "
-"en heet een @dfn{lege lijst}. Anders dan alles anders wordt een lege lijst "
-"tegelijk zowel als een atom als als een list beschouwd."
+"Technisch gesproken bestaat een lijst in Lisp uit haakjes rondom "
+"atomen gescheiden door witte ruimte of rondom andere lijsten of "
+"rondom zowel atomen als andere lijsten. Een list kan slechts een "
+"atoom bevatten, of helemaal niets bevatten. Een lijst met niets er "
+"in ziet er zo uit: @code{()}, en heet een @dfn{lege lijst}. In "
+"tegenstelling tot alles anders wordt een lege lijst tegelijk zowel "
+"als een atoom als een lijst beschouwd. "
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1151
@@ -4273,8 +4274,8 @@ msgstr ""
 "voortijdig zo genoemd, voordat hun ware aard was ontdekt. In Lisp kunnen sommige "
 "soorten atomen, zoals een array, in delen worden gescheiden, maar het "
 "mechanisme om dit te doen wijkt af van het mechanisme om een lijst "
-"op te splitsen. Voor zover het lisp operaties betreft, zijn de atomen van "
-"een list ondeelbaar."
+"op te splitsen. Voor zover het lijst-operaties betreft, zijn de atomen van "
+"een lijst ondeelbaar."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1180
@@ -4372,7 +4373,7 @@ msgid ""
 "of the Lisp language,"
 msgstr ""
 "De hoeveelheid witte ruimte in een lijst maakt niet uit. Vanuit het "
-"gezichtspunt van de Lisp taal,"
+"gezichtspunt van de Lisp taal, is"
 
 #. type: group
 #: emacs-lisp-intro.texi:1223
@@ -4387,7 +4388,7 @@ msgstr ""
 #. type: Plain text
 #: emacs-lisp-intro.texi:1229
 msgid "is exactly the same as this:"
-msgstr "is exact hetzelfde als dit:"
+msgstr "exact hetzelfde als dit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:1232
@@ -4414,9 +4415,10 @@ msgid ""
 "whitespace (but it needs to have at least one space between atoms in order "
 "to tell them apart.)"
 msgstr ""
-"Extra witte ruimte en regels zijn bedoeld om de lijst meer voor mensen leesbaar "
-"te maken. Wanneer Lisp de expressie leest, verwijdert alle extra witte ruimte "
-"(maar heeft tenminste een spatie tussen de atomen nodig om ze uit elkaar te houden."
+"Extra witte ruimte en regels zijn bedoeld om de lijst meer voor "
+"mensen leesbaar te maken. Wanneer Lisp de expressie leest, "
+"verwijdert het alle extra witte ruimte (maar heeft tenminste een "
+"spatie tussen de atomen nodig om ze uit elkaar te houden)."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1250
@@ -4472,7 +4474,7 @@ msgstr ""
 "Interaction mode of Emacs Lisp mode, dan zijn verschillende "
 "commando's beschikbaar om de Lisp expressie zo te formatteren dat "
 "deze makkelijk te lezen is. Bijvoorbeeld het indrukken van de "
-"@key{TAB}-toets laat de regel waar de cursor is automatisch met je "
+"@key{TAB}-toets laat de regel waar de cursor is automatisch met de "
 "juiste hoeveelheid inspringen. Het commando om de code in een region "
 "juist te laten inspringen is normaal gesproken gebonden aan "
 "@kbd{C-M-\\}. De inspringingen zijn ontworpen om te laten zien welke "
@@ -4526,9 +4528,9 @@ msgid ""
 msgstr ""
 "Een lijst in Lisp---elke lijst---is een programma om te draaien. "
 "Wanneer je het draait (wat in Lisp-jargon @dfn{evalueren} is), doet "
-"de computer een van deze drie dingen: doe niets en behalve de lijst "
+"de computer een van deze drie dingen: doe niets behalve de lijst "
 "zelf teruggeven; een foutmelding geven; of het eerste symbool in de "
-"lijst als commando om iets te doen behandelen. (Meestal is dat "
+"lijst behandelen als commando om iets te doen. (Meestal is dat "
 "laatste natuurlijk wat je echt wilt!)"
 
 #. type: findex
@@ -4570,12 +4572,12 @@ msgid ""
 msgstr ""
 "De enkele apostrof, @code{'}, die ik aan de voorkant van enkele "
 "voorbeeld lijsten in de voorgaande hoofdstukken gebruikte, heten een "
-"@dfn{quote}. Wanneer zij aan een lijst voorafgaan, dan vertelt dat "
+"@dfn{quote}. Wanneer die aan een lijst voorafgaan, dan vertelt dat "
 "Lisp om niets met de lijst te doen, anders dan te accepteren precies "
 "zoals die is geschreven. Maar wanneer er geen quote aan de lijst "
 "voorafgaat, dan is het eerste element in de lijst speciaal: het is "
 "een commando voor de computer om te gehoorzamen. (In Lisp, heten "
-"deze commando's @emph{functies}. De eerder genoemde lijst @code{(+ 2 "
+"deze commando's @emph{functies}.) De eerder genoemde lijst @code{(+ 2 "
 "2)} is een instructie om iets met de rest van de lijst te doen: tel "
 "de getallen die volgen op."
 
@@ -4586,8 +4588,8 @@ msgid ""
 "evaluate such a list: place your cursor immediately after the right hand "
 "parenthesis of the following list and then type @kbd{C-x C-e}:"
 msgstr ""
-"Wanneer je dit binnen GNU Emacs in Info leest, dan kan je zo de "
-"lijst evalueren: ga met de cursor direct achter het rechtse haakje "
+"Wanneer je dit binnen GNU Emacs in Info leest, dan kun je de "
+"lijst als volgt evalueren: ga met de cursor direct achter het rechtse haakje "
 "sluiten staan van de volgende lijst en typ vervolgens "
 "@kbd{C-x C-e}:"
 
@@ -4615,7 +4617,7 @@ msgstr ""
 "(Wat je zojuist gedaan hebt is het evalueren van de lijst. Het  "
 "echogebied is de regel aan de onderkant van het scherm dat de  "
 "echotekst toont.) Probeer nu hetzelfde met een gequote lijst: plaats  "
-"de cursor meteenna de volgende lijst en type @kbd{C-x C-e}:"
+"de cursor meteen achter de volgende lijst en type @kbd{C-x C-e}:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:1322
@@ -4626,7 +4628,7 @@ msgstr "'(dit is een gequote lijst)\n"
 #. type: Plain text
 #: emacs-lisp-intro.texi:1326
 msgid "You will see @code{(this is a quoted list)} appear in the echo area."
-msgstr "Je ziet de @code{(dit is een gequote lijst)} in het echogebied verschijnen."
+msgstr "Je ziet @code{(dit is een gequote lijst)} in het echogebied verschijnen."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1327
@@ -4665,7 +4667,7 @@ msgid ""
 "discussing this (@pxref{Variables}), we will discuss what the Lisp "
 "interpreter does when you make an error."
 msgstr ""
-"Je kunt ook een atoom evalueren dat geen deel van een list is---een "
+"Je kunt ook een atoom evalueren dat geen deel van een lijst is---een "
 "die niet door haakjes ingesloten is. Weer vertaalt de Lisp "
 "interpreter van de voor mensen leesbare expressie naar de taal van de "
 "computer. Maar voor we dit bespreken (@pxref{Variabelen}), bespreken "
@@ -4765,7 +4767,7 @@ msgid ""
 "---------- Buffer: *Backtrace* ----------\n"
 msgstr ""
 "---------- Buffer: *Backtrace* ----------\n"
-"Debugger entered--Lisp error: (void-function this)\n"
+"Debugger entered--Lisp error: (void-function dit)\n"
 "  (dit is een ongequote lijst)\n"
 "  eval((dit is een ongequote lijst) nil)\n"
 "  elisp--eval-last-sexp(nil)\n"
@@ -4783,7 +4785,7 @@ msgid ""
 "window go away, type:"
 msgstr ""
 "Je cursor staat in dit window (mogelijk moet je een paar seconden wachten "
-"voordat het zichtbar wordt). Om de debugger af te sluiten en het window "
+"voordat het zichtbaar wordt). Om de debugger af te sluiten en het window "
 "te laten verdwijnen, typ je:"
 
 #. type: smallexample
@@ -4826,7 +4828,7 @@ msgstr ""
 "Je leest de @file{*Backtrace*} buffer van beneden naar boven; het "
 "vertelt je wat Emacs deed. Toen je @kbd{C-x C-e} typte, maakte je "
 "een interactieve aanroep naar het commando @code{eval-last-sexp}. "
-"@code{eval} is een afkorting van ``evalueer'' en @code{sexp}is een "
+"@code{eval} is een afkorting van ``evalueer'' en @code{sexp} is een "
 "afkorting voor ``symbolische expressie'', de expressie vlak voor de "
 "cursor."
 
@@ -4861,7 +4863,7 @@ msgid ""
 "@samp{void-function this}."
 msgstr ""
 "De Lisp interpreter probeerde het eerste atoom van de lijst te "
-"evalueren, het woord @samp{dit}. Het is deze actie de foutmelding "
+"evalueren, het woord @samp{dit}. Het is deze actie die de foutmelding "
 "@samp{(void-function dit)} genereerde."
 
 #. type: Plain text
@@ -4902,7 +4904,7 @@ msgid ""
 "instructions is void."
 msgstr ""
 "Het ietwat vreemde woord @samp{void-function} is ontworpen voor de manier "
-"waarop Emacs Lisp is geïmplementeerd, dat is wat he tdoet wanneer een symbool "
+"waarop Emacs Lisp is geïmplementeerd, dat is wat het doet wanneer een symbool "
 "geen functiedefinitie heeft waaraan het gekoppeld is, de plaats die de "
 "instructies zou moeten bevatten is leeg."
 
@@ -4928,10 +4930,10 @@ msgid ""
 "in some Emacs code that you are using.  In such cases, you will see only one "
 "line of error message; it will appear in the echo area and look like this:"
 msgstr ""
-"Het is mogelijk te voorkomen date Emacs de debugger in gaat in situaties zoals deze. "
-"Hier leggen we niet uit hoe je dat doe, maar we vertellen hoe het resultaat er uit "
+"Het is mogelijk te voorkomen dat Emacs de debugger in gaat in situaties zoals deze. "
+"Hier leggen we niet uit hoe je dat doet, maar we vertellen hoe het resultaat er uit "
 "ziet, omdat je een vergelijkbare situatie kunt tegenkomen wanneer er een bug zit "
-"in wat Emacs code die je gebruikt. In zulke gevallen zie je een foutmelding met "
+"in de Emacs code die je gebruikt. In zulke gevallen zie je een foutmelding met "
 "maar een regel, het verschijnt in het echogebied en ziet er alsvolgt uit:"
 
 #. type: smallexample
@@ -4956,11 +4958,12 @@ msgid ""
 "tells the computer where to find the instructions, but this is a "
 "complication we can ignore for the moment.)"
 msgstr ""
-"We kennen de betekenis van het woord @samp{Symbool}. Het refereert naar de eerste atoom "
-"van de lijst, het woord @samp{dit}. Het woord @samp{functie} refereert naar de "
-"instructies die de computer vertellen wat te doen. (Technisch, het symbool "
-"vertelt de computer waar de instructies te vinden, maar dit is een complicatie "
-"dit we op dit moment kunnen negeren.)"
+"We kennen de betekenis van het woord @samp{Symbool}. Het refereert "
+"naar de eerste atoom van de lijst, het woord @samp{dit}. Het woord "
+"@samp{functie} refereert naar de instructies die de computer "
+"vertellen wat te doen. (Technisch gezien, vertelt het symbool de "
+"computer waar de instructies zijn te vinden, maar dit is een "
+"complicatie dit we op dit moment kunnen negeren.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1479
@@ -5004,7 +5007,7 @@ msgstr ""
 "zoals @code{+}, is zelf geen verzameling van instructies die de "
 "computer kan uitvoeren. In plaats daarvan wordt het symbool "
 "gebruikt, misschien tijdelijk, als een manier om de instructies te "
-"localiseren. Namen van mensen werken op de zelfde manier. Ik kan "
+"lokaliseren. Namen van mensen werken op de zelfde manier. Ik kan "
 "worden gerefereerd als @samp{Bob}. Ik ben echter niet de letters "
 "@samp{B}, @samp{o} en @samp{b} maar ik ben of was het bewustzijn dat "
 "consequent met een bepaalde levensvorm wordt geassocieerd. De naam "
@@ -5020,11 +5023,11 @@ msgid ""
 "dialects of Lisp).  Among humans, I can be referred to as @samp{Robert} as "
 "well as @samp{Bob} and by other words as well."
 msgstr ""
-"In Lisp kan een enkele verzameling instructis meerdere namen hebben. De "
+"In Lisp kan een enkele verzameling instructies meerdere namen hebben. De "
 "computer instructies om getallen op te tellen kan bijvoorbeeld zijn gekoppeld "
 "aan zowel het symbool @code{plus} als het symbool @code{+} (en zijn dat in "
 "sommige Lisp-dialecten). Onder mensen kan ik gerefereerd met zowel "
-"@samp{Robert} als met  @samp{Bob} en ook nog andere woorden. "
+"@samp{Robert} als met  @samp{Bob} en ook nog andere woorden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1507
@@ -5052,11 +5055,11 @@ msgid ""
 "names for functions that deal with Texinfo start with @samp{texinfo-} and "
 "those for functions that deal with reading mail start with @samp{rmail-}."
 msgstr ""
-"Omdat Emacs er groot is, is het gebruikelijk om de symbolen zo te "
+"Omdat Emacs erg groot is, is het gebruikelijk om de symbolen zo te "
 "benoemen dat zij het deel van Emacs waar zij thuishoren "
 "identificeren. Alle namen voor functies die met Texinfo te maken "
 "hebben beginnen met @samp{texinfo-} en die voor de functies die met "
-"reading mail te maken hebben beginnen met @samp{rmail-}."
+"e-mail lezen te maken hebben beginnen met @samp{rmail-}."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1516
@@ -5086,12 +5089,12 @@ msgstr ""
 "achterhalen wat de Lisp interpreter doet wanneer we de opdracht "
 "geven een lijst te evalueren. Eerst kijkt die of er een quote voor "
 "de lijst staat. Als die er is, dan geeft de interpreter ons slechts "
-"de lijst. Aan de andere kan, als er geen quote is, dan kijkt de "
+"de lijst. Aan de andere kant, als er geen quote is, dan kijkt de "
 "interpreter naar het eerste element van de lijst om te zien of die "
 "een functiedefinitie heeft. Wanneer dat het geval is, dan voert de "
 "interpreter de instructies in de functiedefinitie uit. Zo niet, dan "
 "drukt de interpreter een foutmelding af. "
-" "
+
 #. type: Plain text
 #: emacs-lisp-intro.texi:1533
 msgid ""
@@ -5103,7 +5106,7 @@ msgid ""
 msgstr ""
 "Dit is hoe Lisp werkt. Simpel. Er zijn aanvullende complicaties waar "
 "we zo aan toe komen, maar dit zijn de basisprincipes. Om "
-"Lisp-programma's te schrijven moet je weten natuurlijk weten hoe je "
+"Lisp-programma's te schrijven moet je natuurlijk weten hoe je "
 "functiedefinities schrijft en aan een naam koppelt, en hoe je dit "
 "doet zonder zelf of de computer in verwarring te brengen."
 
@@ -5117,7 +5120,7 @@ msgid ""
 "variables.  (@xref{Variables}.)"
 msgstr ""
 "Nu komt de eerste complicatie. Naast lijsten kan de Lisp interpreter "
-"een symbool evaluaeren dat niet is gequote en niet tussen haakjes "
+"een symbool evalueren dat niet is gequote en niet tussen haakjes "
 "staat. De Lisp interpreter zal proberen de waarde van het symbool "
 "als een @dfn{variabele} te bepalen. Deze situatie wordt besproken in "
 "het hoofdstuk over variabelen. (@xref{Variabelen}.)"
@@ -5137,7 +5140,7 @@ msgid ""
 "many of them.  In the next few chapters, you will be introduced to several "
 "of the more important special forms."
 msgstr ""
-"De tweede complicatie vindt plaats omdat sommige functies "
+"De tweede complicatie ontstaat doordat sommige functies "
 "ongebruikelijk zijn en niet op de normale manier werken. Zij die dat "
 "niet doen worden @dfn{speciale vormen} genoemd. Zij worden voor "
 "speciale taken gebruikt, zoals het definieren van een functie, er er "
@@ -5170,7 +5173,7 @@ msgstr ""
 "Voor deze introductie hoef je je niet al te veel zorgen te maken of iets "
 "een speciale vorm, een macro of een gewone functie is. @code{if} bijvoorbeeld "
 "is een speciale vorm (@pxref{if}), maar @code{when} is een macro. In eerdere "
-"versies van emacs was @code{defun} een speciale vorm, maar nu is het een "
+"versies van Emacs was @code{defun} een speciale vorm, maar nu is het een "
 "macro (@pxref{defun}). Het gedraagt zich nog steeds op dezelfde manier. "
 
 #. type: Plain text
@@ -5187,15 +5190,15 @@ msgid ""
 "result may be used by the enclosing expression."
 msgstr ""
 "De laatste complicatie is het volgende: wanneer een functie waar de "
-"Lisp interpreter naar kijkt geen speciale form is, en deel van een "
+"Lisp interpreter naar kijkt geen speciale vorm is, en deel van een "
 "lijst uitmaakt, dan kijkt de interpreter of de lijst een lijst in "
-"zich bevat. Wanneer er een binnenste lijst is, dan zoekt de "
-"interpreter eerst uit wat het moet doen met die binnenste lijst en "
+"zich bevat. Wanneer er een binnenliggende lijst is, dan zoekt de "
+"interpreter eerst uit wat het moet doen met die binnenliggende lijst en "
 "daarna gaat die met de buitenste lijst aan de slag. Als er weer een "
-"lijst opgenomen is in de binnenste lijst, dan werkt die eerst aan "
-"die lijst, enzovoorts. Het begint steeds met de meeste binnenste "
+"lijst opgenomen is in de binnenliggende lijst, dan werkt die eerst aan "
+"die lijst, enzovoorts. Het begint steeds met de meest binnenliggende "
 "lijst, om het resultaat van die lijst te evalueren. Het resultaat "
-"kan gebruikt worden van de omsluitende expressie. "
+"kan gebruikt worden door de omsluitende expressie. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1582
@@ -5238,12 +5241,12 @@ msgid ""
 "@file{emacs/lisp} directory; the files to read are those with @file{.el} "
 "extensions."
 msgstr ""
-"Je transormeert voor mensen leesbare code in byte compiled code met "
-"een van de compile commandos zoals @code{byte-compile-file}. Byte "
+"Je transformeert voor mensen leesbare code in byte compiled code met "
+"een van de compile commando's zoals @code{byte-compile-file}. Byte "
 "compiled code is meestal opgeslagen in een bestand dat eindigt met de "
 "extensie @file{.elc}. Je ziet beide soorten bestanden in de "
 "@file{emacs/lisp} directory. De bestandeon om te lezen zijn die met "
-"de extensie @file{.el}. "
+"de extensie @file{.el}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1605
@@ -5253,7 +5256,6 @@ msgid ""
 "here.  @xref{Byte Compilation, , Byte Compilation, elisp, The GNU Emacs Lisp "
 "Reference Manual}, for a full description of byte compilation."
 msgstr ""
-
 "Praktisch gesproken, voor de meeste dingen die je doet om Emacs aan te passen "
 "of uit te breiden is er geen noodzaak voor byte compile, en ik bespreek dit "
 "onderwerp hier niet. @xref{Byte Compilation, , Byte Compilation, elisp, The GNU Emacs Lisp  "
@@ -5326,7 +5328,7 @@ msgstr ""
 "Op hetzelfde moment dat de interpreter een waarde terug geeft kan "
 "het ook iets anders doen, zoals de cursor verplaatsen of een bestand "
 "kopiëren. Deze andere soort activiteit heet een @dfn{zij-effect}. "
-"Acties die wij belangrijk vinden, zoals het afdrukken van "
+"Acties die wij belangrijk vinden, zoals het tonen van "
 "resultaten, zijn vaak zij-effecten voor de Lisp interpreter. Het is "
 "vrij eenvoudig te leren hoe deze zij-effecten te gebruiken."
 
@@ -5363,11 +5365,11 @@ msgid ""
 "first: the values they return are used by the outer expressions."
 msgstr ""
 "Wanneer de evaluatie van toepassing is op een lijst die binnen een "
-"andere lijst zit, kan de buitenste lijst de waarde gebruiken van de "
-"eerste evaluatie als informatie bij het evalueren van de buitenste "
+"andere lijst zit, kan de omsluitende lijst de waarde gebruiken van de "
+"eerste evaluatie als informatie bij het evalueren van de omsluitende "
 "lijst. Dit verklaart waarom de binnenste expressies het eerst worden "
 "geëvalueerd: de waarden die zij teruggeven worden gebruikt door de "
-"buitenste expressies. "
+"buitenliggende expressies. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1662
@@ -5487,14 +5489,14 @@ msgid ""
 "any expression in Lisp, such as a symbol, number, list, or string.  A symbol "
 "that has a value is often called a @dfn{variable}."
 msgstr ""
-"In Emacs Lisp kan een symbool aan een waarde aan zich gekoppeld hebben, net "
-"zoals het een functiedefinitie aan zich gekoppeld kan hebben. Dit twee zijn "
+"In Emacs Lisp kan een symbool een waarde aan zich gekoppeld hebben, net "
+"zoals het een functiedefinitie aan zich gekoppeld kan hebben. Die twee zijn "
 "verschillend. De functiedefinitie is een verzameling instructies die "
-"de computer zal gehoorzamen. Daartegenover is een waard is iets, "
-"zoals een getaal of een naam die kan variëren (daarom wordt zo'n "
+"de computer zal gehoorzamen. Daartegenover is een waarde iets, "
+"zoals een getal of een naam die kan variëren (daarom wordt zo'n "
 "symbool een variabele genoemd). De waarde van een symbool kan elke "
 "expressie in Lisp zijn, zoals een symbool, getal, lijst of string. "
-"Een symbool die een waarde heeft wordt vaak een @dfn{variable} "
+"Een symbool die een waarde heeft wordt vaak een @dfn{variabele} "
 "genoemd."
 
 #. type: Plain text
@@ -5570,9 +5572,9 @@ msgid ""
 msgstr ""
 "De variabele @code{fill-column} illustreert een symbool waar een "
 "waarde aan gekoppeld is. In elk GNU Emacs buffer is dit symbool op "
-"een bepaalde waarde gezet, meetal 72 of 70, maar soms een andere "
-"waarde. Om de waarde van dit symbool te vinden evalueer het op "
-"zichzelf. wanneer je dit in Info binnen GNU Emacs leest, dan doe je "
+"een bepaalde waarde ingesteld, meetal 72 of 70, maar soms een andere "
+"waarde. Om de waarde van dit symbool te vinden evalueer je het op "
+"zichzelf. Wanneer je dit in Info binnen GNU Emacs leest, dan doe je "
 "dit door de cursor achter het symbool te zetten en vervolgens "
 "@kbd{C-x C-e} te typen:"
 
@@ -5595,7 +5597,7 @@ msgid ""
 msgstr ""
 "Nadat ik @kbd{C-x C-e} typte, toonde Emacs het getal 72 in mijn "
 "echogebied. Dit is waarde waar voor mij @code{fill-column} op is "
-"gezet terwijl ik dit schrijf. Het kan verschillend zijn voor in jouw "
+"ingesteld terwijl ik dit schrijf. Het kan verschillend zijn in jouw "
 "Infobuffer. Merk op dat de waarde die de variabele teruggeeft op "
 "precies dezelfde manier wordt getoond als de waarde die teruggeven "
 "wordt door een functie die zijn instructies uitvoert. Vanuit het "
@@ -5652,7 +5654,7 @@ msgid ""
 "not place parentheses around the word.  This is because we did not intend to "
 "use it as a function name."
 msgstr ""
-"Bij het evalueren van @code{fill-column} om de de waarde daarvan als "
+"Bij het evalueren van @code{fill-column} om de waarde daarvan als "
 "een variabele te ontdekken, plaatsten we geen haakjes rondom het "
 "woord. Dit is omdat we het niet als functienaam wilden gebruiken."
 
@@ -5667,7 +5669,7 @@ msgstr ""
 "was, zou de Lisp interpreter proberen de er aangekoppelde "
 "functiedefinitie te vinden. Maar @code{fill-column} heeft geen "
 "functiedefinitie. Probeer dit te evalueren:"
-" "
+
 #. type: smallexample
 #: emacs-lisp-intro.texi:1804
 #, no-wrap
@@ -5712,7 +5714,7 @@ msgid ""
 "@kbd{q} in the @file{*Backtrace*} buffer.)"
 msgstr ""
 "(Onthoud, om de debugger te sluiten en het debugger window te laten verdwijnen "
-"type je @kbd{q} in het @file{*Backtrace*} buffer.)"
+"typ je @kbd{q} in het @file{*Backtrace*} buffer.)"
 
 #. type: subsection
 #: emacs-lisp-intro.texi:1830
@@ -5740,7 +5742,7 @@ msgid ""
 "our 2 plus 2 addition.  In the following expression, put your cursor right "
 "after the @code{+}, before the first number 2, type @kbd{C-x C-e}:"
 msgstr ""
-"Wanneer je een symbool dat geen waarde aan het gekoppeld heeft probeert te "
+"Wanneer je een symbool dat geen waarde aan zich gekoppeld heeft probeert te "
 "evalueren, dan krijg je een foutmelding. Dit kan je zien door te experimenteren "
 "met onze 2 plus 2 optelling. Zet de cursor meteen achter de @code{+}, voor het "
 "eerste getal 2 in de volgende expressie, en typ @kbd{C-x C-e}:"
@@ -5808,12 +5810,13 @@ msgid ""
 "we did before.  As a consequence, the Lisp interpreter evaluated the "
 "preceding s-expression, which in this case was @code{+} by itself."
 msgstr ""
-"Wat we in het experiment met de @code{+} deden liet de Lisp interpreter "
-"de @code{+} evaluaren en zoeken naar de waarde van de variabele in plaats "
-"van de functiedefinitie. Dit deze we door de cursor meteen achter het "
-"symbool te plaatsen dan achter het haakje van de omsluitende lijst, zoals "
-"we eerder deden. Als gevolg hiervan evalueerde de Lisp interpreter de "
-"voorafgaande s-expressie, in dit geval @code{+} op zichzelf."
+"Wat we in het experiment met de @code{+} deden liet de Lisp "
+"interpreter de @code{+} evaluaren en zoeken naar de waarde van de "
+"variabele in plaats van de functiedefinitie. We deden dit door de "
+"cursor meteen achter het symbool te plaatsen in plaats van achter "
+"het haakje van de omsluitende lijst, zoals we eerder deden. Als "
+"gevolg hiervan evalueerde de Lisp interpreter de voorafgaande "
+"s-expressie, in dit geval @code{+} op zichzelf."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1884
@@ -5822,7 +5825,7 @@ msgid ""
 "definition, the error message reported that the symbol's value as a variable "
 "was void."
 msgstr ""
-"Omdat @code{+} geen waarde aan zicht gekoppeld heeft en alleen een "
+"Omdat @code{+} geen waarde aan zich gekoppeld heeft en alleen een "
 "functiedefinitie, rapporteerde de foutmelding dat de waarde van het symbool "
 "als variabele leeg was."
 
@@ -5838,7 +5841,7 @@ msgid ""
 "To see how information is passed to functions, let's look again at our old "
 "standby, the addition of two plus two.  In Lisp, this is written as follows:"
 msgstr ""
-"Laten we nog eens naar onze oude voorbeeld kijken om te zien hoe "
+"Laten we nog eens naar ons oude voorbeeld kijken om te zien hoe "
 "informatie tussen functies doorgegeven wordt, de optelling van twee "
 "plus twee. In Lisp schrijven we dit als volgt:"
 
@@ -5959,7 +5962,7 @@ msgid ""
 "single string @code{abcdef}.  This can be seen by evaluating the following:"
 msgstr ""
 "De functie @code{concat} bijvoorbeeld koppelt of verbindt twee of "
-"meer tekstreeksen om een string te produceren. De argumeten zijn "
+"meer tekstreeksen om een string te produceren. De argumenten zijn "
 "strings. Het concatenaten van de twee tekenreeksen @code{abc} en "
 "@code{def} produceert de enkele string @code{abcdef}. Dit is te zien "
 "door het volgende te evalueren:"
@@ -6095,7 +6098,7 @@ msgid ""
 msgstr ""
 "Zoals we zojuist zagen kan een argument een symbool zijn dat een "
 "waarde teruggeeft wanneer het geëvalueerd wordt. Daarnaast kan een "
-"argument ene lijst zijn die een waarde teruggeeft wanneer die "
+"argument een lijst zijn die een waarde teruggeeft wanneer die "
 "geëvalueerd wordt. Bijvoorbeeld in de volgende expressie zijn de "
 "argumenten voor de functie @code{concat} de strings @w{@code{\"De \"}} "
 "en @w{@code{\" rode vossen.\"}} en de lijst "
@@ -6121,7 +6124,7 @@ msgstr ""
 "Wanneer je deze expressie evalueert---en als, zoals met mijn Emacs, "
 "@code{fill-column} naar 72 evalueert---verschijnt @code{\"De 74 rode vossen.\"} "
 "in het echogebied. (Merk op dat je spaties achter het woord @samp{De} en voor het "
-"voord @samp{rode} zet zodat deze in de finale string verschijnen. De functie "
+"voord @samp{rode} zet zodat deze in de uiteindelijke string verschijnen. De functie "
 "@code{number-to-string} converteert de integer die de optelling teruggeeft "
 "naar een string. @code{number-to-string} is ook bekend als @code{int-to-string}.)"
 
@@ -6348,7 +6351,7 @@ msgstr ""
 "probeert vast te stellen of de informatie die het kreeg een getal is of "
 "een marker (een speciaal object dat een bufferpositie vertegenwoordigt). "
 "Wat het doet is testen of de @code{+} getallen kreeg om op te tellen. "
-"Ook test of of het argument iets is dat een marker genoemd wordt, wat "
+"Ook test of het argument iets is dat een marker genoemd wordt, wat "
 "een specifieke eigenschap van Emacs Lisp is. (In Emacs worden locaties "
 "in een buffer geregistreerd als markers. Wanneer de mark is gezet met "
 "het @kbd{C-@@} of @kbd{C-@key{SPC}} commando, wordt zijn positie bewaard "
@@ -6378,10 +6381,10 @@ msgid ""
 "is a list."
 msgstr ""
 "De @samp{p} in @code{number-or-marker-p} is de belichaming van een praktijk "
-"die in de beginjaren van Lisp programmeren. De @samp{p} staat voor "
-"@dfn{predicate}. In het jargon dat door de eerste Lisp onderzoekers, "
-"een predicate refereert aan een functie die bepaalt of een bepaalde "
-"eigenschap waar is of onwaar. De @samp{p} vertelt ons dus dat "
+"die startte in de beginjaren van Lisp programmeren. De @samp{p} staat voor "
+"@dfn{predicate}. In het jargon dat de eerste Lisp onderzoekers gebruikten, "
+"refereert een predicate aan een functie die bepaalt of een bepaalde "
+"eigenschap waar of onwaar is. De @samp{p} vertelt ons dus dat "
 "@code{number-or-marker-p} de naam van een functie is die bepaalt of het "
 "waar of onwaar is dat het doorgegeven argument een getal of een marker is. "
 "Andere Lisp symbolen die eindigen in @samp{p} zijn onder andere "
@@ -6418,8 +6421,8 @@ msgid ""
 "will describe it here."
 msgstr ""
 "Net als @code{+} accepteert de @code{message} functie een variabel "
-"aantal argumenten. Het wordt gebruikt om berchten naar de gebruiker "
-"te zenden en is zo nuttig dat we het hier beschrijven. "
+"aantal argumenten. Het wordt gebruikt om berichten naar de gebruiker "
+"te sturen en is zo nuttig dat we het hier beschrijven. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2174
@@ -6467,8 +6470,8 @@ msgid ""
 "prints the value at the location in the string where the @samp{%s} is."
 msgstr ""
 "Wanneer er echter een @samp{%s} in de string tussen aanhalingstekens "
-"staat, toont de @code{message} functie de @samp{%s} niet als "
-"zodanig, maar kijkt naar het argument dat na de string volgt. Het "
+"staat, toont de @code{message}-functie de @samp{%s} niet als "
+"zodanig, maar kijkt naar het argument dat op de string volgt. Het "
 "evalueert het tweede argument en toont de waarde op de locatie in de "
 "string waar de @samp{%s} staat."
 
@@ -6560,6 +6563,7 @@ msgid ""
 msgstr ""
 "(message \"Er zijn %d %s in het kantoor!\"\n"
 "         (- fill-column 14) \"paarse olifanten\")\n"
+
 #. type: Plain text
 #: emacs-lisp-intro.texi:2241
 msgid ""
@@ -6733,7 +6737,7 @@ msgid ""
 "designed to have one.)"
 msgstr ""
 "De lijst @code{(roos viool madelief boterbloem)} verschijnt in het "
-"echogebied. Dat is wat is @emph{teruggeven} door de speciale vorm "
+"echogebied. Dat is wat is @emph{teruggegeven} door de speciale vorm "
 "@code{setq}. Als zij-effect is het symbool @code{bloemen} aan de "
 "lijst gebonden. Dat wil zeggen dat het symbool @code{bloemen}, welke "
 "als een variabel gezien kan worden, de lijst als waarde krijgt. "
@@ -6752,7 +6756,7 @@ msgid ""
 msgstr ""
 "Nadat je de @code{setq} expressie hebt geëvalueerd, kun je het "
 "symbool @code{bloemen} evalueren, dit geeft je de waarde terug die "
-"je zojuist geet hebt. Hier is het symbool. Plaats je cursor er "
+"je zojuist gezet hebt. Hier is het symbool. Plaats je cursor er "
 "achter en typ @kbd{C-x C-e}."
 
 #. type: smallexample
@@ -6804,7 +6808,7 @@ msgid ""
 "tiger leopard)} using @code{setq}, the following expression is used:"
 msgstr ""
 "Om de waarde van de variabele @code{carnivoren} met @code{setq} naar "
-"de lijst @code{'(leeuw tijger luipaard)} is de volgende expressie "
+"de lijst @code{'(leeuw tijger luipaard)} te zetten is de volgende expressie "
 "gebruikt:"
 
 #. type: smallexample
@@ -6824,12 +6828,12 @@ msgid ""
 "@code{herbivores}:"
 msgstr ""
 "@code{setq} kan ook gebruikt worden om verschillende waarden naar "
-"verschillende variabelen te zetten. Het eerste argument wordt "
+"verschillende variabelen toe te kennen. Het eerste argument wordt "
 "gebonden aan de waarde van het tweede argument, het derde argument "
 "aan de waarde van het vierde argument, enzovoorts. Bijvoorbeeld kan "
 "je het volgende gebruiken om een lijst van bomen aan het symbool "
 "@code{bomen} en een lijst van herbivoren aan het symbool "
-"@code{herbivoren} toe te wijzen:"
+"@code{herbivoren} toe te kennen:"
 
 #. type: group
 #: emacs-lisp-intro.texi:2360
@@ -6838,7 +6842,7 @@ msgid ""
 "(setq trees '(pine fir oak maple)\n"
 "      herbivores '(gazelle antelope zebra))\n"
 msgstr ""
-"(setq bomen '(den spar eik esdoorn)\n "
+"(setq bomen '(den spar eik esdoorn)\n"
 "      herbivoren '(gazelle antiloop zebra)\n"
 
 #. type: Plain text
@@ -6848,6 +6852,9 @@ msgid ""
 "have fit on a page; and humans find it easier to read nicely formatted "
 "lists.)"
 msgstr ""
+"(De expressie had net zo goed op een enkele regel gekund, maar het zou "
+"misschien niet op een bladzijde passen, en mensen vinden het makkelijker "
+"om mooi opemaakte lijsten te lezen)."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2376
@@ -6860,6 +6867,15 @@ msgid ""
 "chosen because the symbol has a value, specifically a list, attached to it; "
 "or, expressed another way, the symbol is set to point to the list."
 msgstr ""
+"Alhoewel ik de term ``toekennen'' heb gebruikt, is er een andere "
+"manier over de werking van @code{setq} te denken, en dat zo te "
+"zeggen dat @code{setq} het symbool laat @emph{wijzen} naar de lijst. "
+"Deze laatste manier van denken is erg gebruikelijk en in de volgende "
+"hoofdstukken zullen we een symbool tegenkomen dat ``pointer'' als "
+"onderdeel van zijn naam heeft. De naam is gekozen omdat het symbool "
+"een waarde, in het bijzonder een lijst aan zich gebonden heeft, of, "
+"op een andere manier uitgedrukt, het symbool is ingesteld om naar de "
+"lijst te wijzen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2389
@@ -6872,6 +6888,15 @@ msgid ""
 "the counter variable to zero; and a second @code{setq} expression that "
 "increments the counter each time it is evaluated."
 msgstr ""
+"Hier volgt een voorbeeld dat laat zien hoe je @code{setq} in een "
+"teller gebruikt. Je kunt dit gebruiken om te tellen hoe vaak een "
+"deel van je programma zichzelf herhaalt. Stel eerst een variabele op "
+"nul. Vervolgens tel je iedere keer dat het programma zich herhaalt "
+"een bij het getal op. Om dit te doen heb je een variabele nodig die "
+"dienst doet als teller, en twee expressies: een initiële @code{setq} "
+"expressie die de variabele instelt op nul, en een tweede "
+"@code{setq} expressie die elke keer dat die wordt geëvalueerd de "
+"teller verhoogt."
 
 #. type: group
 #: emacs-lisp-intro.texi:2393
@@ -6880,6 +6905,8 @@ msgid ""
 "(setq counter 0)                ; @r{Let's call this the initializer.}\n"
 "\n"
 msgstr ""
+"(setq counter 0)                ; @r{Laten wij dit de initialisator noemen.}\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:2395
@@ -6888,12 +6915,14 @@ msgid ""
 "(setq counter (+ counter 1))    ; @r{This is the incrementer.}\n"
 "\n"
 msgstr ""
+"(setq counter (+ counter 1))    ; @r{Dit is de incrementer.}\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:2397
 #, no-wrap
 msgid "counter                         ; @r{This is the counter.}\n"
-msgstr ""
+msgstr "counter                         ; @r{Dit is de teller.}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2403
@@ -6901,6 +6930,8 @@ msgid ""
 "(The text following the @samp{;} are comments.  @xref{Change a defun, , "
 "Change a Function Definition}.)"
 msgstr ""
+"(De tekst die volgt na de @samp{;} zijn comments.  @xref{Een defun wijzigen, , "
+"Wijzig een functiedefinitie}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2412
@@ -6913,6 +6944,13 @@ msgid ""
 "number @code{1} will appear in the echo area.  Each time you evaluate the "
 "second expression, the value of the counter will be incremented."
 msgstr ""
+"Wanneer je de eerste van deze drie expressies evalueert, de "
+"initialisator, @code{(setq counter 0)}, en daarna evalueer je de "
+"derde expressie, @code{counter}. dan verschijnt het getal @code{0} "
+"in het echogebied. Wanneer je de tweede expressie, de incrementer, "
+"@code{(setq counter (+ counter 1))}, evalueert, dan verschijnt het "
+"getal @code{1} in het echogebied. Elke keer dat je de tweede "
+"expressie evalueert, wordt de waarde van de counter verhoogd."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2422
@@ -6927,6 +6965,16 @@ msgid ""
 "variable @code{counter} to this new value.  Thus, the value of the variable, "
 "@code{counter}, is changed."
 msgstr ""
+"Wanneer je de incrementer, @code{(setq counter (+ counter 1))} "
+"evalueert, evalueert de Lisp interpreter eerst de meest binnenste "
+"lijst, dit is de optelling. Om deze lijst te evalueren, moet het de "
+"variabele @code{counter} en het getal @code{1} evalueren. Wanneer "
+"het de variabele @code{counter} evalueert, krijgt het diens huidige "
+"waarde. Het geeft deze waarde en het getal @code{1} door aan de "
+"@code{+}, die ze bij elkaar optelt. De som wordt teruggegeven als de "
+"waarde van de binnenste lijst en doorgegeven aan de @code{setq}, die "
+"de variabele @code{counter} op deze nieuwe waarde instelt. Zo is de "
+"waarde van de variabele @code{counter} gewijzigd."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2429
@@ -6935,16 +6983,20 @@ msgid ""
 "steepest.  You have now climbed the most difficult part; what remains "
 "becomes easier as you progress onwards."
 msgstr ""
+"Lisp leren is net zo iets als een heuvel beklimmen, waar het eerste "
+"deel het stijlste is. Je hebt inmiddels het moeilijkste deel "
+"beklommen, wat overblijft wordst makkelijker naarmate je verder "
+"komt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2432
 msgid "In summary,"
-msgstr ""
+msgstr "Samenvattend,"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:2437
 msgid "Lisp programs are made up of expressions, which are lists or single atoms."
-msgstr ""
+msgstr "Lisp programma's zijn gemaakt van expressies, elke lijsten of enkelvoudige atomen zijn."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:2441
@@ -6952,6 +7004,9 @@ msgid ""
 "Lists are made up of zero or more atoms or inner lists, separated by "
 "whitespace and surrounded by parentheses.  A list can be empty."
 msgstr ""
+"Lijsten zijn gemaakt van nul of meer atomen of binnenliggende "
+"lijsten, gescheiden door witte ruimte en omgeven door haakjes. Een "
+"lijst kan leeg zijn."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:2446
@@ -6960,21 +7015,24 @@ msgid ""
 "character symbols like @code{+}, strings of characters between double "
 "quotation marks, or numbers."
 msgstr ""
+"Atomen zijn multi-karakter symbolen, zoals @code{forward-paragraph}, "
+"enkele-karakter symboleen zoals @code{+}, strings of karakters "
+"tussen dubbele aanhalingstekens, of getallen."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:2449
 msgid "A number evaluates to itself."
-msgstr ""
+msgstr "Een getal evalueert naar zichzelf."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:2452
 msgid "A string between double quotes also evaluates to itself."
-msgstr ""
+msgstr "Een string tussen dubbele aanhalingstekens evalueert ook naar zichzelf."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:2455
 msgid "When you evaluate a symbol by itself, its value is returned."
-msgstr ""
+msgstr "Wanneer je een symbool op zichzelf evalueert, wordt zijn waarde teruggegeven."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:2460
@@ -6983,6 +7041,9 @@ msgid ""
 "the list and then at the function definition bound to that symbol.  Then the "
 "instructions in the function definition are carried out."
 msgstr ""
+"Wanneer je een lijst evaluseert, kijkt de Lisp interpreter naar het eerste "
+"symbool in de lijst en vervolgens naar de functiedefinitie die aan dat symbool "
+"gebonden is. Daaran worden de instructies in de funciedefinitie uitgevoerd. "
 
 #. type: itemize
 #: emacs-lisp-intro.texi:2465
@@ -6991,6 +7052,9 @@ msgid ""
 "following expression as written, and not evaluate it as it would if the "
 "quote were not there."
 msgstr ""
+"Een enkele quote @samp{'} vertelt de Lisp interpreter dat het de "
+"daaropvolgende expressie moet teruggeven zoals die is geschreven, en "
+"niet evalueren alsof de quote er niet was. "
 
 #. type: itemize
 #: emacs-lisp-intro.texi:2470
@@ -6999,6 +7063,10 @@ msgid ""
 "function are computed by evaluating the rest of the elements of the list of "
 "which the function is the first element."
 msgstr ""
+"Argumenten vormen de informatie die aan een functie wordt "
+"doorgegeven. De argumenten voor een functie worden berekend door de "
+"rest van de elementen van de lijst te evalueren, waarvan de functie "
+"het eerste element is."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:2476
@@ -7008,18 +7076,22 @@ msgid ""
 "effect.  In many cases, a function's primary purpose is to create a side "
 "effect."
 msgstr ""
+"Een functie geeft altijd een waarde terug wanneer die wordt "
+"geëvalueerd (tenzij het een fout krijgt). Ook kan die een actie "
+"uitvoeren dat een zij-effect is. In veel gevallen is het creëren van "
+"zij-effecten het primaire doel."
 
 #. type: section
 #: emacs-lisp-intro.texi:2479 emacs-lisp-intro.texi:4615
 #: emacs-lisp-intro.texi:5465
 #, no-wrap
 msgid "Exercises"
-msgstr ""
+msgstr "Oefeningen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2482
 msgid "A few simple exercises:"
-msgstr ""
+msgstr "Enkele simpele oefeningen:"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:2487
@@ -7027,6 +7099,8 @@ msgid ""
 "Generate an error message by evaluating an appropriate symbol that is not "
 "within parentheses."
 msgstr ""
+"Genereer een foutmelding door een geschikt symbool te evalueren dat "
+"niet tussen haakjes staat."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:2491
@@ -7034,28 +7108,30 @@ msgid ""
 "Generate an error message by evaluating an appropriate symbol that is "
 "between parentheses."
 msgstr ""
+"Genereer een foutmelding door een geschikt symbool te evalueren dat "
+"tussen haakjes staat."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:2494
 msgid "Create a counter that increments by two rather than one."
-msgstr ""
+msgstr "Maak een teller die met twee verhoogt in plaats van een."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:2498
 msgid "Write an expression that prints a message in the echo area when evaluated."
-msgstr ""
+msgstr "Schrijf een expressie die een boodschap in het echogebied toont wanneer die wordt geëvalueerd."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2502
 #, no-wrap
 msgid "Practicing evaluation"
-msgstr ""
+msgstr "Evaluatie oefenen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2503
 #, no-wrap
 msgid "Evaluation practice"
-msgstr ""
+msgstr "Evalusatiepraktijk"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2513
@@ -7069,6 +7145,14 @@ msgid ""
 "section, we will study the code of several other buffer-related functions, "
 "to see how they were written."
 msgstr ""
+"Voordat je leert hoe je een functiedefinitie in Emacs Lisp schrijft, "
+"is het zinnig om wat tijd te besteden aan het evalueren van diverse "
+"expressies die al zijn geschreven. Deze expressies zijn lijsten met "
+"de functies al hun eerste (en vaak enige) element. Omdat sommige "
+"buffer-geassocieerd functies zowel eenvoudig als interessant zijn, "
+"beginnen we met die. In deze sectie evalueren we enkele daarvan. In "
+"een andere sectie bestuderen we de code van verscheidene andere "
+"buffer-gerelateerde functie om te zien hoe die zijn geschreven. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2534
@@ -7078,18 +7162,22 @@ msgid ""
 "expression,} the first element of which is a function.  @i{This is how Emacs "
 "works.}"
 msgstr ""
+"@i{Telkens wanneer je een edit-commando} aan Emacs Lisp geeft, zoals het "
+"commando om de cursor te verplaatsen of het scherm te scrollen, @i{evalueer "
+"je een expressie}, waarvan het eerste element een functie is. @i{Dit is hoe "
+"Emacs werkt.}"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2535
 #, no-wrap
 msgid "@samp{interactive function} defined"
-msgstr ""
+msgstr "@samp{interactive function} gedefinieerd"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2536
 #, no-wrap
 msgid "@samp{command} defined"
-msgstr ""
+msgstr "@samp{command} gedefinieerd"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2545
@@ -7103,6 +7191,14 @@ msgid ""
 "illustrated in the chapter on how to write function definitions.  "
 "@xref{Interactive, , Making a Function Interactive}."
 msgstr ""
+"Wanneer je toetsen aanslaat laat je de Lisp interpreter een expressie evalueren "
+"en zo krijg je je resultaten. Zelfs het typen van een platte tekst houdt het "
+"evalueren van een Emacs Lisp functie in, in dit geval eentje dat het "
+"@code{self-insert-command} gebruikt, die eenvoudig het karakter dat je typte "
+"invoegt. De functies die je evalueert met het typen van toetsaanslagen "
+"worden @dfn{interactief} genoemd, of @dfn{commando's}. Hoe je een functie "
+"interactief maakt wordt in het volgende hoofdstuk geïllustreerd. "
+"@xref{Interactief, , Een functie interactief maken}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2551
@@ -7113,6 +7209,12 @@ msgid ""
 "are other ways to evaluate an expression as well; these will be described as "
 "we come to them."
 msgstr ""
+"Naast het typen van toetsenbord commando's, hebben we een tweede "
+"manier gezien om een expressie te evalueren: door de cursor achter "
+"de lijst te plaatsen en @kbd{C-x C-e} te typen. Dit is wat we in "
+"rest van deze sectie zullen doen. Er zijn nog meer manieren om een "
+"expressie te evalueren, deze zullen we beschrijven wanneer die aan "
+"de orde komen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2556
@@ -7122,18 +7224,23 @@ msgid ""
 "functions makes clear the distinction between buffers and files, how to "
 "switch to a buffer, and how to determine a location within it."
 msgstr ""
+"Naast dat we ze voor evaluatie-oefeningen gebruiken, zijn de functies "
+"die in volgende secties behandeld worden op zichzelf belangrijk. Het "
+"bestuderen van deze functies verheldert het verschil tussen buffers en "
+"bestanden, hoe van buffer te switchen, en hoe een locatie er binnen "
+"vast te stellen."
 
 #. type: item
 #: emacs-lisp-intro.texi:2559 emacs-lisp-intro.texi:4571
 #, no-wrap
 msgid "buffer-name"
-msgstr ""
+msgstr "buffer-name"
 
 #. type: item
 #: emacs-lisp-intro.texi:2560 emacs-lisp-intro.texi:4574
 #, no-wrap
 msgid "buffer-file-name"
-msgstr ""
+msgstr "buffer-file-name"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2570
@@ -7147,6 +7254,16 @@ msgid ""
 "which it refers, and the name returned by @code{(buffer-file-name)} is the "
 "full path-name of the file."
 msgstr ""
+"De twee functies @code{buffer-name} en @code{buffer-file-name} tonen "
+"het verschil tussen een buffer en een bestand. Wanneer je volgende "
+"expressie evalueert, @code{(buffer-name)}, verschijnt de naam van "
+"het buffer in het echogebied. Wanneer je @code{(buffer-file-name)} "
+"evalueert, verschijnt de naam van het bestand waar de buffer naar "
+"refereert in het echogebied. Meestal is de naam die "
+"@code{(buffer-name)} teruggeeft hetzelfde als de naam van het "
+"bestand waarnaar het refereert, en is de naam die "
+"@code{(buffer-file-name)} teruggeeft de volledige padnaam van het "
+"bestand."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2580
@@ -7161,6 +7278,16 @@ msgid ""
 "When you save the buffer, the buffer is copied to the file and is thus saved "
 "permanently."
 msgstr ""
+"Een bestand en een buffer zijn twee verschillende entiteiten. Een "
+"bestand is informatie permanent opgeslagen op de computer (tenzij je "
+"het verwijdert). Een buffer daarentegen is informatie binnen Emacs, "
+"die verdwijnt aan het einde van de editing sessie (of wanneer je het "
+"buffer killt). Meestal bevat een buffer informatie die je van een "
+"bestand gekopieerd hebt, we zeggen dat de buffer het bestand "
+"@dfn{bezoekt}. Deze kopie is waar je op werkt en wijzigt. "
+"Veranderingen in het buffer wijzigen het bestand niet, totdat je het "
+"buffer opslaat. Wanneer je het buffer opslaat, wordt de buffer "
+"gekopieerd naar het bestand en zo permanent opgeslagen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2585
@@ -7169,6 +7296,9 @@ msgid ""
 "of the following expressions by positioning the cursor after it and typing "
 "@kbd{C-x C-e}."
 msgstr ""
+"Wanneer je dit in Info leest binnen Emacs, kan je elk van de volgende "
+"expressies evalueren door de cursor er achter te zetten en @kbd{C-x C-e} "
+"te typen. "
 
 #. type: group
 #: emacs-lisp-intro.texi:2589
@@ -7177,12 +7307,14 @@ msgid ""
 "(buffer-name)\n"
 "\n"
 msgstr ""
+"(buffer-name)\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:2591
 #, no-wrap
 msgid "(buffer-file-name)\n"
-msgstr ""
+msgstr "(buffer-file-name)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2598
@@ -7191,6 +7323,9 @@ msgid ""
 "@code{(buffer-name)} is @file{\"*info*\"}, and the value returned by "
 "evaluating @code{(buffer-file-name)} is @file{nil}."
 msgstr ""
+"Wanneer ik dit in Info doe, geeft evaluatie van @code{(buffer-name)} "
+"de waarde @file{\"*info*\"} terug, en is de waarde die de evaluatie "
+"van @code{(buffer-file-name)} teruggeeft @file{nil}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2604
@@ -8157,25 +8292,25 @@ msgstr ""
 #: emacs-lisp-intro.texi:3207
 #, no-wrap
 msgid "Change a Function Definition"
-msgstr ""
+msgstr "Wijzig een functiedefinitie"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:3208
 #, no-wrap
 msgid "Changing a function definition"
-msgstr ""
+msgstr "Een functiedefinitie wijzigen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:3209
 #, no-wrap
 msgid "Function definition, how to change"
-msgstr ""
+msgstr "Functiedefinitie, hoe te wijzigen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:3210
 #, no-wrap
 msgid "Definition, how to change"
-msgstr ""
+msgstr "Definitie, hoe te wijzigen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3216
@@ -11129,6 +11264,10 @@ msgid ""
 "function must have an @code{interactive} expression.  (For a review of "
 "@code{interactive}, see @ref{Interactive, , Making a Function Interactive}.)"
 msgstr ""
+"Omdat de @code{append-to-buffer} functie interactief gebruikt gaat "
+"worden, moet de functie een @code{interactive} expressie hebben. "
+"(Voor een terugblik op d@code{interactive}, zie "
+"@ref{Interactief, , Een functie interactief maken}. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5095

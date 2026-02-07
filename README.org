@@ -6,8 +6,10 @@ This is work in progress.
 
 It is currently based on the following revision of the English document:
 
-    commit 6a08a9a54d4ff5aafe795c7a079709993c08dff3
-    Author: Paul Eggert <eggert@cs.ucla.edu>
-    Date:   Thu Jul 24 14:37:20 2025 -0700
- 
-    ; Fix file name in "Loading Files" doc.
+#+begin_example
+commit 6a08a9a54d4ff5aafe795c7a079709993c08dff3
+Author: Paul Eggert <eggert@cs.ucla.edu>
+Date:   Thu Jul 24 14:37:20 2025 -0700
+
+; Fix file name in "Loading Files" doc.
+#+end_example

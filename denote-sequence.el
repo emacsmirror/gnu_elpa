@@ -1169,15 +1169,26 @@ For a more specialised case, see `denote-sequence-find-relatives-dired'."
                        (if single-dir-p
                            (mapcar #'file-relative-name files-sorted)
                          files-sorted)))))
-    (if-let* ((directory (if single-dir-p
-                             (car roots)
-                           (denote-directories-get-common-root)))
-              (files (funcall files-fn))
-              (buffer-name (denote-format-buffer-name
-                           (format-message "prefix `%s'; depth `%s'" (or prefix "ALL") (or depth "ALL"))
-                           :is-special-buffer)))
-        (denote-sort-dired--prepare-buffer directory files-fn buffer-name)
-      (message "No matching files"))))
+    (dlet ((ls-lisp-use-insert-directory-program (progn (require 'ls-lisp) nil)))
+      (if-let* ((directory (if single-dir-p
+                               (car roots)
+                             (denote-directories-get-common-root)))
+                (files (funcall files-fn))
+                (buffer-name (denote-format-buffer-name
+                              (format-message "prefix `%s'; depth `%s'" (or prefix "ALL") (or depth "ALL"))
+                              :is-special-buffer))
+                (dired-buffer (dired (cons directory files))))
+          (with-current-buffer dired-buffer
+            (rename-buffer buffer-name :unique)
+            (setq-local revert-buffer-function
+                        (lambda (&rest _)
+                          (dlet ((ls-lisp-use-insert-directory-program (progn (require 'ls-lisp) nil)))
+                            (if-let* ((files (funcall files-fn)))
+                                (progn
+                                  (setq-local dired-directory (cons directory files))
+                                  (dired-revert))
+                              (denote-dired-empty-mode))))))
+        (message "No matching files")))))
 
 ;;;###autoload
 (defun denote-sequence-find-dired (type)

@@ -66,3 +66,5 @@ flycheck_*.el
 /emacs-lisp-intro-nl-autoloads.el
 /emacs-lisp-intro-nl-pkg.el
 /emacs-lisp-intro-nl.texi
+/emacs-lisp-intro-nl.info
+/emacs-lisp-intro-nl.html

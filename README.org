@@ -13,3 +13,33 @@ Date:   Thu Jul 24 14:37:20 2025 -0700
 
 ; Fix file name in "Loading Files" doc.
 #+end_example
+
+** Method
+
+*** Creating a po-file
+The po-file is created with:
+
+#+begin_src 
+po4a-updatepo --format texinfo --master emacs-lisp-intro.texi --po emacs-lisp-intro-nl.po
+#+end_src
+
+*** Generate a texinfo file
+To generate a texinfo file from the po-file:
+
+#+begin_src 
+po4a-translate \
+ --format texinfo \
+ --master emacs-lisp-intro.texi \
+ --po emacs-lisp-intro-nl.po \
+ --addendum emacs-lisp-intro-nl.addendum \
+ --localized emacs-lisp-intro-nl.texi
+#+end_src
+
+This is what is in the Makefile, just run `make'.
+
+*** Generate a PDF file
+To generate a PDF from the texinfo file:
+
+#+begin_src 
+makeinfo -D 'EMACSVER x' --pdf emacs-lisp-intro-nl.texi
+#+end_src

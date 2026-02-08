@@ -7148,11 +7148,11 @@ msgstr ""
 "Voordat je leert hoe je een functiedefinitie in Emacs Lisp schrijft, "
 "is het zinnig om wat tijd te besteden aan het evalueren van diverse "
 "expressies die al zijn geschreven. Deze expressies zijn lijsten met "
-"de functies al hun eerste (en vaak enige) element. Omdat sommige "
-"buffer-geassocieerd functies zowel eenvoudig als interessant zijn, "
+"de functies als hun eerste (en vaak enige) element. Omdat sommige "
+"buffer-geassocieerde functies zowel eenvoudig als interessant zijn, "
 "beginnen we met die. In deze sectie evalueren we enkele daarvan. In "
 "een andere sectie bestuderen we de code van verscheidene andere "
-"buffer-gerelateerde functie om te zien hoe die zijn geschreven. "
+"buffer-gerelateerde functies om te zien hoe die zijn geschreven. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2534
@@ -7258,7 +7258,7 @@ msgstr ""
 "het verschil tussen een buffer en een bestand. Wanneer je volgende "
 "expressie evalueert, @code{(buffer-name)}, verschijnt de naam van "
 "het buffer in het echogebied. Wanneer je @code{(buffer-file-name)} "
-"evalueert, verschijnt de naam van het bestand waar de buffer naar "
+"evalueert, verschijnt de naam van het bestand waar het buffer naar "
 "refereert in het echogebied. Meestal is de naam die "
 "@code{(buffer-name)} teruggeeft hetzelfde als de naam van het "
 "bestand waarnaar het refereert, en is de naam die "
@@ -7283,10 +7283,10 @@ msgstr ""
 "het verwijdert). Een buffer daarentegen is informatie binnen Emacs, "
 "die verdwijnt aan het einde van de editing sessie (of wanneer je het "
 "buffer killt). Meestal bevat een buffer informatie die je van een "
-"bestand gekopieerd hebt, we zeggen dat de buffer het bestand "
+"bestand gekopieerd hebt, we zeggen dat het buffer het bestand "
 "@dfn{bezoekt}. Deze kopie is waar je op werkt en wijzigt. "
 "Veranderingen in het buffer wijzigen het bestand niet, totdat je het "
-"buffer opslaat. Wanneer je het buffer opslaat, wordt de buffer "
+"buffer opslaat. Wanneer je het buffer opslaat, wordt het buffer "
 "gekopieerd naar het bestand en zo permanent opgeslagen."
 
 #. type: Plain text
@@ -7335,12 +7335,17 @@ msgid ""
 "value returned by evaluating @code{(buffer-file-name)} is "
 "@file{\"/gnu/work/intro/introduction.texinfo\"}."
 msgstr ""
+"Aan de andere kant, terwijl ik dit document schrijf is de waarde die "
+"het evalueren van @code{(buffer-name)} teruggeeft, "
+"@file{\"introduction.texinfo\"} en de waarde die de evaluatie van "
+"@code{(buffer-file-name)} teruggeeft "
+"@file{\"/gnu/work/intro/introduction.texinfo\"}."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2605
 #, no-wrap
 msgid "@code{nil}, history of word"
-msgstr ""
+msgstr "@code{nil}, geschiedenis van woord"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2613
@@ -7353,6 +7358,14 @@ msgid ""
 "Lisp, @code{nil} is also used to mean ``false'' and is a synonym for the "
 "empty list, @code{()}.)"
 msgstr ""
+"De eerste is de naam van het buffer en het tweede is de naam van het "
+"bestand. In Info is de naam van het buffer @file{\"*info*\"}. Info "
+"wijst niet naar een bestand, waardoor @file{nil} het resultaat van "
+"de evaluatie @code{(buffer-file-name)} is. Het symbool @file{nil} is "
+"van het Latijnse woord for ``niets'', in dit geval betekent het dat "
+"het buffer met geen enkel bestand geassocieerd is. (In Lisp wordt "
+"@code{nil} ook gebruikt om ``onwaar'' te betekenen en is synoniem "
+"voor de lege lijst, @code{()}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2617
@@ -7361,6 +7374,9 @@ msgid ""
 "@file{\"introduction.texinfo\"}.  The name of the file to which it points is "
 "@file{\"/gnu/work/intro/introduction.texinfo\"}."
 msgstr ""
+"Wanneer ik schrijf is de naam van mijn buffer @file{\"introduction.texinfo\"}. "
+"De naam van het bestand waar het naar wijst is "
+"@file{\"/gnu/work/intro/introduction.texinfo\"}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2622
@@ -7370,6 +7386,10 @@ msgid ""
 "the parentheses, the interpreter would attempt to evaluate the symbols as "
 "variables.  @xref{Variables}.)"
 msgstr ""
+"(In de expressies vertellen de haakjes aan de Lisp interpreter om "
+"@w{@code{buffer-name}} en @w{@code{buffer-file-name}} als functies te behandelen. "
+"Zonder de haakjes zou de interpreter proberen de symbolen als variabelen "
+"te behandelen. @xref{Variabelen}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2630
@@ -7382,6 +7402,14 @@ msgid ""
 "is important to keep the distinction in mind, since the computer is not as "
 "smart as a person."
 msgstr ""
+"Ondanks het onderscheid tussen bestanden en buffers zie je vaak dat "
+"mensen aan een bestand refereren wanneer ze een buffer bedoelen en "
+"vice versa. Inderdaad zeggen de meeste mensen ``ik edit een "
+"bestand'' in plaats van ``ik edit een buffer dat ik binnenkort naar "
+"een bestand ga saven''. Het is vrijwel altijd duidelijk van de "
+"context wat mensen bedoelen. Wanneer we met computerprogramma's "
+"werken is het belangrijk het onderscheid in gedachten te houden, "
+"want computers zijn niet zo slim als mensen."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2631
@@ -7405,6 +7433,19 @@ msgid ""
 "warehoused temporarily before being loaded onto ships; then it became a "
 "business and cultural center in its own right."
 msgstr ""
+"Overigens komt het woord ``buffer'' van de betekenis van het woord "
+"als een ``kussen dat de kracht van een botsing opvangt''. In de "
+"eerste computers verzachtte een buffer de interactie tussen "
+"bestanden en de centrale verwerkingseenheid. De drums of tapes die "
+"het bestand bevatten en de centrale verwerkingseenheid waren onderdelen "
+"van de apparatuur die zeer verschillend van elkaar waren en op hun "
+"eigen snelheid werkten, in stoten. Uiteindelijk groeide het buffer "
+"van een tussenpersoon, een tijdelijke opslagplaats uit naar de plaats "
+"waar het werk wordt gedaan. Deze transformatie is ongeveer zoals een "
+"kleine zeehaven uitgroeide naar een grote stad. Eens was het slechts "
+"de plaats waar lading tijdelijk in magazijnen werd opgeslagen voordat "
+"het op schepen werd verladen en daarna een zakelijk en cultureel "
+"centrum op zichzelf werd."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2649
@@ -7413,6 +7454,10 @@ msgid ""
 "buffer does not visit any file.  Similarly, a @file{*Help*} buffer is not "
 "associated with any file."
 msgstr ""
+"Niet alle buffers zijn geassocieerd met bestanden. Bijvoorbeeld een "
+"@file{*scratch*}-buffer bezoekt geen enkel bestand. Op dezelfde "
+"manier is het @file{*Help*}-buffer met geen enkel bestand "
+"geassocieerd."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2656
@@ -7424,6 +7469,14 @@ msgid ""
 "splash screen, visit a file, or press @kbd{q} to quit the splash screen and "
 "reach the @file{*scratch*} buffer."
 msgstr ""
+"Wanneer je vroeger geen @file{~/.emacs} bestand had en een Emacs "
+"sessie startte door het typen van alleen het commando @code{emacs}, "
+"zonder enig bestand te noemen, startte Emacs met het "
+"@file{*scratch*} buffer zichtbaar. Tegenwoordig zie je een "
+"startscherm. Je kunt een van de commando's volgen die op het "
+"startscherm gesuggereerd worden, een bestand bezoeken of op @kbd{q} "
+"drukken om het startscherm te sluiten en het @file{*scratch*}-buffer "
+"te bereiken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2665
@@ -7436,6 +7489,14 @@ msgid ""
 "that, @code{nil} will appear in the echo area, just as it does when you "
 "evaluate @code{(buffer-file-name)} in Info."
 msgstr ""
+"Schakel over naar het @file{*scratch*}-buffer en typ "
+"@code{(buffer-name)}, plaats de cursor direct er achter, en typ "
+"vervolgens @kbd{C-x C-e} om de expressie te evalueren. De naam "
+"@code{\"*scratch*\"} wordt teruggegeven en verschijnt in het "
+"echogebied. @code{\"*scratch*\"} is de naam van het buffer. Wanneer "
+"je @code{(buffer-file-name)} in het @file{*scratch*} buffer typt en "
+"dat evalueert, verschijnt @code{nil} in het echogebied, net zoals "
+"dat gebeurt wanneer je @code{(buffer-file-name)} in Info evalueert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2671
@@ -7446,12 +7507,17 @@ msgid ""
 "C-e}.  This causes the value returned to appear after the expression.  The "
 "buffer will look like this:"
 msgstr ""
+"Overigens, als je in het @file{*scratch*} buffer bent en door een "
+"expressie teruggeven waarde in het @file{*scratch*} wilt laten "
+"verschijnen in plaats van het echogebied, typ je @kbd{C-u C-x C-e} "
+"in plaats van @kbd{C-x C-e}. Dit zorgt dat de teruggegeven waarde "
+"achter de expressie verschijnt. Het buffer ziet er zo uit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:2674
 #, no-wrap
 msgid "(buffer-name)\"*scratch*\"\n"
-msgstr ""
+msgstr "(buffer-name)\"*scratch*\"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2681
@@ -7461,24 +7527,28 @@ msgid ""
 "can edit; and when you write code or documentation (such as this book), this "
 "feature is very useful."
 msgstr ""
+"Je kunt dit niet in Info doen, omdat Info read-only is en je niet "
+"toestaat de inhoud van het buffer te wijzigen. Maar je kunt dit in "
+"elk buffer doen dat je kunt editen. Wanneer je code schrijft of "
+"documentatie (zoals dit boek), is deze eigenschap erg nuttig."
 
 #. type: item
 #: emacs-lisp-intro.texi:2684 emacs-lisp-intro.texi:4578
 #, no-wrap
 msgid "current-buffer"
-msgstr ""
+msgstr "current-buffer"
 
 #. type: item
 #: emacs-lisp-intro.texi:2685 emacs-lisp-intro.texi:4582
 #, no-wrap
 msgid "other-buffer"
-msgstr ""
+msgstr "other-buffer"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2686
 #, no-wrap
 msgid "Getting a buffer"
-msgstr ""
+msgstr "Een buffer krijgen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2692
@@ -7488,6 +7558,10 @@ msgid ""
 "@code{current-buffer} function.  If you use this function in code, what you "
 "get is the buffer itself."
 msgstr ""
+"De @code{buffer-name}-functie geeft de @emph{naam} van het buffer. Om het "
+"buffer @emph{zelf} te krijgen is een andere functie benodigd, de  "
+"functie @code{current-buffer}. Wanneer je deze functie in code gebruikt "
+"krijg je het buffer zelf."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2703
@@ -7502,6 +7576,17 @@ msgid ""
 "the name is not the buffer.  To get a buffer itself, you need to use a "
 "function such as @code{current-buffer}."
 msgstr ""
+"Een naam en het object of entiteit waar de naam aan refereert zijn "
+"van elkaar verschillend. Jij bent niet je naam. Je bent een persoon "
+"die anderen bij naam noemen. Wanneer je vraagt om met George te "
+"spreken en iemand geeft je een kaart met de letters @samp{G}, "
+"@samp{e}, @samp{o}, @samp{r}, @samp{g} en @samp{e}, dan kan dat je "
+"amuseren, maar je zal er niet tevreden mee zijn. Je wilt niet met de "
+"naam spreken, maar met de persoon die met die naam genoemd is. Een "
+"buffer is vergelijkbaar: de naam van het scratch-buffer is "
+"@file{*scratch*}, maar de naam is niet het buffer. Om het buffer "
+"zelf te krijgen, heb je een functie nodig zoals "
+"@code{current-buffer}. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2711
@@ -7514,17 +7599,25 @@ msgid ""
 "another buffer may have the same contents but a different name, and it is "
 "important to distinguish between them."
 msgstr ""
+"Er is echter een kleine complicatie: wanneer je "
+"@code{current-buffer} zelf evalueert in een expressie, zoals we hier "
+"gaan doen, dan wordt de de representatie van de naam van het buffer "
+"getoond zonder de inhoud van het buffer. Emacs werkt op deze manier "
+"wegens twee redenen: het buffer kan duizenden regels lang zijn---te "
+"lang om handig weer te geven, en een ander buffer kan "
+"dezelfde inhoud maar een andere naam hebben en het is belangrijk om "
+"onderscheid tussen hen te maken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2714
 msgid "Here is an expression containing the function:"
-msgstr ""
+msgstr "Hier is een expressie die de functie bevat:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:2717
 #, no-wrap
 msgid "(current-buffer)\n"
-msgstr ""
+msgstr "(current-buffer)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2724
@@ -7534,6 +7627,10 @@ msgid ""
 "indicates that the buffer itself is being returned, rather than just its "
 "name."
 msgstr ""
+"Wanneer je deze expressie in Info in Emacs op de gebruikelijke "
+"manier evalueert, verschijnt @file{#<buffer *info*>} in het "
+"echogebied. Het speciale formaat geeft aan dat het buffer zelf is "
+"teruggegeven in plaats van slechts de naam."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2728
@@ -7542,6 +7639,10 @@ msgid ""
 "cannot do that with the printed representation of a buffer: the only way to "
 "get a buffer itself is with a function such as @code{current-buffer}."
 msgstr ""
+"Overigens, hoewel je een getal of symbool in een programma kunt "
+"typen, kan je dit niet doen met de getoonde representatie van een "
+"buffer: de enige manier om een buffer zelf te krijgen is met een "
+"functie zoals @code{current-buffer}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2734
@@ -7552,17 +7653,22 @@ msgid ""
 "from the @file{*scratch*} buffer, @code{other-buffer} will return that "
 "buffer."
 msgstr ""
+"Een gerelateerde functie is @code{other-buffer}. Deze geeft de meest "
+"recent geselecteerde buffer terug, anders dan degene waar je nu in "
+"bent, en niet de getoonde representatie van de naam. Wanneer je "
+"recentelijk heen en weer tussen het @file{*scratch*} buffer "
+"geschakeld hebt, dan zal @code{other-buffer} dat buffer teruggeven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2737
 msgid "You can see this by evaluating the expression:"
-msgstr ""
+msgstr "Dit zie je door de volgende expressie te evalueren:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:2740
 #, no-wrap
 msgid "(other-buffer)\n"
-msgstr ""
+msgstr "(other-buffer)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2749
@@ -7574,25 +7680,32 @@ msgid ""
 "choose the most recent buffer that you cannot see; this is a subtlety that I "
 "often forget.}."
 msgstr ""
+"Je zou @file{#<buffer *scratch*>} moeten zien verschijnen in het "
+"echogebied, of de naam van welk ander buffer je het meest recent van "
+"teruggeschakeld hebt. @footnote{Eigenlijk wanneer het buffer waar je "
+"laatst vandaan schakelde voor je zichtbaar is in een ander "
+"venster. zal standaard @code{other-buffer} het meest recente buffer "
+"kiezen dat je niet kunt zien. Dit is een subtiliteit die ik meestal "
+"vergeet.}"
 
 #. type: item
 #: emacs-lisp-intro.texi:2752 emacs-lisp-intro.texi:4587
 #, no-wrap
 msgid "switch-to-buffer"
-msgstr ""
+msgstr "switch-to-buffer"
 
 #. type: item
 #: emacs-lisp-intro.texi:2753 emacs-lisp-intro.texi:4591
 #: emacs-lisp-intro.texi:5451
 #, no-wrap
 msgid "set-buffer"
-msgstr ""
+msgstr "set-buffer"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2754
 #, no-wrap
 msgid "Switching to a buffer"
-msgstr ""
+msgstr "Switching to a buffer"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2760
@@ -7602,6 +7715,11 @@ msgid ""
 "@code{other-buffer} and @code{switch-to-buffer} to switch to a different "
 "buffer."
 msgstr ""
+"De @code{other-buffer}-functie biedt eigenlijk een buffer wanneer "
+"het gebruikt wordt als een argument voor een functie die er een "
+"vereist. We zien dit door @code{other-buffer} en "
+"@code{switch-to-buffer} te gebruiken om naar een ander buffer te "
+"schakelen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2776
@@ -7620,6 +7738,23 @@ msgid ""
 "different functions.  For example, @kbd{C-f} calls @code{forward-char}, "
 "@kbd{M-e} calls @code{forward-sentence}, and so on."
 msgstr ""
+"Maar eerst een korte introductie in de @code{switch-to-buffer} "
+"functie. Toen je heen en weer schakelde tussen Info en het "
+"@file{*scratch*}-buffer om @code{(buffer-name)} te evalueren, heb je "
+"hoogstwaarschijnlijk @kbd{C-x b} en daarna @file{*scratch*} "
+"getypt@footnote{Of beter gezegd, om toetsaanslagen te besparen, heb "
+"je waarschijnlijk alleen @kbd{RET} getypt indien het default buffer "
+"@file{*scratch*} was, of wanneer het niet zo was, je slechts een "
+"gedeelte van de naam typte, zoals @code{*sc}, en de @kbd{TAB}-toets "
+"gebruikte zodat het expandeerde naar de volledige naam, en daarna "
+"@kbd{RET} typte.} toen je in het minibuffer gevraagd werd naar de "
+"naam van het buffer waar naar toe te schakelen. De toetsaanslagen "
+"@kbd{C-x b} laten de Lisp interpreter de interactieve "
+"@code{switch-to-buffer}-functie evalueren. Zoals we eerder gezegd "
+"hebben, dit is hoe Emacs werkt: verschillende toetsaanslagen roepen "
+"verschillende functies aan of draaien die. Bijvoorbeeld @kbd{C-f} "
+"roept @code{forward-char} aan, @kbd{M-e} roept "
+"@code{forward-sentence} aan, enzovoorts."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2780
@@ -7627,12 +7762,15 @@ msgid ""
 "By writing @code{switch-to-buffer} in an expression, and giving it a buffer "
 "to switch to, we can switch buffers just the way @kbd{C-x b} does:"
 msgstr ""
+"Door @code{switch-to-buffer} in een expressie te schrijven en het "
+"een buffernaam te geven om naar te schakelen, kunnen we buffers "
+"schakelen op dezelfde manier zoals @kbd{C-x b} doet:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:2783
 #, no-wrap
 msgid "(switch-to-buffer (other-buffer))\n"
-msgstr ""
+msgstr "(switch-to-buffer (other-buffer))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2813
@@ -7695,6 +7833,14 @@ msgid ""
 "However, programs do not have eyes.  When a computer program works on a "
 "buffer, that buffer does not need to be visible on the screen."
 msgstr ""
+"In de programmeervoorbeelden in volgende secties van dit document "
+"zie je de functie @code{set-buffer} vaker dan "
+"@code{switch-to-buffer}. Dit is wegens een verschil tussen "
+"computerprogramma's en mensen: mensen hebben ogen en verwachten het "
+"buffer te zien waarop ze werken op hun computerterminals. Dit is zo voor de "
+"hand liggend, het spreekt bijna voor zich. Echter, programma's "
+"hebben geen ogen. Wanneer een computerprogramma op een buffer werkt, "
+"dan hoeft dat buffer niet op het scherm zichtbaar te zijn."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2830
@@ -7707,12 +7853,20 @@ msgid ""
 "screen remains unchanged (of course, normally nothing happens there until "
 "the command finishes running)."
 msgstr ""
+"@code{switch-to-buffer} is ontworpen voor mensen en doet twee "
+"verschillende dingen: het schakelt het buffer waar de aandacht van "
+"Emacs op is gevestigd en het schakelt het buffer dat getoond wordt "
+"in het venster naar een nieuw buffer. @code{set-buffer} anderzijds "
+"doet meer een enkel ding: het schakelt de aandacht van het "
+"computerprogramma naar een ander buffer. Het buffer op het scherm "
+"blijft onveranderd (uiteraard gebeurt er niets totdat het commando "
+"klaar is met lopen)."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2831
 #, no-wrap
 msgid "@samp{call} defined"
-msgstr ""
+msgstr "@samp{aanroepen} gedefinieerd"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2838
@@ -7723,36 +7877,43 @@ msgid ""
 "function as an entity that can do something for you if you call it---just as "
 "a plumber is an entity who can fix a leak if you call him or her."
 msgstr ""
+"Ook hebben we net een ander jargon term geïntroduceerd, het woord "
+"@dfn{aanroepen}. Wanneer je een lijst evalueert waar het eerste "
+"symbool een functie is, dan roep je die functie aan. Het gebruik van "
+"deze term komt voort uit het begrip van de functie als entiteit dan "
+"iets voor je kan doen wanneer je het aanroept---net als een "
+"loodgieter een entiteit is die een lek kan repareren wanneer je hem "
+"of haar roept."
 
 #. type: section
 #: emacs-lisp-intro.texi:2840
 #, no-wrap
 msgid "Buffer Size and the Location of Point"
-msgstr ""
+msgstr "Buffergrootte en de locatie van point"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2841
 #, no-wrap
 msgid "Size of buffer"
-msgstr ""
+msgstr "Buffergrootte"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2842
 #, no-wrap
 msgid "Buffer size"
-msgstr ""
+msgstr "Buffergrootte"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2843
 #, no-wrap
 msgid "Point location"
-msgstr ""
+msgstr "Locatie van point"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2844
 #, no-wrap
 msgid "Location of point"
-msgstr ""
+msgstr "Locatie van point"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2850
@@ -7761,6 +7922,10 @@ msgid ""
 "@code{point}, @code{point-min}, and @code{point-max}.  These give "
 "information about the size of a buffer and the location of point within it."
 msgstr ""
+"Laten wij tenslotte naar enkele nogal eenvoudige functies kijken, "
+"@code{buffer-size}, @code{point}, @code{point-min} en "
+"@code{point-max}. Deze geven informatie over de grootte van een "
+"buffer en de locatie van point daarin."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2854
@@ -7769,6 +7934,9 @@ msgid ""
 "that is, the function returns a count of the number of characters in the "
 "buffer."
 msgstr ""
+"De functie @code{buffer-size} vertelt je hoe groot het huidige "
+"buffer is. Dit houdt in dat de functie de som van het aantal "
+"karakters in het buffer teruggeeft."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:2857
@@ -7782,12 +7950,14 @@ msgid ""
 "You can evaluate this in the usual way, by positioning the cursor after the "
 "expression and typing @kbd{C-x C-e}."
 msgstr ""
+"Je kunt dit op de gebruikelijke manier evalueren door de cursor "
+"achter de expressie te plaatsen en @kbd{C-x C-e} te typen."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2863
 #, no-wrap
 msgid "@samp{point} defined"
-msgstr ""
+msgstr "@samp{point} gedefinieerd"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2868
@@ -7797,6 +7967,10 @@ msgid ""
 "is located as a count of the number of characters from the beginning of the "
 "buffer up to point."
 msgstr ""
+"In Emacs wordt de huidige positie van de cursor @dfn{point} genoemd. "
+"De expressie @code{(point)} geeft een getal terug dat je vertelt "
+"waar de cursor is gepositioneerd als een telling van het aantal "
+"karakters vanaf het begin van het buffer tot point."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2872
@@ -7804,12 +7978,14 @@ msgid ""
 "You can see the character count for point in this buffer by evaluating the "
 "following expression in the usual way:"
 msgstr ""
+"Je kunt de karaktertelling voor point in dit buffer zien door het op "
+"de gebruikelijke manier evalueren van de volgende expressie:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:2875 emacs-lisp-intro.texi:2888
 #, no-wrap
 msgid "(point)\n"
-msgstr ""
+msgstr "(point)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2881
@@ -7817,6 +7993,8 @@ msgid ""
 "As I write this, the value of point is 65724.  The @code{point} function is "
 "frequently used in some of the examples later in this book."
 msgstr ""
+"Terwijl ik dit schrijf is de waarde van point 65724. De @code{point} "
+"functie wordt vaak gebruikt in sommige voorbeelden later in dit boek."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2885
@@ -7824,6 +8002,9 @@ msgid ""
 "The value of point depends, of course, on its location within the buffer.  "
 "If you evaluate point in this spot, the number will be larger:"
 msgstr ""
+"De waarde van point hangt natuurlijk af van zijn locatie in het "
+"buffer. Wanneer je point op deze plek evalueert, is het getal "
+"groter:"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2895
@@ -7833,6 +8014,10 @@ msgid ""
 "(Doubtless, you will see different numbers, since I will have edited this "
 "since I first evaluated point.)"
 msgstr ""
+"Voor mij is de waarde van point op deze plek 66043, wat betekent dat "
+"er 319 karakters (inclusief spaties) tussen de twee expressies zijn. "
+"(Ongetwijfeld zie je verschillende getallen, omdat ik dit heb "
+"geschreven heb na de eerste evaluatie van point.)"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2896
@@ -7851,13 +8036,21 @@ msgid ""
 "Narrowing and Widening}.)  Likewise, the function @code{point-max} returns "
 "the value of the maximum permissible value of point in the current buffer."
 msgstr ""
+"De functie @code{point-min} lijkt enigszins op @code{point}, maar "
+"het geeft de waarde van de minimum toegestane waarde van point in "
+"het huidige buffer. Dit is het getal 1 tenzij @dfn{versmallen} van "
+"toepassing is. (Versmallen is het mechanisme waarmee je jezelf of "
+"een programma beperkt tot operaties op slechts een deel van een "
+"buffer. @xref{Versmallen en verbreden, , Versmallen en verbreden}.) "
+"Evenzo geeft de functie @code{point-max} de maximum toegestane "
+"waarde van point in het huidige buffer."
 
 #. type: section
 #: emacs-lisp-intro.texi:2907 emacs-lisp-intro.texi:7493
 #: emacs-lisp-intro.texi:9961 emacs-lisp-intro.texi:16646
 #, no-wrap
 msgid "Exercise"
-msgstr ""
+msgstr "Oefening"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2911
@@ -7865,24 +8058,26 @@ msgid ""
 "Find a file with which you are working and move towards its middle.  Find "
 "its buffer name, file name, length, and your position in the file."
 msgstr ""
+"Vindt een bestand waarmee je werkt en ga naar het midden. Vindt zijn "
+"buffernaam, bestandsnaam, lengte en je positie in het bestand."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2914
 #, no-wrap
 msgid "Definition writing"
-msgstr ""
+msgstr "Definitie schrijven"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2915
 #, no-wrap
 msgid "Function definition writing"
-msgstr ""
+msgstr "Functiedefenitie schrijven"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2916
 #, no-wrap
 msgid "Writing a function definition"
-msgstr ""
+msgstr "Schrijven van een functiedefnitie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2925

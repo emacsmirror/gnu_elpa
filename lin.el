@@ -359,9 +359,9 @@ Line numbers come from the `display-line-numbers-mode'."
   (dolist (hook lin-mode-hooks)
     (add-hook hook #'lin-mode)))
 
-(defun lin--setup-remove-hooks (&optional hooks)
-  "Remove `lin-mode-hooks' or, optionally, HOOKS."
-  (dolist (hook (or hooks lin-mode-hooks))
+(defun lin--setup-remove-hooks ()
+  "Remove `lin-mode-hooks'."
+  (dolist (hook lin-mode-hooks)
     (remove-hook hook #'lin-mode)))
 
 (defun lin--setup (&optional remove)

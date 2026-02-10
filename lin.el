@@ -374,9 +374,8 @@ This adds `lin-mode' and `hl-line-mode' to every hook in
 `lin-mode-hooks'.
 
 With optional non-nil REMOVE argument, remove those hooks."
-  (if remove
-      (lin--setup-remove-hooks)
-    (lin--setup-remove-hooks lin--setup-hooks)
+  (lin--setup-remove-hooks)
+  (unless remove
     (lin--setup-add-hooks))
   (setq lin--setup-hooks lin-mode-hooks))
 

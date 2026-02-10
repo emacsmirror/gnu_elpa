@@ -20,5 +20,6 @@
 (require 'targets/elpa)
 (ivy--elpa-activate)
 
+;; TODO: Use `checkdoc-batch' in Emacs >= 31?
 (while command-line-args-left
   (checkdoc-file (pop command-line-args-left)))

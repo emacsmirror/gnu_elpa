@@ -104,7 +104,7 @@ editing, and (ii) current selection."
   :set (lambda (symbol value)
          (if (eq value (default-value symbol))
              (set-default symbol value)
-           (lin--setup 'reverse)
+           (lin--setup :remove)
            (set-default symbol value)
            (lin--setup)))
   :package-version '(lin . "1.0.0")
@@ -351,7 +351,7 @@ Line numbers come from the `display-line-numbers-mode'."
       (progn
         (lin--setup)
         (lin-enable-mode-in-buffers))
-    (lin--setup :reverse)
+    (lin--setup :remove)
     (lin-disable-mode-in-buffers)))
 
 (defun lin--setup-add-hooks ()
@@ -367,15 +367,15 @@ Line numbers come from the `display-line-numbers-mode'."
 (defvar lin--setup-hooks nil
   "Last value used by `lin--setup'.")
 
-(defun lin--setup (&optional reverse)
+(defun lin--setup (&optional remove)
   "Set up Lin for select mode hooks.
 
 This adds `lin-mode' and `hl-line-mode' to every hook in
 `lin-mode-hooks'.
 
-With optional non-nil REVERSE argument, remove those hooks."
+With optional non-nil REMOVE argument, remove those hooks."
   (cond
-   (reverse
+   (remove
     (lin--setup-remove-hooks))
    (t
     (lin--setup-remove-hooks lin--setup-hooks)

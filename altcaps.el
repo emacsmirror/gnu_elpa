@@ -55,6 +55,10 @@
 ;;   `altcaps-region'.  Else invoke `altcaps-word' with optional NUM,
 ;;   per that command's functionality (read its documentation).
 ;;
+;; The user option `altcaps-initial-case' controls whether to start
+;; with a lower or upper case letter and then to alternate between
+;; them.
+;;
 ;; The user option `altcaps-force-character-casing' forces the given
 ;; letter casing for specified characters.  Its value is an alist of
 ;; (STRING . CASE) pairs.  STRING is a single character string, while

@@ -385,10 +385,9 @@ is a member of `lin-mode-hooks'."
       (lin-mode 1))))
 
 (defun lin--mode-disable (buffer)
-  "Disable `lin-mode' if already enabled in BUFFER."
+  "Disable `lin-mode' in BUFFER."
   (with-current-buffer buffer
-    (when lin-mode
-      (lin-mode -1))))
+    (lin-mode -1)))
 
 (defun lin--buffer-hidden-p (buffer)
   "Return non-nil if BUFFER is hidden."

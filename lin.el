@@ -376,7 +376,9 @@ With optional non-nil REMOVE argument, remove those hooks."
     (lin--setup-add-hooks)))
 
 (defun lin--mode-enable (buffer)
-  "Enable `lin-mode' in BUFFER if appropriate."
+  "Enable `lin-mode' in BUFFER if appropriate.
+Do it if `lin-mode' is already enabled or the hook of the `major-mode'
+is a member of `lin-mode-hooks'."
   (with-current-buffer buffer
     (when (or lin-mode
               (memq (intern (format "%s-hook" major-mode)) lin-mode-hooks))

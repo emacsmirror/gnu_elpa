@@ -364,9 +364,6 @@ Line numbers come from the `display-line-numbers-mode'."
   (dolist (hook (or hooks lin-mode-hooks))
     (remove-hook hook #'lin-mode)))
 
-(defvar lin--setup-hooks nil
-  "Last value used by `lin--setup'.")
-
 (defun lin--setup (&optional remove)
   "Set up Lin for select mode hooks.
 
@@ -376,8 +373,7 @@ This adds `lin-mode' and `hl-line-mode' to every hook in
 With optional non-nil REMOVE argument, remove those hooks."
   (lin--setup-remove-hooks)
   (unless remove
-    (lin--setup-add-hooks))
-  (setq lin--setup-hooks lin-mode-hooks))
+    (lin--setup-add-hooks)))
 
 (defun lin--mode-enable (buffer)
   "Enable `lin-mode' in BUFFER if appropriate."

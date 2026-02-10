@@ -404,13 +404,11 @@ With optional non-nil REVERSE argument, remove those hooks."
   (seq-remove #'lin--buffer-hidden-p (buffer-list)))
 
 (defun lin-enable-mode-in-buffers ()
-  "Enable (restart) `lin-mode' if already enabled in any buffer.
-Do so by checking the `lin--non-hidden-buffers'."
+  "Enable `lin-mode' in `lin--non-hidden-buffers'."
   (mapc #'lin--mode-enable (lin--non-hidden-buffers)))
 
 (defun lin-disable-mode-in-buffers ()
-  "Restart `lin-mode' if already enabled in any buffer.
-Do so by checking the `lin--non-hidden-buffers'."
+  "Disable `lin-mode' in `lin--non-hidden-buffers'."
   (mapc #'lin--mode-disable (lin--non-hidden-buffers)))
 
 (provide 'lin)

@@ -1,7 +1,6 @@
 #### Makefile for the Emacs Lisp Introduction manual
 
-# Copyright (C) 1994, 1995, 1996, 1997, 1998, 1999, 2001, 2002, 2003,
-#   2004, 2005, 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+# Copyright (C) 1994-2026  Free Software Foundation, Inc.
 
 # This file is part of GNU Emacs.
 
@@ -35,7 +34,7 @@ INFO_TARGETS = ${infodir}/eintr
 DVI_TARGETS = emacs-lisp-intro-es.dvi
 
 PO2TEXI = dotexi.sh
-MAKEINFO = makeinfo
+MAKEINFO = makeinfo  --no-split
 TEXI2DVI = texi2dvi
 TEXI2PDF = texi2pdf
 TEXI2HTML = texi2html
@@ -79,7 +78,7 @@ mostlyclean:
 	rm -f  *.log *.cp *.fn *.ky *.pg *.vr *.tp *.tmp* *.aux *.cps *.toc
 
 clean: mostlyclean
-	rm -f *.dvi *.html emacs-lisp-intro-es.texi emacs-lisp-intro-es.pdf
+	rm -f *.dvi *.html *.info emacs-lisp-intro-es.texi emacs-lisp-intro-es.pdf
 
 distclean: clean
 

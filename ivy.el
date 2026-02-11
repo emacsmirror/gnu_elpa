@@ -2587,6 +2587,13 @@ This is useful for recursive `ivy-read'."
   "Make STR suitable for `format' with no extra arguments."
   (ivy--string-replace "%" "%%" str))
 
+(defun ivy--crm-p (collection)
+  "Return non-nil if completing multiple strings from COLLECTION.
+That is, if we are called from `completing-read-multiple'."
+  ;; It would be nicer to check for `crm-completion-table',
+  ;; but that is local to the minibuffer which may be too late.
+  (eq collection 'crm--collection-fn))
+
 ;;;###autoload
 (defun ivy-completing-read (prompt collection
                             &optional predicate require-match initial-input
@@ -2607,14 +2614,22 @@ INHERIT-INPUT-METHOD is currently ignored."
   (let ((handler
          (and (< ivy-completing-read-ignore-handlers-depth (minibuffer-depth))
               (assq this-command ivy-completing-read-handlers-alist))))
-    (if handler
-        (let ((completion-in-region-function #'completion--in-region)
-              (ivy-completing-read-ignore-handlers-depth (1+ (minibuffer-depth))))
-          (funcall (cdr handler)
-                   prompt collection
-                   predicate require-match
-                   initial-input history
-                   def inherit-input-method))
+    (cond
+     (handler
+      (let (;; This could also be customizable.
+            (completion-in-region-function #'completion--in-region)
+            (ivy-completing-read-ignore-handlers-depth (1+ (minibuffer-depth))))
+        (funcall (cdr handler)
+                 prompt collection predicate require-match
+                 initial-input history def inherit-input-method)))
+     ((ivy--crm-p collection)
+      ;; Ivy is currently incompatible with `completing-read-multiple'.
+      ;; This was harmless while crm called `read-from-minibuffer'
+      ;; directly; but since Emacs 31 it uses `completing-read':
+      ;; `https://bugs.gnu.org/80296'.
+      (completing-read-default prompt collection predicate require-match
+                               initial-input history def inherit-input-method))
+     (t
       ;; See the doc of `completing-read'.
       (when (consp history)
         (when (numberp (cdr history))
@@ -2647,7 +2662,7 @@ INHERIT-INPUT-METHOD is currently ignored."
             ;; For `completing-read' compat, return the first element of
             ;; DEFAULT, if it is a list; "", if DEFAULT is nil; or DEFAULT.
             (or def "")
-          str)))))
+          str))))))
 
 (defun ivy-completing-read-with-empty-string-def
     (prompt collection
@@ -2782,7 +2797,7 @@ See `completion-in-region' for further information."
              (completion--done str 'finished "Sole match"))
            t)
           (t
-           (when (eq collection 'crm--collection-fn)
+           (when (ivy--crm-p collection)
              (setq comps (delete-dups comps)))
            (let ((initial (substring str base-size))
                  (base-pos (+ start base-size)))

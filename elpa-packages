@@ -393,6 +393,7 @@
  (frog-menu		:url "https://github.com/clemera/frog-menu")
  (fsm			:url nil)
  (ftable		:url "https://github.com/casouri/ftable")
+ (futur			:url nil)
  (gcmh			:url "https://gitlab.com/koral/gcmh")
  (ggtags		:url "https://github.com/leoliu/ggtags")
  (gited			:url nil)

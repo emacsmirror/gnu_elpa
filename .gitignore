@@ -1,0 +1,9 @@
+*.aux
+*.cp
+*.html
+*.info
+*.log
+*.tmp?
+*.toc
+*.dvi
+

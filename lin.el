@@ -315,14 +315,12 @@ Line numbers come from the `display-line-numbers-mode'."
   "Cookie of `face-remap-add-relative' for `line-number-current-line' face.")
 
 (defun lin--hl-line-source-face ()
-  "Determine the source face: what to remap."
+  "Return the face to be remapped."
   (cond
    ((derived-mode-p 'mu4e-headers-mode)
     'mu4e-header-highlight-face)
    ((derived-mode-p 'magit-mode)
     'magit-section-highlight)
-   ;; Do not target `hl-line' directly, as it can be changed by
-   ;; `hl-line-face'.
    ((bound-and-true-p hl-line-face)
     hl-line-face)
    (t

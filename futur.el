@@ -1,9 +1,10 @@
-;;; futur.el --- Future/promise-based async library  -*- lexical-binding: t; -*-
+;;; futur.el --- Future/promise-based async library  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2022  Stefan Monnier
+;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
-;; Keywords:
+;; Version: 0
+;; Keywords: concurrency, async, promises, futures
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -25,7 +26,7 @@
 ;; and ConcurrentML's events.
 
 ;; You can create trivial futures with `futur-done'.
-;; You can create a "process future" with `futur-process-make'.
+;; You can create a "process future" with `futur-process-call'.
 ;; And the main way to use futures is to compose them with `futur-let*',
 ;; which can be used as follows:
 
@@ -38,7 +39,7 @@
 ;;       (buffer-string))
 
 ;; This example builds a future which runs two commands in sequence.
-;; For those rare cases where you really do want to block everything
+;; For those rare cases where you really do need to block everything
 ;; else and wait for a future to complete, you can
 ;; use`futur-blocking-wait-to-get-result'.
 

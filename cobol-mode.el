@@ -89,16 +89,6 @@
   :type 'integer
   :safe #'integerp)
 
-(eval-and-compile
-(defconst cobol-formats
-  '(fixed-85 fixed-2002 free)
-  "The accepted values for `cobol-source-format'.")
-
-(defcustom cobol-source-format 'fixed-85
-  "Source format of COBOL source code."
-  :type (cobol--radio-of-list cobol-formats)
-  :safe (cobol--val-in-list-p cobol-formats)))
-
 ;; Ruler
 ;; Code derived from the Emacs fortran.el, rulers from IBM Rational Developer.
 
@@ -2590,14 +2580,14 @@ arguments at all.")
 
 ;;; Code formatting
 
-(defconst cobol-formats
-  '(upper-case lower-case capitalised-all capitalised-verbs)
-  "The different formats supported when formatting COBOL code.")
-
 (defcustom cobol-format-style 'upper-case
   "The type of formatting used when formatting COBOL code."
-  :type (cobol--radio-of-list cobol-formats)
-  :safe (cobol--val-in-list-p cobol-formats))
+  :type  '(radio (const :tag "Upcase" upper-case)
+                 (const :tag "Downcase" lower-case)
+                 (const :tag "Capitalise all" capitalised-all)
+                 (const :tag "Capitalise verbs only" capitalised-verbs))
+  :safe  (lambda (value) (memq value '(upper-case lower-case capitalised-all capitalised-verbs))))
+
 
 (defun cobol-format-word (word)
   "Return WORD formatted according to `cobol-format-style'."

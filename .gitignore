@@ -1,0 +1,5 @@
+*.elc
+
+# ELPA-generated files.
+/futur-pkg.el
+/futur-autoloads.el

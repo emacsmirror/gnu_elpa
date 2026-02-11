@@ -2620,6 +2620,10 @@ arguments at all.")
                  (const :tag "Capitalise verbs only" capitalised-verbs))
   :safe  (lambda (value) (memq value '(upper-case lower-case capitalised-all capitalised-verbs))))
 
+(defcustom cobol-fixed-line-length 72
+  "Length of standard cobol line length.
+  Used by `cobol-strip-sequence-nos'."
+  :type 'integer)
 
 (defun cobol-format-word (word)
   "Return WORD formatted according to `cobol-format-style'."
@@ -2683,21 +2687,58 @@ arguments at all.")
       (setf bottom-right (+ (point) 6))
       (string-rectangle top-left bottom-right (format "%-6s" text)))))
 
+(defun cobol-strip-line-numbers ()
+  "Delete all text in column 1 to 7.
+  This is assumed to be line numbers."
+  (interactive)
+  (let ((string (make-string 6 ? )))
+    (save-excursion
+      (goto-char (point-min))
+      (while (re-search-forward "^[[:graph:]]\\{1,6\\}" nil t)
+        (replace-match string)))))
+
+(defun cobol-strip-sequence-nos (&optional do-space)
+  "Delete all text in column `cobol-line-length' (default 72) and up.
+  This is assumed to be sequence numbers.  Normally also deletes
+  trailing whitespace after stripping such text.  Supplying prefix
+  arg DO-SPACE prevents stripping the whitespace."
+  (interactive "*p")
+  (let ((re (format "^.\\{%d\\}\\(.*\\)" cobol-line-length)))
+    (save-excursion
+      (goto-char (point-min))
+      (while (re-search-forward re nil t)
+        (replace-match "" nil nil nil 1)
+        (unless do-space (delete-horizontal-space))))))
+
 ;;; Indentation
 ;; Derived (a long time ago) from the wonderful Emacs Mode Tutorial at
 ;; <https://www.emacswiki.org/emacs/ModeTutorial>.
 
-(defun cobol--code-start ()
+(define-inline cobol--code-start ()
   "Return the first column code can go in."
   (if (eq cobol-source-format 'free)
       0
     7))
 
 ;;; Misc
-(defvar cobol-tab-width 4 "Width of a tab for `cobol-mode'.")
+(defcustom cobol-tab-width 4
+  "Width of a tab for `cobol-mode'."
+  :group 'cobol-mode
+  :type 'number)
+
+(defcustom cobol-indent-of-when-statement 0
+  "Indent of 'when' clauses in EVALUATE statemnet."
+  :group 'cobol-mode
+  :type 'number)
+
+(defcustom cobol-indent-after-if-when-perform 2
+  "Indent after a IF/EVALUATE/WHEN/non-procedural PERFORM."
+  :group 'cobol-mode
+  :type 'integer)
 
 (cl-defun cobol--indent (indent &optional (times 1))
-  "Increment INDENT."
+  "Increment INDENT.
+Optional TIMES times."
   (+ indent (* times cobol-tab-width)))
 
 (defun cobol--current-indentation ()

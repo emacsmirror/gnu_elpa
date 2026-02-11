@@ -1,6 +1,6 @@
 ;;; futur-tests.el --- Tests for the Futur library   -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024  Stefan Monnier
+;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
 ;; Keywords:

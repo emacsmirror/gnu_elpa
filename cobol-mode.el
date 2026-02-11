@@ -8,7 +8,7 @@
 ;; Version: 1.1
 ;; Created: 9 November 2013
 ;; Keywords: languages
-;; Package-Requires: ((emacs "24.3"))
+;; Package-Requires: ((emacs "26.1"))
 
 ;; This file is part of GNU Emacs.
 

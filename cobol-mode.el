@@ -2248,9 +2248,15 @@ Note that this matches DECLARATIVES.")
 
 ;;; Font lock
 
-(defun cobol--fixed-format-p ()
+(defun cobol-fixed-format-p ()
   "Return whether the current source format is fixed."
   (not (eq cobol-source-format 'free)))
+
+(defun cobol-in-string-p (&optional pos)
+  "Returns t if in literal string."
+  (let ((sppss (syntax-ppss pos)))
+    (or (nth 3 sppss)
+        (nth 4 sppss))))
 
 ;; This is required for indentation to function, because the initial sequence
 ;; area is marked as a comment, not whitespace.
@@ -2260,7 +2266,7 @@ If in fixed-form code, the sequence area and indicators are skipped.
 Code copied from the Emacs source."
   (interactive "^")
   (beginning-of-line 1)
-  (when (cobol--fixed-format-p)
+  (when (cobol-fixed-format-p)
     (forward-char 7))
   (skip-syntax-forward " " (line-end-position))
   ;; Move back over chars that have whitespace syntax but have the p flag.
@@ -2268,11 +2274,11 @@ Code copied from the Emacs source."
 
 (defun cobol--font-lock-sequence-area (end)
   "Mark text in the sequence area as comments from point up to END."
-  (when (cobol--fixed-format-p)
+  (when (cobol-fixed-format-p)
     (while (and (< (point) end)
                 (re-search-forward "^.\\{1,6\\}" end t))
       (put-text-property (match-beginning 0) (point)
-                         'face font-lock-comment-face)))
+                         'face 'font-lock-comment-face)))
   nil)
 
 (eval-when-compile
@@ -2284,7 +2290,6 @@ Code copied from the Emacs source."
 
   (defconst cobol--syntax-propertize-program-name-area
     (syntax-propertize-precompile-rules
-     ;; TODO: Override open strings
      ("^.\\{72\\}\\(.\\)" (1 "<")))
     "Syntax rule to mark text in the program name area as comments.")
 
@@ -2294,6 +2299,26 @@ Code copied from the Emacs source."
                                        "PAGE\\([ 	]\\)")
       (1 "<")))
     "Syntax rule to mark text after >>PAGE as a comment.")
+
+  (defconst cobol--syntax-propertize-page-cont-literal
+    (syntax-propertize-precompile-rules
+     ("\\(\n\\).\\{6\\}\\(-\\)\\s-+['\"]"
+      (0 (ignore
+          (when (cobol-in-string-p (match-beginning 1))
+            (put-text-property
+             (match-beginning 1)
+             (match-end 1)
+             'syntax-table (string-to-syntax "|"))
+            (save-excursion
+              (goto-char (match-beginning 1))
+              (skip-syntax-backward "^\"" (pos-bol))
+              (when (not (bolp))
+                (put-text-property
+                 (1- (point))
+                 (point)
+                 'syntax-table (string-to-syntax "|")))))
+          (goto-char (match-end 1))))))
+    "Syntax rule to delimit continued string literals.")
 
   (defconst cobol--syntax-propertize-adjacent-quotes
     (syntax-propertize-precompile-rules
@@ -2311,23 +2336,31 @@ Code copied from the Emacs source."
             ;; first character in another escaped quote sequence.
             (forward-char 1))))))
     "Syntax rule to mark the first of adjacent quotes.
-It marks the first of \"\" or '' as an escape character."))
+  It marks the first of \"\" or '' as an escape character.")
+
+  (defconst cobol--syntax-propertize-sequence-area
+    (syntax-propertize-precompile-rules
+     (cobol--fixed-form-sequence-area-re (0 " ")))
+    "Syntax rule to mark all text in sequence area as whitespace."))
 
 (defun cobol--syntax-propertize-function (beg end)
-  "Syntax propertize awkward COBOL features (fixed-form comments, indicators
-and ignored areas) between points BEG and END."
-  ;; TO-DO: Propertize continuation lines.
+  "Syntax propertize awkward COBOL features.
+Fixed-form comments, indicators and ignored areas between
+ points BEG and END."
   (funcall
    (pcase cobol-source-format
      (`fixed-85 (syntax-propertize-rules
                  cobol--syntax-propertize-indicator-area
                  cobol--syntax-propertize-program-name-area
                  cobol--syntax-propertize-page-directive
-                 cobol--syntax-propertize-adjacent-quotes))
+                 cobol--syntax-propertize-adjacent-quotes
+                 cobol--syntax-propertize-page-cont-literal
+                 cobol--syntax-propertize-sequence-area))
      (`fixed-2002 (syntax-propertize-rules
                    cobol--syntax-propertize-indicator-area
                    cobol--syntax-propertize-page-directive
-                   cobol--syntax-propertize-adjacent-quotes))
+                   cobol--syntax-propertize-adjacent-quotes
+                   cobol--syntax-propertize-sequence-area))
      (_ (syntax-propertize-rules
          cobol--syntax-propertize-page-directive
          cobol--syntax-propertize-adjacent-quotes)))

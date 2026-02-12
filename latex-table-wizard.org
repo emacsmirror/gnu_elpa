@@ -4,13 +4,13 @@
 #+EMAIL: enrico@eflor.net
 
 #+OPTIONS: ':t toc:t author:t email:t
-#+MACRO: version 1.4.0
-#+MACRO: updated last updated 2 May 2023
+#+MACRO: version 1.5.5
+#+MACRO: updated last updated 24 Jan 2026
 
     [[https://elpa.gnu.org/packages/latex-table-wizard.html][https://elpa.gnu.org/packages/latex-table-wizard.svg]]
     [[https://melpa.org/#/latex-table-wizard][file:https://melpa.org/packages/latex-table-wizard-badge.svg]]
 
-Copyright (C) 2022, 2023 Enrico Flor.
+Copyright (C) 2022-2026 Enrico Flor.
 
      Permission is granted to copy, distribute and/or modify this
      document under the terms of the GNU Free Documentation License,
@@ -64,10 +64,10 @@ just as any other cell content.
 #+end_src
 
 Of course you can call ~latex-table-wizard~ with point inside of the
-embedded table, in which case any command you use will operate only on
+embedded table, in which case, any command you use will operate only on
 the embedded table.
 
-For most of this document we will assume the table-like environment
+For most of this document, we will assume the table-like environment
 has the standard LaTeX2e syntax, but you can define your own types of
 table-like environments (more on this [[#user-defined-envs][below]]).
 
@@ -79,7 +79,7 @@ info as to how to specify additional environments).
 Whenever we say "current" we mean "at point".
 
 ** Start editing
-Just call ~latex-table-wizard~ when point is inside of table-like
+Just call ~latex-table-wizard~ when point is inside of a table-like
 environment.
 
 This commands actually activates the non-global minor mode
@@ -94,12 +94,13 @@ to 1.
 
 | Command                    | Default key |
 |----------------------------+-------------|
-| ~latex-table-wizard-right~   | ~f~           |
-| ~latex-table-wizard-left~    | ~b~           |
-| ~latex-table-wizard-down~    | ~n~           |
-| ~latex-table-wizard-up~      | ~p~           |
+| ~latex-table-wizard-right~ | ~f~         |
+| ~latex-table-wizard-left~  | ~b~         |
+| ~latex-table-wizard-down~  | ~n~         |
+| ~latex-table-wizard-up~    | ~p~         |
+|                            |             |
 
-With just one of these you can get anywhere you want in the table:
+With just one of these, you can get anywhere you want in a table.
 
 #+begin_src LaTeX
 \begin{tabular}{lll}
@@ -137,35 +138,36 @@ following expressions will return nil and won't move point:
 #+end_src
 ** Absolute motion commands
 
-| Command                              | Default key | Move to...                    |
-|--------------------------------------+-------------+-------------------------------|
-| ~latex-table-wizard-beginning-of-cell~ | ~a~           | end of current cell           |
-| ~latex-table-wizard-end-of-cell~       | ~e~           | beginning of current cell     |
-| ~latex-table-wizard-beginning-of-row~  | ~B~           | leftmost cell in current row  |
-| ~latex-table-wizard-end-of-row~        | ~F~           | rightmost cell in current row |
-| ~latex-table-wizard-bottom~            | ~N~           | bottom cell in current column |
-| ~latex-table-wizard-top~               | ~P~           | top cell in current column    |
+| Command                                | Default key | Move to...                    |
+|----------------------------------------+-------------+-------------------------------|
+| ~latex-table-wizard-beginning-of-cell~ | ~a~         | end of current cell           |
+| ~latex-table-wizard-end-of-cell~       | ~e~         | beginning of current cell     |
+| ~latex-table-wizard-beginning-of-row~  | ~B~         | leftmost cell in current row  |
+| ~latex-table-wizard-end-of-row~        | ~F~         | rightmost cell in current row |
+| ~latex-table-wizard-bottom~            | ~N~         | bottom cell in current column |
+| ~latex-table-wizard-top~               | ~P~         | top cell in current column    |
 ** Mark, kill and insert commands
-| Command                                | Default key |                                    |
-|----------------------------------------+-------------+------------------------------------|
-| ~latex-table-wizard-edit-cell~           | ~.~           | edit current cell                  |
-| ~latex-table-wizard-mark-cell~           | ~m c~         | mark current cell                  |
-| ~latex-table-wizard-insert-column~       | ~i c~         | insert empty column to the right   |
-| ~latex-table-wizard-insert-row~          | ~i r~         | insert row below                   |
-| ~latex-table-wizard-copy-cell-content~   | ~w~           | copy content of current cell       |
-| ~latex-table-wizard-yank-cell-content~   | ~y~           | replace and yank into current cell |
-| ~latex-table-wizard-kill-cell-content~   | ~k k~         | kill content of current cell       |
-| ~latex-table-wizard-kill-column-content~ | ~k c~         | kill content of current column     |
-| ~latex-table-wizard-kill-row-content~    | ~k r~         | kill content of current row        |
-| ~latex-table-wizard-delete-column~       | ~D c~         | delete current column              |
-| ~latex-table-wizard-delete-row~          | ~D r~         | delete current row                 |
-| ~exchange-point-and-mark~                | ~x~           |                                    |
+
+| Command                                  | Default key | Do...                                   |
+|------------------------------------------+-------------+-----------------------------------------|
+| ~latex-table-wizard-edit-cell~           | ~.~         | edit current cell                       |
+| ~latex-table-wizard-mark-cell~           | ~m c~       | mark current cell                       |
+| ~latex-table-wizard-insert-column~       | ~i c~       | insert empty column to the right        |
+| ~latex-table-wizard-insert-row~          | ~i r~       | insert row below                        |
+| ~latex-table-wizard-copy-cell-content~   | ~w~         | copy content of current cell            |
+| ~latex-table-wizard-yank-cell-content~   | ~y~         | replace and yank into current cell      |
+| ~latex-table-wizard-kill-cell-content~   | ~k k~       | kill content of current cell            |
+| ~latex-table-wizard-kill-column-content~ | ~k c~       | kill content of current column          |
+| ~latex-table-wizard-kill-row-content~    | ~k r~       | kill content of current row             |
+| ~latex-table-wizard-delete-column~       | ~D c~       | delete current column                   |
+| ~latex-table-wizard-delete-row~          | ~D r~       | delete current row                      |
+| ~exchange-point-and-mark~                | ~x~         | exchange position of point and the mark |
 
 ~latex-table-wizard-kill-cell-content~ and
 ~latex-table-wizard-copy-cell-content~ add the content of current cell
 both to the kill ring (like the default kill and copy commands) and to
 the value of a special variable: ~latex-table-wizard-yank-cell-content~
-will replace the content of the current cell with whatever that value
+which will replace the content of the current cell with whatever that value
 is.
 
 ~latex-table-wizard-delete-column~ and ~latex-table-wizard-delete-row~
@@ -174,20 +176,25 @@ column/table, not just the content of the cells in them).
 
 ** Swap adjacent fields
 
-| Command                              | Default key | Swap current...                  |
-|--------------------------------------+-------------+----------------------------------|
-| ~latex-table-wizard-swap-cell-right~   | ~C-f~         | cell with the one to the right   |
-| ~latex-table-wizard-swap-cell-left~    | ~C-b~         | cell with the one to the left    |
-| ~latex-table-wizard-swap-cell-down~    | ~C-n~         | cell with the one below          |
-| ~latex-table-wizard-swap-cell-up~      | ~C-p~         | cell with the one above          |
-| ~latex-table-wizard-swap-column-right~ | ~M-f~         | column with the one to the right |
-| ~latex-table-wizard-swap-column-left~  | ~M-b~         | column with the one to the left  |
-| ~latex-table-wizard-swap-row-down~     | ~M-n~         | row with the one below           |
-| ~latex-table-wizard-swap-row-up~       | ~M-p~         | row with the one above           |
+| Command                                | Default key | Swap current...                  |
+|----------------------------------------+-------------+----------------------------------|
+| ~latex-table-wizard-swap-cell-right~   | ~C-f~       | cell with the one to the right   |
+| ~latex-table-wizard-swap-cell-left~    | ~C-b~       | cell with the one to the left    |
+| ~latex-table-wizard-swap-cell-down~    | ~C-n~       | cell with the one below          |
+| ~latex-table-wizard-swap-cell-up~      | ~C-p~       | cell with the one above          |
+| ~latex-table-wizard-swap-column-right~ | ~M-f~       | column with the one to the right |
+| ~latex-table-wizard-swap-column-left~  | ~M-b~       | column with the one to the left  |
+| ~latex-table-wizard-swap-row-down~     | ~M-n~       | row with the one below           |
+| ~latex-table-wizard-swap-row-up~       | ~M-p~       | row with the one above           |
 
 For these commands, think of the cells and columns as circular: if
 there is no item in the direction given, the target is the one on the
-opposite end of the current cell.  So for example:
+opposite end of the current cell.
+
+This is because these commands try to Do What You Mean if there is no
+suitable cell to move to.
+
+So, for example:
 
 #+begin_src LaTeX
 \begin{tabular}{lll}
@@ -197,14 +204,11 @@ opposite end of the current cell.  So for example:
 \end{tabular}
 #+end_src
 
-This is because these commands try to Do What You Mean if there is no
-suitable cell to move to:
-
 Point on ~C0~, ~latex-table-wizard-swap-cell-right~
   ⇒
 #+begin_src LaTeX
 \begin{tabular}{lll}
- C0 & B0    & A0 \\\hline
+  C0 & B0    & A0 \\\hline
   A1 & B1 & C1 \\
   A2 & B2 & C2
 \end{tabular}
@@ -231,10 +235,10 @@ Point on ~A1~, ~latex-table-wizard-swap-column-right~
 #+end_src
 
 ** Swap arbitrary fields
-To swap arbitrary fields one must first *select* something and then move
+To swap arbitrary fields, one must first *select* something and then move
 point somewhere else and perform the swap.  Importantly, *selecting
 does not mean marking*: the mark is not even moved when selecting
-(however, by default the selected cell will receive the same kind of
+(however, by default, the selected cell will receive the same kind of
 highlighting the loaded theme defines for the active region, but this
 is a purely graphical equivalence).  "Selecting", for the purposes of
 LaTeX-table-wizard only means storing a cell, a line or a row to be
@@ -243,14 +247,14 @@ swapped with another.
 The simplest case is one in which the current cell, column or row are
 selected:
 
-| Command                                 | Default key | Select current...    |
-|-----------------------------------------+-------------+----------------------|
-| ~latex-table-wizard-select-deselect-cell~ | ~SPC~         | select/deselect cell |
-| ~latex-table-wizard-select-column~        | ~c~           | select column        |
-| ~latex-table-wizard-select-row~           | ~r~           | deselect row         |
-| ~latex-table-wizard-deselect-all~         | ~d~           | deselect all         |
+| Command                                   | Default key | Select current...    |
+|-------------------------------------------+-------------+----------------------|
+| ~latex-table-wizard-select-deselect-cell~ | ~SPC~       | select/deselect cell |
+| ~latex-table-wizard-select-column~        | ~c~         | select column        |
+| ~latex-table-wizard-select-row~           | ~r~         | deselect row         |
+| ~latex-table-wizard-deselect-all~         | ~d~         | deselect all         |
 
-The first command, ~latex-table-wizard-select-deselect-cell~ toggles the
+The first command, ~latex-table-wizard-select-deselect-cell~, toggles the
 status of the current cell as being selected or not.
 
 Once things are selected, you move point somewhere else in the table
@@ -270,14 +274,14 @@ not part of the same column or row, the swap won't happen
 These two commands act on all the selected cells, if any is;
 otherwise, on the current cell point is on.
 
-| Command                                | Default key | Select current...   |
-|----------------------------------------+-------------+---------------------|
-| ~latex-table-wizard-comment-out-content~ | ~; c~         | comment out content |
-| ~latex-table-wizard-comment-out~         | ~; ;~         | comment out         |
+| Command                                  | Default key | Comment out current... |
+|------------------------------------------+-------------+------------------------|
+| ~latex-table-wizard-comment-out-content~ | ~; c~       | cell's content         |
+| ~latex-table-wizard-comment-out~         | ~; ;~       | cell                   |
 
 The difference between the two is that one only comments out the
 content, preserving both delimiters around the cell; the other one
-actually modifies the structure of the table because for any cell that
+actually modifies the structure of the table because, for any cell that
 is commented out, one delimiter around it is commented out too.
 ** Format the table
 
@@ -287,16 +291,16 @@ repeatedly causes the table to cycle through four types of formatting:
 left aligned, centered, right aligned and compressed.  The latter
 state is actually not one of alignment (that is, the column separators
 are not vertically aligned): it just means that all the extra space at
-the beginning and end of each cell is collapsed into one.
+the beginning and end of each cell gets collapsed into one.
 
-| Command                             | Default key |
-|-------------------------------------+-------------|
-| ~latex-table-wizard-align~            | ~TAB~         |
+| Command                    | Default key |
+|----------------------------+-------------|
+| ~latex-table-wizard-align~ | ~TAB~       |
 
 The following five tables illustrate the effect of calling
 ~latex-table-wizard-align~ repeatedly.
 
-This is the original cell:
+This is the original table:
 
 #+begin_src LaTeX
 \begin{tabular}{lll}
@@ -361,17 +365,17 @@ each of which just performs one of these transformations.  These are:
 + ~latex-table-wizard-compress~
 
 ** Extra commands in the transient prefix
-The transient interfaces invoked by ~latex-table-wizard~ also exposes
+The transient interfaces invoked by ~latex-table-wizard~ also expose
 some other commands that are not defined by this package but are
 useful for its usage.  These are:
 
-| Command                 | Default key |
-|-------------------------+-------------|
-| ~toggle-truncate-lines~   | ~t~           |
-| ~undo~                    | ~/~           |
-| ~exchange-point-and-mark~ | ~x~           |
-| ~universal-argument~      | ~u~           |
-| ~transient-quit-one~      | ~RET~         |
+| Command                   | Default key |
+|---------------------------+-------------|
+| ~toggle-truncate-lines~   | ~t~         |
+| ~undo~                    | ~/~         |
+| ~exchange-point-and-mark~ | ~x~         |
+| ~universal-argument~      | ~u~         |
+| ~transient-quit-one~      | ~RET~       |
 
 * Known issues
 
@@ -401,7 +405,7 @@ through the Customize interface, call ~latex-table-wizard-customize~.
 :PROPERTIES:
 :CUSTOM_ID: custom-transient-prefix
 :END:
-To change the default key bindings, you need to provide change the
+To change the default key bindings, you need to change the
 value of the alist ~latex-table-wizard-transient-keys~.  The easiest and
 most convenient way to do it is through ~latex-table-wizard-customize~.
 
@@ -448,7 +452,7 @@ Each member of this list is a string that would be between the
   :group 'latex-table-wizard)
 #+end_src
 
- LaTeX-table-wizard will always presume the table you want operate on
+ LaTeX-table-wizard will always presume the table you want to operate on
  has a syntax specified like this.  But suppose you use different
  environments with non-standard syntax: suppose you define a
  table-like environment of your choice, let's call it ~mytable~, that
@@ -457,7 +461,7 @@ Each member of this list is a string that would be between the
  environments, you want LaTeX-table-wizard to adapt to this new
  syntax.
 
- All you need to do add an appropriate cons cell to the
+ All you need to do is add an appropriate cons cell to the
  ~latex-table-wizard-new-environments-alist~ association list, mapping
  the name of the environment, as a string, to a property list
  specifying the values.  Here is this variable's ~defcustom~ expression:
@@ -502,10 +506,10 @@ set, or you can just add a cons cell of your writing to the alist:
              '("mytable" . (:col ("!COL") :row ("!ROW") :lines ("horizontal"))))
  #+end_src
 
-Each of the values in the plist is a list of strings: this way you can
+Each of the values in the plist is a list of strings; this way you can
 define environments that can use more than one type of column
 separator.  Importantly, the strings in the ~:lines~ list are *names of
-LaTeX* macros, which means that they should not start with the
+LaTeX* macros, which means that they should not start with a
 backslash and you should not add any argument to them.  In the example
 above a buffer substring like =\horizontal{1}= will be interpreted as a
 hline macro if in a ~mytable~ environment.
@@ -518,11 +522,11 @@ hline macro if in a ~mytable~ environment.
  happen, set the value of the variable ~latex-table-wizard-no-focus~ to
  ~t~.
 
- If instead you want effect to be different than the default (which is
+ If instead you want the effect to be different than the default (which is
  applying a foreground of color ~gray40~), change the value of the face
  ~latex-table-wizard-background~.
 
- By default, when you move around the table and select objects from it
+ By default, when you move around the table and select objects from it,
  the relevant portions of the table are highlighted.  If you don't
  want this to happen, set the value of the variable
  ~latex-table-wizard-no-highlight~ to ~t~.
@@ -570,12 +574,12 @@ want to change this default, set the value of
 
 If ~latex-table-wizard-allow-detached-args~ is set to t (that is, if
 detached arguments are allowed), you should not have in your table
-strings between braces or brackets after a macro without them be
+strings between braces or brackets after a macro without them being
 separated by a blank line, unless these strings between braces or
-brackets are in fact the arguments of the macro.  This is not a
+brackets are, in fact, the arguments of the macro.  This is not a
 problem for LaTeX, because it knows what is a valid macro and what
-isn't, and how many arguments a macro accepts: ~latex-table-wizard~
-however does not know it and it could get confused while parsing, and
+isn't, and how many arguments a macro accepts; ~latex-table-wizard~
+however, does not know it and it could get confused while parsing, and
 thus get the start of the first cell wrong.
 
 Good practice is to never separate arguments from each other or from

@@ -9,7 +9,7 @@
 @finalout
 @titlepage
 @title @LaTeX{} table wizard - Magic editing of @LaTeX{} tables
-@subtitle for version 1.4.0
+@subtitle for version 1.5.5
 @author Enrico Flor (@email{enrico@@eflor.net})
 @end titlepage
 
@@ -21,7 +21,7 @@
 
 @uref{https://melpa.org/#/latex-table-wizard, file:https://melpa.org/packages/latex-table-wizard-badge.svg}
 
-Copyright (C) 2022, 2023 Enrico Flor.
+Copyright (C) 2022-2026 Enrico Flor.
 
 Permission is granted to copy, distribute and/or modify this
 document under the terms of the GNU Free Documentation License,
@@ -41,34 +41,6 @@ modify this GNU manual.”
 * Known issues::
 * Customization::
 * Example setup without Transient interface (Emacs 28 and later)::
-
-@detailmenu
---- The Detailed Node Listing ---
-
-Available commands
-
-* Start editing::
-* Relative motion commands::
-* Absolute motion commands::
-* Mark, kill and insert commands: Mark kill and insert commands.
-* Swap adjacent fields::
-* Swap arbitrary fields::
-* Comment out cells::
-* Format the table::
-* Extra commands in the transient prefix::
-
-Known issues
-
-* Empty cells in single-column tables::
-
-Customization
-
-* Customize transient prefix::
-* Define rules for new environments::
-* Customizing faces::
-* Detached arguments::
-
-@end detailmenu
 @end menu
 
 @node Introduction
@@ -114,10 +86,10 @@ just as any other cell content.
 @end example
 
 Of course you can call @code{latex-table-wizard} with point inside of the
-embedded table, in which case any command you use will operate only on
+embedded table, in which case, any command you use will operate only on
 the embedded table.
 
-For most of this document we will assume the table-like environment
+For most of this document, we will assume the table-like environment
 has the standard @LaTeX{}2e syntax, but you can define your own types of
 table-like environments (more on this @ref{Define rules for new environments, , below}).
 
@@ -145,7 +117,7 @@ Whenever we say ``current'' we mean ``at point''.
 @node Start editing
 @section Start editing
 
-Just call @code{latex-table-wizard} when point is inside of table-like
+Just call @code{latex-table-wizard} when point is inside of a table-like
 environment.
 
 This commands actually activates the non-global minor mode
@@ -173,7 +145,7 @@ to 1.
 @tab @code{p}
 @end multitable
 
-With just one of these you can get anywhere you want in the table:
+With just one of these, you can get anywhere you want in a table.
 
 @example
 \begin@{tabular@}@{lll@}
@@ -249,7 +221,7 @@ following expressions will return nil and won't move point:
 @multitable {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa} {aaaaaaaaaaa} {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}
 @headitem Command
 @tab Default key
-@tab
+@tab Do@dots{}
 @item @code{latex-table-wizard-edit-cell}
 @tab @code{.}
 @tab edit current cell
@@ -285,14 +257,14 @@ following expressions will return nil and won't move point:
 @tab delete current row
 @item @code{exchange-point-and-mark}
 @tab @code{x}
-@tab
+@tab exchange position of point and the mark
 @end multitable
 
 @code{latex-table-wizard-kill-cell-content} and
 @code{latex-table-wizard-copy-cell-content} add the content of current cell
 both to the kill ring (like the default kill and copy commands) and to
 the value of a special variable: @code{latex-table-wizard-yank-cell-content}
-will replace the content of the current cell with whatever that value
+which will replace the content of the current cell with whatever that value
 is.
 
 @code{latex-table-wizard-delete-column} and @code{latex-table-wizard-delete-row}
@@ -334,7 +306,12 @@ column/table, not just the content of the cells in them).
 
 For these commands, think of the cells and columns as circular: if
 there is no item in the direction given, the target is the one on the
-opposite end of the current cell.  So for example:
+opposite end of the current cell.
+
+This is because these commands try to Do What You Mean if there is no
+suitable cell to move to.
+
+So, for example:
 
 @example
 \begin@{tabular@}@{lll@}
@@ -344,14 +321,11 @@ opposite end of the current cell.  So for example:
 \end@{tabular@}
 @end example
 
-This is because these commands try to Do What You Mean if there is no
-suitable cell to move to:
-
 Point on @code{C0}, @code{latex-table-wizard-swap-cell-right}
   ⇒
 @example
 \begin@{tabular@}@{lll@}
- C0 & B0    & A0 \\\hline
+  C0 & B0    & A0 \\\hline
   A1 & B1 & C1 \\
   A2 & B2 & C2
 \end@{tabular@}
@@ -380,10 +354,10 @@ Point on @code{A1}, @code{latex-table-wizard-swap-column-right}
 @node Swap arbitrary fields
 @section Swap arbitrary fields
 
-To swap arbitrary fields one must first @strong{select} something and then move
+To swap arbitrary fields, one must first @strong{select} something and then move
 point somewhere else and perform the swap.  Importantly, @strong{selecting
 does not mean marking}: the mark is not even moved when selecting
-(however, by default the selected cell will receive the same kind of
+(however, by default, the selected cell will receive the same kind of
 highlighting the loaded theme defines for the active region, but this
 is a purely graphical equivalence).  ``Selecting'', for the purposes of
 @LaTeX{}-table-wizard only means storing a cell, a line or a row to be
@@ -410,7 +384,7 @@ selected:
 @tab deselect all
 @end multitable
 
-The first command, @code{latex-table-wizard-select-deselect-cell} toggles the
+The first command, @code{latex-table-wizard-select-deselect-cell}, toggles the
 status of the current cell as being selected or not.
 
 Once things are selected, you move point somewhere else in the table
@@ -439,18 +413,18 @@ otherwise, on the current cell point is on.
 @multitable {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa} {aaaaaaaaaaa} {aaaaaaaaaaaaaaaaaaa}
 @headitem Command
 @tab Default key
-@tab Select current@dots{}
+@tab Comment out current@dots{}
 @item @code{latex-table-wizard-comment-out-content}
 @tab @code{; c}
-@tab comment out content
+@tab cell content
 @item @code{latex-table-wizard-comment-out}
 @tab @code{; ;}
-@tab comment out
+@tab cell
 @end multitable
 
 The difference between the two is that one only comments out the
 content, preserving both delimiters around the cell; the other one
-actually modifies the structure of the table because for any cell that
+actually modifies the structure of the table because, for any cell that
 is commented out, one delimiter around it is commented out too.
 
 @node Format the table
@@ -462,7 +436,7 @@ repeatedly causes the table to cycle through four types of formatting:
 left aligned, centered, right aligned and compressed.  The latter
 state is actually not one of alignment (that is, the column separators
 are not vertically aligned): it just means that all the extra space at
-the beginning and end of each cell is collapsed into one.
+the beginning and end of each cell gets collapsed into one.
 
 @multitable {aaaaaaaaaaaaaaaaaaaaaaaaaa} {aaaaaaaaaaa}
 @headitem Command
@@ -474,7 +448,7 @@ the beginning and end of each cell is collapsed into one.
 The following five tables illustrate the effect of calling
 @code{latex-table-wizard-align} repeatedly.
 
-This is the original cell:
+This is the original table:
 
 @example
 \begin@{tabular@}@{lll@}
@@ -547,7 +521,7 @@ each of which just performs one of these transformations.  These are:
 @node Extra commands in the transient prefix
 @section Extra commands in the transient prefix
 
-The transient interfaces invoked by @code{latex-table-wizard} also exposes
+The transient interfaces invoked by @code{latex-table-wizard} also expose
 some other commands that are not defined by this package but are
 useful for its usage.  These are:
 
@@ -605,7 +579,7 @@ through the Customize interface, call @code{latex-table-wizard-customize}.
 @node Customize transient prefix
 @section Customize transient prefix
 
-To change the default key bindings, you need to provide change the
+To change the default key bindings, you need to change the
 value of the alist @code{latex-table-wizard-transient-keys}.  The easiest and
 most convenient way to do it is through @code{latex-table-wizard-customize}.
 
@@ -651,7 +625,7 @@ Each member of this list is a string that would be between the
   :group 'latex-table-wizard)
 @end lisp
 
-@LaTeX{}-table-wizard will always presume the table you want operate on
+@LaTeX{}-table-wizard will always presume the table you want to operate on
 has a syntax specified like this.  But suppose you use different
 environments with non-standard syntax: suppose you define a
 table-like environment of your choice, let's call it @code{mytable}, that
@@ -660,7 +634,7 @@ uses @code{!ROW} and @code{!COL} instead of @code{&} and @code{\\} as delimiters
 environments, you want @LaTeX{}-table-wizard to adapt to this new
 syntax.
 
-All you need to do add an appropriate cons cell to the
+All you need to do is add an appropriate cons cell to the
 @code{latex-table-wizard-new-environments-alist} association list, mapping
 the name of the environment, as a string, to a property list
 specifying the values.  Here is this variable's @code{defcustom} expression:
@@ -705,10 +679,10 @@ set, or you can just add a cons cell of your writing to the alist:
              '("mytable" . (:col ("!COL") :row ("!ROW") :lines ("horizontal"))))
 @end lisp
 
-Each of the values in the plist is a list of strings: this way you can
+Each of the values in the plist is a list of strings; this way you can
 define environments that can use more than one type of column
 separator.  Importantly, the strings in the @code{:lines} list are @strong{names of
-@LaTeX{}} macros, which means that they should not start with the
+@LaTeX{}} macros, which means that they should not start with a
 backslash and you should not add any argument to them.  In the example
 above a buffer substring like @samp{\horizontal@{1@}} will be interpreted as a
 hline macro if in a @code{mytable} environment.
@@ -722,11 +696,11 @@ that you can clearly focus on the table.  If you don't want this to
 happen, set the value of the variable @code{latex-table-wizard-no-focus} to
 @code{t}.
 
-If instead you want effect to be different than the default (which is
+If instead you want the effect to be different than the default (which is
 applying a foreground of color @code{gray40}), change the value of the face
 @code{latex-table-wizard-background}.
 
-By default, when you move around the table and select objects from it
+By default, when you move around the table and select objects from it,
 the relevant portions of the table are highlighted.  If you don't
 want this to happen, set the value of the variable
 @code{latex-table-wizard-no-highlight} to @code{t}.
@@ -762,12 +736,12 @@ want to change this default, set the value of
 
 If @code{latex-table-wizard-allow-detached-args} is set to t (that is, if
 detached arguments are allowed), you should not have in your table
-strings between braces or brackets after a macro without them be
+strings between braces or brackets after a macro without them being
 separated by a blank line, unless these strings between braces or
-brackets are in fact the arguments of the macro.  This is not a
+brackets are, in fact, the arguments of the macro.  This is not a
 problem for @LaTeX{}, because it knows what is a valid macro and what
 isn't, and how many arguments a macro accepts: @code{latex-table-wizard}
-however does not know it and it could get confused while parsing, and
+however, does not know it and it could get confused while parsing, and
 thus get the start of the first cell wrong.
 
 Good practice is to never separate arguments from each other or from

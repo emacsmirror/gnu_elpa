@@ -1,12 +1,12 @@
 ;;; latex-table-wizard.el --- Magic editing of LaTeX tables  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2022, 2023 Free Software Foundation, Inc.
+;; Copyright (C) 2022-2026 Free Software Foundation, Inc.
 
 ;; Author: Enrico Flor <enrico@eflor.net>
 ;; Maintainer: Enrico Flor <enrico@eflor.net>
 ;; URL: https://github.com/enricoflor/latex-table-wizard
-;; Version: 1.5.4
-;; Keywords: convenience
+;; Version: 1.5.5
+;; Keywords: convenience, tex
 
 ;; Package-Requires: ((emacs "27.1") (auctex "12.1") (transient "0.3.7"))
 
@@ -96,6 +96,9 @@
 (eval-when-compile (require 'subr-x))
 (require 'transient)
 
+;; quiet compiler warning.
+(declare-function latex-table-wizard-prefix "latex-table-wizard")
+
 (defgroup latex-table-wizard nil
   "LaTeX table wizard configuration options."
   :prefix "latex-table-wizard-"
@@ -106,22 +109,22 @@
 (defcustom latex-table-wizard-allow-detached-args nil
   "If t, allow arguments of macros to be detached in parsing.
 
-This means that if non-nil, this package will parse argument
+This means that, if non-nil, this package will parse argument
 groups (strings in brackets or in braces) as arguments of the
 macro even if they are separated by whitespace, one line break,
 and comments.  This conforms to how LaTeX interprets them.
 
 However, doing this may cause some troubles if you happen to have
 a string in braces at the start of the first
-cell (position (0,0)): this is because if there is no blank line
+cell (position (0,0)). This is because, if there is no blank line
 between that cell and the table opening \\='\\begin\\=' macro
-with its arguments, that string which should be in the first cell
+with its arguments, that string, which should be in the first cell,
 may end up being parsed as an additional argument to the
 \\='\\begin\\=' macro.
 
-You avoid this danger if you set this variable to nil, but then
+You avoid this danger if you set this variable to nil, but then,
 you should never have whitespace between the macro and its
-arguments and between the arguments themselves."
+arguments, and, between the arguments themselves."
   :type 'boolean)
 
 (defcustom latex-table-wizard-warn-about-detached-args t
@@ -129,15 +132,15 @@ arguments and between the arguments themselves."
 
 The warning will be echoed in the echo area any time that, while
 parsing the table, cases in which a LaTeX macro and its
-arguments, or two arguments of the same LaTeX macro might be
-separated from its arguments by whitespace or comment are found.
+arguments, or two arguments of the same LaTeX macro, might be
+separated from its arguments by whitespace or comment, are found.
 
 Since the parser doesn't quite know what string preceded by an
-unescaped backslash is a valid LaTeX macro and whether it accepts
-what number of arguments, false positives are likely to be found.
+unescaped backslash is a valid LaTeX macro, and whether it accepts
+what number of arguments; false positives are likely to be found.
 
 If `latex-table-wizard-allow-detached-args' is non-nil, detached
-arguments are allowed and so no warning will ever be issued
+arguments are allowed and so, no warning will ever be issued,
 regardless of the value of this variable."
   :type 'boolean
   :link '(variable-link latex-table-wizard-allow-detached-args))
@@ -180,7 +183,7 @@ The cdr of each mapping is a property list with three keys:
 
 The values for :col and :row are two lists of strings.
 
-The value for :lines is a list of strings just like is the case
+The value for :lines is a list of strings, just like is the case
 for `latex-table-wizard-hline-macros', each of which is the name
 of a macro that inserts some horizontal line.  For a macro
 \"\\foo{}\", use string \"foo\"."
@@ -238,14 +241,14 @@ interactive commands are called.")
 ;; + :start (marker, beginning of inside of the cell)                ;;
 ;; + :end (marker, end of inside of the cell)                        ;;
 ;;                                                                   ;;
-;; A parse of a table is a list of all its cells represented as such ;;
-;; plists.                                                           ;;
+;; A parse of a table is a list of all of its cells,                 ;;
+;; represented as such plists.                                       ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; this rx expression matches what can separate different arguments of
-;; a (La)TeX macro: whitespace and comments.  If
+;; a (La)TeX macro, i.e. whitespace and comments.  If
 ;; latex-table-wizard-allow-detached-args is nil, this rx
-;; expression will effectively never be used.
+;; expression will, effectively, never be used.
 (defconst latex-table-wizard--blank-detach-arg-re
   (rx (seq (* space)
            (? (seq "%" (* not-newline)))
@@ -257,14 +260,14 @@ interactive commands are called.")
 (defvar latex-table-wizard--detached nil)
 
 (defun latex-table-wizard--warn-detached ()
-  "Warn the user if suspected detached macros are found in table.
+  "Warn the user if suspected detached macros are found in the table.
 
 A macro is detached if there is any blank string separating the
-macro from its arguments or one argument from the next.
+macro from its arguments, or one argument from the next.
 
 Don't do anything if
 `latex-table-wizard-allow-detached-args' is non-nil,
-because it means that the user is aware of this and is taking the
+because, it means that the user is aware of this and is taking the
 measures needed for the parser not to be confused."
   (unless latex-table-wizard-allow-detached-args
     (let ((message-log-max 0))
@@ -578,7 +581,7 @@ to the one that precedes point."
                     (point-marker)))
          (env-end (save-excursion
                     (LaTeX-find-matching-end)
-                    (if-let ((end-macro
+                    (if-let* ((end-macro
                               (latex-table-wizard--macro-at-point
                                (1- (point))
                                latex-table-wizard-allow-detached-args)))
@@ -1667,7 +1670,7 @@ It replaces the content of current cell upon calling
 `latex-table-wizard-yank-cell-content'.")
 
 (defun latex-table-wizard--get-cell-content (&optional kill)
-  "Get content of cell at point.
+  "Get the content of the cell at point.
 
 Add it to the `kill-ring' and as the value of
 `latex-table-wizard--copied-cell-content'.
@@ -1773,7 +1776,7 @@ Each member of this list is a list of the form
 
 where C is the name of a command, K is a key description
 string (in the syntax of `kbd'), and D is a string that acts as
-description of the command.
+the description of the command.
 
 See Info node `(transient) Suffix Specifications' for more
 information.")
@@ -1793,7 +1796,7 @@ information.")
 This consists of the commands with a default binding for the
 transient prefix as specified in
 `latex-table-wizard-default-transient-keys', and adds to them
-those that are not there specified.
+those that are not specified there.
 
 The value of this list is used in `latex-table-wizard--setup' and
 `latex-table-wizard--cleanup'.")
@@ -1821,7 +1824,7 @@ than one command, otherwise you will experience loss of
 functionality of the transient interface.
 
 A safer way would be to replace the default values you don't like
-with other.
+with others.
 
 See Info node `(transient) Suffix Specifications' for more
 information about how transient suffixes are defined (that is,
@@ -1935,7 +1938,7 @@ AuCTeX indents as tabular according to the specification in
 (defun latex-table-wizard--in-tabular-env-p (&optional pos)
   "Non-nil if POS is inside a tabular-like environment.
 
-That is, if POS is in an envionment among those in
+That is, if POS is in an environment among those in
 `latex-table-wizard--environments'.  If POS is nil, it defaults
 to the value of (point)."
   (let* ((p (or pos (point)))
@@ -1948,14 +1951,14 @@ to the value of (point)."
   "Prepare for an operation on the table.
 
 These preparations are only needed before the first of a chain of
-\\='latex-table-wizard\\=' commands is used, hence do nothing if
+\\='latex-table-wizard\\=' commands is used, hence, do nothing if
 `last-command' is in `latex-table-wizard--interactive-commands'.
 
 Preparations mean:
 
-  - deactivate the mark
-  - activate `latex-table-wizard-mode' if needed
-  - move the point inside the closest cell
+  - deactivate the mark.
+  - activate `latex-table-wizard-mode' if needed.
+  - move the point inside the closest cell.
   - put the overlays if appropriate."
   (unless (memq last-command latex-table-wizard--interactive-commands)
     (when (region-active-p) (deactivate-mark))
@@ -1990,7 +1993,7 @@ Preparations mean:
 ;;; Aesthetics
 
 (defcustom latex-table-wizard-no-highlight nil
-  "Whether or not current or selected cells are highlighted."
+  "Whether or not the current or selected cells are highlighted."
   :type 'boolean
   :group 'latex-table-wizard)
 
@@ -1999,7 +2002,7 @@ Preparations mean:
 
 If this is nil, upon calling `latex-table-wizard' the face
 `latex-table-wizard-background' is applied on the portions of the
-buffer before and after the table-like environment.  By default,
+buffer before, and after, the table-like environment.  By default,
 this means they are greyed out, but you can set the value of
 `latex-table-wizard-background' to whatever face you prefer.
 
@@ -2031,7 +2034,7 @@ all defined faces."
   :group 'latex-table-wizard)
 
 (defun latex-table-wizard--hide-rest ()
-  "Apply face `latex-table-wizard-background' outside of table."
+  "Apply face `latex-table-wizard-background' outside of the table."
   (unless latex-table-wizard-no-focus
     (latex-table-wizard--parse-table)
     (let* ((tab-b latex-table-wizard--table-begin)
@@ -2056,8 +2059,8 @@ remove if `last-command' but not `this-command' is in
                            latex-table-wizard--interactive-commands)
                       (not this-comm-wiz))))
     ;; now we want to remove stuff either if this function was called
-    ;; "unconditionally" of if it seems like we exited a chain of
-    ;; latex-table-wizard operations
+    ;; "unconditionally", or if it seems like we exited a chain of
+    ;; latex-table-wizard operations.
     (when (or (not if-not-in-chain) exited (not this-comm-wiz))
       (remove-overlays (point-min) (point-max) 'tabl-inside-ol t)
       (remove-overlays (point-min) (point-max) 'tabl-outside-ol t))))

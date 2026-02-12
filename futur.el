@@ -3,7 +3,7 @@
 ;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
-;; Version: 0
+;; Version: 1.0
 ;; Keywords: concurrency, async, promises, futures
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -123,7 +123,9 @@
 
 ;;; News:
 
-;; 2026: After years of sitting in the dark, it's finally getting dusted up.
+;; Version 1.0:
+;; - After years of sitting in the dark, it's finally getting dusted up for
+;;   a release.
 
 ;;; Code:
 

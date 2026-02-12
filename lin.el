@@ -252,7 +252,7 @@ Line numbers come from the `display-line-numbers-mode'."
      :background "#5b2f50")
     (t :background "magenta"))
   "Alternative magenta face for `lin-face'."
-  :package-version '(lin . "1.2.0")
+  :package-version '(lin . "2.0.0")
   :group 'lin-faces)
 
 (defface lin-magenta-override-fg
@@ -273,7 +273,7 @@ Line numbers come from the `display-line-numbers-mode'."
      :background "#452f6f")
     (t :background "magenta"))
   "Alternative magenta face for `lin-face'."
-  :package-version '(lin . "1.2.0")
+  :package-version '(lin . "2.0.0")
   :group 'lin-faces)
 
 (defface lin-purple-override-fg
@@ -283,7 +283,7 @@ Line numbers come from the `display-line-numbers-mode'."
     (((background dark))
      :foreground "white"))
   "Like `lin-purple' but also sets a foreground."
-  :package-version '(lin . "1.2.0")
+  :package-version '(lin . "2.0.0")
   :group 'lin-faces)
 
 (defface lin-cyan
@@ -315,7 +315,7 @@ Line numbers come from the `display-line-numbers-mode'."
      :background "#5a3000")
     (t :background "yellow"))
   "Alternative orange face for `lin-face'."
-  :package-version '(lin . "1.2.0")
+  :package-version '(lin . "2.0.0")
   :group 'lin-faces)
 
 (defface lin-orange-override-fg
@@ -325,7 +325,7 @@ Line numbers come from the `display-line-numbers-mode'."
     (((background dark))
      :foreground "white"))
   "Like `lin-orange' but also sets a foreground."
-  :package-version '(lin . "1.2.0")
+  :package-version '(lin . "2.0.0")
   :group 'lin-faces)
 
 (defface lin-slate
@@ -336,7 +336,7 @@ Line numbers come from the `display-line-numbers-mode'."
      :background "#2f3f45")
     (t :background "cyan"))
   "Alternative slate face for `lin-face'."
-  :package-version '(lin . "1.2.0")
+  :package-version '(lin . "2.0.0")
   :group 'lin-faces)
 
 (defface lin-slate-override-fg
@@ -346,7 +346,7 @@ Line numbers come from the `display-line-numbers-mode'."
     (((background dark))
      :foreground "white"))
   "Like `lin-slate' but also sets a foreground."
-  :package-version '(lin . "1.2.0")
+  :package-version '(lin . "2.0.0")
   :group 'lin-faces)
 
 ;; TODO 2022-03-18: Can we find all system styles?  Then we can rename

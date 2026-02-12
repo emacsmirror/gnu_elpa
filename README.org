@@ -84,9 +84,9 @@ more of a reminder of the point's location on the vertical axis.
 #+vindex: lin-mode-hooks
 #+vindex: lin-face
 ~lin-mode~ enables ~hl-line-mode~ in the current buffer and remaps the
-appropriate face to the ~lin-face~.  The ~lin-global-mode~ follows the
-same principle, though it applies to all hooks specified in the user
-option ~lin-mode-hooks~.
+appropriate face to the ~lin-face~ ([[#h:2e28af52-8302-4071-a53e-f282f54a862e][Integration with the GNOME accent color picker]]).
+The ~lin-global-mode~ follows the same principle, though it applies to
+all hooks specified in the user option ~lin-mode-hooks~.
 
 #+vindex: lin-blue
 #+vindex: lin-red
@@ -118,6 +118,31 @@ the others only specify a background attribute.
 The user option ~lin-remap-current-line-number~ controls whether to
 apply the Lin style also to the currently highlighted line number.
 Line numbers come from the built-in ~display-line-numbers-mode~.
+
+* Integration with the GNOME accent color picker
+:PROPERTIES:
+:CUSTOM_ID: h:2e28af52-8302-4071-a53e-f282f54a862e
+:END:
+#+cindex: Match the Lin face to the GNOME accent color
+
+#+findex: lin-gnome-accent-color-mode
+The GNOME desktop environment provides a setting to pick an accent
+color. This is then applied by applications to add a personal touch to
+the user's experience. Lin can now read this color and automatically
+update all the buffers it is enabled in via the minor mode ~lin-gnome-accent-color-mode~.
+
+When ~lin-gnome-accent-color-mode~ is enabled, Lin reads the accent
+color of GNOME and sets the corresponding Lin face. For example, if
+the user picks red in the GNOME settings, the ~lin-face~ will be set
+to ~lin-red~.
+
+#+vindex: lin-gnome-accent-color-override-foreground
+The user option ~lin-gnome-accent-color-override-foreground~ controls
+whether the faces that correspond to GNOME accent colors should
+override the underlying text color or not. This is useful for improved
+color contrast. The default is to not override the foreground. Setting
+~lin-gnome-accent-color-override-foreground~ to non-~nil~ changes that
+so, for example, the ~lin-face~ will be set to ~lin-red-override-fg~.
 
 * Installation
 :PROPERTIES:

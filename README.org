@@ -95,6 +95,9 @@ all hooks specified in the user option ~lin-mode-hooks~.
 #+vindex: lin-blue
 #+vindex: lin-magenta
 #+vindex: lin-cyan
+#+vindex: lin-purple
+#+vindex: lin-orange
+#+vindex: lin-slate
 #+vindex: lin-mac
 #+vindex: lin-red-override-fg
 #+vindex: lin-green-override-fg
@@ -102,17 +105,23 @@ all hooks specified in the user option ~lin-mode-hooks~.
 #+vindex: lin-blue-override-fg
 #+vindex: lin-magenta-override-fg
 #+vindex: lin-cyan-override-fg
+#+vindex: lin-purple-override-fg
+#+vindex: lin-orange-override-fg
+#+vindex: lin-slate-override-fg
 #+vindex: lin-mac-override-fg
 Users can select their preferred style by customizing the user option
-~lin-face~.  Options include the faces ~lin-red~, ~lin-green~,
+~lin-face~. Options include the faces ~lin-red~, ~lin-green~,
 ~lin-yellow~, ~lin-blue~ (default), ~lin-magenta~, ~lin-cyan~,
-~lin-mac~, ~lin-red-override-fg~, ~lin-green-override-fg~,
+~lin-purple~, ~lin-orange~, ~lin-slate~, ~lin-mac~,
+~lin-red-override-fg~, ~lin-green-override-fg~,
 ~lin-yellow-override-fg~, ~lin-blue-override-fg~,
 ~lin-magenta-override-fg~, ~lin-cyan-override-fg~,
-~lin-mac-override-fg~, or any other face that preferably has a
-background attribute.  The Lin faces with the =-override-fg= suffix set
-a foreground value which replaces that of the underlying text.  Whereas
-the others only specify a background attribute.
+~lin-purple-override-fg~, ~lin-orange-override-fg~,
+~lin-slate-override-fg~ ~lin-mac-override-fg~, or any other face that
+preferably has a background attribute. The Lin faces with the
+=-override-fg= suffix set a foreground value which replaces that of
+the underlying text. Whereas the others only specify a background
+attribute.
 
 #+vindex: lin-remap-current-line-number
 The user option ~lin-remap-current-line-number~ controls whether to

@@ -6,7 +6,57 @@
 The newest release is at the top.  For further details, please consult
 the manual: <https://protesilaos.com/emacs/lin>.
 
+* Version 2.0.0 on 2026-02-12
+:PROPERTIES:
+:CUSTOM_ID: h:e62c1f29-a19e-4e7b-892d-c88847810ad7
+:END:
+
+This is the first tagged release since 2024-08-05. The package is in a
+stable state: it does everything it is meant to. This version makes
+some small refinements, mostly in how parts of the code are written.
+Though there also are some nice user-facing changes:
+
+- The ~lin-gnome-accent-color-mode~ synchronises the accent colour of
+  the GNOME desktop environment with Lin' own ~lin-face~. This happens
+  live, so any buffers that are already using the ~lin-mode~ (directly
+  or via ~lin-global-mode~) will get the updated colour.
+
+- The user option ~lin-gnome-accent-color-override-foreground~
+  controls whether the faces that correspond to GNOME accent colours
+  should override the underlying text colour or not. This is useful
+  for improved colour contrast. The default is to not override the
+  foreground. Setting ~lin-gnome-accent-color-override-foreground~ to
+  non-~nil~ changes that so, for example, the ~lin-face~ will be set
+  to ~lin-red-override-fg~ instead of ~lin-red~ (of course, faces can
+  be modified by users/themes to override the foreground anyway, so
+  this is about the default behaviour).
+
+- New faces to style the current line when ~lin-mode~ is enabled
+  include ~lin-purple~, ~lin-orange~, and ~lin-slate~. Those do not
+  override the underlying foreground colours by default. Whereas
+  ~lin-purple-override-fg~, ~lin-orange-override-fg~, and
+  ~lin-slate-override-fg~ apply their background while also setting
+  the foreground (remember that you always control which face to use
+  by changing the user option ~lin-face~).
+
+- The ~lin-global-mode~ skips all private buffers. These are buffers
+  that users normally do not interact with directly. Their names are
+  prefixed with a space and, by default, are hidden from the view of
+  ~switch-to-buffer~ and related commands.
+
+- The default value of the user option ~lin-mode-hooks~ now includes
+  the ~world-clock-mode-hook~ and ~xref--xref-buffer-mode-hook~. The
+  former relates to the command ~world-clock~, while the latter is
+  used by any command that produces Grep-like results via the built-in
+  Xref infrastructure (for example, my Denote package does that for a
+  few of its commands). The ~lin-mode-hooks~ is a list of hooks for
+  major modes that should use the Lin style for the selection line
+  highlight.
+
 * Version 1.1.0 on 2024-08-05
+:PROPERTIES:
+:CUSTOM_ID: h:2b4f6153-3127-4ab9-b8ae-1e4d3c18dd00
+:END:
 
 The package is in a stable state. These are some quality-of-life
 refinements.
@@ -30,6 +80,9 @@ refinements.
   contribution. It too does not require copyright assignment.
 
 * Version 1.0.0 on 2022-09-08
+:PROPERTIES:
+:CUSTOM_ID: h:2dd7cf36-47a4-4bd5-83ab-4f1caacff95c
+:END:
 
 + Clarified the doc string of the user option ~lin-mode-hooks~.  This
   variable specifies the list of hooks that ~lin-global-mode~ will use
@@ -66,6 +119,9 @@ and feature-complete practically since its inception.  This change shows
 that most (all?) of the work has been accomplished.
 
 * Version 0.4.0 on 2022-06-09
+:PROPERTIES:
+:CUSTOM_ID: h:bac21c2a-9858-4398-be54-cbcc045379af
+:END:
 
 + The official Git repository is now hosted on SourceHut.  Mirrors are
   available on GitHub and GitLab---users can open issues there if they
@@ -96,6 +152,9 @@ that most (all?) of the work has been accomplished.
   threshold for copyright assignment).
 
 * Version 0.3.0 on 2022-04-08
+:PROPERTIES:
+:CUSTOM_ID: h:92f32a93-b310-414c-8ec9-0f2b038191f7
+:END:
 
 + Changed the source repository from GitLab to SourceHut:
   <https://git.sr.ht/~protesilaos/lin>.  Use the mailing list to start a
@@ -152,6 +211,9 @@ that most (all?) of the work has been accomplished.
   above.
 
 * Version 0.2.0 on 2022-03-16
+:PROPERTIES:
+:CUSTOM_ID: h:335b0809-d1c9-4981-b453-607eaf9760c6
+:END:
 
 Rewrote the entirety of =lin.el= to make the configuration easier and
 keep the code streamlined.  The gist is that now Lin automatically
@@ -188,7 +250,7 @@ The manual has been updated to reflect those changes:
 
 Thanks to:
 
-+ Christian Tietze for showing how the Lin face can use colors from the
++ Christian Tietze for showing how the Lin face can use colours from the
   macOS palette.  The original contribution was in merge request 2:
   <https://gitlab.com/protesilaos/lin/-/merge_requests/2>.  Now we
   provide the ~lin-mac~ and ~lin-mac-override-fg~ faces.  These can be
@@ -205,5 +267,8 @@ Thanks to:
   Federico's contribution was sent as a patch via email.
 
 * Version 0.1.0 on 2022-03-14
+:PROPERTIES:
+:CUSTOM_ID: h:1d5d376c-3010-4ffd-b3f6-38526e157c72
+:END:
 
 Initial release of the package.  Please read the manual.

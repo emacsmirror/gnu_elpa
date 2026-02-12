@@ -265,6 +265,27 @@ Line numbers come from the `display-line-numbers-mode'."
   :package-version '(lin . "0.2.0")
   :group 'lin-faces)
 
+(defface lin-purple
+  '((default :foreground unspecified :underline nil :extend t)
+    (((class color) (min-colors 88) (background light))
+     :background "#e0ddff")
+    (((class color) (min-colors 88) (background dark))
+     :background "#452f6f")
+    (t :background "magenta"))
+  "Alternative magenta face for `lin-face'."
+  :package-version '(lin . "1.2.0")
+  :group 'lin-faces)
+
+(defface lin-purple-override-fg
+  '((default :inherit lin-purple)
+    (((background light))
+     :foreground "black")
+    (((background dark))
+     :foreground "white"))
+  "Like `lin-purple' but also sets a foreground."
+  :package-version '(lin . "1.2.0")
+  :group 'lin-faces)
+
 (defface lin-cyan
   '((default :foreground unspecified :underline nil :extend t)
     (((class color) (min-colors 88) (background light))

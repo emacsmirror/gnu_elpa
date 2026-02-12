@@ -249,10 +249,10 @@ Line numbers come from the `display-line-numbers-mode'."
     (((class color) (min-colors 88) (background light))
      :background "#ffddff")
     (((class color) (min-colors 88) (background dark))
-     :background "#552f5f")
+     :background "#5b2f50")
     (t :background "magenta"))
   "Alternative magenta face for `lin-face'."
-  :package-version '(lin . "1.1.0")
+  :package-version '(lin . "1.2.0")
   :group 'lin-faces)
 
 (defface lin-magenta-override-fg

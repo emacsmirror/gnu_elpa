@@ -1,6 +1,6 @@
 ;;; ivy-test.el --- tests for ivy -*- lexical-binding: t -*-
 
-;; Copyright (C) 2015-2025 Free Software Foundation, Inc.
+;; Copyright (C) 2015-2026 Free Software Foundation, Inc.
 
 ;; Author: Oleh Krehel
 
@@ -79,8 +79,9 @@ Since `execute-kbd-macro' doesn't pick up a let-bound `default-directory'.")
   (interactive)
   (let ((default-directory (or ivy-eval-dir default-directory)))
     (setq ivy-result (eval ivy-expr))))
+(ivy--no-M-x #'ivy-eval #'ignore)
 
-(global-set-key (kbd "C-c e") 'ivy-eval)
+(global-set-key (kbd "C-c e") #'ivy-eval)
 
 (defvar ivy-test-inhibit-message t)
 
@@ -517,6 +518,24 @@ Since `execute-kbd-macro' doesn't pick up a let-bound `default-directory'.")
   (should (equal (counsel--elisp-to-pcre
                   '(("foo")) t)
                  "^(?!.*foo)")))
+
+(ert-deftest counsel--M-x-prompt ()
+  "Test `counsel--M-x-prompt' behavior."
+  (should (equal (counsel--M-x-prompt ()) "M-x "))
+  (should (equal (counsel--M-x-prompt t) "M-x "))
+  (should (equal (counsel--M-x-prompt '(())) "M-x "))
+  (should (equal (counsel--M-x-prompt '(t)) "M-x "))
+  (should (equal (counsel--M-x-prompt -1) "-1 M-x "))
+  (should (equal (counsel--M-x-prompt '(-1)) "-1 M-x "))
+  (should (equal (counsel--M-x-prompt 0) "0 M-x "))
+  (should (equal (counsel--M-x-prompt '(0)) "0 M-x "))
+  (should (equal (counsel--M-x-prompt 1) "1 M-x "))
+  (should (equal (counsel--M-x-prompt '(1)) "1 M-x "))
+  (should (equal (counsel--M-x-prompt 4) "4 M-x "))
+  (should (equal (counsel--M-x-prompt '(4)) "C-u M-x "))
+  (should (equal (counsel--M-x-prompt 16) "16 M-x "))
+  (should (equal (counsel--M-x-prompt '(16)) "16 M-x "))
+  (should (equal (counsel--M-x-prompt '-) "- M-x ")))
 
 (defmacro ivy--string-buffer (text &rest body)
   "Test helper that wraps TEXT in a temp buffer while running BODY."

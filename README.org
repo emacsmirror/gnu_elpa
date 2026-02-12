@@ -59,6 +59,81 @@ included in the section entitled “GNU Free Documentation License.”
 modify this GNU manual.”
 #+end_quote
 
+* Installation
+:PROPERTIES:
+:CUSTOM_ID: h:7b68abd3-a854-4b72-b704-05ca013dfa7f
+:END:
+#+cindex: Installation instructions
+
+** GNU ELPA package
+:PROPERTIES:
+:CUSTOM_ID: h:9379f7d7-9f78-40b8-8d30-cceb462cd41f
+:END:
+
+The package is available as =lin=.  Simply do:
+
+: M-x package-refresh-contents
+: M-x package-install
+
+And search for it.
+
+GNU ELPA provides the latest stable release.  Those who prefer to follow
+the development process in order to report bugs or suggest changes, can
+use the version of the package from the GNU-devel ELPA archive.  Read:
+https://protesilaos.com/codelog/2022-05-13-emacs-elpa-devel/.
+
+** Manual installation
+:PROPERTIES:
+:CUSTOM_ID: h:494b6abd-e3d4-4622-b428-272eae0c7779
+:END:
+
+Assuming your Emacs files are found in =~/.emacs.d/=, execute the
+following commands in a shell prompt:
+
+#+begin_src sh
+cd ~/.emacs.d
+
+# Create a directory for manually-installed packages
+mkdir manual-packages
+
+# Go to the new directory
+cd manual-packages
+
+# Clone this repo, naming it "lin"
+git clone https://github.com/protesilaos/lin lin
+#+end_src
+
+Finally, in your =init.el= (or equivalent) evaluate this:
+
+#+begin_src emacs-lisp
+;; Make Elisp files in that directory available to the user.
+(add-to-list 'load-path "~/.emacs.d/manual-packages/lin")
+#+end_src
+
+Everything is in place to set up the package.
+
+* Sample configuration
+:PROPERTIES:
+:CUSTOM_ID: h:7d63e6a9-5a49-4106-970c-ae8bdb06ae9d
+:END:
+#+cindex: Set up Lin
+
+#+begin_src emacs-lisp
+(use-package lin
+  :ensure t
+  :config
+  (setopt lin-face 'lin-blue) ; check doc string for alternative styles
+  
+  (lin-global-mode 1)
+
+  ;; If you are using the GNOME desktop and want to synchronise the
+  ;; `lin-face' with GNOME's accent colour:
+  (lin-gnome-accent-color-mode 1))
+#+end_src
+
+Check out Christian Tietze's blog post on integrating Lin with Neotree:
+<https://christiantietze.de/posts/2022/03/hl-line-priority/>.
+
 * Overview
 :PROPERTIES:
 :CUSTOM_ID: h:aa71c6b7-4801-4aba-9bcb-f3309f9e4d87
@@ -152,100 +227,6 @@ override the underlying text color or not. This is useful for improved
 color contrast. The default is to not override the foreground. Setting
 ~lin-gnome-accent-color-override-foreground~ to non-~nil~ changes that
 so, for example, the ~lin-face~ will be set to ~lin-red-override-fg~.
-
-* Installation
-:PROPERTIES:
-:CUSTOM_ID: h:7b68abd3-a854-4b72-b704-05ca013dfa7f
-:END:
-#+cindex: Installation instructions
-
-** GNU ELPA package
-:PROPERTIES:
-:CUSTOM_ID: h:9379f7d7-9f78-40b8-8d30-cceb462cd41f
-:END:
-
-The package is available as =lin=.  Simply do:
-
-: M-x package-refresh-contents
-: M-x package-install
-
-And search for it.
-
-GNU ELPA provides the latest stable release.  Those who prefer to follow
-the development process in order to report bugs or suggest changes, can
-use the version of the package from the GNU-devel ELPA archive.  Read:
-https://protesilaos.com/codelog/2022-05-13-emacs-elpa-devel/.
-
-** Manual installation
-:PROPERTIES:
-:CUSTOM_ID: h:494b6abd-e3d4-4622-b428-272eae0c7779
-:END:
-
-Assuming your Emacs files are found in =~/.emacs.d/=, execute the
-following commands in a shell prompt:
-
-#+begin_src sh
-cd ~/.emacs.d
-
-# Create a directory for manually-installed packages
-mkdir manual-packages
-
-# Go to the new directory
-cd manual-packages
-
-# Clone this repo, naming it "lin"
-git clone https://github.com/protesilaos/lin lin
-#+end_src
-
-Finally, in your =init.el= (or equivalent) evaluate this:
-
-#+begin_src emacs-lisp
-;; Make Elisp files in that directory available to the user.
-(add-to-list 'load-path "~/.emacs.d/manual-packages/lin")
-#+end_src
-
-Everything is in place to set up the package.
-
-* Sample configuration
-:PROPERTIES:
-:CUSTOM_ID: h:7d63e6a9-5a49-4106-970c-ae8bdb06ae9d
-:END:
-#+cindex: Set up Lin
-
-#+begin_src emacs-lisp
-(require 'lin)
-
-(setq lin-face 'lin-blue) ; check doc string for alternative styles
-
-;; You can use this to live update the face:
-;;
-;; (customize-set-variable 'lin-face 'lin-green)
-
-(setq lin-mode-hooks
-      '(bongo-mode-hook
-        dired-mode-hook
-        elfeed-search-mode-hook
-        git-rebase-mode-hook
-        grep-mode-hook
-        ibuffer-mode-hook
-        ilist-mode-hook
-        ledger-report-mode-hook
-        log-view-mode-hook
-        magit-log-mode-hook
-        mu4e-headers-mode-hook
-        notmuch-search-mode-hook
-        notmuch-tree-mode-hook
-        occur-mode-hook
-        org-agenda-mode-hook
-        pdf-outline-buffer-mode-hook
-        proced-mode-hook
-        tabulated-list-mode-hook))
-
-(lin-global-mode 1)
-#+end_src
-
-Check out Christian Tietze's blog post on integrating Lin with Neotree:
-<https://christiantietze.de/posts/2022/03/hl-line-priority/>.
 
 * Acknowledgements
 :PROPERTIES:

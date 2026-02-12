@@ -31,22 +31,99 @@
 ;; which can be used as follows:
 
 ;;     (futur-let*
-;;         ((cmd (build-arg-list))
-;;          (exitcode <- (futur-process-make :command cmd :buffer t))
-;;          (out (buffer-string))  ;; Get the process's output.
-;;          (cmd2 (build-second-arg-list exitcode out))
-;;          (otherexit <- (futur-process-make :command cmd :buffer t)))
-;;       (buffer-string))
+;;         ((buf (current-buffer))
+;;          (exitcode1 <- (futur-process-call CMD1 nil buf nil ARG1 ARG2))
+;;          (out (with-current-buffer buf
+;;                 (buffer-string)))  ;; Get the process's output.
+;;          (exitcode2 <- (futur-process-call CMD2 nil buf nil ARG3 ARG4)))
+;;       (with-current-buffer buf
+;;         (buffer-string)))
 
 ;; This example builds a future which runs two commands in sequence.
 ;; For those rare cases where you really do need to block everything
 ;; else and wait for a future to complete, you can
 ;; use`futur-blocking-wait-to-get-result'.
 
-;; New kinds of futures can be constructed from:
-;; - `futur-waiting' to create the actual future.
-;; - `futur-deliver-value' to deliver the value to the future created earlier
-;;   with `futur-waiting'.
+;;;; Low level API
+
+;; - (futur-done VAL) to create a trivial future returning VAL.
+;; - (futur-error ERR) to create a trivial failed future.
+;; - (futur-new FUN) to create a non-trivial future.
+;;   FUN is called with one argument (the new `futur' object) and should
+;;   return the "blocker" that `futur' is waiting for (used mostly
+;;   when aborting a future).
+;; - (futur-abort FUTUR): Aborts execution of FUTUR.
+;; - (futur-deliver-value FUTUR VAL): Mark FUTUR as having completed
+;;   successfully with VAL, and runs the clients waiting for that event.
+;; - (futur-deliver-failure FUTUR ERROR): Mark FUTUR as having failed
+;;   with ERROR, and runs the clients waiting for that event.
+;; - (futur-register-callback FUTUR FUN): Register FUN as a client.
+;;   Will be called with two arg (the ERROR and the VAL) when FUTURE completes.
+;; - (futur-blocking-wait-to-get-result FUTUR): Busy-wait for FUTUR to complete
+;;   and return its value.  Better use `futur-bind' or `futur-let*' instead.
+;;   BEWARE: Please don't use it unless you really absolutely have to.
+
+;;;; Composing futures
+
+;; - (futur-bind FUTUR FUN &optional ERROR-FUN): Builds a new future which
+;;   waits for FUTUR to completes and then calls FUN (or ERROR-FUN) with the
+;;   resulting value (or its error).  (ERROR-)FUN should itself return
+;;   a future, tho if it doesn't it's automatically turned into a trivial one.
+;; - (futur-let* BINDINGS [:error-fun ERROR-FUN] BODY): Macro built on top
+;;   of `futur-bind' which runs BINDINGS in sequence and then runs BODY.
+;;   Each BINDING can be either a simple (PAT EXP) that is executed
+;;   as in a `pcase-let*' or a (PAT <- FUTUR) in which case the rest is
+;;   delayed until FUTUR completes.
+;; - (futur-list &rest FUTURS): Run FUTURS concurrently and return the
+;;   resulting list of values.
+
+;;;; Related packages
+
+;; - [deferred](https://melpa.org/#/deferred): Provides similar functionality.
+;;   Maybe the only reason `futur.el' exists is because `deferred' is different
+;;   from what I expected (NIH syndrome?).
+;; - [promise](https://melpa.org/#/promise) is a very similar library,
+;;   which tries to stay as close as possible to JavaScript's promises,
+;;   leading to a very non-idiomatic implementation in `promise-core.el'.
+;;   TODO: We only provide the core functionality of `promise', currently
+;;   and it would make sense to add most of the rest, or even provide
+;;   a bridge between the two.
+;; - [pfuture](https://melpa.org/#/pfuture): Sounds similar, but is more
+;;   of a wrapper around `make-process'.  Compared to this package,
+;;   `pfuture' does not try very hard to help compose async computations
+;;   and to propagate errors.
+;; - [async](http://elpa.gnu.org/packages/async.html): A package that focuses
+;;   on executing ELisp code concurrently by launching additional Emacs
+;;   (batch) sessions.
+;;   TODO: It would make a lot of sense to allow use of `async'
+;;   via `futur' objects.
+;; - [async-await](https://melpa.org/#/async-await): This provides
+;;   JavaScript-style async/await operators on top of the `promise' package.
+;;   This fundamentally require a kind of CPS conversion of the code, for
+;;   which they use `generator.el'.
+;;   TODO: It would be possible to make `async-await' work on top of `futur',
+;;   but to the extent that `generator.el' is not able to perform CPS
+;;   correctly in all cases (because it's hard/impossible in general),
+;;   I'm not sure it's a good idea to encourage this coding style.
+;;   Maybe instead we should develop some way to detect&flag most of the
+;;   pitfalls of the current style (such as using `progn' instead of
+;;   `future-let*' to sequence execution when one part is a future).
+;; - [aio](https://melpa.org/#/aio): Also provides await/async style
+;;   coding (also using `generator.el' under the hood) but using its
+;;   own (much simpler) "promise" objects.
+;; - [async1](https://melpa.org/#/async1): A more limited/ad-hoc solution to
+;;   the problem that async/await try to solve that hence avoids the need
+;;   to perform CPS.  Not sure if it's significantly better than `futur-let*'.
+;; - [asyncloop](https://melpa.org/#/asyncloop): Focuses on just
+;;   running a sequence of function calls with regular "stops" in-between
+;;   to let other operations happen "concurrently".
+;; - [async-job-queue](https://melpa.org/#/async-job-queue):
+;; - [pdd](https://melpa.org/#/pdd): HTTP library that uses its own
+;;   implementation of promises.
+
+;;; News:
+
+;; 2026: After years of sitting in the dark, it's finally getting dusted up.
 
 ;;; Code:
 
@@ -141,23 +218,23 @@ A futur has 3 possible states:
   (clients nil)
   (value nil))
 
-(pcase-defmacro futur-done (result)
+(pcase-defmacro futur--done (result)
   `(and (pred futur--p)
         (app futur--clients 't)
         (app futur--value ,result)))
 
-(pcase-defmacro futur-error (error-object)
+(pcase-defmacro futur--error (error-object)
   `(and (pred futur--p)
         (app futur--clients 'error)
         (app futur--value ,error-object)))
 
-(pcase-defmacro futur-waiting (&optional blocker clients)
+(pcase-defmacro futur--waiting (&optional blocker clients)
   `(and (pred futur--p)
         (app futur--clients (and (pred listp) ,(or clients '_)))
         (app futur--value ,(or blocker '_))))
 
 (defun futur--waiting-p (futur)
-  (pcase futur ((or (futur-waiting)
+  (pcase futur ((or (futur--waiting)
                     ;; Tell Pcase to presume FUTUR *is* a futur.
                     (and (pred (not futur--p)) pcase--dontcare))
                 t)))
@@ -170,7 +247,7 @@ A futur has 3 possible states:
 
 (defun futur--deliver (futur err val)
   (pcase-exhaustive futur
-    ((futur-waiting _ clients)
+    ((futur--waiting _ clients)
      (setf (futur--clients futur) (if err 'error t))
      (setf (futur--value futur) (or err val))
      ;; CLIENTS is usually in reverse order since we always `push' to them.
@@ -216,7 +293,7 @@ The object can be any object for which there is a `futur-blocker-wait' method."
   "Interrupt execution of FUTUR, marking it as having failed.
 The error is `futur-aborted'.  Does nothing if FUTUR was already complete."
   (pcase futur
-    ((futur-waiting blocker)
+    ((futur--waiting blocker)
      (let ((error (list 'futur-aborted)))
        (futur-blocker-abort blocker error)
        (futur-deliver-failure futur error)))
@@ -232,10 +309,10 @@ otherwise ERR is nil and VAL is the result value.
 When FUN is called, FUTUR is already marked as completed.
 If FUTUR already completed, FUN is called immediately."
   (pcase futur
-    ((futur-waiting _ clients)
+    ((futur--waiting _ clients)
      (setf (futur--clients futur) (cons fun clients)))
-    ((futur-error err) (funcall fun err nil))
-    ((futur-done val) (funcall fun nil val)))
+    ((futur--error err) (funcall fun err nil))
+    ((futur--done val) (funcall fun nil val)))
   nil)
 
 (defun futur-ize (val)
@@ -260,7 +337,7 @@ By default any error in FUTUR is propagated to the returned future."
   ;;
   ;; But we try to skip the `new' futur if `futur' is already completed.
   (pcase-exhaustive futur
-    ((futur-waiting _ clients)
+    ((futur--waiting _ clients)
      (let ((new (futur--waiting futur)))
        (setf (futur--clients futur)
              (cons
@@ -269,8 +346,8 @@ By default any error in FUTUR is propagated to the returned future."
                   (futur--run-continuation new fun (list val))))
               clients))
        new))
-    ((and (futur-error _) (guard (null error-fun))) futur)
-    ((or (futur-done value) (futur-error err1))
+    ((and (futur--error _) (guard (null error-fun))) futur)
+    ((or (futur--done value) (futur--error err1))
      (condition-case-unless-debug err2
          (let ((res (if err1 (funcall error-fun err1) (funcall fun value))))
            (futur-ize res))
@@ -326,8 +403,8 @@ its result, or (re)signals the error if ERROR-FUN is nil."
                                (condition-notify condition))))
         (condition-wait condition))))
   (pcase-exhaustive futur
-    ((futur-error err) (funcall (or error-fun #'futur--resignal) err))
-    ((futur-done val) val)))
+    ((futur--error err) (funcall (or error-fun #'futur--resignal) err))
+    ((futur--done val) val)))
 
 (defmacro futur-let* (bindings &rest body)
   "Sequence asynchronous operations via futures.
@@ -359,7 +436,12 @@ ERROR-FUN is called with a single argument, the error object."
                         ,error-fun)))))))
 
 (oclosure-define futur--aux
-  "An auxiliary function used internally.  Does not need the future's completion.")
+  "An auxiliary function used internally.
+When used as a callback in a future, a function of type `futur--aux' differs
+from other functions in that it means it does not need the future's result
+nearly as much as the future itself needs this function.
+Concretely what it means is that it is OK to abort a future whose only
+clients are `futur--aux' functions.")
 
 (defun futur--multi-clients-p (clients)
   (let ((count 0))
@@ -412,7 +494,7 @@ Return non-nil if we successfully waited until the completion of BLOCKER."
     (let ((i 0))
       (while
           (pcase futur
-            ((futur-waiting blocker)
+            ((futur--waiting blocker)
              (if (futur-blocker-wait blocker)
                  (setq i 0)
                (let ((delay (* 0.01 (expt 1.1 i))))
@@ -433,20 +515,25 @@ Return non-nil if we successfully waited until the completion of BLOCKER."
 If it had not been computed yet, then make it fail with ERROR.")
 
 (cl-defmethod futur-blocker-abort ((futur futur) error)
-  (let ((blocker (futur--blocker futur)))
-    (if (pcase blocker ((futur-waiting _ (pred futur--multi-clients-p)) t))
-        ;; If there are more than 1 clients, presumably someone else is
-        ;; still interested in FUTURs result, so we shouldn't abort it.
-        ;; FIXME: We should "unbind" ourselves from it, tho, otherwise
-        ;; when it completes it will deliver its result to us.
-        nil
-      ;; If CLIENTS has only one element, it's presumably ourselves,
-      ;; so we should definitely abort that futur.
-      (futur-blocker-abort blocker error))
-    ;; Regardless if we aborted the blocker, abort this future,
-    ;; but don't "deliver" since our caller should take care of it.
-    (setf (futur--clients futur) 'error)
-    (setf (futur--value futur) error)))
+  (pcase futur
+    ((futur--waiting _ (pred futur--multi-clients-p))
+     ;; If there are more than 1 clients, presumably someone else is
+     ;; still interested in FUTURs result, so we shouldn't abort it.
+     ;; FIXME: We should "unbind" ourselves from it, tho, otherwise
+     ;; when it completes it will deliver its result to us.
+     nil)
+    ((futur--waiting blocker clients)
+     ;; If CLIENTS has only one "real" element, it's presumably the future
+     ;; we're in the process of aborting (call it CHILD), so there's
+     ;; no harm in aborting FUTUR.  We should not just `futur-abort'
+     ;; FUTUR because we shouldn't run CHILD's client, but we should
+     ;; still run the other (auxiliary/cleanup) functions.
+     (futur-blocker-abort blocker error)
+     (setf (futur--clients futur) 'error)
+     (setf (futur--value futur) error)
+     (dolist (client clients)
+       (when (cl-typep client 'futur--aux)
+         (futur--funcall client error nil))))))
 
 (cl-defmethod futur-blocker-abort ((_ (eql 'elisp)) _error)
   ;; FIXME: No idea how to do that!
@@ -507,6 +594,13 @@ The ARGS are like those of `make-process' except that they can't include
   (let* ((file (process-get proc 'futur-destination)))
     (write-region string nil file 'append 'silent)))
 
+(defun futur-send-file (proc infile)
+  ;; FIXME: Make it more concurrent!
+  (with-temp-buffer
+    (set-buffer-multibyte nil)
+    (insert-file-contents-literally infile)
+    (futur-process-send proc (buffer-string))))
+
 (defun futur-process-call (program &optional infile destination _display
                                    &rest args)
   "Like `call-process' but runs concurrently as a `futur'.
@@ -528,7 +622,7 @@ The DISPLAY argument is ignored: redisplay always happens."
                  :buffer (if (bufferp destination) destination)
                  :filter (if (bufferp destination) nil
                            #'futur-process-call--filter)))
-         (proc (pcase-exhaustive futur ((futur-waiting blocker) blocker))))
+         (proc (pcase-exhaustive futur ((futur--waiting blocker) blocker))))
     (when (stringp destination)
       (write-region "" nil destination nil 'silent))
     (pcase-exhaustive infile
@@ -614,7 +708,7 @@ that have not yet completed."
                              (pcase new
                                ;; We don't unbind ourselves from some FUTURs
                                ;; when aborting, so ignore their delivery here.
-                               ((futur-error '(futur-aborted)) nil)
+                               ((futur--error '(futur-aborted)) nil)
                                (_ (futur-deliver-value new args)))))))))
         (setq i (1+ i)))
       new)))
@@ -634,17 +728,7 @@ that have not yet completed."
 (cl-defmethod futur-blocker-abort ((futurs cons) error)
   ;; Propagate the abort to the futurs we're still waiting for.
   (dolist (futur futurs)
-    (pcase futur
-      ((futur-waiting _ clients)
-       (if (futur--multi-clients-p clients)
-           ;; If there are more than 1 clients, presumably someone else is
-           ;; still interested in FUTURs result, so we shouldn't abort it.
-           ;; FIXME: We should "unbind" ourselves from it, tho, otherwise
-           ;; when it completes it will deliver its result to us.
-           nil
-         ;; If CLIENTS has only one element, it's presumably ourselves,
-         ;; so we should definitely abort that futur.
-         (futur-blocker-abort futur error))))))
+    (futur-blocker-abort futur error)))
 
 ;;;; Other helpers
 

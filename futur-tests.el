@@ -25,6 +25,7 @@
 ;;; Code:
 
 (require 'futur)
+(require 'ert)
 
 (ert-deftest futur--resignal ()
   (let ((err1 (list 'error "hello")))
@@ -75,7 +76,7 @@
 (ert-deftest futur-abort ()
   (let* ((x '())
          (start (float-time))
-         (timescale 0.2)
+         (timescale 0.5)
          (_fut1 (futur-let* ((_ <- (futur-timeout (* timescale 1))))
                   (push 'timer1 x)))
          (fut6 (futur-let* ((_ <- (futur-timeout (* timescale 6))))
@@ -99,11 +100,11 @@
                    '(error "" timer1)))
     (should (equal x '(timer1)))
     (should (< (- (float-time) start) (* timescale 4)))
-    (should (pcase fut6 ((futur-waiting _) t)))
-    (should (pcase fut2 ((futur-done 'nil) t)))
-    (should (pcase fut22 ((futur-error '(futur-aborted)) t)))
-    (should (pcase fut4 ((futur-waiting _) t) ((futur-done 'nil) t)))
-    (should (pcase futB ((futur-waiting _) t)))
+    (should (pcase fut6 ((futur--waiting _) t)))
+    (should (pcase fut2 ((futur--done 'nil) t)))
+    (should (pcase fut22 ((futur--error '(futur-aborted)) t)))
+    (should (pcase fut4 ((futur--waiting _) t) ((futur--done 'nil) t)))
+    (should (pcase futB ((futur--waiting _) t)))
     (should (equal '(nil) (futur-blocking-wait-to-get-result futB)))
     (should (equal x '(timer1)))))
 

@@ -1,4 +1,4 @@
-;;; lin.el --- Make `hl-line-mode' more suitable for selection UIs -*- lexical-binding: t -*-
+;;; lin.el --- Make `hl-line-mode' more suitable for selection interfaces -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2021-2026  Free Software Foundation, Inc.
 

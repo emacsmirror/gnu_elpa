@@ -307,6 +307,27 @@ Line numbers come from the `display-line-numbers-mode'."
   :package-version '(lin . "0.2.0")
   :group 'lin-faces)
 
+(defface lin-orange
+  '((default :foreground unspecified :underline nil :extend t)
+    (((class color) (min-colors 88) (background light))
+     :background "#ffd596")
+    (((class color) (min-colors 88) (background dark))
+     :background "#5a3000")
+    (t :background "yellow"))
+  "Alternative orange face for `lin-face'."
+  :package-version '(lin . "1.2.0")
+  :group 'lin-faces)
+
+(defface lin-orange-override-fg
+  '((default :inherit lin-orange)
+    (((background light))
+     :foreground "black")
+    (((background dark))
+     :foreground "white"))
+  "Like `lin-orange' but also sets a foreground."
+  :package-version '(lin . "1.2.0")
+  :group 'lin-faces)
+
 ;; TODO 2022-03-18: Can we find all system styles?  Then we can rename
 ;; this to `lin-system'.
 (defface lin-mac

@@ -150,6 +150,11 @@
 
 (defvar futur--in-background nil)
 
+(eval-and-compile
+  (unless (fboundp 'with-suppressed-warnings) ;Emacs-27
+    (defmacro with-suppressed-warnings (_warnings &rest body)
+      (with-no-warnings ,@body))))
+
 (defun futur--background ()
   (let ((futur--in-background t))
     (while t
@@ -169,7 +174,8 @@
 
 (defun futur--make-thread (f name)
   (condition-case nil
-      (make-thread f name 'silently)
+      (with-suppressed-warnings ((callargs make-thread))
+        (make-thread f name 'silently))
     (wrong-number-of-arguments ;; Emacs<31
      (with-current-buffer (get-buffer-create " *futur--background*")
        (make-thread f name)))))

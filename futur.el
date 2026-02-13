@@ -123,7 +123,12 @@
 
 ;;; News:
 
+;; Since 1.0:
+
+;; - Fix compatibility with Emacs<31.
+
 ;; Version 1.0:
+
 ;; - After years of sitting in the dark, it's finally getting dusted up for
 ;;   a release.
 
@@ -161,20 +166,30 @@
         (with-demoted-errors "future--background: %S"
           (apply pending))))))
 
+(defun futur--make-thread (f name)
+  (condition-case nil
+      (make-thread f name 'silently)
+    (wrong-number-of-arguments ;; Emacs<31
+     (with-current-buffer (get-buffer-create " *futur--background*")
+       (make-thread f name)))))
+
 (defconst futur--background
-  (make-thread #'futur--background "futur--background" 'silently))
+  (when (fboundp 'make-thread)          ;New in Emacs-25
+    (futur--make-thread #'futur--background "futur--background")))
 
 (defun futur--funcall (&rest args)
   "Call ARGS like `funcall' but outside of the current dynamic scope.
 The code is conceptually run in another thread and while we try to run as
 soon as possible, and fairly, we do not guarantee the specific
 time or order of execution."
-  (with-mutex futur--pending-mutex
-    (push args futur--pending-r)
-    ;; FIXME: Maybe we should have combination
-    ;; `mutex-unlock+condition-notify', i.e. a variant of
-    ;; `condition-notify' which doesn't regrab the lock?
-    (condition-notify futur--pending-condition)))
+  (if (not (fboundp 'make-thread))      ;Emacs<26
+      (apply #'run-with-timer 0 nil args)
+    (with-mutex futur--pending-mutex
+      (push args futur--pending-r)
+      ;; FIXME: Maybe we should have combination
+      ;; `mutex-unlock+condition-notify', i.e. a variant of
+      ;; `condition-notify' which doesn't regrab the lock?
+      (condition-notify futur--pending-condition))))
 
 (defvar futur--idle-loop-bug80286
   ;; "Idle loop" thread to try and make sure we run timers, filters, etc...
@@ -188,7 +203,7 @@ time or order of execution."
   ;;         at emacs.c:445
   ;;
   ;;(when (fboundp 'make-thread)
-  ;;  (make-thread
+  ;;  (futur--make-thread
   ;;   (lambda ()
   ;;     (while t (accept-process-output nil (* 60 60 24))))
   ;;   "futur-idle-loop"))
@@ -661,9 +676,9 @@ The DISPLAY argument is ignored: redisplay always happens."
   ;; FIXME: This is quite inefficient.  Our C code should instead provide
   ;; a non-blocking `(process-send-string PROC STRING CALLBACK)'.
   (futur-new
-   (lambda (f) (make-thread
+   (lambda (f) (futur--make-thread
            (lambda () (futur-deliver-value f (process-send-string proc string)))
-           "futur-process-send" 'silently))))
+           "futur-process-send"))))
 
 (cl-defmethod futur-blocker-wait ((th thread))
   (if (not (thread-live-p th))

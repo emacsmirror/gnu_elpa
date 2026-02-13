@@ -126,6 +126,7 @@
 ;; Since 1.0:
 
 ;; - Fix compatibility with Emacs<31.
+;; - Minor bug fixes.
 
 ;; Version 1.0:
 
@@ -267,6 +268,9 @@ A futur has 3 possible states:
     ((futur--waiting _ clients)
      (setf (futur--clients futur) (if err 'error t))
      (setf (futur--value futur) (or err val))
+     ;; FIXME: Should we just always abort the blocker instead of
+     ;; doing it only from `futur-abort'?
+     ;;(futur-blocker-abort blocker)
      ;; CLIENTS is usually in reverse order since we always `push' to them.
      (dolist (client (nreverse clients))
        ;; Don't run the clients directly from here, so we don't nest,
@@ -359,8 +363,12 @@ By default any error in FUTUR is propagated to the returned future."
        (setf (futur--clients futur)
              (cons
               (lambda (err val)
-                (if err (futur-deliver-failure new err)
-                  (futur--run-continuation new fun (list val))))
+                ;; If NEW is not waiting any more (e.g. it's been aborted),
+                ;; don't bother running the continuation.
+                (pcase new
+                  ((futur--waiting)
+                   (if err (futur-deliver-failure new err)
+                    (futur--run-continuation new fun (list val))))))
               clients))
        new))
     ((and (futur--error _) (guard (null error-fun))) futur)
@@ -445,11 +453,12 @@ ERROR-FUN is called with a single argument, the error object."
         (pcase-exhaustive bindings
           ('() (macroexp-progn body))
           (`((,var ,exp) . ,bindings)
-           ;; FIXME: Catch errors in EXP to run `error-fun'?
+           ;; FIXME: Catch errors in EXP, to run `error-fun'?
            `(pcase-let ((,var ,exp)) ,(loop bindings)))
           (`((,var <- ,exp) . ,bindings)
+           ;; FIXME: Catch errors in EXP, to run `error-fun'?
            `(futur-bind ,exp
-                        (lambda (,var) ,(loop bindings))
+                        (pcase-lambda (,var) ,(loop bindings))
                         ,error-fun)))))))
 
 (oclosure-define futur--aux
@@ -585,7 +594,9 @@ If IDLE is non-nil, then wait for that amount of idle time."
     t))
 
 (cl-defmethod futur-blocker-abort ((timer (head timer)) _error)
-  (cancel-timer (cdr timer)))
+  ;; Older versions of Emacs signal errors if we try to cancel a timer
+  ;; that's already run (or been canceled).
+  (unless (timer--triggered timer) (cancel-timer (cdr timer))))
 
 ;;;; Processes
 
@@ -690,7 +701,7 @@ The DISPLAY argument is ignored: redisplay always happens."
   ;; FIXME: This doesn't guarantee that the thread is aborted.
   ;; FIXME: Let's hope that the undocumented feature of `signal' applies
   ;; also to `thread-signal'.
-  (thread-signal th error nil))
+  (when (thread-live-p th) (thread-signal th error nil)))
 
 ;;;; Multi futures: Futures that are waiting for several other futures.
 

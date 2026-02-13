@@ -1,4 +1,4 @@
-;;; -*-emacs-lisp-*-
+;;; -*- mode: emacs-lisp; lexical-binding: t; -*-
 
 (defvar generated-autoload-file)
 (defvar command-line-args-left)

@@ -41,6 +41,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'ivy)
 (require 'swiper)
 

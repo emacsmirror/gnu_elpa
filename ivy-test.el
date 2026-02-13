@@ -53,6 +53,8 @@ Intended as :after-while advice for `require'."
 (require 'ivy)
 
 (require 'ert)
+(eval-when-compile
+  (require 'cl-lib))
 
 (setq ivy-last (make-ivy-state))
 

@@ -131,7 +131,7 @@ which evaluates to that value or the value itself."
 
 (defvar emms-mpris-player-iface-spec
   '("org.mpris.MediaPlayer2.Player"
-   ;; Methods:
+    ;; Methods:
     (("OpenUri" emms-mpris-open-uri)
      ("Next" (lambda () (ignore-errors (emms-next)) :ignore))
      ("Previous" (lambda () (ignore-errors (emms-previous)) :ignore))
@@ -141,7 +141,7 @@ which evaluates to that value or the value itself."
      ("Play" (lambda () (emms-pause) :ignore))
      ("Seek" emms-mpris-seek)
      ("SetPosition" emms-mpris-set-position))
-   ;; Properties: Shuffle, LoopStatus, Volume not supported (yet)
+    ;; Properties: Shuffle, LoopStatus, Volume not supported (yet)
     (("LoopStatus" :readwrite emms-mpris-loop-status)
      ("Shuffle" :readwrite emms-random-playlist)
      ("PlaybackStatus" :read emms-mpris-status)
@@ -341,7 +341,7 @@ We do this when we have already taken action via the EMMS UI.")
   "Respond to PropertiesChanged signal by updating emms state to reflect CHANGES."
   (if emms-mpris-ignore-signal-p
       (setq emms-mpris-ignore-signal-p nil)
-    (when-let ((payload (assoc "LoopStatus" changes)))
+    (when-let* ((payload (assoc "LoopStatus" changes)))
       (pcase (caadr payload)
 	("Track" (setq emms-repeat-playlist nil
 		       emms-repeat-track t))
@@ -349,7 +349,7 @@ We do this when we have already taken action via the EMMS UI.")
 			  emms-repeat-track nil))
 	(_ (setq emms-repeat-playlist nil
 		 emms-repeat-track nil))))
-    (when-let ((payload (assoc "Shuffle" changes)))
+    (when-let* ((payload (assoc "Shuffle" changes)))
       (setq emms-random-playlist (caadr payload))
       (if emms-random-playlist
 	  (setq emms-player-next-function #'emms-random)
@@ -433,7 +433,7 @@ Each entry of the form (info-field mpris-field dbus-type).")
 	metadata)
     ;; standard fields
     (dolist (field emms-mpris-metadata-dict)
-      (when-let ((entry (apply #'emms-mpris-convert-field track field)))
+      (when-let* ((entry (apply #'emms-mpris-convert-field track field)))
 	(push entry metadata)))
     ;; url
     (push (emms-mpris-dict "xesam:url" (url-encode-url (concat "file:" track-name))) metadata)
@@ -441,7 +441,7 @@ Each entry of the form (info-field mpris-field dbus-type).")
     ;; Shockingly, emms-browser-get-cover-from-path needs a graphical display to
     ;; function (it eventually calls image-size) so we check there is one...
     (when (seq-some #'display-graphic-p (frame-list))
-      (when-let ((art-file (emms-browser-get-cover-from-path track-name 'medium)))
+      (when-let* ((art-file (emms-browser-get-cover-from-path track-name 'medium)))
 	(push (emms-mpris-dict "mpris:artUrl" (url-encode-url (concat "file://" art-file))) metadata)))
     ;; length
     (push
@@ -459,7 +459,7 @@ Each entry of the form (info-field mpris-field dbus-type).")
 
 (defun emms-mpris-current-metadata ()
   "Return metadata of current track if it exists, else return a placeholder."
-  (if-let ((track (emms-playlist-current-selected-track)))
+  (if-let* ((track (emms-playlist-current-selected-track)))
       (emms-mpris-metadata track)
     '(:array (:dict-entry "mpris:trackid" (:variant :object-path "/no/track/here")))))
 

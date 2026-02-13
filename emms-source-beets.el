@@ -116,15 +116,15 @@ Band\", the choice of year is restricted to 2001 to 2002 (or both).
 Sorting occurs after filtering, and allows selecting multiple columns
 to sort by."
   (interactive
-   (when-let (((emms-source-beets--ensure-sqlite))
-              (filter (and current-prefix-arg (cons nil "")))
-              (sort (prog1 (or current-prefix-arg t)
-                        ;; Unset after use unconditionally to prevent
-                        ;; EMMS's default behavior when source
-                        ;; commands are called with a prefix argument.
-                        (setq current-prefix-arg nil prefix-arg nil)))
-              (db (sqlite-open emms-source-beets-database))
-              (dec " (descending)"))
+   (when-let* (((emms-source-beets--ensure-sqlite))
+               (filter (and current-prefix-arg (cons nil "")))
+               (sort (prog1 (or current-prefix-arg t)
+                       ;; Unset after use unconditionally to prevent
+                       ;; EMMS's default behavior when source
+                       ;; commands are called with a prefix argument.
+                       (setq current-prefix-arg nil prefix-arg nil)))
+               (db (sqlite-open emms-source-beets-database))
+               (dec " (descending)"))
      (dolist ( col (completing-read-multiple
                     "Filter by: "
                     emms-source-beets--items-columns nil t))
@@ -132,15 +132,15 @@ to sort by."
        ;; choosing between distinct values which correspond
        ;; to items which matched distinct values chosen for
        ;; previously processed columns.
-       (when-let ((where (cdr filter))
-                  (dist (sqlite-select
-                         db (format "select distinct %s from items%s"
-                                    col (if (string-empty-p where)
-                                            "" (concat " where" where)))
-                         (car filter)))
-                  (dist (if (stringp (caar dist)) dist
-                          (mapcar (lambda (val) (number-to-string (car val)))
-                                  dist))))
+       (when-let* ((where (cdr filter))
+                   (dist (sqlite-select
+                          db (format "select distinct %s from items%s"
+                                     col (if (string-empty-p where)
+                                             "" (concat " where" where)))
+                          (car filter)))
+                   (dist (if (stringp (caar dist)) dist
+                           (mapcar (lambda (val) (number-to-string (car val)))
+                                   dist))))
          (setcdr filter (format " %s in (%s)%s" col
                                 (mapconcat
                                  (lambda (_) "?")
@@ -163,25 +163,25 @@ to sort by."
                     ,@(mapcar (lambda (c) (concat c dec))
                               emms-source-beets--items-columns))
                   nil t))))))
-  (when-let (((emms-source-beets--ensure-sqlite))
-             (db (or database (sqlite-open emms-source-beets-database)))
-             (filter (or filter (cons nil "")))
-             (where (cdr filter))
-             (sort (or sort emms-source-beets-sort-columns))
-             (db (sqlite-select
-                  db (format "select path, %s from items%s order by %s"
-                             (mapconcat #'identity
-                                        emms-source-beets--items-columns
-                                        ", ")
-                             (if (string-empty-p where) ""
-                               (concat " where" where))
-                             (mapconcat
-                              (lambda (col)
-                                (if (cdr col) (concat (car col) " desc")
-                                  (car col)))
-                              sort ", "))
-                  (car filter) 'set))
-             (init (gensym)))
+  (when-let* (((emms-source-beets--ensure-sqlite))
+              (db (or database (sqlite-open emms-source-beets-database)))
+              (filter (or filter (cons nil "")))
+              (where (cdr filter))
+              (sort (or sort emms-source-beets-sort-columns))
+              (db (sqlite-select
+                   db (format "select path, %s from items%s order by %s"
+                              (mapconcat #'identity
+                                         emms-source-beets--items-columns
+                                         ", ")
+                              (if (string-empty-p where) ""
+				(concat " where" where))
+                              (mapconcat
+                               (lambda (col)
+                                 (if (cdr col) (concat (car col) " desc")
+                                   (car col)))
+                               sort ", "))
+                   (car filter) 'set))
+              (init (gensym)))
     (set init (remq 'emms-info-initialize-track
                     emms-track-initialize-functions))
     (let (item track path)
@@ -191,7 +191,7 @@ to sort by."
           (emms-dictionary-set track 'type 'file)
           (emms-dictionary-set track 'name path)
           (mapc (lambda (type)
-                  (when-let ((val (car (setq item (cdr item)))))
+                  (when-let* ((val (car (setq item (cdr item)))))
                     (setq type (cond ((string-match "_" type)
                                       (replace-match "" nil nil type))
                                      ((member type '("track" "disc"))

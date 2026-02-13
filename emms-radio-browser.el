@@ -191,7 +191,7 @@ Returns either \"True\" or \"False\"."
 ;; suffix: as discussed above, we wrap the value into a cons cell.
 (cl-defmethod transient-infix-value ((obj emms-radio-browser-field))
   "Return the infix value of OBJ as a cons cell if non-nil."
-  (when-let ((val (oref obj value)))
+  (when-let* ((val (oref obj value)))
     (cons (oref obj alist-key) val)))
 
 (cl-defmethod transient-infix-value ((obj emms-radio-browser-bool))

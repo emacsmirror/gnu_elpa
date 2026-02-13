@@ -1300,10 +1300,11 @@ configuration.
 
 ** desktop.el
 
-The built-in ~desktop.el~ package provides the possibility to persist
-the state of the current Emacs session for future recall. Bufferlo is
-fully compatible with ~desktop.el~. Bufferlo's local buffer lists for
-frames/tabs are saved and restored by ~desktop.el~.
+The built-in ~desktop.el~ package provides the possibility to persist the
+state of the current Emacs session for future recall. Bufferlo is fully
+compatible with ~desktop.el~. Bufferlo's local buffer lists for frames/tabs
+are saved and restored when you use ~desktop.el~, and is less granular than
+using bufferlo's own bookmarks.
 
 With its bookmark feature, bufferlo offers an alternative session
 persistence solution. In contrast to ~desktop.el~'s all-or-nothing

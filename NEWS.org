@@ -10,7 +10,9 @@ for Kubernetes.
 For further details, see the Kubed manual:
 [[https://eshelyaron.com/kubed.html][https://eshelyaron.com/kubed.html]].
 
-* Version 0.5.1 in development
+* Version 0.5.1 on 2026-02-13
+
+** Fix error with minibuffer completion for custom Kubernetes resources
 
 ** ~kubed-use-context~ now also updates ~kubed-default-context-and-namespace~
 

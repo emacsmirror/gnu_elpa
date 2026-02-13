@@ -477,7 +477,9 @@ Used by commands `counsel-describe-symbol',
 (defun counsel--info-lookup-symbol ()
   "Lookup the current symbol in the info docs."
   (interactive)
-  (ivy-exit-with-action #'counsel-info-lookup-symbol))
+  (ivy-exit-with-action
+   (lambda (x)
+     (counsel-info-lookup-symbol (ivy--action-cand-to-str x)))))
 (ivy--no-M-x #'counsel--info-lookup-symbol #'ivy--minibuffer-p)
 
 (defun counsel--push-xref-marker (&optional m)
@@ -497,10 +499,11 @@ Used by commands `counsel-describe-symbol',
     (ring-insert find-tag-marker-ring (or m (point-marker)))))
 
 (defun counsel--find-symbol (x)
-  "Find symbol definition that corresponds to string X."
+  "Find symbol definition that corresponds to action candidate X."
   (with-ivy-window
     (counsel--push-xref-marker)
-    (let ((full-name (get-text-property 0 'full-name x)))
+    (let* ((x (ivy--action-cand-to-str x))
+           (full-name (get-text-property 0 'full-name x)))
       (if full-name
           (find-library full-name)
         (let ((sym (read x)))
@@ -586,9 +589,16 @@ Variables declared using `defcustom' are highlighted according to
           (function-item ivy-thing-at-point)
           (function-item ivy-function-called-at-point)))
 
+;; FIXME: Use this more in place of `intern'.
+(defun counsel--action-cand-to-interned (x)
+  "Try to return Ivy action argument X as an existing symbol.
+Not quite the dual of `ivy--action-cand-to-str'."
+  (intern-soft (if (consp x) (car x) x)))
+
 (defun counsel--describe-function (candidate)
   "Pass string CANDIDATE to `counsel-describe-function-function'."
-  (funcall counsel-describe-function-function (intern candidate)))
+  (funcall counsel-describe-function-function
+           (counsel--action-cand-to-interned candidate)))
 
 ;;;###autoload
 (defun counsel-describe-function ()
@@ -995,9 +1005,17 @@ that returns a completion table suitable for `ivy-read'."
   "History for `counsel-M-x'.")
 
 (defun counsel-M-x-action (cmd)
-  "Execute CMD."
-  (setq cmd (intern
-             (subst-char-in-string ?\s ?- (string-remove-prefix "^" cmd))))
+  "Execute CMD from `counsel-M-x'."
+  ;; Currently CMD is a string either following `ivy-immediate-done',
+  ;; or for all collection types but alist, where CMD is the original
+  ;; cons.  There is no harm in allowing other atoms through.
+  (setq cmd (cond ((stringp cmd)
+                   ;; For the benefit of `ivy-immediate-done'.
+                   ;; FIXME: Check `intern-soft'?
+                   (intern (subst-char-in-string
+                            ?\s ?- (string-remove-prefix "^" cmd))))
+                  ((atom cmd) cmd)
+                  ((intern-soft (car cmd)))))
   (counsel--M-x-extern-rank cmd)
   ;; As per `execute-extended-command'.
   (setq this-command cmd)
@@ -1237,13 +1255,13 @@ See `execute-extended-command' for further information."
   "Find symbol definition of candidate X.
 See `counsel--find-symbol' for further information."
   (let ((cmd (cddr x)))
-    (counsel--find-symbol (symbol-name cmd))))
+    (counsel--find-symbol cmd)))
 
 (defun counsel-descbinds-action-info (x)
   "Display symbol definition of candidate X, as found in the relevant manual.
 See `info-lookup-symbol' for further information."
   (let ((cmd (cddr x)))
-    (counsel-info-lookup-symbol (symbol-name cmd))))
+    (counsel-info-lookup-symbol cmd)))
 
 ;;;###autoload
 (defun counsel-descbinds (&optional prefix buffer)

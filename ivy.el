@@ -4796,25 +4796,32 @@ Otherwise, forward to `ivy-kill-line'."
 
 (ivy-set-actions
  t
- '(("i" ivy--action-insert "insert")
-   ("w" ivy--action-copy "copy")))
+ `(("i" ,#'ivy--action-insert "insert")
+   ("w" ,#'ivy--action-copy "copy")))
 
 (defun ivy--trim-grep-line-number (x)
   (if (string-match ":[0-9]+:" x)
       (substring x (match-end 0))
     x))
 
+(defun ivy--action-cand-to-str (x)
+  "Try to return Ivy action argument X as a string."
+  (let ((x (if (consp x) (car x) x)))
+    (if (symbolp x) (symbol-name x) x)))
+
 (defun ivy--action-insert (x)
-  (insert
-   (if (stringp x)
-       (ivy--trim-grep-line-number x)
-     (car x))))
+  "Insert completion candidate X into current buffer at point."
+  (insert (funcall (if (stringp x)
+                       #'ivy--trim-grep-line-number
+                     #'ivy--action-cand-to-str)
+                   x)))
 
 (defun ivy--action-copy (x)
-  (kill-new
-   (if (stringp x)
-       (ivy--trim-grep-line-number x)
-     (car x))))
+  "Add completion candidate X to the kill ring."
+  (kill-new (funcall (if (stringp x)
+                         #'ivy--trim-grep-line-number
+                       #'ivy--action-cand-to-str)
+                     x)))
 
 (defun ivy--switch-buffer-matcher (regexp candidates)
   "Return REGEXP matching CANDIDATES.

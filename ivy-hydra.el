@@ -35,6 +35,9 @@
 (require 'ivy)
 (require 'hydra)
 
+(eval-when-compile
+  (require 'cl-lib))
+
 (defun ivy--matcher-desc ()
   "Return description of `ivy--regex-function'."
   (let ((cell (assq ivy--regex-function ivy-preferred-re-builders)))

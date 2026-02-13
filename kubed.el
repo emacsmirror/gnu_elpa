@@ -1,6 +1,6 @@
 ;;; kubed.el --- Kubernetes, Emacs, done!   -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024-2025  Free Software Foundation, Inc.
+;; Copyright (C) 2024-2026  Free Software Foundation, Inc.
 
 ;; Author: Eshel Yaron <me@eshelyaron.com>
 ;; Maintainer: Eshel Yaron <~eshel/kubed-devel@lists.sr.ht>

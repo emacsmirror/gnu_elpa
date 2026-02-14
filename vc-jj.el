@@ -233,7 +233,7 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 The fileset expression returned is relative to the JJ repository root.
 
 When FILENAME is not inside a JJ repository, throw an error."
-  (if-let ((root (vc-jj-root filename))
+  (if-let* ((root (vc-jj-root filename))
            (default-directory root))
       (format "root:%S" (file-relative-name filename root))
     (error "File is not inside a JJ repository: %s" filename)))
@@ -375,7 +375,7 @@ See also `vc-jj--command-parseable' and `vc-jj--process-lines'."
 (defun vc-jj-registered (file)
   "Check whether FILE is registered with jj.
 Return non-nil when FILE is file tracked by JJ and nil when not."
-  (when-let ((default-directory (vc-jj-root file)))
+  (when-let* ((default-directory (vc-jj-root file)))
     (vc-jj--process-lines file "file" "list")))
 
 ;;;; state

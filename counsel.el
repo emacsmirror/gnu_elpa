@@ -536,7 +536,7 @@ Used by commands `counsel-describe-symbol',
 
 (defun counsel-describe-variable-transformer (var)
   "Propertize VAR if it's a custom variable."
-  (if (custom-variable-p (intern var))
+  (if (custom-variable-p (intern-soft var))
       (ivy-append-face var 'ivy-highlight-face)
     var))
 
@@ -555,7 +555,8 @@ Variables declared using `defcustom' are highlighted according to
               :keymap counsel-describe-map
               :preselect (ivy-thing-at-point)
               :action (lambda (x)
-                        (funcall counsel-describe-variable-function (intern x)))
+                        (funcall counsel-describe-variable-function
+                                 (counsel--action-cand-to-interned x)))
               :caller 'counsel-describe-variable)))
 
 (ivy-configure 'counsel-describe-variable
@@ -575,7 +576,7 @@ Variables declared using `defcustom' are highlighted according to
 
 (defun counsel-describe-function-transformer (function-name)
   "Propertize FUNCTION-NAME if it's an interactive function."
-  (if (commandp (intern function-name))
+  (if (commandp (intern-soft function-name))
       (ivy-append-face function-name 'ivy-highlight-face)
     function-name))
 
@@ -589,7 +590,6 @@ Variables declared using `defcustom' are highlighted according to
           (function-item ivy-thing-at-point)
           (function-item ivy-function-called-at-point)))
 
-;; FIXME: Use this more in place of `intern'.
 (defun counsel--action-cand-to-interned (x)
   "Try to return Ivy action argument X as an existing symbol.
 Not quite the dual of `ivy--action-cand-to-str'."
@@ -648,7 +648,8 @@ to `ivy-highlight-face'."
               :keymap counsel-describe-map
               :preselect (ivy-thing-at-point)
               :action (lambda (x)
-                        (funcall counsel-describe-symbol-function (intern x)))
+                        (funcall counsel-describe-symbol-function
+                                 (counsel--action-cand-to-interned x)))
               :caller 'counsel-describe-symbol)))
 
 (ivy-configure 'counsel-describe-symbol
@@ -1010,12 +1011,12 @@ that returns a completion table suitable for `ivy-read'."
   ;; or for all collection types but alist, where CMD is the original
   ;; cons.  There is no harm in allowing other atoms through.
   (setq cmd (cond ((stringp cmd)
-                   ;; For the benefit of `ivy-immediate-done'.
-                   ;; FIXME: Check `intern-soft'?
-                   (intern (subst-char-in-string
-                            ?\s ?- (string-remove-prefix "^" cmd))))
-                  ((atom cmd) cmd)
-                  ((intern-soft (car cmd)))))
+                   (or (intern-soft cmd)
+                       ;; For the benefit of `ivy-immediate-done'.
+                       (intern (subst-char-in-string
+                                ?\s ?- (string-remove-prefix "^" cmd)))))
+                  ((consp cmd) (intern-soft (car cmd)))
+                  (cmd)))
   (counsel--M-x-extern-rank cmd)
   ;; As per `execute-extended-command'.
   (setq this-command cmd)

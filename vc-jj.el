@@ -1230,6 +1230,13 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
 
 ;;;; find-ignore-file
 
+(defun vc-jj-find-ignore-file (file)
+  "Return the jj ignore file that controls FILE."
+  ;; Currently, Jujutsu uses .gitignore files, even for non-colocated
+  ;; repos.  See
+  ;; https://docs.jj-vcs.dev/latest/working-copy/#ignored-files
+  (expand-file-name ".gitignore" (vc-jj-root file)))
+
 ;;;; previous-revision
 
 (defun vc-jj-previous-revision (file rev)

@@ -1068,9 +1068,20 @@ unsupported."
                         (list "-f" rev1 "-t" rev2))
                       (vc-switches 'jj 'diff)
                       (list "--") files)))
-    (with-current-buffer buffer
-      (prog1
-          (apply #'vc-jj--command-dispatched buffer 0 nil "diff" args)
+    ;; Match `vc-git-diff' by returning the value of
+    ;; `vc-jj--command-dispatched'.
+    ;;
+    ;; Also ensure that (vc-jj--command-dispatched BUFFER ...) is
+    ;; called when BUFFER is not the current buffer.  Otherwise,
+    ;; BUFFER may accumulate content from previous invocations of
+    ;; `vc-jj-diff', because `vc-do-command' (called internally by
+    ;; `vc-jj--command-dispatched') only erases BUFFER when BUFFER is
+    ;; not the current buffer.  See
+    ;; https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/152 for more
+    ;; information.
+    (prog1
+        (apply #'vc-jj--command-dispatched buffer 0 nil "diff" args)
+      (with-current-buffer buffer
         (ansi-color-filter-region (point-min) (point-max))))))
 
 ;;;; revision-completion-table

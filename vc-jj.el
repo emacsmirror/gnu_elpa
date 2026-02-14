@@ -1048,7 +1048,7 @@ diff into.  Otherwise, when nil, insert the diff into the *vc-diff*
 buffer.  If _ASYNC is non-nil, run asynchronously.  This is currently
 unsupported."
   ;; TODO: handle async
-  (setq buffer (get-buffer-create (or buffer "*vc-diff*"))
+  (setq buffer (or buffer "*vc-diff*")
         files (mapcar #'vc-jj--filename-to-fileset files))
   (cond
    ((not (or rev1 rev2))

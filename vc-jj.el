@@ -96,29 +96,30 @@
    "
 if(root,
   format_root_commit(self),
-  label(if(current_working_copy, \"working_copy\"),
+  label(if(current_working_copy, 'working_copy'),
     concat(
-      separate(\" \",
-        change_id ++ \"​\" ++ change_id.shortest(8).prefix() ++ \"​\" ++ change_id.shortest(8).rest(),
+      separate(' ',
+        change_id ++ '​' ++ change_id.shortest(8).prefix() ++ '​' ++ change_id.shortest(8).rest(),
         if(author.name(), author.name(), if(author.email(), author.email().local(), email_placeholder)),
-        commit_timestamp(self).format(\"%Y-%m-%d\"),
+        commit_timestamp(self).format('%Y-%m-%d'),
         bookmarks,
         tags,
         working_copies,
-        if(git_head, label(\"git_head\", \"git_head()\")),
+        if(git_head, label('git_head', 'git_head()')),
         format_short_commit_id(commit_id),
-        if(conflict, label(\"conflict\", \"conflict\")),
-        if(config(\"ui.show-cryptographic-signatures\").as_boolean(),
+        if(conflict, label('conflict', 'conflict')),
+        if(config('ui.show-cryptographic-signatures').as_boolean(),
           format_short_cryptographic_signature(signature)),
-        if(empty, label(\"empty\", \"(empty)\")),
+        if(empty, label('empty', '(empty)')),
         if(description,
           description.first_line(),
-          label(if(empty, \"empty\"), description_placeholder),
+          label(if(empty, 'empty'), description_placeholder),
         ),
-      ) ++ \"\n\",
+      ) ++ '\n',
     ),
   )
-)"
+)
+"
    ;; Log entry regexp
    (rx
     line-start
@@ -437,7 +438,7 @@ For a description of the states relevant to jj, see `vc-jj-state'."
            (conflicted-files (mapcar (lambda (entry)
                                        (file-relative-name (expand-file-name entry project-root) dir))
                                      (vc-jj--process-lines "file" "list"
-                                                           "-T" "if(conflict, path ++ \"\\n\")"
+                                                           "-T" "if(conflict, path ++ '\n')"
                                                            "--" fileset)))
            (up-to-date-files (cl-remove-if (lambda (entry) (or (member entry conflicted-files)
                                                               (member entry edited-files)
@@ -474,22 +475,22 @@ anyway.)"
       (let ((default-directory (file-name-as-directory dir)))
         (vc-jj--process-lines "log" "--no-graph" "-r" "@" "-T"
                               "concat(
-self.change_id().short(8), \"\\n\",
-self.change_id().shortest(), \"\\n\",
-self.commit_id().short(8), \"\\n\",
-self.commit_id().shortest(), \"\\n\",
-description.first_line(), \"\\n\",
-bookmarks.join(\",\"), \"\\n\",
-self.conflict(), \"\\n\",
-self.divergent(), \"\\n\",
-self.hidden(), \"\\n\",
-self.immutable(), \"\\n\",
+self.change_id().short(8), '\n',
+self.change_id().shortest(), '\n',
+self.commit_id().short(8), '\n',
+self.commit_id().shortest(), '\n',
+description.first_line(), '\n',
+bookmarks.join(','), '\n',
+self.conflict(), '\n',
+self.divergent(), '\n',
+self.hidden(), '\n',
+self.immutable(), '\n',
 parents.map(|c| concat(
-  c.change_id().short(8), \"\\n\",
-  c.change_id().shortest(), \"\\n\",
-  c.commit_id().short(8), \"\\n\",
-  c.commit_id().shortest(), \"\\n\",
-  c.description().first_line(), \"\\n\"
+  c.change_id().short(8), '\n',
+  c.change_id().shortest(), '\n',
+  c.commit_id().short(8), '\n',
+  c.commit_id().shortest(), '\n',
+  c.description().first_line(), '\n'
 )))"))
     (cl-labels
         ((str (string &optional face prefix)
@@ -553,7 +554,7 @@ parents.map(|c| concat(
     ;; want will be printed afterwards.
     (car (last (vc-jj--process-lines "log" "--no-graph"
                                      "-r" "@"
-                                     "-T" "change_id ++ \"\\n\"")))))
+                                     "-T" "change_id ++ '\n'")))))
 
 ;;;; checkout-model
 
@@ -568,7 +569,7 @@ parents.map(|c| concat(
   (pcase-let* ((long-rev (vc-jj-working-revision file))
                (`(,short-rev ,description)
                 (vc-jj--process-lines "log" "--no-graph" "-r" long-rev
-                                      "-T" "self.change_id().shortest() ++ \"\\n\" ++ description.first_line() ++ \"\\n\""))
+                                      "-T" "self.change_id().shortest() ++ '\n' ++ description.first_line() ++ '\n'"))
                (def-ml (vc-default-mode-line-string 'JJ file))
                (help-echo (get-text-property 0 'help-echo def-ml))
                (face   (get-text-property 0 'face def-ml)))
@@ -878,7 +879,7 @@ user first."
   (interactive nil vc-jj-log-view-mode)
   (when (derived-mode-p 'vc-jj-log-view-mode)
     (let* ((target-rev (log-view-current-tag))
-           (bookmarks (vc-jj--process-lines "bookmark" "list" "-T" "self.name() ++ \"\n\""))
+           (bookmarks (vc-jj--process-lines "bookmark" "list" "-T" "self.name() ++ '\n'"))
            (bookmark (completing-read "Move or create bookmark: " bookmarks))
            (new-bookmark-p (not (member bookmark bookmarks)))
            ;; If the bookmark already exists and target-rev is not a
@@ -914,7 +915,7 @@ rename."
     (let* ((target-rev (log-view-current-tag))
            (bookmarks-at-rev
             (or (vc-jj--process-lines "bookmark" "list" "-r" target-rev
-                                      "-T" "if(!self.remote(), self.name() ++ \"\n\")")
+                                      "-T" "if(!self.remote(), self.name() ++ '\n')")
                 ;; FIXME(KrisB 2025-12-09): Is there a more
                 ;; idiomatic/cleaner way to exit with a message than a
                 ;; `user-error' in the middle of a let binding?
@@ -947,7 +948,7 @@ delete."
             (string-split
              (vc-jj--command-parseable
               "show" "-r" rev "--no-patch"
-              "-T" "self.local_bookmarks().map(|b| b.name()) ++ \"\n\"")
+              "-T" "self.local_bookmarks().map(|b| b.name()) ++ '\n'")
              " " t "\n"))
            (bookmarks
             (if (< 1 (length revision-bookmarks))
@@ -1105,7 +1106,7 @@ line of its description."
            ;; Boldly assuming that jj's change ids won't suddenly change length
            (lambda (line) (list (substring line 0 31) (substring line 32)))
            (apply #'vc-jj--process-lines "log" "--no-graph"
-                  "-T" "self.change_id() ++ self.description().first_line() ++ \"\\n\"" "--" files))))
+                  "-T" "self.change_id() ++ self.description().first_line() ++ '\n'" "--" files))))
     (lambda (string pred action)
       (if (eq action 'metadata)
           `(metadata . ((display-sort-function . ,#'identity)
@@ -1286,7 +1287,7 @@ revision exists."
     ;; special, we return an arbitrary one.
     (car (vc-jj--process-lines "log" "--no-graph"
                                  "-r" (concat "children(" rev ")")
-                                 "-T" "change_id ++ \"\n\""))))
+                                 "-T" "change_id ++ '\n'"))))
 
 ;;;; log-edit-mode
 

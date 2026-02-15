@@ -525,19 +525,21 @@ is a member of `lin-mode-hooks'."
 (defvar lin--dbus-object nil
   "DBus object for GNOME accent color changes.")
 
+(defun lin-gnome-accent-color-update (&optional accent)
+  "Update the `lin-face' to match the GNOME accent color.
+With optional ACCENT, use that directly."
+  (when-let* ((current-accent (or accent (lin-gnome--get-gsettings-accent-color)))
+              (face (lin--get-face-for-accent-color current-accent)))
+    (setq lin-face face)
+    (lin-enable-mode-in-buffers)))
+
 (defun lin-gnome-accent-color-changed-handler (namespace key value)
   "Handle D-Bus signal for accent color change.
 NAMESPACE is the gsettings path as a string.  KEY is the specific domain
 as a string.  VALUE is what corresponds to KEY, as a list of strings."
   (when (and (string= namespace "org.gnome.desktop.interface")
              (string= key "accent-color"))
-    (let* ((accent-color (car value))
-           (face (lin--get-face-for-accent-color accent-color)))
-      (when face
-        (setq lin-face face)
-        (lin-enable-mode-in-buffers)
-        (message "Update Lin to use GNOME's `%s' color"
-                 (propertize accent-color 'face face))))))
+    (lin-gnome-accent-color-update (car value))))
 
 (declare-function dbus-unregister-object "dbus" (object))
 
@@ -560,10 +562,7 @@ as a string.  VALUE is what corresponds to KEY, as a list of strings."
                  "org.freedesktop.portal.Settings"
                  "SettingChanged"
                  #'lin-gnome-accent-color-changed-handler))
-          (when-let* ((current-accent (lin-gnome--get-gsettings-accent-color))
-                      (face (lin--get-face-for-accent-color current-accent)))
-            (setq lin-face face)
-            (lin-enable-mode-in-buffers))))
+          (lin-gnome-accent-color-update)))
     (when lin--dbus-object
       (dbus-unregister-object lin--dbus-object)
       (setq lin--dbus-object nil))))

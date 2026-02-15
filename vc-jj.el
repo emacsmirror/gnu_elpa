@@ -1434,8 +1434,8 @@ line of its description."
           (mapcar
            ;; Boldly assuming that jj's change ids won't suddenly change length
            (lambda (line) (list (substring line 0 31) (substring line 32)))
-           (apply #'vc-jj--process-lines files "log" "--no-graph"
-                  "-T" "self.change_id() ++ self.description().first_line() ++ '\n'"))))
+           (vc-jj--process-lines files "log" "--no-graph"
+                                 "-T" "self.change_id() ++ self.description().first_line() ++ '\n'"))))
     (lambda (string pred action)
       (if (eq action 'metadata)
           `(metadata . ((display-sort-function . ,#'identity)

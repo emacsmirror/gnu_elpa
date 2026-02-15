@@ -937,7 +937,7 @@ push\")."
   "Return the description of REV.
 _FILES currently has no effect on this function."
   (vc-jj--command-parseable nil "show" "--no-patch"
-                            "-r" rev "-T" "description"))
+                            rev "-T" "description"))
 
 ;;;; modify-change-comment
 
@@ -1057,8 +1057,7 @@ reverting.  If that revision no longer exists, do not move the point."
         ;; something has gone wrong (because that would likely be the
         ;; case with the default behavior, without this function)
         (message "Buffer reverted and point restored to revision %s"
-                 (propertize (vc-jj--command-parseable nil "show" "--no-patch"
-                                                       "-r" rev
+                 (propertize (vc-jj--command-parseable nil "show" "--no-patch" rev
                                                        "-T" "change_id.shortest()")
                              'face 'log-view-message))))))
 
@@ -1115,8 +1114,7 @@ Call \"jj abandon\" on the revision at point."
   (let ((rev (log-view-current-tag)))
     (when (y-or-n-p (format "Abandon revision %s?"
                             (propertize
-                             (vc-jj--command-parseable nil "show" "--no-patch"
-                                                       "-r" rev
+                             (vc-jj--command-parseable nil "show" "--no-patch" rev
                                                        "-T" "change_id.shortest()")
                              'face 'log-view-message)))
       (vc-jj-delete-revision rev)
@@ -1179,8 +1177,7 @@ rename."
                                       "-T" "if(!self.remote(), self.name() ++ '\n')")
                 (user-error "No bookmarks at %s"
                             (propertize
-                             (vc-jj--command-parseable nil "show" "--no-patch"
-                                                       "-r" target-rev
+                             (vc-jj--command-parseable nil "show" "--no-patch" target-rev
                                                        "-T" "change_id.shortest()")
                              'face 'log-view-message))))
            (bookmark-old
@@ -1205,7 +1202,7 @@ delete."
            (revision-bookmarks
             (string-split
              (vc-jj--command-parseable
-              nil "show" "-r" rev "--no-patch"
+              nil "show" "--no-patch" rev
               "-T" "self.local_bookmarks().map(|b| b.name()) ++ '\n'")
              " " t "\n"))
            (bookmarks

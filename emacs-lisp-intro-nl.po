@@ -5046,7 +5046,7 @@ msgstr ""
 "gekoppeld. Anders zou de computer in verwarring raken over welke "
 "definitie te gebruiken. Wanneer dit onder mensen het geval zou zijn, "
 "dan kan er in de hele wereld maar een persoon de naam @samp{Bob} "
-"hebben. Echter de functiedefinie naar de naam naar refereert kan "
+"hebben. Echter de functiedefinitie naar de naam naar refereert kan "
 "makkelijk worden aangepast. (@xref{Installeer, , Installeer een "
 "functiedefinitie}.)"
 
@@ -8080,7 +8080,7 @@ msgstr "Functiedefinitie schrijven"
 #: emacs-lisp-intro.texi:2916
 #, no-wrap
 msgid "Writing a function definition"
-msgstr "Schrijven van een functiedefnitie"
+msgstr "Schrijven van een functiedefinitie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2925
@@ -8557,7 +8557,7 @@ msgstr ""
 "@code{(vermenigvuldig-met-zeven 3)} te evalueren. Een exemplaar van de "
 "functiedefinitie volgt. Plaats de cursor achter het laatste haakje "
 "van de functiedefinitie en typ @kbd{C-x C-e}. Wanneer je dit doet, "
-"verschijnt code{vermenigvuldig-met-zeven} in het echogebied. (Wat "
+"verschijnt @code{vermenigvuldig-met-zeven} in het echogebied. (Wat "
 "dit betekent is dat wanneer een functiedefinitie wordt geëvalueerd, "
 "de waarde die het teruggeeft de naam van de gedefinieerde functie "
 "is.) Tegelijkertijd installeert deze actie de functiedefinitie."
@@ -11788,24 +11788,32 @@ msgid ""
 "The functions described here are all related to buffers.  Later, we will "
 "study other functions."
 msgstr ""
+"In dit hoofdstuk bestuderen we in detail verschillende in GNU Emacs "
+"gebruikte functies. We noemen dit een ``rondleiding''. Deze functies "
+"worden gebruikt als voorbeelden van Lisp code maar zijn geen "
+"denkbeeldige voorbeelden. Met de uitzondering van de eerste "
+"versimpelde functiedefinitie tonen deze functies de werkelijke code "
+"van GNU Emacs. Je kunt veel van deze definities leren. De hier "
+"beschreven functies zijn alle gerelateerd aan bufers. Later kijken "
+"we naar andere functies."
 
 #. type: section
 #: emacs-lisp-intro.texi:4651
 #, no-wrap
 msgid "Finding More Information"
-msgstr ""
+msgstr "Meer informatie vinden"
 
 #. type: findex
 #: emacs-lisp-intro.texi:4653
 #, no-wrap
 msgid "describe-function@r{, introduced}"
-msgstr ""
+msgstr "describe-function@r{, geïntroduceerd}"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:4654
 #, no-wrap
 msgid "Find function documentation"
-msgstr ""
+msgstr "Vind functiedocumentatie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4662
@@ -11817,19 +11825,26 @@ msgid ""
 "Similarly, you can get the full documentation for a variable by typing "
 "@kbd{C-h v} and then the name of the variable (and then @key{RET})."
 msgstr ""
+"In deze rondleiding beschrijf elke nieuwe functie die we behandelen. "
+"soms in detail en soms kort. Wanneer je geïnteresseerd bent vraag je "
+"op elk moment de volledige documentatie op van elke Emacs Lisp "
+"functie door @kbd{C-h f} te typen, en daarna de naam van de functie "
+"(gevolg met @key{RET}). Je kunt op ook de volledige documentatie van "
+"een variabele opvragen met het typen van @kbd{C-h v}, en daarna de "
+"naam van de variabele (gevolg met @key{RET})."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:4663
 #, no-wrap
 msgid "Find source of function"
-msgstr ""
+msgstr "De source van een functie vinden"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4667
 msgid ""
 "Also, @code{describe-function} will tell you the location of the function "
 "definition."
-msgstr ""
+msgstr "@code{describe-function} vertelt je ook de locatie van de functie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4672
@@ -11839,6 +11854,10 @@ msgid ""
 "``return'' or ``enter''.  Emacs will take you directly to the function "
 "definition."
 msgstr ""
+"Plaats point in de naam van het bestand dat de functie bevat en druk "
+"op de @key{RET}-toets. In dit geval @key{RET} betekent "
+"@code{push-button} in plaats van ``return'' of ``enter''. Emacs "
+"neemt je meteen naar de functiedefinitie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4691
@@ -11852,6 +11871,16 @@ msgid ""
 "@command{etags} utility to record all the nodes in the manuals that come "
 "with Emacs; @pxref{Create Tags Table,,, emacs, The GNU Emacs Manual})."
 msgstr ""
+"Meer in het algemeen, wanneer je de functie in het originele "
+"bronbestand wilt zien, spring je met de functie "
+"@code{xref-find-definitions} er heen. @code{xref-find-definitions} "
+"werkt met een brede variëteit van talen, niet alleen Lisp en C, en "
+"het werkt ook met non-programming tekst. "
+"@code{xref-find-definitions} springt bijvoorbeeld naar de "
+"verschillende nodes in de Texinfo broncode van dit document (onder "
+"voorwaarde dat je het @command{etags}-hulpprogramma alle nodes van "
+"alle handleidingen de met Emacs komen hebt laten registeren "
+"@pxref{Create Tags Table,,, emacs, The GNU Emacs Manual})."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4707
@@ -11874,7 +11903,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:4708
 #, no-wrap
 msgid "Library, as term for ``file''"
-msgstr ""
+msgstr "Bibliotheek als term voor ``bestand''"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4721
@@ -11891,12 +11920,25 @@ msgid ""
 "@kbd{C-h p} command lets you search the standard Emacs Lisp libraries by "
 "topic keywords.''"
 msgstr ""
+"Overigens worden de bestanden die Lisp code bevatten gewoonlijk "
+"@dfn{bibliotheken} genoemd. De metafoor is afgeleid van een "
+"gespecialiseerde bibliotheek, zoals een juridische bibliotheek of "
+"een technische bibliotheek, in plaats van een algemene bibliotheek. "
+"Elke bibliotheek, of bestand, bevat functies die aan bepaald "
+"onderwerp of activiteit gerelatieerd zijn, zoals @file{abbrev.el} "
+"voor het afhandelen van afkortingen en andere snelkoppelingen voor "
+"het typen, en @file{help.el} for hulp. (Soms verschaffen "
+"verschillende bestanden code voor een enkele activiteit, zoals de "
+"diverse @file{rmail@dots{}} bestanden code voor het lezen van e-mail "
+"verschaffen.) In @cite{The GNU Emacs Manual} zie je zinnen zoals "
+"``het @kbd{C-h p} commando laat je de standaard Emacs lisp "
+"bibliotheken doorzoeken op onderwerp sleutelwoorden.''"
 
 #. type: section
 #: emacs-lisp-intro.texi:4723
 #, no-wrap
 msgid "A Simplified @code{beginning-of-buffer} Definition"
-msgstr ""
+msgstr "Een versimpelde @code{beginning-of-buffer} definitie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4731
@@ -11907,6 +11949,12 @@ msgid ""
 "to the beginning of the buffer, leaving the mark at the previous position.  "
 "It is generally bound to @kbd{M-<}."
 msgstr ""
+"De @code{beginning-of-buffer} is een goede functie om mee te starten "
+"omdat je er waarschijnlijk al bekend mee bent en makkelijk te "
+"begrijpen is. Gebruikt als een interactief commando verplaatst "
+"@code{beginning-of-buffer} de cursor naar het begin van het buffer, "
+"en zet de mark op de vorige positie. Het is gewoonlijk gebonden aan "
+"@kbd{M-<}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4738
@@ -11917,6 +11965,11 @@ msgid ""
 "section, we will describe the entire function.  (@xref{beginning-of-buffer, "
 ", Complete Definition of @code{beginning-of-buffer}}.)"
 msgstr ""
+"In deze sectie bespreken we een verkorte versie van de functie die "
+"laat zien hoe het meestal gebruikt wordt. De verkorte functie werkt, "
+"maar heeft geen code voor een complexe optie. In een andere sectie "
+"zullen we de volledige code bespreken. (@xref{beginning-of-buffer, "
+", Complete definitie van @code{beginning-of-buffer}}.) "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4746
@@ -11928,11 +11981,18 @@ msgid ""
 "at the original position in the buffer; and it must include code to move the "
 "cursor to the beginning of the buffer."
 msgstr ""
+"Voordat we naar de code kijken staan we stil bij de functiedefinitie "
+"moet bevatten: het moet een expressie bevatten die de functie "
+"interactief maakt zodat het kan worden afgeroepen met typen van "
+"@kbd{M-x beginning-of-buffer} of door het typen van een "
+"toetscombinatie zoals {M-<}. Het moet code bevatten om de mark op de "
+"originele positie te plaatsen en het moet code bevatten om de cursor "
+"naar het begin van het buffer te verplaatsen. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4749
 msgid "Here is the complete text of the shortened version of the function:"
-msgstr ""
+msgstr "Hier is de complete text van de verkorte versie van de functie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:4758
@@ -11945,6 +12005,12 @@ msgid ""
 "  (push-mark)\n"
 "  (goto-char (point-min)))\n"
 msgstr ""
+"(defun versimpelde-beginning-of-buffer ()\n"
+"  \"Verplaats point naar begin van het buffer;\n"
+"plaats mark op de vorige positie.\"\n"
+"  (interactive)\n"
+"  (push-mark)\n"
+"  (goto-char (point-min)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4763
@@ -11952,31 +12018,33 @@ msgid ""
 "Like all function definitions, this definition has five parts following the "
 "macro @code{defun}:"
 msgstr ""
+"Zoals alle functiedefinitie heeft deze definitie de vijf delen "
+"volgens de macro @code{defun}: "
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:4767
 msgid "The name: in this example, @code{simplified-beginning-of-buffer}."
-msgstr ""
+msgstr "De naam: in dit voorbeeld @code{versimpelde-beginning-of-buffer}."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:4770
 msgid "A list of the arguments: in this example, an empty list, @code{()},"
-msgstr ""
+msgstr "Een lijst met argumenten, in dit voorbeeld een lege lijst, @code{()}."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:4773
 msgid "The documentation string."
-msgstr ""
+msgstr "De documentatiestring"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:4776
 msgid "The interactive expression."
-msgstr ""
+msgstr "De interactive expressie"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:4779
 msgid "The body."
-msgstr ""
+msgstr "De body"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4786
@@ -11986,6 +12054,10 @@ msgid ""
 "definition for the complete function, we will see that it may be passed an "
 "optional argument.)"
 msgstr ""
+"In deze functiedefinitie is de argumentlijst leeg, dit betekent dat "
+"de functie geen argumenten vereist. (Wanneer we naar de definitie "
+"van de complete functie kijken zien we dat deze een optioneel "
+"argument kan krijgen.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4791
@@ -11994,11 +12066,15 @@ msgid ""
 "used interactively.  In this example, @code{interactive} does not have an "
 "argument because @code{simplified-beginning-of-buffer} does not require one."
 msgstr ""
+"De interactive expressie vertelt Emacs dat de functie bedoeld is "
+"voor interactief gebruik. In dit voorbeeld heeft @code{interactive} "
+"geen argumenten omdat @code{versimpelde-beginning-of-buffer} die "
+"niet nodig heeft."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4794
 msgid "The body of the function consists of the two lines:"
-msgstr ""
+msgstr "De body van de functie bestaat uit twee regels:"
 
 #. type: group
 #: emacs-lisp-intro.texi:4799
@@ -12007,6 +12083,8 @@ msgid ""
 "(push-mark)\n"
 "(goto-char (point-min))\n"
 msgstr ""
+"(push-mark)\n"
+"(goto-char (point-min))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4806
@@ -12016,6 +12094,10 @@ msgid ""
 "current position of the cursor, wherever that may be.  The position of this "
 "mark is saved in the mark ring."
 msgstr ""
+"De eerste van de twee regels is de expressie @code{(push-mark)}. "
+"Wanneer de Lisp interpreter deze expressie evalueert stel het de "
+"mark op de huidige positie van de cursor in, wat die ook is. De "
+"positie van deze mark wordt bewaard in de mark-ring."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4812
@@ -12025,6 +12107,11 @@ msgid ""
 "buffer (or to the beginning of the accessible portion of the buffer if it is "
 "narrowed.  @xref{Narrowing & Widening, , Narrowing and Widening}.)"
 msgstr ""
+"De volgende regel is @code{(goto-char (point-min))}. Deze expressie "
+"springt de cursor naar het minimum punt in het buffer, dat is het "
+"begin van de buffer (of het begin van het bereikbare deel van de "
+"buffer wanneer is het versmald. @xref{Versmallen en verbreden, , "
+"Versmallen en verbreden}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4817
@@ -12034,17 +12121,22 @@ msgid ""
 "@code{(goto-char (point-min))} expression.  Consequently, you can, if you "
 "wish, go back to where you were originally by typing @kbd{C-x C-x}."
 msgstr ""
+"Het @code{push-mark} commando zet de mark op de plaats waar de "
+"cursor was voordat het door de @code{(goto-char (point-min))} "
+"expressie naar het begin van de buffer werd verplaatst. Daardoor kan "
+"je, als je dat wilt, terug gaan naar de plek waar je oorspronkelijk "
+"was door @kbd{C-x C-x} te typen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4819
 msgid "That is all there is to the function definition!"
-msgstr ""
+msgstr "Dat is alles wat er is voor deze functiedefinitie!"
 
 #. type: item
 #: emacs-lisp-intro.texi:4820 emacs-lisp-intro.texi:5412
 #, no-wrap
 msgid "describe-function"
-msgstr ""
+msgstr "describe-function"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4828
@@ -12057,6 +12149,13 @@ msgid ""
 "string in a @file{*Help*} window.  For example, the documentation for "
 "@code{goto-char} is:"
 msgstr ""
+"Wanneer je code zoals deze leest en een onbekende functie tegenkomt "
+"zoals @code{goto-char}, kan je met het @code{describe-function} "
+"commando ontdekken wat die doet. Typ @kbd{C-h f} gevold door de naam "
+"van de functie en toets daarna @key{RET} om dit commando te "
+"gebruiken. Het @code{describe-function} commando toont de "
+"documentatiestring van de functie in een @file{*Help*}-venster. "
+"Bijvoorbeeld de documentatie voor @code{goto-char} is: "
 
 #. type: group
 #: emacs-lisp-intro.texi:4833
@@ -12065,11 +12164,13 @@ msgid ""
 "Set point to POSITION, a number or marker.\n"
 "Beginning of buffer is position (point-min), end is (point-max).\n"
 msgstr ""
+"Set point to POSITION, a number or marker.\n"
+"Beginning of buffer is position (point-min), end is (point-max).\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4838
 msgid "The function's one argument is the desired position."
-msgstr ""
+msgstr "Het enige argument van de functie is de gewenste positie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4844
@@ -12078,6 +12179,10 @@ msgid ""
 "preceding the cursor, so you can save typing by positioning the cursor right "
 "over or after the function and then typing @kbd{C-h f @key{RET}}.)"
 msgstr ""
+"De prompt voor @code{describe-function} stelt je het symbool onder "
+"of voorafgaand aan de cursor voor, zodat je minder hoeft te typen "
+"door de cursor boven of meteen achter de functie te plaatsen en dan "
+"@kbd{C-h f @key{RET}} te typen.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4849
@@ -12087,6 +12192,10 @@ msgid ""
 "function contains the expression @code{(goto-char (point-max))} in place of "
 "@code{(goto-char (point-min))}."
 msgstr ""
+"De functiedefinitie van @code{end-of-buffer} is op dezelfde manier "
+"geschreven als de @code{beginning-of-buffer}-definitie, belalve dat "
+"de body van de functie de expressie @code{(goto-char (point-max))} "
+"bevat in plaats van @code{(goto-char (point-min))}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4857
@@ -12095,6 +12204,10 @@ msgid ""
 "@code{simplified-beginning-of-buffer} function.  In this case, however, we "
 "will look at the complete function, not a shortened version."
 msgstr ""
+"De functie @code{mark-whole-buffer} is niet lastiger te begrijpen "
+"dan de @code{versimpelde-beginning-of-buffer}-functie. In dit geval "
+"kijken we echter naar de complete functie en niet naar een verkorte "
+"versie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4863
@@ -12104,6 +12217,11 @@ msgid ""
 "whole buffer as a region by putting point at the beginning and a mark at the "
 "end of the buffer.  It is generally bound to @kbd{C-x h}."
 msgstr ""
+"De functie @code{mark-whole-buffer} wordt minder vaak gebruikt dan "
+"de functie @code{beginning-of-buffer}, maar is toch zinvol: het "
+"markeert de hele buffer als region door de point aan het begin en de "
+"mark aan het einde van de buffer te plaatsen. Het is gebruikelijk "
+"gebonden aan @kbd{C-x h}."
 
 #. type: node
 #: emacs-lisp-intro.texi:4870
@@ -12120,7 +12238,7 @@ msgstr "Een overzicht van @code{mark-whole-buffer}"
 #. type: Plain text
 #: emacs-lisp-intro.texi:4876
 msgid "In GNU Emacs 22, the code for the complete function looks like this:"
-msgstr ""
+msgstr "In GNU Emacs 22 ziet de code voor de gehele functie er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:4888
@@ -12136,6 +12254,15 @@ msgid ""
 "  (push-mark (point-max) nil t)\n"
 "  (goto-char (point-min)))\n"
 msgstr ""
+"(defun mark-whole-buffer ()\n"
+"  \"Put point at beginning and mark at end of buffer.\n"
+"You probably should not use this function in Lisp programs;\n"
+"it is usually a mistake for a Lisp function to use any subroutine\n"
+"that uses or sets the mark.\"\n"
+"  (interactive)\n"
+"  (push-mark (point))\n"
+"  (push-mark (point-max) nil t)\n"
+"  (goto-char (point-min)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4895
@@ -12143,6 +12270,8 @@ msgid ""
 "Like all other functions, the @code{mark-whole-buffer} function fits into "
 "the template for a function definition.  The template looks like this:"
 msgstr ""
+"Zoals alle andere functie past de functie @code{mark-whole-buffer} "
+"in het sjabloon voor de functiedefinitie. Het sjabloon is als volgt: "
 
 #. type: group
 #: emacs-lisp-intro.texi:4902 emacs-lisp-intro.texi:13592
@@ -12153,6 +12282,10 @@ msgid ""
 "  (@var{interactive-expression}@dots{})\n"
 "  @var{body}@dots{})\n"
 msgstr ""
+"(defun @var{naam-van-de-functie} (@var{argument-list})\n"
+"  \"@var{documentatie}@dots{}\"\n"
+"  (@var{interactive-expression}@dots{})\n"
+"  @var{body}@dots{})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4909
@@ -12162,6 +12295,10 @@ msgid ""
 "@samp{()}, which means that the function does not require arguments.  The "
 "documentation comes next."
 msgstr ""
+"Dit is hoe de functie werkt: de naam van de functie is "
+"@code{mark-whole-buffer}, gevold door een lege argumentlijst "
+"@samp{()}, wat inhoudt dat de functie geen argumenten vereist. De "
+"documentatie komt daarna."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4914
@@ -12171,12 +12308,16 @@ msgid ""
 "@code{simplified-beginning-of-buffer} function described in the previous "
 "section."
 msgstr ""
+"De volgende regel is de @code{(interactive)}-expressie die Emacs "
+"vertelt dat de functie interactief gebruikt gaat worden. Deze "
+"details zijn vergelijkbaar met de in de vorige sectie beschreven "
+"functie @code{versimpelde-beginning-of-buffer}."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:4917
 #, no-wrap
 msgid "Body of @code{mark-whole-buffer}"
-msgstr ""
+msgstr "Body van @code{mark-whole-buffer}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4921
@@ -12184,6 +12325,8 @@ msgid ""
 "The body of the @code{mark-whole-buffer} function consists of three lines of "
 "code:"
 msgstr ""
+"De body van de functie @code{mark-whole-buffer} bestaat uit drie "
+"regels code:"
 
 #. type: group
 #: emacs-lisp-intro.texi:4928
@@ -12193,11 +12336,15 @@ msgid ""
 "(push-mark (point-max) nil t)\n"
 "(goto-char (point-min))\n"
 msgstr ""
+"(push-mark (point))\n"
+"(push-mark (point-max) nil t)\n"
+"(goto-char (point-min))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4932
 msgid "The first of these lines is the expression, @code{(push-mark (point))}."
 msgstr ""
+"De eerste van deze regels is de expressie @code{(push-mark (point))}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4937
@@ -12207,6 +12354,10 @@ msgid ""
 "@code{(push-mark)}.  In both cases, the Lisp interpreter sets a mark at the "
 "current position of the cursor."
 msgstr ""
+"Deze regel doet precies hetzelfde als de eerste regel in de body van "
+"de functie @code{versimpelde-beginning-of-buffer}, waar "
+"@code{(push-mark)} staat. In beide gevallen zet de Lisp interpreter "
+"de mark op de huidige positie van de cursor."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4948
@@ -12220,6 +12371,15 @@ msgid ""
 "written so as to parallel the structure of the next line.  In any case, the "
 "line causes Emacs to determine the position of point and set a mark there."
 msgstr ""
+"Ik weet niet waarom @code{(push-mark (point))} in "
+"@code{mark-whole-buffer} staat en @code{(push-mark)} in de expressie "
+"@code{beginning-of-buffer} . Misschien wist wie de code schreef niet "
+"dat de argumenten van @code{push-mark} optioneel zijn en dat wanneer "
+"geen argument aan @code{push-mark} wordt doorgegeven, de functie "
+"automatisch standaard de locatie van de cursor gebruikt. Of "
+"misschien was de expressie zo geschreven dat die parallel aan de "
+"structuur van de volgende regel is. In elk geval zorgt de regel dat "
+"Emacs de positie van point vaststelt en de mark daar zet."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4960
@@ -12234,6 +12394,17 @@ msgid ""
 "as all other recent marks are always remembered.  This means that you can, "
 "if you wish, go back to that position by typing @kbd{C-u C-@key{SPC}} twice."
 msgstr ""
+"De volgende regel van @code{mark-whole-buffer} was in een eerdere "
+"versie van GNU Emacs @code{(push-mark (point-max))}. Deze expressie "
+"zet de mark op het punt met het hoogste getal in het buffer. Deze "
+"is aan het eind van het buffer (of, wanneer het buffer versmald is, "
+"aan het eind van het bereikbare deel van de buffer, @xref{Versmallen "
+"en verbreden, , Versmallen en verbreden}). Nadat de mark is "
+"ingesteld, is de vorige mark, die op point was gezet, niet meer "
+"ingesteld, maar Emacs herinnert zijn positie, net als het alle "
+"recente marks altijd herinnert. Dit betekent dat, als je het wilt, "
+"je naar de positie terugkeert met het twee keer typen van @kbd{C-u "
+"C-@key{SPC}}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4964
@@ -12241,12 +12412,14 @@ msgid ""
 "In GNU Emacs 22, the @code{(point-max)} is slightly more complicated.  The "
 "line reads"
 msgstr ""
+"In GNU Emacs 22 is @code{(point-max)} iets meer gecompliceerd. De "
+"regel is:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:4967
 #, no-wrap
 msgid "(push-mark (point-max) nil t)\n"
-msgstr ""
+msgstr "(push-mark (point-max) nil t)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4979
@@ -12260,6 +12433,14 @@ msgid ""
 "Transient Mark mode is turned on.  Transient Mark mode highlights the "
 "currently active region.  It is often turned off."
 msgstr ""
+"De expressie werkt bijna hetzelfde als hiervoor. Het stelt de mark in op "
+"de hoogst mogelijk  genummerde plaats in het buffer. Echter in deze versie "
+"heeft @code{push-mark} twee aanvullende argumenten. Het tweede argument "
+"voor @code{push-mark} is @code{nil}. Dit vertelt de functie dat het "
+"de boodschap ``Mark set'' @emph{moet} tonen wanneer het de mark pusht. "
+"Het derde argument is  @code{t}. Dit vertelt @code{push-mark} om de mark "
+"te activeren wanneer Transient Mark mode aan staat. Transient Mark mode "
+"highlight de huidige actieve region. Het staat vaak uit."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4988
@@ -12272,6 +12453,13 @@ msgid ""
 "point is placed at the beginning of the buffer and mark is set at the end of "
 "the buffer.  The whole buffer is, therefore, the region."
 msgstr ""
+"De laatste regel van de functie is tenslotte code{(goto-char "
+"(point-min)))}. Dit is op precies dezelfde manier geschreven als in "
+"@code{beginning-of-buffer}. De expressie verplaatst de cursor naar "
+"het minimale punt in het buffer, dat is het begin van het buffer (of "
+"het begin van het bereikbare deel van het buffer). Het resultaat is "
+"dat point aan het begin van het buffer en de mark aan het eind van "
+"het buffer staan. Het hele buffer is daardoor de region."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4997
@@ -12281,6 +12469,9 @@ msgid ""
 "the part of the buffer between point and mark) from the current buffer to a "
 "specified buffer."
 msgstr ""
+"Het @code{append-to-buffer} commando is complexer dan het @code{mark-whole-buffer} "
+"commando. Wat het doet is de region (dat is het deel van het buffer tussen "
+"point en mark) van het huidige buffer kopiëren naar een specifiek buffer."
 
 #. type: node
 #: emacs-lisp-intro.texi:5006
@@ -12292,13 +12483,13 @@ msgstr "append-to-buffer overzicht"
 #: emacs-lisp-intro.texi:5007
 #, no-wrap
 msgid "An Overview of @code{append-to-buffer}"
-msgstr ""
+msgstr "Een overzicht van @code{append-to-buffer}"
 
 #. type: item
 #: emacs-lisp-intro.texi:5010 emacs-lisp-intro.texi:5438
 #, no-wrap
 msgid "insert-buffer-substring"
-msgstr ""
+msgstr "insert-buffer-substring"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5015
@@ -12308,6 +12499,10 @@ msgid ""
 "its name: it takes a substring from a buffer, and inserts it into another "
 "buffer."
 msgstr ""
+"Het @code{append-to-buffer} commando gebruikt de functie "
+"@code{insert-buffer-substring} om de region te kopiëren. "
+"@code{insert-buffer-substring} doet wat de naam zegt: het neemt een "
+"substring van een buffer en voegt die in een andere buffer in."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5021
@@ -12317,11 +12512,16 @@ msgid ""
 "buffer to which the text will go, the window it comes from and goes to, and "
 "the region that will be copied."
 msgstr ""
+"Het grootste deel van @code{append-to-buffer} houdt zich bezig met "
+"het voorbereiden van de condities voor het werk van "
+"@code{insert-buffer-substring}: de code specificeert het buffer waar "
+"de tekst heen gaat, het venster waar het vandaan komt en naar toe "
+"gaat en de region die gekopieerd wordt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5024
 msgid "Here is a possible implementation of the function:"
-msgstr ""
+msgstr "Hier is een mogelijke implementatie van de functie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:5031
@@ -12331,6 +12531,9 @@ msgid ""
 "  \"Append to specified buffer the text of the region.\n"
 "It is inserted into that buffer before its point.\n"
 msgstr ""
+"(defun append-to-buffer (buffer start end)\n"
+"  \"Voeg tekst van de region toe aan het gespecificeerde buffer.\n"
+"Het wordt voor de point in dat buffer ingevoegd.\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:5041
@@ -12344,6 +12547,13 @@ msgid ""
 "                                            (current-buffer) t))\n"
 "         (region-beginning) (region-end)))\n"
 msgstr ""
+"Geef bij het aanroepen vanuit een programma drie argumenten:\n"
+"BUFFER (of buffernaam), START en END.\n"
+"START en END specificeren het te kopiëren deel van het huidige buffer.\"\n"
+"  (interactive\n"
+"   (list (read-buffer \"Append to buffer: \" (other-buffer\n"
+"                                            (current-buffer) t))\n"
+"         (region-beginning) (region-end)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:5055
@@ -12362,6 +12572,18 @@ msgid ""
 "          (when (= (window-point window) point)\n"
 "            (set-window-point window (point))))))))\n"
 msgstr ""
+"  (let ((oldbuf (current-buffer)))\n"
+"    (save-excursion\n"
+"      (let* ((append-to (get-buffer-create buffer))\n"
+"             (windows (get-buffer-window-list append-to t t))\n"
+"             point)\n"
+"        (set-buffer append-to)\n"
+"        (setq point (point))\n"
+"        (barf-if-buffer-read-only)\n"
+"        (insert-buffer-substring oldbuf start end)\n"
+"        (dolist (window windows)\n"
+"          (when (= (window-point window) point)\n"
+"            (set-window-point window (point))))))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5060
@@ -12369,6 +12591,8 @@ msgid ""
 "The function can be understood by looking at it as a series of filled-in "
 "templates."
 msgstr ""
+"De functie kan begrepen worden door het bekijken als een serie ingevulde "
+"sjablonen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5063
@@ -12376,6 +12600,8 @@ msgid ""
 "The outermost template is for the function definition.  In this function, it "
 "looks like this (with several slots filled in):"
 msgstr ""
+"Het buitenste sjabloon is voor de functiedefinitie. In deze functie "
+"ziet het er zo uit (met verschillende ingevulde slots):"
 
 #. type: group
 #: emacs-lisp-intro.texi:5070
@@ -12386,6 +12612,10 @@ msgid ""
 "  (interactive @dots{})\n"
 "  @var{body}@dots{})\n"
 msgstr ""
+"(defun append-to-buffer (buffer start end)\n"
+"  \"@var{documentatie}@dots{}\"\n"
+"  (interactive @dots{})\n"
+"  @var{body}@dots{})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5077
@@ -12395,6 +12625,10 @@ msgid ""
 "@code{start} and @code{end} of the region in the current buffer that will be "
 "copied."
 msgstr ""
+"De eerste regel van de functie bevat de naam en drie argumenten. De "
+"argumenten zijn de @code{buffer} waar het de tekst naar toe "
+"kopieert, en de @code{start} en @code{end} van de te kopiëren region "
+"in het huidige buffer."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5082
@@ -12404,6 +12638,10 @@ msgid ""
 "so you will notice them easily.  Even better, they are described in the same "
 "order as in the argument list."
 msgstr ""
+"Het volgende deel is de documentatie die helder en compleet is. De "
+"drie argumenten zijn, volgens de conventie, in hoofdletters "
+"geschreven, zodat je ze makkelijk kunt opmerken. Nog beter is dat ze "
+"in dezelfde volgorde staan als in de argumentlijst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5085
@@ -12411,12 +12649,14 @@ msgid ""
 "Note that the documentation distinguishes between a buffer and its name.  "
 "(The function can handle either.)"
 msgstr ""
+"Merk op de dat de documentatie de buffer en zijn naam onderscheidt. "
+"(De functie kan met beide overweg.)"
 
 #. type: subsection
 #: emacs-lisp-intro.texi:5087
 #, no-wrap
 msgid "The @code{append-to-buffer} Interactive Expression"
-msgstr ""
+msgstr "De @code{append-to-buffer} interactieve expressie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5093
@@ -12433,7 +12673,7 @@ msgstr ""
 #. type: Plain text
 #: emacs-lisp-intro.texi:5095
 msgid "The expression reads as follows:"
-msgstr ""
+msgstr "De exressie is als volgt:"
 
 #. type: group
 #: emacs-lisp-intro.texi:5104
@@ -12446,6 +12686,11 @@ msgid ""
 "       (region-beginning)\n"
 "       (region-end)))\n"
 msgstr ""
+" (list (read-buffer\n"
+"        \"Append to buffer: \"\n"
+"        (other-buffer (current-buffer) t))\n"
+"       (region-beginning)\n"
+"       (region-end)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5110
@@ -12453,6 +12698,9 @@ msgid ""
 "This expression is not one with letters standing for parts, as described "
 "earlier.  Instead, it starts a list with these parts:"
 msgstr ""
+"Deze expressie is er niet een met letters die voor de delen staan, "
+"zoals eerder beschreven. In plaats daarvan begint het met een lijst "
+"met deze delen:"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5116
@@ -12463,6 +12711,12 @@ msgid ""
 "argument tells the command what value to provide if you don't specify "
 "anything."
 msgstr ""
+"Het eerste deel van de lijst is een expressie die de naam van het "
+"buffer leest en als een string teruggeeft. Dat is "
+"@code{read-buffer}. De functie vereist een prompt as het eerste "
+"argument, @samp{\"Append to buffer: \"}. Het tweede argument vertelt "
+"het commando welke waarde te verschaffen wanneer je er geen "
+"specificeert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5120
@@ -12470,6 +12724,9 @@ msgid ""
 "In this case that second argument is an expression containing the function "
 "@code{other-buffer}, an exception, and a @samp{t}, standing for true."
 msgstr ""
+"In dit geval is het tweede argument een expressie bestaand uit de "
+"functie @code{other-buffer}, een utizondering en een @samp{t}, dat "
+"voor waar staat."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5126
@@ -12480,17 +12737,22 @@ msgid ""
 "@code{other-buffer} that it may show visible buffers (except in this case, "
 "it will not show the current buffer, which makes sense)."
 msgstr ""
+"Het eerste argument voor @code{other-buffer}, de uitzondering, is opnieuw "
+"een functie, @code{current-buffer}. Die wordt niet teruggegeven. Het tweede "
+"argument is het symbool voor waar, @code{t}. Deze vertelt @code{other-buffer} "
+"dat het zichtbare buffers mag tonen (behalve dat het in dit geval niet "
+"het huidige buffer toont, wat logisch is)."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5129 emacs-lisp-intro.texi:8991
 msgid "The expression looks like this:"
-msgstr ""
+msgstr "De expressie ziet er zo uit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:5132
 #, no-wrap
 msgid "(other-buffer (current-buffer) t)\n"
-msgstr ""
+msgstr "(other-buffer (current-buffer) t)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5137
@@ -12499,6 +12761,9 @@ msgid ""
 "@code{(region-beginning)} and @code{(region-end)}.  These two functions "
 "specify the beginning and end of the text to be appended."
 msgstr ""
+"Het tweede en derde argument in de @code{lijst} expressies zijn "
+"@code{(region-beginning)} en @code{(region-end)}. Deze twee functies "
+"specificeren het begin en einde van de toe te voegen tekst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5141
@@ -12506,12 +12771,14 @@ msgid ""
 "Originally, the command used the letters @samp{B} and @samp{r}.  The whole "
 "@code{interactive} expression looked like this:"
 msgstr ""
+"Oorspronkelijk gebruikte het commando de letters @samp{B} en "
+"@samp{r}. De gehele @code{interactive} expressie zag er zo uit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:5144
 #, no-wrap
 msgid "(interactive \"BAppend to buffer:@: \\nr\")\n"
-msgstr ""
+msgstr "(interactive \"BAppend to buffer:@: \\nr\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5149
@@ -12519,6 +12786,8 @@ msgid ""
 "But when that was done, the default value of the buffer switched to was "
 "invisible.  That was not wanted."
 msgstr ""
+"Maar toen dat gereed was, bleek de standaard waarde van het buffer "
+"waar naar toe geschakeld was onzichtbaar. Dat was niet gewenst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5155
@@ -12529,17 +12798,23 @@ msgid ""
 "list (that is, @code{start} and @code{end}) to the values of point and "
 "mark.  That argument worked fine.)"
 msgstr ""
+"(De prompt werd gescheiden van het tweede argument met een nieuwe "
+"regel, @samp{\\n}. Het werd gevolgd door een @samp{r} die Emacs "
+"vertelde om de twee argumenten die volgen op het symbool "
+"@code{buffer} in de argumentlijst van de functie (te weten, "
+"@code{start} en @code{end}) aan de waarden van point en mark te "
+"binden. Dat argument werkte prima.)"
 
 #. type: subsection
 #: emacs-lisp-intro.texi:5157
 #, no-wrap
 msgid "The Body of @code{append-to-buffer}"
-msgstr ""
+msgstr "De body van @code{append-to-buffer}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5160
 msgid "The body of the @code{append-to-buffer} function begins with @code{let}."
-msgstr ""
+msgstr "De body van de functie @code{append-to-buffer} begint met @code{let}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5166
@@ -12550,6 +12825,12 @@ msgid ""
 "means that such a variable will not be confused with any variable of the "
 "same name outside the @code{let} expression."
 msgstr ""
+"Zoals we eerder zagen (@pxref{let, , @code{let}}), is het doel van "
+"een @code{let} expressie om een of meer variabelen te creëerden en "
+"een initiële waarde te geven die uitsluitend worden gebruikt binnen "
+"de body van de @code{let}. Dit betekent dat zo'n variabele niet "
+"verward wordt met een variabele met dezelfde naam buiten de "
+"@code{let} expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5170
@@ -12558,6 +12839,9 @@ msgid ""
 "by showing a template for @code{append-to-buffer} with the @code{let} "
 "expression in outline:"
 msgstr ""
+"We kunnen zien hoe de @code{let}-expressie past in de functie als "
+"geheel, door een overzicht van het sjabloon te tonen voor de "
+"@code{append-to-buffer} met de @code{let}-expressie."
 
 #. type: group
 #: emacs-lisp-intro.texi:5178
@@ -12569,16 +12853,21 @@ msgid ""
 "  (let ((@var{variable} @var{value}))\n"
 "        @var{body}@dots{}))\n"
 msgstr ""
+"(defun append-to-buffer (buffer start end)\n"
+"  \"@var{documentatie}@dots{}\"\n"
+"  (interactive @dots{})\n"
+"  (let ((@var{variable} @var{value}))\n"
+"        @var{body}@dots{}))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5182
 msgid "The @code{let} expression has three elements:"
-msgstr ""
+msgstr "De @code{let}-expressie heeft drie elementen:"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:5186
 msgid "The symbol @code{let};"
-msgstr ""
+msgstr "Het symbool @code{let};"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:5190
@@ -12586,22 +12875,24 @@ msgid ""
 "A varlist containing, in this case, a single two-element list, "
 "@code{(@var{variable} @var{value})};"
 msgstr ""
+"Een varlist die, in dit geval, een enkele lijst met twee elementen "
+"bevat, @code{(@var{variable} @var{value})};"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:5193
 msgid "The body of the @code{let} expression."
-msgstr ""
+msgstr "De body van de @code{let}-expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5197
 msgid "In the @code{append-to-buffer} function, the varlist looks like this:"
-msgstr ""
+msgstr "In de functie @code{append-to-buffer} ziet de varlist er zo uit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:5200
 #, no-wrap
 msgid "(oldbuf (current-buffer))\n"
-msgstr ""
+msgstr "(oldbuf (current-buffer))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5208
@@ -12611,6 +12902,10 @@ msgid ""
 "The variable, @code{oldbuf}, is used to keep track of the buffer in which "
 "you are working and from which you will copy."
 msgstr ""
+"In dit deel van de @code{let} de ene variabele, @code{oldbuf}, is "
+"gebonden aan de waarde die de @code{(current-buffer)} expressie "
+"teruggeeft. De variabele, @code{oldbuf} wordt gebruikt om het buffer "
+"bij te houden in welk je werkt en vanwaar je kopieert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5214
@@ -12621,6 +12916,11 @@ msgid ""
 "surrounded by a circumscribing set of parentheses.  The line looks like "
 "this:"
 msgstr ""
+"Het element of de elementen van een varlist zijn omgeven door een "
+"paar haakjes, zodat de Lisp interpreter de varlist kan onderscheiden "
+"van de body van de @code{let}. Als gevolg hiervan is de lijst met "
+"twee elementen binnen de varlist omgeven door een omtrekkende paar "
+"haakjes. De regel ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:5219
@@ -12629,6 +12929,8 @@ msgid ""
 "(let ((oldbuf (current-buffer)))\n"
 "  @dots{} )\n"
 msgstr ""
+"(let ((oldbuf (current-buffer)))\n"
+"  @dots{} )\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5227
@@ -12638,12 +12940,17 @@ msgid ""
 "of the varlist and the second parenthesis marks the beginning of the "
 "two-element list, @code{(oldbuf (current-buffer))}."
 msgstr ""
+"De twee haakjes voor @code{oldbuf} kunnen je verrassen wanneer je je "
+"niet realseerde dat het eerste haakje voorafgaand aan @code{oldbuf} "
+"de grens van de varlist markeert en het tweede haakje het begin van "
+"de lijst met twee elementen, @code{(oldbuf (current-buffer))}."
+"markeert. "
 
 #. type: subsection
 #: emacs-lisp-intro.texi:5229
 #, no-wrap
 msgid "@code{save-excursion} in @code{append-to-buffer}"
-msgstr ""
+msgstr "@code{save-excursion} in @code{append-to-buffer}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5233
@@ -12651,6 +12958,8 @@ msgid ""
 "The body of the @code{let} expression in @code{append-to-buffer} consists of "
 "a @code{save-excursion} expression."
 msgstr ""
+"De body van de @code{let} expressie in @code{append-to-buffer} "
+"bestaat uit een @code{save-excursion} expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5240
@@ -12661,18 +12970,24 @@ msgid ""
 "@code{save-excursion} keeps track of the original buffer, and restores it.  "
 "This is how @code{save-excursion} is used in @code{append-to-buffer}."
 msgstr ""
+"De functie @code{save-excursion} bewaart de lokatie van point en "
+"herstelt point naar die positie na afloop van de uitvoering van de "
+"expressies in de body van @code{save-excursion}. Verder houdt "
+"@code{save-excursion} bij wat het oorspronkelijke buffer en herstelt "
+"die. Dit is hoe @code{save-excursion} wordt gebruikt in "
+"@code{append-to-buffer}."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:5242
 #, no-wrap
 msgid "Indentation for formatting"
-msgstr ""
+msgstr "Indentie voor formatteren"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:5243
 #, no-wrap
 msgid "Formatting convention"
-msgstr ""
+msgstr "Formattering conventie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5250
@@ -12683,6 +12998,12 @@ msgid ""
 "definition, the @code{let} is indented more than the @code{defun}, and the "
 "@code{save-excursion} is indented more than the @code{let}, like this:"
 msgstr ""
+"Overigens is het waardevol hier op te merken dat een Lisp functie "
+"normaal zo geformatteerd is dat alles wat over meerdere regels "
+"verspreid is, meer inspringt dan het eerste symbool. In deze "
+"functiedefinitie springt de code{let} meer in dan de @code{defun} en "
+"de @code{save-excursion} springt meer in dan de @code{let}, zoals "
+"dit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:5259
@@ -12695,6 +13016,12 @@ msgid ""
 "    (save-excursion\n"
 "      @dots{}\n"
 msgstr ""
+"(defun @dots{}\n"
+"  @dots{}\n"
+"  @dots{}\n"
+"  (let@dots{}\n"
+"    (save-excursion\n"
+"      @dots{}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5269
@@ -12704,6 +13031,11 @@ msgid ""
 "@code{save-excursion}, just as the @code{save-excursion} itself is enclosed "
 "by the parentheses associated with the @code{let}:"
 msgstr ""
+"De formattering-conventie maakt het makkelijk te zien dat de regels "
+"in de body van @code{save-excursion} zijn ingesloten in de haakjes "
+"geassocieerd met @code{save-excursion}, net zoals de "
+"@code{save-excursion} ingesloten is in de haakjes geassocieerd met "
+"de @code{let}:"
 
 #. type: group
 #: emacs-lisp-intro.texi:5278
@@ -12716,6 +13048,12 @@ msgid ""
 "    (insert-buffer-substring oldbuf start end)\n"
 "    @dots{}))\n"
 msgstr ""
+"(let ((oldbuf (current-buffer)))\n"
+"  (save-excursion\n"
+"    @dots{}\n"
+"    (set-buffer @dots{})\n"
+"    (insert-buffer-substring oldbuf start end)\n"
+"    @dots{}))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5284
@@ -12723,6 +13061,8 @@ msgid ""
 "The use of the @code{save-excursion} function can be viewed as a process of "
 "filling in the slots of a template:"
 msgstr ""
+"Het gebruik van de functie @code{save-excursion} kan beschouwd "
+"worden als een proces om de slots in het sjabloon in te vullen:"
 
 #. type: group
 #: emacs-lisp-intro.texi:5292
@@ -12734,18 +13074,23 @@ msgid ""
 "   @dots{}\n"
 "  @var{last-expression-in-body})\n"
 msgstr ""
+"(save-excursion\n"
+"  @var{eerste-expressie-in-body}\n"
+"  @var{tweede-expressie-in-body}\n"
+"   @dots{}\n"
+"  @var{laatste-expressie-in-body})\n"
 
 #. type: anchor{#1}
 #: emacs-lisp-intro.texi:5298
 msgid "let* introduced"
-msgstr ""
+msgstr "let* geïntroduceerd"
 
 #. type: item
 #: emacs-lisp-intro.texi:5298 emacs-lisp-intro.texi:5445
 #: emacs-lisp-intro.texi:12974 emacs-lisp-intro.texi:13458
 #, no-wrap
 msgid "let*"
-msgstr ""
+msgstr "let*"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5306
@@ -12757,11 +13102,18 @@ msgid ""
 "variables in the latter part of the varlist can make use of the values to "
 "which Emacs set variables earlier in the varlist."
 msgstr ""
+"In deze functie bevat de body van @code{save-excursion} slechts één "
+"expressie, de @code{let*} expressie. Je kent de @code{let}-functie. "
+"de functie @code{let*} is anders. Het maakt Emacs mogelijk om elke "
+"variabele in de varlist op volgorde in te stellen, de een na de "
+"ander. zo dat de variabelen in een later gedeelte van de varlist "
+"gebruik kunnen maken van waarden die Emacs eerder in de varlist "
+"instelde."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5308
 msgid "Looking at the @code{let*} expression in @code{append-to-buffer}:"
-msgstr ""
+msgstr "Kijkend naar de @code{let*} expressie in @code{append-to-buffer}:"
 
 #. type: group
 #: emacs-lisp-intro.texi:5315
@@ -12772,6 +13124,10 @@ msgid ""
 "       point)\n"
 "  BODY...)\n"
 msgstr ""
+"(let* ((append-to (get-buffer-create buffer))\n"
+"       (windows (get-buffer-window-list append-to t t))\n"
+"       point)\n"
+"  BODY...)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5326
@@ -12783,6 +13139,13 @@ msgid ""
 "automatically bound to @code{nil}, the same way as it would be done in the "
 "@code{let} statement."
 msgstr ""
+"zien we dat @code{append-to} gebonden is aan de waarde teruggegeven "
+"door @w{@code{(get-buffer-create buffer)}}. Op de volgende regel is "
+"@code{append-to} gebruikt als argument voor "
+"@code{get-buffer-window-list}. Dit zou niet mogelijk geweest zijn "
+"met de @code{let}-expressie. Merk op dat @code{point} automatisch is "
+"gebonden aan @code{nil}, net zo als dat zou zijn gebeurd in de "
+"@code{let}-statement."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5330
@@ -12790,28 +13153,31 @@ msgid ""
 "Now let's focus on the functions @code{set-buffer} and "
 "@code{insert-buffer-substring} in the body of the @code{let*} expression."
 msgstr ""
+"Laten we ons nu focussen op de functies @code{set-buffer} en "
+"@code{insert-buffer-substring} in de body van de @code{let*} "
+"expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5333
 msgid "In the old days, the @code{set-buffer} expression was simply"
-msgstr ""
+msgstr "In het verleden was de @code{set-buffer}-expressie eenvoudigweg:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:5336
 #, no-wrap
 msgid "(set-buffer (get-buffer-create buffer))\n"
-msgstr ""
+msgstr "(set-buffer (get-buffer-create buffer))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5341
 msgid "but now it is"
-msgstr ""
+msgstr "maar nu is het"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:5344
 #, no-wrap
 msgid "(set-buffer append-to)\n"
-msgstr ""
+msgstr "(set-buffer append-to)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5349
@@ -12819,6 +13185,9 @@ msgid ""
 "This is because @code{append-to} was bound to @code{(get-buffer-create "
 "buffer)} earlier on in the @code{let*} expression."
 msgstr ""
+"Dit is omdat @code{append-to} gebonden was aan "
+"@code{(get-buffer-create buffer)} eerder in de "
+"@code{let*}-expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5357
@@ -12831,17 +13200,24 @@ msgid ""
 "the local symbol @code{oldbuf} to the value returned by "
 "@code{current-buffer}."
 msgstr ""
+"De @code{append-to-buffer} functiedefinitie voegt tekst in van het "
+"buffer waar je nu in bent naar een genoemd buffer. Toevallig doet "
+"@code{insert-buffer-substring} precies het omgekeerde---het kopieert "
+"tekst van een ander buffer naar het huidige buffer---en dat is "
+"waarom de @code{append-to-buffer} definitie begint met de @code{let} "
+"dat het lokale symbool @code{oldbuf} bindt aan de door "
+"@code{current-buffer} teruggegeven waarde."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5360
 msgid "The @code{insert-buffer-substring} expression looks like this:"
-msgstr ""
+msgstr "De @code{insert-buffer-substring} expressie ziet er zo uit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:5363
 #, no-wrap
 msgid "(insert-buffer-substring oldbuf start end)\n"
-msgstr ""
+msgstr "(insert-buffer-substring oldbuf start end)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5373
@@ -12861,11 +13237,14 @@ msgid ""
 "@code{save-excursion} will restore the action to the original buffer and "
 "@code{append-to-buffer} will have done its job."
 msgstr ""
+"Nadat @code{insert-buffer-substring} zijn werk gedaan heeft, "
+"herstelt @code{save-excursion} de actie naar het originele buffer en "
+"heeft @code{append-to-buffer} zijn werk gedaan."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5380
 msgid "Written in skeletal form, the workings of the body look like this:"
-msgstr ""
+msgstr "Hoog over bekeken ziet de werking van de body er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:5387
@@ -12877,6 +13256,11 @@ msgid ""
 "    @var{insert-substring-from-}@code{oldbuf}@var{-into-buffer})\n"
 "\n"
 msgstr ""
+"(let (@var{bind-}@code{oldbuf}@var{-to-value-of-}@code{current-buffer})\n"
+"  (save-excursion                       ; @r{Bijhouden van het buffer.}\n"
+"    @var{change-buffer}\n"
+"    @var{insert-substring-from-}@code{oldbuf}@var{-into-buffer})\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:5390
@@ -12885,6 +13269,8 @@ msgid ""
 "  @var{change-back-to-original-buffer-when-finished}\n"
 "@var{let-the-local-meaning-of-}@code{oldbuf}@var{-disappear-when-finished}\n"
 msgstr ""
+"  @var{schakel-terug-naar-oorspronkelijke-buffer-indien-gereed}\n"
+"@var{laat-de-lokale-betekenis-van-}@code{oldbuf}@var{-verdwijnen-indien-gereed}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5399
@@ -12896,6 +13282,13 @@ msgid ""
 "buffer into the new buffer; and then using @code{save-excursion}, it brings "
 "you back to your original buffer."
 msgstr ""
+"Samengevat werkt @code{append-to-buffer} als volgt: het bewaart de "
+"waarde van het huidige buffer in de variabele met de naam "
+"@code{oldbuf}. Het krijgt de nieuwe buffer (en maakt er zo nodig een "
+"aan) en schakelt de aandacht van Emacs daar naar toe. Met de waarde "
+"van @code{oldbuf} voegt het de tekst van de region van het oude "
+"buffer in het nieuwe in. Daarna brengt het je met "
+"@code{save-excursion} terug naar je oorspronkelijke buffer."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5405
@@ -12905,17 +13298,22 @@ msgid ""
 "to change to and come back from another buffer.  Many function definitions "
 "use @code{let}, @code{save-excursion}, and @code{set-buffer} this way."
 msgstr ""
+"Met het kijken naar @code{append-to-buffer}, heb je een behoorlijk "
+"complexe functie verkend. Het toont het gebruik van @code{let} en "
+"@code{save-excursion} en hoe naar een ander buffer te schakelen en "
+"terug te komen. Veel functiedefinities gebruiken @code{let}, "
+"@code{save-excursion} en @code{set-buffer} op deze manier."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5410
 msgid "Here is a brief summary of the various functions discussed in this chapter."
-msgstr ""
+msgstr "Hier is een korte samenvatting van de verschillende in dit hoofdstuk besproken functies."
 
 #. type: itemx
 #: emacs-lisp-intro.texi:5413
 #, no-wrap
 msgid "describe-variable"
-msgstr ""
+msgstr "describe-variable"
 
 #. type: table
 #: emacs-lisp-intro.texi:5416
@@ -12923,12 +13321,14 @@ msgid ""
 "Print the documentation for a function or variable.  Conventionally bound to "
 "@kbd{C-h f} and @kbd{C-h v}."
 msgstr ""
+"Toon de documentatie voor een functie of variabele. Gewoonlijk gebonden aan"
+"@kbd{C-h f} en @kbd{C-h v}."
 
 #. type: item
 #: emacs-lisp-intro.texi:5417
 #, no-wrap
 msgid "xref-find-definitions"
-msgstr ""
+msgstr "xref-find-definitions"
 
 #. type: table
 #: emacs-lisp-intro.texi:5422
@@ -12938,6 +13338,10 @@ msgid ""
 "Conventionally bound to @kbd{M-.} (that's a period following the @key{META} "
 "key)."
 msgstr ""
+"Vindt het bestand dat de broncode voor een functie of variabele "
+"bevat en schakel buffers daar naar toe en plaats point aan het begin "
+"van dat item. Gewoonlijk gebonden aan @kbd{M-.} (dat is een punt "
+"volgend op de @key{META} toets)."
 
 #. type: table
 #: emacs-lisp-intro.texi:5427
@@ -12946,12 +13350,15 @@ msgid ""
 "@code{save-excursion} have been evaluated.  Also, remember the current "
 "buffer and return to it."
 msgstr ""
+"Bewaar de lokatie van point en herstel zijn waarde nadat de "
+"argumenten van @code{save-excursion} zijn geëvalueerd. Onthoud ook "
+"het huidige buffer en keer daar naar terug."
 
 #. type: item
 #: emacs-lisp-intro.texi:5428
 #, no-wrap
 msgid "push-mark"
-msgstr ""
+msgstr "push-mark"
 
 #. type: table
 #: emacs-lisp-intro.texi:5432
@@ -12960,12 +13367,16 @@ msgid ""
 "ring.  The mark is a location in the buffer that will keep its relative "
 "position even if text is added to or removed from the buffer."
 msgstr ""
+"Stel mark in op een lokatie en bewaarde waarde van voorgaande mark "
+"op de mark-ring. De mark is een lokatie in het buffer dat zijn "
+"relatieve positie behoudt, zelfs wanneer in het buffer tekst is "
+"toegevoegd of verwijderd."
 
 #. type: item
 #: emacs-lisp-intro.texi:5433
 #, no-wrap
 msgid "goto-char"
-msgstr ""
+msgstr "goto-char"
 
 #. type: table
 #: emacs-lisp-intro.texi:5437
@@ -12974,6 +13385,9 @@ msgid ""
 "be a number, a marker, or an expression that returns the number of a "
 "position, such as @code{(point-min)}."
 msgstr ""
+"Zet point op de lokatie gespecificeerd door de waarde van het "
+"argument, dat een getal kan zijn, een marker, of een expressie die "
+"ene getal of een positie teruggeeft, zoals @code{(point-min)}."
 
 #. type: table
 #: emacs-lisp-intro.texi:5441
@@ -12981,11 +13395,14 @@ msgid ""
 "Copy a region of text from a buffer that is passed to the function as an "
 "argument and insert the region into the current buffer."
 msgstr ""
+"Kopieer een region met tekst van een buffer dat als argument is "
+"doorgegeven aan de functie en voeg de region in het huidige buffer "
+"in."
 
 #. type: table
 #: emacs-lisp-intro.texi:5444
 msgid "Mark the whole buffer as a region.  Normally bound to @kbd{C-x h}."
-msgstr ""
+msgstr "Markeer het gehele buffer als region. Normaal gebonden aan  @kbd{C-x h}."
 
 #. type: table
 #: emacs-lisp-intro.texi:5450
@@ -12994,6 +13411,10 @@ msgid ""
 "the rest of the expressions in the body of @code{let*}.  The values of the "
 "variables can be used to bind ensuing variables in the list."
 msgstr ""
+"Declareer een lijst met variabelen en geef die een initiële waarde. "
+"Evalueer de rest van de expressies in de body van @code{let*}. De "
+"waarden van de variabelen kunnen gebruikt worden om daaropvolgende "
+"variabelen in de lijst te binden."
 
 #. type: table
 #: emacs-lisp-intro.texi:5455
@@ -13002,18 +13423,21 @@ msgid ""
 "window being displayed.  Used when the program rather than a human is to "
 "work on a different buffer."
 msgstr ""
+"Richt de aandacht van Emacs op een ander buffer, maar wijzig het "
+"getoonde venster niet. Wordt gebruikt wanneer een programma in "
+"plaats van een mens op een ander buffer werkt."
 
 #. type: item
 #: emacs-lisp-intro.texi:5456
 #, no-wrap
 msgid "get-buffer-create"
-msgstr ""
+msgstr "get-buffer-create"
 
 #. type: itemx
 #: emacs-lisp-intro.texi:5457
 #, no-wrap
 msgid "get-buffer"
-msgstr ""
+msgstr "get-buffer"
 
 #. type: table
 #: emacs-lisp-intro.texi:5461
@@ -13022,6 +13446,9 @@ msgid ""
 "The @code{get-buffer} function returns @code{nil} if the named buffer does "
 "not exist."
 msgstr ""
+"Vindt een genoemd buffer of maak er een wanneer een buffer met die "
+"naam nog niet bestaat. De functie @code{get-buffer} geeft @code{nil} "
+"terug wanneer het genoemde buffer niet bestaat."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:5471
@@ -13029,6 +13456,8 @@ msgid ""
 "Write your own @code{simplified-end-of-buffer} function definition; then "
 "test it to see whether it works."
 msgstr ""
+"Schrijf je eigen @code{versimpelde-beginning-of-buffer} "
+"functiedefinitie. Test daarna om te kijken of het werkt."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:5475
@@ -13036,6 +13465,9 @@ msgid ""
 "Use @code{if} and @code{get-buffer} to write a function that prints a "
 "message telling you whether a buffer exists."
 msgstr ""
+"Gebruik @code{if} en @code{get-buffer} om een functie te schrijven "
+"die een boodschap toon die aangeeft of een buffer wel of niet "
+"bestaat."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:5479
@@ -13043,6 +13475,8 @@ msgid ""
 "Using @code{xref-find-definitions}, find the source for the "
 "@code{copy-to-buffer} function."
 msgstr ""
+"Zoek met @code{xref-find-definitions} de bron voor de functie "
+"@code{copy-to-buffer}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5491

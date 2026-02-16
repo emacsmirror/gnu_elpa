@@ -837,11 +837,27 @@ ELEMENT should be the output of `org-element-parse-buffer'."
 			   (not (file-directory-p file))))
 			(directory-files org-gnosis-journal-dir t nil t))
 	   do (org-gnosis-update-file file)))
-;; TODO: Rebuil the database upon sync.
+
 ;;;###autoload
 (defun org-gnosis-db-sync ()
-  "Sync `org-gnosis-db'."
+  "Sync `org-gnosis-db'.
+
+Drop all current tables and recreate the database."
   (interactive)
+  (emacsql-with-transaction org-gnosis-db
+    ;; Drop all existing tables
+    (org-gnosis-db-delete-tables)
+    ;; Recreate tables with current schema
+    (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
+      (emacsql org-gnosis-db [:create-table $i1 $S2] table schema))
+    ;; Sync all files to repopulate
+    (org-gnosis-db-update-files)
+    ;; Set current version
+    (emacsql org-gnosis-db
+	     `[:pragma (= user-version ,org-gnosis-db-version)])))
+
+(defun org-gnosis-db-update-files ()
+  "Sync `org-gnosis-db'."
   (org-gnosis-db-init-if-needed)
   (let ((files (cl-remove-if-not
 		(lambda (file)
@@ -862,16 +878,7 @@ ELEMENT should be the output of `org-element-parse-buffer'."
 		 "Database version %d is outdated (current: %d).  Rebuild database from files? "
 		 current-version org-gnosis-db-version)))
       (message "Rebuilding org-gnosis database...")
-      (emacsql-with-transaction org-gnosis-db
-        ;; Drop all existing tables
-        (org-gnosis-db-delete-tables)
-        ;; Recreate tables with current schema
-        (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
-          (emacsql org-gnosis-db [:create-table $i1 $S2] table schema))
-        ;; Sync all files to repopulate
-	(org-gnosis-db-sync)
-        ;; Set current version
-	(emacsql org-gnosis-db `[:pragma (= user-version ,org-gnosis-db-version)]))
+      (org-gnosis-db-sync)
       (message "Database rebuild completed!"))))
 
 (defun org-gnosis-db-init ()

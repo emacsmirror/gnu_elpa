@@ -143,6 +143,11 @@ Returns nil if the slot is unavailable."
                      ,(oauth2-token-access-response token)))
   (plstore-save plstore))
 
+(defun oauth2--delete-plstore (plstore token)
+  "Remove the entry of TOKEN from PLSTORE."
+  (plstore-delete plstore (oauth2-token-plstore-id token))
+  (plstore-save plstore))
+
 (defun oauth2--build-url-param-str (&rest data)
   "Build URL data string with values in DATA.
 DATA should be a list of attribute name and value one by one, therefore
@@ -262,6 +267,15 @@ Returns the code provided by the service."
                              (prin1-to-string data))
           data)))))
 
+(defun oauth2--request-error (request-result)
+  "Check whether REQUEST-RESULT contain an error."
+  (assoc 'error request-result))
+
+(defun oauth2--request-invalid-grant (request-result)
+  "Check whether the REQUEST-RESULT is an error of invalid_grant."
+  (let* ((error (cdr (assoc 'error request-result))))
+    (and error (string= error "invalid_grant"))))
+
 (cl-defstruct oauth2-token
   plstore
   plstore-id
@@ -356,16 +370,30 @@ optional but highly recommended which is required for the cache to work."
                            "client_secret" client-secret
                            "refresh_token" refresh-token
                            "grant_type" "refresh_token"))
-           (access-token (cdr (assoc 'access_token
-                                     (oauth2-make-access-request
-                                      token-url url-param-str))))
+           (request-result (oauth2-make-access-request token-url
+                                                       url-param-str))
+           (access-token (cdr (assoc 'access_token request-result)))
            (request-cache (oauth2-token-request-cache token)))
-      (setf (oauth2-token-access-token token) access-token)
-      (setf (oauth2-token-request-cache token)
-            (oauth2--update-request-cache host-name access-token
-                                          current-timestamp request-cache)))
-    (oauth2--with-plstore
-     (oauth2--update-plstore plstore token)))
+      (cond
+       ((oauth2--request-invalid-grant request-result)
+        (oauth2--do-debug
+         "[%s]: requesting access-token got invalid_grant. Need to re-login."
+         func-name)
+        (oauth2--with-plstore
+         (oauth2--delete-plstore plstore token))
+        (setq token nil))
+       ((oauth2--request-error request-result)
+        (oauth2--do-debug
+         "[%s]: requesting access-token failed. Need to retry."
+         func-name)
+        (setq token nil))
+       (t
+        (setf (oauth2-token-access-token token) access-token)
+        (setf (oauth2-token-request-cache token)
+              (oauth2--update-request-cache host-name access-token
+                                            current-timestamp request-cache))
+        (oauth2--with-plstore
+         (oauth2--update-plstore plstore token))))))
 
   token)
 

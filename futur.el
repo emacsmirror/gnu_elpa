@@ -46,9 +46,9 @@
 
 ;;;; Low level API
 
-;; - (futur-done VAL) to create a trivial future returning VAL.
-;; - (futur-error ERR) to create a trivial failed future.
-;; - (futur-new FUN) to create a non-trivial future.
+;; - (futur-done VAL): Create a trivial future returning VAL.
+;; - (futur-failed ERR): Create a trivial failed future.
+;; - (futur-new FUN): Create a non-trivial future.
 ;;   FUN is called with one argument (the new `futur' object) and should
 ;;   return the "blocker" that `futur' is waiting for (used mostly
 ;;   when aborting a future).
@@ -57,7 +57,7 @@
 ;;   successfully with VAL, and runs the clients waiting for that event.
 ;; - (futur-deliver-failure FUTUR ERROR): Mark FUTUR as having failed
 ;;   with ERROR, and runs the clients waiting for that event.
-;; - (futur-register-callback FUTUR FUN): Register FUN as a client.
+;; - (futur--register-callback FUTUR FUN): Register FUN as a client.
 ;;   Will be called with two arg (the ERROR and the VAL) when FUTURE completes.
 ;; - (futur-blocking-wait-to-get-result FUTUR): Busy-wait for FUTUR to complete
 ;;   and return its value.  Better use `futur-bind' or `futur-let*' instead.
@@ -76,6 +76,8 @@
 ;;   delayed until FUTUR completes.
 ;; - (futur-list &rest FUTURS): Run FUTURS concurrently and return the
 ;;   resulting list of values.
+;; - (futur-race &rest FUTURS): Run FUTURS concurrently, return the
+;;   first result, and discard the rest.
 
 ;;;; Related packages
 
@@ -125,6 +127,10 @@
 
 ;; Since 1.0:
 
+;; - New functions: `futur-race', `futur-sit-for', `futur-url-retrieve'.
+;; - Rename `futur-error' to `futur-failed'.
+;; - Rename `futur-register-callback' to `futur--register-callback'.
+;; - Rename `futur-ize' to `futur--ize'.
 ;; - Fix compatibility with Emacs<31.
 ;; - Minor bug fixes.
 
@@ -225,7 +231,7 @@ time or order of execution."
                (:constructor nil)
                (:constructor futur--done (value &aux (clients 't))
                 "Return a new `futur' that just returns VALUE.")
-               (:constructor futur--error (value &aux (clients 'error))
+               (:constructor futur--failed (value &aux (clients 'error))
                 "Return a new `futur' that signals error VALUE")
                (:constructor futur--waiting (&optional blocker clients
                                              &aux (value blocker))
@@ -233,7 +239,7 @@ time or order of execution."
   "A promise/future.
 A futur has 3 possible states:
 - (futur-done VAL): in that state, `clients' is `t', and `value' holds VAL.
-- (futur-error ERR): in that state, `clients' is `error', and `value' holds ERR.
+- (futur-failed ERR): in that state, `clients' is `error', and `value' holds ERR.
 - (futur-waiting BLOCKER CLIENTS): in that state, `clients' is a list
   of \"callbacks\" waiting for the value or the error, and `value' holds
   the BLOCKER that will deliver the value (can be another future,
@@ -247,7 +253,7 @@ A futur has 3 possible states:
         (app futur--clients 't)
         (app futur--value ,result)))
 
-(pcase-defmacro futur--error (error-object)
+(pcase-defmacro futur--failed (error-object)
   `(and (pred futur--p)
         (app futur--clients 'error)
         (app futur--value ,error-object)))
@@ -298,18 +304,19 @@ A futur has 3 possible states:
   "Build a trivial `futur' which returns VAL."
   (futur--done val))
 
-(defun futur-error (error-object)
+(defun futur-failed (error-object)
   "Build a trivial `futur' which just signals ERROR-OBJECT."
-  (futur--error error-object))
+  (futur--failed error-object))
 
 (defun futur-new (builder)
   "Build a future.
 BUILDER is a function that will be called with one argument
 \(the new `futur' object, not yet fully initialized) and it should
-return the object on which the future is waiting.
+return the \"blocker\", i.e. the object on which the future is waiting.
 The code creating this future needs to call `futur-deliver-value'
-when the object has done the needed work.
-The object can be any object for which there is a `futur-blocker-wait' method."
+of `futur-deliver-failure' on its argument when the future has completed.
+The blocker can be any object for which there are `futur-blocker-wait'
+and `futur-blocker-abort' methods.  `nil' is a valid blocker."
   (let* ((f (futur--waiting))
          (x (funcall builder f)))
     (cl-assert (null (futur--blocker f)))
@@ -328,7 +335,7 @@ The error is `futur-aborted'.  Does nothing if FUTUR was already complete."
 
 ;;;; Composing futures
 
-(defun futur-register-callback (futur fun)
+(defun futur--register-callback (futur fun)
  "Call FUN when FUTUR completes.
 Calls it with two arguments (ERR VAL), where only one of the two is non-nil,
 and throws away the return value.  If FUTUR fails ERR is the error object,
@@ -338,11 +345,11 @@ If FUTUR already completed, FUN is called immediately."
   (pcase futur
     ((futur--waiting _ clients)
      (setf (futur--clients futur) (cons fun clients)))
-    ((futur--error err) (funcall fun err nil))
+    ((futur--failed err) (funcall fun err nil))
     ((futur--done val) (funcall fun nil val)))
   nil)
 
-(defun futur-ize (val)
+(defun futur--ize (val)
   "Make sure VAL is a `futur'.  If not, make it a trivial one that returns VAL."
   (if (futur--p val) val (futur--done val)))
 
@@ -352,52 +359,31 @@ That future calls FUN with the return value of FUTUR and returns
 the same value as the future returned by FUN.
 If ERROR-FUN is non-nil, it should be a function that will be called instead of
 FUN when FUTUR fails.  It is called with a single argument (the error object).
-By default any error in FUTUR is propagated to the returned future."
-  ;; This should behave like:
-  ;;
-  ;;     (let ((new (futur--waiting futur)))
-  ;;       (futur-register-callback futur
-  ;;                    (lambda (err val)
-  ;;                      (if err (futur-deliver-failure new err)
-  ;;                        (futur--run-continuation new fun (list val)))))
-  ;;       new)
-  ;;
-  ;; But we try to skip the `new' futur if `futur' is already completed.
-  (pcase-exhaustive futur
-    ((futur--waiting _ clients)
-     (let ((new (futur--waiting futur)))
-       (setf (futur--clients futur)
-             (cons
-              (lambda (err val)
-                ;; If NEW is not waiting any more (e.g. it's been aborted),
-                ;; don't bother running the continuation.
-                (pcase new
-                  ((futur--waiting)
-                   (if err (futur-deliver-failure new err)
-                    (futur--run-continuation new fun (list val))))))
-              clients))
-       new))
-    ((and (futur--error _) (guard (null error-fun))) futur)
-    ((or (futur--done value) (futur--error err1))
-     (condition-case-unless-debug err2
-         (let ((res (if err1 (funcall error-fun err1) (funcall fun value))))
-           (futur-ize res))
-       (t (futur-error err2))))))
+By default any error in FUTUR is propagated to the returned future.
+ERROR-FUN and FUN can also return non-future values,"
+  (let ((new (futur--waiting futur)))
+    (futur--register-callback
+     futur (lambda (err val)
+             (cond
+              ((null err) (futur--run-continuation new fun (list val)))
+              (error-fun (futur--run-continuation new error-fun (list err)))
+              (t (futur-deliver-failure new err)))))
+    new))
 
 (defun futur--run-continuation (futur fun args)
   ;; The thing FUTUR was waiting for is completed, maybe we'll soon be waiting
-  ;; for another future, but for now, we're waiting for some piece of ELisp
-  ;; (namely FUN) to terminate.
-  (setf (futur--blocker futur) 'elisp)
+  ;; for another future, but for now, there's no blocker object,
+  ;; we're just waiting for some piece of ELisp (namely FUN) to terminate.
+  (setf (futur--blocker futur) nil)
   (condition-case-unless-debug err
       (let ((res (apply fun args)))
         (if (not (futur--p res))
             (futur-deliver-value futur res)
           (setf (futur--blocker futur) res)
-          (futur-register-callback res
-                       (lambda (err val)
-                         (if err (futur-deliver-failure futur err)
-                           (futur-deliver-value futur val))))))
+          (futur--register-callback
+           res (lambda (err val)
+                 (if err (futur-deliver-failure futur err)
+                   (futur-deliver-value futur val))))))
     (t (futur-deliver-failure futur err))))
 
 (defun futur--resignal (error-object)
@@ -429,12 +415,12 @@ its result, or (re)signals the error if ERROR-FUN is nil."
     (let* ((mutex (make-mutex "futur-wait"))
            (condition (make-condition-variable mutex)))
       (with-mutex mutex
-        (futur-register-callback futur (lambda (_err _val)
-                             (with-mutex mutex
-                               (condition-notify condition))))
+        (futur--register-callback futur (lambda (_err _val)
+                                          (with-mutex mutex
+                                            (condition-notify condition))))
         (condition-wait condition))))
   (pcase-exhaustive futur
-    ((futur--error err) (funcall (or error-fun #'futur--resignal) err))
+    ((futur--failed err) (funcall (or error-fun #'futur--resignal) err))
     ((futur--done val) val)))
 
 (defmacro futur-let* (bindings &rest body)
@@ -492,11 +478,11 @@ exactly when FUN is called, other than not before FUTUR completes."
   ;; sure not to forget to run FUN.  Maybe we should register FUTUR+FUN
   ;; on some global list somewhere that we can occasionally scan, in case
   ;; something happened that prevented running FUN?
-  (let ((futur (futur-ize futur)))
+  (let ((futur (futur--ize futur)))
     ;; Use `futur--aux' to let `futur--multi-clients-p' know not to count
     ;; this function as a "real" client.
-    (futur-register-callback futur (oclosure-lambda (futur--aux) (_ _)
-                                     (funcall fun)))
+    (futur--register-callback futur (oclosure-lambda (futur--aux) (_ _)
+                                      (funcall fun)))
     futur))
 
 (defmacro futur-unwind-protect (form &rest forms)
@@ -567,8 +553,8 @@ If it had not been computed yet, then make it fail with ERROR.")
        (when (cl-typep client 'futur--aux)
          (futur--funcall client error nil))))))
 
-(cl-defmethod futur-blocker-abort ((_ (eql 'elisp)) _error)
-  ;; FIXME: No idea how to do that!
+(cl-defmethod futur-blocker-abort ((_ (eql nil)) _error)
+  ;; No blocker to abort.
   nil)
 
 ;;;; Postpone
@@ -583,6 +569,28 @@ If IDLE is non-nil, then wait for that amount of idle time."
             time nil
             (lambda (futur) (futur-deliver-value futur nil))
             futur)))))
+
+(defun futur-sit-for (time)
+  "Return a `futur' that completes after TIME or upon user-input.
+Similar to `sit-for' but non-blocking.
+Returns non-nil if it waited the full TIME."
+  (futur-new
+   (lambda (futur)
+     ;; FIXME: This implementation relies on `pre-command-hook' to detect
+     ;; user input, which can be "slow" (e.g. when the user types `C-x C-s'
+     ;; `pre-command-hook' is run only after the `C-s').
+     (letrec ((timer (run-with-timer
+                      time nil
+                      (lambda (futur)
+                        (remove-hook 'pre-command-hook abort)
+                        (futur-deliver-value futur t))
+                      futur))
+              (abort (lambda ()
+                       (remove-hook 'pre-command-hook abort)
+                       (cancel-timer timer)
+                       (futur-deliver-value futur nil))))
+       (add-hook 'pre-command-hook abort)
+       (cons 'timer timer))))) ;; FIXME: Make timers proper structs instead!
 
 (cl-defmethod futur-blocker-wait ((timer (head timer)))
   (setq timer (cdr timer))
@@ -600,9 +608,10 @@ If IDLE is non-nil, then wait for that amount of idle time."
     t))
 
 (cl-defmethod futur-blocker-abort ((timer (head timer)) _error)
+  (setq timer (cdr timer))
   ;; Older versions of Emacs signal errors if we try to cancel a timer
   ;; that's already run (or been canceled).
-  (unless (timer--triggered timer) (cancel-timer (cdr timer))))
+  (unless (timer--triggered timer) (cancel-timer timer)))
 
 ;;;; Processes
 
@@ -621,7 +630,7 @@ If IDLE is non-nil, then wait for that amount of idle time."
   (if (< (length futur--process-active) futur-process-max)
       (let ((new (apply #'funcall args)))
         (push new futur--process-active)
-        (futur-register-callback
+        (futur--register-callback
          new (oclosure-lambda (futur--aux) (_ _) (futur--process-next new)))
         new)
     (let ((new (futur--waiting 'waiting)))
@@ -636,7 +645,7 @@ If IDLE is non-nil, then wait for that amount of idle time."
       (pcase fut
         ((futur--waiting)
          (let ((new (apply #'futur--process-bounded call)))
-          (futur-register-callback
+          (futur--register-callback
            new (lambda (err val) (futur--deliver new err val)))
           (cl-return))))))))
 
@@ -760,30 +769,48 @@ that have not yet completed."
            (failed nil)
            (args (make-list count :futur--waiting-for-result))
            (i 0))
-      (dolist (futur futurs)
-        (futur-register-callback futur
-                     (let ((cell (nthcdr i args)))
-                       (lambda (err val)
-                         (cl-assert (eq :futur--waiting-for-result (car cell)))
-                         (cond
-                          (failed nil)
-                          (err
-                           (setq failed t)
-                           (futur-deliver-failure new err)
-                           ;; Abort the remaining ones.
-                           (let ((abort-error (list 'futur-aborted)))
-                             (futur-blocker-abort futurs abort-error)))
-                          (t
-                           (setf (car cell) val)
-                           (setq count (1- count))
-                           (when (zerop count)
-                             (pcase new
-                               ;; We don't unbind ourselves from some FUTURs
-                               ;; when aborting, so ignore their delivery here.
-                               ((futur--error '(futur-aborted)) nil)
-                               (_ (futur-deliver-value new args)))))))))
-        (setq i (1+ i)))
+     (dolist (futur futurs)
+       (futur--register-callback
+        futur
+        (let ((cell (nthcdr i args)))
+          (lambda (err val)
+            (cl-assert (eq :futur--waiting-for-result (car cell)))
+            (cond
+             (failed nil)
+             (err
+              (setq failed t)
+              (futur-deliver-failure new err)
+              ;; Abort the remaining ones.
+              (let ((abort-error (list 'futur-aborted)))
+                (futur-blocker-abort futurs abort-error)))
+             (t
+              (setf (car cell) val)
+              (setq count (1- count))
+              (when (zerop count)
+                (pcase new
+                  ;; We don't unbind ourselves from some FUTURs
+                  ;; when aborting, so ignore their delivery here.
+                  ((futur--failed '(futur-aborted)) nil)
+                  (_ (futur-deliver-value new args)))))))))
+       (setq i (1+ i)))
       new)))
+
+(defun futur-race (&rest futurs)
+  "Build a `futur' that returns the value of the first of FUTURS that completes.
+If the first future among FUTURS completes with a failure, then the new
+future also completes with that same failure."
+  (let* ((new (futur--waiting futurs)))
+    (dolist (futur futurs)
+      (futur--register-callback
+       futur
+       (lambda (err val)
+         (pcase new
+           ((futur--waiting)
+            (futur--deliver new err val)
+            ;; Abort the remaining ones.
+            (let ((abort-error (list 'futur-aborted)))
+              (futur-blocker-abort futurs abort-error)))))))
+    new))
 
 (cl-defmethod futur-blocker-wait ((_blockers cons))
   ;; FIXME: The loop below can misbehave when there's an early-exit
@@ -801,6 +828,59 @@ that have not yet completed."
   ;; Propagate the abort to the futurs we're still waiting for.
   (dolist (futur futurs)
     (futur-blocker-abort futur error)))
+
+;;;; URL futures
+
+(defun futur-url-retrieve (url &optional silent inhibit-cookies)
+  "Retrieve URL asynchronously.
+Thin wrapper around `url-retrieve'.
+URL is either a string or a parsed URL.  If it is a string
+containing characters that are not valid in a URI, those
+characters are percent-encoded; see `url-encode-url'.
+
+The future returns nil if the process has already completed (i.e. URL
+was a mailto URL or similar).  Otherwise, it returns (BUFFER . STATUS),
+where BUFFER contains the object, and any MIME headers associated with
+it, and STATUS is a plist representing what happened during the request,
+with most recent events first, or an empty list if no events have
+occurred.  Each pair is one of:
+
+\(:redirect REDIRECTED-TO) - the request was redirected to this URL.
+
+\(:error (error type . DATA)) - an error occurred.  TYPE is a
+symbol that says something about where the error occurred, and
+DATA is a list (possibly nil) that describes the error further.
+
+The variables `url-request-data', `url-request-method' and
+`url-request-extra-headers' can be dynamically bound around the
+request; dynamic binding of other variables doesn't necessarily
+take effect.
+
+If SILENT, then don't message progress reports and the like.
+If INHIBIT-COOKIES, cookies will neither be stored nor sent to
+the server.
+If URL is a multibyte string, it will be encoded as utf-8 and
+URL-encoded before it's used."
+  (futur-new
+   (lambda (f)
+     (let ((res (url-retrieve url
+                              (lambda (status)
+                                (futur-deliver-value
+                                 f (cons (current-buffer) status)))
+                              nil silent inhibit-cookies)))
+       (if (null res)
+           (futur-deliver-value f res)
+         (cons 'url-retrieve res))))))
+
+;; (cl-defmethod futur-blocker-wait ((blocker (head url-retrieve))) nil)
+
+(cl-defmethod futur-blocker-abort ((blocker (head url-retrieve)) _error)
+  ;; AFAIK the URL library doesn't provide support for aborting
+  ;; a request, so this is a best-effort attempt.
+  (when (buffer-live-p (cdr blocker))
+    (with-current-buffer (cdr blocker)
+      (let ((proc (get-buffer-process (current-buffer))))
+        (when proc (delete-process proc))))))
 
 ;;;; Other helpers
 

@@ -36,7 +36,7 @@
 (ert-deftest futur-simple ()
   (should (equal (futur-blocking-wait-to-get-result (futur-done 5)) 5))
 
-  (let ((p (futur-error '(scan-error "Oops"))))
+  (let ((p (futur-failed '(scan-error "Oops"))))
     (should-error (futur-blocking-wait-to-get-result p) :type 'scan-error))
 
   (should (equal
@@ -47,7 +47,7 @@
            12))
 
   (let ((p (futur-let* ((x1 5)
-                        (x2 <- (futur-error '(scan-error "Oops"))))
+                        (x2 <- (futur-failed '(scan-error "Oops"))))
              (list (+ x1 x2) (error "Wow!")))))
     (should-error (futur-blocking-wait-to-get-result p) :type 'scan-error)))
 
@@ -102,7 +102,7 @@
     (should (< (- (float-time) start) (* timescale 4)))
     (should (pcase fut6 ((futur--waiting _) t)))
     (should (pcase fut2 ((futur--done 'nil) t)))
-    (should (pcase fut22 ((futur--error '(futur-aborted)) t)))
+    (should (pcase fut22 ((futur--failed '(futur-aborted)) t)))
     (should (pcase fut4 ((futur--waiting _) t) ((futur--done 'nil) t)))
     (should (pcase futB ((futur--waiting _) t)))
     (should (equal '(nil) (futur-blocking-wait-to-get-result futB)))
@@ -115,7 +115,7 @@
            (_ (write-region "Emacs" nil tmpfile nil 'silent))
            (futur
             (futur-let* ((exitcode
-                          <- (futur-process-make
+                          <- (futur--process-make
                               :name "futur-hexl"
                               :command (list (expand-file-name
                                               "hexl" exec-directory)

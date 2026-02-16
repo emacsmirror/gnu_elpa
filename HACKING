@@ -3,10 +3,11 @@ WARNING
 
 This directory gets automatically mirrored at
 
-  https://github.com/emacsmirror/po-mode/
+  https://gitweb.git.savannah.gnu.org/gitweb/?p=emacs/elpa.git;a=tree;h=refs/heads/externals/po-mode;hb=refs/heads/externals/po-mode
 
 where users can enable it by putting this into their Emacs initialization file
 (cf. https://www.emacswiki.org/emacs/InitFile and
+https://elpa.gnu.org/ and
 https://github.com/melpa/melpa/blob/master/README.md ):
 
   (require 'package)

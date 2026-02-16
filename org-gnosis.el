@@ -68,7 +68,11 @@
   :type 'string)
 
 (defcustom org-gnosis-create-as-gpg nil
-  "When non-nil, create notes with a .gpg suffix."
+  "When non-nil, create all files with a .gpg suffix."
+  :type 'boolean)
+
+(defcustom org-gnosis-journal-as-gpg nil
+  "When non-nil, create journal entries with a .gpg suffix."
   :type 'boolean)
 
 (defcustom org-gnosis-todo-files org-agenda-files
@@ -428,15 +432,19 @@ Delete file contents in database & file."
 		title)))
           lst))
 
-(defun org-gnosis--create-name (title &optional timestring)
+(defun org-gnosis--create-name (title &optional timestring gpg-p)
   "Create filename for TITLE.
 
-TIMESTRING defaults to `org-gnosis-timestring'"
+TIMESTRING defaults to `org-gnosis-timestring'
+GPG-P: when non-nil, add .gpg suffix (overrides `org-gnosis-create-as-gpg')."
   (let ((timestring (or timestring org-gnosis-timestring))
 	(filename (replace-regexp-in-string "#" ""
-					    (replace-regexp-in-string " " "_" title))))
+					    (replace-regexp-in-string " " "_" title)))
+	(use-gpg (if (eq gpg-p 'default)
+		     org-gnosis-create-as-gpg
+		   (or gpg-p org-gnosis-create-as-gpg))))
     (format "%s--%s.org%s" (format-time-string timestring) filename
-	    (if org-gnosis-create-as-gpg ".gpg" ""))))
+	    (if use-gpg ".gpg" ""))))
 
 (defun org-gnosis--create-file (title &optional directory extras)
   "Create a node FILE for TITLE.
@@ -446,7 +454,10 @@ Insert initial Org metadata if the buffer is new or empty.
 DIRECTORY: Directory where the file is created.
 EXTRAS: The template to be inserted at the start."
   (let* ((file (expand-file-name
-		(org-gnosis--create-name title)
+		(org-gnosis--create-name
+		 title nil
+		 (and (eq directory org-gnosis-journal-dir)
+		      org-gnosis-journal-as-gpg))
 		(or directory org-gnosis-dir)))
 	 (buffer (find-file-noselect file))
 	 ;; `org-id-track-globally' can cause unexpected issues.

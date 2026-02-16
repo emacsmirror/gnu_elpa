@@ -1,0 +1,20 @@
+## This file specifies the files and directories that can usually occur in a
+## developer build of this Git repository.
+##
+## Reference: https://git-scm.com/docs/gitignore
+##
+## When we say, "files", it actually means files and directories. By
+## convention, directories are marked through a trailing first and listed
+## first in each category.
+##
+## We don't list files that may occur in exceptional situations (such as
+## temporary files *.h-t), because a developer should notice when such a
+## file is not erased by "make mostlyclean".
+
+# Patterns for all subdirectories: all kinds of automatic backup files.
+*.orig
+*.rej
+*~
+*.kate-swp
+.#*
+\#*#

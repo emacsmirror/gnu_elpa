@@ -41,6 +41,9 @@ else ifeq ($(HAVE_DNF),yes)
 else ifeq ($(OS_NAME),Darwin)
   $(info macOS detected: skipping pkg-config and using Homebrew for MuPDF paths.)
   USE_PKGCONFIG := no
+else ifeq ($(OS_NAME),FreeBSD)
+  $(info FreeBSD detected: skipping pkg-config checks.)
+  USE_PKGCONFIG := no
 else ifeq ($(HAVE_MINGW64), yes)
   $(info MinGW64 detected: assuming dll is located in $(MINGW_PREFIX)/bin.)
 endif

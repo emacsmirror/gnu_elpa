@@ -1,7 +1,7 @@
 #+TITLE: gnome-dark-style.el
 #+AUTHOR: David Dimagid
 #+EMAIL: davidimagid@gmail.com
-#+VERSION: 0.2.3
+#+VERSION: 0.2.4
 #+URL: https://github.com/dimagid/gnome-dark-style
 
 * Description
@@ -77,8 +77,12 @@ Free Software Foundation, either version 3 of the License, or (at your
 option) any later version.
 
 * Contributing
-Contributions are welcome! Please open an issue or submit a pull request
-on the [[https://github.com/dimagid/gnome-dark-style][GitHub repository]].
+Please send bug reports and suggestions by email to
+[[mailto:davidimagid@gmail.com][davidimagid@gmail.com]].
+
+You can also visit the [[https://github.com/dimagid/gnome-dark-style][GitHub repository]],
+but email is the primary way to contribute and respects users'
+freedom by not requiring non-free JavaScript.
 
 * Acknowledgments
 - Thanks to GNU and the FSF for their excellent communities, software and

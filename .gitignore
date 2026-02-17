@@ -6,3 +6,5 @@
 TAGS
 /worktrees/
 reader-autoloads.el
+*.elc
+*~

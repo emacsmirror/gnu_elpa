@@ -6,6 +6,14 @@ This is a translation into Spanish of :
 An Introduction to Programming in Emacs Lisp. 
 Editon 3.10, 28 October 2009.
 
+The specific revision from which it was taken seems to be:
+
+    commit 9450ac063cfe3a1d3ab6b24dc21f484006617f3f (HEAD)
+    Author: Glenn Morris <rgm@gnu.org>
+    Date:   Sun Mar 3 10:44:56 2013 -0800
+
+    * emacs-lisp-intro.texi (Simple Extension): Fix typos.
+
 Copyright 1990, 1991, 1992, 1993, 1994, 1997, 2001, 2002, 2003, 
 2004, 2005, 2006, 2007 2008, 2009 Free Sofware Foundation, Inc.
 

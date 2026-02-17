@@ -7,3 +7,9 @@
 *.toc
 *.dvi
 
+/emacs-lisp-intro-es.texi
+emacs-lisp-intro*.pdf
+
+# ELPA-generated files.
+/emacs-lisp-intro-es-autoloads.el
+/emacs-lisp-intro-es-pkg.el

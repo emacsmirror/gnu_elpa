@@ -1,5 +1,11 @@
 * truename-cache
 
+#+begin_quote
+[!WARNING]
+This is a BETA release!
+Breaking changes are possible.
+#+end_quote
+
 This Emacs library provides two things:
 
 1. =truename-cache-get=: A caching alternative to =file-truename=.
@@ -14,13 +20,11 @@ But if you write code that just wraps every file name it encounters in =(file-tr
 
 That is unacceptably slow, at least in the use-case where you often scan a list of directories to see if any new files have appeared or any files were modified or deleted.
 
-That's the sort of thing that might be done as part of a user command.  As we all know, the rule of thumb for an once-off command to feel "instant" is 100ms maximum.  (Some say 20ms, but that's for code triggered on every keystroke while typing -- i.e. in Emacs parlance, hooks run by =self-insert-command=).
-
-Another way to de-dup is to refer to filesystem inodes i.e. =(file-attribute-file-identifier (file-attributes FILE))=, but that is not as human-friendly to work with as truenames.
+That's the sort of thing that might be done as part of a user command.  If the command is to be pleasant to use, it must take less than 100 milliseconds so it feels "instant".  And you may be dealing with not 1,000 but 10,000 or even 100,000 files.
 
 ** Bonus: Merging lists
 
-The routine =truename-cache-collect-files-and-attributes= can merge multiple file lists and still return de-duplicated truenames, and tries to do this as efficiently as possible.
+The routine =truename-cache-collect-files-and-attributes= can merge multiple file lists and still return de-duplicated truenames, and tries to do it efficiently.
 
 Some example file-lists in Emacs that may have a great deal of overlap between them:
 
@@ -31,16 +35,16 @@ Some example file-lists in Emacs that may have a great deal of overlap between t
 - Output of =(org-files-list)=
 - Output of =(hash-table-values org-id-locations)=
 
-This is done through the argument =:infer-dirs-from=.  In truth, it doesn't operate directly on any file names, it just infers their parent directories and then scans each directory once.  That turns out to be efficient, even if it's likely to pull in more file names than were in the input.
+This is done through the keyword =:infer-dirs-from=.  In truth, it doesn't operate directly on any file names, it just infers their parent directories and then scans each directory once.  That turns out to be efficient, even if it's likely to pull in more file names than were in the input.
 
 ** Bonus: Filtering
 
-While you could simply let =truename-cache-collect-files-and-attributes= return a giant file list and filter it afterwards, there are two reasons to do some filtering through the arguments =:rel-file-deny=, =:rel-dir-deny= and/or =:full-dir-deny=.
+While you could simply let =truename-cache-collect-files-and-attributes= return a giant file list and filter it afterwards, there are two reasons to do some filtering through the arguments =:relative-file-deny=, =:relative-dir-deny= and/or =:full-dir-deny=.
 
 1. It filters early, so it can avoid recursing into directories that you were never gonna keep anyway -- e.g. the contents of =.git/= or =node_modules/=...
 
    It can easily be the difference between a runtime of 2.00 seconds and 0.02 seconds!
 
-2. If you wanted to apply your filters to relative file names rather than absolute names, you'd ordinarily have to use =(relative-file-name FILE DIR)= on every file, and that procedure isn't cheap either.
+2. If you wanted to apply your filters to relative file names rather than absolute names ([[https://github.com/org-roam/org-roam/pull/2178][example use-case]]), you'd ordinarily have to use =(relative-file-name FILE DIR)= on every file, and that procedure isn't cheap either.
 
-   That's why it provides =:rel-file-deny=, =:rel-dir-deny=.  Another bottleneck dodged.
+   That's why it provides =:relative-file-deny=, =:relative-dir-deny=.  Another bottleneck dodged.

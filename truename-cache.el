@@ -39,7 +39,7 @@
 (require 'cl-lib)
 (require 'map)
 (require 'seq)
-(require 'compat)
+(require 'compat) ; Not certain if it is needed, but we have no CI to test it
 
 ;;;; Name-cache:
 
@@ -84,12 +84,14 @@ Return the list of variant file names invalidated, including BAD-NAME."
     (when true
       (push true all-bad)
       (dolist (wild (gethash true truename-cache--true<>wilds))
-        (push wild all-bad)))
+        (unless (member wild all-bad)
+          (push wild all-bad)))
+      (cl-assert (member bad-name all-bad)))
     ;; Example situation: File WILD is a symlink that changed destination.
     ;; So cached TRUE led to a nonexistent file last time it was accessed,
     ;; whereupon hopefully, something arranged to have this function called
     ;; with TRUE as argument, bringing us here.
-    ;; Now invalidate WILD so we can cache a correct TRUE next time.
+    ;; Now find and invalidate WILD so we can cache a correct TRUE next time.
     (dolist (wild (gethash bad-name truename-cache--true<>wilds))
       (unless (member wild all-bad)
         (push wild all-bad)))
@@ -140,7 +142,8 @@ See alternatives:
 (defun truename-cache-get-cached-p (wild)
   "Try to return the true name for file name WILD, or nil.
 
-Like `truename-cache-get', but on a cache miss, return nil."
+Like `truename-cache-get', but on a cache miss, return nil.
+In other words, never use `file-truename'."
   (unless (file-name-absolute-p wild)
     (setq wild (expand-file-name wild)))
   (gethash wild truename-cache--wild<>true))
@@ -167,7 +170,16 @@ disk now, else re-cache it like `truename-cache-get-existed-p'.
 
 This can be meaningfully slower than `truename-cache-get-existed-p' on a
 slow filesystem, in theory, but it should still be much faster than
-`file-truename' once most names are cached."
+`file-truename' once most names are cached.
+
+Nevertheless, as of 2026-02-18, the author regards
+`truename-cache-get-existed-p' as a reasonable standard choice,
+which may get a shorter alias in the future.
+
+This variant mainly exists because it may be convenient with
+the likes of `seq-keep' and `thread-last'.
+Also, nonexistent files result in calls to `truename-cache-invalidate'
+which you do not have to make yourself."
   (unless (file-name-absolute-p wild)
     (setq wild (expand-file-name wild)))
   (let ((true (gethash wild truename-cache--wild<>true)))
@@ -294,6 +306,9 @@ When not called by `truename-cache-collect-files-and-attributes':
              "\\|"))
 
 (defun truename-cache--mk-handler-alist (&rest subsets)
+  "Return a value to which `file-name-handler-alist' can be bound.
+Each element in SUBSETS is either t or a list of allowed possible cdrs
+of `file-name-handler-alist'."
   (let ((subset (cl-loop for subset in subsets
                          if (eq t subset)
                          return t
@@ -307,7 +322,7 @@ When not called by `truename-cache-collect-files-and-attributes':
 
 (defun truename-cache--mutate-args (args)
   "Mutate plist ARGS in place, setting defaults and adding some keys."
-  (cl-assert (not (null args))) ; So it's safe to use `plist-put' without `setq'
+  (cl-assert args) ; So it's safe to use `plist-put' without `setq'
   (unless (memq :return-files args)    (plist-put args :return-files t))
   (unless (memq :keep-remotes args)    (plist-put args :keep-remotes t))
   (unless (memq :side-effect args)     (plist-put args :side-effect t))
@@ -362,9 +377,9 @@ When not called by `truename-cache-collect-files-and-attributes':
   "Return an unsorted alist \((FILE1 . ATTR1) (FILE2 . ATTR2) ...\).
 
 
-This is engineered to be as fast as possible at collecting a file list
-from a variety of information sources \(such from as both `org-id-files'
-and `org-directory'\), de-duplicated and in truename form.
+This is engineered to be fast at collecting a file list from a variety
+of information sources \(such from as both `org-id-files' and the
+content of `org-directory'\), de-duplicated and in truename form.
 
 The file attribute lists ATTR1, ATTR2... \(per `file-attributes'\) are
 included in case they are needed, because that is faster than querying
@@ -372,7 +387,7 @@ the filesystem later on for the attributes of one file at a time.
 
 When SIDE-EFFECT \(default t\), this function also pre-populates a cache
 used by another tool `truename-cache-get', so that the tool need not be
-expensive even the first time a given file is passed to it.
+expensive even the first time a given file name is passed to it.
 
 This function does not itself look up cache.
 
@@ -382,31 +397,32 @@ All arguments default to nil unless otherwise specified.
 
 The list of candidates to return comes from scanning a set of
 directories specified by any or all of the following arguments,
-of which at least one must be non-nil:
+at least one of which must be non-nil:
 
 - DIRS-FLAT :: List of directories to scan.
 - DIRS-RECURSIVE :: List of directories to scan recursively.
-- INFER-DIRS-FROM :: List of file names which are then used to infer
-    directories to scan, as if they had been passed to DIRS-FLAT.
-    The file names must be absolute, else they are ignored.
+- INFER-DIRS-FROM :: List or lists of file names which are then used to
+    infer directories to scan, as if they had been passed to DIRS-FLAT.
+    Non-absolute file names are quietly ignored.
 
     It is fine and normal to pass many duplicates.
 
-    Unlike DIRS-FLAT, any inferred directory that happens to be a
-    descendant of DIRS-RECURSIVE is dropped, on the assumption that
-    DIRS-RECURSIVE will get to it anyway.
+    Unlike with DIRS-FLAT, any inferred directory that happens to be
+    a descendant of DIRS-RECURSIVE is dropped, on the assumption that
+    it will be found from DIRS-RECURSIVE anyway.
+
     If you want to include a descendant that otherwise fails a filter
     \(i.e. runs afoul of RELATIVE-DIR-DENY or RESOLVE-SYMLINKS while
-    recursing\), pass it in DIRS-FLAT.
+    recursing\), pass it explicitly in DIRS-FLAT.
 
 Most other arguments have the effect of narrowing down the candidates.
 
 First, the following filters are applied to the part of a file
 name that is relative to one of aforementioned set of directories.
 
-\(To clarify: if the file was found in DIRS-RECURSIVE, the relative name
-can contain multiple directory components, otherwise it is simply the
-`file-name-nondirectory' of the file.\)
+\(To clarify: if the file was found from DIRS-RECURSIVE,
+the relative name can contain multiple directory components,
+otherwise it is simply the `file-name-nondirectory' of the file.\)
 
 - RELATIVE-FILE-DENY :: List of regexps that reject a file or directory.
 
@@ -425,8 +441,8 @@ can contain multiple directory components, otherwise it is simply the
     or not to recurse into it.
 
     Important performance knob!  If this function is ever slow, the
-    bottleneck is certainly from recursing too many times, if not your
-    network connection.
+    bottleneck is certainly from recursing too many times, if not
+    accessing network file names on a slow connection.
     To check which directories were accessed, eval:
         \(hash-table-keys truename-cache--visited\)
 
@@ -437,11 +453,12 @@ Other filters:
     relative names.
 
     In addition to the usual purpose of preventing recursion, they are
-    applied to DIRS-FLAT, DIRS-RECURSIVE and the directories inferred
-    via INFER-DIRS-FROM.
+    applied to the names that were input to DIRS-FLAT, DIRS-RECURSIVE
+    and the directories inferred via INFER-DIRS-FROM.
+
     At that time, they are applied to both the possibly non-true input
-    name and the true name.
-    At all other times, they are only applied to true names.
+    name and the true name.  That is, if either the input name or the
+    true name matches FULL-DIR-DENY, the directory is skipped.
 
 The following arguments affect what kinds of files to include in the
 result.  They also affect which symlink destinations to include.
@@ -482,12 +499,14 @@ ABBREV transforms each file name returned.
 It can take one of three values:
 
 - nil :: Return true names that work with `get-truename-buffer'.
-- `dir' :: Return names more likely to match instances of
+
+- `dir' :: Return non-true names more likely to match instances of
     variable `buffer-file-name' and to work with `get-file-buffer'.
-    See `truename-cache-get-dir-abbrev'.
-- `full' :: Return names that can be expected to match instances of
+    Corresponds to `truename-cache-get-dir-abbrev'.
+
+- `full' :: Return non-true names very likely to match instances of
     variable `buffer-file-truename'.
-    See `truename-cache-get-full-abbrev'.
+    Corresponds to `truename-cache-get-full-abbrev'.
 
     This match is reliable except when the value of LOCAL-NAME-HANDLERS
     or REMOTE-NAME-HANDLERS causes an abbreviation handler to not be
@@ -528,11 +547,15 @@ Otherwise, they are quietly skipped."
               ;; So use a dedicated table for dedupping.
               (clrhash truename-cache--dedupped-dirs)
               (let (file-name-handler-alist) ;; HACK: speed up `file-name-directory'
-                (dolist (name infer-dirs-from)
-                  (when (file-name-absolute-p name)
-                    (puthash (if (directory-name-p name) name (file-name-directory name))
-                             t
-                             truename-cache--dedupped-dirs))))
+                ;; Take plural lists so caller needs not `append' large lists.
+                (dolist (sublist (if (seq-find #'stringp infer-dirs-from)
+                                     (list infer-dirs-from)
+                                   infer-dirs-from))
+                  (dolist (name sublist)
+                    (when (file-name-absolute-p name)
+                      (puthash (file-name-directory name)
+                               t
+                               truename-cache--dedupped-dirs)))))
               (cl-loop
                for dir being each hash-key of truename-cache--dedupped-dirs
                ;; Try to minimize redundant `file-truename' calls later,
@@ -543,7 +566,7 @@ Otherwise, they are quietly skipped."
            (all-flat-dirs
             (progn
               (dolist (dir dirs-flat)
-                (unless (file-name-absolute-p name)
+                (unless (file-name-absolute-p dir)
                   (error "Non-absolute name in DIRS-FLAT: %s" dir)))
               (delete-dups
                (cl-loop
@@ -660,20 +683,20 @@ non-symlink file in REL-DIR, becomes the true name of that file."
                          (or (not resolved-is-remote)
                              keep-remotes)
                          (setq attr (if assert-readable
-                                        (file-attributes resolved)
+                                        (file-attributes resolved 'integer)
                                       (ignore-error permission-denied
-                                        (file-attributes resolved))))
+                                        (file-attributes resolved 'integer))))
                          (or (and return-files
                                   (null (file-attribute-type attr)))
                              (and (eq t (file-attribute-type attr))
-                                  (setq resolved-is-dir t)
-                                  return-dirs)))
+                                  (progn (setq resolved-is-dir t)
+                                         return-dirs))))
                 (puthash resolved attr truename-cache--dedupped-results)
                 (when side-effect
                   (let ((case-fold-search (file-name-case-insensitive-p resolved)))
                     (truename-cache--populate true-name resolved))))
 
-              (when (and resolved-is-dir
+              (when (and resolved-is-dir ;; NOTE: Implies some other conditions
                          RECURSE
                          dirs-recursive-follow-symlinks
                          (not (gethash resolved truename-cache--visited))
@@ -683,12 +706,8 @@ non-symlink file in REL-DIR, becomes the true name of that file."
                          (or (not FULL-DIR-DENY-RE)
                              (not (string-match-p FULL-DIR-DENY-RE
                                                   (file-name-as-directory resolved)))))
-                (if resolved-is-remote
-                    (when keep-remotes
-                      (puthash resolved t truename-cache--visited)
-                      (truename-cache--analyze-1 rel-name args resolved))
-                  (puthash resolved t truename-cache--visited)
-                  (truename-cache--analyze-1 rel-name args resolved))))
+                (puthash resolved t truename-cache--visited)
+                (truename-cache--analyze-1 rel-name args resolved)))
             nil))
 
      do

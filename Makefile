@@ -26,14 +26,13 @@ infodir = .
 # Directory with the (customized) texinfo.tex file.
 texinfodir = .
 
-INFO_SOURCES = ${srcdir}/emacs-lisp-intro.texi
+INFO_SOURCES = ${srcdir}/emacs-lisp-intro.texi ${srcdir}/emacs-lisp-intro-es.addendum
 INFO_SOURCES_ES = ${srcdir}/emacs-lisp-intro-es.texi
 # The file name eintr must fit within 5 characters, to allow for
 # -NN extensions to fit into DOS 8+3 limits without clashing
 INFO_TARGETS = ${infodir}/eintr
 DVI_TARGETS = emacs-lisp-intro-es.dvi
 
-PO2TEXI = dotexi.sh
 MAKEINFO = makeinfo  --no-split
 TEXI2DVI = texi2dvi
 TEXI2PDF = texi2pdf
@@ -51,7 +50,10 @@ ${infodir}/eintr: ${INFO_SOURCES_ES}
 	cd $(srcdir); $(MAKEINFO) emacs-lisp-intro-es.texi -o $(infodir)/eintr
 
 emacs-lisp-intro-es.texi: ${INFO_SOURCES}
-	cd $(srcdir); ./$(PO2TEXI)
+	cd $(srcdir); 						      \
+	$(PO4ATRANSLATE) -f texinfo -m emacs-lisp-intro.texi 	      \
+	    -p emacs-lisp-intro-es.po -a emacs-lisp-intro-es.addendum \
+	    -l emacs-lisp-intro-es.texi -k 0.15
 
 emacs-lisp-intro-es.dvi: ${INFO_SOURCES_ES}
 	$(TEXI2DVI) -I $(srcdir) -I $(texinfodir) $(srcdir)/emacs-lisp-intro-es.texi

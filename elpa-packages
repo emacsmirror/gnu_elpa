@@ -427,7 +427,7 @@
  (highlight-escape-sequences
   			:url "https://github.com/dgutov/highlight-escape-sequences/")
  (hook-helpers		:url "https://git.savannah.nongnu.org/git/hook-helpers-el.git")
- ;; (hotfuzz		:url "https://github.com/axelf4/hotfuzz")
+ (hotfuzz		:url "https://github.com/axelf4/hotfuzz")
  (html5-schema		:url nil)
  (hugoista		:url "https://codeberg.org/c-alpha/hugoista")
  (hydra			:url "https://github.com/abo-abo/hydra"
@@ -679,13 +679,9 @@
   :doc "plz-media-type.org")
  (plz-see		:url "https://github.com/astoff/plz-see.el"
   :readme "README.org")
- ;; FIXME: `po-mode.el' is actually maintained as part of
- ;; [Gettext](https://savannah.gnu.org/p/gettext) and kept within the main
- ;; branch, in the `gettext-tools/emacs' subdirectory.
- ;; The emacsmirror/po-mode repository is auto-extracted from that
- ;; subdirectory in the main branch of http://git.sv.gnu.org:/git/gettext.git.
- ;; It's really not ideal, but it is what it is for now.
- (po-mode		:url "https://github.com/emacsmirror/po-mode")
+ (po-mode		:url "https://git.sv.gnu.org/git/gettext/po-mode.git"
+  :ignored-files ("texi2html")
+  :doc "po-mode.texi")
  (poke			:url "https://git.savannah.gnu.org/git/poke/poke-el.git"
   :doc "poke-el.texi"
   :ignored-files ("COPYING"))

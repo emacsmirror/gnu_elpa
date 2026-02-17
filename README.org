@@ -7,11 +7,11 @@ This is work in progress.
 It is currently based on the following revision of the English document:
 
 #+begin_example
-commit 6a08a9a54d4ff5aafe795c7a079709993c08dff3
-Author: Paul Eggert <eggert@cs.ucla.edu>
-Date:   Thu Jul 24 14:37:20 2025 -0700
+commit d705a86da451fa589e701b5b0400646375a0266d
+Author: Eli Zaretskii <eliz@gnu.org>
+Date:   Mon Feb 16 18:23:01 2026 +0200
 
-; Fix file name in "Loading Files" doc.
+    Fix cross-reference in Emacs Lisp Intro
 #+end_example
 
 ** Method
@@ -43,3 +43,6 @@ To generate a PDF from the texinfo file:
 #+begin_src 
 makeinfo -D 'EMACSVER x' --pdf emacs-lisp-intro-nl.texi
 #+end_src
+
+For more information about po-files, see:
+[[https://box.matto.nl/translate-texinfo-files-using-po4a.html]]

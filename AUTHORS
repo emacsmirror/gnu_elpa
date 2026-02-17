@@ -1,0 +1,17 @@
+Authors of Emacs PO mode.
+
+The following contributions warranted legal paper exchanges with the
+Free Software Foundation.  Some are for package GETTEXT, some for
+package EMACS.
+
+GETTEXT         François Pinard
+Assigns past and future changes.
+
+EMACS           Greg McGary
+Disclaims changes.  Assigns past and future changes.
+
+GETTEXT         Ulrich Drepper
+Assigns program and future changes.
+
+GETTEXT         Bruno Haible
+Assigns past and future changes.

@@ -194,7 +194,7 @@ msgstr "Revisada la tercera edici@'on"
 #: emacs-lisp-intro.texi:292
 #, no-wrap
 msgid "by Robert J. Chassell"
-msgstr "Escrito por Robert J. Chassell. Traducido por David Arroyo Men@'endez.\n"
+msgstr "Escrito por Robert J. Chassell. Traducido por David Arroyo Men@'endez."
 
 #. type: iftex
 #: emacs-lisp-intro.texi:303
@@ -203,7 +203,7 @@ msgid ""
 "@thispage"
 msgstr ""
 "@evenheading @thispage @| @| @thischapter \n"
-"@oddheading @thissection @| @| @thispage\n"
+"@oddheading @thissection @| @| @thispage"
 
 #. type: tex
 #: emacs-lisp-intro.texi:311
@@ -1104,7 +1104,7 @@ msgstr "if"
 #. type: menuentry
 #: emacs-lisp-intro.texi:463 emacs-lisp-intro.texi:3060
 msgid "What if?"
-msgstr "@questiondown{}Y qu@'e si?\n"
+msgstr "@questiondown{}Y qu@'e si?"
 
 #. type: node
 #: emacs-lisp-intro.texi:463 emacs-lisp-intro.texi:3060
@@ -4017,7 +4017,7 @@ msgid ""
 msgstr ""
 "@evenheading @thispage @| @| @thischapter\n"
 "@oddheading @thissection @| @| @thispage\n"
-"@global@pageno = 1\n"
+"@global@pageno = 1"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1112
@@ -5150,7 +5150,7 @@ msgstr ""
 "as@'{@dotless{i}}. Siempre se trabaja en la lista m@'as interna primero. El\n"
 "int@'erprete trabaja en la lista más interana primero, para evaluar el\n"
 "resultado de esta lista. El resultado puede ser usado por la\n"
-"expresi@'on entre par@'entesis.\n"
+"expresi@'on entre par@'entesis."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:1631
@@ -5491,7 +5491,7 @@ msgstr ""
 "cajones. La definici@'on de funci@'on se pone en un caj@'on, el valor en otro, y\n"
 "asi sucesivamente. Lo que se pone en el cajón que contiene el valor puede\n"
 "ser cambiado sin afectar los contenidos del caj@'on que almacena la\n"
-"definici@'on de funci@'on, y viceversa.\n"
+"definici@'on de funci@'on, y viceversa."
 
 #. type: node
 #: emacs-lisp-intro.texi:1801
@@ -5798,7 +5798,7 @@ msgstr ""
 msgid "Symbol's value as variable is void:@: +\n"
 msgstr ""
 "El valor de s@'{@dotless{i}}mbolo como variable est@'a\n"
-"vac@'{@dotless{i}}o:@: +"
+"vac@'{@dotless{i}}o:@: +\n"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1959
@@ -6010,7 +6010,7 @@ msgstr ""
 "un @'atomo indivisible y extrae una parte. Sin embargo,\n"
 "@code{substring} solo es capaz de extraer una subcadena desde un\n"
 "argumento que es una cadena, no otro tipo de @'atomo tal como un\n"
-"n@'umero o s@'{@dotless{i}}mbolo.\n"
+"n@'umero o s@'{@dotless{i}}mbolo."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:2064
@@ -9863,7 +9863,7 @@ msgid ""
 msgstr ""
 "Si no se une a las variables en una sentencia @code{let} con valores\n"
 "iniciales espec@'{@dotless{i}}ficos, autom@'aticamente seran unidos\n"
-"a un valor inicial de @code{nil}, como en la siguiente expresi@'on:\n"
+"a un valor inicial de @code{nil}, como en la siguiente expresi@'on:"
 
 #. type: group
 #: emacs-lisp-intro.texi:3835
@@ -10812,7 +10812,7 @@ msgstr ""
 "posici@'on previa del punto. Adem@'as, si tu asignas otra marca, la\n"
 "posici@'on puede ser guardada por este camino. Se puede saltar al\n"
 "cursor para una marca guardada escribiendo @kbd{C-u C-@key{SPC}} una o\n"
-"m@'as veces.\n"
+"m@'as veces."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4293
@@ -15086,7 +15086,8 @@ msgstr ""
 "Con prefijo \\\\[universal-argument], \n"
 "no se asigna una marca en la posici@'on previa.\n"
 "Con el argumento num@'erico N, pon el \n"
-"punto N/10 del camino desde el principio."
+"punto N/10 del camino desde el principio.\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:6397
@@ -15096,7 +15097,6 @@ msgid ""
 "this command uses the beginning and size\n"
 "of the accessible part of the buffer.\n"
 msgstr ""
-"\n"
 "Si el b@'uffer est@'a encogido\n"
 "este comando usa el principio y tama@~no\n"
 "de la parte accesible del b@'uffer.\n"
@@ -15163,7 +15163,7 @@ msgstr ""
 "  \"Mueve el punto al principio del buffer;\n"
 "deja la marca a la posici@'on previa.\n"
 "Con el arg N, pon el punto N/10 del camino \n"
-"desde el comienzo real."
+"desde el comienzo real.\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:6439
@@ -18498,7 +18498,7 @@ msgstr ""
 "@code{condition-case} causa que el int@'erprete Lisp eval@'ue el\n"
 "c@'odigo en @var{bodyform}. Si ning@'un error ocurre, la forma\n"
 "especial devuelve el valor del c@'odigo y produce efectos laterales,\n"
-"si hay.\n"
+"si hay."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:8242
@@ -22967,7 +22967,7 @@ msgstr ""
 "asteriscos en la primera fila al total, y entonces a@~nade el n@'umero\n"
 "de asteriscos en la segunda al total, y entonces a@~nade el n@'umero\n"
 "de asteriscos a la tercera fila al total, y as@'{@dotless{i}}, hasta\n"
-"que no hay m@'as filas a la izquierda para a@~nadir.\n"
+"que no hay m@'as filas a la izquierda para a@~nadir."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10703
@@ -25230,7 +25230,7 @@ msgstr ""
 "(el @sc{cdr}) de la lista,\n"
 "@item y, opcionalmente, se combina el elemento sobre el que act@'ua,\n"
 "usando @code{cons}, con los resultados de actuar en el resto.\n"
-"@end itemize \n"
+"@end itemize "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11774
@@ -25336,7 +25336,7 @@ msgstr ""
 "@itemize \n"
 "@item act@'ua al principio de la lista (el @sc{car} de la lista), \n"
 "@item y crea una llamada recursiva en el resto (el @sc{cdr} de la lista).\n"
-"@end itemize\n"
+"@end itemize "
 
 #. type: node
 #: emacs-lisp-intro.texi:11845
@@ -25410,7 +25410,7 @@ msgstr ""
 "@item y combinar este elemento que act@'ua, usando @code{+} o alguna\n"
 "otra funci@'on de combinaci@'on, con @item una llamada recursiva por\n"
 "la funci@'on en el resto (el @sc{cdr}) de la lista.\n"
-"@end itemize \n"
+"@end itemize "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11877
@@ -25525,7 +25525,7 @@ msgstr ""
 "@item para en este elemento, \n"
 "@item y, recursivamente llama la funci@'on al resto (el @sc{cdr}) de\n"
 "la lista. \n"
-"@end itemize\n"
+"@end itemize "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11937
@@ -25938,7 +25938,7 @@ msgid ""
 msgstr ""
 "@code{triangle-initialization} llamar@'a su ayudante con los\n"
 "argumentos @w{@code{0 0 1}}. Esta funci@'on ejecutar@'a el test\n"
-"condicional si @code{(> counter number)}:\n"
+"condicional si @code{(> counter number)}:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:12130
@@ -26588,7 +26588,8 @@ msgstr ""
 "string-quote. Normalmente, las dobles comillas es el @'unico caracter\n"
 "en esta clase. El asterisco, @samp{*}, indica que los\n"
 "@'{@dotless{i}}tems en el grupo previo (el grupo alrededor por\n"
-"comillas cuadradas, @samp{[]} puede ser repetido cero o m@'as veces."
+"comillas cuadradas, @samp{[]} puede ser repetido cero o m@'as veces.\n"
+"\n"
 
 #. type: item
 #: emacs-lisp-intro.texi:12437
@@ -26618,7 +26619,8 @@ msgstr ""
 "barras verticales usadas para indicarse que los patrones de un lado de\n"
 "ellos son alternativas. El signo del d@'olar es usados para indicar el\n"
 "fin de una l@'{@dotless{i}}nea y ambos espacios y el tabulador son\n"
-"cada uno insertados como est@'an para indicar lo que ellos son."
+"cada uno insertados como est@'an para indicar lo que ellos son.\n"
+"\n"
 
 #. type: item
 #: emacs-lisp-intro.texi:12447
@@ -26640,7 +26642,7 @@ msgstr ""
 "l@'{@dotless{i}}nea o el espacio en blanco siguiendo el periodo, marca\n"
 "de pregunta o marca de exclamaci@'on, pero no necesita, el retorno de\n"
 "carro es insertado como un retorno de carro devuelve par@'entesis\n"
-"cuadrados pero aqu@'{@dotless{i}} eso muestra @key{RET}."
+"cuadrados pero aqu@'{@dotless{i}} eso muestra @key{RET}.\n"
 
 #. type: section
 #: emacs-lisp-intro.texi:12457
@@ -33182,7 +33184,7 @@ msgstr ""
 "definiciones de funciones contienen menos de 10 palabras y\n"
 "s@'{@dotless{i}}mbolos, cuantas contienen entre 10 y 19 palabras y\n"
 "s@'{@dotless{i}}mbolos, cuantas contienen entre 20 y 29 palabras y\n"
-"s@'{@dotless{i}}mbolos, y as@'{@dotless{i}}.\n"
+"s@'{@dotless{i}}mbolos, y as@'{@dotless{i}}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15872
@@ -38211,7 +38213,7 @@ msgid ""
 "help information appears (By default, you must wait seven-tenths of a second "
 "before the information appears.  You can change that timing by changing the "
 "value of @code{tooltip-delay}.)"
-msgstr "\n"
+msgstr ""
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18209
@@ -40720,13 +40722,14 @@ msgid ""
 msgstr ""
 "Cuando este comando inserta texto cortado dentro del b@'uffer, eso\n"
 "honra a `yank-excluded-properties' y `yank-handler' como se describe\n"
-"la cadena de documentaci@'on para `insert-for-yank-1', que se ve. "
+"la cadena de documentaci@'on para `insert-for-yank-1', que se ve.\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19483
 #, no-wrap
 msgid "See also the command \\\\[yank-pop].\"\n"
-msgstr "\nVer tambi@'en el comando \\\\[yank-pop].\"\n"
+msgstr "Ver tambi@'en el comando \\\\[yank-pop].\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19491
@@ -40986,7 +40989,7 @@ msgstr ""
 "los argumentos que permanecen. El primer argumento es el que la\n"
 "expresi@'on @code{or} devuelve. Los dos argumentos que permanecen son\n"
 "las posiciones de punto y marca asignadas por el comando @code{yank}\n"
-"precedente.\n"
+"precedente."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19606
@@ -43400,7 +43403,7 @@ msgid ""
 "value of 2, by evaluating this expression:"
 msgstr ""
 "Por otro lado, si se pasa a @code{print-graph} un @code{vertical-step}\n"
-"valor de 2, evaluando esta expresi@'on:\n"
+"valor de 2, evaluando esta expresi@'on:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:20820

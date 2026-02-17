@@ -76,8 +76,8 @@ On GNU/Linux, all you need is: =gcc= and =make=. Then you can simply install thr
    #+begin_src emacs-lisp
      (use-package reader
        :straight '(reader :type git :host codeberg :repo "MonadicSheep/emacs-reader"
-     	      :files ("*.el" "render-core.so")
-     	      :pre-build ("make" "all")))
+     		     :files (:default "render-core.so")
+     		     :pre-build ("make" "all")))
    #+end_src
 
 #+begin_center

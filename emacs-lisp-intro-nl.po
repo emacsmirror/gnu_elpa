@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-02-17 10:11+0100\n"
+"POT-Creation-Date: 2026-02-17 10:27+0100\n"
 "PO-Revision-Date: 2026-02-10 12:02+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -106,15 +106,11 @@ msgstr "Gedistribueerd met Emacs versie @value{EMACSVER}."
 
 #. type: copying
 #: emacs-lisp-intro.texi:120
-#, fuzzy
-#| msgid ""
-#| "Copyright @copyright{} 1990--1995, 1997, 2001--2025 Free Software "
-#| "Foundation, Inc."
 msgid ""
 "Copyright @copyright{} 1990--1995, 1997, 2001--2026 Free Software "
 "Foundation, Inc."
 msgstr ""
-"Copyright @copyright{} 1990--1995, 1997, 2001--2025 Free Software "
+"Copyright @copyright{} 1990--1995, 1997, 2001--2026 Free Software "
 "Foundation, Inc."
 
 #. type: iftex
@@ -1591,7 +1587,7 @@ msgstr "Twee @code{save-excursion} expressies."
 #: emacs-lisp-intro.texi:5983
 #, no-wrap
 msgid "New insert-buffer"
-msgstr "Nieuw insert-buffer"
+msgstr "Nieuwe insert-buffer"
 
 #. type: subsection
 #: emacs-lisp-intro.texi:465 emacs-lisp-intro.texi:5667
@@ -7154,7 +7150,7 @@ msgid ""
 "@xref{Interactive, , Making a Function Interactive}."
 msgstr ""
 "Wanneer je toetsen aanslaat laat je de Lisp interpreter een expressie "
-"evalueren en zo krijg je je resultaten. Zelfs het typen van een platte tekst "
+"evalueren en zo krijg je je resultaten. Zelfs het typen van platte tekst "
 "houdt het evalueren van een Emacs Lisp functie in, in dit geval eentje dat "
 "het @code{self-insert-command} gebruikt, die eenvoudig het karakter dat je "
 "typte invoegt. De functies die je evalueert met het typen van toetsaanslagen "
@@ -7187,8 +7183,8 @@ msgid ""
 msgstr ""
 "Naast dat we ze voor evaluatie-oefeningen gebruiken, zijn de functies die in "
 "volgende secties behandeld worden op zichzelf belangrijk. Het bestuderen van "
-"deze functies verheldert het verschil tussen buffers en bestanden, hoe van "
-"buffer te switchen, en hoe een locatie er binnen vast te stellen."
+"deze functies verheldert het verschil tussen buffers en bestanden, hoe "
+"tussen buffer te schakelen, en hoe een locatie er binnen vast te stellen."
 
 #. type: item
 #: emacs-lisp-intro.texi:2559 emacs-lisp-intro.texi:4580
@@ -7292,11 +7288,10 @@ msgid ""
 "value returned by evaluating @code{(buffer-file-name)} is @file{\"/gnu/work/"
 "intro/introduction.texinfo\"}."
 msgstr ""
-"Aan de andere kant, terwijl ik dit document schrijf is de waarde die het "
-"evalueren van @code{(buffer-name)} teruggeeft, "
-"@file{\"introduction.texinfo\"} en de waarde die de evaluatie van "
-"@code{(buffer-file-name)} teruggeeft @file{\"/gnu/work/intro/"
-"introduction.texinfo\"}."
+"Anderzijds, terwijl ik dit document schrijf is de waarde die het evalueren "
+"van @code{(buffer-name)} teruggeeft, @file{\"introduction.texinfo\"} en de "
+"waarde die de evaluatie van @code{(buffer-file-name)} teruggeeft @file{\"/"
+"gnu/work/intro/introduction.texinfo\"}."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2605
@@ -7359,7 +7354,7 @@ msgid ""
 "smart as a person."
 msgstr ""
 "Ondanks het onderscheid tussen bestanden en buffers zie je vaak dat mensen "
-"aan een bestand refereren wanneer ze een buffer bedoelen en vice versa. "
+"aan een bestand refereren wanneer ze een buffer bedoelen en andersom. "
 "Inderdaad zeggen de meeste mensen ``ik edit een bestand'' in plaats van ``ik "
 "edit een buffer dat ik binnenkort naar een bestand ga saven''. Het is "
 "vrijwel altijd duidelijk van de context wat mensen bedoelen. Wanneer we met "
@@ -9242,17 +9237,6 @@ msgstr ""
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3528
-#, fuzzy
-#| msgid ""
-#| "Finally, if you have code that everyone who uses Emacs may want, you can "
-#| "post it on a computer network or send a copy to the Free Software "
-#| "Foundation.  (When you do this, please license the code and its "
-#| "documentation under a license that permits other people to run, copy, "
-#| "study, modify, and redistribute the code and which protects you from "
-#| "having your work taken from you.)  If you send a copy of your code to the "
-#| "Free Software Foundation, and properly protect yourself and others, it "
-#| "may be included in the next release of Emacs.  In large part, this is how "
-#| "Emacs has grown over the past years, by donations."
 msgid ""
 "Finally, if you have code that everyone who uses Emacs may want, you can "
 "post it on a computer network or send a copy to the Free Software "
@@ -9281,6 +9265,8 @@ msgid ""
 "@xref{Contributing, Contributing to Emacs Development,, emacs, The GNU Emacs "
 "Manual}, for how to contribute your code for inclusion in Emacs."
 msgstr ""
+"@xref{Contributing, Contributing to Emacs Development,, emacs, The GNU Emacs "
+"Manual}, over hoe bij te dragen met opname van je code in Emacs."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3538
@@ -9871,35 +9857,20 @@ msgstr "Binding, lexical"
 #. type: Plain text
 #: emacs-lisp-intro.texi:3789
 msgid "As we discussed before"
-msgstr ""
+msgstr "Zoals eerder besproken"
 
 #. type: iftex
 #: emacs-lisp-intro.texi:3791
-#, fuzzy
-#| msgid "Permanent Installation"
 msgid "(@pxref{Permanent Installation}),"
-msgstr "Permanent installeren"
+msgstr "(@pxref{Permanent installeren}),"
 
 #. type: ifnottex
 #: emacs-lisp-intro.texi:3794
-#, fuzzy
-#| msgid "Prevent confusion"
 msgid "(@pxref{Prevent confusion}),"
-msgstr "Voorkom verwarring"
+msgstr "(@pxref{Voorkom verwarring}),"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3803
-#, fuzzy
-#| msgid ""
-#| "As we discussed before (@pxref{Prevent confusion}), when you create local "
-#| "variables with @code{let} under lexical binding, those variables are "
-#| "valid only within the body of the @code{let} expression.  In other parts "
-#| "of your code, they have other meanings, so if you call a function defined "
-#| "elsewhere within the @code{let} body, that function would be unable to "
-#| "``see'' the local variables you've created.  (On the other hand, if you "
-#| "call a function that was defined within a @code{let} body, that function "
-#| "@emph{would} be able to see---and modify---the local variables from that "
-#| "@code{let} expression.)"
 msgid ""
 "when you create local variables with @code{let} under lexical binding, those "
 "variables are valid only within the body of the @code{let} expression.  In "
@@ -9910,15 +9881,15 @@ msgid ""
 "function @emph{would} be able to see---and modify---the local variables from "
 "that @code{let} expression.)"
 msgstr ""
-"Zoals we eerder besproken hebben (@pxref{Voorkom verwarring}), wanneer je "
-"lokale variabelen met @code{let} onder lexical binding creëert, zijn die "
-"variabelen alleen geldig in de body van de @code{let}-expressie. In andere "
-"delen van je code hebben ze geen betekenis, dus wanneer je een elders "
-"gedefinieerde functie aanroept vanuit de @code{let} body, kan die functie de "
-"lokale variabelen die je gemaakt hebt niet ``zien''. (Anderzijds, wanneer je "
-"een functie aanroept die was gedefinieerd in een @code{let} body. @emph{zou} "
-"die functie de locale variabelen van die @code{let}-expressie moeten kunnen "
-"zien en wijzigen."
+"wanneer je lokale variabelen met @code{let} onder lexical binding "
+"creëert, zijn die variabelen alleen geldig in de body van de "
+"@code{let}-expressie. In andere delen van je code hebben ze geen "
+"betekenis, dus wanneer je een elders gedefinieerde functie aanroept "
+"vanuit de @code{let} body, kan die functie de lokale variabelen die "
+"je gemaakt hebt niet ``zien''. (Anderzijds, wanneer je een functie "
+"aanroept die was gedefinieerd in een @code{let} body. @emph{zou} die "
+"functie de locale variabelen van die @code{let}-expressie moeten "
+"kunnen zien en wijzigen."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:3804
@@ -10326,10 +10297,7 @@ msgstr ""
 
 #. type: group
 #: emacs-lisp-intro.texi:3985 emacs-lisp-intro.texi:4153
-#, fuzzy, no-wrap
-#| msgid ""
-#| "(type--animal \"fierce\")\n"
-#| "\n"
+#, no-wrap
 msgid ""
 "(type-of-animal \"fierce\")\n"
 "\n"
@@ -13373,6 +13341,12 @@ msgid ""
 "@code{interactive} expression, use of @code{or}, and the important "
 "distinction between a name and the object to which the name refers."
 msgstr ""
+"In dit hoofdstuk bouwen we voort op wat in de vorige hoofdstukken hebben "
+"geleerd door naar meer complexe functies te kijken. De functie @code{copy-to-"
+"buffer} illustreert het gebruik van twee @code{save-excursion} expressies in "
+"één definitie, terwijl de @code{insert-buffer} het gebruik van een ster in "
+"een @code{interactive} expressie, het gebruik van @code{or}, en het "
+"belangrijke onderscheid tussen een naam en het object waar die aan refereert."
 
 #. type: section
 #: emacs-lisp-intro.texi:5511
@@ -13388,11 +13362,15 @@ msgid ""
 "but instead of adding to the second buffer, it replaces all the previous "
 "text in the second buffer."
 msgstr ""
+"Wanneer je begrijpt hoe @code{append-to-buffer} werkt, is het eenvoudig "
+"@code{copy-to-buffer} te begrijpen. Deze functie kopieert tekst naar een "
+"buffer, maar in plaats van het aan het tweede buffer toe te voegen vervangt "
+"het alle voorgaande tekst in het tweede buffer."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5521
 msgid "The body of @code{copy-to-buffer} looks like this,"
-msgstr ""
+msgstr "De body van @code{copy-to-buffer} ziet er zo uit."
 
 #. type: group
 #: emacs-lisp-intro.texi:5532
@@ -13407,6 +13385,14 @@ msgid ""
 "    (save-excursion\n"
 "      (insert-buffer-substring oldbuf start end)))))\n"
 msgstr ""
+"@dots{}\n"
+"(interactive \"BCopy to buffer: \\nr\")\n"
+"(let ((oldbuf (current-buffer)))\n"
+"  (with-current-buffer (get-buffer-create buffer)\n"
+"    (barf-if-buffer-read-only)\n"
+"    (erase-buffer)\n"
+"    (save-excursion\n"
+"      (insert-buffer-substring oldbuf start end)))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5537
@@ -13414,17 +13400,19 @@ msgid ""
 "The @code{copy-to-buffer} function has a simpler @code{interactive} "
 "expression than @code{append-to-buffer}."
 msgstr ""
+"De functie @code{copy-to-buffer} heeft een simpeler @code{interactive} "
+"expressie dan @code{append-to-buffer}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5540
 msgid "The definition then says"
-msgstr ""
+msgstr "De definitie zegt daarna:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:5543
 #, no-wrap
 msgid "(with-current-buffer (get-buffer-create buffer) @dots{}\n"
-msgstr ""
+msgstr "(with-current-buffer (get-buffer-create buffer) @dots{}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5555
@@ -13439,6 +13427,15 @@ msgid ""
 "@dots{}) @dots{})}} in one go, though it is defined slightly differently "
 "which interested reader can find out using @code{describe-function}.}."
 msgstr ""
+"Kijk ten eerste naar de vroegste binnen liggende expressie, die wordt het "
+"eerste geëvalueerd. De functie vertelt de computer het buffer te gebruiken "
+"met de naam gespecificeerd als diegene waarna je wilt kopiëren, of aan te "
+"maken als die niet bestaat. Daarna evalueert de functie @code{with-current-"
+"buffer} met dat als tijdelijk huidige buffer, waarna het terugschakelt naar "
+"de buffer waar wij nu zijn@footnote{Dit is vergelijkbaar met @w{@code{(save-"
+"excursion (set-buffer @dots{}) @dots{})}} in één keer aanroepen, maar het is "
+"een beetje anders gedefinieerd, wat de geïnteresseerde lezer met "
+"@code{describe-function} kan ontdekken.}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5561
@@ -13448,6 +13445,11 @@ msgid ""
 "@code{save-excursion} and @code{set-buffer}.  @code{with-current-buffer} is "
 "a newer, and arguably easier, mechanism.)"
 msgstr ""
+"(Dit demonstreert een andere manier om de aandacht van de computer maar niet "
+"die van de gebruiker te schakelen). De functie @code{append-to-buffer} "
+"toonde dit te doen met @code{save-excursion} and @code{set-buffer}. "
+"@code{with-current-buffer} is een nieuwer en misschien zelfs makkelijker "
+"mechanisme.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5564
@@ -13455,6 +13457,8 @@ msgid ""
 "The @code{barf-if-buffer-read-only} function sends you an error message "
 "saying the buffer is read-only if you cannot modify it."
 msgstr ""
+"De functie @code{barf-if-buffer-read-only} zend je een foutmelding die zegt "
+"dat het buffer read-only is wanneer je het niet mag wijzigen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5567
@@ -13462,6 +13466,8 @@ msgid ""
 "The next line has the @code{erase-buffer} function as its sole contents.  "
 "That function erases the buffer."
 msgstr ""
+"De volgende regel heeft de functie @code{erase-buffer} als enige inhoud. Het "
+"wist het buffer."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5574
@@ -13472,6 +13478,11 @@ msgid ""
 "have not seen the computer shift its attention, so you don't know that that "
 "buffer is now called @code{oldbuf})."
 msgstr ""
+"De laatste twee regels tenslotte bevatten de @code{save-excursion} expressie "
+"met @code{insert-buffer-substring} als body. De @code{insert-buffer-"
+"substring} expressie kopieert de tekst van het buffer waar je nu in bent (en "
+"je hebt niet gezien dat de computer zijn aandacht verplaatst heeft, waardoor "
+"je niet weet dat dit buffer nu @code{oldbuf} heet.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5577
@@ -13479,11 +13490,13 @@ msgid ""
 "Incidentally, this is what is meant by ``replacement''.  To replace text, "
 "Emacs erases the previous text and then inserts new text."
 msgstr ""
+"Overigens is dit wat bedoeld wordt met ``vervanging''. Om tekst te vervangen "
+"wist Emacs de vorige tekst en voegt daarna de nieuwe tekst in."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5580
 msgid "In outline, the body of @code{copy-to-buffer} looks like this:"
-msgstr ""
+msgstr "Globaal ziet de body van @code{copy-to-buffer} er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:5589
@@ -13496,6 +13509,12 @@ msgid ""
 "      (save-excursion\n"
 "        @var{insert-substring-from-}@code{oldbuf}@var{-into-buffer})))\n"
 msgstr ""
+"(let (@var{bind-}@code{oldbuf}@var{-aan-de-waarde-van-}@code{current-buffer})\n"
+"    (@var{met-het-buffer-waarheen-je-kopieert}\n"
+"      (@var{maar-wis-of-kopieer-niet-naar-een-read-only-buffer})\n"
+"      (erase-buffer)\n"
+"      (save-excursion\n"
+"        @var{insert-substring-van-}@code{oldbuf}@var{-in-buffer})))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5600
@@ -13505,6 +13524,10 @@ msgid ""
 "@code{append-to-buffer} or @code{copy-to-buffer}, since they copy a region "
 "of text @emph{from} the current buffer to another buffer."
 msgstr ""
+"@code{insert-buffer} is weer een andere buffer-gerelateerde functie. Het "
+"commando kopieert een ander buffer @emph{naar} het huidige buffer. Het is "
+"het omgekeerde van @code{append-to-buffer} of @code{copy-to-buffer}, deze "
+"kopiëren immers tekst @emph{van} het huidige buffer naar een ander buffer."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5603
@@ -13512,6 +13535,8 @@ msgid ""
 "Here is a discussion based on the original code.  The code was simplified in "
 "2003 and is harder to understand."
 msgstr ""
+"Hier is een bespreking gebaseerd op de originele code. De code is "
+"vereenvoudigd in 2003 en is moeilijker te begrijpen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5606
@@ -13519,6 +13544,8 @@ msgid ""
 "(@xref{New insert-buffer, , New Body for @code{insert-buffer}}, to see a "
 "discussion of the new body.)"
 msgstr ""
+"(@xref{Nieuwe insert-buffer, , Nieuwe body voor @code{insert-buffer}}, voor "
+"een bespreking van de nieuwe body."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5610
@@ -13527,6 +13554,10 @@ msgid ""
 "buffer that might be @dfn{read-only} and the important distinction between "
 "the name of an object and the object actually referred to."
 msgstr ""
+"Daarnaast illustreert deze code het gebruik van @code{interactive} met een "
+"buffer dat @dfn{read-only} zou kunnen zijn en het belangrijke onderscheid "
+"tussen de naam van een object en het object waar daadwerkelijk aan "
+"gerefereerd wordt. "
 
 #. type: node
 #: emacs-lisp-intro.texi:5622
@@ -13538,12 +13569,12 @@ msgstr "insert-buffer code"
 #: emacs-lisp-intro.texi:5623
 #, no-wrap
 msgid "The Code for @code{insert-buffer}"
-msgstr ""
+msgstr "De code voor @code{insert-buffer}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5628
 msgid "Here is the earlier code:"
-msgstr ""
+msgstr "Hier is de eerdere code:"
 
 #. type: group
 #: emacs-lisp-intro.texi:5636
@@ -13555,6 +13586,11 @@ msgid ""
 "BUFFER may be a buffer or a buffer name.\"\n"
 "  (interactive \"*bInsert buffer:@: \")\n"
 msgstr ""
+"(defun insert-buffer (buffer)\n"
+"  \"Insert after point the contents of BUFFER.\n"
+"Puts mark after the inserted text.\n"
+"BUFFER may be a buffer or a buffer name.\"\n"
+"  (interactive \"*bInsert buffer:@: \")\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:5645
@@ -13568,6 +13604,13 @@ msgid ""
 "        (set-buffer buffer)\n"
 "        (setq start (point-min) end (point-max)))\n"
 msgstr ""
+"  (or (bufferp buffer)\n"
+"      (setq buffer (get-buffer buffer)))\n"
+"  (let (start end newmark)\n"
+"    (save-excursion\n"
+"      (save-excursion\n"
+"        (set-buffer buffer)\n"
+"        (setq start (point-min) end (point-max)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:5650
@@ -13577,6 +13620,9 @@ msgid ""
 "      (setq newmark (point)))\n"
 "    (push-mark newmark)))\n"
 msgstr ""
+"      (insert-buffer-substring buffer start end)\n"
+"      (setq newmark (point)))\n"
+"    (push-mark newmark)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5656
@@ -13584,6 +13630,8 @@ msgid ""
 "As with other function definitions, you can use a template to see an outline "
 "of the function:"
 msgstr ""
+"Net als met andere functiedefinities kun je een sjabloon gebruiken voor een "
+"overzicht van de functie."
 
 #. type: group
 #: emacs-lisp-intro.texi:5663
@@ -13594,12 +13642,16 @@ msgid ""
 "  (interactive \"*bInsert buffer:@: \")\n"
 "  @var{body}@dots{})\n"
 msgstr ""
+"(defun insert-buffer (buffer)\n"
+"  \"@var{documentatie}@dots{}\"\n"
+"  (interactive \"*bInsert buffer:@: \")\n"
+"  @var{body}@dots{})\n"
 
 #. type: findex
 #: emacs-lisp-intro.texi:5668
 #, no-wrap
 msgid "interactive@r{, example use of}"
-msgstr ""
+msgstr "interactive@r{, voorbeeld gebruik van}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5673
@@ -13607,6 +13659,9 @@ msgid ""
 "In @code{insert-buffer}, the argument to the @code{interactive} declaration "
 "has two parts, an asterisk, @samp{*}, and @samp{bInsert buffer:@: }."
 msgstr ""
+"In @code{insert-buffer} heeft het argument van de @code{interactive} "
+"declaratie twee onderdelen, een sterretje, @samp{*} en @samp{bInsert "
+"buffer:@: }."
 
 #. type: unnumberedsubsubsec
 #: emacs-lisp-intro.texi:5680
@@ -13636,12 +13691,19 @@ msgid ""
 "not be permitted to insert anything into current buffer.  The asterisk does "
 "not need to be followed by a newline to separate it from the next argument."
 msgstr ""
+"Het sterretje is voor de situatie dat het huidige buffer een read-only "
+"buffer is---een buffer dat niet kan worden gewijzigd. Wanneer @code{insert-"
+"buffer} wordt aangeroepen terwijl het huidige buffer read-only is, wordt een "
+"boodschap hiervan in het echogebied getoond en de terminal can piepen of "
+"knipperen, het is niet toegestaan iets in het huidige buffer in te voegen. "
+"Het sterretje hoeft niet opgevolgd te worden met een nieuwe regel om het van "
+"het volgende argument te scheiden."
 
 #. type: unnumberedsubsubsec
 #: emacs-lisp-intro.texi:5694
 #, no-wrap
 msgid "@samp{b} in an Interactive Expression"
-msgstr ""
+msgstr "@samp{b} in een interactive expressie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5707
@@ -13657,6 +13719,15 @@ msgid ""
 "enabled.  If the buffer does not exist, you receive a message that says ``No "
 "match''; your terminal may beep at you as well."
 msgstr ""
+"Het volgende argument in de interactive-expressie begint met een kleine "
+"letter @samp{b}. (Dit is verschillend met de code voor @code{append-to-"
+"buffer}, die gebruikt een hoofdletter @samp{B}.) De kleine letter @samp{b} "
+"vertelt de Lisp interpreter dat het argument voor @code{insert-buffer} een "
+"bestaand buffer moet zijn, of de naam daarvan. (De optie hoofdletter "
+"@samp{B} is voor de mogelijkheid dat het buffer nog niet bestaat.) Emacs "
+"vraagt je naar de naam van het buffer en biedt een standaard buffer aan met "
+"completie voor de naam ingeschakeld. Wanneer het buffer niet bestaat, krijg "
+"je een boodschap ``No match'', en de terminal kan daarbij ook piepen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5712
@@ -13666,12 +13737,16 @@ msgid ""
 "with which we are already familiar and the @code{progn} special form with "
 "which we are not.  (It will be described later.)"
 msgstr ""
+"De nieuwe en vereenvoudigde code genereert een lijst voor "
+"@code{interactive}. Het gebruikt de functies @code{barf-if-buffer-read-only} "
+"en @code{read-buffer}, waar we al vertrouwd mee zijn en de speciale vorm "
+"@code{progn} waarmee we dat nog niet zijn. (Die wordt later beschreven.)"
 
 #. type: subsection
 #: emacs-lisp-intro.texi:5714
 #, no-wrap
 msgid "The Body of the @code{insert-buffer} Function"
-msgstr ""
+msgstr "De body van de @code{insert-buffer} functie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5722
@@ -13683,6 +13758,12 @@ msgid ""
 "expression contains the code which copies the other buffer into the current "
 "buffer."
 msgstr ""
+"De body van de functie @code{insert-buffer} heeft twee belangrijke delen: "
+"een @code{or} expressie en een @code{let} expressie. Het doel van de "
+"@code{or} is zeker te stellen dat het argument van @code{buffer} gebonden is "
+"aan een buffer niet slechts aan de naam van een buffer. De body van de "
+"@code{let} expressie bevat de code die het andere buffer in het huidige "
+"kopieert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5726
@@ -13690,6 +13771,8 @@ msgid ""
 "In outline, the two expressions fit into the @code{insert-buffer} function "
 "like this:"
 msgstr ""
+"Globaal passen de twee expressies als volgt in de functie @code{insert-"
+"buffer}: "
 
 #. type: group
 #: emacs-lisp-intro.texi:5734
@@ -13701,6 +13784,11 @@ msgid ""
 "  (or @dots{}\n"
 "      @dots{}\n"
 msgstr ""
+"(defun insert-buffer (buffer)\n"
+"  \"@var{documentatie}@dots{}\"\n"
+"  (interactive \"*bInsert buffer:@: \")\n"
+"  (or @dots{}\n"
+"      @dots{}\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:5738
@@ -13709,6 +13797,8 @@ msgid ""
 "  (let (@var{varlist})\n"
 "      @var{body-of-}@code{let}@dots{} )\n"
 msgstr ""
+"  (let (@var{varlist})\n"
+"      @var{body-of-}@code{let}@dots{} )\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5744
@@ -13717,6 +13807,9 @@ msgid ""
 "@code{buffer} is bound to a buffer and not to the name of a buffer, it is "
 "first necessary to understand the @code{or} function."
 msgstr ""
+"Om te begrijpen hoe de @code{or} zeker stelt dat het argument van "
+"@code{buffer} gebonden is aan een buffer en niet aan de naam van een buffer, "
+"is het eerst nodig de functie @code{or} te begrijpen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5747
@@ -13724,12 +13817,15 @@ msgid ""
 "Before doing this, let me rewrite this part of the function using @code{if} "
 "so that you can see what is done in a manner that will be familiar."
 msgstr ""
+"Laat mij eerst, voor dat we dat doen, dit deel van de functie met @code{if} "
+"herschrijven, zodat je kunt zien wat er gebeurt op een manier die vertrouwd "
+"is."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:5749
 #, no-wrap
 msgid "@code{insert-buffer} With an @code{if} Instead of an @code{or}"
-msgstr ""
+msgstr "@code{insert-buffer} met een @code{if} in plaats van een @code{or}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5754
@@ -13738,6 +13834,9 @@ msgid ""
 "itself and not the name of a buffer.  If the value is the name, then the "
 "buffer itself must be got."
 msgstr ""
+"De taak die gedaan moet worden is zorgen dat de waarde van @code{buffer} "
+"echt een buffer en niet de naam van een buffer. Wanneer de waarde de naam "
+"is, dan moet het buffer zelf worden verkregen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5759
@@ -13747,11 +13846,15 @@ msgid ""
 "to your name, not to you; but when the usher finds you and takes your arm, "
 "the usher becomes bound to you."
 msgstr ""
+"Stel je voor dat je op een conferentie bent en de ceremoniemeester loopt "
+"rond met een lijst waar je naam op staat en je zoekt: de ceremoniemeester is "
+"gebonden aan je naam, niet aan jou, maar wanneer die je vindt en je bij je "
+"arm neemt, raakt de ceremoniemeester gebonden aan jou."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5762
 msgid "In Lisp, you might describe this situation like this:"
-msgstr ""
+msgstr "In Lisp kan je deze situatie als volgt beschrijven:"
 
 #. type: group
 #: emacs-lisp-intro.texi:5767
@@ -13760,6 +13863,8 @@ msgid ""
 "(if (not (holding-on-to-guest))\n"
 "    (find-and-take-arm-of-guest))\n"
 msgstr ""
+"(if (not (gast-vasthouden))\n"
+"    (vind-en-neem-gast-bij-de arm))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5772
@@ -13767,6 +13872,8 @@ msgid ""
 "We want to do the same thing with a buffer---if we do not have the buffer "
 "itself, we want to get it."
 msgstr ""
+"Wij willen hetzelfde doen met een buffer---wanneer we niet het buffer zelf "
+"hebben, willen we het krijgen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5776
@@ -13774,6 +13881,8 @@ msgid ""
 "Using a predicate called @code{bufferp} that tells us whether we have a "
 "buffer (rather than its name), we can write the code like this:"
 msgstr ""
+"Met een predicate met de naam @code{bufferp} die ons vertelt of we een "
+"buffer (in plaats van een naam hebben) schrijven we de code als volgt:"
 
 #. type: group
 #: emacs-lisp-intro.texi:5781
@@ -13782,6 +13891,8 @@ msgid ""
 "(if (not (bufferp buffer))              ; @r{if-part}\n"
 "    (setq buffer (get-buffer buffer)))  ; @r{then-part}\n"
 msgstr ""
+"(if (not (bufferp buffer))              ; @r{if-deel}\n"
+"    (setq buffer (get-buffer buffer)))  ; @r{dan-deel}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5788
@@ -13790,6 +13901,9 @@ msgid ""
 "(bufferp buffer))}}; and the then-part is the expression @w{@code{(setq "
 "buffer (get-buffer buffer))}}."
 msgstr ""
+"De waar-of-onwaar-test van de @code{if} expresse is hier @w{@code{(not "
+"(bufferp buffer))}} en het dan-deel is de expressie @w{@code{(setq buffer "
+"(get-buffer buffer))}}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5797
@@ -13802,6 +13916,14 @@ msgid ""
 "determine whether some property is true or false.  @xref{Wrong Type of "
 "Argument, , Using the Wrong Type Object as an Argument}.)"
 msgstr ""
+"In de test geeft de functie @code{bufferp} waar terug wanneer het argument "
+"een buffer is---maar onwaar wanneer het argument de naam van een buffer is. "
+"(Het laatste karakter van de functienaam @code{bufferp} is het karakter "
+"@samp{p}, zoals we eerder zagen is het gebruik van @samp{p} een conventie "
+"die aangeeft dat de functie een predicate is, wat een term is die betekent "
+"dat de vaststelt of een bepaalde eigenschap waar of onwaar is. "
+"@xref{Verkeerde type argument, , Het verkeerde object type als argument "
+"gebruiken}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5801
@@ -13809,12 +13931,14 @@ msgid ""
 "The function @code{not} precedes the expression @code{(bufferp buffer)}, so "
 "the true-or-false-test looks like this:"
 msgstr ""
+"De functie @code{not} gaat vooraf aan de expressie @code{(bufferp buffer)}, "
+"waardoor de waar-of-onwaar-test er zo uit ziet:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:5804
 #, no-wrap
 msgid "(not (bufferp buffer))\n"
-msgstr ""
+msgstr "(not (bufferp buffer))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5810
@@ -13823,6 +13947,9 @@ msgid ""
 "false if its argument is true.  So if @code{(bufferp buffer)} returns true, "
 "the @code{not} expression returns false and vice versa."
 msgstr ""
+"@code{not} is een functie die waar teruggeeft wanneer zijn argument onwaar "
+"is en onwaar als zijn argument waar is. Dus wanneer @code{(bufferp buffer)} "
+"waar teruggeeft, geeft de @code{not} onwaar terug, en omgekeerd."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5817
@@ -13833,6 +13960,11 @@ msgid ""
 "evaluate the then-part.  This is fine, since we do not need to do anything "
 "to the variable @code{buffer} if it really is a buffer."
 msgstr ""
+"Met deze test werkt de @code{if} expressie als volgt: wanneer de waarde van "
+"de variabele @code{buffer} inderdaad een buffer is in plaats van zijn naam, "
+"geeft de waar-of-onwaar-test onwaar terug en evalueert de @code{if} "
+"expressie het dan-deel niet. Dat is prima, omdat we niets hoeven te doen met "
+"de variabele @code{buffer} wanneer die werkelijk een buffer is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5826
@@ -13846,12 +13978,19 @@ msgid ""
 "the buffer itself, replacing its previous value (which was the name of the "
 "buffer)."
 msgstr ""
+"Aan de andere kant, wanneer de waarde van @code{buffer} geen buffer is, maar "
+"de naam van een buffer, geeft de waar-of-onwaar-test waar terug en wordt het "
+"dan-deel geëvalueerd. In dit geval is het dan-deel @code{(setq buffer (get-"
+"buffer buffer))}. Deze expressie gebruikt de functie @code{get-buffer} om op "
+"basis van de naam het buffer zelf terug te geven. De @code{setq} stelt "
+"vervolgens de variabele @code{buffer} in op de waarde van het buffer zelf en "
+"vervangt zo de waarde (die de naam van het buffer was)."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:5828
 #, no-wrap
 msgid "The @code{or} in the Body"
-msgstr ""
+msgstr "De @code{or} in de body"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5836
@@ -13863,13 +14002,19 @@ msgid ""
 "buffer} function actually uses @code{or}.  To understand this, it is "
 "necessary to understand how @code{or} works."
 msgstr ""
+"Het doel van de e @code{or} expressie in de functie @code{insert-buffer} is "
+"zeker te stellen dat het argument van @code{buffer} gebonden is aan een "
+"buffer niet slechts de naam van een buffer. De vorige sectie liet zien hoe "
+"deze taak met een @code{if} expressie gedaan kan worden. Echter, de functie "
+"@code{insert-buffer} gebruikt @code{or}. Om dit te begrijpen, is het nodig "
+"te begrijpen hoe @code{or} werkt."
 
 #. type: exdent
 #: emacs-lisp-intro.texi:5837 emacs-lisp-intro.texi:6465
 #: emacs-lisp-intro.texi:17964
 #, no-wrap
 msgid "or"
-msgstr ""
+msgstr "of"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5843
@@ -13880,6 +14025,11 @@ msgid ""
 "not evaluate any subsequent arguments after returning the first non-"
 "@code{nil} value."
 msgstr ""
+"Een @code{or} functie kan allerlei argumenten hebben. Het evalueert elk "
+"argument op zijn beurt en geeft de waarde van het eerste van de argumenten "
+"dat niet @code{nil} is. Dus, en dit is een cruciale eigenschap van "
+"@code{or}, evalueert het geen verdere argumenten na het teruggeven van de "
+"eerste non-@code{nil} waarde."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5846
@@ -14078,7 +14228,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:5984
 #, no-wrap
 msgid "New Body for @code{insert-buffer}"
-msgstr ""
+msgstr "Nieuwe body voor @code{insert-buffer}"
 
 #. type: findex
 #: emacs-lisp-intro.texi:5985

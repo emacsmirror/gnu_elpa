@@ -162,5 +162,21 @@
       (should (equal res
                      '(0 "00000000: 456d 6163 73                             Emacs\n"))))))
 
+(ert-deftest futur-process-bounded ()
+  (let* ((futures ())
+         (start (float-time))
+         (futur-process-max 2))
+    (dotimes (_ 10)
+      (push (futur--process-bounded #'futur-timeout 0.1) futures))
+    (futur-blocking-wait-to-get-result (apply #'futur-list futures))
+    (should (<= 0.5 (- (float-time) start) 0.6)))
+  (let* ((futures ())
+         (start (float-time))
+         (futur-process-max 3))
+    (dotimes (_ 10)
+      (push (futur--process-bounded #'futur-timeout 0.1) futures))
+    (futur-blocking-wait-to-get-result (apply #'futur-list futures))
+    (should (<= 0.4 (- (float-time) start) 0.5))))
+
 (provide 'futur-tests)
 ;;; futur-tests.el ends here

@@ -643,39 +643,44 @@ Returns non-nil if it waited the full TIME."
 
 ;;;; Processes
 
-(defcustom futur-process-max
-  (if (fboundp 'num-processors) (num-processors) 2)
-  "Maximum number of concurrent subprocesses."
-  :type 'integer)
+(defvar futur-process-max
+  (if (fboundp 'num-processors) ;; Emacs-28
+      (num-processors) 2)
+  "Maximum number of concurrent subprocesses.")
 
 (defvar futur--process-active nil
   "List of active process-futures.")
 
-(defvar futur--process-waiting nil
-  "List of process-futures waiting to start.")
+(defvar futur--process-waiting (futur--queue)
+  "Queue of futures waiting to start
+Each element is of the form (FUTURE FUN . ARGS).")
 
 (defun futur--process-bounded (&rest args)
   (if (< (length futur--process-active) futur-process-max)
-      (let ((new (apply #'funcall args)))
-        (push new futur--process-active)
-        (futur--register-callback
-         new (oclosure-lambda (futur--aux) (_ _) (futur--process-next new)))
-        new)
+      (futur--process-bounded-start args)
     (let ((new (futur--waiting 'waiting)))
-      (push (cons new args) futur--process-waiting)
+      (futur--queue-enqueue futur--process-waiting (cons new args))
       new)))
+
+(defun futur--process-bounded-start (args)
+  (let ((new (apply #'funcall args)))
+    (push new futur--process-active)
+    (futur--register-callback
+     new (oclosure-lambda (futur--aux) (_ _) (futur--process-next new)))
+    new))
 
 (defun futur--process-next (done)
   (setq futur--process-active (delq done futur--process-active))
   (cl-block nil
-   (while futur--process-waiting
-    (pcase-let ((`(,fut . ,call) (pop futur--process-waiting)))
-      (pcase fut
-        ((futur--waiting)
-         (let ((new (apply #'futur--process-bounded call)))
-          (futur--register-callback
-           new (lambda (err val) (futur--deliver new err val)))
-          (cl-return))))))))
+    (while (not (futur--queue-empty-p futur--process-waiting))
+      (pcase-let ((`(,fut . ,call)
+                   (futur--queue-dequeue futur--process-waiting)))
+        (pcase fut
+          ((futur--waiting)
+           (let ((new (futur--process-bounded-start call)))
+             (futur--register-callback
+              new (lambda (err val) (futur--deliver fut err val)))
+             (cl-return))))))))
 
 (cl-defmethod futur-blocker-abort ((_ (eql 'waiting)) _error)
   nil)

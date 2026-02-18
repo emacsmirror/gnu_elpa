@@ -51,6 +51,23 @@
              (list (+ x1 x2) (error "Wow!")))))
     (should-error (futur-blocking-wait-to-get-result p) :type 'scan-error)))
 
+(ert-deftest futur-ordering ()
+  "Test order of execution of callbacks."
+  (let* ((x '())
+         (fut1 (futur-timeout 0))
+         (fut21 (futur-bind fut1 (lambda (_) (push 'fut21 x) x)))
+         (fut22 (futur-bind fut1 (lambda (_) (push 'fut22 x) x)))
+         (fut3 (futur-list fut22 fut21)))
+    (should (equal (futur-blocking-wait-to-get-result fut3)
+                   '((fut22 fut21) (fut21)))))
+  (let* ((x '())
+         (fut1 (futur-timeout 0))
+         (fut22 (futur-bind fut1 (lambda (_) (push 'fut22 x) x)))
+         (fut21 (futur-bind fut1 (lambda (_) (push 'fut21 x) x)))
+         (fut3 (futur-list fut22 fut21)))
+    (should (equal (futur-blocking-wait-to-get-result fut3)
+                   '((fut22) (fut21 fut22))))))
+
 (ert-deftest futur-timeout ()
   (let* ((x '())
          (_timer1 (run-with-timer 0.1 nil (lambda () (push 'timer1 x))))
@@ -72,6 +89,23 @@
                  (futur-let* ((_ <- (futur-timeout 0.3))) (cons 'b x))))
          (res (futur-blocking-wait-to-get-result futur)))
     (should (equal res '((a timer1) (b timer1))))))
+
+(ert-deftest futur-race ()
+  (let* ((x '())
+         (timescale 0.1)
+         (_timer1 (run-with-timer (* 2 timescale) nil (lambda () (push 'timer1 x))))
+         (futur (futur-race
+                 (futur-let* ((_ <- (futur-timeout (* 2 timescale))))
+                   (push 'a x) x)
+                 (futur-let* ((_ <- (futur-timeout (* 1 timescale))))
+                   (push 'b x) x)
+                 (futur-let* ((_ <- (futur-timeout (* 3 timescale))))
+                   (push 'c x) x)))
+         (res (futur-blocking-wait-to-get-result
+               (futur-list (futur-let* ((_ <- (futur-timeout (* 4 timescale))))
+                            x)
+                           futur))))
+   (should (equal res '((timer1 b) (b))))))
 
 (ert-deftest futur-abort ()
   (let* ((x '())

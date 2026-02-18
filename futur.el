@@ -146,9 +146,43 @@
 
 (require 'cl-lib)
 
-(defvar futur--pending () "List of pending operations.")
-(defvar futur--pending-r ()
-  "List of additional pending operations in reverse-order.")
+(cl-defstruct (futur--queue
+               (:conc-name futur--queue-)
+               (:constructor nil)
+               (:constructor futur--queue ()
+                "Return a new empty `futur--queue'."))
+  head revtail)
+
+(defun futur--queue-enqueue (queue val)
+  "Add VAL to the end of the QUEUE."
+  (push val (futur--queue-revtail queue)))
+
+(defun futur--queue-empty-p (queue)
+  "Return non-nil if and only if the QUEUE is empty."
+  (and (null (futur--queue-head queue))
+       (let ((tail (futur--queue-revtail queue)))
+         (if tail
+             (progn
+               (setf (futur--queue-head queue) (nreverse tail))
+               (setf (futur--queue-revtail queue) nil)
+               nil)
+           t))))
+
+(defun futur--queue-dequeue (queue)
+  "Remove the first element from the QUEUE and return it.
+It's an error to use it without checking first with `futur--queue-empty-p'
+that it is not empty."
+  (let ((h (futur--queue-head queue)))
+    (cl-assert h)
+    (setf (futur--queue-head queue) (cdr h))
+    (car h)))
+
+(defun futur--queue-requeue (queue val)
+  "Push VAL back to the head of the QUEUE."
+  (push val (futur--queue-head queue)))
+
+(defvar futur--pending (futur--queue)
+  "Pending operations.")
 
 (defconst futur--pending-mutex (make-mutex "futur-pending"))
 (defconst futur--pending-condition
@@ -166,15 +200,9 @@
     (while t
       (let ((pending
              (with-mutex futur--pending-mutex
-               (while (and (null futur--pending)
-                           (or (null futur--pending-r)
-                               (progn
-                                 (setq futur--pending
-                                       (nreverse futur--pending-r))
-                                 (setq futur--pending-r nil)
-                                 nil)))
+               (while (futur--queue-empty-p futur--pending)
                  (condition-wait futur--pending-condition))
-               (pop futur--pending))))
+               (futur--queue-dequeue futur--pending))))
         (with-demoted-errors "future--background: %S"
           (apply pending))))))
 
@@ -198,7 +226,7 @@ time or order of execution."
   (if (not (fboundp 'make-thread))      ;Emacs<26
       (apply #'run-with-timer 0 nil args)
     (with-mutex futur--pending-mutex
-      (push args futur--pending-r)
+      (futur--queue-enqueue futur--pending args)
       ;; FIXME: Maybe we should have combination
       ;; `mutex-unlock+condition-notify', i.e. a variant of
       ;; `condition-notify' which doesn't regrab the lock?

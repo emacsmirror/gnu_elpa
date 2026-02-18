@@ -327,6 +327,9 @@
   :doc "ellama.info")
  (emacs-gc-stats	:url "https://git.sr.ht/~yantar92/emacs-gc-stats"
   :ignored-files ("COPYING"))
+ ;; (emacs-lisp-intro-es	:url "https://git.sv.gnu.org/git/elisp-es.git"
+ ;;  :make "emacs-lisp-intro-es.texi"
+ ;;  :doc "emacs-lisp-intro-es.texi")
  (emacs-lisp-intro-nl	:url "https://codeberg.org/mattof/emacs-lisp-intro-nl"
   :make "emacs-lisp-intro-nl.texi"
   :doc "emacs-lisp-intro-nl.texi")
@@ -427,7 +430,7 @@
  (highlight-escape-sequences
   			:url "https://github.com/dgutov/highlight-escape-sequences/")
  (hook-helpers		:url "https://git.savannah.nongnu.org/git/hook-helpers-el.git")
- (hotfuzz		:url "https://github.com/axelf4/hotfuzz")
+ ;; (hotfuzz		:url "https://github.com/axelf4/hotfuzz")
  (html5-schema		:url nil)
  (hugoista		:url "https://codeberg.org/c-alpha/hugoista")
  (hydra			:url "https://github.com/abo-abo/hydra"

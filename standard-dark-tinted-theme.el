@@ -40,13 +40,6 @@
 
 (require 'standard-themes)
 
-;;;###theme-autoload
-(deftheme standard-dark-tinted
-  "Night sky variant of standard-dark theme."
-  :background-mode 'dark
-  :kind 'color-scheme
-  :family 'standard)
-
 (defconst standard-dark-tinted-palette
   (modus-themes-generate-palette
    '((bg-main     "#182440")

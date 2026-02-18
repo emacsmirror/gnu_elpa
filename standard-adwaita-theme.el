@@ -1,4 +1,4 @@
-;;; standard-adwaita-theme.el --- Like the built-in adwaita theme, but more consistent -*- lexical-binding: t; -*-
+;;; standard-adwaita-theme.el --- Like the built-in adwaita theme, but more consistent  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Free Software Foundation, Inc.
 
@@ -36,13 +36,6 @@
 ;;; Code:
 
 (require 'standard-themes)
-
-;;;###theme-autoload
-(deftheme standard-adwaita
-  "Like the built-in adwaita theme, but more consistent."
-  :background-mode 'light
-  :kind 'color-scheme
-  :family 'standard)
 
 (defcustom standard-adwaita-palette-overrides nil
   "Overrides for `adwaita-palette'."

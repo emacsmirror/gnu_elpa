@@ -40,13 +40,6 @@
 
 (require 'standard-themes)
 
-;;;###theme-autoload
-(deftheme standard-light
-  "Like the unthemed light Emacs, but more consistent."
-  :background-mode 'light
-  :kind 'color-scheme
-  :family 'standard)
-
 (defconst standard-light-palette
   (modus-themes-generate-palette
    '((bg-main     "#ffffff")

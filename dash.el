@@ -24,9 +24,19 @@
 
 ;;; Commentary:
 
-;; A modern list API for Emacs.
-;;
-;; See its overview at https://github.com/magnars/dash.el#functions.
+;; Dash is a library implementing utility functions to help fascilitate
+;; Clojure-style functional programming patterns, such as providing
+;; various higher-order functions (map, reduce, filter, ...) and derived
+;; functionality (drop, flatten, sum, ...), functional combinators
+;; (partial application, argument flipping, composition, ...) and
+;; threading and anaphoric macros with destructuring support.
+
+;; Dash is commonly used to provide a common baseline for consistent
+;; functions, which is especially useful for packages that want to
+;; support older releases of Emacs.
+
+;; For further details please consult the Info node `(dash) Top' or read
+;; the manual via the WWW: https://elpa.gnu.org/packages/doc/dash.html.
 
 ;;; Code:
 

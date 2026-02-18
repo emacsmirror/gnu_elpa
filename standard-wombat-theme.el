@@ -1,4 +1,4 @@
-;;; standard-wombat-theme.el --- Like the built-in wombat theme, but more consistent  -*- lexical-binding: t; -*-
+;;; standard-wombat-theme.el --- Like the built-in wombat theme, but more consistent -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Free Software Foundation, Inc.
 
@@ -37,6 +37,13 @@
 ;;; Code:
 
 (require 'standard-themes)
+
+;;;###theme-autoload
+(deftheme standard-wombat
+  "Like the built-in wombat theme, but more consistent."
+  :background-mode 'dark
+  :kind 'color-scheme
+  :family 'standard)
 
 (defconst standard-wombat-palette
   (modus-themes-generate-palette

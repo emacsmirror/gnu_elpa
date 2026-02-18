@@ -40,6 +40,13 @@
 
 (require 'standard-themes)
 
+;;;###theme-autoload
+(deftheme standard-light-tinted
+  "Light ochre variant of the standard-light theme."
+  :background-mode 'light
+  :kind 'color-scheme
+  :family 'standard)
+
 (defconst standard-light-tinted-palette
   (modus-themes-generate-palette
    '((bg-main     "#eeecd9")

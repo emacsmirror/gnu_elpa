@@ -327,7 +327,7 @@
   :doc "ellama.info")
  (emacs-gc-stats	:url "https://git.sr.ht/~yantar92/emacs-gc-stats"
   :ignored-files ("COPYING"))
- ;; (emacs-lisp-intro-es	:url "https://git.sv.gnu.org/git/elisp-es.git"
+ ;; (emacs-lisp-intro-es	:url "https://git.savannah.gnu.org/git/elisp-es.git"
  ;;  :make "emacs-lisp-intro-es.texi"
  ;;  :doc "emacs-lisp-intro-es.texi")
  (emacs-lisp-intro-nl	:url "https://codeberg.org/mattof/emacs-lisp-intro-nl"
@@ -682,7 +682,7 @@
   :doc "plz-media-type.org")
  (plz-see		:url "https://github.com/astoff/plz-see.el"
   :readme "README.org")
- (po-mode		:url "https://git.sv.gnu.org/git/gettext/po-mode.git"
+ (po-mode		:url "https://git.savannah.gnu.org/git/gettext/po-mode.git"
   :ignored-files ("texi2html")
   :doc "po-mode.texi")
  (poke			:url "https://git.savannah.gnu.org/git/poke/poke-el.git"
@@ -702,7 +702,7 @@
  (preview-tailor	:url "https://github.com/ultronozm/preview-tailor.el")
  (project		:core "lisp/progmodes/project.el")
  (psgml               	:url nil) ;; Was https://github.com/lenst/psgml.git
- (pspp-mode		:url nil ;; Was "https://git.sv.gnu.org/git/pspp.git"
+ (pspp-mode		:url nil ;; Was "https://git.savannah.gnu.org/git/pspp.git"
   ;; FIXME: We actually used a filtered version of pspp.git using:
   ;;     git filter-branch                                           \
   ;;         --index-filter "git read-tree --empty;                  \

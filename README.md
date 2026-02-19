@@ -51,19 +51,21 @@ code contributions.
 Source code
 -----------
 
-Xref-union.el is developed on [SourceHut].
+Xref-union.el is developed on [Codeberg].
 
-[SourceHut]:
-	https://git.sr.ht/~pkal/xref-union/
+[Codeberg]:
+	https://codeberg.org/pkal/xref-union.el
 
 Bugs and Patches
 ----------------
 
-Bugs, patches, comments or questions can be submitted to my [public
-inbox].
+Bugs, patches, comments or questions can be submitted via [Codeberg's
+issue system] or by sending [me] an email.
 
-[public inbox]:
-	https://lists.sr.ht/~pkal/public-inbox
+[Codeberg's issue system]:
+	https://codeberg.org/pkal/xref-union.el/issues
+[me]:
+	https://sdf.org/~pkal#contact
 
 Distribution
 ------------

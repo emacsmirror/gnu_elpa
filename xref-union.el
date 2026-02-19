@@ -1,10 +1,10 @@
 ;;; xref-union.el --- Combine multiple Xref backends  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2023  Free Software Foundation, Inc.
+;; Copyright (C) 2023, 2026  Free Software Foundation, Inc.
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
-;; Maintainer: Philip Kaludercic <~pkal/public-inbox@lists.sr.ht>
-;; URL: https://git.sr.ht/~pkal/xref-union/
+;; Maintainer: Philip Kaludercic <philipk@posteo.net>
+;; URL: https://codeberg.org/pkal/xref-union.el
 ;; Version: 0.2.0
 ;; Package-Requires: ((emacs "25.1"))
 

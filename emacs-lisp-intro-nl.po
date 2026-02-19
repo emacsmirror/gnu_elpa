@@ -15436,19 +15436,19 @@ msgstr ""
 #: emacs-lisp-intro.texi:6513
 #, no-wrap
 msgid "Focusing attention (narrowing)"
-msgstr ""
+msgstr "Aandacht richten (versmallen)"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:6514
 #, no-wrap
 msgid "Narrowing"
-msgstr ""
+msgstr "Versmallen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:6515
 #, no-wrap
 msgid "Widening"
-msgstr ""
+msgstr "Verbreden"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6521
@@ -15457,12 +15457,17 @@ msgid ""
 "specific part of a buffer, and work without accidentally changing other "
 "parts.  Narrowing is normally disabled since it can confuse novices."
 msgstr ""
+"Versmallen is een eigenschap van Emacs die het mogelijk maakt je "
+"aandacht te richten op een specifiek deel van een buffer, en te "
+"werken zonder dat je per ongeluk iets in de andere delen wijzigt. "
+"Versmallen is normaal gesproken uitgeschakeld omdat het verwarrend "
+"is voor beginners."
 
 #. type: unnumberedsec
 #: emacs-lisp-intro.texi:6531
 #, no-wrap
 msgid "The Advantages of Narrowing"
-msgstr ""
+msgstr "De voordelen van versmallen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6543
@@ -15477,6 +15482,16 @@ msgid ""
 "region you want.  (The key binding for @code{narrow-to-region} is @kbd{C-x n "
 "n}.)"
 msgstr ""
+"Met versmallen is de rest van het buffer onzichtbaar, alsof het er "
+"niet is. Dit is een voordeel wanneer je bijvoorbeeld een woord in "
+"een deel van het buffer wilt vervangen, maar niet in een ander deel: "
+"je versmalt naar het deel dat je wilt en de vervanging wordt alleen "
+"in dat deel uitgevoerd en niet in de rest van het buffer. Zoeken "
+"werkt ook binnen een versmald gebied, niet daarbuiten, zodat als je "
+"een deel van een document aan het verbeteren bent, je jezelf "
+"beschermt tegen per ongeluk vinden van delen die je niet wilt "
+"verbeteren door te versmallen naar precies dat gebied dat je wilt. "
+"(De toetscombinatie voor @code{narrow-to-region} is @kbd{C-x n n}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6552
@@ -15489,6 +15504,14 @@ msgid ""
 "of a buffer to visibility with the @code{widen} command.  (The key binding "
 "for @code{widen} is @kbd{C-x n w}.)"
 msgstr ""
+"Versmallen maakt echter de rest van het buffer onzichtbaar, wat "
+"mensen bang kan maken die onbedoeld versmalling aanroepen en denken "
+"dat ze een deel van het buffer verwijderd hebben. Verder zet het "
+"@code{undo} commando (wat normaal gebonden is aan @kbd{C-x u}) het "
+"versmallen niet uit (en moet dat ook niet doen), wat mensen wanhopig "
+"kan maken wanneer zij niet weten dat ze de zichtbaarheid van de rest "
+"van het buffer kunnen herstellen met het @code{widen} commando. (De "
+"toetscombinatie voor @code{widen} is @kbd{C-x n w}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6563
@@ -15503,12 +15526,22 @@ msgid ""
 "portion of the buffer in which it is interested and then restores the "
 "previous situation."
 msgstr ""
+"Versmallen is net zo zinvol voor de Lisp interpreter als voor "
+"mensen. Vaak is een Emacs Lisp functie ontworpen om op slechts een "
+"deel van een buffer te werken, of omgekeerd, een Emacs Lisp functie "
+"moet werken op het gehele buffer dat is versmald. De functie "
+"@code{what-line} bijvoorbeeld, haalt de versmalling van een buffer "
+"als die versmald is en wanneer het zijn taak gedaan heeft, herstelt "
+"de versmalling naar wat het was. Anderzijds gebruikt de functie "
+"@code{count-lines} versmalling om zichzelf te beperken tot dat deel "
+"van het buffer waarin het geïnteresseerd is en herstelt daarna de "
+"vorige situatie."
 
 #. type: section
 #: emacs-lisp-intro.texi:6565
 #, no-wrap
 msgid "The @code{save-restriction} Special Form"
-msgstr ""
+msgstr "De speciale vorm @code{save-restriction}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6580
@@ -15525,11 +15558,24 @@ msgid ""
 "command.  Any original narrowing is restored just before the completion of "
 "the function."
 msgstr ""
+"In Emacs Lisp gebruik je de speciale vorm @code{save-restriction} om "
+"bij te houden welke versmalling van toepassing is. Wanneer de Lisp "
+"interpreter @code{save-restriction} tegenkomt, voert het de code in "
+"de body van de @code{save-restriction} expressie uit en maakt de "
+"eventuele wijzigingen die het in de versmalling heeft aangebracht "
+"ongedaan. Wanneer bijvoorbeeld het buffer versmald is en de code die "
+"volgt op @code{save-restriction} de versmalling weghaalt, herstelt "
+"@code{save-restriction} na afloop het buffer naar zijn versmalde "
+"region. In het @code{what-line} commando wordt de versmalling die "
+"het buffer mogelijk heeft ongedaan gemaakt met het @code{widen} "
+"commando, dat onmiddellijk volgt op het @code{save-restriction}. De "
+"eventuele oorspronkelijke versmalling wordt hersteld vlak voor het "
+"beëindigen van de functie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6583
 msgid "The template for a @code{save-restriction} expression is simple:"
-msgstr ""
+msgstr "Het sjabloon voor een @code{save-restriction} expressie is eenvoudig:"
 
 #. type: group
 #: emacs-lisp-intro.texi:6588
@@ -15538,6 +15584,8 @@ msgid ""
 "(save-restriction\n"
 "  @var{body}@dots{} )\n"
 msgstr ""
+"(save-restriction\n"
+"  @var{body}@dots{} )\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6594
@@ -15545,6 +15593,8 @@ msgid ""
 "The body of the @code{save-restriction} is one or more expressions that will "
 "be evaluated in sequence by the Lisp interpreter."
 msgstr ""
+"De body van de @code{save-restriction} bestaat uit een of meer "
+"expressies die de Lisp interpreter  op volgorde evalueert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6602
@@ -15556,6 +15606,14 @@ msgid ""
 "calling @code{save-excursion}.  Thus, when written together, @code{save-"
 "excursion} and @code{save-restriction} should be written like this:"
 msgstr ""
+"Tenslotte, een punt om op te merken: wanneer je zowel "
+"@code{save-excursion} en @code{save-restriction} gebruikt, de een na "
+"de ander, dan moet je @code{save-excursion} als de buitenste "
+"gebruiken. Wanneer je ze in omgekeerde volgorde schrijft, kan het "
+"bijhouden van de versmalling in het buffer waar Emacs naar toe "
+"schakelt na het aanroepen van @code{save-excursion} fout gaan. "
+"Wanneer je daarom samen gebruikt, schrijf je  @code{save-excursion} en "
+"@code{save-restriction} als volgt:"
 
 #. type: group
 #: emacs-lisp-intro.texi:6608
@@ -15565,6 +15623,9 @@ msgid ""
 "  (save-restriction\n"
 "    @var{body}@dots{}))\n"
 msgstr ""
+"(save-excursion\n"
+"  (save-restriction\n"
+"    @var{body}@dots{}))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6614
@@ -15573,6 +15634,9 @@ msgid ""
 "and @code{save-restriction} special forms must be written in the order "
 "appropriate to the function."
 msgstr ""
+"In andere omstandigheden, waar ze niet samen gebruikt worden, "
+"schrijf je de speciale vormen @code{save-excursion} en "
+"@code{save-restriction} in de volgorde die past bij de functie."
 
 #. type: group
 #: emacs-lisp-intro.texi:6624
@@ -15583,12 +15647,16 @@ msgid ""
 "    (save-excursion\n"
 "    @var{body}@dots{}))\n"
 msgstr ""
+"  (save-restriction\n"
+"    (widen)\n"
+"    (save-excursion\n"
+"    @var{body}@dots{}))\n"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:6684
 #, no-wrap
 msgid "Widening, example of"
-msgstr ""
+msgstr "Verbreden, voorbeeld van"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6690
@@ -15598,6 +15666,10 @@ msgid ""
 "restriction} and @code{save-excursion} commands.  Here is the original text "
 "of the function:"
 msgstr ""
+"Het @code{what-line} commando vertelt het je het regelnummer waarop "
+"de cursor staat. De functie illustreert het gebruik van de "
+"@code{save-excursion} en @code{save-restriction} commando's. Hier is "
+"de oorspronkelijke tekst van de functie."
 
 #. type: group
 #: emacs-lisp-intro.texi:6702
@@ -15613,6 +15685,15 @@ msgid ""
 "      (message \"Line %d\"\n"
 "               (1+ (count-lines 1 (point)))))))\n"
 msgstr ""
+"(defun what-line ()\n"
+"  \"Print the current line number (in the buffer) of point.\"\n"
+"  (interactive)\n"
+"  (save-restriction\n"
+"    (widen)\n"
+"    (save-excursion\n"
+"      (beginning-of-line)\n"
+"      (message \"Line %d\"\n"
+"               (1+ (count-lines 1 (point)))))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6713
@@ -15625,6 +15706,15 @@ msgid ""
 "@kbd{C-h f} (@code{describe-function}).  The newer version uses a "
 "conditional to determine whether the buffer has been narrowed."
 msgstr ""
+"(In moderne versies van GNU Emacs is de functie @code{what-line} "
+"uitgebreid zodat het zowel het regelnummer in het versmalde buffer "
+"als het regelnummer in het verbrede buffer vertelt. De moderne "
+"versie is complexer dan de versie die we hier laten zien. Wanneer je "
+"een avontuurlijke bui hebt, kan je er naar kijken nadat je "
+"uitgezocht hebt hoe deze versie werkt. Je hebt daar waarschijnlijk "
+"@kbd{C-h f} (@code{describe-function}) bij nodig.) De nieuwere "
+"versie gebruikt een conditional om vast te stellen of het buffer is "
+"versmald."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6719
@@ -15634,6 +15724,11 @@ msgid ""
 "min))}, moves point to the beginning of the current line with @code{(forward-"
 "line 0)} rather than @code{beginning-of-line}.)"
 msgstr ""
+"Verder maakt de moderne versie van @code{what-line} gebruik van "
+"@code{line-number-at-pos}, die net als andere eenvoudige expressies, "
+"zoals @code{(goto-char (point-min))}, @code{(forward-line 0)} in "
+"plaats van @code{beginning-of-line} gebruikt om point naar het begin van de "
+"huidige regel te verplaatsen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6723
@@ -15642,6 +15737,10 @@ msgid ""
 "interactive, as you would expect.  The next two lines use the functions "
 "@code{save-restriction} and @code{widen}."
 msgstr ""
+"De functie @code{what-line} zoals hier getoond heeft zoals je zou "
+"verwachten een documentatieregel en is interactief. De volgende twee "
+"regels gebruiken de functies @code{save-restriction} en "
+"@code{widen}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6727
@@ -15650,6 +15749,10 @@ msgid ""
 "effect, if any, in the current buffer and restores that narrowing after the "
 "code in the body of the @code{save-restriction} has been evaluated."
 msgstr ""
+"De speciale vorm @code{save-restriction} noteert eventuele "
+"versmalling die van kracht is in het huidige buffer en herstelt de "
+"versmalling nadat de code in de body van @code{save-restriction} is "
+"geëvalueerd."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6737
@@ -15663,6 +15766,16 @@ msgid ""
 "region.  Any original narrowing is restored just before the completion of "
 "the function by the @code{save-restriction} special form."
 msgstr ""
+"De speciale vorm @code{save-restriction} wordt gevolgd door "
+"@code{widen}. Deze functie maakt eventuele versmalling in het "
+"huidige buffer ongedaan voor zover die er was toen @code{what-line} "
+"werd aangeroepen. (De versmalling die daar was is de versmalling die "
+"@code{save-restriction} onthoudt.) Deze verbreding maakt het voor de "
+"commando's die de regels tellen mogelijk om vanaf het begin van het "
+"buffer te tellen. Anders zouden ze beperkt zijn tot het tellen "
+"binnen het bereikbare gebied. Eventuele oorspronkelijke versmalling "
+"wordt hersteld vlak voor de voltooiing van de functie door de "
+"speciale vorm @code{save-restriction}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6742
@@ -15672,6 +15785,10 @@ msgid ""
 "in the body of the @code{save-excursion} uses the @code{beginning-of-line} "
 "function to move point."
 msgstr ""
+"De aanroep van @code{widen} wordt gevolgd door @code{save-excursion} "
+"die de locatie van de cursor (dus van point) bewaart, en herstelt "
+"die nadat de code in de body van de @code{save-excursion} de functie "
+"@code{beginning-of-line} gebruikt om point te verplaatsen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6747
@@ -15681,6 +15798,10 @@ msgid ""
 "two @code{save- @dots{}} expressions in sequence, write @code{save-"
 "excursion} outermost.)"
 msgstr ""
+"(Merk op dat de @code{(widen)} expressie tussen de speciale vormen "
+"@code{save-restriction} en de @code{save-excursion} staat. Wanneer "
+"je de twee @code{save- @dots{}} expressies opeenvolgend schrijft, zet "
+"je @code{save-excursion} als buitenste.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6752
@@ -15688,6 +15809,9 @@ msgid ""
 "The last two lines of the @code{what-line} function are functions to count "
 "the number of lines in the buffer and then print the number in the echo area."
 msgstr ""
+"De laatste twee regels van de functie @code{what-line} zijn functies "
+"die het aantal regels in het buffer tellen en daarna dat aantal in "
+"het echogebied tonen."
 
 #. type: group
 #: emacs-lisp-intro.texi:6757
@@ -15696,6 +15820,8 @@ msgid ""
 "(message \"Line %d\"\n"
 "         (1+ (count-lines 1 (point)))))))\n"
 msgstr ""
+"(message \"Line %d\"\n"
+"         (1+ (count-lines 1 (point)))))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6766
@@ -15706,6 +15832,12 @@ msgid ""
 "expression to print a following argument.  @samp{%d} prints the argument as "
 "a decimal, so the message will say something such as @samp{Line 243}."
 msgstr ""
+"De functie @code{message} toont een eenregelige boodschap onderaan het "
+"Emacs scherm. Het eerste argument staat tussen aanhalingstekens en "
+"wordt getoond als een string karakters. Het mag echter een  @samp{%d} "
+"expressie bevatten om het volgende argument te tonen. @samp{%d} "
+"toont het argument als een decimaal getal, zodat de boodschap iets "
+"als @samp{Line 243} zegt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6770
@@ -15713,12 +15845,14 @@ msgid ""
 "The number that is printed in place of the @samp{%d} is computed by the last "
 "line of the function:"
 msgstr ""
+"Het getal dat getoond wordt op de plek van de @samp{%d} wordt "
+"berekend door de laatste regel van de functie:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:6773
 #, no-wrap
 msgid "(1+ (count-lines 1 (point)))\n"
-msgstr ""
+msgstr "(1+ (count-lines 1 (point)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6809
@@ -15729,6 +15863,12 @@ msgid ""
 "it because line 2 has only one line before it, and @code{count-lines} counts "
 "only the lines @emph{before} the current line."
 msgstr ""
+"Wat dit doet is het tellen van de regels vanaf de eerste positie van "
+"het buffer, aangegeven door de @code{1}, tot de @code{(point)} en "
+"telt daar vervolgens één bij op. (De functie @code{1+} telt één bij "
+"zijn argument op.) We tellen één er bij op omdat regel 2 maar één "
+"regel voor zich heeft, en @code{count-lines} alleen de regels "
+"@emph{voor} de huidige regel telt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6814
@@ -15738,12 +15878,16 @@ msgid ""
 "position; and @code{save-restriction} restores the original narrowing, if "
 "any."
 msgstr ""
+"Nadat @code{count-lines} zijn werk heeft gedaan en de boodschap in "
+"het echogebied is getoond, herstelt @code{save-excursion} point naar "
+"zijn oorspronkelijke positie en herstelt @code{save-restriction} de "
+"eventuele oorspronkelijke versmalling."
 
 #. type: section
 #: emacs-lisp-intro.texi:6816
 #, no-wrap
 msgid "Exercise with Narrowing"
-msgstr ""
+msgstr "Oefening met versmalling"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6825
@@ -15755,12 +15899,19 @@ msgid ""
 "@code{save-restriction}, @code{widen}, @code{goto-char}, @code{point-min}, "
 "@code{message}, and @code{buffer-substring}."
 msgstr ""
+"Schrijf een functie dat de eerste 60 karakters van het huidige "
+"buffer toont, zelfs wanneer je het buffer hebt versmald naar zijn "
+"tweede helft zodat de eerste regel onbereikbaar is. Herstel point, "
+"mark en de versmalling. Gebruik voor deze oefening de gehele "
+"potpourri van functies, inclusief @code{save-restriction}, "
+"@code{widen}, @code{goto-char}, @code{point-min}, @code{message} en "
+"@code{buffer-substring}."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:6826
 #, no-wrap
 msgid "Properties, mention of @code{buffer-substring-no-properties}"
-msgstr ""
+msgstr "Eigenschappen, vermelding van @code{buffer-substring-no-properties}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6834
@@ -15772,6 +15923,13 @@ msgid ""
 "here.  @xref{Text Properties, , Text Properties, elisp, The GNU Emacs Lisp "
 "Reference Manual}.)"
 msgstr ""
+"(@code{buffer-substring} is een eerder ongenoemde functie die je "
+"zelf moet onderzoeken, of misschien moet je gebruik maken van . "
+"@code{buffer-substring-no-properties} of "
+"@code{filter-buffer-substring} @dots{}, nog meer andere functies. "
+"Teksteigenschappen zijn een eigenschap die overigens hier niet "
+"besproken wordt. @xref{Text Properties, , Text Properties, elisp, "
+"The GNU Emacs Lisp Reference Manual}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6837
@@ -15779,6 +15937,8 @@ msgid ""
 "Additionally, do you really need @code{goto-char} or @code{point-min}? Or "
 "can you write the function without them?"
 msgstr ""
+"Daarnaast, heb je @code{goto-char} of @code{point-min} echt nodig? "
+"Of kan je de functie zonder hen schrijven?"
 
 #. type: findex
 #: emacs-lisp-intro.texi:6840

@@ -1,6 +1,6 @@
 ;;; package-x.el --- Package extras  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2007-2025 Free Software Foundation, Inc.
+;; Copyright (C) 2007-2026 Free Software Foundation, Inc.
 
 ;; Author: Tom Tromey <tromey@redhat.com>
 ;; Maintainer: Philip Kaludercic <philipk@posteo.net>
@@ -318,6 +318,7 @@ This should be invoked from the gnus *Summary* buffer."
   (with-current-buffer gnus-article-buffer
     (package-upload-buffer)))
 
+;;;###autoload
 (defun package-install-temporarily (pkg &optional archive)
   "Install and enable a package PKG non-persistently.
 The package will not be loaded in future sessions, but will appear to be

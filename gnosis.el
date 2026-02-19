@@ -2442,14 +2442,26 @@ Return thema ids for themata that match QUERY."
 
 ;;;###autoload
 (cl-defun gnosis-vc-pull (&optional (dir gnosis-dir))
-  "Run `git pull' in DIR."
+  "Run `git pull' in DIR.
+
+Reopens the gnosis database after successful pull."
   (interactive)
+  (unless (executable-find "git")
+    (error "Git is not installed or not in PATH"))
   (let ((default-directory dir))
-    (let ((_process (async-shell-command (format "%s pull" (executable-find "git")))))
-      (lambda (_proc event)
-	(when (string= event "finished\n")
-	  (setf gnosis-db
-		(emacsql-sqlite-open (expand-file-name "gnosis.db" gnosis-dir))))))))
+    (set-process-sentinel
+     (start-process "gnosis-git-pull" "*gnosis-git-pull*"
+                    (executable-find "git") "pull")
+     (lambda (proc event)
+       (cond
+        ((string-match-p "finished" event)
+         (when (zerop (process-exit-status proc))
+           (setf gnosis-db
+                 (emacsql-sqlite-open (expand-file-name "gnosis.db" gnosis-dir)))
+           (message "Gnosis: Git pull successful, database reopened")))
+        ((string-match-p "exited abnormally" event)
+         (message "Gnosis: Git pull failed with exit code %s"
+                  (process-exit-status proc))))))))
 
 ;; Gnosis mode ;;
 ;;;;;;;;;;;;;;;;;

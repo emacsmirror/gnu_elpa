@@ -1648,39 +1648,30 @@ Each element has the form (NAME . (FILE . POSITION))."
 ;;;###autoload
 (defun org-contacts-link-open (query)
   "Open org-contacts: link with jumping or searching QUERY."
-  (let* ((file-path (car (org-contacts-files)))
-         (file-name (file-name-nondirectory file-path))
-         (buf (or (get-buffer file-name) (get-buffer (find-file-noselect file-path)))))
-    (cond
-     ;; /query/ format searching
-     ((string-match "/.*/" query)
-      (with-current-buffer buf
-        (string-match "/\\(.*\\)/" query)
-        (occur (match-string 1 query))))
+  (let (( bufs (mapcar #'find-file-noselect (org-contacts-files)) )) ;; list of buffers of org-contacts-files
+    (cond ;;
+     ;; 1. /query/ format searching
+     ((string-match "/\\(.*\\)/" query)  ;; conditional check, as well as captures query
+      (multi-occur bufs                  ;; do 'occur' on all buffers of org-contacts-files
+       (match-string 1 query)))          ;; the captured query
 
-     ;; jump to exact contact headline directly
-     (t
-      (with-current-buffer buf
-        (if-let* ((marker (org-find-exact-headline-in-buffer query buf)))
-            (progn
-              (org-goto-marker-or-bmk marker)
-              (org-fold-show-context))
-          (user-error "[org-contacts] Can't find <%s> in your `org-contacts-files'" query)))
-      (display-buffer buf '(display-buffer-below-selected))
+     ;; 2.  jump to exact contact headline directly
+     (t                                          ;;
+      (let ((query-has-found nil))               ;; local variable to check whether we found query
+        (dolist (buf bufs)                       ;; loop over all buffers
+          (unless query-has-found                ;; check query-has-found or not
+            (with-current-buffer buf
+              (if-let* ((marker (org-find-exact-headline-in-buffer query buf))) ;; check query
+                  (progn
+                    (org-link-open-as-file (buffer-file-name buf) nil) ;; added just for spliting windows better
+                    (org-goto-marker-or-bmk marker)
+                    (org-fold-show-context)
+                    (setq query-has-found t)     ;; sets query-has-found; thus it exits on loop
+                    )))))
 
-      ;; FIXME:
-      ;; (let* ((contact-entry (map-filter
-      ;;                        (lambda (contact-plist)
-      ;;                          (if (string-equal (plist-get contact-plist :name) query)
-      ;;                              contact-plist))
-      ;;                        (org-contacts-all-contacts)))
-      ;;        (contact-name (plist-get contact-entry :name))
-      ;;        (file (plist-get contact-entry :file))
-      ;;        (position (plist-get contact-entry :position))
-      ;;        (buf (get-buffer (file-name-nondirectory file))))
-      ;;   (with-current-buffer buf (goto-char position))
-      ;;   (display-buffer buf '(display-buffer-below-selected)))
-      ))))
+        (unless query-has-found         ;; notifies if there was no query
+          (user-error "[org-contacts] Can't find <%s> in your `org-contacts-files'" query))))
+     )))
 
 ;;;###autoload
 (defun org-contacts-link-complete (&optional _arg)

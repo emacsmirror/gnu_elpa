@@ -4,12 +4,12 @@
 
 ;; Uncomment some calls below as needed for your project.
 (eldev-use-package-archive 'gnu-elpa)
-;(eldev-use-package-archive 'nongnu-elpa)
-;(eldev-use-package-archive 'melpa)
+;; (eldev-use-package-archive 'nongnu-elpa)
+;; (eldev-use-package-archive 'melpa)
 
 (eldev-use-plugin 'autoloads)
-;; Turn on test coverage.
-(eldev-use-plugin 'undercover)
+(eldev-use-plugin 'maintainer)          ; for `eldev update-copyright'
+(eldev-use-plugin 'undercover)          ; for test coverage
 
 ;; Use 'M-x coverage-mode' to see test coverage in 'vc-jj.el'.  Run
 ;; the following shell command to generate the

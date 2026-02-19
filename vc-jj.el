@@ -1,13 +1,13 @@
 ;;; vc-jj.el --- VC backend for the Jujutsu version control system -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024-2025  Free Software Foundation, Inc.
+;; Copyright (C) 2024-2026  Free Software Foundation, Inc.
 
 ;; Author: Wojciech Siewierski
 ;;         Rudolf Schlatte <rudi@constantly.at>
 ;;         Kristoffer Balintona <krisbalintona@gmail.com>
 ;; URL: https://codeberg.org/emacs-jj-vc/vc-jj.el
 ;; Version: 0.5
-;; Package-Requires: ((emacs "28.1") (compat "29.4"))
+;; Package-Requires: ((emacs "28.1") (compat "30.1") (project "0.11.2"))
 ;; Keywords: vc tools
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -94,6 +94,7 @@
 (require 'ansi-color)
 (require 'iso8601)
 (require 'time-date)
+(require 'project)
 (declare-function vc-annotate-convert-time "vc-annotate" (&optional time))
 
 ;;; Customization
@@ -1865,6 +1866,35 @@ On failure, return nil.  Upon success, return DIRECTORY."
       (let ((default-directory directory))
         (vc-jj--command-dispatched nil 0 nil "new" rev "--quiet")))
     (when successp directory)))
+
+;;; project.el support
+
+(declare-function vc-default-project-list-files "project" (backend dir extra-ignores))
+
+(defun vc-jj-project-list-files (dir extra-ignores)
+  "List all files in directory DIR.
+Do not include files matching glob patterns in EXTRA-IGNORES in the
+result.
+
+This function is called by `project-files' as of project.el 0.11.2.  The
+value of EXTRA-IGNORES comes from the variable `project-vc-ignores'.
+
+If EXTRA-IGNORES is non-nil, this implementation falls back to a generic
+implementation."
+  (if extra-ignores
+      ;; Same fallback as in project.el for git <= 2.13.  Note:
+      ;; currently includes the contents of the `.jj' directory so we
+      ;; don't want to merge this as-is.
+      ;; TODO: handle extra-ignores parameter better -- rewrite each
+      ;; element e to be `~root-glob:"e"' and use `&' to combine them?
+      (vc-default-project-list-files 'JJ dir extra-ignores)
+    (let* ((default-directory (expand-file-name (vc-jj-root dir)))
+           (files (vc-jj--process-lines (file-relative-name dir)
+                                        "file" "list")))
+      (mapcar #'expand-file-name files))))
+
+;;;###autoload
+(add-to-list 'project-vc-backend-markers-alist '(JJ . ".jj"))
 
 (provide 'vc-jj)
 ;;; vc-jj.el ends here

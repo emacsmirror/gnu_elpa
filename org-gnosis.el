@@ -24,10 +24,28 @@
 
 ;;; Commentary:
 
-;; Org Gnosis is a knowledge management tool that leverages Org mode
-;; for storing notes & journal entries, integrating them with an
-;; SQLite database for efficient retrieval and relationship mapping.
-
+;; Org-gnosis is a Zettelkasten-style knowledge management system for
+;; Emacs, part of the Gnosis ecosystem.  It provides efficient
+;; note-taking and journaling with SQLite-backed storage.  Org Gnosis
+;; notes can be linked to Gnosis themata for additional features.
+;;
+;; Features:
+;; - Zettelkasten-style linked notes with unique IDs
+;; - Daily journaling with customizable templates
+;; - Tag-based organization and retrieval
+;; - Backlinks tracking and navigation
+;; - TODO integration for journal entries
+;; - SQLite database for fast searching
+;; - Support for hierarchical note structures
+;; - Encrypted file support (.gpg)
+;;
+;; Main Commands:
+;; - `org-gnosis-find': Find or create a note
+;; - `org-gnosis-insert': Insert a link to a note
+;; - `org-gnosis-journal': Create/visit today's journal entry
+;; - `org-gnosis-find-by-tag': Find notes by tag
+;; - `org-gnosis-visit-backlinks': See all notes linking to current note
+;;
 ;;; Code:
 
 (require 'cl-lib)

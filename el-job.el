@@ -19,7 +19,7 @@
 ;; URL:              https://github.com/meedstrom/el-job
 ;; Created:          2024-10-30
 ;; Keywords:         processes
-;; Package-Version:  2.7.1
+;; Package-Version:  2.7.2
 ;; Package-Requires: ((emacs "29.1"))
 
 ;;; Commentary:
@@ -41,7 +41,7 @@
 
 (require 'el-job-ng)
 
-(defconst el-job-internal-version 105)
+(defconst el-job-internal-version 106)
 
 ;; FIXME: It seems to print the nil message during work
 ;;;###autoload
@@ -91,7 +91,7 @@ something with the return value."
      :inputs list
      :callback (lambda (outputs)
                  (setq result outputs)))
-    (unless (el-job-ng-await-or-die id 86400)
+    (unless (el-job-ng-await-or-die id 86400 "Running el-job-parallel-mapcar")
       (error "el-job-ng-parallel-mapcar: Timed out (hung for 24 hours): %S" fn))
     result))
 

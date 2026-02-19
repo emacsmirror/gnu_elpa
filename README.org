@@ -171,6 +171,7 @@ the bill:
   repositories from within Emacs.”
 - [[https://github.com/bolivier/jj-mode.el][bolivier/jj-mode.el]] :: “Jujutsu version control mode for Emacs
   inspired by Magit”
-- [[https://github.com/bennyandresen/jujutsu.el][bennyandresen/jujutsu.el]] :: “An Emacs interface for jujutsu, inspired
-  by magit and humbly not attempting to match it in scope.”
-- [[https://git.sr.ht/~puercopop/jujutsushi][~puercopop/jujutsushi]] :: “A emacs interface to Jujutsu”
+- [[https://github.com/bennyandresen/jujutsu.el][bennyandresen/jujutsu.el]] :: “An Emacs interface for jujutsu,
+  inspired by magit and humbly not attempting to match it in scope.”
+- [[https://git.sr.ht/~puercopop/jujutsushi][~puercopop/jujutsushi]] :: “An Emacs UI to jujutsu”
+- [[https://github.com/Xylenox/majjic][Xylenox/majjic]] :: “jjui + magit-section inspired jj ui for Emacs”

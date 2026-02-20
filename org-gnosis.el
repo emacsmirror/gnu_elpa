@@ -121,6 +121,16 @@ compatability with `org-todo-keywords'."
   :type 'file
   :group 'org-gnosis)
 
+(defvar org-gnosis-db--connection nil)
+
+(defun org-gnosis-db-get ()
+  "Get or create the database connection."
+  (unless (and org-gnosis-db--connection
+               (emacsql-live-p org-gnosis-db--connection)
+	       (file-exists-p org-gnosis-database-file))
+    (setq org-gnosis-db--connection
+          (emacsql-sqlite-open org-gnosis-database-file)))
+  org-gnosis-db--connection)
 
 ;; Create notes & journal directories.
 (dolist (dir `(,org-gnosis-dir ,org-gnosis-journal-dir))
@@ -150,21 +160,21 @@ Optional argument FLATTEN, when non-nil, flattens the result."
   ;; Check for database upgrades
   (let* ((restrictions (or restrictions '(= 1 1)))
 	 (flatten (or flatten nil))
-	 (output (emacsql org-gnosis-db
+	 (output (emacsql (org-gnosis-db-get)
 			  `[:select ,value :from ,table :where ,restrictions])))
     (if flatten (apply #'append output) output)))
 
 (defun org-gnosis--insert-into (table values)
   "Insert VALUES to TABLE."
-  (emacsql org-gnosis-db `[:insert :into ,table :values ,values]))
+  (emacsql (org-gnosis-db-get) `[:insert :into ,table :values ,values]))
 
 (defun org-gnosis--delete (table value)
   "From TABLE use where to delete VALUE."
-  (emacsql org-gnosis-db `[:delete :from ,table :where ,value]))
+  (emacsql (org-gnosis-db-get) `[:delete :from ,table :where ,value]))
 
 (defun org-gnosis--drop-table (table)
   "Drop TABLE from `gnosis-db'."
-  (emacsql org-gnosis-db `[:drop-table ,table]))
+  (emacsql (org-gnosis-db-get) `[:drop-table ,table]))
 
 (defun org-gnosis-adjust-title (input &optional node-id)
   "Adjust the INPUT string to replace id link structures with plain text.
@@ -185,7 +195,7 @@ in the database."
     ;; Only insert links if we have a valid node-id and found links
     (when (and node-id id-links (not (string-empty-p node-id)))
       (condition-case err
-          (emacsql-with-transaction org-gnosis-db
+          (emacsql-with-transaction (org-gnosis-db-get)
             (cl-loop for link in (reverse id-links)
                      do (org-gnosis--insert-into 'links `([,node-id ,link]))))
         (error "Warning: Failed to insert title links for %s: %S" node-id err)))
@@ -362,7 +372,7 @@ If JOURNAL is non-nil, update file as a journal entry."
 	     (titles (org-gnosis-select 'title table nil t)))
 	;; Add gnosis topic and nodes
 	(message "Parsing: %s" filename)
-	(emacsql-with-transaction org-gnosis-db
+	(emacsql-with-transaction (org-gnosis-db-get)
 	  (cl-loop for item in data
 		   do (let ((title (org-gnosis-adjust-title
 				    (plist-get item :title)))
@@ -399,7 +409,7 @@ If JOURNAL is non-nil, update file as a journal entry."
 	 (nodes (if journal-p
 		    (org-gnosis-select 'id 'journal `(= file ,file) t)
 		  (org-gnosis-select 'id 'nodes `(= file ,file) t))))
-    (emacsql-with-transaction org-gnosis-db
+    (emacsql-with-transaction (org-gnosis-db-get)
       (cl-loop for node in nodes
 	       do (if journal-p
 		      (org-gnosis--delete 'journal `(= id ,node))
@@ -844,7 +854,7 @@ ELEMENT should be the output of `org-element-parse-buffer'."
 (defun org-gnosis-db-delete-tables ()
   "Drop all tables."
   (ignore-errors
-    (emacsql-with-transaction org-gnosis-db
+    (emacsql-with-transaction (org-gnosis-db-get)
       ;; Maybe use sql for version upgrades that change schemata?
       (dolist (table (mapcar #'car org-gnosis-db--table-schemata))
 	(org-gnosis--drop-table table)))))
@@ -866,16 +876,16 @@ ELEMENT should be the output of `org-element-parse-buffer'."
 
 Drop all current tables and recreate the database."
   (interactive)
-  (emacsql-with-transaction org-gnosis-db
+  (emacsql-with-transaction (org-gnosis-db-get)
     ;; Drop all existing tables
     (org-gnosis-db-delete-tables)
     ;; Recreate tables with current schema
     (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
-      (emacsql org-gnosis-db [:create-table $i1 $S2] table schema))
+      (emacsql (org-gnosis-db-get) [:create-table $i1 $S2] table schema))
     ;; Sync all files to repopulate
     (org-gnosis-db-update-files)
     ;; Set current version
-    (emacsql org-gnosis-db
+    (emacsql (org-gnosis-db-get)
 	     `[:pragma (= user-version ,org-gnosis-db-version)])))
 
 (defun org-gnosis-db-update-files ()
@@ -893,7 +903,7 @@ Drop all current tables and recreate the database."
 
 (defun org-gnosis-db-rebuild ()
   "Rebuild database by dropping all tables and syncing from files."
-  (let ((current-version (caar (emacsql org-gnosis-db [:pragma user-version]))))
+  (let ((current-version (caar (emacsql (org-gnosis-db-get) [:pragma user-version]))))
     (when (and (< current-version org-gnosis-db-version)
 	       (y-or-n-p
 		(format
@@ -908,14 +918,14 @@ Drop all current tables and recreate the database."
 
 Create all tables and set version for new database."
   (message "Creating new org-gnosis database...")
-  (emacsql-with-transaction org-gnosis-db
+  (emacsql-with-transaction (org-gnosis-db-get)
     (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
-      (emacsql org-gnosis-db [:create-table $i1 $S2] table schema))
-    (emacsql org-gnosis-db [:pragma (= user-version org-gnosis-db-version)])))
+      (emacsql (org-gnosis-db-get) [:create-table $i1 $S2] table schema))
+    (emacsql (org-gnosis-db-get) [:pragma (= user-version org-gnosis-db-version)])))
 
 (defun org-gnosis-db-init-if-needed ()
   "Init database if it has not been initialized."
-  (let ((tables (emacsql org-gnosis-db
+  (let ((tables (emacsql (org-gnosis-db-get)
 			  [:select name :from sqlite-master :where (= type 'table)])))
     (when (< (length tables) 3)
       (message "Creating org-gnosis database...")

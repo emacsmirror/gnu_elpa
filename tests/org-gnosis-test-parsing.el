@@ -443,6 +443,53 @@ This should link to subsection-with-id-456."))
           (should (equal (plist-get topic :tags) nil))  ; Empty filetags should be nil
           (should (equal (plist-get topic :level) 0)))))))
 
+(ert-deftest org-gnosis-test-checked-items-from-heading-only ()
+  "Test that org-gnosis-get-checked-items works on a specific heading subtree."
+  (let* ((today (format-time-string "%Y-%m-%d"))
+         (yesterday (format-time-string "%Y-%m-%d" (time-subtract (current-time) (days-to-time 1))))
+         (tomorrow (format-time-string "%Y-%m-%d" (time-add (current-time) (days-to-time 1))))
+         (test-content (format ":PROPERTIES:
+:ID: journal-id
+:END:
+#+title: Journal
+#+filetags:
+
+* %s
++ [X] Old completed item
++ [ ] Old incomplete item
+
+* %s
++ [X] Today completed item 1
++ [X] Today completed item 2
++ [ ] Today incomplete item
+
+* %s
++ [X] Future completed item" yesterday today tomorrow)))
+
+    (org-gnosis-test-with-temp-buffer test-content
+      ;; Parse entire buffer - should get all 4 checked items (1+2+1)
+      (let ((all-items (org-gnosis-get-checked-items (org-element-parse-buffer))))
+        (should (= (length all-items) 4))
+        (should (member "Old completed item" all-items))
+        (should (member "Today completed item 1" all-items))
+        (should (member "Today completed item 2" all-items))
+        (should (member "Future completed item" all-items)))
+
+      ;; Parse only today's heading - should get 2 checked items
+      (let* ((parsed-buffer (org-element-parse-buffer))
+             (today-heading (org-element-map parsed-buffer 'headline
+                             (lambda (headline)
+                               (when (string= (org-element-property :raw-value headline) today)
+                                 headline))
+                             nil t))
+             (today-items (org-gnosis-get-checked-items today-heading)))
+        (should today-heading)
+        (should (= (length today-items) 2))
+        (should (member "Today completed item 1" today-items))
+        (should (member "Today completed item 2" today-items))
+        (should-not (member "Old completed item" today-items))
+        (should-not (member "Future completed item" today-items))))))
+
 (defun org-gnosis-test-run-parsing-tests ()
   "Run all parsing tests using ERT."
   (interactive)

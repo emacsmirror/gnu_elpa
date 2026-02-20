@@ -31,6 +31,12 @@ gradlew (Gradle wrapper), it is used in preference."
 (defcustom javaimp-gradle-args
   '("-Dorg.gradle.caching=false"        ;CLI option --build-cache
     "-Dorg.gradle.configuration-cache=false" ;CLI option --configuration-cache
+    "-Dorg.gradle.unsafe.configuration-cache=false" ;old name for it
+    ;; As of Feb 2026, isolated projects is in pre-alpha, so only the
+    ;; "unsafe" property exists.  Most likely it will be renamed by
+    ;; dropping the "unsafe" part, so add both.
+    "-Dorg.gradle.isolated-projects=false"
+    "-Dorg.gradle.unsafe.isolated-projects=false"
     )
   "Args to pass to gradle invocation.
 

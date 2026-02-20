@@ -359,7 +359,7 @@ Finally, already parsed buffers are processed in
                                (directory-files-recursively dir "\\.java\\'")))
           files parsed-bufs unparsed-bufs)
       (dolist (s sources)
-        (if-let ((buf (get-file-buffer s)))
+        (if-let* ((buf (get-file-buffer s)))
             (if (with-current-buffer buf
                   (javaimp-parse-fully-parsed-p))
                 (push buf parsed-bufs)
@@ -397,10 +397,10 @@ Finally, already parsed buffers are processed in
   "Try to determine current root source directory from \"package\"
 directive in the current buffer.  If there's no such directive,
 then just return `default-directory'."
-  (if-let ((package (save-excursion
-                      (save-restriction
-                        (widen)
-                        (javaimp-parse-get-package)))))
+  (if-let* ((package (save-excursion
+                       (save-restriction
+                         (widen)
+                         (javaimp-parse-get-package)))))
       (string-remove-suffix
        (file-name-as-directory
         (apply #'file-name-concat (split-string package "\\." t)))
@@ -877,7 +877,7 @@ nested in methods are not included, see
                  scopes))))
 
 (defun javaimp-imenu--function (_index-name index-position scope)
-  (if-let ((decl-beg (javaimp--beg-of-defun-decl index-position)))
+  (if-let* ((decl-beg (javaimp--beg-of-defun-decl index-position)))
       (goto-char decl-beg)
     (goto-char (javaimp-scope-start scope))
     (back-to-indentation)))
@@ -1052,8 +1052,8 @@ buffer."
   (interactive "p")
   (or argp (setq argp 1))
   (when reset
-    (if-let ((pos (next-single-property-change
-                   (point-min) 'javaimp-show-scopes-markers)))
+    (if-let* ((pos (next-single-property-change
+                    (point-min) 'javaimp-show-scopes-markers)))
         (progn
           (goto-char pos)
           (forward-line -1))
@@ -1062,7 +1062,7 @@ buffer."
   (unless (get-text-property (point) 'javaimp-show-scopes-markers)
     (user-error "No more scopes"))
   ;; In case the buffer is visible in a nonselected window.
-  (when-let ((win (get-buffer-window (current-buffer) t)))
+  (when-let* ((win (get-buffer-window (current-buffer) t)))
     (set-window-point win (point)))
   (javaimp-show-scopes-goto-scope nil))
 
@@ -1226,10 +1226,10 @@ PREV-INDEX gives the index of the method itself."
 (defun javaimp-jump-to-enclosing-scope ()
   "Jump to enclosing scope at point."
   (interactive)
-  (if-let ((scope (save-excursion
-                    (save-restriction
-                      (widen)
-                      (javaimp-parse-get-enclosing-scope #'always t)))))
+  (if-let* ((scope (save-excursion
+                     (save-restriction
+                       (widen)
+                       (javaimp-parse-get-enclosing-scope #'always t)))))
       (progn
         (goto-char (or (and (javaimp-scope-type scope)
                             (not (memq (javaimp-scope-type scope)
@@ -1358,12 +1358,12 @@ any module's source file."
     ;; Forget previous tree(s) loaded from this build file, if any.
     ;; Additional project trees (see below) have the same file-orig,
     ;; so there may be several here.
-    (when-let ((existing-list
-                (seq-filter (lambda (node)
-                              (equal (javaimp-module-file-orig
-                                      (javaimp-node-contents node))
-	                             file))
-                            javaimp-project-forest)))
+    (when-let* ((existing-list
+                 (seq-filter (lambda (node)
+                               (equal (javaimp-module-file-orig
+                                       (javaimp-node-contents node))
+	                              file))
+                             javaimp-project-forest)))
       (if (y-or-n-p "Forget already loaded project(s)?")
           (setq javaimp-project-forest
                 (seq-remove (lambda (node)

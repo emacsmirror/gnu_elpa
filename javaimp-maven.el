@@ -51,9 +51,9 @@ resulting module trees."
     ;; Set :file slots in a separate step because Maven doesn't give
     ;; pom.xml file location for each subproject.
     (javaimp-maven--fill-modules-files file modules)
-    (when-let ((without-files (seq-filter (lambda (m)
-                                            (null (javaimp-module-file m)))
-                                          modules)))
+    (when-let* ((without-files (seq-filter (lambda (m)
+                                             (null (javaimp-module-file m)))
+                                           modules)))
       (error "Cannot find file for module(s): %s"
              (mapconcat (lambda (m)
                           (javaimp-print-id (javaimp-module-id m)))

@@ -85,8 +85,8 @@ descriptor."
                (cdr (assq 'parent-id alist)))
    :file (cdr (assq 'file alist))
    :file-orig file-orig
-   :artifact (when-let ((final-name (javaimp-cygpath-convert-file-name
-                                     (cdr (assq 'final-name alist)))))
+   :artifact (when-let* ((final-name (javaimp-cygpath-convert-file-name
+                                      (cdr (assq 'final-name alist)))))
                ;; only jar/war supported
                (and (member (file-name-extension final-name) '("jar" "war"))
                     final-name))
@@ -138,7 +138,7 @@ descriptor."
          ;; in build file directory.
          (default-directory (file-name-directory file))
          ;; Prefer local gradle wrapper
-         (local-gradlew (if (eq system-type '(windows-nt))
+         (local-gradlew (if (eq system-type 'windows-nt)
                             "gradlew.bat"
                           "gradlew"))
          (program (if (file-exists-p local-gradlew)

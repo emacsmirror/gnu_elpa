@@ -144,10 +144,9 @@ Assumes point is outside of any context initially."
     res))
 
 (defun javaimp-parse--arglist (beg end &optional only-type)
-  "Parse arg list between BEG and END, of the form 'TYPE NAME,
-...'.  Return list of conses (TYPE . NAME).  If ONLY-TYPE is
-non-nil, then name parsing is skipped.  This function does not
-move point."
+  "Parse arg list between BEG and END, of the form \"TYPE NAME,
+...\".  Return list of conses (TYPE . NAME).  If ONLY-TYPE is non-nil,
+then name parsing is skipped.  This function does not move point."
   (save-excursion
     (save-restriction
       (narrow-to-region beg end)
@@ -185,12 +184,12 @@ skipping further backwards is done by the caller."
         (setq limit (point))))
     ;; Parse type: allow anything, but stop at the word boundary which
     ;; is not inside list (this is presumably the type start..)
-    (if-let ((last-skip
-              (javaimp-parse--skip-back-until
-               (lambda (_last-what last-pos)
-                 (save-excursion
-                   (if last-pos (goto-char last-pos))
-                   (looking-at "\\_<"))))))
+    (if-let* ((last-skip
+               (javaimp-parse--skip-back-until
+                (lambda (_last-what last-pos)
+                  (save-excursion
+                    (if last-pos (goto-char last-pos))
+                    (looking-at "\\_<"))))))
         (progn
           (unless (eq last-skip t)
             (goto-char (cdr last-skip))) ;undo skipping by ..-until
@@ -463,9 +462,9 @@ brace.")
         (let* ((type (intern (buffer-substring-no-properties
                               keyword-start keyword-end)))
                (attrs
-                (when-let (((eq type 'class))
-                           (decl-start
-                            (javaimp-parse--decl-prefix keyword-start)))
+                (when-let* ((_ (eq type 'class))
+                            (decl-start
+                             (javaimp-parse--decl-prefix keyword-start)))
                   (goto-char brace-pos)
                   (when (javaimp-parse--rsb-keyword
                          "\\_<abstract\\_>" decl-start t)
@@ -706,7 +705,7 @@ call this function first."
           (save-excursion
             ;; Parse as normal method scope, but don't set open-brace
             ;; because there's no body
-            (when-let ((scope (javaimp-parse--scope-method-or-stmt (point))))
+            (when-let* ((scope (javaimp-parse--scope-method-or-stmt (point))))
               (setf (javaimp-scope-parent scope) parent-scope)
               (push scope res)))
         ;; We've entered another nest, skip to its start
@@ -795,7 +794,7 @@ Scope parents are filtered according to
 then no filtering is done."
   (save-excursion
     (javaimp-parse--all-scopes))
-  (when-let ((scope (javaimp-parse--enclosing-scope pred)))
+  (when-let* ((scope (javaimp-parse--enclosing-scope pred)))
     (javaimp-scope-copy scope (unless no-filter
                                 #'javaimp-parse--scope-type-defun-p))))
 

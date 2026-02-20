@@ -61,7 +61,7 @@
   :type 'directory)
 
 (defcustom org-gnosis-journal-templates
-  '(("Default" (lambda () (format "* Daily Notes\n\n* Goals\n%s" (org-gnosis-todos))))
+  '(("Default" (lambda () (format "** Daily Notes\n\n** Goals\n%s" (org-gnosis-todos))))
     ("Empty" (lambda () "")))
   "Templates for journaling."
   :type '(repeat (cons (string :tag "Name")
@@ -76,6 +76,11 @@
 (defcustom org-gnosis-journal-dir (expand-file-name "journal" org-gnosis-dir)
   "Gnosis journal directory."
   :type 'directory)
+
+;; Create notes & journal directories.
+(dolist (dir `(,org-gnosis-dir ,org-gnosis-journal-dir))
+  (unless (file-directory-p dir)
+    (make-directory dir)))
 
 (defcustom org-gnosis-show-tags nil
   "Display tags with `org-gnosis-find'."
@@ -121,6 +126,34 @@ compatability with `org-todo-keywords'."
   :type 'file
   :group 'org-gnosis)
 
+(defcustom org-gnosis-journal-file nil
+  "When non-nil, use this file for journal entries as level 1 headings.
+
+If nil, journal entries are created as separate files in
+`org-gnosis-journal-dir'."
+  :type '(choice (const :tag "Use separate files" nil)
+                 (file :tag "Single journal file")))
+
+(defun org-gnosis-journal--create-file ()
+  "Create `org-gnosis-journal' when non-nil and file it does not exists."
+  (when (and org-gnosis-journal-file
+	     (not (file-exists-p org-gnosis-journal-file)))
+    (with-current-buffer (find-file-noselect org-gnosis-journal-file)
+      (insert (format "#+title: %s Journal \n#+filetags: \n" (or user-full-name "")))
+      (org-gnosis-mode)
+      (save-buffer)
+      (message "Created journal file."))))
+
+(defun org-gnosis-journal--add-entry (title)
+  "Add entry for TITLE to `org-gnosis-journal-file'."
+  (when org-gnosis-journal-file
+    (org-gnosis-journal--create-file)
+    (find-file org-gnosis-journal-file)
+    (goto-char (point-max))
+    (insert (format "* %s\n" title))
+    (org-id-get-create)
+    (insert (org-gnosis-select-template org-gnosis-journal-templates))))
+
 (defvar org-gnosis-db--connection nil)
 
 (defun org-gnosis-db-get ()
@@ -132,10 +165,7 @@ compatability with `org-todo-keywords'."
           (emacsql-sqlite-open org-gnosis-database-file)))
   org-gnosis-db--connection)
 
-;; Create notes & journal directories.
-(dolist (dir `(,org-gnosis-dir ,org-gnosis-journal-dir))
-  (unless (file-directory-p dir)
-    (make-directory dir)))
+
 
 (defun org-gnosis--find-master-id (id-stack level topic-id)
   "Find the appropriate master ID for a headline at LEVEL.
@@ -658,12 +688,16 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
 			   (org-gnosis-select 'title 'journal))))
 	 (id (car (org-gnosis-select 'id 'journal `(= title ,title) t)))
 	 (file (car (org-gnosis-select 'file 'journal `(= title ,title) t))))
-    (if (and id file)
-	(org-gnosis-find
-	 title file id org-gnosis-journal-dir org-gnosis-journal-templates)
+    (cond
+     ((and org-gnosis-journal-file (not id))
+      (org-gnosis-journal--add-entry title))
+     ((and id file)
+      (org-gnosis-find
+       title file id org-gnosis-journal-dir org-gnosis-journal-templates))
+     (t
       (org-gnosis--create-file
        title org-gnosis-journal-dir
-       (org-gnosis-select-template org-gnosis-journal-templates)))))
+       (org-gnosis-select-template org-gnosis-journal-templates))))))
 
 ;;;###autoload
 (defun org-gnosis-journal-insert (arg)

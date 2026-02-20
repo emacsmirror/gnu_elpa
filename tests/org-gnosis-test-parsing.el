@@ -239,7 +239,7 @@ Links in [[id:target3][different]] formats and [[id:target4][contexts]]."))
           (should level3)
           (should (equal (plist-get level3 :title)
 			 "Parent Topic:Level 1 Heading:Level 2 Heading:Level 3 Heading"))
-          (should (equal (plist-get level3 :master) "level1-id-456")) ; Links to grandparent, not direct parent
+          (should (equal (plist-get level3 :master) "level1-id-456"))
           (should (equal (plist-get level3 :level) 3)))))))
 
 (ert-deftest org-gnosis-test-missing-parent-ids ()
@@ -317,15 +317,17 @@ This should link to section-id-789, skipping the parent without ID."))
     ":PROPERTIES:\n:ID: test-id\n:END:\n#+title: \n\n* Test\n:PROPERTIES:\n:ID: test-headline\n:END:\n"
     (org-gnosis-buffer-data)))
 
-  ;; Test missing topic ID (should not error, but create fake topic)
+  ;; Test missing topic ID (should skip topic, only parse headlines)
   (let ((result (org-gnosis-test-with-temp-buffer
                  "#+title: Test Without ID\n\n* Test\n:PROPERTIES:\n:ID: test-headline\n:END:\n"
                  (org-gnosis-buffer-data))))
-    ;; Should create a topic using the headline's ID
-    (should (= (length result) 2))
-    (let ((topic (cl-find-if (lambda (item) (= (plist-get item :level) 0)) result)))
-      (should topic)
-      (should (equal (plist-get topic :title) "Test Without ID"))))
+    ;; Should only have the headline, no topic
+    (should (= (length result) 1))
+    (let ((headline (car result)))
+      (should headline)
+      (should (equal (plist-get headline :level) 1))
+      (should (equal (plist-get headline :title) "Test"))
+      (should (equal (plist-get headline :id) "test-headline"))))
 
   ;; Test headline without ID (should be skipped)
   (let ((test-content ":PROPERTIES:\n:ID: topic-id\n:END:\n#+title: Valid Topic\n\n* Headline Without ID\nContent here.\n\n* Headline With ID\n:PROPERTIES:\n:ID: valid-headline-id\n:END:\nMore content."))

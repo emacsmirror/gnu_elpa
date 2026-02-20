@@ -35,9 +35,13 @@ gradlew (Gradle wrapper), it is used in preference."
   "Args to pass to gradle invocation.
 
 The default value disables build and configuration cache.
-\"-Dorg.gradle.java.compile-classpath-packaging=true\" and
-\"-Dorg.gradle.console=plain\" are always passed to Gradle, do not set
-them here."
+
+The following arguments are always passed to Gradle (do not set them here):
+\"-Dorg.gradle.console=plain\"
+\"-Dorg.gradle.java.compile-classpath-packaging=true\"
+\"-Dorg.gradle.parallel=false\"
+\"-Dorg.gradle.warning.mode=none\"
+\"-Dorg.gradle.welcome=never\""
   :type '(repeat (string :tag "Gradle CLI argument"))
   :group 'javaimp)
 
@@ -116,19 +120,24 @@ descriptor."
 
 (defun javaimp-gradle--id-from-semi-separated (str)
   (when str
-    (let ((parts (split-string str ";" t))
-          artifact)
+    (let ((parts (split-string str ";"))
+          group artifact version)
       (unless (= (length parts) 3)
         (error "Invalid project id: %s" str))
-      (setq artifact (nth 1 parts))
+      (setq group (nth 0 parts)
+            artifact (nth 1 parts)
+            version (nth 2 parts))
       (if (equal artifact ":")
           (setq artifact "<root>")
         ;; convert "[:]foo:bar:baz" into "foo.bar.baz"
         (setq artifact (replace-regexp-in-string
                         ":" "." (string-remove-prefix ":" artifact))))
-      (make-javaimp-id :group (nth 0 parts)
-                       :artifact artifact
-                       :version (nth 2 parts)))))
+      (make-javaimp-id :group (if (string-blank-p group)
+                                  "<unspecified_group>" group)
+                       :artifact (if (string-blank-p artifact)
+                                  "<unspecified_artifact>" artifact)
+                       :version (if (string-blank-p version)
+                                    "<unspecified_version>" version)))))
 
 (defun javaimp-gradle--fetch-dep-jars (module ids)
   (javaimp-gradle--call
@@ -170,6 +179,10 @@ descriptor."
             ;; java-library projects.  See
             ;; https://docs.gradle.org/current/userguide/java_library_plugin.html#sec:java_library_classes_usage
             "-Dorg.gradle.java.compile-classpath-packaging=true"
+            ;; We need sequential task output for parsing
+            "-Dorg.gradle.parallel=false"
+            "-Dorg.gradle.warning.mode=none"
+            "-Dorg.gradle.welcome=never"
             "-I" (javaimp-cygpath-convert-file-name
                   (expand-file-name "javaimp-init-script.gradle"
                                     (file-name-concat javaimp-basedir "support")))

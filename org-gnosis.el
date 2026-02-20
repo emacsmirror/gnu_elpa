@@ -167,17 +167,6 @@ If nil, journal entries are created as separate files in
 
 
 
-(defun org-gnosis--find-master-id (id-stack level topic-id)
-  "Find the appropriate master ID for a headline at LEVEL.
-ID-STACK contains parent IDs, LEVEL is current headline level,
-TOPIC-ID is fallback."
-  (if (= level 1)
-      topic-id
-    (or (cl-loop for i from (- level 2) downto 0
-                 for parent-id = (nth i id-stack)
-                 when parent-id return parent-id)
-        topic-id)))
-
 (defun org-gnosis--combine-tags (inherited-tags headline-tags)
   "Combine INHERITED-TAGS and HEADLINE-TAGS, removing duplicates."
   (delete-dups (append (or inherited-tags '()) (or headline-tags '()))))
@@ -206,55 +195,13 @@ Optional argument FLATTEN, when non-nil, flattens the result."
   "Drop TABLE from `gnosis-db'."
   (emacsql (org-gnosis-db-get) `[:drop-table ,table]))
 
-(defun org-gnosis-adjust-title (input &optional node-id)
-  "Adjust the INPUT string to replace id link structures with plain text.
-
-If node title contains an id link, it's inserted as link for NODE-ID
-in the database."
-  (cl-assert (and (stringp input) (not (string-empty-p input))) nil
-	     "Input must be a non-empty string, got: %S")
-  (let* ((id-links '())
-	 (new-input (replace-regexp-in-string
-                     "\\[\\[id:[^]]+\\]\\[\\(.*?\\)\\]\\]"
-                     (lambda (match)
-                       (let ((link-text (match-string 1 match)))
-                         (when (and link-text (not (string-empty-p link-text)))
-                           (push link-text id-links))
-                         link-text))
-                     input)))
-    ;; Only insert links if we have a valid node-id and found links
-    (when (and node-id id-links (not (string-empty-p node-id)))
-      (condition-case err
-          (emacsql-with-transaction (org-gnosis-db-get)
-            (cl-loop for link in (reverse id-links)
-                     do (org-gnosis--insert-into 'links `([,node-id ,link]))))
-        (error "Warning: Failed to insert title links for %s: %S" node-id err)))
-    new-input))
-
-(defun org-gnosis-parse-headline (headline inherited-tags master-id title-stack)
-  "Parse a HEADLINE and return a plist with its info.
-
-INHERITED-TAGS: Upper level headline tags.
-MASTER-ID: ID of the parent headline or topic.
-TITLE-STACK: List of parent titles for building hierarchical title.
-
-Note: This function assumes the headline has already been validated
-to have an ID."
-  (let* ((title (org-element-property :raw-value headline))
-         (id (org-element-property :ID headline))
-         (level (org-element-property :level headline))
-         (headline-tags (org-element-property :tags headline))
-         (all-tags (org-gnosis--combine-tags inherited-tags headline-tags))
-         (full-title (if title-stack
-                         (concat (mapconcat #'identity title-stack ":")
-                                 ":"
-                                 (string-trim title))
-                       (string-trim title))))
-    (list :title full-title
-          :id id
-          :tags all-tags
-          :master master-id
-          :level level)))
+(defun org-gnosis-adjust-title (input)
+  "Strip org link markup from INPUT, keeping only link descriptions.
+Converts [[id:xxx][Description]] to Description."
+  (replace-regexp-in-string
+   "\\[\\[id:[^]]+\\]\\[\\(.*?\\)\\]\\]"
+   "\\1"
+   input))
 
 (defun org-gnosis-get-id ()
   "Return id for heading at point."
@@ -309,7 +256,7 @@ Returns (title tags id). ID will be nil if no file-level ID exists."
                         (when (string= (org-element-property :key kw) "TITLE")
                           (org-element-property :value kw)))
                       nil t))
-	 (title (when title-raw (org-gnosis-adjust-title title-raw id)))
+	 (title (when title-raw (org-gnosis-adjust-title title-raw)))
 	 (tags (org-gnosis-get-filetags parsed-data)))
     ;; Only validate title, ID is optional
     (unless (and title (not (string-empty-p title)))
@@ -327,65 +274,73 @@ Returns (title tags id). ID will be nil if no file-level ID exists."
     (when (and filetags (not (string-empty-p (string-trim filetags))))
       (remove "" (split-string filetags ":")))))
 
-(defun org-gnosis-parse-topic (parsed-data)
-  "Parse topic information from the PARSED-DATA."
-  (let* ((topic-info (org-gnosis-get-data--topic parsed-data))
-         (topic-title (nth 0 topic-info))
-         (topic-tags (nth 1 topic-info))
-         (topic-id (nth 2 topic-info)))
-    (when topic-id
-      (list :title topic-title
-	    :id topic-id :tags topic-tags :master 0 :level 0))))
+(defun org-gnosis--parse-headlines-recursive (element parent-id parent-title parent-tags)
+  "Recursively parse headlines from ELEMENT.
+ELEMENT can be the parsed-data (org-data) or a headline element.
+PARENT-ID is the ID of nearest ancestor with ID (or 0).
+PARENT-TITLE is the hierarchical title path (only from ancestors with IDs).
+PARENT-TAGS are the inherited tags from ancestors."
+  (let (results)
+    (org-element-map (org-element-contents element) 'headline
+      (lambda (headline)
+        (let* ((current-id (org-element-property :ID headline))
+               (title (org-element-property :raw-value headline))
+               (level (org-element-property :level headline))
+               (headline-tags (org-element-property :tags headline))
+               (combined-tags (org-gnosis--combine-tags parent-tags headline-tags)))
+
+          (if current-id
+              ;; This headline has an ID - process it
+              (let* ((clean-title (org-gnosis-adjust-title (string-trim title)))
+                     (full-title (if parent-title
+                                    (concat parent-title ":" clean-title)
+                                  clean-title))
+                     (entry (list :id current-id
+                                 :title full-title
+                                 :tags combined-tags
+                                 :master (or parent-id 0)
+                                 :level level))
+                     ;; Recursively process children with THIS as parent
+                     (children (org-gnosis--parse-headlines-recursive
+                               headline
+                               current-id
+                               full-title
+                               combined-tags)))
+                (setq results (append results (cons entry children))))
+
+            ;; No ID - skip this headline but process children
+            ;; Children inherit from the same parent context
+            (let ((children (org-gnosis--parse-headlines-recursive
+                           headline
+                           parent-id
+                           parent-title
+                           combined-tags)))
+              (setq results (append results children))))))
+      nil nil 'headline)
+    results))
 
 (defun org-gnosis-buffer-data (&optional data)
   "Parse DATA in current buffer for topics & headlines with their ID, tags, links."
   (let* ((parsed-data (or data (org-element-parse-buffer)))
-         (topic (org-gnosis-parse-topic parsed-data))
-         (topic-id (plist-get topic :id))
-         (topic-title (plist-get topic :title)))
-    ;; Topic is optional - only include if it has an ID
-    (let ((headlines '())
-          (tag-stack (list (plist-get topic :tags)))
-          (id-stack (list topic-id))
-          (title-stack '()))
-      (org-element-map parsed-data 'headline
-        (lambda (headline)
-          (let* ((level (org-element-property :level headline))
-                 (headline-tags (org-element-property :tags headline))
-                 (current-id (org-element-property :ID headline))
-                 (current-title (org-element-property :raw-value headline)))
-            ;; Adjust stacks to proper level
-            (while (>= (length id-stack) level)
-              (pop id-stack))
-            (while (>= (length tag-stack) level)
-              (pop tag-stack))
-            (while (>= (length title-stack) level)
-              (pop title-stack))
-            ;; Calculate combined tags
-            (let* ((inherited-tags (or (car tag-stack) '()))
-                   (combined-tags (org-gnosis--combine-tags inherited-tags headline-tags))
-                   ;; Build parent titles: only include topic title if it has an ID
-                   (parent-titles (if topic-id
-                                      (cons topic-title (reverse title-stack))
-                                    (reverse title-stack))))
-              ;; Calculate master ID from current stack state
-              (let ((master-id (when current-id
-                                (org-gnosis--find-master-id id-stack level topic-id))))
-                ;; Push current values to stacks for children
-                (push current-id id-stack)
-                (push combined-tags tag-stack)
-                ;; Only push title to stack if headline has an ID
-                (when current-id
-                  (push (string-trim current-title) title-stack))
-                ;; Only parse headlines with IDs
-                (when current-id
-                  (when-let* ((parsed (org-gnosis-parse-headline headline combined-tags master-id
-                                                                  parent-titles)))
-                    (push parsed headlines))))))))
-      ;; Only include topic if it has an ID
-      (nreverse (if topic-id
-                    (cons topic headlines)
-                  headlines)))))
+         (topic-info (org-gnosis-get-data--topic parsed-data))
+         (topic-title (nth 0 topic-info))
+         (topic-tags (nth 1 topic-info))
+         (topic-id (nth 2 topic-info))
+         ;; Recursively parse all headlines
+         (headlines (org-gnosis--parse-headlines-recursive
+                    parsed-data
+                    topic-id
+                    (when topic-id topic-title)
+                    topic-tags)))
+    ;; Only include topic if it has an ID
+    (if topic-id
+        (cons (list :title topic-title
+                   :id topic-id
+                   :tags topic-tags
+                   :master 0
+                   :level 0)
+              headlines)
+      headlines)))
 
 (defun org-gnosis-get-file-info (filename)
   "Get data for FILENAME.
@@ -409,26 +364,17 @@ If JOURNAL is non-nil, update file as a journal entry."
 	     (data (butlast info))
 	     (table (if journal 'journal 'nodes))
 	     (filename (file-name-nondirectory file))
-	     (links (and (> (length info) 1) (apply #'append (last info))))
-	     (titles (org-gnosis-select 'title table nil t)))
+	     (links (and (> (length info) 1) (apply #'append (last info)))))
 	;; Add gnosis topic and nodes
 	(message "Parsing: %s" filename)
 	(emacsql-with-transaction (org-gnosis-db-get)
 	  (cl-loop for item in data
 		   when (plist-get item :id)  ;; Only process items with IDs
-		   do (let ((title (org-gnosis-adjust-title
-				    (plist-get item :title)))
+		   do (let ((title (plist-get item :title))
 			    (id (plist-get item :id))
 			    (master (plist-get item :master))
 			    (tags (plist-get item :tags))
 			    (level (plist-get item :level)))
-			;; Handle duplicate titles gracefully
-			(when (member title titles)
-			  (let ((counter 1))
-			    (while (member (format "%s (%d)" title counter) titles)
-			      (setq counter (1+ counter)))
-			    (setq title (format "%s (%d)" title counter))
-			    (message "Duplicate title found, renamed to: %s" title)))
 			(org-gnosis--insert-into table `([,id ,filename ,title ,level
 							      ,(prin1-to-string tags)]))
 			;; Insert tags

@@ -58,13 +58,23 @@ Consult `add-hook' for the interpretation of DEPTH."
   :type 'number)
 
 
+;; Helper functions
+(defun xref-union--bol-marker (item)
+  "Return a marker for `xref-item' ITEM.
+The marker points to the beginning of the line in which ITEM is located."
+  (let* ((loc (xref-item-location item))
+         (mark (xref-location-marker loc)))
+    (with-current-buffer (marker-buffer mark)
+      (copy-marker (line-beginning-position)))))
+
 ;;;; Xref interface
 
-(defun xref-union-same-p (l1 l2)
-  "Check if the locations L1 and L2 are the same.
-Same in this context means they reference the same object."
-  (= (xref-location-marker (xref-item-location l1))
-     (xref-location-marker (xref-item-location l2))))
+(defun xref-union-same-p (item1 item2)
+  "Check if the items ITEM1 and ITEM2 are the same.
+Same in this context means they reference the same line in the same
+buffer."
+  (= (xref-union--bol-marker item1)
+     (xref-union--bol-marker item2)))
 
 (cl-defmethod xref-backend-identifier-at-point ((backends (head union)))
   "Collect the results of multiple Xref BACKENDS."

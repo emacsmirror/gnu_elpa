@@ -293,28 +293,28 @@ PARENT-TAGS are the inherited tags from ancestors."
               ;; This headline has an ID - process it
               (let* ((clean-title (org-gnosis-adjust-title (string-trim title)))
                      (full-title (if parent-title
-                                    (concat parent-title ":" clean-title)
-                                  clean-title))
+                                     (concat parent-title ":" clean-title)
+                                   clean-title))
                      (entry (list :id current-id
-                                 :title full-title
-                                 :tags combined-tags
-                                 :master (or parent-id 0)
-                                 :level level))
+                                  :title full-title
+                                  :tags combined-tags
+                                  :master (or parent-id 0)
+                                  :level level))
                      ;; Recursively process children with THIS as parent
                      (children (org-gnosis--parse-headlines-recursive
-                               headline
-                               current-id
-                               full-title
-                               combined-tags)))
+				headline
+				current-id
+				full-title
+				combined-tags)))
                 (setq results (append results (cons entry children))))
 
             ;; No ID - skip this headline but process children
             ;; Children inherit from the same parent context
             (let ((children (org-gnosis--parse-headlines-recursive
-                           headline
-                           parent-id
-                           parent-title
-                           combined-tags)))
+                             headline
+                             parent-id
+                             parent-title
+                             combined-tags)))
               (setq results (append results children))))))
       nil nil 'headline)
     results))
@@ -328,17 +328,17 @@ PARENT-TAGS are the inherited tags from ancestors."
          (topic-id (nth 2 topic-info))
          ;; Recursively parse all headlines
          (headlines (org-gnosis--parse-headlines-recursive
-                    parsed-data
-                    topic-id
-                    (when topic-id topic-title)
-                    topic-tags)))
+                     parsed-data
+                     topic-id
+                     (when topic-id topic-title)
+                     topic-tags)))
     ;; Only include topic if it has an ID
     (if topic-id
         (cons (list :title topic-title
-                   :id topic-id
-                   :tags topic-tags
-                   :master 0
-                   :level 0)
+                    :id topic-id
+                    :tags topic-tags
+                    :master 0
+                    :level 0)
               headlines)
       headlines)))
 
@@ -723,9 +723,9 @@ If file or id are not found, use `org-open-at-point'."
       (org-element-map (org-element-parse-buffer) 'headline
         (lambda (headline)
           (when (member (org-element-property :todo-keyword headline)
-			 (cl-loop for keyword in org-gnosis-todo-keywords
-				  until (and (stringp keyword) (string= keyword "|"))
-				  collect keyword))
+			(cl-loop for keyword in org-gnosis-todo-keywords
+				 until (and (stringp keyword) (string= keyword "|"))
+				 collect keyword))
             (let* ((title (org-element-property :raw-value headline))
                    (timestamp (org-element-property
 			       :raw-value (org-element-property :scheduled headline))))
@@ -933,7 +933,7 @@ Create all tables and set version for new database."
 (defun org-gnosis-db-init-if-needed ()
   "Init database if it has not been initialized."
   (let ((tables (emacsql (org-gnosis-db-get)
-			  [:select name :from sqlite-master :where (= type 'table)])))
+			 [:select name :from sqlite-master :where (= type 'table)])))
     (when (< (length tables) 3)
       (message "Creating org-gnosis database...")
       (org-gnosis-db-init))))

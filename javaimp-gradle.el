@@ -28,6 +28,18 @@ gradlew (Gradle wrapper), it is used in preference."
   :type 'string
   :group 'javaimp)
 
+(defcustom javaimp-gradle-args
+  '("-Dorg.gradle.caching=false"        ;CLI option --build-cache
+    "-Dorg.gradle.configuration-cache=false" ;CLI option --configuration-cache
+    )
+  "Args to pass to gradle invocation.
+
+The default value disables build and configuration cache.
+\"-Dorg.gradle.java.compile-classpath-packaging=true\" and
+\"-Dorg.gradle.console=plain\" are always passed to Gradle, do not set
+them here."
+  :type '(repeat (string :tag "Gradle CLI argument"))
+  :group 'javaimp)
 
 (defun javaimp-gradle-visit (file)
   "Calls gradle on FILE to get various project information.
@@ -146,18 +158,22 @@ descriptor."
                     javaimp-gradle-program))
          (task (concat mod-path "javaimpTask")))
     (message "Calling Gradle task %s on %s ..." task file)
-    (javaimp-call-java-program
+    (apply
+     #'javaimp-call-java-program
      program
      handler
-     "-q"
-     ;; It's easier for us to track jars instead of classes for
-     ;; java-library projects.  See
-     ;; https://docs.gradle.org/current/userguide/java_library_plugin.html#sec:java_library_classes_usage
-     "-Dorg.gradle.java.compile-classpath-packaging=true"
-     "--no-configuration-cache"
-     "-I" (javaimp-cygpath-convert-file-name
-           (expand-file-name "javaimp-init-script.gradle"
-                             (file-name-concat javaimp-basedir "support")))
-     task)))
+     (append
+      javaimp-gradle-args
+      (list "-q"
+            "-Dorg.gradle.console=plain"
+            ;; It's easier for us to track jars instead of classes for
+            ;; java-library projects.  See
+            ;; https://docs.gradle.org/current/userguide/java_library_plugin.html#sec:java_library_classes_usage
+            "-Dorg.gradle.java.compile-classpath-packaging=true"
+            "-I" (javaimp-cygpath-convert-file-name
+                  (expand-file-name "javaimp-init-script.gradle"
+                                    (file-name-concat javaimp-basedir "support")))
+            "--"
+            task)))))
 
 (provide 'javaimp-gradle)

@@ -41,7 +41,7 @@ Libraries")`](https://gnu.org/software/emacs/manual/html_node/emacs/Lisp-Librari
 
 ### Using in a package
 
-Add something like this to the library's headers:
+Add something like this to the library’s headers:
 
     ;; Package-Requires: ((dash "[[ dash-version ]]"))
 
@@ -113,10 +113,10 @@ This demonstrates the utility of both versions.
 ## Contribute
 
 Yes, please do.  Pure functions in the list manipulation realm only,
-please.  There's a suite of examples/tests in `dev/examples.el`, so
+please.  There’s a suite of examples/tests in `dev/examples.el`, so
 remember to add tests for your additions, or I might break them later.
 
-You'll find the repo at:
+You’ll find the repo at:
 
     https://github.com/magnars/dash.el
 
@@ -133,7 +133,7 @@ that the tests are always running and the docs are always in sync:
 
     cp dev/pre-commit.sh .git/hooks/pre-commit
 
-Oh, and don't edit `README.md` or `dash.texi` directly; they are
+Oh, and don’t edit `README.md` or `dash.texi` directly; they are
 auto-generated.  Change `readme-template.md` or `dash-template.texi`
 instead, respectively.
 

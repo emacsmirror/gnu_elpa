@@ -254,7 +254,7 @@ This release retired Emacs 23 support.
 - Added `-cycle`, `-pad`, `-annotate`, and `-zip-fill` (Steve Lamb).
 - Added `-table`, `-table-flat` (finite Cartesian product).
 - Added `-flatten-n`.
-- `-slice` now supports a "step" argument.
+- `-slice` now supports a “step” argument.
 - Added functional combinators `-iteratefn` and `-prodfn`.
 - Added `-replace`, `-splice`, and `-splice-list` which generalize `-replace-at`
   and `-insert-at`.

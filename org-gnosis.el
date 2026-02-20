@@ -287,16 +287,22 @@ to have an ID."
 
 (defun org-gnosis-get-data--topic (&optional parsed-data)
   "Retrieve the title and ID from the current org buffer or given PARSED-DATA.
-Returns (title tags id) or signals error if required data is missing."
+Returns (title tags id). ID will be nil if no file-level ID exists."
   (unless parsed-data
     (setq parsed-data (org-element-parse-buffer)))
   (let* ((id (org-element-map parsed-data 'property-drawer
                (lambda (drawer)
-                 (org-element-map (org-element-contents drawer) 'node-property
-                   (lambda (prop)
-                     (when (string= (org-element-property :key prop) "ID")
-                       (org-element-property :value prop)))
-                   nil t))
+                 ;; Only consider file-level property drawer (before first headline)
+                 (let ((parent (org-element-property :parent drawer)))
+                   (when (and parent
+                              (eq (org-element-type parent) 'section)
+                              (let ((section-parent (org-element-property :parent parent)))
+                                (eq (org-element-type section-parent) 'org-data)))
+                     (org-element-map (org-element-contents drawer) 'node-property
+                       (lambda (prop)
+                         (when (string= (org-element-property :key prop) "ID")
+                           (org-element-property :value prop)))
+                       nil t))))
                nil t))
 	 (title-raw (org-element-map parsed-data 'keyword
                       (lambda (kw)
@@ -305,9 +311,7 @@ Returns (title tags id) or signals error if required data is missing."
                       nil t))
 	 (title (when title-raw (org-gnosis-adjust-title title-raw id)))
 	 (tags (org-gnosis-get-filetags parsed-data)))
-    ;; Validate required fields
-    (unless id
-      (error "Org buffer must have an ID property"))
+    ;; Only validate title, ID is optional
     (unless (and title (not (string-empty-p title)))
       (error "Org buffer must have a non-empty TITLE"))
     (list title tags id)))
@@ -336,14 +340,14 @@ Returns (title tags id) or signals error if required data is missing."
 (defun org-gnosis-buffer-data (&optional data)
   "Parse DATA in current buffer for topics & headlines with their ID, tags, links."
   (let* ((parsed-data (or data (org-element-parse-buffer)))
-         (topic (org-gnosis-parse-topic parsed-data)))
-    (unless topic (error "Buffer must have a topic with ID"))
+         (topic (org-gnosis-parse-topic parsed-data))
+         (topic-id (plist-get topic :id))
+         (topic-title (plist-get topic :title)))
+    ;; Topic is optional - only include if it has an ID
     (let ((headlines '())
           (tag-stack (list (plist-get topic :tags)))
-          (id-stack (list (plist-get topic :id)))
-          (title-stack '())
-          (topic-id (plist-get topic :id))
-          (topic-title (plist-get topic :title)))
+          (id-stack (list topic-id))
+          (title-stack '()))
       (org-element-map parsed-data 'headline
         (lambda (headline)
           (let* ((level (org-element-property :level headline))
@@ -360,21 +364,28 @@ Returns (title tags id) or signals error if required data is missing."
             ;; Calculate combined tags
             (let* ((inherited-tags (or (car tag-stack) '()))
                    (combined-tags (org-gnosis--combine-tags inherited-tags headline-tags))
-                   ;; Build parent titles: topic title + title stack
-                   (parent-titles (cons topic-title (reverse title-stack))))
+                   ;; Build parent titles: only include topic title if it has an ID
+                   (parent-titles (if topic-id
+                                      (cons topic-title (reverse title-stack))
+                                    (reverse title-stack))))
               ;; Calculate master ID from current stack state
               (let ((master-id (when current-id
                                 (org-gnosis--find-master-id id-stack level topic-id))))
                 ;; Push current values to stacks for children
                 (push current-id id-stack)
                 (push combined-tags tag-stack)
-                (push (string-trim current-title) title-stack)
+                ;; Only push title to stack if headline has an ID
+                (when current-id
+                  (push (string-trim current-title) title-stack))
                 ;; Only parse headlines with IDs
                 (when current-id
                   (when-let* ((parsed (org-gnosis-parse-headline headline combined-tags master-id
                                                                   parent-titles)))
                     (push parsed headlines))))))))
-      (nreverse (cons topic headlines)))))
+      ;; Only include topic if it has an ID
+      (nreverse (if topic-id
+                    (cons topic headlines)
+                  headlines)))))
 
 (defun org-gnosis-get-file-info (filename)
   "Get data for FILENAME.
@@ -404,6 +415,7 @@ If JOURNAL is non-nil, update file as a journal entry."
 	(message "Parsing: %s" filename)
 	(emacsql-with-transaction (org-gnosis-db-get)
 	  (cl-loop for item in data
+		   when (plist-get item :id)  ;; Only process items with IDs
 		   do (let ((title (org-gnosis-adjust-title
 				    (plist-get item :title)))
 			    (id (plist-get item :id))

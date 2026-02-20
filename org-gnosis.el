@@ -116,7 +116,11 @@ compatability with `org-todo-keywords'."
   '((t :inherit font-lock-type-face))
   "Face for displaying gnosis with `org-gnosis-find'.")
 
-(defvar org-gnosis-db (emacsql-sqlite-open (locate-user-emacs-file "org-gnosis.db")))
+(defcustom org-gnosis-database-file (locate-user-emacs-file "org-gnosis.db")
+  "Path to database file."
+  :type 'file
+  :group 'org-gnosis)
+
 
 ;; Create notes & journal directories.
 (dolist (dir `(,org-gnosis-dir ,org-gnosis-journal-dir))

@@ -415,7 +415,22 @@ Removes all contents of FILE in database, adding them anew."
     (org-gnosis--update-file file journal-p)
     ;; Update todos
     (when (and journal-p file)
-      (let ((done-todos (org-gnosis-get-checked-items (org-element-parse-buffer))))
+      (let* ((today (format-time-string "%Y-%m-%d"))
+             (parsed-buffer (org-element-parse-buffer))
+             (done-todos (if (and org-gnosis-journal-file
+                                  (string= file (file-name-nondirectory org-gnosis-journal-file)))
+                             ;; For single journal file, only get items from today's heading
+                             (let ((today-heading
+                                    (org-element-map parsed-buffer 'headline
+                                      (lambda (headline)
+                                        (when (string= (org-element-property :raw-value headline) today)
+                                          headline))
+                                      nil t)))
+                               (if today-heading
+                                   (org-gnosis-get-checked-items today-heading)
+                                 nil))
+                           ;; For separate journal files, get all items
+                           (org-gnosis-get-checked-items parsed-buffer))))
         (cl-loop for done-todo in done-todos
 		 do (org-gnosis-mark-todo-as-done done-todo))))))
 
@@ -765,11 +780,11 @@ ELEMENT should be the output of `org-element-parse-buffer'."
       (lambda (item)
         (when (eq (org-element-property :checkbox item) 'on)
           (push (car (split-string
-                     (substring-no-properties
-                      (string-trim
-                       (org-element-interpret-data
-                        (org-element-contents item))))
-                     "\n"))
+                      (substring-no-properties
+                       (string-trim
+			(org-element-interpret-data
+                         (org-element-contents item))))
+                      "\n"))
                 checked-items))))
     (nreverse checked-items)))
 

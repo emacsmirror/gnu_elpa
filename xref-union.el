@@ -79,8 +79,7 @@ buffer."
 (cl-defmethod xref-backend-identifier-at-point ((backends (head union)))
   "Collect the results of multiple Xref BACKENDS."
   (cl-loop for backend in (cdr backends)
-           when (xref-backend-identifier-at-point backend)
-           return it))
+           thereis (xref-backend-identifier-at-point backend)))
 
 (cl-defmethod xref-backend-identifier-completion-table ((backends (head union)))
   "Collect the results of multiple Xref BACKENDS."

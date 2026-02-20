@@ -58,7 +58,7 @@ Consult `add-hook' for the interpretation of DEPTH."
   :type 'number)
 
 
-;; Helper functions
+;;;; Helper functions
 (defun xref-union--bol-marker (item)
   "Return a marker for `xref-item' ITEM.
 The marker points to the beginning of the line in which ITEM is located."
@@ -67,6 +67,7 @@ The marker points to the beginning of the line in which ITEM is located."
     (with-current-buffer (marker-buffer mark)
       (copy-marker (line-beginning-position)))))
 
+
 ;;;; Xref interface
 
 (defun xref-union-same-p (item1 item2)

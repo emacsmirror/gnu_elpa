@@ -232,14 +232,12 @@ Links in [[id:target3][different]] formats and [[id:target4][contexts]]."))
           (should (equal (plist-get level2 :master) "level1-id-456"))
           (should (equal (plist-get level2 :level) 2)))
 
-        ;; Check level 3 master relationship
-        ;; Note: Current implementation links level 3 to level 1 (grandparent), not level 2 (parent)
-        ;; This appears to be intended behavior based on the org-gnosis--find-master-id logic
+        ;; Check level 3 master relationship - links to direct parent (level 2)
         (let ((level3 (cl-find-if (lambda (item) (equal (plist-get item :id) "level3-id-abc")) data)))
           (should level3)
           (should (equal (plist-get level3 :title)
 			 "Parent Topic:Level 1 Heading:Level 2 Heading:Level 3 Heading"))
-          (should (equal (plist-get level3 :master) "level1-id-456"))
+          (should (equal (plist-get level3 :master) "level2-id-789"))
           (should (equal (plist-get level3 :level) 3)))))))
 
 (ert-deftest org-gnosis-test-missing-parent-ids ()
@@ -349,13 +347,12 @@ This should link to section-id-789, skipping the parent without ID."))
         ;; Should have topic + 10 headlines = 11 items
         (should (= (length data) 11))
 
-        ;; Check that deepest level exists and has correct hierarchy behavior
-        ;; Note: Based on org-gnosis hierarchy logic, level 10 links to level 1, not level 9
+        ;; Check that deepest level exists and links to direct parent (level 9)
         (let ((deepest (cl-find-if (lambda (item)
                                     (equal (plist-get item :id) "level-10-id"))
                                   data)))
           (should deepest)
-          (should (equal (plist-get deepest :master) "level-1-id")) ; Links to level 1, not level 9
+          (should (equal (plist-get deepest :master) "level-9-id")) ; Links to direct parent (level 9)
           )))))
 
 (ert-deftest org-gnosis-test-mixed-id-headlines ()

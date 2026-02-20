@@ -6,6 +6,13 @@ See the end of the file for license conditions.
 
 ## Change log
 
+### From 2.20.0 to ?.?.?
+
+#### Fixes
+
+- The `-cycle` function is no longer marked as `pure`, as it returns a
+  copy of its argument (#405).
+
 ### From 2.19.1 to 2.20.0
 
 #### Deprecations
@@ -42,7 +49,7 @@ See the end of the file for license conditions.
   immutable constant, and thus unsafe to modify destructively.  The
   functions in question are: `-clone`, `-cons*`, `-drop-last`,
   `-interleave`, `-interpose`, `-iota`, `-non-nil`, `-repeat`,
-  `-slice`, `-snoc`, `-split-at`, `-take`, `-take-last`.
+  `-slice`, `-snoc`, `-split-at`, `-take`, `-take-last` (#405).
 
 #### New features
 

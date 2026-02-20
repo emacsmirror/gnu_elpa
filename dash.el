@@ -1893,7 +1893,7 @@ LISTS, it is generally recommended to use `-unzip-lists' instead."
   "Return an infinite circular copy of LIST.
 The returned list cycles through the elements of LIST and repeats
 from the beginning."
-  (declare (pure t) (side-effect-free t))
+  (declare (side-effect-free t))
   ;; Also works with sequences that aren't lists.
   (let ((newlist (append list ())))
     (nconc newlist newlist)))

@@ -1616,7 +1616,7 @@ are effectively trimmed.  If nil, all zero-length substrings are retained."
 (defun org-contacts--all-contacts ()
   "Return a list of all contacts in `org-contacts-files'.
 Each element has the form (NAME . (FILE . POSITION))."
-  (car (mapcar
+  (mapcan
         (lambda (file)
           (unless (buffer-live-p (get-buffer (file-name-nondirectory file)))
             (find-file-noselect file))
@@ -1643,7 +1643,7 @@ Each element has the form (NAME . (FILE . POSITION))."
                        :mobile property-email
                        :wechat property-wechat
                        :qq property-qq))))))
-        (org-contacts-files))))
+        (org-contacts-files)))
 
 ;;;###autoload
 (defun org-contacts-link-open (query)

@@ -69,12 +69,31 @@
 
 (defvar oauth2--default-redirect-uri "urn:ietf:wg:oauth:2.0:oob")
 
+(defvar oauth2--log-buffer-name "*oauth2-log*")
+
+(defun oauth2--log (&rest msg)
+  "Log MSG into a dedicated buffer.
+This avoids putting more stuff into *Message*."
+  (with-current-buffer (get-buffer-create oauth2--log-buffer-name)
+    (setq buffer-read-only nil)
+    (let ((follow (= (point) (point-max))))
+      (save-excursion
+        (goto-char (point-max))
+        (insert (apply #'format msg))
+        (insert "\n"))
+      (when follow (goto-char (point-max))))
+    (setq truncate-lines t
+          buffer-read-only t)
+    (set-buffer-modified-p nil)))
+
 (defun oauth2--do-warn (&rest msg)
   "Actual function to log MSG based on how `oauth2-debug' is set."
   (setcar msg (concat "[oauth2] " (car msg)))
   (apply (if (functionp oauth2-debug)
              oauth2-debug
-           'message)
+           (if noninteractive
+               #'message
+             #'oauth2--log))
          msg))
 
 (defun oauth2--do-trivia (&rest msg)

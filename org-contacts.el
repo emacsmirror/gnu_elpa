@@ -1414,7 +1414,7 @@ to do our best."
          (bday (org-contacts-vcard-escape (cdr (assoc-string org-contacts-birthday-property properties))))
          (addr (cdr (assoc-string org-contacts-address-property properties)))
          (nick (org-contacts-vcard-escape (cdr (assoc-string org-contacts-nickname-property properties))))
-         (categories (delq "" (org-split-string (alist-get "TAGS" properties "" nil #'string=) ":")))
+         (categories (delete "" (org-split-string (alist-get "TAGS" properties "" nil #'string=) ":")))
          (head (format "BEGIN:VCARD\nVERSION:3.0\nN:%s\nFN:%s\n" n name))
          emails-list result phones-list)
     (concat

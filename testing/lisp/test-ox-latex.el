@@ -81,6 +81,7 @@ lorem ipsum dolor\\\\
 lorem ipsum dolor\\\\
 \\end{verse}")))
   ;; Footnotes inside verse blocks
+
   (org-test-with-exported-text
       'latex
       "#+begin_verse
@@ -142,6 +143,33 @@ Column & Column \\\\
      (search-forward
       "\\hline\\multicolumn{2}{r}{Continued on next page} \\\\
 \\endfoot"))))
+
+(ert-deftest test-ox-latex/table-el-table ()
+  "Test table export with table.el table and :rmlines."
+  (org-test-with-exported-text
+      'latex
+      "#+attr_latex: :rmlines yes
++--------------------------+-----------+
+|   ... better than ...    | ... times |
++--------------+-----------+-----------+
+| PostgreSQL   | MySQL     |     2     |
++--------------+-----------+-----------+
+| PostgreSQL   | MongoDB   |     2     |
++--------------+-----------+-----------+
+| MongoDB      | MySQL     |     2     |
++--------------+-----------+-----------+
+"
+    (goto-char (point-min))
+    (should
+     (search-forward
+      "\\begin{tabular}{|l|l|l|}
+\\multicolumn{2}{|l|}{... better than ...} & ... times \\\\
+\\hline
+PostgreSQL & MySQL & 2 \\\\
+PostgreSQL & MongoDB & 2 \\\\
+MongoDB & MySQL & 2 \\\\
+\\end{tabular}"
+      ))))
 
 (ert-deftest test-ox-latex/inline-image ()
   "Test inline images."

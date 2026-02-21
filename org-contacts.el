@@ -256,7 +256,7 @@ A regexp matching strings of whitespace, `,' and `;'.")
 (defun org-contacts-all-contacts ()
   "Return the data of all contacts."
   (setq org-contacts-all-contacts
-	(with-memoization org-contacts-all-contacts
+	      (with-memoization org-contacts-all-contacts
           (org-contacts--all-contacts))))
 
 (defun org-contacts-db-need-update-p ()
@@ -885,8 +885,8 @@ Format is a string matching the following format specification:
                                              (format "%d%s" years (diary-ordinal-suffix years)))))))))
 
 (defun org-contacts--completing-read-date ( prompt _collection
-                                  &optional _predicate _require-match _initial-input
-                                  _hist def _inherit-input-method)
+                                            &optional _predicate _require-match _initial-input
+                                            _hist def _inherit-input-method)
   "Like `completing-read' but reads a date.
 Only PROMPT and DEF are really used."
   (org-read-date nil nil nil prompt nil def))
@@ -1617,33 +1617,33 @@ are effectively trimmed.  If nil, all zero-length substrings are retained."
   "Return a list of all contacts in `org-contacts-files'.
 Each element has the form (NAME . (FILE . POSITION))."
   (mapcan
-        (lambda (file)
-          (unless (buffer-live-p (get-buffer (file-name-nondirectory file)))
-            (find-file-noselect file))
-          (with-current-buffer (find-file-noselect file)
-            (org-map-entries
-             (lambda ()
-               (let* ((name (substring-no-properties (org-get-heading t t t t)))
-                      (file (buffer-file-name))
-                      (position (point))
-                      ;; extract properties Org entry headline at `position' as data API for better contacts searching.
-                      (entry-properties (org-entry-properties position 'standard))
-                      (property-name-chinese (cdr (assoc (upcase "NAME(Chinese)")  entry-properties)))
-                      (property-name-english (cdr (assoc (upcase "NAME(English)")  entry-properties)))
-                      (property-nick  (cdr (assoc "NICK" entry-properties)))
-                      (property-email (cdr (assoc "EMAIL" entry-properties)))
-                      ;; (property-mobile (cdr (assoc "MOBILE" entry-properties)))
-                      (property-wechat (cdr (assoc (upcase "WeChat") entry-properties)))
-                      (property-qq (cdr (assoc "QQ" entry-properties))))
-                 (list :name name :file file :position position
-                       :name-chinese property-name-chinese
-                       :name-english property-name-english
-                       :nick property-nick
-                       :email property-email
-                       :mobile property-email
-                       :wechat property-wechat
-                       :qq property-qq))))))
-        (org-contacts-files)))
+   (lambda (file)
+     (unless (buffer-live-p (get-buffer (file-name-nondirectory file)))
+       (find-file-noselect file))
+     (with-current-buffer (find-file-noselect file)
+       (org-map-entries
+        (lambda ()
+          (let* ((name (substring-no-properties (org-get-heading t t t t)))
+                 (file (buffer-file-name))
+                 (position (point))
+                 ;; extract properties Org entry headline at `position' as data API for better contacts searching.
+                 (entry-properties (org-entry-properties position 'standard))
+                 (property-name-chinese (cdr (assoc (upcase "NAME(Chinese)")  entry-properties)))
+                 (property-name-english (cdr (assoc (upcase "NAME(English)")  entry-properties)))
+                 (property-nick  (cdr (assoc "NICK" entry-properties)))
+                 (property-email (cdr (assoc "EMAIL" entry-properties)))
+                 ;; (property-mobile (cdr (assoc "MOBILE" entry-properties)))
+                 (property-wechat (cdr (assoc (upcase "WeChat") entry-properties)))
+                 (property-qq (cdr (assoc "QQ" entry-properties))))
+            (list :name name :file file :position position
+                  :name-chinese property-name-chinese
+                  :name-english property-name-english
+                  :nick property-nick
+                  :email property-email
+                  :mobile property-email
+                  :wechat property-wechat
+                  :qq property-qq))))))
+   (org-contacts-files)))
 
 ;;;###autoload
 (defun org-contacts-link-open (query)

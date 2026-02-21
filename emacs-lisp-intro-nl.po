@@ -1828,7 +1828,7 @@ msgstr "Bouw een lijst::"
 #: emacs-lisp-intro.texi:7103 emacs-lisp-intro.texi:7105
 #, no-wrap
 msgid "length"
-msgstr "lengte"
+msgstr "length"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:503 emacs-lisp-intro.texi:7050
@@ -15959,6 +15959,10 @@ msgid ""
 "The @code{cons} function is used to construct lists, and the @code{car} and "
 "@code{cdr} functions are used to take them apart."
 msgstr ""
+"@code{car}, @code{cdr} en @code{cons} zijn fundamentele functies in "
+"Lisp. De functie @code{cons} wordt gebruikt om lijsten te "
+"construeren, en de functies @code{car} en @code{cdr} worden gebruikt "
+"om ze uit elkaar te halen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6850
@@ -15967,6 +15971,9 @@ msgid ""
 "@code{cons} as well as two variants on @code{cdr}, namely, @code{setcdr} and "
 "@code{nthcdr}.  (@xref{copy-region-as-kill}.)"
 msgstr ""
+"In de rondleiding door de functie @code{copy-region-as-kill} kijken "
+"we naar @code{cons} en naar twee varianten van @code{cdr}, namelijk "
+"@code{setcdr} en @code{nthcdr}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6875
@@ -15979,6 +15986,14 @@ msgid ""
 "``Contents of the Decrement part of the Register''.  These phrases refer to "
 "the IBM 704 computer on which the original Lisp was developed."
 msgstr ""
+"De naam van de functie @code{cons} is niet onredelijk, het is een "
+"afkorting van het woord ``construct''. De herkomst van de name voor "
+"@code{car} en @code{cdr} aan de andere kant zijn esoterisch: "
+"@code{car} is een acroniem van de zin ``Contents of the Address part "
+"of the Register'', en @code{cdr} (uitgesproken als ``coeld-er'') is "
+"een acroniem van de zin ``Contents of the Decrement part of the "
+"Register''. Deze zinnen refereren aan de IBM 704 computer waarop de "
+"oorspronkelijke Lisp werd ontwikkeld."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6878
@@ -15986,12 +16001,14 @@ msgid ""
 "The IBM 704 is a footnote in history, but these names are now beloved "
 "traditions of Lisp."
 msgstr ""
+"De IBM 704 is een voetnoot in de geschiedenis, maar deze namen zijn "
+"nu geliefde tradities van Lisp."
 
 #. type: section
 #: emacs-lisp-intro.texi:6880
 #, no-wrap
 msgid "@code{car} and @code{cdr}"
-msgstr ""
+msgstr "@code{car} en @code{cdr}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6885
@@ -15999,6 +16016,9 @@ msgid ""
 "The @sc{car} of a list is, quite simply, the first item in the list.  Thus "
 "the @sc{car} of the list @code{(rose violet daisy buttercup)} is @code{rose}."
 msgstr ""
+"De @sc{car} van een lijst is, vrij eenvoudig, het eerste item in de "
+"lijst. Dus de @sc{car} van de lijst @code{(roos viool madelief "
+"boterbloem)} is @code{roos}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6889
@@ -16006,18 +16026,21 @@ msgid ""
 "If you are reading this in Info in GNU Emacs, you can see this by evaluating "
 "the following:"
 msgstr ""
+"Wanneer je dit in Info in GNU Emacs leest kan je dit door het "
+"volgende te evalueren:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:6892
 #, no-wrap
 msgid "(car '(rose violet daisy buttercup))\n"
-msgstr ""
+msgstr "(car '(roos viool madelief boterbloem))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6897
 msgid ""
 "After evaluating the expression, @code{rose} will appear in the echo area."
 msgstr ""
+"Na het evalueren van de expressie verschijnt @code{roos} in het echogebied."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6902
@@ -16027,6 +16050,11 @@ msgid ""
 "the same as it was.  In the jargon, @code{car} is ``non-destructive''.  This "
 "feature turns out to be important."
 msgstr ""
+"@code{car} verwijdert het eerste element van de lijst niet, het "
+"vertelt alleen wat het is. Nadat @code{car} op een lijst is "
+"toegepast is de lijst nog steeds hetzelfde. @code{car} is "
+"``niet-destructief'', in het jargon. Deze eigenschap blijkt "
+"belangrijk te zijn."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6909
@@ -16037,17 +16065,23 @@ msgid ""
 "@code{rose}, the rest of the list, the value returned by the @code{cdr} "
 "function, is @code{(violet daisy buttercup)}."
 msgstr ""
+"De @sc{cdr} van een lijst is de rest van de lijst, dat wil zeggen "
+"dat de @sc{cdr} het deel van de lijst dat volgt op het eerste item. "
+"Dus terwijl de @sc{car} van de lijst @code{'(roos viool madelief "
+"boterbloem)} @code{roos} is, is de rest van de, de waarde die de "
+"functie @code{cdr} teruggeeft, is @code{(viool madelief "
+"boterbloem)}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6912
 msgid "You can see this by evaluating the following in the usual way:"
-msgstr ""
+msgstr "Je ziet door het volgende op de gebruikelijke manier te evalueren:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:6915
 #, no-wrap
 msgid "(cdr '(rose violet daisy buttercup))\n"
-msgstr ""
+msgstr "(cdr '(roos viool madelief boterbloem))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6920
@@ -16055,6 +16089,8 @@ msgid ""
 "When you evaluate this, @code{(violet daisy buttercup)} will appear in the "
 "echo area."
 msgstr ""
+"Wanneer je dit evalueert, verschijnt @code{(viool madelief "
+"boterbloem)} in het echogebied."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6924
@@ -16062,6 +16098,9 @@ msgid ""
 "Like @code{car}, @code{cdr} does not remove any elements from the list---it "
 "just returns a report of what the second and subsequent elements are."
 msgstr ""
+"Net als @code{car} verwijdert @code{cdr} geen elementen uit de "
+"lijst---het vertelt aleen wat het de tweede en volgende elementen "
+"zijn."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6928
@@ -16070,6 +16109,10 @@ msgid ""
 "not, the Lisp interpreter would try to evaluate the list by calling "
 "@code{rose} as a function.  In this example, we do not want to do that."
 msgstr ""
+"Overigens in het voorbeeld is de lijst met bloemen gequote. Wanneer "
+"dat niet zo was zou de Lisp interpreter de lijst proberen te "
+"evalueren door @code{roos} als een functie aan te roepen. In dit "
+"voorbeeld willen we dat niet."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6934
@@ -16079,6 +16122,11 @@ msgid ""
 "programmers define @code{first} and @code{rest} as aliases for @code{car} "
 "and @code{cdr}, then write @code{first} and @code{rest} in their code."
 msgstr ""
+"Voor het werken met lijsten zouden de namen @code{first} en "
+"@code{rest} logischer zijn dan de namen @code{car} en @code{cdr}. "
+"Sommige programmers definieren inderdaad @code{first} en @code{rest} "
+"als aliassen voor @code{car} en @code{cdr} en gebruiken daarna "
+"@code{first} en @code{rest} in de rest van hun code."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6943
@@ -16091,6 +16139,15 @@ msgid ""
 "names are helpful for reminding programmers that @code{car} and @code{cdr} "
 "are in fact symmetrical, despite the asymmetrical way they are used in lists."
 msgstr ""
+"Lijsten in Lisp worden echter gebouwd met een onderliggende "
+"structuur bekend als ``cons cells'' (@pxref{Implementatie van "
+"lijsten}), waarin niet zo iets als ``eerste'' of ``rest'' bestaat, "
+"en de @sc{car} en de @sc{cdr} symmetrisch zijn. Lisp probeert niet "
+"het bestaan van cons cellen te verstoppen en programma's gebruiken "
+"ze ook voor andere dingen dan lijsten. Om deze reden helpen de namen "
+"de programmers te herinneren dat @code{car} en @code{cdr} "
+"symmetrisch zijn, ondanks de asymmetrische manier waarop ze in "
+"lijsten gebruikt worden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6963
@@ -16102,6 +16159,13 @@ msgid ""
 "However, the @sc{cdr} of the list is a list itself, @code{(fir oak maple)}, "
 "as you can see by evaluating the following expressions in the usual way:"
 msgstr ""
+"Wanneer @code{car} en @code{cdr} worden toegepast op lijsten van "
+"symbolen, zoals de lijst @code{(den spar eik esdoorn)}, is het "
+"element van de lijst dat de functie @code{car} teruggeeft het "
+"symbool @code{den}, zonder haakjes er omheen. @code{den} is het "
+"eerste symbool in de lijst. De @sc{cdr} van de lijst is echter een "
+"list op zichzelf, @code{(spar eik esdoorn)}, zoals je ziet door de "
+"volgende expressie op de gebruikelijke manier te evalueren:"
 
 #. type: group
 #: emacs-lisp-intro.texi:6967
@@ -16110,12 +16174,14 @@ msgid ""
 "(car '(pine fir oak maple))\n"
 "\n"
 msgstr ""
+"(car '(den spar eik esdoorn))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:6969
 #, no-wrap
 msgid "(cdr '(pine fir oak maple))\n"
-msgstr ""
+msgstr "(cdr '(den spar eik esdoorn))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6976
@@ -16125,6 +16191,11 @@ msgid ""
 "list contains three sub-lists, a list of carnivores, a list of herbivores "
 "and a list of sea mammals:"
 msgstr ""
+"Anderzijds is in een lijst van lijsten het eerste element op "
+"zichzelf een lijst. @code{car} geeft het eerste element als lijst "
+"terug. De volgende lijst bijvoorbeeld bevat drie sublijsten, een "
+"lijst van carnivoren, een lijst van herbivoren en een lijst van "
+"zeezoogdieren:"
 
 #. type: group
 #: emacs-lisp-intro.texi:6982
@@ -16134,6 +16205,9 @@ msgid ""
 "       (gazelle antelope zebra)\n"
 "       (whale dolphin seal)))\n"
 msgstr ""
+"(car '((leeuw tijger cheeta)\n"
+"       (gazelle antiloop zebra)\n"
+"       (walvis dolfijn zeehond)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6989
@@ -16142,6 +16216,10 @@ msgid ""
 "carnivores, @code{(lion tiger cheetah)}, and the rest of the list is "
 "@code{((gazelle antelope zebra) (whale dolphin seal))}."
 msgstr ""
+"In dit voorbeeld is het eerste element of de @sc{car} van de lijst "
+"de lijst met carnivoren, @code{(leeuw tijger cheeta)} en is de rest "
+"van de lijst @code{(gazelle antiloop zebra) (walvis dolfijn "
+"zeehond)}."
 
 #. type: group
 #: emacs-lisp-intro.texi:6995
@@ -16151,6 +16229,9 @@ msgid ""
 "       (gazelle antelope zebra)\n"
 "       (whale dolphin seal)))\n"
 msgstr ""
+"(cdr '((leeuw tijger cheeta)\n"
+"       (gazelle antiloop zebra)\n"
+"       (walvis dolfijn zeehond)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7001
@@ -16159,6 +16240,9 @@ msgid ""
 "destructive---that is, they do not modify or change lists to which they are "
 "applied.  This is very important for how they are used."
 msgstr ""
+"Het is het waard nog een keer te zeggen dat @code{car} en @code{cdr} "
+"niet-destructief zijn, zij wijzigen de lijsten waarop worden "
+"toegepast niet. Dit is erg belangrijk voor hoe ze worden gebruikt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7014
@@ -16175,12 +16259,25 @@ msgid ""
 "(Arrays are handled by array-specific functions.  @xref{Arrays, , Arrays, "
 "elisp, The GNU Emacs Lisp Reference Manual}.)"
 msgstr ""
+"Daarnaast zei ik bij de bespreking van atomen in het eerste "
+"hoofdstuk dat in Lisp sommige soorten atomen, zoals een array, in "
+"delen gescheiden kunnen worden maar dat het mechanisme om dit te "
+"doen afwijkt van het mechanisme om een lijst te splijten. Voor zover "
+"het Lisp aangaat, zijn de atomen van lijsten onsplijtbaar. "
+"(@xref{Lisp atomen}.) De functies @code{car} en @code{cdr} worden "
+"gebruikt om lijsten te splijten en worden als fundamenteel voor Lisp "
+"beschouwd. Aangezien zij een array niet kunnen splijten of toegang "
+"krijgen tot de delen van een array, wordt een array beschouwd als "
+"een atoom. Omgekeerd kan de andere fundamentele functie @code{cons} "
+"gebruikt worden om een lijst samen te stellen, maar niet een array. "
+"(Arrays worden behandeld met array-specifieke functies  @xref{Arrays, , Arrays, "
+"elisp, The GNU Emacs Lisp Reference Manual}.)"
 
 #. type: findex
 #: emacs-lisp-intro.texi:7017
 #, no-wrap
 msgid "cons@r{, introduced}"
-msgstr ""
+msgstr "cons@r{, geïntroduceerd}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7022
@@ -16189,23 +16286,27 @@ msgid ""
 "and @code{cdr}.  For example, @code{cons} can be used to make a four element "
 "list from the three element list, @code{(fir oak maple)}:"
 msgstr ""
+"De @code{cons} functie construeert lijsten. Het is de inverse van "
+"@code{car} en @code{cdr}. @code{cons} kan bijvoorbeeld gebruikt "
+"worden om de lijst van vier elementen te maken van een lijst met "
+"drie elementen, bijvoorbeeld @code{(spar eik esdoorn)}:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:7025
 #, no-wrap
 msgid "(cons 'pine '(fir oak maple))\n"
-msgstr ""
+msgstr "(cons 'den '(spar eik esdoorn))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7030
 msgid "After evaluating this list, you will see"
-msgstr ""
+msgstr "Na evaluatie van de lijst zie je"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:7033
 #, no-wrap
 msgid "(pine fir oak maple)\n"
-msgstr ""
+msgstr "(den spar eik esdoorn)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7039
@@ -16213,6 +16314,9 @@ msgid ""
 "appear in the echo area.  @code{cons} causes the creation of a new list in "
 "which the element is followed by the elements of the original list."
 msgstr ""
+"in het echogebied verschijnen. @code{cons} veroorzaakt de creatie "
+"van een nieuwe lijst waarin het element wordt gevolgd door de "
+"elementen van de oorspronkelijke lijst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7044
@@ -16222,11 +16326,15 @@ msgid ""
 "be misleading, since @code{cons} does not change an existing list, but "
 "creates a new one."
 msgstr ""
+"We zeggen vaak dat @code{cons} een nieuw element aan het begin van "
+"de lijst plaatst, of dat het een element aan de lijst vastmaakt of "
+"pusht, maar deze formulering is misleidend, omdat @code{cons} "
+"geen bestaande lijst verandert, maar een nieuwe maakt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7046
-msgid "Like @code{car} and @code{cdr}, @code{cons} is non-destructive."
-msgstr ""
+msgid "Like  @code{car} and @code{cdr}, @code{cons} is non-destructive."
+msgstr "Net als @code{car} en @code{cdr}, is @code{cons} niet-destructief."
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:7053 emacs-lisp-intro.texi:7054
@@ -16248,6 +16356,18 @@ msgid ""
 "way; the value is printed in this text after @samp{@result{}}, which you may "
 "read as ``evaluates to''."
 msgstr ""
+"@code{cons} moet een lijst hebben om aan vast te "
+"maken@footnote{Eigenlijk kan je met @code{cons} een element aan een "
+"atoom consen om een dotted pair te maken. Dotted pairs worden hier "
+"niet behandeld. Zie @ref{Dotted Pair Notation, , Dotted Pair "
+"Notation, elisp, The GNU Emacs Lisp Reference Manual}.} Je kunt "
+"niet van absoluut niets beginnen. Wanneer je een lijst bouwt, dan "
+"moet je tenminste een lege lijst als begin geven. Hier is een serie "
+"van @code{cons} expressies die een lijst van bloemen opbouwen. "
+"Wanneer je dit in Info in GNU Emacs leest, kan je elk van expressies "
+"op de gebruikelijke manier evalueren. De waarde wordt in deze tekst "
+"getoond na @samp{@result{}}, wat je kunt zien als ``evalueert "
+"naar''."
 
 #. type: group
 #: emacs-lisp-intro.texi:7072
@@ -16256,6 +16376,8 @@ msgid ""
 "(cons 'buttercup ())\n"
 "     @result{} (buttercup)\n"
 msgstr ""
+"(cons 'boterbloem ())\n"
+"     @result{} (boterbloem)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7077
@@ -16264,6 +16386,8 @@ msgid ""
 "(cons 'daisy '(buttercup))\n"
 "     @result{} (daisy buttercup)\n"
 msgstr ""
+"(cons 'madelief '(boterbloem))\n"
+"     @result{} (madelief boterbloem)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7082
@@ -16272,6 +16396,8 @@ msgid ""
 "(cons 'violet '(daisy buttercup))\n"
 "     @result{} (violet daisy buttercup)\n"
 msgstr ""
+"(cons 'viool '(madelief boterbloem))\n"
+"     @result{} (violet madelief boterbloem)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7087
@@ -16280,6 +16406,8 @@ msgid ""
 "(cons 'rose '(violet daisy buttercup))\n"
 "     @result{} (rose violet daisy buttercup)\n"
 msgstr ""
+"(cons 'roos '(viool madelief boterbloem))\n"
+"     @result{} (roos viool madelief boterbloem)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7097
@@ -16291,6 +16419,13 @@ msgid ""
 "element of a list because there is nothing in an empty list.  Generally "
 "speaking, an empty list is invisible."
 msgstr ""
+"In het eerste voorbeeld wordt de lege lijst getoond als @code{()} en "
+"wordt lijst geconstrueerd van @code{boterbloem} gevold door de lege "
+"lijst. Zoals je ziet wordt de lege lijst niet getoond in de "
+"geconstrueerde lijst. Het enige wat je ziet is @code{(boterbloem)}. "
+"De lege lijst telt niet als een element van de lijst omdat er niets "
+"is in een lege lijst. Over het algemeen is een lege lijst "
+"onzichtbaar."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7102
@@ -16300,12 +16435,17 @@ msgid ""
 "third example constructs a three element list by putting @code{violet} in "
 "front of @code{daisy} and @code{buttercup}."
 msgstr ""
+"Het tweede voorbeeld, @code{(cons 'madelief '(boterbloem))} "
+"construeert een nieuwe lijst met twee elementen door @code{madelief} "
+"voor @code{boterbloem} te plaatsen, en het derde voorbeeld "
+"construeert een lijst met drie elementen door @code{viool} voor "
+"@code{madelief} en @code{boterbloem} te plaatsen."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:7104
 #, no-wrap
 msgid "Find the Length of a List: @code{length}"
-msgstr ""
+msgstr "Achterhaal de lengte van een lijst: @code{length}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7109
@@ -16313,6 +16453,8 @@ msgid ""
 "You can find out how many elements there are in a list by using the Lisp "
 "function @code{length}, as in the following examples:"
 msgstr ""
+"Je achterhaalt hoeveel elementen in een lijst zijn met de Lisp "
+"functie @code{length}, zoals in de volgende voorbeelden:"
 
 #. type: group
 #: emacs-lisp-intro.texi:7114
@@ -16321,6 +16463,8 @@ msgid ""
 "(length '(buttercup))\n"
 "     @result{} 1\n"
 msgstr ""
+"(length '(boterbloem))\n"
+"     @result{} 1\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7119
@@ -16329,6 +16473,8 @@ msgid ""
 "(length '(daisy buttercup))\n"
 "     @result{} 2\n"
 msgstr ""
+"(length '(madelief boterbloem))\n"
+"     @result{} 2\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7124
@@ -16337,6 +16483,8 @@ msgid ""
 "(length (cons 'violet '(daisy buttercup)))\n"
 "     @result{} 3\n"
 msgstr ""
+"(length (cons 'viool '(madelief boterbloem)))\n"
+"     @result{} 3\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7131
@@ -16345,6 +16493,9 @@ msgid ""
 "element list which is then passed to the @code{length} function as its "
 "argument."
 msgstr ""
+"In het derde voorbeeld is de functie @code{cons} gebruikt om een "
+"lijst met drie elementen te construeren die daarna als argument "
+"wordt doorgegeven aan de functie @code{length}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7135
@@ -16352,6 +16503,8 @@ msgid ""
 "We can also use @code{length} to count the number of elements in an empty "
 "list:"
 msgstr ""
+"We kunnen @code{length} ook gebruiken om het aantal elementen in een "
+"lege lijst te tellen:"
 
 #. type: group
 #: emacs-lisp-intro.texi:7140
@@ -16360,11 +16513,13 @@ msgid ""
 "(length ())\n"
 "     @result{} 0\n"
 msgstr ""
+"(length ())\n"
+"     @result{} 0\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7145
 msgid "As you would expect, the number of elements in an empty list is zero."
-msgstr ""
+msgstr "Zoals je zou verwachten is het aantal elementen van een lege lijst nul."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7149
@@ -16373,23 +16528,27 @@ msgid ""
 "length of no list at all; that is, if you try to call @code{length} without "
 "giving it an argument, not even an empty list:"
 msgstr ""
+"Een interessant experiment is te ontdekken wat gebeurt wanneer je "
+"probeert de lengte van totaal geen lijst te achterhalen, dus als je "
+"probeert @code{length} zonder enig argument aan te roepen, zelfs "
+"geen lege lijst."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:7152
 #, no-wrap
 msgid "(length )\n"
-msgstr ""
+msgstr "(length )\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7157
 msgid "What you see, if you evaluate this, is the error message"
-msgstr ""
+msgstr "Wat je ziet als je dit evalueert is de foutmelding"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:7160
 #, no-wrap
 msgid "Lisp error: (wrong-number-of-arguments length 0)\n"
-msgstr ""
+msgstr "Lisp error: (wrong-number-of-arguments length 0)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7168
@@ -16400,6 +16559,12 @@ msgid ""
 "measuring.  (Note that @emph{one} list is @emph{one} argument, even if the "
 "list has many elements inside it.)"
 msgstr ""
+"Dit betekent dat de functie een verkeerd aantal argumenten krijgt, "
+"nul, terwijl het een ander aantal argumenten verwacht. In dit geval "
+"wordt één argument verwacht, een argument dat een lijst is wiens "
+"lengte de functie moet meten. (Merk op dat @emph{één} lijst "
+"@emph{één} argument is, zelfs als de lijst veel elementen in zich "
+"heeft.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7171
@@ -16407,6 +16572,8 @@ msgid ""
 "The part of the error message that says @samp{length} is the name of the "
 "function."
 msgstr ""
+"Het deel van de foutmelding dat @samp{length} zegt, is de naam van "
+"de functie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7190
@@ -16414,6 +16581,8 @@ msgid ""
 "The @code{nthcdr} function is associated with the @code{cdr} function.  What "
 "it does is take the @sc{cdr} of a list repeatedly."
 msgstr ""
+"De functie @code{nthcdr} is geassocieerd met de functie @code{cdr}. Wat het doet "
+"is dat het herhaaldelijk de @sc{cdr} van een lijst neemt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7200
@@ -16427,6 +16596,15 @@ msgid ""
 "you will be returned an empty list, which in this case, instead of being "
 "shown as @code{()} is shown as @code{nil}."
 msgstr ""
+"Wanneer je de @sc{cdr} van de lijst @code{(den spar eik esdoorn)} "
+"neemt, krijg je de lijst @code{(spar eik esdoorn)}. Wanneer je dit "
+"herhaalt op wat je terugkreeg, krijg je de lijst @code{(eik "
+"esdoorn)} terug. (Als je herhaaldelijk de @sc{cdr} van de originele "
+"lijst neemt, dan krijg je natuurlijk de originele @sc{cdr} terug, "
+"omdat deze functie de lijst niet verandert. Je moet de @sc{cdr} van "
+"de @sc{cdr} nemen, enzovoort.) Wanneer je hiermee doorgaat, dan "
+"krijg je uiteindelijk de lege lijst terug, welke in dit geval in "
+"plaats van @code{()} getoond wordt als @code{nil}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7204
@@ -16434,6 +16612,8 @@ msgid ""
 "For review, here is a series of repeated @sc{cdr}s, the text following the "
 "@samp{@result{}} shows what is returned."
 msgstr ""
+"Ter beoordeling is hier een lijst van herhaaldelijke @sc{cdr}'s, de "
+"tekst volgend op @samp{@result{}} toont wat wordt teruggegeven."
 
 #. type: group
 #: emacs-lisp-intro.texi:7209
@@ -16442,6 +16622,8 @@ msgid ""
 "(cdr '(pine fir oak maple))\n"
 "     @result{} (fir oak maple)\n"
 msgstr ""
+"(cdr '(den spar eik esdoorn))\n"
+"     @result{} (spar eik esdoorn)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7214
@@ -16450,6 +16632,8 @@ msgid ""
 "(cdr '(fir oak maple))\n"
 "     @result{} (oak maple)\n"
 msgstr ""
+"(cdr '(spar eik esdoorn))\n"
+"     @result{} (eik esdoorn)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7219
@@ -16458,6 +16642,8 @@ msgid ""
 "(cdr '(oak maple))\n"
 "     @result{} (maple)\n"
 msgstr ""
+"(cdr '(eik esdoorn))\n"
+"     @result{} (esdoorn)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7224
@@ -16466,6 +16652,8 @@ msgid ""
 "(cdr '(maple))\n"
 "     @result{} nil\n"
 msgstr ""
+"(cdr '(esdoorn))\n"
+"     @result{} nil\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7229
@@ -16474,6 +16662,8 @@ msgid ""
 "(cdr 'nil)\n"
 "     @result{} nil\n"
 msgstr ""
+"(cdr 'nil)\n"
+"     @result{} nil\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7234
@@ -16482,6 +16672,8 @@ msgid ""
 "(cdr ())\n"
 "     @result{} nil\n"
 msgstr ""
+"(cdr ())\n"
+"     @result{} nil\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7240
@@ -16489,6 +16681,8 @@ msgid ""
 "You can also do several @sc{cdr}s without printing the values in between, "
 "like this:"
 msgstr ""
+"Het is ook mogelijk meerdere @sc{cdr}'s te doen zonder de waarden er "
+"tussen te tonen."
 
 #. type: group
 #: emacs-lisp-intro.texi:7245
@@ -16497,6 +16691,8 @@ msgid ""
 "(cdr (cdr '(pine fir oak maple)))\n"
 "     @result{} (oak maple)\n"
 msgstr ""
+"(cdr (cdr '(den spar eik esdoorn)))\n"
+"     @result{} (eik esdoorn)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7257
@@ -16510,6 +16706,14 @@ msgid ""
 "returns a list that consists of the original list without its first two "
 "elements."
 msgstr ""
+"in dit voorbeeld evalueert de Lisp interpreter eerst de binnenste lijst. "
+"De binnenste lijst is gequote, en geeft dus de lijst zoals die is door "
+"aan de binnenste @code{cdr}. Deze @code{cdr} geeft de lijst, bestaande "
+"uit het tweede en volgende elementen van de lijst door aan de buitenste "
+"@code{cdr}, die de lijst produceert die bestaat uit het derde en volgende "
+"elementen van de oorspronkelijke lijst. In dit voorbeeld wordt de "
+"@code{cdr} herhaald en geeft een lijst terug die bestaat uit de "
+"oorspronkelijke lijst zonder de eerste twee elementen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7263
@@ -16520,6 +16724,11 @@ msgid ""
 "list without its first two items, which is exactly the same as repeating "
 "@code{cdr} twice on the list:"
 msgstr ""
+"De functie @code{nthcdr} doet hetzelfde als een herhaalde aanroep "
+"van @code{cdr}. In het volgende voorbeeld wordt het argument 2 "
+"doorgegeven aan de functie @code{nthcdr}, samen met de lijst, en de "
+"teruggegeven waarde is de lijst zonder de eerste twee elementen, wat "
+"exact hetzelfde is als twee keer @code{cdr} herhalen op de lijst."
 
 #. type: group
 #: emacs-lisp-intro.texi:7268
@@ -16528,6 +16737,8 @@ msgid ""
 "(nthcdr 2 '(pine fir oak maple))\n"
 "     @result{} (oak maple)\n"
 msgstr ""
+"(nthcdr 2 '(den spar eik esdoorn))\n"
+"     @result{} (eik esdoorn)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7275
@@ -16535,6 +16746,9 @@ msgid ""
 "Using the original four element list, we can see what happens when various "
 "numeric arguments are passed to @code{nthcdr}, including 0, 1, and 5:"
 msgstr ""
+"Je kunt met de oorspronkelijke lijst van vier elementen zien wat "
+"gebeurt wanneer je verschillende numerieke argumenten doorgeeft aan "
+"@code{nthcdr}, waaronder 0, 1 en 5:"
 
 #. type: group
 #: emacs-lisp-intro.texi:7281
@@ -16544,6 +16758,9 @@ msgid ""
 "(nthcdr 0 '(pine fir oak maple))\n"
 "     @result{} (pine fir oak maple)\n"
 msgstr ""
+";; @r{Houd de lijst zoals die was.}\n"
+"(nthcdr 0 '(den spar eik esdoorn))\n"
+"     @result{} (den spar eik esdoorn)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7287
@@ -16553,6 +16770,9 @@ msgid ""
 "(nthcdr 1 '(pine fir oak maple))\n"
 "     @result{} (fir oak maple)\n"
 msgstr ""
+";; @r{Geef een exemplaar terug zonder eerste element.}\n"
+"(nthcdr 1 '(den spar eik esdoorn))\n"
+"     @result{} (spar eik esdoorn)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7293
@@ -16562,6 +16782,9 @@ msgid ""
 "(nthcdr 3 '(pine fir oak maple))\n"
 "     @result{} (maple)\n"
 msgstr ""
+";; @r{Geef een exemplaar terug zonder drie elementen.}\n"
+"(nthcdr 3 '(den spar eik esdoorn))\n"
+"     @result{} (esdoorn)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7299
@@ -16571,6 +16794,9 @@ msgid ""
 "(nthcdr 4 '(pine fir oak maple))\n"
 "     @result{} nil\n"
 msgstr ""
+";; @r{Geef een exemplaar terug waar alle vier elementen ontbreken.}\n"
+"(nthcdr 4 '(den spar eik esdoorn))\n"
+"     @result{} nil\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7305
@@ -16580,13 +16806,16 @@ msgid ""
 "(nthcdr 5 '(pine fir oak maple))\n"
 "     @result{} nil\n"
 msgstr ""
+";; @r{Geef een exemplaar terug zonder alle elementen.}\n"
+"(nthcdr 5 '(den spar eik esdoorn))\n"
+"     @result{} nil\n"
 
 #. type: findex
 #: emacs-lisp-intro.texi:7308 emacs-lisp-intro.texi:7309
 #: emacs-lisp-intro.texi:7310
 #, no-wrap
 msgid "nth"
-msgstr ""
+msgstr "nth"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7315
@@ -16595,6 +16824,10 @@ msgid ""
 "@code{nth} function takes the @sc{car} of the result returned by "
 "@code{nthcdr}.  It returns the Nth element of the list."
 msgstr ""
+"De functie @code{nthcdr} neemt herhaaldelijk de @sc{cdr} van een "
+"lijst. De functie @code{nth} neemt de @sc{car} van het resultaat dat "
+"door @code{nthcdr} wordt teruggegeven. Het geeft het N-de element "
+"van de lijst terug."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7319
@@ -16602,6 +16835,8 @@ msgid ""
 "Thus, if it were not defined in C for speed, the definition of @code{nth} "
 "would be:"
 msgstr ""
+"Dus, als het, in verband met de snelheid, niet in C zou zijn gedefinieerd "
+"zou dit de definitie van @code{nth} zijn:"
 
 #. type: group
 #: emacs-lisp-intro.texi:7326
@@ -16612,6 +16847,10 @@ msgid ""
 "N counts from zero.  If LIST is not that long, nil is returned.\"\n"
 "  (car (nthcdr n list)))\n"
 msgstr ""
+"(defun nth (n list)\n"
+"  \"Returns the Nth element of LIST.\n"
+"N counts from zero.  If LIST is not that long, nil is returned.\"\n"
+"  (car (nthcdr n list)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7332
@@ -16619,6 +16858,9 @@ msgid ""
 "(Originally, @code{nth} was defined in Emacs Lisp in @file{subr.el}, but its "
 "definition was redone in C in the 1980s.)"
 msgstr ""
+"(Oorspronkelijk was @code{nth} gedefinieerd in Emacs Lisp in "
+"@file{subr.el}, maar de definitie was in de jaren tachtig opnieuw "
+"gedaan in C.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7335
@@ -16626,6 +16868,8 @@ msgid ""
 "The @code{nth} function returns a single element of a list.  This can be "
 "very convenient."
 msgstr ""
+"De functie @code{nth} geeft een enkel element van een lijst terug. "
+"Dit kan erg handig zijn."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7341
@@ -16635,6 +16879,11 @@ msgid ""
 "based counting often bothers people who are accustomed to the first element "
 "in a list being number one, which is one-based."
 msgstr ""
+"Merk op de de elementen vanaf nul zijn genummerd, niet een. Dat wil "
+"zeggen dat het eerste element van een lijst, zijn @sc{car}, is het "
+"nulde element. Deze nul-gebaseerde telling is lastig voor mensen die "
+"gewend zijn die gewend zijn dat het eerste element in een lijst "
+"nummer een is, wat een-gebaseerd is."
 
 #. type: table
 #: emacs-lisp-intro.texi:7344 emacs-lisp-intro.texi:9370
@@ -16642,7 +16891,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:9426 emacs-lisp-intro.texi:9449
 #: emacs-lisp-intro.texi:13423 emacs-lisp-intro.texi:13475
 msgid "For example:"
-msgstr ""
+msgstr "Bijvoorbeeld:"
 
 #. type: group
 #: emacs-lisp-intro.texi:7349
@@ -16652,6 +16901,9 @@ msgid ""
 "    @result{} \"one\"\n"
 "\n"
 msgstr ""
+"(nth 0 '(\"een\" \"twee\" \"drie\"))\n"
+"    @result{} \"een\"\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7352
@@ -16660,6 +16912,8 @@ msgid ""
 "(nth 1 '(\"one\" \"two\" \"three\"))\n"
 "    @result{} \"two\"\n"
 msgstr ""
+"(nth 1 '(\"een\" \"twee\" \"drie\"))\n"
+"    @result{} \"twee\"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7359
@@ -16668,6 +16922,10 @@ msgid ""
 "does not change the original list---the function is non-destructive.  This "
 "is in sharp contrast to the @code{setcar} and @code{setcdr} functions."
 msgstr ""
+"Het is waardevol op te merken dat @code{nth}, net als @code{nthcdr} "
+"en @code{cdr}, de oorspronkelijke lijst niet verandert---de functie "
+"is niet-destructief. Dit is in scherp contrast met de functies "
+"@code{setcar} en @code{setcdr}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7369
@@ -16678,6 +16936,13 @@ msgid ""
 "leave the original list as it was.  One way to find out how this works is to "
 "experiment.  We will start with the @code{setcar} function."
 msgstr ""
+"Zoals je wellicht door hun namen vermoedt, stellen de functies "
+"@code{setcar} en @code{setcdr} de @sc{car} of de @sc{cdr} van een "
+"lijst in op een nieuwe waarde. Zij wijzigen echt de oorspronkelijke "
+"lijst, in tegenstelling tot @code{car} en @code{cdr} die de "
+"oorspronkelijke lijst laten zoals die was. Een manier om te "
+"ontdekken hoe dit werkt is door te proberen. Wij beginnen met de "
+"functie @code{setcar}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7380
@@ -16692,12 +16957,23 @@ msgid ""
 "So we instead construct an animal list by using the @code{list} function, as "
 "follows:"
 msgstr ""
+"Eerst maken we een lijst en stellen die met de speciale vorm "
+"@code{setq} als de waarde in van een variabele. Omdat we van plan "
+"zijn @code{setcar} te gebruiken om de lijst te wijzigen, moet deze "
+"@code{setq} geen gebruik van de gequote vorm @code{'(antiloop giraf "
+"leeuw tijger)} maken, omdat dit een lijst oplevert die onderdeel van "
+"het programma is en slechte dingen zouden kunnen gebeuren wanneer we "
+"proberen een deel van het programma te wijzigen terwijl dat loopt. "
+"In het algemeen moeten de componenten van een Emacs Lisp programma "
+"constant zijn (of ongewijzigd) terwijl het programma loopt. In "
+"plaats daarvan construeren we daarom als volgt een lijst met de "
+"functie @code{list}:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:7383
 #, no-wrap
 msgid "(setq animals (list 'antelope 'giraffe 'lion 'tiger))\n"
-msgstr ""
+msgstr "(setq dieren (list 'antiloop 'giraf 'leeuw 'tijger))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7396
@@ -16712,6 +16988,16 @@ msgid ""
 "not need to move it.  Indeed, Emacs permits any amount of white space after "
 "the final parenthesis.)"
 msgstr ""
+"Wanneer je dit in Info binnen GNU Emacs leest kan je deze expressie "
+"op de gebruikelijke manier evalueren, door de cursor achter de "
+"expressie te plaatsen en @kbd{C-x C-e} te typen. (Ik doe dat meteen "
+"hier terwijl ik dit schrijft. Dat is een van de voordelen van een in "
+"je computer omgeving ingebouwde interpreter Overigen, wanneer is "
+"niets op de regel na het laatste haakje staat, zoals commentaar, kan "
+"point ook de volgende regel staan. Dus als point op de eerste kolom "
+"van de regel staat, hoef je die niet te verplaatsten. Emacs staat "
+"zelfs een willekeurige hoeveelheid witte ruimte achter het laaste "
+"haakje toe.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7400
@@ -16719,6 +17005,8 @@ msgid ""
 "When we evaluate the variable @code{animals}, we see that it is bound to the "
 "list @code{(antelope giraffe lion tiger)}:"
 msgstr ""
+"Wanneer we de variabele @code{dieren} evalueren dan zien we dat die "
+"gebonden is aan de lijst @code{(antiloop giraf leeuw tijger)}:"
 
 #. type: group
 #: emacs-lisp-intro.texi:7405
@@ -16727,6 +17015,8 @@ msgid ""
 "animals\n"
 "     @result{} (antelope giraffe lion tiger)\n"
 msgstr ""
+"dieren\n"
+"     @result{} (antiloop giraf leeuw tijger)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7411
@@ -16734,6 +17024,8 @@ msgid ""
 "Put another way, the variable @code{animals} points to the list "
 "@code{(antelope giraffe lion tiger)}."
 msgstr ""
+"Anders gezegd, de variabele @code{dieren} wijst naar de lijst "
+"@code{(antiloop giraf leeuw tijger)}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7417
@@ -16743,12 +17035,17 @@ msgid ""
 "is done by writing the three element list @code{(setcar animals "
 "'hippopotamus)} and then evaluating it in the usual fashion:"
 msgstr ""
+"Vervolgens evalueren we de functie @code{setcar} terwijl we daar "
+"twee argumenten aan doorgeven, de variabele @code{dieren} en het "
+"geqoute symbool @code{nijlpaard}. Dit doen we door de lijst van drie "
+"elementen @code{(setcar dieren 'nijlpaard)} te schrijven en die dan "
+"op de gebruikelijke manier te evalueren."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:7420
 #, no-wrap
 msgid "(setcar animals 'hippopotamus)\n"
-msgstr ""
+msgstr "(setcar dieren 'nijlpaard)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7426
@@ -16756,6 +17053,8 @@ msgid ""
 "After evaluating this expression, evaluate the variable @code{animals} "
 "again.  You will see that the list of animals has changed:"
 msgstr ""
+"Na het evalueren van deze expressie, evalueer je de variabele "
+"@code{dieren} nogmaals. Je zult zien dat de lijst gewijzigd is:"
 
 #. type: group
 #: emacs-lisp-intro.texi:7431
@@ -16764,6 +17063,8 @@ msgid ""
 "animals\n"
 "     @result{} (hippopotamus giraffe lion tiger)\n"
 msgstr ""
+"dieren\n"
+"     @result{} (nijlpaard giraf leeuw tijger)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7437
@@ -16771,6 +17072,8 @@ msgid ""
 "The first element on the list, @code{antelope} is replaced by "
 "@code{hippopotamus}."
 msgstr ""
+"Het eerste element van de lijst, @code{antiloop} is vervangen met "
+"@code{nijlpaard}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7441
@@ -16779,6 +17082,9 @@ msgid ""
 "@code{cons} would have; it replaced @code{antelope} with "
 "@code{hippopotamus}; it @emph{changed} the list."
 msgstr ""
+"We zien dus dat @code{setcar} geen nieuw element aan de lijst heeft "
+"toegevoegd, wat @code{cons} gedaan zou hebben, maar het verving "
+"@code{antiloop} met @code{nijlpaard}. Het @emph{wijzigde} de lijst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7449
@@ -16787,6 +17093,9 @@ msgid ""
 "that the function replaces the second and subsequent elements of a list "
 "rather than the first element."
 msgstr ""
+"De functie @code{setcdr} is vergelijkbaar met de functie "
+"@code{setcar}, behalve dat de functie de tweede en volgende "
+"elementen van een lijst vervangt in plaats van het eerste element."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7453
@@ -16797,7 +17106,7 @@ msgid ""
 msgstr ""
 "(Kijk vooruit naar @ref{kill-new functie, , De @code{kill-new} functie} om "
 "te zien hoe het laatste element van een list te wijzigen. De @code{kill-new} "
-"functie gebruikt de  @code{nthcdr} en de @code{setcdr} functies.)"
+"functie gebruikt de @code{nthcdr} en de @code{setcdr} functies.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7457
@@ -16805,12 +17114,15 @@ msgid ""
 "To see how this works, set the value of the variable to a list of "
 "domesticated animals by evaluating the following expression:"
 msgstr ""
+"Om de zien hoe dit werkt stel je waarde van de variabele in op een "
+"lijst van gedomesticeerde dieren door de volgende expressie te "
+"evalueren:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:7460
 #, no-wrap
 msgid "(setq domesticated-animals (list 'horse 'cow 'sheep 'goat))\n"
-msgstr ""
+msgstr "(setq gedomesticeerde-dieren (list 'paard 'koe 'schaap 'gijt))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7466
@@ -16818,6 +17130,8 @@ msgid ""
 "If you now evaluate the list, you will be returned the list @code{(horse cow "
 "sheep goat)}:"
 msgstr ""
+"Wanneer je nu de lijst evalueert, krijg je de lijst @code{(paard koe "
+"schaap gijt)} terug."
 
 #. type: group
 #: emacs-lisp-intro.texi:7471
@@ -16826,6 +17140,8 @@ msgid ""
 "domesticated-animals\n"
 "     @result{} (horse cow sheep goat)\n"
 msgstr ""
+"gedomesticeerde-dieren\n"
+"     @result{} (paard koe schaap gijt)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7478
@@ -16834,12 +17150,15 @@ msgid ""
 "which has a list as its value, and the list to which the @sc{cdr} of the "
 "first list will be set;"
 msgstr ""
+"Evalueer vervolgens @code{setcdr} met twee argumenten, de naam van "
+"de variabele die een lijst als waarde heeft, en de lijst waarop we "
+"de @sc{cdr} van de eerste lijst willen instellen:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:7481
 #, no-wrap
 msgid "(setcdr domesticated-animals '(cat dog))\n"
-msgstr ""
+msgstr "(setcdr gedomesticeerde-dieren '(kat hond))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7488
@@ -16849,6 +17168,11 @@ msgid ""
 "are interested in is the side effect, which we can see by evaluating the "
 "variable @code{domesticated-animals}:"
 msgstr ""
+"Wanneer je deze expressie evalueert verschijnt de lijst @code{(kat "
+"hond)} in het echogebied. Dit is de waarde die de functie teruggaf. "
+"Het resultaat waar wij in geïnteresseerd zijn is in het zij-effect, "
+"wat we kunnen zien wanneer we de variabele "
+"@code{gedomesticeerde-dieren} evalueren:"
 
 #. type: group
 #: emacs-lisp-intro.texi:7493
@@ -16857,6 +17181,8 @@ msgid ""
 "domesticated-animals\n"
 "     @result{} (horse cat dog)\n"
 msgstr ""
+"gedomesticeerde-dieren\n"
+"     @result{} (paard kat hond)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7500
@@ -16865,6 +17191,9 @@ msgid ""
 "@code{(horse cat dog)}.  The @sc{cdr} of the list is changed from @code{(cow "
 "sheep goat)} to @code{(cat dog)}."
 msgstr ""
+"Inderdaad is de lijst gewijzigd van @code{(paard koe schaap gijt)} "
+"naar @code{(paard kat hond)}. De @sc{cdr} van de lijst is gewijzigd "
+"van @code{(koe schaap gijt)} naar @code{(kat hond)}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7508
@@ -16874,6 +17203,11 @@ msgid ""
 "itself.  Replace the first element of the list of four birds with a fish.  "
 "Replace the rest of that list with a list of other fish."
 msgstr ""
+"Construeer een lijst met vier vogels door verschillende expressies "
+"met @code{cons} te evalueren. Ontdek wat gebeurt wanneer je een "
+"lijst met zichzelf @code{const}-t. Vervang het eerste element van de "
+"lijst met vier vogels met een vis. Vervang de rest van de lijst met "
+"een lijst van andere vissen."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:7511

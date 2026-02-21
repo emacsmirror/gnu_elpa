@@ -59,9 +59,9 @@ only exist on the ‘test’ directory.")
 (ert-deftest php-fill-string-literal ()
   (ert-test-erts-file (php-fill-erts-path "fill-string-literal.erts")))
 
-(ert-deftest php-fill-c-fill-paragraph-nosqueez ()
+(ert-deftest php-fill-c-fill-paragraph-nosqueeze ()
   (ert-test-erts-file (php-fill-erts-path
-		       "c-fill-paragraph-nosqueez.erts")))
+		       "c-fill-paragraph-nosqueeze.erts")))
 
 (ert-deftest php-fill-c-fill-paragraph ()
   (ert-test-erts-file (php-fill-erts-path "c-fill-paragraph.erts")))

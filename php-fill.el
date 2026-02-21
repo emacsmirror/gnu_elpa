@@ -29,7 +29,7 @@
 ;; Additional fill commands for PHP code editing.
 
 ;; - Fills string literals by breaking them into smaller ones.
-;; - Conditionally use ‘NOSQUEEZ’ on c and c++ style comments.
+;; - Conditionally use ‘NOSQUEEZE’ on c and c++ style comments.
 ;; - Use “<return>” to break or add a new line to string literals and
 ;;   doc blocks.
 ;; - Use “<backspace>” or “<delete>” at the beginning and at the end to
@@ -73,7 +73,7 @@
 
 (defcustom php-fill-nosqueeze-c-comments t
   "\\[php-fill-c-fill-paragraph] decides whether or not to use\n\
-\\[php-fill-c-fill-paragraph-nosqueez] on c style comments depending on
+\\[php-fill-c-fill-paragraph-nosqueeze] on c style comments depending on
 the value of this variable.
 
 A t default value was chosen so that Phpdoc blocks (which are c style
@@ -83,14 +83,14 @@ tag), would not loose said alignment if \\[php-fill-paragraph] or
 formatting doc blocks values isn't used, setting a nil value might be
 preferred.
 
-See command \\[php-fill-c-fill-paragraph-nosqueez] for additional
+See command \\[php-fill-c-fill-paragraph-nosqueeze] for additional
 information."
   :type 'boolean
   :group 'php-fill)
 
 (defcustom php-fill-nosqueeze-c++-comments nil
   "\\[php-fill-c-fill-paragraph] decides whether or not to use\n\
-\\[php-fill-c-fill-paragraph-nosqueez] on c++ style comments depending
+\\[php-fill-c-fill-paragraph-nosqueeze] on c++ style comments depending
 on the value of this variables."
   :type 'boolean
   :group 'php-fill)
@@ -130,14 +130,14 @@ like the ones provided by packages ‘php-mode’ or ‘phps-mode’."
 
 (defun php-fill-c-fill-paragraph (&optional arg)
   "Use two variables to determine to use \\[c-fill-paragraph] or\n\
-\\[php-fill-c-fill-paragraph-nosqueez] on current comment.
+\\[php-fill-c-fill-paragraph-nosqueeze] on current comment.
 
 This two are `php-fill-nosqueeze-c-comments' for the c style commends
 and `php-fill-nosqueeze-c++-comments' for the c++ style ones.
 
 As an example, if pointer is located within a C++ styled comment and
 `php-fill-nosqueeze-c++-comments' is not nil, then command
-\\[php-fill-c-fill-paragraph-nosqueez] will be used to fill it.
+\\[php-fill-c-fill-paragraph-nosqueeze] will be used to fill it.
 Otherwise if `php-fill-nosqueeze-c++-comments' were to be nil, then
 `c-fill-paragraph' would be used on its place.
 
@@ -148,7 +148,7 @@ WARNING: If optional prefix ARG is not nil, then `c-fill-paragraph' will
 be used regardless of variables `php-fill-nosqueeze-c-comments' and
 `php-fill-nosqueeze-c++-comments''s values, since a non nil ARG value
 tells `c-fill-paragraph' to use full justification on the comments
-being filled, which ends up making NOSQUEEZ irrelevant."
+being filled, which ends up making NOSQUEEZE irrelevant."
   (interactive "*P")
   (let ((literal-type (car (php-fill-get-literal))))
     (if (and (not arg)
@@ -156,7 +156,7 @@ being filled, which ends up making NOSQUEEZ irrelevant."
 		      php-fill-nosqueeze-c-comments)
 		 (and (equal literal-type 'c++)
 		      php-fill-nosqueeze-c++-comments)))
-	(php-fill-c-fill-paragraph-nosqueez)
+	(php-fill-c-fill-paragraph-nosqueeze)
       (c-fill-paragraph arg))))
 
 (defun php-fill-paragraph (&optional only-one-line-up)
@@ -167,7 +167,7 @@ added for comments.
 String literals are handled using command \\[php-fill-string-literal].
 
 In the case of comments, two global variables decide whether or not the
-argument NOSQUEEZ of function `fill-delete-newlines' will be used either
+argument NOSQUEEZE of function `fill-delete-newlines' will be used either
 on C or C++ style comments or both.  See command
 \\[php-fill-c-fill-paragraph] for additional information.
 
@@ -573,9 +573,9 @@ that it is the function used by command \\[fill-paragraph]."
 	  (insert quote "\n. " quote)
 	  (indent-according-to-mode))))))
 
-(defun php-fill-c-fill-paragraph-nosqueez ()
+(defun php-fill-c-fill-paragraph-nosqueeze ()
   "Force function `fill-delete-newlines' to be called with a non nil\n\
-NOSQUEEZ argument once \\[c-fill-paragraph] is called within this
+NOSQUEEZE argument once \\[c-fill-paragraph] is called within this
 function.
 
 \\[c-fill-paragraph] uses `fill-delete-newlines' to unfill c and c++
@@ -599,10 +599,10 @@ used on its own while point is located in said doc block comment."
      #'php-fill-delete-newlines-filter-args-advice)))
 
 (defun php-fill-delete-newlines-filter-args-advice (arg)
-  "Argument-filter advice that replace NOSQUEEZ with a non nil value.
+  "Argument-filter advice that replace NOSQUEEZE with a non nil value.
 
 ARG contains all the arguments caught before function
-`fill-delete-newlines' is executed.  Then NOSQUEEZ is exclusively edited
+`fill-delete-newlines' is executed.  Then NOSQUEEZE is exclusively edited
 to a t value, the arguments are repackaged into a list, and finally
 returned back to `fill-delete-newlines' called."
   (pcase-let ((`(,from ,to ,justify ,nosqueeze ,squeeze-after) arg))

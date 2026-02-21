@@ -3,7 +3,7 @@ Point-Char: |
 Code: (lambda ()
        (php-mode)
        (setq-local fill-column 38)
-       (php-fill-c-fill-paragraph-nosqueez))
+       (php-fill-c-fill-paragraph-nosqueeze))
 =-=
 // Lo|rem    ipsum   dolor  sit amet,  consectetur    adipiscing     elit.   Fusce  vel luctus   tellus.
 =-=

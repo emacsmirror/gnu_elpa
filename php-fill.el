@@ -5,7 +5,7 @@
 ;; Author: Ariel Del Valle Lozano <arielmazatlan@gmail.com>
 ;; Maintainer: Ariel Del Valle Lozano <arielmazatlan@gmail.com>
 ;; URL: https://github.com/arielenter/php-fill.el
-;; Version: 1.1.0
+;; Version: 1.1.1
 ;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: php, languages, tools, convenience
 
@@ -53,6 +53,13 @@
 ;;   	("<delete>" . php-fill-delete-forward)))
 
 ;;; News:
+;; Version 1.1.1
+
+;; - Major refractory.
+;; - SQUEEZE typo fixed.
+;; - Additional information about what ‘squeeze’ means in the context of
+;;   fill prefixed functions.
+
 ;; Version 1.1.0
 
 ;; - Customizable variable `php-fill-refill-black-list' added, so that

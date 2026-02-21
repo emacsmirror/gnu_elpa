@@ -675,28 +675,28 @@ non-symlink file in REL-DIR, becomes the true name of that file."
                          ;; of the symlink.  Now we need the true name of
                          ;; the symlink target, so get that.
                          (setq resolved (file-truename true-name))
-                         (prog1 t
+                         (progn
                            (setq resolved-is-remote (file-remote-p resolved))
+                           (or (not resolved-is-remote)
+                               keep-remotes))
+                         (prog1 t
                            (if resolved-is-remote
                                (setq file-name-handler-alist REMOTE-HANDLER-ALIST)
                              (setq file-name-handler-alist LOCAL-HANDLER-ALIST)))
-                         (or (not resolved-is-remote)
-                             keep-remotes)
                          (setq attr (if assert-readable
                                         (file-attributes resolved 'integer)
                                       (ignore-error permission-denied
-                                        (file-attributes resolved 'integer))))
-                         (or (and return-files
-                                  (null (file-attribute-type attr)))
-                             (and (eq t (file-attribute-type attr))
-                                  (progn (setq resolved-is-dir t)
-                                         return-dirs))))
-                (puthash resolved attr truename-cache--dedupped-results)
-                (when side-effect
-                  (let ((case-fold-search (file-name-case-insensitive-p resolved)))
-                    (truename-cache--populate true-name resolved))))
-
-              (when (and resolved-is-dir ;; NOTE: Implies some other conditions
+                                        (file-attributes resolved 'integer)))))
+                (when (or (and return-files
+                               (null (file-attribute-type attr)))
+                          (and (eq t (file-attribute-type attr))
+                               (progn (setq resolved-is-dir t)
+                                      return-dirs)))
+                  (puthash resolved attr truename-cache--dedupped-results)
+                  (when side-effect
+                    (let ((case-fold-search (file-name-case-insensitive-p resolved)))
+                      (truename-cache--populate true-name resolved))))
+                (when (and resolved-is-dir
                          RECURSE
                          dirs-recursive-follow-symlinks
                          (not (gethash resolved truename-cache--visited))
@@ -707,7 +707,7 @@ non-symlink file in REL-DIR, becomes the true name of that file."
                              (not (string-match-p FULL-DIR-DENY-RE
                                                   (file-name-as-directory resolved)))))
                 (puthash resolved t truename-cache--visited)
-                (truename-cache--analyze-1 rel-name args resolved)))
+                (truename-cache--analyze-1 rel-name args resolved))))
             nil))
 
      do

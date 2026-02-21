@@ -83,6 +83,10 @@ tag), would not loose said alignment if \\[php-fill-paragraph] or
 formatting doc blocks values isn't used, setting a nil value might be
 preferred.
 
+In the context of the fill prefixed functions, a ‘squeeze’ refers to the
+action of replacing instances where multiple space between words exist
+with a single one.
+
 See command \\[php-fill-c-fill-paragraph-nosqueeze] for additional
 information."
   :type 'boolean
@@ -141,6 +145,10 @@ As an example, if pointer is located within a C++ styled comment and
 Otherwise if `php-fill-nosqueeze-c++-comments' were to be nil, then
 `c-fill-paragraph' would be used on its place.
 
+In the context of the fill prefixed functions, a ‘squeeze’ refers to the
+action of replacing instances where multiple space between words exist
+with a single one.
+
 ARG attribute is pass down to `c-fill-paragraph' if it ends up being
 called.
 
@@ -170,6 +178,10 @@ In the case of comments, two global variables decide whether or not the
 argument NOSQUEEZE of function `fill-delete-newlines' will be used either
 on C or C++ style comments or both.  See command
 \\[php-fill-c-fill-paragraph] for additional information.
+
+In the context of the fill prefixed functions, a ‘squeeze’ refers to the
+action of replacing instances where multiple space between words exist
+with a single one.
 
 Optional argument ONLY-ONE-LINE-UP will be passed down to
 `php-fill-string-literal'."

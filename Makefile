@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-all: po-mode.info po-mode.html
+all: info html
 
 
 # This directory does not support parallel make.
@@ -48,10 +48,14 @@ INDEXFILES = \
 
 
 # Documentation in info format.
+info: po-mode.info
+.PHONY: info
 po-mode.info: $(main_TEXINFOS) $(included_TEXINFOS)
 	$(MAKEINFO) $(MAKEINFOFLAGS) $(main_TEXINFOS)
 
 # Documentation in HTML format.
+html: po-mode.html
+.PHONY: html
 po-mode.html: $(main_TEXINFOS) $(included_TEXINFOS)
 	$(MAKEINFO) $(MAKEINFOFLAGS) --html --no-headers $(main_TEXINFOS)
 
@@ -60,16 +64,22 @@ po-mode.t2h.html: $(main_TEXINFOS) $(included_TEXINFOS)
 	perl texi2html $(TEXINCLUDES) --output=po-mode.t2h.html -no-sec-nav -no-menu -toc-links -number -monolithic $(main_TEXINFOS)
 
 # Documentation in DVI format (outdated).
+dvi: po-mode.dvi
+.PHONY: dvi
 po-mode.dvi: $(main_TEXINFOS) $(included_TEXINFOS)
 	texi2dvi $(TEXINCLUDES) $(main_TEXINFOS)
 	rm -f $(INDEXFILES) po-mode.toc po-mode.aux po-mode.log
 
 # Documentation in Postscript format (outdated).
+ps: po-mode.ps
+.PHONY: ps
 po-mode.ps: $(main_TEXINFOS) $(included_TEXINFOS)
 	texi2any --ps $(TEXINCLUDES) $(main_TEXINFOS)
 	rm -f $(INDEXFILES) po-mode.toc po-mode.aux po-mode.log
 
 # Documentation in Portable Document Format.
+pdf: po-mode.pdf
+.PHONY: pdf
 po-mode.pdf: $(main_TEXINFOS) $(included_TEXINFOS)
 	texi2pdf $(TEXINCLUDES) $(main_TEXINFOS)
 	rm -f $(INDEXFILES) po-mode.toc po-mode.aux po-mode.log

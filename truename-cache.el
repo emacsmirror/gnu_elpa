@@ -1,4 +1,4 @@
-;;; truename-cache.el --- Efficiently de-dup files by truename  -*- lexical-binding: t; -*-
+;;; truename-cache.el --- Efficiently de-dup file-names  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Martin Edström
 ;;
@@ -78,7 +78,10 @@ See docstring `truename-cache--fast-full-abbrev'."
 
 (defun truename-cache-invalidate (bad-name)
   "Invalidate BAD-NAME in the name cache, allowing to cache fresh values.
-Return the list of variant file names invalidated, including BAD-NAME."
+Return the list of variant file names invalidated, including BAD-NAME.
+
+BAD-NAME may be either a cached true name or a wild name that once led
+to it, this will invalidate both."
   (let ((all-bad)
         (true (gethash bad-name truename-cache--wild<>true)))
     (when true
@@ -166,27 +169,33 @@ new truename only if it exists, else return nil."
   "Try to return the true name for file name WILD, or nil.
 
 Like `truename-cache-get', but verify that the cached truename exists on
-disk now, else re-cache it like `truename-cache-get-existed-p'.
+disk now, else invoke `truename-cache-invalidate' and then behave like
+`truename-cache-get-existed-p'.
 
-This can be meaningfully slower than `truename-cache-get-existed-p' on a
-slow filesystem, in theory, but it should still be much faster than
-`file-truename' once most names are cached.
+In theory, this can be slower than `truename-cache-get-existed-p' on a
+poorly behaved or network filesystem, as each invocation always contacts
+the filesystem, but it should still be much faster than `file-truename'
+once most names have been cached.
 
-Nevertheless, as of 2026-02-18, the author regards
-`truename-cache-get-existed-p' as a reasonable standard choice,
-which may get a shorter alias in the future.
+Hint: you do not need to check file existence as much as you think.
+It can give you a false sense of security.
+Realize that even if a cached name indeed exists on disk, it can still
+be stale because it may no longer be representing WILD but a
+different file altogether!
 
-This variant mainly exists because it may be convenient with
-the likes of `seq-keep' and `thread-last'.
-Also, nonexistent files result in calls to `truename-cache-invalidate'
-which you do not have to make yourself."
+Get a true sense of security by finding where in your program it will
+make sense to invoke `truename-cache-invalidate', instead.  Or work only
+with names output by `truename-cache-collect-files-and-attributes'.
+
+As of 2026-02-18, the author regards `truename-cache-get-existed-p' as a
+reasonable standard choice, which may get a shorter alias in the future."
   (unless (file-name-absolute-p wild)
     (setq wild (expand-file-name wild)))
   (let ((true (gethash wild truename-cache--wild<>true)))
     (or (and true
              (if (file-exists-p true)
                  true
-               (truename-cache-invalidate true)
+               (truename-cache-invalidate wild)
                nil))
         (when (file-exists-p wild)
           (setq true (file-truename wild))
@@ -346,9 +355,9 @@ of `file-name-handler-alist'."
                  (truename-cache--join-regexps full-dir-deny))))
   (map-let (:local-name-handlers :remote-name-handlers) args
     (plist-put args :LOCAL-HANDLER-ALIST (truename-cache--mk-handler-alist
-                                         local-name-handlers))
+                                          local-name-handlers))
     (plist-put args :REMOTE-HANDLER-ALIST (truename-cache--mk-handler-alist
-                                          remote-name-handlers))
+                                           remote-name-handlers))
     (plist-put args :MERGED-HANDLER-ALIST (truename-cache--mk-handler-alist
                                            local-name-handlers remote-name-handlers))))
 
@@ -527,7 +536,7 @@ Otherwise, they are quietly skipped."
            (filtered-true-recursive-roots
             (delete-dups
              (cl-loop
-              for dir in (delete-dups dirs-recursive)
+              for dir in (seq-uniq dirs-recursive)
               when (and (or (file-name-absolute-p dir)
                             (error "Non-absolute name in DIRS-RECURSIVE: %s" dir))
                         (or (not FULL-DIR-DENY-RE)
@@ -648,7 +657,7 @@ non-symlink file in REL-DIR, becomes the true name of that file."
      when (and bare-name
                (not (member bare-name '("." "..")))
                (not (and REL-FILE-DENY-RE
-                        (string-match-p REL-FILE-DENY-RE rel-name))))
+                         (string-match-p REL-FILE-DENY-RE rel-name))))
      when (cond
            ((null (file-attribute-type attr))
             return-files)
@@ -697,17 +706,17 @@ non-symlink file in REL-DIR, becomes the true name of that file."
                     (let ((case-fold-search (file-name-case-insensitive-p resolved)))
                       (truename-cache--populate true-name resolved))))
                 (when (and resolved-is-dir
-                         RECURSE
-                         dirs-recursive-follow-symlinks
-                         (not (gethash resolved truename-cache--visited))
-                         (or (not REL-DIR-DENY-RE)
-                             (not (string-match-p REL-DIR-DENY-RE
-                                                  (file-name-as-directory rel-name))))
-                         (or (not FULL-DIR-DENY-RE)
-                             (not (string-match-p FULL-DIR-DENY-RE
-                                                  (file-name-as-directory resolved)))))
-                (puthash resolved t truename-cache--visited)
-                (truename-cache--analyze-1 rel-name args resolved))))
+                           RECURSE
+                           dirs-recursive-follow-symlinks
+                           (not (gethash resolved truename-cache--visited))
+                           (or (not REL-DIR-DENY-RE)
+                               (not (string-match-p REL-DIR-DENY-RE
+                                                    (file-name-as-directory rel-name))))
+                           (or (not FULL-DIR-DENY-RE)
+                               (not (string-match-p FULL-DIR-DENY-RE
+                                                    (file-name-as-directory resolved)))))
+                  (puthash resolved t truename-cache--visited)
+                  (truename-cache--analyze-1 rel-name args resolved))))
             nil))
 
      do

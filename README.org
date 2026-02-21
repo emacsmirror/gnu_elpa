@@ -24,9 +24,9 @@ That's the sort of thing that might be done as part of a user command.  If the c
 
 ** Bonus: Merging lists
 
-The routine =truename-cache-collect-files-and-attributes= can merge multiple file lists and still return de-duplicated truenames, and tries to do it efficiently.
+The routine =truename-cache-collect-files-and-attributes= can be used to merge multiple file lists and return de-duplicated truenames.
 
-Some example file-lists in Emacs that may have a great deal of overlap between them:
+Some example file-lists in Emacs that may overlap a lot:
 
 - Variable =recentf-list=
 - Variable =org-agenda-text-search-extra-files=
@@ -35,7 +35,9 @@ Some example file-lists in Emacs that may have a great deal of overlap between t
 - Output of =(org-files-list)=
 - Output of =(hash-table-values org-id-locations)=
 
-This is done through the keyword =:infer-dirs-from=.  In truth, it doesn't operate directly on any file names, it just infers their parent directories and then scans each directory once.  That turns out to be efficient, even if it's likely to pull in more file names than were in the input.
+Even if you =append= and =seq-uniq= these lists, a given file may still be represented multiple times under different names.
+
+To merge, pass all your file-lists in the argument =:infer-dirs-from=.  In truth, it doesn't operate directly on any of the files given, it just infers their parent directories and then scans each directory once.  That turns out to be efficient, even if it's likely to pull in more file names than were in the input.
 
 ** Bonus: Filtering
 

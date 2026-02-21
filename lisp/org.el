@@ -6203,8 +6203,9 @@ needs to be inserted at a specific position in the font-lock sequence.")
           ;; Apply this last, after all the markup is highlighted, so
           ;; that even "bright" markup will become dim.
 	  (list (format
-		 "^\\*+\\(?: +%s\\)?\\(?: +\\[#[A-Z0-9]\\]\\)? +\\(?9:%s\\)\\(?: \\|$\\)"
+		 "^\\*+\\(?: +%s\\)?\\(?: +\\[#\\(?:%s\\)\\]\\)? +\\(?9:%s\\)\\(?: \\|$\\)"
 		 org-todo-regexp
+                 org-priority-value-regexp
 		 org-comment-string)
 		'(9 'org-special-keyword prepend))
           '(org-activate-folds))))

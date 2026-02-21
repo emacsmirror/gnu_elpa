@@ -61,6 +61,104 @@
 
 ;;; Code:
 
+(require 'cc-engine)
+(require 'cc-cmds)
+
+(defgroup php-fill nil
+  "Customization options for package php-fill."
+  :group 'php
+  :group 'languages
+  :group 'tools
+  :group 'convenience)
+
+(defcustom php-fill-nosqueeze-c-comments t
+  "\\[php-fill-c-fill-paragraph] decides whether or not to use\n\
+\\[php-fill-c-fill-paragraph-nosqueez] on c style comments depending on
+the value of this variable.
+
+A t default value was chosen so that Phpdoc blocks (which are c style
+comments) using spaces to alight columns (like when using the '@param'
+tag), would not loose said alignment if \\[php-fill-paragraph] or
+\\[php-fill-c-fill-paragraph] are used on them.  If this way of
+formatting doc blocks values isn't used, setting a nil value might be
+preferred.
+
+See command \\[php-fill-c-fill-paragraph-nosqueez] for additional
+information."
+  :type 'boolean
+  :group 'php-fill)
+
+(defcustom php-fill-nosqueeze-c++-comments nil
+  "\\[php-fill-c-fill-paragraph] decides whether or not to use\n\
+\\[php-fill-c-fill-paragraph-nosqueez] on c++ style comments depending
+on the value of this variables."
+  :type 'boolean
+  :group 'php-fill)
+
+(defcustom php-fill-refill-black-list
+  '(comment-or-uncomment-region comment-region uncomment-region)
+  "List of commands whose changes should not trigger a refill.
+
+An example are while commenting and un-commenting code, since filling
+said code while is commented will make it loose its format, which is
+more likely unwanted.
+
+Feel free to add any other command that you find problematic to trigger
+a refill."
+  :type '(repeat symbol)
+  :group 'php-fill)
+
+(defcustom php-fill-sentence-end-double-space nil
+  "Determines what local value `sentence-end-double-space' will \n\
+received from command \\[php-fill-set-local-variables] on the current
+buffer."
+  :type 'boolean
+  :group 'php-fill)
+
+(defcustom php-fill-fill-column 80
+  "Determines what local value `fill-column' will received from command\n\
+\\[php-fill-set-local-variables] on the current buffer.
+
+It's important to say that this customizable variable doesn't replace
+`fill-column'.  `fill-column' it's still used as the value look up to
+fill any content.  The purpose of this variable is to ease the process
+of setting up a default `fill-column' for PHP files, through the use of
+the command `php-fill-set-local-variables' and a hook to a major mode
+like the ones provided by packages ‘php-mode’ or ‘phps-mode’."
+  :type 'integer
+  :group 'php-fill)
+
+(defun php-fill-c-fill-paragraph (&optional arg)
+  "Use two variables to determine to use \\[c-fill-paragraph] or\n\
+\\[php-fill-c-fill-paragraph-nosqueez] on current comment.
+
+This two are `php-fill-nosqueeze-c-comments' for the c style commends
+and `php-fill-nosqueeze-c++-comments' for the c++ style ones.
+
+As an example, if pointer is located within a C++ styled comment and
+`php-fill-nosqueeze-c++-comments' is not nil, then command
+\\[php-fill-c-fill-paragraph-nosqueez] will be used to fill it.
+Otherwise if `php-fill-nosqueeze-c++-comments' were to be nil, then
+`c-fill-paragraph' would be used on its place.
+
+ARG attribute is pass down to `c-fill-paragraph' if it ends up being
+called.
+
+WARNING: If optional prefix ARG is not nil, then `c-fill-paragraph' will
+be used regardless of variables `php-fill-nosqueeze-c-comments' and
+`php-fill-nosqueeze-c++-comments''s values, since a non nil ARG value
+tells `c-fill-paragraph' to use full justification on the comments
+being filled, which ends up making NOSQUEEZ irrelevant."
+  (interactive "*P")
+  (let ((literal-type (car (php-fill-get-literal))))
+    (if (and (not arg)
+	     (or (and (equal literal-type 'c)
+		      php-fill-nosqueeze-c-comments)
+		 (and (equal literal-type 'c++)
+		      php-fill-nosqueeze-c++-comments)))
+	(php-fill-c-fill-paragraph-nosqueez)
+      (c-fill-paragraph arg))))
+
 (defun php-fill-paragraph (&optional only-one-line-up)
   "Like \\[c-fill-paragraph] but string literals are handled in a\n\
 different way (tailor made for PHP) and a small customizable option was
@@ -81,8 +179,6 @@ Optional argument ONLY-ONE-LINE-UP will be passed down to
     (if (or (not literal-limits) (equal literal-limits 'string))
 	(php-fill-string-literal only-one-line-up)
       (call-interactively 'php-fill-c-fill-paragraph))))
-
-(require 'cc-engine)
 
 (defun php-fill-get-literal ()
   "Return both the literal type and the positions of its delimiters as a\n\
@@ -477,63 +573,6 @@ that it is the function used by command \\[fill-paragraph]."
 	  (insert quote "\n. " quote)
 	  (indent-according-to-mode))))))
 
-(defcustom php-fill-nosqueeze-c-comments t
-  "\\[php-fill-c-fill-paragraph] decides whether or not to use\n\
-\\[php-fill-c-fill-paragraph-nosqueez] on c style comments depending on
-the value of this variable.
-
-A t default value was chosen so that Phpdoc blocks (which are c style
-comments) using spaces to alight columns (like when using the '@param'
-tag), would not loose said alignment if \\[php-fill-paragraph] or
-\\[php-fill-c-fill-paragraph] are used on them.  If this way of
-formatting doc blocks values isn't used, setting a nil value might be
-preferred.
-
-See command \\[php-fill-c-fill-paragraph-nosqueez] for additional
-information."
-  :type 'boolean
-  :group 'php-fill)
-
-(defcustom php-fill-nosqueeze-c++-comments nil
-  "\\[php-fill-c-fill-paragraph] decides whether or not to use\n\
-\\[php-fill-c-fill-paragraph-nosqueez] on c++ style comments depending
-on the value of this variables."
-  :type 'boolean
-  :group 'php-fill)
-
-(require 'cc-cmds)
-
-(defun php-fill-c-fill-paragraph (&optional arg)
-  "Use two variables to determine to use \\[c-fill-paragraph] or\n\
-\\[php-fill-c-fill-paragraph-nosqueez] on current comment.
-
-This two are `php-fill-nosqueeze-c-comments' for the c style commends
-and `php-fill-nosqueeze-c++-comments' for the c++ style ones.
-
-As an example, if pointer is located within a C++ styled comment and
-`php-fill-nosqueeze-c++-comments' is not nil, then command
-\\[php-fill-c-fill-paragraph-nosqueez] will be used to fill it.
-Otherwise if `php-fill-nosqueeze-c++-comments' were to be nil, then
-`c-fill-paragraph' would be used on its place.
-
-ARG attribute is pass down to `c-fill-paragraph' if it ends up being
-called.
-
-WARNING: If optional prefix ARG is not nil, then `c-fill-paragraph' will
-be used regardless of variables `php-fill-nosqueeze-c-comments' and
-`php-fill-nosqueeze-c++-comments''s values, since a non nil ARG value
-tells `c-fill-paragraph' to use full justification on the comments
-being filled, which ends up making NOSQUEEZ irrelevant."
-  (interactive "*P")
-  (let ((literal-type (car (php-fill-get-literal))))
-    (if (and (not arg)
-	     (or (and (equal literal-type 'c)
-		      php-fill-nosqueeze-c-comments)
-		 (and (equal literal-type 'c++)
-		      php-fill-nosqueeze-c++-comments)))
-	(php-fill-c-fill-paragraph-nosqueez)
-      (c-fill-paragraph arg))))
-
 (defun php-fill-c-fill-paragraph-nosqueez ()
   "Force function `fill-delete-newlines' to be called with a non nil\n\
 NOSQUEEZ argument once \\[c-fill-paragraph] is called within this
@@ -596,19 +635,6 @@ refill process more times that needed.
 
 Check function `php-fill-refill-after-change-function' for additional
 information.")
-
-(defcustom php-fill-refill-black-list
-  '(comment-or-uncomment-region comment-region uncomment-region)
-  "List of commands whose changes should not trigger a refill.
-
-An example are while commenting and un-commenting code, since filling
-said code while is commented will make it loose its format, which is
-more likely unwanted.
-
-Feel free to add any other command that you find problematic to trigger
-a refill."
-  :type '(repeat symbol)
-  :group 'php-fill)
 
 (defun php-fill-refill-after-change-function (_beg _end _len)
   "After-change function used by minor mode `php-fill-refill-mode'.
@@ -832,26 +858,6 @@ information."
        ((php-fill-supported-string-literal-in-line)
 	(php-fill-stitch-two-lines-concatenation 1 (point))))))
   (call-interactively 'delete-forward-char))
-
-(defcustom php-fill-sentence-end-double-space nil
-  "Determines what local value `sentence-end-double-space' will \n\
-received from command \\[php-fill-set-local-variables] on the current
-buffer."
-  :type 'boolean
-  :group 'php-fill)
-
-(defcustom php-fill-fill-column 80
-  "Determines what local value `fill-column' will received from command\n\
-\\[php-fill-set-local-variables] on the current buffer.
-
-It's important to say that this customizable variable doesn't replace
-`fill-column'.  `fill-column' it's still used as the value look up to
-fill any content.  The purpose of this variable is to ease the process
-of setting up a default `fill-column' for PHP files, through the use of
-the command `php-fill-set-local-variables' and a hook to a major mode
-like the ones provided by packages ‘php-mode’ or ‘phps-mode’."
-  :type 'integer
-  :group 'php-fill)
 
 (defun php-fill-set-local-variables ()
   "Set current buffer's values of variables `sentence-end-double-space'\n\

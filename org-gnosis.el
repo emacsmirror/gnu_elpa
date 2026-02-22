@@ -979,13 +979,6 @@ When FORCE (prefix arg), rebuild database from scratch."
     (org-gnosis-db-init-if-needed)
     (message "Syncing org-gnosis database...")
     (emacsql-with-transaction (org-gnosis-db-get)
-      (when force
-        ;; Full rebuild: drop and recreate tables with indexes
-        (org-gnosis-db-delete-tables)
-        (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
-          (emacsql (org-gnosis-db-get) [:create-table $i1 $S2] table schema))
-        (emacsql (org-gnosis-db-get) [:create-index :if-not-exists idx-nodes-file :on nodes [file]])
-        (emacsql (org-gnosis-db-get) [:create-index :if-not-exists idx-journal-file :on journal [file]]))
       ;; Sync all files with progress reporting
       (org-gnosis-db-update-files force)
       ;; Set current version

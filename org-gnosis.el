@@ -144,11 +144,11 @@ If nil, journal entries are created as separate files in
                  (file :tag "Single journal file")))
 
 (defun org-gnosis-journal--create-file ()
-  "Create `org-gnosis-journal' when non-nil and file it does not exists."
+  "Create `org-gnosis-journal-file' when non-nil and file does not exist."
   (when (and org-gnosis-journal-file
 	     (not (file-exists-p org-gnosis-journal-file)))
     (with-current-buffer (find-file-noselect org-gnosis-journal-file)
-      (insert (format "#+title: %s Journal \n#+filetags: \n" (or user-full-name "")))
+      (insert (format "#+title: %s Journal\n#+filetags: \n" (or user-full-name "")))
       (org-gnosis-mode)
       (save-buffer)
       (message "Created journal file."))))
@@ -173,8 +173,6 @@ If nil, journal entries are created as separate files in
     (setq org-gnosis-db--connection
           (emacsql-sqlite-open org-gnosis-database-file)))
   org-gnosis-db--connection)
-
-
 
 (defun org-gnosis--combine-tags (inherited-tags headline-tags)
   "Combine INHERITED-TAGS and HEADLINE-TAGS, removing duplicates."

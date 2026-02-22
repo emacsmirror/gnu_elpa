@@ -619,7 +619,7 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
          (node (org-gnosis--find "Select gnosis node: "
                                  (org-gnosis-select '[title tags] table)
                                  (org-gnosis-select 'title table)))
-         (id (car (org-gnosis-select 'id table `(= ,node title) t)))
+         (id (car (org-gnosis-select 'id table `(= title ,node) t)))
 	 (title (car (last (split-string node ":"))))
          (desc (cond ((use-region-p)
                       (buffer-substring-no-properties (region-beginning) (region-end)))
@@ -629,7 +629,7 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
       (save-window-excursion
         (org-gnosis--create-file node (if journal-p org-gnosis-journal-dir org-gnosis-dir))
         (save-buffer)
-        (setf id (car (org-gnosis-select 'id table `(= ,node title) t)))))
+        (setf id (car (org-gnosis-select 'id table `(= title ,node) t)))))
     (org-insert-link nil (format "id:%s" id) desc)
     (unless id (message "Created new node: %s" node))))
 

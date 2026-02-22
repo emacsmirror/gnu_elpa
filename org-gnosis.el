@@ -242,7 +242,7 @@ Converts [[id:xxx][Description]] to Description."
 
 (defun org-gnosis-get-data--topic (&optional parsed-data)
   "Retrieve the title and ID from the current org buffer or given PARSED-DATA.
-Returns (title tags id). ID will be nil if no file-level ID exists."
+Returns (title tags id).  ID will be nil if no file-level ID exists."
   (unless parsed-data
     (setq parsed-data (org-element-parse-buffer)))
   (let* ((id (org-element-map parsed-data 'property-drawer
@@ -399,7 +399,12 @@ If JOURNAL is non-nil, update file as a journal entry."
 	  ;; Insert ID links
 	  (cl-loop for link in links
 		   do (org-gnosis--insert-into 'links `[,(cdr link) ,(car link)]))))
-    (error (message "Error updating %s: %s" file err))))
+    (file-error
+     (message "File error updating %s: %s.  Try M-x org-gnosis-db-force-sync to rebuild database."
+              file (error-message-string err)))
+    (error
+     (message "Error updating %s: %s.  Try M-x org-gnosis-db-force-sync if issue persists."
+              file (error-message-string err)))))
 
 (defun org-gnosis--delete-file (&optional file)
   "Delete contents for FILE in database."
@@ -1033,6 +1038,15 @@ When FORCE, update all files.  Otherwise, only update changed files."
   (message "Syncing journal files...")
   (org-gnosis-db-sync--journal force)
   (message "File sync complete"))
+
+;;;###autoload
+(defun org-gnosis-db-force-sync ()
+  "Force rebuild database from files.
+Unconditionally rebuilds the entire database by dropping all tables
+and re-syncing all files."
+  (interactive)
+  (when (y-or-n-p "Force rebuild database from files?")
+    (org-gnosis-db-sync 'force)))
 
 (defun org-gnosis-db-rebuild ()
   "Rebuild database if version is outdated.

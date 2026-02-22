@@ -881,7 +881,7 @@ ELEMENT should be the output of `org-element-parse-buffer'."
   :group 'org-gnosis
   (if org-gnosis-mode
       (add-hook 'after-save-hook #'org-gnosis-update-file nil t) ;; buffer local hook
-    (remove-hook 'after-save-hook #'org-gnosis-update-file)))
+    (remove-hook 'after-save-hook #'org-gnosis-update-file t)))
 
 ;; Org-Gnosis Database
 

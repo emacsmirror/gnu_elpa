@@ -1,6 +1,7 @@
 \input texinfo
 @setfilename debbugs-ug.info
 @settitle Debbugs User Guide
+@documentlanguage en
 
 @dircategory Emacs
 @direntry

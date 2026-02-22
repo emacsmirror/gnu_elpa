@@ -1,6 +1,7 @@
 \input texinfo
 @setfilename debbugs.info
 @settitle Debbugs programmer's manual
+@documentlanguage en
 
 @dircategory Emacs
 @direntry

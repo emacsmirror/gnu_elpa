@@ -19,7 +19,7 @@
 ;; URL:              https://github.com/meedstrom/el-job
 ;; Created:          2024-10-30
 ;; Keywords:         processes
-;; Package-Version:  2.7.2
+;; Package-Version:  2.7.3
 ;; Package-Requires: ((emacs "29.1"))
 
 ;;; Commentary:
@@ -41,7 +41,7 @@
 
 (require 'el-job-ng)
 
-(defconst el-job-internal-version 106)
+(defconst el-job-internal-version 107)
 
 ;; FIXME: It seems to print the nil message during work
 ;;;###autoload

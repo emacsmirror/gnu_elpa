@@ -61,5 +61,14 @@ Optionally, use custom DEFAULT-FACE."
            nil t))))
     (buffer-string)))
 
+(defun gnosis-utils-replace-string-with-link (text string node-id)
+  "Replace STRING in TEXT with org-link to NODE-ID.
+Returns (MODIFIED-P . NEW-TEXT)."
+  (let ((new-text (replace-regexp-in-string
+                   (regexp-quote string)
+                   (format "[[id:%s][%s]]" node-id string)
+                   text t t)))
+    (cons (not (string= text new-text)) new-text)))
+
 (provide 'gnosis-utils)
 ;;; gnosis-utils.el ends here

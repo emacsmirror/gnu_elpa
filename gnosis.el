@@ -2523,5 +2523,64 @@ Return thema ids for themata that match QUERY."
   (setq-local gnosis-center-content gnosis-center-content-during-review)
   :lighter " gnosis-mode")
 
+;;; Bulk link operations
+
+(defun gnosis--count-themata-with-string (themata string)
+  "Count how many THEMATA contain STRING in keimenon."
+  (cl-count-if (lambda (thema)
+                 (string-match-p (regexp-quote string) (nth 1 thema)))
+               themata))
+
+(defun gnosis--themata-to-update (themata string node-id)
+  "Return list of (ID . NEW-KEIMENON) for THEMATA needing updates."
+  (cl-loop for thema in themata
+           for thema-id = (nth 0 thema)
+           for keimenon = (nth 1 thema)
+           for result = (gnosis-utils-replace-string-with-link keimenon string node-id)
+           when (car result)
+           collect (cons thema-id (cdr result))))
+
+(defun gnosis--update-themata (updates)
+  "Apply UPDATES list of (ID . NEW-KEIMENON) to database."
+  (dolist (update updates)
+    (gnosis-update 'themata `(= keimenon ,(cdr update)) `(= id ,(car update)))))
+
+(defun gnosis--commit-bulk-link (count string)
+  "Commit bulk link changes for COUNT themata with STRING."
+  (let ((git (executable-find "git"))
+        (default-directory gnosis-dir))
+    (unless gnosis-testing
+      (unless (file-exists-p (expand-file-name ".git" gnosis-dir))
+        (vc-git-create-repo))
+      (shell-command (format "%s add gnosis.db" git))
+      (gnosis--shell-cmd-with-password
+       (format "%s commit -m 'Bulk link: %d themata updated with %s'"
+               git count string)))
+    (when (and gnosis-vc-auto-push (not gnosis-testing))
+      (gnosis-vc-push))))
+
+(defun gnosis-bulk-link-string (string node-id)
+  "Replace all instances of STRING in themata keimenon with org-link to NODE-ID."
+  (interactive
+   (let* ((string (read-string "String to replace: "))
+          (nodes (org-gnosis-select '[id title] 'nodes))
+          (node-title (gnosis-completing-read "Select node: " (mapcar #'cadr nodes)))
+          (node-id (car (cl-find node-title nodes :key #'cadr :test #'string=))))
+     (list string node-id)))
+  (when (string-empty-p string)
+    (user-error "String cannot be empty"))
+  (unless node-id
+    (user-error "Node not found"))
+  (let* ((themata (gnosis-select '[id keimenon] 'themata nil))
+         (count (gnosis--count-themata-with-string themata string)))
+    (if (zerop count)
+        (message "No themata contain '%s'" string)
+      (when (y-or-n-p (format "Replace '%s' in %d themata? " string count))
+        (let ((updates (gnosis--themata-to-update themata string node-id)))
+          (gnosis--update-themata updates)
+          (gnosis--commit-bulk-link (length updates) string)
+          (message "Updated %d themata with links to '%s'" (length updates) string)
+          (length updates))))))
+
 (provide 'gnosis)
 ;;; gnosis.el ends here

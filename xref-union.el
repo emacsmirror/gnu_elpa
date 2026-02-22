@@ -74,8 +74,8 @@ The marker points to the beginning of the line in which ITEM is located."
   "Check if the items ITEM1 and ITEM2 are the same.
 Same in this context means they reference the same line in the same
 buffer."
-  (= (xref-union--bol-marker item1)
-     (xref-union--bol-marker item2)))
+  (equal (xref-union--bol-marker item1)
+         (xref-union--bol-marker item2)))
 
 (cl-defmethod xref-backend-identifier-at-point ((backends (head union)))
   "Collect the results of multiple Xref BACKENDS."

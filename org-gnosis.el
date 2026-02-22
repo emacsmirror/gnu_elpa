@@ -126,7 +126,7 @@ compatability with `org-todo-keywords'."
   :type 'file
   :group 'org-gnosis)
 
-(defcustom org-gnosis-journal-file nil
+(defcustom org-gnosis-journal-file (expand-file-name "jounral.org" org-gnosis-journal-dir)
   "When non-nil, use this file for journal entries as level 1 headings.
 
 If nil, journal entries are created as separate files in

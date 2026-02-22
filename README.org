@@ -1,3 +1,4 @@
+#+html: <a href="https://melpa.org/#/truename-cache"><img alt="MELPA" src="https://melpa.org/packages/truename-cache-badge.svg"/></a> <a href="https://stable.melpa.org/#/truename-cache"><img alt="MELPA Stable" src="https://stable.melpa.org/packages/truename-cache-badge.svg"/></a> <img alt="MELPA" src="https://img.shields.io/badge/emacs-26.1-purple?logo=gnuemacs&logoColor=white"/>
 * truename-cache
 
 #+begin_quote
@@ -37,13 +38,13 @@ Some example file-lists in Emacs that may overlap a lot:
 
 Even if you =append= and =seq-uniq= these lists, a given file may still be represented multiple times under different names.
 
-To merge, pass all your file-lists in the argument =:infer-dirs-from=.  In truth, it doesn't operate directly on any of the files given, it just infers their parent directories and then scans each directory once.  That turns out to be efficient, even if it's likely to pull in more file names than were in the input.
+To merge, pass all your file-lists in the argument =:infer-dirs-from=.  In truth, it doesn't operate directly on any of the files given, it just infers their parent directories and then scans each directory once.  That turns out to be efficient, even if it's likely to pull in more unique files than were mentioned by any name in the input.
 
 ** Bonus: Filtering
 
-While you could simply let =truename-cache-collect-files-and-attributes= return a giant file list and filter it afterwards, there are two reasons to do some filtering through the arguments =:relative-file-deny=, =:relative-dir-deny= and/or =:full-dir-deny=.
+While you could simply let =truename-cache-collect-files-and-attributes= return a giant file list and filter it afterwards, there are two reasons to do some filtering through the arguments =:relative-file-deny=, =:relative-dir-deny= and/or =:full-dir-deny= (which take lists of regular expressions).
 
-1. It filters early, so it can avoid recursing into directories that you were never gonna keep anyway -- e.g. the contents of =.git/= or =node_modules/=...
+1. They filter early, so you can avoid recursing into directories that you were never gonna keep anyway -- e.g. the contents of =.git/= or =node_modules/=...
 
    It can easily be the difference between a runtime of 2.00 seconds and 0.02 seconds!
 

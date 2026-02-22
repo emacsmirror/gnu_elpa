@@ -79,29 +79,28 @@
   :group 'convenience)
 
 (defcustom php-fill-nosqueeze-c-comments t
-  "\\[php-fill-c-fill-paragraph] decides whether or not to use\n\
-\\[php-fill-c-fill-paragraph-nosqueeze] on c style comments depending on
+  "`php-fill-c-fill-paragraph' decides whether or not to use\n\
+`php-fill-c-fill-paragraph-nosqueeze' on c style comments depending on
 the value of this variable.
 
 A t default value was chosen so that Phpdoc blocks (which are c style
 comments) using spaces to alight columns (like when using the '@param'
-tag), would not loose said alignment if \\[php-fill-paragraph] or
-\\[php-fill-c-fill-paragraph] are used on them.  If this way of
-formatting doc blocks values isn't used, setting a nil value might be
-preferred.
+tag), would not loose said alignment if `php-fill-paragraph' or
+`php-fill-c-fill-paragraph' are used on them.  If this way of formatting
+doc blocks values isn't used, setting a nil value might be preferred.
 
 In the context of the fill prefixed functions, a ‘squeeze’ refers to the
 action of replacing instances where multiple space between words exist
 with a single one.
 
-See command \\[php-fill-c-fill-paragraph-nosqueeze] for additional
+See command `php-fill-c-fill-paragraph-nosqueeze' for additional
 information."
   :type 'boolean
   :group 'php-fill)
 
 (defcustom php-fill-nosqueeze-c++-comments nil
-  "\\[php-fill-c-fill-paragraph] decides whether or not to use\n\
-\\[php-fill-c-fill-paragraph-nosqueeze] on c++ style comments depending
+  "`php-fill-c-fill-paragraph' decides whether or not to use\n\
+`php-fill-c-fill-paragraph-nosqueeze' on c++ style comments depending
 on the value of this variables."
   :type 'boolean
   :group 'php-fill)
@@ -121,14 +120,14 @@ a refill."
 
 (defcustom php-fill-sentence-end-double-space nil
   "Determines what local value `sentence-end-double-space' will \n\
-received from command \\[php-fill-set-local-variables] on the current
+received from command `php-fill-set-local-variables' on the current
 buffer."
   :type 'boolean
   :group 'php-fill)
 
 (defcustom php-fill-fill-column 80
   "Determines what local value `fill-column' will received from command\n\
-\\[php-fill-set-local-variables] on the current buffer.
+`php-fill-set-local-variables' on the current buffer.
 
 It's important to say that this customizable variable doesn't replace
 `fill-column'.  `fill-column' it's still used as the value look up to
@@ -139,52 +138,18 @@ like the ones provided by packages ‘php-mode’ or ‘phps-mode’."
   :type 'integer
   :group 'php-fill)
 
-(defun php-fill-c-fill-paragraph (&optional arg)
-  "Use two variables to determine to use \\[c-fill-paragraph] or\n\
-\\[php-fill-c-fill-paragraph-nosqueeze] on current comment.
-
-This two are `php-fill-nosqueeze-c-comments' for the c style commends
-and `php-fill-nosqueeze-c++-comments' for the c++ style ones.
-
-As an example, if pointer is located within a C++ styled comment and
-`php-fill-nosqueeze-c++-comments' is not nil, then command
-\\[php-fill-c-fill-paragraph-nosqueeze] will be used to fill it.
-Otherwise if `php-fill-nosqueeze-c++-comments' were to be nil, then
-`c-fill-paragraph' would be used on its place.
-
-In the context of the fill prefixed functions, a ‘squeeze’ refers to the
-action of replacing instances where multiple space between words exist
-with a single one.
-
-ARG attribute is pass down to `c-fill-paragraph' if it ends up being
-called.
-
-WARNING: If optional prefix ARG is not nil, then `c-fill-paragraph' will
-be used regardless of variables `php-fill-nosqueeze-c-comments' and
-`php-fill-nosqueeze-c++-comments''s values, since a non nil ARG value
-tells `c-fill-paragraph' to use full justification on the comments
-being filled, which ends up making NOSQUEEZE irrelevant."
-  (interactive "*P")
-  (let ((literal-type (car (php-fill-get-literal))))
-    (if (and (not arg)
-	     (or (and (equal literal-type 'c)
-		      php-fill-nosqueeze-c-comments)
-		 (and (equal literal-type 'c++)
-		      php-fill-nosqueeze-c++-comments)))
-	(php-fill-c-fill-paragraph-nosqueeze)
-      (c-fill-paragraph arg))))
-
+;;;###autoload
 (defun php-fill-paragraph (&optional only-one-line-up)
-  "Like \\[c-fill-paragraph] but string literals are handled in a\n\
+  "Like `c-fill-paragraph' but string literals are handled in a\n\
 different way (tailor made for PHP) and a small customizable option was
 added for comments.
 
-String literals are handled using command \\[php-fill-string-literal].
+String literals are handled using command `php-fill-string-literal'.
 
 In the case of comments, two global variables decide whether or not the
-argument NOSQUEEZE of function `fill-delete-newlines' will be used either
-on C or C++ style comments or both.  See command
-\\[php-fill-c-fill-paragraph] for additional information.
+argument NOSQUEEZE of function `fill-delete-newlines' will be used
+either on C or C++ style comments or both.  See command
+`php-fill-c-fill-paragraph' for additional information.
 
 In the context of the fill prefixed functions, a ‘squeeze’ refers to the
 action of replacing instances where multiple space between words exist
@@ -222,6 +187,7 @@ already established value of the variable `php-fill-literal'."
 	(let ((literal-limits (c-literal-limits nil nil)))
 	  (cons (c-literal-type literal-limits) literal-limits))))))
 
+;;;###autoload
 (defun php-fill-string-literal (&optional only-one-line-up)
   "Fill PHP's quoted string literals by breaking them into smaller ones.
 
@@ -237,8 +203,8 @@ meaning that string literals are not broken in the middle of words, but
 right after the closet space preceding a word.  Each subsequent line
 will start with a dot and a space, representing the concatenation of the
 smaller string literals.  Indentation is done using the command
-\\[indent-according-to-mode], for this reason, it's highly recommended
-to use some PHP dedicated major mode like the ones offer by packages
+`indent-according-to-mode', for this reason, it's highly recommended to
+use some PHP dedicated major mode like the ones offer by packages
 ‘php-mode’ and ‘phps-mode’.
 
 It isn't necessary to have the pointer inside the string literal located
@@ -292,7 +258,7 @@ when array values are being defined, only last string literal will be
 filled.
 
 Optional argument ONLY-ONE-LINE-UP value will be passed down to command
-\\[php-fill-stitch-string-parts-together] as is."
+`php-fill-stitch-string-parts-together' as is."
   (interactive)
   (when (php-fill-supported-string-literal-in-line)
     (php-fill-stitch-string-parts-together only-one-line-up)
@@ -403,7 +369,7 @@ concatenation, but further analysis will be needed to be sure."))
 
 (defun php-fill-supported-string-literal-in-line ()
   "Return t if current line ends on a supported fill-able string literal\n\
-candidate for command \\[php-fill-string-literal].
+candidate for command `php-fill-string-literal'.
 
 The reason they are yet only candidates is because some other factors
 are needed to be checked later on, to be sure if they can, or more
@@ -441,18 +407,19 @@ concatenation with other supported string literals."
   (= (line-number-at-pos (car literal-limits))
      (line-number-at-pos (cdr literal-limits))))
 
+;;;###autoload
 (defun php-fill-stitch-string-parts-together (&optional only-one-line-up)
   "Stitch together multiple string literals being concatenated if they\n\
 meet an specified criteria.
 
-Same way \\[c-fill-paragraph] uses `fill-delete-newlines' to unfill c
-and c++ style comments so that their content can then be readjusted or
-more precisely refilled, when substantial changes have been made, this
+Same way `c-fill-paragraph' uses `fill-delete-newlines' to unfill c and
+c++ style comments so that their content can then be readjusted or more
+precisely refilled, when substantial changes have been made, this
 function is used to stitch together string literals concatenations that
 follow the format expressed in the regular expression constant
 `php-fill-two-lines-concatenation-regexp', so that they can be broken
-again by command \\[php-fill-break-long-string-literal-apart] as part of
-the whole fill process of the \\[php-fill-string-literal] command.
+again by command `php-fill-break-long-string-literal-apart' as part of
+the whole fill process of the `php-fill-string-literal' command.
 
 To this end, this function looks up and down from the initial point to
 check what lines have the correct concatenation format to stitch string
@@ -470,14 +437,14 @@ the only string literal up from point that may be affected from a change
 done at the line where point is located.
 
 As an interactive function, this function can be used on it's own.  In
-combination with \\[php-fill-break-long-string-literal-apart] it will
-pretty much end up doing what \\[php-fill-string-literal] does in a
-single swift call.
+combination with `php-fill-break-long-string-literal-apart' it will
+pretty much end up doing what `php-fill-string-literal' does in a single
+swift call.
 
 One idea this command might be useful on its own will be (if
 `php-fill-refill-mode' is not wanted) to use this command first, edit a
 string literal as a whole (possibly using `visual-line-mode' on), and
-then use \\[php-fill-break-long-string-literal-apart]."
+then use `php-fill-break-long-string-literal-apart'."
   (interactive)
   (while (php-fill-stitch-two-lines-concatenation))
   (catch 'exit-while
@@ -489,9 +456,9 @@ then use \\[php-fill-break-long-string-literal-apart]."
 an specified criteria.
 
 This function does the heavy lifting for
-\\[php-fill-stitch-string-parts-together], \\[php-fill-backward-delete]
-and \\[php-fill-delete-forward] commands, when it comes to stitching
-supported string literal concatenations together into one.
+`php-fill-stitch-string-parts-together', `php-fill-backward-delete' and
+`php-fill-delete-forward' commands, when it comes to stitching supported
+string literal concatenations together into one.
 
 First it moves pointer to either the beginning of the current line or
 the previous one depending on the N argument value.  Then it checks if
@@ -516,6 +483,7 @@ not."
 	  nil
 	(replace-match "" nil nil nil 100) t))))
 
+;;;###autoload
 (defun php-fill-break-long-string-literal-apart ()
   "Breaks long string literals into smaller ones if they are located at\n\
 the end of a line which content crosses the `current-fill-column'.
@@ -529,9 +497,9 @@ by a space, and it's content will be correctly indented according to the
 major mode, for which we recommend using one for PHP like the ones
 offer by packages like ‘php-mode’ and ‘phps-mode’.
 
-This is only the last of the two steps done by
-\\[php-fill-string-literal] to full refilled string literals, being the
-first one \\[php-fill-stitch-string-parts-together].
+This is only the last of the two steps done by `php-fill-string-literal'
+to full refilled string literals, being the first one
+`php-fill-stitch-string-parts-together'.
 
 All other descriptions from this package mentioned that the string
 literals are broken at the end of a space that precedes a word, but this
@@ -543,18 +511,18 @@ escaped quotes are accounted for so they won't be mistaken with the
 ending quote.
 
 As an interactive function, this function can be used on it's own.  In
-combination with \\[php-fill-stitch-string-parts-together] it will
-pretty much end up doing what \\[php-fill-string-literal] does in a
-single swift call.
+combination with `php-fill-stitch-string-parts-together' it will pretty
+much end up doing what `php-fill-string-literal' does in a single swift
+call.
 
 One idea this command might be useful on its own will be (if
 `php-fill-refill-mode' is not wanted) to use
-\\[php-fill-stitch-string-parts-together] command first, edit a string
+`php-fill-stitch-string-parts-together' command first, edit a string
 literal as a whole (possibly using `visual-line-mode' on), and then use
 this command at the end.
 
 Function `current-fill-column' was chosen to be used for no other reason
-that it is the function used by command \\[fill-paragraph]."
+that it is the function used by command `fill-paragraph'."
   (interactive)
   (save-restriction
     (widen)
@@ -592,20 +560,57 @@ that it is the function used by command \\[fill-paragraph]."
 	  (insert quote "\n. " quote)
 	  (indent-according-to-mode))))))
 
+;;;###autoload
+(defun php-fill-c-fill-paragraph (&optional arg)
+  "Use two variables to determine to use `c-fill-paragraph' or\n\
+`php-fill-c-fill-paragraph-nosqueeze' on current comment.
+
+This two are `php-fill-nosqueeze-c-comments' for the c style commends
+and `php-fill-nosqueeze-c++-comments' for the c++ style ones.
+
+As an example, if pointer is located within a C++ styled comment and
+`php-fill-nosqueeze-c++-comments' is not nil, then command
+`php-fill-c-fill-paragraph-nosqueeze' will be used to fill it.
+Otherwise if `php-fill-nosqueeze-c++-comments' were to be nil, then
+`c-fill-paragraph' would be used on its place.
+
+In the context of the fill prefixed functions, a ‘squeeze’ refers to the
+action of replacing instances where multiple space between words exist
+with a single one.
+
+ARG attribute is pass down to `c-fill-paragraph' if it ends up being
+called.
+
+WARNING: If optional prefix ARG is not nil, then `c-fill-paragraph' will
+be used regardless of variables `php-fill-nosqueeze-c-comments' and
+`php-fill-nosqueeze-c++-comments''s values, since a non nil ARG value
+tells `c-fill-paragraph' to use full justification on the comments being
+filled, which ends up making NOSQUEEZE irrelevant."
+  (interactive "*P")
+  (let ((literal-type (car (php-fill-get-literal))))
+    (if (and (not arg)
+	     (or (and (equal literal-type 'c)
+		      php-fill-nosqueeze-c-comments)
+		 (and (equal literal-type 'c++)
+		      php-fill-nosqueeze-c++-comments)))
+	(php-fill-c-fill-paragraph-nosqueeze)
+      (c-fill-paragraph arg))))
+
+;;;###autoload
 (defun php-fill-c-fill-paragraph-nosqueeze ()
   "Force function `fill-delete-newlines' to be called with a non nil\n\
-NOSQUEEZE argument once \\[c-fill-paragraph] is called within this
+NOSQUEEZE argument once `c-fill-paragraph' is called within this
 function.
 
-\\[c-fill-paragraph] uses `fill-delete-newlines' to unfill c and c++
-style comments so that their content can then be re-adjusted (refilled)
-when a pertinent amount of changes have been made.  While this is done,
+`c-fill-paragraph' uses `fill-delete-newlines' to unfill c and c++ style
+comments so that their content can then be re-adjusted (refilled) when a
+pertinent amount of changes have been made.  While this is done,
 normally if multiple spaces exist between words, they are ‘squeezed’, or
 more precisely, replaced with a single one.  This might not always be
 desirable.  For instance, while writing a Phpdoc block (which are c
 style comments) with '@param' tags, we might want to alight their values
 creating plain text columns using spaces.  In this scenario, ‘squeeze’
-would destroy said alignment if command \\[c-fill-paragraph] were to be
+would destroy said alignment if command `c-fill-paragraph' were to be
 used on its own while point is located in said doc block comment."
   (interactive)
   (unwind-protect
@@ -628,8 +633,9 @@ returned back to `fill-delete-newlines' called."
     (setq nosqueeze t)
     (list from to justify nosqueeze squeeze-after)))
 
+;;;###autoload
 (define-minor-mode php-fill-refill-mode
-  "Like \\[refill-mode] but handles C, C++ style comments, and quoted \
+  "Like `refill-mode' but handles C, C++ style comments, and quoted \
 PHP's string literals.
 
 For this purpose, function `php-fill-paragraph' is used."
@@ -637,10 +643,6 @@ For this purpose, function `php-fill-paragraph' is used."
   :lighter " Php-Refill"
   :interactive 'php-mode 'phps-mode
   :group 'php-fill
-  :group 'php
-  :group 'languages
-  :group 'tools
-  :group 'convenience
   (if php-fill-refill-mode
       (progn
 	(add-hook 'after-change-functions
@@ -675,13 +677,13 @@ undesirable effects might arise.
 A customizable list of commands (`php-fill-refill-black-list') exist to
 establish what command's changes should not trigger a refill.
 
-Function \\[php-fill-newline] is a special case, since we only want to
+Function `php-fill-newline' is a special case, since we only want to
 suppress the refill process if it ends up breaking a string literal in
 two.  The reason is that, if the refill process were not suppressed and
 if a split were to be made right after a space, the user could get
 confused since it would appear as if nothing happened, since right after
 the string literals is broken, it will immediately be reattached back
-together by the refill process.  For this reason, \\[php-fill-newline]
+together by the refill process.  For this reason, `php-fill-newline'
 would set variable `php-fill-refill-promise-to-doit' back to nil only in
 the case that it ends up breaking a string literal.  This way we do not
 need to suppress it on its totality, which is what would happen if we
@@ -718,22 +720,23 @@ composing a comment, a refill will delete the white space that might
 have just been added to it, which will just prevent adding additional
 content to the comment being work on.
 
-Notice also that command \\[php-fill-paragraph]'s argument
+Notice also that command `php-fill-paragraph''s argument
 ONLY-ONE-LINE-UP is send with a value of t.  This will end up telling
 function `php-fill-stitch-string-parts-together' that is not necessary
 to stitch back all possible supported concatenation string literals
 present above point's current line, only one line up is enough.  The
 reason for this, is that any change made in the current line, can only
 possibly affect the right before string literal fill.  See command
-\\[php-fill-stitch-string-parts-together] for additional information.
+`php-fill-stitch-string-parts-together' for additional information.
 This assumes you've been using `php-fill-refill-mode' from the start
 while the current string structure was being created, otherwise if it
-already existed, you might want to use \\[php-fill-paragraph] on its own
+already existed, you might want to use `php-fill-paragraph' on its own
 to get the entire structure readjust and refilled before continuing
 working on it."
   (when (save-excursion (backward-char 1) (not (looking-at " $")))
     (php-fill-paragraph t)))
 
+;;;###autoload
 (defun php-fill-newline ()
   "Add a newline in a particular way, if point is located within doc\n\
 block or a string literal.
@@ -748,13 +751,13 @@ line.  And finally the new line will be indented using the method
 provided by the major mode.
 
 Something to note is that string literals broken this way might get
-stitch back together if command \\[php-fill-paragraph] is used on them
-or if a change is made on them while in minor mode
-`php-fill-refill-mode'.  This will happen when a string literal is
-broken after a space, since it's the criteria used by the aforementioned
-functions to stitch string literals together that are being
-concatenated.  If this is undesired, you can make sure to split a string
-literal content at a place other than a space.
+stitch back together if command `php-fill-paragraph' is used on them or
+if a change is made on them while in minor mode `php-fill-refill-mode'.
+This will happen when a string literal is broken after a space, since
+it's the criteria used by the aforementioned functions to stitch string
+literals together that are being concatenated.  If this is undesired,
+you can make sure to split a string literal content at a place other
+than a space.
 
 Lastly, if point is located on a Phpdoc block, a new line follow by and
 asterisk will be inserted and the line will be indented.  Depending if
@@ -787,6 +790,7 @@ into two paragraphs separated by and empty line."
 	  (indent-according-to-mode)))
        (t (newline))))))
 
+;;;###autoload
 (defun php-fill-backward-delete ()
   "Depending on point's position, stitch the content of two strings\n\
 literals or two prefixed comment lines together.
@@ -798,7 +802,7 @@ delete will be done in a particular way.
 
 In the case of a supported two string literals being concatenated (see
 `php-fill-stitch-two-lines-concatenation'), both string literals will be
-stitch together before command \\[c-electric-backspace] is executed.
+stitch together before command `c-electric-backspace' is executed.
 
 In the case of point being at the beginning of a prefixed comment
 content, said prefix, meaning '#' and '//' for c++ style comments or '*'
@@ -833,8 +837,8 @@ This function verifies if pointer is located at the beginning or at the
 end (depending of the value of argument N) of two consecutive prefixed c
 or c++ commends of the same kind and with the same prefix ('#', '//' or
 '*').  If that's the case, stitch them together before either a backward
-or forward delete is performed by either \\[php-fill-backward-delete] or
-\\[php-fill-delete-forward] respectively.
+or forward delete is performed by either `php-fill-backward-delete' or
+`php-fill-delete-forward' respectively.
 
 The objective is to seemingly thread the content of comments as if they
 were a continuous line, without indention, prefix and subsequent spaces,
@@ -849,6 +853,7 @@ mode or even without it."
 			    (= (- (match-beginning 1) 1) pos))))
 	  (replace-match "" nil nil nil 1))))))
 
+;;;###autoload
 (defun php-fill-delete-forward ()
   "Depending on point's position, stitch the content of two strings\n\
 literals or two prefixed comment lines together.
@@ -861,14 +866,14 @@ way.
 
 In the case of a supported two string literals being concatenated (see
 `php-fill-stitch-two-lines-concatenation'), both string literals will be
-stitch together before command \\[delete-forward-char] is called.
+stitch together before command `delete-forward-char' is called.
 
 In the case of point being at the end of a prefixed comment that
 precedes another one, the beginning of said second commented line which
 includes its prefix, meaning '#' and '//' for c++ style comments or '*'
 for Phpdoc block's c style comments, their succeeding spaces and the
 line indentation will be deleted first before command
-\\[delete-forward-char] is called interactively, ending up stitching
+`delete-forward-char' is called interactively, ending up stitching
 current comment line with next one, word with word.  For this to happen,
 previous line must also be of the same kind of comment and have the same
 prefix.  See `php-fill-stitch-together-two-comment-lines' for additional

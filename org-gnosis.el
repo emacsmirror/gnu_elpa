@@ -666,6 +666,30 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
 	 (completing-read "Backlink: " titles))
       (message "No backlinks found for current node"))))
 
+(defun org-gnosis-get-nodes-data (&optional node-ids)
+  "Fetch node data for NODE-IDS or all nodes if not specified.
+
+Returns a list of (ID TITLE BACKLINK-COUNT) for each node."
+  (let* ((nodes (if node-ids
+                    (org-gnosis-select '[id title] 'nodes
+                                       `(in id ,(vconcat node-ids)))
+                  (org-gnosis-select '[id title] 'nodes)))
+         (backlinks (if node-ids
+                        (org-gnosis-select '[dest source] 'links
+                                           `(in dest ,(vconcat node-ids)))
+                      (org-gnosis-select '[dest source] 'links)))
+         (backlinks-count-hash (let ((hash (make-hash-table :test 'equal)))
+                                 (dolist (link backlinks hash)
+                                   (let ((dest (nth 0 link)))
+                                     (puthash dest
+                                              (1+ (or (gethash dest hash) 0))
+                                              hash))))))
+    (mapcar (lambda (node)
+              (let ((id (nth 0 node))
+                    (title (nth 1 node)))
+                (list id title (or (gethash id backlinks-count-hash) 0))))
+            nodes)))
+
 ;;;###autoload
 (defun org-gnosis-journal-find (&optional title)
   "Find journal entry for TITLE."

@@ -917,47 +917,67 @@ ELEMENT should be the output of `org-element-parse-buffer'."
 	   do (org-gnosis-update-file file)))
 
 ;;;###autoload
-(defun org-gnosis-db-sync ()
-  "Sync `org-gnosis-db'.
+(defun org-gnosis-db-sync (&optional force)
+  "Sync `org-gnosis-db' with progress reporting.
 
-Drop all current tables and recreate the database."
-  (interactive)
-  (emacsql-with-transaction (org-gnosis-db-get)
-    ;; Drop all existing tables
-    (org-gnosis-db-delete-tables)
-    ;; Recreate tables with current schema
-    (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
-      (emacsql (org-gnosis-db-get) [:create-table $i1 $S2] table schema))
-    ;; Sync all files to repopulate
-    (org-gnosis-db-update-files)
-    ;; Set current version
-    (emacsql (org-gnosis-db-get)
-	     `[:pragma (= user-version ,org-gnosis-db-version)])))
+When FORCE (prefix arg), rebuild database from scratch."
+  (interactive "P")
+  (let ((gc-cons-threshold most-positive-fixnum)) ; Optimize GC during sync
+    (when force
+      ;; Close connection and delete database file for full rebuild
+      (when (emacsql-live-p org-gnosis-db--connection)
+        (emacsql-close org-gnosis-db--connection)
+        (setq org-gnosis-db--connection nil))
+      (when (file-exists-p org-gnosis-database-file)
+        (delete-file org-gnosis-database-file)))
+    (org-gnosis-db-init-if-needed)
+    (message "Syncing org-gnosis database...")
+    (emacsql-with-transaction (org-gnosis-db-get)
+      (when force
+        ;; Full rebuild: drop and recreate tables
+        (org-gnosis-db-delete-tables)
+        (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
+          (emacsql (org-gnosis-db-get) [:create-table $i1 $S2] table schema)))
+      ;; Sync all files with progress reporting
+      (org-gnosis-db-update-files force)
+      ;; Set current version
+      (emacsql (org-gnosis-db-get)
+               `[:pragma (= user-version ,org-gnosis-db-version)]))
+    (message "Database sync complete!")))
 
-(defun org-gnosis-db-update-files ()
-  "Sync `org-gnosis-db'."
+(defun org-gnosis-db-update-files (&optional _force)
+  "Sync `org-gnosis-db' files with progress reporting.
+FORCE is reserved for future incremental sync implementation."
   (org-gnosis-db-init-if-needed)
   (let ((files (cl-remove-if-not
-		(lambda (file)
-		  (and (string-match-p "^[0-9]"
-				       (file-name-nondirectory file))
-		       (not (file-directory-p file))))
-		(directory-files org-gnosis-dir t nil t))))
-    (cl-loop for file in files
-	     do (org-gnosis-update-file file)))
-  (org-gnosis-db-sync--journal))
+                (lambda (file)
+                  (and (string-match-p "^[0-9]"
+                                       (file-name-nondirectory file))
+                       (not (file-directory-p file))))
+                (directory-files org-gnosis-dir t nil t))))
+    ;; Process files with progress reporter
+    (let ((progress (make-progress-reporter "Processing files..." 0 (length files))))
+      (cl-loop for file in files
+               for i from 0
+               do (progn
+                    (org-gnosis-update-file file)
+                    (progress-reporter-update progress i)))
+      (progress-reporter-done progress)))
+  ;; Sync journal files
+  (message "Syncing journal files...")
+  (org-gnosis-db-sync--journal)
+  (message "File sync complete"))
 
 (defun org-gnosis-db-rebuild ()
-  "Rebuild database by dropping all tables and syncing from files."
+  "Rebuild database if version is outdated.
+Checks database version and prompts user for rebuild if needed."
   (let ((current-version (caar (emacsql (org-gnosis-db-get) [:pragma user-version]))))
     (when (and (< current-version org-gnosis-db-version)
 	       (y-or-n-p
 		(format
 		 "Database version %d is outdated (current: %d).  Rebuild database from files? "
 		 current-version org-gnosis-db-version)))
-      (message "Rebuilding org-gnosis database...")
-      (org-gnosis-db-sync)
-      (message "Database rebuild completed!"))))
+      (org-gnosis-db-sync 'force))))
 
 (defun org-gnosis-db-init ()
   "Initialize database.

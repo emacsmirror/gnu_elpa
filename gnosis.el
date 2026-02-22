@@ -102,6 +102,23 @@ When nil, review new themata last."
   "Number of days of which the average review score will be calculated."
   :type 'integer)
 
+(defcustom gnosis-center-content-during-review t
+  "Default value for centering content during review sessions.
+
+This is the global default used when creating new review buffers.
+When non-nil, center content during review sessions.
+When nil, content will be displayed left-aligned instead of centered."
+  :type 'boolean)
+
+(defvar-local gnosis-center-content t
+  "Buffer-local variable controlling content centering.
+
+When non-nil, center content in the current buffer.
+This is set automatically based on buffer type:
+- Review buffers: uses `gnosis-center-content-during-review'
+- Dashboard buffers: always t (centered)
+- Other buffers: defaults to t")
+
 ;;; Faces
 
 (defface gnosis-face-separator
@@ -306,8 +323,14 @@ History is disabled."
 	     (gnosis-shuffle (copy-sequence seq)) nil require-match)))
 
 (defun gnosis-insert-separator ()
-  "Insert a dashed line spanning the entire width of the buffer."
-  (let* ((width (window-width))
+  "Insert a dashed line separator.
+
+Width depends on `gnosis-center-content':
+- When non-nil, spans the entire window width.
+- When nil, uses `fill-column' width."
+  (let* ((width (if gnosis-center-content
+                    (window-width)
+                  fill-column))
          (dash-line (concat (make-string width ?-))))
     (insert "\n" dash-line "\n")
     ;; Apply an overlay to hide only the dashes
@@ -317,19 +340,14 @@ History is disabled."
         (overlay-put overlay 'face 'gnosis-face-separator)
         (overlay-put overlay 'display (make-string width ?\s))))))
 
-(defun gnosis-center-current-line (&optional center?)
-  "Centers text in the current line ignoring leading spaces.
-
-Acts only when CENTER? is non-nil."
+(defun gnosis-center-current-line ()
+  "Centers text in the current line ignoring leading spaces."
   (let* ((start (line-beginning-position))
          (end (line-end-position))
          (text (string-trim (buffer-substring start end)))
-         (padding (max (/ (- (window-width) (length text)) 2) 0))
-	 (center? (or center? t)))
-    (if center?
-	(progn (delete-region start end)
-	       (insert (make-string padding ? ) text))
-      (insert text))))
+         (padding (max (/ (- (window-width) (length text)) 2) 0)))
+    (delete-region start end)
+    (insert (make-string padding ? ) text)))
 
 (defun gnosis-center-string (str)
   "Center each line of STR in current window width.
@@ -362,14 +380,29 @@ Replaces links `[[source][description]]' with `description'."
      lines
      "\n")))
 
+(defun gnosis-format-string (str)
+  "Format STR for display, optionally centering based on buffer preference.
+
+When `gnosis-center-content' is non-nil, centers the text.
+Otherwise, just processes org-links without centering."
+  (if gnosis-center-content
+      (gnosis-center-string str)
+    (replace-regexp-in-string
+     "\\[\\[\\([^]]+\\)\\]\\[\\([^]]+\\)\\]\\]"
+     "\\2"
+     str)))
+
 (defun gnosis-apply-center-buffer-overlay (&optional point)
   "Center text in buffer starting at POINT using `gnosis-center-current-line'.
-This will not be applied to sentences that start with double space."
-  (save-excursion
-    (goto-char (or point (point-min)))
-    (while (not (or (= (point-max) (point)) (looking-at "^  ")))
-      (gnosis-center-current-line)
-      (forward-line 1))))
+This will not be applied to sentences that start with double space.
+
+Respects `gnosis-center-content' buffer-local setting."
+  (when gnosis-center-content
+    (save-excursion
+      (goto-char (or point (point-min)))
+      (while (not (or (= (point-max) (point)) (looking-at "^  ")))
+        (gnosis-center-current-line)
+        (forward-line 1)))))
 
 (defun gnosis-org-format-string (str)
   "Return STR fontified as in `org-mode'."
@@ -383,7 +416,7 @@ This will not be applied to sentences that start with double space."
   "Display STR as keimenon."
   (with-current-buffer gnosis-review-buffer-name
     (erase-buffer)
-    (insert "\n" (gnosis-center-string str))
+    (insert "\n" (gnosis-format-string str))
     (gnosis-insert-separator)
     (gnosis-apply-center-buffer-overlay)))
 
@@ -471,14 +504,16 @@ When SUCCESS nil, display USER-INPUT as well"
 	  (propertize "Answer:" 'face 'gnosis-face-directions)
 	  " "
 	  (propertize answer 'face 'gnosis-face-correct))
-  (gnosis-center-current-line)
+  (when gnosis-center-content
+    (gnosis-center-current-line))
   ;; Insert user wrong answer
   (when (not success)
     (insert "\n"
 	    (propertize "Your answer:" 'face 'gnosis-face-directions)
 	    " "
 	    (propertize user-input 'face 'gnosis-face-false))
-    (gnosis-center-current-line))))
+    (when gnosis-center-content
+      (gnosis-center-current-line)))))
 
 (defun gnosis-display-hint (hint)
   "Display HINT."
@@ -486,7 +521,7 @@ When SUCCESS nil, display USER-INPUT as well"
     (unless (string-empty-p hint)
       (goto-char (point-max))
       (and (not (string-empty-p hint))
-	   (insert (gnosis-center-string (propertize hint 'face 'gnosis-face-hint))))
+	   (insert "\n" (gnosis-format-string (propertize hint 'face 'gnosis-face-hint))))
       (gnosis-insert-separator))))
 
 (defun gnosis-display-cloze-user-answer (user-input &optional false)
@@ -499,13 +534,14 @@ If FALSE t, use gnosis-face-false face"
 	  " "
 	  (propertize user-input 'face
 		      (if false 'gnosis-face-false 'gnosis-face-correct)))
-  (gnosis-center-current-line)
+  (when gnosis-center-content
+    (gnosis-center-current-line))
   (newline))
 
 (defun gnosis-display-correct-answer-mcq (answer user-choice)
   "Display correct ANSWER & USER-CHOICE for MCQ thema."
   (goto-char (point-max))
-  (insert (gnosis-center-string
+  (insert (gnosis-format-string
 	   (format "%s %s\n%s %s"
 		   (propertize "Correct Answer:" 'face 'gnosis-face-directions)
 		   (propertize answer 'face 'gnosis-face-correct)
@@ -521,7 +557,7 @@ If FALSE t, use gnosis-face-false face"
   (when (and parathema (not (string-empty-p parathema)))
     (search-backward "----") ; search back for separator
     (forward-line 1)
-    (insert "\n" (gnosis-center-string (gnosis-org-format-string parathema)) "\n")))
+    (insert "\n" (gnosis-format-string (gnosis-org-format-string parathema)) "\n")))
 
 (defun gnosis-display-next-review (id success)
   "Display next interval of thema ID for SUCCESS."
@@ -545,7 +581,7 @@ If FALSE t, use gnosis-face-false face"
 					     'gnosis-face-false))))
 	;; Default behaviour
 	(goto-char (point-max))
-	(insert (gnosis-center-string next-review-msg))))))
+	(insert (gnosis-format-string next-review-msg))))))
 
 (cl-defun gnosis--prompt (prompt &optional (downcase nil) (split nil))
   "PROMPT user for input until `q' is given.
@@ -2495,7 +2531,68 @@ Reopens the gnosis database after successful pull."
   :interactive nil
   (read-only-mode 0)
   (display-line-numbers-mode 0)
+  ;; Initialize centering based on user preference
+  (setq-local gnosis-center-content gnosis-center-content-during-review)
   :lighter " gnosis-mode")
+
+;;; Bulk link operations
+
+(defun gnosis--count-themata-with-string (themata string)
+  "Count how many THEMATA contain STRING in keimenon."
+  (cl-count-if (lambda (thema)
+                 (string-match-p (regexp-quote string) (nth 1 thema)))
+               themata))
+
+(defun gnosis--themata-to-update (themata string node-id)
+  "Return list of (ID . NEW-KEIMENON) for THEMATA needing updates."
+  (cl-loop for thema in themata
+           for thema-id = (nth 0 thema)
+           for keimenon = (nth 1 thema)
+           for result = (gnosis-utils-replace-string-with-link keimenon string node-id)
+           when (car result)
+           collect (cons thema-id (cdr result))))
+
+(defun gnosis--update-themata (updates)
+  "Apply UPDATES list of (ID . NEW-KEIMENON) to database."
+  (dolist (update updates)
+    (gnosis-update 'themata `(= keimenon ,(cdr update)) `(= id ,(car update)))))
+
+(defun gnosis--commit-bulk-link (count string)
+  "Commit bulk link changes for COUNT themata with STRING."
+  (let ((git (executable-find "git"))
+        (default-directory gnosis-dir))
+    (unless gnosis-testing
+      (unless (file-exists-p (expand-file-name ".git" gnosis-dir))
+        (vc-git-create-repo))
+      (shell-command (format "%s add gnosis.db" git))
+      (gnosis--shell-cmd-with-password
+       (format "%s commit -m 'Bulk link: %d themata updated with %s'"
+               git count string)))
+    (when (and gnosis-vc-auto-push (not gnosis-testing))
+      (gnosis-vc-push))))
+
+(defun gnosis-bulk-link-string (string node-id)
+  "Replace all instances of STRING in themata keimenon with org-link to NODE-ID."
+  (interactive
+   (let* ((string (read-string "String to replace: "))
+          (nodes (org-gnosis-select '[id title] 'nodes))
+          (node-title (gnosis-completing-read "Select node: " (mapcar #'cadr nodes)))
+          (node-id (car (cl-find node-title nodes :key #'cadr :test #'string=))))
+     (list string node-id)))
+  (when (string-empty-p string)
+    (user-error "String cannot be empty"))
+  (unless node-id
+    (user-error "Node not found"))
+  (let* ((themata (gnosis-select '[id keimenon] 'themata nil))
+         (count (gnosis--count-themata-with-string themata string)))
+    (if (zerop count)
+        (message "No themata contain '%s'" string)
+      (when (y-or-n-p (format "Replace '%s' in %d themata? " string count))
+        (let ((updates (gnosis--themata-to-update themata string node-id)))
+          (gnosis--update-themata updates)
+          (gnosis--commit-bulk-link (length updates) string)
+          (message "Updated %d themata with links to '%s'" (length updates) string)
+          (length updates))))))
 
 (provide 'gnosis)
 ;;; gnosis.el ends here

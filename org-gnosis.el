@@ -404,10 +404,11 @@ If JOURNAL is non-nil, update file as a journal entry."
 (defun org-gnosis--delete-file (&optional file)
   "Delete contents for FILE in database."
   (let* ((file (or file (file-name-nondirectory (buffer-file-name))))
+	 (filename (file-name-nondirectory file))
 	 (journal-p (file-in-directory-p file org-gnosis-journal-dir))
 	 (nodes (if journal-p
-		    (org-gnosis-select 'id 'journal `(= file ,file) t)
-		  (org-gnosis-select 'id 'nodes `(= file ,file) t))))
+		    (org-gnosis-select 'id 'journal `(= file ,filename) t)
+		  (org-gnosis-select 'id 'nodes `(= file ,filename) t))))
     (emacsql-with-transaction (org-gnosis-db-get)
       (cl-loop for node in nodes
 	       do (if journal-p
@@ -750,7 +751,8 @@ If called with prefix ARG, use custom link description."
 
 If file or id are not found, use `org-open-at-point'."
   (interactive)
-  (let* ((id (or id (org-gnosis--get-id-at-point))))
+  (let* ((id (or id (org-gnosis--get-id-at-point)))
+	 (org-id-track-globally nil))
     (cond ((org-gnosis-select 'file 'nodes `(= id ,id))
 	   (find-file
 	    (expand-file-name (car (org-gnosis-select 'file 'nodes `(= id ,id) t))

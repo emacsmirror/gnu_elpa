@@ -932,7 +932,7 @@ ELEMENT should be the output of `org-element-parse-buffer'."
 
 (defun org-gnosis-db-sync--journal (&optional force)
   "Sync journal entries in database.
-When FORCE, update all files. Otherwise, only update changed files."
+When FORCE, update all files.  Otherwise, only update changed files."
   (let* ((journal-files (cl-remove-if-not
                          (lambda (file)
                            (and (string-match-p "^[0-9]"
@@ -969,7 +969,8 @@ When FORCE (prefix arg), rebuild database from scratch."
   (let ((gc-cons-threshold most-positive-fixnum)) ; Optimize GC during sync
     (when force
       ;; Close connection and delete database file for full rebuild
-      (when (emacsql-live-p org-gnosis-db--connection)
+      (when (and org-gnosis-db--connection
+                 (emacsql-live-p org-gnosis-db--connection))
         (emacsql-close org-gnosis-db--connection)
         (setq org-gnosis-db--connection nil))
       (when (file-exists-p org-gnosis-database-file)
@@ -991,7 +992,7 @@ When FORCE (prefix arg), rebuild database from scratch."
 
 (defun org-gnosis--file-changed-p (file table)
   "Check if FILE changed since last sync using mtime then hash.
-TABLE is either 'nodes or 'journal."
+TABLE is either \\='nodes or \\='journal."
   (let* ((filename (file-name-nondirectory file))
          (file-mtime (format-time-string "%s" (file-attribute-modification-time (file-attributes file))))
          (db-data (car (org-gnosis-select '[mtime hash] table `(= file ,filename))))
@@ -1003,7 +1004,7 @@ TABLE is either 'nodes or 'journal."
 
 (defun org-gnosis-db-update-files (&optional force)
   "Sync `org-gnosis-db' files with progress reporting.
-When FORCE, update all files. Otherwise, only update changed files."
+When FORCE, update all files.  Otherwise, only update changed files."
   (org-gnosis-db-init-if-needed)
   (let* ((all-files (cl-remove-if-not
                      (lambda (file)

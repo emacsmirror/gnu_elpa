@@ -337,8 +337,7 @@ ID can also be passed to these helpers:
 (defun el-job-ng--child-work ()
   "Read a few lines from stdin, then work according to that info.
 Finally print to stdout and die."
-  (let* ((coding-system-for-write 'utf-8-emacs-unix)
-         (coding-system-for-read  'utf-8-emacs-unix)
+  (let* ((coding-system-for-read  'utf-8-emacs-unix)
          (vars   (read-from-minibuffer "" nil nil t))
          (libs   (read-from-minibuffer "" nil nil t))
          (forms  (read-from-minibuffer "" nil nil t))
@@ -346,6 +345,7 @@ Finally print to stdout and die."
          (inputs (read-from-minibuffer "" nil nil t))
          (current-time-list nil) ;; Fewer cons cells
          benchmarked-outputs)
+    (setq coding-system-for-read nil) ;; Revert to default
     (dolist (var vars)
       (set (car var) (cdr var)))
     (dolist (lib libs)
@@ -360,7 +360,8 @@ Finally print to stdout and die."
         (push (list input (time-since start) output) benchmarked-outputs)))
     (let ((print-length nil)
           (print-level nil)
-          (print-circle t))
+          (print-circle t)
+          (coding-system-for-write 'utf-8-emacs-unix))
       (print (nreverse benchmarked-outputs)))))
 
 

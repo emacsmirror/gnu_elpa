@@ -187,7 +187,6 @@ already established value of the variable `php-fill-literal'."
 	(let ((literal-limits (c-literal-limits nil nil)))
 	  (cons (c-literal-type literal-limits) literal-limits))))))
 
-;;;###autoload
 (defun php-fill-string-literal (&optional only-one-line-up)
   "Fill PHP's quoted string literals by breaking them into smaller ones.
 
@@ -407,7 +406,6 @@ concatenation with other supported string literals."
   (= (line-number-at-pos (car literal-limits))
      (line-number-at-pos (cdr literal-limits))))
 
-;;;###autoload
 (defun php-fill-stitch-string-parts-together (&optional only-one-line-up)
   "Stitch together multiple string literals being concatenated if they\n\
 meet an specified criteria.
@@ -483,7 +481,6 @@ not."
 	  nil
 	(replace-match "" nil nil nil 100) t))))
 
-;;;###autoload
 (defun php-fill-break-long-string-literal-apart ()
   "Breaks long string literals into smaller ones if they are located at\n\
 the end of a line which content crosses the `current-fill-column'.
@@ -560,7 +557,6 @@ that it is the function used by command `fill-paragraph'."
 	  (insert quote "\n. " quote)
 	  (indent-according-to-mode))))))
 
-;;;###autoload
 (defun php-fill-c-fill-paragraph (&optional arg)
   "Use two variables to determine to use `c-fill-paragraph' or\n\
 `php-fill-c-fill-paragraph-nosqueeze' on current comment.
@@ -596,7 +592,6 @@ filled, which ends up making NOSQUEEZE irrelevant."
 	(php-fill-c-fill-paragraph-nosqueeze)
       (c-fill-paragraph arg))))
 
-;;;###autoload
 (defun php-fill-c-fill-paragraph-nosqueeze ()
   "Force function `fill-delete-newlines' to be called with a non nil\n\
 NOSQUEEZE argument once `c-fill-paragraph' is called within this
@@ -736,7 +731,6 @@ working on it."
   (when (save-excursion (backward-char 1) (not (looking-at " $")))
     (php-fill-paragraph t)))
 
-;;;###autoload
 (defun php-fill-newline ()
   "Add a newline in a particular way, if point is located within doc\n\
 block or a string literal.
@@ -790,7 +784,6 @@ into two paragraphs separated by and empty line."
 	  (indent-according-to-mode)))
        (t (newline))))))
 
-;;;###autoload
 (defun php-fill-backward-delete ()
   "Depending on point's position, stitch the content of two strings\n\
 literals or two prefixed comment lines together.
@@ -853,7 +846,6 @@ mode or even without it."
 			    (= (- (match-beginning 1) 1) pos))))
 	  (replace-match "" nil nil nil 1))))))
 
-;;;###autoload
 (defun php-fill-delete-forward ()
   "Depending on point's position, stitch the content of two strings\n\
 literals or two prefixed comment lines together.

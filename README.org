@@ -1,4 +1,4 @@
-#+html: <a href="https://melpa.org/#/truename-cache"><img alt="MELPA" src="https://melpa.org/packages/truename-cache-badge.svg"/></a> <a href="https://stable.melpa.org/#/truename-cache"><img alt="MELPA Stable" src="https://stable.melpa.org/packages/truename-cache-badge.svg"/></a> <img alt="MELPA" src="https://img.shields.io/badge/emacs-26.1-purple?logo=gnuemacs&logoColor=white"/>
+#+html: <a href="https://melpa.org/#/truename-cache"><img alt="MELPA" src="https://melpa.org/packages/truename-cache-badge.svg"/></a> <a href="https://stable.melpa.org/#/truename-cache"><img alt="MELPA Stable" src="https://stable.melpa.org/packages/truename-cache-badge.svg"/></a>
 * truename-cache
 
 #+begin_quote

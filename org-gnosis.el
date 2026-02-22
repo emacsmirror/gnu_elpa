@@ -659,7 +659,7 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
    (list (completing-read-multiple
 	  "Select tags (separated by ,): "
 	  (org-gnosis-select 'tag 'tags nil t))))
-  (let ((id (and (org-gnosis-get-id))))
+  (let ((id (org-gnosis-get-id)))
     (org-id-goto id)
     (if (org-current-level)
 	(org-set-tags tags)

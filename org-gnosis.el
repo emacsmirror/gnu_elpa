@@ -423,7 +423,7 @@ If JOURNAL is non-nil, update file as a journal entry."
   "Remove orphaned tags that have no associated nodes."
   (emacsql (org-gnosis-db-get)
            [:delete :from tags
-            :where (not-in tag [:select :distinct tag :from node-tag])]))
+		    :where (not-in tag [:select :distinct tag :from node-tag])]))
 
 (defun org-gnosis-update-file (&optional file)
   "Update contents of FILE in database.

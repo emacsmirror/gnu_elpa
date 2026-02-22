@@ -422,14 +422,10 @@ If JOURNAL is non-nil, update file as a journal entry."
 		    (org-gnosis--delete 'nodes `(= id ,node)))))))
 
 (defun org-gnosis-tags--cleanup-orphaned ()
-  "Remove orphaned tags that have no associated nodes.
-Efficient: only checks tags not in node-tag table."
-  (let* ((all-tags (org-gnosis-select 'tag 'tags nil t))
-         (used-tags (org-gnosis-select 'tag 'node-tag nil t))
-         (orphaned (cl-set-difference all-tags used-tags :test #'equal)))
-    (when orphaned
-      (dolist (tag orphaned)
-        (emacsql (org-gnosis-db-get) [:delete :from tags :where (= tag $s1)] tag)))))
+  "Remove orphaned tags that have no associated nodes."
+  (emacsql (org-gnosis-db-get)
+           [:delete :from tags
+            :where (not-in tag [:select :distinct tag :from node-tag])]))
 
 (defun org-gnosis-update-file (&optional file)
   "Update contents of FILE in database.

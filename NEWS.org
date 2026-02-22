@@ -8,6 +8,55 @@ This document contains the release notes that are included in each
 tagged commit on the project's main git repository:
  <https://git.thanosapollo.org/org-gnosis>.
 
+* 0.2.0
+#+DATE: 2026/02/22
+** Important Changes
+*** Database Changes
++ Database version bumped to 3, tracking =mtime= and =hash= for both
+  nodes and journal files.
++ Automatic database migration prompts when schema is outdated.
++ Lazy database initialization - database connections are created only
+  when needed, improving startup time.
++ Added =org-gnosis-database-file= custom variable to specify custom
+  database file location.
+*** Performance Improvements
++ Major performance improvements for =org-gnosis-db-sync= with GC
+  optimization during sync.
++ Two-tier incremental sync: fast =mtime= check, then accurate =hash=
+  comparison.
+  + Only processes files where both modification time and content have
+    changed.
+  + Dramatically improves performance for .gpg encrypted files and
+    large repositories.
++ Both node files and journal files now use incremental sync with
+  progress reporting showing changed/total file counts.
++ To force full resync, call =org-gnosis-db-sync= with prefix arg
+  =C-u=. e.g ~C-u M-x org-gnosis-db-sync RET~.
+*** Journaling
++ By default, today's journal entries are created in
+  =org-gnosis-journal-file= as level 1 headings.
+  + When set to =nil=, creates separate files for each date entry.
+  + Creating new entries (e.g., via =org-gnosis-journal-find= for an
+    event, non-date) creates separate files in =org-gnosis-journal-dir=
+    regardless of this setting.
+  + Single journal file is only used for today's date entries.
++ Added =org-gnosis-journal-as-gpg= that when non-nil journal files
+  will be created as =gpg= encrypted files.
++ Journal todos now only retrieve checkboxes from today's heading when
+  using a single journal file, improving performance.
+*** Tag Management
++ Automatic cleanup of orphaned tags (tags with no associated nodes)
+  when updating files.
++ Improved tag-based node selection with dedicated functions.
+** Improvements
++ Simplified parsing algorithm for better performance and
+  maintainability.
++ Better handling of topic titles - only includes parent headings when
+  they have IDs.
++ Added =org-gnosis-get-nodes-data= for retrieving node information
+  with backlink counts.
++ Improved test coverage for parsing, title processing, and journal
+  todos.
 * 0.1.2
 #+DATE: 2026/01/26
 ** Important Changes

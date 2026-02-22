@@ -636,7 +636,11 @@ For this purpose, function `php-fill-paragraph' is used."
   :init-value nil
   :lighter " Php-Refill"
   :interactive 'php-mode 'phps-mode
+  :group 'php-fill
   :group 'php
+  :group 'languages
+  :group 'tools
+  :group 'convenience
   (if php-fill-refill-mode
       (progn
 	(add-hook 'after-change-functions
@@ -690,8 +694,9 @@ were to added it to the `php-fill-refill-black-list' command list."
   "Post-command function used by minor mode `php-fill-refill-mode' to do\n\
 the refill process conditionally.
 
-Uses variable `php-fill-refill-promise-to-doit' to check if a change was made
-by the last called command, and if so, call the refill function then.
+Uses variable `php-fill-refill-promise-to-doit' to check if a change was
+made by the last called command, and if so, call the refill function
+then.
 
 Notice that the `php-fill-refill-promise-to-doit' must be return back to
 nil to conserved the mechanism that prevents the refill process from
@@ -725,7 +730,7 @@ This assumes you've been using `php-fill-refill-mode' from the start
 while the current string structure was being created, otherwise if it
 already existed, you might want to use \\[php-fill-paragraph] on its own
 to get the entire structure readjust and refilled before continuing
-editing it."
+working on it."
   (when (save-excursion (backward-char 1) (not (looking-at " $")))
     (php-fill-paragraph t)))
 
@@ -744,12 +749,12 @@ provided by the major mode.
 
 Something to note is that string literals broken this way might get
 stitch back together if command \\[php-fill-paragraph] is used on them
-or if a change is made on them in minor mode `php-fill-refill-mode'.
-This will happen when a string literal is broken after a space, since
-it's the criteria used by the aforementioned functions to stitch string
-literals together that are being concatenated.  If this is undesired,
-you can make sure to split a string literal content at a place other
-than a space.
+or if a change is made on them while in minor mode
+`php-fill-refill-mode'.  This will happen when a string literal is
+broken after a space, since it's the criteria used by the aforementioned
+functions to stitch string literals together that are being
+concatenated.  If this is undesired, you can make sure to split a string
+literal content at a place other than a space.
 
 Lastly, if point is located on a Phpdoc block, a new line follow by and
 asterisk will be inserted and the line will be indented.  Depending if
@@ -813,10 +818,10 @@ line must also be of the same kind of comment and prefix.  See
 	(php-fill-stitch-two-lines-concatenation 0 (point))))))
   (call-interactively 'c-electric-backspace))
 
-(rx-let ((comment-start (st) (: (* (in " \t")) st))
+(rx-let ((comment-start (prefix) (: (* (in " \t")) prefix))
 	 (comment-version
-	  (st) (: (comment-start st) (* nonl) "\n"
-		  (group-n 1 (comment-start st) (* " ")) (not " ")))
+	  (prefix) (: (comment-start prefix) (* nonl) "\n"
+		  (group-n 1 (comment-start prefix) (* " ")) (not " ")))
 	 (all-versions (or (comment-version "*") (comment-version "#")
 			   (comment-version "//"))))
   

@@ -430,8 +430,9 @@ If JOURNAL is non-nil, update file as a journal entry."
 (defun org-gnosis-update-file (&optional file)
   "Update contents of FILE in database.
 
-Removes all contents of FILE in database, adding them anew."
-  (let* ((file (or file (file-name-nondirectory (buffer-file-name))))
+Removes all contents of FILE in database, adding them anew.
+FILE can be a full path or basename."
+  (let* ((file (or file (buffer-file-name)))
 	 (journal-p (file-in-directory-p file org-gnosis-journal-dir)))
     ;; Delete all contents for file
     (org-gnosis--delete-file file)
@@ -442,7 +443,8 @@ Removes all contents of FILE in database, adding them anew."
       (let* ((today (format-time-string "%Y-%m-%d"))
              (parsed-buffer (org-element-parse-buffer))
              (done-todos (if (and org-gnosis-journal-file
-                                  (string= file (file-name-nondirectory org-gnosis-journal-file)))
+                                  (string= (file-name-nondirectory file)
+                                           (file-name-nondirectory org-gnosis-journal-file)))
                              ;; For single journal file, only get items from today's heading
                              (let ((today-heading
                                     (org-element-map parsed-buffer 'headline

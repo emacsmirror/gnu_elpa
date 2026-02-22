@@ -4,8 +4,8 @@
 #+language: en
 #+options: ':t toc:nil author:t email:t num:t
 #+startup: content
-#+macro: stable-version 0.0.4
-#+macro: release-date 2025-02-13
+#+macro: stable-version 0.2.0
+#+macro: release-date 2026-02-22
 #+macro: file @@texinfo:@file{@@$1@@texinfo:}@@
 #+macro: space @@texinfo:@: @@
 #+macro: kbd @@texinfo:@kbd{@@$1@@texinfo:}@@
@@ -14,8 +14,8 @@
 #+macro: kbd @@texinfo:@kbd{@@$1@@texinfo:}@@
 #+texinfo_filename: org-gnosis.info
 #+texinfo_dir_category: Emacs misc features
-#+texinfo_dir_title: Org Gnosis : (org-gnosis) 
-#+texinfo_dir_desc: Roam-like Knowledge Management System
+#+texinfo_dir_title: Org Gnosis : (org-gnosis)
+#+texinfo_dir_desc: Minimal note-taking system with linked notes
 #+texinfo_header: @set MAINTAINERSITE @uref{https://thanosapollo.org,maintainer webpage}
 #+texinfo_header: @set MAINTAINER Thanos Apollo
 #+texinfo_header: @set MAINTAINEREMAIL @email{public@thanosapollo.org}
@@ -32,16 +32,19 @@ The documentation furnished herein corresponds to stable version
 
 + Name: Org Gnosis | Organization Of Gnosis (knowledge/information)
 + Homepage: <https://thanosapollo.org/projects/org-gnosis/>
-  
-Org Gnosis (GNU-sis) is an org-mode parsing tool that organizes notes
-as atomic nodes in an SQLite database.  Each heading with an ID is
-treated as an atomic note (node), storing its metadata, such as title
-and links, in a relational database to facilitate efficient linking
-and navigation.
 
-This tool also offers special functionality for journal entries,
-stored in a separate directory with support for customizable
-templates. This can serve as an additional space for temporary notes.
+Org-gnosis provides a minimal note-taking system with linked notes.
+It functions as an independent module, designed to integrate with
+Gnosis (a self-testing system) but usable standalone.
+
+The package implements Zettelkasten-style note-taking: notes have
+unique IDs, link to other notes, and the system tracks backlinks.
+Notes are stored as org files and indexed in an SQLite database.
+
+When used with Gnosis, notes can link to themata (question subjects),
+connecting note-taking with self-testing.  The system also provides
+journaling functionality with customizable templates, either as
+separate files or as headings in a single file.
 
 * COPYING
 :PROPERTIES:
@@ -62,11 +65,10 @@ included in the section entitled “GNU Free Documentation License.”
 modify this GNU manual.”
 #+end_quote
 
-
 * Installation & Configuration
 + The ~org-gnosis~ package is available from the GNU ELPA archive,
   which is enabled by default.
-  
+
   + Prior to querying an archive, make sure to update the index, with
     {{{kbd(M-x package-refresh-contents)}}}.
 
@@ -283,7 +285,7 @@ Here’s the process:
 2. Email the specified address with your request.
 3. Await a legal agreement from the FSF.
 4. Sign and return the document, which can be done via email.
-   
+
 The entire process usually takes about a week and needs to be
 completed only once, allowing you to contribute to GNU Emacs.
 

@@ -1,9 +1,9 @@
-;;; org-gnosis.el --- Roam-like Knowledge Management System  -*- lexical-binding: t; -*-
+;;; org-gnosis.el --- Learning-focused note-taking for Gnosis  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024-2026  Free Software Foundation, Inc.
 
 ;; Author: Thanos Apollo <public@thanosapollo.org>
-;; Keywords: extensions
+;; Keywords: outlines, extensions, org-mode
 ;; URL: https://thanosapollo.org/projects/org-gnosis/
 ;; Version: 0.1.2
 
@@ -24,27 +24,35 @@
 
 ;;; Commentary:
 
-;; Org-gnosis is a Zettelkasten-style knowledge management system for
-;; Emacs, part of the Gnosis ecosystem.  It provides efficient
-;; note-taking and journaling with SQLite-backed storage.  Org Gnosis
-;; notes can be linked to Gnosis themata for additional features.
+;; Org-gnosis provides a minimal note-taking system with linked notes.
+;; It functions as an independent module, designed to integrate with
+;; Gnosis (a spaced repetition system) but usable standalone.
+;;
+;; The package implements Zettelkasten-style note-taking: notes have
+;; unique IDs, link to other notes, and the system tracks backlinks.
+;; Notes are stored as org files and indexed in an SQLite database.
+;;
+;; When used with Gnosis, notes can link to themata (question subjects),
+;; connecting note-taking with spaced repetition.  Without Gnosis, it
+;; provides a lightweight system for linked notes and journaling.
 ;;
 ;; Features:
-;; - Zettelkasten-style linked notes with unique IDs
-;; - Daily journaling with customizable templates
-;; - Tag-based organization and retrieval
-;; - Backlinks tracking and navigation
-;; - TODO integration for journal entries
-;; - SQLite database for fast searching
-;; - Support for hierarchical note structures
-;; - Encrypted file support (.gpg)
+;; - Unique IDs for each note
+;; - Backlinks and forward link tracking
+;; - Tag-based organization
+;; - Daily journaling (single file or separate files per day)
+;; - SQLite database for indexing
+;; - Hierarchical note structures
+;; - Optional .gpg encryption
+;; - Optional integration with Gnosis themata
 ;;
-;; Main Commands:
+;; Main interactive commands:
 ;; - `org-gnosis-find': Find or create a note
 ;; - `org-gnosis-insert': Insert a link to a note
-;; - `org-gnosis-journal': Create/visit today's journal entry
+;; - `org-gnosis-journal': Open today's journal entry
 ;; - `org-gnosis-find-by-tag': Find notes by tag
-;; - `org-gnosis-visit-backlinks': See all notes linking to current note
+;; - `org-gnosis-visit-backlinks': Visit notes linking to current note
+;; - `org-gnosis-db-sync': Sync database with files
 ;;
 ;;; Code:
 

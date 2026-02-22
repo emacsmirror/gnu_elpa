@@ -29,7 +29,7 @@ modify this GNU manual.”
 
 @dircategory Emacs misc features
 @direntry
-* Org Gnosis : (org-gnosis). Roam-like Knowledge Management System.
+* Org Gnosis : (org-gnosis). Minimal note-taking system with linked notes.
 @end direntry
 
 @finalout
@@ -52,7 +52,7 @@ instructions, customization options, and recommendations for
 effectively using @code{org-gnosis}.
 
 The documentation furnished herein corresponds to stable version
-0.0.4, released on 2025-02-13.
+0.2.0, released on 2026-02-22.
 
 @itemize
 @item
@@ -61,15 +61,18 @@ Name: Org Gnosis | Organization Of Gnosis (knowledge/information)
 Homepage: @uref{https://thanosapollo.org/projects/org-gnosis/}
 @end itemize
 
-Org Gnosis (GNU-sis) is an org-mode parsing tool that organizes notes
-as atomic nodes in an SQLite database.  Each heading with an ID is
-treated as an atomic note (node), storing its metadata, such as title
-and links, in a relational database to facilitate efficient linking
-and navigation.
+Org-gnosis provides a minimal note-taking system with linked notes.
+It functions as an independent module, designed to integrate with
+Gnosis (a self-testing system) but usable standalone.
 
-This tool also offers special functionality for journal entries,
-stored in a separate directory with support for customizable
-templates. This can serve as an additional space for temporary notes.
+The package implements Zettelkasten-style note-taking: notes have
+unique IDs, link to other notes, and the system tracks backlinks.
+Notes are stored as org files and indexed in an SQLite database.
+
+When used with Gnosis, notes can link to themata (question subjects),
+connecting note-taking with self-testing.  The system also provides
+journaling functionality with customizable templates, either as
+separate files or as headings in a single file.
 
 @end ifnottex
 

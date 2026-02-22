@@ -58,6 +58,9 @@
 
 (require 'cl-lib)
 (require 'emacsql-sqlite)
+;; Pre-load the builtin backend when available (Emacs 29+) to ensure
+;; cl-generic dispatches specialized methods for builtin connections.
+(require 'emacsql-sqlite-builtin nil t)
 (require 'org-element)
 
 (defgroup org-gnosis nil

@@ -569,7 +569,7 @@ DIRECTORY."
 				     "Select gnosis node: "
 				     (org-gnosis-select 'title 'nodes)))))
 	 (file (or file (caar (org-gnosis-select 'file 'nodes `(= title ,title)))))
-	 (id (or id (caar (or id (org-gnosis-select 'id 'nodes `(= title ,title))))))
+	 (id (or id (caar (org-gnosis-select 'id 'nodes `(= title ,title)))))
 	 (directory (or directory org-gnosis-dir))
 	 (templates (or templates org-gnosis-node-templates)))
     (cond ((null file)
@@ -578,7 +578,7 @@ DIRECTORY."
 	  ((file-exists-p (expand-file-name file directory))
 	   (org-gnosis-goto-id id))
 	  (t (error
-	      "File %s does not exist.  Try running `org-gnosis-db-sync' to resolve this"
+	      "File %s does not exist.  Try running `org-gnosis-db-force-sync' to resolve this"
 	      file)))))
 
 (defun org-gnosis--nodes-by-tag (tag)

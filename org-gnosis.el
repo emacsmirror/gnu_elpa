@@ -565,6 +565,11 @@ DIRECTORY."
 	      "File %s does not exist.  Try running `org-gnosis-db-sync' to resolve this"
 	      file)))))
 
+(defun org-gnosis--nodes-by-tag (tag)
+  "Return all nodes associated with TAG.
+Returns a list of (ID) pairs for nodes that have TAG."
+  (org-gnosis-select 'id 'nodes `(like tags ',(format "%%\\\"%s\\\"%%" tag)) t))
+
 ;;;###autoload
 (defun org-gnosis-find-by-tag (&optional tag)
   "Find node under TAG."
@@ -572,11 +577,9 @@ DIRECTORY."
   (let* ((tag (or tag (funcall org-gnosis-completing-read-func
 			       "Select tag: "
 			       (org-gnosis-select 'tag 'tags nil t))))
-	 (node
-	  (funcall org-gnosis-completing-read-func
-		   "Select node: "
-		   (org-gnosis-select 'title 'nodes
-				      `(like tags ',(format "%%\"%s\"%%" tag)) t))))
+	 (nodes-ids (org-gnosis--nodes-by-tag tag))
+	 (node-titles (org-gnosis-select 'title 'nodes `(in id ,(vconcat nodes-ids)) t))
+	 (node (completing-read "Select node: " node-titles nil t)))
     (org-gnosis-find node)))
 
 (defun org-gnosis-select-template (templates)

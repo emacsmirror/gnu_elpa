@@ -364,19 +364,22 @@ If JOURNAL is non-nil, update file as a journal entry."
 	     (data (butlast info))
 	     (table (if journal 'journal 'nodes))
 	     (filename (file-name-nondirectory file))
+	     (full-path (expand-file-name file (if journal org-gnosis-journal-dir org-gnosis-dir)))
+	     (mtime (format-time-string "%s" (file-attribute-modification-time (file-attributes full-path))))
+	     (hash (org-gnosis--file-hash full-path))
 	     (links (and (> (length info) 1) (apply #'append (last info)))))
 	;; Add gnosis topic and nodes
 	(message "Parsing: %s" filename)
 	(emacsql-with-transaction (org-gnosis-db-get)
 	  (cl-loop for item in data
-		   when (plist-get item :id)  ;; Only process items with IDs
+		   when (plist-get item :id)
 		   do (let ((title (plist-get item :title))
 			    (id (plist-get item :id))
 			    (master (plist-get item :master))
 			    (tags (plist-get item :tags))
 			    (level (plist-get item :level)))
 			(org-gnosis--insert-into table `([,id ,filename ,title ,level
-							      ,(prin1-to-string tags)]))
+							      ,(prin1-to-string tags) ,mtime ,hash]))
 			;; Insert tags
 			(cl-loop for tag in tags
 				 do
@@ -868,7 +871,15 @@ ELEMENT should be the output of `org-element-parse-buffer'."
 
 ;; Org-Gnosis Database
 
-(defconst org-gnosis-db-version 2)
+;; Org-Gnosis Database
+
+(defun org-gnosis--file-hash (file)
+  "Compute SHA1 hash of FILE content."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (secure-hash 'sha1 (current-buffer))))
+
+(defconst org-gnosis-db-version 3)
 
 (defconst org-gnosis-db--table-schemata
   '((nodes
@@ -876,7 +887,9 @@ ELEMENT should be the output of `org-element-parse-buffer'."
        (file :not-null)
        (title text :not-null)
        (level text :not-null)
-       tags]))
+       tags
+       mtime
+       hash]))
     (tags
      ([(tag text :primary-key)]
       (:unique [tag])))
@@ -885,7 +898,9 @@ ELEMENT should be the output of `org-element-parse-buffer'."
        (file :not-null)
        (title text :not-null)
        (level text :not-null)
-       tags]))
+       tags
+       mtime
+       hash]))
     (node-tag
      ([(node-id :not-null)
        (tag :not-null)]
@@ -905,16 +920,35 @@ ELEMENT should be the output of `org-element-parse-buffer'."
       (dolist (table (mapcar #'car org-gnosis-db--table-schemata))
 	(org-gnosis--drop-table table)))))
 
-(defun org-gnosis-db-sync--journal ()
-  "Sync journal entries in databse."
-  (cl-loop for file in (cl-remove-if-not
-			(lambda (file)
-			  (and
-			   (string-match-p "^[0-9]"
-					   (file-name-nondirectory file))
-			   (not (file-directory-p file))))
-			(directory-files org-gnosis-journal-dir t nil t))
-	   do (org-gnosis-update-file file)))
+(defun org-gnosis-db-sync--journal (&optional force)
+  "Sync journal entries in database.
+When FORCE, update all files. Otherwise, only update changed files."
+  (let* ((journal-files (cl-remove-if-not
+                         (lambda (file)
+                           (and (string-match-p "^[0-9]"
+                                                (file-name-nondirectory file))
+                                (not (file-directory-p file))))
+                         (directory-files org-gnosis-journal-dir t nil t)))
+         ;; Add single journal file if it exists
+         (all-files (if (and org-gnosis-journal-file
+                             (file-exists-p org-gnosis-journal-file))
+                        (cons org-gnosis-journal-file journal-files)
+                      journal-files))
+         (files (if force
+                    all-files
+                  (cl-remove-if-not
+                   (lambda (file) (org-gnosis--file-changed-p file 'journal))
+                   all-files))))
+    (when (> (length files) 0)
+      (let ((progress (make-progress-reporter
+                       (format "Processing %d/%d journal files..." (length files) (length all-files))
+                       0 (length files))))
+        (cl-loop for file in files
+                 for i from 0
+                 do (progn
+                      (org-gnosis-update-file file)
+                      (progress-reporter-update progress i)))
+        (progress-reporter-done progress)))))
 
 ;;;###autoload
 (defun org-gnosis-db-sync (&optional force)
@@ -945,27 +979,48 @@ When FORCE (prefix arg), rebuild database from scratch."
                `[:pragma (= user-version ,org-gnosis-db-version)]))
     (message "Database sync complete!")))
 
-(defun org-gnosis-db-update-files (&optional _force)
+(defun org-gnosis--file-changed-p (file table)
+  "Check if FILE changed since last sync using mtime then hash.
+TABLE is either 'nodes or 'journal."
+  (let* ((filename (file-name-nondirectory file))
+         (file-mtime (format-time-string "%s" (file-attribute-modification-time (file-attributes file))))
+         (db-data (car (org-gnosis-select '[mtime hash] table `(= file ,filename))))
+         (db-mtime (car db-data))
+         (db-hash (cadr db-data)))
+    (or (not db-mtime) ; New file
+        (and (not (string= file-mtime db-mtime)) ; Mtime changed
+             (not (string= (org-gnosis--file-hash file) db-hash))))))  ; AND hash changed
+
+(defun org-gnosis-db-update-files (&optional force)
   "Sync `org-gnosis-db' files with progress reporting.
-FORCE is reserved for future incremental sync implementation."
+When FORCE, update all files. Otherwise, only update changed files."
   (org-gnosis-db-init-if-needed)
-  (let ((files (cl-remove-if-not
-                (lambda (file)
-                  (and (string-match-p "^[0-9]"
-                                       (file-name-nondirectory file))
-                       (not (file-directory-p file))))
-                (directory-files org-gnosis-dir t nil t))))
-    ;; Process files with progress reporter
-    (let ((progress (make-progress-reporter "Processing files..." 0 (length files))))
-      (cl-loop for file in files
-               for i from 0
-               do (progn
-                    (org-gnosis-update-file file)
-                    (progress-reporter-update progress i)))
-      (progress-reporter-done progress)))
+  (let* ((all-files (cl-remove-if-not
+                     (lambda (file)
+                       (and (string-match-p "^[0-9]"
+                                            (file-name-nondirectory file))
+                            (not (file-directory-p file))))
+                     (directory-files org-gnosis-dir t nil t)))
+         (files (if force
+                    all-files
+                  (cl-remove-if-not
+                   (lambda (file) (org-gnosis--file-changed-p file 'nodes))
+                   all-files))))
+    (if (zerop (length files))
+        (message "No files to sync")
+      ;; Process files with progress reporter
+      (let ((progress (make-progress-reporter
+                       (format "Processing %d/%d files..." (length files) (length all-files))
+                       0 (length files))))
+        (cl-loop for file in files
+                 for i from 0
+                 do (progn
+                      (org-gnosis-update-file file)
+                      (progress-reporter-update progress i)))
+        (progress-reporter-done progress))))
   ;; Sync journal files
   (message "Syncing journal files...")
-  (org-gnosis-db-sync--journal)
+  (org-gnosis-db-sync--journal force)
   (message "File sync complete"))
 
 (defun org-gnosis-db-rebuild ()

@@ -217,7 +217,12 @@ DATE: Integer, used with `gnosis-algorithm-date' to get previous dates."
 			     collect (mapconcat (lambda (x) (format "%s" x)) item ",")
 			     else
 			     collect
-			     (replace-regexp-in-string "\n" " " (format "%s" item))))))))
+			     (let ((formatted (replace-regexp-in-string "\n" " " (format "%s" item))))
+                               ;; Strip org-link markup, keeping only descriptions
+                               (replace-regexp-in-string
+                                "\\[\\[id:[^]]+\\]\\[\\(.*?\\)\\]\\]"
+                                "\\1"
+                                formatted))))))))
 
 (defun gnosis-dashboard-output-themata (thema-ids)
   "Return THEMA-IDS contents on gnosis dashboard."

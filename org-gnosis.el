@@ -85,10 +85,11 @@
   "Gnosis journal directory."
   :type 'directory)
 
-;; Create notes & journal directories.
-(dolist (dir `(,org-gnosis-dir ,org-gnosis-journal-dir))
-  (unless (file-directory-p dir)
-    (make-directory dir)))
+(defun org-gnosis-ensure-directories ()
+  "Create note and journal directories if they do not exist."
+  (dolist (dir (list org-gnosis-dir org-gnosis-journal-dir))
+    (unless (file-directory-p dir)
+      (make-directory dir t))))
 
 (defcustom org-gnosis-show-tags nil
   "Display tags with `org-gnosis-find'."
@@ -972,6 +973,7 @@ When FORCE, update all files.  Otherwise, only update changed files."
 When FORCE (prefix arg), rebuild database from scratch."
   (interactive "P")
   (let ((gc-cons-threshold most-positive-fixnum)) ; Optimize GC during sync
+    (org-gnosis-ensure-directories)
     (when force
       ;; Close connection and delete database file for full rebuild
       (when (and org-gnosis-db--connection

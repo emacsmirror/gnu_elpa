@@ -885,15 +885,13 @@ ELEMENT should be the output of `org-element-parse-buffer'."
 
 ;; Org-Gnosis Database
 
-;; Org-Gnosis Database
-
 (defun org-gnosis--file-hash (file)
   "Compute SHA1 hash of FILE content."
   (with-temp-buffer
     (insert-file-contents file)
     (secure-hash 'sha1 (current-buffer))))
 
-(defconst org-gnosis-db-version 3)
+(defconst org-gnosis-db-version 4)
 
 (defconst org-gnosis-db--table-schemata
   '((nodes
@@ -1062,11 +1060,14 @@ Checks database version and prompts user for rebuild if needed."
 (defun org-gnosis-db-init ()
   "Initialize database.
 
-Create all tables and set version for new database."
+Create all tables, indexes, and set version for new database."
   (message "Creating new org-gnosis database...")
   (emacsql-with-transaction (org-gnosis-db-get)
     (pcase-dolist (`(,table ,schema) org-gnosis-db--table-schemata)
       (emacsql (org-gnosis-db-get) [:create-table $i1 $S2] table schema))
+    ;; Indexes on file column for sync performance
+    (emacsql (org-gnosis-db-get) [:create-index :if-not-exists idx-nodes-file :on nodes [file]])
+    (emacsql (org-gnosis-db-get) [:create-index :if-not-exists idx-journal-file :on journal [file]])
     (emacsql (org-gnosis-db-get) [:pragma (= user-version org-gnosis-db-version)])))
 
 (defun org-gnosis-db-init-if-needed ()

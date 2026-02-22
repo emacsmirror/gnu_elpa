@@ -267,7 +267,7 @@ text."
 
 (defun substitute--scope-current-page ()
   "Position point to the top of the current page per `page-delimiter'."
-  (substitute-narrow-to-regexp 'outline-regexp (point))
+  (narrow-to-page)
   (goto-char (point-min)))
 
 ;; NOTE 2025-11-29: I was hoping to use `substitute-narrow-to-regexp'

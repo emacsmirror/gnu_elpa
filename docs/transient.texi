@@ -836,7 +836,7 @@ need more guidance or would like to share your experience, please
 don't hesitate to contact me.
 
 @lisp
-(setopt transient-enable-menu-navigation t) ; the default
+(setopt transient-enable-menu-navigation 'verbose) ; the default
 (setopt transient-select-menu-window t)
 (setopt transient-force-single-column t)
 (setopt transient-navigate-to-group-descriptions t)

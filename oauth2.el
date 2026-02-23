@@ -223,6 +223,31 @@ RFC7636 for more details."
                                                    nil nil t))
              0 -1))
 
+(defun oauth2--build-authorization-request-url (auth-url client-id redirect-uri
+                                                         scope state user-name
+                                                         code-verifier)
+  "Build the URL for requesting authorization.
+One should supply all requested parameters: AUTH-URL CLIENT-ID
+REDIRECT-URI SCOPE STATE USER-NAME CODE-VERIFIER."
+  (let ((param `("client_id" ,client-id
+                 "response_type" "code"
+                 "redirect_uri"
+                 ,(or redirect-uri oauth2--default-redirect-uri)
+                 "scope" ,scope
+                 "state" ,state
+                 "login_hint" ,user-name
+                 "access_type" "offline"
+                 "prompt" "consent")))
+    (when (and code-verifier
+               (not (string-empty-p code-verifier)))
+      (setq param (plist-put param "code_challenge"
+                             (oauth2--get-challenge-from-verifier
+                              code-verifier)))
+      (setq param (plist-put param
+                             "code_challenge_method" "S256")))
+    (push auth-url param)
+    (apply 'oauth2--build-url param)))
+
 (defun oauth2-request-authorization (auth-url client-id &optional scope state
                                               redirect-uri user-name
                                               code-verifier)
@@ -240,24 +265,10 @@ code_challenge using method S256 when requesting authorization.
 
 Returns the code provided by the service."
   (let* ((func-name "oauth2-request-authorization")
-         (url (let ((param `("client_id" ,client-id
-                             "response_type" "code"
-                             "redirect_uri"
-                             ,(or redirect-uri oauth2--default-redirect-uri)
-                             "scope" ,scope
-                             "state" ,state
-                             "login_hint" ,user-name
-                             "access_type" "offline"
-                             "prompt" "consent")))
-                (when (and code-verifier
-                           (not (string-empty-p code-verifier)))
-                  (setq param (plist-put param "code_challenge"
-                                         (oauth2--get-challenge-from-verifier
-                                          code-verifier)))
-                  (setq param (plist-put param
-                                         "code_challenge_method" "S256")))
-                (push auth-url param)
-                (apply 'oauth2--build-url param))))
+         (url (oauth2--build-authorization-request-url auth-url client-id
+                                                       redirect-uri scope state
+                                                       user-name
+                                                       code-verifier)))
     (oauth2--do-trivia "[%s]: url: %s" func-name url)
     (browse-url url)
     (read-string (concat "Follow the instruction on your default browser, or "

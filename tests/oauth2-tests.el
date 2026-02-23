@@ -53,4 +53,16 @@
         (should (string= challenge expected-challenge))
         (should (= (length challenge) expected-challenge-length))))))
 
+(ert-deftest oauth2--build-authorization-request-url-test ()
+  (should (string=
+           (oauth2--build-authorization-request-url
+            "https://authrization.url/request-token"
+            "random_client_id"
+            "https://localhost:5678/"
+            "email_scope"
+            "random_state"
+            "test@example.com"
+            "random_hash_of_verifier")
+           "https://authrization.url/request-token?client_id=random_client_id&response_type=code&redirect_uri=https%3A%2F%2Flocalhost%3A5678%2F&scope=email_scope&state=random_state&login_hint=test%40example.com&access_type=offline&prompt=consent&code_challenge=-MXasMXxsnGVodkChYqEubsH0BnyQlhudAhfjqpyeZA&code_challenge_method=S256")))
+
 ;;; oauth2-tests.el ends here.

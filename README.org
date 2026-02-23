@@ -275,7 +275,7 @@ matters.
 + Author/maintainer :: Protesilaos Stavrou.
 
 + Contributions to code or the manual :: Ed Tavinor, Kostas Andreadis,
-  Wang Chunye.
+  Morgan Willcock, Wang Chunye.
 
 + Ideas and/or user feedback :: Tomasz Hołubowicz, ersi-dnd, revrari,
   zauberen.

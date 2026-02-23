@@ -2881,14 +2881,32 @@ Also see @ref{Suffix Classes}.
 @anchor{Slots of @code{transient-child}}
 @subheading Slots of @code{transient-child}
 
-This is the abstract superclass of @code{transient-suffix} and @code{transient-group}.
-This is where the shared @code{if*} and @code{inapt-if*} slots (see @ref{Predicate Slots}),
-the @code{level} slot (see @ref{Enabling and Disabling Suffixes}), and the @code{advice}
-and @code{advice*} slots (see @ref{Slots of @code{transient-suffix}}) are defined.
+This is the abstract superclass of @code{transient-suffix} and
+@code{transient-group}.  In addition to the slots listed below, this class
+is also where the @code{if*} and @code{inapt-if*} slots (see @ref{Predicate Slots}) and
+the @code{level} slot (see @ref{Enabling and Disabling Suffixes}) are defined.
 
 @itemize
 @item
-@code{parent} The object for the parent group.
+@code{parent} The object for the parent group, if any.
+@end itemize
+
+The following two slots are experimental.  If they are set for a
+group, then they apply to all suffixes in that group, except for
+suffixes that themselves set the same slot to a non-@code{nil} value.
+
+@itemize
+@item
+@code{advice} A function used to advise the command.  The advise is called
+using @code{(apply advice command args)}, i.e., it behaves like an "around"
+advice.
+
+@item
+@code{advice*} A function used to advise the command.  Unlike @code{advice}, this
+advises not only the command body but also its @code{interactive} spec.  If
+both slots are non-@code{nil}, @code{advice} is used for the body and @code{advice*} is
+used for the @code{interactive} form.  When advising the @code{interactive} spec,
+called using @code{(funcall advice #'advice-eval-interactive-spec spec)}.
 @end itemize
 
 @anchor{Slots of @code{transient-suffix}}
@@ -2956,24 +2974,6 @@ format this description.
 @item
 @code{definition} A command, which is used if the body is omitted when
 defining a command using @code{transient-define-suffix}.
-@end itemize
-
-The following two slots are experimental.  They can also be set for a
-group, in which case they apply to all suffixes in that group, except
-for suffixes that set the same slot to a non-@code{nil} value.
-
-@itemize
-@item
-@code{advice} A function used to advise the command.  The advise is called
-using @code{(apply advice command args)}, i.e., it behaves like an "around"
-advice.
-
-@item
-@code{advice*} A function used to advise the command.  Unlike @code{advice}, this
-advises not only the command body but also its @code{interactive} spec.  If
-both slots are non-@code{nil}, @code{advice} is used for the body and @code{advice*} is
-used for the @code{interactive} form.  When advising the @code{interactive} spec,
-called using @code{(funcall advice #'advice-eval-interactive-spec spec)}.
 @end itemize
 
 @anchor{Slots of @code{transient-infix}}

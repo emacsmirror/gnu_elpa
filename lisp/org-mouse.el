@@ -823,8 +823,8 @@ This means, between the beginning of line and the point."
 	 ["Show Tags"
 	  (with-current-buffer org-mouse-main-buffer (org-agenda-show-tags))
 	  :visible (not org-mouse-direct)]
-	 ["Show Priority"
-	  (with-current-buffer org-mouse-main-buffer (org-agenda-show-priority))
+	 ["Show Weighted Priority"
+	  (with-current-buffer org-mouse-main-buffer (org-priority-show))
 	  :visible (not org-mouse-direct)]
 	 ,@(if org-mouse-direct '("--") nil)
 	 ["New Heading" org-mouse-insert-heading :visible org-mouse-direct]

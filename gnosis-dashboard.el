@@ -729,7 +729,7 @@ DASHBOARD-TYPE: either Themata or Decks to display the respective dashboard."
 (transient-define-prefix gnosis-dashboard-menu-nodes ()
   "Transient menu for node operations."
   [["Nodes"
-    ("n" "View all nodes" (lambda () (interactive)
+    ("a" "View all nodes" (lambda () (interactive)
                            (setq gnosis-dashboard-nodes-history nil)
                            (gnosis-dashboard-output-nodes)))
     ("t" "View nodes by tag" gnosis-dashboard-nodes-search-by-tag)
@@ -754,13 +754,13 @@ DASHBOARD-TYPE: either Themata or Decks to display the respective dashboard."
 (transient-define-prefix gnosis-dashboard-menu-themata ()
   "Transient menu for themata operations."
   [["Themata"
-    ("t" "View all themata" (lambda () (interactive)
+    ("a" "View all themata" (lambda () (interactive)
                              (setq gnosis-dashboard-themata-history nil)
                              (gnosis-dashboard-output-themata (gnosis-collect-thema-ids))))
     ("s" "Search themata" gnosis-dashboard-suffix-query)
     ("d" "View by decks" (lambda () (interactive)
                           (gnosis-dashboard-output-decks)))
-    ("T" "View by tags" (lambda () (interactive)
+    ("t" "View by tags" (lambda () (interactive)
                          (gnosis-dashboard-output-tags)))
     ("o" "Show orphaned" gnosis-dashboard-themata-show-orphaned)
     ("q" "Back" transient-quit-one)]])

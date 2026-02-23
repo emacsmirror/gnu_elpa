@@ -5264,23 +5264,24 @@ If RETURN is non-nil, return the summary instead of showing it.
 This is used when a tooltip is needed.")
 
 (cl-defmethod transient-get-summary ((obj transient-object))
-  (let ((summary (oref obj summary))
-        (command (ignore-error (invalid-slot-name unbound-slot)
-                   (oref obj command))))
-    (when-let*
-        ((doc (cond ((functionp summary)
-                     (funcall summary obj))
-                    (summary)
-                    ((and command (documentation command))
-                     (car (split-string (documentation command) "\n")))))
-         (_(stringp doc))
-         (_(not (equal doc
-                       (car (split-string (documentation
-                                           'transient--default-infix-command)
-                                          "\n"))))))
-      (if (string-suffix-p "." doc)
-          (substring doc 0 -1)
-        doc))))
+  (and-let*
+    ([summary (cond-let*
+                [[summary (oref obj summary)]]
+                ((functionp summary)
+                 (funcall summary obj))
+                (summary)
+                ([command (ignore-error (invalid-slot-name unbound-slot)
+                            (oref obj command))]
+                 [_(documentation command)]
+                 (car (split-string (documentation command) "\n"))))]
+     [_(stringp summary)]
+     [_(not (equal summary
+                   (car (split-string (documentation
+                                       'transient--default-infix-command)
+                                      "\n"))))]
+     (if (string-suffix-p "." summary)
+         (substring summary 0 -1)
+       summary))))
 
 ;;; Menu Navigation
 

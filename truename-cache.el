@@ -39,7 +39,7 @@
 (require 'cl-lib)
 (require 'map)
 (require 'seq)
-(require 'compat) ; Not certain if it is needed, but we have no CI to test it
+(require 'compat) ;; Don't know if needed, but we have no test suite yet
 
 ;;;; Name-cache:
 

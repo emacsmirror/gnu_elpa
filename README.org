@@ -19,11 +19,11 @@ Truenames are useful as a way to de-duplicate file lists and to cross-reference 
 
 But if you write code that just wraps every file name it encounters in =(file-truename FILE)=, it gets slow if you have large lists of file names. It takes 1,000 milliseconds to process 1,000 file names on my machine.
 
-That is unacceptably slow, at least in the use-case where you often scan a list of directories to see if any new files have appeared or any files were modified or deleted.
+That is unacceptable, at least in the use-case where you often scan a list of directories to see if any new files have appeared or any files were modified or deleted.
 
 That's the sort of thing that might be done as part of a user command.  If the command is to be pleasant to use, it must take less than 100 milliseconds so it feels "instant".  And you may be dealing with not 1,000 but 10,000 or even 100,000 files.
 
-Sidenote for Elisp devs: It might occur to you that you can also de-dup by filesystem inodes.  See [[README.org#appendix-on-referring-to-inodes-instead-of-truenames][Appendix: On referring to inodes instead of truenames]].
+Sidenote for Elisp devs: It might occur to you that you can also de-dup by filesystem inodes.  See [[https://github.com/meedstrom/truename-cache?tab=readme-ov-file#appendix-on-referring-to-inodes-instead-of-truenames][Appendix: On referring to inodes instead of truenames]].
 
 ** Bonus: Merging lists
 
@@ -56,7 +56,11 @@ While you could simply let =truename-cache-collect-files-and-attributes= return 
 
 ** Bonus: Abbreviation
 
-Sometimes you do not want a true name but a name abbreviated with =abbreviate-file-name=.  Even that can blow our aforementioned 100 millisecond budget, all by itself.
+Sometimes you do not want a true name, but a name abbreviated with =abbreviate-file-name=.  For one thing, it's just preferable to present such names to the user, but for another, that's what will match the confusingly named buffer-local variable =buffer-file-truename= -- the actual truename will not.
+
+(Even /more/ confusingly, the function =get-truename-buffer= needs the actual truename...)
+
+But =abbreviate-file-name= is another thing that can consume much of our aforementioned 100 millisecond budget, all by itself.
 
 So =truename-cache-collect-files-and-attributes= can pre-abbreviate names for you with the argument =:abbrev 'full=.
 
@@ -64,14 +68,14 @@ This does it slightly more efficiently (informal benchmark: 50-75% of normal run
 
 #+begin_quote
 [!TIP]
-For those of you who roll your own code, you can get the same effect by using a copy-pasted definition of [[https://github.com/minad/consult/blob/d1d39d52151a10f7ca29aa291886e99534cc94db/consult.el#L795-L809][consult--fast-abbreviate-file-name]] or get close by just  let-binding =file-name-handlers-alist= to nil.
+For those of you who roll your own code, you can get the same effect by using a copy-pasted definition of [[https://github.com/minad/consult/blob/d1d39d52151a10f7ca29aa291886e99534cc94db/consult.el#L795-L809][consult--fast-abbreviate-file-name]] or come close by just let-binding =file-name-handlers-alist= to nil.
 
-In that case, this library only sets itself apart from your solution by the fact it falls back on =:remote-name-handlers= if remote names are encountered, in case it is needed for correctness.
+In that case, this library only sets itself apart from your solution by the fact it falls back on =:remote-name-handlers= if remote names are encountered, in case that is needed for correctness.
 #+end_quote
 
 ** Appendix: On referring to inodes instead of truenames
 
-I have a theory that if de-dup is all you want, it would be possible with some loop that makes use of the function =file-attribute-file-identifier=.
+I have a theory that if de-dup is all you want, it would be possible by making use of the function =file-attribute-file-identifier=.
 
 I've not tried that.  However, the truename-based method brings some upsides.
 

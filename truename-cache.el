@@ -268,21 +268,6 @@ Behave like `truename-cache-get-exists-p'."
 
 (truename-cache--init-abbreviator) ;; Set an initial value at load time
 
-;; Justification:  It is true that `abbreviate-file-name' performs just fine in
-;; most cases.  110ms for 3k filenames on my machine.
-;; But:
-;; - That's a ~2019 fullblown laptop.
-;; - That's a local filesystem, network can be much worse.
-;; - The point of optimizing `truename-cache-collect-files-and-attributes' is
-;;   so you can invoke it as part of user commands, as e.g. a check for
-;;   whether any files have changed.
-;; - User commands should run in less than 100ms to feel instant
-;;   (some say 20ms but that's for code tied to `self-insert-command'),
-;;   and that benchmark has already blown the budget,
-;;   for "only" 3k filenames, in ideal conditions.
-;;   Now consider 30k filenames in non-ideal conditions.
-;;   Keep in mind, that using `abbreviate-file-name' can make it responsible
-;;   for the majority of `truename-cache-collect-files-and-attributes' runtime.
 (defun truename-cache--fast-full-abbrev (file)
   "Abbreviate FILE, faster than `abbreviate-file-name'.
 Can be even faster by let-binding `file-name-handler-alist' to nil.
@@ -332,10 +317,10 @@ of `file-name-handler-alist'."
 (defun truename-cache--mutate-args (args)
   "Mutate plist ARGS in place, setting defaults and adding some keys."
   (cl-assert args) ; So it's safe to use `plist-put' without `setq'
-  (unless (memq :return-files args)    (plist-put args :return-files t))
-  (unless (memq :keep-remotes args)    (plist-put args :keep-remotes t))
-  (unless (memq :side-effect args)     (plist-put args :side-effect t))
-  (unless (memq :assert-readable args) (plist-put args :assert-readable t))
+  (unless (memq :side-effect args)          (plist-put args :side-effect t))
+  (unless (memq :keep-remotes args)         (plist-put args :keep-remotes t))
+  (unless (memq :return-files args)         (plist-put args :return-files t))
+  (unless (memq :assert-readable args)      (plist-put args :assert-readable t))
   (unless (memq :local-name-handlers args)  (plist-put args :local-name-handlers t))
   (unless (memq :remote-name-handlers args) (plist-put args :remote-name-handlers t))
   (map-let (:return-files :return-dirs :dirs-recursive :dirs-flat) args

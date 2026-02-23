@@ -1,3 +1,32 @@
+2026-02-22  Bob Weiner  <rsw@gnu.org>
+
+* hywiki.el (hywiki-format-reference): Rename to 'hywiki-format-grep-to-reference';
+    remove autoload.
+            (hywiki-format-reference-to-grep): Add.
+	    (hywiki-completion-at-point): Rewrite and simplify.
+	    (hywiki-word-highlight-in-buffers): Add call to
+   'hywiki-word-add-completion-at-point' to ensure has completion hook independent
+   of whether the buffer's major mode changes.
+            (hywiki-word-remove-completion-at-point): Add and call in
+   'hywiki-word-dehighlight-in-buffers'.
+            (hywiki-display-referent): Interactively, call 'hywiki-word-read'
+   rather than 'hwyiki-page-read-reference'.
+            (hywiki-read-page-reference): Rename to 'hywiki-page-read-reference'
+     and return a HyWiki completion alist of pages when completing to pages only.
+            (hywiki-format-reference-to-consult-grep): Add.
+
+2026-02-21  Bob Weiner  <rsw@gnu.org>
+
+* hywiki.el (hywiki-consult-page-and-line): Change output from a list to the
+    unparsed string returned as the selection by 'consult-grep'.
+            (hywiki-consult-page-and-line): Rename to
+    'hywiki-consult-page-and-headline)'.
+            (hywiki-format-reference): Change arg 'page-and-line' to be
+    an unparsed string returned from the above function.
+    (hywiki-consult-page-and-headline, hywiki-read-page-reference,
+     hywiki-word-read, hywiki-word-read-new, hywiki-page-read,
+     hywiki-page-read-new): Add 'prompt' and 'initial' input arguments.
+
 2026-02-19  Bob Weiner  <rsw@gnu.org>
 
 * hywiki.el (hywiki-insert-link): Add optional prefix arg to link to a
@@ -1341,7 +1370,7 @@
   hyrolo.el (hyrolo-match-regexp)
   hhist.el (*hhist*): Use defvar for const variables that are set later
     than at their definition.
-    
+
 2025-08-10  Bob Weiner  <rsw@gnu.org>
 
 * test/hywiki-tests.el (hywiki-tests--with-face-test): Make default value be

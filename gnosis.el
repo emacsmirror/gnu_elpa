@@ -1082,8 +1082,9 @@ Returns a list of the form ((yyyy mm dd) (ef-increase ef-decrease ef-total))."
   "Update review-log for thema with value of id ID.
 
 SUCCESS is a boolean value, t for success, nil for failure."
-  (let ((gnosis (cadr (gnosis-review-algorithm id success)))
-	(next-rev (car (gnosis-review-algorithm id success))))
+  (let* ((result (gnosis-review-algorithm id success))
+	 (next-rev (car result))
+	 (gnosis (cadr result)))
     ;; Update activity-log
     (gnosis-review-increment-activity-log (gnosis-review-is-thema-new-p id))
     ;; Update review-log

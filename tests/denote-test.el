@@ -531,6 +531,7 @@ does not involve the time zone."
   (should-error (denote--date-convert '(26454 45206 461174 657000) :not-valid-type))
   (should-error (denote--date-convert nil :not-valid-type)))
 
+;; TODO 2026-02-23: Add support for Windows paths.
 (ert-deftest dt-denote--get-common-root-directory ()
   "Test that `denote--get-common-root-directory' returns the right path."
   (should (string=

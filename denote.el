@@ -985,11 +985,12 @@ to override what this function returns."
   "Return common root directory among DIRECTORIES.
 DIRECTORIES are absolute file system paths."
   (cond
-   ;; FIXME 2026-01-14: The `file-name-absolute-p' actually returns
-   ;; non-nil for ~/PATH.  This will not work here.  Does the prefix
-   ;; check work on all operating systems?  Linux is fine.
    ((or (null directories)
-        (not (seq-every-p (lambda (d) (string-prefix-p "/" d)) directories)))
+        (not (seq-every-p
+              (lambda (d)
+                (and (file-name-absolute-p d)
+                     (not (string-prefix-p "~" d))))
+              directories)))
     (error "DIRECTORIES must be a list of absolute filesystem paths, not `%S'" directories))
    ((null (cdr directories))
     (car directories))

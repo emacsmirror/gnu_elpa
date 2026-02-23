@@ -48,9 +48,9 @@ While you could simply let =truename-cache-collect-files-and-attributes= return 
 
 1. They filter early, so you can avoid recursing into directories that you were never gonna keep anyway -- e.g. the contents of =.git/= or =node_modules/=...
 
-   It can easily be the difference between a runtime of 2.00 seconds and 0.02 seconds!
+   It can easily make the difference between a runtime of 2.00 seconds and 0.02 seconds!  That is what happens inside my =~/.emacs.d/= when I prevent recursion into =elpa/=, =elpaca/= and =.git/=.
 
-2. If you wanted to apply your filters to relative file names rather than absolute names ([[https://github.com/org-roam/org-roam/pull/2178][example use-case]]), you'd ordinarily have to use =(file-relative-name FILE DIR)= on every file, and that isn't completely free either, keeping in mind our aforementioned 100 millisecond budget.
+2. If you wanted to apply your filters to relative file names rather than absolute names ([[https://github.com/org-roam/org-roam/pull/2178][which can fix surprising bugs]]), you'd ordinarily have to use =(file-relative-name FILE DIR)= on every file, and that isn't completely free either, keeping in mind our aforementioned 100 millisecond budget.
 
    That's why it provides =:relative-file-deny=, =:relative-dir-deny=.  Another bottleneck dodged.
 
@@ -58,17 +58,25 @@ While you could simply let =truename-cache-collect-files-and-attributes= return 
 
 Sometimes you do not want a true name but a name abbreviated with =abbreviate-file-name=.  Even that can blow our aforementioned 100 millisecond budget, all by itself.
 
-So =truename-cache-collect-files-and-attributes= can pre-abbreviate names for you with the argument =:abbrev 'full=.  This does it slightly more efficiently (informal benchmark: 50-75% of normal runtime), and much more efficiently if you also pass the argument =:local-name-handlers nil= (informal benchmark: 20% of normal runtime).
+So =truename-cache-collect-files-and-attributes= can pre-abbreviate names for you with the argument =:abbrev 'full=.
+
+This does it slightly more efficiently (informal benchmark: 50-75% of normal runtime), and much more if you also pass =:local-name-handlers nil= (informal benchmark: 20% of normal runtime).
+
+#+begin_quote
+[!TIP]
+For those of you who roll your own code, you can get the same effect by using a copy-pasted definition of [[https://github.com/minad/consult/blob/d1d39d52151a10f7ca29aa291886e99534cc94db/consult.el#L795-L809][consult--fast-abbreviate-file-name]] or get close by just  let-binding =file-name-handlers-alist= to nil.
+
+In that case, this library only sets itself apart from your solution by the fact it falls back on =:remote-name-handlers= if remote names are encountered, in case it is needed for correctness.
+#+end_quote
 
 ** Appendix: On referring to inodes instead of truenames
-:PROPERTIES:
-:CUSTOM_ID: inodes
-:END:
 
-I have a theory that if de-dup is all you want, it could be possible with some loop that makes use of the function =file-attribute-file-identifier=.
+I have a theory that if de-dup is all you want, it would be possible with some loop that makes use of the function =file-attribute-file-identifier=.
 
-I've not tried that, but there are other upsides to true names.
+I've not tried that.  However, the truename-based method brings some upsides.
 
-- It's a more human-friendly UI: when something needs debugging, better to see a file name than some meaningless inode number.
+1. It's more hacker-friendly: when something needs debugging, better to see a file name than some meaningless inode number.
 
-- Once you have a list of true names, it is very friendly to further manipulation.  You can use trivial string comparisons like =string-prefix-p= in place of =file-in-directory-p=.
+2. Once you have a list of true names, it is very easy to manipulate.  You can use trivial string comparisons like =string-prefix-p= in place of =file-in-directory-p=, saving performance (one is ~10,000x slower than the other).
+
+   Example use-case: [[https://github.com/meedstrom/org-node/blob/f9ef31aa212b33b79383c0c749e0003a69e697a2/org-node.el#L976][org-node--root-dirs]], which takes shortcuts because it knows the input is all truenames.

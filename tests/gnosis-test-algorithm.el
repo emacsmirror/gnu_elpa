@@ -681,4 +681,46 @@
 		  :lethe 3)
 		 '(0.1 0.5 1.7))))
 
+(ert-deftest gnosis-test-algorithm-date ()
+  "Test gnosis-algorithm-date returns correct format and offsets."
+  ;; No offset returns today
+  (let ((today (gnosis-algorithm-date)))
+    (should (= (length today) 3))
+    (should (integerp (nth 0 today)))  ; year
+    (should (integerp (nth 1 today)))  ; month
+    (should (integerp (nth 2 today)))) ; day
+  ;; Offset 0 equals no offset
+  (should (equal (gnosis-algorithm-date 0) (gnosis-algorithm-date)))
+  ;; Positive offset is in the future
+  (let ((today (gnosis-algorithm-date))
+        (tomorrow (gnosis-algorithm-date 1)))
+    (should (= (gnosis-algorithm-date-diff today tomorrow) 1)))
+  ;; Negative offset is in the past
+  (let ((yesterday (gnosis-algorithm-date -1))
+        (today (gnosis-algorithm-date)))
+    (should (= (gnosis-algorithm-date-diff yesterday today) 1)))
+  ;; Larger offsets
+  (let ((today (gnosis-algorithm-date))
+        (future (gnosis-algorithm-date 30)))
+    (should (= (gnosis-algorithm-date-diff today future) 30)))
+  ;; Non-integer offset signals error
+  (should-error (gnosis-algorithm-date 1.5))
+  (should-error (gnosis-algorithm-date "3")))
+
+(ert-deftest gnosis-test-algorithm-date-diff ()
+  "Test gnosis-algorithm-date-diff calculations."
+  ;; Same date returns 0
+  (should (= (gnosis-algorithm-date-diff '(2025 1 1) '(2025 1 1)) 0))
+  ;; Simple differences
+  (should (= (gnosis-algorithm-date-diff '(2025 1 1) '(2025 1 2)) 1))
+  (should (= (gnosis-algorithm-date-diff '(2025 1 1) '(2025 1 31)) 30))
+  ;; Cross-month
+  (should (= (gnosis-algorithm-date-diff '(2025 1 31) '(2025 2 1)) 1))
+  ;; Cross-year
+  (should (= (gnosis-algorithm-date-diff '(2024 12 31) '(2025 1 1)) 1))
+  ;; Larger span
+  (should (= (gnosis-algorithm-date-diff '(2025 1 1) '(2025 12 31)) 364))
+  ;; date2 < date signals error
+  (should-error (gnosis-algorithm-date-diff '(2025 1 2) '(2025 1 1))))
+
 (ert-run-tests-batch-and-exit)

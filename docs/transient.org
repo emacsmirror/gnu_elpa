@@ -2642,10 +2642,17 @@ and ~advice*~ slots (see [[*Slots of ~transient-suffix~]]) are defined.
   unspecified, the prefix controls how help is displayed for its
   suffixes.  See also function ~transient-show-help~.
 
-- ~summary~ The summary displayed in the echo area, or as a tooltip.
-  If this is ~nil~, which it usually should be, the first line of the
-  documentation string is used instead.  See ~transient-show-summary~
-  for details.
+- ~summary~ A short description to be displayed in addition to the text
+  displayed in the menu itself.  If this is ~nil~, the first line of the
+  documentation string is used instead.  If non-~nil~, this must be a
+  string or a function that returns a string or ~nil~.
+
+  This description is displayed as a tooltip, when hovering an element
+  in the menu.  If ~transient-enable-menu-navigation~ is ~verbose~, it is
+  also shown in the echo area, when navigating the menu.
+
+  The generic function ~transient-get-summary~ is used to determine and
+  format this description.
 
 - ~definition~ A command, which is used if the body is omitted when
   defining a command using ~transient-define-suffix~.

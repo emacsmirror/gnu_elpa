@@ -2941,10 +2941,17 @@ unspecified, the prefix controls how help is displayed for its
 suffixes.  See also function @code{transient-show-help}.
 
 @item
-@code{summary} The summary displayed in the echo area, or as a tooltip.
-If this is @code{nil}, which it usually should be, the first line of the
-documentation string is used instead.  See @code{transient-show-summary}
-for details.
+@code{summary} A short description to be displayed in addition to the text
+displayed in the menu itself.  If this is @code{nil}, the first line of the
+documentation string is used instead.  If non-@code{nil}, this must be a
+string or a function that returns a string or @code{nil}.
+
+This description is displayed as a tooltip, when hovering an element
+in the menu.  If @code{transient-enable-menu-navigation} is @code{verbose}, it is
+also shown in the echo area, when navigating the menu.
+
+The generic function @code{transient-get-summary} is used to determine and
+format this description.
 
 @item
 @code{definition} A command, which is used if the body is omitted when

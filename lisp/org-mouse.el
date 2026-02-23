@@ -543,8 +543,7 @@ SCHEDULED: or DEADLINE: or ANYTHINGLIKETHIS:"
      "--"
      ,@(org-mouse-keyword-menu
 	(mapcar #'car org-agenda-custom-commands)
-        (lambda (key)
-	  (org-agenda nil (string-to-char key)))
+        (lambda (key) (org-agenda nil key))
 	nil
         (lambda (key)
           (let ((entry (assoc key org-agenda-custom-commands)))

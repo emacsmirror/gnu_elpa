@@ -200,8 +200,17 @@ power of 2, up to 8.
 
 In Emacs<28, we support getting frames only up to 536870911 bytes (2^29 - 1),
 approximately 537M long."
+  (unless (memq n '(1 2 4 8))
+    (error "websocket-get-bytes: Unknown N: %S" n))
   (websocket--if-when-compile (fboundp 'bindat-type) ;Emacs≥28
-      (bindat-unpack (bindat-type uint (* 8 n)) s)
+      (condition-case nil
+          (let ((val (bindat-unpack (bindat-type uint (* 8 n)) s)))
+            (if (and (= n 8) (> (ash val -63) 0))
+                (signal 'websocket-unparseable-frame
+                        (list "Frame value found too large to parse!"))
+              val))
+        (args-out-of-range (signal 'websocket-unparseable-frame
+                                   (list "Frame ended before all bytes were read!"))))
     (if (= n 8)
         (let* ((32-bit-parts
                 (bindat-get-field (bindat-unpack '((:val vec 2 u32)) s) :val))
@@ -236,13 +245,18 @@ NBYTES much be a power of 2, up to 8.
 
 In Emacs<28, this supports encoding values only up to 536870911 bytes
 \(2^29 - 1), approximately 537M long."
+  (unless (memq nbytes '(1 2 4 8))
+    (error "websocket-to-bytes: Unknown NBYTES: %S" nbytes))
   (unless (= 0 (ash val (- (* 8 nbytes))))
     ;; not a user-facing error, this must be caused from an error in
     ;; this library
     (error "websocket-to-bytes: Value %d could not be expressed in %d bytes"
            val nbytes))
   (websocket--if-when-compile (fboundp 'bindat-type)
-      (bindat-pack (bindat-type uint (* 8 nbytes)) val)
+      (progn
+        (if (and (= nbytes 8) (> (ash val -63) 0))
+            (signal 'websocket-frame-too-large (list val)))
+        (bindat-pack (bindat-type uint (* 8 nbytes)) val))
     (if (= nbytes 8)
         (progn
           (let* ((hi-32bits (ash val -32))
@@ -284,8 +298,12 @@ many bytes were consumed from the string."
          (len2len unit (pcase len1 (127 8) (126 2) (_ 0)))
          (len2 uint (progn
                       (websocket-ensure-length s (1+ len2len))
-                      len2len))
-         :unpack-val (cons (if (zerop len2) len1 len2) (1+ len2len)))
+                      (* 8 len2len)))
+         :unpack-val (cons (if (< len1 126) len1
+                             (if (and (= len2len 8) (> (ash len2 -63) 0))
+                                 (signal 'websocket-unparseable-frame (list "MSB must be 0 for 64-bit length"))
+                               len2))
+                           (1+ len2len)))
        s)
     (let* ((initial-val (logand 127 (aref s 0))))
       (cond ((= initial-val 127)
@@ -766,10 +784,11 @@ to the websocket protocol.
 (defun websocket-process-headers (url headers)
   "On opening URL, process the HEADERS sent from the server."
   (when (string-match "Set-Cookie: \\(.*\\)\r\n" headers)
-    ;; The url-current-object is assumed to be set by
-    ;; url-cookie-handle-set-cookie.
-    (let ((url-current-object (url-generic-parse-url url)))
-      (url-cookie-handle-set-cookie (match-string 1 headers)))))
+    (let ((cookie (match-string 1 headers))
+          ;; The url-current-object is assumed to be set by
+          ;; url-cookie-handle-set-cookie.
+          (url-current-object (url-generic-parse-url url)))
+      (url-cookie-handle-set-cookie cookie))))
 
 (defun websocket-outer-filter (websocket output)
   "Filter the WEBSOCKET server's OUTPUT.

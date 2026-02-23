@@ -49,7 +49,10 @@
   (should (equal #x101 (websocket-get-bytes "\x1\x1" 2)))
   (should (equal #xffffff
                  (websocket-get-bytes "\x0\x0\x0\x0\x0\xFF\xFF\xFF" 8)))
-  (should-error (websocket-get-bytes "\x0\x0\x0\x1\x0\x0\x0\x1" 8)
+  (unless (fboundp 'bindat-type)
+    (should-error (websocket-get-bytes "\x0\x0\x0\x1\x0\x0\x0\x1" 8)
+                  :type 'websocket-unparseable-frame))
+  (should-error (websocket-get-bytes "\x80\x0\x0\x0\x0\x0\x0\x0" 8)
                 :type 'websocket-unparseable-frame)
   (should-error (websocket-get-bytes "\x0\x0\x0" 3))
   (should-error (websocket-get-bytes "\x0" 2) :type 'websocket-unparseable-frame))
@@ -266,20 +269,21 @@
       (websocket-create-headers "ws://www.example.com:123/path" "key" nil nil nil)))))
 
 (ert-deftest websocket-process-headers ()
-  (cl-flet ((url-cookie-handle-set-cookie
-              (text)
-              (should (equal text "foo=bar;"))
-              ;; test that we have set the implicit buffer variable needed
-              ;; by url-cookie-handle-set-cookie
-              (should (equal url-current-object
-                             (url-generic-parse-url "ws://example.com/path")))))
+  (cl-letf (((symbol-function 'url-cookie-handle-set-cookie)
+             (lambda (text)
+               (should (equal text "foo=bar;"))
+               ;; test that we have set the implicit buffer variable needed
+               ;; by url-cookie-handle-set-cookie
+               (should (equal url-current-object
+                              (url-generic-parse-url "ws://example.com/path"))))))
     (websocket-process-headers "ws://example.com/path"
                                (concat
                                 "HTTP/1.1 101 Switching Protocols\r\n"
                                 "Upgrade: websocket\r\n"
                                 "Connection: Upgrade\r\n"
                                 "Set-Cookie: foo=bar;\r\n\r\n")))
-  (cl-flet ((url-cookie-handle-set-cookie (_text) (should nil)))
+  (cl-letf (((symbol-function 'url-cookie-handle-set-cookie)
+             (lambda (_text) (should nil))))
     (websocket-process-headers "ws://example.com/path"
                                "HTTP/1.1 101 Switching Protocols\r\n")))
 
@@ -344,9 +348,12 @@
   (should (equal 70000 (websocket-get-bytes (websocket-to-bytes 70000 8) 8)))
   ;; Only run if the number we're testing with is not more than the system can
   ;; handle.
-  (if (equal "1" (calc-eval (format "536870912 < %d" most-positive-fixnum)))
+  (if (and (not (fboundp 'bindat-type))
+           (equal "1" (calc-eval (format "536870912 < %d" most-positive-fixnum))))
       (should-error (websocket-to-bytes 536870912 8)
                     :type 'websocket-frame-too-large))
+  (should-error (websocket-to-bytes (expt 2 63) 8)
+                :type 'websocket-frame-too-large)
   (should-error (websocket-to-bytes 30 3))
   (should-error (websocket-to-bytes 300 1))
   ;; I'd like to test the error for 32-byte systems on 8-byte lengths,

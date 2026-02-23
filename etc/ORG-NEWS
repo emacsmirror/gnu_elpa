@@ -25,6 +25,11 @@ Please send Org bug reports to mailto:emacs-orgmode@gnu.org.
 # require user action for most Org mode users.
 # Sorted from most important to least important.
 
+*** ~org-mouse~ tag and priority menus are now separate
+
+The "Tags and Priorities" section of the global context menu is split
+into a "Tags" section and a "Priorities" section.
+
 ** New features
 
 # We list the most important features, and the features that may

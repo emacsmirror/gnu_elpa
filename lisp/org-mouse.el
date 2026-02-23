@@ -812,10 +812,8 @@ This means, between the beginning of line and the point."
      ((and (assq :headline contextlist) (not (eolp)))
       (popup-menu
        `("Headline Menu"
-	 ("Tags and Priorities"
-          ,@(org-mouse-priority-menu)
-	  "--"
-	  ,@(org-mouse-tag-menu))
+	 ("Priorities" ,@(org-mouse-priority-menu))
+	 ("Tags" ,@(org-mouse-tag-menu))
 	 ("TODO Status"
 	  ,@(org-mouse-todo-menu (org-get-todo-state)))
 	 ["Show Tags"

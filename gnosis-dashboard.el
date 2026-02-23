@@ -739,6 +739,18 @@ DASHBOARD-TYPE: either Themata or Decks to display the respective dashboard."
                                 (gnosis-dashboard-nodes-show-isolated)))
     ("q" "Back" transient-quit-one)]])
 
+(defun gnosis-dashboard-themata-show-orphaned ()
+  "Show themata with orphaned links (referencing deleted org-gnosis nodes)."
+  (interactive)
+  (let* ((orphaned-rows (gnosis--orphaned-links))
+         (thema-ids (when orphaned-rows
+                      (cl-remove-duplicates (mapcar #'car orphaned-rows)))))
+    (if thema-ids
+        (progn
+          (setq gnosis-dashboard-themata-history nil)
+          (gnosis-dashboard-output-themata thema-ids))
+      (message "No themata with orphaned links"))))
+
 (transient-define-prefix gnosis-dashboard-menu-themata ()
   "Transient menu for themata operations."
   [["Themata"
@@ -750,6 +762,7 @@ DASHBOARD-TYPE: either Themata or Decks to display the respective dashboard."
                           (gnosis-dashboard-output-decks)))
     ("T" "View by tags" (lambda () (interactive)
                          (gnosis-dashboard-output-tags)))
+    ("o" "Show orphaned" gnosis-dashboard-themata-show-orphaned)
     ("q" "Back" transient-quit-one)]])
 
 (transient-define-prefix gnosis-dashboard-menu-actions ()
@@ -771,6 +784,7 @@ DASHBOARD-TYPE: either Themata or Decks to display the respective dashboard."
    ["Quick Access"
     ("r" "Review" gnosis-review)
     ("h" "History" gnosis-dashboard-history)
+    ("l" "Link health" gnosis-links-check)
     ("q" "Quit" quit-window)]])
 
 ;;;###autoload

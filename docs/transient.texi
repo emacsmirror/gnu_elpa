@@ -749,14 +749,21 @@ element has to be accessed the same way as the older elements.
 
 @defopt transient-enable-menu-navigation
 This option controls whether navigation commands are enabled in
-transient's menu buffer.  If the value is @code{verbose} (the default),
-brief documentation about the command under point is additionally
-show in the echo area.
+transient menu buffer, and whether additional documentation is shown
+in the echo area while doing so.
+
+If the value is @code{verbose} (the default), additional documentation
+about the command at point is shown in the echo area.  If this would
+result in the same documentation, which is being displayed inside
+the menu buffer, to be duplicated in the echo area, then @code{verbose}
+forgoes doing so.  Use @code{force-verbose} to echo even such documentation.
+Use @code{t} to enable menu navigation without showing documentation in the
+echo area.
 
 While a transient is active, the menu buffer is (by default) not the
 current buffer, making it necessary to use dedicated commands to act
-on that buffer itself.  If this option is non-nil, then the following
-bindings are available:
+on that buffer itself.  If this option is non-nil, then the
+following bindings are available:
 
 @itemize
 @item
@@ -853,7 +860,12 @@ text at point, to be run when a transient menu is active, for example:
 @end lisp
 
 @defopt transient-enable-menu-navigation
-This option is documented in the previous node (@ref{Essential Options}).
+This option is documented in the previous node (@ref{Essential Options}).  You might want to change the value from @code{verbose} to
+@code{force-verbose}, which causes information to be shown in the echo
+area, even if it is identical to information already displayed in
+the menu buffer.  Whether that is useful to you depends on whether
+your setup makes it easy to read the last message displayed in the
+echo area.
 @end defopt
 
 @defopt transient-navigate-to-group-descriptions

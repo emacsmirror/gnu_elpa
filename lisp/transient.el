@@ -168,8 +168,12 @@ from Emacs commit e680827e814e155cf79175d87ff7c6ee3a08b69a."
 (defcustom transient-enable-menu-navigation 'verbose
   "Whether navigation commands are enabled in the menu buffer.
 
-If the value is `verbose' (the default), additionally show brief
-documentation about the command under point in the echo area.
+If the value is `verbose' (the default), show additional documentation
+about the command at point in the echo area.  If this would result in
+the same documentation, which is being displayed inside the menu buffer,
+to be duplicated in the echo area, then `verbose' forgoes doing so.
+Use `force-verbose' to echo even such documentation.  If `t', enable
+navigation, but without echoing any documentation.
 
 While a transient is active, the menu buffer is (by default) not the
 current buffer, making it necessary to use dedicated commands to act
@@ -193,9 +197,12 @@ then it is likely that the user would want the former do what it would
 do if no transient were active."
   :package-version '(transient . "0.7.8")
   :group 'transient
-  :type '(choice (const :tag "Enable navigation and echo summary" verbose)
-                 (const :tag "Enable navigation commands" t)
-                 (const :tag "Disable navigation commands" nil)))
+  :type
+  '(choice
+    (const :tag "Enable navigation and force showing summary" force-verbose)
+    (const :tag "Enable navigation and enable showing summary" verbose)
+    (const :tag "Enable navigation commands" t)
+    (const :tag "Disable navigation commands" nil)))
 
 (defcustom transient-navigate-to-group-descriptions nil
   "Whether menu navigation commands stop at group descriptions.
@@ -5264,7 +5271,7 @@ If RETURN is non-nil, return the summary instead of showing it.
 This is used when a tooltip is needed.")
 
 (cl-defmethod transient-get-summary ((obj transient-object))
-  (and-let*
+  (cond-let*
     ([summary (cond-let*
                 [[summary (oref obj summary)]]
                 ((functionp summary)
@@ -5281,7 +5288,9 @@ This is used when a tooltip is needed.")
                                       "\n"))))]
      (if (string-suffix-p "." summary)
          (substring summary 0 -1)
-       summary))))
+       summary))
+    ((eq transient-enable-menu-navigation 'force-verbose)
+     (transient--get-description obj))))
 
 ;;; Menu Navigation
 
@@ -5318,7 +5327,7 @@ See `forward-button' for information about N."
     (transient--button-move-echo)))
 
 (defun transient--button-move-echo ()
-  (when-let ((_(eq transient-enable-menu-navigation 'verbose))
+  (when-let ((_(memq transient-enable-menu-navigation '(verbose force-verbose)))
              (obj (get-text-property (point) 'button-data)))
     (let ((message-log-max nil))
       (message "%s" (or (transient-get-summary obj) "")))))

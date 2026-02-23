@@ -21,9 +21,15 @@
 ;; Keywords: lisp
 ;; Package-Requires: ((emacs "27.1") (compat "30.1"))
 
-;; Minimum Emacs 27+ because:
-;; NEWS.27: "** File metadata primitives now signal an error if I/O, access, or
-;;           other serious errors prevent them from determining the result."
+;; Minimum Emacs 27+ because of these NEWS.27 items:
+
+;; ** File metadata primitives now signal an error if I/O, access, or
+;; other serious errors prevent them from determining the result.
+;; Formerly, these functions often (though not always) silently returned
+;; nil.
+;; ** 'file-name-absolute-p' no longer considers "~foo" to be an absolute
+;; file name if there is no user named "foo".
+
 
 ;;; Commentary:
 

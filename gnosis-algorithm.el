@@ -163,11 +163,9 @@ Calculate the new e-factor given existing GNOSIS and SUCCESS, either t or nil.
 
 Next GNOSIS is calculated as follows:
 
-Upon a successful review, increase gnosis-synolon value (nth 2 gnosis) by
-gnosis-plus value (nth 0 gnosis).
+Upon a successful review, increase gnosis-synolon by gnosis-plus.
 
-Upon a failed review, decrease gnosis-synolon by gnosis-minus value
- (nth 1 gnosis).
+Upon a failed review, decrease gnosis-synolon by gnosis-minus.
 
 ANAGNOSIS is an event threshold, updating either the gnosis-plus or
 gnosis-minus values.
@@ -181,23 +179,26 @@ When C-FAILURES reach ANAGOSNIS, increase gnosis-minus by AGNOIA."
   (cl-assert (and (floatp epignosis) (< epignosis 1)) nil "Assertion failed: epignosis must be a float < 1")
   (cl-assert (and (floatp agnoia) (< agnoia 1)) nil "Assertion failed: agnoia must be a float < 1")
   (cl-assert (integerp anagnosis) nil "Assertion failed: anagosis must be an integer.")
-  (let ((anagnosis-p (= (% (max 1 (if success c-successes c-failures)) anagnosis) 0))
-	(neo-gnosis
-	 (if success
-	     (gnosis-algorithm-replace-at-index
-	      2 (min (+ (nth 2 gnosis) (nth 0 gnosis)) gnosis-algorithm-synolon-max) gnosis)
-	   (gnosis-algorithm-replace-at-index
-	    2 (max 1.3 (- (nth 2 gnosis) (nth 1 gnosis))) gnosis))))
-    (cond ((and success anagnosis-p)
-	   (setf neo-gnosis (gnosis-algorithm-replace-at-index 0 (+ (nth 0 gnosis) epignosis) neo-gnosis)))
-	  ((and (not success) anagnosis-p)
-	   (setf neo-gnosis
-		 (gnosis-algorithm-replace-at-index 1 (+ (nth 1 gnosis) agnoia) neo-gnosis))))
-    ;; Lethe event: reduce gnosis-plus to slow future interval growth.
-    (when (and lethe (not success) (>= c-failures lethe))
-      (setf neo-gnosis
-	    (gnosis-algorithm-replace-at-index 0 (max 0.1 (- (nth 0 neo-gnosis) epignosis)) neo-gnosis)))
-    (gnosis-algorithm-round-items neo-gnosis)))
+  (let* ((g-plus (nth 0 gnosis))
+	 (g-minus (nth 1 gnosis))
+	 (g-synolon (nth 2 gnosis))
+	 (anagnosis-p (= (% (max 1 (if success c-successes c-failures)) anagnosis) 0))
+	 ;; Update synolon
+	 (neo-synolon (if success
+			  (min (+ g-synolon g-plus) gnosis-algorithm-synolon-max)
+			(max 1.3 (- g-synolon g-minus))))
+	 ;; Anagnosis event: adjust plus or minus
+	 (neo-plus (if (and success anagnosis-p)
+		       (+ g-plus epignosis)
+		     g-plus))
+	 (neo-minus (if (and (not success) anagnosis-p)
+			(+ g-minus agnoia)
+		      g-minus))
+	 ;; Lethe event: reduce plus to slow future interval growth
+	 (neo-plus (if (and lethe (not success) (>= c-failures lethe))
+		       (max 0.1 (- neo-plus epignosis))
+		     neo-plus)))
+    (gnosis-algorithm-round-items (list neo-plus neo-minus neo-synolon))))
 
 (cl-defun gnosis-algorithm-next-interval (&key last-interval gnosis-synolon success successful-reviews
 					       amnesia proto c-fails lethe)

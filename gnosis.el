@@ -421,7 +421,7 @@ Respects `gnosis-center-content' buffer-local setting."
     (gnosis-apply-center-buffer-overlay)))
 
 (defun gnosis-display-image (keimenon)
-  "Dipslay image link from KEIMENON in new window."
+  "Display image link from KEIMENON in new window."
   (let ((image-path (and (string-match "\\[file:\\(.*?\\)\\]" keimenon)
 			 (match-string 1 keimenon))))
     (when image-path
@@ -1075,7 +1075,8 @@ Returns a list of the form ((yyyy mm dd) (ef-increase ef-decrease ef-total))."
       :agnoia (gnosis-get-thema-agnoia id)
       :anagnosis (gnosis-get-thema-anagnosis id)
       :c-successes c-success
-      :c-failures c-fails))))
+      :c-failures c-fails
+      :lethe (gnosis-get-thema-lethe id)))))
 
 (defun gnosis-review--update (id success)
   "Update review-log for thema with value of id ID.
@@ -1224,7 +1225,7 @@ Returns a cons; ='(position . user-input) if correct,
     (not (> reviews 0))))
 
 (defun gnosis-review-increment-activity-log (new? &optional date)
-  "Increament activity log for DATE by one.
+  "Increment activity log for DATE by one.
 
 If NEW? is non-nil, increment new themata log by 1."
   (let* ((current-total-value (gnosis-get-date-total-themata))
@@ -1565,7 +1566,7 @@ If gnosis ID does not exist, create it anew."
 DECK-ID: Integer value of deck-id.
 TYPE: String representing the type of thema.
 KEIMENON: String for the thema text.
-HYPOTHESIS: List of a signle string.
+HYPOTHESIS: List of a single string.
 ANSWER: List of a single string.
 PARATHEMA: String for the parathema text.
 TAGS: List of thema tags.
@@ -1580,7 +1581,7 @@ LINKS: List of id links in PARATHEMA."
 	     nil "Hypothesis value must be a list of a single item or nil.")
   (cl-assert (and (listp answer)
 		  (= (length answer) 1))
-	     nil "Answer value must be a list of a signle item")
+	     nil "Answer value must be a list of a single item")
   (cl-assert (listp tags) nil "Tags must be a list.")
   (cl-assert (or (= suspend 0)
 		 (= suspend 1))
@@ -1602,7 +1603,7 @@ and KEIMENON reversed."
   (cl-assert (stringp keimenon) nil "Keimenon must be a string.")
   (cl-assert (listp hypothesis) nil "Hypothesis value must be a list.")
   (cl-assert (and (listp answer) (= (length answer) 1))
-	     nil "Answer value must be a list of a signle item")
+	     nil "Answer value must be a list of a single item")
   (cl-assert (listp tags) nil "Tags must be a list.")
   (cl-assert (or (= suspend 0) (= suspend 1)) nil "Suspend value must either 0 or 1")
   (cl-assert (listp links) nil "Links must be a list")
@@ -1633,7 +1634,7 @@ serve as choices to select from.
 ANSWER: List of one time, the right answer.  Must be member of
 HYPOTHESIS.
 TAGS: List of tags.
-PARATHEMA: Parathesis for THEMA.
+PARATHEMA: Parathema for THEMA.
 SUSPEND: integer value, 1 or 0.
 LINKS: list of strings."
   (cl-assert (integerp deck-id) nil "Deck-id value must be an integer.")
@@ -1673,7 +1674,7 @@ HYPOTHESIS: List of strings or nil, hypothesis in cloze thema types
 serve as hints.
 ANSWER: List of answers for clozes.
 TAGS: List of tags.
-PARATHEMA: Parathesis for thema.
+PARATHEMA: Parathema for thema.
 SUSPEND: integer value, 1 or 0.
 LINKS: list of strings."
   (cl-assert (integerp deck-id) nil "Deck-id value must be an integer.")
@@ -1725,7 +1726,7 @@ HYPOTHESIS: List of strings or nil, hypothesis in mc-cloze thema types
 serve as hints.
 ANSWER: List of answers for mc-clozes.
 TAGS: List of tags.
-PARATHEMA: Parathesis for thema.
+PARATHEMA: Parathema for thema.
 SUSPEND: integer value, 1 or 0.
 LINKS: list of strings."
   (cl-assert (integerp deck-id) nil "Deck-id value must be an integer.")

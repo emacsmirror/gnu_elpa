@@ -381,7 +381,7 @@ If IDS is not provided, use current themata being displayed."
     (forward-line (- current-line 1))))
 
 (defun gnosis-dashboard-delete-tag (&optional tag)
-  "Rename TAG to NEW-TAG."
+  "Delete TAG from all themata."
   (interactive)
   (let ((tag (or tag (tabulated-list-get-id))))
     (when (y-or-n-p (format "Delete tag %s?"
@@ -547,7 +547,7 @@ If IDS is not provided, use current themata being displayed."
 (defun gnosis-dashboard-decks-suspend-deck (&optional deck-id)
   "Suspend themata for DECK-ID.
 
-When called with called with a prefix, unsuspend all themata of deck."
+When called with a prefix, unsuspend all themata of deck."
   (interactive)
   (let ((deck-id (or deck-id (string-to-number (tabulated-list-get-id)))))
     (gnosis-suspend-deck deck-id)

@@ -992,8 +992,7 @@ predicate slots or more than one `inapt-if*' slots are non-nil."
   "Superclass for suffix command.")
 
 (defclass transient-information (transient-suffix)
-  ((format :initform " %k %d")
-   (key    :initform " "))
+  ((key :initform " "))
   "Display-only information, aligned with suffix keys.
 Technically a suffix object with no associated command.")
 

@@ -829,11 +829,11 @@ This means, between the beginning of line and the point."
 	 ,@(if org-mouse-direct '("--") nil)
 	 ["New Heading" org-mouse-insert-heading :visible org-mouse-direct]
 	 ["Set Deadline"
-	  (progn (org-mouse-end-headline) (insert " ") (org-deadline))
+	  (call-interactively #'org-deadline)
 	  :active (not (save-excursion
 			 (org-mouse-re-search-line org-deadline-regexp)))]
 	 ["Schedule Task"
-	  (progn (org-mouse-end-headline) (insert " ") (org-schedule))
+	  (call-interactively #'org-schedule)
 	  :active (not (save-excursion
 			 (org-mouse-re-search-line org-scheduled-regexp)))]
 	 ["Insert Timestamp"

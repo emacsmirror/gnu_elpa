@@ -506,6 +506,7 @@ SCHEDULED: or DEADLINE: or ANYTHINGLIKETHIS:"
     text))
 
 (defun org-mouse-popup-global-menu ()
+  (unless (featurep 'org-agenda) (require 'org-agenda))
   (popup-menu
    `("Main Menu"
      ["Show Overview" org-mouse-show-overview t]

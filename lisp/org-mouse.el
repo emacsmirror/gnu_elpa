@@ -1006,8 +1006,6 @@ This means, between the beginning of line and the point."
 	(replace-match replace-text))
       (forward-line))))
 
-(defvar org-mouse-cmd) ;dynamically scoped from `org-with-remote-undo'.
-
 (defun org-mouse-do-remotely (command)
   ;;  (org-agenda-check-no-diary)
   (when (get-text-property (point) 'org-marker)
@@ -1037,11 +1035,8 @@ This means, between the beginning of line and the point."
 	      (setq marker (point-marker))
               (goto-char (max (line-beginning-position) (- (line-end-position) anticol)))
 	      (funcall command)
-	      (message "_cmd: %S" org-mouse-cmd)
-	      (message "this-command: %S" this-command)
 	      (unless (eq (marker-position marker) (marker-position endmarker))
 		(setq newhead (org-get-heading))))
-
 	    (forward-line 1)
 	    (save-excursion
 	      (org-agenda-change-all-lines newhead hdmarker 'fixface))))

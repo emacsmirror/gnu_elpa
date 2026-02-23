@@ -19,7 +19,11 @@
 ;; URL:      https://github.com/meedstrom/truename-cache
 ;; Created:  2026-02-16
 ;; Keywords: lisp
-;; Package-Requires: ((emacs "26.1") (compat "30.1"))
+;; Package-Requires: ((emacs "27.1") (compat "30.1"))
+
+;; Minimum Emacs 27+ because:
+;; NEWS.27: "** File metadata primitives now signal an error if I/O, access, or
+;;           other serious errors prevent them from determining the result."
 
 ;;; Commentary:
 

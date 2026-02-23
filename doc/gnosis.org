@@ -65,6 +65,13 @@ Import it to your gnosis collection via {{{kbd(M-x gnosis-import-deck)}}}
 The first thing new users should familiarize themselves with is
 =gnosis-dashboard=, which you can access via {{{kbd(M-x gnosis-dashboard)}}}.
 
+The dashboard home menu ({{{kbd(h)}}}) provides four sections:
+
+- *Navigate* -- Browse nodes ({{{kbd(n)}}}) and themata ({{{kbd(t)}}})
+- *Actions* -- Review ({{{kbd(r)}}}), add thema ({{{kbd(a)}}}), add deck ({{{kbd(d)}}}), monkeytype ({{{kbd(m)}}}), history ({{{kbd(h)}}})
+- *Import/Export* -- Export deck ({{{kbd(e)}}}), import deck ({{{kbd(i)}}})
+- *Maintenance* -- Sync/rebuild nodes, link integrity checks
+
 You can start a review session from the dashboard by pressing {{{kbd(r)}}} or with {{{kbd(M-x
 gnosis-review)}}}.
 
@@ -79,7 +86,7 @@ We can create a demo note topic for Vancomycin, an antibiotic, with
 the buffer contents by pressing {{{kbd(C-x C-s)}}}.
 
 Back to the dashboard {{{kbd(M-x gnosis-dashboard)}}}, we can view all
-our themata by pressing {{{kbd(n)}}} or we can press {{{kbd(s)}}} to
+our themata by pressing {{{kbd(t)}}} or we can press {{{kbd(SPC)}}} to
 search our themata.  For this demo, we are looking for a thema from
 the demo deck we imported, that contains a questions about
 =Vancomycin=.
@@ -307,6 +314,39 @@ next interval value: 0 days (0), 1 day later (1), 2 days later
 
 Upon failing to review a note without completing it's proto successful reviews,
 it's next review date will be on the same date.
+
+* Import & Export
+:PROPERTIES:
+:CUSTOM_ID: ImportExport
+:END:
+
+** Exporting a deck
+
+Export a deck to an org file with {{{kbd(M-x gnosis-export-deck)}}}, or
+from the dashboard with {{{kbd(e)}}}.
+
+You will be prompted for:
+- The deck to export
+- The output file path
+- Whether to keep current thema IDs (for updating) or replace with
+  =NEW= (for sharing)
+- Whether to include suspended themata
+
+The exported file includes a =#+DECK:= header with the deck name and
+a =#+THEMATA:= header recording how many themata were exported.
+
+** Importing a deck
+
+Import a deck from an org file with {{{kbd(M-x gnosis-import-deck)}}},
+or from the dashboard with {{{kbd(i)}}}.
+
+If a deck with the same name already exists, you will be asked to
+confirm before importing into it.  Themata with matching IDs are
+updated in place; themata with =NEW= IDs are created as new entries.
+
+If any individual thema fails to import, the error is collected and
+reported with its line number in the source file, while the remaining
+themata are still imported.
 
 * Editing themata
 + Currently there are 2 ways for editing notes:

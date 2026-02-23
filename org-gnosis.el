@@ -1064,7 +1064,7 @@ Create all tables, indexes, and set version for new database."
     ;; Indexes on file column for sync performance
     (emacsql (org-gnosis-db-get) [:create-index :if-not-exists idx-nodes-file :on nodes [file]])
     (emacsql (org-gnosis-db-get) [:create-index :if-not-exists idx-journal-file :on journal [file]])
-    (emacsql (org-gnosis-db-get) [:pragma (= user-version org-gnosis-db-version)])))
+    (emacsql (org-gnosis-db-get) `[:pragma (= user-version ,org-gnosis-db-version)])))
 
 (defun org-gnosis-db-init-if-needed ()
   "Init database if it has not been initialized."

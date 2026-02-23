@@ -416,6 +416,17 @@ SCHEDULED: or DEADLINE: or ANYTHINGLIKETHIS:"
   (cl-loop for priority from org-priority-highest to org-priority-lowest
            collect (org-priority-to-string priority)))
 
+(defun org-mouse-priority-menu ()
+  "Create the priority menu."
+  (append (org-mouse-keyword-menu
+           (org-mouse-priority-list)
+           (lambda (keyword) (org-mouse-set-priority
+                         (org-priority-to-value keyword)))
+           (org-mouse-get-priority t)
+           "Priority %s")
+          '("--"
+            ["None" (org-priority 'remove) t])))
+
 (defun org-mouse-todo-menu (state)
   "Create the menu with TODO keywords."
   (append
@@ -689,8 +700,7 @@ This means, between the beginning of line and the point."
 	 ["Check Deadlines" org-check-deadlines t]
 	 )))
      ((org-mouse-looking-at org-mouse-priority-regexp "[]A-Z0-9#") ; priority
-      (popup-menu `(nil ,@(org-mouse-keyword-replace-menu
-			   (org-mouse-priority-list) 1 "Priority %s" t))))
+      (popup-menu `(nil ,@(org-mouse-priority-menu))))
      ((funcall get-context :link)
       (popup-menu
        '(nil
@@ -800,54 +810,49 @@ This means, between the beginning of line and the point."
 	  :style toggle :selected org-table-formula-debug]
 	 )))
      ((and (assq :headline contextlist) (not (eolp)))
-      (let ((priority (org-mouse-get-priority t)))
-	(popup-menu
-	 `("Headline Menu"
-	   ("Tags and Priorities"
-	    ,@(org-mouse-keyword-menu
-	       (org-mouse-priority-list)
-               (lambda (keyword)
-                 (org-mouse-set-priority (org-priority-to-value keyword)))
-	       priority "Priority %s")
-	    "--"
-	    ,@(org-mouse-tag-menu))
-	   ("TODO Status"
-	    ,@(org-mouse-todo-menu (org-get-todo-state)))
-	   ["Show Tags"
-	    (with-current-buffer org-mouse-main-buffer (org-agenda-show-tags))
-	    :visible (not org-mouse-direct)]
-	   ["Show Priority"
-	    (with-current-buffer org-mouse-main-buffer (org-agenda-show-priority))
-	    :visible (not org-mouse-direct)]
-	   ,@(if org-mouse-direct '("--") nil)
-	   ["New Heading" org-mouse-insert-heading :visible org-mouse-direct]
-	   ["Set Deadline"
-	    (progn (org-mouse-end-headline) (insert " ") (org-deadline))
-	    :active (not (save-excursion
-			   (org-mouse-re-search-line org-deadline-regexp)))]
-	   ["Schedule Task"
-	    (progn (org-mouse-end-headline) (insert " ") (org-schedule))
-	    :active (not (save-excursion
-			   (org-mouse-re-search-line org-scheduled-regexp)))]
-	   ["Insert Timestamp"
-	    (progn (org-mouse-end-headline) (insert " ") (org-timestamp nil)) t]
+      (popup-menu
+       `("Headline Menu"
+	 ("Tags and Priorities"
+          ,@(org-mouse-priority-menu)
+	  "--"
+	  ,@(org-mouse-tag-menu))
+	 ("TODO Status"
+	  ,@(org-mouse-todo-menu (org-get-todo-state)))
+	 ["Show Tags"
+	  (with-current-buffer org-mouse-main-buffer (org-agenda-show-tags))
+	  :visible (not org-mouse-direct)]
+	 ["Show Priority"
+	  (with-current-buffer org-mouse-main-buffer (org-agenda-show-priority))
+	  :visible (not org-mouse-direct)]
+	 ,@(if org-mouse-direct '("--") nil)
+	 ["New Heading" org-mouse-insert-heading :visible org-mouse-direct]
+	 ["Set Deadline"
+	  (progn (org-mouse-end-headline) (insert " ") (org-deadline))
+	  :active (not (save-excursion
+			 (org-mouse-re-search-line org-deadline-regexp)))]
+	 ["Schedule Task"
+	  (progn (org-mouse-end-headline) (insert " ") (org-schedule))
+	  :active (not (save-excursion
+			 (org-mouse-re-search-line org-scheduled-regexp)))]
+	 ["Insert Timestamp"
+	  (progn (org-mouse-end-headline) (insert " ") (org-timestamp nil)) t]
 					;	 ["Timestamp (inactive)" org-timestamp-inactive t]
-	   "--"
-	   ["Archive Subtree" org-archive-subtree]
-	   ["Cut Subtree"  org-cut-special]
-	   ["Copy Subtree"  org-copy-special]
-	   ["Paste Subtree"  org-paste-special :visible org-mouse-direct]
-	   ("Sort Children"
-	    ["Alphabetically" (org-sort-entries nil ?a)]
-	    ["Numerically" (org-sort-entries nil ?n)]
-	    ["By Time/Date" (org-sort-entries nil ?t)]
-	    "--"
-	    ["Reverse Alphabetically" (org-sort-entries nil ?A)]
-	    ["Reverse Numerically" (org-sort-entries nil ?N)]
-	    ["Reverse By Time/Date" (org-sort-entries nil ?T)])
-	   "--"
-	   ["Move Trees" org-mouse-move-tree :active nil]
-	   ))))
+	 "--"
+	 ["Archive Subtree" org-archive-subtree]
+	 ["Cut Subtree"  org-cut-special]
+	 ["Copy Subtree"  org-copy-special]
+	 ["Paste Subtree"  org-paste-special :visible org-mouse-direct]
+	 ("Sort Children"
+	  ["Alphabetically" (org-sort-entries nil ?a)]
+	  ["Numerically" (org-sort-entries nil ?n)]
+	  ["By Time/Date" (org-sort-entries nil ?t)]
+	  "--"
+	  ["Reverse Alphabetically" (org-sort-entries nil ?A)]
+	  ["Reverse Numerically" (org-sort-entries nil ?N)]
+	  ["Reverse By Time/Date" (org-sort-entries nil ?T)])
+	 "--"
+	 ["Move Trees" org-mouse-move-tree :active nil]
+	 )))
      (t
       (org-mouse-popup-global-menu)))))
 

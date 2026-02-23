@@ -91,6 +91,22 @@ On lethe events the next interval is set to 0."
   :group 'gnosis
   :type 'integer)
 
+(defcustom gnosis-algorithm-synolon-max 3.0
+  "Maximum value for gnosis-synolon.
+
+Caps the interval multiplier to prevent excessively long intervals
+for mature cards."
+  :group 'gnosis
+  :type 'float)
+
+(defcustom gnosis-algorithm-interval-fuzz 0.1
+  "Fuzz factor for interval calculation.
+
+Adds random variation to prevent review clustering.
+A value of 0.1 means +/- 10%%.  Set to 0 to disable."
+  :group 'gnosis
+  :type 'float)
+
 (defun gnosis-algorithm-replace-at-index (index new-item list)
   "Replace item at INDEX with NEW-ITEM in LIST."
   (cl-loop for item in list
@@ -101,6 +117,17 @@ On lethe events the next interval is set to 0."
   "Round all items in LIST to 2 decimal places."
   (cl-loop for item in list
 	   collect (/ (round (* item 100)) 100.0)))
+
+(defun gnosis-algorithm-fuzz-interval (interval)
+  "Apply random fuzz to INTERVAL based on `gnosis-algorithm-interval-fuzz'.
+
+Returns INTERVAL with +/- fuzz variation.  Returns unmodified for
+intervals less than 2."
+  (if (or (<= interval 2) (zerop gnosis-algorithm-interval-fuzz))
+      interval
+    (let ((fuzz (- (* 2 gnosis-algorithm-interval-fuzz (/ (random 1001) 1000.0))
+		   gnosis-algorithm-interval-fuzz)))
+      (* interval (1+ fuzz)))))
 
 (defun gnosis-algorithm-date (&optional offset)
   "Return the current date in a list (year month day).
@@ -157,14 +184,16 @@ When C-FAILURES reach ANAGOSNIS, increase gnosis-minus by AGNOIA."
   (let ((anagnosis-p (= (% (max 1 (if success c-successes c-failures)) anagnosis) 0))
 	(neo-gnosis
 	 (if success
-	     (gnosis-algorithm-replace-at-index 2 (+ (nth 2 gnosis) (nth 0 gnosis)) gnosis)
-	   (gnosis-algorithm-replace-at-index 2 (max 1.3 (- (nth 2 gnosis) (nth 1 gnosis))) gnosis))))
+	     (gnosis-algorithm-replace-at-index
+	      2 (min (+ (nth 2 gnosis) (nth 0 gnosis)) gnosis-algorithm-synolon-max) gnosis)
+	   (gnosis-algorithm-replace-at-index
+	    2 (max 1.3 (- (nth 2 gnosis) (nth 1 gnosis))) gnosis))))
     ;; TODO: Change amnesia & epignosis value upon reaching a lethe or anagnosis event.
     (cond ((and success anagnosis-p)
 	   (setf neo-gnosis (gnosis-algorithm-replace-at-index 0 (+ (nth 0 gnosis) epignosis) neo-gnosis)))
-	  ((and (not success) anagnosis-p
-		(setf neo-gnosis
-		      (gnosis-algorithm-replace-at-index 1 (+ (nth 1 gnosis) agnoia) neo-gnosis)))))
+	  ((and (not success) anagnosis-p)
+	   (setf neo-gnosis
+		 (gnosis-algorithm-replace-at-index 1 (+ (nth 1 gnosis) agnoia) neo-gnosis))))
     (gnosis-algorithm-round-items neo-gnosis)))
 
 (cl-defun gnosis-algorithm-next-interval (&key last-interval gnosis-synolon success successful-reviews
@@ -210,7 +239,7 @@ LETHE: Upon having C-FAILS >= lethe, set next interval to 0."
 				;; Make sure failure interval is never
 				;; higher than success and at least 0
 			        (max (min success-interval failure-interval) 0)))))))
-    (gnosis-algorithm-date (round interval))))
+    (gnosis-algorithm-date (round (gnosis-algorithm-fuzz-interval interval)))))
 
 
 (provide 'gnosis-algorithm)

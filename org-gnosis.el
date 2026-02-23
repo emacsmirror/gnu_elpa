@@ -442,7 +442,10 @@ FILE can be a full path or basename."
     ;; Update todos
     (when (and journal-p file)
       (let* ((today (format-time-string "%Y-%m-%d"))
-             (parsed-buffer (org-element-parse-buffer))
+             (parsed-buffer (with-temp-buffer
+                              (insert-file-contents file)
+                              (org-mode)
+                              (org-element-parse-buffer)))
              (done-todos (if (and org-gnosis-journal-file
                                   (string= (file-name-nondirectory file)
                                            (file-name-nondirectory org-gnosis-journal-file)))

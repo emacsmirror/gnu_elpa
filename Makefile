@@ -6,7 +6,7 @@ EMACS = emacs
 ORG := doc/gnosis.org
 TEXI := doc/gnosis.texi
 INFO := doc/gnosis.info
-TEST_FILE := tests/gnosis-test-algorithm.el
+TEST_FILES := tests/gnosis-test-algorithm.el tests/gnosis-test-export-import.el
 
 all: doc
 
@@ -20,11 +20,13 @@ doc:	$(ORG)
 
 test:
 	rm -f *.elc
-	$(EMACS) --batch \
-	-q \
-	--eval "(add-to-list 'load-path \"$(shell pwd)\")" \
-	--load $(TEST_FILE) \
-	--eval "(ert-run-tests-batch-and-exit)"
+	@for f in $(TEST_FILES); do \
+		echo "Running $$f..."; \
+		$(EMACS) --batch \
+		-q \
+		--eval "(add-to-list 'load-path \"$(shell pwd)\")" \
+		--load $$f; \
+	done
 
 clean:
 	rm -f $(TEXI) $(INFO) *.elc *-pkg.el*

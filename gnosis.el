@@ -221,6 +221,10 @@ This is set automatically based on buffer type:
 (defvar gnosis-review-editing-p nil
   "Boolean value to check if user is currently in a review edit.")
 
+(defvar gnosis--id-cache nil
+  "Hash table of existing thema IDs, bound during batch import.
+When non-nil, `gnosis-generate-id' and `gnosis-update-thema' use this
+for O(1) lookups instead of querying the database per thema.")
 
 (defun gnosis-select (value table &optional restrictions flatten)
   "Select VALUE from TABLE, optionally with RESTRICTIONS.
@@ -694,16 +698,21 @@ When called with a prefix, unsuspends all themata in deck."
   "Generate a unique gnosis ID.
 
 Default to generating a thema id, when DECK-P is t generates a deck id.
+When `gnosis--id-cache' is bound, uses hash table lookup instead of DB query.
 
 LENGTH: length of id, default to a random number between 10-15."
   (let* ((length (or length (+ (random 5) 10)))
          (max-val (expt 10 length))
          (min-val (expt 10 (1- length)))
          (id (+ (random (- max-val min-val)) min-val))
-	 (current-ids (if deck-p (gnosis-select 'id 'decks nil t)
-			(gnosis-select 'id 'themata nil t))))
-    (if (member id current-ids)
+	 (exists (if (and gnosis--id-cache (not deck-p))
+		     (gethash id gnosis--id-cache)
+		   (member id (if deck-p (gnosis-select 'id 'decks nil t)
+				(gnosis-select 'id 'themata nil t))))))
+    (if exists
         (gnosis-generate-id length)
+      (when gnosis--id-cache
+        (puthash id t gnosis--id-cache))
       id)))
 
 (defun gnosis-mcq-answer (id)
@@ -1536,9 +1545,12 @@ LINKS: List of id links."
 			      &optional deck-id type)
   "Update thema entry for ID.
 
-If gnosis ID does not exist, create it anew."
+If gnosis ID does not exist, create it anew.
+When `gnosis--id-cache' is bound, uses hash table for existence check."
   (let ((id (if (stringp id) (string-to-number id) id)))
-    (if (member id (gnosis-select 'id 'themata nil t))
+    (if (if gnosis--id-cache
+	    (gethash id gnosis--id-cache)
+	  (member id (gnosis-select 'id 'themata nil t)))
 	(emacsql-with-transaction gnosis-db
 	  (gnosis-update 'themata `(= keimenon ,keimenon) `(= id ,id))
 	  (gnosis-update 'themata `(= hypothesis ',hypothesis) `(= id ,id))
@@ -1763,14 +1775,6 @@ LINKS: list of strings."
     (let ((inhibit-read-only t))
       (insert " "))))
 
-(defun gnosis-export-make-read-only (&rest values)
-  "Make the provided VALUES read-only in the whole buffer."
-  (goto-char (point-min))
-  (dolist (value values)
-    (while (search-forward value nil t)
-      (put-text-property (match-beginning 0) (match-end 0) 'read-only t)))
-  (goto-char (point-min)))
-
 (cl-defun gnosis-export--insert-thema (id type &optional keimenon hypothesis
 				      answer parathema tags example)
   "Insert thema for thema ID.
@@ -1786,15 +1790,15 @@ EXAMPLE: Boolean value, if non-nil do not add properties for thema."
                       ("** Hypothesis" . ,hypothesis)
                       ("** Answer" . ,answer)
                       ("** Parathema" . ,parathema))))
+    (goto-char (point-max))
     (insert "\n* Thema")
-    (org-set-tags tags)
+    (when tags
+      (insert " :" (mapconcat #'identity tags ":") ":"))
+    (insert "\n")
     (unless example
-      (org-set-property "GNOSIS_ID" id)
-      (org-set-property "GNOSIS_TYPE" type)
-      (gnosis-export-make-read-only ":PROPERTIES:"
-				 (format "GNOSIS_ID: %s" id)
-				 (format "GNOSIS_TYPE: %s" type)
-				 ":END:"))
+      (let ((start (point)))
+        (insert ":PROPERTIES:\n:GNOSIS_ID: " id "\n:GNOSIS_TYPE: " type "\n:END:\n")
+        (add-text-properties start (point) '(read-only t))))
     (dolist (comp components)
       (goto-char (point-max))
       (gnosis-export--insert-read-only (car comp))
@@ -1823,7 +1827,9 @@ Split content of Hypothesis and Answer headings using SEPARATOR."
                (gnosis-type (org-element-property :GNOSIS_TYPE headline))
                (tags (org-element-property :tags headline)))
           (when (and (= level 1) gnosis-id gnosis-type)
-            (let (entry)
+            (let ((line (line-number-at-pos
+                         (org-element-property :begin headline)))
+                  entry)
               (push gnosis-id entry)
               (push gnosis-type entry)
               (dolist (child (org-element-contents headline))
@@ -1846,6 +1852,7 @@ Split content of Hypothesis and Answer headings using SEPARATOR."
                            (t child-text))))
                     (push processed-text entry))))
               (push tags entry)
+              (push line entry)
               (push (nreverse entry) results)))))
       nil nil)
     results))
@@ -1876,12 +1883,17 @@ generate new thema id."
          (nth 5 thema-data)
          (nth 4 thema-data))))))
 
-(defun gnosis-export-deck (&optional deck filename new-p)
-  "Export contents of DECK to FILENAME."
+(defun gnosis-export-deck (&optional deck filename new-p include-suspended)
+  "Export contents of DECK to FILENAME.
+
+When NEW-P, replace thema IDs with NEW for fresh import.
+When INCLUDE-SUSPENDED, also export suspended themata."
   (interactive (list (gnosis--get-deck-id)
                      (read-file-name "Export to file: ")
-		     (not (y-or-n-p "Export with current thema ids? "))))
-  (let* ((deck-name (gnosis--get-deck-name deck))
+		     (not (y-or-n-p "Export with current thema ids? "))
+		     (y-or-n-p "Include suspended themata? ")))
+  (let* ((gc-cons-threshold most-positive-fixnum)
+         (deck-name (gnosis--get-deck-name deck))
 	 (filename (if (file-directory-p filename)
 		       (expand-file-name deck-name filename)
 		     filename)))
@@ -1891,15 +1903,57 @@ generate new thema id."
       (let ((inhibit-read-only t))
         (org-mode)
         (erase-buffer)
-        (insert (format "#+DECK: %s\n\n" deck-name))
-        (let ((thema-ids (gnosis-select 'id 'themata `(= deck-id ,deck))))
-          (gnosis-export-themata thema-ids new-p)
+        (insert (format "#+DECK: %s\n" deck-name))
+        ;; Batch-fetch: 2 queries instead of 2*N
+        (let* ((all-themata (emacsql gnosis-db
+                             [:select [id type keimenon hypothesis answer tags]
+                              :from themata :where (= deck-id $s1)] deck))
+               (all-ids (mapcar #'car all-themata))
+               (suspended-ids (when (and all-ids (not include-suspended))
+                                (mapcar #'car
+                                        (emacsql gnosis-db
+                                         [:select id :from review-log
+                                          :where (and (in id $v1) (= suspend 1))]
+                                         (vconcat all-ids)))))
+               (all-themata (if suspended-ids
+                                (cl-remove-if (lambda (row)
+                                                (member (car row) suspended-ids))
+                                              all-themata)
+                              all-themata))
+               (all-ids (mapcar #'car all-themata))
+               (all-extras (when all-ids
+                             (emacsql gnosis-db
+                              [:select [id parathema] :from extras
+                               :where (in id $v1)] (vconcat all-ids))))
+               (extras-ht (let ((ht (make-hash-table :test 'equal
+                                                     :size (length all-ids))))
+                            (dolist (row all-extras ht)
+                              (puthash (car row) (cadr row) ht)))))
+          (insert (format "#+THEMATA: %d\n\n" (length all-themata)))
+          (dolist (row all-themata)
+            (let* ((id (nth 0 row))
+                   (type (nth 1 row))
+                   (hypothesis (nth 3 row))
+                   (answer (nth 4 row))
+                   (tags (nth 5 row))
+                   (parathema (gethash id extras-ht "")))
+              (gnosis-export--insert-thema
+               (if new-p "NEW" (number-to-string id))
+               type
+               (nth 2 row)
+               (concat (string-remove-prefix "\n" gnosis-export-separator)
+                       (mapconcat #'identity hypothesis gnosis-export-separator))
+               (concat (string-remove-prefix "\n" gnosis-export-separator)
+                       (mapconcat #'identity answer gnosis-export-separator))
+               parathema
+               tags)))
           (when filename
             (write-file filename)
             (message "Exported deck to %s" filename)))))))
 
 (defun gnosis-save-thema (thema deck)
-  "Save THEMA for DECK."
+  "Save THEMA for DECK.
+Returns nil on success, or an error message string on failure."
   (let* ((id (nth 0 thema))
 	 (type (nth 1 thema))
 	 (keimenon (nth 2 thema))
@@ -1907,45 +1961,80 @@ generate new thema id."
 	 (answer (nth 4 thema))
 	 (parathema (or (nth 5 thema) ""))
 	 (tags (nth 6 thema))
+	 (line (nth 7 thema))
 	 (links (append (gnosis-extract-id-links parathema)
 			(gnosis-extract-id-links keimenon)))
 	 (thema-func (cdr (assoc (downcase type)
 				  (mapcar (lambda (pair) (cons (downcase (car pair))
 							  (cdr pair)))
 					  gnosis-thema-types)))))
-    (funcall thema-func id deck type keimenon hypothesis
-	     answer parathema tags 0 links)))
+    (condition-case err
+        (progn
+          (funcall thema-func id deck type keimenon hypothesis
+	           answer parathema tags 0 links)
+          nil)
+      (error (format "Line %s (id:%s): %s" (or line "?") id
+                     (error-message-string err))))))
 
 (defun gnosis-save ()
   "Save themata in current buffer."
   (interactive nil gnosis-edit-mode)
-  (let ((themata (gnosis-export-parse-themata))
-	(deck (gnosis--get-deck-id (gnosis-export-parse--deck-name))))
-    (cl-loop for thema in themata
-	     do (gnosis-save-thema thema deck))
-    (gnosis-edit-quit)))
+  (let* ((gc-cons-threshold most-positive-fixnum)
+         (themata (gnosis-export-parse-themata))
+	 (deck (gnosis--get-deck-id (gnosis-export-parse--deck-name)))
+	 (gnosis--id-cache (let ((ht (make-hash-table :test 'equal)))
+			     (dolist (id (gnosis-select 'id 'themata nil t) ht)
+			       (puthash id t ht))))
+	 (errors nil))
+    (emacsql-with-transaction gnosis-db
+      (cl-loop for thema in themata
+	       for err = (gnosis-save-thema thema deck)
+	       when err do (push err errors)))
+    (if errors
+        (user-error "Failed to import %d thema(ta):\n%s"
+                    (length errors) (mapconcat #'identity (nreverse errors) "\n"))
+      (gnosis-edit-quit))))
 
 ;;;###autoload
 (defun gnosis-save-deck (deck-name)
-  "Save themata for deck with DECK-NAME."
+  "Save themata for deck with DECK-NAME.
+
+If a deck with DECK-NAME already exists, prompt for confirmation
+before importing into it."
   (interactive
    (progn
      (unless (eq major-mode 'org-mode)
        (user-error "This function can only be used in org-mode buffers"))
      (list (read-string "Deck name: " (gnosis-export-parse--deck-name)))))
-  (let ((themata (gnosis-export-parse-themata))
-	(deck (gnosis-get-deck-id deck-name)))
-    (cl-loop for thema in themata
-	     do (gnosis-save-thema thema deck))))
+  (when (and (gnosis-get 'id 'decks `(= name ,deck-name))
+	     (not (y-or-n-p (format "Deck '%s' already exists. Import into it? "
+				    deck-name))))
+    (user-error "Aborted"))
+  (let* ((gc-cons-threshold most-positive-fixnum)
+         (themata (gnosis-export-parse-themata))
+	 (deck (gnosis-get-deck-id deck-name))
+	 (gnosis--id-cache (let ((ht (make-hash-table :test 'equal)))
+			     (dolist (id (gnosis-select 'id 'themata nil t) ht)
+			       (puthash id t ht))))
+	 (errors nil))
+    (emacsql-with-transaction gnosis-db
+      (cl-loop for thema in themata
+	       for err = (gnosis-save-thema thema deck)
+	       when err do (push err errors)))
+    (if errors
+        (user-error "Failed to import %d thema(ta):\n%s"
+                    (length errors) (mapconcat #'identity (nreverse errors) "\n"))
+      (message "Imported %d themata for deck '%s'" (length themata) deck-name))))
 
 ;;;###autoload
 (defun gnosis-import-deck (file)
   "Save gnosis deck from FILE."
   (interactive "fFile: ")
-  (with-temp-buffer
-    (insert-file-contents file)
-    (org-mode)
-    (gnosis-save-deck (gnosis-export-parse--deck-name))))
+  (let ((gc-cons-threshold most-positive-fixnum))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (org-mode)
+      (gnosis-save-deck (gnosis-export-parse--deck-name)))))
 
 ;;;###autoload
 (defun gnosis-add-thema (deck type &optional keimenon hypothesis

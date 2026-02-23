@@ -210,6 +210,21 @@ is useful for blind users, who use a braille or audio output device."
   :group 'transient
   :type 'boolean)
 
+(defcustom transient-describe-menu nil
+  "Whether to begin the menu buffer with a very short description.
+
+When this is non-nil, then the menu buffer begins with a short
+description.  Ideally this is a string written exactly for that
+purpose, but because this is a new feature, most menu commands
+do not provide that yet.  In that case the first line of its
+docstring is used as fallback.  If the value is `docstring',
+then the docstring is used even if a description is available."
+  :package-version '(transient . "0.13.0")
+  :group 'transient
+  :type '(choice (const :tag "Insert description" t)
+                 (const :tag "Insert docstring summary" docstring)
+                 (const :tag "Do not insert description" nil)))
+
 (defcustom transient-select-menu-window nil
   "Whether to select the window displaying the transient menu.
 
@@ -528,21 +543,6 @@ in a more natural order."
   :package-version '(transient . "0.3.6")
   :group 'transient
   :type 'boolean)
-
-(defcustom transient-describe-menu nil
-  "Whether to begin the menu buffer with a very short description.
-
-When this is non-nil, then the menu buffer begins with a short
-description.  Ideally this is a string written exactly for that
-purpose, but because this is a new feature, most menu commands
-do not provide that yet.  In that case the first line of its
-docstring is used as fallback.  If the value is `docstring',
-then the docstring is used even if a description is available."
-  :package-version '(transient . "0.13.0")
-  :group 'transient
-  :type '(choice (const :tag "Insert description" t)
-                 (const :tag "Insert docstring summary" docstring)
-                 (const :tag "Do not insert description" nil)))
 
 (defconst transient--max-level 7)
 (defconst transient--default-child-level 1)

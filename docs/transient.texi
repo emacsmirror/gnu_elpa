@@ -837,10 +837,10 @@ don't hesitate to contact me.
 
 @lisp
 (setopt transient-enable-menu-navigation 'verbose) ; the default
-(setopt transient-select-menu-window t)
-(setopt transient-force-single-column t)
 (setopt transient-navigate-to-group-descriptions t)
 (setopt transient-describe-menu t)
+(setopt transient-select-menu-window t)
+(setopt transient-force-single-column t)
 (add-hook 'transient-setup-buffer-hook 'ding)
 @end lisp
 
@@ -851,24 +851,6 @@ text at point, to be run when a transient menu is active, for example:
 (define-key transient-predicate-map
   [my-read-text-at-point] #'transient--do-stay)
 @end lisp
-
-@defopt transient-select-menu-window
-This option controls whether the window displaying the transient menu
-is automatically selected has soon as it is displayed.
-
-Enabling this is discouraged, except for users of braille output
-devises.  Note that enabling this, or alternatively selecting the
-menu window on demand, are both unnecessary, to be able to move
-the cursor in the menu.  See @code{transient-enable-menu-navigation}.
-@end defopt
-
-@defopt transient-force-single-column
-This option controls whether the use of a single column to display
-suffixes is enforced.  This might be useful for users with low
-vision who use large text and might otherwise have to scroll in two
-dimensions.  This is also useful for blind users, because it causes
-suffixes to be navigated in a more natural order.
-@end defopt
 
 @defopt transient-navigate-to-group-descriptions
 This option controls whether menu navigation commands stop at group
@@ -891,6 +873,24 @@ purpose, but because this is a new feature, most menu commands
 do not provide that yet.  In that case the first line of its
 docstring is used as fallback.  If the value is @code{docstring},
 then the docstring is used even if a description is available.
+@end defopt
+
+@defopt transient-select-menu-window
+This option controls whether the window displaying the transient menu
+is automatically selected has soon as it is displayed.
+
+Enabling this is discouraged, except for users of braille output
+devises.  Note that enabling this, or alternatively selecting the
+menu window on demand, are both unnecessary, to be able to move
+the cursor in the menu.  See @code{transient-enable-menu-navigation}.
+@end defopt
+
+@defopt transient-force-single-column
+This option controls whether the use of a single column to display
+suffixes is enforced.  This might be useful for users with low
+vision who use large text and might otherwise have to scroll in two
+dimensions.  This is also useful for blind users, because it causes
+suffixes to be navigated in a more natural order.
 @end defopt
 
 @anchor{Auxiliary Options}

@@ -608,14 +608,16 @@ When called with a prefix, unsuspend all themata of deck."
 
 (defvar-keymap gnosis-dashboard-mode-map
   :doc "gnosis-dashboard keymap"
-  ;; Transient submenus
+  ;; Main menu
+  "h" #'gnosis-dashboard-menu
+  ;; Navigate
   "n" #'gnosis-dashboard-menu-nodes
   "t" #'gnosis-dashboard-menu-themata
-  "a" #'gnosis-dashboard-menu-actions
-  ;; Quick access
-  "h" #'gnosis-dashboard-menu
-  "SPC" #'gnosis-dashboard-search-thema
+  ;; Actions
   "r" #'gnosis-review
+  "a" #'gnosis-add-thema
+  "d" #'gnosis-add-deck
+  "SPC" #'gnosis-dashboard-search-thema
   "q" #'quit-window)
 
 (define-derived-mode gnosis-dashboard-mode tabulated-list-mode "Gnosis Dashboard"
@@ -765,26 +767,21 @@ DASHBOARD-TYPE: either Themata or Decks to display the respective dashboard."
     ("o" "Show orphaned" gnosis-dashboard-themata-show-orphaned)
     ("q" "Back" transient-quit-one)]])
 
-(transient-define-prefix gnosis-dashboard-menu-actions ()
-  "Transient menu for actions."
-  [["Actions"
-    ("r" "Review" gnosis-review)
-    ("t" "Add thema" gnosis-add-thema)
-    ("d" "Add deck" gnosis-add-deck)
-    ("m" "Monkeytype" gnosis-monkeytype-start)
-    ("h" "View history" gnosis-dashboard-history)
-    ("q" "Back" transient-quit-one)]])
-
 (transient-define-prefix gnosis-dashboard-menu ()
   "Transient buffer for gnosis dashboard interactions."
   [["Navigate"
     ("n" "Nodes" gnosis-dashboard-menu-nodes)
     ("t" "Themata" gnosis-dashboard-menu-themata)
-    ("a" "Actions" gnosis-dashboard-menu-actions)]
-   ["Quick Access"
-    ("q" "Quit" quit-window)
+    ("q" "Quit" quit-window)]
+   ["Actions"
     ("r" "Review" gnosis-review)
+    ("a" "Add thema" gnosis-add-thema)
+    ("d" "Add deck" gnosis-add-deck)
+    ("m" "Monkeytype" gnosis-monkeytype-start)
     ("h" "History" gnosis-dashboard-history)]
+   ["Import/Export"
+    ("e" "Export deck" gnosis-export-deck)
+    ("i" "Import deck" gnosis-import-deck)]
    ["Maintenance"
     ("s" "Sync nodes" org-gnosis-db-sync)
     ("S" "Rebuild nodes" (lambda () (interactive) (org-gnosis-db-sync t)))

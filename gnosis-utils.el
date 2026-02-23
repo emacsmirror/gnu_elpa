@@ -33,7 +33,7 @@
 (require 'subr-x)
 
 (defun gnosis-utils-trim-quotes (str)
-  "Remove prefix and suffxi quotes for STR."
+  "Remove prefix and suffix quotes for STR."
   (string-remove-prefix "\"" (string-remove-suffix "\"" str)))
 
 

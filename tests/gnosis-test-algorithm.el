@@ -40,6 +40,7 @@
 
 (ert-deftest gnosis-test-algorithm-next-interval-proto ()
   "Test next interval for proto values."
+  (let ((gnosis-algorithm-interval-fuzz 0))
   (should (equal (gnosis-algorithm-next-interval :last-interval 0
 						 :gnosis-synolon 1.3
 						 :success t
@@ -93,9 +94,10 @@
 						 :proto '(1 2 3 70)
 						 :c-fails 0
 						 :lethe 3)
-		 (gnosis-algorithm-date 3))))
+		 (gnosis-algorithm-date 3)))))
 
 (ert-deftest gnosis-test-algorithm-next-interval-lethe ()
+  (let ((gnosis-algorithm-interval-fuzz 0))
   (should (equal (gnosis-algorithm-next-interval :last-interval 0
 						 :gnosis-synolon 1.3
 						 :success nil
@@ -131,10 +133,11 @@
 						 :proto '(1 2 3)
 						 :c-fails 5
 						 :lethe 4)
-		 (gnosis-algorithm-date))))
+		 (gnosis-algorithm-date)))))
 
 (ert-deftest gnosis-test-algorithm-next-interval-success ()
   "Test next interval for successful non-proto recalls."
+  (let ((gnosis-algorithm-interval-fuzz 0))
   (should (equal (gnosis-algorithm-next-interval :last-interval 10
 						 :gnosis-synolon 2.0
 						 :success t
@@ -152,10 +155,11 @@
 						 :proto '(1 2 3)
 						 :c-fails 300
 						 :lethe 4)
-		 (gnosis-algorithm-date 4))))
+		 (gnosis-algorithm-date 4)))))
 
 (ert-deftest gnosis-test-algorithm-next-interval-amnesia ()
   "Test next interval for failed non-proto recalls."
+  (let ((gnosis-algorithm-interval-fuzz 0))
   (should (equal (gnosis-algorithm-next-interval :last-interval 10
 						 :gnosis-synolon 1.3
 						 :success nil
@@ -209,7 +213,7 @@
 						 :proto '(1 2 3)
 						 :c-fails 3
 						 :lethe 4)
-		 (gnosis-algorithm-date))))
+		 (gnosis-algorithm-date)))))
 
 (ert-deftest gnosis-test-algorithm-next-gnosis-synolon ()
   "Test algorithm for gnosis synolon (totalis)."
@@ -252,33 +256,34 @@
 
 (ert-deftest gnosis-test-algorithm-test-epignosis ()
   "Test epignosis during anagnosis events."
+  (let ((gnosis-algorithm-synolon-max 3.0))
   (should (equal (gnosis-algorithm-next-gnosis
-		  :gnosis '(0.45 0.30 3.5)
+		  :gnosis '(0.45 0.30 2.5)
 		  :success t
 		  :epignosis 0.3
 		  :agnoia 0.2
 		  :anagnosis 3
 		  :c-successes 3
 		  :c-failures 0)
-		 '(0.75 0.30 3.95)))
+		 '(0.75 0.30 2.95)))
   (should (equal (gnosis-algorithm-next-gnosis
-		  :gnosis '(0.45 0.30 3.5)
+		  :gnosis '(0.45 0.30 2.5)
 		  :success t
 		  :epignosis 0.2
 		  :agnoia 0.2
 		  :anagnosis 3
 		  :c-successes 3
 		  :c-failures 0)
-		 '(0.65 0.30 3.95)))
+		 '(0.65 0.30 2.95)))
   (should (equal (gnosis-algorithm-next-gnosis
-		  :gnosis '(0.45 0.30 3.5)
+		  :gnosis '(0.45 0.30 2.5)
 		  :success t
 		  :epignosis 0.2
 		  :agnoia 0.2
 		  :anagnosis 4
 		  :c-successes 3
 		  :c-failures 0)
-		 '(0.45 0.30 3.95))))
+		 '(0.45 0.30 2.95)))))
 
 (ert-deftest gnosis-test-algorithm-test-agnoia ()
   "Test epignosis during anagnosis events."
@@ -401,5 +406,279 @@
     (should (equal (gnosis-get-thema-lethe nil "deck2" '("tag3" "tag2") test-values) 1))
     (should (equal (gnosis-get-thema-lethe nil "deck2" '("tag1" "tag2") test-values) 2))))
 
+
+(ert-deftest gnosis-test-algorithm-synolon-cap ()
+  "Test that gnosis-synolon is capped at `gnosis-algorithm-synolon-max'."
+  (let ((gnosis-algorithm-synolon-max 3.0))
+    ;; Success exceeding cap: 2.8 + 0.5 = 3.3 → capped to 3.0
+    (should (equal (gnosis-algorithm-next-gnosis
+		    :gnosis '(0.5 0.30 2.8)
+		    :success t
+		    :epignosis 0.1
+		    :agnoia 0.2
+		    :anagnosis 3
+		    :c-successes 1
+		    :c-failures 0)
+		   '(0.5 0.30 3.0)))
+    ;; Success under cap: 1.3 + 0.35 = 1.65
+    (should (equal (gnosis-algorithm-next-gnosis
+		    :gnosis '(0.35 0.30 1.3)
+		    :success t
+		    :epignosis 0.1
+		    :agnoia 0.2
+		    :anagnosis 3
+		    :c-successes 1
+		    :c-failures 0)
+		   '(0.35 0.30 1.65)))
+    ;; Failure path is not capped: 3.5 - 0.30 = 3.2
+    (should (equal (gnosis-algorithm-next-gnosis
+		    :gnosis '(0.45 0.30 3.5)
+		    :success nil
+		    :epignosis 0.1
+		    :agnoia 0.2
+		    :anagnosis 3
+		    :c-successes 0
+		    :c-failures 1)
+		   '(0.45 0.30 3.2)))))
+
+(ert-deftest gnosis-test-algorithm-lethe-gnosis ()
+  "Test that lethe events reduce gnosis-plus."
+  ;; Lethe triggers (c-failures >= lethe): gnosis-plus reduced by epignosis
+  ;; Also anagnosis triggers: gnosis-minus increased by agnoia
+  (should (equal (gnosis-algorithm-next-gnosis
+		  :gnosis '(0.45 0.30 2.0)
+		  :success nil
+		  :epignosis 0.1
+		  :agnoia 0.2
+		  :anagnosis 3
+		  :c-successes 0
+		  :c-failures 3
+		  :lethe 3)
+		 '(0.35 0.5 1.7)))
+  ;; Lethe triggers but anagnosis does not (c-failures=4, anagnosis=3)
+  (should (equal (gnosis-algorithm-next-gnosis
+		  :gnosis '(0.45 0.30 2.0)
+		  :success nil
+		  :epignosis 0.1
+		  :agnoia 0.2
+		  :anagnosis 3
+		  :c-successes 0
+		  :c-failures 4
+		  :lethe 4)
+		 '(0.35 0.30 1.7)))
+  ;; Lethe does not trigger (c-failures < lethe): gnosis-plus unchanged
+  (should (equal (gnosis-algorithm-next-gnosis
+		  :gnosis '(0.45 0.30 2.0)
+		  :success nil
+		  :epignosis 0.1
+		  :agnoia 0.2
+		  :anagnosis 3
+		  :c-successes 0
+		  :c-failures 2
+		  :lethe 3)
+		 '(0.45 0.30 1.7)))
+  ;; Lethe with gnosis-plus floor: 0.15 - 0.1 = 0.05 → floored to 0.1
+  (should (equal (gnosis-algorithm-next-gnosis
+		  :gnosis '(0.15 0.30 2.0)
+		  :success nil
+		  :epignosis 0.1
+		  :agnoia 0.2
+		  :anagnosis 3
+		  :c-successes 0
+		  :c-failures 3
+		  :lethe 3)
+		 '(0.1 0.5 1.7)))
+  ;; No lethe param (backward compat): gnosis-plus unchanged
+  (should (equal (gnosis-algorithm-next-gnosis
+		  :gnosis '(0.45 0.30 2.0)
+		  :success nil
+		  :epignosis 0.1
+		  :agnoia 0.2
+		  :anagnosis 3
+		  :c-successes 0
+		  :c-failures 5)
+		 '(0.45 0.30 1.7))))
+
+(ert-deftest gnosis-test-algorithm-interval-fuzz ()
+  "Test interval fuzzing behavior."
+  ;; With fuzz disabled, result is exact
+  (let ((gnosis-algorithm-interval-fuzz 0))
+    (should (equal (gnosis-algorithm-next-interval :last-interval 10
+						   :gnosis-synolon 2.0
+						   :success t
+						   :successful-reviews 5
+						   :amnesia 0.5
+						   :proto '(1 2 3)
+						   :c-fails 0
+						   :lethe 3)
+		   (gnosis-algorithm-date 20))))
+  ;; Intervals <= 2 are never fuzzed regardless of setting
+  (let ((gnosis-algorithm-interval-fuzz 0.5))
+    (should (= (gnosis-algorithm-fuzz-interval 1) 1))
+    (should (= (gnosis-algorithm-fuzz-interval 2) 2))
+    (should (= (gnosis-algorithm-fuzz-interval 0) 0)))
+  ;; With fuzz enabled, result stays within expected range
+  (let ((gnosis-algorithm-interval-fuzz 0.1)
+	(results (cl-loop repeat 100
+			  collect (gnosis-algorithm-fuzz-interval 20.0))))
+    (should (cl-every (lambda (r) (and (>= r 18.0) (<= r 22.0))) results))
+    ;; Not all identical (randomness works)
+    (should (> (length (cl-remove-duplicates results)) 1))))
+
+(ert-deftest gnosis-test-algorithm-proto-unaffected-by-events ()
+  "Test that proto intervals are not affected by lethe, anagnosis, or fuzz."
+  (let ((gnosis-algorithm-interval-fuzz 0))
+    ;; Proto interval used even during lethe event (c-fails >= lethe)
+    (should (equal (gnosis-algorithm-next-interval :last-interval 0
+						   :gnosis-synolon 1.3
+						   :success t
+						   :successful-reviews 0
+						   :amnesia 0.5
+						   :proto '(1 2 3)
+						   :c-fails 10
+						   :lethe 3)
+		   (gnosis-algorithm-date 1)))
+    ;; Proto interval used even with high synolon
+    (should (equal (gnosis-algorithm-next-interval :last-interval 0
+						   :gnosis-synolon 100.0
+						   :success t
+						   :successful-reviews 1
+						   :amnesia 0.5
+						   :proto '(1 2 3)
+						   :c-fails 0
+						   :lethe 3)
+		   (gnosis-algorithm-date 2)))
+    ;; Failed during proto still gives interval 0 (not amnesia-based)
+    (should (equal (gnosis-algorithm-next-interval :last-interval 5
+						   :gnosis-synolon 2.0
+						   :success nil
+						   :successful-reviews 1
+						   :amnesia 0.5
+						   :proto '(1 2 3)
+						   :c-fails 1
+						   :lethe 3)
+		   (gnosis-algorithm-date 2)))
+    ;; Proto intervals not fuzzed even with high fuzz
+    (let ((gnosis-algorithm-interval-fuzz 0.5))
+      (should (equal (gnosis-algorithm-next-interval :last-interval 0
+						     :gnosis-synolon 1.3
+						     :success t
+						     :successful-reviews 0
+						     :amnesia 0.5
+						     :proto '(1 2 3)
+						     :c-fails 0
+						     :lethe 3)
+		     (gnosis-algorithm-date 1)))
+      (should (equal (gnosis-algorithm-next-interval :last-interval 0
+						     :gnosis-synolon 1.3
+						     :success t
+						     :successful-reviews 1
+						     :amnesia 0.5
+						     :proto '(1 2 3)
+						     :c-fails 0
+						     :lethe 3)
+		     (gnosis-algorithm-date 2))))))
+
+(ert-deftest gnosis-test-algorithm-synolon-floor ()
+  "Test that gnosis-synolon never drops below 1.3 on repeated failures."
+  ;; Single failure near floor: 1.5 - 0.30 = 1.2 → floored to 1.3
+  (should (equal (gnosis-algorithm-next-gnosis
+		  :gnosis '(0.35 0.30 1.5)
+		  :success nil
+		  :epignosis 0.1
+		  :agnoia 0.2
+		  :anagnosis 3
+		  :c-successes 0
+		  :c-failures 1)
+		 '(0.35 0.30 1.3)))
+  ;; Already at floor: 1.3 - 0.30 = 1.0 → floored to 1.3
+  (should (equal (gnosis-algorithm-next-gnosis
+		  :gnosis '(0.35 0.30 1.3)
+		  :success nil
+		  :epignosis 0.1
+		  :agnoia 0.2
+		  :anagnosis 3
+		  :c-successes 0
+		  :c-failures 1)
+		 '(0.35 0.30 1.3)))
+  ;; Large gnosis-minus still respects floor: 1.4 - 0.8 = 0.6 → 1.3
+  (should (equal (gnosis-algorithm-next-gnosis
+		  :gnosis '(0.35 0.80 1.4)
+		  :success nil
+		  :epignosis 0.1
+		  :agnoia 0.2
+		  :anagnosis 3
+		  :c-successes 0
+		  :c-failures 1)
+		 '(0.35 0.80 1.3)))
+  ;; Repeated failures with anagnosis increasing gnosis-minus still floors
+  (should (equal (gnosis-algorithm-next-gnosis
+		  :gnosis '(0.35 0.50 1.4)
+		  :success nil
+		  :epignosis 0.1
+		  :agnoia 0.2
+		  :anagnosis 3
+		  :c-successes 0
+		  :c-failures 3)
+		 '(0.35 0.7 1.3))))
+
+(ert-deftest gnosis-test-algorithm-lethe-anagnosis-interaction ()
+  "Test combined lethe and anagnosis events on gnosis score."
+  ;; Both lethe and anagnosis trigger simultaneously (c-failures=3, lethe=3, anagnosis=3):
+  ;; anagnosis increases gnosis-minus, lethe decreases gnosis-plus
+  (should (equal (gnosis-algorithm-next-gnosis
+		  :gnosis '(0.45 0.30 2.0)
+		  :success nil
+		  :epignosis 0.1
+		  :agnoia 0.2
+		  :anagnosis 3
+		  :c-successes 0
+		  :c-failures 3
+		  :lethe 3)
+		 '(0.35 0.5 1.7)))
+  ;; Lethe at 6, anagnosis at 3: at c-failures=6 both trigger
+  (should (equal (gnosis-algorithm-next-gnosis
+		  :gnosis '(0.45 0.30 2.0)
+		  :success nil
+		  :epignosis 0.1
+		  :agnoia 0.2
+		  :anagnosis 3
+		  :c-successes 0
+		  :c-failures 6
+		  :lethe 6)
+		 '(0.35 0.5 1.7)))
+  ;; Lethe triggers but anagnosis doesn't: only gnosis-plus reduced
+  (should (equal (gnosis-algorithm-next-gnosis
+		  :gnosis '(0.45 0.30 2.0)
+		  :success nil
+		  :epignosis 0.1
+		  :agnoia 0.2
+		  :anagnosis 3
+		  :c-successes 0
+		  :c-failures 5
+		  :lethe 5)
+		 '(0.35 0.30 1.7)))
+  ;; Anagnosis triggers but lethe doesn't: only gnosis-minus increased
+  (should (equal (gnosis-algorithm-next-gnosis
+		  :gnosis '(0.45 0.30 2.0)
+		  :success nil
+		  :epignosis 0.1
+		  :agnoia 0.2
+		  :anagnosis 3
+		  :c-successes 0
+		  :c-failures 3
+		  :lethe 5)
+		 '(0.45 0.5 1.7)))
+  ;; Both trigger with gnosis-plus near floor: floor applies
+  (should (equal (gnosis-algorithm-next-gnosis
+		  :gnosis '(0.15 0.30 2.0)
+		  :success nil
+		  :epignosis 0.1
+		  :agnoia 0.2
+		  :anagnosis 3
+		  :c-successes 0
+		  :c-failures 3
+		  :lethe 3)
+		 '(0.1 0.5 1.7))))
 
 (ert-run-tests-batch-and-exit)

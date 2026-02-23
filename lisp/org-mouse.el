@@ -425,7 +425,11 @@ SCHEDULED: or DEADLINE: or ANYTHINGLIKETHIS:"
            (org-mouse-get-priority t)
            "Priority %s")
           '("--"
-            ["None" (org-priority 'remove) t])))
+            ["None" (org-priority 'remove) t]
+            ["Increase" (org-priority-up) t]
+            ["Decrease" (org-priority-down) t]
+            ["Default" (org-priority org-priority-default) t]
+            ["Set..." (org-priority 'set) t])))
 
 (defun org-mouse-todo-menu (state)
   "Create the menu with TODO keywords."

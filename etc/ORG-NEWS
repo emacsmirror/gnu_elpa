@@ -35,6 +35,11 @@ into a "Tags" section and a "Priorities" section.
 # We list the most important features, and the features that may
 # require user action to be used.
 
+*** New actions in the ~org-mouse~ priority menus
+
+Priorities can now be increased, decreased, set to the default, and
+set interactively from the priority context menus.
+
 ** New and changed options
 
 # Changes dealing with changing default values of customizations,

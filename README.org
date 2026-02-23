@@ -29,7 +29,7 @@ Sidenote for Elisp devs: It might occur to you that you can also de-dup by files
 
 The routine =truename-cache-collect-files-and-attributes= can be used to merge multiple file lists and return de-duplicated truenames.
 
-Some example file-lists in Emacs that may overlap a lot:
+Why? See some example file-lists in Emacs that may overlap a lot:
 
 - Variable =recentf-list=
 - Variable =org-agenda-text-search-extra-files=

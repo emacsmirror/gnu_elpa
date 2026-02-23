@@ -77,6 +77,10 @@ I've not tried that.  However, the truename-based method brings some upsides.
 
 1. It's more hacker-friendly: when something needs debugging, better to see a file name than some meaningless inode number.
 
-2. Once you have a list of true names, it is very easy to manipulate.  You can use trivial string comparisons like =string-prefix-p= in place of =file-in-directory-p=, saving performance (one is ~10,000x slower than the other).
+2. Once you have a list of true names, it is very easy to manipulate.
+
+   The assumption that they are true leads to other safe assumptions, such as that an alphabetic sort automatically groups by directory.
+
+   You can use trivial string comparisons like =string-prefix-p= in place of =file-in-directory-p=, saving performance (one is ~10,000x slower than the other).
 
    Example use-case: [[https://github.com/meedstrom/org-node/blob/f9ef31aa212b33b79383c0c749e0003a69e697a2/org-node.el#L976][org-node--root-dirs]], which takes shortcuts because it knows the input is all truenames.

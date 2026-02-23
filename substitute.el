@@ -454,6 +454,7 @@ same as always calling this command with FIXED-CASE." doc)
  "to the end of the buffer"
  'below)
 
+;;;###autoload
 (defalias 'substitute-target-to-end-of-buffer
   'substitute-target-below-point)
 
@@ -463,6 +464,7 @@ same as always calling this command with FIXED-CASE." doc)
  "to the beginning of the buffer"
  'above)
 
+;;;###autoload
 (defalias 'substitute-target-to-beginning-of-buffer
   'substitute-target-above-point)
 

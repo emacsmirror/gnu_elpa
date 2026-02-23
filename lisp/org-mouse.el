@@ -377,18 +377,21 @@ nor a function, elements of KEYWORDS are used directly."
   "Set the priority of the current headline to PRIORITY."
   (org-priority priority))
 
-(defvar org-mouse-priority-regexp "\\[#\\([A-Z]\\)\\]"
+(defvar org-mouse-priority-regexp
+  (format "\\[#\\(%s\\)\\]" org-priority-value-regexp)
   "Regular expression matching the priority indicator.
 Differs from `org-priority-regexp' in that it doesn't contain the
-leading `.*?'.")
+leading `.*?' and only matches a group for the priority value.")
 
 (defun org-mouse-get-priority (&optional default)
   "Return the priority of the current headline.
-DEFAULT is returned if no priority is given in the headline."
+If the headline does not contain a priority, return `org-priority-default'
+when DEFAULT is non-nil and nil otherwise."
   (save-excursion
     (if (org-mouse-re-search-line org-mouse-priority-regexp)
 	(match-string 1)
-      (when default (char-to-string org-priority-default)))))
+      (when default
+        (org-priority-to-string org-priority-default)))))
 
 (defun org-mouse-delete-timestamp ()
   "Deletes the current timestamp as well as the preceding keyword.
@@ -409,8 +412,9 @@ SCHEDULED: or DEADLINE: or ANYTHINGLIKETHIS:"
 	  (> (match-end 0) point))))))
 
 (defun org-mouse-priority-list ()
-  (cl-loop for priority from ?A to org-priority-lowest
-	   collect (char-to-string priority)))
+  "Priorities from `org-priority-highest' to `org-priority-lowest' as strings."
+  (cl-loop for priority from org-priority-highest to org-priority-lowest
+           collect (org-priority-to-string priority)))
 
 (defun org-mouse-todo-menu (state)
   "Create the menu with TODO keywords."
@@ -684,7 +688,7 @@ This means, between the beginning of line and the point."
 	 "--"
 	 ["Check Deadlines" org-check-deadlines t]
 	 )))
-     ((org-mouse-looking-at org-mouse-priority-regexp "[]A-Z#") ; priority
+     ((org-mouse-looking-at org-mouse-priority-regexp "[]A-Z0-9#") ; priority
       (popup-menu `(nil ,@(org-mouse-keyword-replace-menu
 			   (org-mouse-priority-list) 1 "Priority %s" t))))
      ((funcall get-context :link)
@@ -803,7 +807,7 @@ This means, between the beginning of line and the point."
 	    ,@(org-mouse-keyword-menu
 	       (org-mouse-priority-list)
                (lambda (keyword)
-                 (org-mouse-set-priority (string-to-char keyword)))
+                 (org-mouse-set-priority (org-priority-to-value keyword)))
 	       priority "Priority %s")
 	    "--"
 	    ,@(org-mouse-tag-menu))

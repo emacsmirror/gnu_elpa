@@ -8,6 +8,44 @@ This document contains the release notes that are included in each
 tagged commit on the project's main git repository:
  <https://git.thanosapollo.org/org-gnosis>.
 
+* 0.2.1
+#+DATE: 2026/02/23
+** Critical Fixes
+*** Database Sync
++ Fixed =org-gnosis--delete-file= querying with full paths instead of
+  basenames, causing incremental sync to silently fail.
++ Fixed =org-gnosis-update-file= to accept full paths and correctly
+  detect journal files.
++ Fixed force sync not recreating indexes after dropping tables.
++ Removed redundant table rebuild in =org-gnosis-db-sync=.
+*** Emacs 29+ Compatibility
++ Fixed =wrong-type-argument processp= error on Emacs 29+ by
+  pre-loading =emacsql-sqlite-builtin= to ensure cl-generic dispatches
+  the correct methods for builtin sqlite connections.
+*** Other Fixes
++ Fixed reversed SQL condition in =org-gnosis-insert=.
++ Fixed =org-gnosis-mode= not passing =LOCAL= argument to
+  =remove-hook=, causing the after-save hook to be removed globally
+  instead of per-buffer.
++ Fixed typo in default =org-gnosis-journal-file= path.
++ Fixed =tags--cleanup-orphaned= indentation causing incorrect behavior.
++ Fixed =org-gnosis-insert-tags= redundant expression.
++ Fixed =org-gnosis-find= error message and redundant expression.
+** New Features
++ Added =org-gnosis-db-force-sync= command for unconditional database
+  rebuild.
+  + Provides clearer alternative to =C-u M-x org-gnosis-db-sync=.
+  + Prompts for confirmation before dropping tables.
+** Improvements
++ Database version bumped to 4 with indexes on file columns for faster
+  sync lookups.
++ Simplified orphaned tags cleanup into a single SQL query.
++ Extracted directory creation into =org-gnosis-ensure-directories=.
++ Improved error messages to suggest =org-gnosis-db-force-sync=.
++ Fixed docstrings and checkdoc warnings.
+** Testing
++ Added 29 regression tests covering database init, CRUD, tags, links,
+  sync change detection, file naming, journal, and mode hooks.
 * 0.2.0
 #+DATE: 2026/02/22
 ** Important Changes

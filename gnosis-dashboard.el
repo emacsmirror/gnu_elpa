@@ -782,10 +782,14 @@ DASHBOARD-TYPE: either Themata or Decks to display the respective dashboard."
     ("t" "Themata" gnosis-dashboard-menu-themata)
     ("a" "Actions" gnosis-dashboard-menu-actions)]
    ["Quick Access"
+    ("q" "Quit" quit-window)
     ("r" "Review" gnosis-review)
-    ("h" "History" gnosis-dashboard-history)
+    ("h" "History" gnosis-dashboard-history)]
+   ["Maintenance"
+    ("s" "Sync nodes" org-gnosis-db-sync)
+    ("S" "Rebuild nodes" (lambda () (interactive) (org-gnosis-db-sync t)))
     ("l" "Link health" gnosis-links-check)
-    ("q" "Quit" quit-window)]])
+    ("L" "Link sync" gnosis-links-sync)]])
 
 ;;;###autoload
 (defun gnosis-dashboard ()

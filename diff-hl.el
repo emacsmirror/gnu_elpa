@@ -762,8 +762,9 @@ Return a list of line overlays used."
      ((eq (process-status proc) 'signal))
      ;; If a process is running, set the sentinel.
      ((eq (process-status proc) 'run)
-      (set-process-sentinel
-       proc
+      (add-function
+       :after
+       (process-sentinel proc)
        (lambda (proc _status)
          ;; Delegate to the parent cond for decision logic.
          (diff-hl--when-done buffer get-value callback proc))))

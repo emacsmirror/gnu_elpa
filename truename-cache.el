@@ -30,7 +30,7 @@
 ;; ** 'file-name-absolute-p' no longer considers "~foo" to be an absolute
 ;; file name if there is no user named "foo".
 
-
+
 ;;; Commentary:
 
 ;; This library provides two things:
@@ -44,6 +44,7 @@
 
 ;;    See docstring of `truename-cache-collect-files-and-attributes'.
 
+
 ;;; Code:
 
 (require 'cl-lib)

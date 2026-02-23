@@ -469,7 +469,7 @@ If IDS is not provided, use current themata being displayed."
     (gnosis-dashboard-decks-mode -1)
     ;; Enable tags mode
     (gnosis-dashboard-tags-mode 1)
-    (setf gnosis-dashboard--current '(:type 'tags))
+    (setf gnosis-dashboard--current '(:type tags))
     (setq tabulated-list-format [("Name" 35 t)
                                  ("Total Themata" 10 gnosis-dashboard-sort-total-themata)])
     (tabulated-list-init-header)

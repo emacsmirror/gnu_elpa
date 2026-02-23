@@ -42,6 +42,7 @@
 
 (require 'vc-git)
 (require 'emacsql-sqlite)
+(require 'emacsql-sqlite-builtin nil t)
 (require 'transient)
 (require 'animate)
 

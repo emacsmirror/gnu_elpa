@@ -2597,5 +2597,155 @@ Reopens the gnosis database after successful pull."
           (message "Updated %d themata with links to '%s'" (length updates) string)
           (length updates))))))
 
+;;; Link integrity
+
+(defun gnosis--all-link-dests ()
+  "Return all unique dest UUIDs from gnosis links table."
+  (cl-remove-duplicates (gnosis-select 'dest 'links nil t) :test #'equal))
+
+(defun gnosis--orphaned-link-dests ()
+  "Return dest UUIDs in gnosis links that have no matching org-gnosis node."
+  (let ((link-dests (gnosis--all-link-dests))
+        (node-ids (org-gnosis-select 'id 'nodes nil t)))
+    (cl-set-difference link-dests node-ids :test #'equal)))
+
+(defun gnosis--orphaned-links ()
+  "Return (source dest) rows where dest has no matching org-gnosis node."
+  (let ((orphaned-dests (gnosis--orphaned-link-dests)))
+    (when orphaned-dests
+      (gnosis-select '[source dest] 'links
+                     `(in dest ,(vconcat orphaned-dests))))))
+
+(defun gnosis--thema-expected-links (keimenon parathema)
+  "Extract expected link IDs from KEIMENON and PARATHEMA text."
+  (cl-remove-duplicates
+   (append (gnosis-extract-id-links keimenon)
+           (gnosis-extract-id-links parathema))
+   :test #'equal))
+
+(defun gnosis--stale-links ()
+  "Return (source dest) pairs in DB but not in thema text.
+Fetches all themata, extras, and links in bulk queries."
+  (let* ((themata (gnosis-select '[id keimenon] 'themata nil))
+         (extras (gnosis-select '[id parathema] 'extras nil))
+         (all-links (gnosis-select '[source dest] 'links nil))
+         (extras-map (make-hash-table :test 'equal)))
+    ;; Build extras lookup
+    (dolist (extra extras)
+      (puthash (car extra) (cadr extra) extras-map))
+    ;; Find links in DB that aren't in text
+    (cl-loop for (source dest) in all-links
+             for keimenon = (cadr (cl-find source themata :key #'car))
+             for parathema = (gethash source extras-map "")
+             for expected = (gnosis--thema-expected-links
+                             (or keimenon "") (or parathema ""))
+             unless (member dest expected)
+             collect (list source dest))))
+
+(defun gnosis--missing-links ()
+  "Return (source dest) pairs in thema text but not in DB.
+Fetches all themata, extras, and links in bulk queries."
+  (let* ((themata (gnosis-select '[id keimenon] 'themata nil))
+         (extras (gnosis-select '[id parathema] 'extras nil))
+         (all-links (gnosis-select '[source dest] 'links nil))
+         (extras-map (make-hash-table :test 'equal))
+         (links-set (make-hash-table :test 'equal)))
+    ;; Build extras lookup
+    (dolist (extra extras)
+      (puthash (car extra) (cadr extra) extras-map))
+    ;; Build existing links set
+    (dolist (link all-links)
+      (puthash (format "%s-%s" (car link) (cadr link)) t links-set))
+    ;; Find links in text that aren't in DB
+    (cl-loop for (id keimenon) in themata
+             for parathema = (gethash id extras-map "")
+             for expected = (gnosis--thema-expected-links
+                             (or keimenon "") (or parathema ""))
+             append (cl-loop for dest in expected
+                             for key = (format "%s-%s" id dest)
+                             unless (gethash key links-set)
+                             collect (list id dest)))))
+
+;;;###autoload
+(defun gnosis-links-check ()
+  "Report link health between gnosis and org-gnosis databases."
+  (interactive)
+  (let ((orphaned (gnosis--orphaned-link-dests))
+        (stale (gnosis--stale-links))
+        (missing (gnosis--missing-links)))
+    (message "Link health: %d orphaned, %d stale, %d missing"
+             (length orphaned) (length stale) (length missing))))
+
+(defun gnosis--delete-orphaned-links (orphaned-dests)
+  "Delete links whose dest is in ORPHANED-DESTS."
+  (when orphaned-dests
+    (emacsql-with-transaction gnosis-db
+      (emacsql gnosis-db `[:delete :from links
+                           :where (in dest ,(vconcat orphaned-dests))]))))
+
+(defun gnosis--delete-stale-links (stale-links)
+  "Delete STALE-LINKS list of (source dest) from links table."
+  (when stale-links
+    (emacsql-with-transaction gnosis-db
+      (dolist (link stale-links)
+        (emacsql gnosis-db `[:delete :from links
+                             :where (and (= source ,(car link))
+                                         (= dest ,(cadr link)))])))))
+
+(defun gnosis--insert-missing-links (missing-links)
+  "Insert MISSING-LINKS list of (source dest) into links table."
+  (when missing-links
+    (emacsql-with-transaction gnosis-db
+      (dolist (link missing-links)
+        (gnosis--insert-into 'links `([,(car link) ,(cadr link)]))))))
+
+(defun gnosis--commit-link-cleanup (orphaned stale missing)
+  "Commit link cleanup changes for ORPHANED, STALE, and MISSING counts."
+  (let ((git (executable-find "git"))
+        (default-directory gnosis-dir))
+    (unless gnosis-testing
+      (unless (file-exists-p (expand-file-name ".git" gnosis-dir))
+        (vc-git-create-repo))
+      (shell-command (format "%s add gnosis.db" git))
+      (gnosis--shell-cmd-with-password
+       (format "%s commit -m 'Link cleanup: %d orphaned, %d stale removed, %d missing added'"
+               git orphaned stale missing)))
+    (when (and gnosis-vc-auto-push (not gnosis-testing))
+      (gnosis-vc-push))))
+
+;;;###autoload
+(defun gnosis-links-cleanup ()
+  "Remove orphaned and stale links from gnosis database."
+  (interactive)
+  (let ((orphaned-dests (gnosis--orphaned-link-dests))
+        (stale (gnosis--stale-links)))
+    (if (and (null orphaned-dests) (null stale))
+        (message "No orphaned or stale links found")
+      (when (y-or-n-p (format "Remove %d orphaned + %d stale links? "
+                              (length orphaned-dests) (length stale)))
+        (gnosis--delete-orphaned-links orphaned-dests)
+        (gnosis--delete-stale-links stale)
+        (gnosis--commit-link-cleanup (length orphaned-dests) (length stale) 0)
+        (message "Removed %d orphaned + %d stale links"
+                 (length orphaned-dests) (length stale))))))
+
+;;;###autoload
+(defun gnosis-links-sync ()
+  "Full re-sync: remove orphaned/stale links and insert missing ones."
+  (interactive)
+  (let ((orphaned-dests (gnosis--orphaned-link-dests))
+        (stale (gnosis--stale-links))
+        (missing (gnosis--missing-links)))
+    (if (and (null orphaned-dests) (null stale) (null missing))
+        (message "All links are in sync")
+      (when (y-or-n-p (format "Sync links: remove %d orphaned + %d stale, add %d missing? "
+                              (length orphaned-dests) (length stale) (length missing)))
+        (gnosis--delete-orphaned-links orphaned-dests)
+        (gnosis--delete-stale-links stale)
+        (gnosis--insert-missing-links missing)
+        (gnosis--commit-link-cleanup (length orphaned-dests) (length stale) (length missing))
+        (message "Synced: removed %d orphaned + %d stale, added %d missing"
+                 (length orphaned-dests) (length stale) (length missing))))))
+
 (provide 'gnosis)
 ;;; gnosis.el ends here

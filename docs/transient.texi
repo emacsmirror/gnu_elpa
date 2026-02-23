@@ -852,9 +852,14 @@ text at point, to be run when a transient menu is active, for example:
   [my-read-text-at-point] #'transient--do-stay)
 @end lisp
 
+@defopt transient-enable-menu-navigation
+This option is documented in the previous node (@ref{Essential Options}).
+@end defopt
+
 @defopt transient-navigate-to-group-descriptions
 This option controls whether menu navigation commands stop at group
-descriptions.
+descriptions.  If your output method works by reading the text at
+point, you most likely want to enable this.
 
 If @code{transient-enable-menu-navigation} is non-@code{nil}, which it is by
 default, @kbd{@key{UP}} and @kbd{@key{DOWN}} move from suffix to suffix.  When this option
@@ -864,24 +869,24 @@ the group title at point.
 @end defopt
 
 @defopt transient-describe-menu
-This option controls whether short description is inserted at the
-beginning of the menu buffer.
+This option controls whether a short description about the menu
+itself is inserted at the beginning of the menu buffer.
 
 When this is non-@code{nil}, then the menu buffer begins with a short
 description.  Ideally this is a string written exactly for that
-purpose, but because this is a new feature, most menu commands
-do not provide that yet.  In that case the first line of its
-docstring is used as fallback.  If the value is @code{docstring},
+purpose, but because this is a new feature, most menu commands do
+not provide that yet.  In that case the first line of the prefix
+command's docstring is used as fallback.  If the value is @code{docstring},
 then the docstring is used even if a description is available.
 @end defopt
 
 @defopt transient-select-menu-window
 This option controls whether the window displaying the transient menu
-is automatically selected has soon as it is displayed.
+is automatically selected as soon as it is displayed.
 
-Enabling this is discouraged, except for users of braille output
-devises.  Note that enabling this, or alternatively selecting the
-menu window on demand, are both unnecessary, to be able to move
+Enabling this is discouraged, except for users of braille and audio
+output devises.  Note that enabling this, or alternatively selecting
+the menu window on demand, are both unnecessary, to be able to move
 the cursor in the menu.  See @code{transient-enable-menu-navigation}.
 @end defopt
 
@@ -890,7 +895,9 @@ This option controls whether the use of a single column to display
 suffixes is enforced.  This might be useful for users with low
 vision who use large text and might otherwise have to scroll in two
 dimensions.  This is also useful for blind users, because it causes
-suffixes to be navigated in a more natural order.
+suffixes to be navigated in a more natural order, because often
+related commands are displayed in the same column but navigation
+first moves horizonally to the next item on the same row.
 @end defopt
 
 @anchor{Auxiliary Options}

@@ -216,8 +216,8 @@ is useful for blind users, who use a braille or audio output device."
 When this is non-nil, then the menu buffer begins with a short
 description.  Ideally this is a string written exactly for that
 purpose, but because this is a new feature, most menu commands
-do not provide that yet.  In that case the first line of its
-docstring is used as fallback.  If the value is `docstring',
+do not provide that yet.  In that case the first line of the prefix
+command's docstring is used as fallback.  If the value is `docstring',
 then the docstring is used even if a description is available."
   :package-version '(transient . "0.13.0")
   :group 'transient

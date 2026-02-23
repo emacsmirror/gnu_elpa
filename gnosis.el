@@ -160,7 +160,7 @@ This is set automatically based on buffer type:
   '((t :inherit bold))
   "Face for next review.")
 
-(defconst gnosis-db
+(defvar gnosis-db
   (emacsql-sqlite-open (expand-file-name "gnosis.db" gnosis-dir))
   "Gnosis database.")
 

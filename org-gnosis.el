@@ -721,11 +721,12 @@ Returns a list of (ID TITLE BACKLINK-COUNT) for each node."
 	 (id (car (org-gnosis-select 'id 'journal `(= title ,title) t)))
 	 (file (car (org-gnosis-select 'file 'journal `(= title ,title) t))))
     (cond
-     ((and org-gnosis-journal-file (not id))
-      (org-gnosis-journal--add-entry title))
      ((and id file)
       (org-gnosis-find
        title file id org-gnosis-journal-dir org-gnosis-journal-templates))
+     ((and org-gnosis-journal-file
+	   (string= title (format-time-string "%Y-%m-%d")))
+      (org-gnosis-journal--add-entry title))
      (t
       (org-gnosis--create-file
        title org-gnosis-journal-dir

@@ -475,8 +475,9 @@ If IDS is not provided, use current themata being displayed."
     (tabulated-list-init-header)
     (setq tabulated-list-entries
           (cl-loop for tag in tags
-                   collect (list (car (gnosis-dashboard-output-tag tag))
-                                 (vconcat (gnosis-dashboard-output-tag tag)))))
+                   for output = (gnosis-dashboard-output-tag tag)
+                   collect (list (car output)
+                                 (vconcat output))))
     (tabulated-list-print t)))
 
 (defun gnosis-dashboard-output-deck (id)

@@ -850,6 +850,7 @@ If `transient-save-history' is nil, then do nothing."
    (show-help   :initarg :show-help   :initform nil)
    (info-manual :initarg :info-manual :initform nil)
    (man-page    :initarg :man-page    :initform nil)
+   (summary     :initarg :summary     :initform nil)
    (transient-suffix     :initarg :transient-suffix     :initform nil)
    (transient-non-suffix :initarg :transient-non-suffix :initform nil)
    (transient-switch-frame :initarg :transient-switch-frame)
@@ -962,7 +963,10 @@ the prototype is stored in the clone's `prototype' slot.")
    (advice*
     :initarg :advice*
     :initform nil
-    :documentation "Advise applied to the command body and interactive spec."))
+    :documentation "Advise applied to the command body and interactive spec.")
+   (summary
+    :initarg :summary
+    :initform nil))
   "Abstract superclass for group and suffix classes.
 
 It is undefined which predicates are used if more than one `if*'
@@ -977,8 +981,7 @@ predicate slots or more than one `inapt-if*' slots are non-nil."
    (format      :initarg :format      :initform " %k %d")
    (description :initarg :description :initform nil)
    (face        :initarg :face        :initform nil)
-   (show-help   :initarg :show-help   :initform nil)
-   (summary     :initarg :summary     :initform nil))
+   (show-help   :initarg :show-help   :initform nil))
   "Superclass for suffix command.")
 
 (defclass transient-information (transient-suffix)
@@ -5260,19 +5263,15 @@ of the documentation string, if any.
 If RETURN is non-nil, return the summary instead of showing it.
 This is used when a tooltip is needed.")
 
-(cl-defmethod transient-get-summary ((_obj transient-prefix)))
-
-(cl-defmethod transient-get-summary ((_obj transient-group)))
-
-(cl-defmethod transient-get-summary ((_obj transient-information)))
-
-(cl-defmethod transient-get-summary ((obj transient-suffix))
-  (with-slots (command summary) obj
+(cl-defmethod transient-get-summary ((obj transient-object))
+  (let ((summary (oref obj summary))
+        (command (ignore-error (invalid-slot-name unbound-slot)
+                   (oref obj command))))
     (when-let*
         ((doc (cond ((functionp summary)
                      (funcall summary obj))
                     (summary)
-                    ((documentation command)
+                    ((and command (documentation command))
                      (car (split-string (documentation command) "\n")))))
          (_(stringp doc))
          (_(not (equal doc

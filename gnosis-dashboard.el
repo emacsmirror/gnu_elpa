@@ -1046,6 +1046,22 @@ Only searches within currently displayed nodes."
           (gnosis-dashboard-output-nodes matching-ids))
       (message "No nodes in current view have tag '%s'" tag))))
 
+(defun gnosis-dashboard-nodes-show-due ()
+  "Show nodes linked to today's due themata."
+  (interactive)
+  (let* ((due-thema-ids (gnosis-review-get-due-themata))
+         (node-ids (when due-thema-ids
+                     (cl-remove-duplicates
+                      (gnosis-select 'dest 'links
+                                     `(in source ,(vconcat due-thema-ids)) t)
+                      :test #'equal))))
+    (if node-ids
+        (progn
+          (push (cons (tabulated-list-get-id) gnosis-dashboard-nodes-current-ids)
+                gnosis-dashboard-nodes-history)
+          (gnosis-dashboard-output-nodes node-ids))
+      (message "No nodes linked to due themata"))))
+
 (defun gnosis-dashboard-nodes-back ()
   "Go back to the previous nodes view, or to main dashboard if at top level."
   (interactive)
@@ -1123,7 +1139,8 @@ Moves cursor to the beginning of the buffer after sorting."
     ("f" "Show links" gnosis-dashboard-nodes-show-links)
     ("b" "Show backlinks" gnosis-dashboard-nodes-show-backlinks)
     ("t" "Show themata links" gnosis-dashboard-nodes-show-themata-links)
-    ("i" "Show isolated" gnosis-dashboard-nodes-show-isolated)]])
+    ("i" "Show isolated" gnosis-dashboard-nodes-show-isolated)
+    ("d" "Show due" gnosis-dashboard-nodes-show-due)]])
 
 (defvar-keymap gnosis-dashboard-nodes-mode-map
   :doc "Keymap for nodes dashboard."
@@ -1134,6 +1151,7 @@ Moves cursor to the beginning of the buffer after sorting."
   "b" #'gnosis-dashboard-nodes-show-backlinks
   "t" #'gnosis-dashboard-nodes-show-themata-links
   "i" #'gnosis-dashboard-nodes-show-isolated
+  "d" #'gnosis-dashboard-nodes-show-due
   "s" #'gnosis-dashboard-nodes-sort-menu
   "SPC" #'gnosis-dashboard-nodes-search-menu
   "l" #'gnosis-dashboard-nodes-filter-menu

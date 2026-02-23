@@ -52,7 +52,7 @@ Third item : Total gnosis (gnosis-synolon/totalis) -> Total gnosis score"
 (defcustom gnosis-algorithm-amnesia-value 0.5
   "Gnosis amnesia value.
 
-Used to calcuate new interval upon a failed recall i.e the memmory loss.
+Used to calculate new interval upon a failed recall i.e the memory loss.
 
 The closer this value is to 1, the more the memory loss."
   :group 'gnosis
@@ -156,8 +156,8 @@ DATE format must be given as (year month day)."
     (if (>= diff 0) diff (error "`DATE2' must be higher than `DATE'"))))
 
 (cl-defun gnosis-algorithm-next-gnosis (&key gnosis success epignosis agnoia anagnosis
-					     c-successes c-failures)
-  "Return the neo GNOSIS value. (gnosis-plus gnosis-minus gnsois-synolon)
+					     c-successes c-failures lethe)
+  "Return the neo GNOSIS value. (gnosis-plus gnosis-minus gnosis-synolon)
 
 Calculate the new e-factor given existing GNOSIS and SUCCESS, either t or nil.
 
@@ -188,12 +188,15 @@ When C-FAILURES reach ANAGOSNIS, increase gnosis-minus by AGNOIA."
 	      2 (min (+ (nth 2 gnosis) (nth 0 gnosis)) gnosis-algorithm-synolon-max) gnosis)
 	   (gnosis-algorithm-replace-at-index
 	    2 (max 1.3 (- (nth 2 gnosis) (nth 1 gnosis))) gnosis))))
-    ;; TODO: Change amnesia & epignosis value upon reaching a lethe or anagnosis event.
     (cond ((and success anagnosis-p)
 	   (setf neo-gnosis (gnosis-algorithm-replace-at-index 0 (+ (nth 0 gnosis) epignosis) neo-gnosis)))
 	  ((and (not success) anagnosis-p)
 	   (setf neo-gnosis
 		 (gnosis-algorithm-replace-at-index 1 (+ (nth 1 gnosis) agnoia) neo-gnosis))))
+    ;; Lethe event: reduce gnosis-plus to slow future interval growth.
+    (when (and lethe (not success) (>= c-failures lethe))
+      (setf neo-gnosis
+	    (gnosis-algorithm-replace-at-index 0 (max 0.1 (- (nth 0 neo-gnosis) epignosis)) neo-gnosis)))
     (gnosis-algorithm-round-items neo-gnosis)))
 
 (cl-defun gnosis-algorithm-next-interval (&key last-interval gnosis-synolon success successful-reviews

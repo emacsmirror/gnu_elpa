@@ -59,10 +59,10 @@
 (defvar truename-cache--true<>dir-abbr  (make-hash-table :test 'equal))
 (defvar truename-cache--true<>full-abbr (make-hash-table :test 'equal))
 
-(defun truename-cache--populate (wild-files truename)
+(defun truename-cache--populate (truename &optional wild-files)
   "Taking TRUENAME as the truename of WILD-FILES, add them to the cache.
 Return TRUENAME.
-Input WILD-FILES may be either a list, nil, or a single string.
+WILD-FILES may be a string or a list of strings.
 
 Even if WILD-FILES is nil, this caches the abbreviations of TRUENAME as
 well as TRUENAME itself, as wild file names it is possible to encounter.
@@ -151,7 +151,7 @@ See alternatives:
   (unless (file-name-absolute-p wild)
     (setq wild (expand-file-name wild)))
   (or (gethash wild truename-cache--wild<>true)
-      (truename-cache--populate wild (file-truename wild))))
+      (truename-cache--populate (file-truename wild) wild)))
 
 (defun truename-cache-get-cached-p (wild)
   "Try to return the true name for file name WILD, or nil.
@@ -174,7 +174,7 @@ new truename only if it exists, else return nil."
       (and (file-exists-p wild)
            (let ((true (file-truename wild)))
              (when (file-exists-p true)
-               (truename-cache--populate wild true))))))
+               (truename-cache--populate true wild))))))
 
 (defun truename-cache-get-exists-p (wild)
   "Try to return the true name for file name WILD, or nil.
@@ -211,7 +211,7 @@ reasonable standard choice, which may get a shorter alias in the future."
         (when (file-exists-p wild)
           (setq true (file-truename wild))
           (when (file-exists-p true)
-            (truename-cache--populate wild true))))))
+            (truename-cache--populate true wild))))))
 
 
 ;;;; Name-cache getters with dir abbrev:
@@ -700,7 +700,7 @@ non-symlink file in REL-DIR, becomes the true name of that file."
                   (puthash resolved attr truename-cache--dedupped-results)
                   (when side-effect
                     (let ((case-fold-search (file-name-case-insensitive-p resolved)))
-                      (truename-cache--populate true-name resolved))))
+                      (truename-cache--populate resolved true-name))))
                 (when (and resolved-is-dir
                            RECURSE
                            dirs-recursive-follow-symlinks
@@ -719,7 +719,7 @@ non-symlink file in REL-DIR, becomes the true name of that file."
      (puthash true-name attr truename-cache--dedupped-results)
      (when side-effect
        (let ((case-fold-search case-fold-fs))
-         (truename-cache--populate nil true-name))))))
+         (truename-cache--populate true-name))))))
 
 (provide 'truename-cache)
 

@@ -96,7 +96,7 @@ between two strings to consider them as similar."
   "Review new themata first.
 
 When nil, review new themata last."
-  :type 'bolean)
+  :type 'boolean)
 
 (defcustom gnosis-default-average-review-period 30
   "Number of days of which the average review score will be calculated."
@@ -1255,7 +1255,7 @@ If NEW? is non-nil, increment new themata log by 1."
           (funcall func-name id))
       (error "Malformed thema type: '%s'" type))))
 
-(defun gnosis-monkeytype-session (themata &rest_)
+(defun gnosis-monkeytype-session (themata &rest _)
   "Start monkeytype session for THEMATA ids."
   (cl-assert (listp themata) nil "Themata must be a list of ids")
   (catch 'monkeytype-loop

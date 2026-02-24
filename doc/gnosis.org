@@ -413,6 +413,66 @@ Thank you for considering contributing back to gnosis.  You can
 contribute by submitting a pull request on the codeberg mirror
 repository, or directly sending me patch via email.
 
+** Patches Require Copyright Assignment To The FSF
+
+For any major edit (more than 15 lines, or so, in aggregate per
+person), you need to make a copyright assignment to the Free Software
+Foundation.  This is necessary as the FSF must at all times be in a
+position to enforce the GNU General Public License.
+
+Here’s the process:
+
+1. Review and adapt the request form below.
+2. Email the specified address with your request.
+3. Await a legal agreement from the FSF.
+4. Sign and return the document, which can be done via email.
+
+The entire process usually takes about a week and needs to be
+completed only once, allowing you to contribute to GNU Emacs.
+
+#+begin_example text
+Please email the following information to assign@gnu.org, and we
+will send you the assignment form for your past and future changes.
+
+Please use your full legal name (in ASCII characters) as the subject
+line of the message.
+
+REQUEST: SEND FORM FOR PAST AND FUTURE CHANGES
+
+[Additional people we should notify about the progress of the assignment.]
+
+Thanos Apollo <public@thanosapollo.org>
+
+[What is the name of the program or package you're contributing to?]
+
+Emacs
+
+[Did you copy any files or text written by someone else in these changes?
+Even if that material is free software, we need to know about it.]
+
+
+[Do you have an employer who might have a basis to claim to own
+your changes?  Do you attend a school which might make such a claim?]
+
+
+[For the copyright registration, what country are you a citizen of?]
+
+
+[What year were you born?]
+
+
+[Please write your email address here.]
+
+
+[Please write your postal address here.]
+
+
+[Which files have you changed so far, and which new files have you written
+so far?]
+
+#+end_example
+
+
 ** How to create a patch
 
 /Example:/

@@ -1,13 +1,13 @@
 ;;; boxy.el --- A boxy layout framework -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021-2025 Free Software Foundation, Inc.
+;; Copyright (C) 2021-2026 Free Software Foundation, Inc.
 
-;; Author: Amy Grinn <grinn.amy@gmail.com>
-;; Version: 2.0.0
+;; Author: Amy Pillow <amypillow@lavache.com>
+;; Version: 2.0.1
 ;; File: boxy.el
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: tools
-;; URL: https://gitlab.com/grinn.amy/boxy
+;; URL: https://codeberg.org/strawburster/boxy
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

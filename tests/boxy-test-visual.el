@@ -1,8 +1,8 @@
 ;;; boxy-test-visual.el --- Visual tests for boxy -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021-2023 Free Software Foundation, Inc.
+;; Copyright (C) 2021-2026 Free Software Foundation, Inc.
 
-;; Author: Amy Grinn <grinn.amy@gmail.com>
+;; Author: Amy Pillow <amypillow@lavache.com>
 
 ;;; Commentary:
 ;;

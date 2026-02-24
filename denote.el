@@ -6993,6 +6993,17 @@ backend."
 ;; The `eval-after-load' part with the quoted lambda is adapted from
 ;; Elfeed: <https://github.com/skeeto/elfeed/>.
 
+(declare-function org-link-preview-file "ol" (ov path link))
+
+;;;###autoload
+(defun denote-link-preview-file (ov path link)
+  "Use `org-link-preview-file' for OV, PATH, and LINK.
+
+  Resolve the PATH using `denote-directory-files'."
+  (when-let ((files (denote-directory-files (rx-to-string (list 'and 'bol path)))))
+    (when (length= files 1)
+      (org-link-preview-file ov (car files) link))))
+
 ;;;###autoload
 (eval-after-load 'org
   `(funcall
@@ -7003,6 +7014,7 @@ backend."
         (with-no-warnings
           (org-link-set-parameters
            "denote"
+           :preview #'denote-link-preview-file
            :follow #'denote-link-ol-follow
            :face #'denote-get-link-face
            :help-echo #'denote-link-ol-help-echo

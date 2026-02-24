@@ -26,7 +26,9 @@
 ;; ** File metadata primitives now signal an error if I/O, access, or
 ;; other serious errors prevent them from determining the result.
 ;; Formerly, these functions often (though not always) silently returned
-;; nil.
+;; nil. [...] The affected primitives are
+;; 'directory-files-and-attributes', 'file-acl', 'file-attributes', [...]
+
 ;; ** 'file-name-absolute-p' no longer considers "~foo" to be an absolute
 ;; file name if there is no user named "foo".
 
@@ -436,7 +438,7 @@ otherwise it is simply the `file-name-nondirectory' of the file.\)
     packages that are designed to operate on file names instead of
     directory names.
     If the purpose is only to filter names found inside a given set of
-    directories, and not at all to prevent potential millions of
+    directories, and not to prevent possible thousands or millions of
     recursions, you may as well just filter the final result.
 
 - RELATIVE-DIR-DENY :: List of regexps that reject a directory.

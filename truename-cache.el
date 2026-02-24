@@ -358,8 +358,8 @@ of `file-name-handler-alist'."
                                            local-name-handlers remote-name-handlers))))
 
 (defvar truename-cache--dedupped-dirs (make-hash-table :test 'equal))
-(defvar truename-cache--dedupped-results (make-hash-table :test 'equal))
 (defvar truename-cache--visited (make-hash-table :test 'equal))
+(defvar truename-cache--results nil)
 
 (cl-defun truename-cache-collect-files-and-attributes
     ( &rest args &key
@@ -585,7 +585,7 @@ Otherwise, they are quietly skipped."
                               (not (string-match-p FULL-DIR-DENY-RE true-dir))))
                 collect true-dir)))))
       (clrhash truename-cache--visited)
-      (clrhash truename-cache--dedupped-results)
+      (setq truename-cache--results nil)
       (with-temp-buffer  ; No buffer-env
         (truename-cache--init-abbreviator)
         ;; NOTE: Do the recursive analyses first, lest a flat dir
@@ -594,21 +594,20 @@ Otherwise, they are quietly skipped."
           (truename-cache--analyze-recursively dir args))
         (dolist (dir all-flat-dirs)
           (truename-cache--analyze dir args)))
-      (let ((final-alist (map-into truename-cache--dedupped-results 'list)))
-        (when abbrev
-          (cl-assert (or (eq abbrev 'full) (eq abbrev 'dir)))
-          (when (not side-effect)
-            (error "Argument ABBREV non-nil depends on SIDE-EFFECT t"))
-          (if (eq abbrev 'dir)
-              (cl-loop
-               for cell in final-alist
-               do (setcar cell (gethash (car cell)
-                                        truename-cache--true<>dir-abbr)))
+      (when abbrev
+        (cl-assert (or (eq abbrev 'full) (eq abbrev 'dir)))
+        (when (not side-effect)
+          (error "Argument ABBREV non-nil depends on SIDE-EFFECT t"))
+        (if (eq abbrev 'dir)
             (cl-loop
-             for cell in final-alist
+             for cell in truename-cache--results
              do (setcar cell (gethash (car cell)
-                                      truename-cache--true<>full-abbr)))))
-        final-alist))))
+                                      truename-cache--true<>dir-abbr)))
+          (cl-loop
+           for cell in truename-cache--results
+           do (setcar cell (gethash (car cell)
+                                    truename-cache--true<>full-abbr)))))
+      truename-cache--results)))
 
 (defun truename-cache--analyze-recursively (true-dir args)
   "Analyze TRUE-DIR recursively.
@@ -644,11 +643,12 @@ non-symlink file in REL-DIR, becomes the true name of that file."
       args
     (cl-loop
      with case-fold-fs = (file-name-case-insensitive-p true-dir)
-     for (bare-name . attr)
+     for cell
      in (if assert-readable
             (directory-files-and-attributes rel-dir nil nil t 'integer)
           (ignore-error permission-denied
             (directory-files-and-attributes rel-dir nil nil t 'integer)))
+     as (bare-name . attr) = cell
      as rel-name = (file-name-concat rel-dir bare-name)
      as true-name = (file-name-concat true-dir bare-name)
      when (and bare-name
@@ -698,7 +698,7 @@ non-symlink file in REL-DIR, becomes the true name of that file."
                           (and (eq t (file-attribute-type attr))
                                (progn (setq resolved-is-dir t)
                                       return-dirs)))
-                  (puthash resolved attr truename-cache--dedupped-results)
+                  (push (cons resolved attr) truename-cache--results)
                   (when side-effect
                     (let ((case-fold-search (file-name-case-insensitive-p resolved)))
                       (truename-cache--populate resolved true-name))))
@@ -717,7 +717,8 @@ non-symlink file in REL-DIR, becomes the true name of that file."
             nil))
 
      do
-     (puthash true-name attr truename-cache--dedupped-results)
+     (setcar cell true-name)
+     (push cell truename-cache--results)
      (when side-effect
        (let ((case-fold-search case-fold-fs))
          (truename-cache--populate true-name))))))

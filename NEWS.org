@@ -3,11 +3,13 @@
 #+EMAIL: public@thanosapollo.org
 #+OPTIONS: ':nil toc:nil num:nil author:nil email:nil
 
++ [[https://git.thanosapollo.org/org-gnosis/][Upstream]]
++ [[https://thanosapollo.org/log/org-gnosis/][Changelog]]
 
-This document contains the release notes that are included in each
-tagged commit on the project's main git repository:
- <https://git.thanosapollo.org/org-gnosis>.
-
+* 0.2.2
+** New features
++ Add =org-gnosis--find-file-h=, a find-file hook that enables
+  =org-gnosis-mode= when visiting org-gnosis files.
 * 0.2.1
 #+DATE: 2026/02/23
 ** Critical Fixes

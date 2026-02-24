@@ -5,7 +5,7 @@
 ;; Author: Thanos Apollo <public@thanosapollo.org>
 ;; Keywords: outlines, extensions, org-mode
 ;; URL: https://thanosapollo.org/projects/org-gnosis/
-;; Version: 0.2.1
+;; Version: 0.2.2
 
 ;; Package-Requires: ((emacs "27.2") (emacsql "4.0.0") (compat "29.1.4.2"))
 

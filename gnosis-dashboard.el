@@ -68,6 +68,8 @@ When non-nil, sort in ascending order (smaller values first)."
 (defvar gnosis-dashboard--selected-ids nil
   "Selected ids from the tabulated list.")
 
+(defvar gnosis-dashboard-themata-mode)
+
 (defvar gnosis-dashboard-modules
   '(gnosis-dashboard-module-header
     gnosis-dashboard-module-today-stats
@@ -919,11 +921,11 @@ Returns list of (ID [TITLE LINK-COUNT BACKLINK-COUNT THEMATA-LINKS-COUNT])."
      nodes-data)))
 
 (defun gnosis-dashboard-nodes--show-related (get-ids-fn no-results-msg &optional display-fn)
-  "Generic function to show related items for node at point.
+  "Show related items for the node at point.
 
-GET-IDS-FN is a function that takes a node-id and returns a list of related IDs.
+GET-IDS-FN takes a node-id and returns related IDs.
 NO-RESULTS-MSG is displayed when no related items are found.
-DISPLAY-FN is the function to display results (defaults to `gnosis-dashboard-output-nodes')."
+DISPLAY-FN displays results, defaults to `gnosis-dashboard-output-nodes'."
   (let* ((node-id (tabulated-list-get-id))
          (related-ids (funcall get-ids-fn node-id))
          (display-fn (or display-fn #'gnosis-dashboard-output-nodes)))
@@ -951,13 +953,12 @@ DISPLAY-FN is the function to display results (defaults to `gnosis-dashboard-out
 (defun gnosis-dashboard-nodes-show-themata-links ()
   "Show themata that link to the node at point."
   (interactive)
-  (let ((node-id (tabulated-list-get-id)))
-    ;; Clear themata history for fresh start in themata view
-    (setq gnosis-dashboard-themata-history nil)
-    (gnosis-dashboard-nodes--show-related
-     #'gnosis-dashboard-get-themata-links
-     "No themata link to this node"
-     #'gnosis-dashboard-output-themata)))
+  ;; Clear themata history for fresh start in themata view
+  (setq gnosis-dashboard-themata-history nil)
+  (gnosis-dashboard-nodes--show-related
+   #'gnosis-dashboard-get-themata-links
+   "No themata link to this node"
+   #'gnosis-dashboard-output-themata))
 
 (defun gnosis-dashboard-nodes-show-isolated ()
   "Show isolated nodes (nodes with no connections at all).

@@ -670,7 +670,7 @@ If NAME is t, return name of deck."
     (if name (gnosis--get-deck-name deck) deck)))
 
 (cl-defun gnosis-toggle-suspend-themata (ids &optional verification)
-  "Toggle Suspend value for thema with ID.
+  "Toggle Suspend value for themata IDS.
 
 When VERIFICATION is non-nil, skips `y-or-n-p' prompt."
   (cl-assert (listp ids) nil "IDS value needs to be a list.")
@@ -1589,6 +1589,7 @@ When `gnosis--id-cache' is bound, uses hash table for existence check."
 				   answer parathema tags suspend links)
   "Default format for adding a thema.
 
+ID: Thema ID.
 DECK-ID: Integer value of deck-id.
 TYPE: String representing the type of thema.
 KEIMENON: String for the thema text.
@@ -2022,7 +2023,7 @@ before importing into it."
        (user-error "This function can only be used in org-mode buffers"))
      (list (read-string "Deck name: " (gnosis-export-parse--deck-name)))))
   (when (and (gnosis-get 'id 'decks `(= name ,deck-name))
-	     (not (y-or-n-p (format "Deck '%s' already exists. Import into it? "
+	     (not (y-or-n-p (format "Deck '%s' already exists.  Import into it? "
 				    deck-name))))
     (user-error "Aborted"))
   (let* ((gc-cons-threshold most-positive-fixnum)

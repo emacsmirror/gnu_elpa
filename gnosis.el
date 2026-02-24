@@ -310,21 +310,14 @@ When VERIFICATION is non-nil, skip `y-or-n-p' prompt."
 (defun gnosis-calculate-average-daily-reviews (&optional days)
   "Calculate average reviews over the last DAYS days."
   (let* ((days (or days gnosis-default-average-review-period))
-	 (review-counts '())
-         (collect-reviews
-          (lambda (d)
-            (let ((day-reviews (gnosis-select 'reviewed-total 'activity-log
-                                             `(and (> reviewed-total 0)
-                                                   (= date ',(gnosis-algorithm-date
-							      (- d))))
-                                             t)))
-              (setq review-counts (append review-counts day-reviews))))))
-    ;; Collect reviews for each day
-    (dotimes (d days)
-      (funcall collect-reviews d))
-    ;; Return average, avoiding division by zero
-    (if (> (length review-counts) 0)
-        (/ (apply '+ review-counts) (float (length review-counts)))
+	 (dates (cl-loop for d from 0 below days
+			 collect (gnosis-algorithm-date (- d))))
+	 (review-counts (gnosis-select 'reviewed-total 'activity-log
+				       `(and (> reviewed-total 0)
+					     (in date ,(vconcat dates)))
+				       t)))
+    (if review-counts
+	(/ (apply #'+ review-counts) (float (length review-counts)))
       0)))
 
 (defun gnosis-shuffle (seq)

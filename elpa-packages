@@ -330,6 +330,9 @@
  ;; (emacs-lisp-intro-es	:url "https://git.savannah.gnu.org/git/elisp-es.git"
  ;;  :make "emacs-lisp-intro-es.texi"
  ;;  :doc "emacs-lisp-intro-es.texi")
+ (emacs-lisp-intro-es	:url "https://git.savannah.nongnu.org:/git/elisp-es.git"
+  :make "emacs-lisp-intro-es.texi"
+  :doc "emacs-lisp-intro-es.texi")
  (emacs-lisp-intro-nl	:url "https://codeberg.org/mattof/emacs-lisp-intro-nl"
   :make "emacs-lisp-intro-nl.texi"
   :doc "emacs-lisp-intro-nl.texi")

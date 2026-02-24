@@ -1,6 +1,6 @@
 ;;; gnosis.el --- Spaced Repetition System  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2023-2026  Thanos Apollo
+;; Copyright (C) 2023-2026  Free Software Foundation, Inc.
 
 ;; Author: Thanos Apollo <public@thanosapollo.org>
 ;; Keywords: extensions

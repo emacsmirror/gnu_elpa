@@ -1,6 +1,6 @@
 ;;; gnosis-utils.el --- Gnosis Utilities Module  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2023-2024  Thanos Apollo
+;; Copyright (C) 2023-2026  Free Software Foundation, Inc.
 
 ;; Author: Thanos Apollo <public@thanosapollo.org>
 ;; Keywords: extensions

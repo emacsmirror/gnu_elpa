@@ -1,0 +1,149 @@
+\input texinfo    @c -*- texinfo -*-
+@c %**start of header
+@setfilename truename-cache.info
+@settitle truename-cache
+@documentencoding UTF-8
+@documentlanguage en
+@c %**end of header
+
+@dircategory Emacs
+@direntry
+* Truename-Cache: (truename-cache). Efficiently de-dup file-names.
+@end direntry
+
+@finalout
+@titlepage
+@title truename-cache
+@author Martin Edström
+@end titlepage
+
+@ifnottex
+@node Top
+@top truename-cache
+
+@quotation
+[!WARNING]
+This is a BETA release!
+Breaking changes are possible.
+
+@end quotation
+
+This Emacs library provides two things:
+
+@enumerate
+@item
+@samp{truename-cache-get}: A caching alternative to @samp{file-truename}.
+
+@item
+@samp{truename-cache-collect-files-and-attributes}: Basically an alternative to @samp{directory-files-recursively} that pre-populates cache and returns truenames while minimizing calls to @samp{file-truename}.
+@end enumerate
+
+@end ifnottex
+
+@menu
+* Why?::
+* Bonus Merging lists::
+* Bonus Filtering::
+* Bonus Abbreviation::
+* Appendix On referring to inodes instead of truenames::
+@end menu
+
+@node Why?
+@chapter Why?
+
+Truenames are useful as a way to de-duplicate file lists and to cross-reference names in one list with names in another list.
+
+But if you write code that just wraps every file name it encounters in @samp{(file-truename FILE)}@comma{} it gets slow if you have large lists of file names. It takes 1@comma{}000 milliseconds to process 1@comma{}000 file names on my machine.
+
+That is unacceptable@comma{} at least in the use-case where you often scan a list of directories to see if any new files have appeared or any files were modified or deleted.
+
+That's the sort of thing that might be done as part of a user command.  If the command is to be pleasant to use@comma{} it must take less than 100 milliseconds so it feels "instant".  And you may be dealing with not 1@comma{}000 but 10@comma{}000 or even 100@comma{}000 files.
+
+Sidenote for Elisp devs: It might occur to you that you can also de-dup by filesystem inodes.  See @uref{https://github.com/meedstrom/truename-cache?tab=readme-ov-file#appendix-on-referring-to-inodes-instead-of-truenames, Appendix: On referring to inodes instead of truenames}.
+
+@node Bonus Merging lists
+@chapter Bonus: Merging lists
+
+The routine @samp{truename-cache-collect-files-and-attributes} can be used to merge multiple file lists and return de-duplicated truenames.
+
+Why? See some example file-lists in Emacs that may overlap a lot:
+
+@itemize
+@item
+Variable @samp{recentf-list}
+@item
+Variable @samp{org-agenda-text-search-extra-files}
+@item
+Variable @samp{org-id-files}
+@item
+Variable @samp{org-id-extra-files}
+@item
+Output of @samp{(org-files-list)}
+@item
+Output of @samp{(hash-table-values org-id-locations)}
+@end itemize
+
+Even if you @samp{append} and @samp{seq-uniq} these lists@comma{} a given file may still be represented multiple times under different names.
+
+To merge@comma{} pass all your file-lists in the argument @samp{:infer-dirs-from}.  In truth@comma{} it doesn't operate directly on any of the files given@comma{} it just infers their parent directories and then scans each directory once.  That turns out to be efficient@comma{} even if it's likely to pull in more unique files than were mentioned by any name in the input.
+
+@node Bonus Filtering
+@chapter Bonus: Filtering
+
+While you could simply let @samp{truename-cache-collect-files-and-attributes} return a giant file list and filter it afterwards@comma{} there are two reasons to do some filtering through the arguments @samp{:relative-file-deny}@comma{} @samp{:relative-dir-deny} and/or @samp{:full-dir-deny} (which take lists of regular expressions).
+
+@enumerate
+@item
+They filter early@comma{} so you can avoid recursing into directories that you were never gonna keep anyway -- e.g. the contents of @samp{.git/} or @samp{node_modules/}@dots{}
+
+It can easily make the difference between a runtime of 2.00 seconds and 0.02 seconds!  That is what happens inside my @samp{~/.emacs.d/} when I prevent recursion into @samp{elpa/}@comma{} @samp{elpaca/} and @samp{.git/}.
+
+@item
+If you wanted to apply your filters to relative file names rather than absolute names (@uref{https://github.com/org-roam/org-roam/pull/2178, which can fix surprising bugs})@comma{} you'd ordinarily have to use @samp{(file-relative-name FILE DIR)} on every file@comma{} and that isn't completely free either@comma{} keeping in mind our aforementioned 100 millisecond budget.
+
+That's why it provides @samp{:relative-file-deny}@comma{} @samp{:relative-dir-deny}.  Another bottleneck dodged.
+@end enumerate
+
+@node Bonus Abbreviation
+@chapter Bonus: Abbreviation
+
+Sometimes you do not want a true name@comma{} but a name abbreviated with @samp{abbreviate-file-name}.  For one thing@comma{} it's just preferable to present such names to the user@comma{} but for another@comma{} that's what will match the confusingly named buffer-local variable @samp{buffer-file-truename} -- the actual truename will not.
+
+(Even @emph{more} confusingly@comma{} the function @samp{get-truename-buffer} needs the actual truename@dots{})
+
+But @samp{abbreviate-file-name} is another thing that can consume much of our aforementioned 100 millisecond budget@comma{} all by itself.
+
+So @samp{truename-cache-collect-files-and-attributes} can pre-abbreviate names for you with the argument @samp{:abbrev 'full}.
+
+This does it slightly more efficiently (informal benchmark: 50-75% of normal runtime)@comma{} and much more if you also pass @samp{:local-name-handlers nil} (informal benchmark: 20% of normal runtime).
+
+@quotation
+[!TIP]
+For those of you who roll your own code@comma{} you can get the same effect by using a copy-pasted definition of @uref{https://github.com/minad/consult/blob/d1d39d52151a10f7ca29aa291886e99534cc94db/consult.el#L795-L809, consult--fast-abbreviate-file-name} or come close by just let-binding @samp{file-name-handlers-alist} to nil.
+
+In that case@comma{} this library only sets itself apart from your solution by the fact it falls back on @samp{:remote-name-handlers} if remote names are encountered@comma{} in case that is needed for correctness.
+
+@end quotation
+
+@node Appendix On referring to inodes instead of truenames
+@chapter Appendix: On referring to inodes instead of truenames
+
+I have a theory that if de-dup is all you want@comma{} it would be possible by making use of the function @samp{file-attribute-file-identifier}.
+
+I've not tried that.  However@comma{} the truename-based method brings some upsides.
+
+@enumerate
+@item
+It's more hacker-friendly: when something needs debugging@comma{} better to see a file name than some meaningless inode number.
+
+@item
+Once you have a list of true names@comma{} it is very easy to manipulate.
+
+The assumption that they are true leads to other safe assumptions@comma{} such as that an alphabetic sort automatically groups by directory.
+
+You can use trivial string comparisons like @samp{string-prefix-p} in place of @samp{file-in-directory-p}@comma{} saving performance (one is ~10@comma{}000x slower than the other).
+
+Example use-case: @uref{https://github.com/meedstrom/org-node/blob/f9ef31aa212b33b79383c0c749e0003a69e697a2/org-node.el#L976, org-node--root-dirs}@comma{} which takes shortcuts because it knows the input is all truenames.
+@end enumerate
+
+@bye

@@ -1806,7 +1806,8 @@ EXAMPLE: Boolean value, if non-nil do not add properties for thema."
     (unless example
       (let ((start (point)))
         (insert ":PROPERTIES:\n:GNOSIS_ID: " id "\n:GNOSIS_TYPE: " type "\n:END:\n")
-        (add-text-properties start (point) '(read-only t))))
+        (add-text-properties start (point)
+			    '(read-only t rear-nonsticky (read-only)))))
     (dolist (comp components)
       (goto-char (point-max))
       (gnosis-export--insert-read-only (car comp))

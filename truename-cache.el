@@ -61,7 +61,8 @@
 (defvar truename-cache--true<>dir-abbr  (make-hash-table :test 'equal))
 (defvar truename-cache--true<>full-abbr (make-hash-table :test 'equal))
 
-(defun truename-cache--populate (truename &optional wild-files)
+(cl-defun truename-cache--populate
+    (truename &optional wild-files (case-fold (file-name-case-insensitive-p truename)))
   "Taking TRUENAME as the truename of WILD-FILES, add them to the cache.
 Return TRUENAME.
 WILD-FILES may be a string or a list of strings.
@@ -69,9 +70,12 @@ WILD-FILES may be a string or a list of strings.
 Even if WILD-FILES is nil, this caches the abbreviations of TRUENAME as
 well as TRUENAME itself, as wild file names it is possible to encounter.
 
-Warning: Make sure to have called `truename-cache--init-abbreviator'.
-See docstring `truename-cache--fast-full-abbrev'."
-  (let* ((case-fold-search (file-name-case-insensitive-p truename))
+CASE-FOLD is a boolean to which to bind `case-fold-search'.
+Defaults to `file-name-case-insensitive-p' for TRUENAME.
+
+For full theoretical correctness, you should make sure to have called
+`truename-cache--init-abbreviator' prior to calling this function."
+  (let* ((case-fold-search case-fold)
          (dir-abbr-true (directory-abbrev-apply truename))
          (full-abbr-true (truename-cache--fast-full-abbrev truename)))
     (puthash truename             truename truename-cache--wild<>true)
@@ -702,8 +706,7 @@ non-symlink file in REL-DIR, becomes the true name of that file."
                                       return-dirs)))
                   (push (cons resolved attr) truename-cache--results)
                   (when side-effect
-                    (let ((case-fold-search (file-name-case-insensitive-p resolved)))
-                      (truename-cache--populate resolved true-name))))
+                    (truename-cache--populate resolved true-name)))
                 (when (and resolved-is-dir
                            RECURSE
                            dirs-recursive-follow-symlinks
@@ -722,8 +725,7 @@ non-symlink file in REL-DIR, becomes the true name of that file."
      (setcar cell true-name)
      (push cell truename-cache--results)
      (when side-effect
-       (let ((case-fold-search case-fold-fs))
-         (truename-cache--populate true-name))))))
+       (truename-cache--populate true-name nil case-fold-fs)))))
 
 (provide 'truename-cache)
 

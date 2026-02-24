@@ -890,14 +890,14 @@ ELEMENT should be the output of `org-element-parse-buffer'."
 
 (defun org-gnosis--find-file-h ()
   "Enable `org-gnosis-mode' for org files in gnosis directories.
-Added to `find-file-hook'."
+Added to `org-mode-hook'."
   (when (and buffer-file-name
              (derived-mode-p 'org-mode)
              (or (file-in-directory-p buffer-file-name org-gnosis-dir)
                  (file-in-directory-p buffer-file-name org-gnosis-journal-dir)))
     (org-gnosis-mode 1)))
 
-(add-hook 'find-file-hook #'org-gnosis--find-file-h)
+(add-hook 'org-mode-hook #'org-gnosis--find-file-h)
 
 ;; Org-Gnosis Database
 

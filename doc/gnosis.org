@@ -41,16 +41,28 @@ This manual is written for Gnosis version {{{stable-version}}}, released on {{{r
 
 * Introduction
 
-Gnosis consists of a note taking module (=org-gnosis=) and a self
-testing module.
+Gnosis consists of a note-taking module (=org-gnosis=) and a
+self-testing module.  Users can utilize each module independently, but
+the intended workflow combines both:
 
-Users can utilize each Gnosis module independently, but the intended
-workflow begins with writing a note on a specific topic. After
-completing the note, the user creates themata (flashcard-like
-questions) related to the topic.
+1. Write notes on a topic with {{{kbd(M-x org-gnosis-find)}}}.
+2. Create themata (flashcard-like questions) related to the topic with
+   {{{kbd(M-x gnosis-add-thema)}}}.
+3. Link themata to note topics by inserting org-gnosis links in the
+   keimenon or parathema with {{{kbd(M-x org-gnosis-insert)}}}.
+4. Review themata with spaced repetition via {{{kbd(M-x gnosis-review)}}},
+   or review all themata linked to a specific topic via
+   {{{kbd(M-x gnosis-review-topic)}}}.
 
-These themata are then used for spaced repetition reviews utilizing
-the [[Gnosis Algorithm]].
+Gnosis and org-gnosis maintain separate SQLite databases.  The gnosis
+database stores themata, decks, review history, and links from themata
+to org-gnosis nodes.  The org-gnosis database stores nodes, tags, and
+links between nodes.  This separation allows each module to function
+independently while enabling the linked workflow described above.
+
+The spaced repetition algorithm is highly adjustable, allowing users
+to set specific values not just for thema decks but for tags as well.
+See [[Gnosis Algorithm]] for details.
 
 * Getting started Tutorial
 

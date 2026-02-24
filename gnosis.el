@@ -224,6 +224,10 @@ This is set automatically based on buffer type:
 
 (defvar gnosis-export-separator "\n- ")
 
+(defvar gnosis-save-hook nil
+  "Hook run after a successful `gnosis-save'.
+Each function is called with the saved thema ID (integer).")
+
 ;; TODO: Make this as a defcustom.
 (defvar gnosis-custom-values
   '((:deck "demo" (:proto (0 1 3) :anagnosis 3 :epignosis 0.5 :agnoia 0.3
@@ -1994,7 +1998,8 @@ Returns nil on success, or an error message string on failure."
 	 (gnosis--id-cache (let ((ht (make-hash-table :test 'equal)))
 			     (dolist (id (gnosis-select 'id 'themata nil t) ht)
 			       (puthash id t ht))))
-	 (errors nil))
+	 (errors nil)
+	 (edited-id (string-to-number (caar themata))))
     (emacsql-with-transaction gnosis-db
       (cl-loop for thema in themata
 	       for err = (gnosis-save-thema thema deck)
@@ -2002,7 +2007,8 @@ Returns nil on success, or an error message string on failure."
     (if errors
         (user-error "Failed to import %d thema(ta):\n%s"
                     (length errors) (mapconcat #'identity (nreverse errors) "\n"))
-      (gnosis-edit-quit))))
+      (gnosis-edit-quit)
+      (run-hook-with-args 'gnosis-save-hook edited-id))))
 
 ;;;###autoload
 (defun gnosis-save-deck (deck-name)

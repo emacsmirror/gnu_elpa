@@ -585,6 +585,8 @@ Otherwise, they are quietly skipped."
               (delete-dups
                (cl-loop
                 for dir in (delete-dups (append dirs-flat inferred-dirs))
+                when (or (not FULL-DIR-DENY-RE)
+                         (not (string-match-p FULL-DIR-DENY-RE dir)))
                 as true-dir = (file-name-as-directory (file-truename dir))
                 when (and (or (file-readable-p true-dir)
                               (if assert-readable

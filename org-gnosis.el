@@ -888,6 +888,17 @@ ELEMENT should be the output of `org-element-parse-buffer'."
       (add-hook 'after-save-hook #'org-gnosis-update-file nil t) ;; buffer local hook
     (remove-hook 'after-save-hook #'org-gnosis-update-file t)))
 
+(defun org-gnosis--find-file-h ()
+  "Enable `org-gnosis-mode' for org files in gnosis directories.
+Added to `find-file-hook'."
+  (when (and buffer-file-name
+             (derived-mode-p 'org-mode)
+             (or (file-in-directory-p buffer-file-name org-gnosis-dir)
+                 (file-in-directory-p buffer-file-name org-gnosis-journal-dir)))
+    (org-gnosis-mode 1)))
+
+(add-hook 'find-file-hook #'org-gnosis--find-file-h)
+
 ;; Org-Gnosis Database
 
 (defun org-gnosis--file-hash (file)

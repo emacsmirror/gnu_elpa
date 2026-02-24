@@ -329,6 +329,47 @@ SUSPEND: 1 to suspend, 0 or nil for active."
           (delete-file export-file))))))
 
 ;; ──────────────────────────────────────────────────────────
+;; Export: read-only property tests
+;; ──────────────────────────────────────────────────────────
+
+(ert-deftest gnosis-test-export-insert-thema-content ()
+  "Inserting a thema produces all sections (keimenon, hypothesis, answer, parathema)."
+  (with-temp-buffer
+    (gnosis-export--insert-thema "1" "basic" "Question?" "- hint" "- answer" "extra"
+				 '("tag1" "tag2"))
+    (let ((text (buffer-substring-no-properties (point-min) (point-max))))
+      (should (string-match-p "\\*\\* Keimenon" text))
+      (should (string-match-p "Question?" text))
+      (should (string-match-p "\\*\\* Hypothesis" text))
+      (should (string-match-p "- hint" text))
+      (should (string-match-p "\\*\\* Answer" text))
+      (should (string-match-p "- answer" text))
+      (should (string-match-p "\\*\\* Parathema" text))
+      (should (string-match-p "extra" text)))))
+
+(ert-deftest gnosis-test-export-insert-thema-read-only-no-leak ()
+  "Read-only on PROPERTIES block does not leak into content sections."
+  (with-temp-buffer
+    (gnosis-export--insert-thema "1" "basic" "Q" "H" "A" "P" '("t"))
+    (goto-char (point-min))
+    (search-forward "** Keimenon")
+    (should-not (get-text-property (point) 'read-only))
+    (search-forward "Q")
+    (should-not (get-text-property (match-beginning 0) 'read-only))))
+
+(ert-deftest gnosis-test-export-multiple-themata-no-read-only-error ()
+  "Inserting multiple themata in sequence does not signal text-read-only."
+  (with-temp-buffer
+    (gnosis-export--insert-thema "1" "basic" "Q1" "H1" "A1" "P1" '("t"))
+    (gnosis-export--insert-thema "2" "cloze" "Q2" "H2" "A2" "P2" '("t"))
+    (gnosis-export--insert-thema "3" "mcq" "Q3" "H3" "A3" "P3" '("t"))
+    (let ((text (buffer-substring-no-properties (point-min) (point-max))))
+      (should (string-match-p "GNOSIS_ID: 1" text))
+      (should (string-match-p "GNOSIS_ID: 2" text))
+      (should (string-match-p "GNOSIS_ID: 3" text))
+      (should (string-match-p "Q3" text)))))
+
+;; ──────────────────────────────────────────────────────────
 ;; ID cache tests
 ;; ──────────────────────────────────────────────────────────
 

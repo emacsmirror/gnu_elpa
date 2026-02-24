@@ -625,6 +625,8 @@ When called with a prefix, unsuspend all themata of deck."
   :keymap gnosis-dashboard-mode-map
   :interactive nil
   (setq-local header-line-format nil)
+  ;; Character "…" can mess up column-width depending on the font used.
+  (setq-local truncate-string-ellipsis "...")
   ;; Dashboard always centers content
   (setq-local gnosis-center-content t)
   (setq tabulated-list-padding 2

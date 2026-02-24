@@ -1,3 +1,73 @@
+
++ [[https://thanosapollo.org/projects/gnosis/][Homepage]]
++ [[https://git.thanosapollo.org/gnosis/][Upstream]]
++ [[https://thanosapollo.org/log/gnosis/][Changelog]]
+
+* 0.7.0
+#+DATE: 2026/02/24
+** New features
++ Review topic from dashboard nodes view (~r~), with configurable
+  forward-link and backlink depth (~R~ or ~C-u r~).
++ ~gnosis-review-topic~ accepts separate forward/backlink depth to
+  include themata from related nodes.
++ ~gnosis-save-hook~ runs after saving a thema, called with the
+  thema ID.
++ Link integrity detection and repair commands
+  (~gnosis-links-check~, ~gnosis-links-sync~).
++ Dashboard maintenance menu for syncing/rebuilding nodes and link
+  health checks.
++ Dashboard shows themata with orphaned links.
++ View due org-gnosis nodes linked to themata from dashboard.
++ Bulk replace string in keimenon with org-gnosis node link.
++ Custom ~gnosis-center-content-during-review~ option.
++ Delete action available during review.
++ Format org-gnosis links in keimenon during review output.
++ Export deck option to include or exclude suspended themata.
++ Exported decks include a =#+THEMATA:= header with thema count.
++ Importing into an existing deck prompts for confirmation.
++ Failed thema imports report the source file line number.
+
+** Dashboard
++ Added nodes dashboard, view org-gnosis nodes information including
+  backlinks and linked themata as well as start a review session.
++ Suspend column displays =Yes= =No= instead of =1= =0=.
++ Flatten Actions submenu into the home menu.
++ Separate Import/Export into its own menu column.
++ Four-column layout: Navigate, Actions, Import/Export, Maintenance.
+
+
+** Algorithm
++ Cap gnosis-synolon at =gnosis-algorithm-synolon-max= (default 3.0),
+  floor at 1.3.
++ Add interval fuzz to prevent review clustering.
++ Fix lethe event: properly reduce gnosis-plus on consecutive failures.
+
+** Performance
++ Dashboard suspend, delete, and edit update only the affected entry
+  instead of refreshing the entire buffer.
++ Dashboard nodes view uses bulk queries for link counts (2 queries
+  instead of 2N).
++ Deck export uses 2 bulk queries instead of 2 per thema (N+1 eliminated).
++ Deck export uses plain text insertion instead of per-thema buffer scans (O(n^2) eliminated).
++ Deck import wraps all operations in a single transaction with
+  pre-cached IDs (10K fsyncs reduced to 1).
++ Review updates use a single DB query.
++ Tag output uses a single DB call.
++ Average daily reviews computed with a single DB call.
+
+** Bug fixes
++ Fix ~gnosis-monkeytype~ hook leak (now buffer-local).
++ Fix ~vc-pull~ to reopen database properly after successful pull.
++ Pre-load ~emacsql-sqlite-builtin~ to fix ~cl-generic~ dispatch crash
+  on Emacs 29+.
+
+** Documentation
++ Update Introduction to describe the intended workflow with =org-gnosis=
+  (write notes, create themata, link, review).
++ Document the two separate databases (gnosis and org-gnosis).
++ Update dashboard section for new menu layout.
++ Add Import & Export section with export options and import behavior.
+
 * 0.6.0
 #+DATE: 2026/01/26
 ** New features

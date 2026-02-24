@@ -182,23 +182,20 @@ DATE: Integer, used with `gnosis-algorithm-date' to get previous dates."
 (defun gnosis-dashboard-suspend-thema ()
   "Suspend thema."
   (interactive nil gnosis-dashboard-themata-mode)
-  (let ((current-line (line-number-at-pos)))
-    (gnosis-toggle-suspend-themata
-     (or gnosis-dashboard--selected-ids (list (tabulated-list-get-id))))
-    (gnosis-dashboard-output-themata gnosis-dashboard-thema-ids)
-    (revert-buffer t t t)
-    (forward-line (- current-line 1))))
+  (let ((ids (or gnosis-dashboard--selected-ids
+                 (list (tabulated-list-get-id)))))
+    (gnosis-toggle-suspend-themata ids)
+    (gnosis-dashboard--update-entries ids)
+    (setq gnosis-dashboard--selected-ids nil)))
 
 (defun gnosis-dashboard-delete ()
   "Delete thema."
   (interactive)
-  (let ((current-line (line-number-at-pos)))
-    (if gnosis-dashboard--selected-ids
-	(gnosis-dashboard-marked-delete)
-      (gnosis-delete-thema (tabulated-list-get-id))
-      (gnosis-dashboard-output-themata gnosis-dashboard-thema-ids)
-      (revert-buffer t t t))
-    (forward-line (- current-line 1))))
+  (if gnosis-dashboard--selected-ids
+      (gnosis-dashboard-marked-delete)
+    (let ((id (tabulated-list-get-id)))
+      (gnosis-delete-thema id)
+      (gnosis-dashboard--remove-entries (list id)))))
 
 (defun gnosis-dashboard-search-thema (&optional str)
   "Search for themata with STR."
@@ -308,19 +305,59 @@ If IDS is not provided, use current themata being displayed."
 			    :where (in themata:id ,(vconcat thema-ids))])))
     (cl-loop for sublist in entries
              collect
-	     (list (car sublist)
-                   (vconcat
-		    (cl-loop for item in (cdr sublist)
-			     if (listp item)
-			     collect (mapconcat (lambda (x) (format "%s" x)) item ",")
-			     else
-			     collect
-			     (let ((formatted (replace-regexp-in-string "\n" " " (format "%s" item))))
-                               ;; Strip org-link markup, keeping only descriptions
-                               (replace-regexp-in-string
-                                "\\[\\[id:[^]]+\\]\\[\\(.*?\\)\\]\\]"
-                                "\\1"
-                                formatted))))))))
+	     (let ((vec (vconcat
+			 (cl-loop for item in (cdr sublist)
+				  if (listp item)
+				  collect (mapconcat (lambda (x) (format "%s" x)) item ",")
+				  else
+				  collect
+				  (let ((formatted (replace-regexp-in-string "\n" " " (format "%s" item))))
+				    ;; Strip org-link markup, keeping only descriptions
+				    (replace-regexp-in-string
+				     "\\[\\[id:[^]]+\\]\\[\\(.*?\\)\\]\\]"
+				     "\\1"
+				     formatted))))))
+	       ;; Format suspend column (last) as Yes/No
+	       (aset vec (1- (length vec))
+		     (if (equal (aref vec (1- (length vec))) "1") "Yes" "No"))
+	       (list (car sublist) vec)))))
+
+(defun gnosis-dashboard--update-entries (ids)
+  "Re-fetch and update tabulated-list entries for IDS."
+  (let* ((new-entries (gnosis-dashboard--output-themata ids))
+         (update-map (make-hash-table :test 'equal)))
+    (dolist (entry new-entries)
+      (puthash (car entry) entry update-map))
+    (setq tabulated-list-entries
+          (mapcar (lambda (entry)
+                    (or (gethash (car entry) update-map) entry))
+                  tabulated-list-entries))
+    (tabulated-list-print t)))
+
+(defun gnosis-dashboard--remove-entries (ids)
+  "Remove tabulated-list entries for IDS."
+  (let ((id-set (make-hash-table :test 'equal)))
+    (dolist (id ids)
+      (puthash id t id-set))
+    (setq tabulated-list-entries
+          (cl-remove-if (lambda (entry) (gethash (car entry) id-set))
+                        tabulated-list-entries))
+    (setq gnosis-dashboard-thema-ids
+          (cl-remove-if (lambda (id) (gethash id id-set))
+                        gnosis-dashboard-thema-ids))
+    (tabulated-list-print t)))
+
+(defun gnosis-dashboard-update-entry (id)
+  "Update the tabulated-list entry for thema ID in place.
+Called from `gnosis-save-hook'."
+  (when gnosis-dashboard-themata-mode
+    (gnosis-dashboard--update-entries (list id))
+    (goto-char (point-min))
+    (while (and (not (eobp))
+                (not (equal (tabulated-list-get-id) id)))
+      (forward-line 1))))
+
+(add-hook 'gnosis-save-hook #'gnosis-dashboard-update-entry)
 
 (defun gnosis-dashboard-output-themata (thema-ids)
   "Return THEMA-IDS contents on gnosis dashboard."
@@ -716,14 +753,16 @@ DASHBOARD-TYPE: either Themata or Decks to display the respective dashboard."
   (when (y-or-n-p "Delete selected themata?")
     (cl-loop for thema in gnosis-dashboard--selected-ids
 	     do (gnosis-delete-thema thema t))
-    (gnosis-dashboard-return)))
+    (gnosis-dashboard--remove-entries gnosis-dashboard--selected-ids)
+    (setq gnosis-dashboard--selected-ids nil)))
 
 (defun gnosis-dashboard-marked-suspend ()
   "Suspend marked thema entries."
   (interactive)
   (when (y-or-n-p "Toggle SUSPEND on selected themata?")
     (gnosis-toggle-suspend-themata gnosis-dashboard--selected-ids nil)
-    (gnosis-dashboard-return)))
+    (gnosis-dashboard--update-entries gnosis-dashboard--selected-ids)
+    (setq gnosis-dashboard--selected-ids nil)))
 
 (transient-define-suffix gnosis-dashboard-suffix-query (query)
   "Search for thema content for QUERY."
@@ -849,17 +888,34 @@ Queries the gnosis database links table where dest = NODE-ID."
   "Get nodes data formatted for tabulated-list-mode.
 If NODE-IDS is provided, only get data for those nodes.
 Returns list of (ID [TITLE LINK-COUNT BACKLINK-COUNT THEMATA-LINKS-COUNT])."
-  (let ((nodes-data (org-gnosis-get-nodes-data node-ids)))
+  (let* ((nodes-data (org-gnosis-get-nodes-data node-ids))
+	 (all-ids (mapcar #'car nodes-data))
+	 ;; Bulk fetch forward links (1 query instead of N)
+	 (fwd-raw (if all-ids
+		      (org-gnosis-select '[source dest] 'links
+					 `(in source ,(vconcat all-ids)))
+		    (org-gnosis-select '[source dest] 'links)))
+	 (fwd-hash (let ((h (make-hash-table :test 'equal)))
+		     (dolist (link fwd-raw h)
+		       (puthash (nth 0 link)
+				(1+ (or (gethash (nth 0 link) h) 0)) h))))
+	 ;; Bulk fetch themata links (1 query instead of N)
+	 (themata-raw (if all-ids
+			  (gnosis-select '[dest source] 'links
+					 `(in dest ,(vconcat all-ids)))
+			(gnosis-select '[dest source] 'links)))
+	 (themata-hash (let ((h (make-hash-table :test 'equal)))
+			 (dolist (link themata-raw h)
+			   (puthash (nth 0 link)
+				    (1+ (or (gethash (nth 0 link) h) 0)) h)))))
     (mapcar
      (lambda (node)
        (let* ((id (nth 0 node))
-              (title (nth 1 node))
-              (forward-links (gnosis-dashboard-get-forward-link-ids id))
-              (link-count (number-to-string (length forward-links)))
-              (backlink-count (number-to-string (nth 2 node)))
-              (themata-links (gnosis-dashboard-get-themata-links id))
-              (themata-links-count (number-to-string (length themata-links))))
-         (list id (vector title link-count backlink-count themata-links-count))))
+	      (title (nth 1 node))
+	      (link-count (number-to-string (or (gethash id fwd-hash) 0)))
+	      (backlink-count (number-to-string (nth 2 node)))
+	      (themata-links-count (number-to-string (or (gethash id themata-hash) 0))))
+	 (list id (vector title link-count backlink-count themata-links-count))))
      nodes-data)))
 
 (defun gnosis-dashboard-nodes--show-related (get-ids-fn no-results-msg &optional display-fn)

@@ -1500,17 +1500,63 @@ FN: Review function, defaults to `gnosis-review-session'"
 	 (topic-id (caar (org-gnosis-select 'id 'nodes `(= title ,topic-title)))))
     topic-id))
 
+(defun gnosis-collect-nodes-at-depth (node-id &optional fwd-depth back-depth)
+  "Collect node IDs reachable from NODE-ID within depth limits.
+FWD-DEPTH is max hops for forward links (default 0).
+BACK-DEPTH is max hops for backlinks (default 0).
+Returns a deduplicated list including NODE-ID itself."
+  (let ((fwd-depth (or fwd-depth 0))
+	(back-depth (or back-depth 0))
+	(max-depth (max fwd-depth back-depth))
+	(visited (make-hash-table :test 'equal))
+	(queue (list node-id)))
+    (puthash node-id t visited)
+    (dotimes (level max-depth)
+      (when queue
+	(let* ((qvec (vconcat queue))
+	       (neighbors (append
+			   (when (< level fwd-depth)
+			     (org-gnosis-select 'dest 'links
+						`(in source ,qvec) t))
+			   (when (< level back-depth)
+			     (org-gnosis-select 'source 'links
+						`(in dest ,qvec) t))))
+	       (next-queue nil))
+	  (dolist (neighbor neighbors)
+	    (unless (gethash neighbor visited)
+	      (puthash neighbor t visited)
+	      (push neighbor next-queue)))
+	  (setq queue next-queue))))
+    (hash-table-keys visited)))
+
 ;;;###autoload
-(defun gnosis-review-topic (&optional node-id)
-  "Review gnosis for topic with NODE-ID."
-  (interactive)
+(defun gnosis-review-topic (&optional node-id fwd-depth back-depth)
+  "Review themata linked to topic NODE-ID.
+FWD-DEPTH and BACK-DEPTH control forward/backlink traversal depth.
+With prefix arg, prompt for depths."
+  (interactive
+   (list nil
+	 (when current-prefix-arg (read-number "Forward link depth: " 1))
+	 (when current-prefix-arg (read-number "Backlink depth: " 0))))
   (let* ((node-id (or node-id (gnosis-review--select-topic)))
-	 (node-title (car (org-gnosis-select 'title 'nodes `(= id ,node-id) t)))
-	 (gnosis-questions (gnosis-select 'source 'links `(= dest ,node-id) t)))
+	 (fwd-depth (or fwd-depth 0))
+	 (back-depth (or back-depth 0))
+	 (node-title (car (org-gnosis-select 'title 'nodes
+					     `(= id ,node-id) t)))
+	 (node-ids (if (or (> fwd-depth 0) (> back-depth 0))
+		       (gnosis-collect-nodes-at-depth
+			node-id fwd-depth back-depth)
+		     (list node-id)))
+	 (gnosis-questions (gnosis-select 'source 'links
+					  `(in dest ,(vconcat node-ids)) t)))
     (if (and gnosis-questions
-	     (y-or-n-p (format "Review %s thema(s) for '%s'?"
-			       (length gnosis-questions)
-			       node-title)))
+	     (y-or-n-p
+	      (format "Review %s thema(s) for '%s'%s?"
+		      (length gnosis-questions) node-title
+		      (if (> (length node-ids) 1)
+			  (format " (%d nodes, fwd:%d back:%d)"
+				  (length node-ids) fwd-depth back-depth)
+			""))))
 	(gnosis-review-session gnosis-questions)
       (message "No thema found for %s (id:%s)" node-title node-id))))
 

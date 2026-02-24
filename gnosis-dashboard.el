@@ -306,23 +306,19 @@ If IDS is not provided, use current themata being displayed."
 			    :join review-log :on (= themata:id review-log:id)
 			    :where (in themata:id ,(vconcat thema-ids))])))
     (cl-loop for sublist in entries
-             collect
-	     (let ((vec (vconcat
-			 (cl-loop for item in (cdr sublist)
-				  if (listp item)
-				  collect (mapconcat (lambda (x) (format "%s" x)) item ",")
-				  else
-				  collect
-				  (let ((formatted (replace-regexp-in-string "\n" " " (format "%s" item))))
-				    ;; Strip org-link markup, keeping only descriptions
-				    (replace-regexp-in-string
-				     "\\[\\[id:[^]]+\\]\\[\\(.*?\\)\\]\\]"
-				     "\\1"
-				     formatted))))))
-	       ;; Format suspend column (last) as Yes/No
-	       (aset vec (1- (length vec))
-		     (if (equal (aref vec (1- (length vec))) "1") "Yes" "No"))
-	       (list (car sublist) vec)))))
+	     for fields = (cl-loop for item in (cdr sublist)
+				   if (listp item)
+				   collect (mapconcat (lambda (x) (format "%s" x)) item ",")
+				   else collect
+				   (let ((formatted (replace-regexp-in-string "\n" " " (format "%s" item))))
+				     (replace-regexp-in-string
+				      "\\[\\[id:[^]]+\\]\\[\\(.*?\\)\\]\\]"
+				      "\\1" formatted)))
+	     ;; Last field is suspend (0/1) — format as Yes/No
+	     collect (list (car sublist)
+			   (vconcat (append (butlast fields)
+					    (list (if (equal (car (last fields)) "1")
+						      "Yes" "No"))))))))
 
 (defun gnosis-dashboard--update-entries (ids)
   "Re-fetch and update tabulated-list entries for IDS."
@@ -1199,6 +1195,18 @@ Moves cursor to the beginning of the buffer after sorting."
     ("t" "By tag" gnosis-dashboard-nodes-filter-by-tag)
     ("q" "Cancel" transient-quit-one)]])
 
+(defun gnosis-dashboard-nodes-review ()
+  "Review themata for node at point."
+  (interactive)
+  (gnosis-review-topic (tabulated-list-get-id)))
+
+(defun gnosis-dashboard-nodes-review-with-depth ()
+  "Review themata for node at point, prompting for link depths."
+  (interactive)
+  (gnosis-review-topic (tabulated-list-get-id)
+		       (read-number "Forward link depth: " 1)
+		       (read-number "Backlink depth: " 0)))
+
 (transient-define-prefix gnosis-dashboard-nodes-mode-menu ()
   "Transient menu for nodes dashboard mode."
   [["Navigate"
@@ -1214,7 +1222,10 @@ Moves cursor to the beginning of the buffer after sorting."
     ("b" "Show backlinks" gnosis-dashboard-nodes-show-backlinks)
     ("t" "Show themata links" gnosis-dashboard-nodes-show-themata-links)
     ("i" "Show isolated" gnosis-dashboard-nodes-show-isolated)
-    ("d" "Show due" gnosis-dashboard-nodes-show-due)]])
+    ("d" "Show due" gnosis-dashboard-nodes-show-due)]
+   ["Review"
+    ("r" "Review topic" gnosis-dashboard-nodes-review)
+    ("R" "Review with depth" gnosis-dashboard-nodes-review-with-depth)]])
 
 (defvar-keymap gnosis-dashboard-nodes-mode-map
   :doc "Keymap for nodes dashboard."
@@ -1226,6 +1237,8 @@ Moves cursor to the beginning of the buffer after sorting."
   "t" #'gnosis-dashboard-nodes-show-themata-links
   "i" #'gnosis-dashboard-nodes-show-isolated
   "d" #'gnosis-dashboard-nodes-show-due
+  "r" #'gnosis-dashboard-nodes-review
+  "R" #'gnosis-dashboard-nodes-review-with-depth
   "s" #'gnosis-dashboard-nodes-sort-menu
   "SPC" #'gnosis-dashboard-nodes-search-menu
   "l" #'gnosis-dashboard-nodes-filter-menu

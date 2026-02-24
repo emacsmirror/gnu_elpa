@@ -619,13 +619,14 @@ ARGS mostly as in `truename-cache-collect-files-and-attributes'."
   "Analyze TRUE-DIR, maybe recursively.
 ARGS mostly as in `truename-cache-collect-files-and-attributes'."
   (map-let (:keep-remotes :REMOTE-HANDLER-ALIST :LOCAL-HANDLER-ALIST) args
-    (let ((default-directory (file-name-as-directory true-dir)))
-      (if (file-remote-p true-dir)
-          (when keep-remotes
-            (let ((file-name-handler-alist REMOTE-HANDLER-ALIST))
-              (truename-cache--analyze-1 "" args true-dir)))
-        (let ((file-name-handler-alist LOCAL-HANDLER-ALIST))
-          (truename-cache--analyze-1 "" args true-dir))))))
+    (unless (gethash (directory-file-name true-dir) truename-cache--visited)
+      (let ((default-directory (file-name-as-directory true-dir)))
+        (if (file-remote-p true-dir)
+            (when keep-remotes
+              (let ((file-name-handler-alist REMOTE-HANDLER-ALIST))
+                (truename-cache--analyze-1 "" args true-dir)))
+          (let ((file-name-handler-alist LOCAL-HANDLER-ALIST))
+            (truename-cache--analyze-1 "" args true-dir)))))))
 
 (defun truename-cache--analyze-1 (rel-dir args true-dir)
   "Subroutine of `truename-cache--analyze'.

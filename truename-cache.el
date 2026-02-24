@@ -157,7 +157,8 @@ See alternatives:
   (unless (file-name-absolute-p wild)
     (setq wild (expand-file-name wild)))
   (or (gethash wild truename-cache--wild<>true)
-      (truename-cache--populate (file-truename wild) wild)))
+      (progn (truename-cache--init-abbreviator)
+             (truename-cache--populate (file-truename wild) wild))))
 
 (defun truename-cache-get-cached-p (wild)
   "Try to return the true name for file name WILD, or nil.
@@ -180,6 +181,7 @@ new truename only if it exists, else return nil."
       (and (file-exists-p wild)
            (let ((true (file-truename wild)))
              (when (file-exists-p true)
+               (truename-cache--init-abbreviator)
                (truename-cache--populate true wild))))))
 
 (defun truename-cache-get-exists-p (wild)
@@ -217,6 +219,7 @@ reasonable standard choice, which may get a shorter alias in the future."
         (when (file-exists-p wild)
           (setq true (file-truename wild))
           (when (file-exists-p true)
+            (truename-cache--init-abbreviator)
             (truename-cache--populate true wild))))))
 
 

@@ -98,6 +98,7 @@
 (defun gnosis-monkeytype-exit ()
   "Exit monkeytyping."
   (interactive nil gnosis-monkeytype-mode)
+  (remove-hook 'after-change-functions #'gnosis-monkeytype--handler t)
   (kill-buffer (current-buffer))
   (ignore-errors (throw 'monkeytype-loop t))
   (exit-recursive-edit))
@@ -129,7 +130,7 @@ Optionally, highlight MISTAKES."
 	(fill-paragraph)
 	(switch-to-buffer (get-buffer-create gnosis-monkeytype-buffer-name))
 	(goto-char (point-min))
-	(add-hook 'after-change-functions #'gnosis-monkeytype--handler)
+	(add-hook 'after-change-functions #'gnosis-monkeytype--handler nil t)
 	(recursive-edit)
 	(setq gnosis-monkeytype-wpm-result
 	      (gnosis-monkeytype--calculate-wpm text-formatted start-time))))))

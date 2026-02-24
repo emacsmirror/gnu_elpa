@@ -1099,33 +1099,31 @@ Returns a list of the form ((yyyy mm dd) (ef-increase ef-decrease ef-total))."
       :lethe (gnosis-get-thema-lethe id)))))
 
 (defun gnosis-review--update (id success)
-  "Update review-log for thema with value of id ID.
+  "Update review-log for thema ID.
 
 SUCCESS is a boolean value, t for success, nil for failure."
   (let* ((result (gnosis-review-algorithm id success))
 	 (next-rev (car result))
-	 (gnosis (cadr result)))
-    ;; Update activity-log
-    (gnosis-review-increment-activity-log (gnosis-review-is-thema-new-p id))
-    ;; Update review-log
-    (gnosis-update 'review-log `(= last-rev ',(gnosis-algorithm-date)) `(= id ,id))
-    (gnosis-update 'review-log `(= next-rev ',next-rev) `(= id ,id))
-    (gnosis-update 'review-log `(= n (+ 1 ,(gnosis-get 'n 'review-log `(= id ,id)))) `(= id ,id))
-    ;; Update review
-    (gnosis-update 'review `(= gnosis ',gnosis) `(= id ,id))
-    (if success
-	(progn (gnosis-update 'review-log
-			      `(= c-success ,(1+ (gnosis-get 'c-success 'review-log `(= id ,id))))
-			      `(= id ,id))
-	       (gnosis-update 'review-log
-			      `(= t-success ,(1+ (gnosis-get 't-success 'review-log `(= id ,id))))
-			      `(= id ,id))
-	       (gnosis-update 'review-log `(= c-fails 0) `(= id ,id)))
-      (gnosis-update 'review-log
-		     `(= c-fails ,(1+ (gnosis-get 'c-fails 'review-log `(= id ,id)))) `(= id ,id))
-      (gnosis-update 'review-log
-		     `(= t-fails ,(1+ (gnosis-get 't-fails 'review-log `(= id ,id)))) `(= id ,id))
-      (gnosis-update 'review-log `(= c-success 0) `(= id ,id)))))
+	 (gnosis-score (cadr result))
+	 (log (car (gnosis-select '[n c-success c-fails t-success t-fails]
+				  'review-log `(= id ,id))))
+	 (n (nth 0 log))
+	 (c-success (nth 1 log))
+	 (c-fails (nth 2 log))
+	 (t-success (nth 3 log))
+	 (t-fails (nth 4 log)))
+    (gnosis-review-increment-activity-log (not (> n 0)))
+    ;; Single review-log UPDATE
+    (emacsql gnosis-db
+	     "UPDATE review_log SET last_rev = $s1, next_rev = $s2, n = $s3, c_success = $s4, c_fails = $s5, t_success = $s6, t_fails = $s7 WHERE id = $s8"
+	     (gnosis-algorithm-date) next-rev (1+ n)
+	     (if success (1+ c-success) 0)
+	     (if success 0 (1+ c-fails))
+	     (if success (1+ t-success) t-success)
+	     (if success t-fails (1+ t-fails))
+	     id)
+    ;; Single review UPDATE
+    (gnosis-update 'review `(= gnosis ',gnosis-score) `(= id ,id))))
 
 (defun gnosis-review-result (id success)
   "Update review thema ID results for SUCCESS."

@@ -1,4 +1,4 @@
-;;; gnosis.el --- Spaced Repetition System  -*- lexical-binding: t; -*-
+;;; gnosis.el --- Knowledge System  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2023-2026  Free Software Foundation, Inc.
 
@@ -8,7 +8,7 @@
 
 ;; Version: 0.7.0
 
-;; Package-Requires: ((emacs "27.2") (emacsql "4.1.0") (compat "29.1.4.2") (transient "0.7.2") (org-gnosis "0.0.9"))
+;; Package-Requires: ((emacs "27.2") (emacsql "4.1.0") (compat "29.1.4.2") (transient "0.7.2") (org-gnosis "0.2.0"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -25,10 +25,11 @@
 
 ;;; Commentary:
 
-;; Gnosis is a learning tool that integrates a note-taking system with
-;; spaced repetition and self-testing.  It works together with
-;; org-gnosis, which provides a Zettelkasten-style note-taking system
-;; where notes (nodes) are org files indexed in an SQLite database.
+;; Gnosis is a personal knowledge management and review system that
+;; integrates a note-taking system with spaced repetition and
+;; self-testing.  It works together with org-gnosis, which provides a
+;; Zettelkasten-style note-taking system where notes (nodes) are org
+;; files indexed in an SQLite database.
 ;;
 ;; The intended workflow is:
 ;;

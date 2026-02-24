@@ -49,6 +49,8 @@
 
 ;;; Code:
 
+(defconst truename-cache-internal-version 10 "A number sometimes incremented.")
+
 (require 'cl-lib)
 (require 'map)
 (require 'seq)

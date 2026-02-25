@@ -2,7 +2,8 @@
 
 ;; Copyright (C) 2026  Free Software Foundation, Inc.
 ;;
-;; Author: David Arroyo Menéndez <d.arroyome@alumnos.urjc.es>
+;; Author: David Arroyo Menéndez <davidam@gmail.com>
+;; Keywords: Manual, Translation, Spanish, Español
 ;; Version: 0
 
 ;;; Commentary:

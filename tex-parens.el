@@ -162,6 +162,29 @@ delimiters which are visibly `left'/`opening' or `right'/`closing'."
 (defvar-local tex-parens--saved-beginning-of-defun-function nil)
 (defvar-local tex-parens--saved-end-of-defun-function nil)
 
+(defvar tex-parens--cache-generation 0
+  "Global generation counter for tex-parens regex caches.")
+
+(defvar-local tex-parens--buffer-cache-generation nil
+  "Generation number of tex-parens caches in the current buffer.")
+
+(defun tex-parens--mark-cache-dirty (_symbol _newval _operation where)
+  "Mark tex-parens caches dirty after delimiter option changes.
+WHERE is nil for default values or the buffer whose local value changes."
+  (if (bufferp where)
+      (with-current-buffer where
+        (setq tex-parens--buffer-cache-generation nil))
+    (cl-incf tex-parens--cache-generation)))
+
+(dolist (sym '(tex-parens-left-right-delimiter-pairs
+               tex-parens-solo-delimiters
+               tex-parens-left-right-modifier-pairs
+               tex-parens-solo-modifiers
+               tex-parens-other-parens
+               tex-parens-max-delim-length))
+  (unless (memq #'tex-parens--mark-cache-dirty (get-variable-watchers sym))
+    (add-variable-watcher sym #'tex-parens--mark-cache-dirty)))
+
 (defconst tex-parens--preview-auto-reveal-functions
   '(tex-parens-down-list
     tex-parens-backward-down-list)
@@ -187,7 +210,7 @@ delimiters which are visibly `left'/`opening' or `right'/`closing'."
     (dolist (func tex-parens--TeX-fold-auto-reveal-functions)
       (cl-pushnew func TeX-fold-auto-reveal-commands :test #'eq))))
 
-(defun tex-parens--ensure-caches ()
+(defun tex-parens--ensure-caches-1 ()
   "Build tex-parens delimiter and regexp caches for the current buffer."
   (setq tex-parens--pairs (tex-parens--generate-pairs))
   (setq tex-parens--pairs-swap
@@ -233,6 +256,14 @@ delimiters which are visibly `left'/`opening' or `right'/`closing'."
         (regexp-opt (mapcar #'car tex-parens-left-right-modifier-pairs)))
   (setq tex-parens--left-delimiter-regexp
         (regexp-opt (mapcar #'car tex-parens-left-right-delimiter-pairs))))
+
+(defun tex-parens--ensure-caches ()
+  "Ensure tex-parens regex caches are up to date in the current buffer."
+  (unless (and tex-parens--buffer-cache-generation
+               (= tex-parens--buffer-cache-generation
+                  tex-parens--cache-generation))
+    (tex-parens--ensure-caches-1)
+    (setq tex-parens--buffer-cache-generation tex-parens--cache-generation)))
 
 (defun tex-parens-setup ()
   "Set up tex-parens.  Intended as a hook for `tex-mode' or `TeX-mode'."
@@ -406,12 +437,14 @@ Assumes that REGEXP-REVERSE is the reverse of REGEXP."
 (defun tex-parens--forward-delim (&optional bound)
   "Search for the next delimiter up to BOUND.
 Return the delimiter found, or nil if none is found."
+  (tex-parens--ensure-caches)
   (unless bound (setq bound (tex-parens--forward-bound)))
   (tex-parens--search-forward tex-parens--regexp bound))
 
 (defun tex-parens--backward-delim (&optional bound)
   "Search for the previous delimiter up to BOUND.
 Return the delimiter found, or nil if none is found."
+  (tex-parens--ensure-caches)
   (unless bound (setq bound (tex-parens--backward-bound)))
   (tex-parens--search-backward
    tex-parens--regexp tex-parens--regexp-reverse bound))
@@ -420,6 +453,7 @@ Return the delimiter found, or nil if none is found."
   "Check if DELIM is opening, return the corresponding closing.
 If DELIM is an opening delimiter, return the corresponding closing
 delimiter.  Otherwise, return nil."
+  (tex-parens--ensure-caches)
   (or
    (cdr (assoc delim tex-parens--pairs))
    (and
@@ -446,6 +480,7 @@ delimiter.  Otherwise, return nil."
   "Check if DELIM is closing, return the corresponding opening.
 If DELIM is a closing delimiter, return the corresponding opening
 delimiter.  Otherwise, return nil."
+  (tex-parens--ensure-caches)
   (or
    (cdr (assoc delim tex-parens--pairs-swap))
    (and (stringp delim)
@@ -931,8 +966,9 @@ and point is before (zot), \\[raise-sexp] will give you
 
 (defun tex-parens--slurp-left ()
   "Slurp the next sexp into the current one, to the left."
-  (when-let* ((pos (point))
-              (match (when (looking-at tex-parens--regexp+) (match-string 0))))
+  (tex-parens--ensure-caches)
+  (when-let ((pos (point))
+             (match (when (looking-at tex-parens--regexp+) (match-string 0))))
     (delete-region (point) (+ (point) (length match)))
     (condition-case nil
         (progn
@@ -946,6 +982,7 @@ and point is before (zot), \\[raise-sexp] will give you
 
 (defun tex-parens--barf-left ()
   "Barf the next sexp out of the current one, to the right."
+  (tex-parens--ensure-caches)
   (when-let* ((pos (point))
               (bound (max (point-min)
                           (- (point) tex-parens-max-delim-length)))
@@ -984,6 +1021,7 @@ If the point is before a quote, slurp the next sexp into the quote.
 If the point is after a quote, barf the last sexp out of the quote.
 Otherwise, call `self-insert-command'."
   (interactive)
+  (tex-parens--ensure-caches)
   (cond
    ((and
      (not (looking-back tex-parens--regexp-open+
@@ -1002,6 +1040,7 @@ Otherwise, call `self-insert-command'."
 
 (defun tex-parens--barf-right ()
   "Barf the next sexp out of the current one, to the right."
+  (tex-parens--ensure-caches)
   (let ((pos (point))
         (match (when (looking-at tex-parens--regexp+) (match-string 0))))
     (forward-char (length match))
@@ -1025,6 +1064,7 @@ Otherwise, call `self-insert-command'."
 
 (defun tex-parens--slurp-right ()
   "Slurp the next sexp into the current one, to the right."
+  (tex-parens--ensure-caches)
   (when-let* ((pos (point))
               (bound (max (point-min)
                           (- (point) tex-parens-max-delim-length)))
@@ -1055,6 +1095,7 @@ If the point is before a quote, slurp the next sexp into the quote.
 If the point is after a quote, barf the last sexp out of the quote.
 Otherwise, call `self-insert-command'."
   (interactive)
+  (tex-parens--ensure-caches)
   (cond
    ((and
      (not (looking-back tex-parens--regexp-open+
@@ -1181,6 +1222,7 @@ expressions, then copies the selected one to the kill ring."
 The symbol DIRECTION is either `increase' or `decrease'.  Point must be
 at the beginning of a left delimiter."
   (interactive)
+  (tex-parens--ensure-caches)
   (when (looking-at (concat "\\(" tex-parens--left-modifier-regexp "\\)?\\("
                             tex-parens--left-delimiter-regexp "\\)"))
     (let* ((start-pos (point))

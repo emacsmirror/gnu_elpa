@@ -198,10 +198,7 @@ set to `context', then return a patternf of the following form:
               (xref-file-name-display 'abs)
               (matches-in-files (xref-matches-in-files file-and-heading-id files))
               (xref-alist (xref--analyze matches-in-files)))
-    (mapcar
-     (lambda (x)
-       (denote-get-file-name-relative-to-denote-directory (car x)))
-     xref-alist)))
+    (mapcar (lambda (x) (car x)) xref-alist)))
 
 (define-obsolete-function-alias
   'denote-org-extras-backlinks-for-heading

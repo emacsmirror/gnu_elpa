@@ -327,15 +327,12 @@
   :doc "ellama.info")
  (emacs-gc-stats	:url "https://git.sr.ht/~yantar92/emacs-gc-stats"
   :ignored-files ("COPYING"))
- ;; (emacs-lisp-intro-es	:url "https://git.savannah.gnu.org/git/elisp-es.git"
- ;;  :make "emacs-lisp-intro-es.texi"
- ;;  :doc "emacs-lisp-intro-es.texi")
  (emacs-lisp-intro-es	:url "https://git.savannah.nongnu.org:/git/elisp-es.git"
   :make "emacs-lisp-intro-es.texi"
-  :doc "emacs-lisp-intro-es.texi")
+  :doc "emacs-lisp-intro-es.texi") ;; Can't use :pdf because texi2pdf fails!
  (emacs-lisp-intro-nl	:url "https://codeberg.org/mattof/emacs-lisp-intro-nl"
   :make "emacs-lisp-intro-nl.texi"
-  :doc "emacs-lisp-intro-nl.texi")
+  :doc "emacs-lisp-intro-nl.texi" :pdf t)
  ;; FIXME: Work in progress.  The copyright paperwork is ready.
  ;;(elsa		:url "https://github.com/emacs-elsa/Elsa")
  ;; (emacspeak		:url "https://github.com/tvraman/emacspeak"

@@ -329,7 +329,7 @@
   :ignored-files ("COPYING"))
  (emacs-lisp-intro-es	:url "https://git.savannah.nongnu.org:/git/elisp-es.git"
   :make "emacs-lisp-intro-es.texi"
-  :doc "emacs-lisp-intro-es.texi") ;; Can't use :pdf because texi2pdf fails!
+  :doc "emacs-lisp-intro-es.texi" :pdf t)
  (emacs-lisp-intro-nl	:url "https://codeberg.org/mattof/emacs-lisp-intro-nl"
   :make "emacs-lisp-intro-nl.texi"
   :doc "emacs-lisp-intro-nl.texi" :pdf t)

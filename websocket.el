@@ -199,45 +199,37 @@ Return the value as an unsigned integer.  The value N must be a
 power of 2, up to 8.
 
 In Emacs<28, we support getting frames only up to 536870911 bytes (2^29 - 1),
-approximately 537M long."
+approximately 537M long.
+
+This is only used in situations where `bindat-type' is not available."
   (unless (memq n '(1 2 4 8))
     (error "websocket-get-bytes: Unknown N: %S" n))
-  (websocket--if-when-compile (fboundp 'bindat-type) ;Emacs≥28
-      (condition-case nil
-          (let ((val (bindat-unpack (bindat-type uint (* 8 n)) s)))
-            (if (and (= n 8) (> (ash val -63) 0))
-                (signal 'websocket-unparseable-frame
-                        (list "Frame value found too large to parse!"))
-              val))
-        (args-out-of-range (signal 'websocket-unparseable-frame
-                                   (list "Frame ended before all bytes were read!"))))
-    (if (= n 8)
-        (let* ((32-bit-parts
-                (bindat-get-field (bindat-unpack '((:val vec 2 u32)) s) :val))
-               (cval
-                (logior (ash (aref 32-bit-parts 0) 32) (aref 32-bit-parts 1))))
-          (if (and (= (aref 32-bit-parts 0) 0)
-                   (= (ash (aref 32-bit-parts 1) -29) 0))
-              cval
-            (signal 'websocket-unparseable-frame
-                    (list "Frame value found too large to parse!"))))
-      ;; n is not 8
-      (bindat-get-field
-       (condition-case _
-           (bindat-unpack
-            `((:val
-               ,(cond ((= n 1) 'u8)
-                      ((= n 2) 'u16)
-                      ((= n 4) 'u32)
-                      ;; This is an error with the library,
-                      ;; not a user-facing, meaningful error.
-                      (t (error
-                          "websocket-get-bytes: Unknown N: %S" n)))))
-            s)
-         (args-out-of-range (signal 'websocket-unparseable-frame
-                                    (list (format "Frame unexpectedly short: %s" s)))))
-       :val))))
-
+  (if (= n 8)
+      (let* ((32-bit-parts
+              (bindat-get-field (bindat-unpack '((:val vec 2 u32)) s) :val))
+             (cval
+              (logior (ash (aref 32-bit-parts 0) 32) (aref 32-bit-parts 1))))
+        (if (and (= (aref 32-bit-parts 0) 0)
+                 (= (ash (aref 32-bit-parts 1) -29) 0))
+            cval
+          (signal 'websocket-unparseable-frame
+                  (list "Frame value found too large to parse!"))))
+    ;; n is not 8
+    (bindat-get-field
+     (condition-case _
+         (bindat-unpack
+          `((:val
+             ,(cond ((= n 1) 'u8)
+                    ((= n 2) 'u16)
+                    ((= n 4) 'u32)
+                    ;; This is an error with the library,
+                    ;; not a user-facing, meaningful error.
+                    (t (error
+                        "websocket-get-bytes: Unknown N: %S" n)))))
+          s)
+       (args-out-of-range (signal 'websocket-unparseable-frame
+                                  (list (format "Frame unexpectedly short: %s" s)))))
+     :val)))
 
 (defun websocket-to-bytes (val nbytes)
   "Encode the unsigned integer VAL in NBYTES of data.
@@ -357,27 +349,27 @@ We mask the frame or not, depending on SHOULD-MASK."
                                          (`ping         9)
                                          (`pong         10))
                                        (if fin 128 0)))
-                           (when payloadp
-                             (list
-                              (logior
-                               (if should-mask 128 0)
-                               (cond ((< (length payload) 126) (length payload))
-                                     ((< (length payload) 65536) 126)
-                                     (t 127)))))
-                           (when (and payloadp (>= (length payload) 126))
-                             (append (websocket-to-bytes
-                                      (length payload)
-                                      (cond ((< (length payload) 126)
-                                             1) ;FIXME: 0?  Impossible?
-                                            ((< (length payload) 65536) 2)
-                                            (t 8)))
-                                     nil))
-                           (when (and payloadp should-mask)
-                             (append mask-key nil))
-                           (when payloadp
-                             (append (if should-mask (websocket-mask mask-key payload)
-                                       payload)
-                                     nil)))))
+                              (when payloadp
+                                (list
+                                 (logior
+                                  (if should-mask 128 0)
+                                  (cond ((< (length payload) 126) (length payload))
+                                        ((< (length payload) 65536) 126)
+                                        (t 127)))))
+                              (when (and payloadp (>= (length payload) 126))
+                                (append (websocket-to-bytes
+                                         (length payload)
+                                         (cond ((< (length payload) 126)
+                                                1) ;FIXME: 0?  Impossible?
+                                               ((< (length payload) 65536) 2)
+                                               (t 8)))
+                                        nil))
+                              (when (and payloadp should-mask)
+                                (append mask-key nil))
+                              (when payloadp
+                                (append (if should-mask (websocket-mask mask-key payload)
+                                          payload)
+                                        nil)))))
              ;; We have to make sure the non-payload data is a full 32-bit frame
              (if (= 1 (length val))
                  (append val '(0)) val)))))
@@ -1005,7 +997,7 @@ All these parameters are defined as in `websocket-open'."
                 (concat
                  (mapconcat
                   (lambda (protocol) (format "Sec-WebSocket-Protocol: %s"
-                                        protocol))
+                                             protocol))
                   protocols separator)
                  separator)))
             (let ((extensions (websocket-intersect
@@ -1015,7 +1007,7 @@ All these parameters are defined as in `websocket-open'."
                 (concat
                  (mapconcat
                   (lambda (extension) (format "Sec-Websocket-Extensions: %s"
-                                         extension))
+                                              extension))
                   extensions separator)
                  separator)))
             separator)))

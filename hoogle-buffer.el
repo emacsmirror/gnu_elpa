@@ -4,10 +4,10 @@
 
 ;; Created: February 06, 2024
 ;; License: GPL-3.0-or-later
-;; Version: 0.2.1
+;; Version: 0.6.0
 ;; Keywords: docs languages
 ;; Homepage: https://codeberg.org/rahguzar/consult-hoogle
-;; Package-Requires: ((emacs "27.1") (haskell-mode "16.1"))
+;; Package-Requires: ((emacs "27.1"))
 
 ;; This file is part of GNU Emacs.
 

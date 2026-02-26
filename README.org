@@ -88,7 +88,9 @@ I've not tried that.  However, the truename-based method brings some upsides.
 
 1. It's more hacker-friendly: when something needs debugging, better to see a file name than some meaningless inode number.
 
-2. Once you have a list of true names, it is very easy to manipulate.
+2. With inodes, you must make an arbitrary choice of which of any two duplicates to keep as "canonical".
+
+3. Once you have a list of true names, it is easy to sort, filter and manipulate correctly.
 
    The assumption that they are true leads to other safe assumptions, such as that an alphabetic sort automatically groups by directory.
 

@@ -137,7 +137,10 @@ I've not tried that.  However@comma{} the truename-based method brings some upsi
 It's more hacker-friendly: when something needs debugging@comma{} better to see a file name than some meaningless inode number.
 
 @item
-Once you have a list of true names@comma{} it is very easy to manipulate.
+With inodes@comma{} you must make an arbitrary choice of which of any two duplicates to keep as "canonical".
+
+@item
+Once you have a list of true names@comma{} it is easy to sort@comma{} filter and manipulate correctly.
 
 The assumption that they are true leads to other safe assumptions@comma{} such as that an alphabetic sort automatically groups by directory.
 

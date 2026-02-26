@@ -49,7 +49,7 @@
 
 ;;; Code:
 
-(defconst truename-cache-internal-version 10 "A number sometimes incremented.")
+(defconst truename-cache-internal-version 11 "A number sometimes incremented.")
 
 (require 'cl-lib)
 (require 'map)
@@ -176,7 +176,9 @@ In other words, never use `file-truename'."
 
 Like `truename-cache-get', but on a cache miss, pass WILD to
 `file-truename' only if WILD exists now, then cache and return the
-new truename only if it exists, else return nil."
+new truename only if it exists, else return nil.
+
+Has alias `truename-cache-get-p'."
   (unless (file-name-absolute-p wild)
     (setq wild (expand-file-name wild)))
   (or (gethash wild truename-cache--wild<>true)
@@ -209,7 +211,8 @@ make sense to invoke `truename-cache-invalidate', instead.  Or work only
 with names output by `truename-cache-collect-files-and-attributes'.
 
 As of 2026-02-18, the author regards `truename-cache-get-existed-p' as a
-reasonable standard choice, which may get a shorter alias in the future."
+reasonable standard choice, which is why it has the alias
+`truename-cache-get-p'."
   (unless (file-name-absolute-p wild)
     (setq wild (expand-file-name wild)))
   (let ((true (gethash wild truename-cache--wild<>true)))
@@ -239,7 +242,9 @@ Behave like `truename-cache-get-cached-p'."
 
 (defun truename-cache-get-dir-abbrev-existed-p (wild)
   "Probable truename of WILD with `directory-abbrev-apply' applied, or nil.
-Behave like `truename-cache-get-existed-p'."
+Behave like `truename-cache-get-existed-p'.
+
+Has alias `truename-cache-get-dir-abbrev-p'."
   (gethash (truename-cache-get-existed-p wild) truename-cache--true<>dir-abbr))
 
 (defun truename-cache-get-dir-abbrev-exists-p (wild)
@@ -262,13 +267,22 @@ Behave like `truename-cache-get-cached-p'."
 
 (defun truename-cache-get-full-abbrev-existed-p (wild)
   "Probable truename of WILD with `abbreviate-file-name' applied, or nil.
-Behave like `truename-cache-get-existed-p'."
+Behave like `truename-cache-get-existed-p'.
+
+Has alias `truename-cache-get-full-abbrev-p'."
   (gethash (truename-cache-get-existed-p wild) truename-cache--true<>full-abbr))
 
 (defun truename-cache-get-full-abbrev-exists-p (wild)
   "Probable truename of WILD with `abbreviate-file-name' applied, or nil.
 Behave like `truename-cache-get-exists-p'."
   (gethash (truename-cache-get-exists-p wild) truename-cache--true<>full-abbr))
+
+
+;;;; Short aliases for the variant you are most likely to use:
+
+(defalias 'truename-cache-get-p             'truename-cache-get-existed-p)
+(defalias 'truename-cache-get-dir-abbrev-p  'truename-cache-get-dir-abbrev-existed-p)
+(defalias 'truename-cache-get-full-abbrev-p 'truename-cache-get-full-abbrev-existed-p)
 
 
 ;;;; Ersatz `abbreviate-file-name':

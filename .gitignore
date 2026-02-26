@@ -9,6 +9,13 @@ auto-save-list
 tramp
 .\#*
 
+# texi2pdf
+*.aux
+*.cp
+*.cps
+*.log
+*.toc
+
 # Org-mode
 .org-id-locations
 *_archive
@@ -68,3 +75,4 @@ flycheck_*.el
 /emacs-lisp-intro-nl.texi
 /emacs-lisp-intro-nl.info
 /emacs-lisp-intro-nl.html
+/emacs-lisp-intro-nl.pdf

@@ -6,7 +6,7 @@ Additional fill commands for PHP code editing.
 
 [[images/string-literal.gif]]
 
-** Conditionally use ‘NOSQUEEZ’ on c and c++ style comments.
+** Conditionally use ‘NOSQUEEZE’ on spaces between words in c and c++ style comments.
 
 [[images/nosqueez.gif]]
 

@@ -1,11 +1,13 @@
 *.aux
 *.cp
+*.cps
 *.html
 *.info
 *.log
 *.tmp?
 *.toc
 *.dvi
+*.elc
 
 /emacs-lisp-intro-es.texi
 emacs-lisp-intro*.pdf

@@ -49,7 +49,7 @@ dvi: $(DVI_TARGETS)
 ${infodir}/eintr: ${INFO_SOURCES_ES}
 	cd $(srcdir); $(MAKEINFO) emacs-lisp-intro-es.texi -o $(infodir)/eintr
 
-emacs-lisp-intro-es.texi: ${INFO_SOURCES}
+emacs-lisp-intro-es.texi: ${INFO_SOURCES} ${srcdir}/emacs-lisp-intro-es.po
 	cd $(srcdir); 						      \
 	$(PO4ATRANSLATE) -f texinfo -m emacs-lisp-intro.texi 	      \
 	    -p emacs-lisp-intro-es.po -a emacs-lisp-intro-es.addendum \

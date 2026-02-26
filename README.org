@@ -14,9 +14,9 @@ $ sudo apt-get install texlive make texi2html po4a texinfo
 * Create object files
 
 #+BEGIN_SRC bash
-$ ./dotexi.sh 
 $ make emacs-lisp-intro-es.html
 $ make emacs-lisp-intro-es.pdf
+$ make emacs-lisp-intro-es.info
 #+END_SRC
 
 * Clean files
@@ -24,6 +24,11 @@ $ make emacs-lisp-intro-es.pdf
 #+BEGIN_SRC bash
 $ make clean
 #+END_SRC
+
+* Contributing
+
+The upstream repository is maintained
+at https://savannah.nongnu.org/p/elisp-es
 
 * License
 Copyright (C) 2014 David Arroyo Menéndez

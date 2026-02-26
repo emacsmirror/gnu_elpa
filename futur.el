@@ -3,7 +3,7 @@
 ;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
-;; Version: 1.0
+;; Version: 1.1
 ;; Keywords: concurrency, async, promises, futures
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -125,9 +125,10 @@
 
 ;;; News:
 
-;; Since 1.0:
+;; Version 1.1:
 
 ;; - New functions: `futur-race', `futur-sit-for', `futur-url-retrieve'.
+;; - New function `futur-concurrency-bound' when you need to limit concurrency.
 ;; - Rename `futur-error' to `futur-failed'.
 ;; - Rename `futur-register-callback' to `futur--register-callback'.
 ;; - Rename `futur-ize' to `futur--ize'.
@@ -196,7 +197,8 @@ that it is not empty."
       (with-no-warnings ,@body))))
 
 (defun futur--background ()
-  (let ((futur--in-background t))
+  (let ((futur--in-background t)
+        (inhibit-quit t))
     (while t
       (let ((pending
              (with-mutex futur--pending-mutex
@@ -227,9 +229,10 @@ time or order of execution."
       (apply #'run-with-timer 0 nil args)
     (with-mutex futur--pending-mutex
       (futur--queue-enqueue futur--pending args)
-      ;; FIXME: Maybe we should have combination
+      ;; FIXME: Maybe we should have a combo
       ;; `mutex-unlock+condition-notify', i.e. a variant of
-      ;; `condition-notify' which doesn't regrab the lock?
+      ;; `condition-notify' which doesn't regrab the lock, since it's
+      ;; common to do `condition-notify' at the end of a critical section.
       (condition-notify futur--pending-condition))))
 
 (defvar futur--idle-loop-bug80286
@@ -641,49 +644,85 @@ Returns non-nil if it waited the full TIME."
   ;; that's already run (or been canceled).
   (unless (timer--triggered timer) (cancel-timer timer)))
 
-;;;; Processes
+;;;; Bounding concurrent resource usage
 
-(defvar futur-process-max
+;; This is a crude support to limit the amount of concurrency.
+;;
+;; We could limit it automatically within `futur-process-call'
+;; and/or `url-retrieve', but in practice it can be preferable
+;; to apply the limit "higher up" in the call-tree.
+;; E.g. for `smerge-refine' rather than prepare right away the inputs
+;; to all the `diff' processes and then bound the number of concurrent
+;; processes, it can be preferable to apply the "delay until CPU is
+;; available" not just to the actual process but also to the preparation
+;; of the input files (e.g. so we don't uselessly prepare all those
+;; input files if we end up aborting the futures before the `diff's
+;; get to run).
+;;
+;; There's a lot more we could do, but I don't think we have enough
+;; experience to be sure what we'll need, really.
+;; Possible future needs:
+;;
+;; - Support for things like `nice' when launching processes.
+;; - Distinguish different resources.  E.g. rather than just N concurrent
+;;   futures, each future could specify what it consumes (as in CPU-vs-network
+;;   when comparing `url-retrieve' and `call-process').
+;; - Distinguish quantitative needs: the background native compiler
+;;   might prefer to bound its concurrency to 50% of the available CPUs,
+;;   while `diff-refine' might prefer to use more CPUs to reduce latency.
+
+(defvar futur-concurrency-bound
   (if (fboundp 'num-processors) ;; Emacs-28
       (num-processors) 2)
   "Maximum number of concurrent subprocesses.")
 
-(defvar futur--process-active nil
+(defvar futur--concurrency-bound-active nil
   "List of active process-futures.")
 
-(defvar futur--process-waiting (futur--queue)
+(defvar futur--concurrency-bound-waiting (futur--queue)
   "Queue of futures waiting to start
 Each element is of the form (FUTURE FUN . ARGS).")
 
-(defun futur--process-bounded (&rest args)
-  (if (< (length futur--process-active) futur-process-max)
-      (futur--process-bounded-start args)
+(defun futur-concurrency-bound (func &rest args)
+  "Call FUNC with ARGS while limiting the amount of concurrency.
+FUNC should also return a `futur'.  Returns a `futur' with the same value.
+The amount of concurrently active futures is determined by the variable
+`futur-concurrency-bound' and considers only those futures constructed
+via the function `futur-concurrency-bound'."
+  (if (< (length futur--concurrency-bound-active) futur-concurrency-bound)
+      (futur--concurrency-bound-start func args)
     (let ((new (futur--waiting 'waiting)))
-      (futur--queue-enqueue futur--process-waiting (cons new args))
+      (futur--queue-enqueue futur--concurrency-bound-waiting
+                            `(,new ,func . ,args))
       new)))
 
-(defun futur--process-bounded-start (args)
-  (let ((new (apply #'funcall args)))
-    (push new futur--process-active)
+(defun futur--concurrency-bound-start (func args)
+  ;; FIXME: Call FUNC in an "empty" dynamic context!
+  (let ((new (apply func args)))
+    (push new futur--concurrency-bound-active)
     (futur--register-callback
-     new (oclosure-lambda (futur--aux) (_ _) (futur--process-next new)))
+     new (oclosure-lambda (futur--aux) (_ _)
+           (futur--concurrency-bound-next new)))
     new))
 
-(defun futur--process-next (done)
-  (setq futur--process-active (delq done futur--process-active))
+(defun futur--concurrency-bound-next (done)
+  (setq futur--concurrency-bound-active
+        (delq done futur--concurrency-bound-active))
   (cl-block nil
-    (while (not (futur--queue-empty-p futur--process-waiting))
+    (while (not (futur--queue-empty-p futur--concurrency-bound-waiting))
       (pcase-let ((`(,fut . ,call)
-                   (futur--queue-dequeue futur--process-waiting)))
+                   (futur--queue-dequeue futur--concurrency-bound-waiting)))
         (pcase fut
           ((futur--waiting)
-           (let ((new (futur--process-bounded-start call)))
+           (let ((new (futur--concurrency-bound-start (car call) (cdr call))))
              (futur--register-callback
               new (lambda (err val) (futur--deliver fut err val)))
              (cl-return))))))))
 
 (cl-defmethod futur-blocker-abort ((_ (eql 'waiting)) _error)
   nil)
+
+;;;; Processes
 
 (defun futur--process-completed-p (proc)
   (memq (process-status proc) '(exit signal closed failed)))
@@ -736,7 +775,6 @@ The DISPLAY argument is ignored: redisplay always happens."
                  :filter (if (bufferp destination) nil
                            #'futur-process-call--filter)))
          (proc (pcase-exhaustive futur ((futur--waiting blocker) blocker))))
-    (push futur futur--process-active)
     (when (stringp destination)
       (write-region "" nil destination nil 'silent))
     (pcase-exhaustive infile

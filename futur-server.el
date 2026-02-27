@@ -56,7 +56,9 @@
         ;; as well print them bare.
         (print-symbols-bare t))
     (princ sid t)
-    (prin1 sexp t)
+    (condition-case err
+        (prin1 sexp t)
+      (t (prin1 `(:print-error . ,err) t)))
     (princ futur--elisp-impossible-string t)
     (terpri t)))
 

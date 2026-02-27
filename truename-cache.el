@@ -19,6 +19,7 @@
 ;; URL:      https://github.com/meedstrom/truename-cache
 ;; Created:  2026-02-16
 ;; Keywords: lisp
+;; Package-Version: 0.3.4
 ;; Package-Requires: ((emacs "27.1") (compat "30.1"))
 
 ;; Minimum Emacs 27+ because of these NEWS.27 items:

@@ -1,3 +1,12 @@
+2026-02-27  Mats Lidell  <matsl@gnu.org>
+
+* test/hywiki-yki-tests.el (hywiki-test--insert-with-point): Remove. Reuse
+    similar function from hywiki-tests.el instead.
+    (hywiki-test--get-buffer-text-with-point-and-highlight): Change to a
+    more lifelike test that behaves the same in batch as interactively to
+    solve the issue with the failing test for now. Use
+    hywiki-tests--insert-by-char and remove not needed hywiki-mode calls. 
+
 2026-02-26  Bob Weiner  <rsw@gnu.org>
 
 * hywiki.el (hywiki-word-strip-suffix): Fix to strip any leading or trailing #

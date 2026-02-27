@@ -519,5 +519,78 @@ the hash correct, then checking with actual file (same content, newer mtime)."
       (when (buffer-live-p buf1) (kill-buffer buf1))
       (when (buffer-live-p buf2) (kill-buffer buf2)))))
 
+;;; ---- Group 9: org-gnosis-insert-template ----
+
+(ert-deftest org-gnosis-test-format-template-level-2 ()
+  "At a level-2 heading, %s becomes ***."
+  (with-temp-buffer
+    (org-mode)
+    (insert "** Atropine\n")
+    (goto-char (point-min))
+    (should (string= "*** Notes\n"
+                      (org-gnosis--format-template "%s Notes\n")))))
+
+(ert-deftest org-gnosis-test-format-template-level-1 ()
+  "At a level-1 heading, %s becomes **."
+  (with-temp-buffer
+    (org-mode)
+    (insert "* Top\n")
+    (goto-char (point-min))
+    (should (string= "** Sub\n"
+                      (org-gnosis--format-template "%s Sub\n")))))
+
+(ert-deftest org-gnosis-test-format-template-no-heading ()
+  "Outside any heading, %s becomes *."
+  (with-temp-buffer
+    (org-mode)
+    (insert "Just text\n")
+    (goto-char (point-min))
+    (should (string= "* Entry\n"
+                      (org-gnosis--format-template "%s Entry\n")))))
+
+(ert-deftest org-gnosis-test-format-template-multiple-placeholders ()
+  "Multiple %s placeholders all get the same stars."
+  (with-temp-buffer
+    (org-mode)
+    (insert "** Parent\n")
+    (goto-char (point-min))
+    (should (string= "*** A\n*** B\n"
+                      (org-gnosis--format-template "%s A\n%s B\n")))))
+
+(ert-deftest org-gnosis-test-insert-template-not-on-heading ()
+  "Error when point is not on a heading."
+  (with-temp-buffer
+    (org-mode)
+    (insert "Just text\n")
+    (goto-char (point-min))
+    (should-error (org-gnosis-insert-template) :type 'user-error)))
+
+(ert-deftest org-gnosis-test-insert-template-inserts-at-point ()
+  "Content is inserted at point with correct stars."
+  (with-temp-buffer
+    (org-mode)
+    (insert "** Atropine\n")
+    (goto-char (point-min))
+    (let ((org-gnosis-node-templates
+           '(("Drug" "%s Mechanism\n%s Adverse effects\n"))))
+      (org-gnosis-insert-template)
+      (should (string-match-p "\\*\\*\\* Mechanism" (buffer-string)))
+      (should (string-match-p "\\*\\*\\* Adverse effects" (buffer-string))))))
+
+;;; ---- Group 10: org-gnosis--eval-template ----
+
+(ert-deftest org-gnosis-test-eval-template-string ()
+  "Plain string is returned as-is."
+  (should (string= "hello" (org-gnosis--eval-template "hello"))))
+
+(ert-deftest org-gnosis-test-eval-template-function ()
+  "Function is called and its return value used."
+  (should (string= "from-fn"
+                    (org-gnosis--eval-template (lambda () "from-fn")))))
+
+(ert-deftest org-gnosis-test-eval-template-empty-string ()
+  "Empty string is returned as-is."
+  (should (string= "" (org-gnosis--eval-template ""))))
+
 (provide 'org-gnosis-test-db)
 ;;; org-gnosis-test-db.el ends here

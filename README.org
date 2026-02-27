@@ -82,13 +82,13 @@ In that case, this library only sets itself apart from your solution by the fact
 
 * Appendix: On referring to inodes instead of truenames
 
-I have a theory that if de-dup is all you want, it would be possible by making use of the function =file-attribute-file-identifier=.
+I have a theory that if de-dup is all you want, it would be possible by making use of the Emacs 29 function =file-attribute-file-identifier=.
 
 I've not tried that.  However, the truename-based method brings some upsides.
 
 1. It's more hacker-friendly: when something needs debugging, better to see a file name than some meaningless inode number.
 
-2. With inodes, you must make an arbitrary choice of which of any two duplicates to keep as "canonical".
+2. With inodes, you must make an arbitrary choice about which of any two duplicates to keep as "canonical".
 
 3. Once you have a list of true names, it is easy to sort, filter and manipulate correctly.
 

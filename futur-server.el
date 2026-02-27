@@ -48,15 +48,15 @@
         ;; SWP aren't currently printed in a `read'able way, so we may
         ;; as well print them bare.
         (print-symbols-bare t))
-    (terpri t)
     (princ sid t)
     (prin1 sexp t)
     (terpri t)))
 
 (defun futur-elisp-server ()
   ;; We don't need a cryptographically secure ID, but just something that's
-  ;; *very* unlikely to occur by accident elsewhere.
-  (let ((sid (format "fes:%s "
+  ;; *very* unlikely to occur by accident elsewhere and which `read' wouldn't
+  ;; process without signaling an error.
+  (let ((sid (format "\n # \" # fes:%s "
                      (secure-hash 'sha1
                                   (format "%S:%S:%S"
                                           (random t) (current-time)

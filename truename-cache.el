@@ -212,7 +212,7 @@ make sense to invoke `truename-cache-invalidate', instead.  Or work only
 with names output by `truename-cache-collect-files-and-attributes'.
 
 As of 2026-02-18, the author regards `truename-cache-get-existed-p' as a
-reasonable standard choice, which is why it has the alias
+reasonable standard choice, which is why it has the short alias
 `truename-cache-get-p'."
   (unless (file-name-absolute-p wild)
     (setq wild (expand-file-name wild)))

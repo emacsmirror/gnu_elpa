@@ -49,7 +49,7 @@
 
 ;;; Code:
 
-(defconst truename-cache-internal-version 11 "A number sometimes incremented.")
+(defconst truename-cache-internal-version 12 "A number sometimes incremented.")
 
 (require 'cl-lib)
 (require 'map)

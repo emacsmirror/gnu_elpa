@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Apr-24 at 22:41:13
-;; Last-Mod:     22-Feb-26 at 23:14:29 by Bob Weiner
+;; Last-Mod:     26-Feb-26 at 23:16:36 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1490,12 +1490,13 @@ Each candidate is an alist with keys: file, line, text, and display."
 			     (not (hywiki-non-hook-context-p))
 			     (hywiki-word-at t t)))
          (ref (nth 0 ref-start-end))
+         (partial-page-name (hywiki-get-singular-wikiword ref))
          (start (nth 1 ref-start-end))
          (end (nth 2 ref-start-end)))
     (when start
       (let* ((default-directory hywiki-directory)
              (cmd (format "grep -nEH -r '^[ \t]*\\*+ +' ./*%s*%s"
-                          ref
+                          partial-page-name
                           hywiki-file-suffix))
              (output (shell-command-to-string cmd))
              (lines (split-string output "\n" t))
@@ -1507,6 +1508,16 @@ Each candidate is an alist with keys: file, line, text, and display."
         (when candidate-alist
           (list start end candidate-alist
                 :exclusive 'no
+                ;; For company, allow any non-delim chars in prefix
+                ;; :company-prefix-length t
+                ;; :company-prefix-dirty t
+                ;; Returning the prefix as (string . t) tells Company:
+                ;; 'This is the prefix, and yes, it is currently valid (dirty).'
+                ;; :company-prefix-snapshot (cons ref t)
+
+                ;; This prevents the minibuffer/Corfu/Company from
+                ;; re-parsing the # as a 'function quote' trigger.
+                :company-kind (lambda (_) 'keyword)
                 :annotation-function (lambda (_) " [HyWiki]")))))))
 
 (defun hywiki-create-referent-and-display (wikiword &optional prompt-flag)
@@ -1768,7 +1779,10 @@ simplifies to:
              (hywiki--referent-reference-to-org-link reference referent description))))))
 
 (defun hywiki-maybe-at-wikiword-beginning ()
-  "Return non-nil if previous character is one preceding a HyWikiWord.
+  "Return non-nil if at bol or previous character is one preceding a HyWikiWord.
+When non-nil, the value returned is 0 for bol and the preceding character,
+otherwise.
+
 Do not test whether or not a page exists for the HyWikiWord.
 Use `hywiki-get-referent' to determine whether a HyWiki page exists."
   ;; Ignore wikiwords preceded by any non-whitespace character, except
@@ -1776,7 +1790,7 @@ Use `hywiki-get-referent' to determine whether a HyWiki page exists."
   (when (or (bolp)
 	    (string-match (regexp-quote (char-to-string (char-before)))
 			  "\[\(\{\<\"'`\t\n\r\f "))
-    t))
+    (or (char-before) 0)))
 
 (defun hywiki-directory-edit ()
   "Edit HyWiki pages in current `hywiki-directory'.
@@ -2069,6 +2083,8 @@ Add double quotes if the section contains any whitespace after trimming."
   (interactive "*P")
   (let ((ref (if arg (hywiki-word-read) (hywiki-page-read-reference))))
     (when ref
+      (when (string-match-p "\\s-" ref)
+	(setq ref (concat "\"" ref ""\")))
       (insert ref)
       (skip-chars-backward "\"")
       (goto-char (1- (point)))
@@ -2076,7 +2092,6 @@ Add double quotes if the section contains any whitespace after trimming."
 
 (defun hywiki-format-grep-to-reference (page-and-headline)
   "Return a HyWikiWord#section reference from PAGE-AND-HEADLINE.
-Call `hywiki-consult-page-and-headline' to generate PAGE-AND-HEADLINE.
 Add double quotes if the section contains any whitespace after trimming.
 
 Return t if PAGE-AND-HEADLINE is a valid string, else nil.  If the page name
@@ -2089,11 +2104,7 @@ therein is invalid, trigger an error."
           (setq line (string-trim line))
           ;; Drop '* ' prefix
           (setq line (hsys-org-format-heading line t t t t))
-          (format (if (string-match-p "\\s-" line)
-		      "\"%s#%s\""
-		    "%s#%s")
-	          page
-	          line))
+          (format "%s#%s" page line))
       (message "(hwiki-format-grep-to-reference): Parse error on: %s"
                page-and-headline)
       nil)))
@@ -3308,6 +3319,7 @@ variables."
   "Return PAGE-NAME with any optional #section:Lnum:Cnum stripped off.
 If an empty string or not a string, return nil."
   (when (and (stringp page-name) (not (string-empty-p page-name)))
+    (setq page-name (string-trim page-name "[# \t\n\r]+" "[# \t\n\r]+"))
     (if (and (string-match hywiki-word-with-optional-suffix-exact-regexp page-name)
 	     (or (match-beginning 2) (match-beginning 4)))
 	;; Remove any #section:Lnum:Cnum suffix in PAGE-NAME.
@@ -3957,11 +3969,23 @@ occurs with one of these hooks, the problematic hook is removed."
   (hywiki-get-referent-hasht)
   (hywiki-maybe-directory-updated))
 
+(defun hywiki-completion-exit-function ()
+  "Function called when HyWiki reference completion ends."
+  (hywiki-maybe-highlight-reference))
+
 (defun hywiki-word-add-completion-at-point ()
   "Add HyWiki refs in-buffer completion to `completion-at-point-functions'.
 Completion requires typing at least the two first characters of the
-completion or no completion candidates are returned."
-  (add-hook 'completion-at-point-functions #'hywiki-completion-at-point -90 t))
+completion or no completion candidates are returned.
+If using `company-mode', you must use the `company-capf' backend for HyWiki
+completion to work properly."
+  (add-hook 'completion-at-point-functions #'hywiki-completion-at-point -90 t)
+  (if (featurep 'company-mode)
+      (progn (add-hook 'company-completion-finished-hook
+                       #'hywiki-completion-exit-function)
+             (add-hook 'company-completion-cancelled-hook
+                       #'hywiki-completion-exit-function))
+    (advice-add 'completion--insert :after #'hywiki-completion-exit-function)))
 
 (defun hywiki-word-remove-completion-at-point ()
   "Remove HyWiki refs in-buffer completion from `completion-at-point-functions'."

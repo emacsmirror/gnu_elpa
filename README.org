@@ -3,17 +3,22 @@
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="../css/org.css" />
 #+AUTHOR: David Arroyo Menéndez 
 #+BABEL: :results output :session
-#+DATE: 2014
+#+DATE: 2026
 
 * Installation
-
+** Debian/Ubuntu
 #+BEGIN_SRC bash
 $ sudo apt-get install texlive make texi2html po4a texinfo
+#+END_SRC
+** MacOS
+#+BEGIN_SRC bash
+$ brew install texlive make texi2html po4a texinfo
 #+END_SRC
 
 * Create object files
 
 #+BEGIN_SRC bash
+$ ./dotexi.sh 
 $ make emacs-lisp-intro-es.html
 $ make emacs-lisp-intro-es.pdf
 $ make emacs-lisp-intro-es.info
@@ -29,6 +34,7 @@ $ make clean
 
 The upstream repository is maintained
 at https://savannah.nongnu.org/p/elisp-es
+
 
 * License
 Copyright (C) 2014 David Arroyo Menéndez

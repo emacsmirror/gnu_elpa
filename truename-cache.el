@@ -1,6 +1,6 @@
 ;;; truename-cache.el --- Efficiently de-dup file-names  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026 Martin Edström
+;; Copyright (C) 2026 Free Software Foundation, Inc.
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -49,7 +49,7 @@
 
 ;;; Code:
 
-(defconst truename-cache-internal-version 12 "A number sometimes incremented.")
+(defconst truename-cache-internal-version 13 "A number sometimes incremented.")
 
 (require 'cl-lib)
 (require 'map)

@@ -41,6 +41,7 @@
 ;; - Backlinks and forward link tracking
 ;; - Tag-based organization
 ;; - Daily journaling (single file or separate files per day)
+;; - Customizable templates for notes and journal entries
 ;; - SQLite database for indexing
 ;; - Hierarchical note structures
 ;; - Optional .gpg encryption
@@ -50,9 +51,16 @@
 ;; - `org-gnosis-find': Find or create a note
 ;; - `org-gnosis-insert': Insert a link to a note
 ;; - `org-gnosis-journal': Open today's journal entry
+;; - `org-gnosis-insert-template': Insert template at current heading
 ;; - `org-gnosis-find-by-tag': Find notes by tag
 ;; - `org-gnosis-visit-backlinks': Visit notes linking to current note
 ;; - `org-gnosis-db-sync': Sync database with files
+;;
+;; Templates:
+;; Customize `org-gnosis-node-templates' and
+;; `org-gnosis-journal-templates' to define reusable content structures.
+;; Templates support both static strings and dynamic functions, with
+;; automatic heading-level adjustment via %s placeholders.
 ;;
 ;;; Code:
 
@@ -73,16 +81,62 @@
 
 (defcustom org-gnosis-journal-templates
   '(("Default" (lambda () (format "** Daily Notes\n\n** Goals\n%s" (org-gnosis-todos))))
-    ("Empty" (lambda () "")))
-  "Templates for journaling."
-  :type '(repeat (cons (string :tag "Name")
-                       (function :tag "Template Function"))))
+    ("Empty" ""))
+  "Templates for journal entries.
+
+Each entry is (NAME VALUE) where VALUE is either:
+  - A string template with \"%s\" placeholders for heading stars
+  - A function returning a string template
+
+Templates are inserted when creating new journal entries or via
+`org-gnosis-insert-template' in journal files.
+
+In string templates, \"%s\" is replaced with the appropriate
+number of stars for the current heading level + 1.  Use \"%%\"
+for a literal percent sign.
+
+Examples:
+  (\"Simple\" \"%s Todo\\n%s Notes\\n\")
+    → Creates two level-2 headings under a level-1 journal entry
+
+  (\"Dynamic\" (lambda ()
+                (concat \"%s Tasks [0%%]\\n\"
+                        (org-gnosis-todos))))
+    → Creates heading with dynamic TODO list from agenda files"
+  :type '(repeat (list (string :tag "Name")
+                       (choice (string :tag "Template String")
+                               (function :tag "Template Function")))))
 
 (defcustom org-gnosis-node-templates
-  '(("Default" (lambda () "")))
-  "Templates for nodes."
-  :type '(repeat (cons (string :tag "Name")
-                       (function :tag "Template Function"))))
+  '(("Notes" "%s Notes\n\n%s References\n")
+    ("Empty" ""))
+  "Templates for node files.
+
+Each entry is (NAME VALUE) where VALUE is either:
+  - A string template with \"%s\" placeholders for heading stars
+  - A function returning a string template
+
+Templates are inserted when creating new nodes or via
+`org-gnosis-insert-template' in node files.
+
+In string templates, \"%s\" is replaced with the appropriate
+number of stars for the current heading level + 1.  Use \"%%\"
+for a literal percent sign.
+
+Examples:
+  (\"Drug\" \"%s Mechanism\\n%s Clinical Uses\\n\")
+    → Creates two subheadings
+
+  (\"Custom\" (lambda ()
+               (let ((date (format-time-string \"%Y-%m-%d\")))
+                 (concat \"%s Created: \" date \"\\n\"))))
+    → Dynamic template with current date
+
+Note: Template functions should use `concat' rather than `format'
+to avoid escaping conflicts with \"%s\" placeholders."
+  :type '(repeat (list (string :tag "Name")
+                       (choice (string :tag "Template String")
+                               (function :tag "Template Function")))))
 
 (defcustom org-gnosis-journal-dir (expand-file-name "journal" org-gnosis-dir)
   "Gnosis journal directory."
@@ -164,7 +218,8 @@ If nil, journal entries are created as separate files in
     (goto-char (point-max))
     (insert (format "* %s\n" title))
     (org-id-get-create)
-    (insert (org-gnosis-select-template org-gnosis-journal-templates))))
+    (insert (org-gnosis--format-template
+             (org-gnosis-select-template org-gnosis-journal-templates)))))
 
 (defvar org-gnosis-db--connection nil)
 
@@ -535,7 +590,7 @@ EXTRAS: The template to be inserted at the start."
 	(insert (format "#+title: %s\n#+filetags: \n" title))
 	(org-mode)
 	(org-id-get-create)
-	(when extras (insert extras))))
+	(when extras (insert (org-gnosis--format-template extras)))))
     (switch-to-buffer buffer)
     (org-gnosis-mode 1)))
 
@@ -602,17 +657,23 @@ Returns a list of (ID) pairs for nodes that have TAG."
 	 (node (completing-read "Select node: " node-titles nil t)))
     (org-gnosis-find node)))
 
-(defun org-gnosis-select-template (templates)
-  "Select journal template from TEMPLATES.
+(defun org-gnosis--eval-template (value)
+  "Evaluate template VALUE.
+If VALUE is a function, call it.  Otherwise return it as a string."
+  (if (functionp value)
+      (funcall value)
+    value))
 
-If templates is only item, return it without a prompt."
-  (let* ((template (if (= (length templates) 1)
-                       (cdar templates)
-                     (cdr (assoc
-			   (funcall org-gnosis-completing-read-func "Select template:"
-                                    (mapcar #'car templates))
-                           templates)))))
-    (funcall (apply #'append template))))
+(defun org-gnosis-select-template (templates)
+  "Prompt for and evaluate a template from TEMPLATES.
+If TEMPLATES has a single entry, use it without prompting."
+  (let* ((entry (if (= (length templates) 1)
+                    (car templates)
+                  (assoc (funcall org-gnosis-completing-read-func
+                                  "Select template: "
+                                  (mapcar #'car templates))
+                         templates))))
+    (org-gnosis--eval-template (cadr entry))))
 
 ;;;###autoload
 (defun org-gnosis-insert (arg &optional journal-p)
@@ -669,6 +730,46 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
 	(org-set-tags tags)
       (dolist (tag tags)
 	(org-gnosis-insert-filetag tag)))))
+
+(defun org-gnosis--format-template (template)
+  "Format TEMPLATE string, replacing %s with heading stars.
+Uses current heading level + 1, defaulting to level 1 if not at a heading."
+  (let ((stars (make-string (1+ (or (org-current-level) 0)) ?*)))
+    (format-spec template `((?s . ,stars)))))
+
+(defun org-gnosis--template-list ()
+  "Return the template list appropriate for the current buffer."
+  (if (and buffer-file-name
+           (file-in-directory-p buffer-file-name org-gnosis-journal-dir))
+      org-gnosis-journal-templates
+    org-gnosis-node-templates))
+
+;;;###autoload
+(defun org-gnosis-insert-template ()
+  "Insert template content at the current org heading.
+
+Automatically selects from `org-gnosis-journal-templates' or
+`org-gnosis-node-templates' based on the current buffer's location.
+
+Template strings with \"%s\" placeholders are replaced with the
+appropriate heading stars (current level + 1).  For example, at a
+level-2 heading, \"%s Notes\" becomes \"*** Notes\".
+
+Point must be on an org heading when called.  The template is
+inserted after point, and point position is preserved.
+
+Example usage in config:
+  (setq org-gnosis-journal-templates
+        \\='((\"Daily\" \"%s Tasks\\n%s Notes\\n\")
+          (\"Planning\" my-planning-template-function)))
+
+where my-planning-template-function returns a string with %s placeholders."
+  (interactive)
+  (unless (org-at-heading-p)
+    (user-error "Point must be on an org heading"))
+  (let ((content (org-gnosis--format-template
+                  (org-gnosis-select-template (org-gnosis--template-list)))))
+    (save-excursion (insert "\n" content))))
 
 ;;;###autoload
 (defun org-gnosis-visit-backlinks ()

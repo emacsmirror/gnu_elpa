@@ -12,6 +12,14 @@
     (hywiki-maybe-at-wikiword-beginning): Change when non-nil return value to
     be the preceding char or if at bol, then 0.
 
+2026-02-25  Mats Lidell  <matsl@gnu.org>
+
+* .github/workflows/docs.yml: New workflow
+
+* Makefile (TEXICMD): Fail build on errors
+    (doc-clean): Use make foreach for removing doc build artifacts. (Avoid
+    bash brace expansion.) Remove README.md.html and README.toc.md.
+
 2026-02-25  Bob Weiner  <rsw@gnu.org>
 
 * hbut.el (hbut:modify-syntax): Treat # as a symbol constituent to support

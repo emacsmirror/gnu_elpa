@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Apr-24 at 22:41:13
-;; Last-Mod:     26-Feb-26 at 23:16:36 by Bob Weiner
+;; Last-Mod:     27-Feb-26 at 00:25:56 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1518,7 +1518,9 @@ Each candidate is an alist with keys: file, line, text, and display."
                 ;; This prevents the minibuffer/Corfu/Company from
                 ;; re-parsing the # as a 'function quote' trigger.
                 :company-kind (lambda (_) 'keyword)
-                :annotation-function (lambda (_) " [HyWiki]")))))))
+                :annotation-function (lambda (_) " [HyWiki]")
+                ;; Corfu uses this
+                :exit-function (lambda (&rest _) (hywiki-completion-exit-function))))))))
 
 (defun hywiki-create-referent-and-display (wikiword &optional prompt-flag)
   "Display the HyWiki referent for WIKIWORD if not in an ert test; return it.
@@ -3980,16 +3982,21 @@ completion or no completion candidates are returned.
 If using `company-mode', you must use the `company-capf' backend for HyWiki
 completion to work properly."
   (add-hook 'completion-at-point-functions #'hywiki-completion-at-point -90 t)
-  (if (featurep 'company-mode)
-      (progn (add-hook 'company-completion-finished-hook
-                       #'hywiki-completion-exit-function)
-             (add-hook 'company-completion-cancelled-hook
-                       #'hywiki-completion-exit-function))
-    (advice-add 'completion--insert :after #'hywiki-completion-exit-function)))
+  (cond ((bound-and-true-p corfu-mode)) ;; Uses :exit-function in hywiki-c-a-p
+        ((bound-and-true-p company-mode)
+         (add-hook 'company-completion-finished-hook
+                   #'hywiki-completion-exit-function)
+         (add-hook 'company-completion-cancelled-hook
+                   #'hywiki-completion-exit-function))
+        ;; Default completion
+        (t (advice-add 'completion--insert :after #'hywiki-completion-exit-function))))
 
 (defun hywiki-word-remove-completion-at-point ()
   "Remove HyWiki refs in-buffer completion from `completion-at-point-functions'."
-  (remove-hook 'completion-at-point-functions #'hywiki-completion-at-point t))
+  (remove-hook 'completion-at-point-functions #'hywiki-completion-at-point t)
+  (remove-hook 'company-completion-finished-hook  #'hywiki-completion-exit-function)
+  (remove-hook 'company-completion-cancelled-hook #'hywiki-completion-exit-function)
+  (advice-remove 'completion--insert #'hywiki-completion-exit-function))
 
 (defun hywiki-word-highlight-buffers (buffers)
   "Setup HyWikiWord auto-highlighting and highlight in BUFFERS."

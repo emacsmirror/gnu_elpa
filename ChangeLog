@@ -11,6 +11,8 @@
     completion exit hooks that support normal completion, company and corfu.
     (hywiki-maybe-at-wikiword-beginning): Change when non-nil return value to
     be the preceding char or if at bol, then 0.
+    (hywiki-word-add-completion-at-point, hywiki-completion-at-point):
+    Add support for Corfu with :exit-function.
 
 2026-02-25  Mats Lidell  <matsl@gnu.org>
 

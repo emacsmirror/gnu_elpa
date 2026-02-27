@@ -6,7 +6,7 @@
 #+TEXINFO_DIR_CATEGORY: Emacs
 #+TEXINFO_DIR_TITLE: Truename-Cache: (truename-cache).
 #+TEXINFO_DIR_DESC: Efficiently de-dup file-names.
-#+HTML: <a href="https://melpa.org/#/truename-cache"><img alt="MELPA" src="https://melpa.org/packages/truename-cache-badge.svg"/></a> <a href="https://stable.melpa.org/#/truename-cache"><img alt="MELPA Stable" src="https://stable.melpa.org/packages/truename-cache-badge.svg"/></a>
+#+HTML: <a href="https://repology.org/project/emacs%3Atruename-cache/versions"> <img src="https://repology.org/badge/vertical-allrepos/emacs%3Atruename-cache.svg" alt="Packaging status" align="right"> </a>
 
 #+begin_quote
 [!WARNING]

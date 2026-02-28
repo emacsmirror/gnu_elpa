@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Apr-24 at 22:41:13
-;; Last-Mod:     27-Feb-26 at 00:25:56 by Bob Weiner
+;; Last-Mod:     28-Feb-26 at 01:39:39 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -277,7 +277,7 @@ Use nil for no HyWiki mode indicator."
   "List of referent type symbols that support # and :L line number suffixes.")
 
 (defvar hywiki-file-suffix ".org"
-  "File suffix (including period) to use when creating HyWiki pages.")
+  "File suffix string (including period) to use when creating HyWiki pages.")
 
 ;;;###autoload
 (defun hywiki-let-directory (option value)
@@ -1490,13 +1490,13 @@ Each candidate is an alist with keys: file, line, text, and display."
 			     (not (hywiki-non-hook-context-p))
 			     (hywiki-word-at t t)))
          (ref (nth 0 ref-start-end))
-         (partial-page-name (hywiki-get-singular-wikiword ref))
          (start (nth 1 ref-start-end))
-         (end (nth 2 ref-start-end)))
+         (end (nth 2 ref-start-end))
+         (partial-page-name ref))
     (when start
       (let* ((default-directory hywiki-directory)
-             (cmd (format "grep -nEH -r '^[ \t]*\\*+ +' ./*%s*%s"
-                          partial-page-name
+             (cmd (format "grep -nEH '^([ \t]*\\*+|#\\+TITLE:) +' ./*%s*%s"
+                          (regexp-quote partial-page-name)
                           hywiki-file-suffix))
              (output (shell-command-to-string cmd))
              (lines (split-string output "\n" t))
@@ -3971,7 +3971,7 @@ occurs with one of these hooks, the problematic hook is removed."
   (hywiki-get-referent-hasht)
   (hywiki-maybe-directory-updated))
 
-(defun hywiki-completion-exit-function ()
+(defun hywiki-completion-exit-function (&rest _)
   "Function called when HyWiki reference completion ends."
   (hywiki-maybe-highlight-reference))
 

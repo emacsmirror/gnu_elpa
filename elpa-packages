@@ -885,6 +885,9 @@
  (trinary		:url "https://github.com/emacs-elsa/trinary-logic")
  (triples		:url "https://github.com/ahyatt/triples"
   :readme "README.org")
+ (truename-cache        :url "https://github.com/meedstrom/truename-cache"
+  :readme ignore
+  :doc "README.org")
  (ulisp-repl		:url "https://git.sr.ht/~fitzsim/ulisp-repl")
  (undo-tree		:url "https://gitlab.com/tsc25/undo-tree"
   ;; FIXME: The upstream of `undo-tree' has diverged.  I tried to

@@ -1,5 +1,10 @@
 2026-02-28  Bob Weiner  <rsw@gnu.org>
 
+* test/hmouse-drv-tests.el (hbut-man-apropos-test):
+  test/hibtypes-tests.el (ibtypes::man-apropos-test):
+  test/demo-tests.el (demo-man-apropos-test): (require 'man) to prevent
+    any batch run failure.
+
 * hibtypes.el (man-apropos): Rewrite to simplify and target modern Emacs.
   hbut.el (ibut:label-separator-regexp): Remove newlines from this regexp
     to fix bug where when creating a new ibut will insert <[name]> and then

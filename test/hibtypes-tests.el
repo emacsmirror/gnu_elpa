@@ -290,7 +290,7 @@
 (ert-deftest ibtypes::man-apropos-test ()
   (with-temp-buffer
     (insert "rm (1)   - remove")
-    (goto-char 4)
+    (goto-char 2)
     (with-mock
      (mock (man "rm(1)") => t)
      (ibtypes::man-apropos))))

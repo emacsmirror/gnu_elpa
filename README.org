@@ -705,7 +705,7 @@ Denote Org is meant to be a collective effort.  Every bit of help matters.
 
 + Author/maintainer :: Protesilaos Stavrou.
 + Contributions to code or the manual :: Peter Prevos, Vedang Manerikar.
-+ Ideas and user feedback :: GCamp6, Matt Nolan, Tonus.
++ Ideas and user feedback :: GCamp6, Jung Han, Matt Nolan, Tonus.
 
 * GNU Free Documentation License
 :PROPERTIES:

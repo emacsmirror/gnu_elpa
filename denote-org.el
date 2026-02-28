@@ -577,9 +577,8 @@ format."
              ;; The style we have now is what we have had since this
              ;; feature was first introduced.  But maybe users prefer
              ;; to have a different format.
-             (lambda (file)
-               (let* ((file-type (denote-filetype-heuristics file))
-                      (title (denote-retrieve-title-or-filename file file-type))
+             (lambda (file file-type)
+               (let* ((title (denote-retrieve-title-or-filename file file-type))
                       (identifier (denote-retrieve-filename-identifier file))
                       (date (denote-id-to-date identifier)))
                  (format "%s (%s)" title date)))

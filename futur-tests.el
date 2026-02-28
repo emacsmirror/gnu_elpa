@@ -25,6 +25,7 @@
 ;;; Code:
 
 (require 'futur)
+(require 'futur-client)
 (require 'ert)
 
 (ert-deftest futur--resignal ()
@@ -177,6 +178,12 @@
       (push (futur-concurrency-bound #'futur-timeout 0.1) futures))
     (futur-blocking-wait-to-get-result (apply #'futur-list futures))
     (should (<= 0.4 (- (float-time) start) 0.5))))
+
+(ert-deftest futur-elisp-server ()
+  (let* ((futur (futur--elisp-get-process))
+         (proc (futur-blocking-wait-to-get-result futur)))
+    (should (process-get proc 'futur--ready))
+    (should (null (process-get proc 'futur--destination)))))
 
 (provide 'futur-tests)
 ;;; futur-tests.el ends here

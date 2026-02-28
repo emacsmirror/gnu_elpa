@@ -31,6 +31,13 @@
 
 ;;;; Base protocol
 
+;; (require 'trace)
+;; (trace-function 'futur--read-stdin)
+;; (trace-function 'futur--print-stdout)
+
+(defconst futur--elisp-impossible-string "\n# \"# "
+  "String that will necessarily cause `read' to signal an error.")
+
 (defun futur--read-stdin ()
   "Read a sexp from a single line on stdin."
   (unless noninteractive (error "futur--read-stdin works only in batch mode"))
@@ -50,39 +57,45 @@
         (print-symbols-bare t))
     (princ sid t)
     (prin1 sexp t)
+    (princ futur--elisp-impossible-string t)
     (terpri t)))
 
 (defun futur-elisp-server ()
   ;; We don't need a cryptographically secure ID, but just something that's
   ;; *very* unlikely to occur by accident elsewhere and which `read' wouldn't
   ;; process without signaling an error.
-  (let ((sid (format "\n # \" # fes:%s "
-                     (secure-hash 'sha1
-                                  (format "%S:%S:%S"
-                                          (random t) (current-time)
-                                          (emacs-pid))))))
+  (let* ((sid (format " fes:%s "
+                      (secure-hash 'sha1
+                                   (format "%S:%S:%S"
+                                           (random t) (current-time)
+                                           (emacs-pid)))))
+         (sid-sym (intern (string-trim sid))))
     (futur--print-stdout :ready sid)
     (while t
       (let ((input (condition-case err (cons :read-success (futur--read-stdin))
                      (t err))))
-        (if (not (eq :read-success (car-safe input)))
-            ;; FIXME: We can get an `end-of-file' error if the input line
-            ;; is not a complete sexp but also if stdin was closed.
-            ;; To distinguish the two it seems we have to look at
-            ;; the actual error string :-(.
-            (if (equal input '(end-of-file "Error reading from stdin"))
-                (kill-emacs)
-              (futur--print-stdout `(:read-error . ,input) sid))
-          ;; Confirm we read successfully so the client can
-          ;; distinguish where problems come from.
-          (let ((rid (cadr input)))
-            (futur--print-stdout `(:read-success ,rid) sid)
-            (let ((result
-                   (condition-case err
-                       `(:funcall-success ,rid
-                         . ,(apply #'funcall (cddr input)))
-                     (t `(:funcall-error ,rid . ,err)))))
-              (futur--print-stdout result sid))))))))
+        (pcase input
+          ;; Check `sid-sym' for every request, since we may have just read
+          ;; "successfully" the garbage that follows a failed read.
+          (`(:read-success ,(pred (eq sid-sym)) ,rid ,func . ,args)
+           ;; Confirm we read successfully so the client can
+           ;; distinguish where problems come from.
+           (futur--print-stdout `(:read-success ,rid) sid)
+           (let ((result
+                  (condition-case err
+                      `(:funcall-success ,rid . ,(apply func args))
+                    (t `(:funcall-error ,rid . ,err)))))
+             (futur--print-stdout result sid)))
+          (`(:read-success . ,rest)
+           (futur--print-stdout `(:unrecognized-request . ,rest) sid))
+          (_
+           ;; FIXME: We can get an `end-of-file' error if the input line
+           ;; is not a complete sexp but also if stdin was closed.
+           ;; To distinguish the two it seems we have to look at
+           ;; the actual error string :-(.
+           (if (equal input '(end-of-file "Error reading from stdin"))
+               (kill-emacs)
+             (futur--print-stdout `(:read-error . ,input) sid))))))))
                                  
 
 (provide 'futur-server)

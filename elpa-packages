@@ -629,6 +629,7 @@
   :ignored-files ("LICENSE"))
  ;; FIXME: Waiting for copyright paperwork from Brandon Webster.
  ;;(org-drill		:url "https://gitlab.com/phillord/org-drill")
+ (org-mem               :url "https://github.com/meedstrom/org-mem")
  (org-modern		:url "https://github.com/minad/org-modern"
   :doc "README.org"
   :news "CHANGELOG.org"

@@ -163,7 +163,7 @@ You can also compile with =make=, generate the documentation with
 install Org with =make install=.  Please run =make help= to get the
 list of compilation/installation options.
 
-For more detailed explanations on Org's build system, please check the
+For more detailed explanations of Org's build system, please check the
 Org Build System page on [[https://orgmode.org/worg/dev/org-build-system.html][Worg]].
 
 *** Installing Org's contributed packages
@@ -259,7 +259,7 @@ respect the
 [[https://www.gnu.org/philosophy/kind-communication.html][GNU Kind
 Communications Guidelines]] when sending messages on this mailing
 list.  Please allow up to one month for a response and follow up if
-no response is received on the bug report.
+no response is received to the bug report.
 
 #+findex: org-version
 #+findex: org-submit-bug-report

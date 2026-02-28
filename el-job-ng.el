@@ -480,13 +480,15 @@ ID, MAX-SECS and MESSAGE as in `el-job-ng-await'."
         (delete-process proc))))
   (let ((stderr (el-job-ng-stderr id)))
     (when (buffer-live-p stderr)
-      (kill-buffer stderr))))
+      (kill-buffer stderr)))
+  (oset (el-job-ng-get-job id) process-outputs nil))
 
 (defun el-job-ng-kill-keep-bufs (id)
   "Kill processes for job ID."
   (dolist (proc (el-job-ng-processes id))
     (set-process-sentinel proc #'ignore)
-    (delete-process proc)))
+    (delete-process proc))
+  (oset (el-job-ng-get-job id) process-outputs nil))
 
 (defun el-job-ng-stderr (id)
   "Get the stderr buffer for ID."

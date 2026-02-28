@@ -1,7 +1,14 @@
 ;;; truename-cache.el --- Efficiently de-dup file-names  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Free Software Foundation, Inc.
-;;
+
+;; Author:   Martin Edström <meedstrom91@gmail.com>
+;; URL:      https://github.com/meedstrom/truename-cache
+;; Created:  2026-02-16
+;; Keywords: lisp
+;; Package-Version: 0.3.4
+;; Package-Requires: ((emacs "27.1") (compat "30.1"))
+
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
@@ -15,12 +22,6 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-;; Author:   Martin Edström <meedstrom91@gmail.com>
-;; URL:      https://github.com/meedstrom/truename-cache
-;; Created:  2026-02-16
-;; Keywords: lisp
-;; Package-Version: 0.3.4
-;; Package-Requires: ((emacs "27.1") (compat "30.1"))
 
 ;; Minimum Emacs 27+ because of these NEWS.27 items:
 
@@ -281,9 +282,9 @@ Behave like `truename-cache-get-exists-p'."
 
 ;;;; Short aliases for the variant you are most likely to use:
 
-(defalias 'truename-cache-get-p             'truename-cache-get-existed-p)
-(defalias 'truename-cache-get-dir-abbrev-p  'truename-cache-get-dir-abbrev-existed-p)
-(defalias 'truename-cache-get-full-abbrev-p 'truename-cache-get-full-abbrev-existed-p)
+(defalias 'truename-cache-get-p             #'truename-cache-get-existed-p)
+(defalias 'truename-cache-get-dir-abbrev-p  #'truename-cache-get-dir-abbrev-existed-p)
+(defalias 'truename-cache-get-full-abbrev-p #'truename-cache-get-full-abbrev-existed-p)
 
 
 ;;;; Ersatz `abbreviate-file-name':
@@ -405,18 +406,18 @@ of `file-name-handler-alist'."
       _remote-name-handlers
       abbrev
       _assert-readable)
-  "Return an unsorted alist \((FILE1 . ATTR1) (FILE2 . ATTR2) ...\).
+  "Return an unsorted alist ((FILE1 . ATTR1) (FILE2 . ATTR2) ...).
 
 
 This is engineered to be fast at collecting a file list from a variety
-of information sources \(such from as both `org-id-files' and the
-content of `org-directory'\), de-duplicated and in truename form.
+of information sources (such from as both `org-id-files' and the
+content of `org-directory'), de-duplicated and in truename form.
 
-The file attribute lists ATTR1, ATTR2... \(per `file-attributes'\) are
+The file attribute lists ATTR1, ATTR2... (per `file-attributes') are
 included in case they are needed, because that is faster than querying
 the filesystem later on for the attributes of one file at a time.
 
-When SIDE-EFFECT \(default t\), this function also pre-populates a cache
+When SIDE-EFFECT (default t), this function also pre-populates a cache
 used by another tool `truename-cache-get', so that the tool need not be
 expensive even the first time a given file name is passed to it.
 
@@ -468,7 +469,7 @@ otherwise it is simply the `file-name-nondirectory' of the file.\)
 - RELATIVE-DIR-DENY :: List of regexps that reject a directory.
 
     Only relevant with DIRS-RECURSIVE.
-    Applied to directory names \(with trailing slash\) to decide whether
+    Applied to directory names (with trailing slash) to decide whether
     or not to recurse into it.
 
     Important performance knob!  If this function is ever slow, the
@@ -494,7 +495,7 @@ Other filters:
 The following arguments affect what kinds of files to include in the
 result.  They also affect which symlink destinations to include.
 
-- RETURN-FILES :: Include non-directory files. \(default t\)
+- RETURN-FILES :: Include non-directory files. (default t)
 - RETURN-DIRS :: Include directories.
 - RESOLVE-SYMLINKS :: Include symlink destinations resolved into true
     names, if they exist and satisfy RETURN-FILES or RETURN-DIRS.
@@ -509,17 +510,17 @@ DIRS-RECURSIVE to other directories, recursively.  Infinite recursion
 cannot happen.
 Only relevant if RESOLVE-SYMLINKS is also t.
 
-KEEP-REMOTES \(default t\) says to allow looking in directories that are
+KEEP-REMOTES (default t) says to allow looking in directories that are
 remote, i.e. that satisfy `file-remote-p'.
 
 The following two performance knobs can be t, nil or a list of symbols
 like the cdrs of `file-name-handler-alist'.  They specify which file
 name handlers to allow, and t means allow all of them:
 
-- LOCAL-NAME-HANDLERS \(default t\) :: Applied in directories that
+- LOCAL-NAME-HANDLERS (default t) :: Applied in directories that
     dissatisfy `file-remote-p'.  This can often be set to nil with no
     ill effect.
-- REMOTE-NAME-HANDLERS \(default t\) :: Applied in directories that
+- REMOTE-NAME-HANDLERS (default t) :: Applied in directories that
     satisfy `file-remote-p'.
     Mostly used if KEEP-REMOTES is t, but may also affect the
     determination of whether a directory or a symlink destination is
@@ -543,7 +544,7 @@ It can take one of three values:
     or REMOTE-NAME-HANDLERS causes an abbreviation handler to not be
     used.  In most cases, you probably can assume it is reliable anyway.
 
-ASSERT-READABLE \(default t\) says to signal an error when encountering
+ASSERT-READABLE (default t) says to signal an error when encountering
 unreadable directories and invalid symlinks.
 Otherwise, they are quietly skipped."
   (truename-cache--mutate-args args)

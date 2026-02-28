@@ -6,7 +6,7 @@
 ;; URL:      https://github.com/meedstrom/truename-cache
 ;; Created:  2026-02-16
 ;; Keywords: lisp
-;; Package-Version: 0.3.4
+;; Package-Version: 0.3.5
 ;; Package-Requires: ((emacs "27.1") (compat "30.1"))
 
 ;; This program is free software: you can redistribute it and/or modify

@@ -1,8 +1,6 @@
 *.aux
 *.cp
 *.cps
-*.html
-*.info
 *.log
 *.tmp?
 *.toc
@@ -10,7 +8,6 @@
 *.elc
 
 /emacs-lisp-intro-es.texi
-emacs-lisp-intro*.pdf
 
 # ELPA-generated files.
 /emacs-lisp-intro-es-autoloads.el

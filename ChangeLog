@@ -1,6 +1,18 @@
 2026-02-28  Bob Weiner  <rsw@gnu.org>
 
-* hywiki.el (hywiki-completion-at-point): Remove 'hywiki-get-singular-wikiword'
+* hsys-consult.el (hsys-consult-require-version): Add to make this flag use
+    and version check callable from other libraries.
+                  (hsys-consult-grep, hsys-consult--grep-paths): Call above
+    new function.
+
+* hywiki.el (hywiki-consult-page-and-headline): Call above new function.
+            (hywiki-page-read-reference): Fix to always return a string or nil,
+    not a list.
+            (hywiki-format-reference-to-grep): Remove, unused.
+	    (hywiki-get-page-headings): Remove 'shell-quote-argument' around
+    'page' name.  Not used in other grep calls.
+            (hywiki-insert-link): Fix transposition typo quoting double quote.
+            (hywiki-completion-at-point): Remove 'hywiki-get-singular-wikiword'
     call because it can be wrong.
             (hywiki-completion-exit-function): Allow completion function to
     send any number of arguments (unused right now).

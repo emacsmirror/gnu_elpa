@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Apr-24 at 22:41:13
-;; Last-Mod:     28-Feb-26 at 01:39:39 by Bob Weiner
+;; Last-Mod:     28-Feb-26 at 13:24:20 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1643,6 +1643,7 @@ nil, else return \\='(page . \"<page-file-path>\")."
 (defun hywiki-consult-page-and-headline (&optional prompt initial)
   "Return a string of HyWiki file and headline selected by `consult-grep' or nil."
   (interactive)
+  (hsys-consult-require-version)
   (let* ((default-directory (expand-file-name hywiki-directory))
          (dir "./")
          (builder
@@ -2066,7 +2067,8 @@ This includes the delimiters: (), {}, <>, [] and \"\" (double quotes)."
 	  (list nil nil))))))
 
 (defun hywiki-page-read-reference (&optional prompt initial)
-  "With consult package loaded, read a \"file^@line\" string, else a page name."
+  "With consult package loaded, read a \"page^@line\" string, else a page name.
+May return nil if no item is selected."
   (interactive)
   (if (featurep 'consult)
       (hywiki-format-grep-to-reference (hywiki-consult-page-and-headline
@@ -2074,8 +2076,7 @@ This includes the delimiters: (), {}, <>, [] and \"\" (double quotes)."
                                         (hywiki-format-reference-to-consult-grep
                                          initial)))
     ;; Without consult, can only complete to a HyWiki page without a section.
-    ;; Make a completion table of page names.
-    (mapcar #'list (hywiki-get-page-list))))
+    (hywiki-page-read prompt initial)))
 
 ;;;###autoload
 (defun hywiki-insert-link (&optional arg)
@@ -2086,7 +2087,7 @@ Add double quotes if the section contains any whitespace after trimming."
   (let ((ref (if arg (hywiki-word-read) (hywiki-page-read-reference))))
     (when ref
       (when (string-match-p "\\s-" ref)
-	(setq ref (concat "\"" ref ""\")))
+	(setq ref (concat "\"" ref "\"")))
       (insert ref)
       (skip-chars-backward "\"")
       (goto-char (1- (point)))
@@ -2112,7 +2113,7 @@ therein is invalid, trigger an error."
       nil)))
 
 (defun hywiki-format-reference-to-consult-grep (page-and-section)
-  "From PAGE-AND-SECTION ref, return '|^[ \t]*\\*+.*sect|page.*\.org' grep pat.
+  "From PAGE-AND-SECTION ref, return '|^[ \t]*\\*+.*sect|page' grep pat.
 
 Return t if PAGE-AND-SECTION is a valid string, else nil.  If the page name
 therein is invalid, trigger an error."
@@ -2129,32 +2130,8 @@ therein is invalid, trigger an error."
           (format "|[ \t]*\\\\*+.*%s|%s"
                   (regexp-quote line)
                   (regexp-quote page)
-                  ;; (regexp-quote hywiki-file-suffix)
                   ))
       (message "(hwiki-format-reference-to-consult-grep): Parse error on: %s"
-               page-and-section)
-      nil)))
-
-(defun hywiki-format-reference-to-grep (page-and-section)
-  "From PAGE-AND-SECTION ref, return '|^[ \t]*\\*+.*sect|page.*\.org' grep pat.
-
-Return t if PAGE-AND-SECTION is a valid string, else nil.  If the page name
-therein is invalid, trigger an error."
-  (when (and page-and-section (stringp page-and-section))
-    (if (string-match hywiki-word-with-optional-suffix-exact-regexp
-                      page-and-section)
-        (let ((page (match-string 1 page-and-section))
-              (line (match-string 2 page-and-section)))
-          (setq line (if line
-                         ;; Remove the # prefix in line
-                         (substring line 1)
-                       ""))
-          ;; Add '* ' prefix
-          (format "[ \t]*\\\\*+.*%s"
-                  (regexp-quote page)
-                  (regexp-quote hywiki-file-suffix)
-                  (regexp-quote line)))
-      (message "(hwiki-format-reference-to-grep): Parse error on: %s"
                page-and-section)
       nil)))
 
@@ -2880,7 +2857,7 @@ These must end with `hywiki-file-suffix'."
   "Return a list of all headings found in FILE.
 Strip any leading '*' and space characters from the headings."
   (when (and (stringp page) (file-readable-p page))
-    (let ((grep-command (format "grep -E '^\\*+ ' %s" (shell-quote-argument page))))
+    (let ((grep-command (format "grep -E '^\\*+ ' %s" page)))
       (with-temp-buffer
         (shell-command grep-command (current-buffer))
         (goto-char (point-min))

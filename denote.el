@@ -6974,20 +6974,20 @@ backend."
          (target (caar data)))
     (denote-get-path-by-id target)))
 
-;; The `eval-after-load' part with the quoted lambda is adapted from
-;; Elfeed: <https://github.com/skeeto/elfeed/>.
-
 (declare-function org-link-preview-file "ol" (ov path link))
 
 ;;;###autoload
-(defun denote-link-preview-file (ov path link)
-  "Use `org-link-preview-file' for OV, PATH, and LINK.
+(defun denote-link-preview-file (overlay link-target link-data)
+  "Use `org-link-preview-file' for OVERLAY, LINK-TARGET, and LINK-DATA.
+Unless the LINK-TARGET has search options, then try to produce a preview.
 
-  Resolve the PATH using `denote-directory-files'."
-  (when-let ((files (denote-directory-files (rx-to-string (list 'and 'bol path)))))
-    (when (length= files 1)
-      (org-link-preview-file ov (car files) link))))
+For more details, refer to the documentation of `org-link-set-parameters'."
+  (pcase-let* ((`(,path ,_ ,file-search) (denote-link--ol-resolve-link-to-target link-target :full-data)))
+    (unless file-search
+      (org-link-preview-file overlay path link-data))))
 
+;; The `eval-after-load' part with the quoted lambda is adapted from
+;; Elfeed: <https://github.com/skeeto/elfeed/>.
 ;;;###autoload
 (eval-after-load 'org
   `(funcall

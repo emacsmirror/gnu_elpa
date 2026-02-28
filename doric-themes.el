@@ -1387,6 +1387,7 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     diredfl-flag-mark
     diredfl-flag-mark-line
     ibuffer-marked
+    package-mark-install-line
     trashed-marked))
 
 (defconst doric-themes-mark-delete-faces
@@ -1394,6 +1395,7 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     diredfl-deletion
     diredfl-deletion-file-name
     ibuffer-deletion
+    package-mark-delete-line
     trashed-deleted))
 
 (defun doric-themes-prepare-faces (&rest faces-and-attributes)
@@ -1730,9 +1732,6 @@ default to a generic text that mentions the BACKGROUND-MODE."
               `(org-verbatim ((t :inherit (fixed-pitch italic) :foreground ,fg-shadow-subtle)))
               '(org-verse ((t :inherit org-block)))
               `(org-table ((t :inherit fixed-pitch :foreground ,fg-accent)))
-
-              `(package-mark-delete-line ((t :inherit bold-italic :background ,bg-shadow-intense :foreground ,fg-main)))
-              `(package-mark-install-line ((t :inherit bold-italic :background ,bg-accent :foreground ,fg-main)))
 
               `(pulsar-blue ((t :background ,bg-blue)))
               `(pulsar-cyan ((t :background ,bg-cyan)))

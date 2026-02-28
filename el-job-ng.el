@@ -383,7 +383,7 @@ and run `el-job-ng--handle-finished-child'."
                        (format "el-job id:   %S" id)))
          (info+tip (concat info "\n"
                            (format "tip:         check the hidden buffer named (note leading space): \"%s\""
-                                   (buffer-name (and job (oref job stderr)))))))
+                                   (and job (buffer-name (oref job stderr)))))))
     (cond ((not job)
            (el-job-ng--dbg 0 "Could not find job associated with process %S%s"
                            proc
@@ -419,7 +419,7 @@ and run `el-job-ng--handle-finished-child'."
   "Handle output returned by PROC, presuming that is in buffer BUF.
 Then kill BUF.
 Once this has handled all outputs for JOB, run the CALLBACK function
-specified in `el-job-ng-run'."
+specified by `el-job-ng-run'."
   (with-slots (id process-outputs callback benchmarks do-bench) job
     (with-current-buffer buf
       (unless (and (eobp) (> (point) 2) (eq (char-before) ?\n))

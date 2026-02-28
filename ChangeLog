@@ -1,5 +1,14 @@
 2026-02-28  Bob Weiner  <rsw@gnu.org>
 
+* hywiki.el (hywiki--char-before): Add to communicate between
+    'hywiki-completion-at-point' and its :exit-function.
+            (hywiki-delimiter-hasht): Add to lookup matching ending delimiters.
+	    (hywiki-completion-exit-function): Expand to add any needed closing
+    delimiter and to leave point on the last character of the ref so can activate
+    with {M-RET} if desired.
+            (hywiki-word-set-auto-highlighting): Reverse order of 'set:difference'
+    args when going from :pages to :all, as the bigger set, :all, must come
+    first or the difference will always be nil.
 * hsys-consult.el (hsys-consult-require-version): Add to make this flag use
     and version check callable from other libraries.
                   (hsys-consult-grep, hsys-consult--grep-paths): Call above

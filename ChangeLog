@@ -1,3 +1,19 @@
+2026-02-28  Bob Weiner  <rsw@gnu.org>
+
+* hywiki.el (hywiki-completion-at-point): Remove 'hywiki-get-singular-wikiword'
+    call because it can be wrong.
+            (hywiki-completion-exit-function): Allow completion function to
+    send any number of arguments (unused right now).
+
+2026-02-27  Bob Weiner  <rsw@gnu.org>
+
+* hpath.el (hpath:outline-section-pattern): Add support for Org '#+TITLE:'
+    lines.  Also, allow leading spaces
+* hywiki.el (hywiki-completion-at-point): Add support for Org '#+TITLE:'
+    lines as section headers.
+            (hywiki-completion-at-point): Remove grep -r arg since don't
+    need to recurse in 'hywiki-directory'.
+
 2026-02-27  Mats Lidell  <matsl@gnu.org>
 
 * test/hywiki-yki-tests.el (hywiki-test--insert-with-point): Remove. Reuse
@@ -5,7 +21,7 @@
     (hywiki-test--get-buffer-text-with-point-and-highlight): Change to a
     more lifelike test that behaves the same in batch as interactively to
     solve the issue with the failing test for now. Use
-    hywiki-tests--insert-by-char and remove not needed hywiki-mode calls. 
+    hywiki-tests--insert-by-char and remove not needed hywiki-mode calls.
 
 2026-02-26  Bob Weiner  <rsw@gnu.org>
 

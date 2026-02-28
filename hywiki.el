@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Apr-24 at 22:41:13
-;; Last-Mod:     28-Feb-26 at 13:24:20 by Bob Weiner
+;; Last-Mod:     28-Feb-26 at 15:37:59 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -144,6 +144,7 @@
 (require 'hpath)
 (require 'hproperty)
 (require 'hsys-consult)
+(eval-when-compile (require 'consult nil t))
 (require 'hui)        ;; For `hui:actype'
 (require 'hui-mini)   ;; For `hui:menu-act'
 (require 'hypb)       ;; Requires `seq'
@@ -197,9 +198,13 @@ checks it to determine if any buffer modification has occurred or not.")
 Each such key self-inserts before highlighting any prior HyWikiWord
 in `hywiki-mode'.")
 
-(defvar hywiki--word-and-buttonize-character-regexp nil
-  "Regexp matching HyWikiWord#section plus a valid word separating character.
-Group 1 is the entire HyWikiWord#section:Lnum:Cnum expression.")
+(defvar hywiki--delimiter-hasht (hash-make '(("\"" . ?\")
+					     ("\'" . ?\')
+					     ("{"  . ?})
+					     ("["  . ?\])
+					     ("<"  . ?>)
+					     ("("  . ?\))) t)
+  "Delimiter htable with (open-delim-string . close-delim-char) key-value pairs.")
 
 (defvar hywiki--directory-checksum ""
   "String checksum for `hywiki-directory' page names.")
@@ -227,6 +232,10 @@ Each element is of the form: (\"wikiword\" . (referent-type . referent-value))."
 (defvar hywiki--referent-hasht nil
   "HyWiki hash table for fast WikiWord referent lookup.")
 
+(defvar hywiki--word-and-buttonize-character-regexp nil
+  "Regexp matching HyWikiWord#section plus a valid word separating character.
+Group 1 is the entire HyWikiWord#section:Lnum:Cnum expression.")
+
 ;; Globally set these values to avoid using 'let' with stack allocations
 ;; within `hywiki-maybe-highlight-reference' frequently.
 (defvar hywiki--any-wikiword-regexp-list nil)
@@ -245,6 +254,7 @@ Each element is of the form: (\"wikiword\" . (referent-type . referent-value))."
 (defvar-local hywiki--buttonize-end (make-marker))   ;; This must always stay a marker
 (defvar-local hywiki--buttonize-start (make-marker)) ;; This must always stay a marker
 (defvar-local hywiki--buttonize-range nil)
+(defvar-local hywiki--char-before nil)
 (defvar-local hywiki--end nil)
 (defvar-local hywiki--range nil)
 (defvar-local hywiki--start nil)
@@ -1491,12 +1501,11 @@ Each candidate is an alist with keys: file, line, text, and display."
 			     (hywiki-word-at t t)))
          (ref (nth 0 ref-start-end))
          (start (nth 1 ref-start-end))
-         (end (nth 2 ref-start-end))
-         (partial-page-name ref))
+         (end (nth 2 ref-start-end)))
     (when start
       (let* ((default-directory hywiki-directory)
              (cmd (format "grep -nEH '^([ \t]*\\*+|#\\+TITLE:) +' ./*%s*%s"
-                          (regexp-quote partial-page-name)
+                          (regexp-quote ref)
                           hywiki-file-suffix))
              (output (shell-command-to-string cmd))
              (lines (split-string output "\n" t))
@@ -1506,6 +1515,7 @@ Each candidate is an alist with keys: file, line, text, and display."
                             (nconc (hywiki-get-page-list)
                                    (mapcar #'hywiki-format-grep-to-reference lines))))))
         (when candidate-alist
+          (setq hywiki--char-before (char-before start))
           (list start end candidate-alist
                 :exclusive 'no
                 ;; For company, allow any non-delim chars in prefix
@@ -3903,12 +3913,14 @@ occurs with one of these hooks, the problematic hook is removed."
 					 hywiki-to-mode)))
 	((and (eq hywiki-from-mode :all) (eq hywiki-to-mode :pages))
 	 (hywiki-word-dehighlight-buffers
-	  (set:difference (hywiki-get-buffers hywiki-from-mode)
-			  (hywiki-get-buffers hywiki-to-mode))))
+	  (set:difference (hywiki-get-buffers :all)
+			  (hywiki-get-buffers :pages))))
 	((and (eq hywiki-from-mode :pages) (eq hywiki-to-mode :all))
 	 (hywiki-word-highlight-buffers
-	  (set:difference (hywiki-get-buffers hywiki-from-mode)
-			  (hywiki-get-buffers hywiki-to-mode))))
+          ;; Here the larger set must always be given first to compute any
+          ;; difference
+	  (set:difference (hywiki-get-buffers :all)
+                          (hywiki-get-buffers :pages))))
 	(t
 	 (error "(hywiki-word-set-auto-highlighting): Inputs must be nil, :pages or :all, not '%s' and '%s'"
 		hywiki-from-mode hywiki-to-mode))))
@@ -3950,6 +3962,16 @@ occurs with one of these hooks, the problematic hook is removed."
 
 (defun hywiki-completion-exit-function (&rest _)
   "Function called when HyWiki reference completion ends."
+  ;; Find possibly needed closing delimiter and insert it if not already there
+  (let ((end-delim (when (characterp hywiki--char-before)
+                     (hash-get (char-to-string hywiki--char-before)
+                               hywiki--delimiter-hasht))))
+    (if (and end-delim
+             (or (>= (point) (point-max))
+                 (not (eq (char-after (point)) end-delim))))
+        (progn (insert end-delim)
+               (goto-char (- (point) 2)))
+      (goto-char (1- (point)))))
   (hywiki-maybe-highlight-reference))
 
 (defun hywiki-word-add-completion-at-point ()

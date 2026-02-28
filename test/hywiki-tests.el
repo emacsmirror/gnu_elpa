@@ -2175,6 +2175,75 @@ expected result."
     (let (hywiki-referent-prompt-flag)
       (should (equal 'page (hywiki-word-create "WikiWord"))))))
 
+(ert-deftest hywiki-tests--get-page-headings ()
+  "Verify headings are found."
+  (hywiki-tests--preserve-hywiki-mode
+    (with-current-buffer (find-file wiki-page)
+      (insert "\
+* Header
+** SubHeader
+*** SubSubHeader
+")
+      (save-buffer))
+    (should (set:equal '("Header" "SubHeader" "SubSubHeader")
+                       (hywiki-get-page-headings wiki-page)))))
+
+(ert-deftest hywiki-tests--get-references-at-al ()
+  "Verify `hywiki-get-references' and `hywiki-get-reference-positions'."
+  (hywiki-tests--preserve-hywiki-mode
+    (hywiki-tests--insert "WikiWord")
+    (should (hywiki-get-references))
+    (should (hywiki-get-references (point-min) (point-max)))
+    (should (equal (list (cons 1 9))
+                   (hywiki-get-reference-positions)))
+    (should (equal (list (cons 1 9))
+                   (hywiki-get-reference-positions (point-min) (point-max))))))
+
+(defun hywiki-tests--remove-keyword-args (lst)
+  "Return LST with a keyworded args removed."
+  (let ((result nil)
+        (skip nil))
+    (dolist (item lst result)
+      (cond
+       (skip (setq skip nil))
+       ((keywordp item) (setq skip t))
+       (t (push item result))))
+    (nreverse result)))
+
+(ert-deftest hywiki-tests--completion-at-point ()
+  "Verify `hywiki-completion-at-point' returns proper completion candidates."
+  (hywiki-tests--preserve-hywiki-mode
+    (ert-info ("Nothing to complete")
+      (should-not (hywiki-tests--remove-keyword-args (hywiki-completion-at-point))))
+    (ert-info ("String 'ab' can't be completed")
+      (insert "ab")
+      (should-not (hywiki-tests--remove-keyword-args (hywiki-completion-at-point))))
+    (ert-info ("Word 'Wi' can be completed")
+      (erase-buffer)
+      (insert "Wi")
+      (should (equal (list 1 3 '(("WikiWord")))
+                     (hywiki-tests--remove-keyword-args (hywiki-completion-at-point)))))
+    (ert-info ("Word is extended to 'Wixx' so it can't be completed")
+      (insert "xx")
+      (should (equal (list 1 5 '(("WikiWord")))
+                     (hywiki-tests--remove-keyword-args (hywiki-completion-at-point)))))
+    (save-excursion
+      (with-current-buffer (find-file wiki-page)
+        (insert "\
+* Header
+** SubHeader
+*** SubSubHeader
+")
+        (save-buffer)))
+    (ert-info ("Word 'Wixx' can't be completed, no headers are returned")
+      (should (equal (list 1 5 '(("WikiWord")))
+                     (hywiki-tests--remove-keyword-args (hywiki-completion-at-point)))))
+    (ert-info ("Word 'Wiki' can be completed so headers too are returned")
+      (erase-buffer)
+      (insert "Wiki")
+      (should (equal (list 1 5 '(("WikiWord") ("WikiWord#Header") ("WikiWord#SubHeader") ("WikiWord#SubSubHeader")))
+                     (hywiki-tests--remove-keyword-args (hywiki-completion-at-point)))))))
+
 (provide 'hywiki-tests)
 
 ;; This file can't be byte-compiled without the `el-mock' package

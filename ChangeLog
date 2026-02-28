@@ -1,3 +1,11 @@
+2026-02-28  Mats Lidell  <matsl@gnu.org>
+
+* test/hywiki-tests.el (hywiki-tests--get-page-headings):
+    (hywiki-tests--get-references-at-al):
+    (hywiki-tests--completion-at-point): New tests.
+    (hywiki-tests--remove-keyword-args): Helper to ease comparision of
+    completion candidates.
+
 2026-02-28  Bob Weiner  <rsw@gnu.org>
 
 * hywiki.el (hywiki--char-before): Add to communicate between

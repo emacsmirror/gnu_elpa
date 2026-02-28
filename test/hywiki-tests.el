@@ -2212,6 +2212,7 @@ expected result."
 
 (ert-deftest hywiki-tests--completion-at-point ()
   "Verify `hywiki-completion-at-point' returns proper completion candidates."
+  (skip-unless (version<= "9.6" (org-version)))
   (hywiki-tests--preserve-hywiki-mode
     (ert-info ("Nothing to complete")
       (should-not (hywiki-tests--remove-keyword-args (hywiki-completion-at-point))))

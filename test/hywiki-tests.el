@@ -2200,7 +2200,7 @@ expected result."
                    (hywiki-get-reference-positions (point-min) (point-max))))))
 
 (defun hywiki-tests--remove-keyword-args (lst)
-  "Return LST with a keyworded args removed."
+  "Return LST with keyworded args removed."
   (let ((result nil)
         (skip nil))
     (dolist (item lst result)

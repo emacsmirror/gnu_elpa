@@ -111,8 +111,8 @@
   :readme "README.org")
  (bluetooth		:url "https://codeberg.org/rstocker/emacs-bluetooth")
  (bnf-mode		:url "https://github.com/sergeyklay/bnf-mode")
- (boxy			:url "https://gitlab.com/grinn.amy/boxy.git")
- (boxy-headings		:url "https://gitlab.com/grinn.amy/boxy-headings")
+ (boxy			:url "https://codeberg.org/strawburster/boxy.git")
+ (boxy-headings		:url "https://codeberg.org/strawburster/boxy-headings")
  (breadcrumb		:url "https://github.com/joaotavora/breadcrumb")
  (brief			:url nil)
  (buffer-env		:url "https://github.com/astoff/buffer-env")
@@ -638,7 +638,7 @@
   ;; FIXME: Upstream diverged; https://github.com/p-m/org-notify/issues/9
   ;; :merge t
   )
- (org-real		:url "https://gitlab.com/grinn.amy/org-real"
+ (org-real		:url "https://codeberg.org/strawburster/org-real"
   :ignored-files ("LICENSE"))
  (org-remark		:url "https://github.com/nobiot/org-remark"
   :readme "README.org"

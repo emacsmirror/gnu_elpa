@@ -799,6 +799,13 @@ default we use here encompasses both."
   :group 'org-export-latex
   :type 'string)
 
+(defcustom org-latex-default-example-environment "verbatim"
+  "Default environment used in example blocks."
+  :group 'org-export-latex
+  :package-version '(Org . "10.0")
+  :type 'string
+  :safe #'stringp)
+
 ;;;; Tables
 
 (defcustom org-latex-default-table-environment "tabular"
@@ -2226,7 +2233,7 @@ information."
   (when (org-string-nw-p (org-element-property :value example-block))
     (let ((environment (or (org-export-read-attribute
 			    :attr_latex example-block :environment)
-			   "verbatim"))
+                           org-latex-default-example-environment))
           (options (or (org-export-read-attribute
                         :attr_latex example-block :options)
                        "")))

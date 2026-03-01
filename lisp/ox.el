@@ -6753,7 +6753,7 @@ and `org-export-to-file' for more specialized functions."
          ;; Null characters (from variable values) are inserted
          ;; within the file.  As a consequence, coding system for
          ;; buffer contents could fail to be recognized properly.
-         (format ";; -*- coding: utf-8-emacs-unix; lexical-binding:t -*-\n%S"
+         (format ";; -*- coding: utf-8-emacs-unix; lexical-binding:t -*-\n%S\n%s"
                  `(with-temp-buffer
                     ,(when org-export-async-debug '(setq debug-on-error t))
                     ;; Ignore `kill-emacs-hook' and code evaluation
@@ -6767,7 +6767,11 @@ and `org-export-to-file' for more specialized functions."
                     (funcall ',copy-fun)
                     (restore-buffer-modified-p nil)
                     ;; Sexp to evaluate in the buffer.
-                    (print ,body)))
+                    (print ,body))
+                 ;; Add page break to suppress buffer-local variables.
+                 ;; We do not want local variables from the
+                 ;; orginal Org file (if any) to be mistakingly read.
+                 "\n")
          nil temp-file nil 'silent))
       ;; Start external process.
       (let* ((process-connection-type nil)

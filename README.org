@@ -7,11 +7,11 @@ This is work in progress.
 It is currently based on the following revision of the English document:
 
 #+begin_example
-commit 138ee9b09e2c3a8e52c93e5b2264a8db684fcba2
-Author: Eli Zaretskii <eliz@gnu.org>
-Date:   Sat Feb 21 15:29:13 2026 +0200
+commit 0068215e53905698833637edececee8a79a524c5
+Author: Stefan Monnier <monnier@iro.umontreal.ca>
+Date:   Wed Feb 25 23:44:07 2026 -0500
 
-    ; Make the document language in Info manuals explicitly stated
+    emacs-lisp-intro.texi: Eliminate duplicate ASCII art
 #+end_example
 
 ** Method

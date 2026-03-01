@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Apr-24 at 22:41:13
-;; Last-Mod:      1-Mar-26 at 01:28:37 by Bob Weiner
+;; Last-Mod:      1-Mar-26 at 12:12:41 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -1504,23 +1504,28 @@ Each candidate is an alist with keys: file, line, text, and display."
 			     (hywiki-word-at t t)))
          (ref (nth 0 ref-start-end))
          (start (nth 1 ref-start-end))
-         (end (nth 2 ref-start-end)))
-    (when start
+         (end (nth 2 ref-start-end))
+         (prefix (and start end (buffer-substring-no-properties start end)))
+         (existing-wikiword-prefix (when ref (hywiki-word-strip-suffix ref))))
+    (when prefix
       (let* ((default-directory hywiki-directory)
-             (cmd (format "grep -nEH '^([ \t]*\\*+|#\\+TITLE:) +' ./*%s*%s"
-                          (hywiki-word-strip-suffix ref)
+             (cmd (format "grep -nEH '^([ \t]*\\*+|#\\+TITLE:) +' ./%s*%s"
+                          existing-wikiword-prefix
                           hywiki-file-suffix))
              (output (shell-command-to-string cmd))
              (lines (split-string output "\n" t))
-             (candidate-alist
-              (mapcar #'list
-                      (delq nil
-                            (nconc (hywiki-get-page-list)
-                                   (mapcar #'hywiki-format-grep-to-reference lines))))))
-        (when candidate-alist
+             (candidates (delq nil
+                               (nconc
+                                ;; Return only candidates that start with 'existing-wikiword-prefix'
+                                (seq-filter (lambda (str)
+                                              (string-prefix-p existing-wikiword-prefix str))
+                                            (hywiki-get-page-list))
+                                (mapcar #'hywiki-format-grep-to-reference lines))))
+             (candidates-alist (when candidates (mapcar #'list candidates))))
+        (when candidates-alist
           (setq hywiki--char-before (char-before start)
                 hywiki--end-pos end)
-          (list start end candidate-alist
+          (list start end candidates-alist
                 :exclusive 'no
                 ;; For company, allow any non-delim chars in prefix
                 ;; :company-prefix-length t

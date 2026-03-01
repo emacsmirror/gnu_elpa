@@ -12,6 +12,12 @@
             (hywiki-word-at): Make char after # optional so when doing
     completion and # is followed by a closing delimiter, it does not stop
     completing because of failure to recognize the WikiWord reference.
+            (hywiki-completion-at-point): Rewrite to limit candidates to those
+    that start with a match to the WikiWord prefix at point; allowing for
+    matches anywhere within the WikiWord made it harder to find the references
+    desired.
+* test/hywiki-tests.el (hywiki-tests--completion-at-point): Fix to newest
+    HyWiki completion policies.
 
 2026-02-28  Bob Weiner  <rsw@gnu.org>
 

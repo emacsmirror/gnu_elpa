@@ -3,7 +3,7 @@
 ;; Author:       Mats Lidell
 ;;
 ;; Orig-Date:    18-May-24 at 23:59:48
-;; Last-Mod:      9-Feb-26 at 00:26:10 by Bob Weiner
+;; Last-Mod:      1-Mar-26 at 11:20:52 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -2215,10 +2215,10 @@ expected result."
   (skip-unless (version<= "9.6" (org-version)))
   (hywiki-tests--preserve-hywiki-mode
     (ert-info ("Nothing to complete")
-      (should-not (hywiki-tests--remove-keyword-args (hywiki-completion-at-point))))
+      (should-not (hywiki-completion-at-point)))
     (ert-info ("String 'ab' can't be completed")
       (insert "ab")
-      (should-not (hywiki-tests--remove-keyword-args (hywiki-completion-at-point))))
+      (should-not (hywiki-completion-at-point)))
     (ert-info ("Word 'Wi' can be completed")
       (erase-buffer)
       (insert "Wi")
@@ -2226,8 +2226,7 @@ expected result."
                      (hywiki-tests--remove-keyword-args (hywiki-completion-at-point)))))
     (ert-info ("Word is extended to 'Wixx' so it can't be completed")
       (insert "xx")
-      (should (equal (list 1 5 '(("WikiWord")))
-                     (hywiki-tests--remove-keyword-args (hywiki-completion-at-point)))))
+      (should-not (hywiki-completion-at-point)))
     (save-excursion
       (with-current-buffer (find-file wiki-page)
         (insert "\
@@ -2237,9 +2236,8 @@ expected result."
 ")
         (save-buffer)))
     (ert-info ("Word 'Wixx' can't be completed, no headers are returned")
-      (should (equal (list 1 5 '(("WikiWord")))
-                     (hywiki-tests--remove-keyword-args (hywiki-completion-at-point)))))
-    (ert-info ("Word 'Wiki' can be completed so headers too are returned")
+      (should-not (hywiki-completion-at-point)))
+    (ert-info ("Word 'Wiki' can be completed so headers are returned")
       (erase-buffer)
       (insert "Wiki")
       (should (equal (list 1 5 '(("WikiWord") ("WikiWord#Header") ("WikiWord#SubHeader") ("WikiWord#SubSubHeader")))

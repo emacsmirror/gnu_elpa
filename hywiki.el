@@ -3,7 +3,7 @@
 ;; Author:       Bob Weiner
 ;;
 ;; Orig-Date:    21-Apr-24 at 22:41:13
-;; Last-Mod:     28-Feb-26 at 15:37:59 by Bob Weiner
+;; Last-Mod:      1-Mar-26 at 01:28:37 by Bob Weiner
 ;;
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;;
@@ -198,12 +198,13 @@ checks it to determine if any buffer modification has occurred or not.")
 Each such key self-inserts before highlighting any prior HyWikiWord
 in `hywiki-mode'.")
 
-(defvar hywiki--delimiter-hasht (hash-make '(("\"" . ?\")
-					     ("\'" . ?\')
-					     ("{"  . ?})
-					     ("["  . ?\])
-					     ("<"  . ?>)
-					     ("("  . ?\))) t)
+(defconst hywiki--delimiter-hasht (hash-make '(("\"" . ?\")
+					       ("\'" . ?\')
+					       ("{"  . ?})
+					       ("["  . ?\])
+					       ("<"  . ?>)
+					       ("("  . ?\)))
+                                             t)
   "Delimiter htable with (open-delim-string . close-delim-char) key-value pairs.")
 
 (defvar hywiki--directory-checksum ""
@@ -255,6 +256,7 @@ Group 1 is the entire HyWikiWord#section:Lnum:Cnum expression.")
 (defvar-local hywiki--buttonize-start (make-marker)) ;; This must always stay a marker
 (defvar-local hywiki--buttonize-range nil)
 (defvar-local hywiki--char-before nil)
+(defvar-local hywiki--end-pos nil)
 (defvar-local hywiki--end nil)
 (defvar-local hywiki--range nil)
 (defvar-local hywiki--start nil)
@@ -1496,6 +1498,7 @@ exists."
 (defun hywiki-completion-at-point ()
   "Complete a HyWiki reference at point.
 Each candidate is an alist with keys: file, line, text, and display."
+  (setq hywiki--end-pos nil)
   (let* ((ref-start-end (and (hywiki-active-in-current-buffer-p)
 			     (not (hywiki-non-hook-context-p))
 			     (hywiki-word-at t t)))
@@ -1505,7 +1508,7 @@ Each candidate is an alist with keys: file, line, text, and display."
     (when start
       (let* ((default-directory hywiki-directory)
              (cmd (format "grep -nEH '^([ \t]*\\*+|#\\+TITLE:) +' ./*%s*%s"
-                          (regexp-quote ref)
+                          (hywiki-word-strip-suffix ref)
                           hywiki-file-suffix))
              (output (shell-command-to-string cmd))
              (lines (split-string output "\n" t))
@@ -1515,7 +1518,8 @@ Each candidate is an alist with keys: file, line, text, and display."
                             (nconc (hywiki-get-page-list)
                                    (mapcar #'hywiki-format-grep-to-reference lines))))))
         (when candidate-alist
-          (setq hywiki--char-before (char-before start))
+          (setq hywiki--char-before (char-before start)
+                hywiki--end-pos end)
           (list start end candidate-alist
                 :exclusive 'no
                 ;; For company, allow any non-delim chars in prefix
@@ -2703,11 +2707,23 @@ whenever `hywiki-mode' is enabled/disabled."
 					 (skip-syntax-forward "^-\)$\>._\"\'"))
 				       (skip-chars-forward "-_*[:alnum:]")
 				       (unless (zerop (skip-chars-forward "#:"))
-					 (skip-chars-forward (if (save-restriction
-								   (widen)
-								   (hywiki-delimited-p))
-								 "-_*: \t[:alnum:]"
-							       "-_*:[:alnum:]")))
+					 (skip-chars-forward
+                                          (if (save-restriction
+						(widen)
+                                                (and (hywiki-delimited-p)
+                                                     ;; Only if delimiter is
+                                                     ;; the char preceding
+                                                     ;; the start of the
+                                                     ;; WikiWord do we skip
+                                                     ;; over spaces to find
+                                                     ;; the #section.
+                                                     (hash-get
+						      (char-to-string
+                                                       (or (char-before (or hywiki--start 0))
+                                                           0))
+                                                      hywiki--delimiter-hasht)))
+					      "-_*: \t[:alnum:]"
+					    "-_*:[:alnum:]")))
 				       (setq hywiki--end (point))
 				       ;; Don't highlight current-page matches unless they
 				       ;; include a #section.
@@ -3575,7 +3591,7 @@ non-nil or this will return nil."
 					   (hywiki-maybe-at-wikiword-beginning))
 					 (looking-at (concat
 						      hywiki-word-regexp
-						      "\\(#[^][#()<>{}\" \t\n\r\f]+\\)?"
+						      "\\(#[^][#()<>{}\" \t\n\r\f]*\\)?"
 						      hywiki-word-line-and-column-numbers-regexp "?"))
 					 ;; Can't be followed by a # character
 					 (/= (or (char-after (match-end 0)) 0)
@@ -3966,12 +3982,14 @@ occurs with one of these hooks, the problematic hook is removed."
   (let ((end-delim (when (characterp hywiki--char-before)
                      (hash-get (char-to-string hywiki--char-before)
                                hywiki--delimiter-hasht))))
-    (if (and end-delim
-             (or (>= (point) (point-max))
-                 (not (eq (char-after (point)) end-delim))))
-        (progn (insert end-delim)
-               (goto-char (- (point) 2)))
-      (goto-char (1- (point)))))
+    (when (and hywiki--end-pos
+               (>= (point) hywiki--end-pos))
+      (if (and end-delim
+               (or (>= (point) (point-max))
+                   (not (eq (char-after (point)) end-delim))))
+          (progn (insert end-delim)
+                 (goto-char (- (point) 2)))
+        (when end-delim (goto-char (1- (point)))))))
   (hywiki-maybe-highlight-reference))
 
 (defun hywiki-word-add-completion-at-point ()

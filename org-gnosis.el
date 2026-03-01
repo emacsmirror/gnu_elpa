@@ -735,7 +735,7 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
   "Format TEMPLATE string, replacing %s with heading stars.
 Uses current heading level + 1, defaulting to level 1 if not at a heading."
   (let ((stars (make-string (1+ (or (org-current-level) 0)) ?*)))
-    (format-spec template `((?s . ,stars)))))
+    (string-replace "%s" stars template)))
 
 (defun org-gnosis--template-list ()
   "Return the template list appropriate for the current buffer."

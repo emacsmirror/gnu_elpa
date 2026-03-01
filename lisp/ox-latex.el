@@ -1462,7 +1462,7 @@ A better approach is to use a compiler suit such as `latexmk'."
   :package-version '(Org . "9.0"))
 
 (defcustom org-latex-pdf-process
-  (if (executable-find "latexmk")
+  (if (and (executable-find "latexmk") (executable-find "perl"))
       '("latexmk -f -pdf -%latex -interaction=nonstopmode -output-directory=%o %f")
     '("%latex -interaction nonstopmode -output-directory %o %f"
       "%latex -interaction nonstopmode -output-directory %o %f"

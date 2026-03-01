@@ -7,11 +7,11 @@ This is work in progress.
 It is currently based on the following revision of the English document:
 
 #+begin_example
-commit d705a86da451fa589e701b5b0400646375a0266d
+commit 138ee9b09e2c3a8e52c93e5b2264a8db684fcba2
 Author: Eli Zaretskii <eliz@gnu.org>
-Date:   Mon Feb 16 18:23:01 2026 +0200
+Date:   Sat Feb 21 15:29:13 2026 +0200
 
-    Fix cross-reference in Emacs Lisp Intro
+    ; Make the document language in Info manuals explicitly stated
 #+end_example
 
 ** Method

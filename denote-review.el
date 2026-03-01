@@ -5,7 +5,7 @@
 ;; Author:  Matto Fransen <matto@matto.nl>
 ;; Maintainer:  Matto Fransen <matto@matto.nl>
 ;; Url: https://codeberg.org/mattof/denote-review
-;; Version: 1.0.5
+;; Version: 1.0.6
 ;; Keywords: files
 ;; Package-Requires: ((emacs "28.1") (denote "4.1.3"))
 
@@ -263,8 +263,9 @@ Must be called from the tabulated list view"
   "Open a random file in other window.
 Must be called from the tabulated list view."
   (interactive nil denote-review-mode)
-  (let ((k (random (length tabulated-list-entries))))
-    (find-file-other-window (car (nth k tabulated-list-entries)))))
+  (let ((entries (funcall tabulated-list-entries)))
+    (find-file-other-window (car (nth (random (length entries))
+                                      entries)))))
 
 (defvar-keymap denote-review-mode-map
   :doc "Keymap for `denote-review-mode-map'."

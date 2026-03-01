@@ -46,9 +46,9 @@
 (defun futur--print-stdout (sexp sid)
   "Print SEXP on stdout using ID as the leading marker."
   (unless noninteractive (error "futur--print-stdout works only in batch mode"))
-  (let ((print-length nil)
+  (let ((coding-system-for-write 'emacs-internal)
+        (print-length nil)
         (print-level nil)
-        (coding-system-for-write 'emacs-internal)
         (print-circle t)
         (print-gensym t)
         (print-escape-newlines nil)

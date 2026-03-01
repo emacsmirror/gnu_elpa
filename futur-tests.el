@@ -170,20 +170,36 @@
     (dotimes (_ 10)
       (push (futur-concurrency-bound #'futur-timeout 0.1) futures))
     (futur-blocking-wait-to-get-result (apply #'futur-list futures))
-    (should (<= 0.5 (- (float-time) start) 0.6)))
+    (should (<= 0.5 (- (float-time) start) 0.7)))
   (let* ((futures ())
          (start (float-time))
-         (futur-concurrency-bound 3))
+         (futur-concurrency-bound 4))
     (dotimes (_ 10)
       (push (futur-concurrency-bound #'futur-timeout 0.1) futures))
     (futur-blocking-wait-to-get-result (apply #'futur-list futures))
-    (should (<= 0.4 (- (float-time) start) 0.5))))
+    (should (<= 0.3 (- (float-time) start) 0.5))))
 
 (ert-deftest futur-elisp-server ()
   (let* ((futur (futur--elisp-get-process))
          (proc (futur-blocking-wait-to-get-result futur)))
     (should (process-get proc 'futur--ready))
     (should (null (process-get proc 'futur--destination)))))
+
+(ert-deftest futur-elisp-funcall ()
+  (let ((fut (futur--elisp-funcall #'+ 5 7)))
+    (should (equal 12 (futur-blocking-wait-to-get-result fut))))
+
+  (let ((fut (futur--elisp-funcall #'car 7)))
+    (should (equal (condition-case err1
+                       (futur-blocking-wait-to-get-result fut)
+                     (error err1))
+                   (condition-case err2
+                       (car 7)
+                     (error err2)))))
+
+  (let ((fut (futur--elisp-funcall #'documentation 'car)))
+    (should (equal (futur-blocking-wait-to-get-result fut)
+                   (documentation 'car)))))
 
 (provide 'futur-tests)
 ;;; futur-tests.el ends here

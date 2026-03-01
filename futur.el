@@ -350,8 +350,9 @@ The blocker can be any object for which there are `futur-blocker-wait'
 and `futur-blocker-abort' methods.  `nil' is a valid blocker."
   (let* ((f (futur--waiting))
          (x (funcall builder f)))
-    (cl-assert (null (futur--blocker f)))
-    (setf (futur--blocker f) x)
+    (when x
+      (cl-assert (null (futur--blocker f)))
+      (setf (futur--blocker f) x))
     f))
 
 (defun futur-abort (futur)
@@ -391,14 +392,18 @@ the same value as the future returned by FUN.
 If ERROR-FUN is non-nil, it should be a function that will be called instead of
 FUN when FUTUR fails.  It is called with a single argument (the error object).
 By default any error in FUTUR is propagated to the returned future.
-ERROR-FUN and FUN can also return non-future values,"
+ERROR-FUN and FUN can also return non-future values,
+If FUTUR can also be a non-`futur' object, in which case it's passed
+as-is to FUN."
   (let ((new (futur--waiting futur)))
-    (futur--register-callback
-     futur (lambda (err val)
-             (cond
-              ((null err) (futur--run-continuation new fun (list val)))
-              (error-fun (futur--run-continuation new error-fun (list err)))
-              (t (futur-deliver-failure new err)))))
+    (if (not (futur--p futur))
+        (futur--run-continuation new fun (list futur))
+      (futur--register-callback
+       futur (lambda (err val)
+               (cond
+                ((null err) (futur--run-continuation new fun (list val)))
+                (error-fun (futur--run-continuation new error-fun (list err)))
+                (t (futur-deliver-failure new err))))))
     new))
 
 (defun futur--run-continuation (futur fun args)
@@ -441,18 +446,20 @@ its result, or (re)signals the error if ERROR-FUN is nil."
   ;; FIXME: Even `futur--idle-loop-bug80286' doesn't seem sufficient.
   (when futur--in-background
     (error "Blocking/waiting within an asynchronous context is not supported"))
-  (if t ;; (null futur--idle-loop-bug80286)
-      (futur-blocker-wait futur)
-    (let* ((mutex (make-mutex "futur-wait"))
-           (condition (make-condition-variable mutex)))
-      (with-mutex mutex
-        (futur--register-callback futur (lambda (_err _val)
-                                          (with-mutex mutex
-                                            (condition-notify condition))))
-        (condition-wait condition))))
-  (pcase-exhaustive futur
-    ((futur--failed err) (funcall (or error-fun #'futur--resignal) err))
-    ((futur--done val) val)))
+  (if (not (futur--p futur))
+      futur
+    (if t ;; (null futur--idle-loop-bug80286)
+        (futur-blocker-wait futur)
+      (let* ((mutex (make-mutex "futur-wait"))
+             (condition (make-condition-variable mutex)))
+        (with-mutex mutex
+          (futur--register-callback futur (lambda (_err _val)
+                                            (with-mutex mutex
+                                              (condition-notify condition))))
+          (condition-wait condition))))
+    (pcase-exhaustive futur
+      ((futur--failed err) (funcall (or error-fun #'futur--resignal) err))
+      ((futur--done val) val))))
 
 (defmacro futur-let* (bindings &rest body)
   "Sequence asynchronous operations via futures.

@@ -22,6 +22,11 @@
 ;; (require 'trace)
 ;; (trace-function 'futur--elisp-process-filter)
 ;; (trace-function 'futur--elisp-process-answer)
+;; (trace-function 'process-send-region)
+;; (trace-function 'process-send-string)
+;; (trace-function 'futur--funcall)
+;; (trace-function 'futur--elisp-get-process)
+;; (trace-function 'futur--elisp-funcall)
 
 (require 'futur)
 
@@ -35,37 +40,34 @@ This has to be the same used by `futur-server'.")
   (cl-assert (memq proc futur--elisp-servers))
   (let ((pending (process-get proc 'futur--pending))
         (case-fold-search nil))
-    (named-let loop ((string string))
-      ;; (trace-values 'looping string)
+    (process-put proc 'futur--pending nil)
+    (named-let loop ((string (if pending (concat pending string) string)))
+      ;; (trace-values :looping (process-get proc 'futur--state) string)
       (pcase-exhaustive (process-get proc 'futur--state)
         (:booting
-         (let ((string (if pending (concat pending string) string)))
-           (if (not (string-match " \\(fes:[0-9a-f]+\\) " string))
-               (process-put proc 'futur--pending string)
-             (let ((before (string-trim
-                            (substring string 0 (match-beginning 0)))))
-               (unless (equal "" before)
-                 (message "Skipping output from futur-server: %S" before)))
-             (process-put proc 'futur--sid (match-string 0 string))
-             (process-put proc 'futur--sid-sym (intern (match-string 1 string)))
-             (process-put proc 'futur--state :sexp)
-             (process-put proc 'futur--pending nil)
-             (process-put proc 'futur--pendings nil)
-             (when (< (match-end 0) (length string))
-               (loop (substring string (match-end 0)))))))
+         (if (not (string-match " \\(fes:[0-9a-f]+\\) " string))
+             (process-put proc 'futur--pending string)
+           (let ((before (string-trim
+                          (substring string 0 (match-beginning 0)))))
+             (unless (equal "" before)
+               (message "Skipping output from futur-server: %S" before)))
+           (process-put proc 'futur--sid (match-string 0 string))
+           (process-put proc 'futur--sid-sym (intern (match-string 1 string)))
+           (process-put proc 'futur--state :sexp)
+           (process-put proc 'futur--pendings nil)
+           (when (< (match-end 0) (length string))
+             (loop (substring string (match-end 0))))))
         (:sexp
          (when pending
            (cl-assert (< (length pending)
-                         (length futur--elisp-impossible-string)))
-           (setq string (concat pending string))
-           (process-put proc 'futur--pending nil))
+                         (length futur--elisp-impossible-string))))
          (if (not (string-match "\n" string))
              (push string (process-get proc 'futur--pendings))
            (unless (eq 0 (match-beginning 0))
              (push (substring string 0 (match-beginning 0))
                    (process-get proc 'futur--pendings))
              (setq string (substring string (match-beginning 0))))
-           ;; (trace-values ':sexp string)
+           ;; (trace-values :sexp string)
            (cond
             ((string-prefix-p futur--elisp-impossible-string string)
              (let* ((pendings (process-get proc 'futur--pendings))
@@ -74,6 +76,7 @@ This has to be the same used by `futur-server'.")
                (process-put proc 'futur--state :next)
                (futur--funcall #'futur--elisp-process-answer proc sexp-string)
                (when (< (length futur--elisp-impossible-string) (length string))
+                 ;; (trace-values :loop1)
                  (loop (substring string
                                   (length futur--elisp-impossible-string))))))
             ((< (length string) (length futur--elisp-impossible-string))
@@ -81,31 +84,32 @@ This has to be the same used by `futur-server'.")
             ((string-match "\n" string 1)
              (push (substring string 0 (match-beginning 0))
                    (process-get proc 'futur--pendings))
+             ;; (trace-values :loop2)
              (loop (substring string (match-beginning 0))))
             (t (push string (process-get proc 'futur--pendings))))))
         (:next
          (let ((sid (process-get proc 'futur--sid)))
            (when pending
-             (cl-assert (< (length pending) (length sid)))
-             (setq string (concat pending string))
-             (process-put proc 'futur--pending nil))
+             (cl-assert (< (length pending) (length sid))))
            (cond
             ((string-match sid string)
-             (let ((before (string-trim (substring string 0 (match-beginning 0))))
-                   (after (substring string (match-end 0))))
+             (let ((after (substring string (match-end 0)))
+                   (before (string-trim
+                            (substring string 0 (match-beginning 0)))))
                (unless (equal "" before)
                  (message "Skipping output from futur-server: %S" before))
                (process-put proc 'futur--state :sexp)
+               ;; (trace-values :loop3 before sid after)
                (loop after)))
             (t
              (string-match "[:0-9a-fs]*\\'" string ;; This regexp Can't fail.
                            (max 0 (- (length string) (length sid))))
-             (let ((before (string-trim
+             (let ((after (substring string (match-beginning 0)))
+                   (before (string-trim
                             (substring string 0 (match-beginning 0)))))
                (unless (equal "" before)
                  (message "Skipping output from futur-server: %S" before))
-               (process-put proc 'futur--pending
-                            (substring string (match-beginning 0))))))))))))
+               (process-put proc 'futur--pending after))))))))))
 
 (defun futur--elisp-process-filter-stderr (proc string)
   (let ((pending (process-get proc 'futur--pending)))
@@ -147,6 +151,7 @@ This has to be the same used by `futur-server'.")
                   "-l" ,(locate-library "futur-server")
                   "-f" "futur-elisp-server"))))
     (process-put proc 'futur--state :booting)
+    (process-put proc 'futur--rid 0)
     (push proc futur--elisp-servers)
     proc))
 
@@ -161,30 +166,41 @@ This has to be the same used by `futur-server'.")
                        sexp))
                (futur (process-get proc 'futur--destination)))
     (if (null futur)
-        ;; FIXME: Maybe it's just that we haven't finished processing
-        ;; the previous answer and thus haven't yet installed the next
-        ;; `futur--destination'.
-        (message "Unsolicited futur-server answer: %S" sexp)
+        ;; Hopefully, some destination will show up later to consume it.
+        (process-put proc 'futur--answers
+                     (nconc (process-get proc 'futur--answers) (list sexp)))
       (process-put proc 'futur--destination nil)
       (futur-deliver-value futur sexp))))
 
+(defun futur--elisp-set-destination (proc futur)
+  (cl-assert (null (process-get proc 'futur--destination)))
+  (let ((answers (process-get proc 'futur--answers)))
+    (if answers
+        (let ((answer (car answers)))
+          (process-put proc 'futur--answers (cdr answers))
+          (futur-deliver-value futur answer))
+      (process-put proc 'futur--destination futur))))
+
+(defun futur--elisp-answer-futur (proc)
+  (futur-new (lambda (futur)
+               (futur--elisp-set-destination proc futur)
+               ;; FIXME: Wait more efficiently and abort
+               ;; more cleanly.
+               ;; `(futur-server . ,proc)
+               nil)))
+
 (defun futur--elisp-get-process ()
-  (or (seq-find (lambda (proc) (process-get proc 'futur--ready))
-                futur--elisp-servers)
+  (let ((ready (seq-find (lambda (proc) (process-get proc 'futur--ready))
+                         futur--elisp-servers)))
+    (if ready (futur-done ready)
       (futur-let*
           ((proc (futur--elisp-launch))
-           (answer
-            <- (futur-new (lambda (futur)
-                            (process-put proc 'futur--destination futur)
-                            ;; FIXME: Wait more efficiently and abort
-                            ;; more cleanly.
-                            ;; `(futur-server . ,proc)
-                            nil))))
+           (answer <- (futur--elisp-answer-futur proc)))
         (if (eq answer :ready)
             (progn
               (process-put proc 'futur--ready t)
               proc)
-          (error "unexpected boot message from futur-server: %S" answer)))))
+          (error "unexpected boot message from futur-server: %S" answer))))))
 
 ;; (cl-defmethod futur-blocker-abort ((_ (head futur-server)) _)
 ;;   ;; Don't kill the server, since we may want to reuse it for other
@@ -193,6 +209,44 @@ This has to be the same used by `futur-server'.")
 ;; (cl-defmethod futur-blocker-wait ((blocker (head futur-server)))
 ;;   (while ?? (accept-process-output proc ...)))
 
+(defun futur--elisp-funcall (func &rest args)
+  (futur-let*
+      ((proc <- (futur--elisp-get-process))
+       (rid (cl-incf (process-get proc 'futur--rid)))
+       (_ (with-temp-buffer
+            ;; (trace-values :funcall rid func args)
+            (process-put proc 'futur--ready nil)
+            (let ((print-length nil)
+                  (print-level nil)
+                  (coding-system-for-write 'emacs-internal)
+                  (print-circle t)
+                  (print-gensym t)
+                  ;; The server reads with `read-from-minibuffer' which
+                  ;; works only on single-lines, so it's super-important
+                  ;; we don't include any LF by accident.
+                  (print-escape-newlines t)
+                  ;; SWP aren't currently printed in a `read'able way, so we may
+                  ;; as well print them bare.
+                  (print-symbols-bare t))
+              (prin1 `(,(process-get proc 'futur--sid-sym) ,rid
+                       ,func ,@args)
+                     (current-buffer))
+              (insert "\n")
+              (process-send-string proc (buffer-string))
+              ;; (process-send-region proc (point-min) (point-max))
+              )))
+       (read-answer <- (futur--elisp-answer-futur proc)))
+    ;; (trace-values :read-answer read-answer)
+    (pcase-exhaustive read-answer
+      (`(:read-success ,(pred (equal rid)))
+       (futur-let* ((call-answer  <- (futur--elisp-answer-futur proc)))
+         (pcase-exhaustive call-answer
+           (`(:funcall-success ,(pred (equal rid)) . ,val)
+            (process-put proc 'futur--ready t)
+            val)
+           (`(:funcall-error ,(pred (equal rid)) . ,err)
+            (process-put proc 'futur--ready t)
+            (futur--resignal err))))))))
 
 (provide 'futur-client)
 ;;; futur-client.el ends here

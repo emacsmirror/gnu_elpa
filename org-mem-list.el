@@ -146,8 +146,7 @@ To automatically warn, set `org-mem-do-warn-title-collisions'."
        :entries
        (cl-loop
         for (target . link) in dead-links
-        as origin-id = (org-mem-link-nearby-id link)
-        as entry = (org-mem-entry-by-id origin-id)
+        as entry = (org-mem-link-entry link)
         collect
         (list (sxhash link)
               (vector target

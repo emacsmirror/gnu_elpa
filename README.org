@@ -65,7 +65,7 @@ While you could simply let =truename-cache-collect-files-and-attributes= return 
 
 Sometimes you do not want a true name, but a name abbreviated with =abbreviate-file-name=.  For one thing, it's just preferable to present such names to the user, but for another, that's what will match the confusingly named buffer-local variable =buffer-file-truename= -- the actual truename will not.
 
-(Even /more/ confusingly, the function =get-truename-buffer= needs the actual truename...)
++(Even /more/ confusingly, the function =get-truename-buffer= needs the actual truename...)+ EDIT: Sorry, I was wrong!
 
 But =abbreviate-file-name= is another thing that can consume much of our aforementioned 100 millisecond budget, all by itself.
 

@@ -530,14 +530,14 @@ name handlers to allow, and t means allow all of them:
 ABBREV transforms each file name returned.
 It can take one of three values:
 
-- nil :: Return true names that work with `get-truename-buffer'.
+- nil :: Return true names.
 
 - `dir' :: Return non-true names more likely to match instances of
     variable `buffer-file-name' and to work with `get-file-buffer'.
     Corresponds to `truename-cache-get-dir-abbrev'.
 
 - `full' :: Return non-true names very likely to match instances of
-    variable `buffer-file-truename'.
+    variable `buffer-file-truename' and to work with `get-truename-buffer'.
     Corresponds to `truename-cache-get-full-abbrev'.
 
     This match is reliable except when the value of LOCAL-NAME-HANDLERS

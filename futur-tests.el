@@ -179,7 +179,7 @@
     (futur-blocking-wait-to-get-result (apply #'futur-list futures))
     (should (<= 0.3 (- (float-time) start) 0.5))))
 
-(ert-deftest futur-elisp-server ()
+(ert-deftest futur-server ()
   (let* ((futur (futur--elisp-get-process))
          (proc (futur-blocking-wait-to-get-result futur)))
     (should (process-get proc 'futur--ready))
@@ -199,7 +199,25 @@
 
   (let ((fut (futur--elisp-funcall #'documentation 'car)))
     (should (equal (futur-blocking-wait-to-get-result fut)
-                   (documentation 'car)))))
+                   (documentation 'car))))
+
+  (let* ((fut
+          (futur-let*
+              ((da1 <- (futur--elisp-funcall #'futur-server-call-in-context
+                                             'futur-test-mini ()
+                                             #'symbol-function 'diff-mode))
+               (da2 <- (futur--elisp-funcall #'futur-server-call-in-context
+                                             'futur-test-mini '(diff-mode)
+                                             #'symbol-function 'diff-mode))
+               (da3 <- (futur--elisp-funcall #'futur-server-call-in-context
+                                             'futur-test-mini ()
+                                             #'symbol-function 'diff-mode)))
+            (list da1 da2 da3)))
+         (vals (futur-blocking-wait-to-get-result fut)))
+    (should (autoloadp (nth 0 vals)))
+    (should (functionp (nth 1 vals)))
+    (should-not (equal (nth 0 vals) (nth 1 vals)))
+    (should (equal (nth 0 vals) (nth 2 vals)))))
 
 (provide 'futur-tests)
 ;;; futur-tests.el ends here

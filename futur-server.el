@@ -62,7 +62,109 @@
     (princ futur--elisp-impossible-string t)
     (terpri t)))
 
-(defun futur-elisp-server ()
+(defun futur--obarray-snapshot ()
+  "Return a snapshot of `obarray'.
+Does not pay attention to buffer-local values of variables."
+  ;; FIXME: Optimize away those symbols which still have the same values as
+  ;; in all other snapshots?
+  (let ((snapshot (obarray-make)))
+    (mapatoms
+     (lambda (sym)
+       (let ((fun (symbol-function sym))
+             (plist (symbol-plist sym))
+             (boundp (default-boundp sym)))
+         (if (and (null fun) (null plist)
+                  (or (keywordp sym) (not boundp)))
+             nil
+           (let ((ns (intern (symbol-name sym) snapshot)))
+             (setf (symbol-function ns) fun)
+             (setf (symbol-plist ns) plist)
+             (when boundp
+               (setf (default-value ns) (default-value sym))))))))
+    snapshot))
+
+(defun futur--obarray-revert (snapshot)
+  "Revert `obarray' to the value it had when SNAPSHOT was taken."
+  ;; We don't have `default-makunbound', so simulate it by
+  ;; going to a dummy temp buffer.
+  (unless snapshot (error "Can't use nil as obarray"))
+  (with-temp-buffer
+    ;; We map only over `obarray', which takes care of all the symbols
+    ;; present in `obarray', some of which are also in `snapshot'.
+    ;; Strictly speaking, we should also map over `snapshot' to handle
+    ;; those symbols that are missing from `obarray', but since
+    ;; `snapshot' holds a previous state of `obarray', such symbols
+    ;; can occur only if someone used `unintern', which should hopefully
+    ;; never happen in the `obarray'.
+    (mapatoms
+     (lambda (sym)
+       (let ((ss (intern-soft (symbol-name sym) snapshot)))
+         (if (null ss)
+             (progn
+               (setf (symbol-function sym) nil)
+               (setf (symbol-plist sym) nil)
+               (unless (keywordp sym) (makunbound sym)))
+           (setf (symbol-function sym) (symbol-function ss))
+           (setf (symbol-plist sym) (symbol-plist ss))
+           ;; FIXME: Do we need to do something special for var-aliases?
+           (ignore-error setting-constant
+             (if (default-boundp ss)
+                 (setf (default-value sym) (default-value ss))
+               (when (default-boundp sym)
+                 (unless (keywordp sym) (makunbound sym)))))))))))
+
+(defun futur--list-prefix-p (prefix other-list)
+  (while (and (consp prefix) (consp other-list)
+              (equal (car prefix) (car other-list)))
+    (setq prefix (cdr prefix))
+    (setq other-list (cdr other-list)))
+  (null prefix))
+
+(defalias 'futur--obarray
+  ;; Store the snapshots inside the closure rather than in a global
+  ;; variable, so that `futur--obarray-revert' doesn't undo it.
+  (let ((snapshots '()))
+    (lambda (name target)
+      (when (and target (null snapshots))
+        (error "`futur--obarray' was not properly initialized: %S" target))
+      (pcase-let ((`(,_ ,old-target ,snapshot) (assq name snapshots)))
+        (cond
+         ((and snapshot (equal old-target target))
+          (futur--obarray-revert snapshot))
+         (t
+          (let ((nearest '())
+                (target-len (length target))
+                (score -1))
+            (dolist (entry snapshots)
+              (let* ((old-target (nth 1 entry))
+                     (old-target-len (length old-target)))
+                (when (and (< score old-target-len)
+                           (<= old-target-len target-len)
+                           (futur--list-prefix-p old-target target))
+                  (setq score old-target-len)
+                  (setq nearest entry))))
+            (if (null nearest)
+                (when snapshots (error "Internal error in futur--obarray: %S %S"
+                                       target snapshots))
+              (futur--obarray-revert (nth 2 nearest)))
+            (let ((target-rest (nthcdr (length (nth 1 nearest)) target)))
+              (if (and nearest (null target-rest))
+                  ;; Just a new name for an existing obarray.
+                  (setf (alist-get name snapshots) (cdr nearest))
+                (dolist (cmd target-rest)
+                  (pcase-exhaustive cmd
+                    (`(funcall ,func . ,args) (apply func args))
+                    ((pred stringp) (unless (assoc cmd load-history)
+                                      (load cmd 'noerror 'nomessage)))
+                    ((pred symbolp) (require cmd))))
+                (setf (alist-get name snapshots)
+                      (list target (futur--obarray-snapshot))))))))))))
+
+(defun futur-server-call-in-context (ctxname ctx func &rest args)
+  (futur--obarray ctxname ctx)
+  (apply func args))
+
+(defun futur-server ()
   ;; We don't need a cryptographically secure ID, but just something that's
   ;; *very* unlikely to occur by accident elsewhere and which `read' wouldn't
   ;; process without signaling an error.
@@ -72,6 +174,8 @@
                                            (random t) (current-time)
                                            (emacs-pid)))))
          (sid-sym (intern (string-trim sid))))
+    ;; Initialize the cache of obarray snapshots.
+    (futur--obarray 'futur--server-internal nil)
     (futur--print-stdout :ready sid)
     (while t
       (let ((input (condition-case err (cons :read-success (futur--read-stdin))

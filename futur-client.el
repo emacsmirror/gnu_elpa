@@ -149,7 +149,7 @@ This has to be the same used by `futur-server'.")
                 `(,(expand-file-name invocation-name invocation-directory)
                   "-Q" "--batch"
                   "-l" ,(locate-library "futur-server")
-                  "-f" "futur-elisp-server"))))
+                  "-f" "futur-server"))))
     (process-put proc 'futur--state :booting)
     (process-put proc 'futur--rid 0)
     (push proc futur--elisp-servers)

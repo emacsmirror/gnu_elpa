@@ -153,15 +153,15 @@ of this variable.")
             (gnus-dired-attach (list path)))))
     (url
      (?b "Browse" ,#'browse-url)
-     (?d "Download" ,#'(lambda (url)
-                         (cond
-                          ((executable-find "wget")
-                           (start-process "*Download*" nil "wget" "-q" "-c" url))
-                          ((executable-find "wcurl")
-                           (start-process "*Download*" nil "wcurl" url))
-                          ;; FIXME: We should also try falling back to
-                          ;; `url-retrieve'.
-                          ((error "Failed to find external executable for downloads")))))
+     (?d "Download" ,(lambda (url)
+                       (cond
+                        ((executable-find "wget")
+                         (start-process "*Download*" nil "wget" "-q" "-c" url))
+                        ((executable-find "wcurl")
+                         (start-process "*Download*" nil "wcurl" url))
+                        ;; FIXME: We should also try falling back to
+                        ;; `url-retrieve'.
+                        ((error "Failed to find external executable for downloads")))))
      (?g "git-clone into temp"
          ,(lambda (url)
             (let ((dir (make-temp-file (file-name-base url) t))

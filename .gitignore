@@ -7,7 +7,12 @@
 *.dvi
 *.elc
 
+# Don't store generated files in Git.  Pre-built versions of those
+# files can be easily obtained from GNU(-devel) ELPA.
 /emacs-lisp-intro-es.texi
+/emacs-lisp-intro*.pdf
+*.info
+*.html
 
 # ELPA-generated files.
 /emacs-lisp-intro-es-autoloads.el

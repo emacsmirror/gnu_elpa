@@ -592,5 +592,111 @@ the hash correct, then checking with actual file (same content, newer mtime)."
   "Empty string is returned as-is."
   (should (string= "" (org-gnosis--eval-template ""))))
 
+;;; ---- Group 11: Template edge cases ----
+
+(ert-deftest org-gnosis-test-format-template-literal-percent ()
+  "Literal % in template is preserved (not treated as format directive)."
+  (with-temp-buffer
+    (org-mode)
+    (insert "* Top\n")
+    (goto-char (point-min))
+    (should (string= "** Goals [0%]\n"
+                      (org-gnosis--format-template "%s Goals [0%]\n")))))
+
+(ert-deftest org-gnosis-test-format-template-percent-in-content ()
+  "Various % patterns in template content are preserved."
+  (with-temp-buffer
+    (org-mode)
+    (insert "** Heading\n")
+    (goto-char (point-min))
+    (should (string= "*** Progress: 50% done\n"
+                      (org-gnosis--format-template "%s Progress: 50% done\n")))))
+
+(ert-deftest org-gnosis-test-format-template-function-with-percent ()
+  "Function template returning content with % is formatted correctly."
+  (with-temp-buffer
+    (org-mode)
+    (insert "* Top\n")
+    (goto-char (point-min))
+    (let ((template-fn (lambda () "%s Tasks [0%]\n%s Notes\n")))
+      (should (string= "** Tasks [0%]\n** Notes\n"
+                        (org-gnosis--format-template
+                         (org-gnosis--eval-template template-fn)))))))
+
+(ert-deftest org-gnosis-test-format-template-no-placeholders ()
+  "Template without %s is returned unchanged."
+  (with-temp-buffer
+    (org-mode)
+    (insert "* Top\n")
+    (goto-char (point-min))
+    (should (string= "Just plain text\n"
+                      (org-gnosis--format-template "Just plain text\n")))))
+
+(ert-deftest org-gnosis-test-format-template-empty-string ()
+  "Empty template returns empty string."
+  (with-temp-buffer
+    (org-mode)
+    (insert "* Top\n")
+    (goto-char (point-min))
+    (should (string= "" (org-gnosis--format-template "")))))
+
+(ert-deftest org-gnosis-test-format-template-deep-nesting ()
+  "Deeply nested heading produces correct star count."
+  (with-temp-buffer
+    (org-mode)
+    (insert "**** Deep\n")
+    (goto-char (point-min))
+    (should (string= "***** Sub\n"
+                      (org-gnosis--format-template "%s Sub\n")))))
+
+(ert-deftest org-gnosis-test-select-template-single-entry ()
+  "Single-entry template list is used without prompting."
+  (let ((templates '(("Only" "%s Heading\n"))))
+    (should (string= "%s Heading\n"
+                      (org-gnosis-select-template templates)))))
+
+(ert-deftest org-gnosis-test-select-template-function-entry ()
+  "Single function template is evaluated."
+  (let ((templates '(("Fn" (lambda () "from function")))))
+    (should (string= "from function"
+                      (org-gnosis-select-template templates)))))
+
+(ert-deftest org-gnosis-test-template-list-journal-buffer ()
+  "In a journal directory buffer, journal templates are returned."
+  (org-gnosis-test-setup)
+  (unwind-protect
+      (let ((org-gnosis-journal-templates '(("J" "journal")))
+            (org-gnosis-node-templates '(("N" "node"))))
+        (with-temp-buffer
+          (setq buffer-file-name
+                (expand-file-name "test.org" org-gnosis-journal-dir))
+          (should (equal '(("J" "journal"))
+                         (org-gnosis--template-list)))))
+    (org-gnosis-test-teardown)))
+
+(ert-deftest org-gnosis-test-template-list-node-buffer ()
+  "In a node directory buffer, node templates are returned."
+  (org-gnosis-test-setup)
+  (unwind-protect
+      (let ((org-gnosis-journal-templates '(("J" "journal")))
+            (org-gnosis-node-templates '(("N" "node"))))
+        (with-temp-buffer
+          (setq buffer-file-name
+                (expand-file-name "test.org" org-gnosis-dir))
+          (should (equal '(("N" "node"))
+                         (org-gnosis--template-list)))))
+    (org-gnosis-test-teardown)))
+
+(ert-deftest org-gnosis-test-insert-template-with-percent ()
+  "Insert template containing % characters at heading."
+  (with-temp-buffer
+    (org-mode)
+    (insert "* Top\n")
+    (goto-char (point-min))
+    (let ((org-gnosis-node-templates
+           '(("Progress" "%s Goals [0%]\n"))))
+      (org-gnosis-insert-template)
+      (should (string-match-p "\\*\\* Goals \\[0%\\]" (buffer-string))))))
+
 (provide 'org-gnosis-test-db)
 ;;; org-gnosis-test-db.el ends here

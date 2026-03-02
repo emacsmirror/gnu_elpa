@@ -2147,7 +2147,7 @@ msgstr "Tekst terug yanken"
 #. type: menuentry
 #: emacs-lisp-intro.texi:560 emacs-lisp-intro.texi:9888
 msgid "Kill Ring Overview::"
-msgstr "Kill ring overzicht::"
+msgstr "Killring overzicht::"
 
 #. type: node
 #: emacs-lisp-intro.texi:560 emacs-lisp-intro.texi:9888
@@ -17349,10 +17349,10 @@ msgid ""
 "calls a function that invokes a function that manipulates the kill ring.  "
 "Thus, before reaching the mountains, we climb the foothills."
 msgstr ""
-"De lijst die de stukken tekst bevat het de @dfn{kill ring}. Dit hoofdstuk "
-"werkt naar een beschijving van de kill ring toe en hoe die gebruikt wordt "
+"De lijst die de stukken tekst bevat het de @dfn{killring}. Dit hoofdstuk "
+"werkt naar een beschijving van de killring toe en hoe die gebruikt wordt "
 "door eerst te volgen hoe de functie @code{zap-to-char} werkt. Deze functie "
-"roept een functie aan die een functie start die de kill ring manipuleert. "
+"roept een functie aan die een functie start die de killring manipuleert. "
 "Dus, voordat we de bergen bereiken, beklimmen we eerst de voetheuvels."
 
 #. type: Plain text
@@ -17391,7 +17391,7 @@ msgstr ""
 "De functie @code{zap-to-char} verwijdert de tekst in de region tussen de "
 "lokatie van de cursor (dus van point) tot en met waar het gespecificeerde "
 "karakter verschijnt. De tekst die @code{zap-to-char} verwijdert wordt in de "
-"kill ring gestopt en het kan uit de kill ring worden opgehaald door @kbd{C-"
+"killring gestopt en het kan uit de killring worden opgehaald door @kbd{C-"
 "y} (@code{yank}) te typen."
 
 #. type: Plain text
@@ -17563,7 +17563,7 @@ msgid ""
 "at you."
 msgstr ""
 "In een read-only buffer kopieert de functie @code{zap-to-char} de tekst naar "
-"de kill ring, maar verwijdert die niet. Het echogebied toont een boodschap "
+"de killring, maar verwijdert die niet. Het echogebied toont een boodschap "
 "dat het buffer read-only is. Ook kan de terminal piepen of knipperen."
 
 #. type: subsection
@@ -17939,7 +17939,7 @@ msgid ""
 "from which it may be retrieved."
 msgstr ""
 "De functie @code{zap-to-char} gebruikt de @code{kill-region}. Deze functie "
-"clipt de tekst van een region en kopieert die tekst naar de kill ring, van "
+"clipt de tekst van een region en kopieert die tekst naar de killring, van "
 "waar het kan worden opgehaald."
 
 #. type: Plain text
@@ -18070,7 +18070,7 @@ msgid ""
 msgstr ""
 "      ;;    De 'kill-append' functie plakken de nieuwe string en\n"
 "      ;;    de oude aan elkaar. De 'kill-new' functie voegt tekst in als een\n"
-"      ;;    nieuw item in de kill ring.\n"
+"      ;;    nieuw item in de killring.\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:8060
@@ -18101,7 +18101,7 @@ msgid ""
 msgstr ""
 "      (let ((string (filter-buffer-substring beg end t)))\n"
 "        (when string                    ;STRING is nil if BEG = END\n"
-"          ;; Voeg die string op of andere manier aan de kill ring toe.\n"
+"          ;; Voeg die string op of andere manier aan de killring toe.\n"
 "          (if (eq last-command 'kill-region)\n"
 
 #. type: group
@@ -18177,7 +18177,7 @@ msgstr ""
 "     ;;    het wordt gebruikt in geval van een fout\n"
 "     (setq this-command 'kill-region)\n"
 "     ;;    Tenslotte, in het dan-deel, stuur een boodschap wanneer je de\n"
-"     ;;    tekst niet naar de the kill ring kan kopiëren zonder een fout te signaleren\n"
+"     ;;    tekst niet naar de the killring kan kopiëren zonder een fout te signaleren\n"
 "     ;;    maar doe dat niet als je het niet mag.\n"
 
 #. type: group
@@ -18271,7 +18271,7 @@ msgid ""
 "        (setq this-command 'kill-region))\n"
 msgstr ""
 "        ;; 'kill-append' plakt de nieuwe en de oude string aan elkaar.\n"
-"        ;; 'kill-new' voegt tekst in in een item in de kill ring.\n"
+"        ;; 'kill-new' voegt tekst in in een item in de killring.\n"
 "        (when string\n"
 "          (if (eq last-command 'kill-region)\n"
 "              ;; wanneer waar, append string\n"
@@ -18613,7 +18613,7 @@ msgid ""
 "text in the kill ring."
 msgstr ""
 "een kopie van de nieuw geclipte tekst aan de voorgaande zojuist geclipte "
-"tekst in de kill ring."
+"tekst in de killring."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:8349
@@ -18641,7 +18641,7 @@ msgstr ""
 "gekopieerde tekst. Dit betekent dat als je de tekst terug-yankt, je alles "
 "krijgt, van zowel deze als de voorgaande operatie. Anderzijds, wanneer een "
 "ander commando aan de @code{copy-region-as-kill} voorafging, dan kopieert de "
-"functie de tekst in een separaat item in de kill ring."
+"functie de tekst in een separaat item in de killring."
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:8364
@@ -18771,7 +18771,7 @@ msgstr ""
 "Ook kun je in windowing systemen tussen verschillende programma's kopiëren, "
 "snijden en plakken. In het X windowing system bijvoorbeeld is de functie "
 "@code{interprogram-cut-function} @code{x-select-text}, die met het "
-"equivalent voor de Emacs kill ring van het windowing systeem werkt."
+"equivalent voor de Emacs killring van het windowing systeem werkt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:8435
@@ -18781,7 +18781,7 @@ msgid ""
 "situations: whether or not this command is executed immediately after a "
 "previous @code{kill-region} command.  In the first case, the new region is "
 "appended to the previously copied text.  Otherwise, it is inserted into the "
-"beginning of the kill ring as a separate piece of text from the previous "
+"beginning of the killring as a separate piece of text from the previous "
 "piece."
 msgstr ""
 "De body van de @code{copy-region-as-kill} functie start met een @code{if}-"
@@ -18818,7 +18818,7 @@ msgstr ""
 "De functie @code{copy-region-as-kill} werkt op een vergelijkbare manier als "
 "de functie @code{kill-region}. Beide zijn zo geschreven dat twee of meer "
 "kills op een rij de tekst in een enkele entry combineren. Wanneer je de "
-"tekst van de kill ring terugyankt, dan krijg alles in een stuk. Bovendien, "
+"tekst van de killring terugyankt, dan krijg alles in een stuk. Bovendien, "
 "kills die voorwaarts vanaf de huidige cursorpositie bewegen worden "
 "toegevoegd aan het einde van de vorige gekopieerde tekst, en commando's die "
 "tekst achterwaarts kopiëren worden aan het begin van de vorige gekopieerde "
@@ -18880,10 +18880,10 @@ msgstr ""
 "@code{last-command} is. Zo ja, dan wordt het dan-deel van de @code{if} "
 "expressie geëvalueerd. Het gebruikt de functie @code{kill-append} om de "
 "tekst die bij deze aanroep gekopieerd is te plakken aan de tekst die al in "
-"het eerste element (the @sc{car}) van de kill ring staat. Anders, wanneer de "
+"het eerste element (the @sc{car}) van de killring staat. Anders, wanneer de "
 "waarde van de @code{last-command} niet @code{kill-region} is, dan voegt de "
 "functie @code{copy-region-as-kill} met functie @code{kill-new} een nieuw "
-"element aan de kill ring toe."
+"element aan de killring toe."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:8488
@@ -19039,7 +19039,7 @@ msgid ""
 "is a bug that produces no problems?)"
 msgstr ""
 "Het heeft een functie @code{let*} om de waarde van het eerste element van de "
-"kill ring in te stellen op @code{cur}. (Ik weet niet waarom de functie in "
+"killring in te stellen op @code{cur}. (Ik weet niet waarom de functie in "
 "plaats hiervan geen @code{let} gebruikt, slechts één waarde wordt in de "
 "expressie ingesteld. Misschien dat dit een bug is die geen problemen "
 "veroorzaakt?)"
@@ -19202,8 +19202,8 @@ msgid ""
 "The @code{kill-append} function uses the @code{kill-new} function which in "
 "turn uses the @code{setcar} function."
 msgstr ""
-"We begrijpen nu @code{kill-append}: het past de inhoud van de kill ring aan. "
-"De kill ring is een lijst, elk element daarvan is opgeslagen tekst. De "
+"We begrijpen nu @code{kill-append}: het past de inhoud van de killring aan. "
+"De killring is een lijst, elk element daarvan is opgeslagen tekst. De "
 "functie @code{kill-append} gebruikt de functie @code{kill-new} die op zijn "
 "beurt de functie @code{setcar} gebruikt."
 
@@ -19403,7 +19403,7 @@ msgid ""
 "@code{replace} variable is true."
 msgstr ""
 "De conditionele test is @w{@code{(and replace kill-ring)}}. Deze is waar "
-"wanneer twee condities voldoen: de kill ring bevast iets en de variabele "
+"wanneer twee condities voldoen: de killring bevast iets en de variabele "
 "@code{replace} variable is waar."
 
 #. type: Plain text
@@ -19414,7 +19414,7 @@ msgid ""
 "executed:"
 msgstr ""
 "Wanneer de functie @code{kill-append} @code{kill-append} op waar instelt en "
-"wanneer de kill ring tenminste een element bevat, wordt de @code{setcar} "
+"wanneer de killring tenminste een element bevat, wordt de @code{setcar} "
 "expressie uitgevoerd:"
 
 #. type: smallexample
@@ -19440,7 +19440,7 @@ msgid ""
 "On the other hand, if the kill ring is empty, or replace is false, the else-"
 "part of the condition is executed:"
 msgstr ""
-"Aan de andere kant, wanneer de kill ring leeg, of replace onwaar is, wordt "
+"Aan de andere kant, wanneer de killring leeg, of replace onwaar is, wordt "
 "het anders-deel van de conditie uitgevoerd:"
 
 #. type: smallexample
@@ -19485,10 +19485,10 @@ msgid ""
 "long."
 msgstr ""
 "Wanneer het onwaar is, construeert de expressie eerst een nieuwe versie van "
-"de kill ring door @code{string} vooraan als nieuw element aan de bestaande "
-"kill ring te plaatsen (dat is wat de @code{push} doet.) Daarna voert het een "
+"de killring door @code{string} vooraan als nieuw element aan de bestaande "
+"killring te plaatsen (dat is wat de @code{push} doet.) Daarna voert het een "
 "tweede @code{if}-clausule uit. Deze tweede @code{if}-clausule voorkomt dat "
-"de kill ring te groot groeit."
+"de killring te groot groeit."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:8814
@@ -19502,7 +19502,7 @@ msgid ""
 "what results from adding the string being killed to the old kill ring."
 msgstr ""
 "De @code{push} regel in het anders-deel stelt de nieuwe waarde van de kill "
-"ring in op wat het resultaat is van het aan de oude kill ring toevoegen van "
+"ring in op wat het resultaat is van het aan de oude killring toevoegen van "
 "de gekillde string."
 
 #. type: Plain text
@@ -19589,7 +19589,7 @@ msgid ""
 "kill ring from growing too long.  It looks like this:"
 msgstr ""
 "Nu het tweede deel van de @code{if} clausule. Deze expressie voorkomt dat de "
-"kill ring te groot groeit. Het ziet er zo uit:"
+"killring te groot groeit. Het ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:8872
@@ -19610,10 +19610,10 @@ msgid ""
 "code sets the last element of the kill ring to @code{nil}.  It does this by "
 "using two functions, @code{nthcdr} and @code{setcdr}."
 msgstr ""
-"De code controleert of de lengte va de kill ring groter is dan de maximum "
+"De code controleert of de lengte va de killring groter is dan de maximum "
 "toegestane lengte. Dit is de waarde van @code{kill-ring-max} (die standaard "
 "120 is). Wanneer de lengte van de kill ring te groot is, dan stelt deze code "
-"het laatste element van de kill ring in op @code{nil}. Het doet dit met twee "
+"het laatste element van de killring in op @code{nil}. Het doet dit met twee "
 "functies, @code{nthcdr} and @code{setcdr}."
 
 #. type: Plain text
@@ -19630,10 +19630,10 @@ msgstr ""
 "We keken eerder naar @code{setcdr}, (@pxref{setcdr, , @code{setcdr}}). Het "
 "zet de @sc{cdr} van een lijst, net als @code{setcar} de @sc{car} van de "
 "lijst zet. In dit geval echter zet @code{setcdr} niet de de @sc{cdr} van de "
-"gehele kill ring, de functie @code{nthcdr} zorgt dat het de @sc{cdr} van het "
-"een-na-laatste element van de kill ring zet---dit betekent dat omdat de "
-"@sc{cdr} van het een-na-laatste element het laatste element van de kill ring "
-"is, het het laatste element van de kill ring zal zetten."
+"gehele killring, de functie @code{nthcdr} zorgt dat het de @sc{cdr} van het "
+"een-na-laatste element van de killring zet---dit betekent dat omdat de "
+"@sc{cdr} van het een-na-laatste element het laatste element van de killring "
+"is, het het laatste element van de killring zal zetten."
 
 #. type: findex
 #: emacs-lisp-intro.texi:8891
@@ -19739,9 +19739,9 @@ msgid ""
 "kill ring from growing too long."
 msgstr ""
 "Nogmaals, in @code{kill-new}, neemt de functie @code{nthcdr} een aantal keer "
-"de @sc{cdr}, één minder dan de maximaal toegestane grootte van de kill ring "
+"de @sc{cdr}, één minder dan de maximaal toegestane grootte van de killring "
 "en de @code{setcdr} zet de @sc{cdr} van dat element (wat de rest van de "
-"elementen in de kill ring is) op @code{nil}. Dit voorkomt dat de kill ring "
+"elementen in de killring is) op @code{nil}. Dit voorkomt dat de killring "
 "te groot groeit."
 
 #. type: Plain text
@@ -19772,7 +19772,7 @@ msgid ""
 "help humans understand how the variable is used."
 msgstr ""
 "Ondanks dat de @code{kill-ring-yank-pointer} een @code{pointer} heet, is het "
-"een variabele net als de kill ring. De naam is echter gekozen om mensen te "
+"een variabele net als de killring. De naam is echter gekozen om mensen te "
 "helpen begrijpen hoe de variabele wordt gebruikt."
 
 #. type: Plain text
@@ -19929,7 +19929,7 @@ msgid ""
 "implemented in a computer.  This will make clear such mysteries as the use "
 "of the term ``pointer''.  But before that, we will digress into C."
 msgstr ""
-"De code voor het plaatsen van de tekst in de kill ring, hetzij geplakt aan "
+"De code voor het plaatsen van de tekst in de killring, hetzij geplakt aan "
 "een bestaand element hetzij als een nieuw element, leidt ons naar de code om "
 "de verwijderde tekst terug te halen---het yank commando. Voordat we het yank "
 "commando gaan bespreken, is het echter beter te ontdekken hoe lijsten in de "
@@ -20339,7 +20339,7 @@ msgstr ""
 "Je kunt de huidige waarde van een variabele, elke variabele, zien met de "
 "functie @code{describe-variable}, die meestal wordt aangeroepen met @kbd{C-h "
 "v}. Wanneer je @kbd{C-h v} typt, en na de prompt @code{kill-ring} (gevolgd "
-"door @key{RET}), krijg je de huidige inhoud van je kill ring te zien---dit "
+"door @key{RET}), krijg je de huidige inhoud van je killring te zien---dit "
 "kan best veel zijn! Omgekeerd, wanneer je in deze Emacs sessie niets anders "
 "gedaan hebt dan dit document lezen, kan er helemaal niets in zijn. Ook krijg "
 "je de documentatie voor @code{kill-ring} te zien."
@@ -20378,7 +20378,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:9296
 msgid "The kill ring is defined by a @code{defvar} in the following way:"
 msgstr ""
-"De kill ring is gedefinieerd door een @code{defvar} op de volgende manier: "
+"De killring is gedefinieerd door een @code{defvar} op de volgende manier: "
 
 #. type: group
 #: emacs-lisp-intro.texi:9302
@@ -20778,7 +20778,7 @@ msgid ""
 "stores that text in the kill ring, so you can get it back by yanking."
 msgstr ""
 "@code{kill-region} verwijdert de tekst tussen point en mark uit het buffer "
-"en bewaart die tekst in de kill ring, zodat je die met yanken terug kunt "
+"en bewaart die tekst in de killring, zodat je die met yanken terug kunt "
 "krijgen."
 
 #. type: table
@@ -20789,7 +20789,7 @@ msgid ""
 "or remove the text from the buffer."
 msgstr ""
 "@code{copy-region-as-kill} kopieert de tekst tussen point en mark naar de "
-"kill ring, van waar je het met yanken terug kunt krijgen. De functie "
+"killring, van waar je het met yanken terug kunt krijgen. De functie "
 "verwijdert de tekst niet uit het buffer."
 
 #. type: Plain text
@@ -20833,8 +20833,8 @@ msgid ""
 "area, if any; if the kill ring does not contain a third element, print an "
 "appropriate message."
 msgstr ""
-"Schrijf een functie die het derde element van de kill ring toont in het "
-"echogebied als dat element er is. Wanneer de kill ring geen derde element "
+"Schrijf een functie die het derde element van de killring toont in het "
+"echogebied als dat element er is. Wanneer de killring geen derde element "
 "heeft, toon dat een passende boodschap."
 
 #. type: cindex
@@ -20857,6 +20857,17 @@ msgid ""
 "pair points to the next pair, or to the symbol @code{nil}, which marks the "
 "end of the list."
 msgstr ""
+"In Lisp worden atomen op een eenvoudige manier vastgelegd. Zelfs als "
+"de implementatie niet eenvoudig is, dan is de theorie toch "
+"eenvoudig. Het atoom @samp{roos} bijvoorbeeld is vastgelegd als vier "
+"aaneengesloten letters, @samp{r}, @samp{o}, @samp{o} en @samp{s}. "
+"Een lijst, anderzijds, wordt anders bewaard. Het mechanisme is net "
+"zo eenvoudig, maar het kost even tijd om aan het idee gewend te "
+"raken. Een lijst wordt bewaard met een reeks paren van pointers. In "
+"de reeks wijst de eerste pointer van elk paar pointers naar een "
+"atoom of naar een andere lijst, en de tweede pointer in elk paar "
+"pointers wijst naar het volgende paar, of naar het symbool "
+"@code{nil}, wat het eind van de lijst markeert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9546
@@ -20864,6 +20875,9 @@ msgid ""
 "A pointer itself is quite simply the electronic address of what is pointed "
 "to.  Hence, a list is kept as a series of electronic addresses."
 msgstr ""
+"Een pointer zelf is heel eenvoudig het elektronische adres van "
+"datgene, waar het naar toe wijst. Een lijst wordt dus bewaard als "
+"een reeks elektronische adressen."
 
 #. type: unnumberedsec
 #: emacs-lisp-intro.texi:9554 emacs-lisp-intro.texi:9555
@@ -20883,18 +20897,29 @@ msgid ""
 "that tells where to find @samp{violet}) is kept along with the address of a "
 "third cons cell which holds the address for the atom @samp{buttercup}."
 msgstr ""
+"Bijvoorbeeld de lijst @code{(roos, viool, boterbloem)} heeft drie "
+"elementen, @samp{roos}, @samp{viool} en @samp{boterbloem}. In de "
+"computer wordt het elektronische adres van @samp{roos} bewaard in "
+"een segment van het computergeheugen dat een @samp{cons-cel} heet "
+"(omdat dat is wat de functie @code{cons} werkelijk creëert). Deze "
+"cons-cel bevat ook het adres van een tweede cons-cel, wiens @sc{car} "
+"het atoom @samp{viool} is, en dat adres (degene die vertelt waar "
+"@samp{viool} is bewaard) samen met het adres van een derde cons-cel, "
+"die het adres voor het atoom @samp{boterbloem} bevat."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9570
 msgid ""
 "This sounds more complicated than it is and is easier seen in a diagram:"
 msgstr ""
+"Dit klinkt gecompliceerder dan het is en is makkelijker te zien in "
+"een diagram:"
 
 #. type: center
 #: emacs-lisp-intro.texi:9575
 #, no-wrap
 msgid "@image{cons-1}"
-msgstr ""
+msgstr "@image{cons-1-nl}"
 
 #. type: group
 #: emacs-lisp-intro.texi:9586
@@ -20906,6 +20931,11 @@ msgid ""
 "     |            |            |\n"
 "      --> rose     --> violet   --> buttercup\n"
 msgstr ""
+"    ___ ___      ___ ___      ___ ___\n"
+"   |___|___|--> |___|___|--> |___|___|--> nil\n"
+"     |            |            |\n"
+"     |            |            |\n"
+"      --> roos     --> viool    --> boterbloem\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9600
@@ -20920,6 +20950,16 @@ msgid ""
 "address of the next pair.  The very last box points to the symbol "
 "@code{nil}, which marks the end of the list."
 msgstr ""
+"Elk vakje in het diagram representeert een computergeheugen woord "
+"dat een Lisp object bevat, meestal in de vorm van een geheugenadres. "
+"De vakjes, oftewel de adressen, zijn paren. Elke pijl wijst naar wat "
+"het adres een adres van is, hetzij een atoom of een ander paar "
+"adressen. Het eerste vakje is het elektronische adres van "
+"@samp{roos} en de pijl wijst naar @samp{roos}. Het tweede vakje is "
+"het adres van het volgende paar vakjes, waarvan het eerste deel het "
+"adres van @samp{viool} is en waarvan het tweede deel het adres van het "
+"volgende paar is. Het allerlaatste vakje wijst naar het symbool "
+"@code{nil}, dat het einde van de lijst markeert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9605
@@ -20928,23 +20968,26 @@ msgid ""
 "stores the address of the first box in the variable.  Thus, evaluation of "
 "the expression"
 msgstr ""
+"Wanneer een variabele met een operatie zoals @code{setq} wordt "
+"ingesteld op een lijst, dan slaat dat het adres op van het eerste "
+"vakje. Dus, evaluatie van de expressie"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:9608
 #, no-wrap
 msgid "(setq bouquet '(rose violet buttercup))\n"
-msgstr ""
+msgstr "(setq boeket '(roos viool boterbloem))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9613
 msgid "creates a situation like this:"
-msgstr ""
+msgstr "creëert een situatie zoals dit:"
 
 #. type: center
 #: emacs-lisp-intro.texi:9617
 #, no-wrap
 msgid "@image{cons-2}"
-msgstr ""
+msgstr "@image{cons-2-nl}"
 
 #. type: group
 #: emacs-lisp-intro.texi:9630
@@ -20958,6 +21001,13 @@ msgid ""
 "            |            |            |\n"
 "             --> rose     --> violet   --> buttercup\n"
 msgstr ""
+"boeket\n"
+"     |\n"
+"     |     ___ ___      ___ ___      ___ ___\n"
+"      --> |___|___|--> |___|___|--> |___|___|--> nil\n"
+"            |            |            |\n"
+"            |            |            |\n"
+"             --> roos     --> viool    --> boterbloem\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9637
@@ -20965,6 +21015,8 @@ msgid ""
 "In this example, the symbol @code{bouquet} holds the address of the first "
 "pair of boxes."
 msgstr ""
+"In dit voorbeeld bevat het symbool @code{boeket} het adres van het "
+"eerste paar vakjes."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9641
@@ -20972,12 +21024,14 @@ msgid ""
 "This same list can be illustrated in a different sort of box notation like "
 "this:"
 msgstr ""
+"Dezelfde lijst kan met een ander soort vakjes-notatie worden "
+"geïllustreerd, zoals dit:"
 
 #. type: center
 #: emacs-lisp-intro.texi:9645
 #, no-wrap
 msgid "@image{cons-2a}"
-msgstr ""
+msgstr "@image{cons-2a-nl}"
 
 #. type: group
 #: emacs-lisp-intro.texi:9658
@@ -20991,6 +21045,13 @@ msgid ""
 "     |       |      |     |        |      |     | cup     |      |\n"
 "      --------------       ---------------       ----------------\n"
 msgstr ""
+"bouquet\n"
+" |\n"
+" |    --------------       ---------------       ----------------\n"
+" |   | car   | cdr  |     | car    | cdr  |     | car     | cdr  |\n"
+"  -->| roos  |   o------->| viool  |   o------->| boter-  |  nil |\n"
+"     |       |      |     |        |      |     | bloem   |      |\n"
+"      --------------       ---------------       ----------------\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9671
@@ -21004,6 +21065,15 @@ msgid ""
 "on.  Here we are showing that the symbol's third address-box points to the "
 "first pair of address-boxes for the list.)"
 msgstr ""
+"(Symbolen bestaan uit meer dan paren van adressen, maar de structuur "
+"van een symbool is gemaakt van adressen. Het symbool @code{boeket} "
+"bestaat inderdaad uit een groep van adresvakjes, waarvan een het "
+"adres van het getoonde woord @samp{boeket} is, een tweede daarvan "
+"het adres van de aan het symbool gekoppelde functiedefinitie is, als "
+"die er is, en een derde daarvan dat het adres van het eerste paar "
+"adresvakjes voor de lijst @code{roos viool boterbloem} is, "
+"enzovoorts. Hier tonen we dat het derde adresvakje van het symbool "
+"naar het eerste paar van de adresvakjes van de lijst wijst.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9676
@@ -21013,23 +21083,27 @@ msgid ""
 "jargon, @sc{car} and @sc{cdr} are ``non-destructive''.)  Thus, evaluation of "
 "the following expression"
 msgstr ""
+"Wanneer een symbool naar de @sc{cdr} van de lijst wordt gezet, "
+"verandert de lijst zelf niet. Het symbool heeft eenvoudig een adres "
+"verderop in de lijst. (In het jargon: @sc{car} en @sc{cdr} zijn "
+"niet-destructief). Dus de evaluatie van de volgende expressie"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:9679
 #, no-wrap
 msgid "(setq flowers (cdr bouquet))\n"
-msgstr ""
+msgstr "(setq bloemen (cdr boeket))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9684 emacs-lisp-intro.texi:15242
 msgid "produces this:"
-msgstr ""
+msgstr "produceert dit:"
 
 #. type: center
 #: emacs-lisp-intro.texi:9688
 #, no-wrap
 msgid "@image{cons-3}"
-msgstr ""
+msgstr "@image{cons-3-nl}"
 
 #. type: group
 #: emacs-lisp-intro.texi:9703
@@ -21044,6 +21118,14 @@ msgid ""
 "         |              |            |\n"
 "          --> rose       --> violet   --> buttercup\n"
 msgstr ""
+"boeket         bloemen\n"
+"  |              |\n"
+"  |     ___ ___  |     ___ ___      ___ ___\n"
+"   --> |   |   |  --> |   |   |    |   |   |\n"
+"       |___|___|----> |___|___|--> |___|___|--> nil\n"
+"         |              |            |\n"
+"         |              |            |\n"
+"          --> roos       --> viool    --> boterbloem\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9713
@@ -21053,18 +21135,22 @@ msgid ""
 "the first of which holds the address of @code{violet}, and the second of "
 "which holds the address of @code{buttercup}."
 msgstr ""
+"De waarde van @code{bloemen} is @code{(viool boterbloem)}, dat wil "
+"zeggen, het symbool @code{bloemen} bevat het adres van het paar "
+"adresvakjes, waarvan de eerste het adres van @code{viool} bevat en "
+"de tweede het adres van @code{boterbloem} bevat."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:9714
 #, no-wrap
 msgid "dotted pair"
-msgstr ""
+msgstr "dotted pair"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:9715
 #, no-wrap
 msgid "cons cell"
-msgstr ""
+msgstr "cons-cel"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9721
@@ -21075,6 +21161,11 @@ msgid ""
 "elisp, The GNU Emacs Lisp Reference Manual}, for more information about cons "
 "cells and dotted pairs."
 msgstr ""
+"Een paar adresvakjes heet een @dfn{cons-cel} of @dfn{dotted pair}. "
+"@xref{Cons Cell Type, , Cons Cell and List Types, elisp, The GNU Emacs Lisp "
+"Reference Manual}, en @ref{Dotted Pair Notation, , Dotted Pair Notation, "
+"elisp, The GNU Emacs Lisp Reference Manual}, voor meer informatie over "
+"cons-cellen en dotted pairs."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9726
@@ -21083,23 +21174,26 @@ msgid ""
 "series of addresses like that shown above.  For example, evaluating the "
 "expression"
 msgstr ""
+"De functie @code{cons} voegt een nieuw paar adressen aan de voorkant "
+"van de reeks van adressen zoals hierboven getoond. Bijvoorbeeld, het "
+"evalueren van de expressie"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:9729
 #, no-wrap
 msgid "(setq bouquet (cons 'lily bouquet))\n"
-msgstr ""
+msgstr "(setq boeket (cons 'lelie boeket))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9734 emacs-lisp-intro.texi:15676
 msgid "produces:"
-msgstr ""
+msgstr "produceert:"
 
 #. type: center
 #: emacs-lisp-intro.texi:9738
 #, no-wrap
 msgid "@image{cons-4}"
-msgstr ""
+msgstr "@image{cons-4-nl}"
 
 #. type: group
 #: emacs-lisp-intro.texi:9753
@@ -21114,6 +21208,14 @@ msgid ""
 "         |              |              |             |\n"
 "          --> lily      --> rose       --> violet    --> buttercup\n"
 msgstr ""
+"boeket                        bloemen\n"
+"  |                             |\n"
+"  |     ___ ___        ___ ___  |     ___ ___       ___ ___\n"
+"   --> |   |   |      |   |   |  --> |   |   |     |   |   |\n"
+"       |___|___|----> |___|___|----> |___|___|---->|___|___|--> nil\n"
+"         |              |              |             |\n"
+"         |              |              |             |\n"
+"          --> lelie     --> roos       --> viool      --> boterbloem\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9762
@@ -21121,17 +21223,19 @@ msgid ""
 "However, this does not change the value of the symbol @code{flowers}, as you "
 "can see by evaluating the following,"
 msgstr ""
+"Dit verandert echter niet de waarde van het symbool @code{bloemen}, "
+"zoals je kunt zien door het volgende te evalueren:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:9765
 #, no-wrap
 msgid "(eq (cdr (cdr bouquet)) flowers)\n"
-msgstr ""
+msgstr "(eq (cdr (cdr boeket)) bloemen)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9769
 msgid "which returns @code{t} for true."
-msgstr ""
+msgstr "wat @code{t} voor waar teruggeeft."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9774
@@ -21141,6 +21245,11 @@ msgid ""
 "address is of @code{violet}.  Also, this does not alter any of the pre-"
 "existing cons cells; they are all still there."
 msgstr ""
+"Totdat het wordt gereset, heeft @code{bloemen} nog steeds de waarde "
+"@code{(viool boterbloem)}, dat wil zeggen, het heeft het adres van "
+"de cons-cel wiens eerste adres dat van @code{viool} is. Ook "
+"verandert dit geen van de reeds bestaande cons-cellen, die zijn er nog "
+"steeds."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9781
@@ -21151,6 +21260,12 @@ msgid ""
 "list, you add a new cons cell to the front of the list.  That is all there "
 "is to it! The underlying structure of Lisp is brilliantly simple!"
 msgstr ""
+"Dus om in Lisp de @sc{cdr} van een lijst te krijgen, krijg je alleen "
+"het adres van de volgende cons-cel in de reeks. Om de @sc{car} van "
+"een lijst te krijgen, krijg je het adres van het eerste element van "
+"de lijst. Om een nieuw element aan een lijst te @code{cons}-en, voeg "
+"je een nieuwe cons-cel aan de voorkant van de lijst toe. Dat is "
+"alles! De onderliggende structuur van Lisp is briljant eenvoudig!"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9784
@@ -21158,6 +21273,8 @@ msgid ""
 "And what does the last address in a series of cons cells refer to? It is the "
 "address of the empty list, of @code{nil}."
 msgstr ""
+"En waar refereert het laatste adres in een reeks van cons-cellen "
+"naar toe? Het is het adres van de lege lijst, van @code{nil}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9787
@@ -21165,24 +21282,27 @@ msgid ""
 "In summary, when a Lisp variable is set to a value, it is provided with the "
 "address of the list to which the variable refers."
 msgstr ""
+"Samengevat, wanneer een Lisp variabele op een waarde wordt "
+"ingesteld, dan krijgt die het adres van de lijst waar de variabele "
+"naar refereert."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:9789 emacs-lisp-intro.texi:9790
 #, no-wrap
 msgid "Symbols as a Chest of Drawers"
-msgstr ""
+msgstr "Symbolen als een ladekast"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:9791
 #, no-wrap
 msgid "Chest of Drawers, metaphor for a symbol"
-msgstr ""
+msgstr "Ladekast, metafoor voor een symbool"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:9792
 #, no-wrap
 msgid "Drawers, Chest of, metaphor for a symbol"
-msgstr ""
+msgstr "Ladekast, metafoor voor een symbool"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9799
@@ -21193,6 +21313,11 @@ msgid ""
 "changed without affecting the contents of the drawer holding the function "
 "definition, and vice versa."
 msgstr ""
+"In een eerdere sectie suggereerde ik dat je een symbool kunt "
+"voorstellen als een ladekast. De functiedefinitie wordt in een lade "
+"gestopt, de waarde in een andere, enzovoorts. Wat in de lade die de "
+"waarde bevat gestopt is, kan worden gewijzigd zonder de inhoud van "
+"de waarde die de functiedefinitie bevat te wijzigen, en andersom."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9804
@@ -21202,6 +21327,10 @@ msgid ""
 "its drawers you found a map giving you directions to where the buried "
 "treasure lies."
 msgstr ""
+"Wat eigenlijk in elke lade gestopt wordt, is het adres van de waarde "
+"of de functiedefinitie. Het is alsof je een oude kast op de zolder "
+"gevonden hebt, en in een van de lades een kaart vond die de route "
+"beschrijft naar waar de begraven schat ligt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9810
@@ -21211,17 +21340,22 @@ msgid ""
 "information.  Property lists are not discussed here; see @ref{Property "
 "Lists, , Property Lists, elisp, The GNU Emacs Lisp Reference Manual}.)"
 msgstr ""
+"Naast zijn naam, symbooldefinitie en variabele naam, heeft een "
+"symbool een lade voor een @dfn{property list} die kan worden "
+"gebruikt om andere informatie op te slaan. Property lists bespreken "
+"we hier niet, zie @ref{Property Lists, , Property Lists, elisp, The "
+"GNU Emacs Lisp Reference Manual}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9813
 msgid "Here is a fanciful representation:"
-msgstr ""
+msgstr "Hier is een fantasierijke weergave:"
 
 #. type: center
 #: emacs-lisp-intro.texi:9817
 #, no-wrap
 msgid "@image{drawers}"
-msgstr ""
+msgstr "@image{drawers-nl}"
 
 #. type: group
 #: emacs-lisp-intro.texi:9825
@@ -21230,6 +21364,7 @@ msgid ""
 "            Chest of Drawers            Contents of Drawers\n"
 "\n"
 msgstr ""
+"              Ladekast                   Inhoud van de lade\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:9846
@@ -21256,6 +21391,26 @@ msgid ""
 "        +---------------------+\n"
 "        |/                   \\|\n"
 msgstr ""
+"            __   o0O0o   __\n"
+"          /                 \\\n"
+"         ---------------------\n"
+"        |  routebeschrijving  |            [wijst naar]\n"
+"        |     symbool naam    |             boeket\n"
+"        |                     |\n"
+"        +---------------------+\n"
+"        |  routebeschrijving  |\n"
+"        |  symbool definitie  |             [geen]\n"
+"        |                     |\n"
+"        +---------------------+\n"
+"        |  routebeschrijving  |            [wijst naar]\n"
+"        |   variabele waarde  |             (roos viool boterbloem)\n"
+"        |                     |\n"
+"        +---------------------+\n"
+"        |  routebeschrijving  |\n"
+"        |    property list    |             [hier niet beschreven]\n"
+"        |                     |\n"
+"        +---------------------+\n"
+"        |/                   \\|\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9858
@@ -21265,24 +21420,28 @@ msgid ""
 "the @sc{car} of @code{flowers} to a fish.  What does the @code{more-flowers} "
 "list now contain?"
 msgstr ""
+"Stel @code{bloemen} in op @code{viool} en @code{boterbloem}. Cons "
+"twee andere bloemen aan deze lijst en zet deze lijst op "
+"@code{meer-bloemen}. Zet de @sc{car} van bloemen op een vis. Wat "
+"bevat de lijst @code{meer-bloemen} nu?"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:9862
 #, no-wrap
 msgid "Text retrieval"
-msgstr ""
+msgstr "Tekst terughalen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:9863
 #, no-wrap
 msgid "Retrieving text"
-msgstr ""
+msgstr "Tekst terughalen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:9864
 #, no-wrap
 msgid "Pasting text"
-msgstr ""
+msgstr "Tekst plakken"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9871
@@ -21293,6 +21452,11 @@ msgid ""
 "contents of the kill ring back into a buffer (not necessarily the original "
 "buffer)."
 msgstr ""
+"Wanneer je in GNU Emacs met een kill commando tekst uit een buffer "
+"verwijdert dan kun je die terughalen met een yank commando. De tekst "
+"die uit het buffer verwijderd is, wordt in de killring gestopt en "
+"het yank commando voegt de juiste inhoud van de killring terug in "
+"een buffer (niet noodzakelijkerwijs het oorspronkelijke buffer)."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9883
@@ -21308,30 +21472,41 @@ msgid ""
 "list.  @xref{Kill Ring, , Handling the Kill Ring}, for the details of how "
 "the list is handled as a ring.)"
 msgstr ""
+"Een eenvoudig @kbd{C-y} (@code{yank}) commando voegt het eerste "
+"element van de killring in het huidige buffer. Wanneer het @kbd{C-y} "
+"commando direct gevolg wordt door @kbd{M-y}, wordt het eerste "
+"element vervangen door het tweede element. Herhaaldelijke @kbd{M-y} "
+"commando's vervangen het teede element met het derde, vierde of "
+"vijfde element, enzovoorts. Wanneer het laatste element in de "
+"killring is bereikt, wordt het vervangen door het eerste en wordt de "
+"cyclus herhaald. (Daarom heet de killring een ``ring'' in plaats van "
+"een ``lijst''. De werkelijke datastructuur die de tekst bevat is "
+"echter een lijst. @xref{Killring, , De killring hanteren}, voor de "
+"details hoe de lijst wordt gehanteerd als ring.)"
 
 #. type: section
 #: emacs-lisp-intro.texi:9890 emacs-lisp-intro.texi:9891
 #, no-wrap
 msgid "Kill Ring Overview"
-msgstr "Kill ring overzicht"
+msgstr "Killring overzicht"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:9892
 #, no-wrap
 msgid "Kill ring overview"
-msgstr ""
+msgstr "Killring overzicht"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9895
 msgid ""
 "The kill ring is a list of textual strings.  This is what it looks like:"
-msgstr ""
+msgstr "De killring is een lijst van tekstuele strings. Dit is hoe die er uit ziet:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:9898 emacs-lisp-intro.texi:9945
 #, no-wrap
 msgid "(\"some text\" \"a different piece of text\" \"yet more text\")\n"
-msgstr ""
+msgstr "(\"wat tekst\" \"een ander stuk tekst\" \"nog meer tekst\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9903
@@ -21340,6 +21515,9 @@ msgid ""
 "string of characters saying @samp{some text} would be inserted in this "
 "buffer where my cursor is located."
 msgstr ""
+"Wanneer dit de inhoud van mijn killring is en ik sla @kbd{C-y} aan, "
+"dan wordt de karakterstring @samp{wat tekst} in dit buffer op de "
+"cursorlokatie ingevoegd."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9907
@@ -21348,6 +21526,10 @@ msgid ""
 "The copied text is not cut from the buffer, but a copy of it is put on the "
 "kill ring and is inserted by yanking it back."
 msgstr ""
+"Het @code{yank} commando wordt ook gebruikt om tekst te dupliceren door het "
+"te kopiëren. De gekopieerde tekst wordt niet uit het buffer verwijderd, maar "
+"een kopie er van is in de killring geplaatst en onmiddellijk ingevoegd door "
+"het terug te yanken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9912
@@ -21357,6 +21539,11 @@ msgid ""
 "usually bound to @kbd{M-y}; and @code{rotate-yank-pointer}, which is used by "
 "the two other functions."
 msgstr ""
+"Drie functies worden gebruikt om de tekst uit de killring terug te "
+"halen: @code{yank}, dat normaalgesproken gebonden is aan @kbd{C-y}. "
+"@code{yank-pop}, dat normaalgesproken gebonden is aan @kbd{M-y}, en "
+"@code{rotate-yank-pointer} dat door de twee andere functies gebruikt "
+"wordt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9916
@@ -21365,12 +21552,15 @@ msgid ""
 "@code{kill-ring-yank-pointer}.  Indeed, the insertion code for both the "
 "@code{yank} and @code{yank-pop} functions is:"
 msgstr ""
+"Deze functies refereren aan de killring via de variabele met de naam "
+"@code{kill-ring-yank-pointer}. Inderdaad, de invoegcode van zowel de "
+"functie @code{yank} als @code{yank-pop} is:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:9919
 #, no-wrap
 msgid "(insert (car kill-ring-yank-pointer))\n"
-msgstr ""
+msgstr "(insert (car kill-ring-yank-pointer))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9929
@@ -21382,6 +21572,14 @@ msgid ""
 "properties}.  Otherwise, it is just like @code{insert}.  We will stick with "
 "plain @code{insert} since it is easier to understand.)"
 msgstr ""
+"(Nou, niet meer. In GNU Emacs 22 is de functie vervangen door "
+"@code{insert-for-yank}, die herhaaldelijk @code{insert-for-yank-1} "
+"aanroept voor elk @code{yank-handler} segment. "
+"@code{insert-for-yank-1}, op zijn beurt, stript de tekst "
+"eigenschappen van de ingevoegde tekst in overeenstemming met "
+"@code{yank-excluded-properties}. Anders dat dat, is het gewoon als "
+"@code{insert}. Wij houden het bij de @code{insert}, dit is "
+"makkelijker te begrijpen.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9932
@@ -21389,12 +21587,15 @@ msgid ""
 "To begin to understand how @code{yank} and @code{yank-pop} work, it is first "
 "necessary to look at the @code{kill-ring-yank-pointer} variable."
 msgstr ""
+"Om te beginnen te begrijpen hoe @code{yank} en @code{yank-pop} "
+"werken, is het eerst nodig naar de variabele "
+"@code{kill-ring-yank-pointer} te kijken."
 
 #. type: section
 #: emacs-lisp-intro.texi:9934
 #, no-wrap
 msgid "The @code{kill-ring-yank-pointer} Variable"
-msgstr ""
+msgstr "De variabele @code{kill-ring-yank-pointer}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9939

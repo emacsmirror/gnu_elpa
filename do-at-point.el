@@ -151,10 +151,6 @@ of this variable.")
          ,(lambda (path)
             (require 'gnus-dired)
             (gnus-dired-attach (list path)))))
-    (filename
-     (?d "Dired" ,(lambda (file)
-                    (let ((default-directory (file-name-directory file)))
-                      (dired-jump nil file)))))
     (url
      (?b "Browse" ,#'browse-url)
      (?d "Download" ,#'(lambda (url)
@@ -186,6 +182,10 @@ of this variable.")
     (string)
     (sexp
      (?t "Transpose" ,(lambda () (transpose-sexps (or current-prefix-arg 1)))))
+    (filename
+     (?f . existing-filename)
+     (?4 . existing-filename)
+     (?d . existing-filename))
     (line
      (?t "Transpose" ,(lambda () (transpose-lines (or current-prefix-arg 1)))))
     (paragraph

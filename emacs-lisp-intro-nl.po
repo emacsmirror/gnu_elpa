@@ -8271,8 +8271,8 @@ msgid ""
 "This definition begins with a parenthesis and the symbol @code{defun}, "
 "followed by the name of the function."
 msgstr ""
-"Deze definitie begint met haakjes en het symbool @code{defun}, gevolgd met "
-"de naam van de functie."
+"Deze definitie begint met een haakje en het symbool @code{defun}, gevolgd "
+"door de naam van de functie."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:3046
@@ -8291,7 +8291,7 @@ msgid ""
 msgstr ""
 "De naam van de functie wordt gevolgd door een lijst die de argumenten bevat "
 "die aan de functie zullen worden doorgegeven. Deze lijst heet de "
-"@dfn{argumentlijst}. In dit voorbeeld heeft de lijst maar een element, het "
+"@dfn{argumentlijst}. In dit voorbeeld heeft de lijst maar één element, het "
 "symbool @code{getal}. Wanneer de functie wordt gebruikt wordt het symbool "
 "gebonden aan de waarde die als argument van de functie is gebruikt."
 
@@ -8370,7 +8370,7 @@ msgstr ""
 "meerregelige documentatiestring. Ook moet je de tweede regel van een "
 "documentatiestring, wanneer die er is, niet laten inspringen, omdat dit er "
 "raar uitziet wanner je @kbd{C-h f} (@code{describe-function}) gebruikt. De "
-"documentatiestring is optioneel, maar is zo nuttig, dat die deel zou vrijwel "
+"documentatiestring is optioneel, maar is zo nuttig, dat die deel van vrijwel "
 "elke functie die je schrijft zou moeten zijn."
 
 #. type: findex
@@ -8390,8 +8390,8 @@ msgid ""
 "addition.)"
 msgstr ""
 "De derde regel van ons voorbeeld bestaat uit de body van de "
-"functiedefinitie. (De meeste functiedefinitie zijn natuurlijk langer dan "
-"deze.) In dit voorbeeld is de body de lijst @code{(* 7 getal)}, wat "
+"functiedefinitie. (De meeste functiedefinities zijn natuurlijk langer dan "
+"deze.) In dit voorbeeld is de body de lijst @code{(* 7 getal)}, die zegt "
 "vermenigvuldig de waarde van @var{getal} met 7. (In Emacs Lisp, is @code{*} "
 "de functie voor vermenigvuldiging, net zoals @code{+} de functie voor "
 "optellen is.)"
@@ -8427,7 +8427,7 @@ msgid ""
 "the function definition begins."
 msgstr ""
 "Het symbool @code{getal}, gespecificeerd in de functiedefinitie in de "
-"volgende sectie is gebonden aan de waarde 3 in het daadwerkelijk gebruik van "
+"volgende sectie, is gebonden aan de waarde 3 in het daadwerkelijk gebruik van "
 "de functie. Merk op dat hoewel @code{getal} tussen haakjes in de "
 "functiedefinitie stond, het argument dat aan de functie @code{vermenigvuldig-"
 "met-zeven} wordt doorgegeven niet tussen haakjes staat. De haakjes worden in "
@@ -8497,7 +8497,7 @@ msgid ""
 "automatically whenever you start Emacs, see @ref{Permanent Installation, , "
 "Installing Code Permanently}.)"
 msgstr ""
-"Met het evalueren van deze @code{defun} heb je zojuist@code{vermenigvuldig-"
+"Met het evalueren van deze @code{defun} heb je zojuist @code{vermenigvuldig-"
 "met-zeven} in Emacs geïnstalleerd. De functie is nu net zo goed onderdeel "
 "van Emacs als @code{forward-word}.(@code{vermenigvuldig-met-zeven} blijft "
 "geïnstalleerd totdat je Emacs afsluit. Om de code automatisch opnieuw te "
@@ -8606,7 +8606,7 @@ msgstr ""
 "Wanneer je de code in @code{vermenigvuldig-met-zeven} wilt wijzigen, "
 "herschrijf je die. Om een nieuwe versie in plaats van de oude te installeren "
 "evalueer je de functiedefinitie opnieuw. Dit is hoe je code in Emacs "
-"aanpast. Het is erg eenvoudig."
+"aanpast. Dat is erg eenvoudig."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3227
@@ -9321,7 +9321,7 @@ msgid ""
 "this kind of confusion."
 msgstr ""
 "Wanneer je vriend naar zijn huis refereert en jij denkt dat hij naar jouw "
-"huis refereert, dan kan dat verward zijn. Hetzelfde kan in Lisp gebeuren "
+"huis refereert, dan kan dat verwarrend zijn. Hetzelfde kan in Lisp gebeuren "
 "wanneer een variabele die binnen de ene functie gebruikt wordt dezelfde naam "
 "heeft als een variabele die binnen een andere functie gebruikt wordt, en de "
 "twee zijn niet bedoeld om naar dezelfde waarde te refereren. De speciale "
@@ -9380,7 +9380,7 @@ msgstr ""
 "begrijpen dat in het huis van je gastheer, wanneer hij refereert aan ``het "
 "huis'', hij zijn huis bedoelt en niet het jouwe. (De symbolen die gebruikt "
 "worden om functieargumenten te benoemen worden op precies dezelfde manier "
-"als lokale variabelen gebonden) @xref{defun, , De @code{defun} macro}.)"
+"als lokale variabelen gebonden. @xref{defun, , De @code{defun} macro}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:3599
@@ -9407,7 +9407,7 @@ msgstr ""
 "de @code{let} body (zoals bij het aanroepen van een functie die ergens "
 "anders is gedefinieerd), @code{setq} aanroepen voor een variabele benoemd "
 "door de @code{let}-expressie heeft @emph{geen} effect voor die lokale "
-"variabele.@footnote{dit beschrijft het gedrag van @code{let} bij het gebruik "
+"variabele.@footnote{Dit beschrijft het gedrag van @code{let} bij het gebruik "
 "van een stijl met de naam ``lexical binding'' (@pxref{Hoe let variabelen "
 "bindt}).} "
 
@@ -9426,11 +9426,11 @@ msgid ""
 "action, ``execute'' has evolved as a synonym to ``evaluate''.)"
 msgstr ""
 "@code{let} kan meer dan een variabele tegelijk creëren. Dus @code{let} geeft "
-"iedere variabele die het creëert een initiële waarde, hetzij een door jou "
+"iedere variabele die het creëert een initiële waarde, of een door jou "
 "gespecificeerde waarde, of @code{nil}. (In het jargon is dit het binden van "
 "de variabele aan de waarde.) Nadat @code{let} de variabelen heeft gecreëerd "
 "en gebonden voert het de code in de body van de @code{let} uit, als de "
-"waarde van de gehele @code{let}-expressie. (``uitvoeren'' is een jargon term "
+"waarde van de gehele @code{let}-expressie. (``Uitvoeren'' is een jargon term "
 "die het evalueren van de lijst betekent, het komt van het gebruik van het "
 "woord met de betekenis ``een praktisch effect hebben op'' (@cite{Oxford "
 "English Dictionary}) Wanneer je een expressie evalueert om een actie uit te "
@@ -9894,7 +9894,7 @@ msgstr ""
 "gedefinieerde functie aanroept vanuit de @code{let} body, kan die functie de "
 "lokale variabelen die je gemaakt hebt niet ``zien''. (Anderzijds, wanneer je "
 "een functie aanroept die was gedefinieerd in een @code{let} body. @emph{zou} "
-"die functie de locale variabelen van die @code{let}-expressie moeten kunnen "
+"die functie de lokale variabelen van die @code{let}-expressie moeten kunnen "
 "zien en wijzigen."
 
 #. type: cindex
@@ -10115,7 +10115,7 @@ msgid ""
 "function @code{beginning-of-buffer}."
 msgstr ""
 "Een andere speciale vorm is de conditionele @code{if}. Deze vorm wordt "
-"gebruikt om de computer te instrueren om beslissingen te maken. Je kunt "
+"gebruikt om de computer te instrueren om beslissingen te nemen. Je kunt "
 "functiedefinities schrijven zonder @code{if} te gebruiken, maar het wordt "
 "vaak genoeg gebruikt en is belangrijk genoeg om het hier te behandelen. Het "
 "wordt bijvoorbeeld gebruikt in de code van de functie @code{beginning-of-"
@@ -10879,7 +10879,7 @@ msgid ""
 "The @code{save-excursion} function is the final special form that we will "
 "discuss in this chapter."
 msgstr ""
-"De @code{save-excursion}-functie is de laatste speciale vorm die we in dit "
+"De functie @code{save-excursion} is de laatste speciale vorm die we in dit "
 "hoofdstuk bespreken."
 
 #. type: Plain text
@@ -10891,7 +10891,7 @@ msgid ""
 "was changed.  Its primary purpose is to keep the user from being surprised "
 "and disturbed by unexpected movement of point."
 msgstr ""
-"In Emacs Lisp programma's voor editing is de @code{save-excursion}-functie "
+"In Emacs Lisp programma's voor editing is de functie @code{save-excursion} "
 "heel gebruikelijk. Het bewaart de locatie van point, voert de body van de "
 "functie uit en herstelt point naar zijn vorige positie indien zijn lokatie "
 "is gewijzigd. Het primaire doel is te voorkomen dat de gebruiker verrast en "
@@ -10969,7 +10969,7 @@ msgstr ""
 "De speciale vorm @code{save-excursion} bewaart de lokatie van point en "
 "herstelt de positie nadat de code in de body van de speciale vorm is "
 "geëvalueerd door de Lisp interpreter. Als point dus aan het begin van een "
-"stuk tekst staat en sommige code heeft point naar het eind van het buffer "
+"stuk tekst staat en bepaalde code heeft point naar het eind van het buffer "
 "verplaatst, plaatst @code{save-excursion} point terug naar de locatie waar "
 "het eerder was, nadat de expressies in de body van de functie zijn "
 "geëvalueerd."
@@ -10984,7 +10984,7 @@ msgid ""
 "@code{save-excursion} is often used to keep point in the location expected "
 "by the user.  The use of @code{save-excursion} is good housekeeping."
 msgstr ""
-"In Emacs verplaatst een functie regelmatig point als onderdeel van de "
+"In Emacs verplaatsen functies regelmatig point als onderdeel van de "
 "interne werking daarvan, alhoewel de gebruiker dat niet zou verwachten. Om "
 "te voorkomen dat de gebruiker lastig gevallen wordt door springen die zowel "
 "onverwacht als (vanuit het gezichtspunt van de gebruiker) onnodig zijn, "
@@ -11001,8 +11001,8 @@ msgid ""
 "This feature is very helpful."
 msgstr ""
 "Om zeker te stellen dat het huis schoon blijft, herstelt @code{save-"
-"excursion} de waarde van point zelfs wanneer iets fout gaat in de code in "
-"het (of, meer preciezer en in het juiste jargon, ``in geval van een "
+"excursion} de waarde van point zelfs wanneer iets fout gaat in de code "
+"(of, meer preciezer en in het juiste jargon, ``in geval van een "
 "abnormale exit''). Deze eigenschap is erg behulpzaam."
 
 #. type: Plain text
@@ -11054,7 +11054,7 @@ msgid ""
 "used only for its side effect (which is restoring the position of point)."
 msgstr ""
 "De body van de functie bestaat uit een of meer expressies die de Lisp "
-"interpreter opvolgend evalueert. Wanneer de body meer dan een expressie "
+"interpreter opeenvolgend evalueert. Wanneer de body meer dan een expressie "
 "bevat, wordt de waarde van de laatste teruggegeven als waarde van de "
 "@code{save-excursion}-functie. De andere expressies in de body worden "
 "uitsluitend geëvalueerd voor hun zij-effecten en @code{save-excursion} zelf "
@@ -11511,11 +11511,6 @@ msgstr ""
 
 #. type: table
 #: emacs-lisp-intro.texi:4568
-#, fuzzy
-#| msgid ""
-#| "@code{string-equal} provides the corresponding test for equality.  Its "
-#| "shorter, alternative name is @code{string=}.  There are no string test "
-#| "functions that correspond to @var{>}, @code{>=}, or @code{<=}."
 msgid ""
 "@code{string-equal} provides the corresponding test for equality.  Its "
 "shorter, alternative name is @code{string=}.  Recent versions of Emacs added "
@@ -21604,11 +21599,15 @@ msgid ""
 "variable.  It points to something by being bound to the value of what it "
 "points to, like any other Lisp variable."
 msgstr ""
+"@code{kill-ring-yank-pointer} is een variabel, net zoals "
+"@code{kill-ring} een variabele is. Het wijst naar iets dat is "
+"gebonden aan de waarde van waar het naar wijst, net als elke andere "
+"Lisp variabele."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9942
 msgid "Thus, if the value of the kill ring is:"
-msgstr ""
+msgstr "Dus, als de waarde van de killring is:"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9951
@@ -21616,12 +21615,14 @@ msgid ""
 "and the @code{kill-ring-yank-pointer} points to the second clause, the value "
 "of @code{kill-ring-yank-pointer} is:"
 msgstr ""
+"en de @code{kill-ring-yank-pointer} wijst naar de tweede clausule, "
+"dan is de waarde van @code{kill-ring-yank-pointer}:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:9954
 #, no-wrap
 msgid "(\"a different piece of text\" \"yet more text\")\n"
-msgstr ""
+msgstr "(\"een ander stuk tekst\" \"nog meer tekst\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9962
@@ -21633,6 +21634,13 @@ msgid ""
 "Instead, the two Lisp variables point to the same pieces of text.  Here is a "
 "diagram:"
 msgstr ""
+"Zoals in het vorige hoofdstuk (@pxref{Implementatie van lijsten}) "
+"uitgelegd, bewaart de computer geen twee verschillende exemplaren "
+"van de tekst waar zowel de @code{kill-ring} als de "
+"@code{kill-ring-yank-pointer} naar wijzen. De woorden ``een ander "
+"stuk tekst'' en ``nog meer tekst'' worden niet gedupliceerd. In "
+"plaats daarvan wijzen de twee Lisp variabelen naar hetzelfde stuk "
+"tekst. Hier is een diagram:"
 
 #. type: center
 #: emacs-lisp-intro.texi:9966
@@ -21657,6 +21665,18 @@ msgid ""
 "            |\n"
 "             --> \"some text\"\n"
 msgstr ""
+"kill-ring     kill-ring-yank-pointer\n"
+"    |               |\n"
+"    |      ___ ___  |     ___ ___      ___ ___\n"
+"     ---> |   |   |  --> |   |   |    |   |   |\n"
+"          |___|___|----> |___|___|--> |___|___|--> nil\n"
+"            |              |            |\n"
+"            |              |            |\n"
+"            |              |             --> \"nog meer tekst\"\n"
+"            |              |\n"
+"            |               --> \"een ander stuk tekst\"\n"
+"            |\n"
+"             --> \"wat tekst\"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:9995
@@ -21667,6 +21687,12 @@ msgid ""
 "as if it were the list rather than that it points to the list.  Conversely, "
 "the @code{kill-ring-yank-pointer} is spoken of as pointing to a list."
 msgstr ""
+"Zowel de variabele @code{kill-ring} als de variabele "
+"@code{kill-ring-yank-pointer} zijn pointers. Maar de killring zelf "
+"wordt meestal beschreven alsof het is wat het van gemaakt is. De "
+"killring wordt beschreven alsof het een lijst is in plaats van dat "
+"het naar de lijst wijst. Omgekeerd, de @code{kill-ring-yank-pointer} "
+"is beschreven alsof het wijst naar een lijst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10003
@@ -21678,12 +21704,19 @@ msgid ""
 "other hand, serves to indicate---that is, to point to---that part of the "
 "kill ring of which the first element (the @sc{car}) will be inserted."
 msgstr ""
+"Deze twee manieren om over het zelfde ding te spreken klinken op het eerste "
+"gezicht verwarrend maar zijn bij nader inzien logisch. De killring wordt "
+"algemeen beschouwd als de complete structuur van data die de informatie bevat "
+"van wat recentelijk uit de buffers is geknipt. De @code{kill-ring-yank-pointer} "
+"anderzijds dient om aan te geven---dat wil zeggen, te wijzen naar---dat deel "
+"van de killring waarvan het eerste element (the @sc{car}) zal worden "
+"ingevoegd."
 
 #. type: section
 #: emacs-lisp-intro.texi:10046
 #, no-wrap
 msgid "Exercises with @code{yank} and @code{nthcdr}"
-msgstr ""
+msgstr "Oefeningen met @code{yank} en @code{nthcdr}"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:10056
@@ -21695,6 +21728,12 @@ msgid ""
 "Was your kill ring full, or could you have kept more blocks of text within "
 "it?"
 msgstr ""
+"Kijk met @kbd{C-h v} (@code{describe-variable}) naar je killring. "
+"Voeg verschillende items aan je killring toe en kijk opnieuw naar "
+"zijn waarde. Ga met @kbd{M-y} (@code{yank-pop)} helemaal rond in de "
+"killring. Hoeveel items waren in je killring? Vind de waarde van "
+"@code{kill-ring-max}. Was je killring vol, of had je nog meer "
+"blokken tekst kunnen bewaren?"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:10060
@@ -21702,24 +21741,27 @@ msgid ""
 "Using @code{nthcdr} and @code{car}, construct a series of expressions to "
 "return the first, second, third, and fourth elements of a list."
 msgstr ""
+"Construeer met @code{nthcdr} en @code{car} een reeks expressies om "
+"het eerste, tweede, derde en vierde element van een lijst terug te "
+"geven."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:10064
 #, no-wrap
 msgid "Loops and recursion"
-msgstr ""
+msgstr "Loops en recursie"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:10065
 #, no-wrap
 msgid "Recursion and loops"
-msgstr ""
+msgstr "Recursie en loops"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:10066
 #, no-wrap
 msgid "Repetition (loops)"
-msgstr ""
+msgstr "Herhaling (loops)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10071

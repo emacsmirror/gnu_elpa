@@ -5,6 +5,18 @@
 #+BABEL: :results output :session
 #+DATE: 2026
 
+* Downloading the manual
+
+** PDF
+#+BEGIN_SRC bash
+$ wget -c https://elpa.gnu.org/devel/doc/emacs-lisp-intro-es/emacs-lisp-intro-es.pdf
+#+END_SRC
+
+** HTML
+#+BEGIN_SRC bash
+$ https://elpa.gnu.org/devel/doc/emacs-lisp-intro-es.html
+#+END_SRC
+
 * Installation
 ** Debian/Ubuntu
 #+BEGIN_SRC bash

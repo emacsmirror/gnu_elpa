@@ -593,12 +593,13 @@ If BUFFER is not specified,raise the current buffer."
   "Turn a regular buffer BUFFER into a popup.
 
 If BUFFER is not specified act on the current buffer instead."
-  (let ((buf (get-buffer (or buffer (current-buffer)))))
+  (let* ((buf (get-buffer (or buffer (current-buffer))))
+         (win (get-buffer-window buf t)))
     (with-current-buffer buf
       (setq popper-popup-status (if (popper-popup-p buf)
                                     'popup
                                   'user-popup))
-      (quit-window nil (get-buffer-window buf t))
+      (when win (quit-window nil win))
       (pop-to-buffer buf))
     (popper--update-popups)))
 

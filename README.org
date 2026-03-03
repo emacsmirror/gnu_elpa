@@ -1,7 +1,5 @@
 #+TITLE: Boxy Headings
 
-*This projet has moved to [[https://codeberg.org/strawburster/boxy-headings][codeberg]]*
-
 View org files as a boxy diagram.
 
 =package-install RET boxy-headings RET=

@@ -18,6 +18,7 @@
 
 - Fixed a bug where the contents of ​*vc-diff​* were not erased prior to invocations of ~vc-jj-diff~.
 - The vc-dir buffer no longer lists entries for up-to-date and ignored files, as per the VC specification.
+- Commands that rely on ~vc-jj-revision-completion-table~, such as ~vc-revision-other-window~, are now drastically faster and do not error when there are divergent changes in the repository history.
 
 ** [[https://codeberg.org/emacs-jj-vc/vc-jj.el/compare/v0.4...v0.5][0.5]] - 2025-12-21
 

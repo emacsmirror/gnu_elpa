@@ -1415,32 +1415,78 @@ asynchronously."
 
 ;;;; revision-completion-table
 
-(defun vc-jj--revision-annotation-function (elem)
-  "Calculate propertized change description from ELEM.
-ELEM can be of the form (change-id . description), as produced in
-`vc-jj-revision-completion-table', in which case we return the second
-element, or can be a change id, in which case we query for the first
-line of its description."
-  (let ((description
-         (if (listp elem)
-             (cl-second elem)
-           (vc-jj--command-parseable nil "log" "--no-graph"
-                                     "-r" elem "-T" "self.description().first_line()"))))
+(defun vc-jj--change-annotation-function (cand change-desc-table)
+  "Return a propertized change description for CAND.
+CAND is a change ID as a string, possibly with a change offset, if it is
+a divergent change.  CHANGE-DESC-TABLE is a hash table mapping change
+IDs (optionally with offsets) to the first line of each change's
+description."
+  (let ((description (gethash cand change-desc-table)))
     (format " %s" (propertize description 'face 'completions-annotations))))
 
 (defun vc-jj-revision-completion-table (files)
-  "Return a completion table for existing revisions of FILES."
-  (let* ((revisions
-          (mapcar
-           ;; Boldly assuming that jj's change ids won't suddenly change length
-           (lambda (line) (list (substring line 0 31) (substring line 32)))
-           (vc-jj--process-lines files "log" "--no-graph"
-                                 "-T" "self.change_id() ++ self.description().first_line() ++ '\n'"))))
+  "Return a completion table for revisions that changed any file in FILES.
+FILES is a list of repository files."
+  ;; Considering performance is crucial for this function since it
+  ;; will often call for information on a significant portion of the
+  ;; repository history.
+  (let* (;; Hash table from change ID (with a change offset if it is
+         ;; divergent) to first line of its description
+         (change-desc-table (make-hash-table :test #'equal))
+         ;; Populate CHANGE-DESC-TABLE and pass it to
+         ;; `vc-jj--change-annotation-function' so that it already has
+         ;; all the information it needs.  This way, we do not need to
+         ;; call jj in that function every time we need to retrieve
+         ;; e.g. the change description
+         (annotation-fn
+          (lambda (cand)
+            (vc-jj--change-annotation-function cand change-desc-table))))
+    
+    ;; Implementation note: we choose to output the jj result into a
+    ;; buffer and directly operate in that buffer, as opposed to
+    ;; retrieving the text of the buffer and manipulating strings.
+    ;; The reason is performance: manipulation and operations in and
+    ;; on buffers is much faster and induces significantly less GC
+    ;; pressure compared to converting that buffer's text into a
+    ;; string or a lists of strings (i.e., a bunch of Lisp objects)
+    ;; then operating on them.
+    (with-temp-buffer
+      (apply #'vc-jj--call nil t "log" "--no-graph"
+             "-T" "concat(
+  self.change_id(), '\t',
+  self.change_offset(), '\t',
+  self.divergent(), '\t',
+  self.description().first_line(),
+  '\n'
+)"
+             (mapcar #'vc-jj--filename-to-fileset files))
+      (goto-char (point-min))
+      (while (not (eobp))
+        (re-search-forward (rx bol
+                               (group (+ (any lower-case))) "\t"
+                               (group (+ digit)) "\t"
+                               (group (or "true" "false")) "\t"
+                               (group (*? anything)) eol)
+                           nil t)
+        ;; Starting jj v0.37.0, change IDs of divergent changes are
+        ;; made unique by a numeric suffix, a change offset.  The 0
+        ;; offset points to the most recent commit of a divergent
+        ;; change ID.  We need to pass the change ID with its offset
+        ;; to jj for divergent commits, otherwise jj will error.
+        (let* ((change-id (match-string 1))
+               (change-offset (match-string 2))
+               (divergentp (string-equal "true" (match-string 3)))
+               (change-id-with-offset
+                (concat change-id (when divergentp (format "/%s" change-offset))))
+               (desc-first-line (match-string 4)))
+          (puthash change-id-with-offset desc-first-line change-desc-table))
+        (forward-line 1)))
+    
     (lambda (string pred action)
       (if (eq action 'metadata)
-          `(metadata . ((display-sort-function . ,#'identity)
-                        (annotation-function . ,#'vc-jj--revision-annotation-function)))
-        (complete-with-action action revisions string pred)))))
+          `(metadata . ((display-sort-function . ,#'identity) ; Retain chronological order
+                        (annotation-function . ,annotation-fn)))
+        (complete-with-action action change-desc-table string pred)))))
 
 ;;;; annotate-command
 

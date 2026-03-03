@@ -125,6 +125,10 @@
 
 ;;; News:
 
+;; Since version 1.1:
+
+;; - Preliminary support to run ELisp code in subproceses.
+
 ;; Version 1.1:
 
 ;; - New functions: `futur-race', `futur-sit-for', `futur-url-retrieve'.

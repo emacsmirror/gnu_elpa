@@ -180,7 +180,7 @@
     (should (<= 0.3 (- (float-time) start) 0.5))))
 
 (ert-deftest futur-server ()
-  (let* ((futur (futur--elisp-get-process))
+  (let* ((futur (futur--elisp-get-process 'futur-server #'futur--elisp-launch))
          (proc (futur-blocking-wait-to-get-result futur)))
     (should (process-get proc 'futur--ready))
     (should (null (process-get proc 'futur--destination)))))
@@ -201,17 +201,63 @@
     (should (equal (futur-blocking-wait-to-get-result fut)
                    (documentation 'car))))
 
-  (let* ((fut
+  (let* ((str (let ((chars ()))
+                (dotimes (i 1024)
+                  (push i chars))
+                (apply #'string (nreverse chars))))
+         (fut (futur--elisp-funcall #'identity str)))
+    (should (equal (futur-blocking-wait-to-get-result fut)
+                   str)))
+
+  (let* ((f (lambda (context)
+              (futur-reset-context
+               'futur-test-mini context)
+              (symbol-function 'diff-mode)))
+         (fut
           (futur-let*
-              ((da1 <- (futur--elisp-funcall #'futur-server-call-in-context
-                                             'futur-test-mini ()
-                                             #'symbol-function 'diff-mode))
-               (da2 <- (futur--elisp-funcall #'futur-server-call-in-context
-                                             'futur-test-mini '(diff-mode)
-                                             #'symbol-function 'diff-mode))
-               (da3 <- (futur--elisp-funcall #'futur-server-call-in-context
-                                             'futur-test-mini ()
-                                             #'symbol-function 'diff-mode)))
+              ((da1 <- (futur--elisp-funcall f ()))
+               (da2 <- (futur--elisp-funcall f '(diff-mode)))
+               (da3 <- (futur--elisp-funcall f ())))
+            (list da1 da2 da3)))
+         (vals (futur-blocking-wait-to-get-result fut)))
+    (should (autoloadp (nth 0 vals)))
+    (should (functionp (nth 1 vals)))
+    (should-not (equal (nth 0 vals) (nth 1 vals)))
+    (should (equal (nth 0 vals) (nth 2 vals)))))
+
+(ert-deftest futur-sandbox-funcall ()
+  (let ((fut (futur--sandbox-funcall #'+ 5 7)))
+    (should (equal 12 (futur-blocking-wait-to-get-result fut))))
+
+  (let ((fut (futur--sandbox-funcall #'car 7)))
+    (should (equal (condition-case err1
+                       (futur-blocking-wait-to-get-result fut)
+                     (error err1))
+                   (condition-case err2
+                       (car 7)
+                     (error err2)))))
+
+  (let ((fut (futur--sandbox-funcall #'documentation 'car)))
+    (should (equal (futur-blocking-wait-to-get-result fut)
+                   (documentation 'car))))
+
+  (let* ((str (let ((chars ()))
+                (dotimes (i 1024)
+                  (push i chars))
+                (apply #'string (nreverse chars))))
+         (fut (futur--sandbox-funcall #'identity str)))
+    (should (equal (futur-blocking-wait-to-get-result fut)
+                   str)))
+
+  (let* ((f (lambda (context)
+              (futur-reset-context
+               'futur-test-mini context)
+              (symbol-function 'diff-mode)))
+         (fut
+          (futur-let*
+              ((da1 <- (futur--sandbox-funcall f ()))
+               (da2 <- (futur--sandbox-funcall f '(diff-mode)))
+               (da3 <- (futur--sandbox-funcall f ())))
             (list da1 da2 da3)))
          (vals (futur-blocking-wait-to-get-result fut)))
     (should (autoloadp (nth 0 vals)))

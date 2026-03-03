@@ -120,11 +120,21 @@ Does not pay attention to buffer-local values of variables."
     (setq other-list (cdr other-list)))
   (null prefix))
 
-(defalias 'futur--obarray
+(defalias 'futur-reset-context
   ;; Store the snapshots inside the closure rather than in a global
   ;; variable, so that `futur--obarray-revert' doesn't undo it.
   (let ((snapshots '()))
     (lambda (name target)
+      "Reset vars and functions to a known state.
+NAME is the name chosen for that state.
+TARGET is the description of the context.  It should be a list
+of elements that can be:
+- A file name that should be `load'ed.
+- A feature that shoujd be `require'd.
+- A function that should be called.
+The elements are processed in order, starting from the state at startup.
+NAME is used only for the purpose of overwriting a previous state from
+the cache."
       (when (and target (null snapshots))
         (error "`futur--obarray' was not properly initialized: %S" target))
       (pcase-let ((`(,_ ,old-target ,snapshot) (assq name snapshots)))
@@ -160,9 +170,9 @@ Does not pay attention to buffer-local values of variables."
                 (setf (alist-get name snapshots)
                       (list target (futur--obarray-snapshot))))))))))))
 
-(defun futur-server-call-in-context (ctxname ctx func &rest args)
-  (futur--obarray ctxname ctx)
-  (apply func args))
+;; (defun futur-server-call-in-context (ctxname ctx func &rest args)
+;;   (futur--obarray ctxname ctx)
+;;   (apply func args))
 
 (defun futur-server ()
   ;; We don't need a cryptographically secure ID, but just something that's
@@ -175,7 +185,7 @@ Does not pay attention to buffer-local values of variables."
                                            (emacs-pid)))))
          (sid-sym (intern (string-trim sid))))
     ;; Initialize the cache of obarray snapshots.
-    (futur--obarray 'futur--server-internal nil)
+    (futur-reset-context 'futur--server-internal nil)
     (futur--print-stdout :ready sid)
     (while t
       (let ((input (condition-case err (cons :read-success (futur--read-stdin))

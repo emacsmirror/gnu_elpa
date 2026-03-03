@@ -34,10 +34,14 @@
   "String that will necessarily cause `read' to signal an error.
 This has to be the same used by `futur-server'.")
 
-(defvar futur--elisp-servers nil)
+(defvar futur--elisp-servers nil
+  "Alist mapping server kinds to lists of processes.
+A server kind is a symbol.")
 
 (defun futur--elisp-process-filter (proc string)
-  (cl-assert (memq proc futur--elisp-servers))
+  (cl-assert (process-get proc 'futur--kind))
+  (cl-assert (memq proc (assq (process-get proc 'futur--kind)
+                              futur--elisp-servers)))
   (let ((pending (process-get proc 'futur--pending))
         (case-fold-search nil))
     (process-put proc 'futur--pending nil)
@@ -123,21 +127,28 @@ This has to be the same used by `futur-server'.")
                      tail)))))
 
 (defun futur--elisp-process-sentinel (proc status)
-  (if (futur--process-completed-p proc)
-      (setq futur--elisp-servers (delq proc futur--elisp-servers))
-    (message "futur--elisp-process-sentinel before end: %S" status)))
+  (let* ((proclist (assq (process-get proc 'futur--kind)
+                         futur--elisp-servers)))
+    (cl-assert (memq proc (cdr proclist)))
+    (if (not (futur--process-completed-p proc))
+        (message "futur--elisp-process-sentinel before end: %S" status)
+      (cl-callf (lambda (ps) (delq proc ps)) (cdr proclist))
+      (let ((futur (process-get proc 'futur--destination)))
+        (when futur
+          (process-put proc 'futur--destination nil)
+          (futur-deliver-failure futur (list 'error "Futur-server died")))))))
 
-(defun futur--elisp-launch ()
-  (let* ((buffer (get-buffer-create " *futur-server*"))
+(defun futur--elisp-launch (kind &optional prefix)
+  (let* ((buffer (get-buffer-create (format" *%s*" kind)))
          (stderr (make-pipe-process
-                  :name "futur-server-stderr"
+                  :name (format "%s-stderr" kind)
                   :noquery t
                   :coding 'emacs-internal
                   :buffer buffer
                   :filter #'futur--elisp-process-filter-stderr
                   :sentinel #'ignore))
          (proc (make-process
-                :name "futur-server"
+                :name (symbol-name kind)
                 :noquery t
                 :buffer buffer
                 :connection-type 'pipe
@@ -146,13 +157,16 @@ This has to be the same used by `futur-server'.")
                 :filter #'futur--elisp-process-filter
                 :sentinel #'futur--elisp-process-sentinel
                 :command
-                `(,(expand-file-name invocation-name invocation-directory)
+                `(,@prefix
+                  ,(expand-file-name invocation-name invocation-directory)
                   "-Q" "--batch"
                   "-l" ,(locate-library "futur-server")
                   "-f" "futur-server"))))
+    (process-put proc 'futur--kind kind)
     (process-put proc 'futur--state :booting)
     (process-put proc 'futur--rid 0)
-    (push proc futur--elisp-servers)
+    (process-put proc 'futur--last-time (float-time))
+    (push proc (alist-get kind futur--elisp-servers))
     proc))
 
 (defun futur--elisp-process-answer (proc sexp-string)
@@ -189,12 +203,12 @@ This has to be the same used by `futur-server'.")
                ;; `(futur-server . ,proc)
                nil)))
 
-(defun futur--elisp-get-process ()
+(defun futur--elisp-get-process (kind launcher)
   (let ((ready (seq-find (lambda (proc) (process-get proc 'futur--ready))
-                         futur--elisp-servers)))
+                         (alist-get kind futur--elisp-servers))))
     (if ready (futur-done ready)
       (futur-let*
-          ((proc (futur--elisp-launch))
+          ((proc (funcall launcher kind))
            (answer <- (futur--elisp-answer-futur proc)))
         (if (eq answer :ready)
             (progn
@@ -209,13 +223,14 @@ This has to be the same used by `futur-server'.")
 ;; (cl-defmethod futur-blocker-wait ((blocker (head futur-server)))
 ;;   (while ?? (accept-process-output proc ...)))
 
-(defun futur--elisp-funcall (func &rest args)
+(defun futur--elisp-funcall-1 (futur-proc func args)
   (futur-let*
-      ((proc <- (futur--elisp-get-process))
+      ((proc <- futur-proc)
        (rid (cl-incf (process-get proc 'futur--rid)))
        (_ (with-temp-buffer
             ;; (trace-values :funcall rid func args)
             (process-put proc 'futur--ready nil)
+            (process-put proc 'futur--last-time (float-time))
             (let ((print-length nil)
                   (print-level nil)
                   (coding-system-for-write 'emacs-internal)
@@ -225,6 +240,8 @@ This has to be the same used by `futur-server'.")
                   ;; works only on single-lines, so it's super-important
                   ;; we don't include any LF by accident.
                   (print-escape-newlines t)
+                  ;; Not only LF but also CR terminates the single line :-(
+                  (print-escape-control-characters t)
                   ;; SWP aren't currently printed in a `read'able way, so we may
                   ;; as well print them bare.
                   (print-symbols-bare t))
@@ -237,16 +254,61 @@ This has to be the same used by `futur-server'.")
               )))
        (read-answer <- (futur--elisp-answer-futur proc)))
     ;; (trace-values :read-answer read-answer)
-    (pcase-exhaustive read-answer
+    (pcase read-answer
       (`(:read-success ,(pred (equal rid)))
        (futur-let* ((call-answer  <- (futur--elisp-answer-futur proc)))
          (pcase-exhaustive call-answer
            (`(:funcall-success ,(pred (equal rid)) . ,val)
             (process-put proc 'futur--ready t)
+            (process-put proc 'futur--last-time (float-time))
             val)
            (`(:funcall-error ,(pred (equal rid)) . ,err)
             (process-put proc 'futur--ready t)
-            (futur--resignal err))))))))
+            (process-put proc 'futur--last-time (float-time))
+            (futur--resignal err)))))
+      (`(:read-success . ,_)
+       ;; (futur--funcall #'futur--client-resync proc)
+       (error "Out-of-order reply: %S" read-answer))
+      (_
+       ;; (futur--funcall #'futur--client-resync proc)
+       (error "futur-server error: %S" read-answer)))))
+
+(defun futur--elisp-funcall (func &rest args)
+  (futur--elisp-funcall-1
+   (futur--elisp-get-process 'futur-server #'futur--elisp-launch)
+   func args))
+
+;;;; Running in a sandbox
+
+;; Inspired by the code in `elpa-admin.el'.
+
+(defconst futur--bwrap-args
+  '("--unshare-all"
+    "--dev" "/dev"
+    "--proc" "/proc"
+    "--tmpfs" "/tmp"))
+
+(defvar futur--sandbox-ro-dirs
+  '("/lib" "/lib64" "/bin" "/usr" "/etc/alternatives" "/etc/emacs" "/gnu" "~/"))
+
+(defun futur--sandbox-launch (kind)
+  ;; Don't inherit MAKEFLAGS from any surrounding make process,
+  ;; nor TMP/TMPDIR since the container uses its own tmp dir.
+  (let ((process-environment `("MAKEFLAGS" "TMP" "TMPDIR"
+                               ,@process-environment)))
+    (futur--elisp-launch
+     kind `("bwrap"
+            ,@futur--bwrap-args
+            ,@(mapcan (lambda (dir)
+                        (when (file-directory-p dir)
+                          (let ((dir (expand-file-name dir)))
+                            `("--ro-bind" ,dir ,dir))))
+                      futur--sandbox-ro-dirs)))))
+
+(defun futur--sandbox-funcall (func &rest args)
+  (futur--elisp-funcall-1
+   (futur--elisp-get-process 'futur-sandbox #'futur--sandbox-launch)
+   func args))
 
 (provide 'futur-client)
 ;;; futur-client.el ends here

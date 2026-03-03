@@ -7,14 +7,17 @@
 
 * Downloading the manual
 
+You can download pre-built versions of this manual in various formats
+at https://elpa.gnu.org/packages/emacs-lisp-intro-es
+
 ** PDF
 #+BEGIN_SRC bash
-$ wget -c https://elpa.gnu.org/devel/doc/emacs-lisp-intro-es/emacs-lisp-intro-es.pdf
+$ wget -c https://elpa.gnu.org/packages/doc/emacs-lisp-intro-es/emacs-lisp-intro-es.pdf
 #+END_SRC
 
 ** HTML
 #+BEGIN_SRC bash
-$ https://elpa.gnu.org/devel/doc/emacs-lisp-intro-es.html
+$ https://elpa.gnu.org/packages/doc/emacs-lisp-intro-es.html
 #+END_SRC
 
 * Installation

@@ -38,6 +38,11 @@ This has to be the same used by `futur-server'.")
   "Alist mapping server kinds to lists of processes.
 A server kind is a symbol.")
 
+(defvar futur--elisp-servers-delay (* 60 10)
+  "Number of seconds after which an inactive server is killed.")
+
+(defvar futur--elisp-servers-timer nil)
+
 (defun futur--elisp-process-filter (proc string)
   (cl-assert (process-get proc 'futur--kind))
   (cl-assert (memq proc (assq (process-get proc 'futur--kind)
@@ -167,7 +172,29 @@ A server kind is a symbol.")
     (process-put proc 'futur--rid 0)
     (process-put proc 'futur--last-time (float-time))
     (push proc (alist-get kind futur--elisp-servers))
+    (unless futur--elisp-servers-timer
+      (setq futur--elisp-servers-timer
+            (run-with-timer futur--elisp-servers-delay
+                            futur--elisp-servers-delay
+                            #'futur--elisp-reap-idle-servers)))
     proc))
+
+(defun futur--elisp-reap-idle-servers ()
+  (let ((time (float-time))
+        (left nil))
+    (pcase-dolist (`(,_kind . ,procs) futur--elisp-servers)
+      (dolist (proc procs)
+        (if (> (- time (process-get proc 'futur--last-time))
+               futur--elisp-servers-delay)
+            ;; No activity in during more than `futur--elisp-servers-delay'.
+            ;; FIXME: Maybe we should use different delays for the case
+            ;; where the server is really idle, or the case where we're
+            ;; waiting for an answer?
+            (delete-process proc)
+          (setq left t))))
+    (unless left
+      (cancel-timer futur--elisp-servers-timer)
+      (setq futur--elisp-servers-timer nil))))
 
 (defun futur--elisp-process-answer (proc sexp-string)
   (pcase-let* ((`(,sexp . ,end)
@@ -282,7 +309,7 @@ A server kind is a symbol.")
 
 ;; Inspired by the code in `elpa-admin.el'.
 
-(defconst futur--bwrap-args
+(defconst futur--sandbox-bwrap-args
   '("--unshare-all"
     "--dev" "/dev"
     "--proc" "/proc"
@@ -298,7 +325,7 @@ A server kind is a symbol.")
                                ,@process-environment)))
     (futur--elisp-launch
      kind `("bwrap"
-            ,@futur--bwrap-args
+            ,@futur--sandbox-bwrap-args
             ,@(mapcan (lambda (dir)
                         (when (file-directory-p dir)
                           (let ((dir (expand-file-name dir)))

@@ -62,6 +62,51 @@
     (princ futur--elisp-impossible-string t)
     (terpri t)))
 
+;; (defun futur-server-call-in-context (ctxname ctx func &rest args)
+;;   (futur--obarray ctxname ctx)
+;;   (apply func args))
+
+(defun futur-server ()
+  ;; We don't need a cryptographically secure ID, but just something that's
+  ;; *very* unlikely to occur by accident elsewhere and which `read' wouldn't
+  ;; process without signaling an error.
+  (let* ((sid (format " fes:%s "
+                      (secure-hash 'sha1
+                                   (format "%S:%S:%S"
+                                           (random t) (current-time)
+                                           (emacs-pid)))))
+         (sid-sym (intern (string-trim sid))))
+    ;; Initialize the cache of obarray snapshots.
+    (futur-reset-context 'futur--server-internal nil)
+    (futur--print-stdout :ready sid)
+    (while t
+      (let ((input (condition-case err (cons :read-success (futur--read-stdin))
+                     (t err))))
+        (pcase input
+          ;; Check `sid-sym' for every request, since we may have just read
+          ;; "successfully" the garbage that follows a failed read.
+          (`(:read-success ,(pred (eq sid-sym)) ,rid ,func . ,args)
+           ;; Confirm we read successfully so the client can
+           ;; distinguish where problems come from.
+           (futur--print-stdout `(:read-success ,rid) sid)
+           (let ((result
+                  (condition-case err
+                      `(:funcall-success ,rid . ,(apply func args))
+                    (t `(:funcall-error ,rid . ,err)))))
+             (futur--print-stdout result sid)))
+          (`(:read-success . ,rest)
+           (futur--print-stdout `(:unrecognized-request . ,rest) sid))
+          (_
+           ;; FIXME: We can get an `end-of-file' error if the input line
+           ;; is not a complete sexp but also if stdin was closed.
+           ;; To distinguish the two it seems we have to look at
+           ;; the actual error string :-(.
+           (if (equal input '(end-of-file "Error reading from stdin"))
+               (kill-emacs)
+             (futur--print-stdout `(:read-error . ,input) sid))))))))
+
+;;;; Manage execution contexts
+
 (defun futur--obarray-snapshot ()
   "Return a snapshot of `obarray'.
 Does not pay attention to buffer-local values of variables."
@@ -169,50 +214,6 @@ the cache."
                     ((pred symbolp) (require cmd))))
                 (setf (alist-get name snapshots)
                       (list target (futur--obarray-snapshot))))))))))))
-
-;; (defun futur-server-call-in-context (ctxname ctx func &rest args)
-;;   (futur--obarray ctxname ctx)
-;;   (apply func args))
-
-(defun futur-server ()
-  ;; We don't need a cryptographically secure ID, but just something that's
-  ;; *very* unlikely to occur by accident elsewhere and which `read' wouldn't
-  ;; process without signaling an error.
-  (let* ((sid (format " fes:%s "
-                      (secure-hash 'sha1
-                                   (format "%S:%S:%S"
-                                           (random t) (current-time)
-                                           (emacs-pid)))))
-         (sid-sym (intern (string-trim sid))))
-    ;; Initialize the cache of obarray snapshots.
-    (futur-reset-context 'futur--server-internal nil)
-    (futur--print-stdout :ready sid)
-    (while t
-      (let ((input (condition-case err (cons :read-success (futur--read-stdin))
-                     (t err))))
-        (pcase input
-          ;; Check `sid-sym' for every request, since we may have just read
-          ;; "successfully" the garbage that follows a failed read.
-          (`(:read-success ,(pred (eq sid-sym)) ,rid ,func . ,args)
-           ;; Confirm we read successfully so the client can
-           ;; distinguish where problems come from.
-           (futur--print-stdout `(:read-success ,rid) sid)
-           (let ((result
-                  (condition-case err
-                      `(:funcall-success ,rid . ,(apply func args))
-                    (t `(:funcall-error ,rid . ,err)))))
-             (futur--print-stdout result sid)))
-          (`(:read-success . ,rest)
-           (futur--print-stdout `(:unrecognized-request . ,rest) sid))
-          (_
-           ;; FIXME: We can get an `end-of-file' error if the input line
-           ;; is not a complete sexp but also if stdin was closed.
-           ;; To distinguish the two it seems we have to look at
-           ;; the actual error string :-(.
-           (if (equal input '(end-of-file "Error reading from stdin"))
-               (kill-emacs)
-             (futur--print-stdout `(:read-error . ,input) sid))))))))
-                                 
 
 (provide 'futur-server)
 ;;; futur-server.el ends here

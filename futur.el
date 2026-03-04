@@ -127,6 +127,7 @@
 
 ;; Since version 1.1:
 
+;; - New function `futur-p'.
 ;; - Preliminary support to run ELisp code in subproceses.
 
 ;; Version 1.1:
@@ -324,8 +325,14 @@ A futur has 3 possible states:
        ;; and also because we may be in an "interrupt" context where
        ;; operations like blocking could be dangerous.
        (futur--funcall client err val)))
+    ((futur--failed '(futur-aborted))
+     nil)     ;; Just ignore the late delivery.
     ((pred futur--p)
      (error "Delivering a second time: %S %S %S" futur err val))))
+
+(defun futur-p (object)
+  "Return non-nil if OBJECT is a `futur'."
+  (futur--p object))
 
 (defun futur-deliver-value (futur val)
   "Announce completion of FUTUR with result VAL."

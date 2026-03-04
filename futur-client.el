@@ -122,14 +122,16 @@ A server kind is a symbol.")
 
 (defun futur--elisp-process-filter-stderr (proc string)
   (let ((pending (process-get proc 'futur--pending)))
+    (while (string-match "\n" string)
+      (let* ((head (substring string 0 (match-beginning 0)))
+             (tail (substring string (match-end 0)))
+             (line (if pending (concat pending head) head)))
+        (unless (equal line "")
+          (message "futur-server: %S" line))
+        (setq pending nil)
+        (setq string tail)))
     (process-put proc 'futur--pending
-                 (if (not (string-match "\n" string))
-                     (if pending (concat pending string) string)
-                   (let ((head (substring string 0 (match-beginning 0)))
-                         (tail (substring string (match-end 0))))
-                     (message "futur-server: %S"
-                              (if pending (concat pending head) head))
-                     tail)))))
+                 (if pending (concat pending string) string))))
 
 (defun futur--elisp-process-sentinel (proc status)
   (let* ((proclist (assq (process-get proc 'futur--kind)
@@ -318,6 +320,10 @@ A server kind is a symbol.")
 (defvar futur--sandbox-ro-dirs
   '("/lib" "/lib64" "/bin" "/usr" "/etc/alternatives" "/etc/emacs" "/gnu" "~/"))
 
+(defconst futur-sandbox-temp-dir (make-temp-file "futur-sandbox" 'dir)
+  "Directory to pass temporary files to the sandbox.
+Contrary to /tmp, this directory is readable by the sandboxed processes.")
+
 (defun futur--sandbox-launch (kind)
   ;; Don't inherit MAKEFLAGS from any surrounding make process,
   ;; nor TMP/TMPDIR since the container uses its own tmp dir.
@@ -327,15 +333,24 @@ A server kind is a symbol.")
      kind `("bwrap"
             ,@futur--sandbox-bwrap-args
             ,@(mapcan (lambda (dir)
-                        (when (file-directory-p dir)
+                        (when (file-exists-p dir)
                           (let ((dir (expand-file-name dir)))
                             `("--ro-bind" ,dir ,dir))))
-                      futur--sandbox-ro-dirs)))))
+                      (append futur--sandbox-ro-dirs
+                              (list futur-sandbox-temp-dir)))))))
 
 (defun futur--sandbox-funcall (func &rest args)
   (futur--elisp-funcall-1
    (futur--elisp-get-process 'futur-sandbox #'futur--sandbox-launch)
    func args))
+
+(defun futur--elisp-kill-subprocesses ()
+  ;; FIXME: Add to `futur-server' a timer to auto-exit after a while.
+  (pcase-dolist (`(_kind . ,procs) futur--elisp-servers)
+    (mapc #'delete-process procs))
+  (delete-directory futur-sandbox-temp-dir 'recursive))
+
+(add-hook 'kill-emacs-hook #'futur--elisp-kill-subprocesses)
 
 (provide 'futur-client)
 ;;; futur-client.el ends here

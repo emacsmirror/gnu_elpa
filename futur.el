@@ -37,7 +37,7 @@
 ;;                 (buffer-string)))  ;; Get the process's output.
 ;;          (exitcode2 <- (futur-process-call CMD2 nil buf nil ARG3 ARG4)))
 ;;       (with-current-buffer buf
-;;         (buffer-string)))
+;;         (concat out (buffer-string))))
 
 ;; This example builds a future which runs two commands in sequence.
 ;; For those rare cases where you really do need to block everything
@@ -112,7 +112,7 @@
 ;;   `future-let*' to sequence execution when one part is a future).
 ;; - [aio](https://melpa.org/#/aio): Also provides await/async style
 ;;   coding (also using `generator.el' under the hood) but using its
-;;   own (much simpler) "promise" objects.
+;;   own "promise" objects, which are much simpler than those of `promise.el'.
 ;; - [async1](https://melpa.org/#/async1): A more limited/ad-hoc solution to
 ;;   the problem that async/await try to solve that hence avoids the need
 ;;   to perform CPS.  Not sure if it's significantly better than `futur-let*'.
@@ -122,11 +122,25 @@
 ;; - [async-job-queue](https://melpa.org/#/async-job-queue):
 ;; - [pdd](https://melpa.org/#/pdd): HTTP library that uses its own
 ;;   implementation of promises.
+;; - el-job: Library to run ELisp jobs in parallel in Emacs subprocesses.
+;;   `futur-client/server.el' took some inspiration from that package.
+
+;;;; BUGS
+
+;; - There might still be cases where we run code sometimes in the
+;;   "current" dynamic context and sometimes in the background thread.
+;; - Sometimes the `futur--background' thread gets blocked on some
+;;   operation (e.g. entering the debugger), which blocks all further
+;;   execution of async tasks.
+;; - When launching elisp/sandbox servers (or during `futur-reset-context'),
+;;   the client receives and displays all the `message's from the subprocess,
+;;   which can be annoying more than helpful.
 
 ;;; News:
 
 ;; Since version 1.1:
 
+;; - `futur-bind' can now select which errors it catches.
 ;; - New function `futur-p'.
 ;; - Preliminary support to run ELisp code in subproceses.
 
@@ -400,11 +414,15 @@ If FUTUR already completed, FUN is called immediately."
   "Build a new future by composition.
 That future calls FUN with the return value of FUTUR and returns
 the same value as the future returned by FUN.
-If ERROR-FUN is non-nil, it should be a function that will be called instead of
-FUN when FUTUR fails.  It is called with a single argument (the error object).
 By default any error in FUTUR is propagated to the returned future.
+But ERROR-FUN can be used to handle errors:
+- It can be a function, in which case Emacs will call it instead of
+  FUN when FUTUR fails.  It receives a single argument (the error object).
+- It can be a list of (CONDITION-NAME . ERR-FUN), in which case it
+  behaves a bit like `condition-case' and calls the ERR-FUN of the first
+  CONDITION-NAME that matches the error, passing it the error.
 ERROR-FUN and FUN can also return non-future values,
-If FUTUR can also be a non-`futur' object, in which case it's passed
+FUTUR can also be a non-`futur' object, in which case it's passed
 as-is to FUN."
   (let ((new (futur--waiting futur)))
     (if (not (futur--p futur))
@@ -413,7 +431,16 @@ as-is to FUN."
        futur (lambda (err val)
                (cond
                 ((null err) (futur--run-continuation new fun (list val)))
-                (error-fun (futur--run-continuation new error-fun (list err)))
+                (error-fun
+                 (if (functionp error-fun)
+                     (futur--run-continuation new error-fun (list err))
+                   (while (and error-fun
+                               (not (futur--error-member-p
+                                     err (caar error-fun))))
+                     (setq error-fun (cdr error-fun)))
+                   (if error-fun
+                       (futur--run-continuation new (cdar error-fun) (list err))
+                     (futur-deliver-failure new err))))
                 (t (futur-deliver-failure new err))))))
     new))
 
@@ -438,6 +465,11 @@ as-is to FUN."
   ;; same error object:
   ;; (should (eq e1 (condition-case e2 (signal e1 nil) (error e2))))
   (signal error-object nil))
+
+(defun futur--error-member-p (error condition)
+  (or (eq condition t)
+      (when (symbolp (car-safe error))
+        (memq condition (get (car error) 'error-conditions)))))
 
 (defun futur-blocking-wait-to-get-result (futur &optional error-fun)
   "Wait for FUTUR to deliver and then return its value.
@@ -481,7 +513,7 @@ binding the result in VAR.  BODY is executed at the very end and should
 return a future.
 BODY can start with `:error-fun ERROR-FUN' in which case errors in
 the futures in BINDINGS will cause execution of ERROR-FUN instead of BODY.
-ERROR-FUN is called with a single argument, the error object."
+ERROR-FUN works like the third argument of `futur-bind'."
   (declare (indent 1) (debug ((&rest (sexp . [&or ("<-" form) (form)])) body)))
   (cl-assert lexical-binding)
   (let ((error-fun (when (eq :error-fun (car body))
@@ -917,6 +949,12 @@ future also completes with that same failure."
   ;; Propagate the abort to the futurs we're still waiting for.
   (dolist (futur futurs)
     (futur-blocker-abort futur error)))
+
+;; FIXME: Make futures that returns synchronously if the result
+;; is obtained before a specific timeout, or continue
+;; asynchronously otherwise?
+;; Or futures which emit a message (like "still waiting for ...") after
+;; a certain timeout if the main future hasn't completed yet?
 
 ;;;; URL futures
 

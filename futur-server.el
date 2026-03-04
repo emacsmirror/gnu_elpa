@@ -134,6 +134,10 @@ Does not pay attention to buffer-local values of variables."
   ;; going to a dummy temp buffer.
   (unless snapshot (error "Can't use nil as obarray"))
   (with-temp-buffer
+    ;; FIXME: Really ugly hack to temporarily work around bug#80538.
+    (unintern "pcomplete-ignore-case" obarray)
+    (unintern "url-bug-address" obarray)
+    (unintern "executable-binary-suffixes" obarray)
     ;; We map only over `obarray', which takes care of all the symbols
     ;; present in `obarray', some of which are also in `snapshot'.
     ;; Strictly speaking, we should also map over `snapshot' to handle

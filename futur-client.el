@@ -127,7 +127,7 @@ A server kind is a symbol.")
              (tail (substring string (match-end 0)))
              (line (if pending (concat pending head) head)))
         (unless (equal line "")
-          (message "futur-server: %S" line))
+          (message "%s: %S" (process-get proc 'futur--kind) line))
         (setq pending nil)
         (setq string tail)))
     (process-put proc 'futur--pending

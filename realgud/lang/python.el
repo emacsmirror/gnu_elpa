@@ -59,7 +59,7 @@ traceback) line."  )
 ;; before a command prompt.
 ;;
 ;; For example:
-;;   (/usr/bin/zonetab2pot.py:15 @10): <module>
+;;   (/usr/bin/zonetab2pot.py:15 *10): <module>
 ;;   (/usr/bin/zonetab2pot.py:15:3 @10): <module>
 ;;   (/usr/bin/zonetab2pot.py:15 remapped <string>): <module>
 ;;   (/usr/bin/zonetab2pot.py:15:3 remapped <string>): <module>
@@ -71,7 +71,7 @@ traceback) line."  )
 ;; The elisp code handles column-group nil correctly.
 (defconst realgud:python-trepan-loc-pat
       (make-realgud-loc-pat
-       :regexp "^(\\(\\(?:[a-zA-Z]:\\)?[-a-zA-Z0-9_/.\\\\ ]+\\):\\([0-9]+\\)\\(?:[:]\\([0-9]+\\)?\\|\\)\\(?: @[0-9]+\\)?\\(?: remapped .*?\\)?): \\(?:<module>\\)?\\(?:\n.. [0-9]+ \\(.*?\\)\n\\)?"
+       :regexp "^(\\(\\(?:[a-zA-Z]:\\)?[-a-zA-Z0-9_/.\\\\ ]+\\):\\([0-9]+\\)\\(?:[:]\\([0-9]+\\)?\\|\\)\\(?: [@*][0-9]+\\)?\\(?: remapped .*?\\)?): \\(?:<module>\\)?\\(?:\n.. [0-9]+ \\(.*?\\)\n\\)?"
        :file-group 1
        :line-group 2
        :column-group 3

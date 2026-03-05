@@ -395,13 +395,9 @@ Uses `gnosis-dashboard--entry-cache' to avoid re-querying known entries."
 		    thema-ids)))
     ;; Fetch and cache only the missing entries
     (when uncached
-      (let ((rows (emacsql (gnosis--ensure-db)
-			   `[:select
-			     [themata:id themata:keimenon themata:hypothesis themata:answer
-				       themata:tags themata:type review-log:suspend]
-			     :from themata
-			     :join review-log :on (= themata:id review-log:id)
-			     :where (in themata:id ,(vconcat uncached))])))
+      (let* ((placeholders (mapconcat (lambda (_) "?") uncached ", "))
+	     (sql (format "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, themata.tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)" placeholders))
+	     (rows (gnosis-sqlite-select (gnosis--ensure-db) sql uncached)))
 	(dolist (row rows)
 	  (puthash (car row) (gnosis-dashboard--format-entry row)
 		   gnosis-dashboard--entry-cache))))
@@ -491,13 +487,9 @@ Continues as long as the dashboard buffer exists."
                       ids))
            (new-warmed (+ warmed (length ids))))
       (when uncached
-        (let ((rows (emacsql (gnosis--ensure-db)
-                     `[:select
-                       [themata:id themata:keimenon themata:hypothesis themata:answer
-                                   themata:tags themata:type review-log:suspend]
-                       :from themata
-                       :join review-log :on (= themata:id review-log:id)
-                       :where (in themata:id ,(vconcat uncached))])))
+        (let* ((placeholders (mapconcat (lambda (_) "?") uncached ", "))
+	       (sql (format "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, themata.tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)" placeholders))
+	       (rows (gnosis-sqlite-select (gnosis--ensure-db) sql uncached)))
           (dolist (row rows)
             (puthash (car row) (gnosis-dashboard--format-entry row)
                      gnosis-dashboard--entry-cache))))
@@ -761,9 +753,10 @@ GEN: load generation — no-op if stale."
 			   "Unsuspend all themata for tag? "
 			 "Suspend all themata for tag?"))))
     (when confirm-msg
-      (emacsql (gnosis--ensure-db)
-	       `[:update review-log :set (= suspend ,suspend) :where
-			 (in id ,(vconcat themata))])
+      (let* ((placeholders (mapconcat (lambda (_) "?") themata ", "))
+	     (sql (format "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
+			  placeholders)))
+	(gnosis-sqlite-execute (gnosis--ensure-db) sql (cons suspend themata)))
       (if (= suspend 0)
 	  (message "Unsuspended %s themata" (length themata))
 	(message "Suspended %s themata" (length themata))))))

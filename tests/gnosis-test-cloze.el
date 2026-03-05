@@ -319,15 +319,18 @@
   "Run BODY with a fresh temporary gnosis database."
   (declare (indent 0) (debug t))
   `(let* ((gnosis-test--db-file (make-temp-file "gnosis-test-" nil ".db"))
-          (gnosis-db (emacsql-sqlite-open gnosis-test--db-file))
+          (gnosis-db (gnosis-sqlite-open gnosis-test--db-file))
           (gnosis--id-cache nil))
      (unwind-protect
          (progn
-           (emacsql-with-transaction gnosis-db
+           (gnosis-sqlite-with-transaction gnosis-db
              (pcase-dolist (`(,table ,schema) gnosis-db--schemata)
-               (emacsql gnosis-db [:create-table $i1 $S2] table schema)))
+               (gnosis-sqlite-execute gnosis-db
+                 (format "CREATE TABLE %s (%s)"
+                         (gnosis-sqlite--ident table)
+                         (gnosis-sqlite--compile-schema schema)))))
            ,@body)
-       (emacsql-close gnosis-db)
+       (gnosis-sqlite-close gnosis-db)
        (delete-file gnosis-test--db-file))))
 
 (ert-deftest gnosis-test-import-cloze-anki-syntax ()

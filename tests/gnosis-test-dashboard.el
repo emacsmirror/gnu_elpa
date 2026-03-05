@@ -33,15 +33,18 @@
 Rebinds `gnosis-db' and initialises the schema."
   (declare (indent 0) (debug t))
   `(let* ((gnosis-test--db-file (make-temp-file "gnosis-test-dash-" nil ".db"))
-          (gnosis-db (emacsql-sqlite-open gnosis-test--db-file))
+          (gnosis-db (gnosis-sqlite-open gnosis-test--db-file))
           (gnosis--id-cache nil))
      (unwind-protect
          (progn
-           (emacsql-with-transaction gnosis-db
+           (gnosis-sqlite-with-transaction gnosis-db
              (pcase-dolist (`(,table ,schema) gnosis-db--schemata)
-               (emacsql gnosis-db [:create-table $i1 $S2] table schema)))
+               (gnosis-sqlite-execute gnosis-db
+                 (format "CREATE TABLE %s (%s)"
+                         (gnosis-sqlite--ident table)
+                         (gnosis-sqlite--compile-schema schema)))))
            ,@body)
-       (emacsql-close gnosis-db)
+       (gnosis-sqlite-close gnosis-db)
        (delete-file gnosis-test--db-file))))
 
 (defmacro gnosis-test-with-dashboard-buffer (&rest body)
@@ -75,7 +78,7 @@ SUSPEND: 1 to suspend, 0 or nil for active."
          (suspend (or suspend 0))
          (hypothesis '(""))
          (answer (if (listp answer) answer (list answer))))
-    (emacsql-with-transaction gnosis-db
+    (gnosis-sqlite-with-transaction gnosis-db
       (gnosis--insert-into 'themata `([,id "basic" ,keimenon ,hypothesis
                                            ,answer ,tags ,deck-id]))
       (gnosis--insert-into 'review `([,id ,gnosis-algorithm-gnosis-value
@@ -97,7 +100,7 @@ SUSPEND: 1 to suspend, 0 or nil for active."
 (defun gnosis-test--setup-tags ()
   "Populate tags table from existing themata in test DB."
   (let ((tags (gnosis-get-tags--unique)))
-    (emacsql-with-transaction gnosis-db
+    (gnosis-sqlite-with-transaction gnosis-db
       (cl-loop for tag in tags
                do (condition-case nil
                       (gnosis--insert-into 'tags `[,tag])
@@ -271,7 +274,7 @@ SUSPEND: 1 to suspend, 0 or nil for active."
       (gnosis-test--add-link id2 node-id)
       (let ((result (gnosis-dashboard-get-themata-links node-id)))
         (should (= (length result) 2))
-        ;; source column is TEXT but emacsql returns integers
+        ;; source column is TEXT but returns integers
         (should (member id1 result))
         (should (member id2 result))))))
 

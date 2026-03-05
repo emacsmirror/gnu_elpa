@@ -31,16 +31,19 @@
 Rebinds `gnosis-db' and initialises the schema."
   (declare (indent 0) (debug t))
   `(let* ((gnosis-test--db-file (make-temp-file "gnosis-test-" nil ".db"))
-          (gnosis-db (emacsql-sqlite-open gnosis-test--db-file))
+          (gnosis-db (gnosis-sqlite-open gnosis-test--db-file))
           (gnosis--id-cache nil))
      (unwind-protect
          (progn
            ;; Create all tables
-           (emacsql-with-transaction gnosis-db
+           (gnosis-sqlite-with-transaction gnosis-db
              (pcase-dolist (`(,table ,schema) gnosis-db--schemata)
-               (emacsql gnosis-db [:create-table $i1 $S2] table schema)))
+               (gnosis-sqlite-execute gnosis-db
+                 (format "CREATE TABLE %s (%s)"
+                         (gnosis-sqlite--ident table)
+                         (gnosis-sqlite--compile-schema schema)))))
            ,@body)
-       (emacsql-close gnosis-db)
+       (gnosis-sqlite-close gnosis-db)
        (delete-file gnosis-test--db-file))))
 
 (defun gnosis-test--add-deck (name)
@@ -61,7 +64,7 @@ SUSPEND: 1 to suspend, 0 or nil for active."
          (suspend (or suspend 0))
          (hypothesis '(""))
          (answer (if (listp answer) answer (list answer))))
-    (emacsql-with-transaction gnosis-db
+    (gnosis-sqlite-with-transaction gnosis-db
       (gnosis--insert-into 'themata `([,id "basic" ,keimenon ,hypothesis
                                            ,answer ,tags ,deck-id]))
       (gnosis--insert-into 'review `([,id ,gnosis-algorithm-gnosis-value
@@ -215,13 +218,16 @@ SUSPEND: 1 to suspend, 0 or nil for active."
             (gnosis-test--kill-export-buffer "import-deck")
             ;; Import into a fresh DB to check deck creation
             (let* ((db-file2 (make-temp-file "gnosis-test2-" nil ".db"))
-                   (gnosis-db (emacsql-sqlite-open db-file2))
+                   (gnosis-db (gnosis-sqlite-open db-file2))
                    (gnosis--id-cache nil))
               (unwind-protect
                   (progn
-                    (emacsql-with-transaction gnosis-db
+                    (gnosis-sqlite-with-transaction gnosis-db
                       (pcase-dolist (`(,table ,schema) gnosis-db--schemata)
-                        (emacsql gnosis-db [:create-table $i1 $S2] table schema)))
+                        (gnosis-sqlite-execute gnosis-db
+                          (format "CREATE TABLE %s (%s)"
+                                  (gnosis-sqlite--ident table)
+                                  (gnosis-sqlite--compile-schema schema)))))
                     ;; Deck should not exist yet
                     (should-not (gnosis-get 'id 'decks '(= name "import-deck")))
                     (gnosis-import-deck export-file)
@@ -229,7 +235,7 @@ SUSPEND: 1 to suspend, 0 or nil for active."
                     (should (gnosis-get 'id 'decks '(= name "import-deck")))
                     ;; Thema should exist
                     (should (= 1 (length (gnosis-select 'id 'themata nil t)))))
-                (emacsql-close gnosis-db)
+                (gnosis-sqlite-close gnosis-db)
                 (delete-file db-file2))))
         (when (file-exists-p export-file)
           (delete-file export-file))))))
@@ -251,13 +257,16 @@ SUSPEND: 1 to suspend, 0 or nil for active."
             (gnosis-test--kill-export-buffer "roundtrip")
             ;; Import into a fresh DB
             (let* ((db-file2 (make-temp-file "gnosis-rt2-" nil ".db"))
-                   (gnosis-db (emacsql-sqlite-open db-file2))
+                   (gnosis-db (gnosis-sqlite-open db-file2))
                    (gnosis--id-cache nil))
               (unwind-protect
                   (progn
-                    (emacsql-with-transaction gnosis-db
+                    (gnosis-sqlite-with-transaction gnosis-db
                       (pcase-dolist (`(,table ,schema) gnosis-db--schemata)
-                        (emacsql gnosis-db [:create-table $i1 $S2] table schema)))
+                        (gnosis-sqlite-execute gnosis-db
+                          (format "CREATE TABLE %s (%s)"
+                                  (gnosis-sqlite--ident table)
+                                  (gnosis-sqlite--compile-schema schema)))))
                     (gnosis-import-deck export-file)
                     ;; 3 themata imported
                     (should (= 3 (length (gnosis-select 'id 'themata nil t))))
@@ -278,7 +287,7 @@ SUSPEND: 1 to suspend, 0 or nil for active."
                            (tags (gnosis-get 'tags 'themata `(= id ,thema-id))))
                       (should (member "emacs" tags))
                       (should (member "editor" tags))))
-                (emacsql-close gnosis-db)
+                (gnosis-sqlite-close gnosis-db)
                 (delete-file db-file2))))
         (when (file-exists-p export-file)
           (delete-file export-file))))))

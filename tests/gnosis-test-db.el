@@ -57,7 +57,7 @@ If ask nil, leave testing env"
 	(progn
 	  (unless (file-exists-p testing-dir)
 	    (make-directory testing-dir))
-	  (setf gnosis-db (emacsql-sqlite-open testing-db))
+	  (setf gnosis-db (gnosis-sqlite-open testing-db))
 	  (dolist (table '(decks themata review review-log extras activity-log tags links))
 	    (condition-case nil
 		(gnosis--drop-table table)
@@ -67,7 +67,7 @@ If ask nil, leave testing env"
 	  (gnosis-db-init)
 	  (message "Development env is ready for testing.")
 	  (and (y-or-n-p "Add testing deck? ") (gnosis-import-deck gnosis-test-deck-file)))
-      (setf gnosis-db (emacsql-sqlite-open (expand-file-name "gnosis.db" gnosis-dir)))
+      (setf gnosis-db (gnosis-sqlite-open (expand-file-name "gnosis.db" gnosis-dir)))
       (setf gnosis-testing nil)
       (message "Exited development env."))))
 

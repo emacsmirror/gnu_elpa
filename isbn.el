@@ -146,7 +146,7 @@ Results are cached in `isbn-hyphenation-ranges-cache'."
    (setq isbn-hyphenation-ranges-cache
          (with-current-buffer
              (or (url-retrieve-synchronously
-                  isbn-hyphenation-ranges-source :silent :inhibit-cookies 5)
+                  isbn-hyphenation-ranges-source nil :inhibit-cookies 5)
                  (error "Failed to retrieve hyphenation data"))
            (json-parse-buffer)))))
 

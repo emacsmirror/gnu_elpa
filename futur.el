@@ -330,9 +330,6 @@ A futur has 3 possible states:
     ((futur--waiting _ clients)
      (setf (futur--clients futur) (if err 'error t))
      (setf (futur--value futur) (or err val))
-     ;; FIXME: Should we just always abort the blocker instead of
-     ;; doing it only from `futur-abort'?
-     ;;(futur-blocker-abort blocker)
      ;; CLIENTS is usually in reverse order since we always `push' to them.
      (dolist (client (nreverse clients))
        ;; Don't run the clients directly from here, so we don't nest,
@@ -410,6 +407,21 @@ If FUTUR already completed, FUN is called immediately."
   "Make sure VAL is a `futur'.  If not, make it a trivial one that returns VAL."
   (if (futur--p val) val (futur--done val)))
 
+(defun futur--handle-error (error-fun err runner default)
+ "Select the appropriate element of ERROR-FUN for ERR.
+Passes it to RUNNER (with ERR as second argument)
+if found, and if no handler applies, calls DEFAULT with ERR
+as argument."
+  (if (functionp error-fun)
+      (funcall runner error-fun err)
+    (while (and error-fun
+                (not (futur--error-member-p
+                      err (caar error-fun))))
+      (setq error-fun (cdr error-fun)))
+    (if error-fun
+        (funcall runner (cdar error-fun) err)
+      (funcall default err))))
+
 (defun futur-bind (futur fun &optional error-fun)
   "Build a new future by composition.
 That future calls FUN with the return value of FUTUR and returns
@@ -431,17 +443,12 @@ as-is to FUN."
        futur (lambda (err val)
                (cond
                 ((null err) (futur--run-continuation new fun (list val)))
-                (error-fun
-                 (if (functionp error-fun)
-                     (futur--run-continuation new error-fun (list err))
-                   (while (and error-fun
-                               (not (futur--error-member-p
-                                     err (caar error-fun))))
-                     (setq error-fun (cdr error-fun)))
-                   (if error-fun
-                       (futur--run-continuation new (cdar error-fun) (list err))
-                     (futur-deliver-failure new err))))
-                (t (futur-deliver-failure new err))))))
+                (t
+                 (futur--handle-error
+                  error-fun err
+                  (lambda (error-fun err)
+                    (futur--run-continuation new error-fun (list err)))
+                  (lambda (err) (futur-deliver-failure new err))))))))
     new))
 
 (defun futur--run-continuation (futur fun args)
@@ -491,17 +498,22 @@ its result, or (re)signals the error if ERROR-FUN is nil."
     (error "Blocking/waiting within an asynchronous context is not supported"))
   (if (not (futur--p futur))
       futur
-    (if t ;; (null futur--idle-loop-bug80286)
-        (futur-blocker-wait futur)
-      (let* ((mutex (make-mutex "futur-wait"))
-             (condition (make-condition-variable mutex)))
-        (with-mutex mutex
-          (futur--register-callback futur (lambda (_err _val)
-                                            (with-mutex mutex
-                                              (condition-notify condition))))
-          (condition-wait condition))))
+    (when (futur--waiting-p futur)
+      (condition-case err
+          (if t ;; (null futur--idle-loop-bug80286)
+              (futur-blocker-wait futur)
+            (let* ((mutex (make-mutex "futur-wait"))
+                   (condition (make-condition-variable mutex)))
+              (with-mutex mutex
+                (futur--register-callback
+                 futur (lambda (_err _val)
+                         (with-mutex mutex (condition-notify condition))))
+                (condition-wait condition))))
+        ;; FIXME: Use `handler-bind' instead of `futur--resignal'.
+        (quit (futur-abort futur) (futur--resignal err))))
     (pcase-exhaustive futur
-      ((futur--failed err) (funcall (or error-fun #'futur--resignal) err))
+      ((futur--failed err)
+       (futur--handle-error error-fun err #'funcall #'futur--resignal))
       ((futur--done val) val))))
 
 (defmacro futur-let* (bindings &rest body)
@@ -554,7 +566,8 @@ clients are `futur--aux' functions.")
   "Make sure FUN is called, with no arguments, once FUTUR completes.
 Calls it both when FUTUR succeeds and when it fails.
 Unlike what happens with `unwind-protect', there is no guarantee of
-exactly when FUN is called, other than not before FUTUR completes."
+exactly when FUN is called, other than not before FUTUR completes.
+The return value of FUN is ignored."
   ;; FIXME: Not sure if this implementation is making enough efforts to make
   ;; sure not to forget to run FUN.  Maybe we should register FUTUR+FUN
   ;; on some global list somewhere that we can occasionally scan, in case
@@ -828,7 +841,16 @@ The DISPLAY argument is ignored: redisplay always happens."
     (when (stringp destination)
       (write-region "" nil destination nil 'silent))
     (pcase-exhaustive infile
-      ('nil (process-send-eof proc))
+      ;; FIXME: Not sure how this can happen, but I got backtraces like:
+      ;;
+      ;;     Debugger entered--Lisp error: (error "Process diff not running: exited abnormally with code 1\n")
+      ;;       process-send-eof(#<process diff>)
+      ;;       futur-process-call("diff" nil t nil "-ad" "/tmp/diff1UHFpgS" "/tmp/diff2k4UPTf")
+      ;;
+      ;; So let's double-check that `proc' is still alive before
+      ;; sending EOF, tho I'm not sure it's sufficient.
+      ('nil (when (process-live-p proc)
+              (process-send-eof proc)))
       ((pred stringp) (futur-send-file proc infile)))
     (process-put proc 'futur-destination destination)
     futur))

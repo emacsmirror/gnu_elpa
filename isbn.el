@@ -118,25 +118,108 @@ specified format."
          (concat isbn (if (eq check 10) "X" (int-to-string check))))))
     (_ (user-error "ISBN is not 10 or 13 digits"))))
 
-;;;; Ranges
+;;;; Hyphenation
 
 ;; TODO: Add the option to work with an offline source.
-(defvar isbn-ranges-source
+(defvar isbn-hyphenation-ranges-source
   "https://isbnbarcode.org/api/isbn-ranges.json")
 
 ;; Cache the ranges so that nested operations (hyphenation ->
 ;; validation) do not request the ranges needlessly.
-(defvar isbn-ranges nil
+(defvar isbn-hyphenation-ranges nil
   "All valid ISBN ranges the International ISBN Agency.")
 
-(defun isbn-ranges ()
-  "Return a hash table of all valid ISBN ranges."
+(defun isbn-hyphenation--ranges ()
+  "Return a hash table of all valid ISBN hyphenation ranges."
   (or
-   isbn-ranges
+   isbn-hyphenation-ranges
    (with-current-buffer
        (url-retrieve-synchronously
-        isbn-ranges-source :silent :inhibit-cookies 5)
+        isbn-hyphenation-ranges-source :silent :inhibit-cookies 5)
      (json-parse-buffer))))
+
+(defun isbn-hyphenation--ranges-get (source &rest keys)
+  "Recursively retrieve KEYS from SOURCE."
+  (if keys
+      (apply #'isbn-hyphenation--ranges-get (gethash (pop keys) source) keys)
+    source))
+
+(defun isbn-hyphenation--ranges-member-p (number range)
+  "Return t if NUMBER is within RANGE (string)."
+  (let ((range (mapcar #'string-to-number (string-split range "-"))))
+    (and (>= number (car range)) (<= number (cadr range)))))
+
+(defun isbn-hyphenate (isbn)
+  "Hyphenate ISBN.
+Only ISBN-13 is supported."
+  (unless (isbn-isbn13-p isbn)
+    (user-error "ISBN must be an ISBN-13"))
+  (let* ((isbn-hyphenation-ranges (isbn-hyphenation--ranges))
+         hyphenated
+         (remaining (lambda ()
+                      (let ((len (length (apply #'concat hyphenated))))
+                        (substring isbn len (+ len 7))))))
+    ;; The data from the International ISBN Agency comes in two sets:
+    ;; the EAN prefix (978 or 979) and the registration groups. The
+    ;; former determines how long the group identifier is, and the
+    ;; latter determines how long the publisher code is. The rest of
+    ;; the ISBN can be determined automatically.
+
+    ;; 1. EAN prefix
+    (push (substring isbn 0 3) hyphenated)
+
+    ;; 2. Group identifier
+    (condition-case-unless-debug nil
+        (let* ((rem (string-to-number (funcall remaining)))
+               (match (catch 'res
+                        (seq-do
+                         (lambda (pref)
+                           (when (string= (car hyphenated) (gethash "Prefix" pref))
+                             (throw 'res pref)))
+                         (isbn-hyphenation--ranges-get
+                          isbn-hyphenation-ranges
+                          "ISBNRangeMessage" "EAN.UCCPrefixes" "EAN.UCC"))))
+               (length (string-to-number
+                        (catch 'length
+                          (seq-do
+                           (lambda (rule)
+                             (when (isbn-hyphenation--ranges-member-p
+                                    rem (gethash "Range" rule))
+                               (throw 'length (gethash "Length" rule))))
+                           (isbn-hyphenation--ranges-get match "Rules" "Rule"))))))
+          (unless (eq length 0)
+            (push (substring (int-to-string rem) 0 length) hyphenated)))
+      (error (error "Could not determine group identifier")))
+
+    ;; 3. Publisher code
+    (condition-case-unless-debug nil
+        (let* ((prefix (string-join (reverse hyphenated) "-"))
+               (rem (string-to-number (funcall remaining)))
+               (match (catch 'res
+                        (seq-do (lambda (pref)
+                                  (when (string= prefix (gethash "Prefix" pref))
+                                    (throw 'res pref)))
+                                (isbn-hyphenation--ranges-get
+                                 isbn-hyphenation-ranges
+                                 "ISBNRangeMessage" "RegistrationGroups" "Group"))))
+               (length (string-to-number
+                        (catch 'length
+                          (seq-do
+                           (lambda (rule)
+                             (when (isbn-hyphenation--ranges-member-p
+                                    rem (gethash "Range" rule))
+                               (throw 'length (gethash "Length" rule))))
+                           (isbn-hyphenation--ranges-get match "Rules" "Rule"))))))
+          (push (substring (int-to-string rem) 0 length) hyphenated))
+      (error (error "Could not determine publisher code")))
+
+    ;; Title identifier
+    (push (substring isbn (length (string-join hyphenated)) -1) hyphenated)
+
+    ;; Check digit
+    (push (substring isbn -1) hyphenated)
+
+    (string-join (reverse hyphenated) "-")))
 
 (provide 'isbn)
 

@@ -2,7 +2,11 @@
 
 ;; Copyright (C) 2026 Maximilian Cook
 
+;; Author: Maximilian Cook <mcookly@fclr.net>
 ;; Created: 05 Mar 2026
+;; Version: 0.1.0
+;; Keywords: data
+;; URL: https://codeberg.org/mcookly/isbn.el
 
 ;; This file is not part of GNU Emacs.
 

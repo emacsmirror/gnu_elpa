@@ -40,7 +40,7 @@
 (require 'gnosis-algorithm)
 (require 'gnosis-monkeytype)
 (require 'gnosis-utils)
-(require 'org-gnosis)
+(require 'gnosis-nodes)
 
 ;;; Review vars
 
@@ -179,17 +179,17 @@ If FALSE t, use gnosis-face-false face"
 ;;; Link view mode
 
 (defun gnosis-get-linked-nodes (id)
-  "Return the title of linked org-gnosis node(s) for thema ID."
-  (let* ((links (gnosis-select 'dest 'links `(= source ,id) t))
-	 (org-gnosis-nodes (cl-loop for node-id in links
-				    collect (org-gnosis-select 'title 'nodes `(= id ,node-id) t))))
-    (and links (apply #'append org-gnosis-nodes))))
+  "Return the title of linked node(s) for thema ID."
+  (let* ((links (gnosis-select 'dest 'thema-links `(= source ,id) t))
+	 (nodes (cl-loop for node-id in links
+			 collect (gnosis-select 'title 'nodes `(= id ,node-id) t))))
+    (and links (apply #'append nodes))))
 
 (defun gnosis-view-linked-node (id)
   "Visit linked node(s) for thema ID."
   (let* ((node (gnosis-completing-read "Select node: " (gnosis-get-linked-nodes id) t)))
     (window-configuration-to-register :gnosis-link-view)
-    (org-gnosis-find node)
+    (gnosis-nodes-find node)
     (gnosis-link-view-mode)))
 
 (defun gnosis-link-view--exit ()
@@ -712,10 +712,10 @@ FN: Review function, defaults to `gnosis-review-session'"
        (funcall fn (gnosis-collect-thema-ids :tags t))))))
 
 (defun gnosis-review--select-topic ()
-  "Prompt for topic from org-gnosis database and return it's id."
+  "Prompt for topic and return its id."
   (let* ((topic-title (gnosis-completing-read "Select topic: "
-					      (org-gnosis-select 'title 'nodes)))
-	 (topic-id (caar (org-gnosis-select 'id 'nodes `(= title ,topic-title)))))
+					      (gnosis-select 'title 'nodes)))
+	 (topic-id (caar (gnosis-select 'id 'nodes `(= title ,topic-title)))))
     topic-id))
 
 (defun gnosis-collect-nodes-at-depth (node-id &optional fwd-depth back-depth)
@@ -734,11 +734,11 @@ Returns a deduplicated list including NODE-ID itself."
 	(let* ((qvec (vconcat queue))
 	       (neighbors (append
 			   (when (< level fwd-depth)
-			     (org-gnosis-select 'dest 'links
-						`(in source ,qvec) t))
+			     (gnosis-select 'dest 'node-links
+					    `(in source ,qvec) t))
 			   (when (< level back-depth)
-			     (org-gnosis-select 'source 'links
-						`(in dest ,qvec) t))))
+			     (gnosis-select 'source 'node-links
+					    `(in dest ,qvec) t))))
 	       (next-queue nil))
 	  (dolist (neighbor neighbors)
 	    (unless (gethash neighbor visited)
@@ -759,13 +759,13 @@ With prefix arg, prompt for depths."
   (let* ((node-id (or node-id (gnosis-review--select-topic)))
 	 (fwd-depth (or fwd-depth 0))
 	 (back-depth (or back-depth 0))
-	 (node-title (car (org-gnosis-select 'title 'nodes
-					     `(= id ,node-id) t)))
+	 (node-title (car (gnosis-select 'title 'nodes
+					 `(= id ,node-id) t)))
 	 (node-ids (if (or (> fwd-depth 0) (> back-depth 0))
 		       (gnosis-collect-nodes-at-depth
 			node-id fwd-depth back-depth)
 		     (list node-id)))
-	 (gnosis-questions (gnosis-select 'source 'links
+	 (gnosis-questions (gnosis-select 'source 'thema-links
 					  `(in dest ,(vconcat node-ids)) t)))
     (if (and gnosis-questions
 	     (y-or-n-p

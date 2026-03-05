@@ -73,6 +73,26 @@ specified format."
          (concat isbn (if (eq check 10) "X" (int-to-string check))))))
     (_ (user-error "ISBN is not 10 or 13 digits"))))
 
+;;;; Ranges
+
+;; TODO: Add the option to work with an offline source.
+(defvar isbn-ranges-source
+  "https://isbnbarcode.org/api/isbn-ranges.json")
+
+;; Cache the ranges so that nested operations (hyphenation ->
+;; validation) do not request the ranges needlessly.
+(defvar isbn-ranges nil
+  "All valid ISBN ranges the International ISBN Agency.")
+
+(defun isbn-ranges ()
+  "Return a hash table of all valid ISBN ranges."
+  (or
+   isbn-ranges
+   (with-current-buffer
+       (url-retrieve-synchronously
+        isbn-ranges-source :silent :inhibit-cookies 5)
+     (json-parse-buffer))))
+
 (provide 'isbn)
 
 ;;; isbn.el ends here

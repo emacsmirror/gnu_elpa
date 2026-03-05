@@ -52,6 +52,27 @@
        (string-to-number (char-to-string digit))))
    (string-replace "-" "" isbn)))
 
+;;;; Validation
+
+(defun isbn-valid-p (isbn)
+  "Return t if ISBN is valid, otherwise nil."
+  (unless (string-match-p (rx (not (any digit ?X ?x ?-))) isbn)
+    (setq isbn (isbn--string->list isbn))
+    (pcase (length isbn)
+      (10 (thread-first
+            (apply #'+
+                   (seq-map-indexed
+                    (lambda (digit index) (* digit (1+ index)))
+                    isbn))
+            (mod 11) (eq 0)))
+      (13 (thread-first
+            (apply #'+
+                   (seq-map-indexed
+                    (lambda (digit index) (* digit (if (evenp index) 1 3)))
+                    (butlast isbn)))
+            (+ (car (last isbn)))
+            (mod 10) (eq 0))))))
+
 ;;;; Conversion
 
 (defun isbn-convert (isbn &optional format)
@@ -59,6 +80,8 @@
 
 Optional argument FORMAT (integer: 10, 13) forces conversion to a
 specified format."
+  (unless (isbn-valid-p isbn)
+    (user-error "ISBN is invalid"))
   (setq isbn (string-replace "-" "" isbn))
   ;; The algorithms are taken from
   ;; <https://www.isbnservices.com/convert-isbn-10-to-isbn-13/>.

@@ -561,17 +561,17 @@ Otherwise, they are quietly skipped."
            (filtered-true-recursive-roots
             (seq-filter
              (lambda (true-dir)
-               (when assert-readable
-                 (cl-assert (file-readable-p true-dir) nil
-                            "Directory not readable: %s" true-dir))
-               (not (and FULL-DIR-DENY-RE
-                         (string-match-p FULL-DIR-DENY-RE true-dir))))
+               (and (if assert-readable
+                        (not (cl-assert (file-readable-p true-dir) nil
+                                        "Directory not readable: %s" true-dir))
+                      (file-readable-p true-dir))
+                    (not (and FULL-DIR-DENY-RE
+                              (string-match-p FULL-DIR-DENY-RE true-dir)))))
              (delete-dups
               (cl-loop
                for dir in (seq-uniq dirs-recursive)
-               when (and (and assert-readable
-                              (not (cl-assert (file-name-absolute-p dir) nil
-                                              "Non-absolute name in DIRS-RECURSIVE: %s" dir)))
+               when (and (not (cl-assert (file-name-absolute-p dir) nil
+                                         "Non-absolute name in DIRS-RECURSIVE: %s" dir))
                          (not (and FULL-DIR-DENY-RE
                                    (string-match-p FULL-DIR-DENY-RE dir))))
                collect (file-name-as-directory (file-truename dir))))))
@@ -606,11 +606,12 @@ Otherwise, they are quietly skipped."
                   (error "Non-absolute name in DIRS-FLAT: %s" dir)))
               (seq-filter
                (lambda (true-dir)
-                 (when assert-readable
-                   (cl-assert (file-readable-p true-dir) nil
-                              "Directory not readable: %s" true-dir))
-                 (not (and FULL-DIR-DENY-RE
-                           (string-match-p FULL-DIR-DENY-RE true-dir))))
+                 (and (if assert-readable
+                          (not (cl-assert (file-readable-p true-dir) nil
+                                         "Directory not readable: %s" true-dir))
+                        (file-readable-p true-dir))
+                      (not (and FULL-DIR-DENY-RE
+                                (string-match-p FULL-DIR-DENY-RE true-dir)))))
                (delete-dups
                 (cl-loop
                  for dir in (delete-dups (append dirs-flat inferred-dirs))

@@ -54,6 +54,7 @@
 
 ;;;; Validation
 
+;;;###autoload
 (defun isbn-valid-p (isbn)
   "Return t if ISBN is valid, otherwise nil."
   (unless (string-match-p (rx (not (any digit ?X ?x ?-))) isbn)
@@ -73,12 +74,14 @@
             (+ (car (last isbn)))
             (mod 10) (eq 0))))))
 
+;;;###autoload
 (defun isbn-isbn10-p (isbn)
   "Return t if ISBN is matches the ISBN-10 format."
   (and
    (isbn-valid-p isbn)
    (eq (length (isbn--string->list isbn)) 10)))
 
+;;;###autoload
 (defun isbn-isbn13-p (isbn)
   "Return t if ISBN is matches the ISBN-13 format."
   (and
@@ -87,6 +90,7 @@
 
 ;;;; Conversion
 
+;;;###autoload
 (defun isbn-convert (isbn &optional format)
   "Convert ISBN between 10- and 13-digit formats.
 
@@ -149,6 +153,7 @@ specified format."
   (let ((range (mapcar #'string-to-number (string-split range "-"))))
     (and (>= number (car range)) (<= number (cadr range)))))
 
+;;;###autoload
 (defun isbn-hyphenate (isbn)
   "Hyphenate ISBN.
 Only ISBN-13 is supported."

@@ -34,6 +34,24 @@
   :prefix "isbn-"
   :group 'data)
 
+;;;; Core
+
+(defun isbn--list->string (isbn)
+  "Convert ISBN (list) to a string."
+  (mapconcat
+   (lambda (digit)
+     (if (eq digit 10) "X"
+       (int-to-string digit)))
+   isbn))
+
+(defun isbn--string->list (isbn)
+  "Convert ISBN (string) to a list of numbers."
+  (mapcar
+   (lambda (digit)
+     (if (eq digit 88) 10
+       (string-to-number (char-to-string digit))))
+   (string-replace "-" "" isbn)))
+
 ;;;; Conversion
 
 (defun isbn-convert (isbn &optional format)
@@ -48,28 +66,20 @@ specified format."
     (10
      (if (eq format 10) isbn
        (let* ((isbn (concat "978" (substring isbn 0 -1)))
-              (check (- 10
-                        (mod
-                         (apply #'+
-                                (seq-map-indexed
-                                 (lambda (digit index)
-                                   (* (string-to-number (char-to-string digit))
-                                      (if (evenp index) 1 3)))
-                                 isbn))
-                         10))))
+              (checkint (seq-map-indexed
+                         (lambda (digit index) (* digit (if (evenp index) 1 3)))
+                         (isbn--string->list isbn)))
+              (check (- 10 (mod (apply #'+ checkint) 10))))
          (format "%s%i" isbn check))))
     (13
      (if (eq format 13) isbn
        (unless (string-prefix-p "978" isbn)
          (user-error "ISBN does not start with `978'"))
        (let* ((isbn (string-remove-prefix "978" isbn))
-              (check (mod
-                      (apply #'+
-                             (seq-map-indexed
-                              (lambda (digit index)
-                                (* (string-to-number (char-to-string digit)) (1+ index)))
-                              (substring isbn 0 -1)))
-                      11)))
+              (checkint (seq-map-indexed
+                         (lambda (digit index) (* digit (1+ index)))
+                         (isbn--string->list (substring isbn 0 -1))))
+              (check (mod (apply #'+ checkint) 11)))
          (concat isbn (if (eq check 10) "X" (int-to-string check))))))
     (_ (user-error "ISBN is not 10 or 13 digits"))))
 

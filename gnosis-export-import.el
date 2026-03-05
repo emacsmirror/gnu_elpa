@@ -164,16 +164,15 @@ generate new thema id."
   "Fetch and prepare export data for DECK.
 When INCLUDE-SUSPENDED is nil, filter out suspended themata.
 Returns (ALL-THEMATA . EXTRAS-HT)."
-  (let* ((all-themata (emacsql (gnosis--ensure-db)
-                       [:select [id type keimenon hypothesis answer tags]
-                        :from themata :where (= deck-id $s1)] deck))
+  (let* ((all-themata (gnosis-sqlite-select (gnosis--ensure-db)
+		       "SELECT id, type, keimenon, hypothesis, answer, tags FROM themata WHERE deck_id = ?"
+		       (list deck)))
          (all-ids (mapcar #'car all-themata))
          (suspended-ids (when (and all-ids (not include-suspended))
-                          (mapcar #'car
-                                  (emacsql (gnosis--ensure-db)
-                                   [:select id :from review-log
-                                    :where (and (in id $v1) (= suspend 1))]
-                                   (vconcat all-ids)))))
+			  (let* ((placeholders (mapconcat (lambda (_) "?") all-ids ", "))
+				 (sql (format "SELECT id FROM review_log WHERE id IN (%s) AND suspend = 1"
+					      placeholders)))
+			    (mapcar #'car (gnosis-sqlite-select (gnosis--ensure-db) sql all-ids)))))
          (all-themata (if suspended-ids
                           (cl-remove-if (lambda (row)
                                           (member (car row) suspended-ids))
@@ -181,9 +180,10 @@ Returns (ALL-THEMATA . EXTRAS-HT)."
                         all-themata))
          (all-ids (mapcar #'car all-themata))
          (all-extras (when all-ids
-                       (emacsql (gnosis--ensure-db)
-                        [:select [id parathema] :from extras
-                         :where (in id $v1)] (vconcat all-ids))))
+		       (let* ((placeholders (mapconcat (lambda (_) "?") all-ids ", "))
+			      (sql (format "SELECT id, parathema FROM extras WHERE id IN (%s)"
+					   placeholders)))
+			 (gnosis-sqlite-select (gnosis--ensure-db) sql all-ids))))
          (extras-ht (let ((ht (make-hash-table :test 'equal :size (length all-ids))))
                       (dolist (row all-extras ht)
                         (puthash (car row) (cadr row) ht)))))
@@ -333,7 +333,7 @@ Returns nil on success, or an error message string on failure."
 			       (puthash id t ht))))
 	 (errors nil)
 	 (edited-id (string-to-number (caar themata))))
-    (emacsql-with-transaction (gnosis--ensure-db)
+    (gnosis-sqlite-with-transaction (gnosis--ensure-db)
       (cl-loop for thema in themata
 	       for err = (gnosis-save-thema thema deck)
 	       when err do (push err errors)))
@@ -365,7 +365,7 @@ before importing into it."
 			     (dolist (id (gnosis-select 'id 'themata nil t) ht)
 			       (puthash id t ht))))
 	 (errors nil))
-    (emacsql-with-transaction (gnosis--ensure-db)
+    (gnosis-sqlite-with-transaction (gnosis--ensure-db)
       (cl-loop for thema in themata
 	       for err = (gnosis-save-thema thema deck)
 	       when err do (push err errors)))
@@ -420,7 +420,7 @@ Returns a list of error strings (nil on full success)."
       (insert header "\n" chunk)
       (org-mode)
       (let ((themata (gnosis-export-parse-themata)))
-        (emacsql-with-transaction (gnosis--ensure-db)
+        (gnosis-sqlite-with-transaction (gnosis--ensure-db)
           (cl-loop for thema in themata
                    for err = (gnosis-save-thema thema deck-id)
                    when err do (push err errors)))))

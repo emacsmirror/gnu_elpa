@@ -689,7 +689,8 @@ GEN: load generation — no-op if stale."
         (when sorter
           (setq entries (sort entries sorter)))
         (gnosis-dashboard--progressive-render
-         entries gnosis-dashboard--load-generation))))
+         entries gnosis-dashboard--load-generation)))
+    (goto-char (point-min)))
   (gnosis-dashboard--set-header-line (length thema-ids)))
 
 (defun gnosis-dashboard-deck-thema-count (id)

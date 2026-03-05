@@ -671,6 +671,7 @@
  (perl-doc		:url "https://github.com/HaraldJoerg/emacs-perl-doc"
   :ignored-files ("LICENSE"))
  (persist             	:url nil) ; was https://gitlab.com/phillord/persist
+ (php-fill              :url "https://github.com/arielenter/php-fill.el")
  (phpinspect		:url "https://github.com/hugot/phpinspect.el")
  (phps-mode		:url nil
   ) ;; Was "https://github.com/cjohansson/emacs-phps-mode"

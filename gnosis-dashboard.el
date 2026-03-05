@@ -29,7 +29,7 @@
 
 (require 'gnosis)
 (require 'gnosis-tl)
-(require 'org-gnosis)
+(require 'gnosis-nodes)
 
 (defface gnosis-face-dashboard-header
   '((t :inherit (bold font-lock-constant-face)))
@@ -656,7 +656,6 @@ GEN: load generation — no-op if stale."
   (cl-assert (listp thema-ids) t "`thema-ids' must be a list of thema ids.")
   (cl-incf gnosis-dashboard--load-generation)
   (pop-to-buffer-same-window gnosis-dashboard-buffer-name)
-  (goto-char (point-min))
   (gnosis-dashboard-enable-mode)
   ;; Disable other dashboard modes
   (gnosis-dashboard-nodes-mode -1)
@@ -1049,7 +1048,7 @@ When called with a prefix, unsuspend all themata of deck."
                   gnosis-dashboard-themata-current-ids))
          (_ (unless ids (user-error "No themata to link")))
          (string (read-string "String to replace: "))
-         (nodes (org-gnosis-select '[id title] 'nodes))
+         (nodes (gnosis-select '[id title] 'nodes))
          (node-title (gnosis-completing-read "Select node: " (mapcar #'cadr nodes)))
          (node-id (car (cl-find node-title nodes :key #'cadr :test #'string=)))
          (updated (gnosis-bulk-link-themata ids string node-id)))
@@ -1076,7 +1075,7 @@ When called with a prefix, unsuspend all themata of deck."
     ("q" "Back" transient-quit-one)]])
 
 (defun gnosis-dashboard-themata-show-orphaned ()
-  "Show themata with orphaned links (referencing deleted org-gnosis nodes)."
+  "Show themata with orphaned links (referencing deleted nodes)."
   (interactive nil gnosis-dashboard-themata-mode)
   (let* ((orphaned-rows (gnosis--orphaned-links))
          (thema-ids (when orphaned-rows
@@ -1121,8 +1120,8 @@ When called with a prefix, unsuspend all themata of deck."
     ("e" "Export deck" gnosis-export-deck)
     ("i" "Import deck" gnosis-import-deck)]
    ["Maintenance"
-    ("s" "Sync nodes" org-gnosis-db-sync)
-    ("S" "Rebuild nodes" (lambda () (interactive) (org-gnosis-db-sync t)))
+    ("s" "Sync nodes" gnosis-nodes-db-sync)
+    ("S" "Rebuild nodes" (lambda () (interactive) (gnosis-nodes-db-sync t)))
     ("l" "Link health" gnosis-links-check)
     ("L" "Link sync" gnosis-links-sync)
     ("c" "Rebuild cache" gnosis-dashboard-rebuild-cache)]])
@@ -1182,37 +1181,37 @@ Compares ENTRY1 and ENTRY2 by converting string values to numbers."
 
 (defun gnosis-dashboard-get-themata-links (node-id)
   "Return list of thema IDs that link to NODE-ID.
-Queries the gnosis database links table where dest = NODE-ID."
-  (gnosis-select 'source 'links `(= dest ,node-id) t))
+Queries the thema-links table where dest = NODE-ID."
+  (gnosis-select 'source 'thema-links `(= dest ,node-id) t))
 
 (defun gnosis-dashboard-get-backlink-ids (node-id)
   "Return list of node IDs that link to NODE-ID (backlinks)."
-  (org-gnosis-select 'source 'links `(= dest ,node-id) t))
+  (gnosis-select 'source 'node-links `(= dest ,node-id) t))
 
 (defun gnosis-dashboard-get-forward-link-ids (node-id)
   "Return list of node IDs that NODE-ID links to (forward links)."
-  (org-gnosis-select 'dest 'links `(= source ,node-id) t))
+  (gnosis-select 'dest 'node-links `(= source ,node-id) t))
 
 (defun gnosis-dashboard-nodes--data (&optional node-ids)
   "Get nodes data formatted for tabulated-list-mode.
 If NODE-IDS is provided, only get data for those nodes.
 Returns list of (ID [TITLE LINK-COUNT BACKLINK-COUNT THEMATA-LINKS-COUNT])."
-  (let* ((nodes-data (org-gnosis-get-nodes-data node-ids))
+  (let* ((nodes-data (gnosis-nodes-get-nodes-data node-ids))
 	 (all-ids (mapcar #'car nodes-data))
 	 ;; Bulk fetch forward links (1 query instead of N)
 	 (fwd-raw (if all-ids
-		      (org-gnosis-select '[source dest] 'links
-					 `(in source ,(vconcat all-ids)))
-		    (org-gnosis-select '[source dest] 'links)))
+		      (gnosis-select '[source dest] 'node-links
+				     `(in source ,(vconcat all-ids)))
+		    (gnosis-select '[source dest] 'node-links)))
 	 (fwd-hash (let ((h (make-hash-table :test 'equal)))
 		     (dolist (link fwd-raw h)
 		       (puthash (nth 0 link)
 				(1+ (or (gethash (nth 0 link) h) 0)) h))))
 	 ;; Bulk fetch themata links (1 query instead of N)
 	 (themata-raw (if all-ids
-			  (gnosis-select '[dest source] 'links
+			  (gnosis-select '[dest source] 'thema-links
 					 `(in dest ,(vconcat all-ids)))
-			(gnosis-select '[dest source] 'links)))
+			(gnosis-select '[dest source] 'thema-links)))
 	 (themata-hash (let ((h (make-hash-table :test 'equal)))
 			 (dolist (link themata-raw h)
 			   (puthash (nth 0 link)
@@ -1271,18 +1270,18 @@ DISPLAY-FN displays results, defaults to `gnosis-dashboard-output-nodes'."
   "Show isolated nodes (nodes with no connections at all).
 Isolated nodes have no backlinks, no forward links, and no themata links."
   (interactive)
-  (let* ((all-nodes-data (org-gnosis-get-nodes-data))
+  (let* ((all-nodes-data (gnosis-nodes-get-nodes-data))
 	 (all-ids (mapcar #'car all-nodes-data))
 	 ;; Bulk fetch forward links (1 query instead of N)
 	 (fwd-raw (when all-ids
-		    (org-gnosis-select '[source dest] 'links
-				       `(in source ,(vconcat all-ids)))))
+		    (gnosis-select '[source dest] 'node-links
+				   `(in source ,(vconcat all-ids)))))
 	 (fwd-set (let ((h (make-hash-table :test 'equal)))
 		    (dolist (link fwd-raw h)
 		      (puthash (nth 0 link) t h))))
 	 ;; Bulk fetch themata links (1 query instead of N)
 	 (themata-raw (when all-ids
-			(gnosis-select '[dest source] 'links
+			(gnosis-select '[dest source] 'thema-links
 				       `(in dest ,(vconcat all-ids)))))
 	 (themata-set (let ((h (make-hash-table :test 'equal)))
 			(dolist (link themata-raw h)
@@ -1307,7 +1306,7 @@ Searches the database for nodes whose titles contain the search term."
   (interactive "sSearch all nodes by title: ")
   (when (string-empty-p query)
     (user-error "Search query cannot be empty"))
-  (let* ((all-nodes (org-gnosis-select '[id title] 'nodes))
+  (let* ((all-nodes (gnosis-select '[id title] 'nodes))
          (matching-ids (cl-loop for node in all-nodes
                                for id = (nth 0 node)
                                for title = (nth 1 node)
@@ -1329,8 +1328,8 @@ Only searches within currently displayed nodes."
     (user-error "No nodes to filter"))
   (when (string-empty-p query)
     (user-error "Search query cannot be empty"))
-  (let* ((current-nodes (org-gnosis-select '[id title] 'nodes
-                                           `(in id ,(vconcat gnosis-dashboard-nodes-current-ids))))
+  (let* ((current-nodes (gnosis-select '[id title] 'nodes
+                                       `(in id ,(vconcat gnosis-dashboard-nodes-current-ids))))
          (matching-ids (cl-loop for node in current-nodes
                                for id = (nth 0 node)
                                for title = (nth 1 node)
@@ -1345,9 +1344,9 @@ Only searches within currently displayed nodes."
       (message "No nodes in current view match '%s'" query))))
 
 (defun gnosis-dashboard-nodes--search-files (query &optional node-ids)
-  "Search org files in `org-gnosis-dir' for QUERY, return matching node IDs.
+  "Search org files in `gnosis-nodes-dir' for QUERY, return matching node IDs.
 When NODE-IDS is non-nil, only search files whose node ID is in that list."
-  (let ((files (directory-files org-gnosis-dir t "^[0-9].*\\.org$"))
+  (let ((files (directory-files gnosis-nodes-dir t "^[0-9].*\\.org$"))
         (matching-ids '()))
     (dolist (file files)
       (when (file-regular-p file)
@@ -1363,7 +1362,7 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
     (nreverse matching-ids)))
 
 (defun gnosis-dashboard-nodes-search-by-content (query)
-  "Search ALL nodes by file content in org-gnosis-dir."
+  "Search ALL nodes by file content in `gnosis-nodes-dir'."
   (interactive "sSearch all nodes by content: ")
   (when (string-empty-p query)
     (user-error "Search query cannot be empty"))
@@ -1395,11 +1394,11 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
   "Search ALL nodes by TAG."
   (interactive
    (list (completing-read "Search nodes by tag: "
-                          (org-gnosis-select 'tag 'tags nil t)
+                          (gnosis-select 'tag 'node-tags nil t)
                           nil t)))
   (when (string-empty-p tag)
     (user-error "Tag cannot be empty"))
-  (let ((matching-ids (org-gnosis--nodes-by-tag tag)))
+  (let ((matching-ids (gnosis-nodes--nodes-by-tag tag)))
     (if matching-ids
         (progn
           (push (cons (tabulated-list-get-id) gnosis-dashboard-nodes-current-ids)
@@ -1411,13 +1410,13 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
   "Filter CURRENT nodes by TAG."
   (interactive
    (list (completing-read "Filter nodes by tag: "
-                          (org-gnosis-select 'tag 'tags nil t)
+                          (gnosis-select 'tag 'node-tags nil t)
                           nil t)))
   (unless gnosis-dashboard-nodes-current-ids
     (user-error "No nodes to filter"))
   (when (string-empty-p tag)
     (user-error "Tag cannot be empty"))
-  (let* ((nodes-with-tag (org-gnosis--nodes-by-tag tag))
+  (let* ((nodes-with-tag (gnosis-nodes--nodes-by-tag tag))
          (matching-ids (cl-intersection gnosis-dashboard-nodes-current-ids nodes-with-tag
                                         :test #'equal)))
     (if matching-ids
@@ -1433,7 +1432,7 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
   (let* ((due-thema-ids (gnosis-review-get-due-themata))
          (node-ids (when due-thema-ids
                      (cl-remove-duplicates
-                      (gnosis-select 'dest 'links
+                      (gnosis-select 'dest 'thema-links
                                      `(in source ,(vconcat due-thema-ids)) t)
                       :test #'equal))))
     (if node-ids
@@ -1464,8 +1463,8 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
   "Visit the node at point."
   (interactive)
   (let* ((node-id (tabulated-list-get-id))
-         (title (car (org-gnosis-select 'title 'nodes `(= id ,node-id) t))))
-    (org-gnosis-find title)))
+         (title (car (gnosis-select 'title 'nodes `(= id ,node-id) t))))
+    (gnosis-nodes-find title)))
 
 (defun gnosis-dashboard-nodes-refresh ()
   "Refresh the current nodes view."
@@ -1561,7 +1560,7 @@ Moves cursor to the beginning of the buffer after sorting."
   :keymap gnosis-dashboard-nodes-mode-map)
 
 (defun gnosis-dashboard-output-nodes (&optional node-ids)
-  "Display org-gnosis nodes in dashboard.
+  "Display nodes in dashboard.
 If NODE-IDS is provided, display only those nodes. Otherwise display all nodes.
 Shows title, link count, backlink count, and themata links count."
   (interactive)

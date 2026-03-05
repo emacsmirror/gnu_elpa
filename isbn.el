@@ -129,18 +129,21 @@ specified format."
   "https://isbnbarcode.org/api/isbn-ranges.json")
 
 ;; Cache the ranges so that nested operations (hyphenation ->
-;; validation) do not request the ranges needlessly.
-(defvar isbn-hyphenation-ranges nil
-  "All valid ISBN ranges the International ISBN Agency.")
+;; validation) do not request the ranges needlessly; they do not
+;; update that often.
+(defvar isbn-hyphenation-ranges-cache nil
+  "Cache of all valid ISBN ranges from the International ISBN Agency.")
 
 (defun isbn-hyphenation--ranges ()
-  "Return a hash table of all valid ISBN hyphenation ranges."
+  "Return a hash table of all valid ISBN hyphenation ranges.
+Results are cached in `isbn-hyphenation-ranges-cache'."
   (or
-   isbn-hyphenation-ranges
-   (with-current-buffer
-       (url-retrieve-synchronously
-        isbn-hyphenation-ranges-source :silent :inhibit-cookies 5)
-     (json-parse-buffer))))
+   isbn-hyphenation-ranges-cache
+   (setq isbn-hyphenation-ranges-cache
+         (with-current-buffer
+             (url-retrieve-synchronously
+              isbn-hyphenation-ranges-source :silent :inhibit-cookies 5)
+           (json-parse-buffer)))))
 
 (defun isbn-hyphenation--ranges-get (source &rest keys)
   "Recursively retrieve KEYS from SOURCE."

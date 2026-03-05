@@ -6,7 +6,7 @@
 ;; URL:      https://github.com/meedstrom/truename-cache
 ;; Created:  2026-02-16
 ;; Keywords: lisp
-;; Package-Version: 0.3.6
+;; Package-Version: 0.3.7
 ;; Package-Requires: ((emacs "27.1") (compat "30.1"))
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -599,6 +599,7 @@ Otherwise, they are quietly skipped."
                unless (cl-some (lambda (root) (string-prefix-p root dir))
                                test-roots)
                collect dir)))
+
            (all-flat-dirs
             (progn
               (dolist (dir dirs-flat)
@@ -618,6 +619,7 @@ Otherwise, they are quietly skipped."
                  when (not (and FULL-DIR-DENY-RE
                                 (string-match-p FULL-DIR-DENY-RE dir)))
                  collect (file-name-as-directory (file-truename dir))))))))
+
       (clrhash truename-cache--visited)
       (setq truename-cache--results nil)
       (with-temp-buffer  ; No buffer-env

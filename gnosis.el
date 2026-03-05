@@ -8,7 +8,7 @@
 
 ;; Version: 0.8.0
 
-;; Package-Requires: ((emacs "27.2") (emacsql "4.1.0") (compat "29.1.4.2") (transient "0.7.2") (org-gnosis "0.2.0"))
+;; Package-Requires: ((emacs "29.1") (compat "29.1.4.2") (transient "0.7.2") (org-gnosis "0.2.0"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -59,8 +59,7 @@
 (require 'subr-x)
 
 (require 'vc-git)
-(require 'emacsql-sqlite)
-(require 'emacsql-sqlite-builtin nil t)
+(require 'gnosis-sqlite)
 (require 'transient)
 (require 'animate)
 
@@ -197,7 +196,7 @@ Creates `gnosis-dir' and runs schema initialization on first use."
   (unless gnosis-db
     (unless (file-directory-p gnosis-dir)
       (make-directory gnosis-dir))
-    (setq gnosis-db (emacsql-sqlite-open (expand-file-name "gnosis.db" gnosis-dir)))
+    (setq gnosis-db (gnosis-sqlite-open (expand-file-name "gnosis.db" gnosis-dir)))
     (gnosis-db-init))
   gnosis-db)
 
@@ -301,9 +300,11 @@ for O(1) lookups instead of querying the database per thema.")
 
 Optional argument FLATTEN, when non-nil, flattens the result."
   (let* ((db (gnosis--ensure-db))
-	 (restrictions (or restrictions '(= 1 1)))
-	 (flatten (or flatten nil))
-	 (output (emacsql db `[:select ,value :from ,table :where ,restrictions])))
+	 (cols (gnosis-sqlite--compile-columns value))
+	 (where (gnosis-sqlite--compile-expr (or restrictions '(= 1 1))))
+	 (sql (format "SELECT %s FROM %s WHERE %s"
+		      cols (gnosis-sqlite--ident table) (car where)))
+	 (output (gnosis-sqlite--select-compiled db sql (cdr where))))
     (if flatten (apply #'append output) output)))
 
 (defun gnosis-table-exists-p (table)
@@ -316,11 +317,15 @@ Optional argument FLATTEN, when non-nil, flattens the result."
 (defun gnosis--create-table (table &optional values)
   "Create TABLE for VALUES."
   (unless (gnosis-table-exists-p table)
-    (emacsql (gnosis--ensure-db) `[:create-table ,table ,values])))
+    (let ((sql (format "CREATE TABLE %s (%s)"
+		       (gnosis-sqlite--ident table)
+		       (gnosis-sqlite--compile-schema values))))
+      (gnosis-sqlite-execute (gnosis--ensure-db) sql))))
 
 (defun gnosis--drop-table (table)
   "Drop TABLE from `gnosis-db'."
-  (emacsql (gnosis--ensure-db) `[:drop-table ,table]))
+  (gnosis-sqlite-execute (gnosis--ensure-db)
+			 (format "DROP TABLE %s" (gnosis-sqlite--ident table))))
 
 (defun gnosis-drop-table (table)
   "Drop TABLE from `gnosis-db'."
@@ -329,14 +334,24 @@ Optional argument FLATTEN, when non-nil, flattens the result."
 
 (defun gnosis--insert-into (table values)
   "Insert VALUES to TABLE."
-  (emacsql (gnosis--ensure-db) `[:insert :into ,table :values ,values]))
+  (let* ((compiled (gnosis-sqlite--compile-values values))
+	 (sql (format "INSERT INTO %s VALUES %s"
+		      (gnosis-sqlite--ident table) (car compiled))))
+    (gnosis-sqlite--execute-compiled (gnosis--ensure-db) sql (cdr compiled))))
 
 (defun gnosis-update (table value where)
   "Update records in TABLE with to new VALUE based on the given WHERE condition.
 
 Example:
  (gnosis-update ='themata ='(= keimenon \"NEW VALUE\") ='(= id 12))"
-  (emacsql (gnosis--ensure-db) `[:update ,table :set ,value :where ,where]))
+  (let* ((set-clause (gnosis-sqlite--compile-expr value))
+	 (where-clause (gnosis-sqlite--compile-expr where))
+	 (sql (format "UPDATE %s SET %s WHERE %s"
+		      (gnosis-sqlite--ident table)
+		      (car set-clause)
+		      (car where-clause))))
+    (gnosis-sqlite--execute-compiled (gnosis--ensure-db) sql
+			   (append (cdr set-clause) (cdr where-clause)))))
 
 (defun gnosis-get (value table &optional restrictions)
   "Return caar of VALUE from TABLE, optionally with where RESTRICTIONS."
@@ -345,15 +360,21 @@ Example:
 (defun gnosis--delete (table &optional where)
   "Delete from TABLE, optionally restricted by WHERE clause."
   (if where
-      (emacsql (gnosis--ensure-db) `[:delete :from ,table :where ,where])
-    (emacsql (gnosis--ensure-db) `[:delete :from ,table])))
+      (let ((compiled (gnosis-sqlite--compile-expr where)))
+	(gnosis-sqlite--execute-compiled (gnosis--ensure-db)
+			       (format "DELETE FROM %s WHERE %s"
+				       (gnosis-sqlite--ident table)
+				       (car compiled))
+			       (cdr compiled)))
+    (gnosis-sqlite--execute-compiled (gnosis--ensure-db)
+			   (format "DELETE FROM %s" (gnosis-sqlite--ident table)))))
 
 (defun gnosis-delete-thema (id &optional verification)
   "Delete thema with ID.
 
 When VERIFICATION is non-nil, skip `y-or-n-p' prompt."
   (when (or verification (y-or-n-p "Delete thema?"))
-    (emacsql-with-transaction (gnosis--ensure-db) (gnosis--delete 'themata `(= id ,id)))))
+    (gnosis-sqlite-with-transaction (gnosis--ensure-db) (gnosis--delete 'themata `(= id ,id)))))
 
 (defun gnosis-delete-deck (&optional id)
   "Delete deck with ID."
@@ -361,7 +382,7 @@ When VERIFICATION is non-nil, skip `y-or-n-p' prompt."
   (let* ((id (or id (gnosis--get-deck-id)))
 	 (deck-name (gnosis--get-deck-name id)))
     (when (y-or-n-p (format "Delete deck `%s'? " deck-name))
-      (emacsql-with-transaction (gnosis--ensure-db) (gnosis--delete 'decks `(= id ,id)))
+      (gnosis-sqlite-with-transaction (gnosis--ensure-db) (gnosis--delete 'decks `(= id ,id)))
       (message "Deleted deck `%s'" deck-name))))
 
 (defun gnosis-calculate-average-daily-reviews (&optional days)
@@ -614,11 +635,10 @@ When VERIFICATION is non-nil, skips `y-or-n-p' prompt."
                     (t (y-or-n-p
                         (format "Toggle suspend value for %s items? " items-num)))))))
     (when verification
-      (emacsql (gnosis--ensure-db)
-               [:update review-log
-                :set (= suspend (- 1 suspend))
-                :where (in id $v1)]
-               (vconcat ids)))))
+      (let* ((placeholders (mapconcat (lambda (_) "?") ids ", "))
+	     (sql (format "UPDATE review_log SET suspend = 1 - suspend WHERE id IN (%s)"
+			  placeholders)))
+	(gnosis-sqlite-execute (gnosis--ensure-db) sql ids)))))
 
 (cl-defun gnosis-suspend-deck (&optional (deck (gnosis--get-deck-id)))
   "Suspend all thema(s) with DECK id.
@@ -631,8 +651,10 @@ When called with a prefix, unsuspends all themata in deck."
 	   (if (= suspend 0)
 	       "Unsuspend all themata for deck? " "Suspend all themata for deck? "))))
     (when confirm
-      (emacsql (gnosis--ensure-db) `[:update review-log :set (= suspend ,suspend) :where
-				   (in id ,(vconcat themata))])
+      (let* ((placeholders (mapconcat (lambda (_) "?") themata ", "))
+	     (sql (format "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
+			  placeholders)))
+	(gnosis-sqlite-execute (gnosis--ensure-db) sql (cons suspend themata)))
       (if (equal suspend 0)
 	  (message "Unsuspended %s themata" (length themata))
 	(message "Suspended %s themata" (length themata))))))
@@ -757,7 +779,8 @@ previous state on exit."
 (defun gnosis-get-tags--unique ()
   "Return a list of unique strings for tags in `gnosis-db'."
   (cl-loop for tags in (apply 'append
-			      (emacsql (gnosis--ensure-db) [:select :distinct tags :from themata]))
+			      (gnosis-sqlite-select (gnosis--ensure-db)
+						    "SELECT DISTINCT tags FROM themata"))
            nconc tags into all-tags
            finally return (delete-dups all-tags)))
 
@@ -823,7 +846,7 @@ DATE is a list of the form (year month day)."
 
 (defun gnosis-tags--update (tags)
   "Update db for TAGS."
-  (emacsql-with-transaction (gnosis--ensure-db)
+  (gnosis-sqlite-with-transaction (gnosis--ensure-db)
     (cl-loop for tag in tags
 	     do (gnosis--insert-into 'tags `[,tag]))))
 
@@ -858,7 +881,7 @@ If you only require a tag prompt, refer to `gnosis-tags--prompt'."
 (defun gnosis-tags-refresh ()
   "Refresh tags table from current themata tags."
   (let ((tags (gnosis-get-tags--unique)))
-    (emacsql-with-transaction (gnosis--ensure-db)
+    (gnosis-sqlite-with-transaction (gnosis--ensure-db)
       (gnosis--delete 'tags)
       (cl-loop for tag in tags
 	       do (gnosis--insert-into 'tags `[,tag])))))
@@ -962,7 +985,7 @@ LINKS: List of id links."
   (cl-assert (listp links) nil "Links must be a list")
   (let* ((gnosis-id (or gnosis-id (gnosis-generate-id)))
 	 (review-image (or review-image "")))
-    (emacsql-with-transaction (gnosis--ensure-db)
+    (gnosis-sqlite-with-transaction (gnosis--ensure-db)
       ;; Refer to `gnosis-db-schema-SCHEMA' e.g `gnosis-db-schema-review-log'
       (gnosis--insert-into 'themata `([,gnosis-id ,(downcase type) ,keimenon ,hypothesis
 					      ,answer ,tags ,deck-id]))
@@ -988,12 +1011,12 @@ When `gnosis--id-cache' is bound, uses hash table for existence check."
     (if (if gnosis--id-cache
 	    (gethash id gnosis--id-cache)
 	  (member id (gnosis-select 'id 'themata nil t)))
-	(emacsql-with-transaction (gnosis--ensure-db)
+	(gnosis-sqlite-with-transaction (gnosis--ensure-db)
 	  ;; Single multi-column UPDATE for themata
-	  (emacsql (gnosis--ensure-db)
-	    "UPDATE themata SET keimenon = $s1, hypothesis = $s2, answer = $s3, tags = $s4, type = $s5, deck_id = $s6 WHERE id = $s7"
-	    keimenon hypothesis answer tags
-	    (or type current-type) (or deck-id current-deck) id)
+	  (gnosis-sqlite-execute (gnosis--ensure-db)
+	    "UPDATE themata SET keimenon = ?, hypothesis = ?, answer = ?, tags = ?, type = ?, deck_id = ? WHERE id = ?"
+	    (list keimenon hypothesis answer tags
+		  (or type current-type) (or deck-id current-deck) id))
 	  ;; Single UPDATE for extras
 	  (gnosis-update 'extras `(= parathema ,parathema) `(= id ,id))
 	  ;; Re-sync links
@@ -1478,44 +1501,47 @@ Return thema ids for themata that match QUERY."
 
 (defun gnosis--db-version ()
   "Return the current user_version pragma from the database."
-  (caar (emacsql (gnosis--ensure-db) [:pragma user-version])))
+  (caar (gnosis-sqlite-select (gnosis--ensure-db) "PRAGMA user_version")))
 
 (defun gnosis--db-set-version (version)
   "Set the database user_version pragma to VERSION."
-  (emacsql (gnosis--ensure-db) `[:pragma (= user-version ,version)]))
+  (gnosis-sqlite-execute (gnosis--ensure-db)
+			 (format "PRAGMA user_version = %d" version)))
 
 (defun gnosis--db-create-tables ()
   "Create all tables and set version to current.
 Used for fresh databases only."
-  (emacsql-with-transaction (gnosis--ensure-db)
+  (gnosis-sqlite-with-transaction (gnosis--ensure-db)
     (pcase-dolist (`(,table ,schema) gnosis-db--schemata)
-      (emacsql (gnosis--ensure-db) [:create-table $i1 $S2] table schema))
+      (gnosis-sqlite-execute (gnosis--ensure-db)
+			     (format "CREATE TABLE %s (%s)"
+				     (gnosis-sqlite--ident table)
+				     (gnosis-sqlite--compile-schema schema))))
     (gnosis--db-set-version gnosis-db-version)))
 
 (defun gnosis--db-has-tables-p ()
   "Return non-nil if the database has user tables."
-  (let ((tables (emacsql (gnosis--ensure-db)
-			 [:select name :from sqlite-master
-			  :where (= type table)])))
+  (let ((tables (gnosis-sqlite-select (gnosis--ensure-db)
+				      "SELECT name FROM sqlite_master WHERE type = 'table'")))
     (length> tables 0)))
 
 ;;; Migration helpers
 
 (defun gnosis--migrate-make-list (column)
   "Make COLUMN values into a list."
-  (let ((results (emacsql (gnosis--ensure-db)
-			  `[:select [id ,column] :from themata])))
+  (let ((col-name (gnosis-sqlite--ident column))
+	(results (gnosis-select `[id ,column] 'themata)))
     (dolist (row results)
       (let ((id (car row))
             (old-value (cadr row)))
 	(unless (listp old-value)
-	  (emacsql (gnosis--ensure-db)
-		   `[:update themata :set (= ,column $s1) :where (= id $s2)]
-		   (list old-value) id))))))
+	  (gnosis-sqlite-execute (gnosis--ensure-db)
+				 (format "UPDATE themata SET %s = ? WHERE id = ?" col-name)
+				 (list (list old-value) id)))))))
 
 (defun gnosis-db--migrate-v1 ()
   "Migration v1: rename notes table to themata."
-  (emacsql (gnosis--ensure-db) [:alter-table notes :rename-to themata])
+  (gnosis-sqlite-execute (gnosis--ensure-db) "ALTER TABLE notes RENAME TO themata")
   (gnosis--db-set-version 1))
 
 (defun gnosis-db--migrate-v2 ()
@@ -1526,15 +1552,17 @@ Used for fresh databases only."
     (pcase-dolist (`(,table ,schema) (seq-filter (lambda (schema)
 						   (member (car schema) '(links tags)))
 						 gnosis-db--schemata))
-      (emacsql db [:create-table :if-not-exists $i1 $S2] table schema))
+      (gnosis-sqlite-execute db (format "CREATE TABLE IF NOT EXISTS %s (%s)"
+					(gnosis-sqlite--ident table)
+					(gnosis-sqlite--compile-schema schema))))
     (cl-loop for tag in tags
 	     do (gnosis--insert-into 'tags `[,tag]))
     ;; Column renames
-    (emacsql db [:alter-table themata :rename-column main :to keimenon])
-    (emacsql db [:alter-table themata :rename-column options :to hypothesis])
-    (emacsql db [:alter-table extras :rename-column extra-themata :to parathema])
-    (emacsql db [:alter-table extras :rename-column images :to review-image])
-    (emacsql db [:alter-table extras :drop-column extra-image])
+    (gnosis-sqlite-execute db "ALTER TABLE themata RENAME COLUMN main TO keimenon")
+    (gnosis-sqlite-execute db "ALTER TABLE themata RENAME COLUMN options TO hypothesis")
+    (gnosis-sqlite-execute db "ALTER TABLE extras RENAME COLUMN extra_themata TO parathema")
+    (gnosis-sqlite-execute db "ALTER TABLE extras RENAME COLUMN images TO review_image")
+    (gnosis-sqlite-execute db "ALTER TABLE extras DROP COLUMN extra_image")
     ;; Make sure all hypothesis & answer values are lists
     (gnosis--migrate-make-list 'hypothesis)
     (gnosis--migrate-make-list 'answer)
@@ -1636,10 +1664,10 @@ Reopens the gnosis database after successful pull."
          (when (zerop (process-exit-status proc))
 	   (condition-case err
 	       (progn
-		 (when (and gnosis-db (emacsql-live-p gnosis-db))
-		   (emacsql-close gnosis-db))
+		 (when (and gnosis-db (gnosis-sqlite-live-p gnosis-db))
+		   (gnosis-sqlite-close gnosis-db))
 		 (setf gnosis-db
-                       (emacsql-sqlite-open (expand-file-name "gnosis.db" gnosis-dir)))
+                       (gnosis-sqlite-open (expand-file-name "gnosis.db" gnosis-dir)))
 		 (gnosis-db-init)
 		 (message "Gnosis: Pull successful, database reopened"))
 	     (error (message "Gnosis: Failed to reopen database: %s"
@@ -1703,7 +1731,7 @@ Reopens the gnosis database after successful pull."
 
 (defun gnosis--update-themata-keimenon (updates)
   "Apply UPDATES list of (ID . NEW-KEIMENON) to database."
-  (emacsql-with-transaction (gnosis--ensure-db)
+  (gnosis-sqlite-with-transaction (gnosis--ensure-db)
     (dolist (update updates)
       (gnosis-update 'themata `(= keimenon ,(cdr update)) `(= id ,(car update))))))
 
@@ -1831,23 +1859,24 @@ Fetches all themata, extras, and links in bulk queries."
 (defun gnosis--delete-orphaned-links (orphaned-dests)
   "Delete links whose dest is in ORPHANED-DESTS."
   (when orphaned-dests
-    (emacsql-with-transaction (gnosis--ensure-db)
-      (emacsql (gnosis--ensure-db) `[:delete :from links
-                           :where (in dest ,(vconcat orphaned-dests))]))))
+    (gnosis-sqlite-with-transaction (gnosis--ensure-db)
+      (let* ((placeholders (mapconcat (lambda (_) "?") orphaned-dests ", "))
+	     (sql (format "DELETE FROM links WHERE dest IN (%s)" placeholders)))
+	(gnosis-sqlite-execute (gnosis--ensure-db) sql orphaned-dests)))))
 
 (defun gnosis--delete-stale-links (stale-links)
   "Delete STALE-LINKS list of (source dest) from links table."
   (when stale-links
-    (emacsql-with-transaction (gnosis--ensure-db)
+    (gnosis-sqlite-with-transaction (gnosis--ensure-db)
       (dolist (link stale-links)
-        (emacsql (gnosis--ensure-db) `[:delete :from links
-                             :where (and (= source ,(car link))
-                                         (= dest ,(cadr link)))])))))
+	(gnosis-sqlite-execute (gnosis--ensure-db)
+			       "DELETE FROM links WHERE source = ? AND dest = ?"
+			       (list (car link) (cadr link)))))))
 
 (defun gnosis--insert-missing-links (missing-links)
   "Insert MISSING-LINKS list of (source dest) into links table."
   (when missing-links
-    (emacsql-with-transaction (gnosis--ensure-db)
+    (gnosis-sqlite-with-transaction (gnosis--ensure-db)
       (dolist (link missing-links)
         (gnosis--insert-into 'links `([,(car link) ,(cadr link)]))))))
 

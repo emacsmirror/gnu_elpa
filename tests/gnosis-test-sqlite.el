@@ -273,9 +273,9 @@ Value is pre-encoded (prin1-to-string) in the compiler."
     (should (string-match-p "FOREIGN KEY (id) REFERENCES themata (id) ON DELETE CASCADE"
                             result))))
 
-(ert-deftest gnosis-test-sqlite-schema-links ()
-  "Compile links schema."
-  (let* ((schema (cadr (assq 'links gnosis-db--schemata)))
+(ert-deftest gnosis-test-sqlite-schema-thema-links ()
+  "Compile thema-links schema."
+  (let* ((schema (cadr (assq 'thema-links gnosis-db--schemata)))
          (result (gnosis-sqlite--compile-schema schema)))
     (should (string-match-p "source INTEGER" result))
     (should (string-match-p "dest TEXT" result))

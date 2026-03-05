@@ -95,7 +95,7 @@ SUSPEND: 1 to suspend, 0 or nil for active."
 
 (defun gnosis-test--add-link (thema-id node-id)
   "Insert a link from THEMA-ID to NODE-ID string."
-  (gnosis--insert-into 'links `([,thema-id ,node-id])))
+  (gnosis--insert-into 'thema-links `([,thema-id ,node-id])))
 
 (defun gnosis-test--setup-tags ()
   "Populate tags table from existing themata in test DB."
@@ -103,7 +103,7 @@ SUSPEND: 1 to suspend, 0 or nil for active."
     (gnosis-sqlite-with-transaction gnosis-db
       (cl-loop for tag in tags
                do (condition-case nil
-                      (gnosis--insert-into 'tags `[,tag])
+                      (gnosis--insert-into 'thema-tags `[,tag])
                     (error nil))))))
 
 ;; ──────────────────────────────────────────────────────────
@@ -460,19 +460,19 @@ SUSPEND: 1 to suspend, 0 or nil for active."
 (defmacro gnosis-test-with-org-files (file-specs &rest body)
   "Create temporary org files per FILE-SPECS then run BODY.
 FILE-SPECS is a list of (ID CONTENT) pairs.
-Binds `org-gnosis-dir' to the temp directory."
+Binds `gnosis-nodes-dir' to the temp directory."
   (declare (indent 1) (debug t))
-  `(let ((org-gnosis-dir (make-temp-file "gnosis-test-org-" t)))
+  `(let ((gnosis-nodes-dir (make-temp-file "gnosis-test-org-" t)))
      (unwind-protect
          (progn
            (dolist (spec ,file-specs)
              (let ((id (nth 0 spec))
                    (content (nth 1 spec)))
                (with-temp-file (expand-file-name
-                                (format "20250101-%s.org" id) org-gnosis-dir)
+                                (format "20250101-%s.org" id) gnosis-nodes-dir)
                  (insert (format ":PROPERTIES:\n:ID: %s\n:END:\n%s" id content)))))
            ,@body)
-       (delete-directory org-gnosis-dir t))))
+       (delete-directory gnosis-nodes-dir t))))
 
 (ert-deftest gnosis-test-dashboard-search-files-all ()
   "Search all files returns matching node IDs."

@@ -218,10 +218,10 @@ Only ISBN-13 is supported."
           (push (substring (int-to-string rem) 0 length) hyphenated))
       (error (error "Could not determine publisher code")))
 
-    ;; Title identifier
+    ;; 4. Title identifier
     (push (substring isbn (length (string-join hyphenated)) -1) hyphenated)
 
-    ;; Check digit
+    ;; 5. Check digit
     (push (substring isbn -1) hyphenated)
 
     (string-join (reverse hyphenated) "-")))

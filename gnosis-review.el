@@ -319,14 +319,14 @@ SUCCESS is a boolean value, t for success, nil for failure."
 	 (t-fails (nth 4 log)))
     (gnosis-review-increment-activity-log (not (> n 0)))
     ;; Single review-log UPDATE
-    (emacsql (gnosis--ensure-db)
-	     "UPDATE review_log SET last_rev = $s1, next_rev = $s2, n = $s3, c_success = $s4, c_fails = $s5, t_success = $s6, t_fails = $s7 WHERE id = $s8"
-	     (gnosis-algorithm-date) next-rev (1+ n)
-	     (if success (1+ c-success) 0)
-	     (if success 0 (1+ c-fails))
-	     (if success (1+ t-success) t-success)
-	     (if success t-fails (1+ t-fails))
-	     id)
+    (gnosis-sqlite-execute (gnosis--ensure-db)
+	     "UPDATE review_log SET last_rev = ?, next_rev = ?, n = ?, c_success = ?, c_fails = ?, t_success = ?, t_fails = ? WHERE id = ?"
+	     (list (gnosis-algorithm-date) next-rev (1+ n)
+		   (if success (1+ c-success) 0)
+		   (if success 0 (1+ c-fails))
+		   (if success (1+ t-success) t-success)
+		   (if success t-fails (1+ t-fails))
+		   id))
     ;; Single review UPDATE
     (gnosis-update 'review `(= gnosis ',gnosis-score) `(= id ,id))))
 
@@ -474,7 +474,7 @@ If NEW? is non-nil, increment new themata log by 1."
   "Delete all activity log entries."
   (interactive)
   (when (y-or-n-p "Delete all activity log?")
-    (emacsql (gnosis--ensure-db) [:delete :from activity-log])))
+    (gnosis-sqlite-execute (gnosis--ensure-db) "DELETE FROM activity_log")))
 
 ;;; Session management
 

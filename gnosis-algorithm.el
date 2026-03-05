@@ -31,6 +31,7 @@
 
 (require 'cl-lib)
 (require 'calendar)
+(require 'time-date)
 
 (defcustom gnosis-algorithm-proto '(0 1 2)
   "Gnosis proto interval for the first successful reviews.
@@ -127,14 +128,13 @@ intervals less than 2."
   "Return the current date in a list (year month day).
 Optional integer OFFSET is a number of days from the current date."
   (cl-assert (or (integerp offset) (null offset)) nil "Date offset must be an integer or nil")
-  (let* ((base-time (current-time))
-         (target-time (if offset
-                          (time-add base-time (days-to-time offset))
-                        base-time))
-         (decoded-time (decode-time target-time)))
-    (list (decoded-time-year decoded-time)
-          (decoded-time-month decoded-time)
-          (decoded-time-day decoded-time))))
+  (let* ((decoded-time (decode-time))
+         (target (if (and offset (not (zerop offset)))
+                     (decoded-time-add decoded-time (make-decoded-time :day offset))
+                   decoded-time)))
+    (list (decoded-time-year target)
+          (decoded-time-month target)
+          (decoded-time-day target))))
 
 (defun gnosis-algorithm-date-diff (date &optional date2)
   "Find the difference between DATE2 and DATE.

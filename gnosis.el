@@ -8,7 +8,7 @@
 
 ;; Version: 0.8.0
 
-;; Package-Requires: ((emacs "29.1") (compat "29.1.4.2") (transient "0.7.2") (org-gnosis "0.2.0"))
+;; Package-Requires: ((emacs "29.1") (compat "29.1.4.2") (transient "0.7.2"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -27,26 +27,23 @@
 
 ;; Gnosis is a personal knowledge management and review system that
 ;; integrates a note-taking system with spaced repetition and
-;; self-testing.  It works together with org-gnosis, which provides a
-;; Zettelkasten-style note-taking system where notes (nodes) are org
-;; files indexed in an SQLite database.
+;; self-testing.  It provides Zettelkasten-style linked notes (nodes)
+;; alongside spaced repetition themata, all in a single SQLite database.
 ;;
 ;; The intended workflow is:
 ;;
-;; 1. Write notes on a topic using `org-gnosis-find'.
+;; 1. Write notes on a topic using `gnosis-nodes-find'.
 ;; 2. Create themata (flashcard-like questions) related to the topic
 ;;    using `gnosis-add-thema'.
-;; 3. Link themata to note topics by inserting org-gnosis links in
+;; 3. Link themata to note topics by inserting node links in
 ;;    the keimenon (question text) or parathema (extra context) using
-;;    `org-gnosis-insert'.
+;;    `gnosis-nodes-insert'.
 ;; 4. Review themata with spaced repetition via `gnosis-review', or
 ;;    review all themata linked to a specific topic via
 ;;    `gnosis-review-topic'.
 ;;
-;; Gnosis and org-gnosis maintain separate SQLite databases.  The
-;; gnosis database stores themata, decks, review history, and links
-;; from themata to org-gnosis nodes.  The org-gnosis database stores
-;; nodes, tags, and links between nodes.
+;; Everything lives in one database: themata, decks, review history,
+;; nodes, node links, and thema-to-node links.
 ;;
 ;; The spaced repetition algorithm is highly adjustable, allowing
 ;; users to set specific values not just for thema decks but for tags
@@ -69,7 +66,9 @@
 (require 'gnosis-algorithm)
 (require 'gnosis-monkeytype)
 (require 'gnosis-utils)
-(require 'org-gnosis)
+(require 'gnosis-org)
+(require 'gnosis-nodes)
+(require 'gnosis-journal)
 
 
 (defgroup gnosis nil
@@ -208,7 +207,7 @@ Creates `gnosis-dir' and runs schema initialization on first use."
   "Change this to non-nil when running manual tests.")
 
 
-(defconst gnosis-db-version 4
+(defconst gnosis-db-version 5
   "Gnosis database version.")
 
 (defvar gnosis-thema-types
@@ -848,7 +847,7 @@ DATE is a list of the form (year month day)."
   "Update db for TAGS."
   (gnosis-sqlite-with-transaction (gnosis--ensure-db)
     (cl-loop for tag in tags
-	     do (gnosis--insert-into 'tags `[,tag]))))
+	     do (gnosis--insert-into 'thema-tags `[,tag]))))
 
 (cl-defun gnosis-tags--prompt (&key (prompt "Tags (seperated by ,): ")
 				    (predicate nil)
@@ -882,9 +881,9 @@ If you only require a tag prompt, refer to `gnosis-tags--prompt'."
   "Refresh tags table from current themata tags."
   (let ((tags (gnosis-get-tags--unique)))
     (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-      (gnosis--delete 'tags)
+      (gnosis--delete 'thema-tags)
       (cl-loop for tag in tags
-	       do (gnosis--insert-into 'tags `[,tag])))))
+	       do (gnosis--insert-into 'thema-tags `[,tag])))))
 
 (defun gnosis-tag-rename (tag &optional new-tag)
   "Rename TAG to NEW-TAG.
@@ -996,7 +995,7 @@ LINKS: List of id links."
 						   ,suspend 0]))
       (gnosis--insert-into 'extras `([,gnosis-id ,parathema ,review-image]))
       (cl-loop for link in links
-	       do (gnosis--insert-into 'links `([,gnosis-id ,link]))))))
+	       do (gnosis--insert-into 'thema-links `([,gnosis-id ,link]))))))
 
 (defun gnosis-update-thema (id keimenon hypothesis answer parathema tags links
 			      &optional deck-id type)
@@ -1020,9 +1019,9 @@ When `gnosis--id-cache' is bound, uses hash table for existence check."
 	  ;; Single UPDATE for extras
 	  (gnosis-update 'extras `(= parathema ,parathema) `(= id ,id))
 	  ;; Re-sync links
-	  (gnosis--delete 'links `(= source ,id))
+	  (gnosis--delete 'thema-links `(= source ,id))
 	  (cl-loop for link in links
-		   do (gnosis--insert-into 'links `([,id ,link]))))
+		   do (gnosis--insert-into 'thema-links `([,id ,link]))))
       (message "Gnosis with id: %d does not exist, creating anew." id)
       (gnosis-add-thema-fields deck-id type keimenon hypothesis answer parathema tags
 			      0 links nil id))))
@@ -1183,7 +1182,7 @@ Otherwise, update via `gnosis-update-thema'."
   :doc "gnosis org mode map"
   "C-c C-c" #'gnosis-save
   "C-c C-q" #'gnosis-tags-prompt
-  "C-c C-o" #'org-gnosis-goto-id
+  "C-c C-o" #'gnosis-nodes-goto-id
   "C-c C-k" #'gnosis-edit-quit)
 
 (define-derived-mode gnosis-edit-mode org-mode "Gnosis Org"
@@ -1489,13 +1488,45 @@ Return thema ids for themata that match QUERY."
        (review-image string)]
       (:foreign-key [id] :references themata [id]
 		    :on-delete :cascade)))
-    (tags
+    (thema-tags
      ([(tag text :primary-key)]
       (:unique [tag])))
-    (links
+    (thema-links
      ([(source integer)
        (dest text)]
       (:foreign-key [source] :references themata [id]
+		    :on-delete :cascade)
+      (:unique [source dest])))
+    ;; Node tables (merged from org-gnosis)
+    (nodes
+     ([(id text :not-null :primary-key)
+       (file text :not-null)
+       (title text :not-null)
+       (level text :not-null)
+       (tags text)
+       (mtime text)
+       (hash text)]))
+    (journal
+     ([(id text :not-null :primary-key)
+       (file text :not-null)
+       (title text :not-null)
+       (level text :not-null)
+       (tags text)
+       (mtime text)
+       (hash text)]))
+    (node-tags
+     ([(tag text :primary-key)]
+      (:unique [tag])))
+    (node-tag
+     ([(node-id text :not-null)
+       (tag text :not-null)]
+      (:foreign-key [node-id] :references nodes [id]
+		    :on-delete :cascade)
+      (:unique [node-id tag])))
+    (node-links
+     ([(source text)
+       (dest text)]
+      (:foreign-key [source] :references nodes [id]
 		    :on-delete :cascade)
       (:unique [source dest])))))
 
@@ -1548,15 +1579,13 @@ Used for fresh databases only."
   "Migration v2: column renames, tags/links tables, data conversions."
   (let ((db (gnosis--ensure-db))
 	(tags (gnosis-get-tags--unique)))
-    ;; Create tags and links tables
-    (pcase-dolist (`(,table ,schema) (seq-filter (lambda (schema)
-						   (member (car schema) '(links tags)))
-						 gnosis-db--schemata))
-      (gnosis-sqlite-execute db (format "CREATE TABLE IF NOT EXISTS %s (%s)"
-					(gnosis-sqlite--ident table)
-					(gnosis-sqlite--compile-schema schema))))
+    ;; Create tags and links tables with OLD names (v5 will rename them)
+    (gnosis-sqlite-execute db
+      "CREATE TABLE IF NOT EXISTS tags (tag text PRIMARY KEY, UNIQUE (tag))")
+    (gnosis-sqlite-execute db
+      "CREATE TABLE IF NOT EXISTS links (source integer, dest text, FOREIGN KEY (source) REFERENCES themata (id) ON DELETE CASCADE, UNIQUE (source, dest))")
     (cl-loop for tag in tags
-	     do (gnosis--insert-into 'tags `[,tag]))
+	     do (gnosis-sqlite-execute db "INSERT OR IGNORE INTO tags VALUES (?)" (list tag)))
     ;; Column renames
     (gnosis-sqlite-execute db "ALTER TABLE themata RENAME COLUMN main TO keimenon")
     (gnosis-sqlite-execute db "ALTER TABLE themata RENAME COLUMN options TO hypothesis")
@@ -1591,14 +1620,65 @@ Used for fresh databases only."
 		      (gnosis-update 'themata '(= answer '("No"))
 				     `(= id ,thema))))))
     ;; Replace - with _, org does not support tags with dash.
+    ;; Use direct SQL since table is still named 'tags' at this point.
     (cl-loop for tag in (gnosis-get-tags--unique)
 	     if (string-match-p "-" tag)
-	     do (gnosis-tag-rename tag (replace-regexp-in-string "-" "_" tag))))
+	     do (let ((new-tag (replace-regexp-in-string "-" "_" tag)))
+		  (cl-loop for thema in (gnosis-select 'id 'themata
+						       `(like tags ',(format "%%\"%s\"%%" tag)) t)
+			   do (let* ((tags-val (car (gnosis-select '[tags] 'themata `(= id ,thema) t)))
+				     (new-tags (cl-substitute new-tag tag tags-val :test #'string-equal)))
+				(gnosis-update 'themata `(= tags ',new-tags) `(= id ,thema))))
+		  ;; Refresh tags table (still named 'tags' at v2)
+		  (gnosis-sqlite-execute db "DELETE FROM tags")
+		  (cl-loop for tag-item in (gnosis-get-tags--unique)
+			   do (gnosis-sqlite-execute db "INSERT OR IGNORE INTO tags VALUES (?)"
+						     (list tag-item))))))
   (gnosis--db-set-version 2))
+
+(defun gnosis-db--migrate-v5 ()
+  "Migration v5: merge org-gnosis tables, rename links/tags."
+  (let ((db (gnosis--ensure-db)))
+    ;; 1. Rename existing tables
+    (gnosis-sqlite-execute db "ALTER TABLE links RENAME TO thema_links")
+    (gnosis-sqlite-execute db "ALTER TABLE tags RENAME TO thema_tags")
+    ;; 2. Create node tables
+    (dolist (table '(nodes journal node-tags node-tag node-links))
+      (let ((schema (cadr (assq table gnosis-db--schemata))))
+        (gnosis-sqlite-execute db
+          (format "CREATE TABLE IF NOT EXISTS %s (%s)"
+                  (gnosis-sqlite--ident table)
+                  (gnosis-sqlite--compile-schema schema)))))
+    ;; 3. Create indexes
+    (gnosis-sqlite-execute db
+      "CREATE INDEX IF NOT EXISTS idx_nodes_file ON nodes (file)")
+    (gnosis-sqlite-execute db
+      "CREATE INDEX IF NOT EXISTS idx_journal_file ON journal (file)")
+    ;; 4. Import from org-gnosis.db if it exists
+    (let ((org-db-file (locate-user-emacs-file "org-gnosis.db")))
+      (when (file-exists-p org-db-file)
+        (gnosis-sqlite-execute db
+          (format "ATTACH DATABASE '%s' AS org_gnosis"
+                  (expand-file-name org-db-file)))
+        (ignore-errors
+          (gnosis-sqlite-execute db
+            "INSERT OR IGNORE INTO nodes SELECT * FROM org_gnosis.nodes")
+          (gnosis-sqlite-execute db
+            "INSERT OR IGNORE INTO journal SELECT * FROM org_gnosis.journal")
+          (gnosis-sqlite-execute db
+            "INSERT OR IGNORE INTO node_tags SELECT * FROM org_gnosis.tags")
+          (gnosis-sqlite-execute db
+            "INSERT OR IGNORE INTO node_tag SELECT * FROM org_gnosis.node_tag")
+          (gnosis-sqlite-execute db
+            "INSERT OR IGNORE INTO node_links SELECT * FROM org_gnosis.links"))
+        (gnosis-sqlite-execute db "DETACH DATABASE org_gnosis")
+        (message "Imported org-gnosis data into unified database"))))
+  (gnosis--db-set-version 5))
 
 (defconst gnosis-db--migrations
   `((1 . gnosis-db--migrate-v1)
-    (2 . gnosis-db--migrate-v2))
+    (2 . gnosis-db--migrate-v2)
+    (5 . gnosis-db--migrate-v5))
   "Alist of (VERSION . FUNCTION).
 Each migration brings the DB from VERSION-1 to VERSION.")
 
@@ -1771,7 +1851,7 @@ Return list of updated thema IDs."
   "Replace all instances of STRING in themata keimenon with org-link to NODE-ID."
   (interactive
    (let* ((string (read-string "String to replace: "))
-          (nodes (org-gnosis-select '[id title] 'nodes))
+          (nodes (gnosis-select '[id title] 'nodes))
           (node-title (gnosis-completing-read "Select node: " (mapcar #'cadr nodes)))
           (node-id (car (cl-find node-title nodes :key #'cadr :test #'string=))))
      (list string node-id)))
@@ -1780,20 +1860,20 @@ Return list of updated thema IDs."
 ;;; Link integrity
 
 (defun gnosis--all-link-dests ()
-  "Return all unique dest UUIDs from gnosis links table."
-  (cl-remove-duplicates (gnosis-select 'dest 'links nil t) :test #'equal))
+  "Return all unique dest UUIDs from gnosis thema-links table."
+  (cl-remove-duplicates (gnosis-select 'dest 'thema-links nil t) :test #'equal))
 
 (defun gnosis--orphaned-link-dests ()
-  "Return dest UUIDs in gnosis links that have no matching org-gnosis node."
+  "Return dest UUIDs in thema-links that have no matching node."
   (let ((link-dests (gnosis--all-link-dests))
-        (node-ids (org-gnosis-select 'id 'nodes nil t)))
+        (node-ids (gnosis-select 'id 'nodes nil t)))
     (cl-set-difference link-dests node-ids :test #'equal)))
 
 (defun gnosis--orphaned-links ()
-  "Return (source dest) rows where dest has no matching org-gnosis node."
+  "Return (source dest) rows where dest has no matching node."
   (let ((orphaned-dests (gnosis--orphaned-link-dests)))
     (when orphaned-dests
-      (gnosis-select '[source dest] 'links
+      (gnosis-select '[source dest] 'thema-links
                      `(in dest ,(vconcat orphaned-dests))))))
 
 (defun gnosis--thema-expected-links (keimenon parathema)
@@ -1805,10 +1885,10 @@ Return list of updated thema IDs."
 
 (defun gnosis--stale-links ()
   "Return (source dest) pairs in DB but not in thema text.
-Fetches all themata, extras, and links in bulk queries."
+Fetches all themata, extras, and thema-links in bulk queries."
   (let* ((themata (gnosis-select '[id keimenon] 'themata nil))
          (extras (gnosis-select '[id parathema] 'extras nil))
-         (all-links (gnosis-select '[source dest] 'links nil))
+         (all-links (gnosis-select '[source dest] 'thema-links nil))
          (extras-map (make-hash-table :test 'equal)))
     ;; Build extras lookup
     (dolist (extra extras)
@@ -1824,10 +1904,10 @@ Fetches all themata, extras, and links in bulk queries."
 
 (defun gnosis--missing-links ()
   "Return (source dest) pairs in thema text but not in DB.
-Fetches all themata, extras, and links in bulk queries."
+Fetches all themata, extras, and thema-links in bulk queries."
   (let* ((themata (gnosis-select '[id keimenon] 'themata nil))
          (extras (gnosis-select '[id parathema] 'extras nil))
-         (all-links (gnosis-select '[source dest] 'links nil))
+         (all-links (gnosis-select '[source dest] 'thema-links nil))
          (extras-map (make-hash-table :test 'equal))
          (links-set (make-hash-table :test 'equal)))
     ;; Build extras lookup
@@ -1848,7 +1928,7 @@ Fetches all themata, extras, and links in bulk queries."
 
 ;;;###autoload
 (defun gnosis-links-check ()
-  "Report link health between gnosis and org-gnosis databases."
+  "Report link health for thema-links."
   (interactive)
   (let ((orphaned (gnosis--orphaned-link-dests))
         (stale (gnosis--stale-links))
@@ -1857,28 +1937,28 @@ Fetches all themata, extras, and links in bulk queries."
              (length orphaned) (length stale) (length missing))))
 
 (defun gnosis--delete-orphaned-links (orphaned-dests)
-  "Delete links whose dest is in ORPHANED-DESTS."
+  "Delete thema-links whose dest is in ORPHANED-DESTS."
   (when orphaned-dests
     (gnosis-sqlite-with-transaction (gnosis--ensure-db)
       (let* ((placeholders (mapconcat (lambda (_) "?") orphaned-dests ", "))
-	     (sql (format "DELETE FROM links WHERE dest IN (%s)" placeholders)))
+	     (sql (format "DELETE FROM thema_links WHERE dest IN (%s)" placeholders)))
 	(gnosis-sqlite-execute (gnosis--ensure-db) sql orphaned-dests)))))
 
 (defun gnosis--delete-stale-links (stale-links)
-  "Delete STALE-LINKS list of (source dest) from links table."
+  "Delete STALE-LINKS list of (source dest) from thema-links table."
   (when stale-links
     (gnosis-sqlite-with-transaction (gnosis--ensure-db)
       (dolist (link stale-links)
 	(gnosis-sqlite-execute (gnosis--ensure-db)
-			       "DELETE FROM links WHERE source = ? AND dest = ?"
+			       "DELETE FROM thema_links WHERE source = ? AND dest = ?"
 			       (list (car link) (cadr link)))))))
 
 (defun gnosis--insert-missing-links (missing-links)
-  "Insert MISSING-LINKS list of (source dest) into links table."
+  "Insert MISSING-LINKS list of (source dest) into thema-links table."
   (when missing-links
     (gnosis-sqlite-with-transaction (gnosis--ensure-db)
       (dolist (link missing-links)
-        (gnosis--insert-into 'links `([,(car link) ,(cadr link)]))))))
+        (gnosis--insert-into 'thema-links `([,(car link) ,(cadr link)]))))))
 
 (defun gnosis--commit-link-cleanup (orphaned stale missing)
   "Commit link cleanup changes for ORPHANED, STALE, and MISSING counts."

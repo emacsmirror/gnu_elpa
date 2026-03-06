@@ -217,7 +217,11 @@ that it is not empty."
 
 (defun futur--background ()
   (let ((futur--in-background t)
-        (inhibit-quit t))
+        (inhibit-quit t)
+        ;; Entering the debugger blocks all subsequent pending tasks,
+        ;; plus it bumps into problems like bug#80537.
+        ;; (debug-on-error nil)
+        )
     (while t
       (let ((pending
              (with-mutex futur--pending-mutex
@@ -389,18 +393,22 @@ The error is `futur-aborted'.  Does nothing if FUTUR was already complete."
 
 ;;;; Composing futures
 
-(defun futur--register-callback (futur fun)
- "Call FUN when FUTUR completes.
+(defun futur--register-callback (futur fun &optional now-ok)
+  "Call FUN when FUTUR completes.
 Calls it with two arguments (ERR VAL), where only one of the two is non-nil,
 and throws away the return value.  If FUTUR fails ERR is the error object,
 otherwise ERR is nil and VAL is the result value.
 When FUN is called, FUTUR is already marked as completed.
-If FUTUR already completed, FUN is called immediately."
+If FUTUR already completed, FUN is called immediately.
+If NOW-OK is non-nil, it means that we can call FUN in the current
+dynamic context, otherwise, always go through `futur--funcall'."
   (pcase futur
     ((futur--waiting _ clients)
      (setf (futur--clients futur) (cons fun clients)))
-    ((futur--failed err) (funcall fun err nil))
-    ((futur--done val) (funcall fun nil val)))
+    ((futur--failed err) (funcall (if now-ok #'funcall #'futur--funcall)
+                                  fun err nil))
+    ((futur--done val) (funcall (if now-ok #'funcall #'futur--funcall)
+                                fun nil val)))
   nil)
 
 (defun futur--ize (val)
@@ -435,10 +443,12 @@ But ERROR-FUN can be used to handle errors:
   CONDITION-NAME that matches the error, passing it the error.
 ERROR-FUN and FUN can also return non-future values,
 FUTUR can also be a non-`futur' object, in which case it's passed
-as-is to FUN."
+as-is to FUN.
+Both FUN and ERROR-FUN are called in an empty dynamic context,
+and not necessarily in the current-buffer either."
   (let ((new (futur--waiting futur)))
     (if (not (futur--p futur))
-        (futur--run-continuation new fun (list futur))
+        (futur--funcall #'futur--run-continuation new fun (list futur))
       (futur--register-callback
        futur (lambda (err val)
                (cond
@@ -450,6 +460,11 @@ as-is to FUN."
                     (futur--run-continuation new error-fun (list err)))
                   (lambda (err) (futur-deliver-failure new err))))))))
     new))
+
+(defun futur-funcall (func &rest args)
+ "Schedule to call FUNC with ARGS, and return a future to hold the result.
+The call takes place in an empty dynamic context."
+  (futur-bind nil (lambda (_) (apply func args))))
 
 (defun futur--run-continuation (futur fun args)
   ;; The thing FUTUR was waiting for is completed, maybe we'll soon be waiting
@@ -464,7 +479,8 @@ as-is to FUN."
           (futur--register-callback
            res (lambda (err val)
                  (if err (futur-deliver-failure futur err)
-                   (futur-deliver-value futur val))))))
+                   (futur-deliver-value futur val)))
+           'now-ok)))
     (t (futur-deliver-failure futur err))))
 
 (defun futur--resignal (error-object)
@@ -484,7 +500,8 @@ Ideally, this should never be used, hence the long name to discourage
 abuse.  Instead, you should use `futur-bind' or `futur-let*' to execute
 what you need when FUTUR completes.
 If FUTUR fails, calls ERROR-FUN with the error object and returns
-its result, or (re)signals the error if ERROR-FUN is nil."
+its result, or (re)signals the error.  Accepts the same ERROR-FUN
+as `futur-bind'."
   ;; Waiting for a task to finish has always been a PITA in ELisp,
   ;; because `sit-for/accept-process-output/sleep-for' have proved brittle
   ;; with lots of weird corner cases.  `futur-blocker-wait' does its best,
@@ -748,19 +765,19 @@ Each element is of the form (FUTURE FUN . ARGS).")
 
 (defun futur-concurrency-bound (func &rest args)
   "Call FUNC with ARGS while limiting the amount of concurrency.
-FUNC should also return a `futur'.  Returns a `futur' with the same value.
+FUNC should return a `futur'.  Returns a `futur' with the same value.
 The amount of concurrently active futures is determined by the variable
 `futur-concurrency-bound' and considers only those futures constructed
-via the function `futur-concurrency-bound'."
+via the function `futur-concurrency-bound'.
+FUNC is called in an empty dynamic context."
   (if (< (length futur--concurrency-bound-active) futur-concurrency-bound)
-      (futur--concurrency-bound-start func args)
+      (futur--concurrency-bound-start #'futur-funcall (cons func args))
     (let ((new (futur--waiting 'waiting)))
       (futur--queue-enqueue futur--concurrency-bound-waiting
                             `(,new ,func . ,args))
       new)))
 
 (defun futur--concurrency-bound-start (func args)
-  ;; FIXME: Call FUNC in an "empty" dynamic context!
   (let ((new (apply func args)))
     (push new futur--concurrency-bound-active)
     (futur--register-callback
@@ -779,7 +796,7 @@ via the function `futur-concurrency-bound'."
           ((futur--waiting)
            (let ((new (futur--concurrency-bound-start (car call) (cdr call))))
              (futur--register-callback
-              new (lambda (err val) (futur--deliver fut err val)))
+              new (lambda (err val) (futur--deliver fut err val)) 'now-ok)
              (cl-return))))))))
 
 (cl-defmethod futur-blocker-abort ((_ (eql 'waiting)) _error)
@@ -934,7 +951,8 @@ that have not yet completed."
                   ;; We don't unbind ourselves from some FUTURs
                   ;; when aborting, so ignore their delivery here.
                   ((futur--failed '(futur-aborted)) nil)
-                  (_ (futur-deliver-value new args)))))))))
+                  (_ (futur-deliver-value new args))))))))
+        'now-ok)
        (setq i (1+ i)))
       new)))
 
@@ -952,7 +970,8 @@ future also completes with that same failure."
             (futur--deliver new err val)
             ;; Abort the remaining ones.
             (let ((abort-error (list 'futur-aborted)))
-              (futur-blocker-abort futurs abort-error)))))))
+              (futur-blocker-abort futurs abort-error)))))
+       'now-ok))
     new))
 
 (cl-defmethod futur-blocker-wait ((_blockers cons))

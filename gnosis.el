@@ -8,7 +8,7 @@
 
 ;; Version: 0.8.0
 
-;; Package-Requires: ((emacs "29.1") (compat "29.1.4.2") (transient "0.7.2"))
+;; Package-Requires: ((emacs "29.1") (compat "29.1.4.2"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

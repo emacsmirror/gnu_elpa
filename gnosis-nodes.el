@@ -131,12 +131,15 @@ If JOURNAL is non-nil, update file as a journal entry."
 				 (ignore-errors
 				   (gnosis-nodes--insert-into 'node-tags `([,tag])))
 				 (gnosis-nodes--insert-into 'node-tag `([,id ,tag])))
-			;; Insert master relationship as link
-			(when (and (plist-get item :master) (stringp (plist-get item :master)))
+			;; Insert master relationship as link (nodes only)
+			(when (and (not journal)
+				   (plist-get item :master)
+				   (stringp (plist-get item :master)))
 			  (gnosis-nodes--insert-into 'node-links `([,id ,(plist-get item :master)])))))
-	  ;; Insert ID links
-	  (cl-loop for link in links
-		   do (gnosis-nodes--insert-into 'node-links `[,(cdr link) ,(car link)]))))
+	  ;; Insert ID links (nodes only)
+	  (unless journal
+	    (cl-loop for link in links
+		     do (gnosis-nodes--insert-into 'node-links `[,(cdr link) ,(car link)])))))
     (file-error
      (message "File error updating %s: %s.  Try M-x gnosis-nodes-db-force-sync to rebuild database."
               file (error-message-string err)))
@@ -498,6 +501,11 @@ When FORCE, update all files.  Otherwise, only update changed files."
                       (progress-reporter-update progress i)))
         (progress-reporter-done progress)))))
 
+(defun gnosis-nodes--purge-tables ()
+  "Delete all rows from node and journal tables for full rebuild."
+  (dolist (table '(nodes journal node-links node-tag node-tags))
+    (gnosis--delete table)))
+
 ;;;###autoload
 (defun gnosis-nodes-db-sync (&optional force)
   "Sync node database with progress reporting.
@@ -507,6 +515,9 @@ When FORCE (prefix arg), rebuild from scratch."
     (gnosis-nodes-ensure-directories)
     (message "Syncing nodes database...")
     (gnosis-sqlite-with-transaction (gnosis--ensure-db)
+      (when force
+	(gnosis-nodes--purge-tables)
+	(message "Purged all node/journal tables for rebuild."))
       (gnosis-nodes-db-update-files force))
     ;; Sync journal files
     (message "Syncing journal files...")

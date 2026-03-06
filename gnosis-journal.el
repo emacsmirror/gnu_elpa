@@ -51,10 +51,10 @@ If nil, journal entries are created as separate files in
   :type 'boolean)
 
 (defcustom gnosis-journal-templates
-  '(("Default" (lambda () (format "%h Daily Notes\n\n%h Goals\n%s" (gnosis-journal-todos))))
+  '(("Default" (lambda () (concat "{*} Daily Notes\n\n{*} Goals\n" (gnosis-journal-todos))))
     ("Empty" (lambda () "")))
   "Templates for journaling.
-Template functions return strings.  Use \"%h\" as a heading
+Template functions return strings.  Use \"{*}\" as a heading
 placeholder; it will be expanded to the correct number of org
 heading stars based on the insertion context."
   :type '(repeat (cons (string :tag "Name")
@@ -103,9 +103,9 @@ compatability with `org-todo-keywords'."
     (goto-char (point-max))
     (insert (format "* %s\n" title))
     (org-id-get-create)
-    (let* ((level (or (org-current-level) 0))
+    (let* ((level (1+ (or (org-current-level) 0)))
 	   (template (gnosis-nodes-select-template gnosis-journal-templates)))
-      (insert (gnosis-org-expand-headings template (1+ level))))))
+      (insert (string-replace "{*}" (make-string level ?*) template)))))
 
 ;;; TODOs
 

@@ -692,7 +692,7 @@ FN: Review function, defaults to `gnosis-review-session'"
   (interactive)
   (setq gnosis-due-themata-total (length (gnosis-review-get-due-themata)))
   (set-register :gnosis-pre-image nil)
-  (let ((review-type (gnosis-completing-read "Review: " gnosis-review-types))
+  (let ((review-type (funcall gnosis-completing-read-function "Review: " gnosis-review-types))
 	(fn (or fn #'gnosis-review-session)))
     (pcase review-type
       ("Due themata"

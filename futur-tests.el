@@ -50,7 +50,24 @@
   (let ((p (futur-let* ((x1 5)
                         (x2 <- (futur-failed '(scan-error "Oops"))))
              (list (+ x1 x2) (error "Wow!")))))
-    (should-error (futur-blocking-wait-to-get-result p) :type 'scan-error)))
+    (should-error (futur-blocking-wait-to-get-result p) :type 'scan-error))
+
+  (let ((handlers `((wrong-type-argument . ,(lambda (_) :wta))
+                    (scan-error . ,(lambda (_) :scan-error))
+                    (error . ,(lambda (_) :error)))))
+    (should (equal
+             (condition-case nil
+                 (progn (futur-blocking-wait-to-get-result
+                         (futur-failed '(quit)) handlers)
+                        :not-quit)
+               (quit :quit))
+             :quit))
+    (should (equal (futur-blocking-wait-to-get-result
+                    (futur-failed '(wrong-number-of-arguments)) handlers)
+                   :error))
+    (should (equal (futur-blocking-wait-to-get-result
+                    (futur-failed '(scan-error)) handlers)
+                   :scan-error))))
 
 (ert-deftest futur-ordering ()
   "Test order of execution of callbacks."

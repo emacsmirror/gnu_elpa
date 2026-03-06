@@ -67,31 +67,52 @@
 ;;   (apply func args))
 
 (defun futur-server ()
+  ;; We want the `futur-client' to be able to interrupt long-running
+  ;; requests, and so far the only way we found is to abuse the SIGUSR1
+  ;; escape hatch that was designed for debugging.
+  ;; FIXME: This is hackish and doesn't work under w32 and Android.
+  ;; https://lists.gnu.org/archive/html/emacs-devel/2026-03/msg00100.html
+  (setq debug-on-event 'sigusr1)
+  (add-function :around debugger
+                (lambda (orig-fun reason object)
+                  (if (and (eq 'error reason) (equal '(quit) object))
+                      (signal object nil) ;FIXME: Use `error-resignal'.
+                    (funcall orig-fun reason object))))
+  ;; Initialize the cache of obarray snapshots.
+  ;; Do it before we bind `inhibit-quit' to t, otherwise requests that use
+  ;; `futur-reset-context' might inadvertently set it back to t.
+  (futur-reset-context 'futur--server-internal nil)
   ;; We don't need a cryptographically secure ID, but just something that's
-  ;; *very* unlikely to occur by accident elsewhere and which `read' wouldn't
-  ;; process without signaling an error.
+  ;; unlikely to occur by accident elsewhere.
   (let* ((sid (format " fes:%s "
                       (secure-hash 'sha1
                                    (format "%S:%S:%S"
                                            (random t) (current-time)
                                            (emacs-pid)))))
-         (sid-sym (intern (string-trim sid))))
-    ;; Initialize the cache of obarray snapshots.
-    (futur-reset-context 'futur--server-internal nil)
+         (sid-sym (intern (string-trim sid)))
+         ;; We want to be able to `quit' out of processing a request,
+         ;; but if we receive the `quit' "too late", i.e. after we finished
+         ;; computing the result, we don't want that `quit' to kill our REPL.
+         (inhibit-quit t))
     (futur--print-stdout :ready sid)
-    (while t
+    (while t                            ;The REPL.
       (let ((input (condition-case err (cons :read-success (futur--read-stdin))
                      (t err))))
         (pcase input
           ;; Check `sid-sym' for every request, since we may have just read
           ;; "successfully" the garbage that follows a failed read.
           (`(:read-success ,(pred (eq sid-sym)) ,rid ,func . ,args)
+           ;; Ignore quits that occur between requests.  Ideally, we'd
+           ;; do it earlier, like when we receive the first byte of
+           ;; the request, but this is buried within `read-from-minibuffer'.
+           (setq quit-flag nil)
            ;; Confirm we read successfully so the client can
            ;; distinguish where problems come from.
            (futur--print-stdout `(:read-success ,rid) sid)
            (let ((result
                   (condition-case err
-                      `(:funcall-success ,rid . ,(apply func args))
+                      (let ((inhibit-quit nil))
+                        `(:funcall-success ,rid . ,(apply func args)))
                     (t `(:funcall-error ,rid . ,err)))))
              (futur--print-stdout result sid)))
           (`(:read-success . ,rest)
@@ -186,10 +207,14 @@ NAME is used only for the purpose of overwriting a previous state from
 the cache."
       (when (and target (null snapshots))
         (error "`futur--obarray' was not properly initialized: %S" target))
-      (pcase-let ((`(,_ ,old-target ,snapshot) (assq name snapshots)))
+      (pcase-let (;; (start-time (float-time))
+                  (`(,_ ,old-target ,snapshot) (assq name snapshots)))
         (cond
          ((and snapshot (equal old-target target))
-          (futur--obarray-revert snapshot))
+          (futur--obarray-revert snapshot)
+          ;; (message "Time to reset-context %S: %.2f"
+          ;;          snapshot (- (float-time) start-time))
+          )
          (t
           (let ((nearest '())
                 (target-len (length target))
@@ -217,7 +242,10 @@ the cache."
                                       (load cmd 'noerror 'nomessage)))
                     ((pred symbolp) (require cmd))))
                 (setf (alist-get name snapshots)
-                      (list target (futur--obarray-snapshot))))))))))))
+                      (list target (futur--obarray-snapshot))))))
+          ;; (message "Time to setup-context: %.2f"
+          ;;          (- (float-time) start-time))
+          ))))))
 
 (provide 'futur-server)
 ;;; futur-server.el ends here

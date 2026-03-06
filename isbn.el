@@ -157,7 +157,8 @@ Results are cached in `isbn-hyphenation-ranges-cache'."
     source))
 
 (defun isbn-hyphenation--ranges-member-p (number range)
-  "Return t if NUMBER is within RANGE (string)."
+  "Return t if NUMBER (string) is within RANGE (string)."
+  (setq number (string-to-number number))
   (let ((range (mapcar #'string-to-number (string-split range "-"))))
     (and (>= number (car range)) (<= number (cadr range)))))
 
@@ -181,7 +182,7 @@ Results are cached in `isbn-hyphenation-ranges-cache'."
 
     ;; 2. Group identifier
     (condition-case-unless-debug nil
-        (let* ((rem (string-to-number (funcall remaining)))
+        (let* ((rem (funcall remaining))
                (match (catch 'res
                         (seq-do
                          (lambda (pref)
@@ -199,13 +200,13 @@ Results are cached in `isbn-hyphenation-ranges-cache'."
                                (throw 'length (gethash "Length" rule))))
                            (isbn-hyphenation--ranges-get match "Rules" "Rule"))))))
           (unless (eq length 0)
-            (push (substring (int-to-string rem) 0 length) hyphenated)))
+            (push (substring rem 0 length) hyphenated)))
       (error (error "Could not determine group identifier")))
 
     ;; 3. Publisher code
     (condition-case-unless-debug nil
         (let* ((prefix (string-join (reverse hyphenated) "-"))
-               (rem (string-to-number (funcall remaining)))
+               (rem (funcall remaining))
                (match (catch 'res
                         (seq-do (lambda (pref)
                                   (when (string= prefix (gethash "Prefix" pref))
@@ -221,7 +222,7 @@ Results are cached in `isbn-hyphenation-ranges-cache'."
                                     rem (gethash "Range" rule))
                                (throw 'length (gethash "Length" rule))))
                            (isbn-hyphenation--ranges-get match "Rules" "Rule"))))))
-          (push (substring (int-to-string rem) 0 length) hyphenated))
+          (push (substring rem 0 length) hyphenated))
       (error (error "Could not determine publisher code")))
 
     ;; 4. Title identifier

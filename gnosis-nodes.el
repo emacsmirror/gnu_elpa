@@ -50,7 +50,10 @@
 
 (defcustom gnosis-nodes-templates
   '(("Default" (lambda () "")))
-  "Templates for nodes."
+  "Templates for nodes.
+Template functions return strings.  Use \"{*}\" as a heading
+placeholder; it will be expanded to the correct number of org
+heading stars based on the insertion context."
   :type '(repeat (cons (string :tag "Name")
                        (function :tag "Template Function"))))
 
@@ -221,7 +224,8 @@ EXTRAS: The template to be inserted at the start."
 	(insert (format "#+title: %s\n#+filetags: \n" title))
 	(org-mode)
 	(org-id-get-create)
-	(when extras (insert extras))))
+	(when extras
+	  (insert (string-replace "{*}" "*" extras)))))
     (switch-to-buffer buffer)
     (gnosis-nodes-mode 1)))
 
@@ -287,7 +291,11 @@ Uses the node-tag junction table for proper querying."
 
 (defun gnosis-nodes-select-template (templates)
   "Select template from TEMPLATES.
-If templates is only one item, return it without a prompt."
+If templates is only one item, return it without a prompt.
+
+Template functions may use \"{*}\" as a heading placeholder.
+The caller expands \"{*}\" to the correct number of org heading
+stars based on the insertion context."
   (let* ((template (if (= (length templates) 1)
                        (cdar templates)
                      (cdr (assoc

@@ -1,6 +1,6 @@
 ;;; greader.el --- Gnamù reader, send buffer contents to a speech engine -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2017-2025  Free Software Foundation, Inc.
+;; Copyright (C) 2017-2026  Free Software Foundation, Inc.
 
 ;; package-requires: ((emacs "26.1") (seq "2.24") (compat "29.1.4.5"))
 ;; Author: Michelangelo Rodriguez <michelangelo.rodriguez@gmail.com>

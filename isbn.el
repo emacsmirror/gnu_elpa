@@ -163,10 +163,8 @@ Results are cached in `isbn-hyphenation-ranges-cache'."
 
 ;;;###autoload
 (defun isbn-hyphenate (isbn)
-  "Hyphenate ISBN.
-Only ISBN-13 is supported."
-  (unless (isbn-isbn13-p isbn)
-    (user-error "ISBN must be an ISBN-13"))
+  "Hyphenate ISBN as an ISBN-13."
+  (setq isbn (isbn-convert isbn 13))
   (let* ((isbn-hyphenation-ranges (isbn-hyphenation--ranges))
          hyphenated
          (remaining (lambda ()

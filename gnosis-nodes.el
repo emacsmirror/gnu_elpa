@@ -27,6 +27,11 @@
 (declare-function gnosis-sqlite-execute "gnosis-sqlite")
 (declare-function gnosis-sqlite-select "gnosis-sqlite")
 (declare-function gnosis-sqlite-with-transaction "gnosis-sqlite")
+(declare-function gnosis-journal--dir "gnosis-journal")
+
+(defvar gnosis-journal-dir)
+(defvar gnosis-journal-file)
+(defvar gnosis-journal-templates)
 
 (defgroup gnosis-nodes nil
   "Gnosis node management."
@@ -49,11 +54,13 @@
   :type 'boolean)
 
 (defcustom gnosis-nodes-templates
-  '(("Default" (lambda () "")))
+  '(("Default" (lambda () ""))
+    ("test" (lambda () "" "\n{*} insert this")))
   "Templates for nodes.
 Template functions return strings.  Use \"{*}\" as a heading
-placeholder; it will be expanded to the correct number of org
-heading stars based on the insertion context."
+placeholder; it will be expanded to org heading stars relative to
+the insertion context.  \"{**}\" adds one extra level, \"{***}\"
+adds two, etc."
   :type '(repeat (cons (string :tag "Name")
                        (function :tag "Template Function"))))
 
@@ -225,7 +232,7 @@ EXTRAS: The template to be inserted at the start."
 	(org-mode)
 	(org-id-get-create)
 	(when extras
-	  (insert (string-replace "{*}" "*" extras)))))
+	  (insert (gnosis-org-expand-headings extras)))))
     (switch-to-buffer buffer)
     (gnosis-nodes-mode 1)))
 
@@ -289,20 +296,42 @@ Uses the node-tag junction table for proper querying."
 	 (node (completing-read "Select node: " node-titles nil t)))
     (gnosis-nodes-find node)))
 
-(defun gnosis-nodes-select-template (templates)
-  "Select template from TEMPLATES.
-If templates is only one item, return it without a prompt.
+(defun gnosis-nodes--journal-buffer-p ()
+  "Return non-nil if current buffer is a journal file."
+  (and buffer-file-name
+       (or (file-in-directory-p buffer-file-name (gnosis-journal--dir))
+           (and gnosis-journal-file
+                (string= (expand-file-name buffer-file-name)
+                         (expand-file-name gnosis-journal-file))))))
+
+(defun gnosis-nodes-select-template (&optional templates)
+  "Select and evaluate a template from TEMPLATES.
+When TEMPLATES is nil, detect whether the current buffer is a
+journal file and use `gnosis-journal-templates' or
+`gnosis-nodes-templates' accordingly.
 
 Template functions may use \"{*}\" as a heading placeholder.
-The caller expands \"{*}\" to the correct number of org heading
-stars based on the insertion context."
-  (let* ((template (if (= (length templates) 1)
+The caller expands markers via `gnosis-org-expand-headings'.
+\"{*}\" becomes the base level, \"{**}\" one level deeper, etc."
+  (let* ((templates (or templates
+                        (if (gnosis-nodes--journal-buffer-p)
+                            gnosis-journal-templates
+                          gnosis-nodes-templates)))
+         (template (if (= (length templates) 1)
                        (cdar templates)
                      (cdr (assoc
 			   (funcall gnosis-nodes-completing-read-func "Select template:"
                                     (mapcar #'car templates))
                            templates)))))
     (funcall (apply #'append template))))
+
+;;;###autoload
+(defun gnosis-nodes-insert-template ()
+  "Insert a template at point with context-aware headings.
+Detects whether the current buffer is a journal file and uses
+the appropriate template list."
+  (interactive)
+  (insert (gnosis-org-expand-headings (gnosis-nodes-select-template))))
 
 ;;;###autoload
 (defun gnosis-nodes-insert (arg &optional journal-p)

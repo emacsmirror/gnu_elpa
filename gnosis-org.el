@@ -186,5 +186,18 @@ GPG-P: when non-nil, add .gpg suffix (overrides DEFAULT-GPG)."
     (format "%s--%s.org%s" (format-time-string timestring) filename
 	    (if use-gpg ".gpg" ""))))
 
+(defun gnosis-org-expand-headings (text &optional base-level)
+  "Expand heading markers in TEXT relative to BASE-LEVEL.
+`{*}' becomes BASE-LEVEL stars, `{**}' becomes BASE-LEVEL+1, etc.
+The number of `*' inside braces determines the offset from BASE-LEVEL.
+When BASE-LEVEL is nil, auto-detect from current `org-current-level'."
+  (let ((base-level (or base-level (1+ (or (org-current-level) 0)))))
+    (replace-regexp-in-string
+     "{\\(\\*+\\)}"
+     (lambda (match)
+       (let ((offset (1- (length (match-string 1 match)))))
+	 (make-string (+ base-level offset) ?*)))
+     text t)))
+
 (provide 'gnosis-org)
 ;;; gnosis-org.el ends here

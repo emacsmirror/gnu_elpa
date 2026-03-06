@@ -55,8 +55,9 @@ If nil, journal entries are created as separate files in
     ("Empty" (lambda () "")))
   "Templates for journaling.
 Template functions return strings.  Use \"{*}\" as a heading
-placeholder; it will be expanded to the correct number of org
-heading stars based on the insertion context."
+placeholder; it will be expanded to org heading stars relative to
+the insertion context.  \"{**}\" adds one extra level, \"{***}\"
+adds two, etc."
   :type '(repeat (cons (string :tag "Name")
                        (function :tag "Template Function"))))
 
@@ -103,9 +104,8 @@ compatability with `org-todo-keywords'."
     (goto-char (point-max))
     (insert (format "* %s\n" title))
     (org-id-get-create)
-    (let* ((level (1+ (or (org-current-level) 0)))
-	   (template (gnosis-nodes-select-template gnosis-journal-templates)))
-      (insert (string-replace "{*}" (make-string level ?*) template)))))
+    (insert (gnosis-org-expand-headings
+	     (gnosis-nodes-select-template gnosis-journal-templates)))))
 
 ;;; TODOs
 

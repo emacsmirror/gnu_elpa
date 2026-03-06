@@ -154,7 +154,7 @@
     (should (< (- (float-time) start) (* timescale 4)))
     (should (pcase fut6 ((futur--waiting _) t)))
     (should (pcase fut2 ((futur--done 'nil) t)))
-    (should (pcase fut22 ((futur--failed '(futur-aborted)) t)))
+    (should (pcase fut22 ((futur--failed `(futur-aborted . ,_)) t)))
     (should (pcase fut4 ((futur--waiting _) t) ((futur--done 'nil) t)))
     (should (pcase futB ((futur--waiting _) t)))
     (should (equal '(nil) (futur-blocking-wait-to-get-result futB)))

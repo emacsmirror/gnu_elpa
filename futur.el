@@ -52,7 +52,7 @@
 ;;   FUN is called with one argument (the new `futur' object) and should
 ;;   return the "blocker" that `futur' is waiting for (used mostly
 ;;   when aborting a future).
-;; - (futur-abort FUTUR): Aborts execution of FUTUR.
+;; - (futur-abort FUTUR REASON): Aborts execution of FUTUR.
 ;; - (futur-deliver-value FUTUR VAL): Mark FUTUR as having completed
 ;;   successfully with VAL, and runs the clients waiting for that event.
 ;; - (futur-deliver-failure FUTUR ERROR): Mark FUTUR as having failed
@@ -135,14 +135,22 @@
 ;; - When launching elisp/sandbox servers (or during `futur-reset-context'),
 ;;   the client receives and displays all the `message's from the subprocess,
 ;;   which can be annoying more than helpful.
+;; - When using `futur-hacks-mode' I sometimes see void-variable errors
+;;   about `cl-struct-eieio--class-tags' which sound like problems in
+;;   `futur--obarray-snapshot/revert'.  I have not investigated them yet,
+;;   but maybe this idea of obarray snapshots can't work reliably.
 
 ;;; News:
 
 ;; Since version 1.1:
 
-;; - `futur-bind' can now select which errors it catches.
+;; - `futur-abort' takes a second argument (the reason for the abortion).
+;; - New function `futur-funcll'.
+;; - `futur-bind' and `futur-blocking-wait-to-get-result' can now select
+;;   which errors they catch.
 ;; - New function `futur-p'.
-;; - Preliminary support to run ELisp code in subproceses.
+;; - Preliminary support to run ELisp code in subproceses&sandboxes.
+;; - Experimental `futur-hacks-mode' using the preliminary sandbox code.
 
 ;; Version 1.1:
 
@@ -340,7 +348,7 @@ A futur has 3 possible states:
        ;; and also because we may be in an "interrupt" context where
        ;; operations like blocking could be dangerous.
        (futur--funcall client err val)))
-    ((futur--failed '(futur-aborted))
+    ((futur--failed `(futur-aborted . ,_))
      nil)     ;; Just ignore the late delivery.
     ((pred futur--p)
      (error "Delivering a second time: %S %S %S" futur err val))))
@@ -377,16 +385,15 @@ and `futur-blocker-abort' methods.  `nil' is a valid blocker."
   (let* ((f (futur--waiting))
          (x (funcall builder f)))
     (when x
-      (cl-assert (null (futur--blocker f)))
       (setf (futur--blocker f) x))
     f))
 
-(defun futur-abort (futur)
+(defun futur-abort (futur reason)
   "Interrupt execution of FUTUR, marking it as having failed.
 The error is `futur-aborted'.  Does nothing if FUTUR was already complete."
   (pcase futur
     ((futur--waiting blocker)
-     (let ((error (list 'futur-aborted)))
+     (let ((error (list 'futur-aborted reason)))
        (futur-blocker-abort blocker error)
        (futur-deliver-failure futur error)))
     (_ nil))) ;; No point in throwing away the result we already got.
@@ -527,7 +534,7 @@ as `futur-bind'."
                          (with-mutex mutex (condition-notify condition))))
                 (condition-wait condition))))
         ;; FIXME: Use `handler-bind' instead of `futur--resignal'.
-        (quit (futur-abort futur) (futur--resignal err))))
+        (quit (futur-abort futur err) (futur--resignal err))))
     (pcase-exhaustive futur
       ((futur--failed err)
        (futur--handle-error error-fun err #'funcall #'futur--resignal))
@@ -637,7 +644,7 @@ Return non-nil if we successfully waited until the completion of BLOCKER."
              t)))
       t)))
 
-(define-error 'futur-aborted "Future aborted")
+(define-error 'futur-aborted "Future aborted: ")
 
 (cl-defgeneric futur-blocker-abort (futur error)
   "Abort processing of FUTUR and all of its clients.
@@ -941,7 +948,7 @@ that have not yet completed."
               (setq failed t)
               (futur-deliver-failure new err)
               ;; Abort the remaining ones.
-              (let ((abort-error (list 'futur-aborted)))
+              (let ((abort-error (list 'futur-aborted `(futur-list . ,err))))
                 (futur-blocker-abort futurs abort-error)))
              (t
               (setf (car cell) val)
@@ -950,7 +957,7 @@ that have not yet completed."
                 (pcase new
                   ;; We don't unbind ourselves from some FUTURs
                   ;; when aborting, so ignore their delivery here.
-                  ((futur--failed '(futur-aborted)) nil)
+                  ((futur--failed `(futur-aborted . ,_)) nil)
                   (_ (futur-deliver-value new args))))))))
         'now-ok)
        (setq i (1+ i)))
@@ -969,7 +976,7 @@ future also completes with that same failure."
            ((futur--waiting)
             (futur--deliver new err val)
             ;; Abort the remaining ones.
-            (let ((abort-error (list 'futur-aborted)))
+            (let ((abort-error (list 'futur-aborted 'futur-race)))
               (futur-blocker-abort futurs abort-error)))))
        'now-ok))
     new))

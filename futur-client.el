@@ -118,7 +118,8 @@ A server kind is a symbol.")
                             (substring string 0 (match-beginning 0)))))
                (unless (equal "" before)
                  (message "Skipping output from futur-server: %S" before))
-               (process-put proc 'futur--pending after))))))))))
+               (process-put proc 'futur--pending after)))))))))
+  nil)
 
 (defun futur--elisp-process-filter-stderr (proc string)
   (let ((pending (process-get proc 'futur--pending)))
@@ -143,7 +144,8 @@ A server kind is a symbol.")
       (let ((futur (process-get proc 'futur--destination)))
         (when futur
           (process-put proc 'futur--destination nil)
-          (futur-deliver-failure futur (list 'error "Futur-server died")))))))
+          (futur-deliver-failure futur (list 'error "Futur-server died")))))
+    nil))
 
 (defun futur--elisp-launch (kind &optional prefix)
   (let* ((buffer (get-buffer-create (format" *%s*" kind)))
@@ -213,24 +215,25 @@ A server kind is a symbol.")
         (process-put proc 'futur--answers
                      (nconc (process-get proc 'futur--answers) (list sexp)))
       (process-put proc 'futur--destination nil)
-      (futur-deliver-value futur sexp))))
+      (futur-deliver-value futur sexp))
+    nil))
 
 (defun futur--elisp-set-destination (proc futur)
-  (cl-assert (null (process-get proc 'futur--destination)))
+  (cl-assert (null (process-get proc 'futur--destination)) nil
+             "Pre-existing destination %S vs new %S"
+             (process-get proc 'futur--destination) futur)
   (let ((answers (process-get proc 'futur--answers)))
     (if answers
         (let ((answer (car answers)))
           (process-put proc 'futur--answers (cdr answers))
-          (futur-deliver-value futur answer))
-      (process-put proc 'futur--destination futur))))
+          (futur-deliver-value futur answer)
+          nil)
+      (process-put proc 'futur--destination futur)
+      `(futur-server . ,proc))))
 
 (defun futur--elisp-answer-futur (proc)
   (futur-new (lambda (futur)
-               (futur--elisp-set-destination proc futur)
-               ;; FIXME: Wait more efficiently and abort
-               ;; more cleanly.
-               ;; `(futur-server . ,proc)
-               nil)))
+               (futur--elisp-set-destination proc futur))))
 
 (defun futur--elisp-get-process (kind launcher)
   (let ((ready (seq-find (lambda (proc) (process-get proc 'futur--ready))
@@ -245,12 +248,16 @@ A server kind is a symbol.")
               proc)
           (error "unexpected boot message from futur-server: %S" answer))))))
 
-;; (cl-defmethod futur-blocker-abort ((_ (head futur-server)) _)
-;;   ;; Don't kill the server, since we may want to reuse it for other
-;;   ;; requests.
-;;   nil)
-;; (cl-defmethod futur-blocker-wait ((blocker (head futur-server)))
-;;   (while ?? (accept-process-output proc ...)))
+(cl-defmethod futur-blocker-abort ((blocker (head futur-server)) _)
+  ;; Don't kill the server, since we may want to reuse it for other
+  ;; requests.
+  (let ((proc (cdr blocker)))
+    ;; FIXME: This USR1 hack doesn't work in Windows and Android.
+    (signal-process proc 'USR1)))
+
+(cl-defmethod futur-blocker-wait ((_blocker (head futur-server)))
+  ;; FIXME: (while ?? (accept-process-output proc ...))!
+  nil)
 
 (defun futur--elisp-funcall-1 (futur-proc func args)
   (futur-let*
@@ -320,7 +327,7 @@ A server kind is a symbol.")
 (defvar futur--sandbox-ro-dirs
   '("/lib" "/lib64" "/bin" "/usr" "/etc/alternatives" "/etc/emacs" "/gnu" "~/"))
 
-(defconst futur-sandbox-temp-dir (make-temp-file "futur-sandbox" 'dir)
+(defvar futur-sandbox-temp-dir (make-temp-file "futur-sandbox" 'dir)
   "Directory to pass temporary files to the sandbox.
 Contrary to /tmp, this directory is readable by the sandboxed processes.")
 

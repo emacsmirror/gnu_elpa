@@ -183,4 +183,7 @@
         (gnosis--read-string-with-input-method "Answer: " "αβγ"))
       (should deactivated))))
 
+(provide 'gnosis-test-script-detection)
+
 (ert-run-tests-batch-and-exit)
+;;; gnosis-test-script-detection.el ends here

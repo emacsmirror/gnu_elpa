@@ -425,4 +425,6 @@ Value is pre-encoded (prin1-to-string) in the compiler."
       (delete-file db-file))))
 
 (provide 'gnosis-test-sqlite)
+
+(ert-run-tests-batch-and-exit)
 ;;; gnosis-test-sqlite.el ends here

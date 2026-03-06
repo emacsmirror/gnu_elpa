@@ -194,4 +194,7 @@
     (should (string= (cdr result)
                      "[[id:node-1][foo]][[id:a][bar]][[id:node-1][foo]]"))))
 
+(provide 'gnosis-test-bulk-link)
+
 (ert-run-tests-batch-and-exit)
+;;; gnosis-test-bulk-link.el ends here

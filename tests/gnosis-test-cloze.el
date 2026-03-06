@@ -15,10 +15,8 @@
 (require 'gnosis)
 (require 'gnosis-export-import)
 
-(let ((parent-dir (file-name-directory
-                   (directory-file-name
-                    (file-name-directory (or load-file-name default-directory))))))
-  (add-to-list 'load-path parent-dir))
+(load (expand-file-name "gnosis-test-helpers.el"
+       (file-name-directory (or load-file-name buffer-file-name))))
 
 ;; ──────────────────────────────────────────────────────────
 ;; gnosis-cloze-extract-contents
@@ -313,26 +311,6 @@
 ;; Import: cloze with Anki syntax + nil answer → auto-extract
 ;; ──────────────────────────────────────────────────────────
 
-(defvar gnosis-test--db-file nil)
-
-(defmacro gnosis-test-with-db (&rest body)
-  "Run BODY with a fresh temporary gnosis database."
-  (declare (indent 0) (debug t))
-  `(let* ((gnosis-test--db-file (make-temp-file "gnosis-test-" nil ".db"))
-          (gnosis-db (gnosis-sqlite-open gnosis-test--db-file))
-          (gnosis--id-cache nil))
-     (unwind-protect
-         (progn
-           (gnosis-sqlite-with-transaction gnosis-db
-             (pcase-dolist (`(,table ,schema) gnosis-db--schemata)
-               (gnosis-sqlite-execute gnosis-db
-                 (format "CREATE TABLE %s (%s)"
-                         (gnosis-sqlite--ident table)
-                         (gnosis-sqlite--compile-schema schema)))))
-           ,@body)
-       (gnosis-sqlite-close gnosis-db)
-       (delete-file gnosis-test--db-file))))
-
 (ert-deftest gnosis-test-import-cloze-anki-syntax ()
   "Importing a cloze thema with {{cN::answer::hint}} and nil answer auto-extracts."
   (gnosis-test-with-db
@@ -470,4 +448,7 @@
       ;; IDs should be registered in cache
       (should (= 2 (hash-table-count id-cache))))))
 
+(provide 'gnosis-test-cloze)
+
 (ert-run-tests-batch-and-exit)
+;;; gnosis-test-cloze.el ends here

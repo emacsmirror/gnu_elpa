@@ -25,6 +25,9 @@
 ;;; Commentary:
 
 ;; Development module for gnosis, creates a testing database env.
+;;
+;; NOTE: This file is for interactive development/testing only.
+;; It is intentionally excluded from `make test'.
 
 ;;; Code:
 

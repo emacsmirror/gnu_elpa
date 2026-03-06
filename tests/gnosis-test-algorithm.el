@@ -286,7 +286,7 @@
 		 '(0.45 0.30 2.95)))))
 
 (ert-deftest gnosis-test-algorithm-test-agnoia ()
-  "Test epignosis during anagnosis events."
+  "Test agnoia during anagnosis events."
   (should (equal (gnosis-algorithm-next-gnosis
 		  :gnosis '(0.45 0.30 3.5)
 		  :success nil
@@ -723,4 +723,7 @@
   ;; date2 < date signals error
   (should-error (gnosis-algorithm-date-diff '(2025 1 2) '(2025 1 1))))
 
+(provide 'gnosis-test-algorithm)
+
 (ert-run-tests-batch-and-exit)
+;;; gnosis-test-algorithm.el ends here

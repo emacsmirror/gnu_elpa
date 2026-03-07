@@ -41,6 +41,7 @@
 (require 'gnosis-monkeytype)
 (require 'gnosis-utils)
 (require 'gnosis-nodes)
+(require 'transient)
 
 ;;; Review vars
 
@@ -683,27 +684,37 @@ To monkeytype only the wrong answers use `gnosis-monkeytype-answer'."
 ;;; Entry points
 
 ;;;###autoload
-(defun gnosis-review (&optional fn)
-  "Start gnosis review session.
-
-FN: Review function, defaults to `gnosis-review-session'"
-  (interactive)
+(defun gnosis-review--start (fn thema-ids &optional due-p)
+  "Start review with FN for THEMA-IDS.
+When DUE-P, pass it to the review function."
   (setq gnosis-due-themata-total (length (gnosis-review-get-due-themata)))
   (set-register :gnosis-pre-image nil)
-  (let ((review-type (funcall gnosis-completing-read-function "Review: " gnosis-review-types))
-	(fn (or fn #'gnosis-review-session)))
-    (pcase review-type
-      ("Due themata"
-       (funcall fn (gnosis-collect-thema-ids :due t) t))
-      ("Due themata of specified tag(s)"
-       (funcall fn (gnosis-collect-thema-ids :due t :tags t)))
-      ("Overdue themata"
-       (funcall fn (gnosis-review-get-overdue-themata)))
-      ("Due themata (Without Overdue)"
-       (funcall fn (cl-set-difference (mapcar #'car (gnosis-review-get--due-themata))
-				      (gnosis-review-get-overdue-themata))))
-      ("All themata of tag(s)"
-       (funcall fn (gnosis-collect-thema-ids :tags t))))))
+  (if due-p
+      (funcall fn thema-ids t)
+    (funcall fn thema-ids)))
+
+(transient-define-prefix gnosis-review ()
+  "Start gnosis review session."
+  [["Review"
+    ("d" "Due themata" (lambda () (interactive)
+			 (gnosis-review--start #'gnosis-review-session
+					       (gnosis-collect-thema-ids :due t) t)))
+    ("t" "Due themata of tag(s)" (lambda () (interactive)
+				   (gnosis-review--start #'gnosis-review-session
+							 (gnosis-collect-thema-ids :due t :tags t))))
+    ("o" "Overdue themata" (lambda () (interactive)
+			     (gnosis-review--start #'gnosis-review-session
+						   (gnosis-review-get-overdue-themata))))
+    ("w" "Due without overdue" (lambda () (interactive)
+				 (gnosis-review--start #'gnosis-review-session
+						       (cl-set-difference
+							(mapcar #'car (gnosis-review-get--due-themata))
+							(gnosis-review-get-overdue-themata)))))
+    ("T" "All themata of tag(s)" (lambda () (interactive)
+				   (gnosis-review--start #'gnosis-review-session
+							 (gnosis-collect-thema-ids :tags t))))
+    ("n" "Review node" gnosis-review-topic)
+    ("q" "Quit" transient-quit-one)]])
 
 (defun gnosis-review--select-topic ()
   "Prompt for topic and return its id."

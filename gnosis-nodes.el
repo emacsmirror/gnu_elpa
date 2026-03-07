@@ -221,7 +221,7 @@ Delete file contents in database & file."
 		title)))
           lst))
 
-(defun gnosis-nodes--create-file (title &optional directory extras)
+(cl-defun gnosis-nodes--create-file (title &optional directory extras)
   "Create a node FILE for TITLE.
 Insert initial Org metadata if the buffer is new or empty.
 DIRECTORY: Directory where the file is created.
@@ -234,18 +234,25 @@ EXTRAS: The template to be inserted at the start."
 		 gnosis-nodes-create-as-gpg
 		 gnosis-nodes-timestring)
 		(or directory gnosis-nodes-dir)))
-	 (buffer (find-file-noselect file))
 	 (org-id-track-globally nil))
-    (with-current-buffer buffer
-      (unless (or (file-exists-p file)
-		  (> (buffer-size) 0))
-	(insert (format "#+title: %s\n#+filetags: \n" title))
-	(org-mode)
-	(org-id-get-create)
-	(when extras
-	  (insert (gnosis-org-expand-headings extras)))))
-    (switch-to-buffer buffer)
-    (gnosis-nodes-mode 1)))
+    (when (and (file-exists-p file)
+	       (not gnosis-nodes-timestring))
+      (if (y-or-n-p (format "Node file already exists: %s.  Visit it?"
+			    (file-name-nondirectory file)))
+	  (progn (pop-to-buffer (find-file-noselect file))
+		 (cl-return-from gnosis-nodes--create-file file))
+	(user-error "Aborted: duplicate filename")))
+    (let ((buffer (find-file-noselect file)))
+      (with-current-buffer buffer
+	(unless (or (file-exists-p file)
+		    (> (buffer-size) 0))
+	  (insert (format "#+title: %s\n#+filetags: \n" title))
+	  (org-mode)
+	  (org-id-get-create)
+	  (when extras
+	    (insert (gnosis-org-expand-headings extras)))))
+      (switch-to-buffer buffer)
+      (gnosis-nodes-mode 1))))
 
 (defun gnosis-nodes-find--with-tags (&optional prompt entries)
   "Select gnosis node with tags from ENTRIES.

@@ -17,11 +17,11 @@
 
 ;; This program is distributed in the hope that it will be useful, but
 ;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 ;; General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program. If not, see
+;; along with this program.  If not, see
 ;; <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
@@ -172,9 +172,9 @@ Results are cached in `isbn-hyphenation-ranges-cache'."
                       (let ((len (length (apply #'concat hyphenated))))
                         (substring isbn len (+ len 7))))))
     ;; The data from the International ISBN Agency comes in two sets:
-    ;; the EAN prefix (978 or 979) and the registration groups. The
+    ;; the EAN prefix (978 or 979) and the registration groups.  The
     ;; former determines how long the group identifier is, and the
-    ;; latter determines how long the publisher code is. The rest of
+    ;; latter determines how long the publisher code is.  The rest of
     ;; the ISBN can be determined automatically.
 
     ;; 1. EAN prefix

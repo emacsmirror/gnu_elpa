@@ -90,6 +90,12 @@ Delegates to `gnosis--insert-into' (unified DB)."
 Delegates to `gnosis--delete' (unified DB)."
   (gnosis--delete table value))
 
+(defun gnosis-nodes--all-tags ()
+  "Return all unique node tags from the junction table."
+  (mapcar #'car
+	  (gnosis-sqlite-select (gnosis--ensure-db)
+	    "SELECT DISTINCT tag FROM node_tag")))
+
 ;;; Ensure directories
 
 (defun gnosis-nodes-ensure-directories ()
@@ -127,10 +133,7 @@ If JOURNAL is non-nil, update file as a journal entry."
 			     ,(prin1-to-string tags) ,mtime ,hash]))
 			;; Insert tags
 			(cl-loop for tag in tags
-				 do
-				 (ignore-errors
-				   (gnosis-nodes--insert-into 'node-tags `([,tag])))
-				 (gnosis-nodes--insert-into 'node-tag `([,id ,tag])))
+				 do (gnosis-nodes--insert-into 'node-tag `([,id ,tag])))
 			;; Insert master relationship as link (nodes only)
 			(when (and (not journal)
 				   (plist-get item :master)
@@ -161,11 +164,6 @@ If JOURNAL is non-nil, update file as a journal entry."
 		      (gnosis-nodes--delete 'journal `(= id ,node))
 		    (gnosis-nodes--delete 'nodes `(= id ,node)))))))
 
-(defun gnosis-nodes-tags--cleanup-orphaned ()
-  "Remove orphaned tags that have no associated nodes."
-  (gnosis-sqlite-execute (gnosis--ensure-db)
-    "DELETE FROM node_tags WHERE tag NOT IN (SELECT DISTINCT tag FROM node_tag)"))
-
 (defun gnosis-nodes-update-file (&optional file)
   "Update contents of FILE in database.
 Removes all contents of FILE in database, adding them anew."
@@ -175,9 +173,7 @@ Removes all contents of FILE in database, adding them anew."
     (gnosis-nodes--update-file file journal-p)
     ;; Update todos
     (when (and journal-p file)
-      (gnosis-journal--update-todos file))
-    ;; Cleanup orphaned tags
-    (gnosis-nodes-tags--cleanup-orphaned)))
+      (gnosis-journal--update-todos file))))
 
 ;;;###autoload
 (defun gnosis-nodes-delete-file (&optional file)
@@ -293,7 +289,7 @@ Uses the node-tag junction table for proper querying."
   (interactive)
   (let* ((tag (or tag (funcall gnosis-nodes-completing-read-func
 			       "Select tag: "
-			       (gnosis-nodes-select 'tag 'node-tags nil t))))
+			       (gnosis-nodes--all-tags))))
 	 (nodes-ids (gnosis-nodes--nodes-by-tag tag))
 	 (node-titles (gnosis-nodes-select 'title 'nodes `(in id ,(vconcat nodes-ids)) t))
 	 (node (completing-read "Select node: " node-titles nil t)))
@@ -363,7 +359,7 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
 (defun gnosis-nodes-insert-filetag (&optional tag)
   "Insert TAG as filetag."
   (interactive)
-  (let* ((filetags (gnosis-nodes-select 'tag 'node-tags nil t))
+  (let* ((filetags (gnosis-nodes--all-tags))
          (tag (or tag (funcall gnosis-nodes-completing-read-func "Select tag: " filetags))))
     (save-excursion
       (if (org-at-heading-p)
@@ -383,7 +379,7 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
   (interactive
    (list (completing-read-multiple
 	  "Select tags (separated by ,): "
-	  (gnosis-nodes-select 'tag 'node-tags nil t))))
+	  (gnosis-nodes--all-tags))))
   (let ((id (gnosis-org-get-id)))
     (org-id-goto id)
     (if (org-current-level)
@@ -503,7 +499,7 @@ When FORCE, update all files.  Otherwise, only update changed files."
 
 (defun gnosis-nodes--purge-tables ()
   "Delete all rows from node and journal tables for full rebuild."
-  (dolist (table '(nodes journal node-links node-tag node-tags))
+  (dolist (table '(nodes journal node-links node-tag))
     (gnosis--delete table)))
 
 ;;;###autoload

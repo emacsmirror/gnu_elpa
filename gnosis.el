@@ -207,7 +207,7 @@ Creates `gnosis-dir' and runs schema initialization on first use."
   "Change this to non-nil when running manual tests.")
 
 
-(defconst gnosis-db-version 5
+(defconst gnosis-db-version 6
   "Gnosis database version.")
 
 (defvar gnosis-thema-types
@@ -1672,7 +1672,13 @@ Used by migrations that run before the thema-tag junction table exists."
   (gnosis--db-set-version 4))
 
 (defun gnosis-db--migrate-v5 ()
-  "Migration v5: merge org-gnosis tables, rename links/tags."
+  "Migration v5: rename notes table to themata."
+  (ignore-errors
+    (gnosis-sqlite-execute (gnosis--ensure-db) "ALTER TABLE notes RENAME TO themata"))
+  (gnosis--db-set-version 5))
+
+(defun gnosis-db--migrate-v6 ()
+  "Migration v6: merge org-gnosis tables, rename links/tags."
   (let ((db (gnosis--ensure-db)))
     ;; 0. Move deck names into thema tags, then drop decks
     (ignore-errors
@@ -1746,14 +1752,15 @@ Used by migrations that run before the thema-tag junction table exists."
             "INSERT OR IGNORE INTO node_links SELECT * FROM org_gnosis.links"))
         (gnosis-sqlite-execute db "DETACH DATABASE org_gnosis")
         (message "Imported org-gnosis data into unified database"))))
-  (gnosis--db-set-version 5))
+  (gnosis--db-set-version 6))
 
 (defconst gnosis-db--migrations
   `((1 . gnosis-db--migrate-v1)
     (2 . gnosis-db--migrate-v2)
     (3 . gnosis-db--migrate-v3)
     (4 . gnosis-db--migrate-v4)
-    (5 . gnosis-db--migrate-v5))
+    (5 . gnosis-db--migrate-v5)
+    (6 . gnosis-db--migrate-v6))
   "Alist of (VERSION . FUNCTION).
 Each migration brings the DB from VERSION-1 to VERSION.")
 

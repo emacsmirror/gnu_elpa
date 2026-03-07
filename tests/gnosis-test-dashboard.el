@@ -44,14 +44,6 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode."
   "Insert a link from THEMA-ID to NODE-ID string."
   (gnosis--insert-into 'thema-links `([,thema-id ,node-id])))
 
-(defun gnosis-test--setup-tags ()
-  "Populate tags table from existing themata in test DB."
-  (let ((tags (gnosis-get-tags--unique)))
-    (gnosis-sqlite-with-transaction gnosis-db
-      (cl-loop for tag in tags
-               do (condition-case nil
-                      (gnosis--insert-into 'thema-tags `[,tag])
-                    (error nil))))))
 
 ;; ──────────────────────────────────────────────────────────
 ;; Pure function tests
@@ -324,7 +316,7 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode."
     (let ((deck-id (gnosis-test--add-deck "test-deck")))
       (gnosis-test--add-basic-thema deck-id "Q1" "A1" '("math"))
       (gnosis-test--add-basic-thema deck-id "Q2" "A2" '("geo"))
-      (gnosis-test--setup-tags)
+
       (gnosis-test-with-dashboard-buffer
         (gnosis-dashboard-output-tags)
         (with-current-buffer gnosis-dashboard-buffer-name
@@ -342,7 +334,7 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode."
   (gnosis-test-with-db
     (let* ((deck-id (gnosis-test--add-deck "test-deck"))
            (id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1" '("math"))))
-      (gnosis-test--setup-tags)
+
       (gnosis-test-with-dashboard-buffer
         ;; Start in themata mode
         (gnosis-dashboard-output-themata (list id1))
@@ -472,7 +464,7 @@ Binds `gnosis-nodes-dir' to the temp directory."
     (let ((deck-id (gnosis-test--add-deck "test-deck")))
       (gnosis-test--add-basic-thema deck-id "Q1" "A1" '("math"))
       (gnosis-test--add-basic-thema deck-id "Q2" "A2" '("geo"))
-      (gnosis-test--setup-tags)
+
       (gnosis-test-with-dashboard-buffer
         (gnosis-dashboard-output-tags)
         (with-current-buffer gnosis-dashboard-buffer-name

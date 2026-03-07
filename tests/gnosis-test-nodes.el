@@ -168,10 +168,7 @@ Content with [[id:other-node][a link]].
             '(["n1" "test.org" "Title" 0 "nil" "0" "abc"]))
           (gnosis--insert-into 'journal
             '(["j1" "journal.org" "Entry" 1 "nil" "0" "def"]))
-          (ignore-errors
-            (gnosis--insert-into 'node-tags '(["tag1"])))
-          (ignore-errors
-            (gnosis--insert-into 'node-tag '(["n1" "tag1"])))
+          (gnosis--insert-into 'node-tag '(["n1" "tag1"]))
           ;; Verify data exists
           (should (= 1 (length (gnosis-nodes-select '* 'nodes nil))))
           (should (= 1 (length (gnosis-nodes-select '* 'journal nil))))
@@ -180,7 +177,6 @@ Content with [[id:other-node][a link]].
           ;; All empty
           (should (null (gnosis-nodes-select '* 'nodes nil)))
           (should (null (gnosis-nodes-select '* 'journal nil)))
-          (should (null (gnosis-nodes-select '* 'node-tags nil)))
           (should (null (gnosis-nodes-select '* 'node-tag nil)))))
     (gnosis-test-nodes--teardown-dirs)))
 

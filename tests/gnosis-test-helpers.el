@@ -67,7 +67,9 @@ SUSPEND: 1 to suspend, 0 or nil for active."
       (gnosis--insert-into 'review-log `([,id ,(gnosis-algorithm-date)
                                               ,(gnosis-algorithm-date) 0 0 0 0
                                               ,suspend 0]))
-      (gnosis--insert-into 'extras `([,id ,parathema ""])))
+      (gnosis--insert-into 'extras `([,id ,parathema ""]))
+      (cl-loop for tag in tags
+	       do (gnosis--insert-into 'thema-tag `([,id ,tag]))))
     id))
 
 (provide 'gnosis-test-helpers)

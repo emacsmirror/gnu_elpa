@@ -291,10 +291,10 @@ Value is pre-encoded (prin1-to-string) in the compiler."
 ;;; ---- Group 6: Values compiler ----
 
 (ert-deftest gnosis-test-sqlite-values-single-vector ()
-  "Single vector compiles to (?, ?, ?)."
+  "Single vector compiles to (?, ?, ?) with encoded params."
   (let ((result (gnosis-sqlite--compile-values [1 "hello" nil])))
     (should (equal (car result) "(?, ?, ?)"))
-    (should (equal (cdr result) '(1 "hello" nil)))))
+    (should (equal (cdr result) '(1 "\"hello\"" nil)))))
 
 ;;; ---- Group 7: Integration tests ----
 

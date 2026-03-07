@@ -719,7 +719,7 @@ When DUE-P, pass it to the review function."
 (defun gnosis-review--select-topic ()
   "Prompt for topic and return its id."
   (let* ((topic-title (gnosis-completing-read "Select topic: "
-					      (gnosis-select 'title 'nodes)))
+					      (gnosis-select 'title 'nodes nil t)))
 	 (topic-id (caar (gnosis-select 'id 'nodes `(= title ,topic-title)))))
     topic-id))
 
@@ -772,16 +772,16 @@ With prefix arg, prompt for depths."
 		     (list node-id)))
 	 (gnosis-questions (gnosis-select 'source 'thema-links
 					  `(in dest ,(vconcat node-ids)) t)))
-    (if (and gnosis-questions
-	     (y-or-n-p
-	      (format "Review %s thema(s) for '%s'%s?"
-		      (length gnosis-questions) node-title
-		      (if (> (length node-ids) 1)
-			  (format " (%d nodes, fwd:%d back:%d)"
-				  (length node-ids) fwd-depth back-depth)
-			""))))
-	(gnosis-review-session gnosis-questions)
-      (message "No thema found for %s (id:%s)" node-title node-id))))
+    (if (null gnosis-questions)
+	(message "No thema found for %s (id:%s)" node-title node-id)
+      (when (y-or-n-p
+	     (format "Review %s thema(s) for '%s'%s?"
+		     (length gnosis-questions) node-title
+		     (if (> (length node-ids) 1)
+			 (format " (%d nodes, fwd:%d back:%d)"
+				 (length node-ids) fwd-depth back-depth)
+		       "")))
+	(gnosis-review-session gnosis-questions)))))
 
 (provide 'gnosis-review)
 ;;; gnosis-review.el ends here

@@ -796,6 +796,7 @@ GEN: load generation — no-op if stale."
     (setq tabulated-list-format [("Name" 35 t)
                                  ("Total Themata" 10 gnosis-dashboard-sort-total-themata)])
     (tabulated-list-init-header)
+    (setq-local gnosis-dashboard--base-header-line header-line-format)
     (setq tabulated-list-entries
           (cl-loop for tag in tags
                    for output = (gnosis-dashboard-output-tag tag)

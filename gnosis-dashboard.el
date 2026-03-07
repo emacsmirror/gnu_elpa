@@ -101,7 +101,7 @@ or `gnosis-dashboard-rebuild-cache'.")
 (defvar gnosis-dashboard--view-history nil
   "Stack of previous dashboard views for cross-mode navigation.
 Each entry is a function to restore that view
- (e.g. `gnosis-dashboard-output-decks').")
+ (e.g. `gnosis-dashboard-output-tags').")
 
 (defvar gnosis-dashboard-themata-current-ids nil
   "Current list of thema IDs being displayed.")
@@ -190,8 +190,6 @@ Safe to call multiple times; always rebuilds from the base header."
 	 (ids (plist-get current-values :ids)))
     (cond ((eq type 'themata)
 	   (gnosis-dashboard-output-themata ids))
-	  ((eq type 'decks)
-	   (gnosis-dashboard-output-decks))
 	  ((eq type 'tags)
 	   (gnosis-dashboard-output-tags))
 	  ((eq type 'history)
@@ -317,7 +315,7 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
          gnosis-dashboard-themata-mode
          gnosis-dashboard-nodes-history)
     (gnosis-dashboard-nodes-back))
-   ;; If view history exists, go back to previous view (decks, tags, etc.)
+   ;; If view history exists, go back to previous view (tags, etc.)
    (gnosis-dashboard--view-history
     (funcall (pop gnosis-dashboard--view-history)))
    ;; Otherwise go to main dashboard
@@ -659,7 +657,6 @@ GEN: load generation — no-op if stale."
   (gnosis-dashboard-enable-mode)
   ;; Disable other dashboard modes
   (gnosis-dashboard-nodes-mode -1)
-  (gnosis-dashboard-decks-mode -1)
   (gnosis-dashboard-tags-mode -1)
   ;; Enable themata mode
   (gnosis-dashboard-themata-mode 1)
@@ -693,11 +690,6 @@ GEN: load generation — no-op if stale."
     (goto-char (point-min)))
   (gnosis-dashboard--set-header-line (length thema-ids)))
 
-(defun gnosis-dashboard-deck-thema-count (id)
-  "Return total thema count for deck with ID."
-  (let ((thema-count (length (gnosis-select 'id 'themata `(= deck-id ,id) t))))
-    (when (gnosis-select 'id 'decks `(= id ,id))
-      (list (number-to-string thema-count)))))
 
 (defun gnosis-dashboard-output-tag (tag)
   "Output TAG name and total themata."
@@ -734,13 +726,6 @@ GEN: load generation — no-op if stale."
       (gnosis-dashboard-output-tags))))
 
 
-(defun gnosis-dashboard-rename-deck (&optional deck-id new-name)
-  "Rename deck where DECK-ID with NEW-NAME."
-  (interactive)
-  (let ((deck-id (or deck-id (string-to-number (tabulated-list-get-id))))
-	(new-name (or new-name (read-string "New deck name: "))))
-    (gnosis-update 'decks `(= name ,new-name) `(= id ,deck-id))
-    (gnosis-dashboard-output-decks)))
 
 (defun gnosis-dashboard-suspend-tag (&optional tag)
   "Suspend themata of TAG."
@@ -805,7 +790,6 @@ GEN: load generation — no-op if stale."
     ;; Disable other dashboard modes
     (gnosis-dashboard-themata-mode -1)
     (gnosis-dashboard-nodes-mode -1)
-    (gnosis-dashboard-decks-mode -1)
     ;; Enable tags mode
     (gnosis-dashboard-tags-mode 1)
     (setf gnosis-dashboard--current '(:type tags))
@@ -820,98 +804,6 @@ GEN: load generation — no-op if stale."
     (tabulated-list-print t)
     (gnosis-dashboard--set-header-line (length tabulated-list-entries))))
 
-(defun gnosis-dashboard-output-deck (id)
-  "Output contents from deck ID, formatted for gnosis dashboard."
-  (let* ((deck-name (gnosis-select 'name 'decks `(= id ,id) t))
-         (thema-count (gnosis-dashboard-deck-thema-count id))
-         (combined-data (append deck-name (mapcar #'string-to-number thema-count))))
-    (mapcar (lambda (item) (format "%s" item))
-            (seq-filter (lambda (item)
-                         (not (and (vectorp item) (seq-empty-p item))))
-                       combined-data))))
-
-(transient-define-prefix gnosis-dashboard-decks-mode-menu ()
-  "Transient menu for decks dashboard mode."
-  [["Navigate"
-    ("RET" "View deck" gnosis-dashboard-decks-view-deck)
-    ("q" "Back to dashboard" gnosis-dashboard)]
-   ["Edit"
-    ("e" "Rename deck" gnosis-dashboard-rename-deck :transient t)
-    ("r" "Rename deck" gnosis-dashboard-rename-deck :transient t)
-    ("a" "Add deck" gnosis-dashboard-decks-add :transient t)
-    ("s" "Suspend deck" gnosis-dashboard-decks-suspend-deck :transient t)
-    ("d" "Delete deck" gnosis-dashboard-decks-delete :transient t)]])
-
-(defvar-keymap gnosis-dashboard-decks-mode-map
-  "?" #'gnosis-dashboard-decks-mode-menu
-  "h" #'gnosis-dashboard-decks-mode-menu
-  "e" #'gnosis-dashboard-rename-deck
-  "r" #'gnosis-dashboard-rename-deck
-  "q" #'gnosis-dashboard
-  "a" #'gnosis-dashboard-decks-add
-  "s" #'gnosis-dashboard-decks-suspend-deck
-  "d" #'gnosis-dashboard-decks-delete
-  "RET" #'gnosis-dashboard-decks-view-deck)
-
-(define-minor-mode gnosis-dashboard-decks-mode
-  "Minor mode for deck output."
-  :keymap gnosis-dashboard-decks-mode-map)
-
-(defun gnosis-dashboard-output-decks ()
-  "Return deck contents for gnosis dashboard."
-  (pop-to-buffer-same-window gnosis-dashboard-buffer-name)
-  (gnosis-dashboard-enable-mode)
-  ;; Disable other dashboard modes
-  (gnosis-dashboard-themata-mode -1)
-  (gnosis-dashboard-nodes-mode -1)
-  (gnosis-dashboard-tags-mode -1)
-  ;; Enable decks mode
-  (gnosis-dashboard-decks-mode 1)
-  (setq tabulated-list-format [("Name" 15 t)
-			       ("Total Themata" 10 gnosis-dashboard-sort-total-themata)])
-  (tabulated-list-init-header)
-  (setq tabulated-list-entries
-	(cl-loop for id in (gnosis-select 'id 'decks nil t)
-		 for output = (gnosis-dashboard-output-deck id)
-		 when output
-		 collect (list (number-to-string id) (vconcat output))))
-  (tabulated-list-print t)
-  (gnosis-dashboard--set-header-line (length tabulated-list-entries))
-  (setf gnosis-dashboard--current `(:type decks :ids ,(gnosis-select 'id 'decks nil t))))
-
-(defun gnosis-dashboard-decks-add ()
-  "Add deck & refresh."
-  (interactive)
-  (gnosis-add-deck (read-string "Deck name: "))
-  (gnosis-dashboard-output-decks)
-  (revert-buffer t t t))
-
-(defun gnosis-dashboard-decks-suspend-deck (&optional deck-id)
-  "Suspend themata for DECK-ID.
-
-When called with a prefix, unsuspend all themata of deck."
-  (interactive)
-  (let ((deck-id (or deck-id (string-to-number (tabulated-list-get-id)))))
-    (gnosis-suspend-deck deck-id)
-    (gnosis-dashboard-output-decks)
-    (revert-buffer t t t)))
-
-(defun gnosis-dashboard-decks-delete (&optional deck-id)
-  "Delete DECK-ID."
-  (interactive)
-  (let ((deck-id (or deck-id (string-to-number (tabulated-list-get-id)))))
-    (gnosis-delete-deck deck-id)
-    (gnosis-dashboard-output-decks)
-    (revert-buffer t t t)))
-
-(defun gnosis-dashboard-decks-view-deck (&optional deck-id)
-  "View themata of DECK-ID."
-  (interactive)
-  (let ((deck-id (or deck-id (string-to-number (tabulated-list-get-id)))))
-    ;; Clear history for fresh start from decks
-    (setq gnosis-dashboard-themata-history nil)
-    (push #'gnosis-dashboard-output-decks gnosis-dashboard--view-history)
-    (gnosis-dashboard-output-themata (gnosis-collect-thema-ids :deck deck-id))))
 
 (defun gnosis-dashboard-history (&optional history)
   "Display review HISTORY."
@@ -955,13 +847,11 @@ When called with a prefix, unsuspend all themata of deck."
   ;; Navigate
   "n" #'gnosis-dashboard-menu-nodes
   "t" #'gnosis-dashboard-menu-themata
-  "D" #'gnosis-dashboard-output-decks
   ;; Sort (override tabulated-list-sort with fast version)
   "S" #'gnosis-tl-sort
   ;; Actions
   "r" #'gnosis-review
   "a" #'gnosis-add-thema
-  "d" #'gnosis-add-deck
   "SPC" #'gnosis-dashboard-search-thema
   "q" #'quit-window)
 
@@ -1095,8 +985,6 @@ When called with a prefix, unsuspend all themata of deck."
                                    gnosis-dashboard--view-history nil)
                              (gnosis-dashboard-output-themata (gnosis-collect-thema-ids))))
     ("SPC" "Search themata" gnosis-dashboard-suffix-query)
-    ("d" "View by decks" (lambda () (interactive)
-                          (gnosis-dashboard-output-decks)))
     ("t" "View by tags" (lambda () (interactive)
                          (gnosis-dashboard-output-tags)))
     ("n" "View new" gnosis-dashboard-themata-show-new)
@@ -1108,17 +996,15 @@ When called with a prefix, unsuspend all themata of deck."
   [["Navigate"
     ("n" "Nodes" gnosis-dashboard-menu-nodes)
     ("t" "Themata" gnosis-dashboard-menu-themata)
-    ("D" "Decks" (lambda () (interactive) (gnosis-dashboard-output-decks)))
     ("q" "Quit" quit-window)]
    ["Actions"
     ("r" "Review" gnosis-review)
     ("a" "Add thema" gnosis-add-thema)
-    ("d" "Add deck" gnosis-add-deck)
     ("m" "Monkeytype" gnosis-monkeytype-start)
     ("h" "History" gnosis-dashboard-history)]
    ["Import/Export"
-    ("e" "Export deck" gnosis-export-deck)
-    ("i" "Import deck" gnosis-import-deck)]
+    ("e" "Export themata" gnosis-export-themata-to-file)
+    ("i" "Import file" gnosis-import-file)]
    ["Maintenance"
     ("s" "Sync nodes" gnosis-nodes-db-sync)
     ("S" "Rebuild nodes" (lambda () (interactive) (gnosis-nodes-db-sync t)))
@@ -1568,7 +1454,6 @@ Shows title, link count, backlink count, and themata links count."
   (gnosis-dashboard-enable-mode)
   ;; Disable other dashboard modes
   (gnosis-dashboard-themata-mode -1)
-  (gnosis-dashboard-decks-mode -1)
   (gnosis-dashboard-tags-mode -1)
   ;; Enable nodes mode
   (gnosis-dashboard-nodes-mode 1)

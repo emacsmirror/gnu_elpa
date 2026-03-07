@@ -408,11 +408,14 @@ When VERIFICATION is non-nil, skip `y-or-n-p' prompt."
 (defun gnosis-completing-read (prompt seq &optional require-match)
   "Call `gnosis-completing-read-function' with shuffled SEQ.
 
-PROMPT: Prompt for `gnosis-completing-read-function'
+PROMPT: Prompt for `gnosis-completing-read-function'.
+REQUIRE-MATCH: When non-nil, user must select from SEQ.
 History is disabled."
-  (let ((history-add-new-input nil))
-    (funcall gnosis-completing-read-function prompt
-	     (gnosis-shuffle (copy-sequence seq)) nil require-match)))
+  (let ((history-add-new-input nil)
+	(collection (gnosis-shuffle (copy-sequence seq))))
+    (if require-match
+	(completing-read prompt collection nil t)
+      (funcall gnosis-completing-read-function prompt collection))))
 
 (defun gnosis-insert-separator ()
   "Insert a dashed line separator.

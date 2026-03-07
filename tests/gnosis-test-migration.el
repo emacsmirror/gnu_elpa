@@ -6,7 +6,7 @@
 
 ;;; Commentary:
 
-;; Tests for the complete migration chain v1 -> v2 -> v3 -> v4 -> v5.
+;; Tests for the complete migration chain v1 -> v2 -> v3 -> v4 -> v5 -> v6.
 ;; One chain test exercises the full sequence; edge-case tests isolate
 ;; specific migration steps.
 
@@ -268,8 +268,8 @@ tags and links tables, extras with parathema/review_image."
 
 ;;; ---- Group 2: Full chain test ----
 
-(ert-deftest gnosis-test-migrate-v1-to-v5-chain ()
-  "Sequential migration chain: v1 -> v2 -> v3 -> v4 -> v5 on one DB."
+(ert-deftest gnosis-test-migrate-v1-to-v6-chain ()
+  "Sequential migration chain: v1 -> v2 -> v3 -> v4 -> v5 -> v6 on one DB."
   (gnosis-test-with-v1-db
     (gnosis-test--populate-v1-data)
 
@@ -353,6 +353,12 @@ tags and links tables, extras with parathema/review_image."
     ;; -- v4 -> v5 --
     (gnosis-db--migrate-v5)
     (should (= 5 (gnosis--db-version)))
+    ;; Table is already themata (v4 renamed it), v5 is idempotent
+    (should (= 4 (length (gnosis-sqlite-select gnosis-db "SELECT id FROM themata"))))
+
+    ;; -- v5 -> v6 --
+    (gnosis-db--migrate-v6)
+    (should (= 6 (gnosis--db-version)))
     ;; Deck names became tags
     (let* ((tags (caar (gnosis-sqlite-select gnosis-db
                          "SELECT tags FROM themata WHERE id = 1"))))
@@ -493,16 +499,94 @@ tags and links tables, extras with parathema/review_image."
     (gnosis-db--migrate-v3)
     (gnosis-db--migrate-v4)
     (gnosis-db--migrate-v5)
-    (should (= 5 (gnosis--db-version)))))
+    (gnosis-db--migrate-v6)
+    (should (= 6 (gnosis--db-version)))))
+
+(ert-deftest gnosis-test-migrate-v4-populated-to-v6 ()
+  "PRAGMA 4 DB with data: v5 is no-op, v6 migrates decks/tags/nodes."
+  (gnosis-test-with-v4-db
+    ;; Two decks
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO decks (id, name) VALUES (?, ?)" '(1 "Greek"))
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO decks (id, name) VALUES (?, ?)" '(2 "Latin"))
+    ;; Two themata across decks, with tags
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO themata (id, type, keimenon, hypothesis, answer, tags, deck_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)"
+      '(1 "basic" "What is logos?" ("") ("reason") ("philosophy") 1))
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO themata (id, type, keimenon, hypothesis, answer, tags, deck_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)"
+      '(2 "cloze" "repetitio est mater *memoriae*" ("") ("memoriae") ("proverbs") 2))
+    ;; Tags table
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT OR IGNORE INTO tags (tag) VALUES (?)" '("philosophy"))
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT OR IGNORE INTO tags (tag) VALUES (?)" '("proverbs"))
+    ;; Links table (one thema linked to a node)
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO links (source, dest) VALUES (?, ?)" '(1 "node-uuid-1"))
+    ;; Review data
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO review (id, gnosis, amnesia) VALUES (?, ?, ?)"
+      '(1 (2 1 1.5) 0.5))
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO review (id, gnosis, amnesia) VALUES (?, ?, ?)"
+      '(2 (1 1 1.3) 0.5))
+    ;; Review log
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO review_log (id, last_rev, next_rev, c_success, t_success,
+                               c_fails, t_fails, suspend, n)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      '(1 20250101 20250115 5 10 0 1 0 11))
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO review_log (id, last_rev, next_rev, c_success, t_success,
+                               c_fails, t_fails, suspend, n)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      '(2 20250102 20250110 2 3 1 2 0 5))
+
+    ;; -- v5: no-op (table is already themata) --
+    (gnosis-db--migrate-v5)
+    (should (= 5 (gnosis--db-version)))
+    (should (= 2 (length (gnosis-sqlite-select gnosis-db "SELECT id FROM themata"))))
+
+    ;; -- v6: deck->tag, junction table, node tables --
+    (gnosis-db--migrate-v6)
+    (should (= 6 (gnosis--db-version)))
+    ;; Deck names merged into tags
+    (let ((tags (caar (gnosis-sqlite-select gnosis-db
+                        "SELECT tags FROM themata WHERE id = 1"))))
+      (should (member "Greek" tags))
+      (should (member "philosophy" tags)))
+    (let ((tags (caar (gnosis-sqlite-select gnosis-db
+                        "SELECT tags FROM themata WHERE id = 2"))))
+      (should (member "Latin" tags))
+      (should (member "proverbs" tags)))
+    ;; Decks table gone
+    (should-error (gnosis-sqlite-select gnosis-db "SELECT * FROM decks"))
+    ;; links -> thema_links, old table gone
+    (should (= 1 (length (gnosis-sqlite-select gnosis-db "SELECT * FROM thema_links"))))
+    (should-error (gnosis-sqlite-select gnosis-db "SELECT * FROM links"))
+    ;; thema_tag junction populated (philosophy, Greek, proverbs, Latin)
+    (should (= 4 (caar (gnosis-sqlite-select gnosis-db "SELECT COUNT(*) FROM thema_tag"))))
+    ;; Node tables created (empty)
+    (dolist (table '("nodes" "journal" "node_tag" "node_links"))
+      (should (= 0 (length (gnosis-sqlite-select gnosis-db
+                              (format "SELECT * FROM %s" table))))))
+    ;; Review data survived
+    (should (= 2 (length (gnosis-sqlite-select gnosis-db "SELECT id FROM review"))))
+    (should (= 2 (length (gnosis-sqlite-select gnosis-db "SELECT id FROM review_log"))))))
 
 (ert-deftest gnosis-test-migrate-deck-with-no-themata ()
-  "Deck with no referencing themata is dropped cleanly by v5 migration."
+  "Deck with no referencing themata is dropped cleanly by v6 migration."
   (gnosis-test-with-v4-db
     ;; Insert a deck but no themata referencing it
     (gnosis-sqlite-execute gnosis-db
       "INSERT INTO decks (id, name) VALUES (?, ?)" '(1 "OrphanDeck"))
     (gnosis-db--migrate-v5)
-    (should (= 5 (gnosis--db-version)))
+    (gnosis-db--migrate-v6)
+    (should (= 6 (gnosis--db-version)))
     ;; Deck table is gone
     (should-error (gnosis-sqlite-select gnosis-db "SELECT * FROM decks"))))
 

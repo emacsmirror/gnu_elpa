@@ -780,7 +780,9 @@ previous state on exit."
 
 (defun gnosis-get-tags--unique ()
   "Return a list of unique strings for tags in `gnosis-db'."
-  (gnosis-select 'tag 'thema-tag nil t))
+  (mapcar #'car
+	  (gnosis-sqlite-select (gnosis--ensure-db)
+	    "SELECT DISTINCT tag FROM thema_tag")))
 
 (defun gnosis-collect-tag-thema-ids (tags &optional ids)
   "Collect thema IDS for TAGS."

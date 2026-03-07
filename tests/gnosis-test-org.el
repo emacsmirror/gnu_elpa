@@ -77,6 +77,16 @@
     (should-not (string-match-p "#" name))
     (should (string-match-p "My_Title" name))))
 
+(ert-deftest gnosis-test-org-create-name-nil-timestring ()
+  "Nil timestring produces title-only filename without prefix."
+  (let ((name (gnosis-org--create-name "My Title" nil nil nil nil)))
+    (should (string= "My_Title.org" name))))
+
+(ert-deftest gnosis-test-org-create-name-nil-timestring-gpg ()
+  "Nil timestring with GPG still appends .gpg suffix."
+  (let ((name (gnosis-org--create-name "Test" nil t nil nil)))
+    (should (string= "Test.org.gpg" name))))
+
 ;;; ---- Group 4: gnosis-org-get-filetags ----
 
 (ert-deftest gnosis-test-org-get-filetags-present ()

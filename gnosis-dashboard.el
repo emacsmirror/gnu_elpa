@@ -1242,7 +1242,7 @@ Only searches within currently displayed nodes."
 (defun gnosis-dashboard-nodes--search-files (query &optional node-ids)
   "Search org files in `gnosis-nodes-dir' for QUERY, return matching node IDs.
 When NODE-IDS is non-nil, only search files whose node ID is in that list."
-  (let ((files (directory-files gnosis-nodes-dir t "^[0-9].*\\.org$"))
+  (let ((files (directory-files gnosis-nodes-dir t "\\.org\\(?:\\.gpg\\)?$"))
         (matching-ids '()))
     (dolist (file files)
       (when (file-regular-p file)

@@ -273,8 +273,7 @@ When FORCE, update all files.  Otherwise, only update changed files."
   (let* ((journal-dir (gnosis-journal--dir))
 	 (journal-files (cl-remove-if-not
                          (lambda (file)
-                           (and (string-match-p "^[0-9]"
-                                                (file-name-nondirectory file))
+                           (and (string-match-p "\\.org\\(?:\\.gpg\\)?$" file)
                                 (not (file-directory-p file))))
                          (directory-files journal-dir t nil t)))
          (all-files (if (and gnosis-journal-file

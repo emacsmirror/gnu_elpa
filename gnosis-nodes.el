@@ -54,8 +54,18 @@
   :type 'boolean)
 
 (defcustom gnosis-nodes-templates
-  '(("Default" (lambda () ""))
-    ("test" (lambda () "" "\n{*} insert this")))
+  '(("Empty" (lambda () ""))
+    ("Annotated" (lambda ()
+		   (concat "{*} Summary\n\n"
+			   "{*} Notes\n\n"
+			   "{*} References\n")))
+    ("Reading" (lambda ()
+		 (let ((author (read-string "Author: ")))
+		   (concat "{*} Key Ideas\n\n"
+			   "{*} Quotes\n\n"
+			   "{*} Notes\n"
+			   (unless (string-empty-p author)
+			     (format "\nAuthor: %s\n" author)))))))
   "Templates for nodes.
 Template functions return strings.  Use \"{*}\" as a heading
 placeholder; it will be expanded to org heading stars relative to

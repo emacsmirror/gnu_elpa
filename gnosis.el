@@ -781,15 +781,17 @@ Replace dashes (-) to underscores (_) for NEW-TAG, as org currently
 does not accept heading tags with dashes."
   (let ((new-tag (or new-tag
 		     (replace-regexp-in-string
-		      "-" "_" (read-string "New tag name: ")))))
-    ;; Update junction table
-    (gnosis-sqlite-execute (gnosis--ensure-db)
-      "UPDATE thema_tag SET tag = ? WHERE tag = ?" (list new-tag tag))
-    ;; Update serialized column for display/export
-    (cl-loop for thema in (gnosis-get-tag-themata new-tag)
-	     do (let* ((tags (car (gnosis-select '[tags] 'themata `(= id ,thema) t)))
-		       (new-tags (cl-substitute new-tag tag tags :test #'string-equal)))
-		  (gnosis-update 'themata `(= tags ',new-tags) `(= id ,thema))))
+		      "-" "_" (read-string "New tag name: "))))
+	(db (gnosis--ensure-db)))
+    (gnosis-sqlite-with-transaction db
+      ;; Update serialized tags column (while junction table still has old tag)
+      (gnosis-sqlite-execute db
+	(concat "UPDATE themata SET tags = REPLACE(tags, ?, ?)"
+		" WHERE id IN (SELECT thema_id FROM thema_tag WHERE tag = ?)")
+	(list (format "\"%s\"" tag) (format "\"%s\"" new-tag) tag))
+      ;; Update junction table
+      (gnosis-sqlite-execute db
+	"UPDATE thema_tag SET tag = ? WHERE tag = ?" (list new-tag tag)))
     (message "Renamed tag '%s' to '%s'" tag new-tag)))
 
 ;; Links

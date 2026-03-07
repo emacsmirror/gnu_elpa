@@ -236,3 +236,7 @@ Results are cached in `isbn-hyphenation-ranges-cache'."
 (provide 'isbn)
 
 ;;; isbn.el ends here
+
+;; Local Variables:
+;; indent-tabs-mode: nil
+;; End:

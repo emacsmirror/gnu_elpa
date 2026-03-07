@@ -978,6 +978,15 @@ GEN: load generation — no-op if stale."
           (gnosis-dashboard-output-themata thema-ids))
       (message "No themata with orphaned links"))))
 
+(defun gnosis-dashboard-view-by-tags ()
+  "Prompt for tags and display matching themata."
+  (interactive)
+  (let* ((tags (gnosis-tags--prompt :prompt "Filter by tags: " :require-match t))
+	 (ids (gnosis-select-by-tag tags)))
+    (when ids
+      (push #'gnosis-dashboard-output-tags gnosis-dashboard--view-history)
+      (gnosis-dashboard-output-themata ids))))
+
 (transient-define-prefix gnosis-dashboard-menu-themata ()
   "Transient menu for themata operations."
   [["Themata"

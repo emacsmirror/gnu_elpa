@@ -45,11 +45,9 @@
 ;;; Review vars
 
 (defvar gnosis-review-types '("Due themata"
-			      "Due themata of deck"
 			      "Due themata of specified tag(s)"
 			      "Overdue themata"
 			      "Due themata (Without Overdue)"
-			      "All themata of deck"
 			      "All themata of tag(s)"))
 
 (defvar gnosis-review-themata nil
@@ -697,8 +695,6 @@ FN: Review function, defaults to `gnosis-review-session'"
     (pcase review-type
       ("Due themata"
        (funcall fn (gnosis-collect-thema-ids :due t) t))
-      ("Due themata of deck"
-       (funcall fn (gnosis-collect-thema-ids :due t :deck (gnosis--get-deck-id))))
       ("Due themata of specified tag(s)"
        (funcall fn (gnosis-collect-thema-ids :due t :tags t)))
       ("Overdue themata"
@@ -706,8 +702,6 @@ FN: Review function, defaults to `gnosis-review-session'"
       ("Due themata (Without Overdue)"
        (funcall fn (cl-set-difference (mapcar #'car (gnosis-review-get--due-themata))
 				      (gnosis-review-get-overdue-themata))))
-      ("All themata of deck"
-       (funcall fn (gnosis-collect-thema-ids :deck (gnosis--get-deck-id))))
       ("All themata of tag(s)"
        (funcall fn (gnosis-collect-thema-ids :tags t))))))
 

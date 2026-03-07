@@ -19,6 +19,7 @@ TEST_FILES := tests/gnosis-test-sqlite.el \
 	tests/gnosis-test-nodes.el \
 	tests/gnosis-test-review.el \
 	tests/gnosis-test-journal.el \
+	tests/gnosis-test-migration.el \
 
 all: doc
 

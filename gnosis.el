@@ -1577,69 +1577,122 @@ Used by migrations that run before the thema-tag junction table exists."
 	   finally return (delete-dups all-tags)))
 
 (defun gnosis-db--migrate-v2 ()
-  "Migration v2: column renames, tags/links tables, data conversions."
-  (let ((db (gnosis--ensure-db))
-	(tags (gnosis--migrate-get-tags-from-column)))
-    ;; Create tags and links tables with OLD names (v5 will rename them)
+  "Migration v2: add deck algorithm columns and activity log."
+  (let ((db (gnosis--ensure-db)))
+    (gnosis-sqlite-execute db "ALTER TABLE decks ADD COLUMN failure_factor FLOAT")
+    (gnosis-sqlite-execute db "ALTER TABLE decks ADD COLUMN ef_increase FLOAT")
+    (gnosis-sqlite-execute db "ALTER TABLE decks ADD COLUMN ef_decrease FLOAT")
+    (gnosis-sqlite-execute db "ALTER TABLE decks ADD COLUMN ef_threshold INTEGER")
+    (gnosis-sqlite-execute db "ALTER TABLE decks ADD COLUMN initial_interval TEXT")
+    (gnosis-sqlite-execute db
+      "CREATE TABLE IF NOT EXISTS activity_log (
+         date TEXT NOT NULL, reviewed_total INTEGER NOT NULL, reviewed_new INTEGER NOT NULL)"))
+  (gnosis--db-set-version 2))
+
+(defun gnosis-db--migrate-v3 ()
+  "Migration v3: drop deck columns, rename review columns."
+  (let ((db (gnosis--ensure-db)))
+    (gnosis-sqlite-execute db "ALTER TABLE decks DROP COLUMN failure_factor")
+    (gnosis-sqlite-execute db "ALTER TABLE decks DROP COLUMN ef_increase")
+    (gnosis-sqlite-execute db "ALTER TABLE decks DROP COLUMN ef_decrease")
+    (gnosis-sqlite-execute db "ALTER TABLE decks DROP COLUMN ef_threshold")
+    (gnosis-sqlite-execute db "ALTER TABLE decks DROP COLUMN initial_interval")
+    (gnosis-sqlite-execute db "ALTER TABLE review RENAME COLUMN ef TO gnosis")
+    (gnosis-sqlite-execute db "ALTER TABLE review RENAME COLUMN ff TO amnesia")
+    (gnosis-sqlite-execute db "ALTER TABLE review DROP COLUMN interval")
+    (gnosis-sqlite-execute db
+      "CREATE TABLE IF NOT EXISTS activity_log (
+         date TEXT NOT NULL, reviewed_total INTEGER NOT NULL, reviewed_new INTEGER NOT NULL)"))
+  (gnosis--db-set-version 3))
+
+(defun gnosis-db--migrate-v4 ()
+  "Migration v4: column renames, tags/links tables, data conversions."
+  (let ((db (gnosis--ensure-db)))
+    ;; 1. Rename notes -> themata (no-op if v1 already did it)
+    (ignore-errors
+      (gnosis-sqlite-execute db "ALTER TABLE notes RENAME TO themata"))
+    ;; 2. Create tags and links tables (v5 will rename them)
     (gnosis-sqlite-execute db
       "CREATE TABLE IF NOT EXISTS tags (tag text PRIMARY KEY, UNIQUE (tag))")
     (gnosis-sqlite-execute db
-      "CREATE TABLE IF NOT EXISTS links (source integer, dest text, FOREIGN KEY (source) REFERENCES themata (id) ON DELETE CASCADE, UNIQUE (source, dest))")
-    (cl-loop for tag in tags
-	     do (gnosis-sqlite-execute db "INSERT OR IGNORE INTO tags VALUES (?)" (list tag)))
-    ;; Column renames
+      "CREATE TABLE IF NOT EXISTS links (source integer, dest text,
+         FOREIGN KEY (source) REFERENCES themata (id) ON DELETE CASCADE,
+         UNIQUE (source, dest))")
+    ;; 3. Populate tags from serialized themata.tags column
+    (let ((tags (gnosis--migrate-get-tags-from-column)))
+      (cl-loop for tag in tags
+               do (gnosis-sqlite-execute db
+                    "INSERT OR IGNORE INTO tags VALUES (?)" (list tag))))
+    ;; 4. Column renames
     (gnosis-sqlite-execute db "ALTER TABLE themata RENAME COLUMN main TO keimenon")
     (gnosis-sqlite-execute db "ALTER TABLE themata RENAME COLUMN options TO hypothesis")
-    (gnosis-sqlite-execute db "ALTER TABLE extras RENAME COLUMN extra_themata TO parathema")
+    (gnosis-sqlite-execute db "ALTER TABLE extras RENAME COLUMN extra_notes TO parathema")
     (gnosis-sqlite-execute db "ALTER TABLE extras RENAME COLUMN images TO review_image")
     (gnosis-sqlite-execute db "ALTER TABLE extras DROP COLUMN extra_image")
-    ;; Make sure all hypothesis & answer values are lists
+    ;; 5. Make sure all hypothesis & answer values are lists
     (gnosis--migrate-make-list 'hypothesis)
     (gnosis--migrate-make-list 'answer)
-    ;; Fix MCQs
+    ;; 6. Fix MCQ integer answers
     (cl-loop for thema in (gnosis-select 'id 'themata '(= type "mcq") t)
-	     do (let* ((data (gnosis-select '[hypothesis answer] 'themata
-					    `(= id ,thema) t))
-		       (hypothesis (nth 0 data))
-		       (old-answer (car (nth 1 data)))
-		       (new-answer (when (integerp old-answer)
-				     (list (nth (- 1 old-answer) hypothesis)))))
-		  (when (integerp old-answer)
-		    (gnosis-update 'themata `(= answer ',new-answer)
-				   `(= id ,thema)))))
-    ;; Replace y-or-n with MCQ
+             do (let* ((data (gnosis-select '[hypothesis answer] 'themata
+                              `(= id ,thema) t))
+                       (hypothesis (nth 0 data))
+                       (old-answer (car (nth 1 data)))
+                       (new-answer (when (integerp old-answer)
+                                     (list (nth (1- old-answer) hypothesis)))))
+                  (when (integerp old-answer)
+                    (gnosis-update 'themata `(= answer ',new-answer)
+                                   `(= id ,thema)))))
+    ;; 7. Replace y-or-n with MCQ
     (cl-loop for thema in (gnosis-select 'id 'themata '(= type "y-or-n") t)
-	     do (let ((data (gnosis-select '[type hypothesis answer]
-					   'themata `(= id ,thema) t)))
-		  (when (string= (nth 0 data) "y-or-n")
-		    (gnosis-update 'themata '(= type "mcq") `(= id ,thema))
-		    (gnosis-update 'themata '(= hypothesis '("Yes" "No"))
-				   `(= id ,thema))
-		    (if (= (car (nth 2 data)) 121)
-			(gnosis-update 'themata '(= answer '("Yes"))
-				       `(= id ,thema))
-		      (gnosis-update 'themata '(= answer '("No"))
-				     `(= id ,thema))))))
-    ;; Replace - with _, org does not support tags with dash.
-    ;; Use direct SQL since table is still named 'tags' at this point.
-    (cl-loop for tag in (gnosis-get-tags--unique)
-	     if (string-match-p "-" tag)
-	     do (let ((new-tag (replace-regexp-in-string "-" "_" tag)))
-		  (cl-loop for thema in (gnosis-select 'id 'themata
-						       `(like tags ',(format "%%\"%s\"%%" tag)) t)
-			   do (let* ((tags-val (car (gnosis-select '[tags] 'themata `(= id ,thema) t)))
-				     (new-tags (cl-substitute new-tag tag tags-val :test #'string-equal)))
-				(gnosis-update 'themata `(= tags ',new-tags) `(= id ,thema))))
-		  ;; Refresh tags table (still named 'tags' at v2)
-		  (gnosis-sqlite-execute db "DELETE FROM tags")
-		  (cl-loop for tag-item in (gnosis--migrate-get-tags-from-column)
-			   do (gnosis-sqlite-execute db "INSERT OR IGNORE INTO tags VALUES (?)"
-						     (list tag-item))))))
-  (gnosis--db-set-version 2))
+             do (let ((data (gnosis-select '[type hypothesis answer]
+                              'themata `(= id ,thema) t)))
+                  (when (string= (nth 0 data) "y-or-n")
+                    (gnosis-update 'themata '(= type "mcq") `(= id ,thema))
+                    (gnosis-update 'themata '(= hypothesis '("Yes" "No"))
+                                   `(= id ,thema))
+                    (if (= (car (nth 2 data)) 121)
+                        (gnosis-update 'themata '(= answer '("Yes"))
+                                       `(= id ,thema))
+                      (gnosis-update 'themata '(= answer '("No"))
+                                     `(= id ,thema))))))
+    ;; 8. Replace - with _ in tags (org does not support tags with dash)
+    (cl-loop for tag in (gnosis--migrate-get-tags-from-column)
+             if (string-match-p "-" tag)
+             do (let ((new-tag (replace-regexp-in-string "-" "_" tag)))
+                  (cl-loop for thema in (gnosis-select 'id 'themata
+                                          `(like tags ',(format "%%\"%s\"%%" tag)) t)
+                           do (let* ((tags-val (car (gnosis-select '[tags] 'themata `(= id ,thema) t)))
+                                     (new-tags (cl-substitute new-tag tag tags-val :test #'string-equal)))
+                                (gnosis-update 'themata `(= tags ',new-tags) `(= id ,thema))))
+                  (gnosis-sqlite-execute db "DELETE FROM tags")
+                  (cl-loop for tag-item in (gnosis--migrate-get-tags-from-column)
+                           do (gnosis-sqlite-execute db "INSERT OR IGNORE INTO tags VALUES (?)"
+                                                     (list tag-item))))))
+  (gnosis--db-set-version 4))
 
 (defun gnosis-db--migrate-v5 ()
   "Migration v5: merge org-gnosis tables, rename links/tags."
   (let ((db (gnosis--ensure-db)))
+    ;; 0. Move deck names into thema tags, then drop decks
+    (ignore-errors
+      (let ((rows (gnosis-sqlite-select db
+                    "SELECT t.id, t.tags, d.name
+                     FROM themata t JOIN decks d ON t.deck_id = d.id")))
+        (dolist (row rows)
+          (let* ((thema-id (nth 0 row))
+                 (tags (nth 1 row))
+                 (deck-name (nth 2 row))
+                 (new-tags (if (listp tags)
+                               (append tags (list deck-name))
+                             (list tags deck-name))))
+            (gnosis-sqlite-execute db
+              "UPDATE themata SET tags = ? WHERE id = ?"
+              (list new-tags thema-id))))))
+    (ignore-errors
+      (gnosis-sqlite-execute db "ALTER TABLE themata DROP COLUMN deck_id"))
+    (ignore-errors
+      (gnosis-sqlite-execute db "DROP TABLE IF EXISTS decks"))
     ;; 1. Rename existing tables
     (gnosis-sqlite-execute db "ALTER TABLE links RENAME TO thema_links")
     (gnosis-sqlite-execute db "ALTER TABLE tags RENAME TO thema_tags")
@@ -1698,6 +1751,8 @@ Used by migrations that run before the thema-tag junction table exists."
 (defconst gnosis-db--migrations
   `((1 . gnosis-db--migrate-v1)
     (2 . gnosis-db--migrate-v2)
+    (3 . gnosis-db--migrate-v3)
+    (4 . gnosis-db--migrate-v4)
     (5 . gnosis-db--migrate-v5))
   "Alist of (VERSION . FUNCTION).
 Each migration brings the DB from VERSION-1 to VERSION.")

@@ -728,8 +728,8 @@ GEN: load generation — no-op if stale."
 	       do (let* ((tags (car (gnosis-select '[tags] 'themata `(= id ,thema) t)))
 			 (new-tags (remove tag tags)))
 		    (gnosis-update 'themata `(= tags ',new-tags) `(= id ,thema))))
-      ;; Update tags in database
-      (gnosis-tags-refresh)
+      ;; Delete from junction table
+      (gnosis--delete 'thema-tag `(= tag ,tag))
       ;; Output tags anew
       (gnosis-dashboard-output-tags))))
 
@@ -799,7 +799,6 @@ GEN: load generation — no-op if stale."
 
 (defun gnosis-dashboard-output-tags (&optional tags)
   "Format gnosis dashboard with output of TAGS."
-  (gnosis-tags-refresh) ;; Refresh tags
   (let ((tags (or tags (gnosis-get-tags--unique))))
     (pop-to-buffer-same-window gnosis-dashboard-buffer-name)
     (gnosis-dashboard-enable-mode)
@@ -1395,7 +1394,7 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
   "Search ALL nodes by TAG."
   (interactive
    (list (completing-read "Search nodes by tag: "
-                          (gnosis-select 'tag 'node-tags nil t)
+                          (gnosis-nodes--all-tags)
                           nil t)))
   (when (string-empty-p tag)
     (user-error "Tag cannot be empty"))
@@ -1411,7 +1410,7 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
   "Filter CURRENT nodes by TAG."
   (interactive
    (list (completing-read "Filter nodes by tag: "
-                          (gnosis-select 'tag 'node-tags nil t)
+                          (gnosis-nodes--all-tags)
                           nil t)))
   (unless gnosis-dashboard-nodes-current-ids
     (user-error "No nodes to filter"))

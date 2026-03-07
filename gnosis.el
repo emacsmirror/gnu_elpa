@@ -780,11 +780,7 @@ previous state on exit."
 
 (defun gnosis-get-tags--unique ()
   "Return a list of unique strings for tags in `gnosis-db'."
-  (cl-loop for tags in (apply 'append
-			      (gnosis-sqlite-select (gnosis--ensure-db)
-						    "SELECT DISTINCT tags FROM themata"))
-           nconc tags into all-tags
-           finally return (delete-dups all-tags)))
+  (gnosis-select 'tag 'thema-tag nil t))
 
 (defun gnosis-collect-tag-thema-ids (tags &optional ids)
   "Collect thema IDS for TAGS."
@@ -809,8 +805,7 @@ If SUSPENDED-P, return suspended themata as well."
 
 (defun gnosis-get-tag-themata (tag)
   "Return thema ids for TAG."
-  (let ((themata (gnosis-select 'id 'themata `(like tags ',(format "%%\"%s\"%%" tag)) t)))
-    themata))
+  (gnosis-select 'thema-id 'thema-tag `(= tag ,tag) t))
 
 (defun gnosis-suspended-p (id)
   "Return t if thema with ID is suspended."
@@ -846,18 +841,11 @@ Return t if DATE is today or in the past, nil if it's in the future.
 DATE is a list of the form (year month day)."
   (<= (gnosis--date-to-int date) (gnosis--date-to-int (gnosis-algorithm-date))))
 
-(defun gnosis-tags--update (tags)
-  "Update db for TAGS."
-  (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-    (cl-loop for tag in tags
-	     do (gnosis--insert-into 'thema-tags `[,tag]))))
-
 (cl-defun gnosis-tags--prompt (&key (prompt "Tags (seperated by ,): ")
 				    (predicate nil)
 				    (require-match nil)
 				    (initial-input nil))
   "Prompt to select tags with PROMPT."
-  (gnosis-tags-refresh)
   (let* ((tags (gnosis-get-tags--unique))
 	 (input (delete-dups
 		 (completing-read-multiple
@@ -876,17 +864,8 @@ If you only require a tag prompt, refer to `gnosis-tags--prompt'."
 	  (current-tags (org-get-tags)))
       (outline-up-heading 99)
       (when input
-	(gnosis-tags--update input)
 	(setf gnosis-previous-thema-tags input)
         (org-set-tags (append input current-tags))))))
-
-(defun gnosis-tags-refresh ()
-  "Refresh tags table from current themata tags."
-  (let ((tags (gnosis-get-tags--unique)))
-    (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-      (gnosis--delete 'thema-tags)
-      (cl-loop for tag in tags
-	       do (gnosis--insert-into 'thema-tags `[,tag])))))
 
 (defun gnosis-tag-rename (tag &optional new-tag)
   "Rename TAG to NEW-TAG.
@@ -896,12 +875,14 @@ does not accept heading tags with dashes."
   (let ((new-tag (or new-tag
 		     (replace-regexp-in-string
 		      "-" "_" (read-string "New tag name: ")))))
-    (cl-loop for thema in (gnosis-get-tag-themata tag)
+    ;; Update junction table
+    (gnosis-sqlite-execute (gnosis--ensure-db)
+      "UPDATE thema_tag SET tag = ? WHERE tag = ?" (list new-tag tag))
+    ;; Update serialized column for display/export
+    (cl-loop for thema in (gnosis-get-tag-themata new-tag)
 	     do (let* ((tags (car (gnosis-select '[tags] 'themata `(= id ,thema) t)))
 		       (new-tags (cl-substitute new-tag tag tags :test #'string-equal)))
 		  (gnosis-update 'themata `(= tags ',new-tags) `(= id ,thema))))
-    ;; Update tags in database
-    (gnosis-tags-refresh)
     (message "Renamed tag '%s' to '%s'" tag new-tag)))
 
 ;; Links
@@ -998,7 +979,9 @@ LINKS: List of id links."
 						   ,suspend 0]))
       (gnosis--insert-into 'extras `([,gnosis-id ,parathema ,review-image]))
       (cl-loop for link in links
-	       do (gnosis--insert-into 'thema-links `([,gnosis-id ,link]))))))
+	       do (gnosis--insert-into 'thema-links `([,gnosis-id ,link])))
+      (cl-loop for tag in tags
+	       do (gnosis--insert-into 'thema-tag `([,gnosis-id ,tag]))))))
 
 (defun gnosis-update-thema (id keimenon hypothesis answer parathema tags links
 			      &optional deck-id type)
@@ -1024,7 +1007,11 @@ When `gnosis--id-cache' is bound, uses hash table for existence check."
 	  ;; Re-sync links
 	  (gnosis--delete 'thema-links `(= source ,id))
 	  (cl-loop for link in links
-		   do (gnosis--insert-into 'thema-links `([,id ,link]))))
+		   do (gnosis--insert-into 'thema-links `([,id ,link])))
+	  ;; Re-sync tags
+	  (gnosis--delete 'thema-tag `(= thema-id ,id))
+	  (cl-loop for tag in tags
+		   do (gnosis--insert-into 'thema-tag `([,id ,tag]))))
       (message "Gnosis with id: %d does not exist, creating anew." id)
       (gnosis-add-thema-fields deck-id type keimenon hypothesis answer parathema tags
 			      0 links nil id))))
@@ -1274,7 +1261,7 @@ VALUES: Defaults to `gnosis-custom-values'."
 (defun gnosis-get-custom-tag-values (id keyword &optional custom-tags custom-values)
   "Return KEYWORD values for thema ID."
   (cl-assert (keywordp keyword) nil "keyword must be a keyword!")
-  (let ((tags (if id (gnosis-get 'tags 'themata `(= id ,id)) custom-tags)))
+  (let ((tags (if id (gnosis-select 'tag 'thema-tag `(= thema-id ,id) t) custom-tags)))
     (cl-loop for tag in tags
 	     ;; Only collect non-nil values
 	     when (plist-get (gnosis-get-custom-values :tag tag custom-values) keyword)
@@ -1578,10 +1565,19 @@ Used for fresh databases only."
   (gnosis-sqlite-execute (gnosis--ensure-db) "ALTER TABLE notes RENAME TO themata")
   (gnosis--db-set-version 1))
 
+(defun gnosis--migrate-get-tags-from-column ()
+  "Read unique tags from the serialized themata.tags column.
+Used by migrations that run before the thema-tag junction table exists."
+  (cl-loop for tags in (apply 'append
+			      (gnosis-sqlite-select (gnosis--ensure-db)
+						    "SELECT DISTINCT tags FROM themata"))
+	   nconc tags into all-tags
+	   finally return (delete-dups all-tags)))
+
 (defun gnosis-db--migrate-v2 ()
   "Migration v2: column renames, tags/links tables, data conversions."
   (let ((db (gnosis--ensure-db))
-	(tags (gnosis-get-tags--unique)))
+	(tags (gnosis--migrate-get-tags-from-column)))
     ;; Create tags and links tables with OLD names (v5 will rename them)
     (gnosis-sqlite-execute db
       "CREATE TABLE IF NOT EXISTS tags (tag text PRIMARY KEY, UNIQUE (tag))")
@@ -1634,7 +1630,7 @@ Used for fresh databases only."
 				(gnosis-update 'themata `(= tags ',new-tags) `(= id ,thema))))
 		  ;; Refresh tags table (still named 'tags' at v2)
 		  (gnosis-sqlite-execute db "DELETE FROM tags")
-		  (cl-loop for tag-item in (gnosis-get-tags--unique)
+		  (cl-loop for tag-item in (gnosis--migrate-get-tags-from-column)
 			   do (gnosis-sqlite-execute db "INSERT OR IGNORE INTO tags VALUES (?)"
 						     (list tag-item))))))
   (gnosis--db-set-version 2))
@@ -1645,8 +1641,29 @@ Used for fresh databases only."
     ;; 1. Rename existing tables
     (gnosis-sqlite-execute db "ALTER TABLE links RENAME TO thema_links")
     (gnosis-sqlite-execute db "ALTER TABLE tags RENAME TO thema_tags")
-    ;; 2. Create node tables
-    (dolist (table '(nodes journal node-tags node-tag node-links))
+    ;; 2. Create thema-tag junction table & populate from themata.tags
+    (let ((schema (cadr (assq 'thema-tag gnosis-db--schemata))))
+      (gnosis-sqlite-execute db
+        (format "CREATE TABLE IF NOT EXISTS %s (%s)"
+		(gnosis-sqlite--ident 'thema-tag)
+		(gnosis-sqlite--compile-schema schema))))
+    (let ((rows (gnosis-sqlite-select db "SELECT id, tags FROM themata")))
+      (dolist (row rows)
+	(let ((thema-id (car row))
+	      (tags (cadr row)))
+	  (when (listp tags)
+	    (dolist (tag tags)
+	      (ignore-errors
+		(gnosis-sqlite-execute db
+		  "INSERT OR IGNORE INTO thema_tag (thema_id, tag) VALUES (?, ?)"
+		  (list thema-id tag))))))))
+    ;; Drop thema-tags and node-tags lookup tables
+    (ignore-errors
+      (gnosis-sqlite-execute db "DROP TABLE IF EXISTS thema_tags"))
+    (ignore-errors
+      (gnosis-sqlite-execute db "DROP TABLE IF EXISTS node_tags"))
+    ;; 3. Create node tables
+    (dolist (table '(nodes journal node-tag node-links))
       (let ((schema (cadr (assq table gnosis-db--schemata))))
         (gnosis-sqlite-execute db
           (format "CREATE TABLE IF NOT EXISTS %s (%s)"
@@ -1668,8 +1685,6 @@ Used for fresh databases only."
             "INSERT OR IGNORE INTO nodes SELECT * FROM org_gnosis.nodes")
           (gnosis-sqlite-execute db
             "INSERT OR IGNORE INTO journal SELECT * FROM org_gnosis.journal")
-          (gnosis-sqlite-execute db
-            "INSERT OR IGNORE INTO node_tags SELECT * FROM org_gnosis.tags")
           (gnosis-sqlite-execute db
             "INSERT OR IGNORE INTO node_tag SELECT * FROM org_gnosis.node_tag")
           (gnosis-sqlite-execute db

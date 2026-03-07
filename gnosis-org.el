@@ -175,15 +175,19 @@ Returns file data with FILENAME."
 
 (defun gnosis-org--create-name (title &optional timestring gpg-p default-gpg default-timestring)
   "Create filename for TITLE.
-TIMESTRING defaults to DEFAULT-TIMESTRING.
+TIMESTRING defaults to DEFAULT-TIMESTRING.  When both are nil,
+the filename is just the title without a time prefix.
 GPG-P: when non-nil, add .gpg suffix (overrides DEFAULT-GPG)."
-  (let ((timestring (or timestring default-timestring "%Y%m%d%H%M%S"))
+  (let ((timestring (or timestring default-timestring))
 	(filename (replace-regexp-in-string "#" ""
 					    (replace-regexp-in-string " " "_" title)))
 	(use-gpg (if (eq gpg-p 'default)
 		     default-gpg
 		   (or gpg-p default-gpg))))
-    (format "%s--%s.org%s" (format-time-string timestring) filename
+    (format "%s.org%s"
+	    (if timestring
+		(format "%s--%s" (format-time-string timestring) filename)
+	      filename)
 	    (if use-gpg ".gpg" ""))))
 
 (defun gnosis-org-expand-headings (text &optional base-level)

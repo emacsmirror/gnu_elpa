@@ -46,8 +46,10 @@
   :type 'boolean)
 
 (defcustom gnosis-nodes-timestring "%Y%m%d%H%M%S"
-  "Timestring used for the creation of node files."
-  :type 'string)
+  "Timestring used for the creation of node files.
+When nil, filenames use just the title (e.g. \"my_title.org\")."
+  :type '(choice (string :tag "Time format string")
+		 (const :tag "Title only (no prefix)" nil)))
 
 (defcustom gnosis-nodes-create-as-gpg nil
   "When non-nil, create all node files with a .gpg suffix."
@@ -486,8 +488,7 @@ When FORCE, update all files.  Otherwise, only update changed files."
   (gnosis-nodes-ensure-directories)
   (let* ((all-files (cl-remove-if-not
                      (lambda (file)
-                       (and (string-match-p "^[0-9]"
-                                            (file-name-nondirectory file))
+                       (and (string-match-p "\\.org\\(?:\\.gpg\\)?$" file)
                             (not (file-directory-p file))))
                      (directory-files gnosis-nodes-dir t nil t)))
          (files (if force

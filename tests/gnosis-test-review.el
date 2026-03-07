@@ -23,8 +23,7 @@
 (ert-deftest gnosis-test-review-due-today-past ()
   "Thema with next-rev in the past is due today."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "review-test"))
-           (id (gnosis-test--add-basic-thema deck-id "Q" "A")))
+    (let* ((id (gnosis-test--add-basic-thema "Q" "A")))
       ;; Set next-rev to yesterday
       (gnosis-update 'review-log `(= next-rev ',(gnosis-algorithm-date -1))
                      `(= id ,id))
@@ -33,16 +32,14 @@
 (ert-deftest gnosis-test-review-due-today-today ()
   "Thema with next-rev today is due."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "review-test"))
-           (id (gnosis-test--add-basic-thema deck-id "Q" "A")))
+    (let* ((id (gnosis-test--add-basic-thema "Q" "A")))
       ;; next-rev defaults to today in gnosis-test--add-basic-thema
       (should (gnosis-review-is-due-today-p id)))))
 
 (ert-deftest gnosis-test-review-due-today-future ()
   "Thema with next-rev in the future is NOT due today."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "review-test"))
-           (id (gnosis-test--add-basic-thema deck-id "Q" "A")))
+    (let* ((id (gnosis-test--add-basic-thema "Q" "A")))
       ;; Set next-rev to tomorrow
       (gnosis-update 'review-log `(= next-rev ',(gnosis-algorithm-date 1))
                      `(= id ,id))
@@ -53,15 +50,13 @@
 (ert-deftest gnosis-test-review-is-due-active ()
   "Active thema due today returns t."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "review-test"))
-           (id (gnosis-test--add-basic-thema deck-id "Q" "A")))
+    (let* ((id (gnosis-test--add-basic-thema "Q" "A")))
       (should (gnosis-review-is-due-p id)))))
 
 (ert-deftest gnosis-test-review-is-due-suspended ()
   "Suspended thema due today returns nil."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "review-test"))
-           (id (gnosis-test--add-basic-thema deck-id "Q" "A" nil nil nil 1)))
+    (let* ((id (gnosis-test--add-basic-thema "Q" "A" nil nil nil 1)))
       (should-not (gnosis-review-is-due-p id)))))
 
 ;;; ---- Group 3: gnosis-review-get--due-themata ----
@@ -69,9 +64,8 @@
 (ert-deftest gnosis-test-review-get-due-filters-suspended ()
   "Suspended themata are excluded from due list."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "review-test"))
-           (_id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1"))
-           (_id2 (gnosis-test--add-basic-thema deck-id "Q2" "A2" nil nil nil 1)))
+    (let* ((_id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+           (_id2 (gnosis-test--add-basic-thema "Q2" "A2" nil nil nil 1)))
       (let ((gnosis-review-new-first nil)
             (gnosis-new-themata-limit nil))
         (let ((due (gnosis-review-get--due-themata)))
@@ -81,9 +75,8 @@
 (ert-deftest gnosis-test-review-get-due-filters-future ()
   "Themata with future next-rev are excluded."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "review-test"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema deck-id "Q2" "A2")))
+    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+           (id2 (gnosis-test--add-basic-thema "Q2" "A2")))
       ;; Push id2 to future
       (gnosis-update 'review-log `(= next-rev ',(gnosis-algorithm-date 5))
                      `(= id ,id2))
@@ -96,9 +89,8 @@
 (ert-deftest gnosis-test-review-get-due-new-first-ordering ()
   "With gnosis-review-new-first, new themata appear before old ones."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "review-test"))
-           (new-id (gnosis-test--add-basic-thema deck-id "New Q" "A"))
-           (old-id (gnosis-test--add-basic-thema deck-id "Old Q" "A")))
+    (let* ((new-id (gnosis-test--add-basic-thema "New Q" "A"))
+           (old-id (gnosis-test--add-basic-thema "Old Q" "A")))
       ;; Make old-id look reviewed (n > 0)
       (gnosis-sqlite-execute gnosis-db
         "UPDATE review_log SET n = 5 WHERE id = ?" (list old-id))
@@ -115,15 +107,13 @@
 (ert-deftest gnosis-test-review-thema-new-p-zero-reviews ()
   "Thema with n=0 is new."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "review-test"))
-           (id (gnosis-test--add-basic-thema deck-id "Q" "A")))
+    (let* ((id (gnosis-test--add-basic-thema "Q" "A")))
       (should (gnosis-review-is-thema-new-p id)))))
 
 (ert-deftest gnosis-test-review-thema-new-p-reviewed ()
   "Thema with n>0 is NOT new."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "review-test"))
-           (id (gnosis-test--add-basic-thema deck-id "Q" "A")))
+    (let* ((id (gnosis-test--add-basic-thema "Q" "A")))
       ;; Simulate a review
       (gnosis-sqlite-execute gnosis-db
         "UPDATE review_log SET n = 1 WHERE id = ?" (list id))

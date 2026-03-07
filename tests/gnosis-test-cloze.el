@@ -314,15 +314,11 @@
 (ert-deftest gnosis-test-import-cloze-anki-syntax ()
   "Importing a cloze thema with {{cN::answer::hint}} and nil answer auto-extracts."
   (gnosis-test-with-db
-    (let* ((deck-id (let ((id (+ (random 90000) 10000)))
-                      (gnosis--insert-into 'decks `([,id "anki-test"]))
-                      id))
-           (export-file (concat (make-temp-file "gnosis-cloze-import-") ".org")))
+    (let* ((export-file (concat (make-temp-file "gnosis-cloze-import-") ".org")))
       (unwind-protect
           (progn
             ;; Write an org file with Anki-like cloze syntax and empty answer
             (with-temp-file export-file
-              (insert "#+DECK: anki-test\n")
               (insert "#+THEMATA: 1\n\n")
               (insert "* Thema :test:\n")
               (insert ":PROPERTIES:\n")
@@ -335,9 +331,7 @@
               (insert "** Answer\n\n")
               (insert "** Parathema\n")
               (insert "A common drug.\n"))
-            ;; Import (stub y-or-n-p for existing deck prompt)
-            (cl-letf (((symbol-function 'y-or-n-p) (lambda (_prompt) t)))
-              (gnosis-import-deck export-file))
+            (gnosis-import-file export-file)
             ;; Should have created 1 thema (1 cX group)
             (let ((themata (gnosis-select 'id 'themata nil t)))
               (should (= 1 (length themata))))
@@ -357,14 +351,10 @@
 (ert-deftest gnosis-test-import-cloze-anki-multi-group ()
   "Importing cloze with multiple cX groups creates multiple themata."
   (gnosis-test-with-db
-    (let* ((deck-id (let ((id (+ (random 90000) 10000)))
-                      (gnosis--insert-into 'decks `([,id "multi-cloze"]))
-                      id))
-           (export-file (concat (make-temp-file "gnosis-multi-cloze-") ".org")))
+    (let* ((export-file (concat (make-temp-file "gnosis-multi-cloze-") ".org")))
       (unwind-protect
           (progn
             (with-temp-file export-file
-              (insert "#+DECK: multi-cloze\n")
               (insert "#+THEMATA: 1\n\n")
               (insert "* Thema :test:\n")
               (insert ":PROPERTIES:\n")
@@ -376,8 +366,7 @@
               (insert "** Hypothesis\n\n")
               (insert "** Answer\n\n")
               (insert "** Parathema\n"))
-            (cl-letf (((symbol-function 'y-or-n-p) (lambda (_prompt) t)))
-              (gnosis-import-deck export-file))
+            (gnosis-import-file export-file)
             ;; Should create 2 themata (c1 and c2)
             (let ((themata (gnosis-select 'id 'themata nil t)))
               (should (= 2 (length themata))))
@@ -395,7 +384,7 @@
 
 (ert-deftest gnosis-test-split-chunks-basic ()
   "Splitting text into chunks groups headings correctly."
-  (let* ((text (concat "#+DECK: test\n\n"
+  (let* ((text (concat "#+THEMATA: 5\n\n"
                        "* Thema\nA\n* Thema\nB\n* Thema\nC\n"
                        "* Thema\nD\n* Thema\nE\n"))
          (chunks (gnosis--import-split-chunks text 2)))
@@ -418,11 +407,7 @@
 (ert-deftest gnosis-test-import-chunk-basic ()
   "gnosis--import-chunk processes a chunk and inserts themata."
   (gnosis-test-with-db
-    (let* ((deck-id (let ((id (+ (random 90000) 10000)))
-                      (gnosis--insert-into 'decks `([,id "chunk-test"]))
-                      id))
-           (id-cache (make-hash-table :test 'equal))
-           (header "#+DECK: chunk-test")
+    (let* ((id-cache (make-hash-table :test 'equal))
            (chunk (concat "* Thema\n"
                           ":PROPERTIES:\n"
                           ":GNOSIS_ID: NEW\n"
@@ -441,7 +426,7 @@
                           "** Hypothesis\n\n"
                           "** Answer\n\n"
                           "** Parathema\n"))
-           (errors (gnosis--import-chunk header chunk deck-id id-cache)))
+           (errors (gnosis--import-chunk chunk id-cache)))
       (should (null errors))
       ;; Basic thema + cloze thema (1 cX group) = 2 themata
       (should (= 2 (length (gnosis-select 'id 'themata nil t))))

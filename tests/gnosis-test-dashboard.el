@@ -98,10 +98,9 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode."
 (ert-deftest gnosis-test-dashboard-output-themata-basic ()
   "Output-themata returns correctly formatted entries."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "What is 2+2?" "4"
+    (let* ((id1 (gnosis-test--add-basic-thema "What is 2+2?" "4"
                                               '("math")))
-           (id2 (gnosis-test--add-basic-thema deck-id "Capital?" "Athens"
+           (id2 (gnosis-test--add-basic-thema "Capital?" "Athens"
                                               '("geo")))
            (entries (gnosis-dashboard--output-themata (list id1 id2))))
       ;; Two entries returned
@@ -120,8 +119,7 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode."
 (ert-deftest gnosis-test-dashboard-output-themata-suspended ()
   "Suspended themata show \"Yes\" in suspend column."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q?" "A" '("t") nil nil 1))
+    (let* ((id1 (gnosis-test--add-basic-thema "Q?" "A" '("t") nil nil 1))
            (entries (gnosis-dashboard--output-themata (list id1)))
            (e1 (cl-find id1 entries :key #'car))
            (vec1 (cadr e1)))
@@ -130,8 +128,7 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode."
 (ert-deftest gnosis-test-dashboard-output-themata-list-tags ()
   "List-valued tags are joined with commas."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q?" "A"
+    (let* ((id1 (gnosis-test--add-basic-thema "Q?" "A"
                                               '("math" "algebra")))
            (entries (gnosis-dashboard--output-themata (list id1)))
            (vec (cadr (car entries))))
@@ -142,9 +139,8 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode."
 (ert-deftest gnosis-test-dashboard-output-themata-strips-org-links ()
   "Org-mode links in keimenon are simplified to description only."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema
-                 deck-id "See [[id:abc-123][My Node]] for details" "A"))
+    (let* ((id1 (gnosis-test--add-basic-thema
+                 "See [[id:abc-123][My Node]] for details" "A"))
            (entries (gnosis-dashboard--output-themata (list id1)))
            (vec (cadr (car entries))))
       ;; Link syntax removed, description kept
@@ -154,59 +150,30 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode."
 (ert-deftest gnosis-test-dashboard-output-themata-strips-newlines ()
   "Newlines in fields are replaced with spaces."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Line1\nLine2" "A"))
+    (let* ((id1 (gnosis-test--add-basic-thema "Line1\nLine2" "A"))
            (entries (gnosis-dashboard--output-themata (list id1)))
            (vec (cadr (car entries))))
       (should-not (string-search "\n" (aref vec 0)))
       (should (string-search "Line1 Line2" (aref vec 0))))))
 
-(ert-deftest gnosis-test-dashboard-deck-thema-count ()
-  "Deck thema count returns correct count string."
-  (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck")))
-      ;; Empty deck
-      (should (equal (gnosis-dashboard-deck-thema-count deck-id) '("0")))
-      ;; Add two themata
-      (gnosis-test--add-basic-thema deck-id "Q1" "A1")
-      (gnosis-test--add-basic-thema deck-id "Q2" "A2")
-      (should (equal (gnosis-dashboard-deck-thema-count deck-id) '("2"))))))
-
-(ert-deftest gnosis-test-dashboard-deck-thema-count-nonexistent ()
-  "Deck thema count returns nil for nonexistent deck."
-  (gnosis-test-with-db
-    (should (null (gnosis-dashboard-deck-thema-count 99999)))))
-
 (ert-deftest gnosis-test-dashboard-output-tag ()
   "Output-tag returns (tag count-string)."
   (gnosis-test-with-db
-    (let ((deck-id (gnosis-test--add-deck "test-deck")))
-      (gnosis-test--add-basic-thema deck-id "Q1" "A1" '("math"))
-      (gnosis-test--add-basic-thema deck-id "Q2" "A2" '("math" "geo"))
-      (gnosis-test--add-basic-thema deck-id "Q3" "A3" '("geo"))
-      (let ((result (gnosis-dashboard-output-tag "math")))
-        (should (equal (car result) "math"))
-        (should (equal (cadr result) "2")))
-      (let ((result (gnosis-dashboard-output-tag "geo")))
-        (should (equal (cadr result) "2"))))))
-
-(ert-deftest gnosis-test-dashboard-output-deck ()
-  "Output-deck returns (name count) list."
-  (gnosis-test-with-db
-    (let ((deck-id (gnosis-test--add-deck "my-deck")))
-      (gnosis-test--add-basic-thema deck-id "Q1" "A1")
-      (gnosis-test--add-basic-thema deck-id "Q2" "A2")
-      (let ((result (gnosis-dashboard-output-deck deck-id)))
-        (should (equal (car result) "my-deck"))
-        (should (equal (cadr result) "2"))))))
+    (gnosis-test--add-basic-thema "Q1" "A1" '("math"))
+    (gnosis-test--add-basic-thema "Q2" "A2" '("math" "geo"))
+    (gnosis-test--add-basic-thema "Q3" "A3" '("geo"))
+    (let ((result (gnosis-dashboard-output-tag "math")))
+      (should (equal (car result) "math"))
+      (should (equal (cadr result) "2")))
+    (let ((result (gnosis-dashboard-output-tag "geo")))
+      (should (equal (cadr result) "2")))))
 
 (ert-deftest gnosis-test-dashboard-get-themata-links ()
   "Get-themata-links returns thema IDs linked to a node."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema deck-id "Q2" "A2"))
-           (_id3 (gnosis-test--add-basic-thema deck-id "Q3" "A3"))
+    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+           (_id3 (gnosis-test--add-basic-thema "Q3" "A3"))
            (node-id "fake-node-uuid"))
       ;; Link two themata to the node
       (gnosis-test--add-link id1 node-id)
@@ -224,10 +191,9 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode."
 (ert-deftest gnosis-test-dashboard-remove-entries ()
   "Remove-entries removes matching entries and updates thema-ids."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema deck-id "Q2" "A2"))
-           (id3 (gnosis-test--add-basic-thema deck-id "Q3" "A3")))
+    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+           (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
       (gnosis-test-with-dashboard-buffer
         (with-current-buffer gnosis-dashboard-buffer-name
           (tabulated-list-mode)
@@ -248,8 +214,7 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode."
 (ert-deftest gnosis-test-dashboard-update-entries ()
   "Update-entries refreshes data from DB for specified IDs."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Original Q" "A1")))
+    (let* ((id1 (gnosis-test--add-basic-thema "Original Q" "A1")))
       (gnosis-test-with-dashboard-buffer
         (with-current-buffer gnosis-dashboard-buffer-name
           (tabulated-list-mode)
@@ -276,16 +241,14 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode."
 (ert-deftest gnosis-test-dashboard-render-themata ()
   "Output-themata renders a buffer with themata-mode active."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1" '("math")))
-           (id2 (gnosis-test--add-basic-thema deck-id "Q2" "A2" '("geo"))))
+    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("math")))
+           (id2 (gnosis-test--add-basic-thema "Q2" "A2" '("geo"))))
       (gnosis-test-with-dashboard-buffer
         (gnosis-dashboard-output-themata (list id1 id2))
         (with-current-buffer gnosis-dashboard-buffer-name
           ;; Themata mode should be active
           (should gnosis-dashboard-themata-mode)
           ;; Other modes disabled
-          (should-not gnosis-dashboard-decks-mode)
           (should-not gnosis-dashboard-tags-mode)
           (should-not gnosis-dashboard-nodes-mode)
           ;; Entries populated
@@ -293,78 +256,27 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode."
           ;; Current state tracked
           (should (equal (plist-get gnosis-dashboard--current :type) 'themata)))))))
 
-(ert-deftest gnosis-test-dashboard-render-decks ()
-  "Output-decks renders a buffer with decks-mode active."
-  (gnosis-test-with-db
-    (let ((deck-id (gnosis-test--add-deck "deck-1")))
-      (gnosis-test--add-basic-thema deck-id "Q1" "A1")
-      (gnosis-test-with-dashboard-buffer
-        (gnosis-dashboard-output-decks)
-        (with-current-buffer gnosis-dashboard-buffer-name
-          ;; Decks mode active
-          (should gnosis-dashboard-decks-mode)
-          ;; Other modes disabled
-          (should-not gnosis-dashboard-themata-mode)
-          (should-not gnosis-dashboard-tags-mode)
-          (should-not gnosis-dashboard-nodes-mode)
-          ;; At least one entry
-          (should (>= (length tabulated-list-entries) 1)))))))
-
 (ert-deftest gnosis-test-dashboard-render-tags ()
   "Output-tags renders a buffer with tags-mode active."
   (gnosis-test-with-db
-    (let ((deck-id (gnosis-test--add-deck "test-deck")))
-      (gnosis-test--add-basic-thema deck-id "Q1" "A1" '("math"))
-      (gnosis-test--add-basic-thema deck-id "Q2" "A2" '("geo"))
-
-      (gnosis-test-with-dashboard-buffer
-        (gnosis-dashboard-output-tags)
-        (with-current-buffer gnosis-dashboard-buffer-name
-          ;; Tags mode active
-          (should gnosis-dashboard-tags-mode)
-          ;; Other modes disabled
-          (should-not gnosis-dashboard-themata-mode)
-          (should-not gnosis-dashboard-decks-mode)
-          (should-not gnosis-dashboard-nodes-mode)
-          ;; Two unique tags
-          (should (= (length tabulated-list-entries) 2)))))))
-
-(ert-deftest gnosis-test-dashboard-mode-switching ()
-  "Switching between views disables the previous mode."
-  (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1" '("math"))))
-
-      (gnosis-test-with-dashboard-buffer
-        ;; Start in themata mode
-        (gnosis-dashboard-output-themata (list id1))
-        (with-current-buffer gnosis-dashboard-buffer-name
-          (should gnosis-dashboard-themata-mode)
-          (should-not gnosis-dashboard-decks-mode))
-        ;; Switch to decks
-        (gnosis-dashboard-output-decks)
-        (with-current-buffer gnosis-dashboard-buffer-name
-          (should gnosis-dashboard-decks-mode)
-          (should-not gnosis-dashboard-themata-mode))
-        ;; Switch to tags
-        (gnosis-dashboard-output-tags)
-        (with-current-buffer gnosis-dashboard-buffer-name
-          (should gnosis-dashboard-tags-mode)
-          (should-not gnosis-dashboard-decks-mode)
-          (should-not gnosis-dashboard-themata-mode))
-        ;; Switch back to themata
-        (gnosis-dashboard-output-themata (list id1))
-        (with-current-buffer gnosis-dashboard-buffer-name
-          (should gnosis-dashboard-themata-mode)
-          (should-not gnosis-dashboard-tags-mode)
-          (should-not gnosis-dashboard-decks-mode))))))
+    (gnosis-test--add-basic-thema "Q1" "A1" '("math"))
+    (gnosis-test--add-basic-thema "Q2" "A2" '("geo"))
+    (gnosis-test-with-dashboard-buffer
+      (gnosis-dashboard-output-tags)
+      (with-current-buffer gnosis-dashboard-buffer-name
+        ;; Tags mode active
+        (should gnosis-dashboard-tags-mode)
+        ;; Other modes disabled
+        (should-not gnosis-dashboard-themata-mode)
+        (should-not gnosis-dashboard-nodes-mode)
+        ;; Two unique tags
+        (should (= (length tabulated-list-entries) 2))))))
 
 (ert-deftest gnosis-test-dashboard-render-themata-stores-ids ()
   "Output-themata stores current IDs for history navigation."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema deck-id "Q2" "A2"))
+    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
            (ids (list id1 id2)))
       (gnosis-test-with-dashboard-buffer
         (gnosis-dashboard-output-themata ids)
@@ -379,9 +291,8 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode."
 (ert-deftest gnosis-test-dashboard-mark-all-and-unmark ()
   "Mark-all collects all IDs, unmark-all clears them."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema deck-id "Q2" "A2")))
+    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+           (id2 (gnosis-test--add-basic-thema "Q2" "A2")))
       (gnosis-test-with-dashboard-buffer
         (gnosis-dashboard-output-themata (list id1 id2))
         (with-current-buffer gnosis-dashboard-buffer-name
@@ -449,9 +360,8 @@ Binds `gnosis-nodes-dir' to the temp directory."
 (ert-deftest gnosis-test-dashboard-header-line-themata ()
   "Output-themata prepends count badge to header-line."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema deck-id "Q2" "A2")))
+    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+           (id2 (gnosis-test--add-basic-thema "Q2" "A2")))
       (gnosis-test-with-dashboard-buffer
         (gnosis-dashboard-output-themata (list id1 id2))
         (with-current-buffer gnosis-dashboard-buffer-name
@@ -461,26 +371,14 @@ Binds `gnosis-nodes-dir' to the temp directory."
 (ert-deftest gnosis-test-dashboard-header-line-tags ()
   "Output-tags prepends count badge to header-line."
   (gnosis-test-with-db
-    (let ((deck-id (gnosis-test--add-deck "test-deck")))
-      (gnosis-test--add-basic-thema deck-id "Q1" "A1" '("math"))
-      (gnosis-test--add-basic-thema deck-id "Q2" "A2" '("geo"))
+    (gnosis-test--add-basic-thema "Q1" "A1" '("math"))
+    (gnosis-test--add-basic-thema "Q2" "A2" '("geo"))
 
-      (gnosis-test-with-dashboard-buffer
-        (gnosis-dashboard-output-tags)
-        (with-current-buffer gnosis-dashboard-buffer-name
-          (should (listp header-line-format))
-          (should (string-search "2" (car header-line-format))))))))
-
-(ert-deftest gnosis-test-dashboard-header-line-decks ()
-  "Output-decks prepends count badge to header-line."
-  (gnosis-test-with-db
-    (let ((deck-id (gnosis-test--add-deck "deck-1")))
-      (gnosis-test--add-basic-thema deck-id "Q1" "A1")
-      (gnosis-test-with-dashboard-buffer
-        (gnosis-dashboard-output-decks)
-        (with-current-buffer gnosis-dashboard-buffer-name
-          (should (listp header-line-format))
-          (should (string-search "1" (car header-line-format))))))))
+    (gnosis-test-with-dashboard-buffer
+      (gnosis-dashboard-output-tags)
+      (with-current-buffer gnosis-dashboard-buffer-name
+        (should (listp header-line-format))
+        (should (string-search "2" (car header-line-format)))))))
 
 ;; ──────────────────────────────────────────────────────────
 ;; Review count filter tests
@@ -493,10 +391,9 @@ Binds `gnosis-nodes-dir' to the temp directory."
 (ert-deftest gnosis-test-get-themata-by-reviews-basic ()
   "Get themata filtered by review count."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema deck-id "Q2" "A2"))
-           (id3 (gnosis-test--add-basic-thema deck-id "Q3" "A3")))
+    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+           (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
       ;; All start at n=0
       (gnosis-test--set-review-count id2 3)
       (gnosis-test--set-review-count id3 5)
@@ -516,10 +413,9 @@ Binds `gnosis-nodes-dir' to the temp directory."
 (ert-deftest gnosis-test-get-themata-by-reviews-with-subset ()
   "Get themata by review count restricted to a subset."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema deck-id "Q2" "A2"))
-           (id3 (gnosis-test--add-basic-thema deck-id "Q3" "A3")))
+    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+           (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
       ;; All at n=0
       (gnosis-test--set-review-count id3 5)
       ;; Restrict to id1 and id3 with max-reviews=0
@@ -530,9 +426,8 @@ Binds `gnosis-nodes-dir' to the temp directory."
 (ert-deftest gnosis-test-dashboard-show-new-renders ()
   "Show-new renders matching themata in the dashboard."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "New Q" "A1"))
-           (id2 (gnosis-test--add-basic-thema deck-id "Old Q" "A2")))
+    (let* ((id1 (gnosis-test--add-basic-thema "New Q" "A1"))
+           (id2 (gnosis-test--add-basic-thema "Old Q" "A2")))
       (gnosis-test--set-review-count id2 5)
       (gnosis-test-with-dashboard-buffer
         (gnosis-dashboard-themata-show-new 0)
@@ -544,10 +439,9 @@ Binds `gnosis-nodes-dir' to the temp directory."
 (ert-deftest gnosis-test-dashboard-filter-by-reviews ()
   "Filter current themata by review count."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema deck-id "Q2" "A2"))
-           (id3 (gnosis-test--add-basic-thema deck-id "Q3" "A3")))
+    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+           (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
       (gnosis-test--set-review-count id2 2)
       (gnosis-test--set-review-count id3 5)
       (gnosis-test-with-dashboard-buffer
@@ -1430,10 +1324,9 @@ This is the critical bug fix: (not nil) => t was wrong."
 (ert-deftest gnosis-test-dashboard-progressive-render-small ()
   "Progressive render with fewer entries than chunk size renders all at once."
   (gnosis-test-with-db
-    (let* ((deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema deck-id "Q2" "A2"))
-           (id3 (gnosis-test--add-basic-thema deck-id "Q3" "A3")))
+    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+           (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
       (gnosis-test-with-dashboard-buffer
         (gnosis-dashboard-output-themata (list id1 id2 id3))
         (with-current-buffer gnosis-dashboard-buffer-name
@@ -1452,12 +1345,11 @@ This is the critical bug fix: (not nil) => t was wrong."
   "Progressive render splits entries when exceeding chunk size."
   (gnosis-test-with-db
     (let* ((gnosis-dashboard-render-chunk-size 2)
-           (deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema deck-id "Q2" "A2"))
-           (id3 (gnosis-test--add-basic-thema deck-id "Q3" "A3"))
-           (id4 (gnosis-test--add-basic-thema deck-id "Q4" "A4"))
-           (id5 (gnosis-test--add-basic-thema deck-id "Q5" "A5")))
+           (id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+           (id3 (gnosis-test--add-basic-thema "Q3" "A3"))
+           (id4 (gnosis-test--add-basic-thema "Q4" "A4"))
+           (id5 (gnosis-test--add-basic-thema "Q5" "A5")))
       (gnosis-test-with-dashboard-buffer
         (gnosis-dashboard-output-themata (list id1 id2 id3 id4 id5))
         (with-current-buffer gnosis-dashboard-buffer-name
@@ -1469,10 +1361,9 @@ This is the critical bug fix: (not nil) => t was wrong."
   "Progressive render timer no-ops when generation is stale."
   (gnosis-test-with-db
     (let* ((gnosis-dashboard-render-chunk-size 2)
-           (deck-id (gnosis-test--add-deck "test-deck"))
-           (id1 (gnosis-test--add-basic-thema deck-id "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema deck-id "Q2" "A2"))
-           (id3 (gnosis-test--add-basic-thema deck-id "Q3" "A3")))
+           (id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+           (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
       (gnosis-test-with-dashboard-buffer
         (gnosis-dashboard-output-themata (list id1 id2 id3))
         (with-current-buffer gnosis-dashboard-buffer-name

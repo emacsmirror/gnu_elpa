@@ -244,24 +244,13 @@ Value is pre-encoded (prin1-to-string) in the compiler."
 
 ;;; ---- Group 5: Schema compiler ----
 
-(ert-deftest gnosis-test-sqlite-schema-decks ()
-  "Compile decks schema."
-  (let* ((schema (cadr (assq 'decks gnosis-db--schemata)))
-         (result (gnosis-sqlite--compile-schema schema)))
-    (should (string-match-p "id INTEGER PRIMARY KEY" result))
-    (should (string-match-p "name TEXT NOT NULL" result))
-    (should (string-match-p "UNIQUE (name)" result))))
-
 (ert-deftest gnosis-test-sqlite-schema-themata ()
   "Compile themata schema."
   (let* ((schema (cadr (assq 'themata gnosis-db--schemata)))
          (result (gnosis-sqlite--compile-schema schema)))
     (should (string-match-p "id INTEGER PRIMARY KEY" result))
     (should (string-match-p "type TEXT NOT NULL" result))
-    (should (string-match-p "tags TEXT DEFAULT untagged" result))
-    (should (string-match-p "deck_id INTEGER NOT NULL" result))
-    (should (string-match-p "FOREIGN KEY (deck_id) REFERENCES decks (id) ON DELETE CASCADE"
-                            result))))
+    (should (string-match-p "tags TEXT DEFAULT untagged" result))))
 
 (ert-deftest gnosis-test-sqlite-schema-review-log ()
   "Compile review-log schema."

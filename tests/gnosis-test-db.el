@@ -33,7 +33,7 @@
 
 (require 'gnosis)
 
-(defvar gnosis-test-deck-file
+(defvar gnosis-test-import-file
   (expand-file-name "../decks/demo.org"))
 
 (defun gnosis-test-random-items (list x)
@@ -61,7 +61,7 @@ If ask nil, leave testing env"
 	  (unless (file-exists-p testing-dir)
 	    (make-directory testing-dir))
 	  (setf gnosis-db (gnosis-sqlite-open testing-db))
-	  (dolist (table '(decks themata review review-log extras activity-log tags links))
+	  (dolist (table '(themata review review-log extras activity-log tags links))
 	    (condition-case nil
 		(gnosis--drop-table table)
 	      (error (message "No %s table to drop." table))))
@@ -69,7 +69,7 @@ If ask nil, leave testing env"
 	  (gnosis--db-set-version 0)
 	  (gnosis-db-init)
 	  (message "Development env is ready for testing.")
-	  (and (y-or-n-p "Add testing deck? ") (gnosis-import-deck gnosis-test-deck-file)))
+	  (and (y-or-n-p "Import test file? ") (gnosis-import-file gnosis-test-import-file)))
       (setf gnosis-db (gnosis-sqlite-open (expand-file-name "gnosis.db" gnosis-dir)))
       (setf gnosis-testing nil)
       (message "Exited development env."))))

@@ -7,8 +7,8 @@
 ;;; Commentary:
 
 ;; Shared macros and helper functions used across gnosis test suites.
-;; Load this file in each test file that needs `gnosis-test-with-db',
-;; `gnosis-test--add-deck', or `gnosis-test--add-basic-thema'.
+;; Load this file in each test file that needs `gnosis-test-with-db'
+;; or `gnosis-test--add-basic-thema'.
 
 ;;; Code:
 
@@ -41,16 +41,10 @@ Rebinds `gnosis-db' and initialises the schema."
        (gnosis-sqlite-close gnosis-db)
        (delete-file gnosis-test--db-file))))
 
-(defun gnosis-test--add-deck (name)
-  "Add a deck with NAME to the test DB.  Return its id."
-  (let ((id (+ (random 90000) 10000)))
-    (gnosis--insert-into 'decks `([,id ,name]))
-    id))
-
-(defun gnosis-test--add-basic-thema (deck-id keimenon answer
+(defun gnosis-test--add-basic-thema (keimenon answer
                                      &optional tags parathema thema-id suspend)
   "Insert a basic thema into the test DB.  Return its id.
-DECK-ID, KEIMENON, ANSWER are required.
+KEIMENON, ANSWER are required.
 TAGS defaults to (\"test\"), PARATHEMA to \"\".
 SUSPEND: 1 to suspend, 0 or nil for active."
   (let* ((id (or thema-id (gnosis-generate-id)))
@@ -61,7 +55,7 @@ SUSPEND: 1 to suspend, 0 or nil for active."
          (answer (if (listp answer) answer (list answer))))
     (gnosis-sqlite-with-transaction gnosis-db
       (gnosis--insert-into 'themata `([,id "basic" ,keimenon ,hypothesis
-                                           ,answer ,tags ,deck-id]))
+                                           ,answer ,tags]))
       (gnosis--insert-into 'review `([,id ,gnosis-algorithm-gnosis-value
                                           ,gnosis-algorithm-amnesia-value]))
       (gnosis--insert-into 'review-log `([,id ,(gnosis-algorithm-date)

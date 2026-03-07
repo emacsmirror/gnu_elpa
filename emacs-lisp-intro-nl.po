@@ -21646,7 +21646,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:9966
 #, no-wrap
 msgid "@image{cons-5}"
-msgstr ""
+msgstr "@image{cons-5-nl}"
 
 #. type: group
 #: emacs-lisp-intro.texi:9984
@@ -21770,6 +21770,10 @@ msgid ""
 "expressions, to be evaluated repeatedly: one uses a @code{while} loop, and "
 "the other uses @dfn{recursion}."
 msgstr ""
+"Emacs Lisp heeft twee primaire manieren om een expressie of een "
+"reeks van expressies herhaaldelijk te laten evalueren: een met "
+"gebruik van een @code{while} loop en een met gebruik van "
+"@dfn{recursie}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10078
@@ -21780,6 +21784,12 @@ msgid ""
 "or tired, such repetitive action does not have the deleterious effects that "
 "excessive or the wrong kinds of repetition can have on humans."
 msgstr ""
+"Herhaling kan zeer waardevol zijn. Bijvoorbeeld om vier zinnen naar "
+"voren te gaan, hoef je alleen een programma te schrijven dat een zin "
+"naar voren gaat, en dat dan vier keer te herhalen. Omdat een computer "
+"niet verveeld of vermoeid raakt, heeft zo'n herhalende actie geen "
+"schadelijke effecten dat overdreven of verkeerde manier van herhalen "
+"op mensen kan hebben."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10089
@@ -21794,12 +21804,24 @@ msgid ""
 "conservative.  You may want to increase the value of @code{max-lisp-eval-"
 "depth}.  In my @file{.emacs} file, I set it to 30 times its default value.}."
 msgstr ""
+"Men schrijft meestal Emacs Lisp functies met @code{while} loops en "
+"hun soortgenoten. maar je kunt ook recursie gebruiken, wat een erg "
+"krachtige manier biedt om over problemen te denken en op te "
+"lossen@footnote{Je kunt recursieve functies schrijven die zuinig of "
+"verspillend omgaan met mentale- of computermiddelen. Methoden die "
+"mensen makkelijk vinden---die zuinig met mentale middelen "
+"omgaan---kunnen soms aanzienlijke computermiddelen gebruiken. Emacs "
+"was ontworpen om op machines te draaien die we nu beperkt vinden en "
+"de standaard instellingen zijn terughoudend. Je wilt misschien de "
+"instelling van @code{max-lisp-eval-depth} verhogen. In mijn "
+"@file{.emacs} bestand heb ik het op 30 keer de standaard waarde "
+"ingesteld.}"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:10099
 #, no-wrap
 msgid "Loops"
-msgstr ""
+msgstr "Loops"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10106
@@ -21809,6 +21831,10 @@ msgid ""
 "interpreter does with an @code{if}; what the interpreter does next, however, "
 "is different."
 msgstr ""
+"De speciale vorm @code{while} test of de waarde teruggeven door het "
+"eerste argument te evalueren waar of onwaar is. Dit is vergelijkbaar "
+"met wat de Lisp interpreter doet met een @code{if}. Wat de "
+"interpreter daarna doet is echter anders."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10115
@@ -21821,11 +21847,20 @@ msgid ""
 "false.  If the value returned by evaluating the first argument is again "
 "true, the Lisp interpreter again evaluates the body of the expression."
 msgstr ""
+"Wanneer in een @code{while} expressie de waarde teruggeven door het "
+"eerste argument te evalueren onwaar is, slaat de Lisp interpreter de "
+"rest van de expressie (de @dfn{body} van de expressie) over en "
+"evalueert die niet. Wanneer echter de waarde waar is, can evalueert "
+"de Lisp interpreter de body van de expressie en test opnieuw of het "
+"eerste argument van @code{while} waar is of onwaar. Wanneer de "
+"waarde teruggegeven door het eerste argument te evalueren opnieuw "
+"waar is, evalueert de Lisp interpreter opnieuw de body van de "
+"expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10118
 msgid "The template for a @code{while} expression looks like this:"
-msgstr ""
+msgstr "Het sjabloon voor een @code{while} expressie ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10123
@@ -21834,12 +21869,14 @@ msgid ""
 "(while @var{true-or-false-test}\n"
 "  @var{body}@dots{})\n"
 msgstr ""
+"(while @var{waar-of-onwaar-test}\n"
+"  @var{body}@dots{})\n"
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:10137
 #, no-wrap
 msgid "Looping with @code{while}"
-msgstr ""
+msgstr "Looping met @code{while}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10147
@@ -21851,6 +21888,14 @@ msgid ""
 "evaluating the true-or-false-test is false, the Lisp interpreter does not "
 "evaluate the rest of the @code{while} expression and exits the loop."
 msgstr ""
+"Zolang de waar-of-onwaar-test van de @code{while} expressie een "
+"waarde waar teruggeeft wanneer die wordt geëvalueerd, wordt de body "
+"herhaaldelijk geëvalueerd. Dit proces wordt een loop genoemd, omdat "
+"de Lisp interpreter het zelfde ding opnieuw en opnieuw herhaalt, "
+"zoals een vliegtuig een looping maakt. Wanneer het resultaat van het "
+"evalueren van de waar-of-onwaar-test onwaar is, evalueert de Lisp "
+"interpreter de rest van de @code{while} expressie niet, en verlaat "
+"die de loop."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10156
@@ -21864,6 +21909,15 @@ msgid ""
 "want the subsequent expressions to be evaluated, and then have the test "
 "return false."
 msgstr ""
+"Het is duidelijk dat wanneer het evalueren van het eerst argument "
+"van de @code{while} altijd waar teruggeeft, de daarop volgende body "
+"wordt opnieuw, opnieuw @dots{} en opnieuw @dots{} voor altijd "
+"herhaald. Omgekeerd, wanneer de teruggegeven waarde nooit waar is, "
+"de expressies in de body nooit geëvalueerd zullen worden. Het kunst "
+"van het schrijven van @code{while} loops bestaat uit het kiezen van "
+"zo'n mechanisme dat de waar-of-onwaar-test precies zo veel keer "
+"waar teruggeeft als je wilt dat de daaropvolgende expressies worden "
+"geëvalueerd en daarna de test onwaar laat teruggeven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10168
@@ -21879,12 +21933,22 @@ msgid ""
 "that is desired, but the consequences of what happens when the expressions "
 "in the loop are repeatedly evaluated."
 msgstr ""
+"De waarde die het evalueren van een @code{while} teruggeeft, is de waarde van "
+"de waar-of-onwaar-test. Een interessant gevolg hiervan is dat een @code{while} "
+"loop die zonder fouten evalueert een @code{nil} of onwaar teruggeeft, "
+"ongeacht of het 1 of 100 keer heeft geloopt, of helemaal nooit. Een "
+"@code{while} loop die succesvol evalueert geeft nooit een waarde waar terug! "
+"Dit betekent dat @code{while} altijd geëvalueerd wordt voor zijn zij-effecten, "
+"met andere woorden, de consequenties van het evalueren van de expressies "
+"in de body van de @code{while} loop. Dat is logisch. Het is niet slechts "
+"het loopen dat gewest is, maar de consequenties van wat gebeurt wanneer "
+"de expressies in de loop herhaaldelijk worden geëvalueerd."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:10170
 #, no-wrap
 msgid "A @code{while} Loop and a List"
-msgstr ""
+msgstr "Een @code{while} loop en een lijst"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10176
@@ -21894,6 +21958,11 @@ msgid ""
 "repetition is ended.  Since this is an important technique, we will create a "
 "short example to illustrate it."
 msgstr ""
+"Een gebruikelijke manier om een @code{while} loop te beheersen is "
+"testen of een lijst elementen heeft. Wanneer dat zo is, wordt de "
+"loop herhaald, maar wanneer dat niet zo is, wordt de herhaling "
+"beëindigd. Omdat dit een belangrijke techniek is, maken we hier een "
+"klein voorbeeld om het te illustreren."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10184
@@ -21905,6 +21974,14 @@ msgid ""
 "Emacs Lisp considers as true any value that is not @code{nil}, a list that "
 "returns elements will test true in a @code{while} loop."
 msgstr ""
+"Een simpele manier om te testen of een lijsten elementen heeft is de "
+"lijst te evalueren: wanneer die geen elementen heeft is het een lege "
+"lijst en geeft het een lege lijst terug, @code{()}, wat een synoniem "
+"is voor @code{nil} of onwaar. Anderzijds geeft een lijst met "
+"elementen die elementen terug wanneer die wordt geëvalueerd. Omdat "
+"Emacs Lisp elke waarde ongelijk aan @code{nil} als waar beschouwt, "
+"en lijst die elementen teruggeeft zal als waar testen in een "
+"@code{while} loop."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10188
@@ -21912,12 +21989,14 @@ msgid ""
 "For example, you can set the variable @code{empty-list} to @code{nil} by "
 "evaluating the following @code{setq} expression:"
 msgstr ""
+"Als voorbeeld kun je de variabele @code{lege-lijst} op @code{nil} "
+"zetten met het evalueren van de volgende @code{setq} expressie: "
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:10191
 #, no-wrap
 msgid "(setq empty-list ())\n"
-msgstr ""
+msgstr "(setq lege-lijst ())\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10198
@@ -21926,12 +22005,16 @@ msgid ""
 "@code{empty-list} in the usual way, by placing the cursor after the symbol "
 "and typing @kbd{C-x C-e}; @code{nil} will appear in your echo area:"
 msgstr ""
+"Na het evalueren van de @code{setq} expressie, kan je de variabele "
+"@code{lege-lijst} op de gebruikelijke manier evalueren, door de "
+"cursor achter het symbool te plaatsen en @kbd{C-x C-e} te typen. In "
+"het echogebied verschijnt @code{nil}."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:10201
 #, no-wrap
 msgid "empty-list\n"
-msgstr ""
+msgstr "lege-lijst\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10206
@@ -21940,6 +22023,9 @@ msgid ""
 "list will appear when you evaluate the variable, as you can see by "
 "evaluating the following two expressions:"
 msgstr ""
+"Anderzijds, als je een variabele instelt op een lijst met elementen, "
+"verschijnt de lijst wanneer je de variabele evalueert. Dit kan je "
+"zien door de volgende expressies te evalueren:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10210 emacs-lisp-intro.texi:10315
@@ -21950,12 +22036,14 @@ msgid ""
 "(setq animals '(gazelle giraffe lion tiger))\n"
 "\n"
 msgstr ""
+"(setq dieren '(gazelle giraf leeuw tijger))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:10212
 #, no-wrap
 msgid "animals\n"
-msgstr ""
+msgstr "dieren\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10218
@@ -21964,6 +22052,9 @@ msgid ""
 "in the list @code{animals}, the first part of the loop will be written like "
 "this:"
 msgstr ""
+"Dus om een @code{while} loop te creëren die test of er elementen in "
+"de lijst @code{dieren} zijn, is het eerste deel van de loop als "
+"volgt:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10223
@@ -21972,6 +22063,8 @@ msgid ""
 "(while animals\n"
 "       @dots{}\n"
 msgstr ""
+"(while dieren\n"
+"       @dots{}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10232
@@ -21981,6 +22074,11 @@ msgid ""
 "@code{while} considers the results of the test to be true; but when the list "
 "is empty, it considers the results of the test to be false."
 msgstr ""
+"Wanneer de @code{while} het eerste argument test, wordt de variabele "
+"@code{dieren} geëvalueerd. Dit geeft een lijst terug. Zo lang de "
+"lijst elementen heeft, beschouwt de @code{while} het resultaat van "
+"de test als waar, maar wanneer de lijst leeg is, dan beschouwt die "
+"het resultaat van de test als onwaar."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10241
@@ -21994,6 +22092,15 @@ msgid ""
 "loop will return false, and the arguments to the @code{while} will no longer "
 "be evaluated."
 msgstr ""
+"Om te voorkomen dat de @code{while} loop voor altijd blijft lopen, "
+"is een mechanisme nodig dat uiteindelijk een lege lijst geeft. Een "
+"vaak gebruikte techniek is om een van de opvolgende vormen in de "
+"@code{while} expressie de waarde van de lijst op de @sc{cdr} van de "
+"lijst te zetten. Elke keer dat de functie @sc{cdr} wordt geëvalueerd "
+"wordt de lijst korter, totdat uiteindelijk alleen de lege lijst "
+"overblijft. Op dit punt geeft de test in de @code{while} loop onwaar "
+"terug, en de argumenten van de @code{while} worden niet langer meer "
+"geëvalueerd."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10245
@@ -22001,12 +22108,15 @@ msgid ""
 "For example, the list of animals bound to the variable @code{animals} can be "
 "set to be the @sc{cdr} of the original list with the following expression:"
 msgstr ""
+"De lijst van dieren bijvoorbeeld, gebonden aan de variabele "
+"@code{dieren} kan op de @sc{cdr} van de oorspronkelijke lijst gezet "
+"worden met de volgende expressie:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:10248
 #, no-wrap
 msgid "(setq animals (cdr animals))\n"
-msgstr ""
+msgstr "(setq dieren (cdr dieren))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10256
@@ -22017,6 +22127,13 @@ msgid ""
 "in the echo area.  If you evaluate it again and yet again, @code{(tiger)} "
 "appears and then the empty list, shown by @code{nil}."
 msgstr ""
+"Wanneer je de voorgaande expressies geëvalueerd hebt en vervolgens "
+"deze expressie, dan zie je @code{(giraf leeuw tijger)} in het "
+"echogebied verschijnen. Wanneer je de expressie nog een keer "
+"evalueert, dan verschijnt @code{(leeuw tijger)} in het echogebied. "
+"Wanneer je het nog een keer en daarna nog een keer evalueert, dan "
+"verschijnt @code{tijger} en daarna de lege lijst, getoond met "
+"@code{nil}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10260
@@ -22025,6 +22142,9 @@ msgid ""
 "repeatedly to cause the true-or-false-test eventually to test false looks "
 "like this:"
 msgstr ""
+"Een sjabloon voor de @code{wile} loop dat de functie @code{cdr} "
+"herhaaldelijk gebruikt om de waar-of-onwaar-test uiteindelijk als "
+"onwaar te testen, ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10266 emacs-lisp-intro.texi:14981
@@ -22034,6 +22154,9 @@ msgid ""
 "  @var{body}@dots{}\n"
 "  @var{set-list-to-cdr-of-list})\n"
 msgstr ""
+"(while @var{test-of-lijst-leeg-is}\n"
+"  @var{body}@dots{}\n"
+"  @var{set-lijst-op-cdr-van-lijst})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10272
@@ -22041,12 +22164,15 @@ msgid ""
 "This test and use of @code{cdr} can be put together in a function that goes "
 "through a list and prints each element of the list on a line of its own."
 msgstr ""
+"Deze test en het gebruik van @code{cdr} kunnen samengevoegd worden "
+"in een functie die door een lijst gaat en elk element van de lijst "
+"op een regel op een eigen regel toont."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:10274
 #, no-wrap
 msgid "An Example: @code{print-elements-of-list}"
-msgstr ""
+msgstr "Een voorbeeld:  @code{toon-elementen-van-lijst}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10279
@@ -22054,12 +22180,14 @@ msgid ""
 "The @code{print-elements-of-list} function illustrates a @code{while} loop "
 "with a list."
 msgstr ""
+"De @code{toon-elementen-van-lijst} functie illustreert een "
+"@code{while} loop met een lijst."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:10280
 #, no-wrap
 msgid "@file{*scratch*} buffer"
-msgstr ""
+msgstr "@file{*scratch*} buffer"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10284
@@ -22068,6 +22196,9 @@ msgid ""
 "in a recent instance of GNU Emacs, you can evaluate the following expression "
 "inside of Info, as usual."
 msgstr ""
+"Deze functie benodigd meerdere regels voor de output. Wanneer je dit in "
+"een recente versie van GNU Emacs leest, kan je de volgende expressies "
+"in Info evalueren, zoals gebruikelijk."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10289
@@ -22076,6 +22207,10 @@ msgid ""
 "expressions to your @file{*scratch*} buffer and evaluate them there.  This "
 "is because the echo area had only one line in the earlier versions."
 msgstr ""
+"Wanneer je een eerdere versie van Emacs gebruikt, kan het nodig zijn "
+"eerst de expressies te kopiëren naar je @file{*scratch*} buffer en "
+"ze daar te evalueren. Dit is omdat het echogebied in eerdere versies "
+"meer een regel bevat."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10297
@@ -22087,6 +22222,13 @@ msgid ""
 "feedback).  In the @file{*scratch*} buffer, you can yank the expressions "
 "back by typing @kbd{C-y} (@code{yank})."
 msgstr ""
+"Je kunt de expressies kopiëren door het begin van de region te "
+"markeren met @kbd{C-@key{SPC}} (@code{set-mark-command}), vervolgens "
+"de cursor naar het eind van de region te verplaatsen en dan de "
+"region met @kbd{M-w} (@code{kill-ring-save} te kopiëren (die "
+"@code{copy-region-as-kill} aanroept en visuele feedback geeft). In "
+"het @file{*scratch*} buffer krijg je de expressies terug door "
+"@kbd{C-y} (@code{yank}) te typen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10307
@@ -22101,6 +22243,15 @@ msgid ""
 "@code{^Jgazelle^J^Jgiraffe^J^Jlion^J^Jtiger^Jnil}, in which each @samp{^J} "
 "stands for a newline.)"
 msgstr ""
+"Nadat je de expressies in het @file{*scratch*} buffer gekopieerd "
+"hebt, evalueer je elke expressie op zijn beurt. Zorg dat je de "
+"laatste expressie @code{toon-elementen-van-lijst dieren} met "
+"@kbd{C-u C-x C-e} evalueert, oftewel door een argument aan "
+"@code{eval-last-sexp} te geven. Hierdoor wordt het resultaat van de "
+"evaluatie in het @file{*scratch*} buffer getoond, in plaats van in "
+"het echogebied. (Anders zie je iets als dit in het echogebied: "
+"@code{^Jgazelle^J^Jgiraf^J^Jleeuw^J^Jtijger^Jnil}, waarbij elk "
+"@samp{^J} voor een nieuwe regel staat.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10311
@@ -22108,6 +22259,8 @@ msgid ""
 "You can evaluate these expressions directly in the Info buffer, and the echo "
 "area will grow to show the results."
 msgstr ""
+"Je kunt de volgende expressie direct in het Info buffer evalueren en "
+"het echogebied groeit om de resultaten te tonen."
 
 #. type: group
 #: emacs-lisp-intro.texi:10321
@@ -22120,17 +22273,22 @@ msgid ""
 "    (setq list (cdr list))))\n"
 "\n"
 msgstr ""
+"(defun toon-elementen-van-lijst (lijst)\n"
+"  \"Toon elk element van LIJST op een eigen regel.\"\n"
+"  (while lijst\n"
+"    (print (car lijst))\n"
+"    (setq lijst (cdr lijst))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:10323
 #, no-wrap
 msgid "(print-elements-of-list animals)\n"
-msgstr ""
+msgstr "(toon-elementen-van-lijst dieren)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10330
 msgid "When you evaluate the three expressions in sequence, you will see this:"
-msgstr ""
+msgstr "Wanneer je de drie expressies achtereenvolgens evalueert, zie je dit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10334 emacs-lisp-intro.texi:11249
@@ -22139,6 +22297,8 @@ msgid ""
 "gazelle\n"
 "\n"
 msgstr ""
+"gazelle\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:10336 emacs-lisp-intro.texi:11251
@@ -22147,6 +22307,8 @@ msgid ""
 "giraffe\n"
 "\n"
 msgstr ""
+"giraf\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:10338 emacs-lisp-intro.texi:11253
@@ -22155,6 +22317,8 @@ msgid ""
 "lion\n"
 "\n"
 msgstr ""
+"leeuw\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:10341 emacs-lisp-intro.texi:11256
@@ -22163,6 +22327,8 @@ msgid ""
 "tiger\n"
 "nil\n"
 msgstr ""
+"tijger\n"
+"nil\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10349
@@ -22173,12 +22339,18 @@ msgid ""
 "loop, and since @code{while} loops always return @code{nil}, a @code{nil} is "
 "printed after the last element of the list."
 msgstr ""
+"Elk element van de lijst wordt op een eigen regel getoond (dat is "
+"wat de functie @code{print} doet) en daarna wordt de waarde die de "
+"functie teruggeeft getoond . Omdat de laatste expressie van de "
+"functie de @code{while} loop is, en omdat een @code{while} loop "
+"altijd @code{nil} teruggeeft, wordt @code{nil} getoond na het "
+"laatste element van de lijst."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:10351
 #, no-wrap
 msgid "A Loop with an Incrementing Counter"
-msgstr ""
+msgstr "Een loop met een incrementele teller"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10359
@@ -22189,6 +22361,12 @@ msgid ""
 "are complete.  This means that the loop must have a counter---an expression "
 "that counts how many times the loop repeats itself."
 msgstr ""
+"Een loop is niet bruikbaar tenzij die stopt wanneer dat moet. Naast "
+"het beheersen van een loop met een lijst is een gebruikelijke manier "
+"om een loop te stoppen door het eerste argument te schrijven als een "
+"test die onwaar teruggeeft wanneer het juiste aantal herhalingen is "
+"uitgevoerd. Dat betekent dat de loop een teller moet hebben---een "
+"expressie die telt hoeveel maal de loop zichzelf herhaald heeft."
 
 #. type: node
 #: emacs-lisp-intro.texi:10361
@@ -22209,6 +22387,17 @@ msgid ""
 "argument.  (The expression @w{@code{(1+ count)}} has the same result as "
 "@w{@code{(+ count 1)}}, but is easier for a human to read.)"
 msgstr ""
+"De test voor een loop met een incrementele teller kan een expressie "
+"zijn zoals @code{(< telling gewenste-aantal)} die @code{t} voor waar "
+"teruggeeft wanneer de waarde van @code{telling} kleiner is dan het "
+"@code{gewenste-aantal} herhalingen, en @code{nil} voor onwaar "
+"wanneer de waarde van @code{telling} groter of gelijk is aan het "
+"@code{gewenste-aantal}. De expressie die de telling verhoogt kan een "
+"simpele @code{setq} zijn, zoals @code{(setq telling (1+ telling))}. "
+"waar @code{1+} een in Emacs Lisp een ingebouwde functie is die 1 bij "
+"zijn argument optelt. (De expressie @w{@code{(1+ telling)}} heeft "
+"hetzelfde resultaat als @w{@code{(+ telling 1)}} maar is voor mensen "
+"makkelijker te lezen.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10379
@@ -22216,6 +22405,8 @@ msgid ""
 "The template for a @code{while} loop controlled by an incrementing counter "
 "looks like this:"
 msgstr ""
+"Het sjabloon voor een @code{while} loop beheerst met een "
+"incrementele teller ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10386
@@ -22226,6 +22417,10 @@ msgid ""
 "  @var{body}@dots{}\n"
 "  (setq count (1+ count)))              ; @r{incrementer}\n"
 msgstr ""
+"@var{zet-telling-op-initiele-waarde}\n"
+"(while (< telling gewenste-aantal)         ; @r{waar-of-onwaar-test}\n"
+"  @var{body}@dots{}\n"
+"  (setq telling (1+ telling)))              ; @r{incrementer}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10392
@@ -22233,12 +22428,14 @@ msgid ""
 "Note that you need to set the initial value of @code{count}; usually it is "
 "set to 1."
 msgstr ""
+"Merk op dat je de initiële waarde van @code{telling} moet zetten, "
+"gebruikelijk is die op 1 te zetten."
 
 #. type: unnumberedsubsubsec
 #: emacs-lisp-intro.texi:10400
 #, no-wrap
 msgid "Example with incrementing counter"
-msgstr ""
+msgstr "Voorbeeld met een incrementele teller"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10405
@@ -22247,6 +22444,9 @@ msgid ""
 "pebbles, putting one pebble in the first row, two in the second row, three "
 "in the third row and so on, like this:"
 msgstr ""
+"Stel je voor dat je op het strand aan spelen bent en besluit om een "
+"driehoek van steentjes te maken, met één steentje op de eerste rij, "
+"twee op de tweede rij, drie op de derde rij, enzovoorts, zoals dit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10415
@@ -22257,6 +22457,10 @@ msgid ""
 "             * * *\n"
 "            * * * *\n"
 msgstr ""
+"               *\n"
+"              * *\n"
+"             * * *\n"
+"            * * * *\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:10425
@@ -22267,6 +22471,10 @@ msgid ""
 "             @bullet{} @bullet{} @bullet{}\n"
 "            @bullet{} @bullet{} @bullet{} @bullet{}\n"
 msgstr ""
+"               @bullet{}\n"
+"              @bullet{} @bullet{}\n"
+"             @bullet{} @bullet{} @bullet{}\n"
+"            @bullet{} @bullet{} @bullet{} @bullet{}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10433
@@ -22274,6 +22482,8 @@ msgid ""
 "(About 2500 years ago, Pythagoras and others developed the beginnings of "
 "number theory by considering questions such as this.)"
 msgstr ""
+"(Ongeveer 2500 jaar geleden ontwikkelden Pythagoras en anderen het "
+"begin van getaltheorie door vragen zoals deze te beschouwen.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10436
@@ -22281,6 +22491,8 @@ msgid ""
 "Suppose you want to know how many pebbles you will need to make a triangle "
 "with 7 rows?"
 msgstr ""
+"Stel je voor dat je wilt weten hoeveel steentjes je nodig hebt om "
+"een driehoek met 7 rijen te maken?"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10444
@@ -22293,6 +22505,15 @@ msgid ""
 "examples, one counting up and the other counting down.  In this first "
 "example, we will start with 1 and add 2, 3, 4 and so on."
 msgstr ""
+"Het is duidelijk, wat we moeten doen is de getallen 1 tot en met 7 "
+"op te tellen. Er zijn twee manieren om dit te doen: beginnen met het "
+"kleinste nummer, een, en dan de lijst opvolgend optellen, 1, 2, 3, "
+"4, enzovoorts. Of beginnen met het grootste getal en dan de lijst "
+"aflopend optellen, 7, 6, 5, 4 enzovoorts. Omdat beide mechanismen "
+"gebruikelijke manieren om @code{while} loops te schrijven "
+"illustreren, maken we twee voorbeelden, eentje oplopend tellen en "
+"eentje aflopend tellen. In het eerste voorbeeld beginnen we met 1, "
+"en tellen dan 2, 3, 4 enzovoorts op."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10451
@@ -22304,6 +22525,13 @@ msgid ""
 "is repeat a simple process many times instead of doing a more complex "
 "process once."
 msgstr ""
+"Wanneer je slechts een korte lijst getallen optelt, is de "
+"makkelijkste manier daarvoor om alle getallen in een keer op te "
+"tellen. Maar wanneer je van te voren niet weet hoeveel getallen de "
+"lijst bevat, of als je voorbereid wilt zijn op een erg lange lijst, "
+"dan moet je de optelling zo ontwerpen dat je een eenvoudig proces "
+"veel keren herhaalt, in plaats van het in een keer uitvoeren van een "
+"meer complex proces."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10457
@@ -22314,6 +22542,11 @@ msgid ""
 "3.  Then you can add the number in the fourth row, 4, to the total of the "
 "first three rows; and so on."
 msgstr ""
+"Bijvoorbeeld in plaats van alle steentjes in een keer bij elkaar op "
+"te tellen, kun je het aantal steentjes in de eerste rij, 1, optellen "
+"bij het aantal in de tweede rij, 2, daarna tel je het totaal van die "
+"twee rijen op bij de derde rij, 3. Daarna tel je het aantal van de "
+"vierde rij, 4, bij het totaal van de eerste drie rijen, enzovoorts."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10465
@@ -22326,12 +22559,20 @@ msgid ""
 "action might not be so simple, but it will be simpler than doing everything "
 "all at once."
 msgstr ""
+"De kritieke eigenschap van het proces is dat elke terugkerende actie "
+"eenvoudig is. In dit geval tellen we bij elke stap slechts twee "
+"getallen op, het aantal steentjes in de rij en het totaal dat we al "
+"hadden. Dit proces van het optellen van twee getallen wordt opnieuw "
+"herhaald en opnieuw, totdat de laatste rij is opgeteld bij het "
+"totaal van de voorgaande rijen. In een meer complexe loop kan de "
+"terugkerende actie minder eenvoudig zijn, maar het is eenvoudiger "
+"dan alles in een keer doen."
 
 #. type: unnumberedsubsubsec
 #: emacs-lisp-intro.texi:10467 emacs-lisp-intro.texi:10734
 #, no-wrap
 msgid "The parts of the function definition"
-msgstr ""
+msgstr "De onderdelen van de functiedefinitie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10473
@@ -22340,6 +22581,10 @@ msgid ""
 "we will need a variable that we can call @code{total} that will be the total "
 "number of pebbles.  This will be the value returned by the function."
 msgstr ""
+"De voorgaande analyse geeft ons het skelet van onze functiedefinitie: "
+"als eerste hebben we een variabele nodig die we @code{totaal} noemen, dat "
+"het totaal van het aantal steentjes gaat worden. Dit is de waarde de "
+"de functie gaat teruggeven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10477
@@ -22348,6 +22593,9 @@ msgid ""
 "will be the total number of rows in the triangle.  It can be called "
 "@code{number-of-rows}."
 msgstr ""
+"Ten tweede weten we dat de functie een argument nodig heeft, dit "
+"argument wordt het totaal aantal rijen in de driehoek. Het kan "
+"@code{aantal-rijen} heten."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10482
@@ -22357,6 +22605,11 @@ msgid ""
 "because what the counter does in this function is count rows, and a program "
 "should be written to be as understandable as possible."
 msgstr ""
+"Tenslotte hebben we een variabele als teller nodig. We kunnen deze "
+"variabele @code{teller} noemen, maar een betere naam is "
+"@code{rij-nummer}. Dat is omdat de teller in deze functie de rijen "
+"telt, en een programma moet zo begrijpelijk mogelijk worden "
+"geschreven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10490
@@ -22368,6 +22621,13 @@ msgid ""
 "to the total, and then add the number of pebbles in the third row to the "
 "total, and so on, until there are no more rows left to add."
 msgstr ""
+"Wanneer de Lisp interpreter voor het eerst start met het evalueren "
+"van de expressies in de functie moet de waarde van @code{totaal} op "
+"nul staan, omdat we er nog niets bij opgeteld hebben. Daarna moet de "
+"functie het aantal steentjes in de eerste rij bij het totaal "
+"optellen en daarna het aantal steentjes in de tweede rij bij het "
+"totaal optellen, en dan het aantal steentjes in de derde rij, "
+"enzovoorts, totdat er geen rijen meer over zijn om er bij te tellen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10497
@@ -22378,6 +22638,12 @@ msgid ""
 "initial value of @code{row-number} should be 1, since we start with the "
 "first row.  This means that the @code{let} statement will look like this:"
 msgstr ""
+"@code{totaal} en @code{rij-nummer} worden beide alleen binnen de functie "
+"gebruikt, dus kan @code{let} ze als lokale variabelen declareren en "
+"ze een initiële waarde geven. Het is duidelijk dat de initiële waarde voor "
+"@code{totaal} 0 moet zijn. De initiële waarde voor @code{rij-nummer} moet "
+"1 zijn, omdat we beginnen met de eerste rij. Dit betekent dat de @code{let} "
+"statement er zo uit ziet:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10503
@@ -22387,6 +22653,9 @@ msgid ""
 "        (row-number 1))\n"
 "    @var{body}@dots{})\n"
 msgstr ""
+"  (let ((totaal 0)\n"
+"        (rij-nummer 1))\n"
+"    @var{body}@dots{})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10514
@@ -22399,12 +22668,20 @@ msgid ""
 "the triangle, the last row will never be added to the total; hence the row "
 "number has to be either less than or equal to the number of rows.)"
 msgstr ""
+"Nadat de interne variabelen zijn gedeclareerd en gebonden aan hun initiële "
+"waarden, kunnen we met de @code{while} loop beginnen. De expressie die dient "
+"als test moet een waarde van @code{t} voor waar teruggeven zolang het "
+"@code{rij-nummer}  kleiner of gelijk is aan het @code{aantal-rijen}. "
+"(Wanneer de expressie alleen waar test zolang als het rijnummer kleiner "
+"is dan het aantal rijen in de driehoek, dan wordt de laatste rij nooit "
+"bij het totaal aantal geteld, daarom moet het rijnummer kleiner of "
+"gelijk aan het aantal rijen zijn.) "
 
 #. type: findex
 #: emacs-lisp-intro.texi:10516
 #, no-wrap
 msgid "<= @r{(less than or equal)}"
-msgstr ""
+msgstr "<= @r{(kleiner of gelijk)}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10521
@@ -22414,12 +22691,16 @@ msgid ""
 "false otherwise.  So the expression that the @code{while} will evaluate as "
 "its test should look like this:"
 msgstr ""
+"Lisp biedt de functie @code{<=} die waar teruggeeft indien de waarde van het "
+"eerste argument is kleiner of gelijk aan de waarde van het tweede argument, "
+"zo niet dan geeft het onwaar terug. De expressie die de @code{while} als "
+"test evalueert moet er zo uitzien:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:10524
 #, no-wrap
 msgid "(<= row-number number-of-rows)\n"
-msgstr ""
+msgstr "(<= rij-nummer aantal-rijen)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10533
@@ -22432,12 +22713,20 @@ msgid ""
 "way; if this were the case, the row number would be replaced by the "
 "appropriate expression.)"
 msgstr ""
+"Het totale aantal steentjes kan worden bepaald door herhaaldelijk "
+"het aantal steentjes in een rij op te tellen bij het reeds getelde "
+"totaal aantal. Omdat het aantal steentjes in een rij gelijk is aan "
+"het rij-nummer, kan het totaal bepaald worden door het rij-nummer bij "
+"het totaal op te tellen. (In een meer complexe situatie kan het "
+"aantal steentjes in een rij op een meer gecompliceerde manier "
+"gerelateerd zijn aan het rij-nummer. Wanneer dat het geval is dan zou "
+"het rij-nummer vervangen worden door een passende expressie.)"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:10536
 #, no-wrap
 msgid "(setq total (+ total row-number))\n"
-msgstr ""
+msgstr "(setq totaal (+ totaal rij-nummer))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10541
@@ -22445,6 +22734,8 @@ msgid ""
 "What this does is set the new value of @code{total} to be equal to the sum "
 "of adding the number of pebbles in the row to the previous total."
 msgstr ""
+"Dit zet de nieuwe waarde van @code{totaal} gelijk aan de som van het "
+"aantal steentjes in de rij en het vorige totaal."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10551
@@ -22458,6 +22749,15 @@ msgid ""
 "@code{number-of-rows} and if it is, adds the new value of the @code{row-"
 "number} variable to the @code{total} of the previous repetition of the loop."
 msgstr ""
+"Na het zetten van de waarde van @code{totaal} moeten de condities "
+"worden ingesteld voor de volgende herhaling van de loop, als die er "
+"is. Dit gebeurt door de waarde van de variabele @code{rij-nummer} te "
+"verhogen, die als teller dient. Nadat de variabele @code{rij-nummer} "
+"is verhoogd, test de waar-of-onwaar-test aan het begin van de "
+"@code{while} loop of de zijn waarde nog steeds kleiner of gelijk is "
+"aan de waarde van de @code{aantal-rijen} en als dat zo is, telt het "
+"de nieuwe waarde van de variable @code{rij-nummer} bij de "
+"@code{totaal} van de vorige herhaling van de loop."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10555
@@ -22465,18 +22765,21 @@ msgid ""
 "The built-in Emacs Lisp function @code{1+} adds 1 to a number, so the "
 "@code{row-number} variable can be incremented with this expression:"
 msgstr ""
+"De in Emacs Lisp ingebouwde functie @code{1+} telt 1 bij een getal "
+"op, dus de variabele @code{rij-nummer} kan met deze expressie worden "
+"verhoogd:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:10558
 #, no-wrap
 msgid "(setq row-number (1+ row-number))\n"
-msgstr ""
+msgstr "(setq rij-nummer (1+ rij-nummer))\n"
 
 #. type: unnumberedsubsubsec
 #: emacs-lisp-intro.texi:10561 emacs-lisp-intro.texi:10796
 #, no-wrap
 msgid "Putting the function definition together"
-msgstr ""
+msgstr "De functiedefinitie samenstellen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10565
@@ -22484,11 +22787,13 @@ msgid ""
 "We have created the parts for the function definition; now we need to put "
 "them together."
 msgstr ""
+"We hebben de onderdelen van de functiedefinitie gecreëerd, nu moeten "
+"we ze samenstellen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10568
 msgid "First, the contents of the @code{while} expression:"
-msgstr ""
+msgstr "Ten eerste de inhoud vna de @code{while} expressie: "
 
 #. type: group
 #: emacs-lisp-intro.texi:10574
@@ -22498,6 +22803,9 @@ msgid ""
 "  (setq total (+ total row-number))\n"
 "  (setq row-number (1+ row-number)))    ; @r{incrementer}\n"
 msgstr ""
+"(while (<= rij-nummer aantal-rijen)   ; @r{waar-of-onwaar-test}\n"
+"  (setq totaal (+ total rij-nummer))\n"
+"  (setq rij-nummer (1+ rij-nummer)))    ; @r{incrementer}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10580
@@ -22506,6 +22814,9 @@ msgid ""
 "body of the function definition.  However, it requires one final element, "
 "the need for which is somewhat subtle."
 msgstr ""
+"Samen met de @code{let} expressie varlist maakt dit de body van de "
+"functie bijna helemaal compleet. Het heeft echter nog een laatste "
+"element nodig, waarvan de noodzaak wat subtiel is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10586
@@ -22516,6 +22827,12 @@ msgid ""
 "body of the @code{let}, and this is the value returned by the @code{while}, "
 "which is always @code{nil}."
 msgstr ""
+"Het puntje op de i is om de variabele @code{totaal} na de "
+"@code{while} expressie op een eigen regel te plaatsen. Zo niet dan "
+"is de waarde die de hele functie terugggeeft de waarde van de "
+"laatste expressie die is geëvalueerd in de body van de @code{let}, "
+"dat is de waarde teruggeven door de @code{while} en die is altijd "
+"@code{nil}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10593
@@ -22526,11 +22843,16 @@ msgid ""
 "element of the list that starts with the symbol @code{while}.  Moreover, the "
 "whole of the @code{while} loop is a list within the body of the @code{let}."
 msgstr ""
+"Dit kan op het eerste gezicht niet vanzelfsprekend zijn. Het lijkt "
+"bijna of de verhogende expressie de laatste expressie van de hele "
+"functie is. Maar die expressie is onderdeel van de body van de "
+"@code{while}. Bovendien is de hele @code{while} loop een lijst "
+"binnen de body van de @code{let}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10596
 msgid "In outline, the function will look like this:"
-msgstr ""
+msgstr "Een overzicht van de functie ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10605
@@ -22543,6 +22865,12 @@ msgid ""
 "      @var{body-of-while}@dots{} )\n"
 "    @dots{} ))                    ; @r{Need final expression here.}\n"
 msgstr ""
+"(defun @var{naam-van-functie} (@var{argument-lijst})\n"
+"  \"@var{documentatie}@dots{}\"\n"
+"  (let (@var{varlist})\n"
+"    (while (@var{waar-of-onwaar-test})\n"
+"      @var{body-van-while}@dots{} )\n"
+"    @dots{} ))                    ; @r{Hier is een laatste expressie nodig.}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10618
@@ -22558,6 +22886,18 @@ msgid ""
 "means it gets evaluated after it has been assigned the correct value for the "
 "total."
 msgstr ""
+"Het resultaat van het evalueren van de @code{let} is wat de "
+"@code{defun} gaat teruggeven, omdat de @code{let} niet ingebed is een "
+"lijst, behalve binnen de @code{defun} als geheel. Echter, als de "
+"@code{while} het laatste element is van de @code{let} expressie, "
+"geeft de functie altijd @code{nil} terug. Dit is niet wat we willen! "
+"In plaats daarvan willen we dat de functie de waarde van de "
+"variabele @code{totaal} teruggeeft. Dit wordt teruggegeven door "
+"eenvoudig dat symbool als laatste element in de lijst te zetten die begint "
+"met @code{let}. Het wordt geëvalueerd nadat de voorgaande "
+"elementen van de lijst zijn geëvalueerd, wat betekent dat het wordt "
+"geëvalueerd nadat het de correcte waarde voor het totaal heeft "
+"gekregen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10624
@@ -22567,12 +22907,18 @@ msgid ""
 "@code{while} expressions are the second and third elements of the list "
 "starting with @code{let}, and the @code{total} is the last element:"
 msgstr ""
+"Het is eenvoudiger te zien wanneer we de lijst die begint met "
+"@code{let} in zijn geheel op een regel tonen. Dit formaat maakt het "
+"vanzelfsprekend dat de varlist en de @code{while} expressie het "
+"tweede en derde element van de lijst die begint met @code{let} zijn, "
+"en dat @code{totaal} het laatste element is."
 
 #. type: group
 #: emacs-lisp-intro.texi:10628
 #, no-wrap
 msgid "(let (@var{varlist}) (while (@var{true-or-false-test}) @var{body-of-while}@dots{} ) total)\n"
 msgstr ""
+"(let (@var{varlist}) (while (@var{waar-of-onwaar-test}) @var{body-of-while}@dots{} ) totaal)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10634
@@ -22580,6 +22926,7 @@ msgid ""
 "Putting everything together, the @code{triangle} function definition looks "
 "like this:"
 msgstr ""
+"Als we alles samenvoegen, ziet de functie @code{driehoek} er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10643
@@ -22592,6 +22939,12 @@ msgid ""
 "the third row three pebbles, and so on.\n"
 "The argument is NUMBER-OF-ROWS.\"\n"
 msgstr ""
+"(defun driehoek (aantal-rijen)    ; @r{Versie met}\n"
+"                                  ; @r{  oplopende teller.}\n"
+"  \"Tel het aantal steentjes in een driehoek op.\n"
+"De eerste rij heeft een steentje, de tweede rij twee steentjes.\n"
+"De derde rij heeft drie steentjes, enzovoorts.\n"
+"Het argument is AANTAL-RIJEN.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:10651
@@ -22604,6 +22957,12 @@ msgid ""
 "      (setq row-number (1+ row-number)))\n"
 "    total))\n"
 msgstr ""
+"  (let ((totaal 0)\n"
+"        (rij-nummer 1))\n"
+"    (while (<= rij-nummer aantal-rijen)\n"
+"      (setq totaal (+ totaal rij-nummer))\n"
+"      (setq rij-nummer (1+ rij-nummer)))\n"
+"    totaal))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10657
@@ -22611,6 +22970,8 @@ msgid ""
 "After you have installed @code{triangle} by evaluating the function, you can "
 "try it out.  Here are two examples:"
 msgstr ""
+"Wanneer je @code{driehoek} hebt geïnstalleerd door het evalueren van "
+"de functie, kun je hem uitproberen. Hier zijn twee voorbeelden:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10661
@@ -22619,12 +22980,15 @@ msgid ""
 "(triangle 4)\n"
 "\n"
 msgstr ""
+"(driehoek 4)\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:10663
 #, no-wrap
 msgid "(triangle 7)\n"
 msgstr ""
+"(driehoek 7)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10669
@@ -22632,6 +22996,8 @@ msgid ""
 "The sum of the first four numbers is 10 and the sum of the first seven "
 "numbers is 28."
 msgstr ""
+"De som van de eerste vier getallen is 10 en de som van de eerste "
+"zeven getallen is 28."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10680
@@ -22643,6 +23009,13 @@ msgid ""
 "counter has to start out greater than zero and then be made smaller and "
 "smaller by a form that is evaluated repeatedly."
 msgstr ""
+"Een andere gebruikelijke manier om een @code{while} loop te "
+"schrijven is met een test die vaststelt of een teller groter dan nul "
+"is. Zolang de teller groter dan nul is wordt de loop herhaald. Maar "
+"wanneer de teller kleiner of gelijk is aan nul, wordt de loop "
+"gestopt. Om dit zo te laten werken moet de teller groter dan nul "
+"starten en dan kleiner en kleiner gemaakt worden door een vorm die "
+"herhaaldelijk wordt geëvalueerd."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10688
@@ -22655,11 +23028,18 @@ msgid ""
 "@code{1-} is a built-in function in Emacs Lisp that subtracts 1 from its "
 "argument."
 msgstr ""
+"De test is een expressie zoals @code{(> teller 0)} die @code{t} voor "
+"waar teruggeeft wanneer de waarde van @code{teller} groter is dan "
+"nul, en @code{nil} voor onwaar wanneer de waarde van @code{teller} "
+"kleiner of gelijk is aan nul. De expressie die het getal kleiner en "
+"kleiner makat kan een eenvoudige @code{setq} zijn zoals @code{(setq "
+"teller (1- teller))}, waar @code{1-} een in Emacs Lisp ingebouwde "
+"functie die 1 van zijn argument aftrekt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10691
 msgid "The template for a decrementing @code{while} loop looks like this:"
-msgstr ""
+msgstr "Het slabloon voor een decrementele @code{while} loop ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10697
@@ -22669,12 +23049,15 @@ msgid ""
 "  @var{body}@dots{}\n"
 "  (setq counter (1- counter)))          ; @r{decrementer}\n"
 msgstr ""
+"(while (> teller 0)                    ; @r{waar-of-onwaar-test}\n"
+"  @var{body}@dots{}\n"
+"  (setq teller (1- teller)))          ; @r{decrementer}\n"
 
 #. type: unnumberedsubsubsec
 #: emacs-lisp-intro.texi:10707
 #, no-wrap
 msgid "Example with decrementing counter"
-msgstr ""
+msgstr "Voorbeeld met een aflopende teller"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10711
@@ -22682,6 +23065,9 @@ msgid ""
 "To illustrate a loop with a decrementing counter, we will rewrite the "
 "@code{triangle} function so the counter decreases to zero."
 msgstr ""
+"Om een loop met een aflopende teller te laten zien, gaan we de "
+"functie @code{driehoek} zo herschrijven dat de teller naar nul "
+"vermindert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10717
@@ -22692,6 +23078,11 @@ msgid ""
 "row, 2, and then add the total of those two rows to the row that precedes "
 "them, which is 1."
 msgstr ""
+"Dit is het omgekeerde van de eerdere versie van de functie. In dit "
+"geval om te ontdekken hoeveel steentjes nodig zijn om een driehoek "
+"met 3 rijen te maken, tel het aantal steentjes in de derde rij, 3, "
+"bij het aantal in de voorgaande rij, 2, en daarna tel het totaal van "
+"die rijen bij de rij die aan ze voorafgaat, die 1 is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10726
@@ -22705,6 +23096,15 @@ msgid ""
 "total.  This process of adding two numbers is repeated again and again until "
 "there are no more pebbles to add."
 msgstr ""
+"Om op dezelfde manier het aantal steentjes in een driehoek met 7 "
+"rijen te ontdekken, tel het aantal steentjes in de zevende rij, 7, "
+"bij het aantal van de voorgaande rij, dat 6 is, en tel dan het "
+"totaal van deze twee rijen bij de rij die aan ze voorafgaat, dat 5 "
+"is, enzovoorts. Net als in het vorige voorbeeld betreft elke "
+"optelling twee getallen het totaal van de rijen die al geteld zijn "
+"en het aantal steentjes in de rij die wordt opgeteld bij het totaal. "
+"Dit proces van twee getallen optellen wordt opnieuw en opnieuw "
+"herhaald totdat er geen steentjes meer zijn op op te tellen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10732
@@ -22714,6 +23114,12 @@ msgid ""
 "number of pebbles in the last row is 7.  Likewise, we know how many pebbles "
 "are in the preceding row: it is one less than the number in the row."
 msgstr ""
+"We weten met hoeveel steentjes we moeten beginnen: het aantal "
+"steentjes in de laatste rij is gelijk aan het aantal rijen. Wanneer "
+"de driehoek zeven rijen heeft, dan is het aantal steentjes in de "
+"laatste rij 7. Op dezelfde manier weten we hoeveel steentjes in de "
+"daaraan voorafgaande rij zijn: het is een minder dan het aantal in "
+"de rij."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10741
@@ -22723,6 +23129,11 @@ msgid ""
 "we want to calculate.  These variables can be named @code{number-of-rows}, "
 "@code{number-of-pebbles-in-row}, and @code{total}, respectively."
 msgstr ""
+"We starten met drie variabelen: het totaal aantal rijen in de "
+"driehoek, het aantal steentjes in een rij en het totaal aantal "
+"steentjes, wat we gaan uitrekenen. Deze variabelen noemen we resp. "
+"@code{aantal-rijen}, @code{aantal-steentjes-in-rij} en "
+"@code{totaal}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10748
@@ -22733,6 +23144,12 @@ msgid ""
 "@code{number-of-pebbles-in-row} should be equal to the number of rows in the "
 "triangle, since the addition will start with the longest row."
 msgstr ""
+"Zowel @code{totaal} als @code{aantal-steentjes-in-rij} worden alleen "
+"binnen de functie gebruikt en worden gedeclareerd met @code{let}. De "
+"initiële waarde van @code{totaal} moet natuurlijk nul zijn. De "
+"initiële waarde van @code{aantal-steentjes-in-rij} moet gelijk zijn "
+"aan het aantal rijen in de driehoek, omdat de optelling met de "
+"langste rij begint."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10752
@@ -22740,6 +23157,8 @@ msgid ""
 "This means that the beginning of the @code{let} expression will look like "
 "this:"
 msgstr ""
+"Dit betekent dat we met een @code{let} expressie beginnen die er zo "
+"uit ziet:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10758
@@ -22749,6 +23168,9 @@ msgid ""
 "      (number-of-pebbles-in-row number-of-rows))\n"
 "  @var{body}@dots{})\n"
 msgstr ""
+"(let ((totaal 0)\n"
+"      (aantal-steentjes-in-rij aantal-rijen))\n"
+"  @var{body}@dots{})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10764
@@ -22757,12 +23179,16 @@ msgid ""
 "pebbles in a row to the total already found, that is, by repeatedly "
 "evaluating the following expression:"
 msgstr ""
+"Het totaal aantal steentjes kan worden gevonden door herhaaldelijk "
+"het aantal steentjes van een rij bij het totaal al gevonden op te "
+"tellen, dat wil zeggen herhaaldelijk de volgende expressie "
+"evalueren:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:10767
 #, no-wrap
 msgid "(setq total (+ total number-of-pebbles-in-row))\n"
-msgstr ""
+msgstr "(setq totaal (+ totaal aantal-steentjes-in-rij))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10774
@@ -22771,6 +23197,10 @@ msgid ""
 "@code{number-of-pebbles-in-row} should be decremented by one, since the next "
 "time the loop repeats, the preceding row will be added to the total."
 msgstr ""
+"Na het optellen van @code{aantal-steentjes-in-rij} bij "
+"@code{totaal}, het @code{aantal-steentjes-in-rij} moet met een "
+"verminderd worden, omdat de volgende keer dat de loop herhaalt, de "
+"voorafgaande rij opgeteld wordt bij het totaal."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10779
@@ -22780,6 +23210,10 @@ msgid ""
 "to compute the number of pebbles in the preceding row.  This can be done "
 "with the following expression:"
 msgstr ""
+"Het aantal steentjes in een voorafgaande rij is een minder dan het "
+"aantal steentjes in een rij, waardoor de in Emacs Lisp ingebouwde "
+"functie @code{1-} kan worden gebruikt om het aantal steentjes in de "
+"voorafgaand rij te berekenen. Dit kan met de volgende expressie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10784
@@ -22788,6 +23222,8 @@ msgid ""
 "(setq number-of-pebbles-in-row\n"
 "      (1- number-of-pebbles-in-row))\n"
 msgstr ""
+"(setq aantal-steentjes-in-rij"
+"      (1- aantal-steentjes-in-rij))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10790
@@ -22796,12 +23232,15 @@ msgid ""
 "additions when there are no pebbles in a row.  So the test for the "
 "@code{while} loop is simply:"
 msgstr ""
+"Tenslotte weten we dat @code{while} loop de herhalende optellingen "
+"moet stoppen wanneer er geen steentjes in een rij zijn. Daarom is de "
+"test voor de @code{while} loop eenvoudig:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:10793
 #, no-wrap
 msgid "(while (> number-of-pebbles-in-row 0)\n"
-msgstr ""
+msgstr "(while (> aantal-steentjes-in-rij 0)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10801
@@ -22810,11 +23249,14 @@ msgid ""
 "works.  However, on examination, we find that one of the local variables is "
 "unneeded!"
 msgstr ""
+"We kunnen deze expressies samenvoegen om een functiedefinitie te "
+"creëren die werkt. Bij onderzoek blijkt echter dat een van de lokale "
+"variabelen niet nodig is!"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10804
 msgid "The function definition looks like this:"
-msgstr ""
+msgstr "De functiedefinitie ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10817
@@ -22831,22 +23273,32 @@ msgid ""
 "            (1- number-of-pebbles-in-row)))\n"
 "    total))\n"
 msgstr ""
+";;; @r{Eerste aflopende versie.}\n"
+"(defun driehoek (aantal-rijen)\n"
+"  \"Tel het aantal steentjes in een driehoek.\"\n"
+"  (let ((totaal 0)\n"
+"        (aantal-steentjes-in-rij aantal-rijen))\n"
+"    (while (> aantal-steentjes-in-rij 0)\n"
+"      (setq totaal (+ totaal aantal-steentjes-in-rij))\n"
+"      (setq aantal-steentjes-in-rij\n"
+"            (1- aantal-steentjes-in-rij)))\n"
+"    totaal))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10821
 msgid "As written, this function works."
-msgstr ""
+msgstr "Zoals gezegd, deze functie werkt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10823
 msgid "However, we do not need @code{number-of-pebbles-in-row}."
-msgstr ""
+msgstr "Maar we hebben @code{aantal-steentjes-in-rij} niet nodig. "
 
 #. type: cindex
 #: emacs-lisp-intro.texi:10824
 #, no-wrap
 msgid "Argument as local variable"
-msgstr ""
+msgstr "Argument als lokale variabele"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10833
@@ -22859,11 +23311,20 @@ msgid ""
 "means that the variable @code{number-of-rows} can be used anywhere in the "
 "function where @code{number-of-pebbles-in-row} is used."
 msgstr ""
+"Wanneer de functie @code{driehoek} wordt geëvalueerd wordt het "
+"symbool @code{aantal-rijen} gebonden aan een getal, om het een "
+"initiële waarde te geven. Dat getal kan in de body van de functie "
+"gewijzigd worden alsof het een lokale variabele is, zonder enige "
+"angst dat zo'n wijziging effect heeft op de waarde van de variabele "
+"buiten de functie. Dit is een erg zinvolle karakteristiek van Lisp, "
+"het betekent dat de variabele @code{aantal-rijen} overal in de "
+"functie kan worden gebruikt waar @code{aantal-steentjes-in-rij} is "
+"gebruikt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10836
 msgid "Here is a second version of the function written a bit more cleanly:"
-msgstr ""
+msgstr "Hier is de tweede versie van de functie, die netter geschreven is."
 
 #. type: group
 #: emacs-lisp-intro.texi:10846
@@ -22877,12 +23338,21 @@ msgid ""
 "      (setq number (1- number)))\n"
 "    total))\n"
 msgstr ""
+"(defun driehoek (getal)                ; @r{Second version.}\n"
+"  \"Geef som van de getallen 1 tot en met GETAL.\"\n"
+"  (let ((totaal 0))\n"
+"    (while (> getal 0)\n"
+"      (setq totaal (+ totaal getal))\n"
+"      (setq getal (1- getal)))\n"
+"    totaal))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10850
 msgid ""
 "In brief, a properly written @code{while} loop will consist of three parts:"
 msgstr ""
+"In het kort, een goed geschreven @code{while} loop bestaat uit drie "
+"delen:"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:10855
@@ -22890,6 +23360,8 @@ msgid ""
 "A test that will return false after the loop has repeated itself the correct "
 "number of times."
 msgstr ""
+"Een test die onwaar teruggeeft nadat de loop het juiste aantal keer "
+"zichzelf herhaald heeft."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:10859
@@ -22897,6 +23369,8 @@ msgid ""
 "An expression the evaluation of which will return the value desired after "
 "being repeatedly evaluated."
 msgstr ""
+"Een expressie waarvan de evaluatie de gewenste waarde teruggeeft nadat "
+"die herhaaldelijk geëvalueerd is."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:10864
@@ -22905,6 +23379,9 @@ msgid ""
 "the test returns false after the loop has repeated itself the right number "
 "of times."
 msgstr ""
+"Een expressie die de waarde wijzigt die aan de waar-of-onwaar-test "
+"wordt doorgegeven zodat de test onwaar teruggeeft nadat de loop "
+"zichzelf het juiste aantal keren heeft herhaald."
 
 #. type: node
 #: emacs-lisp-intro.texi:10866
@@ -22920,6 +23397,10 @@ msgid ""
 "@code{while} loop.  Both are Lisp macros.  (@xref{Macros, , Macros, elisp, "
 "The GNU Emacs Lisp Reference Manual}. )"
 msgstr ""
+"Naast @code{while} bieden @code{dolist} en @code{dotimes} looping. "
+"Soms zijn ze sneller te schrijven dan een equivalente @code{while} "
+"loop. Beide zijn Lisp macros. (@xref{Macros, , Macros, elisp, The "
+"GNU Emacs Lisp Reference Manual}. )"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10878
@@ -22929,24 +23410,30 @@ msgid ""
 "@sc{cdr} of the list---and binds the @sc{car} of each shorter version of the "
 "list to the first of its arguments."
 msgstr ""
+"@code{dolist} werkt net als een @code{while} loop die door een lijst "
+"@sc{cdr}t: @code{dolist} verkort elke keer dat het loopt automatisch "
+"de lijst---neemt de @sc{cdr} van de lijst---en bindt de @sc{car} van "
+"elke kortere versie van de lijst aan het eerste van zijn argumenten."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10880
 msgid ""
 "@code{dotimes} loops a specific number of times: you specify the number."
 msgstr ""
+"@code{dotimes} loopt een specifiek aantal keren: je specificeert "
+"hoeveel keer."
 
 #. type: findex
 #: emacs-lisp-intro.texi:10886 emacs-lisp-intro.texi:10888
 #, no-wrap
 msgid "dolist"
-msgstr ""
+msgstr "dolist"
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:10887
 #, no-wrap
 msgid "The @code{dolist} Macro"
-msgstr ""
+msgstr "De @code{dolist} macro"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10892
@@ -22954,22 +23441,24 @@ msgid ""
 "Suppose, for example, you want to reverse a list, so that ``first'' "
 "``second'' ``third'' becomes ``third'' ``second'' ``first''."
 msgstr ""
+"Stel bijvoorbeeld dat je een lijst wilt omdraaien, zodat ``eerste'' "
+"``tweede'' ``derde'' wordt ``derde'' ``tweede'' ``eerste''."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10895
 msgid "In practice, you would use the @code{reverse} function, like this:"
-msgstr ""
+msgstr "In de praktijk gebruik je de functie @code{reverse} zoals hier:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10901
 #, no-wrap
 msgid "(reverse animals)\n"
-msgstr ""
+msgstr "(reverse dieren)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10907
 msgid "Here is how you could reverse the list using a @code{while} loop:"
-msgstr ""
+msgstr "Hier is hoe je de lijst kan omdraaien met een @code{while} loop:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10919
@@ -22984,17 +23473,25 @@ msgid ""
 "    value))\n"
 "\n"
 msgstr ""
+"(defun reverse-lijst-met-while (lijst)\n"
+"  \"Met while, draai de volgorde van LIJST om.\"\n"
+"  (let (waarde)  ; zorg dat de lijst leeg begint\n"
+"    (while lijst\n"
+"      (setq waarde (cons (car lijst) waarde))\n"
+"      (setq lijst (cdr lijst)))\n"
+"    waarde))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:10921
 #, no-wrap
 msgid "(reverse-list-with-while animals)\n"
-msgstr ""
+msgstr "(reverse-lijst-met-while dieren)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10927
 msgid "And here is how you could use the @code{dolist} macro:"
-msgstr ""
+msgstr "En hier is hoe je het met een @code{dolist} macro kunt doen:"
 
 #. type: group
 #: emacs-lisp-intro.texi:10937
@@ -23007,12 +23504,18 @@ msgid ""
 "      (setq value (cons element value)))))\n"
 "\n"
 msgstr ""
+"(defun reverse-lijst-met-dolist (lijst)\n"
+"  \"Met dolist, draai de volgorde van LIJST om.\"\n"
+"  (let (waarde)  ; zorg dat de lijst leeg begint\n"
+"    (dolist (element lijst waarde)\n"
+"      (setq waarde (cons element waarde)))))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:10939
 #, no-wrap
 msgid "(reverse-list-with-dolist animals)\n"
-msgstr ""
+msgstr "(reverse-lijst-met-dolist dieren)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10946
@@ -23020,17 +23523,20 @@ msgid ""
 "In Info, you can place your cursor after the closing parenthesis of each "
 "expression and type @kbd{C-x C-e}; in each case, you should see"
 msgstr ""
+"In Info plaats je de cursor achter het haakje sluiten van elke "
+"expressie en je typt @kbd{C-x C-e}. In beide gevallen zou je het volgende "
+"moeten zien"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:10949
 #, no-wrap
 msgid "(tiger lion giraffe gazelle)\n"
-msgstr ""
+msgstr "(tijger leeuw giraf gazelle)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10953
 msgid "in the echo area."
-msgstr ""
+msgstr "in het echogebied"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10962
@@ -23044,6 +23550,15 @@ msgid ""
 "the first element, and the third element is prepended in front of the second "
 "element, the list is reversed."
 msgstr ""
+"Voor dit voorbeeld is bestaande functie @code{reverse} duidelijk het "
+"beste. De @code{while} loop is net als ons eerste voorbeeld "
+"(@pxref{Loop voorbeeld, , " "Een @code{while} loop en een lijst}). "
+"De @code{while} checkt eerst of de lijst elementen heeft. Zo ja, dan "
+"construeert het een nieuwe lijst door het eerste element van de "
+"lijst aan de bestaande lijst toe te voegen (die in de eerste "
+"iteratie van de loop @code{nil} is.) Omdat het tweede element aan de "
+"voorkant het eerste element, en het derde element aan de voorkant "
+"van het tweede element wordt ingevoegd, wordt de lijst omgedraaid."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10969
@@ -23053,6 +23568,11 @@ msgid ""
 "stops.  In addition, it provides the @code{cons} expression with a new first "
 "element by creating a new and shorter list at each repetition of the loop."
 msgstr ""
+"In de expressie met een @code{while} loop maakt de @w{@code{(setq "
+"list (cdr list))}} de lijst korter, waardoor de @code{loop} "
+"uiteindelijk stopt. Ook geeft die bij elke herhaling van de loop de "
+"@code{cons} expressie een nieuw eerste element en maakt het een "
+"nieuwe en kortere lijst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10973
@@ -23061,6 +23581,9 @@ msgid ""
 "expression, except that the @code{dolist} macro does some of the work you "
 "have to do when writing a @code{while} expression."
 msgstr ""
+"De @code{dolist} expresie doet vrijwel hetzelfde als de @code{while} "
+"expressie, behalve dat de @code{dolist} macro wat werk voor je doet "
+"wanneer je een @code{while} expressie schrijft."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10979
@@ -23070,6 +23593,11 @@ msgid ""
 "the list on its own---and it automatically binds the @sc{car} of each "
 "shorter version of the list to the first of its arguments."
 msgstr ""
+"Net als een @code{while} loop, voert een @code{dolist} loopings uit. "
+"Het verschil is dat het automatisch de lijst korter maakt elke dat "
+"het de loop herhaalt---het @sc{cdr}-t zelf door de lijst---en het "
+"bindt automatisch de @sc{car} van elke kortere versie van de lijst "
+"aan zijn eerste argument."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10984
@@ -23079,6 +23607,10 @@ msgid ""
 "and the value returned is called @samp{value}.  The remainder of the "
 "@code{dolist} expression is the body."
 msgstr ""
+"In het voorbeeld wordt naar de @sc{car} van elke kortere versie van "
+"de lijst verwezen met het symbool @samp{element}, de lijst zelf "
+"wordt @samp{lijst} genoemd. De rest van de @code{dolist} expressie "
+"staat in de body."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10989
@@ -23087,12 +23619,16 @@ msgid ""
 "the list to @code{element} and then evaluates the body of the expression; "
 "and repeats the loop.  The result is returned in @code{value}."
 msgstr ""
+"De @code{dolist} expressie bindt de @sc{car} van elke kortere versie "
+"van de lijst aan @code{element} en evalueert de body van de "
+"expressie, en herhaalt de loop. Het resultaat wordt teruggeven in "
+"@code{value}."
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:10991
 #, no-wrap
 msgid "The @code{dotimes} Macro"
-msgstr ""
+msgstr "De @code{dotimes} macro"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10996
@@ -23100,6 +23636,8 @@ msgid ""
 "The @code{dotimes} macro is similar to @code{dolist}, except that it loops a "
 "specific number of times."
 msgstr ""
+"De @code{dotimes} macro is vergelijkbaar met @code{dolist}, behalve "
+"dat het een specifiek aantal keer de loop uitvoert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11000
@@ -23108,6 +23646,10 @@ msgid ""
 "forth each time around the loop.  You need to provide the value of the "
 "second argument, which is how many times the macro loops."
 msgstr ""
+"Het eerste argument van @code{dotimes} krijgt rondom de loop elke "
+"keer de getallen 0, 1, 2 enzovoorts. Je moet de waarde van het "
+"tweede argument opgeven, het aantal keer dat de macro een loop moet "
+"doen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11007
@@ -23118,6 +23660,11 @@ msgid ""
 "number is 1, and the third number is 2; this makes a total of three numbers "
 "in all, starting with zero as the first number.)"
 msgstr ""
+"Bijvoorbeeld et volgende bindt de getallen vanaf 0 tot, maar niet "
+"tot en met, het getal 3 aan het eerste argument, @var{getal}, en "
+"maakt dan een lijst van de drie getallen. (Het eerste getal is 0, "
+"het tweede getal is 1 en het derde getal is 2, dit zijn drie "
+"getallen in totaal, beginnend met 0 als het eerste getal.)"
 
 #. type: group
 #: emacs-lisp-intro.texi:11014
@@ -23129,12 +23676,17 @@ msgid ""
 "  value)\n"
 "\n"
 msgstr ""
+"(let (waarde)      ; anders is waarde een void variabele\n"
+"  (dotimes (getal 3)\n"
+"    (setq waarde (cons getal waarde)))\n"
+"  waarde)\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11016
 #, no-wrap
 msgid "@result{} (2 1 0)\n"
-msgstr ""
+msgstr "@result{} (2 1 0)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11023
@@ -23142,6 +23694,9 @@ msgid ""
 "The way to use @code{dotimes} is to operate on some expression @var{number} "
 "number of times and then return the result, either as a list or an atom."
 msgstr ""
+"De manier om @code{dotimes} te gebruiken is om een expressie een "
+"@code{aantal} aantal keer uit te voeren en dan het resultaat terug "
+"te geven, als een lijst of als een atoom."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11027
@@ -23149,6 +23704,8 @@ msgid ""
 "Here is an example of a @code{defun} that uses @code{dotimes} to add up the "
 "number of pebbles in a triangle."
 msgstr ""
+"Hier is een voorbeeld van een @code{defun} dat @code{dotimes} gebruikt om "
+"het aantal steetjes in een driehoek op te tellen."
 
 #. type: group
 #: emacs-lisp-intro.texi:11036
@@ -23162,12 +23719,19 @@ msgid ""
 "  total))\n"
 "\n"
 msgstr ""
+"(defun driehoek-met-dotimes (aantal-rijen)\n"
+"  \"Tel het aantal steentjes met `dotimes' in een driehoek op.\"\n"
+"(let ((totaal 0))  ; anders is totaal een void variabele\n"
+"  (dotimes (aantal aantal-rijen)\n"
+"    (setq totaal (+ totaal (1+ aantal))))\n"
+"  totaal))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11038
 #, no-wrap
 msgid "(triangle-using-dotimes 4)\n"
-msgstr ""
+msgstr "(driehoek-met-dotimes 4)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11051

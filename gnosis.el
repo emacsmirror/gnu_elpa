@@ -1491,9 +1491,12 @@ Return thema ids for themata that match QUERY."
        (review-image string)]
       (:foreign-key [id] :references themata [id]
 		    :on-delete :cascade)))
-    (thema-tags
-     ([(tag text :primary-key)]
-      (:unique [tag])))
+    (thema-tag
+     ([(thema-id integer :not-null)
+       (tag text :not-null)]
+      (:foreign-key [thema-id] :references themata [id]
+		    :on-delete :cascade)
+      (:unique [thema-id tag])))
     (thema-links
      ([(source integer)
        (dest text)]
@@ -1517,9 +1520,6 @@ Return thema ids for themata that match QUERY."
        (tags text)
        (mtime text)
        (hash text)]))
-    (node-tags
-     ([(tag text :primary-key)]
-      (:unique [tag])))
     (node-tag
      ([(node-id text :not-null)
        (tag text :not-null)]

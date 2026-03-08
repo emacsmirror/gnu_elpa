@@ -359,9 +359,9 @@ tags and links tables, extras with parathema/review_image."
     ;; -- v5 -> v6 --
     (gnosis-db--migrate-v6)
     (should (= 6 (gnosis--db-version)))
-    ;; Deck names became tags
-    (let* ((tags (caar (gnosis-sqlite-select gnosis-db
-                         "SELECT tags FROM themata WHERE id = 1"))))
+    ;; Deck names became tags (in junction table)
+    (let ((tags (mapcar #'car (gnosis-sqlite-select gnosis-db
+                                "SELECT tag FROM thema_tag WHERE thema_id = 1"))))
       (should (member "Pharmacology" tags)))
     ;; Decks table dropped
     (should-error (gnosis-sqlite-select gnosis-db "SELECT * FROM decks"))
@@ -554,13 +554,13 @@ tags and links tables, extras with parathema/review_image."
     ;; -- v6: deck->tag, junction table, node tables --
     (gnosis-db--migrate-v6)
     (should (= 6 (gnosis--db-version)))
-    ;; Deck names merged into tags
-    (let ((tags (caar (gnosis-sqlite-select gnosis-db
-                        "SELECT tags FROM themata WHERE id = 1"))))
+    ;; Deck names merged into tags (in junction table)
+    (let ((tags (mapcar #'car (gnosis-sqlite-select gnosis-db
+                                "SELECT tag FROM thema_tag WHERE thema_id = 1"))))
       (should (member "Greek" tags))
       (should (member "philosophy" tags)))
-    (let ((tags (caar (gnosis-sqlite-select gnosis-db
-                        "SELECT tags FROM themata WHERE id = 2"))))
+    (let ((tags (mapcar #'car (gnosis-sqlite-select gnosis-db
+                                "SELECT tag FROM thema_tag WHERE thema_id = 2"))))
       (should (member "Latin" tags))
       (should (member "proverbs" tags)))
     ;; Decks table gone

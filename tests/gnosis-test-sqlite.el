@@ -250,7 +250,7 @@ Value is pre-encoded (prin1-to-string) in the compiler."
          (result (gnosis-sqlite--compile-schema schema)))
     (should (string-match-p "id INTEGER PRIMARY KEY" result))
     (should (string-match-p "type TEXT NOT NULL" result))
-    (should (string-match-p "tags TEXT DEFAULT untagged" result))))
+    (should (string-match-p "answer TEXT NOT NULL" result))))
 
 (ert-deftest gnosis-test-sqlite-schema-review-log ()
   "Compile review-log schema."

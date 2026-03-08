@@ -394,7 +394,7 @@ Uses `gnosis-dashboard--entry-cache' to avoid re-querying known entries."
     ;; Fetch and cache only the missing entries
     (when uncached
       (let* ((placeholders (mapconcat (lambda (_) "?") uncached ", "))
-	     (sql (format "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT GROUP_CONCAT(tag, ',') FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)" placeholders))
+	     (sql (format "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)" placeholders))
 	     (rows (gnosis-sqlite-select (gnosis--ensure-db) sql uncached)))
 	(dolist (row rows)
 	  (puthash (car row) (gnosis-dashboard--format-entry row)
@@ -486,7 +486,7 @@ Continues as long as the dashboard buffer exists."
            (new-warmed (+ warmed (length ids))))
       (when uncached
         (let* ((placeholders (mapconcat (lambda (_) "?") uncached ", "))
-	       (sql (format "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT GROUP_CONCAT(tag, ',') FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)" placeholders))
+	       (sql (format "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)" placeholders))
 	       (rows (gnosis-sqlite-select (gnosis--ensure-db) sql uncached)))
           (dolist (row rows)
             (puthash (car row) (gnosis-dashboard--format-entry row)

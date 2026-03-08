@@ -212,10 +212,11 @@
                            (parathema (gnosis-get 'parathema 'extras
                                                   `(= id ,thema-id))))
                       (should (string-search "See SICP" parathema)))
-                    ;; Tags preserved
+                    ;; Tags preserved (in junction table)
                     (let* ((thema-id (gnosis-get 'id 'themata
                                                  '(= keimenon "What is Emacs?")))
-                           (tags (gnosis-get 'tags 'themata `(= id ,thema-id))))
+                           (tags (gnosis-select 'tag 'thema-tag
+						`(= thema-id ,thema-id) t)))
                       (should (member "emacs" tags))
                       (should (member "editor" tags))))
                 (gnosis-sqlite-close gnosis-db)
@@ -440,6 +441,47 @@
     (let ((id (gnosis-generate-id)))
       (should (integerp id))
       (should (gethash id gnosis--id-cache)))))
+
+;; ──────────────────────────────────────────────────────────
+;; Tag operations (junction-table-only)
+;; ──────────────────────────────────────────────────────────
+
+(ert-deftest gnosis-test-tag-rename ()
+  "Renaming a tag updates the junction table."
+  (gnosis-test-with-db
+    (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("old_name" "keep"))))
+      (gnosis-tag-rename "old_name" "new_name")
+      (let ((tags (gnosis-select 'tag 'thema-tag `(= thema-id ,id1) t)))
+        (should (member "new_name" tags))
+        (should-not (member "old_name" tags))
+        (should (member "keep" tags))))))
+
+(ert-deftest gnosis-test-tag-delete ()
+  "Deleting a tag removes it from the junction table."
+  (gnosis-test-with-db
+    (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("doomed" "safe"))))
+      (gnosis--delete 'thema-tag '(= tag "doomed"))
+      (let ((tags (gnosis-select 'tag 'thema-tag `(= thema-id ,id1) t)))
+        (should-not (member "doomed" tags))
+        (should (member "safe" tags))))))
+
+(ert-deftest gnosis-test-export-tags-from-junction-table ()
+  "Export reads tags from thema-tag, not themata."
+  (gnosis-test-with-db
+    (let* ((_id1 (gnosis-test--add-basic-thema "Tag Q" "Tag A"
+                                               '("alpha" "beta")))
+           (export-file (concat (make-temp-file "gnosis-tag-export-") ".org")))
+      (unwind-protect
+          (progn
+            (gnosis-export-themata-to-file export-file nil)
+            (with-temp-buffer
+              (insert-file-contents export-file)
+              (let ((content (buffer-string)))
+                (should (string-search ":alpha:" content))
+                (should (string-search ":beta:" content)))))
+        (when (file-exists-p export-file)
+          (delete-file export-file))
+        (gnosis-test--kill-export-buffer "gnosis-export")))))
 
 (provide 'gnosis-test-export-import)
 

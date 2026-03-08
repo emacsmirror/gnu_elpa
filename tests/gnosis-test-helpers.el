@@ -55,7 +55,7 @@ SUSPEND: 1 to suspend, 0 or nil for active."
          (answer (if (listp answer) answer (list answer))))
     (gnosis-sqlite-with-transaction gnosis-db
       (gnosis--insert-into 'themata `([,id "basic" ,keimenon ,hypothesis
-                                           ,answer ,tags]))
+                                           ,answer]))
       (gnosis--insert-into 'review `([,id ,gnosis-algorithm-gnosis-value
                                           ,gnosis-algorithm-amnesia-value]))
       (gnosis--insert-into 'review-log `([,id ,(gnosis-algorithm-date)

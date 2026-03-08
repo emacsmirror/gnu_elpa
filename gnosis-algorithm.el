@@ -108,6 +108,14 @@ A value of 0.1 means +/- 10%%.  Set to 0 to disable."
   :group 'gnosis
   :type 'float)
 
+(defcustom gnosis-algorithm-day-start-hour 0
+  "Hour at which a new review day begins (0-23).
+When set to 0, days start at midnight (default).
+When set to e.g. 6, reviews done between 00:00 and 05:59
+count as the previous calendar day."
+  :group 'gnosis
+  :type 'integer)
+
 (defun gnosis-algorithm-round-items (list)
   "Round all items in LIST to 2 decimal places."
   (cl-loop for item in list
@@ -126,9 +134,15 @@ intervals less than 2."
 
 (defun gnosis-algorithm-date (&optional offset)
   "Return the current date in a list (year month day).
-Optional integer OFFSET is a number of days from the current date."
+Optional integer OFFSET is a number of days from the current date.
+
+Respects `gnosis-algorithm-day-start-hour': when set to e.g. 6,
+times before 06:00 count as the previous calendar day."
   (cl-assert (or (integerp offset) (null offset)) nil "Date offset must be an integer or nil")
-  (let* ((decoded-time (decode-time))
+  (let* ((shifted (time-subtract (current-time)
+                                 (seconds-to-time
+                                  (* gnosis-algorithm-day-start-hour 3600))))
+         (decoded-time (decode-time shifted))
          (target (if (and offset (not (zerop offset)))
                      (decoded-time-add decoded-time (make-decoded-time :day offset))
                    decoded-time)))
@@ -143,8 +157,10 @@ If DATE2 is nil, current date will be used instead.
 
 DATE format must be given as (year month day)."
   (let* ((given-date (encode-time 0 0 0 (caddr date) (cadr date) (car date)))
-	 (date2 (if date2 (encode-time 0 0 0 (caddr date2) (cadr date2) (car date2))
-		  (current-time)))
+	 (date2 (if date2
+		    (encode-time 0 0 0 (caddr date2) (cadr date2) (car date2))
+		  (let ((today (gnosis-algorithm-date)))
+		    (encode-time 0 0 0 (caddr today) (cadr today) (car today)))))
 	 (diff (- (time-to-days date2)
 		  (time-to-days given-date))))
     (if (>= diff 0) diff (error "`DATE2' must be higher than `DATE'"))))

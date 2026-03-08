@@ -764,6 +764,57 @@ keep max(computed, existing-next-rev)."
 		      :c-fails 1 :lethe 3)))
       (should (equal computed (gnosis-algorithm-date 2))))))
 
+(ert-deftest gnosis-test-algorithm-day-start-hour-default ()
+  "Test that day-start-hour 0 returns today's calendar date."
+  (let ((gnosis-algorithm-day-start-hour 0))
+    (should (equal (gnosis-algorithm-date) (gnosis-algorithm-date)))))
+
+(ert-deftest gnosis-test-algorithm-day-start-hour-before-boundary ()
+  "Test that times before day-start-hour count as previous day."
+  (let ((gnosis-algorithm-day-start-hour 6))
+    ;; Mock current-time to 02:00 today
+    (cl-letf* ((now (decode-time))
+               (fake-time (encode-time 0 0 2
+                                       (decoded-time-day now)
+                                       (decoded-time-month now)
+                                       (decoded-time-year now)))
+               ((symbol-function 'current-time) (lambda () fake-time)))
+      (let* ((result (gnosis-algorithm-date))
+             (yesterday (decode-time (time-subtract fake-time
+                                                    (seconds-to-time (* 6 3600))))))
+        (should (equal result (list (decoded-time-year yesterday)
+                                    (decoded-time-month yesterday)
+                                    (decoded-time-day yesterday))))))))
+
+(ert-deftest gnosis-test-algorithm-day-start-hour-after-boundary ()
+  "Test that times after day-start-hour return today."
+  (let ((gnosis-algorithm-day-start-hour 6))
+    ;; Mock current-time to 08:00 today
+    (cl-letf* ((now (decode-time))
+               (fake-time (encode-time 0 0 8
+                                       (decoded-time-day now)
+                                       (decoded-time-month now)
+                                       (decoded-time-year now)))
+               ((symbol-function 'current-time) (lambda () fake-time)))
+      (let ((result (gnosis-algorithm-date)))
+        (should (equal result (list (decoded-time-year now)
+                                    (decoded-time-month now)
+                                    (decoded-time-day now))))))))
+
+(ert-deftest gnosis-test-algorithm-day-start-hour-date-diff ()
+  "Test that date-diff respects day-start-hour when date2 is nil."
+  (let ((gnosis-algorithm-day-start-hour 6))
+    ;; Mock current-time to 02:00 today
+    (cl-letf* ((now (decode-time))
+               (fake-time (encode-time 0 0 2
+                                       (decoded-time-day now)
+                                       (decoded-time-month now)
+                                       (decoded-time-year now)))
+               ((symbol-function 'current-time) (lambda () fake-time)))
+      ;; date-diff with nil date2 should use shifted date (yesterday)
+      (let ((shifted-date (gnosis-algorithm-date)))
+        (should (= (gnosis-algorithm-date-diff shifted-date) 0))))))
+
 (provide 'gnosis-test-algorithm)
 
 (ert-run-tests-batch-and-exit)

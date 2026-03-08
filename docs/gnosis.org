@@ -1,0 +1,1367 @@
+#+title: Gnosis User Manual
+#+author: Thanos Apollo
+#+language: en
+#+options: ':t toc:t author:t email:t num:t
+#+texinfo_filename: gnosis.info
+#+texinfo_dir_category: Emacs misc features
+#+texinfo_dir_title: Gnosis: (gnosis)
+#+texinfo_dir_desc: Unified knowledge management and spaced repetition
+
+* Table of Contents :noexport:
+:PROPERTIES:
+:TOC: this
+:END:
+
+- [[#introduction][Introduction]]
+- [[#installation][Installation and Setup]]
+- [[#nodes][Nodes]]
+- [[#journal][Journal]]
+- [[#themata][Themata]]
+- [[#review][Review System]]
+- [[#algorithm][The Algorithm]]
+- [[#dashboard][Dashboard]]
+- [[#export-import][Export and Import]]
+- [[#link-health][Link Health and Maintenance]]
+
+* Introduction
+:PROPERTIES:
+:CUSTOM_ID: introduction
+:DESCRIPTION: What gnosis is and how it is organized
+:END:
+
+Gnosis is a personal knowledge management and spaced repetition system
+for Emacs.  It integrates two complementary subsystems in a single
+package: a Zettelkasten-style note system called *nodes*, and a
+flashcard-based self-testing system built around *themata*.  Both
+subsystems share a single SQLite database, and their contents are
+designed to be linked together so that flashcard questions can refer
+directly to the notes they are drawn from.
+
+The name gnosis (Greek: /γνῶσις/, knowledge) reflects the package's
+philosophical orientation: the goal is not mere memorization but the
+deliberate construction of knowledge over time.
+
+** Why Gnosis
+
+Most spaced repetition tools treat flashcards as isolated units.
+You create a card, review it, and the system schedules the next
+review.  The cards have no relationship to each other or to anything
+outside the review loop.
+
+Most note-taking tools do the opposite: they help you build a web of
+interconnected ideas, but they offer no mechanism for systematically
+testing and reinforcing what you have written.
+
+Gnosis bridges these two approaches.  Your notes and your review
+material live in the same system, linked together.  When you write a
+node about a topic, you can create themata whose questions reference
+that node.  When you review, you can review all the questions linked to
+a given note, or follow the link graph to review related topics.  The
+goal is a single system where understanding and recall reinforce each
+other.
+
+** The Two Subsystems
+
+*** Nodes
+
+Nodes are Zettelkasten-style notes stored as plain org-mode files.
+Each node is a file, or a heading within a file, identified by a
+unique UUID stored as an =#+id:= org property.  Nodes are indexed in
+the database so that they can be searched, browsed by tag, and linked
+together.  Links between nodes use standard org-mode =[[id:UUID]]= syntax,
+which means they remain compatible with any tool that understands
+org-id links.
+
+*** Themata
+
+A /thema/ (Greek: /θέμα/, a subject set before one; plural /themata/)
+is a review card.  Each thema consists of a /keimenon/ (Greek: /κείμενον/,
+the text that underlies something; the question or prompt), an
+/answer/ (the expected response), and an optional /parathema/ (Greek:
+/παράθεμα/, a side-text; supplementary context shown after the answer).
+Themata are reviewed using a spaced repetition algorithm that adapts
+the interval between reviews based on performance.
+
+Themata support five question types:
+
+- *Basic*: A direct question with a typed answer.
+- *Double*: Two prompts, each with its own answer, presented in sequence.
+- *MCQ* (Multiple Choice Question): The user selects one correct option
+  from a list.
+- *Cloze*: A sentence with one or more words obscured; the user types the
+  missing text.
+- *MC-Cloze* (Multiple Choice Cloze): A cloze question where the missing
+  text is chosen from a list of options.
+
+*** The Link Between Nodes and Themata
+
+Themata and nodes are not siloed.  When you write a node about a topic,
+you can create themata whose keimenon or parathema contains an
+=[[id:NODE-UUID]]= org-id link to that node.  Gnosis records these
+relationships so that you can later run ~gnosis-review-topic~ to
+review all themata associated with a particular node.  This is the
+intended workflow: write a note, create questions about it, link the
+questions to the note, then review by topic.
+
+** Greek Terminology Reference
+
+The following terms appear throughout this manual and in user-facing
+prompts:
+
+- *Gnosis* (/γνῶσις/, knowledge): the name of the package, and also the
+  name of the internal score used by the spaced repetition algorithm to
+  track performance per thema.
+- *Thema* (/θέμα/, topic or subject; plural /themata/): a single review
+  card.
+- *Keimenon* (/κείμενον/, underlying text): the question or prompt shown
+  during review.
+- *Parathema* (/παράθεμα/, side-text): supplementary text shown after
+  answering, used to add context or a longer explanation.
+- *Anagnosis* (/ἀνάγνωσις/, recognition): an event in the algorithm that
+  fires after a streak of consecutive successes or failures, adjusting
+  the gnosis score.
+- *Epignosis* (/ἐπίγνωσις/, full knowledge): the increment applied to the
+  gnosis score on a correct answer during an anagnosis event.
+- *Agnoia* (/ἄγνοια/, ignorance): the decrement applied on an incorrect
+  answer during an anagnosis event.
+- *Amnesia* (/ἀμνησία/, forgetting): the multiplier applied to the
+  interval on failure.
+- *Lethe* (/λήθη/, forgetting; the river of oblivion): the threshold of
+  consecutive failures that triggers an interval reset.
+- *Proto* (/πρῶτο/, first): the sequence of fixed intervals used during
+  the initial learning phase before the adaptive algorithm takes over.
+
+** Data Storage
+
+All data lives in a single SQLite database at =GNOSIS-DIR/gnosis.db=.
+The database is created and migrated automatically; no manual setup or
+maintenance is required.  Gnosis requires Emacs 29.1 or later (for
+built-in SQLite support) and the =compat= library.  There are no other
+external dependencies.
+
+* Installation and Setup
+:PROPERTIES:
+:CUSTOM_ID: installation
+:DESCRIPTION: How to install gnosis and configure it for first use
+:END:
+
+** Requirements
+
+Gnosis requires:
+
+- GNU Emacs 29.1 or later, compiled with SQLite support.  Verify this
+  with ~(fboundp 'sqlite-open)~; it should return =t=.
+- The =compat= library, available from GNU ELPA.
+
+No external programs are required.  Git is optionally used by the
+version control integration (~gnosis-vc-auto-push~), but is not a hard
+dependency.
+
+** Installing from GNU ELPA
+
+Gnosis is available from GNU ELPA.  To install it:
+
+#+begin_src emacs-lisp
+M-x package-install RET gnosis RET
+#+end_src
+
+Or with ~use-package~:
+
+#+begin_src emacs-lisp
+(use-package gnosis
+  :ensure t)
+#+end_src
+
+** Basic Configuration
+
+The minimal configuration requires only specifying where gnosis should
+store its files.  All directories are created automatically on first
+use.
+
+#+begin_src emacs-lisp
+(use-package gnosis
+  :ensure t
+  :custom
+  ;; Directory for the gnosis database and related files.
+  ;; Defaults to ~/.emacs.d/gnosis/
+  (gnosis-dir "~/gnosis/")
+
+  ;; Directory where node (note) files are stored.
+  ;; Defaults to ~/Notes/
+  (gnosis-nodes-dir "~/Notes/")
+
+  ;; Directory for journal files. Defaults to GNOSIS-NODES-DIR/journal/
+  (gnosis-journal-dir "~/Notes/journal/"))
+#+end_src
+
+** Key Directories
+
+*** ~gnosis-dir~
+
+The gnosis data directory.  This is where =gnosis.db= is stored.  It is
+also the root used for version control when ~gnosis-vc-auto-push~ is
+enabled.  Defaults to ={user-emacs-directory}/gnosis/=.
+
+#+begin_src emacs-lisp
+(setopt gnosis-dir (expand-file-name "gnosis/" user-emacs-directory))
+#+end_src
+
+*** ~gnosis-nodes-dir~
+
+The directory containing your note files.  All =.org= and =.org.gpg=
+files in this directory are indexed by gnosis.  Defaults to =~/Notes/=.
+
+#+begin_src emacs-lisp
+(setopt gnosis-nodes-dir "~/Notes/")
+#+end_src
+
+*** ~gnosis-journal-dir~
+
+The directory for journal entry files.  Defaults to a =journal/=
+subdirectory inside ~gnosis-nodes-dir~.  Journal files are indexed
+separately from regular nodes but use the same underlying mechanism.
+
+#+begin_src emacs-lisp
+(setopt gnosis-journal-dir (expand-file-name "journal/" gnosis-nodes-dir))
+#+end_src
+
+
+** Upgrading from org-gnosis
+
+If you previously used org-gnosis as a separate package, gnosis
+automatically imports your org-gnosis database when it first detects
+the old data.  No manual action is required beyond installing the new
+version.
+
+** Version Control
+
+Gnosis can automatically push your database to a remote Git repository
+after each review session.  This is controlled by ~gnosis-vc-auto-push~.
+
+#+begin_src emacs-lisp
+(setopt gnosis-vc-auto-push t)
+#+end_src
+
+When this is =t=, gnosis pushes ~gnosis-dir~ at the end of every review
+session.  To use this, initialize =gnosis-dir= as a Git repository and
+configure a remote before enabling this option.
+
+** Completing Read Integration
+
+Gnosis respects your preferred completion framework.  The
+~gnosis-completing-read-function~ variable defaults to
+~completing-read~ when Vertico, Ivy, Helm, or fido-mode is detected,
+and to ~ido-completing-read~ otherwise.
+
+#+begin_src emacs-lisp
+;; Explicitly set if auto-detection does not work for your setup:
+(setopt gnosis-completing-read-function #'completing-read)
+#+end_src
+
+** Full Example Configuration
+
+#+begin_src emacs-lisp
+(use-package gnosis
+  :ensure t
+  :custom
+  (gnosis-dir "~/gnosis/")
+  (gnosis-nodes-dir "~/Notes/")
+  (gnosis-journal-dir "~/Notes/journal/")
+  (gnosis-vc-auto-push nil)
+  (gnosis-center-content-during-review t)
+  (gnosis-review-new-first t)
+  (gnosis-new-themata-limit nil))
+#+end_src
+
+* Nodes
+:PROPERTIES:
+:CUSTOM_ID: nodes
+:DESCRIPTION: Zettelkasten-style notes stored as org-mode files
+:END:
+
+Nodes are gnosis's note-taking system.  A node is an org-mode heading
+(or an entire org file) that has been assigned an org ID.  Gnosis
+indexes all nodes in its database, enabling fast search, tag-based
+browsing, backlink navigation, and linking from themata.
+
+The node system is deliberately minimal.  Files live on disk as plain
+org-mode files, readable and editable without gnosis.  The database is
+a derived index that can be rebuilt at any time from the files
+themselves.
+
+** What Makes an Org Heading a Node
+
+Any org-mode heading that has an =:ID:= property becomes a node.  The
+file-level title (expressed with =#+title:=) paired with a file-level
+ID also constitutes a node.  Gnosis assigns UUIDs using ~org-id-get-create~
+when it creates a new file.
+
+A file may contain multiple nodes if multiple headings carry IDs.  In
+that case, gnosis tracks the hierarchy: a heading's title is stored as
+=ParentTitle:ChildTitle= to reflect its position in the outline.
+
+** Creating and Finding Nodes
+
+*** ~gnosis-nodes-find~
+
+The primary command for opening a node is ~gnosis-nodes-find~.  It
+presents a completing-read prompt listing all known node titles.
+Select an existing title to open that node's file, positioned at the
+correct heading.
+
+If you type a title that does not match any existing node, gnosis
+creates a new file for it in ~gnosis-nodes-dir~, prompts you to choose
+a template, and opens the file in a new buffer.
+
+*** ~gnosis-nodes-find-by-tag~
+
+To browse nodes by tag, use ~gnosis-nodes-find-by-tag~.  It prompts
+for a tag name drawn from existing tags, then presents all nodes
+carrying that tag for selection.
+
+** File Naming
+
+When gnosis creates a new node file, the filename is derived from the
+node title.  By default, filenames are prefixed with a timestamp to
+ensure uniqueness and to prevent collisions when two nodes share
+similar titles.
+
+*** ~gnosis-nodes-timestring~
+
+This variable controls the timestamp prefix format.  It is a
+~format-time-string~ format string.  The default is
+~"%Y%m%d%H%M%S"~, producing filenames like
+=20240315143022--My_Topic.org=.
+
+Set it to =nil= to use the title alone as the filename, with no
+timestamp prefix:
+
+#+begin_src emacs-lisp
+;; Use timestamp prefix (default):
+(setopt gnosis-nodes-timestring "%Y%m%d%H%M%S")
+
+;; Use title only, no timestamp:
+(setopt gnosis-nodes-timestring nil)
+#+end_src
+
+When ~gnosis-nodes-timestring~ is =nil= and a file with the same title
+already exists, gnosis will ask whether you want to visit the existing
+file or abort.
+
+*** GPG Encryption
+
+Setting ~gnosis-nodes-create-as-gpg~ to =t= causes all new node files to
+be created with a =.gpg= suffix, triggering Emacs's built-in EasyPG
+encryption on save.
+
+#+begin_src emacs-lisp
+(setopt gnosis-nodes-create-as-gpg nil)  ; default
+#+end_src
+
+This setting affects only newly created files; existing =.org= files are
+not retroactively encrypted.
+
+** Displaying Tags in Completion
+
+By default, the completing-read prompt for nodes displays only titles.
+Set ~gnosis-nodes-show-tags~ to =t= to display each node's tags
+alongside its title, rendered with the ~gnosis-nodes-face-tags~ face.
+
+#+begin_src emacs-lisp
+(setopt gnosis-nodes-show-tags t)
+#+end_src
+
+Tags are displayed in the format =Title  #tag1#tag2= and are stripped
+from the string before the title is used for lookup.
+
+** Templates
+
+When gnosis creates a new node, it optionally inserts template content
+into the file.  Templates are configured via ~gnosis-nodes-templates~.
+
+*** ~gnosis-nodes-templates~
+
+This variable is a list of =(NAME FUNCTION)= pairs.  Each function takes
+no arguments and returns a string that is inserted into the new file
+after the initial =#+title:= and =#+filetags:= lines.
+
+The default templates are:
+
+- *Empty*: no content.
+- *Annotated*: sections for Summary, Notes, and References.
+- *Reading*: sections for Key Ideas, Quotes, and Notes, with an optional
+  Author field.
+
+#+begin_src emacs-lisp
+(setopt gnosis-nodes-templates
+        '(("Empty" (lambda () ""))
+          ("Annotated" (lambda ()
+                         (concat "{*} Summary\n\n"
+                                 "{*} Notes\n\n"
+                                 "{*} References\n")))
+          ("Reading" (lambda ()
+                       (let ((author (read-string "Author: ")))
+                         (concat "{*} Key Ideas\n\n"
+                                 "{*} Quotes\n\n"
+                                 "{*} Notes\n"
+                                 (unless (string-empty-p author)
+                                   (format "\nAuthor: %s\n" author))))))))
+#+end_src
+
+*** The ={*}= Heading Marker
+
+Template strings use ={*}= as a placeholder for an org heading.  When
+gnosis inserts a template, it expands each ={*}= to the appropriate
+number of asterisks for the context in which the template is being
+inserted.  If you are inserting into a new top-level file, ={*}= becomes
+=*=.  If you are inserting under an existing level-2 heading, ={*}=
+becomes =***=.
+
+Use ={**}= for a heading one level deeper than the base, ={***}= for two
+levels deeper, and so on.
+
+For example, the template string:
+
+#+begin_src
+{*} Key Ideas
+
+{**} Subpoint
+#+end_src
+
+Inserted at the top level of a new file produces:
+
+#+begin_src org
+  ,* Key Ideas
+
+  ,** Subpoint
+#+end_src
+
+
+Inserted under an existing =**= heading produces:
+
+#+begin_src org
+  ,*** Key Ideas
+
+  ,**** Subpoint
+#+end_src
+
+*** Inserting a Template Manually
+
+Use ~gnosis-nodes-insert-template~ to insert a template at point in an
+existing buffer.  It detects whether the buffer is a journal file and
+selects the appropriate template list automatically.
+
+** Automatic Sync
+
+~gnosis-nodes-mode~ is a minor mode that is automatically activated for
+any org file located in ~gnosis-nodes-dir~ or ~gnosis-journal-dir~.  When
+this mode is active, saving the buffer updates that file's entries in
+the database.
+
+*** Manual Sync
+
+To sync all files without waiting for saves, use ~gnosis-nodes-db-sync~.
+Called interactively without a prefix argument, it updates only files
+that have changed since the last sync.  Called with a prefix argument
+(~C-u M-x gnosis-nodes-db-sync~), it purges all node entries and
+rebuilds the database from scratch.
+
+#+begin_src emacs-lisp
+;; Sync only changed files:
+M-x gnosis-nodes-db-sync
+
+;; Force full rebuild:
+C-u M-x gnosis-nodes-db-sync
+#+end_src
+
+*** Force Rebuild
+
+~gnosis-nodes-db-force-sync~ provides a dedicated command for the full
+rebuild case, with a confirmation prompt before proceeding.
+
+** Links Between Nodes
+
+Gnosis uses standard org-mode =[[id:UUID][description]]= link syntax for
+linking between nodes.  When a file is synced, gnosis parses all id
+links in the file and stores them as directed edges from source to
+destination.
+
+To insert an id link to another node, use ~gnosis-nodes-insert~.  It
+prompts for a node title, looks up its UUID, and inserts an org-id link
+at point.  If the named node does not yet exist, it is created.
+
+#+begin_src emacs-lisp
+;; Insert a node link at point:
+M-x gnosis-nodes-insert
+
+;; With prefix arg, prompts for a custom link description:
+C-u M-x gnosis-nodes-insert
+#+end_src
+
+If a region is active when ~gnosis-nodes-insert~ is called, the selected
+text is used as the link description.
+
+** Backlinks
+
+~gnosis-nodes-visit-backlinks~ shows all nodes that link to the current
+node.  It presents the source node titles in a completing-read prompt
+and visits the selected node.
+
+If no backlinks exist, it reports this with a message.
+
+** Tags
+
+Tags in gnosis nodes come from two sources:
+
+1. *File-level tags*: The =#+filetags:= keyword at the top of the org
+   file.  These apply to the file-level node.
+2. *Heading-level tags*: Tags applied to individual org headings using
+   standard org syntax (=:tag:= at the end of the heading line).  These
+   are inherited downward through the outline.
+
+*** Adding Tags
+
+Use ~gnosis-nodes-insert-tags~ to add tags to the current node
+interactively.  It presents a completing-read prompt supporting multiple
+selections (separated by commas).  If the cursor is on a heading, the
+tags are added to that heading; otherwise they are inserted as filetags.
+
+To add a single existing tag to the =#+filetags:= line, use
+~gnosis-nodes-insert-filetag~.  The command completes against tags that
+already exist in the database, which helps maintain consistent tag
+names across notes.
+
+* Journal
+:PROPERTIES:
+:CUSTOM_ID: journal
+:DESCRIPTION: Date-based journal entries with TODO integration
+:END:
+
+The journal module provides date-based entry creation with optional
+TODO carry-forward and checkbox-to-done tracking.  Journal entries are
+org-mode files (or headings within a single file) stored in
+~gnosis-journal-dir~.  They are indexed alongside nodes but in a
+separate table.
+
+** Creating Entries
+
+*** ~gnosis-journal~
+
+The quickest way to open today's journal entry is ~gnosis-journal~.
+
+*** ~gnosis-journal-find~
+
+~gnosis-journal-find~ accepts an optional title argument.  Called
+interactively without arguments, it prompts for an existing or new
+journal entry title via completing-read.  If the entry already exists,
+gnosis opens it; if it does not, gnosis creates a new file (or heading,
+in single-file mode) for it.
+
+** File vs Single-File Mode
+
+Gnosis supports two modes for journal storage:
+
+*** Separate Files (Default)
+
+By default, each journal entry is its own file in ~gnosis-journal-dir~.
+File naming follows the same rules as nodes (timestamp prefix by
+default, configurable via ~gnosis-nodes-timestring~).
+
+#+begin_src emacs-lisp
+;; Default: separate files per entry
+(setopt gnosis-journal-file nil)
+#+end_src
+
+*** Single Journal File
+
+Setting ~gnosis-journal-file~ to a file path causes all journal entries
+to be added as top-level headings in that file.  Each entry is a
+=* YYYY-MM-DD= heading with an org ID.
+
+#+begin_src emacs-lisp
+(setopt gnosis-journal-file "~/Notes/journal/journal.org")
+#+end_src
+
+When this is set, gnosis creates the file if it does not exist, adding
+an appropriate =#+title:= and =#+filetags:= header.  New entries are
+appended at the end of the file.
+
+** GPG Encryption
+
+Like nodes, journal files can be created with a =.gpg= suffix.  The
+option ~gnosis-journal-as-gpg~ controls this independently from
+~gnosis-nodes-create-as-gpg~.
+
+#+begin_src emacs-lisp
+(setopt gnosis-journal-as-gpg nil)  ; default
+#+end_src
+
+** Templates
+
+Journal templates follow the same mechanism as node templates.  They are
+configured via ~gnosis-journal-templates~.
+
+*** ~gnosis-journal-templates~
+
+#+begin_src emacs-lisp
+(setopt gnosis-journal-templates
+        '(("Default" (lambda ()
+                       (concat "{*} Daily Notes\n\n"
+                               "{*} Goals\n"
+                               (gnosis-journal-todos))))
+          ("Empty" (lambda () ""))))
+#+end_src
+
+The default template calls ~gnosis-journal-todos~, which produces a
+checkbox list of any TODO items from ~gnosis-journal-todo-files~ that
+are due today (or have no scheduled date).  The ={*}= heading marker
+works exactly as in node templates.
+
+** "TODO" Integration
+
+The journal module can pull TODO items from your org agenda files into
+each journal entry as checkboxes.  This provides a daily task list
+drawn automatically from your existing TODO state.
+
+*** ~gnosis-journal-todo-files~
+
+The list of org files from which TODOs are pulled.  Defaults to
+~org-agenda-files~.
+
+#+begin_src emacs-lisp
+(setopt gnosis-journal-todo-files org-agenda-files)
+#+end_src
+
+*** ~gnosis-journal-todo-keywords~
+
+The TODO keywords recognized when scanning files.  Defaults to
+~org-todo-keywords~.  Keywords that appear after the vertical bar =|=
+(which in standard org convention separates active from done states)
+are ignored.
+
+#+begin_src emacs-lisp
+(setopt gnosis-journal-todo-keywords org-todo-keywords)
+#+end_src
+
+*** Bullet Point Character
+
+The character used to introduce each TODO checkbox in the journal
+template output is configured via ~gnosis-journal-bullet-point-char~.
+It defaults to =+=, which org-mode renders as a plain-list item.
+
+#+begin_src emacs-lisp
+(setopt gnosis-journal-bullet-point-char "+")
+#+end_src
+
+*** How TODO Carry-Forward Works
+
+When a journal entry's template is applied, ~gnosis-journal-todos~
+scans ~gnosis-journal-todo-files~ for headings whose TODO keyword
+matches an active keyword from ~gnosis-journal-todo-keywords~.  It
+includes items that either have no scheduled date or are scheduled for
+today.  Each included item is rendered as a checkbox line:
+
+#+begin_src org
++ [ ] Write documentation
++ [ ] Review pull requests
+#+end_src
+
+** Checked Item Tracking
+
+When you mark a checkbox in a journal entry as done (=[x]=) and save
+the buffer, gnosis identifies all checked items, finds the
+corresponding TODO headings in ~gnosis-journal-todo-files~ by title,
+and marks them as =DONE=.  It also records a =LAST_DONE_DATE= property
+on the heading so that the same item is not marked done twice in one
+day.
+
+In single-file mode (~gnosis-journal-file~ non-nil), gnosis restricts
+checked-item lookup to the section of the file corresponding to today's
+date heading.
+
+** Inserting Journal Links
+
+From within any gnosis buffer, you can insert an org-id link to a
+journal entry using ~gnosis-journal-insert~.  It works identically to
+~gnosis-nodes-insert~ but queries journal entries instead of nodes.
+
+** Full Journal Configuration Example
+
+#+begin_src emacs-lisp
+(use-package gnosis
+  :ensure t
+  :custom
+  ;; Journal in separate files (default):
+  (gnosis-journal-file nil)
+  (gnosis-journal-dir "~/Notes/journal/")
+  (gnosis-journal-as-gpg nil)
+  (gnosis-journal-bullet-point-char "+")
+  (gnosis-journal-todo-files org-agenda-files)
+  (gnosis-journal-todo-keywords org-todo-keywords)
+  (gnosis-journal-templates
+   '(("Default" (lambda ()
+                  (concat "{*} Daily Notes\n\n"
+                          "{*} Goals\n"
+                          (gnosis-journal-todos))))
+     ("Empty" (lambda () "")))))
+#+end_src
+
+* Themata (Spaced Repetition Cards)
+:PROPERTIES:
+:CUSTOM_ID: themata
+:END:
+
+Gnosis organises all review material into units called /themata/ (singular:
+/thema/).  The word is Greek for "that which is placed" or "a topic set
+before you," and a thema in gnosis is precisely that: a question or
+prompt placed before you for recall.  Each thema carries its own review
+history, scheduling state, and algorithm parameters.
+
+** Fields of a Thema
+
+Every thema shares a common set of fields:
+
+- *keimenon* (/κείμενον/, "underlying text"): The question, prompt, or
+  sentence context.  This is what the user sees first during review.
+- *hypothesis* (/ὑπόθεσης/, "assumption"): Supporting material.
+  Its role differs by type: for MCQ it holds the list of answer choices,
+  for basic it holds an optional hint, and for cloze and mc-cloze it
+  holds hints corresponding to each gap.
+- *answer*: The correct answer or list of cloze gaps.
+- *parathema* (/παράθεμα/, side-text): supplementary text shown after
+  answering, used to add context or a longer explanation.
+- *tags*: A list of strings for organising themata and applying
+  per-tag algorithm customisation.
+- *links*: Node IDs extracted from =[[id:...]]= org-links present in the
+  keimenon or parathema.  Used for topic-based review.
+
+** Thema Types
+
+Gnosis provides five thema types:
+
+*** Basic
+
+A straightforward question and answer.  The keimenon is the question;
+the answer is a single string.  An optional hypothesis serves as a hint
+displayed before the user types their response.  The comparison is
+case-insensitive and allows for a small Levenshtein distance, controlled
+by =gnosis-string-difference=.
+
+*** Double
+
+A convenience type that creates *two* basic themata from a single
+definition: one in the forward direction (keimenon -> answer) and one in
+reverse (answer -> keimenon).  Both cards are stored independently and
+scheduled separately.
+
+*** MCQ (Multiple Choice Question)
+
+The keimenon is the question.  The hypothesis holds a list of answer
+options (at least two) shuffled on each review.  The answer is a single
+string that must be one of the hypothesis options.  The user selects from
+the completion interface rather than typing freely.
+
+*** Cloze
+
+A fill-in-the-blank type.  The keimenon is a sentence with one or more
+gaps to fill.  Gnosis supports standard Anki-style cloze notation:
+
+#+begin_example
+The capital of {{c1::Greece}} is one of the oldest cities in the world.
+{{c1::Athens}} was named after {{c2::Athena}}.
+#+end_example
+
+Each =c1=, =c2=, etc. group is extracted into a separate thema.  The user
+must supply each gap in turn; a wrong answer on any gap fails the whole
+thema.  Hints can be embedded after a double colon: ={{c1::Athens::city}}=.
+
+*** MC-cloze (Multiple Choice Cloze)
+
+Like cloze, but the user selects the correct word from a list of
+candidates (the hypothesis) rather than typing it.  Only a single gap is
+supported per thema.  The answer must appear verbatim in the sentence.
+
+** Creating Themata
+
+Use =M-x gnosis-add-thema= to create a new thema interactively.  The
+command first prompts for the type, then opens a dedicated edit buffer
+(=*Gnosis NEW*=) pre-populated with a template for the selected type.
+
+Inside the edit buffer, use =C-c C-c= to save, =C-c C-q= to add tags,
+=C-c C-o= to follow an org-id link, or =C-c C-k= to quit without
+saving.
+
+** Editing Themata
+
+To edit an existing thema, use =M-x gnosis-edit-thema= or press =e=
+during a review session.  The same edit buffer is used, this time
+populated with the existing values.  Saving updates the record in
+place, re-synchronising both tags and node links.
+
+** Tags on Themata
+
+Tags are free-form strings that serve two purposes:
+
+1. *Organisation*: Filter themata during review by including or excluding
+   tags (see [[#review][Review System]]).
+2. *Algorithm customisation*: Override the default spaced repetition
+   parameters for all themata carrying a given tag (see
+   [[#algorithm][The Algorithm]]).
+
+During thema creation or editing, press =C-c C-q= in the edit buffer to
+add tags interactively using completion against existing tags.
+
+** The Link Between Themata and Nodes
+
+When a keimenon or parathema contains an org-mode id link of the form
+=[[id:NODE-UUID][description]]=, gnosis extracts the UUID and records
+the association.
+
+This linking means:
+
+- Reviewing by topic (~gnosis-review-topic~) fetches all themata linked
+  to a given node.
+- Viewing a linked node during review navigates directly to the
+  relevant note.
+- The dashboard can show which themata are associated with which nodes.
+
+Links are re-synchronised on every edit: the old links are cleared and
+the current links are re-inserted from the saved content.
+
+** Suspending Themata
+
+A suspended thema is excluded from all regular review sessions.
+Suspended themata remain in the database and can be unsuspended at any
+time, either through the review interface or the dashboard.
+
+* Review System
+:PROPERTIES:
+:CUSTOM_ID: review
+:END:
+
+The review system is the mechanism through which themata are presented to
+the user, evaluated, and then fed back into the spaced repetition
+algorithm.  All review activity is recorded and optionally committed to
+a Git repository for version control.
+
+** Starting a Review Session
+
+Call =M-x gnosis-review= to open the review transient menu.  The menu
+presents several review modes:
+
+- *Due themata*: All due and new themata, looping until none remain.
+- *Due themata of tag(s)*: Due themata filtered by +include/-exclude tags.
+- *Overdue themata*: Only themata whose scheduled date has passed.
+- *Due without overdue*: Today's due themata, excluding overdue ones.
+- *All themata of tag(s)*: All themata for selected tags, ignoring due
+  status.
+- *Review node*: All themata linked to a specific node topic.
+
+New themata (never reviewed) are interleaved with due ones.  By default
+they are shown first; set =gnosis-review-new-first= to =nil= to review them
+last.  The number of new themata presented per session can be capped with
+=gnosis-new-themata-limit=.
+
+** Tag Filtering
+
+When reviewing by tag, gnosis prompts for tags using
+=completing-read-multiple=.  Each entry is prefixed with =+= to include
+or =-= to exclude:
+
+#+begin_example
+Filter tags (+include -exclude): +biology -advanced
+#+end_example
+
+This selects all themata tagged =biology= that are not also tagged
+=advanced=.
+
+** The Review Flow
+
+For each thema in the session, gnosis proceeds through the following
+stages:
+
+1. *Display*: The keimenon is rendered in the =*gnosis*= buffer.
+   If the keimenon contains a =[[file:...]]= image link, the image is
+   opened in a secondary window.  Content is centred by default
+   (controlled by =gnosis-center-content-during-review=).
+
+2. *Input*: The user provides an answer.  The exact mechanism depends on
+   the thema type.
+
+3. *Feedback*: The answer is evaluated and the result is displayed
+   alongside the correct answer, the user's input (when wrong), and the
+   parathema if one is present.
+
+4. *Next review date*: The algorithm computes and displays the next
+   scheduled review date.
+
+5. *Action prompt*: The user chooses what to do next via a one-character
+   prompt.  Available actions include advancing to the next thema,
+   overriding the result (useful when the user typed a valid alternative
+   answer), suspending or deleting the thema, editing the thema, viewing
+   linked nodes, or quitting the session.
+
+6. *Algorithm update*: After the user confirms the result, the review log
+   and gnosis score are updated.
+
+** Type-Specific Review Behaviour
+
+*** Basic
+
+The keimenon and optional hint are displayed.  The user types a free-form
+answer into the minibuffer.  The comparison is case-insensitive and
+accounts for a small edit distance (=gnosis-string-difference=).  If the
+answer uses a non-Latin script, gnosis activates the appropriate input
+method from =gnosis-script-input-method-alist=.
+
+*** MCQ
+
+The keimenon is displayed.  The user selects one of the shuffled
+hypothesis options via completion.  Both the correct answer and the
+user's choice are shown side by side.
+
+*** Cloze
+
+The keimenon is displayed with each gap replaced by the placeholder
+=(...)=.  The user types each answer in turn.  On a correct guess, that
+gap is revealed and the next is presented.  On a wrong answer, all
+remaining gaps are highlighted and the card is marked as failed.
+
+*** MC-cloze
+
+The keimenon is displayed with the single gap replaced.  The user selects
+the correct word from a shuffled list via completion.
+
+** Node-Based Review
+
+~gnosis-review-topic~ reviews all themata linked to a chosen node.
+With a prefix argument, gnosis additionally prompts for forward and
+backward link depths, allowing review of nodes reachable through the
+link graph:
+
+#+begin_example
+C-u M-x gnosis-review-topic RET
+Forward link depth: 1 RET
+Backlink depth: 0 RET
+#+end_example
+
+This lets you review not just the selected node's themata, but also
+those of related nodes at the specified distance in the knowledge graph.
+
+** Activity Logging
+
+Every reviewed thema increments a daily activity counter, recording total
+and new themata reviewed per day.  This data drives the dashboard's
+streak display.  To clear the log, call =M-x gnosis-history-clear=.
+
+** Monkeytype
+
+After a failed review, gnosis can present the correct answer as a typing
+exercise.  The user types character by character; correct characters are
+highlighted in green, and backspace is disabled.  Upon completion, the
+words-per-minute figure is displayed.
+
+Controlled by =gnosis-monkeytype-enable= (default: =t=).  Restrict to
+specific types via =gnosis-monkeytype-themata=:
+
+#+begin_src emacs-lisp
+(use-package gnosis
+  :config
+  ;; Disable monkeytype entirely.
+  (setq gnosis-monkeytype-enable nil)
+
+  ;; Or restrict to cloze cards only.
+  (setq gnosis-monkeytype-themata '("cloze")))
+#+end_src
+
+** Sample Configuration
+
+#+begin_src emacs-lisp
+(use-package gnosis
+  :config
+  (setq gnosis-review-new-first nil)
+  (setq gnosis-new-themata-limit 20)
+  (setq gnosis-center-content-during-review nil)
+  (setq gnosis-vc-auto-push t))
+#+end_src
+
+* The Algorithm
+:PROPERTIES:
+:CUSTOM_ID: algorithm
+:END:
+
+Gnosis uses a modified spaced repetition algorithm inspired by SM-2 but
+with distinct vocabulary and several extensions for fine-grained control.
+
+** Overview
+
+The core idea is that every successful recall increases the interval
+before the next review, while every failure decreases it.  The rate of
+growth and decay is governed by a per-thema /gnosis score/, which itself
+adapts over time based on review history.
+
+Gnosis uses actual elapsed time (days since the last review) rather than
+the scheduled interval when computing the next interval.  This rewards
+successful recall after longer delays.
+
+** The Gnosis Score Triplet
+
+Each thema carries a gnosis score stored as a list of three values:
+
+#+begin_example
+(gnosis-plus  gnosis-minus  gnosis-synolon)
+#+end_example
+
+- *gnosis-plus*: How much =gnosis-synolon= grows on success.  Itself
+  grows via /anagnosis/ events.  Default: =0.35=.
+- *gnosis-minus*: How much =gnosis-synolon= shrinks on failure.  Grows
+  via anagnosis events on failures.  Default: =0.30=.
+- *gnosis-synolon* (/synolon/, "total"): The interval multiplier.  On
+  success, next interval = =synolon * elapsed-time=.  Capped at
+  =gnosis-algorithm-synolon-max= (default 3.0), floored at 1.3.
+
+#+begin_src emacs-lisp
+;; Default: plus=0.35, minus=0.30, synolon=1.3
+(setq gnosis-algorithm-gnosis-value '(0.35 0.30 1.3))
+#+end_src
+
+** Proto Phase
+
+New themata go through a /proto/ phase with fixed intervals before the
+standard algorithm applies:
+
+#+begin_src emacs-lisp
+;; Default: 0, 1, 2 days for the first 3 successes.
+(setq gnosis-algorithm-proto '(0 1 2))
+#+end_src
+
+After exhausting the proto list, the algorithm switches to the standard
+=synolon * elapsed-time= calculation.
+
+** Interval Calculation
+
+On a *successful* review:
+
+#+begin_example
+next-interval = round(fuzz(gnosis-synolon * elapsed-time))
+#+end_example
+
+The computed date is compared to the previously scheduled date, and the
+*later* of the two is kept, preventing early reviews from deflating
+intervals.
+
+On a *failed* review:
+
+#+begin_example
+failure-factor = 1 - gnosis-algorithm-amnesia-value
+next-interval  = round(fuzz(failure-factor * elapsed-time))
+#+end_example
+
+#+begin_src emacs-lisp
+;; Default: 0.5 -- interval halved on failure.
+(setq gnosis-algorithm-amnesia-value 0.5)
+#+end_src
+
+** Anagnosis Events
+
+/Anagnosis/ (/ἀνάγνωσις/, "recognition") events fire when consecutive
+successes or failures reach a threshold, permanently adjusting the
+gnosis-plus or gnosis-minus values.
+
+#+begin_src emacs-lisp
+;; Fire every 3 consecutive successes or failures.
+(setq gnosis-algorithm-anagnosis-value 3)
+
+;; Increase gnosis-plus by 0.1 on success anagnosis.
+(setq gnosis-algorithm-epignosis-value 0.1)
+
+;; Increase gnosis-minus by 0.2 on failure anagnosis.
+(setq gnosis-algorithm-agnoia-value 0.2)
+#+end_src
+
+A thema you keep getting right will grow its intervals faster over time;
+one you keep failing will be penalised more harshly.
+
+** Lethe
+
+/Lethe/ (the river of forgetfulness) resets the interval to zero when
+consecutive failures reach or exceed the threshold, and reduces
+gnosis-plus to slow future growth:
+
+#+begin_src emacs-lisp
+;; Default: reset on 2 consecutive failures.
+(setq gnosis-algorithm-lethe-value 2)
+#+end_src
+
+** Fuzz
+
+Random variation applied to intervals to prevent review clustering:
+
+#+begin_src emacs-lisp
+;; Default: +/-10%. Set to 0 to disable.
+(setq gnosis-algorithm-interval-fuzz 0.1)
+#+end_src
+
+Fuzz is not applied to intervals of 2 days or fewer.
+
+** Per-Tag Algorithm Customisation
+
+=gnosis-custom-values= lets you override algorithm parameters for all
+themata carrying a given tag:
+
+#+begin_src emacs-lisp
+(use-package gnosis
+  :config
+  (setq gnosis-custom-values
+        '(;; Strict scheduling for Greek vocabulary.
+          (:tag "greek"
+                (:proto     (0 1 3 7)
+                 :amnesia   0.6
+                 :lethe     2
+                 :anagnosis 4
+                 :epignosis 0.15
+                 :agnoia    0.25))
+
+          ;; Lenient scheduling for programming concepts.
+          (:tag "programming"
+                (:proto     (0 1)
+                 :amnesia   0.4
+                 :lethe     3
+                 :anagnosis 2
+                 :epignosis 0.2
+                 :agnoia    0.15)))))
+#+end_src
+
+When a thema carries multiple tags with overlapping parameters, gnosis
+aggregates: for =:amnesia=, =:epignosis=, =:agnoia= the maximum is used;
+for =:anagnosis=, =:lethe= the minimum is used; for =:proto= the
+element-wise maximum.
+
+** All Algorithm Variables
+
+| Variable                          | Default           | Description                                     |
+|-----------------------------------+-------------------+-------------------------------------------------|
+| =gnosis-algorithm-proto=          | =(0 1 2)=         | Fixed intervals for the first N successes        |
+| =gnosis-algorithm-gnosis-value=   | =(0.35 0.30 1.3)= | Starting (plus minus synolon) score             |
+| =gnosis-algorithm-amnesia-value=  | =0.5=             | Memory loss factor on failure (0 < x < 1)       |
+| =gnosis-algorithm-epignosis-value=| =0.1=             | gnosis-plus increment per success anagnosis     |
+| =gnosis-algorithm-agnoia-value=   | =0.2=             | gnosis-minus increment per failure anagnosis    |
+| =gnosis-algorithm-anagnosis-value=| =3=               | Consecutive review threshold for anagnosis      |
+| =gnosis-algorithm-lethe-value=    | =2=               | Consecutive failures before lethe reset         |
+| =gnosis-algorithm-synolon-max=    | =3.0=             | Maximum value for the interval multiplier       |
+| =gnosis-algorithm-interval-fuzz=  | =0.1=             | Fuzz fraction applied to intervals (0 = off)    |
+
+* Dashboard
+:PROPERTIES:
+:CUSTOM_ID: dashboard
+:END:
+
+The dashboard is the central interface for browsing and managing
+everything stored in gnosis.  It presents themata, nodes, and tags in
+tabulated views with contextual transient menus.
+
+** Opening the Dashboard
+
+#+begin_src emacs-lisp
+M-x gnosis-dashboard
+#+end_src
+
+This opens the =*Gnosis Dashboard*= buffer with a header showing your
+review streak and today's statistics.  A transient menu opens
+automatically, providing access to nodes, themata, review sessions,
+export/import, and database synchronisation.
+
+** The Themata View
+
+Lists all review items in a tabulated format, with columns for the
+keimenon, hypothesis, answer, tags, type, and suspension status.
+
+From this view you can edit or delete individual themata, suspend them,
+search or filter the list by content, filter by review count, and use
+bulk operations on marked entries (bulk link replacement, suspend,
+delete).  All actions are available through a transient menu.
+
+** The Nodes View
+
+Lists org-mode knowledge nodes with connectivity metrics: forward link
+count, backlink count, and the number of themata that reference each
+node.
+
+From this view you can navigate the knowledge graph by following
+forward links or backlinks from any node, see which themata reference a
+node, find isolated nodes with no connections, open a node's org file,
+or start a review of all themata linked to a node (optionally specifying
+link depth to include related nodes).
+
+Each navigation action pushes the current view onto a history stack, so
+you can step back through your browsing path.
+
+#+begin_src emacs-lisp
+(use-package gnosis
+  :config
+  (setopt gnosis-dashboard-nodes-default-sort-column "Backlinks")
+  (setopt gnosis-dashboard-nodes-default-sort-ascending nil))
+#+end_src
+
+** The Tags View
+
+Lists every tag with a count of associated themata.  From this view
+you can open the themata view filtered to a specific tag, rename tags,
+suspend all themata carrying a tag, or delete a tag from all themata.
+
+* Export and Import
+:PROPERTIES:
+:CUSTOM_ID: export-import
+:END:
+
+Gnosis provides two export commands and two import commands.  Exports
+produce standard org-mode files that can be edited freely and
+re-imported.
+
+** Exporting to a Directory
+
+~gnosis-export-themata~ is the primary export command.  It writes a
+filtered subset of your themata to a directory, creating a =themata.org=
+file and copying linked node files into a =nodes/= subdirectory.
+
+#+begin_src emacs-lisp
+M-x gnosis-export-themata
+#+end_src
+
+When called interactively, you are asked for:
+
+1. Tag filters using +/- notation.
+2. Which directory to export to.
+3. Whether to replace IDs with =NEW= (for sharing).
+4. Whether to include suspended themata.
+
+The resulting directory structure:
+
+#+begin_example
+export-directory/
+  themata.org
+  nodes/
+    note1.org
+    note2.org
+#+end_example
+
+*** Tag Filter Notation
+
+Each candidate is prefixed with =+= (include) or =-= (exclude):
+
+#+begin_example
+Filter tags (+include -exclude): +greek -draft
+#+end_example
+
+When no =+= entries are chosen, the export starts from all themata and
+applies only exclusions.
+
+*** Programmatic Use
+
+Pass tag lists directly:
+
+#+begin_src emacs-lisp
+(gnosis-export-themata "/path/to/backup/"
+                       nil nil
+                       '("greek")
+                       '("draft"))
+#+end_src
+
+** Exporting to a Single File
+
+~gnosis-export-themata-to-file~ exports all non-suspended themata to a
+single org file without copying linked nodes.
+
+** The Export Format
+
+Each thema is a top-level org heading:
+
+#+begin_example
+,* Thema :greek:vocabulary:
+:PROPERTIES:
+:GNOSIS_ID: 12345678
+:GNOSIS_TYPE: Basic
+:END:
+,** Keimenon
+What is the Greek word for knowledge?
+
+,** Answer
+- gnosis
+
+,** Parathema
+Additional context.
+#+end_example
+
+The separator between multiple items in Hypothesis and Answer is the
+value of =gnosis-export-separator= (default: ="\n- "=).
+
+** Importing a File
+
+#+begin_src emacs-lisp
+M-x gnosis-import-file
+#+end_src
+
+Reads an exported org file and inserts or updates themata within a
+single transaction.  Themata with =:GNOSIS_ID: NEW= receive fresh IDs.
+
+** Asynchronous Import
+
+For large files, use =M-x gnosis-import-file-async=.  This splits the
+file into chunks and processes them with timers between batches, keeping
+Emacs responsive.
+
+* Link Health and Maintenance
+:PROPERTIES:
+:CUSTOM_ID: link-health
+:END:
+
+Over time, links between themata and nodes can fall out of sync:
+
+- *Orphaned links*: destination node no longer exists.
+- *Stale links*: link recorded but no longer present in the thema text.
+- *Missing links*: link present in thema text but not recorded.
+
+** Checking Link Health
+
+#+begin_src emacs-lisp
+M-x gnosis-links-check
+#+end_src
+
+Reports a summary without modifying anything.
+
+** Full Synchronisation
+
+#+begin_src emacs-lisp
+M-x gnosis-links-sync
+#+end_src
+
+Removes orphaned and stale links, inserts missing ones.  Prompts for
+confirmation with counts before making changes.
+
+** Syncing the Node Database
+
+#+begin_src emacs-lisp
+M-x gnosis-nodes-db-sync
+#+end_src
+
+Walks all org files in =gnosis-nodes-dir= and updates the database.
+Changed files are re-parsed; unchanged files are skipped.  For a
+complete rebuild:
+
+#+begin_src emacs-lisp
+C-u M-x gnosis-nodes-db-sync
+#+end_src
+
+** Backup Recommendations
+
+For manual backups, copy =gnosis.db= before major operations.  The
+export commands produce portable org files for disaster recovery:
+
+#+begin_src emacs-lisp
+(gnosis-export-themata-to-file
+ (format "~/backups/gnosis-%s.org"
+         (format-time-string "%Y-%m-%d")))
+#+end_src
+
+For continuous protection, enable =gnosis-vc-auto-push= to push the
+database to a remote Git repository after each review session.

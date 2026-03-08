@@ -1572,6 +1572,9 @@ Used by migrations that run before the thema-tag junction table exists."
 		(gnosis-sqlite-execute db
 		  "INSERT OR IGNORE INTO thema_tag (thema_id, tag) VALUES (?, ?)"
 		  (list thema-id tag))))))))
+    ;; Drop serialized tags column (now replaced by thema-tag junction table)
+    (ignore-errors
+      (gnosis-sqlite-execute db "ALTER TABLE themata DROP COLUMN tags"))
     ;; Drop thema-tags and node-tags lookup tables
     (ignore-errors
       (gnosis-sqlite-execute db "DROP TABLE IF EXISTS thema_tags"))

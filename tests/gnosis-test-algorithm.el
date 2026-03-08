@@ -701,6 +701,69 @@
   ;; date2 < date signals error
   (should-error (gnosis-algorithm-date-diff '(2025 1 2) '(2025 1 1))))
 
+(ert-deftest gnosis-test-algorithm-date-later-p ()
+  "Test gnosis-algorithm--date-later-p comparisons."
+  (should (gnosis-algorithm--date-later-p '(2025 6 15) '(2025 6 10)))
+  (should (gnosis-algorithm--date-later-p '(2025 7 1) '(2025 6 30)))
+  (should (gnosis-algorithm--date-later-p '(2026 1 1) '(2025 12 31)))
+  (should-not (gnosis-algorithm--date-later-p '(2025 6 10) '(2025 6 15)))
+  (should-not (gnosis-algorithm--date-later-p '(2025 6 10) '(2025 6 10))))
+
+(ert-deftest gnosis-test-algorithm-elapsed-time-interval ()
+  "Test that elapsed time drives interval, with max logic on success.
+
+Simulates the full flow: elapsed time as last-interval, then on success
+keep max(computed, existing-next-rev)."
+  (let ((gnosis-algorithm-interval-fuzz 0))
+    ;; 1. Normal due review: elapsed = 10, synolon = 2.0 → next = 20 days
+    ;;    existing-next-rev is today (due now), computed is 20 days out → use computed
+    (let* ((elapsed 10)
+	   (computed (gnosis-algorithm-next-interval
+		      :last-interval elapsed :gnosis-synolon 2.0 :success t
+		      :successful-reviews 5 :amnesia 0.5 :proto '(1 2 3)
+		      :c-fails 0 :lethe 3))
+	   (existing-next-rev (gnosis-algorithm-date)))
+      (should (equal computed (gnosis-algorithm-date 20)))
+      ;; computed is later than existing → use computed
+      (should (gnosis-algorithm--date-later-p computed existing-next-rev)))
+
+    ;; 2. Early success: elapsed = 5, synolon = 2.0 → computed = 10 days
+    ;;    but existing-next-rev is 60 days out → keep existing
+    (let* ((elapsed 5)
+	   (computed (gnosis-algorithm-next-interval
+		      :last-interval elapsed :gnosis-synolon 2.0 :success t
+		      :successful-reviews 5 :amnesia 0.5 :proto '(1 2 3)
+		      :c-fails 0 :lethe 3))
+	   (existing-next-rev (gnosis-algorithm-date 60))
+	   (next-rev (if (gnosis-algorithm--date-later-p existing-next-rev computed)
+			 existing-next-rev
+		       computed)))
+      (should (equal computed (gnosis-algorithm-date 10)))
+      (should (equal next-rev existing-next-rev)))
+
+    ;; 3. Overdue success: elapsed = 90, synolon = 2.0 → computed = 180 days
+    ;;    existing-next-rev was 60 days ago → use computed
+    (let* ((elapsed 90)
+	   (computed (gnosis-algorithm-next-interval
+		      :last-interval elapsed :gnosis-synolon 2.0 :success t
+		      :successful-reviews 5 :amnesia 0.5 :proto '(1 2 3)
+		      :c-fails 0 :lethe 3))
+	   (existing-next-rev (gnosis-algorithm-date -60))
+	   (next-rev (if (gnosis-algorithm--date-later-p existing-next-rev computed)
+			 existing-next-rev
+		       computed)))
+      (should (equal computed (gnosis-algorithm-date 180)))
+      (should (equal next-rev computed)))
+
+    ;; 4. Early failure: elapsed = 5, amnesia = 0.5 → computed = 2 days
+    ;;    On failure, always use computed (no max logic)
+    (let* ((elapsed 5)
+	   (computed (gnosis-algorithm-next-interval
+		      :last-interval elapsed :gnosis-synolon 2.0 :success nil
+		      :successful-reviews 5 :amnesia 0.5 :proto '(1 2 3)
+		      :c-fails 1 :lethe 3)))
+      (should (equal computed (gnosis-algorithm-date 2))))))
+
 (provide 'gnosis-test-algorithm)
 
 (ert-run-tests-batch-and-exit)

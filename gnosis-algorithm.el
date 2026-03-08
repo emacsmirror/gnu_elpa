@@ -239,6 +239,12 @@ LETHE: Upon having C-FAILS >= lethe, set next interval to 0."
 			        (max (min success-interval failure-interval) 0)))))))
     (gnosis-algorithm-date (round (gnosis-algorithm-fuzz-interval interval)))))
 
+(defun gnosis-algorithm--date-later-p (date1 date2)
+  "Return non-nil if DATE1 is later than DATE2.
+Both dates are lists of (year month day)."
+  (> (time-to-days (encode-time 0 0 0 (caddr date1) (cadr date1) (car date1)))
+     (time-to-days (encode-time 0 0 0 (caddr date2) (cadr date2) (car date2)))))
+
 
 (provide 'gnosis-algorithm)
 ;;; gnosis-algorithm.el ends here

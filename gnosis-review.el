@@ -277,21 +277,30 @@ Returns a list of the form ((yyyy mm dd) (ef-increase ef-decrease ef-total))."
 	 (t-success (nth 0 log-data))
 	 (c-success (nth 1 log-data))
 	 (c-fails (nth 2 log-data))
-	 (last-interval (gnosis-algorithm-date-diff (nth 3 log-data) (nth 4 log-data)))
+	 ;; Use elapsed time (today - last-rev) instead of scheduled interval
+	 (last-interval (gnosis-algorithm-date-diff (nth 3 log-data)))
+	 (existing-next-rev (nth 4 log-data))
 	 (gnosis (gnosis-get 'gnosis 'review `(= id ,id)))
 	 ;; Custom values (compute once)
 	 (amnesia (gnosis-get-thema-amnesia id))
-	 (lethe (gnosis-get-thema-lethe id)))
+	 (lethe (gnosis-get-thema-lethe id))
+	 (computed-next-rev (gnosis-algorithm-next-interval
+			     :last-interval last-interval
+			     :gnosis-synolon (nth 2 gnosis)
+			     :success success
+			     :successful-reviews t-success
+			     :c-fails c-fails
+			     :lethe lethe
+			     :amnesia amnesia
+			     :proto (gnosis-get-thema-proto id)))
+	 ;; On success, keep the later of computed vs existing to prevent
+	 ;; early reviews from deflating intervals.
+	 (next-rev (if (and success
+			    (gnosis-algorithm--date-later-p existing-next-rev computed-next-rev))
+		       existing-next-rev
+		     computed-next-rev)))
     (list
-     (gnosis-algorithm-next-interval
-      :last-interval last-interval
-      :gnosis-synolon (nth 2 gnosis)
-      :success success
-      :successful-reviews t-success
-      :c-fails c-fails
-      :lethe lethe
-      :amnesia amnesia
-      :proto (gnosis-get-thema-proto id))
+     next-rev
      (gnosis-algorithm-next-gnosis
       :gnosis gnosis
       :success success

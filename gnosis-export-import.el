@@ -131,9 +131,10 @@ generate new thema id."
                            ids)))
     ;; Process each thema
     (dolist (id id-values)
-      (let ((thema-data (append (gnosis-select '[type keimenon hypothesis answer tags]
+      (let ((thema-data (append (gnosis-select '[type keimenon hypothesis answer]
                                               'themata `(= id ,id) t)
-                               (gnosis-select 'parathema 'extras `(= id ,id) t))))
+                               (gnosis-select 'parathema 'extras `(= id ,id) t)))
+            (tags (gnosis-select 'tag 'thema-tag `(= thema-id ,id) t)))
         (gnosis-export--insert-thema
          (if new-p "NEW" (number-to-string id))
          (nth 0 thema-data)
@@ -142,22 +143,22 @@ generate new thema id."
                  (mapconcat 'identity (nth 2 thema-data) gnosis-export-separator))
          (concat (string-remove-prefix "\n" gnosis-export-separator)
                  (mapconcat 'identity (nth 3 thema-data) gnosis-export-separator))
-         (nth 5 thema-data)
-         (nth 4 thema-data))))))
+         (nth 4 thema-data)
+         tags)))))
 
 ;;; Export helpers
 
 (defun gnosis-export--fetch-themata-data (thema-ids include-suspended)
   "Fetch and prepare export data for THEMA-IDS.
 When INCLUDE-SUSPENDED is nil, filter out suspended themata.
-Returns (ALL-THEMATA . EXTRAS-HT)."
+Returns (ALL-THEMATA EXTRAS-HT TAGS-HT)."
   (let* ((all-themata (if thema-ids
 			  (let* ((placeholders (mapconcat (lambda (_) "?") thema-ids ", "))
-				 (sql (format "SELECT id, type, keimenon, hypothesis, answer, tags FROM themata WHERE id IN (%s)"
+				 (sql (format "SELECT id, type, keimenon, hypothesis, answer FROM themata WHERE id IN (%s)"
 					      placeholders)))
 			    (gnosis-sqlite-select (gnosis--ensure-db) sql thema-ids))
 			(gnosis-sqlite-select (gnosis--ensure-db)
-			  "SELECT id, type, keimenon, hypothesis, answer, tags FROM themata")))
+			  "SELECT id, type, keimenon, hypothesis, answer FROM themata")))
          (all-ids (mapcar #'car all-themata))
          (suspended-ids (when (and all-ids (not include-suspended))
 			  (let* ((placeholders (mapconcat (lambda (_) "?") all-ids ", "))
@@ -177,12 +178,21 @@ Returns (ALL-THEMATA . EXTRAS-HT)."
 			 (gnosis-sqlite-select (gnosis--ensure-db) sql all-ids))))
          (extras-ht (let ((ht (make-hash-table :test 'equal :size (length all-ids))))
                       (dolist (row all-extras ht)
-                        (puthash (car row) (cadr row) ht)))))
-    (cons all-themata extras-ht)))
+                        (puthash (car row) (cadr row) ht))))
+	 (all-tags (when all-ids
+		     (let* ((placeholders (mapconcat (lambda (_) "?") all-ids ", "))
+			    (sql (format "SELECT thema_id, tag FROM thema_tag WHERE thema_id IN (%s)"
+					 placeholders)))
+		       (gnosis-sqlite-select (gnosis--ensure-db) sql all-ids))))
+	 (tags-ht (let ((ht (make-hash-table :test 'equal :size (length all-ids))))
+		    (dolist (row all-tags ht)
+		      (push (cadr row) (gethash (car row) ht))))))
+    (list all-themata extras-ht tags-ht)))
 
-(defun gnosis-export--insert-row (row extras-ht new-p)
+(defun gnosis-export--insert-row (row extras-ht tags-ht new-p)
   "Insert a single thema ROW into the current buffer.
-EXTRAS-HT maps thema IDs to parathema.  When NEW-P, use \"NEW\" as ID."
+EXTRAS-HT maps thema IDs to parathema.  TAGS-HT maps thema IDs to
+tag lists.  When NEW-P, use \"NEW\" as ID."
   (let* ((id (nth 0 row))
          (sep-prefix (string-remove-prefix "\n" gnosis-export-separator)))
     (gnosis-export--insert-thema
@@ -191,7 +201,7 @@ EXTRAS-HT maps thema IDs to parathema.  When NEW-P, use \"NEW\" as ID."
      (concat sep-prefix (mapconcat #'identity (nth 3 row) gnosis-export-separator))
      (concat sep-prefix (mapconcat #'identity (nth 4 row) gnosis-export-separator))
      (gethash id extras-ht "")
-     (nth 5 row))))
+     (gethash id tags-ht))))
 
 (defun gnosis-export--prepare-buffer (name filename)
   "Prepare export buffer for NAME, resolving FILENAME.
@@ -256,8 +266,9 @@ When INCLUDE-SUSPENDED, also export suspended themata."
   (let* ((gc-cons-threshold most-positive-fixnum)
 	 (thema-ids (gnosis-filter-by-tags include-tags exclude-tags))
 	 (data (gnosis-export--fetch-themata-data thema-ids include-suspended))
-	 (all-themata (car data))
-	 (extras-ht (cdr data))
+	 (all-themata (nth 0 data))
+	 (extras-ht (nth 1 data))
+	 (tags-ht (nth 2 data))
 	 (tags-str (concat
 		    (when include-tags
 		      (mapconcat (lambda (tag) (concat "+" tag)) include-tags " "))
@@ -271,7 +282,7 @@ When INCLUDE-SUSPENDED, also export suspended themata."
 	(insert (format "#+TAGS: %s\n" tags-str))
 	(insert (format "#+THEMATA: %d\n\n" (length all-themata)))
 	(dolist (row all-themata)
-	  (gnosis-export--insert-row row extras-ht new-p))))
+	  (gnosis-export--insert-row row extras-ht tags-ht new-p))))
     ;; Copy linked node files
     (let* ((exported-ids (mapcar #'car all-themata))
 	   (node-rows (gnosis-export--collect-linked-node-files exported-ids))
@@ -295,13 +306,14 @@ When INCLUDE-SUSPENDED, also export suspended themata."
          (buffer (car prepared))
          (filename (cdr prepared))
          (data (gnosis-export--fetch-themata-data nil include-suspended))
-         (all-themata (car data))
-         (extras-ht (cdr data)))
+         (all-themata (nth 0 data))
+         (extras-ht (nth 1 data))
+	 (tags-ht (nth 2 data)))
     (with-current-buffer buffer
       (let ((inhibit-read-only t))
         (insert (format "#+THEMATA: %d\n\n" (length all-themata)))
         (dolist (row all-themata)
-          (gnosis-export--insert-row row extras-ht new-p))
+          (gnosis-export--insert-row row extras-ht tags-ht new-p))
         (when filename
           (write-file filename)
           (message "Exported %d themata to %s" (length all-themata) filename))))))

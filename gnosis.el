@@ -765,7 +765,6 @@ Return (INCLUDE . EXCLUDE) cons of plain tag lists."
 	 (candidates (cl-loop for tag in tags
 			      nconc (list (concat "+" tag)
 					  (concat "-" tag))))
-	 (crm-separator " ")
 	 (input (completing-read-multiple
 		 "Filter tags (+include -exclude): "
 		 candidates nil nil)))
@@ -796,12 +795,6 @@ does not accept heading tags with dashes."
 		      "-" "_" (read-string "New tag name: "))))
 	(db (gnosis--ensure-db)))
     (gnosis-sqlite-with-transaction db
-      ;; Update serialized tags column (while junction table still has old tag)
-      (gnosis-sqlite-execute db
-	(concat "UPDATE themata SET tags = REPLACE(tags, ?, ?)"
-		" WHERE id IN (SELECT thema_id FROM thema_tag WHERE tag = ?)")
-	(list (format "\"%s\"" tag) (format "\"%s\"" new-tag) tag))
-      ;; Update junction table
       (gnosis-sqlite-execute db
 	"UPDATE thema_tag SET tag = ? WHERE tag = ?" (list new-tag tag)))
     (message "Renamed tag '%s' to '%s'" tag new-tag)))
@@ -884,7 +877,7 @@ LINKS: List of id links."
 	 (review-image (or review-image "")))
     (gnosis-sqlite-with-transaction (gnosis--ensure-db)
       (gnosis--insert-into 'themata `([,gnosis-id ,(downcase type) ,keimenon ,hypothesis
-					      ,answer ,tags]))
+					      ,answer]))
       (gnosis--insert-into 'review  `([,gnosis-id ,gnosis-algorithm-gnosis-value
 						,gnosis-algorithm-amnesia-value]))
       (gnosis--insert-into 'review-log `([,gnosis-id ,(gnosis-algorithm-date)
@@ -910,8 +903,8 @@ When `gnosis--id-cache' is bound, uses hash table for existence check."
 	(gnosis-sqlite-with-transaction (gnosis--ensure-db)
 	  ;; Single multi-column UPDATE for themata
 	  (gnosis-sqlite-execute (gnosis--ensure-db)
-	    "UPDATE themata SET keimenon = ?, hypothesis = ?, answer = ?, tags = ?, type = ? WHERE id = ?"
-	    (list keimenon hypothesis answer tags
+	    "UPDATE themata SET keimenon = ?, hypothesis = ?, answer = ?, type = ? WHERE id = ?"
+	    (list keimenon hypothesis answer
 		  (or type current-type) id))
 	  ;; Single UPDATE for extras
 	  (gnosis-update 'extras `(= parathema ,parathema) `(= id ,id))
@@ -1310,8 +1303,7 @@ Return thema ids for themata that match QUERY."
        (type text :not-null)
        (keimenon text :not-null)
        (hypothesis text :not-null)
-       (answer text :not-null)
-       (tags text :default untagged)]))
+       (answer text :not-null)]))
     (review
      ([(id integer :primary-key :not-null) ;; thema-id
        (gnosis integer :not-null)

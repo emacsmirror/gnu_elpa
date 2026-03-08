@@ -29,7 +29,8 @@
 ;; Additional fill commands for PHP code editing.
 
 ;; - Fills string literals by breaking them into smaller ones.
-;; - Conditionally use ‘NOSQUEEZE’ on c and c++ style comments.
+;; - Conditionally use ‘NOSQUEEZE’ on spaces between words in c and c++
+;;   style comments.
 ;; - Use “<return>” to break or add a new line to string literals and
 ;;   doc blocks.
 ;; - Use “<backspace>” or “<delete>” at the beginning and at the end to

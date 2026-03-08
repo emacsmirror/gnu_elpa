@@ -139,6 +139,8 @@ Optional integer OFFSET is a number of days from the current date.
 Respects `gnosis-algorithm-day-start-hour': when set to e.g. 6,
 times before 06:00 count as the previous calendar day."
   (cl-assert (or (integerp offset) (null offset)) nil "Date offset must be an integer or nil")
+  (cl-assert (<= 0 gnosis-algorithm-day-start-hour 23) nil
+             "gnosis-algorithm-day-start-hour must be 0-23, got %d" gnosis-algorithm-day-start-hour)
   (let* ((shifted (time-subtract (current-time)
                                  (seconds-to-time
                                   (* gnosis-algorithm-day-start-hour 3600))))

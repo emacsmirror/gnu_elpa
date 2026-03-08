@@ -815,6 +815,15 @@ keep max(computed, existing-next-rev)."
       (let ((shifted-date (gnosis-algorithm-date)))
         (should (= (gnosis-algorithm-date-diff shifted-date) 0))))))
 
+(ert-deftest gnosis-test-algorithm-day-start-hour-invalid ()
+  "Test that invalid day-start-hour values signal an error."
+  (let ((gnosis-algorithm-day-start-hour 50))
+    (should-error (gnosis-algorithm-date)))
+  (let ((gnosis-algorithm-day-start-hour -1))
+    (should-error (gnosis-algorithm-date)))
+  (let ((gnosis-algorithm-day-start-hour 24))
+    (should-error (gnosis-algorithm-date))))
+
 (provide 'gnosis-test-algorithm)
 
 (ert-run-tests-batch-and-exit)

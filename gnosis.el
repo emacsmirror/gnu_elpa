@@ -737,6 +737,17 @@ If SUSPENDED-P, return suspended themata as well."
   "Return t if thema with ID is suspended."
   (= (gnosis-get 'suspend 'review-log `(= id ,id)) 1))
 
+(defun gnosis-filter-by-tags (include-tags exclude-tags)
+  "Return thema IDs matching INCLUDE-TAGS but not EXCLUDE-TAGS.
+When INCLUDE-TAGS is nil, start from all thema IDs."
+  (let ((ids (if include-tags
+		(cl-remove-duplicates (gnosis-collect-tag-thema-ids include-tags))
+	      (gnosis-select 'id 'themata nil t))))
+    (if exclude-tags
+	(let ((excluded (cl-remove-duplicates
+			 (gnosis-collect-tag-thema-ids exclude-tags))))
+	  (cl-set-difference ids excluded))
+      ids)))
 
 (defun gnosis--date-to-int (date)
   "Convert DATE list (year month day) to YYYYMMDD integer for fast comparison."
@@ -758,6 +769,31 @@ DATE is a list of the form (year month day)."
 		 (completing-read-multiple
 		  prompt tags predicate require-match initial-input))))
     input))
+
+(defun gnosis-tags--parse-filter (input)
+  "Parse INPUT list of \"+tag\" / \"-tag\" strings.
+Return (INCLUDE . EXCLUDE) cons of plain tag lists."
+  (let (include exclude)
+    (dolist (entry input)
+      (cond ((string-prefix-p "+" entry)
+	     (push (substring entry 1) include))
+	    ((string-prefix-p "-" entry)
+	     (push (substring entry 1) exclude))))
+    (cons (nreverse include) (nreverse exclude))))
+
+(defun gnosis-tags-filter-prompt ()
+  "Prompt for tag filters using +include / -exclude notation.
+Return (INCLUDE . EXCLUDE) cons of plain tag lists."
+  (interactive)
+  (let* ((tags (gnosis-get-tags--unique))
+	 (candidates (cl-loop for tag in tags
+			      nconc (list (concat "+" tag)
+					  (concat "-" tag))))
+	 (crm-separator " ")
+	 (input (completing-read-multiple
+		 "Filter tags (+include -exclude): "
+		 candidates nil nil)))
+    (gnosis-tags--parse-filter input)))
 
 (defun gnosis-tags-prompt ()
   "Tag prompt for adding themata.

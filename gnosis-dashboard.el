@@ -981,8 +981,8 @@ GEN: load generation — no-op if stale."
 (defun gnosis-dashboard-view-by-tags ()
   "Prompt for tags and display matching themata."
   (interactive)
-  (let* ((tags (gnosis-tags--prompt :prompt "Filter by tags: " :require-match t))
-	 (ids (gnosis-select-by-tag tags)))
+  (let* ((filter (gnosis-tags-filter-prompt))
+	 (ids (gnosis-filter-by-tags (car filter) (cdr filter))))
     (when ids
       (push #'gnosis-dashboard-output-tags gnosis-dashboard--view-history)
       (gnosis-dashboard-output-themata ids))))

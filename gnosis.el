@@ -858,10 +858,15 @@ QUERY: String value."
 	 (gnosis-review-get-due-themata))
 	;; All themata for tags
 	((and tags (null due))
-	 (gnosis-select-by-tag (gnosis-tags--prompt :require-match t)))
+	 (let ((filter (gnosis-tags-filter-prompt)))
+	   (gnosis-filter-by-tags (car filter) (cdr filter))))
 	;; All due themata for tags
 	((and tags due)
-	 (gnosis-select-by-tag (gnosis-tags--prompt :require-match t) t))
+	 (let* ((filter (gnosis-tags-filter-prompt))
+		(ids (gnosis-filter-by-tags (car filter) (cdr filter))))
+	   (cl-loop for id in ids
+		    when (gnosis-review-is-due-p id)
+		    collect id)))
 	;; Query
 	(query
 	 (gnosis-search-thema query))))

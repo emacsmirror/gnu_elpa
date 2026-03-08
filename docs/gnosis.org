@@ -1104,6 +1104,26 @@ Random variation applied to intervals to prevent review clustering:
 
 Fuzz is not applied to intervals of 2 days or fewer.
 
+** Day Boundary
+
+By default, a new review day begins at midnight.
+=gnosis-algorithm-day-start-hour= shifts that boundary so that reviews
+done in the small hours count as part of the previous calendar day:
+
+#+begin_src emacs-lisp
+;; Default: 0 (midnight).  Set to e.g. 6 to treat 00:00--05:59 as the
+;; previous day.
+(setq gnosis-algorithm-day-start-hour 6)
+#+end_src
+
+The variable accepts any integer from 0 to 23.  When set to 0 the
+behaviour is identical to the default.  A non-zero value is useful for
+reviewers who work late at night and want reviews completed after
+midnight to be counted against the same day as the rest of their
+evening session.
+
+/The setting affects all date-dependent logic/
+
 ** Per-Tag Algorithm Customisation
 
 =gnosis-custom-values= lets you override algorithm parameters for all
@@ -1150,6 +1170,7 @@ element-wise maximum.
 | =gnosis-algorithm-lethe-value=    | =2=               | Consecutive failures before lethe reset         |
 | =gnosis-algorithm-synolon-max=    | =3.0=             | Maximum value for the interval multiplier       |
 | =gnosis-algorithm-interval-fuzz=  | =0.1=             | Fuzz fraction applied to intervals (0 = off)    |
+| =gnosis-algorithm-day-start-hour= | =3=               | Hour (0-23) at which a new review day begins    |
 
 * Dashboard
 :PROPERTIES:

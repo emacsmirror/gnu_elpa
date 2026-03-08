@@ -1,6 +1,5 @@
-#+DECK: demo
 
-* Thema                                                       :latin:phrases:
+* Thema                                                       :demo::latin:phrases:
 :PROPERTIES:
 :GNOSIS_ID: NEW
 :GNOSIS_TYPE: basic
@@ -21,7 +20,7 @@ through consistent practice.  Regular repetition improves recall by
 reinforcing learning.
 
 
-* Thema
+* Thema                                                          :demo:emacs:
 :PROPERTIES:
 :GNOSIS_ID: NEW
 :GNOSIS_TYPE: cloze
@@ -43,7 +42,7 @@ MACroS”. This version of Emacs, GNU Emacs, was originally written
 in 1984
 
 
-* Thema
+* Thema                                                                :demo:
 :PROPERTIES:
 :GNOSIS_ID: NEW
 :GNOSIS_TYPE: cloze
@@ -66,7 +65,7 @@ MACroS”. This version of Emacs, GNU Emacs, was originally written in
 1984
 
 
-* Thema                                         :pharmacology:vancomycin:
+* Thema                                         :demo:pharmacology:vancomycin:
 :PROPERTIES:
 :GNOSIS_ID: NEW
 :GNOSIS_TYPE: mcq
@@ -86,7 +85,7 @@ How is Vancomycin typically administered?
 *Oral* vancomycin for *pseudomembranous colitis*
 
 
-* Thema                                                 :diuretics:thiazides:
+* Thema                                                 :demo:diuretics:thiazides:
 :PROPERTIES:
 :GNOSIS_ID: NEW
 :GNOSIS_TYPE: mc-cloze

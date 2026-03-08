@@ -108,7 +108,7 @@ A value of 0.1 means +/- 10%%.  Set to 0 to disable."
   :group 'gnosis
   :type 'float)
 
-(defcustom gnosis-algorithm-day-start-hour 0
+(defcustom gnosis-algorithm-day-start-hour 3
   "Hour at which a new review day begins (0-23).
 When set to 0, days start at midnight (default).
 When set to e.g. 6, reviews done between 00:00 and 05:59

@@ -784,6 +784,7 @@ GEN: load generation — no-op if stale."
 
 (defun gnosis-dashboard-output-tags (&optional tags)
   "Format gnosis dashboard with output of TAGS."
+  (interactive)
   (let ((tags (or tags (gnosis-get-tags--unique))))
     (pop-to-buffer-same-window gnosis-dashboard-buffer-name)
     (gnosis-dashboard-enable-mode)

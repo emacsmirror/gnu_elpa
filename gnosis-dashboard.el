@@ -1013,7 +1013,7 @@ GEN: load generation — no-op if stale."
     ("m" "Monkeytype" gnosis-monkeytype-start)
     ("h" "History" gnosis-dashboard-history)]
    ["Import/Export"
-    ("e" "Export themata" gnosis-export-themata-to-file)
+    ("e" "Export themata" gnosis-export-themata)
     ("i" "Import file" gnosis-import-file)]
    ["Maintenance"
     ("s" "Sync nodes" gnosis-nodes-db-sync)

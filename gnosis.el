@@ -244,7 +244,7 @@ Creates `gnosis-dir' and runs schema initialization on first use."
 
 ;; Export/import autoloads
 (autoload 'gnosis-export--insert-thema "gnosis-export-import")
-(autoload 'gnosis-export-themata "gnosis-export-import")
+(autoload 'gnosis-export--insert-themata "gnosis-export-import")
 (autoload 'gnosis-export-parse-themata "gnosis-export-import")
 (autoload 'gnosis-export-themata-to-file "gnosis-export-import" nil t)
 (autoload 'gnosis-save-thema "gnosis-export-import")
@@ -1079,7 +1079,7 @@ Otherwise, update via `gnosis-update-thema'."
     (let ((inhibit-read-only 1))
       (erase-buffer))
     (gnosis-edit-mode)
-    (gnosis-export-themata (list id))
+    (gnosis-export--insert-themata (list id))
     (search-backward "keimenon")
     (forward-line)))
 

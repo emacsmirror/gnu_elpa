@@ -119,7 +119,7 @@ Split content of Hypothesis and Answer headings using SEPARATOR."
       nil nil)
     results))
 
-(defun gnosis-export-themata (ids &optional new-p)
+(defun gnosis-export--insert-themata (ids &optional new-p)
   "Export themata for IDS.
 
 If NEW-P replace the ids of themata with NEW, used for new themata to

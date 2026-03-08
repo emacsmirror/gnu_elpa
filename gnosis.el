@@ -716,20 +716,6 @@ previous state on exit."
     (gnosis-collect-tag-thema-ids (cdr tags)
                                  (append ids (gnosis-get-tag-themata (car tags))))))
 
-(defun gnosis-select-by-tag (input-tags &optional due suspended-p)
-  "Return thema ID's for every thema with INPUT-TAGS.
-
-If DUE, return only due themata.
-If SUSPENDED-P, return suspended themata as well."
-  (cl-assert (listp input-tags) t "Input tags must be a list")
-  (cl-assert (booleanp due) "Due value must be a boolean")
-  (let ((ids (gnosis-collect-tag-thema-ids input-tags)))
-    ;; Filter the collected IDs based on due and suspension status
-    (cl-loop for id in ids
-             when (and (or (not suspended-p) (not (gnosis-suspended-p id)))
-                       (if due (gnosis-review-is-due-p id) t))
-             collect id)))
-
 (defun gnosis-get-tag-themata (tag)
   "Return thema ids for TAG."
   (gnosis-select 'thema-id 'thema-tag `(= tag ,tag) t))
@@ -760,17 +746,6 @@ Return t if DATE is today or in the past, nil if it's in the future.
 DATE is a list of the form (year month day)."
   (<= (gnosis--date-to-int date) (gnosis--date-to-int (gnosis-algorithm-date))))
 
-(cl-defun gnosis-tags--prompt (&key (prompt "Tags (seperated by ,): ")
-				    (predicate nil)
-				    (require-match nil)
-				    (initial-input nil))
-  "Prompt to select tags with PROMPT."
-  (let* ((tags (gnosis-get-tags--unique))
-	 (input (delete-dups
-		 (completing-read-multiple
-		  prompt tags predicate require-match initial-input))))
-    input))
-
 (defun gnosis-tags--parse-filter (input)
   "Parse INPUT list of \"+tag\" / \"-tag\" strings.
 Return (INCLUDE . EXCLUDE) cons of plain tag lists."
@@ -797,14 +772,14 @@ Return (INCLUDE . EXCLUDE) cons of plain tag lists."
     (gnosis-tags--parse-filter input)))
 
 (defun gnosis-tags-prompt ()
-  "Tag prompt for adding themata.
-
-If you only require a tag prompt, refer to `gnosis-tags--prompt'."
+  "Tag prompt for adding themata."
   (interactive)
   (unless (derived-mode-p 'org-mode)
     (error "This function is meant to be used in an org-mode buffer"))
   (save-excursion
-    (let ((input (gnosis-tags--prompt))
+    (let ((input (delete-dups
+		  (completing-read-multiple
+		   "Tags (separated by ,): " (gnosis-get-tags--unique))))
 	  (current-tags (org-get-tags)))
       (outline-up-heading 99)
       (when input

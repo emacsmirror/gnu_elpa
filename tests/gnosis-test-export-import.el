@@ -400,10 +400,7 @@
             ;; Insert node + link
             (gnosis--insert-into 'nodes '(["node-1" "note1.org" "Note 1" "1" nil nil nil]))
             (gnosis--insert-into 'thema-links `([,id1 "node-1"]))
-            ;; Bypass interactive prompt by binding filter
-            (cl-letf (((symbol-function 'gnosis-tags-filter-prompt)
-                       (lambda () '(("math") . nil))))
-              (gnosis-export-themata export-dir nil nil))
+            (gnosis-export-themata export-dir nil nil '("math") nil)
             ;; Verify themata.org
             (let ((themata-file (expand-file-name "themata.org" export-dir)))
               (should (file-exists-p themata-file))

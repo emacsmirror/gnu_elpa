@@ -238,19 +238,22 @@ NODE-ROWS is a list of (ID FILE) pairs.  Returns count of copied files."
     count))
 
 ;;;###autoload
-(defun gnosis-export-themata (directory &optional new-p include-suspended)
+(defun gnosis-export-themata (directory &optional new-p include-suspended
+					include-tags exclude-tags)
   "Export filtered themata to DIRECTORY with linked node files.
 
-Prompts for tag filters using +include/-exclude notation.
+When called interactively, prompts for tag filters using +/-
+notation.  INCLUDE-TAGS and EXCLUDE-TAGS can be passed directly
+for programmatic use.
 When NEW-P, replace thema IDs with NEW for fresh import.
 When INCLUDE-SUSPENDED, also export suspended themata."
-  (interactive (list (read-directory-name "Export to directory: ")
-		     (not (y-or-n-p "Export with current thema ids? "))
-		     (y-or-n-p "Include suspended themata? ")))
+  (interactive
+   (let ((filter (gnosis-tags-filter-prompt)))
+     (list (read-directory-name "Export to directory: ")
+	   (not (y-or-n-p "Export with current thema ids? "))
+	   (y-or-n-p "Include suspended themata? ")
+	   (car filter) (cdr filter))))
   (let* ((gc-cons-threshold most-positive-fixnum)
-	 (filter (gnosis-tags-filter-prompt))
-	 (include-tags (car filter))
-	 (exclude-tags (cdr filter))
 	 (thema-ids (gnosis-filter-by-tags include-tags exclude-tags))
 	 (data (gnosis-export--fetch-themata-data thema-ids include-suspended))
 	 (all-themata (car data))
@@ -262,9 +265,9 @@ When INCLUDE-SUSPENDED, also export suspended themata."
 		    (when exclude-tags
 		      (mapconcat (lambda (tag) (concat "-" tag)) exclude-tags " ")))))
     (make-directory directory t)
-    (let ((filename (expand-file-name "themata.org" directory)))
+    (let ((filename (expand-file-name "themata.org" directory))
+	  (inhibit-read-only t))
       (with-temp-file filename
-	(org-mode)
 	(insert (format "#+TAGS: %s\n" tags-str))
 	(insert (format "#+THEMATA: %d\n\n" (length all-themata)))
 	(dolist (row all-themata)

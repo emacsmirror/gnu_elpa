@@ -211,6 +211,73 @@ Returns (BUFFER . FILENAME)."
 
 ;;; Export commands
 
+(defvar gnosis-nodes-dir)
+
+(defun gnosis-export--collect-linked-node-files (thema-ids)
+  "Return list of (ID FILE) pairs for nodes linked from THEMA-IDS."
+  (when thema-ids
+    (let* ((placeholders (mapconcat (lambda (_) "?") thema-ids ", "))
+	   (sql (format "SELECT DISTINCT n.id, n.file FROM nodes n \
+INNER JOIN thema_links tl ON n.id = tl.dest \
+WHERE tl.source IN (%s)" placeholders)))
+      (gnosis-sqlite-select (gnosis--ensure-db) sql thema-ids))))
+
+(defun gnosis-export--copy-node-files (node-rows directory)
+  "Copy node files from NODE-ROWS to DIRECTORY/nodes/.
+NODE-ROWS is a list of (ID FILE) pairs.  Returns count of copied files."
+  (let ((nodes-dir (expand-file-name "nodes" directory))
+	(count 0))
+    (make-directory nodes-dir t)
+    (dolist (row node-rows)
+      (let* ((file (cadr row))
+	     (src (expand-file-name file gnosis-nodes-dir))
+	     (dest (expand-file-name file nodes-dir)))
+	(when (file-exists-p src)
+	  (copy-file src dest t)
+	  (cl-incf count))))
+    count))
+
+;;;###autoload
+(defun gnosis-export-themata (directory &optional new-p include-suspended)
+  "Export filtered themata to DIRECTORY with linked node files.
+
+Prompts for tag filters using +include/-exclude notation.
+When NEW-P, replace thema IDs with NEW for fresh import.
+When INCLUDE-SUSPENDED, also export suspended themata."
+  (interactive (list (read-directory-name "Export to directory: ")
+		     (not (y-or-n-p "Export with current thema ids? "))
+		     (y-or-n-p "Include suspended themata? ")))
+  (let* ((gc-cons-threshold most-positive-fixnum)
+	 (filter (gnosis-tags-filter-prompt))
+	 (include-tags (car filter))
+	 (exclude-tags (cdr filter))
+	 (thema-ids (gnosis-filter-by-tags include-tags exclude-tags))
+	 (data (gnosis-export--fetch-themata-data thema-ids include-suspended))
+	 (all-themata (car data))
+	 (extras-ht (cdr data))
+	 (tags-str (concat
+		    (when include-tags
+		      (mapconcat (lambda (tag) (concat "+" tag)) include-tags " "))
+		    (when (and include-tags exclude-tags) " ")
+		    (when exclude-tags
+		      (mapconcat (lambda (tag) (concat "-" tag)) exclude-tags " ")))))
+    (make-directory directory t)
+    (let ((filename (expand-file-name "themata.org" directory)))
+      (with-temp-file filename
+	(org-mode)
+	(insert (format "#+TAGS: %s\n" tags-str))
+	(insert (format "#+THEMATA: %d\n\n" (length all-themata)))
+	(dolist (row all-themata)
+	  (gnosis-export--insert-row row extras-ht new-p))))
+    ;; Copy linked node files
+    (let* ((exported-ids (mapcar #'car all-themata))
+	   (node-rows (gnosis-export--collect-linked-node-files exported-ids))
+	   (node-count (if node-rows
+			   (gnosis-export--copy-node-files node-rows directory)
+			 0)))
+      (message "Exported %d themata and %d nodes to %s"
+	       (length all-themata) node-count directory))))
+
 ;;;###autoload
 (defun gnosis-export-themata-to-file (&optional filename new-p include-suspended)
   "Export all non-suspended themata to FILENAME.

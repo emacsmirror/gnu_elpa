@@ -336,7 +336,8 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
     ("a" "Add thema" gnosis-add-thema :transient t)
     ("s" "Suspend" gnosis-dashboard-suspend-thema :transient t)
     ("d" "Delete" gnosis-dashboard-delete :transient t)
-    ("b" "Bulk link" gnosis-dashboard-bulk-link :transient t)]
+    ("b" "Bulk link" gnosis-dashboard-bulk-link :transient t)
+    ("t" "Modify tags" gnosis-dashboard-modify-tags :transient t)]
    ["Mark"
     ("m" "Toggle mark" gnosis-dashboard-mark-toggle :transient t)
     ("M" "Mark all" gnosis-dashboard-mark-all :transient t)
@@ -360,6 +361,7 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
   "m" #'gnosis-dashboard-mark-toggle
   "M" #'gnosis-dashboard-mark-all
   "b" #'gnosis-dashboard-bulk-link
+  "t" #'gnosis-dashboard-modify-tags
   "u" #'gnosis-dashboard-mark-toggle
   "U" #'gnosis-dashboard-unmark-all
 )
@@ -393,9 +395,9 @@ Uses `gnosis-dashboard--entry-cache' to avoid re-querying known entries."
 		    thema-ids)))
     ;; Fetch and cache only the missing entries
     (when uncached
-      (let* ((placeholders (mapconcat (lambda (_) "?") uncached ", "))
-	     (sql (format "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)" placeholders))
-	     (rows (gnosis-sqlite-select (gnosis--ensure-db) sql uncached)))
+      (let* ((id-list (mapconcat #'number-to-string uncached ","))
+	     (sql (format "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)" id-list))
+	     (rows (gnosis-sqlite-select (gnosis--ensure-db) sql)))
 	(dolist (row rows)
 	  (puthash (car row) (gnosis-dashboard--format-entry row)
 		   gnosis-dashboard--entry-cache))))
@@ -941,6 +943,31 @@ GEN: load generation — no-op if stale."
     (when updated
       (gnosis-dashboard--update-entries updated)
       (setq gnosis-dashboard--selected-ids nil))))
+
+(defun gnosis-dashboard-modify-tags ()
+  "Add or remove tags on marked or displayed thema at point.
+Uses +tag/-tag syntax: +foo adds tag foo, -bar removes tag bar."
+  (interactive nil gnosis-dashboard-themata-mode)
+  (let* ((ids (or gnosis-dashboard--selected-ids
+                  (list (tabulated-list-get-id))))
+         (_ (unless ids (user-error "No themata to modify")))
+         (tags (gnosis-get-tags--unique))
+         (candidates (cl-loop for tag in tags
+                              nconc (list (concat "+" tag)
+                                          (concat "-" tag))))
+         (input (completing-read-multiple
+                 "Modify tags (+add -remove): " candidates))
+         (parsed (gnosis-tags--parse-filter input))
+         (add-tags (car parsed))
+         (remove-tags (cdr parsed)))
+    (when (or add-tags remove-tags)
+      (gnosis-modify-thema-tags ids add-tags remove-tags)
+      (dolist (id ids)
+        (remhash id gnosis-dashboard--entry-cache))
+      (setq gnosis-dashboard--rendered-text nil
+            gnosis-dashboard--selected-ids nil)
+      (gnosis-dashboard-return)
+      (message "Modified tags on %d themata" (length ids)))))
 
 (transient-define-suffix gnosis-dashboard-suffix-query (query)
   "Search for thema content for QUERY."

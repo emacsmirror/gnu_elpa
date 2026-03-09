@@ -150,6 +150,41 @@ Rolls back on error via `unwind-protect'."
                       (error nil)))
            nil)))))
 
+;;; Batch execution helpers
+
+(defvar gnosis-sqlite--max-vars nil
+  "Cached value of SQLITE_MAX_VARIABLE_NUMBER for batch operations.")
+
+(defun gnosis-sqlite--max-variable-number (db)
+  "Return SQLITE_MAX_VARIABLE_NUMBER for DB, cached after first call."
+  (or gnosis-sqlite--max-vars
+      (setq gnosis-sqlite--max-vars
+            (let ((opts (sqlite-select db "PRAGMA compile_options")))
+              (cl-loop for (opt) in opts
+                       when (string-match "MAX_VARIABLE_NUMBER=\\([0-9]+\\)" opt)
+                       return (string-to-number (match-string 1 opt))
+                       finally return 999)))))
+
+(defun gnosis-sqlite-execute-batch (db sql ids &optional extra-params)
+  "Execute SQL on DB for each batch of IDS, staying within variable limits.
+SQL must contain a single %s placeholder for the IN clause.
+EXTRA-PARAMS are additional bound parameters prepended to each batch
+\(e.g. a SET value).  They reduce the available batch capacity.
+No-op when IDS is nil."
+  (when ids
+    (let* ((max-vars (gnosis-sqlite--max-variable-number db))
+           (batch-size (- max-vars (length extra-params)))
+           (offset 0)
+           (total (length ids)))
+      (while (< offset total)
+        (let* ((end (min (+ offset batch-size) total))
+               (chunk (cl-subseq ids offset end))
+               (placeholders (mapconcat (lambda (_) "?") chunk ", "))
+               (params (append (gnosis-sqlite--encode-params extra-params)
+                               (gnosis-sqlite--encode-params chunk))))
+          (sqlite-execute db (format sql placeholders) params)
+          (setq offset end))))))
+
 ;;; S-expression compiler: identifiers
 
 (defun gnosis-sqlite--ident (sym)

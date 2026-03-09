@@ -360,9 +360,9 @@ Same as collection but simulates a deck export (identical schema)."
           (let* ((result (gnosis-anki--parse-notes anki-db model-info))
                  (prepared (cdr result)))
             (should (= 2 (length prepared)))
-            ;; Tags should be eq (same object, from cache)
-            (should (eq (plist-get (nth 0 prepared) :tags)
-                        (plist-get (nth 1 prepared) :tags)))))
+            ;; Tags should be equal (segment cache produces same values)
+            (should (equal (plist-get (nth 0 prepared) :tags)
+                           (plist-get (nth 1 prepared) :tags)))))
       (when anki-db (sqlite-close anki-db))
       (delete-file tmp))))
 

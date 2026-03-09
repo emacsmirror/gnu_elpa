@@ -72,22 +72,32 @@ Removes *bold*, /italic/, _underline_ wrappers, keeping content."
     (setq s (replace-regexp-in-string "_\\([^_]+\\)_" "\\1" s))
     s))
 
-(defun gnosis-anki--parse-tags (tag-string)
+(defun gnosis-anki--sanitize-segment (seg)
+  "Sanitize a single tag SEG for org-mode.
+Replaces dashes with underscores, removes non-alphanumeric characters
+\(keeping underscore and @), collapses repeated underscores, and trims
+leading/trailing underscores.  Returns nil for empty results."
+  (let* ((s (subst-char-in-string ?- ?_ seg))
+         (s (replace-regexp-in-string "[^[:alnum:]_@]" "" s))
+         (s (replace-regexp-in-string "__+" "_" s))
+         (s (string-trim s "_")))
+    (unless (string-empty-p s) s)))
+
+(defun gnosis-anki--parse-tags (tag-string &optional seg-cache seen)
   "Parse Anki TAG-STRING into a flat list of unique tags.
-Splits hierarchical tags on :: and strips # prefixes.
-Sanitizes for org-mode: replaces dashes with underscores,
-removes characters not allowed in org tags (keeps only
-alphanumeric, underscore, and @)."
-  (let ((tags nil))
-    (dolist (raw (split-string (string-trim tag-string) " " t))
-      (dolist (segment (split-string raw "::" t))
-        (let ((tag (replace-regexp-in-string "^#+" "" segment)))
-          (setq tag (replace-regexp-in-string "-" "_" tag))
-          (setq tag (replace-regexp-in-string "[^[:alnum:]_@]" "" tag))
-          (setq tag (replace-regexp-in-string "__+" "_" tag))
-          (setq tag (replace-regexp-in-string "^_\\|_$" "" tag))
-          (unless (or (string-empty-p tag) (member tag tags))
-            (push tag tags)))))
+Splits on :: and whitespace, sanitizes each segment via a
+segment-level cache SEG-CACHE.  SEEN is a reusable hash table
+for per-call dedup (caller should `clrhash' it between calls)."
+  (let ((seg-cache (or seg-cache (make-hash-table :test 'equal)))
+        (seen (or seen (make-hash-table :test 'equal)))
+        (tags nil))
+    (dolist (seg (split-string tag-string "[ \t]+\\|::" t))
+      (let ((tag (or (gethash seg seg-cache)
+                     (puthash seg (or (gnosis-anki--sanitize-segment seg) "")
+                              seg-cache))))
+        (unless (or (string-empty-p tag) (gethash tag seen))
+          (puthash tag t seen)
+          (push tag tags))))
     (nreverse tags)))
 
 (defun gnosis-anki--extract-db (file)
@@ -132,7 +142,8 @@ Each plist has keys :type :keimenon :hypothesis :answer
 :parathema :tags.  Tag parsing is cached per unique tag string.
 MODEL-INFO maps mid strings to (mtype . field-names)."
   (let ((notes (sqlite-select anki-db "SELECT id, mid, flds, tags FROM notes"))
-        (tag-cache (make-hash-table :test 'equal))
+        (seg-cache (make-hash-table :test 'equal :size 50000))
+        (seen (make-hash-table :test 'equal :size 200))
         (result nil)
         (skipped 0))
     (dolist (note notes)
@@ -150,8 +161,8 @@ MODEL-INFO maps mid strings to (mtype . field-names)."
           (let* ((fields (split-string flds "\x1f"))
                  (text (gnosis-anki--html-to-org (or (nth 0 fields) "")))
                  (extra (gnosis-anki--html-to-org (or (nth 1 fields) "")))
-                 (tags (or (gethash tag-str tag-cache)
-                           (puthash tag-str (gnosis-anki--parse-tags tag-str) tag-cache)))
+                 (_ (clrhash seen))
+                 (tags (gnosis-anki--parse-tags tag-str seg-cache seen))
                  (contents (gnosis-cloze-extract-contents text))
                  (clozes (gnosis-cloze-extract-answers contents))
                  (hints (gnosis-cloze-extract-hints contents))
@@ -170,8 +181,8 @@ MODEL-INFO maps mid strings to (mtype . field-names)."
           (let* ((fields (split-string flds "\x1f"))
                  (front (gnosis-anki--html-to-org (or (nth 0 fields) "")))
                  (back (gnosis-anki--html-to-org (or (nth 1 fields) "")))
-                 (tags (or (gethash tag-str tag-cache)
-                           (puthash tag-str (gnosis-anki--parse-tags tag-str) tag-cache))))
+                 (_ (clrhash seen))
+                 (tags (gnosis-anki--parse-tags tag-str seg-cache seen)))
             (if (and (not (string-empty-p front))
                      (not (string-empty-p back)))
                 (push (list :type "basic" :keimenon front
@@ -267,6 +278,66 @@ GNOSIS-VAL, AMNESIA-VAL, TODAY are pre-computed constants."
                     batch-params)
                   (setq offset end)))))))))
 
+(defun gnosis-anki--build-model-info-from-col (anki-db model-info)
+  "Build MODEL-INFO from ANKI-DB using col.models JSON.
+Deck exports (.apkg) store note types as JSON in the col table's
+models column.  Each key is a model id mapping to an object with
+type (0=basic, 1=cloze), flds (field list), and tmpls (templates)."
+  (require 'json)
+  (let* ((raw (caar (sqlite-select anki-db "SELECT models FROM col")))
+         (models (json-parse-string raw :object-type 'alist)))
+    (dolist (entry models)
+      (let* ((model (cdr entry))
+             (mid (number-to-string (alist-get 'id model)))
+             (mtype (alist-get 'type model))
+             (flds-arr (alist-get 'flds model))
+             (fields (mapcar (lambda (f) (alist-get 'name f))
+                             (append flds-arr nil)))
+             (mtype-resolved
+              (cond
+               ((cl-find-if (lambda (f)
+                              (string-match-p "Image\\|SVG\\|Mask" f))
+                            fields)
+                'skip)
+               ((= mtype 1) 1)
+               (t 0))))
+        (puthash mid (cons mtype-resolved fields) model-info)))))
+
+(defun gnosis-anki--build-model-info-from-tables (anki-db model-info)
+  "Build MODEL-INFO from ANKI-DB using notetypes/fields/templates tables.
+Collection databases (.anki2) store note types in separate tables."
+  (let ((notetypes (sqlite-select anki-db "SELECT id, name FROM notetypes"))
+        (cloze-ids (mapcar #'car
+                    (sqlite-select anki-db
+                      "SELECT DISTINCT ntid FROM templates WHERE name COLLATE NOCASE = 'Cloze'"))))
+    (dolist (nt notetypes)
+      (let* ((ntid (car nt))
+             (mid (number-to-string ntid))
+             (fields (mapcar #'cadr
+                      (sqlite-select anki-db
+                        "SELECT ord, name FROM fields WHERE ntid = ? ORDER BY ord"
+                        (list ntid))))
+             (mtype (cond
+                     ((cl-find-if (lambda (f)
+                                    (string-match-p "Image\\|SVG\\|Mask" f))
+                                  fields)
+                      'skip)
+                     ((member ntid cloze-ids) 1)
+                     (t 0))))
+        (puthash mid (cons mtype fields) model-info)))))
+
+(defun gnosis-anki--build-model-info (anki-db)
+  "Build model-info hash table from ANKI-DB.
+Detects whether this is a collection (.anki2, has notetypes table)
+or a deck export (.apkg, uses col.models JSON) and dispatches accordingly."
+  (let ((model-info (make-hash-table :test 'equal))
+        (has-notetypes (sqlite-select anki-db
+                         "SELECT 1 FROM sqlite_master WHERE type='table' AND name='notetypes'")))
+    (if has-notetypes
+        (gnosis-anki--build-model-info-from-tables anki-db model-info)
+      (gnosis-anki--build-model-info-from-col anki-db model-info))
+    model-info))
+
 (defun gnosis-anki--cleanup-temp (db-file)
   "Delete DB-FILE and its parent temp directory."
   (let ((dir (file-name-directory db-file)))
@@ -278,30 +349,10 @@ Parses all notes, then bulk-inserts in chunks of 200 using timers
 so Emacs stays responsive.  When TMP-P is non-nil, clean up
 DB-FILE and its temp directory after import."
   (let* ((anki-db (sqlite-open db-file))
-         (model-info (make-hash-table :test 'equal))
+         (model-info (gnosis-anki--build-model-info anki-db))
          (db (gnosis--ensure-db))
          (id-cache (make-hash-table :test 'equal))
          (chunk-size 200))
-    ;; Build mid -> (type . field-names) lookup
-    (let ((notetypes (sqlite-select anki-db "SELECT id, name FROM notetypes"))
-          (cloze-ids (mapcar #'car
-                      (sqlite-select anki-db
-                        "SELECT DISTINCT ntid FROM templates WHERE name COLLATE NOCASE = 'Cloze'"))))
-      (dolist (nt notetypes)
-        (let* ((ntid (car nt))
-               (mid (number-to-string ntid))
-               (fields (mapcar #'cadr
-                        (sqlite-select anki-db
-                          "SELECT ord, name FROM fields WHERE ntid = ? ORDER BY ord"
-                          (list ntid))))
-               (mtype (cond
-                       ((cl-find-if (lambda (f)
-                                      (string-match-p "Image\\|SVG\\|Mask" f))
-                                    fields)
-                        'skip)
-                       ((member ntid cloze-ids) 1)
-                       (t 0))))
-          (puthash mid (cons mtype fields) model-info))))
     ;; Parse all notes (synchronous, pure)
     (message "Parsing Anki notes...")
     (let* ((parse-result (gnosis-anki--parse-notes anki-db model-info))

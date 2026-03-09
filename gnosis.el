@@ -833,6 +833,8 @@ When a thema already has NEW-TAG, the duplicate OLD row is removed."
 		     (replace-regexp-in-string
 		      "-" "_" (read-string "New tag name: "))))
 	(db (gnosis--ensure-db)))
+    (when (string-empty-p new-tag)
+      (user-error "Tag name cannot be empty"))
     (when (string= tag new-tag)
       (user-error "New tag name is the same as the old one"))
     (gnosis-sqlite-with-transaction db

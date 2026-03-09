@@ -742,11 +742,19 @@ GEN: load generation — no-op if stale."
         (total2 (string-to-number (elt (cadr entry2) 1))))
     (< total1 total2)))
 
+(defun gnosis-dashboard--invalidate-tag-caches ()
+  "Clear entry and render caches after tag mutations.
+Cached themata entries embed tag strings, so any tag rename/delete
+must flush these before the next themata view."
+  (clrhash gnosis-dashboard--entry-cache)
+  (setq gnosis-dashboard--rendered-text nil))
+
 (defun gnosis-dashboard-rename-tag ()
   "Rename TAG to NEW-TAG."
   (interactive)
   (let ((current-line (line-number-at-pos)))
     (gnosis-tag-rename (tabulated-list-get-id))
+    (gnosis-dashboard--invalidate-tag-caches)
     (gnosis-dashboard-output-tags)
     (forward-line (- current-line 1))))
 
@@ -765,8 +773,8 @@ applies via `gnosis--tag-rename-batch'."
 	 (replacement (replace-regexp-in-string
 		       "-" "_"
 		       (read-string "Replacement: ")))
-	 (all-tags (seq-uniq (mapcar #'car
-				     (gnosis-select 'tag 'thema-tag))))
+	 (all-tags (mapcar #'car (gnosis-sqlite-select (gnosis--ensure-db)
+				"SELECT DISTINCT tag FROM thema_tag")))
 	 (existing-ht (let ((ht (make-hash-table :test 'equal)))
 			(dolist (t1 all-tags ht)
 			  (puthash t1 t ht))))
@@ -785,6 +793,7 @@ applies via `gnosis--tag-rename-batch'."
 				  (format " (%d will merge into existing)" merges)
 				"")))
 	(gnosis--tag-rename-batch pairs)
+	(gnosis-dashboard--invalidate-tag-caches)
 	(remove-overlays nil nil 'gnosis-mark t)
 	(gnosis-dashboard-output-tags)))))
 
@@ -822,6 +831,7 @@ to the canonical form via `gnosis--tag-rename-batch'."
 			      (length pairs)
 			      (length (seq-uniq (mapcar #'cdr pairs)))))
 	(gnosis--tag-rename-batch pairs)
+	(gnosis-dashboard--invalidate-tag-caches)
 	(remove-overlays nil nil 'gnosis-mark t)
 	(gnosis-dashboard-output-tags)))))
 
@@ -836,6 +846,7 @@ to the canonical form via `gnosis--tag-rename-batch'."
       (gnosis-sqlite-execute-batch (gnosis--ensure-db)
         "DELETE FROM thema_tag WHERE tag IN (%s)"
         tags)
+      (gnosis-dashboard--invalidate-tag-caches)
       (remove-overlays nil nil 'gnosis-mark t)
       (setq tabulated-list-entries
             (cl-remove-if (lambda (entry) (member (car entry) tags))

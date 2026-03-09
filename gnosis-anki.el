@@ -166,7 +166,8 @@ MODEL-INFO maps mid strings to (mtype . field-names)."
              (flds (nth 2 note))
              (tag-str (nth 3 note))
              (info (gethash mid model-info))
-             (mtype (car info)))
+             (mtype (car info))
+             (tmpl-count (cadr info)))
         (cond
          ;; Skip image occlusion (pre-marked in model-info)
          ((eq mtype 'skip)
@@ -200,11 +201,19 @@ MODEL-INFO maps mid strings to (mtype . field-names)."
                  (tags (gnosis-anki--parse-tags tag-str seg-cache seen)))
             (if (and (not (string-empty-p front))
                      (not (string-empty-p back)))
-                (push (list :type "basic" :keimenon front
-                            :hypothesis '("")
-                            :answer (list (gnosis-anki--strip-emphasis back))
-                            :parathema "" :tags tags)
-                      result)
+                (progn
+                  (push (list :type "basic" :keimenon front
+                              :hypothesis '("")
+                              :answer (list (gnosis-anki--strip-emphasis back))
+                              :parathema "" :tags tags)
+                        result)
+                  ;; Reversed card for 2-template basic notes (e.g. "Basic (and reversed card)")
+                  (when (and tmpl-count (= tmpl-count 2))
+                    (push (list :type "basic" :keimenon back
+                                :hypothesis '("")
+                                :answer (list (gnosis-anki--strip-emphasis front))
+                                :parathema "" :tags tags)
+                          result)))
               (cl-incf skipped))))
          (t (cl-incf skipped)))))
     (cons skipped (nreverse result))))
@@ -297,7 +306,8 @@ GNOSIS-VAL, AMNESIA-VAL, TODAY are pre-computed constants."
   "Build MODEL-INFO from ANKI-DB using col.models JSON.
 Deck exports (.apkg) store note types as JSON in the col table's
 models column.  Each key is a model id mapping to an object with
-type (0=basic, 1=cloze), flds (field list), and tmpls (templates)."
+type (0=basic, 1=cloze), flds (field list), and tmpls (templates).
+Values are (mtype template-count . field-names)."
   (require 'json)
   (let* ((raw (caar (sqlite-select anki-db "SELECT models FROM col")))
          (models (json-parse-string raw :object-type 'alist)))
@@ -306,6 +316,8 @@ type (0=basic, 1=cloze), flds (field list), and tmpls (templates)."
              (mid (number-to-string (alist-get 'id model)))
              (mtype (alist-get 'type model))
              (flds-arr (alist-get 'flds model))
+             (tmpls-arr (alist-get 'tmpls model))
+             (tmpl-count (length (append tmpls-arr nil)))
              (fields (mapcar (lambda (f) (alist-get 'name f))
                              (append flds-arr nil)))
              (mtype-resolved
@@ -316,11 +328,12 @@ type (0=basic, 1=cloze), flds (field list), and tmpls (templates)."
                 'skip)
                ((= mtype 1) 1)
                (t 0))))
-        (puthash mid (cons mtype-resolved fields) model-info)))))
+        (puthash mid (cons mtype-resolved (cons tmpl-count fields)) model-info)))))
 
 (defun gnosis-anki--build-model-info-from-tables (anki-db model-info)
   "Build MODEL-INFO from ANKI-DB using notetypes/fields/templates tables.
-Collection databases (.anki2) store note types in separate tables."
+Collection databases (.anki2) store note types in separate tables.
+Values are (mtype template-count . field-names)."
   (let ((notetypes (sqlite-select anki-db "SELECT id, name FROM notetypes"))
         (cloze-ids (mapcar #'car
                     (sqlite-select anki-db
@@ -332,6 +345,9 @@ Collection databases (.anki2) store note types in separate tables."
                       (sqlite-select anki-db
                         "SELECT ord, name FROM fields WHERE ntid = ? ORDER BY ord"
                         (list ntid))))
+             (tmpl-count (caar (sqlite-select anki-db
+                                 "SELECT count(*) FROM templates WHERE ntid = ?"
+                                 (list ntid))))
              (mtype (cond
                      ((cl-find-if (lambda (f)
                                     (string-match-p "Image\\|SVG\\|Mask" f))
@@ -339,7 +355,7 @@ Collection databases (.anki2) store note types in separate tables."
                       'skip)
                      ((member ntid cloze-ids) 1)
                      (t 0))))
-        (puthash mid (cons mtype fields) model-info)))))
+        (puthash mid (cons mtype (cons tmpl-count fields)) model-info)))))
 
 (defun gnosis-anki--build-model-info (anki-db)
   "Build model-info hash table from ANKI-DB.

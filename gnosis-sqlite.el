@@ -185,6 +185,29 @@ No-op when IDS is nil."
           (sqlite-execute db (format sql placeholders) params)
           (setq offset end))))))
 
+(defun gnosis-sqlite-select-batch (db sql ids &optional extra-params)
+  "Execute SELECT SQL on DB for batched IDS, accumulating results.
+SQL must contain a single %s placeholder for the IN clause.
+EXTRA-PARAMS are additional bound parameters prepended to each batch.
+Returns all decoded rows concatenated across batches."
+  (when ids
+    (let* ((max-vars (gnosis-sqlite--max-variable-number db))
+           (batch-size (- max-vars (length extra-params)))
+           (offset 0)
+           (total (length ids))
+           (all-rows nil))
+      (while (< offset total)
+        (let* ((end (min (+ offset batch-size) total))
+               (chunk (cl-subseq ids offset end))
+               (placeholders (mapconcat (lambda (_) "?") chunk ", "))
+               (params (append (gnosis-sqlite--encode-params extra-params)
+                               (gnosis-sqlite--encode-params chunk)))
+               (rows (gnosis-sqlite--decode-rows
+                      (sqlite-select db (format sql placeholders) params))))
+          (setq all-rows (nconc all-rows rows))
+          (setq offset end)))
+      all-rows)))
+
 ;;; S-expression compiler: identifiers
 
 (defun gnosis-sqlite--ident (sym)

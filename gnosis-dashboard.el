@@ -742,34 +742,44 @@ GEN: load generation — no-op if stale."
     (forward-line (- current-line 1))))
 
 (defun gnosis-dashboard-delete-tag (&optional tag)
-  "Delete TAG from all themata."
+  "Delete TAG or marked tags from all themata."
   (interactive)
-  (let ((tag (or tag (tabulated-list-get-id))))
-    (when (y-or-n-p (format "Delete tag %s?"
-			    (propertize tag 'face 'font-lock-keyword-face)))
-      (gnosis--delete 'thema-tag `(= tag ,tag))
-      (gnosis-dashboard-output-tags))))
+  (let ((tags (or (and gnosis-dashboard--selected-ids
+                       (prog1 gnosis-dashboard--selected-ids
+                         (setq gnosis-dashboard--selected-ids nil)))
+                  (list (or tag (tabulated-list-get-id))))))
+    (when (y-or-n-p (format "Delete %d tag(s)?" (length tags)))
+      (dolist (tag tags)
+        (gnosis--delete 'thema-tag `(= tag ,tag)))
+      (remove-overlays nil nil 'gnosis-mark t)
+      (setq tabulated-list-entries
+            (cl-remove-if (lambda (entry) (member (car entry) tags))
+                          tabulated-list-entries))
+      (dolist (tag tags)
+        (gnosis-tl-delete-entry tag))
+      (gnosis-dashboard--set-header-line (length tabulated-list-entries)))))
 
 
 
 (defun gnosis-dashboard-suspend-tag (&optional tag)
-  "Suspend themata of TAG."
+  "Suspend themata of TAG or marked tags."
   (interactive)
-  (let* ((tag (or tag (tabulated-list-get-id)))
-	 (themata (gnosis-get-tag-themata tag))
-	 (suspend (if current-prefix-arg 0 1))
-	 (confirm-msg (y-or-n-p
-		       (if (= suspend 0)
-			   "Unsuspend all themata for tag? "
-			 "Suspend all themata for tag?"))))
-    (when confirm-msg
+  (let* ((tags (or (and gnosis-dashboard--selected-ids
+                        (prog1 gnosis-dashboard--selected-ids
+                          (setq gnosis-dashboard--selected-ids nil)))
+                   (list (or tag (tabulated-list-get-id)))))
+         (themata (cl-remove-duplicates
+                   (cl-mapcan #'gnosis-get-tag-themata tags)))
+         (suspend (if current-prefix-arg 0 1))
+         (action (if (= suspend 0) "Unsuspend" "Suspend")))
+    (when (y-or-n-p (format "%s %d themata across %d tag(s)?"
+                            action (length themata) (length tags)))
       (gnosis-sqlite-execute-batch (gnosis--ensure-db)
         "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
         themata
         (list suspend))
-      (if (= suspend 0)
-	  (message "Unsuspended %s themata" (length themata))
-	(message "Suspended %s themata" (length themata))))))
+      (remove-overlays nil nil 'gnosis-mark t)
+      (message "%sed %d themata" action (length themata)))))
 
 (defun gnosis-dashboard-tag-view-themata (&optional tag)
   "View themata for TAG."
@@ -786,6 +796,11 @@ GEN: load generation — no-op if stale."
     ("RET" "View themata" gnosis-dashboard-tag-view-themata)
     ("q" "Back to dashboard" gnosis-dashboard)
     ("g" "Refresh" gnosis-dashboard-return :transient t)]
+   ["Mark"
+    ("m" "Toggle mark" gnosis-dashboard-mark-toggle :transient t)
+    ("M" "Mark all" gnosis-dashboard-mark-all :transient t)
+    ("u" "Unmark" gnosis-dashboard-mark-toggle :transient t)
+    ("U" "Unmark all" gnosis-dashboard-unmark-all :transient t)]
    ["Edit"
     ("e" "Rename tag" gnosis-dashboard-rename-tag :transient t)
     ("r" "Rename tag" gnosis-dashboard-rename-tag :transient t)
@@ -801,7 +816,11 @@ GEN: load generation — no-op if stale."
   "s" #'gnosis-dashboard-suspend-tag
   "r" #'gnosis-dashboard-rename-tag
   "d" #'gnosis-dashboard-delete-tag
-  "g" #'gnosis-dashboard-return)
+  "g" #'gnosis-dashboard-return
+  "m" #'gnosis-dashboard-mark-toggle
+  "M" #'gnosis-dashboard-mark-all
+  "u" #'gnosis-dashboard-mark-toggle
+  "U" #'gnosis-dashboard-unmark-all)
 
 (define-minor-mode gnosis-dashboard-tags-mode
   "Mode for dashboard output of tags."
@@ -810,7 +829,12 @@ GEN: load generation — no-op if stale."
 (defun gnosis-dashboard-output-tags (&optional tags)
   "Format gnosis dashboard with output of TAGS."
   (interactive)
-  (let ((tags (or tags (gnosis-get-tags--unique))))
+  (let* ((tag-counts (gnosis-sqlite-select (gnosis--ensure-db)
+                       "SELECT tag, COUNT(*) FROM thema_tag GROUP BY tag"))
+         (count-ht (let ((ht (make-hash-table :test 'equal :size (length tag-counts))))
+                     (dolist (row tag-counts ht)
+                       (puthash (car row) (cadr row) ht))))
+         (tags (or tags (mapcar #'car tag-counts))))
     (pop-to-buffer-same-window gnosis-dashboard-buffer-name)
     (gnosis-dashboard-enable-mode)
     ;; Disable other dashboard modes
@@ -825,9 +849,9 @@ GEN: load generation — no-op if stale."
     (setq-local gnosis-dashboard--base-header-line header-line-format)
     (setq tabulated-list-entries
           (cl-loop for tag in tags
-                   for output = (gnosis-dashboard-output-tag tag)
-                   collect (list (car output)
-                                 (vconcat output))))
+                   collect (list tag
+                                 (vector tag (number-to-string
+                                              (gethash tag count-ht 0))))))
     (tabulated-list-print t)
     (gnosis-dashboard--set-header-line (length tabulated-list-entries))))
 
@@ -945,9 +969,10 @@ GEN: load generation — no-op if stale."
       (let ((ov (make-overlay (point-min) (point-max))))
         (overlay-put ov 'face 'highlight)
         (overlay-put ov 'gnosis-mark t))
-      ;; Set selected IDs
-      (setq gnosis-dashboard--selected-ids gnosis-dashboard-thema-ids)
-      (message "Marked %d items" (count-lines (point-min) (point-max))))))
+      ;; Set selected IDs from all entries
+      (setq gnosis-dashboard--selected-ids
+            (mapcar #'car tabulated-list-entries))
+      (message "Marked %d items" (length gnosis-dashboard--selected-ids)))))
 
 
 (defun gnosis-dashboard-bulk-link ()

@@ -1427,6 +1427,93 @@ This is the critical bug fix: (not nil) => t was wrong."
                    (* 1e6 (/ (- (float-time) start) n))))))
     (should t)))
 
+;; ──────────────────────────────────────────────────────────
+;; Tag rename tests
+;; ──────────────────────────────────────────────────────────
+
+(ert-deftest gnosis-test-tag-rename-simple ()
+  "Simple rename with no conflicts."
+  (gnosis-test-with-db
+    (gnosis-test--add-basic-thema "Q1" "A1" '("old_name"))
+    (gnosis-test--add-basic-thema "Q2" "A2" '("old_name" "other"))
+    (gnosis-tag-rename "old_name" "new_name")
+    (let ((tags (mapcar #'car (gnosis-select 'tag 'thema-tag))))
+      (should (member "new_name" tags))
+      (should-not (member "old_name" tags))
+      (should (member "other" tags)))))
+
+(ert-deftest gnosis-test-tag-rename-merge ()
+  "Rename merges when thema already has the target tag."
+  (gnosis-test-with-db
+    (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("old" "new"))))
+      (gnosis-test--add-basic-thema "Q2" "A2" '("old"))
+      (gnosis-tag-rename "old" "new")
+      ;; old tag gone entirely
+      (should-not (member "old" (mapcar #'car (gnosis-select 'tag 'thema-tag))))
+      ;; id1 has exactly one "new" row, not two
+      (let ((id1-tags (mapcar #'car
+			      (gnosis-select 'tag 'thema-tag `(= thema-id ,id1)))))
+	(should (equal '("new") (sort id1-tags #'string<)))))))
+
+(ert-deftest gnosis-test-tag-rename-all-conflict ()
+  "When all themata have both old and new, old tag is fully removed."
+  (gnosis-test-with-db
+    (gnosis-test--add-basic-thema "Q1" "A1" '("alpha" "beta"))
+    (gnosis-test--add-basic-thema "Q2" "A2" '("alpha" "beta"))
+    (gnosis-tag-rename "alpha" "beta")
+    (let ((tags (mapcar #'car (gnosis-select 'tag 'thema-tag))))
+      (should-not (member "alpha" tags))
+      (should (member "beta" tags)))))
+
+(ert-deftest gnosis-test-tag-rename-same-name-error ()
+  "Renaming a tag to itself signals user-error."
+  (gnosis-test-with-db
+    (gnosis-test--add-basic-thema "Q1" "A1" '("foo"))
+    (should-error (gnosis-tag-rename "foo" "foo") :type 'user-error)))
+
+(ert-deftest gnosis-test-tag-rename-batch ()
+  "Batch rename with multiple pairs including merges."
+  (gnosis-test-with-db
+    (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("01_Math" "Science")))
+	  (_id2 (gnosis-test--add-basic-thema "Q2" "A2" '("01_Math" "02_History"))))
+      (gnosis--tag-rename-batch '(("01_Math" . "Math")
+				  ("02_History" . "History")))
+      (let ((tags (seq-uniq (mapcar #'car (gnosis-select 'tag 'thema-tag)))))
+	(should (member "Math" tags))
+	(should (member "History" tags))
+	(should-not (member "01_Math" tags))
+	(should-not (member "02_History" tags))
+	;; id1 had Science already, now also has Math (no duplicate)
+	(let ((id1-tags (sort (mapcar #'car
+				      (gnosis-select 'tag 'thema-tag
+						     `(= thema-id ,id1)))
+			      #'string<)))
+	  (should (equal '("Math" "Science") id1-tags)))))))
+
+(ert-deftest gnosis-test-tag-rename-batch-multi-old-same-new ()
+  "Multiple old tags map to the same new tag for the same thema."
+  (gnosis-test-with-db
+    (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("01_Math" "02_Math"))))
+      (gnosis--tag-rename-batch '(("01_Math" . "Math")
+				  ("02_Math" . "Math")))
+      (let ((id1-tags (mapcar #'car
+			      (gnosis-select 'tag 'thema-tag
+					     `(= thema-id ,id1)))))
+	(should (equal '("Math") id1-tags))))))
+
+(ert-deftest gnosis-test-tag-rename-batch-empty-deletes ()
+  "Pairs where new tag is empty string delete those tag rows."
+  (gnosis-test-with-db
+    (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("42" "Math"))))
+      (gnosis--tag-rename-batch '(("42" . "")))
+      (let ((id1-tags (mapcar #'car
+			      (gnosis-select 'tag 'thema-tag
+					     `(= thema-id ,id1)))))
+	(should (equal '("Math") id1-tags))
+	;; No empty-string tags exist
+	(should-not (gnosis-sqlite-select (gnosis--ensure-db)
+		      "SELECT * FROM thema_tag WHERE tag = ?" (list "")))))))
+
 (provide 'gnosis-test-dashboard)
 
 (ert-run-tests-batch-and-exit)

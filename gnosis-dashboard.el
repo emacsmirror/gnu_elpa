@@ -750,6 +750,81 @@ GEN: load generation — no-op if stale."
     (gnosis-dashboard-output-tags)
     (forward-line (- current-line 1))))
 
+(defun gnosis-dashboard-bulk-rename-tags ()
+  "Bulk-rename marked (or all displayed) tags via regex.
+Prompts for a regex pattern and replacement string, previews
+which tags will be renamed (and how many will merge), then
+applies via `gnosis--tag-rename-batch'."
+  (interactive)
+  (let* ((tags (or (and gnosis-dashboard--selected-ids
+		       (prog1 gnosis-dashboard--selected-ids
+			 (setq gnosis-dashboard--selected-ids nil)))
+		   gnosis-dashboard-tags-current))
+	 (pattern (gnosis-dashboard--pcre-to-emacs
+		   (read-string "Rename pattern (regex): ")))
+	 (replacement (replace-regexp-in-string
+		       "-" "_"
+		       (read-string "Replacement: ")))
+	 (all-tags (seq-uniq (mapcar #'car
+				     (gnosis-select 'tag 'thema-tag))))
+	 (existing-ht (let ((ht (make-hash-table :test 'equal)))
+			(dolist (t1 all-tags ht)
+			  (puthash t1 t ht))))
+	 pairs)
+    (dolist (tag tags)
+      (let ((new (replace-regexp-in-string pattern replacement tag)))
+	(unless (string= tag new)
+	  (push (cons tag new) pairs))))
+    (unless pairs
+      (user-error "No tags match the pattern"))
+    (let ((merges (cl-count-if (lambda (p) (gethash (cdr p) existing-ht))
+			       pairs)))
+      (when (y-or-n-p (format "Rename %d tag(s)%s?"
+			      (length pairs)
+			      (if (> merges 0)
+				  (format " (%d will merge into existing)" merges)
+				"")))
+	(gnosis--tag-rename-batch pairs)
+	(remove-overlays nil nil 'gnosis-mark t)
+	(gnosis-dashboard-output-tags)))))
+
+(defun gnosis-dashboard-merge-case-duplicates ()
+  "Merge tags that differ only by case.
+For each group of case-variants, the most-used tag is kept as
+canonical; ties are broken alphabetically.  The rest are renamed
+to the canonical form via `gnosis--tag-rename-batch'."
+  (interactive)
+  (let* ((tag-counts (gnosis-sqlite-select (gnosis--ensure-db)
+		       "SELECT tag, COUNT(*) FROM thema_tag GROUP BY tag"))
+	 (groups (make-hash-table :test 'equal))
+	 pairs)
+    ;; Group tags by downcased form
+    (dolist (row tag-counts)
+      (let ((tag (car row))
+	    (count (cadr row)))
+	(push (cons tag count) (gethash (downcase tag) groups))))
+    ;; Build rename pairs for groups with >1 variant
+    (maphash (lambda (_key variants)
+	       (when (> (length variants) 1)
+		 ;; Sort: highest count first, then alphabetically for ties
+		 (let* ((sorted (sort variants
+				      (lambda (a b)
+					(if (= (cdr a) (cdr b))
+					    (string< (car a) (car b))
+					  (> (cdr a) (cdr b))))))
+			(canonical (caar sorted)))
+		   (dolist (v (cdr sorted))
+		     (push (cons (car v) canonical) pairs)))))
+	     groups)
+    (if (not pairs)
+	(message "No case-duplicate tags found")
+      (when (y-or-n-p (format "Merge %d tag(s) into %d canonical form(s)?"
+			      (length pairs)
+			      (length (seq-uniq (mapcar #'cdr pairs)))))
+	(gnosis--tag-rename-batch pairs)
+	(remove-overlays nil nil 'gnosis-mark t)
+	(gnosis-dashboard-output-tags)))))
+
 (defun gnosis-dashboard-delete-tag (&optional tag)
   "Delete TAG or marked tags from all themata."
   (interactive)
@@ -816,6 +891,8 @@ GEN: load generation — no-op if stale."
    ["Edit"
     ("e" "Rename tag" gnosis-dashboard-rename-tag :transient t)
     ("r" "Rename tag" gnosis-dashboard-rename-tag :transient t)
+    ("R" "Bulk regex rename" gnosis-dashboard-bulk-rename-tags :transient t)
+    ("C" "Merge case duplicates" gnosis-dashboard-merge-case-duplicates :transient t)
     ("s" "Suspend tag" gnosis-dashboard-suspend-tag :transient t)
     ("d" "Delete tag" gnosis-dashboard-delete-tag :transient t)]])
 
@@ -829,6 +906,8 @@ GEN: load generation — no-op if stale."
   "l" #'gnosis-dashboard-filter-tags
   "s" #'gnosis-dashboard-suspend-tag
   "r" #'gnosis-dashboard-rename-tag
+  "R" #'gnosis-dashboard-bulk-rename-tags
+  "C" #'gnosis-dashboard-merge-case-duplicates
   "d" #'gnosis-dashboard-delete-tag
   "g" #'gnosis-dashboard-return
   "m" #'gnosis-dashboard-mark-toggle

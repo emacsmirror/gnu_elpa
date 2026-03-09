@@ -112,6 +112,15 @@ Each entry is a function to restore that view
 (defvar gnosis-dashboard-nodes-current-ids nil
   "Current list of node IDs being displayed.")
 
+(defvar gnosis-dashboard-tags-history nil
+  "Stack of previous tag views for navigation history.")
+
+(defvar gnosis-dashboard-tags-current nil
+  "Current list of tags being displayed.")
+
+(defvar gnosis-dashboard-tags-count-ht nil
+  "Hash table mapping tag name to thema count, cached for filtering.")
+
 (defvar gnosis-dashboard--load-generation 0
   "Generation counter to cancel stale async loads.")
 
@@ -749,8 +758,9 @@ GEN: load generation — no-op if stale."
                          (setq gnosis-dashboard--selected-ids nil)))
                   (list (or tag (tabulated-list-get-id))))))
     (when (y-or-n-p (format "Delete %d tag(s)?" (length tags)))
-      (dolist (tag tags)
-        (gnosis--delete 'thema-tag `(= tag ,tag)))
+      (gnosis-sqlite-execute-batch (gnosis--ensure-db)
+        "DELETE FROM thema_tag WHERE tag IN (%s)"
+        tags)
       (remove-overlays nil nil 'gnosis-mark t)
       (setq tabulated-list-entries
             (cl-remove-if (lambda (entry) (member (car entry) tags))
@@ -794,7 +804,9 @@ GEN: load generation — no-op if stale."
   "Transient menu for tags dashboard mode."
   [["Navigate"
     ("RET" "View themata" gnosis-dashboard-tag-view-themata)
-    ("q" "Back to dashboard" gnosis-dashboard)
+    ("q" "Back" gnosis-dashboard-tags-back)
+    ("SPC" "Search" gnosis-dashboard-search-tags)
+    ("l" "Filter current" gnosis-dashboard-filter-tags)
     ("g" "Refresh" gnosis-dashboard-return :transient t)]
    ["Mark"
     ("m" "Toggle mark" gnosis-dashboard-mark-toggle :transient t)
@@ -812,7 +824,9 @@ GEN: load generation — no-op if stale."
   "h" #'gnosis-dashboard-tags-mode-menu
   "RET" #'gnosis-dashboard-tag-view-themata
   "e" #'gnosis-dashboard-rename-tag
-  "q" #'gnosis-dashboard
+  "q" #'gnosis-dashboard-tags-back
+  "SPC" #'gnosis-dashboard-search-tags
+  "l" #'gnosis-dashboard-filter-tags
   "s" #'gnosis-dashboard-suspend-tag
   "r" #'gnosis-dashboard-rename-tag
   "d" #'gnosis-dashboard-delete-tag
@@ -835,6 +849,8 @@ GEN: load generation — no-op if stale."
                      (dolist (row tag-counts ht)
                        (puthash (car row) (cadr row) ht))))
          (tags (or tags (mapcar #'car tag-counts))))
+    (setq gnosis-dashboard-tags-current tags
+          gnosis-dashboard-tags-count-ht count-ht)
     (pop-to-buffer-same-window gnosis-dashboard-buffer-name)
     (gnosis-dashboard-enable-mode)
     ;; Disable other dashboard modes
@@ -855,6 +871,63 @@ GEN: load generation — no-op if stale."
     (tabulated-list-print t)
     (gnosis-dashboard--set-header-line (length tabulated-list-entries))))
 
+(defun gnosis-dashboard--pcre-to-emacs (pattern)
+  "Convert PCRE-style braces in PATTERN to Emacs regex syntax.
+Translates {n}, {n,}, {n,m} to \\{n\\}, \\{n,\\}, \\{n,m\\}."
+  (replace-regexp-in-string
+   "{\\([0-9]+,?[0-9]*\\)}"
+   "\\\\{\\1\\\\}"
+   pattern))
+
+(defun gnosis-dashboard-filter-tags (&optional pattern)
+  "Filter current tags view by regex PATTERN."
+  (interactive)
+  (unless gnosis-dashboard-tags-current
+    (user-error "No tags to filter"))
+  (let* ((pattern (gnosis-dashboard--pcre-to-emacs
+                   (or pattern (read-string "Filter tags (regex): "))))
+         (filtered (cl-remove-if-not
+                    (lambda (tag) (string-match-p pattern tag))
+                    gnosis-dashboard-tags-current)))
+    (if filtered
+        (progn
+          (push (cons (tabulated-list-get-id) gnosis-dashboard-tags-current)
+                gnosis-dashboard-tags-history)
+          (gnosis-dashboard-output-tags filtered))
+      (message "No tags match pattern: %s" pattern))))
+
+(defun gnosis-dashboard-search-tags (&optional pattern)
+  "Search all tags by regex PATTERN."
+  (interactive)
+  (let* ((pattern (gnosis-dashboard--pcre-to-emacs
+                   (or pattern (read-string "Search tags (regex): "))))
+         (all-tags (mapcar #'car (gnosis-select 'tag 'thema-tag)))
+         (all-tags (seq-uniq all-tags))
+         (filtered (cl-remove-if-not
+                    (lambda (tag) (string-match-p pattern tag))
+                    all-tags)))
+    (if filtered
+        (progn
+          (when gnosis-dashboard-tags-current
+            (push (cons (tabulated-list-get-id) gnosis-dashboard-tags-current)
+                  gnosis-dashboard-tags-history))
+          (gnosis-dashboard-output-tags filtered))
+      (message "No tags match pattern: %s" pattern))))
+
+(defun gnosis-dashboard-tags-back ()
+  "Go back to the previous tags view, or to main dashboard."
+  (interactive)
+  (if gnosis-dashboard-tags-history
+      (let* ((previous (pop gnosis-dashboard-tags-history))
+             (previous-id (car previous))
+             (previous-tags (cdr previous)))
+        (gnosis-dashboard-output-tags previous-tags)
+        (when previous-id
+          (goto-char (point-min))
+          (while (and (not (eobp))
+                      (not (equal (tabulated-list-get-id) previous-id)))
+            (forward-line 1))))
+    (gnosis-dashboard)))
 
 (defun gnosis-dashboard-history (&optional history)
   "Display review HISTORY."

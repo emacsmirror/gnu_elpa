@@ -103,32 +103,47 @@ for per-call dedup (caller should `clrhash' it between calls)."
 (defun gnosis-anki--extract-db (file)
   "Return path to SQLite database from Anki FILE.
 If FILE is an .apkg (zip), extract the collection database to a
-temp directory via unzip or 7z and return its path.  If FILE is
-.anki2/.anki21, return it directly."
+temp directory via 7z and return its path.  Modern .apkg files
+contain a zstd-compressed collection.anki21b which is decompressed
+via zstd or 7z.  If FILE is .anki2/.anki21, return it directly."
   (if (string-match-p "\\.apkg\\'" file)
       (let* ((tmpdir (make-temp-file "gnosis-anki-" t))
              (abs-file (expand-file-name file))
              (db-name nil)
-             (unzip (executable-find "unzip"))
              (7z (or (executable-find "7z")
-                     (executable-find "7za"))))
-        (unless (or unzip 7z)
+                     (executable-find "7za")))
+             (zstd (executable-find "zstd")))
+        (unless 7z
           (delete-directory tmpdir t)
-          (user-error "No unzip or 7z found; install one to import .apkg files"))
-        ;; Try collection.anki21 first, then collection.anki2
-        (dolist (name '("collection.anki21" "collection.anki2"))
+          (user-error "7z not found; install p7zip to import .apkg files"))
+        ;; Try collection.anki21b (modern, zstd-compressed), then legacy formats
+        (dolist (name '("collection.anki21b" "collection.anki21" "collection.anki2"))
           (when (and (null db-name)
-                     (zerop (if unzip
-                                (call-process unzip nil nil nil
-                                              "-o" "-j" abs-file name
-                                              "-d" tmpdir)
-                              (call-process 7z nil nil nil
-                                            "e" abs-file
-                                            (concat "-o" tmpdir)
-                                            name "-y"))))
+                     (zerop (call-process 7z nil nil nil
+                                          "e" abs-file
+                                          (concat "-o" tmpdir)
+                                          name "-y")))
             (let ((extracted (expand-file-name name tmpdir)))
               (when (file-exists-p extracted)
-                (setq db-name extracted)))))
+                (if (string-suffix-p ".anki21b" name)
+                    ;; Decompress zstd -> SQLite
+                    (let ((decompressed (expand-file-name "collection.anki21" tmpdir)))
+                      (if (and zstd
+                               (zerop (call-process zstd nil nil nil
+                                                    "-d" extracted
+                                                    "-o" decompressed)))
+                          (progn
+                            (delete-file extracted)
+                            (setq db-name decompressed))
+                        ;; Fallback: 7z can also decompress zstd
+                        (let ((7z-out (expand-file-name "collection" tmpdir)))
+                          (when (zerop (call-process 7z nil nil nil
+                                                     "e" extracted
+                                                     (concat "-o" tmpdir) "-y"))
+                            (when (file-exists-p 7z-out)
+                              (delete-file extracted)
+                              (setq db-name 7z-out))))))
+                  (setq db-name extracted))))))
         (unless db-name
           (delete-directory tmpdir t)
           (user-error "No collection database found in %s" file))

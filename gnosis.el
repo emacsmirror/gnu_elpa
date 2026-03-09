@@ -502,6 +502,7 @@ Respects `gnosis-center-content' buffer-local setting."
   "Return STR fontified as in `org-mode'."
   (with-temp-buffer
     (org-mode)
+    (org-toggle-pretty-entities)
     (insert str)
     (font-lock-ensure)
     (buffer-string)))
@@ -579,25 +580,32 @@ Set SPLIT to t to split all input given."
                        do (push part input))))
 
 
-(cl-defun gnosis-toggle-suspend-themata (ids &optional verification)
-  "Toggle Suspend value for themata IDS.
+(cl-defun gnosis-toggle-suspend-themata (ids &optional suspend-value verification)
+  "Suspend or unsuspend themata IDS.
+
+When SUSPEND-VALUE is nil and IDS has one element, toggle that thema's
+current value.  When SUSPEND-VALUE is 0 or 1, set all IDS to that value
+explicitly (safe for bulk operations).
 
 When VERIFICATION is non-nil, skips `y-or-n-p' prompt."
   (cl-assert (listp ids) nil "IDS value needs to be a list.")
   (let* ((items-num (length ids))
-         (suspended (and (= items-num 1)
-                         (= (gnosis-get 'suspend 'review-log `(= id ,(car ids))) 1)))
+         (suspend-value
+          (or suspend-value
+              (if (= items-num 1)
+                  (if (= (gnosis-get 'suspend 'review-log `(= id ,(car ids))) 1) 0 1)
+                1)))
+         (action (if (= suspend-value 1) "Suspend" "Unsuspend"))
          (verification
           (or verification
-              (cond ((= items-num 1)
-                     (y-or-n-p
-                      (if suspended "Unsuspend thema? " "Suspend thema? ")))
-                    (t (y-or-n-p
-                        (format "Toggle suspend value for %s items? " items-num)))))))
+              (if (= items-num 1)
+                  (y-or-n-p (format "%s thema? " action))
+                (y-or-n-p (format "%s %d themata? " action items-num))))))
     (when verification
       (gnosis-sqlite-execute-batch (gnosis--ensure-db)
-        "UPDATE review_log SET suspend = 1 - suspend WHERE id IN (%s)"
-        ids))))
+        "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
+        ids
+        (list suspend-value)))))
 
 
 (defun gnosis-generate-id (&optional length)
@@ -618,6 +626,24 @@ LENGTH: length of id, default to a random number between 10-15."
       (when gnosis--id-cache
         (puthash id t gnosis--id-cache))
       id)))
+
+(defun gnosis-generate-ids (n &optional length)
+  "Generate N unique gnosis IDs as a list.
+Uses `gnosis--id-cache' for O(1) collision checking when bound."
+  (let ((ids nil) (count 0))
+    (while (< count n)
+      (let* ((len (or length (+ (random 5) 10)))
+             (max-val (expt 10 len))
+             (min-val (expt 10 (1- len)))
+             (id (+ (random (- max-val min-val)) min-val))
+             (exists (if gnosis--id-cache
+                         (gethash id gnosis--id-cache)
+                       (member id (gnosis-select 'id 'themata nil t)))))
+        (unless exists
+          (when gnosis--id-cache (puthash id t gnosis--id-cache))
+          (push id ids)
+          (cl-incf count))))
+    (nreverse ids)))
 
 (defun gnosis-mcq-answer (id)
   "Choose the correct answer, from mcq choices for question ID."
@@ -813,21 +839,31 @@ does not accept heading tags with dashes."
 
 (defun gnosis-modify-thema-tags (ids add-tags remove-tags)
   "Modify tags for thema IDS.  Add ADD-TAGS and remove REMOVE-TAGS.
-Uses bulk SQL: one INSERT OR IGNORE per add-tag, one DELETE per
-remove-tag, each covering all IDS at once."
-  (let ((db (gnosis--ensure-db))
-        (id-list (mapconcat #'number-to-string ids ",")))
+Batched to stay within SQL variable limits."
+  (let ((db (gnosis--ensure-db)))
     (gnosis-sqlite-with-transaction db
       (dolist (tag remove-tags)
-        (gnosis-sqlite-execute db
-          (format "DELETE FROM thema_tag WHERE tag = ? AND thema_id IN (%s)"
-                  id-list)
-          (list tag)))
+        (gnosis-sqlite-execute-batch db
+          "DELETE FROM thema_tag WHERE tag = ? AND thema_id IN (%s)"
+          ids
+          (list (prin1-to-string tag))))
       (dolist (tag add-tags)
-        (dolist (id ids)
-          (gnosis-sqlite-execute db
-            "INSERT OR IGNORE INTO thema_tag (thema_id, tag) VALUES (?, ?)"
-            (list id tag)))))))
+        (let* ((max-vars (gnosis-sqlite--max-variable-number db))
+               (batch-size (/ max-vars 2))
+               (encoded-tag (prin1-to-string tag))
+               (offset 0)
+               (total (length ids)))
+          (while (< offset total)
+            (let* ((end (min (+ offset batch-size) total))
+                   (chunk (cl-subseq ids offset end))
+                   (placeholders (mapconcat (lambda (_) "(?, ?)") chunk ", "))
+                   (params (cl-loop for id in chunk
+                                    append (list id encoded-tag))))
+              (sqlite-execute db
+                (format "INSERT OR IGNORE INTO thema_tag (thema_id, tag) VALUES %s"
+                        placeholders)
+                params)
+              (setq offset end))))))))
 
 ;; Links
 (defun gnosis-extract-id-links (input &optional start)
@@ -1909,9 +1945,9 @@ Fetches all themata, extras, and thema-links in bulk queries."
   "Delete thema-links whose dest is in ORPHANED-DESTS."
   (when orphaned-dests
     (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-      (let* ((placeholders (mapconcat (lambda (_) "?") orphaned-dests ", "))
-	     (sql (format "DELETE FROM thema_links WHERE dest IN (%s)" placeholders)))
-	(gnosis-sqlite-execute (gnosis--ensure-db) sql orphaned-dests)))))
+      (gnosis-sqlite-execute-batch (gnosis--ensure-db)
+        "DELETE FROM thema_links WHERE dest IN (%s)"
+        orphaned-dests))))
 
 (defun gnosis--delete-stale-links (stale-links)
   "Delete STALE-LINKS list of (source dest) from thema-links table."

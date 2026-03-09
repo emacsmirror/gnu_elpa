@@ -902,7 +902,7 @@ to the canonical form via `gnosis--tag-rename-batch'."
     ("u" "Unmark" gnosis-dashboard-mark-toggle :transient t)
     ("U" "Unmark all" gnosis-dashboard-unmark-all :transient t)]
    ["Edit"
-    ("e" "Rename tag" gnosis-dashboard-rename-tag :transient t)
+    ("r" "Rename tag" gnosis-dashboard-rename-tag :transient t)
     ("R" "Bulk regex rename" gnosis-dashboard-bulk-rename-tags :transient t)
     ("C" "Merge case duplicates" gnosis-dashboard-merge-case-duplicates :transient t)
     ("s" "Suspend tag" gnosis-dashboard-suspend-tag :transient t)
@@ -912,7 +912,7 @@ to the canonical form via `gnosis--tag-rename-batch'."
   "?" #'gnosis-dashboard-tags-mode-menu
   "h" #'gnosis-dashboard-tags-mode-menu
   "RET" #'gnosis-dashboard-tag-view-themata
-  "e" #'gnosis-dashboard-rename-tag
+  "r" #'gnosis-dashboard-rename-tag
   "q" #'gnosis-dashboard-tags-back
   "SPC" #'gnosis-dashboard-search-tags
   "l" #'gnosis-dashboard-filter-tags

@@ -143,12 +143,14 @@ specified format."
 Results are cached in `isbn-hyphenation-ranges-cache'."
   (or
    isbn-hyphenation-ranges-cache
-   (setq isbn-hyphenation-ranges-cache
-         (with-current-buffer
-             (or (url-retrieve-synchronously
-                  isbn-hyphenation-ranges-source nil :inhibit-cookies 5)
-                 (error "Failed to retrieve hyphenation data"))
-           (json-parse-buffer)))))
+   (let ((prgrp (progress-reporter-make "Fetching hyphenation ranges..."))
+         (ranges (with-current-buffer
+                     (or (url-retrieve-synchronously
+                          isbn-hyphenation-ranges-source :silent :inhibit-cookies 5)
+                         (error "Failed to retrieve hyphenation data"))
+                   (json-parse-buffer))))
+     (progress-reporter-done prgrp)
+     (setq isbn-hyphenation-ranges-cache ranges))))
 
 (defun isbn-hyphenation--ranges-get (source &rest keys)
   "Recursively retrieve KEYS from SOURCE."

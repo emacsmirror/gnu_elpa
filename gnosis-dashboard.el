@@ -864,8 +864,10 @@ to the canonical form via `gnosis--tag-rename-batch'."
                         (prog1 gnosis-dashboard--selected-ids
                           (setq gnosis-dashboard--selected-ids nil)))
                    (list (or tag (tabulated-list-get-id)))))
-         (themata (cl-remove-duplicates
-                   (cl-mapcan #'gnosis-get-tag-themata tags)))
+         (themata (mapcar #'car
+		   (gnosis-sqlite-select-batch (gnosis--ensure-db)
+		     "SELECT DISTINCT thema_id FROM thema_tag WHERE tag IN (%s)"
+		     tags)))
          (suspend (if current-prefix-arg 0 1))
          (action (if (= suspend 0) "Unsuspend" "Suspend")))
     (when (y-or-n-p (format "%s %d themata across %d tag(s)?"
@@ -901,7 +903,6 @@ to the canonical form via `gnosis--tag-rename-batch'."
     ("U" "Unmark all" gnosis-dashboard-unmark-all :transient t)]
    ["Edit"
     ("e" "Rename tag" gnosis-dashboard-rename-tag :transient t)
-    ("r" "Rename tag" gnosis-dashboard-rename-tag :transient t)
     ("R" "Bulk regex rename" gnosis-dashboard-bulk-rename-tags :transient t)
     ("C" "Merge case duplicates" gnosis-dashboard-merge-case-duplicates :transient t)
     ("s" "Suspend tag" gnosis-dashboard-suspend-tag :transient t)
@@ -916,7 +917,6 @@ to the canonical form via `gnosis--tag-rename-batch'."
   "SPC" #'gnosis-dashboard-search-tags
   "l" #'gnosis-dashboard-filter-tags
   "s" #'gnosis-dashboard-suspend-tag
-  "r" #'gnosis-dashboard-rename-tag
   "R" #'gnosis-dashboard-bulk-rename-tags
   "C" #'gnosis-dashboard-merge-case-duplicates
   "d" #'gnosis-dashboard-delete-tag

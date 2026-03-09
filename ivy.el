@@ -2497,7 +2497,8 @@ This is useful for recursive `ivy-read'."
                             ivy--all-candidates
                           (ivy--dynamic-collection-cands (or initial-input "")))))
             ((consp (car-safe collection))
-             (setq collection (cl-remove-if-not predicate collection))
+             (when predicate
+               (setq collection (cl-remove-if-not predicate collection)))
              (when (and sort (setq sort-fn (ivy--sort-function caller)))
                (setq collection (sort (copy-sequence collection) sort-fn))
                (setq sort nil))

@@ -367,7 +367,20 @@ Example:
 
 When VERIFICATION is non-nil, skip `y-or-n-p' prompt."
   (when (or verification (y-or-n-p "Delete thema?"))
-    (gnosis-sqlite-with-transaction (gnosis--ensure-db) (gnosis--delete 'themata `(= id ,id)))))
+    (gnosis-delete-themata (list id))))
+
+(defun gnosis-delete-themata (ids)
+  "Delete themata with IDS, batched to stay within SQL variable limits."
+  (let ((db (gnosis--ensure-db)))
+    (gnosis-sqlite-with-transaction db
+      (dolist (table '("thema_tag" "thema_links" "review"
+                       "review_log" "extras" "themata"))
+        (gnosis-sqlite-execute-batch db
+          (format "DELETE FROM %s WHERE %s IN (%%s)"
+                  table
+                  (if (string= table "thema_tag") "thema_id"
+                    (if (string= table "thema_links") "source" "id")))
+          ids)))))
 
 
 (defun gnosis-calculate-average-daily-reviews (&optional days)
@@ -582,10 +595,9 @@ When VERIFICATION is non-nil, skips `y-or-n-p' prompt."
                     (t (y-or-n-p
                         (format "Toggle suspend value for %s items? " items-num)))))))
     (when verification
-      (let* ((placeholders (mapconcat (lambda (_) "?") ids ", "))
-	     (sql (format "UPDATE review_log SET suspend = 1 - suspend WHERE id IN (%s)"
-			  placeholders)))
-	(gnosis-sqlite-execute (gnosis--ensure-db) sql ids)))))
+      (gnosis-sqlite-execute-batch (gnosis--ensure-db)
+        "UPDATE review_log SET suspend = 1 - suspend WHERE id IN (%s)"
+        ids))))
 
 
 (defun gnosis-generate-id (&optional length)

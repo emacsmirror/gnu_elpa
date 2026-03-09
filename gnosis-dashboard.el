@@ -734,10 +734,10 @@ GEN: load generation — no-op if stale."
 			   "Unsuspend all themata for tag? "
 			 "Suspend all themata for tag?"))))
     (when confirm-msg
-      (let* ((placeholders (mapconcat (lambda (_) "?") themata ", "))
-	     (sql (format "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
-			  placeholders)))
-	(gnosis-sqlite-execute (gnosis--ensure-db) sql (cons suspend themata)))
+      (gnosis-sqlite-execute-batch (gnosis--ensure-db)
+        "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
+        themata
+        (list suspend))
       (if (= suspend 0)
 	  (message "Unsuspended %s themata" (length themata))
 	(message "Suspended %s themata" (length themata))))))

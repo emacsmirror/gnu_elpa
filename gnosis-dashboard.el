@@ -215,23 +215,52 @@ DATES: Dates in the activity log, a list of dates in (YYYY MM DD)."
   (let ((id (tabulated-list-get-id)))
     (gnosis-edit-thema id)))
 
+(defun gnosis-dashboard--update-suspend-column (ids suspend-str)
+  "Update the suspend column to SUSPEND-STR for cached entries with IDS.
+Avoids re-fetching from the database."
+  (let ((id-set (make-hash-table :test 'equal :size (length ids))))
+    (dolist (id ids) (puthash id t id-set))
+    ;; Update cache
+    (dolist (id ids)
+      (let ((entry (gethash id gnosis-dashboard--entry-cache)))
+        (when entry
+          (let ((vec (cadr entry)))
+            (aset vec (1- (length vec)) suspend-str)))))
+    ;; Update tabulated-list-entries in place
+    (dolist (entry tabulated-list-entries)
+      (when (gethash (car entry) id-set)
+        (let ((vec (cadr entry)))
+          (aset vec (1- (length vec)) suspend-str))))
+    (setq gnosis-dashboard--rendered-text nil)
+    (tabulated-list-print t)))
+
 (defun gnosis-dashboard-suspend-thema ()
-  "Suspend thema."
+  "Suspend or unsuspend themata.
+With prefix arg (C-u), unsuspend.  Without, suspend.
+For a single thema (no selection), toggles current value."
+  (interactive nil gnosis-dashboard-themata-mode)
+  (let* ((ids (or gnosis-dashboard--selected-ids
+                  (list (tabulated-list-get-id))))
+         (suspend-value (when (> (length ids) 1)
+                          (if current-prefix-arg 0 1))))
+    (gnosis-toggle-suspend-themata ids suspend-value)
+    (if (> (length ids) 1)
+        (gnosis-dashboard--update-suspend-column
+         ids (if (eql suspend-value 0) "No" "Yes"))
+      (gnosis-dashboard--update-entries ids))
+    (setq gnosis-dashboard--selected-ids nil)
+    (when (and (not current-prefix-arg) (> (length ids) 1))
+      (message (format "Use %s to unsuspend." (propertize "C-u s" 'face 'font-lock-constant-face))))))
+
+(defun gnosis-dashboard-delete ()
+  "Delete marked themata or thema at point."
   (interactive nil gnosis-dashboard-themata-mode)
   (let ((ids (or gnosis-dashboard--selected-ids
                  (list (tabulated-list-get-id)))))
-    (gnosis-toggle-suspend-themata ids)
-    (gnosis-dashboard--update-entries ids)
-    (setq gnosis-dashboard--selected-ids nil)))
-
-(defun gnosis-dashboard-delete ()
-  "Delete thema."
-  (interactive)
-  (if gnosis-dashboard--selected-ids
-      (gnosis-dashboard-marked-delete)
-    (let ((id (tabulated-list-get-id)))
-      (gnosis-delete-thema id)
-      (gnosis-dashboard--remove-entries (list id)))))
+    (when (y-or-n-p (format "Delete %d themata?" (length ids)))
+      (gnosis-delete-themata ids)
+      (gnosis-dashboard--remove-entries ids)
+      (setq gnosis-dashboard--selected-ids nil))))
 
 (defun gnosis-dashboard-search-thema (&optional str)
   "Search for themata with STR."
@@ -395,9 +424,9 @@ Uses `gnosis-dashboard--entry-cache' to avoid re-querying known entries."
 		    thema-ids)))
     ;; Fetch and cache only the missing entries
     (when uncached
-      (let* ((id-list (mapconcat #'number-to-string uncached ","))
-	     (sql (format "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)" id-list))
-	     (rows (gnosis-sqlite-select (gnosis--ensure-db) sql)))
+      (let ((rows (gnosis-sqlite-select-batch (gnosis--ensure-db)
+                    "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)"
+                    uncached)))
 	(dolist (row rows)
 	  (puthash (car row) (gnosis-dashboard--format-entry row)
 		   gnosis-dashboard--entry-cache))))
@@ -487,9 +516,9 @@ Continues as long as the dashboard buffer exists."
                       ids))
            (new-warmed (+ warmed (length ids))))
       (when uncached
-        (let* ((placeholders (mapconcat (lambda (_) "?") uncached ", "))
-	       (sql (format "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)" placeholders))
-	       (rows (gnosis-sqlite-select (gnosis--ensure-db) sql uncached)))
+        (let ((rows (gnosis-sqlite-select-batch (gnosis--ensure-db)
+                      "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)"
+                      uncached)))
           (dolist (row rows)
             (puthash (car row) (gnosis-dashboard--format-entry row)
                      gnosis-dashboard--entry-cache))))
@@ -920,14 +949,6 @@ GEN: load generation — no-op if stale."
       (setq gnosis-dashboard--selected-ids gnosis-dashboard-thema-ids)
       (message "Marked %d items" (count-lines (point-min) (point-max))))))
 
-(defun gnosis-dashboard-marked-delete ()
-  "Delete marked thema entries."
-  (interactive)
-  (when (y-or-n-p "Delete selected themata?")
-    (cl-loop for thema in gnosis-dashboard--selected-ids
-	     do (gnosis-delete-thema thema t))
-    (gnosis-dashboard--remove-entries gnosis-dashboard--selected-ids)
-    (setq gnosis-dashboard--selected-ids nil)))
 
 (defun gnosis-dashboard-bulk-link ()
   "Bulk link string in marked or all displayed themata."
@@ -1036,7 +1057,8 @@ Uses +tag/-tag syntax: +foo adds tag foo, -bar removes tag bar."
     ("h" "History" gnosis-dashboard-history)]
    ["Import/Export"
     ("e" "Export themata" gnosis-export-themata)
-    ("i" "Import file" gnosis-import-file)]
+    ("i" "Import gnosis collection" gnosis-import-file)
+    ("I" "Import Anki" gnosis-import-anki)]
    ["Maintenance"
     ("s" "Sync nodes" gnosis-nodes-db-sync)
     ("S" "Rebuild nodes" (lambda () (interactive) (gnosis-nodes-db-sync t)))

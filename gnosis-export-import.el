@@ -152,19 +152,19 @@ generate new thema id."
   "Fetch and prepare export data for THEMA-IDS.
 When INCLUDE-SUSPENDED is nil, filter out suspended themata.
 Returns (ALL-THEMATA EXTRAS-HT TAGS-HT)."
-  (let* ((all-themata (if thema-ids
-			  (let* ((placeholders (mapconcat (lambda (_) "?") thema-ids ", "))
-				 (sql (format "SELECT id, type, keimenon, hypothesis, answer FROM themata WHERE id IN (%s)"
-					      placeholders)))
-			    (gnosis-sqlite-select (gnosis--ensure-db) sql thema-ids))
-			(gnosis-sqlite-select (gnosis--ensure-db)
+  (let* ((db (gnosis--ensure-db))
+         (all-themata (if thema-ids
+                          (gnosis-sqlite-select-batch db
+                            "SELECT id, type, keimenon, hypothesis, answer FROM themata WHERE id IN (%s)"
+                            thema-ids)
+			(gnosis-sqlite-select db
 			  "SELECT id, type, keimenon, hypothesis, answer FROM themata")))
          (all-ids (mapcar #'car all-themata))
          (suspended-ids (when (and all-ids (not include-suspended))
-			  (let* ((placeholders (mapconcat (lambda (_) "?") all-ids ", "))
-				 (sql (format "SELECT id FROM review_log WHERE id IN (%s) AND suspend = 1"
-					      placeholders)))
-			    (mapcar #'car (gnosis-sqlite-select (gnosis--ensure-db) sql all-ids)))))
+                          (mapcar #'car
+                            (gnosis-sqlite-select-batch db
+                              "SELECT id FROM review_log WHERE id IN (%s) AND suspend = 1"
+                              all-ids))))
          (all-themata (if suspended-ids
                           (cl-remove-if (lambda (row)
                                           (member (car row) suspended-ids))
@@ -172,18 +172,16 @@ Returns (ALL-THEMATA EXTRAS-HT TAGS-HT)."
                         all-themata))
          (all-ids (mapcar #'car all-themata))
          (all-extras (when all-ids
-		       (let* ((placeholders (mapconcat (lambda (_) "?") all-ids ", "))
-			      (sql (format "SELECT id, parathema FROM extras WHERE id IN (%s)"
-					   placeholders)))
-			 (gnosis-sqlite-select (gnosis--ensure-db) sql all-ids))))
+                       (gnosis-sqlite-select-batch db
+                         "SELECT id, parathema FROM extras WHERE id IN (%s)"
+                         all-ids)))
          (extras-ht (let ((ht (make-hash-table :test 'equal :size (length all-ids))))
                       (dolist (row all-extras ht)
                         (puthash (car row) (cadr row) ht))))
 	 (all-tags (when all-ids
-		     (let* ((placeholders (mapconcat (lambda (_) "?") all-ids ", "))
-			    (sql (format "SELECT thema_id, tag FROM thema_tag WHERE thema_id IN (%s)"
-					 placeholders)))
-		       (gnosis-sqlite-select (gnosis--ensure-db) sql all-ids))))
+                     (gnosis-sqlite-select-batch db
+                       "SELECT thema_id, tag FROM thema_tag WHERE thema_id IN (%s)"
+                       all-ids)))
 	 (tags-ht (let ((ht (make-hash-table :test 'equal :size (length all-ids))))
 		    (dolist (row all-tags ht)
 		      (push (cadr row) (gethash (car row) ht))))))
@@ -226,11 +224,11 @@ Returns (BUFFER . FILENAME)."
 (defun gnosis-export--collect-linked-node-files (thema-ids)
   "Return list of (ID FILE) pairs for nodes linked from THEMA-IDS."
   (when thema-ids
-    (let* ((placeholders (mapconcat (lambda (_) "?") thema-ids ", "))
-	   (sql (format "SELECT DISTINCT n.id, n.file FROM nodes n \
+    (gnosis-sqlite-select-batch (gnosis--ensure-db)
+      "SELECT DISTINCT n.id, n.file FROM nodes n \
 INNER JOIN thema_links tl ON n.id = tl.dest \
-WHERE tl.source IN (%s)" placeholders)))
-      (gnosis-sqlite-select (gnosis--ensure-db) sql thema-ids))))
+WHERE tl.source IN (%s)"
+      thema-ids)))
 
 (defun gnosis-export--copy-node-files (node-rows directory)
   "Copy node files from NODE-ROWS to DIRECTORY/nodes/.

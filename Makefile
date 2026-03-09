@@ -20,6 +20,7 @@ TEST_FILES := tests/gnosis-test-sqlite.el \
 	tests/gnosis-test-review.el \
 	tests/gnosis-test-journal.el \
 	tests/gnosis-test-migration.el \
+	tests/gnosis-test-anki.el \
 
 all: doc
 

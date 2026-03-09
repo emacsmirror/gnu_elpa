@@ -1758,13 +1758,28 @@ Used by migrations that run before the thema-tag junction table exists."
 Each migration brings the DB from VERSION-1 to VERSION.")
 
 (defun gnosis--db-run-migrations (current-version)
-  "Run all pending migrations from CURRENT-VERSION to `gnosis-db-version'."
-  (cl-loop for (version . func) in gnosis-db--migrations
-	   when (> version current-version)
-	   do (progn
-		(message "Gnosis: running migration to v%d..." version)
-		(funcall func)
-		(message "Gnosis: migration to v%d complete" version))))
+  "Run all pending migrations from CURRENT-VERSION to `gnosis-db-version'.
+Commits the database after all migrations complete."
+  (let ((migrated nil))
+    (cl-loop for (version . func) in gnosis-db--migrations
+	     when (> version current-version)
+	     do (progn
+		  (message "Gnosis: running migration to v%d..." version)
+		  (funcall func)
+		  (message "Gnosis: migration to v%d complete" version)
+		  (setq migrated version)))
+    (when migrated
+      (gnosis--commit-migration current-version migrated))))
+
+(defun gnosis--commit-migration (from to)
+  "Commit database after migrating from version FROM to TO."
+  (let ((default-directory gnosis-dir))
+    (unless gnosis-testing
+      (when (file-exists-p (expand-file-name ".git" gnosis-dir))
+	(call-process (executable-find "git") nil nil nil "add" "gnosis.db")
+	(gnosis--git-cmd
+	 (list "commit" "-m"
+	       (format "Migrate database v%d -> v%d" from to)))))))
 
 (defun gnosis-db-init ()
   "Initialize database: create tables if fresh, run pending migrations."

@@ -590,6 +590,28 @@ tags and links tables, extras with parathema/review_image."
     ;; Deck table is gone
     (should-error (gnosis-sqlite-select gnosis-db "SELECT * FROM decks"))))
 
+(ert-deftest gnosis-test-migrate-commits-after-migrations ()
+  "gnosis--db-run-migrations calls gnosis--commit-migration with correct versions."
+  (gnosis-test-with-v4-db
+    (let (commit-args)
+      (cl-letf (((symbol-function 'gnosis--commit-migration)
+		 (lambda (from to) (setq commit-args (list from to)))))
+	(gnosis--db-run-migrations 4))
+      ;; Should have been called with from=4, to=6 (last migration run)
+      (should (equal '(4 6) commit-args))
+      (should (= 6 (gnosis--db-version))))))
+
+(ert-deftest gnosis-test-migrate-no-commit-when-up-to-date ()
+  "gnosis--db-run-migrations does not commit when no migrations are needed."
+  (gnosis-test-with-v4-db
+    ;; Manually set version to current
+    (gnosis--db-set-version gnosis-db-version)
+    (let (commit-called)
+      (cl-letf (((symbol-function 'gnosis--commit-migration)
+		 (lambda (_from _to) (setq commit-called t))))
+	(gnosis--db-run-migrations gnosis-db-version))
+      (should-not commit-called))))
+
 (provide 'gnosis-test-migration)
 
 (ert-run-tests-batch-and-exit)

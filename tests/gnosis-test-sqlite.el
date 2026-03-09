@@ -413,6 +413,86 @@ Value is pre-encoded (prin1-to-string) in the compiler."
       (gnosis-sqlite-close db)
       (delete-file db-file))))
 
+;;; ---- Group: Batch execution ----
+
+(ert-deftest gnosis-test-sqlite-max-variable-number ()
+  "Query returns a positive integer for max variable number."
+  (let* ((db-file (make-temp-file "gnosis-sqlite-test-" nil ".db"))
+         (db (sqlite-open db-file))
+         (gnosis-sqlite--max-vars nil))
+    (unwind-protect
+        (let ((result (gnosis-sqlite--max-variable-number db)))
+          (should (integerp result))
+          (should (> result 0)))
+      (sqlite-close db)
+      (delete-file db-file))))
+
+(ert-deftest gnosis-test-sqlite-execute-batch-small ()
+  "Batch execute with fewer IDs than the limit runs in one shot."
+  (let* ((db-file (make-temp-file "gnosis-sqlite-test-" nil ".db"))
+         (db (sqlite-open db-file)))
+    (unwind-protect
+        (progn
+          (sqlite-execute db "CREATE TABLE t (id INTEGER, val TEXT)")
+          (dotimes (i 5)
+            (sqlite-execute db "INSERT INTO t VALUES (?, ?)" (list i "a")))
+          (gnosis-sqlite-execute-batch db
+            "DELETE FROM t WHERE id IN (%s)" '(0 1 2))
+          (should (= 2 (caar (sqlite-select db "SELECT COUNT(*) FROM t")))))
+      (sqlite-close db)
+      (delete-file db-file))))
+
+(ert-deftest gnosis-test-sqlite-execute-batch-large ()
+  "Batch execute with more IDs than batch size chunks correctly."
+  (let* ((db-file (make-temp-file "gnosis-sqlite-test-" nil ".db"))
+         (db (sqlite-open db-file))
+         (gnosis-sqlite--max-vars 3))
+    (unwind-protect
+        (progn
+          (sqlite-execute db "CREATE TABLE t (id INTEGER, val TEXT)")
+          (dotimes (i 10)
+            (sqlite-execute db "INSERT INTO t VALUES (?, ?)" (list i "a")))
+          (gnosis-sqlite-execute-batch db
+            "DELETE FROM t WHERE id IN (%s)" '(0 1 2 3 4 5 6))
+          (should (= 3 (caar (sqlite-select db "SELECT COUNT(*) FROM t")))))
+      (sqlite-close db)
+      (delete-file db-file))))
+
+(ert-deftest gnosis-test-sqlite-execute-batch-extra-params ()
+  "Batch execute with extra-params adjusts batch size."
+  (let* ((db-file (make-temp-file "gnosis-sqlite-test-" nil ".db"))
+         (db (sqlite-open db-file))
+         (gnosis-sqlite--max-vars 4))
+    (unwind-protect
+        (progn
+          (sqlite-execute db "CREATE TABLE t (id INTEGER, val TEXT)")
+          (dotimes (i 10)
+            (sqlite-execute db "INSERT INTO t VALUES (?, ?)" (list i "a")))
+          (gnosis-sqlite-execute-batch db
+            "UPDATE t SET val = ? WHERE id IN (%s)"
+            '(0 1 2 3 4 5 6)
+            '("b"))
+          (let ((updated (caar (sqlite-select db
+                          "SELECT COUNT(*) FROM t WHERE val = ?"
+                          (list (gnosis-sqlite--encode-param "b"))))))
+            (should (= 7 updated))))
+      (sqlite-close db)
+      (delete-file db-file))))
+
+(ert-deftest gnosis-test-sqlite-execute-batch-empty ()
+  "Batch execute with empty ID list is a no-op."
+  (let* ((db-file (make-temp-file "gnosis-sqlite-test-" nil ".db"))
+         (db (sqlite-open db-file)))
+    (unwind-protect
+        (progn
+          (sqlite-execute db "CREATE TABLE t (id INTEGER)")
+          (sqlite-execute db "INSERT INTO t VALUES (1)")
+          (gnosis-sqlite-execute-batch db
+            "DELETE FROM t WHERE id IN (%s)" nil)
+          (should (= 1 (caar (sqlite-select db "SELECT COUNT(*) FROM t")))))
+      (sqlite-close db)
+      (delete-file db-file))))
+
 (provide 'gnosis-test-sqlite)
 
 (ert-run-tests-batch-and-exit)

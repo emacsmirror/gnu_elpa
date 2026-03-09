@@ -799,6 +799,24 @@ does not accept heading tags with dashes."
 	"UPDATE thema_tag SET tag = ? WHERE tag = ?" (list new-tag tag)))
     (message "Renamed tag '%s' to '%s'" tag new-tag)))
 
+(defun gnosis-modify-thema-tags (ids add-tags remove-tags)
+  "Modify tags for thema IDS.  Add ADD-TAGS and remove REMOVE-TAGS.
+Uses bulk SQL: one INSERT OR IGNORE per add-tag, one DELETE per
+remove-tag, each covering all IDS at once."
+  (let ((db (gnosis--ensure-db))
+        (id-list (mapconcat #'number-to-string ids ",")))
+    (gnosis-sqlite-with-transaction db
+      (dolist (tag remove-tags)
+        (gnosis-sqlite-execute db
+          (format "DELETE FROM thema_tag WHERE tag = ? AND thema_id IN (%s)"
+                  id-list)
+          (list tag)))
+      (dolist (tag add-tags)
+        (dolist (id ids)
+          (gnosis-sqlite-execute db
+            "INSERT OR IGNORE INTO thema_tag (thema_id, tag) VALUES (?, ?)"
+            (list id tag)))))))
+
 ;; Links
 (defun gnosis-extract-id-links (input &optional start)
   "Extract all link IDs from INPUT string and return them as a list.

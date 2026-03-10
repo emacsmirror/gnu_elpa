@@ -65,7 +65,7 @@ msgstr "GNU Emacs Lisp"
 #. type: menuentry
 #: emacs-lisp-intro.texi:223
 msgid "Emacs Lisp Intro: (eintr)"
-msgstr "Introducci@'on a Emacs Lisp: (eintr)"
+msgstr "Introducción a Emacs Lisp: (emacs-lisp-intro-es)"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:223

@@ -145,12 +145,13 @@
 ;; Since version 1.1:
 
 ;; - `futur-abort' takes a second argument (the reason for the abortion).
-;; - New function `futur-funcll'.
+;; - New function `futur-funcall'.
 ;; - `futur-bind' and `futur-blocking-wait-to-get-result' can now select
 ;;   which errors they catch.
 ;; - New function `futur-p'.
 ;; - Preliminary support to run ELisp code in subproceses&sandboxes.
 ;; - Experimental `futur-hacks-mode' using the preliminary sandbox code.
+;; - New var `futur-use-threads' to be able to force the use of timers.
 
 ;; Version 1.1:
 
@@ -247,8 +248,17 @@ that it is not empty."
      (with-current-buffer (get-buffer-create " *futur--background*")
        (make-thread f name)))))
 
+(defvar futur-use-threads t
+  "If non-nil, futur will use timers for background tasks instead.
+Threads have the advantage that we can make sure background tasks are
+run in a clean dynamic environment, whereas timers are run in the dynamic
+environment of the current waiting code, which can include all kinds of
+undesirable let-bindings.
+But Emacs's threads still suffer from several implementation warts
+and limitations.")
+
 (defconst futur--background
-  (when (fboundp 'make-thread)          ;New in Emacs-25
+  (when (and futur-use-threads (fboundp 'make-thread)) ;New in Emacs-26
     (futur--make-thread #'futur--background "futur--background")))
 
 (defun futur--funcall (&rest args)
@@ -256,7 +266,7 @@ that it is not empty."
 The code is conceptually run in another thread and while we try to run as
 soon as possible, and fairly, we do not guarantee the specific
 time or order of execution."
-  (if (not (fboundp 'make-thread))      ;Emacs<26
+  (if (not futur--background)
       (apply #'run-with-timer 0 nil args)
     (with-mutex futur--pending-mutex
       (futur--queue-enqueue futur--pending args)

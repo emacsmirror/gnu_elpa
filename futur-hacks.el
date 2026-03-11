@@ -23,13 +23,13 @@
 
 ;;; Code:
 
-(require 'trace)
-(trace-function 'flymake--log-1)
-(trace-function 'futur--elisp-process-sentinel)
-(trace-function 'futur--elisp-process-answer)
-(trace-function 'futur--elisp-process-filter)
-(trace-function 'futur--elisp-set-destination)
-(trace-function 'elisp-flymake--byte-compile-done)
+;; (require 'trace)
+;; (trace-function 'flymake--log-1)
+;; (trace-function 'futur--elisp-process-sentinel)
+;; (trace-function 'futur--elisp-process-answer)
+;; (trace-function 'futur--elisp-process-filter)
+;; (trace-function 'futur--elisp-set-destination)
+;; (trace-function 'elisp-flymake--byte-compile-done)
 
 (require 'futur-client)
 (require 'cl-lib)

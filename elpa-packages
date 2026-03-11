@@ -663,8 +663,7 @@
  ;; `package-fixes` is obsolete and was never released.
  ;; (package-fixes		:url nil)
  (parsec              	:url "https://github.com/cute-jumper/parsec.el.git")
- (parser-generator	:url nil
-  ) ;; Was: "https://github.com/cjohansson/emacs-parser-generator"
+ (parser-generator	:url "https://forgejo.cvj.se/cjohansson/emacs-parser-generator")
  (path-iterator		:url nil)
  (peg			:url nil ;Was in "https://github.com/ellerh/peg.el"
   :ignored-files ("COPYING"))
@@ -673,8 +672,7 @@
  (persist             	:url nil) ; was https://gitlab.com/phillord/persist
  (php-fill              :url "https://github.com/arielenter/php-fill.el")
  (phpinspect		:url "https://github.com/hugot/phpinspect.el")
- (phps-mode		:url nil
-  ) ;; Was "https://github.com/cjohansson/emacs-phps-mode"
+ (phps-mode		:url "https://forgejo.cvj.se/cjohansson/emacs-phps-mode")
  (pinentry		:url "https://github.com/ueno/pinentry-el.git")
  (plz                 	:url "https://github.com/alphapapa/plz.el.git"
   :release-branch "stable"
@@ -801,8 +799,7 @@
  (srht			:url "https://git.sr.ht/~akagi/srht.el"
   :ignored-files ("LICENSE")
   :lisp-dir "lisp")
- (ssh-deploy		:url nil
-  ) ;; Was: "https://github.com/cjohansson/emacs-ssh-deploy"
+ (ssh-deploy		:url "https://forgejo.cvj.se/cjohansson/emacs-ssh-deploy")
  (standard-themes		:url "https://github.com/protesilaos/standard-themes"
   :doc "README.org"
   :news "CHANGELOG.org"

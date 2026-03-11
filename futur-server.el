@@ -35,6 +35,8 @@
 ;; (trace-function 'futur--read-stdin)
 ;; (trace-function 'futur--print-stdout)
 
+;; (when (< emacs-major-version 31) (require 'comp-common nil t))
+
 (defconst futur--elisp-impossible-string "\n# \"# "
   "String that will necessarily cause `read' to signal an error.")
 
@@ -174,7 +176,10 @@ Does not pay attention to buffer-local values of variables."
                (setf (symbol-function sym) nil)
                (setf (symbol-plist sym) nil)
                (unless (keywordp sym) (makunbound sym)))
-           (setf (symbol-function sym) (symbol-function ss))
+           ;; FIXME: Emacs<31 would try and compile trampolines needlessly
+           ;; (and unsuccessfully (because we're in a halfway state).
+           (unless (eq (symbol-function sym) (symbol-function ss))
+             (setf (symbol-function sym) (symbol-function ss)))
            (setf (symbol-plist sym) (symbol-plist ss))
            ;; FIXME: Do we need to do something special for var-aliases?
            (ignore-error setting-constant

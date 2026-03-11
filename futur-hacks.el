@@ -132,6 +132,177 @@ current buffer state and calls REPORT-FN when done."
        (lambda ()
          (delete-file temp-file))))))
 
+(defun futur--smerge-refine-regions (beg1 end1 beg2 end2 props-c &optional preproc props-r props-a)
+  "Do it asynchronously."
+  (defvar smerge-refine-ignore-whitespace)
+  (defvar smerge-refine-weight-hack)
+  (declare-function smerge--refine-prepare-regions "smerge-mode")
+  (declare-function smerge--refine-apply-diff "smerge-mode")
+  ;; FIXME: Rate-limit with `futur-concurrency-bound'.
+  ;; FIXME: Check that the regions haven't changed/disappeared.
+  (pcase-let*
+      ((`(,file1 ,ol1 ,file2 ,ol2)
+        (smerge--refine-prepare-regions beg1 end1 beg2 end2
+                                        preproc props-c props-r props-a)))
+
+    ;; Call diff on those files.
+    (futur-with-temp-buffer
+      (let ((buf (current-buffer)))
+        (futur-let*
+            ((exitcode
+              <- (futur-unwind-protect
+                     ;; Allow decoding the EOL format, as on MS-Windows the
+                     ;; Diff utility might produce CR-LF EOLs.
+                     (let ((coding-system-for-read 'utf-8-emacs))
+                       ;; (trace-values :file1 (file-attributes file1))
+                       ;; (trace-values :file2 (file-attributes file2))
+                       (futur-process-call
+                        diff-command nil buf nil
+                        (if (and smerge-refine-ignore-whitespace
+                                 (not smerge-refine-weight-hack))
+                            ;; Pass -a so diff treats it as a text file
+                            ;; even if it contains \0 and such.
+                            ;; Pass -d so as to get the smallest change, but
+                            ;; also and more importantly because otherwise it
+                            ;; may happen that diff doesn't behave like
+                            ;; `smerge-refine-weight-hack' expects it to.
+                            ;; See https://lists.gnu.org/r/emacs-devel/2007-11/msg00401.html
+                            "-awd" "-ad")
+                        file1 file2))
+                   (delete-file file1)
+                   (delete-file file2))))
+          ;; (trace-values :process-exit exitcode)
+          ;; Process diff's output.
+          (when (and (overlay-buffer ol1) (overlay-buffer ol2))
+            (smerge--refine-apply-diff buf ol1 ol2
+                                       props-c props-r props-a)))))))
+
+(with-eval-after-load 'smerge-mode
+  (defvar smerge--refine-long-words)
+  (defvar smerge-refine-ignore-whitespace)
+  (defvar smerge-refine-weight-hack)
+  (declare-function smerge--refine-highlight-change "smerge-mode")
+  (declare-function smerge--refine-chopup-region "smerge-mode")
+  (declare-function smerge--refine-apply-diff-1 "ext:here-or-smerge-mode")
+
+  (unless (fboundp 'smerge--refine-prepare-regions) ;; Emacs-31
+    (defun smerge--refine-prepare-regions ( beg1 end1 beg2 end2
+                                            preproc props-c props-r props-a)
+      (let* ((file1 (make-temp-file "diff1"))
+             (file2 (make-temp-file "diff2"))
+             (smerge--refine-long-words
+              (if smerge-refine-weight-hack (make-hash-table :test #'equal)))
+
+             ;; Cover each region with an `smerge--refine-region' overlay.
+             (ol1 (make-overlay beg1 end1
+                                (if (markerp beg1) (marker-buffer beg1))
+                                'front-advance nil))
+             (ol2 (make-overlay beg2 end2
+                                (if (markerp beg2) (marker-buffer beg2))
+                                'front-advance nil))
+             (common-props
+              (let ((props '((evaporate . t) (smerge--refine-region . t))))
+                (dolist (prop (or props-a props-c))
+                  (when (and (not (memq (car prop) '(face font-lock-face)))
+                             (member prop (or props-r props-c))
+                             (or (not (and props-c props-a props-r))
+                                 (member prop props-c)))
+                    ;; This PROP is shared among all those overlays.
+                    ;; Better keep it also for the `smerge--refine-region'
+                    ;; overlays, so the client package recognizes them as
+                    ;; being part of the refinement (e.g. it will hopefully
+                    ;; delete them like the others).
+                    (push prop props)))
+                props)))
+
+        (dolist (prop common-props)
+          (overlay-put ol1 (car prop) (cdr prop))
+          (overlay-put ol2 (car prop) (cdr prop)))
+
+        (let ((write-region-inhibit-fsync t)) ; Don't fsync temp files.
+          ;; Chop up regions into smaller elements and save into files.
+          (smerge--refine-chopup-region
+           (with-current-buffer (overlay-buffer ol1)
+             (copy-marker (overlay-start ol1)))
+           (overlay-end ol1) file1 preproc)
+          (smerge--refine-chopup-region
+           (with-current-buffer (overlay-buffer ol2)
+             (copy-marker (overlay-start ol2)))
+           (overlay-end ol2) file2 preproc))
+
+        `(,file1 ,ol1 ,file2 ,ol2))))
+
+  (unless (fboundp 'smerge--refine-apply-diff) ;; Emacs-31
+    (defun smerge--refine-apply-diff ( diffbuf ol1 ol2
+                                       props-c props-r props-a)
+      ;; `smerge--refine-apply-diff-1' isn't careful to preserve the
+      ;; position of point, so do it here.
+      (let ((pt1 (with-current-buffer (overlay-buffer ol1) (point)))
+            (pt2 (with-current-buffer (overlay-buffer ol2) (point))))
+        (unwind-protect
+            (smerge--refine-apply-diff-1 diffbuf ol1 ol2
+                                         props-c props-r props-a)
+          (with-current-buffer (overlay-buffer ol1)
+            (goto-char pt1)
+            ;; Usually ol1 and ol2 are in the same buffer, so `set-buffer'
+            ;; from ol1 to maximize the chance that it's a no-op.
+            (with-current-buffer (overlay-buffer ol2) (goto-char pt2))))))
+
+    (defun smerge--refine-apply-diff-1 ( diffbuf ol1 ol2
+                                         props-c props-r props-a)
+      (with-current-buffer diffbuf
+        (goto-char (point-min))
+        ;; (trace-values :starting1 (current-buffer) (buffer-size))
+        (let ((last1 nil)
+              (last2 nil)
+              (beg1 (with-current-buffer (overlay-buffer ol1)
+                     (copy-marker (overlay-start ol1))))
+              (beg2 (with-current-buffer (overlay-buffer ol2)
+                     (copy-marker (overlay-start ol2))))
+              (end1 (overlay-end ol1))
+              (end2 (overlay-end ol2)))
+          (while (not (eobp))
+            (if (not (looking-at "\\([0-9]+\\)\\(?:,\\([0-9]+\\)\\)?\\([acd]\\)\\([0-9]+\\)\\(?:,\\([0-9]+\\)\\)?$"))
+                (error "Unexpected patch hunk header: %s"
+                       (buffer-substring (point) (line-end-position))))
+            (let ((op (char-after (match-beginning 3)))
+                  (m1 (match-string 1))
+                  (m2 (match-string 2))
+                  (m4 (match-string 4))
+                  (m5 (match-string 5)))
+              (setq last1
+                    (smerge--refine-highlight-change
+		     beg1 m1 (if (eq op ?a) t m2)
+		     ;; Try to use props-c only for changed chars,
+		     ;; fallback to props-r for changed/removed chars,
+		     ;; but if props-r is nil then fallback to props-c.
+		     (or (and (eq op '?c) props-c) props-r props-c)))
+              (setq last2
+                    (smerge--refine-highlight-change
+		     beg2 m4 (if (eq op ?d) t m5)
+		     ;; Same logic as for removed chars above.
+		     (or (and (eq op '?c) props-c) props-a props-c))))
+            (overlay-put last1 'smerge--refine-other last2)
+            (overlay-put last2 'smerge--refine-other last1)
+            (forward-line 1)            ;Skip hunk header.
+            (and (re-search-forward "^[0-9]" nil 'move) ;Skip hunk body.
+                 (goto-char (match-beginning 0))))
+          ;; (cl-assert (or (null last1) (< (overlay-start last1) end1)))
+          ;; (cl-assert (or (null last2) (< (overlay-start last2) end2)))
+          (if smerge-refine-weight-hack
+              (progn
+                ;; (cl-assert (or (null last1) (<= (overlay-end last1) end1)))
+                ;; (cl-assert (or (null last2) (<= (overlay-end last2) end2)))
+                )
+            ;; smerge-refine-forward-function when calling in chopup may
+            ;; have stopped because it bumped into EOB whereas in
+            ;; smerge-refine-weight-hack it may go a bit further.
+            (if (and last1 (> (overlay-end last1) end1))
+                (move-overlay last1 (overlay-start last1) end1))
+            (if (and last2 (> (overlay-end last2) end2))
+                (move-overlay last2 (overlay-start last2) end2))
+            ))))))
+
 ;;;###autoload
 (define-minor-mode futur-hacks-mode
   "Various hacks to force Futur into various corners of Emacs.
@@ -140,13 +311,16 @@ Concretely this means:
   This is used for:
   -  TAB completion in ELisp mode (where we need to
     macroexpand the code).
-  - Flymake byte-compilation in ELisp mode."
+  - Flymake byte-compilation in ELisp mode.
+- Run `smerge-refine-region' asynchronously."
   :global t
   (advice-remove 'elisp--safe-macroexpand-all #'futur--safe-macroexpand-all)
   (advice-remove 'elisp-flymake-byte-compile #'futur--flymake-byte-compile)
+  (advice-remove 'smerge-refine-regions #'futur--smerge-refine-regions)
   (when futur-hacks-mode
     (advice-add 'elisp-flymake-byte-compile :override
                 #'futur--flymake-byte-compile)
+    (advice-add 'smerge-refine-regions :override #'futur--smerge-refine-regions)
     ;; FIXME: This has no effect in Emacs<30 where this function doesn't exist
     ;; and its content is instead "hidden" inside `elisp--local-variables'.
     (advice-add 'elisp--safe-macroexpand-all :override

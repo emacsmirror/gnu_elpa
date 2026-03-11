@@ -175,10 +175,11 @@
                               :buffer buf)))
               (list exitcode
                     (with-current-buffer buf
-                      (buffer-string)))))
-           (res (futur-blocking-wait-to-get-result futur)))
-      (should (equal res
-                     '(0 "00000000: 456d 6163 73                             Emacs\n"))))))
+                     (buffer-string))))))
+      (unwind-protect
+          (should (equal (futur-blocking-wait-to-get-result futur)
+                   '(0 "00000000: 456d 6163 73                             Emacs\n")))
+        (delete-file tmpfile)))))
 
 (ert-deftest futur-process-bounded ()
   (let* ((futures ())
@@ -202,11 +203,11 @@
     (should (process-get proc 'futur--ready))
     (should (null (process-get proc 'futur--destination)))))
 
-(ert-deftest futur-elisp-funcall ()
-  (let ((fut (futur--elisp-funcall #'+ 5 7)))
+(defun futur--tests-elisp-funcall (elisp-funcall)
+  (let ((fut (funcall elisp-funcall #'+ 5 7)))
     (should (equal 12 (futur-blocking-wait-to-get-result fut))))
 
-  (let ((fut (futur--elisp-funcall #'car 7)))
+  (let ((fut (funcall elisp-funcall #'car 7)))
     (should (equal (condition-case err1
                        (futur-blocking-wait-to-get-result fut)
                      (error err1))
@@ -214,7 +215,7 @@
                        (car 7)
                      (error err2)))))
 
-  (let ((fut (futur--elisp-funcall #'documentation 'car)))
+  (let ((fut (funcall elisp-funcall #'documentation 'car)))
     (should (equal (futur-blocking-wait-to-get-result fut)
                    (documentation 'car))))
 
@@ -222,65 +223,34 @@
                 (dotimes (i 1024)
                   (push i chars))
                 (apply #'string (nreverse chars))))
-         (fut (futur--elisp-funcall #'identity str)))
+         (fut (funcall elisp-funcall #'identity str)))
     (should (equal (futur-blocking-wait-to-get-result fut)
                    str)))
 
   (let* ((f (lambda (context)
               (futur-reset-context
                'futur-test-mini context)
-              (symbol-function 'diff-mode)))
+              (let ((fun (symbol-function 'diff-mode)))
+                ;; Beware: can't return a subr because it's not print-readable.
+                (if (subrp fun) 'subr fun))))
          (fut
           (futur-let*
-              ((da1 <- (futur--elisp-funcall f ()))
-               (da2 <- (futur--elisp-funcall f '(diff-mode)))
-               (da3 <- (futur--elisp-funcall f ())))
+              ((da1 <- (funcall elisp-funcall f ()))
+               (da2 <- (funcall elisp-funcall f '(diff-mode)))
+               (da3 <- (funcall elisp-funcall f ())))
             (list da1 da2 da3)))
          (vals (futur-blocking-wait-to-get-result fut)))
     (should (autoloadp (nth 0 vals)))
-    (should (functionp (nth 1 vals)))
+    (should (or (functionp (nth 1 vals)) (eq 'subr (nth 1 vals))))
     (should-not (equal (nth 0 vals) (nth 1 vals)))
     (should (equal (nth 0 vals) (nth 2 vals)))))
+
+(ert-deftest futur-elisp-funcall ()
+  (futur--tests-elisp-funcall #'futur--elisp-funcall))
+
 
 (ert-deftest futur-sandbox-funcall ()
-  (let ((fut (futur--sandbox-funcall #'+ 5 7)))
-    (should (equal 12 (futur-blocking-wait-to-get-result fut))))
-
-  (let ((fut (futur--sandbox-funcall #'car 7)))
-    (should (equal (condition-case err1
-                       (futur-blocking-wait-to-get-result fut)
-                     (error err1))
-                   (condition-case err2
-                       (car 7)
-                     (error err2)))))
-
-  (let ((fut (futur--sandbox-funcall #'documentation 'car)))
-    (should (equal (futur-blocking-wait-to-get-result fut)
-                   (documentation 'car))))
-
-  (let* ((str (let ((chars ()))
-                (dotimes (i 1024)
-                  (push i chars))
-                (apply #'string (nreverse chars))))
-         (fut (futur--sandbox-funcall #'identity str)))
-    (should (equal (futur-blocking-wait-to-get-result fut)
-                   str)))
-
-  (let* ((f (lambda (context)
-              (futur-reset-context
-               'futur-test-mini context)
-              (symbol-function 'diff-mode)))
-         (fut
-          (futur-let*
-              ((da1 <- (futur--sandbox-funcall f ()))
-               (da2 <- (futur--sandbox-funcall f '(diff-mode)))
-               (da3 <- (futur--sandbox-funcall f ())))
-            (list da1 da2 da3)))
-         (vals (futur-blocking-wait-to-get-result fut)))
-    (should (autoloadp (nth 0 vals)))
-    (should (functionp (nth 1 vals)))
-    (should-not (equal (nth 0 vals) (nth 1 vals)))
-    (should (equal (nth 0 vals) (nth 2 vals)))))
+  (futur--tests-elisp-funcall #'futur--sandbox-funcall))
 
 (provide 'futur-tests)
 ;;; futur-tests.el ends here

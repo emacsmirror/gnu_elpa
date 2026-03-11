@@ -611,7 +611,7 @@ Returns a future that returns the same value as FORM.
 Execution of FORMS is guarantee to occur after completion of FORM,
 but it is not guaranteed to occur before completion of the returned future."
   (declare (indent 1) (debug t))
-  `(futur--unwind-protect ,form (lambda () ,@forms)))
+  `(futur--unwind-protect (futur-funcall (lambda () ,form)) (lambda () ,@forms)))
 
 ;;;; Futur blockers
 ;; Futur blockers are the objects over which a futur can be waiting, like

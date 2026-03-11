@@ -126,9 +126,11 @@ A server kind is a symbol.")
     (while (string-match "\n" string)
       (let* ((head (substring string 0 (match-beginning 0)))
              (tail (substring string (match-end 0)))
-             (line (if pending (concat pending head) head)))
+             (line (if pending (concat pending head) head))
+             (parent (process-get proc 'futur--parent))
+             (kind (if parent (process-get parent 'futur--kind) 'orphan)))
         (unless (equal line "")
-          (message "%s: %S" (process-get proc 'futur--kind) line))
+          (message "%s: %S" (or kind 'futur-unknown-kind) line))
         (setq pending nil)
         (setq string tail)))
     (process-put proc 'futur--pending
@@ -171,6 +173,7 @@ A server kind is a symbol.")
                   "-Q" "--batch"
                   "-l" ,(locate-library "futur-server")
                   "-f" "futur-server"))))
+    (process-put stderr 'futur--parent proc)
     (process-put proc 'futur--kind kind)
     (process-put proc 'futur--state :booting)
     (process-put proc 'futur--rid 0)
@@ -262,7 +265,13 @@ A server kind is a symbol.")
 (defun futur--elisp-funcall-1 (futur-proc func args)
   (futur-let*
       ((proc <- futur-proc)
-       (rid (cl-incf (process-get proc 'futur--rid)))
+       (rid
+        ;; FIXME: In Emacs<31, cl-incf on process-get doesn't return
+        ;; the expected value.
+        ;; (cl-incf (process-get proc 'futur--rid))
+        (progn
+          (cl-incf (process-get proc 'futur--rid))
+          (process-get proc 'futur--rid)))
        (_ (with-temp-buffer
             ;; (trace-values :funcall rid func args)
             (process-put proc 'futur--ready nil)

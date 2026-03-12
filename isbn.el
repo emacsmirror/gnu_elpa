@@ -40,6 +40,12 @@
 
 ;;;; Core
 
+(defun isbn--get-interactively ()
+  "Retrieve the ISBN interactively."
+  (if (region-active-p)
+      (buffer-substring-no-properties (region-beginning) (region-end))
+    (read-string "ISBN: ")))
+
 (defun isbn--list->string (isbn)
   "Convert ISBN (list) to a string."
   (mapconcat
@@ -59,24 +65,32 @@
 ;;;; Validation
 
 ;;;###autoload
-(defun isbn-valid-p (isbn)
-  "Return t if ISBN is valid, otherwise nil."
-  (unless (string-match-p (rx (not (any digit ?X ?x ?-))) isbn)
+(defun isbn-valid-p (isbn &optional interactive)
+  "Return t if ISBN is valid, otherwise nil.
+
+Optional argument INTERACTIVE, when non-nil, displays a message
+concerning ISBN's validation."
+  (interactive (list (isbn--get-interactively) t))
+  (if (string-match-p (rx (not (any digit ?X ?x ?-))) isbn)
+      (when interactive (user-error "ISBN has invalid characters"))
     (setq isbn (isbn--string->list isbn))
-    (pcase (length isbn)
-      (10 (thread-first
-            (apply #'+
-                   (seq-map-indexed
-                    (lambda (digit index) (* digit (1+ index)))
-                    isbn))
-            (mod 11) (eq 0)))
-      (13 (thread-first
-            (apply #'+
-                   (seq-map-indexed
-                    (lambda (digit index) (* digit (if (evenp index) 1 3)))
-                    (butlast isbn)))
-            (+ (car (last isbn)))
-            (mod 10) (eq 0))))))
+    (let ((res (pcase (length isbn)
+                 (10 (thread-first
+                       (apply #'+
+                              (seq-map-indexed
+                               (lambda (digit index) (* digit (1+ index)))
+                               isbn))
+                       (mod 11) (eq 0)))
+                 (13 (thread-first
+                       (apply #'+
+                              (seq-map-indexed
+                               (lambda (digit index) (* digit (if (evenp index) 1 3)))
+                               (butlast isbn)))
+                       (+ (car (last isbn)))
+                       (mod 10) (eq 0))))))
+      (when interactive
+        (message (if res "ISBN is valid" "ISBN is not valid")))
+      res)))
 
 ;;;###autoload
 (defun isbn-isbn10-p (isbn)
@@ -95,36 +109,47 @@
 ;;;; Conversion
 
 ;;;###autoload
-(defun isbn-convert (isbn &optional format)
+(defun isbn-convert (isbn &optional format interactive)
   "Convert ISBN between 10- and 13-digit formats.
 
 Optional argument FORMAT (integer: 10, 13) forces conversion to a
-specified format."
+specified format.
+
+Optional argument INTERACTIVE, when non-nil, adds the converted ISBN to
+the kill ring or, when there is an active region, replaces the active
+region with the converted ISBN."
+  (interactive (list (isbn--get-interactively) nil t))
   (unless (isbn-valid-p isbn)
     (user-error "ISBN is invalid"))
   (setq isbn (string-replace "-" "" isbn))
   ;; The algorithms are taken from
   ;; <https://www.isbnservices.com/convert-isbn-10-to-isbn-13/>.
-  (pcase isbn
-    ((pred isbn-isbn10-p)
-     (if (eq format 10) isbn
-       (let* ((isbn (concat "978" (substring isbn 0 -1)))
-              (checkint (seq-map-indexed
-                         (lambda (digit index) (* digit (if (evenp index) 1 3)))
-                         (isbn--string->list isbn)))
-              (check (- 10 (mod (apply #'+ checkint) 10))))
-         (format "%s%i" isbn check))))
-    ((pred isbn-isbn13-p)
-     (if (eq format 13) isbn
-       (unless (string-prefix-p "978" isbn)
-         (user-error "ISBN does not start with `978'"))
-       (let* ((isbn (string-remove-prefix "978" isbn))
-              (checkint (seq-map-indexed
-                         (lambda (digit index) (* digit (1+ index)))
-                         (isbn--string->list (substring isbn 0 -1))))
-              (check (mod (apply #'+ checkint) 11)))
-         (concat isbn (if (eq check 10) "X" (int-to-string check))))))
-    (_ (user-error "ISBN is not 10 or 13 digits"))))
+  (let ((res (pcase isbn
+               ((pred isbn-isbn10-p)
+                (if (eq format 10) isbn
+                  (let* ((isbn (concat "978" (substring isbn 0 -1)))
+                         (checkint (seq-map-indexed
+                                    (lambda (digit index) (* digit (if (evenp index) 1 3)))
+                                    (isbn--string->list isbn)))
+                         (check (- 10 (mod (apply #'+ checkint) 10))))
+                    (format "%s%i" isbn check))))
+               ((pred isbn-isbn13-p)
+                (if (eq format 13) isbn
+                  (unless (string-prefix-p "978" isbn)
+                    (user-error "ISBN does not start with `978'"))
+                  (let* ((isbn (string-remove-prefix "978" isbn))
+                         (checkint (seq-map-indexed
+                                    (lambda (digit index) (* digit (1+ index)))
+                                    (isbn--string->list (substring isbn 0 -1))))
+                         (check (mod (apply #'+ checkint) 11)))
+                    (concat isbn (if (eq check 10) "X" (int-to-string check))))))
+               (_ (user-error "ISBN is not 10 or 13 digits")))))
+    (when interactive
+      (if (region-active-p)
+          (replace-region-contents (region-beginning) (region-end) res)
+        (kill-new res)
+        (message "Converted ISBN added to kill ring")))
+    res))
 
 ;;;; Hyphenation
 
@@ -165,8 +190,13 @@ Results are cached in `isbn-hyphenation-ranges-cache'."
     (and (>= number (car range)) (<= number (cadr range)))))
 
 ;;;###autoload
-(defun isbn-hyphenate (isbn)
-  "Hyphenate ISBN as an ISBN-13."
+(defun isbn-hyphenate (isbn &optional interactive)
+  "Hyphenate ISBN as an ISBN-13.
+
+Optional argument INTERACTIVE, when non-nil, adds the hyphenated ISBN to
+the kill ring or, when there is an active region, replaces the region
+with the hyphenated ISBN."
+  (interactive (list (isbn--get-interactively) t))
   (setq isbn (isbn-convert isbn 13))
   (let* ((isbn-hyphenation-ranges (isbn-hyphenation--ranges))
          hyphenated
@@ -233,7 +263,13 @@ Results are cached in `isbn-hyphenation-ranges-cache'."
     ;; 5. Check digit
     (push (substring isbn -1) hyphenated)
 
-    (string-join (reverse hyphenated) "-")))
+    (setq isbn (string-join (reverse hyphenated) "-")))
+  (when interactive
+    (if (region-active-p)
+        (replace-region-contents (region-beginning) (region-end) isbn)
+      (kill-new isbn)
+      (message "Hyphenated ISBN added to kill ring")))
+  isbn)
 
 (provide 'isbn)
 

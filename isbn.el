@@ -60,7 +60,7 @@
    (lambda (digit)
      (if (eq digit 88) 10
        (string-to-number (char-to-string digit))))
-   (string-replace "-" "" isbn)))
+   (upcase (string-replace "-" "" isbn))))
 
 ;;;; Validation
 

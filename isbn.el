@@ -142,7 +142,8 @@ region with the converted ISBN."
                                     (lambda (digit index) (* digit (1+ index)))
                                     (isbn--string->list (substring isbn 0 -1))))
                          (check (mod (apply #'+ checkint) 11)))
-                    (concat isbn (if (eq check 10) "X" (int-to-string check))))))
+                    (concat (substring isbn 0 -1)
+                            (if (eq check 10) "X" (int-to-string check))))))
                (_ (user-error "ISBN is not 10 or 13 digits")))))
     (when interactive
       (if (region-active-p)

@@ -7,6 +7,7 @@
 ;; Version: 0.1.0
 ;; Keywords: data
 ;; URL: https://codeberg.org/mcookly/isbn.el
+;; Package-Requires: ((emacs "29.1"))
 
 ;; This file is not part of GNU Emacs.
 

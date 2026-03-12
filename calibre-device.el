@@ -77,7 +77,9 @@ Overwrite an existing file if FORCE is non-nil."
   "Transfer the next book."
   (when calibre-device--transfer-queue
     (pcase-let ((`(,book . ,force) (pop calibre-device--transfer-queue)))
-      (message "Transferring: %s" (calibre-book-title book))
+      (message "Transferring: %s (%d remaining)"
+               (calibre-book-title book)
+               (length calibre-device--transfer-queue))
       (calibre-device-send-book book force))))
 
 (defun calibre-device-send-books (books &optional force)

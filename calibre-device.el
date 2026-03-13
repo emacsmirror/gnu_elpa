@@ -1,6 +1,6 @@
 ;;; calibre-device.el --- Interact with external reading devices  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024  Free Software Foundation, Inc.
+;; Copyright (C) 2024,2026  Free Software Foundation, Inc.
 
 ;; This file is part of calibre.el.
 

@@ -1,6 +1,6 @@
 ;;; calibre-info.el --- View details about a particular book -*- lexical-binding:t -*-
 
-;; Copyright (C) 2023-2025  Free Software Foundation, Inc.
+;; Copyright (C) 2025  Free Software Foundation, Inc.
 
 ;; Author: Kjartan Oli Agustsson <kjartanoli@disroot.org>
 ;; Maintainer: Kjartan Oli Agustsson <kjartanoli@disroot.org>

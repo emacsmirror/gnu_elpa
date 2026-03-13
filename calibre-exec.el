@@ -1,6 +1,6 @@
 ;;; calibre-exec.el --- Execute operations on a Library  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2023  Free Software Foundation, Inc.
+;; Copyright (C) 2023–2025  Free Software Foundation, Inc.
 
 ;; This file is part of calibre.el.
 

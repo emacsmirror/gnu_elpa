@@ -1,6 +1,6 @@
 ;;; calibre-db.el --- Interact with the Calibre database -*- lexical-binding:t -*-
 
-;; Copyright (C) 2023,2024  Free Software Foundation, Inc.
+;; Copyright (C) 2023–2025  Free Software Foundation, Inc.
 
 ;; Author: Kjartan Oli Agustsson <kjartanoli@disroot.org>
 ;; Maintainer: Kjartan Oli Agustsson <kjartanoli@disroot.org>

@@ -1,6 +1,6 @@
 ;;; calibre-core.el --- Abstract interface for the Calibre Library  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2023,2024  Free Software Foundation, Inc.
+;; Copyright (C) 2023–2026  Free Software Foundation, Inc.
 
 ;; This file is part of calibre.el.
 

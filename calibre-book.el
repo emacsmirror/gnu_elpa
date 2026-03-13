@@ -1,6 +1,6 @@
 ;;; calibre-book.el --- Create and manage Lisp representations of books -*- lexical-binding:t -*-
 
-;; Copyright (C) 2023  Free Software Foundation, Inc.
+;; Copyright (C) 2023–2025  Free Software Foundation, Inc.
 
 ;; Author: Kjartan Oli Agustsson <kjartanoli@disroot.org>
 ;; Maintainer: Kjartan Oli Agustsson <kjartanoli@disroot.org>

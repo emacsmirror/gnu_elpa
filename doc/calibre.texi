@@ -361,11 +361,11 @@ correspond to the three options.
 @node Adding formats to existing books
 @section Adding formats to existing books
 @findex calibre-library-add-format
-The @code{calibre-library-add-format} allows you to add formats to an
-existing book.  The command will prompt for a file and add that file as
-a new format to the book at point in the @file{*Library*} buffer.  Be
-aware that if you provide a file in a format already present in the
-library the existing file will be overwritten.
+The @code{calibre-library-add-format} command allows you to add formats
+to an existing book.  The command will prompt for a file and add that
+file as a new format to the book at point in the @file{*Library*}
+buffer.  Be aware that if you provide a file in a format already present
+in the library the existing file will be overwritten.
 
 @node Modifying books
 @section Modifying books

@@ -452,13 +452,15 @@ allowing to manage the books stored on these devices.  calibre.el now
 supports a limited subset of this functionality in the form of the
 ability to transfer books from your library to an external device.
 
-To do this call @code{calibre-device-send-books} which will transfer all
-marked books, or the book at point if no books are marked, to an
-external device.  The transfer is performed asynchronously so it will
-not block Emacs but it can take some time to complete.
+To do this call @code{calibre-device-send-books} (bound to @kbd{r s})
+which will transfer all marked books, or the book at point if no books
+are marked, to an external device.  The transfer is performed
+asynchronously so it will not block Emacs but it can take some time to
+complete.
 
-Once the transfer is complete call @code{calibre-device-eject} to safely
-eject the external device before unplugging it from your computer.
+Once the transfer is complete call @code{calibre-device-eject} (bound to
+@kbd{r e}) to safely eject the external device before unplugging it from
+your computer.
 
 @include fdl.texi
 

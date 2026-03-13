@@ -4,7 +4,7 @@
 ;;
 ;; Author: David Arroyo Menéndez <davidam@gmail.com>
 ;; Keywords: Manual, Translation, Spanish, Español
-;; Version: 1.0
+;; Version: 1.0.1
 
 ;;; Commentary:
 

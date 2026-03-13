@@ -31,6 +31,7 @@
 (require 'calibre-virtual-library)
 (require 'calibre-edit)
 (require 'calibre-info)
+(require 'calibre-device)
 
 (defcustom calibre-external-programs nil
   "A mapping of formats to external programs used to read them.
@@ -294,7 +295,9 @@ If called with a prefix argument prompt the user for the format."
   "s" #'calibre-search
   "i" #'calibre-info-view-book
   "RET" #'calibre-library-open-book
-  "o" #'calibre-library-open-book-other-window)
+  "o" #'calibre-library-open-book-other-window
+  "r s" #'calibre-device-send-books
+  "r e" #'calibre-device-eject)
 
 (define-derived-mode calibre-library-mode tabulated-list-mode
   "Library Mode"

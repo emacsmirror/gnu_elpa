@@ -24,7 +24,9 @@
 ;;; Code:
 (require 'calibre-book)
 (require 'calibre-core)
-(require 'calibre-library)
+
+(declare-function calibre-library-mode "calibre-library.el")
+(declare-function calibre--get-active-books "calibre-library.el")
 
 (defconst calibre-device--process-buffer "*ebook-device*"
   "The name of the buffer containing output from ebook-device processes.")

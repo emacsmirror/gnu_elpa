@@ -172,7 +172,9 @@ are marked return those books otherwise return the book at point."
            ((char-equal mark calibre-mark-marker)
             (if (calibre-edit-modified-p book)
                 (calibre-edit-mark-modified book)
-              (tabulated-list-put-tag " " t)))))))))
+              (tabulated-list-put-tag " " t)))
+           (t
+            (tabulated-list-put-tag " " t))))))))
 
 (defun calibre-library-unmark-all (&optional mark)
   "Clear all marks from the library buffer.

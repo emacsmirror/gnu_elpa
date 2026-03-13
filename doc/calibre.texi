@@ -420,6 +420,7 @@ which do not already have them, or remove them from any books that do.
 @subsection Committing and reverting modifications
 @findex calibre-library-execute
 @findex calibre-library-mark-unmark
+@findex calibre-library-unmark-all
 Modifications are not immediately applied to the underlying Calibre
 library, they must be explicitly committed by calling
 @code{calibre-library-execute}.  This allows you to modify multiple
@@ -428,7 +429,8 @@ modifications to a book, bring point to that book and press @kbd{u}
 (@code{calibre-library-mark-unmark}), this will discard any
 modifications which have not been committed by
 @code{calibre-library-execute}.  To discard all modifications to all
-books simply revert the @file{*Library*} buffer.
+books simply revert the @file{*Library*} buffer, or call
+@code{calibre-library-unmark-all} (bound to @kbd{U}).
 
 @node Removing books
 @section Removing books

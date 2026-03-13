@@ -434,11 +434,14 @@ books simply revert the @file{*Library*} buffer.
 @section Removing books
 @findex calibre-library-mark-remove
 @findex calibre-library-execute
+@findex calibre-library-mark-unmark
 To remove books from your library simply move point to the book you wish
 to remove and press @kbd{d} (@code{calibre-library-mark-remove}).  This
 will mark the book for removal.  Once you have marked all the books you
 wish to remove, press @kbd{x} (@code{calibre-library-execute}) to remove
-them.
+them.  If you accidentally mark a book for deletion or decide you do not
+want to remove the book after all press @kbd{u}
+(@code{calibre-library-mark-unmark}) to clear the mark.
 
 @node Interacting with external reading devices
 @chapter Interacting with external reading devices

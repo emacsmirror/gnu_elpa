@@ -1,6 +1,6 @@
 ;;; javaimp-tests.el --- javaimp test util  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2022-2022  Free Software Foundation, Inc.
+;; Copyright (C) 2022-2026  Free Software Foundation, Inc.
 
 ;; Author: Filipp Gunbin <fgunbin@fastmail.fm>
 ;; Maintainer: Filipp Gunbin <fgunbin@fastmail.fm>

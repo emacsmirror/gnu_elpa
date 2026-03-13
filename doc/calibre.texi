@@ -406,6 +406,8 @@ section will operate on the book at point.
 
 @findex calibre-library-add-tags
 @findex calibre-library-remove-tags
+@findex calibre-library-add-authors
+@findex calibre-library-remove-authors
 Currently the only metadata that can be modified from the
 @file{*Library*} buffer are tags and authors, which can be manipulated
 with the commands @code{calibre-library-add-tags},

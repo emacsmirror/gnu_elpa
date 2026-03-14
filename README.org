@@ -163,8 +163,7 @@ appropriate face to the ~lin-face~ ([[#h:2e28af52-8302-4071-a53e-f282f54a862e][I
 The ~lin-global-mode~ follows the same principle, though it applies to
 all hooks specified in the user option ~lin-mode-hooks~.
 
-Note that Lin respects the ~hl-line-sticky-flag~ and its global
-counterpart ~global-hl-line-sticky-flag~.
+Note that Lin respects the ~hl-line-sticky-flag~.
 
 #+vindex: lin-blue
 #+vindex: lin-red

@@ -2453,7 +2453,7 @@ msgstr "Sla geen werk op ..."
 #: emacs-lisp-intro.texi:11843 emacs-lisp-intro.texi:11845
 #, no-wrap
 msgid "No deferment solution"
-msgstr "Geen uitstel oplossing"
+msgstr "Zonder uitstel oplossing"
 
 #. type: subsection
 #: emacs-lisp-intro.texi:606 emacs-lisp-intro.texi:11261
@@ -2476,12 +2476,12 @@ msgstr "Recursief voorbeeld arg van 3 of 4"
 #. type: menuentry
 #: emacs-lisp-intro.texi:615 emacs-lisp-intro.texi:11539
 msgid "Every::"
-msgstr "Every::"
+msgstr "Elke::"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:615 emacs-lisp-intro.texi:11539
 msgid "Accumulate::"
-msgstr "Accumulate::"
+msgstr "Accumuleren::"
 
 #. type: node
 #: emacs-lisp-intro.texi:615 emacs-lisp-intro.texi:11539
@@ -2878,7 +2878,7 @@ msgstr "Lijsten sorteren"
 #: emacs-lisp-intro.texi:15280
 #, no-wrap
 msgid "Files List"
-msgstr "Bestanden lijst"
+msgstr "Bestandenlijst"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:673 emacs-lisp-intro.texi:15194
@@ -3873,11 +3873,11 @@ msgid ""
 "release @kbd{t}.)"
 msgstr ""
 "Ook als je GNU Emacs niet kent heeft het lezen van dit document  veel nut. "
-"Ik raad je echter aan om Emacs te leren, al is het alleen  maar te leren hoe "
-"je over het scherm beweegt. Je kunt zelf  het gebruik van Emacs leren met de "
+"Ik raad je echter aan om Emacs te leren, al is het alleen maar te leren hoe "
+"je over het scherm beweegt. Je kunt zelf het gebruik van Emacs leren met de "
 "ingebouwde tutorial. Om die  te gebruiken, type je @kbd{C-h t}. (Dit "
-"betekent dat je  de toetsen @key{CTRL} @kbd{h} tegelijk indrukt en loslaat, "
-"en daarna  de toets @kbd{t} indrukt en loslaat.) "
+"betekent dat je de toetsen @key{CTRL} @kbd{h} tegelijk indrukt en loslaat, "
+"en daarna de toets @kbd{t} indrukt en loslaat.) "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:963
@@ -3900,22 +3900,22 @@ msgid ""
 "is labeled @key{ALT} and, at the same time, press the @kbd{\\} key."
 msgstr ""
 "Ook verwijs ik vaak naar Emacs's standaard commando's door de  "
-"toetscombinaties te noemen die je gebruikt om het commando aan te roepen  en "
-"vervolgens de naam van het commando tussen haakjes, zoals dit:  @kbd{C-M-\\} "
-"(@code{indent-region}). Wat dit betekent is dat  het @code{indent-region} "
-"commando gebruikelijk wordt aangeroepen door  @kbd{C-M-\\} te typen. (Je "
+"toetscombinaties te noemen die je gebruikt om het commando aan te roepen en "
+"vervolgens de naam van het commando tussen haakjes, zoals dit:x @kbd{C-M-\\} "
+"(@code{indent-region}). Wat dit betekent is dat het @code{indent-region} "
+"commando gebruikelijk wordt aangeroepen door @kbd{C-M-\\} te typen. (Je "
 "kunt, als je dat wilt, de toetscombinaties  om commando's aan te roepen "
 "wijzigen, dit heet @dfn{rebinding}.  @xref{Keymaps, , Keymaps}.)  De "
-"afkorting @kbd{C-M-\\} betekent dat je  de @key{CTRL}-toets, de @key{META}-"
+"afkorting @kbd{C-M-\\} betekent dat je de @key{CTRL}-toets, de @key{META}-"
 "toets en de @kbd{\\}-toets  allemaal tegelijk indrukt. Soms wordt een "
-"toetscombinatie als dit  een keychord genoemd, omdat het vergelijkbaar is "
-"met de manier waarop je  een akkoord op een piano speelt. Wanneer je "
-"toetsenbord geen @key{META}-toets  heeft, dan gebruik je de @key{ESC}-toets "
-"als prefix. In dat geval  betekent @kbd{C-M-\\} dat je eerst de  @key{ESC} "
-"indrukt en loslaat  en daarna tegelijkertijd de  @key{CTRL}-toets en de "
-"@kbd{\\}-toets indrukt.  Maar meestal betekent @kbd{C-M-\\} dat je de "
-"@key{CTRL}-toets samen met  de toets die als @key{ALT} is gelabeld indrukt "
-"en tegelijkertijd de  @kbd{\\}-toets indrukt."
+"toetscombinatie als dit een keychord genoemd, omdat het vergelijkbaar is "
+"met de manier waarop je een akkoord op een piano speelt. Wanneer je "
+"toetsenbord geen @key{META}-toets heeft, dan gebruik je de @key{ESC}-toets "
+"als prefix. In dat geval betekent @kbd{C-M-\\} dat je eerst de @key{ESC} "
+"indrukt en loslaat en daarna tegelijkertijd de @key{CTRL}-toets en de "
+"@kbd{\\}-toets indrukt. Maar meestal betekent @kbd{C-M-\\} dat je de "
+"@key{CTRL}-toets samen met de toets die als @key{ALT} is gelabeld indrukt "
+"en tegelijkertijd de @kbd{\\}-toets indrukt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:972
@@ -3931,9 +3931,9 @@ msgid ""
 msgstr ""
 "In aanvulling op het typen van een toetscombinatie, kan je wat je typt "
 "uitbreiden met de prefix @kbd{C-u}, wat het @dfn{universal argument} heet. "
-"De  @kbd{C-u}-toetscombinatie geeft een argument door aan het eerstvolgende "
+"De @kbd{C-u}-toetscombinatie geeft een argument door aan het eerstvolgende "
 "commando. Dus, om een gebied met gewone tekst 6 spaties te indenten, markeer "
-"je het gebied en vervolgens type je  @w{@kbd{C-u 6 C-M-\\}}. (Wanneer je "
+"je het gebied en vervolgens type je @w{@kbd{C-u 6 C-M-\\}}. (Wanneer je "
 "geen getal opgeeft, dan geeft Emacs hetzij het getal 4 door aan het "
 "commando, of voert het commando anders uit). @xref{Arguments, , Numeric "
 "Arguments, emacs, The GNU Emacs Manual}."
@@ -4321,7 +4321,7 @@ msgid ""
 "an atom.  Here is an example:"
 msgstr ""
 "Tekst tussen dubbele aanhalingstekens ---zelfs zinnen en paragrafen--- is "
-"ook een atoom.  Hier is een voorbeeld:"
+"ook een atoom. Hier is een voorbeeld:"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:1199
@@ -4602,12 +4602,12 @@ msgid ""
 "with a quoted list: place the cursor right after the following list and type "
 "@kbd{C-x C-e}:"
 msgstr ""
-"Je ziet het getal @code{4} verschijnen in het echogebied @footnote{  Emacs "
-"toont integer waardes in decimaal, in octaal en in hex en ook  als een "
+"Je ziet het getal @code{4} verschijnen in het echogebied @footnote{Emacs "
+"toont integer waardes in decimaal, in octaal en in hex en ook als een "
 "karakter, maar laten we deze gemaksfunctie nu even negeren.}. (Wat je "
 "zojuist gedaan hebt is het evalueren van de lijst. Het  echogebied is de "
 "regel aan de onderkant van het scherm dat de  echotekst toont.) Probeer nu "
-"hetzelfde met een gequote lijst: plaats  de cursor meteen achter de volgende "
+"hetzelfde met een gequote lijst: plaats de cursor meteen achter de volgende "
 "lijst en type @kbd{C-x C-e}:"
 
 #. type: smallexample
@@ -4832,7 +4832,7 @@ msgstr ""
 #. type: Plain text
 #: emacs-lisp-intro.texi:1421
 msgid "At the top of the @file{*Backtrace*} buffer, you see the line:"
-msgstr "Bovenaan het  @file{*Backtrace*} buffer zie je de regel:"
+msgstr "Bovenaan het @file{*Backtrace*} buffer zie je de regel:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:1424
@@ -8342,7 +8342,7 @@ msgstr ""
 "entiteit dan elk gebruik van de zelfde naam buiten de functiedefinitie. Stel "
 "je hebt de bijnaam ``Kleintje'' in je familie, dan refereren familieleden "
 "met ``Kleintje'' naar jou. Maar buiten jouw familie, bijvoorbeeld in een "
-"speelfilm, refereert  de naam ``Kleintje'' naar iemand anders. Omdat de naam "
+"speelfilm, refereert de naam ``Kleintje'' naar iemand anders. Omdat de naam "
 "in de argumentlijst privé is voor de functiedefinitie kan je de waarde van "
 "zo'n symbool binnen de body van de functie wijzigen zonder de waarde buiten "
 "de functie te wijzigen. Het effect is vergelijkbaar met dat geproduceerd "
@@ -8878,7 +8878,7 @@ msgid ""
 "the function and use its value for the argument of the function."
 msgstr ""
 "In deze functie is de expressie  @code{(interactive \"p\")} een lijst met "
-"twee elementen. De  @code{\"p\"} vertelt Emacs om het prefix-argument door "
+"twee elementen. De @code{\"p\"} vertelt Emacs om het prefix-argument door "
 "te geven aan de functie en zijn waarde te gebruiken voor het argument van de "
 "functie."
 
@@ -14599,7 +14599,7 @@ msgid ""
 msgstr ""
 "(Omdat ik een cons-cel pas een aantal hoofdstukken verderop uitleg, negeer "
 "alsjeblieft de functie @code{consp}. @xref{Implementatie van lijsten, , Hoe "
-"lijsten zijn geïmplementeerd} en @ref{Cons Cell Type, , Cons Cell and List "
+"lijsten zijn geïmplementeerd}, en @ref{Cons Cell Type, , Cons Cell and List "
 "Types, elisp, The GNU Emacs Lisp Reference Manual}.)"
 
 #. type: Plain text
@@ -23742,6 +23742,12 @@ msgid ""
 "However, even though the program has the same name, it is not the same "
 "entity.  It is different.  In the jargon, it is a different ``instance''."
 msgstr ""
+"Een recursieve functie bevat code die de Lisp interpreter vertelt "
+"een programma aan te roepen dat exact hetzelfde als zichzelf loopt, "
+"maar met iets verschillende argumenten. De code loopt hetzelfde "
+"omdat het dezelfde naam heeft. Hoewel het programma dezelfde naam "
+"is, is het echter niet dezelfde entiteit. Het is verschillend. In "
+"het jargon heet het een andere ``instantie''."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11055
@@ -23750,24 +23756,27 @@ msgid ""
 "arguments will become sufficiently different from the first arguments that "
 "the final instance will stop."
 msgstr ""
+"Als het programma correct geschreven is dan gaan de iets "
+"verschillende argumenten genoeg van het eerste argument verschillen "
+"dat de laatste instantie stopt."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:11068
 #, no-wrap
 msgid "Building Robots: Extending the Metaphor"
-msgstr ""
+msgstr "Robots bouwen: de metafoor uitbreiden"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11069
 #, no-wrap
 msgid "Building robots"
-msgstr ""
+msgstr "Robots bouwen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11070
 #, no-wrap
 msgid "Robots, building"
-msgstr ""
+msgstr "Robots, bouwen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11077
@@ -23778,6 +23787,11 @@ msgid ""
 "the second robot helps the first and has been passed different arguments "
 "than the first."
 msgstr ""
+"Soms is het nuttig om een draaiend programma te zien als een robot "
+"die zijn werk doet. Tijdens het uitvoeren van het werk vraagt een "
+"recursieve functie een tweede robot om te helpen. De tweede robot is "
+"op elke manier identiek aan de eerste, behalve dat de tweede robot "
+"de eerste helpt en dat het andere argumenten krijgt dan de eerste."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11081
@@ -23786,6 +23800,9 @@ msgid ""
 "may call a fourth, and so on.  Each of these is a different entity; but all "
 "are clones."
 msgstr ""
+"In een recursieve functie kan een tweede robot een derde roepen, en "
+"een derde een vierde, enzovoort. Elk van deze is een aparte "
+"entiteit, maar het zijn allemaal klonen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11085
@@ -23793,11 +23810,14 @@ msgid ""
 "Since each robot has slightly different instructions---the arguments will "
 "differ from one robot to the next---the last robot should know when to stop."
 msgstr ""
+"Omdat elke robot iets verschillende instructies heeft---de "
+"argumenten verschillen van de ene robot tot de volgende---moet de "
+"laatste robot weten wanneer te stoppen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11087
 msgid "Let's expand on the metaphor in which a computer program is a robot."
-msgstr ""
+msgstr "Laten we de metafoor van een computerprogamma als robot uitbreiden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11095
@@ -23809,6 +23829,13 @@ msgid ""
 "according to the same blueprints.  So they have the same model number, but a "
 "different serial number."
 msgstr ""
+"Een functiedefinitie bevat de blauwdruk voor de robot. Wanneer je "
+"een functiedefinitie installeert, dat wil zeggen, wanneer je een "
+"@code{defun} macro evalueert, installeer je de benodigde apparatuur "
+"om robots te bouwen. Het is net alsof je in een fabriek een "
+"assemblagelijn opzet. Robots met dezelfde naam worden volgens "
+"dezelfde blauwdruk gebouwd. Dus ze hebben hetzelfde modelnummer, "
+"maar een verschillend serienummer."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11100
@@ -23818,6 +23845,10 @@ msgid ""
 "run a different function that has the same name and does the same job as the "
 "first, but with different arguments."
 msgstr ""
+"We zeggen vaak dat een recursieve functie ``zichzelf aanroept''. Wat we "
+"willen zeggen is dat de instructies in een recursieve functie de Lisp "
+"interpreter een andere functie laten aanroepen, die dezelfde naam heeft "
+"en hetzelfde werk doet als de eerste, maar met verschillende argumenten."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11103
@@ -23825,18 +23856,20 @@ msgid ""
 "It is important that the arguments differ from one instance to the next; "
 "otherwise, the process will never stop."
 msgstr ""
+"Het is belangrijk dat de argumenten tussen de ene instantie en de volgende "
+"verschillend zijn, anders zal het proces nooit stoppen."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:11105
 #, no-wrap
 msgid "The Parts of a Recursive Definition"
-msgstr ""
+msgstr "De onderdelen van een recursieve definitie"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11106
 #, no-wrap
 msgid "Parts of a Recursive Definition"
-msgstr ""
+msgstr "Onderdelen van een recursieve definitie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11111
@@ -23844,6 +23877,8 @@ msgid ""
 "A recursive function typically contains a conditional expression which has "
 "three parts:"
 msgstr ""
+"Een recursieve functie bevat typisch een conditionele expressie die drie "
+"onderdelen heeft:"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:11116
@@ -23851,6 +23886,8 @@ msgid ""
 "A true-or-false-test that determines whether the function is called again, "
 "here called the @dfn{do-again-test}."
 msgstr ""
+"Een waar-of-onwaar-test die vaststelt of de functie opnieuw aangeroepen is, "
+"hier de @dfn{doe-opnieuw-test} genoemd."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:11120
@@ -23858,6 +23895,9 @@ msgid ""
 "The name of the function.  When this name is called, a new instance of the "
 "function---a new robot, as it were---is created and told what to do."
 msgstr ""
+"De naam van de functie. Wanneer de naam wordt aangeroepen, wordt een "
+"nieuwe instantie van de functie---een nieuwe robot als het "
+"ware---gecreëerd en verteld wat te doen."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:11128
@@ -23869,6 +23909,13 @@ msgid ""
 "conditional expression, the @dfn{do-again-test}, to test false after the "
 "correct number of repetitions."
 msgstr ""
+"Een expressie die elke keer dat de functie word aangeroepen een "
+"andere waarde teruggeeft, hier de @dfn{volgende-stap-expressie} "
+"genoemd. Daardoor zal het aan de nieuwe instantie doorgeven argument "
+"(of argumenten) verschillen van wat aan de vorige instantie was "
+"doorgegeven. Dit zorgt dat de conditionele expresie, de "
+"@dfn{doe-opnieuw-test}, na het correcte aantal herhalingen naar "
+"onwaar testen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11135
@@ -23879,6 +23926,12 @@ msgid ""
 "recursive function definition takes a certain knack which is hard at first "
 "but then seems simple."
 msgstr ""
+"Recursieve functies kunnen veel eenvoudiger zijn dan elk ander soort "
+"functie. Inderdaad, wanneer mensen ze beginnen te gebruiken, lijken "
+"ze vaak zo mysterieus eenvoudig dat ze onbegrijpelijk zijn Net als "
+"op een fiets rijden, vereist het lezen van een recursieve functie "
+"een bepaalde kundigheid die in het begin moeilijk is maar later "
+"eenvoudig lijkt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11139
@@ -23886,6 +23939,8 @@ msgid ""
 "There are several different common recursive patterns.  A very simple "
 "pattern looks like this:"
 msgstr ""
+"Er zijn verschillende gebruikelijke recursieve patronen. Een erg "
+"eenvoudig patroon ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:11148
@@ -23898,6 +23953,12 @@ msgid ""
 "    (@var{name-of-recursive-function}\n"
 "         @var{next-step-expression})))\n"
 msgstr ""
+"(defun @var{naam-van-recursieve-functie} (@var{argument-list})\n"
+"  \"@var{documentatie}@dots{}\"\n"
+"  (if @var{doe-opnieuw-test}\n"
+"    @var{body}@dots{}\n"
+"    (@var{naam-van-recursieve-functie}\n"
+"         @var{volgende-stap-expressie})))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11153
@@ -23905,6 +23966,9 @@ msgid ""
 "Each time a recursive function is evaluated, a new instance of it is created "
 "and told what to do.  The arguments tell the instance what to do."
 msgstr ""
+"Elke keer dat een recursieve functie wordt geëvalueerd worden een "
+"nieuwe instantie er van gecreëerd en verteld wat te doen. De "
+"argumenten vertellen de instantie wat te doen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11156
@@ -23912,11 +23976,13 @@ msgid ""
 "An argument is bound to the value of the next-step-expression.  Each "
 "instance runs with a different value of the next-step-expression."
 msgstr ""
+"Een argument wordt gebonden aan de waarde van de volgende-stap-expressie. "
+"Elke instantie draait met een andere waarde van de volgende-stap-expressie. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11158
 msgid "The value in the next-step-expression is used in the do-again-test."
-msgstr ""
+msgstr "De waarde van de volgende-stap-expressie wordt gebruik in de doe-opnieuw-test."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11164
@@ -23927,6 +23993,12 @@ msgid ""
 "so that the do-again-test returns false when the function should no longer "
 "be repeated."
 msgstr ""
+"De waarde die de volgende-stap-expressie teruggeeft wordt "
+"doorgegeven aan de nieuwe instantie van de functie, die het "
+"evalueert (of een transformatie er van) om vast te stellen of het "
+"moet doorgaan of stoppen. De volgende-stap-expressie is zo ontworpen "
+"dat de doe-opnieuw-test onwaar teruggeeft wanneer de functie niet "
+"langer meer moet worden herhaald."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11167
@@ -23934,12 +24006,14 @@ msgid ""
 "The do-again-test is sometimes called the @dfn{stop condition}, since it "
 "stops the repetitions when it tests false."
 msgstr ""
+"De doe-opnieuw-test wordt soms de @dfn{stop conditie} genoemd, omdat "
+"het de herhalingen stopt wanneer het als onwaar test."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:11169
 #, no-wrap
 msgid "Recursion with a List"
-msgstr ""
+msgstr "Recursie met een lijst"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11174
@@ -23948,6 +24022,10 @@ msgid ""
 "numbers can be written recursively.  Here is the code, including an "
 "expression to set the value of the variable @code{animals} to a list."
 msgstr ""
+"Het voorbeeld van een @code{while} loop dat de elementen van een "
+"lijst met getallen kan recursief geschreven worden. Hier is de code "
+"inclusief een expressie die de waarde van de variabele @code{dieren} "
+"naar een lijst zet."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11182
@@ -23960,6 +24038,13 @@ msgid ""
 "interpreter will try to squeeze the results into the one line of the echo "
 "area."
 msgstr ""
+"Wanneer je dit in Info in Emacs leest, kan je expressie direct in "
+"Info evalueren. Zo dan, dan moet je het voorbeeld kopiëren in het "
+"@file{*scratch*} buffer en het daar evalueren. Gebruik @kbd{C-u C-x "
+"C-e} om de @code{(print-elementen-recursief dieren)} te evalueren "
+"zodat de resultaten in het buffer getoond worden, zo niet dan "
+"probeert de Lisp interpreter de resultaten in een enkele regel in "
+"het echogebied samen te knijpen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11186
@@ -23968,12 +24053,15 @@ msgid ""
 "the @code{print-elements-recursively} function, before the comment.  "
 "Otherwise, the Lisp interpreter will try to evaluate the comment."
 msgstr ""
+"Plaats de cursor direct achter het laatste haakje sluiten van de "
+"functie @code{print-elementen-recursief}, voor het commentaar. Anders "
+"probeert de Lisp interpreter het commentaar te evalueren."
 
 #. type: findex
 #: emacs-lisp-intro.texi:11187
 #, no-wrap
 msgid "print-elements-recursively"
-msgstr ""
+msgstr "print-elementen-recursief"
 
 #. type: group
 #: emacs-lisp-intro.texi:11199 emacs-lisp-intro.texi:11619
@@ -23988,12 +24076,20 @@ msgid ""
 "         (cdr list))))                  ; @r{next-step-expression}\n"
 "\n"
 msgstr ""
+"(defun print-elementen-recursief (lijst)\n"
+"  \"Toon elk element van LIJST op een eigen regel.\n"
+"Gebruikt recursie.\"\n"
+"  (when lijst                            ; @r{doe-opnieuw-test}\n"
+"        (print (car lijst))              ; @r{body}\n"
+"        (print-elementen-recursief        ; @r{recursieve aanroep}\n"
+"         (cdr lijst))))                  ; @r{volgende-stap-expressie}\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11201 emacs-lisp-intro.texi:11621
 #, no-wrap
 msgid "(print-elements-recursively animals)\n"
-msgstr ""
+msgstr "(print-elementen-recursief dieren)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11210
@@ -24004,6 +24100,11 @@ msgid ""
 "but gives itself as its argument, not the whole list, but the second and "
 "subsequent elements of the list, the @sc{cdr} of the list."
 msgstr ""
+"De functie @code{print-elementen-recursief} test eerst of er inhoud "
+"in de lijst is. Wanneer dat zo is, toont de functie het eerste "
+"element van de lijst, de @sc{car} van de lijst. Vervolgens roept de "
+"functie zichzelf aan maar geeft zichzelf niet de hele lijst maar het "
+"tweede en volgende elementen van de lijst, de @sc{cdr} van de lijst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11215
@@ -24012,6 +24113,10 @@ msgid ""
 "instance of code that is similar to the initial code, but is a different "
 "thread of execution, with different arguments than the first instance."
 msgstr ""
+"Anders gezegd, wanneer de lijst niet leeg is, start de functie een "
+"nieuwe instantie van code die vergelijkbaar is met de initiële code, "
+"maar is een andere uitvoerings-thread, met andere argumenten dan de "
+"eerste instantie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11219
@@ -24020,6 +24125,9 @@ msgid ""
 "a second robot and tells it what to do; the second robot is a different "
 "individual from the first, but is the same model."
 msgstr ""
+"Weer anders gezegd, wanneer de lijst niet leeg is, bouwt de eerste "
+"robot een tweede robot en zegt die wat de doen. De tweede robot is "
+"een ander individu dan de eerste, maar is het zelfde model."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11226
@@ -24031,6 +24139,13 @@ msgid ""
 "which (the second time around) is the @sc{cdr} of the @sc{cdr} of the "
 "original list."
 msgstr ""
+"Wanneer de tweede evaluatie plaatsvindt wordt de @code{when} "
+"expressie geëvalueerd en als die waar is toont die het eerste "
+"element van de lijst die het als zijn argument had gekregen (die het "
+"tweede element is van de originele lijst is). Hierna roept de functie "
+"zichzelf aan met de @sc{cdr} van de lijst waarmee het aangeroepen is "
+"wat (de tweede ronde) de @sc{cdr} van de @sc{cdr} van de originele "
+"lijst is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11231
@@ -24040,6 +24155,10 @@ msgid ""
 "program.  The new instance is a clone of the first, but is a separate "
 "individual."
 msgstr ""
+"Merk op dat hoewel we zeggen dat de functie ``zichzelf aanroept'' we "
+"bedoelen dat de Lisp interpreter een nieuwe instantie van het "
+"programma maakt en instrueert. De nieuwe instantie is een kloon van "
+"de eerste, maar is een separaat individu."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11235
@@ -24047,6 +24166,9 @@ msgid ""
 "Each time the function invokes itself, it does so on a shorter version of "
 "the original list.  It creates a new instance that works on a shorter list."
 msgstr ""
+"Elke keer dat de functie zichzelf aanroept doet het dat met een "
+"kortere versie van de originele lijst. Het creëert een nieuwe "
+"instantie die werkt met een kortere lijst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11241
@@ -24057,6 +24179,12 @@ msgid ""
 "@code{when} expression tests false so the then-part is not evaluated.  The "
 "function as a whole then returns @code{nil}."
 msgstr ""
+"Uiteindelijk roept de functie zichzelf aan met een lege lijst. Dit "
+"creëert een nieuwe instantie wiens argument @code{nil} is. De "
+"conditionele expressie test de waarde van @code{lijst}. Omdat de "
+"waarde van @code{nil} @code{nil} is, test de @code{when} expressie "
+"onwaar en dus wordt het dan-deel niet geëvalueerd. De functie als "
+"geheel geeft @code{nil} terug."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11245
@@ -24064,6 +24192,8 @@ msgid ""
 "When you evaluate the expression @code{(print-elements-recursively animals)} "
 "in the @file{*scratch*} buffer, you see this result:"
 msgstr ""
+"Wanneer je de expressie @code{(print-elementen-recursief dieren)} "
+"in het @file{*scratch*} buffer evalueert, zie je dit resultaat:"
 
 #. type: node
 #: emacs-lisp-intro.texi:11260
@@ -24075,7 +24205,7 @@ msgstr "Recursieve driehoek functie"
 #: emacs-lisp-intro.texi:11262
 #, no-wrap
 msgid "triangle-recursively"
-msgstr ""
+msgstr "driehoek-recursief"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11267
@@ -24083,6 +24213,8 @@ msgid ""
 "The @code{triangle} function described in a previous section can also be "
 "written recursively.  It looks like this:"
 msgstr ""
+"De in een eerdere beschreven functie @code{driehoek} kan ook "
+"recursief worden geschreven. Dit ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:11278
@@ -24098,12 +24230,21 @@ msgid ""
 "        (1- number)))))               ; @r{next-step-expression}\n"
 "\n"
 msgstr ""
+"(defun driehoek-recursief (aantal)\n"
+"  \"Geef de som van de getallen 1 tot en met AANTAL terug.\n"
+"Met recursie.\"\n"
+"  (if (= aantal 1)                    ; @r{doe-opnieuw-test}\n"
+"      1                               ; @r{dan-deel}\n"
+"    (+ aantal                         ; @r{anders-deel}\n"
+"       (driehoek-recursief            ; @r{recursieve aanroep}\n"
+"        (1- aantal)))))               ; @r{volgende-stap-expressie}\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11280
 #, no-wrap
 msgid "(triangle-recursively 7)\n"
-msgstr ""
+msgstr "(driehoek-recursief 7)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11288
@@ -24113,6 +24254,10 @@ msgid ""
 "after the last parenthesis of the function definition, before the comment.)  "
 "The function evaluates to 28."
 msgstr ""
+"Je kunt deze functie installeren door het te evalueren en dan uitproberen "
+"door @code{(driehoek-recursief 7)} te evalueren. (Denk er aan de cursor "
+"direct achter het laatste haakje sluiten van de functiedefinitie te "
+"plaatsen, voor het commentaar.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11292
@@ -24121,6 +24266,9 @@ msgid ""
 "various cases when the function is passed 1, 2, 3, or 4 as the value of its "
 "argument."
 msgstr ""
+"Om te begrijpen hoe deze functie werkt, beschouwen we wat gebeurt in "
+"de verschillende gevallen wanneer de functie 1, 2, 3 of 4 als waarde "
+"van zijn argument krijgt doorgegeven."
 
 #. type: node
 #: emacs-lisp-intro.texi:11299
@@ -24132,12 +24280,12 @@ msgstr "Recursief voorbeeld arg van 1 of 2"
 #: emacs-lisp-intro.texi:11300
 #, no-wrap
 msgid "An argument of 1 or 2"
-msgstr ""
+msgstr "Een argument van 1 of 2"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11304
 msgid "First, what happens if the value of the argument is 1?"
-msgstr ""
+msgstr "Ten eerste wat gebeurt als de waarde van het argument 1 is?"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11310
@@ -24148,6 +24296,11 @@ msgid ""
 "number 1 as the value of the function.  (A triangle with one row has one "
 "pebble in it.)"
 msgstr ""
+"De functie heef een @code{if} expressie na de documentatiestring. "
+"Die test of de waarde van @code{aantal} gelijk is aan 1. Wanneer dat "
+"zo is, evalueert Emacs het dan-deel van de @code{if} exprissie, die "
+"1 teruggeeft als waarde van de functie. (Een driehoek met één rij "
+"bevat één steentje.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11313
@@ -24155,6 +24308,8 @@ msgid ""
 "Suppose, however, that the value of the argument is 2.  In this case, Emacs "
 "evaluates the else-part of the @code{if} expression."
 msgstr ""
+"Stel echter dat de waarde van het argument 2 is. In dat geval "
+"evalueert Emacs het anders-deel van de @code{if} expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11318
@@ -24162,12 +24317,14 @@ msgid ""
 "The else-part consists of an addition, the recursive call to @code{triangle-"
 "recursively} and a decrementing action; and it looks like this:"
 msgstr ""
+"Het anders-deel bestaat uit een optelling, de recursieve aanroep van "
+"@code{driehoek-recursief} en een aflopende actie, en ziet er zo uit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:11321
 #, no-wrap
 msgid "(+ number (triangle-recursively (1- number)))\n"
-msgstr ""
+msgstr "(+ aantal (driehoek-recursief (1- aantal)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11326
@@ -24175,12 +24332,15 @@ msgid ""
 "When Emacs evaluates this expression, the innermost expression is evaluated "
 "first; then the other parts in sequence.  Here are the steps in detail:"
 msgstr ""
+"Wanneer Emacs deze expressie evalueert, wordt de binnenste expressie "
+"het eerste geëvalueerd, daarna de andere delen opvolgend. Hier zijn "
+"de stappen in detail:"
 
 #. type: item
 #: emacs-lisp-intro.texi:11328
 #, no-wrap
 msgid "Step 1 @w{  } Evaluate the innermost expression."
-msgstr ""
+msgstr "Stap 1 @w{  } Evalueer de binnenste expressie"
 
 #. type: table
 #: emacs-lisp-intro.texi:11332
@@ -24188,12 +24348,14 @@ msgid ""
 "The innermost expression is @code{(1- number)} so Emacs decrements the value "
 "of @code{number} from 2 to 1."
 msgstr ""
+"De binnenste expressie is @code{1- aantal}, dus Emacs verlaagt de "
+"waarde van @code{aantal} van 2 naar 1."
 
 #. type: item
 #: emacs-lisp-intro.texi:11333
 #, no-wrap
 msgid "Step 2 @w{  } Evaluate the @code{triangle-recursively} function."
-msgstr ""
+msgstr "Stap 2 @w{  } Evalueer de functie @code{driehoek-recursief}."
 
 #. type: table
 #: emacs-lisp-intro.texi:11340
@@ -24203,6 +24365,11 @@ msgid ""
 "itself.  Emacs passes the result Step 1 as the argument used by this "
 "instance of the @code{triangle-recursively} function"
 msgstr ""
+"De Lisp interpreter creëert een individuele instantie van "
+"@code{driehoek-recursief}. Het maakt niet uit dat deze functie "
+"binnen zichzelf staat. Emacs geeft het resultaat Stap 1 als argument "
+"gebruikt door deze instantie van de functie "
+"@code{driehoek-recursief}."
 
 #. type: table
 #: emacs-lisp-intro.texi:11344
@@ -24211,12 +24378,15 @@ msgid ""
 "of 1.  This means that this evaluation of @code{triangle-recursively} "
 "returns 1."
 msgstr ""
+"In dit geval evalueert Emacs @code{driehoek-recursief} met een "
+"argument 1. Dit betekent dat deze evaluatie van "
+"@code{driehoek-recursief} 1 teruggeeft."
 
 #. type: item
 #: emacs-lisp-intro.texi:11345
 #, no-wrap
 msgid "Step 3 @w{  } Evaluate the value of @code{number}."
-msgstr ""
+msgstr "Stap 3 @w{  } Evalueer de waarde van @code{aantal}."
 
 #. type: table
 #: emacs-lisp-intro.texi:11349
@@ -24224,12 +24394,14 @@ msgid ""
 "The variable @code{number} is the second element of the list that starts "
 "with @code{+}; its value is 2."
 msgstr ""
+"De variabele @code{aantal} is het tweede element van de lijst die start "
+"met @code{+}. De waarde is 2."
 
 #. type: item
 #: emacs-lisp-intro.texi:11350
 #, no-wrap
 msgid "Step 4 @w{  } Evaluate the @code{+} expression."
-msgstr ""
+msgstr "Stap 4 @w{  } Evalueer de @code{+} expressie."
 
 #. type: table
 #: emacs-lisp-intro.texi:11355
@@ -24238,6 +24410,9 @@ msgid ""
 "evaluation of @code{number} (Step 3) and the second from the evaluation of "
 "@code{triangle-recursively} (Step 2)."
 msgstr ""
+"De @code{+} expressie ontvangt twee argumenten, de eerste van het "
+"evalueren van @code{aantal} (Stap 3) en het tweede van de evaluatie "
+"van @code{driehoek-recursief} (Stap 2)."
 
 #. type: table
 #: emacs-lisp-intro.texi:11359
@@ -24246,24 +24421,29 @@ msgid ""
 "returned, which is correct.  A triangle with two rows has three pebbles in "
 "it."
 msgstr ""
+"Het resultaat van de optelling is de som van 2 plus 1 en het getal 3 wordt "
+"teruggegeven. dit is correct. Een driehoek met twee rijen bevat drie "
+"steentjes."
 
 #. type: unnumberedsubsubsec
 #: emacs-lisp-intro.texi:11362
 #, no-wrap
 msgid "An argument of 3 or 4"
-msgstr ""
+msgstr "Een argument van 3 of 4"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11366
 msgid ""
 "Suppose that @code{triangle-recursively} is called with an argument of 3."
 msgstr ""
+"Stel dat @code{driehoek-recursief} wordt aangeroepen met een "
+"argument van 3."
 
 #. type: item
 #: emacs-lisp-intro.texi:11368
 #, no-wrap
 msgid "Step 1 @w{  } Evaluate the do-again-test."
-msgstr ""
+msgstr "Stap 1 @w{  } Evaluaeer de doe-opnieuw-test."
 
 #. type: table
 #: emacs-lisp-intro.texi:11375
@@ -24273,12 +24453,17 @@ msgid ""
 "(Note that in this example, the do-again-test causes the function to call "
 "itself when it tests false, not when it tests true.)"
 msgstr ""
+"De @code{if} expressie wordt eerst geëvalueerd. Dit is de "
+"doe-opnieuw-test en geeft onwaar terug, dus het anders-deel van de "
+"@code{if} expressie wordt geëvalueerd. (Merk op dat in dit voorbeeld "
+"de doe-opnieuw-test zorgt dat de functie zichzelf aanroept wanneer "
+"die onwaar test, en niet wanneer die waar test.)"
 
 #. type: item
 #: emacs-lisp-intro.texi:11376
 #, no-wrap
 msgid "Step 2 @w{  } Evaluate the innermost expression of the else-part."
-msgstr ""
+msgstr "Stap 2 @w{  } Evalueer de binnenste expressie van het anders-deel."
 
 #. type: table
 #: emacs-lisp-intro.texi:11380
@@ -24286,17 +24471,19 @@ msgid ""
 "The innermost expression of the else-part is evaluated, which decrements 3 "
 "to 2.  This is the next-step-expression."
 msgstr ""
+"De binnenste expressie van het anders-deel wordt geëvalueerd, die 3 "
+"verlaagt naar 2. Dit is de volgende-stap-expressie."
 
 #. type: item
 #: emacs-lisp-intro.texi:11381
 #, no-wrap
 msgid "Step 3 @w{  } Evaluate the @code{triangle-recursively} function."
-msgstr ""
+msgstr "Stap 3 @w{  } Evalueer de functie @code{driehoek-recursief}."
 
 #. type: table
 #: emacs-lisp-intro.texi:11384
 msgid "The number 2 is passed to the @code{triangle-recursively} function."
-msgstr ""
+msgstr "Het getal 2 is doorgegeven aan de functie @code{driehoek-recursief}."
 
 #. type: table
 #: emacs-lisp-intro.texi:11388
@@ -24306,12 +24493,16 @@ msgid ""
 "actions described earlier, it returns a value of 3.  So that is what will "
 "happen here."
 msgstr ""
+"We weten al wat gebeurt wanneer Emacs de @code{driehoek-recursief} "
+"evalueert met een argument van 2. Nadat het door de eerder "
+"beschreven reeks acties heen is gegaan, geeft het een waarde 3 "
+"terug. Dus dat is wat hier gebeurt."
 
 #. type: item
 #: emacs-lisp-intro.texi:11389
 #, no-wrap
 msgid "Step 4 @w{  } Evaluate the addition."
-msgstr ""
+msgstr "Stap 4 @w{  } Evalueer de optelling."
 
 #. type: table
 #: emacs-lisp-intro.texi:11393
@@ -24319,11 +24510,13 @@ msgid ""
 "3 will be passed as an argument to the addition and will be added to the "
 "number with which the function was called, which is 3."
 msgstr ""
+"3 wordt doorgegeven als een argument van de optelling en wordt "
+"opgeteld bij het getal waarmee de functie was aangeroepen, dat 3 is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11397
 msgid "The value returned by the function as a whole will be 6."
-msgstr ""
+msgstr "De waarde teruggeven door de functie als geheel is 6."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11401
@@ -24332,28 +24525,31 @@ msgid ""
 "with an argument of 3, it is evident what will happen if it is called with "
 "an argument of 4:"
 msgstr ""
+"Nu we weten wat gebeurt wanneer @code{driehoek-recursief} wordt "
+"aangeroepen met een argument van 3, ligt het voor de hand wat "
+"gebeurt als het wordt aangeroepen met een argument van 4."
 
 #. type: quotation
 #: emacs-lisp-intro.texi:11405
 msgid "In the recursive call, the evaluation of"
-msgstr ""
+msgstr "In de recursieve aanroep, geeft de evaluatie van"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:11408
 #, no-wrap
 msgid "(triangle-recursively (1- 4))\n"
-msgstr ""
+msgstr "(driehoek-recursief (1- 4)\n"
 
 #. type: quotation
 #: emacs-lisp-intro.texi:11413
 msgid "will return the value of evaluating"
-msgstr ""
+msgstr "de waarde van het evalueren van"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:11416
 #, no-wrap
 msgid "(triangle-recursively 3)\n"
-msgstr ""
+msgstr "(driehoek-recursief 3)\n"
 
 #. type: quotation
 #: emacs-lisp-intro.texi:11421
@@ -24361,11 +24557,13 @@ msgid ""
 "which is 6 and this value will be added to 4 by the addition in the third "
 "line."
 msgstr ""
+"wat 6 is en deze waarde wordt opgeteld bij 4 door de optelling in de "
+"derde regel."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11425
 msgid "The value returned by the function as a whole will be 10."
-msgstr ""
+msgstr "De waarde teruggeven door de functie als geheel is 10."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11430
@@ -24374,6 +24572,10 @@ msgid ""
 "of itself---a different instance of itself---with a smaller argument, until "
 "the argument is small enough so that it does not evaluate itself."
 msgstr ""
+"Elke keer dat @code{driehoek-recursief} wordt geëvalueerd, evalueert "
+"het een versie van zichzelf---een andere instantie van "
+"zichzelf---met een kleiner argument, totdat het argument klein "
+"genoeg is en het niet zichzelf evalueert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11433
@@ -24381,6 +24583,8 @@ msgid ""
 "Note that this particular design for a recursive function requires that "
 "operations be deferred."
 msgstr ""
+"Merk op dat dit specifieke ontwerp voor een recursieve functie vereist dat "
+"operaties kunnen worden uitgesteld."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11442
@@ -24393,6 +24597,15 @@ msgid ""
 "calculation; and @code{(triangle-recursively 6)} must defer until "
 "@code{(triangle-recursively 5)} completes; and so on."
 msgstr ""
+"Voordat @code{(driehoek-recursief 7)} een antwoord kan berekenen, "
+"moet het @code{(driehoek-recursief 6)} aanroepen, en voordat "
+"@code{(driehoek-recursief 6)} een antwoord kan berekenen, moet het "
+"@code{(driehoek-recursief 5)} aanroepen, enzovoorts. Met andere "
+"woorden, de berekening die @code{(driehoek-recursief 7)} maakt moet "
+"worden uitgesteld totdat @code{(driehoek-recursief 6)} een "
+"berekening gemaakt heeft, en @code{(driehoek-recursief 6)} moet "
+"worden uitgesteld totdat @code{(driehoek-recursief 5)} klaar is, "
+"enzovoorts."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11447
@@ -24401,6 +24614,10 @@ msgid ""
 "different robots, the first robot must wait for the second to complete its "
 "job, which must wait until the third completes, and so on."
 msgstr ""
+"Wanneer al deze instanties van @code{driehoek-recursief} beschouwd "
+"worden als verschillende robots, dan moet de eerste robot wachten "
+"tot de tweede robot zijn werk gedaan heeft, en die moet weer wachten "
+"tot de derde robot klaar is, enzovoorts."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11450
@@ -24408,6 +24625,8 @@ msgid ""
 "There is a way around this kind of waiting, which we will discuss in @ref{No "
 "Deferment, , Recursion without Deferments}."
 msgstr ""
+"Er is een manier om dit soort uitstel te omzeilen, die we bespreken "
+"in @ref{Geen uitstel, , Recursie zonder uitstel}."
 
 #. type: node
 #: emacs-lisp-intro.texi:11451
@@ -24419,13 +24638,13 @@ msgstr "Recursie met cond"
 #: emacs-lisp-intro.texi:11452
 #, no-wrap
 msgid "Recursion Example Using @code{cond}"
-msgstr ""
+msgstr "Recursie voorbeeld met @code{cond} "
 
 #. type: findex
 #: emacs-lisp-intro.texi:11453
 #, no-wrap
 msgid "cond"
-msgstr ""
+msgstr "cond"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11459
@@ -24435,6 +24654,11 @@ msgid ""
 "form called @code{cond}.  The name of the special form @code{cond} is an "
 "abbreviation of the word @samp{conditional}."
 msgstr ""
+"De eerder beschreven versie van @code{driehoek-recursief} is "
+"geschreven met de speciale vorm @code{if}. Het kan ook worden "
+"geschreven met een andere speciale vorm met de naam @code{cond}. De "
+"naam van de speciale vorm @code{cond} is een afkorting van het woord "
+"@code{conditioneel}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11463
@@ -24442,11 +24666,14 @@ msgid ""
 "Although the @code{cond} special form is not used as often in the Emacs Lisp "
 "sources as @code{if}, it is used often enough to justify explaining it."
 msgstr ""
+"Alhoewel de speciale vorm @code{cond} niet zo vaak in de Emacs Lisp "
+"broncode als @code{if}, wordt het vaak genoeg gebruikt om het uit te "
+"leggen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11466
 msgid "The template for a @code{cond} expression looks like this:"
-msgstr ""
+msgstr "Het sjabloon voor een @code{cond} expressie ziet er zo uit: "
 
 #. type: group
 #: emacs-lisp-intro.texi:11471
@@ -24455,16 +24682,18 @@ msgid ""
 "(cond\n"
 " @var{body}@dots{})\n"
 msgstr ""
+"(cond\n"
+" @var{body}@dots{})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11476
 msgid "where the @var{body} is a series of lists."
-msgstr ""
+msgstr "waar de @var{body} een reeks lijsten is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11479
 msgid "Written out more fully, the template looks like this:"
-msgstr ""
+msgstr "Meer volledig ziet het sjabloon er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:11487
@@ -24476,6 +24705,11 @@ msgid ""
 " (@var{third-true-or-false-test} @var{third-consequent})\n"
 "  @dots{})\n"
 msgstr ""
+"(cond\n"
+" (@var{eerste-waar-of-onwaar-test} @var{eerste-consequentie})\n"
+" (@var{tweede-waar-of-onwaar-test} @var{tweede-consequentie})\n"
+" (@var{derde-waar-of-onwaar-test} @var{derde-consequentie})\n"
+"  @dots{})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11494
@@ -24484,6 +24718,10 @@ msgid ""
 "the first element (the @sc{car} or true-or-false-test) of the first "
 "expression in a series of expressions within the body of the @code{cond}."
 msgstr ""
+"Wanneer de Lisp interpreter de @code{cond} expressie evalueert, "
+"evalueert die het eerste element (de @sc{car} van de "
+"waar-of-onwaar-test) van de expressie in een reeks van expressies "
+"binnen de body van de @code{cond}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11504
@@ -24498,6 +24736,16 @@ msgid ""
 "expression does not have a consequent, the value of the true-or-false-test "
 "is returned."
 msgstr ""
+"Wanneer de waar-of-onwaar-test @code{nil} teruggeeft, wordt de rest "
+"van de expressie, de consequentie, overgeslagen en wordt de volgende "
+"expressie geëvalueerd. Wanneer een expressie gevonden wordt wiens "
+"waar-of-onwaar-test een waarde ongelijk aan @code{nil} teruggeeft, "
+"wordt de consequentie van die expressie geëvalueerd. De consequentie "
+"kan een of meer expressies zijn. Wanneer de consequentie meer dan "
+"een expressie bevat worden de expressie achtereenvolgens geëvalueerd "
+"en de waarde van de laatste wordt teruggegeven. Wanneer de expressie "
+"geen consequentie heeft, dan wordt de waarde van de "
+"waar-of-onwaar-test teruggegeven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11507
@@ -24505,12 +24753,15 @@ msgid ""
 "If none of the true-or-false-tests test true, the @code{cond} expression "
 "returns @code{nil}."
 msgstr ""
+"Wanneer geen van de waar-of-onwaar-tests waar test, dan geeft de "
+"@code{cond} expressie @code{nil} terug."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11510
 msgid ""
 "Written using @code{cond}, the @code{triangle} function looks like this:"
 msgstr ""
+"De functie @code{driehoek} met een @code{cond} ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:11518
@@ -24522,6 +24773,11 @@ msgid ""
 "        ((> number 1)\n"
 "         (+ number (triangle-using-cond (1- number))))))\n"
 msgstr ""
+"(defun driehoek-met-cond (getal)\n"
+"  (cond ((<= getal 0) 0)\n"
+"        ((= getal 1) 1)\n"
+"        ((> getal 1)\n"
+"         (+ getal (driehoek-met-cond (1- getal))))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11526
@@ -24530,6 +24786,10 @@ msgid ""
 "equal to 0, it returns 1 if the number is 1 and it evaluates @code{(+ number "
 "(triangle-using-cond (1- number)))} if the number is greater than 1."
 msgstr ""
+"In dit voorbeeld geeft de @code{cond} 0 terug wanneer het getal "
+"kleiner of gelijk aan 0 is, het geeft 1 terug wanneer het getal 1 "
+"is, en het evalueert @code{(+ getal (driehoek-met-cond (1- getal)))} "
+"wanneer het getal groter dan 1 is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11534
@@ -24543,25 +24803,25 @@ msgstr ""
 #: emacs-lisp-intro.texi:11541
 #, no-wrap
 msgid "Every"
-msgstr "Every"
+msgstr "Elke"
 
 #. type: unnumberedsubsubsec
 #: emacs-lisp-intro.texi:11542
 #, no-wrap
 msgid "Recursive Pattern: @emph{every}"
-msgstr "Recursief patroon: @emph{every}"
+msgstr "Recursief patroon: @emph{elke}"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11543
 #, no-wrap
 msgid "Every, type of recursive pattern"
-msgstr "Every, soort van recursief patroon"
+msgstr "Elke, soort van recursief patroon"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11544
 #, no-wrap
 msgid "Recursive pattern - every"
-msgstr ""
+msgstr "Recursive pattern - elke"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11548
@@ -24569,16 +24829,18 @@ msgid ""
 "In the @code{every} recursive pattern, an action is performed on every "
 "element of a list."
 msgstr ""
+"In het @code{elke} recursieve patroon wordt een actie uitgevoerd op "
+"elk element van de lijst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11551
 msgid "The basic pattern is:"
-msgstr ""
+msgstr "Het basispatroon is:"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:11555 emacs-lisp-intro.texi:11710
 msgid "If a list be empty, return @code{nil}."
-msgstr ""
+msgstr "Als een lijst leeg is, geef @code{nil} terug."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:11565
@@ -24599,7 +24861,7 @@ msgstr ""
 #. type: Plain text
 #: emacs-lisp-intro.texi:11569 emacs-lisp-intro.texi:11672
 msgid "Here is an example:"
-msgstr ""
+msgstr "Hier is een voorbeeld:"
 
 #. type: group
 #: emacs-lisp-intro.texi:11579
@@ -24613,6 +24875,13 @@ msgid ""
 "     (* (car numbers-list) (car numbers-list))\n"
 "     (square-each (cdr numbers-list))))) ; next-step-expression\n"
 msgstr ""
+"(defun kwadrateer-elke (getallen-lijst)\n"
+"  \"Kwadrateer elk van een GETALLEN Lijst, recursief.\"\n"
+"  (if (not getallen-lijst)                ; doe-opnieuw-test\n"
+"      nil\n"
+"    (cons\n"
+"     (* (car getallen-lijst) (car getallen-lijst))\n"
+"     (kwadrateer-elke (cdr getallen-lijst))))) ; volgende-stap-expressie\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11584
@@ -24621,6 +24890,8 @@ msgid ""
 "(square-each '(1 2 3))\n"
 "    @result{} (1 4 9)\n"
 msgstr ""
+"(kwadrateer-elke '(1 2 3))\n"
+"    @result{} (1 4 9)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11592
@@ -24629,6 +24900,10 @@ msgid ""
 "construct a list combining the square of the first number in the list with "
 "the result of the recursive call."
 msgstr ""
+"Wanneer @code{getallen-lijst} leeg is, doe niets. Maar als die "
+"inhoud heeft, construeer een lijst door het kwadraat van het eerste "
+"getal te combineren met een lijst met het resultaat van de "
+"recursieve aanroep."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11597
@@ -24637,6 +24912,10 @@ msgid ""
 "numbers' list is empty.  In practice, you would write the conditional so it "
 "carries out the action when the numbers' list is not empty.)"
 msgstr ""
+"(Het voorbeeld volgt exact dit patroon: @code{nil} wordt teruggeven "
+"wanneer de getallen-lijst leeg is. In de praktijk schrijf je "
+"conditional zo dat het de actie uitvoert wanneer de lijst met "
+"getallen niet leeg is.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11602
@@ -24646,27 +24925,32 @@ msgid ""
 "pattern, except in this case, rather than bring the results together using "
 "@code{cons}, we print each element of output."
 msgstr ""
+"De functie @code{print-elementen-recursief} (@pxref{Recursie met "
+"lijst, , Recursie met een lijst}) is een ander voorbeeld van een "
+"@code{elke} patroon, behalve vat in dit geval, in plaats van het "
+"samenbrengen van de resultaten met @code{cons}, we elk "
+"output-element tonen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11605
 msgid "The @code{print-elements-recursively} function looks like this:"
-msgstr ""
+msgstr "De functie @code{print-elementen-recursief} ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:11609
 #, no-wrap
 msgid "(setq animals '(gazelle giraffe lion tiger))\n"
-msgstr ""
+msgstr "(setq dieren '(gazelle giraf leeuw tijger))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11626
 msgid "The pattern for @code{print-elements-recursively} is:"
-msgstr ""
+msgstr "Het patroon voor @code{print-elementen-recursief} is:"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:11630
 msgid "When the list is empty, do nothing."
-msgstr ""
+msgstr "Wanneer de lijst leeg is, doe niets."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:11638
@@ -24687,25 +24971,25 @@ msgstr ""
 #: emacs-lisp-intro.texi:11640
 #, no-wrap
 msgid "Accumulate"
-msgstr ""
+msgstr "Accumuleren"
 
 #. type: unnumberedsubsubsec
 #: emacs-lisp-intro.texi:11641
 #, no-wrap
 msgid "Recursive Pattern: @emph{accumulate}"
-msgstr ""
+msgstr "Recursief patroon: @emph{accumuleren}"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11642
 #, no-wrap
 msgid "Accumulate, type of recursive pattern"
-msgstr ""
+msgstr "Accumuleren, type recursief patroon"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11643
 #, no-wrap
 msgid "Recursive pattern - accumulate"
-msgstr ""
+msgstr "Recursief patroon - accumuleren"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11649
@@ -24715,6 +24999,11 @@ msgid ""
 "of a list and the result of that action is accumulated with the results of "
 "performing the action on the other elements."
 msgstr ""
+"Een ander recursief patroon heet het @code{accumuleren} patroon. In "
+"het @code{accumuleren} recursieve patroon wordt een actie uitgevoerd "
+"op elk element van een lijst en het resultaat van die actie wordt "
+"geaccumuleerd met de resultaten van het uitvoeren van die actie op "
+"de andere elementen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11652
@@ -24722,6 +25011,8 @@ msgid ""
 "This is very like the @code{every} pattern using @code{cons}, except that "
 "@code{cons} is not used, but some other combiner."
 msgstr ""
+"Dit lijkt erg op het @code{elke} patroon met @code{cons}, behalve "
+"dat @code{cons} niet wordt gebruikt, maar een andere combinerende functie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11655
@@ -24745,7 +25036,7 @@ msgstr ""
 " @itemize @minus\n"
 " @item\n"
 "en combineer dat bewerkte element, met @code{+} of een andere "
-"combinerendefunctie met\n"
+"combinerende functie met\n"
 "@item\n"
 "een recursieve aanroep met de functie op de rest van de lijst(de @sc{cdr} "
 "van de lijst)\n"
@@ -24761,11 +25052,11 @@ msgid ""
 "      0\n"
 "    (+ (car numbers-list) (add-elements (cdr numbers-list)))))\n"
 msgstr ""
-"(defun add-elements (numbers-list)\n"
-"  \"Add the elements of NUMBERS-LIST together.\"\n"
-"  (if (not numbers-list)\n"
+"(defun sommeer-elementen (getallen-lijst)\n"
+"  \"Tel de elementen van GETALLEN-LIJST bij elkaar op.\"\n"
+"  (if (not getallen-lijst)\n"
 "      0\n"
-"    (+ (car numbers-list) (add-elements (cdr numbers-list)))))\n"
+"    (+ (car getallen-lijst) (sommeer-elementen (cdr getallen-lijst)))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11685
@@ -24774,6 +25065,8 @@ msgid ""
 "(add-elements '(1 2 3 4))\n"
 "    @result{} 10\n"
 msgstr ""
+"(sommeer-elementen '(1 2 3 4))\n"
+"    @result{} 10\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11690
@@ -24781,24 +25074,26 @@ msgid ""
 "@xref{Files List, , Making a List of Files}, for an example of the "
 "accumulate pattern."
 msgstr ""
+"@xref{Bestandenlijst, , Een lijst met bestanden maken}, voor een uitleg van het "
+"accumuleren patroon."
 
 #. type: unnumberedsubsubsec
 #: emacs-lisp-intro.texi:11692
 #, no-wrap
 msgid "Recursive Pattern: @emph{keep}"
-msgstr ""
+msgstr "Recursieve patronen: @emph{bewaren}"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11693
 #, no-wrap
 msgid "Keep, type of recursive pattern"
-msgstr ""
+msgstr "Bewaren, type recursief patroon"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11694
 #, no-wrap
 msgid "Recursive pattern - keep"
-msgstr ""
+msgstr "Recursieve patronen - bewaren"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11700
@@ -24807,6 +25102,10 @@ msgid ""
 "@code{keep} recursive pattern, each element of a list is tested; the element "
 "is acted on and the results are kept only if the element meets a criterion."
 msgstr ""
+"Een derde recursief patroon het het @code{bewaren} patroon. In het "
+"@code{bewaren} recursieve patroon wordt elk element van de lijst "
+"getest, het element wordt behandeld en de resultaten worden alleen "
+"bewaard wanneer het element aan een criterium voldoet."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11703
@@ -24814,6 +25113,8 @@ msgid ""
 "Again, this is very like the @code{every} pattern, except the element is "
 "skipped unless it meets a criterion."
 msgstr ""
+"Opnieuw lijkt dit erg op het @code{elke} patroon, behalve dat "
+"elementen worden overgeslagen tenzij ze aan een criterium voldoen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11706
@@ -24858,7 +25159,7 @@ msgstr ""
 #. type: Plain text
 #: emacs-lisp-intro.texi:11732
 msgid "Here is an example that uses @code{cond}:"
-msgstr ""
+msgstr "Hier is een voorbeeld met @code{cond}:"
 
 #. type: group
 #: emacs-lisp-intro.texi:11740
@@ -24871,6 +25172,12 @@ msgid ""
 "   ((not word-list) nil)\n"
 "\n"
 msgstr ""
+"(defun bewaar-drie-letter-woorden (woorden-lijst)\n"
+"  \"Bewaar drie-letter woorden in WOORDEN-LIJST.\"\n"
+"  (cond\n"
+"   ;; Eerst doe-opnieuw-test: stop-conditie\n"
+"   ((not woorden-lijst) nil)\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11745
@@ -24882,6 +25189,11 @@ msgid ""
 "    (cons (car word-list) (keep-three-letter-words (cdr word-list))))\n"
 "\n"
 msgstr ""
+"   ;; Tweede doe-opnieuw-test: wanneer te behandelen\n"
+"   ((eq 3 (length (symbol-name (car woorden-lijst))))\n"
+"    ;; combineer behandelde elementen met recursieve aanroep op kortere lijst\n"
+"    (cons (car woorden-lijst) (bewaar-drie-letter-woorden (cdr woorden-lijst))))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11749
@@ -24891,6 +25203,9 @@ msgid ""
 "   ;;   recursively call shorter list with next-step expression\n"
 "   (t (keep-three-letter-words (cdr word-list)))))\n"
 msgstr ""
+"   ;; Derde doe-opnieuw-test: wanneer element over te slaan;\n"
+"   ;;   recursief aanroepen kortere lijst met volgende-stap-expressie\n"
+"   (t (bewaar-drie-letter-woorden (cdr woorden-lijst)))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11754
@@ -24899,6 +25214,8 @@ msgid ""
 "(keep-three-letter-words '(one two three four five six))\n"
 "    @result{} (one two six)\n"
 msgstr ""
+"(bewaar-drie-letter-woorden '(een twee drie vier vijf zes))\n"
+"    @result{} (een zes)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11759
@@ -24906,18 +25223,20 @@ msgid ""
 "It goes without saying that you need not use @code{nil} as the test for when "
 "to stop; and you can, of course, combine these patterns."
 msgstr ""
+"Het spreekt voor zich dat je @code{nil} als test voor wanneer te stoppen "
+"niet hoeft te gebruiken, je kunt natuurlijk deze patronen combineren."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11761 emacs-lisp-intro.texi:11763
 #, no-wrap
 msgid "Recursion without Deferments"
-msgstr ""
+msgstr "Recursie zonder uitstel"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11762
 #, no-wrap
 msgid "Deferment in recursion"
-msgstr ""
+msgstr "Uitstel in recursie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11768
@@ -24926,11 +25245,14 @@ msgid ""
 "function.  We will find that the intermediate calculations are deferred "
 "until all can be done."
 msgstr ""
+"Laten we nog een keer de functie @code{driehoek-recursief} "
+"beschouwen. We zullen zien dat de tussenliggende berekeningen worden "
+"uitgesteld tot ze allemaal uitgevoerd kunnen worden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11771
 msgid "Here is the function definition:"
-msgstr ""
+msgstr "Hier is de functiedefinitie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:11782
@@ -24945,11 +25267,20 @@ msgid ""
 "       (triangle-recursively          ; @r{recursive call}\n"
 "        (1- number)))))               ; @r{next-step-expression}\n"
 msgstr ""
+"(defun driehoek-recursief (aantal)\n"
+"  \"Geef de som van de getallen 1 tot en met AANTAL terug.\n"
+"Met recursie.\"\n"
+"  (if (= aantal 1)                    ; @r{doe-opnieuw-test}\n"
+"      1                               ; @r{dan-deel}\n"
+"    (+ aantal                         ; @r{anders-deel}\n"
+"       (driehoek-recursief            ; @r{recursieve aanroep}\n"
+"        (1- aantal)))))               ; @r{volgende-stap-expressie}\n"
+"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11786
 msgid "What happens when we call this function with an argument of 7?"
-msgstr ""
+msgstr "Wat gebeurt er wanneer de deze functie met een argument van 7 aanroepen?"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11791
@@ -24959,12 +25290,17 @@ msgid ""
 "recursively}, an instance that has been passed an argument of 6.  That is to "
 "say, the first calculation is:"
 msgstr ""
+"De eerste instantie van de functie @code{driehoek-recursief} telt "
+"het getal 7 bij de waarde die de tweede instantie van "
+"@code{driehoek-recursief} teruggeeft, een instantie de een argument "
+"van 6 krijgt doorgestuurd. Dat wil zeggen dat de eerste berekening "
+"is:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:11794
 #, no-wrap
 msgid "(+ 7 (triangle-recursively 6))\n"
-msgstr ""
+msgstr "(+ 7 (driehoek-recursief 6))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11805
@@ -24978,6 +25314,14 @@ msgid ""
 "first; it calculates triangle numbers recursively; but it has a different "
 "serial number."
 msgstr ""
+"De eerste instantie van @code{driehoek-recursief}---je kunt het zien "
+"als een kleine robot---kan zijn werk niet afmaken. Het moet de "
+"berekening voor @code{(driehoek-recursief 6)} overdragen aan een "
+"tweede instantie van het programma, aan een tweede robot. De tweede "
+"individu is compleet verschillend van het eerste, het is, in het "
+"jargon, een ``andere instantie''. Of, anders gezegd, een andere "
+"robot. Die is hetzelfde model als de eerste, maar met een "
+"verschillende serienummer."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11810
@@ -24987,28 +25331,32 @@ msgid ""
 "an argument of 5.  Using the robot metaphor, it asks yet another robot to "
 "help it."
 msgstr ""
+"En wat geeft @code{(driehoek-recursief 6)} terug? Het geeft het "
+"getal 6 opgeteld bij de waarde teruggeven door het evalueren van "
+"@code{driehoek-recursief} met een argument van 5. Met het robot "
+"metafoor, het vraagt een andere robot om hulp."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11813
 msgid "Now the total is:"
-msgstr ""
+msgstr "Nu is het totaal:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:11816
 #, no-wrap
 msgid "(+ 7 6 (triangle-recursively 5))\n"
-msgstr ""
+msgstr "(+ 7 6 (driehoek-recursief 5))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11820
 msgid "And what happens next?"
-msgstr ""
+msgstr "En wat gebeurt hierna?"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:11823
 #, no-wrap
 msgid "(+ 7 6 5 (triangle-recursively 4))\n"
-msgstr ""
+msgstr "(+ 7 6 5 (driehoek-recursief 4))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11828
@@ -25017,17 +25365,21 @@ msgid ""
 "it creates another instance of the program---another robot---and asks it to "
 "make a calculation."
 msgstr ""
+"Elke keer dat @code{driehoek-recursief} wordt aangeroepen, behalve "
+"de laatste keer, maakt het een nieuwe instantie van het "
+"programma---een andere robot---en vraagt die een berekening te "
+"maken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11831
 msgid "Eventually, the full addition is set up and performed:"
-msgstr ""
+msgstr "Uiteindelijk is de volledige berekening opgezet en uitgevoerd:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:11834
 #, no-wrap
 msgid "(+ 7 6 5 4 3 2 1)\n"
-msgstr ""
+msgstr "(+ 7 6 5 4 3 2 1)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11842
@@ -25038,12 +25390,18 @@ msgid ""
 "on.  This is not a problem when there are only a few steps, as in this "
 "example.  But it can be a problem when there are more steps."
 msgstr ""
+"Dit ontwerp van de functie stelt de berekening van eerste uit tot de "
+"tweede kan worden gedaan, dan stelt die uit tot de derde kan worden "
+"gedaan, enzovoorts. Elk uitstel betekent dat de computer moet "
+"onthouden waarop gewacht wordt. Dat is geen probleem wanneer er maar "
+"een stappen zijn, zoals in dit voorbeeld. Maar het kan een probleem "
+"worden wanneer er meer stappen zijn."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:11844
 #, no-wrap
 msgid "No Deferment Solution"
-msgstr "Geen uitstel oplossing"
+msgstr "Zonder uitstel oplossing"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11846
@@ -25060,6 +25418,13 @@ msgid ""
 "requires writing to a different pattern, often one that involves writing two "
 "function definitions, an initialization function and a helper function."
 msgstr ""
+"De oplossing van het probleem van de uitgestelde operaties is het op "
+"een manier te schrijven die de operaties niet uitstelt@footnote{De "
+"uitdrukking @dfn{tail-recursie} wordt gebruikt om zo'n proces te "
+"beschrijven, een die constante ruimte gebruikt.}. Dit vereist het "
+"schrijven volgens een ander patroon, een die vaak het schrijven van "
+"twee functiedefinities inhoudt, een initialisatiefunctie en een "
+"hulpfunctie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11858
@@ -25067,6 +25432,8 @@ msgid ""
 "The initialization function sets up the job; the helper function does the "
 "work."
 msgstr ""
+"De initialisatiefunctie zet de klus op, de hulpfunctie doet het "
+"werk."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11862
@@ -25074,6 +25441,8 @@ msgid ""
 "Here are the two function definitions for adding up numbers.  They are so "
 "simple, I find them hard to understand."
 msgstr ""
+"Hier zijn twee functiedefinities voor het optellen van getallen. Zij "
+"zijn zo eenvoudig dat ik moeilijk vind ze te begrijpen."
 
 #. type: group
 #: emacs-lisp-intro.texi:11870
@@ -25085,6 +25454,11 @@ msgid ""
 "duo that uses recursion.\"\n"
 "  (triangle-recursive-helper 0 0 number))\n"
 msgstr ""
+"(defun driehoek-initialisatie (aantal)\n"
+"  \"Geef de som van de getallen 1 tot en met AANTAL.\n"
+"Dit is the initialisatiecomponent van een duo van twee functies\n"
+"met recursie .\"\n"
+"  (driehoek-recursieve-helper 0 0 aantal))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11884
@@ -25100,6 +25474,15 @@ msgid ""
 "                               (1+ counter)     ; @r{counter}\n"
 "                               number)))        ; @r{number}\n"
 msgstr ""
+"(defun driehoek-recursieve-helper (som teller aantal)\n"
+"  \"Geef SOM terug, met TELLER, tot en met AANTAL.\n"
+"Dit is de hulpcomponent van een duo van twee functies\n"
+"met recursie.\"\n"
+"  (if (> teller aantal)\n"
+"      som\n"
+"    (driehoek-recursieve-helper (+ som teller) ; @r{som}\n"
+"                               (1+ teller)     ; @r{teller}\n"
+"                               aantal)))       ; @r{aantal}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11890
@@ -25107,6 +25490,8 @@ msgid ""
 "Install both function definitions by evaluating them, then call "
 "@code{triangle-initialization} with 2 rows:"
 msgstr ""
+"Installeer beide functiedefinities door ze te evalueren en roep dan "
+"@code{driehoek-initialisatie} met twee rijen aan:"
 
 #. type: group
 #: emacs-lisp-intro.texi:11895
@@ -25115,6 +25500,8 @@ msgid ""
 "(triangle-initialization 2)\n"
 "    @result{} 3\n"
 msgstr ""
+"(driehoek-initialisatie 2)\n"
+"    @result{} 3\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11901
@@ -25123,6 +25510,9 @@ msgid ""
 "with three arguments: zero, zero, and a number which is the number of rows "
 "in the triangle."
 msgstr ""
+"De initialisatiefunctie roept de eerste instantie van de hulpfunctie "
+"met drie argumenten aan: nul, nul, een getal dat het aantal rijen "
+"van de driehoek is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11913
@@ -25138,6 +25528,18 @@ msgid ""
 "@code{triangle-recursively} are called recursive.  The word ``recursive'' "
 "has different meanings in the two contexts.}"
 msgstr ""
+"De eerste twee aan de hulpfunctie doorgegeven argumenten zijn "
+"initialisatie-waarden. Deze waarden worden aangepast wanneer "
+"@code{driehoek-recursieve-helper} nieuwe instanties "
+"aanroept.@footnote{Het jargon is lichtelijk verwarrend: "
+"@code{driehoek-recursieve-helper} gebruikt een proces dat iteratief "
+"is in een procedure die recursief is. Dit proces het iteratief omdat "
+"de computer maar die waarden hoeft bij te houden: @code{som}, "
+"@code{teller} en @code{aantal}. De procedure is recursief omdat de "
+"functie zichzelf aanroept. Anderzijds worden beide processen en de "
+"door @code{driehoek-recursief} gebruikte procedure recursief genoemd. "
+"Het woord ``recursief'' heeft verschillende betekenissen in de twee "
+"contexten.}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11916
@@ -25145,6 +25547,8 @@ msgid ""
 "Let's see what happens when we have a triangle that has one row.  (This "
 "triangle will have one pebble in it!)"
 msgstr ""
+"Laten we kijken wat gebeurt wanneer we een driehoek met een rij "
+"hebben. (Deze driehoek bevat één steentje!)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11921
@@ -25153,12 +25557,15 @@ msgid ""
 "@w{@code{0 0 1}}.  That function will run the conditional test whether "
 "@code{(> counter number)}:"
 msgstr ""
+"@code{driehoek-initialisatie} roept zijn hulpfunctie aan met de "
+"argumenten @w{@code{0 0 1}}. Die functie voert de conditionele test "
+"uit of @code{(> teller aantal)}:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:11924
 #, no-wrap
 msgid "(> 0 1)\n"
-msgstr ""
+msgstr "(> 0 1)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11930
@@ -25166,6 +25573,8 @@ msgid ""
 "and find that the result is false, so it will invoke the else-part of the "
 "@code{if} clause:"
 msgstr ""
+"een ziet dat het resultaat onwaar is, en dus roept deze het "
+"anders-deel van de @code{if} clausule aan:"
 
 #. type: group
 #: emacs-lisp-intro.texi:11937
@@ -25176,11 +25585,15 @@ msgid ""
 "     (1+ counter)     ; @r{increment counter} @result{} @r{counter}\n"
 "     number)          ; @r{number stays the same}\n"
 msgstr ""
+"    (driehoek-recursieve-helper\n"
+"     (+ som teller)  ; @r{som plus teller} @result{} @r{som}\n"
+"     (1+ teller)     ; @r{verhoog teller} @result{} @r{teller}\n"
+"     aantal)         ; @r{aantal blijft hetzelfde}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11943
 msgid "which will first compute:"
-msgstr ""
+msgstr "wat eerst uitrekent:"
 
 #. type: group
 #: emacs-lisp-intro.texi:11949
@@ -25190,18 +25603,21 @@ msgid ""
 "                           (1+ 0)   ; @r{counter}\n"
 "                           1)       ; @r{number}\n"
 msgstr ""
+"(driehoek-recursieve-helper (+ 0 0)  ; @r{som}\n"
+"                            (1+ 0)   ; @r{teller}\n"
+"                            1)       ; @r{aantal}\n"
 
 #. type: exdent
 #: emacs-lisp-intro.texi:11949 emacs-lisp-intro.texi:11969
 #, no-wrap
 msgid "which is:"
-msgstr ""
+msgstr "wat is:"
 
 #. type: group
 #: emacs-lisp-intro.texi:11952
 #, no-wrap
 msgid "(triangle-recursive-helper 0 1 1)\n"
-msgstr ""
+msgstr "driehoek-recursieve-helper 0 1 1\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11958
@@ -25210,11 +25626,14 @@ msgid ""
 "interpreter will evaluate @code{triangle-recursive-helper}, creating a new "
 "instance with new arguments."
 msgstr ""
+"Opnieuw wordt @code{(> teller aantal)} onwaar, en opnieuw gaat de "
+"Lisp interpreter de @code{driehoek-recursieve-helper} evalueren, en "
+"maakt een nieuwe instantie met nieuwe argumenten."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11961
 msgid "This new instance will be;"
-msgstr ""
+msgstr "Deze nieuwe instantie is:"
 
 #. type: group
 #: emacs-lisp-intro.texi:11968
@@ -25226,12 +25645,17 @@ msgid ""
 "     number)          ; @r{number stays the same}\n"
 "\n"
 msgstr ""
+"    (driehoek-recursieve-helper\n"
+"     (+ som teller)  ; @r{som plus teller} @result{} @r{som}\n"
+"     (1+ teller)     ; @r{verhoog teller} @result{} @r{teller}\n"
+"     aantal)         ; @r{aantal blijft hetzelfde}\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11972
 #, no-wrap
 msgid "(triangle-recursive-helper 1 2 1)\n"
-msgstr ""
+msgstr "(driehoek-recursieve-helper 1 2 1)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11978
@@ -25239,6 +25663,8 @@ msgid ""
 "In this case, the @code{(> counter number)} test will be true! So the "
 "instance will return the value of the sum, which will be 1, as expected."
 msgstr ""
+"In dit geval test de @code{(> teller aantal)} op waar! Dus geeft de "
+"instantie de waarde van de som terug, die 1 is, zoals verwacht."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11981
@@ -25246,16 +25672,18 @@ msgid ""
 "Now, let's pass @code{triangle-initialization} an argument of 2, to find out "
 "how many pebbles there are in a triangle with two rows."
 msgstr ""
+"Laten we nu @code{driehoek-initialisatie} een argument van 2 geven, "
+"om te ontdekken hoeveel steentjes een driehoek met twee rijen bevat."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11983
 msgid "That function calls @code{(triangle-recursive-helper 0 0 2)}."
-msgstr ""
+msgstr "Die functie roept @code{(driehoek-recursieve-helper 0 0 2)} aan."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11986
 msgid "In stages, the instances called will be:"
-msgstr ""
+msgstr "In stappen, zijn de aangeroepen instanties:"
 
 #. type: group
 #: emacs-lisp-intro.texi:11991
@@ -25265,6 +25693,8 @@ msgid ""
 "(triangle-recursive-helper 0    1       2)\n"
 "\n"
 msgstr ""
+"(driehoek-recursieve-helper 0    1       2)\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11993
@@ -25273,12 +25703,14 @@ msgid ""
 "(triangle-recursive-helper 1    2       2)\n"
 "\n"
 msgstr ""
+"(driehoek-recursieve-helper 1    2       2)\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11995
 #, no-wrap
 msgid "(triangle-recursive-helper 3    3       2)\n"
-msgstr ""
+msgstr "(driehoek-recursieve-helper 3    3       2)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12001
@@ -25286,6 +25718,9 @@ msgid ""
 "When the last instance is called, the @code{(> counter number)} test will be "
 "true, so the instance will return the value of @code{sum}, which will be 3."
 msgstr ""
+"Wanneer de laatste instantie wordt aangeroepen, test de de @code{(> "
+"teller aantal)} op waar, dus de instantie geeft de waarde van "
+"@code{som} terug, die 3 is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12004
@@ -25293,12 +25728,14 @@ msgid ""
 "This kind of pattern helps when you are writing functions that can use many "
 "resources in a computer."
 msgstr ""
+"Dit soort patronen helpt wanneer je functies schrijft die veel "
+"resources in de computer kunnen gebruiken."
 
 #. type: section
 #: emacs-lisp-intro.texi:12007
 #, no-wrap
 msgid "Looping Exercise"
-msgstr ""
+msgstr "Looping oefening"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:12013
@@ -25306,6 +25743,9 @@ msgid ""
 "Write a function similar to @code{triangle} in which each row has a value "
 "which is the square of the row number.  Use a @code{while} loop."
 msgstr ""
+"Schrijf een functie vergelijkbaar met @code{driehoek} waar elke "
+"rij een waarde heeft die het kwadraat is van het rijnummer. Gebruik "
+"een @code{while} loop."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:12017
@@ -25313,6 +25753,8 @@ msgid ""
 "Write a function similar to @code{triangle} that multiplies instead of adds "
 "the values."
 msgstr ""
+"Schrijf een functie vergelijkbaar met @code{driehoek} die de waarden "
+"vermenigvuldigt in plaats van optelt."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:12021
@@ -25320,6 +25762,8 @@ msgid ""
 "Rewrite these two functions recursively.  Rewrite these functions using "
 "@code{cond}."
 msgstr ""
+"Herschrijf deze twee functies recursief. Herschrijf ze met gebruik "
+"van @code{cond}."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:12028
@@ -25329,6 +25773,10 @@ msgid ""
 "Texinfo file, @samp{@@dfn} marks a definition.  This book is written in "
 "Texinfo.)"
 msgstr ""
+"Schrijf een functie voor Texinfo mode die een index-entry creëert "
+"aan het begin van een paragraaf voor elke @samp{@@dfn} in die "
+"paragraaf. (In een Texinfo bestand, markeert @samp{@@dfn} een "
+"definitie. Dit boek is geschreven in Texinfo.)"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:12036
@@ -25340,16 +25788,23 @@ msgid ""
 "@w{@kbd{C-h f}} (@code{describe-function}) to find out how to make the "
 "command go backwards."
 msgstr ""
+"Veel van de functies die je nodig hebt zijn beschreven in twee "
+"voorgaande hoofdstukken, @ref{Knippen en opslaan van tekst, , "
+"Knippen en opslaan van tekst}, en @ref{Yanking, , Tekst terug "
+"yanken}. Wanneer je @code{forward-paragraph} gebruikt om de "
+"index-entry aan het begin van de paragraaf te plaatsten, kun je met "
+"@w{@kbd{C-h f}} (@code{describe-function}) ontdekken hoe je het "
+"commando achterwaarts laat werken."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:12038
 msgid "For more information, see"
-msgstr ""
+msgstr "Voor meer informatie, zie"
 
 #. type: ifinfo
 #: emacs-lisp-intro.texi:12040
 msgid "@ref{Indicating, , Indicating Definitions, texinfo}."
-msgstr ""
+msgstr "@ref{Indicating, , Indicating Definitions, texinfo}"
 
 #. type: ifhtml
 #: emacs-lisp-intro.texi:12046
@@ -25358,6 +25813,9 @@ msgid ""
 "Texinfo manual in the current directory.  Or, if you are on the Internet, "
 "see @uref{https://www.gnu.org/software/texinfo/manual/texinfo/}"
 msgstr ""
+"@ref{Indicating, , Indicating, texinfo, Texinfo Manual}, gaat naar een "
+"Texinfo manual in de huidige directory.  Of, als je op internet bent, "
+"zie @uref{https://www.gnu.org/software/texinfo/manual/texinfo/}"
 
 #. type: iftex
 #: emacs-lisp-intro.texi:12050
@@ -25365,6 +25823,8 @@ msgid ""
 "``Indicating Definitions, Commands, etc.''@: in @cite{Texinfo, The GNU "
 "Documentation Format}."
 msgstr ""
+"``Indicating Definitions, Commands, etc.''@: in @cite{Texinfo, The GNU "
+"Documentation Format}."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:12055

@@ -6,8 +6,6 @@
 (require 'ert-x)
 (require 'isbn)
 
-;;;; Preparation
-
 ;;;; Core
 
 (ert-deftest isbn-test:list->string ()
@@ -49,3 +47,7 @@
   (should (eq (isbn-valid-p "9780983159280") nil))) ; invalid
 
 ;;; isbn-test.el ends here
+
+;; Local Variables:
+;; indent-tabs-mode: nil
+;; End:

@@ -3,7 +3,6 @@
 ;;; Code:
 
 (require 'ert)
-(require 'ert-x)
 (require 'isbn)
 
 ;;;; Core
@@ -20,6 +19,8 @@
 
 ;;;; API
 
+;;;;; Conversion
+
 (ert-deftest isbn-test:convert ()
   "Test `isbn-convert'."
   (should (string= (isbn-convert "0983159289")       "9780983159285"))
@@ -27,13 +28,23 @@
   (should (string= (isbn-convert "0983159289"    10) "0983159289"))
   (should (string= (isbn-convert "9780983159285" 13) "9780983159285")))
 
+;;;;; Hyphenation
+
+;; TODO: Fix file check.
+(ert-deftest isbn-test:hyphenation-ranges-update ()
+  "Test `isbn-hyphenation-ranges-update'."
+  (let (isbn-hyphenation-ranges-cache)
+    (isbn-hyphenation-ranges-update :nofile)
+    (should (hash-table-p isbn-hyphenation-ranges-cache))))
+
 (ert-deftest isbn-test:hyphenate ()
   "Test `isbn-hyphenate'."
-  (ert-with-message-capture msgs
-    (isbn-hyphenation--ranges)
-    (should isbn-hyphenation-ranges-cache)
-    (should (string-suffix-p "done\n" msgs)))
+  (let ((isbn-hyphenation-ranges-cache-file nil)
+        isbn-hyphenation-ranges-cache)
+    (should-error (isbn-hyphenate "9780983159285")))
   (should (string= (isbn-hyphenate "9780983159285") "978-0-9831592-8-5")))
+
+;;;;; Validation
 
 (ert-deftest isbn-test:valid-p ()
   "Test `isbn-valid-p'."

@@ -155,9 +155,12 @@ region with the converted ISBN."
 
 ;;;; Hyphenation
 
-;; TODO: Add the option to work with an offline source.
-(defvar isbn-hyphenation-ranges-source
-  "https://isbnbarcode.org/api/isbn-ranges.json")
+(defcustom isbn-hyphenation-ranges-cache-file
+  (file-name-concat user-emacs-directory ".isbn-hyphenation-ranges.el")
+  "File containing a cache of ISBN hyphenation ranges."
+  :type 'file
+  :group 'isbn
+  :version "30.2")
 
 ;; Cache the ranges so that nested operations (hyphenation ->
 ;; validation) do not request the ranges needlessly; they do not
@@ -165,19 +168,28 @@ region with the converted ISBN."
 (defvar isbn-hyphenation-ranges-cache nil
   "Cache of all valid ISBN ranges from the International ISBN Agency.")
 
-(defun isbn-hyphenation--ranges ()
-  "Return a hash table of all valid ISBN hyphenation ranges.
-Results are cached in `isbn-hyphenation-ranges-cache'."
-  (or
-   isbn-hyphenation-ranges-cache
-   (let ((prgrp (progress-reporter-make "Fetching hyphenation ranges..."))
-         (ranges (with-current-buffer
-                     (or (url-retrieve-synchronously
-                          isbn-hyphenation-ranges-source :silent :inhibit-cookies 5)
-                         (error "Failed to retrieve hyphenation data"))
-                   (json-parse-buffer))))
-     (progress-reporter-done prgrp)
-     (setq isbn-hyphenation-ranges-cache ranges))))
+(defun isbn-hyphenation-ranges-update (&optional nofile)
+  "Update cache of ISBN hyphenation ranges.
+
+Optional argument NOFILE, if non-nil, prevents writing to
+`isbn-hyphenation-ranges-cache-file'."
+  (interactive)
+  (let ((prgrp (progress-reporter-make
+                "Fetching hyphenation ranges from ISBNBarcode.org...")))
+    (condition-case-unless-debug nil
+        (with-current-buffer
+            (url-retrieve-synchronously
+             "https://isbnbarcode.org/api/isbn-ranges.json"
+             :silent :inhibit-cookies 5)
+          (let ((ranges (json-parse-buffer)))
+            (unless nofile
+              (write-region
+               (prin1-to-string ranges) :ignored
+               isbn-hyphenation-ranges-cache-file))
+            (setq isbn-hyphenation-ranges-cache ranges)
+            (progress-reporter-done prgrp))
+          (lambda (_status &rest _cbargs)))
+      (error (error "Failed to retrieve hyphenation data")))))
 
 (defun isbn-hyphenation--ranges-get (source &rest keys)
   "Recursively retrieve KEYS from SOURCE."
@@ -199,17 +211,28 @@ Optional argument INTERACTIVE, when non-nil, adds the hyphenated ISBN to
 the kill ring or, when there is an active region, replaces the region
 with the hyphenated ISBN."
   (interactive (list (isbn--get-interactively) t))
+
+  (unless isbn-hyphenation-ranges-cache
+    (let ((prgrp (progress-reporter-make "Loading hyphenation ranges from cache...")))
+      (with-temp-buffer
+        (condition-case-unless-debug nil
+            (insert-file-contents isbn-hyphenation-ranges-cache-file)
+          (error (error "Hyphenation ranges are not cached.  \
+Please run `isbn-hyphenation-ranges-update'")))
+        (setq isbn-hyphenation-ranges-cache (read (current-buffer))))
+      (progress-reporter-done prgrp)))
+
   (setq isbn (isbn-convert isbn 13))
-  (let* ((isbn-hyphenation-ranges (isbn-hyphenation--ranges))
-         hyphenated
+
+  ;; The data from the International ISBN Agency comes in two sets:
+  ;; the EAN prefix (978 or 979) and the registration groups.  The
+  ;; former determines how long the group identifier is, and the
+  ;; latter determines how long the publisher code is.  The rest of
+  ;; the ISBN can be determined automatically.
+  (let* (hyphenated
          (remaining (lambda ()
                       (let ((len (length (apply #'concat hyphenated))))
                         (substring isbn len (+ len 7))))))
-    ;; The data from the International ISBN Agency comes in two sets:
-    ;; the EAN prefix (978 or 979) and the registration groups.  The
-    ;; former determines how long the group identifier is, and the
-    ;; latter determines how long the publisher code is.  The rest of
-    ;; the ISBN can be determined automatically.
 
     ;; 1. EAN prefix
     (push (substring isbn 0 3) hyphenated)
@@ -223,7 +246,7 @@ with the hyphenated ISBN."
                            (when (string= (car hyphenated) (gethash "Prefix" pref))
                              (throw 'res pref)))
                          (isbn-hyphenation--ranges-get
-                          isbn-hyphenation-ranges
+                          isbn-hyphenation-ranges-cache
                           "ISBNRangeMessage" "EAN.UCCPrefixes" "EAN.UCC"))))
                (length (string-to-number
                         (catch 'length
@@ -246,7 +269,7 @@ with the hyphenated ISBN."
                                   (when (string= prefix (gethash "Prefix" pref))
                                     (throw 'res pref)))
                                 (isbn-hyphenation--ranges-get
-                                 isbn-hyphenation-ranges
+                                 isbn-hyphenation-ranges-cache
                                  "ISBNRangeMessage" "RegistrationGroups" "Group"))))
                (length (string-to-number
                         (catch 'length

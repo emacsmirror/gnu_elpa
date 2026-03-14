@@ -27,7 +27,43 @@
 
 ;;; Commentary:
 
-;; Manage ISBNs via elisp.
+;; Manage ISBNs via elisp.  Currently it is possible to validate,
+;; convert and hyphenate ISBNs.
+
+;;;; API
+
+;; In addition to programmatic invocation, each API function can be
+;; called interactively (except `isbn-10-p' and `isbn-13-p' since it
+;; is obvious to the eye whether an ISBN is an ISBN-10 or ISBN-13).
+
+;; N.B. All below functions expect ISBNs to be strings.
+
+;;;;; Validation
+
+;; - (isbn-valid-p ISBN): Return t if ISBN is a valid ISBN-10 or
+;; ISBN-13.
+;; - (isbn-10-p ISBN): Return t if ISBN is a valid ISBN-10.
+;; - (isbn-13-p ISBN): Return t if ISBN is a valid ISBN-13.
+
+;;;;; Conversion
+
+;; - (isbn-convert ISBN &optional FORMAT): If ISBN is an ISBN-10,
+;; convert to ISBN-13; if ISBN-13, ISBN-10.  If FORMAT (integer: 10 or
+;; 13) is non-nil, convert ISBN to ISBN-FORMAT.
+
+;;;;; Hyphenation (may require internet connection)
+
+;; Hyphenation is made possible by ISBNBarcode.org, which provides a
+;; complete set of ISBN hyphenation ranges.  Since hyphenation ranges
+;; are only updated yearly, ranges are cached to
+;; `isbn-hyphenation-ranges-cache-file'.  To cache this file, users
+;; must run `isbn-hyphenation-ranges-update' at least once before
+;; calling any the of functions below.  Users may wish to add
+;; `isbn-hyphenation-ranges-maybe-update' to their `init.el' to check
+;; for updates automatically.
+
+;; - (isbn-hyphenate ISBN): Hyphenate ISBN, returning it as an
+;; ISBN-13.  Hyphenating ISBN-10s is currently not supported.
 
 ;;; Code:
 

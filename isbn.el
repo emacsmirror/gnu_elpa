@@ -94,14 +94,14 @@ concerning ISBN's validation."
       res)))
 
 ;;;###autoload
-(defun isbn-isbn10-p (isbn)
+(defun isbn-10-p (isbn)
   "Return t if ISBN is matches the ISBN-10 format."
   (and
    (isbn-valid-p isbn)
    (eq (length (isbn--string->list isbn)) 10)))
 
 ;;;###autoload
-(defun isbn-isbn13-p (isbn)
+(defun isbn-13-p (isbn)
   "Return t if ISBN is matches the ISBN-13 format."
   (and
    (isbn-valid-p isbn)
@@ -126,7 +126,7 @@ region with the converted ISBN."
   ;; The algorithms are taken from
   ;; <https://www.isbnservices.com/convert-isbn-10-to-isbn-13/>.
   (let ((res (pcase isbn
-               ((pred isbn-isbn10-p)
+               ((pred isbn-10-p)
                 (if (eq format 10) isbn
                   (let* ((isbn (concat "978" (substring isbn 0 -1)))
                          (checkint (seq-map-indexed
@@ -134,7 +134,7 @@ region with the converted ISBN."
                                     (isbn--string->list isbn)))
                          (check (- 10 (mod (apply #'+ checkint) 10))))
                     (format "%s%i" isbn check))))
-               ((pred isbn-isbn13-p)
+               ((pred isbn-13-p)
                 (if (eq format 13) isbn
                   (unless (string-prefix-p "978" isbn)
                     (user-error "ISBN does not start with `978'"))

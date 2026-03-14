@@ -1,0 +1,27 @@
+		     Ladekast              Inhoud van de lade
+
+		 __   o0O0o   __
+	       /                 \
+	      ---------------------
+	     |  routebeschrijving  |
+	     |         naar        |           [wijst naar]
+             |     symboolnaam     |              boeket
+	     |                     |
+	     +---------------------+
+	     |  routebeschrijving  |
+	     |         naar        |
+	     |  symbooldefinitie   |              [geen]
+	     |                     |
+	     +---------------------+
+	     |  routebeschrijving  |
+	     |         naar        |           [wijst naar]
+	     |    variabele naam   |            (roos viool boterbloom)
+	     |                     |
+	     +---------------------+
+	     |  routebeschrijving  |
+	     |         naar        |
+	     |    property list    |           [hier niet beschreven]
+	     |                     |
+	     +---------------------+
+	     |/                   \|
+

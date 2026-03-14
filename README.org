@@ -7,11 +7,11 @@ This is work in progress.
 It is currently based on the following revision of the English document:
 
 #+begin_example
-commit 0068215e53905698833637edececee8a79a524c5
-Author: Stefan Monnier <monnier@iro.umontreal.ca>
-Date:   Wed Feb 25 23:44:07 2026 -0500
+commit 618653aed0fc6221382126096417faf67ddf86d6
+Author: Eli Zaretskii <eliz@gnu.org>
+Date:   Sun Mar 8 14:57:34 2026 +0200
 
-    emacs-lisp-intro.texi: Eliminate duplicate ASCII art
+    ; * doc/lispintro/emacs-lisp-intro.texi (Lists diagrammed): Fix last change.
 #+end_example
 
 ** Method

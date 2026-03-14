@@ -167,6 +167,10 @@
 
 ;; Since version 1.2:
 
+;; - Syntax of `:error-fun' changed in `futur-let*'.
+
+;; Version 1.2:
+
 ;; - `futur-abort' takes a second argument (the reason for the abortion).
 ;; - New function `futur-funcall'.
 ;; - `futur-bind' and `futur-blocking-wait-to-get-result' can now select
@@ -271,7 +275,7 @@ that it is not empty."
      (with-current-buffer (get-buffer-create " *futur--background*")
        (make-thread f name)))))
 
-(defvar futur-use-threads t
+(defvar futur-use-threads (fboundp 'make-thread) ;New in Emacs-26
   "If non-nil, futur will use timers for background tasks instead.
 Threads have the advantage that we can make sure background tasks are
 run in a clean dynamic environment, whereas timers are run in the dynamic
@@ -281,7 +285,7 @@ But Emacs's threads still suffer from several implementation warts
 and limitations.")
 
 (defconst futur--background
-  (when (and futur-use-threads (fboundp 'make-thread)) ;New in Emacs-26
+  (when futur-use-threads
     (futur--make-thread #'futur--background "futur--background")))
 
 (defun futur--funcall (&rest args)
@@ -310,7 +314,7 @@ time or order of execution."
   ;;         sig=sig@entry=6, backtrace_limit=backtrace_limit@entry=2147483647)
   ;;         at emacs.c:445
   ;;
-  ;;(when (fboundp 'make-thread)
+  ;;(when futur-use-threads
   ;;  (futur--make-thread
   ;;   (lambda ()
   ;;     (while t (accept-process-output nil (* 60 60 24))))
@@ -434,6 +438,7 @@ The error is `futur-aborted'.  Does nothing if FUTUR was already complete."
 ;;;; Composing futures
 
 (defun futur--register-callback (futur fun &optional now-ok)
+  ;; FIXME: Add info about the downstream future for abort's purpose.
   "Call FUN when FUTUR completes.
 Calls it with two arguments (ERR VAL), where only one of the two is non-nil,
 and throws away the return value.  If FUTUR fails ERR is the error object,
@@ -582,26 +587,36 @@ binding the result in VAR.  BODY is executed at the very end and should
 return a future.
 BODY can start with `:error-fun ERROR-FUN' in which case errors in
 the futures in BINDINGS will cause execution of ERROR-FUN instead of BODY.
-ERROR-FUN works like the third argument of `futur-bind'."
+ERROR-FUN can be:
+- A lambda-expression taking an error descriptor as argument,
+- A list of (CONDITION (VAR) BODY...) where BODY
+  will be executed with VAR bound to the error descriptor if CONDITION
+  is one of the error's condition names."
+  ;; FIXME: ERROR-FUN shouldn't be an expression.
   (declare (indent 1) (debug ((&rest (sexp . [&or ("<-" form) (form)])) body)))
   (cl-assert lexical-binding)
-  (let ((error-fun (when (eq :error-fun (car body))
-                    (prog1 (cadr body)
-                      (setq body (cddr body))))))
-    (if (not (symbolp error-fun))
-        (macroexp-let2 nil error-fun error-fun
-          `(futur-let* ,bindings :error-fun ,error-fun ,@body))
-      (named-let loop ((bindings bindings))
-        (pcase-exhaustive bindings
-          ('() (macroexp-progn body))
-          (`((,var ,exp) . ,bindings)
-           ;; FIXME: Catch errors in EXP, to run `error-fun'?
-           `(pcase-let ((,var ,exp)) ,(loop bindings)))
-          (`((,var <- ,exp) . ,bindings)
-           ;; FIXME: Catch errors in EXP, to run `error-fun'?
-           `(futur-bind ,exp
-                        (pcase-lambda (,var) ,(loop bindings))
-                        ,error-fun)))))))
+  (let* ((error-fun (when (eq :error-fun (car body))
+                      (prog1 (cadr body)
+                        (setq body (cddr body)))))
+         (error-fun-form
+          (pcase-exhaustive error-fun
+            ('nil nil)
+            ((or `(lambda . ,_) (pred symbolp)) error-fun)
+            ((pred consp)
+             `(list
+               ,@(mapcar (lambda (x) `(cons ',(car x) (lambda . ,(cdr x))))
+                         error-fun))))))
+    (named-let loop ((bindings bindings))
+      (pcase-exhaustive bindings
+        ('() (macroexp-progn body))
+        (`((,var ,exp) . ,bindings)
+         ;; FIXME: Catch errors in EXP, to run `error-fun'?
+         `(pcase-let ((,var ,exp)) ,(loop bindings)))
+        (`((,var <- ,exp) . ,bindings)
+         ;; FIXME: Catch errors in EXP, to run `error-fun'?
+         `(futur-bind ,exp
+                      (pcase-lambda (,var) ,(loop bindings))
+                      ,error-fun-form))))))
 
 (oclosure-define futur--aux
   "An auxiliary function used internally.

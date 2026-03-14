@@ -197,12 +197,6 @@ Optional argument NOFILE, if non-nil, prevents writing to
       (apply #'isbn-hyphenation--ranges-get (gethash (pop keys) source) keys)
     source))
 
-(defun isbn-hyphenation--ranges-member-p (number range)
-  "Return t if NUMBER (string) is within RANGE (string)."
-  (setq number (string-to-number number))
-  (let ((range (mapcar #'string-to-number (string-split range "-"))))
-    (and (>= number (car range)) (<= number (cadr range)))))
-
 ;;;###autoload
 (defun isbn-hyphenate (isbn &optional interactive)
   "Hyphenate ISBN as an ISBN-13.
@@ -230,9 +224,15 @@ Please run `isbn-hyphenation-ranges-update'")))
   ;; latter determines how long the publisher code is.  The rest of
   ;; the ISBN can be determined automatically.
   (let* (hyphenated
-         (remaining (lambda ()
-                      (let ((len (length (apply #'concat hyphenated))))
-                        (substring isbn len (+ len 7))))))
+         (remaining
+          (lambda ()
+            (let ((len (length (apply #'concat hyphenated))))
+              (substring isbn len (+ len 7)))))
+         (ranges-member-p
+          (lambda (number range)
+            (setq number (string-to-number number))
+            (let ((range (mapcar #'string-to-number (string-split range "-"))))
+              (and (>= number (car range)) (<= number (cadr range)))))))
 
     ;; 1. EAN prefix
     (push (substring isbn 0 3) hyphenated)
@@ -252,8 +252,8 @@ Please run `isbn-hyphenation-ranges-update'")))
                         (catch 'length
                           (seq-do
                            (lambda (rule)
-                             (when (isbn-hyphenation--ranges-member-p
-                                    rem (gethash "Range" rule))
+                             (when (funcall ranges-member-p
+                                            rem (gethash "Range" rule))
                                (throw 'length (gethash "Length" rule))))
                            (isbn-hyphenation--ranges-get match "Rules" "Rule"))))))
           (unless (eq length 0)
@@ -275,8 +275,8 @@ Please run `isbn-hyphenation-ranges-update'")))
                         (catch 'length
                           (seq-do
                            (lambda (rule)
-                             (when (isbn-hyphenation--ranges-member-p
-                                    rem (gethash "Range" rule))
+                             (when (funcall ranges-member-p
+                                            rem (gethash "Range" rule))
                                (throw 'length (gethash "Length" rule))))
                            (isbn-hyphenation--ranges-get match "Rules" "Rule"))))))
           (push (substring rem 0 length) hyphenated))

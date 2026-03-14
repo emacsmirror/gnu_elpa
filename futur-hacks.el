@@ -141,15 +141,22 @@ current buffer state and calls REPORT-FN when done."
   ;; FIXME: Rate-limit with `futur-concurrency-bound'.
   ;; FIXME: Check that the regions haven't changed/disappeared.
   (pcase-let*
-      ((`(,file1 ,ol1 ,file2 ,ol2)
-        (smerge--refine-prepare-regions beg1 end1 beg2 end2
-                                        preproc props-c props-r props-a)))
+      ;; Cover the two regions with one `smerge--refine-region' overlay each.
+      ((ol1 (make-overlay beg1 end1 (if (markerp beg1) (marker-buffer beg1))
+                          ;; Make it shrink rather than spread when editing.
+                          'front-advance nil))
+       (ol2 (make-overlay beg2 end2 (if (markerp beg2) (marker-buffer beg2))
+                          ;; Make it shrink rather than spread when editing.
+                          'front-advance nil))
+       (`(,file1 ,file2)
+        (smerge--refine-prepare-regions ol1 ol2 preproc)))
+    (smerge--refine-set-overlay-props ol1 ol2 props-c props-r props-a)
 
     ;; Call diff on those files.
     (futur-with-temp-buffer
       (let ((buf (current-buffer)))
         (futur-let*
-            ((exitcode
+            ((_exitcode
               <- (futur-unwind-protect
                      ;; Allow decoding the EOL format, as on MS-Windows the
                      ;; Diff utility might produce CR-LF EOLs.
@@ -184,40 +191,34 @@ current buffer state and calls REPORT-FN when done."
   (declare-function smerge--refine-highlight-change "smerge-mode")
   (declare-function smerge--refine-chopup-region "smerge-mode")
   (declare-function smerge--refine-apply-diff-1 "ext:here-or-smerge-mode")
+  (declare-function smerge--refine-set-overlay-props "ext:here-or-smerge-mode")
+
+  (unless (fboundp 'smerge--refine-set-overlay-props)
+    (defun smerge--refine-set-overlay-props (ol1 ol2 props-c props-r props-a)
+      (let ((common-props
+             (let ((props '((evaporate . t) (smerge--refine-region . t))))
+               (dolist (prop (or props-a props-c))
+                 (when (and (not (memq (car prop) '(face font-lock-face)))
+                            (member prop (or props-r props-c))
+                            (or (not (and props-c props-a props-r))
+                                (member prop props-c)))
+                   ;; This PROP is shared among all those overlays.
+                   ;; Better keep it also for the `smerge--refine-region'
+                   ;; overlays, so the client package recognizes them as
+                   ;; being part of the refinement (e.g. it will hopefully
+                   ;; delete them like the others).
+                   (push prop props)))
+               props)))
+        (dolist (prop common-props)
+          (overlay-put ol1 (car prop) (cdr prop))
+          (overlay-put ol2 (car prop) (cdr prop))))))
 
   (unless (fboundp 'smerge--refine-prepare-regions) ;; Emacs-31
-    (defun smerge--refine-prepare-regions ( beg1 end1 beg2 end2
-                                            preproc props-c props-r props-a)
+    (defun smerge--refine-prepare-regions ( ol1 ol2 preproc)
       (let* ((file1 (make-temp-file "diff1"))
              (file2 (make-temp-file "diff2"))
              (smerge--refine-long-words
-              (if smerge-refine-weight-hack (make-hash-table :test #'equal)))
-
-             ;; Cover each region with an `smerge--refine-region' overlay.
-             (ol1 (make-overlay beg1 end1
-                                (if (markerp beg1) (marker-buffer beg1))
-                                'front-advance nil))
-             (ol2 (make-overlay beg2 end2
-                                (if (markerp beg2) (marker-buffer beg2))
-                                'front-advance nil))
-             (common-props
-              (let ((props '((evaporate . t) (smerge--refine-region . t))))
-                (dolist (prop (or props-a props-c))
-                  (when (and (not (memq (car prop) '(face font-lock-face)))
-                             (member prop (or props-r props-c))
-                             (or (not (and props-c props-a props-r))
-                                 (member prop props-c)))
-                    ;; This PROP is shared among all those overlays.
-                    ;; Better keep it also for the `smerge--refine-region'
-                    ;; overlays, so the client package recognizes them as
-                    ;; being part of the refinement (e.g. it will hopefully
-                    ;; delete them like the others).
-                    (push prop props)))
-                props)))
-
-        (dolist (prop common-props)
-          (overlay-put ol1 (car prop) (cdr prop))
-          (overlay-put ol2 (car prop) (cdr prop)))
+              (if smerge-refine-weight-hack (make-hash-table :test #'equal))))
 
         (let ((write-region-inhibit-fsync t)) ; Don't fsync temp files.
           ;; Chop up regions into smaller elements and save into files.
@@ -230,7 +231,7 @@ current buffer state and calls REPORT-FN when done."
              (copy-marker (overlay-start ol2)))
            (overlay-end ol2) file2 preproc))
 
-        `(,file1 ,ol1 ,file2 ,ol2))))
+        `(,file1 ,file2))))
 
   (unless (fboundp 'smerge--refine-apply-diff) ;; Emacs-31
     (defun smerge--refine-apply-diff ( diffbuf ol1 ol2

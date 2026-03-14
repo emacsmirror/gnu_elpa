@@ -402,7 +402,7 @@ When nil (the default), allow the underlying text to retain its color."
 ;;;###autoload
 (define-minor-mode lin-mode
   "Enable `hl-line-mode' and remap its face to `lin-face'.
-Note that Lin respects the `hl-line-sticky-flag'."
+Note that Lin respects the user option `hl-line-sticky-flag'."
   :global nil
   :init-value nil
   (if lin-mode
@@ -418,7 +418,7 @@ Note that Lin respects the `hl-line-sticky-flag'."
 ;;;###autoload
 (define-minor-mode lin-global-mode
   "Like `lin-mode' but sets things up for all `lin-mode-hooks'.
-Note that Lin respects the `hl-line-sticky-flag'."
+Note that Lin respects the user option `hl-line-sticky-flag'."
   :global t
   :init-value nil
   (if lin-global-mode

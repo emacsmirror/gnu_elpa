@@ -244,16 +244,13 @@ that it is not empty."
 (defconst futur--pending-condvar
   (make-condition-variable futur--pending-mutex))
 
-(defvar futur--in-background nil)
-
 (eval-and-compile
   (unless (fboundp 'with-suppressed-warnings) ;Emacs-27
     (defmacro with-suppressed-warnings (_warnings &rest body)
       (with-no-warnings ,@body))))
 
 (defun futur--background ()
-  (let ((futur--in-background t)
-        (inhibit-quit t)
+  (let ((inhibit-quit t)
         ;; Entering the debugger blocks all subsequent pending tasks,
         ;; plus it bumps into problems like bug#80537.
         ;; (debug-on-error nil)
@@ -561,7 +558,7 @@ as `futur-bind'."
   ;; that bug#80286 means that `condition-wait' can lock up your
   ;; Emacs session hard.
   ;; FIXME: Even `futur--idle-loop-bug80286' doesn't seem sufficient.
-  (when futur--in-background
+  (when inhibit-quit
     (error "Blocking/waiting within an asynchronous context is not supported"))
   (if (not (futur--p futur))
       futur

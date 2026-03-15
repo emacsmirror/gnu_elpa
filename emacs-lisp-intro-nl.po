@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2026-03-14 14:30+0100\n"
-"PO-Revision-Date: 2026-02-10 12:02+0100\n"
+"PO-Revision-Date: 2026-03-14 15:45+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: \n"
@@ -13375,7 +13375,8 @@ msgstr ""
 "buffer} illustreert het gebruik van twee @code{save-excursion} expressies in "
 "één definitie, terwijl de @code{insert-buffer} het gebruik van een ster in "
 "een @code{interactive} expressie, het gebruik van @code{or}, en het "
-"belangrijke onderscheid tussen een naam en het object waar die aan refereert."
+"belangrijke onderscheid tussen een naam en het object waar die aan refereert "
+"illustreert."
 
 #. type: section
 #: emacs-lisp-intro.texi:5506
@@ -13456,13 +13457,15 @@ msgid ""
 "@dots{}) @dots{})}} in one go, though it is defined slightly differently "
 "which interested reader can find out using @code{describe-function}.}."
 msgstr ""
-"Kijk ten eerste naar de vroegste binnen liggende expressie, die wordt het "
-"eerste geëvalueerd. De functie vertelt de computer het buffer te gebruiken "
-"met de naam gespecificeerd als diegene waarna je wilt kopiëren, of aan te "
-"maken als die niet bestaat. Daarna evalueert de functie @code{with-current-"
-"buffer} met dat als tijdelijk huidige buffer, waarna het terugschakelt naar "
-"de buffer waar wij nu zijn@footnote{Dit is vergelijkbaar met @w{@code{(save-"
-"excursion (set-buffer @dots{}) @dots{})}} in één keer aanroepen, maar het is "
+"Kijk ten eerste naar de vroegste binnenste expressie, die wordt het "
+"eerste geëvalueerd. De expressie start met @code{get-buffer-create "
+"buffer}. De functie vertelt de computer het buffer te gebruiken met "
+"de naam gespecificeerd als diegene waarnaar je wilt kopiëren, of die "
+"aan te maken als die niet bestaat. Daarna evalueert de functie "
+"@code{with-current- buffer} zijn body met dat als tijdelijk huidige "
+"buffer, waarna het terugschakelt naar de buffer waar wij nu "
+"zijn@footnote{Dit is vergelijkbaar met @w{@code{(save- excursion "
+"(set-buffer @dots{}) @dots{})}} in één keer aanroepen, maar het is "
 "een beetje anders gedefinieerd, wat de geïnteresseerde lezer met "
 "@code{describe-function} kan ontdekken.}."
 
@@ -13475,7 +13478,7 @@ msgid ""
 "a newer, and arguably easier, mechanism.)"
 msgstr ""
 "(Dit demonstreert een andere manier om de aandacht van de computer maar niet "
-"die van de gebruiker te schakelen). De functie @code{append-to-buffer} "
+"die van de gebruiker te schakelen. De functie @code{append-to-buffer} "
 "toonde dit te doen met @code{save-excursion} and @code{set-buffer}. "
 "@code{with-current-buffer} is een nieuwer en misschien zelfs makkelijker "
 "mechanisme.)"
@@ -13486,7 +13489,7 @@ msgid ""
 "The @code{barf-if-buffer-read-only} function sends you an error message "
 "saying the buffer is read-only if you cannot modify it."
 msgstr ""
-"De functie @code{barf-if-buffer-read-only} zend je een foutmelding die zegt "
+"De functie @code{barf-if-buffer-read-only} stuurt je een foutmelding die zegt "
 "dat het buffer read-only is wanneer je het niet mag wijzigen."
 
 #. type: Plain text
@@ -13525,7 +13528,7 @@ msgstr ""
 #. type: Plain text
 #: emacs-lisp-intro.texi:5575
 msgid "In outline, the body of @code{copy-to-buffer} looks like this:"
-msgstr "Globaal ziet de body van @code{copy-to-buffer} er zo uit:"
+msgstr "In hoofdlijnen ziet de body van @code{copy-to-buffer} er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:5584
@@ -13723,7 +13726,7 @@ msgstr ""
 "Het sterretje is voor de situatie dat het huidige buffer een read-only "
 "buffer is---een buffer dat niet kan worden gewijzigd. Wanneer @code{insert-"
 "buffer} wordt aangeroepen terwijl het huidige buffer read-only is, wordt een "
-"boodschap hiervan in het echogebied getoond en de terminal can piepen of "
+"boodschap hiervan in het echogebied getoond en de terminal kan piepen of "
 "knipperen, het is niet toegestaan iets in het huidige buffer in te voegen. "
 "Het sterretje hoeft niet opgevolgd te worden met een nieuwe regel om het van "
 "het volgende argument te scheiden."
@@ -13748,15 +13751,16 @@ msgid ""
 "enabled.  If the buffer does not exist, you receive a message that says ``No "
 "match''; your terminal may beep at you as well."
 msgstr ""
-"Het volgende argument in de interactive-expressie begint met een kleine "
-"letter @samp{b}. (Dit is verschillend met de code voor @code{append-to-"
-"buffer}, die gebruikt een hoofdletter @samp{B}.) De kleine letter @samp{b} "
-"vertelt de Lisp interpreter dat het argument voor @code{insert-buffer} een "
-"bestaand buffer moet zijn, of de naam daarvan. (De optie hoofdletter "
-"@samp{B} is voor de mogelijkheid dat het buffer nog niet bestaat.) Emacs "
-"vraagt je naar de naam van het buffer en biedt een standaard buffer aan met "
-"completie voor de naam ingeschakeld. Wanneer het buffer niet bestaat, krijg "
-"je een boodschap ``No match'', en de terminal kan daarbij ook piepen."
+"Het volgende argument in de interactive-expressie begint met een "
+"kleine letter @samp{b}. (Dit is verschillend met de code voor "
+"@code{append-to- buffer}, die gebruikt een hoofdletter @samp{B}.) De "
+"kleine letter @samp{b} vertelt de Lisp interpreter dat het argument "
+"voor @code{insert-buffer} een bestaand buffer moet zijn, of de naam "
+"daarvan. (De optie hoofdletter @samp{B} is voor de mogelijkheid dat "
+"het buffer nog niet bestaat.) Emacs vraagt je naar de naam van het "
+"buffer en biedt een standaard buffer aan met ingeschakelde completie "
+"voor de naam. Wanneer het buffer niet bestaat, krijg je een "
+"boodschap ``No match'', en de terminal kan daarbij ook piepen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5707
@@ -13790,7 +13794,7 @@ msgstr ""
 "De body van de functie @code{insert-buffer} heeft twee belangrijke delen: "
 "een @code{or} expressie en een @code{let} expressie. Het doel van de "
 "@code{or} is zeker te stellen dat het argument van @code{buffer} gebonden is "
-"aan een buffer niet slechts aan de naam van een buffer. De body van de "
+"aan een buffer en niet slechts aan de naam van een buffer. De body van de "
 "@code{let} expressie bevat de code die het andere buffer in het huidige "
 "kopieert."
 
@@ -13875,10 +13879,11 @@ msgid ""
 "to your name, not to you; but when the usher finds you and takes your arm, "
 "the usher becomes bound to you."
 msgstr ""
-"Stel je voor dat je op een conferentie bent en de ceremoniemeester loopt "
-"rond met een lijst waar je naam op staat en je zoekt: de ceremoniemeester is "
-"gebonden aan je naam, niet aan jou, maar wanneer die je vindt en je bij je "
-"arm neemt, raakt de ceremoniemeester gebonden aan jou."
+"Stel je voor dat je op een conferentie bent en de ceremoniemeester "
+"loopt rond met een lijst waar je naam op staat en is op zoek naar je: "
+"de ceremoniemeester is gebonden aan je naam, niet aan jou, maar "
+"wanneer die je vindt en je bij je arm neemt, raakt de "
+"ceremoniemeester gebonden aan jou."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5757
@@ -13911,7 +13916,7 @@ msgid ""
 "buffer (rather than its name), we can write the code like this:"
 msgstr ""
 "Met een predicate met de naam @code{bufferp} die ons vertelt of we een "
-"buffer (in plaats van een naam hebben) schrijven we de code als volgt:"
+"buffer (in plaats van een naam) hebben schrijven we de code als volgt:"
 
 #. type: group
 #: emacs-lisp-intro.texi:5776
@@ -14031,12 +14036,13 @@ msgid ""
 "buffer} function actually uses @code{or}.  To understand this, it is "
 "necessary to understand how @code{or} works."
 msgstr ""
-"Het doel van de e @code{or} expressie in de functie @code{insert-buffer} is "
-"zeker te stellen dat het argument van @code{buffer} gebonden is aan een "
-"buffer niet slechts de naam van een buffer. De vorige sectie liet zien hoe "
-"deze taak met een @code{if} expressie gedaan kan worden. Echter, de functie "
-"@code{insert-buffer} gebruikt @code{or}. Om dit te begrijpen, is het nodig "
-"te begrijpen hoe @code{or} werkt."
+"Het doel van de @code{or} expressie in de functie "
+"@code{insert-buffer} is zeker te stellen dat het argument van "
+"@code{buffer} gebonden is aan een buffer en niet slechts aan de naam "
+"van een buffer. De vorige sectie liet zien hoe deze taak met een "
+"@code{if} expressie gedaan kan worden. Echter, de functie "
+"@code{insert-buffer} gebruikt @code{or}. Om dit te begrijpen, is het "
+"nodig te begrijpen hoe @code{or} werkt."
 
 #. type: exdent
 #: emacs-lisp-intro.texi:5832 emacs-lisp-intro.texi:6460
@@ -14054,11 +14060,11 @@ msgid ""
 "not evaluate any subsequent arguments after returning the first non-"
 "@code{nil} value."
 msgstr ""
-"Een @code{or} functie kan allerlei argumenten hebben. Het evalueert elk "
-"argument op zijn beurt en geeft de waarde van het eerste van de argumenten "
-"dat niet @code{nil} is. Dus, en dit is een cruciale eigenschap van "
-"@code{or}, evalueert het geen verdere argumenten na het teruggeven van de "
-"eerste non-@code{nil} waarde."
+"Een @code{or} functie kan allerlei argumenten hebben. Het evalueert "
+"elk argument op zijn beurt en geeft de waarde terug van het eerste "
+"van de argumenten dat niet @code{nil} is. Dus, en dit is een "
+"cruciale eigenschap van @code{or}, evalueert het geen verdere "
+"argumenten na het teruggeven van de eerste non-@code{nil} waarde."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5841
@@ -14090,7 +14096,7 @@ msgstr ""
 "Deze expressie geeft waar terug (een non-@code{nil} waarde) wanneer het "
 "buffer inderdaad een buffer is en niet slechts de naam van een buffer. De "
 "@code{or} expressie, wanneer dit het geval is, geeft deze waar waarde terug "
-"en evalueert de volgende expressie niet---en dat is prima voor on, omdat we "
+"en evalueert de volgende expressie niet---en dat is prima voor ons, omdat we "
 "niets anders willen dan de waarde van @code{buffer} wanneer die echt een "
 "buffer is."
 
@@ -14203,7 +14209,7 @@ msgstr ""
 "het huidige buffer naar een waarvan de tekst gekopieerd zal worden. In dat "
 "buffer zijn met het gebruik van de commando's @code{point-min} en "
 "@code{point-max} de variabelen @code{start} en @code{end} ingesteld op het "
-"begin en het eind van het buffer. Merk op dat hier zien hoe @code{setq} twee "
+"begin en het eind van het buffer. Merk op dat we hier zien hoe @code{setq} twee "
 "variabelen in een enkele expressie kan instellen. Het eerste argument van "
 "@code{setq} is ingesteld op de waarde van de tweede, en het derde argument "
 "op de waarde van de vierde."
@@ -14646,7 +14652,7 @@ msgid ""
 "@code{beginning-of-buffer} function in its simplified form."
 msgstr ""
 "De waar-of-onwaar-test in de @code{if}-expressie ziet er gecompliceerd uit, "
-"maar is het niet: het controleert of @code{arg} een waarde heeft doe niet "
+"maar is het niet: het controleert of @code{arg} een waarde heeft die niet "
 "@code{nil} is en of het wel of niet een cons-cel is. (Dat is wat "
 "@code{consp} doet, het controleert of zijn argument een cons-cel is.) "
 "Wanneer @code{arg} een waarde heeft die ongelijk aan @code{nil} is (en ook "
@@ -14751,7 +14757,7 @@ msgstr ""
 "de grootte van het buffer. De reden hiervoor is, is dat de oude versie 18 "
 "van Emacs met getallen werkte die niet hoger kunnen zijn dan ongeveer acht "
 "miljoen en in de berekening die volgt, de programmeur bang was dat Emacs zou "
-"proberen te grootte getallen te gebruiken wanneer de buffers groot zijn. De "
+"proberen te grote getallen te gebruiken wanneer de buffers groot zijn. De "
 "term ``overflow'' die in het commentaar genoemd wordt betekent dat getallen "
 "te groot zijn. Meer recente versies van Emacs gebruiken grotere getallen, "
 "maar de code is niet gewijzigd, al is het alleen maar omdat mensen nu met "
@@ -14906,7 +14912,7 @@ msgid ""
 "   @var{number-of-characters-in-one-tenth-of-the-accessible-buffer})\n"
 msgstr ""
 "(* @var{numerieke-waarde-van-het-prefix-arg}\n"
-"   @var{aantal karakters-in-een-tiende-van-het-bereikbare-buffer})\n"
+"   @var{aantal-karakters-in-een-tiende-van-het-bereikbare-buffer})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:6259
@@ -25571,7 +25577,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:11905
 #, no-wrap
 msgid "Searches, illustrating"
-msgstr ""
+msgstr "Zoeken, illustreren"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11906
@@ -25589,19 +25595,19 @@ msgstr "Patronen, zoeken naar"
 #: emacs-lisp-intro.texi:11908
 #, no-wrap
 msgid "Motion by sentence and paragraph"
-msgstr ""
+msgstr "Bewegen per zin en paragraaf"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11909
 #, no-wrap
 msgid "Sentences, movement by"
-msgstr ""
+msgstr "Zinnen, bewegen per"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:11910
 #, no-wrap
 msgid "Paragraphs, movement by"
-msgstr ""
+msgstr "Paragrafen, bewegen per"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11917
@@ -25611,6 +25617,12 @@ msgid ""
 "these searches well.  They use regular expressions to find where to move "
 "point.  The phrase ``regular expression'' is often written as ``regexp''."
 msgstr ""
+"Zoekopdrachten met reguliere expressies worden uitgebreid gebruikt "
+"in Emacs. De twee functies @code{forward-sentence} en "
+"@code{forward-paragraph} illustreren deze zoekopdrachten goed. Zij "
+"gebruiken reguliere expressies om uit te zoeken waarheen de point te "
+"bewegen. De uitdrukking ``reguliere expresie'' wordt vaak geschreven "
+"als ``regexp''."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11928
@@ -25647,12 +25659,22 @@ msgid ""
 "the last section of this chapter.  @code{forward-paragraph} is a complex "
 "function that introduces several new features."
 msgstr ""
+"Voordat we naar de code van de functie @code{forward-sentence} "
+"kijken, is het waardevol te overwegen wat het patroon is dat het "
+"einde van een zin moet zijn. Het patroon wordt in de volgende sectie "
+"besproken, daarop volgt een beschrijving van de reguliere expresie "
+"zoekfunctie, @code{re-search-forward}. De functie "
+"@code{forward-sentence} wordt in de daaropvolgende sectie besproken. "
+"Tenslotte wordt de functie @code{forward-paragraph} in de laatste "
+"sectie van dit hoofdstuk beschreven. @code{forward-paragraph} is een "
+"complexe functie die verschillende nieuwe eigenschappen "
+"introduceert."
 
 #. type: section
 #: emacs-lisp-intro.texi:11949
 #, no-wrap
 msgid "The Regular Expression for @code{sentence-end}"
-msgstr ""
+msgstr "De reguliere expressie for @code{sentence-end}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11954
@@ -25660,6 +25682,8 @@ msgid ""
 "The symbol @code{sentence-end} is bound to the pattern that marks the end of "
 "a sentence.  What should this regular expression be?"
 msgstr ""
+"Het symbool @code{sentence-end} is gebonden aan het patroon dat het "
+"einde van een zin markeert. Wat moet deze reguliere expressie zijn?"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11959
@@ -25669,12 +25693,17 @@ msgid ""
 "those three characters should be considered the end of a sentence.  This "
 "means that the pattern should include the character set:"
 msgstr ""
+"Het is duidelijk dat een zin kan worden beëindigd met een punt, een "
+"vraagteken of een uitroepteken. In het Engels worden inderdaad "
+"alleen clausules die met een van deze drie karakters eindigen "
+"beschouwd als het eind van een zin. Dit betekent dat het patroon de "
+"volgende karakterset moet bevatten:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:11962
 #, no-wrap
 msgid "[.?!]\n"
-msgstr ""
+msgstr "[.?!]\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11968
@@ -25684,6 +25713,10 @@ msgid ""
 "used in the middle of a sentence.  A period, for example, is used after "
 "abbreviations.  So other information is needed."
 msgstr ""
+"We willen echter niet dat @code{forward-sentence} gewoon naar een "
+"punt, vraagteken of uitroepteken springt, omdat zo'n karakter in het "
+"midden van een zin kan worden gebruikt. Een punt wordt bijvoorbeeld "
+"gebruikt na een afkorting. Meer informatie is dus benodigd."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11976
@@ -25696,11 +25729,18 @@ msgid ""
 "means that the regular expression should include these three items as "
 "alternatives."
 msgstr ""
+"Volgens de conventie typ je in het Engels twee spaties achter elke "
+"zin, maar alleen één spatie achter een punt, vraagteken of "
+"uitroepteken in de body van een zin. Een een punt, vraagteken of "
+"uitroepteken gevolgd door twee spaties is daarom een goede indicator "
+"van het einde van een zin. In een bestand echter, kan een tab of het "
+"einde van regel in plaats van de twee spaties staan. Dit betekent "
+"dat de reguliere expressie deze drie alternatieven moet bevatten."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11979
 msgid "This group of alternatives will look like this:"
-msgstr ""
+msgstr "Deze groep van alternatieven zijn er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:11985
@@ -25710,6 +25750,9 @@ msgid ""
 "       ^   ^^\n"
 "      TAB  SPC\n"
 msgstr ""
+"\\\\($\\\\| \\\\|  \\\\)\n"
+"       ^   ^^\n"
+"      TAB  SPC\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11992
@@ -25718,6 +25761,9 @@ msgid ""
 "the tab and two spaces are inserted in the expression.  Both are inserted by "
 "putting the actual characters into the expression."
 msgstr ""
+"Hier geeft @samp{$} het einde van de regel aan, en ik heb aangegeven "
+"waar de tab en de twee spaties zijn ingevoegd in de expressie. Beide "
+"zijn ingevoegd door de betreffende letters in de expressie op te nemen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11997
@@ -25727,12 +25773,18 @@ msgid ""
 "and the second indicates that the following character, the parenthesis or "
 "the vertical bar, is special."
 msgstr ""
+"Twee backslashes, @samp{\\\\} zijn vereist voor de haakjes en het "
+"vertikale streepje (vertical bar): de eerste backslash quote hde "
+"volgende backslash in Emacs, en de tweede geeft aan dat het volgende "
+"karakter, het haakje of het vertikale streepje, speciaal is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12001
 msgid ""
 "Also, a sentence may be followed by one or more carriage returns, like this:"
 msgstr ""
+"Een zin kan ook door een of meer carriage returns gevolgd worden, "
+"zoals dit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:12006
@@ -25741,6 +25793,8 @@ msgid ""
 "[\n"
 "]*\n"
 msgstr ""
+"[\n"
+"]*\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12013
@@ -25749,6 +25803,9 @@ msgid ""
 "expression by inserting it literally.  The asterisk indicates that the "
 "@key{RET} is repeated zero or more times."
 msgstr ""
+"Zoals tabs en spaties wordt een carriage return ingevoegd in een "
+"reguliere expressie door het letterlijk in te voegen. De ster geeft "
+"aan dat de @key{RET} nul of meer keer herhaald kan worden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12019
@@ -25759,12 +25816,17 @@ msgid ""
 "such mark or brace may precede the space.  These require a expression that "
 "looks like this:"
 msgstr ""
+"Maar het einde van een zin bestaat niet alleen uit een punt, "
+"vraagteken of uitroepteken gevolgd door passende ruimte: een "
+"aanhalingsteken sluiten, of een soort sluitend haakje kan aan de "
+"spatie voorafgaan. Een of meer van deze tekens of haakjes kan aan de "
+"spatie voorafgaan. Dit vereist een expressie die er zo uitziet:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:12022
 #, no-wrap
 msgid "[]\\\"')@}]*\n"
-msgstr ""
+msgstr "[]\\\"')@}]*\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12028
@@ -25774,6 +25836,11 @@ msgid ""
 "@samp{\\} to tell Emacs the @samp{\"} is @emph{not} special.  The last three "
 "characters are @samp{'}, @samp{)}, and @samp{@}}."
 msgstr ""
+"De eerste @samp{]} is het eerste karakter in deze expressie, het "
+"tweede karakter is @samp{\"}, die voorafgegaan wordt door een "
+"@samp{\\} om Emacs te vertellen dat de @samp{\"} @emph{niet} "
+"speciaal is. De laatste drie karakters zijn @samp{'}, @samp{)} en "
+"@samp{@}}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12032
@@ -25782,6 +25849,10 @@ msgid ""
 "of a sentence should be; and, indeed, if we evaluate @code{sentence-end} we "
 "find that it returns the following value:"
 msgstr ""
+"Dit alles suggereert ons wat de reguliere expressie voor het "
+"markeren van het eind van een zin zou moeten zijn. En wanneer we "
+"@code{sentence-end} evalueren, zien we dat het inderdaad de volgende "
+"waarde teruggeeft:"
 
 #. type: group
 #: emacs-lisp-intro.texi:12038
@@ -25791,6 +25862,9 @@ msgid ""
 "     @result{} \"[.?!][]\\\"')@}]*\\\\($\\\\|     \\\\|  \\\\)[\n"
 "]*\"\n"
 msgstr ""
+"sentence-end\n"
+"     @result{} \"[.?!][]\\\"')@}]*\\\\($\\\\|     \\\\|  \\\\)[\n"
+"]*\"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12055
@@ -25808,6 +25882,21 @@ msgid ""
 "@code{sentence-end-without-period} variable, when true, tells Emacs that a "
 "sentence may end without a period, such as text in Thai.)"
 msgstr ""
+"(Nou, niet in GNU Emacs 22. Dat is omdat gestreefd is het proces "
+"simpeler te maken en meer bijzondere karakters en talen te hanteren. "
+"Wanneer de waarde van @code{sentence-end} @code{nil} is, gebruik dan "
+"de waarde gedefinieerd door de functie @code{sentence-end}. (Hier is "
+"een gebruik van het verschil tussen een waarde en een functie in "
+"Emacs Lisp.) De functie geeft de waarde terug die geconstrueerd is "
+"met de variabelen @code{sentence-end-base}, "
+"@code{sentence-end-double-space}, "
+"@code{sentence-end-without-period}, and "
+"@code{sentence-end-without-space}. De kritieke variabele "
+"@code{sentence-end-base}. De globale waarde daarvan lijkt op die "
+"hierboven beschreven maar bevat twee extra aanhalingstekens. Deze "
+"zijn op verschillende manieren gebogen. Wanneer de variabele "
+"@code{sentence-end-without-period} waar is, dan vertelt dat Emacs "
+"dat een zin mag eindigen zonder punt, zoals Taise tekst."
 
 #. type: item
 #: emacs-lisp-intro.texi:12064
@@ -39166,171 +39255,3 @@ msgid ""
 msgstr ""
 "@uref{https://www.fsf.org/blogs/community/goodbye-to-bob-chassell, \"Goodbye "
 "to Bob Chassell\"}"
-
-#, no-wrap
-#~ msgid ""
-#~ "    ___ ___      ___ ___      ___ ___\n"
-#~ "   |___|___|--> |___|___|--> |___|___|--> nil\n"
-#~ "     |            |            |\n"
-#~ "     |            |            |\n"
-#~ "      --> rose     --> violet   --> buttercup\n"
-#~ msgstr ""
-#~ "    ___ ___      ___ ___      ___ ___\n"
-#~ "   |___|___|--> |___|___|--> |___|___|--> nil\n"
-#~ "     |            |            |\n"
-#~ "     |            |            |\n"
-#~ "      --> roos     --> viool    --> boterbloem\n"
-
-#, no-wrap
-#~ msgid ""
-#~ "bouquet\n"
-#~ "     |\n"
-#~ "     |     ___ ___      ___ ___      ___ ___\n"
-#~ "      --> |___|___|--> |___|___|--> |___|___|--> nil\n"
-#~ "            |            |            |\n"
-#~ "            |            |            |\n"
-#~ "             --> rose     --> violet   --> buttercup\n"
-#~ msgstr ""
-#~ "boeket\n"
-#~ "     |\n"
-#~ "     |     ___ ___      ___ ___      ___ ___\n"
-#~ "      --> |___|___|--> |___|___|--> |___|___|--> nil\n"
-#~ "            |            |            |\n"
-#~ "            |            |            |\n"
-#~ "             --> roos     --> viool    --> boterbloem\n"
-
-#, no-wrap
-#~ msgid ""
-#~ "bouquet\n"
-#~ " |\n"
-#~ " |    --------------       ---------------       ----------------\n"
-#~ " |   | car   | cdr  |     | car    | cdr  |     | car     | cdr  |\n"
-#~ "  -->| rose  |   o------->| violet |   o------->| butter- |  nil |\n"
-#~ "     |       |      |     |        |      |     | cup     |      |\n"
-#~ "      --------------       ---------------       ----------------\n"
-#~ msgstr ""
-#~ "bouquet\n"
-#~ " |\n"
-#~ " |    --------------       ---------------       ----------------\n"
-#~ " |   | car   | cdr  |     | car    | cdr  |     | car     | cdr  |\n"
-#~ "  -->| roos  |   o------->| viool  |   o------->| boter-  |  nil |\n"
-#~ "     |       |      |     |        |      |     | bloem   |      |\n"
-#~ "      --------------       ---------------       ----------------\n"
-
-#, no-wrap
-#~ msgid ""
-#~ "bouquet        flowers\n"
-#~ "  |              |\n"
-#~ "  |     ___ ___  |     ___ ___      ___ ___\n"
-#~ "   --> |   |   |  --> |   |   |    |   |   |\n"
-#~ "       |___|___|----> |___|___|--> |___|___|--> nil\n"
-#~ "         |              |            |\n"
-#~ "         |              |            |\n"
-#~ "          --> rose       --> violet   --> buttercup\n"
-#~ msgstr ""
-#~ "boeket         bloemen\n"
-#~ "  |              |\n"
-#~ "  |     ___ ___  |     ___ ___      ___ ___\n"
-#~ "   --> |   |   |  --> |   |   |    |   |   |\n"
-#~ "       |___|___|----> |___|___|--> |___|___|--> nil\n"
-#~ "         |              |            |\n"
-#~ "         |              |            |\n"
-#~ "          --> roos       --> viool    --> boterbloem\n"
-
-#, no-wrap
-#~ msgid ""
-#~ "bouquet                       flowers\n"
-#~ "  |                             |\n"
-#~ "  |     ___ ___        ___ ___  |     ___ ___       ___ ___\n"
-#~ "   --> |   |   |      |   |   |  --> |   |   |     |   |   |\n"
-#~ "       |___|___|----> |___|___|----> |___|___|---->|___|___|--> nil\n"
-#~ "         |              |              |             |\n"
-#~ "         |              |              |             |\n"
-#~ "          --> lily      --> rose       --> violet    --> buttercup\n"
-#~ msgstr ""
-#~ "boeket                        bloemen\n"
-#~ "  |                             |\n"
-#~ "  |     ___ ___        ___ ___  |     ___ ___       ___ ___\n"
-#~ "   --> |   |   |      |   |   |  --> |   |   |     |   |   |\n"
-#~ "       |___|___|----> |___|___|----> |___|___|---->|___|___|--> nil\n"
-#~ "         |              |              |             |\n"
-#~ "         |              |              |             |\n"
-#~ "          --> lelie     --> roos       --> viool      --> boterbloem\n"
-
-#, no-wrap
-#~ msgid ""
-#~ "            Chest of Drawers            Contents of Drawers\n"
-#~ "\n"
-#~ msgstr "              Ladekast                   Inhoud van de lade\n"
-
-#, no-wrap
-#~ msgid ""
-#~ "            __   o0O0o   __\n"
-#~ "          /                 \\\n"
-#~ "         ---------------------\n"
-#~ "        |    directions to    |            [map to]\n"
-#~ "        |     symbol name     |             bouquet\n"
-#~ "        |                     |\n"
-#~ "        +---------------------+\n"
-#~ "        |    directions to    |\n"
-#~ "        |  symbol definition  |             [none]\n"
-#~ "        |                     |\n"
-#~ "        +---------------------+\n"
-#~ "        |    directions to    |            [map to]\n"
-#~ "        |    variable value   |             (rose violet buttercup)\n"
-#~ "        |                     |\n"
-#~ "        +---------------------+\n"
-#~ "        |    directions to    |\n"
-#~ "        |    property list    |             [not described here]\n"
-#~ "        |                     |\n"
-#~ "        +---------------------+\n"
-#~ "        |/                   \\|\n"
-#~ msgstr ""
-#~ "            __   o0O0o   __\n"
-#~ "          /                 \\\n"
-#~ "         ---------------------\n"
-#~ "        |  routebeschrijving  |            [wijst naar]\n"
-#~ "        |     symbool naam    |             boeket\n"
-#~ "        |                     |\n"
-#~ "        +---------------------+\n"
-#~ "        |  routebeschrijving  |\n"
-#~ "        |  symbool definitie  |             [geen]\n"
-#~ "        |                     |\n"
-#~ "        +---------------------+\n"
-#~ "        |  routebeschrijving  |            [wijst naar]\n"
-#~ "        |   variabele waarde  |             (roos viool boterbloem)\n"
-#~ "        |                     |\n"
-#~ "        +---------------------+\n"
-#~ "        |  routebeschrijving  |\n"
-#~ "        |    property list    |             [hier niet beschreven]\n"
-#~ "        |                     |\n"
-#~ "        +---------------------+\n"
-#~ "        |/                   \\|\n"
-
-#, no-wrap
-#~ msgid ""
-#~ "kill-ring     kill-ring-yank-pointer\n"
-#~ "    |               |\n"
-#~ "    |      ___ ___  |     ___ ___      ___ ___\n"
-#~ "     ---> |   |   |  --> |   |   |    |   |   |\n"
-#~ "          |___|___|----> |___|___|--> |___|___|--> nil\n"
-#~ "            |              |            |\n"
-#~ "            |              |            |\n"
-#~ "            |              |             --> \"yet more text\"\n"
-#~ "            |              |\n"
-#~ "            |               --> \"a different piece of text\"\n"
-#~ "            |\n"
-#~ "             --> \"some text\"\n"
-#~ msgstr ""
-#~ "kill-ring     kill-ring-yank-pointer\n"
-#~ "    |               |\n"
-#~ "    |      ___ ___  |     ___ ___      ___ ___\n"
-#~ "     ---> |   |   |  --> |   |   |    |   |   |\n"
-#~ "          |___|___|----> |___|___|--> |___|___|--> nil\n"
-#~ "            |              |            |\n"
-#~ "            |              |            |\n"
-#~ "            |              |             --> \"nog meer tekst\"\n"
-#~ "            |              |\n"
-#~ "            |               --> \"een ander stuk tekst\"\n"
-#~ "            |\n"
-#~ "             --> \"wat tekst\"\n"

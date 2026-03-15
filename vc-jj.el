@@ -544,69 +544,99 @@ new files."
 
 ;;;; dir-status-file
 
-(defun vc-jj-dir-status-files (dir _files update-function)
-  "Calculate a list of (FILE STATE EXTRA) entries for DIR.
-Return the result of applying UPDATE-FUNCTION to that list.
+;; 2026-03-22(Kris B): As far as I've seen, DIR is always the
+;; repository root.  The dir-status-files specification in the
+;; preamble of vc.el does not make it clear, but this seems to be the
+;; case.
+(defun vc-jj-dir-status-files (root-or-subdir files update-function)
+  "Call UPDATE-FUNCTION on a computed list of entries for ROOT-OR-SUBDIR.
+Compute a list of entries for ROOT-OR-SUBDIR whose elements are of the
+form (FILE STATE EXTRA), where FILE is relative to ROOT-OR-SUBDIR, STATE
+is a VC state symbol.  Return the result of calling UPDATE-FUNCTION with
+that list as an argument.
 
-For a description of the states relevant to jj, see `vc-jj-state'."
-  ;; This function is specified below the STATE-QUERYING FUNCTIONS
-  ;; header in the comments at the beginning of vc.el.  The
-  ;; specification says the 'dir-status-files' backend function
-  ;; returns "a list of lists ... for FILES in DIR", which does not
-  ;; say anything about subdirectories.  We follow the example of
-  ;; 'vc-git' and return the state of files in subdirectories of DIR
-  ;; as well (except for ignored files, since we don't want to cons up
-  ;; a list of every file below DIR).
-  ;;
-  ;; Unfortunately this function needs to do a lot of work:
-  ;; - There is no single jj command that gives us all the info we
-  ;;   need, so we cannot run asynchronously.
-  ;; - jj prints filenames relative to the repository root, while we
-  ;;   need them relative to DIR.
-  ;;
-  ;; TODO: we should use hash tables, since we're doing a lot of set
-  ;; operations, which are slow on lists.
-  (with-demoted-errors "JJ error during `vc-dir-status-files': %S"
-    (let* ((dir (expand-file-name dir))
-           (default-directory dir)
-           (project-root (vc-jj-root dir))
-           (registered-files (vc-jj--process-lines dir "file" "list"))
-           (ignored-files (seq-difference (cl-delete-if #'file-directory-p
-                                                        (directory-files dir nil nil t))
-                                          registered-files))
-           (changed (vc-jj--process-lines dir "diff" "--summary"))
-           (added-files (mapcan (lambda (entry)
-                                  (and (string-prefix-p "A " entry)
-                                       (list (substring entry 2))))
-                                changed))
-           (removed-files (mapcan (lambda (entry)
-                                    (and (string-prefix-p "D " entry)
-                                         (list (substring entry 2))))
-                                  changed))
-           (edited-files (mapcan (lambda (entry)
-                                     (and (string-prefix-p "M " entry)
-                                          (list (substring entry 2))))
-                                   changed))
-           ;; The command below only prints conflicted files in DIR, but
-           ;; relative to project-root, hence the dance with
-           ;; expand-file-name / file-relative-name
-           (conflicted-files (mapcar (lambda (entry)
-                                       (file-relative-name (expand-file-name entry project-root) dir))
-                                     (vc-jj--process-lines dir "file" "list"
-                                                           "-T" "if(conflict, path ++ '\n')")))
-           (up-to-date-files (cl-remove-if (lambda (entry) (or (member entry conflicted-files)
-                                                              (member entry edited-files)
-                                                              (member entry added-files)
-                                                              (member entry ignored-files)))
-                                          registered-files))
-           (result
-            (nconc (mapcar (lambda (entry) (list entry 'conflict)) conflicted-files)
-                   (mapcar (lambda (entry) (list entry 'added)) added-files)
-                   (mapcar (lambda (entry) (list entry 'removed)) removed-files)
-                   (mapcar (lambda (entry) (list entry 'edited)) edited-files)
-                   (mapcar (lambda (entry) (list entry 'ignored)) ignored-files)
-                   (mapcar (lambda (entry) (list entry 'up-to-date)) up-to-date-files))))
-      (funcall update-function result nil))))
+FILES is either nil or a list of files relative to ROOT-OR-SUBDIR.  If
+FILES is nil, return the state of all files that don't have the
+\\='up-to-date or \\='ignored states (i.e., only files in the \\='added,
+\\='removed, \\='edited, or \\='conflict states).  If FILES is non-nil,
+return the state of all FILES, regardless of their state.
+
+ROOT-OR-SUBDIR is the repository root or a subdirectory of the
+repository.
+
+For a description of the states relevant to Jujutsu, see the docstring
+of `vc-jj-state'."
+  (condition-case err
+      ;; A big consideration of this function is performance in large
+      ;; repositories: minimize the number of operations and loops
+      ;; over lists
+      (let* ((root (vc-jj-root root-or-subdir))
+             (default-directory root)
+             (file-diff-types-table
+              (vc-jj--parse-diff-types-file-table
+               (vc-jj--process-lines root-or-subdir "diff" "--types")))
+             (file-conflict-table
+              (vc-jj--parse-conflict-aware-file-table
+               (vc-jj--process-lines root-or-subdir "file" "list"
+                                     "-T" vc-jj--conflict-aware-file-list-template)))
+             (files-to-report
+              (if files
+                  ;; When FILES is non-nil, report on all FILES
+                  ;; regardless of state.
+                  (mapcar (lambda (f)
+                            ;; Make all file paths relative to ROOT
+                            ;; since the paths stored in
+                            ;; `vc-jj--deduce-state' (see below) are
+                            ;; relative to the project root
+                            (file-relative-name (file-name-concat root-or-subdir f) root))
+                          files)
+                ;; When FILES is nil, report only on files that are in
+                ;; the edited, added, removed, or conflict state
+                ;; (i.e., not the up-to-date or ignored states).
+                ;;
+                ;; Our strategy: we get all files in
+                ;; FILE-DIFF-TYPES-TABLE (files not in that table are
+                ;; ignored or up-to-date) plus files with conflicts
+                ;; that originate in an earlier revision (keys in
+                ;; FILE-CONFLICT-TABLE with a non-nil value).
+                (let (result)
+                  (maphash (lambda (k _) (push k result)) file-diff-types-table)
+                  (maphash (lambda (k v)
+                             (when (and v
+                                        ;; Don't push duplicates of
+                                        ;; conflicted files to RESULT.
+                                        ;; Doing it this way avoids
+                                        ;; having to de-duplicate
+                                        ;; RESULTS later by looping
+                                        ;; the list
+                                        (not (gethash k file-diff-types-table)))
+                               (push k result)))
+                           file-conflict-table)
+                  result)))
+             (result
+              (mapcar (lambda (root-rel-file)
+                        (let (;; The files reported should be relative
+                              ;; to ROOT-OR-SUBDIR
+                              (display-path (file-relative-name root-rel-file root-or-subdir))
+                              (state (vc-jj--deduce-state root-rel-file
+                                                          file-diff-types-table
+                                                          file-conflict-table)))
+                          (list display-path state)))
+                      files-to-report)))
+        (funcall update-function result nil))
+    ;; FIXME 2026-03-24(Kris B): Is there a cleaner way to deal with
+    ;; repository corruption errors?  This solution seems a bit
+    ;; fragile and ad hoc...
+    ;;
+    ;; For errors related to repository corruption (jj emits an exit
+    ;; code of 255), report on no files and warn the user about a
+    ;; potential problem.  (See bug#63.) Signal other errors normally.
+    (error (if (string-match-p "exited with status 255" (error-message-string err))
+               (progn
+                 (warn "Vc-jj: jj failed, possibly due to a corrupted repository (%s)"
+                       (vc-jj-root root-or-subdir))
+                 (funcall update-function nil nil))
+             (signal (car err) (cdr err))))))
 
 ;;;; dir-extra-headers
 

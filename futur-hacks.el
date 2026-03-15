@@ -203,15 +203,16 @@ current buffer state and calls REPORT-FN when done."
           (futur-abort futur "Buffer modification")
           (delete-overlay ol1)
           (delete-overlay ol2))))
-    (smerge--refine-set-overlay-props ol1 ol2 props-c props-r props-a)
-    (push modification-hook-function (overlay-get ol1 'modification-hooks))
-    (push modification-hook-function (overlay-get ol2 'modification-hooks))
-    (futur--register-callback
-     (oclosure-lambda (futur--aux) (_ _)
-       (cl-callf (lambda (fs) (delq modification-hook-function fs))
-           (overlay-get ol2 'modification-hooks)))
-     futur nil 'now-ok)
-    futur))
+    (futur-unwind-protect
+        (progn
+          (smerge--refine-set-overlay-props ol1 ol2 props-c props-r props-a)
+          (push modification-hook-function (overlay-get ol1 'modification-hooks))
+          (push modification-hook-function (overlay-get ol2 'modification-hooks))
+          futur)
+      (cl-callf (lambda (fs) (delq modification-hook-function fs))
+          (overlay-get ol2 'modification-hooks))
+      (cl-callf (lambda (fs) (delq modification-hook-function fs))
+          (overlay-get ol1 'modification-hooks)))))
 
 
 (with-eval-after-load 'smerge-mode

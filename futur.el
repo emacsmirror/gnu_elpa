@@ -241,7 +241,7 @@ that it is not empty."
   "Pending operations.")
 
 (defconst futur--pending-mutex (make-mutex "futur-pending"))
-(defconst futur--pending-condition
+(defconst futur--pending-condvar
   (make-condition-variable futur--pending-mutex))
 
 (defvar futur--in-background nil)
@@ -262,7 +262,7 @@ that it is not empty."
       (let ((pending
              (with-mutex futur--pending-mutex
                (while (futur--queue-empty-p futur--pending)
-                 (condition-wait futur--pending-condition))
+                 (condition-wait futur--pending-condvar))
                (futur--queue-dequeue futur--pending))))
         (with-demoted-errors "future--background: %S"
           (apply pending))))))
@@ -301,7 +301,7 @@ time or order of execution."
       ;; `mutex-unlock+condition-notify', i.e. a variant of
       ;; `condition-notify' which doesn't regrab the lock, since it's
       ;; common to do `condition-notify' at the end of a critical section.
-      (condition-notify futur--pending-condition))))
+      (condition-notify futur--pending-condvar))))
 
 (defvar futur--idle-loop-bug80286
   ;; "Idle loop" thread to try and make sure we run timers, filters, etc...
@@ -438,7 +438,7 @@ The error is `futur-aborted'.  Does nothing if FUTUR was already complete."
 
 ;;;; Composing futures
 
-(defun futur--register-callback (fun futur &optional cfut now-ok)
+(defun futur--register-callback (fun futur cfut &optional now-ok)
   ;; FIXME: Add info about the downstream future for abort's purpose.
   "Call FUN when FUTUR completes.
 CFUT if non-nil is another future which is waiting for FUTUR to complete
@@ -450,6 +450,7 @@ When FUN is called, FUTUR is already marked as completed.
 If FUTUR already completed, FUN is called immediately.
 If NOW-OK is non-nil, it means that we can call FUN in the current
 dynamic context, otherwise, always go through `futur--funcall'."
+  ;; FIXME: Maybe we should pass CFUT to FUN?
   (pcase futur
     ((futur--waiting _ clients)
      (setf (futur--clients futur) (cons (cons cfut fun) clients)))
@@ -527,8 +528,8 @@ The call takes place in an empty dynamic context."
           (setf (futur--blocker futur) res)
           (futur--register-callback
            (lambda (err val)
-                 (if err (futur-deliver-failure futur err)
-                  (futur-deliver-value futur val)))
+             (if err (futur-deliver-failure futur err)
+               (futur-deliver-value futur val)))
            res futur 'now-ok)))
     (t (futur-deliver-failure futur err))))
 
@@ -565,19 +566,23 @@ as `futur-bind'."
   (if (not (futur--p futur))
       futur
     (when (futur--waiting-p futur)
-      (condition-case err
-          (if t ;; (null futur--idle-loop-bug80286)
-              (futur-blocker-wait futur)
-            (let* ((mutex (make-mutex "futur-wait"))
-                   (condition (make-condition-variable mutex)))
-              (with-mutex mutex
-                (futur--register-callback
-                 (lambda (_err _val)
-                  (with-mutex mutex (condition-notify condition)))
-                 futur)
-                (condition-wait condition))))
-        ;; FIXME: Use `handler-bind' instead of `futur--resignal'.
-        (quit (futur-abort futur err) (futur--resignal err))))
+      (if t ;; (null futur--idle-loop-bug80286)
+          ;; Create a "dummy" new future to record our interest in
+          ;; the result of `futur' in case `futur' has other clients,
+          ;; so an abort doesn't incorrectly abort `futur'.
+          (let ((new (futur-bind futur #'identity)))
+            (condition-case err
+                (futur-blocker-wait futur)
+              ;; FIXME: Use `handler-bind' instead of `futur--resignal'.
+              (quit (futur-abort new err) (futur--resignal err))))
+        (let* ((mutex (make-mutex "futur-wait"))
+               (condvar (make-condition-variable mutex))
+               (deliver (lambda (_) (with-mutex mutex (condition-notify condvar))))
+               (new (futur-bind futur deliver deliver)))
+          (condition-case err
+              (with-mutex mutex (condition-wait condvar))
+            ;; FIXME: Use `handler-bind' instead of `futur--resignal'.
+            (quit (futur-abort new err) (futur--resignal err))))))
     (pcase-exhaustive futur
       ((futur--failed err)
        (futur--handle-error error-fun err #'funcall #'futur--resignal))
@@ -623,19 +628,11 @@ ERROR-FUN can be:
                       (pcase-lambda (,var) ,(loop bindings))
                       ,error-fun-form))))))
 
-(oclosure-define futur--aux
-  "An auxiliary function used internally.
-When used as a callback in a future, a function of type `futur--aux' differs
-from other functions in that it means it does not need the future's result
-nearly as much as the future itself needs this function.
-Concretely what it means is that it is OK to abort a future whose only
-clients are `futur--aux' functions.")
-
 (defun futur--multi-clients-p (clients)
   (let ((count 0))
     (while (and clients (< count 2))
       (let ((client (pop clients)))
-        (if (cl-typep client 'futur--aux) nil
+        (if (eq :unwind (car client)) nil
          (cl-incf count))))
     (>= count 2)))
 
@@ -650,10 +647,9 @@ The return value of FUN is ignored."
   ;; on some global list somewhere that we can occasionally scan, in case
   ;; something happened that prevented running FUN?
   (let ((futur (futur--ize futur)))
-    ;; Use `futur--aux' to let `futur--multi-clients-p' know not to count
+    ;; Use `:unwind' to let `futur--multi-clients-p' know not to count
     ;; this function as a "real" client.
-    (futur--register-callback
-     (oclosure-lambda (futur--aux) (_ _) (funcall fun)) futur)
+    (futur--register-callback (lambda (_ _) (funcall fun)) futur :unwind)
     futur))
 
 (defmacro futur-unwind-protect (form &rest forms)
@@ -723,8 +719,8 @@ Return non-nil if we successfully waited until the completion of BLOCKER."
          (setf (futur--clients blocker) 'error)
          (setf (futur--value blocker) error)
          (dolist (client clients)
-           (when (cl-typep client 'futur--aux)
-             (futur--funcall client error nil))))))))
+           (when (eq (car client) :unwind)
+             (futur--funcall (cdr client) error nil))))))))
 
 (cl-defmethod futur-blocker-abort ((_ (eql nil)) _error _futur)
   ;; No blocker to abort.
@@ -842,11 +838,8 @@ FUNC is called in an empty dynamic context."
 (defun futur--concurrency-bound-start (func args)
   (let ((new (apply func args)))
     (push new futur--concurrency-bound-active)
-    (futur--register-callback
-     (oclosure-lambda (futur--aux) (_ _)
-       (futur--concurrency-bound-next new))
-     new)
-    new))
+    (futur-unwind-protect new
+      (futur--concurrency-bound-next new))))
 
 (defun futur--concurrency-bound-next (done)
   (setq futur--concurrency-bound-active

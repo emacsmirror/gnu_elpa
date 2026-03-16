@@ -3,7 +3,7 @@
 ;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
-;; Version: 1.2
+;; Version: 1.3
 ;; Keywords: concurrency, async, promises, futures
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -165,10 +165,11 @@
 
 ;;; News:
 
-;; Since version 1.2:
+;; Version 1.3:
 
 ;; - Syntax of `:error-fun' changed in `futur-let*'.
 ;; - Remove `idle' argument from `futur-timeout'.
+;; - Adjusted `futur-hacks-mode' to changes in Emacs `master'.
 
 ;; Version 1.2:
 

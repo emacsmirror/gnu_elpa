@@ -417,22 +417,8 @@ History is disabled."
       (funcall gnosis-completing-read-function prompt collection))))
 
 (defun gnosis-insert-separator ()
-  "Insert a dashed line separator.
-
-Width depends on `gnosis-center-content':
-- When non-nil, spans the entire window width.
-- When nil, uses `fill-column' width."
-  (let* ((width (if gnosis-center-content
-                    (window-width)
-                  fill-column))
-         (dash-line (concat (make-string width ?-))))
-    (insert "\n" dash-line "\n")
-    ;; Apply an overlay to hide only the dashes
-    (let ((start (save-excursion (forward-line -1) (point)))
-          (end (point)))
-      (let ((overlay (make-overlay start end)))
-        (overlay-put overlay 'face 'gnosis-face-separator)
-        (overlay-put overlay 'display (make-string width ?\s))))))
+  "Insert a line separator."
+  (insert "\n" (propertize " " 'display '(space :width text) 'face 'gnosis-face-separator)))
 
 (defun gnosis-center-current-line ()
   "Centers text in the current line ignoring leading spaces."

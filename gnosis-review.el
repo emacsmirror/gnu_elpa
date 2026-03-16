@@ -179,10 +179,12 @@ If FALSE t, use gnosis-face-false face"
 
 (defun gnosis-get-linked-nodes (id)
   "Return the title of linked node(s) for thema ID."
-  (let* ((links (gnosis-select 'dest 'thema-links `(= source ,id) t))
-	 (nodes (cl-loop for node-id in links
-			 collect (gnosis-select 'title 'nodes `(= id ,node-id) t))))
-    (and links (apply #'append nodes))))
+  (let ((links (gnosis-select 'dest 'thema-links `(= source ,id) t)))
+    (when links
+      (mapcar #'car
+	      (gnosis-sqlite-select-batch (gnosis--ensure-db)
+		"SELECT title FROM nodes WHERE id IN (%s)"
+		links)))))
 
 (defun gnosis-view-linked-node (id)
   "Visit linked node(s) for thema ID."

@@ -411,12 +411,12 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
   "Visit backlinks for current node."
   (interactive)
   (let* ((id (gnosis-org-get-id))
-	 (backlinks (gnosis-nodes-select '[source] 'node-links `(= dest ,id)))
-	 (titles (cl-loop for backlink in backlinks
-			  for source-id = (car backlink)
-			  for title = (caar (gnosis-nodes-select 'title 'nodes
-								 `(= id ,source-id)))
-			  when title collect title)))
+	 (source-ids (gnosis-nodes-select 'source 'node-links `(= dest ,id) t))
+	 (titles (when source-ids
+		   (mapcar #'car
+			   (gnosis-sqlite-select-batch (gnosis--ensure-db)
+			     "SELECT title FROM nodes WHERE id IN (%s)"
+			     source-ids)))))
     (if titles
 	(gnosis-nodes-find
 	 (completing-read "Backlink: " titles))

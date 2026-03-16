@@ -242,6 +242,9 @@ Creates `gnosis-dir' and runs schema initialization on first use."
 (autoload 'gnosis-monkeytype-start "gnosis-review" nil t)
 (autoload 'gnosis-history-clear "gnosis-review" nil t)
 
+;; Anki import autoload
+(autoload 'gnosis-import-anki "gnosis-anki" nil t)
+
 ;; Export/import autoloads
 (autoload 'gnosis-export--insert-thema "gnosis-export-import")
 (autoload 'gnosis-export--insert-themata "gnosis-export-import")
@@ -902,7 +905,7 @@ Batched to stay within SQL variable limits."
         (gnosis-sqlite-execute-batch db
           "DELETE FROM thema_tag WHERE tag = ? AND thema_id IN (%s)"
           ids
-          (list (prin1-to-string tag))))
+          (list tag)))
       (dolist (tag add-tags)
         (let* ((max-vars (gnosis-sqlite--max-variable-number db))
                (batch-size (/ max-vars 2))

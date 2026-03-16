@@ -1263,11 +1263,10 @@ GENERATION prevents stale updates when the user navigates away."
       (let ((inhibit-read-only t))
         (delete-region marker (point-max))
         (goto-char marker)
-        (let ((first t))
-          (dolist (module (cdr gnosis-dashboard-modules))
-            (if first
-                (setq first nil)
-              (gnosis-insert-separator))
+        (let ((modules (cdr gnosis-dashboard-modules)))
+          (funcall (symbol-value (car modules)))
+          (dolist (module (cdr modules))
+            (gnosis-insert-separator)
             (funcall (symbol-value module))))
         (goto-char (point-min))))))
 

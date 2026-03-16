@@ -3,6 +3,71 @@
 + [[https://git.thanosapollo.org/gnosis/][Upstream]]
 + [[https://thanosapollo.org/log/gnosis/][Changelog]]
 
+* 0.9.0
+#+DATE: 2026/03/16
+
+** Breaking changes
++ *Dropped emacsql dependency*: gnosis now uses Emacs's built-in
+  =sqlite= module (requires Emacs 29+).  The new =gnosis-sqlite=
+  backend handles all database access.
++ *Unified database*: org-gnosis has been merged into gnosis.
+  A single =gnosis.db= stores both themata and nodes.  Existing
+  org-gnosis data is migrated automatically.
++ *Decks removed*: the deck abstraction is gone.  Existing deck names
+  are automatically converted into tags during the v6 migration, so
+  no data is lost.  Export and import are now thema-centric with tag
+  filtering.
+
+** New features
++ *Anki import*: import Anki decks or user collections directly with
+  ~gnosis-anki-import~.
++ *Tag filtering*: ~gnosis-tags-filter-prompt~ supports =+tag -tag=
+  syntax for include/exclude filtering.  Used in export and
+  ~gnosis-collect-thema-ids~.
++ *Day start hour*: ~gnosis-algorithm-day-start-hour~ (default 3)
+  lets you define when a new review day begins.
++ *Tag bulk operations*: rename, regex bulk rename (~R~), merge case
+  duplicates (~C~), bulk delete, and suspend/unsuspend from the
+  dashboard tags view.  Tag renames are merge-safe (handles UNIQUE
+  conflicts when target tag already exists).
++ *Elapsed time intervals*: the algorithm uses actual elapsed time
+  for interval calculation.
++ *Review transient menu*: ~gnosis-review~ uses transient instead of
+  completing-read.
++ *Template expansion*: ={*}= heading markers in templates are expanded
+  relative to insertion context via ~gnosis-org-expand-headings~.
++ *Export with tag filtering*: ~gnosis-export-themata~ supports tag
+  filtering and node export.
+
+** Dashboard
++ Tags view with regex filter (~l~), regex search (~SPC~), and tag
+  counts.
++ Bulk tag rename via regex pattern (~R~) using a temp-table approach
+  for O(1) SQL statements regardless of batch size.
++ Anki import keybinding in the dashboard menu.
++ Merge case-duplicate tags (~C~): groups tags by case, keeps the
+  most-used variant as canonical.
+  + Meant to simplify imports from anki decks hierarchical tag structure
++ Entry cache for themata view (avoids re-querying unchanged entries).
++ Cache invalidation on tag mutations so the themata view stays fresh.
+
+** Performance
++ *Batch SQL helpers*: ~gnosis-sqlite-execute-batch~ and
+  ~gnosis-sqlite-select-batch~ auto-chunk IN clauses to stay within
+  =SQLITE_MAX_VARIABLE_NUMBER=.
++ N+1 query patterns eliminated throughout: tag suspend, tag delete,
+  bulk link, export, and dashboard operations.
++ Bulk tag rename uses a temp mapping table (4 SQL statements for any
+  number of renames, instead of 2N).
++ =SELECT DISTINCT= replaces Elisp deduplication for tag lookups.
+
+** Bug fixes
++ Fix DST bug in ~gnosis-algorithm-date~.
++ Fix ~gnosis-review-topic~: flatten select results, fix y-or-n-p logic.
++ Fix ~gnosis-completing-read~ to use ~completing-read~ for require-match.
++ Fix force-sync purge and journal link FK violation.
++ Warn on duplicate filename when timestring is nil in node creation.
+
 * 0.8.0
 #+DATE: 2026/03/04
 

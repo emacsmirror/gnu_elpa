@@ -168,6 +168,7 @@
 ;; Since version 1.2:
 
 ;; - Syntax of `:error-fun' changed in `futur-let*'.
+;; - Remove `idle' argument from `futur-timeout'.
 
 ;; Version 1.2:
 
@@ -514,21 +515,25 @@ The call takes place in an empty dynamic context."
   (futur-bind nil (lambda (_) (apply func args))))
 
 (defun futur--run-continuation (futur fun args)
-  ;; The thing FUTUR was waiting for is completed, maybe we'll soon be waiting
-  ;; for another future, but for now, there's no blocker object,
-  ;; we're just waiting for some piece of ELisp (namely FUN) to terminate.
-  (setf (futur--blocker futur) nil)
-  (condition-case-unless-debug err
-      (let ((res (apply fun args)))
-        (if (not (futur--p res))
-            (futur-deliver-value futur res)
-          (setf (futur--blocker futur) res)
-          (futur--register-callback
-           (lambda (err val)
-             (if err (futur-deliver-failure futur err)
-               (futur-deliver-value futur val)))
-           res futur 'now-ok)))
-    (t (futur-deliver-failure futur err))))
+  ;; `futur' May have aborted between the time we scheduled
+  ;; the call to `futur--run-continuation' and now.
+  (when (futur--waiting-p futur)
+    ;; The thing FUTUR was waiting for is completed, maybe we'll soon be waiting
+    ;; for another future, but for now, there's no blocker object,
+    ;; we're just waiting for some piece of ELisp (namely FUN) to terminate.
+    (setf (futur--blocker futur) nil)
+    (condition-case err
+        (let ((res (apply fun args)))
+          (if (not (futur--p res))
+              (futur-deliver-value futur res)
+            (when (futur--waiting-p futur) ;Check it wasn't aborted.
+              (setf (futur--blocker futur) res)
+              (futur--register-callback
+               (lambda (err val)
+                 (if err (futur-deliver-failure futur err)
+                   (futur-deliver-value futur val)))
+               res futur 'now-ok))))
+      (t (futur-deliver-failure futur err)))))
 
 (defun futur--resignal (error-object)
   ;; Undocumented feature of `signal', this re-signals an error using the exact
@@ -725,16 +730,46 @@ Return non-nil if we successfully waited until the completion of BLOCKER."
 
 ;;;; Postpone
 
-(defun futur-timeout (time &optional idle)
-  "Return nil in TIME seconds.
-If IDLE is non-nil, then wait for that amount of idle time."
+(defvar futur--timeout-use-process nil
+  "Use processes instead of timers in `futur-timeout'.
+Used for testing/debugging purposes.")
+
+(defun futur-timeout (time)
+  "Return nil in TIME seconds."
+  (if futur--timeout-use-process
+      (futur-bind (futur-process-call "sleep" nil nil nil (format "%.3f" time))
+                  #'ignore)
+    (futur-new
+     (lambda (futur)
+       (cons 'timer ;; FIXME: Make timers proper structs instead!
+             (run-with-timer time nil
+                             (lambda (futur) (futur-deliver-value futur nil))
+                             futur))))))
+
+(defun futur-timeout-idle (time)
   (futur-new
    (lambda (futur)
-     (cons 'timer ;; FIXME: Make timers proper structs instead!
-           (funcall (if idle #'run-with-idle-timer #'run-with-timer)
-            time nil
-            (lambda (futur) (futur-deliver-value futur nil))
-            futur)))))
+     (let ((delivery (lambda (futur) (futur-deliver-value futur nil))))
+       (if (null (current-idle-time))
+           (cons 'timer (run-with-idle-timer time nil delivery futur))
+         ;; FIXME: Ugly hack implementation, because we want to start
+         ;; counting  from now for the current idle interval, whereas
+         ;; `run-with-idle-timer' would start counting from the
+         ;; beginning of the idle interval.
+         (let* ((timer (run-with-timer time nil delivery futur))
+                (blocker (cons 'timer timer)))
+           (letrec ((switch
+                     (lambda (&rest _)
+                       (advice-remove 'internal-timer-start-idle switch)
+                       (when (futur--waiting-p futur)
+                         ;; This part is not super-elegant but it's tolerable.
+                         (cancel-timer timer)
+                         (setf (cdr blocker)
+                               (run-with-idle-timer time nil
+                                                    delivery futur))))))
+             ;; FIXME: Eww!
+             (advice-add 'internal-timer-start-idle :before switch))
+           blocker))))))
 
 (defun futur-sit-for (time)
   "Return a `futur' that completes after TIME or upon user-input.
@@ -869,11 +904,15 @@ FUNC is called in an empty dynamic context."
 The ARGS are like those of `make-process' except that they can't include
 `:sentinel' because that is used internally."
   (futur-new
-   (lambda (f) (apply #'make-process
-                 :sentinel
-                 (lambda (proc _state)
-                   (futur--process-sentinel proc f))
-                 args))))
+   (lambda (f)
+     (let ((p (apply #'make-process
+                     :sentinel
+                     (lambda (proc _state)
+                       (futur--process-sentinel proc f))
+                     args)))
+       (when (fboundp #'set-process-thread)
+         (set-process-thread p nil))
+       p))))
 
 (defun futur-process-call--filter (proc string)
   (let* ((file (process-get proc 'futur-destination)))

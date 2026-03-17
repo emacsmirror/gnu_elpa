@@ -407,7 +407,7 @@
  (gnome-dark-style      :url "https://github.com/dimagid/gnome-dark-style")
  (gnorb               	:url nil) ;; Was "https://github.com/girzel/gnorb"
  (gnosis		:url "https://git.thanosapollo.org/gnosis"
-  :doc "doc/gnosis.org")
+  :doc "docs/gnosis.org")
  (gnu-elpa		:url nil)
  (gnu-elpa-keyring-update :url nil)
  (gnugo			:url nil)

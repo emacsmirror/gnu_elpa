@@ -122,8 +122,8 @@ theme followed by the list bar colors.")
   (let* ((greenbar (assq 'greenbar greenbar-color-themes))
          (bg (nth 1 greenbar))
          (fg (nth 2 greenbar)))
-    (propertize "\N{Heavy Horizontal Fill}"
-                'font-lock-face `(:foreground ,fg :background ,bg)))
+    (propertize "\s\N{Heavy Horizontal Fill}"
+                'face `(:foreground ,bg :background ,fg)))
   "The minor mode lighter that appears in the mode line."
   :type 'string)
 

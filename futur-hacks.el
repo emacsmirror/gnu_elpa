@@ -41,8 +41,12 @@
 (defun futur--safe-macroexpand-all (sexp)
   (futur-blocking-wait-to-get-result
    (let* ((totalctx (mapcar #'car load-history))
-          (tail (cl-member-if (lambda (f) (string-match-p "/leim-list\\.el" f))
-                              totalctx))
+          (tail (funcall (if (fboundp 'member-if) ;Emacs-31
+                             #'member-if
+                           (with-suppressed-warnings ((obsolete cl-member-if))
+                             #'cl-member-if))
+                         (lambda (f) (string-match-p "/leim-list\\.el" f))
+                         totalctx))
           (trimmedctx (take (- (length totalctx) (length tail)) totalctx)))
      (futur--sandbox-funcall
       (lambda ()
@@ -345,9 +349,12 @@ Concretely this means:
   - Flymake byte-compilation in ELisp mode.
 - Run `smerge-refine-region' asynchronously."
   :global t
+  :group 'futur
   (advice-remove 'elisp--safe-macroexpand-all #'futur--safe-macroexpand-all)
   (advice-remove 'elisp-flymake-byte-compile #'futur--flymake-byte-compile)
   (advice-remove 'smerge-refine-regions #'futur--smerge-refine-regions)
+  ;; Don't enable this in the servers, otherwise we get recursive hacks!
+  (when (featurep 'futur-server) (setq futur-hacks-mode nil))
   (when futur-hacks-mode
     (advice-add 'elisp-flymake-byte-compile :override
                 #'futur--flymake-byte-compile)

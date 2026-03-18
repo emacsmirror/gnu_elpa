@@ -844,7 +844,12 @@ Returns non-nil if it waited the full TIME."
 
 (defvar futur-concurrency-bound
   (if (fboundp 'num-processors) ;; Emacs-28
-      (num-processors) 2)
+      ;; Apparently there's a max of 32 subprocesses on the w32 build,
+      ;; so make sure we don't eat them all up.
+      (if (eq system-type 'windows-nt)
+          (max 16 (num-processors))
+        (num-processors))
+    2)
   "Maximum number of concurrent subprocesses.")
 
 (defvar futur--concurrency-bound-active nil

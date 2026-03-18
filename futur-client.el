@@ -319,6 +319,15 @@ A server kind is a symbol.")
        (error "futur-server error: %S" read-answer)))))
 
 (defun futur--elisp-funcall (func &rest args)
+  "Call FUNC with arguments ARGS like `funcall' but in a subprocess.
+This thus runs concurrently with the main process.
+FUNC, ARGS, as well as the return value have to be printable `read'ably,
+which means that they cannot contain values like markers, overlays,
+processes, buffers, ...
+Because it runs in a subprocess, FUNC cannot interact with the user,
+nor can it access the main process' buffers.
+There is no guarantee about the state of the Emacs subprocess in which FUNC
+is called."
   (futur--elisp-funcall-1
    (futur--elisp-get-process 'futur-server #'futur--elisp-launch)
    func args))
@@ -356,6 +365,14 @@ Contrary to /tmp, this directory is readable by the sandboxed processes.")
                               (list futur-sandbox-temp-dir)))))))
 
 (defun futur--sandbox-funcall (func &rest args)
+  "Like `futur--elisp-funcall' but runs in a sandbox.
+Sandbox here means that FUNC cannot write to any file nor make network
+connections and if it spawns subprocesses those same restrictions apply
+to the subprocesses.
+This makes it safe to use even when FUNC or ARGS are untrustworthy.
+But DO NOT TRUST the returned result: even if FUNC and ARGS happen to
+be well-behaved, they could be compromised by previous calls
+to `futur--sandbox-funcall'."
   (futur--elisp-funcall-1
    (futur--elisp-get-process 'futur-sandbox #'futur--sandbox-launch)
    func args))

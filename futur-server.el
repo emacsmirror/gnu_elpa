@@ -35,15 +35,16 @@
 ;; (trace-function 'futur--read-stdin)
 ;; (trace-function 'futur--print-stdout)
 
-;; (when (< emacs-major-version 31) (require 'comp-common nil t))
-
 (defconst futur--elisp-impossible-string "\n# \"# "
   "String that will necessarily cause `read' to signal an error.")
+
+(defvar futur--read-from-minibuffer
+  (symbol-function 'read-from-minibuffer))
 
 (defun futur--read-stdin ()
   "Read a sexp from a single line on stdin."
   (unless noninteractive (error "futur--read-stdin works only in batch mode"))
-  (read-from-minibuffer "" nil nil t))
+  (funcall futur--read-from-minibuffer "" nil nil t))
 
 (defun futur--print-stdout (sexp sid)
   "Print SEXP on stdout using ID as the leading marker."
@@ -68,7 +69,22 @@
 ;;   (futur--obarray ctxname ctx)
 ;;   (apply func args))
 
+(define-error futur-inhibited-interaction
+              "Interaction inhibited in futur servers")
+
 (defun futur-server ()
+  ;; Try and make sure the client code gets an error if it tries to use stdin.
+  (let ((errorfun (lambda (&rest _) (signal 'futur-inhibited-interaction nil))))
+    (dolist (fun '( read-from-minibuffer yes-or-no-p read-string
+                    ;; FIXME: Maybe some of these could still be acceptable,
+                    ;; e.g. when called with a timeout?
+                    read-key-sequence read-char read-event read-char-exclusive
+                    ;; FIXME: There are still ways to try and read from stdin,
+                    ;; e.g. via `interactive' specs.
+                    ))
+      (fset fun errorun)))
+  ;; FIXME: Prevent client code from using stdout?
+
   ;; We want the `futur-client' to be able to interrupt long-running
   ;; requests, and so far the only way we found is to abuse the SIGUSR1
   ;; escape hatch that was designed for debugging.
@@ -168,6 +184,9 @@ Does not pay attention to buffer-local values of variables."
     ;; `snapshot' holds a previous state of `obarray', such symbols
     ;; can occur only if someone used `unintern', which should hopefully
     ;; never happen in the `obarray'.
+    ;; FIXME: Interrupting this halfway tends to leave us in an inconsistent
+    ;; state, so we should bind `inhibit-quit' to t (but beware: the loop
+    ;; resets `inhibit-quit' as well).
     (mapatoms
      (lambda (sym)
        (let ((ss (intern-soft (symbol-name sym) snapshot)))
@@ -243,6 +262,8 @@ the cache."
                 (dolist (cmd target-rest)
                   (pcase-exhaustive cmd
                     (`(funcall ,func . ,args) (apply func args))
+                    ;; FIXME: Fallback on `.el' if `.elc' is missing, and
+                    ;; load `.eln' if applicable.
                     ((pred stringp) (unless (assoc cmd load-history)
                                       (load cmd 'noerror 'nomessage)))
                     ((pred symbolp) (require cmd))))

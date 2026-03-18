@@ -38,6 +38,8 @@
 (require 'futur-client)
 (require 'cl-lib)
 
+;;;; Safe macroexpansion in a sandbox.
+
 (defun futur--safe-macroexpand-all (sexp)
   (futur-blocking-wait-to-get-result
    (let* ((totalctx (mapcar #'car load-history))
@@ -51,6 +53,8 @@
      (futur--sandbox-funcall
       (lambda ()
         (declare-function futur-reset-context "futur-server")
+        ;; FIXME: If `futur-reset-context' is sufficiently fast, we could
+        ;; just call it unconditionally.
         (let ((ctx trimmedctx))
           (while (and ctx (member (car ctx) load-history))
             (setq ctx (pop ctx)))
@@ -61,6 +65,8 @@
         (if (fboundp 'elisp--safe-macroexpand-all) ;Emacs-30?
             (elisp--safe-macroexpand-all sexp)
           (macroexpand-all sexp)))))))
+
+;;;; Safe byte-compilation in a sandbox for flymake.
 
 (defun futur--flymake-byte-compile (report-fn &rest _args)
   "A Flymake backend for elisp byte compilation.
@@ -83,7 +89,10 @@ current buffer state and calls REPORT-FN when done."
     (save-restriction
       (widen)
       (write-region (point-min) (point-max) temp-file nil 'nomessage))
-    (let* ((loadpath elisp-flymake-byte-compile-load-path)
+    ;; In the original code, the `expand-file-name' is done "implicitly"
+    ;; by the processing of the `-L' command line argument.
+    (let* ((loadpath (mapcar #'expand-file-name
+                             elisp-flymake-byte-compile-load-path))
            ;; Hack: suppress warning about missing lexical cookie in
            ;; *scratch* buffers.
            (inhibit-lcw (derived-mode-p 'lisp-interaction-mode))
@@ -135,6 +144,8 @@ current buffer state and calls REPORT-FN when done."
                    (format "byte-compile process failed: %S" err))))
        (lambda ()
          (delete-file temp-file))))))
+
+;;;; Async smerge-refinement.
 
 (defun futur--smerge-refine-regions-1 ( ol1 ol2 preproc
                                         props-c props-r props-a)
@@ -338,6 +349,65 @@ current buffer state and calls REPORT-FN when done."
                   (move-overlay last2 (overlay-start last2) end2))
               ))))))
 
+;;;; Async byte-compilation.
+
+(defun futur--byte-compile-file (orig-fun filename &optional load &rest args)
+  "Like `byte-compile-file' but in a separate process.
+The advantages are that this does not block the main Emacs process,
+it can take advantage of idle CPU resources, and the compilation takes
+place in a clean environment."
+  (if (or noninteractive load args)
+      ;; Should we also support the "and load" asynchronously?
+      (apply orig-fun filename load args)
+    (let* ((filename (expand-file-name filename))
+           (loadpath load-path)
+           (dir (file-name-directory filename))
+           (proc-futur
+            ;; We could run it in a sandbox, so we can safely compile untrusted
+            ;; code, but it would mean we can't trust the resulting `.elc'
+            ;; even if we trusted the `.el'!  :-(
+            ;; Also it would take extra work since the sandbox can't
+            ;; directly write the `.elc' file.
+            (futur--elisp-funcall
+             (lambda ()
+               (declare-function futur-reset-context "futur-server")
+               (futur-reset-context 'flymake
+                                    `((funcall package-activate-all)
+                                      elisp-mode bytecomp byte-opt))
+               (setq load-path loadpath)
+               (when (get-buffer byte-compile-log-buffer)
+                 (with-current-buffer byte-compile-log-buffer
+                   (erase-buffer)))
+               ;; FIXME: This blurts out all the warnings on stderr.
+               ;; FIXME: And the `buffer-string' doesn't have any highlighting!
+               (let ((noninteractive nil))
+                 (byte-compile-file filename))
+               (when (get-buffer byte-compile-log-buffer)
+                 (with-current-buffer byte-compile-log-buffer
+                   (buffer-string)))))))
+      (message "Started compilation in the background for: %S" filename)
+      (futur-bind
+       proc-futur
+       (lambda (log-buffer-contents)
+         (if (null log-buffer-contents)
+             (message "Compilation completed successfully for: %S" filename)
+           (message "Compilation completed for: %S (%d)" filename
+                    (length log-buffer-contents))
+           (with-current-buffer (get-buffer-create byte-compile-log-buffer)
+             (let ((inhibit-read-only t))
+               (goto-char (point-max))
+               (insert log-buffer-contents))
+             (setq default-directory dir)
+	     (setq byte-compile-last-logged-file filename
+		   byte-compile-last-warned-form nil)
+	     ;; Do this after setting default-directory.
+	     (unless (derived-mode-p 'compilation-mode)
+               (emacs-lisp-compilation-mode))
+             (display-buffer (current-buffer)))))))))
+
+(defun futur--dummy (a b)
+  a (prut (list a)))
+
 ;;;###autoload
 (define-minor-mode futur-hacks-mode
   "Various hacks to force Futur into various corners of Emacs.
@@ -347,15 +417,18 @@ Concretely this means:
   -  TAB completion in ELisp mode (where we need to
     macroexpand the code).
   - Flymake byte-compilation in ELisp mode.
-- Run `smerge-refine-region' asynchronously."
+- Run `smerge-refine-region' asynchronously.
+- Run `byte-compile-file' asynchronously."
   :global t
   :group 'futur
   (advice-remove 'elisp--safe-macroexpand-all #'futur--safe-macroexpand-all)
   (advice-remove 'elisp-flymake-byte-compile #'futur--flymake-byte-compile)
   (advice-remove 'smerge-refine-regions #'futur--smerge-refine-regions)
+  (advice-remove 'byte-compile-file #'futur--byte-compile-file)
   ;; Don't enable this in the servers, otherwise we get recursive hacks!
   (when (featurep 'futur-server) (setq futur-hacks-mode nil))
   (when futur-hacks-mode
+    (advice-add 'byte-compile-file :around #'futur--byte-compile-file)
     (advice-add 'elisp-flymake-byte-compile :override
                 #'futur--flymake-byte-compile)
     (advice-add 'smerge-refine-regions :override #'futur--smerge-refine-regions)

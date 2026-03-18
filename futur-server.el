@@ -69,7 +69,7 @@
 ;;   (futur--obarray ctxname ctx)
 ;;   (apply func args))
 
-(define-error futur-inhibited-interaction
+(define-error 'futur-inhibited-interaction
               "Interaction inhibited in futur servers")
 
 (defun futur-server ()
@@ -82,7 +82,7 @@
                     ;; FIXME: There are still ways to try and read from stdin,
                     ;; e.g. via `interactive' specs.
                     ))
-      (fset fun errorun)))
+      (fset fun errorfun)))
   ;; FIXME: Prevent client code from using stdout?
 
   ;; We want the `futur-client' to be able to interrupt long-running

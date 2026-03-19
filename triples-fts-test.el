@@ -73,6 +73,18 @@
       (should (equal nil (triples-fts-query-subject db "tag:baz world" abbrevs)))
       (should (equal '(a) (triples-fts-query-subject db "text/tag:foo world" abbrevs))))))
 
+(ert-deftest triples-fts-replace-updates-index ()
+  "Replacing a triple's text should update the FTS index."
+  (triples-test-with-temp-db
+    (triples-fts-setup db)
+    (triples-add-schema db 'text '(text :base/type string :base/unique t))
+    (triples-set-subject db 'a '(text :text "Hello, world!"))
+    (should (equal '(a) (triples-fts-query-subject db "Hello")))
+    ;; Replace with different text
+    (triples-set-subject db 'a '(text :text "Farewell, universe!"))
+    (should (equal nil (triples-fts-query-subject db "Hello")))
+    (should (equal '(a) (triples-fts-query-subject db "Farewell")))))
+
 (provide 'triples-fts-test)
 
 ;;; triples-fts-test.el ends here

@@ -37,33 +37,50 @@ it.  If FORCE is non-nil, then the FTS and all triggers will be
 recreated and repopulated."
   (unless (eq triples-sqlite-interface 'builtin)
     (error "Emacs 29.1 or later is required for triples-fts"))
-  (let ((fts-existed (sqlite-select db "SELECT name FROM sqlite_master WHERE type='table' AND name='triples_fts'")))
+  (let ((fts-existed (sqlite-select db "SELECT name FROM sqlite_master WHERE type='table' AND name='triples_fts'"))
+        ;; Detect the old buggy delete trigger (missing rowid column).
+        (had-buggy-triggers
+         (sqlite-select db "SELECT 1 FROM sqlite_master WHERE name='triples_fts_delete' AND sql NOT LIKE '%rowid%'")))
     (when (and force fts-existed) (sqlite-execute db "DROP TABLE triples_fts"))
     (sqlite-execute db "CREATE VIRTUAL TABLE IF NOT EXISTS triples_fts USING fts5 (subject, predicate, object, content=triples, content_rowid=rowid)")
     ;; Triggers that will update triples_fts, but only for text objects.
+    ;;
+    ;; Always drop and recreate rather than using IF NOT EXISTS,
+    ;; because earlier versions had bugs (missing rowid in the delete
+    ;; trigger, single update trigger that missed text→non-text
+    ;; transitions).
+    ;;
     ;; New rows:
-    (when force (sqlite-execute db "DROP TRIGGER IF EXISTS triples_fts_insert"))
-    (sqlite-execute db "CREATE TRIGGER IF NOT EXISTS triples_fts_insert AFTER INSERT ON triples
+    (sqlite-execute db "DROP TRIGGER IF EXISTS triples_fts_insert")
+    (sqlite-execute db "CREATE TRIGGER triples_fts_insert AFTER INSERT ON triples
       WHEN new.object IS NOT NULL and typeof(new.object) = 'text'
       BEGIN
         INSERT INTO triples_fts (rowid, subject, predicate, object) VALUES (new.rowid, new.subject, new.predicate, new.object);
       END")
-    ;; Updated rows:
-    (when force (sqlite-execute db "DROP TRIGGER IF EXISTS triples_fts_update"))
-    (sqlite-execute db "CREATE TRIGGER IF NOT EXISTS triples_fts_update AFTER UPDATE ON triples
-        WHEN new.object IS NOT NULL AND typeof(new.object) = 'text'
+    ;; Updated rows: split into two triggers so we correctly handle
+    ;; text→text, text→non-text, and non-text→text transitions.
+    (sqlite-execute db "DROP TRIGGER IF EXISTS triples_fts_update")
+    (sqlite-execute db "DROP TRIGGER IF EXISTS triples_fts_update_delete")
+    (sqlite-execute db "CREATE TRIGGER triples_fts_update_delete AFTER UPDATE ON triples
+        WHEN old.object IS NOT NULL AND typeof(old.object) = 'text'
         BEGIN
           INSERT INTO triples_fts (triples_fts, rowid, subject, predicate, object) VALUES ('delete', old.rowid, old.subject, old.predicate, old.object);
+        END")
+    (sqlite-execute db "DROP TRIGGER IF EXISTS triples_fts_update_insert")
+    (sqlite-execute db "CREATE TRIGGER triples_fts_update_insert AFTER UPDATE ON triples
+        WHEN new.object IS NOT NULL AND typeof(new.object) = 'text'
+        BEGIN
           INSERT INTO triples_fts (rowid, subject, predicate, object) VALUES (new.rowid, new.subject, new.predicate, new.object);
         END")
     ;; Deleted rows:
-    (when force (sqlite-execute db "DROP TRIGGER IF EXISTS triples_fts_delete"))
-    (sqlite-execute db "CREATE TRIGGER IF NOT EXISTS triples_fts_delete AFTER DELETE ON triples
+    (sqlite-execute db "DROP TRIGGER IF EXISTS triples_fts_delete")
+    (sqlite-execute db "CREATE TRIGGER triples_fts_delete AFTER DELETE ON triples
       WHEN old.object IS NOT NULL AND typeof(old.object) = 'text'
       BEGIN
         INSERT INTO triples_fts (triples_fts, rowid, subject, predicate, object) VALUES ('delete', old.rowid, old.subject, old.predicate, old.object);
       END")
-    (if (or force (not fts-existed)) (triples-fts-rebuild db))))
+    (when (or force (not fts-existed) had-buggy-triggers)
+      (triples-fts-rebuild db))))
 
 (defun triples-fts-rebuild (db)
   "Rebuild the FTS table for DB."

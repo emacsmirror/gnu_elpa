@@ -52,6 +52,13 @@
              (list (+ x1 x2) (error "Wow!")))))
     (should-error (futur-blocking-wait-to-get-result p) :type 'scan-error))
 
+  (let ((p (futur-let* ((x1 5)
+                        (x2 <- (futur-failed '(scan-error "Oops"))))
+            :error-fun ((wrong-type-argument (_) 23)
+                        (scan-error (_err) 32))
+            (list (+ x1 x2) (error "Wow!")))))
+    (should (equal (futur-blocking-wait-to-get-result p) 32)))
+
   (let ((handlers `((wrong-type-argument . ,(lambda (_) :wta))
                     (scan-error . ,(lambda (_) :scan-error))
                     (error . ,(lambda (_) :error)))))

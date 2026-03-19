@@ -379,16 +379,18 @@ A futur has 3 possible states:
     ((futur--waiting _ clients)
      (setf (futur--clients futur) (if err 'error t))
      (setf (futur--value futur) (or err val))
-     (if (null clients) ;; FIXME: They may also all be unwinds!
-         (when err
-           ;; Don't let errors disappear silently.
-           (message "Error in futur: %s" (error-message-string err)))
+     (let ((real-client nil))
        ;; CLIENTS is usually in reverse order since we always `push' to them.
        (dolist (client (nreverse clients))
          ;; Don't run the clients directly from here, so we don't nest,
          ;; and also because we may be in an "interrupt" context where
          ;; operations like blocking could be dangerous.
-         (futur--funcall (cdr client) err val))))
+         (futur--funcall (cdr client) err val)
+         (unless (eq t (car client)) (setq real-client t)))
+       (when (and err (not real-client)) ;Don't silently drop errors.
+         ;; FIXME: Should we actually signal an error, to bring up a debugger?
+         ;; It seems the stack trace is unlikely to be of much use :-(
+         (message "[Futur] %s" (error-message-string err)))))
     ((futur--failed `(futur-aborted . ,_))
      nil)     ;; Just ignore the late delivery.
     ((pred futur--p)

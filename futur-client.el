@@ -251,7 +251,7 @@ A server kind is a symbol.")
               proc)
           (error "unexpected boot message from futur-server: %S" answer))))))
 
-(cl-defmethod futur-blocker-abort ((blocker (head futur-server)) _)
+(cl-defmethod futur-blocker-abort ((blocker (head futur-server)) _ _)
   ;; Don't kill the server, since we may want to reuse it for other
   ;; requests.
   (let ((proc (cdr blocker)))

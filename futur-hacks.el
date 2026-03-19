@@ -359,7 +359,8 @@ place in a clean environment."
   (if (or noninteractive load args)
       ;; Should we also support the "and load" asynchronously?
       (apply orig-fun filename load args)
-    (let* ((filename (expand-file-name filename))
+    (let* ((filename (abbreviate-file-name (expand-file-name filename)))
+           (shortname (file-relative-name filename))
            (loadpath load-path)
            (dir (file-name-directory filename))
            (proc-futur
@@ -377,22 +378,20 @@ place in a clean environment."
                (setq load-path loadpath)
                (when (get-buffer byte-compile-log-buffer)
                  (with-current-buffer byte-compile-log-buffer
-                   (erase-buffer)))
-               ;; FIXME: This blurts out all the warnings on stderr.
-               ;; FIXME: And the `buffer-string' doesn't have any highlighting!
-               (let ((noninteractive nil))
+                   (let ((inhibit-read-only t))
+                     (erase-buffer))))
+               (let ((noninteractive nil)) ;Don't report warnings on stderr.
                  (byte-compile-file filename))
                (when (get-buffer byte-compile-log-buffer)
                  (with-current-buffer byte-compile-log-buffer
                    (buffer-string)))))))
-      (message "Started compilation in the background for: %S" filename)
+      (message "Started compilation in the background for: %s" shortname)
       (futur-bind
        proc-futur
        (lambda (log-buffer-contents)
          (if (null log-buffer-contents)
-             (message "Compilation completed successfully for: %S" filename)
-           (message "Compilation completed for: %S (%d)" filename
-                    (length log-buffer-contents))
+             (message "Compilation completed successfully for: %s" shortname)
+           (message "Compilation completed for: %s" shortname)
            (with-current-buffer (get-buffer-create byte-compile-log-buffer)
              (let ((inhibit-read-only t))
                (goto-char (point-max))
@@ -403,10 +402,11 @@ place in a clean environment."
 	     ;; Do this after setting default-directory.
 	     (unless (derived-mode-p 'compilation-mode)
                (emacs-lisp-compilation-mode))
+             ;; FIXME: Don't display buffer if there were no warnings!
              (display-buffer (current-buffer)))))))))
 
-(defun futur--dummy (a b)
-  a (prut (list a)))
+;; (defun futur--dummy (a b)
+;;   a (prut (list a)))
 
 ;;;###autoload
 (define-minor-mode futur-hacks-mode

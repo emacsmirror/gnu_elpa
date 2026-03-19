@@ -379,12 +379,16 @@ A futur has 3 possible states:
     ((futur--waiting _ clients)
      (setf (futur--clients futur) (if err 'error t))
      (setf (futur--value futur) (or err val))
-     ;; CLIENTS is usually in reverse order since we always `push' to them.
-     (dolist (client (nreverse clients))
-       ;; Don't run the clients directly from here, so we don't nest,
-       ;; and also because we may be in an "interrupt" context where
-       ;; operations like blocking could be dangerous.
-       (futur--funcall (cdr client) err val)))
+     (if (null clients) ;; FIXME: They may also all be unwinds!
+         (when err
+           ;; Don't let errors disappear silently.
+           (message "Error in futur: %s" (error-message-string err)))
+       ;; CLIENTS is usually in reverse order since we always `push' to them.
+       (dolist (client (nreverse clients))
+         ;; Don't run the clients directly from here, so we don't nest,
+         ;; and also because we may be in an "interrupt" context where
+         ;; operations like blocking could be dangerous.
+         (futur--funcall (cdr client) err val))))
     ((futur--failed `(futur-aborted . ,_))
      nil)     ;; Just ignore the late delivery.
     ((pred futur--p)

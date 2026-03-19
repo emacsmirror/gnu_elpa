@@ -262,6 +262,8 @@ A server kind is a symbol.")
   ;; FIXME: (while ?? (accept-process-output proc ...))!
   nil)
 
+(define-error 'futur-unreadable-answer "Unreadable answer from server")
+
 (defun futur--elisp-funcall-1 (futur-proc func args)
   (futur-let*
       ((proc <- futur-proc)
@@ -302,6 +304,7 @@ A server kind is a symbol.")
     (pcase read-answer
       (`(:read-success ,(pred (equal rid)))
        (futur-let* ((call-answer  <- (futur--elisp-answer-futur proc)))
+         ;; (trace-values :call-answer call-answer)
          (pcase-exhaustive call-answer
            (`(:funcall-success ,(pred (equal rid)) . ,val)
             (process-put proc 'futur--ready t)
@@ -310,7 +313,15 @@ A server kind is a symbol.")
            (`(:funcall-error ,(pred (equal rid)) . ,err)
             (process-put proc 'futur--ready t)
             (process-put proc 'futur--last-time (float-time))
-            (futur--resignal err)))))
+            (futur--resignal err))
+           (`(:unreadable-answer . ,err)
+            (process-put proc 'futur--ready t)
+            (process-put proc 'futur--last-time (float-time))
+            ;; FIXME: Maybe we should report the whole unreadable string?
+            ;; FIXME: A "common" case is when an error includes un`read'able
+            ;; data, like a buffer, in which case we could convert
+            ;; the error to a `read'able one in `futur-server.el'?
+            (signal 'futur-unreadable-answer (list err))))))
       (`(:read-success . ,_)
        ;; (futur--funcall #'futur--client-resync proc)
        (error "Out-of-order reply: %S" read-answer))

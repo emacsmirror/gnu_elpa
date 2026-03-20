@@ -82,7 +82,7 @@ current buffer state and calls REPORT-FN when done."
   (let ((temp-file (make-temp-file
                     (expand-file-name
                      "elisp-flymake-byte-compile"
-                     futur-sandbox-temp-dir)))
+                     (futur-sandbox-temp-dir))))
         (source-buffer (current-buffer))
         (coding-system-for-write 'utf-8-unix)
         (coding-system-for-read 'utf-8))
@@ -116,7 +116,7 @@ current buffer state and calls REPORT-FN when done."
                    (search-forward ":elisp-flymake-output-start")
                    (read (current-buffer))))))))
       (setq elisp-flymake--byte-compile-process proc-futur)
-      (futur--unwind-protect
+      (futur-register-unwind-protect
        (futur-bind
         proc-futur
         (lambda (collected)
@@ -207,14 +207,14 @@ current buffer state and calls REPORT-FN when done."
          #'futur--smerge-refine-regions-1
          ol1 ol2 preproc props-c props-r props-a))
        (modification-hook-function
-        (lambda (&rest args) ;; (ol after beg end &optional len)
+        (lambda (&rest _args) ;; (ol after beg end &optional len)
           ;; FIXME: Actually, as long as the modification is performed before
           ;; we call `smerge--refine-prepare-regions', we could still continue,
           ;; but it's probably best to let some other piece of code
           ;; (e.g. font-lock) decide whether to re-launch an
           ;; `smerge-refine-regions', because the change might have
           ;; removed/added boundary markers.
-          (message "Aborting smerge-refine-regions: %S" args)
+          ;;(message "Aborting smerge-refine-regions: %S" args)
           (futur-abort futur "Buffer modification")
           (delete-overlay ol1)
           (delete-overlay ol2))))

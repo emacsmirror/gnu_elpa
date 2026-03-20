@@ -143,6 +143,9 @@ A server kind is a symbol.")
     (if (not (futur--process-completed-p proc))
         (message "futur--elisp-process-sentinel before end: %S" status)
       (cl-callf (lambda (ps) (delq proc ps)) (cdr proclist))
+      (when (and (null (cdr proclist))
+             (eq 'futur-sandbox (process-get proc 'futur--kind)))
+        (futur--sandbox-delete-temp-dir))
       (let ((futur (process-get proc 'futur--destination)))
         (when futur
           (process-put proc 'futur--destination nil)
@@ -356,9 +359,32 @@ is called."
 (defvar futur--sandbox-ro-dirs
   '("/lib" "/lib64" "/bin" "/usr" "/etc/alternatives" "/etc/emacs" "/gnu" "~/"))
 
-(defvar futur-sandbox-temp-dir (make-temp-file "futur-sandbox" 'dir)
-  "Directory to pass temporary files to the sandbox.
-Contrary to /tmp, this directory is readable by the sandboxed processes.")
+(defvar futur--sandbox-temp-dir nil)
+
+(defun futur-sandbox-temp-dir ()
+  "Return the directory to pass temporary files to the sandbox.
+Contrary to /tmp, this directory is readable by the sandboxed processes."
+  (if (and futur--sandbox-temp-dir
+           (file-directory-p futur--sandbox-temp-dir))
+      futur--sandbox-temp-dir
+    (when futur--sandbox-temp-dir
+      ;; The directory has disappeared.  That's worrisome, because it
+      ;; probably means some malicious process could put something else there.
+      ;; There's not much we can do now, other than stop using it.
+      ;; And the old sandboxes can't be used any more, so kill them.
+      ;; (ideally, we'd wait for them to stop processing their current
+      ;; request, but it seems more trouble than it's worth).
+      (dolist (proc (alist-get 'futur-sandbox futur--elisp-servers))
+        (kill-process proc))
+      (setf (alist-get 'futur-sandbox futur--elisp-servers) nil))
+    (setq futur--sandbox-temp-dir
+          (make-temp-file "futur-sandbox" 'dir))))
+
+(defun futur--sandbox-delete-temp-dir ()
+  (when futur--sandbox-temp-dir
+    (when (file-directory-p futur--sandbox-temp-dir)
+      (delete-directory futur--sandbox-temp-dir 'recursive))
+    (setq futur--sandbox-temp-dir nil)))
 
 (defun futur--sandbox-launch (kind)
   ;; Don't inherit MAKEFLAGS from any surrounding make process,
@@ -373,7 +399,7 @@ Contrary to /tmp, this directory is readable by the sandboxed processes.")
                           (let ((dir (expand-file-name dir)))
                             `("--ro-bind" ,dir ,dir))))
                       (append futur--sandbox-ro-dirs
-                              (list futur-sandbox-temp-dir)))))))
+                              (list (futur-sandbox-temp-dir))))))))
 
 (defun futur--sandbox-funcall (func &rest args)
   "Like `futur--elisp-funcall' but runs in a sandbox.
@@ -389,10 +415,9 @@ to `futur--sandbox-funcall'."
    func args))
 
 (defun futur--elisp-kill-subprocesses ()
-  ;; FIXME: Add to `futur-server' a timer to auto-exit after a while.
+  (futur--sandbox-delete-temp-dir)
   (pcase-dolist (`(_kind . ,procs) futur--elisp-servers)
-    (mapc #'delete-process procs))
-  (delete-directory futur-sandbox-temp-dir 'recursive))
+    (mapc #'delete-process procs)))
 
 (add-hook 'kill-emacs-hook #'futur--elisp-kill-subprocesses)
 

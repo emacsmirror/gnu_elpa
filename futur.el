@@ -167,9 +167,11 @@
 
 ;; Version 1.3:
 
+;; - New function `futur-register-unwind-protect`.
 ;; - Syntax of `:error-fun' changed in `futur-let*'.
 ;; - Remove `idle' argument from `futur-timeout'.
 ;; - Adjusted `futur-hacks-mode' to changes in Emacs `master'.
+;; - Added an asynchronous byte-compile-file to `futur-hacks-mode'.
 
 ;; Version 1.2:
 
@@ -386,7 +388,7 @@ A futur has 3 possible states:
          ;; and also because we may be in an "interrupt" context where
          ;; operations like blocking could be dangerous.
          (futur--funcall (cdr client) err val)
-         (unless (eq t (car client)) (setq real-client t)))
+         (unless (eq :unwind (car client)) (setq real-client t)))
        (when (and err (not real-client)) ;Don't silently drop errors.
          ;; FIXME: Should we actually signal an error, to bring up a debugger?
          ;; It seems the stack trace is unlikely to be of much use :-(
@@ -579,19 +581,19 @@ as `futur-bind'."
           ;; Create a "dummy" new future to record our interest in
           ;; the result of `futur' in case `futur' has other clients,
           ;; so an abort doesn't incorrectly abort `futur'.
-          (let ((new (futur-bind futur #'identity)))
-            (condition-case err
+          ;; It also tells `futur--deliver' not to show the error via `message'
+          ;; if the future fails.
+          (let ((new (futur-bind futur #'identity #'identity)))
+            (unwind-protect
                 (futur-blocker-wait futur)
-              ;; FIXME: Use `handler-bind' instead of `futur--resignal'.
-              (quit (futur-abort new err) (futur--resignal err))))
+              (futur-abort new "Stopped waiting")))
         (let* ((mutex (make-mutex "futur-wait"))
                (condvar (make-condition-variable mutex))
                (deliver (lambda (_) (with-mutex mutex (condition-notify condvar))))
                (new (futur-bind futur deliver deliver)))
-          (condition-case err
+          (unwind-protect
               (with-mutex mutex (condition-wait condvar))
-            ;; FIXME: Use `handler-bind' instead of `futur--resignal'.
-            (quit (futur-abort new err) (futur--resignal err))))))
+            (futur-abort new "Stopped waiting")))))
     (pcase-exhaustive futur
       ((futur--failed err)
        (futur--handle-error error-fun err #'funcall #'futur--resignal))
@@ -645,12 +647,13 @@ ERROR-FUN can be:
          (cl-incf count))))
     (>= count 2)))
 
-(defun futur--unwind-protect (futur fun)
+(defun futur-register-unwind-protect (futur fun)
   "Make sure FUN is called, with no arguments, once FUTUR completes.
 Calls it both when FUTUR succeeds and when it fails.
 Unlike what happens with `unwind-protect', there is no guarantee of
 exactly when FUN is called, other than not before FUTUR completes.
-The return value of FUN is ignored."
+The return value of FUN is ignored.
+FUN is called in an empty dynamic context."
   ;; FIXME: Not sure if this implementation is making enough efforts to make
   ;; sure not to forget to run FUN.  Maybe we should register FUTUR+FUN
   ;; on some global list somewhere that we can occasionally scan, in case
@@ -669,7 +672,7 @@ Returns a future that returns the same value as FORM.
 Execution of FORMS is guarantee to occur after completion of FORM,
 but it is not guaranteed to occur before completion of the returned future."
   (declare (indent 1) (debug t))
-  `(futur--unwind-protect (futur-funcall (lambda () ,form)) (lambda () ,@forms)))
+  `(futur-register-unwind-protect (futur-funcall (lambda () ,form)) (lambda () ,@forms)))
 
 ;;;; Futur blockers
 ;; Futur blockers are the objects over which a futur can be waiting, like
@@ -1160,7 +1163,7 @@ URL-encoded before it's used."
 
 (defun futur--with-temp-buffer (body-fun)
   (let ((buf (generate-new-buffer " *temp*" t)))
-    (futur--unwind-protect
+    (futur-register-unwind-protect
      (with-current-buffer buf (funcall body-fun))
      (lambda () (and (buffer-live-p buf)
                 (kill-buffer buf))))))

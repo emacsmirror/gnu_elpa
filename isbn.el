@@ -122,7 +122,7 @@ concerning ISBN's validation."
                  (13 (thread-first
                        (apply #'+
                               (seq-map-indexed
-                               (lambda (digit index) (* digit (if (evenp index) 1 3)))
+                               (lambda (digit index) (* digit (if (eq (logand index 1) 0) 1 3)))
                                (butlast isbn)))
                        (+ (car (last isbn)))
                        (mod 10) (eq 0))))))
@@ -167,7 +167,7 @@ region with the converted ISBN."
                 (if (eq format 10) isbn
                   (let* ((isbn (concat "978" (substring isbn 0 -1)))
                          (checkint (seq-map-indexed
-                                    (lambda (digit index) (* digit (if (evenp index) 1 3)))
+                                    (lambda (digit index) (* digit (if (eq (logand index 1) 0) 1 3)))
                                     (isbn--string->list isbn)))
                          (check (- 10 (mod (apply #'+ checkint) 10))))
                     (format "%s%i" isbn check))))

@@ -453,32 +453,30 @@ This option could improve slightly the performance of this framework,
 by adding every match found in the text as a word."
   :type 'boolean)
 
-(defun greader-dict--get-key-from-word (word)
-  "Return key related to WORD, nil otherwise."
+(defun greader-dict--get-key-from-word (word &optional matches)
+  "Return key related to WORD, nil otherwise.
+MATCHES, if provided, is a pre-computed list of match-type keys as
+returned by `greader-dict--get-matches'; when nil the list is
+computed on demand.  Callers that invoke this function repeatedly
+should pre-compute the list once and pass it here to avoid
+rebuilding it on every call."
   (unless word
-    (setq word""))
+    (setq word ""))
   (setq word (string-trim word))
   (cond
    ((gethash word greader-dictionary)
     word)
    (t
-    (let ((reduced-dictionary (make-hash-table :test 'ignore-case))
-	  (key nil))
-      (dolist (item (greader-dict--get-matches 'match))
-	(puthash item (gethash item greader-dictionary)
-		 reduced-dictionary))
-      (catch 'key-matched
-	(maphash
-	 (lambda (k v)
-	   (setq k
-		 (string-remove-suffix greader-dict-match-indicator k))
-	   (when (string-match k word)
-	     (when greader-dict-transform-match-to-word
-	       (greader-dict--add-match-as-word k word v))
-	     (setq key (concat k greader-dict-match-indicator))
-	     (throw 'key-matched key)))
-	 reduced-dictionary))
-      key      ))))
+    (catch 'key-matched
+      (dolist (k (or matches (greader-dict--get-matches 'match)))
+	(let ((normalized (string-remove-suffix
+			   greader-dict-match-indicator k)))
+	  (when (string-match normalized word)
+	    (when greader-dict-transform-match-to-word
+	      (greader-dict--add-match-as-word
+	       normalized word (gethash k greader-dictionary)))
+	    (throw 'key-matched k))))
+      nil))))
 
 ;; This function checks that, in the string you pass to it, there are
 ;; effectively words to be replaced. If so, use apis
@@ -502,13 +500,13 @@ by adding every match found in the text as a word."
 	  ;; insert a new line at end of temp buffer.
 	  (when (= (count-words (point-min) (point-max)) 1)
 	    (save-excursion (goto-char (point-max)) (ignore-errors (newline))))
-	  (let ((inhibit-read-only t))
+	  (let ((inhibit-read-only t)
+		(matches (greader-dict--get-matches 'match)))
 	    (re-search-forward "\\w" nil t)
 	    (while (not (eobp))
 	      (let*
-		  ((key (greader-dict--get-key-from-word (
-							  thing-at-point
-							  'word))))
+		  ((key (greader-dict--get-key-from-word
+			  (thing-at-point 'word) matches)))
 		(cond
 		 ((equal (greader-dict-item-type key) 'word)
 		  (greader-dict-substitute-word (string-remove-suffix

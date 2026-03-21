@@ -276,6 +276,7 @@ node `(emacs) Regexps'."
       (greader-dict-mode -1))
     (greader-dict--filter-init)))
 
+;;;###autoload
 (define-obsolete-function-alias 'greader-dict-toggle-filters
   #'greader-dict-filters-mode "0.14")
 

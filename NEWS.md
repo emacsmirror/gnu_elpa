@@ -1,6 +1,6 @@
 # Urgrep News
 
-## v0.6.0 (in progress)
+## v0.6.0 (2026-03-20)
 
 ### Breaking changes
 - Require Emacs 28+

@@ -4,7 +4,7 @@
 
 ;; Author: Jim Porter
 ;; URL: https://sr.ht/~jimporter/urgrep/
-;; Version: 0.5.3-git
+;; Version: 0.6.0
 ;; Keywords: grep, search
 
 ;; This file is NOT part of GNU Emacs.

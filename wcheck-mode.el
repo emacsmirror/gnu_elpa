@@ -37,8 +37,6 @@
 ;;       "Move point forward to next marked text area." t)
 ;;     (autoload 'wcheck-jump-backward "wcheck-mode"
 ;;       "Move point backward to previous marked text area." t)
-;;     (autoload 'wcheck-jump-repeat-map "wcheck-mode"
-;;       "Keymap to repeat jump commands." t)
 ;;
 ;; See customize group "wcheck" for information on how to configure
 ;; Wcheck mode. (M-x customize-group RET wcheck RET)

@@ -108,8 +108,6 @@ initialization file:
       "Move point forward to next marked text area." t)
     (autoload 'wcheck-jump-backward "wcheck-mode"
       "Move point backward to previous marked text area." t)
-    (autoload 'wcheck-jump-repeat-map "wcheck-mode"
-      "Keymap to repeat jump commands." t)
 
 [Elpa]: https://elpa.gnu.org/
 
@@ -125,6 +123,14 @@ _wcheck_ (`M-x customize-group RET wcheck RET`).
 It might be convenient to bind Wcheck mode commands to some easily
 accessible keys. The next example uses `C-c w` as a prefix key for
 different Wcheck commands:
+
+    ;; C-c w j f f f f ... repeatable in repeat-mode
+    ;; C-c w j b b b b ... repeatable in repeat-mode
+    (defvar-keymap wcheck-jump-repeat-map
+      :doc "Keymap to repeat `wcheck-mode' jump commands."
+      :repeat t
+      "f" 'wcheck-jump-forward
+      "b" 'wcheck-jump-backward)
 
     (keymap-global-set "C-c w" (define-keymap
                                  "w" 'wcheck-mode

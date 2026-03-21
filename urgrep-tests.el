@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021-2026 Free Software Foundation, Inc.
 
 ;; Author: Jim Porter
-;; URL: https://github.com/jimporter/urgrep
+;; URL: https://sr.ht/~jimporter/urgrep/
 ;; Keywords: tests
 
 ;; This file is NOT part of GNU Emacs.

@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021-2026 Free Software Foundation, Inc.
 
 ;; Author: Jim Porter
-;; URL: https://github.com/jimporter/urgrep
+;; URL: https://sr.ht/~jimporter/urgrep/
 ;; Version: 0.6.0-git
 ;; Keywords: grep, search
 ;; Package-Requires: ((emacs "28.1") (compat "29.1.0.1") (project "0.3.0"))

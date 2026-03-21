@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021-2026 Free Software Foundation, Inc.
 
 ;; Author: Jim Porter
-;; URL: https://github.com/jimporter/urgrep
+;; URL: https://sr.ht/~jimporter/urgrep/
 ;; Version: 0.5.3-git
 ;; Keywords: grep, search
 

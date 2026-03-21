@@ -382,7 +382,8 @@ SUCCESS is a boolean value, t for success, nil for failure."
 (defun gnosis-review-result (id success)
   "Update review thema ID results for SUCCESS."
   (gnosis-review--update id success)
-  (setf gnosis-due-themata-total (length (gnosis-review-get-due-themata))))
+  (when (and gnosis-due-themata-total (> gnosis-due-themata-total 0))
+    (cl-decf gnosis-due-themata-total)))
 
 ;;; Type-specific review
 

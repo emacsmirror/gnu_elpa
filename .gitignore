@@ -1,0 +1,5 @@
+*.elc
+
+# ELPA-generated files.
+/related-file-autoloads.el
+/related-file-pkg.el

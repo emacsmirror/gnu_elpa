@@ -834,11 +834,12 @@ asked."
     (setq greader-dict--current-reading-buffer (or
 						greader--current-buffer
 						(current-buffer)))
-    (let ((dict-mode-state greader-dict-mode))
-      (greader-dict-mode 1)
-      (greader-dict-read-from-dict-file t)
-      (unless dict-mode-state
-	(greader-dict-mode -1))))
+    (unless greader-reading-mode
+      (let ((dict-mode-state greader-dict-mode))
+	(greader-dict-mode 1)
+	(greader-dict-read-from-dict-file t)
+	(unless dict-mode-state
+	  (greader-dict-mode -1)))))
   (when greader-dict-mode
     (setq greader-dict--current-reading-buffer (or
 						greader--current-buffer

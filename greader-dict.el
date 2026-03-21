@@ -500,7 +500,7 @@ by adding every match found in the text as a word."
 	  ;; We check if text is actually just one word, and in that case
 	  ;; insert a new line at end of temp buffer.
 	  (when (= (count-words (point-min) (point-max)) 1)
-	    (save-excursion (goto-char (point-max)) (newline)))
+	    (save-excursion (goto-char (point-max)) (ignore-errors (newline))))
 	  (let ((inhibit-read-only t))
 	    (re-search-forward "\\w" nil t)
 	    (while (not (eobp))

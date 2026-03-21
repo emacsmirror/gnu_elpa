@@ -556,24 +556,45 @@ This is a helper function for `gnosis-review-session'."
     state))
 
 
-(defun gnosis-review-session (themata state &optional due)
-  "Start review session for THEMATA with STATE.
-THEMATA: List of thema ids.
-STATE: A `gnosis-review-state' struct (buffer-local in the review buffer).
-DUE: If non-nil, session will loop for due themata."
+(defun gnosis-review-session (themata state)
+  "Review THEMATA in a single pass using STATE.
+THEMATA: list of thema IDs.
+STATE: a `gnosis-review-state' struct.
+Returns STATE."
   (if (null themata)
-      (message "No themata for review.")
+      (progn (message "No themata for review.") state)
+    (cl-loop for thema in themata
+	     do (gnosis-review-process-thema thema state))
+    state))
+
+(defun gnosis-review-loop (collector)
+  "Run review sessions using COLLECTOR, then commit and show dashboard.
+COLLECTOR is either:
+- a function returning thema IDs (called repeatedly until it returns nil)
+- a list of thema IDs (reviewed once)
+
+Sets up session state, then loops: collect IDs, review them, repeat.
+The loop is wrapped in a `review-loop' catch so that
+`gnosis-review-action--quit' can break out at any point."
+  (setq gnosis-due-themata-total (length (gnosis-review-get-due-themata)))
+  (set-register :gnosis-pre-image nil)
+  (let* ((fn (if (functionp collector)
+		 collector
+	       (let ((ids collector))
+		 (lambda () (prog1 ids (setq ids nil))))))
+	 (themata (funcall fn))
+	 (buf (gnosis-review--setup-buffer themata))
+	 (state (buffer-local-value 'gnosis-review--state buf)))
+    (pop-to-buffer-same-window buf)
     (catch 'review-loop
-      (cl-loop for thema in themata
-	       do (gnosis-review-process-thema thema state)
-	       finally
-	       (when due
-		 (let ((new-due (gnosis-collect-thema-ids :due t)))
-		   (when new-due
-		     (setf (gnosis-review-state-remaining state) new-due)
-		     (cl-incf (gnosis-review-state-total state) (length new-due))
-		     (force-mode-line-update)
-		     (gnosis-review-session new-due state t))))))
+      (while themata
+	(gnosis-review-session themata state)
+	(setq themata (funcall fn))
+	(when themata
+	  (setf (gnosis-review-state-remaining state)
+		(copy-sequence themata))
+	  (cl-incf (gnosis-review-state-total state) (length themata))
+	  (force-mode-line-update))))
     (gnosis-dashboard)
     (gnosis-review-commit (gnosis-review-state-reviewed state))))
 
@@ -620,7 +641,7 @@ Update result for THEMA review with SUCCESS.
 This function should be used with `gnosis-review-actions', to finish
 the review session."
   (gnosis-review-result thema success)
-  ;; Break the review loop of `gnosis-review-session'
+  ;; Break the review loop of `gnosis-review-loop'
   (throw 'review-loop t))
 
 (defun gnosis-review-action--suspend (success thema)
@@ -714,40 +735,28 @@ To monkeytype only the wrong answers use `gnosis-monkeytype-answer'."
 
 ;;; Entry points
 
-;;;###autoload
-(defun gnosis-review--start (fn thema-ids &optional due-p)
-  "Start review with FN for THEMA-IDS.
-Sets up the review buffer with state, then calls FN.
-When DUE-P, pass it to the review function."
-  (setq gnosis-due-themata-total (length (gnosis-review-get-due-themata)))
-  (set-register :gnosis-pre-image nil)
-  (let* ((buf (gnosis-review--setup-buffer thema-ids))
-	 (state (buffer-local-value 'gnosis-review--state buf)))
-    (pop-to-buffer-same-window buf)
-    (if due-p
-	(funcall fn thema-ids state t)
-      (funcall fn thema-ids state))))
-
 (transient-define-prefix gnosis-review ()
   "Start gnosis review session."
   [["Review"
     ("d" "Due themata" (lambda () (interactive)
-			 (gnosis-review--start #'gnosis-review-session
-					       (gnosis-collect-thema-ids :due t) t)))
+			 (gnosis-review-loop
+			  (lambda () (gnosis-collect-thema-ids :due t)))))
     ("t" "Due themata of tag(s)" (lambda () (interactive)
-				   (gnosis-review--start #'gnosis-review-session
-							 (gnosis-collect-thema-ids :due t :tags t))))
+				   (let* ((due-tags (gnosis-get-tags-for-ids
+						     (gnosis-review-get-due-themata)))
+					  (tags (gnosis-tags-filter-prompt due-tags)))
+				     (gnosis-review-loop
+				      (lambda () (gnosis-collect-thema-ids :due t :tags tags))))))
     ("o" "Overdue themata" (lambda () (interactive)
-			     (gnosis-review--start #'gnosis-review-session
-						   (gnosis-review-get-overdue-themata))))
+			     (gnosis-review-loop (gnosis-review-get-overdue-themata))))
     ("w" "Due without overdue" (lambda () (interactive)
-				 (gnosis-review--start #'gnosis-review-session
-						       (cl-set-difference
-							(mapcar #'car (gnosis-review-get--due-themata))
-							(gnosis-review-get-overdue-themata)))))
+				 (gnosis-review-loop
+				  (cl-set-difference
+				   (mapcar #'car (gnosis-review-get--due-themata))
+				   (gnosis-review-get-overdue-themata)))))
     ("T" "All themata of tag(s)" (lambda () (interactive)
-				   (gnosis-review--start #'gnosis-review-session
-							 (gnosis-collect-thema-ids :tags t))))
+				   (gnosis-review-loop
+				    (gnosis-collect-thema-ids :tags (gnosis-tags-filter-prompt)))))
     ("n" "Review node" gnosis-review-topic)
     ("q" "Quit" transient-quit-one)]])
 
@@ -816,7 +825,7 @@ With prefix arg, prompt for depths."
 			 (format " (%d nodes, fwd:%d back:%d)"
 				 (length node-ids) fwd-depth back-depth)
 		       "")))
-	(gnosis-review--start #'gnosis-review-session gnosis-questions)))))
+	(gnosis-review-loop gnosis-questions)))))
 
 (provide 'gnosis-review)
 ;;; gnosis-review.el ends here

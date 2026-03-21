@@ -895,7 +895,7 @@
  (uni-confusables 	:url nil
   :readme "README.md")
  (uniquify-files	:url nil)
- (urgrep		:url "https://github.com/jimporter/urgrep"
+ (urgrep		:url "https://git.sr.ht/~jimporter/urgrep"
   :readme "README.md")
  (url-http-ntlm 	:url nil)
  (url-http-oauth	:url "https://git.sr.ht/~fitzsim/url-http-oauth"

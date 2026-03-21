@@ -111,7 +111,7 @@
 ;; database,
 ;; `greader-dict-filter-modify' to modify a key preserving its old
 ;; value.
-;; to enable filters, use the command `greader-dict-toggle-filters',
+;; to enable filters, use the command `greader-dict-filters-mode',
 ;; it is also a customizable variable.
 ;; This module offers a command
 ;; `greader-dict-pronounce-in-other-language' that can be used for
@@ -147,21 +147,16 @@
   :group 'greader)
 
 ;; variable definitions
-(defvar greader-dict-match-indicator "\%\*"
-  "Regexp that will be used for match delimiter.")
-
-(defvar greader-dict-match-indicator "\%\*"
+(defvar greader-dict-match-indicator "%*"
   "Regexp that will be used for match delimiter.")
 
 (defvar-local  greader-dictionary nil)
 
-(defvar greader-dict-match-indicator "\%\*"
-  "Regexp that will be used for match delimiter.")
 (defvar greader-dict--timer nil)
 (defvar greader-dict--item-type-alist '((match
-					 . "\%\*")
+					 . "%*")
 					(filter
-					 . "\%f")
+					 . "%f")
 					(word . ""))
   "Item types and relative prefixes.")
 
@@ -207,7 +202,7 @@
 (defvar-local greader-filters nil
   "Hash table containing our filters.")
 
-(defvar greader-dict-filter-indicator "\%f")
+(defvar greader-dict-filter-indicator "%f")
 
 ;; This macro calls `with-temp-buffer', setting all the necessary
 ;; local variables to useful values. This means that all sensible
@@ -219,6 +214,11 @@ Execute BODY in a temporary bufer as if we where in the reading
 buffer."
   (declare (indent defun))
   `(with-temp-buffer
+     (setq greader-dict--current-reading-buffer (buffer-local-value
+						 'greader-dict--current-reading-buffer
+						 (or
+						  greader--current-buffer
+						  (current-buffer))))
      (setq greader-dictionary (buffer-local-value 'greader-dictionary
 						  (or
 						   greader--current-buffer
@@ -233,8 +233,8 @@ buffer."
 					       (or
 						greader--current-buffer
 						greader-dict--current-reading-buffer)))
-     (setq greader-dict-toggle-filters (buffer-local-value
-					'greader-dict-toggle-filters
+     (setq greader-dict-filters-mode (buffer-local-value
+					'greader-dict-filters-mode
 					(or greader--current-buffer greader-dict--current-reading-buffer)))
      ,@body))
 
@@ -247,7 +247,7 @@ buffer."
 ;; so filters are a separate feature, which we can consider an
 ;; "advanced" use case of greader-dict.
 ;;;###autoload
-(define-minor-mode greader-dict-toggle-filters
+(define-minor-mode greader-dict-filters-mode
   "Enable or disable filters.
 Filters allow you to replace every regexp you wish with something
 else you wish.
@@ -268,13 +268,17 @@ of regexps.
 If you are interested in how to write a regexp please consult the info
 node `(emacs) Regexps'."
   :lighter " gr-filters"
-  (when greader-dict-toggle-filters
+  (when greader-dict-filters-mode
     (setq greader-filters (make-hash-table :test 'ignore-case))
     (setq greader-dict--current-reading-buffer (current-buffer))
     (unless greader-dictionary
       (greader-dict-mode 1)
       (greader-dict-mode -1))
     (greader-dict--filter-init)))
+
+;;;###autoload
+(define-obsolete-function-alias 'greader-dict-toggle-filters
+  #'greader-dict-filters-mode "0.14")
 
 (defcustom greader-dict-include-sentences-in-defaults nil
   "Includi le parole della frase come alternative.
@@ -488,11 +492,11 @@ by adding every match found in the text as a word."
   (with-greader-dict-temp-buffer
     (insert text)
     (goto-char (point-min))
-    (when greader-dict-toggle-filters
+    (when greader-dict-filters-mode
       (greader-dict-filters-apply))
     (if
 	(buffer-local-value 'greader-dict-mode
-			    greader-dict--current-reading-buffer)
+			    (or greader--current-buffer greader-dict--current-reading-buffer))
 	(progn
 	  ;; We check if text is actually just one word, and in that case
 	  ;; insert a new line at end of temp buffer.
@@ -697,7 +701,7 @@ Please use `greader-dict-save' for that purpose."
   "Function to add to `greader-after-get-sentence-functions'.
 It simply calls `greader-dict-check-and-replace' with TEXT as its
 argument, only if `greader-dict-mode' is enabled."
-  (if (or greader-dict-mode greader-dict-toggle-filters)
+  (if (or greader-dict-mode greader-dict-filters-mode)
       (greader-dict-check-and-replace text)
     text))
 (declare-function greader-get-language nil)
@@ -707,7 +711,7 @@ argument, only if `greader-dict-mode' is enabled."
 						"/" t)))))
     (unless (equal language-part (buffer-local-value
 				  'greader-dict-local-language
-				  greader-dict--current-reading-buffer))
+				  (or greader--current-buffer greader-dict--current-reading-buffer)))
       (setq greader-dict-directory (string-remove-suffix (concat
 							  language-part
 							  "/")
@@ -715,11 +719,12 @@ argument, only if `greader-dict-mode' is enabled."
       (setq greader-dict-directory
 	    (concat greader-dict-directory (buffer-local-value
 					    'greader-dict-local-language
-					    greader-dict--current-reading-buffer)
+					    (or
+					     greader--current-buffer greader-dict--current-reading-buffer))
 		    "/"))))
   (concat greader-dict-directory (buffer-local-value
 				  'greader-dict-filename
-				  greader-dict--current-reading-buffer)))
+				  (or greader--current-buffer greader-dict--current-reading-buffer))))
 
 (defun greader-dict--set-file (type)
   "Set `greader-dict-filename' according to TYPE.
@@ -825,7 +830,7 @@ asked."
 
 (defvar greader-reading-mode)
 (defun greader-dict--update ()
-  (when greader-dict-toggle-filters
+  (when greader-dict-filters-mode
     (setq greader-dict--current-reading-buffer (or
 						greader--current-buffer
 						(current-buffer)))
@@ -864,7 +869,7 @@ asked."
 		 " in file " greader-dict-filename " it has "
 		 (number-to-string (hash-table-count
 				    greader-dictionary))
-		 " entries" (if greader-dict-toggle-filters (progn
+		 " entries" (if greader-dict-filters-mode (progn
 							      (concat
 							       ", and "
 							       (number-to-string
@@ -1045,7 +1050,7 @@ hash table."
   (when greader-filters (clrhash greader-filters))
   (maphash
    (lambda (k v)
-     (when (and greader-dict-toggle-filters (string-suffix-p
+     (when (and greader-dict-filters-mode (string-suffix-p
 					     greader-dict-filter-indicator
 					     k))
        (puthash k v greader-filters)))

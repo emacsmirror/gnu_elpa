@@ -288,7 +288,7 @@ Return a cons with start and end of the block or nil if at end of the buffer."
 (defun greader-audiobook-convert-block (filename)
   "Convert a block of text in the current buffer, saving it in FILENAME.
 If variable `greader-dict-mode' or
-variable `greader-dict-toggle-filters' are enabled,
+variable `greader-dict-filters-mode' are enabled,
 substitutions will be performed on the block.
 After conversion, point will be moved to the end of the block.
 Return the generated file name, or nil if at end of the buffer."
@@ -307,7 +307,7 @@ Return the generated file name, or nil if at end of the buffer."
 	    (setq text (concat (file-name-sans-extension filename)
 			       ".\n" text)))
 	  (setq text (greader-dehyphenate text))
-	  (when (or greader-dict-mode greader-dict-toggle-filters)
+	  (when (or greader-dict-mode greader-dict-filters-mode)
 	    (setq text (greader-dict-check-and-replace text)))
 	  (when greader-audiobook-pause-at-end-of-track
 	    (setq text (concat text greader-audiobook-pause-string)))

@@ -41,10 +41,16 @@
 (defcustom greader-piper-script-path
   (progn
     (add-to-list 'exec-path greader-process-directory)
-    (file-name-concat (file-name-directory (find-library-name
-					    "greader")) "piper.sh"))
+    (file-name-concat (file-name-directory
+		       (or load-file-name (find-library-name "greader")))
+		      "piper.sh"))
   "Piper script path."
   :type 'string)
+
+(defcustom greader-piper-rate 130
+  "Speech rate for piper back-end."
+  :type 'integer
+  :group 'greader-piper)
 
 (defcustom greader-piper-script-url
   "https://gitlab.com/michelangelo-rodriguez/greader/-/raw/master/piper.sh"
@@ -83,9 +89,10 @@ documentation of `greader-back-ends' variable."
   (pcase command
     ('executable
      (greader-piper-find-script))
+    ('get-rate
+     greader-piper-rate)
     (_
-     'not-implemented)
-    ))
+     'not-implemented)))
 (put 'greader-piper 'greader-backend-name "greader-piper")
 
 (provide 'greader-piper)

@@ -7,7 +7,7 @@
 ;; Keywords: tools, accessibility
 ;; URL: https://gitlab.com/michelangelo-rodriguez/greader
 
-;; Version: 0.13.1
+;; Version: 0.14.0
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@
 (require 'view)
 (defvar greader-dict-prefix-map)
 (defvar greader-dict-mode)
-(defvar greader-dict-toggle-filters)
+(defvar greader-dict-filters-mode)
 (declare-function greader-dict--update nil)
 
 (defvar-local greader-timer-flag nil)
@@ -67,7 +67,8 @@
 (defvar greader-backend-action #'greader--default-action)
 (defvar greader-status 'paused)
 (defvar greader-synth-process nil)
-(defvar-local greader-process-directory (file-name-directory (find-library-name "greader"))
+(defvar-local greader-process-directory
+  (file-name-directory (or load-file-name (find-library-name "greader")))
   "The directory where execution should start.")
 
 
@@ -101,6 +102,14 @@ Return SENTENCE, eventually modified by the functions."
 
 (defvar greader-after-read-hook nil
   "Execute code just after reading a sentence.")
+
+(defun greader-ensure-point-visible ()
+  "Scroll the window so that the current point is visible.
+This function is intended to be used in `greader-before-read-hook'."
+  (unless (pos-visible-in-window-p)
+    (recenter)))
+
+(add-hook 'greader-before-read-hook #'greader-ensure-point-visible)
 
 (define-obsolete-variable-alias 'greader-before-finish-hook
   'greader-before-finish-functions
@@ -668,7 +677,7 @@ function, point jumps at the last position you called command `greader-read'."
 
 (defun greader-stop ()
   "Stop reading of document.
-If `greader-dict-mode' and/or `greader-dict-toggle-filters' are
+If `greader-dict-mode' and/or `greader-dict-filters-mode' are
 active, the dictionary of pronunciation rules will be updated after
 calling all the hooks."
 
@@ -687,7 +696,7 @@ calling all the hooks."
   (run-hooks 'greader-after-stop-hook)
   (when (and (featurep 'greader-dict)
              (or greader-dict-mode
-                 greader-dict-toggle-filters))
+                 greader-dict-filters-mode))
     (greader-dict--update)))
 
 (defun greader-debug (arg)

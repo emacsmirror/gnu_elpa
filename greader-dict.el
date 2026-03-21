@@ -278,8 +278,6 @@ node `(emacs) Regexps'."
 
 (define-obsolete-function-alias 'greader-dict-toggle-filters
   #'greader-dict-filters-mode "0.14")
-(define-obsolete-variable-alias 'greader-dict-toggle-filters
-  'greader-dict-filters-mode "0.14")
 
 (defcustom greader-dict-include-sentences-in-defaults nil
   "Includi le parole della frase come alternative.

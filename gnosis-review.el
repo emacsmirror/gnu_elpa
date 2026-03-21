@@ -719,12 +719,16 @@ To monkeytype only the wrong answers use `gnosis-monkeytype-answer'."
 ;;;###autoload
 (defun gnosis-review--start (fn thema-ids &optional due-p)
   "Start review with FN for THEMA-IDS.
+Sets up the review buffer with state, then calls FN.
 When DUE-P, pass it to the review function."
   (setq gnosis-due-themata-total (length (gnosis-review-get-due-themata)))
   (set-register :gnosis-pre-image nil)
-  (if due-p
-      (funcall fn thema-ids t)
-    (funcall fn thema-ids)))
+  (let* ((buf (gnosis-review--setup-buffer thema-ids))
+	 (state (buffer-local-value 'gnosis-review--state buf)))
+    (pop-to-buffer-same-window buf)
+    (if due-p
+	(funcall fn thema-ids state t)
+      (funcall fn thema-ids state))))
 
 (transient-define-prefix gnosis-review ()
   "Start gnosis review session."
@@ -814,7 +818,7 @@ With prefix arg, prompt for depths."
 			 (format " (%d nodes, fwd:%d back:%d)"
 				 (length node-ids) fwd-depth back-depth)
 		       "")))
-	(gnosis-review-session gnosis-questions)))))
+	(gnosis-review--start #'gnosis-review-session gnosis-questions)))))
 
 (provide 'gnosis-review)
 ;;; gnosis-review.el ends here

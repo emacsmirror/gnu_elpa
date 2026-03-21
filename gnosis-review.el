@@ -51,9 +51,6 @@
 			      "Due themata (Without Overdue)"
 			      "All themata of tag(s)"))
 
-(defvar gnosis-review-themata nil
-  "Review themata.")
-
 (defvar gnosis-review-buffer-name "*gnosis*"
   "Review buffer name.")
 

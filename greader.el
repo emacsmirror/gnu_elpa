@@ -1,13 +1,13 @@
 ;;; greader.el --- Gnamù reader, send buffer contents to a speech engine -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2017-2025  Free Software Foundation, Inc.
+;; Copyright (C) 2017-2026  Free Software Foundation, Inc.
 
 ;; package-requires: ((emacs "26.1") (seq "2.24") (compat "29.1.4.5"))
 ;; Author: Michelangelo Rodriguez <michelangelo.rodriguez@gmail.com>
 ;; Keywords: tools, accessibility
 ;; URL: https://gitlab.com/michelangelo-rodriguez/greader
 
-;; Version: 0.13.1
+;; Version: 0.14.0
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

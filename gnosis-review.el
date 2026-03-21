@@ -57,6 +57,46 @@
 (defvar gnosis-review-buffer-name "*gnosis*"
   "Review buffer name.")
 
+;;; Review state
+
+(cl-defstruct (gnosis-review-state (:constructor gnosis-review-state-create))
+  "State for a review session."
+  (reviewed 0 :type integer)
+  (total 0 :type integer)
+  (remaining nil :type list))
+
+(defvar-local gnosis-review--state nil
+  "Buffer-local review state for the current session.")
+
+(defun gnosis-review--header-line ()
+  "Return centered header string derived from `gnosis-review--state'."
+  (when gnosis-review--state
+    (let ((reviewed (gnosis-review-state-reviewed gnosis-review--state))
+	  (remaining (length (gnosis-review-state-remaining gnosis-review--state))))
+      (gnosis-center-string
+       (format "%s %s %s"
+	       (propertize (number-to-string reviewed)
+			   'face 'font-lock-type-face)
+	       (propertize "|" 'face 'font-lock-comment-face)
+	       (propertize (number-to-string remaining)
+			   'face 'gnosis-face-false))))))
+
+(defun gnosis-review--setup-buffer (themata)
+  "Create or reset the review buffer for THEMATA.
+Sets `gnosis-mode', initializes state struct, and installs `:eval' header.
+Returns the buffer."
+  (let ((buf (get-buffer-create gnosis-review-buffer-name)))
+    (with-current-buffer buf
+      (unless (eq major-mode 'gnosis-mode)
+	(gnosis-mode))
+      (setq gnosis-review--state
+	    (gnosis-review-state-create
+	     :reviewed 0
+	     :total (length themata)
+	     :remaining (copy-sequence themata)))
+      (setq header-line-format '(:eval (gnosis-review--header-line))))
+    buf))
+
 ;;; Display functions
 
 (defun gnosis-display-keimenon (str)

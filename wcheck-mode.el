@@ -1838,9 +1838,10 @@ or nil."
           (let* ((window-min-height 2)
                  (split-window-keep-point t)
                  (window (split-window-vertically
-                          (- 0 (min (count-lines (point-min) (point-max))
-                                    (- (window-body-height) 2))
-                             1)))
+                          (- 0
+                             (min (count-lines (point-min) (point-max))
+                                  (- (window-body-height) 2))
+                             2)))
                  (prompt
                   (apply #'propertize
                          (let ((last (caar alist)))

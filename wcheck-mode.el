@@ -25,7 +25,7 @@
 ;; INSTALLATION
 ;;
 ;; Put this file to some directory in your Emacs's "load-path" and add
-;; the following lines to Emacs's initialization file (~/.emacs):
+;; the following lines to Emacs's initialization file:
 ;;
 ;;     (autoload 'wcheck-mode "wcheck-mode"
 ;;       "Toggle wcheck-mode." t)
@@ -37,6 +37,8 @@
 ;;       "Move point forward to next marked text area." t)
 ;;     (autoload 'wcheck-jump-backward "wcheck-mode"
 ;;       "Move point backward to previous marked text area." t)
+;;     (autoload 'wcheck-jump-repeat-map "wcheck-mode"
+;;       "Keymap to repeat jump commands." t)
 ;;
 ;; See customize group "wcheck" for information on how to configure
 ;; Wcheck mode. (M-x customize-group RET wcheck RET)
@@ -1602,6 +1604,14 @@ text."
               (message "Beginning of buffer")
             (wcheck--jump-req buffer window (point)
                               (- (point) wcheck--jump-step))))))))
+
+
+;;;###autoload
+(defvar-keymap wcheck-jump-repeat-map
+  :doc "Keymap to repeat `wcheck-mode' jump commands."
+  :repeat t
+  "f" 'wcheck-jump-forward
+  "b" 'wcheck-jump-backward)
 
 
 ;;; Actions

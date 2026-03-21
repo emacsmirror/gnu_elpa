@@ -96,7 +96,7 @@ Emacs command `M-x list-packages` and search for package `wcheck-mode`.
 
 Alternatively you can put `wcheck-mode.el` file to some directory in
 your Emacs's `load-path` and add the following lines to Emacs's
-initialization file (`~/.emacs` or `~/.emacs.d/init.el`):
+initialization file:
 
     (autoload 'wcheck-mode "wcheck-mode"
       "Toggle wcheck-mode." t)
@@ -108,6 +108,8 @@ initialization file (`~/.emacs` or `~/.emacs.d/init.el`):
       "Move point forward to next marked text area." t)
     (autoload 'wcheck-jump-backward "wcheck-mode"
       "Move point backward to previous marked text area." t)
+    (autoload 'wcheck-jump-repeat-map "wcheck-mode"
+      "Keymap to repeat jump commands." t)
 
 [Elpa]: https://elpa.gnu.org/
 
@@ -124,14 +126,11 @@ It might be convenient to bind Wcheck mode commands to some easily
 accessible keys. The next example uses `C-c w` as a prefix key for
 different Wcheck commands:
 
-    (global-set-key (kbd "C-c w")
-                    (let ((map (make-sparse-keymap)))
-                      (define-key map "w" 'wcheck-mode)
-                      (define-key map "l" 'wcheck-change-language)
-                      (define-key map "a" 'wcheck-actions)
-                      (define-key map "f" 'wcheck-jump-forward)
-                      (define-key map "b" 'wcheck-jump-backward)
-                      map))
+    (keymap-global-set "C-c w" (define-keymap
+                                 "w" 'wcheck-mode
+                                 "l" 'wcheck-change-language
+                                 "a" 'wcheck-actions
+                                 "j" wcheck-jump-repeat-map))
 
 Interactive command `wcheck-mode` toggles the text-checker minor mode
 for the current buffer. Command `wcheck-change-language` is used to

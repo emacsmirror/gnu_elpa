@@ -1775,10 +1775,13 @@ MARKED-TEXT must be a vector such as the one returned by
 (defun wcheck--clean-string (string)
   (if (equal string "")
       "[Empty string]"
-    (setq string (replace-regexp-in-string "[^[:print:]]+" "" string))
-    (if (not (string-match "[^[:space:]]" string))
+    (setq string (replace-regexp-in-string (rx (+ (not (any print))))
+                                           "" string))
+    (if (not (string-match (rx (not space)) string))
         "[Space or control chars]"
-      (replace-regexp-in-string "\\(?:\\` +\\| +\\'\\)" "" string))))
+      (replace-regexp-in-string (rx (| (: string-start (+ " "))
+                                       (: (+ " ") string-end)))
+                                "" string))))
 
 
 (defun wcheck--choose-action-popup (actions event)
@@ -1889,7 +1892,10 @@ return them as a list of strings."
 (defun wcheck-parser-ispell-suggestions (&rest _ignored)
   "Parser for Ispell-compatible programs' spelling suggestions."
   (let ((search-spaces-regexp nil))
-    (when (re-search-forward "^& [^ ]+ \\([0-9]+\\) [0-9]+: \\(.+\\)$" nil t)
+    (when (re-search-forward (rx line-start "& " (+ (not " ")) " "
+                                 (group (+ digit)) " " (+ digit) ": "
+                                 (group (+ any)) line-end)
+                             nil t)
       (let ((count (string-to-number (match-string-no-properties 1)))
             (words (split-string (match-string-no-properties 2) ", " t)))
         (delete-dups (nbutlast words (- (length words) count)))))))

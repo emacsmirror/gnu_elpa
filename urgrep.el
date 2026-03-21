@@ -6,7 +6,7 @@
 ;; URL: https://sr.ht/~jimporter/urgrep/
 ;; Version: 0.6.1-git
 ;; Keywords: grep, search
-;; Package-Requires: ((emacs "28.1") (compat "29.1.0.1") (project "0.3.0"))
+;; Package-Requires: ((emacs "28.1") (compat "29.1.0.1"))
 
 ;; This file is NOT part of GNU Emacs.
 

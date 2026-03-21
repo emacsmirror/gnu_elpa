@@ -547,7 +547,7 @@ Returns STATE.
 This is a helper function for `gnosis-review-session'."
   (let ((success (gnosis-review--display-thema thema)))
     (unless success (gnosis-monkeytype-answer thema))
-    (gnosis-review-actions success thema nil)
+    (gnosis-review-actions success thema)
     ;; Use jump-to-register after first review.
     (when (get-register :gnosis-pre-image)
       (jump-to-register :gnosis-pre-image))
@@ -602,23 +602,22 @@ the changes with a message containing the reviewed number THEMA-NUM."
 
 ;;; Review actions
 
-(defun gnosis-review-action--edit (success thema thema-count)
+(defun gnosis-review-action--edit (success thema)
   "Edit THEMA during review.
 
 Save current contents of *gnosis-edit* buffer, if any, and start
-editing THEMA with it's new contents.
+editing THEMA with its new contents.
 
-After done editing, call `gnosis-review-actions' with SUCCESS THEMA
-THEMA-COUNT."
+After done editing, call `gnosis-review-actions' with SUCCESS THEMA."
   (gnosis-edit-thema thema)
   (setf gnosis-review-editing-p t)
   (recursive-edit)
-  (gnosis-review-actions success thema thema-count))
+  (gnosis-review-actions success thema))
 
 (defun gnosis-review-action--quit (success thema)
   "Quit review session.
 
-Update result for THEMA review with SUCCESS and commit session for THEMA-COUNT.
+Update result for THEMA review with SUCCESS.
 
 This function should be used with `gnosis-review-actions', to finish
 the review session."
@@ -626,38 +625,37 @@ the review session."
   ;; Break the review loop of `gnosis-review-session'
   (throw 'review-loop t))
 
-(defun gnosis-review-action--suspend (success thema thema-count)
+(defun gnosis-review-action--suspend (success thema)
   "Suspend/Unsuspend THEMA.
 
 This function should be used with `gnosis-review-actions', which
-should be recursively called using SUCCESS, THEMA, THEMA-COUNT."
+should be recursively called using SUCCESS and THEMA."
   (gnosis-toggle-suspend-themata (list thema))
-  (gnosis-review-actions success thema thema-count))
+  (gnosis-review-actions success thema))
 
-(defun gnosis-review-action--override (success thema thema-count)
+(defun gnosis-review-action--override (success thema)
   "Override current review result for SUCCESS.
 
 This function should be used with `gnosis-review-actions', which will
-be called with new SUCCESS value plus THEMA & THEMA-COUNT."
+be called with new SUCCESS value plus THEMA."
   (setf success (if success nil t))
   (gnosis-display-next-review thema success)
-  (gnosis-review-actions success thema thema-count))
+  (gnosis-review-actions success thema))
 
-(defun gnosis-review-action--view-link (success thema thema-count)
+(defun gnosis-review-action--view-link (success thema)
   "View linked node(s) for THEMA."
   (if (gnosis-get-linked-nodes thema)
     (progn (gnosis-view-linked-node thema)
 	   (recursive-edit))
     (message (format "No linked nodes for thema: %d" thema))
     (sleep-for 0.5))
-  (gnosis-review-actions success thema thema-count))
+  (gnosis-review-actions success thema))
 
-(defun gnosis-review-actions (success id thema-count)
+(defun gnosis-review-actions (success id)
   "Specify action during review of thema.
 
-SUCCESS: Review result
-ID: Thema ID
-THEMA-COUNT: Total themata reviewed
+SUCCESS: Review result.
+ID: Thema ID.
 
 To customize the keybindings, adjust `gnosis-review-keybindings'."
   (let* ((prompt
@@ -670,11 +668,11 @@ To customize the keybindings, adjust `gnosis-review-keybindings'."
 		  '(?n ?o ?s ?d ?e ?v ?q))))
     (pcase choice
       (?n (gnosis-review-result id success))
-      (?o (gnosis-review-action--override success id thema-count))
-      (?s (gnosis-review-action--suspend success id thema-count))
+      (?o (gnosis-review-action--override success id))
+      (?s (gnosis-review-action--suspend success id))
       (?d (gnosis-delete-thema id))
-      (?e (gnosis-review-action--edit success id thema-count))
-      (?v (gnosis-review-action--view-link success id thema-count))
+      (?e (gnosis-review-action--edit success id))
+      (?v (gnosis-review-action--view-link success id))
       (?q (gnosis-review-action--quit success id)))))
 
 ;;; Monkeytype integration

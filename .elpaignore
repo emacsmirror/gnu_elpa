@@ -1,7 +1,5 @@
-/images
-/test
-/.gitignore
-/.elpaignore
-/Eask
-/Makefile
-/README.org
+images
+test
+.gitignore
+Eask
+Makefile

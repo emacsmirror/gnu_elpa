@@ -736,6 +736,14 @@ previous state on exit."
 	  (gnosis-sqlite-select (gnosis--ensure-db)
 	    "SELECT DISTINCT tag FROM thema_tag")))
 
+(defun gnosis-get-tags-for-ids (ids)
+  "Return unique tags for thema IDS."
+  (when ids
+    (mapcar #'car
+	    (gnosis-sqlite-select-batch (gnosis--ensure-db)
+	      "SELECT DISTINCT tag FROM thema_tag WHERE thema_id IN (%s)"
+	      ids))))
+
 (defun gnosis-collect-tag-thema-ids (tags &optional ids)
   "Collect thema IDS for TAGS."
   (cl-assert (listp tags))
@@ -784,11 +792,12 @@ Return (INCLUDE . EXCLUDE) cons of plain tag lists."
 	     (push (substring entry 1) exclude))))
     (cons (nreverse include) (nreverse exclude))))
 
-(defun gnosis-tags-filter-prompt ()
+(defun gnosis-tags-filter-prompt (&optional tags)
   "Prompt for tag filters using +include / -exclude notation.
+TAGS is an optional list of tag strings; defaults to all unique tags.
 Return (INCLUDE . EXCLUDE) cons of plain tag lists."
   (interactive)
-  (let* ((tags (gnosis-get-tags--unique))
+  (let* ((tags (or tags (gnosis-get-tags--unique)))
 	 (candidates (cl-loop for tag in tags
 			      nconc (list (concat "+" tag)
 					  (concat "-" tag))))
@@ -935,34 +944,19 @@ START is the search starting position, used internally for recursion."
               (gnosis-extract-id-links input (match-end 0)))
       nil)))
 
-(cl-defun gnosis-collect-thema-ids (&key (tags nil) (due nil) (query nil))
-  "Return list of thema ids based on TAGS, DUE, QUERY.
+(cl-defun gnosis-collect-thema-ids (&key tags due query)
+  "Return list of thema IDs filtered by TAGS, DUE, QUERY.
 
-TAGS: boolean value, t to specify tags.
-DUE: boolean value, t to specify due themata.
-QUERY: String value."
-  (cl-assert (and (booleanp due) (booleanp tags)
-		  (or (stringp query) (null query)))
-	     nil "Incorrect value passed to `gnosis-collect-thema-ids'")
-  (cond ((and (null tags) (null due) (null query))
-	 (gnosis-select 'id 'themata nil t))
-	;; All due themata
-	((and (null tags) due)
-	 (gnosis-review-get-due-themata))
-	;; All themata for tags
-	((and tags (null due))
-	 (let ((filter (gnosis-tags-filter-prompt)))
-	   (gnosis-filter-by-tags (car filter) (cdr filter))))
-	;; All due themata for tags
-	((and tags due)
-	 (let* ((filter (gnosis-tags-filter-prompt))
-		(ids (gnosis-filter-by-tags (car filter) (cdr filter))))
-	   (cl-loop for id in ids
-		    when (gnosis-review-is-due-p id)
-		    collect id)))
-	;; Query
-	(query
-	 (gnosis-search-thema query))))
+TAGS: cons (INCLUDE-TAGS . EXCLUDE-TAGS) as returned by
+      `gnosis-tags-filter-prompt', or nil for no tag filtering.
+DUE: non-nil to keep only due themata.
+QUERY: search string."
+  (let ((ids (cond (query (gnosis-search-thema query))
+		   (tags  (gnosis-filter-by-tags (car tags) (cdr tags)))
+		   (t     (gnosis-select 'id 'themata nil t)))))
+    (if due
+	(seq-intersection ids (gnosis-review-get-due-themata))
+      ids)))
 
 
 (defun gnosis-get-themata-by-reviews (max-reviews &optional thema-ids)

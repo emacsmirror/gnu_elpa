@@ -710,8 +710,10 @@ When DUE-P, pass it to the review function."
 			 (gnosis-review--start #'gnosis-review-session
 					       (gnosis-collect-thema-ids :due t) t)))
     ("t" "Due themata of tag(s)" (lambda () (interactive)
-				   (gnosis-review--start #'gnosis-review-session
-							 (gnosis-collect-thema-ids :due t :tags t))))
+				   (let ((due-tags (gnosis-get-tags-for-ids
+						    (gnosis-review-get-due-themata))))
+				     (gnosis-review--start #'gnosis-review-session
+							   (gnosis-collect-thema-ids :due t :tags (gnosis-tags-filter-prompt due-tags))))))
     ("o" "Overdue themata" (lambda () (interactive)
 			     (gnosis-review--start #'gnosis-review-session
 						   (gnosis-review-get-overdue-themata))))
@@ -722,7 +724,7 @@ When DUE-P, pass it to the review function."
 							(gnosis-review-get-overdue-themata)))))
     ("T" "All themata of tag(s)" (lambda () (interactive)
 				   (gnosis-review--start #'gnosis-review-session
-							 (gnosis-collect-thema-ids :tags t))))
+							 (gnosis-collect-thema-ids :tags (gnosis-tags-filter-prompt)))))
     ("n" "Review node" gnosis-review-topic)
     ("q" "Quit" transient-quit-one)]])
 

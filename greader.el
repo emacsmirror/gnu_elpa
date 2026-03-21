@@ -46,7 +46,7 @@
 (require 'view)
 (defvar greader-dict-prefix-map)
 (defvar greader-dict-mode)
-(defvar greader-dict-toggle-filters)
+(defvar greader-dict-filters-mode)
 (declare-function greader-dict--update nil)
 
 (defvar-local greader-timer-flag nil)
@@ -668,7 +668,7 @@ function, point jumps at the last position you called command `greader-read'."
 
 (defun greader-stop ()
   "Stop reading of document.
-If `greader-dict-mode' and/or `greader-dict-toggle-filters' are
+If `greader-dict-mode' and/or `greader-dict-filters-mode' are
 active, the dictionary of pronunciation rules will be updated after
 calling all the hooks."
 
@@ -685,7 +685,7 @@ calling all the hooks."
   (greader-set-greader-keymap)
   (greader-tts-stop)
   (run-hooks 'greader-after-stop-hook)
-  (when (or greader-dict-mode greader-dict-toggle-filters)
+  (when (or greader-dict-mode greader-dict-filters-mode)
     (greader-dict--update)))
 
 (defun greader-debug (arg)

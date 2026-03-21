@@ -103,6 +103,14 @@ Return SENTENCE, eventually modified by the functions."
 (defvar greader-after-read-hook nil
   "Execute code just after reading a sentence.")
 
+(defun greader-ensure-point-visible ()
+  "Scroll the window so that the current point is visible.
+This function is intended to be used in `greader-before-read-hook'."
+  (unless (pos-visible-in-window-p)
+    (recenter)))
+
+(add-hook 'greader-before-read-hook #'greader-ensure-point-visible)
+
 (define-obsolete-variable-alias 'greader-before-finish-hook
   'greader-before-finish-functions
   "2023")

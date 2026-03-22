@@ -1,4 +1,4 @@
-;; -*- mode: lisp-interaction -*-
+;; -*- mode: lisp-interaction ; no-byte-compile: t; no-update-autoloads: t-*-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                      Color name Test for colorful-mode                     ;

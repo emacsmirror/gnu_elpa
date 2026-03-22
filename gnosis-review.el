@@ -69,13 +69,13 @@
   "Return centered header string derived from `gnosis-review--state'."
   (when gnosis-review--state
     (let ((reviewed (gnosis-review-state-reviewed gnosis-review--state))
-	  (remaining (length (gnosis-review-state-remaining gnosis-review--state))))
+	  (total (gnosis-review-state-total gnosis-review--state)))
       (gnosis-center-string
        (format "%s %s %s"
 	       (propertize (number-to-string reviewed)
 			   'face 'font-lock-type-face)
-	       (propertize "|" 'face 'font-lock-comment-face)
-	       (propertize (number-to-string remaining)
+	       (propertize "/" 'face 'font-lock-comment-face)
+	       (propertize (number-to-string total)
 			   'face 'gnosis-face-false))))))
 
 (defun gnosis-review--setup-buffer (themata)

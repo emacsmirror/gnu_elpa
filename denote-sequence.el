@@ -913,15 +913,20 @@ When called from Lisp, SEQUENCE is a string that conforms with
     (call-interactively 'denote)))
 
 (defun denote-sequence--get-current-sequence-or-prompt (prompt-text)
-  "Get the current sequence at point in Dired, from the current denote sequence file buffer, or at point in the denote-sequence-hierarchy buffer, or prompt with PROMPT-TEXT."
+  "Get the current sequence or prompt for it with PROMPT-TEXT.
+Try to get the current sequence from the file at point in Dired, from the
+current Denote sequence file buffer, or at point in the
+buffer produced by the command `denote-sequence-view-hierarchy'.
+
+If those fail, prompt for a file."
   (cond
    ((when-let* (((derived-mode-p 'dired-mode))
                 (file-at-point (dired-get-filename nil t)))
       (denote-sequence-file-p file-at-point)))
    ((and buffer-file-name (denote-sequence-file-p buffer-file-name)))
-   ((eq major-mode 'denote-sequence-hierarchy-mode)
-    (if-let* ((file (get-text-property (point) 'denote-sequence-hierarchy-file)))
-        (denote-sequence-file-p file)))
+   ((derived-mode-p 'denote-sequence-hierarchy-mode)
+    (when-let* ((file (get-text-property (point) 'denote-sequence-hierarchy-file)))
+      (denote-sequence-file-p file)))
    (t
     (denote-retrieve-filename-signature (denote-sequence-file-prompt prompt-text)))))
 

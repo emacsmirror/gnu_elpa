@@ -51,11 +51,48 @@
 			      "Due themata (Without Overdue)"
 			      "All themata of tag(s)"))
 
-(defvar gnosis-review-themata nil
-  "Review themata.")
-
 (defvar gnosis-review-buffer-name "*gnosis*"
   "Review buffer name.")
+
+;;; Review state
+
+(cl-defstruct (gnosis-review-state (:constructor gnosis-review-state-create))
+  "State for a review session."
+  (reviewed 0 :type integer)
+  (total 0 :type integer)
+  (remaining nil :type list))
+
+(defvar-local gnosis-review--state nil
+  "Buffer-local review state for the current session.")
+
+(defun gnosis-review--header-line ()
+  "Return centered header string derived from `gnosis-review--state'."
+  (when gnosis-review--state
+    (let ((reviewed (gnosis-review-state-reviewed gnosis-review--state))
+	  (remaining (length (gnosis-review-state-remaining gnosis-review--state))))
+      (gnosis-center-string
+       (format "%s %s %s"
+	       (propertize (number-to-string reviewed)
+			   'face 'font-lock-type-face)
+	       (propertize "|" 'face 'font-lock-comment-face)
+	       (propertize (number-to-string remaining)
+			   'face 'gnosis-face-false))))))
+
+(defun gnosis-review--setup-buffer (themata)
+  "Create or reset the review buffer for THEMATA.
+Sets `gnosis-mode', initializes state struct, and installs `:eval' header.
+Returns the buffer."
+  (let ((buf (get-buffer-create gnosis-review-buffer-name)))
+    (with-current-buffer buf
+      (unless (eq major-mode 'gnosis-mode)
+	(gnosis-mode))
+      (setq gnosis-review--state
+	    (gnosis-review-state-create
+	     :reviewed 0
+	     :total (length themata)
+	     :remaining (copy-sequence themata)))
+      (setq header-line-format '(:eval (gnosis-review--header-line))))
+    buf))
 
 ;;; Display functions
 
@@ -342,7 +379,8 @@ SUCCESS is a boolean value, t for success, nil for failure."
 (defun gnosis-review-result (id success)
   "Update review thema ID results for SUCCESS."
   (gnosis-review--update id success)
-  (setf gnosis-due-themata-total (length (gnosis-review-get-due-themata))))
+  (when (and gnosis-due-themata-total (> gnosis-due-themata-total 0))
+    (cl-decf gnosis-due-themata-total)))
 
 ;;; Type-specific review
 
@@ -493,61 +531,41 @@ If NEW? is non-nil, increment new themata log by 1."
          (func-name (intern (format "gnosis-review-%s" (downcase type)))))
     (if (fboundp func-name)
         (progn
-	  (unless (eq major-mode 'gnosis-mode)
-	    (pop-to-buffer-same-window (get-buffer-create gnosis-review-buffer-name))
-            (gnosis-mode)
-	    (gnosis-review-update-header 0))
 	  (window-configuration-to-register :gnosis-pre-image)
           (funcall func-name id))
       (error "Malformed thema type: '%s'" type))))
 
-(defun gnosis-review-process-thema (thema &optional thema-count)
-  "Process review for THEMA and update session statistics.
+(defun gnosis-review-process-thema (thema state)
+  "Process review for THEMA and update STATE.
 
-Displays the thema, processes the review result, and updates the
-header.  Returns the incremented THEMA-COUNT after processing.
+Displays the thema, processes the review result, increments the
+reviewed count, and pops from remaining.  Forces header redisplay.
+Returns STATE.
 
 This is a helper function for `gnosis-review-session'."
-  (let ((success (gnosis-review--display-thema thema))
-	(thema-count (or thema-count 0)))
-    (cl-incf thema-count)
+  (let ((success (gnosis-review--display-thema thema)))
     (unless success (gnosis-monkeytype-answer thema))
-    (gnosis-review-actions success thema thema-count)
+    (gnosis-review-actions success thema)
     ;; Use jump-to-register after first review.
-    (and (not (null (get-register :gnosis-pre-image))) (jump-to-register :gnosis-pre-image))
-    (setq gnosis-review-themata (remove thema gnosis-review-themata))
-    (gnosis-review-update-header thema-count (length gnosis-review-themata))
-    thema-count))
+    (when (get-register :gnosis-pre-image)
+      (jump-to-register :gnosis-pre-image))
+    (cl-incf (gnosis-review-state-reviewed state))
+    (setf (gnosis-review-state-remaining state)
+	  (remove thema (gnosis-review-state-remaining state)))
+    (force-mode-line-update)
+    state))
 
-(defun gnosis-review-update-header (reviewed-count &optional remaining-reviews)
-  "Update the review session header with current stats.
 
-REVIEWED-COUNT: Total number of items that have been reviewed in
-current session.
-REMAINING-REVIEWS: Total number of remaining items to be reviewed."
-  (with-current-buffer (get-buffer-create gnosis-review-buffer-name)
-    (let ((remaining-reviews (or remaining-reviews (1+ (length gnosis-review-themata)))))
-      (setq-local header-line-format
-                  (gnosis-center-string
-		   (format "%s %s %s"
-                           (propertize (number-to-string reviewed-count)
-                                       'face 'font-lock-type-face)
-			   (propertize "|" 'face 'font-lock-comment-face)
-                           (propertize (number-to-string remaining-reviews)
-				       'face 'gnosis-face-false)))))))
-
-(defun gnosis-review-session (themata &optional thema-count)
-  "Review THEMATA in a single pass, return updated THEMA-COUNT.
+(defun gnosis-review-session (themata state)
+  "Review THEMATA in a single pass using STATE.
 THEMATA: list of thema IDs.
-THEMA-COUNT: running count from a previous pass (default 0)."
-  (let ((thema-count (or thema-count 0)))
-    (if (null themata)
-        (progn (message "No themata for review.") thema-count)
-      (setf gnosis-review-themata themata)
-      (cl-loop for thema in themata
-               do (setq thema-count
-                        (gnosis-review-process-thema thema thema-count)))
-      thema-count)))
+STATE: a `gnosis-review-state' struct.
+Returns STATE."
+  (if (null themata)
+      (progn (message "No themata for review.") state)
+    (cl-loop for thema in themata
+	     do (gnosis-review-process-thema thema state))
+    state))
 
 (defun gnosis-review-loop (collector)
   "Run review sessions using COLLECTOR, then commit and show dashboard.
@@ -561,17 +579,25 @@ The loop is wrapped in a `review-loop' catch so that
   (setq gnosis-due-themata-total (length (gnosis-review-get-due-themata)))
   (set-register :gnosis-pre-image nil)
   (let* ((fn (if (functionp collector)
-                 collector
-               (let ((ids collector))
-                 (lambda () (prog1 ids (setq ids nil))))))
-         (thema-count 0)
-         (themata (funcall fn)))
+		 collector
+	       (let ((ids collector))
+		 (lambda () (prog1 ids (setq ids nil))))))
+	 (themata (funcall fn))
+	 (buf (gnosis-review--setup-buffer themata))
+	 (state (buffer-local-value 'gnosis-review--state buf)))
+    (pop-to-buffer-same-window buf)
     (catch 'review-loop
       (while themata
-        (setq thema-count (gnosis-review-session themata thema-count))
-        (setq themata (funcall fn))))
+	(gnosis-review-session themata state)
+	(setq themata (funcall fn))
+	(when themata
+	  (message "New %d remaining themata" (length themata))
+	  (setf (gnosis-review-state-remaining state)
+		(copy-sequence themata))
+	  (cl-incf (gnosis-review-state-total state) (length themata))
+	  (force-mode-line-update))))
     (gnosis-dashboard)
-    (gnosis-review-commit thema-count)))
+    (gnosis-review-commit (gnosis-review-state-reviewed state))))
 
 (defun gnosis-review-commit (thema-num)
   "Commit review session on git repository.
@@ -596,23 +622,22 @@ the changes with a message containing the reviewed number THEMA-NUM."
 
 ;;; Review actions
 
-(defun gnosis-review-action--edit (success thema thema-count)
+(defun gnosis-review-action--edit (success thema)
   "Edit THEMA during review.
 
 Save current contents of *gnosis-edit* buffer, if any, and start
-editing THEMA with it's new contents.
+editing THEMA with its new contents.
 
-After done editing, call `gnosis-review-actions' with SUCCESS THEMA
-THEMA-COUNT."
+After done editing, call `gnosis-review-actions' with SUCCESS THEMA."
   (gnosis-edit-thema thema)
   (setf gnosis-review-editing-p t)
   (recursive-edit)
-  (gnosis-review-actions success thema thema-count))
+  (gnosis-review-actions success thema))
 
 (defun gnosis-review-action--quit (success thema)
   "Quit review session.
 
-Update result for THEMA review with SUCCESS and commit session for THEMA-COUNT.
+Update result for THEMA review with SUCCESS.
 
 This function should be used with `gnosis-review-actions', to finish
 the review session."
@@ -620,38 +645,37 @@ the review session."
   ;; Break the review loop of `gnosis-review-loop'
   (throw 'review-loop t))
 
-(defun gnosis-review-action--suspend (success thema thema-count)
+(defun gnosis-review-action--suspend (success thema)
   "Suspend/Unsuspend THEMA.
 
 This function should be used with `gnosis-review-actions', which
-should be recursively called using SUCCESS, THEMA, THEMA-COUNT."
+should be recursively called using SUCCESS and THEMA."
   (gnosis-toggle-suspend-themata (list thema))
-  (gnosis-review-actions success thema thema-count))
+  (gnosis-review-actions success thema))
 
-(defun gnosis-review-action--override (success thema thema-count)
+(defun gnosis-review-action--override (success thema)
   "Override current review result for SUCCESS.
 
 This function should be used with `gnosis-review-actions', which will
-be called with new SUCCESS value plus THEMA & THEMA-COUNT."
+be called with new SUCCESS value plus THEMA."
   (setf success (if success nil t))
   (gnosis-display-next-review thema success)
-  (gnosis-review-actions success thema thema-count))
+  (gnosis-review-actions success thema))
 
-(defun gnosis-review-action--view-link (success thema thema-count)
+(defun gnosis-review-action--view-link (success thema)
   "View linked node(s) for THEMA."
   (if (gnosis-get-linked-nodes thema)
     (progn (gnosis-view-linked-node thema)
 	   (recursive-edit))
     (message (format "No linked nodes for thema: %d" thema))
     (sleep-for 0.5))
-  (gnosis-review-actions success thema thema-count))
+  (gnosis-review-actions success thema))
 
-(defun gnosis-review-actions (success id thema-count)
+(defun gnosis-review-actions (success id)
   "Specify action during review of thema.
 
-SUCCESS: Review result
-ID: Thema ID
-THEMA-COUNT: Total themata reviewed
+SUCCESS: Review result.
+ID: Thema ID.
 
 To customize the keybindings, adjust `gnosis-review-keybindings'."
   (let* ((prompt
@@ -664,11 +688,11 @@ To customize the keybindings, adjust `gnosis-review-keybindings'."
 		  '(?n ?o ?s ?d ?e ?v ?q))))
     (pcase choice
       (?n (gnosis-review-result id success))
-      (?o (gnosis-review-action--override success id thema-count))
-      (?s (gnosis-review-action--suspend success id thema-count))
+      (?o (gnosis-review-action--override success id))
+      (?s (gnosis-review-action--suspend success id))
       (?d (gnosis-delete-thema id))
-      (?e (gnosis-review-action--edit success id thema-count))
-      (?v (gnosis-review-action--view-link success id thema-count))
+      (?e (gnosis-review-action--edit success id))
+      (?v (gnosis-review-action--view-link success id))
       (?q (gnosis-review-action--quit success id)))))
 
 ;;; Monkeytype integration

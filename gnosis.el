@@ -328,10 +328,13 @@ Optional argument FLATTEN, when non-nil, flattens the result."
   (when (gnosis-table-exists-p table)
     (gnosis--drop-table table)))
 
-(defun gnosis--insert-into (table values)
-  "Insert VALUES to TABLE."
+(defun gnosis--insert-into (table values &optional or-ignore)
+  "Insert VALUES to TABLE.
+When OR-IGNORE is non-nil, use INSERT OR IGNORE to silently skip
+rows that violate a UNIQUE constraint."
   (let* ((compiled (gnosis-sqlite--compile-values values))
-	 (sql (format "INSERT INTO %s VALUES %s"
+	 (sql (format "INSERT%s INTO %s VALUES %s"
+		      (if or-ignore " OR IGNORE" "")
 		      (gnosis-sqlite--ident table) (car compiled))))
     (gnosis-sqlite--execute-compiled (gnosis--ensure-db) sql (cdr compiled))))
 

@@ -51,15 +51,16 @@ If nil, journal entries are created as separate files in
   :type 'boolean)
 
 (defcustom gnosis-journal-templates
-  '(("Default" (lambda () (concat "{*} Daily Notes\n\n{*} Goals\n" (gnosis-journal-todos))))
-    ("Empty" (lambda () "")))
+  (list (cons "Default"
+              (lambda () (concat "{*} Daily Notes\n\n{*} Goals\n" (gnosis-journal-todos))))
+        (cons "Empty" (lambda () "")))
   "Templates for journaling.
 Template functions return strings.  Use \"{*}\" as a heading
 placeholder; it will be expanded to org heading stars relative to
 the insertion context.  \"{**}\" adds one extra level, \"{***}\"
 adds two, etc."
-  :type '(repeat (cons (string :tag "Name")
-                       (function :tag "Template Function"))))
+  :type '(alist :key-type (string :tag "Name")
+                :value-type (function :tag "Template Function")))
 
 (defcustom gnosis-journal-todo-files org-agenda-files
   "TODO files used for the journal entries."

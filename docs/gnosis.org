@@ -381,31 +381,34 @@ into the file.  Templates are configured via ~gnosis-nodes-templates~.
 
 *** ~gnosis-nodes-templates~
 
-This variable is a list of =(NAME FUNCTION)= pairs.  Each function takes
-no arguments and returns a string that is inserted into the new file
-after the initial =#+title:= and =#+filetags:= lines.
+This variable is an alist of =(NAME . FUNCTION)= cons cells.  Each
+function takes no arguments and returns a string that is inserted into
+the new file after the initial =#+title:= and =#+filetags:= lines.
 
-The default templates are:
-
-- *Empty*: no content.
-- *Annotated*: sections for Summary, Notes, and References.
-- *Reading*: sections for Key Ideas, Quotes, and Notes, with an optional
-  Author field.
+You can use named functions or inline lambdas.  When using inline
+lambdas, build the list with ~list~ and ~cons~ so the lambdas are
+compiled under lexical-binding (a quoted ='(...)= form leaves lambdas
+as inert data):
 
 #+begin_src emacs-lisp
+;; Using named functions (recommended):
+(defun my/annotated-template ()
+  (concat "{*} Summary\n\n"
+          "{*} Notes\n\n"
+          "{*} References\n"))
+
 (setopt gnosis-nodes-templates
-        '(("Empty" (lambda () ""))
-          ("Annotated" (lambda ()
-                         (concat "{*} Summary\n\n"
-                                 "{*} Notes\n\n"
-                                 "{*} References\n")))
-          ("Reading" (lambda ()
-                       (let ((author (read-string "Author: ")))
-                         (concat "{*} Key Ideas\n\n"
-                                 "{*} Quotes\n\n"
-                                 "{*} Notes\n"
-                                 (unless (string-empty-p author)
-                                   (format "\nAuthor: %s\n" author))))))))
+        '(("Empty" . ignore)
+          ("Annotated" . my/annotated-template)))
+
+;; Using inline lambdas (note `list' / `cons'):
+(setopt gnosis-nodes-templates
+        (list (cons "Empty" (lambda () ""))
+              (cons "Annotated"
+                    (lambda ()
+                      (concat "{*} Summary\n\n"
+                              "{*} Notes\n\n"
+                              "{*} References\n")))))
 #+end_src
 
 *** The ={*}= Heading Marker
@@ -605,11 +608,12 @@ configured via ~gnosis-journal-templates~.
 
 #+begin_src emacs-lisp
 (setopt gnosis-journal-templates
-        '(("Default" (lambda ()
-                       (concat "{*} Daily Notes\n\n"
-                               "{*} Goals\n"
-                               (gnosis-journal-todos))))
-          ("Empty" (lambda () ""))))
+        (list (cons "Default"
+                    (lambda ()
+                      (concat "{*} Daily Notes\n\n"
+                              "{*} Goals\n"
+                              (gnosis-journal-todos))))
+              (cons "Empty" (lambda () ""))))
 #+end_src
 
 The default template calls ~gnosis-journal-todos~, which produces a
@@ -699,11 +703,12 @@ journal entry using ~gnosis-journal-insert~.  It works identically to
   (gnosis-journal-todo-files org-agenda-files)
   (gnosis-journal-todo-keywords org-todo-keywords)
   (gnosis-journal-templates
-   '(("Default" (lambda ()
-                  (concat "{*} Daily Notes\n\n"
-                          "{*} Goals\n"
-                          (gnosis-journal-todos))))
-     ("Empty" (lambda () "")))))
+   (list (cons "Default"
+               (lambda ()
+                 (concat "{*} Daily Notes\n\n"
+                         "{*} Goals\n"
+                         (gnosis-journal-todos))))
+         (cons "Empty" (lambda () "")))))
 #+end_src
 
 * Themata (Spaced Repetition Cards)

@@ -56,25 +56,27 @@ When nil, filenames use just the title (e.g. \"my_title.org\")."
   :type 'boolean)
 
 (defcustom gnosis-nodes-templates
-  '(("Empty" (lambda () ""))
-    ("Annotated" (lambda ()
-		   (concat "{*} Summary\n\n"
-			   "{*} Notes\n\n"
-			   "{*} References\n")))
-    ("Reading" (lambda ()
-		 (let ((author (read-string "Author: ")))
-		   (concat "{*} Key Ideas\n\n"
-			   "{*} Quotes\n\n"
-			   "{*} Notes\n"
-			   (unless (string-empty-p author)
-			     (format "\nAuthor: %s\n" author)))))))
+  (list (cons "Empty" (lambda () ""))
+        (cons "Annotated"
+              (lambda ()
+                (concat "{*} Summary\n\n"
+                        "{*} Notes\n\n"
+                        "{*} References\n")))
+        (cons "Reading"
+              (lambda ()
+                (let ((author (read-string "Author: ")))
+                  (concat "{*} Key Ideas\n\n"
+                          "{*} Quotes\n\n"
+                          "{*} Notes\n"
+                          (unless (string-empty-p author)
+                            (format "\nAuthor: %s\n" author)))))))
   "Templates for nodes.
 Template functions return strings.  Use \"{*}\" as a heading
 placeholder; it will be expanded to org heading stars relative to
 the insertion context.  \"{**}\" adds one extra level, \"{***}\"
 adds two, etc."
-  :type '(repeat (cons (string :tag "Name")
-                       (function :tag "Template Function"))))
+  :type '(alist :key-type (string :tag "Name")
+                :value-type (function :tag "Template Function")))
 
 (defcustom gnosis-nodes-completing-read-func #'org-completing-read
   "Function to use for `completing-read' in node operations."
@@ -338,10 +340,12 @@ The caller expands markers via `gnosis-org-expand-headings'.
          (template (if (= (length templates) 1)
                        (cdar templates)
                      (cdr (assoc
-			   (funcall gnosis-nodes-completing-read-func "Select template:"
+			   (funcall gnosis-nodes-completing-read-func "Select template: "
                                     (mapcar #'car templates))
                            templates)))))
-    (funcall (apply #'append template))))
+    (unless (functionp template)
+      (user-error "Template is not a valid function; check `gnosis-nodes-templates' or `gnosis-journal-templates'"))
+    (funcall template)))
 
 ;;;###autoload
 (defun gnosis-nodes-insert-template ()

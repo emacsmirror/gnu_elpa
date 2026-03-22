@@ -264,6 +264,86 @@ Uses the built-in macOS `say` command. No external installation required.
 (setq greader-mac-rate 180)
 ```
 
+## Audiobook Creation
+
+The `greader-audiobook-buffer` command converts the current buffer into a collection of WAV
+audio files, optionally transcoding them to MP3/M4A/FLAC and bundling them into a ZIP or M4B
+audiobook container.
+
+### Backend support
+
+Audiobook generation uses the **current greader TTS backend** (`greader-current-backend`), so
+the same voice, language, and rate you use for live reading are applied to the audiobook.
+Supported backends:
+
+| Backend | Notes |
+|---|---|
+| eSpeak / eSpeak NG | **Recommended.** Fast, stable, and reliable on any text. |
+| Piper | High-quality neural TTS. Requires `piper.sh` v2 (see below). May be unstable on long or complex texts. |
+| macOS `say` | Native macOS speech; outputs 16-bit PCM WAV. **See stability note below.** |
+| Speech Dispatcher | **Not supported** — `spd-say` cannot write WAV files. |
+
+**eSpeak is the only backend with consistently optimal performance for audiobook
+generation.** AI-based backends (Piper, macOS `say` with neural voices such as Siri) are
+designed for short, interactive utterances and can become unreliable when converting long,
+complex texts such as books:
+
+- They may produce truncated or garbled audio blocks while reporting success (exit code 0).
+  The `greader-audiobook-min-wav-size` check catches the worst cases, but subtle corruption
+  may go undetected.
+- On very long sentences or paragraphs they may **hang indefinitely**. Because block
+  conversion is synchronous, a hung backend freezes Emacs entirely; `greader-audiobook-on-error`
+  cannot intervene. Use `C-g` to interrupt and kill the process manually.
+
+If you want to use a neural voice for an audiobook, consider splitting the source buffer into
+smaller chunks before converting.
+
+### Piper and audiobook generation
+
+The `piper.sh` wrapper script shipped with greader supports an optional second argument: the
+output WAV file path. When present, piper writes to that file instead of playing audio in
+real time. No additional Emacs configuration is required; the model path is read from
+`piper.sh` as usual.
+
+If you maintain a custom copy of `piper.sh` in your `PATH`, update it to the current version
+from the greader repository to enable audiobook support.
+
+### Error handling
+
+AI-based backends can produce silent failures (corrupted or near-empty audio) alongside
+outright crashes. Greader detects both:
+
+- **Non-zero exit code** — the backend process failed; the error buffer (`*espeak-output*`,
+  `*piper-output*`, `*say-output*`, …) will contain details.
+- **WAV too small** — the output file is below `greader-audiobook-min-wav-size` bytes even
+  if the backend reported success; the block is treated as corrupt.
+
+The variable `greader-audiobook-on-error` controls what happens when a block fails:
+
+| Value | Behaviour |
+|---|---|
+| `stop` | Signal an error and abort conversion immediately (default). |
+| `skip` | Log the block number and continue with the next block. |
+| `ask` | Ask interactively whether to skip or abort. |
+
+When blocks are skipped a summary message lists their numbers at the end of conversion.
+
+### Audiobook customization
+
+Use `M-x customize-group RET greader-audiobook RET` for the full list of options. Key
+variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `greader-audiobook-base-directory` | `~/.emacs.d/audiobooks/` | Root directory for generated audiobooks. |
+| `greader-audiobook-block-size` | `"15"` | Block size: a string means minutes, a number means characters. |
+| `greader-audiobook-transcode-wave-files` | `nil` | Transcode WAV blocks via ffmpeg. |
+| `greader-audiobook-transcode-format` | `"mp3"` | Target format for transcoding. |
+| `greader-audiobook-on-error` | `stop` | Error policy: `stop`, `skip`, or `ask`. |
+| `greader-audiobook-min-wav-size` | `1000` | Minimum WAV size in bytes; smaller files are treated as corrupt. |
+| `greader-audiobook-create-m4b` | `nil` | Bundle all blocks into a single M4B audiobook file. |
+| `greader-audiobook-compress` | `t` | Compress the audiobook directory into a ZIP file. |
+
 ## Customization
 
 You can customize Greader by setting variables in your Emacs configuration file. Use `M-x customize-group RET greader RET` to see the available options.

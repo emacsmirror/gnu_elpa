@@ -82,7 +82,7 @@ open an issue" greader-piper-script-url)))
 	nil))))
 
 ;;;###autoload
-(defun greader-piper (command &optional _arg)
+(defun greader-piper (command &optional arg)
   "Entry point for greader-piper.
 If you experiment problems using this back-end, please refer to the
 documentation of `greader-back-ends' variable."
@@ -91,6 +91,12 @@ documentation of `greader-back-ends' variable."
      (greader-piper-find-script))
     ('get-rate
      greader-piper-rate)
+    ('audio-write
+     (let ((text (car arg))
+	   (filename (cadr arg)))
+       (call-process (greader-piper-find-script)
+		     nil "*piper-output*" nil
+		     text filename)))
     (_
      'not-implemented)))
 (put 'greader-piper 'greader-backend-name "greader-piper")

@@ -112,6 +112,15 @@ ARG is applied depending on the command."
      greader-espeak-language)
     ('get-rate
      greader-espeak-rate)
+    ('audio-write
+     (let ((text (car arg))
+	   (filename (cadr arg)))
+       (call-process greader-espeak-executable-name
+		     nil "*espeak-output*" nil
+		     (concat "-s" (number-to-string greader-espeak-rate))
+		     (concat "-v" greader-espeak-language)
+		     (concat "-w" filename)
+		     text)))
     (_
      'not-implemented)))
 (put 'greader-espeak 'greader-backend-name "greader-espeak")

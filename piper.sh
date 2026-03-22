@@ -18,10 +18,11 @@ AUDIO_PLAYER_BIN="aplay"
 AUDIO_PLAYER_OPTS="-r ${SAMPLE_RATE} -f ${AUDIO_FORMAT} -t ${OUTPUT_FORMAT} -"
 
 TTS="${1}"
+OUTPUT_FILE="${2}"
 
 # User input control
 if test "${TTS}" = ""; then
-    echo "Usage: $0 \"Text to synthesize\""
+    echo "Usage: $0 \"Text to synthesize\" [output-file.wav]"
     exit 1
 fi
 
@@ -36,12 +37,18 @@ if ! test -f "${MODEL}"; then
     exit 3
 fi
 
-if ! command -v "${AUDIO_PLAYER_BIN}" > /dev/null 2>&1; then
-    echo "Error: The audio player executable file is not present."
-    exit 4
-fi
-
 # Text-to-speech flow
-echo "${TTS}" | \
-    "${PIPER_BIN}" --model "${MODEL}" --output-${OUTPUT_FORMAT} | \
-    "${AUDIO_PLAYER_BIN}" ${AUDIO_PLAYER_OPTS}
+if test -n "${OUTPUT_FILE}"; then
+    # Write WAV to file (audiobook mode)
+    echo "${TTS}" | \
+        "${PIPER_BIN}" --model "${MODEL}" --output_file "${OUTPUT_FILE}"
+else
+    # Stream to audio player (real-time reading mode)
+    if ! command -v "${AUDIO_PLAYER_BIN}" > /dev/null 2>&1; then
+        echo "Error: The audio player executable file is not present."
+        exit 4
+    fi
+    echo "${TTS}" | \
+        "${PIPER_BIN}" --model "${MODEL}" --output-${OUTPUT_FORMAT} | \
+        "${AUDIO_PLAYER_BIN}" ${AUDIO_PLAYER_OPTS}
+fi

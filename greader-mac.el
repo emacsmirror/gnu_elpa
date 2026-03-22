@@ -86,6 +86,16 @@ COMMAND must be a string suitable for `make-process'."
      nil)
     ('get-rate
      greader-mac-rate)
+    ('audio-write
+     (let ((text (car arg))
+	   (filename (cadr arg)))
+       (apply #'call-process greader-mac-executable-name
+	      nil "*say-output*" nil
+	      `(,@(when greader-mac-voice (list "-v" greader-mac-voice))
+		"-r" ,(number-to-string greader-mac-rate)
+		"-o" ,filename
+		"--data-format=LEI16@22050"
+		,text))))
     (_
      'not-implemented)))
 (put 'greader-mac 'greader-backend-name "greader-mac")

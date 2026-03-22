@@ -1,0 +1,843 @@
+\input texinfo  @c -*-texinfo-*-
+
+@documentencoding UTF-8
+
+@ifnottex
+@paragraphindent 0
+@end ifnottex
+@node Top
+@top Top
+
+@menu
+* Greader::
+@end menu
+
+@node Greader
+@chapter Greader
+Greader is an Emacs package that reads the content of the current buffer
+aloud, keeping the point in sync with the spoken text. It integrates
+with various text-to-speech engines and provides several features to
+enhance the reading experience.
+
+@menu
+* Table of Contents::
+* Main Features::
+* Installation::
+* Basic Usage::
+* Keybindings::
+* Commands::
+* Minor Modes::
+* Backends::
+* Audiobook Creation::
+* Customization::
+* License::
+@end menu
+
+@node Table of Contents
+@section Table of Contents
+@itemize
+@item
+@ref{Main Features,,Main Features}
+@item
+@ref{Installation}
+@item
+@ref{Basic Usage,,Basic Usage}
+@item
+@ref{Keybindings}
+@item
+@ref{Commands}
+@item
+@ref{Minor Modes,,Minor Modes}
+@item
+@ref{Backends}
+@item
+@ref{Customization}
+@item
+@ref{License}
+@end itemize
+
+@node Main Features
+@section Main Features
+@itemize
+@item
+@strong{Text-to-Speech:} Reads any buffer aloud using different
+backends.
+@item
+@strong{Synchronized Reading:} The cursor moves along with the text
+being read.
+@item
+@strong{Multiple Backends:} Supports @code{espeak},
+@code{speech-dispatcher}, @code{piper} and macOS's native speech
+synthesis.
+@item
+@strong{Continuous Mode:} Automatically advances to the next page or
+section in multi-page modes like @code{info-mode} or @code{nov-mode}.
+@item
+@strong{Timer:} Set a timer to read for a specific duration.
+@item
+@strong{On-the-fly Translation:} Translate and read buffers in different
+languages.
+@item
+@strong{Audiobook Creation:} Convert any buffer into an audiobook.
+@item
+@strong{Enriched Text:} Announce links and other clickable elements in
+the buffer.
+@item
+@strong{Custom Pronunciation:} Define custom pronunciation rules using
+dictionaries.
+@item
+@strong{Study Mode:} Repeatedly read a buffer or a region for study
+purposes.
+@item
+@strong{Estimated Reading Time:} Shows the estimated reading time in the
+mode line.
+@end itemize
+
+@node Installation
+@section Installation
+@enumerate 
+@item
+@strong{Install Dependencies:} Greader requires a text-to-speech engine
+to be installed on your system. You can choose one of the following:
+
+@itemize
+@item
+@uref{https://github.com/espeak-ng/espeak-ng,eSpeak NG}
+@item
+@uref{http://devel.freebsoft.org/speechd,Speech Dispatcher}
+@item
+@uref{https://github.com/rhasspy/piper,Piper}
+@end itemize
+
+@item
+@strong{Install Greader:} Clone the repository or add it to your Emacs
+load path.
+
+@verbatim
+(add-to-list 'load-path "/path/to/greader")
+(require 'greader)
+@end verbatim
+
+@end enumerate
+
+@node Basic Usage
+@section Basic Usage
+@enumerate 
+@item
+Start greader mode with @code{M-x greader-mode}.
+@item
+Press @code{C-r <spc>} to start reading. If desired, you can change the
+prefix. See the command @code{greader-set-map-prefix}.
+@item
+Press @code{<spc>} to stop reading.
+@end enumerate
+
+@node Keybindings
+@section Keybindings
+
+@menu
+* General::
+* Navigation::
+@end menu
+
+@node General
+@subsection General
+@multitable @columnfractions 0.33 0.33 0.33 
+@headitem 
+Keybinding
+ @tab Command
+ @tab Description
+@item 
+@code{C-r <spc>}
+ @tab @code{greader-read}
+ @tab Start reading from point.
+@item 
+@code{SPC}
+ @tab @code{greader-stop}
+ @tab Stop reading (only when you are in
+@code{greader-reading-mode', which happens when you call}greader-read').
+@item 
+@code{C-r l}
+ @tab @code{greader-set-language}
+ @tab Set the language for the TTS engine.
+@item 
+@code{C-r b}
+ @tab @code{greader-change-backend}
+ @tab Cycle through available backends.
+@item 
+@code{C-r t}
+ @tab @code{greader-toggle-timer}
+ @tab Toggle the reading timer.
+@item 
+@code{C-r s}
+ @tab @code{greader-toggle-tired-mode}
+ @tab Toggle tired/relax mode.
+@item 
+@code{C-r f}
+ @tab @code{greader-get-attributes}
+ @tab Report text attributes at point.
+@item 
+@code{M-x greader-set-timer}
+ @tab 
+ @tab Set the duration for the timer.
+@end multitable
+
+@node Navigation
+@subsection Navigation
+The following commands work when you are in
+@code{greader-reading-mode', which happens when you call}greader-read'.
+| Keybinding | Command | Description | |---|---|---| | @code{<left>} |
+@code{greader-backward} | Move to the previous sentence. | |
+@code{<right>} | @code{greader-forward} | Move to the next sentence. | |
+@code{p} | @code{greader-toggle-punctuation} | Toggle reading of
+punctuation characters. | | @code{.} | @code{greader-stop-with-timer} |
+Stop reading and reset the timer. | | @code{+} | @code{greader-inc-rate}
+| Increase speech rate by 10 WPM. | | @code{-} | @code{greader-dec-rate}
+| Decrease speech rate by 10 WPM. |
+
+@node Commands
+@section Commands
+
+@menu
+* greader-read::
+@end menu
+
+@node greader-read
+@subsection @code{greader-read}
+The @code{greader-read} command is the core function for starting
+text-to-speech synthesis in Greader. It can be invoked with
+@code{C-r <spc>}.
+
+@itemize
+@item
+@strong{Basic Functionality:} When called, @code{greader-read} starts
+reading the buffer content from the current cursor position, advancing
+sentence by sentence.
+@item
+@strong{Prefix Argument (@code{C-u C-r <spc>}):} Jumps to the last
+reading position and starts reading from there. This can be disabled by
+setting @code{greader-use-prefix} to @code{nil}.
+@item
+@strong{Reading a Region:} If a region is selected, Greader will only
+read the selected text. Note that this uses buffer narrowing, so
+navigation is limited to the selected region. For an alternative, see
+@code{greader-queue-mode}.
+@item
+@strong{Other Features:} @code{greader-read} also integrates with
+``tired mode'' for automatic adjustments and a timer for reading for a
+set duration.
+@end itemize
+
+@node Minor Modes
+@section Minor Modes
+Greader provides several minor modes to extend its functionality:
+
+@menu
+* greader-queue-mode::
+* greader-compile-mode::
+* greader-translate-mode::
+@end menu
+
+@itemize
+@item
+@strong{@code{greader-continuous-mode}:} Automatically turn pages in
+modes like @code{info-mode}.
+
+@itemize
+@item
+This minor mode allows Greader to automatically turn pages in multi-page
+modes. When active, instead of stopping at the end of the buffer,
+Greader will call the appropriate function to display the next page and
+continue reading.
+
+@item
+Greader tries to automatically guess the function to call to turn the
+page. It does this by checking the command bound to the @code{SPC} key.
+This works in many modes, like @code{info-mode}.
+
+@item
+You can customize this behavior for other modes by using the
+@code{greader-continuous-modes} variable. This variable is an alist that
+maps major modes to the function that should be called to turn the page.
+
+@item
+For example, to make @code{greader-continuous-mode} work with
+@code{nov-mode}, you would add the following to your configuration:
+
+@verbatim
+(add-to-list 'greader-continuous-modes '(nov-mode . nov-next-document))
+@end verbatim
+
+@item
+You can also exclude certain major modes from this behavior using the
+@code{greader-continuous-excluded-modes} variable.
+
+@item
+If the page-turning function in a mode is not bound to @code{SPC}, you
+can specify a different key with the @code{greader-continuous-key}
+variable.
+
+@end itemize
+
+@item
+@strong{@code{greader-translate-mode}:} On-the-fly translation of the
+buffer.
+
+@item
+@strong{@code{greader-enriched-mode}:} Announce links and other
+clickable elements.
+
+@item
+@strong{@code{greader-dict-mode}:} Use custom dictionaries for
+pronunciation. @code{greader-dict-mode} allows you to create custom
+pronunciation rules for words or patterns. This is useful for correcting
+mispronunciations by the text-to-speech engine.
+
+@end itemize
+
+@subsection How it Works
+You can define two types of dictionary entries:
+
+@itemize
+@item
+@strong{Word:} A whole-word substitution. For example, if you define a
+``word'' entry for ``Emacs'', it will only replace ``Emacs'' when it
+appears as a standalone word, not in ``EmacsLisp''.
+@item
+@strong{Match:} A literal substring substitution. For example, a
+``match'' entry for ``read'' could apply to ``reading'' and ``reader''.
+Matches can also be regular expressions for more complex patterns.
+@end itemize
+
+@subsection Dictionary Visibility
+Greader supports three levels of dictionary visibility:
+
+@itemize
+@item
+@strong{@code{global}:} The default dictionary, applied everywhere.
+@item
+@strong{@code{mode}:} A dictionary specific to a major mode (e.g., a
+dictionary for @code{org-mode} buffers).
+@item
+@strong{@code{buffer}:} A dictionary that applies only to the current
+buffer.
+@end itemize
+
+You can change the visibility for the current buffer using the
+@code{greader-dict-change-dictionary} command (@code{C-r d c}).
+
+To set a default visibility for a specific mode, you can add a hook to
+your Emacs configuration. For example, to use @code{mode} visibility for
+@code{info-mode}:
+
+@verbatim
+(add-hook 'info-mode-hook
+          (lambda ()
+            (greader-dict-mode 1)
+            (greader-dict--set-file 'mode)))
+@end verbatim
+
+@subsection Usage
+@strong{Enable the mode:} @code{M-x greader-dict-mode}
+
+@multitable @columnfractions 0.33 0.33 0.33 
+@headitem 
+Keybinding
+ @tab Command
+ @tab Description
+@item 
+@code{C-r d a}
+ @tab @code{greader-dict-add-entry}
+ @tab Add entry. No prefix: whole-word; @code{C-u}: substring match;
+active region: proposes region as match.
+@item 
+@code{C-r d k}
+ @tab @code{greader-dict-remove-entry}
+ @tab Remove an entry.
+@item 
+@code{C-r d m}
+ @tab @code{greader-dict-modify-key}
+ @tab Modify an existing entry key.
+@item 
+@code{C-r d c}
+ @tab @code{greader-dict-change-dictionary}
+ @tab Change dictionary visibility (global / mode / buffer).
+@item 
+@code{C-r d l}
+ @tab @code{greader-dict-pronounce-in-other-language}
+ @tab Pronounce a word using a different language.
+@item 
+@code{C-r d s}
+ @tab @code{greader-dict-save}
+ @tab Save the current dictionary to disk immediately.
+@item 
+@code{C-r d i}
+ @tab @code{greader-dict-info}
+ @tab Display information about the current dictionary.
+@end multitable
+
+@subsection Filters
+Filters are an advanced feature that allows you to use arbitrary regular
+expressions for substitutions. They are more powerful than ``word'' or
+``match'' entries but can be less efficient.
+
+@multitable @columnfractions 0.33 0.33 0.33 
+@headitem 
+Keybinding
+ @tab Command
+ @tab Description
+@item 
+@code{M-x greader-dict-filters-mode}
+ @tab 
+ @tab Toggle filter processing on/off (minor mode).
+@item 
+@code{C-r d f a}
+ @tab @code{greader-dict-filter-add}
+ @tab Add a new regex filter.
+@item 
+@code{C-r d f k}
+ @tab @code{greader-dict-filter-remove}
+ @tab Remove a filter.
+@item 
+@code{C-r d f m}
+ @tab @code{greader-dict-filter-modify}
+ @tab Modify an existing filter.
+@end multitable
+
+@itemize
+@item
+@strong{@code{greader-study-mode}:} Repeatedly read a buffer or region.
+
+@item
+@strong{@code{greader-estimated-time-mode}:} Display estimated reading
+time.
+
+@item
+@strong{@code{greader-auto-bookmark-mode}:} Automatically save a
+bookmark when you stop reading.
+
+@end itemize
+
+@node greader-queue-mode
+@subsection @code{greader-queue-mode}
+@code{greader-queue-mode} lets you assemble a playlist of text regions
+within the current buffer and read them in sequence. Useful when you
+want to read only selected parts of a document, or when the region is
+non-contiguous. When @code{greader-queue-mode} is active,
+@code{greader-mode} is temporarily suspended; it is re-enabled
+automatically when you disable @code{greader-queue-mode}.
+
+@strong{Enable:} @code{M-x greader-queue-mode}
+
+@multitable @columnfractions 0.33 0.33 0.33 
+@headitem 
+Keybinding
+ @tab Command
+ @tab Description
+@item 
+@code{C-r RET}
+ @tab @code{greader-queue-add-element}
+ @tab Add the selected region (or current position) to the queue.
+@item 
+@code{C-r SPC}
+ @tab @code{greader-queue-read}
+ @tab Start reading the queue.
+@item 
+@code{C-r <left>}
+ @tab @code{greader-queue-backward}
+ @tab Move to the previous element in the queue.
+@item 
+@code{C-r <right>}
+ @tab @code{greader-queue-forward}
+ @tab Move to the next element in the queue.
+@item 
+@code{C-r .}
+ @tab @code{greader-queue-stop}
+ @tab Stop reading.
+@end multitable
+
+Additional commands available via @code{M-x}:
+@code{greader-queue-remove-element}, @code{greader-queue-reset-queue}.
+
+@node greader-compile-mode
+@subsection @code{greader-compile-mode}
+@code{greader-compile-mode} is for users who want to edit and recompile
+eSpeak-NG voice dictionaries from within Emacs. It is not needed for
+ordinary text-to-speech use.
+
+@strong{Prerequisites:} Set @code{greader-compile-dictsource} to the
+directory containing your eSpeak-NG dictionary source files before
+enabling this mode.
+
+@strong{Enable:} @code{M-x greader-compile-mode}
+
+@multitable @columnfractions 0.33 0.33 0.33 
+@headitem 
+Keybinding
+ @tab Command
+ @tab Description
+@item 
+@code{C-r c}
+ @tab @code{greader-compile-at-point}
+ @tab Add the word at point to the dictionary and recompile. With a
+prefix argument, prompts for the word.
+@end multitable
+
+@code{greader-compile-goto-source} --- Visit the dictionary source file
+currently used by @code{greader-compile-at-point}.
+
+@node greader-translate-mode
+@subsection @code{greader-translate-mode}
+@code{greader-translate-mode} is a minor mode that allows for on-the-fly
+translation of the buffer being read. When this mode is active, each
+sentence is translated before being sent to the text-to-speech engine.
+
+@menu
+* Usage: Usage 2.
+* Configuration::
+* Prerequisites and Implications::
+@end menu
+
+@node Usage 2
+@subsubsection Usage
+@enumerate 
+@item
+Enable the minor mode with @code{M-x greader-translate-mode}.
+@item
+Start reading with @code{greader-read} (@code{C-r <spc>}). The text will
+be translated and read in the destination language.
+@end enumerate
+
+@node Configuration
+@subsubsection Configuration
+For the translation to work, you need to configure a few variables:
+
+@itemize
+@item
+@strong{@code{greader-translate-lang-src}}: Sets the source language of
+the text. This value must be a valid language code (e.g., @code{"en"}
+for English, @code{"fr"} for French).
+
+@verbatim
+(setq greader-translate-lang-src "en")
+@end verbatim
+
+@item
+@strong{Destination Language}: The language to translate to is set via
+the @code{greader-set-language} command (@code{C-r l}), which in turn
+sets the language for the speech synthesis backend.
+
+@item
+@strong{@code{greader-translate-function}}: Allows you to specify the
+function to use for translation. The default setting is
+@code{greader-translate-with-google}, which relies on the
+@code{google-translate} package.
+
+@item
+@strong{@code{greader-translate-timeout}}: Specifies the maximum time in
+seconds to wait for a response from the translation service before
+generating an error. The default value is 30 seconds.
+
+@end itemize
+
+@node Prerequisites and Implications
+@subsubsection Prerequisites and Implications
+@itemize
+@item
+@strong{Dependencies}: This feature requires the installation of the
+@code{google-translate} package and its dependencies.
+@item
+@strong{Internet Connection}: An internet connection is required to
+contact the translation services.
+@item
+@strong{Privacy}: Using @code{greader-translate-with-google} involves
+sending the buffer's text to external services (like Google Translate).
+This may have privacy implications. Users are subject to the terms of
+service and privacy policies of the translation service provider. It is
+recommended to be aware of what data is being sent.
+@end itemize
+
+@node Backends
+@section Backends
+Switch backends with @code{C-r b} (@code{greader-change-backend}) or by
+setting @code{greader-current-backend} in your configuration.
+
+@menu
+* eSpeak / eSpeak NG::
+* Speech Dispatcher::
+* Piper::
+* macOS say::
+@end menu
+
+@node eSpeak / eSpeak NG
+@subsection eSpeak / eSpeak NG
+The default backend on most systems. Install from your distribution or
+from @uref{https://github.com/espeak-ng/espeak-ng,espeak-ng}. No
+additional Emacs configuration is required beyond having
+@code{espeak-ng} on your @code{PATH}.
+
+@node Speech Dispatcher
+@subsection Speech Dispatcher
+Middleware layer that can route to many underlying synthesizers. Greader
+can start the Speech Dispatcher daemon automatically. See
+@uref{http://devel.freebsoft.org/speechd,Speech Dispatcher}.
+
+@node Piper
+@subsection Piper
+Neural TTS backend that produces high-quality, natural-sounding speech.
+Requires two things:
+
+@enumerate 
+@item
+The @code{piper} binary, available from
+@uref{https://github.com/rhasspy/piper,piper} or via your distribution.
+@item
+The @code{piper.sh} wrapper script shipped with greader. The script must
+be executable and accessible on your @code{PATH} or at the path set in
+@code{greader-piper-script-path}.
+@end enumerate
+
+@multitable @columnfractions 0.33 0.33 0.33 
+@headitem 
+Variable
+ @tab Default
+ @tab Description
+@item 
+@code{greader-piper-script-path}
+ @tab @code{piper.sh} in greader directory
+ @tab Full path to the @code{piper.sh} wrapper script.
+@item 
+@code{greader-piper-rate}
+ @tab @code{130}
+ @tab Speech rate in words per minute.
+@end multitable
+
+@verbatim
+(setq greader-piper-script-path "/usr/local/bin/piper.sh")
+(setq greader-piper-rate 150)
+@end verbatim
+
+@node macOS say
+@subsection macOS (@code{say})
+Uses the built-in macOS @code{say} command. No external installation
+required.
+
+@multitable @columnfractions 0.33 0.33 0.33 
+@headitem 
+Variable
+ @tab Default
+ @tab Description
+@item 
+@code{greader-mac-voice}
+ @tab @code{nil}
+ @tab Voice name to use (e.g., @code{"Samantha"}). @code{nil} uses the
+system default.
+@item 
+@code{greader-mac-rate}
+ @tab @code{200}
+ @tab Speech rate in words per minute.
+@end multitable
+
+@verbatim
+(setq greader-mac-voice "Samantha")
+(setq greader-mac-rate 180)
+@end verbatim
+
+@node Audiobook Creation
+@section Audiobook Creation
+The @code{greader-audiobook-buffer} command converts the current buffer
+into a collection of WAV audio files, optionally transcoding them to
+MP3/M4A/FLAC and bundling them into a ZIP or M4B audiobook container.
+
+@menu
+* Backend support::
+* Piper and audiobook generation::
+* Error handling::
+* Audiobook customization::
+@end menu
+
+@node Backend support
+@subsection Backend support
+Audiobook generation uses the @strong{current greader TTS backend}
+(@code{greader-current-backend}), so the same voice, language, and rate
+you use for live reading are applied to the audiobook. Supported
+backends:
+
+@multitable @columnfractions 0.50 0.50 
+@headitem 
+Backend
+ @tab Notes
+@item 
+eSpeak / eSpeak NG
+ @tab @strong{Recommended.} Fast, stable, and reliable on any text.
+@item 
+Piper
+ @tab High-quality neural TTS. Requires @code{piper.sh} v2 (see below).
+May be unstable on long or complex texts.
+@item 
+macOS @code{say}
+ @tab Native macOS speech; outputs 16-bit PCM WAV. @strong{See stability
+note below.}
+@item 
+Speech Dispatcher
+ @tab @strong{Not supported} --- @code{spd-say} cannot write WAV files.
+@end multitable
+
+@strong{eSpeak is the only backend with consistently optimal performance
+for audiobook generation.} AI-based backends (Piper, macOS @code{say}
+with neural voices such as Siri) are designed for short, interactive
+utterances and can become unreliable when converting long, complex texts
+such as books:
+
+@itemize
+@item
+They may produce truncated or garbled audio blocks while reporting
+success (exit code 0). The @code{greader-audiobook-min-wav-size} check
+catches the worst cases, but subtle corruption may go undetected.
+@item
+On very long sentences or paragraphs they may @strong{hang
+indefinitely}. Because block conversion is synchronous, a hung backend
+freezes Emacs entirely; @code{greader-audiobook-on-error} cannot
+intervene. Use @code{C-g} to interrupt and kill the process manually.
+@end itemize
+
+If you want to use a neural voice for an audiobook, consider splitting
+the source buffer into smaller chunks before converting.
+
+@node Piper and audiobook generation
+@subsection Piper and audiobook generation
+The @code{piper.sh} wrapper script shipped with greader supports an
+optional second argument: the output WAV file path. When present, piper
+writes to that file instead of playing audio in real time. No additional
+Emacs configuration is required; the model path is read from
+@code{piper.sh} as usual.
+
+If you maintain a custom copy of @code{piper.sh} in your @code{PATH},
+update it to the current version from the greader repository to enable
+audiobook support.
+
+@node Error handling
+@subsection Error handling
+AI-based backends can produce silent failures (corrupted or near-empty
+audio) alongside outright crashes. Greader detects both:
+
+@itemize
+@item
+@strong{Non-zero exit code} --- the backend process failed; the error
+buffer (@code{*espeak-output*}, @code{*piper-output*},
+@code{*say-output*}, @dots{}) will contain details.
+@item
+@strong{WAV too small} --- the output file is below
+@code{greader-audiobook-min-wav-size} bytes even if the backend reported
+success; the block is treated as corrupt.
+@end itemize
+
+The variable @code{greader-audiobook-on-error} controls what happens
+when a block fails:
+
+@multitable {@code{skip}} {Signal an error and abort conversion immediately (default).} 
+@headitem 
+Value
+ @tab Behaviour
+@item 
+@code{stop}
+ @tab Signal an error and abort conversion immediately (default).
+@item 
+@code{skip}
+ @tab Log the block number and continue with the next block.
+@item 
+@code{ask}
+ @tab Ask interactively whether to skip or abort.
+@end multitable
+
+When blocks are skipped a summary message lists their numbers at the end
+of conversion.
+
+@node Audiobook customization
+@subsection Audiobook customization
+Use @code{M-x customize-group RET greader-audiobook RET} for the full
+list of options. Key variables:
+
+@multitable @columnfractions 0.33 0.33 0.33 
+@headitem 
+Variable
+ @tab Default
+ @tab Description
+@item 
+@code{greader-audiobook-base-directory}
+ @tab @code{~/.emacs.d/audiobooks/}
+ @tab Root directory for generated audiobooks.
+@item 
+@code{greader-audiobook-block-size}
+ @tab @code{"15"}
+ @tab Block size: a string means minutes, a number means characters.
+@item 
+@code{greader-audiobook-transcode-wave-files}
+ @tab @code{nil}
+ @tab Transcode WAV blocks via ffmpeg.
+@item 
+@code{greader-audiobook-transcode-format}
+ @tab @code{"mp3"}
+ @tab Target format for transcoding.
+@item 
+@code{greader-audiobook-on-error}
+ @tab @code{stop}
+ @tab Error policy: @code{stop}, @code{skip}, or @code{ask}.
+@item 
+@code{greader-audiobook-min-wav-size}
+ @tab @code{1000}
+ @tab Minimum WAV size in bytes; smaller files are treated as corrupt.
+@item 
+@code{greader-audiobook-create-m4b}
+ @tab @code{nil}
+ @tab Bundle all blocks into a single M4B audiobook file.
+@item 
+@code{greader-audiobook-compress}
+ @tab @code{t}
+ @tab Compress the audiobook directory into a ZIP file.
+@end multitable
+
+@node Customization
+@section Customization
+You can customize Greader by setting variables in your Emacs
+configuration file. Use @code{M-x customize-group RET greader RET} to
+see the available options.
+
+Some of the customizable variables are:
+
+@itemize
+@item
+@code{greader-backends}: A list of available TTS backends.
+@item
+@code{greader-current-backend}: The default TTS backend to use.
+@item
+@code{greader-timer}: The default duration for the reading timer.
+@item
+@code{greader-auto-tired-mode-time}: The time to automatically enable
+tired mode.
+@item
+@code{greader-soft-timer}: If @code{t} (the default), finishes the
+current sentence before stopping at timer expiration. Set to @code{nil}
+for a hard cutoff.
+@item
+@code{greader-backward-acoustic-feedback}: If @code{t}, plays a brief
+beep when the cursor returns to the previous reading position after
+backward navigation. Default @code{nil}.
+@item
+@code{greader-backward-seconds}: Number of seconds to wait at the
+previous sentence before automatically returning to the reading
+position. Default @code{5}.
+@item
+@code{greader-dict-save-after-time}: Idle time in seconds before the
+dictionary is saved automatically. Default @code{30}. (Requires
+@code{greader-dict-mode}.)
+@end itemize
+
+@node License
+@section License
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+@bye

@@ -68,8 +68,6 @@
 (require 'greader)
 (require 'greader-dict)
 (declare-function greader-dehyphenate nil)
-(declare-function greader-get-rate nil)
-(declare-function greader-get-language nil)
 
 (defgroup greader-audiobook
   nil
@@ -221,7 +219,34 @@ Only the final report will be printed."
   "If enabled, an m4b file will be created.
 Enabling it implies disabling of the variable `greader-audiobook-compress'."
   :type '(boolean))
+
+(defcustom greader-audiobook-on-error 'stop
+  "Action to take when a block conversion fails.
+\\='stop signals an error and aborts conversion immediately (default).
+\\='skip logs the failure and continues with the next block.
+\\='ask prompts the user whether to skip the failed block or abort."
+  :type '(choice (const :tag "Stop conversion" stop)
+		 (const :tag "Skip failed block" skip)
+		 (const :tag "Ask each time" ask))
+  :group 'greader-audiobook)
+
+(defcustom greader-audiobook-min-wav-size 1000
+  "Minimum size in bytes for a valid WAV block.
+If a converted WAV file is smaller than this threshold the block is
+considered empty or corrupt, even if the TTS backend reported success.
+A WAV header alone is 44 bytes; a silent one-second clip at 22050 Hz
+is about 44 KB, so 1000 bytes is a conservative lower bound."
+  :type 'natnum
+  :group 'greader-audiobook)
 ;; functions
+
+(defun greader-audiobook--backend-error-buffer ()
+  "Return the name of the error output buffer for the current TTS backend.
+The name is derived from the backend executable so it matches the buffer
+each backend's `audio-write' handler writes to."
+  (format "*%s-output*"
+	  (file-name-base
+	   (or (greader-call-backend 'executable) "greader-backend"))))
 
 (defun greader-audiobook--percentage ()
   "Return the percentage read of the buffer."
@@ -287,20 +312,13 @@ Return a cons with start and end of the block or nil if at end of the buffer."
 
 (defun greader-audiobook-convert-block (filename)
   "Convert a block of text in the current buffer, saving it in FILENAME.
-If variable `greader-dict-mode' or
-variable `greader-dict-filters-mode' are enabled,
-substitutions will be performed on the block.
+Uses the current greader TTS backend via the `audio-write' command.
+If variable `greader-dict-mode' or variable `greader-dict-filters-mode'
+are enabled, substitutions will be performed on the block.
 After conversion, point will be moved to the end of the block.
 Return the generated file name, or nil if at end of the buffer."
-
-  (let*
-      ((command "espeak-ng")
-       (rate (concat "-s" (number-to-string (greader-get-rate))))
-       (language (concat "-v" (greader-get-language)))
-       (wave-file (concat "-w" filename))
-       (output nil)
-       (block (greader-audiobook--get-block))
-       (text (when block (buffer-substring (car block) (cdr block)))))
+  (let* ((block (greader-audiobook--get-block))
+	 (text (when block (buffer-substring (car block) (cdr block)))))
     (if block
 	(progn
 	  (when greader-audiobook-include-track-name-in-audio
@@ -311,13 +329,20 @@ Return the generated file name, or nil if at end of the buffer."
 	    (setq text (greader-dict-check-and-replace text)))
 	  (when greader-audiobook-pause-at-end-of-track
 	    (setq text (concat text greader-audiobook-pause-string)))
-	  (setq output (call-process command nil "*espeak-output*" nil
-				     rate language
-				     wave-file text))
-	  (if (= output 0)
-	      (goto-char (cdr block))
-	    (error "Espeak has generated an error.  Please see
-      *espeak-output* for more information"))
+	  (let ((result (greader-call-backend 'audio-write (list text filename))))
+	    (when (eq result 'not-implemented)
+	      (error "Current TTS backend does not support audiobook generation; \
+switch to espeak, piper, or mac"))
+	    (unless (= result 0)
+	      (error "TTS backend error (exit code %d); see buffer %s"
+		     result (greader-audiobook--backend-error-buffer)))
+	    (let ((wav-size (file-attribute-size (file-attributes filename))))
+	      (when (or (null wav-size)
+		        (< wav-size greader-audiobook-min-wav-size))
+		(error "Block %s appears empty or corrupt (WAV: %s bytes)"
+		       (file-name-nondirectory filename)
+		       (or wav-size 0)))))
+	  (goto-char (cdr block))
 	  filename)
       nil)))
 
@@ -538,32 +563,49 @@ buffer without the extension, if any."
 	  (unless greader-audiobook-buffer-quietly
 	    (message "Starting conversion of %s ."
 		     book-directory))
-	  (while (greader-audiobook--get-block)
-	    (setq output-file-name
-		  (greader-audiobook--calculate-file-name
-		   output-file-counter total-blocks))
-	    (unless greader-audiobook-buffer-quietly
-	      (message "converting block %d of %d \(%s\)"
-		       output-file-counter
-		       total-blocks (concat
-				     (greader-audiobook--percentage)
-		       "\%")))
-	  (setq output-file-name
-		(greader-audiobook-convert-block output-file-name))
-	  (if output-file-name
-	      (progn
+	  (let ((failed-blocks nil))
+	    (while (greader-audiobook--get-block)
+	      (setq output-file-name
+		    (greader-audiobook--calculate-file-name
+		     output-file-counter total-blocks))
+	      (unless greader-audiobook-buffer-quietly
+		(message "converting block %d of %d (%s%%)"
+			 output-file-counter
+			 total-blocks
+			 (greader-audiobook--percentage)))
+	      (condition-case err
+		  (setq output-file-name
+			(greader-audiobook-convert-block output-file-name))
+		(error
+		 (let ((should-skip
+			(pcase greader-audiobook-on-error
+			  ('stop nil)
+			  ('skip t)
+			  ('ask (yes-or-no-p
+				 (format "Block %d/%d failed: %s.  Skip and continue? "
+					 output-file-counter total-blocks
+					 (error-message-string err)))))))
+		   (if should-skip
+		       (progn
+			 (push output-file-counter failed-blocks)
+			 (goto-char (cdr (greader-audiobook--get-block)))
+			 (setq output-file-name nil))
+		     (signal (car err) (cdr err))))))
+	      (when output-file-name
 		(when greader-audiobook-transcode-wave-files
 		  (unless greader-audiobook-buffer-quietly
 		    (message "Transcoding block to %s..."
 			     greader-audiobook-transcode-format))
-		  (greader-audiobook-transcode-file
-		   output-file-name)
-		  (when
-		      greader-audiobook-cancel-intermediate-wave-files
+		  (greader-audiobook-transcode-file output-file-name)
+		  (when greader-audiobook-cancel-intermediate-wave-files
 		    (delete-file output-file-name)))
 		(setq output-file-counter (+ output-file-counter 1)))
-	    (error "An error has occurred while converting"))
-	  (run-hooks 'greader-audiobook-after-convert-block-hook))
+	      (run-hooks 'greader-audiobook-after-convert-block-hook))
+	    (when failed-blocks
+	      (message "Warning: %d block(s) skipped due to errors: %s"
+		       (length failed-blocks)
+		       (mapconcat #'number-to-string
+				  (nreverse failed-blocks) ", "))))
 	(when greader-audiobook-create-m4b
 	  (unless greader-audiobook-buffer-quietly
 	    (message "Building m4b..."))

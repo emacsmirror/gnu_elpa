@@ -193,7 +193,7 @@ region with the converted ISBN."
 ;;;; Hyphenation
 
 (defcustom isbn-hyphenation-ranges-cache-file
-  (file-name-concat user-emacs-directory ".isbn-hyphenation-ranges.el")
+  (file-name-concat user-emacs-directory ".isbn-hyphenation-ranges")
   "File containing a cache of ISBN hyphenation ranges."
   :type 'file
   :group 'isbn

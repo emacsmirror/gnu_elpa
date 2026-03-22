@@ -23362,7 +23362,7 @@ msgid ""
 "expression, except that the @code{dolist} macro does some of the work you "
 "have to do when writing a @code{while} expression."
 msgstr ""
-"De @code{dolist} expresie doet vrijwel hetzelfde als de @code{while} "
+"De @code{dolist} expressie doet vrijwel hetzelfde als de @code{while} "
 "expressie, behalve dat de @code{dolist} macro wat werk voor je doet wanneer "
 "je een @code{while} expressie schrijft."
 
@@ -23689,7 +23689,7 @@ msgstr ""
 "waarde teruggeeft, hier de @dfn{volgende-stap-expressie} genoemd. Daardoor "
 "zal het aan de nieuwe instantie doorgeven argument (of argumenten) "
 "verschillen van wat aan de vorige instantie was doorgegeven. Dit zorgt dat "
-"de conditionele expresie, de @dfn{doe-opnieuw-test}, na het correcte aantal "
+"de conditionele expressie, de @dfn{doe-opnieuw-test}, na het correcte aantal "
 "herhalingen naar onwaar testen."
 
 #. type: Plain text
@@ -25621,7 +25621,7 @@ msgstr ""
 "in Emacs. De twee functies @code{forward-sentence} en "
 "@code{forward-paragraph} illustreren deze zoekopdrachten goed. Zij "
 "gebruiken reguliere expressies om uit te zoeken waarheen de point te "
-"bewegen. De uitdrukking ``reguliere expresie'' wordt vaak geschreven "
+"bewegen. De uitdrukking ``reguliere expressie'' wordt vaak geschreven "
 "als ``regexp''."
 
 #. type: Plain text
@@ -25662,7 +25662,7 @@ msgstr ""
 "Voordat we naar de code van de functie @code{forward-sentence} "
 "kijken, is het waardevol te overwegen wat het patroon is dat het "
 "einde van een zin moet zijn. Het patroon wordt in de volgende sectie "
-"besproken, daarop volgt een beschrijving van de reguliere expresie "
+"besproken, daarop volgt een beschrijving van de reguliere expressie "
 "zoekfunctie, @code{re-search-forward}. De functie "
 "@code{forward-sentence} wordt in de daaropvolgende sectie besproken. "
 "Tenslotte wordt de functie @code{forward-paragraph} in de laatste "
@@ -25913,12 +25913,16 @@ msgid ""
 "begin with one or other of these characters.\n"
 "\n"
 msgstr ""
+"Het eerste deel van het patroon zijn de drie karakters, een punt, "
+"een vraagteken en een uitroepteken, tussen vierkante haken. Het "
+"patroon met met een van deze karakters beginnen."
+"\n"
 
 #. type: item
 #: emacs-lisp-intro.texi:12069
 #, no-wrap
 msgid "[]\\\"')@}]*"
-msgstr ""
+msgstr "[]\\\"')@}]*"
 
 #. type: table
 #: emacs-lisp-intro.texi:12079
@@ -25935,12 +25939,22 @@ msgid ""
 "more times.\n"
 "\n"
 msgstr ""
+"Het tweede deel van het patroon is de groep van haakjes sluiten en "
+"vraagtekens, die nul of meer keer kunnen verschijnen. Deze mogen op "
+"de punt, vraagteken of uitroepteken volgen. Een backslash, @samp{\\} "
+"gevold door de dubbele aanhalingstekens, @samp{\"}, geven in een "
+"reguliere expressie de klasse string-quote karakters aan. Meestal is "
+"het dubbele aanhalingsteken het enige karakter in deze klasse. Het "
+"sterretje, @samp{*}, geeft aan dat de items in de voorgaande groep "
+"(de groep omgeven door de vierkante haken,@samp{[]}) nul of meer "
+"keer herhaald mag worden."
+"\n"
 
 #. type: item
 #: emacs-lisp-intro.texi:12080
 #, no-wrap
 msgid "\\\\($\\\\|   \\\\|  \\\\)"
-msgstr ""
+msgstr "\\\\($\\\\|   \\\\|  \\\\)"
 
 #. type: table
 #: emacs-lisp-intro.texi:12089
@@ -25956,12 +25970,21 @@ msgid ""
 "indicate what they are.\n"
 "\n"
 msgstr ""
+"Het derde deel van het patroon is een of meer van: of het einde van "
+"een regel, of twee spaties, of een tab. De dubbele backslashes "
+"worden gebruikt om te voorkomen dat Emacs de haakjes en het "
+"vertikale streepje @samp{} onderdeel van het zoekpatroon ziet, met "
+"de haakjes wordt de groep gemarkeerd en de vertikale streepjes geven "
+"aan dat de patronen aan weerzijden van het streepje alternatieven "
+"zijn. Het dollar-teken geeft het einde van een regel aan en zowel de "
+"twee spaties als de tab zijn ingevoegd om zich zelf aan te geven."
+"\n"
 
 #. type: item
 #: emacs-lisp-intro.texi:12090
 #, no-wrap
 msgid "[@key{RET}]*"
-msgstr ""
+msgstr "[@key{RET}]*"
 
 #. type: table
 #: emacs-lisp-intro.texi:12096
@@ -25973,12 +25996,18 @@ msgid ""
 "the pattern, the carriage return is inserted as an actual carriage\n"
 "return between square brackets but here it is shown as @key{RET}.\n"
 msgstr ""
+"Het laatste deel van het patroon tenslotte geeft aan dat het einde \n"
+"van de regel of witte ruimte volgend op een punt, vraagteken of \n"
+"uitroepteken mag, maar hoeft niet, gevold worden door een of meer \n"
+"carriage returns. De carriage return wordt in het patroon patroon \n"
+"ingevoegd als een carriage return tussen vierkante haken, maar wordt \n"
+"hier getoond als @key{RET}.\n"
 
 #. type: section
 #: emacs-lisp-intro.texi:12100
 #, no-wrap
 msgid "The @code{re-search-forward} Function"
-msgstr ""
+msgstr "De functie @code{re-search-forward}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12106
@@ -25986,6 +26015,9 @@ msgid ""
 "The @code{re-search-forward} function is very like the @code{search-forward} "
 "function.  (@xref{search-forward, , The @code{search-forward} Function}.)"
 msgstr ""
+"De functie @code{re-search-forward} lijkt erg op de functie "
+"@code{search-forward}. (@xref{search-forward, , De functie "
+"@code{search-forward}}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12113
@@ -25996,6 +26028,12 @@ msgid ""
 "character in the target.  You may tell @code{re-search-forward} to return "
 "@code{t} for true.  (Moving point is therefore a side effect.)"
 msgstr ""
+"@code{re-search-forward} zoekt naar een reguliere expressie. Wanneer "
+"de zoekopdracht geslaagd is, zet het point onmiddellijk achter het "
+"laatste karakter in het doel. Wanneer de zoekopdracht achterwaarts "
+"is, dan zet het point direct voor het eerste karakter in het doel. "
+"Je kunt @code{re-search-forward} zeggen dat het @code{t} voor waar "
+"moet teruggeven. (Verplaatsen van point is daarom een zij-effect.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12116
@@ -26003,6 +26041,8 @@ msgid ""
 "Like @code{search-forward}, the @code{re-search-forward} function takes four "
 "arguments:"
 msgstr ""
+"Net als @code{search-forward} heeft de functie "
+"@code{re-search-forward} vier argumenten."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:12121
@@ -26010,6 +26050,8 @@ msgid ""
 "The first argument is the regular expression that the function searches "
 "for.  The regular expression will be a string between quotation marks."
 msgstr ""
+"Het eerste argument is de reguliere expressie waar de functie naar "
+"zoekt. De reguliere expressie is een string tussen aanhalingstekens."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:12125
@@ -26017,6 +26059,9 @@ msgid ""
 "The optional second argument limits how far the function will search; it is "
 "a bound, which is specified as a position in the buffer."
 msgstr ""
+"Het optionele tweede argument begrenst tot hoever de functie zoekt, "
+"het is een grens, die gespecificeerd wordt als een positie in het "
+"buffer."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:12132
@@ -26026,6 +26071,11 @@ msgid ""
 "print a message) when the search fails; any other value causes it to return "
 "@code{nil} if the search fails and @code{t} if the search succeeds."
 msgstr ""
+"Het optionele derde argument specificeert hoe de functie reageert op "
+"falen: @code{nil} als derde argument laat de functie een fout "
+"signaleren (en een boodschap tonen) wanneer de zoekopdracht faalt, "
+"een andere waarde zorgt dat die @code{nil} teruggeeft wanneer de "
+"zoekopdracht faalt en @code{t} wanneer de zoekopdracht slaagt."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:12136
@@ -26033,11 +26083,13 @@ msgid ""
 "The optional fourth argument is the repeat count.  A negative repeat count "
 "causes @code{re-search-forward} to search backwards."
 msgstr ""
+"Het optionele vierde argument is de aantal-herhalingen. Een negatieve "
+"aantal-herhalingen laat @code{re-search-forward} achterwaarts zoeken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12140
 msgid "The template for @code{re-search-forward} looks like this:"
-msgstr ""
+msgstr "Het slabloon voor @code{re-search-forward} ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:12147
@@ -26048,6 +26100,10 @@ msgid ""
 "                @var{what-to-do-if-search-fails}\n"
 "                @var{repeat-count})\n"
 msgstr ""
+"(re-search-forward \"@var{reguliere-expressie}\"\n"
+"                @var{zoeklimiet}\n"
+"                @var{wat-te-doen-wanneer-zoeken-faalt}\n"
+"                @var{aantal-herhalingen})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12155
@@ -26057,6 +26113,11 @@ msgid ""
 "pass a value to all the preceding arguments.  Otherwise, the Lisp "
 "interpreter will mistake which argument you are passing the value to."
 msgstr ""
+"Het tweede, derde en vierde argument zijn optioneel. Als je echter "
+"een waarde naar een of beide van de laatste twee argumenten wilt "
+"doorgeven, moet je ook een waarde aan alle voorgaande argumenten "
+"doorgeven. Anders weet de Lisp interpreter niet aan welk argument je "
+"een waarde doorgeeft."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12159
@@ -26064,6 +26125,8 @@ msgid ""
 "In the @code{forward-sentence} function, the regular expression will be the "
 "value of the variable @code{sentence-end}.  In simple form, that is:"
 msgstr ""
+"In de functie @code{forward-sentence} is de reguliere expressie de waarde "
+"van de variabele @code{sentence-end}. In een simpele vorm is die:"
 
 #. type: group
 #: emacs-lisp-intro.texi:12164
@@ -26072,6 +26135,8 @@ msgid ""
 "\"[.?!][]\\\"')@}]*\\\\($\\\\|  \\\\|  \\\\)[\n"
 "]*\"\n"
 msgstr ""
+"\"[.?!][]\\\"')@}]*\\\\($\\\\|  \\\\|  \\\\)[\n"
+"]*\"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12172
@@ -26081,6 +26146,11 @@ msgid ""
 "return @code{nil}; and the repeat count will be provided by the argument to "
 "the @code{forward-sentence} function."
 msgstr ""
+"De limiet van de zoekopdracht is het einde van de paragraaf (omdat "
+"een zin niet voorbij een paragraaf kan gaan). Wanneer de "
+"zoekopdracht faalt, geeft de functie @code{nil} terug en het aantal "
+"herhalingen wordt gegeven door het argument van de functie "
+"@code{forward-sentence}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12183
@@ -26092,6 +26162,13 @@ msgid ""
 "optionally, over more than one sentence.  The function is usually bound to "
 "the key command @kbd{M-e}."
 msgstr ""
+"Het commando om de cursor een zin vooruit te verplaatsen is een "
+"eenvoudig voorbeeld van hoe zoekopdrachten met reguliere expressies "
+"in Emacs Lisp te gebruiken. De functie ziet er langer en "
+"ingewikkelder uit dan die is, dit is omdat de functie gemaakt is om "
+"zowel achterwaarts als voorwaarts te gaan en, optioneel, meer dan "
+"één zin. De functie is over het algemeen gebonden aan het "
+"toetscommando @kbd{M-e}."
 
 #. type: node
 #: emacs-lisp-intro.texi:12191
@@ -26103,12 +26180,12 @@ msgstr "Complete forward-sentence"
 #: emacs-lisp-intro.texi:12192
 #, no-wrap
 msgid "Complete @code{forward-sentence} function definition"
-msgstr ""
+msgstr "Complete @code{forward-sentence} functiedefinitie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12197
 msgid "Here is the code for @code{forward-sentence}:"
-msgstr ""
+msgstr "Hier is de code van @code{forward-sentence}:"
 
 #. type: group
 #: emacs-lisp-intro.texi:12204
@@ -26119,7 +26196,10 @@ msgid ""
 "With negative argument, move backward repeatedly to start of sentence.\n"
 "\n"
 msgstr ""
-
+"(defun forward-sentence (&optional arg)\n"
+"  \"Move forward to next end of sentence.  With argument, repeat.\n"
+"With negative argument, move backward repeatedly to start of sentence.\n"
+"\n"
 #. type: group
 #: emacs-lisp-intro.texi:12207
 #, no-wrap
@@ -26127,6 +26207,8 @@ msgid ""
 "The variable `sentence-end' is a regular expression that matches ends of\n"
 "sentences.  Also, every paragraph boundary terminates sentences as well.\"\n"
 msgstr ""
+"The variable `sentence-end' is a regular expression that matches ends of\n"
+"sentences.  Also, every paragraph boundary terminates sentences as well.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:12222
@@ -26146,6 +26228,19 @@ msgid ""
 "         (goto-char par-beg)))\n"
 "      (setq arg (1+ arg)))\n"
 msgstr ""
+"  (interactive \"p\")\n"
+"  (or arg (setq arg 1))\n"
+"  (let ((opoint (point))\n"
+"        (sentence-end (sentence-end)))\n"
+"    (while (< arg 0)\n"
+"      (let ((pos (point))\n"
+"            (par-beg (save-excursion (start-of-paragraph-text) (point))))\n"
+"       (if (and (re-search-backward sentence-end par-beg t)\n"
+"                (or (< (match-end 0) pos)\n"
+"                    (re-search-backward sentence-end par-beg t)))\n"
+"           (goto-char (match-end 0))\n"
+"         (goto-char par-beg)))\n"
+"      (setq arg (1+ arg)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:12231
@@ -26159,6 +26254,13 @@ msgid ""
 "      (setq arg (1- arg)))\n"
 "    (constrain-to-field nil opoint t)))\n"
 msgstr ""
+"    (while (> arg 0)\n"
+"      (let ((par-end (save-excursion (end-of-paragraph-text) (point))))\n"
+"       (if (re-search-forward sentence-end par-end t)\n"
+"           (skip-chars-backward \" \\t\\n\")\n"
+"         (goto-char par-end)))\n"
+"      (setq arg (1- arg)))\n"
+"    (constrain-to-field nil opoint t)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:12244
@@ -26171,6 +26273,12 @@ msgid ""
 "treated as a regular expression.  Also, every paragraph boundary\n"
 "terminates sentences as well.\"\n"
 msgstr ""
+"(defun forward-sentence (&optional arg)\n"
+"  \"Move forward to next sentence-end.  With argument, repeat.\n"
+"With negative argument, move backward repeatedly to sentence-beginning.\n"
+"Sentence ends are identified by the value of sentence-end\n"
+"treated as a regular expression.  Also, every paragraph boundary\n"
+"terminates sentences as well.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:12263
@@ -26202,6 +26310,10 @@ msgid ""
 "skeleton first, and then its muscle.  The way to see the skeleton is to look "
 "at the expressions that start in the left-most columns:"
 msgstr ""
+"De functie ziet er op het eerste gezicht lang uit en het is het "
+"beste om eerst naar zijn geraamte te kijken, en daarna naar zijn "
+"spieren. De manier om het geraamte te zien is te kijken naar de "
+"expressies die aan de meest linkse kant beginnen:"
 
 #. type: group
 #: emacs-lisp-intro.texi:12286
@@ -26221,6 +26333,19 @@ msgid ""
 "       @var{rest-of-body-of-while-loop-when-going-forwards}\n"
 "    @var{handle-forms-and-equivalent}\n"
 msgstr ""
+"(defun forward-sentence (&optional arg)\n"
+"  \"@var{documentatie}@dots{}\"\n"
+"  (interactive \"p\")\n"
+"  (or arg (setq arg 1))\n"
+"  (let ((opoint (point)) (sentence-end (sentence-end)))\n"
+"    (while (< arg 0)\n"
+"      (let ((pos (point))\n"
+"            (par-beg (save-excursion (start-of-paragraph-text) (point))))\n"
+"       @var{rest-van-de-body-van-de-while-loop-bij-achterwaarts-bewegen}\n"
+"    (while (> arg 0)\n"
+"      (let ((par-end (save-excursion (end-of-paragraph-text) (point))))\n"
+"       @var{rest-van-de-body-van-de-while-loop-bij-voorwaarts-bewegen}\n"
+"    @var{hanteer-vormen-en-equivalenten}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12292
@@ -26229,16 +26354,19 @@ msgid ""
 "an @code{interactive} expression, an @code{or} expression, a @code{let} "
 "expression, and @code{while} loops."
 msgstr ""
+"Dit ziet er veel eenvoudiger uit! De functiedefinitie bestaat uit "
+"documentatie, een @code{interactive} expressie, een @code{or} "
+"expressie, een @code{let} expressie en een @code{while} loop."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12294
 msgid "Let's look at each of these parts in turn."
-msgstr ""
+msgstr "Laten we elk van de delen beurtelings bekijken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12296
 msgid "We note that the documentation is thorough and understandable."
-msgstr ""
+msgstr "We merken op dat de documentatie grondig en begrijpelijk is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12302
@@ -26248,6 +26376,11 @@ msgid ""
 "argument.  (This will be a number.)  If the function is not passed an "
 "argument (it is optional) then the argument @code{arg} will be bound to 1."
 msgstr ""
+"De functie heeft een @code{interactive \"p\"} declaratie. Dit "
+"betekent dat het verwerkte prefix argument, als die er is, doorgegeven "
+"wordt aan de functie als een argument. (Dit is een getal.) Wanneer "
+"de functie geen argument krijgt doorgegeven (dit is optioneel) dan "
+"wordt het argument @code{arg} gebonden aan 1."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12309
@@ -26258,6 +26391,12 @@ msgid ""
 "is, but only if @code{arg} is bound to a value; or it sets the value of "
 "@code{arg} to 1, in the case when @code{arg} is bound to @code{nil}."
 msgstr ""
+"Wanneer @code{forward-sentence} non-interactief zonder argument "
+"wordt aangeroepen, wordt @code{arg} gebonden aan @code{nil}. De "
+"@code{or} expressie handelt dit af. Wat die doet is óf de waarde van "
+"@code{arg} laten zoals die is, maar alleen als @code{arg} aan een "
+"waarde gebonden is, óf het zet de waarde van @code{arg} op 1, in het "
+"geval dat @code{arg} gebonden is aan @code{nil}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12316
@@ -26268,12 +26407,18 @@ msgid ""
 "handles forms and equivalents.  The @code{sentence-end} variable is set by "
 "the @code{sentence-end} function."
 msgstr ""
+"Hierna komt een @code{let}. Die specificeert de waarden van twee "
+"lokale variabelen, @code{opoint} en @code{sentence-end}. De lokale "
+"waarde van point, van voor de zoekopdracht, wordt gebruikt in de "
+"functie @code{constrain-to-field}, die vormen en equivalenten "
+"afhandelt. De variabele @code{sentence-end} wordt gezet door de "
+"functie @code{sentence-end}."
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:12318
 #, no-wrap
 msgid "The @code{while} loops"
-msgstr ""
+msgstr "De @code{while} loops"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12327
@@ -26285,6 +26430,13 @@ msgid ""
 "the same.  We will skip this @code{while} loop and concentrate on the second "
 "@code{while} loop."
 msgstr ""
+"Hierna volgen twee @code{while} loops. De eerste @code{while} heeft "
+"een waar-of-onwaar-test dat waar test als het prefix argument voor "
+"@code{forward-sentence} een negatief getal is. Dat is om "
+"achterwaarts te gaan. De body van deze loop vergelijkbaar met de "
+"body van de tweede @code{while} clausule, maar is niet exact "
+"hetzelfde. We slaan deze @code{while} loop over en concentreren ons "
+"de tweede @code{while} loop."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12331
@@ -26292,6 +26444,8 @@ msgid ""
 "The second @code{while} loop is for moving point forward.  Its skeleton "
 "looks like this:"
 msgstr ""
+"De tweede @code{while} loop is voor het voorwaarts verplaatsen van "
+"point. Het geraamte ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:12340
@@ -26304,6 +26458,12 @@ msgid ""
 "      @var{else-part}\n"
 "  (setq arg (1- arg))))     ; @code{while} @r{loop decrementer}\n"
 msgstr ""
+"(while (> arg 0)            ; @r{waar-of-onwaar-test}\n"
+"  (let @var{varlist}\n"
+"    (if (@var{waar-of-onwaar-test})\n"
+"        @var{dan-deel}\n"
+"      @var{anders-deel}\n"
+"  (setq arg (1- arg))))     ; @code{while} @r{loop decrementer}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12349
@@ -26314,6 +26474,12 @@ msgid ""
 "@code{arg}) is greater than zero; and it has a decrementer that subtracts 1 "
 "from the value of the counter every time the loop repeats."
 msgstr ""
+"De @code{while} loop is van het aflopende type. (@xref{Decrementele "
+"loop, , Loop met een decrementele teller}.) Het heeft een "
+"waar-of-onwaar-test die waar test zolang de teller (in dit geval, "
+"de variabele @code{arg}) groter is dan nul. En het heeft een "
+"decrementer die elke keer als de loop herhaalt 1 aftrekt van de "
+"waarde van de teller."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12353
@@ -26322,6 +26488,10 @@ msgid ""
 "common way the command is used, this @code{while} loop will run once, since "
 "the value of @code{arg} will be 1."
 msgstr ""
+"Wanneer geen prefix argument aan @code{forward-sentence} wordt "
+"doorgegeven, wat de meest voorkomende manier is om dit commando te "
+"gebruiken, de @code{while} loop draait maar een keer, omdat de "
+"waarde van @code{arg} dan 1 is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12357
@@ -26330,11 +26500,15 @@ msgid ""
 "creates and binds a local variable, and has, as its body, an @code{if} "
 "expression."
 msgstr ""
+"De body van de @code{while} loop bestaat uit een @code{let} "
+"expressie, die de lokale variabele creëert en bindt, en als body een "
+"@code{if} expressie heeft."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12360
 msgid "The body of the @code{while} loop looks like this:"
 msgstr ""
+"De body van de @code{while} loop ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:12368
@@ -26346,6 +26520,11 @@ msgid ""
 "      (skip-chars-backward \" \\t\\n\")\n"
 "    (goto-char par-end)))\n"
 msgstr ""
+"(let ((par-end\n"
+"       (save-excursion (end-of-paragraph-text) (point))))\n"
+"  (if (re-search-forward sentence-end par-end t)\n"
+"      (skip-chars-backward \" \\t\\n\")\n"
+"    (goto-char par-end)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12376
@@ -26356,6 +26535,11 @@ msgid ""
 "proper sentence ending in the paragraph, it will stop on reaching the end of "
 "the paragraph."
 msgstr ""
+"De @code{let} expressie creëert en bindt de lokale variabele @code{par-end}. "
+"Zoals we zullen zien is deze lokale variabele gemaakt om een grens of limiet "
+"aan de reguliere zoekopdracht te geven. Wanneer de zoekopdracht faalt in het "
+"vinden van een einde van een zin de in de paragraaf, stopt het bij het "
+"bereiken van het einde van de paragraaf."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12381
@@ -26365,12 +26549,16 @@ msgid ""
 "@code{par-end} to the value returned when the Lisp interpreter evaluates the "
 "expression"
 msgstr ""
+"Maar laten wij eerst onderzoeken hoe @code{par-end} wordt gebonden "
+"aan de waarde van het einde van de paragraaf. Wat gebeurt is dat de "
+"@code{let} de waarde van @code{par-end} zet op de waarde die de Lisp "
+"interpreter teruggeeft wanneer die de expressie evalueert. "
 
 #. type: group
 #: emacs-lisp-intro.texi:12385
 #, no-wrap
 msgid "(save-excursion (end-of-paragraph-text) (point))\n"
-msgstr ""
+msgstr "(save-excursion (end-of-paragraph-text) (point))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12396
@@ -26383,6 +26571,14 @@ msgid ""
 "(The @code{end-of-paragraph-text} function uses @code{forward-paragraph}, "
 "which we will discuss shortly.)"
 msgstr ""
+"In deze expressie verplaatst @code{(end-of-paragraph-text)} point "
+"naar het einde van de paragraaf, @code{(point)} geeft de waarde van "
+"point terug en vervolgens herstelt @code{save-excursion} point naar "
+"zijn oorspronkelijke positie. Dus bindt de @code{let} expressie "
+"@code{par-end} aan de waarde die de @code{save-excursion} "
+"teruggeeft. wat de positie is van het einde van de paragraaf. (De "
+"functie @code{end-of-paragraph-text} gebruikt "
+"@code{forward-paragraph}, die we straks bespreken.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12400
@@ -26390,6 +26586,8 @@ msgid ""
 "Emacs next evaluates the body of the @code{let}, which is an @code{if} "
 "expression that looks like this:"
 msgstr ""
+"Vervolgens evalueert Emacs de body van de @code{let}, wat een @code{if} "
+"expressie is, die er zo uit ziet:"
 
 #. type: group
 #: emacs-lisp-intro.texi:12406
@@ -26399,6 +26597,9 @@ msgid ""
 "    (skip-chars-backward \" \\t\\n\")              ; @r{then-part}\n"
 "  (goto-char par-end)))                        ; @r{else-part}\n"
 msgstr ""
+"(if (re-search-forward sentence-end par-end t) ; @r{if-deel}\n"
+"    (skip-chars-backward \" \\t\\n\")              ; @r{dan-deel}\n"
+"  (goto-char par-end)))                        ; @r{anders-deel}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12413
@@ -26408,6 +26609,10 @@ msgid ""
 "part.  The true-or-false-test of the @code{if} expression is the regular "
 "expression search."
 msgstr ""
+"De @code{if} test of het eerste argument waar is en zo ja, evalueert "
+"het dan-deel, anders evalueert de Emacs Lisp interpreter het "
+"anders-deel. De waar-of-onwaar-test van de @code{if} expressie is de "
+"reguliere expressie zoekopdracht."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12417
@@ -26416,12 +26621,16 @@ msgid ""
 "sentence} function buried here, but this is a common way this kind of "
 "operation is carried out in Lisp."
 msgstr ""
+"Het mag vreemd lijken om wat er uit ziet als het echte werk van de "
+"functie @code{forward-sentence} hier ingegraven is, maar dat is de "
+"gebruikelijke manier waarop dit soort operaties in Lisp worden "
+"uitgevoerd."
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:12419
 #, no-wrap
 msgid "The regular expression search"
-msgstr ""
+msgstr "De reguliere expressie zoekopdracht"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12425
@@ -26431,6 +26640,9 @@ msgid ""
 "expression.  If the pattern is found---if the end of the sentence is found---"
 "then the @code{re-search-forward} function does two things:"
 msgstr ""
+"De functie @code{re-search-forward} zoekt naar het einde van de zin, "
+"dat wil zeggen, naar het patroon dat is gedefinieerd met de "
+"reguliere expressie @code{sentence-end}."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:12430
@@ -26438,6 +26650,8 @@ msgid ""
 "The @code{re-search-forward} function carries out a side effect, which is to "
 "move point to the end of the occurrence found."
 msgstr ""
+"De functie @code{re-search-forward} voert een zij-effect uit, dat is "
+"het verplaatsen van point naar eind van de gevonden zin."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:12435
@@ -26445,6 +26659,9 @@ msgid ""
 "The @code{re-search-forward} function returns a value of true.  This is the "
 "value received by the @code{if}, and means that the search was successful."
 msgstr ""
+"De functie @code{re-search-forward} geeft een waarde waar terug. Dit "
+"is de waarde die de @code{if} ontvangt, en betekent dat de "
+"zoekopdracht succesvol was."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12441
@@ -26453,6 +26670,9 @@ msgid ""
 "function is handed the value returned by the successful conclusion of the "
 "search."
 msgstr ""
+"Het zij-effect, de verplaatsing van point, is afgerond voordat de "
+"@code{if} de waarde krijgt overhandigd die teruggegeven is door de "
+"succesvolle afronding van de zoekopdracht."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12451
@@ -26466,6 +26686,15 @@ msgid ""
 "that marks the end of the sentence, this action leaves point right after the "
 "closing printed character of the sentence, which is usually a period."
 msgstr ""
+"Wanneer de @code{if} functie de waarde waar ontvangt van een "
+"succesvolle aanroep van @code{re-search-forward} evalueert de "
+"@code{if} het dan-deel, dit is de expressie "
+"@code{(skip-chars-backward \" \\t\\n\")}. Deze expressie beweegt "
+"achterwaarts over spaties, tabs of carriage returns totdat een "
+"karakter gevonden is en zet dan point achter dat karakter. Omdat "
+"point al verplaatst was naar het eind van het patroon dat het einde "
+"van een zin markeert, zet deze actie point direct achter het "
+"afsluitende karakter van de zin, wat meestal een punt is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12457
@@ -26475,6 +26704,11 @@ msgid ""
 "false then causes the @code{if} to evaluate its third argument, which is "
 "@code{(goto-char par-end)}: it moves point to the end of the paragraph."
 msgstr ""
+"Anderzijds, wanneer de functie @code{re-search-forward} faalt in het "
+"vinden van het patroon dat het einde van een zin markeert, geeft de "
+"functie onwaar terug. Deze onwaar zorgt dat de @code{if} het derde "
+"argument evalueert, dit is @code{(goto-char par-end)}: het "
+"verplaatst point naar het einde van de paragraaf."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12460
@@ -26482,6 +26716,9 @@ msgid ""
 "(And if the text is in a form or equivalent, and point may not move fully, "
 "then the @code{constrain-to-field} function comes into play.)"
 msgstr ""
+"(En wanneer de tekst een vorm of equivalent is en point kan niet "
+"volledig bewegen, dan komt de functie @code{constrain-to-field} in "
+"het spel.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12465
@@ -26491,6 +26728,10 @@ msgid ""
 "an @code{if} expression, is handy.  You will see or write code incorporating "
 "this pattern often."
 msgstr ""
+"Reguliere expressie zoekopdrachten zijn uiterst nuttig en het "
+"patroon geïllustreerd met @code{re-search-forward} waarin de "
+"zoekopdrachten de test is van een @code{if} expressie is handig. Je "
+"ziet of schrijft vaak code dat die patroon incorporeert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12619
@@ -26500,6 +26741,10 @@ msgid ""
 "functions that are important in themselves, including @code{let*}, "
 "@code{match-beginning}, and @code{looking-at}."
 msgstr ""
+"De functie @code{forward-paragraph} verplaatst point naar het einde "
+"van de paragraaf. Die is meestal gebonden aan @kbd{M-@}} en maakt "
+"gebruik van een aantal functies die op zichzelf belangrijk zijn, "
+"waaronder @code{let*}, @code{match-beginning} en @code{looking-at}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12624
@@ -26508,6 +26753,10 @@ msgid ""
 "than the function definition for @code{forward-sentence} because it works "
 "with a paragraph, each line of which may begin with a fill prefix."
 msgstr ""
+"De functiedefinitie van @code{forward-paragraph} is aanzienlijk "
+"langer dan de functiedefinitie van @code{forward-sentence} omdat "
+"het met een paragraaf werkt, waarvan elke regel met een "
+"opvul-prefix kan beginnen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12632
@@ -26519,6 +26768,13 @@ msgid ""
 "paragraph.  (@xref{Fill Prefix, , , emacs, The GNU Emacs Manual}, for more "
 "information about fill prefixes.)"
 msgstr ""
+"Een opvul-prefix bestaat uit een string van karakters die herhaald "
+"wordt aan het begin van elke regel. Bijvoorbeeld in Lisp code is het "
+"een conventie om elke regel van een paragraaf-lang commentaar te "
+"beginnen met @samp{;;; }. In Text-mode bestaat een ander "
+"gebruikelijke opvul-prefix uit vier spaties, om een ingesprongen "
+"paragraaf te maken. (@xref{Fill Prefix, , , emacs, The GNU Emacs "
+"Manual}, voor meer informatie over opvul-prefixes.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12638
@@ -26529,6 +26785,11 @@ msgid ""
 "paragraph when all or many of the lines in the buffer begin with the fill "
 "prefix."
 msgstr ""
+"Het bestaan van een opvul-prefix betekent dat naast het kunnen "
+"vinden van het einde van de paragraaf wiens regels helemaal links "
+"beginnen, de functie @code{forward-paragraph} ook in staat moet zijn "
+"het einde van de paragraaf te vinden wanneer alle of veel van de "
+"regels in het buffer met een opvul-prefix beginnen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12642
@@ -26537,12 +26798,15 @@ msgid ""
 "especially when blank lines separate paragraphs.  This is an added "
 "complication."
 msgstr ""
+"Bovendien is het soms praktisch om een bestaand opvul-prefix te negeren, "
+"in het bijzonder wanneer lege regels paragrafen scheiden. Dit is een "
+"extra complicatie."
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:12651
 #, no-wrap
 msgid "Shortened @code{forward-paragraph} function definition"
-msgstr ""
+msgstr "Verkorte @code{forward-paragraph} functiedefinitie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12657
@@ -26550,11 +26814,14 @@ msgid ""
 "Rather than print all of the @code{forward-paragraph} function, we will only "
 "print parts of it.  Read without preparation, the function can be daunting!"
 msgstr ""
+"In plaats van alles van de functie @code{forward-paragraph} te "
+"tonen, tonen we alleen delen er van. Het kan ontmoedigend zijn de "
+"functie zonder voorbereiding te lezen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12660
 msgid "In outline, the function looks like this:"
-msgstr ""
+msgstr "Globaal ziet de functie er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:12673
@@ -26571,6 +26838,16 @@ msgid ""
 "    (while (and (> arg 0) (not (eobp)))     ; @r{forward-moving-code}\n"
 "      @dots{}\n"
 msgstr ""
+"(defun forward-paragraph (&optional arg)\n"
+"  \"@var{documentatie}@dots{}\"\n"
+"  (interactive \"p\")\n"
+"  (or arg (setq arg 1))\n"
+"  (let*\n"
+"      @var{varlist}\n"
+"    (while (and (< arg 0) (not (bobp)))     ; @r{achterwaarts-bewegende-code}\n"
+"      @dots{}\n"
+"    (while (and (> arg 0) (not (eobp)))     ; @r{voorwaarts-bewegende-code}\n"
+"      @dots{}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12678
@@ -26578,6 +26855,9 @@ msgid ""
 "The first parts of the function are routine: the function's argument list "
 "consists of one optional argument.  Documentation follows."
 msgstr ""
+"De eerste delen van de functie zijn routine: de argumentlist van de "
+"functie bestaat uit een optioneel argument. Documentatie volgt "
+"daarna."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12688
@@ -26591,12 +26871,22 @@ msgid ""
 "earlier.  (@xref{forward-sentence, The @code{forward-sentence} function}.)  "
 "Now we reach the end of the familiar part of this function."
 msgstr ""
+"De kleine letter @samp{p} in de @code{interactive} declaratie "
+"betekent dat het verwerkte prefix argument, als die er is, wordt "
+"doorgegeven aan de functie. Dit is een getal, en is het aantal "
+"herhalingen van hoeveel paragrafen point wordt verplaatst. De "
+"@code{or} expressie in de volgende regel behandelt de gebruikelijke "
+"situatie wanneer geen argument aan de functie wordt doorgegeven, wat "
+"gebeurt wanneer de functie wordt aangeroepen vanuit andere code in "
+"plaats van interactief. Deze situatie is eerder beschreven "
+"(@xref{forward-sentence, De functie @code{forward-sentence}}.) Nu "
+"bereiken we het einde van het vertrouwde deel van deze functie."
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:12690
 #, no-wrap
 msgid "The @code{let*} expression"
-msgstr ""
+msgstr "De @code{let*} expressie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12700
@@ -26608,6 +26898,13 @@ msgid ""
 "@code{found-start}.  The first part of the @code{let*} expression looks like "
 "below:"
 msgstr ""
+"De volgende regel van de functie @code{forward-paragraph} begint met "
+"een @code{let*} expressie (@pxref{let* geïntroduceerd,,@code{let*} "
+"geïntroduceerd}), waarin Emacs een totaal van zeven variabelen "
+"bindt: @code{opoint}, @code{fill-prefix-regexp}, @code{parstart}, "
+"@code{parsep}, @code{sp-parstart}, @code{start} en "
+"@code{found-start}. Het eerste deel van de @code{let*} expressie "
+"ziet er als volgt uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:12730
@@ -26641,6 +26938,33 @@ msgid ""
 "       start found-start)\n"
 "  ...)\n"
 msgstr ""
+"(let* ((opoint (point))\n"
+"       (fill-prefix-regexp\n"
+"        (and fill-prefix (not (equal fill-prefix \"\"))\n"
+"             (not paragraph-ignore-fill-prefix)\n"
+"             (regexp-quote fill-prefix)))\n"
+"       ;; Remove ^ from paragraph-start and paragraph-sep if they are there.\n"
+"       ;; These regexps shouldn't be anchored, because we look for them\n"
+"       ;; starting at the left-margin.  This allows paragraph commands to\n"
+"       ;; work normally with indented text.\n"
+"       ;; This hack will not find problem cases like \"whatever\\\\|^something\".\n"
+"       (parstart (if (and (not (equal \"\" paragraph-start))\n"
+"                          (equal ?^ (aref paragraph-start 0)))\n"
+"                     (substring paragraph-start 1)\n"
+"                   paragraph-start))\n"
+"       (parsep (if (and (not (equal \"\" paragraph-separate))\n"
+"                        (equal ?^ (aref paragraph-separate 0)))\n"
+"                   (substring paragraph-separate 1)\n"
+"                 paragraph-separate))\n"
+"       (parsep\n"
+"        (if fill-prefix-regexp\n"
+"            (concat parsep \"\\\\|\"\n"
+"                    fill-prefix-regexp \"[ \\t]*$\")\n"
+"          parsep))\n"
+"       ;; This is used for searching.\n"
+"       (sp-parstart (concat \"^[ \\t]*\\\\(?:\" parstart \"\\\\|\" parsep \"\\\\)\"))\n"
+"       start found-start)\n"
+"  ...)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12735
@@ -26648,6 +26972,9 @@ msgid ""
 "The variable @code{parsep} appears twice, first, to remove instances of "
 "@samp{^}, and second, to handle fill prefixes."
 msgstr ""
+"De variabele @code{parsep} verschijnt twee keer, ten eerste om "
+"instanties van @samp{^} te verwijderen en ten tweede om "
+"opvul-prefixes te behandelen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12739
@@ -26656,6 +26983,10 @@ msgid ""
 "guess, it is used in a @code{constrain-to-field} expression, just as in "
 "@code{forward-sentence}."
 msgstr ""
+"De variabele @code{opoint} is gewoon de waarde van @code{point}. "
+"Zoals je kunt raden wordt het gebruikt in een "
+"@code{constrain-to-field} expressie, net als in "
+"@code{forward-sentence}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12742
@@ -26663,6 +26994,8 @@ msgid ""
 "The variable @code{fill-prefix-regexp} is set to the value returned by "
 "evaluating the following list:"
 msgstr ""
+"De variabele @code{fill-prefix-regexp} wordt gezet op de waarde teruggeven "
+"door de volgende lijst te evalueren:"
 
 #. type: group
 #: emacs-lisp-intro.texi:12749
@@ -26673,12 +27006,17 @@ msgid ""
 "     (not paragraph-ignore-fill-prefix)\n"
 "     (regexp-quote fill-prefix))\n"
 msgstr ""
+"(and fill-prefix\n"
+"     (not (equal fill-prefix \"\"))\n"
+"     (not paragraph-ignore-fill-prefix)\n"
+"     (regexp-quote fill-prefix))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12754
 msgid ""
 "This is an expression whose first element is the @code{and} special form."
 msgstr ""
+"Dit is een expressie wiens eerste element de speciale vorm @code{and} is. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12764
@@ -26710,12 +27048,17 @@ msgid ""
 "(i.e., a non-@code{nil}) value when they are evaluated; otherwise, "
 "@code{fill-prefix-regexp} is bound to @code{nil}."
 msgstr ""
+"In dit geval wordt de variabele @code{fill-prefix-regexp} "
+"uitsluitend gebonden aan een non-@code{nil} waarde wanneer de "
+"volgende vier expressies een waarde waar (dus non-@code{nil}) "
+"produceren wanneer zij worden geëvalueerd. Zo niet, dan wordt "
+"@code{fill-prefix-regexp} gebonden aan @code{nil}."
 
 #. type: item
 #: emacs-lisp-intro.texi:12772
 #, no-wrap
 msgid "fill-prefix"
-msgstr ""
+msgstr "fill-prefix"
 
 #. type: table
 #: emacs-lisp-intro.texi:12776
@@ -26723,12 +27066,15 @@ msgid ""
 "When this variable is evaluated, the value of the fill prefix, if any, is "
 "returned.  If there is no fill prefix, this variable returns @code{nil}."
 msgstr ""
+"Wanneer deze variabele wordt geëvalueerd wordt de waarde van de fill "
+"prefix, als die er is, teruggegeven. Wanneer er geen fill prefix is, "
+"dan geeft de variabel @code{nil} terug."
 
 #. type: item
 #: emacs-lisp-intro.texi:12777
 #, no-wrap
 msgid "(not (equal fill-prefix \"\")"
-msgstr ""
+msgstr "(not (equal fill-prefix \"\")"
 
 #. type: table
 #: emacs-lisp-intro.texi:12781
@@ -26737,12 +27083,15 @@ msgid ""
 "that is, a string with no characters in it.  An empty string is not a useful "
 "fill prefix."
 msgstr ""
+"Deze expressie kijkt of een bestaand fill prefix een lege string is, "
+"oftewel een string zonder karakters er in. Een lege string is geen "
+"nuttige opvul-prefix."
 
 #. type: item
 #: emacs-lisp-intro.texi:12782
 #, no-wrap
 msgid "(not paragraph-ignore-fill-prefix)"
-msgstr ""
+msgstr "(not paragraph-ignore-fill-prefix)"
 
 #. type: table
 #: emacs-lisp-intro.texi:12786
@@ -26751,12 +27100,15 @@ msgid ""
 "fill-prefix} has been turned on by being set to a true value such as "
 "@code{t}."
 msgstr ""
+"Deze expressie geeft @code{nil} terug wanneer de variabele "
+"@code{paragraph-ignore-fill-prefix} aan staat, doordat het op de waarde "
+"waar, zoals @code{t}, is gezet."
 
 #. type: item
 #: emacs-lisp-intro.texi:12787
 #, no-wrap
 msgid "(regexp-quote fill-prefix)"
-msgstr ""
+msgstr "(regexp-quote fill-prefix)"
 
 #. type: table
 #: emacs-lisp-intro.texi:12792
@@ -26766,12 +27118,17 @@ msgid ""
 "this expression will be returned by the @code{and} expression and bound to "
 "the variable @code{fill-prefix-regexp},"
 msgstr ""
+"Dit is het laatste argument van de speciale vorm @code{and}. Wanneer "
+"al de argumenten van de @code{and} waar zijn, wordt de waarde die "
+"resulteert uit het evalueren van deze expressie teruggeven door de "
+"@code{and} expressie en gebonden aan de variabele "
+"@code{fill-prefix-regexp}."
 
 #. type: findex
 #: emacs-lisp-intro.texi:12794
 #, no-wrap
 msgid "regexp-quote"
-msgstr ""
+msgstr "regexp-quote"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12804
@@ -26784,6 +27141,15 @@ msgid ""
 "regexp} will be set to a value that will exactly match the fill prefix if "
 "the fill prefix exists.  Otherwise, the variable will be set to @code{nil}."
 msgstr ""
+"Het resultaat van een succesvolle evaluatie van deze @code{and} "
+"expressie is dat @code{fill-prefix-regexp} wordt gebonden aan de "
+"waarde van @code{fill-prefix}, aangepast door de functie "
+"@code{regexp-quote}. Wat @code{regexp-quote} doet is het lezen van "
+"een string en een reguliere expressie teruggeven die exact de string "
+"matcht, en niets anders matcht. Dit betekent dat de "
+"@code{fill-prefix-regexp} wordt gezet naar een waarde is exact het "
+"opvul-prefix matcht als die bestaat. Zo niet, dan wordt de variabele "
+"gezet op @code{nil}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12810
@@ -26794,6 +27160,12 @@ msgid ""
 "separator.  The next expression sets @code{parsep} again.  That is to handle "
 "fill prefixes."
 msgstr ""
+"De volgende twee lokale variabelen in de @code{let*} expressie zijn "
+"ontworpen om instanties van @samp{^} te verwijderen uit "
+"@code{parstart} en @code{parsep}, de lokale variabelen die de start "
+"van de paragraaf en de paragraaf separator aanduiden. De volgende "
+"expressie stelt @code{parsep} opnieuw. Dit is om opvul-prefixes te "
+"behandelen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12815
@@ -26803,6 +27175,10 @@ msgid ""
 "whether the variable @code{fill-prefix-regexp} evaluates to @code{nil} or "
 "some other value."
 msgstr ""
+"Het is dit instellen dat vereist dat de definitie @code{let*} "
+"aanroept in plaats van @code{let}. De waar-of-onwaar-test van de "
+"@code{if} hangt af van of de variabele @code{fill-prefix-regexp} "
+"naar @code{nil} evalueert, of naar een andere waarde."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12820
@@ -26812,6 +27188,10 @@ msgid ""
 "value.  (@code{parsep} is a regular expression that matches what separates "
 "paragraphs.)"
 msgstr ""
+"Wanneer @code{fill-prefix-regexp} geen waarde heeft dan evalueert "
+"Emacs het anders-deel van de @code{if} expressie en bindt "
+"@code{parsep} naar de lokale waarde. (@code{parsep} is een reguliere "
+"expressie die matcht wat paragrafen scheidt.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12825
@@ -26821,6 +27201,10 @@ msgid ""
 "expression that includes the @code{fill-prefix-regexp} as part of the "
 "pattern."
 msgstr ""
+"Maar wanneer @code{fill-prefix-regexp} een waarde heeft, evalueert "
+"Emacs het dan-deel van de @code{if} expressie en bindt @code{parsep} "
+"aan een reguliere expressie die de @code{fill-prefix-regexp} als "
+"deel van het patroon bevat."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12832
@@ -26832,6 +27216,13 @@ msgid ""
 "\"}}.)  The @samp{\\\\|} defines this portion of the regexp as an "
 "alternative to @code{parsep}."
 msgstr ""
+"Specifiek wordt @code{parsep} gezet op de originele waarde van de "
+"paragraaf scheidende reguliere expressie samengevoegd met een "
+"alternatieve expressie die bestaat uit de @code{fill-prefix-regexp} "
+"gevolgd door optionele witte ruimte als einde van de regel. De witte "
+"ruimte is gedefinieerd met @w{@code{\"[ \\t]*$\"}}.) De @samp{\\\\|} "
+"definieert die deel van de regexp als een alternatief van "
+"@code{parsep}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12836
@@ -26840,6 +27231,9 @@ msgid ""
 "parstart}, is used for searching, and then the final two, @code{start} and "
 "@code{found-start}, are set to @code{nil}."
 msgstr ""
+"Volgens het commentaar in de code wordt de volgende lokale "
+"variabele, @code{sp-parstart} gebruikt om te zoeken en de laatste "
+"twee, @code{start} en @code{found-start} worden op @code{nil} gezet."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12841
@@ -26848,12 +27242,16 @@ msgid ""
 "the @code{let*} deals with the case when the function is given a negative "
 "argument and is therefore moving backwards.  We will skip this section."
 msgstr ""
+"Nu komen we bij de body van de @code{let*}. Het eerste deel van de "
+"body van de @code{let*} behandelt het geval wanneer de functie een "
+"negatief argument krijgt en daarom achterwaarts beweegt. We slaan "
+"dit stuk over."
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:12843
 #, no-wrap
 msgid "The forward motion @code{while} loop"
-msgstr ""
+msgstr "De voorwaarts bewegende @code{while} loop"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12851
@@ -26864,6 +27262,12 @@ msgid ""
 "the value of the argument is 1, so the body of the @code{while} loop is "
 "evaluated exactly once, and the cursor moves forward one paragraph."
 msgstr ""
+"Het tweede deel van de body van de @code{let*} behandelt de "
+"voorwaartse beweging. Het is een @code{while} loop dit zichzelf "
+"herhaalt zolang de waard van @code{arg} groter is dan nul. In de "
+"meest gebruikte manier van de functie is de waarde van het argument "
+"1, en wordt de body van de @code{while} loop exact een keer "
+"geëvalueerd, en beweegt de cursor een paragraaf voorwaarts."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12889
@@ -26871,11 +27275,14 @@ msgid ""
 "This part handles three situations: when point is between paragraphs, when "
 "there is a fill prefix and when there is no fill prefix."
 msgstr ""
+"Dit deel behandelt drie situaties: wanneer point tussen twee "
+"paragrafen is, wanneer er een opvul-prefix is en wanneer er geen "
+"opvul-prefix is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12892
 msgid "The @code{while} loop looks like this:"
-msgstr ""
+msgstr "De @code{while} loop ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:12897
@@ -26885,6 +27292,9 @@ msgid ""
 "(while (and (> arg 0) (not (eobp)))\n"
 "\n"
 msgstr ""
+";; @r{ga voorwaarts en niet aan het eind van het buffer}\n"
+"(while (and (> arg 0) (not (eobp)))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:12908
@@ -26901,6 +27311,16 @@ msgid ""
 "  ;; ... and one more line.\n"
 "  (forward-line 1)\n"
 msgstr ""
+"  ;; @r{tussen paragrafen}\n"
+"  ;; Move forward over separator lines...\n"
+"  (while (and (not (eobp))\n"
+"              (progn (move-to-left-margin) (not (eobp)))\n"
+"              (looking-at parsep))\n"
+"    (forward-line 1))\n"
+"  ;;  @r{Dit verlaagt de loop}\n"
+"  (unless (eobp) (setq arg (1- arg)))\n"
+"  ;; ... and one more line.\n"
+"  (forward-line 1)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:12919 emacs-lisp-intro.texi:12991
@@ -26915,6 +27335,14 @@ msgid ""
 "                  (looking-at fill-prefix-regexp))\n"
 "        (forward-line 1))\n"
 msgstr ""
+"  (if fill-prefix-regexp\n"
+"      ;; There is a fill prefix; it overrides parstart;\n"
+"      ;; we go forward line by line\n"
+"      (while (and (not (eobp))\n"
+"                  (progn (move-to-left-margin) (not (eobp)))\n"
+"                  (not (looking-at parsep))\n"
+"                  (looking-at fill-prefix-regexp))\n"
+"        (forward-line 1))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:12934
@@ -26933,6 +27361,18 @@ msgid ""
 "                         (not (get-text-property (1- start) 'hard)))))\n"
 "      (forward-char 1))\n"
 msgstr ""
+"    ;; There is no fill prefix;\n"
+"    ;; we go forward character by character\n"
+"    (while (and (re-search-forward sp-parstart nil 1)\n"
+"                (progn (setq start (match-beginning 0))\n"
+"                       (goto-char start)\n"
+"                       (not (eobp)))\n"
+"                (progn (move-to-left-margin)\n"
+"                       (not (looking-at parsep)))\n"
+"                (or (not (looking-at parstart))\n"
+"                    (and use-hard-newlines\n"
+"                         (not (get-text-property (1- start) 'hard)))))\n"
+"      (forward-char 1))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:12942
@@ -26944,12 +27384,17 @@ msgid ""
 "    (if (< (point) (point-max))\n"
 "        (goto-char start))))\n"
 msgstr ""
+"    ;; and if there is no fill prefix and if we are not at the end,\n"
+"    ;;     go to whatever was found in the regular expression search\n"
+"    ;;     for sp-parstart\n"
+"    (if (< (point) (point-max))\n"
+"        (goto-char start))))\n"
 
 #. type: item
 #: emacs-lisp-intro.texi:12945 emacs-lisp-intro.texi:13202
 #, no-wrap
 msgid "eobp"
-msgstr ""
+msgstr "eobp"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12953
@@ -26961,6 +27406,13 @@ msgid ""
 "the @code{eobp} function determines; it is an abbreviation of @samp{End Of "
 "Buffer P}---we decrease the value of @code{arg} by one."
 msgstr ""
+"We kunnen zien dat dit een aflopende teller @code{while} loop is, "
+"met de expressie @code{(setq arg (1- arg))} als de decrementer. Die "
+"expressie is niet ver van de @code{while} loop, maar is verstopt in "
+"een andere Lisp macro, een @code{unless} macro. Tenzij we aan het "
+"eind van het buffer zijn---dat is wat de functie @code{eobp} "
+"vaststelt, het is een afkorting van @samp{End Of Buffer "
+"P}---verlagen we de waarde van @code{arg} met één."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12959
@@ -26971,6 +27423,12 @@ msgid ""
 "exactly as you expect; it is another name for @code{null}, a function that "
 "returns true when its argument is false.)"
 msgstr ""
+"(Wanneer we aan het eind van het buffer zijn, kunnen we niet meer "
+"voorwaarts en test de volgende loop van de @code{while} expressie "
+"onwaar omdat de test een @code{and} met @code{(not (eobp))} is. De "
+"functie @code{not} betekent precies wat je verwacht, het is een "
+"andere naam voor @code{null}, een functie die waar teruggeeft "
+"wanneer zijn argument onwaar is.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12963
@@ -26979,6 +27437,10 @@ msgid ""
 "between paragraphs, unless we come to the end of buffer or stop seeing the "
 "local value of the paragraph separator."
 msgstr ""
+"Interessant genoeg wordt de loop teller niet eerder verlaagd dan dat "
+"we de ruimte tussen paragrafen verlaten, tenzij we aan het eind van "
+"het buffer komen of de lokale variabele van de paragraaf separator "
+"niet meer zien."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12969
@@ -26989,12 +27451,17 @@ msgid ""
 "its side effect, which is to move point to the left margin of the current "
 "line."
 msgstr ""
+"De tweede @code{while} heeft ook een @code{(move-to-left-margin)} "
+"expressie. De functie spreekt voor zich. Die bevindt zich binnen een "
+"@code{progn} expressie en is niet het laatste element van de body, "
+"dus die wordt alleen aangeroepen voor het zij-effect, het "
+"verplaatsten van point naar de linker kantlijn op de huidige regel."
 
 #. type: item
 #: emacs-lisp-intro.texi:12970 emacs-lisp-intro.texi:13198
 #, no-wrap
 msgid "looking-at"
-msgstr ""
+msgstr "looking-at"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12974
@@ -27002,6 +27469,9 @@ msgid ""
 "The @code{looking-at} function is also self-explanatory; it returns true if "
 "the text after point matches the regular expression given as its argument."
 msgstr ""
+"De functie @code{looking-at} spreekt ook voor zich. het geeft waar "
+"terug wanneer de tekst achter point matcht met de reguliere "
+"expressie die als zijn argument is doorgegeven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12977
@@ -27009,11 +27479,14 @@ msgid ""
 "The rest of the body of the loop looks difficult at first, but makes sense "
 "as you come to understand it."
 msgstr ""
+"De rest van de body van de loop ziet er op het eerste gezicht "
+"moeilijk uit, maar is logisch wanneer je die begint te begrijpen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12980
 msgid "First consider what happens if there is a fill prefix:"
 msgstr ""
+"Bedenk eerst wat gebeurt wanneer er een opvul-prefix is:"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:12997
@@ -27021,11 +27494,13 @@ msgid ""
 "This expression moves point forward line by line so long as four conditions "
 "are true:"
 msgstr ""
+"De expressie verplaatst point voorwaarts regel voor regel zolang "
+"vier condities waar zijn:"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:13001
 msgid "Point is not at the end of the buffer."
-msgstr ""
+msgstr "Point is niet aan het eind van het buffer."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:13005
@@ -27033,16 +27508,18 @@ msgid ""
 "We can move to the left margin of the text and are not at the end of the "
 "buffer."
 msgstr ""
+"We kunnen naar de linker kantlijn van de tekst verplaatsen en zijn "
+"niet aan het eind van het buffer."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:13008
 msgid "The text following point does not separate paragraphs."
-msgstr ""
+msgstr "De tekst die volgt op point scheidt geen paragrafen."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:13011
 msgid "The pattern following point is the fill prefix regular expression."
-msgstr ""
+msgstr "Het patroon volgend op point is de fill prefix reguliere expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13017
@@ -27052,11 +27529,15 @@ msgid ""
 "function.  This means that if the text has a fill prefix, the @code{looking-"
 "at} function will see it."
 msgstr ""
+"De laatste conditie kan verwarrend zijn, totdat je herinnert dat "
+"point naar het begin van de regel is verplaatst in het begin van de "
+"functie @code{forward-paragraph}. Dat betekent dat wanneer de tekst "
+"een opvul-prefix heeft, de functie @code{looking-at} het zal zien."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13020
 msgid "Consider what happens when there is no fill prefix."
-msgstr ""
+msgstr "Bedenk wat gebeurt wanneer er geen opvul-prefix is."
 
 #. type: group
 #: emacs-lisp-intro.texi:13033
@@ -27073,6 +27554,16 @@ msgid ""
 "                         (not (get-text-property (1- start) 'hard)))))\n"
 "      (forward-char 1))\n"
 msgstr ""
+"    (while (and (re-search-forward sp-parstart nil 1)\n"
+"                (progn (setq start (match-beginning 0))\n"
+"                       (goto-char start)\n"
+"                       (not (eobp)))\n"
+"                (progn (move-to-left-margin)\n"
+"                       (not (looking-at parsep)))\n"
+"                (or (not (looking-at parstart))\n"
+"                    (and use-hard-newlines\n"
+"                         (not (get-text-property (1- start) 'hard)))))\n"
+"      (forward-char 1))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13043
@@ -27083,11 +27574,15 @@ msgid ""
 "within an expression starting @code{\\(?:} so that they are not referenced "
 "by the @code{match-beginning} function.)"
 msgstr ""
+"De @code{while} loop laat ons voorwaarts zoeken naar "
+"@code{sp-parstart}, wat de combinatie is van mogelijke witte ruimte "
+"met de lokale waarde van de start van een paragraaf of van een "
+"paragraaf separator."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13046
 msgid "The two expressions,"
-msgstr ""
+msgstr "De twee expressies,"
 
 #. type: group
 #: emacs-lisp-intro.texi:13051
@@ -27096,12 +27591,16 @@ msgid ""
 "(setq start (match-beginning 0))\n"
 "(goto-char start)\n"
 msgstr ""
+"(setq start (match-beginning 0))\n"
+"(goto-char start)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13057
 msgid ""
 "mean go to the start of the text matched by the regular expression search."
 msgstr ""
+"betekenen ga naar de start van tekst gematcht door de reguliere "
+"expressie zoekopdracht."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13061
@@ -27110,6 +27609,9 @@ msgid ""
 "specifying the location of the start of the text that was matched by the "
 "last search."
 msgstr ""
+"De @code{(match-beginning 0)} expressie is nieuw. Het geeft het "
+"getal dat de lokatie van de start van de tekst aangeeft die was "
+"gematcht door de laatste zoekopdracht."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13068
@@ -27120,6 +27622,12 @@ msgid ""
 "the text that is found.  In this case, a successful search moves point to "
 "the end of the pattern for @code{sp-parstart}."
 msgstr ""
+"De functie @code{match-beginning} wordt hier gebruikt vanwege een "
+"karakteristiek van een voorwaartse zoekopdracht: een succesvolle zoekopdracht, "
+"ongeacht of het een gewone zoekopdracht of een reguliere expressie zoekopdracht "
+"is, verplaatst point naar het einde van de tekst die is gevonden. "
+"In dit geval verplaatst een succesvolle zoekopdracht point naar het einde "
+"van het patroon voor @code{sp-parstart}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13073
@@ -27129,12 +27637,17 @@ msgid ""
 "separator, point may end up at the beginning of the next one unless we use "
 "an expression that includes @code{match-beginning}."
 msgstr ""
+"Wij willen echter point aan het einde van de huidige paragraaf "
+"zetten, niet ergens anders. Omdat de zoekopdracht mogelijk de "
+"paragraaf separator bevat, kan point bij het begin van de volgende "
+"terecht komen tenzij we een expressie gebruiken die "
+"@code{match-beginning} bevat."
 
 #. type: item
 #: emacs-lisp-intro.texi:13074 emacs-lisp-intro.texi:13194
 #, no-wrap
 msgid "match-beginning"
-msgstr ""
+msgstr "match-beginning"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13081
@@ -27145,6 +27658,12 @@ msgid ""
 "beginning 0)} expression returns the beginning position of that pattern, "
 "rather than the end position of that pattern."
 msgstr ""
+"Wanneer het een argument van 0 krijgt, geeft @code{match-beginning} "
+"de positie terug die de start is van de tekst gematcht met de meest "
+"recente zoekopdracht. In dit geval zoekt de meest recente "
+"zoekopdracht naar @code{sp-parstart}. De @code{(match-beginning 0)} "
+"expressie geeft de beginposiitie van dat patroon, in plaats van de "
+"eindpositie van dat patroon."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13087
@@ -27155,11 +27674,17 @@ msgid ""
 "with @code{\\(?:}.  I don't know why @code{\\(?:} appears here since the "
 "argument is 0.)"
 msgstr ""
+"(Overigens, wanneer een positief getal als argument wordt "
+"doorgegeven, geeft de functie @code{match-beginning} de lokatie van "
+"point bij die tussen haakjes geplaatste expressie in de laatste "
+"zoekopdracht, tenzij die tussen haakjes geplaatste expressie begint "
+"met @code{\\(?:}. Ik weet niet waarom @code{\\(?:} hier verschijnt, "
+"aangezien het argument 0 is.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13090
 msgid "The last expression when there is no fill prefix is"
-msgstr ""
+msgstr "De laatste expressie wanneer er geen opvul-prefix is"
 
 #. type: group
 #: emacs-lisp-intro.texi:13095
@@ -27168,6 +27693,8 @@ msgid ""
 "(if (< (point) (point-max))\n"
 "    (goto-char start))))\n"
 msgstr ""
+"(if (< (point) (point-max))\n"
+"    (goto-char start))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13102
@@ -27176,6 +27703,9 @@ msgid ""
 "the two extra ending parentheses are matching the previous @code{if} and "
 "@code{while}.)"
 msgstr ""
+"(Merk op dat dit stukje code ongewijzigd gekopieerd is van de "
+"originele code, waardoor de twee extra haakjes sluiten horen bij de "
+"voorafgaande @code{if} en @code{while}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13106
@@ -27184,6 +27714,10 @@ msgid ""
 "point should move to the beginning of whatever was found by the regular "
 "expression search for @code{sp-parstart}."
 msgstr ""
+"Dit vertelt dat wanneer er geen opvul-prefix is en wanneer wij niet "
+"aan het einde zijn, point naar het begin moet verplaatsen van wat "
+"gevonden was door de reguliere expressie zoekopdracht naar "
+"@code{sp-parstart}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13109
@@ -27191,6 +27725,9 @@ msgid ""
 "The full definition for the @code{forward-paragraph} function not only "
 "includes code for going forwards, but also code for going backwards."
 msgstr ""
+"De volledige definitie van de functie @code{forward-paragraph} bevat "
+"niet alleen code om voorwaarts te gaan, maar ook code om "
+"achterwaarts te gaan."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13118
@@ -27203,6 +27740,13 @@ msgid ""
 "source.  (Be sure to install your sources! Without them, you are like a "
 "person who tries to drive a car with his eyes shut!)"
 msgstr ""
+"Wanneer je dit in GNU Emacs leest en je de gehele functie wilt zien, "
+"dan kan je @kbd{C-h f} (@code{describe-function}) typen, en daarna "
+"de naam van de functie. Dit geeft je de functiedocumentatie en de "
+"naam van de library die de broncode bevat. Plaats point op de naam "
+"van de library en druk op de @key{RET} toets. Je brengt je direct "
+"naar de bron. (Zorg dat je de broncodes installeert! Zonder die ben "
+"je als iemand die probeert met de ogen dicht een auto te besturen.)"
 
 #. type: node
 #: emacs-lisp-intro.texi:13119
@@ -27217,6 +27761,9 @@ msgid ""
 "of the body tests true.  Then return @code{nil}.  (The expression is "
 "evaluated only for its side effects.)"
 msgstr ""
+"Evalueer herhaaldelijk de body van de expressie zolang als het "
+"eerste element van de body waar test. Geef daarna @code{nil} terug. "
+"(De expressie wordt uitsluitend voor de zij-effecten geëvalueerd.)"
 
 #. type: group
 #: emacs-lisp-intro.texi:13139
@@ -27228,6 +27775,11 @@ msgid ""
 "    (setq foo (1- foo))))\n"
 "\n"
 msgstr ""
+"(let ((foo 2))\n"
+"  (while (> foo 0)\n"
+"    (insert (format \"foo is %d.\\n\" foo))\n"
+"    (setq foo (1- foo))))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:13143
@@ -27237,6 +27789,9 @@ msgid ""
 "             foo is 1.\n"
 "             nil\n"
 msgstr ""
+"     @result{}      foo is 2.\n"
+"             foo is 1.\n"
+"             nil\n"
 
 #. type: table
 #: emacs-lisp-intro.texi:13151
@@ -27245,6 +27800,10 @@ msgid ""
 "@code{format} function returns a string formatted from its arguments the way "
 "@code{message} formats its arguments; @code{\\n} produces a new line.)"
 msgstr ""
+"(De functie @code{insert} voegt het argument bij point in. de "
+"functie @code{format} geeft een geformatteerde string terug op "
+"dezelfde manier als @code{message} de argumenten formatteert. "
+"@code{\\n} produceert een nieuwe regel.)"
 
 #. type: table
 #: emacs-lisp-intro.texi:13155
@@ -27252,11 +27811,13 @@ msgid ""
 "Search for a pattern, and if the pattern is found, move point to rest just "
 "after it."
 msgstr ""
+"Zoek voor een patroon, en als het patroon is gevonden, verplaats "
+"point direct er achter."
 
 #. type: table
 #: emacs-lisp-intro.texi:13158
 msgid "Takes four arguments, like @code{search-forward}:"
-msgstr ""
+msgstr "Verwacht vier argumenten, zoals @code{search-forward}:"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:13163
@@ -27264,6 +27825,8 @@ msgid ""
 "A regular expression that specifies the pattern to search for.  (Remember to "
 "put quotation marks around this argument!)"
 msgstr ""
+"Een reguliere expressie die het zoekpatroon specificeert. (Denk er "
+"aan om dubbele aanhalingstekens om dit argument te zetten!)"
 
 #. type: table
 #: emacs-lisp-intro.texi:13181
@@ -27272,6 +27835,10 @@ msgid ""
 "remaining arguments, returning the value of the last one.  While binding the "
 "local variables, use the local values of variables bound earlier, if any."
 msgstr ""
+"Bind sommige variabelen lokaal aan bepaalde waardes en evalueer dan "
+"de overige argumenten en geeft de waarde van de laatste terug. "
+"Gebruik de lokale waarden van eerder gebonden variabelen bij het "
+"binden van lokale variabelen."
 
 #. type: group
 #: emacs-lisp-intro.texi:13191
@@ -27282,6 +27849,10 @@ msgid ""
 "  (message \"`bar' is %d.\" bar))\n"
 "     @result{} âbarâ is 21.\n"
 msgstr ""
+"(let* ((foo 7)\n"
+"       (bar (* 3 foo)))\n"
+"  (message \"`bar' is %d.\" bar))\n"
+"     @result{} `bar' is 21.\n"
 
 #. type: table
 #: emacs-lisp-intro.texi:13197
@@ -27289,6 +27860,8 @@ msgid ""
 "Return the position of the start of the text found by the last regular "
 "expression search."
 msgstr ""
+"Geef de positie van de start van de tekst gevonden door de laatste "
+"reguliere expressie."
 
 #. type: table
 #: emacs-lisp-intro.texi:13201
@@ -27296,6 +27869,8 @@ msgid ""
 "Return @code{t} for true if the text after point matches the argument, which "
 "should be a regular expression."
 msgstr ""
+"Geef @code{t} voor waar terug wanneer de tekst achter point "
+"overeenkomt met het argument, wat een reguliere expressie moet zijn."
 
 #. type: table
 #: emacs-lisp-intro.texi:13207
@@ -27305,12 +27880,16 @@ msgid ""
 "buffer is not narrowed; it is the end of the narrowed part if the buffer is "
 "narrowed."
 msgstr ""
+"Geef @code{t} voor waar terug wanneer point aan het einde van het "
+"bereikbare deel van een buffer is. Het einde van het bereikbare deel "
+"is het einde van het buffer wanneer het buffer niet versmald is. Het "
+"is het einde van het versmalde deel wanneer het buffer is versmald."
 
 #. type: section
 #: emacs-lisp-intro.texi:13211
 #, no-wrap
 msgid "Exercises with @code{re-search-forward}"
-msgstr ""
+msgstr "Oefeningen met @code{re-search-forward}"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:13217
@@ -27318,6 +27897,8 @@ msgid ""
 "Write a function to search for a regular expression that matches two or more "
 "blank lines in sequence."
 msgstr ""
+"Schrijf een functie om te zoeken met een reguliere expressie die "
+"overeenkomt met twee of meer opeenvolgende lege regels."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:13226
@@ -27330,6 +27911,13 @@ msgid ""
 "described in an appendix, along with several regexps.  @xref{the-the, , "
 "@code{the-the} Duplicated Words Function}."
 msgstr ""
+"Schrijf een functie die zoekt naar gedupliceerde woorden, zoals "
+"``de de''. @xref{Regexps, , Syntax of Regular Expressions, emacs, "
+"The GNU Emacs Manual}, voor informatie hoe je een regexp schrijft "
+"(een reguliere expressie) om een string te matchen die uit twee "
+"identieke helften bestaat. De functie die ik gebruik is beschreven "
+"in de appendix, samen met verschillende regexps. @ref{de-de, , "
+"@code{de-de} Gedupliceerde woorden functie}."
 
 #. type: chapter
 #: emacs-lisp-intro.texi:13229

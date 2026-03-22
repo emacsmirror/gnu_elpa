@@ -1231,6 +1231,37 @@ Otherwise, update via `gnosis-update-thema'."
       (unless (or (null lethe) (and (integerp lethe) (> lethe 0)))
         (error "Lethe should be an integer greater than 0")))))
 
+(defvar gnosis--custom-values-ht nil
+  "Hash table cache mapping tag strings to their custom value plists.
+Built lazily by `gnosis--custom-values-lookup', cleared by the
+`gnosis-custom-values' watcher.")
+
+(defun gnosis--build-custom-values-ht (&optional values)
+  "Build hash table from VALUES (defaults to `gnosis-custom-values').
+Each tag key maps to the merged plist of all matching rules."
+  (let ((ht (make-hash-table :test #'equal))
+        (rules (or values gnosis-custom-values)))
+    (dolist (rule rules)
+      (let ((tag (plist-get rule :tag)))
+        (when (stringp tag)
+          (let ((existing (gethash tag ht))
+                (props (nth 2 rule)))
+            (puthash tag (append existing props) ht)))))
+    ht))
+
+(defun gnosis--custom-values-lookup (tag &optional values)
+  "Look up custom values for TAG, using cache when possible.
+When VALUES is non-nil (test path), bypasses the cache and
+searches VALUES directly."
+  (if values
+      (gnosis-get-custom-values :tag tag values)
+    (unless gnosis--custom-values-ht
+      (setq gnosis--custom-values-ht (gnosis--build-custom-values-ht)))
+    (let ((plist (gethash tag gnosis--custom-values-ht)))
+      (when plist
+        (gnosis-get-custom-values--validate plist gnosis-custom--valid-values))
+      plist)))
+
 (defun gnosis-custom-values-watcher (symbol new-value _operation _where)
   "Watcher for gnosis custom values.
 
@@ -1239,6 +1270,7 @@ NEW-VALUE is the new value set to the variable.
 OPERATION is the type of operation being performed.
 WHERE is the buffer or object where the change happens."
   (when (eq symbol 'gnosis-custom-values)
+    (setq gnosis--custom-values-ht nil)
     (gnosis-validate-custom-values new-value)))
 
 (add-variable-watcher 'gnosis-custom-values 'gnosis-custom-values-watcher)
@@ -1272,14 +1304,13 @@ VALUES: Defaults to `gnosis-custom-values'."
     results))
 
 (defun gnosis-get-custom-tag-values (id keyword &optional custom-tags custom-values)
-  "Return KEYWORD values for thema ID."
+  "Return KEYWORD values for thema ID.
+Uses cached hash table lookup when CUSTOM-VALUES is nil."
   (cl-assert (keywordp keyword) nil "keyword must be a keyword!")
   (let ((tags (if id (gnosis-select 'tag 'thema-tag `(= thema-id ,id) t) custom-tags)))
     (cl-loop for tag in tags
-	     ;; Only collect non-nil values
-	     when (plist-get (gnosis-get-custom-values :tag tag custom-values) keyword)
-	     collect (plist-get (gnosis-get-custom-values :tag tag custom-values)
-				keyword))))
+	     for val = (plist-get (gnosis--custom-values-lookup tag custom-values) keyword)
+	     when val collect val)))
 
 (defun gnosis--get-tag-value (id keyword aggregator &optional custom-tags custom-values)
   "Return aggregated tag value for thema ID and KEYWORD.

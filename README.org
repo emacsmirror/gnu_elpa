@@ -7,11 +7,11 @@ This is work in progress.
 It is currently based on the following revision of the English document:
 
 #+begin_example
-commit 618653aed0fc6221382126096417faf67ddf86d6
+commit 9adc553ab9628efc2425c04c4326f170fd4f6aaa
 Author: Eli Zaretskii <eliz@gnu.org>
-Date:   Sun Mar 8 14:57:34 2026 +0200
+Date:   Sat Mar 21 13:27:56 2026 +0200
 
-    ; * doc/lispintro/emacs-lisp-intro.texi (Lists diagrammed): Fix last change.
+    ; * doc/lispintro/emacs-lisp-intro.texi: Fix parens (bug#80646).
 #+end_example
 
 ** Method

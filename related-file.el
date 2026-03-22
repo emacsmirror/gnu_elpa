@@ -231,10 +231,35 @@ If DIR-ONLY is non-nil, ignor non-directories."
   (let* ((dirf (directory-file-name file))
          (dir  (if (equal dirf file) (file-name-directory dirf) file))
          (file (if (equal dirf file) (list (file-name-nondirectory dirf))))
+         ;; Usually we try to look for matches starting from PWD, then from
+         ;; its parent, then its parent's parent, etc... except when
+         ;; SHINT is an absolute file name or starts with "./" or "../",
+         ;; in which case we search only from a single directory:
+         ;; If SHINT is of the form "./foo/bar", then don't look
+         ;; up in the parent directories.  If it's absolute, then
+         ;; start searching directly from the root.  And if it's starts
+         ;; with "../../" then look only from the parent's parent.
+         (anchor
+          (cond ((string-match-p "\\`\\./" shint)
+                 (setq shint (substring shint (match-end 0)))
+                 dir)
+                ((file-name-absolute-p shint)
+                 (if (string-match "/" shint)
+                     (prog1 (substring shint 0 (match-end 0))
+                       (setq shint (substring shint (match-end 0))))
+                   (error "Don't know how to deal with this absolute name: %S"
+                          shint)))
+                ((string-match "\\`\\(\\.\\./\\)+" shint)
+                 (prog1 (expand-file-name (substring shint 0 (match-end 0))
+                                          dir)
+                   (setq shint (substring shint (match-end 0)))))))
          (dhint (related-file--split-dhint shint (length shint)))
          res)
     (while
-        (let ((matches (related-file--in-subdirs dir file dhint)))
+        (let ((matches
+               (and (or (null anchor)
+                        (and (equal dir anchor) (setq anchor 'done)))
+                    (related-file--in-subdirs dir file dhint))))
           (if matches
               (progn
                 (setq res (cons dir matches))
@@ -242,7 +267,13 @@ If DIR-ONLY is non-nil, ignor non-directories."
                 nil)
             (let* ((dirf (directory-file-name dir))
                    (newdir (file-name-directory dirf)))
-              (when (and newdir (< (length newdir) (length dir)))
+              (if (not (and newdir (< (length newdir) (length dir))))
+                  ;; In case we didn't pass by the anchor, force-feed it.
+                  ;; E.g. This can happen if FILE started as "a:/foo/bar"
+                  ;; and SHINT was "b:/baz".
+                  (and (stringp anchor)
+                       (setq dir anchor)
+                       t)
                 (push (file-name-nondirectory dirf) file)
                 (setq dir newdir)
                 t)))))

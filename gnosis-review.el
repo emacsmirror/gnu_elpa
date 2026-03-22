@@ -187,22 +187,22 @@ If FALSE t, use gnosis-face-false face"
     (goto-char (point-max))
     (insert "\n" (gnosis-format-string (gnosis-org-format-string parathema)) "\n")))
 
-(defun gnosis-display-next-review (id success)
-  "Display next interval of thema ID for SUCCESS."
+(defun gnosis-display-next-review (interval success)
+  "Display INTERVAL as next review date.
+SUCCESS controls the face used when overriding a previous display."
   (with-current-buffer gnosis-review-buffer-name
-    (let* ((interval (car (gnosis-review-algorithm id success)))
-	   (next-review-msg (format "\n\n%s %s"
-				    (propertize "Next review:" 'face 'gnosis-face-directions)
-				    (propertize
-				     (replace-regexp-in-string
-				      "[]()[:space:]]"
-				      (lambda (match)
-					(if (string= match " ") "/" ""))
-				      (format "%s" interval) t t)
-				     'face 'gnosis-face-next-review))))
+    (let ((next-review-msg (format "\n\n%s %s"
+				   (propertize "Next review:" 'face 'gnosis-face-directions)
+				   (propertize
+				    (replace-regexp-in-string
+				     "[]()[:space:]]"
+				     (lambda (match)
+				       (if (string= match " ") "/" ""))
+				     (format "%s" interval) t t)
+				    'face 'gnosis-face-next-review))))
       (if (search-backward "Next review" nil t)
-	  ;; Delete previous result, and override with new this should
-	  ;; occur only when used for overriding review result.
+	  ;; Delete previous result, and override with new -- this
+	  ;; occurs only when used for overriding review result.
           (progn (delete-region (point) (progn (end-of-line) (point)))
 		 (insert (propertize (replace-regexp-in-string "\n" "" next-review-msg)
 				     'face (if success 'gnosis-face-correct
@@ -303,25 +303,31 @@ Optionally, provide THEMA-IDS of which the overdue ones will be returned."
 
 ;;; Algorithm bridge
 
-(defun gnosis-review-algorithm (id success)
-  "Return next review date & gnosis for thema with value of id ID.
+(defun gnosis-review-algorithm (id success &optional tags)
+  "Return next review date, gnosis score, and log data for thema ID.
 
 SUCCESS is a boolean value, t for success, nil for failure.
+TAGS, when non-nil, are passed to custom value lookups so they
+skip the per-thema tag query.
 
-Returns a list of the form ((yyyy mm dd) (ef-increase ef-decrease ef-total))."
-  (let* (;; Batch-fetch review-log fields (1 query instead of 4)
-	 (log-data (car (gnosis-select '[t-success c-success c-fails last-rev next-rev]
+Returns (NEXT-REV GNOSIS-SCORE LOG-ALIST) where LOG-ALIST has
+keys n, c-success, c-fails, t-success, t-fails for
+`gnosis-review--update'."
+  (let* (;; Fetch all review-log fields in one query (includes n, t-fails)
+	 (log-data (car (gnosis-select '[t-success c-success c-fails
+					last-rev next-rev n t-fails]
 				       'review-log `(= id ,id))))
 	 (t-success (nth 0 log-data))
 	 (c-success (nth 1 log-data))
 	 (c-fails (nth 2 log-data))
-	 ;; Use elapsed time (today - last-rev) instead of scheduled interval
 	 (last-interval (gnosis-algorithm-date-diff (nth 3 log-data)))
 	 (existing-next-rev (nth 4 log-data))
+	 (n (nth 5 log-data))
+	 (t-fails (nth 6 log-data))
 	 (gnosis (gnosis-get 'gnosis 'review `(= id ,id)))
-	 ;; Custom values (compute once)
-	 (amnesia (gnosis-get-thema-amnesia id))
-	 (lethe (gnosis-get-thema-lethe id))
+	 ;; Pass tags to skip per-thema tag query
+	 (amnesia (gnosis-get-thema-amnesia nil tags))
+	 (lethe (gnosis-get-thema-lethe nil tags))
 	 (computed-next-rev (gnosis-algorithm-next-interval
 			     :last-interval last-interval
 			     :gnosis-synolon (nth 2 gnosis)
@@ -330,7 +336,7 @@ Returns a list of the form ((yyyy mm dd) (ef-increase ef-decrease ef-total))."
 			     :c-fails c-fails
 			     :lethe lethe
 			     :amnesia amnesia
-			     :proto (gnosis-get-thema-proto id)))
+			     :proto (gnosis-get-thema-proto nil tags)))
 	 ;; On success, keep the later of computed vs existing to prevent
 	 ;; early reviews from deflating intervals.
 	 (next-rev (if (and success
@@ -342,27 +348,28 @@ Returns a list of the form ((yyyy mm dd) (ef-increase ef-decrease ef-total))."
      (gnosis-algorithm-next-gnosis
       :gnosis gnosis
       :success success
-      :epignosis (gnosis-get-thema-epignosis id)
-      :agnoia (gnosis-get-thema-agnoia id)
-      :anagnosis (gnosis-get-thema-anagnosis id)
+      :epignosis (gnosis-get-thema-epignosis nil tags)
+      :agnoia (gnosis-get-thema-agnoia nil tags)
+      :anagnosis (gnosis-get-thema-anagnosis nil tags)
       :c-successes (if success (1+ c-success) 0)
       :c-failures (if success 0 (1+ c-fails))
-      :lethe lethe))))
+      :lethe lethe)
+     `((n . ,n) (c-success . ,c-success) (c-fails . ,c-fails)
+       (t-success . ,t-success) (t-fails . ,t-fails)))))
 
-(defun gnosis-review--update (id success)
+(defun gnosis-review--update (id success result)
   "Update review-log for thema ID.
 
-SUCCESS is a boolean value, t for success, nil for failure."
-  (let* ((result (gnosis-review-algorithm id success))
-	 (next-rev (car result))
-	 (gnosis-score (cadr result))
-	 (log (car (gnosis-select '[n c-success c-fails t-success t-fails]
-				  'review-log `(= id ,id))))
-	 (n (nth 0 log))
-	 (c-success (nth 1 log))
-	 (c-fails (nth 2 log))
-	 (t-success (nth 3 log))
-	 (t-fails (nth 4 log)))
+SUCCESS is a boolean value, t for success, nil for failure.
+RESULT is the return value of `gnosis-review-algorithm'."
+  (let* ((next-rev (nth 0 result))
+	 (gnosis-score (nth 1 result))
+	 (log-alist (nth 2 result))
+	 (n (alist-get 'n log-alist))
+	 (c-success (alist-get 'c-success log-alist))
+	 (c-fails (alist-get 'c-fails log-alist))
+	 (t-success (alist-get 't-success log-alist))
+	 (t-fails (alist-get 't-fails log-alist)))
     (gnosis-review-increment-activity-log (not (> n 0)))
     ;; Single review-log UPDATE
     (gnosis-sqlite-execute (gnosis--ensure-db)
@@ -376,16 +383,18 @@ SUCCESS is a boolean value, t for success, nil for failure."
     ;; Single review UPDATE
     (gnosis-update 'review `(= gnosis ',gnosis-score) `(= id ,id))))
 
-(defun gnosis-review-result (id success)
-  "Update review thema ID results for SUCCESS."
-  (gnosis-review--update id success)
+(defun gnosis-review-result (id success result)
+  "Update review thema ID results for SUCCESS.
+RESULT is the return value of `gnosis-review-algorithm'."
+  (gnosis-review--update id success result)
   (when (and gnosis-due-themata-total (> gnosis-due-themata-total 0))
     (cl-decf gnosis-due-themata-total)))
 
 ;;; Type-specific review
 
-(defun gnosis-review-mcq (id)
-  "Review MCQ thema with ID."
+(defun gnosis-review-mcq (id tags)
+  "Review MCQ thema with ID.
+TAGS are pre-fetched for custom value lookup."
   (let* ((data (car (gnosis-select '[keimenon answer] 'themata `(= id ,id))))
 	 (keimenon (nth 0 data))
 	 (answer (car (nth 1 data)))
@@ -393,14 +402,16 @@ SUCCESS is a boolean value, t for success, nil for failure."
     (gnosis-display-image keimenon)
     (gnosis-display-keimenon (gnosis-org-format-string keimenon))
     (let* ((user-choice (gnosis-mcq-answer id))
-	   (success (string= answer user-choice)))
+	   (success (string= answer user-choice))
+	   (result (gnosis-review-algorithm id success tags)))
       (gnosis-display-correct-answer-mcq answer user-choice)
       (gnosis-display-parathema parathema)
-      (gnosis-display-next-review id success)
-      success)))
+      (gnosis-display-next-review (nth 0 result) success)
+      (cons success result))))
 
-(defun gnosis-review-basic (id)
-  "Review basic type thema for ID."
+(defun gnosis-review-basic (id tags)
+  "Review basic type thema for ID.
+TAGS are pre-fetched for custom value lookup."
   (let* ((data (car (gnosis-select '[keimenon hypothesis answer] 'themata `(= id ,id))))
 	 (keimenon (nth 0 data))
 	 (hypothesis (car (nth 1 data)))
@@ -410,11 +421,12 @@ SUCCESS is a boolean value, t for success, nil for failure."
     (gnosis-display-keimenon (gnosis-org-format-string keimenon))
     (gnosis-display-hint hypothesis)
     (let* ((user-input (gnosis--read-string-with-input-method "Answer: " answer))
-	   (success (gnosis-compare-strings answer user-input)))
+	   (success (gnosis-compare-strings answer user-input))
+	   (result (gnosis-review-algorithm id success tags)))
       (gnosis-display-basic-answer answer success user-input)
       (gnosis-display-parathema parathema)
-      (gnosis-display-next-review id success)
-      success)))
+      (gnosis-display-next-review (nth 0 result) success)
+      (cons success result))))
 
 (defun gnosis-review-cloze--input (clozes &optional user-input)
   "Prompt for USER-INPUT during cloze review.
@@ -429,8 +441,9 @@ Returns a cons; ='(position . user-input) if correct,
          (position (cl-position user-input clozes :test #'gnosis-compare-strings)))
     (cons position user-input)))
 
-(defun gnosis-review-cloze (id)
-  "Review cloze type thema for ID."
+(defun gnosis-review-cloze (id tags)
+  "Review cloze type thema for ID.
+TAGS are pre-fetched for custom value lookup."
   (let* ((data (car (gnosis-select '[keimenon answer hypothesis] 'themata `(= id ,id))))
 	 (keimenon (nth 0 data))
          (all-clozes (nth 1 data))
@@ -472,12 +485,14 @@ Returns a cons; ='(position . user-input) if correct,
             (gnosis-display-cloze-user-answer (cdr input))
             (setq success nil)
             (throw 'done nil)))))
-    (gnosis-display-parathema parathema)
-    (gnosis-display-next-review id success)
-    success))
+    (let ((result (gnosis-review-algorithm id success tags)))
+      (gnosis-display-parathema parathema)
+      (gnosis-display-next-review (nth 0 result) success)
+      (cons success result))))
 
-(defun gnosis-review-mc-cloze (id)
-  "Review mc-cloze type thema for ID."
+(defun gnosis-review-mc-cloze (id tags)
+  "Review mc-cloze type thema for ID.
+TAGS are pre-fetched for custom value lookup."
   (let* ((data (car (gnosis-select '[keimenon answer hypothesis] 'themata `(= id ,id))))
 	 (keimenon (nth 0 data))
 	 (cloze (nth 1 data))
@@ -494,9 +509,10 @@ Returns a cons; ='(position . user-input) if correct,
 	  (setq success t))
       (gnosis-display-cloze-string keimenon nil nil nil cloze)
       (gnosis-display-correct-answer-mcq (car cloze) user-input))
-    (gnosis-display-parathema parathema)
-    (gnosis-display-next-review id success)
-    success))
+    (let ((result (gnosis-review-algorithm id success tags)))
+      (gnosis-display-parathema parathema)
+      (gnosis-display-next-review (nth 0 result) success)
+      (cons success result))))
 
 (defun gnosis-review-is-thema-new-p (id)
   "Return t if thema with ID is new."
@@ -526,13 +542,16 @@ If NEW? is non-nil, increment new themata log by 1."
 ;;; Session management
 
 (defun gnosis-review--display-thema (id)
-  "Display thema with ID and call the appropriate review func."
+  "Display thema with ID and call the appropriate review func.
+Fetches tags once and passes them to the type-specific function.
+Returns (SUCCESS . ALGORITHM-RESULT)."
   (let* ((type (gnosis-get 'type 'themata `(= id ,id)))
+         (tags (gnosis-select 'tag 'thema-tag `(= thema-id ,id) t))
          (func-name (intern (format "gnosis-review-%s" (downcase type)))))
     (if (fboundp func-name)
         (progn
 	  (window-configuration-to-register :gnosis-pre-image)
-          (funcall func-name id))
+          (funcall func-name id tags))
       (error "Malformed thema type: '%s'" type))))
 
 (defun gnosis-review-process-thema (thema state)
@@ -543,9 +562,11 @@ reviewed count, and pops from remaining.  Forces header redisplay.
 Returns STATE.
 
 This is a helper function for `gnosis-review-session'."
-  (let ((success (gnosis-review--display-thema thema)))
+  (let* ((review-cons (gnosis-review--display-thema thema))
+	 (success (car review-cons))
+	 (result (cdr review-cons)))
     (unless success (gnosis-monkeytype-answer thema))
-    (gnosis-review-actions success thema)
+    (gnosis-review-actions success thema result)
     ;; Use jump-to-register after first review.
     (when (get-register :gnosis-pre-image)
       (jump-to-register :gnosis-pre-image))
@@ -622,60 +643,69 @@ the changes with a message containing the reviewed number THEMA-NUM."
 
 ;;; Review actions
 
-(defun gnosis-review-action--edit (success thema)
+(defun gnosis-review-action--edit (success thema result)
   "Edit THEMA during review.
 
 Save current contents of *gnosis-edit* buffer, if any, and start
 editing THEMA with its new contents.
+RESULT is the algorithm result to thread through.
 
 After done editing, call `gnosis-review-actions' with SUCCESS THEMA."
   (gnosis-edit-thema thema)
   (setf gnosis-review-editing-p t)
   (recursive-edit)
-  (gnosis-review-actions success thema))
+  (gnosis-review-actions success thema result))
 
-(defun gnosis-review-action--quit (success thema)
+(defun gnosis-review-action--quit (success thema result)
   "Quit review session.
 
 Update result for THEMA review with SUCCESS.
+RESULT is the algorithm result for the DB update.
 
 This function should be used with `gnosis-review-actions', to finish
 the review session."
-  (gnosis-review-result thema success)
+  (gnosis-review-result thema success result)
   ;; Break the review loop of `gnosis-review-loop'
   (throw 'review-loop t))
 
-(defun gnosis-review-action--suspend (success thema)
+(defun gnosis-review-action--suspend (success thema result)
   "Suspend/Unsuspend THEMA.
+RESULT is the algorithm result to thread through.
 
 This function should be used with `gnosis-review-actions', which
 should be recursively called using SUCCESS and THEMA."
   (gnosis-toggle-suspend-themata (list thema))
-  (gnosis-review-actions success thema))
+  (gnosis-review-actions success thema result))
 
-(defun gnosis-review-action--override (success thema)
+(defun gnosis-review-action--override (success thema result)
   "Override current review result for SUCCESS.
+RESULT is the current algorithm result; will be recomputed with
+the flipped SUCCESS value.
 
 This function should be used with `gnosis-review-actions', which will
 be called with new SUCCESS value plus THEMA."
-  (setf success (if success nil t))
-  (gnosis-display-next-review thema success)
-  (gnosis-review-actions success thema))
+  (setf success (not success))
+  (let* ((tags (gnosis-select 'tag 'thema-tag `(= thema-id ,thema) t))
+	 (new-result (gnosis-review-algorithm thema success tags)))
+    (gnosis-display-next-review (nth 0 new-result) success)
+    (gnosis-review-actions success thema new-result)))
 
-(defun gnosis-review-action--view-link (success thema)
-  "View linked node(s) for THEMA."
+(defun gnosis-review-action--view-link (success thema result)
+  "View linked node(s) for THEMA.
+RESULT is the algorithm result to thread through."
   (if (gnosis-get-linked-nodes thema)
     (progn (gnosis-view-linked-node thema)
 	   (recursive-edit))
     (message (format "No linked nodes for thema: %d" thema))
     (sleep-for 0.5))
-  (gnosis-review-actions success thema))
+  (gnosis-review-actions success thema result))
 
-(defun gnosis-review-actions (success id)
+(defun gnosis-review-actions (success id result)
   "Specify action during review of thema.
 
 SUCCESS: Review result.
 ID: Thema ID.
+RESULT: Return value of `gnosis-review-algorithm'.
 
 To customize the keybindings, adjust `gnosis-review-keybindings'."
   (let* ((prompt
@@ -687,13 +717,13 @@ To customize the keybindings, adjust `gnosis-review-keybindings'."
 			  '("n" "o" "s" "d" "e" "v" "q")))
 		  '(?n ?o ?s ?d ?e ?v ?q))))
     (pcase choice
-      (?n (gnosis-review-result id success))
-      (?o (gnosis-review-action--override success id))
-      (?s (gnosis-review-action--suspend success id))
+      (?n (gnosis-review-result id success result))
+      (?o (gnosis-review-action--override success id result))
+      (?s (gnosis-review-action--suspend success id result))
       (?d (gnosis-delete-thema id))
-      (?e (gnosis-review-action--edit success id))
-      (?v (gnosis-review-action--view-link success id))
-      (?q (gnosis-review-action--quit success id)))))
+      (?e (gnosis-review-action--edit success id result))
+      (?v (gnosis-review-action--view-link success id result))
+      (?q (gnosis-review-action--quit success id result)))))
 
 ;;; Monkeytype integration
 

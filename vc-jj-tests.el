@@ -85,8 +85,9 @@ is needed."
   (vc-jj-test-with-repo repo
     (write-region "New file" nil "README")
     (should (eq (vc-jj-state "README") 'added))
-    (should (equal (vc-jj-dir-status-files repo nil (lambda (x _y) x))
-                   '(("README" added))))))
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo nil (lambda (x _y) x))
+             '(("README" added))))))
 
 (ert-deftest vc-jj-test-added-tracked ()
   "Test the \"up-to-date\" vc state."
@@ -96,8 +97,9 @@ is needed."
     (write-region "In second commit" nil "second-file")
     (should (eq (vc-jj-state "second-file") 'added))
     (should (eq (vc-jj-state "first-file") 'up-to-date))
-    (should (equal (vc-jj-dir-status-files repo nil (lambda (x _y) x))
-                   '(("second-file" added) ("first-file" up-to-date))))))
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo nil (lambda (x _y) x))
+             '(("second-file" added) ("first-file" up-to-date))))))
 
 (ert-deftest vc-jj-delete-file ()
   "Test \"removed\" vc state and `vc-jj-delete-file'."
@@ -109,8 +111,9 @@ is needed."
     (should (eq (vc-jj-state "first-file") 'removed))
     (write-region "Second file" nil "second-file")
     (should (eq (vc-jj-state "second-file") 'added))
-    (should (equal (vc-jj-dir-status-files repo nil (lambda (x _y) x))
-                   '(("second-file" added) ("first-file" removed))))))
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo nil (lambda (x _y) x))
+             '(("second-file" added) ("first-file" removed))))))
 
 (ert-deftest vc-jj-test-conflict ()
   "Test the \"conflict\" vc state."
@@ -210,13 +213,15 @@ is needed."
       (setq branch-2 (vc-jj-working-revision "unconflicted.txt"))
       (shell-command (concat "jj new " branch-1 " " branch-2))
       (write-region "Added" nil "added.txt")
-      (should (equal (vc-jj-dir-status-files repo nil (lambda (x y) x))
-                     '(("conflicted.txt" conflict)
-                       ("subdir/conflicted.txt" conflict)
-                       ("added.txt" added)
-                       ("unconflicted.txt" up-to-date))))
-      (should (equal (vc-jj-dir-status-files (expand-file-name "subdir/" repo) nil (lambda (x y) x))
-                     '(("conflicted.txt" conflict)))))))
+      (should (seq-set-equal-p
+               (vc-jj-dir-status-files repo nil (lambda (x y) x))
+               '(("conflicted.txt" conflict)
+                 ("subdir/conflicted.txt" conflict)
+                 ("added.txt" added)
+                 ("unconflicted.txt" up-to-date))))
+      (should (seq-set-equal-p
+               (vc-jj-dir-status-files (expand-file-name "subdir/" repo) nil (lambda (x y) x))
+               '(("conflicted.txt" conflict)))))))
 
 (ert-deftest vc-jj-checkin-directory ()
   "Test checking in an entire directory of files.

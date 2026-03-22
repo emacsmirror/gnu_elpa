@@ -60,13 +60,10 @@ If ask nil, leave testing env"
 	(progn
 	  (unless (file-exists-p testing-dir)
 	    (make-directory testing-dir))
+	  (when (file-exists-p testing-db)
+	    (delete-file testing-db))
 	  (setf gnosis-db (gnosis-sqlite-open testing-db))
-	  (dolist (table '(themata review review-log extras activity-log tags links))
-	    (condition-case nil
-		(gnosis--drop-table table)
-	      (error (message "No %s table to drop." table))))
 	  (setf gnosis-testing t)
-	  (gnosis--db-set-version 0)
 	  (gnosis-db-init)
 	  (message "Development env is ready for testing.")
 	  (and (y-or-n-p "Import test file? ") (gnosis-import-file gnosis-test-import-file)))

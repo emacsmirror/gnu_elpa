@@ -94,10 +94,11 @@ Optional argument FLATTEN, when non-nil, flattens the result.
 Delegates to `gnosis-select' (unified DB)."
   (gnosis-select value table restrictions flatten))
 
-(defun gnosis-nodes--insert-into (table values)
+(defun gnosis-nodes--insert-into (table values &optional or-ignore)
   "Insert VALUES to TABLE.
-Delegates to `gnosis--insert-into' (unified DB)."
-  (gnosis--insert-into table values))
+Delegates to `gnosis--insert-into' (unified DB).
+When OR-IGNORE, skip rows that violate UNIQUE constraints."
+  (gnosis--insert-into table values or-ignore))
 
 (defun gnosis-nodes--delete (table value)
   "From TABLE use where to delete VALUE.
@@ -147,16 +148,16 @@ If JOURNAL is non-nil, update file as a journal entry."
 			     ,(prin1-to-string tags) ,mtime ,hash]))
 			;; Insert tags
 			(cl-loop for tag in tags
-				 do (gnosis-nodes--insert-into 'node-tag `([,id ,tag])))
+				 do (gnosis-nodes--insert-into 'node-tag `([,id ,tag]) t))
 			;; Insert master relationship as link (nodes only)
 			(when (and (not journal)
 				   (plist-get item :master)
 				   (stringp (plist-get item :master)))
-			  (gnosis-nodes--insert-into 'node-links `([,id ,(plist-get item :master)])))))
+			  (gnosis-nodes--insert-into 'node-links `([,id ,(plist-get item :master)]) t))))
 	  ;; Insert ID links (nodes only)
 	  (unless journal
 	    (cl-loop for link in links
-		     do (gnosis-nodes--insert-into 'node-links `[,(cdr link) ,(car link)])))))
+		     do (gnosis-nodes--insert-into 'node-links `[,(cdr link) ,(car link)] t)))))
     (file-error
      (message "File error updating %s: %s.  Try M-x gnosis-nodes-db-force-sync to rebuild database."
               file (error-message-string err)))

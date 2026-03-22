@@ -3,7 +3,7 @@
 ;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
-;; Version: 1.3
+;; Version: 1.4
 ;; Keywords: concurrency, async, promises, futures
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -165,13 +165,17 @@
 
 ;;; News:
 
-;; Version 1.3:
+;; Version 1.4:
 
 ;; - New function `futur-register-unwind-protect`.
+;; - Added an asynchronous byte-compile-file to `futur-hacks-mode'.
+;; - Bug fixes.
+
+;; Version 1.3:
+
 ;; - Syntax of `:error-fun' changed in `futur-let*'.
 ;; - Remove `idle' argument from `futur-timeout'.
 ;; - Adjusted `futur-hacks-mode' to changes in Emacs `master'.
-;; - Added an asynchronous byte-compile-file to `futur-hacks-mode'.
 
 ;; Version 1.2:
 

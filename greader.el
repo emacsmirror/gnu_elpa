@@ -55,6 +55,10 @@
 (require 'find-func)
 (defvar greader-auto-tired-timer nil)
 (defvar greader-auto-tired-end-timer)
+(defvar-local greader--auto-tired-buffer nil
+  "Buffer in which `greader-auto-tired-mode' was enabled.
+Used by `greader-auto-tired-callback' to operate in the correct buffer
+regardless of which buffer is current when the timer fires.")
 (defvar greader-last-point nil)
 (defvar-local greader-tired-timer nil)
 (defvar-local greader--tired-pending nil
@@ -973,6 +977,7 @@ The original command is swallowed: only reading resumes."
   :lighter " ATrd"
   (if greader-auto-tired-mode
       (progn
+        (setq-local greader--auto-tired-buffer (current-buffer))
         (unless greader-tired-mode (greader-tired-mode 1))
         (setq-local greader-auto-tired-timer
                     (run-at-time nil 1 #'greader-auto-tired-callback)))
@@ -1006,14 +1011,16 @@ Handles midnight-crossing intervals (e.g. 22:00 to 07:00)."
 
 (defun greader-auto-tired-callback ()
   "Not documented, internal use."
-  (let ((start (greader-convert-time greader-auto-tired-mode-time))
-        (end   (greader-convert-time greader-auto-tired-time-end)))
-    (when (and (greader-current-time-in-interval-p start end)
-               (not greader-tired-mode))
-      (greader-tired-mode 1))
-    (when (and (not (greader-current-time-in-interval-p start end))
-               greader-tired-mode)
-      (greader-tired-mode -1))))
+  (when (buffer-live-p greader--auto-tired-buffer)
+    (with-current-buffer greader--auto-tired-buffer
+      (let ((start (greader-convert-time greader-auto-tired-mode-time))
+            (end   (greader-convert-time greader-auto-tired-time-end)))
+        (when (and (greader-current-time-in-interval-p start end)
+                   (not greader-tired-mode))
+          (greader-tired-mode 1))
+        (when (and (not (greader-current-time-in-interval-p start end))
+                   greader-tired-mode)
+          (greader-tired-mode -1))))))
 
 (defun greader-set-rate (n)
   "Set rate in current buffer to tthe specified value in N.

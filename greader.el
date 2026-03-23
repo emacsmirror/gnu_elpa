@@ -833,7 +833,7 @@ This command should be used only if you want to set locally a timer
 different of that you set via customize, that is considered the default
 value for this variable.
 Optional argument TIMER-IN-MINS timer in minutes (integer)."
-  (interactive "Nset timer for:")
+  (interactive (list (read-number "Set timer for: " greader-timer)))
   (unless (or greader-timer-mode greader-auto-tired-mode)
     (greader-timer-mode 1))
   (setq-local greader-timer timer-in-mins))

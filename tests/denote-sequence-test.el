@@ -43,6 +43,23 @@
                       files)))
     (>= (length files) (length found))))
 
+(ert-deftest dst-denote-sequence-numeric-p ()
+  "Test that `denote-sequence-numeric-p' does what it is supposed to."
+  (should-not (denote-sequence-numeric-p "a"))
+  (should-not (denote-sequence-numeric-p "1a"))
+  (should-not (denote-sequence-numeric-p "1=a"))
+  (should-not (denote-sequence-numeric-p "hello"))
+  (should (string= (denote-sequence-numeric-p "1") "1"))
+  (should (string= (denote-sequence-numeric-p "1=1") "1=1")))
+
+(ert-deftest dst-denote-sequence-alphanumeric-p ()
+  "Test that `denote-sequence-alphanumeric-p' does what it is supposed to."
+  (should-not (denote-sequence-alphanumeric-p "1=1"))
+  (should-not (denote-sequence-alphanumeric-p "1=a"))
+  (should-not (denote-sequence-alphanumeric-p "hello"))
+  (should (string= (denote-sequence-alphanumeric-p "1") "1"))
+  (should (string= (denote-sequence-alphanumeric-p "1a") "1a")))
+
 (ert-deftest dst-denote-sequence--get-new-exhaustive ()
   "Test if we get the correct parent, child, sibling, or relatives of a sequence.
 Use the function `denote-sequence-get-new' for child and sibling with

@@ -834,7 +834,7 @@ different of that you set via customize, that is considered the default
 value for this variable.
 Optional argument TIMER-IN-MINS timer in minutes (integer)."
   (interactive "Nset timer for:")
-  (unless greader-timer-mode
+  (unless (or greader-timer-mode greader-auto-tired-mode)
     (greader-timer-mode 1))
   (setq-local greader-timer timer-in-mins))
 

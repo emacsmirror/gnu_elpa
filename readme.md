@@ -63,7 +63,7 @@ If desired, you can change the prefix. See the command `greader-set-map-prefix`.
 | `C-r t` | `greader-timer-mode` | Toggle the reading timer. |
 | `C-r s` | `greader-tired-mode` | Toggle tired/relax mode. |
 | `C-r f` | `greader-get-attributes` | Report text attributes at point. |
-| `M-x greader-set-timer` | | Set the duration for the timer. |
+| `M-x greader-set-timer` | | Set the duration for the timer (in minutes).  When `greader-auto-tired-mode' is active, only sets the value without enabling `greader-timer-mode' directly. |
 
 ### Navigation
 The following commands work when you are in `greader-reading-mode', which happens when you call `greader-read'.

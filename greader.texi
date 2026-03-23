@@ -178,8 +178,10 @@ Keybinding
  @tab Report text attributes at point.
 @item 
 @code{M-x greader-set-timer}
- @tab 
- @tab Set the duration for the timer.
+ @tab
+ @tab Set the duration for the timer (in minutes).  When
+@code{greader-auto-tired-mode} is active, only sets the value without
+enabling @code{greader-timer-mode} directly.
 @end multitable
 
 @node Navigation

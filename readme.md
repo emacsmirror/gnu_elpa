@@ -180,13 +180,25 @@ Additional commands available via `M-x`: `greader-queue-remove-element`, `greade
 
 `greader-compile-mode` is for users who want to edit and recompile eSpeak-NG voice dictionaries from within Emacs. It is not needed for ordinary text-to-speech use.
 
-**Prerequisites:** Set `greader-compile-dictsource` to the directory containing your eSpeak-NG dictionary source files before enabling this mode.
+**Prerequisites:** Set `greader-compile-dictsource` to the list of directories containing your eSpeak-NG dictionary source files before enabling this mode:
+
+```elisp
+(setq greader-compile-dictsource '("/path/to/espeak-ng-data/dictsource/"))
+```
+
+Paths must end with a slash. The variable is a list, so you can specify multiple directories.
+
+**File naming convention:** eSpeak-NG dictionary source files must follow the pattern `XX_suffix`, where `XX` is a two-letter language code (e.g., `en_extra`, `it_rules`). `greader-compile-mode` uses the filename to infer the language to compile.
 
 **Enable:** `M-x greader-compile-mode`
+
+**Auto-compilation on save:** Once enabled, saving any dictionary source file whose directory is in `greader-compile-dictsource` automatically runs `espeak --compile=XX` for the corresponding language. If the eSpeak-NG data directory is not writable by your user, you will be prompted for your administrator password.
 
 | Keybinding | Command | Description |
 |---|---|---|
 | `C-r c` | `greader-compile-at-point` | Add the word at point to the dictionary and recompile. With a prefix argument, prompts for the word. |
+
+`greader-compile` — Compile eSpeak-NG definitions interactively. With a prefix argument, prompts for the language code; without, infers it from the current file name.
 
 `greader-compile-goto-source` — Visit the dictionary source file currently used by `greader-compile-at-point`.
 

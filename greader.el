@@ -1202,39 +1202,39 @@ function is specifically designed to be executed by a hook."
   (interactive "P")
 
   (if lang
-      (progn
+      (setq lang (read-from-minibuffer "Language (2 letters):"
+				       nil
+				       nil
+				       nil
+				       nil
+				       nil
+				       (greader-compile-guess-lang)))
+    (setq lang (greader-compile-guess-lang)))
 
-	(setq lang (read-from-minibuffer "Language (2 letters):"
-					 nil
-					 nil
-					 nil
-					 nil
-					 nil
-					 (greader-compile-guess-lang))))
+  (unless lang
+    (error "Cannot determine language to compile"))
 
-    (setq lang (greader-compile-guess-lang))
+  (let
+      (data-is-writable
+       (command
+	(append '("espeak")
+		(list (concat greader-compile-command lang))
+		greader-compile-extra-parameters)))
 
-    (let
-	(data-is-writable
-	 (command
-	  (append '("espeak")
-		  (list (concat greader-compile-command lang))
-		  greader-compile-extra-parameters)))
+    (with-temp-buffer
+      (call-process "espeak" nil t t "--version")
+      (goto-char (point-min))
+      (search-forward "/")
+      (setq data-is-writable (file-writable-p (thing-at-point
+					       'filename))))
 
-      (with-temp-buffer
-	(call-process "espeak" nil t t "--version")
-	(goto-char (point-min))
-	(search-forward "/")
-	(setq data-is-writable (file-writable-p (thing-at-point
-						 'filename))))
+    (when (not data-is-writable)
+      (setq command (append '("sudo") command)))
 
-      (if (not data-is-writable)
-	  (setq command (append '("sudo")command)))
-
-      (make-process
-       :name "greader-espeak"
-       :filter #'greader-compile--filter
-       :command command))))
+    (make-process
+     :name "greader-espeak"
+     :filter #'greader-compile--filter
+     :command command)))
 
 (defun greader-compile--filter (&optional process str)
   "Filter PROCESS for sudo based on STR."
@@ -1265,10 +1265,19 @@ This function return t if the file associated with current buffer
 (defun greader-check-visited-file ()
   "Internal use.
 Hook for `after-save-hook'."
-  (and
-   (member default-directory greader-compile-dictsource)
-   (greader-compile-guess-lang)
-   (greader-compile)))
+  (let ((dir (file-truename (file-name-as-directory default-directory)))
+	(sources (mapcar (lambda (d) (file-truename (file-name-as-directory d)))
+			 greader-compile-dictsource))
+	(lang (greader-compile-guess-lang)))
+    (message "greader-compile: default-directory=%S" dir)
+    (message "greader-compile: dictsource=%S" sources)
+    (message "greader-compile: guessed lang=%S" lang)
+    (if (not (member dir sources))
+	(message "greader-compile: skipping (directory not in dictsource)")
+      (if (not lang)
+	  (message "greader-compile: skipping (cannot guess language from filename)")
+	(message "greader-compile: compiling %s..." lang)
+	(greader-compile)))))
 
 (defcustom greader-compile-default-source "extra"
   "Dict source file suffix to use when `greader-compile-at-point' is called.
@@ -1325,7 +1334,7 @@ SRC and DST are declared as optional."
   (if (string-match "/" greader-compile-default-source)
       (find-file greader-compile-default-source)
     (find-file (concat (car greader-compile-dictsource)
-		       greader-espeak-language "_"
+		       (substring greader-espeak-language 0 2) "_"
 		       greader-compile-default-source))))
 
 (defcustom greader-backward-acoustic-feedback nil

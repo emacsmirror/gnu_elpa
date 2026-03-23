@@ -466,22 +466,46 @@ eSpeak-NG voice dictionaries from within Emacs. It is not needed for
 ordinary text-to-speech use.
 
 @strong{Prerequisites:} Set @code{greader-compile-dictsource} to the
-directory containing your eSpeak-NG dictionary source files before
-enabling this mode.
+list of directories containing your eSpeak-NG dictionary source files
+before enabling this mode:
+
+@lisp
+(setq greader-compile-dictsource
+      '("/path/to/espeak-ng-data/dictsource/"))
+@end lisp
+
+Paths must end with a slash. The variable is a list, so you can specify
+multiple directories.
+
+@strong{File naming convention:} eSpeak-NG dictionary source files must
+follow the pattern @code{XX_suffix}, where @code{XX} is a two-letter
+language code (e.g., @code{en_extra}, @code{it_rules}).
+@code{greader-compile-mode} uses the filename to infer the language to
+compile.
 
 @strong{Enable:} @code{M-x greader-compile-mode}
 
-@multitable @columnfractions 0.33 0.33 0.33 
-@headitem 
+@strong{Auto-compilation on save:} Once enabled, saving any dictionary
+source file whose directory is in @code{greader-compile-dictsource}
+automatically runs @code{espeak --compile=XX} for the corresponding
+language. If the eSpeak-NG data directory is not writable by your user,
+you will be prompted for your administrator password.
+
+@multitable @columnfractions 0.33 0.33 0.33
+@headitem
 Keybinding
  @tab Command
  @tab Description
-@item 
+@item
 @code{C-r c}
  @tab @code{greader-compile-at-point}
  @tab Add the word at point to the dictionary and recompile. With a
 prefix argument, prompts for the word.
 @end multitable
+
+@code{greader-compile} --- Compile eSpeak-NG definitions interactively.
+With a prefix argument, prompts for the language code; without, infers
+it from the current file name.
 
 @code{greader-compile-goto-source} --- Visit the dictionary source file
 currently used by @code{greader-compile-at-point}.

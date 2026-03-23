@@ -158,7 +158,7 @@ Produce an error if the sequencing scheme cannot be established."
    ((or (and partial (denote-sequence--numeric-partial-p sequence))
         (denote-sequence-numeric-p sequence))
     (cons sequence 'numeric))
-   (t (error "The sequence `%s' does not pass `denote-sequence-p'" sequence))))
+   (t (error "The sequence `%s' does not pass `denote-sequence-and-scheme-p'" sequence))))
 
 (defun denote-sequence--scheme-of-strings (strings)
   "Return the sequencing scheme of STRINGS, per `denote-sequence-scheme'."

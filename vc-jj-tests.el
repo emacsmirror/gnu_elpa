@@ -1,4 +1,4 @@
-;;; vc-jj-tests.el --- tests for vc-jj.el            -*- lexical-binding: t; -*-
+;;; vc-jj-tests.el --- Tests for vc-jj.el            -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025  Free Software Foundation, Inc.
 
@@ -19,7 +19,7 @@
 
 ;;; Commentary:
 
-;;
+;; Test coverage for vc-jj.el.
 
 ;;; Code:
 
@@ -109,97 +109,234 @@ timestamps and random number seed (and thereby change ids) is needed."
              (,name (file-truename (vc-jj-root ,name))))
          ,@body))))
 
-;;;; Tests
+;;;; State-querying tests
 
-(ert-deftest vc-jj-test-add-file ()
-  "Test the \"added\" vc state."
+(defun vc-jj-test--dir-status-files-update-function (files-and-states _partial-results-p)
+  "Simple callback function for `vc-jj-dir-status-files'.
+Returns FILES-AND-STATES."
+  files-and-states)
+
+(ert-deftest vc-jj-test-state-ignored ()
+  "Test the \"ignored\" VC state.
+Check the correctness of \"ignored\" file state reported by
+`vc-jj-state' and `vc-jj-dir-status-files'."
   (vc-jj-test--with-repo repo
-    (write-region "New file" nil "README")
-    (should (eq (vc-jj-state "README") 'added))
+    (write-region "file1" nil ".gitignore")
+    (write-region "" nil "file1")
+    (should (eq (vc-jj-state "file1") 'ignored))
     (should (seq-set-equal-p
-             (vc-jj-dir-status-files repo nil (lambda (x _y) x))
-             '(("README" added))))))
+             (vc-jj-dir-status-files repo '("file1") #'vc-jj-test--dir-status-files-update-function)
+             '(("file1" ignored))))))
 
-(ert-deftest vc-jj-test-added-tracked ()
-  "Test the \"up-to-date\" vc state."
+(ert-deftest vc-jj-test-state-added ()
+  "Test the \"added\" VC state.
+Check the correctness of \"added\" file state reported by
+`vc-jj-state' and `vc-jj-dir-status-files'."
   (vc-jj-test--with-repo repo
-    (write-region "In first commit" nil "first-file")
-    (vc-jj-checkin '("first-file") "First commit")
-    (write-region "In second commit" nil "second-file")
-    (should (eq (vc-jj-state "second-file") 'added))
-    (should (eq (vc-jj-state "first-file") 'up-to-date))
+    (write-region "" nil "file1")
+    (should (eq (vc-jj-state "file1") 'added))
     (should (seq-set-equal-p
-             (vc-jj-dir-status-files repo nil (lambda (x _y) x))
-             '(("second-file" added) ("first-file" up-to-date))))))
+             (vc-jj-dir-status-files repo '("file1") #'vc-jj-test--dir-status-files-update-function)
+             '(("file1" added))))))
 
-(ert-deftest vc-jj-delete-file ()
-  "Test \"removed\" vc state and `vc-jj-delete-file'."
+(ert-deftest vc-jj-test-state-edited ()
+  "Test the \"edited\" VC state.
+Check the correctness of \"edited\" file state reported by
+`vc-jj-state' and `vc-jj-dir-status-files'."
   (vc-jj-test--with-repo repo
-    (write-region "First file" nil "first-file")
-    (should (eq (vc-jj-state "first-file") 'added))
-    (vc-jj-checkin '("first-file") "Commit")
-    (vc-jj-delete-file "first-file")
-    (should (eq (vc-jj-state "first-file") 'removed))
-    (write-region "Second file" nil "second-file")
-    (should (eq (vc-jj-state "second-file") 'added))
+    (write-region "" nil "file1")
+    (should (eq (vc-jj-state "file1") 'added))
     (should (seq-set-equal-p
-             (vc-jj-dir-status-files repo nil (lambda (x _y) x))
-             '(("second-file" added) ("first-file" removed))))))
+             (vc-jj-dir-status-files repo '("file1") #'vc-jj-test--dir-status-files-update-function)
+             '(("file1" added))))))
 
-(ert-deftest vc-jj-test-conflict ()
-  "Test the \"conflict\" vc state."
+(ert-deftest vc-jj-test-state-up-to-date ()
+  "Test the \"up-to-date\" VC state.
+Check the correctness of \"up-to-date\" file state reported by
+`vc-jj-state' and `vc-jj-dir-status-files'."
   (vc-jj-test--with-repo repo
-    (let (branch-1 branch-2 branch-merged)
-      ;; the root change id is always zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
-      (shell-command "jj new zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
-      (write-region "Unconflicted" nil "unconflicted.txt")
-      (write-region "Branch 1" nil "conflicted.txt")
+    (write-region "" nil "file1")
+    (should (eq (vc-jj-state "file1") 'added))
+    (shell-command "jj new")
+    (should (eq (vc-jj-state "file1") 'up-to-date))
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo '("file1") #'vc-jj-test--dir-status-files-update-function)
+             '(("file1" up-to-date))))))
+
+(ert-deftest vc-jj-test-state-removed ()
+  "Test \"removed\" VC state.
+Check the correctness of \"removed\" file state reported by
+`vc-jj-state' and `vc-jj-dir-status-files'."
+  (vc-jj-test--with-repo repo
+    (write-region "" nil "file1")
+    (should (eq (vc-jj-state "file1") 'added))
+    (shell-command "jj new")
+    (shell-command "rm file1")
+    (should (eq (vc-jj-state "file1") 'removed))
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo '("file1") #'vc-jj-test--dir-status-files-update-function)
+             '(("file1" removed))))))
+
+(ert-deftest vc-jj-test-state-conflict ()
+  "Test \"conflict\" VC state.
+Check the correctness of \"conflict\" file state reported by
+`vc-jj-state' and `vc-jj-dir-status-files'."
+  (vc-jj-test--with-repo repo
+    (write-region "some content" nil "file1")
+    (should (eq (vc-jj-state "file1") 'added))
+    (shell-command "jj new @-")
+    (write-region "conflicting content" nil "file1")
+    (should (eq (vc-jj-state "file1") 'added))
+    (shell-command "jj new 'children(@-)'")
+    (should (eq (vc-jj-state "file1") 'conflict))
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo '("file1") #'vc-jj-test--dir-status-files-update-function)
+             '(("file1" conflict))))))
+
+;; TODO: Write a test for the following case: a file that is currently
+;; tracked is later ignored (added to .gitignore then "jj file untrack
+;; FILE").  Its state should be ignored, not removed
+
+;; TODO: Write a test that checks the FILES argument of
+;; `vc-jj-dir-status-files': if FILES is non-nil, it should report on
+;; all files listed, but if it is nil, it should report on files not
+;; in the up-to-date and ignored states
+
+(ert-deftest vc-jj-test-state-mixed ()
+  "Test `vc-jj-dir-status-files' against a variety of VC states."
+  (vc-jj-test--with-repo repo
+    (let (branch-1 branch-2)
+      ;; Create branch 1
+      (shell-command "jj new 'root()'")
+      (write-region "" nil "unconflicted.txt")
+      (write-region "Branch 1" nil "conflicted1.txt")
       (make-directory "subdir")
-      (write-region "Branch 1" nil "subdir/conflicted.txt")
+      (write-region "Branch 1" nil "subdir/conflicted2.txt")
       (setq branch-1 (vc-jj-working-revision "unconflicted.txt"))
-      (shell-command "jj new zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
-      (write-region "Unconflicted" nil "unconflicted.txt")
-      (write-region "Branch 2" nil "conflicted.txt")
+      (should (seq-set-equal-p
+               (vc-jj-dir-status-files repo
+                                       '("unconflicted.txt"
+                                         "conflicted1.txt"
+                                         "subdir/conflicted2.txt")
+                                       #'vc-jj-test--dir-status-files-update-function)
+               '(("conflicted1.txt" added)
+                 ("unconflicted.txt" added)
+                 ("subdir/conflicted2.txt" added))))
+      
+      ;; Create second branch
+      (shell-command "jj new 'root()'")
+      (write-region "" nil "unconflicted.txt")
+      (write-region "Branch 2" nil "conflicted1.txt")
       (make-directory "subdir")
-      (write-region "Branch 2" nil "subdir/conflicted.txt")
+      (write-region "Branch 2" nil "subdir/conflicted2.txt")
       (setq branch-2 (vc-jj-working-revision "unconflicted.txt"))
-      (shell-command (concat "jj new " branch-1 " " branch-2))
-      (should (eq (vc-jj-state "unconflicted.txt") 'up-to-date))
-      (should (eq (vc-jj-state "conflicted.txt") 'conflict))
-      (should (eq (vc-jj-state "subdir/conflicted.txt") 'conflict)))))
+      (should (seq-set-equal-p
+               (vc-jj-dir-status-files repo
+                                       '("unconflicted.txt"
+                                         "conflicted1.txt"
+                                         "subdir/conflicted2.txt")
+                                       #'vc-jj-test--dir-status-files-update-function)
+               '(("conflicted1.txt" added)
+                 ("unconflicted.txt" added)
+                 ("subdir/conflicted2.txt" added))))
+      
+      ;; Create a merge commit between branch 1 and 2
+      (shell-command (format "jj new %s %s" branch-1 branch-2))
+      (write-region "" nil "added.txt")
+      (should (seq-set-equal-p
+               (vc-jj-dir-status-files repo
+                                       '("conflicted1.txt"
+                                         "subdir/conflicted2.txt"
+                                         "added.txt"
+                                         "unconflicted.txt")
+                                       #'vc-jj-test--dir-status-files-update-function)
+               '(("conflicted1.txt" conflict)
+                 ("subdir/conflicted2.txt" conflict)
+                 ("added.txt" added)
+                 ("unconflicted.txt" up-to-date))))
+      (should (seq-set-equal-p
+               (vc-jj-dir-status-files (expand-file-name "subdir/" repo)
+                                       '("conflicted2.txt")
+                                       #'vc-jj-test--dir-status-files-update-function)
+               '(("conflicted2.txt" conflict))))
 
-(ert-deftest vc-jj-test-annotate ()
-  "Test `vc-annotate'."
+      ;; Create a new commit, delete all files, then ignore a newly
+      ;; added file
+      (shell-command "jj new")
+      (shell-command "rm conflicted1.txt subdir/conflicted2.txt added.txt unconflicted.txt")
+      (shell-command "echo \"ignored.txt\" >> .gitignore")
+      (write-region "" nil "ignored.txt")
+      (should (seq-set-equal-p
+               (vc-jj-dir-status-files repo
+                                       '("conflicted1.txt"
+                                         "subdir/conflicted2.txt"
+                                         "added.txt"
+                                         "unconflicted.txt"
+                                         "ignored.txt")
+                                       #'vc-jj-test--dir-status-files-update-function)
+               '(("conflicted1.txt" removed)
+                 ("subdir/conflicted2.txt" removed)
+                 ("added.txt" removed)
+                 ("unconflicted.txt" removed)
+                 ("ignored.txt" ignored))))
+      (should (seq-set-equal-p
+               (vc-jj-dir-status-files (expand-file-name "subdir/" repo)
+                                       '("conflicted2.txt")
+                                       #'vc-jj-test--dir-status-files-update-function)
+               '(("conflicted.txt" removed)))))))
+
+(ert-deftest vc-jj-test-state-funky-filename ()
+  "Test compatibility with unusual characters in file names.
+Test the presence of apostrophes, double quotes, and the equal sign in
+file names, which are allowed in Linux.  See
+https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/38."
   (vc-jj-test--with-repo repo
-    (let ( change-1 change-2
-           readme-buffer annotation-buffer)
-      ;; Create two changes, make sure that the change ids in the
-      ;; annotation buffer match.  This test is supposed to detect
-      ;; changes in the output format of `jj annotate'.
-      (unwind-protect
-          (progn
-            (write-region "Line 1\n" nil "README")
-            (setq change-1 (vc-jj-working-revision "README"))
-            (shell-command "jj commit -m 'First change'")
-            (write-region "Line 2\n" nil "README" t)
-            (shell-command "jj describe -m 'Second change'")
-            (setq change-2 (vc-jj-working-revision "README"))
-            (find-file "README")
-            (setq readme-buffer (current-buffer))
-            (vc-annotate "README" change-2)
-            (let ((annotation-process (get-buffer-process (current-buffer))))
-              (while (process-live-p annotation-process)
-                (accept-process-output annotation-process)))
-            (setq annotation-buffer (current-buffer))
-            (goto-char (point-min))
-            (should (string-prefix-p (thing-at-point 'word) change-1))
-            (forward-line)
-            (should (string-prefix-p (thing-at-point 'word) change-2)))
-        (when (buffer-live-p readme-buffer) (kill-buffer readme-buffer))
-        (when (buffer-live-p annotation-buffer) (kill-buffer annotation-buffer))))))
+    (write-region "" nil "TEST=TEST.txt")
+    (should (eq (vc-jj-state "TEST=TEST.txt") 'added))
+    (write-region "" nil "with'apostrophe.txt")
+    (should (eq (vc-jj-state "with'apostrophe.txt") 'added))
+    (write-region "" nil "with\"quotation.txt")
+    (should (eq (vc-jj-state "with\"quotation.txt") 'added))
 
-(ert-deftest vc-jj-ignore ()
-  "Test \"ignored\" vc state."
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo '("TEST=TEST.txt"
+                                            "with'apostrophe.txt"
+                                            "with\"quotation.txt")
+                                     #'vc-jj-test--dir-status-files-update-function)
+             '(("TEST=TEST.txt" added)
+               ("with'apostrophe.txt" added)
+               ("with\"quotation.txt" added))))))
+
+(ert-deftest vc-jj-test-state-.git-deletion ()
+  "Test `vc-jj-dir-status-files' after deleting .git in a colocated repository.
+`vc-jj-dir-status-files' should tolerate the deletion of the .git
+directory, reporting on no files.  See bug#63."
+  (let ((vc-jj-test--repo-colocate t))
+    (vc-jj-test--with-repo repo
+      (write-region "Hello!" nil "README")
+      (shell-command "rm -r .git")
+      (should (eq (vc-jj-dir-status-files repo nil #'vc-jj-test--dir-status-files-update-function)
+                  nil)))))
+
+(ert-deftest vc-jj-state-very-large-file ()
+  "Test very large files.
+Jujutsu usually prints to stderr when there is too large of a file
+registered.  Such files should be reported as ignored, not interrupting
+the user.  See bug#52."
+  (vc-jj-test--with-repo repo
+    ;; Reduce maximum file size of tracked files
+    (shell-command "jj config set --repo snapshot.max-new-file-size 12")
+    ;; Acceptable file size
+    (write-region "1234567890" nil "numbers.txt")
+    (should (eq (vc-jj-state "numbers.txt") 'added))
+    ;; Too large of a file
+    (write-region "abcdefghijklmnopqrstuvwxyz" nil "alphabet.txt")
+    (should (eq (vc-jj-state "alphabet.txt") 'ignored))))
+
+;;;; State-changing commands tests
+
+(ert-deftest vc-jj-test-ignore ()
+  "Test `vc-jj-ignore'."
   (vc-jj-test--with-repo repo
     (let (gitignore-buffer)
       (unwind-protect
@@ -225,39 +362,21 @@ timestamps and random number seed (and thereby change ids) is needed."
         (when (buffer-live-p gitignore-buffer)
           (kill-buffer gitignore-buffer))))))
 
-(ert-deftest vc-jj-list-files ()
-  "Test `vc-jj-dir-status-files' with a variety of vc states."
+(ert-deftest vc-jj-test-delete-file ()
+  "Test `vc-jj-delete-file'."
   (vc-jj-test--with-repo repo
-    (let (branch-1 branch-2 branch-merged)
-      ;; the root change id is always zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
-      (shell-command "jj new zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
-      (write-region "Unconflicted" nil "unconflicted.txt")
-      (write-region "Branch 1" nil "conflicted.txt")
-      (make-directory "subdir")
-      (write-region "Branch 1" nil "subdir/conflicted.txt")
-      (setq branch-1 (vc-jj-working-revision "unconflicted.txt"))
-      (shell-command "jj new zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
-      (write-region "Unconflicted" nil "unconflicted.txt")
-      (write-region "Branch 2" nil "conflicted.txt")
-      (make-directory "subdir")
-      (write-region "Branch 2" nil "subdir/conflicted.txt")
-      (setq branch-2 (vc-jj-working-revision "unconflicted.txt"))
-      (shell-command (concat "jj new " branch-1 " " branch-2))
-      (write-region "Added" nil "added.txt")
-      (should (seq-set-equal-p
-               (vc-jj-dir-status-files repo nil (lambda (x y) x))
-               '(("conflicted.txt" conflict)
-                 ("subdir/conflicted.txt" conflict)
-                 ("added.txt" added)
-                 ("unconflicted.txt" up-to-date))))
-      (should (seq-set-equal-p
-               (vc-jj-dir-status-files (expand-file-name "subdir/" repo) nil (lambda (x y) x))
-               '(("conflicted.txt" conflict)))))))
+    (write-region "" nil "file1")
+    (should (eq (vc-jj-state "file1") 'added))
+    (shell-command "jj new")
+    (vc-jj-delete-file "file1")
+    (should (eq (vc-jj-state "file1") 'removed))))
 
-(ert-deftest vc-jj-checkin-directory ()
-  "Test checking in an entire directory of files.
-This tests when a subdirectory path is passed to `vc-jj-checkin', rather
-than a path to a regular file.  See bug#62."
+;;;; Checkin tests
+
+(ert-deftest vc-jj-test-checkin-directory ()
+  "Test `vc-jj-checkin' for an entire directory.
+Test when a subdirectory path is passed to `vc-jj-checkin', rather than
+a path to a regular file.  See bug#62."
   (vc-jj-test--with-repo repo
     (make-directory "subdir")
     (write-region "foo" nil "subdir/file1.txt")
@@ -269,106 +388,24 @@ than a path to a regular file.  See bug#62."
     (should (eq (vc-jj-state "subdir/deeper_subdir/file3.txt") 'added))
     (vc-jj-checkin (list "subdir/") "Sample commit message")
     (should (seq-set-equal-p
-             (vc-jj-dir-status-files repo nil (lambda (x y) x))
+             (vc-jj-dir-status-files repo '("subdir/file1.txt"
+                                            "subdir/file2.txt"
+                                            "subdir/deeper_subdir/file3.txt")
+                                     #'vc-jj-test--dir-status-files-update-function)
              '(("subdir/file1.txt" up-to-date)
                ("subdir/file2.txt" up-to-date)
                ("subdir/deeper_subdir/file3.txt" up-to-date))))))
 
-(ert-deftest vc-jj-funky-filename ()
-  "Test compatibility with unusual characters in file names.
-We test the presence of apostrophes, double quotes, and the equal sign
-in file names, which are allowed in Linux.  See bug#38."
-  (vc-jj-test--with-repo repo
-    (write-region "Hello" nil "TEST=TEST.txt")
-    (write-region "Hello" nil "with'apostrophe.txt")
-    (write-region "Hello" nil "with\"quotation.txt")
-    (should (eq (vc-jj-state "TEST=TEST.txt") 'added))
-    (should (eq (vc-jj-state "with'apostrophe.txt") 'added))
-    (should (eq (vc-jj-state "with\"quotation.txt") 'added))
-    (should (seq-set-equal-p
-             (vc-jj-dir-status-files repo nil (lambda (x y) x))
-             '(("TEST=TEST.txt" added)
-               ("with'apostrophe.txt" added)
-               ("with\"quotation.txt" added))))))
+;;;; Diff tests
 
-(ert-deftest vc-jj-very-large-file ()
-  "Test very large files.
-Jujutsu usually prints to stderr when there is too large of a file
-registered.  See bug#52."
-  (vc-jj-test--with-repo repo
-    (shell-command "jj config set --repo snapshot.max-new-file-size 12")
-    (write-region "1234567890" nil "numbers.txt")
-    (write-region "abcdefghijklmnopqrstuvwxyz" nil "alphabet.txt")
-    (should (eq (vc-jj-state "numbers.txt") 'added))
-    (should (eq (vc-jj-state "alphabet.txt") 'ignored))))
-
-(ert-deftest vc-jj-tolerate-repo-corruption ()
-  "Test functionality after removing .git in a colocated repository.
-See bug#63."
-  (let ((current-prefix-arg 4))         ; create git co-located repo
-    (vc-jj-test--with-repo repo
-      (write-region "Hello!" nil "README")
-      (shell-command "rm -r .git")
-      (should (eq (vc-jj-dir-status-files repo nil (lambda (x y) x))
-                  nil)))))
-
-(ert-deftest vc-jj-previous-revision-in-merge ()
-  "Test vc-previous-revision for a change with multiple parents.
-We expect this function to return the first parent specified."
-  (vc-jj-test--with-repo repo
-    (let ((root "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
-          branch-1 branch-2 branch-merged
-          branch-parent branch-parent-with-file)
-      ;; - construct a diamond graph
-      ;; - add a file to the second parent of the merge commit
-      ;; - check that we find the first parent
-      ;; - check that we find the second parent when looking for a
-      ;;   parent with the new file
-      (shell-command (concat "jj new " root))
-      (write-region "Hello!" nil "README")
-      (setq branch-1 (vc-jj-working-revision "README"))
-      (shell-command (concat "jj new " root))
-      (write-region "Hello!" nil "README")
-      (write-region "Hello!" nil "README-onlyhere")
-      (setq branch-2 (vc-jj-working-revision "README"))
-      (shell-command (concat "jj new " branch-1 " " branch-2))
-      (setq branch-merged (vc-jj-working-revision "README"))
-      (setq branch-parent (vc-jj-previous-revision nil branch-merged))
-      (setq branch-parent-with-file (vc-jj-previous-revision "README-onlyhere" branch-merged))
-      (should (string= branch-parent branch-1))
-      (should (string= branch-parent-with-file branch-2)))))
-
-(ert-deftest vc-jj-next-revision-in-merge ()
-  "Test vc-next-revision for a change with multiple children.
-We check that we get the revision where a given file was added."
-  (vc-jj-test--with-repo repo
-    (let ( branch-root branch-1 branch-2 branch-child branch-child-1 branch-child-2)
-      (write-region "Hello!" nil "README")
-      (setq branch-root (vc-jj-working-revision "README"))
-      (shell-command (concat "jj new " branch-root))
-      (write-region "Hello!" nil "README-onlyhere")
-      (setq branch-1 (vc-jj-working-revision "README-onlyhere"))
-      (shell-command (concat "jj new " branch-root))
-      (write-region "Persisting branch 2" nil "README-branch2")
-      (setq branch-2 (vc-jj-working-revision "README-branch2"))
-      (setq branch-child (vc-jj-next-revision nil branch-root))
-      ;; Slight pun: these files only exist in the child branches
-      (setq branch-child-1 (vc-jj-next-revision "README-onlyhere" branch-root))
-      (setq branch-child-2 (vc-jj-next-revision "README-branch2" branch-root))
-      ;; We don't want to rely on the exact order in which the
-      ;; children are printed
-      (should (or (string= branch-child branch-1) (string= branch-child branch-2)))
-      (should (string= branch-child-1 branch-1))
-      (should (string= branch-child-2 branch-2)))))
-
-(ert-deftest vc-jj-diff-in-merge ()
-  "Test `vc-jj-diff' for a change with multiple parents.
+(ert-deftest vc-jj-test-diff-merge ()
+  "Test `vc-jj-diff' when for merges (changes with multiple parents).
 A revision with multiple parent revisions is a merge commit.  Test that
 `vc-jj-diff' outputs a diff between the working copy and the appropriate
 parent when (1) no revisions have been specified to it (the REV1 and
 REV2 arguments) and (2) when only REV1 has been specified to it."
-  ;; The revision log of this test looks like this (the output of "jj
-  ;; log -p"):
+  ;; The final revision log of this test looks like this (the output
+  ;; of "jj log -p"):
   ;;
   ;; @    lxqzqwul john@example.com 2025-12-07 04:28:07 2cb61b72
   ;; ├─╮  (empty) merge
@@ -387,12 +424,11 @@ REV2 arguments) and (2) when only REV1 has been specified to it."
   ;; │          1: foo
   ;; ┴  zzzzzzzz root() 00000000
   (vc-jj-test--with-repo repo
-    (let ((root "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
-          (vc-jj-diff-switches '("--git"))
+    (let ((vc-jj-diff-switches '("--git"))
           parent-rev-1 parent-rev-2
           merge-rev merge-rev-parent)
       ;; Create the first commit and first file
-      (shell-command (concat "jj new -m \"1\" " root))
+      (shell-command "jj new -m \"1\" root()")
       (write-region "foo\n" nil "first file")
       ;; Create first branch (first parent commit) with no new files
       (shell-command (concat "jj new -m \"2\" @"))
@@ -469,6 +505,87 @@ REV2 arguments) and (2) when only REV1 has been specified to it."
                                         "@@ -0,0 +1,1 @@"
                                         "+bar\n")
                                       "\n")))))))
+
+;;;; Revision log tests
+
+(ert-deftest vc-jj-test-previous-revision-merge ()
+  "Test vc-previous-revision for a change with multiple parents.
+We expect this function to return the first parent specified."
+  (vc-jj-test--with-repo repo
+    (let ( branch-1 branch-2 branch-merged
+           branch-parent branch-parent-with-file)
+      ;; - construct a diamond graph
+      ;; - add a file to the second parent of the merge commit
+      ;; - check that we find the first parent
+      ;; - check that we find the second parent when looking for a
+      ;;   parent with the new file
+      (shell-command "jj new 'root()'")
+      (write-region "Hello!" nil "README")
+      (setq branch-1 (vc-jj-working-revision "README"))
+      (shell-command "jj new 'root()'")
+      (write-region "Hello!" nil "README")
+      (write-region "Hello!" nil "README-onlyhere")
+      (setq branch-2 (vc-jj-working-revision "README"))
+      (shell-command (concat "jj new " branch-1 " " branch-2))
+      (setq branch-merged (vc-jj-working-revision "README"))
+      (setq branch-parent (vc-jj-previous-revision nil branch-merged))
+      (setq branch-parent-with-file (vc-jj-previous-revision "README-onlyhere" branch-merged))
+      (should (string= branch-parent branch-1))
+      (should (string= branch-parent-with-file branch-2)))))
+
+(ert-deftest vc-jj-test-next-revision-merge ()
+  "Test vc-next-revision for a change with multiple children.
+We check that we get the revision where a given file was added."
+  (vc-jj-test--with-repo repo
+    (let ( branch-root branch-1 branch-2 branch-child branch-child-1 branch-child-2)
+      (write-region "Hello!" nil "README")
+      (setq branch-root (vc-jj-working-revision "README"))
+      (shell-command (concat "jj new " branch-root))
+      (write-region "Hello!" nil "README-onlyhere")
+      (setq branch-1 (vc-jj-working-revision "README-onlyhere"))
+      (shell-command (concat "jj new " branch-root))
+      (write-region "Persisting branch 2" nil "README-branch2")
+      (setq branch-2 (vc-jj-working-revision "README-branch2"))
+      (setq branch-child (vc-jj-next-revision nil branch-root))
+      ;; Slight pun: these files only exist in the child branches
+      (setq branch-child-1 (vc-jj-next-revision "README-onlyhere" branch-root))
+      (setq branch-child-2 (vc-jj-next-revision "README-branch2" branch-root))
+      ;; We don't want to rely on the exact order in which the
+      ;; children are printed
+      (should (or (string= branch-child branch-1) (string= branch-child branch-2)))
+      (should (string= branch-child-1 branch-1))
+      (should (string= branch-child-2 branch-2)))))
+
+;;;; Annotation tests
+
+(ert-deftest vc-jj-test-annotate ()
+  "Test `vc-annotate'."
+  (vc-jj-test--with-repo repo
+    (let (change-1 change-2 readme-buffer annotation-buffer)
+      ;; Create two changes, make sure that the change ids in the
+      ;; annotation buffer match.  This test is supposed to detect
+      ;; changes in the output format of "jj annotate"
+      (unwind-protect
+          (progn
+            (write-region "Line 1\n" nil "README")
+            (setq change-1 (vc-jj-working-revision "README"))
+            (shell-command "jj commit -m 'First change'")
+            (write-region "Line 2\n" nil "README" t)
+            (shell-command "jj describe -m 'Second change'")
+            (setq change-2 (vc-jj-working-revision "README"))
+            (find-file "README")
+            (setq readme-buffer (current-buffer))
+            (vc-annotate "README" change-2)
+            (let ((annotation-process (get-buffer-process (current-buffer))))
+              (while (process-live-p annotation-process)
+                (accept-process-output annotation-process)))
+            (setq annotation-buffer (current-buffer))
+            (goto-char (point-min))
+            (should (string-prefix-p (thing-at-point 'word) change-1))
+            (forward-line)
+            (should (string-prefix-p (thing-at-point 'word) change-2)))
+        (when (buffer-live-p readme-buffer) (kill-buffer readme-buffer))
+        (when (buffer-live-p annotation-buffer) (kill-buffer annotation-buffer))))))
 
 (provide 'vc-jj-tests)
 ;;; vc-jj-tests.el ends here

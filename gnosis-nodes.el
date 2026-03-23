@@ -380,22 +380,53 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
     (org-insert-link nil (format "id:%s" id) desc)
     (unless id (message "Created new node: %s" node))))
 
-(defun gnosis-nodes-insert-filetag (&optional tag)
-  "Insert TAG as filetag."
-  (interactive)
-  (let* ((filetags (gnosis-nodes--all-tags))
-         (tag (or tag (funcall gnosis-nodes-completing-read-func "Select tag: " filetags))))
+(defun gnosis-nodes--last-keyword-pos ()
+  "Return end-of-line position of the last #+KEYWORD line at buffer top.
+Returns nil if no keyword lines exist."
+  (save-excursion
+    (goto-char (point-min))
+    (let (last-pos)
+      (while (looking-at "^#\\+")
+        (setq last-pos (line-end-position))
+        (forward-line 1))
+      last-pos)))
+
+(defun gnosis-nodes--filetags ()
+  "Return list of current filetags, or nil."
+  (let ((case-fold-search t))
     (save-excursion
-      (if (org-at-heading-p)
-	  (org-set-tags tag)
-	(goto-char (point-min))
-	(if (re-search-forward "^#\\+FILETAGS:" nil t)
-            (progn
-              (end-of-line)
-              (insert (if (looking-back ":" nil) "" ":") tag ":"))
-          (progn
-            (insert "#+FILETAGS: :" tag ":")
-            (newline)))))))
+      (goto-char (point-min))
+      (when (re-search-forward "^#\\+filetags:[ \t]*\\(.*\\)" nil t)
+        (split-string (match-string 1) ":" t)))))
+
+(defun gnosis-nodes--write-filetags (tags)
+  "Write TAGS as a #+filetags line, replacing or creating it."
+  (let ((case-fold-search t)
+        (value (format " :%s:" (mapconcat #'identity tags ":"))))
+    (save-excursion
+      (goto-char (point-min))
+      (cond
+       ((re-search-forward "^#\\+filetags:" nil t)
+        (delete-region (point) (line-end-position))
+        (insert value))
+       ((gnosis-nodes--last-keyword-pos)
+        (goto-char (gnosis-nodes--last-keyword-pos))
+        (end-of-line)
+        (insert "\n#+filetags:" value))
+       (t
+        (insert "#+filetags:" value "\n"))))))
+
+(defun gnosis-nodes-insert-filetag (&optional tag)
+  "Insert TAG as filetag.
+At a heading, add TAG to heading tags.  Otherwise, add to #+FILETAGS."
+  (interactive)
+  (let ((tag (or tag (funcall gnosis-nodes-completing-read-func
+                              "Select tag: " (gnosis-nodes--all-tags)))))
+    (if (org-at-heading-p)
+        (org-set-tags (cl-union (list tag) (org-get-tags nil t) :test #'string=))
+      (let ((existing (gnosis-nodes--filetags)))
+        (unless (member tag existing)
+          (gnosis-nodes--write-filetags (append existing (list tag))))))))
 
 ;;;###autoload
 (defun gnosis-nodes-insert-tags (tags)
@@ -404,10 +435,11 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
    (list (completing-read-multiple
 	  "Select tags (separated by ,): "
 	  (gnosis-nodes--all-tags))))
-  (let ((id (gnosis-org-get-id)))
+  (let ((id (gnosis-org-get-id))
+	(org-id-track-globally nil))
     (org-id-goto id)
     (if (org-current-level)
-	(org-set-tags tags)
+	(org-set-tags (cl-union tags (org-get-tags nil t) :test #'string=))
       (dolist (tag tags)
 	(gnosis-nodes-insert-filetag tag)))))
 
@@ -554,7 +586,8 @@ When FORCE (prefix arg), rebuild from scratch."
 
 (defvar-keymap gnosis-nodes-mode-map
   :doc "gnosis-nodes keymap"
-  "C-c C-o" #'gnosis-nodes-goto-id)
+  "C-c C-o" #'gnosis-nodes-goto-id
+  "C-c C-q" #'gnosis-nodes-insert-tags)
 
 (define-minor-mode gnosis-nodes-mode
   "Gnosis nodes mode."

@@ -1012,15 +1012,22 @@ Handles midnight-crossing intervals (e.g. 22:00 to 07:00)."
 (defun greader-auto-tired-callback ()
   "Not documented, internal use."
   (when (buffer-live-p greader--auto-tired-buffer)
-    (with-current-buffer greader--auto-tired-buffer
-      (let ((start (greader-convert-time greader-auto-tired-mode-time))
-            (end   (greader-convert-time greader-auto-tired-time-end)))
-        (when (and (greader-current-time-in-interval-p start end)
-                   (not greader-tired-mode))
-          (greader-tired-mode 1))
-        (when (and (not (greader-current-time-in-interval-p start end))
-                   greader-tired-mode)
-          (greader-tired-mode -1))))))
+    (let ((background (not (eq greader--auto-tired-buffer (current-buffer)))))
+      (with-current-buffer greader--auto-tired-buffer
+        (let ((start (greader-convert-time greader-auto-tired-mode-time))
+              (end   (greader-convert-time greader-auto-tired-time-end)))
+          (when (and (greader-current-time-in-interval-p start end)
+                     (not greader-tired-mode))
+            (greader-tired-mode 1)
+            (when background
+              (message "greader-tired-mode enabled in buffer %s"
+                       (buffer-name))))
+          (when (and (not (greader-current-time-in-interval-p start end))
+                     greader-tired-mode)
+            (greader-tired-mode -1)
+            (when background
+              (message "greader-tired-mode disabled in buffer %s"
+                       (buffer-name)))))))))
 
 (defun greader-set-rate (n)
   "Set rate in current buffer to tthe specified value in N.

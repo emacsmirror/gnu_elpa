@@ -31,58 +31,89 @@
 (require 'cl-lib)
 (require 'thingatpt)
 
-(defun vc-jj-test-environment (seq)
-  "Create a list suitable for prepending to `process-environment'.
-The purpose is to make tests reproducible by fixing timestamps,
-change ids, author information etc.  SEQ is an integer that
-modifies the JJ_RANDOMNESS_SEED, JJ_TIMESTAMP and JJ_OP_TIMESTAMP
-environment variables.  Increasing values for SEQ will result in
-increasing timestamps.
+;;;; Testing suite helpers
 
-Note that it not necessary to use this function, except when
-stably increasing timestamps and stable change ids across test
-runs are necessary."
+(defconst vc-jj-test--environment-email "JJ_EMAIL=john@example.com"
+  "Value for JJ_EMAIL environment variable.
+This is meant to be prepended to `process-environment'.  See
+`vc-jj-test--environment' and `vc-jj-test--with-repo'.")
+
+(defconst vc-jj-test--environment-user "JJ_USER=john"
+  "Value for JJ_USER environment variable.
+This is meant to be prepended to `process-environment'.  See
+`vc-jj-test--environment' and `vc-jj-test--with-repo'.")
+
+(defvar vc-jj-test--repo-colocate nil
+  "Whether to colocate jj test repository.
+When this variable is non-nil, jj repositories initialized in
+`vc-jj-test--with-repo' are colocated.  When nil, they are not
+colocated.
+
+This variable is meant to be let-bound in tests that need a colocated
+repository.  By default, repositories are not colocated.")
+
+(defun vc-jj-test--environment (seq)
+  "Create a list suitable for prepending to `process-environment'.
+The purpose is to make tests reproducible by fixing timestamps, change
+IDs, author information, etc.
+
+Note that it not necessary to use this function, except when stably
+increasing timestamps and stable change ids across test runs are
+necessary.
+
+SEQ is an integer that modifies the JJ_RANDOMNESS_SEED, JJ_TIMESTAMP and
+JJ_OP_TIMESTAMP environment variables.  Increasing values for SEQ will
+result in increasing timestamps."
   ;; For other potentially relevant variables, see
   ;; https://github.com/jj-vcs/jj/blob/d79c7a0dd5b8f9d3d6f9436452dcf0e1600b0b14/cli/tests/common/test_environment.rs#L115
   (let* ((startdate (iso8601-parse "2001-02-03T04:05:06+07:00"))
          (timezone (cl-ninth startdate))
          (offset (time-add (encode-time startdate) seq))
          (timestring (format-time-string "%FT%T%:z" offset timezone)))
-    (list "JJ_EMAIL=john@example.com"
-          "JJ_USER=john"
+    (list vc-jj-test--environment-email
+          vc-jj-test--environment-user
           (format "JJ_RANDOMNESS_SEED=%i" (+ 12345 seq))
           (format "JJ_TIMESTAMP=%s" timestring)
           (format "JJ_OP_TIMESTAMP=%s" timestring))))
 
-(defmacro vc-jj-test-with-repo (name &rest body)
+(defmacro vc-jj-test--with-repo (name &rest body)
   "Initialize a repository in a temporary directory and evaluate BODY.
-The current directory will be set to the top of that repository;
-NAME will be bound to that directory's file name.  Once BODY
+The current directory will be set to the root of that repository.  NAME
+is a symbol that will be bound to that repository\\='s path.  Once BODY
 exits, the directory will be deleted.
 
-jj commands are executed with a fixed username and email; augment
-`process-environment' with `vc-jj-test-environment' if control
-over timestamps and random number seed (and thereby change ids)
-is needed."
+Jujutsu commands are executed with a fixed username and email; augment
+`process-environment' with `vc-jj-test--environment' if control over
+timestamps and random number seed (and thereby change ids) is needed."
   (declare (indent 1) (debug (symbolp body)))
   `(ert-with-temp-directory ,name
      (let ((default-directory ,name)
            (process-environment
-            (append (list "JJ_EMAIL=john@example.com" "JJ_USER=john")
+            (append (list vc-jj-test--environment-email
+                          vc-jj-test--environment-user)
                     process-environment)))
+       ;; Append the `vc-jj-test--environment' to
+       ;; `process-environment' only when creating the repository, not
+       ;; when evaluating BODY
        (let ((process-environment
-              (append (vc-jj-test-environment 0) process-environment)))
-         (vc-create-repo 'jj))
-       ;; On macOS, the generated filename "/var/folders/..." was in
-       ;; reality "/private/var/folders/...", which got unfolded by
-       ;; `vc-jj-root' within some tests -- do this here already
-       (let ((,name (file-truename (vc-jj-root ,name)))
-             (default-directory ,name))
+              (append (vc-jj-test--environment 0) process-environment)))
+         (shell-command (format "jj git init %s"
+                                (if vc-jj-test--repo-colocate
+                                    "--colocate"
+                                  "--no-colocate"))))
+       (let ((default-directory ,name)
+             ;; On macOS, the generated filename "/var/folders/..."
+             ;; was in reality "/private/var/folders/...", which got
+             ;; unfolded by `vc-jj-root' within some tests -- do this
+             ;; here already
+             (,name (file-truename (vc-jj-root ,name))))
          ,@body))))
+
+;;;; Tests
 
 (ert-deftest vc-jj-test-add-file ()
   "Test the \"added\" vc state."
-  (vc-jj-test-with-repo repo
+  (vc-jj-test--with-repo repo
     (write-region "New file" nil "README")
     (should (eq (vc-jj-state "README") 'added))
     (should (seq-set-equal-p
@@ -91,7 +122,7 @@ is needed."
 
 (ert-deftest vc-jj-test-added-tracked ()
   "Test the \"up-to-date\" vc state."
-  (vc-jj-test-with-repo repo
+  (vc-jj-test--with-repo repo
     (write-region "In first commit" nil "first-file")
     (vc-jj-checkin '("first-file") "First commit")
     (write-region "In second commit" nil "second-file")
@@ -103,7 +134,7 @@ is needed."
 
 (ert-deftest vc-jj-delete-file ()
   "Test \"removed\" vc state and `vc-jj-delete-file'."
-  (vc-jj-test-with-repo repo
+  (vc-jj-test--with-repo repo
     (write-region "First file" nil "first-file")
     (should (eq (vc-jj-state "first-file") 'added))
     (vc-jj-checkin '("first-file") "Commit")
@@ -117,7 +148,7 @@ is needed."
 
 (ert-deftest vc-jj-test-conflict ()
   "Test the \"conflict\" vc state."
-  (vc-jj-test-with-repo repo
+  (vc-jj-test--with-repo repo
     (let (branch-1 branch-2 branch-merged)
       ;; the root change id is always zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
       (shell-command "jj new zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
@@ -139,7 +170,7 @@ is needed."
 
 (ert-deftest vc-jj-test-annotate ()
   "Test `vc-annotate'."
-  (vc-jj-test-with-repo repo
+  (vc-jj-test--with-repo repo
     (let ( change-1 change-2
            readme-buffer annotation-buffer)
       ;; Create two changes, make sure that the change ids in the
@@ -169,7 +200,7 @@ is needed."
 
 (ert-deftest vc-jj-ignore ()
   "Test \"ignored\" vc state."
-  (vc-jj-test-with-repo repo
+  (vc-jj-test--with-repo repo
     (let (gitignore-buffer)
       (unwind-protect
           (progn
@@ -196,7 +227,7 @@ is needed."
 
 (ert-deftest vc-jj-list-files ()
   "Test `vc-jj-dir-status-files' with a variety of vc states."
-  (vc-jj-test-with-repo repo
+  (vc-jj-test--with-repo repo
     (let (branch-1 branch-2 branch-merged)
       ;; the root change id is always zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
       (shell-command "jj new zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
@@ -227,7 +258,7 @@ is needed."
   "Test checking in an entire directory of files.
 This tests when a subdirectory path is passed to `vc-jj-checkin', rather
 than a path to a regular file.  See bug#62."
-  (vc-jj-test-with-repo repo
+  (vc-jj-test--with-repo repo
     (make-directory "subdir")
     (write-region "foo" nil "subdir/file1.txt")
     (write-region "bar" nil "subdir/file2.txt")
@@ -247,7 +278,7 @@ than a path to a regular file.  See bug#62."
   "Test compatibility with unusual characters in file names.
 We test the presence of apostrophes, double quotes, and the equal sign
 in file names, which are allowed in Linux.  See bug#38."
-  (vc-jj-test-with-repo repo
+  (vc-jj-test--with-repo repo
     (write-region "Hello" nil "TEST=TEST.txt")
     (write-region "Hello" nil "with'apostrophe.txt")
     (write-region "Hello" nil "with\"quotation.txt")
@@ -264,7 +295,7 @@ in file names, which are allowed in Linux.  See bug#38."
   "Test very large files.
 Jujutsu usually prints to stderr when there is too large of a file
 registered.  See bug#52."
-  (vc-jj-test-with-repo repo
+  (vc-jj-test--with-repo repo
     (shell-command "jj config set --repo snapshot.max-new-file-size 12")
     (write-region "1234567890" nil "numbers.txt")
     (write-region "abcdefghijklmnopqrstuvwxyz" nil "alphabet.txt")
@@ -275,7 +306,7 @@ registered.  See bug#52."
   "Test functionality after removing .git in a colocated repository.
 See bug#63."
   (let ((current-prefix-arg 4))         ; create git co-located repo
-    (vc-jj-test-with-repo repo
+    (vc-jj-test--with-repo repo
       (write-region "Hello!" nil "README")
       (shell-command "rm -r .git")
       (should (eq (vc-jj-dir-status-files repo nil (lambda (x y) x))
@@ -284,7 +315,7 @@ See bug#63."
 (ert-deftest vc-jj-previous-revision-in-merge ()
   "Test vc-previous-revision for a change with multiple parents.
 We expect this function to return the first parent specified."
-  (vc-jj-test-with-repo repo
+  (vc-jj-test--with-repo repo
     (let ((root "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
           branch-1 branch-2 branch-merged
           branch-parent branch-parent-with-file)
@@ -310,7 +341,7 @@ We expect this function to return the first parent specified."
 (ert-deftest vc-jj-next-revision-in-merge ()
   "Test vc-next-revision for a change with multiple children.
 We check that we get the revision where a given file was added."
-  (vc-jj-test-with-repo repo
+  (vc-jj-test--with-repo repo
     (let ( branch-root branch-1 branch-2 branch-child branch-child-1 branch-child-2)
       (write-region "Hello!" nil "README")
       (setq branch-root (vc-jj-working-revision "README"))
@@ -355,7 +386,7 @@ REV2 arguments) and (2) when only REV1 has been specified to it."
   ;; │  Added regular file first file:
   ;; │          1: foo
   ;; ┴  zzzzzzzz root() 00000000
-  (vc-jj-test-with-repo repo
+  (vc-jj-test--with-repo repo
     (let ((root "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
           (vc-jj-diff-switches '("--git"))
           parent-rev-1 parent-rev-2

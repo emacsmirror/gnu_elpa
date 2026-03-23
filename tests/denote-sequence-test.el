@@ -60,6 +60,18 @@
   (should (string= (denote-sequence-alphanumeric-p "1") "1"))
   (should (string= (denote-sequence-alphanumeric-p "1a") "1a")))
 
+(ert-deftest dst-denote-sequence-alphanumeric-delimited-p ()
+  "Test that `denote-sequence-alphanumeric-delimited-p' does what it is supposed to."
+  (should-not (denote-sequence-alphanumeric-delimited-p "1a"))
+  (should-not (denote-sequence-alphanumeric-delimited-p "1=1"))
+  (should-not (denote-sequence-alphanumeric-delimited-p "1=a=a"))
+  (should-not (denote-sequence-alphanumeric-delimited-p "1=a=1")) ; check FIXME in the source
+  (should-not (denote-sequence-alphanumeric-delimited-p "hello"))
+  (should (string= (denote-sequence-alphanumeric-delimited-p "1") "1"))
+  (should (string= (denote-sequence-alphanumeric-delimited-p "1=a") "1=a"))
+  (should (string= (denote-sequence-alphanumeric-delimited-p "1=a1b") "1=a1b"))
+  (should (string= (denote-sequence-alphanumeric-delimited-p "1=a1b=2a1") "1=a1b=2a1")))
+
 (ert-deftest dst-denote-sequence--get-new-exhaustive ()
   "Test if we get the correct parent, child, sibling, or relatives of a sequence.
 Use the function `denote-sequence-get-new' for child and sibling with

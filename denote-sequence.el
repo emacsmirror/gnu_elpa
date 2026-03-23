@@ -106,7 +106,40 @@ zx (z is 26 and x is 25)."
              (string-match-p "\\`[0-9]+" sequence)
              (not (string-match-p "=" sequence)))
     sequence))
-
+(defun denote-sequence-alphanumeric-delimited-p (sequence)
+  "Return SEQUENCE if it is an alphanumeric and delimited.
+Refer to the `denote-sequence-scheme' for the details."
+  (cond
+   ((string-match-p "\\`[0-9]+\\'" sequence)
+    sequence)
+   (t
+    (when (and (string-match-p "=" sequence)
+               (not (denote-sequence-numeric-p sequence)))
+      (let ((start 0)
+            (strings nil))
+        (while (string-match "\\(?1:[0-9]+\\)[[:alpha:]]\\|\\(?2:[[:alpha:]]+\\)[0-9]*" sequence start)
+          (if-let* ((match (match-string 1 sequence)))
+              (progn
+                (setq start (match-end 1))
+                (push match strings))
+            (push (match-string 2 sequence) strings)
+            (setq start (match-end 2))))
+        (catch 'error
+          (let ((last-type nil)
+                (current-type nil))
+            ;; FIXME 2026-03-23: We need to test for length of each
+            ;; segment.  Specifically, the first should be 1, then
+            ;; every other should be maximum 3 (where the numbers
+            ;; refer to levels of depth).
+            (dolist (string (nreverse strings))
+              (if (string-match-p "\\`[0-9]+\\'" string)
+                  (setq current-type 'numeric)
+                (setq current-type 'alpha))
+              (when (eq current-type last-type)
+                (throw 'error nil))
+              (setq last-type current-type)))
+          sequence))))))
+   
 (defun denote-sequence-user-selected-scheme-p (sequence)
   "Return SEQUENCE if it is consistent with `denote-sequence-scheme'.
 Also see `denote-sequence-alphanumeric-p' and `denote-sequence-numeric-p'."

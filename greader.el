@@ -912,7 +912,8 @@ Enabling this mode implicitly enables `greader-timer-mode'."
   :lighter " Trd"
   (if greader-tired-mode
       (unless greader-timer-mode
-        (greader-timer-mode 1))
+        (greader-timer-mode 1)
+        (setq-local greader-timer-enabled-interactively nil))
     (greader--tired-cleanup)
     (unless greader-timer-enabled-interactively
       (greader-timer-mode -1))))

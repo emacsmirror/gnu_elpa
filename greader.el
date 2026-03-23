@@ -54,19 +54,18 @@
 
 (require 'find-func)
 (defvar greader-auto-tired-timer nil)
-(defvar greader-auto-tired-end-timer)
 (defvar-local greader--auto-tired-buffer nil
   "Buffer in which `greader-auto-tired-mode' was enabled.
 Used by `greader-auto-tired-callback' to operate in the correct buffer
 regardless of which buffer is current when the timer fires.")
-(defvar greader-last-point nil)
+(defvar-local greader-last-point nil)
 (defvar-local greader-tired-timer nil)
 (defvar-local greader--tired-pending nil
   "Non-nil when tired-mode timer should be armed after soft-stop finishes.")
-(defvar greader-timer-enabled-interactively nil)
-(defvar greader-stop-timer 0)
-(defvar greader-elapsed-timer 0)
-(defvar greader-elapsed-time 0)
+(defvar-local greader-timer-enabled-interactively nil)
+(defvar-local greader-stop-timer 0)
+(defvar-local greader-elapsed-timer 0)
+(defvar-local greader-elapsed-time 0)
 (defvar greader-filter-enabled nil)
 (defvar greader-debug-buffer (get-buffer-create "spd-output")
   "Contains the buffer name for debugging purposes.")
@@ -985,10 +984,6 @@ The original command is swallowed: only reading resumes."
     (when (timerp greader-auto-tired-timer)
       (cancel-timer greader-auto-tired-timer))
     (setq-local greader-auto-tired-timer nil)))
-
-(defun greader-current-time ()
-  "Not documented, internal use."
-  (string-to-number (format-time-string "%H")))
 
 (defun greader-convert-time (time)
   "Return an encoded time for the next occurrence of hour TIME today."

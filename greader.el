@@ -48,19 +48,21 @@
 (defvar greader-dict-mode)
 (defvar greader-dict-filters-mode)
 (declare-function greader-dict--update nil)
+(defvar greader-timer-mode)
+(defvar greader-tired-mode)
+(defvar greader-auto-tired-mode)
 
-(defvar-local greader-timer-flag nil)
 (require 'find-func)
 (defvar greader-auto-tired-timer nil)
 (defvar greader-auto-tired-end-timer)
 (defvar greader-last-point nil)
-(defvar greader-tired-timer nil)
+(defvar-local greader-tired-timer nil)
+(defvar-local greader--tired-pending nil
+  "Non-nil when tired-mode timer should be armed after soft-stop finishes.")
 (defvar greader-timer-enabled-interactively nil)
 (defvar greader-stop-timer 0)
 (defvar greader-elapsed-timer 0)
 (defvar greader-elapsed-time 0)
-(defvar greader-timer-flag nil)
-(defvar greader-tired-flag nil)
 (defvar greader-filter-enabled nil)
 (defvar greader-debug-buffer (get-buffer-create "spd-output")
   "Contains the buffer name for debugging purposes.")
@@ -177,17 +179,6 @@ For more information on syntax, see documentation of
   :type 'string)
 
 (defcustom
-  greader-auto-tired-mode
-  nil
-  "Enable or disable`auto-tired-mode'.
-If t, auto-tired-mode is enabled, and
-tired mode will be turned on at a time specified with
-`greader-auto-tired-mode-time' and disabled at
-`greader-auto-tired-mode-end-time' automatically."
-  :tag "greader auto tired mode"
-  :type 'boolean)
-
-(defcustom
   greader-tired-time
   60
   "Auto tired mode.
@@ -274,11 +265,11 @@ if set to t, when you call function `greader-read', that function sets a
 
 (defvar greader-prefix-keymap
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "s")   #'greader-toggle-tired-mode)
+    (define-key map (kbd "s")   #'greader-tired-mode)
     (define-key map (kbd "r")   #'isearch-backward)
     (define-key map (kbd "SPC") #'greader-read)
     (define-key map (kbd "l")   #'greader-set-language)
-    (define-key map (kbd "t")   #'greader-toggle-timer)
+    (define-key map (kbd "t")   #'greader-timer-mode)
     (define-key map (kbd "f")   #'greader-get-attributes)
     (define-key map (kbd "b")   #'greader-change-backend)
     (define-key map (kbd "c") #'greader-compile-at-point)
@@ -557,12 +548,15 @@ Optional argument EVENT ."
       (greader-debug
        (format "greader--default-action entered.\nevent: %S\n" event)))
   (cond
-   ((and (greader-timer-flag-p) (timerp greader-stop-timer))
+   ((and greader-timer-mode (timerp greader-stop-timer))
     (greader-cancel-elapsed-timer)
     (greader-cancel-stop-timer)
     (greader-reset-elapsed-time)
     (setq-local greader-stop-timer 0)
-    (greader-set-greader-keymap))))
+    (greader-set-greader-keymap)
+    (when greader--tired-pending
+      (setq-local greader--tired-pending nil)
+      (greader-setup-tired-timer)))))
 
 (defun greader-build-args ()
   "Build the string that will be passed to the back-end."
@@ -642,14 +636,12 @@ function, point jumps at the last position you called command `greader-read'."
   (when (called-interactively-p 'any)
     (greader-set-register))
 
-  (if (and greader-tired-flag (= greader-elapsed-time 0))
-      (progn
-	(if greader-tired-timer
-	    (cancel-timer greader-tired-timer))
-	(setq-local greader-last-point (point))))
+  (when (and greader-tired-mode (= greader-elapsed-time 0))
+    (greader--tired-cleanup)
+    (setq-local greader-last-point (point)))
 
   (cond
-   ((and (greader-timer-flag-p) (not (timerp greader-stop-timer)))
+   ((and greader-timer-mode (not (timerp greader-stop-timer)))
     (greader-setup-timers)))
   (when (region-active-p)
     (cond
@@ -683,7 +675,7 @@ calling all the hooks."
 
   (interactive)
   (cond
-   ((and (> greader-elapsed-time 0) greader-timer-flag)
+   ((and (> greader-elapsed-time 0) greader-timer-mode)
     (greader-cancel-elapsed-timer)
     (greader-cancel-stop-timer)
     (if
@@ -691,6 +683,7 @@ calling all the hooks."
 	    (1- (greader-convert-mins-to-secs greader-timer)))
 	(greader-reset-elapsed-time))
     (setq-local greader-stop-timer 0)))
+  (setq-local greader--tired-pending nil)
   (greader-set-greader-keymap)
   (greader-tts-stop)
   (run-hooks 'greader-after-stop-hook)
@@ -815,57 +808,38 @@ the current backend"))))
   (greader-call-backend 'punctuation 'toggle)
   (greader-read))
 
-(defun greader-toggle-timer-flag ()
-  "Not yet documented."
-  (cond
-   (greader-timer-flag
-    (setq-local greader-timer-flag nil)
+;;;###autoload
+(define-minor-mode greader-timer-mode
+  "Stop reading automatically after `greader-timer' minutes.
+When enabled, a timer is armed each time `greader-read' starts.
+Soft-timer behavior (finish current sentence) is controlled by
+`greader-soft-timer'."
+  :lighter " Tmr"
+  (if greader-timer-mode
+      (setq-local greader-timer-enabled-interactively t)
+    (setq-local greader-timer-enabled-interactively nil)
+    (unless (equal greader-elapsed-timer 0)
+      (greader-cancel-elapsed-timer))
     (greader-reset-elapsed-time)
-    (if (not (equal greader-elapsed-timer 0))
-	(greader-cancel-elapsed-timer))
-    (if (and greader-auto-tired-mode greader-tired-flag)
-	(greader-toggle-tired-mode)))
-   ((not greader-timer-flag)
-    (setq-local greader-timer-flag t))))
-
-(defun greader-toggle-timer ()
-  "Toggle on or off timer when reading.
-To configure the timer \(in minutes\) call `M-x greader-set-timer' or
-  `C-r t'."
-  (interactive)
-  (greader-toggle-timer-flag)
-  (if greader-timer-flag
-      (progn
-	(setq-local greader-timer-enabled-interactively t)
-	(message "timer enabled in current buffer"))
-    (progn
-      (setq-local greader-timer-enabled-interactively nil)
-      (if greader-tired-flag
-	  (greader-toggle-tired-flag))
-      (message "timer disabled in current buffer"))))
+    (when greader-tired-mode
+      (greader-tired-mode -1))))
 
 (defun greader-set-timer (&optional timer-in-mins)
   "Set timer for reading expressed in minutes.
-This command should be
-used only if you want to set locally a timer different of that you set
-via customize, that is considered the default value for this
-variable.
+This command should be used only if you want to set locally a timer
+different of that you set via customize, that is considered the default
+value for this variable.
 Optional argument TIMER-IN-MINS timer in minutes (integer)."
-
   (interactive "Nset timer for:")
-  (if (not (greader-timer-flag-p))
-      (greader-toggle-timer))
+  (unless greader-timer-mode
+    (greader-timer-mode 1))
   (setq-local greader-timer timer-in-mins))
-
-(defun greader-timer-flag-p ()
-  "Not yet documented."
-  greader-timer-flag)
 
 (defun greader-setup-timers ()
   "Set up timers, that is, call `run-at-time' using settings you have specified."
   (catch 'timer-is-nil
     (cond
-     ((greader-timer-flag-p)
+     (greader-timer-mode
       (setq-local greader-stop-timer
 		  (run-at-time
 		   (- (greader-convert-mins-to-secs greader-timer)
@@ -873,7 +847,7 @@ Optional argument TIMER-IN-MINS timer in minutes (integer)."
 		   nil #'greader-stop-timer-callback))
       (setq-local greader-elapsed-timer
                   (run-at-time 1 1 #'greader-elapsed-time)))
-     ((not (greader-timer-flag-p))
+     ((not greader-timer-mode)
       (throw 'timer-is-nil nil))))
   t)
 
@@ -899,27 +873,27 @@ Optional argument TIMER-IN-MINS timer in minutes (integer)."
 
 (defun greader-stop-with-timer ()
   "Stop reading of buffer and also reset timer.
-If you use this
-command, next reading will start timer at its current value.  If you
-stop normally with `greader-stop', next reading will continue from the
-time elapsed before you stopped."
+If you use this command, next reading will start timer at its current
+value.  If you stop normally with `greader-stop', next reading will
+continue from the time elapsed before you stopped."
   (interactive)
-  (if (greader-timer-flag-p)
-      (progn
-	(greader-cancel-elapsed-timer)
-	(greader-cancel-stop-timer)
-	(setq-local greader-stop-timer 0)
-	(greader-reset-elapsed-time)))
+  (when greader-timer-mode
+    (greader-cancel-elapsed-timer)
+    (greader-cancel-stop-timer)
+    (setq-local greader-stop-timer 0)
+    (greader-reset-elapsed-time))
   (greader-stop))
 
 (defun greader-stop-timer-callback ()
   "Function called when timer expires."
-  (if greader-tired-flag
-      (greader-setup-tired-timer))
   (cond
    ((greader-soft-timer-p)
+    (when greader-tired-mode
+      (setq-local greader--tired-pending t))
     (setq-local greader-backend-action #'greader--default-action))
    ((not greader-soft-timer)
+    (when greader-tired-mode
+      (greader-setup-tired-timer))
     (greader-stop))))
 
 (defun greader-soft-timer-p ()
@@ -931,159 +905,114 @@ If it is disabled, greader will stop reading immediately after timer expiration.
       t
     nil))
 
-(defun greader-toggle-tired-flag ()
-  "Not documented, internal use."
-  (if greader-tired-flag
-      (progn
-	(if greader-timer-flag
-	    (greader-toggle-timer))
-	(setq-local greader-tired-flag nil))
-    (progn
-      (if (not greader-timer-flag)
-	  (greader-toggle-timer)))
-    (setq-local greader-tired-flag t)))
+;;;###autoload
+(define-minor-mode greader-tired-mode
+  "After the reading timer expires, move point back to where reading started.
+Enabling this mode implicitly enables `greader-timer-mode'."
+  :lighter " Trd"
+  (if greader-tired-mode
+      (unless greader-timer-mode
+        (greader-timer-mode 1))
+    (greader--tired-cleanup)
+    (unless greader-timer-enabled-interactively
+      (greader-timer-mode -1))))
 
-(defun greader-toggle-tired-mode ()
-  "Toggle tired mode.
-if tired mode is enabled, when a timer expires, greader will wait an
-  amount of time customizable, and if Emacs remains iddle for that
-  time, point in buffer will be placed at last position where you
-  called command `greader-read'.
-Enabling tired mode implicitly enables timer also."
+(defvar greader--tired-intercept-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [t] #'greader--tired-wakeup)
+    map)
+  "Keymap used by `greader--tired-intercept-mode'.
+Binds every key to `greader--tired-wakeup', swallowing the original
+command so that only reading is resumed.")
+
+(define-minor-mode greader--tired-intercept-mode
+  "Transient buffer-local mode that intercepts any key to resume greader.
+Enabled by `greader-setup-tired-timer' and disabled by `greader--tired-cleanup'."
+  :keymap greader--tired-intercept-map)
+
+(defun greader--tired-cleanup ()
+  "Cancel the tired idle timer and deactivate the intercept mode.
+This is the single cleanup point for all tired-mode paths."
+  (when (timerp greader-tired-timer)
+    (cancel-timer greader-tired-timer)
+    (setq-local greader-tired-timer nil))
+  (when greader--tired-intercept-mode
+    (greader--tired-intercept-mode -1)))
+
+(defun greader--tired-wakeup ()
+  "Resume reading; called by `greader--tired-intercept-mode' on any key press.
+The original command is swallowed: only reading resumes."
   (interactive)
-  (if (not greader-tired-flag)
-      (progn
-	(greader-toggle-tired-flag)
-	(if (not (greader-timer-flag-p))
-	    (greader-toggle-timer-flag))
-	(message "tired mode enabled in current buffer."))
-    (progn
-      (if (not greader-timer-enabled-interactively)
-	  (greader-toggle-timer-flag))
-
-      (greader-toggle-tired-flag)
-      (message "tired mode disabled in current buffer"))))
+  (greader--tired-cleanup)
+  (greader-read))
 
 (defun greader-setup-tired-timer ()
-  "Not documented, internal use."
-  (if greader-tired-flag
-      (run-with-idle-timer
-       (time-add
-	(current-idle-time)
-	(seconds-to-time
-	 greader-tired-time))
-       nil #'greader-tired-mode-callback)))
+  "Arm the tired-mode idle timer and activate the intercept mode."
+  (when greader-tired-mode
+    (setq-local greader-tired-timer
+                (run-with-idle-timer
+                 (time-add (or (current-idle-time) 0)
+                           (seconds-to-time greader-tired-time))
+                 nil #'greader-tired-mode-callback))
+    (greader--tired-intercept-mode 1)))
 
 (defun greader-tired-mode-callback ()
-  "Not documented, internal use."
-  (if (equal last-command #'greader-read)
-      (greader-move-to-last-point)))
+  "Move point back to where reading started after the idle timer fires."
+  (greader--tired-cleanup)
+  (greader-move-to-last-point))
 
 (defun greader-move-to-last-point ()
   "Not documented, internal use."
   (goto-char greader-last-point))
 
-(defun greader-auto-tired-mode-setup ()
-  "Not documented, internal use."
+;;;###autoload
+(define-minor-mode greader-auto-tired-mode
+  "Automatically enable `greader-tired-mode' between
+`greader-auto-tired-mode-time' and `greader-auto-tired-time-end'."
+  :lighter " ATrd"
   (if greader-auto-tired-mode
       (progn
-	(if (not greader-tired-flag)
-	    (greader-toggle-tired-mode))
-	(setq-local greader-auto-tired-timer
-	            (run-at-time nil 1 #'greader-auto-tired-callback)))
-    (progn
-      (if greader-tired-flag
-	  (greader-toggle-tired-mode))
-      (setq-local greader-auto-tired-timer
-                  (cancel-timer greader-auto-tired-timer)))))
-
-(defun greader-toggle-auto-tired-mode-flag ()
-  "Not documented, internal use."
-  (if greader-auto-tired-mode
-      (progn
-	(setq-local greader-auto-tired-mode nil)
-	(if greader-auto-tired-timer
-	    (cancel-timer greader-auto-tired-timer)))
-    (progn
-      (setq-local greader-auto-tired-mode t)
-      (greader-auto-tired-mode-setup))))
-
-(defun greader-toggle-auto-tired-mode ()
-  "Enable auto tired mode.
-In this mode, greader will enter in tired mode at a customizable time
-  and will exit from it at another time.  The default is 22:00 for
-  entering and 08:00 for exiting."
-  (interactive)
-  (greader-toggle-auto-tired-mode-flag) (if greader-auto-tired-mode
-					    (message
-					     "auto-tired mode enabled in current buffer")
-					  (message
-					   "auto-tired mode disabled in current buffer.")))
+        (unless greader-tired-mode (greader-tired-mode 1))
+        (setq-local greader-auto-tired-timer
+                    (run-at-time nil 1 #'greader-auto-tired-callback)))
+    (when greader-tired-mode (greader-tired-mode -1))
+    (when (timerp greader-auto-tired-timer)
+      (cancel-timer greader-auto-tired-timer))
+    (setq-local greader-auto-tired-timer nil)))
 
 (defun greader-current-time ()
   "Not documented, internal use."
   (string-to-number (format-time-string "%H")))
 
 (defun greader-convert-time (time)
-  "Return encoded TIME."
-  (let ((current-t (decode-time))
-	(i (nth 2 (decode-time)))
-	(counter (nth 2 (decode-time))))
-    (if (stringp time)
-	(setq time (string-to-number time)))
-    (catch 'done
-      (while t
-	(if (= i time)
-	    (throw 'done nil))
-	(cl-incf i)
-	(cl-incf counter)
-	(if (= i 24)
-	    (setq i 0))))
-    (setcar (cdr (cdr current-t)) counter)
-    (setcar current-t 0)
-    (setcar (cdr current-t) 0)
-    (apply #'encode-time current-t)))
+  "Return an encoded time for the next occurrence of hour TIME today."
+  (when (stringp time) (setq time (string-to-number time)))
+  (let ((today-at-time (decode-time)))
+    (setf (nth 2 today-at-time) time
+          (nth 1 today-at-time) 0
+          (nth 0 today-at-time) 0)
+    (apply #'encode-time today-at-time)))
 
 (defun greader-current-time-in-interval-p (time1 time2)
-  "Return t if TIME2 is in TIME1."
-  (let
-      ((current-t (current-time)))
-    (if
-	(and (time-less-p time1 current-t)
-	     (time-less-p current-t time2))
-	t
-      nil)))
+  "Return t if current time is between TIME1 and TIME2.
+Handles midnight-crossing intervals (e.g. 22:00 to 07:00)."
+  (let ((now (current-time)))
+    (if (time-less-p time1 time2)
+        (and (time-less-p time1 now) (time-less-p now time2))
+      ;; midnight-crossing: active if now >= time1 OR now < time2
+      (or (not (time-less-p now time1))
+          (time-less-p now time2)))))
 
 (defun greader-auto-tired-callback ()
   "Not documented, internal use."
-  (if
-      (stringp greader-auto-tired-mode-time)
-      (setq-local greader-auto-tired-mode-time
-		  (greader-convert-time greader-auto-tired-mode-time)))
-  (if
-      (stringp greader-auto-tired-time-end)
-      (setq-local greader-auto-tired-time-end
-		  (greader-convert-time greader-auto-tired-time-end)))
-  (if
-      (and
-       (greader-current-time-in-interval-p
-	greader-auto-tired-mode-time greader-auto-tired-time-end)
-       (not greader-tired-flag))
-      (greader-toggle-tired-mode))
-  (if
-      (and
-       (not
-	(greader-current-time-in-interval-p
-	 greader-auto-tired-mode-time greader-auto-tired-time-end))
-       greader-tired-flag)
-      (progn
-	(setq-local greader-auto-tired-mode-time
-		    (number-to-string
-		     (nth 2 (decode-time greader-auto-tired-mode-time))))
-	(setq-local greader-auto-tired-time-end
-		    (number-to-string
-		     (nth 2 (decode-time greader-auto-tired-time-end))))
-	(greader-toggle-tired-mode))))
+  (let ((start (greader-convert-time greader-auto-tired-mode-time))
+        (end   (greader-convert-time greader-auto-tired-time-end)))
+    (when (and (greader-current-time-in-interval-p start end)
+               (not greader-tired-mode))
+      (greader-tired-mode 1))
+    (when (and (not (greader-current-time-in-interval-p start end))
+               greader-tired-mode)
+      (greader-tired-mode -1))))
 
 (defun greader-set-rate (n)
   "Set rate in current buffer to tthe specified value in N.
@@ -1920,6 +1849,13 @@ to the next sentence, or when you stop the reading."
     (setq greader-keymap-prefix key-str)
     (define-key greader-mode-map (kbd greader-keymap-prefix) greader-prefix-keymap)
     (message "greader prefix set to %s for the current session." key-str)))
+
+(define-obsolete-function-alias 'greader-toggle-timer
+  'greader-timer-mode "0.16")
+(define-obsolete-function-alias 'greader-toggle-tired-mode
+  'greader-tired-mode "0.16")
+(define-obsolete-function-alias 'greader-toggle-auto-tired-mode
+  'greader-auto-tired-mode "0.16")
 
 (provide 'greader)
 ;;; greader.el ends here

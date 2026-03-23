@@ -166,11 +166,11 @@ Keybinding
  @tab Cycle through available backends.
 @item 
 @code{C-r t}
- @tab @code{greader-toggle-timer}
+ @tab @code{greader-timer-mode}
  @tab Toggle the reading timer.
-@item 
+@item
 @code{C-r s}
- @tab @code{greader-toggle-tired-mode}
+ @tab @code{greader-tired-mode}
  @tab Toggle tired/relax mode.
 @item 
 @code{C-r f}
@@ -233,6 +233,7 @@ set duration.
 Greader provides several minor modes to extend its functionality:
 
 @menu
+* Timer and Tired Modes::
 * greader-queue-mode::
 * greader-compile-mode::
 * greader-translate-mode::
@@ -416,6 +417,95 @@ time.
 @strong{@code{greader-auto-bookmark-mode}:} Automatically save a
 bookmark when you stop reading.
 
+@end itemize
+
+@node Timer and Tired Modes
+@subsection Timer and Tired Modes
+
+Greader provides three cooperating minor modes for time-limited and
+sleep-friendly reading: @code{greader-timer-mode},
+@code{greader-tired-mode}, and @code{greader-auto-tired-mode}.
+
+@subsubsection @code{greader-timer-mode}
+
+@code{greader-timer-mode} (@kbd{C-r t}) stops reading automatically
+after a configurable number of minutes.  When enabled, a countdown
+timer is armed each time @code{greader-read} starts.  On expiry,
+reading stops.
+
+By default (@code{greader-soft-timer} is @code{t}) the current sentence
+is finished before stopping.  Set @code{greader-soft-timer} to
+@code{nil} for an immediate hard cutoff.
+
+Relevant variables:
+@itemize
+@item
+@code{greader-timer} --- duration in minutes (default 10).
+@item
+@code{greader-soft-timer} --- if @code{t} (default), finish the current
+sentence before stopping; if @code{nil}, stop immediately.
+@end itemize
+
+@subsubsection @code{greader-tired-mode}
+
+@code{greader-tired-mode} (@kbd{C-r s}) is designed for listening in
+bed: enabling it implicitly enables @code{greader-timer-mode}.
+
+When the reading timer expires, greader arms a second, idle-based
+timer.  Two things can then happen:
+
+@enumerate
+@item
+@strong{You press any key} (you are still awake): the idle timer is
+cancelled and reading resumes automatically from where it stopped.
+The key press is consumed --- it does not execute its normal command.
+@item
+@strong{You do nothing for @code{greader-tired-time} seconds} (you fell
+asleep): the point is moved back to where you originally called
+@code{greader-read}, so next time you open the buffer you find the text
+you actually heard.
+@end enumerate
+
+When @code{greader-soft-timer} is enabled (the default), the idle timer
+is armed only after the last sentence has finished being read, not at
+the moment the reading timer expires.  This ensures that pressing a key
+while the final sentence is still playing does not trigger an unwanted
+restart.
+
+Calling @code{greader-stop} explicitly while the last sentence is
+playing (soft-timer case) cancels the tired-mode wait entirely ---
+point is not moved back.
+
+Disabling @code{greader-tired-mode} also disables
+@code{greader-timer-mode}, unless you had enabled the timer
+independently beforehand.
+
+Relevant variables:
+@itemize
+@item
+@code{greader-tired-time} --- idle seconds to wait before moving point
+back (default 60).
+@end itemize
+
+@subsubsection @code{greader-auto-tired-mode}
+
+@code{greader-auto-tired-mode} automatically activates
+@code{greader-tired-mode} within a configurable nightly time window and
+deactivates it in the morning.  Enable it once with @kbd{M-x
+greader-auto-tired-mode}; it then manages tired mode on its own every
+day.
+
+Intervals that cross midnight (e.g., 22:00--07:00) are handled
+correctly.
+
+Relevant variables:
+@itemize
+@item
+@code{greader-auto-tired-mode-time} --- hour to activate tired mode, as
+a string (default @code{"22"}).
+@item
+@code{greader-auto-tired-time-end} --- hour to deactivate tired mode, as
+a string (default @code{"07"}).
 @end itemize
 
 @node greader-queue-mode
@@ -835,14 +925,24 @@ Some of the customizable variables are:
 @item
 @code{greader-current-backend}: The default TTS backend to use.
 @item
-@code{greader-timer}: The default duration for the reading timer.
-@item
-@code{greader-auto-tired-mode-time}: The time to automatically enable
-tired mode.
+@code{greader-timer}: Reading timer duration in minutes (default 10).
+Used by @code{greader-timer-mode}.
 @item
 @code{greader-soft-timer}: If @code{t} (the default), finishes the
-current sentence before stopping at timer expiration. Set to @code{nil}
-for a hard cutoff.
+current sentence before stopping at timer expiration.  Set to @code{nil}
+for an immediate hard cutoff.
+@item
+@code{greader-tired-time}: Idle seconds to wait after the reading timer
+expires before moving point back (default 60).  Used by
+@code{greader-tired-mode}.
+@item
+@code{greader-auto-tired-mode-time}: Hour (as a string, e.g.@:
+@code{"22"}) at which @code{greader-auto-tired-mode} activates tired
+mode.
+@item
+@code{greader-auto-tired-time-end}: Hour (as a string, e.g.@:
+@code{"07"}) at which @code{greader-auto-tired-mode} deactivates tired
+mode.  Intervals crossing midnight are supported.
 @item
 @code{greader-backward-acoustic-feedback}: If @code{t}, plays a brief
 beep when the cursor returns to the previous reading position after

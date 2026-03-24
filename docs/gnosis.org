@@ -856,7 +856,8 @@ presents several review modes:
 
 - *Due themata*: All due and new themata, looping until none remain.
 - *Due themata of tag(s)*: Due themata filtered by +include/-exclude tags.
-- *Overdue themata*: Only themata whose scheduled date has passed.
+- *Overdue themata*: Only themata whose scheduled date has passed
+  (excludes never-reviewed themata).
 - *Due without overdue*: Today's due themata, excluding overdue ones.
 - *All themata of tag(s)*: All themata for selected tags, ignoring due
   status.
@@ -908,6 +909,9 @@ stages:
 
 6. *Algorithm update*: After the user confirms the result, the review log
    and gnosis score are updated.
+
+During a session, the header line shows the current progress as
+=Reviewed: N/Total=.
 
 ** Type-Specific Review Behaviour
 
@@ -1041,7 +1045,9 @@ standard algorithm applies:
 #+end_src
 
 After exhausting the proto list, the algorithm switches to the standard
-=synolon * elapsed-time= calculation.
+=synolon * elapsed-time= calculation.  Failing a review during the proto
+phase always resets the interval to 0 (due again today), regardless of
+elapsed time.
 
 ** Interval Calculation
 
@@ -1195,7 +1201,8 @@ M-x gnosis-dashboard
 This opens the =*Gnosis Dashboard*= buffer with a header showing your
 review streak and today's statistics.  A transient menu opens
 automatically, providing access to nodes, themata, review sessions,
-export/import, and database synchronisation.
+export/import (=e= to export, =i= to import), and database
+synchronisation.
 
 ** The Themata View
 
@@ -1240,36 +1247,25 @@ suspend all themata carrying a tag, or delete a tag from all themata.
 :CUSTOM_ID: export-import
 :END:
 
-Gnosis provides two export commands and two import commands.  Exports
-produce standard org-mode files that can be edited freely and
-re-imported.
+Gnosis exports and imports themata using SQLite database files (=.gnosis=
+extension).  This is faster and more reliable than text-based formats,
+especially for large collections.
 
-** Exporting to a Directory
-
-~gnosis-export-themata~ is the primary export command.  It writes a
-filtered subset of your themata to a directory, creating a =themata.org=
-file and copying linked node files into a =nodes/= subdirectory.
+** Exporting
 
 #+begin_src emacs-lisp
-M-x gnosis-export-themata
+M-x gnosis-export-db
 #+end_src
 
 When called interactively, you are asked for:
 
 1. Tag filters using +/- notation.
-2. Which directory to export to.
-3. Whether to replace IDs with =NEW= (for sharing).
-4. Whether to include suspended themata.
+2. The output file path (defaults to =gnosis-export.gnosis=).
+3. Whether to include suspended themata.
 
-The resulting directory structure:
-
-#+begin_example
-export-directory/
-  themata.org
-  nodes/
-    note1.org
-    note2.org
-#+end_example
+The export uses =ATTACH DATABASE= to write directly from your main
+database to the export file, making it efficient even for large
+collections.
 
 *** Tag Filter Notation
 
@@ -1284,57 +1280,87 @@ applies only exclusions.
 
 *** Programmatic Use
 
-Pass tag lists directly:
-
 #+begin_src emacs-lisp
-(gnosis-export-themata "/path/to/backup/"
-                       nil nil
-                       '("greek")
-                       '("draft"))
+(gnosis-export-db "~/backups/greek.gnosis"
+                  '("greek") '("draft"))
 #+end_src
 
-** Exporting to a Single File
+** Importing
 
-~gnosis-export-themata-to-file~ exports all non-suspended themata to a
-single org file without copying linked nodes.
+#+begin_src emacs-lisp
+M-x gnosis-import-db
+#+end_src
+
+Opens a diff review buffer showing NEW and CHANGED entries before
+applying any changes.  From this buffer:
+
+- =RET=: View detailed field-by-field comparison for the entry at point.
+- =a=: Apply all changes (inserts new themata, updates changed ones).
+- =q=: Quit without applying.
+- =?= / =h=: Open the transient help menu.
+
+New themata receive initialised review state (due immediately).  Changed
+themata have their content and tags updated without affecting review
+history.  After applying, the database is committed to Git.
 
 ** The Export Format
 
-Each thema is a top-level org heading:
+The =.gnosis= file is a plain SQLite database with four tables:
+=themata=, =thema_tag=, =extras=, and =gnosis_meta=.  Values use
+emacsql encoding (Lisp values serialized with =prin1-to-string=).
 
-#+begin_example
-,* Thema :greek:vocabulary:
-:PROPERTIES:
-:GNOSIS_ID: 12345678
-:GNOSIS_TYPE: Basic
-:END:
-,** Keimenon
-What is the Greek word for knowledge?
+See =docs/import-guide.org= for the full schema and instructions on
+creating import databases programmatically.
 
-,** Answer
-- gnosis
+** Editing Themata (Org Format)
 
-,** Parathema
-Additional context.
-#+end_example
+The org-based format is still used for the =*Gnosis Edit*= buffer when
+editing individual themata (=M-x gnosis-edit-thema= or =e= during
+review).  The =:GNOSIS_TYPE:= property is editable; the type is
+validated on save against =gnosis-thema-types=.
 
-The separator between multiple items in Hypothesis and Answer is the
-value of =gnosis-export-separator= (default: ="\n- "=).
+** Importing from Anki
 
-** Importing a File
+Gnosis can import Anki collections and decks directly:
 
 #+begin_src emacs-lisp
-M-x gnosis-import-file
+M-x gnosis-import-anki
 #+end_src
 
-Reads an exported org file and inserts or updates themata within a
-single transaction.  Themata with =:GNOSIS_ID: NEW= receive fresh IDs.
+The command auto-detects the file format by extension:
 
-** Asynchronous Import
+- =.apkg=: Anki deck package (extracted via =7z=, including modern
+  zstd-compressed =.anki21b= format)
+- =.anki2= / =.anki21=: Anki collection database (opened directly)
 
-For large files, use =M-x gnosis-import-file-async=.  This splits the
-file into chunks and processes them with timers between batches, keeping
-Emacs responsive.
+Supported note types:
+
+- *Basic* (and reversed): Imported as gnosis basic themata.
+- *Cloze*: Anki ={{c1::answer::hint}}= syntax is converted to gnosis
+  cloze themata.  Each cloze group becomes a separate thema.
+
+Image occlusion notes are skipped.
+
+*** What Gets Imported
+
+- Question and answer fields (HTML converted to org-mode markup)
+- Tags (Anki hierarchical tags like =anatomy::upper_limb= are split
+  into individual tags: =anatomy=, =upper_limb=)
+- Parathema from extra fields (if the note model has more than 2 fields)
+
+*** What Does Not Transfer
+
+Review history, scheduling data, and deck organisation are not imported.
+All imported themata start fresh with default algorithm values and are
+due immediately.
+
+*** Requirements
+
+- =7z= (p7zip) for =.apkg= extraction
+- =zstd= (optional, for modern =.anki21b= format; =7z= can also handle it)
+
+The import runs asynchronously in chunks of 200, keeping Emacs
+responsive during large imports.
 
 * Link Health and Maintenance
 :PROPERTIES:
@@ -1378,16 +1404,12 @@ complete rebuild:
 C-u M-x gnosis-nodes-db-sync
 #+end_src
 
-** Backup Recommendations
+** Version Control
 
-For manual backups, copy =gnosis.db= before major operations.  The
-export commands produce portable org files for disaster recovery:
+Gnosis automatically commits =gnosis.db= to a Git repository inside
+=gnosis-dir= after review sessions, migrations, and imports.  Enable
+=gnosis-vc-auto-push= to push to a remote after each session:
 
 #+begin_src emacs-lisp
-(gnosis-export-themata-to-file
- (format "~/backups/gnosis-%s.org"
-         (format-time-string "%Y-%m-%d")))
+(setq gnosis-vc-auto-push t)
 #+end_src
-
-For continuous protection, enable =gnosis-vc-auto-push= to push the
-database to a remote Git repository after each review session.

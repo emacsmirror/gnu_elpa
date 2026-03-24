@@ -1517,6 +1517,7 @@ Then do what `denote-sequence-hierarchy-move-and-open' entails."
   (cursor-sensor-mode 1)
   (outline-minor-mode 1))
 
+;; TODO 2026-03-24: We need to document this command, as well as its two user options.
 ;;;###autoload
 (defun denote-sequence-view-hierarchy (&optional prefix depth)
   "Show a hierachy of sequences.

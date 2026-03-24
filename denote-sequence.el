@@ -616,7 +616,9 @@ With optional SEQUENCES operate on those, else use the return value of
     (delete-dups
      (mapcar
       (lambda (strings)
-        (denote-sequence-join (seq-take strings depth) (denote-sequence--scheme-of-strings strings)))
+        (denote-sequence-join
+         (seq-take strings depth)
+         (denote-sequence--scheme-of-strings strings)))
       lists))))
 
 (defun denote-sequence--pad (sequence type)

@@ -6,8 +6,8 @@
 
 ;;; Commentary:
 
-;; Tests for themata export and import functionality.
-;; Uses a temporary SQLite database so the user's real DB is untouched.
+;; Tests for SQLite export/import functionality.
+;; Uses temporary SQLite databases so the user's real DB is untouched.
 
 ;;; Code:
 (require 'ert)
@@ -17,140 +17,116 @@
 (load (expand-file-name "gnosis-test-helpers.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
-(defun gnosis-test--kill-export-buffer (name)
-  "Kill the export buffer for NAME if it exists."
-  (let ((buf (get-buffer (format "EXPORT: %s" name))))
-    (when buf (kill-buffer buf))))
-
-;; ──────────────────────────────────────────────────────────
-;; Export tests
-;; ──────────────────────────────────────────────────────────
+;; ---- Group 1: SQLite export ----
 
 (ert-deftest gnosis-test-export-basic ()
-  "Export themata and verify the org buffer content."
+  "Export themata to SQLite database and verify contents."
   (gnosis-test-with-db
     (let* ((id1 (gnosis-test--add-basic-thema "What is 2+2?" "4"
                                               '("math" "basic")))
            (id2 (gnosis-test--add-basic-thema "Capital of Greece?" "Athens"
                                               '("geo")))
-           (export-file (concat (make-temp-file "gnosis-export-") ".org")))
+           (export-file (concat (make-temp-file "gnosis-export-") ".db")))
       (unwind-protect
           (progn
-            (gnosis-export-themata-to-file export-file nil)
+            (gnosis-export-db export-file)
             (should (file-exists-p export-file))
-            (with-temp-buffer
-              (insert-file-contents export-file)
-              (let ((content (buffer-string)))
-                ;; Themata count in header
-                (should (string-search "#+THEMATA: 2" content))
-                ;; Both themata exported
-                (should (string-search (number-to-string id1) content))
-                (should (string-search (number-to-string id2) content))
-                ;; Tags in org format
-                (should (string-search ":math:basic:" content))
-                (should (string-search ":geo:" content))
-                ;; Properties present
-                (should (string-search ":GNOSIS_ID:" content))
-                (should (string-search ":GNOSIS_TYPE: basic" content))
-                ;; Content present
-                (should (string-search "What is 2+2?" content))
-                (should (string-search "Capital of Greece?" content))
-                (should (string-search "4" content))
-                (should (string-search "Athens" content)))))
-        (when (file-exists-p export-file)
-          (delete-file export-file))
-        (gnosis-test--kill-export-buffer "gnosis-export")))))
-
-(ert-deftest gnosis-test-export-new-ids ()
-  "Export with new-p replaces IDs with NEW."
-  (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
-           (export-file (concat (make-temp-file "gnosis-export-new-") ".org")))
-      (unwind-protect
-          (progn
-            (gnosis-export-themata-to-file export-file t)
-            (with-temp-buffer
-              (insert-file-contents export-file)
-              (let ((content (buffer-string)))
-                (should (string-search ":GNOSIS_ID: NEW" content))
-                (should-not (string-search
-                             (format ":GNOSIS_ID: %d" id1) content)))))
-        (when (file-exists-p export-file)
-          (delete-file export-file))
-        (gnosis-test--kill-export-buffer "gnosis-export")))))
+            (let ((edb (gnosis-sqlite-open export-file)))
+              (unwind-protect
+                  (progn
+                    (should (= 2 (caar (gnosis-sqlite-select edb
+                                         "SELECT COUNT(*) FROM themata"))))
+                    ;; Tags in junction table
+                    (let ((tags (mapcar #'car
+                                  (gnosis-sqlite-select edb
+                                    "SELECT tag FROM thema_tag WHERE thema_id = ?"
+                                    (list id1)))))
+                      (should (member "math" tags))
+                      (should (member "basic" tags)))
+                    ;; Metadata (plain text, not emacsql-encoded)
+                    (should (sqlite-select edb
+                              "SELECT value FROM gnosis_meta WHERE key = 'exported_at'")))
+                (gnosis-sqlite-close edb))))
+        (when (file-exists-p export-file) (delete-file export-file))))))
 
 (ert-deftest gnosis-test-export-empty ()
-  "Exporting with no themata produces a file with just the header."
+  "Export with no themata creates DB with count 0."
   (gnosis-test-with-db
-    (let* ((export-file (concat (make-temp-file "gnosis-export-empty-") ".org")))
+    (let ((export-file (concat (make-temp-file "gnosis-export-empty-") ".db")))
       (unwind-protect
           (progn
-            (gnosis-export-themata-to-file export-file nil)
-            (with-temp-buffer
-              (insert-file-contents export-file)
-              (let ((content (buffer-string)))
-                (should (string-search "#+THEMATA: 0" content))
-                (should-not (string-search "* Thema" content)))))
-        (when (file-exists-p export-file)
-          (delete-file export-file))
-        (gnosis-test--kill-export-buffer "gnosis-export")))))
+            (gnosis-export-db export-file)
+            (let ((edb (gnosis-sqlite-open export-file)))
+              (unwind-protect
+                  (progn
+                    (should (= 0 (caar (gnosis-sqlite-select edb
+                                         "SELECT COUNT(*) FROM themata"))))
+                    (should (equal "0" (caar (sqlite-select edb
+                                              "SELECT value FROM gnosis_meta WHERE key = 'thema_count'")))))
+                (gnosis-sqlite-close edb))))
+        (when (file-exists-p export-file) (delete-file export-file))))))
 
 (ert-deftest gnosis-test-export-excludes-suspended ()
   "Export without include-suspended skips suspended themata."
   (gnosis-test-with-db
-    (let* ((_id1 (gnosis-test--add-basic-thema "Active Q" "A1" '("a")))
-           (_id2 (gnosis-test--add-basic-thema "Suspended Q" "A2"
-                                               '("s") nil nil 1))
-           (export-file (concat (make-temp-file "gnosis-export-susp-") ".org")))
+    (gnosis-test--add-basic-thema "Active" "A1" '("a"))
+    (gnosis-test--add-basic-thema "Suspended" "A2" '("s") nil nil 1)
+    (let ((export-file (concat (make-temp-file "gnosis-export-susp-") ".db")))
       (unwind-protect
           (progn
-            ;; Export without suspended
-            (gnosis-export-themata-to-file export-file nil nil)
-            (with-temp-buffer
-              (insert-file-contents export-file)
-              (let ((content (buffer-string)))
-                (should (string-search "#+THEMATA: 1" content))
-                (should (string-search "Active Q" content))
-                (should-not (string-search "Suspended Q" content)))))
-        (when (file-exists-p export-file)
-          (delete-file export-file))
-        (gnosis-test--kill-export-buffer "gnosis-export")))))
+            (gnosis-export-db export-file nil nil nil)
+            (let ((edb (gnosis-sqlite-open export-file)))
+              (unwind-protect
+                  (should (= 1 (caar (gnosis-sqlite-select edb
+                                       "SELECT COUNT(*) FROM themata"))))
+                (gnosis-sqlite-close edb))))
+        (when (file-exists-p export-file) (delete-file export-file))))))
 
 (ert-deftest gnosis-test-export-includes-suspended ()
   "Export with include-suspended includes all themata."
   (gnosis-test-with-db
-    (let* ((_id1 (gnosis-test--add-basic-thema "Active Q" "A1" '("a")))
-           (_id2 (gnosis-test--add-basic-thema "Suspended Q" "A2"
-                                               '("s") nil nil 1))
-           (export-file (concat (make-temp-file "gnosis-export-susp2-") ".org")))
+    (gnosis-test--add-basic-thema "Active" "A1" '("a"))
+    (gnosis-test--add-basic-thema "Suspended" "A2" '("s") nil nil 1)
+    (let ((export-file (concat (make-temp-file "gnosis-export-susp2-") ".db")))
       (unwind-protect
           (progn
-            ;; Export with suspended
-            (gnosis-export-themata-to-file export-file nil t)
-            (with-temp-buffer
-              (insert-file-contents export-file)
-              (let ((content (buffer-string)))
-                (should (string-search "#+THEMATA: 2" content))
-                (should (string-search "Active Q" content))
-                (should (string-search "Suspended Q" content)))))
-        (when (file-exists-p export-file)
-          (delete-file export-file))
-        (gnosis-test--kill-export-buffer "gnosis-export")))))
+            (gnosis-export-db export-file nil nil t)
+            (let ((edb (gnosis-sqlite-open export-file)))
+              (unwind-protect
+                  (should (= 2 (caar (gnosis-sqlite-select edb
+                                       "SELECT COUNT(*) FROM themata"))))
+                (gnosis-sqlite-close edb))))
+        (when (file-exists-p export-file) (delete-file export-file))))))
 
-;; ──────────────────────────────────────────────────────────
-;; Import tests
-;; ──────────────────────────────────────────────────────────
-
-(ert-deftest gnosis-test-import-creates-themata ()
-  "Importing a file creates themata."
+(ert-deftest gnosis-test-export-extras ()
+  "Export preserves parathema in extras table."
   (gnosis-test-with-db
-    (let* ((_id1 (gnosis-test--add-basic-thema "Q1" "A1" '("tag1")))
-           (export-file (concat (make-temp-file "gnosis-import-") ".org")))
+    (let* ((id1 (gnosis-test--add-basic-thema "Q" "A" '("t") "See SICP"))
+           (export-file (concat (make-temp-file "gnosis-export-extras-") ".db")))
       (unwind-protect
           (progn
-            (gnosis-export-themata-to-file export-file t)
-            (gnosis-test--kill-export-buffer "gnosis-export")
-            ;; Import into a fresh DB to check thema creation
+            (gnosis-export-db export-file)
+            (let ((edb (gnosis-sqlite-open export-file)))
+              (unwind-protect
+                  (let ((parathema (caar (gnosis-sqlite-select edb
+                                          "SELECT parathema FROM extras WHERE id = ?"
+                                          (list id1)))))
+                    (should (string-search "See SICP" parathema)))
+                (gnosis-sqlite-close edb))))
+        (when (file-exists-p export-file) (delete-file export-file))))))
+
+;; ---- Group 2: Import diff ----
+
+(ert-deftest gnosis-test-import-diff-detects-new ()
+  "Import diff detects new themata not in the main DB."
+  (gnosis-test-with-db
+    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("t1")))
+           (id2 (gnosis-test--add-basic-thema "Q2" "A2" '("t2")))
+           (export-file (concat (make-temp-file "gnosis-diff-new-") ".db")))
+      (unwind-protect
+          (progn
+            (gnosis-export-db export-file)
+            ;; Import into a fresh DB: all should be detected as new
             (let* ((db-file2 (make-temp-file "gnosis-test2-" nil ".db"))
                    (gnosis-db (gnosis-sqlite-open db-file2))
                    (gnosis--id-cache nil))
@@ -162,32 +138,65 @@
                           (format "CREATE TABLE %s (%s)"
                                   (gnosis-sqlite--ident table)
                                   (gnosis-sqlite--compile-schema schema)))))
-                    ;; No themata yet
-                    (should (= 0 (length (gnosis-select 'id 'themata nil t))))
-                    (gnosis-import-file export-file)
-                    ;; Thema should exist
-                    (should (= 1 (length (gnosis-select 'id 'themata nil t)))))
+                    (let* ((diff (gnosis-import--diff export-file))
+                           (new-rows (car diff))
+                           (changed-rows (cadr diff)))
+                      (should (= 2 (length new-rows)))
+                      (should (= 0 (length changed-rows)))))
                 (gnosis-sqlite-close gnosis-db)
                 (delete-file db-file2))))
-        (when (file-exists-p export-file)
-          (delete-file export-file))))))
+        (when (file-exists-p export-file) (delete-file export-file))))))
 
-(ert-deftest gnosis-test-import-roundtrip ()
-  "Export then import: thema count and content survive the roundtrip."
+(ert-deftest gnosis-test-import-diff-detects-changes ()
+  "Import diff detects changed themata."
   (gnosis-test-with-db
-    (let* ((_id1 (gnosis-test--add-basic-thema "What is Emacs?" "A text editor"
-                                               '("emacs" "editor")))
-           (_id2 (gnosis-test--add-basic-thema "What is Lisp?" "A language"
-                                               '("lisp") "See SICP"))
-           (_id3 (gnosis-test--add-basic-thema "What is org?" "A mode"
-                                               '("org")))
-           (export-file (concat (make-temp-file "gnosis-roundtrip-") ".org")))
+    (let* ((id1 (gnosis-test--add-basic-thema "Original Q" "Original A" '("t1")))
+           (export-file (concat (make-temp-file "gnosis-diff-change-") ".db")))
       (unwind-protect
           (progn
-            (gnosis-export-themata-to-file export-file t)
-            (gnosis-test--kill-export-buffer "gnosis-export")
-            ;; Import into a fresh DB
-            (let* ((db-file2 (make-temp-file "gnosis-rt2-" nil ".db"))
+            (gnosis-export-db export-file)
+            ;; Modify keimenon in the export DB
+            (let ((edb (sqlite-open export-file)))
+              (sqlite-execute edb
+                (format "UPDATE themata SET keimenon = '\"Changed Q\"' WHERE id = %d" id1))
+              (sqlite-close edb))
+            ;; Diff against current DB
+            (let* ((diff (gnosis-import--diff export-file))
+                   (new-rows (car diff))
+                   (changed-rows (cadr diff)))
+              (should (= 0 (length new-rows)))
+              (should (= 1 (length changed-rows)))
+              (should (= id1 (caar changed-rows)))))
+        (when (file-exists-p export-file) (delete-file export-file))))))
+
+(ert-deftest gnosis-test-import-diff-no-changes ()
+  "Diff against identical export shows no changes."
+  (gnosis-test-with-db
+    (gnosis-test--add-basic-thema "Q1" "A1" '("t"))
+    (let ((export-file (concat (make-temp-file "gnosis-diff-same-") ".db")))
+      (unwind-protect
+          (progn
+            (gnosis-export-db export-file)
+            (let* ((diff (gnosis-import--diff export-file))
+                   (new-rows (car diff))
+                   (changed-rows (cadr diff)))
+              (should (= 0 (length new-rows)))
+              (should (= 0 (length changed-rows)))))
+        (when (file-exists-p export-file) (delete-file export-file))))))
+
+;; ---- Group 3: Import apply ----
+
+(ert-deftest gnosis-test-import-apply-new ()
+  "Apply import inserts new themata with review state."
+  (gnosis-test-with-db
+    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("emacs" "editor")))
+           (id2 (gnosis-test--add-basic-thema "Q2" "A2" '("lisp") "See SICP"))
+           (export-file (concat (make-temp-file "gnosis-apply-new-") ".db")))
+      (unwind-protect
+          (progn
+            (gnosis-export-db export-file)
+            ;; Apply into a fresh DB
+            (let* ((db-file2 (make-temp-file "gnosis-test2-" nil ".db"))
                    (gnosis-db (gnosis-sqlite-open db-file2))
                    (gnosis--id-cache nil))
               (unwind-protect
@@ -198,65 +207,50 @@
                           (format "CREATE TABLE %s (%s)"
                                   (gnosis-sqlite--ident table)
                                   (gnosis-sqlite--compile-schema schema)))))
-                    (gnosis-import-file export-file)
-                    ;; 3 themata imported
-                    (should (= 3 (length (gnosis-select 'id 'themata nil t))))
-                    ;; Content preserved
-                    (let ((all-keimenon (gnosis-select 'keimenon 'themata nil t)))
-                      (should (member "What is Emacs?" all-keimenon))
-                      (should (member "What is Lisp?" all-keimenon))
-                      (should (member "What is org?" all-keimenon)))
-                    ;; Parathema preserved
-                    (let* ((thema-id (gnosis-get 'id 'themata
-                                                 '(= keimenon "What is Lisp?")))
-                           (parathema (gnosis-get 'parathema 'extras
-                                                  `(= id ,thema-id))))
-                      (should (string-search "See SICP" parathema)))
-                    ;; Tags preserved (in junction table)
-                    (let* ((thema-id (gnosis-get 'id 'themata
-                                                 '(= keimenon "What is Emacs?")))
-                           (tags (gnosis-select 'tag 'thema-tag
-						`(= thema-id ,thema-id) t)))
+                    (gnosis-import--apply-changes export-file
+                      (list id1 id2) nil)
+                    ;; Themata created
+                    (should (= 2 (length (gnosis-select 'id 'themata nil t))))
+                    ;; Tags preserved
+                    (let ((tags (gnosis-select 'tag 'thema-tag
+                                              `(= thema-id ,id1) t)))
                       (should (member "emacs" tags))
-                      (should (member "editor" tags))))
+                      (should (member "editor" tags)))
+                    ;; Extras preserved
+                    (let ((p (gnosis-get 'parathema 'extras `(= id ,id2))))
+                      (should (string-search "See SICP" p)))
+                    ;; Review state initialized
+                    (should (gnosis-select 'id 'review `(= id ,id1) t))
+                    (should (gnosis-select 'id 'review-log `(= id ,id1) t)))
                 (gnosis-sqlite-close gnosis-db)
                 (delete-file db-file2))))
-        (when (file-exists-p export-file)
-          (delete-file export-file))))))
+        (when (file-exists-p export-file) (delete-file export-file))))))
 
-(ert-deftest gnosis-test-import-updates-existing-thema ()
-  "Importing with existing IDs updates themata rather than duplicating."
+(ert-deftest gnosis-test-import-apply-changed ()
+  "Apply import updates changed themata content."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Old question" "Old answer"
-                                              '("old")))
-           (export-file (concat (make-temp-file "gnosis-update-") ".org")))
+    (let* ((id1 (gnosis-test--add-basic-thema "Old question" "Old answer" '("old")))
+           (export-file (concat (make-temp-file "gnosis-apply-change-") ".db")))
       (unwind-protect
           (progn
-            ;; Export with real IDs (not NEW)
-            (gnosis-export-themata-to-file export-file nil)
-            (gnosis-test--kill-export-buffer "gnosis-export")
-            ;; Modify the exported file: change the answer
-            (with-temp-file export-file
-              (insert-file-contents export-file)
-              (goto-char (point-min))
-              (when (search-forward "Old answer" nil t)
-                (replace-match "New answer")))
-            ;; Import back
-            (gnosis-import-file export-file)
-            ;; Still just 1 thema
+            (gnosis-export-db export-file)
+            ;; Modify keimenon in export DB
+            (let ((edb (sqlite-open export-file)))
+              (sqlite-execute edb
+                (format "UPDATE themata SET keimenon = '\"New question\"' WHERE id = %d" id1))
+              (sqlite-close edb))
+            ;; Apply as changed
+            (gnosis-import--apply-changes export-file nil (list id1))
+            ;; Verify
             (should (= 1 (length (gnosis-select 'id 'themata nil t))))
-            ;; Answer updated
-            (let ((answer (gnosis-get 'answer 'themata `(= id ,id1))))
-              (should (member "New answer" answer))))
-        (when (file-exists-p export-file)
-          (delete-file export-file))))))
+            (should (equal "New question"
+                           (gnosis-get 'keimenon 'themata `(= id ,id1)))))
+        (when (file-exists-p export-file) (delete-file export-file))))))
 
-;; ──────────────────────────────────────────────────────────
-;; Export: read-only property tests
-;; ──────────────────────────────────────────────────────────
+;; ---- Group 4: Edit mode support (unchanged) ----
 
 (ert-deftest gnosis-test-export-insert-thema-content ()
-  "Inserting a thema produces all sections (keimenon, hypothesis, answer, parathema)."
+  "Inserting a thema produces all sections."
   (with-temp-buffer
     (gnosis-export--insert-thema "1" "basic" "Question?" "- hint" "- answer" "extra"
 				 '("tag1" "tag2"))
@@ -292,9 +286,7 @@
       (should (string-match-p "GNOSIS_ID: 3" text))
       (should (string-match-p "Q3" text)))))
 
-;; ──────────────────────────────────────────────────────────
-;; Tag filter tests
-;; ──────────────────────────────────────────────────────────
+;; ---- Group 5: Tag filter tests ----
 
 (ert-deftest gnosis-test-parse-filter-mixed ()
   "Parse mixed +/- tags into include and exclude lists."
@@ -361,90 +353,25 @@
     (let ((ids (gnosis-filter-by-tags nil nil)))
       (should (= 2 (length ids))))))
 
-;; ──────────────────────────────────────────────────────────
-;; Linked node export tests
-;; ──────────────────────────────────────────────────────────
-
-(ert-deftest gnosis-test-collect-linked-node-files ()
-  "Collect node files linked from themata via thema-links."
-  (gnosis-test-with-db
-    (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("test")))
-          (id2 (gnosis-test--add-basic-thema "Q2" "A2" '("test"))))
-      ;; Insert nodes
-      (gnosis--insert-into 'nodes '(["node-1" "note1.org" "Note 1" "1" nil nil nil]))
-      (gnosis--insert-into 'nodes '(["node-2" "note2.org" "Note 2" "1" nil nil nil]))
-      ;; Link thema -> node
-      (gnosis--insert-into 'thema-links `([,id1 "node-1"]))
-      (gnosis--insert-into 'thema-links `([,id2 "node-2"]))
-      (let ((result (gnosis-export--collect-linked-node-files (list id1 id2))))
-        (should (= 2 (length result)))
-        (should (cl-find "node-1" result :key #'car :test #'equal))
-        (should (cl-find "node-2" result :key #'car :test #'equal))))))
-
-(ert-deftest gnosis-test-collect-linked-node-files-empty ()
-  "No linked nodes returns nil."
-  (gnosis-test-with-db
-    (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("test"))))
-      (should (null (gnosis-export--collect-linked-node-files (list id1)))))))
-
-(ert-deftest gnosis-test-export-themata-directory ()
-  "gnosis-export-themata creates themata.org and nodes/ directory."
-  (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "What is X?" "42" '("math")))
-           (export-dir (make-temp-file "gnosis-export-dir-" t))
-           (gnosis-nodes-dir (make-temp-file "gnosis-nodes-" t)))
-      (unwind-protect
-          (progn
-            ;; Create a fake node file
-            (with-temp-file (expand-file-name "note1.org" gnosis-nodes-dir)
-              (insert "* Test node\n"))
-            ;; Insert node + link
-            (gnosis--insert-into 'nodes '(["node-1" "note1.org" "Note 1" "1" nil nil nil]))
-            (gnosis--insert-into 'thema-links `([,id1 "node-1"]))
-            (gnosis-export-themata export-dir nil nil '("math") nil)
-            ;; Verify themata.org
-            (let ((themata-file (expand-file-name "themata.org" export-dir)))
-              (should (file-exists-p themata-file))
-              (with-temp-buffer
-                (insert-file-contents themata-file)
-                (let ((content (buffer-string)))
-                  (should (string-search "#+TAGS: +math" content))
-                  (should (string-search "#+THEMATA: 1" content))
-                  (should (string-search "What is X?" content)))))
-            ;; Verify nodes/ directory
-            (let ((nodes-dir (expand-file-name "nodes" export-dir)))
-              (should (file-directory-p nodes-dir))
-              (should (file-exists-p (expand-file-name "note1.org" nodes-dir)))))
-        (delete-directory export-dir t)
-        (delete-directory gnosis-nodes-dir t)))))
-
-;; ──────────────────────────────────────────────────────────
-;; ID cache tests
-;; ──────────────────────────────────────────────────────────
+;; ---- Group 6: ID cache tests ----
 
 (ert-deftest gnosis-test-id-cache-generates-unique ()
-  "gnosis-generate-id with cache produces unique IDs and registers them."
+  "gnosis-generate-id with cache produces unique IDs."
   (let ((gnosis--id-cache (make-hash-table :test 'equal)))
-    ;; Seed cache with one known ID
     (puthash 12345678901 t gnosis--id-cache)
     (let ((new-id (gnosis-generate-id 11)))
-      ;; Should not collide
       (should-not (= new-id 12345678901))
-      ;; Should be registered in cache
       (should (gethash new-id gnosis--id-cache)))))
 
 (ert-deftest gnosis-test-id-cache-no-db-query ()
   "gnosis-generate-id with cache works without a DB connection."
   (let ((gnosis--id-cache (make-hash-table :test 'equal))
         (gnosis-db nil))
-    ;; Should not error -- cache means no DB query needed
     (let ((id (gnosis-generate-id)))
       (should (integerp id))
       (should (gethash id gnosis--id-cache)))))
 
-;; ──────────────────────────────────────────────────────────
-;; Tag operations (junction-table-only)
-;; ──────────────────────────────────────────────────────────
+;; ---- Group 7: Tag operations ----
 
 (ert-deftest gnosis-test-tag-rename ()
   "Renaming a tag updates the junction table."
@@ -464,24 +391,6 @@
       (let ((tags (gnosis-select 'tag 'thema-tag `(= thema-id ,id1) t)))
         (should-not (member "doomed" tags))
         (should (member "safe" tags))))))
-
-(ert-deftest gnosis-test-export-tags-from-junction-table ()
-  "Export reads tags from thema-tag, not themata."
-  (gnosis-test-with-db
-    (let* ((_id1 (gnosis-test--add-basic-thema "Tag Q" "Tag A"
-                                               '("alpha" "beta")))
-           (export-file (concat (make-temp-file "gnosis-tag-export-") ".org")))
-      (unwind-protect
-          (progn
-            (gnosis-export-themata-to-file export-file nil)
-            (with-temp-buffer
-              (insert-file-contents export-file)
-              (let ((content (buffer-string)))
-                (should (string-search ":alpha:" content))
-                (should (string-search ":beta:" content)))))
-        (when (file-exists-p export-file)
-          (delete-file export-file))
-        (gnosis-test--kill-export-buffer "gnosis-export")))))
 
 (provide 'gnosis-test-export-import)
 

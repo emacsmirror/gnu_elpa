@@ -106,6 +106,7 @@ zx (z is 26 and x is 25)."
              (string-match-p "\\`[0-9]+" sequence)
              (not (string-match-p "=" sequence)))
     sequence))
+
 (defun denote-sequence-alphanumeric-delimited-p (sequence)
   "Return SEQUENCE if it is an alphanumeric and delimited.
 Refer to the `denote-sequence-scheme' for the details."
@@ -135,7 +136,7 @@ Refer to the `denote-sequence-scheme' for the details."
                 (throw 'error nil))
               (setq last-type current-type)))
           sequence))))))
-   
+
 (defun denote-sequence-user-selected-scheme-p (sequence)
   "Return SEQUENCE if it is consistent with `denote-sequence-scheme'.
 Also see `denote-sequence-alphanumeric-p' and `denote-sequence-numeric-p'."

@@ -550,16 +550,15 @@ Optional argument EVENT ."
   (if greader-debug
       (greader-debug
        (format "greader--default-action entered.\nevent: %S\n" event)))
-  (cond
-   ((and greader-timer-mode (timerp greader-stop-timer))
+  (when (and greader-timer-mode (timerp greader-stop-timer))
     (greader-cancel-elapsed-timer)
     (greader-cancel-stop-timer)
     (greader-reset-elapsed-time)
     (setq-local greader-stop-timer 0)
-    (greader-set-greader-keymap)
     (when greader--tired-pending
       (setq-local greader--tired-pending nil)
-      (greader-setup-tired-timer)))))
+      (greader-setup-tired-timer)))
+  (greader-set-greader-keymap))
 
 (defun greader-build-args ()
   "Build the string that will be passed to the back-end."

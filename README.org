@@ -161,14 +161,6 @@ project root directory, then in Emacs open =vc-jj.el= and activate
 
 Vc-jj uses Emacs's built-in Bug Reference mode (see [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Bug-Reference.html][(emacs) Bug
 Reference]]) to buttonize references to this project's Codeberg issues
-and PRs in Emacs-lisp mode buffers.  References like =bug#123= or
-=issue#123= link to issues, and =pr#123= or =pull#123= link to PRs.
-Matching is case-insensitive.  To follow a button, place point on it
-and press =C-c RET=, or use =M-x bug-reference-push-button=.
-
-
-Vc-jj uses Emacs's built-in Bug Reference mode (see [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Bug-Reference.html][(emacs) Bug
-Reference]]) to buttonize references to this project's Codeberg issues
 and PRs in Emacs-lisp mode buffers.  References have the form
 =KEYWORD#NUMBER=, where =KEYWORD= is one of =bug=, =Bug=, =BUG=, =issue=, =Issue=,
 =ISSUE=, =pull=, =Pull=, =PULL=, =pr=, or =PR=.  Issue keywords (=bug=, =issue=) link

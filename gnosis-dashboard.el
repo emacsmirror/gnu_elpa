@@ -1241,8 +1241,8 @@ Uses +tag/-tag syntax: +foo adds tag foo, -bar removes tag bar."
     ("m" "Monkeytype" gnosis-monkeytype-start)
     ("h" "History" gnosis-dashboard-history)]
    ["Import/Export"
-    ("e" "Export themata" gnosis-export-themata)
-    ("i" "Import gnosis collection" gnosis-import-file)
+    ("e" "Export themata" gnosis-export-db)
+    ("i" "Import themata" gnosis-import-db)
     ("I" "Import Anki" gnosis-import-anki)]
    ["Maintenance"
     ("s" "Sync nodes" gnosis-nodes-db-sync)

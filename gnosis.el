@@ -250,12 +250,10 @@ Creates `gnosis-dir' and runs schema initialization on first use."
 (autoload 'gnosis-export--insert-thema "gnosis-export-import")
 (autoload 'gnosis-export--insert-themata "gnosis-export-import")
 (autoload 'gnosis-export-parse-themata "gnosis-export-import")
-(autoload 'gnosis-export-themata "gnosis-export-import" nil t)
-(autoload 'gnosis-export-themata-to-file "gnosis-export-import" nil t)
+(autoload 'gnosis-export-db "gnosis-export-import" nil t)
+(autoload 'gnosis-import-db "gnosis-export-import" nil t)
 (autoload 'gnosis-save-thema "gnosis-export-import")
 (autoload 'gnosis-save "gnosis-export-import" nil t)
-(autoload 'gnosis-import-file "gnosis-export-import" nil t)
-(autoload 'gnosis-import-file-async "gnosis-export-import" nil t)
 
 (defvar gnosis-export-separator "\n- ")
 

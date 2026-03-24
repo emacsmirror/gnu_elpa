@@ -386,7 +386,7 @@ Same as collection but simulates a deck export (identical schema)."
            (ids '(1001 1002))
            (gnosis-val (prin1-to-string gnosis-algorithm-gnosis-value))
            (amnesia-val gnosis-algorithm-amnesia-value)
-           (today (prin1-to-string (gnosis-algorithm-date))))
+           (today (gnosis--today-int)))
       (gnosis-anki--bulk-insert-chunk gnosis-db items ids
                                       gnosis-val amnesia-val today)
       ;; Verify themata
@@ -422,7 +422,7 @@ Same as collection but simulates a deck export (identical schema)."
            (ids '(2001))
            (gnosis-val (prin1-to-string gnosis-algorithm-gnosis-value))
            (amnesia-val gnosis-algorithm-amnesia-value)
-           (today (prin1-to-string (gnosis-algorithm-date))))
+           (today (gnosis--today-int)))
       (gnosis-anki--bulk-insert-chunk gnosis-db items ids
                                       gnosis-val amnesia-val today)
       (should (= 1 (length (gnosis-select 'id 'themata nil t))))
@@ -448,7 +448,7 @@ Same as collection but simulates a deck export (identical schema)."
            (ids '(3001))
            (gnosis-val (prin1-to-string gnosis-algorithm-gnosis-value))
            (amnesia-val gnosis-algorithm-amnesia-value)
-           (today (prin1-to-string (gnosis-algorithm-date))))
+           (today (gnosis--today-int)))
       (gnosis-anki--bulk-insert-chunk gnosis-db items ids
                                       gnosis-val amnesia-val today)
       (let ((tags (gnosis-select 'tag 'thema-tag '(= thema-id 3001) t)))

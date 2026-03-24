@@ -1541,13 +1541,39 @@ Return thema ids for themata that match QUERY."
 (defun gnosis--db-create-tables ()
   "Create all tables and set version to current.
 Used for fresh databases only."
-  (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-    (pcase-dolist (`(,table ,schema) gnosis-db--schemata)
-      (gnosis-sqlite-execute (gnosis--ensure-db)
-			     (format "CREATE TABLE %s (%s)"
-				     (gnosis-sqlite--ident table)
-				     (gnosis-sqlite--compile-schema schema))))
-    (gnosis--db-set-version gnosis-db-version)))
+  (let ((db (gnosis--ensure-db)))
+    (gnosis-sqlite-with-transaction db
+      (pcase-dolist (`(,table ,schema) gnosis-db--schemata)
+	(gnosis-sqlite-execute db
+	  (format "CREATE TABLE %s (%s)"
+		  (gnosis-sqlite--ident table)
+		  (gnosis-sqlite--compile-schema schema))))
+      (gnosis--db-create-indexes db)
+      (gnosis--db-set-version gnosis-db-version))))
+
+(defun gnosis--db-create-indexes (db)
+  "Create all performance indexes on DB."
+  (dolist (stmt '("CREATE INDEX IF NOT EXISTS idx_review_log_due
+                   ON review_log(n, suspend, next_rev)"
+		  "CREATE INDEX IF NOT EXISTS idx_thema_tag_thema_id
+                   ON thema_tag(thema_id)"
+		  "CREATE INDEX IF NOT EXISTS idx_thema_tag_tag
+                   ON thema_tag(tag)"
+		  "CREATE INDEX IF NOT EXISTS idx_thema_links_source
+                   ON thema_links(source)"
+		  "CREATE INDEX IF NOT EXISTS idx_thema_links_dest
+                   ON thema_links(dest)"
+		  "CREATE INDEX IF NOT EXISTS idx_node_links_source
+                   ON node_links(source)"
+		  "CREATE INDEX IF NOT EXISTS idx_node_links_dest
+                   ON node_links(dest)"
+		  "CREATE INDEX IF NOT EXISTS idx_activity_log_date
+                   ON activity_log(date)"
+		  "CREATE INDEX IF NOT EXISTS idx_nodes_file
+                   ON nodes(file)"
+		  "CREATE INDEX IF NOT EXISTS idx_journal_file
+                   ON journal(file)"))
+    (gnosis-sqlite-execute db stmt)))
 
 (defun gnosis--db-has-tables-p ()
   "Return non-nil if the database has user tables."
@@ -1799,7 +1825,9 @@ Handles both Lisp list dates and already-converted integers."
           (when (and new-date (not (equal (nth 1 row) new-date)))
             (gnosis-sqlite-execute db
               "UPDATE activity_log SET date = ? WHERE rowid = ?"
-              (list new-date (nth 0 row))))))))
+              (list new-date (nth 0 row))))))
+      ;; 3. Create indexes
+      (gnosis--db-create-indexes db)))
   (gnosis--db-set-version 7))
 
 (defconst gnosis-db--migrations

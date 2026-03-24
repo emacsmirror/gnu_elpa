@@ -266,28 +266,24 @@ This function ignores if thema is suspended.  Refer to
 `gnosis-review-is-due-p' if you need to check for suspended value as
 well."
   (let ((next-rev (gnosis-get 'next-rev 'review-log `(= id ,id))))
-    (gnosis-past-or-present-p next-rev)))
+    (<= next-rev (gnosis--today-int))))
 
 (defun gnosis-review-get--due-themata ()
   "Return due thema IDs & due dates."
-  (let* ((today (gnosis--date-to-int (gnosis-algorithm-date)))
-	 (old-themata (cl-loop for thema in
-			       (gnosis-select '[id next-rev] 'review-log
-					      '(and (> n 0)
-						    (= suspend 0))
-					      nil)
-			       when (<= (gnosis--date-to-int (cadr thema)) today)
-			       collect thema))
-	 (new-themata (cl-loop for thema in
-			       (gnosis-select '[id next-rev] 'review-log
-					      '(and (= n 0)
-						    (= suspend 0))
-					      nil)
-			       when (<= (gnosis--date-to-int (cadr thema)) today)
-			       collect thema)))
-    (if gnosis-review-new-first
-	(append (cl-subseq new-themata 0 gnosis-new-themata-limit) old-themata)
-      (append old-themata (cl-subseq new-themata 0 gnosis-new-themata-limit)))))
+  (let* ((today (gnosis--today-int))
+	 (old-themata (gnosis-select '[id next-rev] 'review-log
+				     `(and (> n 0) (= suspend 0)
+					   (<= next-rev ,today))))
+	 (new-themata (gnosis-select '[id next-rev] 'review-log
+				     `(and (= n 0) (= suspend 0)
+					   (<= next-rev ,today)))))
+    (let ((limited-new (if gnosis-new-themata-limit
+			  (cl-subseq new-themata 0 (min gnosis-new-themata-limit
+						       (length new-themata)))
+			new-themata)))
+      (if gnosis-review-new-first
+	  (append limited-new old-themata)
+	(append old-themata limited-new)))))
 
 (defun gnosis-review-get-due-themata ()
   "Return all due thema IDs."
@@ -297,9 +293,10 @@ well."
   "Return overdue themata for current DATE.
 
 Optionally, provide THEMA-IDS of which the overdue ones will be returned."
-  (cl-loop for thema in (or thema-ids (gnosis-review-get--due-themata))
-	   when (not (equal (cadr thema) (gnosis-algorithm-date)))
-	   collect (car thema)))
+  (let ((today (gnosis--today-int)))
+    (cl-loop for thema in (or thema-ids (gnosis-review-get--due-themata))
+	     when (not (= (cadr thema) today))
+	     collect (car thema))))
 
 ;;; Algorithm bridge
 
@@ -320,8 +317,8 @@ keys n, c-success, c-fails, t-success, t-fails for
 	 (t-success (nth 0 log-data))
 	 (c-success (nth 1 log-data))
 	 (c-fails (nth 2 log-data))
-	 (last-interval (gnosis-algorithm-date-diff (nth 3 log-data)))
-	 (existing-next-rev (nth 4 log-data))
+	 (last-interval (gnosis-algorithm-date-diff (gnosis--int-to-date (nth 3 log-data))))
+	 (existing-next-rev (gnosis--int-to-date (nth 4 log-data)))
 	 (n (nth 5 log-data))
 	 (t-fails (nth 6 log-data))
 	 (gnosis (gnosis-get 'gnosis 'review `(= id ,id)))
@@ -374,7 +371,7 @@ RESULT is the return value of `gnosis-review-algorithm'."
     ;; Single review-log UPDATE
     (gnosis-sqlite-execute (gnosis--ensure-db)
 	     "UPDATE review_log SET last_rev = ?, next_rev = ?, n = ?, c_success = ?, c_fails = ?, t_success = ?, t_fails = ? WHERE id = ?"
-	     (list (gnosis-algorithm-date) next-rev (1+ n)
+	     (list (gnosis--today-int) (gnosis--date-to-int next-rev) (1+ n)
 		   (if success (1+ c-success) 0)
 		   (if success 0 (1+ c-fails))
 		   (if success (1+ t-success) t-success)
@@ -529,9 +526,9 @@ If NEW? is non-nil, increment new themata log by 1."
 	 (inc-total (cl-incf current-total-value))
 	 (current-new-value (gnosis-get-date-new-themata))
 	 (inc-new (cl-incf current-new-value))
-	 (date (or date (gnosis-algorithm-date))))
-    (gnosis-update 'activity-log `(= reviewed-total ,inc-total) `(= date ',date))
-    (and new? (gnosis-update 'activity-log `(= reviewed-new ,inc-new) `(= date ',date)))))
+	 (date (or date (gnosis--today-int))))
+    (gnosis-update 'activity-log `(= reviewed-total ,inc-total) `(= date ,date))
+    (and new? (gnosis-update 'activity-log `(= reviewed-new ,inc-new) `(= date ,date)))))
 
 (defun gnosis-history-clear ()
   "Delete all activity log entries."

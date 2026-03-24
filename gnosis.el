@@ -206,7 +206,7 @@ Creates `gnosis-dir' and runs schema initialization on first use."
   "Change this to non-nil when running manual tests.")
 
 
-(defconst gnosis-db-version 6
+(defconst gnosis-db-version 7
   "Gnosis database version.")
 
 (defvar gnosis-thema-types
@@ -393,7 +393,7 @@ When VERIFICATION is non-nil, skip `y-or-n-p' prompt."
   "Calculate average reviews over the last DAYS days."
   (let* ((days (or days gnosis-default-average-review-period))
 	 (dates (cl-loop for d from 0 below days
-			 collect (gnosis-algorithm-date (- d))))
+			 collect (gnosis--date-to-int (gnosis-algorithm-date (- d)))))
 	 (review-counts (gnosis-select 'reviewed-total 'activity-log
 				       `(and (> reviewed-total 0)
 					     (in date ,(vconcat dates)))
@@ -778,11 +778,14 @@ When INCLUDE-TAGS is nil, start from all thema IDs."
   "Convert DATE list (year month day) to YYYYMMDD integer for fast comparison."
   (+ (* (nth 0 date) 10000) (* (nth 1 date) 100) (nth 2 date)))
 
-(defun gnosis-past-or-present-p (date)
-  "Compare the input DATE with the current date.
-Return t if DATE is today or in the past, nil if it's in the future.
-DATE is a list of the form (year month day)."
-  (<= (gnosis--date-to-int date) (gnosis--date-to-int (gnosis-algorithm-date))))
+(defun gnosis--int-to-date (int)
+  "Convert YYYYMMDD integer INT to (year month day) list."
+  (list (/ int 10000) (% (/ int 100) 100) (% int 100)))
+
+(defun gnosis--today-int ()
+  "Return today as a YYYYMMDD integer.
+Respects `gnosis-algorithm-day-start-hour'."
+  (gnosis--date-to-int (gnosis-algorithm-date)))
 
 (defun gnosis-tags--parse-filter (input)
   "Parse INPUT list of \"+tag\" / \"-tag\" strings.
@@ -1002,8 +1005,8 @@ LINKS: List of id links."
 					      ,answer]))
       (gnosis--insert-into 'review  `([,gnosis-id ,gnosis-algorithm-gnosis-value
 						,gnosis-algorithm-amnesia-value]))
-      (gnosis--insert-into 'review-log `([,gnosis-id ,(gnosis-algorithm-date)
-						   ,(gnosis-algorithm-date) 0 0 0 0
+      (gnosis--insert-into 'review-log `([,gnosis-id ,(gnosis--today-int)
+						   ,(gnosis--today-int) 0 0 0 0
 						   ,suspend 0]))
       (gnosis--insert-into 'extras `([,gnosis-id ,parathema ,review-image]))
       (cl-loop for link in links
@@ -1405,32 +1408,30 @@ CUSTOM-TAGS: Custom tags to be used instead."
 				 nil custom-tags custom-values))
 
 (defun gnosis-get-date-total-themata (&optional date)
-  "Return total themata reviewed for DATE.
+  "Return total themata reviewed for DATE (YYYYMMDD integer).
 
 If entry for DATE does not exist, it will be created.
 
 Defaults to current date."
-  (cl-assert (listp date) nil "Date must be a list.")
-  (let* ((date (or date (gnosis-algorithm-date)))
+  (let* ((date (or date (gnosis--today-int)))
 	 (date-log (gnosis-select
 		    '[date reviewed-total reviewed-new] 'activity-log
-		    `(= date ',date) t))
+		    `(= date ,date) t))
 	 (reviewed-total (cadr date-log))
 	 (reviewed-new (or (caddr date-log) 0)))
     (or reviewed-total
 	(progn
 	  ;; Using reviewed-new instead of hardcoding 0 just to not mess up tests.
-	  (and (equal date (gnosis-algorithm-date))
+	  (and (= date (gnosis--today-int))
 	       (gnosis--insert-into 'activity-log `([,date 0 ,reviewed-new])))
 	  0))))
 
 (defun gnosis-get-date-new-themata (&optional date)
-  "Return total themata reviewed for DATE.
+  "Return new themata reviewed for DATE (YYYYMMDD integer).
 
 Defaults to current date."
-  (cl-assert (listp date) nil "Date must be a list.")
-  (let* ((date (or date (gnosis-algorithm-date)))
-	 (reviewed-new (or (car (gnosis-select 'reviewed-new 'activity-log `(= date ',date) t))
+  (let* ((date (or date (gnosis--today-int)))
+	 (reviewed-new (or (car (gnosis-select 'reviewed-new 'activity-log `(= date ,date) t))
 			   0)))
     reviewed-new))
 (defun gnosis-search-thema (&optional query)
@@ -1476,7 +1477,7 @@ Return thema ids for themata that match QUERY."
       (:foreign-key [id] :references themata [id]
 		    :on-delete :cascade)))
     (activity-log
-     ([(date text :not-null)
+     ([(date integer :not-null)
        (reviewed-total integer :not-null)
        (reviewed-new integer :not-null)]))
     (extras
@@ -1764,13 +1765,50 @@ Used by migrations that run before the thema-tag junction table exists."
         (message "Imported org-gnosis data into unified database"))))
   (gnosis--db-set-version 6))
 
+(defun gnosis--migrate-date-to-int (value)
+  "Convert VALUE to YYYYMMDD integer for migration.
+Handles both Lisp list dates and already-converted integers."
+  (cond
+   ((integerp value) value)
+   ((and (listp value) (= (length value) 3))
+    (gnosis--date-to-int value))
+   ((null value) nil)
+   (t (warn "gnosis: unexpected date value during migration: %S" value)
+      nil)))
+
+(defun gnosis-db--migrate-v7 ()
+  "Migration v7: convert date columns from Lisp lists to YYYYMMDD integers."
+  (let ((db (gnosis--ensure-db)))
+    (gnosis-sqlite-with-transaction db
+      ;; 1. Convert review_log.last_rev and next_rev
+      (dolist (row (gnosis-sqlite-select db
+                     "SELECT id, last_rev, next_rev FROM review_log"))
+        (let ((new-last (gnosis--migrate-date-to-int (nth 1 row)))
+              (new-next (gnosis--migrate-date-to-int (nth 2 row))))
+          (when (and new-last new-next
+                     (or (not (equal (nth 1 row) new-last))
+                         (not (equal (nth 2 row) new-next))))
+            (gnosis-sqlite-execute db
+              "UPDATE review_log SET last_rev = ?, next_rev = ? WHERE id = ?"
+              (list new-last new-next (nth 0 row))))))
+      ;; 2. Convert activity_log.date
+      (dolist (row (gnosis-sqlite-select db
+                     "SELECT rowid, date FROM activity_log"))
+        (let ((new-date (gnosis--migrate-date-to-int (nth 1 row))))
+          (when (and new-date (not (equal (nth 1 row) new-date)))
+            (gnosis-sqlite-execute db
+              "UPDATE activity_log SET date = ? WHERE rowid = ?"
+              (list new-date (nth 0 row))))))))
+  (gnosis--db-set-version 7))
+
 (defconst gnosis-db--migrations
   `((1 . gnosis-db--migrate-v1)
     (2 . gnosis-db--migrate-v2)
     (3 . gnosis-db--migrate-v3)
     (4 . gnosis-db--migrate-v4)
     (5 . gnosis-db--migrate-v5)
-    (6 . gnosis-db--migrate-v6))
+    (6 . gnosis-db--migrate-v6)
+    (7 . gnosis-db--migrate-v7))
   "Alist of (VERSION . FUNCTION).
 Each migration brings the DB from VERSION-1 to VERSION.")
 

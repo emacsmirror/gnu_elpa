@@ -405,7 +405,7 @@ DB-FILE and its temp directory after import."
                ;; Pre-compute constants
                (gnosis-val (prin1-to-string gnosis-algorithm-gnosis-value))
                (amnesia-val gnosis-algorithm-amnesia-value)
-               (today (prin1-to-string (gnosis-algorithm-date)))
+               (today (gnosis--today-int))
                ;; Split into chunks
                (item-chunks (seq-partition prepared chunk-size))
                (id-chunks (seq-partition all-ids chunk-size))

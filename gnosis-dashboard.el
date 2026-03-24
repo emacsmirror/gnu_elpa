@@ -133,12 +133,8 @@ Each entry is a function to restore that view
 
 (defvar gnosis-dashboard-module-today-stats
   (lambda ()
-    (let* ((due (gnosis-review-get--due-themata))
-           (due-count (length due))
-           (today (gnosis--today-int))
-           (overdue-count (cl-count-if-not
-                           (lambda (thema) (= (cadr thema) today))
-                           due)))
+    (let* ((due-count (length (gnosis-review-get--due-themata)))
+           (overdue-count (gnosis-review-count-overdue)))
       (insert
        (gnosis-center-string
         (format "\nReviewed today: %s (New: %s)"

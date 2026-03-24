@@ -289,14 +289,20 @@ well."
   "Return all due thema IDs."
   (mapcar #'car (gnosis-review-get--due-themata)))
 
-(defun gnosis-review-get-overdue-themata (&optional thema-ids)
-  "Return overdue themata for current DATE.
-
-Optionally, provide THEMA-IDS of which the overdue ones will be returned."
+(defun gnosis-review-get-overdue-themata ()
+  "Return IDs of overdue themata (reviewed at least once, due before today)."
   (let ((today (gnosis--today-int)))
-    (cl-loop for thema in (or thema-ids (gnosis-review-get--due-themata))
-	     when (not (= (cadr thema) today))
-	     collect (car thema))))
+    (gnosis-select 'id 'review-log
+		   `(and (> n 0) (= suspend 0) (< next-rev ,today))
+		   t)))
+
+(defun gnosis-review-count-overdue ()
+  "Return count of overdue themata."
+  (let ((today (gnosis--today-int)))
+    (or (caar (gnosis-sqlite-select (gnosis--ensure-db)
+	        "SELECT COUNT(*) FROM review_log WHERE n > 0 AND suspend = 0 AND next_rev < ?"
+		(list today)))
+	0)))
 
 ;;; Algorithm bridge
 

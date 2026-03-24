@@ -236,6 +236,7 @@ Creates `gnosis-dir' and runs schema initialization on first use."
 (autoload 'gnosis-review-is-due-today-p "gnosis-review")
 (autoload 'gnosis-review-is-thema-new-p "gnosis-review")
 (autoload 'gnosis-review-get-overdue-themata "gnosis-review")
+(autoload 'gnosis-review-count-overdue "gnosis-review")
 (autoload 'gnosis-review-algorithm "gnosis-review")
 (autoload 'gnosis-display-next-review "gnosis-review")
 (autoload 'gnosis-get-linked-nodes "gnosis-review")

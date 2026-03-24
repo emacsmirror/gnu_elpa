@@ -137,9 +137,11 @@
          (start (float-time))
          (timescale 0.5)
          (_fut1 (futur-let* ((_ <- (futur-timeout (* timescale 1))))
-                  (push 'timer1 x)))
+                  (push 'timer1 x)
+                  nil)) ;; Don't warn about unused return value.
          (fut6 (futur-let* ((_ <- (futur-timeout (* timescale 6))))
-                 (push 'timer6 x)))
+                 (push 'timer6 x)
+                 nil)) ;; Don't warn about unused return value.
          (fut2 (futur-timeout (* timescale 2)))
          (fut4 (futur-timeout (* timescale 4)))
          (fut22 nil)

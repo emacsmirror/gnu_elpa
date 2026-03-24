@@ -165,6 +165,10 @@
 
 ;;; News:
 
+;; Since version 1.4:
+
+;; - Emit warnings for unused (non-nil) return values.
+
 ;; Version 1.4:
 
 ;; - New function `futur-register-unwind-protect`.
@@ -393,14 +397,45 @@ A futur has 3 possible states:
          ;; operations like blocking could be dangerous.
          (futur--funcall (cdr client) err val)
          (unless (eq :unwind (car client)) (setq real-client t)))
-       (when (and err (not real-client)) ;Don't silently drop errors.
-         ;; FIXME: Should we actually signal an error, to bring up a debugger?
-         ;; It seems the stack trace is unlikely to be of much use :-(
-         (message "[Futur] %s" (error-message-string err)))))
+       ;; Emit a message for return values and errors which aren't
+       ;; passed anywhere.
+       (cond
+        (real-client nil)   ;The delivered value was used by a client.
+        ;; If VAL is nil, don't check if it's used, so we can use
+        ;; (futur-bind F #'ignore) to explicitly ignore a future's value.
+        ((or err val) (futur--unused-result futur)))))
     ((futur--failed `(futur-aborted . ,_))
      nil)     ;; Just ignore the late delivery.
     ((pred futur--p)
      (error "Delivering a second time: %S %S %S" futur err val))))
+
+(defconst futur--unused-results (make-hash-table :test 'eq :weakness 'key))
+
+(defun futur--unused-result (futur)
+  "Process the info that FUTUR's result remains unused."
+  ;; The difficulty here is that even if there is no client
+  ;; currently, there could be one in the future.  E.g. this happens
+  ;; with futur-client whose process filter can receive several
+  ;; "answers" at the same time, so some futures are delivered before
+  ;; they're bound.
+  (let* ((fut (list futur))
+         (fin (make-finalizer
+               (lambda ()
+                 (pcase-exhaustive (car fut)
+                   ('futur-de-unused nil)
+                   ((futur--done val)
+                    (message "[Futur] Unused return value: %S" val))
+                   ((futur--failed err)
+                    (message "[Futur] %s" (error-message-string err))))))))
+    (setcdr fut fin)
+    (puthash futur fut futur--unused-results)))
+
+(defun futur--de-unused-result (futur)
+  "Indicate that FUTUR's result is actually used."
+  (let ((fut (gethash futur futur--unused-results)))
+    (when fut
+      (setcar fut 'futur-de-unused)
+      (remhash futur futur--unused-results))))
 
 (defun futur-p (object)
   "Return non-nil if OBJECT is a `futur'."
@@ -465,10 +500,9 @@ dynamic context, otherwise, always go through `futur--funcall'."
   (pcase futur
     ((futur--waiting _ clients)
      (setf (futur--clients futur) (cons (cons cfut fun) clients)))
-    ((futur--failed err) (funcall (if now-ok #'funcall #'futur--funcall)
-                                  fun err nil))
-    ((futur--done val) (funcall (if now-ok #'funcall #'futur--funcall)
-                                fun nil val)))
+    ((or (futur--failed err) (futur--done val))
+     (unless (eq :unwind cfut) (futur--de-unused-result futur))
+     (funcall (if now-ok #'funcall #'futur--funcall) fun err val)))
   nil)
 
 (defun futur--ize (val)
@@ -587,7 +621,7 @@ as `futur-bind'."
           ;; so an abort doesn't incorrectly abort `futur'.
           ;; It also tells `futur--deliver' not to show the error via `message'
           ;; if the future fails.
-          (let ((new (futur-bind futur #'identity #'identity)))
+          (let ((new (futur-bind futur #'ignore #'ignore)))
             (unwind-protect
                 (futur-blocker-wait futur)
               (futur-abort new "Stopped waiting")))

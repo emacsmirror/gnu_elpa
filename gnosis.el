@@ -1901,12 +1901,6 @@ Reopens the gnosis database after successful pull."
 
 ;;; Bulk link operations
 
-(defun gnosis--count-themata-with-string (themata string)
-  "Count how many THEMATA contain STRING in keimenon outside existing links."
-  (cl-count-if (lambda (thema)
-                 (gnosis-utils-string-outside-links-p (nth 1 thema) string))
-               themata))
-
 (defun gnosis--themata-to-update (themata string node-id)
   "Return list of (ID . NEW-KEIMENON) for THEMATA needing updates."
   (cl-loop for thema in themata
@@ -1944,15 +1938,14 @@ Return list of updated thema IDs."
     (user-error "Node not found"))
   (let* ((themata (gnosis-select '[id keimenon] 'themata
                                  `(in id ,(vconcat ids))))
-         (count (gnosis--count-themata-with-string themata string)))
-    (if (zerop count)
-        (progn (message "No themata contain '%s'" string) nil)
-      (when (y-or-n-p (format "Replace '%s' in %d themata? " string count))
-        (let ((updates (gnosis--themata-to-update themata string node-id)))
-          (gnosis--update-themata-keimenon updates)
-          (gnosis--commit-bulk-link (length updates) string)
-          (message "Updated %d themata with links to '%s'" (length updates) string)
-          (mapcar #'car updates))))))
+         (updates (gnosis--themata-to-update themata string node-id)))
+    (if (null updates)
+        (progn (message "No themata to update for '%s'" string) nil)
+      (when (y-or-n-p (format "Replace '%s' in %d themata? " string (length updates)))
+        (gnosis--update-themata-keimenon updates)
+        (gnosis--commit-bulk-link (length updates) string)
+        (message "Updated %d themata with links to '%s'" (length updates) string)
+        (mapcar #'car updates)))))
 
 (defun gnosis-bulk-link-string (string node-id)
   "Replace all instances of STRING in themata keimenon with org-link to NODE-ID."
@@ -1962,7 +1955,7 @@ Return list of updated thema IDs."
           (node-title (gnosis-completing-read "Select node: " (mapcar #'cadr nodes)))
           (node-id (car (cl-find node-title nodes :key #'cadr :test #'string=))))
      (list string node-id)))
-  (gnosis-bulk-link-themata (gnosis-select 'id 'themata nil t) string node-id))
+  (gnosis-bulk-link-themata (gnosis-collect-thema-ids :query string) string node-id))
 
 ;;; Link integrity
 

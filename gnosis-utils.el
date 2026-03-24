@@ -67,7 +67,7 @@ Optionally, use custom DEFAULT-FACE."
 
 (defun gnosis-utils-string-outside-links-p (text string)
   "Return non-nil if STRING appears in TEXT outside of org-links."
-  (let ((case-fold-search nil)
+  (let ((case-fold-search t)
         (target (regexp-quote string))
         (pos 0))
     (catch 'found
@@ -79,21 +79,22 @@ Optionally, use custom DEFAULT-FACE."
 
 (defun gnosis-utils-replace-string-with-link (text string node-id)
   "Replace STRING in TEXT with org-link to NODE-ID, skipping existing links.
+Case-insensitive; the link description preserves original casing.
 Returns (MODIFIED-P . NEW-TEXT)."
-  (let ((case-fold-search nil)
+  (let ((case-fold-search t)
         (target (regexp-quote string))
-        (replacement (format "[[id:%s][%s]]" node-id string))
+        (link-fn (lambda (match) (format "[[id:%s][%s]]" node-id match)))
         (pos 0)
         (parts nil))
     (while (string-match gnosis-utils--org-link-re text pos)
       (push (replace-regexp-in-string
-             target replacement
-             (substring text pos (match-beginning 0)) t t)
+             target link-fn
+             (substring text pos (match-beginning 0)) t)
             parts)
       (push (match-string 0 text) parts)
       (setq pos (match-end 0)))
     (push (replace-regexp-in-string
-           target replacement (substring text pos) t t)
+           target link-fn (substring text pos) t)
           parts)
     (let ((new-text (apply #'concat (nreverse parts))))
       (cons (not (string= text new-text)) new-text))))

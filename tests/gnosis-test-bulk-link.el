@@ -171,12 +171,13 @@
     (should-not (car result))
     (should (string= (cdr result) "[[id:abc][Emacs]]"))))
 
-(ert-deftest gnosis-test-replace-case-sensitive ()
-  "Replacement is case-sensitive."
+(ert-deftest gnosis-test-replace-case-insensitive ()
+  "Replacement is case-insensitive, preserving original casing."
   (let ((result (gnosis-utils-replace-string-with-link
                  "emacs and Emacs" "Emacs" "node-1")))
     (should (car result))
-    (should (string= (cdr result) "emacs and [[id:node-1][Emacs]]"))))
+    (should (string= (cdr result)
+                     "[[id:node-1][emacs]] and [[id:node-1][Emacs]]"))))
 
 (ert-deftest gnosis-test-replace-regex-chars-in-string ()
   "Special regex characters in search string are handled safely."

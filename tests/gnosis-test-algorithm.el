@@ -116,6 +116,7 @@
 						 :c-fails 3
 						 :lethe 4)
 		 (gnosis-algorithm-date)))
+  ;; Proto phase failure: interval resets to 0 regardless of last-interval
   (should (equal (gnosis-algorithm-next-interval :last-interval 10
 						 :gnosis-synolon 20.0
 						 :success nil
@@ -124,11 +125,12 @@
 						 :proto '(1 2 3)
 						 :c-fails 3
 						 :lethe 4)
-		 (gnosis-algorithm-date 5)))
+		 (gnosis-algorithm-date)))
+  ;; Post-proto lethe event: interval resets to 0
   (should (equal (gnosis-algorithm-next-interval :last-interval 10
 						 :gnosis-synolon 20.0
 						 :success nil
-						 :successful-reviews 2
+						 :successful-reviews 5
 						 :amnesia 0.5
 						 :proto '(1 2 3)
 						 :c-fails 5
@@ -535,7 +537,7 @@
 						   :proto '(1 2 3)
 						   :c-fails 1
 						   :lethe 3)
-		   (gnosis-algorithm-date 2)))
+		   (gnosis-algorithm-date 0)))
     ;; Proto intervals not fuzzed even with high fuzz
     (let ((gnosis-algorithm-interval-fuzz 0.5))
       (should (equal (gnosis-algorithm-next-interval :last-interval 0

@@ -245,6 +245,10 @@ LETHE: Upon having C-FAILS >= lethe, set next interval to 0."
 	 (interval (cond ((and (< successful-reviews (length proto))
 			       success)
 			  (nth successful-reviews proto))
+			 ;; Proto phase failure: reset to 0.
+			 ((and (< successful-reviews (length proto))
+			       (not success))
+			  0)
 			 ;; Lethe event, reset interval.
 			 ((and (>= c-fails lethe)
 			       (not success))

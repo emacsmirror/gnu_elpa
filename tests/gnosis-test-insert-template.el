@@ -61,7 +61,7 @@
 (ert-deftest gnosis-test-insert-template-at-top-level ()
   "At top level (no heading), {*} should expand to * (level 1)."
   (let ((gnosis-nodes-templates
-         '(("Test" (lambda () "{*} Heading\n"))))
+         (list (cons "Test" (lambda () "{*} Heading\n"))))
         (gnosis-journal-dir "/nonexistent"))
     (with-temp-buffer
       (org-mode)
@@ -71,7 +71,7 @@
 (ert-deftest gnosis-test-insert-template-under-level-1 ()
   "Under a level-1 heading, {*} should expand to ** (child)."
   (let ((gnosis-nodes-templates
-         '(("Test" (lambda () "{*} Heading\n"))))
+         (list (cons "Test" (lambda () "{*} Heading\n"))))
         (gnosis-journal-dir "/nonexistent"))
     (with-temp-buffer
       (org-mode)
@@ -82,7 +82,7 @@
 (ert-deftest gnosis-test-insert-template-under-level-2 ()
   "Under a level-2 heading, {*} should expand to *** (child)."
   (let ((gnosis-nodes-templates
-         '(("Test" (lambda () "{*} Heading\n"))))
+         (list (cons "Test" (lambda () "{*} Heading\n"))))
         (gnosis-journal-dir "/nonexistent"))
     (with-temp-buffer
       (org-mode)
@@ -93,7 +93,7 @@
 (ert-deftest gnosis-test-insert-template-nested-markers ()
   "{*} and {**} under level-1 should become ** and ***."
   (let ((gnosis-nodes-templates
-         '(("Test" (lambda () "{*} Notes\n\n{**} Details\n"))))
+         (list (cons "Test" (lambda () "{*} Notes\n\n{**} Details\n"))))
         (gnosis-journal-dir "/nonexistent"))
     (with-temp-buffer
       (org-mode)

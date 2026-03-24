@@ -68,9 +68,14 @@ EXAMPLE: Boolean value, if non-nil do not add properties for thema."
     (insert "\n")
     (unless example
       (let ((start (point)))
-        (insert ":PROPERTIES:\n:GNOSIS_ID: " id "\n:GNOSIS_TYPE: " type "\n:END:\n")
+        (insert ":PROPERTIES:\n:GNOSIS_ID: " id "\n")
         (add-text-properties start (point)
-			    '(read-only t rear-nonsticky (read-only)))))
+			     '(read-only t rear-nonsticky (read-only))))
+      (insert ":GNOSIS_TYPE: " type "\n")
+      (let ((start (point)))
+        (insert ":END:\n")
+        (add-text-properties start (point)
+			     '(read-only t rear-nonsticky (read-only)))))
     (dolist (comp components)
       (goto-char (point-max))
       (gnosis-export--insert-read-only (car comp))
@@ -335,6 +340,9 @@ Returns nil on success, or an error message string on failure."
 				  (mapcar (lambda (pair) (cons (downcase (car pair))
 							  (cdr pair)))
 					  gnosis-thema-types)))))
+    (cl-assert (and type (stringp type) thema-func) nil
+	       "GNOSIS_TYPE must be one of: %s (got %S)"
+	       (mapconcat #'car gnosis-thema-types ", ") type)
     (condition-case err
         (progn
           (funcall thema-func id type keimenon hypothesis

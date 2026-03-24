@@ -341,9 +341,9 @@ When nil (the default), allow the underlying text to retain its color."
 (defface lin-slate
   '((default :foreground unspecified :underline nil :extend t)
     (((class color) (min-colors 88) (background light))
-     :background "#cfdfe0")
+     :background "#d6d9de")
     (((class color) (min-colors 88) (background dark))
-     :background "#2f3f45")
+     :background "#404447")
     (t :background "cyan"))
   "Alternative slate face for `lin-face'."
   :package-version '(lin . "2.0.0")

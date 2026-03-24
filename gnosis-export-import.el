@@ -50,8 +50,13 @@
 (declare-function gnosis-sqlite-execute-batch "gnosis-sqlite")
 (declare-function gnosis-sqlite--decode "gnosis-sqlite")
 (declare-function gnosis-algorithm-date "gnosis-algorithm")
+(declare-function gnosis--git-cmd "gnosis")
+(declare-function gnosis-vc-push "gnosis")
 
 (defvar gnosis-db)
+(defvar gnosis-dir)
+(defvar gnosis-testing)
+(defvar gnosis-vc-auto-push)
 (defvar gnosis-export-separator)
 (defvar gnosis-thema-types)
 (defvar gnosis-save-hook)
@@ -338,6 +343,19 @@ When INCLUDE-SUSPENDED, also export suspended themata."
 
 ;;; ---- SQLite import ----
 
+(defun gnosis-import--commit (new-count changed-count filename)
+  "Commit database after importing NEW-COUNT new and CHANGED-COUNT changed from FILENAME."
+  (let ((default-directory gnosis-dir))
+    (unless gnosis-testing
+      (when (file-exists-p (expand-file-name ".git" gnosis-dir))
+	(call-process (executable-find "git") nil nil nil "add" "gnosis.db")
+	(gnosis--git-cmd
+	 (list "commit" "-m"
+	       (format "Import: %d new, %d updated from %s"
+		       new-count changed-count filename)))))
+    (when (and gnosis-vc-auto-push (not gnosis-testing))
+      (gnosis-vc-push))))
+
 (defface gnosis-import-new-face
   '((t :inherit success))
   "Face for NEW entries in the import diff buffer."
@@ -545,6 +563,8 @@ SELECT thema_id, tag FROM import_db.thema_tag WHERE thema_id IN (%s)"
 			      (length new-ids) (length changed-ids)))
       (user-error "Import cancelled"))
     (gnosis-import--apply-changes file new-ids changed-ids)
+    (gnosis-import--commit (length new-ids) (length changed-ids)
+			   (file-name-nondirectory file))
     (message "Applied: %d new, %d updated" (length new-ids) (length changed-ids))
     (quit-window t)))
 

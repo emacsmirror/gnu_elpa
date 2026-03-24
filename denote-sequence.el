@@ -107,6 +107,80 @@ zx (z is 26 and x is 25)."
              (not (string-match-p "=" sequence)))
     sequence))
 
+(defun denote-sequence--alphanumeric-delimited-split (sequence)
+  "Split SEQUENCE to test for the alphanumeric delimited scheme."
+  (let ((start 0)
+        (strings nil))
+    (while (string-match "[0-9]+\\|[[:alpha:]]+\\|=" sequence start)
+      (push (match-string 0 sequence) strings)
+      (setq start (match-end 0)))
+    (nreverse strings)))
+
+(defun denote-sequence--alphanumeric-delimited-check-alternation (split-sequence)
+  "Return non-nil if SPLIT-SEQUENCE alternates between numbers and letters.
+
+SPLIT-SEQUENCE is an alphanumeric delimited sequence that is split into
+separate strings at each level of depth, like this:
+
+    (list \"1\" \"=\" \"a\" \"1\" \"b\" \"=\" \"2\" \"a\" \"1\")"
+  (catch 'error
+    (let ((last-type nil)
+          (current-type nil))
+      (dolist (string split-sequence)
+        (cond
+         ((string-match-p "\\`[0-9]+\\'" string)
+          (setq current-type 'numeric))
+         ((string-match-p "\\`[[:alpha:]]+\\'" string)
+          (setq current-type 'alpha)))
+        (unless (string= "=" string)
+          (when (eq current-type last-type)
+            (throw 'error nil))
+          (setq last-type current-type))))
+    t))
+
+(defun denote-sequence--alphanumeric-delimited-check-depths (split-sequence)
+  "Return non-nil if SPLIT-SEQUENCE is correctly delimited.
+More specifically, return non-nil if there is 1 level of depth before
+the first delimiter and then up to 3 for every subsequent delimiter.
+
+SPLIT-SEQUENCE is an alphanumeric delimited sequence that is split into
+separate strings at each level of depth, like this:
+
+    (list \"1\" \"=\" \"a\" \"1\" \"b\" \"=\" \"2\" \"a\" \"1\")"
+  (let ((levels-of-depth nil)
+        (current-depth 0))
+    (dolist (string split-sequence)
+      (if (string= string "=")
+          (progn
+            (push current-depth levels-of-depth)
+            (setq current-depth 0))
+        (setq current-depth (+ current-depth 1))))
+    (push current-depth levels-of-depth)
+    (setq levels-of-depth (nreverse levels-of-depth))
+    (catch 'error
+      (let ((first-level t))
+        (dolist (level levels-of-depth)
+          (if first-level
+              (progn
+                (setq first-level nil)
+                (unless (= level 1)
+                  (throw 'error nil)))
+            (unless (<= level 3)
+              (throw 'error nil)))))
+      (cond
+       ((and (length> levels-of-depth 2)
+             (= (car levels-of-depth) 1)
+             (seq-every-p
+              (lambda (level)
+                (= level 3))
+              (butlast (cdr levels-of-depth))))
+        levels-of-depth)
+       ((or (length= levels-of-depth 1)
+            (length= levels-of-depth 2))
+        levels-of-depth)
+       (t
+        nil)))))
+
 (defun denote-sequence-alphanumeric-delimited-p (sequence)
   "Return SEQUENCE if it is an alphanumeric and delimited.
 Refer to the `denote-sequence-scheme' for the details."
@@ -114,28 +188,12 @@ Refer to the `denote-sequence-scheme' for the details."
    ((string-match-p "\\`[0-9]+\\'" sequence)
     sequence)
    (t
-    (when (and (string-match-p "=" sequence)
-               (not (denote-sequence-numeric-p sequence)))
-      (let ((start 0)
-            (strings nil))
-        (while (string-match "[0-9]+\\|[[:alpha:]]+" sequence start)
-            (push (match-string 0 sequence) strings)
-            (setq start (match-end 0)))
-        (catch 'error
-          (let ((last-type nil)
-                (current-type nil))
-            ;; FIXME 2026-03-23: We need to test for length of each
-            ;; segment.  Specifically, the first should be 1, then
-            ;; every other should be maximum 3 (where the numbers
-            ;; refer to levels of depth).
-            (dolist (string (nreverse strings))
-              (if (string-match-p "\\`[0-9]+\\'" string)
-                  (setq current-type 'numeric)
-                (setq current-type 'alpha))
-              (when (eq current-type last-type)
-                (throw 'error nil))
-              (setq last-type current-type)))
-          sequence))))))
+    (when-let* ((_ (string-match-p "=" sequence))
+                (_ (not (denote-sequence-numeric-p sequence)))
+                (strings (denote-sequence--alphanumeric-delimited-split sequence))
+                (_ (denote-sequence--alphanumeric-delimited-check-alternation strings))
+                (_ (denote-sequence--alphanumeric-delimited-check-depths strings)))
+      sequence))))
 
 (defun denote-sequence-user-selected-scheme-p (sequence)
   "Return SEQUENCE if it is consistent with `denote-sequence-scheme'.

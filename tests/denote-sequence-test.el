@@ -60,6 +60,29 @@
   (should (string= (denote-sequence-alphanumeric-p "1") "1"))
   (should (string= (denote-sequence-alphanumeric-p "1a") "1a")))
 
+(ert-deftest dst-denote-sequence--alphanumeric-delimited-check-alternation ()
+  "Test that `denote-sequence--alphanumeric-delimited-check-alternation' does the right thing.
+This helper function only checks that we alternate between numbers and
+letters.  It is not responsible to validate the levels of depth."
+  (should-not (denote-sequence--alphanumeric-delimited-check-alternation '("1" "=" "a" "=" "a")))
+  (should (denote-sequence--alphanumeric-delimited-check-alternation '("1" "=" "a" "=" "1"))))
+
+(ert-deftest dst-denote-sequence--alphanumeric-delimited-check-depths ()
+  "Test that `denote-sequence--alphanumeric-delimited-check-depths' does the right thing.
+This helper function is not responsible for checking whether the
+sequence alternates between numbers and letters.  It only checks the
+levels of depth between delimiters."
+  (should-not (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "a" "=" "1")))
+  (should-not (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "a" "=" "1" "a")))
+  (should-not (denote-sequence--alphanumeric-delimited-check-depths '("1" "a" "=" "1" "a" "=" "1" "a")))
+  (should (denote-sequence--alphanumeric-delimited-check-depths '("1")))
+  (should (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "1")))
+  (should (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "1" "a")))
+  (should (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "1" "a" "1")))
+  (should (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "1" "a" "1" "=" "1")))
+  (should (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "1" "a" "1" "=" "1" "a")))
+  (should (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "1" "a" "1" "=" "1" "a" "1"))))
+
 (ert-deftest dst-denote-sequence-alphanumeric-delimited-p ()
   "Test that `denote-sequence-alphanumeric-delimited-p' does what it is supposed to."
   (should-not (denote-sequence-alphanumeric-delimited-p "1a"))

@@ -188,12 +188,12 @@ Refer to the `denote-sequence-scheme' for the details."
    ((string-match-p "\\`[0-9]+\\'" sequence)
     sequence)
    (t
-    (when-let* ((_ (string-match-p "=" sequence))
-                (_ (not (denote-sequence-numeric-p sequence)))
-                (strings (denote-sequence--alphanumeric-delimited-split sequence))
-                (_ (denote-sequence--alphanumeric-delimited-check-alternation strings))
-                (_ (denote-sequence--alphanumeric-delimited-check-depths strings)))
-      sequence))))
+    (when (and (string-match-p "=" sequence)
+               (not (denote-sequence-numeric-p sequence)))
+      (let ((strings (denote-sequence--alphanumeric-delimited-split sequence)))
+        (when (and (denote-sequence--alphanumeric-delimited-check-alternation strings)
+                   (denote-sequence--alphanumeric-delimited-check-depths strings))
+          sequence))))))
 
 (defun denote-sequence-user-selected-scheme-p (sequence)
   "Return SEQUENCE if it is consistent with `denote-sequence-scheme'.

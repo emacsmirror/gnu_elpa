@@ -95,6 +95,34 @@ levels of depth between delimiters."
   (should (string= (denote-sequence-alphanumeric-delimited-p "1=a1b") "1=a1b"))
   (should (string= (denote-sequence-alphanumeric-delimited-p "1=a1b=2a1") "1=a1b=2a1")))
 
+(ert-deftest dst-denote-sequence-and-scheme-p ()
+  "Test that `denote-sequence-and-scheme-p' covers all cases."
+  (should-error (denote-sequence-and-scheme-p "a"))
+  (should
+   (equal
+    (denote-sequence-and-scheme-p "1=1")
+    (cons "1=1" 'numeric)))
+  (should
+   (equal
+    (denote-sequence-and-scheme-p "1a")
+    (cons "1a" 'alphanumeric)))
+  (should
+   (equal
+    (denote-sequence-and-scheme-p "1=a")
+    (cons "1=a" 'alphanumeric-delimited)))
+  (should
+   (let ((denote-sequence-scheme 'numeric))
+     (equal (denote-sequence-and-scheme-p "1")
+            (cons "1" 'numeric))))
+  (should
+   (let ((denote-sequence-scheme 'alphanumeric))
+     (equal (denote-sequence-and-scheme-p "1")
+            (cons "1" 'alphanumeric))))
+  (should
+   (let ((denote-sequence-scheme 'alphanumeric-delimited))
+     (equal (denote-sequence-and-scheme-p "1")
+            (cons "1" 'alphanumeric-delimited)))))
+
 (ert-deftest dst-denote-sequence--get-new-exhaustive ()
   "Test if we get the correct parent, child, sibling, or relatives of a sequence.
 Use the function `denote-sequence-get-new' for child and sibling with

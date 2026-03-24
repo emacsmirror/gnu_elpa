@@ -63,9 +63,14 @@
   :link '(url-link :tag "Denote homepage" "https://protesilaos.com/emacs/denote")
   :link '(url-link :tag "Denote Sequence homepage" "https://protesilaos.com/emacs/denote-sequence"))
 
+;; TODO 2026-03-24: The `alphanumeric-delimited' is not supporting partial sequences.
+;; This will probably be a problem for `denote-sequence-convert'.
 (defcustom denote-sequence-scheme 'numeric
   "Sequencing scheme to establish file hierarchies.
-The value is the symbol `numeric' or `alphanumeric'.
+The value is a symbol among `numeric', `alphanumeric', and
+`alphanumeric-delimited'.  Users can change the applicable scheme for
+one file or those marked in Dired by calling the command
+`denote-sequence-convert'.
 
 Numeric sequences (the default) are the easier to understand but also
 are the longest.  Each level of depth in the hierarchy is delimited by
@@ -79,10 +84,17 @@ that 1a2 refers to the second child of the first child of parent 1.
 Because they alternate between numbers and letters, they do not use the
 equals sign.  When a number cannot be represented by a single letter,
 two or more are used instead, such as the number 51 corresponding to
-zx (z is 26 and x is 25)."
+zx (z is 26 and x is 25).
+
+Alphanumeric delimited sequences combine elements of the aforementioned.
+Levels of depth are expressed as alternating numbers and letters, like
+with the `alphanumeric' scheme, while they also get the = as a separator
+as a visual aid for long sequences.  The sepator is inserted after the
+first level of depth and then after every third level, like 1=a2b=a1c."
   :group 'denote-sequence
   :type '(choice (const :tag "Numeric like 1=1=2" numeric)
-                 (const :tag "Alphanumeric like 1a2" alphanumeric)))
+                 (const :tag "Alphanumeric like 1a2" alphanumeric)
+                 (const :tag "Alphanumeric delimited like 1=a2b=a1c" alphanumeric-delimited)))
 
 (defconst denote-sequence-numeric-regexp "=?[0-9]+"
   "Pattern of a numeric sequence.")
@@ -189,6 +201,10 @@ Refer to the `denote-sequence-scheme' for the details."
     sequence)
    (t
     (when (and (string-match-p "=" sequence)
+               ;; TODO 2026-03-24: Probably this should not be here
+               ;; due to how we end up with this check.  See, for
+               ;; example, `denote-sequence-p' which already checks
+               ;; for the numeric before it reaches this one.
                (not (denote-sequence-numeric-p sequence)))
       (let ((strings (denote-sequence--alphanumeric-delimited-split sequence)))
         (when (and (denote-sequence--alphanumeric-delimited-check-alternation strings)
@@ -200,13 +216,15 @@ Refer to the `denote-sequence-scheme' for the details."
 Also see `denote-sequence-alphanumeric-p' and `denote-sequence-numeric-p'."
   (pcase denote-sequence-scheme
     ('numeric (denote-sequence-numeric-p sequence))
-    ('alphanumeric (denote-sequence-alphanumeric-p sequence))))
+    ('alphanumeric (denote-sequence-alphanumeric-p sequence))
+    ('alphanumeric-delimited (denote-sequence-alphanumeric-delimited-p sequence))))
 
 (defun denote-sequence-p (sequence)
   "Return SEQUENCE string is of a supported scheme.
 Also see `denote-sequence-numeric-p' and `denote-sequence-alphanumeric-p'."
   (when (or (denote-sequence-numeric-p sequence)
-            (denote-sequence-alphanumeric-p sequence))
+            (denote-sequence-alphanumeric-p sequence)
+            (denote-sequence-alphanumeric-delimited-p sequence))
     sequence))
 
 (defun denote-sequence-with-error-p (sequence)
@@ -236,6 +254,8 @@ of numbers or letters.
 
 Produce an error if the sequencing scheme cannot be established."
   (cond
+   ((and (not partial) (string-match-p "\\`[0-9]+\\'" sequence))
+    (cons sequence denote-sequence-scheme))
    ((and (not partial)
          (not (string-match-p "[[:alpha:]]" sequence))
          (eq denote-sequence-scheme 'numeric))
@@ -246,13 +266,24 @@ Produce an error if the sequencing scheme cannot be established."
    ((or (and partial (denote-sequence--numeric-partial-p sequence))
         (denote-sequence-numeric-p sequence))
     (cons sequence 'numeric))
+   ;; TODO 2026-03-24: Implement the `denote-sequence--alphanumeric-delimited-partial-p'.
+   ;; FIXME 2026-03-24: What are we even doing with those "partial" checks?
+   ((or ;; (and partial (denote-sequence--alphanumeric-delimited-partial-p sequence))
+        (denote-sequence-alphanumeric-delimited-p sequence))
+    (cons sequence 'alphanumeric-delimited))
    (t (error "The sequence `%s' does not pass `denote-sequence-and-scheme-p'" sequence))))
 
+;; FIXME 2026-03-24: This is technically incorrect because it assumes
+;; homogeneity of sequencing schemes.  But we never enforce as much.
 (defun denote-sequence--scheme-of-strings (strings)
   "Return the sequencing scheme of STRINGS, per `denote-sequence-scheme'."
-  (if (seq-find (lambda (string) (string-match-p "[[:alpha:]]" string)) strings)
-      'alphanumeric
-    'numeric))
+  (cond
+   ((seq-every-p #'denote-sequence-numeric-p strings)
+    'numeric)
+   ((seq-every-p #'denote-sequence-alphanumeric-p strings)
+    'alphanumeric)
+   ((seq-every-p #'denote-sequence-alphanumeric-delimited-p strings)
+    'alphanumeric-delimited)))
 
 (defun denote-sequence-file-p (file)
   "Return the sequence if Denote signature of FILE is a sequence.
@@ -275,7 +306,9 @@ SEQUENCE conforms with `denote-sequence-p'.  If PARTIAL is non-nil, it
 has the same meaning as in `denote-sequence-and-scheme-p'."
   (pcase-let* ((`(,sequence . ,scheme) (denote-sequence-and-scheme-p sequence partial)))
     (pcase scheme
-      ('numeric
+      ;; TODO 2026-03-24: The `alphanumeric-delimited' needs to handle
+      ;; partial sequences.
+      ((or 'numeric 'alphanumeric-delimited)
        (split-string sequence "=" t))
       ('alphanumeric
        (let ((strings nil)
@@ -358,6 +391,7 @@ has the same meaning as in `denote-sequence-and-scheme-p'."
                              parts)))
       (denote-sequence-join converted-parts 'alphanumeric))))
 
+;; TODO 2026-03-24: Add support for the `alphanumeric-delimited'.
 (defun denote-sequence-make-conversion (string &optional string-is-sequence)
   "Convert STRING to its counterpart sequencing scheme.
 If STRING-IS-SEQUENCE then assume STRING to be a complete sequence, in

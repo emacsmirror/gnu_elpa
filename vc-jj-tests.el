@@ -221,8 +221,7 @@ is needed."
 (ert-deftest vc-jj-checkin-directory ()
   "Test checking in an entire directory of files.
 This tests when a subdirectory path is passed to `vc-jj-checkin', rather
-than a path to a regular file."
-  ;; https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/62
+than a path to a regular file.  See bug#62."
   (vc-jj-test-with-repo repo
     (make-directory "subdir")
     (write-region "foo" nil "subdir/file1.txt")
@@ -242,8 +241,7 @@ than a path to a regular file."
 (ert-deftest vc-jj-funky-filename ()
   "Test compatibility with unusual characters in file names.
 We test the presence of apostrophes, double quotes, and the equal sign
-in file names, which are allowed in Linux.  See
-https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/38."
+in file names, which are allowed in Linux.  See bug#38."
   (vc-jj-test-with-repo repo
     (write-region "Hello" nil "TEST=TEST.txt")
     (write-region "Hello" nil "with'apostrophe.txt")
@@ -260,7 +258,7 @@ https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/38."
 (ert-deftest vc-jj-very-large-file ()
   "Test very large files.
 Jujutsu usually prints to stderr when there is too large of a file
-registered.  See https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/52."
+registered.  See bug#52."
   (vc-jj-test-with-repo repo
     (shell-command "jj config set --repo snapshot.max-new-file-size 12")
     (write-region "1234567890" nil "numbers.txt")
@@ -270,7 +268,7 @@ registered.  See https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/52."
 
 (ert-deftest vc-jj-tolerate-repo-corruption ()
   "Test functionality after removing .git in a colocated repository.
-See https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/63."
+See bug#63."
   (let ((current-prefix-arg 4))         ; create git co-located repo
     (vc-jj-test-with-repo repo
       (write-region "Hello!" nil "README")

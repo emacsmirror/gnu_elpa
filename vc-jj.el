@@ -1156,9 +1156,7 @@ unsupported."
     ;; BUFFER may accumulate content from previous invocations of
     ;; `vc-jj-diff', because `vc-do-command' (called internally by
     ;; `vc-jj--command-dispatched') only erases BUFFER when BUFFER is
-    ;; not the current buffer.  See
-    ;; https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/152 for more
-    ;; information.
+    ;; not the current buffer.  See bug#152 for more information.
     (prog1
         (apply #'vc-jj--command-dispatched buffer 0 nil "diff" args)
       (with-current-buffer buffer

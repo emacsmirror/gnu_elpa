@@ -611,7 +611,7 @@ LENGTH: length of id, default to a random number between 10-15."
          (id (+ (random (- max-val min-val)) min-val))
 	 (exists (if gnosis--id-cache
 		     (gethash id gnosis--id-cache)
-		   (member id (gnosis-select 'id 'themata nil t)))))
+		   (gnosis-select 'id 'themata `(= id ,id) t))))
     (if exists
         (gnosis-generate-id length)
       (when gnosis--id-cache
@@ -629,7 +629,7 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
              (id (+ (random (- max-val min-val)) min-val))
              (exists (if gnosis--id-cache
                          (gethash id gnosis--id-cache)
-                       (member id (gnosis-select 'id 'themata nil t)))))
+                       (gnosis-select 'id 'themata `(= id ,id) t))))
         (unless exists
           (when gnosis--id-cache (puthash id t gnosis--id-cache))
           (push id ids)

@@ -823,6 +823,9 @@ Soft-timer behavior (finish current sentence) is controlled by
     (setq-local greader-timer-enabled-interactively nil)
     (unless (equal greader-elapsed-timer 0)
       (greader-cancel-elapsed-timer))
+    (when (timerp greader-stop-timer)
+      (greader-cancel-stop-timer)
+      (setq-local greader-stop-timer 0))
     (greader-reset-elapsed-time)
     (when greader-tired-mode
       (greader-tired-mode -1))))

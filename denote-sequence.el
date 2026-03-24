@@ -117,13 +117,9 @@ Refer to the `denote-sequence-scheme' for the details."
                (not (denote-sequence-numeric-p sequence)))
       (let ((start 0)
             (strings nil))
-        (while (string-match "\\(?1:[0-9]+\\)[[:alpha:]]\\|\\(?2:[[:alpha:]]+\\)[0-9]*" sequence start)
-          (if-let* ((match (match-string 1 sequence)))
-              (progn
-                (setq start (match-end 1))
-                (push match strings))
-            (push (match-string 2 sequence) strings)
-            (setq start (match-end 2))))
+        (while (string-match "[0-9]+\\|[[:alpha:]]+" sequence start)
+            (push (match-string 0 sequence) strings)
+            (setq start (match-end 0)))
         (catch 'error
           (let ((last-type nil)
                 (current-type nil))

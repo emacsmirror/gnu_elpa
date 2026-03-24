@@ -6,7 +6,7 @@
 
 ;;; Commentary:
 
-;; Tests for the complete migration chain v1 -> v2 -> v3 -> v4 -> v5 -> v6.
+;; Tests for the complete migration chain v1 -> v2 -> v3 -> v4 -> v5 -> v6 -> v7.
 ;; One chain test exercises the full sequence; edge-case tests isolate
 ;; specific migration steps.
 
@@ -18,6 +18,9 @@
                    (directory-file-name
                     (file-name-directory (or load-file-name default-directory))))))
   (add-to-list 'load-path parent-dir))
+
+(load (expand-file-name "gnosis-test-helpers.el"
+       (file-name-directory (or load-file-name buffer-file-name))))
 
 ;;; ---- Group 1: Test infrastructure ----
 
@@ -268,8 +271,8 @@ tags and links tables, extras with parathema/review_image."
 
 ;;; ---- Group 2: Full chain test ----
 
-(ert-deftest gnosis-test-migrate-v1-to-v6-chain ()
-  "Sequential migration chain: v1 -> v2 -> v3 -> v4 -> v5 -> v6 on one DB."
+(ert-deftest gnosis-test-migrate-v1-to-v7-chain ()
+  "Sequential migration chain: v1 -> v2 -> v3 -> v4 -> v5 -> v6 -> v7 on one DB."
   (gnosis-test-with-v1-db
     (gnosis-test--populate-v1-data)
 
@@ -376,7 +379,28 @@ tags and links tables, extras with parathema/review_image."
     ;; Review data survived entire chain
     (should (= 4 (length (gnosis-sqlite-select gnosis-db "SELECT id FROM review"))))
     ;; Activity log preserved
-    (should (= 0 (length (gnosis-sqlite-select gnosis-db "SELECT * FROM activity_log"))))))
+    (should (= 0 (length (gnosis-sqlite-select gnosis-db "SELECT * FROM activity_log"))))
+
+    ;; -- v6 -> v7 --
+    ;; Insert activity_log with list dates (as emacsql would have stored them)
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO activity_log (date, reviewed_total, reviewed_new) VALUES (?, ?, ?)"
+      (list '(2026 3 20) 10 2))
+    ;; Also update review_log dates to list format to test conversion
+    (gnosis-sqlite-execute gnosis-db
+      "UPDATE review_log SET last_rev = ?, next_rev = ? WHERE id = 1"
+      (list '(2026 3 15) '(2026 3 25)))
+    (gnosis-db--migrate-v7)
+    (should (= 7 (gnosis--db-version)))
+    ;; review_log dates are now YYYYMMDD integers
+    (let ((row (car (gnosis-sqlite-select gnosis-db
+                      "SELECT last_rev, next_rev FROM review_log WHERE id = 1"))))
+      (should (= 20260315 (nth 0 row)))
+      (should (= 20260325 (nth 1 row))))
+    ;; activity_log dates are now YYYYMMDD integers
+    (let ((row (car (gnosis-sqlite-select gnosis-db
+                      "SELECT date FROM activity_log"))))
+      (should (= 20260320 (car row))))))
 
 ;;; ---- Group 3: Edge-case tests ----
 
@@ -493,14 +517,15 @@ tags and links tables, extras with parathema/review_image."
       (should-not (member "multi-dash-tag" tags)))))
 
 (ert-deftest gnosis-test-migrate-empty-db-chain ()
-  "Empty DB (schema only, no data) migrates v1 through v5 without error."
+  "Empty DB (schema only, no data) migrates v1 through v7 without error."
   (gnosis-test-with-v1-db
     (gnosis-db--migrate-v2)
     (gnosis-db--migrate-v3)
     (gnosis-db--migrate-v4)
     (gnosis-db--migrate-v5)
     (gnosis-db--migrate-v6)
-    (should (= 6 (gnosis--db-version)))))
+    (gnosis-db--migrate-v7)
+    (should (= 7 (gnosis--db-version)))))
 
 (ert-deftest gnosis-test-migrate-v4-populated-to-v6 ()
   "PRAGMA 4 DB with data: v5 is no-op, v6 migrates decks/tags/nodes."
@@ -597,9 +622,9 @@ tags and links tables, extras with parathema/review_image."
       (cl-letf (((symbol-function 'gnosis--commit-migration)
 		 (lambda (from to) (setq commit-args (list from to)))))
 	(gnosis--db-run-migrations 4))
-      ;; Should have been called with from=4, to=6 (last migration run)
-      (should (equal '(4 6) commit-args))
-      (should (= 6 (gnosis--db-version))))))
+      ;; Should have been called with from=4, to=7 (last migration run)
+      (should (equal '(4 7) commit-args))
+      (should (= 7 (gnosis--db-version))))))
 
 (ert-deftest gnosis-test-migrate-no-commit-when-up-to-date ()
   "gnosis--db-run-migrations does not commit when no migrations are needed."
@@ -611,6 +636,77 @@ tags and links tables, extras with parathema/review_image."
 		 (lambda (_from _to) (setq commit-called t))))
 	(gnosis--db-run-migrations gnosis-db-version))
       (should-not commit-called))))
+
+;;; ---- Group 4: v7 date migration tests ----
+
+(ert-deftest gnosis-test-migrate-v7-list-dates-to-integers ()
+  "v7 migration converts Lisp list dates to YYYYMMDD integers."
+  (gnosis-test-with-db
+    ;; Simulate pre-v7 state: current schema with list dates in DB
+    (gnosis--db-set-version 6)
+    ;; Insert test data with list dates (as emacsql stores them)
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO themata (id, type, keimenon, hypothesis, answer)
+       VALUES (?, ?, ?, ?, ?)"
+      '(1 "basic" "Test Q" ("") ("A")))
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO review (id, gnosis, amnesia) VALUES (?, ?, ?)"
+      '(1 (1 1 1.3) 0.5))
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO review_log (id, last_rev, next_rev, c_success, t_success,
+                               c_fails, t_fails, suspend, n)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      (list 1 '(2026 3 20) '(2026 3 25) 3 5 0 1 0 6))
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO activity_log (date, reviewed_total, reviewed_new) VALUES (?, ?, ?)"
+      (list '(2026 3 20) 15 3))
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO activity_log (date, reviewed_total, reviewed_new) VALUES (?, ?, ?)"
+      (list '(2026 3 21) 8 1))
+    ;; Run v7 migration
+    (gnosis-db--migrate-v7)
+    (should (= 7 (gnosis--db-version)))
+    ;; Verify review_log dates
+    (let ((row (car (gnosis-sqlite-select gnosis-db
+                      "SELECT last_rev, next_rev FROM review_log WHERE id = 1"))))
+      (should (= 20260320 (nth 0 row)))
+      (should (= 20260325 (nth 1 row))))
+    ;; Verify activity_log dates
+    (let ((dates (mapcar #'car (gnosis-sqlite-select gnosis-db
+                                 "SELECT date FROM activity_log ORDER BY date"))))
+      (should (= 20260320 (car dates)))
+      (should (= 20260321 (cadr dates))))))
+
+(ert-deftest gnosis-test-migrate-v7-idempotent ()
+  "v7 migration is idempotent: already-integer dates are unchanged."
+  (gnosis-test-with-db
+    (gnosis--db-set-version 6)
+    ;; Insert data with integer dates (already migrated format)
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO themata (id, type, keimenon, hypothesis, answer)
+       VALUES (?, ?, ?, ?, ?)"
+      '(1 "basic" "Test Q" ("") ("A")))
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO review (id, gnosis, amnesia) VALUES (?, ?, ?)"
+      '(1 (1 1 1.3) 0.5))
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO review_log (id, last_rev, next_rev, c_success, t_success,
+                               c_fails, t_fails, suspend, n)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      '(1 20260320 20260325 3 5 0 1 0 6))
+    (gnosis-sqlite-execute gnosis-db
+      "INSERT INTO activity_log (date, reviewed_total, reviewed_new) VALUES (?, ?, ?)"
+      '(20260320 15 3))
+    ;; Run v7 migration
+    (gnosis-db--migrate-v7)
+    (should (= 7 (gnosis--db-version)))
+    ;; Values unchanged
+    (let ((row (car (gnosis-sqlite-select gnosis-db
+                      "SELECT last_rev, next_rev FROM review_log WHERE id = 1"))))
+      (should (= 20260320 (nth 0 row)))
+      (should (= 20260325 (nth 1 row))))
+    (let ((date (caar (gnosis-sqlite-select gnosis-db "SELECT date FROM activity_log"))))
+      (should (= 20260320 date)))))
 
 (provide 'gnosis-test-migration)
 

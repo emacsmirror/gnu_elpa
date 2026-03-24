@@ -55,33 +55,33 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode."
 
 (ert-deftest gnosis-test-dashboard-streak-yesterday ()
   "Streak with only yesterday returns \"1\"."
-  (let ((dates (list (gnosis-algorithm-date -1))))
+  (let ((dates (list (gnosis--date-to-int (gnosis-algorithm-date -1)))))
     (should (equal (gnosis-dashboard--streak dates) "1"))))
 
 (ert-deftest gnosis-test-dashboard-streak-consecutive ()
   "Streak with consecutive past days counts correctly."
-  (let ((dates (list (gnosis-algorithm-date -1)
-                     (gnosis-algorithm-date -2)
-                     (gnosis-algorithm-date -3))))
+  (let ((dates (list (gnosis--date-to-int (gnosis-algorithm-date -1))
+                     (gnosis--date-to-int (gnosis-algorithm-date -2))
+                     (gnosis--date-to-int (gnosis-algorithm-date -3)))))
     (should (equal (gnosis-dashboard--streak dates) "3"))))
 
 (ert-deftest gnosis-test-dashboard-streak-today-only ()
   "Streak with only today returns \"1\"."
-  (let ((dates (list (gnosis-algorithm-date))))
+  (let ((dates (list (gnosis--today-int))))
     (should (equal (gnosis-dashboard--streak dates) "1"))))
 
 (ert-deftest gnosis-test-dashboard-streak-today-plus-consecutive ()
   "Streak includes today bonus on top of consecutive past days."
-  (let ((dates (list (gnosis-algorithm-date)
-                     (gnosis-algorithm-date -1)
-                     (gnosis-algorithm-date -2))))
+  (let ((dates (list (gnosis--today-int)
+                     (gnosis--date-to-int (gnosis-algorithm-date -1))
+                     (gnosis--date-to-int (gnosis-algorithm-date -2)))))
     (should (equal (gnosis-dashboard--streak dates) "3"))))
 
 (ert-deftest gnosis-test-dashboard-streak-gap ()
   "A gap in dates stops the streak."
   ;; Yesterday and 3-days-ago, but NOT 2-days-ago
-  (let ((dates (list (gnosis-algorithm-date -1)
-                     (gnosis-algorithm-date -3))))
+  (let ((dates (list (gnosis--date-to-int (gnosis-algorithm-date -1))
+                     (gnosis--date-to-int (gnosis-algorithm-date -3)))))
     (should (equal (gnosis-dashboard--streak dates) "1"))))
 
 (ert-deftest gnosis-test-dashboard-sort-total-themata ()

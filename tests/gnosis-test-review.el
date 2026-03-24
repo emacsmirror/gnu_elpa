@@ -25,7 +25,7 @@
   (gnosis-test-with-db
     (let* ((id (gnosis-test--add-basic-thema "Q" "A")))
       ;; Set next-rev to yesterday
-      (gnosis-update 'review-log `(= next-rev ',(gnosis-algorithm-date -1))
+      (gnosis-update 'review-log `(= next-rev ,(gnosis--date-to-int (gnosis-algorithm-date -1)))
                      `(= id ,id))
       (should (gnosis-review-is-due-today-p id)))))
 
@@ -41,7 +41,7 @@
   (gnosis-test-with-db
     (let* ((id (gnosis-test--add-basic-thema "Q" "A")))
       ;; Set next-rev to tomorrow
-      (gnosis-update 'review-log `(= next-rev ',(gnosis-algorithm-date 1))
+      (gnosis-update 'review-log `(= next-rev ,(gnosis--date-to-int (gnosis-algorithm-date 1)))
                      `(= id ,id))
       (should-not (gnosis-review-is-due-today-p id)))))
 
@@ -78,7 +78,7 @@
     (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
            (id2 (gnosis-test--add-basic-thema "Q2" "A2")))
       ;; Push id2 to future
-      (gnosis-update 'review-log `(= next-rev ',(gnosis-algorithm-date 5))
+      (gnosis-update 'review-log `(= next-rev ,(gnosis--date-to-int (gnosis-algorithm-date 5)))
                      `(= id ,id2))
       (let ((gnosis-review-new-first nil)
             (gnosis-new-themata-limit nil))

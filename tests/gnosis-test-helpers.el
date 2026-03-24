@@ -58,8 +58,8 @@ SUSPEND: 1 to suspend, 0 or nil for active."
                                            ,answer]))
       (gnosis--insert-into 'review `([,id ,gnosis-algorithm-gnosis-value
                                           ,gnosis-algorithm-amnesia-value]))
-      (gnosis--insert-into 'review-log `([,id ,(gnosis-algorithm-date)
-                                              ,(gnosis-algorithm-date) 0 0 0 0
+      (gnosis--insert-into 'review-log `([,id ,(gnosis--today-int)
+                                              ,(gnosis--today-int) 0 0 0 0
                                               ,suspend 0]))
       (gnosis--insert-into 'extras `([,id ,parathema ""]))
       (cl-loop for tag in tags

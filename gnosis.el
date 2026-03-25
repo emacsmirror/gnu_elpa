@@ -206,7 +206,7 @@ Creates `gnosis-dir' and runs schema initialization on first use."
   "Change this to non-nil when running manual tests.")
 
 
-(defconst gnosis-db-version 7
+(defconst gnosis-db-version 8
   "Gnosis database version.")
 
 (defvar gnosis-thema-types
@@ -1001,7 +1001,7 @@ LINKS: List of id links."
 	 (review-image (or review-image "")))
     (gnosis-sqlite-with-transaction (gnosis--ensure-db)
       (gnosis--insert-into 'themata `([,gnosis-id ,(downcase type) ,keimenon ,hypothesis
-					      ,answer]))
+					      ,answer nil]))
       (gnosis--insert-into 'review  `([,gnosis-id ,gnosis-algorithm-gnosis-value
 						,gnosis-algorithm-amnesia-value]))
       (gnosis--insert-into 'review-log `([,gnosis-id ,(gnosis--today-int)
@@ -1456,7 +1456,8 @@ Return thema ids for themata that match QUERY."
        (type text :not-null)
        (keimenon text :not-null)
        (hypothesis text :not-null)
-       (answer text :not-null)]))
+       (answer text :not-null)
+       (source-guid text)]))
     (review
      ([(id integer :primary-key :not-null) ;; thema-id
        (gnosis integer :not-null)
@@ -1571,7 +1572,12 @@ Used for fresh databases only."
                    ON nodes(file)"
 		  "CREATE INDEX IF NOT EXISTS idx_journal_file
                    ON journal(file)"))
-    (gnosis-sqlite-execute db stmt)))
+    (gnosis-sqlite-execute db stmt))
+  ;; source_guid index: created by v8 migration for existing DBs,
+  ;; or here for fresh DBs where the column already exists
+  (ignore-errors
+    (gnosis-sqlite-execute db
+      "CREATE INDEX IF NOT EXISTS idx_themata_source_guid ON themata(source_guid)")))
 
 (defun gnosis--db-has-tables-p ()
   "Return non-nil if the database has user tables."
@@ -1828,6 +1834,15 @@ Handles both Lisp list dates and already-converted integers."
       (gnosis--db-create-indexes db)))
   (gnosis--db-set-version 7))
 
+(defun gnosis-db--migrate-v8 ()
+  "Add source_guid column to themata for Anki GUID-based dedup."
+  (let ((db (gnosis--ensure-db)))
+    (gnosis-sqlite-execute db
+      "ALTER TABLE themata ADD COLUMN source_guid TEXT")
+    (gnosis-sqlite-execute db
+      "CREATE INDEX IF NOT EXISTS idx_themata_source_guid ON themata(source_guid)"))
+  (gnosis--db-set-version 8))
+
 (defconst gnosis-db--migrations
   `((1 . gnosis-db--migrate-v1)
     (2 . gnosis-db--migrate-v2)
@@ -1835,7 +1850,8 @@ Handles both Lisp list dates and already-converted integers."
     (4 . gnosis-db--migrate-v4)
     (5 . gnosis-db--migrate-v5)
     (6 . gnosis-db--migrate-v6)
-    (7 . gnosis-db--migrate-v7))
+    (7 . gnosis-db--migrate-v7)
+    (8 . gnosis-db--migrate-v8))
   "Alist of (VERSION . FUNCTION).
 Each migration brings the DB from VERSION-1 to VERSION.")
 

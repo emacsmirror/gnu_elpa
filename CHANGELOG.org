@@ -2,6 +2,10 @@
 #+author: Daniel Mendler
 #+language: en
 
+* Development
+
+- Add support for minor modes to ~jinx-include-*~ and ~jinx-exclude-*~ variables.
+
 * Version 2.7 (2026-03-09)
 
 - Improve mouse menu.

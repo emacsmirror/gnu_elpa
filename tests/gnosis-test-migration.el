@@ -6,7 +6,7 @@
 
 ;;; Commentary:
 
-;; Tests for the complete migration chain v1 -> v2 -> v3 -> v4 -> v5 -> v6 -> v7.
+;; Tests for the complete migration chain v1 -> v2 -> v3 -> v4 -> v5 -> v6 -> v7 -> v8.
 ;; One chain test exercises the full sequence; edge-case tests isolate
 ;; specific migration steps.
 
@@ -271,8 +271,8 @@ tags and links tables, extras with parathema/review_image."
 
 ;;; ---- Group 2: Full chain test ----
 
-(ert-deftest gnosis-test-migrate-v1-to-v7-chain ()
-  "Sequential migration chain: v1 -> v2 -> v3 -> v4 -> v5 -> v6 -> v7 on one DB."
+(ert-deftest gnosis-test-migrate-v1-to-v8-chain ()
+  "Sequential migration chain: v1 -> v2 -> ... -> v8 on one DB."
   (gnosis-test-with-v1-db
     (gnosis-test--populate-v1-data)
 
@@ -400,7 +400,15 @@ tags and links tables, extras with parathema/review_image."
     ;; activity_log dates are now YYYYMMDD integers
     (let ((row (car (gnosis-sqlite-select gnosis-db
                       "SELECT date FROM activity_log"))))
-      (should (= 20260320 (car row))))))
+      (should (= 20260320 (car row))))
+
+    ;; -- v7 -> v8 --
+    (gnosis-db--migrate-v8)
+    (should (= 8 (gnosis--db-version)))
+    ;; source_guid column exists (NULL for existing themata)
+    (let ((row (car (gnosis-sqlite-select gnosis-db
+                      "SELECT source_guid FROM themata WHERE id = 1"))))
+      (should (null (car row))))))
 
 ;;; ---- Group 3: Edge-case tests ----
 
@@ -517,7 +525,7 @@ tags and links tables, extras with parathema/review_image."
       (should-not (member "multi-dash-tag" tags)))))
 
 (ert-deftest gnosis-test-migrate-empty-db-chain ()
-  "Empty DB (schema only, no data) migrates v1 through v7 without error."
+  "Empty DB (schema only, no data) migrates v1 through v8 without error."
   (gnosis-test-with-v1-db
     (gnosis-db--migrate-v2)
     (gnosis-db--migrate-v3)
@@ -525,7 +533,8 @@ tags and links tables, extras with parathema/review_image."
     (gnosis-db--migrate-v5)
     (gnosis-db--migrate-v6)
     (gnosis-db--migrate-v7)
-    (should (= 7 (gnosis--db-version)))))
+    (gnosis-db--migrate-v8)
+    (should (= 8 (gnosis--db-version)))))
 
 (ert-deftest gnosis-test-migrate-v4-populated-to-v6 ()
   "PRAGMA 4 DB with data: v5 is no-op, v6 migrates decks/tags/nodes."
@@ -622,9 +631,9 @@ tags and links tables, extras with parathema/review_image."
       (cl-letf (((symbol-function 'gnosis--commit-migration)
 		 (lambda (from to) (setq commit-args (list from to)))))
 	(gnosis--db-run-migrations 4))
-      ;; Should have been called with from=4, to=7 (last migration run)
-      (should (equal '(4 7) commit-args))
-      (should (= 7 (gnosis--db-version))))))
+      ;; Should have been called with from=4, to=8 (last migration run)
+      (should (equal '(4 8) commit-args))
+      (should (= 8 (gnosis--db-version))))))
 
 (ert-deftest gnosis-test-migrate-no-commit-when-up-to-date ()
   "gnosis--db-run-migrations does not commit when no migrations are needed."

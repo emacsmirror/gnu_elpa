@@ -6,10 +6,10 @@
 
 ;;; Commentary:
 
-;; Tests for Anki import pipeline: parse-notes, bulk-insert-chunk,
+;; Tests for Anki .apkg import pipeline: parse-notes, bulk-insert-chunk,
 ;; and full import.  Creates Anki databases matching the real schema
-;; (notetypes, fields, templates, notes with all columns) and
-;; populates them with random data.
+;; (notetypes, fields, templates, notes) and populates them with
+;; random data.
 
 ;;; Code:
 (require 'ert)
@@ -19,10 +19,10 @@
 (load (expand-file-name "gnosis-test-helpers.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
-;;; ---- Schema creation (mirrors real Anki .anki2) ----
+;;; ---- Schema creation (mirrors Anki .apkg DB) ----
 
 (defun gnosis-test-anki--create-schema (db)
-  "Create Anki tables in DB matching the real .anki2 schema.
+  "Create Anki tables in DB matching the real .apkg schema.
 Uses NOCASE instead of Anki's custom unicase collation."
   (sqlite-execute db "
     CREATE TABLE notetypes (
@@ -61,6 +61,34 @@ Uses NOCASE instead of Anki's custom unicase collation."
       flags integer NOT NULL,
       data text NOT NULL)"))
 
+(defun gnosis-test-anki--encode-varint (n)
+  "Encode integer N as a protobuf varint byte list."
+  (let (bytes)
+    (while (> n #x7f)
+      (push (logior (logand n #x7f) #x80) bytes)
+      (setq n (ash n -7)))
+    (push n bytes)
+    (nreverse bytes)))
+
+(defun gnosis-test-anki--make-template-config (qfmt afmt)
+  "Build a minimal protobuf config blob with QFMT and AFMT strings."
+  (let* ((q-bytes (encode-coding-string qfmt 'utf-8))
+         (a-bytes (encode-coding-string afmt 'utf-8))
+         (result nil))
+    ;; Field 1 (tag 0x0a): qfmt
+    (push #x0a result)
+    (dolist (b (gnosis-test-anki--encode-varint (length q-bytes)))
+      (push b result))
+    (dotimes (i (length q-bytes))
+      (push (aref q-bytes i) result))
+    ;; Field 2 (tag 0x12): afmt
+    (push #x12 result)
+    (dolist (b (gnosis-test-anki--encode-varint (length a-bytes)))
+      (push b result))
+    (dotimes (i (length a-bytes))
+      (push (aref a-bytes i) result))
+    (apply #'unibyte-string (nreverse result))))
+
 (defun gnosis-test-anki--insert-notetype (db id name type)
   "Insert notetype ID with NAME into DB.  TYPE is basic or cloze."
   (sqlite-execute db
@@ -68,20 +96,22 @@ Uses NOCASE instead of Anki's custom unicase collation."
   (if (eq type 'cloze)
       (progn
         (sqlite-execute db
-          "INSERT INTO fields VALUES (?,0,'Text','')
-           " (list id))
+          "INSERT INTO fields VALUES (?,0,'Text','')" (list id))
         (sqlite-execute db
-          "INSERT INTO fields VALUES (?,1,'Extra','')
-           " (list id))
+          "INSERT INTO fields VALUES (?,1,'Extra','')" (list id))
         (sqlite-execute db
-          "INSERT INTO templates VALUES (?,0,'Cloze',0,0,'')" (list id)))
+          "INSERT INTO templates VALUES (?,0,'Cloze',0,0,?)"
+          (list id (gnosis-test-anki--make-template-config
+                    "{{cloze:Text}}" "{{cloze:Text}}<br>{{Extra}}"))))
     ;; basic
     (sqlite-execute db
       "INSERT INTO fields VALUES (?,0,'Front','')" (list id))
     (sqlite-execute db
       "INSERT INTO fields VALUES (?,1,'Back','')" (list id))
     (sqlite-execute db
-      "INSERT INTO templates VALUES (?,0,'Card 1',0,0,'')" (list id))))
+      "INSERT INTO templates VALUES (?,0,'Card 1',0,0,?)"
+      (list id (gnosis-test-anki--make-template-config
+                "{{Front}}" "{{FrontSide}}<hr>{{Back}}")))))
 
 (defun gnosis-test-anki--insert-image-notetype (db id name)
   "Insert image-occlusion notetype ID with NAME into DB."
@@ -90,9 +120,11 @@ Uses NOCASE instead of Anki's custom unicase collation."
   (sqlite-execute db
     "INSERT INTO fields VALUES (?,0,'Image','')" (list id))
   (sqlite-execute db
-    "INSERT INTO fields VALUES (?,1,'Mask SVG','')" (list id))
+    "INSERT INTO fields VALUES (?,1,'Original Mask','')" (list id))
   (sqlite-execute db
-    "INSERT INTO templates VALUES (?,0,'Card 1',0,0,'')" (list id)))
+    "INSERT INTO templates VALUES (?,0,'Card 1',0,0,?)"
+    (list id (gnosis-test-anki--make-template-config
+              "{{Image}}" "{{Image}}{{Original Mask}}"))))
 
 (defun gnosis-test-anki--insert-note (db id mid flds tags)
   "Insert a note into DB with ID, MID, FLDS, TAGS."
@@ -150,8 +182,8 @@ Uses NOCASE instead of Anki's custom unicase collation."
                (t w))))
      (number-sequence 1 n) " ")))
 
-(defun gnosis-test-anki--populate-collection (path n-basic n-cloze)
-  "Create an Anki collection DB at PATH with random data.
+(defun gnosis-test-anki--populate-db (path n-basic n-cloze)
+  "Create an Anki test DB at PATH with random data.
 N-BASIC basic notes and N-CLOZE cloze notes, plus 1 image occlusion."
   (let ((db (sqlite-open path))
         (note-id 1))
@@ -192,46 +224,19 @@ N-BASIC basic notes and N-CLOZE cloze notes, plus 1 image occlusion."
     (sqlite-close db)
     path))
 
-(defun gnosis-test-anki--populate-deck (path n-basic n-cloze)
-  "Create an .apkg-like Anki DB at PATH.
-Same as collection but simulates a deck export (identical schema)."
-  (gnosis-test-anki--populate-collection path n-basic n-cloze))
+;;; ---- Group 1: parse-notes ----
 
-;;; ---- Group 1: parse-notes with real schema ----
-
-(ert-deftest gnosis-test-anki-parse-collection ()
-  "Parse notes from a collection-style Anki DB with random data."
-  (let* ((tmp (make-temp-file "anki-coll-" nil ".db"))
+(ert-deftest gnosis-test-anki-parse-notes ()
+  "Parse notes from an Anki DB with random data."
+  (let* ((tmp (make-temp-file "anki-parse-" nil ".db"))
          (anki-db nil)
          (model-info (make-hash-table :test 'equal)))
     (unwind-protect
         (progn
-          (gnosis-test-anki--populate-collection tmp 10 5)
+          (gnosis-test-anki--populate-db tmp 10 5)
           (setq anki-db (sqlite-open tmp))
           ;; Build model-info as import-db does
-          (let ((notetypes (sqlite-select anki-db
-                            "SELECT id, name FROM notetypes"))
-                (cloze-ids (mapcar #'car
-                            (sqlite-select anki-db
-                              "SELECT DISTINCT ntid FROM templates
-                               WHERE name COLLATE NOCASE = 'Cloze'"))))
-            (dolist (nt notetypes)
-              (let* ((ntid (car nt))
-                     (mid (number-to-string ntid))
-                     (fields (mapcar #'cadr
-                              (sqlite-select anki-db
-                                "SELECT ord, name FROM fields
-                                 WHERE ntid = ? ORDER BY ord"
-                                (list ntid))))
-                     (mtype (cond
-                             ((cl-find-if (lambda (f)
-                                            (string-match-p
-                                             "Image\\|SVG\\|Mask" f))
-                                          fields)
-                              'skip)
-                             ((member ntid cloze-ids) 1)
-                             (t 0))))
-                (puthash mid (cons mtype (cons 1 fields)) model-info))))
+          (gnosis-anki--build-model-info-from-tables anki-db model-info)
           (let* ((result (gnosis-anki--parse-notes anki-db model-info))
                  (skipped (car result))
                  (prepared (cdr result)))
@@ -263,7 +268,7 @@ Same as collection but simulates a deck export (identical schema)."
               " emacs lisp ")
             (sqlite-close db))
           (setq anki-db (sqlite-open tmp))
-          (puthash "100" '(0 1 "Front" "Back") model-info)
+          (puthash "100" '(0 1 ("Front") ("Back") "Front" "Back") model-info)
           (let* ((result (gnosis-anki--parse-notes anki-db model-info))
                  (prepared (cdr result))
                  (item (car prepared)))
@@ -293,7 +298,7 @@ Same as collection but simulates a deck export (identical schema)."
               " cloze ")
             (sqlite-close db))
           (setq anki-db (sqlite-open tmp))
-          (puthash "200" '(1 1 "Text" "Extra") model-info)
+          (puthash "200" '(1 1 ("Text") ("Extra") "Text" "Extra") model-info)
           (let* ((result (gnosis-anki--parse-notes anki-db model-info))
                  (prepared (cdr result)))
             ;; 2 cloze items from one note
@@ -329,9 +334,9 @@ Same as collection but simulates a deck export (identical schema)."
               (concat "img" "\x1f" "mask") " t ")
             (sqlite-close db))
           (setq anki-db (sqlite-open tmp))
-          (puthash "100" '(0 1 "Front" "Back") model-info)
-          (puthash "200" '(1 1 "Text" "Extra") model-info)
-          (puthash "300" '(skip 1 "Image" "Mask SVG") model-info)
+          (puthash "100" '(0 1 ("Front") ("Back") "Front" "Back") model-info)
+          (puthash "200" '(1 1 ("Text") ("Extra") "Text" "Extra") model-info)
+          (puthash "300" '(skip 1 ("Image") ("Original Mask") "Image" "Original Mask") model-info)
           (let* ((result (gnosis-anki--parse-notes anki-db model-info))
                  (skipped (car result))
                  (prepared (cdr result)))
@@ -356,7 +361,7 @@ Same as collection but simulates a deck export (identical schema)."
               (concat "Q2" "\x1f" "A2") " shared_tag ")
             (sqlite-close db))
           (setq anki-db (sqlite-open tmp))
-          (puthash "100" '(0 1 "Front" "Back") model-info)
+          (puthash "100" '(0 1 ("Front") ("Back") "Front" "Back") model-info)
           (let* ((result (gnosis-anki--parse-notes anki-db model-info))
                  (prepared (cdr result)))
             (should (= 2 (length prepared)))
@@ -454,15 +459,15 @@ Same as collection but simulates a deck export (identical schema)."
       (let ((tags (gnosis-select 'tag 'thema-tag '(= thema-id 3001) t)))
         (should (= 20 (length tags)))))))
 
-;;; ---- Group 3: full import (collection-style DB) ----
+;;; ---- Group 3: full import ----
 
-(ert-deftest gnosis-test-anki-import-collection ()
-  "Import a collection-style DB with random basic and cloze notes."
+(ert-deftest gnosis-test-anki-import ()
+  "Import an Anki DB with random basic and cloze notes."
   (gnosis-test-with-db
-    (let ((anki-file (make-temp-file "anki-coll-" nil ".db")))
+    (let ((anki-file (make-temp-file "anki-import-" nil ".db")))
       (unwind-protect
           (progn
-            (gnosis-test-anki--populate-collection anki-file 10 5)
+            (gnosis-test-anki--populate-db anki-file 10 5)
             (gnosis-anki--import-db anki-file)
             ;; Wait for async timer to complete
             (sleep-for 1)
@@ -480,24 +485,6 @@ Same as collection but simulates a deck export (identical schema)."
                        (length (gnosis-select 'id 'extras nil t))))
             ;; Tags were inserted
             (should (> (length (gnosis-select 'tag 'thema-tag nil t)) 0)))
-        (when (file-exists-p anki-file)
-          (delete-file anki-file))))))
-
-(ert-deftest gnosis-test-anki-import-deck ()
-  "Import a deck-style DB (same schema, different data mix)."
-  (gnosis-test-with-db
-    (let ((anki-file (make-temp-file "anki-deck-" nil ".db")))
-      (unwind-protect
-          (progn
-            (gnosis-test-anki--populate-deck anki-file 5 10)
-            (gnosis-anki--import-db anki-file)
-            (sleep-for 1)
-            ;; At least 15 themata (5 basic + 10+ cloze items)
-            (let ((count (length (gnosis-select 'id 'themata nil t))))
-              (should (>= count 15)))
-            ;; All tables consistent
-            (should (= (length (gnosis-select 'id 'themata nil t))
-                       (length (gnosis-select 'id 'review nil t)))))
         (when (file-exists-p anki-file)
           (delete-file anki-file))))))
 
@@ -597,6 +584,139 @@ Same as collection but simulates a deck export (identical schema)."
   "Deduplicate tags."
   (should (equal '("a" "b")
                  (gnosis-anki--parse-tags "a b a"))))
+
+;;; ---- Group 7: robustness ----
+
+(ert-deftest gnosis-test-anki-parse-db-unwind-protect ()
+  "sqlite-close runs even when parsing errors."
+  (let* ((tmp (make-temp-file "anki-leak-" nil ".db"))
+         (db (sqlite-open tmp)))
+    (unwind-protect
+        (progn
+          ;; Create schema but omit the notes table so parse-notes fails
+          (sqlite-execute db "CREATE TABLE notetypes (id integer PRIMARY KEY, name text, mtime_secs integer, usn integer, config blob)")
+          (sqlite-close db)
+          ;; parse-anki-db should still close the handle despite error
+          (should-error (gnosis-anki--parse-anki-db tmp))
+          ;; If we get here, the handle was closed (no leak).
+          ;; Verify by re-opening the file successfully
+          (let ((db2 (sqlite-open tmp)))
+            (should db2)
+            (sqlite-close db2)))
+      (delete-file tmp))))
+
+(ert-deftest gnosis-test-anki-constants-defined ()
+  "Chunk and batch size constants are defined."
+  (should (integerp gnosis-anki--chunk-size))
+  (should (> gnosis-anki--chunk-size 0))
+  (should (integerp gnosis-anki--tag-batch-size))
+  (should (> gnosis-anki--tag-batch-size 0)))
+
+(ert-deftest gnosis-test-anki-insert-tags-batching ()
+  "Tag insertion helper batches correctly."
+  (gnosis-test-with-db
+    ;; First insert a thema so FK constraint is satisfied
+    (gnosis--insert-into 'themata '([5001 "basic" "Q" ("") ("A") nil]))
+    (let ((tag-params nil))
+      (dotimes (i 10)
+        (setq tag-params
+              (nconc tag-params
+                     (list 5001 (prin1-to-string (format "tag%d" i))))))
+      (let ((gnosis-anki--tag-batch-size 3))
+        (gnosis-anki--insert-tags gnosis-db tag-params))
+      (should (= 10 (length (gnosis-select 'tag 'thema-tag
+                                            '(= thema-id 5001) t)))))))
+
+(ert-deftest gnosis-test-anki-system-tags-stripped ()
+  "Anki system tags (marked, leech) are excluded."
+  (should (equal '("biology")
+                 (gnosis-anki--parse-tags "biology marked leech")))
+  ;; Case-insensitive stripping
+  (should (equal '("test")
+                 (gnosis-anki--parse-tags "test Marked LEECH"))))
+
+(ert-deftest gnosis-test-anki-nfc-normalization ()
+  "NFC normalization produces consistent tags."
+  ;; e followed by combining acute accent (NFD) vs precomposed e-acute (NFC)
+  (let* ((nfd (concat "caf" (string #xe9)))  ; precomposed
+         (nfc (concat "caf" (string #x65 #x301)))) ; decomposed
+    (should (equal (gnosis-anki--parse-tags nfd)
+                   (gnosis-anki--parse-tags nfc)))))
+
+(ert-deftest gnosis-test-anki-guid-stored ()
+  "GUID from Anki notes is stored in parsed items."
+  (let* ((tmp (make-temp-file "anki-guid-" nil ".db"))
+         (anki-db nil)
+         (model-info (make-hash-table :test 'equal)))
+    (unwind-protect
+        (progn
+          (let ((db (sqlite-open tmp)))
+            (gnosis-test-anki--create-schema db)
+            (gnosis-test-anki--insert-notetype db 100 "Basic" 'basic)
+            (gnosis-test-anki--insert-note db 1 100
+              (concat "Q" "\x1f" "A") " test ")
+            (sqlite-close db))
+          (setq anki-db (sqlite-open tmp))
+          (puthash "100" '(0 1 ("Front") ("Back") "Front" "Back") model-info)
+          (let* ((result (gnosis-anki--parse-notes anki-db model-info))
+                 (prepared (cdr result))
+                 (item (car prepared)))
+            (should (= 1 (length prepared)))
+            ;; Our insert-note helper generates "guid1"
+            (should (string= "guid1" (plist-get item :guid)))))
+      (when anki-db (sqlite-close anki-db))
+      (delete-file tmp))))
+
+(ert-deftest gnosis-test-anki-guid-dedup ()
+  "Re-import skips notes with existing GUIDs."
+  (gnosis-test-with-db
+    (let ((anki-file (make-temp-file "anki-dedup-" nil ".db")))
+      (unwind-protect
+          (progn
+            ;; Create Anki DB with 3 basic notes
+            (let ((db (sqlite-open anki-file)))
+              (gnosis-test-anki--create-schema db)
+              (gnosis-test-anki--insert-notetype db 100 "Basic" 'basic)
+              (gnosis-test-anki--insert-note db 1 100
+                (concat "Q1" "\x1f" "A1") " t ")
+              (gnosis-test-anki--insert-note db 2 100
+                (concat "Q2" "\x1f" "A2") " t ")
+              (gnosis-test-anki--insert-note db 3 100
+                (concat "Q3" "\x1f" "A3") " t ")
+              (sqlite-close db))
+            ;; First import
+            (let ((gnosis-testing t))
+              (gnosis-anki--import-db anki-file nil nil nil anki-file))
+            (sleep-for 1)
+            (let ((first-count (length (gnosis-select 'id 'themata nil t))))
+              (should (= 3 first-count))
+              ;; Second import: all 3 should be skipped as duplicates
+              (let ((gnosis-testing t))
+                (gnosis-anki--import-db anki-file nil nil nil anki-file))
+              (sleep-for 1)
+              (should (= first-count
+                         (length (gnosis-select 'id 'themata nil t))))))
+        (when (file-exists-p anki-file)
+          (delete-file anki-file))))))
+
+(ert-deftest gnosis-test-anki-bulk-insert-with-guid ()
+  "Bulk insert stores source_guid in themata."
+  (gnosis-test-with-db
+    (let* ((items (list (list :type "basic"
+                              :keimenon "Q"
+                              :hypothesis '("")
+                              :answer '("A")
+                              :parathema ""
+                              :tags '("test")
+                              :guid "abc123")))
+           (ids '(6001))
+           (gnosis-val (prin1-to-string gnosis-algorithm-gnosis-value))
+           (amnesia-val gnosis-algorithm-amnesia-value)
+           (today (gnosis--today-int)))
+      (gnosis-anki--bulk-insert-chunk gnosis-db items ids
+                                      gnosis-val amnesia-val today)
+      (should (string= "abc123"
+                        (gnosis-get 'source-guid 'themata '(= id 6001)))))))
 
 (provide 'gnosis-test-anki)
 

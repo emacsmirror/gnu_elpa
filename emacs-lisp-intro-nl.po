@@ -25,7 +25,7 @@ msgstr "programmeren in Emacs Lisp"
 #. type: Plain text
 #: emacs-lisp-intro.texi:6
 msgid "@documentlanguage en"
-msgstr ""
+msgstr "@documentlanguage nl"
 
 #. type: include
 #: emacs-lisp-intro.texi:6
@@ -2644,7 +2644,7 @@ msgstr "Waarom woorden tellen::"
 #: emacs-lisp-intro.texi:13267 emacs-lisp-intro.texi:13269
 #, no-wrap
 msgid "@value{COUNT-WORDS}"
-msgstr "@value{COUNT-WORDS}"
+msgstr "@value{TEL-WOORDEN}"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:633 emacs-lisp-intro.texi:13243
@@ -2674,14 +2674,14 @@ msgstr "Tellen voorbeeld"
 #: emacs-lisp-intro.texi:635 emacs-lisp-intro.texi:13268
 #, no-wrap
 msgid "The @code{@value{COUNT-WORDS}} Function"
-msgstr "De @code{@value{COUNT-WORDS}} functie"
+msgstr "De @code{@value{TEL-WOORDEN}} functie"
 
 #. type: node
 #: emacs-lisp-intro.texi:638 emacs-lisp-intro.texi:13290
 #: emacs-lisp-intro.texi:13293
 #, no-wrap
 msgid "Design @value{COUNT-WORDS}"
-msgstr "Ontwerp @value{COUNT-WORDS}"
+msgstr "Ontwerp @value{TEL-WOORDEN}"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:638 emacs-lisp-intro.texi:13290
@@ -2693,12 +2693,12 @@ msgstr "De definitie met @code{while} loop."
 #: emacs-lisp-intro.texi:13468
 #, no-wrap
 msgid "Whitespace Bug"
-msgstr "Wiite ruimte bug"
+msgstr "Witte ruimte bug"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:638 emacs-lisp-intro.texi:13290
 msgid "The Whitespace Bug in @code{@value{COUNT-WORDS}}."
-msgstr "De witte ruimte bug in @code{@value{COUNT-WORDS}}"
+msgstr "De witte ruimte bug in @code{@value{TEL-WOORDEN}}"
 
 #. type: chapter
 #: emacs-lisp-intro.texi:640 emacs-lisp-intro.texi:14106
@@ -2745,7 +2745,7 @@ msgstr "count-words-in-defun"
 #. type: menuentry
 #: emacs-lisp-intro.texi:651 emacs-lisp-intro.texi:14136
 msgid "Very like @code{@value{COUNT-WORDS}}."
-msgstr "Erg vergelijkbaar met @code{@value{COUNT-WORDS}}"
+msgstr "Erg vergelijkbaar met @code{@value{TEL-WOORDEN}}"
 
 #. type: node
 #: emacs-lisp-intro.texi:651 emacs-lisp-intro.texi:14136
@@ -27852,19 +27852,19 @@ msgstr ""
 #: emacs-lisp-intro.texi:13229
 #, no-wrap
 msgid "Counting via Repetition and Regexps"
-msgstr ""
+msgstr "Tellen via repetitie en regexps"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:13230
 #, no-wrap
 msgid "Repetition for word counting"
-msgstr ""
+msgstr "Repetitie voor tellen van woorden"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:13231
 #, no-wrap
 msgid "Regular expressions for word counting"
-msgstr ""
+msgstr "Reguliere expressie voor tellen van woorden"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13237
@@ -27874,6 +27874,11 @@ msgid ""
 "regular expression searches through the construction of word count commands "
 "using @code{while} loops and recursion."
 msgstr ""
+"Repetitie en reguliere expressie zoekopdrachten zijn krachtige "
+"instrumenten de je vaak gebruikt wanneer je code in Emacs Lisp "
+"schrijft. Dit hoofdstuk illustreert het gebruik van reguliere "
+"expressie zoekopdrachten bij de constructie van woorden telling "
+"commando's, met @code{while} loops en recursie."
 
 #. type: node
 #: emacs-lisp-intro.texi:13246
@@ -27885,7 +27890,7 @@ msgstr "Waarom woorden tellen"
 #: emacs-lisp-intro.texi:13247
 #, no-wrap
 msgid "Counting words"
-msgstr ""
+msgstr "Woorden tellen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13252
@@ -27893,6 +27898,8 @@ msgid ""
 "The standard Emacs distribution contains functions for counting the number "
 "of lines and words within a region."
 msgstr ""
+"De standaard Emacs distributie bevat functies om het aantal regels "
+"en het het aantal woorden in een region te tellen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13262
@@ -27907,6 +27914,17 @@ msgid ""
 "convention and computed a word count by dividing the number of characters in "
 "a document by five."
 msgstr ""
+"Sommige soorten schrijfwerk vragen je woorden te tellen. Zoals "
+"wanneer je een essay schrijft kan dat gelimiteerd zijn op 800 "
+"woorden. Wanneer je een roman schrijft kan je je zelf opleggen om "
+"1000 woorden per dag te schrijven. Het klinkt raar, maar Emacs had "
+"heel lang geen woorden tel commando. Misschien gebruikten mensen "
+"Emacs voornamelijk voor code of soorten documentatie die geen "
+"woordtelling vereisen, of misschien beperkte zij zich tot het "
+"woorden tel commando van het besturingsysteem zoals @code{wc}. "
+"Misschien dat mensen de conventie onder uitgevers volgden en "
+"berekenden zij de woord telling door het aantal karaktrs in een "
+"document door vijf te delen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13266
@@ -27915,6 +27933,10 @@ msgid ""
 "examples, which you may wish to compare with the standard Emacs command, "
 "@code{count-words-region}."
 msgstr ""
+"Een commando om woorden te tellen kan op veel verschillende manieren "
+"gecompleteerd worden. Hier volgen sommige voorbeelden die je "
+"wellicht wilt vergelijken met het standaard Emacs commando "
+"@code{count-words-region}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13280
@@ -27928,6 +27950,16 @@ msgid ""
 "to count words in a region, you can, if you wish, count words in a whole "
 "buffer by marking it with @w{@kbd{C-x h}} (@code{mark-whole-buffer})."
 msgstr ""
+"Een woorden tel commando kan woorden tellen in een regel, paragraaf, "
+"region of buffer. Wat zou het commando moeten doen? Je kunt een "
+"commando maken dat het aantal woorden telt in een volledig buffer. "
+"Echter, de Emacs traditie moedigt flexibiliteit aan---je wil "
+"misschien alleen de woorden in een sectie tellen in plaats van het "
+"hele buffer. Het is daarom verstandiger om het commando het aantal "
+"woorden in een region te laten tellen. Wanneer je eenmaal een "
+"commando hebt dat woorden in een region telt, dan kan je als je dat "
+"wilt woorden in het hele buffer tellen door het te markeren met "
+"@w{@kbd{C-x h}} (@code{mark-whole-buffer})."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13286
@@ -27937,12 +27969,17 @@ msgid ""
 "word, and so on, until you reach the end of the region.  This means that "
 "word counting is ideally suited to recursion or to a @code{while} loop."
 msgstr ""
+"Woorden tellen is duidelijk een repeterende handeling: startend bij "
+"het begin van de region tel je het eerste woord, dan het tweede "
+"woord, dan het derde, enzovoorts., totdat je het einde van de region "
+"bereikt. Dit betekent dat het tellen van woorden uitstekend geschikt "
+"is voor recursie of voor een @code{while} loop."
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:13294
 #, no-wrap
 msgid "Designing @code{@value{COUNT-WORDS}}"
-msgstr ""
+msgstr "Ontwerp @code{@value{TEL-WOORDEN}}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13300
@@ -27950,16 +27987,18 @@ msgid ""
 "First, we will implement the word count command with a @code{while} loop, "
 "then with recursion.  The command will, of course, be interactive."
 msgstr ""
+"Eerst gaan we een woord tel commando maken met een @code{while} "
+"loop, daarna met recursie. Het commando is uiteraard interactief."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13303
 msgid "The template for an interactive function definition is, as always:"
-msgstr ""
+msgstr "Het sjabloon voor een interactieve functiedefinitie is, zoals altijd:"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13314
 msgid "What we need to do is fill in the slots."
-msgstr ""
+msgstr "Wat we moeten doen is de slots invullen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13319
@@ -27969,6 +28008,11 @@ msgid ""
 "for the standard Emacs command to count words, we will name our "
 "implementation @code{@value{COUNT-WORDS}}."
 msgstr ""
+"De naam van def functie moet zelf verklarend en makkelijk te houden "
+"zijn. @code{count-words-region} is een voor de hand liggende keuze. "
+"Maar omdat die naam gebruikt wordt door het standaard Emacs commando "
+"om woorden te tellen, noemen we onze implantatie "
+"@code{@value{TEL-WOORDEN}}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13330
@@ -27983,6 +28027,16 @@ msgid ""
 "beginning and end of the region to the function's argument list.  All this "
 "is routine."
 msgstr ""
+"De functie telt woorden in een region. Dat betekent dat de "
+"arugmentlist symbolen moet bevatten die gebonden worden aan de twee "
+"posities, het begin en einde van de region. Deze twee posities "
+"noemen we respectievelijk @samp{begin} en @samp{end}. De eerste "
+"regel van de documentatie met een enkele zin zijn, omdat dit alles "
+"wat als documentatie getoond wordt door een commando zoals "
+"@code{apropos}. De interactieve expressie heeft de vorm "
+"@samp{(interactive \"r\")}, omdat die zorgt dat Emacs het begin en "
+"einde van de region doorgeven aan de arugmentlist van de functie. "
+"Dit is allemaal routine."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13335
@@ -27991,6 +28045,10 @@ msgid ""
 "set up conditions under which the @code{while} loop can count words, second, "
 "to run the @code{while} loop, and third, to send a message to the user."
 msgstr ""
+"De body van de functie moet drie taken doen: ten eerste de condities "
+"opzetten waaronder de @code{while} loop de woorden kan tellen, ten "
+"tweede het runnen van de @samp{while} loop, en ten derde, de "
+"gebruiker een boodschap geven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13344
@@ -28003,6 +28061,13 @@ msgid ""
 "function finishes its work.  For this reason, the body must be enclosed in a "
 "@code{save-excursion} expression."
 msgstr ""
+"Wanneer een gebruiker @code{@value{TEL-WOORDEN}} aanroept kan point aan het "
+"begin of aan het einde van de region staan. Het tel-proces moet echter bij "
+"het begin van de region starten. Dit betekent dat we point daar willen "
+"zetten wanneer die daar nog niet is. Het uitvoeren van @code{(goto-char beginning)} "
+"verzekert dit. We willen natuurlijk point terug zetten op zijn verwachte "
+"positie wanneer de functie zijn werk gedaan heeft. Om deze reden moet de "
+"body ingevoegd zijn in een @code{save-excursion} expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13350
@@ -28013,6 +28078,12 @@ msgid ""
 "loop should test true so long as point should jump forward, and false when "
 "point is at the end of the region."
 msgstr ""
+"Het centrale deel van de body van de functie bestaat uit een "
+"@code{while} loop waarin een expressie point voorwaarts van woord "
+"naar woord laat springen, en een andere expressie deze sprongen "
+"telt. De waar-of-onwaar-test van de @code{while} loop moet naar waar "
+"testen zolang point voorwaarts moet springen, en onwaar wanneer "
+"point aan het einde van de region is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13354
@@ -28021,6 +28092,10 @@ msgid ""
 "forward word by word, but it is easier to see what Emacs identifies as a "
 "``word'' if we use a regular expression search."
 msgstr ""
+"We zouden @code{(forward-word 1)} kunnen gebruiken om point woord "
+"voor woord voorwaarts te bewegen, maar het is makkelijker om te "
+"kijken wat Emacs als ``woord'' identificeert, wanneer we een "
+"reguliere expressie zoekopdracht gebruiken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13359
@@ -28029,6 +28104,9 @@ msgid ""
 "leaves point after the last character matched.  This means that a succession "
 "of successful word searches will move point forward word by word."
 msgstr ""
+"Een reguliere expressie zoekopdracht die het patroon vindt waarvoor het zoekt, "
+"zet point achter het laatst gematchte karakter. Dit betekent dat opvolgende "
+"succesvolle zoekopdrachten point woord voor woord voorwaarts verplaatst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13368
@@ -28041,6 +28119,15 @@ msgid ""
 "itself.  (A word may end a buffer and not have any following whitespace or "
 "punctuation, so that part of the regexp must be optional.)"
 msgstr ""
+"In de praktijk willen we dat de reguliere expressie zoekopdracht "
+"over witte ruimte en leestekens tussen woorden springt en ook over "
+"de woorden zelf. Een regexp die weigert over witte ruimte tussen "
+"woorden te springen zou nooit over een meer dan een woord springen! "
+"Dit betekent dat de regexp de witte ruimte en leestekens volgend op "
+"een woord moet bevatten, als die er is, zowel als het woord zelf. "
+"(Een woord kan een buffer beëindigen en kan geen opvolgende witte "
+"ruimte of leestekens hebben, dus dat deel van de regexp moet "
+"optioneel zijn.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13373
@@ -28049,12 +28136,15 @@ msgid ""
 "constituent characters followed, optionally, by one or more characters that "
 "are not word constituents.  The regular expression for this is:"
 msgstr ""
+"Dus wat we willen is dat regexp een patroon is dat een of meer "
+"woord-vormende karakters, optioneel gevolgd door een or meer "
+"karakters die niet woord-vormend zijn, definieert."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:13376
 #, no-wrap
 msgid "\\w+\\W*\n"
-msgstr ""
+msgstr "\\w+\\W*\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13383
@@ -28063,17 +28153,20 @@ msgid ""
 "constituents.  For more information about syntax, @pxref{Syntax Tables, , "
 "Syntax Tables, elisp, The GNU Emacs Lisp Reference Manual}."
 msgstr ""
+"De syntax-table van het buffer stelt vast welke karakters woord-vormend "
+"zijn en welke niet. Voor meer informatie over syntax, @pxref{Syntax Tables, , "
+"Syntax Tables, elisp, The GNU Emacs Lisp Reference Manual}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13386
 msgid "The search expression looks like this:"
-msgstr ""
+msgstr "De zoek expressie ziet er zo uit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:13389
 #, no-wrap
 msgid "(re-search-forward \"\\\\w+\\\\W*\")\n"
-msgstr ""
+msgstr "(re-search-forward \"\\\\w+\\\\W*\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13400
@@ -28087,6 +28180,15 @@ msgid ""
 "seeing a single backslash followed by a letter.  So it discovers the letter "
 "is special.)"
 msgstr ""
+"(Merk op dat de paren backslashes aan de @samp{w} en @samp{W} "
+"voorafgaan. Een enkele backslash heeft een speciale betekenis voor "
+"de Emacs Lisp interpreter. Het geeft aan dat het er op volgende "
+"karakter anders geïnterpreteerd is dan gebruikelijk. Bijvoorbeeld "
+"staan de twee karakters @samp{\\n} voor @samp{newline} in plaats van "
+"een backslash gevolgd door @samp{n}. Twee backslashes achter elkaar "
+"staan voor een gewone, niet-speciale backslash, waardoor de Emacs "
+"Lisp interpreter uiteindelijk een enkele backslash gevold door een "
+"letter ziet. Daardoor weet het dat de letter speciaal is.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13404
@@ -28095,12 +28197,15 @@ msgid ""
 "first be set to 0 and then incremented each time Emacs goes around the "
 "@code{while} loop.  The incrementing expression is simply:"
 msgstr ""
+"We hebben een teller nodig die telt hoeveel woorden er zijn. Deze "
+"variabele moet eerst op 0 gezet worden en daarna elke keer dat Emacs "
+"door de @code{while} loop gaat verhoogd worden."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:13407
 #, no-wrap
 msgid "(setq count (1+ count))\n"
-msgstr ""
+msgstr "(setq count (1+ count))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13420
@@ -28116,11 +28221,22 @@ msgid ""
 "the region, one word in the region, and more than one word.  This means that "
 "the @code{cond} special form is appropriate."
 msgstr ""
+"Tenslotte willen we aan de gebruiker vertellen hoeveel woorden er in "
+"de region zijn. De functie @code{message} is bedoeld om dit soort "
+"informatie aan de gebruiker te presenteren. De boodschap moet zo "
+"zijn geformuleerd dat die goed is ongeacht hoeveel woorden er in de "
+"region zijn: we willen niet zeggen ``er zijn 1 woorden in de "
+"region''. Het conflict tussen enkelvoud en meervoud is grammaticaal "
+"onjuist. Wij lossen dit op met een conditionele expressie die "
+"verschillende boodschappen evalueert, afhankelijk van het aantal "
+"woorden in de region. Er zijn drie mogelijkheden: geen woorden in de "
+"region, één woord in de region, en meer dan een woord. Dit betekent "
+"dat de speciale vorm @code{cond} geschikt is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13423
 msgid "All this leads to the following function definition:"
-msgstr ""
+msgstr "Dit alles leidt tot de volgende functiedefinitie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:13435
@@ -28136,6 +28252,15 @@ msgid ""
 "  (interactive \"r\")\n"
 "  (message \"Counting words in region ... \")\n"
 msgstr ""
+";;; @r{Eerste versie; heeft bugs!}\n"
+"(defun @value{TEL-WOORDEN} (beginning end)\n"
+"  \"Toon aantal woorden in de region.\n"
+"Woorden worden gedefinieerd als minstens een woord-vormend\n"
+"karakter gevolgd door minstens een karakter dat\n"
+"niet woord-vormend is. De syntax table van het buffer\n"
+"bepaald welke karakters dat zijn.\"\n"
+"  (interactive \"r\")\n"
+"  (message \"Tel woorden in region ... \")\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:13442 emacs-lisp-intro.texi:13511
@@ -28146,6 +28271,10 @@ msgid ""
 "    (goto-char beginning)\n"
 "    (let ((count 0))\n"
 msgstr ""
+";;; @r{1. Opzetten geschikte condities.}\n"
+"  (save-excursion\n"
+"    (goto-char beginning)\n"
+"    (let ((count 0))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:13449 emacs-lisp-intro.texi:13518
@@ -28156,6 +28285,10 @@ msgid ""
 "        (re-search-forward \"\\\\w+\\\\W*\")\n"
 "        (setq count (1+ count)))\n"
 msgstr ""
+";;; @r{2. Run de} while @r{loop.}\n"
+"      (while (< (point) end)\n"
+"        (re-search-forward \"\\\\w+\\\\W*\")\n"
+"        (setq count (1+ count)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:13462 emacs-lisp-intro.texi:13717
@@ -28173,17 +28306,27 @@ msgid ""
 "             (message\n"
 "              \"The region has %d words.\" count))))))\n"
 msgstr ""
+";;; @r{3. Toon een boodschap aan de gebruiker.}\n"
+"      (cond ((zerop count)\n"
+"             (message\n"
+"              \"De region heeft GEEN woorden.\"))\n"
+"            ((= 1 count)\n"
+"             (message\n"
+"              \"De region heeft 1 woord.\"))\n"
+"            (t\n"
+"             (message\n"
+"              \"The region heeft %d woorden.\" count))))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13467
 msgid "As written, the function works, but not in all circumstances."
-msgstr ""
+msgstr "Zo geschreven werkt de functie, maar niet in alle omstandigheden."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:13469
 #, no-wrap
 msgid "The Whitespace Bug in @code{@value{COUNT-WORDS}}"
-msgstr ""
+msgstr "De witte ruimte bug in @code{@value{TEL-WOORDEN}}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13479
@@ -28196,12 +28339,20 @@ msgid ""
 "the buffer or the accessible portion of a narrowed buffer, the command "
 "displays an error message that looks like this:"
 msgstr ""
+"Het in de vorige sectie beschreven commando "
+"@code{@value{TEL-WOORDEN}} heeft twee bugs, of eigenlijk een bug met "
+"twee manifestaties. Ten eerste als je een region markeert die alleen "
+"witte ruimte heeft in het midden van tekst, zegt "
+"@code{@value{TEL-WOORDEN}} dat de region maar een woord heeft! Ten "
+"tweede wanneer je een region markeert met alleen witte ruimte aan "
+"het einde van het buffer of het bereikbare deel van een versmald "
+"buffer, toont het een foutboodschap die er zo uit ziet:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:13482
 #, no-wrap
 msgid "Search failed: \"\\\\w+\\\\W*\"\n"
-msgstr ""
+msgstr "Search failed: \"\\\\w+\\\\W*\"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13486
@@ -28209,11 +28360,12 @@ msgid ""
 "If you are reading this in Info in GNU Emacs, you can test for these bugs "
 "yourself."
 msgstr ""
+"Wanneer je dit leest in Info in GNU Emacs, kan je deze bugs zelf testen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13488
 msgid "First, evaluate the function in the usual manner to install it."
-msgstr ""
+msgstr "Evalueer eerst de functie op de gebruikelijke manier om die te installeren."
 
 #. type: ifinfo
 #: emacs-lisp-intro.texi:13491
@@ -28221,6 +28373,9 @@ msgid ""
 "Here is a copy of the definition.  Place your cursor after the closing "
 "parenthesis and type @kbd{C-x C-e} to install it."
 msgstr ""
+"Hier volgt de functiedefinitie. Plaats de cursor achter het "
+"afsluitende haakje sluiten en typ @kbd{C-x C-e} om die te "
+"installeren."
 
 #. type: group
 #: emacs-lisp-intro.texi:13500
@@ -28233,13 +28388,20 @@ msgid ""
 "by at least one character that is not a word-constituent.  The buffer's\n"
 "syntax table determines which characters these are.\"\n"
 msgstr ""
+";; @r{Eerste versie; has bugs!}\n"
+"(defun @value{TEL-WOORDEN} (beginning end)\n"
+"  \"Toon aantal woorden in de region.\n"
+"Woorden worden gedefinieerd als minstens een woord-vormend\n"
+"karakter gevolgd door minstens een karakter dat\n"
+"niet woord-vormend is. De syntax table van het buffer\n"
+"bepaald welke karakters dat zijn.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:13504
 #, no-wrap
 msgid ""
 "  (interactive \"r\")\n"
-"  (message \"Counting words in region ... \")\n"
+"  (message \"Tel woorden in region ... \")\n"
 msgstr ""
 
 #. type: group
@@ -28252,17 +28414,22 @@ msgid ""
 "            ((= 1 count) (message \"The region has 1 word.\"))\n"
 "            (t (message \"The region has %d words.\" count))))))\n"
 msgstr ""
+";;; @r{3. Toon een boodschap aan de gebruiker.}\n"
+"      (cond ((zerop count)\n"
+"             (message \"De region heeft geen woorden.\"))\n"
+"            ((= 1 count) (message \"De region heeft 1 woord.\"))\n"
+"            (t (message \"De region heeft %d woorden.\" count))))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13532
 msgid "If you wish, you can also install this key binding by evaluating it:"
-msgstr ""
+msgstr "Wanneer je dat wilt, kan je ook deze key binding installeren door het te evalueren:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:13535
 #, no-wrap
 msgid "(keymap-global-set \"C-c =\" '@value{COUNT-WORDS})\n"
-msgstr ""
+msgstr "(keymap-global-set \"C-c =\" '@value{TEL-WOORDEN})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13540
@@ -28271,17 +28438,20 @@ msgid ""
 "the following line and then type @kbd{C-c =} (or @kbd{M-x @value{COUNT-"
 "WORDS}} if you have not bound @kbd{C-c =}):"
 msgstr ""
+"Om de eerste test uit te voeren zet mark en point aan begin en eind "
+"van de volgende regel en typ dan @kbd{C-c =} (of @kbd{M-x "
+"@value{TEL-WOORDEN}} wanneer je @w{@kbd{C-c =}} niet gebonden hebt.)"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:13543
 #, no-wrap
 msgid "    one   two  three\n"
-msgstr ""
+msgstr "    een   twee  drie\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13547
 msgid "Emacs will tell you, correctly, that the region has three words."
-msgstr ""
+msgstr "Emacs toont je inderdaad dat de region drie woorden heeft."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13554
@@ -28292,6 +28462,12 @@ msgid ""
 "has no words, since it is composed only of the whitespace at the beginning "
 "of the line.  But instead Emacs tells you that the region has one word!"
 msgstr ""
+"Herhaal de test, maar plaats de mark aan het begin van de regel en "
+"plaats point net @emph{voor} het woord @samp{een}. Typ opnieuw het "
+"commando @kbd{C-c =} (of @kbd{M-x @value{TEL-WOORDEN}}). Emacs zou "
+"je moeten vertellen dat de region geen woorden heeft, omdat het "
+"alleen uit witte ruimte aan het begin van de regel bestaat. Maar in "
+"plaats daarvan vertelt Emacs je dat de region één woord bevat!"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13563
@@ -28305,11 +28481,20 @@ msgid ""
 "end of the line.  Instead, Emacs displays an error message saying "
 "@samp{Search failed}."
 msgstr ""
+"Voor de derde test, kopieer de voorbeeldregel aan het eind van het "
+"@file{*scratch*} buffer en typ dan meerder spaties aan het einde van "
+"de regel. Plaats mar direct achter het woord @samp{drie} en point "
+"aan het einde van de regel. (Het einde van de regel is het einde van "
+"het buffer.) Typ @kbd{C-c =} (of @kbd{M-x @value{TEL-WOORDEN}}) net "
+"als je eerder deed. Opnieuw zou Emacs je moeten zeggen dat de region "
+"geen woorden heeft, omdat het bestaat uit witte ruimte aan het einde "
+"van de regel. In plaats daarvan toont Emacs een foutboodschap die "
+"@samp{Search failed} zegt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13565
 msgid "The two bugs stem from the same problem."
-msgstr ""
+msgstr "De twee bugs stammen van hetzelfde probleem."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13579
@@ -28327,6 +28512,19 @@ msgid ""
 "search looks for and finds the word even though it is outside the marked "
 "region."
 msgstr ""
+"Bekijk de eerste manifestatie van de bug, waar het commando je zegt "
+"dat de witte ruimte aan het begin van de regel één woord bevat. Dit "
+"is wat er gebeurt: Het commando @code{M-x @value{TEL-WOORDEN}} "
+"verplaatst point naar het begin van de region. De @code{while} test "
+"of point kleiner is dan de waarde van @code{end}, wat zo is. "
+"Vervolgens zoekt en vindt de reguliere expressie zoekopdracht het "
+"eerste woord. Het zet point achter het woord. @code{count} wordt op "
+"één gezet. De @code{while} loop herhaalt, maar deze keer is de "
+"waarde van point groter dan de waarde van @code{end}, de loop wordt "
+"verlaten en de functie toont een boodschap die zegt dat het aantal "
+"woorden in de region één is. Kortom, de reguliere expressie "
+"zoekopdracht zoekt en vindt het woord ondanks dat het buiten de "
+"gemarkeerde region is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13585
@@ -28337,6 +28535,11 @@ msgid ""
 "expression is executed.  But since there are no more words in the buffer, "
 "the search fails."
 msgstr ""
+"In de tweede manifestatie van de bug is de region witte ruimte aan "
+"het einde van het buffer. Emacs zegt @samp{Search failed}. Wat "
+"gebeurt is dat de waar-of-onwaar-test in de @code{while} loop op "
+"waar test, dus de zoekopdracht wordt uitgevoerd. Maar omdat er geen "
+"woorden meer zijn in het buffer, faalt de zoekopdracht."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13588
@@ -28344,6 +28547,8 @@ msgid ""
 "In both manifestations of the bug, the search extends or attempts to extend "
 "outside of the region."
 msgstr ""
+"In beide manifestaties van de bug zoekt de zoekopdracht buiten de "
+"region of probeert dat te doen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13592
@@ -28352,6 +28557,9 @@ msgid ""
 "action, but as you may have come to expect, it is not quite as simple as you "
 "might think."
 msgstr ""
+"De oplossing is om de zoekopdracht te limiteren tot de region---dat "
+"is een vrij makkelijke actie, maar zoals je inmiddels gewend bent, "
+"is het niet zo heel simpel als je zou denken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13601
@@ -28365,6 +28573,15 @@ msgid ""
 "see a function's documentation by typing @kbd{C-h f}, the name of the "
 "function, and then @key{RET}.)"
 msgstr ""
+"Zoals we hebben gezien neemt de functie @code{re-search-forward} een "
+"zoekpatroon als eerste argument. Maar naast die eerste, vereiste, argument, "
+"accepteert die drie optionele argumenten. Het optionele tweede argument "
+"begrenst de zoekopdracht. Het optionele argument, wanneer @code{t}, "
+"zorgt dat de functie @code{nil} teruggeeft in plaats van een fout "
+"wanneer de zoekopdracht faalt. Het optionele vierde argument is het "
+"aantal herhalingen. (In Emacs kan je de documentatie van een functie "
+"bekijken door het typen van @kbd{C-h f}, de naam van de functie en dan "
+"@key{RET}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13606
@@ -28374,12 +28591,17 @@ msgid ""
 "the function.  Thus, we can add @code{end} as an argument to the regular "
 "expression search expression:"
 msgstr ""
+"In de @code{@value{TEL-WOORDEN}} definitie wordt de waarde van het "
+"einde van de region bewaard in de variabele @code{end}, die "
+"doorgegeven wordt als een argument aan de functie. We kunnen dus "
+"@code{end} als argument aan de reguliere expressie zoekopdracht "
+"toevoegen."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:13609
 #, no-wrap
 msgid "(re-search-forward \"\\\\w+\\\\W*\" end)\n"
-msgstr ""
+msgstr "(re-search-forward \"\\\\w+\\\\W*\" end)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13615
@@ -28388,6 +28610,10 @@ msgid ""
 "definition and then test the new version of the definition on a stretch of "
 "whitespace, you will receive an error message saying @samp{Search failed}."
 msgstr ""
+"Als je echter alleen deze wijziging in de @code{@value{TEL-WOORDEN}} "
+"definitie maakt en daarna de nieuwe versie van de definitie test op "
+"een stuk witte ruimte, krijg je de foutboodschap die zegt "
+"@samp{Search failed}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13621
@@ -28398,6 +28624,11 @@ msgid ""
 "an error message in this case; we want to receive the message ``The region "
 "does NOT have any words.''"
 msgstr ""
+"Wat gebeurt is het dit: de zoekopdracht is begrensd tot de region, en faalt "
+"zoals je verwacht omdat er geen woord-vormende karakters in de region zijn. "
+"Omdat die faalt, krijgen we een foutboodschap. Maar we willen in dit geval "
+"geen foutboodschap krijgen, we willen de boodschap ``De region heeft GEEN "
+"woorden'' krijgen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13625
@@ -28406,6 +28637,10 @@ msgid ""
 "third argument of @code{t}, which causes the function to return @code{nil} "
 "rather than signal an error if the search fails."
 msgstr ""
+"De oplossing voor dit probleem is om @code{re-search-forward} een "
+"derde argument @code{t} te geven, waardoor de functie @code{nil} "
+"teruggeeft in plaats van een fout signaleren wanneer de zoekopdracht "
+"faalt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13629
@@ -28414,6 +28649,10 @@ msgid ""
 "``Counting words in region ... '' and @dots{} you will keep on seeing that "
 "message @dots{}, until you type @kbd{C-g} (@code{keyboard-quit})."
 msgstr ""
+"Als je echter deze wijziging aanbrengt en probleert, dan zie je de "
+"boodschap ``Tel woorden in de region ...'' en @dots{} en je blijft "
+"die boodschap @dots{} zien, totdat je @kbd{C-g} "
+"(@code{keyboard-quit}) typt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13641
@@ -28430,6 +28669,18 @@ msgid ""
 "search-forward} expression did not move point. @dots{} and the cycle repeats "
 "@dots{}"
 msgstr ""
+"Dit is wat er gebeurt: de zoekopdracht is begrensd tot de region, "
+"zoals eerder, en faalt omdat er geen woord-vormende karakters in de "
+"region zijn, zoals verwacht. Vervolgens geeft de "
+"@code{re-search-forward} expressie @code{nil} terug. Het doet niets "
+"anders. In het bijzonder verplaatst het point niet, wat het doet als "
+"zij-effect wanneer het een zoekdoel vindt. Nadat de "
+"@code{re-search-forward} expressie @code{nil} teruggeeft, wordt de "
+"volgende expressie in de @code{while} loop geëvalueerd. Deze "
+"expressie verhoogt de teller. Daarna herhaalt de loop. De "
+"waar-of-onwaar-test test op waar, omdat de waarde van point nog "
+"steeds kleiner is dan end, doordat de @code{re-search-forward} point "
+"niet verplaatst heeft. @dots{} en de cyclus herhaalt @dots{}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13648
@@ -28441,6 +28692,13 @@ msgid ""
 "incremented: point must still be within the region and the search expression "
 "must have found a word to count."
 msgstr ""
+"De @code{@value{TEL-WOORDEN}} definitie vereist nog een andere "
+"modificatie, om de waar-of-onwaar-test van de @code{while} loop naar "
+"onwaar te laten testen wanneer de zoekopdracht faalt. Anders gezegd, "
+"er zijn twee condities waaraan voldoen moet worden in de "
+"waar-of-onwaar-test voordat de woordtelling variabele wordt "
+"verhoogd: point moet nog steeds in de region zijn en de zoek "
+"expressie moet een woord gevonden hebben om te tellen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13653
@@ -28450,12 +28708,16 @@ msgid ""
 "can be joined with an @code{and} special form and embedded in the "
 "@code{while} loop as the true-or-false-test, like this:"
 msgstr ""
+"Omdat zowel de eerste als de tweede conditie samen waar moeten zijn, "
+"kunnen de twee expressies, de region test en de zoekexpressie worden "
+"samengevoegd met een speciale vorm @code{and} en ingebed in de "
+"@code{while} loop, zoals dit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:13656
 #, no-wrap
 msgid "(and (< (point) end) (re-search-forward \"\\\\w+\\\\W*\" end t))\n"
-msgstr ""
+msgstr "(and (< (point) end) (re-search-forward \"\\\\w+\\\\W*\" end t))\n"
 
 #. type: iftex
 #: emacs-lisp-intro.texi:13664 emacs-lisp-intro.texi:15657
@@ -28463,6 +28725,8 @@ msgid ""
 "(For information about @code{and}, see @ref{kill-new function, , The "
 "@code{kill-new} function}.)"
 msgstr ""
+"Voor informatie over @code{and}, zie @ref{kill-new functie, , De "
+"@code{kill-new} functie}.)"
 
 #. type: ifinfo
 #: emacs-lisp-intro.texi:13669 emacs-lisp-intro.texi:15662
@@ -28470,6 +28734,8 @@ msgid ""
 "(@xref{kill-new function, , The @code{kill-new} function}, for information "
 "about @code{and}.)"
 msgstr ""
+"(@xref{kill-new functie, , De @code{kill-new} functie}, voor "
+"informatie over @code{and}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13678
@@ -28481,6 +28747,14 @@ msgid ""
 "or-false-test tests false, the @code{while} loop exits, and the "
 "@code{@value{COUNT-WORDS}} function displays one or other of its messages."
 msgstr ""
+"De @code{re-search-forward} expressie geeft @code{t} terug wanneer "
+"de zoekopdracht slaagt en als zij-effect verplaatst die point. "
+"Vervolgens, wanneer woorden worden gevonden, wordt point door de "
+"region verplaatst. Wanneer de zoekexpressie faalt in het vinden van "
+"nog een woord, of wanneer point het einde van de region bereikt, "
+"test de waar-of-onwaar-test op onwaar, de @code{while} loop eindigt "
+"en de @code{@value{TEL-WOORDEN}} functie toont een van zijn "
+"boodschappen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13682
@@ -28489,6 +28763,9 @@ msgid ""
 "works without bugs (or at least, without bugs that I have found!).  Here is "
 "what it looks like:"
 msgstr ""
+"Na het incorporeren van deze laatste wijzigingen, werkt "
+"@code{@value{TEL-WOORDEN}} zonder bugs (tenminste, zonder bugs die "
+"ik heb gevonden!). Hier is hoe die er uitziet:"
 
 #. type: group
 #: emacs-lisp-intro.texi:13690
@@ -28500,6 +28777,11 @@ msgid ""
 "  (interactive \"r\")\n"
 "  (message \"Counting words in region ... \")\n"
 msgstr ""
+";;; @r{Finale versie:} @code{while}\n"
+"(defun @value{TEL-WOORDEN} (beginning end)\n"
+"  \"Toon aantal woorden in de region.\"\n"
+"  (interactive \"r\")\n"
+"  (message \"Tel woorden in region ... \")\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:13697
@@ -28510,6 +28792,10 @@ msgid ""
 "    (let ((count 0))\n"
 "      (goto-char beginning)\n"
 msgstr ""
+";;; @r{1. Opzetten geschikte condities.}\n"
+"  (save-excursion\n"
+"    (let ((count 0))\n"
+"      (goto-char beginning)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:13704
@@ -28520,30 +28806,34 @@ msgid ""
 "                  (re-search-forward \"\\\\w+\\\\W*\" end t))\n"
 "        (setq count (1+ count)))\n"
 msgstr ""
+";;; @r{2. Run de} while @r{loop.}\n"
+"      (while (and (< (point) end)\n"
+"                  (re-search-forward \"\\\\w+\\\\W*\" end t))\n"
+"        (setq count (1+ count)))\n"
 
 #. type: section
 #: emacs-lisp-intro.texi:13721
 #, no-wrap
 msgid "Count Words Recursively"
-msgstr ""
+msgstr "Recursief woorden tellen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:13722
 #, no-wrap
 msgid "Count words recursively"
-msgstr ""
+msgstr "Tel woorden recursief"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:13723
 #, no-wrap
 msgid "Recursively counting words"
-msgstr ""
+msgstr "Recursief woorden tellen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:13724
 #, no-wrap
 msgid "Words, counted recursively"
-msgstr ""
+msgstr "Woorden, recursief geteld"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13728
@@ -28551,6 +28841,8 @@ msgid ""
 "You can write the function for counting words recursively as well as with a "
 "@code{while} loop.  Let's see how this is done."
 msgstr ""
+"Je kunt de functie om woorden te tellen zowel recursief als met een "
+"@code{while} loop schrijven. Laten we zien hoe je dat doet."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13733
@@ -28560,6 +28852,10 @@ msgid ""
 "counts the words in the region; and it sends a message to the user telling "
 "how many words there are."
 msgstr ""
+"Eerst moeten we herkennen dat de functie @code{@value{TEL-WOORDEN}} "
+"drie taken heeft: het zet de geschikte condities op om de woorden "
+"die voorkomen te tellen, het telt de woorden in de region, and het "
+"geeft de gebruiker een boodschap die zegt hoeveel woorden er zijn."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13741
@@ -28572,6 +28868,14 @@ msgid ""
 "up the conditions and display the message; the other will return the word "
 "count."
 msgstr ""
+"Wanneer we een enkele recursieve functie schrijven die alles doet, "
+"krijgen we een boodschap bij elke recursieve aanroep. Wanneer de "
+"region 13 woorden bevat, krijgen we dertien boodschappen, de een na "
+"de ander. Dat willen we niet! In plaats daarvan moeten we twee "
+"functies schrijven om het werk te doen, waarvan eentje (de "
+"recursieve functie) wordt gebruikt binnen de ander. Een functie zet "
+"de condities op en toont de boodschap, de ander geeft de "
+"woordtelling terug."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13744
@@ -28579,6 +28883,8 @@ msgid ""
 "Let us start with the function that causes the message to be displayed.  We "
 "can continue to call this @code{@value{COUNT-WORDS}}."
 msgstr ""
+"Laten we starten met de functie die de boodschap laat zien. We "
+"blijven deze functie @code{@value{TEL-WOORDEN}} noemen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13749
@@ -28588,6 +28894,10 @@ msgid ""
 "that it will call @code{recursive-count-words} to determine how many words "
 "are in the region."
 msgstr ""
+"Dit is de functie die de gebruiker aanroept. Die is interactief. Die "
+"is vergelijkbaar met de vorige versie van deze functie, behalve dat "
+"die @code{recursive-count-words} aanroept om vast te stellen hoeveel "
+"woorden er in de region zijn."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13753
@@ -28595,6 +28905,8 @@ msgid ""
 "We can readily construct a template for this function, based on our previous "
 "versions:"
 msgstr ""
+"We kunnen gemakkelijk voor deze functie een sjabloon samenstellen, "
+"gebaseerd op onze voorgaande versies:"
 
 #. type: group
 #: emacs-lisp-intro.texi:13760
@@ -28605,6 +28917,10 @@ msgid ""
 "  \"@var{documentation}@dots{}\"\n"
 "  (@var{interactive-expression}@dots{})\n"
 msgstr ""
+";; @r{Recursieve versie; met reguliere expressie zoekopdracht}\n"
+"(defun @value{TEL-WOORDEN} (beginning end)\n"
+"  \"@var{documentatie}@dots{}\"\n"
+"  (@var{interactieve-expressie}@dots{})\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:13766
@@ -28614,6 +28930,9 @@ msgid ""
 "  (@var{explanatory message})\n"
 "  (@var{set-up functions}@dots{}\n"
 msgstr ""
+";;; @r{1. Opzetten geschikte condities.}\n"
+"  (@var{verklarende boodschap})\n"
+"  (@var{set-up functie}@dots{}\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:13771
@@ -28622,6 +28941,8 @@ msgid ""
 ";;; @r{2. Count the words.}\n"
 "    @var{recursive call}\n"
 msgstr ""
+";;; @r{2. Tel de woorden.}\n"
+"    @var{recursieve aanroep}\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:13776
@@ -28630,6 +28951,8 @@ msgid ""
 ";;; @r{3. Send a message to the user.}\n"
 "    @var{message providing word count}))\n"
 msgstr ""
+";;; @r{3. Toon een boodschap aan de gebruiker.}\n"
+"    @var{boodschap met de woord telling}))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13787
@@ -28642,6 +28965,14 @@ msgid ""
 "recursive call; and then the @code{cond} expression, using binding, can "
 "display the value to the user."
 msgstr ""
+"De definitie ziet er eenvoudig uit, behalve dat we op enige manier "
+"de telling teruggegeven door een recursieve aanroep moet worden "
+"doorgegeven aan de boodschap die de woord telling toont. Een beetje "
+"nadenken suggereert dat dit kan met een @code{let} expressie: we "
+"kunnen een variabele in de varlist van een @code{let} expressie "
+"binden aan het aantal woorden in de region, die wordt teruggegeven "
+"door de recursieve aanroep. Dan kan de @code{cond} expressie met een "
+"binding de waarde aan de gebruiker tonen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13792
@@ -28651,11 +28982,16 @@ msgid ""
 "might consider the primary job of the function, counting words, is done "
 "within the @code{let} expression."
 msgstr ""
+"Vaak denkt met bij de binding binnen een @code{let} expressie als "
+"iets ondergeschikt aan het primaire werk van een functie. Maar in "
+"dit geval wordt dat wat je als primaire werk van de functie "
+"beschouwt, het tellen van woorden, gedaan binnen de @code{let} "
+"expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13795
 msgid "Using @code{let}, the function definition looks like this:"
-msgstr ""
+msgstr "Met @code{let} ziet de functiedefinitie er zo uit: "
 
 #. type: group
 #: emacs-lisp-intro.texi:13801
@@ -28665,6 +29001,9 @@ msgid ""
 "  \"Print number of words in the region.\"\n"
 "  (interactive \"r\")\n"
 msgstr ""
+"(defun @value{TEL-WOORDEN} (beginning end)\n"
+"  \"Print number of words in the region.\"\n"
+"  (interactive \"r\")\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:13808
@@ -28675,6 +29014,10 @@ msgid ""
 "  (save-excursion\n"
 "    (goto-char beginning)\n"
 msgstr ""
+";;; @r{1. Opzetten geschikte condities.}\n"
+"  (message \"Tel woorden in region ... \")\n"
+"  (save-excursion\n"
+"    (goto-char beginning)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:13813
@@ -28683,11 +29026,13 @@ msgid ""
 ";;; @r{2. Count the words.}\n"
 "    (let ((count (recursive-count-words end)))\n"
 msgstr ""
+";;; @r{2. Tel de woorden.}\n"
+"    (let ((count (recursive-count-words end)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13830
 msgid "Next, we need to write the recursive counting function."
-msgstr ""
+msgstr "Vervolgens moeten we de recursieve telfunctie schrijven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13833
@@ -28695,6 +29040,8 @@ msgid ""
 "A recursive function has at least three parts: the do-again-test, the next-"
 "step-expression, and the recursive call."
 msgstr ""
+"Een recursieve functie heeft tenminste drie delen: de doe-opnieuw-test, "
+"de volgende-stap-expressie en de recursieve aanroep."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13843
@@ -28708,6 +29055,16 @@ msgid ""
 "point.  Clearly, we must pass the value of the end of the region to the "
 "recursive counting function as an argument."
 msgstr ""
+"De doe-opnieuw-test stelt vast of de functie wel of niet opnieuw "
+"aangeroepen wordt. Omdat we woorden in een region tellen en een "
+"functie kunnen gebruiken die voor elk woord point voorwaarts "
+"verplaatst, kan de doe-opnieuw-test controleren of point nog steeds "
+"binnen de region is. De doe-opnieuw-test moet de waarde van point "
+"ontdekken en vaststellen of point voor, op, of na de waarde van het "
+"einde van de region is. We kunnen de functie @code{point} gebruiken "
+"om point te lokaliseren. Vanzelfsprekend moeten we de waarde van het "
+"einde van de region als argument aan de recursieve telfunctie "
+"doorgeven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13846
@@ -28715,6 +29072,9 @@ msgid ""
 "In addition, the do-again-test should also test whether the search finds a "
 "word.  If it does not, the function should not call itself again."
 msgstr ""
+"Daarnaast moet de doe-opnieuw-test testen of de zoekopdracht een "
+"woord vindt. Wanneer die dat niet doet, moet de functie niet langer "
+"zichzelf aanroepen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13853
@@ -28726,11 +29086,17 @@ msgid ""
 "next-step-expression can be the expression that moves point forward, word by "
 "word."
 msgstr ""
+"De volgende-stap-expressie verandert een waarde zodat wanneer de recursieve "
+"functie geacht wort te stoppen met zich zelf aan te roepen, die stopt. "
+"Preciezer gezegd, de volgende-stap-expressie verandert een waarde zodat "
+"op het juiste moment de doe-opnieuw-test de recursieve functie stopt zichzelf "
+"aan te roepen. In dit geval dan de volgende-stap-expressie de expressie zijn "
+"die point woord voor woord voorwaarts verplaatst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13855
 msgid "The third part of a recursive function is the recursive call."
-msgstr ""
+msgstr "Het derde deel van een resursieve functie is de recursieve aanroep."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13858
@@ -28738,11 +29104,13 @@ msgid ""
 "Somewhere, we also need a part that does the work of the function, a part "
 "that does the counting.  A vital part!"
 msgstr ""
+"Ook moeten we ergens een deel hebben dat het werk van de functie "
+"doet, een deel dat de woorden telt. Een vitaal deel!"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13861
 msgid "But already, we have an outline of the recursive counting function:"
-msgstr ""
+msgstr "Maar we hebben nu al een overzicht van de recursieve telfunctie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:13869
@@ -28754,6 +29122,11 @@ msgid ""
 "   @var{next-step-expression}\n"
 "   @var{recursive call})\n"
 msgstr ""
+"(defun recursieve-tel-woorden (region-end)\n"
+"  \"@var{documentatie}@dots{}\"\n"
+"   @var{doe-opnieuw-test}\n"
+"   @var{volgende-stap-expressie}\n"
+"   @var{recursieve aanroep})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13877
@@ -28764,6 +29137,11 @@ msgid ""
 "search fails, there are no words to count, so the function should return "
 "zero."
 msgstr ""
+"Nu moeten de slots invullen. Laten we beginnen met de meest "
+"eenvoudige gevallen: wanneer point aan het einde of voorbij de "
+"region is, dan kunnen er geen woorden in de region zijn, en de "
+"functie moet nul teruggeven. Ook als de zoekopdracht faalt zijn er "
+"geen woorden om te tellen, en moet de functie nul teruggeven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13880
@@ -28771,11 +29149,13 @@ msgid ""
 "On the other hand, if point is within the region and the search succeeds, "
 "the function should call itself again."
 msgstr ""
+"Anderzijds, wanneer point binnen de region is en de zoekopdracht is "
+"succesvol, moet de functie zichzelf opnieuw aanroepen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13883
 msgid "Thus, the do-again-test should look like this:"
-msgstr ""
+msgstr "Dus de doe-opnieuw-test zou er zo uit moeten zien:"
 
 #. type: group
 #: emacs-lisp-intro.texi:13888
@@ -28784,6 +29164,8 @@ msgid ""
 "(and (< (point) region-end)\n"
 "     (re-search-forward \"\\\\w+\\\\W*\" region-end t))\n"
 msgstr ""
+"(and (< (point) region-end)\n"
+"     (re-search-forward \"\\\\w+\\\\W*\" region-end t))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13896
@@ -28793,6 +29175,11 @@ msgid ""
 "(@xref{Whitespace Bug, , The Whitespace Bug in @code{@value{COUNT-WORDS}}}, "
 "for an explanation of how @code{re-search-forward} works.)"
 msgstr ""
+"Merk op dat de zoek expressie onderdeel is van de "
+"doe-opnieuw-test---de functie geeft @code{t} terug wanneer de "
+"zoekopdracht slaagt en @code{nil} wanneer die faalt. (@xref{Witte "
+"ruimte bug, , De witte ruimte bug in @code{@value{TEL-WOORDEN}}}, "
+"voor een uitleg over hoe @code{re-search-forward} werkt.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13902
@@ -28803,6 +29190,12 @@ msgid ""
 "return zero since either point is outside the region or the search failed "
 "because there were no words to find."
 msgstr ""
+"De doe-opnieuw-test is een waar-of-onwaar-test van een @code{if} "
+"clausule. Wanneer de doe-opnieuw-test slaagt, moet het dan-deel van "
+"de @code{if} clausule de functie opnieuw aanroepen. Maar wanneer die "
+"faalt, moet het anders-deel nul teruggeven, omdat of point buiten de "
+"region is, of de zoekopdracht faalde omdat er geen woorden waren om "
+"te vinden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13906
@@ -28811,6 +29204,9 @@ msgid ""
 "expression.  What is it? Interestingly, it is the search part of the do-"
 "again-test."
 msgstr ""
+"Maar voordat we de recursieve aanroep bekijken, moeten we naar de "
+"volgende-stap-expressie kijken. Wat is die? Die is interessant "
+"genoeg het zoek-deel van de doe-opnieuw-test."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13913
@@ -28822,6 +29218,13 @@ msgid ""
 "movement through the region.  Consequently, the @code{re-search-forward} "
 "expression is the next-step-expression."
 msgstr ""
+"Naast @code{t} of @code{nil} voor de doe-opnieuw-test teruggeven "
+"verplaatst @code{re-search-forward} point voorwaarts als zij-effect "
+"van een succesvolle zoekopdracht. Dit is de actie die de waarde van "
+"point verandert, zodat de recursieve functie stopt met zichzelf "
+"aanroepen wanneer point de beweging door de region voltooit. De "
+"@code{re-search-forward} expressie is dus de "
+"volgende-stap-expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13917
@@ -28829,6 +29232,8 @@ msgid ""
 "In outline, then, the body of the @code{recursive-count-words} function "
 "looks like this:"
 msgstr ""
+"De body van @code{recursieve-tel-woorden} ziet er in overzicht zo "
+"uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:13925
@@ -28840,11 +29245,16 @@ msgid ""
 "  ;; @r{else}\n"
 "  @var{return-zero})\n"
 msgstr ""
+"(if @var{doe-opnieuw-test-en-volgende-stap-expressie-gecombineerd}\n"
+"    ;; @r{then}\n"
+"    @var{recursieve-aanroep-die-telling-teruggeeft}\n"
+"  ;; @r{else}\n"
+"  @var{geef-nul-terug})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13929
 msgid "How to incorporate the mechanism that counts?"
-msgstr ""
+msgstr "Hoe het mechanisme dat telt te incorporeren?"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13933
@@ -28852,6 +29262,8 @@ msgid ""
 "If you are not used to writing recursive functions, a question like this can "
 "be troublesome.  But it can and should be approached systematically."
 msgstr ""
+"Dit kan lastig zijn wanneer je niet gewend bent recursieve functies "
+"te schrijven. Maar het kan en moet systematisch worden benaderd."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13939
@@ -28862,11 +29274,17 @@ msgid ""
 "counting mechanism must be an expression that adds one to the value returned "
 "by a call to @code{recursive-count-words}."
 msgstr ""
+"We weten dat het tel-mechanisme op de een of andere manier "
+"geassocieerd moet zijn met de recursieve aanroep. Omdat de "
+"volgende-stap-expressie point een woord voorwaarts verplaatst, en "
+"omdat de recursieve aanroep voor elk woord plaatsvindt, moet het "
+"tel-mechanisme een expressie zijn die een optelt bij de waarde "
+"teruggegeven door een aanroep van @code{recursive-count-words}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13942
 msgid "Consider several cases:"
-msgstr ""
+msgstr "Beschouw verschillende gevallen:"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:13949
@@ -28876,6 +29294,11 @@ msgid ""
 "word, plus the number returned when it counts the remaining words in the "
 "region, which in this case is one."
 msgstr ""
+"Wanneer er twee woorden in de region zijn, moet de functie een "
+"waarde teruggeven die resulteert van het optellen van één bij de "
+"waarde die wordt teruggegeven wanneer die het eerste woord telt, "
+"plus het aantal teruggeven wanneer het de resterende woorden in de "
+"region telt, wat in dit geval één is."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:13955
@@ -28885,11 +29308,16 @@ msgid ""
 "plus the number returned when it counts the remaining words in the region, "
 "which in this case is zero."
 msgstr ""
+"Wanneer er één woord in de region is, moet de functie een waarde "
+"teruggeven die resulteert van het optellen van één bij de waarde "
+"teruggeven van het tellen van dat woord, plus het aantal teruggeven "
+"wanneer het de resterende woorden in de region telt, wat in dit "
+"geval nul is."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:13958
 msgid "If there are no words in the region, the function should return zero."
-msgstr ""
+msgstr "Wanneer er geen woorden  in de region zijn moet de functie nul teruggeven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13964
@@ -28899,6 +29327,11 @@ msgid ""
 "must return a value resulting from adding one to the value returned from a "
 "count of the remaining words."
 msgstr ""
+"Van de schets kunnen we zien dat het anders-deel van de @code{if} "
+"nul teruggeeft in het geval er geen woorden zijn. Dat betekent dat "
+"het dan-deel van de @code{if} een waarde moet teruggeven die "
+"resulteert van het optellen van een bij de waarde teruggegeven door "
+"het tellen van de resterende woorden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13968
@@ -28906,18 +29339,21 @@ msgid ""
 "The expression will look like this, where @code{1+} is a function that adds "
 "one to its argument."
 msgstr ""
+"De expressie ziet er zo uit, waarbij @code{1+} een functie is die "
+"één optelt bij zijn argument."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:13971
 #, no-wrap
 msgid "(1+ (recursive-count-words region-end))\n"
-msgstr ""
+msgstr "(1+ (recursieve-tel-woorden region-end))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13976
 msgid ""
 "The whole @code{recursive-count-words} function will then look like this:"
 msgstr ""
+"De hele functie @code{recursieve-tel-woorden} ziet er dan zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:13981
@@ -28927,6 +29363,9 @@ msgid ""
 "  \"@var{documentation}@dots{}\"\n"
 "\n"
 msgstr ""
+"(defun recursieve-tel-woorden (region-end))\n"
+"  \"@var{documentatie}@dots{}\"\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:13985 emacs-lisp-intro.texi:14049
@@ -28936,6 +29375,9 @@ msgid ""
 "  (if (and (< (point) region-end)\n"
 "           (re-search-forward \"\\\\w+\\\\W*\" region-end t))\n"
 msgstr ""
+";;; @r{1. doe-opnieuw-test}\n"
+"  (if (and (< (point) region-end)\n"
+"           (re-search-forward \"\\\\w+\\\\W*\" region-end t))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:13990 emacs-lisp-intro.texi:14054
@@ -28945,6 +29387,9 @@ msgid ""
 "      (1+ (recursive-count-words region-end))\n"
 "\n"
 msgstr ""
+";;; @r{2. dan-deel: de recursieve aanroep}\n"
+"      (1+ (recursieve-tel-woorden region-end))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:13993 emacs-lisp-intro.texi:14057
@@ -28953,11 +29398,13 @@ msgid ""
 ";;; @r{3. else-part}\n"
 "    0))\n"
 msgstr ""
+";;; @r{3. anders-deel}\n"
+"    0))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:13998
 msgid "Let's examine how this works:"
-msgstr ""
+msgstr "Laten we onderzoeken hoe dit werkt:"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14001
@@ -28965,6 +29412,9 @@ msgid ""
 "If there are no words in the region, the else part of the @code{if} "
 "expression is evaluated and consequently the function returns zero."
 msgstr ""
+"Wanneer er geen woorden in de region zijn, wordt het anders-deel van "
+"de @code{if} expressie geëvalueerd en geeft de functie dus nul "
+"terug."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14009
@@ -28977,6 +29427,14 @@ msgid ""
 "returned by the whole function) that is the sum of one added to the value "
 "returned by a recursive call."
 msgstr ""
+"Wanneer er één woord in de region is, is de waarde van point "
+"kleiner dan de waarde van @code{region-end} en de zoekopdracht "
+"slaagt. In dit geval test de waar-of-onwaar-test van de @code{if} "
+"expressie op waar, en wordt het dan-deel van de @code{if} expressie "
+"geëvalueerd. Deze expressie geeft een waarde terug (die wordt "
+"opgeteld bij de waarde teruggegeven door de hele functie) die de som "
+"is van één opgeteld bij de waarde teruggeven door een recursieve "
+"aanroep. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14018
@@ -28990,6 +29448,15 @@ msgid ""
 "evaluation of @code{recursive-count-words} will return one plus zero, which "
 "is one, which is the correct amount."
 msgstr ""
+"Ondertussen heeft de volgende-stap-expressie point over het eerste "
+"(in in dit geval enige) woord laten springen. Dit betekent dat "
+"wanneer @code{(recursieve-tel-woorden region-end)} een tweede keer "
+"wordt geëvalueerd, als gevolg van de recursieve aanroep, de waarde "
+"van point gelijk of groter is dan de waarde van het einde van de "
+"region. Dus deze keer geeft @code{recursieve-tel-woorden} nul terug. "
+"De nul wordt opgeteld bij één, en de oorspronkelijke evaluatie van "
+"@code{recursieve-tel-woorden} geeft een plus nul terug, wat één is, "
+"het correcte aantal."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14024
@@ -29000,6 +29467,11 @@ msgid ""
 "word---that is, it adds one to one, producing two, which is the correct "
 "amount."
 msgstr ""
+"Wanneer er twee woorden in de region zijn, geeft de eerste aanroep "
+"van @code{recursieve-tel-woorden} één opgeteld bij de waarde "
+"teruggeven door het aanroepen van @code{recursieve-tel-woorden} op "
+"een region die de resterende woorden bevat---wat inhoudt dat het één "
+"bij één optelt, dat twee geeft, wat het correcte aantal is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14029
@@ -29009,16 +29481,21 @@ msgid ""
 "calling @code{recursive-count-words} on a region containing the remaining "
 "two words---and so on and so on."
 msgstr ""
+"Op dezelfde manier, wanneer er drie woorden in de region zijn, geeft "
+"de eerste aanroep van @code{recursieve-tel-woorden} één opgeteld bij "
+"de waarde teruggegeven door het aanroepen van "
+"@code{recursieve-tel-woorden} op een region die de resterende twee "
+"woorden bevat---enzovoorts."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14033
 msgid "With full documentation the two functions look like this:"
-msgstr ""
+msgstr "Met de volledige documentatie zien de twee functies er zo uit:"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14037
 msgid "The recursive function:"
-msgstr ""
+msgstr "De recusieve functie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:14043
@@ -29027,11 +29504,13 @@ msgid ""
 "(defun recursive-count-words (region-end)\n"
 "  \"Number of words between point and REGION-END.\"\n"
 msgstr ""
+"(defun recursieve-tel-woorden (region-end)\n"
+"  \"Aantal woorden tussen point and REGION-END.\"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14063
 msgid "The wrapper:"
-msgstr ""
+msgstr "De omliggende functie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:14069
@@ -29041,6 +29520,9 @@ msgid ""
 "(defun @value{COUNT-WORDS} (beginning end)\n"
 "  \"Print number of words in the region.\n"
 msgstr ""
+";;; @r{Recursieve versie}\n"
+"(defun @value{TEL-WOORDEN} (beginning end)\n"
+"  \"Toon aantal woorden in de region.\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:14076
@@ -29051,6 +29533,10 @@ msgid ""
 "not a word-constituent.  The buffer's syntax table\n"
 "determines which characters these are.\"\n"
 msgstr ""
+"Woorden worden gedefinieerd als minstens een woord-vormend\n"
+"karakter gevolgd door minstens een karakter dat\n"
+"niet woord-vormend is. De syntax table van het buffer\n"
+"bepaald welke karakters dat zijn.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:14083
@@ -29062,6 +29548,11 @@ msgid ""
 "    (goto-char beginning)\n"
 "    (let ((count (recursive-count-words end)))\n"
 msgstr ""
+"  (interactive \"r\")\n"
+"  (message \"Tel woorden in region ... \")\n"
+"  (save-excursion\n"
+"    (goto-char beginning)\n"
+"    (let ((count (recursieve-tel-woorden end)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:14088
@@ -29071,6 +29562,9 @@ msgid ""
 "             (message\n"
 "              \"The region does NOT have any words.\"))\n"
 msgstr ""
+"      (cond ((zerop count)\n"
+"             (message\n"
+"              \"De region heeft GEEN woorden.\"))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:14095
@@ -29082,12 +29576,17 @@ msgid ""
 "             (message\n"
 "              \"The region has %d words.\" count))))))\n"
 msgstr ""
+"            ((= 1 count)\n"
+"             (message \"De region heeft 1 woord.\"))\n"
+"            (t\n"
+"             (message\n"
+"              \"De region heeft %d woorden..\" count))))))\n"
 
 #. type: section
 #: emacs-lisp-intro.texi:14099
 #, no-wrap
 msgid "Exercise: Counting Punctuation"
-msgstr ""
+msgstr "Oefening: Leestekens tellen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14104
@@ -29096,6 +29595,9 @@ msgid ""
 "punctuation marks in a region---period, comma, semicolon, colon, exclamation "
 "mark, and question mark.  Do the same using recursion."
 msgstr ""
+"Schrijf met een @code{while} loop een functie die het aantal "
+"leestekens in een region telt---punt, komma, punt-komma, dubbele "
+"punt, uitroepteken en vraagteken. Doe het nog een keer met recursie."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:14107 emacs-lisp-intro.texi:14316

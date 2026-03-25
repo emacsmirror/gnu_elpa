@@ -3,6 +3,43 @@
 + [[https://git.thanosapollo.org/gnosis/][Upstream]]
 + [[https://thanosapollo.org/log/gnosis/][Changelog]]
 
+* 0.10.0
+#+date: 2026/03/25
+
+** Breaking changes
++ *Date storage migrated to integers*: review dates are now stored as
+  YYYYMMDD integers instead of Lisp lists.  Migration v7 converts
+  existing data automatically.
++ *Export/import rewritten*: export now produces a =.gnosis= SQLite
+  database.  Import shows a diff buffer before applying.
+  + Old org-file exports are no longer supported.
+
+** New features
++ *Anki GUID-based duplicate detection*: re-importing the same deck
+  skips already-imported notes (migration v8).
++ *Review progress header*: header-line shows reviewed/total as a
+  live counter.
++ *Import diff buffer*: ~gnosis-import-db~ shows NEW/CHANGED entries
+  with detail view on ~RET~ before applying.
++ *Anki import improvements*: template-aware field resolution,
+  NFC-normalized tags, system tag stripping (~marked~, ~leech~),
+  git commit after import.
+
+** Performance
++ Due/overdue queries use integer comparison in SQL instead of
+  Elisp filtering.
++ New indexes on ~review_log~, ~thema_tag~, ~thema_links~,
+  ~node_links~, and ~activity_log~.
++ N+1 queries eliminated in review session and Anki model parsing.
+
+** Bug fixes
++ Fix proto phase failures computing amnesia-based interval instead
+  of resetting to 0.
++ Fix bulk-link matching to be case-insensitive.
++ Fix duplicate node-link insertion for files.
++ Fix overdue exclusion: unreviewed themata (n=0) no longer counted
+  as overdue.
+
 * 0.9.0
 #+DATE: 2026/03/16
 

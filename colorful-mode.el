@@ -222,7 +222,7 @@ Each entry should have the form (COLOR-NAME . HEXADECIMAL-COLOR)."
       colorful-add-oklab-oklch-colors
       colorful-add-color-names))
     (latex-mode . colorful-add-latex-colors))
-  "List of functions to add extra color keywords to `colorful-color-keywords'.
+  "List of functions to add color highlighting to `colorful-color-keywords'.
 It can be a cons cell specifying the mode (or a list of modes),
 e.g.:
 \(((`css-mode' `css-ts-mode') . `colorful-add-rgb-colors')
@@ -248,7 +248,7 @@ Available functions are:
                         (choice :tag "Function(s)" (repeat function)
                                 function))
                   function)))
-;; TODO: (define-obsolete-variable-alias colorful-extra-color-keyword-functions [INSERT NAME] "1.3.0")
+;; TODO: (define-obsolete-variable-alias colorful-extra-color-keyword-functions colorful-color-functions "1.3.0")
 
 (defcustom colorful-allow-mouse-clicks t
   "If non-nil, allow using mouse buttons to change color."
@@ -543,6 +543,7 @@ CHOICE is used for get kind of color."
          (color-value (overlay-get ov 'colorful--color)))
     (pcase choice ; Check and convert color to any of the options:
       ('hex ; color to HEX
+       ;; TODO: This must be extended to support more (how?) -E.G.
        (pcase kind
          ('hex "%s is already a Hex color. Try again: ")
          ((or 'css-rgb 'css-hsl 'color-name)
@@ -612,110 +613,36 @@ POS is the position where start the search."
                             'colorful--color))
           (match-string-no-properties 1)))))
 
-;; Modify this functions for handle new colors added to this package.
-(defun colorful--colorize (kind color beg end)
+(defun colorful--colorize (kind color beg end function)
   "Helper function to colorize each KIND of MATCH with itself.
 KIND is the color type.
 COLOR is the string which contains the color matched.
-BEG and END are color match positions."
-  (when
-      (and
-       ;; Check if match isn't blacklisted ...
-       (not (member color colorful-exclude-colors))
-       ;; ... and color is in a comment according
-       ;; colorful-highlight-in-comments ...
-       (or colorful-highlight-in-comments (not (nth 4 (syntax-ppss))))
-       ;; ... and wheter color is in a string according colorful-only-strings.
-       (or (not colorful-only-strings)
-           (when (or (eq colorful--highlight 'prog)
-                     (eq colorful-only-strings t))
-             (if colorful-highlight-in-comments
-                 ;; Highlight only for strings and comments
-                 (syntax-ppss-context (syntax-ppss))
-               ;; Highlight only for strings
-               (nth 3 (syntax-ppss))))
-           (eq colorful--highlight t)))
+BEG and END are color match positions.
+FUNCTION is a function to call to get the respective color
+and positions to colorize."
+  (when (and
+         ;; Check if match isn't blacklisted ...
+         (not (member color colorful-exclude-colors))
+         ;; ... and color is in a comment according
+         ;; colorful-highlight-in-comments ...
+         (or colorful-highlight-in-comments (not (nth 4 (syntax-ppss))))
+         ;; ... and wheter color is in a string according colorful-only-strings.
+         (or (not colorful-only-strings)
+             (when (or (eq colorful--highlight 'prog)
+                       (eq colorful-only-strings t))
+               (if colorful-highlight-in-comments
+                   ;; Highlight only for strings and comments
+                   (syntax-ppss-context (syntax-ppss))
+                 ;; Highlight only for strings
+                 (nth 3 (syntax-ppss))))
+             (eq colorful--highlight t)))
 
-    (let* ((match-1 (match-string-no-properties 1))
-           (match-2 (match-string-no-properties 2))
-           (match-3 (match-string-no-properties 3)))
-      (pcase kind
-        ('hex
-         (setq beg (match-beginning 0)
-               end (match-end 0)
-               color (string-replace "0x" "#" color)))
-
-        ('color-name
-         (setq color
-               (if (color-defined-p color)
-                   color
-                 (cdr (assoc-string color colorful-html-colors-alist t)))))
-
-        ('latex-rgb
-         (setq color
-               (if (string-prefix-p "{R" color)  ; Check if it's RGB (shorted as "{R")
-                   (format "#%02x%02x%02x"
-                           (string-to-number match-1) ; r
-                           (string-to-number match-2) ; g
-                           (string-to-number match-3)) ; b
-                 (color-rgb-to-hex
-                  (string-to-number match-1) ; r
-                  (string-to-number match-2) ; g
-                  (string-to-number match-3)))))  ; b
-
-        ('latex-HTML
-         (setq color (concat "#" (match-string-no-properties 1))))
-
-        ('latex-gray
-         (setq color (apply #'color-rgb-to-hex
-                            (color-hsl-to-rgb 0 0 (string-to-number match-1)))))
-
-        ('css-rgb
-         (setq color (format "#%02x%02x%02x"
-                             (colorful--percentage-to-absolute match-1) ; r
-                             (colorful--percentage-to-absolute match-2) ; g
-                             (colorful--percentage-to-absolute match-3)))) ; b
-
-        ((and 'css-hsl
-              (guard (<= (string-to-number match-1) 360))) ; Ensure Hue is not greater than 360.
-         (setq color (colorful--hsl-to-hex match-1 match-2 match-3))) ; h s l
-
-        ('css-oklab
-         (setq color (colorful--oklab-to-hex match-1 ; l
-                                             match-2 ; a
-                                             match-3))) ; b
-
-        ('css-oklch
-         (setq color (colorful--oklch-to-hex match-1 ; l
-                                             match-2 ; c
-                                             match-3))) ; h
-
-        ('css-color-variable
-         (cond
-          ((and (string= match-1 "@")
-                (or (not (member match-2 '("define_color" "define-color")))))
-           (setq color
-                 (colorful--get-css-variable-color
-                  (rx-to-string
-                   `(seq (or "@define_color"
-                             "@define-color")
-                         (one-or-more space)
-                         ,match-2
-                         (one-or-more space)
-                         (group (opt "#") (one-or-more alphanumeric))))
-                  beg)))
-          ((string= match-1 "var")
-           (setq color
-                 (colorful--get-css-variable-color
-                  (rx-to-string
-                   `(seq ,match-2 ":" (zero-or-more space)
-                         (group (opt "#") (one-or-more alphanumeric))))
-                  beg))))))
-
-      ;; Highlight the color
-      ;; Ensure that COLOR is a valid color
+    (let* ((return (funcall function color beg end))
+           (color (or (car-safe return) return)))
       (when (and color (color-defined-p color))
-        (let ((face (if colorful-use-prefix
+        (let ((beg (if (consp return) (nth 1 return) beg))
+              (end (if (consp return) (nth 2 return) end))
+              (face (if colorful-use-prefix
                         (list :foreground color)
                       (list
                        :foreground (readable-foreground-color color)
@@ -744,61 +671,83 @@ BEG and END are color match positions."
   (remove-overlays start end 'colorful--overlay t)
 
   (dolist (el colorful-color-keywords)
-    (let* ((keywords (car el))
-           (type (nth 1 el))
-           (match (or (nth 2 el) 0))
-           (ignore-case (nth 3 el)))
+    (let* ((keywords (plist-get el :keywords))
+           (type (plist-get el :type))
+           (match (or (plist-get el :match) 0))
+           (ignore-case (plist-get el :case))
+           (function (plist-get el :function)))
       (goto-char start)
       (cond
        ((stringp keywords)
         (while (re-search-forward keywords end t)
           (colorful--colorize type (match-string-no-properties match)
-                              (match-beginning match) (match-end match))))
+                              (match-beginning match) (match-end match)
+                              function)))
        (ignore-case
         (let ((case-fold-search t))
           (while (re-search-forward keywords end t)
             (colorful--colorize type (match-string-no-properties match)
-                                (match-beginning match) (match-end match))))))))
+                                (match-beginning match) (match-end match)
+                                function)))))))
 
   `(jit-lock-bounds ,start . ,end))
 
 
 ;;;; Extra coloring definitions
-;; The local variables which contains the color regexp must be in the form:
-;; (KEYWORDS TYPE MATCH IGNORE-CASE)
+;; The local variables which contains the color regexp must be in the form of a plist:
 ;;
-;; KEYWORDS must be a regexp string which contains the keywords
+;; :keywords must be a regexp string which contains the keywords
 ;; to highlight
 ;;
-;; TYPE is a symbol which specifies the color type.
+;; :type is a symbol which specifies the color type.
 ;;
-;; MATCH is optional, must be a number which specifies the match to
+;; :match is optional, must be a number which specifies the match to
 ;; use, if not set, it will use 0 instead.
 ;;
-;; IGNORE-CASE is optional, if non-nil, then match will be case-insensitive
+;; :case is optional, if non-nil, then match will be case-insensitive
+;;
+;; :function must be a function.
+;; It is called with three arguments COLOR, BEG, and END.
+;;
+;; COLOR is the string which contains the color matched.
+;; BEG and END are color matched positions.
+;;
+;; The function must return either a list with the computed string hex
+;; color to colorize, the beg and end buffer positions to colorize
+;; with the computed color, or just the string hex color.
 
 ;;; Hex
 
 (defun colorful-add-hex-colors ()
   "Enable hex color highlighting.
 This is intended to be used with `colorful-extra-color-keyword-functions'."
-  (cl-pushnew
-   `(,(rx (seq (group (or "#" "0x") (= 3 hex)) (opt hex)
-               word-boundary))
-     hex 1)
-   colorful-color-keywords)
+  (let ((fun (lambda (color &rest _)
+               (list (string-replace "0x" "#" color)
+                     (match-beginning 0)
+                     (match-end 0)))))
+    (cl-pushnew
+     `( :keywords ,(rx (seq (group (or "#" "0x") (= 3 hex)) (opt hex)
+                            word-boundary))
+        :type hex
+        :match 1
+        :function ,fun)
+     colorful-color-keywords)
 
-  (cl-pushnew
-   `(,(rx (seq (group (or "#" "0x") (= 3 hex hex)) (opt hex hex)
-               word-boundary))
-     hex 1)
-   colorful-color-keywords)
+    (cl-pushnew
+     `( :keywords ,(rx (seq (group (or "#" "0x") (= 3 hex hex)) (opt hex hex)
+                            word-boundary))
+        :type hex
+        :match 1
+        :function ,fun)
+     colorful-color-keywords)
 
-  (cl-pushnew
-   `(,(rx (seq (group "#" (= 12 hex))
-               word-boundary))
-     hex 1)
-   colorful-color-keywords))
+    (cl-pushnew
+     `( :keywords ,(rx (seq (group "#" (= 12 hex))
+                            word-boundary))
+        :type hex
+        :match 1
+        :function ,fun)
+     colorful-color-keywords)))
 
 ;;; Color names
 
@@ -808,13 +757,20 @@ This includes CSS and Emacs color names.
 
 This is intended to be used with `colorful-extra-color-keyword-functions'."
   (cl-pushnew
-   `(,(regexp-opt
-       (append
-        (mapcar #'car colorful-html-colors-alist)
-        (defined-colors))
-       'symbols)
-     ;; HTML/CSS/Emacs color names are case insensitive.
-     color-name 0 t)
+   `( :keywords ,(regexp-opt
+                  (append
+                   (mapcar #'car colorful-html-colors-alist)
+                   (defined-colors))
+                  'symbols)
+      ;; HTML/CSS/Emacs color names are case insensitive.
+      :type color-name
+      :match 0
+      :case t
+      :function
+      ,(lambda (color &rest _)
+         (if (color-defined-p color)
+             color
+           (cdr (assoc-string color colorful-html-colors-alist t)))))
    colorful-color-keywords))
 
 ;;; CSS user-defined colors
@@ -822,17 +778,42 @@ This is intended to be used with `colorful-extra-color-keyword-functions'."
 (defun colorful-add-css-variables-colors ()
   "Enable CSS user-defined color highlighting.
 This is intended to be used with `colorful-extra-color-keyword-functions'."
-  (cl-pushnew
-   `(,(rx (group "@") (group (one-or-more (any alphabetic "_"))))
-     css-color-variable)
-   colorful-color-keywords)
+  (let ((function
+         (lambda (_color beg &rest _)
+           (let ((match-1 (match-string-no-properties 1))
+                 (match-2 (match-string-no-properties 2)))
+             (cond
+              ((and (string= match-1 "@")
+                    (or (not (member match-2 '("define_color" "define-color")))))
+               (colorful--get-css-variable-color
+                (rx-to-string
+                 `(seq (or "@define_color"
+                           "@define-color")
+                       (one-or-more space)
+                       ,match-2
+                       (one-or-more space)
+                       (group (opt "#") (one-or-more alphanumeric))))
+                beg))
+              ((string= match-1 "var")
+               (colorful--get-css-variable-color
+                (rx-to-string
+                 `(seq ,match-2 ":" (zero-or-more space)
+                       (group (opt "#") (one-or-more alphanumeric))))
+                beg)))))))
 
-  (cl-pushnew
-   `(,(rx (group "var") "(" (zero-or-more space)
-          (group (one-or-more (any alphanumeric "-")))
-          (zero-or-more space) ")")
-     css-color-variable)
-   colorful-color-keywords))
+    (cl-pushnew
+     `( :keywords ,(rx (group "@") (group (one-or-more (any alphabetic "_"))))
+        :type css-color-variable
+        :function ,function)
+     colorful-color-keywords)
+
+    (cl-pushnew
+     `( :keywords ,(rx (group "var") "(" (zero-or-more space)
+                       (group (one-or-more (any alphanumeric "-")))
+                       (zero-or-more space) ")")
+        :type css-color-variable
+        :function ,function)
+     colorful-color-keywords)))
 
 ;;; CSS rgb(a)
 
@@ -840,27 +821,35 @@ This is intended to be used with `colorful-extra-color-keyword-functions'."
   "Enable CSS RGB color highlighting.
 This is intended to be used with `colorful-extra-color-keyword-functions'."
   (cl-pushnew
-   `(,(rx (seq "rgb" (opt "a") "(" (zero-or-more " ")
-               (group (repeat 1 3 digit)
-                      (opt "." (1+ digit))
-                      (opt "%"))
-               (zero-or-more " ") (opt "," (zero-or-more " "))
-               (group (repeat 1 3 digit)
-                      (opt "." (1+ digit))
-                      (opt "%"))
-               (zero-or-more " ") (opt "," (zero-or-more " "))
-               (group (repeat 1 3 digit)
-                      (opt "." (1+ digit))
-                      (opt "%"))
-               (zero-or-more " ")
-               (opt (or "/" ",") (zero-or-more " ")
-                    (or (seq (zero-or-one digit)
-                             (opt ".")
-                             (one-or-more digit))
-                        digit)
-                    (opt (or "%" (zero-or-more " "))))
-               ")"))
-     css-rgb)
+   `( :keywords ,(rx (seq "rgb" (opt "a") "(" (zero-or-more " ")
+                          (group (repeat 1 3 digit)
+                                 (opt "." (1+ digit))
+                                 (opt "%"))
+                          (zero-or-more " ") (opt "," (zero-or-more " "))
+                          (group (repeat 1 3 digit)
+                                 (opt "." (1+ digit))
+                                 (opt "%"))
+                          (zero-or-more " ") (opt "," (zero-or-more " "))
+                          (group (repeat 1 3 digit)
+                                 (opt "." (1+ digit))
+                                 (opt "%"))
+                          (zero-or-more " ")
+                          (opt (or "/" ",") (zero-or-more " ")
+                               (or (seq (zero-or-one digit)
+                                        (opt ".")
+                                        (one-or-more digit))
+                                   digit)
+                               (opt (or "%" (zero-or-more " "))))
+                          ")"))
+      :type css-rgb
+      :function ,(lambda (&rest _)
+                   (let ((match-1 (match-string-no-properties 1)) ; r
+                         (match-2 (match-string-no-properties 2)) ; g
+                         (match-3 (match-string-no-properties 3))) ; b
+                     (format "#%02x%02x%02x"
+                             (colorful--percentage-to-absolute match-1)
+                             (colorful--percentage-to-absolute match-2)
+                             (colorful--percentage-to-absolute match-3)))))
    colorful-color-keywords))
 
 ;;; CSS oklab and oklch
@@ -870,50 +859,60 @@ This is intended to be used with `colorful-extra-color-keyword-functions'."
 This is intended to be used with `colorful-extra-color-keyword-functions'."
   ;; OKLAB
   (cl-pushnew
-   `(,(rx (seq "oklab(" (zero-or-more " ")
-               (group (repeat 1 3 digit)
-                      (opt "." (1+ digit))
-                      (opt "%"))
-               (zero-or-more " ") (opt "," (zero-or-more " "))
-               (group (opt "-")
-                      digit
-                      (opt "." (1+ digit)))
-               (zero-or-more " ") (opt "," (zero-or-more " "))
-               (group (opt "-")
-                      digit
-                      (opt "." (1+ digit)))
-               (zero-or-more " ")
-               (opt (or "/" ",") (zero-or-more " ")
-                    (group (or (seq (zero-or-one digit)
-                                    (opt ".")
-                                    (one-or-more digit))
-                               digit)
-                           (opt (or "%" (zero-or-more " ")))))
-               ")"))
-     css-oklab)
+   `( :keywords ,(rx (seq "oklab(" (zero-or-more " ")
+                          (group (repeat 1 3 digit)
+                                 (opt "." (1+ digit))
+                                 (opt "%"))
+                          (zero-or-more " ") (opt "," (zero-or-more " "))
+                          (group (opt "-")
+                                 digit
+                                 (opt "." (1+ digit)))
+                          (zero-or-more " ") (opt "," (zero-or-more " "))
+                          (group (opt "-")
+                                 digit
+                                 (opt "." (1+ digit)))
+                          (zero-or-more " ")
+                          (opt (or "/" ",") (zero-or-more " ")
+                               (group (or (seq (zero-or-one digit)
+                                               (opt ".")
+                                               (one-or-more digit))
+                                          digit)
+                                      (opt (or "%" (zero-or-more " ")))))
+                          ")"))
+      :type css-oklab
+      :function ,(lambda (&rest _)
+                   (let ((match-1 (match-string-no-properties 1)) ; l
+                         (match-2 (match-string-no-properties 2)) ; a
+                         (match-3 (match-string-no-properties 3))) ; b
+                     (colorful--oklab-to-hex match-1 match-2 match-3))))
    colorful-color-keywords)
 
   ;; OKLCH
   (cl-pushnew
-   `(,(rx (seq "oklch(" (zero-or-more " ")
-               (group (repeat 1 3 digit)
-                      (opt "." (1+ digit))
-                      (opt "%"))
-               (zero-or-more " ") (opt "," (zero-or-more " "))
-               (group digit
-                      (opt "." (1+ digit)))
-               (zero-or-more " ") (opt "," (zero-or-more " "))
-               (group (repeat 1 3 digit)
-                      (opt "." (1+ digit)))
-               (zero-or-more " ")
-               (opt (or "/" ",") (zero-or-more " ")
-                    (group (or (seq (zero-or-one digit)
-                                    (opt ".")
-                                    (one-or-more digit))
-                               digit)
-                           (opt (or "%" (zero-or-more " ")))))
-               ")"))
-     css-oklch)
+   `( :keywords ,(rx (seq "oklch(" (zero-or-more " ")
+                          (group (repeat 1 3 digit)
+                                 (opt "." (1+ digit))
+                                 (opt "%"))
+                          (zero-or-more " ") (opt "," (zero-or-more " "))
+                          (group digit
+                                 (opt "." (1+ digit)))
+                          (zero-or-more " ") (opt "," (zero-or-more " "))
+                          (group (repeat 1 3 digit)
+                                 (opt "." (1+ digit)))
+                          (zero-or-more " ")
+                          (opt (or "/" ",") (zero-or-more " ")
+                               (group (or (seq (zero-or-one digit)
+                                               (opt ".")
+                                               (one-or-more digit))
+                                          digit)
+                                      (opt (or "%" (zero-or-more " ")))))
+                          ")"))
+      :type css-oklch
+      :function ,(lambda (&rest _)
+                   (let ((match-1 (match-string-no-properties 1)) ; l
+                         (match-2 (match-string-no-properties 2)) ; a
+                         (match-3 (match-string-no-properties 3))) ; b
+                     (colorful--oklch-to-hex match-1 match-2 match-3))))
    colorful-color-keywords))
 
 ;;; CSS hsl(a)
@@ -922,21 +921,27 @@ This is intended to be used with `colorful-extra-color-keyword-functions'."
   "Enable CSS HSL color highlighting.
 This is intended to be used with `colorful-extra-color-keyword-functions'."
   (cl-pushnew
-   `(,(rx (seq "hsl" (opt "a") "(" (zero-or-more " ")
-               (group (repeat 1 3 digit) (opt (or "deg" "grad" "rad")))
-               (zero-or-more " ") (opt "," (zero-or-more " "))
-               (group (repeat 1 3 digit) (opt "." (1+ digit)) (opt "%"))
-               (zero-or-more " ") (opt "," (zero-or-more " "))
-               (group (repeat 1 3 digit) (opt "." (1+ digit)) (opt "%"))
-               (zero-or-more " ")
-               (opt (or "/" ",") (zero-or-more " ")
-                    (or (seq (zero-or-one digit)
-                             (opt ".")
-                             (one-or-more digit))
-                        digit)
-                    (opt (or "%" (zero-or-more " "))))
-               ")"))
-     css-hsl)
+   `( :keywords ,(rx (seq "hsl" (opt "a") "(" (zero-or-more " ")
+                          (group (repeat 1 3 digit) (opt (or "deg" "grad" "rad")))
+                          (zero-or-more " ") (opt "," (zero-or-more " "))
+                          (group (repeat 1 3 digit) (opt "." (1+ digit)) (opt "%"))
+                          (zero-or-more " ") (opt "," (zero-or-more " "))
+                          (group (repeat 1 3 digit) (opt "." (1+ digit)) (opt "%"))
+                          (zero-or-more " ")
+                          (opt (or "/" ",") (zero-or-more " ")
+                               (or (seq (zero-or-one digit)
+                                        (opt ".")
+                                        (one-or-more digit))
+                                   digit)
+                               (opt (or "%" (zero-or-more " "))))
+                          ")"))
+      :type css-hsl
+      :function ,(lambda (&rest _)
+                   (let ((match-1 (match-string-no-properties 1)) ; h
+                         (match-2 (match-string-no-properties 2)) ; s
+                         (match-3 (match-string-no-properties 3))) ; l
+                     (when (<= (string-to-number match-1) 360)
+                       (colorful--hsl-to-hex match-1 match-2 match-3)))))
    colorful-color-keywords))
 
 ;;; All (almost) LaTeX colors
@@ -945,21 +950,33 @@ This is intended to be used with `colorful-extra-color-keyword-functions'."
   "Enable LaTeX rgb/RGB/HTML/Grey colors highlighting.
 This is intended to be used with `colorful-extra-color-keyword-functions'."
   (cl-pushnew
-   `(,(rx (seq "{" (or "rgb" "RGB") "}{" (zero-or-more " ")
-               (group (one-or-more (any digit "."))) (zero-or-more " ") "," (zero-or-more " ")
-               (group (one-or-more (any digit "."))) (zero-or-more " ") "," (zero-or-more " ")
-               (group (one-or-more (any digit "."))) (zero-or-more " ") "}"))
-     latex-rgb)
+   `( :keywords ,(rx (seq "{" (or "rgb" "RGB") "}{" (zero-or-more " ")
+                          (group (one-or-more (any digit "."))) (zero-or-more " ") "," (zero-or-more " ")
+                          (group (one-or-more (any digit "."))) (zero-or-more " ") "," (zero-or-more " ")
+                          (group (one-or-more (any digit "."))) (zero-or-more " ") "}"))
+      :type latex-rgb
+      :function ,(lambda (color &rest _)
+                   (let ((match-1 (string-to-number (match-string-no-properties 1))) ; r
+                         (match-2 (string-to-number (match-string-no-properties 2))) ; g
+                         (match-3 (string-to-number (match-string-no-properties 3)))) ; b
+                     (if (string-prefix-p "{R" color)  ; Check if it's RGB (shorted as "{R")
+                         (format "#%02x%02x%02x" match-1 match-2 match-3)
+                       (color-rgb-to-hex match-1 match-2 match-3)))))
    colorful-color-keywords)
 
   (cl-pushnew
-   `(,(rx (seq "{HTML}{" (group (= 6 hex)) "}"))
-     latex-HTML)
+   `( :keywords ,(rx (seq "{HTML}{" (group (= 6 hex)) "}"))
+      :type latex-HTML
+      :function ,(lambda (&rest _) (concat "#" (match-string-no-properties 1))))
    colorful-color-keywords)
 
   (cl-pushnew
-   `(,(rx (seq "{gray}{" (group (one-or-more (any digit "."))) "}"))
-     latex-gray)
+   `( :keywords ,(rx (seq "{gray}{" (group (one-or-more (any digit "."))) "}"))
+      :type latex-gray
+      :function ,(lambda (&rest _)
+                 (let ((match-1 (match-string-no-properties 1)))
+                   (apply #'color-rgb-to-hex
+                          (color-hsl-to-rgb 0 0 (string-to-number match-1))))))
    colorful-color-keywords))
 
 

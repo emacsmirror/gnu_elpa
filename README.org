@@ -37,6 +37,7 @@ in real time and in a user friendly way based/inspired on 🌈[[https://elpa.gnu
   with mouse click support.
 - Prefix/suffix string instead highlight /(Optional)/.
 - Highlight only in strings /(Optional)/.
+- Extensible highlighting.
 - Blacklist color keywords from being highlighted.
 
 * Screenshots and animated GIFs 📷
@@ -71,56 +72,14 @@ this may interfere with colorful prefix, you can disable this setting
 #+end_quote
 
 - =colorful-prefix-string (default: "●")= String to be used in highlights.
-  Only relevant if `colorful-use-prefix' is non-nil.
 - =colorful-prefix-alignment (default: 'left)= The position to put prefix string.
-  The value can be left or right.
-  Only relevant if `colorful-use-prefix' is non-nil.
 - =colorful-extra-color-keyword-functions=
-  default:
-  '(colorful-add-hex-colors
-    (emacs-lisp-mode . colorful-add-color-names)
-    ((html-mode css-mode) .
-     (colorful-add-css-variables-colors
-      colorful-add-rgb-colors
-      colorful-add-hsl-colors
-      colorful-add-oklab-oklch-colors
-      colorful-add-color-names))
-    (latex-mode . colorful-add-latex-colors))
-  List of functions to add extra color keywords to colorful-color-keywords.
-
-  It can be a cons cell specifying the mode (or a list of modes)
-  e.g:
-
-  (((css-mode css-ts-mode) . colorful-add-rgb-colors)
-    (emacs-lisp-mode . (colorful-add-color-names
-                        colorful-add-rgb-colors))
-    ((text-mode html-mode) . (colorful-add-color-names
-                              colorful-add-rgb-colors))
-    ...)
-
-  Or a simple list of functions for executing wherever colorful is active:
-  (colorful-add-color-names
-    colorful-add-rgb-colors)
-
-  Available functions are:
-  + colorful-add-hex-colors.
-  + colorful-add-color-names.
-  + colorful-add-css-variables-colors.
-  + colorful-add-rgb-colors.
-  + colorful-add-hsl-colors.
-  + colorful-add-latex-colors
-
+  List of functions to add color highlighting to colorful-color-keywords.
 - =colorful-exclude-colors (default: '("#define"))= List of keywords not to highlight.
 - =colorful-short-hex-conversions (default: t)= If non-nil, colorful
-  will converted long hex colors to \"#RRGGBB\" format.  Setting this
-  to non-nil can make converted hex inaccurate.
+  will converted long hex colors to \"#RRGGBB\" format.
 - =colorful-only-strings (default: nil)= If non-nil, colorful will only highlight colors inside strings.
-  If set to `only-prog', the colors in `prog-mode' will be highlighted
-  only if they are inside a string, this doesn't include `css-mode' and
-  derived.
-- =colorful-highlight-in-comments= If non-nil, colorful will highlight colors inside comments.
-  NOTE: If this is set, this will highlight any keyword within the
-  comments, including color names, which can be annoying.
+- =colorful-highlight-in-comments (default: nil)= If non-nil, colorful will highlight colors inside comments.
 - =colorful-html-colors-alist= Alist of HTML colors. Each entry should have the form (COLOR-NAME . HEXADECIMAL-COLOR).
 - =global-colorful-modes (default: '(prog-mode help-mode html-mode css-mode latex-mode))= Which major modes global-colorful-mode is switched on in (globally).
 
@@ -170,7 +129,7 @@ highlighting:
 - =colorful-add-hsl-colors=: Add CSS HSL colors highlighting.
 - =colorful-add-latex-colors=: Add LaTeX rgb/RGB/HTML/Grey colors highlighting.
 
-See: =colorful-extra-color-keyword-functions= for more details.
+(See: =colorful-extra-color-keyword-functions= for more details.)
 
 * Usage and Installation 📦
 It's recommended that you must use emacs-28.x or higher.

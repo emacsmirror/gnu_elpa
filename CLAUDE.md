@@ -119,6 +119,7 @@ All commands are under the prefix `C-r` (configurable via `greader-keymap-prefix
 | `C-r d l` | Pronounce word in other language |
 | `C-r d s` | Save dictionary |
 | `C-r d i` | Show dictionary info |
+| `C-r d M` | Merge an auxiliary dictionary |
 | `C-r d f a` | Add filter (regex) |
 | `C-r d f k` | Remove filter |
 | `C-r d f m` | Modify filter |
@@ -152,6 +153,23 @@ Dictionary visibility levels:
 - **buffer** — applied to current buffer only
 
 Dictionaries are stored as files in `greader-dict-directory`.
+
+### Dictionary Merging
+
+Auxiliary dictionaries can be merged into the active one with
+`greader-dict-merge-dictionary` (`C-r d M`). Merged entries are marked
+via the `greader-dict-merged` text property and are **never written** to
+the main dictionary file (`greader-dict-write-file` skips them). Merge
+configurations are stored in `greader-dict-merge-dictionaries-alist` and
+optionally persisted to `greader-dict-merge-file`. On `greader-dict-mode`
+startup, `greader-dict-load-merges` and `greader-dict-merge--dictionaries`
+reload saved merges automatically.
+
+Key functions:
+- `greader-dict-merge-dictionary` — interactive entry point (`C-r d M`)
+- `greader-dict-merge--dictionaries` — internal; reads all auxiliaries from the alist
+- `greader-dict-merge-save-to-file` — persists the alist to disk
+- `greader-dict-load-merges` — loads the alist from disk
 
 ### greader-dict internals — known pitfalls
 

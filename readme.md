@@ -145,6 +145,7 @@ Greader provides several minor modes to extend its functionality:
     | `C-r d l` | `greader-dict-pronounce-in-other-language` | Pronounce a word using a different language. |
     | `C-r d s` | `greader-dict-save` | Save the current dictionary to disk immediately. |
     | `C-r d i` | `greader-dict-info` | Display information about the current dictionary. |
+    | `C-r d M` | `greader-dict-merge-dictionary` | Merge an auxiliary dictionary into the current one. |
 
     ### Filters
 
@@ -156,6 +157,28 @@ Greader provides several minor modes to extend its functionality:
     | `C-r d f a` | `greader-dict-filter-add` | Add a new regex filter. |
     | `C-r d f k` | `greader-dict-filter-remove` | Remove a filter. |
     | `C-r d f m` | `greader-dict-filter-modify` | Modify an existing filter. |
+
+    ### Dictionary Merging
+
+    You can merge one or more auxiliary dictionaries into the active
+    dictionary using `greader-dict-merge-dictionary` (`C-r d M`). Merged
+    entries are applied during reading but are **never written back** to
+    the main dictionary file, keeping the original dictionaries independent.
+
+    | Keybinding | Command | Description |
+    |---|---|---|
+    | `C-r d M` | `greader-dict-merge-dictionary` | Merge an auxiliary dictionary. Without argument, re-applies all configured auxiliaries. |
+
+    Merge configurations can be made persistent via `greader-dict-merge-save`:
+
+    - `t` — save automatically after each merge.
+    - `ask` — prompt whether to save (the default).
+    - `nil` — never save; merges are discarded on exit.
+
+    The configuration file is set by `greader-dict-merge-file` (default:
+    `.merges` in the dictionary directory). When `greader-dict-mode`
+    starts, saved merge configurations are loaded and applied automatically.
+
 *   **`greader-timer-mode`** (`C-r t`): Stop reading automatically after a configurable number of minutes.
 
     When enabled, a countdown timer is armed each time `greader-read` starts. When the timer expires, reading stops. By default (`greader-soft-timer t`) the current sentence is finished before stopping; set `greader-soft-timer` to `nil` for an immediate hard cutoff.
@@ -403,6 +426,8 @@ Some of the customizable variables are:
 *   `greader-backward-acoustic-feedback`: If `t`, plays a brief beep when the cursor returns to the previous reading position after backward navigation. Default `nil`.
 *   `greader-backward-seconds`: Number of seconds to wait at the previous sentence before automatically returning to the reading position. Default `5`.
 *   `greader-dict-save-after-time`: Idle time in seconds before the dictionary is saved automatically. Default `30`. (Requires `greader-dict-mode`.)
+*   `greader-dict-merge-save`: Controls persistence of merge configurations. `t` saves automatically, `ask` prompts each time (the default), `nil` never saves. (Requires `greader-dict-mode`.)
+*   `greader-dict-merge-file`: Path of the file used to persist merge configurations. Default: `.merges` in the dictionary directory.
 
 ## License
 

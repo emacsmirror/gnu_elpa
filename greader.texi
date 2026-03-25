@@ -377,6 +377,10 @@ active region: proposes region as match.
 @code{C-r d i}
  @tab @code{greader-dict-info}
  @tab Display information about the current dictionary.
+@item
+@code{C-r d M}
+ @tab @code{greader-dict-merge-dictionary}
+ @tab Merge an auxiliary dictionary into the current one.
 @end multitable
 
 @subsection Filters
@@ -406,6 +410,44 @@ Keybinding
  @tab @code{greader-dict-filter-modify}
  @tab Modify an existing filter.
 @end multitable
+
+@subsection Dictionary Merging
+
+You can merge one or more auxiliary dictionaries into the active
+dictionary using @code{greader-dict-merge-dictionary} (@code{C-r d M}).
+Merged entries are applied during reading but are @emph{never written
+back} to the main dictionary file, so the original dictionaries remain
+independent.
+
+This is useful, for example, to share a common base dictionary across
+multiple languages, or to temporarily apply a specialised word list for
+a particular document.
+
+@multitable @columnfractions 0.33 0.33 0.33
+@headitem Keybinding @tab Command @tab Description
+@item @code{C-r d M}
+ @tab @code{greader-dict-merge-dictionary}
+ @tab Merge an auxiliary dictionary file.  Called without a prefix,
+re-applies all previously configured auxiliary dictionaries.
+@end multitable
+
+Merge configurations can be made persistent.  The behaviour is
+controlled by the variable @code{greader-dict-merge-save}:
+
+@itemize
+@item
+@code{t} --- save automatically after every merge.
+@item
+@code{ask} --- prompt whether to save (the default).
+@item
+@code{nil} --- never save; merges are lost on exit.
+@end itemize
+
+The file where configurations are stored is set by
+@code{greader-dict-merge-file} (default: @file{.merges} in the
+dictionary directory).  When @code{greader-dict-mode} starts, any
+previously saved merge configurations are loaded and applied
+automatically.
 
 @itemize
 @item
@@ -957,6 +999,14 @@ position. Default @code{5}.
 @code{greader-dict-save-after-time}: Idle time in seconds before the
 dictionary is saved automatically. Default @code{30}. (Requires
 @code{greader-dict-mode}.)
+@item
+@code{greader-dict-merge-save}: Controls persistence of merge
+configurations.  @code{t} saves automatically, @code{ask} prompts each
+time (the default), @code{nil} never saves.  (Requires
+@code{greader-dict-mode}.)
+@item
+@code{greader-dict-merge-file}: Path of the file used to persist merge
+configurations.  Default: @file{.merges} in the dictionary directory.
 @end itemize
 
 @node License

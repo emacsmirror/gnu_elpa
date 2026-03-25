@@ -348,7 +348,8 @@ HEX should be a string in the format `#RRRRGGGGBBBB' (12-digit form).
 
 The conversion is controlled by `colorful-short-hex-conversions'.  If
 `colorful-short-hex-conversions' is set to nil, then just return HEX."
-  (if colorful-short-hex-conversions
+  (if (and colorful-short-hex-conversions
+           (length> hex 7))
       (let ((r (substring hex 1 5))
             (g (substring hex 5 9))
             (b (substring hex 9 13)))
@@ -514,7 +515,7 @@ BEG is the position to check for the overlay."
          (color (or color (buffer-substring-no-properties beg end)))
          (prompt (format prompt color))
          (choices '(("Hexadecimal color format" . hex)
-                    ("Color name" . name)))
+                    ("Color name" . color-name)))
          ;; Get choice.
          (choice (alist-get
                   (completing-read prompt choices nil t nil nil)
@@ -535,7 +536,7 @@ BEG is the position to check for the overlay."
 (defun colorful--converter (ov choice)
   "Convert color from OV to other format.
 Return a list which contains the new color and the positions to replace,
-otherwise return a formatted string for message error.
+otherwise return a string for message error.
 
 CHOICE is used for get kind of color."
   (let* ((beg (overlay-start ov)) ; Find positions.
@@ -543,23 +544,18 @@ CHOICE is used for get kind of color."
          (kind (overlay-get ov 'colorful--color-kind))
          (color-value (overlay-get ov 'colorful--color)))
     (pcase choice ; Check and convert color to any of the options:
+      ((pred (eq kind))
+       (format "%s is already a %s. Try again: " color-value kind))
       ('hex ; color to HEX
-       ;; TODO: This must be extended to support more (how?) -E.G.
-       (pcase kind
-         ('hex "%s is already a Hex color. Try again: ")
-         ((or 'css-rgb 'css-hsl 'color-name)
-          (list
-           (colorful--short-hex
-            (if (eq kind 'color-name)
-                (colorful--name-to-hex color-value)
-              color-value))
-           beg end))))
-      ('name ; color to NAME
-       (pcase kind
-         ('color-name "%s is already a color name. Try again: ")
-         ((or 'hex 'css-rgb 'css-hsl)
-          (if-let* ((color (colorful--hex-to-name color-value)))
-              (list color beg end))))))))
+       (list
+        (colorful--short-hex
+         (if (eq kind 'color-name)
+             (colorful--name-to-hex color-value)
+           color-value))
+        beg end))
+      ('color-name ; color to NAME
+       (if-let* ((color (colorful--hex-to-name color-value)))
+           (list color beg end))))))
 
 (defun colorful--colorize-match (color beg end kind face map)
   "Overlay match with a face from BEG to END.
@@ -567,15 +563,10 @@ The background uses COLOR color value.  The foreground is obtained
 from `readable-foreground-color'."
   (let ((ov (make-overlay beg end)))
 
-    ;; Define colorful overlay tag
-    (overlay-put ov 'colorful--overlay t)
-    ;; Set kind tag
-    (overlay-put ov 'colorful--color-kind kind)
-    ;; Set color value as tag
-    (overlay-put ov 'colorful--color color)
-
-    ;; Enable auto deletion.
-    (overlay-put ov 'evaporate t)
+    (overlay-put ov 'colorful--overlay t) ; Define colorful overlay tag
+    (overlay-put ov 'colorful--color-kind kind) ; Set kind tag
+    (overlay-put ov 'colorful--color color) ; Set color value as tag
+    (overlay-put ov 'evaporate t) ; Enable auto deletion.
 
     (cond
      (colorful-use-prefix

@@ -638,8 +638,8 @@ N-BASIC basic notes and N-CLOZE cloze notes, plus 1 image occlusion."
 (ert-deftest gnosis-test-anki-nfc-normalization ()
   "NFC normalization produces consistent tags."
   ;; e followed by combining acute accent (NFD) vs precomposed e-acute (NFC)
-  (let* ((nfd (concat "caf" (string #xe9)))  ; precomposed
-         (nfc (concat "caf" (string #x65 #x301)))) ; decomposed
+  (let* ((nfc (concat "caf" (string #xe9)))  ; precomposed
+         (nfd (concat "caf" (string #x65 #x301)))) ; decomposed
     (should (equal (gnosis-anki--parse-tags nfd)
                    (gnosis-anki--parse-tags nfc)))))
 

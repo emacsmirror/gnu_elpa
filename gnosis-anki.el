@@ -86,7 +86,8 @@ NFC-normalizes, replaces dashes with underscores, removes
 non-alphanumeric characters (keeping underscore and @), collapses
 repeated underscores, and trims leading/trailing underscores.
 Returns nil for empty results."
-  (let* ((s (string-glyph-compose seg))
+  (require 'ucs-normalize)
+  (let* ((s (ucs-normalize-NFC-string seg))
          (s (subst-char-in-string ?- ?_ s))
          (s (replace-regexp-in-string "[^[:alnum:]_@]" "" s))
          (s (replace-regexp-in-string "__+" "_" s))

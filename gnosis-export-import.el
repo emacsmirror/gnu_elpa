@@ -495,10 +495,13 @@ SELECT id, parathema, review_image FROM import_db.extras WHERE id IN (%s)"
 SELECT thema_id, tag FROM import_db.thema_tag WHERE thema_id IN (%s)"
 					 new-ids)
 	    ;; Initialize review state for new themata
-	    (gnosis-sqlite-execute-batch db
-					 "INSERT OR IGNORE INTO review (id, gnosis, amnesia) \
-SELECT id, 1, 1 FROM import_db.themata WHERE id IN (%s)"
-					 new-ids)
+	    (let ((gnosis-val (prin1-to-string gnosis-algorithm-gnosis-value))
+		  (amnesia-val (prin1-to-string gnosis-algorithm-amnesia-value)))
+	      (gnosis-sqlite-execute-batch db
+					   (format "INSERT OR IGNORE INTO review (id, gnosis, amnesia) \
+SELECT id, '%s', '%s' FROM import_db.themata WHERE id IN (%%s)"
+						   gnosis-val amnesia-val)
+					   new-ids))
 	    (gnosis-sqlite-execute-batch db
 					 (format "INSERT OR IGNORE INTO review_log \
 (id, last_rev, next_rev, c_success, t_success, c_fails, t_fails, suspend, n) \

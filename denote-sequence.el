@@ -242,6 +242,11 @@ Also see `denote-sequence-numeric-p' and `denote-sequence-alphanumeric-p'."
   (and (string-match-p "[[:alpha:]]+" string)
        (not (string-match-p "[0-9[:punct:]]+" string))))
 
+(defun denote-sequence--alphanumeric-delimited-partial-p (string)
+  "Return non-nil if STRING likely is part of an alphanumeric delimited sequence."
+  (or (denote-sequence--numeric-partial-p string)
+      (denote-sequence--alphanumeric-partial-p string)))
+
 (defun denote-sequence-and-scheme-p (sequence &optional partial)
   "Return the sequencing scheme of SEQUENCE, per `denote-sequence-scheme'.
 Return a cons cell of the form (sequence . scheme), where the `car' is
@@ -266,9 +271,7 @@ Produce an error if the sequencing scheme cannot be established."
    ((or (and partial (denote-sequence--numeric-partial-p sequence))
         (denote-sequence-numeric-p sequence))
     (cons sequence 'numeric))
-   ;; TODO 2026-03-24: Implement the `denote-sequence--alphanumeric-delimited-partial-p'.
-   ;; FIXME 2026-03-24: What are we even doing with those "partial" checks?
-   ((or ;; (and partial (denote-sequence--alphanumeric-delimited-partial-p sequence))
+   ((or (and partial (denote-sequence--alphanumeric-delimited-partial-p sequence))
         (denote-sequence-alphanumeric-delimited-p sequence))
     (cons sequence 'alphanumeric-delimited))
    (t (error "The sequence `%s' does not pass `denote-sequence-and-scheme-p'" sequence))))

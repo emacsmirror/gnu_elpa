@@ -117,7 +117,7 @@
 + Dashboard bulk-link action for currently displayed themata.
 + Dashboard header-line with entry count and context.
 + Asynchronous deck import with ~gnosis-import-deck-async~.
-+ Demo deck included in =decks/demo.org=.
++ Demo deck included in =collections/demo.gnosis=.
 
 ** Performance
 + New ~gnosis-tl~ module replaces ~tabulated-list-print~ for

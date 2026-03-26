@@ -256,9 +256,9 @@ LETHE: Upon having C-FAILS >= lethe, set next interval to 0."
 			 (t (let* ((success-interval (* gnosis-synolon last-interval))
 				   (failure-interval (* amnesia last-interval)))
 			      (if success success-interval
-				;; Make sure failure interval is never
-				;; higher than success and at least 0
-			        (max (min success-interval failure-interval) 0)))))))
+				;; Cap failure interval at 7 days to prevent
+				;; overly lenient reschedules for mature cards.
+			        (max (min success-interval failure-interval 7) 0)))))))
     (gnosis-algorithm-date (round (gnosis-algorithm-fuzz-interval interval)))))
 
 (defun gnosis-algorithm--date-later-p (date1 date2)

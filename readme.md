@@ -58,7 +58,7 @@ If desired, you can change the prefix. See the command `greader-set-map-prefix`.
 |---|---|---|
 | `C-r <spc>` | `greader-read` | Start reading from point. |
 | `SPC` | `greader-stop` | Stop reading (only when you are in `greader-reading-mode', which happens when you call `greader-read').|
-| `C-r l` | `greader-set-language` | Set the language for the TTS engine. |
+| `C-r l` | `greader-set-language` | Set the language/voice for the TTS engine. Backends that support voice enumeration (mac, espeak) present a `completing-read` prompt. With a prefix argument (`C-u C-r l`), the selection is saved as the new global default to `custom-file`. |
 | `C-r b` | `greader-change-backend` | Cycle through available backends. |
 | `C-r t` | `greader-timer-mode` | Toggle the reading timer. |
 | `C-r s` | `greader-tired-mode` | Toggle tired/relax mode. |
@@ -322,11 +322,14 @@ Uses the built-in macOS `say` command. No external installation required.
 
 | Variable | Default | Description |
 |---|---|---|
-| `greader-mac-voice` | `nil` | Voice name to use (e.g., `"Samantha"`). `nil` uses the system default. |
+| `greader-mac-voice` | `nil` | Voice name to use (e.g., `"Alex"`). `nil` uses the system default. |
 | `greader-mac-rate` | `200` | Speech rate in words per minute. |
 
+Use `C-r l` to select a voice interactively from the list of all voices installed on the
+system. Use `C-u C-r l` to also save the choice as the new global default.
+
 ```emacs-lisp
-(setq greader-mac-voice "Samantha")
+(setq greader-mac-voice "Alex")
 (setq greader-mac-rate 180)
 ```
 

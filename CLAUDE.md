@@ -24,6 +24,7 @@
 | `greader-audiobook.el` | Convert buffers to audio files (WAV/MP3/etc.) |
 | `greader-translate.el` | Translate text before reading (via google-translate) |
 | `greader-dict-tests.el` | ERT tests for greader-dict |
+| `greader-backend-tests.el` | ERT tests for backend CLI generation after voice/language selection |
 | `greader-autoloads.el` | Auto-generated autoloads |
 | `greader-pkg.el` | Auto-generated package descriptor |
 | `readme.md` | User documentation |
@@ -62,6 +63,17 @@ Each backend is a function that responds to `command` symbols:
 - `extra` — additional flags
 - `get-language` — return current language string
 - `get-rate` — return current rate as a number
+- `set-voice` — interactive voice/language selection via `completing-read`; returns the
+  **plain voice or language name** (e.g. `"Alex"` or `"it"`), **not** a CLI flag; returns
+  `'not-implemented` if the backend has no enumerable voice/language list.
+  `greader-set-language` calls this first; if `'not-implemented`, falls back to
+  `read-string`. **Supported by**: mac (`greader--mac-get-voices`), espeak
+  (`greader--espeak-list-voices`). **Not supported**: speechd, piper.
+- `save-voice` — persist the voice/language name passed as `arg` to `custom-file` via
+  `customize-save-variable`; makes the selection the new global default across sessions.
+  Called by `greader-set-language` when invoked with a prefix argument (`C-u C-r l`).
+  **Supported by**: mac (saves `greader-mac-voice`), espeak (saves
+  `greader-espeak-language`). **Not supported**: speechd, piper.
 - `audio-write` — write WAV to file for audiobook generation; arg is `(list TEXT FILENAME)`;
   returns exit code (0 = success) or `'not-implemented` if unsupported.
   **Supported by**: espeak, mac, piper. **Not supported**: speechd.

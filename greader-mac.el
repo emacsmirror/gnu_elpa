@@ -51,15 +51,14 @@ nil means to use the system voice."
       (concat "-r" (number-to-string rate)))))
 
 (defun greader-mac-set-voice (voice)
-  "Set specified VOICE for `say'.
-When called interactively, this function reads a string from the minibuffer
-providing completion."
+  "Set specified VOICE for `say' in the current buffer.
+When called interactively, presents available voices via `completing-read'.
+Returns the plain voice name (e.g. \"Alex\"), not a CLI flag."
   (interactive
-   (list (read-string "Voice: " nil nil (greader--mac-get-voices))))
-  (when voice
-    (setq-local greader-mac-voice
-                (if (string-equal "system" voice) nil voice)))
-  (when greader-mac-voice (concat "-v" greader-mac-voice)))
+   (list (completing-read "Voice: " (greader--mac-get-voices) nil t)))
+  (setq-local greader-mac-voice
+              (if (string-equal "system" voice) nil voice))
+  voice)
 
 ;;;###autoload
 (defun greader-mac (command &optional arg)
@@ -73,9 +72,15 @@ COMMAND must be a string suitable for `make-process'."
     ('executable
      greader-mac-executable-name)
     ('lang
-     (greader-mac-set-voice arg))
+     (progn
+       (when arg
+         (setq-local greader-mac-voice
+                     (if (string-equal "system" arg) nil arg)))
+       (when greader-mac-voice (concat "-v" greader-mac-voice))))
     ('set-voice
      (call-interactively #'greader-mac-set-voice))
+    ('save-voice
+     (customize-save-variable 'greader-mac-voice arg))
     ('rate
      (cond
       ((equal arg 'value)

@@ -65,7 +65,20 @@ LANG must be recognized by espeak or espeak-ng."
       (concat "-v" greader-espeak-language)
     (progn
       (setq-local greader-espeak-language lang)
-      (concat "-v " lang))))
+      (concat "-v" lang))))
+
+(defun greader--espeak-list-voices ()
+  "Return a list of language codes available in espeak."
+  (with-temp-buffer
+    (call-process greader-espeak-executable-name nil t nil "--list-voices")
+    (goto-char (point-min))
+    (forward-line 1)                    ; skip header line
+    (let (voices)
+      (while (not (eobp))
+        (when (looking-at "[ \t]*[0-9]+[ \t]+\\([[:alnum:]_-]+\\)")
+          (push (match-string 1) voices))
+        (forward-line 1))
+      (delete-dups (nreverse voices)))))
 
 (defvar-local  greader-espeak--punctuation-ring (make-ring 2))
 (ring-insert greader-espeak--punctuation-ring "yes")
@@ -108,6 +121,10 @@ ARG is applied depending on the command."
 	(if greader-espeak-punctuation
 	    "--punct"
 	  nil))))
+    ('set-voice
+     (completing-read "Language: " (greader--espeak-list-voices) nil t))
+    ('save-voice
+     (customize-save-variable 'greader-espeak-language arg))
     ('get-language
      greader-espeak-language)
     ('get-rate

@@ -758,7 +758,9 @@ Optional argument STRING contains the string passed to
 (defun greader-set-language (lang)
   "Set language of tts.
 LANG must be in ISO code, for example `en' for English or `fr' for
-French."
+French.
+With a prefix argument, save the selected voice/language as the new
+global default (written to `custom-file' via `customize-save-variable')."
   (interactive
    (list
     (let ((result (greader-call-backend 'set-voice nil)))
@@ -766,6 +768,8 @@ French."
 	  (read-string "Set language to: ")
 	result))))
   (greader-call-backend 'lang lang)
+  (when current-prefix-arg
+    (greader-call-backend 'save-voice lang))
   (run-hooks 'greader-after-change-language-hook))
 
 (defun greader-set-punctuation (flag)

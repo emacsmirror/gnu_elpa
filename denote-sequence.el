@@ -321,8 +321,6 @@ SEQUENCE conforms with `denote-sequence-p'.  If PARTIAL is non-nil, it
 has the same meaning as in `denote-sequence-and-scheme-p'."
   (pcase-let* ((`(,sequence . ,scheme) (denote-sequence-and-scheme-p sequence partial)))
     (pcase scheme
-      ;; TODO 2026-03-24: The `alphanumeric-delimited' needs to handle
-      ;; partial sequences.
       ((or 'numeric 'alphanumeric-delimited)
        (split-string sequence "=" t))
       ('alphanumeric

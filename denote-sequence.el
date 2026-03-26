@@ -297,7 +297,19 @@ SCHEME is a symbol among those mentioned in `denote-sequence-scheme'.
 Return resulting sequence if it conforms with `denote-sequence-p'."
   (pcase scheme
     ('numeric (mapconcat #'identity strings "="))
-    ('alphanumeric (apply #'concat strings))))
+    ('alphanumeric (apply #'concat strings))
+    ('alphanumeric-delimited
+     (let* ((result nil)
+            (count 0))
+       (while strings
+         (push (car strings) result)
+         (when (and (or (length= result 1)
+                        (= (% count 3) 0))
+                    (cdr strings))
+           (push "=" result))
+         (setq count (+ count 1))
+         (setq strings (cdr strings)))
+       (string-join (nreverse result))))))
 
 ;; FIXME 2026-03-23: I think this does not actually work with all sort of partial sequences.
 (defun denote-sequence-split (sequence &optional partial)

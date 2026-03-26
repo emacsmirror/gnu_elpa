@@ -123,6 +123,17 @@ levels of depth between delimiters."
      (equal (denote-sequence-and-scheme-p "1")
             (cons "1" 'alphanumeric-delimited)))))
 
+(ert-deftest dst-denote-sequence-join ()
+  "Test that `denote-sequence-join' works as intended.
+The `denote-sequence-join' is not responsible for checking if the
+STRINGS passed to it conform with the given SCHEME."
+  (should (string= (denote-sequence-join '("1" "1" "1" "1") 'numeric) "1=1=1=1"))
+  (should (string= (denote-sequence-join '("1" "a" "1" "a") 'alphanumeric) "1a1a"))
+  (should (string= (denote-sequence-join '("1" "a") 'alphanumeric-delimited) "1=a"))
+  (should (string= (denote-sequence-join '("1" "a" "1") 'alphanumeric-delimited) "1=a1"))
+  (should (string= (denote-sequence-join '("1" "a" "1" "a") 'alphanumeric-delimited) "1=a1a"))
+  (should (string= (denote-sequence-join '("1" "a" "1" "a" "1" "a" "1" "a" "1" "a") 'alphanumeric-delimited) "1=a1a=1a1=a1a")))
+
 (ert-deftest dst-denote-sequence--get-new-exhaustive ()
   "Test if we get the correct parent, child, sibling, or relatives of a sequence.
 Use the function `denote-sequence-get-new' for child and sibling with

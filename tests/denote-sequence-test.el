@@ -98,30 +98,18 @@ levels of depth between delimiters."
 (ert-deftest dst-denote-sequence-and-scheme-p ()
   "Test that `denote-sequence-and-scheme-p' covers all cases."
   (should-error (denote-sequence-and-scheme-p "a"))
-  (should
-   (equal
-    (denote-sequence-and-scheme-p "1=1")
-    (cons "1=1" 'numeric)))
-  (should
-   (equal
-    (denote-sequence-and-scheme-p "1a")
-    (cons "1a" 'alphanumeric)))
-  (should
-   (equal
-    (denote-sequence-and-scheme-p "1=a")
-    (cons "1=a" 'alphanumeric-delimited)))
+  (should (equal (denote-sequence-and-scheme-p "1=1") (cons "1=1" 'numeric)))
+  (should (equal (denote-sequence-and-scheme-p "1a") (cons "1a" 'alphanumeric)))
+  (should (equal (denote-sequence-and-scheme-p "1=a") (cons "1=a" 'alphanumeric-delimited)))
   (should
    (let ((denote-sequence-scheme 'numeric))
-     (equal (denote-sequence-and-scheme-p "1")
-            (cons "1" 'numeric))))
+     (equal (denote-sequence-and-scheme-p "1") (cons "1" 'numeric))))
   (should
    (let ((denote-sequence-scheme 'alphanumeric))
-     (equal (denote-sequence-and-scheme-p "1")
-            (cons "1" 'alphanumeric))))
+     (equal (denote-sequence-and-scheme-p "1") (cons "1" 'alphanumeric))))
   (should
    (let ((denote-sequence-scheme 'alphanumeric-delimited))
-     (equal (denote-sequence-and-scheme-p "1")
-            (cons "1" 'alphanumeric-delimited)))))
+     (equal (denote-sequence-and-scheme-p "1") (cons "1" 'alphanumeric-delimited)))))
 
 (ert-deftest dst-denote-sequence-join ()
   "Test that `denote-sequence-join' works as intended.

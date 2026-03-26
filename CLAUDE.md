@@ -225,5 +225,11 @@ Tests are in `greader-dict-tests.el` (covers dict functionality).
 - `greader-tired-mode` internals: the wakeup intercept uses `greader--tired-intercept-mode`, a transient buffer-local minor mode with a `[t]` catch-all keymap. Any key press calls `greader--tired-wakeup` (swallowing the command) and resumes reading. With `greader-soft-timer` on, the idle timer is armed in `greader--default-action` (after the last sentence finishes) via `greader--tired-pending`, not in `greader-stop-timer-callback`. `greader-stop` clears `greader--tired-pending` to prevent spurious restarts. All cleanup paths go through `greader--tired-cleanup`.
 - `greader-audiobook-convert-block` uses `greader-call-backend 'audio-write` — do not
   hardcode espeak-ng there. Error handling: non-zero exit code + WAV size check
-  (`greader-audiobook-min-wav-size`). Policy controlled by `greader-audiobook-on-error`
-  (stop/skip/ask). Error buffer name derived via `greader-audiobook--backend-error-buffer`.
+  (`greader-audiobook-min-wav-size`). Hard-error policy: `greader-audiobook-on-error`
+  (stop/skip/ask). Expected-size deviation check: `greader-audiobook-on-size-mismatch`
+  (ignore/warn/error/retry/ask/function); tolerance via
+  `greader-audiobook-size-check-tolerance`; min-words threshold via
+  `greader-audiobook-size-check-min-words` (blocks below threshold are skipped
+  silently); retry limit via `greader-audiobook-size-mismatch-max-retries`.
+  Error buffer name derived via
+  `greader-audiobook--backend-error-buffer`.

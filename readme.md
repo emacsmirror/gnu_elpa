@@ -394,6 +394,31 @@ The variable `greader-audiobook-on-error` controls what happens when a block fai
 
 When blocks are skipped a summary message lists their numbers at the end of conversion.
 
+#### Expected-size deviation check
+
+In addition to the minimum-size floor, Greader estimates the expected WAV size from the
+word count of the block and the current TTS rate (WPM). If the actual file size is less
+than `(expected × (100 - tolerance) / 100)`, the block is considered suspiciously short
+and the action is controlled by `greader-audiobook-on-size-mismatch`. A WAV larger than
+expected is never flagged — TTS backends normally produce more audio than the word count
+alone would predict (pauses, abbreviation expansion, etc.).
+
+| Value | Behaviour |
+|---|---|
+| `ignore` | Do nothing; continue normally. |
+| `warn` | Log a message to `*Messages*` and continue (default). |
+| `error` | Signal an error; `greader-audiobook-on-error` policy applies. |
+| `retry` | Re-convert the block up to `greader-audiobook-size-mismatch-max-retries` times; signal an error if still mismatched. During each retry a `retrying (X/N)` message is shown. |
+| `ask` | Prompt the user; answering no signals an error, yes continues. |
+| _function_ | A function called with `(filename wav-size expected-size)`; must return one of the symbols above, or `nil` (treated as `ignore`). |
+
+Blocks shorter than `greader-audiobook-size-check-min-words` words (default 10) are
+exempt from the check: short blocks such as chapter headings, footnotes, and section
+endings produce unreliable estimates because TTS backends add proportionally more
+silence and overhead relative to the text content. Set to `0` to check all blocks.
+
+Set `greader-audiobook-size-check-tolerance` to `0` to disable the check entirely.
+
 ### Audiobook customization
 
 Use `M-x customize-group RET greader-audiobook RET` for the full list of options. Key
@@ -405,8 +430,13 @@ variables:
 | `greader-audiobook-block-size` | `"15"` | Block size: a string means minutes, a number means characters. |
 | `greader-audiobook-transcode-wave-files` | `nil` | Transcode WAV blocks via ffmpeg. |
 | `greader-audiobook-transcode-format` | `"mp3"` | Target format for transcoding. |
-| `greader-audiobook-on-error` | `stop` | Error policy: `stop`, `skip`, or `ask`. |
+| `greader-audiobook-on-error` | `stop` | Hard-error policy: `stop`, `skip`, or `ask`. |
 | `greader-audiobook-min-wav-size` | `1000` | Minimum WAV size in bytes; smaller files are treated as corrupt. |
+| `greader-audiobook-expected-sample-rate` | `22050` | Sample rate (Hz) used to estimate expected WAV size. |
+| `greader-audiobook-size-check-tolerance` | `50` | Lower-bound tolerance %: flag if WAV < expected×(100-tol)/100; `0` disables. |
+| `greader-audiobook-size-check-min-words` | `10` | Min word count to run the size check; `0` checks all blocks. |
+| `greader-audiobook-on-size-mismatch` | `warn` | Action on size deviation: `ignore`, `warn`, `error`, `retry`, `ask`, or a function. |
+| `greader-audiobook-size-mismatch-max-retries` | `2` | Max re-conversion attempts when `on-size-mismatch` is `retry`. |
 | `greader-audiobook-create-m4b` | `nil` | Bundle all blocks into a single M4B audiobook file. |
 | `greader-audiobook-compress` | `t` | Compress the audiobook directory into a ZIP file. |
 

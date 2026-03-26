@@ -811,6 +811,7 @@ MP3/M4A/FLAC and bundling them into a ZIP or M4B audiobook container.
 * Backend support::
 * Piper and audiobook generation::
 * Error handling::
+* Expected-size deviation check::
 * Audiobook customization::
 @end menu
 
@@ -911,45 +912,95 @@ Value
 When blocks are skipped a summary message lists their numbers at the end
 of conversion.
 
+@node Expected-size deviation check
+@subsection Expected-size deviation check
+In addition to the minimum-size floor, Greader estimates the expected
+WAV size from the word count of the block and the current TTS rate
+(WPM).  If the actual file size is less than
+@code{expected × (100 - tolerance) / 100}, the block is considered
+suspiciously short and the action is controlled by
+@code{greader-audiobook-on-size-mismatch}.  A WAV larger than expected
+is never flagged --- TTS backends normally produce more audio than the
+word count alone predicts (pauses, abbreviation expansion, etc.).
+
+@multitable {@code{function}} {Re-convert the block up to @code{greader-audiobook-size-mismatch-max-retries} times; signal an error if still mismatched.}
+@headitem Value @tab Behaviour
+@item @code{ignore} @tab Do nothing; continue normally.
+@item @code{warn} @tab Log a message to @code{*Messages*} and continue (default).
+@item @code{error} @tab Signal an error; @code{greader-audiobook-on-error} policy applies.
+@item @code{retry} @tab Re-convert the block up to @code{greader-audiobook-size-mismatch-max-retries} times; signal an error if still mismatched. A @samp{retrying (X/N)} message is shown during each attempt.
+@item @code{ask} @tab Prompt the user; answering no signals an error, yes continues.
+@item @code{function} @tab A function called with @code{(filename wav-size expected-size)}; must return one of the symbols above, or @code{nil} (treated as @code{ignore}).
+@end multitable
+
+Blocks shorter than @code{greader-audiobook-size-check-min-words} words
+(default 10) are exempt from the check: short blocks such as chapter
+headings, footnotes, and section endings produce unreliable estimates
+because TTS backends add proportionally more silence and overhead
+relative to the text content.  Set to @code{0} to check all blocks.
+
+Set @code{greader-audiobook-size-check-tolerance} to @code{0} to
+disable the check entirely.
+
 @node Audiobook customization
 @subsection Audiobook customization
 Use @code{M-x customize-group RET greader-audiobook RET} for the full
 list of options. Key variables:
 
-@multitable @columnfractions 0.33 0.33 0.33 
-@headitem 
+@multitable @columnfractions 0.33 0.33 0.33
+@headitem
 Variable
  @tab Default
  @tab Description
-@item 
+@item
 @code{greader-audiobook-base-directory}
  @tab @code{~/.emacs.d/audiobooks/}
  @tab Root directory for generated audiobooks.
-@item 
+@item
 @code{greader-audiobook-block-size}
  @tab @code{"15"}
  @tab Block size: a string means minutes, a number means characters.
-@item 
+@item
 @code{greader-audiobook-transcode-wave-files}
  @tab @code{nil}
  @tab Transcode WAV blocks via ffmpeg.
-@item 
+@item
 @code{greader-audiobook-transcode-format}
  @tab @code{"mp3"}
  @tab Target format for transcoding.
-@item 
+@item
 @code{greader-audiobook-on-error}
  @tab @code{stop}
- @tab Error policy: @code{stop}, @code{skip}, or @code{ask}.
-@item 
+ @tab Hard-error policy: @code{stop}, @code{skip}, or @code{ask}.
+@item
 @code{greader-audiobook-min-wav-size}
  @tab @code{1000}
  @tab Minimum WAV size in bytes; smaller files are treated as corrupt.
-@item 
+@item
+@code{greader-audiobook-expected-sample-rate}
+ @tab @code{22050}
+ @tab Sample rate (Hz) used to estimate expected WAV size.
+@item
+@code{greader-audiobook-size-check-tolerance}
+ @tab @code{50}
+ @tab Lower-bound tolerance %: flag if WAV < expected×(100-tol)/100; @code{0} disables.
+@item
+@code{greader-audiobook-size-check-min-words}
+ @tab @code{10}
+ @tab Min word count to run the size check; @code{0} checks all blocks.
+@item
+@code{greader-audiobook-on-size-mismatch}
+ @tab @code{warn}
+ @tab Action on size deviation: @code{ignore}, @code{warn}, @code{error}, @code{retry}, @code{ask}, or a function.
+@item
+@code{greader-audiobook-size-mismatch-max-retries}
+ @tab @code{2}
+ @tab Max re-conversion attempts when @code{on-size-mismatch} is @code{retry}.
+@item
 @code{greader-audiobook-create-m4b}
  @tab @code{nil}
  @tab Bundle all blocks into a single M4B audiobook file.
-@item 
+@item
 @code{greader-audiobook-compress}
  @tab @code{t}
  @tab Compress the audiobook directory into a ZIP file.

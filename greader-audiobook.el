@@ -37,8 +37,19 @@
 ;; conversion will take more time, but as sayd first, the quality is
 ;; definitely better.
 ;;
-;; 
-;; 
+;; WAV size validation
+;; After each block is converted, greader-audiobook compares the actual
+;; WAV file size against an estimate derived from the word count and the
+;; current TTS rate (WPM).  The tolerance is controlled by
+;; `greader-audiobook-size-check-tolerance' (default 50%).  When the
+;; actual size falls outside the expected range, the action is governed
+;; by `greader-audiobook-on-size-mismatch': warn (default), error,
+;; retry, ask, or a custom function.  With `retry', the block is
+;; re-converted up to `greader-audiobook-size-mismatch-max-retries'
+;; times before signalling an error.  Set the tolerance to 0 to
+;; disable the check entirely.
+;;
+;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 
 ;;; Change Log:
@@ -238,6 +249,62 @@ A WAV header alone is 44 bytes; a silent one-second clip at 22050 Hz
 is about 44 KB, so 1000 bytes is a conservative lower bound."
   :type 'natnum
   :group 'greader-audiobook)
+
+(defcustom greader-audiobook-expected-sample-rate 22050
+  "Sample rate in Hz assumed when estimating expected WAV file size.
+All built-in backends (espeak, piper, mac) produce 22050 Hz 16-bit mono PCM.
+Adjust only if using a custom backend with a different sample rate."
+  :type 'natnum
+  :group 'greader-audiobook)
+
+(defcustom greader-audiobook-size-check-tolerance 50
+  "Lower-bound tolerance percentage for WAV size against the expected value.
+If the actual WAV size is less than (expected × (100 - tolerance) / 100),
+the block is considered suspiciously short and
+`greader-audiobook-on-size-mismatch' is consulted.  A WAV larger than
+expected is normal (TTS backends add pauses and expand abbreviations) and
+is never flagged.  Set to 0 to disable the expected-size check entirely."
+  :type 'natnum
+  :group 'greader-audiobook)
+
+(defcustom greader-audiobook-size-check-min-words 10
+  "Minimum word count for a block to undergo the expected-size deviation check.
+Blocks with fewer words than this threshold are skipped silently: short
+blocks produce unreliable size estimates because TTS backends add
+proportionally more silence and overhead relative to the text content.
+Set to 0 to check all blocks regardless of length."
+  :type 'natnum
+  :group 'greader-audiobook)
+
+(defcustom greader-audiobook-size-mismatch-max-retries 2
+  "Maximum re-conversion attempts when `greader-audiobook-on-size-mismatch' is
+\\='retry.  After this many retries the block is treated as failed and an error
+is signalled."
+  :type 'natnum
+  :group 'greader-audiobook)
+
+(defcustom greader-audiobook-on-size-mismatch 'warn
+  "Action when a WAV block size deviates significantly from the expected size.
+
+\\='ignore  — do nothing; continue normally.
+\\='warn    — log a message to *Messages* and continue (default).
+\\='error   — signal an error; `greader-audiobook-on-error\\=' policy applies.
+\\='retry   — repeat the TTS conversion up to
+             `greader-audiobook-size-mismatch-max-retries\\=' times; if the
+             size is still outside the tolerance after all retries, signal
+             an error.
+\\='ask     — prompt the user; answering no signals an error, yes continues.
+FUNCTION  — a function called with three arguments: FILENAME, WAV-SIZE,
+             EXPECTED-SIZE.  It must return one of the symbols above
+             (\\='ignore, \\='warn, \\='error, \\='retry, \\='ask) or nil (treated
+             as \\='ignore).  Use this to implement custom policies."
+  :type '(choice (const    :tag "Ignore"              ignore)
+		 (const    :tag "Warn and continue"   warn)
+		 (const    :tag "Signal an error"     error)
+		 (const    :tag "Retry conversion"    retry)
+		 (const    :tag "Ask each time"       ask)
+		 (function :tag "Custom function"))
+  :group 'greader-audiobook)
 ;; functions
 
 (defun greader-audiobook--backend-error-buffer ()
@@ -247,6 +314,23 @@ each backend's `audio-write' handler writes to."
   (format "*%s-output*"
 	  (file-name-base
 	   (or (greader-call-backend 'executable) "greader-backend"))))
+
+(defvar greader-audiobook--size-warnings 0
+  "Number of size-mismatch warnings issued during the current conversion.
+Reset to 0 at the start of each `greader-audiobook-buffer' call.")
+
+(defun greader-audiobook--expected-wav-size (text &optional word-count)
+  "Return the expected WAV file size in bytes for TEXT.
+Uses the current backend rate (WPM) and the sample rate from
+`greader-audiobook-expected-sample-rate'.  Assumes 16-bit mono PCM.
+The estimate is approximate: TTS engines expand abbreviations and numbers
+and add silence for punctuation.
+Optional WORD-COUNT avoids recomputing the word count when already available."
+  (let* ((words (or word-count (length (split-string text nil t))))
+	 (wpm (max 1 (greader-get-rate)))
+	 (duration-seconds (/ (* words 60.0) wpm))
+	 (bytes-per-second (* greader-audiobook-expected-sample-rate 2)))
+    (+ 44 (round (* duration-seconds bytes-per-second)))))
 
 (defun greader-audiobook--percentage ()
   "Return the percentage read of the buffer."
@@ -329,19 +413,65 @@ Return the generated file name, or nil if at end of the buffer."
 	    (setq text (greader-dict-check-and-replace text)))
 	  (when greader-audiobook-pause-at-end-of-track
 	    (setq text (concat text greader-audiobook-pause-string)))
-	  (let ((result (greader-call-backend 'audio-write (list text filename))))
-	    (when (eq result 'not-implemented)
-	      (error "Current TTS backend does not support audiobook generation; \
+	  (let ((attempt 0)
+		(max-retries greader-audiobook-size-mismatch-max-retries)
+		(done nil))
+	    (while (not done)
+	      (let ((result (greader-call-backend 'audio-write (list text filename))))
+		(when (eq result 'not-implemented)
+		  (error "Current TTS backend does not support audiobook generation; \
 switch to espeak, piper, or mac"))
-	    (unless (= result 0)
-	      (error "TTS backend error (exit code %d); see buffer %s"
-		     result (greader-audiobook--backend-error-buffer)))
-	    (let ((wav-size (file-attribute-size (file-attributes filename))))
-	      (when (or (null wav-size)
-		        (< wav-size greader-audiobook-min-wav-size))
-		(error "Block %s appears empty or corrupt (WAV: %s bytes)"
-		       (file-name-nondirectory filename)
-		       (or wav-size 0)))))
+		(unless (= result 0)
+		  (error "TTS backend error (exit code %d); see buffer %s"
+			 result (greader-audiobook--backend-error-buffer)))
+		(let* ((wav-size (file-attribute-size (file-attributes filename)))
+		       (will-retry nil))
+		  (when (or (null wav-size)
+			    (< wav-size greader-audiobook-min-wav-size))
+		    (error "Block %s appears empty or corrupt (WAV: %s bytes)"
+			   (file-name-nondirectory filename)
+			   (or wav-size 0)))
+		  (let ((word-count (length (split-string text nil t))))
+		    (when (and (> greader-audiobook-size-check-tolerance 0)
+			       (or (= greader-audiobook-size-check-min-words 0)
+				   (>= word-count
+				       greader-audiobook-size-check-min-words)))
+		    (let* ((expected (greader-audiobook--expected-wav-size
+				      text word-count))
+			   (tol greader-audiobook-size-check-tolerance)
+			   (lower (round (* expected (/ (- 100.0 tol) 100.0)))))
+		      (when (< wav-size lower)
+			(let* ((policy greader-audiobook-on-size-mismatch)
+			       (action (if (functionp policy)
+					   (or (funcall policy filename wav-size expected)
+					       'ignore)
+					 policy))
+			       (msg (format "Block %s: WAV is %d bytes, expected ~%d (-%d%%)"
+					    (file-name-nondirectory filename)
+					    wav-size expected tol)))
+			  (pcase action
+			    ('ignore)
+			    ('warn
+			     (cl-incf greader-audiobook--size-warnings)
+			     (message "greader-audiobook: %s" msg))
+			    ('error (error "%s" msg))
+			    ('ask
+			     (if (yes-or-no-p (format "%s — continue? " msg))
+				 (cl-incf greader-audiobook--size-warnings)
+			       (error "%s" msg)))
+			    ('retry
+			     (if (< attempt max-retries)
+				 (progn
+				   (setq attempt (1+ attempt))
+				   (message "greader-audiobook: %s — retrying (%d/%d)"
+					    msg attempt max-retries)
+				   (setq will-retry t))
+			       (error "Block %s: size mismatch after %d %s"
+				      (file-name-nondirectory filename)
+				      max-retries
+				      (if (= max-retries 1) "retry" "retries"))))))))))
+		  (unless will-retry
+		    (setq done t))))))
 	  (goto-char (cdr block))
 	  filename)
       nil)))
@@ -365,6 +495,27 @@ return the value returned by the associated function."
 	(setq block (greader-audiobook--get-block)))
       blocks)))
 
+
+(defun greader-audiobook-get-block-by-number (n)
+  "Return the text of block number N in the current buffer.
+Blocks are numbered starting from 1.  Return nil if N is out of range
+or if the buffer has no blocks.
+The block boundaries are determined by `greader-audiobook--get-block',
+respecting `greader-audiobook-block-size', `greader-audiobook-modes',
+and all other block-size criteria.  The returned string is the raw
+buffer text before any transformations (dict substitution, dehyphenation,
+etc.)."
+  (when (> n 0)
+    (save-excursion
+      (goto-char (point-min))
+      (let ((block (greader-audiobook--get-block))
+	    (current 1))
+	(while (and block (< current n))
+	  (goto-char (cdr block))
+	  (setq block (greader-audiobook--get-block))
+	  (setq current (1+ current)))
+	(when (and block (= current n))
+	  (buffer-substring (car block) (cdr block)))))))
 
 (defun greader-audiobook-transcode-file (filename)
   "Transcode FILENAME using ffmpeg.
@@ -563,6 +714,7 @@ buffer without the extension, if any."
 	  (unless greader-audiobook-buffer-quietly
 	    (message "Starting conversion of %s ."
 		     book-directory))
+	  (setq greader-audiobook--size-warnings 0)
 	  (let ((failed-blocks nil))
 	    (while (greader-audiobook--get-block)
 	      (setq output-file-name
@@ -625,9 +777,13 @@ buffer without the extension, if any."
 	    (setq book-directory (concat (string-remove-suffix "/"
 							       book-directory)
 					 ".zip"))))
-	(message "conversion terminated and saved in %s"
+	(message "conversion terminated and saved in %s%s"
 		 (concat greader-audiobook-base-directory
-			 book-directory)))))))
+			 book-directory)
+		 (if (> greader-audiobook-size-check-tolerance 0)
+		     (format "; size warnings: %d"
+			     greader-audiobook--size-warnings)
+		   "")))))))
 
 (defvar greader-audiobook-transcode-history nil)
 

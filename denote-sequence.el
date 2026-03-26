@@ -314,7 +314,7 @@ Return resulting sequence if it conforms with `denote-sequence-p'."
          (setq strings (cdr strings)))
        (string-join (nreverse result))))))
 
-;; FIXME 2026-03-23: I think this does not actually work with all sort of partial sequences.
+;; FIXME 2026-03-23: I think this does not actually work with all sorts of partial sequences.
 (defun denote-sequence-split (sequence &optional partial)
   "Split the SEQUENCE string into a list.
 SEQUENCE conforms with `denote-sequence-p'.  If PARTIAL is non-nil, it

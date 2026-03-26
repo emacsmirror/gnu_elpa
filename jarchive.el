@@ -30,6 +30,10 @@
 
 ;;; Code:
 (require 'arc-mode)
+
+(defgroup jarchive nil
+  "Open files inside jar and zip archives."
+  :group 'files)
 (require 'cl-lib)
 (require 'seq)
 (require 'url-parse)
@@ -188,6 +192,7 @@ automatically extract the contents of a file contained in the jar
 and open them in a buffer."
   :global t
   :lighter " Jar"
+  :group 'jarchive
   (if jarchive-mode
       (progn
         (add-to-list 'file-name-handler-alist jarchive--file-name-handler)

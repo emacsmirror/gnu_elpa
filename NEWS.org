@@ -3,6 +3,20 @@
 + [[https://git.thanosapollo.org/gnosis/][Upstream]]
 + [[https://thanosapollo.org/log/gnosis/][Changelog]]
 
+* 0.10.1
+#+date: 2026/03/26
+
+** Algorithm
++ Cap post-failure interval at 7 days to prevent overly lenient
+  reschedules for mature cards.
+
+** Bug fixes
++ Fix ~gnosis-import-db~ initializing review state with wrong values,
+  causing errors on first review of imported themata.
+
+** Other
++ Demo collection shipped as =.gnosis= instead of org file.
+
 * 0.10.0
 #+date: 2026/03/25
 

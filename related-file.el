@@ -96,7 +96,7 @@
       (let ((shint-before (substring shint 0 point))
             (shint-after  (substring shint point (length shint))))
         (nconc (related-file--split-fhint shint-before)
-               (list '*)
+               (list 'point)
                (related-file--split-fhint shint-after)))
     (let ((i 0)
           (res '())
@@ -109,7 +109,9 @@
           (let ((before (substring shint i (setq i (match-beginning 0)))))
             (unless (equal "" before)
               (push before res))
-            (push '* res)
+            ;; FIXME: Should we do something more clever about `***'?
+            ;; FIXME: What about `*' at `point'?
+            (unless (eq (car res) '*) (push '* res))
             (setq i (+ 1 (match-beginning 0))))))
       (nreverse (if (< i (length shint))
                     (cons (substring shint i) res)
@@ -118,26 +120,47 @@
 (defun related-file--split-dhint (shint point)
   (let ((i 0)
         (res '()))
-    (while (string-match "/" shint i)
-      (let ((head (substring shint i (match-beginning 0)))
-            (hpoint (- point i)))
-        (setq i (match-end 0))
-        (push (cond
-               ((equal head "") '**)
-               (t (related-file--split-fhint head hpoint)))
-              res)))
-    (push (related-file--split-fhint (substring shint i) (- point i)) res)
+    (while
+        (let ((found (string-match "/" shint i)))
+          (let ((head (substring shint i (if found (match-beginning 0))))
+                (hpoint (- point i)))
+            (setq i (match-end 0))
+            (push (cond
+                   ((equal head "**") '**)
+                   (t (related-file--split-fhint head hpoint)))
+             res))
+          found))
     (nreverse res)))
+
+(defun related-file--parse-input (input point)
+  ;; Accept `/', `./', `~user/', and `../../' as specifying a start directory.
+  (let* ((anchor
+          (when (or (string-match "\\`\\(?:\\./\\|~[^/]*/\\|\\(?:\\.\\./\\)+\\)"
+                                  input)
+                    (and (file-name-absolute-p input)
+                         ;; FIXME: Not clear how to find the "end" of the part
+                         ;; of the filename that makes it absolute.
+                         (string-match "/+" input)))
+            (prog1 (substring input 0 (match-end 0))
+              (setq input (substring input (match-end 0))))))
+         (tail
+          (when (string-match "//" input)
+           (prog1 (substring input (match-end 0))
+             (setq input (substring input 0 (match-beginning 0))))))
+         (ipoint (- point (length anchor))))
+   (list anchor (related-file--split-dhint input ipoint)
+         (when tail (related-file--split-dhint
+                     tail (- ipoint (length input) 2))))))
 
 (defun related-file--in-dir (dir file fhint &optional dir-only)
   "Return the list of files in DIR which match FILE+FHINT.
-A file name \"matches\" if it is made of an alternation of chunks coming
+A file name \"matches\" if it is made of an interleaving of chunks coming
 from FILE and all elements of FHINT, in order.
-For example \"mbo.h\" match \"allmyfoo,c\" + (\"b\" \"h\")
+For example \"mbo.h\" match \"allmyfoo.c\" + (\"b\" \"h\")
 because \"mbo.h\" is m+b+o.+h which does contain all the elements from
 \(\"b\" \"h\") in the same order and \"allmyfoo,c\" does contain all the
 other elements as well (\"m\" and \"o.\"), in the same order.
-If DIR-ONLY is non-nil, ignor non-directories."
+If DIR-ONLY is non-nil, ignore non-directories."
   ;; FIXME: Add support for a wildcard?
   ;; FIXME: Add support for a list of (FILE . AUX) and return for each match
   ;; the (FILE . AUX) it matched.
@@ -226,40 +249,40 @@ If DIR-ONLY is non-nil, ignor non-directories."
             file))
       (delete-dups res))))
 
-(defun related-file (shint file)
-  (setq file (expand-file-name file))
-  (let* ((dirf (directory-file-name file))
-         (dir  (if (equal dirf file) (file-name-directory dirf) file))
-         (file (if (equal dirf file) (list (file-name-nondirectory dirf))))
+(defun related-file (input basename)
+  (setq basename (expand-file-name basename))
+  (let* ((dirf (directory-file-name basename))
+         (dir  (if (equal dirf basename) (file-name-directory dirf) basename))
+         (basename (if (equal dirf basename) (list (file-name-nondirectory dirf))))
          ;; Usually we try to look for matches starting from PWD, then from
          ;; its parent, then its parent's parent, etc... except when
-         ;; SHINT is an absolute file name or starts with "./" or "../",
+         ;; INPUT is an absolute basename name or starts with "./" or "../",
          ;; in which case we search only from a single directory:
-         ;; If SHINT is of the form "./foo/bar", then don't look
+         ;; If INPUT is of the form "./foo/bar", then don't look
          ;; up in the parent directories.  If it's absolute, then
          ;; start searching directly from the root.  And if it's starts
          ;; with "../../" then look only from the parent's parent.
          (anchor
-          (cond ((string-match-p "\\`\\./" shint)
-                 (setq shint (substring shint (match-end 0)))
+          (cond ((string-match-p "\\`\\./" input)
+                 (setq input (substring input (match-end 0)))
                  dir)
-                ((file-name-absolute-p shint)
-                 (if (string-match "/" shint)
-                     (prog1 (substring shint 0 (match-end 0))
-                       (setq shint (substring shint (match-end 0))))
+                ((file-name-absolute-p input)
+                 (if (string-match "/" input)
+                     (prog1 (substring input 0 (match-end 0))
+                       (setq input (substring input (match-end 0))))
                    (error "Don't know how to deal with this absolute name: %S"
-                          shint)))
-                ((string-match "\\`\\(\\.\\./\\)+" shint)
-                 (prog1 (expand-file-name (substring shint 0 (match-end 0))
+                          input)))
+                ((string-match "\\`\\(\\.\\./\\)+" input)
+                 (prog1 (expand-file-name (substring input 0 (match-end 0))
                                           dir)
-                   (setq shint (substring shint (match-end 0)))))))
-         (dhint (related-file--split-dhint shint (length shint)))
+                   (setq input (substring input (match-end 0)))))))
+         (dhint (related-file--split-dhint input (length input)))
          res)
     (while
         (let ((matches
                (and (or (null anchor)
                         (and (equal dir anchor) (setq anchor 'done)))
-                    (related-file--in-subdirs dir file dhint))))
+                    (related-file--in-subdirs dir basename dhint))))
           (if matches
               (progn
                 (setq res (cons dir matches))
@@ -269,12 +292,12 @@ If DIR-ONLY is non-nil, ignor non-directories."
                    (newdir (file-name-directory dirf)))
               (if (not (and newdir (< (length newdir) (length dir))))
                   ;; In case we didn't pass by the anchor, force-feed it.
-                  ;; E.g. This can happen if FILE started as "a:/foo/bar"
-                  ;; and SHINT was "b:/baz".
+                  ;; E.g. This can happen if BASENAME started as "a:/foo/bar"
+                  ;; and INPUT was "b:/baz".
                   (and (stringp anchor)
                        (setq dir anchor)
                        t)
-                (push (file-name-nondirectory dirf) file)
+                (push (file-name-nondirectory dirf) basename)
                 (setq dir newdir)
                 t)))))
     res))

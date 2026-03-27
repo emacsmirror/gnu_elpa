@@ -167,13 +167,6 @@ Each entry is a function to restore that view
 		(gnosis-select 'date 'activity-log '(> reviewed-total 0) t))
 	       'face 'success))))))
 
-(defvar gnosis-dashboard-module-monkeytype
-  (lambda ()
-    (and gnosis-monkeytype-wpm-result
-	 (insert
-	  (gnosis-center-string
-	   (format "Latest WPM: %.2f" gnosis-monkeytype-wpm-result))))))
-
 (defvar-local gnosis-dashboard--base-header-line nil
   "Base `header-line-format' before count badge is prepended.")
 

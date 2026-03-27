@@ -47,7 +47,7 @@
 
 (defface gnosis-monkeytype-face-wrong
   '((t :inherit error))
-  "Face for correctly typed text."
+  "Face for incorrectly typed text."
   :group 'gnosis)
 
 (defcustom gnosis-monkeytype-themata '("basic" "cloze" "mc-cloze" "mcq")
@@ -64,7 +64,8 @@
 
 (defvar gnosis-monkeytype-string nil)
 
-(defvar gnosis-monkeytype-wpm-result nil)
+(defvar gnosis-monkeytype--start-time nil
+  "Time of first keystroke, or nil if not yet started.")
 
 (defun gnosis-monkeytype--format-text (text)
   "Format TEXT using a temp buffer."
@@ -77,6 +78,8 @@
   "Handler buffer change at END."
   (when (and (eq (current-buffer) (get-buffer gnosis-monkeytype-buffer-name))
 	     (eq this-command 'self-insert-command))
+    (unless gnosis-monkeytype--start-time
+      (setq gnosis-monkeytype--start-time (current-time)))
     (let ((correct-char (char-after end))
           (typed-char (char-before end)))
       ;; Debugging ;;
@@ -89,6 +92,8 @@
             (goto-char end)
             ;; Check if complete
             (when (= end (1+ (length gnosis-monkeytype-string)))
+	      (gnosis-monkeytype--calculate-wpm
+	       gnosis-monkeytype-string gnosis-monkeytype--start-time)
 	      (kill-buffer (current-buffer))
               (exit-recursive-edit))
 	    ;; Forward line when at the end
@@ -106,46 +111,51 @@
   (exit-recursive-edit))
 
 (defun gnosis-monkeytype--calculate-wpm (text start-time)
-  "Calculate and display WPM based on TEXT and START-TIME."
-  (let* ((end-time (current-time))
-         (elapsed-seconds (float-time (time-subtract end-time start-time)))
-         (elapsed-minutes (/ elapsed-seconds 60.0))
-         (word-count (length (split-string text "\\s-+")))
-         (wpm (/ word-count elapsed-minutes)))
-    (message "WPM: %.2f (Time: %.2f seconds)" wpm elapsed-seconds)
-    wpm))
+  "Calculate and display WPM based on TEXT and START-TIME.
+A \"word\" is 5 characters (standard typing test definition)."
+  (let* ((elapsed-minutes (/ (float-time (time-since start-time)) 60.0))
+         (wpm (/ (/ (length text) 5.0) elapsed-minutes)))
+    (message "WPM: %s" (propertize (format "%.0f" wpm) 'face 'success))))
 
-(defun gnosis-monkeytype (text thema-type &optional mistakes)
-  "Monkeytype TEXT for selected THEMA-TYPE.
+(defun gnosis-monkeytype (text &optional mistakes)
+  "Monkeytype TEXT.
 
 Optionally, highlight MISTAKES."
-  (when (and gnosis-monkeytype-enable (member thema-type gnosis-monkeytype-themata))
-    (with-current-buffer (get-buffer-create gnosis-monkeytype-buffer-name)
-      (erase-buffer)
-      (let ((text-formatted (gnosis-utils-highlight-words
-			     text mistakes 'gnosis-monkeytype-face-wrong
-			     'gnosis-monkeytype-face-dimmed))
-	    (start-time (current-time)))
-	(setq gnosis-monkeytype-string text-formatted)
-	(gnosis-monkeytype-mode)
-	(insert text-formatted)
-	(fill-paragraph)
-	(switch-to-buffer (get-buffer-create gnosis-monkeytype-buffer-name))
-	(goto-char (point-min))
-	(add-hook 'after-change-functions #'gnosis-monkeytype--handler nil t)
-	(let ((method (alist-get (gnosis-utils-detect-script text)
-				 gnosis-script-input-method-alist)))
-	  (when method (activate-input-method method))
-	  (unwind-protect
-	      (recursive-edit)
-	    (when method (deactivate-input-method))))
-	(setq gnosis-monkeytype-wpm-result
-	      (gnosis-monkeytype--calculate-wpm text-formatted start-time))))))
+  (with-current-buffer (get-buffer-create gnosis-monkeytype-buffer-name)
+    (erase-buffer)
+    (let ((text-formatted (gnosis-utils-highlight-words
+			   text mistakes 'gnosis-monkeytype-face-wrong
+			   'gnosis-monkeytype-face-dimmed)))
+      (gnosis-monkeytype-mode)
+      (insert text-formatted)
+      (fill-paragraph)
+      (setq gnosis-monkeytype-string (buffer-string))
+      (setq gnosis-monkeytype--start-time nil)
+      (switch-to-buffer (get-buffer-create gnosis-monkeytype-buffer-name))
+      (goto-char (point-min))
+      (add-hook 'after-change-functions #'gnosis-monkeytype--handler nil t)
+      (let ((method (alist-get (gnosis-utils-detect-script text)
+			       gnosis-script-input-method-alist)))
+	(when method (activate-input-method method))
+	(unwind-protect
+	    (recursive-edit)
+	  (when method (deactivate-input-method)))))))
+
+(defun gnosis-monkeytype-region (start end)
+  "Monkeytype the selected region from START to END."
+  (interactive "r")
+  (gnosis-monkeytype (buffer-substring-no-properties start end))
+  (deactivate-mark))
+
+(defun gnosis-monkeytype--ignore-del ()
+  "Ignore DEL key in monkeytype buffer."
+  (interactive nil gnosis-monkeytype-mode)
+  (message "DEL key is disabled."))
 
 (defvar-keymap gnosis-monkeytype-mode-map
   :doc "gnosis-monkeytype mode map"
   :parent text-mode-map
-  "DEL" #'(lambda () (interactive) (message "DEL key is disabled."))
+  "DEL" #'gnosis-monkeytype--ignore-del
   "RET" #'forward-line
   "C-c C-k" #'gnosis-monkeytype-exit)
 
@@ -157,7 +167,7 @@ Optionally, highlight MISTAKES."
   (setq-local post-self-insert-hook nil)
   (setq-local header-line-format
 	      (substitute-command-keys
-	       " Wrong answer, monkeytype the thema. \\[gnosis-monkeytype-exit] to exit.")))
+	       " Monkeytype. \\[gnosis-monkeytype-exit] to exit.")))
 
 (provide 'gnosis-monkeytype)
 ;;; gnosis-monkeytype.el ends here

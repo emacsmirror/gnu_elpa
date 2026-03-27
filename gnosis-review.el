@@ -65,6 +65,11 @@
 (defvar-local gnosis-review--state nil
   "Buffer-local review state for the current session.")
 
+(defvar gnosis-review--monkeytype-text nil
+  "Text to monkeytype on failed review, or nil.
+Set by type-specific review functions, consumed by
+`gnosis-review-process-thema'.")
+
 (defun gnosis-review--header-line ()
   "Return centered header string derived from `gnosis-review--state'."
   (when gnosis-review--state
@@ -407,6 +412,7 @@ TAGS are pre-fetched for custom value lookup."
     (let* ((user-choice (gnosis-mcq-answer id))
 	   (success (string= answer user-choice))
 	   (result (gnosis-review-algorithm id success tags)))
+      (unless success (setq gnosis-review--monkeytype-text answer))
       (gnosis-display-correct-answer-mcq answer user-choice)
       (gnosis-display-parathema parathema)
       (gnosis-display-next-review (nth 0 result) success)
@@ -426,6 +432,7 @@ TAGS are pre-fetched for custom value lookup."
     (let* ((user-input (gnosis--read-string-with-input-method "Answer: " answer))
 	   (success (gnosis-compare-strings answer user-input))
 	   (result (gnosis-review-algorithm id success tags)))
+      (unless success (setq gnosis-review--monkeytype-text answer))
       (gnosis-display-basic-answer answer success user-input)
       (gnosis-display-parathema parathema)
       (gnosis-display-next-review (nth 0 result) success)
@@ -487,6 +494,7 @@ TAGS are pre-fetched for custom value lookup."
                                        revealed-clozes unrevealed-clozes)
             (gnosis-display-cloze-user-answer (cdr input))
             (setq success nil)
+            (setq gnosis-review--monkeytype-text (car unrevealed-clozes))
             (throw 'done nil)))))
     (let ((result (gnosis-review-algorithm id success tags)))
       (gnosis-display-parathema parathema)
@@ -511,7 +519,8 @@ TAGS are pre-fetched for custom value lookup."
 	  (gnosis-display-cloze-string keimenon nil nil cloze nil)
 	  (setq success t))
       (gnosis-display-cloze-string keimenon nil nil nil cloze)
-      (gnosis-display-correct-answer-mcq (car cloze) user-input))
+      (gnosis-display-correct-answer-mcq (car cloze) user-input)
+      (setq gnosis-review--monkeytype-text (car cloze)))
     (let ((result (gnosis-review-algorithm id success tags)))
       (gnosis-display-parathema parathema)
       (gnosis-display-next-review (nth 0 result) success)
@@ -565,10 +574,16 @@ reviewed count, and pops from remaining.  Forces header redisplay.
 Returns STATE.
 
 This is a helper function for `gnosis-review-session'."
-  (let* ((review-cons (gnosis-review--display-thema thema))
+  (let* ((gnosis-review--monkeytype-text nil)
+	 (review-cons (gnosis-review--display-thema thema))
 	 (success (car review-cons))
 	 (result (cdr review-cons)))
-    (unless success (gnosis-monkeytype-answer thema))
+    (when (and (not success)
+	       gnosis-review--monkeytype-text
+	       gnosis-monkeytype-enable
+	       (member (gnosis-get 'type 'themata `(= id ,thema))
+		       gnosis-monkeytype-themata))
+      (gnosis-monkeytype gnosis-review--monkeytype-text))
     (gnosis-review-actions success thema result)
     ;; Use jump-to-register after first review.
     (when (get-register :gnosis-pre-image)
@@ -745,8 +760,7 @@ To customize the keybindings, adjust `gnosis-review-keybindings'."
 (defun gnosis-monkeytype-thema (thema)
   "Process monkeytyping for THEMA id.
 
-This is used to type the keimenon of thema, with the answers highlighted.
-To monkeytype only the wrong answers use `gnosis-monkeytype-answer'."
+This is used to type the keimenon of thema, with the answers highlighted."
   (let* ((thema-context (gnosis-select '[keimenon type answer] 'themata `(= id ,thema) t))
 	 (keimenon (replace-regexp-in-string
 		    "\\[\\[\\([^]]+\\)\\]\\[\\([^]]+\\)\\]\\]" "\\2" ;; remove links
@@ -755,17 +769,8 @@ To monkeytype only the wrong answers use `gnosis-monkeytype-answer'."
 	 (answer (cl-loop for answer in (nth 2 thema-context)
 			  collect (gnosis-utils-trim-quotes answer))))
     (cond ((string= type "basic")
-	   (gnosis-monkeytype (concat keimenon "\n" (car answer)) type
-			      answer))
-	  (t (gnosis-monkeytype keimenon type answer)))))
-
-(defun gnosis-monkeytype-answer (thema)
-  "Monkeytype answer for THEMA id."
-  (let* ((thema-context (gnosis-select '[type answer] 'themata `(= id ,thema) t))
-	 (type (nth 0 thema-context))
-	 (answer (cl-loop for answer in (nth 1 thema-context)
-			  collect (gnosis-utils-trim-quotes answer))))
-    (gnosis-monkeytype (mapconcat #'identity answer " ") type answer)))
+	   (gnosis-monkeytype (concat keimenon "\n" (car answer)) answer))
+	  (t (gnosis-monkeytype keimenon answer)))))
 
 ;;; Entry points
 

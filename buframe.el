@@ -106,33 +106,45 @@
 (defun buframe--region-bbox (start end window)
   "Smallest frame-pixel bbox of the VISIBLE part of START..END in WINDOW.
 Return (LEFT TOP WIDTH HEIGHT) or nil. The returned coordinates
-are relative to the WINDOW's native frames."
-  (let* ((rs (max start (window-start window)))
-         (re (min end (window-end window t)))
-         (edges (window-inside-pixel-edges window))
+are relative to the WINDOW's native frame."
+  (let* ((rs     (max start (window-start window)))
+         (re     (min end   (window-end   window t)))
+         (edges  (window-inside-pixel-edges window))
+         (wstart (window-start window))
          minx miny maxx maxy)
     (when (< rs re)
       (with-current-buffer (window-buffer window)
         (save-excursion
+          ;; Seed cur-y and rs-x once using window-text-pixel-size,
+          ;; avoiding pos-visible-in-window-p entirely.
           (goto-char rs)
-          (while (< (point) re)
-            (let* ((bol (point))
-                   (next (progn (vertical-motion 1 window) (point)))
-                   (seg-start (max rs bol))
-                   (seg-end   (min re next)))
-              (when (< seg-start seg-end)
-                (let* ((pos-in-window
-	                (pos-visible-in-window-p seg-start window t))
-                       (x     (+ (nth 0 edges) (nth 0 pos-in-window)))
-                       (y     (+ (nth 1 edges) (nth 1 pos-in-window)))
-                       (sz    (window-text-pixel-size window seg-start seg-end))
-                       (rx    (+ x (car sz)))
-                       (by    (+ y (cdr sz))))
-                  (setq minx (if minx (min minx x) x)
-                        miny (if miny (min miny y) y)
-                        maxx (if maxx (max maxx rx) rx)
-                        maxy (if maxy (max maxy by) by))))
-              (goto-char next))))))
+          (let* ((vbol  (progn (vertical-motion 0 window) (point)))
+                 ;; Pixel y of the visual line containing rs.
+                 (cur-y (cdr (window-text-pixel-size window wstart vbol)))
+                 ;; Pixel x of rs within that line; 0 if rs is at the line start.
+                 (rs-x  (if (= rs vbol) 0
+                          (car (window-text-pixel-size window vbol rs)))))
+            (goto-char rs)
+            (while (< (point) re)
+              (let* ((bol       (point))
+                     (next      (progn (vertical-motion 1 window) (point)))
+                     (seg-start (max rs bol))
+                     (seg-end   (min re next)))
+                (when (< seg-start seg-end)
+                  (let* ((x-off (if (= bol rs) rs-x 0)) ; non-zero only on first line
+                         (x     (+ (nth 0 edges) x-off))
+                         (y     (+ (nth 1 edges) cur-y))
+                         (sz    (window-text-pixel-size window seg-start seg-end))
+                         (rx    (+ x (car sz)))
+                         (by    (+ y (cdr sz))))
+                    (setq minx (if minx (min minx x) x)
+                          miny (if miny (min miny y) y)
+                          maxx (if maxx (max maxx rx) rx)
+                          maxy (if maxy (max maxy by) by))))
+                ;; Step cur-y forward by this visual line's height.
+                (setq cur-y (+ cur-y
+                               (cdr (window-text-pixel-size window bol next))))
+                (goto-char next)))))))
     (when minx
       (list minx miny (- maxx minx) (- maxy miny)))))
 

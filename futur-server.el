@@ -35,6 +35,9 @@
 ;; (trace-function 'futur--read-stdin)
 ;; (trace-function 'futur--print-stdout)
 
+(defvar futur-server-include-backtraces nil
+  "If non-nil, include a backtrace when returning an error.")
+
 (defconst futur--elisp-impossible-string "\n# \"# "
   "String that will necessarily cause `read' to signal an error.")
 
@@ -73,6 +76,30 @@
 
 (define-error 'futur-inhibited-interaction
               "Interaction inhibited in futur servers")
+
+(defun futur-server--apply (rid func args)
+  (let* ((backtrace nil))
+    (condition-case err
+        (let* ((inhibit-quit nil)
+               (res
+                (if (not (and (fboundp 'handler-bind)
+                              futur-server-include-backtraces))
+                    (apply func args)
+                  (handler-bind
+                      ((t (lambda (_err)
+                            (with-temp-buffer
+                              (let ((standard-output
+                                     (current-buffer)))
+                                (debug-early-backtrace))
+                              (setq backtrace
+                                    (buffer-substring-no-properties
+                                     (point-min) (point-max)))))))
+                    (apply func args)))))
+          `(:funcall-success ,rid . ,res))
+      (t
+       (if (stringp backtrace)
+           `(:funcall-error ,rid ,backtrace ,@err)
+         `(:funcall-error ,rid . ,err))))))
 
 (defun futur-server ()
   ;; Try and make sure the client code gets an error if it tries to use stdin.
@@ -129,12 +156,7 @@
            ;; Confirm we read successfully so the client can
            ;; distinguish where problems come from.
            (futur--print-stdout `(:read-success ,rid) sid)
-           (let ((result
-                  (condition-case err
-                      (let ((inhibit-quit nil))
-                        `(:funcall-success ,rid . ,(apply func args)))
-                    (t `(:funcall-error ,rid . ,err)))))
-             (futur--print-stdout result sid)))
+           (futur--print-stdout (futur-server--apply rid func args) sid))
           (`(:read-success . ,rest)
            (futur--print-stdout `(:unrecognized-request . ,rest) sid))
           (_
@@ -153,7 +175,10 @@
 Does not pay attention to buffer-local values of variables."
   ;; FIXME: Optimize away those symbols which still have the same values as
   ;; in all other snapshots?
-  (let ((snapshot (obarray-make)))
+  (let ((snapshot (obarray-make))
+        ;; Always capture the value of `inhibit-quit' as being non-nil,
+        ;; so that revert doesn't risk setting it temporarily to nil.
+        (inhibit-quit t))
     (mapatoms
      (lambda (sym)
        (let ((fun (symbol-function sym))
@@ -186,28 +211,26 @@ Does not pay attention to buffer-local values of variables."
     ;; `snapshot' holds a previous state of `obarray', such symbols
     ;; can occur only if someone used `unintern', which should hopefully
     ;; never happen in the `obarray'.
-    ;; FIXME: Interrupting this halfway tends to leave us in an inconsistent
-    ;; state, so we should bind `inhibit-quit' to t (but beware: the loop
-    ;; resets `inhibit-quit' as well).
-    (mapatoms
-     (lambda (sym)
-       (let ((ss (intern-soft (symbol-name sym) snapshot)))
-         (if (null ss)
-             (progn
-               (setf (symbol-function sym) nil)
-               (setf (symbol-plist sym) nil)
-               (unless (keywordp sym) (makunbound sym)))
-           ;; FIXME: Emacs<31 would try and compile trampolines needlessly
-           ;; (and unsuccessfully (because we're in a halfway state).
-           (unless (eq (symbol-function sym) (symbol-function ss))
-             (setf (symbol-function sym) (symbol-function ss)))
-           (setf (symbol-plist sym) (symbol-plist ss))
-           ;; FIXME: Do we need to do something special for var-aliases?
-           (ignore-error setting-constant
-             (if (default-boundp ss)
-                 (setf (default-value sym) (default-value ss))
-               (when (default-boundp sym)
-                 (unless (keywordp sym) (makunbound sym)))))))))))
+    (let ((inhibit-quit t)) ;; Interruption can bring an inconsistent state.
+      (mapatoms
+       (lambda (sym)
+         (let ((ss (intern-soft (symbol-name sym) snapshot)))
+           (if (null ss)
+               (progn
+                 (setf (symbol-function sym) nil)
+                 (setf (symbol-plist sym) nil)
+                 (unless (keywordp sym) (makunbound sym)))
+             ;; FIXME: Emacs<31 would try and compile trampolines needlessly
+             ;; (and unsuccessfully (because we're in a halfway state).
+             (unless (eq (symbol-function sym) (symbol-function ss))
+               (setf (symbol-function sym) (symbol-function ss)))
+             (setf (symbol-plist sym) (symbol-plist ss))
+             ;; FIXME: Do we need to do something special for var-aliases?
+             (ignore-error setting-constant
+               (if (default-boundp ss)
+                   (setf (default-value sym) (default-value ss))
+                 (when (default-boundp sym)
+                   (unless (keywordp sym) (makunbound sym))))))))))))
 
 (defun futur--list-prefix-p (prefix other-list)
   (while (and (consp prefix) (consp other-list)

@@ -152,6 +152,8 @@ A server kind is a symbol.")
           (futur-deliver-failure futur (list 'error "Futur-server died")))))
     nil))
 
+(defvar futur--elisp-include-extra-debug-info nil)
+
 (defun futur--elisp-launch (kind &optional prefix)
   (let* ((buffer (get-buffer-create (format" *%s*" kind)))
          (stderr (make-pipe-process
@@ -174,6 +176,8 @@ A server kind is a symbol.")
                 `(,@prefix
                   ,(expand-file-name invocation-name invocation-directory)
                   "-Q" "--batch"
+                  ,@(when futur--elisp-include-extra-debug-info
+                      '("--eval" "(setq futur-server-include-backtraces t)"))
                   "-l" ,(locate-library "futur-server")
                   "-f" "futur-server"))))
     (process-put stderr 'futur--parent proc)
@@ -210,8 +214,10 @@ A server kind is a symbol.")
   (pcase-let* ((`(,sexp . ,end)
                 (condition-case err
                          (read-from-string sexp-string)
-                       (error `((:unreadable-answer . ,err)
-                                . ,(length sexp-string)))))
+                  (error `((:unreadable-answer ,err
+                            ,@(when futur--elisp-include-extra-debug-info
+                                (list sexp-string)))
+                           . ,(length sexp-string)))))
                (sexp (if (string-match "[^ \n\t]" sexp-string end)
                          `(:trailing-garbage ,sexp ,(substring sexp-string end))
                        sexp))
@@ -316,15 +322,17 @@ A server kind is a symbol.")
            (`(:funcall-error ,(pred (equal rid)) . ,err)
             (process-put proc 'futur--ready t)
             (process-put proc 'futur--last-time (float-time))
+            (when (stringp (car err)) ;The error is preceded by a backtrace.
+              (setq err (nconc (cdr err) (list (car err)))))
             (futur--resignal err))
-           (`(:unreadable-answer . ,err)
+           (`(:unreadable-answer . ,err-data)
             (process-put proc 'futur--ready t)
             (process-put proc 'futur--last-time (float-time))
             ;; FIXME: Maybe we should report the whole unreadable string?
             ;; FIXME: A "common" case is when an error includes un`read'able
             ;; data, like a buffer, in which case we could convert
             ;; the error to a `read'able one in `futur-server.el'?
-            (signal 'futur-unreadable-answer (list err))))))
+            (signal 'futur-unreadable-answer err-data)))))
       (`(:read-success . ,_)
        ;; (futur--funcall #'futur--client-resync proc)
        (error "Out-of-order reply: %S" read-answer))

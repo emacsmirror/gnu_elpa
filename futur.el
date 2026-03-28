@@ -168,6 +168,7 @@
 ;; Since version 1.4:
 
 ;; - Emit warnings for unused (non-nil) return values.
+;; - New debug var `futur--elisp-include-extra-debug-info'.
 
 ;; Version 1.4:
 
@@ -823,11 +824,18 @@ Used for testing/debugging purposes.")
   "Return a `futur' that completes after TIME or upon user-input.
 Similar to `sit-for' but non-blocking.
 Returns non-nil if it waited the full TIME."
+  ;; This implementation relies on `pre-command-hook' to detect
+  ;; user input, which can be "slow" (e.g. when the user types `C-x C-s'
+  ;; `pre-command-hook' is run only after the `C-s').
+  ;; FIXME: It's somewhere between hard and impossible to faithfully
+  ;; reproduce the behavior of `sit-for' (which itself does not faithfully
+  ;; correspond to the concept of Emacs being idle).
+  ;; To illustrate some of the trickiness, just consider that when an event
+  ;; comes in, Emacs considers itself as "not idle any more" but after
+  ;; processing that event it may revise this decision and pretend it's been
+  ;; idle all along (`grep timer_resume_idle src/*.c').
   (futur-new
    (lambda (futur)
-     ;; FIXME: This implementation relies on `pre-command-hook' to detect
-     ;; user input, which can be "slow" (e.g. when the user types `C-x C-s'
-     ;; `pre-command-hook' is run only after the `C-s').
      (letrec ((timer (run-with-timer
                       time nil
                       (lambda (futur)

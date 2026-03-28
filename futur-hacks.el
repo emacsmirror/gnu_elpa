@@ -359,7 +359,7 @@ place in a clean environment."
   (if (or noninteractive load args)
       ;; Should we also support the "and load" asynchronously?
       (apply orig-fun filename load args)
-    (let* ((filename (abbreviate-file-name (expand-file-name filename)))
+    (let* ((filename (expand-file-name filename))
            (shortname (file-relative-name filename))
            (loadpath load-path)
            (dir (file-name-directory filename))
@@ -376,34 +376,40 @@ place in a clean environment."
                                     `((funcall package-activate-all)
                                       elisp-mode bytecomp byte-opt))
                (setq load-path loadpath)
-               (when (get-buffer byte-compile-log-buffer)
-                 (with-current-buffer byte-compile-log-buffer
-                   (let ((inhibit-read-only t))
-                     (erase-buffer))))
+               (with-current-buffer (get-buffer-create byte-compile-log-buffer)
+                 (let ((inhibit-read-only t))
+                   (setq default-directory dir) ;Try and avoid "leaving dir".
+                   (erase-buffer)))
                (let ((noninteractive nil)) ;Don't report warnings on stderr.
                  (byte-compile-file filename))
-               (when (get-buffer byte-compile-log-buffer)
-                 (with-current-buffer byte-compile-log-buffer
-                   (buffer-string)))))))
+               (with-current-buffer byte-compile-log-buffer
+                 (buffer-string))))))
       (message "Started compilation in the background for: %s" shortname)
       (futur-bind
        proc-futur
        (lambda (log-buffer-contents)
-         (if (null log-buffer-contents)
-             (message "Compilation completed successfully for: %s" shortname)
-           (message "Compilation completed for: %s" shortname)
-           (with-current-buffer (get-buffer-create byte-compile-log-buffer)
+         (message "Compilation completed for: %s" shortname)
+         (with-current-buffer (get-buffer-create byte-compile-log-buffer)
+           (let* ((old (point-max))
+                  (compiling-line-rx "\f\nCompiling .*\n")
+                  (compiling-line
+                   (when (string-match compiling-line-rx log-buffer-contents)
+                     (prog1 (match-string 0 log-buffer-contents)
+                       (setq log-buffer-contents
+                             (replace-match "" t t log-buffer-contents))))))
+             (let ((byte-compile-current-file filename))
+               (byte-compile-log-file))
              (let ((inhibit-read-only t))
                (goto-char (point-max))
-               (insert log-buffer-contents))
-             (setq default-directory dir)
-	     (setq byte-compile-last-logged-file filename
-		   byte-compile-last-warned-form nil)
-	     ;; Do this after setting default-directory.
-	     (unless (derived-mode-p 'compilation-mode)
-               (emacs-lisp-compilation-mode))
-             ;; FIXME: Don't display buffer if there were no warnings!
-             (display-buffer (current-buffer)))))))))
+               (when compiling-line
+                 (if (not (re-search-backward compiling-line-rx old t))
+                     (insert compiling-line)
+                   (replace-match compiling-line t t)
+                   (goto-char (point-max))))
+               (insert log-buffer-contents)))
+           (unless (equal log-buffer-contents "")
+             (display-buffer (current-buffer)))
+           nil))))))
 
 ;; (defun futur--dummy (a b)
 ;;   a (prut (list a)))

@@ -25,7 +25,7 @@
 ;;; Code:
 
 (require 'futur)
-(require 'futur-client)
+(require 'futur-elisp)
 (require 'ert)
 
 (ert-deftest futur--resignal ()
@@ -206,7 +206,7 @@
     (should (<= 0.3 (funcall run 10 4) 0.5))))
 
 (ert-deftest futur-server ()
-  (let* ((futur (futur--elisp-get-process 'futur-server #'futur--elisp-launch))
+  (let* ((futur (futur-elisp--get-process 'futur-server #'futur-elisp--launch))
          (proc (futur-blocking-wait-to-get-result futur)))
     (should (process-get proc 'futur--ready))
     (should (null (process-get proc 'futur--destination)))))
@@ -254,11 +254,11 @@
     (should (equal (nth 0 vals) (nth 2 vals)))))
 
 (ert-deftest futur-elisp-funcall ()
-  (futur--tests-elisp-funcall #'futur--elisp-funcall))
+  (futur--tests-elisp-funcall #'futur-elisp--funcall))
 
 
-(ert-deftest futur-sandbox-funcall ()
-  (futur--tests-elisp-funcall #'futur--sandbox-funcall))
+(ert-deftest futur-elisp-sandbox-funcall ()
+  (futur--tests-elisp-funcall #'futur-elisp-sandbox--funcall))
 
 (provide 'futur-tests)
 ;;; futur-tests.el ends here

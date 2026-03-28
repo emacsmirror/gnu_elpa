@@ -38,7 +38,7 @@
 (defvar futur-server-include-backtraces nil
   "If non-nil, include a backtrace when returning an error.")
 
-(defconst futur--elisp-impossible-string "\n# \"# "
+(defconst futur-elisp--impossible-string "\n# \"# "
   "String that will necessarily cause `read' to signal an error.")
 
 (defvar futur--read-from-minibuffer
@@ -67,7 +67,7 @@
     (condition-case err
         (prin1 sexp t)
       (t (prin1 `(:print-error . ,err) t)))
-    (princ futur--elisp-impossible-string t)
+    (princ futur-elisp--impossible-string t)
     (terpri t)))
 
 ;; (defun futur-server-call-in-context (ctxname ctx func &rest args)
@@ -114,7 +114,7 @@
       (fset fun errorfun)))
   ;; FIXME: Prevent client code from using stdout?
 
-  ;; We want the `futur-client' to be able to interrupt long-running
+  ;; We want the `futur-elisp' client to be able to interrupt long-running
   ;; requests, and so far the only way we found is to abuse the SIGUSR1
   ;; escape hatch that was designed for debugging.
   ;; FIXME: This is hackish and doesn't work under w32 and Android.

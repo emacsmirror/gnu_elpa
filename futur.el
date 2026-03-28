@@ -96,10 +96,10 @@
 
 ;; - (futur-hacks-mode &optional ARG)
 ;;   Minor mode making various Emacs features use futures.
-;; - (futur--elisp-funcall FUNC &rest ARGS)
+;; - (futur-elisp--funcall FUNC &rest ARGS)
 ;;   Like `futur-funcall' but runs the code in parallel in a subprocess.
-;; - (futur--sandbox-funcall FUNC &rest ARGS)
-;;   Like `futur--elisp-funcall' but runs the code in a sandbox so it
+;; - (futur-elisp-sandbox--funcall FUNC &rest ARGS)
+;;   Like `futur-elisp--funcall' but runs the code in a sandbox so it
 ;;   can be used with untrusted code.
 
 ;;;; Related packages
@@ -146,7 +146,7 @@
 ;; - [pdd](https://melpa.org/#/pdd): HTTP library that uses its own
 ;;   implementation of promises.
 ;; - el-job: Library to run ELisp jobs in parallel in Emacs subprocesses.
-;;   `futur-client/server.el' took some inspiration from that package.
+;;   `futur-elisp/server.el' took some inspiration from that package.
 
 ;;;; BUGS
 
@@ -168,7 +168,8 @@
 ;; Since version 1.4:
 
 ;; - Emit warnings for unused (non-nil) return values.
-;; - New debug var `futur--elisp-include-extra-debug-info'.
+;; - New debug var `futur-elisp--include-extra-debug-info'.
+;; - `futur-client.el' is now called `futur-elisp.el'.
 
 ;; Version 1.4:
 
@@ -416,7 +417,7 @@ A futur has 3 possible states:
   "Process the info that FUTUR's result remains unused."
   ;; The difficulty here is that even if there is no client
   ;; currently, there could be one in the future.  E.g. this happens
-  ;; with futur-client whose process filter can receive several
+  ;; with `futur-elisp.el' whose process filter can receive several
   ;; "answers" at the same time, so some futures are delivered before
   ;; they're bound.
   (let* ((fut (list futur))

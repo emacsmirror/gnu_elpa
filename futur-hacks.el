@@ -25,17 +25,17 @@
 
 ;; (require 'trace)
 ;; (trace-function 'flymake--log-1)
-;; (trace-function 'futur--elisp-process-sentinel)
-;; (trace-function 'futur--elisp-process-answer)
-;; (trace-function 'futur--elisp-process-filter)
-;; (trace-function 'futur--elisp-set-destination)
+;; (trace-function 'futur-elisp--process-sentinel)
+;; (trace-function 'futur-elisp--process-answer)
+;; (trace-function 'futur-elisp--process-filter)
+;; (trace-function 'futur-elisp--set-destination)
 ;; (trace-function 'elisp-flymake--byte-compile-done)
 ;; (trace-function 'futur--smerge-refine-regions)
 ;; (trace-function 'futur--smerge-refine-regions-1)
 ;; (trace-function 'futur-process-call)
 ;; (trace-function 'smerge--refine-apply-diff)
 
-(require 'futur-client)
+(require 'futur-elisp)
 (require 'cl-lib)
 
 ;;;; Safe macroexpansion in a sandbox.
@@ -50,7 +50,7 @@
                          (lambda (f) (string-match-p "/leim-list\\.el" f))
                          totalctx))
           (trimmedctx (take (- (length totalctx) (length tail)) totalctx)))
-     (futur--sandbox-funcall
+     (futur-elisp-sandbox--funcall
       (lambda ()
         (declare-function futur-reset-context "futur-server")
         ;; FIXME: If `futur-reset-context' is sufficiently fast, we could
@@ -82,7 +82,7 @@ current buffer state and calls REPORT-FN when done."
   (let ((temp-file (make-temp-file
                     (expand-file-name
                      "elisp-flymake-byte-compile"
-                     (futur-sandbox-temp-dir))))
+                     (futur-elisp-sandbox-temp-dir))))
         (source-buffer (current-buffer))
         (coding-system-for-write 'utf-8-unix)
         (coding-system-for-read 'utf-8))
@@ -97,7 +97,7 @@ current buffer state and calls REPORT-FN when done."
            ;; *scratch* buffers.
            (inhibit-lcw (derived-mode-p 'lisp-interaction-mode))
            (proc-futur
-            (futur--sandbox-funcall
+            (futur-elisp-sandbox--funcall
              (lambda ()
                (declare-function futur-reset-context "futur-server")
                (futur-reset-context 'flymake
@@ -369,7 +369,7 @@ place in a clean environment."
             ;; even if we trusted the `.el'!  :-(
             ;; Also it would take extra work since the sandbox can't
             ;; directly write the `.elc' file.
-            (futur--elisp-funcall
+            (futur-elisp--funcall
              (lambda ()
                (declare-function futur-reset-context "futur-server")
                (futur-reset-context 'flymake

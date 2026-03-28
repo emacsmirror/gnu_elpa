@@ -204,13 +204,15 @@ If the path does not exist, then make it first."
 
 (defun denote-journal--keyword-regex ()
   "Return a regular expression string that matches the journal keyword(s)."
-  (let ((keywords-sorted (mapcar #'regexp-quote (denote-keywords-sort (denote-journal-keyword)))))
-    (concat "_" (string-join keywords-sorted ".*_"))))
+  (if-let* ((keywords-sorted (mapcar #'regexp-quote (denote-keywords-sort (denote-journal-keyword)))))
+      (concat "_" (string-join keywords-sorted ".*_"))
+    ".*"))
 
 (defun denote-journal-file-is-journal-p (file)
   "Return non-nil if FILE is a journal entry."
   (and (denote-file-has-denoted-filename-p file)
-       (string-match-p (denote-journal--keyword-regex) (file-name-nondirectory file))))
+       (string-match-p (denote-journal--keyword-regex) (file-name-nondirectory file))
+       (file-in-directory-p file (denote-journal-directory))))
 
 (defun denote-journal-filename-is-journal-p (filename)
   "Return non-nil if FILENAME is a valid name for a journal entry."

@@ -345,16 +345,15 @@ When INCLUDE-SUSPENDED, also export suspended themata."
 
 (defun gnosis-import--commit (new-count changed-count filename)
   "Commit database after importing NEW-COUNT new and CHANGED-COUNT changed from FILENAME."
-  (let ((default-directory gnosis-dir))
-    (unless gnosis-testing
-      (when (file-exists-p (expand-file-name ".git" gnosis-dir))
-	(call-process (executable-find "git") nil nil nil "add" "gnosis.db")
-	(gnosis--git-cmd
-	 (list "commit" "-m"
-	       (format "Import: %d new, %d updated from %s"
-		       new-count changed-count filename)))))
-    (when (and gnosis-vc-auto-push (not gnosis-testing))
-      (gnosis-vc-push))))
+  (unless gnosis-testing
+    (when (file-exists-p (expand-file-name ".git" gnosis-dir))
+      (gnosis--git-chain
+       `(("add" "gnosis.db")
+         ("commit" "-m"
+          ,(format "Import: %d new, %d updated from %s"
+                   new-count changed-count filename)))
+       (lambda ()
+         (when gnosis-vc-auto-push (gnosis-vc-push)))))))
 
 (defface gnosis-import-new-face
   '((t :inherit success))

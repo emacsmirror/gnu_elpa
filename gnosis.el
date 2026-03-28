@@ -1870,14 +1870,16 @@ Commits the database after all migrations complete."
       (gnosis--commit-migration current-version migrated))))
 
 (defun gnosis--commit-migration (from to)
-  "Commit database after migrating from version FROM to TO."
+  "Commit database after migrating from version FROM to TO.
+Uses synchronous git operations because migration must complete
+before database initialization continues."
   (let ((default-directory gnosis-dir))
     (unless gnosis-testing
       (when (file-exists-p (expand-file-name ".git" gnosis-dir))
-	(call-process (executable-find "git") nil nil nil "add" "gnosis.db")
-	(gnosis--git-cmd
-	 (list "commit" "-m"
-	       (format "Migrate database v%d -> v%d" from to)))))))
+        (call-process (executable-find "git") nil nil nil "add" "gnosis.db")
+        (call-process (executable-find "git") nil nil nil
+                      "commit" "-m"
+                      (format "Migrate database v%d -> v%d" from to))))))
 
 (defun gnosis-db-init ()
   "Initialize database: create tables if fresh, run pending migrations."
@@ -1895,8 +1897,11 @@ Commits the database after all migrations complete."
   "Run git with ARGS list, watching for password prompts.
 
 ARGS is a list of strings passed directly to git (no shell interpretation).
-Optional SENTINEL is called with (process event) on completion."
-  (let* ((git (or (executable-find "git")
+Optional SENTINEL is called with (process event) on completion.
+Binds `default-directory' to `gnosis-dir' so sentinels run in
+the correct directory regardless of buffer context."
+  (let* ((default-directory gnosis-dir)
+         (git (or (executable-find "git")
                   (error "Git is not installed or not in PATH")))
          (process (apply #'start-process "gnosis-git" nil git args)))
     (set-process-filter
@@ -1910,39 +1915,56 @@ Optional SENTINEL is called with (process event) on completion."
       (set-process-sentinel process sentinel))
     process))
 
-;;;###autoload
-(cl-defun gnosis-vc-push (&optional (dir gnosis-dir))
-  "Run `git push' in DIR."
-  (interactive)
-  (let ((default-directory dir))
-    (gnosis--git-cmd '("push"))))
+(defun gnosis--ensure-git-repo ()
+  "Ensure `gnosis-dir' is a git repository."
+  (let ((default-directory gnosis-dir))
+    (unless (file-exists-p (expand-file-name ".git" gnosis-dir))
+      (vc-git-create-repo))))
+
+(defun gnosis--git-chain (commands &optional on-finish)
+  "Run git COMMANDS sequentially, each as an arg list for `gnosis--git-cmd'.
+Call ON-FINISH with no args after the last command succeeds.
+Abort chain on failure with a message."
+  (if (null commands)
+      (when on-finish (funcall on-finish))
+    (gnosis--git-cmd (car commands)
+      (lambda (_proc event)
+        (if (string-match-p "finished" event)
+            (gnosis--git-chain (cdr commands) on-finish)
+          (message "gnosis: git %s failed: %s"
+                   (car (car commands)) (string-trim event)))))))
 
 ;;;###autoload
-(cl-defun gnosis-vc-pull (&optional (dir gnosis-dir))
-  "Run `git pull' in DIR.
+(defun gnosis-vc-push ()
+  "Run `git push' for gnosis repository."
+  (interactive)
+  (gnosis--git-cmd '("push")))
+
+;;;###autoload
+(defun gnosis-vc-pull ()
+  "Run `git pull' for gnosis repository.
 
 Reopens the gnosis database after successful pull."
   (interactive)
-  (let ((default-directory dir))
-    (gnosis--git-cmd
-     '("pull")
-     (lambda (proc event)
-       (cond
-        ((string-match-p "finished" event)
-         (when (zerop (process-exit-status proc))
-	   (condition-case err
-	       (progn
-		 (when (and gnosis-db (gnosis-sqlite-live-p gnosis-db))
-		   (gnosis-sqlite-close gnosis-db))
-		 (setf gnosis-db
-                       (gnosis-sqlite-open (expand-file-name "gnosis.db" gnosis-dir)))
-		 (gnosis-db-init)
-		 (message "Gnosis: Pull successful, database reopened"))
-	     (error (message "Gnosis: Failed to reopen database: %s"
-			     (error-message-string err))))))
-        ((string-match-p "exited abnormally" event)
-         (message "Gnosis: Git pull failed with exit code %s"
-                  (process-exit-status proc))))))))
+  (gnosis--git-cmd
+   '("pull")
+   (lambda (proc event)
+     (cond
+      ((string-match-p "finished" event)
+       (when (zerop (process-exit-status proc))
+	 (condition-case err
+	     (progn
+	       (when (and gnosis-db (gnosis-sqlite-live-p gnosis-db))
+		 (gnosis-sqlite-close gnosis-db))
+	       (setf gnosis-db
+                     (gnosis-sqlite-open (expand-file-name "gnosis.db" gnosis-dir)))
+	       (gnosis-db-init)
+	       (message "Gnosis: Pull successful, database reopened"))
+	   (error (message "Gnosis: Failed to reopen database: %s"
+			   (error-message-string err))))))
+      ((string-match-p "exited abnormally" event)
+       (message "Gnosis: Git pull failed with exit code %s"
+                (process-exit-status proc)))))))
 
 ;; Gnosis mode ;;
 ;;;;;;;;;;;;;;;;;
@@ -1999,16 +2021,14 @@ Reopens the gnosis database after successful pull."
 
 (defun gnosis--commit-bulk-link (count string)
   "Commit bulk link changes for COUNT themata with STRING."
-  (let ((default-directory gnosis-dir))
-    (unless gnosis-testing
-      (unless (file-exists-p (expand-file-name ".git" gnosis-dir))
-        (vc-git-create-repo))
-      (call-process (executable-find "git") nil nil nil "add" "gnosis.db")
-      (gnosis--git-cmd
-       (list "commit" "-m"
-             (format "Bulk link: %d themata updated with %s" count string))))
-    (when (and gnosis-vc-auto-push (not gnosis-testing))
-      (gnosis-vc-push))))
+  (unless gnosis-testing
+    (gnosis--ensure-git-repo)
+    (gnosis--git-chain
+     `(("add" "gnosis.db")
+       ("commit" "-m"
+        ,(format "Bulk link: %d themata updated with %s" count string)))
+     (lambda ()
+       (when gnosis-vc-auto-push (gnosis-vc-push))))))
 
 (defun gnosis-bulk-link-themata (ids string node-id)
   "Replace STRING with org-link to NODE-ID in themata with IDS.
@@ -2143,17 +2163,15 @@ Fetches all themata, extras, and thema-links in bulk queries."
 
 (defun gnosis--commit-link-cleanup (orphaned stale missing)
   "Commit link cleanup changes for ORPHANED, STALE, and MISSING counts."
-  (let ((default-directory gnosis-dir))
-    (unless gnosis-testing
-      (unless (file-exists-p (expand-file-name ".git" gnosis-dir))
-        (vc-git-create-repo))
-      (call-process (executable-find "git") nil nil nil "add" "gnosis.db")
-      (gnosis--git-cmd
-       (list "commit" "-m"
-             (format "Link cleanup: %d orphaned, %d stale removed, %d missing added"
-                     orphaned stale missing))))
-    (when (and gnosis-vc-auto-push (not gnosis-testing))
-      (gnosis-vc-push))))
+  (unless gnosis-testing
+    (gnosis--ensure-git-repo)
+    (gnosis--git-chain
+     `(("add" "gnosis.db")
+       ("commit" "-m"
+        ,(format "Link cleanup: %d orphaned, %d stale removed, %d missing added"
+                 orphaned stale missing)))
+     (lambda ()
+       (when gnosis-vc-auto-push (gnosis-vc-push))))))
 
 ;;;###autoload
 (defun gnosis-links-cleanup ()

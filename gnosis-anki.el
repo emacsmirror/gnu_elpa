@@ -588,17 +588,15 @@ Returns (SKIPPED . PREPARED) where PREPARED is a list of plists."
 
 (defun gnosis-anki--commit-import (count source-file)
   "Commit after importing COUNT themata from SOURCE-FILE."
-  (let ((default-directory gnosis-dir))
-    (unless gnosis-testing
-      (unless (file-exists-p (expand-file-name ".git" gnosis-dir))
-        (vc-git-create-repo))
-      (call-process (executable-find "git") nil nil nil "add" "gnosis.db")
-      (gnosis--git-cmd
-       (list "commit" "-m"
-             (format "Anki import: %d themata from %s"
-                     count (file-name-nondirectory source-file)))))
-    (when (and gnosis-vc-auto-push (not gnosis-testing))
-      (gnosis-vc-push))))
+  (unless gnosis-testing
+    (gnosis--ensure-git-repo)
+    (gnosis--git-chain
+     `(("add" "gnosis.db")
+       ("commit" "-m"
+        ,(format "Anki import: %d themata from %s"
+                 count (file-name-nondirectory source-file))))
+     (lambda ()
+       (when gnosis-vc-auto-push (gnosis-vc-push))))))
 
 (defun gnosis-anki--chunk-insert (db item-chunks id-chunks total skipped
                                      gnosis-val amnesia-val today cleanup-fn

@@ -644,20 +644,16 @@ The loop is wrapped in a `review-loop' catch so that
 This function initializes the `gnosis-dir' as a Git repository if it is not
 already one.  It then adds the gnosis.db file to the repository and commits
 the changes with a message containing the reviewed number THEMA-NUM."
-  (let ((default-directory gnosis-dir))
-    (unless (executable-find "git")
-      (error "Git not found, please install git"))
-    (unless (file-exists-p (expand-file-name ".git" gnosis-dir))
-      (vc-git-create-repo))
-    (unless gnosis-testing
-      (call-process (executable-find "git") nil nil nil "add" "gnosis.db")
-      (gnosis--git-cmd
-       (list "commit" "-m"
-             (format "Total themata reviewed: %d" thema-num))))
-    (sit-for 0.1)
-    (when (and gnosis-vc-auto-push (not gnosis-testing))
-      (gnosis-vc-push))
-    (message "Review session finished.  %d themata reviewed." thema-num)))
+  (gnosis--ensure-git-repo)
+  (if gnosis-testing
+      (message "Review session finished.  %d themata reviewed." thema-num)
+    (gnosis--git-chain
+     `(("add" "gnosis.db")
+       ("commit" "-m"
+        ,(format "Total themata reviewed: %d" thema-num)))
+     (lambda ()
+       (when gnosis-vc-auto-push (gnosis-vc-push))
+       (message "Review session finished.  %d themata reviewed." thema-num)))))
 
 ;;; Review actions
 

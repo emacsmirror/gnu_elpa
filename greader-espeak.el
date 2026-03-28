@@ -126,7 +126,16 @@ ARG is applied depending on the command."
     ('save-voice
      (customize-save-variable 'greader-espeak-language arg))
     ('get-language
-     greader-espeak-language)
+     (when greader-espeak-language
+       (let ((id greader-espeak-language))
+         ;; espeak identifiers: "it", "en", "roa/it", "en/en-gb".
+         ;; Extract the 2-letter code after the last slash, or from
+         ;; the start if no slash.
+         (when (string-match "/\\([a-z]\\{2\\}\\)" id)
+           (setq id (match-string 1 id)))
+         (if (string-match "\\`\\([a-z]\\{2\\}\\)" id)
+             (match-string 1 id)
+           id))))
     ('get-rate
      greader-espeak-rate)
     ('audio-write

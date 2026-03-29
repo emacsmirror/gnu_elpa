@@ -850,15 +850,19 @@ Returns non-nil if it waited the full TIME."
        (add-hook 'pre-command-hook abort)
        (cons 'timer timer))))) ;; FIXME: Make timers proper structs instead!
 
+(defun futur--timer-access (accessor timer)
+  ;; The purpose of this function to avoid inlining the accessor's code.
+  (funcall accessor timer))
+
 (cl-defmethod futur-blocker-wait ((timer (head timer)))
   (setq timer (cdr timer))
   ;; No support for repeated timers (yet?).
-  (cl-assert (not (timer--repeat-delay timer)))
-  (if (timer--triggered timer)
+  (cl-assert (not (futur--timer-access #'timer--repeat-delay timer)))
+  (if (futur--timer-access #'timer--triggered timer)
       nil ;; Already completed.
-    (while (not (timer--triggered timer))
-      (let* ((idle (timer--idle-delay timer))
-             (time (timer--time timer))
+    (while (not (futur--timer-access #'timer--triggered timer))
+      (let* ((idle (futur--timer-access #'timer--idle-delay timer))
+             (time (futur--timer-access #'timer--time timer))
              (delay (time-to-seconds
                      (if idle time (time-subtract time (current-time))))))
         (accept-process-output nil (min 1.0 (max 0.01 delay)))
@@ -869,7 +873,7 @@ Returns non-nil if it waited the full TIME."
   (setq timer (cdr timer))
   ;; Older versions of Emacs signal errors if we try to cancel a timer
   ;; that's already run (or been canceled).
-  (unless (timer--triggered timer) (cancel-timer timer)))
+  (unless (futur--timer-access #'timer--triggered timer) (cancel-timer timer)))
 
 ;;;; Bounding concurrent resource usage
 

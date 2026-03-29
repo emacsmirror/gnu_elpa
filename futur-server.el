@@ -29,6 +29,8 @@
 
 ;;; Code:
 
+(eval-when-compile (require 'cl-lib))
+
 ;;;; Base protocol
 
 ;; (require 'trace)
@@ -187,9 +189,19 @@ Does not pay attention to buffer-local values of variables."
          (if (and (null fun) (null plist)
                   (or (keywordp sym) (not boundp)))
              nil
-           (let ((ns (intern (symbol-name sym) snapshot)))
+           (let ((ns (intern (symbol-name sym) snapshot))
+                 (generic (plist-get plist 'cl--generic)))
              (setf (symbol-function ns) fun)
-             (setf (symbol-plist ns) plist)
+             ;; Copy symbols' plist because they're modified by side-effect :-(
+             (setf (symbol-plist ns) (copy-sequence plist))
+             ;; Copy generic-function objects are also mutated :-(
+             (when generic
+               ;; FIXME: Should we arrange for revert to flush/recompute
+               ;; the symbol-function?
+               (let ((ng (copy-sequence generic)))
+                 (put ns 'cl--generic ng)
+                 (cl-callf (lambda (ds) (mapcar #'copy-sequence ds))
+                     (cl--generic-dispatches ng))))
              (when boundp
                (setf (default-value ns) (default-value sym))))))))
     snapshot))
@@ -248,14 +260,18 @@ Does not pay attention to buffer-local values of variables."
 NAME is the name chosen for that state.
 TARGET is the description of the context.  It should be a list
 of elements that can be:
-- A file name that should be `load'ed.
-- A feature that shoujd be `require'd.
-- A function that should be called.
+- A file name (string) that should be `load'ed.
+- A feature (symbol) that should be `require'd.
+- A list (funcall FUNC . ARGS) that should be called.
 The elements are processed in order, starting from the state at startup.
 NAME is used only for the purpose of overwriting a previous state from
 the cache."
       (when (and target (null snapshots))
         (error "`futur--obarray' was not properly initialized: %S" target))
+      ;; Kill all subprocesses: for cleanliness but also because their
+      ;; sentinels and filters may refer to functions&vars that we're about
+      ;; to undefine.
+      (mapc #'delete-process (process-list))
       ;; Kill buffers except the initial ones.  Part of the reason is
       ;; "cleanliness" but part of the reason is also that those buffer's
       ;; local vars can refer to variables and functions which we're about

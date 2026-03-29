@@ -161,11 +161,11 @@
                    '(error "" timer1)))
     (should (equal x '(timer1)))
     (should (< (- (float-time) start) (* timescale 4)))
-    (should (pcase fut6 ((futur--waiting _) t)))
+    (should (futur--waiting-p fut6))
     (should (pcase fut2 ((futur--done 'nil) t)))
     (should (pcase fut22 ((futur--failed `(futur-aborted . ,_)) t)))
     (should (pcase fut4 ((futur--waiting _) t) ((futur--done 'nil) t)))
-    (should (pcase futB ((futur--waiting _) t)))
+    (should (futur--waiting-p futB))
     (should (equal '(nil) (futur-blocking-wait-to-get-result futB)))
     (should (equal x '(timer1)))))
 
@@ -215,13 +215,14 @@
   (let ((fut (funcall elisp-funcall #'+ 5 7)))
     (should (equal 12 (futur-blocking-wait-to-get-result fut))))
 
-  (let ((fut (funcall elisp-funcall #'car 7)))
-    (should (equal (condition-case err1
-                       (futur-blocking-wait-to-get-result fut)
-                     (error err1))
-                   (condition-case err2
-                       (car 7)
-                     (error err2)))))
+  (let ((fut (funcall elisp-funcall #'car 7))
+        (normal-error (condition-case err2 (car 7) (error err2))))
+    ;; Allow extra debug info tacked to the end of the error descriptor.
+    (should (equal (take (length normal-error)
+                         (condition-case err1
+                             (futur-blocking-wait-to-get-result fut)
+                           (error err1)))
+                   normal-error)))
 
   (let ((fut (funcall elisp-funcall #'documentation 'car)))
     (should (equal (futur-blocking-wait-to-get-result fut)

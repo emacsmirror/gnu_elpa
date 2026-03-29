@@ -174,7 +174,7 @@
 ;; Version 1.4:
 
 ;; - New function `futur-register-unwind-protect`.
-;; - Added an asynchronous byte-compile-file to `futur-hacks-mode'.
+;; - `futur-hacks-mode' now also makes `byte-compile-file' asynchronous.
 ;; - Bug fixes.
 
 ;; Version 1.3:

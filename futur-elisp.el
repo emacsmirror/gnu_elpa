@@ -273,6 +273,30 @@ A server kind is a symbol.")
 
 (define-error 'futur-unreadable-answer "Unreadable answer from server")
 
+(defun futur-elisp--print-readably (sexp)
+  (let ((print-length nil)
+        (print-level nil)
+        (print-circle t)
+        (print-gensym t)
+        ;; The server reads with `read-from-minibuffer' which
+        ;; works only on single-lines, so it's super-important
+        ;; we don't include any LF by accident.
+        (print-escape-newlines t)
+        ;; Not only LF but also CR terminates the single line :-(
+        (print-escape-control-characters t)
+        ;; SWP aren't currently printed in a `read'able way, so we may
+        ;; as well print them bare.
+        (print-symbols-bare t))
+    (prin1 sexp (current-buffer))
+    (when futur-elisp--include-extra-debug-info
+      ;; Check that what we send is `read'able, so we get a better
+      ;; backtrace then when it's detected by the server.
+      (goto-char (point-min))
+      (condition-case err
+          (read (current-buffer))
+        (error
+         (error "[Futur] Trying to send un`read'able data: %S" err))))))
+
 (defun futur-elisp--funcall-1 (futur-proc func args)
   (futur-let*
       ((proc <- futur-proc)
@@ -287,24 +311,12 @@ A server kind is a symbol.")
             ;; (trace-values :funcall rid func args)
             (process-put proc 'futur--ready nil)
             (process-put proc 'futur--last-time (float-time))
-            (let ((print-length nil)
-                  (print-level nil)
-                  (coding-system-for-write 'emacs-internal)
-                  (print-circle t)
-                  (print-gensym t)
-                  ;; The server reads with `read-from-minibuffer' which
-                  ;; works only on single-lines, so it's super-important
-                  ;; we don't include any LF by accident.
-                  (print-escape-newlines t)
-                  ;; Not only LF but also CR terminates the single line :-(
-                  (print-escape-control-characters t)
-                  ;; SWP aren't currently printed in a `read'able way, so we may
-                  ;; as well print them bare.
-                  (print-symbols-bare t))
-              (prin1 `(,(process-get proc 'futur--sid-sym) ,rid
-                       ,func ,@args)
-                     (current-buffer))
-              (insert "\n")
+            (futur-elisp--print-readably
+             `(,(process-get proc 'futur--sid-sym) ,rid
+               ,func ,@args))
+            (cl-assert (eobp))
+            (insert "\n")
+            (let ((coding-system-for-write 'emacs-internal))
               (process-send-string proc (buffer-string))
               ;; (process-send-region proc (point-min) (point-max))
               )))

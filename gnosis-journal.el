@@ -208,9 +208,13 @@ ELEMENT should be the output of `org-element-parse-buffer'."
 (defun gnosis-journal--update-todos (file)
   "Update TODO items from journal FILE."
   (let* ((today (format-time-string "%Y-%m-%d"))
+         (buf (get-file-buffer file))
          (parsed-buffer (with-temp-buffer
-                          (insert-file-contents file)
-                          (org-mode)
+                          (if buf
+                              (insert-buffer-substring buf)
+                            (insert-file-contents file))
+                          (unless (derived-mode-p 'org-mode)
+                            (org-mode))
                           (org-element-parse-buffer)))
          (done-todos (if (and gnosis-journal-file
                               (string= (file-name-nondirectory file)

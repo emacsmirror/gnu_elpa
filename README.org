@@ -7,8 +7,6 @@
 #+texinfo_dir_desc: Enchanted Spell Checker
 
 #+html: <a href="https://www.gnu.org/software/emacs/"><img alt="GNU Emacs" src="https://github.com/minad/corfu/blob/screenshots/emacs.svg?raw=true"/></a>
-#+html: <a href="https://elpa.gnu.org/packages/jinx.html"><img alt="GNU ELPA" src="https://elpa.gnu.org/packages/jinx.svg"/></a>
-#+html: <a href="https://elpa.gnu.org/devel/jinx.html"><img alt="GNU-devel ELPA" src="https://elpa.gnu.org/devel/jinx.svg"/></a>
 #+html: <a href="https://melpa.org/#/jinx"><img alt="MELPA" src="https://melpa.org/packages/jinx-badge.svg"/></a>
 #+html: <a href="https://stable.melpa.org/#/jinx"><img alt="MELPA Stable" src="https://stable.melpa.org/packages/jinx-badge.svg"/></a>
 
@@ -42,7 +40,7 @@ these modes composite words in =camelCase= and =PascalCase= are accepted.
 
 * Installation
 
-Jinx can be installed from GNU ELPA or MELPA directly with =package-install=.
+Jinx can be installed from MELPA directly with =package-install=.
 
 Your Emacs must be compiled with dynamic module support. Furthermore a C
 compiler must be available on your system (=gcc= or =clang=). Jinx requires
@@ -197,8 +195,3 @@ following three alternative packages come closest to the behavior of Jinx.
   other hand, is more effective because it automatically checks for misspellings
   in the entire visible text of the buffer at once. Flyspell can check the
   entire buffer but must be instructed to do so via the command =flyspell-buffer=.
-
-* Contributions
-
-Since this package is part of [[https://elpa.gnu.org/packages/jinx.html][GNU ELPA]] contributions require a copyright
-assignment to the FSF.

@@ -156,16 +156,26 @@ PARENT-TAGS are the inherited tags from ancestors."
               headlines)
       headlines)))
 
-(defun gnosis-org-get-file-info (filename)
-  "Get data for FILENAME.
-Returns file data with FILENAME."
-  (with-temp-buffer
-    (insert-file-contents filename)
-    (org-mode)
+(defun gnosis-org-get-buffer-info ()
+  "Parse current buffer for node data, links, and content hash.
+The buffer must already be in `org-mode' or contain raw org text.
+Returns file data whose last two elements are the link list and
+the SHA1 hash of the buffer content."
+  (let ((hash (secure-hash 'sha1 (current-buffer))))
+    (unless (derived-mode-p 'org-mode)
+      (org-mode))
     (org-set-regexps-and-options 'tags-only)
     (let* ((data (gnosis-org-buffer-data))
 	   (links (gnosis-org-collect-id-links)))
-      (append data (list links)))))
+      (append data (list links hash)))))
+
+(defun gnosis-org-get-file-info (filename)
+  "Get data for FILENAME.
+Returns file data with FILENAME.  The last two elements are
+the link list and the SHA1 hash of the file content."
+  (with-temp-buffer
+    (insert-file-contents filename)
+    (gnosis-org-get-buffer-info)))
 
 (defun gnosis-org--file-hash (file)
   "Compute SHA1 hash of FILE content."

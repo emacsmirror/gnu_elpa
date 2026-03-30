@@ -335,6 +335,8 @@ A server kind is a symbol.")
             (process-put proc 'futur--ready t)
             (process-put proc 'futur--last-time (float-time))
             (when (stringp (car err)) ;The error is preceded by a backtrace.
+              ;; (message "[Futur] Received error with backtrace: %S\n%s"
+              ;;          (cdr err) (car err))
               (setq err (nconc (cdr err) (list (car err)))))
             (futur--resignal err))
            (`(:unreadable-answer . ,err-data)
@@ -347,10 +349,10 @@ A server kind is a symbol.")
             (signal 'futur-unreadable-answer err-data)))))
       (`(:read-success . ,_)
        ;; (futur--funcall #'futur--client-resync proc)
-       (error "Out-of-order reply: %S" read-answer))
+       (error "[Futur] Out-of-order reply: %S" read-answer))
       (_
        ;; (futur--funcall #'futur--client-resync proc)
-       (error "futur-server error: %S" read-answer)))))
+       (error "[Futur] error: %S" read-answer)))))
 
 (defun futur-elisp--funcall (func &rest args)
   "Call FUNC with arguments ARGS like `funcall' but in a subprocess.

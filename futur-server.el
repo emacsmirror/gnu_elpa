@@ -33,7 +33,6 @@
 
 ;;;; Base protocol
 
-;; (require 'trace)
 ;; (trace-function 'futur--read-stdin)
 ;; (trace-function 'futur--print-stdout)
 
@@ -87,16 +86,20 @@
                 (if (not (and (fboundp 'handler-bind)
                               futur-server-include-backtraces))
                     (apply func args)
-                  (handler-bind
-                      ((t (lambda (_err)
-                            (with-temp-buffer
-                              (let ((standard-output
-                                     (current-buffer)))
-                                (debug-early-backtrace))
-                              (setq backtrace
-                                    (buffer-substring-no-properties
-                                     (point-min) (point-max)))))))
-                    (apply func args)))))
+                  (letrec ((debugfun
+                            (lambda (_err)
+                              (with-temp-buffer
+                                (cl-letf ((standard-output
+                                           (current-buffer))
+                                          ;; Use barebones prin1, so we can
+                                          ;; try and `read' the objects.
+                                          ((symbol-function 'cl-prin1) nil))
+                                  (debug-early-backtrace debugfun))
+                                (setq backtrace
+                                      (buffer-substring-no-properties
+                                       (point-min) (point-max)))))))
+                    (handler-bind ((t debugfun))
+                      (apply func args))))))
           `(:funcall-success ,rid . ,res))
       (t
        (if (stringp backtrace)
@@ -194,14 +197,12 @@ Does not pay attention to buffer-local values of variables."
              (setf (symbol-function ns) fun)
              ;; Copy symbols' plist because they're modified by side-effect :-(
              (setf (symbol-plist ns) (copy-sequence plist))
-             ;; Copy generic-function objects are also mutated :-(
+             ;; Generic-function objects are also mutated :-(
              (when generic
-               ;; FIXME: Should we arrange for revert to flush/recompute
-               ;; the symbol-function?
-               (let ((ng (copy-sequence generic)))
-                 (put ns 'cl--generic ng)
-                 (cl-callf (lambda (ds) (mapcar #'copy-sequence ds))
-                     (cl--generic-dispatches ng))))
+               (put ns 'futur--cl-generic
+                    (cons (cl--generic-method-table generic)
+                          (mapcar #'copy-sequence
+                                  (cl--generic-dispatches generic)))))
              (when boundp
                (setf (default-value ns) (default-value sym))))))))
     snapshot))
@@ -236,7 +237,15 @@ Does not pay attention to buffer-local values of variables."
              ;; (and unsuccessfully (because we're in a halfway state).
              (unless (eq (symbol-function sym) (symbol-function ss))
                (setf (symbol-function sym) (symbol-function ss)))
-             (setf (symbol-plist sym) (symbol-plist ss))
+             (let ((plist (symbol-plist ss)))
+               (setf (symbol-plist sym) plist)
+               (let ((generic-extra (plist-get plist 'futur--cl-generic)))
+                 (when generic-extra
+                   (let ((generic (plist-get plist 'cl--generic)))
+                     (setf (cl--generic-method-table generic)
+                           (car generic-extra))
+                     (setf (cl--generic-dispatches generic)
+                           (cdr generic-extra))))))
              ;; FIXME: Do we need to do something special for var-aliases?
              (ignore-error setting-constant
                (if (default-boundp ss)

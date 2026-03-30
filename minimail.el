@@ -1095,7 +1095,7 @@ messages with UID smaller than BEFORE."
                            (dolist (msg newflags)
                              (puthash (let-alist msg .uid) msg hash))
                            (lambda (msg)
-                             (when-let ((newmsg (gethash (let-alist msg .uid) hash)))
+                             (when-let* ((newmsg (gethash (let-alist msg .uid) hash)))
                                (list (-alist-merge newmsg msg)))))
                          messages))
        ;; Fetch new messages
@@ -1692,7 +1692,7 @@ Cf. RFC 5256, §2.1."
                                (alist-get v minimail-mailbox-mode-column-alist))
                              colnames)
             :sort-by (mapcan (pcase-lambda (`(,col . ,dir))
-                               (when-let ((i (seq-position colnames col)))
+                               (when-let* ((i (seq-position colnames col)))
                                  `((,i . ,dir))))
                              sortnames))
            (setf (alist-get 'sort-by-thread -local-state)

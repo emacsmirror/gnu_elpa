@@ -42,5 +42,17 @@ test:
 		--load $$f; \
 	done
 
+EL_FILES := gnosis-sqlite.el gnosis-tl.el gnosis-utils.el gnosis-org.el \
+	gnosis-algorithm.el gnosis.el gnosis-nodes.el gnosis-journal.el \
+	gnosis-review.el gnosis-dashboard.el gnosis-export-import.el \
+	gnosis-anki.el gnosis-monkeytype.el
+
+load:
+	rm -f *.elc
+	@for f in $(EL_FILES); do \
+		emacsclient -e "(load-file \"$(shell pwd)/$$f\")" > /dev/null; \
+	done
+	@echo "Loaded $(words $(EL_FILES)) files."
+
 clean:
 	rm -f $(TEXI) $(INFO) *.elc *-pkg.el*

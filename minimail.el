@@ -249,52 +249,38 @@ Give up after MAX-TRIES, if that is non-negative."
   :prefix "minimail-"
   :group 'mail)
 
-(defcustom minimail-accounts
-  '((yhetil :incoming-url "imaps://:@yhetil.org/yhetil.emacs"
-            :thread-style hierarchical))
-  "Account configuration for the Minimail client.
-This is an alist where keys are names used to refer to each account and
-values are a plist with the following information:
-
-:mail-address
-  The email address of this account, overrides the global value of
-  `user-mail-address'.
-
-:incoming-url
-  Information about the IMAP server as a URL. Normally, it suffices to
-  enter \"imaps://<server-address>\".  More generally, it can take the form
-
-    imaps://<username>:<password>@<server-address>:<port>
-
-  If username is omitted, use the :mail-address property instead.
-
-  If password is omitted (which is highly recommended), use the
-  auth-source mechanism. See Info node `(auth) Top' for details.
-
-:outgoing-url
-  Information about the SMTP server as a URL.  Normally, it suffices
-  to enter \"smtps://<server-address>\", but you can provide more
-  details as in :incoming-url.
-
-:signature
-  Message signature, as value accepted by `message-signature' or,
-  alternatively, (file FILENAME).
-
-All entries all optional, except for `:incoming-url'."
-  :type '(alist
-          :key-type (symbol :tag "Account identifier")
-          :value-type (plist
-                       :tag "Account properties"
-                       :value-type string
-                       :options (:mail-address
-                                 :incoming-url
-                                 :outgoing-url
-                                 (:signature (choice
-                                              (const :tag "None" ignore)
-                                              (cons :tag "Use signature file"
-                                                    (const file) file)
-                                              (string :tag "String to insert")
-                                              (function :tag "Function to call")))))))
+(cl-defun -custom-type-query-alist (&key key-type value-type allow-single)
+  (let* ((kt (pcase-exhaustive key-type
+               ('mailbox '(choice
+                           (const :tag "Default" t)
+                           (const :tag "\"All Mail\" mailbox" \\All)
+                           (const :tag "\"Archive\" mailbox" \\Archive)
+                           (const :tag "\"Drafts\" mailbox" \\Drafts)
+                           (const :tag "\"Important\" mailbox" \\Flagged)
+                           (const :tag "\"Junk\" mailbox" \\Junk)
+                           (const :tag "\"Sent\" mailbox" \\Sent)
+                           (const :tag "\"Trash\" mailbox" \\Trash)
+                           (string :tag "Specific mailbox")
+                           (list :tag "Mailboxes matching regexp"
+                                 (const regexp) regexp)
+                           (sexp :tag "Complex selector")))
+               ('flag '(choice
+                        (const :tag "Default" t)
+                        (const :tag "Unseen" (not \\Seen))
+                        (const :tag "Flagged (a.k.a. Starred)" \\Flagged)
+                        (const :tag "Important" (or $Important \\Important))
+                        (const :tag "Answered" \\Answered)
+                        (const :tag "Forwarded" $Forwarded)
+                        (const :tag "Phishing" $Phishing)
+                        (const :tag "Junk" $Junk)
+                        (sexp :tag "Complex selector")))))
+         (alist `(alist :key-type ,kt :value-type ,value-type)))
+    (if allow-single
+        `(choice
+          ,(pcase-let ((`(,v . ,rest) (ensure-list value-type)))
+             `(,v :tag "Account-global value" . ,rest))
+          (alist :tag "Mailbox-specific values" . ,(cdr alist)))
+      alist)))
 
 (defcustom minimail-reply-cite-original t
   "Whether to cite the original message when replying."
@@ -314,7 +300,19 @@ All entries all optional, except for `:incoming-url'."
   "Columns to display in `minimail-mailbox-mode' buffers.
 This is an alist mapping mailbox selectors to lists of column names as
 defined in `minimail-mailbox-mode-column-alist'."
-  :type '(repeat alist))
+  :type (-custom-type-query-alist
+         :key-type 'mailbox
+         :value-type '(repeat
+                       (choice (const :tag "Message number" id)
+                               (const :tag "Seen" flag-seen)
+                               (const :tag "Flagged" flag-flagged)
+                               (const :tag "Answered" flag-answered)
+                               (const :tag "From" from)
+                               (const :tag "To" to)
+                               (const :tag "Recipients" recipients)
+                               (const :tag "Subject" subject)
+                               (const :tag "Date" date)
+                               (const :tag "Size" size)))))
 
 (defcustom minimail-mailbox-mode-sort-by
   '((t (date . descend) (thread . ascend)))
@@ -326,9 +324,21 @@ This is an alist mapping mailbox selectors to lists of the form
 COLUMN is a column name, as in `minimail-mailbox-mode-columns'.
 DIRECTION is either `ascend' or `descend'.
 
-As a special case, an entry of the form (thead . DIRECTION) enables
+As a special case, an entry of the form (thread . DIRECTION) enables
 sorting by thread."
-  :type '(repeat alist))
+  :type (-custom-type-query-alist
+         :key-type 'mailbox
+         :value-type
+         `(repeat :tag "Sorting criteria"
+                  (cons (choice :tag "Column"
+                                (const :tag "Thread" thread)
+                                ,@(let* ((v (get 'minimail-mailbox-mode-columns
+                                                 'custom-type))
+                                         (v (plist-get (cdr v) :value-type)))
+                                    (cdadr v)))
+                        (choice :tag "Direction"
+                                (const ascend)
+                                (const descend))))))
 
 (defcustom minimail-fetch-limit 100
   "Maximum number of messages to fetch at a time when displaying a mailbox."
@@ -344,7 +354,113 @@ sorting by thread."
                                     (t . vtable))
   "Face to apply to subject strings based on the message flags.
 This is used in `minimail-mailbox-mode' buffers."
-  :type '(repeat alist))
+  :type (-custom-type-query-alist :key-type 'flag :value-type 'face))
+
+(defcustom minimail-accounts
+  '((yhetil :incoming-url "imaps://:@yhetil.org/yhetil.emacs"
+            :thread-style hierarchical))
+  "Account configuration for the Minimail client.
+This is an alist where keys are names used to refer to each account and
+values are a plist with the following information:
+
+:mail-address
+  The email address of this account.  Overrides the global value of
+  `user-mail-address'.
+
+:incoming-url
+  Information about the IMAP server as a URL. Normally, it suffices to
+  enter \"imaps://<server-address>\".  More generally, it can take the
+  form
+
+    imaps://<username>:<password>@<server-address>:<port>
+
+  If username is omitted, use the :mail-address property instead.
+
+  If password is omitted (which is highly recommended), use the
+  auth-source mechanism. See Info node `(auth) Top' for details.
+
+:outgoing-url
+  Information about the SMTP server as a URL.  Normally, it suffices
+  to enter \"smtps://<server-address>\", but you can provide more
+  details as in :incoming-url.
+
+:full-name
+  Name used in the To field of messages you compose.  Overrides the
+  global value of `user-full-name'.
+
+:signature
+  Message signature, as value accepted by `message-signature' or,
+  alternatively, (file FILENAME).
+
+:thread-style
+  Account or mailbox-specific override for `minimail-thread-style'.
+
+:fetch-limit
+  Account or mailbox-specific override for `minimail-fetch-limit'.
+
+:mailbox-columns
+  Mailbox-specific override for `minimail-mailbox-mode-columns'.
+
+:mailbox-sort-by
+  Mailbox-specific override for `minimail-mailbox-mode-sort-by'.
+
+All entries all optional, except for :incoming-url.
+
+Account or mailbox-specific overrides may be a simple value, which
+applies to all mailboxes of the account in question, or an alist
+mapping mailbox selectors to a value.
+
+A mailbox selector may be a symbol or string, which means to match
+mailbox with that name or IMAP flag.  More complex selectors are
+possible, see `minimail--key-match-p'."
+  :type
+  `(alist
+    :key-type (symbol :tag "Account identifier")
+    :value-type
+    (plist
+     :tag "Account properties"
+     :options
+     ((:mail-address string)
+      (:incoming-url string)
+      (:outgoing-url string)
+      (:full-name string)
+      (:signature       ,(-custom-type-query-alist
+                          :allow-single t
+                          :key-type 'mailbox
+                          :value-type '(choice
+                                        (const :tag "Default" nil)
+                                        (function-item :tag "No signature" ignore)
+                                        (string :tag "String to insert")
+                                        (function :tag "Function to call")
+                                        (list :tag "Use signature file"
+                                              (const file) file))))
+      (:thread-style    ,(-custom-type-query-alist
+                          :allow-single t
+                          :key-type 'mailbox
+                          :value-type (get 'minimail-thread-style 'custom-type)))
+      (:fetch-limit     ,(-custom-type-query-alist
+                          :allow-single t
+                          :key-type 'mailbox
+                          :value-type 'natnum))
+      (:mailbox-columns ,(-custom-type-query-alist
+                          :allow-single t
+                          :key-type 'mailbox
+                          :value-type (plist-get
+                                       (cdr (get 'minimail-mailbox-mode-columns
+                                                 'custom-type))
+                                       :value-type)))
+      (:mailbox-sort-by ,(-custom-type-query-alist
+                          :allow-single t
+                          :key-type 'mailbox
+                          :value-type (plist-get
+                                       (cdr (get 'minimail-mailbox-mode-sort-by
+                                                 'custom-type))
+                                       :value-type)))))))
+
+(defgroup minimail-faces nil
+  "Faces used by Minimail."
+  :group 'minimail
+  :group 'faces)
 
 (defface minimail-unseen '((t :weight bold :inherit vtable))
   "Face to indicate unseen messages.")
@@ -1501,6 +1617,10 @@ Cf. RFC 5256, §2.1."
       (encode-time (or .envelope.date
                        .internal-date
                        '(0 0 0 1 1 1970 nil nil 0))))))
+
+(defgroup minimail-icons nil
+  "Icons used by Minimail."
+  :group 'minimail)
 
 (define-icon -message-unseen nil
   '((emoji "✉️") (symbol "●") (text "."))

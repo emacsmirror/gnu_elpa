@@ -1435,13 +1435,14 @@ FLAG can be a string or, more generally, a condition for
                                 special-mode-map)
   "RET" #'minimail-show-message
   "+" #'minimail-load-more-messages
+  "=" #'minimail-quit-message-window
   "T" #'minimail-toggle-sort-by-thread
   "g" #'revert-buffer)
 
 (define-derived-mode minimail-mailbox-mode special-mode "Mailbox"
   "Major mode for mailbox listings."
   :interactive nil
-  (add-hook 'quit-window-hook #'-quit-message-window nil t)
+  (add-hook 'quit-window-hook #'minimail-quit-message-window nil t)
   (setq-local
    revert-buffer-function #'-mailbox-buffer-refresh
    truncate-lines t))
@@ -1775,9 +1776,10 @@ Cf. RFC 5256, §2.1."
   (interactive "p" minimail-mailbox-mode minimail-message-mode)
   (minimail-next-message (- count)))
 
-(defun -quit-message-window (&optional kill)
+(defun minimail-quit-message-window (&optional kill)
   "If there is a window showing a message from this mailbox, quit it.
 If KILL is non-nil, kill the message buffer instead of burying it."
+  (interactive nil minimail-mailbox-mode)
   (when-let* ((msgbuf (-find-buffer 'message t))
               (window (get-buffer-window msgbuf)))
     (quit-restore-window window (if kill 'kill 'bury))))

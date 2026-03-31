@@ -304,10 +304,11 @@ Optional argument FLATTEN, when non-nil, flattens the result."
 
 (defun gnosis-table-exists-p (table)
   "Check if TABLE exists."
-  (gnosis--ensure-db)
-  (let ((tables (mapcar (lambda (str) (replace-regexp-in-string "_" "-" (symbol-name str)))
-			(cdr (gnosis-select 'name 'sqlite-master '(= type table) t)))))
-    (member (symbol-name table) tables)))
+  (let* ((db (gnosis--ensure-db))
+	 (tables (mapcar #'car
+			 (sqlite-select db
+					"SELECT name FROM sqlite_master WHERE type = 'table'"))))
+    (member (gnosis-sqlite--ident table) tables)))
 
 (defun gnosis--create-table (table &optional values)
   "Create TABLE for VALUES."

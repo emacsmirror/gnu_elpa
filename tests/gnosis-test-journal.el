@@ -51,7 +51,7 @@
   "Basic TODO extraction from a file with 2 TODO items."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let ((gnosis-journal-todo-keywords '("TODO" "NEXT" "|" "DONE"))
+      (let ((gnosis-journal-todo-keywords '("TODO" "NEXT"))
             (file (gnosis-test-journal--create-file
                    "todos.org"
                    "#+title: Tasks\n\n* TODO Buy groceries\n\n* TODO Read book\n")))
@@ -66,7 +66,7 @@
   "Scheduled TODO has timestamp captured."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let ((gnosis-journal-todo-keywords '("TODO" "|" "DONE"))
+      (let ((gnosis-journal-todo-keywords '("TODO"))
             (file (gnosis-test-journal--create-file
                    "scheduled.org"
                    "#+title: Tasks\n\n* TODO Dentist\nSCHEDULED: <2026-03-07 Sat>\n")))
@@ -80,7 +80,7 @@
   "DONE items are not collected."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let ((gnosis-journal-todo-keywords '("TODO" "|" "DONE"))
+      (let ((gnosis-journal-todo-keywords '("TODO"))
             (file (gnosis-test-journal--create-file
                    "mixed.org"
                    "#+title: Tasks\n\n* TODO Active task\n\n* DONE Finished task\n")))
@@ -93,33 +93,32 @@
   "Empty file returns nil."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let ((gnosis-journal-todo-keywords '("TODO" "|" "DONE"))
+      (let ((gnosis-journal-todo-keywords '("TODO"))
             (file (gnosis-test-journal--create-file "empty.org" "")))
         (should (null (gnosis-journal-get--todos file))))
     (gnosis-test-journal--teardown)))
 
-(ert-deftest gnosis-test-journal-get--todos-keywords-after-pipe ()
-  "Keywords after pipe are not collected."
+(ert-deftest gnosis-test-journal-get--todos-only-configured-keywords ()
+  "Only configured keywords are collected."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let ((gnosis-journal-todo-keywords '("TODO" "|" "DONE" "CANCELLED"))
+      (let ((gnosis-journal-todo-keywords '("TODO"))
             (file (gnosis-test-journal--create-file
-                   "pipe.org"
-                   "#+title: Tasks\n\n* TODO Active\n\n* DONE Finished\n\n* CANCELLED Dropped\n")))
+                   "keywords.org"
+                   "#+title: Tasks\n\n* TODO Active\n\n* DONE Finished\n\n* NEXT Other\n")))
         (let ((todos (gnosis-journal-get--todos file)))
           (should (= 1 (length todos)))
           (should (string= "Active" (car (car todos))))))
     (gnosis-test-journal--teardown)))
 
 (ert-deftest gnosis-test-journal-get--todos-multiple-keywords ()
-  "NEXT keyword is collected when before the pipe."
+  "Multiple configured keywords are all collected."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let ((gnosis-journal-todo-keywords '("TODO" "NEXT" "|" "DONE"))
-            (org-todo-keywords '((sequence "TODO" "NEXT" "|" "DONE")))
+      (let ((gnosis-journal-todo-keywords '("TODO" "NEXT"))
             (file (gnosis-test-journal--create-file
                    "multi.org"
-                   "#+title: Tasks\n\n* TODO First\n\n* NEXT Second\n\n* DONE Third\n")))
+                   "#+title: Tasks\n#+todo: TODO NEXT | DONE\n\n* TODO First\n\n* NEXT Second\n\n* DONE Third\n")))
         (let ((todos (gnosis-journal-get--todos file)))
           (should (= 2 (length todos)))
           (should (string= "First" (car (nth 0 todos))))
@@ -132,7 +131,7 @@
   "TODOs from multiple files are combined."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let* ((gnosis-journal-todo-keywords '("TODO" "|" "DONE"))
+      (let* ((gnosis-journal-todo-keywords '("TODO"))
              (f1 (gnosis-test-journal--create-file
                   "file1.org" "#+title: F1\n\n* TODO Task A\n"))
              (f2 (gnosis-test-journal--create-file
@@ -145,14 +144,14 @@
 
 (ert-deftest gnosis-test-journal-get-todos-empty-list ()
   "Empty file list returns nil."
-  (let ((gnosis-journal-todo-keywords '("TODO" "|" "DONE")))
+  (let ((gnosis-journal-todo-keywords '("TODO")))
     (should (null (gnosis-journal-get-todos '())))))
 
 (ert-deftest gnosis-test-journal-get-todos-mixed-files ()
   "Only TODO items are collected across files."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let* ((gnosis-journal-todo-keywords '("TODO" "|" "DONE"))
+      (let* ((gnosis-journal-todo-keywords '("TODO"))
              (f1 (gnosis-test-journal--create-file
                   "has-todo.org" "#+title: F1\n\n* TODO Task A\n"))
              (f2 (gnosis-test-journal--create-file
@@ -168,7 +167,7 @@
   "TODOs are formatted as checkboxes."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let* ((gnosis-journal-todo-keywords '("TODO" "|" "DONE"))
+      (let* ((gnosis-journal-todo-keywords '("TODO"))
              (gnosis-journal-bullet-point-char "+")
              (f (gnosis-test-journal--create-file
                  "todos.org" "#+title: T\n\n* TODO Unscheduled task\n"))
@@ -181,7 +180,7 @@
   "Only today-scheduled or unscheduled TODOs are included."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let* ((gnosis-journal-todo-keywords '("TODO" "|" "DONE"))
+      (let* ((gnosis-journal-todo-keywords '("TODO"))
              (gnosis-journal-bullet-point-char "+")
              (today (format-time-string "%Y-%m-%d"))
              (f (gnosis-test-journal--create-file
@@ -199,7 +198,7 @@
   "No TODOs returns empty string."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let* ((gnosis-journal-todo-keywords '("TODO" "|" "DONE"))
+      (let* ((gnosis-journal-todo-keywords '("TODO"))
              (f (gnosis-test-journal--create-file
                  "empty.org" "#+title: T\n\n* DONE Already done\n"))
              (gnosis-journal-todo-files (list f)))
@@ -210,7 +209,7 @@
   "Custom bullet point character is used."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let* ((gnosis-journal-todo-keywords '("TODO" "|" "DONE"))
+      (let* ((gnosis-journal-todo-keywords '("TODO"))
              (gnosis-journal-bullet-point-char "-")
              (f (gnosis-test-journal--create-file
                  "todos.org" "#+title: T\n\n* TODO My task\n"))
@@ -387,7 +386,7 @@
   "Checked items in journal mark source TODOs as done."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let* ((gnosis-journal-todo-keywords '("TODO" "|" "DONE"))
+      (let* ((gnosis-journal-todo-keywords '("TODO"))
              (gnosis-journal-file nil)
              (todo-file (gnosis-test-journal--create-file
                          "tasks.org"
@@ -407,7 +406,7 @@
   "Single-file journal scopes checked items to today's heading only."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let* ((gnosis-journal-todo-keywords '("TODO" "|" "DONE"))
+      (let* ((gnosis-journal-todo-keywords '("TODO"))
              (today (format-time-string "%Y-%m-%d"))
              (journal-file (gnosis-test-journal--create-file
                             "journal.org"
@@ -430,7 +429,7 @@
   "Previous date checked items do NOT mark TODOs as done."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let* ((gnosis-journal-todo-keywords '("TODO" "|" "DONE"))
+      (let* ((gnosis-journal-todo-keywords '("TODO"))
              (today (format-time-string "%Y-%m-%d"))
              (journal-file (gnosis-test-journal--create-file
                             "journal.org"
@@ -453,7 +452,7 @@
   "No today heading in single-file journal marks nothing."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let* ((gnosis-journal-todo-keywords '("TODO" "|" "DONE"))
+      (let* ((gnosis-journal-todo-keywords '("TODO"))
              (journal-file (gnosis-test-journal--create-file
                             "journal.org"
                             "#+title: Journal\n\n* 2020-01-01\n+ [X] OldTask\n"))
@@ -472,7 +471,7 @@
   "Separate-file mode processes all checked items."
   (gnosis-test-journal--setup)
   (unwind-protect
-      (let* ((gnosis-journal-todo-keywords '("TODO" "|" "DONE"))
+      (let* ((gnosis-journal-todo-keywords '("TODO"))
              (gnosis-journal-file nil)
              (journal-file (gnosis-test-journal--create-file
                             "2026-03-07.org"

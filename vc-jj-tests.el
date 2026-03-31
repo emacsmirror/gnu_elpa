@@ -193,14 +193,20 @@ Check the correctness of \"conflict\" file state reported by
              (vc-jj-dir-status-files repo '("file1") #'vc-jj-test--dir-status-files-update-function)
              '(("file1" conflict))))))
 
-;; TODO: Write a test for the following case: a file that is currently
-;; tracked is later ignored (added to .gitignore then "jj file untrack
-;; FILE").  Its state should be ignored, not removed
-
-;; TODO: Write a test that checks the FILES argument of
-;; `vc-jj-dir-status-files': if FILES is non-nil, it should report on
-;; all files listed, but if it is nil, it should report on files not
-;; in the up-to-date and ignored states
+(ert-deftest vc-jj-test-state-later-ignored ()
+  "Test when a tracked file is later ignored.
+In the revision where a file that was previously tracked is ignored and
+untracked, its state should be removed.  In the revisions after, its
+state should be ignored."
+  (vc-jj-test--with-repo repo
+    (write-region "" nil "file1")
+    (should (eq (vc-jj-state "file1") 'added))
+    (shell-command "jj new")
+    (shell-command "echo \"file1\" >> .gitignore")
+    (shell-command "jj file untrack \"file1\"")
+    (should (eq (vc-jj-state "file1") 'removed))
+    (shell-command "jj new")
+    (should (eq (vc-jj-state "file1") 'ignored))))
 
 (ert-deftest vc-jj-test-state-mixed ()
   "Test `vc-jj-dir-status-files' against a variety of VC states."
@@ -254,12 +260,7 @@ Check the correctness of \"conflict\" file state reported by
                  ("subdir/conflicted2.txt" conflict)
                  ("added.txt" added)
                  ("unconflicted.txt" up-to-date))))
-      (should (seq-set-equal-p
-               (vc-jj-dir-status-files (expand-file-name "subdir/" repo)
-                                       '("conflicted2.txt")
-                                       #'vc-jj-test--dir-status-files-update-function)
-               '(("conflicted2.txt" conflict))))
-
+      
       ;; Create a new commit, delete all files, then ignore a newly
       ;; added file
       (shell-command "jj new")
@@ -278,12 +279,7 @@ Check the correctness of \"conflict\" file state reported by
                  ("subdir/conflicted2.txt" removed)
                  ("added.txt" removed)
                  ("unconflicted.txt" removed)
-                 ("ignored.txt" ignored))))
-      (should (seq-set-equal-p
-               (vc-jj-dir-status-files (expand-file-name "subdir/" repo)
-                                       '("conflicted2.txt")
-                                       #'vc-jj-test--dir-status-files-update-function)
-               '(("conflicted.txt" removed)))))))
+                 ("ignored.txt" ignored)))))))
 
 (ert-deftest vc-jj-test-state-funky-filename ()
   "Test compatibility with unusual characters in file names.
@@ -306,6 +302,53 @@ https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/38."
              '(("TEST=TEST.txt" added)
                ("with'apostrophe.txt" added)
                ("with\"quotation.txt" added))))))
+
+(ert-deftest vc-jj-test-state-subdir ()
+  "Test `vc-jj-dir-status-files' with a subdirectory.
+Test when a repository subdirectory rather than repository root is
+passed to `vc-jj-dir-status-files'."
+  (vc-jj-test--with-repo repo
+    (shell-command "jj new 'root()'")
+    (write-region "" nil "root file.txt")
+    (shell-command "jj new")
+    (make-directory "subdir")
+    (write-region "" nil "subdir/subdir file.txt")
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo
+                                     '("root file.txt"
+                                       "subdir/subdir file.txt")
+                                     #'vc-jj-test--dir-status-files-update-function)
+             '(("root file.txt" up-to-date)
+               ("subdir/subdir file.txt" added))))
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files (expand-file-name "subdir" repo)
+                                     '("subdir file.txt")
+                                     #'vc-jj-test--dir-status-files-update-function)
+             '(("subdir file.txt" added))))))
+
+(ert-deftest vc-jj-test-state-unspecified-files ()
+  "Test `vc-jj-dir-status-files' without specifying a list of files.
+Test when `vc-jj-dir-status-files' is not passed a list of files.  In
+such cases, only files not in the up-to-date or ignored states will be
+reported."
+  (vc-jj-test--with-repo repo
+    (shell-command "jj new 'root()'")
+    (write-region "" nil "file1.txt")
+    (shell-command "jj new")
+    (make-directory "subdir")
+    (write-region "" nil "subdir/file2.txt")
+    (shell-command "echo \"ignored.txt\" >> .gitignore")
+    (write-region "" nil "ignored.txt")
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo nil
+                                     #'vc-jj-test--dir-status-files-update-function)
+             '(("subdir/file2.txt" added)
+               (".gitignore" added))))
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo nil
+                                     #'vc-jj-test--dir-status-files-update-function)
+             '(("subdir/file2.txt" added)
+               (".gitignore" added))))))
 
 (ert-deftest vc-jj-test-state-.git-deletion ()
   "Test `vc-jj-dir-status-files' after deleting .git in a colocated repository.

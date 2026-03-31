@@ -128,7 +128,8 @@ This avoids re-reading (and re-decrypting) files already open."
   (condition-case err
       (let* ((info (if buffer
 		      (with-temp-buffer
-			(insert-buffer-substring buffer)
+			(insert (with-current-buffer buffer
+				  (save-restriction (widen) (buffer-string))))
 			(gnosis-org-get-buffer-info))
 		    (gnosis-org-get-file-info file)))
 	     (hash (car (last info)))

@@ -3,6 +3,17 @@
 + [[https://git.thanosapollo.org/gnosis/][Upstream]]
 + [[https://thanosapollo.org/log/gnosis/][Changelog]]
 
+* 0.10.2
+#+date: 2026/03/31
+
+** Performance
++ Eliminate redundant GPG decryption on save for =.org.gpg= files.
++ Git operations (add, commit, push) are now fully async.
+
+** Other
++ ~gnosis-journal-todo-keywords~ defaults to =("TODO")= instead of
+  inheriting ~org-todo-keywords~.
+
 * 0.10.1
 #+date: 2026/03/26
 

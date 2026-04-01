@@ -7,7 +7,7 @@
 ;; Keywords: tools, accessibility
 ;; URL: https://gitlab.com/michelangelo-rodriguez/greader
 
-;; Version: 0.18.0
+;; Version: 0.19.0
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -53,11 +53,12 @@
 (defvar greader-auto-tired-mode)
 
 (require 'find-func)
-(defvar greader-auto-tired-timer nil)
-(defvar-local greader--auto-tired-buffer nil
-  "Buffer in which `greader-auto-tired-mode' was enabled.
-Used by `greader-auto-tired-callback' to operate in the correct buffer
-regardless of which buffer is current when the timer fires.")
+(defvar-local greader-auto-tired-timer nil)
+(defvar greader--auto-tired-buffer nil
+  "Obsolete.  Kept for compatibility only.")
+(make-obsolete-variable 'greader--auto-tired-buffer
+                        "the buffer is now passed directly to the timer callback."
+                        "0.19")
 (defvar-local greader-last-point nil)
 (defvar-local greader-tired-timer nil)
 (defvar-local greader--tired-pending nil
@@ -982,10 +983,10 @@ The original command is swallowed: only reading resumes."
   :lighter " ATrd"
   (if greader-auto-tired-mode
       (progn
-        (setq-local greader--auto-tired-buffer (current-buffer))
         (unless greader-tired-mode (greader-tired-mode 1))
         (setq-local greader-auto-tired-timer
-                    (run-at-time nil 1 #'greader-auto-tired-callback)))
+                    (run-at-time nil 1 #'greader-auto-tired-callback
+                                 (current-buffer))))
     (when greader-tired-mode (greader-tired-mode -1))
     (when (timerp greader-auto-tired-timer)
       (cancel-timer greader-auto-tired-timer))
@@ -1010,25 +1011,30 @@ Handles midnight-crossing intervals (e.g. 22:00 to 07:00)."
       (or (not (time-less-p now time1))
           (time-less-p now time2)))))
 
-(defun greader-auto-tired-callback ()
-  "Not documented, internal use."
-  (when (buffer-live-p greader--auto-tired-buffer)
-    (let ((background (not (eq greader--auto-tired-buffer (current-buffer)))))
-      (with-current-buffer greader--auto-tired-buffer
-        (let ((start (greader-convert-time greader-auto-tired-mode-time))
-              (end   (greader-convert-time greader-auto-tired-time-end)))
-          (when (and (greader-current-time-in-interval-p start end)
-                     (not greader-tired-mode))
-            (greader-tired-mode 1)
-            (when background
-              (message "greader-tired-mode enabled in buffer %s"
-                       (buffer-name))))
-          (when (and (not (greader-current-time-in-interval-p start end))
-                     greader-tired-mode)
-            (greader-tired-mode -1)
-            (when background
-              (message "greader-tired-mode disabled in buffer %s"
-                       (buffer-name)))))))))
+(defun greader-auto-tired-callback (buffer)
+  "Not documented, internal use.
+BUFFER is the buffer in which `greader-auto-tired-mode' was enabled."
+  (when (buffer-live-p buffer)
+    (let ((background (not (eq buffer (current-buffer)))))
+      (with-current-buffer buffer
+        (if (not greader-auto-tired-mode)
+            (when (timerp greader-auto-tired-timer)
+              (cancel-timer greader-auto-tired-timer)
+              (setq-local greader-auto-tired-timer nil))
+          (let ((start (greader-convert-time greader-auto-tired-mode-time))
+                (end   (greader-convert-time greader-auto-tired-time-end)))
+            (when (and (greader-current-time-in-interval-p start end)
+                       (not greader-tired-mode))
+              (greader-tired-mode 1)
+              (when background
+                (message "greader-tired-mode enabled in buffer %s"
+                         (buffer-name))))
+            (when (and (not (greader-current-time-in-interval-p start end))
+                       greader-tired-mode)
+              (greader-tired-mode -1)
+              (when background
+                (message "greader-tired-mode disabled in buffer %s"
+                         (buffer-name))))))))))
 
 (defun greader-set-rate (n)
   "Set rate in current buffer to tthe specified value in N.

@@ -802,13 +802,48 @@ parents.map(|c| concat(
 ;;;; unregister
 
 ;;;; checkin
+;; See also the related 'async-checkins' and 'checkin-patch' methods
 
 (defun vc-jj-checkin (files comment &optional _rev)
-  "Run \"jj commit\" with supplied FILES and COMMENT."
-  (let* ((comment (car (log-edit-extract-headers () comment)))
+  "Create a new change from FILES.
+Run \"jj commit\" on FILES with a change description provided in
+COMMENT.
+
+FILES is a list of repository files or subdirectories to check in.
+COMMENT is a change comment (i.e., the content of a log edit buffer,
+which contains all log edit headers).
+
+Also see the `vc-async-checkin' user option (available in Emacs 31),
+which, when non-nil, makes the jj command of this function run
+asynchronously."
+  (let* ((description
+          ;; 2026-04-05 TODO: We do not use any comment headers aside
+          ;; from the assumed "Summary" header.  If in the future
+          ;; vc-jj uses additional headers, then we will need to
+          ;; extract those headers from COMMENT.
+          (car (log-edit-extract-headers nil comment)))
          (args (append (vc-switches 'jj 'checkin)
                        (list "commit" "-m" comment))))
-    (apply #'vc-jj--command-dispatched nil 0 files args)))
+    (if (bound-and-true-p vc-async-checkin) ; Emacs 31 option
+        (let* ((root (vc-jj-root (car files)))
+               (buffer (format "*vc-jj : %s*" root))
+               (proc (apply #'vc-do-async-command ; Returns process object
+                            buffer root vc-jj-program
+                            (append (ensure-list vc-jj-global-switches)
+                                    args
+                                    (mapcar #'vc-jj--filename-to-fileset files)))))
+          ;; The following lines are in `vc-git--checkin', so we do
+          ;; the same
+          (set-process-query-on-exit-flag proc t)
+          (vc-wait-for-process-before-save proc "Finishing checking in files...")
+          (with-current-buffer buffer
+            (vc-run-delayed (vc-compilation-mode 'jj)))
+          (vc-set-async-update buffer)
+          ;; When `vc-async-checkin' is non-nil, `vc-checkin' expects
+          ;; this function to return a list whose car is 'async' and
+          ;; whose cdr is the jj process object
+          (list 'async proc))
+      (apply #'vc-jj--command-dispatched nil 0 files args))))
 
 ;;;; checkin-patch
 

@@ -416,6 +416,36 @@ the user.  See bug#52."
 
 ;;;; Checkin tests
 
+(ert-deftest vc-jj-test-checkin-sync-and-async ()
+  "Test the synchronous and asynchronous versions of `vc-jj-checkin'.
+Basic test that to check that `vc-jj-checkin' works both synchronously
+and asynchronously."
+  (vc-jj-test--with-repo repo
+    ;; Synchronous
+    (write-region "" nil "sync-file.txt")
+    (should (eq (vc-jj-state "sync-file.txt") 'added))
+    (let ((vc-async-checkin nil))
+      (let ((result (vc-jj-checkin (list "sync-file.txt") "Sync commit")))
+        (should (eq result 0))))
+    (should (eq (vc-jj-state "sync-file.txt") 'up-to-date))
+
+    ;; Async (when `vc-async-checkin' is non-nil; available only in
+    ;; Emacs 31+)
+    (when (boundp 'vc-async-checkin)
+      (write-region "" nil "async-file.txt")
+      (should (eq (vc-jj-state "async-file.txt") 'added))
+      (let ((vc-async-checkin t))
+        (let ((result (vc-jj-checkin (list "async-file.txt") "Async commit")))
+          ;; RESULT must be a list of the form (async PROCESS), where
+          ;; process is the process object
+          (should (eq (car result) 'async))
+          (should (processp (cadr result)))
+          ;; Wait for the process to finish
+          (let ((proc (cadr result)))
+            (while (process-live-p proc)
+              (accept-process-output proc 0.1)))))
+      (should (eq (vc-jj-state "async-file.txt") 'up-to-date)))))
+
 (ert-deftest vc-jj-test-checkin-directory ()
   "Test `vc-jj-checkin' for an entire directory.
 Test when a subdirectory path is passed to `vc-jj-checkin', rather than

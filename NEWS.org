@@ -8,6 +8,7 @@
 
 - Added support for ~vc-log-search~.
 - Added support for asynchronous ~vc-diff~.  (Supported only on Emacs >=31, which has the ~vc-allow-async-diff~ user option.)
+- Added support for asynchronous ~vc-checkin~, effecting ~vc-next-action~ when making commits.  (Supported only on Emacs >=31, which has the ~vc-async-checkin~ user option.)
 
 *** Changed
 

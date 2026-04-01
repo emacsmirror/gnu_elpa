@@ -131,6 +131,10 @@ msgid ""
 "Foundation, Inc.  @hfill Tel: +1 (617) 542-5942@* 31 Milk Street, # 960789 "
 "@hfill Fax: +1 (617) 542-2652@* Boston, MA 02196 USA"
 msgstr ""
+"GNU Press, @hfill @uref{https://www.fsf.org/licensing/gnu-press/}@* a "
+"division of the @hfill email: @email{sales@@fsf.org}@* Free Software "
+"Foundation, Inc.  @hfill Tel: +1 (617) 542-5942@* 31 Milk Street, # 960789 "
+"@hfill Fax: +1 (617) 542-2652@* Boston, MA 02196 USA"
 
 #. type: ifnottex
 #: emacs-lisp-intro.texi:127
@@ -450,7 +454,7 @@ msgstr "Woorden tellen in een @code{defun}."
 #: emacs-lisp-intro.texi:15699 emacs-lisp-intro.texi:15700
 #, no-wrap
 msgid "Readying a Graph"
-msgstr "Een grafiek klaarmaken"
+msgstr "Een grafiek voorbereiden"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:290
@@ -2777,7 +2781,7 @@ msgstr "Wil je naar een bestand kijken?"
 #: emacs-lisp-intro.texi:14649 emacs-lisp-intro.texi:14658
 #, no-wrap
 msgid "lengths-list-file"
-msgstr "lengths-list-file"
+msgstr "lengte-lijst-bestand"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:651 emacs-lisp-intro.texi:14136
@@ -21963,7 +21967,7 @@ msgid ""
 msgstr ""
 "(while @var{test-of-lijst-leeg-is}\n"
 "  @var{body}@dots{}\n"
-"  @var{set-lijst-op-cdr-van-lijst})\n"
+"  @var{zet-lijst-op-cdr-van-lijst})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10122
@@ -25615,7 +25619,7 @@ msgstr ""
 "Zoekopdrachten met reguliere expressies worden uitgebreid gebruikt in Emacs. "
 "De twee functies @code{forward-sentence} en @code{forward-paragraph} "
 "illustreren deze zoekopdrachten goed. Zij gebruiken reguliere expressies om "
-"uit te zoeken waarheen de point te bewegen. De uitdrukking ``reguliere "
+"uit te zoeken waarheen de point te verplaatsen. De uitdrukking ``reguliere "
 "expressie'' wordt vaak geschreven als ``regexp''."
 
 #. type: Plain text
@@ -27206,7 +27210,7 @@ msgstr ""
 "beweging. Het is een @code{while} loop dit zichzelf herhaalt zolang de waard "
 "van @code{arg} groter is dan nul. In de meest gebruikte manier van de "
 "functie is de waarde van het argument 1, en wordt de body van de "
-"@code{while} loop exact een keer geëvalueerd, en beweegt de cursor een "
+"@code{while} loop exact een keer geëvalueerd, en verplaatst de cursor een "
 "paragraaf voorwaarts."
 
 #. type: Plain text
@@ -28093,7 +28097,7 @@ msgid ""
 "``word'' if we use a regular expression search."
 msgstr ""
 "We zouden @code{(forward-word 1)} kunnen gebruiken om point woord "
-"voor woord voorwaarts te bewegen, maar het is makkelijker om te "
+"voor woord voorwaarts te verplaatsen, maar het is makkelijker om te "
 "kijken wat Emacs als ``woord'' identificeert, wanneer we een "
 "reguliere expressie zoekopdracht gebruiken."
 
@@ -29603,13 +29607,13 @@ msgstr ""
 #: emacs-lisp-intro.texi:14107 emacs-lisp-intro.texi:14316
 #, no-wrap
 msgid "Counting words in a @code{defun}"
-msgstr ""
+msgstr "Woorden tellen in een @code{defun}"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:14108
 #, no-wrap
 msgid "Word counting in a @code{defun}"
-msgstr ""
+msgstr "Woorden tellen in een @code{defun}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14117
@@ -29621,6 +29625,13 @@ msgid ""
 "the definition with the @kbd{C-M-h} (@code{mark-defun}) command, and then "
 "call @code{@value{COUNT-WORDS}}."
 msgstr ""
+"Ons volgende project is het tellen van het aantal woorden in een "
+"functiedefinitie. Het is duidelijk dat dit kan met een variant van "
+"@code{@value{TEL-WOORDEN}}. @xref{Woorden tellen, , Tellen via "
+"repetitie en regexps}. Wanneer we de woorden gaan tellen in éénn "
+"definitie, is het makkelijk genoeg om de definitie met het commando "
+"@kbd{C-M-h} (@code{mark-defun}) te markeren en dan "
+"@code{@value{TEL-WOORDEN}} aan te roepen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14124
@@ -29631,6 +29642,12 @@ msgid ""
 "symbols, how many contain 50 to 59 words or symbols, and so on.  I have "
 "often been curious how long a typical function is, and this will tell."
 msgstr ""
+"Ik ben echter meer ambitieus: ik wil de woorden en symbolen tellen "
+"in elke definitie in de Emacs broncode en dan een grafiek tonen die "
+"laat zien hoeveel functies er zijn van elke lengte: hoeveel bevatten "
+"40 tot 49 woorden of symbolen, hoeveel bevatten 50 tot 59 symbolen, "
+"enzovoorts. Ik ben vaak nieuwsgierig hoe lang een typische functie "
+"is, en dit gaat het vertellen."
 
 #. type: unnumberedsec
 #: emacs-lisp-intro.texi:14139 emacs-lisp-intro.texi:14140
@@ -29645,6 +29662,10 @@ msgid ""
 "numerous small steps, each of which we can take one at a time, the project "
 "becomes less fearsome.  Let us consider what the steps must be:"
 msgstr ""
+"In één zin beschreven lijkt dit histogram project ontmoedigend, maar "
+"opgedeeld in talrijke kleine stappen, die we een voor een kunnen "
+"zetten wordt dit project minder angstaanjagend. Laten we overwegen "
+"wat de stappen moeten zijn:"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:14152
@@ -29652,6 +29673,8 @@ msgid ""
 "First, write a function to count the words in one definition.  This includes "
 "the problem of handling symbols as well as words."
 msgstr ""
+"Ten eerste schrijf een functie die de woorden in één definitie telt. "
+"Dit bevat het probleem om zowel symbolen als woorden te behandelen."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:14157
@@ -29659,6 +29682,9 @@ msgid ""
 "Second, write a function to list the number of words in each function in a "
 "file.  This function can use the @code{count-words-in-defun} function."
 msgstr ""
+"Ten tweede schrijf een functie die het aantal woorden in elke "
+"functie in een bestand opsomt. Deze functie kan de functie "
+"@code{tel-woorden-in-defun} gebruiken."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:14163
@@ -29667,6 +29693,10 @@ msgid ""
 "of several files.  This entails automatically finding the various files, "
 "switching to them, and counting the words in the definitions within them."
 msgstr ""
+"Ten derde, schrijf een functie die het aantal woorden in elke "
+"functie in elk van een aantal bestanden opsomt. Dit bevat "
+"automatisch vinden van diverse bestanden, naar ze schakelen en de "
+"woorden in de definities in ze tellen."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:14168
@@ -29674,11 +29704,14 @@ msgid ""
 "Fourth, write a function to convert the list of numbers that we created in "
 "step three to a form that will be suitable for printing as a graph."
 msgstr ""
+"Ten vierde, schrijf een functie die de lijst met getallen die we in "
+"stap 3 hebben gemaakt omzet in een vorm die geschikt is om als "
+"grafiek te tonen."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:14171
 msgid "Fifth, write a function to print the results as a graph."
-msgstr ""
+msgstr "Ten vijfde, schrijf een functie die de resultaten als grafiek toont."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14175
@@ -29686,18 +29719,20 @@ msgid ""
 "This is quite a project! But if we take each step slowly, it will not be "
 "difficult."
 msgstr ""
+"Dit is een behoorlijk project! Maar als we elke stap langzaam doen, "
+"is het niet moeilijk."
 
 #. type: section
 #: emacs-lisp-intro.texi:14177
 #, no-wrap
 msgid "What to Count?"
-msgstr ""
+msgstr "Wat te tellen?"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:14178
 #, no-wrap
 msgid "Words and symbols in defun"
-msgstr ""
+msgstr "Woorden en symbolen in defun"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14191
@@ -29713,6 +29748,17 @@ msgid ""
 "symbol @samp{number} is repeated, so the definition contains a total of ten "
 "words and symbols."
 msgstr ""
+"Wanneer we beginnen met nadenken over hoe de woorden in een "
+"functiedefinitie te tellen, is de eerste vraag (of zou dat moeten "
+"zijn) wat gaan we tellen? Wanneer we over ``woorden'' spreken met "
+"betrekking tot een Lisp functiedefinitie, dan spreken we feitelijk "
+"grotendeels over symbolen. Bijvoorbeeld de volgende "
+"@code{vermenigvuldig-met-zeven} functie bevat vijf de symbolen "
+"@code{defun}, @code{vermenigvuldig-met-zeven}, @code{getal}, "
+"@code{*} en @code{7}. Daarnaast bevat het in de documentatiestring "
+"de vier woorden @samp{Vermenigvuldig}, @samp{GETAL}, @samp{met} en "
+"@samp{zeven}. Het woord @samp{getal} wordt herhaald, zodat de "
+"definitie in totaal tien woorden en symbolen bevat."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14206
@@ -29722,6 +29768,11 @@ msgid ""
 "find that @code{@value{COUNT-WORDS}} claims the definition has eleven words, "
 "not ten! Something is wrong!"
 msgstr ""
+"Als we echter de @code{vermenigvuldig-met-zeven} definitie met "
+"@kbd{C-M-h} (@code{mark-defun}) markeren en dan "
+"@code{@value{TEL-WOORDEN}} er op aanroepen, dan zien we dat "
+"@code{@value{TEL-WOORDEN}} zegt dat de definitie elf woorden bevat, "
+"niet tien! Er is duidelijk iets fout."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14213
@@ -29732,6 +29783,13 @@ msgid ""
 "interword spaces rather than intraword connectors: @samp{multiply-by-seven} "
 "is counted as if it were written @samp{multiply by seven}."
 msgstr ""
+"Het probleem is tweevoudig: @code{@value{TEL-WOORDEN}} telt niet de "
+"@samp{*} als woord en het telt het enkele symbool "
+"@code{vermenigvuldig-met-zeven} als drie woorden. De koppeltekens "
+"worden behandeld alsof het spaties tussen de woorden zijn in plaats "
+"van een verbinding tussen de woorden: "
+"@samp{vermenigvuldig-met-zeven} wordt geteld alsof er "
+"@samp{vermenigvuldig met zeven} staat."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14218
@@ -29740,12 +29798,16 @@ msgid ""
 "@code{@value{COUNT-WORDS}} definition that moves point forward word by "
 "word.  In the canonical version of @code{@value{COUNT-WORDS}}, the regexp is:"
 msgstr ""
+"De oorzaak van deze verwarring is de reguliere expressie "
+"zoekopdracht in de @code{@value{TEL-WOORDEN}} definitie die point "
+"woord voor woord voorwaarts verpaatst. In de oorspronkelijke versie "
+"van @code{@value{TEL-WOORDEN}} is de regexp: "
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:14221
 #, no-wrap
 msgid "\"\\\\w+\\\\W*\"\n"
-msgstr ""
+msgstr "\"\\\\w+\\\\W*\"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14229
@@ -29755,18 +29817,23 @@ msgid ""
 "constituents.  What is meant by ``word constituent characters'' brings us to "
 "the issue of syntax, which is worth a section of its own."
 msgstr ""
+"Deze reguliere expressie is een patroon dat een of meer "
+"woord-vormende letters mogelijk gevolgd door een of meer niet "
+"woord-vormende letters definieert. Wat bedoeld wordt met "
+"``woord-vormende letters'' brengt ons bij het probleem van de "
+"syntax, wat een aparte sectie waard is."
 
 #. type: section
 #: emacs-lisp-intro.texi:14231
 #, no-wrap
 msgid "What Constitutes a Word or Symbol?"
-msgstr ""
+msgstr "Wat vormt een woord of symbool?"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:14232
 #, no-wrap
 msgid "Syntax categories and tables"
-msgstr ""
+msgstr "Syntax categorieën en tabellen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14243
@@ -29780,6 +29847,15 @@ msgid ""
 "space and the tab character.  (For more information, @pxref{Syntax Tables, , "
 "Syntax Tables, elisp, The GNU Emacs Lisp Reference Manual}.)"
 msgstr ""
+"Emacs behandelt verschillende karakters als behorend bij verschillende "
+"@dfn{syntax categorieën}. De reguliere expressie @samp{\\\\w+} "
+"bijvoorbeeld is ene patroon dat een of meer woord-vormende karakters "
+"specificeert. Woord-vormende karakters zijn leden van een syntax "
+"categorie. Andere syntax categorieën bevatten de klasse van "
+"leestekens, zoals de punt en komma, en de klasse witte ruimte "
+"karakters zoals de spatie en het tab-karakter. (Voor meer informatie "
+"@pxref{Syntax Tables, , Syntax Tables, elisp, The GNU Emacs Lisp "
+"Reference Manual}.))"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14251
@@ -29791,6 +29867,15 @@ msgid ""
 "treats it in the same way it treats an interword white space, which is why "
 "@code{@value{COUNT-WORDS}} counts @samp{multiply-by-seven} as three words."
 msgstr ""
+"Syntax tabellen specificeren welke karakters tot welke categorie "
+"behoren. Meestal is een koppelteken niet gespecificeerd als een "
+"woord-vormend karakter. In plaats daarvan is het gespecificeerd als "
+"onderdeel van de klasse van karakters die deel zijn van symboolnamen "
+"maar niet woorden. Dit betekent dat de functie "
+"@code{@value{TEL-WOORDEN}} het op dezelfde manier behandelt als het "
+"spaties tussen woorden behandelt en dat is waarom "
+"@code{@value{TEL-WOORDEN}} @samp{vermenigvuldig-met-zeven} als drie "
+"woorden telt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14254
@@ -29798,6 +29883,9 @@ msgid ""
 "There are two ways to cause Emacs to count @samp{multiply-by-seven} as one "
 "symbol: modify the syntax table or modify the regular expression."
 msgstr ""
+"Er zijn twee manieren die zorgen dat @samp{vermenigvuldig-met-zeven} "
+"als één symbool telt: de syntax tabel aanpassen of de reguliere "
+"expressie aanpassen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14260
@@ -29808,6 +29896,11 @@ msgid ""
 "symbols that is not typically a word constituent character; there are "
 "others, too."
 msgstr ""
+"We kunnen een koppelteken als woord-vormend karakter herdefiniëren "
+"door de syntax tabel aan te passen die Emacs voor elke mode "
+"bijhoudt. Deze actie zou ons doel dienen, behalve dat een "
+"koppelteken slechts een veel gebruikt karakter binnen symbolen is "
+"dat niet typisch een woord-vormend karakter is, er zijn er ook andere."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14264
@@ -29816,6 +29909,10 @@ msgid ""
 "WORDS}} definition so as to include symbols.  This procedure has the merit "
 "of clarity, but the task is a little tricky."
 msgstr ""
+"We kunnen ook de regexp herdefiniëren die wordt gebruikt in de "
+"@code{@value{TEL-WOORDEN}} zodat die ook symbolen bevat. Deze "
+"methode heeft de waarde van duidelijkheid maar die taak is een "
+"beetje lastig."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14268
@@ -29823,12 +29920,14 @@ msgid ""
 "The first part is simple enough: the pattern must match at least one "
 "character that is a word or symbol constituent.  Thus:"
 msgstr ""
+"Het eerste deel eenvoudig genoeg: het patroon moet minstens één "
+"karakter matchen dat een woord of symbool vormt. Dus:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:14271
 #, no-wrap
 msgid "\"\\\\(\\\\w\\\\|\\\\s_\\\\)+\"\n"
-msgstr ""
+msgstr "\"\\\\(\\\\w\\\\|\\\\s_\\\\)+\"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14281
@@ -29841,6 +29940,13 @@ msgid ""
 "indicates that the word or symbol constituent characters must be matched at "
 "least once."
 msgstr ""
+"De @samp{\\\\(} is het eerste van de groeperende constructie  die "
+"de @samp{\\\\w} en de @samp{\\\\s_} als alternatieven bevat, geschieden "
+"door de @samp{\\\\|}. De @samp{\\\\w} matcht elk woord-vormend karakter en "
+"e @samp{\\\\s_} matcht elke karakter dat onderdeel is van een symboolnaam "
+"maar geen woord-vormend karakter is. De @samp{+} die op de groep volgt "
+"geeft aan dat het woord- of symboolvormend karakter tenminste eenmaal "
+"moet worden gematcht.x"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14286
@@ -29850,12 +29956,16 @@ msgid ""
 "are not constituents of a word or symbol.  At first, I thought I could "
 "define this with the following:"
 msgstr ""
+"Het tweede van de regexp is echter moeilijker te maken. Wat we "
+"willen is het eerste deel op te volgen met optioneel een of meer "
+"karakters die geen woord of symbool vormen. In eerste instantie "
+"dacht ik dat ik dit met het volgende kon doen: "
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:14289
 #, no-wrap
 msgid "\"\\\\(\\\\W\\\\|\\\\S_\\\\)*\"\n"
-msgstr ""
+msgstr "\"\\\\(\\\\W\\\\|\\\\S_\\\\)*\"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14296
@@ -29865,6 +29975,10 @@ msgid ""
 "character that is either not a word constituent or not a symbol "
 "constituent.  This matches any character!"
 msgstr ""
+"De hoofdletters @samp{W} en @samp{S} matchen karakters die GEEN "
+"woord- of symbool vormen. Helaas matcht deze expressie elke karakter "
+"dat of niet woord-vormend of niet symbool-vormend is. Het matcht elk "
+"karakter!"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14306
@@ -29878,23 +29992,33 @@ msgid ""
 "the word or symbol constituents are followed optionally by characters that "
 "are not white space and then followed optionally by white space."
 msgstr ""
+"Daarna merkte ik op dat elk woord of symbool in mijn test-region "
+"wordt gevold door witte ruimte (spatie, tab of nieuwe regel). Daarom "
+"probeerde een patroon dat een of meer spaties matcht achter het "
+"patroon voor een of meer woord- of symboolvormende karakters te "
+"plaatsten. Dit mislukte ook. Woorden en symbolen zijn vaak "
+"gescheiden door witte ruimte, maar in de code mogen haakjes op "
+"symbolen volgen en leestekens op woorden. Daarom maakte uiteindelijk "
+"ene patroon waarin woord- of symboolvormende karakters worden "
+"gevolgd door optionele karakters die geen witten ruimte zijn en dan "
+"optioneel gevold door witte ruimte."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14309
 msgid "Here is the full regular expression:"
-msgstr ""
+msgstr "Hier is de volledige reguliere expressie:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:14312
 #, no-wrap
 msgid "\"\\\\(\\\\w\\\\|\\\\s_\\\\)+[^ \\t\\n]*[ \\t\\n]*\"\n"
-msgstr ""
+msgstr "\"\\\\(\\\\w\\\\|\\\\s_\\\\)+[^ \\t\\n]*[ \\t\\n]*\"\n"
 
 #. type: section
 #: emacs-lisp-intro.texi:14315
 #, no-wrap
 msgid "The @code{count-words-in-defun} Function"
-msgstr ""
+msgstr "De @code{tel-woorden-in-defun} functie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14322
@@ -29903,6 +30027,10 @@ msgid ""
 "region} function.  To write a @code{count-words-in-defun}, we need merely "
 "adapt one of these versions."
 msgstr ""
+"We hebben gezien dat er verschillende manieren zijn om een functie "
+"@code{tel-woorden-region} te schrijven. Om een "
+"@code{tel-woorden-in-defun} te schrijven, hoeven we slechts een van "
+"die versies aan te passen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14328
@@ -29913,6 +30041,12 @@ msgid ""
 "message but just return the count.  These considerations simplify the "
 "definition a little."
 msgstr ""
+"De versie die een @code{while} loop gebruikt is makkelijk te "
+"begrijpen, daarom ga ik die aanpassen. Omdat "
+"@code{tel-woorden-in-defun} onderdeel wordt van een meer complex "
+"programma, hoeft het niet interactief te zijn en hoeft het geen "
+"boodschap te tonen, maar slecht de telling teruggeven. Deze "
+"overwegingen vereenvoudigen de definitie een beetje."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14336
@@ -29924,11 +30058,17 @@ msgid ""
 "This adds complexity to the definition, but saves us from needing to pass "
 "arguments to the function."
 msgstr ""
+"Anderzijds, @code{tel-woorden-in-defun} wordt gebruikt in een buffer "
+"dat functiedefinities bevat. Daarom is het redelijk te vragen dat de "
+"functie vaststelt of het wordt aangeroepen met point binnen een "
+"functiedefinitie, en zo ja, de telling voor die definitie terug te "
+"geven. Dit voegt complexiteit toe aan de definitie, maar redt ons "
+"van de noodzaak om argumenten aan de functie door te geven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14339
 msgid "These considerations lead us to prepare the following template:"
-msgstr ""
+msgstr "Deze overwegingen leiden ons tot het voorbereiden van het volgende sjabloon:"
 
 #. type: group
 #: emacs-lisp-intro.texi:14347
@@ -29940,16 +30080,21 @@ msgid ""
 "     (@var{while loop}@dots{})\n"
 "   @var{return count})\n"
 msgstr ""
+"(defun tel-woorden-in-defun ()\n"
+"  \"@var{documentatie}@dots{}\"\n"
+"  (@var{opzetten}@dots{}\n"
+"     (@var{while loop}@dots{})\n"
+"   @var{geef telling terug})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14352
 msgid "As usual, our job is to fill in the slots."
-msgstr ""
+msgstr "Zoals gebruikelijk is het onze taak de slots in te vullen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14354
 msgid "First, the set up."
-msgstr ""
+msgstr "Eerst het opzetten"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14361
@@ -29960,6 +30105,12 @@ msgid ""
 "to the beginning of the definition, a counter must start at zero, and the "
 "counting loop must stop when point reaches the end of the definition."
 msgstr ""
+"Wij gaan er van uit dat deze functie wordt aangeroepen binnen een buffer "
+"dat functiedefinities bevat. Point is in een functiedefinitie of niet. "
+"Om @code{tel-woorden-in-defun} te laten werken moet point naar het "
+"begin van de definitie verplaatsen, een teller moet bij nul beginnen en "
+"de tellende loop moet stoppen wanneer point het einde van de definitie "
+"bereikt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14369
@@ -29971,6 +30122,14 @@ msgid ""
 "or preceding function definition, or else to the beginning of the buffer.  "
 "We can use @code{beginning-of-defun} to place point where we wish to start."
 msgstr ""
+"De functie @code{beginning-of-defun} zoekt achterwaarts naar een "
+"openingsscheidingsteken zoals een @samp{(} aan het begin van de "
+"regel en verplaatst point naar die positie of anders naar de "
+"begrenzing van de zoekopdracht. In de praktijk betekent dit dat "
+"@code{beginning-of-defun} pint naar het begin van een buitenliggende of "
+"voorgaande functiedefinitie verplaatst, of anders naar het begin van "
+"het buffer. De kunnen @code{beginning-of-defun} gebruiken om de point "
+"daar neer te zetten waar wij willen beginnen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14373
@@ -29979,6 +30138,10 @@ msgid ""
 "symbols being counted.  A @code{let} expression can be used to create a "
 "local variable for this purpose, and bind it to an initial value of zero."
 msgstr ""
+"De @code{while} loop vereist een teller om het aantal getelde "
+"woorden of symbolen bij te houden. Een @code{let} expressie kan "
+"worden gebruikt om een lokale variabele voor dit doel te maken en te "
+"binnen aan een initiële waarde van nul."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14378
@@ -29988,6 +30151,10 @@ msgid ""
 "be used as part of an expression that determines the position of the end of "
 "the definition."
 msgstr ""
+"De functie @code{end-of-defun} werkt net als de @code{beginning-of-defun} "
+"behalve dat het point naar het einde van de definitie verplaatst. "
+"@code{end-of-defun} kan worden gebruikt als onderdeel van een expressie "
+"die de positie van het einde van de definitie vaststelt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14384
@@ -29997,6 +30164,12 @@ msgid ""
 "variable to hold the count, and finally, we record the position of the end "
 "of the definition so the @code{while} loop will know when to stop looping."
 msgstr ""
+"Het opzetten van de @code{tel-woorden-in-defun} begint al snel vorm "
+"te krijgen: eerst verplaatsten we point naar het begin van de "
+"definitie, vervolgens maken we een lokale variable die telling "
+"bewaart en tenslotte registeren we de positie van het einde van de "
+"definitie zodat de @code{while} loop weet wanneer te stoppen met "
+"loopen."
 
 #. type: group
 #: emacs-lisp-intro.texi:14393
@@ -30006,6 +30179,9 @@ msgid ""
 "(let ((count 0)\n"
 "      (end (save-excursion (end-of-defun) (point))))\n"
 msgstr ""
+"(beginning-of-defun)\n"
+"(let ((telling 0)\n"
+"      (einde (save-excursion (end-of-defun) (point))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14402
@@ -30015,6 +30191,11 @@ msgid ""
 "@code{save-excursion} expression that returns the value of point after "
 "@code{end-of-defun} temporarily moves it to the end of the definition."
 msgstr ""
+"De code is eenvoudig. De enige kleine complicatie zal waarschijnlijk "
+"betrekking hebben op @code{einde}: het is gebonden aan de positie "
+"van het einde van de definitie door een @code{save-excursion} "
+"expressie die de waarde van point na @code{end-of-defun} "
+"tijdelijk verplaatst naar het einde van de definitie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14405
@@ -30022,6 +30203,8 @@ msgid ""
 "The second part of the @code{count-words-in-defun}, after the set up, is the "
 "@code{while} loop."
 msgstr ""
+"Het tweede deel van de @code{tel-woorden-in-defun}, na het opzetten, "
+"is de @code{while} loop."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14412
@@ -30033,6 +30216,13 @@ msgid ""
 "definition.  We have already redefined the regular expression for this, so "
 "the loop is straightforward:"
 msgstr ""
+"De loop moet een expressie bevatten die point woord voor woord en "
+"symbool voor symbool voorwaarts laat springen, en een andere "
+"expressie die de sprongen telt. De waar-of-onwaar-test voor de "
+"@code{while} loop moet op waar testen zolang als point voorwaarts "
+"moet springen, en op onwaar wanneer point aan het einde van de "
+"definitie is. We hebben hiervoor al een reguliere expressie "
+"aangepast, zodat de loop makkelijk is."
 
 #. type: group
 #: emacs-lisp-intro.texi:14419
@@ -30043,6 +30233,10 @@ msgid ""
 "             \"\\\\(\\\\w\\\\|\\\\s_\\\\)+[^ \\t\\n]*[ \\t\\n]*\" end t))\n"
 "  (setq count (1+ count)))\n"
 msgstr ""
+"(while (and (< (point) einde)\n"
+"            (re-search-forward\n"
+"             \"\\\\(\\\\w\\\\|\\\\s_\\\\)+[^ \\t\\n]*[ \\t\\n]*\" einde t))\n"
+"  (setq telling (1+ telling)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14426
@@ -30052,12 +30246,17 @@ msgid ""
 "expression, and can be, very simply, the local variable @code{count}, which "
 "when evaluated returns the count."
 msgstr ""
+"Het derde deel van de functiedefinitie geeft de telling van de "
+"woorden en symbolen terug. Dit deel is de laatste expressie in de "
+"body van de @code{let} en kan eenvoudigweg de lokale variabele "
+"@code{telling} zijn, die geëvalueerd de telling teruggeeft."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14429
 msgid ""
 "Put together, the @code{count-words-in-defun} definition looks like this:"
 msgstr ""
+"Samengevoegd ziet de @code{tel-woorden-in-defun} er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:14438 emacs-lisp-intro.texi:20928
@@ -30069,6 +30268,11 @@ msgid ""
 "  (let ((count 0)\n"
 "        (end (save-excursion (end-of-defun) (point))))\n"
 msgstr ""
+"(defun tel-woorden-in-defun ()\n"
+"  \"Geef het aantal woorden en symbolen in een defun terug.\"\n"
+"  (beginning-of-defun)\n"
+"  (let ((telling 0)\n"
+"        (einde (save-excursion (end-of-defun) (point))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:14447 emacs-lisp-intro.texi:20938
@@ -30082,6 +30286,13 @@ msgid ""
 "      (setq count (1+ count)))\n"
 "    count))\n"
 msgstr ""
+"    (while\n"
+"        (and (< (point) einde)\n"
+"             (re-search-forward\n"
+"              \"\\\\(\\\\w\\\\|\\\\s_\\\\)+[^ \\t\\n]*[ \\t\\n]*\"\n"
+"              einde t))\n"
+"      (setq telling (1+ telling)))\n"
+"    telling))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14454
@@ -30090,6 +30301,10 @@ msgid ""
 "wrapper around the function to make it interactive; we can use almost the "
 "same code as for the recursive version of @code{@value{COUNT-WORDS}}:"
 msgstr ""
+"Hoe dit te testen? De functie is niet interactief, maar het is "
+"makkelijk om een wrapper om de de functie te zetten die het "
+"interactief maakt. Wij kunnen bijna dezelfde code gebruiken als voor "
+"de recursieve versie van @code{@value{TEL-WOORDEN}}:"
 
 #. type: group
 #: emacs-lisp-intro.texi:14463
@@ -30102,6 +30317,12 @@ msgid ""
 "  (message\n"
 "   \"Counting words and symbols in function definition ... \")\n"
 msgstr ""
+";;; @r{Interactieve versie.}\n"
+"(defun tel-woorden-defun ()\n"
+"  \"Aantal woorden en symbolen in een functiedefinitie.\"\n"
+"  (interactive)\n"
+"  (message\n"
+"   \"Tel woorden en symbolen in functiedefinitie ... \")\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:14470
@@ -30113,6 +30334,11 @@ msgid ""
 "      (message\n"
 "       \"The definition does NOT have any words or symbols.\"))\n"
 msgstr ""
+"  (let ((telling (tel-woorden-in-defun)))\n"
+"    (cond\n"
+"     ((zerop telling)\n"
+"      (message\n"
+"       \"The definitie heeft GEEN woorden of symbolen.\"))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:14478
@@ -30125,17 +30351,23 @@ msgid ""
 "      (message\n"
 "       \"The definition has %d words or symbols.\" count)))))\n"
 msgstr ""
+"     ((= 1 telling)\n"
+"      (message\n"
+"       \"De definitie heeft 1 woord of symbool.\"))\n"
+"     (t\n"
+"      (message\n"
+"       \"The definitie heeft %d woorden of symbolen.\" telling)))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14484
 msgid "Let's reuse @kbd{C-c =} as a convenient key binding:"
-msgstr ""
+msgstr "Laten we @kbd{C-c =} hergebruiken als een handige keybinding:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:14487
 #, no-wrap
 msgid "(keymap-global-set \"C-c =\" 'count-words-defun)\n"
-msgstr ""
+msgstr "(keymap-global-set \"C-c =\" 'tel-woorden-defun)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14494
@@ -30146,6 +30378,11 @@ msgid ""
 "@file{*scratch*}), place the cursor within the definition, and use the "
 "@kbd{C-c =} command."
 msgstr ""
+"Nu kunnen we @code{tel-woorden-defun} uitproberen: installeer zowel "
+"@code{tel-woorden-in-defun} als @code{tel-woorden-defun} en zet de "
+"keybinding. Kopieer dat het volgende naar een Emacs Lisp buffer "
+"(zoals bijvoorbeeld @file{*scratch*}), plaats de cursor in de "
+"functie en gebruik het @kbd{C-c =} commando."
 
 #. type: group
 #: emacs-lisp-intro.texi:14501
@@ -30156,11 +30393,15 @@ msgid ""
 "  (* 7 number))\n"
 "     @result{} 10\n"
 msgstr ""
+"(defun vermenigvuldig-met-zeven (getal)\n"
+"  \"Vermenigvuldig GETAL met zeven.\"\n"
+"  (* 7 getal))\n"
+"     @result{} 10\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14506
 msgid "Success! The definition has 10 words and symbols."
-msgstr ""
+msgstr "Succes! De definitie heeft 10 woorden en symbolen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14509
@@ -30168,12 +30409,14 @@ msgid ""
 "The next problem is to count the numbers of words and symbols in several "
 "definitions within a single file."
 msgstr ""
+"Het volgende probleem is om het aantal woorden en symbolen in "
+"meerdere definities in een enkel bestand te tellen."
 
 #. type: section
 #: emacs-lisp-intro.texi:14511
 #, no-wrap
 msgid "Count Several @code{defuns} Within a File"
-msgstr ""
+msgstr "Tel verschillende @code{defuns} in een bestand"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14517
@@ -30183,6 +30426,10 @@ msgid ""
 "files, but as a first step, our immediate goal is to collect statistics on "
 "one file."
 msgstr ""
+"Een bestand zoals @file{simple.el} kan honderd of meer "
+"functiedefinities bevatten. Ons langetermijndoel is om statistieken "
+"over veel bestanden de verzamelen, maar als eerste stap is ons "
+"huidige doel om de statistieken over een bestand te verzamelen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14520
@@ -30190,6 +30437,8 @@ msgid ""
 "The information will be a series of numbers, each number being the length of "
 "a function definition.  We can store the numbers in a list."
 msgstr ""
+"De informatie bestaat uit een reeks getallen, elk getal is de lengte "
+"van een functiedefinitie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14526
@@ -30199,6 +30448,11 @@ msgid ""
 "counting definition lengths within one file need only return the list of "
 "lengths.  It need not and should not display any messages."
 msgstr ""
+"We weten dat we de informatie met betrekking tot een bestand willen "
+"incorporeren in de informatie van veel andere bestanden. Dit "
+"betekent dat de functie voor het tellen van definitie-lengtes binnen "
+"een bestand alleen een lijst met de lengtes hoeft terug te geven. "
+"Het hoeft geen boodschappen te tonen en moet dat ook niet doen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14532
@@ -30209,6 +30463,12 @@ msgid ""
 "expression to jump point forward definition by definition and another "
 "expression to construct the lengths' list."
 msgstr ""
+"Het woord-tel commando bevat een expressie die point woord voor "
+"woord voorwaarts laat springen en een andere die de sprongen telt. "
+"De functie die de lengtes van de definities teruggeeft kan op een "
+"vergelijkbare manier gemaakt worden, met een expressie die point "
+"definitie voor definitie voorwaarts springt en een andere expressie "
+"die de lijst met lengtes construeert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14543
@@ -30223,11 +30483,22 @@ msgid ""
 "@code{cons}, the list construction command, can be used to create the list.  "
 "That is almost all there is to it."
 msgstr ""
+"Deze formulering van het probleem maakt het eenvoudig om de "
+"functiedefinitie te schrijven. We beginnen de telling aan het begin "
+"van het bestand, dus het eerste commando wordt @code{(goto-char "
+"(point-min))}. Vervolgens starten we de @code{while} loop. De "
+"waar-of-onwaar-test van de loop kan een reguliere expressie zijn die "
+"zoekt naar de volgende functiedefinitie---zolang de zoekopdracht "
+"slaagt, wordt point voorwaarts verplaatst en de body van de loop "
+"geëvalueerd. De body heeft een expressie nodig die de lijst met "
+"lengtes maakt. @code{cons}, het lijst-constructie commando kan "
+"gebruikt worden om de lijst te maken. Dat is bijna alles wat er te "
+"zeggen is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14546
 msgid "Here is what this fragment of code looks like:"
-msgstr ""
+msgstr "Hier is hoe dit codefragment er uit ziet:"
 
 #. type: group
 #: emacs-lisp-intro.texi:14553
@@ -30238,6 +30509,10 @@ msgid ""
 "  (setq lengths-list\n"
 "        (cons (count-words-in-defun) lengths-list)))\n"
 msgstr ""
+"(goto-char (point-min))\n"
+"(while (re-search-forward \"^(defun\" nil t)\n"
+"  (setq lengtes-lijst\n"
+"        (cons (count-words-in-defun) lengtes-lijst)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14558
@@ -30245,6 +30520,8 @@ msgid ""
 "What we have left out is the mechanism for finding the file that contains "
 "the function definitions."
 msgstr ""
+"Wat we overgeslagen hebben is het mechanisme om het bestanden te "
+"vinden dat de functiedefinities bevat."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14562
@@ -30252,11 +30529,14 @@ msgid ""
 "In previous examples, we either used this, the Info file, or we switched "
 "back and forth to some other buffer, such as the @file{*scratch*} buffer."
 msgstr ""
+"In de voorgaande voorbeelden gebruikten we of dit, het Info bestand, "
+"of we schakelden heen en weer naar een ander buffer, zoals het "
+"@file{*scratch*} buffer."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14564
 msgid "Finding a file is a new process that we have not yet discussed."
-msgstr ""
+msgstr "Een bestand vinden is een nieuw proces dat we nog niet eerder besproken hebben."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14572
@@ -30265,11 +30545,14 @@ msgid ""
 "command.  This command is almost, but not quite right for the lengths "
 "problem."
 msgstr ""
+"Om in Emacs een bestand te vinden, gebruik je het @kbd{C-x C-f} "
+"(@code{find-file}) commando. Dit commando is bijna, maar niet "
+"helemaal geschikt voor het lengte probleem."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14575
 msgid "Let's look at the source for @code{find-file}:"
-msgstr ""
+msgstr "Laten we naar de broncode van @code{find-file} kijken:"
 
 #. type: group
 #: emacs-lisp-intro.texi:14584
@@ -30282,6 +30565,12 @@ msgid ""
 "  (interactive \"FFind file: \")\n"
 "  (switch-to-buffer (find-file-noselect filename)))\n"
 msgstr ""
+"(defun find-file (filename)\n"
+"  \"Edit file FILENAME.\n"
+"Switch to a buffer visiting file FILENAME,\n"
+"creating one if none already exists.\"\n"
+"  (interactive \"FFind file: \")\n"
+"  (switch-to-buffer (find-file-noselect filename)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14594
@@ -30292,6 +30581,12 @@ msgid ""
 "relevant.  You can see its source using either @kbd{M-.} (@code{xref-find-"
 "definitions}) or @kbd{C-h f} (@code{describe-function}).)"
 msgstr ""
+"(De meest recente versie van de @code{find-file} functiedefinitie "
+"staat je toe dat je optionele wildcards specificeert om meerder "
+"files te bezoeken. Dat maakt de definitie meer complex en dat "
+"bespreken we hier niet, omdat het niet relevant is. Je kunt de "
+"broncode zien met hetzij @kbd{M-.} (@code{xref-find-definitions}) "
+"or @kbd{C-h f} (@code{describe-function}).)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14623
@@ -30301,6 +30596,11 @@ msgid ""
 "the command interactively.  The body of the definition contains two "
 "functions, @code{find-file-noselect} and @code{switch-to-buffer}."
 msgstr ""
+"De definitie die ik laat zien bevat een korte maar complete "
+"documentatie en een interactieve specificatie die je naar een "
+"bestandsnaam vraagt wanneer je het commando interactief gebruikt. De "
+"body van de definitie bevat twee functies, @code{find-file-noselect} "
+"en @code{switch-to-buffer}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14630
@@ -30312,6 +30612,13 @@ msgid ""
 "read a file literally and another to suppress warning messages.  These "
 "optional arguments are irrelevant.)"
 msgstr ""
+"Volgens de documentatiestring die getoond wordt met @kbd{C-h f} (het "
+"@code{describe-function} commando), leest de functie "
+"@code{find-file-noselect} het genoemde bestand in in een buffer en "
+"geeft het buffer terug. (De meest recente versie bevat eveneens een "
+"optioneel @var{wildcards} argument, naast een ander om het bestand "
+"letterlijk te lezen en een ander om foutmeldingen te onderdrukken. "
+"Deze optionele argumenten zijn irrelevant.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14638
@@ -30324,6 +30631,14 @@ msgid ""
 "the new buffer.  We have discussed buffer switching elsewhere.  "
 "(@xref{Switching Buffers}.)"
 msgstr ""
+"De functie @code{find-file-noselect} selecteert echter geen buffer "
+"om het bestand in te stoppen. Emacs schakelt zijn aandacht (of de "
+"jouwe als je met @code{find-file-noselect}) niet naar het "
+"geselecteerde buffer. Dat is wat @code{switch-to-buffer} doet: het "
+"schakelt het buffer naar waar Emacs aandacht is gericht, en het "
+"schakelt het getoonde buffer in het window naar het nieuwe buffer. "
+"We hebben schakelen van buffers eerder besproken (@xref{Van buffer "
+"verwisselen}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14646
@@ -30335,17 +30650,24 @@ msgid ""
 "but does not redisplay it on the screen.  So instead of calling on "
 "@code{find-file} to do the job, we must write our own expression."
 msgstr ""
+"In het histogram-project hoeven we niet elk bestand op het scherm te "
+"tonen wanneer het programma de lengte van elke defintie er in "
+"vaststelt. In plaats van @code{switch-to-buffer} te gebruiken kunnen "
+"we werken met @code{set-buffer}, wat de aandacht van het "
+"computerprogramma naar een ander buffer herleidt maar vervangt niet "
+"het scherm. Daarom moeten we in plaats van @code{find-file} aan te "
+"roepen om het werk te doen onze expressie zelf schrijven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14648
 msgid "The task is easy: use @code{find-file-noselect} and @code{set-buffer}."
-msgstr ""
+msgstr "De taak is makkelijk: gebruik  @code{find-file-noselect} en @code{set-buffer}."
 
 #. type: section
 #: emacs-lisp-intro.texi:14650
 #, no-wrap
 msgid "@code{lengths-list-file} in Detail"
-msgstr ""
+msgstr "@code{lengte-lijst-bestand} in detail"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14658
@@ -30357,6 +30679,13 @@ msgid ""
 "file, and ensuring that point starts out at the beginning of the file.  The "
 "function definition looks like this:"
 msgstr ""
+"De kern van de functie @code{lengte-lijst-bestand} is een "
+"@code{while} loop dat een functie bevat om point defun voor defun "
+"voorwaarts te verplaatsen en een functie om het aantal woorden en "
+"symbolen in elke defun te tellen. Deze kern moet worden omgeven door "
+"functie die verschillende andere taken doen, waaronder het bestand "
+"vinden en zorgen dat point start vanaf het begin van het bestand. De "
+"functiedefinitie ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:14667 emacs-lisp-intro.texi:20948
@@ -30368,6 +30697,11 @@ msgid ""
 "Each number is the number of words or\n"
 "symbols in one function definition.\"\n"
 msgstr ""
+"(defun lengte-lijst-bestand (bestandsnaam)\n"
+"  \"Geef een lijst terug met definitielengtes in BESTANDSNAAM.\n"
+"De teruggeven lijst is een lijst van getallen.\n"
+"Elk getal is een het aahtal woorden of symbolen\n"
+"in een functiedefinitie.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:14682
@@ -30387,6 +30721,19 @@ msgid ""
 "      (kill-buffer buffer)\n"
 "      lengths-list)))\n"
 msgstr ""
+"  (message \"Werkt aan `%s' ... \" bestandsnaam)\n"
+"  (save-excursion\n"
+"    (let ((buffer (find-file-noselect bestandsnaam))\n"
+"          (lengte-lijst))\n"
+"      (set-buffer buffer)\n"
+"      (setq buffer-read-only t)\n"
+"      (widen)\n"
+"      (goto-char (point-min))\n"
+"      (while (re-search-forward \"^(defun\" nil t)\n"
+"        (setq lengte-lijst\n"
+"              (cons (tel-woorden-in-defun) lengte-lijst)))\n"
+"      (kill-buffer buffer)\n"
+"      lengte-lijst)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14691
@@ -30396,6 +30743,11 @@ msgid ""
 "specification.  Since people worry that a computer is broken if they don't "
 "see anything going on, the first line of the body is a message."
 msgstr ""
+"De functie krijgt één argument doorgegeven, de naam van het bestand "
+"waarop het gaat werken. Het heeft vier regels documentatie maar geen "
+"interactieve specificatie. Omdat mensen bang zijn dat de computer "
+"kapot is wanneer ze niets zien gebeuren, bevat de eerste regel van "
+"de body een boodschap."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14696
@@ -30405,6 +30757,10 @@ msgid ""
 "in case you embed this function in another function that presumes point is "
 "restored to the original buffer."
 msgstr ""
+"De volgende regel bevat een @code{save-excursion} die Emacs aandacht "
+"terugbrengt bij het huidige buffer wanneer de functie klaar is. Dit "
+"is nuttig wanneer je de functie in een andere functie inbed, die "
+"verwacht dat point wordt hersteld naar het oorspronkelijke buffer."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14701
@@ -30413,11 +30769,15 @@ msgid ""
 "the local variable @code{buffer} to the buffer containing the file.  At the "
 "same time, Emacs creates @code{lengths-list} as a local variable."
 msgstr ""
+"In de varlist van de @code{let} expressie vindt Emacs het bestand en "
+"bindt de lokale variabele @code{buffer} aan het buffer dat het "
+"bestand bevat. Tegelijkertijd maakt Emacs @code{lengte-lijst} als "
+"lokale variabele."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14703
 msgid "Next, Emacs switches its attention to the buffer."
-msgstr ""
+msgstr "Vervolgens schakelt Emacs de aandacht naar het buffer."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14714
@@ -30432,6 +30792,17 @@ msgid ""
 "without saying that I did not realize a need for this line until an "
 "experiment went awry and started to modify my Emacs source files @dots{}"
 msgstr ""
+"In de volgende regel maakt Emacs het buffer read-only. In het ideale "
+"geval is deze regel niet nodig. Geen van de functies om woorden en "
+"symbolen te tellen zou het buffer moeten veranderen. En daarnaast "
+"wordt het buffer niet gesaved zelf wanneer het is gewijzigd. Deze "
+"regel is geheel het gevolg van de een grote, misschien overdreven, "
+"voorzichtigheid. De reden voor deze voorzichtigheid is dat de "
+"functie en de functies die het aanroept werken op de broncode van "
+"Emacs en het is ongemakkelijk wanneer die per ongeluk worden "
+"gewijzigd. Het spreekt voor zich dat ik de noodzaak voor deze regel "
+"niet realiseerde totdat een experiment misging en mijn Emacs "
+"broncode begon te wijzigen @dots{}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14722
@@ -30443,6 +30814,13 @@ msgid ""
 "be fully user-friendly, we would arrange to save the restriction and the "
 "location of point, but we won't."
 msgstr ""
+"Hierna komt de aanroep om het buffer te verbreden wanneer het is "
+"versmald. Deze functie is meestal niet nodig---Emacs maakt een vers "
+"buffer wanneer er niet al een bestaat, maar wanneer er al een buffer "
+"het bestand bezoekt kan het versmald zijn en moet het worden "
+"verbreed. Wanneer we volledig gebruikersvriendelijk willen zijn "
+"zouden we de restrictie en de lokatie van point opslaan, maar dat "
+"doen we niet."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14725
@@ -30450,6 +30828,8 @@ msgid ""
 "The @code{(goto-char (point-min))} expression moves point to the beginning "
 "of the buffer."
 msgstr ""
+"De @code{(goto-char (point-min))} expressie verplaatst point naar "
+"het begin van het buffer."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14729
@@ -30458,6 +30838,9 @@ msgid ""
 "out.  In the loop, Emacs determines the length of each definition and "
 "constructs a lengths' list containing the information."
 msgstr ""
+"Dan komt de @code{while} loop waarin het werk van de functie wordt "
+"uitgevoerd. In de loop stelt Emacs de lengte van elke definitie vast "
+"en construeert een lengte-lijst die de informatie bevat."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14735
@@ -30467,6 +30850,11 @@ msgid ""
 "of interest; GNU Emacs 22 contains over a thousand source files.  Another "
 "function will apply @code{lengths-list-file} to each of the files."
 msgstr ""
+"Na er doorheen gewerkt te hebben killt Emacs het buffer. Dit is om "
+"binnen Emacs ruimte te sparen. Mijn versie van GNU Emacs 19 bevat "
+"over 300 bronbestanden die interessant zijn. GNU Emacs 22 bevat meer "
+"dan duizend bronbestanden. Een andere functie past "
+"@code{lengte-lijst-bestand} op elk bestand toe."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14739
@@ -30475,6 +30863,9 @@ msgid ""
 "@code{lengths-list} variable; its value is returned as the value of the "
 "whole function."
 msgstr ""
+"De laatste expressie in de @code{let} expressie tenslotte is de "
+"lengte-lijst variabele, wiens waarde wordt teruggegeven als de "
+"waarde van de gehele functie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14743
@@ -30483,6 +30874,9 @@ msgid ""
 "your cursor after the following expression and type @kbd{C-x C-e} "
 "(@code{eval-last-sexp})."
 msgstr ""
+"Dit kun je uitproberen door het op de gebruikelijke manier te "
+"installeren. Plaats daarna de cursor achter de volgende expressie en "
+"typ @kbd{C-x C-e} (@code{eval-last-sexp})."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:14748
@@ -30491,6 +30885,8 @@ msgid ""
 "(lengths-list-file\n"
 " \"/usr/local/share/emacs/22.1/lisp/emacs-lisp/debug.el\")\n"
 msgstr ""
+"(lengte-lijst-bestand\n"
+" \"/usr/local/share/emacs/22.1/lisp/emacs-lisp/debug.el\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14754
@@ -30499,6 +30895,9 @@ msgid ""
 "Emacs version 22.1.  To change the expression, copy it to the "
 "@file{*scratch*} buffer and edit it."
 msgstr ""
+"Misschien moet je de padnaam van het bestand aanpassen, deze hier is "
+"voor GNU Emacs versie 22.1. Om de expressie te wijzigen, kopieer je "
+"die naar het @file{*scratch*} buffer en wijzig het."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14760
@@ -30506,12 +30905,14 @@ msgid ""
 "Also, to see the full length of the list, rather than a truncated version, "
 "you may have to evaluate the following:"
 msgstr ""
+"En om de volledige lengte van de lijst te zien, in plaats van een "
+"ingekorte versie, moet je misschien het volgende evalueren:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:14763
 #, no-wrap
 msgid "(custom-set-variables '(eval-expression-print-length nil))\n"
-msgstr ""
+msgstr "(custom-set-variables '(eval-expression-print-length nil))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14768
@@ -30520,7 +30921,7 @@ msgid ""
 "evaluate the @code{lengths-list-file} expression.)"
 msgstr ""
 "(@xref{defcustom, , Variabelen specificeren met @code{defcustom}}. Evalueer "
-"daarna de @code{lengths-list-file} expressie.)"
+"daarna de @code{lengte-lijst-bestand\n} expressie.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14772
@@ -30528,12 +30929,14 @@ msgid ""
 "The lengths' list for @file{debug.el} takes less than a second to produce "
 "and looks like this in GNU Emacs 22:"
 msgstr ""
+"Het maken van de lengte-lijst voor @file{debug.el} duurt minder dan "
+"een seconde en ziet er zo uit in GNU Emacs 22:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:14775
 #, no-wrap
 msgid "(83 113 105 144 289 22 30 97 48 89 25 52 52 88 28 29 77 49 43 290 232 587)\n"
-msgstr ""
+msgstr "(83 113 105 144 289 22 30 97 48 89 25 52 52 88 28 29 77 49 43 290 232 587)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14780
@@ -30541,12 +30944,14 @@ msgid ""
 "(Using my old machine, the version 19 lengths' list for @file{debug.el} took "
 "seven seconds to produce and looked like this:"
 msgstr ""
+"(Op mijn oude machine duurde het maken van de versie 19 lengte-lijst van "
+" @file{debug.el} zeven seconden en ziet er zo uit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:14783
 #, no-wrap
 msgid "(75 41 80 62 20 45 44 68 45 12 34 235)\n"
-msgstr ""
+msgstr "(75 41 80 62 20 45 44 68 45 12 34 235)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14788
@@ -30554,12 +30959,16 @@ msgid ""
 "The newer version of @file{debug.el} contains more defuns than the earlier "
 "one; and my new machine is much faster than the old one.)"
 msgstr ""
+"De nieuwe versie van @file{debug.el} bevat meer defuns dan de "
+"eerdere, en mijn nieuwe machine is veel sneller dan de oude.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14791
 msgid ""
 "Note that the length of the last definition in the file is first in the list."
 msgstr ""
+"Merk op dat de lengte van de laatste definitie in het bestand de "
+"eerste in de lijst is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14799
@@ -30568,6 +30977,10 @@ msgid ""
 "lengths of each definition in a file.  Now, we want to define a function to "
 "return a master list of the lengths of the definitions in a list of files."
 msgstr ""
+"In de vorige sectie hebben we een functie gemaakt die een lijst "
+"teruggeeft met de lengte van elke definitie in een bestand. Nu "
+"willen we een functie definieren de een hoofdlijst teruggeeft met de "
+"lengte van de definities in een lijst van bestanden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14802
@@ -30575,12 +30988,14 @@ msgid ""
 "Working on each of a list of files is a repetitious act, so we can use "
 "either a @code{while} loop or recursion."
 msgstr ""
+"Werken op elk bestand van een bestandenlijst is een herhalende "
+"actie, dus we kunnen een @code{while} loop of recursie gebruiken."
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:14810
 #, no-wrap
 msgid "Determine the lengths of @code{defuns}"
-msgstr ""
+msgstr "De lengte van @code{defuns} vaststellen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14822
@@ -30594,11 +31009,21 @@ msgid ""
 "the list is empty.  The usual technique is to set the value of the list to "
 "the value of the @sc{cdr} of the list each time the body is evaluated."
 msgstr ""
+"Het ontwerp met een @code{while} loop is routine. Het aan de functie "
+"doorgegeven argument is een lijst van bestanden. Zoals we eerder "
+"zagen (@pxref{Loop voorbeeld}), kan je een @code{while} loop zo "
+"schijven dat de body van de loop wordt geëvalueerd zo'n lijst "
+"elementen bevat, maar de loop verlaat wanneer de lijst leeg is. Om "
+"dit te laten werken moet de body van de loop een expressie bevatten "
+"die elke keer dat de body wordt geëvalueerd de lijst korter maakt, "
+"zodat uiteindelijk de lijst leeg is. De gebruikelijke techniek is om "
+"elke keer dat de body wordt geëvalueerd de waarde van de lijst op de "
+"waarde van de @sc{cdr} van de lijst te zetten."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14825
 msgid "The template looks like this:"
-msgstr ""
+msgstr "Het sjabloon ziet er zo uit:"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14844
@@ -30613,11 +31038,22 @@ msgid ""
 "contains the value of the lengths' list.  (@xref{Incrementing Example, , "
 "Loop Example with an Incrementing Counter}.)"
 msgstr ""
+"We herinneren ons ook dat een @code{while} loop @code{nil} "
+"teruggeeft (het resultaat van het evalueren van de "
+"waar-of-onwaar-test) en niet het resultaat van een evaluatie in de "
+"body. (De evaluaties in de body van de loop worden gedaan voor hun "
+"zij-effecten.) Echter de expressie die de lengte-lijst zet is "
+"onderdeel van de body---en dat is de waarde waarvan we willen dat de "
+"gehele functie teruggeeft. Om dit te doen plaatsen we de "
+"@code{while} loop binnen een @code{let} expressie, en zorgen dat het "
+"laatste element van de @code{let} expressie de waarde van de "
+"lengte-lijst bevat. (@xref{Incrementeel voorbeeld, , Loop voorbeeld "
+"met een ophogende teller.}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14848
 msgid "These considerations lead us directly to the function itself:"
-msgstr ""
+msgstr "Deze overwegingen leiden on direct naar de functie zelf:"
 
 #. type: group
 #: emacs-lisp-intro.texi:14854
@@ -30627,6 +31063,9 @@ msgid ""
 "(defun lengths-list-many-files (list-of-files)\n"
 "  \"Return list of lengths of defuns in LIST-OF-FILES.\"\n"
 msgstr ""
+";;; @r{Gebruik @code{while} loop.}\n"
+"(defun lengte-lijst-veel-bestanden (lijst-met-bestanden)\n"
+"  \"Return list of lengths of defuns in LIJST-MET-BESTANDEN.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:14857
@@ -30635,6 +31074,8 @@ msgid ""
 "  (let (lengths-list)\n"
 "\n"
 msgstr ""
+"  (let (lengte-lijst)\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:14863
@@ -30647,6 +31088,12 @@ msgid ""
 "             lengths-list\n"
 "\n"
 msgstr ""
+";;; @r{waar-of-onwaar-test}\n"
+"    (while lijst-met-bestanden\n"
+"      (setq lengtes-lijst\n"
+"            (append\n"
+"             lengtes-lijst\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:14867
@@ -30656,6 +31103,9 @@ msgid ""
 "             (lengths-list-file\n"
 "              (expand-file-name (car list-of-files)))))\n"
 msgstr ""
+";;; @r{Genereer een lengte-ljist.}\n"
+"             (lengtes-lijst-bestand\n"
+"              (expand-file-name (car lijst-met-bestanden)))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:14872
@@ -30665,6 +31115,9 @@ msgid ""
 "      (setq list-of-files (cdr list-of-files)))\n"
 "\n"
 msgstr ""
+";;; @r{Maak bestandenlijst korter.}\n"
+"      (setq lijst-met-bestanden (cdr lijst-met-bestanden)))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:14875
@@ -30673,6 +31126,8 @@ msgid ""
 ";;; @r{Return final value of lengths' list.}\n"
 "    lengths-list))\n"
 msgstr ""
+";;; @r{Geef finale waarde lengtes-lijst terug.}\n"
+"    lengtes-lijst))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14881
@@ -30681,6 +31136,9 @@ msgid ""
 "the absolute, long, path name form.  The function employs the name of the "
 "directory in which the function is called."
 msgstr ""
+"@code{expand-file-name} is een ingebouwde functie die een "
+"bestandsnaam omzet naar de absolute lange padnaam vorm. De functie "
+"gebruikt de naam van de directory waarin de functie is aangeroepen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14887
@@ -30688,23 +31146,26 @@ msgid ""
 "Thus, if @code{expand-file-name} is called on @code{debug.el} when Emacs is "
 "visiting the @file{/usr/local/share/emacs/22.1.1/lisp/emacs-lisp/} directory,"
 msgstr ""
+"Dus wanneer @code{expand-file-name} wordt aangeroepen op "
+"@code{debug.el} terwijl Emacs de directory "
+"@file{/usr/local/share/emacs/22.1.1/lisp/emacs-lisp/} bezoekt,"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:14890
 #, no-wrap
 msgid "debug.el\n"
-msgstr ""
+msgstr "debug.el\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14895
 msgid "becomes"
-msgstr ""
+msgstr "wordt"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:14899
 #, no-wrap
 msgid "/usr/local/share/emacs/22.1.1/lisp/emacs-lisp/debug.el\n"
-msgstr ""
+msgstr "/usr/local/share/emacs/22.1.1/lisp/emacs-lisp/debug.el\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14904
@@ -30712,34 +31173,37 @@ msgid ""
 "The only other new element of this function definition is the as yet "
 "unstudied function @code{append}, which merits a short section for itself."
 msgstr ""
+"Het enige andere nieuwe element van deze functie is de tot nu toe "
+"niet bestudeerde functie @code{append}, die op zichzelf een korte sectie "
+"waard is."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:14906
 #, no-wrap
 msgid "The @code{append} Function"
-msgstr ""
+msgstr "De functie @code{append}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14910
 msgid "The @code{append} function attaches one list to another.  Thus,"
-msgstr ""
+msgstr "De functie @code{append} maakt een lijst aan een andere vast. Dus,"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:14913
 #, no-wrap
 msgid "(append '(1 2 3 4) '(5 6 7 8))\n"
-msgstr ""
+msgstr "(append '(1 2 3 4) '(5 6 7 8))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14918
 msgid "produces the list"
-msgstr ""
+msgstr "produceert de lijst"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:14921
 #, no-wrap
 msgid "(1 2 3 4 5 6 7 8)\n"
-msgstr ""
+msgstr "(1 2 3 4 5 6 7 8)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14926
@@ -30748,12 +31212,15 @@ msgid ""
 "@code{lengths-list-file} to each other.  The results contrast with "
 "@code{cons},"
 msgstr ""
+"Dit is exact hoe we twee door @code{lengte-lijst-bestand} gemaakte "
+"lengte-lijsten aan elkaar willen vastmaken. Het resultaat "
+"contrasteert met @code{cons}, "
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:14929
 #, no-wrap
 msgid "(cons '(1 2 3 4) '(5 6 7 8))\n"
-msgstr ""
+msgstr "(cons '(1 2 3 4) '(5 6 7 8))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14935
@@ -30761,18 +31228,20 @@ msgid ""
 "which constructs a new list in which the first argument to @code{cons} "
 "becomes the first element of the new list:"
 msgstr ""
+"die een nieuwe lijst construeert waarin het eerste argument van "
+"@code{cons} het eerste element van de nieuwe lijst wordt:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:14938
 #, no-wrap
 msgid "((1 2 3 4) 5 6 7 8)\n"
-msgstr ""
+msgstr "((1 2 3 4) 5 6 7 8)\n"
 
 #. type: section
 #: emacs-lisp-intro.texi:14941
 #, no-wrap
 msgid "Recursively Count Words in Different Files"
-msgstr ""
+msgstr "Recursief woorden tellen in verschillende bestanden"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14946
@@ -30781,6 +31250,9 @@ msgid ""
 "recursion.  A recursive version of @code{lengths-list-many-files} is short "
 "and simple."
 msgstr ""
+"Behalve met een @code{while} loop kan je met recursie werken op elk "
+"bestand in een lijst van bestanden. Een recursieve versie van "
+"@code{}(lengte-lijst-veel-bestanden) is kort en simpel."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14955
@@ -30793,12 +31265,21 @@ msgid ""
 "be empty; and the recursive call calls itself on the shorter list.  The "
 "complete function is shorter than this description!"
 msgstr ""
+"De recursieve functie heeft de gebruikelijke delen: de "
+"doe-opnieuw-test, de volgende-stap-expressie en de recursieve "
+"aanroep. De doe-opnieuw-test stelt vat of de functie zichzelf "
+"opnieuw moet aanroepen, wat die doet wanneer de "
+"@code{lijst-met-bestanden} resterende elementen bevat. De "
+"volgende-stap-expressie zet de @code{lijst-met-bestanden} op de "
+"@sc{cdr} van zichzelf, zodat uiteindelijk de lijst leeg wordt. en de "
+"recursieve aanroep roept zichzelf met de kortere lijst. De complete "
+"functie is korter dan deze beschrijving!"
 
 #. type: findex
 #: emacs-lisp-intro.texi:14955
 #, no-wrap
 msgid "recursive-lengths-list-many-files"
-msgstr ""
+msgstr "recursieve-lengte-lijst-veel-bestanden"
 
 #. type: group
 #: emacs-lisp-intro.texi:14967
@@ -30813,6 +31294,14 @@ msgid ""
 "       (recursive-lengths-list-many-files\n"
 "        (cdr list-of-files)))))\n"
 msgstr ""
+"(defun recursieve-lengte-lijst-veel-bestanden (lijst-met-bestanden)\n"
+"  \"Geeft lijst met lengtes terug van elke defun in LIJST-MET-BESTANDEN.\"\n"
+"  (if lijst-met-bestanden                     ; @r{doe-opnieuw-test}\n"
+"      (append\n"
+"       (lengte-lijst-bestand\n"
+"        (expand-file-name (car lijst-met-bestanden)))\n"
+"       (recursieve-lengte-lijst-veel-bestanden\n"
+"        (cdr lijst-met-bestanden)))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14974
@@ -30821,6 +31310,9 @@ msgid ""
 "@code{list-of-files} appended to the result of calling itself on the rest of "
 "the @code{list-of-files}."
 msgstr ""
+"In één zin, de functie geeft de lengte-lijst terug voor de eerste "
+"van de @code{lijst-met-bestanden} vastgemaakt aan het resultaat van "
+"zichzelf aanroepen op de rest van de @code{lijst-met-bestanden}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14978
@@ -30829,6 +31321,9 @@ msgid ""
 "results of running @code{lengths-list-file} on each of the files "
 "individually."
 msgstr ""
+"Hier is een test van @code{recursieve-lengte-lijst-veel-bestanden}, "
+"samen met de resultaten van het draaien van "
+"@code{lengte-lijst-bestand} op elk individueel bestand."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14985
@@ -30840,6 +31335,13 @@ msgid ""
 "expressions, copy them to the @file{*scratch*} buffer, edit them, and then "
 "evaluate them."
 msgstr ""
+"Installeer @code{recursieve-lengte-lijst-veel-bestanden} en indien "
+"nodig @code{lengte-lijst-bestand} en evalueer de volgende "
+"expressies. Je moet misschien de padnamen van bestanden aanpassen, "
+"deze werken hier wanneer dit Infobestand and de Emacs bronbestanden "
+"op hun gebruikelijke plaats staan. Om de expressies aan te passen "
+"kopieer je ze in het @file{*scratch*} buffer, pas je ze aan en "
+"evalueer je ze."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:14989
@@ -30848,6 +31350,9 @@ msgid ""
 "files from Emacs version 22.1.1; files from other versions of Emacs may "
 "produce different results.)"
 msgstr ""
+"De resultaten worden getoond achter de  @samp{@result{}}. (Deze resultaten "
+"zijn voor bestanden van Emacs versie 22.1.1. Bestanden van andere "
+"versies van Emacs kunnen andere resultaten produceren.)"
 
 #. type: group
 #: emacs-lisp-intro.texi:14994
@@ -30856,6 +31361,8 @@ msgid ""
 "(cd \"/usr/local/share/emacs/22.1.1/\")\n"
 "\n"
 msgstr ""
+"(cd \"/usr/local/share/emacs/22.1.1/\")\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:14997
@@ -30864,6 +31371,8 @@ msgid ""
 "(lengths-list-file \"./lisp/macros.el\")\n"
 "     @result{} (283 263 480 90)\n"
 msgstr ""
+"(lengte-lijst-bestand \"./lisp/macros.el\")\n"
+"     @result{} (283 263 480 90)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15002
@@ -30872,6 +31381,8 @@ msgid ""
 "(lengths-list-file \"./lisp/mail/mailalias.el\")\n"
 "     @result{} (38 32 29 95 178 180 321 218 324)\n"
 msgstr ""
+"(lengte-lijst-bestand \"./lisp/mail/mailalias.el\")\n"
+"     @result{} (38 32 29 95 178 180 321 218 324)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15007
@@ -30880,6 +31391,8 @@ msgid ""
 "(lengths-list-file \"./lisp/hex-util.el\")\n"
 "     @result{} (82 71)\n"
 msgstr ""
+"(lengte-lijst-bestand \"./lisp/hex-util.el\")\n"
+"     @result{} (82 71)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15015
@@ -30891,6 +31404,11 @@ msgid ""
 "     \"./lisp/hex-util.el\"))\n"
 "       @result{} (283 263 480 90 38 32 29 95 178 180 321 218 324 82 71)\n"
 msgstr ""
+"  (recursieve-lengte-lijst-veel-bestanden\n"
+"   '(\"./lisp/macros.el\"\n"
+"     \"./lisp/mail/mailalias.el\"\n"
+"     \"./lisp/hex-util.el\"))\n"
+"       @result{} (283 263 480 90 38 32 29 95 178 180 321 218 324 82 71)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15020
@@ -30898,12 +31416,16 @@ msgid ""
 "The @code{recursive-lengths-list-many-files} function produces the output we "
 "want."
 msgstr ""
+"De functie @code{recursieve-lengte-lijst-veel-bestanden} produceert "
+"de output die we willen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15022
 msgid ""
 "The next step is to prepare the data in the list for display in a graph."
 msgstr ""
+"De volgende stap is het voorbereiden van de data in de lijst om in "
+"een grafiek te tonen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15033
@@ -30916,6 +31438,12 @@ msgid ""
 "words and symbols, how many contain between 20 and 29 words and symbols, and "
 "so on."
 msgstr ""
+"De functie @code{recursieve-lengte-lijst-veel-bestanden} geeft een lijst met "
+"getallen terug. Elk getal staat voor de lengte van een functiedefinitie. "
+"Wat we nu moeten doen is deze data omzetten in een lijst van getallen "
+"die geschikt is om een grafiek mee te genereren. De nieuwe lijst vertelt "
+"hoeveel functiedefinities bevatten minder dan 10 woorden en symbolen, hoeveel "
+"bevatten tussen 10 en 19 symbolen. enzovoorts."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15038
@@ -30924,6 +31452,10 @@ msgid ""
 "@code{recursive-lengths-list-many-files} function and count the number of "
 "defuns within each range of lengths, and produce a list of those numbers."
 msgstr ""
+"In het kort, we moeten door de lengte-lijst heen gaan, die de "
+"functie @code{recursieve-lengte-lijst-veel-bestanden} heeft "
+"geproduceerd, en het aantal defuns in elke range van lengtes tellen, "
+"en een lijst van deze aantallen produceren."
 
 #. type: node
 #: emacs-lisp-intro.texi:15047
@@ -30945,6 +31477,10 @@ msgid ""
 "at each element, determines which length range it is in, and increments a "
 "counter for that range."
 msgstr ""
+"Gebaseerd op wat we eerder gedaan hebben, kunnen we makkelijk "
+"voorzien dat het niet al te moeilijk moet zijn een functie te "
+"schrijven die @sc{crd}-t de lengte-lijst afloopt, vaststelt in welke "
+"lengte-range die in is, en een teller verhoogt voor die range."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15064
@@ -30957,18 +31493,27 @@ msgid ""
 "can discover the highest and lowest number, and thereby determine the "
 "largest and smallest length range that we will need."
 msgstr ""
+"Voordat we echter beginnen met het schrijven van zo'n functie, "
+"moeten we de voordelen van het sorteren van de lengte-lijst in "
+"ogenschouw nemen, zodat de getallen zijn gesorteerd van de kleinste "
+"tot de grootste. Ten eerste maakt het sorteren het eenvoudiger de "
+"getallen in elke range te tellen, omdat twee opeenvolgende getallen "
+"in dezelfde range of aangrenzende ranges zijn. Ten tweede door de "
+"gesorteerde lijst te inspecteren kunnen we ontdekken wat het hoogste "
+"en het laagste getal zijn, en daarmee vaststellen welke grootste en "
+"kleinste lengte-range we nodig hebben."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:15066
 #, no-wrap
 msgid "Sorting Lists"
-msgstr ""
+msgstr "Lijsten sorteren"
 
 #. type: findex
 #: emacs-lisp-intro.texi:15067
 #, no-wrap
 msgid "sort"
-msgstr ""
+msgstr "sorteren"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15073
@@ -30978,6 +31523,10 @@ msgid ""
 "sorted, and a predicate that determines whether the first of two list "
 "elements is less than the second."
 msgstr ""
+"Emacs heeft een functie om lijsten te sorteren, met de naam (zoals "
+"je kunt raden) @code{sort}. De functie @code{sort} vereist twee "
+"argumenten, de lijst om te sorteren, en een predicaat dat vaststelt "
+"of het eerste van twee lijst-elementen kleiner is dan de tweede."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15081
@@ -30989,24 +31538,34 @@ msgid ""
 "@code{sort} can be used to sort non-numeric lists by non-numeric criteria---"
 "it can, for example, alphabetize a list."
 msgstr ""
+"Zoals we eerder zagen (@pxref{Verkeerde type argument, , Gebruik van "
+"het verkeerde objecttype als argument}), is een predicaat een "
+"functie die vaststelt of een bepaalde eigenschap waar of onwaar is. "
+"De functie @code{sort} herordent een lijst in overeenstemming met de "
+"eigenschap die het predicaat gebruikt. Dit betekent dat @code{sort} "
+"kan worden gebruikt om een niet-numerieke lijst te sorteren op "
+"niet-numerieke criteria---het kan bijvoorbeeld een lijst op "
+"alfabetische volgorde zetten."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15084
 msgid ""
 "The @code{<} function is used when sorting a numeric list.  For example,"
 msgstr ""
+"De functie @code{<} wordt gebruikt om een numerieke lijst te "
+"sorteren. Bijvoorbeeld,"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:15087
 #, no-wrap
 msgid "(sort '(4 8 21 17 33 7 21 7) '<)\n"
-msgstr ""
+msgstr "(sort '(4 8 21 17 33 7 21 7) '<)\n"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:15095
 #, no-wrap
 msgid "(4 7 7 8 17 21 21 33)\n"
-msgstr ""
+msgstr "(4 7 7 8 17 21 21 33)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15101
@@ -31014,6 +31573,9 @@ msgid ""
 "(Note that in this example, both the arguments are quoted so that the "
 "symbols are not evaluated before being passed to @code{sort} as arguments.)"
 msgstr ""
+"(Merk op dat in dit voorbeeld beide argumenten zijn gequote zodat de "
+"symbolen niet worden geëvalueerd voordat ze als argumenten aan de "
+"@code{sort} worden doorgegeven.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15105
@@ -31021,6 +31583,9 @@ msgid ""
 "Sorting the list returned by the @code{recursive-lengths-list-many-files} "
 "function is straightforward; it uses the @code{<} function:"
 msgstr ""
+"Het sorteren van de lijst die teruggeven is door de functie "
+"@code{recursieve-lengte-lijst-veel-bestanden} is eenvoudig, het "
+"gebruikt de functie @code{<}:"
 
 #. type: group
 #: emacs-lisp-intro.texi:15114
@@ -31033,17 +31598,23 @@ msgid ""
 "    \"./lisp/hex-util.el\"))\n"
 " '<)\n"
 msgstr ""
+"(sort\n"
+" (recursieve-lengte-lijst-veel-bestanden\n"
+"  '(\"./lisp/macros.el\"\n"
+"    \"./lisp/mailalias.el\"\n"
+"    \"./lisp/hex-util.el\"))\n"
+" '<)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15120
 msgid "which produces:"
-msgstr ""
+msgstr "produceert:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:15123
 #, no-wrap
 msgid "(29 32 38 71 82 90 95 178 180 218 263 283 321 324 480)\n"
-msgstr ""
+msgstr "(29 32 38 71 82 90 95 178 180 218 263 283 321 324 480)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15129
@@ -31052,12 +31623,15 @@ msgid ""
 "since the expression must be evaluated so as to produce the list that is "
 "passed to @code{sort}.)"
 msgstr ""
+"(Merk op dat in dit voorbeeld het eerste argument van @code{sort} is "
+"niet gequote omdat de expressie moet worden geëvalueerd om de lijst "
+"te produceren die wordt doorgegeven aan @code{sort}.)"
 
 #. type: subsection
 #: emacs-lisp-intro.texi:15131
 #, no-wrap
 msgid "Making a List of Files"
-msgstr ""
+msgstr "Een lijst van bestanden maken"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15139
@@ -31068,12 +31642,18 @@ msgid ""
 "that.  Instead, we will write a function to do the job for us.  In this "
 "function, we will use both a @code{while} loop and a recursive call."
 msgstr ""
+"De functie @code{recursieve-lengte-lijst-veel-bestanden} vereist een lijst "
+"van bestanden als argument. Voor onze testvoorbeelden construeerden we handmatig "
+"zo'n lijst, maar de Emacs brondirectory is te groot voor ons om dat te doen. "
+"In plaats daarvan schrijven we een functie die dat werk voor ons doet. "
+"In deze functie gebruiken we zowel een @code{while} loop en een recursieve "
+"aanroep."
 
 #. type: findex
 #: emacs-lisp-intro.texi:15140
 #, no-wrap
 msgid "directory-files"
-msgstr ""
+msgstr "directory-files"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15146
@@ -31084,6 +31664,11 @@ msgid ""
 "lists the names of files that match a specified pattern within a single "
 "directory."
 msgstr ""
+"Voor oudere versies van GNU Emacs hoefden we zo'n functie niet te "
+"schrijven, omdat zij alle @samp{.el} bestanden in één directory "
+"plaatsten. In plaats daarvan konden we de functie "
+"@code{directory-files} gebruiken, die de namen van de bestanden in "
+"een enkele directory vermeldt die aan een specifiek patroon voldoen. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15153
@@ -31095,12 +31680,19 @@ msgid ""
 "forces us to create a file listing function that descends into the sub-"
 "directories."
 msgstr ""
+"Recente versies van Emacs echter plaatsen Emacs Lisp bestanden in "
+"subdirectories van de top-level @file{lisp} directory. Deze "
+"herschikking maakt de navigatie makkelijker. Alle mail gerelateerde "
+"bestanden bijvoorbeeld staan in een @code{lisp} subdirectory met de "
+"naam @file{mail}. Maar tegelijkertijd forceert deze schikking ons om "
+"een bestandslisting functie te maken die afdaalt in de "
+"subdirectories."
 
 #. type: findex
 #: emacs-lisp-intro.texi:15154
 #, no-wrap
 msgid "files-in-below-directory"
-msgstr ""
+msgstr "bestanden-in-onderliggende-directory"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15161
@@ -31111,6 +31703,13 @@ msgid ""
 "attributes}.  This latter function not only lists all the filenames in a "
 "directory, including the names of sub-directories, but also their attributes."
 msgstr ""
+"We kunnen deze functie met de naam "
+"@code{bestanden-in-onderiggende-directory} maken met bekende "
+"functies zoals @code{car}, @code{nthcdr} en @code{substring} samen "
+"met een bestaande functie met de naam "
+"@code{directory-files-and-atributes}. Deze laatste functie vermeldt "
+"niet alleen de bestandsnamen in een directory inclusief de namen van "
+"de subdirectories, maar ook hun attributen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15165
@@ -31119,6 +31718,10 @@ msgid ""
 "filenames to @code{recursive-lengths-list-many-files} as a list that looks "
 "like this (but with more elements):"
 msgstr ""
+"Om ons doel opnieuw te formuleren: maak een functie die ons in staat "
+"stelt @code{recursieve-lengte-lijst-veel-bestanden} te voeden met de "
+"bestandsnamen als een lijst die er zo iut ziet (maar met meer "
+"elementen):"
 
 #. type: group
 #: emacs-lisp-intro.texi:15171
@@ -31128,6 +31731,9 @@ msgid ""
 " \"./lisp/mail/rmail.el\"\n"
 " \"./lisp/hex-util.el\")\n"
 msgstr ""
+"(\"./lisp/macros.el\"\n"
+" \"./lisp/mail/rmail.el\"\n"
+" \"./lisp/hex-util.el\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15181
@@ -31140,6 +31746,14 @@ msgid ""
 "@code{t} for a directory, a string for symbolic link (the string is the name "
 "linked to), or @code{nil}."
 msgstr ""
+"De functie @code{directory-files-and-atributes} geeft een lijst van "
+"lijsten terug. Elk van deze lijsten in de hoofdlijst bestaat uit 13 "
+"elementen. Het eerste element is een string die de bestandsnaam "
+"bevat---welke, in GNU/Linux, een @dfn{dicectory file} kan zijn, met "
+"andere woorden een bestand met de speciale attributen van een "
+"directory. Het tweede element van de lijst is @code{t} voor een "
+"directory, een string voor een symbolische link (de string is de "
+"naam waar naartoe gelinkt), or @code{nil}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15186
@@ -31148,6 +31762,10 @@ msgid ""
 "@file{abbrev.el}.  Its name is @file{/usr/local/share/emacs/22.1.1/lisp/"
 "abbrev.el} and it is not a directory or a symbolic link."
 msgstr ""
+"Bijvoorbeeld het eerste @samp{.el} bestand in de @file{lisp/} "
+"directory is @file{abbrev.el}. Zijn naam is "
+"@file{/usr/local/share/emacs/22.1.1/lisp/abbrev.el} en het is niet "
+"een directory of een symbolische link."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15190
@@ -31155,6 +31773,8 @@ msgid ""
 "This is how @code{directory-files-and-attributes} lists that file and its "
 "attributes:"
 msgstr ""
+"Dit is hoe @code{directory-files-and-attributes} het bestand en zijn "
+"atributen vermeldt:"
 
 #. type: group
 #: emacs-lisp-intro.texi:15198
@@ -31166,6 +31786,11 @@ msgid ""
 "1000\n"
 "100\n"
 msgstr ""
+"(\"abbrev.el\"\n"
+"nil\n"
+"1\n"
+"1000\n"
+"100\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15208
@@ -31180,6 +31805,14 @@ msgid ""
 "13188\n"
 "\"-rw-r--r--\"\n"
 msgstr ""
+"(20615 27034 579989 697000)\n"
+"(17905 55681 0 0)\n"
+"(20615 26327 734791 805000)@footnote{Wanneer @code{current-time-list} @code{nil} is,\n"
+"zijn de drie timestamps respectievelijk @code{(1351051674579989697\n"
+". 1000000000)}, @code{(1173477761000000000 . 1000000000)} en\n"
+"@code{(1351050967734791805 . 1000000000)}.}\n"
+"13188\n"
+"\"-rw-r--r--\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15213
@@ -31189,6 +31822,9 @@ msgid ""
 "2971624\n"
 "773)\n"
 msgstr ""
+"t\n"
+"2971624\n"
+"773)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15219
@@ -31196,6 +31832,8 @@ msgid ""
 "On the other hand, @file{mail/} is a directory within the @file{lisp/} "
 "directory.  The beginning of its listing looks like this:"
 msgstr ""
+"Anderzijds, @file{mail/} is een directory in de @file{lisp/} directory. "
+"Het begin van de listing ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:15226
@@ -31206,6 +31844,10 @@ msgid ""
 "@dots{}\n"
 ")\n"
 msgstr ""
+"(\"mail\"\n"
+"t\n"
+"@dots{}\n"
+")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15233
@@ -31215,6 +31857,11 @@ msgid ""
 "function does not list the filename, so its first element is @code{directory-"
 "files-and-attributes}'s second element.)"
 msgstr ""
+"(Zie de documentatie van @code{file-attributes} om meer te leren "
+"over de verschillende atributen. Hou er rekening mee dat de functie "
+"@code{file-attributes} de bestandsnaam niet vermeldt, zodat het "
+"eerste element is het tweede element in "
+"@code{directory-files-and-atributes}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15237
@@ -31223,6 +31870,10 @@ msgid ""
 "@samp{.el} files in the directory it is told to check, and in any "
 "directories below that directory."
 msgstr ""
+"Wij willen dat onze nieuwe functie, "
+"@code{bestanden-in-onderiggende-directory} de @samp{.el} bestanden "
+"vermeldt in de directory die het verteld is te bekijken, en in elke "
+"daar onderliggende directory."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15243
@@ -31232,6 +31883,12 @@ msgid ""
 "and if, within a directory, the function comes upon a sub-directory, it "
 "should go into that sub-directory and repeat its actions."
 msgstr ""
+"Dit geeft ons een hint hoe de "
+"@code{bestanden-in-onderiggende-directory} binnen een directory te "
+"construeren, de functie zou @samp{.el} bestandsnamen aan een lijst "
+"moeten toevoegen. En wanneer de functie binnen een directory op een "
+"subdirectory stuit, moet die de subdirectory ingaan en daar de "
+"acties herhalen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15252
@@ -31244,6 +31901,15 @@ msgid ""
 "enter those directories, since they always lead us, directly or indirectly, "
 "to the current directory."
 msgstr ""
+"We moeten echter opmerken dat elke directory een naam die naar "
+"zichzelf referereert bevat, @file{.} (``dot'') genaamd, en een naam "
+"die refereert naar de bovenliggende directory, @file{..} (``dot "
+"dot'') genaamd. (In @file{/}, de root-directory, refereert @file{..} "
+"aan zichzelf, omdat @file{/} geen bovenliggende directory heeft.) "
+"We willen natuurlijk niet dat onze functie "
+"@code{bestanden-in-onderiggende-directory} deze directories ingaat, "
+"omdat die ons altijd, direct of indirect, naar de huidige directory "
+"leiden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15255
@@ -31251,6 +31917,7 @@ msgid ""
 "Consequently, our @code{files-in-below-directory} function must do several "
 "tasks:"
 msgstr ""
+"Dus moet onze functie @code{bestanden-in-onderiggende-directory} verschillende taken doen:"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:15260
@@ -31258,6 +31925,8 @@ msgid ""
 "Check to see whether it is looking at a filename that ends in @samp{.el}; "
 "and if so, add its name to a list."
 msgstr ""
+"Controleer of het naar een bestandsnaam kijkt die eindigt in "
+"@samp{.el} en zo ja, voeg thet aan de lijst toe."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:15264
@@ -31265,6 +31934,7 @@ msgid ""
 "Check to see whether it is looking at a filename that is the name of a "
 "directory; and if so,"
 msgstr ""
+"Controleer of het naar een bestandsnaam kijkt die de naam van een directory is, en zo ja, "
 
 #. type: itemize
 #: emacs-lisp-intro.texi:15269
@@ -31272,11 +31942,12 @@ msgid ""
 "Check to see whether it is looking at @file{.} or @file{..}; and if so skip "
 "it."
 msgstr ""
+"Controleer of het kijkt naar @file{.} of @file{..}, en zo ja, sla die over."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:15272
 msgid "Or else, go into that directory and repeat the process."
-msgstr ""
+msgstr "Zo niet, ga dan in de directory en herhaal het proces."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15282
@@ -31287,11 +31958,17 @@ msgid ""
 "the actions on each sub-directory.  The recursive pattern is Accumulate "
 "(@pxref{Accumulate}), using @code{append} as the combiner."
 msgstr ""
+"Laten we een functiedefinitie schrijven die deze taken uitvoert. We gebruiken "
+"een @code{while} loop om binnen de directory van de ene bestandsnaam naar de "
+"ander te gaan en controleren wat moet worden gedaan. En we gebruiken een "
+"recursieve aanroep om de acties in elke subdirectory te herhalen. Het "
+"resursieve patroon is Accumuleren (@pxref{Accumuleren}), met @code{append} "
+"als de combinerende functie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15295
 msgid "Here is the function:"
-msgstr ""
+msgstr "Hier is de functie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:15305
@@ -31305,6 +31982,13 @@ msgid ""
 "  ;;  \"/usr/local/share/emacs/22.1.1/lisp/\"\n"
 "  (interactive \"DDirectory name: \")\n"
 msgstr ""
+"(defun bestanden-in-onderiggende-directory (directory)\n"
+"  \"Vermeldt de .el files in DIRECTORY en onderliggende subdirectories.\"\n"
+"  ;; Hoewel de functie niet interactief gebruikt wordt,\n"
+"  ;; is het makkelijker te testen wanneer we het interactief maken.\n"
+"  ;; De directory zal een naam hebben zoals\n"
+"  ;;  \"/usr/local/share/emacs/22.1.1/lisp/\"\n"
+"  (interactive \"DDirectory naam: \")\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15312
@@ -31316,6 +32000,11 @@ msgid ""
 "    ;; while we are in the current directory\n"
 "    (while current-directory-list\n"
 msgstr ""
+"  (let (el-bestanden-lijst\n"
+"        (huidige-directory-lijst\n"
+"         (directory-files-and-attributes directory t)))\n"
+"    ;; zoals we in de huidige directory zijn\n"
+"    (while huidige-directory-lijst\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15320
@@ -31328,6 +32017,12 @@ msgid ""
 "        (setq el-files-list\n"
 "              (cons (car (car current-directory-list)) el-files-list)))\n"
 msgstr ""
+"      (cond\n"
+"       ;; check of de bestandsnaam eindigt met '.el'\n"
+"       ;; en zo ja, voeg die toe aan de lijst.\n"
+"       ((equal \".el\" (substring (car (car huidige-directory-lijst)) -3))\n"
+"        (setq el-bestanden-lijst\n"
+"              (cons (car (car huidige-directory-lijst)) el-bestanden-lijst)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15331
@@ -31343,6 +32038,15 @@ msgid ""
 "            ;;   current directory or parent, \".\" or \"..\"\n"
 "            ()\n"
 msgstr ""
+"       ;; check of bestandsnaam die van een directory is\n"
+"       ((eq t (car (cdr (car huidige-directory-lijst))))\n"
+"        ;; beslis tussen skippen of afdalen\n"
+"        (if\n"
+"            (equal \".\"\n"
+"                   (substring (car (car huidige-directory-lijst)) -1))\n"
+"            ;; dan doe niets omdat de bestandnaam die is van\n"
+"            ;;   huidige directory of parent, \".\" or \"..\"\n"
+"            ()\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15344
@@ -31360,6 +32064,17 @@ msgid ""
 "    ;; return the filenames\n"
 "    el-files-list))\n"
 msgstr ""
+"          ;; anders daal af in de directory en herhaalt het proces\n"
+"          (setq el-bestanden-lijst\n"
+"                (append\n"
+"                 (bestanden-in-onderiggende-directory\n"
+"                  (car (car huidige-directory-lijst)))\n"
+"                 el-bestanden-lijst)))))\n"
+"      ;; ga naar volgende bestandnaam in de lijst; dit verkort ook\n"
+"      ;; de lijst zodat de while loop uiteindelijk aan zijn eind komt\n"
+"      (setq huidige-directory-lijst (cdr huidige-directory-lijst)))\n"
+"    ;; geef de bestandsnamen terug\n"
+"    el-bestanden-lijst))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15352
@@ -31367,11 +32082,13 @@ msgid ""
 "The @code{files-in-below-directory} @code{directory-files} function takes "
 "one argument, the name of a directory."
 msgstr ""
+"De functie @code{bestanden-in-onderiggende-directory} vereist een argument, "
+"de naam van een directory."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15355
 msgid "Thus, on my system,"
-msgstr ""
+msgstr "Dus, op mijn systeem,"
 
 #. type: group
 #: emacs-lisp-intro.texi:15363
@@ -31380,6 +32097,8 @@ msgid ""
 "(length\n"
 " (files-in-below-directory \"/usr/local/share/emacs/22.1.1/lisp/\"))\n"
 msgstr ""
+"(length\n"
+" (bestanden-in-onderiggende-directory \"/usr/local/share/emacs/22.1.1/lisp/\"))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15369
@@ -31387,6 +32106,8 @@ msgid ""
 "tells me that in and below my Lisp sources directory are 1031 @samp{.el} "
 "files."
 msgstr ""
+"vertelt me dat er in en onder mijn Lisp brondirectory 1031 "
+"@samp{.el} bestanden zijn."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15373
@@ -31394,6 +32115,9 @@ msgid ""
 "@code{files-in-below-directory} returns a list in reverse alphabetical "
 "order.  An expression to sort the list in alphabetical order looks like this:"
 msgstr ""
+"@code{bestanden-in-onderiggende-directory} geeft een lijst terug in "
+"omgekeerde alfabetische volgorde. Een expressie om de lijst in "
+"alfabetische volgorde te sorteren ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:15379
@@ -31403,6 +32127,9 @@ msgid ""
 " (files-in-below-directory \"/usr/local/share/emacs/22.1.1/lisp/\")\n"
 " 'string-lessp)\n"
 msgstr ""
+"(sort\n"
+" (bestanden-in-onderiggende-directory \"/usr/local/share/emacs/22.1.1/lisp/\")\n"
+" 'string-lessp)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15401
@@ -31412,6 +32139,10 @@ msgid ""
 "between 10 and 19 words and symbols, how many contain between 20 and 29 "
 "words and symbols, and so on."
 msgstr ""
+"Ons doel is een lijst te genereren die vertelt hoeveel functiedefinities "
+"minder dan 10 woorden en symbolen bevatten, hoeveel tussen de 10 en 19 "
+"woorden en symbolen bevatten, hoeveel tussen de 20 en 29 woorden en "
+"symbolen, enzovoorts."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15409
@@ -31423,6 +32154,13 @@ msgid ""
 "numbers, 10, 20, 30, 40, and the like, is one larger than the top of that "
 "range.  We can call the list of such numbers the @code{top-of-ranges} list."
 msgstr ""
+"Met een gesorteerde lijst met getallen is dit makkelijk. Tel hoeveel "
+"elementen in de lijst kleiner dan 10 zijn, dan na voorbij de net "
+"getelde getallen te gaan, tel hoeveel er kleiner dan 20 zijn, dan na "
+"voorbij de net getelde getallen te gaan, hoeveel kleiner zijn dan "
+"30, enzovoorts. Elk van de getallen 10, 20, 30, 40 en dergelijke is "
+"een groter dan de hoogste van die range. We kunnen de lijst met "
+"zulke getallen de @code{hoogste-van-ranges} lijst noemen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15413
@@ -31430,12 +32168,14 @@ msgid ""
 "If we wished, we could generate this list automatically, but it is simpler "
 "to write a list manually.  Here it is:"
 msgstr ""
+"Als we dat willen kunnen we zo'n lijst automatisch genereren, maar "
+"het is simpeler de lijst handmatig te schrijven. Hier is die:"
 
 #. type: vindex
 #: emacs-lisp-intro.texi:15413
 #, no-wrap
 msgid "top-of-ranges"
-msgstr ""
+msgstr "hoogste-van-ranges"
 
 #. type: group
 #: emacs-lisp-intro.texi:15425
@@ -31450,11 +32190,19 @@ msgid ""
 "  260 270 280 290 300)\n"
 " \"List specifying ranges for `defuns-per-range'.\")\n"
 msgstr ""
+"(defvar hoogste-van-ranges\n"
+" '(10  20  30  40  50\n"
+"   60  70  80  90 100\n"
+"  110 120 130 140 150\n"
+"  160 170 180 190 200\n"
+"  210 220 230 240 250\n"
+"  260 270 280 290 300)\n"
+" \"Lijst met ranges for `defuns-hoogste-per-range'.\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15429
 msgid "To change the ranges, we edit this list."
-msgstr ""
+msgstr "Om de ranges aan te passen, kunnen we deze lijst wijzigen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15434
@@ -31463,6 +32211,10 @@ msgid ""
 "definitions within each range.  Clearly, this function must take the "
 "@code{sorted-lengths} and the @code{top-of-ranges} lists as arguments."
 msgstr ""
+"Vervolgens moeten we een functie schrijven die een lijst maakt van "
+"de getallen van de definities binnen een range. Deze functie moet "
+"@code{gesorteerde-lengtes} en @code{hoogste-van-ranges} als argument "
+"gebruiken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15444
@@ -31476,6 +32228,16 @@ msgid ""
 "in the range defined by the current top-of-range value, and the other loop "
 "selects each of the top-of-range values in turn."
 msgstr ""
+"De functie @code{defuns-per-range} moet twee dingen steeds opnieuw "
+"doen: het moet het nummer van definities binnen een range tellen, "
+"gespecificeerd door de huidge @code{hoogste-van-ranges} waarde en "
+"het moet naar de eerstvolgende hogere waarde n de "
+"@code{hoogste-van-ranges} lijst opschuiven nadat het de definities "
+"in de huidige range geteld heeft. Omdat deze acties repeterend zijn, "
+"kunnen we een @code{while} loop voor de taak gebruiken. Een loop "
+"telt het aantal definities in de range gespecificeerd door de huidge "
+"hoogste-van-ranges waarde, en de andere loop selecteert elk van de "
+"hoogste-van-ranges op hun beurt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15449
@@ -31485,6 +32247,11 @@ msgid ""
 "inside the loop for the @code{top-of-ranges} list, like a small gear inside "
 "a big gear."
 msgstr ""
+"Verschillende entries van de @code{gesorteerde-lengtes} lijst worden "
+"geteld voor elke range. Dit betekent dat de loop voor de "
+"@code{gesorteerde-lengtes} lijst binnen de loop voor de "
+"@code{hoogste-van-ranges} lijst staat, zoals een klein tandwiel in "
+"een groot tandwiel."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15457
@@ -31497,11 +32264,18 @@ msgid ""
 "function increments the counter and tests the next value from the "
 "@code{sorted-lengths} list."
 msgstr ""
+"De binnenste loop telt het aantal definities binnen een range. Het is een "
+"eenvoudige tellende loop van het type zoals we eerder zagen. "
+"(@xref{Incrementele loop, , Een loop met een incrementele teller}.) "
+"De waar-of-onwaar-test van de loop test of de waarde van de "
+"@code{gesorteerde-lengtes} lijst kleiner is dan de huidige waarde van de "
+"hoogste-van-ranges. Indien dat zo is, dan verhoogt de functie de teller "
+"en test de volgende waarde van de @code{gesorteerde-lengtes} lijst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15460
 msgid "The inner loop looks like this:"
-msgstr ""
+msgstr "De binnenste loop ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:15466
@@ -31511,6 +32285,9 @@ msgid ""
 "  (setq number-within-range (1+ number-within-range))\n"
 "  (setq sorted-lengths (cdr sorted-lengths)))\n"
 msgstr ""
+"(while @var{lengte-element-kleiner-dan-hoogste-van-range}\n"
+"  (setq getal-in-range (1+ getal-in-range))\n"
+"  (setq gesorteerde-lengtes (cdr gesorteerde-lengtes)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15472
@@ -31519,6 +32296,10 @@ msgid ""
 "list, and then be set to each of the succeeding higher values in turn.  This "
 "can be done with a loop like this:"
 msgstr ""
+"De buitenste loop moet starten met de laagste waarde in de "
+"@code{hoogste-van-ranges} lijst en daarna per keer steeds op de "
+"opvolgende hogere waarde gezet worden. Dit kan met een loop zoals "
+"deze:"
 
 #. type: group
 #: emacs-lisp-intro.texi:15478
@@ -31528,11 +32309,14 @@ msgid ""
 "  @var{body-of-loop}@dots{}\n"
 "  (setq top-of-ranges (cdr top-of-ranges)))\n"
 msgstr ""
+"(while hoogste-van-ranges\n"
+"  @var{body-van-loop}@dots{}\n"
+"  (setq hoogste-van-ranges (cdr hoogste-van-ranges)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15483
 msgid "Put together, the two loops look like this:"
-msgstr ""
+msgstr "Samengevoegd zien de twee loops er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:15487
@@ -31541,6 +32325,8 @@ msgid ""
 "(while top-of-ranges\n"
 "\n"
 msgstr ""
+"(while hoogste-van-ranges\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15492
@@ -31552,6 +32338,11 @@ msgid ""
 "    (setq sorted-lengths (cdr sorted-lengths)))\n"
 "\n"
 msgstr ""
+"  ;; @r{Tel het aantal elementen binnen de huidige range.}\n"
+"  (while @var{lengte-element-kleiner-dan-hoogste-van-range}\n"
+"    (setq getal-in-range (1+ getal-in-range))\n"
+"    (setq gesorteerde-lengtes (cdr gesorteerde-lengtes)))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15495
@@ -31560,6 +32351,8 @@ msgid ""
 "  ;; @r{Move to next range.}\n"
 "  (setq top-of-ranges (cdr top-of-ranges)))\n"
 msgstr ""
+"  ;; @r{Ga naar volgende range.}\n"
+"  (setq hoogste-van-ranges (cdr hoogste-van-ranges)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15502
@@ -31569,6 +32362,10 @@ msgid ""
 "range}) in a list.  We can use @code{cons} for this purpose.  (@xref{cons, , "
 "@code{cons}}.)"
 msgstr ""
+"Daarnaast moet Emacs in elk circuit van de buitenste loop het aantal "
+"definities binnen die range (de waarde van @code{getal-in-range}) in "
+"een lijst vastleggen. We kunnen @code{cons} voor dit doel gebruiken. "
+"(@xref{cons, , @code{cons}}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15514
@@ -31584,24 +32381,34 @@ msgid ""
 "@code{defuns-per-range-list}.  We can do this using the @code{nreverse} "
 "function, which reverses the order of a list."
 msgstr ""
+"De functie @code{cons} werkt prima, behalve dat de lijst die het "
+"maakt het aantal definities voor de hoogste range aan het begin en "
+"het aantal definities voor de laagste range aan het einde bevat. Dit "
+"komt omdat @code{cons} nieuwe elementen aan het begin van de lijst "
+"vastmaakt en omdat de twee loops hun werk door de lengtes-lijst van "
+"laag tot hoog doen, zal @code{defuns-per-range-list} eindigen met "
+"het grootste getal aan het begin. Maar wij willen onze grafiek tonen "
+"met eerst de kleinste waarden en de grotere daarna. We kunnen dit "
+"doen met de functie @code{nreverse} die de volgorde van een lijst "
+"omdraait."
 
 #. type: findex
 #: emacs-lisp-intro.texi:15514
 #, no-wrap
 msgid "nreverse"
-msgstr ""
+msgstr "nreverse"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:15521
 #, no-wrap
 msgid "(nreverse '(1 2 3 4))\n"
-msgstr ""
+msgstr "(nreverse '(1 2 3 4))\n"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:15529
 #, no-wrap
 msgid "(4 3 2 1)\n"
-msgstr ""
+msgstr "(4 3 2 1)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15538
@@ -31613,17 +32420,24 @@ msgid ""
 "it is destroyed.  (The @code{reverse} function provides a reversed copy of a "
 "list, leaving the original list as is.)"
 msgstr ""
+"Merk op dat de functie @code{nreverse} destructief is---dat wil "
+"zeggen, het verandert de lijst waarop het wordt toegepast. Dit "
+"contrasteert met de functies @code{car} en @code{cdr}, die "
+"niet-destructief zijn. In dit geval willen we de originele "
+"@code{defuns-per-range-lijst} niet, dus het maakt niet uit dat de "
+"lijst wordt vernietigd. (De functie @code{reverse} maakt een "
+"omgedraaide kopie van een lijst, en laat de originele lijst intact.)"
 
 #. type: findex
 #: emacs-lisp-intro.texi:15538
 #, no-wrap
 msgid "reverse"
-msgstr ""
+msgstr "reverse"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15542
 msgid "Put all together, the @code{defuns-per-range} looks like this:"
-msgstr ""
+msgstr "Alles bij elkaar ziet de @code{defuns-per-range} er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:15550 emacs-lisp-intro.texi:20999
@@ -31635,6 +32449,11 @@ msgid ""
 "        (number-within-range 0)\n"
 "        defuns-per-range-list)\n"
 msgstr ""
+"(defun defuns-per-range (gesorteerde-lengtes hoogste-van-ranges)\n"
+"  \"GESORTEERDE-LENGTES defuns in elke HOOGSTE-VAN-RANGES range.\"\n"
+"  (let ((hoogste-van-range (car hoogste-van-ranges))\n"
+"        (getal-in-range 0)\n"
+"        defuns-per-range-lijst)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15555
@@ -31643,6 +32462,8 @@ msgid ""
 "    ;; @r{Outer loop.}\n"
 "    (while top-of-ranges\n"
 msgstr ""
+"    ;; @r{Buitenste loop.}\n"
+"    (while hoogste-van-ranges\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15563
@@ -31654,6 +32475,12 @@ msgid ""
 "              (car sorted-lengths)\n"
 "              (< (car sorted-lengths) top-of-range))\n"
 msgstr ""
+"      ;; @r{Binnenste loop.}\n"
+"      (while (and\n"
+"              ;; @r{Getal nodig voor numerieke test.}\n"
+"              (car gesorteerde-lengtes)\n"
+"              (< (car gesorteerde-lengtes) hoogste-van-range))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15569
@@ -31664,12 +32491,18 @@ msgid ""
 "        (setq sorted-lengths (cdr sorted-lengths)))\n"
 "\n"
 msgstr ""
+"        ;; @r{Tel aantal definities in huidige range.}\n"
+"        (setq getal-in-range (1+ getal-in-range))\n"
+"        (setq gesorteerde-lengtes (cdr gesorteerde-lengtes)))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15571
 #, no-wrap
 msgid "      ;; @r{Exit inner loop but remain within outer loop.}\n"
 msgstr ""
+"      ;; @r{Verlaat binnenste loop maar blijf in buitenste loop.}\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15577
@@ -31679,6 +32512,9 @@ msgid ""
 "            (cons number-within-range defuns-per-range-list))\n"
 "      (setq number-within-range 0)      ; @r{Reset count to zero.}\n"
 msgstr ""
+"      (setq defuns-per-range-lijst\n"
+"            (cons getal-in-range defuns-per-range-lijst))\n"
+"      (setq getal-in-range 0)      ; @r{Reset telling op nul.}\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15584 emacs-lisp-intro.texi:21027
@@ -31689,6 +32525,10 @@ msgid ""
 "      ;; @r{Specify next top of range value.}\n"
 "      (setq top-of-range (car top-of-ranges)))\n"
 msgstr ""
+"      ;; @r{Ga naar volgende range.}\n"
+"      (setq hoogste-van-ranges (cdr hoogste-van-ranges))\n"
+"      ;; @r{Specify next top of range value.}\n"
+"      (setq hoogste-van-range (car hoogste-van-ranges)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15593
@@ -31701,6 +32541,13 @@ msgid ""
 "           (length sorted-lengths)\n"
 "           defuns-per-range-list))\n"
 msgstr ""
+"    ;; @r{Verlaat buitenste loop en tel het aantal defuns groter dan}\n"
+"    ;; @r{  de grootste top-of-range value.}\n"
+"    (setq defuns-per-range-lijst\n"
+"          (cons\n"
+"           (length gesorteerde-lengtes)\n"
+"           defuns-per-range-lijst))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15599 emacs-lisp-intro.texi:21040
@@ -31710,6 +32557,9 @@ msgid ""
 "    ;; @r{  smallest to largest.}\n"
 "    (nreverse defuns-per-range-list)))\n"
 msgstr ""
+"    ;; @r{Geef een lijst terug met het aantal definities in elke range,}\n"
+"    ;; @r{  van klein naar groot.}\n"
+"    (nreverse defuns-per-range-lijst)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15606
@@ -31717,6 +32567,8 @@ msgid ""
 "The function is straightforward except for one subtle feature.  The true-or-"
 "false test of the inner loop looks like this:"
 msgstr ""
+"De functie is eenvoudig behalve een subtiele eigenschap. De "
+"waar-of-onwaar-test van de binnenste loop ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:15611
@@ -31725,17 +32577,19 @@ msgid ""
 "(and (car sorted-lengths)\n"
 "     (< (car sorted-lengths) top-of-range))\n"
 msgstr ""
+"(and (car gesorteerde-lengtes)\n"
+"     (< (car gesorteerde-lengtes) hogste-van-range))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15617
 msgid "instead of like this:"
-msgstr ""
+msgstr "in plaats van dit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:15620
 #, no-wrap
 msgid "(< (car sorted-lengths) top-of-range)\n"
-msgstr ""
+msgstr "(< (car gesorteerde-lengtes) hoogste-van-range)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15625
@@ -31743,6 +32597,9 @@ msgid ""
 "The purpose of the test is to determine whether the first item in the "
 "@code{sorted-lengths} list is less than the value of the top of the range."
 msgstr ""
+"Het doel van deze test is vast te stellen of het eerste item in de "
+"@code{gesorteerde-lengtes} lijst kleiner is dan de waarde van de "
+"hoogste van de range."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15632
@@ -31753,6 +32610,12 @@ msgid ""
 "compare a number to @code{nil}, which is an empty list, so Emacs signals an "
 "error and stops the function from attempting to continue to execute."
 msgstr ""
+"De simpele versie van de tekst werkt prima tenzij de "
+"@code{gesorteerde-lengtes} lijst een waarde @code{nil} heeft. In dat "
+"geval geeft de @code{(car gesorteerde-lengtes)} expressie @code{nil} "
+"terug. De functie @code{<} kan geen getal vergelijken met "
+"@code{nil}, wat een lege lijst is, zodat Emacs een fout signaleert "
+"en de verdere uitvoering van de functie stopt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15637
@@ -31762,6 +32625,10 @@ msgid ""
 "@code{defuns-per-range} function with the simple version of the test will "
 "fail."
 msgstr ""
+"De @code{gesorteerde-lengtes} lijst wordt altijd @code{nil} wanneer "
+"de teller het einde van de lijst bereikt. Dit betekent dat elke "
+"poging om de functie @code{defuns-per-range} met de simpele versie "
+"te gebruiken zal falen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15649
@@ -31777,11 +32644,22 @@ msgid ""
 "@code{<} expression, and returns that value as the value of the @code{and} "
 "expression."
 msgstr ""
+"Wij lossen het probleem op met de @code{(car gesorteerde-lengtes)} "
+"expressie in combinatie met de @code{and} expressie. De @code{(car "
+"gesorteerde-lengtes)} expressie geeft een niet-@code{nil} waarde "
+"zolang de lijst tenminste een getal bevat, maar geeft @code{nil} "
+"terug als de lijst leeg is. De @code{and} expressie evalueert eerst "
+"de @code{(car gesorteerde-lengtes)} expressie, and als die "
+"@code{nil} is, geeft die onwaar terug @emph{zonder} de @code{<} "
+"expressie te evalueren. Maar wanneer de @code{(car "
+"gesorteerde-lengtes)} expressie een non-@code{nil} waarde "
+"teruggeeft, evalueert de @code{and} expressie de @code{<} expressie "
+"en geeft die waarde terug als de waarde van de @code{and} expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15652
 msgid "This way, we avoid an error."
-msgstr ""
+msgstr "Op deze manier voorkomen we een fout."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15669
@@ -31792,6 +32670,11 @@ msgid ""
 "@code{sorted-lengths} list, and then evaluate the @code{defuns-per-range} "
 "function."
 msgstr ""
+"Hier is een korte test van de functie @code{defuns-per-range}. "
+"Evalueer de expressie die een (verkorte) @code{hoogste-van-ranges} "
+"lijst bindt aan de lijst van waardes, en evalueer dan de expressie "
+"om de @code{gesorteerde-lengtes} lijst te binden, en evalueer daarna "
+"de functie @code{defuns-per-range}."
 
 #. type: group
 #: emacs-lisp-intro.texi:15676
@@ -31803,6 +32686,11 @@ msgid ""
 "   160 170 180 190 200))\n"
 "\n"
 msgstr ""
+";; @r{(Kortere lijst dan we later gaan gebruiken.)}\n"
+"(setq hoogste-van-ranges\n"
+" '(110 120 130 140 150\n"
+"   160 170 180 190 200))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15679
@@ -31812,23 +32700,26 @@ msgid ""
 "      '(85 86 110 116 122 129 154 176 179 200 265 300 300))\n"
 "\n"
 msgstr ""
+"(setq gesorteerde-lengtes\n"
+"      '(85 86 110 116 122 129 154 176 179 200 265 300 300))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15681
 #, no-wrap
 msgid "(defuns-per-range sorted-lengths top-of-ranges)\n"
-msgstr ""
+msgstr "(defuns-per-range gesorteerde-lengtes hoogste-van-ranges)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15687
 msgid "The list returned looks like this:"
-msgstr ""
+msgstr "De teruggeven lijst ziet er zo uit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:15690
 #, no-wrap
 msgid "(2 2 2 0 0 1 0 2 0 0 4)\n"
-msgstr ""
+msgstr "(2 2 2 0 0 1 0 2 0 0 4)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15697
@@ -31837,30 +32728,34 @@ msgid ""
 "than 110, two elements between 110 and 119, two elements between 120 and "
 "129, and so on.  There are four elements with a value of 200 or larger."
 msgstr ""
+"Er zijn inderdaad twee elementen van de @code{gesorteerde-lengtes} "
+"lijst kleiner dan 110, twee elemten tussen 110 en 119, twee "
+"elementen tussen 120 en 129, enzovoorts. Er zijn vier elementen met "
+"een waarde van 200 of groter."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:15701
 #, no-wrap
 msgid "Readying a graph"
-msgstr ""
+msgstr "Een grafiek voorbereiden"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:15702
 #, no-wrap
 msgid "Graph prototype"
-msgstr ""
+msgstr "Grafiek prototype"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:15703
 #, no-wrap
 msgid "Prototype graph"
-msgstr ""
+msgstr "Prototype grafiek"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:15704
 #, no-wrap
 msgid "Body of graph"
-msgstr ""
+msgstr "Body van grafiek"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15708
@@ -31868,6 +32763,9 @@ msgid ""
 "Our goal is to construct a graph showing the numbers of function definitions "
 "of various lengths in the Emacs lisp sources."
 msgstr ""
+"Ons doel is een grafiek te construeren die de getallen toont van "
+"de functiedefinities van diverse lengtes in de Emacs lisp "
+"bronbestanden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15715
@@ -31878,6 +32776,12 @@ msgid ""
 "scratch, and in the process we will re-acquaint ourselves with some of what "
 "we learned before and learn more."
 msgstr ""
+"Als je in de praktijk een grafiek zou maken, zou je daarvoor "
+"waarschijnlijk een programma zoals @code{gnuplot} gebruiken. "
+"(@code{gnuplot} is mooi geïntegreerd en GNU Emacs.) In dit geval "
+"echter maken we er een helemaal zelf en in het proces maken wij ons "
+"weer vertrouwd met sommige dingen die we eerder geleerd hebben en "
+"meer leren."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15722
@@ -31889,6 +32793,13 @@ msgid ""
 "we will feel more confident and enhance the function to label the axes "
 "automatically."
 msgstr ""
+"In dit hoofdstuk schrijven we eerste een simpele functie om een "
+"grafiek te tonen. Deze eerste definitie wordt een @dfn{prototype}, "
+"een snel geschreven functie om het onbekende terrein van grafiek "
+"maken te verkennen. We ontdekken draken of ontdekken dat ze een "
+"mythe zijn. Na het terrein verkend te hebben voelen we ons meer "
+"zelfverzekerd en breiden de functie uit met automatische labeling "
+"van de assen."
 
 #. type: node
 #: emacs-lisp-intro.texi:15732
@@ -31900,7 +32811,7 @@ msgstr "Kolommen van een grafiek"
 #: emacs-lisp-intro.texi:15733
 #, no-wrap
 msgid "Printing the Columns of a Graph"
-msgstr ""
+msgstr "De kolommen van een grafiek tonen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15741
@@ -31910,6 +32821,12 @@ msgid ""
 "of the typewriter symbols.  An asterisk will do; as we enhance the graph-"
 "printing function, we can make the choice of symbol a user option."
 msgstr ""
+"Omdat Emacs gemaakt is om flexibel te zijn en met allerlei soorten "
+"terminals te werken, waaronder alleen-tekst terminals, moet de "
+"grafiek gemaakt worden met een typemachine-symbool. Een sterretje is "
+"goed genoeg. Wanneer we de functie om de grafiek te tonen "
+"uitbreiden, kunnen we van de keuze van het symbool een "
+"gebruikersoptie maken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15745
@@ -31918,6 +32835,9 @@ msgid ""
 "@code{numbers-list} as its only argument.  At this stage, we will not label "
 "the graph, but only print its body."
 msgstr ""
+"We kunnen deze functie @code{grafiek-body-tonen} noemen, het neemt "
+"de @code{numbers-list} als enige argument. Op dit moment geven we "
+"nog geen labels aan de grafiek, maar tonen alleen de body."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15750
@@ -31926,6 +32846,10 @@ msgid ""
 "for each element in the @code{numbers-list}.  The height of each line is "
 "determined by the value of that element of the @code{numbers-list}."
 msgstr ""
+"De functie @code{grafiek-body-tonen} voegt een verticale kolom van "
+"sterretjes in voor elk element van de @code{getallen-lijst}. De hoogte "
+"van elke lijn wordt bepaald door de waarde van dat element in de "
+"@code{getallen-lijst}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15753
@@ -31933,6 +32857,8 @@ msgid ""
 "Inserting columns is a repetitive act; that means that this function can be "
 "written either with a @code{while} loop or recursively."
 msgstr ""
+"Kolommen invoegen is een reperterende actie wat betekent dat deze functie "
+"met een @code{while} loop dan wel recursief geschreven kan worden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15758
@@ -31942,6 +32868,11 @@ msgid ""
 "line, by typing.  We have two routes we can follow: write our own column-"
 "insertion function or discover whether one exists in Emacs."
 msgstr ""
+"Onze eerste uitdaging is om te ontdekken hoe een kolom van "
+"sterretjes te tonen. Meestal tonen we in Emacs horizontaal karakters "
+"op het scherm, regel voor regel, door te typen. We kunnen twee "
+"routes volgen: we schrijven onze eigen kolom-invoeg-functie of "
+"ontdekken of er al een in Emacs bestaat."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15764
@@ -31952,12 +32883,18 @@ msgid ""
 "commands.  The @kbd{M-x apropos} command lists all symbols that match a "
 "regular expression, including functions that are not interactive."
 msgstr ""
+"Om te ontdekken of er al een in Emacs is, gebruiken we het commando "
+"@kbd{M-x apropos}. Dit commando is vergelijkbaar met het commando "
+"@kbd{C-h a} (@code{command-apropos}), behalve dat de laatste alleen "
+"functies vindt dat commando's zijn. Het commando @kbd{M-x apropos} "
+"vermeldt alle symbolen die een reguliere expressie matchen, "
+"inclusief functies die niet interactief zijn."
 
 #. type: findex
 #: emacs-lisp-intro.texi:15764
 #, no-wrap
 msgid "apropos"
-msgstr ""
+msgstr "apropos"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15776
@@ -31972,11 +32909,21 @@ msgid ""
 "Scanning down the list, the only function that looks as if it might do the "
 "job is @code{insert-rectangle}."
 msgstr ""
+"Waar we naar zoeken is een commando dat kolommen toont of invoegt. "
+"Zeer waarschijnlijk bevat de naam van de functie het woord "
+"``print'', het woord ``insert'' of het woord 11column''. Daarom "
+"kunnen we eenvoudigweg @kbd{M-x apropos @key{RET} "
+"print\\|insert\\|column @key{RET}} typen en naar het resultaat "
+"kijken. Op mijn systeem kostte dit commando ooit behoorlijk wat tijd "
+"en produceerde een lijst met 79 functies en variabelen. Nu kost het "
+"amper tijd en produceert een lijst met 211 functies en variabelen. "
+"Bij het bekijken van de lijst is de enige functie die lijkt alsof "
+"die het werk kan doen is @code{insert-rectangle}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15779
 msgid "Indeed, this is the function we want; its documentation says:"
-msgstr ""
+msgstr "Inderdaad, dit is de functie die we willen, de documentatie zegt:"
 
 #. type: group
 #: emacs-lisp-intro.texi:15789
@@ -31990,6 +32937,13 @@ msgid ""
 "After this command, the mark is at the upper left corner\n"
 "and point is at the lower right corner.\n"
 msgstr ""
+"insert-rectangle:\n"
+"Insert text of RECTANGLE with upper left corner at point.\n"
+"RECTANGLE's first line is inserted at point,\n"
+"its second line is inserted at a point vertically under point, etc.\n"
+"RECTANGLE should be a list of strings.\n"
+"After this command, the mark is at the upper left corner\n"
+"and point is at the lower right corner.\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15793
@@ -39726,27 +40680,6 @@ msgid ""
 msgstr ""
 
 #. type: group
-#: emacs-lisp-intro.texi:21004
-#, no-wrap
-msgid ""
-"    ;; @r{Outer loop.}\n"
-"    (while top-of-ranges\n"
-"\n"
-msgstr ""
-
-#. type: group
-#: emacs-lisp-intro.texi:21010
-#, no-wrap
-msgid ""
-"      ;; @r{Inner loop.}\n"
-"      (while (and\n"
-"              ;; @r{Need number for numeric test.}\n"
-"              (car sorted-lengths)\n"
-"              (< (car sorted-lengths) top-of-range))\n"
-"\n"
-msgstr ""
-
-#. type: group
 #: emacs-lisp-intro.texi:21014
 #, no-wrap
 msgid ""
@@ -39754,6 +40687,9 @@ msgid ""
 "        (setq number-within-range (1+ number-within-range))\n"
 "        (setq sorted-lengths (cdr sorted-lengths)))\n"
 msgstr ""
+"        ;; @r{Tel aantal definities in huidige range.}\n"
+"        (setq getal-in-range (1+ getal-in-range))\n"
+"        (setq gesorteerde-lengtes (cdr gesorteerde-lengtes)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21018
@@ -39762,6 +40698,8 @@ msgid ""
 "      ;; @r{Exit inner loop but remain within outer loop.}\n"
 "\n"
 msgstr ""
+"      ;; @r{Verlaat binnenste loop maar blijf in buitenste loop.}\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21022
@@ -39772,6 +40710,9 @@ msgid ""
 "      (setq number-within-range 0)      ; @r{Reset count to zero.}\n"
 "\n"
 msgstr ""
+"      (setq defuns-per-range-lijst\n"
+"            (cons getal-in-range defuns-per-range-list))\n"
+"      (setq getal-in-range 0)      ; @r{Reset telling op nul.}\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21036
@@ -39785,6 +40726,13 @@ msgid ""
 "           defuns-per-range-list))\n"
 "\n"
 msgstr ""
+"    ;; @r{Verlaat buitenste loop en tel het aantal defuns groter dan}\n"
+"    ;; @r{  de grootste top-of-range value.}\n"
+"    (setq defuns-per-range-lijst\n"
+"          (cons\n"
+"           (length gesorteerde-lengtes)\n"
+"           defuns-per-range-lijst))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21052

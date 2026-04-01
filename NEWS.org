@@ -7,6 +7,7 @@
 *** Added
 
 - Added support for ~vc-log-search~.
+- Added support for asynchronous ~vc-diff~.  (Supported only on Emacs >=31, which has the ~vc-allow-async-diff~ user option.)
 
 *** Changed
 

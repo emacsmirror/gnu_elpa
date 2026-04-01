@@ -1250,17 +1250,16 @@ delete."
 
 ;;;; diff
 
-(defun vc-jj-diff (files &optional rev1 rev2 buffer _async)
-  "Display diffs for FILES between revisions REV1 and REV2.
+(defun vc-jj-diff (files &optional rev1 rev2 buffer async)
+  "Display a diff for FILES between revisions REV1 and REV2.
 FILES is a list of file paths.  REV1 and REV2 are the full change IDs of
 two revisions.  REV1 is the earlier revision and REV2 is the later
 revision.
 
 When BUFFER is non-nil, it is the buffer object or name to insert the
 diff into.  Otherwise, when nil, insert the diff into the *vc-diff*
-buffer.  If _ASYNC is non-nil, run asynchronously.  This is currently
-unsupported."
-  ;; TODO: handle async
+buffer.  If ASYNC is non-nil, run the jj command of this function
+asynchronously."
   (setq buffer (or buffer "*vc-diff*")
         files (mapcar #'vc-jj--filename-to-fileset files))
   (cond
@@ -1281,7 +1280,7 @@ unsupported."
                         (list "-f" rev1 "-t" rev2))
                       (vc-switches 'jj 'diff)
                       (list "--") files)))
-    ;; Match `vc-git-diff' by returning the value of
+    ;; Mimic `vc-git-diff' by returning the value of
     ;; `vc-jj--command-dispatched'.
     ;;
     ;; Also ensure that (vc-jj--command-dispatched BUFFER ...) is
@@ -1291,9 +1290,10 @@ unsupported."
     ;; `vc-jj--command-dispatched') only erases BUFFER when BUFFER is
     ;; not the current buffer.  See bug#152 for more information.
     (prog1
-        (apply #'vc-jj--command-dispatched buffer 0 nil "diff" args)
+        (apply #'vc-jj--command-dispatched buffer (if async 'async 0) nil "diff" args)
       (with-current-buffer buffer
-        (ansi-color-filter-region (point-min) (point-max))))))
+        (vc-run-delayed
+          (ansi-color-filter-region (point-min) (point-max)))))))
 
 ;;;; revision-completion-table
 

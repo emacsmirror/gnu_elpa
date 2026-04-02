@@ -845,6 +845,18 @@ Optional argument TIMER-IN-MINS timer in minutes (integer)."
     (greader-timer-mode 1))
   (setq-local greader-timer timer-in-mins))
 
+(defun greader-timer-remaining ()
+  "Display the time remaining before the reading timer expires.
+The remaining time is shown in the minibuffer as minutes and seconds."
+  (interactive)
+  (if (and greader-timer-mode (timerp greader-stop-timer))
+      (let* ((total (greader-convert-mins-to-secs greader-timer))
+             (remaining (max 0 (- total greader-elapsed-time)))
+             (mins (/ remaining 60))
+             (secs (% remaining 60)))
+        (message "Time remaining: %d min %d sec" mins secs))
+    (message "No active timer.")))
+
 (defun greader-setup-timers ()
   "Set up timers, that is, call `run-at-time' using settings you have specified."
   (catch 'timer-is-nil

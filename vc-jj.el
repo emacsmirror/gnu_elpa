@@ -241,23 +241,6 @@ repository root (e.g., via `let') before calling this function.
 `default-directory'.)"
   (format "root:%S" (file-relative-name filename default-directory)))
 
-(defun vc-jj--set-up-process-buffer (buffer root command)
-  "Prepare BUFFER for execution of COMMAND in directory ROOT."
-  (with-current-buffer buffer
-    (vc-run-delayed
-      (vc-compilation-mode 'jj)
-      (setq-local compile-command (string-join command " "))
-      (setq-local compilation-directory root)
-      ;; Either set `compilation-buffer-name-function' locally to nil
-      ;; or use `compilation-arguments' to set `name-function'.
-      ;; See `compilation-buffer-name'.
-      (setq-local compilation-arguments
-                  (list compile-command nil
-                        (lambda (_name-of-mode) buffer)
-                        nil))
-      (ansi-color-filter-region (point-min) (point-max))))
-  (vc-set-async-update buffer))
-
 (defun vc-jj--process-lines (file-or-list &rest args)
   "Run jj with FILE-OR-LIST and ARGS, returning stdout as a list of strings.
 Return the process\\='s stdout as a list of strings, one string for
@@ -889,45 +872,100 @@ If REV is not specified, revert the file as with `vc-jj-revert'."
   "History variable for `vc-jj-pull'.")
 
 (defun vc-jj-pull (prompt)
-  "JJ-specific implementation of `vc-pull'.
-If PROMPT is non-nil, prompt for the jj command to run (default is \"jj
-git fetch\")."
-  (let* ((command (if prompt
-                      (split-string-shell-command
-                       (read-shell-command
-                        (format "jj git fetch command: ")
-                        (concat vc-jj-program " git fetch")
-                        'vc-jj-pull-history))
-                    `(,vc-jj-program "git" "fetch")))
-         (jj-program (car command))
-         (args (cdr command))
-         (root (vc-jj-root default-directory))
-         (buffer (format "*vc-jj : %s*" (expand-file-name root))))
-    (apply #'vc-do-async-command buffer root jj-program args)
-    (vc-jj--set-up-process-buffer buffer root command)))
+  "Fetch changes from the default repository remote.
+Run \"jj git fetch\", possibly with additional command flags.
+
+The default repository remote is the one specified by the \"git.fetch\"
+setting.  If that is not configured and there are multiple remotes, the
+remote named \"origin\" is fetched.
+
+PROMPT is the prefix argument.  If it is non-nil, prompt the user for
+the specific jj command to run."
+  (vc-jj--pushpull "fetch" prompt 'vc-jj-pull-history))
 
 ;;;; push
 
 (defvar vc-jj-push-history nil
   "History variable for `vc-jj-push'.")
 
+;; We have the work of `vc-jj-push' and `vc-jj-pull' factored out into
+;; `vc-jj--pushpull' because both do the exact same thing but with
+;; different "jj git" subcommands and history variables
+(defun vc-jj--pushpull (subcommand prompt history-var)
+  "Subroutine for `vc-jj-push' and `vc-jj-pull'.
+SUBCOMMAND is the \"jj git\" subcommand to run (e.g., \"push\").  PROMPT
+is the prefix argument; when non-nil, prompt the user to edit the shell
+command before it runs.  HISTORY-VAR is the variable name for the
+minibuffer history variable associated with SUBCOMMAND."
+  ;; Implementation modified from `vc-git--pushpull'
+  (let* ((root (vc-jj-root default-directory))
+         (buffer (format "*vc-jj : %s*" (expand-file-name root)))
+         (jj-program vc-jj-program)
+         (command-args (append (ensure-list vc-jj-global-switches)
+                               (list "git" subcommand)))
+         proc)
+    
+    ;; Do the command
+    (if (boundp 'vc-filter-command-function)
+        (let ((vc-filter-command-function
+               (if prompt
+                   (lambda (&rest args)
+                     (let ((vc-user-edit-command-history history-var))
+                       ;; As directed by the docstring of
+                       ;; `vc-filter-command-function', see `vc-do-command'
+                       ;; for what PROGRAM, _FILE-OR-LIST, and FLAGS are
+                       (cl-destructuring-bind (&whole args program _file-or-list flags)
+                           (apply #'vc-user-edit-command args)
+                         ;; Update relevant variables according to the
+                         ;; edits the user made from the call to
+                         ;; `vc-user-edit-command' above
+                         (setq jj-program program
+                               command-args flags)
+                         args)))
+                 vc-filter-command-function)))
+          (setq proc (apply #'vc-do-async-command buffer root jj-program command-args)))
+      ;; Emacs 28 didn't yet have `vc-filter-command-function' or
+      ;; `vc-user-edit-command', so we use the simple
+      ;; `read-shell-command' to edit the command when PROMPT is
+      ;; non-nil
+      (let* ((full-command (cons vc-jj-program command-args))
+             (command-list
+              (if prompt
+                  (split-string-shell-command
+                   (read-shell-command "Edit VC command: "
+                                       (string-join full-command " ")
+                                       history-var))
+                full-command)))
+        (setq jj-program (car command-list)
+              command-args (cdr command-list))
+        ;; `vc-do-async-command' returned BUFFER in Emacs 28
+        (apply #'vc-do-async-command buffer root jj-program command-args)
+        (setq proc (get-buffer-process (get-buffer buffer)))))
+    (set-process-query-on-exit-flag proc t)
+    
+    ;; Set up compilation buffer
+    (with-current-buffer buffer
+      (vc-run-delayed
+        (vc-compilation-mode 'jj)
+        (setq-local compile-command (string-join (cons jj-program command-args) " "))
+        (setq-local compilation-directory root)
+        ;; Either set `compilation-buffer-name-function' locally to
+        ;; nil or use `compilation-arguments' to set `name-function'.
+        ;; See `compilation-buffer-name'.
+        (setq-local compilation-arguments
+                    (list compile-command nil
+                          (lambda (_name-of-mode) buffer)
+                          nil))
+        (ansi-color-filter-region (point-min) (point-max))))
+    (vc-set-async-update buffer)))
+
 (defun vc-jj-push (prompt)
-  "JJ-specific implementation of `vc-push'.
-If PROMPT is non-nil, prompt for the command to run (default is \"jj git
-push\")."
-  (let* ((command (if prompt
-                      (split-string-shell-command
-                       (read-shell-command
-                        (format "jj git push command: ")
-                        (concat vc-jj-program " git push")
-                        'vc-jj-push-history))
-                    `(,vc-jj-program "git" "push")))
-         (jj-program (car command))
-         (args (cdr command))
-         (root (vc-jj-root default-directory))
-         (buffer (format "*vc-jj : %s*" (expand-file-name root))))
-    (apply #'vc-do-async-command buffer root jj-program args)
-    (vc-jj--set-up-process-buffer buffer root command)))
+  "Push changes to the remote of the default tracking bookmark.
+Run \"jj git push\", possibly with additional command flags.
+
+PROMPT is the prefix argument.  If it is non-nil, prompt the user for
+the specific jj command to run."
+  (vc-jj--pushpull "push" prompt 'vc-jj-push-history))
 
 ;;;; steal-lock
 

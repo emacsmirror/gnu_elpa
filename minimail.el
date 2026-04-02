@@ -1688,8 +1688,8 @@ Cf. RFC 5256, §2.1."
 
 (defun -format-date (date)
   (let* ((current-time-list nil)
-         (timestamp (encode-time date))
-         (today (let* ((v (decode-time)))
+         (timestamp (condition-case nil (encode-time date) (t 0)))
+         (today (let ((v (decode-time)))
                   (setf (decoded-time-hour v) 0)
                   (setf (decoded-time-minute v) 0)
                   (setf (decoded-time-second v) 0)
@@ -1707,17 +1707,14 @@ Cf. RFC 5256, §2.1."
     (propertize
      (format-time-string fmt timestamp)
      'help-echo (lambda (&rest _)
-                  (format-time-string "%a, %d %b %Y %T %z"
-                                      timestamp
-                                      (decoded-time-zone date))))))
+                  (format-time-string "%a, %d %b %Y %T" timestamp)))))
 
 (defun -message-timestamp (msg)
   "The message's envelope date as a Unix timestamp."
-  (let-alist msg
     (let ((current-time-list nil))
-      (encode-time (or .envelope.date
-                       .internal-date
-                       '(0 0 0 1 1 1970 nil nil 0))))))
+      (condition-case nil
+          (encode-time (let-alist msg .envelope.date))
+        (t 0))))
 
 (defvar minimail-mailbox-mode-column-alist
   ;; NOTE: We must slightly abuse the vtable API in several of our

@@ -1,4 +1,9 @@
 ;; -*- lexical-binding: t; -*-
+;; Copyright (C) 2024, 2025, 2026  Free Software Foundation, Inc.
+;;
+;; Author: Michelangelo Rodriguez <michelangelo.rodriguez@gmail.com>
+;; License: GPLv3+
+
 (require 'ert)
 (require 'greader-dict)
 

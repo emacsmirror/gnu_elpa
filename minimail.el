@@ -471,6 +471,107 @@ possible, see `minimail--key-match-p'."
 (defface minimail-mode-line-error '((t :inherit error))
   "Face to indicate an error in the mode line.")
 
+(defgroup minimail-icons nil
+  "Icons used by Minimail."
+  :group 'minimail)
+
+(define-icon minimail-mailbox nil
+  '((emoji "🗂️") (text ""))
+  "Generic icon for mailboxes."
+  :version "0.3")
+
+(define-icon minimail-mailbox-closed minimail-mailbox
+  '((emoji "📁") (symbol "⊞ ")(text "[+]"))
+  "Icon for mailboxes with children, when closed."
+  :version "0.3")
+
+(define-icon minimail-mailbox-open minimail-mailbox
+  '((emoji "📂") (symbol "⊟ ") (text "[-]"))
+  "Icon for mailboxes with children, when open."
+  :version "0.3")
+
+(define-icon minimail-mailbox-archive minimail-mailbox
+  '((emoji "🗃️"))
+  "Icon for archive mailboxes."
+  :version "0.3")
+
+(define-icon minimail-mailbox-drafts minimail-mailbox
+  '((emoji "📝"))
+  "Icon for drafts mailboxes."
+  :version "0.3")
+
+(define-icon minimail-mailbox-flagged minimail-mailbox
+  '((emoji "⭐"))
+  "Icon for flagged mailboxes."
+  :version "0.3")
+
+(define-icon minimail-mailbox-important minimail-mailbox
+  '((emoji "🔶"))
+  "Icon for important mailboxes."
+  :version "0.3")
+
+(define-icon minimail-mailbox-inbox minimail-mailbox
+  '((emoji "📥"))
+  "Icon for inbox mailboxes."
+  :version "0.3")
+
+(define-icon minimail-mailbox-junk minimail-mailbox
+  '((emoji "♻️"))
+  "Icon for junk mailboxes."
+  :version "0.3")
+
+(define-icon minimail-mailbox-sent minimail-mailbox
+  '((emoji "📤"))
+  "Icon for sent mailboxes."
+  :version "0.3")
+
+(define-icon minimail-mailbox-trash minimail-mailbox
+  '((emoji "🗑️"))
+  "Icon for trash mailboxes."
+  :version "0.3")
+
+(define-icon minimail-message-unseen nil
+  '((emoji "✉️") (symbol "●") (text "."))
+  "Icon for unseen messages."
+  :help-echo "Unseen"
+  :version "0.3")
+
+(define-icon minimail-message-flagged nil
+  '((emoji "⭐") (symbol "★") (text "!"))
+  "Icon for flagged messages."
+  :help-echo "Flagged"
+  :version "0.3")
+
+(define-icon minimail-message-important nil
+  '((emoji "🔸") (symbol "⬥") (text "i"))
+  "Icon for important messages."
+  :help-echo "Important"
+  :version "0.3")
+
+(define-icon minimail-message-answered nil
+  '((emoji "↩️") (symbol "↩") (text "A"))
+  "Icon for answered messages."
+  :help-echo "Answered"
+  :version "0.3")
+
+(define-icon minimail-message-forwarded nil
+  '((emoji "➡️") (symbol "→") (text "F"))
+  "Icon for answered messages."
+  :help-echo "Forwarded"
+  :version "0.3")
+
+(define-icon minimail-message-junk nil
+  '((emoji "♻️") (symbol "♻") (text "J"))
+  "Icon for junk messages."
+  :help-echo "Junk"
+  :version "0.3")
+
+(define-icon minimail-message-phishing nil
+  '((emoji "⚠️") (symbol "⚠") (text "J" :face warning))
+  "Icon for phishing messages."
+  :help-echo "Phishing"
+  :version "0.3")
+
 ;;; Internal variables and helper functions
 
 (defvar -account-state nil
@@ -1618,52 +1719,6 @@ Cf. RFC 5256, §2.1."
                        .internal-date
                        '(0 0 0 1 1 1970 nil nil 0))))))
 
-(defgroup minimail-icons nil
-  "Icons used by Minimail."
-  :group 'minimail)
-
-(define-icon -message-unseen nil
-  '((emoji "✉️") (symbol "●") (text "."))
-  "Icon for unseen messages."
-  :help-echo "Unseen"
-  :version "0.3")
-
-(define-icon -message-flagged nil
-  '((emoji "⭐") (symbol "★") (text "!"))
-  "Icon for flagged messages."
-  :help-echo "Flagged"
-  :version "0.3")
-
-(define-icon -message-important nil
-  '((emoji "🔸") (symbol "⬥") (text "i"))
-  "Icon for important messages."
-  :help-echo "Important"
-  :version "0.3")
-
-(define-icon -message-answered nil
-  '((emoji "↩️") (symbol "↩") (text "A"))
-  "Icon for answered messages."
-  :help-echo "Answered"
-  :version "0.3")
-
-(define-icon -message-forwarded nil
-  '((emoji "➡️") (symbol "→") (text "F"))
-  "Icon for answered messages."
-  :help-echo "Forwarded"
-  :version "0.3")
-
-(define-icon -message-junk nil
-  '((emoji "♻️") (symbol "♻") (text "J"))
-  "Icon for junk messages."
-  :help-echo "Junk"
-  :version "0.3")
-
-(define-icon -message-phishing nil
-  '((emoji "⚠️") (symbol "⚠") (text "J" :face warning))
-  "Icon for phishing messages."
-  :help-echo "Phishing"
-  :version "0.3")
-
 (defvar minimail-mailbox-mode-column-alist
   ;; NOTE: We must slightly abuse the vtable API in several of our
   ;; column definitions.  The :getter attribute returns a string used
@@ -1676,28 +1731,31 @@ Cf. RFC 5256, §2.1."
      :name "Seen"
      :min-width 1
      :getter ,(lambda (msg _)
-                (let ((icon (-alist-query (alist-get 'flags msg)
-                                          '(((not \\Seen) . -message-unseen)))))
+                (let ((icon (-alist-query
+                             (alist-get 'flags msg)
+                             '(((not \\Seen) . minimail-message-unseen)))))
                   (if icon (icon-string icon) ""))))
     (flag-flagged
      :name "Flagged"
      :min-width 1
      :getter
      ,(lambda (msg _)
-        (let ((icon (-alist-query (append (alist-get 'x-gm-labels msg)
-                                          (alist-get 'flags msg))
-                                  '((\\Flagged  . -message-flagged)
-                                    ((or $Important \\Important) . -message-important)
-                                    ($Phishing  . -message-phishing)
-                                    ($Junk      . -message-junk)))))
+        (let ((icon (-alist-query
+                     (append (alist-get 'x-gm-labels msg)
+                             (alist-get 'flags msg))
+                     '((\\Flagged                   . minimail-message-flagged)
+                       ((or $Important \\Important) . minimail-message-important)
+                       ($Phishing                   . minimail-message-phishing)
+                       ($Junk                       . minimail-message-junk)))))
           (if icon (icon-string icon) ""))))
     (flag-answered
      :name "Answered"
      :min-width 1
      :getter ,(lambda (msg _)
-                (let ((icon (-alist-query (alist-get 'flags msg)
-                                          '((\\Answered . -message-answered)
-                                            ($Forwarded . -message-forwarded)))))
+                (let ((icon (-alist-query
+                             (alist-get 'flags msg)
+                             '((\\Answered . minimail-message-answered)
+                               ($Forwarded . minimail-message-forwarded)))))
                   (if icon (icon-string icon) ""))))
     (from
      :name "From"
@@ -2276,61 +2334,6 @@ the user selected another message in the meanwhile, yield nil."
   (setq-local revert-buffer-function (lambda (&rest _)
                                        (-overview-buffer-populate t))))
 
-(define-icon -mailbox nil
-  '((emoji "🗂️") (text ""))
-  "Generic icon for mailboxes."
-  :version "0.3")
-
-(define-icon -mailbox-closed -mailbox
-  '((emoji "📁") (symbol "⊞ ")(text "[+]"))
-  "Icon for mailboxes with children, when closed."
-  :version "0.3")
-
-(define-icon -mailbox-open -mailbox
-  '((emoji "📂") (symbol "⊟ ") (text "[-]"))
-  "Icon for mailboxes with children, when open."
-  :version "0.3")
-
-(define-icon -mailbox-archive -mailbox
-  '((emoji "🗃️"))
-  "Icon for archive mailboxes."
-  :version "0.3")
-
-(define-icon -mailbox-drafts -mailbox
-  '((emoji "📝"))
-  "Icon for drafts mailboxes."
-  :version "0.3")
-
-(define-icon -mailbox-flagged -mailbox
-  '((emoji "⭐"))
-  "Icon for flagged mailboxes."
-  :version "0.3")
-
-(define-icon -mailbox-important -mailbox
-  '((emoji "🔶"))
-  "Icon for important mailboxes."
-  :version "0.3")
-
-(define-icon -mailbox-inbox -mailbox
-  '((emoji "📥"))
-  "Icon for inbox mailboxes."
-  :version "0.3")
-
-(define-icon -mailbox-junk -mailbox
-  '((emoji "♻️"))
-  "Icon for junk mailboxes."
-  :version "0.3")
-
-(define-icon -mailbox-sent -mailbox
-  '((emoji "📤"))
-  "Icon for sent mailboxes."
-  :version "0.3")
-
-(define-icon -mailbox-trash -mailbox
-  '((emoji "🗑️"))
-  "Icon for trash mailboxes."
-  :version "0.3")
-
 (defun -overview-create-icon (icon)
   (widget-put icon :glyph-name nil)
   (widget-put icon :tag
@@ -2339,8 +2342,8 @@ the user selected another message in the meanwhile, yield nil."
                  ('tree-widget-leaf-icon
                   (widget-put icon :tab-order -1)
                   (widget-get (widget-get icon :node) :icon))
-                 ('tree-widget-open-icon '-mailbox-open)
-                 (_ '-mailbox-closed)))))
+                 ('tree-widget-open-icon 'minimail-mailbox-open)
+                 (_ 'minimail-mailbox-closed)))))
 
 (defun -overview-tree-expand (widget)
   (let ((acct (widget-get widget :account))
@@ -2360,14 +2363,14 @@ the user selected another message in the meanwhile, yield nil."
                                 :icon ,(seq-some
                                         (pcase-lambda (`(,cond . ,icon))
                                           (when (-key-match-p cond .flags) icon))
-                                        '(((or \\All \\Archive) . -mailbox-archive)
-                                          (\\Drafts             . -mailbox-drafts)
-                                          (\\Flagged            . -mailbox-flagged)
-                                          (\\Important          . -mailbox-important)
-                                          (\\Junk               . -mailbox-junk)
-                                          (\\Sent               . -mailbox-sent)
-                                          (\\Trash              . -mailbox-trash)
-                                          (t                    . -mailbox)))
+                                        '(((or \\All \\Archive) . minimail-mailbox-archive)
+                                          (\\Drafts             . minimail-mailbox-drafts)
+                                          (\\Flagged            . minimail-mailbox-flagged)
+                                          (\\Important          . minimail-mailbox-important)
+                                          (\\Junk               . minimail-mailbox-junk)
+                                          (\\Sent               . minimail-mailbox-sent)
+                                          (\\Trash              . minimail-mailbox-trash)
+                                          (t                    . minimail-mailbox)))
                                 :action ,(lambda (&rest _)
                                            (minimail-find-mailbox acct name))))))
              (if (-key-match-p '(or \\HasNoChildren \\Noinferiors) .flags)

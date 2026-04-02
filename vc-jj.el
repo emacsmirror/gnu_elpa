@@ -229,12 +229,13 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 (add-to-list 'vc-handled-backends 'JJ)
 
 (defun vc-jj--filename-to-fileset (filename)
-  "Convert FILENAME to a JJ fileset expression.
-The fileset expression returned is relative to the JJ repository root.
-
-When FILENAME is not inside a JJ repository, throw an error."
+  "Convert FILENAME to a Jujutsu fileset expression.
+Most Jujutsu commands accept filesets rather than file paths.  This
+function returns a fileset expression of the form \"root:PATH\", where
+PATH is FILENAME expressed relative to the workspace root and quoted as
+a string literal."
   (if-let* ((root (vc-jj-root filename))
-           (default-directory root))
+            (default-directory root))
       (format "root:%S" (file-relative-name filename root))
     (error "File is not inside a JJ repository: %s" filename)))
 
@@ -268,19 +269,19 @@ parsing.
 Unlike `vc-jj--command-dispatched', this function is synchronous and
 does not report on the status of the process.
 
-FILE-OR-LIST may be a string, a list of strings, or nil.  When non-nil,
-the file names are appended to ARGS as a jj fileset and passed to jj.
-If the caller would like to pass a file or list of files as paths not
-converted to a jj fileset, they must be passed in ARGS.
+FILE-OR-LIST may be a file, a list of files, or nil.  When non-nil, the
+file names are converted to Jujutsu fileset expressions and appended to
+ARGS.  If the caller would like to pass a raw file or list of files not
+converted to a jj fileset, they should be included in ARGS.
 
 See also `vc-jj--command-parseable' and `vc-jj--command-dispatched.'"
   (with-temp-buffer
     (let* ((fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
            (status (apply #'process-file vc-jj-program nil
                           (list (current-buffer) nil) nil
-                          (append args (when fileset (cons "--" fileset))))))
+                          (append args fileset))))
       (unless (eq status 0)
-	(error "'jj' exited with status %s" status))
+        (error "'jj' exited with status %s" status))
       (ansi-color-filter-region (point-min) (point-max))
       (goto-char (point-min))
       (let (lines)
@@ -304,17 +305,17 @@ parsing.
 Unlike `vc-jj--command-dispatched', this function is synchronous and
 does not report on the status of the process.
 
-FILE-OR-LIST may be a string, a list of strings, or nil.  When non-nil,
-the file names are appended to ARGS as a jj fileset and passed to jj.
-If the caller would like to pass a file or list of files as paths not
-converted to a jj fileset, they must be passed in ARGS.
+FILE-OR-LIST may be a file, a list of files, or nil.  When non-nil, the
+file names are converted to Jujutsu fileset expressions and appended to
+ARGS.  If the caller would like to pass a raw file or list of files not
+converted to a jj fileset, they should be included in ARGS.
 
 See also `vc-jj--process-lines'."
   (with-temp-buffer
     (let* ((fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
            (status (apply #'process-file vc-jj-program nil
                           (list (current-buffer) nil) nil
-                          (append args (when fileset (cons "--" fileset))))))
+                          (append args fileset))))
       (unless (eq status 0)
 	(error "'jj' exited with status %s" status))
       (ansi-color-filter-region (point-min) (point-max))
@@ -334,20 +335,18 @@ one because jj may write warnings to stderr, and `vc-do-command' (which
 the this function uses and the above ones do not) does not distinguish
 stdout from stderr, making the output unsafe to process automatically.
 
-FILE-OR-LIST may be a string, a list of strings, or nil.  When non-nil,
-the file names are appended to ARGS as a jj fileset and passed to jj.
-If the caller would like to pass a file or list of files as paths not
-converted to a jj fileset, they must be passed in ARGS.
+FILE-OR-LIST may be a file, a list of files, or nil.  When non-nil, the
+file names are converted to Jujutsu fileset expressions and appended to
+ARGS.  If the caller would like to pass a raw file or list of files not
+converted to a jj fileset, they should be included in ARGS.
 
 See also `vc-jj--command-parseable' and `vc-jj--process-lines'."
   (let* ((fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
          (global-switches (ensure-list vc-jj-global-switches)))
-    (apply #'vc-do-command (or buffer "*vc*") okstatus vc-jj-program
-           ;; Note that we pass nil for FILE-OR-LIST to avoid
-           ;; vc-do-command mangling of filenames; we pass the fileset
-           ;; expressions in ARGS instead.
-           nil
-           (append global-switches args (when fileset (cons "--" fileset))))))
+    ;; We pass our prepared fileset to jj directly rather than to
+    ;; `vc-do-command', which would pass raw file names to jj
+    (apply #'vc-do-command (or buffer "*vc*") okstatus vc-jj-program nil
+           (append global-switches args fileset))))
 
 ;;; BACKEND PROPERTIES
 
@@ -941,14 +940,14 @@ as a base revision."
   (vc-setup-buffer buffer)
   (let ((inhibit-read-only t)
         (files
-         ;; There is a special case when FILES has just the root of
-         ;; the project as its only element (e.g., when calling
-         ;; `vc-print-root-log').  In this case, we do not specify a
-         ;; fileset to jj because doing do would cause the log to only
-         ;; show ancestors of START-REVISION (even if the fileset is
-         ;; "all()").  This behavior is undesirable in
-         ;; `vc-print-root-log' (in a JJ context of bookmarks), since
-         ;; users expect to see descendants as well
+         ;; There is a special case when FILES has one element: the
+         ;; root of the project (e.g., when calling
+         ;; `vc-print-root-log').  In this case, we do not pass a list
+         ;; of files to jj because doing do would cause the log to
+         ;; only show ancestors of START-REVISION (even if the fileset
+         ;; is "all()").  But this behavior is undesirable in
+         ;; `vc-print-root-log' (in a Jujutsu context of bookmarks),
+         ;; since users expect to see descendants as well.
          (unless (file-equal-p (vc-jj-root (car files)) (car files))
            files))
         (args (append (pcase limit
@@ -1260,8 +1259,7 @@ When BUFFER is non-nil, it is the buffer object or name to insert the
 diff into.  Otherwise, when nil, insert the diff into the *vc-diff*
 buffer.  If ASYNC is non-nil, run the jj command of this function
 asynchronously."
-  (setq buffer (or buffer "*vc-diff*")
-        files (mapcar #'vc-jj--filename-to-fileset files))
+  (setq buffer (or buffer "*vc-diff*"))
   (cond
    ((not (or rev1 rev2))
     ;; Use `vc-jj-previous-revision' instead of "@-" because the
@@ -1270,16 +1268,17 @@ asynchronously."
    ((null rev1)
     (setq rev1 "root()")))
   (setq rev2 (or rev2 "@"))
-  (let ((inhibit-read-only t)
-        ;; When REV1 and REV2 are the same revision, "-f REV1 -t REV2"
-        ;; (erroneously) returns an empty diff.  So we check for that
-        ;; case and use "-r REV1" instead, which returns the correct
-        ;; diff
-        (args (append (if (string= rev1 rev2)
-                          (list "-r" rev1)
-                        (list "-f" rev1 "-t" rev2))
-                      (vc-switches 'jj 'diff)
-                      (list "--") files)))
+  (let* ((inhibit-read-only t)
+         (fileset (mapcar #'vc-jj--filename-to-fileset files))
+         ;; When REV1 and REV2 are the same revision, "-f REV1 -t
+         ;; REV2" (erroneously) returns an empty diff.  So we check
+         ;; for that case and use "-r REV1" instead, which returns the
+         ;; correct diff
+         (args (append (vc-switches 'jj 'diff)
+                       (if (string= rev1 rev2)
+                           (list "-r" rev1)
+                         (list "-f" rev1 "-t" rev2))
+                       fileset)))
     ;; Mimic `vc-git-diff' by returning the value of
     ;; `vc-jj--command-dispatched'.
     ;;

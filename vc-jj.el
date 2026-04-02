@@ -233,11 +233,13 @@ If nil, use the value of `vc-diff-switches'.  If t, use no switches."
 Most Jujutsu commands accept filesets rather than file paths.  This
 function returns a fileset expression of the form \"root:PATH\", where
 PATH is FILENAME expressed relative to the workspace root and quoted as
-a string literal."
-  (if-let* ((root (vc-jj-root filename))
-            (default-directory root))
-      (format "root:%S" (file-relative-name filename root))
-    (error "File is not inside a JJ repository: %s" filename)))
+a string literal.
+
+The caller is responsible for setting `default-directory' to the
+repository root (e.g., via `let') before calling this function.
+\(FILENAME is relativized to the workspace root using
+`default-directory'.)"
+  (format "root:%S" (file-relative-name filename default-directory)))
 
 (defun vc-jj--set-up-process-buffer (buffer root command)
   "Prepare BUFFER for execution of COMMAND in directory ROOT."
@@ -276,7 +278,9 @@ converted to a jj fileset, they should be included in ARGS.
 
 See also `vc-jj--command-parseable' and `vc-jj--command-dispatched.'"
   (with-temp-buffer
-    (let* ((fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
+    (let* ((root (and file-or-list (vc-jj-root (car (ensure-list file-or-list)))))
+           (default-directory (or root default-directory))
+           (fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
            (status (apply #'process-file vc-jj-program nil
                           (list (current-buffer) nil) nil
                           (append args fileset))))
@@ -312,7 +316,9 @@ converted to a jj fileset, they should be included in ARGS.
 
 See also `vc-jj--process-lines'."
   (with-temp-buffer
-    (let* ((fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
+    (let* ((root (and file-or-list (vc-jj-root (car (ensure-list file-or-list)))))
+           (default-directory (or root default-directory))
+           (fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
            (status (apply #'process-file vc-jj-program nil
                           (list (current-buffer) nil) nil
                           (append args fileset))))
@@ -341,7 +347,9 @@ ARGS.  If the caller would like to pass a raw file or list of files not
 converted to a jj fileset, they should be included in ARGS.
 
 See also `vc-jj--command-parseable' and `vc-jj--process-lines'."
-  (let* ((fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
+  (let* ((root (and file-or-list (vc-jj-root (car (ensure-list file-or-list)))))
+         (default-directory (or root default-directory))
+         (fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
          (global-switches (ensure-list vc-jj-global-switches)))
     ;; We pass our prepared fileset to jj directly rather than to
     ;; `vc-do-command', which would pass raw file names to jj
@@ -1269,6 +1277,8 @@ asynchronously."
     (setq rev1 "root()")))
   (setq rev2 (or rev2 "@"))
   (let* ((inhibit-read-only t)
+         (root (and files (vc-jj-root (car files))))
+         (default-directory (or root default-directory))
          (fileset (mapcar #'vc-jj--filename-to-fileset files))
          ;; When REV1 and REV2 are the same revision, "-f REV1 -t
          ;; REV2" (erroneously) returns an empty diff.  So we check

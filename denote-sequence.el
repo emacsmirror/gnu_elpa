@@ -373,7 +373,8 @@ has the same meaning as in `denote-sequence-and-scheme-p'."
           (make-string times ?z)))))))
 
 (defun denote-sequence--alpha-to-number-complete (sequence)
-  "Like `denote-sequence--alpha-to-number' but for the complete SEQUENCE."
+  "Like `denote-sequence--alpha-to-number' but for the complete SEQUENCE.
+If SEQUENCE conforms with `denote-sequence-numeric-p', return it as-is."
   (if (denote-sequence-numeric-p sequence)
       sequence
     (let* ((parts (denote-sequence-split sequence))

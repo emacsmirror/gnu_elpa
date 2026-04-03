@@ -1125,13 +1125,13 @@ than BOUND.  POS should not be in arglist or similar list."
   ;; open-brace, so we can inspect property.
   (when-let* ((brace-pos
                (next-single-property-change (point) 'javaimp-parse-scope))
-              ((get-text-property brace-pos 'javaimp-parse-scope))
+              (_ (get-text-property brace-pos 'javaimp-parse-scope))
               ;; When there're no siblings, javaimp-beginning-of-defun
               ;; moves to the parent start.  In this case we should
               ;; stay inside the parent.
-              ((eql (nth 1 (syntax-ppss))
-                    (save-excursion
-                      (nth 1 (syntax-ppss brace-pos))))))
+              (_ (eql (nth 1 (syntax-ppss))
+                      (save-excursion
+                        (nth 1 (syntax-ppss brace-pos))))))
     (ignore-errors
       (goto-char
        (scan-lists brace-pos 1 0)))))
@@ -1214,7 +1214,7 @@ PREV-INDEX gives the index of the method itself."
                    (setq tmp (nth 1 (syntax-ppss tmp))))
                  (when tmp
                    (javaimp--beg-of-defun-decl tmp parent-beg))))
-              ((= next-beg-decl beg-decl)))
+              (_ (= next-beg-decl beg-decl)))
         ;; If we're inside next's declaration - behave as if we were
         ;; inside its body, so it becomes our prev
         next

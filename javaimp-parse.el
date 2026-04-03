@@ -681,9 +681,9 @@ call this function first."
       (while t
         (when-let* ((res (save-excursion
                            (javaimp-parse--scopes nil)))
-                    ((javaimp-scope-type res))
-                    ((or (null pred)
-                         (funcall pred res))))
+                    (_ (javaimp-scope-type res))
+                    (_ (or (null pred)
+                           (funcall pred res))))
           (throw 'found res))
         ;; Go up
         (if (nth 1 state)

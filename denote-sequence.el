@@ -676,7 +676,7 @@ With optional SEQUENCES operate on those, else use the return value of
       (lambda (strings)
         (denote-sequence-join
          (seq-take strings depth)
-         (denote-sequence--scheme-of-strings strings)))
+         denote-sequence-scheme))
       lists))))
 
 (defun denote-sequence--pad (sequence type)
@@ -739,7 +739,7 @@ Also see `denote-sequence-sort-sequences'."
 
 (defun denote-sequence--string-length-sans-delimiter (string)
   "Return length of STRING without the equals sign."
-  (if (eq denote-sequence-scheme 'numeric)
+  (if (memq denote-sequence-scheme '(numeric alphanumeric-delimited))
       (length (replace-regexp-in-string "=" "" string))
     (length string)))
 
@@ -769,15 +769,13 @@ TYPE is a symbol among `denote-sequence-types'."
           largest))
     (denote-sequence--get-largest-by-order sequences type)))
 
-(defun denote-sequence--get-start (&optional sequence prepend-delimiter)
+(defun denote-sequence--get-start (&optional sequence)
   "Return the start of a new sequence.
 With optional SEQUENCE, do so based on the final level of depth therein.
-This is usefule only for the alphanumeric `denote-sequence-scheme'.  If
-optional PREPEND-DELIMITER is non-nil, prepend the equals sign to the
-number if `denote-sequence-scheme' is numeric."
+This is usefule only for the alphanumeric `denote-sequence-scheme'."
   ;; TODO 2026-04-03: Rewrite this for clarity.
   (pcase denote-sequence-scheme
-    ('numeric (if prepend-delimiter "=1" "1"))
+    ('numeric "1")
     ((or 'alphanumeric 'alphanumeric-delimited)
      (cond
       ((null sequence) "1")
@@ -809,9 +807,9 @@ Optional SEQUENCES has the same meaning as that specified in the
 function `denote-sequence-get-all-sequences-with-prefix'."
   (if-let* ((depth (+ (denote-sequence-depth sequence) 1))
             (all-unfiltered (denote-sequence-get-all-sequences-with-prefix sequence sequences))
-            (start-child (denote-sequence--get-start sequence :prepend-delimiter)))
+            (start-child (denote-sequence--get-start sequence)))
       (if (= (length all-unfiltered) 1)
-          (format "%s%s" (car all-unfiltered) start-child)
+          (denote-sequence-join (append (denote-sequence-split sequence) (list start-child)) denote-sequence-scheme)
         (if-let* ((all-schemeless (cond
                                    ((denote-sequence-get-all-sequences-with-max-depth depth all-unfiltered))
                                    (t all-unfiltered)))
@@ -828,8 +826,8 @@ function `denote-sequence-get-all-sequences-with-prefix'."
                        (append butlast (list new-number))
                      (list largest new-number))
                    scheme))
-              (format "%s%s" largest start-child))
-          (format "%s%s" sequence start-child)))
+              (denote-sequence-join (append (denote-sequence-split largest) (list start-child)) denote-sequence-scheme))
+          (denote-sequence-join (append (denote-sequence-split sequence) (list start-child)) denote-sequence-scheme)))
     (error "Cannot find sequences given sequence `%s' using scheme `%s'" sequence denote-sequence-scheme)))
 
 (defun denote-sequence--get-prefix-for-siblings (sequence)
@@ -862,7 +860,7 @@ function `denote-sequence-get-all-sequences-with-prefix'."
                          (last-component (car (nreverse components)))
                          (new-number (denote-sequence-increment-partial last-component)))
               (denote-sequence-join (append butlast (list new-number)) scheme))
-          (number-to-string (+ (string-to-number largest) 1)))
+          (denote-sequence-join (list (number-to-string (+ (string-to-number largest) 1))) denote-sequence-scheme))
       (error "Cannot find sequences given sequence `%s' using scheme `%s'" sequence denote-sequence-scheme))))
 
 (defun denote-sequence-get-new (type &optional sequence sequences)

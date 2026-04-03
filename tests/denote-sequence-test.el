@@ -280,7 +280,74 @@ function `denote-sequence-get-relative'."
                             "20241230T075023==10b--test__testing.txt"))
     (should (dst-relative-p "1a" 'all-children
                             "20241230T075023==1a1--test__testing.txt"
-                            "20241230T075023==1a2--test__testing.txt"))))
+                            "20241230T075023==1a2--test__testing.txt")))
+
+  (let* ((denote-sequence-scheme 'alphanumeric-delimited)
+         (denote-directory (expand-file-name "denote-sequence-test" temporary-file-directory))
+         (files
+          (mapcar
+           (lambda (file)
+             (let ((path (expand-file-name file (denote-directory))))
+               (if (file-exists-p path)
+                   path
+                 (with-current-buffer (find-file-noselect path)
+                   (save-buffer)
+                   (kill-buffer (current-buffer)))
+                 path)))
+           '("20241230T075023==1--test__testing.txt"
+             "20241230T075023==1=a--test__testing.txt"
+             "20241230T075023==1=a1--test__testing.txt"
+             "20241230T075023==1=a2--test__testing.txt"
+             "20241230T075023==1=b--test__testing.txt"
+             "20241230T075023==1=b1--test__testing.txt"
+             "20241230T075023==1=b1a--test__testing.txt"
+             "20241230T075023==2--test__testing.txt"
+             "20241230T075023==10--test__testing.txt"
+             "20241230T075023==10=a--test__testing.txt"
+             "20241230T075023==10=b--test__testing.txt")))
+         (sequences (denote-sequence-get-all-sequences files)))
+    (should (string= (denote-sequence-get-new 'parent) "11"))
+
+    (should (string= (denote-sequence-get-new 'child "1" sequences) "1=c"))
+    (should (string= (denote-sequence-get-new 'child "1=a" sequences) "1=a3"))
+    (should (string= (denote-sequence-get-new 'child "1=a2" sequences) "1=a2a"))
+    (should (string= (denote-sequence-get-new 'child "1=b" sequences) "1=b2"))
+    (should (string= (denote-sequence-get-new 'child "1=b1" sequences) "1=b1b"))
+    (should (string= (denote-sequence-get-new 'child "2" sequences) "2=a"))
+    (should-error (denote-sequence-get-new 'child "11" sequences))
+
+    (should (string= (denote-sequence-get-new 'sibling "1" sequences) "11"))
+    (should (string= (denote-sequence-get-new 'sibling "1=a" sequences) "1=c"))
+    (should (string= (denote-sequence-get-new 'sibling "1=a1" sequences) "1=a3"))
+    (should (string= (denote-sequence-get-new 'sibling "1=a2" sequences) "1=a3"))
+    (should (string= (denote-sequence-get-new 'sibling "1=b" sequences) "1=c"))
+    (should (string= (denote-sequence-get-new 'sibling "1=b1" sequences) "1=b2"))
+    (should (string= (denote-sequence-get-new 'sibling "2" sequences) "11"))
+    (should-error (denote-sequence-get-new 'sibling "12" sequences))
+
+    (should (string= (denote-sequence-get-relative "1=b1a" 'parent files)
+                     (expand-file-name "20241230T075023==1=b1--test__testing.txt" denote-directory)))
+    (should (string= (denote-sequence-get-relative "10=a" 'parent files)
+                     (expand-file-name "20241230T075023==10--test__testing.txt" denote-directory)))
+    (should (dst-relative-p "1=b1a" 'all-parents
+                            "20241230T075023==1--test__testing.txt"
+                            "20241230T075023==1=b--test__testing.txt"
+                            "20241230T075023==1=b1--test__testing.txt"))
+    (should (dst-relative-p "1=a" 'siblings
+                            "20241230T075023==1=a--test__testing.txt"
+                            "20241230T075023==1=b--test__testing.txt"))
+    (should (dst-relative-p "10=a" 'siblings
+                            "20241230T075023==10=a--test__testing.txt"
+                            "20241230T075023==10=b--test__testing.txt"))
+    (should (dst-relative-p "1" 'children
+                            "20241230T075023==1=a--test__testing.txt"
+                            "20241230T075023==1=b--test__testing.txt"))
+    (should (dst-relative-p "10" 'children
+                            "20241230T075023==10=a--test__testing.txt"
+                            "20241230T075023==10=b--test__testing.txt"))
+    (should (dst-relative-p "1=a" 'all-children
+                            "20241230T075023==1=a1--test__testing.txt"
+                            "20241230T075023==1=a2--test__testing.txt"))))
 
 (ert-deftest dst-denote-sequence-split ()
   "Test that `denote-sequence-split' splits a sequence correctly."

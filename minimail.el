@@ -1486,15 +1486,32 @@ Return a cons cell consisting of the account symbol and mailbox name."
       (cons -current-account -current-mailbox)
     (-read-mailbox prompt -current-account)))
 
+(defun -current-message ()
+  "Return the message object under point."
+  (or (vtable-current-object) (user-error "No message under point")))
+
 (defun -selected-messages ()
+  "Return a list of message UIDs to act on.
+Can be called in a mailbox or in a message buffer."
   (cond
    ((derived-mode-p 'minimail-message-mode)
-    (list -current-account -current-mailbox (alist-get 'uid -local-state)))
+    (list (alist-get 'uid -local-state)))
    ((derived-mode-p 'minimail-mailbox-mode)
-    (list -current-account
-          -current-mailbox
-          (alist-get 'uid (or (vtable-current-object)
-                              (user-error "No selected message")))))))
+    (if (use-region-p)
+        ;; TODO: Ideally we would use a dired-style marking
+        ;; mechanism, if vtable one day provides such a thing.
+        (let (uids)
+          (setq deactivate-mark t)
+          (save-excursion
+            (save-restriction
+              (narrow-to-region (region-beginning) (region-end))
+              (goto-char (point-min))
+              (while (not (eobp))
+                (push (alist-get 'uid (vtable-current-object)) uids)
+                (forward-line))))
+          (or (nreverse (delq nil uids))
+              (user-error "No message selected")))
+      (list (alist-get 'uid (-current-message)))))))
 
 ;;;###autoload
 (defun minimail-find-mailbox (account mailbox)
@@ -1555,59 +1572,84 @@ Return a cons cell consisting of the account symbol and mailbox name."
             (minimail-show-message)))))))
 
 (defun minimail-move-to-mailbox (&optional destination)
+  "Move messages to a given DESTINATION mailbox.
+In a mailbox buffer, act on the message under point or, if the region is
+active, all messages in the region.  In a message buffer, act on the
+current message."
   (interactive nil minimail-mailbox-mode minimail-message-mode)
-  (pcase-let* ((`(,acct ,mbx . ,uids) (-selected-messages))
-               (prompt (if (length= uids 1)
-                           "Move message to: "
-                         (format "Move %s messages to: " (length uids))))
-               (dest (or destination
-                         (cdr (-read-mailbox prompt (list acct))))))
-    (athunk-run (-amove-messages-and-redisplay acct mbx dest uids))))
+  (let* ((account -current-account)
+         (mailbox -current-mailbox)
+         (uids (-selected-messages))
+         (prompt (if (length= uids 1)
+                     "Move message to: "
+                   (format "Move %s messages to: " (length uids))))
+         (dest (or destination
+                   (cdr (-read-mailbox prompt (list account))))))
+    (athunk-run
+     (-amove-messages-and-redisplay account mailbox dest uids))))
 
 (defun -find-mailbox-by-flag (flag mailboxes)
   "Return the first item of MAILBOXES which has the given FLAG.
 FLAG can be a string or, more generally, a condition for
 `minimail--key-match-p'."
-  (seq-some (pcase-lambda (`(,mbx . ,items))
-              (when (-key-match-p flag (alist-get 'flags items)) mbx))
+  (seq-some (pcase-lambda (`(,mailbox . ,items))
+              (when (-key-match-p flag (alist-get 'flags items)) mailbox))
             mailboxes))
 
 (defun minimail-move-to-archive ()
+  "Move messages to the archive mailbox.
+In a mailbox buffer, act on the message under point or, if the region is
+active, all messages in the region.  In a message buffer, act on the
+current message."
   (interactive nil minimail-mailbox-mode minimail-message-mode)
-  (pcase-let* ((`(,acct ,mbx . ,uids) (-selected-messages)))
+  (let ((account -current-account)
+        (mailbox -current-mailbox)
+        (uids (-selected-messages)))
     (athunk-run
      (athunk-let*
-         ((mailboxes <- (-aget-mailbox-listing acct))
-          (dest (or (plist-get (alist-get acct minimail-accounts)
+         ((mailboxes <- (-aget-mailbox-listing account))
+          (dest (or (plist-get (alist-get account minimail-accounts)
                                :archive-mailbox)
                     (-find-mailbox-by-flag '\\Archive mailboxes)
                     (-find-mailbox-by-flag '\\All mailboxes)
                     (user-error "Archive mailbox not found")))
-          (_ <- (-amove-messages-and-redisplay acct mbx dest uids)))))))
+          (_ <- (-amove-messages-and-redisplay account mailbox dest uids)))))))
 
 (defun minimail-move-to-trash ()
+  "Move messages to the trash mailbox.
+In a mailbox buffer, act on the message under point or, if the region is
+active, all messages in the region.  In a message buffer, act on the
+current message."
   (interactive nil minimail-mailbox-mode minimail-message-mode)
-  (pcase-let* ((`(,acct ,mbx . ,uids) (-selected-messages)))
+  (let ((account -current-account)
+        (mailbox -current-mailbox)
+        (uids (-selected-messages)))
     (athunk-run
      (athunk-let*
-         ((mailboxes <- (-aget-mailbox-listing acct))
-          (dest (or (plist-get (alist-get acct minimail-accounts)
+         ((mailboxes <- (-aget-mailbox-listing account))
+          (dest (or (plist-get (alist-get account minimail-accounts)
                                :trash-mailbox)
                     (-find-mailbox-by-flag '\\Trash mailboxes)
                     (user-error "Trash mailbox not found")))
-          (_ <- (-amove-messages-and-redisplay acct mbx dest uids)))))))
+          (_ <- (-amove-messages-and-redisplay account mailbox dest uids)))))))
 
 (defun minimail-move-to-junk ()
+  "Move messages to the junk mailbox.
+In a mailbox buffer, act on the message under point or, if the region is
+active, all messages in the region.  In a message buffer, act on the
+current message."
   (interactive nil minimail-mailbox-mode minimail-message-mode)
-  (pcase-let* ((`(,acct ,mbx . ,uids) (-selected-messages)))
+  (let ((account -current-account)
+        (mailbox -current-mailbox)
+        (uids (-selected-messages)))
     (athunk-run
      (athunk-let*
-         ((mailboxes <- (-aget-mailbox-listing acct))
-          (dest (or (plist-get (alist-get acct minimail-accounts)
+         ((mailboxes <- (-aget-mailbox-listing account))
+          (dest (or (plist-get (alist-get account minimail-accounts)
                                :junk-mailbox)
                     (-find-mailbox-by-flag '\\Junk mailboxes)
                     (user-error "Junk mailbox not found")))
-          (_ <- (-amove-messages-and-redisplay acct mbx dest uids)))))))
+          (_ <- (-amove-messages-and-redisplay account mailbox dest uids)))))))
 
 (defun minimail-execute-server-command (account mailbox command)
   "Execute an IMAP command for debugging purposes."
@@ -1922,8 +1964,7 @@ Cf. RFC 5256, §2.1."
 
 (defun minimail-show-message ()
   (interactive nil minimail-mailbox-mode)
-  (let* ((message (or (vtable-current-object)
-                      (user-error "No message under point"))))
+  (let* ((message (-current-message)))
     (let-alist message
       (unless (member "\\Seen" .flags)
         (push "\\Seen" (cdr (assq 'flags message)))
@@ -2214,10 +2255,9 @@ the user selected another message in the meanwhile, yield nil."
    (athunk-let*
        ((buffer <- (if (derived-mode-p 'minimail-message-mode)
                        (athunk-wrap (current-buffer))
-                     (let-alist (vtable-current-object)
-                       (-adisplay-message -current-account
-                                          -current-mailbox
-                                          .uid)))))
+                     (-adisplay-message -current-account
+                                        -current-mailbox
+                                        (alist-get 'uid (-current-message))))))
      (with-current-buffer (or buffer (user-error "No message buffer"))
        (when-let* ((window (get-buffer-window)))
          (select-window window))
@@ -2256,10 +2296,9 @@ the user selected another message in the meanwhile, yield nil."
    (athunk-let*
        ((buffer <- (if (derived-mode-p 'minimail-message-mode)
                        (athunk-wrap (current-buffer))
-                     (let-alist (vtable-current-object)
-                       (-adisplay-message -current-account
-                                          -current-mailbox
-                                          .uid)))))
+                     (-adisplay-message -current-account
+                                        -current-mailbox
+                                        (alist-get 'uid (-current-message))))))
      (with-current-buffer (or buffer (user-error "No message buffer"))
        (when-let* ((window (get-buffer-window)))
          (select-window window))

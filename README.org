@@ -22,7 +22,6 @@ replying to messages:
 Here is a list of planned features:
 
 - Structured search (by sender, subject, etc.)
-- Marking and operating on sets of messages (move, etc.)
 - Watching for new messages and notifications
 - Login via OAuth
 - Various optimizations, perhaps a persistent cache

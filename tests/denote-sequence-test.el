@@ -287,7 +287,9 @@ function `denote-sequence-get-relative'."
   (should (equal (denote-sequence-split "1") '("1")))
   (should (equal (denote-sequence-split "1=1=2") '("1" "1" "2")))
   (should (equal (denote-sequence-split "1za5zx") '("1" "za" "5" "zx")))
-  (should (equal (denote-sequence-split "1=za5zx") '("1" "za" "5" "zx"))))
+  (should (equal (denote-sequence-split "1=za5zx") '("1" "za" "5" "zx")))
+  (should (equal (denote-sequence-split "1=a2b") '("1" "a" "2" "b"))))
+  (should (equal (denote-sequence-split "1=a2b=1c3") '("1" "a" "2" "b" "1" "c" "3")))
 
 (ert-deftest dst-denote-sequence-make-conversion ()
   "Test that `denote-sequence-make-conversion' converts from alpha to numeric and vice versa."

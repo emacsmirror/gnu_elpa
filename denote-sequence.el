@@ -95,6 +95,7 @@ first level of depth and then after every third level of depth, like
 and numbers.  As such, 1=zx1zza=1 is valid because zx is one level of
 depth as is zza, as noted above."
   :group 'denote-sequence
+  :package-version '(denote . "0.3.0")
   :type '(choice (const :tag "Numeric like 1=1=2" numeric)
                  (const :tag "Alphanumeric like 1a2" alphanumeric)
                  (const :tag "Alphanumeric delimited like 1=a2b=a1c" alphanumeric-delimited)))

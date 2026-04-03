@@ -63,6 +63,9 @@
   :link '(url-link :tag "Denote homepage" "https://protesilaos.com/emacs/denote")
   :link '(url-link :tag "Denote Sequence homepage" "https://protesilaos.com/emacs/denote-sequence"))
 
+(defconst denote-sequence-schemes '(numeric alphanumeric alphanumeric-delimited)
+  "The sequence scheme symbols supported by `denote-sequence-scheme'.")
+
 ;; TODO 2026-03-24: The `alphanumeric-delimited' is not supporting partial sequences.
 ;; This will probably be a problem for `denote-sequence-convert'.
 (defcustom denote-sequence-scheme 'numeric
@@ -221,7 +224,8 @@ Also see `denote-sequence-alphanumeric-p' and `denote-sequence-numeric-p'."
   (pcase denote-sequence-scheme
     ('numeric (denote-sequence-numeric-p sequence))
     ('alphanumeric (denote-sequence-alphanumeric-p sequence))
-    ('alphanumeric-delimited (denote-sequence-alphanumeric-delimited-p sequence))))
+    ('alphanumeric-delimited (denote-sequence-alphanumeric-delimited-p sequence))
+    (_ (error "The sequence `%s' does not have a known scheme among `denote-sequence-schemes'" sequence))))
 
 (defun denote-sequence-p (sequence)
   "Return SEQUENCE string is of a supported scheme.

@@ -421,6 +421,8 @@ If SEQUENCE conforms with `denote-sequence-alphanumeric-p', return it as-is."
 (defun denote-sequence-make-conversion (string target-scheme &optional string-is-partial-sequence)
   "Convert STRING to the given sequencing TARGET-SCHEME.
 With optional STRING-IS-PARTIAL-SEQUENCE interpret STRING accordingly."
+  (unless (memq target-scheme denote-sequence-schemes)
+    (error "The TARGET-SCHEME can only be one among the `denote-sequence-schemes'"))
   (cond
    (string-is-partial-sequence
     (if (eq target-scheme 'numeric)

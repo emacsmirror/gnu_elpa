@@ -796,7 +796,8 @@ return value of `denote-sequence-get-all-sequences'."
   "Return list of SEQUENCES that are `denote-sequence-scheme' or SCHEME."
   (let ((predicate (pcase (or scheme denote-sequence-scheme)
                      ('alphanumeric #'denote-sequence-alphanumeric-p)
-                     ('numeric #'denote-sequence-numeric-p))))
+                     ('numeric #'denote-sequence-numeric-p)
+                     ('alphanumeric-delimited #'denote-sequence-alphanumeric-delimited-p))))
     (seq-filter predicate sequences)))
 
 (defun denote-sequence--get-new-child (sequence &optional sequences)

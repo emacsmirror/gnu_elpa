@@ -90,7 +90,10 @@ Alphanumeric delimited sequences combine elements of the aforementioned.
 Levels of depth are expressed as alternating numbers and letters, like
 with the `alphanumeric' scheme, while they also get the = as a separator
 as a visual aid for long sequences.  The sepator is inserted after the
-first level of depth and then after every third level, like 1=a2b=a1c."
+first level of depth and then after every third level of depth, like
+1=a2b=a1c.  Note that these are levels of depth, not triplets of letters
+and numbers.  As such, 1=zx1zza=1 is valid because zx is one level of
+depth as is zza, as noted above."
   :group 'denote-sequence
   :type '(choice (const :tag "Numeric like 1=1=2" numeric)
                  (const :tag "Alphanumeric like 1a2" alphanumeric)

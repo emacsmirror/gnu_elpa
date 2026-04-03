@@ -396,7 +396,9 @@ If SEQUENCE conforms with `denote-sequence-numeric-p', return it as-is."
 
 (defun denote-sequence--number-to-alpha-complete (sequence target-scheme)
   "Like `denote-sequence--number-to-alpha' but for the complete SEQUENCE.
-TARGET-SCHEME is either `alphanumeric' or `alphanumeric-delimited'."
+TARGET-SCHEME is either `alphanumeric' or `alphanumeric-delimited'.
+
+If SEQUENCE conforms with `denote-sequence-alphanumeric-p', return it as-is."
   (unless (memq target-scheme '(alphanumeric alphanumeric-delimited))
     (error "The TARGET-SCHEME can only be `alphanumeric' or `alphanumeric-delimited'"))
   (if (denote-sequence-alphanumeric-p sequence)

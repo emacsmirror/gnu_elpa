@@ -402,7 +402,7 @@ has the same meaning as in `denote-sequence-and-scheme-p'."
                                 (t
                                  (denote-sequence--number-to-alpha string))))
                              parts)))
-      (denote-sequence-join converted-parts 'alphanumeric))))
+      (denote-sequence-join converted-parts denote-sequence-scheme))))
 
 ;; TODO 2026-03-24: Add support for the `alphanumeric-delimited'.
 (defun denote-sequence-make-conversion (string &optional string-is-sequence)

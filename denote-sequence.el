@@ -69,7 +69,7 @@
 ;; TODO 2026-03-24: The `alphanumeric-delimited' is not supporting partial sequences.
 ;; This will probably be a problem for `denote-sequence-convert'.
 (defcustom denote-sequence-scheme 'numeric
-  "Sequencing scheme to establish file hierarchies.
+  "Sequence scheme to establish file hierarchies.
 The value is a symbol among `numeric', `alphanumeric', and
 `alphanumeric-delimited'.  Users can change the applicable scheme for
 one file or those marked in Dired by calling the command
@@ -256,16 +256,16 @@ Also see `denote-sequence-numeric-p' and `denote-sequence-alphanumeric-p'."
       (denote-sequence--alphanumeric-partial-p string)))
 
 (defun denote-sequence-and-scheme-p (sequence &optional partial)
-  "Return the sequencing scheme of SEQUENCE, per `denote-sequence-scheme'.
+  "Return the sequence scheme of SEQUENCE, per `denote-sequence-scheme'.
 Return a cons cell of the form (sequence . scheme), where the `car' is
-SEQUENCE and the `cdr' is its sequencing scheme as a symbol among those
+SEQUENCE and the `cdr' is its sequence scheme as a symbol among those
 mentioned in `denote-sequence-scheme'.
 
 With optional PARTIAL as a non-nil value, assume SEQUENCE to be a string
 that only represents part of a sequence, which itself consists entirely
 of numbers or letters.
 
-Produce an error if the sequencing scheme cannot be established."
+Produce an error if the sequence scheme cannot be established."
   (cond
    ((and (not partial) (string-match-p "\\`[0-9]+\\'" sequence))
     (cons sequence denote-sequence-scheme))
@@ -285,9 +285,9 @@ Produce an error if the sequencing scheme cannot be established."
    (t (error "The sequence `%s' does not pass `denote-sequence-and-scheme-p'" sequence))))
 
 ;; FIXME 2026-03-24: This is technically incorrect because it assumes
-;; homogeneity of sequencing schemes.  But we never enforce as much.
+;; homogeneity of sequence schemes.  But we never enforce as much.
 (defun denote-sequence--scheme-of-strings (strings)
-  "Return the sequencing scheme of STRINGS, per `denote-sequence-scheme'."
+  "Return the sequence scheme of STRINGS, per `denote-sequence-scheme'."
   (cond
    ((seq-every-p #'denote-sequence-numeric-p strings)
     'numeric)
@@ -420,7 +420,7 @@ If SEQUENCE conforms with `denote-sequence-alphanumeric-p', return it as-is."
       (denote-sequence-join converted-parts target-scheme))))
 
 (defun denote-sequence-make-conversion (string target-scheme &optional string-is-partial-sequence)
-  "Convert STRING to the given sequencing TARGET-SCHEME.
+  "Convert STRING to the given sequence TARGET-SCHEME.
 With optional STRING-IS-PARTIAL-SEQUENCE interpret STRING accordingly."
   (unless (memq target-scheme denote-sequence-schemes)
     (error "The TARGET-SCHEME can only be one among the `denote-sequence-schemes'"))

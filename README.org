@@ -68,7 +68,7 @@ modify this GNU manual.”
 :END:
 
 The ~denote-sequence~ package provides an optional extension to
-~denote~ for naming files with a sequencing scheme. The idea is to
+~denote~ for naming files with a sequence scheme. The idea is to
 establish hiearchical relationships between files, such that the
 contents of one logically follow or complement those of another.
 
@@ -101,7 +101,7 @@ The =denote-sequence.el= optional extension is not necessary for such
 a workflow. Users can always define whatever =SIGNATURE= they want
 manually. The purpose of this extension is to streamline this work.
 
-** Select a sequencing scheme for ~denote-sequence-scheme~
+** Select a sequence scheme for ~denote-sequence-scheme~
 :PROPERTIES:
 :CUSTOM_ID: h:select-a-sequencing-scheme-for-denote-sequence-scheme
 :END:
@@ -168,7 +168,7 @@ optional prompt is part of {{{development-version}}}. ]
 
 [ In the interest of simplicity, here we provide examples using the
   =numeric= value of ~denote-sequence-scheme~, though the =alphanumeric=
-  will work as well ([[#h:select-a-sequencing-scheme-for-denote-sequence-scheme][Select a sequencing scheme for ~denote-sequence-scheme~]]). ]
+  will work as well ([[#h:select-a-sequencing-scheme-for-denote-sequence-scheme][Select a sequence scheme for ~denote-sequence-scheme~]]). ]
 
 A new sequence note can be of the type =parent=, =child=, and
 =sibling=. For the convenience of the user, we provide commands to
@@ -272,7 +272,7 @@ contain a sequence as their file name =SIGNATURE= ([[#h:write-sequence-notes-or-
 
 [ In the interest of simplicity, here we provide examples using the
   =numeric= value of ~denote-sequence-scheme~, though the =alphanumeric=
-  will work as well ([[#h:select-a-sequencing-scheme-for-denote-sequence-scheme][Select a sequencing scheme for ~denote-sequence-scheme~]]). ]
+  will work as well ([[#h:select-a-sequencing-scheme-for-denote-sequence-scheme][Select a sequence scheme for ~denote-sequence-scheme~]]). ]
 
 #+findex: denote-sequence-dired
 The command ~denote-sequence-dired~ produces a bespoke and fully

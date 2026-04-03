@@ -122,6 +122,15 @@ STRINGS passed to it conform with the given SCHEME."
   (should (string= (denote-sequence-join '("1" "a" "1" "a") 'alphanumeric-delimited) "1=a1a"))
   (should (string= (denote-sequence-join '("1" "a" "1" "a" "1" "a" "1" "a" "1" "a") 'alphanumeric-delimited) "1=a1a=1a1=a1a")))
 
+(ert-deftest dst-denote-sequence--number-to-alpha-complete ()
+  "Test that `denote-sequence--number-to-alpha-complete' does the right thing."
+  (should
+   (let ((denote-sequence-scheme 'alphanumeric))
+     (string= (denote-sequence--number-to-alpha-complete "1=1=1=1=1=1=1") "1a1a1a1")))
+  (should
+   (let ((denote-sequence-scheme 'alphanumeric-delimited))
+     (string= (denote-sequence--number-to-alpha-complete "1=1=1=1=1=1=1") "1=a1a=1a1")))
+
 (ert-deftest dst-denote-sequence--get-new-exhaustive ()
   "Test if we get the correct parent, child, sibling, or relatives of a sequence.
 Use the function `denote-sequence-get-new' for child and sibling with

@@ -7,11 +7,14 @@ This is work in progress.
 It is currently based on the following revision of the English document:
 
 #+begin_example
-commit 9adc553ab9628efc2425c04c4326f170fd4f6aaa
+commit 8c481ac9441ec8bc84163208a2412e9b45a96afe
 Author: Eli Zaretskii <eliz@gnu.org>
-Date:   Sat Mar 21 13:27:56 2026 +0200
+Date:   Sun Mar 29 12:32:05 2026 +0300
 
-    ; * doc/lispintro/emacs-lisp-intro.texi: Fix parens (bug#80646).
+    ; Fix a typo in 'emacs-lisp-intro.texi'
+    
+    * doc/lispintro/emacs-lisp-intro.texi (lengths-list-file): Fix doc
+    string of 'lengths-list-file' and surrounding text.  (Bug#80686)
 #+end_example
 
 ** Method

@@ -385,8 +385,11 @@ has the same meaning as in `denote-sequence-and-scheme-p'."
                              parts)))
       (denote-sequence-join converted-parts 'numeric))))
 
-(defun denote-sequence--number-to-alpha-complete (sequence)
-  "Like `denote-sequence--number-to-alpha' but for the complete SEQUENCE."
+(defun denote-sequence--number-to-alpha-complete (sequence target-scheme)
+  "Like `denote-sequence--number-to-alpha' but for the complete SEQUENCE.
+TARGET-SCHEME is either `alphanumeric' or `alphanumeric-delimited'."
+  (unless (memq target-scheme '(alphanumeric alphanumeric-delimited))
+    (error "The TARGET-SCHEME can only be `alphanumeric' or `alphanumeric-delimited'"))
   (if (denote-sequence-alphanumeric-p sequence)
       sequence
     (let* ((parts (denote-sequence-split sequence))
@@ -402,7 +405,7 @@ has the same meaning as in `denote-sequence-and-scheme-p'."
                                 (t
                                  (denote-sequence--number-to-alpha string))))
                              parts)))
-      (denote-sequence-join converted-parts denote-sequence-scheme))))
+      (denote-sequence-join converted-parts target-scheme))))
 
 ;; TODO 2026-03-24: Add support for the `alphanumeric-delimited'.
 (defun denote-sequence-make-conversion (string &optional string-is-sequence)

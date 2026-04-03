@@ -329,20 +329,21 @@ SEQUENCE conforms with `denote-sequence-p'.  If PARTIAL is non-nil, it
 has the same meaning as in `denote-sequence-and-scheme-p'."
   (pcase-let* ((`(,sequence . ,scheme) (denote-sequence-and-scheme-p sequence partial)))
     (pcase scheme
-      ((or 'numeric 'alphanumeric-delimited)
+      ('numeric
        (split-string sequence "=" t))
-      ('alphanumeric
+      ((or 'alphanumeric 'alphanumeric-delimited)
        (let ((strings nil)
-             (start 0))
-         (while (string-match denote-sequence-alphanumeric-regexp sequence start)
-           (push (match-string 1 sequence) strings)
-           (when-let* ((two (match-string 2 sequence)))
+             (start 0)
+             (sequence-no-delimiters (replace-regexp-in-string "=" "" sequence)))
+         (while (string-match denote-sequence-alphanumeric-regexp sequence-no-delimiters start)
+           (push (match-string 1 sequence-no-delimiters) strings)
+           (when-let* ((two (match-string 2 sequence-no-delimiters)))
              (push two strings)
              (setq start (match-end 2)))
            (setq start (match-end 1)))
          (if strings
              (nreverse strings)
-           (split-string sequence "" :omit-nulls)))))))
+           (split-string sequence-no-delimiters "" :omit-nulls)))))))
 
 (defun denote-sequence--alpha-to-number (string)
   "Convert STRING of alphabetic characters to its numeric equivalent."

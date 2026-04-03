@@ -778,9 +778,10 @@ With optional SEQUENCE, do so based on the final level of depth therein.
 This is usefule only for the alphanumeric `denote-sequence-scheme'.  If
 optional PREPEND-DELIMITER is non-nil, prepend the equals sign to the
 number if `denote-sequence-scheme' is numeric."
+  ;; TODO 2026-04-03: Rewrite this for clarity.
   (pcase denote-sequence-scheme
     ('numeric (if prepend-delimiter "=1" "1"))
-    ('alphanumeric
+    ((or 'alphanumeric 'alphanumeric-delimited)
      (cond
       ((null sequence) "1")
       ((and sequence (denote-sequence--alphanumeric-partial-p (substring sequence -1))) "1")

@@ -2911,7 +2911,7 @@ msgstr "graph-body-print"
 #. type: menuentry
 #: emacs-lisp-intro.texi:671 emacs-lisp-intro.texi:15729
 msgid "How to print the body of a graph."
-msgstr "Hoe de body van een grafiek af te drukken."
+msgstr "Hoe de body van een grafiek te tonen."
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:671 emacs-lisp-intro.texi:15729
@@ -2921,7 +2921,7 @@ msgstr "recursive-graph-body-print::"
 #. type: menuentry
 #: emacs-lisp-intro.texi:671 emacs-lisp-intro.texi:15729
 msgid "Printed Axes::"
-msgstr "Afgedrukte assen::"
+msgstr "Getoonde assen::"
 
 #. type: node
 #: emacs-lisp-intro.texi:671 emacs-lisp-intro.texi:15729
@@ -5258,7 +5258,7 @@ msgstr ""
 "Wanneer de Lisp interpreter een expressie verwerkt, dan is de term voor die "
 "activiteit @dfn{evaluatie}. We zeggen dat de interpreter ``de expressie "
 "evalueert''. Ik heb deze term verschillende keren eerder gebruikt. Het woord "
-"komt van het gebruik in alledaagse taal, ``de waarde vaststellen'', "
+"komt van het gebruik in alledaagse taal, ``de waarde bepalen'', "
 "``taxeren'', volgens de @cite{Webster's New Collegiate Dictionary}."
 
 #. type: unnumberedsubsec
@@ -29064,7 +29064,7 @@ msgstr ""
 "functie kunnen gebruiken die voor elk woord point voorwaarts "
 "verplaatst, kan de doe-opnieuw-test controleren of point nog steeds "
 "binnen de region is. De doe-opnieuw-test moet de waarde van point "
-"ontdekken en vaststellen of point voor, op, of na de waarde van het "
+"ontdekken en bepalen of point voor, op, of na de waarde van het "
 "einde van de region is. We kunnen de functie @code{point} gebruiken "
 "om point te lokaliseren. Vanzelfsprekend moeten we de waarde van het "
 "einde van de region als argument aan de recursieve telfunctie "
@@ -31500,7 +31500,7 @@ msgstr ""
 "getallen in elke range te tellen, omdat twee opeenvolgende getallen "
 "in dezelfde range of aangrenzende ranges zijn. Ten tweede door de "
 "gesorteerde lijst te inspecteren kunnen we ontdekken wat het hoogste "
-"en het laagste getal zijn, en daarmee vaststellen welke grootste en "
+"en het laagste getal zijn, en daarmee bepalen welke grootste en "
 "kleinste lengte-range we nodig hebben."
 
 #. type: subsection
@@ -32836,7 +32836,7 @@ msgid ""
 "the graph, but only print its body."
 msgstr ""
 "We kunnen deze functie @code{grafiek-body-tonen} noemen, het neemt "
-"de @code{numbers-list} als enige argument. Op dit moment geven we "
+"de @code{getallenlijstn} als enige argument. Op dit moment geven we "
 "nog geen labels aan de grafiek, maar tonen alleen de body."
 
 #. type: Plain text
@@ -32911,7 +32911,7 @@ msgid ""
 msgstr ""
 "Waar we naar zoeken is een commando dat kolommen toont of invoegt. "
 "Zeer waarschijnlijk bevat de naam van de functie het woord "
-"``print'', het woord ``insert'' of het woord 11column''. Daarom "
+"``print'', het woord ``insert'' of het woord ``column''. Daarom "
 "kunnen we eenvoudigweg @kbd{M-x apropos @key{RET} "
 "print\\|insert\\|column @key{RET}} typen en naar het resultaat "
 "kijken. Op mijn systeem kostte dit commando ooit behoorlijk wat tijd "
@@ -32948,7 +32948,7 @@ msgstr ""
 #. type: Plain text
 #: emacs-lisp-intro.texi:15793
 msgid "We can run a quick test, to make sure it does what we expect of it."
-msgstr ""
+msgstr "We doen een snelle test om zeker te zijn dat het doet wat we verwachten."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15799
@@ -32958,6 +32958,11 @@ msgid ""
 "function inserts the strings @samp{\"first\"}, @samp{\"second\"}, and "
 "@samp{\"third\"} at and below point.  Also the function returns @code{nil}."
 msgstr ""
+"Hier is het resultaat van het plaatsen van de cursor achter de "
+"@code{insert-rectangle} expressie en @kbd{C-u C-x C-e} "
+"(@code{eval-last-sexp}) te typen. De functie voegt de strings "
+"@samp{\"eerste\"}, @samp{\"tweede\"}, en "
+"@samp{\"derde\"} bij en onder point. Ook geeft de functie @code{nil} terug."
 
 #. type: group
 #: emacs-lisp-intro.texi:15805
@@ -32967,6 +32972,9 @@ msgid ""
 "                                              second\n"
 "                                              thirdnil\n"
 msgstr ""
+"(insert-rectangle '(\"eerste\" \"tweede\" \"derde\"))eerste\n"
+"                                              tweede\n"
+"                                              derdenil\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15815
@@ -32977,6 +32985,11 @@ msgid ""
 "that point is in the buffer at the place where the @code{insert-rectangle} "
 "function will insert its column of strings."
 msgstr ""
+"We gaan natuurlijk niet zelf de tekst van de @code{insert-rectangle} "
+"expressie zelf in het buffer invoegen wanneer we de grafie maken, "
+"maar roepen de functie aan vanuit ons programma. We moeten echter "
+"zeker weten dat point in het buffer op de plaats is waar "
+"@code{insert-rectangle} de kolom invoegt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15826
@@ -32991,6 +33004,16 @@ msgid ""
 "does not appear in the @file{*scratch*} buffer since the expression is "
 "evaluated in the minibuffer.)"
 msgstr ""
+"Wanneer je dit in Info leest kan je zien hoe dit werkt door naar een "
+"ander buffer te schakelen, zoals het @file{*scratch*} buffer, en "
+"point ergens in het buffer te plaatsen. Typ @kbd{M-:} en typ de "
+"@code{insert-rectangle} expressie achter de prompt in het minibuffer "
+"gevolgd door @key{RET}. Dit laat Emacs de expressie in het "
+"minibuffer evalueren, maar als waarde van point de positie van point "
+"in het @file{*scratch*} buffer gebruiken. (@kbd{M-:} is de "
+"keybinding voor @code{eval-expression}. @code{nil} verschijnt niet "
+"in het @file{*scratch*} buffer omdat de expressie wordt geëvalueerd "
+"in het minibuffer."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15833
@@ -33002,6 +33025,12 @@ msgid ""
 "this! If we are going to make a bar graph, the columns need to be beside "
 "each other."
 msgstr ""
+"We ontdekken dat als we dit doen, point aan het einde van de laatst "
+"ingevoegde regel staat---met andere woorden, deze functie verplaatst "
+"point als zij-effect. Wanneer we het commando herhalen, met point op "
+"deze plaats, komt de volgende invoeging onder en rechts van de "
+"vorige. Dit willen we niet! Wanneer we een staafgrafiek gaan maken "
+"moeten de kolommen naast elkaar komen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15842
@@ -33014,6 +33043,15 @@ msgid ""
 "previous one.  We cannot simply reposition point to the same line each time, "
 "but moved over to the right---or perhaps we can@dots{}"
 msgstr ""
+"We hebben dus ontdekt dat elke cyclus van de kolom-invoegende "
+"@code{while} loop point moet herpositioneren op de plek waar we die "
+"willen, en die plek is aan de bovenkant, niet de onderkant, van de "
+"kolom. Bovendien bedenken we dat wanneer we een grafiek tonen, we "
+"niet verwachten dat alle kolommen dezelfde hoogte hebben. Dit "
+"betekent dat de bovenkant van elke kolom op aan andere hoogte kan "
+"zijn dan die van de vorige. We kunnen niet simpel point elke keer "
+"naar rechts op dezelfde regel herpositioneren---maar misschien "
+"kunnen we@dots{}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15851
@@ -33026,6 +33064,14 @@ msgid ""
 "have to position point the right number of lines above the base for the "
 "graph to print correctly.  This could be difficult."
 msgstr ""
+"Wij zijn van plan om de kolommen van de grafiek van sterretjes te "
+"maken. Het aantal sterretjes in de kolom is het getal dat "
+"gespecificeerd wordt door het huidige element in de "
+"@code{getallen-lijst}. We moeten een lijst van sterretjes van de "
+"juist lengte maken voor elke aanroep van @code{insert-rectangle}. "
+"Wanneer deze lijst uitsluitend uit het aantal vereiste sterretjes "
+"bestaat, dan moeten point precies op het juiste aantal regels boven "
+"de bases van de grafiek positioneren. Dit kan moeilijk zijn."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15860
@@ -33038,6 +33084,15 @@ msgid ""
 "if the maximum height of the graph is 5, but the height of the column is 3, "
 "then @code{insert-rectangle} requires an argument that looks like this:"
 msgstr ""
+"Of, als we een manier kunnen vinden om aan @code{insert-rectangle} "
+"steeds een lijst van dezelfde lengte door te geven, dan kunnen we "
+"point steeds op dezelfde regel plaatsen, en het voor elke nieuwe "
+"kolom een stapje naar rechts zetten. Wanneer we dit doen moeten "
+"echter sommige entries in de aan @code{insert-rectangle} doorgegeven "
+"lijst leeg zijn in plaats van sterretjes. Wanneer bijvoorbeeld de "
+"maximum hoogte van de grafiek 5 is, maar de hoogte van de kolom 3 "
+"is, dan vereist @code{insert-rectangle} een argument dat er als "
+"volgt uitziet:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:15863 emacs-lisp-intro.texi:16007
@@ -33059,12 +33114,23 @@ msgid ""
 "it returns the largest of all its arguments, which must be numbers.  Thus, "
 "for example,"
 msgstr ""
+"Dit laatste voorstel is niet zo moeilijk, zolang we de kolomhoogte "
+"kunnen bepalen. Er zijn twee manieren voor ons om de kolomhoogte "
+"te bepalen: we kunnen willekeurig zeggen wat die is, wat goed "
+"zou werken voor grafieken van die hoogte, of we kunnen door de lijst "
+"met getallen zoeken en de maximale hoogte van de lijst als maximum "
+"hoogte van de grafiek te gebruiken. Als de laatste operatie moeilijk "
+"zou zin, dan is de eerste het makkelijkst, maar er is een functie in "
+"Emacs ingebouwd die het maximum van de argumenten vaststelt. We "
+"kunnen deze functie gebruiken. De functie heeft @code{max} en geeft "
+"de grootste van alle argumenten terug, welke getallen moeten zijn. "
+"Dus, bijvoorbeeld:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:15879
 #, no-wrap
 msgid "(max  3 4 6 5 7 3)\n"
-msgstr ""
+msgstr "(max  3 4 6 5 7 3)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15884
@@ -33072,18 +33138,20 @@ msgid ""
 "returns 7.  (A corresponding function called @code{min} returns the smallest "
 "of all its arguments.)"
 msgstr ""
+"geeft 7 terug. (Een overeenkomstige functie genaamd @code{min} geeft "
+"de kleinste waarde van alle argumenten terug.)"
 
 #. type: findex
 #: emacs-lisp-intro.texi:15884
 #, no-wrap
 msgid "max"
-msgstr ""
+msgstr "max"
 
 #. type: findex
 #: emacs-lisp-intro.texi:15885
 #, no-wrap
 msgid "min"
-msgstr ""
+msgstr "min"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15890
@@ -33092,29 +33160,32 @@ msgid ""
 "@code{max} function expects numbers as its argument, not a list of numbers.  "
 "Thus, the following expression,"
 msgstr ""
+"We kunnen echter niet simpel @code{max} aanroepen op de @code{getallen-lijst}. "
+"De functie @code{max} verwacht getallen als argument, niet een lijst met "
+"getallen. Dus, de volgende expressie,"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:15893
 #, no-wrap
 msgid "(max  '(3 4 6 5 7 3))\n"
-msgstr ""
+msgstr "(max  '(3 4 6 5 7 3))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15898
 msgid "produces the following error message;"
-msgstr ""
+msgstr "geeft de volgende foutboodschap:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:15901
 #, no-wrap
 msgid "Wrong type of argument:  number-or-marker-p, (3 4 6 5 7 3)\n"
-msgstr ""
+msgstr "Wrong type of argument:  number-or-marker-p, (3 4 6 5 7 3)\n"
 
 #. type: findex
 #: emacs-lisp-intro.texi:15903
 #, no-wrap
 msgid "apply"
-msgstr ""
+msgstr "apply"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15908
@@ -33123,17 +33194,21 @@ msgid ""
 "function is @code{apply}.  This function applies its first argument (a "
 "function) to its remaining arguments, the last of which may be a list."
 msgstr ""
+"We hebben een functie nodig die een lijst van argumenten aan een "
+"functie doorgeeft. Deze functie is @code{apply}. Deze functie past "
+"het eerste argument (een functie) toe op de resterende argumenten, "
+"waarvan de laatste een lijst mag zijn."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:15914
 #, no-wrap
 msgid "(apply 'max 3 4 7 3 '(4 8 5))\n"
-msgstr ""
+msgstr "(apply 'max 3 4 7 3 '(4 8 5))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15918
 msgid "returns 8."
-msgstr ""
+msgstr "geeft 8 terug."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15928
@@ -33147,6 +33222,14 @@ msgid ""
 "Of course, I could be wrong; after all, the function was first named by "
 "someone who had to invent it.)"
 msgstr ""
+"(Overigens weet ik niet hoe je deze functie ontdekt zonder een boek als dit. "
+"Het is mogelijk andere functies te ontdekken, zoals @code{search-forward} "
+"of @code{insert-rectangle} door een deel van hun naam te raden en dan "
+"@code{apropos} te gebruiken. Alhoewel in basis de metafoor duidelijk "
+"is---past het eerste argument toe op de rest---betwijfel ik of een "
+"beginner op dit specifieke woord komt bij het gebruik van @code{apropos} "
+"of een ander hulpmiddel. Ik kan natuurlijk fout zitten, tenslotte "
+"heeft de persoon die het uitgevonden heeft het zo genoemd.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15932
@@ -33155,12 +33238,16 @@ msgid ""
 "use @code{apply} to call a function and pass the elements of a list to it, "
 "like this, which also returns 8:"
 msgstr ""
+"Het tweede en volgende argumenten van @code{apply} zijn optioneel, "
+"we kunnen dus @code{apply} gebruiken om een functie aan te roepen en "
+"de elementen van een lijst laten doorgeven, zoals dit, wat ook 8 "
+"teruggeeft:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:15935
 #, no-wrap
 msgid "(apply 'max '(4 8 5))\n"
-msgstr ""
+msgstr "(apply 'max '(4 8 5))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15942
@@ -33170,18 +33257,23 @@ msgid ""
 "apply @code{max} (we could also apply @code{max} to the sorted numbers' "
 "list; it does not matter whether the list is sorted or not.)"
 msgstr ""
+"Dit laatste is hoe wij @code{apply} gaan gebruiken. De functie "
+"@code{recursieve-lengte-lijst-veel-bestanden} geeft een lijst met getallen "
+"terug waarop we @code{max} kunnen toepassen (we kunnen ook de @code{max} op "
+"de gesorteerde getallenlijst toepassen, het maakt niet uit of de lijst "
+"is gesorteerd of niet)."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15945
 msgid ""
 "Hence, the operation for finding the maximum height of the graph is this:"
-msgstr ""
+msgstr "Dus de operatie voor het vinden van de maximum hoogte van de grafiek is deze:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:15948
 #, no-wrap
 msgid "(setq max-graph-height (apply 'max numbers-list))\n"
-msgstr ""
+msgstr "(setq max-grafiek-hoogte (apply 'max getallen-lijst))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15955
@@ -33191,6 +33283,12 @@ msgid ""
 "asterisks that should appear in the column, the function should return a "
 "list of strings for the @code{insert-rectangle} command to insert."
 msgstr ""
+"Nu kunnen we terugkeren naar de vraag hoe een lijst van strings te "
+"maken voor een kolom van de grafiek. Wanneer het de maximum hoogte "
+"van de grafiek en het aantal sterretjes dat in de kolom moet "
+"verschijnen verteld wordt, moet de functie een lijst van strings "
+"teruggeven om die door het commando @code{insert-rectangle} te laten "
+"invoegen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15962
@@ -33202,6 +33300,12 @@ msgid ""
 "number of asterisks, two @code{while} loops can be used to construct the "
 "list:"
 msgstr ""
+"Elke kolom wordt gemaakt van sterretjes of spaties. Omdat de functie "
+"de waarde van de hoogte van de kolom en het aantal sterretjes krijgt "
+"doorgegeven, kan het aantal spaties berekend worden door het aantal "
+"sterretjes af te trekken van de hoogte van de kolom. Met het aantal "
+"spaties en het aantal sterretjes kunnen twee @code{while} loops "
+"gebruikt worden om de lijst te maken:"
 
 #. type: group
 #: emacs-lisp-intro.texi:15971
@@ -33214,6 +33318,12 @@ msgid ""
 "        (number-of-top-blanks\n"
 "         (- max-graph-height actual-height)))\n"
 msgstr ""
+";;; @r{Eerste versie.}\n"
+"(defun kolom-van-grafiek (max-grafiek-hoogte actuele-hoogte)\n"
+"  \"Geeft een lijst van strings terug die een kolom in de grafiek is.\"\n"
+"  (let ((invoeglijst nil)\n"
+"        (aantal-bovenste-spaties\n"
+"         (- max-grafiek-hoogte actuele-hoogte)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15978
@@ -33224,16 +33334,20 @@ msgid ""
 "      (setq insert-list (cons \"*\" insert-list))\n"
 "      (setq actual-height (1- actual-height)))\n"
 msgstr ""
+"    ;; @r{Sterretjes invullen.}\n"
+"    (while (> actual-height 0)\n"
+"      (setq invoeglijst (cons \"*\" invoeglijst))\n"
+"      (setq actuele-hoogte (1- actuele-hoogte)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:15986
 #, no-wrap
 msgid ""
-"    ;; @r{Fill in blanks.}\n"
-"    (while (> number-of-top-blanks 0)\n"
-"      (setq insert-list (cons \" \" insert-list))\n"
-"      (setq number-of-top-blanks\n"
-"            (1- number-of-top-blanks)))\n"
+"    ;; @r{Spaties invullen.}\n"
+"    (while (> aantal-bovenste-spaties 0)\n"
+"      (setq invoeglijst (cons \" \" invoeglijst))\n"
+"      (setq aantal-bovenste-spaties\n"
+"            (1- aantal-bovenste-spaties)))\n"
 msgstr ""
 
 #. type: group
@@ -33244,6 +33358,8 @@ msgid ""
 "    ;; @r{Return whole list.}\n"
 "    insert-list))\n"
 msgstr ""
+"    ;; @r{Geef hele lijst terug.}\n"
+"    invoeglijst))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15996
@@ -33251,17 +33367,19 @@ msgid ""
 "If you install this function and then evaluate the following expression you "
 "will see that it returns the list as desired:"
 msgstr ""
+"Wanneer je deze functie installeert en dan de volgende expressie "
+"evalueert zie je dat het een lijst zoals gewenst teruggeeft:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:15999
 #, no-wrap
 msgid "(column-of-graph 5 3)\n"
-msgstr ""
+msgstr "(kolom-van-grafiek 5 3)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16004
 msgid "returns"
-msgstr ""
+msgstr "geeft terug"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16022
@@ -33279,6 +33397,20 @@ msgid ""
 "variables that we can call @code{graph-blank} and @code{graph-symbol} and "
 "define those variables separately."
 msgstr ""
+"Zoals @code{kolom-van-grafiek} geschreven is bevat die een groot "
+"gebrek: de symbolen voor de lege ruimte en voor de gemarkeerde "
+"entries in de kolom zijn hard gecodeerd als spatie en sterretje. Dit "
+"is prima voor een prototype maar jij, of een andere gebruiker, kan "
+"andere symbolen symbolen willen. Bijvoorbeeld bij het testen van de "
+"grafiek functie zou je een punt in plaats van een spatie willen, om "
+"zeker te zijn dat point juist gepositioneerd is elke keer dat de "
+"functie @code{insert-rectangle} wordt aangeroepen, of je zou liever "
+"het sterretje door een @samp{+} of ander symbool willen vervangen. "
+"Je zou zelfs een grafiek-kolom willen maken die breder is dan een "
+"karakter. Het programma moet flexibeler zijn. De manier om dat te "
+"doen is het vervangen van de spatie en het sterretje met twee "
+"variabelen die we @code{grafiek-wit} en @code{grafiek-symbool} "
+"kunnen noemen en deze variabelen apart definieren."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16025
@@ -33286,6 +33418,8 @@ msgid ""
 "Also, the documentation is not well written.  These considerations lead us "
 "to the second version of the function:"
 msgstr ""
+"Ook is de documentatie niet goed geschreven. Deze overwegingen "
+"leiden ons naar de tweede versie van de functie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:16030 emacs-lisp-intro.texi:20889
@@ -33294,6 +33428,8 @@ msgid ""
 "(defvar graph-symbol \"*\"\n"
 "  \"String used as symbol in graph, usually an asterisk.\")\n"
 msgstr ""
+"(defvar grafiek-symbool \"*\"\n"
+"  \"String gebruikt als symbool in grafiek, meestal een sterretje.\")\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:16037 emacs-lisp-intro.texi:20896
@@ -33304,6 +33440,9 @@ msgid ""
 "graph-blank must be the same number of columns wide\n"
 "as graph-symbol.\")\n"
 msgstr ""
+"(defvar grafiek-wit \" \"\n"
+"  \"String gebruikt als lege ruimte in grafiek, meestal een spatie.\n"
+"grafiek-wit moet even breed zijn als grafiek-symbool.\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16043
@@ -33311,6 +33450,7 @@ msgid ""
 "(For an explanation of @code{defvar}, see @ref{defvar, , Initializing a "
 "Variable with @code{defvar}}.)"
 msgstr ""
+"(Voor een uitleg van @code{defvar}, zie @ref{defvar, , Initialiseer een variabele met @code{defvar}}.)"
 
 #. type: group
 #: emacs-lisp-intro.texi:16049
@@ -33321,6 +33461,10 @@ msgid ""
 "  \"Return MAX-GRAPH-HEIGHT strings; ACTUAL-HEIGHT are graph-symbols.\n"
 "\n"
 msgstr ""
+";;; @r{Tweede versie.}\n"
+"(defun kolom-van-grafiek (max-grafiek-hoogte actuele-hoogte)\n"
+"  \"Geef MAX-GRAFIEK-HOOGTE strings; ACTUELE-HOOGTE zijn grafiek-symbolen.\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:16056
@@ -33331,6 +33475,10 @@ msgid ""
 "The list will be inserted as one column of a graph.\n"
 "The strings are either graph-blank or graph-symbol.\"\n"
 msgstr ""
+"De grafieksymbolen zijn aaneengesloten entries aan het eind\n"
+"van de lijst.\n"
+"De lijst wordt ingevoegd als een kolom van een grafiek.\n"
+"De strings zijn ofwel grafiek-wit of grafiek-symbool.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:16062
@@ -33340,6 +33488,9 @@ msgid ""
 "        (number-of-top-blanks\n"
 "         (- max-graph-height actual-height)))\n"
 msgstr ""
+"  (let ((invoeglijst nil)\n"
+"        (aantal-bovenste-spaties\n"
+"         (- max-grafiek-hoogte actuele-hoogte)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:16069 emacs-lisp-intro.texi:21063
@@ -33350,6 +33501,10 @@ msgid ""
 "      (setq insert-list (cons graph-symbol insert-list))\n"
 "      (setq actual-height (1- actual-height)))\n"
 msgstr ""
+"    ;; @r{@code{grafiek-symbolen} invullen.}\n"
+"    (while (> actuele-hoogte 0)\n"
+"      (setq invoeglijst (cons grafiek-symbool invoeglijst))\n"
+"      (setq actuele-hoogte (1- actuele-hoogte)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:16077 emacs-lisp-intro.texi:21071
@@ -33362,6 +33517,12 @@ msgid ""
 "            (1- number-of-top-blanks)))\n"
 "\n"
 msgstr ""
+"    ;; @r{@code{grafiek-wit} invullen.}\n"
+"    (while (> aantal-bovenste-spaties 0)\n"
+"      (setq invoeglijst (cons grafiek-wit invoeglijst))\n"
+"      (setq aantal-bovenste-spaties\n"
+"            (1- aantal-bovenste-spaties)))\n"
+"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16092
@@ -33375,6 +33536,16 @@ msgid ""
 "@code{cons} to attach a graph symbol to the list; then it uses @code{cons} "
 "again to attach the top blanks to the list."
 msgstr ""
+"Wanneer we dat zouden willen, kunnen de @code{kolom-van-grafiek} een "
+"derde keer herschrijven om optioneel zowel een lijngrafiek als een "
+"staafgrafiek te tonen. Dit is niet moeilijk om te doen. Een manier "
+"om over een lijngrafiek te denken is dat het niet meer is dan een "
+"staafgrafiek waarbij het deel van elke staaf dat onder de bovenkant "
+"is, leeg is. Om een kolom voor een lijngrafiek te maken, maken we "
+"eerst een lijst van spaties die één korter is dan de waarde, dan "
+"gebruikt het een @code{cons} om een grafiek-symbool aan de lijst te "
+"plakken, en dan gebruikt het @code{cons} nog een keer om de "
+"bovenste-spaties aan de lijst te plakken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16099
@@ -33385,6 +33556,12 @@ msgid ""
 "noting that few changes would have to be made anywhere else.  The "
 "enhancement, if we ever wish to make it, is simple."
 msgstr ""
+"Het is makkelijk te zien hoe zo'n functie te schrijven, maar omdat "
+"we die niet nodig hebben, doen we dat niet. Maar het is te doen en "
+"als het gedaan word, dan met @code{kolom-van-grafiek}. Nog "
+"belangrijker is het waard op te merken dat een paar andere "
+"verandering moeten worden gemaakt. De uitbreiding, als we die ooit "
+"willen maken, is eenvoudig."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16103
@@ -33393,12 +33570,15 @@ msgid ""
 "prints the body of a graph, not the labels for the vertical and horizontal "
 "axes, so we can call this @code{graph-body-print}."
 msgstr ""
+"Nu komen we uiteindelijk bij onze eerste grafiek tonen functie. Deze "
+"toont de body van de grafiek en niet de labels voor de verticale en "
+"horizontale assen, daarom noemen we deze @code{grafiek-body-tonen}."
 
 #. type: section
 #: emacs-lisp-intro.texi:16105
 #, no-wrap
 msgid "The @code{graph-body-print} Function"
-msgstr ""
+msgstr "De functie @code{grafiek-body-tonen}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16115
@@ -33411,6 +33591,10 @@ msgid ""
 "job.  In this section, we will write the definition using a @code{while} "
 "loop."
 msgstr ""
+"Na onze voorbereiding in de voorgaande sectie, is de functie "
+"@code{grafiek-body-tonen} eenvoudig. De functie toont kolom na kolom "
+"van sterretjes en spaties, met de elementen van een lijst met "
+"nummers om het aantal sterretjes in elke kolom te specificeren. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16118
@@ -33418,6 +33602,9 @@ msgid ""
 "The @code{column-of-graph} function requires the height of the graph as an "
 "argument, so we should determine and record that as a local variable."
 msgstr ""
+"De functie @code{grafiek-body-tonen} vereist de hoogte van de grafiek als "
+"een argument, dus die moeten we bepalen en registreren als een lokale "
+"variabele."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16121
@@ -33425,6 +33612,8 @@ msgid ""
 "This leads us to the following template for the @code{while} loop version of "
 "this function:"
 msgstr ""
+"Dit leidt ons tot het volgende sjabloon voor de @code{while} loop versie van "
+"deze functie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:16128
@@ -33435,6 +33624,10 @@ msgid ""
 "  (let ((height  @dots{}\n"
 "         @dots{}))\n"
 msgstr ""
+"(defun @code{grafiek-body-tonen} (getallenlijst)\n"
+"  \"@var{documentatie}@dots{}\"\n"
+"  (let ((hoogte  @dots{}\n"
+"         @dots{}))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:16134
@@ -33444,11 +33637,14 @@ msgid ""
 "      @var{insert-columns-and-reposition-point}\n"
 "      (setq numbers-list (cdr numbers-list)))))\n"
 msgstr ""
+"    (while getallenlijst\n"
+"      @var{voeg-kolom-in-en-herpostioneer-point}\n"
+"      (setq getallenlijst (cdr getallenlijst)))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16139
 msgid "We need to fill in the slots of the template."
-msgstr ""
+msgstr "We moeten de slots in het sjabloon invullen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16142
@@ -33456,6 +33652,8 @@ msgid ""
 "Clearly, we can use the @code{(apply 'max numbers-list)} expression to "
 "determine the height of the graph."
 msgstr ""
+"We kunnen de @code{apply 'max getallenlijst} expressie gebruiken om "
+"de hoogte van de grafiek te bepalen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16147
@@ -33465,6 +33663,11 @@ msgid ""
 "list))} expression, the @sc{car} of each instance of the list is the value "
 "of the argument for @code{column-of-graph}."
 msgstr ""
+"De @code{while} loop loopt door de @code{getallenlijst} een element "
+"per keer. Wanneer het wordt verkort door de @code{(setq "
+"getallenlijst (cdr getallenlijst)))} expressie, is de @code{car} van "
+"elke instantie van de lijst de waarde van het argument voor "
+"@code{kolom-van-grafiek}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16155
@@ -33477,6 +33680,14 @@ msgid ""
 "then move horizontally to the next place from which @code{insert-rectangle} "
 "is called."
 msgstr ""
+"Bij iedere cyclus van de @code{while} loop voegt de functie "
+"@code{insert-rectangle} de lijst in die teruggeven is door "
+"@code{kolom-van-grafiek}. Omdat de functie @code{insert-rectangle} "
+"point verplaatst naar rechtsonder het ingevoegde vierkant, moeten we "
+"de lokatie van point op het moment dat het vierkant wordt ingevoegd "
+"bewaren en dan teruggaan naar die positie nadat het vierkant is "
+"ingevoegd en dan hozizontaal verplaatsen naar de volgende plek waar "
+"@code{insert-rectangle} wordt aangeroepen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16165
@@ -33491,11 +33702,22 @@ msgid ""
 "variable to the value of the width of graph column is in the varlist of the "
 "@code{let} expression."
 msgstr ""
+"Wanneer de ingevoegde kolommen één karakter breed zijn, wat zo is "
+"wanneer enkele spaties en sterretjes worden gebruikt, dan is het "
+"herpositionering commando simpel @code{(forward-char 1)}. De breedte "
+"van een kolom kan echter groter zijn dan één. Dit betekent dat het "
+"herpositionering commando @code{(forward-char symbool-breedte)} moet "
+"zijn. De @code{symbool-breedte} zelf is de lengte van een "
+"@code{grafiek-wit} en kan bepaald worden met de expressie "
+"@code{(length grafiek-wit)}. De beste plek om de "
+"@code{symbool-breedte} variabele aan de waarde van de breedte van "
+"grafiek-kolom te binden is in de varlist van de @code{let} "
+"expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16168
 msgid "These considerations lead to the following function definition:"
-msgstr ""
+msgstr "Deze overwegingen leiden tot de volgende functiedefinitie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:16174
@@ -33506,6 +33728,10 @@ msgid ""
 "The numbers-list consists of the Y-axis values.\"\n"
 "\n"
 msgstr ""
+"(defun grafiek-body-tonen (getallenlijst)\n"
+"  \"Toon een staafgrafiek van de getallenlijst.\n"
+"De getallenlijst bestaat uit de Y-as waarden.\"\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:16178
@@ -33515,6 +33741,9 @@ msgid ""
 "        (symbol-width (length graph-blank))\n"
 "        from-position)\n"
 msgstr ""
+"  (let ((hoogte (apply 'max getallenlijst))\n"
+"        (symboolbreedte (length grafiek-wit))\n"
+"        van-positie)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:16187
@@ -33527,6 +33756,12 @@ msgid ""
 "      (goto-char from-position)\n"
 "      (forward-char symbol-width)\n"
 msgstr ""
+"    (while getallenlijst\n"
+"      (setq van-positie (point))\n"
+"      (insert-rectangle\n"
+"       (kolom-van-grafiek hoogte (car getallenlijst)))\n"
+"      (goto-char van-positie)\n"
+"      (forward-char symboolbreedte)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:16192
@@ -33536,6 +33771,9 @@ msgid ""
 "      (sit-for 0)\n"
 "      (setq numbers-list (cdr numbers-list)))\n"
 msgstr ""
+"      ;; @r{Teken grafiek kolom voor kolom.}\n"
+"      (sit-for 0)\n"
+"      (setq getallenlijst (cdr getallenlijst)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:16198
@@ -33546,6 +33784,10 @@ msgid ""
 "    (insert \"\\n\")\n"
 "))\n"
 msgstr ""
+"    ;; @r{Plaats point voor X as labels.}\n"
+"    (forward-line hoogte)\n"
+"    (insert \"\\n\")\n"
+"))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16210
@@ -33558,11 +33800,19 @@ msgid ""
 "screen column by column.  Without it, Emacs would not redraw the screen "
 "until the function exits."
 msgstr ""
+"De enige onverwachte expressie in deze functie is de "
+"@w{@code{(sit-for 0)}} expressie in de @code{while} loop. Deze "
+"expressie maakt de operatie die de  grafiek toont interessanter om te zien "
+"dan zonder. Deze expressie zorgt dat Emacs "
+"@dfn{sit}, of doet niets voor een nul lengte van tijd en herschrijf "
+"dan het scherm. Hier geplaatst zorgt het dat Emacs het scherm kolom "
+"voor kolom herschrijft. Zonder dit zou Emacs het scherm niet "
+"herschrijven tot de functie eindigt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16212
 msgid "We can test @code{graph-body-print} with a short list of numbers."
-msgstr ""
+msgstr "We kunnen de @code{grafiek-body-tonen} testen met een korte lijst met getallen."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:16217
@@ -33570,33 +33820,35 @@ msgid ""
 "Install @code{graph-symbol}, @code{graph-blank}, @code{column-of-graph}, "
 "which are in"
 msgstr ""
+"Installeer @code{grafiek-symbool}, @code{grafiek-wit}, "
+"@code{kolom-van-grafiek} die allemaal in"
 
 #. type: iftex
 #: emacs-lisp-intro.texi:16219
 msgid "@ref{Readying a Graph, , Readying a Graph},"
-msgstr ""
+msgstr "@ref{Een grafiek voorbereiden, , Een grafiek voorbereiden},"
 
 #. type: ifnottex
 #: emacs-lisp-intro.texi:16222
 msgid "@ref{Columns of a graph},"
-msgstr ""
+msgstr "@ref{Kolommen van een grafiek},"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:16224
 msgid "and @code{graph-body-print}."
-msgstr ""
+msgstr "staan en @code{grafiek-body-tonen},"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:16228 emacs-lisp-intro.texi:19776
 #: emacs-lisp-intro.texi:20116 emacs-lisp-intro.texi:20358
 msgid "Copy the following expression:"
-msgstr ""
+msgstr "Kopieer de volgende expressie:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:16231
 #, no-wrap
 msgid "(graph-body-print '(1 2 3 4 6 4 3 5 7 6 5 2 3))\n"
-msgstr ""
+msgstr "(grafiek-body-tonen '(1 2 3 4 6 4 3 5 7 6 5 2 3))\n"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:16236
@@ -33604,12 +33856,14 @@ msgid ""
 "Switch to the @file{*scratch*} buffer and place the cursor where you want "
 "the graph to start."
 msgstr ""
+"Schakel naar het @file{*scratch*} buffer en plaats de cursor daar "
+"waar je de grafiek wilt laten beginnen."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:16239 emacs-lisp-intro.texi:19787
 #: emacs-lisp-intro.texi:20133 emacs-lisp-intro.texi:20369
 msgid "Type @kbd{M-:} (@code{eval-expression})."
-msgstr ""
+msgstr "Typ @kbd{M-:} (@code{eval-expression})."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:16243 emacs-lisp-intro.texi:19791
@@ -33617,16 +33871,18 @@ msgid ""
 "Yank the @code{graph-body-print} expression into the minibuffer with @kbd{C-"
 "y} (@code{yank)}."
 msgstr ""
+"Yank de @code{grafiek-body-tonen} expressie in het minibuffer met @kbd{C-"
+"y} (@code{yank)}."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:16246
 msgid "Press @key{RET} to evaluate the @code{graph-body-print} expression."
-msgstr ""
+msgstr "Druk op @key{RET} om de @code{grafiek-body-tonen} expressie te evalueren."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16250
 msgid "Emacs will print a graph like this:"
-msgstr ""
+msgstr "Emacs toont een grafiek zoals deze:"
 
 #. type: group
 #: emacs-lisp-intro.texi:16260
@@ -33640,18 +33896,25 @@ msgid ""
 "             ************\n"
 "            *************\n"
 msgstr ""
+"                    *\n"
+"                *   **\n"
+"                *  ****\n"
+"               *** ****\n"
+"              ********* *\n"
+"             ************\n"
+"            *************\n"
 
 #. type: findex
 #: emacs-lisp-intro.texi:16263 emacs-lisp-intro.texi:16265
 #, no-wrap
 msgid "recursive-graph-body-print"
-msgstr ""
+msgstr "recursieve-grafiek-body-tonen"
 
 #. type: section
 #: emacs-lisp-intro.texi:16264
 #, no-wrap
 msgid "The @code{recursive-graph-body-print} Function"
-msgstr ""
+msgstr "De functie recursieve-grafiek-body-tonen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16273
@@ -33662,11 +33925,17 @@ msgid ""
 "only be found once, such as the maximum height of the graph, and an inside "
 "function that is called recursively to print the graph."
 msgstr ""
+"De functie @code{grafiek-body-tonen} kan ook recursief geschreven "
+"worden. De recursieve oplossing is gesplitst in twee delen: een "
+"buitenste wrapper die een @code{let} expressie gebruikt om de waarde "
+"van diverse variabelen te bepalen die maar een keer hoeven worden te "
+"gevonden, zoals de maximum hoogte van de grafiek, en een binnenste "
+"functie die recursief aangeroepen wordt om de grafiek te tonen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16276
 msgid "The wrapper is uncomplicated:"
-msgstr ""
+msgstr "De wrapper is ongecompliceerd:"
 
 #. type: group
 #: emacs-lisp-intro.texi:16289
@@ -33683,6 +33952,16 @@ msgid ""
 "     height\n"
 "     symbol-width)))\n"
 msgstr ""
+"(defun recursieve-grafiek-body-tonen (getallenlijst)\n"
+"  \"Print a bar graph of the GETALLENLIJST.\n"
+"The getallenlijst consists of the Y-axis values.\"\n"
+"  (let ((hoogte (apply 'max getallenlijst))\n"
+"        (symboolbreedte (length grafiek-wit))\n"
+"        from-position)\n"
+"    (recursieve-grafiek-body-tonen-intern\n"
+"     getallenlijst\n"
+"     hoogte\n"
+"     symboolbreedte)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16301
@@ -33696,6 +33975,15 @@ msgid ""
 "produced by the next-step-expression which causes the call to act on a "
 "shorter version of the @code{numbers-list}."
 msgstr ""
+"De recursieve functie is iets moeilijker. Het heeft vier delen: de "
+"doe-opnieuw-test, de tonende code, de resursieve aanroep en de "
+"volgende-stap-expressie. De doe-opnieuw-test is een @code{when} "
+"expressie die bepaalt of @code{getallenlijst} resterende elementen "
+"bevat. Wanneer dat zo is, dan toont de functie een kolom van de "
+"grafiek met de tonende code en roept zichzelf opnieuw aan. De "
+"functie roept zichzelf opnieuw aan met de waarde "
+"geproduceerd door de volgende-stap-expressie die zorgt dat de "
+"aanroep op een kortere versie van de @code{getallenlijst} acteert."
 
 #. type: group
 #: emacs-lisp-intro.texi:16308
@@ -33706,6 +33994,10 @@ msgid ""
 "  \"Print a bar graph.\n"
 "Used within recursive-graph-body-print function.\"\n"
 msgstr ""
+"(defun recursieve-grafiek-body-tonen-intern\n"
+"  (getallenlijst hoogte symboolbreedte)\n"
+"  \"Print a bar graph.\n"
+"Gebruikt in de functie recursieve-grafiek-body-tonen..\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:16315
@@ -33716,6 +34008,10 @@ msgid ""
 "        (insert-rectangle\n"
 "         (column-of-graph height (car numbers-list)))\n"
 msgstr ""
+"  (when getallenlijst\n"
+"        (setq van-positie (point))\n"
+"        (insert-rectangle\n"
+"         (kolom-van-grafiek hoogte (car getallenlijst)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:16322
@@ -33727,22 +34023,27 @@ msgid ""
 "        (recursive-graph-body-print-internal\n"
 "         (cdr numbers-list) height symbol-width)))\n"
 msgstr ""
+"        (goto-char van-positie)\n"
+"        (forward-char symboolbreedte)\n"
+"        (sit-for 0)     ; @r{Draw graph column by column.}\n"
+"        (recursieve-grafiek-body-tonen-intern\n"
+"         (cdr getallenlijst) hoogte symboolbreedte)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16327
 msgid "After installation, this expression can be tested; here is a sample:"
-msgstr ""
+msgstr "Na installatie kan deze expressie getest worden, hier is een voobeeld:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:16330
 #, no-wrap
 msgid "(recursive-graph-body-print '(3 2 5 6 7 5 3 4 6 4 3 2 1))\n"
-msgstr ""
+msgstr "(recursieve-grafiek-body-tonen '(3 2 5 6 7 5 3 4 6 4 3 2 1))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16334
 msgid "Here is what @code{recursive-graph-body-print} produces:"
-msgstr ""
+msgstr "Hier is wat de @code{recursieve-grafiek-body-tonen} produceert:"
 
 #. type: group
 #: emacs-lisp-intro.texi:16344
@@ -33756,6 +34057,13 @@ msgid ""
 "            ************\n"
 "            *************\n"
 msgstr ""
+"                *\n"
+"               **   *\n"
+"              ****  *\n"
+"              **** ***\n"
+"            * *********\n"
+"            ************\n"
+"            *************\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16349
@@ -33763,18 +34071,20 @@ msgid ""
 "Either of these two functions, @code{graph-body-print} or @code{recursive-"
 "graph-body-print}, create the body of a graph."
 msgstr ""
+"Beide functies, @code{grafiek-body-tonen} en "
+"@code{recursieve-grafiek-body-tonen} maken de body van de grafiek."
 
 #. type: node
 #: emacs-lisp-intro.texi:16350
 #, no-wrap
 msgid "Printed Axes"
-msgstr "Afgedrukte assen"
+msgstr "Getoonde assen"
 
 #. type: section
 #: emacs-lisp-intro.texi:16351
 #, no-wrap
 msgid "Need for Printed Axes"
-msgstr ""
+msgstr "Noodzaak voor getoonde assen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16356
@@ -33783,6 +34093,10 @@ msgid ""
 "project, it may be reasonable to draw the axes by hand using Emacs's Picture "
 "mode; but a graph drawing function may be used more than once."
 msgstr ""
+"Een grafiek moet assen hebben zodat je jezelf kunt oriënteren. Voor "
+"een eenmalig project kan het redelijk zijn de assen met de hand te "
+"tekenen met de Picture mode van Emacs. Maar een grafiek tekenende "
+"functie kan meer dan eens gebruikt worden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16362
@@ -33793,11 +34107,17 @@ msgid ""
 "material, I have placed their description in an appendix.  @xref{Full "
 "Graph, , A Graph with Labeled Axes}."
 msgstr ""
+"Om deze reden heb ik een uitbreiding geschreven op de basis "
+"@code{grafiek-body-tonen} functie die automatisch labels toont voor "
+"de horizontale en vertikale assen. Omdat de label-toon functies niet "
+"veel nieuw materiaal bevatten, heb ik hun beschrijving in een "
+"appendix geplaatst. @xref{Volledige grafiek, , Een grafiek met "
+"labels op de assen}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16367
 msgid "Write a line graph version of the graph printing functions."
-msgstr ""
+msgstr "Schrijf een lijngrafiek versie van de grafiek tonende functies."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16370

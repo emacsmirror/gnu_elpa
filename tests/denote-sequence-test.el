@@ -60,6 +60,76 @@
   (should (string= (denote-sequence-alphanumeric-p "1") "1"))
   (should (string= (denote-sequence-alphanumeric-p "1a") "1a")))
 
+(ert-deftest dst-denote-sequence--alphanumeric-delimited-check-alternation ()
+  "Test that `denote-sequence--alphanumeric-delimited-check-alternation' does the right thing.
+This helper function only checks that we alternate between numbers and
+letters.  It is not responsible to validate the levels of depth."
+  (should-not (denote-sequence--alphanumeric-delimited-check-alternation '("1" "=" "a" "=" "a")))
+  (should (denote-sequence--alphanumeric-delimited-check-alternation '("1" "=" "a" "=" "1"))))
+
+(ert-deftest dst-denote-sequence--alphanumeric-delimited-check-depths ()
+  "Test that `denote-sequence--alphanumeric-delimited-check-depths' does the right thing.
+This helper function is not responsible for checking whether the
+sequence alternates between numbers and letters.  It only checks the
+levels of depth between delimiters."
+  (should-not (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "a" "=" "1")))
+  (should-not (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "a" "=" "1" "a")))
+  (should-not (denote-sequence--alphanumeric-delimited-check-depths '("1" "a" "=" "1" "a" "=" "1" "a")))
+  (should (denote-sequence--alphanumeric-delimited-check-depths '("1")))
+  (should (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "1")))
+  (should (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "1" "a")))
+  (should (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "1" "a" "1")))
+  (should (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "1" "a" "1" "=" "1")))
+  (should (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "1" "a" "1" "=" "1" "a")))
+  (should (denote-sequence--alphanumeric-delimited-check-depths '("1" "=" "1" "a" "1" "=" "1" "a" "1"))))
+
+(ert-deftest dst-denote-sequence-alphanumeric-delimited-p ()
+  "Test that `denote-sequence-alphanumeric-delimited-p' does what it is supposed to."
+  (should-not (denote-sequence-alphanumeric-delimited-p "1a"))
+  (should-not (denote-sequence-alphanumeric-delimited-p "1=1"))
+  (should-not (denote-sequence-alphanumeric-delimited-p "1=a=a"))
+  (should-not (denote-sequence-alphanumeric-delimited-p "1=a=1")) ; check FIXME in the source
+  (should-not (denote-sequence-alphanumeric-delimited-p "hello"))
+  (should (string= (denote-sequence-alphanumeric-delimited-p "1") "1"))
+  (should (string= (denote-sequence-alphanumeric-delimited-p "1=a") "1=a"))
+  (should (string= (denote-sequence-alphanumeric-delimited-p "1=a1b") "1=a1b"))
+  (should (string= (denote-sequence-alphanumeric-delimited-p "1=a1b=2a1") "1=a1b=2a1"))
+  (should (string= (denote-sequence-alphanumeric-delimited-p "1=zza1zb=2za1") "1=zza1zb=2za1")))
+
+(ert-deftest dst-denote-sequence-and-scheme-p ()
+  "Test that `denote-sequence-and-scheme-p' covers all cases."
+  (should-error (denote-sequence-and-scheme-p "a"))
+  (should (equal (denote-sequence-and-scheme-p "1=1") (cons "1=1" 'numeric)))
+  (should (equal (denote-sequence-and-scheme-p "1a") (cons "1a" 'alphanumeric)))
+  (should (equal (denote-sequence-and-scheme-p "1=a") (cons "1=a" 'alphanumeric-delimited)))
+  (should
+   (let ((denote-sequence-scheme 'numeric))
+     (equal (denote-sequence-and-scheme-p "1") (cons "1" 'numeric))))
+  (should
+   (let ((denote-sequence-scheme 'alphanumeric))
+     (equal (denote-sequence-and-scheme-p "1") (cons "1" 'alphanumeric))))
+  (should
+   (let ((denote-sequence-scheme 'alphanumeric-delimited))
+     (equal (denote-sequence-and-scheme-p "1") (cons "1" 'alphanumeric-delimited)))))
+
+(ert-deftest dst-denote-sequence-join ()
+  "Test that `denote-sequence-join' works as intended.
+The `denote-sequence-join' is not responsible for checking if the
+STRINGS passed to it conform with the given SCHEME."
+  (should (string= (denote-sequence-join '("1" "1" "1" "1") 'numeric) "1=1=1=1"))
+  (should (string= (denote-sequence-join '("1" "a" "1" "a") 'alphanumeric) "1a1a"))
+  (should (string= (denote-sequence-join '("1" "a") 'alphanumeric-delimited) "1=a"))
+  (should (string= (denote-sequence-join '("1" "a" "1") 'alphanumeric-delimited) "1=a1"))
+  (should (string= (denote-sequence-join '("1" "a" "1" "a") 'alphanumeric-delimited) "1=a1a"))
+  (should (string= (denote-sequence-join '("1" "a" "1" "a" "1" "a" "1" "a" "1" "a") 'alphanumeric-delimited) "1=a1a=1a1=a1a")))
+
+(ert-deftest dst-denote-sequence--number-to-alpha-complete ()
+  "Test that `denote-sequence--number-to-alpha-complete' does the right thing."
+  (should (string= (denote-sequence--number-to-alpha-complete "1=1=1=1=1=1=1" 'alphanumeric) "1a1a1a1"))
+  (should (string= (denote-sequence--number-to-alpha-complete "1=1=1=1=1=1=1" 'alphanumeric-delimited) "1=a1a=1a1"))
+  (should-error (denote-sequence--number-to-alpha-complete "1=1=1=1=1=1=1" 'numeric))
+  (should-error (denote-sequence--number-to-alpha-complete "1=1=1=1=1=1=1" 'numericdkjdldk)))
+
 (ert-deftest dst-denote-sequence--get-new-exhaustive ()
   "Test if we get the correct parent, child, sibling, or relatives of a sequence.
 Use the function `denote-sequence-get-new' for child and sibling with
@@ -210,36 +280,106 @@ function `denote-sequence-get-relative'."
                             "20241230T075023==10b--test__testing.txt"))
     (should (dst-relative-p "1a" 'all-children
                             "20241230T075023==1a1--test__testing.txt"
-                            "20241230T075023==1a2--test__testing.txt"))))
+                            "20241230T075023==1a2--test__testing.txt")))
+
+  (let* ((denote-sequence-scheme 'alphanumeric-delimited)
+         (denote-directory (expand-file-name "denote-sequence-test" temporary-file-directory))
+         (files
+          (mapcar
+           (lambda (file)
+             (let ((path (expand-file-name file (denote-directory))))
+               (if (file-exists-p path)
+                   path
+                 (with-current-buffer (find-file-noselect path)
+                   (save-buffer)
+                   (kill-buffer (current-buffer)))
+                 path)))
+           '("20241230T075023==1--test__testing.txt"
+             "20241230T075023==1=a--test__testing.txt"
+             "20241230T075023==1=a1--test__testing.txt"
+             "20241230T075023==1=a2--test__testing.txt"
+             "20241230T075023==1=b--test__testing.txt"
+             "20241230T075023==1=b1--test__testing.txt"
+             "20241230T075023==1=b1a--test__testing.txt"
+             "20241230T075023==2--test__testing.txt"
+             "20241230T075023==10--test__testing.txt"
+             "20241230T075023==10=a--test__testing.txt"
+             "20241230T075023==10=b--test__testing.txt")))
+         (sequences (denote-sequence-get-all-sequences files)))
+    (should (string= (denote-sequence-get-new 'parent) "11"))
+
+    (should (string= (denote-sequence-get-new 'child "1" sequences) "1=c"))
+    (should (string= (denote-sequence-get-new 'child "1=a" sequences) "1=a3"))
+    (should (string= (denote-sequence-get-new 'child "1=a2" sequences) "1=a2a"))
+    (should (string= (denote-sequence-get-new 'child "1=b" sequences) "1=b2"))
+    (should (string= (denote-sequence-get-new 'child "1=b1" sequences) "1=b1b"))
+    (should (string= (denote-sequence-get-new 'child "2" sequences) "2=a"))
+    (should-error (denote-sequence-get-new 'child "11" sequences))
+
+    (should (string= (denote-sequence-get-new 'sibling "1" sequences) "11"))
+    (should (string= (denote-sequence-get-new 'sibling "1=a" sequences) "1=c"))
+    (should (string= (denote-sequence-get-new 'sibling "1=a1" sequences) "1=a3"))
+    (should (string= (denote-sequence-get-new 'sibling "1=a2" sequences) "1=a3"))
+    (should (string= (denote-sequence-get-new 'sibling "1=b" sequences) "1=c"))
+    (should (string= (denote-sequence-get-new 'sibling "1=b1" sequences) "1=b2"))
+    (should (string= (denote-sequence-get-new 'sibling "2" sequences) "11"))
+    (should-error (denote-sequence-get-new 'sibling "12" sequences))
+
+    (should (string= (denote-sequence-get-relative "1=b1a" 'parent files)
+                     (expand-file-name "20241230T075023==1=b1--test__testing.txt" denote-directory)))
+    (should (string= (denote-sequence-get-relative "10=a" 'parent files)
+                     (expand-file-name "20241230T075023==10--test__testing.txt" denote-directory)))
+    (should (dst-relative-p "1=b1a" 'all-parents
+                            "20241230T075023==1--test__testing.txt"
+                            "20241230T075023==1=b--test__testing.txt"
+                            "20241230T075023==1=b1--test__testing.txt"))
+    (should (dst-relative-p "1=a" 'siblings
+                            "20241230T075023==1=a--test__testing.txt"
+                            "20241230T075023==1=b--test__testing.txt"))
+    (should (dst-relative-p "10=a" 'siblings
+                            "20241230T075023==10=a--test__testing.txt"
+                            "20241230T075023==10=b--test__testing.txt"))
+    (should (dst-relative-p "1" 'children
+                            "20241230T075023==1=a--test__testing.txt"
+                            "20241230T075023==1=b--test__testing.txt"))
+    (should (dst-relative-p "10" 'children
+                            "20241230T075023==10=a--test__testing.txt"
+                            "20241230T075023==10=b--test__testing.txt"))
+    (should (dst-relative-p "1=a" 'all-children
+                            "20241230T075023==1=a1--test__testing.txt"
+                            "20241230T075023==1=a2--test__testing.txt"))))
 
 (ert-deftest dst-denote-sequence-split ()
   "Test that `denote-sequence-split' splits a sequence correctly."
   (should (equal (denote-sequence-split "1") '("1")))
   (should (equal (denote-sequence-split "1=1=2") '("1" "1" "2")))
-  (should (equal (denote-sequence-split "1za5zx") '("1" "za" "5" "zx"))))
+  (should (equal (denote-sequence-split "1za5zx") '("1" "za" "5" "zx")))
+  (should (equal (denote-sequence-split "1=za5zx") '("1" "za" "5" "zx")))
+  (should (equal (denote-sequence-split "1=a2b") '("1" "a" "2" "b"))))
+  (should (equal (denote-sequence-split "1=a2b=1c3") '("1" "a" "2" "b" "1" "c" "3")))
 
 (ert-deftest dst-denote-sequence-make-conversion ()
   "Test that `denote-sequence-make-conversion' converts from alpha to numeric and vice versa."
-  (should (string= (denote-sequence-make-conversion "3") "c"))
-  (should (string= (denote-sequence-make-conversion "18") "r"))
-  (should (string= (denote-sequence-make-conversion "26") "z"))
-  (should (string= (denote-sequence-make-conversion "27") "za"))
-  (should (string= (denote-sequence-make-conversion "130") "zzzzz"))
-  (should (string= (denote-sequence-make-conversion "131") "zzzzza"))
-  (should (string= (denote-sequence-make-conversion "c") "3"))
-  (should (string= (denote-sequence-make-conversion "r") "18"))
-  (should (string= (denote-sequence-make-conversion "z") "26"))
-  (should (string= (denote-sequence-make-conversion "za") "27"))
-  (should (string= (denote-sequence-make-conversion "zzzzz") "130"))
-  (should (string= (denote-sequence-make-conversion "zzzzza") "131"))
-  (should (string= (denote-sequence-make-conversion "1=1=2" :string-is-sequence) "1a2"))
-  (should (string= (denote-sequence-make-conversion "1a2" :string-is-sequence) "1=1=2"))
-  (should (string= (denote-sequence-make-conversion "1=27=2=55" :string-is-sequence) "1za2zzc"))
-  (should (string= (denote-sequence-make-conversion "1za2zzc" :string-is-sequence) "1=27=2=55"))
-  (should (string= (denote-sequence-make-conversion "1=1=2=2=4=1" :string-is-sequence) "1a2b4a"))
-  (should (string= (denote-sequence-make-conversion "1a2b4a" :string-is-sequence) "1=1=2=2=4=1"))
-  (should-error (denote-sequence-make-conversion "111=a" :string-is-sequence))
-  (should-error (denote-sequence-make-conversion "a1" :string-is-sequence)))
+  (should (string= (denote-sequence-make-conversion "3" 'alphanumeric :string-is-partial-sequence) "c"))
+  (should (string= (denote-sequence-make-conversion "18" 'alphanumeric :string-is-partial-sequence) "r"))
+  (should (string= (denote-sequence-make-conversion "26" 'alphanumeric :string-is-partial-sequence) "z"))
+  (should (string= (denote-sequence-make-conversion "27" 'alphanumeric :string-is-partial-sequence) "za"))
+  (should (string= (denote-sequence-make-conversion "130" 'alphanumeric :string-is-partial-sequence) "zzzzz"))
+  (should (string= (denote-sequence-make-conversion "131" 'alphanumeric :string-is-partial-sequence) "zzzzza"))
+  (should (string= (denote-sequence-make-conversion "c" 'numeric :string-is-partial-sequence) "3"))
+  (should (string= (denote-sequence-make-conversion "r" 'numeric :string-is-partial-sequence) "18"))
+  (should (string= (denote-sequence-make-conversion "z" 'numeric :string-is-partial-sequence) "26"))
+  (should (string= (denote-sequence-make-conversion "za" 'numeric :string-is-partial-sequence) "27"))
+  (should (string= (denote-sequence-make-conversion "zzzzz" 'numeric :string-is-partial-sequence) "130"))
+  (should (string= (denote-sequence-make-conversion "zzzzza" 'numeric :string-is-partial-sequence) "131"))
+  (should (string= (denote-sequence-make-conversion "1=1=2" 'alphanumeric) "1a2"))
+  (should (string= (denote-sequence-make-conversion "1a2" 'numeric) "1=1=2"))
+  (should (string= (denote-sequence-make-conversion "1=27=2=55" 'alphanumeric) "1za2zzc"))
+  (should (string= (denote-sequence-make-conversion "1=27=2=55" 'alphanumeric-delimited) "1=za2zzc"))
+  (should (string= (denote-sequence-make-conversion "1za2zzc" 'numeric) "1=27=2=55"))
+  (should (string= (denote-sequence-make-conversion "1=1=2=2=4=1" 'alphanumeric) "1a2b4a"))
+  (should (string= (denote-sequence-make-conversion "1=1=2=2=4=1" 'alphanumeric-delimited) "1=a2b=4a"))
+  (should (string= (denote-sequence-make-conversion "1a2b4a" 'numeric) "1=1=2=2=4=1")))
 
 (ert-deftest dst-denote-sequence-increment-partial ()
   "Test that `denote-sequence-increment-partial' does the right thing."

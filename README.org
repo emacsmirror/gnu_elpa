@@ -134,23 +134,32 @@ scheme, which is =1a2= for the same sequence ([[#h:convert-from-one-sequencing-s
 :CUSTOM_ID: h:convert-from-one-sequencing-scheme-to-another
 :END:
 
-The decision on the desired ~denote-sequence-scheme~ wil affect new
-notes long-term ([[#h:select-a-sequencing-scheme-for-denote-sequence-scheme][Select a sequencing scheme for ~denote-sequence-scheme~]]).
-It thus is important to think through your needs and proceed accordingly.
-
 #+findex: denote-sequence-convert
-Still, one cannot be sure which scheme they prefer until they
-experiment with it. It then is inconvenient to manually revert to the
-alternative scheme. To this end, we provide the command
-~denote-sequence-convert~. It convers one or more files from their
-current scheme to its counterpart.
+The command ~denote-sequence-convert~ makes it easy to switch from one
+~denote-sequence-scheme~ to another ([[#h:select-a-sequencing-scheme-for-denote-sequence-scheme][Select a sequencing scheme for ~denote-sequence-scheme~]]).
 
-When called from inside a Denote file, it converts that file. When
-called from a Dired buffer, it operates on the marked files. If no
-files are marked, it works with the Dired file at point.
+This command has a "do what I mean behaviour" with regard to which
+file or files it should operate on:
 
-Note that ~denote-sequence-convert~ DOES NOT REPARENT OR ANYHOW CHECK
-THE RESULTING SEQUENCES FOR DUPLICATES ([[#h:re-parent-a-file-to-extend-a-given-sequence][Re-parent a file to extend a given sequence]]).
+- When called from inside a file with a Denote sequence, it operates
+  on the current file.
+
+- When called from a Dired buffer, it operates on all the marked
+  files.
+
+- When there are no marked files in the Dired buffer, it operates on
+  the file at point.
+
+The target sequence scheme for the conversion is whatever is assigned
+to the user option ~denote-sequence-scheme~. If, however, the command
+~denote-sequence-convert~ is called with a prefix argument (=C-u= by
+default), then it will prompt for the target sequence scheme. [ This
+optional prompt is part of {{{development-version}}}. ]
+
+[ This command is for users who once used a ~denote-sequence-scheme~
+  and have since decided to switch to another. IT DOES NOT REPARENT OR
+  ANYHOW CHECK THE RESULTING SEQUENCES FOR DUPLICATES: it simply
+  performs the conversion from one scheme to another ([[#h:re-parent-a-file-to-extend-a-given-sequence][Re-parent a file to extend a given sequence]]). ]
 
 ** Create parent, child, or sibling sequence notes
 :PROPERTIES:

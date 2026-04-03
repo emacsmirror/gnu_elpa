@@ -416,6 +416,33 @@ the user.  See bug#52."
 
 ;;;; Checkin tests
 
+(ert-deftest vc-jj-test-checkin-partial-files ()
+  "Test `vc-jj-checkin' with only a subset of edited files."
+  (vc-jj-test--with-repo repo
+    (write-region "" nil "file1.txt")
+    (write-region "" nil "file2.txt")
+    (shell-command "jj new")
+    (write-region "edited" nil "file1.txt")
+    (write-region "edited" nil "file2.txt")
+    (write-region "" nil "file3.txt")
+    (should (eq (vc-jj-state "file1.txt") 'edited))
+    (should (eq (vc-jj-state "file2.txt") 'edited))
+    (should (eq (vc-jj-state "file3.txt") 'added))
+
+    (vc-jj-checkin (list "file1.txt") "Commit only some files")
+    (should (eq (vc-jj-state "file1.txt") 'up-to-date))
+    (should (eq (vc-jj-state "file2.txt") 'edited))
+    (should (eq (vc-jj-state "file3.txt") 'added))
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo
+                                     '("file1.txt"
+                                       "file2.txt"
+                                       "file3.txt")
+                                     #'vc-jj-test--dir-status-files-update-function)
+             '(("file1.txt" up-to-date)
+               ("file2.txt" edited)
+               ("file3.txt" added))))))
+
 (ert-deftest vc-jj-test-checkin-sync-and-async ()
   "Test the synchronous and asynchronous versions of `vc-jj-checkin'.
 Basic test that to check that `vc-jj-checkin' works both synchronously

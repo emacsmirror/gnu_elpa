@@ -1,12 +1,11 @@
 .POSIX:
-.PHONY: all doc clean
-.SUFFIXES: .el .elc
+.PHONY: all doc test load clean
 
 EMACS = emacs
 GUIX_SHELL ?= guix shell -m manifest.scm --
-ORG := doc/gnosis.org
-TEXI := doc/gnosis.texi
-INFO := doc/gnosis.info
+ORG := docs/gnosis.org
+TEXI := docs/gnosis.texi
+INFO := docs/gnosis.info
 TEST_FILES := tests/gnosis-test-sqlite.el \
 	tests/gnosis-test-algorithm.el \
 	tests/gnosis-test-export-import.el \
@@ -28,7 +27,7 @@ doc:	$(ORG)
 	$(GUIX_SHELL) $(EMACS) --batch \
 	-Q \
 	--load org \
-	--eval "(with-current-buffer (find-file \"$(ORG)\") (org-texinfo-export-to-texinfo) (org-texinfo-export-to-info) (save-buffer))" \
+	--eval "(with-current-buffer (find-file \"$(ORG)\") (org-texinfo-export-to-info))" \
 	--kill
 
 

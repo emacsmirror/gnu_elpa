@@ -418,24 +418,18 @@ If SEQUENCE conforms with `denote-sequence-alphanumeric-p', return it as-is."
                              parts)))
       (denote-sequence-join converted-parts target-scheme))))
 
-;; TODO 2026-03-24: Add support for the `alphanumeric-delimited'.
-(defun denote-sequence-make-conversion (string &optional string-is-sequence)
-  "Convert STRING to its counterpart sequencing scheme.
-If STRING-IS-SEQUENCE then assume STRING to be a complete sequence, in
-which case convert the entirety of it.  Also see `denote-sequence-scheme'."
+(defun denote-sequence-make-conversion (string target-scheme &optional string-is-partial-sequence)
+  "Convert STRING to the given sequencing TARGET-SCHEME.
+With optional STRING-IS-PARTIAL-SEQUENCE interpret STRING accordingly."
   (cond
-   ((and string-is-sequence (denote-sequence-alphanumeric-p string))
+   (string-is-partial-sequence
+    (if (eq target-scheme 'numeric)
+        (denote-sequence--alpha-to-number string)
+      (denote-sequence--number-to-alpha string)))
+   ((eq target-scheme 'numeric)
     (denote-sequence--alpha-to-number-complete string))
-   ((and string-is-sequence (denote-sequence-numeric-p string))
-    (denote-sequence--number-to-alpha-complete string))
-   ((denote-sequence--alphanumeric-partial-p string)
-    (denote-sequence--alpha-to-number string))
-   ((denote-sequence--numeric-partial-p string)
-    (denote-sequence--number-to-alpha string))
    (t
-    (if string-is-sequence
-        (error "String `%s' did not pass `denote-sequence-p'" string)
-      (error "The `%s' must not contain both numbers and letters" string)))))
+    (denote-sequence--number-to-alpha-complete string target-scheme))))
 
 (define-obsolete-function-alias
   'denote-sequence-increment

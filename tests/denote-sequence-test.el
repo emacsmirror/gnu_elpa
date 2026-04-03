@@ -93,7 +93,8 @@ levels of depth between delimiters."
   (should (string= (denote-sequence-alphanumeric-delimited-p "1") "1"))
   (should (string= (denote-sequence-alphanumeric-delimited-p "1=a") "1=a"))
   (should (string= (denote-sequence-alphanumeric-delimited-p "1=a1b") "1=a1b"))
-  (should (string= (denote-sequence-alphanumeric-delimited-p "1=a1b=2a1") "1=a1b=2a1")))
+  (should (string= (denote-sequence-alphanumeric-delimited-p "1=a1b=2a1") "1=a1b=2a1"))
+  (should (string= (denote-sequence-alphanumeric-delimited-p "1=zza1zb=2za1") "1=zza1zb=2za1")))
 
 (ert-deftest dst-denote-sequence-and-scheme-p ()
   "Test that `denote-sequence-and-scheme-p' covers all cases."
@@ -285,7 +286,8 @@ function `denote-sequence-get-relative'."
   "Test that `denote-sequence-split' splits a sequence correctly."
   (should (equal (denote-sequence-split "1") '("1")))
   (should (equal (denote-sequence-split "1=1=2") '("1" "1" "2")))
-  (should (equal (denote-sequence-split "1za5zx") '("1" "za" "5" "zx"))))
+  (should (equal (denote-sequence-split "1za5zx") '("1" "za" "5" "zx")))
+  (should (equal (denote-sequence-split "1=za5zx") '("1" "za" "5" "zx"))))
 
 (ert-deftest dst-denote-sequence-make-conversion ()
   "Test that `denote-sequence-make-conversion' converts from alpha to numeric and vice versa."

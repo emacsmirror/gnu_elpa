@@ -1453,31 +1453,56 @@ file."
   (let ((new-sequence (denote-sequence--get-new-parent)))
     (denote-rename-file current-file 'keep-current 'keep-current new-sequence 'keep-current 'keep-current)))
 
+(defvar denote-sequence-scheme-prompt-history nil
+  "Minibuffer history for `denote-sequence-scheme-prompt'.")
+
+(defun denote-sequence-scheme-prompt (&optional prompt-text)
+  "Prompt for one among the supported `denote-sequence-scheme' symbols.
+With optional PROMPT-TEXT, use it for the prompt message.  Else fall
+back to a generic prompt message."
+  (let ((default (car denote-sequence-scheme-prompt-history)))
+    (intern
+     (completing-read
+      (format-prompt (or prompt-text "Select sequence scheme") default)
+      denote-sequence-schemes nil t nil 'denote-sequence-scheme-prompt-history default))))
+
 ;;;###autoload
-(defun denote-sequence-convert (files)
+(defun denote-sequence-convert (files &optional target-scheme)
   "Convert the sequence scheme of FILES to match `denote-sequence-scheme'.
-When called from inside a Denote file, FILES is just the current file.
-When called from a Dired buffer, FILES are the marked files.  If no
-files are marked, then the one at point is considered.
+
+With optional TARGET-SCHEME as a prefix argument, prompt for a scheme
+among those supported by `denote-sequence-scheme'.  Otherwise, fall back
+to the current value of `denote-sequence-scheme'.
+
+When called from inside a Denote file, interpret FILES as just the
+current file.
+
+When called from a Dired buffer, FILES are the marked files.
+
+If no files are marked in the Dired buffer, then consider the one at
+point.
 
 Do not make any changes if the file among the FILES has no sequence or
 if it already matches the value of `denote-sequence-scheme'.  A file has
 a sequence when it conforms with `denote-sequence-file-p'.
 
-This command is for users who once used a `denote-sequence-scheme' and
-have since decided to switch to another.  IT DOES NOT REPARENT OR ANYHOW
-CHECK THE RESULTING SEQUENCES FOR DUPLICATES."
+[ This command is for users who once used a `denote-sequence-scheme' and
+  have since decided to switch to another.  IT DOES NOT REPARENT OR
+  ANYHOW CHECK THE RESULTING SEQUENCES FOR DUPLICATES: it simply
+  performs the conversion from one scheme to another.  ]"
   (interactive
    (list
     (if (derived-mode-p 'dired-mode)
         (dired-get-marked-files)
-      buffer-file-name))
+      buffer-file-name)
+    (when current-prefix-arg
+      (denote-sequence-scheme-prompt "Select target SCHEME")))
    dired-mode)
   (unless (listp files)
     (setq files (list files)))
   (dolist (file files)
     (when-let* ((old-sequence (denote-sequence-file-p file))
-                (new-sequence (denote-sequence-make-conversion old-sequence :is-complete-sequence)))
+                (new-sequence (denote-sequence-make-conversion old-sequence (or target-scheme denote-sequence-scheme))))
       (denote-rename-file file 'keep-current 'keep-current new-sequence 'keep-current 'keep-current)))
   (denote-update-dired-buffers))
 

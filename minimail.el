@@ -1703,6 +1703,7 @@ current message."
   :interactive nil
   (add-hook 'quit-window-hook #'minimail-quit-message-window nil t)
   (setq-local
+   buffer-undo-list t
    revert-buffer-function #'-mailbox-buffer-refresh
    truncate-lines t))
 

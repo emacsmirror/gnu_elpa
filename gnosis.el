@@ -605,8 +605,9 @@ When VERIFICATION is non-nil, skips `y-or-n-p' prompt."
 
 When `gnosis--id-cache' is bound, uses hash table lookup instead of DB query.
 
-LENGTH: length of id, default to a random number between 10-15."
-  (let* ((length (or length (+ (random 5) 10)))
+LENGTH: length of id, default to 18."
+  ;; NOTE: length must not exceed 18; 19-digit+ values can overflow sqlite.
+  (let* ((length (or length 18))
          (max-val (expt 10 length))
          (min-val (expt 10 (1- length)))
          (id (+ (random (- max-val min-val)) min-val))
@@ -624,7 +625,7 @@ LENGTH: length of id, default to a random number between 10-15."
 Uses `gnosis--id-cache' for O(1) collision checking when bound."
   (let ((ids nil) (count 0))
     (while (< count n)
-      (let* ((len (or length (+ (random 5) 10)))
+      (let* ((len (or length 18))
              (max-val (expt 10 len))
              (min-val (expt 10 (1- len)))
              (id (+ (random (- max-val min-val)) min-val))

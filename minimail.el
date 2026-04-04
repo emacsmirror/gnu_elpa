@@ -465,7 +465,7 @@ possible, see `minimail--key-match-p'."
 (defface minimail-unseen '((t :weight bold :inherit vtable))
   "Face to indicate unseen messages.")
 
-(defface minimail-mode-line-loading '((t :inherit mode-line-emphasis))
+(defface minimail-mode-line-loading nil
   "Face to indicate a background operation in the mode line.")
 
 (defface minimail-mode-line-error '((t :inherit error))

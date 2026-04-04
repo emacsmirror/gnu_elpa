@@ -380,6 +380,13 @@ included in ARGS."
     (apply #'vc-do-command (or buffer "*vc*") okstatus vc-jj-program nil
            (append global-switches args filesets))))
 
+(defun vc-jj--program-version ()
+  "Return the version of the installed jj executable.
+The return value is usable as input to `version<' and related functions."
+  (when-let* ((raw-version (car (vc-jj--process-lines nil "--version")))
+              (version (string-trim raw-version "jj " nil)))
+    version))
+
 ;;; BACKEND PROPERTIES
 
 ;;;; revision-granularity

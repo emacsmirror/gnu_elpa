@@ -109,6 +109,12 @@ timestamps and random number seed (and thereby change ids) is needed."
              (,name (file-truename (vc-jj-root ,name))))
          ,@body))))
 
+;;;; Check if jujutsu's version number is parseable
+
+(ert-deftest vc-jj-test-jj-version ()
+  "Test that we can parse jj's version info."
+  (version< "0.0.1" (vc-jj--program-version)))
+
 ;;;; State-querying tests
 
 (defun vc-jj-test--dir-status-files-update-function (files-and-states-and-extra _partial-results-p)

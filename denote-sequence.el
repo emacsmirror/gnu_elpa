@@ -86,7 +86,7 @@ is derived via the alternation from numbers to latin characters, such
 that 1a2 refers to the second child of the first child of parent 1.
 Because they alternate between numbers and letters, they do not use the
 equals sign.  When a number cannot be represented by a single letter,
-two or more are used instead, such as the number 51 corresponding to
+two or more are used instead, such as the number 50 corresponding to
 zx (z is 26 and x is 24).
 
 Alphanumeric delimited sequences combine elements of the aforementioned.

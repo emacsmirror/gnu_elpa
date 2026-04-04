@@ -23,18 +23,32 @@
 ;; Dashboard-specific test helpers
 ;; ──────────────────────────────────────────────────────────
 
+(defmacro gnosis-test-with-clean-cache (&rest body)
+  "Run BODY with fresh dashboard caches.
+Prevents cross-test cache pollution from `gnosis-dashboard--entry-cache'
+and rendered-text state."
+  (declare (indent 0) (debug t))
+  `(let ((gnosis-dashboard--entry-cache (make-hash-table :test 'equal))
+         (gnosis-dashboard--rendered-text nil)
+         (gnosis-dashboard--rendered-ids nil)
+         (gnosis-dashboard--rendered-width nil)
+         (gnosis-dashboard--selected-ids nil))
+     ,@body))
+
 (defmacro gnosis-test-with-dashboard-buffer (&rest body)
   "Run BODY in a temporary dashboard buffer with tabulated-list-mode.
-Stubs `pop-to-buffer-same-window' so tests work in batch mode."
+Stubs `pop-to-buffer-same-window' so tests work in batch mode.
+Includes `gnosis-test-with-clean-cache' for isolation."
   (declare (indent 0) (debug t))
-  `(let ((gnosis-dashboard-buffer-name "*Gnosis Dashboard Test*"))
-     (get-buffer-create gnosis-dashboard-buffer-name)
-     (cl-letf (((symbol-function 'pop-to-buffer-same-window)
-                (lambda (buf &rest _) (set-buffer (get-buffer-create buf)))))
-       (unwind-protect
-           (progn ,@body)
-         (when (get-buffer gnosis-dashboard-buffer-name)
-           (kill-buffer gnosis-dashboard-buffer-name))))))
+  `(gnosis-test-with-clean-cache
+     (let ((gnosis-dashboard-buffer-name "*Gnosis Dashboard Test*"))
+       (get-buffer-create gnosis-dashboard-buffer-name)
+       (cl-letf (((symbol-function 'pop-to-buffer-same-window)
+                  (lambda (buf &rest _) (set-buffer (get-buffer-create buf)))))
+         (unwind-protect
+             (progn ,@body)
+           (when (get-buffer gnosis-dashboard-buffer-name)
+             (kill-buffer gnosis-dashboard-buffer-name)))))))
 
 (defun gnosis-test--add-activity (date total new)
   "Insert an activity-log row for DATE with TOTAL and NEW counts."
@@ -98,63 +112,68 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode."
 (ert-deftest gnosis-test-dashboard-output-themata-basic ()
   "Output-themata returns correctly formatted entries."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "What is 2+2?" "4"
-                                              '("math")))
-           (id2 (gnosis-test--add-basic-thema "Capital?" "Athens"
-                                              '("geo")))
-           (entries (gnosis-dashboard--output-themata (list id1 id2))))
-      ;; Two entries returned
-      (should (= (length entries) 2))
-      ;; Each entry is (id vector)
-      (let* ((e1 (cl-find id1 entries :key #'car))
-             (vec1 (cadr e1)))
-        (should e1)
-        ;; Keimenon is first field
-        (should (string-search "What is 2+2?" (aref vec1 0)))
-        ;; Type is "basic"
-        (should (equal (aref vec1 4) "basic"))
-        ;; Not suspended → "No"
-        (should (equal (aref vec1 5) "No"))))))
+    (gnosis-test-with-clean-cache
+      (let* ((id1 (gnosis-test--add-basic-thema "What is 2+2?" "4"
+                                                '("math")))
+             (id2 (gnosis-test--add-basic-thema "Capital?" "Athens"
+                                                '("geo")))
+             (entries (gnosis-dashboard--output-themata (list id1 id2))))
+        ;; Two entries returned
+        (should (= (length entries) 2))
+        ;; Each entry is (id vector)
+        (let* ((e1 (cl-find id1 entries :key #'car))
+               (vec1 (cadr e1)))
+          (should e1)
+          ;; Keimenon is first field
+          (should (string-search "What is 2+2?" (aref vec1 0)))
+          ;; Type is "basic"
+          (should (equal (aref vec1 4) "basic"))
+          ;; Not suspended → "No"
+          (should (equal (aref vec1 5) "No")))))))
 
 (ert-deftest gnosis-test-dashboard-output-themata-suspended ()
   "Suspended themata show \"Yes\" in suspend column."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Q?" "A" '("t") nil nil 1))
-           (entries (gnosis-dashboard--output-themata (list id1)))
-           (e1 (cl-find id1 entries :key #'car))
-           (vec1 (cadr e1)))
-      (should (equal (aref vec1 5) "Yes")))))
+    (gnosis-test-with-clean-cache
+      (let* ((id1 (gnosis-test--add-basic-thema "Q?" "A" '("t") nil nil 1))
+             (entries (gnosis-dashboard--output-themata (list id1)))
+             (e1 (cl-find id1 entries :key #'car))
+             (vec1 (cadr e1)))
+        (should (equal (aref vec1 5) "Yes"))))))
 
 (ert-deftest gnosis-test-dashboard-output-themata-list-tags ()
   "List-valued tags are joined with commas."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Q?" "A"
-                                              '("math" "algebra")))
-           (entries (gnosis-dashboard--output-themata (list id1)))
-           (vec (cadr (car entries))))
-      ;; Tags field (index 3) should contain both tags
-      (should (string-search "math" (aref vec 3)))
-      (should (string-search "algebra" (aref vec 3))))))
+    (gnosis-test-with-clean-cache
+      (let* ((id1 (gnosis-test--add-basic-thema "Q?" "A"
+                                                '("math" "algebra")))
+             (entries (gnosis-dashboard--output-themata (list id1)))
+             (vec (cadr (car entries))))
+        ;; Tags field (index 3) should contain both tags
+        (should (string-search "math" (aref vec 3)))
+        (should (string-search "algebra" (aref vec 3)))))))
 
 (ert-deftest gnosis-test-dashboard-output-themata-strips-org-links ()
   "Org-mode links in keimenon are simplified to description only."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema
-                 "See [[id:abc-123][My Node]] for details" "A"))
-           (entries (gnosis-dashboard--output-themata (list id1)))
-           (vec (cadr (car entries))))
-      ;; Link syntax removed, description kept
-      (should (string-search "My Node" (aref vec 0)))
-      (should-not (string-search "[[id:" (aref vec 0))))))
+    (gnosis-test-with-clean-cache
+      (let* ((id1 (gnosis-test--add-basic-thema
+                   "See [[id:abc-123][My Node]] for details" "A"))
+             (entries (gnosis-dashboard--output-themata (list id1)))
+             (vec (cadr (car entries))))
+        ;; Link syntax removed, description kept
+        (should (string-search "My Node" (aref vec 0)))
+        (should-not (string-search "[[id:" (aref vec 0)))))))
 
 (ert-deftest gnosis-test-dashboard-output-themata-strips-newlines ()
   "Newlines in fields are replaced with spaces."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Line1\nLine2" "A"))
-           (entries (gnosis-dashboard--output-themata (list id1)))
-           (vec (cadr (car entries))))
-      (should-not (string-search "\n" (aref vec 0)))
-      (should (string-search "Line1 Line2" (aref vec 0))))))
+    (gnosis-test-with-clean-cache
+      (let* ((id1 (gnosis-test--add-basic-thema "Line1\nLine2" "A"))
+             (entries (gnosis-dashboard--output-themata (list id1)))
+             (vec (cadr (car entries))))
+        (should-not (string-search "\n" (aref vec 0)))
+        (should (string-search "Line1 Line2" (aref vec 0)))))))
 
 (ert-deftest gnosis-test-dashboard-output-tag ()
   "Output-tag returns (tag count-string)."

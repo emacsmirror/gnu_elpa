@@ -25,15 +25,20 @@
 
 (defmacro gnosis-test-with-clean-cache (&rest body)
   "Run BODY with fresh dashboard caches.
-Prevents cross-test cache pollution from `gnosis-dashboard--entry-cache'
-and rendered-text state."
+Cancels pending timers and resets all dashboard cache state to prevent
+cross-test pollution."
   (declare (indent 0) (debug t))
-  `(let ((gnosis-dashboard--entry-cache (make-hash-table :test 'equal))
-         (gnosis-dashboard--rendered-text nil)
-         (gnosis-dashboard--rendered-ids nil)
-         (gnosis-dashboard--rendered-width nil)
-         (gnosis-dashboard--selected-ids nil))
-     ,@body))
+  `(progn
+     (cancel-function-timers #'gnosis-dashboard--append-chunk)
+     (cancel-function-timers #'gnosis-dashboard--prerender-chunk)
+     (cancel-function-timers #'gnosis-dashboard--warm-cache-chunk)
+     (let ((gnosis-dashboard--entry-cache (make-hash-table :test 'equal))
+           (gnosis-dashboard--rendered-text nil)
+           (gnosis-dashboard--rendered-ids nil)
+           (gnosis-dashboard--rendered-width nil)
+           (gnosis-dashboard--selected-ids nil)
+           (gnosis-dashboard--load-generation 0))
+       ,@body)))
 
 (defmacro gnosis-test-with-dashboard-buffer (&rest body)
   "Run BODY in a temporary dashboard buffer with tabulated-list-mode.

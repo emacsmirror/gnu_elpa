@@ -125,6 +125,11 @@ When non-nil, center content during review sessions.
 When nil, content will be displayed left-aligned instead of centered."
   :type 'boolean)
 
+(defcustom gnosis-latex-preview nil
+  "When non-nil, render LaTeX fragments during review."
+  :type 'boolean
+  :group 'gnosis)
+
 (defcustom gnosis-script-input-method-alist
   '((greek . "greek")
     (cyrillic . "cyrillic-translit"))
@@ -491,12 +496,29 @@ Respects `gnosis-center-content' buffer-local setting."
         (forward-line 1)))))
 
 (defun gnosis-org-format-string (str)
-  "Return STR fontified as in `org-mode'."
+  "Return STR fontified as in `org-mode'.
+When `gnosis-latex-preview' is non-nil, render LaTeX fragments as
+images using `org-format-latex'."
   (with-temp-buffer
     (org-mode)
     (org-toggle-pretty-entities)
     (insert str)
     (font-lock-ensure)
+    (when gnosis-latex-preview
+      (condition-case err
+          (progn
+            (goto-char (point-min))
+            (org-format-latex "ltximg/org-ltximg"
+                              (point-min) (point-max) temporary-file-directory
+                              'overlays nil 'forbuffer
+                              org-preview-latex-default-process)
+            ;; Convert overlays to text properties so they survive buffer-string
+            (dolist (ov (overlays-in (point-min) (point-max)))
+              (when-let ((display (overlay-get ov 'display)))
+                (put-text-property (overlay-start ov) (overlay-end ov)
+                                   'display display)
+                (delete-overlay ov))))
+        (error (message "LaTeX preview: %s" (error-message-string err)))))
     (buffer-string)))
 
 (defun gnosis-cloze-create (str clozes &optional cloze-string)

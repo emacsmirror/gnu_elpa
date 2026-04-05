@@ -1641,6 +1641,7 @@ Then do what `denote-sequence-hierarchy-move-and-open' entails."
     (define-key map (kbd "b") #'denote-sequence-hierarchy-outline-backward-same-level)
     (define-key map (kbd "n") #'denote-sequence-hierarchy-outline-next-visible-heading)
     (define-key map (kbd "p") #'denote-sequence-hierarchy-outline-previous-visible-heading)
+    (define-key map (kbd "q") #'quit-window)
     map)
   "Key map for `denote-sequence-hierarchy-mode'.")
 

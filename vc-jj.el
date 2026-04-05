@@ -823,9 +823,11 @@ asynchronously."
           ;; extract those headers from COMMENT.
           (car (log-edit-extract-headers nil comment)))
          (args (append (vc-switches 'jj 'checkin)
-                       (list "commit" "-m" comment))))
-    (if (bound-and-true-p vc-async-checkin) ; Emacs 31 option
-        (let* ((root (vc-jj-root (car files)))
+                       (list "commit" "-m" description))))
+    (if (and (bound-and-true-p vc-async-checkin) ; Emacs 31 option
+             (vc-jj-async-checkins))
+        (let* ((file1 (or (car files) default-directory))
+               (root (vc-jj-root file1))
                (buffer (format "*vc-jj : %s*" root))
                (proc (apply #'vc-do-async-command ; Returns process object
                             buffer root vc-jj-program

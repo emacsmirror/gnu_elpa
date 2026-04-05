@@ -1225,10 +1225,7 @@ delete."
   "Keymap for `vc-jj-log-view-mode'.")
 
 (define-derived-mode vc-jj-log-view-mode log-view-mode "JJ-Log-View"
-  "Log View major mode specific for Jujutsu logs.
-The following keybindings are available, with several specific to a
-Jujutsu workflow:
-\\{vc-jj-log-view-mode-map}"
+  "Log View mode specific for JJ."
   :keymap vc-jj-log-view-mode-map
 
   (require 'add-log) ;; We need the faces add-log.

@@ -568,16 +568,12 @@ new files."
 
 ;;;; dir-status-file
 
-;; 2026-03-22(Kris B): As far as I've seen, DIR is always the
-;; repository root.  The dir-status-files specification in the
-;; preamble of vc.el does not make it clear, but this seems to be the
-;; case.
 (defun vc-jj-dir-status-files (root-or-subdir files update-function)
   "Call UPDATE-FUNCTION on a computed list of entries for ROOT-OR-SUBDIR.
-Compute a list of entries for ROOT-OR-SUBDIR whose elements are of the
-form (FILE STATE EXTRA), where FILE is relative to ROOT-OR-SUBDIR, STATE
-is a VC state symbol.  Return the result of calling UPDATE-FUNCTION with
-that list as an argument.
+Compute a list of file entries for ROOT-OR-SUBDIR whose elements are of
+the form (FILE STATE EXTRA), where FILE is an absolute path or one
+relative to ROOT-OR-SUBDIR and STATE is a VC state symbol.  Return the
+result of calling UPDATE-FUNCTION with that list as an argument.
 
 FILES is either nil or a list of files relative to ROOT-OR-SUBDIR.  If
 FILES is nil, return the state of all files that don't have the
@@ -592,8 +588,9 @@ For a description of the states relevant to Jujutsu, see the docstring
 of `vc-jj-state'."
   (condition-case err
       ;; A big consideration of this function is performance in large
-      ;; repositories: minimize the number of operations and loops
-      ;; over lists
+      ;; repositories.  This is why we use hash tables rather than
+      ;; lists: minimize the number of operations and loops over
+      ;; lists, which are expensive compared to hash table operations
       (let* ((root (vc-jj-root root-or-subdir))
              (default-directory root)
              (file-diff-types-table
@@ -639,9 +636,10 @@ of `vc-jj-state'."
                   result)))
              (result
               (mapcar (lambda (root-rel-file)
-                        (let (;; The files reported should be relative
-                              ;; to ROOT-OR-SUBDIR
-                              (display-path (file-relative-name root-rel-file root-or-subdir))
+                        (let ((display-path
+                               ;; The files reported should be
+                               ;; relative to ROOT-OR-SUBDIR
+                               (file-relative-name root-rel-file root-or-subdir))
                               (state (vc-jj--deduce-state root-rel-file
                                                           file-diff-types-table
                                                           file-conflict-table)))
@@ -657,7 +655,7 @@ of `vc-jj-state'."
     ;; potential problem.  (See bug#63.) Signal other errors normally.
     (error (if (string-match-p "exited with status 255" (error-message-string err))
                (progn
-                 (warn "Vc-jj: jj failed, possibly due to a corrupted repository (%s)"
+                 (warn "Vc-jj: jj failed, likely due to a corrupted repository (%s)"
                        (vc-jj-root root-or-subdir))
                  (funcall update-function nil nil))
              (signal (car err) (cdr err))))))

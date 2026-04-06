@@ -1185,7 +1185,8 @@ rename."
                 (car bookmarks-at-rev)
               (completing-read "Which bookmark to rename? " bookmarks-at-rev)))
            (bookmark-new
-            (read-string (format-prompt "Rename %s to" nil bookmark-old))))
+            (read-string (format-prompt "Rename %s to" nil bookmark-old)
+                         nil t bookmark-old)))
       (vc-jj--command-dispatched nil 0 nil "bookmark" "rename" bookmark-old bookmark-new
                                  "--quiet")
       (revert-buffer))))

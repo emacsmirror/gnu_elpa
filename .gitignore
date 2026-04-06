@@ -8,5 +8,5 @@
 /.eldev
 /Eldev-local
 
-# Test coverage reports (eldev test --undercover simplecov,dontsend)
+# Test coverage reports (run "eldev test --undercover simplecov,dontsend")
 /coverage

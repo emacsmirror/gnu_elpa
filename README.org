@@ -154,11 +154,6 @@ place; feel free to contact us for details.  Note that "trivial"
 The code in file =vc-jj.el= is organized according to the structure set
 out in the preamble of the file =vc.el= in the Emacs source tree.
 
-Test code coverage can be checked via the [[https://emacs-eldev.github.io/eldev/][Eldev]] tool and [[https://github.com/trezona-lecomte/coverage][coverage]]: in
-a shell, run ~eldev test --undercover simplecov,dontsend~ in the
-project root directory, then in Emacs open =vc-jj.el= and activate
-~coverage-mode~.
-
 Vc-jj uses Emacs's built-in Bug Reference mode (see [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Bug-Reference.html][(emacs) Bug
 Reference]]) to buttonize references to this project's Codeberg issues
 and PRs in Emacs-lisp mode buffers.  References have the form
@@ -167,6 +162,33 @@ and PRs in Emacs-lisp mode buffers.  References have the form
 to Codeberg issues, and PR keywords (=pull=, =pr=) link to Codeberg PRs.
 To follow a button, place point on it and press =C-c RET=, or use =M-x
 bug-reference-push-button=.
+
+** Testing
+
+All tests are written in =vc-jj-tests.el= with the built-in ERT package
+(Emacs Lisp Regression Testing).  To run all the tests, open the
+=vc-jj-tests.el= file in Emacs, evaluate the buffer by pressing =C-c C-e=,
+then press =M-x ert RET t RET=.  For more information on ERT, see the
+[[https://www.gnu.org/software/emacs/manual/html_node/ert/][ERT manual]].
+
+Alternatively, test coverage can be checked in the command line via
+the [[https://emacs-eldev.github.io/eldev/][Eldev]] tool, which isolates your personal Emacs configuration from
+the Emacs instance used to run tests, helping distinguish between
+project bugs and personal configuration problems.  First, install the
+Eldev executable [[https://emacs-eldev.github.io/eldev/#installation][as described in the Eldev manual]].  Then in a shell
+whose current working directory is the project root, run ~eldev test~ to
+run all tests or ~eldev test TEST1 TEST2~ to run the tests named =TEST1=
+and =TEST2=.  Eldev also helps to easily run tests on other versions of
+Emacs; see the [[https://emacs-eldev.github.io/eldev/#different-emacs-versions][corresponding manual section]] for how to do so.
+
+Additionally, if installed, the [[https://github.com/trezona-lecomte/coverage][coverage.el]] Emacs package can be used
+alongside Eldev to highlight lines in the project files by color
+according to whether they are covered by the existing tests.  In a
+shell, run ~eldev test --undercover simplecov,dontsend~ in the project
+root directory, then open =vc-jj.el= in Emacs and enable the
+~coverage-mode~ minor mode.  You should now see lines highlighted green
+(covered) and red (not covered).  See the [[https://emacs-eldev.github.io/eldev/#undercover-plugin][associated Eldev manual
+section]] for more information on integration with coverage.el.
 
 * Other Emacs packages for Jujutsu
 

@@ -12,7 +12,7 @@
 (eldev-use-plugin 'undercover)
 
 ;; Use 'M-x coverage-mode' to see test coverage in 'vc-jj.el'.  Run
-;; the following command to generate the 'coverage/.resultset.json'
-;; file used by coverage-mode:
-
-;; eldev test --undercover simplecov,dontsend
+;; the following shell command to generate the
+;; 'coverage/.resultset.json' file used by 'coverage-mode' to
+;; highlight lines:
+;;   eldev test --undercover simplecov,dontsend

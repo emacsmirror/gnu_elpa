@@ -745,7 +745,9 @@ parents.map(|c| concat(
     ;; want will be printed afterwards.
     (car (last (vc-jj--process-lines nil "log" "--no-graph"
                                      "-r" "@"
-                                     "-T" "change_id ++ '\n'")))))
+                                     "-T" (if (bound-and-true-p vc-use-short-revision)
+                                              "self.change_id().shortest() ++ '\n'"
+                                            "self.change_id() ++ '\n'"))))))
 
 ;;;; checkout-model
 
@@ -1529,17 +1531,20 @@ For jj, modify `.gitignore' and call `jj untrack' or `jj track'."
   "JJ-specific version of `vc-previous-revision'.
 Return the revision number that precedes REV for FILE, or nil if no such
 revision exists."
-  (if file
-      (vc-jj--command-parseable file "log" "--no-graph" "--limit" "1"
-                                "-r" (format "ancestors(%s) & ~%s" rev rev)
-                                "-T" "change_id")
-    ;; The jj manual states that "for merges, [first_parent] only
-    ;; returns the first parent instead of returning all parents";
-    ;; given the choice, we do want to return the first parent of a
-    ;; merge change.
-    (vc-jj--command-parseable nil "log" "--no-graph"
-                              "-r" (concat "first_parent(" rev ")")
-                              "-T" "change_id")))
+  (let ((template (if (bound-and-true-p vc-use-short-revision)
+                      "self.change_id().shortest()"
+                    "self.change_id()")))
+    (if file
+        (vc-jj--command-parseable file "log" "--no-graph" "--limit" "1"
+                                  "-r" (format "ancestors(%s) & ~%s" rev rev)
+                                  "-T" template)
+      ;; The jj manual states that "for merges, [first_parent] only
+      ;; returns the first parent instead of returning all parents";
+      ;; given the choice, we do want to return the first parent of a
+      ;; merge change.
+      (vc-jj--command-parseable nil "log" "--no-graph"
+                                "-r" (concat "first_parent(" rev ")")
+                                "-T" template))))
 
 ;;;; file-name-changes
 
@@ -1549,17 +1554,20 @@ revision exists."
   "JJ-specific version of `vc-next-revision'.
 Return the revision that follows REV for FILE, or nil if no such
 revision exists."
-  (if file
-      (vc-jj--command-parseable file "log" "--no-graph" "--limit" "1"
-                                "-r" (concat "descendants(" rev ")")
-                                "-T" "change_id")
-    ;; Note: experimentally, jj (as of 0.35.0) prints children in LIFO
-    ;; order (newest child first), but we should not rely on that
-    ;; behavior and since none of the children of a change are
-    ;; special, we return an arbitrary one.
-    (car (vc-jj--process-lines nil "log" "--no-graph"
-                               "-r" (concat "children(" rev ")")
-                               "-T" "change_id ++ '\n'"))))
+  (let ((template (if (bound-and-true-p vc-use-short-revision)
+                      "self.change_id().shortest()"
+                    "self.change_id()")))
+    (if file
+        (vc-jj--command-parseable file "log" "--no-graph" "--limit" "1"
+                                  "-r" (concat "descendants(" rev ")")
+                                  "-T" template)
+      ;; Note: experimentally, jj (as of 0.35.0) prints children in
+      ;; LIFO order (newest child first), but we should not rely on
+      ;; that behavior and since none of the children of a change are
+      ;; special, we return an arbitrary one.
+      (vc-jj--command-parseable nil "log" "--no-graph" "--limit" "1"
+                                "-r" (concat "children(" rev ")")
+                                "-T" template))))
 
 ;;;; log-edit-mode
 

@@ -658,10 +658,10 @@ We check that we get the revision where a given file was added."
 
 ;;;; Annotation tests
 
-(ert-deftest vc-jj-test-annotate ()
-  "Test `vc-annotate'."
+(ert-deftest vc-jj-test-annotate-command ()
+  "Test the output of `vc-jj-annotate-command'."
   (vc-jj-test--with-repo repo
-    (let (change-1 change-2 readme-buffer annotation-buffer)
+    (let (change-1 change-2 annotation-buffer)
       ;; Create two changes, make sure that the change ids in the
       ;; annotation buffer match.  This test is supposed to detect
       ;; changes in the output format of "jj annotate"
@@ -673,18 +673,21 @@ We check that we get the revision where a given file was added."
             (write-region "Line 2\n" nil "README" t)
             (shell-command "jj describe -m 'Second change'")
             (setq change-2 (vc-jj-working-revision "README"))
-            (find-file "README")
-            (setq readme-buffer (current-buffer))
-            (vc-annotate "README" change-2)
-            (let ((annotation-process (get-buffer-process (current-buffer))))
+            ;; Use a plain buffer and call `vc-jj-annotate-command'
+            ;; directly rather than going through `vc-annotate', which
+            ;; has display machinery that doesn't work in Emacs
+            ;; without an interactive display (e.g., "emacs --batch"
+            ;; and eldev)
+            (setq annotation-buffer (generate-new-buffer " *vc-jj-test-annotate-command*"))
+            (vc-jj-annotate-command "README" annotation-buffer change-2)
+            (let ((annotation-process (get-buffer-process annotation-buffer)))
               (while (process-live-p annotation-process)
                 (accept-process-output annotation-process)))
-            (setq annotation-buffer (current-buffer))
-            (goto-char (point-min))
-            (should (string-prefix-p (thing-at-point 'word) change-1))
-            (forward-line)
-            (should (string-prefix-p (thing-at-point 'word) change-2)))
-        (when (buffer-live-p readme-buffer) (kill-buffer readme-buffer))
+            (with-current-buffer annotation-buffer
+              (goto-char (point-min))
+              (should (string-prefix-p (thing-at-point 'word) change-1))
+              (forward-line)
+              (should (string-prefix-p (thing-at-point 'word) change-2))))
         (when (buffer-live-p annotation-buffer) (kill-buffer annotation-buffer))))))
 
 (provide 'vc-jj-tests)

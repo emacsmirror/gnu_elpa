@@ -1,0 +1,5 @@
+;;; Eldev --- Eldev configuration -*- mode: emacs-lisp; lexical-binding: t; -*-
+
+(setq eldev-build-treat-warnings-as-errors t)
+
+;;; Eldev ends here

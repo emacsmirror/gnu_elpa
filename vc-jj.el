@@ -241,6 +241,33 @@ repository root (e.g., via `let') before calling this function.
 `default-directory'.)"
   (format "root:%S" (file-relative-name filename default-directory)))
 
+(defun vc-jj--call (infile buffer &rest args)
+  "Run jj with ARGS, sending the result to BUFFER.
+INFILE and BUFFER are as described in `process-file'.  Return the
+process exit status.
+
+The value of `vc-jj-global-switches' is prepended to ARGS.
+
+The process runs in `default-directory'.  The caller is responsible for
+setting it to the repository root before calling this function.  When
+`default-directory' is a remote path, `process-file' will invoke the
+appropriate file name handler (e.g., TRAMP), so this function works
+correctly with remote repositories.
+
+This function is the subroutine underlying all non-user-facing vc-jj
+process functions, that is, all functions that do not involve calling
+`vc-do-command'."
+  ;; This function is based on `vc-git--call'
+  (let (;; Enable `inhibit-null-byte-detection', otherwise Tramp's EOL
+        ;; conversion might get confused
+        (inhibit-null-byte-detection t)
+        (coding-system-for-read (or coding-system-for-read 'utf-8))
+        (coding-system-for-write (or coding-system-for-write 'utf-8)))
+    ;; `process-file' works with remote paths (via TRAMP file
+    ;; handlers), whereas `call-process' is not
+    (apply #'process-file vc-jj-program infile buffer nil
+           (append vc-jj-global-switches args))))
+
 (defun vc-jj--process-lines (file-or-list &rest args)
   "Run jj with FILE-OR-LIST and ARGS, returning stdout as a list of strings.
 Return the process's stdout as a list of strings, one string for every
@@ -258,25 +285,28 @@ files.  The process is run in the repository root the first file belongs
 in.  These file names are converted to jj fileset expressions and
 appended to ARGS.  If the caller would like to pass a raw file or list
 of files not converted to a jj fileset, they should be included in ARGS."
-  (with-temp-buffer
-    (let* ((root (and file-or-list (vc-jj-root (car (ensure-list file-or-list)))))
-           (default-directory (or root default-directory))
-           (fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
-           (status (apply #'process-file vc-jj-program nil
-                          (list (current-buffer) nil) nil
-                          (append args fileset))))
-      (unless (eq status 0)
-        (error "'jj' exited with status %s" status))
+  (let* ((files (ensure-list file-or-list))
+         (root (and files (vc-jj-root (car files))))
+         (default-directory (or root default-directory))
+         (filesets (mapcar #'vc-jj--filename-to-fileset files))
+         status lines)
+    (with-temp-buffer
+      (setq status (apply #'vc-jj--call nil '(t nil)
+                          (append args filesets)))
+      (unless (zerop status)
+        (error "Vc-jj: 'jj' exited with status %s" status))
+      ;; REVIEW 2026-04-06: Does the comment below still hold?
+      ;;
+      ;; Strip ANSI escape sequences: even with the "--color never" jj
+      ;; option, TRAMP connections have been observed to introduce
+      ;; spurious sequences.
       (ansi-color-filter-region (point-min) (point-max))
       (goto-char (point-min))
-      (let (lines)
-        (while (not (eobp))
-          (setq lines (cons (buffer-substring-no-properties
-                             (line-beginning-position)
-                             (line-end-position))
-                            lines))
-          (forward-line 1))
-        (nreverse lines)))))
+      (while (not (eobp))
+        (push (buffer-substring-no-properties (pos-bol) (pos-eol))
+              lines)
+        (forward-line 1)))
+    (nreverse lines)))
 
 (defun vc-jj--command-parseable (file-or-list &rest args)
   "Run jj with FILE-OR-LIST and ARGS, returning stdout as a string.
@@ -294,17 +324,19 @@ files.  The process is run in the repository root the first file belongs
 in.  These file names are converted to jj fileset expressions and
 appended to ARGS.  If the caller would like to pass a raw file or list
 of files not converted to a jj fileset, they should be included in ARGS."
-  (with-temp-buffer
-    (let* ((root (and file-or-list (vc-jj-root (car (ensure-list file-or-list)))))
-           (default-directory (or root default-directory))
-           (fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
-           (status (apply #'process-file vc-jj-program nil
-                          (list (current-buffer) nil) nil
-                          (append args fileset))))
-      (unless (eq status 0)
-	(error "'jj' exited with status %s" status))
+  (let* ((files (ensure-list file-or-list))
+         (root (and files (vc-jj-root (car files))))
+         (default-directory (or root default-directory))
+         (filesets (mapcar #'vc-jj--filename-to-fileset files))
+         status output)
+    (with-temp-buffer
+      (setq status (apply #'vc-jj--call nil '(t nil)
+                          (append args filesets)))
+      (unless (zerop status)
+        (error "Vc-jj: 'jj' exited with status %s" status))
       (ansi-color-filter-region (point-min) (point-max))
-      (buffer-substring-no-properties (point-min) (point-max)))))
+      (setq output (buffer-substring-no-properties (point-min) (point-max))))
+    output))
 
 (defun vc-jj--command-dispatched (buffer okstatus file-or-list &rest args)
   "A wrapper around `vc-do-command' for use in vc-jj.
@@ -329,14 +361,17 @@ files.  The process is run in the repository root the first file belongs
 in.  These file names are converted to jj fileset expressions and
 appended to ARGS.  If the caller would like to pass a raw file or list
 of files not converted to a jj fileset, they should be included in ARGS."
-  (let* ((root (and file-or-list (vc-jj-root (car (ensure-list file-or-list)))))
+  (let* ((coding-system-for-read (or coding-system-for-read 'utf-8))
+         (coding-system-for-write (or coding-system-for-write 'utf-8))
+         (files (ensure-list file-or-list))
+         (root (and files (vc-jj-root (car files))))
          (default-directory (or root default-directory))
-         (fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))
+         (filesets (mapcar #'vc-jj--filename-to-fileset files))
          (global-switches (ensure-list vc-jj-global-switches)))
     ;; We pass our prepared fileset to jj directly rather than to
     ;; `vc-do-command', which would pass raw file names to jj
     (apply #'vc-do-command (or buffer "*vc*") okstatus vc-jj-program nil
-           (append global-switches args fileset))))
+           (append global-switches args filesets))))
 
 ;;; BACKEND PROPERTIES
 

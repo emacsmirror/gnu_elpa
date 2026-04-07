@@ -4,6 +4,7 @@
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
 ;; Keywords:
+;; Package-Requires: ((external-completion "0.1"))
 ;; Version: 0
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -90,6 +91,16 @@
 
 ;;; Code:
 
+(require 'external-completion)
+
+(defmacro related-file--until (cond &rest body)
+  (declare (debug t) (indent 1))
+  (let ((res (gensym "res")))
+    `(let ((,res))
+       (while (not (setq ,res ,cond))
+         ,@body)
+       ,res)))
+
 (defun related-file--split-fhint (shint &optional point)
   (cl-assert (not (string-match "/" shint)))
   (if (and point (<= 0 point (length shint)))
@@ -133,6 +144,7 @@
     (nreverse res)))
 
 (defun related-file--parse-input (input point)
+  "Return (ANCHOR RELATED-PATTERN POST-PATTERN)."
   ;; Accept `/', `./', `~user/', and `../../' as specifying a start directory.
   (let* ((anchor
           (when (or (string-match "\\`\\(?:\\./\\|~[^/]*/\\|\\(?:\\.\\./\\)+\\)"
@@ -168,7 +180,7 @@ If DIR-ONLY is non-nil, ignore non-directories."
   (if (null fhint)
       (if (and file (file-exists-p (file-name-concat dir file)))
           (list (list file file)))
-    (let ((re (mapconcat #'regexp-quote (remq '* fhint) ".*"))
+    (let ((re (mapconcat #'regexp-quote (remq 'point (remq '* fhint)) ".*"))
           (names ()))
       (dolist (candidate (directory-files dir nil re))
         (unless (and dir-only (not (file-directory-p
@@ -178,7 +190,7 @@ If DIR-ONLY is non-nil, ignore non-directories."
                            (bc 0)
                            (bf 0))
             (let (wild)
-              (while (eq '* (car hints))
+              (while (memq (car hints) '(* point))
                 (setq hints (cdr hints))
                 (setq wild t))
               (if (null hints)
@@ -233,7 +245,7 @@ If DIR-ONLY is non-nil, ignore non-directories."
                                           (cdr match)
                                         (append (cdr match) '("/") submatch)))
                                     (if (null dhints)
-                                        (cons nil submatches)
+                                        (append submatches (list nil))
                                       submatches))))
                         matches)))
             (setq res (nconc res rest))
@@ -249,58 +261,79 @@ If DIR-ONLY is non-nil, ignore non-directories."
             file))
       (delete-dups res))))
 
-(defun related-file (input basename)
+(defun related-file (input basename &optional point)
   (setq basename (expand-file-name basename))
-  (let* ((dirf (directory-file-name basename))
-         (dir  (if (equal dirf basename) (file-name-directory dirf) basename))
-         (basename (if (equal dirf basename) (list (file-name-nondirectory dirf))))
-         ;; Usually we try to look for matches starting from PWD, then from
-         ;; its parent, then its parent's parent, etc... except when
-         ;; INPUT is an absolute basename name or starts with "./" or "../",
-         ;; in which case we search only from a single directory:
-         ;; If INPUT is of the form "./foo/bar", then don't look
-         ;; up in the parent directories.  If it's absolute, then
-         ;; start searching directly from the root.  And if it's starts
-         ;; with "../../" then look only from the parent's parent.
-         (anchor
-          (cond ((string-match-p "\\`\\./" input)
-                 (setq input (substring input (match-end 0)))
-                 dir)
-                ((file-name-absolute-p input)
-                 (if (string-match "/" input)
-                     (prog1 (substring input 0 (match-end 0))
-                       (setq input (substring input (match-end 0))))
-                   (error "Don't know how to deal with this absolute name: %S"
-                          input)))
-                ((string-match "\\`\\(\\.\\./\\)+" input)
-                 (prog1 (expand-file-name (substring input 0 (match-end 0))
-                                          dir)
-                   (setq input (substring input (match-end 0)))))))
-         (dhint (related-file--split-dhint input (length input)))
-         res)
-    (while
+  (pcase-let*
+      ((dirf (directory-file-name basename))
+       (dir  (if (equal dirf basename) (file-name-directory dirf) basename))
+       (basename (if (equal dirf basename)
+                     (list (file-name-nondirectory dirf))))
+       ;; FIXME: Make use of TAIL!
+       (`(,anchor ,dhint ,tail)
+        (related-file--parse-input input (or point -1))))
+    (related-file--until
         (let ((matches
                (and (or (null anchor)
                         (and (equal dir anchor) (setq anchor 'done)))
                     (related-file--in-subdirs dir basename dhint))))
           (if matches
-              (progn
-                (setq res (cons dir matches))
-                ;; Stop the search.
-                nil)
+              (cons dir matches)
             (let* ((dirf (directory-file-name dir))
                    (newdir (file-name-directory dirf)))
               (if (not (and newdir (< (length newdir) (length dir))))
                   ;; In case we didn't pass by the anchor, force-feed it.
                   ;; E.g. This can happen if BASENAME started as "a:/foo/bar"
                   ;; and INPUT was "b:/baz".
-                  (and (stringp anchor)
-                       (setq dir anchor)
-                       t)
+                  (if (stringp anchor)
+                      (progn (setq dir anchor) nil)
+                    t)
                 (push (file-name-nondirectory dirf) basename)
                 (setq dir newdir)
-                t)))))
-    res))
+                nil)))))))
+
+(defvar related-file--read-history nil)
+
+(defun related-file--to-string (dir match)
+  (concat dir (mapconcat (lambda (x)
+                           (cond
+                            ((stringp x) x)
+                            ((symbolp x)
+                             (propertize (symbol-name x)
+                                         'face 'completions-common-part))
+                            (t x)))
+                         match)))
+
+(defun related-file--pch (basename predicate)
+  (lambda ()
+    ;; FIXME
+    ))
+
+(defun related-file--completion-table (basename predicate)
+  (external-completion-table
+   'related-file
+   (lambda (input point)
+     (let ((matches (related-file input basename point)))
+       (if (not (consp matches))
+           t
+         (let ((dir (car matches)))
+           (mapcar (lambda (match) (related-file--to-string nil match))
+                   (cdr matches))))))))
+
+;;;###autoload
+(defun read-related-file-name (prompt
+                               &optional basename mustmatch initial predicate)
+  (unless basename (setq basename (or buffer-file-name default-directory)))
+  (minibuffer-with-setup-hook
+      (lambda ()
+        (add-hook 'post-command-hook (related-file--pch basename predicate)
+                  nil t))
+    (let* ((res (completing-read prompt
+                                 (related-file--completion-table
+                                  basename predicate)
+                                 nil mustmatch initial
+                                 'related-file--read-history))
+           (matches (related-file res basename)))
+      (related-file--to-string (car matches) (cadr matches)))))
 
 (provide 'related-file)
 ;;; related-file.el ends here

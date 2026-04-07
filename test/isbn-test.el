@@ -5,6 +5,9 @@
 (require 'ert)
 (require 'isbn)
 
+;; To prevent spamming servers, cache the ranges for testing.
+(isbn-hyphenation-ranges-update :nofile)
+
 ;;;; Core
 
 (ert-deftest isbn-test:list->string ()
@@ -50,12 +53,12 @@
   "Test `isbn-valid-p'."
 
   ;; ISBN-10
-  (should (eq (isbn-valid-p "0983159289") t))   ; valid
-  (should (eq (isbn-valid-p "0983159280") nil)) ; invalid
+  (should     (isbn-valid-p "0983159289")) ; valid
+  (should-not (isbn-valid-p "0983159280")) ; invalid
 
   ;; ISBN-13
-  (should (eq (isbn-valid-p "9780983159285") t))    ; valid
-  (should (eq (isbn-valid-p "9780983159280") nil))) ; invalid
+  (should     (isbn-valid-p "9780983159285"))      ; valid
+  (should-not (isbn-valid-p "9780983159280")))     ; invalid
 
 ;;; isbn-test.el ends here
 

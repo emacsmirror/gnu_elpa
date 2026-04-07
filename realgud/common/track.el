@@ -625,7 +625,7 @@ Otherwise return nil. CMD-MARK is set in the realgud-loc object created.
 	     (found-loc nil)
 	     (loc-or-error
 	      (realgud:file-loc-from-line
-	       filename lineno
+	       filename lineno column
 	       cmd-mark
 	       source-str
 	       (string-to-number bp-num)

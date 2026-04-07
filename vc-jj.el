@@ -243,23 +243,21 @@ repository root (e.g., via `let') before calling this function.
 
 (defun vc-jj--process-lines (file-or-list &rest args)
   "Run jj with FILE-OR-LIST and ARGS, returning stdout as a list of strings.
-Return the process\\='s stdout as a list of strings, one string for
-every line in stdout, with ANSI escape sequences removed from each
-string.  An error is signaled if jj exits with a non-zero status.
+Return the process's stdout as a list of strings, one string for every
+line in stdout, with ANSI escape sequences removed from each string.  An
+error is signaled if jj exits with a non-zero status.
 
 All stderr is discarded (since jj prints warnings to stderr even when
-run with '--quiet').  As a result, the returned strings are safe for
-parsing.
+run with \"--quiet\" option).  As a result, the returned strings are
+safe for parsing.
 
-Unlike `vc-jj--command-dispatched', this function is synchronous and
-does not report on the status of the process.
-
-FILE-OR-LIST may be a file, a list of files, or nil.  When non-nil, the
-file names are converted to Jujutsu fileset expressions and appended to
-ARGS.  If the caller would like to pass a raw file or list of files not
-converted to a jj fileset, they should be included in ARGS.
-
-See also `vc-jj--command-parseable' and `vc-jj--command-dispatched.'"
+FILE-OR-LIST may be nil or non-nil.  When nil, the process is run in
+`default-directory' and jj operates on whatever its default scope is for
+the given subcommand.  When non-nil, it should be a file or a list of
+files.  The process is run in the repository root the first file belongs
+in.  These file names are converted to jj fileset expressions and
+appended to ARGS.  If the caller would like to pass a raw file or list
+of files not converted to a jj fileset, they should be included in ARGS."
   (with-temp-buffer
     (let* ((root (and file-or-list (vc-jj-root (car (ensure-list file-or-list)))))
            (default-directory (or root default-directory))
@@ -281,23 +279,21 @@ See also `vc-jj--command-parseable' and `vc-jj--command-dispatched.'"
         (nreverse lines)))))
 
 (defun vc-jj--command-parseable (file-or-list &rest args)
-  "Call jj with FILE-OR-LIST and ARGS, returning stdout as a string.
-Return is the process\\='s stdout with ANSI escape sequences removed.
-An error is signaled if jj exits with a non-zero status.
+  "Run jj with FILE-OR-LIST and ARGS, returning stdout as a string.
+Return the process's stdout with ANSI escape sequences removed.  An
+error is signaled if jj exits with a non-zero status.
 
 All stderr is discarded (since jj prints warnings to stderr even when
-run with '--quiet').  As a result, the returned string is safe for
-parsing.
+run with the \"--quiet\" option).  As a result, the returned string is
+safe for parsing.
 
-Unlike `vc-jj--command-dispatched', this function is synchronous and
-does not report on the status of the process.
-
-FILE-OR-LIST may be a file, a list of files, or nil.  When non-nil, the
-file names are converted to Jujutsu fileset expressions and appended to
-ARGS.  If the caller would like to pass a raw file or list of files not
-converted to a jj fileset, they should be included in ARGS.
-
-See also `vc-jj--process-lines'."
+FILE-OR-LIST may be nil or non-nil.  When nil, the process is run in
+`default-directory' and jj operates on whatever its default scope is for
+the given subcommand.  When non-nil, it should be a file or a list of
+files.  The process is run in the repository root the first file belongs
+in.  These file names are converted to jj fileset expressions and
+appended to ARGS.  If the caller would like to pass a raw file or list
+of files not converted to a jj fileset, they should be included in ARGS."
   (with-temp-buffer
     (let* ((root (and file-or-list (vc-jj-root (car (ensure-list file-or-list)))))
            (default-directory (or root default-directory))
@@ -311,25 +307,28 @@ See also `vc-jj--process-lines'."
       (buffer-substring-no-properties (point-min) (point-max)))))
 
 (defun vc-jj--command-dispatched (buffer okstatus file-or-list &rest args)
-  "Run `vc-jj-program' with ARGS.
-The meaning of BUFFER, OKSTATUS, and ARGS is the same as in
-`vc-do-command'; see its documentation for details.  All stderr output
-from the process is discarded so that the returned string is safe for
-parsing.
+  "A wrapper around `vc-do-command' for use in vc-jj.
+Run jj with ARGS and FILE-OR-LIST, with stdout and stderr both sent to
+BUFFER.  The meaning of BUFFER, OKSTATUS, and ARGS is the same as in
+`vc-do-command'; see its docstring for details.
 
-If it is necessary to analyze or interpret jj\\='s output
-programmatically, use `vc-jj--command-parseable' or
-`vc-jj--process-lines' instead.  Those functions are separate from this
-one because jj may write warnings to stderr, and `vc-do-command' (which
-the this function uses and the above ones do not) does not distinguish
-stdout from stderr, making the output unsafe to process automatically.
+Return the process object for async calls and the exit status for
+synchronous calls.
 
-FILE-OR-LIST may be a file, a list of files, or nil.  When non-nil, the
-file names are converted to Jujutsu fileset expressions and appended to
-ARGS.  If the caller would like to pass a raw file or list of files not
-converted to a jj fileset, they should be included in ARGS.
+This function is used by user-facing commands such as `vc-push', hooking
+into VC machinery by means of `vc-do-command'.  If it is necessary to
+parse or interpret jj's output programmatically, use
+`vc-jj--command-parseable' or `vc-jj--process-lines' instead.  Those
+functions distinguish between stderr and stdout, unlike this one, making
+them more suitable for programmatic parsing.
 
-See also `vc-jj--command-parseable' and `vc-jj--process-lines'."
+FILE-OR-LIST may be nil or non-nil.  When nil, the process is run in
+`default-directory' and jj operates on whatever its default scope is for
+the given subcommand.  When non-nil, it should be a file or a list of
+files.  The process is run in the repository root the first file belongs
+in.  These file names are converted to jj fileset expressions and
+appended to ARGS.  If the caller would like to pass a raw file or list
+of files not converted to a jj fileset, they should be included in ARGS."
   (let* ((root (and file-or-list (vc-jj-root (car (ensure-list file-or-list)))))
          (default-directory (or root default-directory))
          (fileset (mapcar #'vc-jj--filename-to-fileset (ensure-list file-or-list)))

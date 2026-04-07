@@ -69,7 +69,7 @@
 
 (require 'time-date)
 (require 'seq)
-(eval-when-compile (require 'subr-x))
+(eval-and-compile (require 'subr-x))
 
 (defgroup isbn nil
   "ISBN library for Emacs."

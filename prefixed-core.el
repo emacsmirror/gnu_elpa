@@ -1,6 +1,6 @@
 ;;; prefixed-core.el --- Rename core functions for a better structured namespace  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020  Free Software Foundation, Inc.
+;; Copyright (C) 2020-2026  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
 ;; Keywords:
@@ -38,7 +38,7 @@
 ;; this impossible goal.
 
 ;; Some of the expected benefits are:
-;; - Making some functionality more discoverable
+;; - Making some functionality more discoverable.
 ;; - Helping to write code using prefix-based completion.
 ;; - Better match the tradition followed in pretty much all programming
 ;;   languages (including Elisp, for non-core functions).
@@ -70,8 +70,8 @@
 
 ;;;;; File name handlers
 (defalias 'file-name-handler-find #'find-file-name-handler)
-(defvaralias 'file-name-handler-inhibit inhibit-file-name-handlers)
-(defvaralias 'file-name-handler-inhibit-operation inhibit-file-name-operation)
+(defvaralias 'file-name-handler-inhibit 'inhibit-file-name-handlers)
+(defvaralias 'file-name-handler-inhibit-operation 'inhibit-file-name-operation)
 
 ;;;; Files
 (defalias 'file-delete #'delete-file)

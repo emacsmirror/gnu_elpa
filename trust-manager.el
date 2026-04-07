@@ -40,7 +40,11 @@
   :group 'files)
 
 (defcustom trust-manager-trust-alist nil
-  "Alist mapping file/directory names to boolean trust values."
+  "Alist mapping file/directory names to boolean trust values.
+
+When `trust-manager-mode' is enabled, it marks file and directories that
+appear as keys in this alist as trusted or untrusted according to their
+associated values."
   :type '(alist :key-type file :value-type boolean))
 
 (defun trust-manager--set-file-trust (file trust)

@@ -67,7 +67,6 @@
 
 ;;; Code:
 
-(require 'time-date)
 (require 'seq)
 (eval-and-compile (require 'subr-x))
 
@@ -245,6 +244,7 @@ Optional argument NOFILE, if non-nil, prevents writing to
   "Update ranges cache if enough time has elapsed.
 The amount of time before updating is determined by
 `isbn-hyphenation-ranges-update-interval'."
+  (require 'time-date)
   (when (and isbn-hyphenation-ranges-update-interval
              (file-exists-p isbn-hyphenation-ranges-cache-file))
     (let ((time (with-temp-buffer

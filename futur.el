@@ -399,8 +399,7 @@ A futur has 3 possible states:
          ;; operations like blocking could be dangerous.
          (futur--funcall (cdr client) err val)
          (unless (eq :unwind (car client)) (setq real-client t)))
-       ;; Emit a message for return values and errors which aren't
-       ;; passed anywhere.
+       ;; Don't silently drop errors and return values.
        (cond
         (real-client nil)   ;The delivered value was used by a client.
         ;; If VAL is nil, don't check if it's used, so we can use

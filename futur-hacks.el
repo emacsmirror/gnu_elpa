@@ -83,12 +83,11 @@ current buffer state and calls REPORT-FN when done."
                     (expand-file-name
                      "elisp-flymake-byte-compile"
                      (futur-elisp-sandbox-temp-dir))))
-        (source-buffer (current-buffer))
-        (coding-system-for-write 'utf-8-unix)
-        (coding-system-for-read 'utf-8))
+        (source-buffer (current-buffer)))
     (save-restriction
       (widen)
-      (write-region (point-min) (point-max) temp-file nil 'nomessage))
+      (let ((coding-system-for-write 'emacs-internal))
+        (write-region (point-min) (point-max) temp-file nil 'nomessage)))
     ;; In the original code, the `expand-file-name' is done "implicitly"
     ;; by the processing of the `-L' command line argument.
     (let* ((loadpath (mapcar #'expand-file-name

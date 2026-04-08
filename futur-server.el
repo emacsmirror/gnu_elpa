@@ -213,10 +213,11 @@ Does not pay attention to buffer-local values of variables."
   ;; going to a dummy temp buffer.
   (unless snapshot (error "Can't use nil as obarray"))
   (with-temp-buffer
-    ;; FIXME: Really ugly hack to temporarily work around bug#80538.
-    (unintern "pcomplete-ignore-case" obarray)
-    (unintern "url-bug-address" obarray)
-    (unintern "executable-binary-suffixes" obarray)
+    (when (< emacs-major-version 31)
+      ;; FIXME: Really ugly hack to temporarily work around bug#80538.
+      (unintern "pcomplete-ignore-case" obarray)
+      (unintern "url-bug-address" obarray)
+      (unintern "executable-binary-suffixes" obarray))
     ;; We map only over `obarray', which takes care of all the symbols
     ;; present in `obarray', some of which are also in `snapshot'.
     ;; Strictly speaking, we should also map over `snapshot' to handle
@@ -238,7 +239,8 @@ Does not pay attention to buffer-local values of variables."
              (unless (eq (symbol-function sym) (symbol-function ss))
                (setf (symbol-function sym) (symbol-function ss)))
              (let ((plist (symbol-plist ss)))
-               (setf (symbol-plist sym) plist)
+               ;; Copy symbols' plist because `put' mutates them.  :-(
+               (setf (symbol-plist sym) (copy-sequence plist))
                (let ((generic-extra (plist-get plist 'futur--cl-generic)))
                  (when generic-extra
                    (let ((generic (plist-get plist 'cl--generic)))
@@ -247,11 +249,26 @@ Does not pay attention to buffer-local values of variables."
                      (setf (cl--generic-dispatches generic)
                            (cdr generic-extra))))))
              ;; FIXME: Do we need to do something special for var-aliases?
-             (ignore-error setting-constant
-               (if (default-boundp ss)
-                   (setf (default-value sym) (default-value ss))
-                 (when (default-boundp sym)
-                   (unless (keywordp sym) (makunbound sym))))))))))))
+             (condition-case err
+                 (if (default-boundp ss)
+                     ;; FIXME: Test (eq (default-value sym) (default-value ss))?
+                     (setf (default-value sym) (default-value ss))
+                   (when (default-boundp sym)
+                     (cl-assert (not (keywordp sym)))
+                     (unless (keywordp sym) (makunbound sym))))
+               (setting-constant nil)
+               (error
+                ;; Variable watchers might run and fail because of
+                ;; currently undefined functions and variables.
+                (message "While setting %S with watchers %S, error: %S"
+                         sym (get sym 'watchers) err)
+                (cl-letf (((get sym 'watchers) nil))
+                  (if (default-boundp ss)
+                      (setf (default-value sym) (default-value ss))
+                    (when (default-boundp sym)
+                      (cl-assert (not (keywordp sym)))
+                      (unless (keywordp sym) (makunbound sym)))))
+                )))))))))
 
 (defun futur--list-prefix-p (prefix other-list)
   (while (and (consp prefix) (consp other-list)

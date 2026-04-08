@@ -1301,6 +1301,36 @@ Use optional PREFIX and DEPTH to format the string accordingly."
       (t
        nil))))
 
+(defvar-local denote-sequence-dired--last-arguments nil
+  "The last `denote-sequence-dired' arguments.")
+
+(defun denote-sequence-dired--get-files (prefix depth)
+  "Return list of files for `denote-sequence-dired' given PREFIX and DEPTH."
+  (let* ((files (if (and prefix (not (string-blank-p prefix)))
+                    (denote-sequence-get-all-files-with-prefix prefix)
+                  (denote-sequence-get-all-files)))
+         (files-with-depth (if (and files depth)
+                               (denote-sequence-get-all-files-with-max-depth depth files)
+                             files))
+         (files-sorted (denote-sequence-sort-files files-with-depth))
+         (directory (denote-directories-get-common-root)))
+    (mapcar (lambda (file) (file-relative-name file directory)) files-sorted)))
+
+(defun denote-sequence-dired-revert (&rest _)
+  "Revert the current `denote-sequence-dired' buffer.
+This is used as the `revert-buffer-function' for `denote-sequence-dired'
+buffers.  It uses the values stored in the buffer-local variable
+`denote-sequence-dired--last-arguments'."
+  (pcase-let* ((`(,prefix ,depth) denote-sequence-dired--last-arguments)
+               (directory (denote-directories-get-common-root))
+               (matched-files (denote-sequence-dired--get-files prefix depth)))
+    (dlet ((ls-lisp-use-insert-directory-program (progn (require 'ls-lisp) nil)))
+      (if matched-files
+          (progn
+            (setq-local dired-directory (cons directory matched-files))
+            (dired-revert))
+        (denote-dired-empty-mode)))))
+
 ;;;###autoload
 (defun denote-sequence-dired (&optional prefix depth)
   "Produce a Dired listing of all sequence notes.
@@ -1311,40 +1341,24 @@ With optional PREFIX string, show only files whose sequence matches it.
 With optional DEPTH as a number, limit the list to files whose sequence
 is that many levels deep.  For example, 1=1=2 is three levels deep.
 
-For a more specialised case, see `denote-sequence-find-relatives-dired'."
+For a more specialised case, see `denote-sequence-find-relatives-dired'.
+
+[ Note: The `denote-sequence-dired' is a variation of the more general
+  command `denote-dired'.  ]"
   (interactive (denote-sequence--get-interactive-for-prefix-and-depth))
-  (let* ((roots (denote-directories))
-         (single-dir-p (null (cdr roots)))
-         (files-fn (lambda ()
-                     (let* ((files (if (and prefix (not (string-blank-p prefix)))
-                                       (denote-sequence-get-all-files-with-prefix prefix)
-                                     (denote-sequence-get-all-files)))
-                            (files-with-depth (if depth
-                                                  (denote-sequence-get-all-files-with-max-depth depth files)
-                                                files))
-                            (files-sorted (denote-sequence-sort-files files-with-depth)))
-                       (if single-dir-p
-                           (mapcar #'file-relative-name files-sorted)
-                         files-sorted)))))
+  (let* ((directory (denote-directories-get-common-root))
+         (matched-files (denote-sequence-dired--get-files prefix depth))
+         (buffer-name (denote-format-buffer-name
+                       (format-message "prefix `%s'; depth `%s'" (or prefix "ALL") (or depth "ALL"))
+                       :is-special-buffer)))
     (dlet ((ls-lisp-use-insert-directory-program (progn (require 'ls-lisp) nil)))
-      (if-let* ((directory (if single-dir-p
-                               (car roots)
-                             (denote-directories-get-common-root)))
-                (files (funcall files-fn))
-                (buffer-name (denote-format-buffer-name
-                              (format-message "prefix `%s'; depth `%s'" (or prefix "ALL") (or depth "ALL"))
-                              :is-special-buffer))
-                (dired-buffer (dired (cons directory files))))
-          (with-current-buffer dired-buffer
-            (rename-buffer buffer-name :unique)
-            (setq-local revert-buffer-function
-                        (lambda (&rest _)
-                          (dlet ((ls-lisp-use-insert-directory-program (progn (require 'ls-lisp) nil)))
-                            (if-let* ((files (funcall files-fn)))
-                                (progn
-                                  (setq-local dired-directory (cons directory files))
-                                  (dired-revert))
-                              (denote-dired-empty-mode))))))
+      (if matched-files
+          (let ((buffer (dired (cons directory matched-files))))
+            (with-current-buffer buffer
+              (rename-buffer buffer-name :unique)
+              (setq-local denote-sequence-dired--last-arguments (list prefix depth))
+              (setq-local denote-sort-dired--last-files matched-files)
+              (setq-local revert-buffer-function #'denote-sequence-dired-revert)))
         (message "No matching files")))))
 
 ;;;###autoload

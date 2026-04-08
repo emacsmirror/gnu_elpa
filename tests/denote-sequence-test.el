@@ -450,6 +450,50 @@ function `denote-sequence-get-relative'."
   (should (null (dst-denote-sequence--keep-sibling-files-helper :greater "1z")))
   (should (null (dst-denote-sequence--keep-sibling-files-helper :lesser "1a"))))
 
+(ert-deftest dst-denote-sequence-dired--get-files ()
+  "Test that `denote-sequence-dired--get-files' returns files in the correct format."
+  (let ((denote-sequence-scheme 'numeric)
+        (denote-directory (expand-file-name "denote-sequence-test" temporary-file-directory))
+        (names '("20241230T075023==1--test__testing.txt"
+                 "20241230T075023==1=1--test__testing.txt"
+                 "20241230T075023==1=1=1--test__testing.txt"
+                 "20241230T075023==1=1=2--test__testing.txt"
+                 "20241230T075023==1=2--test__testing.txt"
+                 "20241230T075023==1=2=1--test__testing.txt"
+                 "20241230T075023==1=2=1=1--test__testing.txt"
+                 "20241230T075023==2--test__testing.txt"
+                 "20241230T075023==10--test__testing.txt"
+                 "20241230T075023==10=1--test__testing.txt"
+                 "20241230T075023==10=1=1--test__testing.txt"
+                 "20241230T075023==10=2--test__testing.txt"
+                 "20241230T075023==10=10--test__testing.txt"
+                 "20241230T075023==10=10=1--test__testing.txt")))
+    (dolist (name names)
+      (let ((path (expand-file-name name (car (denote-directories)))))
+        (if (file-exists-p path)
+            path
+          (with-current-buffer (find-file-noselect path)
+            (save-buffer)
+            (kill-buffer (current-buffer)))
+          path)))
+    (should-not (denote-sequence-dired--get-files "3" nil))
+    (should-not (denote-sequence-dired--get-files "3" 1))
+    (should (equal (denote-sequence-dired--get-files "1" 1) (list "20241230T075023==1--test__testing.txt")))
+    (should (equal (denote-sequence-dired--get-files "1" 2) (list "20241230T075023==1--test__testing.txt" "20241230T075023==1=1--test__testing.txt" "20241230T075023==1=2--test__testing.txt")))
+    (should
+     (equal
+      (denote-sequence-dired--get-files "1" nil)
+      (list "20241230T075023==1--test__testing.txt" "20241230T075023==1=1--test__testing.txt" "20241230T075023==1=1=1--test__testing.txt"
+            "20241230T075023==1=1=2--test__testing.txt" "20241230T075023==1=2--test__testing.txt" "20241230T075023==1=2=1--test__testing.txt"
+            "20241230T075023==1=2=1=1--test__testing.txt")))
+    (should
+     (equal
+      (denote-sequence-dired--get-files nil 2)
+      (list "20241230T075023==1--test__testing.txt" "20241230T075023==1=1--test__testing.txt" "20241230T075023==1=2--test__testing.txt"
+            "20241230T075023==2--test__testing.txt" "20241230T075023==10--test__testing.txt" "20241230T075023==10=1--test__testing.txt"
+            "20241230T075023==10=2--test__testing.txt" "20241230T075023==10=10--test__testing.txt")))
+    (should (equal (denote-sequence-dired--get-files nil nil) names))))
+
 (provide 'denote-sequence-test)
 ;;; denote-sequence-test.el ends here
 

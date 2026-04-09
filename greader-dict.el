@@ -166,7 +166,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 
 ;;; Code:
-(defvar greader--current-buffer)
+
+(require 'greader)
 
 (defgroup greader-dict nil
   "String substitution module for greader."
@@ -202,25 +203,29 @@
 ;; We use this variable to know if greader-dictionary is saved after
 ;; the last modification.
 (defvar-local greader-dict--saved-flag t)
-(defvar greader-dict-prefix-map (make-sparse-keymap)
-  "Keymap for `greader-dict' commands.")
-
-(defvar greader-dict-filters-prefix-map (make-sparse-keymap)
+(defvar greader-dict-filters-prefix-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "a" #'greader-dict-filter-add)
+    (define-key map "m" #'greader-dict-filter-modify)
+    (define-key map "k" #'greader-dict-filter-remove)
+    map)
   "Keymap for `greader-dict' filters commands.")
 
-(define-key greader-dict-prefix-map "i" #'greader-dict-info)
-(define-key greader-dict-prefix-map "a" #'greader-dict-add-entry)
-(define-key greader-dict-prefix-map "k" #'greader-dict-remove-entry)
-(define-key greader-dict-prefix-map "c" #'greader-dict-change-dictionary)
-(define-key greader-dict-prefix-map "l" #'greader-dict-pronounce-in-other-language)
-(define-key greader-dict-prefix-map "m" #'greader-dict-modify-key)
-(define-key greader-dict-prefix-map "s" #'greader-dict-save)
-(define-key greader-dict-prefix-map "M" #'greader-dict-merge-dictionary)
-(define-key greader-dict-prefix-map "f" greader-dict-filters-prefix-map)
+(defvar greader-dict-prefix-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "i" #'greader-dict-info)
+    (define-key map "a" #'greader-dict-add-entry)
+    (define-key map "k" #'greader-dict-remove-entry)
+    (define-key map "c" #'greader-dict-change-dictionary)
+    (define-key map "l" #'greader-dict-pronounce-in-other-language)
+    (define-key map "m" #'greader-dict-modify-key)
+    (define-key map "s" #'greader-dict-save)
+    (define-key map "M" #'greader-dict-merge-dictionary)
+    (define-key map "f" greader-dict-filters-prefix-map)
+    map)
+  "Keymap for `greader-dict' commands.")
 
-(define-key greader-dict-filters-prefix-map "a" #'greader-dict-filter-add)
-(define-key greader-dict-filters-prefix-map "m" #'greader-dict-filter-modify)
-(define-key greader-dict-filters-prefix-map "k" #'greader-dict-filter-remove)
+(define-key greader-prefix-keymap "d" greader-dict-prefix-map)
 
 (defvar greader-dict--type-file-alternatives '(buffer mode global))
 

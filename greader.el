@@ -44,7 +44,6 @@
 ;;; Code:
 (require 'seq)
 (require 'view)
-(defvar greader-dict-prefix-map)
 (defvar greader-dict-mode)
 (defvar greader-dict-filters-mode)
 (declare-function greader-dict--update nil)
@@ -295,8 +294,6 @@ if set to t, when you call function `greader-read', that function sets a
     (define-key map (kbd "<right>")   #'greader-forward)
     map))
 
-(eval-after-load 'greader-dict
-  '(define-key greader-prefix-keymap "d" greader-dict-prefix-map))
 (defvar greader-queue-mode)
 ;;;###autoload
 (define-minor-mode greader-mode

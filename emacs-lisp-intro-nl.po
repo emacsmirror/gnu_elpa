@@ -2939,14 +2939,14 @@ msgstr "Jouw @file{.emacs} bestand"
 #. type: menuentry
 #: emacs-lisp-intro.texi:689 emacs-lisp-intro.texi:16399
 msgid "Default Configuration::"
-msgstr "Default configuratie::"
+msgstr "Standaard configuratie::"
 
 #. type: node
 #: emacs-lisp-intro.texi:689 emacs-lisp-intro.texi:16399
 #: emacs-lisp-intro.texi:16448
 #, no-wrap
 msgid "Site-wide Init"
-msgstr "Site-wide init"
+msgstr "Systeem-brede init"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:689 emacs-lisp-intro.texi:16399
@@ -34038,19 +34038,19 @@ msgstr "Schrijf een lijngrafiek versie van de grafiek tonende functies."
 #: emacs-lisp-intro.texi:16371
 #, no-wrap
 msgid "@file{.emacs} file"
-msgstr ""
+msgstr "@file{.emacs} bestand"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16372
 #, no-wrap
 msgid "Customizing your @file{.emacs} file"
-msgstr ""
+msgstr "Je @file{.emacs} aanpassen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16373
 #, no-wrap
 msgid "Initialization file"
-msgstr ""
+msgstr "Initialisatie bestand"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16379
@@ -34059,6 +34059,10 @@ msgid ""
 "statement is the secret of GNU Emacs.  The plain, out-of-the-box Emacs is a "
 "generic tool.  Most people who use it customize it to suit themselves."
 msgstr ""
+"```Je hoeft Emacs niet leuk te vinden om het leuk te "
+"vinden'''---deze schijnbaar paradoxale uitspraak is het geheim van "
+"GNU Emacs. De gewone, out-of-the-box Emacs is een generieke tool. De "
+"meeste mensen die het gebruiken passen het aan naar hun eigen keuze."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16382
@@ -34066,18 +34070,21 @@ msgid ""
 "GNU Emacs is mostly written in Emacs Lisp; this means that by writing "
 "expressions in Emacs Lisp you can change or extend Emacs."
 msgstr ""
+"GNU Emacs is voornamelijk geschreven in Emacs Lisp. Dit betekent dat "
+"je door het schrijven van expressies in Emacs Lisp Emacs kan "
+"veranderen en uitbreiden."
 
 #. type: node
 #: emacs-lisp-intro.texi:16402
 #, no-wrap
 msgid "Default Configuration"
-msgstr "Default configuratie"
+msgstr "Standaard configuratie"
 
 #. type: unnumberedsec
 #: emacs-lisp-intro.texi:16403
 #, no-wrap
 msgid "Emacs's Default Configuration"
-msgstr ""
+msgstr "Emacs standaard configuratie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16416
@@ -34092,6 +34099,17 @@ msgid ""
 "syntaxes that enable them to share or nearly share features, so C mode is "
 "now provided by CC mode, the C Collection.)"
 msgstr ""
+"Er zijn mensen die de Emacs standaard configuratie waarderen. Emacs "
+"start tenslotte in C mode wanneer je een C-bestand edit, start in "
+"Fortran mode wanneer je een Fortran-bestand edit en start in "
+"Fundamental mode wanneer je een platte tekst bestand edit. Dit is "
+"allemaal logisch wanneer je niet weet wie Emacs gaat gebruiken. Wie "
+"weet wat iemand hoopt te doen met een platte tekst bestand? De "
+"Fundamental mode is de juiste stndaard voor zo'n bestand, net als C "
+"mode de juiste standaard is voor het editten van C code. (Genoeg "
+"programmeertalen hebben een syntax die het mogelijk maakt "
+"eigenschappen te delen of bijna te delen, waardoor C mode nu door CC "
+"mode wordt geleverd, de C Collectie.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16419
@@ -34099,6 +34117,8 @@ msgid ""
 "But when you do know who is going to use Emacs---you, yourself---then it "
 "makes sense to customize Emacs."
 msgstr ""
+"Maar wanneer je weet wie Emacs gaat gebruiken---jij, jezelf---dan is "
+"het logisch Emacs aan te passen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16423
@@ -34107,6 +34127,9 @@ msgid ""
 "undistinguished file; I want Text mode.  This is why I customize Emacs: so "
 "it suits me."
 msgstr ""
+"Ik gebruik bijvoorbeeld zelden Fundamental mode wanneer ik een "
+"platte tekst bestand edit, dan wil ik Text mode. Dat is waarom ik "
+"Emacs aanpas: zo past het goed bij me."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16432
@@ -34119,6 +34142,14 @@ msgid ""
 "requires, but now you may.  The new format is consistent with the Emacs Lisp "
 "file naming conventions; the old format saves typing.}"
 msgstr ""
+"Je kunt Emacs aanpassen en uitbreiden door een @file{~/.emacs} te "
+"maken of aan te passen. Dit is je persoonlijke initialisatiebestand. "
+"De inhoud, geschreven in Emacs Lisp, vertelt Emacs wat te "
+"doen.@footnote{Je kunt ook @file{.el} aan @file{~/.emacs} toevoegen "
+"en het @file{~/.emacs.el} noemen. In het verleden mocht je niet de "
+"extra toetsaanslagen typen die de bestandnaam @file{~/.emacs.el} "
+"vereist, maar nu mag dat. Het nieuwe formaat is consistent met de "
+"Emacs Lisp naamgeving conventies, het oude formaat spaart typen.}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16437
@@ -34128,6 +34159,10 @@ msgid ""
 "for you.  You can combine your own expressions and auto-written Customize "
 "expressions in your @file{.emacs} file."
 msgstr ""
+"Een @file{~/.emacs} bestand bevat Emacs Lisp code. Je kunt deze code zelf "
+"schrijven of je gebruikt de  @code{customize} eigenschap van Emacs en laat "
+"de code voor je schrijven. Je kunt je eigen expressies en de automatisch "
+"geschreven Customize expressies in je @file{.emacs} bestand combineren."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16441
@@ -34136,6 +34171,9 @@ msgid ""
 "fonts, that I find easier to manipulate using the @code{customize} command.  "
 "I combine the two methods.)"
 msgstr ""
+"(Ik geef er zelf voorkeur aan mijn eigen expressies te schrijven, "
+"behalve die makkelijker te manipuleren zijn met het @code{customize} "
+"commando, zoals fonts. Ik combineer de twee methoden.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16447
@@ -34145,30 +34183,35 @@ msgid ""
 "Init File, emacs, The GNU Emacs Manual}, and @ref{Init File, , The Init "
 "File, elisp, The GNU Emacs Lisp Reference Manual}."
 msgstr ""
+"Het grootste deel van dit hoofdstuk gaat over het zelf expressies "
+"schrijven. Het beschrijft een eenvoudig @file{.emacs} bestand, voor "
+"meer informatie zie @ref{Init File, , The Init File, emacs, The GNU "
+"Emacs Manual}, en @ref{Init File, , The Init File, elisp, The GNU "
+"Emacs Lisp Reference Manual}."
 
 #. type: section
 #: emacs-lisp-intro.texi:16449
 #, no-wrap
 msgid "Site-wide Initialization Files"
-msgstr ""
+msgstr "Systeembrede initialisatiebestanden"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16451
 #, no-wrap
 msgid "@file{default.el} init file"
-msgstr ""
+msgstr "@file{default.el} init bestand"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16452
 #, no-wrap
 msgid "@file{site-init.el} init file"
-msgstr ""
+msgstr "@file{site-init.el} init bestand"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16453
 #, no-wrap
 msgid "@file{site-load.el} init file"
-msgstr ""
+msgstr "@file{site-load.el} init bestand"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16458
@@ -34177,6 +34220,10 @@ msgid ""
 "various site-wide initialization files, if they exist.  These have the same "
 "form as your @file{.emacs} file, but are loaded by everyone."
 msgstr ""
+"Naast je persoonlijke initialisatiebestand laadt Emacs automatisch "
+"verschillende systeembrede initialisatiebestanden, als die bestaan. "
+"Deze hebben dezelfde vorm als je @file{.emacs} bestand, maar worden "
+"door iedereen geladen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16467
@@ -34189,6 +34236,15 @@ msgid ""
 "@xref{Building Emacs, , Building Emacs, elisp, The GNU Emacs Lisp Reference "
 "Manual}, and the @file{INSTALL} file.)"
 msgstr ""
+"Twee systeembrede initialisatiebestanden, @file{site-load.el} and "
+"@file{site-init.el}, worden in Emacs geleden en dan gedumpt wanneer "
+"een gedumpte versie van Emacs wordt gemaakt, wat het meest "
+"gebruikelijk is. (Gedumpte exemplaren van Emacs laden sneller. "
+"Wanneer echter een bestand is geladen en gedumpt, leidt een verandering er "
+"van niet tot een verandering in Emacs, tenzij je het zelf "
+"laadt en opnieuw Emacs dumpt. @xref{Building Emacs, , Building Emacs, "
+"elisp, The GNU Emacs Lisp Reference Manual}, en het @file{INSTALL} "
+"bestand.)."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16473
@@ -34199,6 +34255,12 @@ msgid ""
 "the terminal type file, which are both loaded @emph{after} your "
 "@file{.emacs} file."
 msgstr ""
+"Drie andere systeembrede initialisatiebestanden worden elke keer dat "
+"je Emacs start automatisch geladen, wanneer die bestaan. Dit zijn "
+"@file{site-start.el}, die @emph{voorafgaand} aan je @file{.emacs} "
+"bestand geladen wordt, en @file{default.el} en het terminal type "
+"bestand, die beide @emph{na} je @file{.emacs} bestand geladen "
+"worden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16481
@@ -34210,6 +34272,13 @@ msgid ""
 "interference from a terminal type file by setting @code{term-file-prefix} to "
 "@code{nil}.  @xref{Simple Extension, , A Simple Extension}.)"
 msgstr ""
+"De instellingen en definities in je @file{.emacs} bestand overschrijven "
+"conflicterende instellingen en definities in een @file{site-start.el} bestand, "
+"als die er is, maar de instellingen en definities in een @file{default.el} "
+"en een terminal type bestand overschrijven die in je @file{.emacs} bestand. "
+"(Je kunt interferenties tussen het terminal type bestand voorkomen door het "
+"instellen van @code{term-file-prefix} op @code{nil}. "
+"@xref{Eenvoudige uitbreiding, , Een eennvoudige uitbreiding})"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16485
@@ -34217,6 +34286,9 @@ msgid ""
 "The @file{INSTALL} file that comes in the distribution contains descriptions "
 "of the @file{site-init.el} and @file{site-load.el} files."
 msgstr ""
+"Het @file{INSTALL} bestand dat bij de distributie meekomt bevat "
+"beschrijvingen van de @file{site-init.el} en @file{site-load.el} "
+"bestanden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16489
@@ -34225,6 +34297,9 @@ msgid ""
 "control loading.  These files are in the @file{lisp} directory of the Emacs "
 "distribution and are worth perusing."
 msgstr ""
+"De  @file{loadup.el}, @file{startup.el} en @file{loaddefs.el} bestanden "
+"beheren het laden. Deze bestanden staan in de @file{lisp} directories "
+"van de Emacs distributie en zijn het waard om te bekijken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16493
@@ -34233,6 +34308,9 @@ msgid ""
 "put into your own @file{.emacs} file, or into a site-wide initialization "
 "file."
 msgstr ""
+"Het @file{loaddefs.el} bestand bevat veel goede suggesties over wat "
+"in je @file{.emacs} bestand te zetten, of in een systeembreed "
+"initialisatiebestand."
 
 #. type: section
 #: emacs-lisp-intro.texi:16495
@@ -34249,6 +34327,12 @@ msgid ""
 "@code{defuns} in your @file{.emacs} file.  Indeed, you can write any Lisp "
 "expression in your @file{.emacs} file.)"
 msgstr ""
+"Je kunt variabelen specificeren met @code{defcustom} waardoor jij en "
+"anderen de Emacs @code{customize} eigenschap kunnen gebruiken om hun "
+"waarden te zetten. (Je kunt @code{customize} niet gebruiken om "
+"functiedefinities te schrijven. Maar je kunt @code{defuns} in je "
+"@file{.emacs} bestand schrijven. Je kunt elke Lisp expressie in je "
+"@file{.emacs} bestand zetten.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16508
@@ -34257,6 +34341,10 @@ msgid ""
 "Although you can use @code{defvar} or @code{setq} for variables that users "
 "set, the @code{defcustom} macro is designed for the job."
 msgstr ""
+"De @code{customize} eigenschap hangt af van de @code{defcustom} "
+"macro. Hoewel je @code{defvar} en @code{setq} kunt gebruiken voor "
+"variabelen die gebruikers instellen, is de @code{defcustom} macro "
+"voor die taak gemaakt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16515
@@ -34267,6 +34355,12 @@ msgid ""
 "value, if any; and this value is set only if the value has not already been "
 "set.  The third argument is the documentation."
 msgstr ""
+"Je kunt je kennis van @code{defvar} gebruiken voor het schrijven van "
+"de eerste drie argumenten van @code{defcustom}. Het eerste argument "
+"van @code{defcustom} is de naam van de variabele. Het tweede "
+"argument is de initiële waarde van de variabele, als die er is, en "
+"deze waarde wordt alleen ingesteld als de variabele niet al is "
+"gezet. Het derde argument is de documentatie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16519
@@ -34275,6 +34369,9 @@ msgid ""
 "options; these are not featured in @code{defvar}.  (These arguments are "
 "optional.)"
 msgstr ""
+"Het vierde en volgende argument voor @code{defcustom} specificeren "
+"types en opties. Deze zijn niet opgenomen in @code{defvar}. (Deze "
+"argumenten zijn optioneel.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16522
@@ -34282,6 +34379,9 @@ msgid ""
 "Each of these arguments consists of a keyword followed by a value.  Each "
 "keyword starts with the colon character @samp{:}."
 msgstr ""
+"Elk van deze argumenten bestaan uit een sleutelwoord gevolgd door "
+"een waarde. Elk sleutelwoord start met een dubbelepunt karakter "
+"@samp{:}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16526
@@ -34289,6 +34389,8 @@ msgid ""
 "For example, the customizable user option variable @code{text-mode-hook} "
 "looks like this:"
 msgstr ""
+"De aanpasbare gebruikersoptie variabele @code{text-mode-hook} ziet er "
+"zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:16534
@@ -34300,6 +34402,11 @@ msgid ""
 "  :options '(turn-on-auto-fill flyspell-mode)\n"
 "  :group 'wp)\n"
 msgstr ""
+"(defcustom text-mode-hook nil\n"
+"  \"Normal hook run when entering Text mode and many related modes.\"\n"
+"  :type 'hook\n"
+"  :options '(turn-on-auto-fill flyspell-mode)\n"
+"  :group 'wp)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16540
@@ -34307,6 +34414,8 @@ msgid ""
 "The name of the variable is @code{text-mode-hook}; it has no default value; "
 "and its documentation string tells you what it does."
 msgstr ""
+"De naam van de variabele is @code{text-mode-hook}. Het heeft geen "
+"default waarde en de documentatiestring vertelt je wat het doet."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16544
@@ -34315,6 +34424,9 @@ msgid ""
 "mode-hook} should be set and how to display the value in a Customization "
 "buffer."
 msgstr ""
+"Het sleutelwoord @code{:type} vertelt Emacs de datasoort waarop de "
+"@code{text-mode-hook} kan worden gezet en hoe de waarde te tonen in "
+"het Customization buffer."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16551
@@ -34325,6 +34437,13 @@ msgid ""
 "to other values; the list shown following the @code{:options} keyword is "
 "intended to offer convenient choices to a user."
 msgstr ""
+"Het sleutelwoord @code{:options} specificeert een gesuggereerde "
+"lijst van waarden voor de variabele. Meestal worden @code{:options} "
+"toegepast op een hook. De lijst is alleen een suggestie en is niet "
+"exclusief, iemand die de variabele zet kan het op een andere waarde "
+"zetten. De lijst die volgend op het sleutelwoord @code{:options} "
+"getoond wordt is bedoeld om een makkelijke keuze voor de gebruiker "
+"te bieden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16555
@@ -34332,6 +34451,9 @@ msgid ""
 "Finally, the @code{:group} keyword tells the Emacs Customization command in "
 "which group the variable is located.  This tells where to find it."
 msgstr ""
+"Het sleutelwoord @code{:group} tenslotte vertelt het Emacs "
+"Customization commando in welke groep de variabele zich bevindt. Het "
+"vertelt waar het te vinden is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16559
@@ -34340,11 +34462,15 @@ msgid ""
 "information, see @ref{Customization, , Writing Customization Definitions, "
 "elisp, The GNU Emacs Lisp Reference Manual}."
 msgstr ""
+"De @code{defcustom} macro herkent meer dan een dozijn "
+"sleutelwoorden. Voor meer informatie, zie @ref{Customization, , "
+"Writing Customization Definitions, elisp, The GNU Emacs Lisp "
+"Reference Manual}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16561
 msgid "Consider @code{text-mode-hook} as an example."
-msgstr ""
+msgstr "Beschouw @code{text-mode-hook} als een voorbeeld."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16564
@@ -34352,17 +34478,20 @@ msgid ""
 "There are two ways to customize this variable.  You can use the "
 "customization command or write the appropriate expressions yourself."
 msgstr ""
+"Er zijn twee manieren om deze variabele aan te passen. Je kunt het "
+"customize commando gebruiken of je schrijft de betreffende "
+"expressies zelf."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16567
 msgid "Using the customization command, you can type:"
-msgstr ""
+msgstr "Om het customize commando te gebruiken, typ je:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:16570
 #, no-wrap
 msgid "M-x customize\n"
-msgstr ""
+msgstr "M-x customize\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16577
@@ -34372,12 +34501,17 @@ msgid ""
 "various options, such as @code{turn-on-auto-fill}, to set the values.  After "
 "you click on the button to"
 msgstr ""
+"en ontdek dat de groep voor het editten van tekstbestanden ``Text'' "
+"heet. Ga die groep in. Text Mode Hook is het eerste onderdeel. Je "
+"kunt op de verschillende opties klikken, zoals "
+"@code{turn-on-auto-fill}, om de waarden te zetten. Daarna klik je op "
+"de button en kies je"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:16580 emacs-lisp-intro.texi:16632
 #, no-wrap
 msgid "Save for Future Sessions\n"
-msgstr ""
+msgstr "Save for Future Sessions\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16585
@@ -34385,6 +34519,7 @@ msgid ""
 "Emacs will write an expression into your @file{.emacs} file.  It will look "
 "like this:"
 msgstr ""
+"Emacs schrijft een expressie in je @file{.emacs} bestand. Het ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:16594
@@ -34397,6 +34532,12 @@ msgid ""
 "  ;; If there is more than one, they won't work right.\n"
 " '(text-mode-hook '(turn-on-auto-fill text-mode-hook-identify)))\n"
 msgstr ""
+"(custom-set-variables\n"
+"  ;; custom-set-variables was added by Custom.\n"
+"  ;; If you edit it by hand, you could mess it up, so be careful.\n"
+"  ;; Your init file should contain only one such instance.\n"
+"  ;; If there is more than one, they won't work right.\n"
+" '(text-mode-hook '(turn-on-auto-fill text-mode-hook-identify)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16601
@@ -34404,6 +34545,8 @@ msgid ""
 "(The @code{text-mode-hook-identify} function tells @code{toggle-text-mode-"
 "auto-fill} which buffers are in Text mode.  It comes on automatically.)"
 msgstr ""
+"(De functie @code{text-mode-hook-identify} vertelt  @code{toggle-text-mode- "
+"auto-fill} welke buffers in Text mode zijn. Het schakelt automatisch aan.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16608
@@ -34415,6 +34558,12 @@ msgid ""
 "not had any problems.  Others prefer to use the Customization command and "
 "let Emacs do the work for them."
 msgstr ""
+"De functie @code{custom-set-variables} werkt een beetje anders dan "
+"een @code{setq}. Hoewel ik nooit geleerd heb wat de verschillen "
+"zijn, wijzig ik handmatig de @code{custom-set-variables} expressies: "
+"ik maak wijzigingen de mij redelijke lijken en heb nooit "
+"problemen gehad. Anderen geven de voorkeur om het customize commando "
+"te gebruiken en laten Emacs het werk voor hen doen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16614
@@ -34425,6 +34574,12 @@ msgid ""
 "other times, I simply edit the @code{custom-set-faces} expression in my "
 "@file{.emacs} file itself."
 msgstr ""
+"Een andere @code{custom-set-@dots{}} functie is "
+"@code{custom-set-faces}. Deze functie stelt verschillende lettertypen in. "
+"In de loop der tijd heb ik flink wat lettertypen ingesteld. Af en "
+"toe zet ik ze opnieuw met @code{customize} en af en toe wijzig ik "
+"eenvoudig zelf de @code{custom-set-faces} expressie in mijn "
+"@file{.emacs} bestand."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16618
@@ -34433,6 +34588,9 @@ msgid ""
 "in your @file{.emacs} file using code that has nothing to do with the "
 "@code{custom-set-@dots{}} functions."
 msgstr ""
+"Een tweede manier om de @code{text-mode-hook} aan te passen is het "
+"zelf te doen in je @file{.emacs} bestand met code die niets van doen "
+"heeft met de @code{custom-set-@dots{}} functies."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16622
@@ -34440,17 +34598,19 @@ msgid ""
 "When you do this, and later use @code{customize}, you will see a message "
 "that says"
 msgstr ""
+"Wanneer je dit doet en dan later @code{customize} gebruikt, zie je "
+"een boodschap die zegt:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:16625
 #, no-wrap
 msgid "CHANGED outside Customize; operating on it here may be unreliable.\n"
-msgstr ""
+msgstr "CHANGED outside Customize; operating on it here may be unreliable.\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16629
 msgid "This message is only a warning.  If you click on the button to"
-msgstr ""
+msgstr "Deze boodschap is slechts een waarschuwing. Wanneer je op de button klikt om"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16641
@@ -34461,6 +34621,12 @@ msgid ""
 "harm will be done.  When you do this, however, be careful to remember which "
 "expression is active; if you forget, you may confuse yourself."
 msgstr ""
+"schrijft Emacs een @code{custom-set-@dots{}} expressie aan het einde "
+"van je @file{.emacs} bestand die wordt geëvalueerd na je "
+"handschreven expressie. Het zal daardoor jouw handgeschreven "
+"expressie overrulen. Dit kan geen kwaad. Onthoudt welke expressie "
+"actief is als je dit doet. Wanneer je dat vergeet kan je in de war "
+"raken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16645
@@ -34469,6 +34635,9 @@ msgid ""
 "In any event, the values are always set in your initialization file, which "
 "is usually called @file{.emacs}."
 msgstr ""
+"Zolang je onthoudt elke waarden gezet zijn, heb je geen problemen. "
+"De waarden zijn in elk geval in je initialisatiebestand gezet, dat "
+"meestal @file{.emacs} heet. "
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16648
@@ -34476,18 +34645,20 @@ msgid ""
 "I myself use @code{customize} for hardly anything.  Mostly, I write "
 "expressions myself."
 msgstr ""
+"Ik zelf gebruik @code{customize} weinig. Meestal schrijf ik zelf de "
+"expressies."
 
 #. type: findex
 #: emacs-lisp-intro.texi:16649
 #, no-wrap
 msgid "defsubst"
-msgstr ""
+msgstr "defsubst"
 
 #. type: findex
 #: emacs-lisp-intro.texi:16650
 #, no-wrap
 msgid "defconst"
-msgstr ""
+msgstr "defconst"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16657
@@ -34498,6 +34669,13 @@ msgid ""
 "programs nor users should ever change a value set by @code{defconst}.  (You "
 "can change it; the value set is a variable; but please do not.)"
 msgstr ""
+"Overigens om meer compleet te zijn inzake de defines: "
+"@code{debsubst} definieert een inline functie. De systax is net als "
+"die van @code{defun}. @code{defconst} definieert een symbool als een "
+"constante. Het doel is dat zowel programma's als gebruikers nooit "
+"aan waarde wijzigen die gezet is met @code{defconst}. (Je kunt het "
+"wijzigen, de waarde is gezet als een variabele, maar doe dat liever "
+"niet.)"
 
 #. type: section
 #: emacs-lisp-intro.texi:16659
@@ -34509,7 +34687,7 @@ msgstr "Starten met een @file{.emacs} bestand"
 #: emacs-lisp-intro.texi:16660
 #, no-wrap
 msgid "@file{.emacs} file, beginning of"
-msgstr ""
+msgstr "@file{.emacs} bestand, begin van"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16665
@@ -34518,6 +34696,10 @@ msgid ""
 "not to by specifying @samp{-q} on the command line.  (The @code{emacs -q} "
 "command gives you a plain, out-of-the-box Emacs.)"
 msgstr ""
+"Wanneer je Emacs start laadt het je @file{.emacs} bestand, tenzij je "
+"het zegt dat niet te doen door @samp{-q} op de commandline te "
+"specificeren. (Het commando @code{emacs -q} geeft je een standaard "
+"out-of-the-box Emacs.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16669
@@ -34525,6 +34707,9 @@ msgid ""
 "A @file{.emacs} file contains Lisp expressions.  Often, these are no more "
 "than expressions to set values; sometimes they are function definitions."
 msgstr ""
+"Een @file{.emacs} bestand bevat Lisp expressies. Vaak zijn dit niet "
+"meer dan expressies om waarden te zetten. Soms zijn het "
+"functiedefinities."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16672
@@ -34532,6 +34717,8 @@ msgid ""
 "@xref{Init File, , The Init File @file{~/.emacs}, emacs, The GNU Emacs "
 "Manual}, for a short description of initialization files."
 msgstr ""
+"@xref{Init File, , The Init File @file{~/.emacs}, emacs, The GNU Emacs "
+"Manual}, voor een korte beschrijving van initialisatiebestanden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16675
@@ -34539,6 +34726,9 @@ msgid ""
 "This chapter goes over some of the same ground, but is a walk among extracts "
 "from a complete, long-used @file{.emacs} file---my own."
 msgstr ""
+"Dit hoofdstuk behandelt een gedeelte van dit gebied, het is een "
+"wandeling tussen fragmenten van een compleet, lang gebruikt "
+"@file{.emacs} bestand---mijn eigen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16679
@@ -34546,6 +34736,9 @@ msgid ""
 "The first part of the file consists of comments: reminders to myself.  By "
 "now, of course, I remember these things, but when I started, I did not."
 msgstr ""
+"Het eerste deel van het bestand bestaat uit commentaar: reminders "
+"voor mijzelf. Nu onthoud ik die dingen wel natuurijk, maar toen ik "
+"startte deed ik dat niet."
 
 #. type: group
 #: emacs-lisp-intro.texi:16686
@@ -34555,6 +34748,9 @@ msgid ""
 "; Robert J. Chassell\n"
 "; 26 September 1985\n"
 msgstr ""
+";;;; Bob's .emacs file\n"
+"; Robert J. Chassell\n"
+"; 26 September 1985\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16692
@@ -34562,6 +34758,8 @@ msgid ""
 "Look at that date! I started this file a long time ago.  I have been adding "
 "to it ever since."
 msgstr ""
+"Zie die datum! Ik startte dit bestand een lange tijd geleden. "
+"Sindsdien heb ik er steeds aan toegevoegd."
 
 #. type: group
 #: emacs-lisp-intro.texi:16699
@@ -34572,6 +34770,10 @@ msgid ""
 "; entry is introduced by a line beginning with\n"
 "; three semicolons.\n"
 msgstr ""
+"; Each section in this file is introduced by a\n"
+"; line beginning with four semicolons; and each\n"
+"; entry is introduced by a line beginning with\n"
+"; three semicolons.\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16708
@@ -34581,6 +34783,11 @@ msgid ""
 "semicolons are used as subsection and section markers.  (@xref{Comments, ,, "
 "elisp, The GNU Emacs Lisp Reference Manual}, for more about comments.)"
 msgstr ""
+"Dit beschrijft de gebruikelijke conventie voor commentaar in Emacs "
+"Lisp. Alles op een regel dat achter een puntkomma staat is commentaar. "
+"Twee, drie en vier puntkomma's worden gebruikt om subsecties en "
+"secties te markeren. (@xref{Comments, ,, elisp, The GNU Emacs Lisp "
+"Reference Manual}, voor meer over commentaar."
 
 #. type: group
 #: emacs-lisp-intro.texi:16717
@@ -34593,11 +34800,17 @@ msgid ""
 "; For an explanation of the help facility,\n"
 "; type control-h two times in a row.\n"
 msgstr ""
+";;;; The Help Key\n"
+"; Control-h is the help key;\n"
+"; after typing control-h, type a letter to\n"
+"; indicate the subject about which you want help.\n"
+"; For an explanation of the help facility,\n"
+"; type control-h two times in a row.\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16722
 msgid "Just remember: type @kbd{C-h} two times for help."
-msgstr ""
+msgstr "Onthoud: typ twee keer @kbd{C-h} voor help."
 
 #. type: group
 #: emacs-lisp-intro.texi:16729
@@ -34608,6 +34821,10 @@ msgid ""
 "; about mail mode, enter mail mode and then type\n"
 "; control-h m.\n"
 msgstr ""
+"; To find out about any mode, type control-h m\n"
+"; while in that mode.  For example, to find out\n"
+"; about mail mode, enter mail mode and then type\n"
+"; control-h m.\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16735
@@ -34615,6 +34832,8 @@ msgid ""
 "``Mode help'', as I call this, is very helpful.  Usually, it tells you all "
 "you need to know."
 msgstr ""
+"``Mode help'', zoals ik het noem, is erg behulpzaam. Meestal vertelt "
+"het alles wat je moet weten."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16740
@@ -34624,6 +34843,10 @@ msgid ""
 "Mode help or the conventions for comments---but I was able to remember to "
 "look here to remind myself."
 msgstr ""
+"Je hoeft natuurlijk geen commentaar zoals deze in je @file{.emacs} "
+"bestand op te nemen. Ik voegde ze in het mijne in omdat ik steeds Mode "
+"help vergat, net als de conventies voor commentaar---maar was altijd "
+"in staat te onthouden om hier te kijken om mijzelf te herinneren."
 
 #. type: section
 #: emacs-lisp-intro.texi:16742
@@ -34640,6 +34863,12 @@ msgid ""
 "prog-mode automatically based on the type of the file.  And it's perfectly "
 "fine if you want to keep the fundamental mode as the default mode.  }."
 msgstr ""
+"Nu komen we bij het gedeelte dat Text mode en Auto fill "
+"aanzet@footnote{Deze sectie stelt instellingen voor die meer "
+"geschikt zijn voor schrijvers. Voor programmeurs wordt de default "
+"mode automatisch ingesteld op de corresponderende prog-mode "
+"gebaseerd op het soort bestand. En is het helemaal goed als je de "
+"fundamental mode houdt als de standaard mode.}."
 
 #. type: group
 #: emacs-lisp-intro.texi:16761
@@ -34652,6 +34881,12 @@ msgid ""
 "(setq-default major-mode 'text-mode)\n"
 "(add-hook 'text-mode-hook 'turn-on-auto-fill)\n"
 msgstr ""
+";;; Text mode and Auto Fill mode\n"
+";; The next two lines put Emacs into Text mode\n"
+";; and Auto Fill mode, and are for writers who\n"
+";; want to start writing prose rather than code.\n"
+"(setq-default major-mode 'text-mode)\n"
+"(add-hook 'text-mode-hook 'turn-on-auto-fill)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16766
@@ -34659,6 +34894,8 @@ msgid ""
 "Here is the first part of this @file{.emacs} file that does something "
 "besides remind a forgetful human!"
 msgstr ""
+"Hier is het eerste deel van dit @file{.emacs} bestand dat iets doet, "
+"anders dan reminders voor een vergeetachtig mens!"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16770
@@ -34667,12 +34904,15 @@ msgid ""
 "when you find a file, @emph{unless} that file should go into some other "
 "mode, such as C mode."
 msgstr ""
+"De eerste twee regels tussen haakjes vertellen Emacs om Text mode aan te "
+"zetten wanneer je een bestand vindt, @emph{behalve} wanneer dat bestand "
+"in een andere mode zou moeten, zoals C mode."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16771
 #, no-wrap
 msgid "Per-buffer, local variables list"
-msgstr ""
+msgstr "Per-buffer, lokale variabelen lijst"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16772
@@ -34684,13 +34924,13 @@ msgstr ""
 #: emacs-lisp-intro.texi:16773
 #, no-wrap
 msgid "Automatic mode selection"
-msgstr ""
+msgstr "Automatische mode selectie"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16774
 #, no-wrap
 msgid "Mode selection, automatic"
-msgstr ""
+msgstr "Mode selectie, automatisch"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16783
@@ -34704,6 +34944,15 @@ msgid ""
 "Emacs looks near the last page for a per-buffer, local variables list, if "
 "any."
 msgstr ""
+"Wanneer Emacs een bestand leest kijkt het naar de extensie van de "
+"bestandsnaam, als die er is. (De extensie is het gedeelte dat komt na "
+"een @samp{.}.) Wanneer het bestand eindigt met een @samp{.c} of @samp{.h} "
+"extensie dan zet Emacs C mode aan. Ook kijkt Emacs naar de eerste "
+"niet-lege regel van het bestand. Als de regel @w{@samp{-*- C -*-}} zegt, "
+"dan zet Emacs C mode aan. Emacs beschikt over een lijst van extensies "
+"en specificaties die het automatisch gebruikt. Daarnaast kijkt Emacs "
+"in de buurt van de laatste pagina voor een per-buffer lokale variabelen "
+"lijst, als die er is."
 
 #. type: ifinfo
 #: emacs-lisp-intro.texi:16787
@@ -34711,6 +34960,8 @@ msgid ""
 "@xref{Choosing Modes, , How Major Modes are Chosen, emacs, The GNU Emacs "
 "Manual}."
 msgstr ""
+"@xref{Choosing Modes, , How Major Modes are Chosen, emacs, The GNU Emacs "
+"Manual}."
 
 #. type: ifinfo
 #: emacs-lisp-intro.texi:16790 emacs-lisp-intro.texi:16939
@@ -34718,6 +34969,8 @@ msgid ""
 "@xref{File Variables, , Local Variables in Files, emacs, The GNU Emacs "
 "Manual}."
 msgstr ""
+"@xref{File Variables, , Local Variables in Files, emacs, The GNU Emacs "
+"Manual}."
 
 #. type: iftex
 #: emacs-lisp-intro.texi:16794
@@ -34725,33 +34978,35 @@ msgid ""
 "See sections ``How Major Modes are Chosen'' and ``Local Variables in Files'' "
 "in @cite{The GNU Emacs Manual}."
 msgstr ""
+"Zie de secties ``How Major Modes are Chosen'' en ``Local Variables in Files'' "
+"in @cite{The GNU Emacs Manual}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16797
 msgid "Now, back to the @file{.emacs} file."
-msgstr ""
+msgstr "Nu terug naar het @file{.emacs} bestand."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16800
 msgid "Here is the line again; how does it work?"
-msgstr ""
+msgstr "Hier is de regel opnieuw. Hoe werkt die?"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16801
 #, no-wrap
 msgid "Text Mode turned on"
-msgstr ""
+msgstr "Text Mode aangezet"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:16804
 #, no-wrap
 msgid "(setq-default major-mode 'text-mode)\n"
-msgstr ""
+msgstr "(setq-default major-mode 'text-mode)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16808
 msgid "This line is a short, but complete Emacs Lisp expression."
-msgstr ""
+msgstr "Deze regel is een korte, maar complete Emacs Lisp expressie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16823
@@ -34769,29 +35024,45 @@ msgid ""
 "between the procedure you use to set a value in your @file{.emacs} file and "
 "the procedure you use anywhere else in Emacs."
 msgstr ""
+"Wij zijn al bekend met @code{setq}. Wij gebruiken een vergelijkbare "
+"macro @code{setq-default} om de volgende variabele, "
+"@code{major-mode}@footnote{ Wij gebruiken hier @code{setq-default} "
+"omdat @code{text-mode} buffer-local is. Wanneer we @code{setq} "
+"gebruiken dan wordt het alleen op het huidige buffer toegepast, "
+"terwijl het gebruik van @code{setq-default} ook van toepassing is op "
+"nieuw te maken buffers. Dit wordt niet voor programmeurs "
+"aangeraden.}, op de daaropvolgende waarde te zetten, die "
+"@code{text-mode} is. Het enkele aanhalingsteken voor "
+"@code{text-mode} vertelt Emacs om direct met het @code{text-mode} te "
+"werken en niet voor wat dan ook het staat. @xref{setq, , De waarde "
+"van een variabele zetten}, voor een herinnering van hoe @code{setq} "
+"werkt. Het belangrijkste punt is dat er geen verschil is tussen een "
+"procedure die je gebruikt om een waarde te zetten in je "
+"@file{.emacs} bestand en een procedure die je ergens anders in Emacs "
+"gebruikt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16826
 msgid "Here is the next line:"
-msgstr ""
+msgstr "Hier is de volgende regel:"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16827
 #, no-wrap
 msgid "Auto Fill mode turned on"
-msgstr ""
+msgstr "Auto Fill mode aangezet"
 
 #. type: findex
 #: emacs-lisp-intro.texi:16828
 #, no-wrap
 msgid "add-hook"
-msgstr ""
+msgstr "add-hook"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:16831
 #, no-wrap
 msgid "(add-hook 'text-mode-hook 'turn-on-auto-fill)\n"
-msgstr ""
+msgstr "(add-hook 'text-mode-hook 'turn-on-auto-fill)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16836
@@ -34799,6 +35070,8 @@ msgid ""
 "In this line, the @code{add-hook} command adds @code{turn-on-auto-fill} to "
 "the variable."
 msgstr ""
+"In deze regel voegt het @code{add-hook} commando "
+"@code{turn-on-auto-fill} toe aan de variabele."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16839
@@ -34806,6 +35079,8 @@ msgid ""
 "@code{turn-on-auto-fill} is the name of a program, that, you guessed it!, "
 "turns on Auto Fill mode."
 msgstr ""
+"@code{turn-on-auto-fill} is de naam van een programma, dat, je "
+"raadde het!, Auto Fill mode aanzet."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16843
@@ -34814,6 +35089,9 @@ msgid ""
 "Text mode.  So every time Emacs turns on Text mode, Emacs also turns on Auto "
 "Fill mode."
 msgstr ""
+"Elke keer als Emacs Text mode aanzet, dan voert Emacs de commando's "
+"uit die aan Text mode gehooked zijn. Dus elk keer dat Emacs Text "
+"mode aanzet, zet Emacs ook Auto Fill mode aan."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16847
@@ -34822,6 +35100,9 @@ msgid ""
 "file, unless the file name extension, a first non-blank line, or local "
 "variables to tell Emacs otherwise."
 msgstr ""
+"In het kort, de eerste regel zort dat Emacs in Text mode gaat "
+"wanneer je een bestand bewerkt, tenzij de bestandnaam extensie, de "
+"eerste niet-lege regel of lokale variabelen Emacs anders zeggen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16854
@@ -34832,6 +35113,12 @@ msgid ""
 "word.  Thus, @kbd{M-f} moves you over @samp{it's}.  On the other hand, in C "
 "mode, @kbd{M-f} stops just after the @samp{t} of @samp{it's}."
 msgstr ""
+"Text mode stelt, naast andere acties, de syntax table in om voor "
+"schrijvers makkelijk te werken. In Text mode beschouwt Emacs een "
+"apostrof als onderdeel van een woord, net als een letter en "
+"beschouwt Emacs een punt en een spatie niet als onderdeel van een "
+"woord. Dus verplaatst @kbd{M-f} je over @samp{it's}. Anderzijds, in "
+"C mode stopt @kbd{M-f} direct achter de @samp{t} van @samp{it's}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16859
@@ -34841,6 +35128,11 @@ msgid ""
 "and brings the excessively wide part of the line down to the next line.  "
 "Emacs breaks lines between words, not within them."
 msgstr ""
+"De tweede regel zorgt dat Emacs Auto Fill mode aanzet wanneer het "
+"Text mode aanzet. In Auto Fill mode breekt Emacs automatisch een "
+"regel die te breed is af en brengt het extreem brede deel van de "
+"regel terug naar de volgende regel. Emacs breekt regels tussen "
+"woorden, niet midden in ze."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16865
@@ -34851,6 +35143,11 @@ msgid ""
 "are shown, in a rather ugly and unreadable manner, as a continuation line on "
 "the screen."
 msgstr ""
+"Wanneer Auto Fill mode uitstaat, dan lopen regels door naar rechts "
+"net zo lang als je ze typt. Afhankelijk van hoe je de waarde van "
+"@code{truncate-lines} instelt verdwijnen de woorden die je typt aan "
+"de rechterkant van het scherm of worden in een nogal lelijke en "
+"onleesbare manier als een vervolgregel op het scherm getoond."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16869
@@ -34858,18 +35155,22 @@ msgid ""
 "In addition, in this part of my @file{.emacs} file, I tell the Emacs fill "
 "commands to insert two spaces after a colon:"
 msgstr ""
+"Daarnaast vertel ik Emacs fill commando in dit deel van het "
+"@file{.emacs} bestand het Emacs fill commando twee spaties in te "
+"voegen na een dubbele punt:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:16872
 #, no-wrap
 msgid "(setq colon-double-space t)\n"
-msgstr ""
+msgstr "(setq colon-double-space t)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16879
 msgid ""
 "Here is a @code{setq} that turns on mail aliases, along with more reminders."
 msgstr ""
+"Hier is een @code{setq} die samen met meer reminders, mail aliases aanzet."
 
 #. type: group
 #: emacs-lisp-intro.texi:16887
@@ -34881,12 +35182,17 @@ msgid ""
 "; type 'M-x rmail'\n"
 "(setq mail-aliases t)\n"
 msgstr ""
+";;; Message mode\n"
+"; To enter message mode, type 'C-x m'\n"
+"; To enter RMAIL (for reading mail),\n"
+"; type 'M-x rmail'\n"
+"(setq mail-aliases t)\n"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16890
 #, no-wrap
 msgid "Mail aliases"
-msgstr ""
+msgstr "Mail aliases"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16895
@@ -34895,6 +35201,9 @@ msgid ""
 "@code{t}.  Since @code{t} means true, the line says, in effect, ``Yes, use "
 "mail aliases.''"
 msgstr ""
+"Deze @code{setq} zet de waarde van de variabele @code{mail-aliases} "
+"op @code{t}. Omdat @code{t} waar betekent, zegt deze regel in feite "
+"``Ja, gebruik mail aliases.''"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16899
@@ -34903,12 +35212,15 @@ msgid ""
 "lists of email addresses.  The file where you keep your aliases is "
 "@file{~/.mailrc}.  You write an alias like this:"
 msgstr ""
+"Mail aliases zijn makkelijke korte namen voor lange e-mailaddressen of "
+"voor een lijst met e-mailadressen. Het bestand waar je de aliases in "
+"opslaat is @file{~/.mailrc}. Je schrijft een alias als volgt:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:16902
 #, no-wrap
 msgid "alias geo george@@foobar.wiz.edu\n"
-msgstr ""
+msgstr "alias geo george@@foobar.wiz.edu\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16907
@@ -34916,18 +35228,21 @@ msgid ""
 "When you write a message to George, address it to @samp{geo}; the mailer "
 "will automatically expand @samp{geo} to the full address."
 msgstr ""
+"Wanneer je een bericht aan George schrijft adresseer je het aan "
+"@samp{geo}, de mailer breidt @samp{geo} automatisch uit tot het "
+"volledige adres."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16910
 #, no-wrap
 msgid "Tabs, preventing"
-msgstr ""
+msgstr "Tabs, voorkomen"
 
 #. type: findex
 #: emacs-lisp-intro.texi:16911
 #, no-wrap
 msgid "indent-tabs-mode"
-msgstr ""
+msgstr "indent-tabs-mode"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16918
@@ -34938,11 +35253,17 @@ msgid ""
 "ordinary printing, but they produce badly indented output when you use "
 "@TeX{} or Texinfo since @TeX{} ignores tabs."
 msgstr ""
+"Standaard voegt Emacs in plaats van meerdere spaties tabs in wanneer "
+"het een region formateert. (Je kunt bijvoorbeeld meerdere regels "
+"tekst in een keer laten inspringen met het commando "
+"@code{indent-region}.) Tabs zien er goed uit op een terminal of met "
+"gewoon afdrukken, maar zij produceren slecht ingesprongen output "
+"wanneer je @TeX{} of Texinfo gebruikt omdat @TeX{} tabs negeert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16921
 msgid "The following turns off Indent Tabs mode:"
-msgstr ""
+msgstr "Het volgende zet Indent Tabs mode uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:16926
@@ -34951,6 +35272,8 @@ msgid ""
 ";;; Prevent Extraneous Tabs\n"
 "(setq-default indent-tabs-mode nil)\n"
 msgstr ""
+";;; Prevent Extraneous Tabs\n"
+"(setq-default indent-tabs-mode nil)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16933
@@ -34959,11 +35282,15 @@ msgid ""
 "that we have seen before; @code{setq-default} sets values only in buffers "
 "that do not have their own local values for the variable."
 msgstr ""
+"Merk op dat deze regel @code{setq-default} gebruikt in plaats van "
+"@code{setq} dat we eerder gezien hebben. Alleen in buffers die geen "
+"eigen lokale waarde voor de variabele hebben stelt "
+"@code{setq-default} waarden in."
 
 #. type: ifinfo
 #: emacs-lisp-intro.texi:16936
 msgid "@xref{Just Spaces, , Tabs vs.@: Spaces, emacs, The GNU Emacs Manual}."
-msgstr ""
+msgstr "@xref{Just Spaces, , Tabs vs.@: Spaces, emacs, The GNU Emacs Manual}."
 
 #. type: iftex
 #: emacs-lisp-intro.texi:16943
@@ -34971,17 +35298,19 @@ msgid ""
 "See sections ``Tabs vs.@: Spaces'' and ``Local Variables in Files'' in "
 "@cite{The GNU Emacs Manual}."
 msgstr ""
+"Zie sectie ``Tabs vs.@: Spaces'' en ``Local Variables in Files'' in "
+"@cite{The GNU Emacs Manual}."
 
 #. type: section
 #: emacs-lisp-intro.texi:16947
 #, no-wrap
 msgid "Some Key Bindings"
-msgstr ""
+msgstr "Enkele keybindings"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16950
 msgid "Now for some personal key bindings:"
-msgstr ""
+msgstr "Nu enkele persoonlijke keybindings."
 
 #. type: group
 #: emacs-lisp-intro.texi:16955
@@ -34990,12 +35319,14 @@ msgid ""
 ";;; Compare windows\n"
 "(keymap-global-set \"C-c w\" 'compare-windows)\n"
 msgstr ""
+";;; Compare windows\n"
+"(keymap-global-set \"C-c w\" 'compare-windows)\n"
 
 #. type: findex
 #: emacs-lisp-intro.texi:16958
 #, no-wrap
 msgid "compare-windows"
-msgstr ""
+msgstr "compare-windows"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16963
@@ -35005,35 +35336,39 @@ msgid ""
 "starting at point in each window, moving over text in each window as far as "
 "they match.  I use this command all the time."
 msgstr ""
+"@code{compare-windows} is een handig commando dat de tekst in je huidige "
+"window vergelijkt met de tekst in het volgende window. Het maakt de vergelijking "
+"beginnend bij point in elk window, en springt over tekst in elk window "
+"voor zover die gelijk is. Ik gebruik dit commando vaak."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16965
 msgid "This also shows how to set a key globally, for all modes."
-msgstr ""
+msgstr "Dit toont ook hoe je een key globaal zet, voor alle modes."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16966
 #, no-wrap
 msgid "Setting a key globally"
-msgstr ""
+msgstr "Een globale key zetten"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16967
 #, no-wrap
 msgid "Keymap global set"
-msgstr ""
+msgstr "Keymap globaal zetten"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:16968
 #, no-wrap
 msgid "Key setting globally"
-msgstr ""
+msgstr "Key globaal zetten"
 
 #. type: findex
 #: emacs-lisp-intro.texi:16969
 #, no-wrap
 msgid "keymap-global-set"
-msgstr ""
+msgstr "keymap-global-set"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16979
@@ -35047,6 +35382,16 @@ msgid ""
 "@w{@code{M-c}} in your @file{.emacs} file.  @xref{Init Rebinding, , "
 "Rebinding Keys in Your Init File, emacs, The GNU Emacs Manual}, for details.)"
 msgstr ""
+"Het commando dat toetsen instelt is @code{keymap-global-set}. Het wordt "
+"gevolgd door de keybinding. In een @file{.emacs} bestand wordt de "
+"keybinding geschreven zoals getoond. @code{C-c} staat voor "
+"Control-C, dit betekent de control toets an de @kbd{c} tegelijk "
+"aanslaan. De @code{w} betekent de @kbd{w} toets aanslaan. De "
+"keybinding wordt omgeven door dubbele aanhalingstekens. (Wanneer je "
+"een @key{META} toets in plaats van een @key{CTRL} zou binden, dan "
+"schrijf je @w{@code{M-c}} in je @file{.emacs} bestand. @xref{Init "
+"Rebinding, , Rebinding Keys in Your Init File, emacs, The GNU Emacs "
+"Manual}, for details.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16983
@@ -35055,6 +35400,10 @@ msgid ""
 "@code{compare-windows} is preceded by a single-quote; otherwise, Emacs would "
 "first try to evaluate the symbol to determine its value."
 msgstr ""
+"Het commando dat door de toetsen wordt aangeroepen is "
+"@code{compare-windows}. Merk op dat @code{compare-windows} wordt "
+"voorafgegaan door een enkele quote. Anders zou Emacs het eerst het "
+"symbool proberen te evalueren om zijn waarde te bepalen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16989
@@ -35064,6 +35413,11 @@ msgid ""
 "tend to forget.  Fortunately, I have come to remember that I should look at "
 "my existing @file{.emacs} file, and adapt what is there."
 msgstr ""
+"Deze drie dingen, de dubbele aanhalingstekens, de backslash voor de "
+"@samp{C} en de enkele quote zijn noodzakelijke onderdelen van "
+"keybindings die ik vaak vergeet. Gelukkig ben ik me gaan herinneren "
+"dat ik moet kijken in mijn bestaande @file{.emacs} bestand, en "
+"gebruiken wat er in staat."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16999
@@ -35078,11 +35432,22 @@ msgid ""
 "use.  Create a key like @kbd{C-c C-w} instead.  Otherwise, we will run out "
 "of own keys."
 msgstr ""
+"Voor wat betreft de keybinding zelf: @kbd{C-c w}. Dit combineert de "
+"prefix toets @kbd{C-c}, met een enkel karakter, in dit geval "
+"@kbd{w}. Deze toetsencombinatie, @kbd{C-c} gevold door een enkel "
+"karakter, is strikt gereserveerd voor je eigen gebruik. (Ik noem "
+"deze @dfn{eigen} toetsen, omdat deze voor mijn eigen gebruik zijn.) "
+"Je moet altijd in staat zijn om zulke keybindings voor je eigen "
+"gebruik te maken zonder de keybindings van iemand anders te "
+"verprutsen. Wanneer je ooit een uitbreiding van Emacs schrijft, "
+"vermijdt dan alsjeblieft deze toetsen voor publiek gebruik te nemen. "
+"Maak in plaats daarvan een toetscombinatie zoals @kbd{C-c C-w}. "
+"Anders zouden we zonder onze eigen toetscombinaties geraken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17002
 msgid "Here is another key binding, with a comment:"
-msgstr ""
+msgstr "Hier is een andere keybinding met commentaar:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17008
@@ -35092,12 +35457,15 @@ msgid ""
 "; I use occur a lot, so let's bind it to a key:\n"
 "(keymap-global-set \"C-c o\" 'occur)\n"
 msgstr ""
+";;; Key binding for 'occur'\n"
+"; I use occur a lot, so let's bind it to a key:\n"
+"(keymap-global-set \"C-c o\" 'occur)\n"
 
 #. type: findex
 #: emacs-lisp-intro.texi:17011
 #, no-wrap
 msgid "occur"
-msgstr ""
+msgstr "occur"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17018
@@ -35108,29 +35476,35 @@ msgid ""
 "buffer.  Matching lines are shown in a buffer called @file{*Occur*}.  That "
 "buffer serves as a menu to jump to occurrences."
 msgstr ""
+"Het commando @code{occur} toont alle regels in het huidige buffer "
+"die een match voor een reguliere expressie bevatten. Wanneer de "
+"region actief is, dan beperkt @code{occur} matches tot die region. "
+"Zo niet dan gebruikt die het gehele buffer. De matchende "
+"regels worden getoond in een buffer met de naam @file{*Occur*}. Dat "
+"buffer dient als een menu om naar de matches te springen."
 
 #. type: findex
 #: emacs-lisp-intro.texi:17019
 #, no-wrap
 msgid "keymap-global-unset"
-msgstr ""
+msgstr "keymap-global-unset"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:17020
 #, no-wrap
 msgid "Unbinding key"
-msgstr ""
+msgstr "Ontkoppelen toets"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:17021
 #, no-wrap
 msgid "Key unbinding"
-msgstr ""
+msgstr "Toets ontkoppelen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17025
 msgid "Here is how to unbind a key, so it does not work:"
-msgstr ""
+msgstr "Hier volgt hoe je een toets ontkoppelt, zodat die niet werkt:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17030
@@ -35139,6 +35513,8 @@ msgid ""
 ";;; Unbind 'C-x f'\n"
 "(keymap-global-unset \"C-x f\")\n"
 msgstr ""
+";;; Unbind 'C-x f'\n"
+"(keymap-global-unset \"C-x f\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17038
@@ -35149,23 +35525,30 @@ msgid ""
 "always to a width I did not want.  Since I hardly ever reset my default "
 "width, I simply unbound the key."
 msgstr ""
+"Er is een reden voor deze ontkoppeling: Ik ontdekte dat ik per "
+"ongeluk @w{@kbd{C-x f}} typ terwijl ik @kbd{C-x C-f} bedoelde te "
+"typen. In plaats van een bestand te vinden, zoals de bedoeling was, "
+"zette ik per ongeluk de breedte voor uitgevulde tekst, vrijwel "
+"altijd op een breedte die ik niet wil. Omdat ik haast nooit mijn "
+"standaard breedte aanpas, heb ik simpel deze toetscombinatie "
+"ontkoppeld."
 
 #. type: findex
 #: emacs-lisp-intro.texi:17039
 #, no-wrap
 msgid "list-buffers@r{, rebound}"
-msgstr ""
+msgstr "list-buffers@r{, rebound}"
 
 #. type: findex
 #: emacs-lisp-intro.texi:17040
 #, no-wrap
 msgid "buffer-menu@r{, bound to key}"
-msgstr ""
+msgstr "buffer-menu@r{, gebonden aan een toetscombinatie}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17043
 msgid "The following rebinds an existing key:"
-msgstr ""
+msgstr "Het volgende koppelt een bestaande toetscombinatie opnieuw:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17048
@@ -35174,6 +35557,8 @@ msgid ""
 ";;; Rebind 'C-x C-b' for 'buffer-menu'\n"
 "(keymap-global-set \"C-x C-b\" 'buffer-menu)\n"
 msgstr ""
+";;; Rebind 'C-x C-b' for 'buffer-menu'\n"
+"(keymap-global-set \"C-x C-b\" 'buffer-menu)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17058
@@ -35183,24 +35568,29 @@ msgid ""
 "want to do something in that window, I prefer the @code{buffer-menu} "
 "command, which not only lists the buffers, but moves point into that window."
 msgstr ""
+"Standaard roept @kbd{C-x C-b} het commando @code{list-buffers} aan. "
+"Dit commando vermeldt al je buffers in @emph{een ander} window. Maar "
+"omdat ik altijd iets wil doen in dat window, geef ik de voorkeur aan "
+"het commando @code{buffer-menu}, dat niet alleen de buffers "
+"vermeldt, maar ook point naar dat window verplaatst."
 
 #. type: subsection
 #: emacs-lisp-intro.texi:17059
 #, no-wrap
 msgid "Legacy Global Key Binding Commands"
-msgstr ""
+msgstr "Verouderde globale keybinding commando's"
 
 #. type: findex
 #: emacs-lisp-intro.texi:17061
 #, no-wrap
 msgid "global-set-key"
-msgstr ""
+msgstr "global-set-key"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:17062
 #, no-wrap
 msgid "Global set key"
-msgstr ""
+msgstr "Globaal instellen toestcombinatie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17068
@@ -35211,12 +35601,19 @@ msgid ""
 "@code{global-set-key} in various places.  The first example in this section "
 "can be rewritten using @code{global-set-key} as:"
 msgstr ""
+"Vroeger werden toetscombinaties globaal gebonden met een "
+"functie op laag niveau, @code{global-set-key}, wat nu als "
+"achterhaald wordt beschouwd. Hoewel je wordt aangemoedigd om "
+"@code{keymap-global-set} te gebruiken, kom je waarschijnlijk "
+"@code{global-set-key} op verschillende plekken tegen. Het eerste "
+"voorbeeld in deze sectie kan met @code{global-set-key} worden "
+"herschreven als:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17072
 #, no-wrap
 msgid "(global-set-key \"\\C-cw\" 'compare-windows)\n"
-msgstr ""
+msgstr "(global-set-key \"\\C-cw\" 'compare-windows)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17081
@@ -35227,12 +35624,18 @@ msgid ""
 "like @code{\\C-c} and @code{w} in this example.  Despite the difference, in "
 "documentation, this is still written as @w{@kbd{C-c w}} for readability."
 msgstr ""
+"Het lijkt erg op @code{keymap-global-set}, met de keybinding volgens "
+"een wat anders formaat. Control-C wordt getoond als @code{\\C-c} in "
+"plaats van @code{C-c}. Er staat geen spatie tussen de "
+"toestaanslagen, zoals @code{\\C-c} en @code{w} in dit voorbeeld. "
+"Ondanks het verschil wordt dit in documentatie in verband met de "
+"leesbaarheid nog steeds geschreven als @w{@kbd{C-cw}}."
 
 #. type: findex
 #: emacs-lisp-intro.texi:17082
 #, no-wrap
 msgid "global-unset-key"
-msgstr ""
+msgstr "global-unset-key"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17087
@@ -35242,6 +35645,11 @@ msgid ""
 "that of @code{global-set-key}.  The key unbinding example in this section "
 "can be rewritten as:"
 msgstr ""
+"Vroeger werden toestcombinaties globaal ontkoppeld met een "
+"functie op laag niveau, @code{global-unset-key}, wat nu als "
+"verouderd beschouwd wordt. Het keybinding formaat volgt dat van "
+"@code{global-set-key}. Het toetscombinatie ontkoppelende voorbeeld "
+"in deze sectie kan herschreven worden als:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17092
@@ -35250,12 +35658,14 @@ msgid ""
 ";;; Unbind 'C-x f'\n"
 "(global-unset-key \"\\C-xf\")\n"
 msgstr ""
+";;; Unbind 'C-x f'\n"
+"(global-unset-key \"\\C-xf\")\n"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:17098
 #, no-wrap
 msgid "Rebinding keys"
-msgstr ""
+msgstr "Toestcombinaties opnieuw binden"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17104
@@ -35265,6 +35675,11 @@ msgid ""
 "all parts of Emacs, you are specifying the key binding in @code{current-"
 "global-map}."
 msgstr ""
+"Emacs gebruikt @dfn{keymaps} om te registreren welke toetscombinatie "
+"welk commando aanroept. Wanneer je @dfn{keymaps} gebruikt om de "
+"keybinding voor een enkel commando in te stellen in alle delen van "
+"Emacs, dan specificeer je de keybinding in de "
+"@code{current-global-map}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17108
@@ -35272,6 +35687,9 @@ msgid ""
 "Specific modes, such as C mode or Text mode, have their own keymaps; the "
 "mode-specific keymaps override the global map that is shared by all buffers."
 msgstr ""
+"Specifieke modes, zoals C mode of Text mode, hebben hun eigen "
+"keymaps. De mode-specifieke keymaps overrulen de globale map die "
+"met alle buffers gedeeld is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17112
@@ -35280,12 +35698,15 @@ msgid ""
 "For example, the following binds the key @kbd{C-x C-b} to the function "
 "@code{buffer-menu}:"
 msgstr ""
+"De functie @code{keymap-global-set} bindt of bindt opnieuw de "
+"globale keymap. Het volgende bijvoorbeeld bindt de toetscombinatie "
+"@kbd{C-x C-b} aan de functie @code{buffer-menu}:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:17115
 #, no-wrap
 msgid "(keymap-global-set \"C-x C-b\" 'buffer-menu)\n"
-msgstr ""
+msgstr "(keymap-global-set \"C-x C-b\" 'buffer-menu)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17121
@@ -35295,12 +35716,17 @@ msgid ""
 "For example, the following expression binds the @code{texinfo-insert-"
 "@@group} command to @kbd{C-c C-c g}:"
 msgstr ""
+"Mode-specifieke keymaps worden gebonden met de functie "
+"@code{keymap-set}, die een specifieke keymap als argument heeft, net "
+"als de toestcombinatie en het command. De volgende expressie "
+"bijvoorbeeld bindt het commando @code{texinfo-insert-@@group} aan "
+"@kbd{C-c C-c g}:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17125
 #, no-wrap
 msgid "(keymap-set texinfo-mode-map \"C-c C-c g\" 'texinfo-insert-@@group)\n"
-msgstr ""
+msgstr "(keymap-set texinfo-mode-map \"C-c C-c g\" 'texinfo-insert-@@group)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17133
@@ -35310,12 +35736,17 @@ msgid ""
 "@code{keymap-set}, you likely would encounter @code{define-key} in various "
 "places.  The above key binding can be rewritten using @code{define-key} as:"
 msgstr ""
+"Vroeger werden keymaps gebonden met een functie op lager niveau, "
+"@code{define-key} dat nu als verouderd wordt beschouwd. Hoewel je wordt "
+"aangemoedigd om @code{keymap-set} te gebruiken, komt je waarschijnlijk "
+"@code{define-key} op verschillende plaatsen tegen. De keybinding hierboven "
+"kan herschreven worden met @code{define-key} als:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17137
 #, no-wrap
 msgid "(define-key texinfo-mode-map \"\\C-c\\C-cg\" 'texinfo-insert-@@group)\n"
-msgstr ""
+msgstr "(define-key texinfo-mode-map \"\\C-c\\C-cg\" 'texinfo-insert-@@group)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17148
@@ -35328,11 +35759,19 @@ msgid ""
 "together on one page; many multi-line examples in this book are surrounded "
 "by @samp{@@group @dots{} @@end group}.)"
 msgstr ""
+"De functie @code{texinfo-insert-@@group} is een kleine uitbreiding "
+"op Texinfo mode dat @samp{@@group} in een Texinfo bestand invoegt. "
+"Ik gebruik dit commando vaak en geef de voorkeur aan het typen van "
+"drie toestaanslagen @kbd{C-c C-c g} in plaast van zes aanslagen "
+"@kbd{@@ g r o u p}. (@samp{@@group} en het bijbehorende @samp{@@end "
+"group} zijn commando's die alle omsloten tekst bij elkaar op een "
+"bladzijdeh houdt. Veel meerregelige voorbeelden in dit boek zijn "
+"omgeven door @samp{@@group @dots{} @@end group}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17151
 msgid "Here is the @code{texinfo-insert-@@group} function definition:"
-msgstr ""
+msgstr "Hier is de @code{texinfo-insert-@@group} functiedefinitie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17159
@@ -35344,6 +35783,11 @@ msgid ""
 "  (beginning-of-line)\n"
 "  (insert \"@@group\\n\"))\n"
 msgstr ""
+"(defun texinfo-insert-@@group ()\n"
+"  \"Insert the string @@group in a Texinfo buffer.\"\n"
+"  (interactive)\n"
+"  (beginning-of-line)\n"
+"  (insert \"@@group\\n\"))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17165
@@ -35352,6 +35796,10 @@ msgid ""
 "a function to insert a word; but I prefer key strokes consistent with other "
 "Texinfo mode key bindings.)"
 msgstr ""
+"(Ik had natuurlijk Abbrev mode kunnen gebruiken om toetsaanslagen te "
+"besparen, in plaats van een functie om een woord in te voegen, maar "
+"ik geef voorkeur aan toestaanslagen die consistent zijn met andere "
+"Texinfo mode keybindings.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17169
@@ -35360,6 +35808,9 @@ msgid ""
 "@file{loaddefs.el} as well as in the various mode libraries, such as "
 "@file{cc-mode.el} and @file{lisp-mode.el}."
 msgstr ""
+"Je komt veel @code{keymap-set} en @code{define-key} expressies tegen "
+"in @file{loaddefs.el} en ook in verschillende mode libraries, zoals "
+"@file{cc-mode.el} en @file{lisp-mode.el}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17173
@@ -35368,12 +35819,15 @@ msgid ""
 "Manual}, and @ref{Keymaps, , Keymaps, elisp, The GNU Emacs Lisp Reference "
 "Manual}, for more information about keymaps."
 msgstr ""
+"@xref{Key Bindings, , Customizing Key Bindings, emacs, The GNU Emacs "
+"Manual}, en @ref{Keymaps, , Keymaps, elisp, The GNU Emacs Lisp Reference "
+"Manual}, voor meer informatie over keymaps."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:17176
 #, no-wrap
 msgid "Loading files"
-msgstr ""
+msgstr "Bestanden laden"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17183
@@ -35383,6 +35837,11 @@ msgid ""
 "example, the Calendar and Diary packages are now part of the standard GNU "
 "Emacs, as is Calc."
 msgstr ""
+"Veel mensen in de GNU Emacs community hebben uitbreidingen op Emacs "
+"geschreven. In de loop der tijd worden die exentensies vaak "
+"opgenomen in nieuwe releases. De Calendar en Diary packages "
+"bijvoorbeeld zijn nu onderdeel van de de standaard GNU Emacs, net "
+"als Calc."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17187
@@ -35390,12 +35849,15 @@ msgid ""
 "You can use a @code{load} command to evaluate a complete file and thereby "
 "install all the functions and variables in the file into Emacs.  For example:"
 msgstr ""
+"Je kunt met het commando @code{load} een compleet bestand evalueren "
+"en daarmee alle functies en variabelen in het bestand in Emacs "
+"installeren. Bijvoorbeeld:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:17192
 #, no-wrap
 msgid "(load \"~/emacs/slowsplit\")\n"
-msgstr ""
+msgstr "(load \"~/emacs/slowsplit\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17199
@@ -35405,6 +35867,11 @@ msgid ""
 "sub-directory of your home directory.  The file contains the function "
 "@code{split-window-quietly}, which John Robinson wrote in 1989."
 msgstr ""
+"Dit evalueert, dat wil zeggen laadt het bestand @file{slowsplit.el} "
+"of, als dat bestaat, het byte-compiled bestand @file{slowsplit.elc} "
+"in de @file{emacs} subdirectory of in je home directory. Het bestand "
+"bevat de functie @code{split-window-quietly} dat John Robinson in "
+"1989 schreef."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17207
@@ -35416,6 +35883,13 @@ msgid ""
 "the way it leaves the bottom half of a buffer in the lower of the new "
 "windows and the top half in the upper window."
 msgstr ""
+"De functie @code{split-window-quietly} split een window met een "
+"minimum aan scherm-aanpassingen. Ik installeerde het in 1989 omdat "
+"het goed werkte op de langzame 1200 baud terminals die ik toen "
+"gebruikte. Tegenwoordig kom ik af en toe zo'n langzame connectie "
+"tegen, maar ik blijf de functie gebruiken omdat ik de manier waarop "
+"het de onderste helft van een buffer onder in het nieuwe window "
+"houdt en de bovenste helft in het bovenste window."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17212
@@ -35423,18 +35897,21 @@ msgid ""
 "To replace the key binding for the default @code{split-window-vertically}, "
 "you must bind the keys to @code{split-window-quietly}, like this:"
 msgstr ""
+"Om de keybinding voor het standaard @code{split-window-vertically} "
+"te vervangen, moet je de toetsaanslagen als volgt binden aan "
+"@code{split-window-quietly}:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17216
 #, no-wrap
 msgid "(keymap-global-set \"C-x 2\" 'split-window-quietly)\n"
-msgstr ""
+msgstr "(keymap-global-set \"C-x 2\" 'split-window-quietly)\n"
 
 #. type: vindex
 #: emacs-lisp-intro.texi:17219
 #, no-wrap
 msgid "load-path"
-msgstr ""
+msgstr "load-path"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17226
@@ -35446,6 +35923,13 @@ msgid ""
 "directories.  (The default list is specified in @file{epaths.h} when Emacs "
 "is built.)"
 msgstr ""
+"Als je veel uitbreidingen laadt, zoals ik doe, dan kan je in plaats "
+"van de exacte lokatie van het uitbreidingsbestand, zoals hierboven, "
+"de directory specificeren als deel van de het @code{load-path} van "
+"Emacs. Wanneer Emacs een bestand laadt kijkt het dan zowel in die "
+"directory als in de standaard lijst van directories. (De standaard "
+"lijst wordt gespecificeerd in @file{epaths.h} wanneer Emacs wordt "
+"gebouwd.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17230
@@ -35453,6 +35937,8 @@ msgid ""
 "The following command adds your @file{~/emacs} directory to the existing "
 "load path:"
 msgstr ""
+"Het volgende commando voegt je @file{~/emacs} directory toe aan het "
+"bestaande load-path:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17235
@@ -35460,7 +35946,7 @@ msgstr ""
 msgid ""
 ";;; Emacs Load Path\n"
 "(setq load-path (cons \"~/emacs\" load-path))\n"
-msgstr ""
+msgstr "(setq load-path (cons \"~/emacs\" load-path))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17240
@@ -35468,12 +35954,14 @@ msgid ""
 "Incidentally, @code{load-library} is an interactive interface to the "
 "@code{load} function.  The complete function looks like this:"
 msgstr ""
+"OVerigens, @code{load-library} is een interactieve interface voor de "
+"@code{load} functie. De complete functie ziet er zo uit:"
 
 #. type: findex
 #: emacs-lisp-intro.texi:17241
 #, no-wrap
 msgid "load-library"
-msgstr ""
+msgstr "load-library"
 
 #. type: group
 #: emacs-lisp-intro.texi:17249
@@ -35486,7 +35974,12 @@ msgid ""
 "well as `load-file-rep-suffixes').\n"
 "\n"
 msgstr ""
-
+"(defun load-library (library)\n"
+"  \"Load the Emacs Lisp library named LIBRARY.\n"
+"This is an interface to the function `load'.  LIBRARY is searched\n"
+"for in `load-path', both with and without `load-suffixes' (as\n"
+"well as `load-file-rep-suffixes').\n"
+"\n"
 #. type: group
 #: emacs-lisp-intro.texi:17258
 #, no-wrap
@@ -35500,6 +35993,14 @@ msgid ""
 "                                           (get-load-suffixes)))))\n"
 "  (load library))\n"
 msgstr ""
+"See Info node `(emacs)Lisp Libraries' for more details.\n"
+"See `load-file' for a different interface to `load'.\"\n"
+"  (interactive\n"
+"   (list (completing-read \"Load library: \"\n"
+"                          (apply-partially 'locate-file-completion-table\n"
+"                                           load-path\n"
+"                                           (get-load-suffixes)))))\n"
+"  (load library))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17264
@@ -35508,6 +36009,10 @@ msgid ""
 "``library'' as a conventional synonym for ``file''.  The source for the "
 "@code{load-library} command is in the @file{files.el} library."
 msgstr ""
+"De naam van de functie @code{load-library} komt van het gebruik van "
+"``library'' als conventioneel synoniem voor ``file''. De bron voor "
+"het commando @code{load-library} staat in de @file{files.el} "
+"library."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17269
@@ -35517,18 +36022,22 @@ msgid ""
 "GNU Emacs Manual}, for information on the distinction between @code{load-"
 "library} and this command."
 msgstr ""
+"Een ander interactief commando dat een iets andere taak doet is "
+"@code{load-file}. @xref{Lisp Libraries, , Libraries of Lisp Code for "
+"Emacs, emacs, The GNU Emacs Manual}, voor informatie over het "
+"verschil tussen @code{load-library} en dit commando."
 
 #. type: section
 #: emacs-lisp-intro.texi:17271
 #, no-wrap
 msgid "Autoloading"
-msgstr ""
+msgstr "Autoloading"
 
 #. type: findex
 #: emacs-lisp-intro.texi:17272
 #, no-wrap
 msgid "autoload"
-msgstr ""
+msgstr "autoload"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17278
@@ -35538,6 +36047,11 @@ msgid ""
 "not actually install it until it is first called.  This is called "
 "@dfn{autoloading}."
 msgstr ""
+"In plaats van het installeren van een functie door het bestand dat "
+"het bevat te laden, of door het evalueren van de functiedefinitie, "
+"kan je een functie beschikbaar maken zonder die te installeren, "
+"totdat die voor het eerst wordt aangeroepen. Dit heet "
+"@dfn{autoloading}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17281
@@ -35545,6 +36059,9 @@ msgid ""
 "When you execute an autoloaded function, Emacs automatically evaluates the "
 "file that contains the definition, and then calls the function."
 msgstr ""
+"Wanneer je een autoloaded functie uitvoert, evalueert Emacs "
+"automatisch het bestand dat de definitie bevat en roept daarna de "
+"functie aan."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17285
@@ -35553,6 +36070,10 @@ msgid ""
 "not loaded right away; but you need to wait a moment when you first use such "
 "a function, while its containing file is evaluated."
 msgstr ""
+"Emacs start sneller met autoloaded functies omdat hun libraries niet "
+"meteen geladen worden, maar je moet iets langer wachten wanneer je "
+"zo'n functie voor het eerst gebruikt, terwijl het bestand waar het "
+"in staat is geëvalueerd."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17292
@@ -35563,6 +36084,12 @@ msgid ""
 "When you do, you should load that function's file with a @code{load} "
 "expression in your @file{.emacs} file."
 msgstr ""
+"Weinig gebruikte functies worden vaak autoloaded. De library "
+"@file{loaddefs.el} bevat duizenden autoloaded functies, van "
+"@code{5x5} tot @code{zone}. Natuurlijk kan het zijn dat je vaak een "
+"weinig gebruikte functie gebruikt. Wanneer je dat doet, zou je het "
+"bestand met die functie moeten laden met een @code{load} expressie "
+"in je @file{.emacs} bestand."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17299
@@ -35573,6 +36100,12 @@ msgid ""
 "Emacs, , Building Emacs, elisp, The GNU Emacs Lisp Reference Manual}, and "
 "the @file{INSTALL} file for more about dumping.)"
 msgstr ""
+"In mijn @file{.emacs} bestand laad ik 14 libraries die functies "
+"bevatten die anders worden autoloaded. (Eigenlijk zou het beter zijn "
+"deze bestanden op te nemen in mijn gedumpte Emacs, maar dat vergat "
+"ik. @xref{Building Emacs, , Building Emacs, elisp, The GNU Emacs "
+"Lisp Reference Manual}, en het @file{INSTALL} bestand voor meer over "
+"dumping.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17309
@@ -35586,11 +36119,20 @@ msgid ""
 "argument tells what type of object---@code{autoload} can handle a keymap or "
 "macro as well as a function (the default is a function)."
 msgstr ""
+"Je kunt ook autoloaded expressies in je @file{.emacs} bestand opnemen. "
+"@code{autoload} is een ingebouwde functie die tot vijf argumenten "
+"neemt, waarvan de laatste drie optioneel zijn. Het eerste argument is "
+"de naam van de functie om te autoloaden, de tweede is de naam van "
+"het bestand om de laden. Het derde is de documentatie van de functie "
+"en de vierde geeft aan of de functie interactief kan worden "
+"aangeroepen. Het vijfde argument vertelt welke "
+"objecttype---@code{autoload} kan met een keymap, macro of functie "
+"omgaan (de standaard is een functie)."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17312
 msgid "Here is a typical example:"
-msgstr ""
+msgstr "Hier is een typisch voorbeeld"
 
 #. type: group
 #: emacs-lisp-intro.texi:17317
@@ -35599,6 +36141,8 @@ msgid ""
 "(autoload 'html-helper-mode\n"
 "  \"html-helper-mode\" \"Edit HTML documents\" t)\n"
 msgstr ""
+"(autoload 'html-helper-mode\n"
+"  \"html-helper-mode\" \"Edit HTML documents\" t)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17323
@@ -35606,6 +36150,8 @@ msgid ""
 "(@code{html-helper-mode} is an older alternative to @code{html-mode}, which "
 "is a standard part of the distribution.)"
 msgstr ""
+"(@code{html-helper-mode} is een ouder alternatief voor "
+"@code{html-mode} die een standaard onderdeel is van de distributie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17335
@@ -35620,6 +36166,17 @@ msgid ""
 "in the autoload expression because the regular function is not yet loaded, "
 "so its documentation is not available.)"
 msgstr ""
+"Deze expressie autoload de functie @code{html-helper-mode}. Het "
+"haalt die op uit het bestand @file{html-helper-mode.el} (of uit de "
+"byte compiled versie @file{html-helper-mode.elc} als die bestaat.) "
+"Het bestand moet in een directory staan die gespecificeerd is door "
+"@code{load-path}. De documentatie geeft aan dit een mode is die je "
+"helpt bij het aanpassen van documenten die geschreven zijn in de "
+"HyperText Markup Language. Je roept deze mode interactief aan door "
+"@kbd{M-x html-helper-mode} te typen. (Je moet de gewone documentatie "
+"van de functie in de autoload expressie kopiëren omdat de gewone "
+"functie nog niet is geladen waardoor de documentatie nog niet "
+"beschikbaar is.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17338
@@ -35627,24 +36184,26 @@ msgid ""
 "@xref{Autoload, , Autoload, elisp, The GNU Emacs Lisp Reference Manual}, for "
 "more information."
 msgstr ""
+"@xref{Autoload, , Autoload, elisp, The GNU Emacs Lisp Reference "
+"Manual}, voor meer informatie."
 
 #. type: section
 #: emacs-lisp-intro.texi:17340
 #, no-wrap
 msgid "A Simple Extension: @code{line-to-top-of-window}"
-msgstr ""
+msgstr "Een eenvoudige uitbreiding: @code{line-to-top-of-window}"
 
 #. type: findex
 #: emacs-lisp-intro.texi:17341
 #, no-wrap
 msgid "line-to-top-of-window"
-msgstr ""
+msgstr "line-to-top-of-window"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:17342
 #, no-wrap
 msgid "Simple extension in @file{.emacs} file"
-msgstr ""
+msgstr "Eenvoudige uitbreiding in de @file{.emacs} bestand"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17347
@@ -35652,6 +36211,9 @@ msgid ""
 "Here is a simple extension to Emacs that moves the line that point is on to "
 "the top of the window.  I use this all the time, to make text easier to read."
 msgstr ""
+"Hier is een eenvoudige uitbreiding op Emacs die de regel waar point "
+"staat naar de bovenkant van het window verplaatst. Ik gebruikt dit "
+"heel vaak om de tekst makkelijker leesbaar te maken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17351
@@ -35660,11 +36222,14 @@ msgid ""
 "your @file{.emacs} file, or you can include it within your @file{.emacs} "
 "file."
 msgstr ""
+"Je kunt de volgende code in een apart bestand zetten en dan laden "
+"vanuit je @file{.emacs} bestand, of je kunt het opnemen in je "
+"@file{.emacs} bestand."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17354
 msgid "Here is the definition:"
-msgstr ""
+msgstr "Hier is de definitie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17363
@@ -35677,11 +36242,17 @@ msgid ""
 "  (interactive)\n"
 "  (recenter 0))\n"
 msgstr ""
+";;; Line to top of window;\n"
+";;; replace three keystroke sequence  C-u 0 C-l\n"
+"(defun line-to-top-of-window ()\n"
+"  \"Move the line that point is on to top of window.\"\n"
+"  (interactive)\n"
+"  (recenter 0))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17368
 msgid "Now for the key binding."
-msgstr ""
+msgstr "Nu de keybinding."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17372
@@ -35689,18 +36260,21 @@ msgid ""
 "Function keys as well as mouse button events and non-@sc{ascii} characters "
 "are written within square brackets, without quotation marks."
 msgstr ""
+"Functietoetsen, muisbutton-events en non-@sc{ascii} karakters "
+"schrijf je tussen vierkante haakjes, zonder aanhalingstekens."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17375
 msgid ""
 "I bind @code{line-to-top-of-window} to my @key{F6} function key like this:"
 msgstr ""
+"Zo bind ik @code{line-to-top-of-window} aan mijn @key{F6} functietoets:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:17378
 #, no-wrap
 msgid "(keymap-global-set \"<f6>\" 'line-to-top-of-window)\n"
-msgstr ""
+msgstr "(keymap-global-set \"<f6>\" 'line-to-top-of-window)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17382
@@ -35708,24 +36282,26 @@ msgid ""
 "For more information, see @ref{Init Rebinding, , Rebinding Keys in Your Init "
 "File, emacs, The GNU Emacs Manual}."
 msgstr ""
+"Voor meer informatie, zie  @ref{Init Rebinding, , Rebinding Keys in Your Init "
+"File, emacs, The GNU Emacs Manual}."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:17383
 #, no-wrap
 msgid "Conditional 'twixt two versions of Emacs"
-msgstr ""
+msgstr "Conditional tussen twee versies van Emacs"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:17384
 #, no-wrap
 msgid "Version of Emacs, choosing"
-msgstr ""
+msgstr "Versie van Emacs, kiezen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:17385
 #, no-wrap
 msgid "Emacs version, choosing"
-msgstr ""
+msgstr "Emacs versie, kiezen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17389
@@ -35734,6 +36310,9 @@ msgid ""
 "one @file{.emacs} file, you can select which code to evaluate with the "
 "following conditional:"
 msgstr ""
+"Wanneer je twee versies van GNU Emacs draait, zoals versie 27 en 28, "
+"en één @file{.emacs} bestand gebruikt, dan selecteer je met de "
+"volgende conditional welke code te evalueren:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17399
@@ -35747,6 +36326,13 @@ msgid ""
 "  ;; evaluate version 28 code\n"
 "  ( @dots{} )))\n"
 msgstr ""
+"(cond\n"
+" ((= 27 emacs-major-version)\n"
+"  ;; evaluate version 27 code\n"
+"  ( @dots{} ))\n"
+" ((= 28 emacs-major-version)\n"
+"  ;; evaluate version 28 code\n"
+"  ( @dots{} )))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17416
@@ -35794,6 +36380,8 @@ msgid ""
 "  ;; Turn on image viewing\n"
 "  (auto-image-file-mode t)\n"
 msgstr ""
+"  ;; Turn on image viewing\n"
+"  (auto-image-file-mode t)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17433
@@ -35803,6 +36391,9 @@ msgid ""
 "  ;; (Use numeric argument to turn on)\n"
 "  (menu-bar-mode 1)\n"
 msgstr ""
+"  ;; Turn on menu bar (this bar has text)\n"
+"  ;; (Use numeric argument to turn on)\n"
+"  (menu-bar-mode 1)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17438
@@ -35812,6 +36403,9 @@ msgid ""
 "  ;; (Use numeric argument to turn on)\n"
 "  (tool-bar-mode nil)\n"
 msgstr ""
+"  ;; Turn off tool bar (this bar has icons)\n"
+"  ;; (Use numeric argument to turn on)\n"
+"  (tool-bar-mode nil)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17447
@@ -35825,22 +36419,31 @@ msgid ""
 "  (setq tooltip-delay 0.1)  ; default is 0.7 second\n"
 "   )\n"
 msgstr ""
+"  ;; Turn off tooltip mode for tool bar\n"
+"  ;; (This mode causes icon explanations to pop up)\n"
+"  ;; (Use numeric argument to turn on)\n"
+"  (tooltip-mode nil)\n"
+"  ;; If tooltips turned on, make tips appear promptly\n"
+"  (setq tooltip-delay 0.1)  ; default is 0.7 second\n"
+"   )\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17455
 msgid ""
 "You can specify colors when you use Emacs with the MIT X Windowing system."
 msgstr ""
+"Je kunt kleuren opgeven wanneer je Emacs met het MIT X Windowing "
+"systeem gebruikt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17457
 msgid "I dislike the default colors and specify my own."
-msgstr ""
+msgstr "Ik vind de standaard kleuren niet prettig een geef mijn eigen op."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17461
 msgid "Here are the expressions in my @file{.emacs} file that set values:"
-msgstr ""
+msgstr "Hier staan de expressies in mijn @file{.emacs} bestand die de waarden zetten:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17466
@@ -35850,6 +36453,9 @@ msgid ""
 "(set-cursor-color \"white\")\n"
 "\n"
 msgstr ""
+";; Set cursor color\n"
+"(set-cursor-color \"white\")\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17469
@@ -35859,6 +36465,9 @@ msgid ""
 "(set-mouse-color \"white\")\n"
 "\n"
 msgstr ""
+";; Set mouse color\n"
+"(set-mouse-color \"white\")\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17473
@@ -35868,6 +36477,9 @@ msgid ""
 "(set-foreground-color \"white\")\n"
 "(set-background-color \"darkblue\")\n"
 msgstr ""
+";; Set foreground and background\n"
+"(set-foreground-color \"white\")\n"
+"(set-background-color \"darkblue\")\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17479
@@ -35877,6 +36489,9 @@ msgid ""
 "(set-face-foreground 'highlight \"white\")\n"
 "(set-face-background 'highlight \"blue\")\n"
 msgstr ""
+";;; Set highlighting colors for isearch and drag\n"
+"(set-face-foreground 'highlight \"white\")\n"
+"(set-face-background 'highlight \"blue\")\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17484
@@ -35885,6 +36500,8 @@ msgid ""
 "(set-face-foreground 'region \"cyan\")\n"
 "(set-face-background 'region \"blue\")\n"
 msgstr ""
+"(set-face-foreground 'region \"cyan\")\n"
+"(set-face-background 'region \"blue\")\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17489
@@ -35893,6 +36510,8 @@ msgid ""
 "(set-face-foreground 'secondary-selection \"skyblue\")\n"
 "(set-face-background 'secondary-selection \"darkblue\")\n"
 msgstr ""
+"(set-face-foreground 'secondary-selection \"skyblue\")\n"
+"(set-face-background 'secondary-selection \"darkblue\")\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17497
@@ -35904,6 +36523,11 @@ msgid ""
 "  (set-face-background 'holiday \"slate blue\")\n"
 "  (set-face-foreground 'holiday \"white\"))\n"
 msgstr ""
+";; Set calendar highlighting colors\n"
+"(with-eval-after-load 'calendar\n"
+"  (set-face-foreground 'diary   \"skyblue\")\n"
+"  (set-face-background 'holiday \"slate blue\")\n"
+"  (set-face-foreground 'holiday \"white\"))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17502
@@ -35911,6 +36535,8 @@ msgid ""
 "The various shades of blue soothe my eye and prevent me from seeing the "
 "screen flicker."
 msgstr ""
+"De verschillende blauwtinten kalmeren mijn oog en voorkomen dat ik "
+"het scherm zie knipperen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17507
@@ -35920,6 +36546,10 @@ msgid ""
 "cursor, and pointer (i.e., mouse) colors in my @file{~/.Xresources} file "
 "like this:"
 msgstr ""
+"Anderzijds had ik mijn specificaties in verschillende X "
+"initialisatiebestanden kunnen zetten. Ik kon bijvoorbeeld de kleuren "
+"voor de voorgrond, achtergrond, cursor en pijltje (oftewel muis) als "
+"volgt in mijn @file{~/.Xresources} bestand zetten: "
 
 #. type: group
 #: emacs-lisp-intro.texi:17514
@@ -35930,6 +36560,10 @@ msgid ""
 "Emacs*cursorColor:  white\n"
 "Emacs*pointerColor: white\n"
 msgstr ""
+"Emacs*foreground:   white\n"
+"Emacs*background:   darkblue\n"
+"Emacs*cursorColor:  white\n"
+"Emacs*pointerColor: white\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17521
@@ -35939,12 +36573,17 @@ msgid ""
 "modern window managers, such as Enlightenment, Gnome, or KDE; in those "
 "cases, I often specify an image rather than a plain color.}:"
 msgstr ""
+"In elk geval, omdat dit geen onderdeel van Emacs is, zet de root "
+"kleur van mijn X window in mijn @file{~/.xinitrc} bestand zoals "
+"dit@footnote{Ik gebruik ook modernere window managers zoals "
+"Enlightenment, Gnome, of KDE. In die gevallen specificeer ik vaak "
+"een afbeelding in plaats van een enkele kleur.}:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:17524
 #, no-wrap
 msgid "xsetroot -solid Navy -fg white &\n"
-msgstr ""
+msgstr "xsetroot -solid Navy -fg white &\n"
 
 #. type: node
 #: emacs-lisp-intro.texi:17527
@@ -35956,17 +36595,17 @@ msgstr "Diverse"
 #: emacs-lisp-intro.texi:17528
 #, no-wrap
 msgid "Miscellaneous Settings for a @file{.emacs} File"
-msgstr ""
+msgstr "Diverse instellingen voor een @file{.emacs} bestand"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17532
 msgid "Here are a few miscellaneous settings:"
-msgstr ""
+msgstr "Hier zijn een paar diverse instellingen"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:17537
 msgid "Set the shape and color of the mouse cursor:"
-msgstr ""
+msgstr "Stel de vorm en kleur van de muiscursor:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17544
@@ -35977,6 +36616,10 @@ msgid ""
 "; for example, the 'target' cursor is number 128;\n"
 "; the 'top_left_arrow' cursor is number 132.\n"
 msgstr ""
+"; Cursor shapes are defined in\n"
+"; '/usr/include/X11/cursorfont.h';\n"
+"; for example, the 'target' cursor is number 128;\n"
+"; the 'top_left_arrow' cursor is number 132.\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17553
@@ -35989,6 +36632,12 @@ msgid ""
 "  (if (eq mpointer nil)\n"
 "      (setq mpointer \"132\")) ; top_left_arrow\n"
 msgstr ""
+"(let ((mpointer (x-get-resource \"*mpointer\"\n"
+"                                \"*emacs*mpointer\")))\n"
+"  ;; If you have not set your mouse pointer\n"
+"  ;;     then set it, otherwise leave as is:\n"
+"  (if (eq mpointer nil)\n"
+"      (setq mpointer \"132\")) ; top_left_arrow\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17557
@@ -35997,12 +36646,15 @@ msgid ""
 "  (setq x-pointer-shape (string-to-number mpointer))\n"
 "  (set-mouse-color \"white\"))\n"
 msgstr ""
+"  (setq x-pointer-shape (string-to-number mpointer))\n"
+"  (set-mouse-color \"white\"))\n"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:17563
 msgid ""
 "Or you can set the values of a variety of features in an alist, like this:"
 msgstr ""
+"Of je zet de waarden voor verschillende eigenschappen in een alist, zoals hier:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17574
@@ -36017,6 +36669,14 @@ msgid ""
 "   ;; (cursor-type . bar)\n"
 "   (cursor-type . box)\n"
 msgstr ""
+"(setq-default\n"
+" default-frame-alist\n"
+" '((cursor-color . \"white\")\n"
+"   (mouse-color . \"white\")\n"
+"   (foreground-color . \"white\")\n"
+"   (background-color . \"DodgerBlue4\")\n"
+"   ;; (cursor-type . bar)\n"
+"   (cursor-type . box)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17583
@@ -36030,6 +36690,13 @@ msgid ""
 "         \"-Misc-Fixed-Medium-R-Normal--20-200-75-75-C-100-ISO8859-1\")\n"
 "   ))\n"
 msgstr ""
+"   (tool-bar-lines . 0)\n"
+"   (menu-bar-lines . 1)\n"
+"   (width . 80)\n"
+"   (height . 58)\n"
+"   (font .\n"
+"         \"-Misc-Fixed-Medium-R-Normal--20-200-75-75-C-100-ISO8859-1\")\n"
+"   ))\n"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:17591
@@ -36038,6 +36705,9 @@ msgid ""
 "h}.@* (Some older keyboards needed this, although I have not seen the "
 "problem recently.)"
 msgstr ""
+"Converteer @kbd{@key{CTRL}-h} naar @key{DEL} en @key{DEL} naar "
+"@kbd{@key{CTRL}- h}.@* (Sommige oude toetsenborden vereisen dit, "
+"hoewel ik het probleem de laatste tijd niet gezien heb.)"
 
 #. type: group
 #: emacs-lisp-intro.texi:17596
@@ -36047,6 +36717,9 @@ msgid ""
 "; (key-translate \"C-h\" \"C-?\")\n"
 "\n"
 msgstr ""
+";; Translate 'C-h' to <DEL>.\n"
+"; (key-translate \"C-h\" \"C-?\")\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17599
@@ -36055,12 +36728,14 @@ msgid ""
 ";; Translate <DEL> to 'C-h'.\n"
 "(key-translate \"C-?\" \"C-h\")\n"
 msgstr ""
+";; Translate <DEL> to 'C-h'.\n"
+"(key-translate \"C-?\" \"C-h\")\n"
 
 #. type: item
 #: emacs-lisp-intro.texi:17602
 #, no-wrap
 msgid "Turn off a blinking cursor!"
-msgstr ""
+msgstr "Zet knipperende cursor uit!"
 
 #. type: group
 #: emacs-lisp-intro.texi:17608
@@ -36069,17 +36744,19 @@ msgid ""
 "(if (fboundp 'blink-cursor-mode)\n"
 "    (blink-cursor-mode -1))\n"
 msgstr ""
+"(if (fboundp 'blink-cursor-mode)\n"
+"    (blink-cursor-mode -1))\n"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:17613
 msgid "or start GNU Emacs with the command @code{emacs -nbc}."
-msgstr ""
+msgstr "of start GNU Emacs met het commando @code{emacs -nbc}."
 
 #. type: item
 #: emacs-lisp-intro.texi:17615
 #, no-wrap
 msgid "When using @command{grep}@*"
-msgstr ""
+msgstr "Bij het gebruik van @command{grep}@*"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:17620
@@ -36089,35 +36766,39 @@ msgid ""
 "match.@* @samp{-e}@w{ } Protect patterns beginning with a hyphen character, "
 "@samp{-}"
 msgstr ""
+"@samp{-i}@w{ } Negeer verschil hoofd- en kleine letters@* "
+"@samp{-n}@w{ } Vermeldt het regelnummer op elke output-regel@* "
+"@samp{-H}@w{ } Toon de bestandsnaam voor elke match@* @samp{-e}@w{ } "
+"Bescherm patronen die beginnen met een minteken, @samp{-}"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:17623
 #, no-wrap
 msgid "(setq grep-command \"grep -i -nH -e \")\n"
-msgstr ""
+msgstr "(setq grep-command \"grep -i -nH -e \")\n"
 
 #. type: item
 #: emacs-lisp-intro.texi:17625
 #, no-wrap
 msgid "Find an existing buffer, even if it has a different name@*"
-msgstr ""
+msgstr "Vind een bestaand buffer, zelfs als het een andere naam heeft @*"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:17627
 msgid "This avoids problems with symbolic links."
-msgstr ""
+msgstr "Dit voorkomt problemen met symbolische links."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:17630
 #, no-wrap
 msgid "(setq find-file-existing-other-name t)\n"
-msgstr ""
+msgstr "(setq find-file-existing-other-name t)\n"
 
 #. type: item
 #: emacs-lisp-intro.texi:17632
 #, no-wrap
 msgid "Set your language environment and default input method"
-msgstr ""
+msgstr "Stel je taalomgeving en de standaard input methode in "
 
 #. type: group
 #: emacs-lisp-intro.texi:17640
@@ -36128,11 +36809,15 @@ msgid ""
 ";; with the @code{toggle-input-method'} (@kbd{C-\\}) command\n"
 "(setq default-input-method \"latin-1-prefix\")\n"
 msgstr ""
+"(set-language-environment \"latin-1\")\n"
+";; Remember you can enable or disable multilingual text input\n"
+";; with the @code{toggle-input-method'} (@kbd{C-\\}) command\n"
+"(setq default-input-method \"latin-1-prefix\")\n"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:17644
 msgid "If you want to write with Chinese GB characters, set this instead:"
-msgstr ""
+msgstr "Wanneer je in Chinese GB karakters wilt schrijven, gebruik dan in plaats daarvan dit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17649
@@ -36141,24 +36826,26 @@ msgid ""
 "(set-language-environment \"Chinese-GB\")\n"
 "(setq default-input-method \"chinese-tonepy\")\n"
 msgstr ""
+"(set-language-environment \"Chinese-GB\")\n"
+"(setq default-input-method \"chinese-tonepy\")\n"
 
 #. type: subsubheading
 #: emacs-lisp-intro.texi:17653
 #, no-wrap
 msgid "Fixing Unpleasant Key Bindings"
-msgstr ""
+msgstr "Onplezierige keybindings verbeteren"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:17654
 #, no-wrap
 msgid "Key bindings, fixing"
-msgstr ""
+msgstr "Kebindings, verbeteren"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:17655
 #, no-wrap
 msgid "Bindings, key, fixing unpleasant"
-msgstr ""
+msgstr "Bindings, key, verbeteren onplezierige"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17660
@@ -36166,6 +36853,9 @@ msgid ""
 "Some systems bind keys unpleasantly.  Sometimes, for example, the @key{CTRL} "
 "key appears in an awkward spot rather than at the far left of the home row."
 msgstr ""
+"Sommige systemen binden keys onplezierig, Soms verschijnt "
+"bijvoorbeeld de @key{CTRL} op een onhandige plek in plaats van "
+"uiterst links in de home-row."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17666
@@ -36176,23 +36866,29 @@ msgid ""
 "boot script and then include @code{xmodmap} commands in their "
 "@file{.xinitrc} or @file{.Xsession} file for X Windows."
 msgstr ""
+"Wanneer mensen deze soort keybindings verbeteren veranderen zij "
+"meestal niet hun @file{.emacs} bestand. In plaats daarvan binnen zij "
+"de juiste toetsen op hun consoles met de @code{loadkeys} of "
+"@code{install-keymap} commando's in hun boot-script en nemen daarna "
+"@code{xmodmap} commando's in hun @file{.xinitrc} of @file{.Xsession} "
+"bestand voor X Windows."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17670
 msgid "For a boot script:"
-msgstr ""
+msgstr "Voor een boot-script:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17674
 #, no-wrap
 msgid "loadkeys /usr/share/keymaps/i386/qwerty/emacs2.kmap.gz\n"
-msgstr ""
+msgstr "loadkeys /usr/share/keymaps/i386/qwerty/emacs2.kmap.gz\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17676
 #, no-wrap
 msgid "install-keymap emacs2\n"
-msgstr ""
+msgstr "install-keymap emacs2\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17683
@@ -36200,6 +36896,8 @@ msgid ""
 "For a @file{.xinitrc} or @file{.Xsession} file when the @key{Caps Lock} key "
 "is at the far left of the home row:"
 msgstr ""
+"Voor een @file{.xinitrc} of @file{.Xsession} bestand wanneer de "
+"@key{Caps Lock} toets is uiterst links in de home-row:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17689
@@ -36210,6 +36908,10 @@ msgid ""
 "# think that computers are typewriters from 1885.)\n"
 "\n"
 msgstr ""
+"# Bind the key labeled 'Caps Lock' to 'Control'\n"
+"# (Such a broken user interface suggests that keyboard manufacturers\n"
+"# think that computers are typewriters from 1885.)\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17692
@@ -36218,6 +36920,8 @@ msgid ""
 "xmodmap -e \"clear Lock\"\n"
 "xmodmap -e \"add Control = Caps_Lock\"\n"
 msgstr ""
+"xmodmap -e \"clear Lock\"\n"
+"xmodmap -e \"add Control = Caps_Lock\"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17699
@@ -36225,6 +36929,8 @@ msgid ""
 "In a @file{.xinitrc} or @file{.Xsession} file, to convert an @key{ALT} key "
 "to a @key{META} key:"
 msgstr ""
+"In een @file{.xinitrc} of @file{.Xsession} bestand om de @key{ALT} "
+"toets te converteren naar een @key{META} toets:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17704
@@ -36233,29 +36939,31 @@ msgid ""
 "# Some ill designed keyboards have a key labeled ALT and no Meta\n"
 "xmodmap -e \"keysym Alt_L = Meta_L Alt_L\"\n"
 msgstr ""
+"# Some ill designed keyboards have a key labeled ALT and no Meta\n"
+"xmodmap -e \"keysym Alt_L = Meta_L Alt_L\"\n"
 
 #. type: section
 #: emacs-lisp-intro.texi:17709
 #, no-wrap
 msgid "A Modified Mode Line"
-msgstr ""
+msgstr "Een aangepaste mode line"
 
 #. type: vindex
 #: emacs-lisp-intro.texi:17710
 #, no-wrap
 msgid "mode-line-format"
-msgstr ""
+msgstr "mode-line-format"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:17711
 #, no-wrap
 msgid "Mode line format"
-msgstr ""
+msgstr "Mode line format"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17714
 msgid "Finally, a feature I really like: a modified mode line."
-msgstr ""
+msgstr "Tenslotte een eigenschap die ik echt waardeer: een aangepaste mode line."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17717
@@ -36263,17 +36971,20 @@ msgid ""
 "When I work over a network, I forget which machine I am using.  Also, I tend "
 "to lose track of where I am, and which line point is on."
 msgstr ""
+"Wanneer ik over een netwerk werk dan vergeet ik welke machine ik "
+"gebruik. Ook heb ik de neiging te vergeten waar ik ben, en op welke "
+"regel point is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17719
 msgid "So I reset my mode line to look like this:"
-msgstr ""
+msgstr "Daarom stel ik mijn mode line in zodat die er zo uitziet:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:17722
 #, no-wrap
 msgid "-:-- foo.texi   rattlesnake:/home/bob/  Line 1  (Texinfo Fill) Top\n"
-msgstr ""
+msgstr "-:-- foo.texi   rattlesnake:/home/bob/  Line 1  (Texinfo Fill) Top\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17727
@@ -36282,11 +36993,14 @@ msgid ""
 "@file{rattlesnake} in my @file{/home/bob} buffer.  I am on line 1, in "
 "Texinfo mode, and am at the top of the buffer."
 msgstr ""
+"Ik bezoek een bestand met de naam @file{foo.texi}, op mijn machine "
+"@file{rattlesnake} in mijn @file{/home/bob} buffer. Ik ben op regel 1, "
+"in Texinfo mode en ben aan de bovenkant van het buffer."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17730
 msgid "My @file{.emacs} file has a section that looks like this:"
-msgstr ""
+msgstr "Mijn @file{.emacs} bestand heeft een sectie die er zo uitziet:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17744
@@ -36304,6 +37018,17 @@ msgid ""
 "   mode-line-frame-identification\n"
 "   \"    \"\n"
 msgstr ""
+";; Set a Mode Line that tells me which machine, which directory,\n"
+";; and which line I am on, plus the other customary information.\n"
+"(setq-default mode-line-format\n"
+" (quote\n"
+"  (#(\"-\" 0 1\n"
+"     (help-echo\n"
+"      \"mouse-1: select window, mouse-2: delete others ...\"))\n"
+"   mode-line-mule-info\n"
+"   mode-line-modified\n"
+"   mode-line-frame-identification\n"
+"   \"    \"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17757
@@ -36321,6 +37046,17 @@ msgid ""
 "   (line-number-mode \" Line %l \")\n"
 "   global-mode-string\n"
 msgstr ""
+"   mode-line-buffer-identification\n"
+"   \"    \"\n"
+"   (:eval (substring\n"
+"           (system-name) 0 (string-match \"\\\\..+\" (system-name))))\n"
+"   \":\"\n"
+"   default-directory\n"
+"   #(\" \" 0 1\n"
+"     (help-echo\n"
+"      \"mouse-1: select window, mouse-2: delete others ...\"))\n"
+"   (line-number-mode \" Line %l \")\n"
+"   global-mode-string\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17770
@@ -36338,6 +37074,17 @@ msgid ""
 "   ;;   \"-%-\"\n"
 "   )))\n"
 msgstr ""
+"   #(\"   %[(\" 0 6\n"
+"     (help-echo\n"
+"      \"mouse-1: select window, mouse-2: delete others ...\"))\n"
+"   (:eval (format-time-string \"%F\"))\n"
+"   mode-line-process\n"
+"   minor-mode-alist\n"
+"   #(\"%n\" 0 2 (help-echo \"mouse-2: widen\" local-map (keymap ...)))\n"
+"   \")%] \"\n"
+"   (-3 . \"%P\")\n"
+"   ;;   \"-%-\"\n"
+"   )))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17778
@@ -36346,6 +37093,10 @@ msgid ""
 "original; but I make a few changes.  I set the @emph{default} mode line "
 "format so as to permit various modes, such as Info, to override it."
 msgstr ""
+"Hier herdefinieer ik de standaard mode line. Veel delen zijn van het "
+"origineel, maar ik heb een paar wijzigingen. Ik zet het "
+"@emph{default} mode line formaat zo dat verschillende modes, zoals "
+"Info, het mogen overschrijven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17784
@@ -36355,12 +37106,17 @@ msgid ""
 "tells the name of the mode, and so on.  However, the format looks "
 "complicated because of two features we have not discussed."
 msgstr ""
+"Veel elementen in de lijst spreken voor zich: "
+"@code{mode-line-modified} is een variabele die aangeeft of het "
+"buffer is gewijzigd, @code{mode-name} geeft de naam van de mode aan, "
+"enzovoorts. Het format ziet er echter gecompliceerd uit omdat we "
+"twee eigenschappen nog niet hebben besproken:"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:17785
 #, no-wrap
 msgid "Properties, in mode line example"
-msgstr ""
+msgstr "Eigenschappen in het mode line voorbeeld"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17793
@@ -36373,17 +37129,26 @@ msgid ""
 "before the information appears.  You can change that timing by changing the "
 "value of @code{tooltip-delay}.)"
 msgstr ""
+"De eerste string in de mode line is een minteken, @samp{-}. In "
+"vroegere tijden zou het eenvoudig zijn gespecificeerd met "
+"@code{\"-\"}. Maar tegenwoordig kan Emacs eigenschappen aan een "
+"string toevoegen, zoals highlighting of, zoals in dit geval, een "
+"helpfunctie. Wanneer je de muiscursor boven het minteken houdt "
+"verschijnt helpinformatie. (Standaard moet je een zeven-tiende van "
+"een seconde wachten voor de informatie verschijnt. Je kunt de timing "
+"daarvan aanpassen door de waarde van @code{tooltip-delay} te "
+"wijzigen.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17796
 msgid "The new string format has a special syntax:"
-msgstr ""
+msgstr "Het nieuwe string-formaat heeft een speciale syntax:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:17799
 #, no-wrap
 msgid "#(\"-\" 0 1 (help-echo \"mouse-1: select window, ...\"))\n"
-msgstr ""
+msgstr "#(\"-\" 0 1 (help-echo \"mouse-1: select window, ...\"))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17812
@@ -36398,6 +37163,17 @@ msgid ""
 "case, a string.  The second, third, and fourth elements of this new string "
 "format can be repeated."
 msgstr ""
+"De @code{#(} begint een lijst. Het eerste element in de lijst is de "
+"string zelf, slechts één @samp{-}. Het tweede en derde element "
+"specificeren de range waarop het vierde element van toepassing is. "
+"Een range start @emph{na} een karakter, dus een nul betekent dat de "
+"range direct voor het eerste karakter start, een 1 betekent dat de "
+"range direct achter het eerste karakter eindigt. Het derde element "
+"is een eigenschap voor de range. Het bestaat uit een "
+"eigenschappen-lijst, een eigenschap-naam, in dit geval "
+"@samp{help-echo}, gevolgd door een waarde, in dit geval een string. "
+"Het tweede, derde en vierde element van dit nieuwe string-formaat "
+"kan worden herhaald."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17816
@@ -36406,6 +37182,9 @@ msgid ""
 "Reference Manual}, and see @ref{Mode Line Format, , Mode Line Format, elisp, "
 "The GNU Emacs Lisp Reference Manual}, for more information."
 msgstr ""
+"@xref{Text Properties, , Text Properties, elisp, The GNU Emacs Lisp "
+"Reference Manual}, en zi @ref{Mode Line Format, , Mode Line Format, elisp, "
+"The GNU Emacs Lisp Reference Manual}, voor meer informatie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17821
@@ -36414,6 +37193,9 @@ msgid ""
 "is a list beginning @code{(#(\"%12b\" 0 4 @dots{}}.  The @code{#(} begins "
 "the list."
 msgstr ""
+"@code{mode-line-buffer-identification} toont het naam van het "
+"huidige buffer. Het is een lijst die begint met @code{(#(\"%12b\" 0 "
+"4 @dots{}}. De @code{#(} begint de lijst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17829
@@ -36425,6 +37207,13 @@ msgid ""
 "can and often should be longer than 12 characters; this length works well in "
 "a typical 80 column wide window.)"
 msgstr ""
+"De @samp{\"%12b\"} toont de naam van het huidige buffer, met de "
+"functie @code{buffer-name} waarmee we vertrouwd zijn. De @samp{12} "
+"specificeert het maximum aantal karakters dat wordt getoond. Wanneer "
+"een naam minder karakters heeft, dan wordt witte ruimte toegevoegd "
+"om tot dit aantal uit te vullen. (Buffernamen kunnen en moeten "
+"langer zijn dan 12 karakters. Deze lengte werkt goed in een typisch "
+"80 karakters breed window.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17836
@@ -36436,11 +37225,18 @@ msgid ""
 "length of the first component.  The substring from the zeroth character to "
 "that length is the name of the machine."
 msgstr ""
+"@code{:eval} geeft aan om de volgende vorm te evalueren en het "
+"resultaat te gebruiken als een te tonen string. In dit geval toont "
+"de expressie het eerste element van de volledige systeemnaam. Het "
+"einde van het eerste component is een @samp{.} (punt) daarom gebruik "
+"ik de @code{string-match} functie om mij de lengte van het eerste "
+"component te vertellen. De substring van het nul-de karakter tot die "
+"lengte is de naam van de machine."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17839
 msgid "This is the expression:"
-msgstr ""
+msgstr "Dit is de expressie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17844
@@ -36449,6 +37245,8 @@ msgid ""
 "(:eval (substring\n"
 "        (system-name) 0 (string-match \"\\\\..+\" (system-name))))\n"
 msgstr ""
+"(:eval (substring\n"
+"        (system-name) 0 (string-match \"\\\\..+\" (system-name))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17854
@@ -36460,6 +37258,13 @@ msgid ""
 "@samp{p} tell you the percentage above the @emph{top} of the window.)  "
 "@samp{%-} inserts enough dashes to fill out the line."
 msgstr ""
+"@samp{%[} en @samp{%]} laten een paar vierkante haken voor elk "
+"recursief editing level verschijnen. @samp{%n} vermeldt ``Narrow'' "
+"wanneer versmalling van toepassing is. @samp{%P} vertelt je het "
+"percentage van het buffer dat boven de onderkant van het window is, "
+"of ``Top'', ``Bottom'', of ``All''. (Een kleine letter @samp{p} "
+"vertelt je het percentage boven de @emph{bovenkant} van het window.) "
+"@samp{%-} voegt voldoende mintekens in om de regel uit te vullen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17858
@@ -36468,6 +37273,9 @@ msgid ""
 "different colors, different commands, and different keys than a default "
 "Emacs."
 msgstr ""
+"Onthoud, je hoeft niet van Emacs te houden om er van te houden---je "
+"eigen Emacs kan andere kleuren, andere commando's en andere "
+"toetscombinaties hebben dan de standaard Emacs."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17861
@@ -36475,12 +37283,14 @@ msgid ""
 "On the other hand, if you want to bring up a plain out-of-the-box Emacs, "
 "with no customization, type:"
 msgstr ""
+"Anderzijds, als je een standaard out-of-the-box Emacs zonder enige "
+"aanpassing wilt starten, typ:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:17864
 #, no-wrap
 msgid "emacs -q\n"
-msgstr ""
+msgstr "emacs -q\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17870
@@ -36488,12 +37298,14 @@ msgid ""
 "This will start an Emacs that does @emph{not} load your @file{~/.emacs} "
 "initialization file.  A plain, default Emacs.  Nothing more."
 msgstr ""
+"Dit start een Emacs die @emph{niet} je @file{.emacs} "
+"initialisatiebestand laadt. Een gewone, standaard Emacs. Niets meer."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:17873
 #, no-wrap
 msgid "debugging"
-msgstr ""
+msgstr "debuggen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17878

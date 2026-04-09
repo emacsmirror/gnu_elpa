@@ -5,7 +5,7 @@
 ;; Author: Eshel Yaron <me@eshelyaron.com>
 ;; Maintainer: Eshel Yaron <me@eshelyaron.com>
 ;; Keywords: security trust
-;; Package-Version: 0.1.0
+;; Package-Version: 0.1.1
 ;; Package-Requires: ((emacs "30.1"))
 
 ;; This program is free software; you can redistribute it and/or modify

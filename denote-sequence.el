@@ -1657,7 +1657,7 @@ Then do what `denote-sequence-hierarchy-move-and-open' entails."
     (define-key map (kbd "p") #'denote-sequence-hierarchy-outline-previous-visible-heading)
     (define-key map (kbd "q") #'quit-window)
     map)
-  "Key map for `denote-sequence-hierarchy-mode'.")
+  "Keymap for `denote-sequence-hierarchy-mode'.")
 
 (defun denote-sequence--hierarchy-face-matcher-subr (property)
   "Search forward for PROPERTY and return match data."

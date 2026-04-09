@@ -35,6 +35,14 @@
 ;;  'M-x customize-group vc-jj RET'
 ;;
 ;; and using the Customize menu.
+;;
+;; Additional information about Jujutsu and vc-jj.el may be found in
+;; the README.org file.  The NEWS.org file contains user-relevant
+;; information regarding bug fixes, additions, and changes organized
+;; by version.
+;;
+;; The vc-jj.el project repository can be found online at
+;; https://codeberg.org/emacs-jj-vc/vc-jj.el.
 
 ;; STATUS AND LIMITATIONS
 ;;
@@ -46,8 +54,8 @@
 ;; FILE STRUCTURE
 ;;
 ;; After the "Customization" and "Internal Utilities" sections, the
-;; organization of this file matches the "BACKEND PROPERTIES" section
-;; of the preamble of the 'vc.el' file: each outline heading
+;; organization of vc-jj.el file matches the "BACKEND PROPERTIES"
+;; section of the preamble of the vc.el file: each outline heading
 ;; corresponds to a vc backend method and the contents of each heading
 ;; relate to implementing that backend method.
 
@@ -59,7 +67,7 @@
 ;; file bug reports in the "Issues" tab and create pull requests in
 ;; the "Pull requests" tab.
 ;;
-;; Vc-jj prefers jujutsu's terminology and attempts to adhere to it,
+;; Vc-jj prefers Jujutsu's terminology and attempts to adhere to it,
 ;; so we ask contributors to try their best to use the terminology
 ;; specific to jujutsu as opposed to other version control systems,
 ;; such as Git.  A brief description of these differences can be found

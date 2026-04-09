@@ -32,20 +32,18 @@
 ;; be good to go.  The mode focuses on per-project trust designation.
 ;; It asks you whether you trust a project the first time you visit a
 ;; file in that project, and remembers your choices across sessions.
+;; Your trusted/untrusted projects are stored in the user option
+;; `trust-manager-trust-alist'.  If you change your mind about some
+;; project, just customize this user option; you can do so directly
+;; or via the utility command `trust-manager-customize'.  You may also
+;; customize `trust-manager-trust-alist' to designate some directories
+;; as trusted or untrusted before actually visiting files in them.
 
 ;;; Code:
 
 (defgroup trust-manager nil
   "Trust management."
   :group 'files)
-
-(defcustom trust-manager-trust-alist nil
-  "Alist mapping file/directory names to boolean trust values.
-
-When `trust-manager-mode' is enabled, it marks file and directories that
-appear as keys in this alist as trusted or untrusted according to their
-associated values."
-  :type '(alist :key-type file :value-type boolean))
 
 (defun trust-manager--set-file-trust (file trust)
   "If TRUST is non-nil, trust FILE; otherwise untrust it."
@@ -55,6 +53,27 @@ associated values."
                                     file))))
          (curr (delete file (default-value 'trusted-content))))
     (setq-default trusted-content (if trust (cons file curr) curr))))
+
+(defcustom trust-manager-trust-alist nil
+  "Alist mapping file/directory names to boolean trust values.
+
+When `trust-manager-mode' is enabled, it marks files and directories
+that appear as keys in this alist as trusted or untrusted according to
+their associated values.
+This also happens when you customize this user option."
+  :type '(alist :key-type (file :tag "File or Directory")
+                :value-type (boolean :tag "Is Trusted"))
+  :risky t
+  :set (lambda (symbol value)
+         (pcase-dolist (`(,dir . ,trust) value)
+           (trust-manager--set-file-trust dir trust))
+         (set-default-toplevel-value symbol (sort value))))
+
+;;;###autoload
+(defun trust-manager-customize ()
+  "Customize trusted files and directories."
+  (interactive)
+  (customize-option 'trust-manager-trust-alist))
 
 (declare-function project-root "project" (project))
 
@@ -78,12 +97,12 @@ associated values."
   "Toggle per-project trust management with Trust Manager minor mode.
 
 When you enable Trust Manager mode, it marks some standard files as
-trusted by adding them to `trusted-content', sets up a hook that asks
+trusted by adding them to `trusted-content', and sets up a hook that asks
 you whether you trust a project the first time you visit a file in that
 project.  Your answers are persisted in the `trust-manager-trust-alist'
 user option, which you may also customize directly.
 
-The standard files this mode adds to `trusted-content' are your
+The standard files that this mode adds to `trusted-content' are your
 `user-init-file', `early-init-file', `custom-file' and all directories
 in your `load-path'.
 

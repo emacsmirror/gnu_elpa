@@ -5,7 +5,7 @@
 ;; Author:  Matto Fransen <matto@matto.nl>
 ;; Maintainer:  Matto Fransen <matto@matto.nl>
 ;; Url: https://codeberg.org/mattof/denote-review
-;; Version: 1.0.6
+;; Version: 1.0.7
 ;; Keywords: files
 ;; Package-Requires: ((emacs "28.1") (denote "4.1.3"))
 
@@ -40,6 +40,12 @@
 ;; See the README for full explanation and the manual:
 ;; Evaluate:
 ;;   (info "(denote-review) Top")
+
+;;; News:
+
+;; Version 1.0.7 - 2026-04-09
+
+;; Bug fixed
 
 ;;; Code:
 
@@ -196,7 +202,7 @@ Does not overwrite existing reviewdates."
   (let ((denote-directory denotepath))
     (sort (delete-dups
            (mapcan #'denote-extract-keywords-from-path
-	           (denote-directory-files nil t nil))))))
+	           (denote-directory-files nil t nil))) 'string<)))
 
 (defun denote-review-select-keyword ()
   "Select a keyword or '' using completion."

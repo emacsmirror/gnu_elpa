@@ -262,12 +262,10 @@ Does not pay attention to buffer-local values of variables."
                 ;; currently undefined functions and variables.
                 (message "While setting %S with watchers %S, error: %S"
                          sym (get sym 'watchers) err)
+                ;; FIXME: We never want to run watchers in this function,
+                ;; so we need a `set-default-without-watchers'.
                 (cl-letf (((get sym 'watchers) nil))
-                  (if (default-boundp ss)
-                      (setf (default-value sym) (default-value ss))
-                    (when (default-boundp sym)
-                      (cl-assert (not (keywordp sym)))
-                      (unless (keywordp sym) (makunbound sym)))))
+                  (setf (default-value sym) (default-value ss)))
                 )))))))))
 
 (defun futur--list-prefix-p (prefix other-list)

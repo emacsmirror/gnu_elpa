@@ -49,7 +49,13 @@
                              #'cl-member-if))
                          (lambda (f) (string-match-p "/leim-list\\.el" f))
                          totalctx))
-          (trimmedctx (take (- (length totalctx) (length tail)) totalctx)))
+          (trimmedctx (take (- (length totalctx) (length tail)) totalctx))
+          (lp load-path)
+          ;; Loading the files will usually end up setting `load-path' for
+          ;; us, but not always.  Especially since `trimmedctx'
+          ;; has the files in the order their `load' ended, whereas we
+          ;; control only the order in which they're started.
+          (set-lp (lambda () (setq load-path lp))))
      (futur-elisp-sandbox--funcall
       (lambda ()
         (declare-function futur-reset-context "futur-server")
@@ -60,7 +66,10 @@
             (setq ctx (pop ctx)))
           (when ctx ;; Some element from context is missing.
             (futur-reset-context
-             'elisp-macroexpand (reverse trimmedctx))))
+             'elisp-macroexpand
+             `((funcall ,set-lp)
+               ,@(reverse trimmedctx)
+               (funcall ,set-lp)))))
         (setq trusted-content :all) ;; We're in the sandbox!
         (if (fboundp 'elisp--safe-macroexpand-all) ;Emacs-30?
             (elisp--safe-macroexpand-all sexp)

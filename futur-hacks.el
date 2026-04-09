@@ -62,14 +62,13 @@
         ;; FIXME: If `futur-reset-context' is sufficiently fast, we could
         ;; just call it unconditionally.
         (let ((ctx trimmedctx))
-          (while (and ctx (member (car ctx) load-history))
+          (while (and ctx (assoc (car ctx) load-history))
             (setq ctx (pop ctx)))
           (when ctx ;; Some element from context is missing.
             (futur-reset-context
              'elisp-macroexpand
              `((funcall ,set-lp)
-               ,@(reverse trimmedctx)
-               (funcall ,set-lp)))))
+               ,@(nreverse trimmedctx)))))
         (setq trusted-content :all) ;; We're in the sandbox!
         (if (fboundp 'elisp--safe-macroexpand-all) ;Emacs-30?
             (elisp--safe-macroexpand-all sexp)
@@ -364,6 +363,7 @@ current buffer state and calls REPORT-FN when done."
 The advantages are that this does not block the main Emacs process,
 it can take advantage of idle CPU resources, and the compilation takes
 place in a clean environment."
+  ;; FIXME: futur-concurrency-bound?  Recompile directory?  package-install?
   (if (or noninteractive load args)
       ;; Should we also support the "and load" asynchronously?
       (apply orig-fun filename load args)

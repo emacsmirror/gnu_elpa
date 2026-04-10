@@ -52,10 +52,29 @@
           (trimmedctx (take (- (length totalctx) (length tail)) totalctx))
           (lp load-path)
           ;; Loading the files will usually end up setting `load-path' for
-          ;; us, but not always.  Especially since `trimmedctx'
-          ;; has the files in the order their `load' ended, whereas we
-          ;; control only the order in which they're started.
-          (set-lp (lambda () (setq load-path lp))))
+          ;; us, but not always, or not necessarily soon enough.
+          ;; The main problem is that `trimmedctx' has the files in
+          ;; the order their `load' ended, whereas we control only the
+          ;; order in which they're started.  This leads sometimes
+          ;; to errors when file A does something like:
+          ;;
+          ;;     (defun FOO ..)
+          ;;     (require B)
+          ;;
+          ;; and B presumes that FOO is defined, so the load-history
+          ;; will say B comes first (because it ended before A), but really
+          ;; we need to load A first.
+          ;;
+          ;; Sometimes, we could potentially use the `(require . FOO)'
+          ;; entries to re-order the files, but it's not clear it wouldn't
+          ;; introduce more problems than it solves.
+          (set-lp (lambda () (setq load-path lp)))
+          (try-load (lambda (file)
+                      (unless (assoc file load-history)
+                        ;; In case of errors, just skip that file.  Presumably
+                        ;; some later file will re-try loading this file.
+                        (with-demoted-errors "%S"
+                          (load file 'noerror 'nomessage))))))
      (futur-elisp-sandbox--funcall
       (lambda ()
         (declare-function futur-reset-context "futur-server")
@@ -63,12 +82,13 @@
         ;; just call it unconditionally.
         (let ((ctx trimmedctx))
           (while (and ctx (assoc (car ctx) load-history))
-            (setq ctx (pop ctx)))
+            (setq ctx (cdr ctx)))
           (when ctx ;; Some element from context is missing.
             (futur-reset-context
              'elisp-macroexpand
              `((funcall ,set-lp)
-               ,@(nreverse trimmedctx)))))
+               ,@(nreverse (mapcar (lambda (file) `(funcall ,try-load ,file))
+                                   trimmedctx))))))
         (setq trusted-content :all) ;; We're in the sandbox!
         (if (fboundp 'elisp--safe-macroexpand-all) ;Emacs-30?
             (elisp--safe-macroexpand-all sexp)

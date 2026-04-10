@@ -338,7 +338,7 @@ the cache."
                     ;; load `.eln' if applicable.
                     ((pred stringp) (unless (assoc cmd load-history)
                                       (load cmd 'noerror 'nomessage)))
-                    ((pred symbolp) (require cmd))))
+                    (`(require ,feature) (require feature))))
                 (setf (alist-get name snapshots)
                       (list target (futur--obarray-snapshot))))))
           ;; (message "Time to setup-context: %.2f"

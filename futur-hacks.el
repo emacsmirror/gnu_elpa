@@ -129,7 +129,9 @@ current buffer state and calls REPORT-FN when done."
                (declare-function futur-reset-context "futur-server")
                (futur-reset-context 'flymake
                                     `((funcall package-activate-all)
-                                      elisp-mode bytecomp byte-opt))
+                                      (require elisp-mode)
+                                      (require bytecomp)
+                                      (require byte-opt)))
                (when inhibit-lcw
                  (setq bytecomp--inhibit-lexical-cookie-warning t))
                (setq load-path (append loadpath load-path))
@@ -402,7 +404,9 @@ place in a clean environment."
                (declare-function futur-reset-context "futur-server")
                (futur-reset-context 'flymake
                                     `((funcall package-activate-all)
-                                      elisp-mode bytecomp byte-opt))
+                                      (require elisp-mode)
+                                      (require bytecomp)
+                                      (require byte-opt)))
                (setq load-path loadpath)
                (with-current-buffer (get-buffer-create byte-compile-log-buffer)
                  (let ((inhibit-read-only t))

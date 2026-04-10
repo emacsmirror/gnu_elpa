@@ -245,7 +245,7 @@
          (fut
           (futur-let*
               ((da1 <- (funcall elisp-funcall f ()))
-               (da2 <- (funcall elisp-funcall f '(diff-mode)))
+               (da2 <- (funcall elisp-funcall f '((require diff-mode))))
                (da3 <- (funcall elisp-funcall f ())))
             (list da1 da2 da3)))
          (vals (futur-blocking-wait-to-get-result fut)))

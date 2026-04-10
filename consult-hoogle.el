@@ -69,7 +69,7 @@ we use the same buffer throughout."
 
 (defun consult-hoogle--format-result (json)
   "Parse the JSON resturned by hoogle to construct a result."
-  (when-let ((parsed (ignore-errors (json-parse-string json :object-type 'alist))))
+  (when-let* ((parsed (ignore-errors (json-parse-string json :object-type 'alist))))
     (let* ((in (propertize " in " 'face 'font-lock-comment-face))
            (from (propertize " from " 'face 'font-lock-comment-face))
            (module (cl-callf propertize
@@ -117,7 +117,7 @@ we use the same buffer throughout."
                                        (window-height . 16)
                                        (side . bottom)
                                        (slot . -1))))
-        ('return (when-let ((win (get-buffer-window buf)))
+        ('return (when-let* ((win (get-buffer-window buf)))
                    (delete-window win))
                  (kill-buffer buf))))))
 
@@ -138,13 +138,13 @@ we use the same buffer throughout."
 (defun consult-hoogle--modify-async-input (fun)
   "Change async part of input to (funcall FUN async-input)."
   (save-excursion
-    (when-let ((input (consult-hoogle--async-input)))
+    (when-let* ((input (consult-hoogle--async-input)))
       (replace-match (string-trim (funcall fun input)) nil t nil 1))))
 
 ;;;; Consult integration
 (defun consult-hoogle--candidate ()
   "Get the current candidate."
-  (when-let ((candidate (run-hook-with-args-until-success
+  (when-let* ((candidate (run-hook-with-args-until-success
                          'consult--completion-candidate-hook)))
     (get-text-property 0 'consult--candidate candidate)))
 
@@ -198,7 +198,7 @@ STATE is the optional state function passed to the `consult--read'."
                                        (thing-at-point 'symbol))
                       :category 'consult-hoogle
                       :history '(:input consult-hoogle--history)))
-      (when-let ((buf (get-buffer " *Hoogle Fontification*")))
+      (when-let* ((buf (get-buffer " *Hoogle Fontification*")))
         (kill-buffer buf)))))
 
 ;;;; Interactive Commands

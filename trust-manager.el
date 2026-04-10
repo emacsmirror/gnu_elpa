@@ -64,6 +64,7 @@ This also happens when you customize this user option."
   :type '(alist :key-type (file :tag "File or Directory")
                 :value-type (boolean :tag "Is Trusted"))
   :risky t
+  :package-version '(trust-manager . "0.1.0")
   :set (lambda (symbol value)
          (pcase-dolist (`(,dir . ,trust) value)
            (trust-manager--set-file-trust dir trust))
@@ -111,6 +112,7 @@ project trust, but it does not mark any file or directory as untrusted."
   ;; TODO: Add interactive mode line trust indicator.
   :group 'files
   :global t
+  :package-version '(trust-manager . "0.1.0")
   (if trust-manager-mode
       (progn
         (dolist (fn `(,user-init-file

@@ -9,7 +9,7 @@
 ;; Version: 0.6.0
 ;; Keywords: docs languages
 ;; Homepage: https://codeberg.org/rahguzar/consult-hoogle
-;; Package-Requires: ((emacs "27.1") (consult "2.0"))
+;; Package-Requires: ((emacs "28.1") (consult "2.0"))
 
 ;; This file is part of GNU Emacs.
 
@@ -148,6 +148,16 @@ we use the same buffer throughout."
                          'consult--completion-candidate-hook)))
     (get-text-property 0 'consult--candidate candidate)))
 
+(defun consult-hoogle--split (input)
+  "Split INPUT into the query and arguments to `hoogle search'."
+  (if (string-match (rx (or bos " ") "-- ") input)
+      (let ((qry-end (match-beginning 0))
+            (opts-beg (match-end 0)))
+        `(,(substring input 0 qry-end)
+          ,@(split-string-shell-command
+             (string-trim (substring input opts-beg)))))
+    `(,input)))
+
 (defun consult-hoogle--source (&optional command)
   "Return an async source to search with hoogle using COMMAND."
   (let* ((command (or command hoogle-base-args))
@@ -156,9 +166,9 @@ we use the same buffer throughout."
          (command `(,exe . ,(cdr command))))
     (consult--process-collection
         (lambda (input)
-          (pcase-let ((`(,arg . ,opts) (consult--command-split input)))
-            (unless (string-blank-p arg)
-              (cons (append command opts (list arg))
+          (pcase-let ((`(,query . ,opts) (consult-hoogle--split input)))
+            (unless (string-blank-p query)
+              (cons (append command opts (list query))
                     (cdr (consult--default-regexp-compiler input 'basic t))))))
       :transform (consult--async-transform #'consult-hoogle--format)
       :highlight t)))

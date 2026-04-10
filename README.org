@@ -10,7 +10,7 @@ replying to messages:
 - Displaying messages, including MIME content (rendering via Gnus)
 - Composing, replying to and forwarding messages
 - Multi-account support
-- Search (currently only full text)
+- Search, via transient menu
 - Moving messages between mailboxes (also archive, move to trash, move
   to junk folder)
 - Sorting by thread, in two modes:
@@ -21,8 +21,8 @@ replying to messages:
 
 Here is a list of planned features:
 
-- Structured search (by sender, subject, etc.)
 - Watching for new messages and notifications
+- Virtual mailboxes a.k.a. bookmarked searches
 - Login via OAuth
 - Various optimizations, perhaps a persistent cache
 

@@ -38,6 +38,7 @@
 (require 'gnus-art)
 (require 'peg)      ;need peg.el from Emacs 30, which is ahead of ELPA
 (require 'smtpmail)
+(require 'transient)
 (require 'tree-widget)
 (require 'vtable)
 
@@ -929,10 +930,28 @@ it is nil."
 
 (defun -imap-quote (s)
   "Make a UTF-7 encoded quoted string as per IMAP spec."
-  (when (string-match-p (rx (not ascii)) s)
+  (when (string-match-p (rx (any control nonascii)) s)
     (setq s (encode-coding-string s 'utf-7-imap)))
   (setq s (replace-regexp-in-string (rx (group (or ?\\ ?\"))) "\\\\\\1" s))
   (concat "\"" s "\""))
+
+(defun -imap-encode-command (string)
+  "Encode quoted strings as IMAP literals where needed.
+STRING is assumed to be a reasonable IMAP command, except that it may
+contain quoted strings with non-ASCII characters."
+  (if (not (string-match-p (rx (any control nonascii)) string))
+      string
+    (with-temp-buffer
+      (insert string)
+      (goto-char (point-min))
+      (while (search-forward "\"" nil t)
+        (backward-char)
+        (let ((p (point))
+              (s (read (current-buffer))))
+          (when (string-match-p (rx (any control nonascii)) s)
+            (delete-region p (point))
+            (insert (format "{%s+}\r\n" (string-bytes s)) s))))
+      (buffer-string))))
 
 (defconst -imap-months
   ["Jan" "Feb" "Mar" "Apr" "May" "Jun" "Jul" "Aug" "Sep" "Oct" "Nov" "Dec"])
@@ -1344,42 +1363,21 @@ messages have their flags updated."
                          (athunk-wrap nil))))
     (nconc newmessages messages)))
 
-(defun -format-search-1 (item)
-  (pcase-exhaustive item
-    (`(or ,first . nil)
-     (-format-search-1 first))
-    (`(or ,first . ,rest)
-     (concat "OR " (-format-search-1 first) " " (-format-search-1 `(or . ,rest))))
-    (`(not . ,v)
-     (concat "NOT " (-format-search-1 v)))
-    ((or 'all 'answered 'deleted 'flagged 'seen 'draft)
-     (upcase (symbol-name item)))
-    (`(,(and k (or 'keyword 'larger 'smaller)) . ,v) ;atom or number argument
-     (format "%s %s" (upcase (symbol-name k)) v))
-    (`(,(and k (or 'bcc 'body 'cc 'from 'subject 'text 'to)) . ,v) ;string argument
-     (format "%s %S" (upcase (symbol-name k)) v))
-    (`(,(and k (or 'before 'on 'since 'sentbefore 'senton 'sentsince)) . ,v) ;date argument
-     (pcase-let ((`(_ _ _ ,day ,month ,year) (parse-time-string v)))
-       (format "%s %s-%s-%s"
-               (upcase (symbol-name k))
-               day (aref -imap-months (1- month)) year)))
-    (`(header ,k . ,v)
-     (format "HEADER %S %S" k v))
-    ((pred proper-list-p)
-     (concat "(" (-format-search item) ")"))))
-
-(defun -format-search (query)
-  (mapconcat #'-format-search-1 (or query '(all)) " "))
-
 (defun -afetch-search (mailbox query limit)
-  "Search MAILBOX using QUERY (as in `minimail--format-search').
+  "Search MAILBOX using QUERY string.
 Return a list of up to LIMIT message metadata alists, as in
 `minimail--afetch-message-info'."
   ;; TODO: add after argument, add UID 1:<after> arg
   (athunk-let*
-      ((buffer <- (-amake-request mailbox
-                                  (concat "UID SEARCH CHARSET UTF-8 "
-                                          (-format-search query))))
+      ((caps <- (-aget-capability (car mailbox)))
+       (encoded (-imap-encode-command query))
+       (charset (unless (eq query encoded)
+                  (unless (seq-intersection '(literal+ literal-) caps)
+                    (user-error
+                     "Cannot use non-ASCII characters for search on this account"))
+                  "CHARSET UTF-8 "))
+       (cmd (concat "UID SEARCH " charset encoded))
+       (buffer <- (-amake-request mailbox cmd))
        (set (with-current-buffer buffer (-parse-search)))
        (messages <- (-afetch-message-info mailbox (last set limit))))
     messages))
@@ -1553,25 +1551,137 @@ as a string."
          (-mailbox-buffer-populate)))
      buffer)))
 
-;;;###autoload
-(defun minimail-search (mailbox query)
-  "Perform a search in MAILBOX.
-MAILBOX is a cons cell of the account name as a symbol and mailbox name
-as a string and QUERY is a Lisp value describing an IMAP search key.
+;;;; Searching
 
-Interactively, use the current mailbox when in a Minimail buffer, else
-prompt for it."
-  (interactive (list (-read-mailbox-maybe "Search in mailbox: ")
-                     `((text . ,(read-from-minibuffer "Search text: ")))))
-  (pop-to-buffer
-   (let* ((name (format "*search in %s*" (-mailbox-display-name mailbox)))
-          (buffer (get-buffer-create name)))
-     (with-current-buffer buffer
-       (minimail-mailbox-mode)
-       (setq -current-mailbox mailbox)
-       (setq -local-state `((search . ,query)))
-       (-mailbox-buffer-populate))
-     buffer)))
+(defclass -transient-search-option (transient-cons-option)
+  ((format :initform " %k %d%v"))
+  "Class for email search options.")
+
+(cl-defmethod transient-format-value ((obj -transient-search-option))
+  (if (not (oref obj value)) "" (concat ": " (cl-call-next-method))))
+
+(defclass -transient-search-switch (-transient-search-option)
+  ((choices :initform '(nil yes no)))
+  "Class for email search switches.")
+
+(cl-defmethod transient-infix-read ((obj -transient-search-switch))
+  (cadr (member (oref obj value) (oref obj choices))))
+
+(defun -format-search (items)
+  (mapconcat
+   (pcase-lambda (`(,key . ,value))
+     (let ((tag (upcase (symbol-name key))))
+       (pcase-exhaustive key
+         ((or 'answered 'deleted 'flagged 'seen 'draft)
+          (concat (pcase-exhaustive value ('yes nil) ('no "UN")) tag))
+         ((or 'keyword 'larger 'smaller 'unkeyword) ;atom or number argument
+          (format "%s %s" tag value))
+         ((or 'bcc 'body 'cc 'from 'subject 'text 'to 'x-gm-raw) ;string argument
+          (format "%s %S" tag value))
+         ((or 'before 'on 'since 'sentbefore 'senton 'sentsince) ;date argument
+          (pcase-let ((`(,day ,month ,year) (drop 3 (parse-time-string value))))
+            (format "%s %s-%s-%s" tag day (aref -imap-months (1- month)) year)))
+         ('raw (-get-data value)))))
+   items " "))
+
+(transient-define-prefix -search-transient ()
+  "Transient menu for `minimail-search'."
+  ["Email search"
+   ("m" "Mailbox" :cons 'mailbox :class -transient-search-option
+    :prompt "Search in mailbox: "
+    :always-read t
+    :reader
+    (lambda (prompt _ _)
+      (let ((mb (-read-mailbox prompt)))
+        (propertize (-mailbox-display-name mb) 'minimail mb)))
+    :init-value
+    (lambda (obj)
+      (let ((mb (-read-mailbox-maybe (transient-prompt obj))))
+        (setf (oref obj value)
+              (propertize (-mailbox-display-name mb) 'minimail mb)))))
+   ("s" "Text (anywhere in message)" :cons 'text :class -transient-search-option
+    :prompt "Messages containing: ")]
+  [["Who"
+    ("f" "From" :cons 'from :class -transient-search-option
+     :prompt "Messages from: ")
+    ("t" "To" :cons 'to :class -transient-search-option
+     :prompt "Messages to: ")
+    ("c" "CC"  :cons 'cc :class -transient-search-option
+     :prompt "Messages with copy to: ")]
+   ["When"
+    ("d" "Date" :cons 'date :class -transient-search-option
+     :prompt "Messages dated exactly: "
+     :reader transient-read-date)
+    ("<" "Before" :cons 'before :class -transient-search-option
+     :prompt "Messages dated before: "
+     :reader transient-read-date)
+    (">" "Since" :cons 'since :class -transient-search-option
+     :prompt "Messages dated after: "
+     :reader transient-read-date)]
+   ["What"
+    ("u" "Subject" :cons 'subject :class -transient-search-option
+     :prompt "Messages with subject containing: ")
+    ("b" "Body" :cons 'body :class -transient-search-option
+     :prompt "Messages with body containing: ")
+    ("z" "Size" :cons 'raw :class -transient-search-option
+     :prompt "\
+Enter a number, optionally preceded by < or > and suffixed with a multiplier.
+Messages with size (bytes): "
+     :reader
+     (lambda (prompt init hist)
+       (let ((input (read-from-minibuffer prompt init nil nil hist)))
+         (when (string-match (rx (group (? (any "<>"))) (? "=")
+                                 (* space) (group (+ digit))
+                                 (* space) (group (? (any "kKmM"))))
+                             input)
+           (let ((comp (pcase (match-string 1 input)
+                         ("<" '("≤ " . "SMALLER %s"))
+                         ((or ">" "") '("≥ " . "LARGER %s"))))
+                 (n (* (string-to-number (match-string 2 input))
+                       (pcase (downcase (match-string 3 input))
+                         ("k" 1024) ("m" 1048576) (_ 1)))))
+             (propertize (concat (car comp) (file-size-human-readable n))
+                         'minimail (format (cdr comp) n)))))))]
+   ["Flags"
+    ("." "Seen" :cons 'seen :class -transient-search-switch)
+    ("!" "Flagged" :cons 'flagged :class -transient-search-switch)
+    ("a" "Answered" :cons 'answered :class -transient-search-switch)]]
+  [[("RET" "Search"
+     (lambda (arg)
+       (interactive "P")
+       (pcase-let* ((`((mailbox . ,mb) . ,items)
+                     (transient-args transient-current-command))
+                    (mailbox (or (-get-data mb) (error "No mailbox")))
+                    (query (-format-search items)))
+         (when arg
+           (setq query (read-from-minibuffer "IMAP search: " query)))
+         (minimail-search mailbox query))))]])
+(put '-search-transient 'completion-predicate 'ignore)
+
+(defun minimail-search (mailbox query)
+  "Perform a search in a mailbox.
+Search MAILBOX for QUERY and pop to the result buffer.
+
+Interactively, or if QUERY is t, show a transient menu.  Else, QUERY
+should be a string as in RFC 3501, § 6.4.4, except that quoted terms in
+it may contain non-ASCII characters."
+  (interactive '(nil t))
+  (if (eq query t)
+      (let ((-current-mailbox (or mailbox -current-mailbox)))
+        (call-interactively #'-search-transient))
+    (when (or (string-match-p (rx cntrl) query)
+              (string-blank-p query))
+      (user-error "Invalid search query"))
+    (let* ((name (format "*search in %s*" (-mailbox-display-name mailbox)))
+           (buffer (generate-new-buffer name)))
+      (pop-to-buffer buffer)
+      (minimail-mailbox-mode)
+      (setq -current-mailbox mailbox)
+      (setq -local-state `((search . ,query)))
+      (-mailbox-buffer-populate)
+      buffer)))
+
+;;;; Moving
 
 (defun -amove-messages-and-redisplay (mailbox destination set)
   "Move message SET from MAILBOX to DESTINATION.

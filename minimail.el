@@ -1504,10 +1504,10 @@ Return a cons cell consisting of the account symbol and mailbox name."
                             (user-error "Not a mailbox!"))))))))
 
 (defun -read-mailbox-maybe (prompt)
-  "Read a mailbox using PROMPT, unless current buffer is related to a mailbox."
-  (if (cdr -current-mailbox)
-      -current-mailbox
-    (-read-mailbox prompt (car -current-mailbox))))
+  "Read a mailbox using PROMPT, unless a choice can be guessed from context."
+  (or (get-text-property (point) '-current-mailbox)
+      (when (cdr -current-mailbox) -current-mailbox)
+      (-read-mailbox prompt (car -current-mailbox))))
 
 (defun -current-message ()
   "Return the message object under point."
@@ -2376,7 +2376,10 @@ the user selected another message in the meanwhile, yield nil."
 (defvar-local -tree-widgets nil)
 
 (defvar-keymap minimail-overview-mode-map
-  :parent (make-composed-keymap widget-keymap special-mode-map))
+  :parent (make-composed-keymap widget-keymap special-mode-map)
+  ":" #'minimail-execute-server-command
+  "m" #'compose-mail
+  "s" #'minimail-search)
 
 (define-derived-mode minimail-overview-mode special-mode "Minimail"
   "Major mode for browsing a mailbox tree."
@@ -2406,32 +2409,36 @@ the user selected another message in the meanwhile, yield nil."
          (when (equal path (cdr .path))
            (let ((node (if (-key-match-p '(or \\Noselect \\NonExistent) .flags)
                            `(item :tag ,(car .path))
-                         `(link :tag ,(car .path)
-                                :format "%[%t%]%d"
-                                :button-prefix ""
-                                :button-suffix ""
-                                :doc ,(propertize (or (-mailbox-annotation props) "")
-                                                  'face 'completions-annotations)
-                                :icon ,(seq-some
-                                        (pcase-lambda (`(,cond . ,icon))
-                                          (when (-key-match-p cond .flags) icon))
-                                        '(((or \\All \\Archive) . minimail-mailbox-archive)
-                                          (\\Drafts             . minimail-mailbox-drafts)
-                                          (\\Flagged            . minimail-mailbox-flagged)
-                                          (\\Important          . minimail-mailbox-important)
-                                          (\\Junk               . minimail-mailbox-junk)
-                                          (\\Sent               . minimail-mailbox-sent)
-                                          (\\Trash              . minimail-mailbox-trash)
-                                          (t                    . minimail-mailbox)))
-                                :action ,(lambda (&rest _)
-                                           (minimail-find-mailbox (cons acct name)))))))
+                         `(link
+                           :tag ,(propertize (car .path)
+                                             '-current-mailbox (cons acct name))
+                           :format "%[%t%]%d"
+                           :button-prefix ""
+                           :button-suffix ""
+                           :doc ,(propertize (or (-mailbox-annotation props) "")
+                                             'face 'completions-annotations)
+                           :icon
+                           ,(seq-some
+                             (pcase-lambda (`(,cond . ,icon))
+                               (when (-key-match-p cond .flags) icon))
+                             '(((or \\All \\Archive) . minimail-mailbox-archive)
+                               (\\Drafts             . minimail-mailbox-drafts)
+                               (\\Flagged            . minimail-mailbox-flagged)
+                               (\\Important          . minimail-mailbox-important)
+                               (\\Junk               . minimail-mailbox-junk)
+                               (\\Sent               . minimail-mailbox-sent)
+                               (\\Trash              . minimail-mailbox-trash)
+                               (t                    . minimail-mailbox)))
+                           :action
+                           ,(lambda (&rest _)
+                              (minimail-find-mailbox
+                               (get-text-property (point) '-current-mailbox)))))))
              (if (-key-match-p '(or \\HasNoChildren \\Noinferiors) .flags)
                  `(,node)
-               `((tree-widget
-                  :node ,node
-                  :account ,acct
-                  :path ,.path
-                  :expander -overview-tree-expand)))))))
+               `((tree-widget :node ,node
+                              :account ,acct
+                              :path ,.path
+                              :expander -overview-tree-expand)))))))
      (widget-get (alist-get acct -tree-widgets) :mailboxes))))
 
 (defun -overview-buffer-populate (&optional refresh)
@@ -2531,20 +2538,25 @@ In `minimail-accounts', outgoing-url must have smtps or smtp scheme, got %s" oth
 ;;;###autoload
 (defun minimail-message-mail (&optional to subject &rest rest)
   (pcase-let*
-      ((`(,account . ,props) ;some account set up for sending, preferably the current
+      ((mailbox (or (get-text-property (point) '-current-mailbox)
+                    -current-mailbox))
+       (`(,account . ,props) ;some account set up for sending, preferably the current
         (or (seq-find (lambda (it) (plist-get (cdr it) :outgoing-url))
-                      `(,(assq (car -current-mailbox) minimail-accounts)
+                      `(,(assq (car mailbox) minimail-accounts)
                         ,@minimail-accounts))
             (user-error "No mail account has been configured to send messages")))
        (drafts (or (plist-get props :drafts-mailbox)
                    (-find-mailbox-by-flag '\\Drafts (athunk-run-polling
                                                      (-aget-mailbox-listing account)
                                                      :interval 0.1 :max-tries 10))))
-       (mailbox (if (eq (car -current-mailbox) account) -current-mailbox account))
-       (name (-settings-scalar-get :full-name mailbox))
-       (addr (-settings-scalar-get :mail-address mailbox))
+       ;; Context for finding settings: the current mailbox if it
+       ;; belongs to the account used for sending this email, else
+       ;; just the sending account.
+       (ctx (if (eq (car mailbox) account) mailbox account))
+       (name (-settings-scalar-get :full-name ctx))
+       (addr (-settings-scalar-get :mail-address ctx))
        (`(,sig . ,sigfile)
-        (pcase (-settings-scalar-get :signature mailbox)
+        (pcase (-settings-scalar-get :signature ctx)
           (`(file ,fname . nil) (cons t fname))
           (v (cons v message-signature-file))))
        (setup (lambda ()

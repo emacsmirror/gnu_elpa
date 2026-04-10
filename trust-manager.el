@@ -1,10 +1,11 @@
 ;;; trust-manager.el --- Convenient trust management  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026  Free Software Foundation, Inc.
+;; Copyright (C) 2026  Eshel Yaron
 
 ;; Author: Eshel Yaron <me@eshelyaron.com>
 ;; Maintainer: Eshel Yaron <me@eshelyaron.com>
-;; Keywords: security trust
+;; Keywords: security trust files
+;; URL: https://git.sr.ht/~eshel/trust-manager
 ;; Package-Version: 0.1.1
 ;; Package-Requires: ((emacs "30.1"))
 

@@ -687,8 +687,7 @@ of the breakpoints found in command buffer."
                      (bp-num-strs (split-string bp-nums-str "[^0-9]+" t))
                      (bp-nums (mapcar #'string-to-number bp-num-strs))
                      (info realgud-cmdbuf-info)
-                     (all-bps (realgud-cmdbuf-info-bp-list info))
-                     (found-locs nil))
+                     (all-bps (realgud-cmdbuf-info-bp-list info)))
                 (dolist (loc all-bps)
                   (when (memq (realgud-loc-num loc) bp-nums)
                     (push loc found-locs)
@@ -696,9 +695,9 @@ of the breakpoints found in command buffer."
                     (realgud-cmdbuf-info-bp-list=
                      (remove loc (realgud-cmdbuf-info-bp-list info)))))
                 (setq current-pos (match-end 0))))
-                ;; Match-end returns 0 when the whole string was matched.
-                ;; Setting current-pos to nil exits the loop
-                (if (= current-pos 0) (setq current-pos nil))
+            ;; Match-end returns 0 when the whole string was matched.
+            ;; Setting current-pos to nil exits the loop
+            (if (= current-pos 0) (setq current-pos nil))
             ;; return the locations
             found-locs))))))
 

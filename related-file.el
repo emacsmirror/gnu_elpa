@@ -152,17 +152,21 @@
                     (and (file-name-absolute-p input)
                          ;; FIXME: Not clear how to find the "end" of the part
                          ;; of the filename that makes it absolute.
-                         (string-match "/+" input)))
+                         (string-match "/" input)))
             (prog1 (substring input 0 (match-end 0))
               (setq input (substring input (match-end 0))))))
+         (ipoint (if anchor (- point (match-end 0)) point))
          (tail
-          (when (string-match "//" input)
-           (prog1 (substring input (match-end 0))
-             (setq input (substring input 0 (match-beginning 0))))))
-         (ipoint (- point (length anchor))))
-   (list anchor (related-file--split-dhint input ipoint)
-         (when tail (related-file--split-dhint
-                     tail (- ipoint (length input) 2))))))
+          (when (string-match "\\`/\\(/\\)?\\|//" input)
+            (when (and (equal anchor "/") (not (match-end 1)))
+              (setq anchor nil))
+            (prog1 (substring input (match-end 0))
+              (setq input (substring input 0 (match-beginning 0))))))
+         (tpoint (- ipoint (match-end 0))))
+    (list anchor
+          (when (> (length input) 0)
+            (related-file--split-dhint input ipoint))
+          (when tail (related-file--split-dhint tail tpoint)))))
 
 (defun related-file--in-dir (dir file fhint &optional dir-only)
   "Return the list of files in DIR which match FILE+FHINT.

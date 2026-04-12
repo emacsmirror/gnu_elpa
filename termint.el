@@ -153,6 +153,54 @@ ipython REPL).  This variable should be modified before calling
    ((numberp (car session)) (floor (log (car session) 4)))
    (t nil)))
 
+(defun termint-find-binary
+    (search-root binary-name &optional fallback-binary directory)
+  "Find BINARY-NAME upward from DIRECTORY inside SEARCH-ROOT.
+
+SEARCH-ROOT is a relative path such as \".venv/bin\" or
+\".venv/Scripts\".  Start searching from DIRECTORY, or
+`default-directory' when DIRECTORY is nil.  Return the first
+executable found at SEARCH-ROOT/BINARY-NAME while walking upward
+through parent directories.
+
+If no executable is found, return FALLBACK-BINARY when non-nil, or
+BINARY-NAME otherwise."
+  (cl-labels
+      ((find-in-parent
+        (current-dir)
+        (when-let* ((root (locate-dominating-file current-dir search-root))
+                    (binary-path (expand-file-name
+                                  binary-name
+                                  (expand-file-name search-root root))))
+          (if (file-executable-p binary-path)
+              binary-path
+            (when-let* ((parent (file-name-directory
+                                 (directory-file-name root)))
+                        ((not (equal parent root))))
+              (find-in-parent parent))))))
+    (or (find-in-parent (expand-file-name (or directory default-directory)))
+        fallback-binary
+        binary-name)))
+
+(defun termint-ipython-cmd-function ()
+  "Return the command used to start an IPython REPL.
+
+Prefer a project-local binary in `.venv/bin' on Unix-like systems or
+`.venv/Scripts' on Windows before falling back to `ipython' on PATH."
+  (if (eq system-type 'windows-nt)
+      (termint-find-binary ".venv/Scripts" "ipython.exe" "ipython")
+    (termint-find-binary ".venv/bin" "ipython" "ipython")))
+
+(defun termint-python-cmd-function ()
+  "Return the command used to start a Python REPL.
+
+Prefer a project-local binary in `.venv/bin' on Unix-like systems or
+`.venv/Scripts' on Windows before falling back to the system Python on
+PATH."
+  (if (eq system-type 'windows-nt)
+      (termint-find-binary ".venv/Scripts" "python.exe" "python")
+    (termint-find-binary ".venv/bin" "python3" "python3")))
+
 (defun termint--start (repl-name repl-cmd session)
   "Start a REPL.
 REPL-NAME is used to determine the buffer name, REPL-CMD is used to
@@ -425,8 +473,10 @@ hide the REPL window if it exists.  A keymap, `termint-REPL-NAME-map', is
 also included for these commands.
 
 REPL-NAME is a string, REPL-CMD is a string, a form evaluated to a
-string, or a function evaluated to a string.  ARGS is a plist, the
-following properties are supported:
+string, or a function evaluated to a string.  Helper functions such as
+`termint-ipython-cmd-function' and `termint-python-cmd-function' can
+be used here.  ARGS is a plist, the following properties are
+supported:
 
 `:bracketed-paste-p' whether send the string with bracketed paste
 mode, the default value is nil.  You can change the behavior at run

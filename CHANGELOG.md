@@ -1,3 +1,16 @@
+# Version 0.2.1 (2026-04-11)
+
+## Features
+
+- Added project-local virtual environment binary detection for Python/REPLs. The
+  new `termint-find-binary` function searches upward for executables in `.venv`
+  directories, with platform-aware paths for Unix and Windows. This is supported
+  by two helper functions: `termint-ipython-cmd-function` and
+  `termint-python-cmd-function`.
+
+- Expanded configuration options by defining more settings via `defcustom`,
+  improving customization support.
+
 # Version 0.2 (2025-11-30)
 
 # Features

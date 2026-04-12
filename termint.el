@@ -4,7 +4,7 @@
 
 ;; Author: Milan Glacier <dev@milanglacier.com>
 ;; Maintainer: Milan Glacier <dev@milanglacier.com>
-;; Version: 0.2
+;; Version: 0.2.2
 ;; URL: https://github.com/milanglacier/termint.el
 ;; Package-Requires: ((emacs "29.1"))
 

@@ -7,7 +7,7 @@
 ;; Created: 2009-07-04
 ;; URL: https://github.com/tlikonen/wcheck-mode
 ;; Keywords: text spell check languages ispell
-;; Version: 2021
+;; Version: 2026
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

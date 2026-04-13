@@ -118,7 +118,7 @@
 ;;          :blink-cursor-blinks 10
 ;;          :blink-cursor-interval 0.2
 ;;          :blink-cursor-delay 0.2))
-;;       ;; Omitting the doc string for demo purposes
+;;       ;; Omitting the docstring for demo purposes
 ;;       )
 ;;
 ;; When called from Lisp, the `cursory-set-preset' command requires a

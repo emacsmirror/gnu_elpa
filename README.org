@@ -122,7 +122,7 @@ Everything is in place to set up the package.
 :END:
 #+cindex: Package configuration
 
-Remember to read the doc string of each of these variables or functions.
+Remember to read the docstring of each of these variables or functions.
 
 #+begin_src emacs-lisp
 (use-package cursory
@@ -310,7 +310,7 @@ value of this variable for how that is done:
      :blink-cursor-blinks 10
      :blink-cursor-interval 0.2
      :blink-cursor-delay 0.2))
-  ;; Omitting the doc string for demo purposes
+  ;; Omitting the docstring for demo purposes
   )
 #+end_src
 

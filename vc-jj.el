@@ -842,6 +842,7 @@ asynchronously."
     (if (and (bound-and-true-p vc-async-checkin) ; Emacs 31 option
              (vc-jj-async-checkins))
         (let* ((root (vc-jj-root (or (car-safe files) default-directory)))
+               (default-directory root)
                (buffer (format "*vc-jj : %s*" (expand-file-name root)))
                (proc (apply #'vc-do-async-command ; Returns process object
                             buffer root vc-jj-program
@@ -928,6 +929,7 @@ command before it runs.  HISTORY-VAR is the variable name for the
 minibuffer history variable associated with SUBCOMMAND."
   ;; Implementation modified from `vc-git--pushpull'
   (let* ((root (vc-jj-root default-directory))
+         (default-directory root)
          (buffer (format "*vc-jj : %s*" (expand-file-name root)))
          (jj-program vc-jj-program)
          (command-args (append (ensure-list vc-jj-global-switches)

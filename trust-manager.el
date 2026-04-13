@@ -39,6 +39,18 @@
 ;; or via the utility command `trust-manager-customize'.  You may also
 ;; customize `trust-manager-trust-alist' to designate some directories
 ;; as trusted or untrusted before actually visiting files in them.
+;;
+;; By default, `trust-manager-mode' also adds a mode line indicator in
+;; untrusted buffers where risky features may have been disabled.
+;; The default indicator is a `?' shown in red.  You can customize or
+;; disable this indicator via the `trust-manager-untrusted-indicator'
+;; user option, and the face with the same name.
+;; Since only some features require trust, not every untrusted buffer
+;; needs your attention, only those in which the lack of trust matters.
+;; The user option `trust-manager-trust-indicator-buffer-condition'
+;; controls in which untrusted buffers indicator is shown.  By default
+;; it specifies only Emacs Lisp buffers, because several Emacs Lisp
+;; editing features, including on-the-fly diagnostics, require trust.
 
 ;;; Code:
 
@@ -46,14 +58,31 @@
   "Trust management."
   :group 'files)
 
+(defvar-local trust-manager--cached-trusted-content 'unset)
+
+(defun trust-manager--cached-trusted-content-p ()
+  "Like `trusted-content-p', but caches result in a buffer local variable.
+Do not use this function, especially not for security-relevant trust checks.
+It's only meant for UI use where stale values are acceptable."
+  (if (eq trust-manager--cached-trusted-content 'unset)
+      (setq trust-manager--cached-trusted-content (trusted-content-p))
+    trust-manager--cached-trusted-content))
+
 (defun trust-manager--set-file-trust (file trust)
   "If TRUST is non-nil, trust FILE; otherwise untrust it."
-  (let* ((file (abbreviate-file-name
-                (expand-file-name (if (file-directory-p file)
-                                      (file-name-as-directory file)
-                                    file))))
+  (let* ((exp (expand-file-name (if (file-directory-p file)
+                                    (file-name-as-directory file)
+                                  file)))
+         (file (abbreviate-file-name exp))
          (curr (delete file (default-value 'trusted-content))))
-    (setq-default trusted-content (if trust (cons file curr) curr))))
+    (setq-default trusted-content (if trust (cons file curr) curr))
+    (dolist (buf (buffer-list))
+      (with-current-buffer buf
+        (when-let* ((fbuf buffer-file-name)
+                    (fbuf (expand-file-name fbuf)))
+          (when (or (and (string-suffix-p "/" exp) (string-prefix-p exp fbuf))
+                    (equal fbuf exp))
+            (setq trust-manager--cached-trusted-content trust)))))))
 
 (defcustom trust-manager-trust-alist nil
   "Alist mapping file/directory names to boolean trust values.
@@ -112,6 +141,78 @@ This also happens when you customize this user option."
           (message "Marked project directory `%s' as %strusted"
                    pr (if trust "" "un")))))))
 
+(defun trust-manager--set-buffer-trust (&optional buffer trust)
+  "If TRUST is non-nil, trust BUFFER; otherwise untrust it."
+  (unless buffer (setq buffer (current-buffer)))
+  (setf (buffer-local-value 'trusted-content (or buffer (current-buffer)))
+        (when trust :all)))
+
+(defun trust-manager-trust-this-buffer (&optional event)
+  "Mark buffer at EVENT as trusted, defaulting to current buffer."
+  (declare
+   (completion
+    ;; Exclude this command from M-x completions in trusted buffers.
+    (lambda (_ buf &rest _)
+      (not (eq t (buffer-local-value
+                  'trust-manager--cached-trusted-content buf))))))
+  (interactive (list last-nonmenu-event))
+  (with-current-buffer (window-buffer (posn-window (event-start event)))
+    (when (eq trust-manager--cached-trusted-content t)
+      (user-error "Buffer `%s' is already trusted!" (current-buffer)))
+    (trust-manager--set-buffer-trust nil t)
+    (setq trust-manager--cached-trusted-content t)
+    (message "Buffer `%s' is now trusted" (current-buffer))
+    (force-mode-line-update)))
+
+(defvar-keymap trust-manager--on-trust-indicator-mouse-map
+  "<mode-line> <follow-link>" 'mouse-face
+  "<mode-line> <mouse-2>"    #'trust-manager-trust-this-buffer)
+
+(defcustom trust-manager-untrusted-indicator "?"
+  "String to show in the mode line in untrusted buffers.
+This can also be nil, in which case `trust-manager-mode' does not
+display any indicator for untrusted buffers."
+  :type '(choice string (const :tag "No indicator" nil))
+  :risky t
+  :package-version '(trust-manager . "0.2.0"))
+
+(defcustom trust-manager-trust-indicator-buffer-condition
+  '(derived-mode emacs-lisp-mode)
+  "Condition determining in which buffers to show trust indicator.
+See `buffer-match-p' for a description of the possible condition values."
+  :type 'buffer-predicate
+  :risky t
+  :package-version '(trust-manager . "0.2.0"))
+
+(defface trust-manager-untrusted-indicator '((t :inherit error))
+  "Face for the indicator `trust-manager-mode' shows in untrusted buffers."
+  :package-version '(trust-manager . "0.2.0"))
+
+(defvar trust-manager--trust-indicator
+  '(:eval
+    (when (buffer-match-p
+           trust-manager-trust-indicator-buffer-condition
+           (current-buffer))
+      (if (trust-manager--cached-trusted-content-p) ""
+        (concat
+         (propertize
+          trust-manager-untrusted-indicator
+          'face 'trust-manager-untrusted-indicator
+          'help-echo "mouse-2: Trust this buffer\nBuffer is UNTRUSTED (some features may be disabled)"
+          'mouse-face 'mode-line-highlight
+          'follow-link t
+          'keymap trust-manager--on-trust-indicator-mouse-map)
+         " ")))))
+
+(put 'trust-manager--trust-indicator 'risky-local-variable t)
+
+(defun trust-manager--ensure-extensible-global-mode-string ()
+  "Ensure `global-mode-string' can be extended."
+  (unless global-mode-string (setq global-mode-string '("")))
+  (when (or (atom global-mode-string)
+            (when-let* ((sym (car global-mode-string))) (symbolp sym)))
+    (setq global-mode-string `("" ,global-mode-string))))
+
 ;;;###autoload
 (define-minor-mode trust-manager-mode
   "Toggle per-project trust management with Trust Manager minor mode.
@@ -128,10 +229,11 @@ in your `load-path'.
 
 If you later disable this mode, it removes the hook that asks you about
 project trust, but it does not mark any file or directory as untrusted."
-  ;; TODO: Add interactive mode line trust indicator.
   :group 'files
   :global t
   :package-version '(trust-manager . "0.1.0")
+  (when trust-manager-untrusted-indicator
+    (trust-manager--ensure-extensible-global-mode-string))
   (if trust-manager-mode
       (progn
         (dolist (fn `(,user-init-file
@@ -142,8 +244,14 @@ project trust, but it does not mark any file or directory as untrusted."
                (trust-manager--set-file-trust fn t)))
         (pcase-dolist (`(,dir . ,trust) trust-manager-trust-alist)
           (trust-manager--set-file-trust dir trust))
-        (add-hook 'find-file-hook #'trust-manager--check-file))
-    (remove-hook 'find-file-hook #'trust-manager--check-file)))
+        (add-hook 'find-file-hook #'trust-manager--check-file)
+        (or (null trust-manager-untrusted-indicator)
+            (memq 'trust-manager--trust-indicator global-mode-string)
+            (setq global-mode-string
+                  (append global-mode-string '(trust-manager--trust-indicator)))))
+    (remove-hook 'find-file-hook #'trust-manager--check-file)
+    (setq global-mode-string
+          (delq 'trust-manager--trust-indicator global-mode-string))))
 
 (provide 'trust-manager)
 ;;; trust-manager.el ends here

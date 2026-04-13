@@ -17,7 +17,7 @@ enabled in trusted buffers.
 
 ## Why do I need a trust manager?
 
-By default, all Emacs buffers are untrusted, and you need configure
+By default, all Emacs buffers are untrusted, and you need to configure
 which buffers to trust via the user option `trusted-content`.  That's
 a safe default, but it's not the most convenient.  Hence this package.
 
@@ -35,3 +35,7 @@ These conveniences let you benefit from all the features you want
 without compromising on safety.  No need to open up overly broad trust
 just to get things working.
 
+`trust-manager-mode` also adds an indicator to the mode line in
+untrusted buffers, which reminds you that some features may have been
+disabled, and that the buffer contents might be risky.  You can click
+on the indicator (by default, a red `?`) to mark the buffer as trusted.

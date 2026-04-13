@@ -248,10 +248,11 @@ process exit status.
 
 The value of `vc-jj-global-switches' is prepended to ARGS.
 
-The process runs in `default-directory'.  The caller is responsible for
-setting it to the repository root before calling this function.  When
-`default-directory' is a remote path, `process-file' will invoke the
-appropriate file name handler (e.g., TRAMP), so this function works
+The process runs in `default-directory'.  The caller must set it to the
+repository root before calling this function if filesets may be passed
+to the jj command (see the docstring of `vc-jj--filename-to-fileset').
+When `default-directory' is a remote path, `process-file' will invoke
+the appropriate file name handler (e.g., TRAMP), so this function works
 correctly with remote repositories.
 
 This function is the subroutine underlying all non-user-facing vc-jj

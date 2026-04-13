@@ -87,6 +87,12 @@ This also happens when you customize this user option."
                  (when (file-in-directory-p dir par)
                    (throw 'ball t))))))))
 
+(defun trust-manager--should-trust-p (pr)
+  "Ask and return non-nil if project directory PR should be trusted."
+  (yes-or-no-p
+   (substitute-quotes
+    (format "Trust project directory `%s'?" pr))))
+
 (declare-function project-root "project" (project))
 
 (defun trust-manager--check-file ()
@@ -98,9 +104,7 @@ This also happens when you customize this user option."
                (assoc pr trust-manager-trust-alist)
                ;; Already trusted in `trusted-content'.
                (trust-manager--already-trusted-p pr))
-        (let ((trust (yes-or-no-p
-                      (substitute-quotes
-                       (format "Trust project directory `%s'?" pr)))))
+        (let ((trust (trust-manager--should-trust-p pr)))
           (trust-manager--set-file-trust pr trust)
           (customize-save-variable
            'trust-manager-trust-alist

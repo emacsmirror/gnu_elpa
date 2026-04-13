@@ -120,7 +120,7 @@ Everything is in place to set up the package.
 :END:
 #+cindex: Package configuration
 
-Remember to read the relevant doc strings.
+Remember to read the relevant docstrings.
 
 #+begin_src emacs-lisp
 (require 'fontaine)
@@ -417,7 +417,7 @@ Multiple presets form an alist (a list of lists), like this:
   )
 #+end_src
 
-The doc string of ~fontaine-presets~ explains all properties in detail
+The docstring of ~fontaine-presets~ explains all properties in detail
 and documents some important caveats or information about font settings
 in Emacs.
 

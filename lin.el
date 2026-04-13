@@ -124,7 +124,7 @@ background attribute.
 Set this user option with `customize-set-variable', the Custom
 UI, or equivalent.  It has a custom setter function which live
 updates the face.  Users who prefer to use `setq' must run
-`lin-enable-mode-in-buffers' manually.  Consult its doc string."
+`lin-enable-mode-in-buffers' manually.  Consult its docstring."
   :type '(radio (face :tag "Red style" lin-red)
                 (face :tag "Green style" lin-green)
                 (face :tag "Yellow style" lin-yellow)

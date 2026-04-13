@@ -5,7 +5,7 @@
 ;; Author: Jimmy Aguilar Mena
 ;; URL: https://github.com/Ergus/gtags-mode
 ;; Keywords: xref, project, imenu, gtags, global
-;; Version: 1.9.4
+;; Version: 1.9.5
 ;; Package-Requires: ((emacs "28"))
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -209,7 +209,12 @@ On success return a list of strings or nil if any error occurred."
 	       (output (string-trim
 			(buffer-substring-no-properties (point-min) (point-max)))))
 	  (if (eq status 0)
-	      (string-lines output t)
+	      (let ((res (string-lines output t)))
+		(gtags-mode--message 2 "Global sync %s elapsed: %s lines: %s"
+				     args
+				     (float-time (time-subtract (current-time) start-time))
+				     (length res))
+		res)
 	    (gtags-mode--message 1 "Global sync error output:\n%s" output)
 	    (gtags-mode--message 1 "Sync %s %s: exited abnormally with code: %s elapsed: %.06f"
 				 cmd args status
@@ -271,6 +276,8 @@ Includes the remote prefix concatenation when needed."
       gtags-mode--plist
     (gtags-mode--set-local-plist (or dir default-directory))))
 
+(defvar-local gtags-mode--list-cache-plist nil)
+
 (defun gtags-mode--list-completions (prefix)
   "Get the list of completions for PREFIX.
 When PREFIX is nil or empty; return the entire list of
@@ -279,13 +286,20 @@ completions usually from the cache when possible."
    ((not (gtags-mode--local-plist default-directory))
     (error "Calling `gtags-mode--list-completions' with no gtags-mode--plist"))
    ((and (stringp prefix)
-	 (not (string-match-p "\\`[ \t\n\r-]*\\'" prefix)) ;; not match empty or only -
-	 (gtags-mode--exec-sync "--directory"
-				(file-local-name
-				 (plist-get (gtags-mode--local-plist default-directory) :gtagsroot))
-				(if completion-ignore-case "--ignore-case" "--match-case")
-				"--through" "--completion"
-				(substring-no-properties prefix))))
+	 (not (string-blank-p prefix))) ;; not match empty or only -
+    (if-let* ((key (intern prefix))
+	      (value (plist-get gtags-mode--list-cache-plist key)))
+	value
+      (setq value (gtags-mode--exec-sync
+		   "--directory"
+		   (file-local-name
+		    (plist-get (gtags-mode--local-plist default-directory) :gtagsroot))
+		   (if completion-ignore-case "--ignore-case" "--match-case")
+		   "--through" "--completion"
+		   (substring-no-properties prefix)))
+      (setq gtags-mode--list-cache-plist
+	    (plist-put gtags-mode--list-cache-plist key value))
+      value))
    ((plist-get gtags-mode--plist :cache))
    (t (setq gtags-mode--plist
 	    (plist-put gtags-mode--plist
@@ -355,12 +369,13 @@ This function re-checks the local value for gtags-mode--plist or tries
 to set it.  This is needed when saving new created files because they
 won't have `buffer-file-name' but will just acquire one."
   (when (and buffer-file-name
-	     (or gtags-mode--plist
-		 (gtags-mode--set-local-plist default-directory)))
+	     (gtags-mode--local-plist default-directory))
     (when-let* ((default-directory (plist-get gtags-mode--plist :gtagsroot))
-		(true-file-name (plist-get gtags-mode--plist :true-file-name)))
-      (gtags-mode--exec-async
-       'gtags-mode--global "--single-update" (file-relative-name true-file-name)))))
+		(true-file-name (plist-get gtags-mode--plist :true-file-name))
+		(pr (gtags-mode--exec-async
+		     'gtags-mode--global "--single-update" (file-relative-name true-file-name))))
+      (process-put pr :extra-sentinel (lambda ()
+					(setq-local gtags-mode--list-cache-plist nil))))))
 
 ;; xref integration ==================================================
 (defun gtags-mode--xref-find-symbol (args symbol)

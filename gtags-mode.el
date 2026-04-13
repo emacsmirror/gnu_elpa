@@ -369,8 +369,7 @@ This function re-checks the local value for gtags-mode--plist or tries
 to set it.  This is needed when saving new created files because they
 won't have `buffer-file-name' but will just acquire one."
   (when (and buffer-file-name
-	     (or gtags-mode--plist
-		 (gtags-mode--set-local-plist default-directory)))
+	     (gtags-mode--local-plist default-directory))
     (when-let* ((default-directory (plist-get gtags-mode--plist :gtagsroot))
 		(true-file-name (plist-get gtags-mode--plist :true-file-name))
 		(pr (gtags-mode--exec-async

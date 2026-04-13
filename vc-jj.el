@@ -279,16 +279,15 @@ All stderr is discarded (since jj prints warnings to stderr even when
 run with \"--quiet\" option).  As a result, the returned strings are
 safe for parsing.
 
-FILE-OR-LIST may be nil or non-nil.  When nil, the process is run in
-`default-directory' and jj operates on whatever its default scope is for
-the given subcommand.  When non-nil, it should be a file or a list of
-files.  The process is run in the repository root the first file belongs
-in.  These file names are converted to jj fileset expressions and
-appended to ARGS.  If the caller would like to pass a raw file or list
-of files not converted to a jj fileset, they should be included in ARGS."
+FILE-OR-LIST may be nil or non-nil.  When non-nil, it should be a file
+or a list of files.  The process is run in the repository root the first
+file belongs in.  These file names are converted to jj fileset
+expressions and appended to ARGS.  If the caller would like to pass a
+raw file or list of files not converted to a jj fileset, they should be
+included in ARGS."
   (let* ((files (ensure-list file-or-list))
-         (root (and files (vc-jj-root (car files))))
-         (default-directory (or root default-directory))
+         (root (vc-jj-root (or (car files) default-directory)))
+         (default-directory root)
          (filesets (mapcar #'vc-jj--filename-to-fileset files))
          status lines)
     (with-temp-buffer
@@ -318,16 +317,15 @@ All stderr is discarded (since jj prints warnings to stderr even when
 run with the \"--quiet\" option).  As a result, the returned string is
 safe for parsing.
 
-FILE-OR-LIST may be nil or non-nil.  When nil, the process is run in
-`default-directory' and jj operates on whatever its default scope is for
-the given subcommand.  When non-nil, it should be a file or a list of
-files.  The process is run in the repository root the first file belongs
-in.  These file names are converted to jj fileset expressions and
-appended to ARGS.  If the caller would like to pass a raw file or list
-of files not converted to a jj fileset, they should be included in ARGS."
+FILE-OR-LIST may be nil or non-nil.  When non-nil, it should be a file
+or a list of files.  The process is run in the repository root the first
+file belongs in.  These file names are converted to jj fileset
+expressions and appended to ARGS.  If the caller would like to pass a
+raw file or list of files not converted to a jj fileset, they should be
+included in ARGS."
   (let* ((files (ensure-list file-or-list))
-         (root (and files (vc-jj-root (car files))))
-         (default-directory (or root default-directory))
+         (root (vc-jj-root (or (car files) default-directory)))
+         (default-directory root)
          (filesets (mapcar #'vc-jj--filename-to-fileset files))
          status output)
     (with-temp-buffer
@@ -355,18 +353,17 @@ parse or interpret jj's output programmatically, use
 functions distinguish between stderr and stdout, unlike this one, making
 them more suitable for programmatic parsing.
 
-FILE-OR-LIST may be nil or non-nil.  When nil, the process is run in
-`default-directory' and jj operates on whatever its default scope is for
-the given subcommand.  When non-nil, it should be a file or a list of
-files.  The process is run in the repository root the first file belongs
-in.  These file names are converted to jj fileset expressions and
-appended to ARGS.  If the caller would like to pass a raw file or list
-of files not converted to a jj fileset, they should be included in ARGS."
+FILE-OR-LIST may be nil or non-nil.  When non-nil, it should be a file
+or a list of files.  The process is run in the repository root the first
+file belongs in.  These file names are converted to jj fileset
+expressions and appended to ARGS.  If the caller would like to pass a
+raw file or list of files not converted to a jj fileset, they should be
+included in ARGS."
   (let* ((coding-system-for-read (or coding-system-for-read 'utf-8))
          (coding-system-for-write (or coding-system-for-write 'utf-8))
          (files (ensure-list file-or-list))
-         (root (and files (vc-jj-root (car files))))
-         (default-directory (or root default-directory))
+         (root (vc-jj-root (or (car files) default-directory)))
+         (default-directory root)
          (filesets (mapcar #'vc-jj--filename-to-fileset files))
          (global-switches (ensure-list vc-jj-global-switches)))
     ;; We pass our prepared fileset to jj directly rather than to
@@ -844,9 +841,8 @@ asynchronously."
                        (list "commit" "-m" description))))
     (if (and (bound-and-true-p vc-async-checkin) ; Emacs 31 option
              (vc-jj-async-checkins))
-        (let* ((file1 (or (car files) default-directory))
-               (root (vc-jj-root file1))
-               (buffer (format "*vc-jj : %s*" root))
+        (let* ((root (vc-jj-root (or (car-safe files) default-directory)))
+               (buffer (format "*vc-jj : %s*" (expand-file-name root)))
                (proc (apply #'vc-do-async-command ; Returns process object
                             buffer root vc-jj-program
                             (append (ensure-list vc-jj-global-switches)

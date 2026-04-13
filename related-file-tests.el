@@ -26,7 +26,7 @@
 
 (require 'related-file)
 
-(ert-deftest related-file--parse-input ()
+(ert-deftest related-file-parse-input ()
   (should (equal (related-file--parse-input "ac2/b" 1)
                  '(nil (("a" point "c" "2") ("b")) nil)))
   (should (equal (related-file--parse-input "~/ac2/b" 3)
@@ -44,9 +44,48 @@
 
   (should (equal (nth 1 (related-file--parse-input "he*lp" 1))
                  '(("h" point "e" * "lp"))))
+  (should (equal (nth 1 (related-file--parse-input "foo.c" 1))
+                 '(("f" point "oo" "." "c"))))
   (should (equal (nth 1 (related-file--parse-input "he*lp/**/ba" 1))
                  '(("h" point "e" * "lp") ** ("ba"))))
   )
+
+(defvar related-file-tests--known-file
+  (or (macroexp-file-name) buffer-file-name))
+
+(ert-deftest related-file-related-file ()
+  (let* ((kdir2 (file-name-directory related-file-tests--known-file))
+         (file (file-name-nondirectory related-file-tests--known-file))
+         (kdir1 (file-name-directory (directory-file-name kdir2)))
+         (dir2 (file-name-nondirectory (directory-file-name kdir2)))
+         (kdir0 (file-name-directory (directory-file-name kdir1)))
+         (dir1 (file-name-nondirectory (directory-file-name kdir1))))
+    ;; (should (equal related-file-tests--known-file
+    ;;                (file-name-concat kdir0 dir1 dir2 file)))
+    (should (equal related-file-tests--known-file
+                   (concat kdir0 dir1 "/" dir2 "/" file)))
+
+    (let ((res (related-file dir1 (concat kdir0 "unlikely" "/" dir2 "/" file))))
+      (should (equal (car res) kdir0))
+      (should (member (concat dir1 "/" dir2 "/" file)
+                      (mapcar (lambda (x) (related-file--to-string nil x))
+                              (cdr res)))))
+
+    (let ((res (related-file dir2
+                             (concat kdir0 dir1 "/" "never-seen" "/" file))))
+      (should (equal (car res) (concat kdir0 dir1 "/")))
+      (should (member (concat dir2 "/" file)
+                      (mapcar (lambda (x) (related-file--to-string nil x))
+                              (cdr res)))))
+    (let ((res (related-file
+                (concat dir1 "/" file)
+                (concat kdir0 "never-seen" "/" dir2 "/" "unlikely"))))
+      (should (equal (car res) kdir0))
+      (should (member (concat dir1 "/" dir2 "/" file)
+                      (mapcar (lambda (x) (related-file--to-string nil x))
+                              (cdr res)))))
+
+    ))
 
 (provide 'related-file-tests)
 ;;; related-file-tests.el ends here

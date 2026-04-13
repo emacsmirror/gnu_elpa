@@ -92,6 +92,11 @@
 ;;; Code:
 
 (require 'external-completion)
+(require 'cl-lib)
+
+(defcustom related-file-use-face 'font-lock-comment-face
+  "Face to use to highlight the non-user-input part of the minibuffer."
+  :type 'face)
 
 (defmacro related-file--until (cond &rest body)
   (declare (debug t) (indent 1))
@@ -113,7 +118,7 @@
           (res '())
           (case-fold-search nil))
       (while (string-match
-              "\\*\\|[[:lower:]][[:upper:]].\\b\\|[0-9][^0-9]\\|[^0-9][0-9]"
+              "\\*\\|[[:lower:]][[:upper:]]\\|.\\b\\|[0-9][^0-9]\\|[^0-9][0-9]"
               shint i)
         (if (not (eq ?* (aref shint (match-beginning 0))))
             (push (substring shint i (setq i (+ 1 (match-beginning 0)))) res)
@@ -186,38 +191,39 @@ If DIR-ONLY is non-nil, ignore non-directories."
           (list (list file file)))
     (let ((re (mapconcat #'regexp-quote (remq 'point (remq '* fhint)) ".*"))
           (names ()))
-      (dolist (candidate (directory-files dir nil re))
-        (unless (and dir-only (not (file-directory-p
-                                    (file-name-concat dir candidate))))
-          (named-let loop ((hints fhint)
-                           (chunks ())
-                           (bc 0)
-                           (bf 0))
-            (let (wild)
-              (while (memq (car hints) '(* point))
-                (setq hints (cdr hints))
-                (setq wild t))
-              (if (null hints)
-                  (let* ((suffix (substring candidate bc)))
-                    (when (or wild
-                              (string-search suffix (or file "")))
-                      (push (cons candidate
-                                  (reverse (cons suffix chunks)))
-                            names)))
-              (let ((hint (car hints))
-                    (i bc)
-                    mbc)
-                (while (setq mbc (string-search hint candidate i))
-                  (let* ((mec (+ mbc (length hint)))
-                         (prefix (substring candidate bc mbc))
-                         (mbf (or wild (string-search prefix (or file "") bf))))
-                    (when mbf
-                      (loop (cdr hints) `(,(intern hint) ,prefix ,@chunks)
-                            mec (if (numberp mbf) (+ mbf (length prefix)) bf)))
-                    (setq i mec)))))))))
-      ;; Prefer longer names, i.e. names which keep more of FILE and are
-      ;; hence "closer".
-      (sort names :key #'length :reverse t))))
+      (when (file-directory-p dir)
+        (dolist (candidate (directory-files dir nil re))
+          (unless (and dir-only (not (file-directory-p
+                                      (file-name-concat dir candidate))))
+            (named-let loop ((hints fhint)
+                             (chunks ())
+                             (bc 0)
+                             (bf 0))
+              (let (wild)
+                (while (memq (car hints) '(* point))
+                  (setq hints (cdr hints))
+                  (setq wild t))
+                (if (null hints)
+                    (let* ((suffix (substring candidate bc)))
+                      (when (or wild
+                                (string-search suffix (or file "")))
+                        (push (cons candidate
+                                    (reverse (cons suffix chunks)))
+                              names)))
+                  (let ((hint (car hints))
+                        (i bc)
+                        mbc)
+                    (while (setq mbc (string-search hint candidate i))
+                      (let* ((mec (+ mbc (length hint)))
+                             (prefix (substring candidate bc mbc))
+                             (mbf (or wild (string-search prefix (or file "") bf))))
+                        (when mbf
+                          (loop (cdr hints) `(,(intern hint) ,prefix ,@chunks)
+                                mec (if (numberp mbf) (+ mbf (length prefix)) bf)))
+                        (setq i mec)))))))))
+        ;; Prefer longer names, i.e. names which keep more of FILE and are
+        ;; hence "closer".
+        (sort names :key #'length :reverse t)))))
 
 (defun related-file--in-subdirs (dir file dhint)
   (cl-assert (equal dir (file-name-as-directory dir)))
@@ -247,6 +253,7 @@ If DIR-ONLY is non-nil, ignore non-directories."
                             (mapcar (lambda (submatch)
                                       (if (null submatch)
                                           (cdr match)
+                                        ;; FIXME: "/" or `/'?
                                         (append (cdr match) '("/") submatch)))
                                     (if (null dhints)
                                         (append submatches (list nil))
@@ -258,6 +265,7 @@ If DIR-ONLY is non-nil, ignore non-directories."
                                (if (null dhint)
                                    (list (list fhead))
                                  (when (file-directory-p dir-fhead)
+                                   ;; FIXME: "/" or `/'?
                                    (mapcar (lambda (f) `(,fhead "/" ,@f))
                                            (related-file--in-subdirs
                                             (file-name-as-directory dir-fhead)
@@ -297,20 +305,71 @@ If DIR-ONLY is non-nil, ignore non-directories."
 
 (defvar related-file--read-history nil)
 
-(defun related-file--to-string (dir match)
+(defun related-file--to-string (dir match &optional completion-highlight)
+  ;; FIXME: Still to add the `completions-first-difference' in the first
+  ;; char after point.
   (concat dir (mapconcat (lambda (x)
                            (cond
                             ((stringp x) x)
                             ((symbolp x)
-                             (propertize (symbol-name x)
-                                         'face 'completions-common-part))
-                            (t x)))
+                             (if (null completion-highlight)
+                                 (symbol-name x)
+                               (propertize (symbol-name x)
+                                           'face 'completions-common-part)))
+                            (t (signal 'wrong-type-argument
+                                       (list '(or string symbol) x)))))
                          match)))
 
-(defun related-file--pch (basename predicate)
-  (lambda ()
-    ;; FIXME
-    ))
+(defvar related-file--timer nil)
+
+(defun related-file--on-the-fly (minibuf basename predicate)
+  (setq related-file--timer nil)
+  (with-current-buffer minibuf
+    (let* ((beg (minibuffer-prompt-end))
+           (input (buffer-substring-no-properties beg (point-max)))
+           (matches (related-file input basename))
+           (match (car (cdr-safe matches))))
+      (remove-overlays beg (point-max) 'related-file t)
+      (when (consp matches)
+        (save-excursion
+          (goto-char beg)
+          (let* ((strs (list (car matches)))
+                 (mkol
+                  (lambda (beg end)
+                    (let ((ol (make-overlay beg end nil nil t)))
+                      (overlay-put ol 'related-file t)
+                      (overlay-put ol 'before-string
+                                   (let ((str (mapconcat #'identity
+                                                         (nreverse strs) "")))
+                                     (setq strs nil)
+                                     (if related-file-use-face
+                                         (propertize
+                                          str 'face related-file-use-face)
+                                       (concat "{" str "}"))))))))
+            (dolist (x match)
+              (cond
+               ((stringp x) (push x strs))
+               ((symbolp x)
+                (let ((name (symbol-name x)))
+                  (search-forward name)
+                  (funcall mkol (match-beginning 0) (match-end 0))))
+               (t (signal 'wrong-type-argument
+                          (list '(or string symbol) x)))))
+            (when strs
+              (funcall mkol (point-max) (point-max)))))))))
+
+
+(defun related-file--acf (basename predicate)
+  (lambda (_ _ _)
+    (unless related-file--timer
+      (setq related-file--timer
+            (run-with-idle-timer 0.1 nil
+                                 #'related-file--on-the-fly
+                                 (current-buffer)
+                                 basename
+                                 predicate)))))
+  
+
 
 (defun related-file--completion-table (basename predicate)
   (external-completion-table
@@ -318,9 +377,9 @@ If DIR-ONLY is non-nil, ignore non-directories."
    (lambda (input point)
      (let ((matches (related-file input basename point)))
        (if (not (consp matches))
-           t
+           nil
          (let ((dir (car matches)))
-           (mapcar (lambda (match) (related-file--to-string nil match))
+           (mapcar (lambda (match) (related-file--to-string nil match t))
                    (cdr matches))))))))
 
 ;;;###autoload
@@ -329,8 +388,11 @@ If DIR-ONLY is non-nil, ignore non-directories."
   (unless basename (setq basename (or buffer-file-name default-directory)))
   (minibuffer-with-setup-hook
       (lambda ()
-        (add-hook 'post-command-hook (related-file--pch basename predicate)
-                  nil t))
+        (add-hook 'after-change-functions
+                  (related-file--acf basename predicate) nil t)
+        ;; (add-hook 'post-command-hook (related-file--pch basename predicate)
+        ;;           nil t)
+        )
     (let* ((res (completing-read prompt
                                  (related-file--completion-table
                                   basename predicate)

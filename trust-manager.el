@@ -77,13 +77,27 @@ This also happens when you customize this user option."
   (interactive)
   (customize-option 'trust-manager-trust-alist))
 
+(defun trust-manager--already-trusted-p (dir)
+  "Return non-nil if DIR is trusted according to `trusted-content'."
+  (let ((tc (default-value 'trusted-content)))
+    (or (eq tc :all)
+        (and (listp tc)
+             (catch 'ball
+               (dolist (par tc)
+                 (when (file-in-directory-p dir par)
+                   (throw 'ball t))))))))
+
 (declare-function project-root "project" (project))
 
 (defun trust-manager--check-file ()
   "Check if the current project should be marked as trusted."
   (when-let* ((pc (project-current)))
     (let ((pr (project-root pc)))
-      (unless (assoc pr trust-manager-trust-alist)
+      (unless (or
+               ;; Already asked about this project.
+               (assoc pr trust-manager-trust-alist)
+               ;; Already trusted in `trusted-content'.
+               (trust-manager--already-trusted-p pr))
         (let ((trust (yes-or-no-p
                       (substitute-quotes
                        (format "Trust project directory `%s'?" pr)))))

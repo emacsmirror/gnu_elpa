@@ -46,6 +46,11 @@
 ;; similar, except that it supports arbitrary files/directories,
 ;; rather than just projects.
 ;;
+;; In addition, `trust-manager-mode' integrates with the command
+;; `project-forget-project' such that when you "forget" a project,
+;; its directory stops being trusted and its entry in
+;; `trust-manager-trust-alist' is cleared.
+;;
 ;; By default, `trust-manager-mode' also adds a mode line indicator in
 ;; untrusted buffers where risky features may have been disabled.
 ;; The default indicator is a `?' shown in red.  You can click on the
@@ -311,6 +316,12 @@ See `buffer-match-p' for a description of the possible condition values."
    'trust-manager-now-trusted-hook
    #'trust-manager--enable-elisp-flymake-backend nil t))
 
+(defun trust-manager--forget-project (root)
+  "Remove trust setting for project ROOT from `trust-manager-trust-alist'."
+  (setf (alist-get root trust-manager-trust-alist nil t #'equal) nil)
+  (trust-manager--set-file-trust root nil)
+  (customize-save-variable 'trust-manager-trust-alist trust-manager-trust-alist))
+
 ;;;###autoload
 (define-minor-mode trust-manager-mode
   "Toggle per-project trust management with Trust Manager minor mode.
@@ -343,12 +354,15 @@ project trust, but it does not mark any file or directory as untrusted."
         (trust-manager--set-files-trust trust-manager-trust-alist)
         (add-hook 'find-file-hook #'trust-manager--check-file)
         (add-hook 'emacs-lisp-mode-hook #'trust-manager--set-up-for-elisp)
+        (advice-add 'project-forget-project
+                    :before #'trust-manager--forget-project)
         (or (null trust-manager-untrusted-indicator)
             (memq 'trust-manager--trust-indicator global-mode-string)
             (setq global-mode-string
                   (append global-mode-string '(trust-manager--trust-indicator)))))
     (remove-hook 'find-file-hook #'trust-manager--check-file)
     (remove-hook 'emacs-lisp-mode-hook #'trust-manager--set-up-for-elisp)
+    (advice-remove 'project-forget-project #'trust-manager--forget-project)
     (setq global-mode-string
           (delq 'trust-manager--trust-indicator global-mode-string))))
 

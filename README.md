@@ -5,6 +5,9 @@ This Emacs package streamlines per-project trust management.
 Install it however you install packages, enable `trust-manager-mode`,
 and you're good to go!
 
+The commentary section at the top of `trust-manager.el` details useful
+tips and customization options that you may want to check out.
+
 ## What trust does this package manage?
 
 Emacs 30 introduced a notion of trusted and untrusted buffers

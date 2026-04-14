@@ -212,6 +212,10 @@ With a prefix argument, set TRUST to nil instead."
    (substitute-quotes
     (format "Trust project directory `%s'?" pr))))
 
+(defvar trust-manager--trust-query-function #'trust-manager--should-trust-p)
+
+(put 'trust-manager--trust-query-function 'risky-local-variable t)
+
 (declare-function project-root "project" (project))
 
 (defun trust-manager--check-file ()
@@ -223,7 +227,7 @@ With a prefix argument, set TRUST to nil instead."
                (assoc pr trust-manager-trust-alist)
                ;; Already trusted in `trusted-content'.
                (trust-manager--already-trusted-p pr))
-        (let ((trust (trust-manager--should-trust-p pr)))
+        (let ((trust (funcall trust-manager--trust-query-function pr)))
           (trust-manager--set-file-trust pr trust)
           (customize-save-variable
            'trust-manager-trust-alist

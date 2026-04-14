@@ -1,3 +1,9 @@
+New in 26
+
+    * Minor changes for Emacs 31 compatibility.
+    * Add missing lexical bindings.
+
+
 New in 25
 
     * emms-browser.el, bug fix: stop the stop hooks from running too late.

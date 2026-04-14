@@ -42,15 +42,25 @@
 ;;
 ;; By default, `trust-manager-mode' also adds a mode line indicator in
 ;; untrusted buffers where risky features may have been disabled.
-;; The default indicator is a `?' shown in red.  You can customize or
-;; disable this indicator via the `trust-manager-untrusted-indicator'
-;; user option, and the face with the same name.
+;; The default indicator is a `?' shown in red.  You can click on the
+;; indicator to mark the buffer as trusted (it runs the command
+;; `trust-manager-trust-this-buffer', which you can run directly too).
+;; You can also customize or disable this indicator via the
+;; `trust-manager-untrusted-indicator' user option, and the face with
+;; the same name.
+;;
 ;; Since only some features require trust, not every untrusted buffer
 ;; needs your attention, only those in which the lack of trust matters.
 ;; The user option `trust-manager-trust-indicator-buffer-condition'
 ;; controls in which untrusted buffers indicator is shown.  By default
 ;; it specifies only Emacs Lisp buffers, because several Emacs Lisp
 ;; editing features, including on-the-fly diagnostics, require trust.
+;;
+;; When `trust-manager-mode' marks a previously untrusted buffer as
+;; trusted, e.g. when you click on the untrusted buffer mode line
+;; indicator, it runs the hook `trust-manager-now-trusted-hook'.
+;; By default, `trust-manager-mode' uses this hook to re-enable the
+;; Emacs Lisp Flymake backend for on-the-fly diagnostics.
 
 ;;; Code:
 
@@ -68,6 +78,11 @@ It's only meant for UI use where stale values are acceptable."
       (setq trust-manager--cached-trusted-content (trusted-content-p))
     trust-manager--cached-trusted-content))
 
+(defcustom trust-manager-now-trusted-hook nil
+  "Hook `trust-manager-mode' runs when marking an untrusted buffer as trusted.
+The newly trusted buffer is current when functions on this hook run."
+  :type 'hook)
+
 (defun trust-manager--set-file-trust (file trust)
   "If TRUST is non-nil, trust FILE; otherwise untrust it."
   (let* ((exp (expand-file-name (if (file-directory-p file)
@@ -82,7 +97,10 @@ It's only meant for UI use where stale values are acceptable."
                     (fbuf (expand-file-name fbuf)))
           (when (or (and (string-suffix-p "/" exp) (string-prefix-p exp fbuf))
                     (equal fbuf exp))
-            (setq trust-manager--cached-trusted-content trust)))))))
+            (let ((old trust-manager--cached-trusted-content))
+              (setq trust-manager--cached-trusted-content trust)
+              (and trust (not old)
+                   (run-hooks 'trust-manager-now-trusted-hook)))))))))
 
 (defcustom trust-manager-trust-alist nil
   "Alist mapping file/directory names to boolean trust values.
@@ -143,9 +161,11 @@ This also happens when you customize this user option."
 
 (defun trust-manager--set-buffer-trust (&optional buffer trust)
   "If TRUST is non-nil, trust BUFFER; otherwise untrust it."
-  (unless buffer (setq buffer (current-buffer)))
-  (setf (buffer-local-value 'trusted-content (or buffer (current-buffer)))
-        (when trust :all)))
+  (with-current-buffer (or buffer (current-buffer))
+    (let ((old (trust-manager--cached-trusted-content-p)))
+      (setq-local trusted-content (when trust :all))
+      (setq trust-manager--cached-trusted-content trust)
+      (and trust (not old) (run-hooks 'trust-manager-now-trusted-hook)))))
 
 (defun trust-manager-trust-this-buffer (&optional event)
   "Mark buffer at EVENT as trusted, defaulting to current buffer."
@@ -160,7 +180,6 @@ This also happens when you customize this user option."
     (when (eq trust-manager--cached-trusted-content t)
       (user-error "Buffer `%s' is already trusted!" (current-buffer)))
     (trust-manager--set-buffer-trust nil t)
-    (setq trust-manager--cached-trusted-content t)
     (message "Buffer `%s' is now trusted" (current-buffer))
     (force-mode-line-update)))
 
@@ -213,6 +232,20 @@ See `buffer-match-p' for a description of the possible condition values."
             (when-let* ((sym (car global-mode-string))) (symbolp sym)))
     (setq global-mode-string `("" ,global-mode-string))))
 
+(defun trust-manager--enable-elisp-flymake-backend ()
+  "Re-enable `elisp-flymake-byte-compile', if it is disabled."
+  (and (bound-and-true-p flymake-mode)
+       (fboundp 'flymake-disabled-backends) ; Silence byte-compiler.
+       (memq 'elisp-flymake-byte-compile (flymake-disabled-backends))
+       (fboundp 'flymake--run-backend)      ; Likewise.
+       (flymake--run-backend 'elisp-flymake-byte-compile)))
+
+(defun trust-manager--set-up-for-elisp ()
+  "Set up re-enabling `elisp-flymake-byte-compile' when the buffer is trusted."
+  (add-hook
+   'trust-manager-now-trusted-hook
+   #'trust-manager--enable-elisp-flymake-backend nil t))
+
 ;;;###autoload
 (define-minor-mode trust-manager-mode
   "Toggle per-project trust management with Trust Manager minor mode.
@@ -245,11 +278,13 @@ project trust, but it does not mark any file or directory as untrusted."
         (pcase-dolist (`(,dir . ,trust) trust-manager-trust-alist)
           (trust-manager--set-file-trust dir trust))
         (add-hook 'find-file-hook #'trust-manager--check-file)
+        (add-hook 'emacs-lisp-mode-hook #'trust-manager--set-up-for-elisp)
         (or (null trust-manager-untrusted-indicator)
             (memq 'trust-manager--trust-indicator global-mode-string)
             (setq global-mode-string
                   (append global-mode-string '(trust-manager--trust-indicator)))))
     (remove-hook 'find-file-hook #'trust-manager--check-file)
+    (remove-hook 'emacs-lisp-mode-hook #'trust-manager--set-up-for-elisp)
     (setq global-mode-string
           (delq 'trust-manager--trust-indicator global-mode-string))))
 

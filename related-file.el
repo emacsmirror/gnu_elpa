@@ -179,16 +179,22 @@ A file name \"matches\" if it is made of an interleaving of chunks coming
 from FILE and all elements of FHINT, in order.
 For example \"mbo.h\" match \"allmyfoo.c\" + (\"b\" \"h\")
 because \"mbo.h\" is m+b+o.+h which does contain all the elements from
-\(\"b\" \"h\") in the same order and \"allmyfoo,c\" does contain all the
+\(\"b\" \"h\") in the same order and \"allmyfoo.c\" does contain all the
 other elements as well (\"m\" and \"o.\"), in the same order.
-If DIR-ONLY is non-nil, ignore non-directories."
-  ;; FIXME: Add support for a wildcard?
-  ;; FIXME: Add support for a list of (FILE . AUX) and return for each match
-  ;; the (FILE . AUX) it matched.
+If DIR-ONLY is non-nil, ignore non-directories.
+The return value is a list of elements of the form (FILENAME . PARTS) where
+FILENAME is a file in DIR and PARTS is its decomposition, which is a list of
+either strings (for parts that come from FHINT) or conses (ORIG . STRING)
+where ORIG is nil for parts taken from FILE or a symbol among `*' and `point'."
+  ;; FIXME: The FILENAMEs returned are used only to find if it's a directory
+  ;; so we could return a boolean IS-DIR instead.
+  ;; FIXME: For wildcards, it could be worthwhile to indicate if
+  ;; it could also be matched from FILE (or partly so), so we can
+  ;; highlight it differently in the completions.
   (cl-assert (equal dir (file-name-as-directory dir)))
   (if (null fhint)
       (if (and file (file-exists-p (file-name-concat dir file)))
-          (list (list file file)))
+          (list (list file `(nil . ,file))))
     (let ((re (mapconcat #'regexp-quote (remq 'point (remq '* fhint)) ".*"))
           (names ()))
       (when (file-directory-p dir)
@@ -201,14 +207,16 @@ If DIR-ONLY is non-nil, ignore non-directories."
                              (bf 0))
               (let (wild)
                 (while (memq (car hints) '(* point))
-                  (setq hints (cdr hints))
-                  (setq wild t))
+                  (setq wild (if (eq (car hints) '*)
+                                 (or wild '*)
+                              'point))
+                  (setq hints (cdr hints)))
                 (if (null hints)
                     (let* ((suffix (substring candidate bc)))
                       (when (or wild
                                 (string-search suffix (or file "")))
                         (push (cons candidate
-                                    (reverse (cons suffix chunks)))
+                                    (reverse (cons (cons wild suffix) chunks)))
                               names)))
                   (let ((hint (car hints))
                         (i bc)
@@ -216,10 +224,13 @@ If DIR-ONLY is non-nil, ignore non-directories."
                     (while (setq mbc (string-search hint candidate i))
                       (let* ((mec (+ mbc (length hint)))
                              (prefix (substring candidate bc mbc))
-                             (mbf (or wild (string-search prefix (or file "") bf))))
+                             (mbf (or wild (string-search prefix
+                                                          (or file "") bf))))
                         (when mbf
-                          (loop (cdr hints) `(,(intern hint) ,prefix ,@chunks)
-                                mec (if (numberp mbf) (+ mbf (length prefix)) bf)))
+                          (loop (cdr hints)
+                                `(,hint ,(cons wild prefix) ,@chunks)
+                                mec (if (numberp mbf)
+                                        (+ mbf (length prefix)) bf)))
                         (setq i mec)))))))))
         ;; Prefer longer names, i.e. names which keep more of FILE and are
         ;; hence "closer".
@@ -241,8 +252,7 @@ If DIR-ONLY is non-nil, ignore non-directories."
                  (matches (related-file--in-dir dir fhead fhint dhints))
                  (rest (mapcan
                         (lambda (match)
-                          (let* ((f
-                                  (file-name-concat dir (car match)))
+                          (let* ((f (file-name-concat dir (car match)))
                                  (submatches
                                   (if (not (or dhints
                                                (and file (file-directory-p f))))
@@ -253,8 +263,11 @@ If DIR-ONLY is non-nil, ignore non-directories."
                             (mapcar (lambda (submatch)
                                       (if (null submatch)
                                           (cdr match)
-                                        ;; FIXME: "/" or `/'?
-                                        (append (cdr match) '("/") submatch)))
+                                        ;; FIXME: "/" or (nil . "/")?
+                                        (append (cdr match)
+                                                (if dhints '("/")
+                                                  '((nil . "/")))
+                                                submatch)))
                                     (if (null dhints)
                                         (append submatches (list nil))
                                       submatches))))
@@ -263,10 +276,10 @@ If DIR-ONLY is non-nil, ignore non-directories."
             (when (and fhead (file-exists-p dir-fhead))
               (setq res (nconc res
                                (if (null dhint)
-                                   (list (list fhead))
+                                   (list (list `(nil . ,fhead)))
                                  (when (file-directory-p dir-fhead)
-                                   ;; FIXME: "/" or `/'?
-                                   (mapcar (lambda (f) `(,fhead "/" ,@f))
+                                   (mapcar (lambda (f) `((nil . ,(concat fhead "/"))
+                                                    ,@f))
                                            (related-file--in-subdirs
                                             (file-name-as-directory dir-fhead)
                                             file dhint)))))))
@@ -310,14 +323,9 @@ If DIR-ONLY is non-nil, ignore non-directories."
   ;; char after point.
   (concat dir (mapconcat (lambda (x)
                            (cond
-                            ((stringp x) x)
-                            ((symbolp x)
-                             (if (null completion-highlight)
-                                 (symbol-name x)
-                               (propertize (symbol-name x)
-                                           'face 'completions-common-part)))
-                            (t (signal 'wrong-type-argument
-                                       (list '(or string symbol) x)))))
+                            ((not (stringp x)) (cdr x))
+                            ((not completion-highlight) x)
+                            (t (propertize x 'face 'completions-common-part))))
                          match)))
 
 (defvar related-file--timer nil)
@@ -348,13 +356,11 @@ If DIR-ONLY is non-nil, ignore non-directories."
                                        (concat "{" str "}"))))))))
             (dolist (x match)
               (cond
-               ((stringp x) (push x strs))
-               ((symbolp x)
-                (let ((name (symbol-name x)))
+               ((not (stringp x)) (push (cdr x) strs))
+               (t
+                (let ((name x))
                   (search-forward name)
-                  (funcall mkol (match-beginning 0) (match-end 0))))
-               (t (signal 'wrong-type-argument
-                          (list '(or string symbol) x)))))
+                  (funcall mkol (match-beginning 0) (match-end 0))))))
             (when strs
               (funcall mkol (point-max) (point-max)))))))))
 

@@ -6,7 +6,7 @@
 ;; Maintainer: Eshel Yaron <me@eshelyaron.com>
 ;; Keywords: security trust files
 ;; URL: https://git.sr.ht/~eshel/trust-manager
-;; Package-Version: 0.2.0
+;; Package-Version: 0.3.0
 ;; Package-Requires: ((emacs "30.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -93,7 +93,8 @@ It's only meant for UI use where stale values are acceptable."
 (defcustom trust-manager-now-trusted-hook nil
   "Hook `trust-manager-mode' runs when marking an untrusted buffer as trusted.
 The newly trusted buffer is current when functions on this hook run."
-  :type 'hook)
+  :type 'hook
+  :package-version '(trust-manager . "0.3.0"))
 
 (defun trust-manager--set-file-trust (file trust)
   "If TRUST is non-nil, trust FILE; otherwise untrust it."

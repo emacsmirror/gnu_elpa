@@ -75,6 +75,6 @@ void
 display_img_to_overlay(emacs_env *env, EmacsWinState *win_state, char *img_data,
 		       size_t img_size, emacs_value buffer_overlay);
 emacs_value
-outline2plist(emacs_env *env, fz_outline *node);
+outline2plist(emacs_env *env, DocState *state, fz_outline *node);
 
 #endif

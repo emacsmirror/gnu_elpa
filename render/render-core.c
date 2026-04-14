@@ -424,7 +424,7 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 		goto cleanup;
 	}
 
-	outline2plist(env, doc_state->outline);
+	outline2plist(env, doc_state, doc_state->outline);
 
 	/* Allocate pointer array (pool) */
 	doc_state->cached_pages_pool = malloc(

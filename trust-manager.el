@@ -102,20 +102,41 @@ The newly trusted buffer is current when functions on this hook run."
               (and trust (not old)
                    (run-hooks 'trust-manager-now-trusted-hook)))))))))
 
+(defun trust-manager--set-files-trust (alist)
+  "Apply trust values from ALIST."
+  (let ((last-trusted-dir nil))
+    (pcase-dolist (`(,file . ,trust)
+                   ;; Handle files/subdirectories after a directory
+                   ;; that contains them.
+                   (sort (mapcar (pcase-lambda (`(,file . ,trust))
+                                   (cons (expand-file-name file) trust))
+                                 alist)))
+      (unless (and last-trusted-dir
+                   ;; Skip FILE if it's a descendant of a trusted dir,
+                   ;; and thus trusted too.
+                   (string-prefix-p last-trusted-dir (expand-file-name file)))
+        (and (file-directory-p file) trust
+             (setq last-trusted-dir
+                   (expand-file-name (file-name-as-directory file))))
+        (trust-manager--set-file-trust file trust)))))
+
 (defcustom trust-manager-trust-alist nil
   "Alist mapping file/directory names to boolean trust values.
 
 When `trust-manager-mode' is enabled, it marks files and directories
 that appear as keys in this alist as trusted or untrusted according to
 their associated values.
-This also happens when you customize this user option."
+This also happens when you customize this user option.
+
+If an entry in this alist says that some directory is trusted, then any
+other entry that specifies a file or subdirectory of the trusted
+directory is ignored, since it is already implicitly trusted as well."
   :type '(alist :key-type (file :tag "File or Directory")
                 :value-type (boolean :tag "Is Trusted"))
   :risky t
   :package-version '(trust-manager . "0.1.0")
   :set (lambda (symbol value)
-         (pcase-dolist (`(,dir . ,trust) value)
-           (trust-manager--set-file-trust dir trust))
+         (trust-manager--set-files-trust value)
          (set-default-toplevel-value symbol (sort value))))
 
 ;;;###autoload
@@ -275,8 +296,7 @@ project trust, but it does not mark any file or directory as untrusted."
                       . ,load-path))
           (and fn (file-name-absolute-p fn)
                (trust-manager--set-file-trust fn t)))
-        (pcase-dolist (`(,dir . ,trust) trust-manager-trust-alist)
-          (trust-manager--set-file-trust dir trust))
+        (trust-manager--set-files-trust trust-manager-trust-alist)
         (add-hook 'find-file-hook #'trust-manager--check-file)
         (add-hook 'emacs-lisp-mode-hook #'trust-manager--set-up-for-elisp)
         (or (null trust-manager-untrusted-indicator)

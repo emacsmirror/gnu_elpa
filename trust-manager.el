@@ -198,8 +198,6 @@ directory is ignored, since it is already implicitly trusted as well."
                   'trust-manager--cached-trusted-content buf))))))
   (interactive (list last-nonmenu-event))
   (with-current-buffer (window-buffer (posn-window (event-start event)))
-    (when (eq trust-manager--cached-trusted-content t)
-      (user-error "Buffer `%s' is already trusted!" (current-buffer)))
     (trust-manager--set-buffer-trust nil t)
     (message "Buffer `%s' is now trusted" (current-buffer))
     (force-mode-line-update)))

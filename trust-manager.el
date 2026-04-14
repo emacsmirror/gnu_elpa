@@ -40,6 +40,12 @@
 ;; customize `trust-manager-trust-alist' to designate some directories
 ;; as trusted or untrusted before actually visiting files in them.
 ;;
+;; Another utility command is `trust-manager-set-project-trust', which
+;; lets you mark any project as trusted or untrusted, not necessarily
+;; the current project.  The command `trust-manager-set-file-trust' is
+;; similar, except that it supports arbitrary files/directories,
+;; rather than just projects.
+;;
 ;; By default, `trust-manager-mode' also adds a mode line indicator in
 ;; untrusted buffers where risky features may have been disabled.
 ;; The default indicator is a `?' shown in red.  You can click on the
@@ -52,9 +58,10 @@
 ;; Since only some features require trust, not every untrusted buffer
 ;; needs your attention, only those in which the lack of trust matters.
 ;; The user option `trust-manager-trust-indicator-buffer-condition'
-;; controls in which untrusted buffers indicator is shown.  By default
-;; it specifies only Emacs Lisp buffers, because several Emacs Lisp
-;; editing features, including on-the-fly diagnostics, require trust.
+;; controls in which untrusted buffers the indicator is shown.
+;; By default it specifies only Emacs Lisp buffers, because several
+;; Emacs Lisp editing features, including on-the-fly diagnostics,
+;; require trust.
 ;;
 ;; When `trust-manager-mode' marks a previously untrusted buffer as
 ;; trusted, e.g. when you click on the untrusted buffer mode line
@@ -144,6 +151,45 @@ directory is ignored, since it is already implicitly trusted as well."
   "Customize trusted files and directories."
   (interactive)
   (customize-option 'trust-manager-trust-alist))
+
+;;;###autoload
+(defun trust-manager-set-file-trust (file &optional trust)
+  "If TRUST is non-nil, trust FILE; otherwise untrust it.
+
+Interactively, prompt for FILE, and set TRUST to non-nil.
+With a prefix argument, set TRUST to nil instead."
+  (interactive
+   (let ((trust (not current-prefix-arg))
+         (dir (if default-directory (abbreviate-file-name default-directory) "~/")))
+     (list (read-file-name
+            (format "%srust file/directory: " (if trust "T" "Unt")) dir dir)
+           trust)))
+  (let ((abbr (abbreviate-file-name
+               (expand-file-name (if (file-directory-p file)
+                                     (file-name-as-directory file)
+                                   file)))))
+    (setf (alist-get abbr trust-manager-trust-alist nil nil #'equal) trust)
+    (customize-save-variable 'trust-manager-trust-alist trust-manager-trust-alist)
+    (message "Marked `%s' as %strusted" abbr (if trust "" "un"))))
+
+;;;###autoload
+(defun trust-manager-set-project-trust (project &optional trust)
+  "If TRUST is non-nil, trust PROJECT; otherwise untrust it.
+
+Interactively, prompt for PROJECT, and set TRUST to non-nil.
+With a prefix argument, set TRUST to nil instead."
+  (interactive
+   (let ((trust (not current-prefix-arg))
+         (def (when-let* ((pr (project-current))) (project-root pr))))
+     (list (completing-read
+            (format-prompt "%srust project" def (if trust "T" "Unt"))
+            (project-known-project-roots)
+            (lambda (root)
+              (if-let* ((ent (assoc root trust-manager-trust-alist)))
+                  (xor trust (cdr ent))
+                t)))
+           trust)))
+  (trust-manager-set-file-trust project trust))
 
 (defun trust-manager--already-trusted-p (dir)
   "Return non-nil if DIR is trusted according to `trusted-content'."

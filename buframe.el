@@ -129,7 +129,7 @@ are relative to the WINDOW's native frame."
               (let* ((bol       (point))
                      (next      (progn (vertical-motion 1 window) (point)))
                      (seg-start (max rs bol))
-                     (seg-end   (min re next)))
+                     (seg-end   (min re (1- next))))
                 (when (< seg-start seg-end)
                   (let* ((x-off (if (= bol rs) rs-x 0)) ; non-zero only on first line
                          (x     (+ (nth 0 edges) x-off))

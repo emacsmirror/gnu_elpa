@@ -128,7 +128,7 @@ $(LIB_NAME): $(OBJS)
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-%.elc: %.el
+%.elc: %.el $(LIB_NAME)
 	 $(EMACS) -f batch-byte-compile $<
 
 reader-autoloads.el: $(EL_SRCS)

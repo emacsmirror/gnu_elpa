@@ -531,7 +531,7 @@ TYPE must be 'org.  Start at point, stop at LIMIT."
     (let ((face (plist-get (text-properties-at (point)) 'face)))
       ;; Don’t align tables in org blocks.
       (not (and (consp face)
-                (or (equal face '(org-block))
+                (or (memq 'org-block face)
                     (equal (plist-get face :inherit)
                            '(org-block))))))))
 

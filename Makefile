@@ -133,7 +133,7 @@ $(LIB_NAME): $(OBJS)
 
 reader-autoloads.el: $(EL_SRCS)
 	rm -f reader-autoloads.el
-	$(EMACS) --eval '(loaddefs-generate default-directory (file-name-concat default-directory "reader-autoloads.el"))'
+	$(EMACS) -f loaddefs-generate-batch $@ .
 
 checkdoc: $(EL_SRCS)
 	$(EMACS) $(foreach file, $(EL_SRCS), --eval '(checkdoc-file "$(file)")')

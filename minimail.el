@@ -1,12 +1,12 @@
 ;;; minimail.el --- Simple, non-blocking IMAP email client  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025  Free Software Foundation, Inc.
+;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Augusto Stoffel <arstoffel@gmail.com>
 ;; Keywords: mail
 ;; URL: https://codeberg.org/astoff/minimail
 ;; Package-Requires: ((emacs "30.1"))
-;; Version: 0.3
+;; Version: 0.4
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

@@ -51,6 +51,10 @@
 ;; its directory stops being trusted and its entry in
 ;; `trust-manager-trust-alist' is cleared.
 ;;
+;; `trust-manager-mode' also integrates with Dired: when the mode is
+;; enabled, you can use C-c C-t in a Dired buffer to trust one or more
+;; files/directories; similarly, C-c C-u can be used for untrusting.
+;;
 ;; By default, `trust-manager-mode' also adds a mode line indicator in
 ;; untrusted buffers where risky features may have been disabled.
 ;; The default indicator is a `?' shown in red.  You can click on the
@@ -321,6 +325,55 @@ See `buffer-match-p' for a description of the possible condition values."
    'trust-manager-now-trusted-hook
    #'trust-manager--enable-elisp-flymake-backend nil t))
 
+(declare-function dired-get-marked-files "dired")
+(declare-function dired-mark-pop-up      "dired")
+(declare-function dired-mark-prompt      "dired")
+(declare-function dired-goto-file        "dired")
+(defvar dired-no-confirm)
+
+(defun trust-manager--dired-set-trust (arg &optional trust)
+  "If TRUST is non-nil, trust marked files; otherwise untrust them.
+
+ARG should be the prefix argument of the command that calls this
+function, it is passed to `dired-get-marked-files', which see."
+  (let ((sym (if trust 'trust 'untrust))
+        (files (dired-get-marked-files t arg nil nil t)))
+    (when (or (eq dired-no-confirm t) (memq sym dired-no-confirm)
+              (dired-mark-pop-up
+               nil sym files #'yes-or-no-p
+               (concat (capitalize (symbol-name sym))
+                       " " (dired-mark-prompt arg files) "? ")))
+      (save-excursion
+        (dolist (file files)
+          (trust-manager-set-file-trust file trust)
+          (dired-goto-file (expand-file-name file))
+          (let ((inhibit-read-only t))
+            (beginning-of-line)
+            (delete-char 1)
+            (insert (if trust "T" "U")))))
+      (when (cdr files)
+        (message "Marked %d files/directories as %sed" (length files) sym)))))
+
+(defun trust-manager-dired-do-trust (&optional n)
+  "Trust marked files/directories.
+With a numeric prefix argument N, trust the N files following point."
+  (interactive "P" dired-mode)
+  (trust-manager--dired-set-trust n t))
+
+(defun trust-manager-dired-do-untrust (&optional n)
+  "Untrust marked files/directories.
+With a numeric prefix argument N, untrust the N files following point."
+  (interactive "P" dired-mode)
+  (trust-manager--dired-set-trust n))
+
+(defvar-keymap trust-manager-dired-mode-map
+  "C-c C-t" #'trust-manager-dired-do-trust
+  "C-c C-u" #'trust-manager-dired-do-untrust)
+
+(define-minor-mode trust-manager-dired-mode
+  "Minor mode integrating `trust-manager' into Dired."
+  :interactive (dired-mode))
+
 (defun trust-manager--forget-project (root)
   "Remove trust setting for project ROOT from `trust-manager-trust-alist'."
   (setf (alist-get root trust-manager-trust-alist nil t #'equal) nil)
@@ -359,6 +412,7 @@ project trust, but it does not mark any file or directory as untrusted."
         (trust-manager--set-files-trust trust-manager-trust-alist)
         (add-hook 'find-file-hook #'trust-manager--check-file)
         (add-hook 'emacs-lisp-mode-hook #'trust-manager--set-up-for-elisp)
+        (add-hook 'dired-mode-hook #'trust-manager-dired-mode)
         (advice-add 'project-forget-project
                     :before #'trust-manager--forget-project)
         (or (null trust-manager-untrusted-indicator)
@@ -367,6 +421,7 @@ project trust, but it does not mark any file or directory as untrusted."
                   (append global-mode-string '(trust-manager--trust-indicator)))))
     (remove-hook 'find-file-hook #'trust-manager--check-file)
     (remove-hook 'emacs-lisp-mode-hook #'trust-manager--set-up-for-elisp)
+    (remove-hook 'dired-mode-hook #'trust-manager-dired-mode)
     (advice-remove 'project-forget-project #'trust-manager--forget-project)
     (setq global-mode-string
           (delq 'trust-manager--trust-indicator global-mode-string))))

@@ -460,7 +460,20 @@ path prepended with a two-character type string indicating the before
 and after types of the file."
   (let ((table (make-hash-table :test #'equal)))
     (mapc (lambda (line)
-            (puthash (substring line 3) (substring line 0 2) table))
+            (if (string-match (rx "{" (group (1+ anychar)) " => " (group (1+ anychar)) "}"
+                                  (opt "/") (group (1+ anychar)))
+                              line)
+                ;; For renamed files, create separate entries for the
+                ;; before-rename and after-rename files
+                (let ((before (match-string 1 line))
+                      (after (match-string 2 line))
+                      (subdir-file (match-string 3 line)))
+                  (when subdir-file     ; When a directory was renamed
+                    (setq before (file-name-concat before subdir-file)
+                          after (file-name-concat after subdir-file)))
+                  (puthash before "F-" table) ; Removed state
+                  (puthash after "-F" table)) ; Added state
+              (puthash (substring line 3) (substring line 0 2) table)))
           lines)
     table))
 

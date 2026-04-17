@@ -60,7 +60,7 @@ A new entry begins at each `[LVL]` line at column 0.
 | `f` | Filter: show only entries matching a regexp |
 | `F` | Clear filter |
 | `s` | Snapshot visible entries to a timestamped `.log` file |
-| `l 1`-`l 4` | Set minimum display level (1=debug 2=info 3=warn 4=error) |
+| `l1`-`l4` | Set minimum display level (1=debug 2=info 3=warn 4=error) |
 
 The header line always shows `visible/total`, active filter, and level cutoff.
 
@@ -81,7 +81,6 @@ format specifiers work as epxected.
   (dmsg "at %=s %=d" buf line))
 ;; at buf=foo.el line=10
 ```
-
 
 
 ## Visibility and filtering

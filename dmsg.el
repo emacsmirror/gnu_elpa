@@ -240,7 +240,8 @@ Runs on `change-major-mode-hook', covering the switch to `fundamental-mode'."
   (remove-overlays (point-min) (point-max) 'dmsg-ov t)
   (with-silent-modifications
     (remove-text-properties (point-min) (point-max)
-                            '(dmsg-entry invisible dmsg-level face)))
+                            '(dmsg-entry nil invisible nil
+                                         dmsg-level nil face nil)))
   (setq dmsg--entry-count    0
         dmsg--visible-count  0
         dmsg--filter-regexp  nil
@@ -700,7 +701,7 @@ Can also be invoked via `l1'–`l4' in `dmsg-mode'."
                        nil)))
            (if (file-directory-p path)
                (expand-file-name default-name path)
-             file))))
+             path))))
   (unless (derived-mode-p 'dmsg-mode)
     (user-error "Not in a dmsg buffer"))
   (let* ((count 0)
@@ -850,7 +851,7 @@ All other specifiers behave exactly as in `format'."
 (defun dmsg--dispatch (args args-label)
   "Dispatcher called by the `dmsg' macro.
 ARGS is the evaluated argument list.  ARGS-LABEL is a parallel list of
-argument levels.  First argument could be a symbol which is used as
+argument labels.  First argument could be a symbol which is used as
 level. The argument after that is the string format."
   (let* ((level (if (memq (car args) dmsg--level-order)
                     (progn

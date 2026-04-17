@@ -213,9 +213,14 @@ With a prefix argument, set TRUST to nil instead."
 
 (defun trust-manager--should-trust-p (pr)
   "Ask and return non-nil if project directory PR should be trusted."
-  (yes-or-no-p
-   (substitute-quotes
-    (format "Trust project directory `%s'?" pr))))
+  (let ((name (abbreviate-file-name pr))
+        (true (abbreviate-file-name (file-truename pr))))
+    (yes-or-no-p
+     (substitute-quotes
+      (concat
+       "Trust project directory `" name "'"
+       (unless (equal name true) (format " (truename: `%s')" true))
+       "?")))))
 
 (defvar trust-manager--trust-query-function #'trust-manager--should-trust-p)
 

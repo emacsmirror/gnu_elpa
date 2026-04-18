@@ -334,6 +334,28 @@ See `buffer-match-p' for a description of the possible condition values."
    'trust-manager-now-trusted-hook
    #'trust-manager--enable-elisp-flymake-backend nil t))
 
+;;;###autoload
+(defun trust-manager-dired (&optional arg)
+  "Show currently trusted files and directories in a Dired buffer.
+With prefix ARG, show untrusted files and directories instead."
+  (interactive "P")
+  (if-let* ((entries (seq-keep
+                      (pcase-lambda (`(,file . ,curr))
+                        (when (xor curr arg) file))
+                      trust-manager-trust-alist)))
+      (progn
+        (let* ((dir (file-name-directory (try-completion "" entries)))
+               (dir (if (member dir entries)
+                        (file-name-directory (directory-file-name dir))
+                      dir))
+               (len (length dir)))
+          (dired
+           (cons dir
+                 (mapcar (lambda (file) (substring file len)) entries)))))
+    (message
+     "No %strusted files/directories in `trust-manager-trust-alist'"
+     (if arg "un" ""))))
+
 (declare-function dired-get-marked-files "dired")
 (declare-function dired-mark-pop-up      "dired")
 (declare-function dired-mark-prompt      "dired")

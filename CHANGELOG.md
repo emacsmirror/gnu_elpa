@@ -1,5 +1,9 @@
 # Change Log
 
+## 2026-04-18 0.12.0 Release Notes
+- Fix bytecompiler error by adding jarchive minor mode to jarchive group
+  - Thank you Brian Hotopp for sending this fix
+
 ## 2023-10-10 0.11.0 Release Notes
 - Fixes a bug when `file-relative-name` is called on a buffer opened by jarchive.
   - See [bug#2](https://todo.sr.ht/~dannyfreeman/jarchive/2) for more details.

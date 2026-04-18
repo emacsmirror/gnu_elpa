@@ -102,9 +102,13 @@ The newly trusted buffer is current when functions on this hook run."
 
 (defun trust-manager--set-file-trust (file trust)
   "If TRUST is non-nil, trust FILE; otherwise untrust it."
-  (let* ((exp (expand-file-name (if (file-directory-p file)
-                                    (file-name-as-directory file)
-                                  file)))
+  (let* ((exp (expand-file-name
+               (if (unless (file-remote-p file)
+                     ;; Don't open remote connection just to check if
+                     ;; FILE is a directory.
+                     (file-directory-p file))
+                   (file-name-as-directory file)
+                 file)))
          (file (abbreviate-file-name exp))
          (curr (delete file (default-value 'trusted-content))))
     (setq-default trusted-content (if trust (cons file curr) curr))
@@ -132,7 +136,7 @@ The newly trusted buffer is current when functions on this hook run."
                    ;; Skip FILE if it's a descendant of a trusted dir,
                    ;; and thus trusted too.
                    (string-prefix-p last-trusted-dir (expand-file-name file)))
-        (and (file-directory-p file) trust
+        (and (string-suffix-p "/" file) trust
              (setq last-trusted-dir
                    (expand-file-name (file-name-as-directory file))))
         (trust-manager--set-file-trust file trust)))))

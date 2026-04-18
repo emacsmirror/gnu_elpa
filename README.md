@@ -8,6 +8,14 @@ and you're good to go!
 The commentary section at the top of `trust-manager.el` details useful
 tips and customization options that you may want to check out.
 
+## Highlights
+
+- Pre-trusts your config files and `load-path` (Emacs and installed package sources)
+- Asks whether to trust each new project on first visit, remembering your answer
+- Untrusts a project automatically when you `project-forget-project` it
+- Shows a mode line indicator (`?`) in untrusted buffers; click to trust
+- Dired integration: `C-c C-t` / `C-c C-u` to trust/untrust marked files/dirs
+
 ## What trust does this package manage?
 
 Emacs 30 introduced a notion of trusted and untrusted buffers

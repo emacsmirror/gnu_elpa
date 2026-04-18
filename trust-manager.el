@@ -389,6 +389,18 @@ With a numeric prefix argument N, untrust the N files following point."
   (trust-manager--set-file-trust root nil)
   (customize-save-variable 'trust-manager-trust-alist trust-manager-trust-alist))
 
+(defun trust-manager--trust-scratch-buffer ()
+  "Ensure the *scratch* buffer is trusted."
+  (when-let* ((sb (get-buffer "*scratch*")))
+    (with-current-buffer sb
+      (and (derived-mode-p 'lisp-interaction-mode)
+           (let ((str (buffer-string)))
+             (or (string-empty-p str)
+                 (equal (buffer-string)
+                        (substitute-command-keys initial-scratch-message))))
+           (not (trusted-content-p))
+           (trust-manager--set-buffer-trust nil t)))))
+
 ;;;###autoload
 (define-minor-mode trust-manager-mode
   "Toggle per-project trust management with Trust Manager minor mode.
@@ -401,7 +413,8 @@ user option, which you may also customize directly.
 
 The standard files that this mode adds to `trusted-content' are your
 `user-init-file', `early-init-file', `custom-file' and all directories
-in your `load-path'.
+in your `load-path'.  In addition, it ensures that the *scratch* buffer
+is trusted if its contents are unchanged.
 
 If you later disable this mode, it removes the hook that asks you about
 project trust, but it does not mark any file or directory as untrusted."
@@ -419,6 +432,8 @@ project trust, but it does not mark any file or directory as untrusted."
           (and fn (file-name-absolute-p fn)
                (trust-manager--set-file-trust fn t)))
         (trust-manager--set-files-trust trust-manager-trust-alist)
+        (if after-init-time (trust-manager--trust-scratch-buffer)
+          (add-hook 'emacs-startup-hook #'trust-manager--trust-scratch-buffer))
         (add-hook 'find-file-hook #'trust-manager--check-file)
         (add-hook 'emacs-lisp-mode-hook #'trust-manager--set-up-for-elisp)
         (add-hook 'dired-mode-hook #'trust-manager-dired-mode)

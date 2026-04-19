@@ -1028,12 +1028,12 @@ msgstr "Hoe je naar een andere buffer overschakelt"
 #: emacs-lisp-intro.texi:2832
 #, no-wrap
 msgid "Buffer Size & Locations"
-msgstr "Buffer grootte en locatie"
+msgstr "Buffer grootte en lokatie"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:367 emacs-lisp-intro.texi:2516
 msgid "Where point is located and the size of the buffer."
-msgstr "De locatie van point en de grootte van het buffer."
+msgstr "De lokatie van point en de grootte van het buffer."
 
 #. type: node
 #: emacs-lisp-intro.texi:367 emacs-lisp-intro.texi:2516
@@ -1317,7 +1317,7 @@ msgstr "Point en mark"
 #. type: menuentry
 #: emacs-lisp-intro.texi:414 emacs-lisp-intro.texi:4274
 msgid "A review of various locations."
-msgstr "Een overzicht van verschillende locaties."
+msgstr "Een overzicht van verschillende lokaties."
 
 #. type: node
 #: emacs-lisp-intro.texi:414 emacs-lisp-intro.texi:4274
@@ -2342,7 +2342,7 @@ msgstr "Loop met een decrementele teller"
 #: emacs-lisp-intro.texi:10556
 #, no-wrap
 msgid "Decrementing Example"
-msgstr "Decerementeel voorbeeld"
+msgstr "Decrementeel voorbeeld"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:578 emacs-lisp-intro.texi:10554
@@ -2744,7 +2744,7 @@ msgstr "Wat vormt een woord of een symbool?"
 #: emacs-lisp-intro.texi:14314 emacs-lisp-intro.texi:14430
 #, no-wrap
 msgid "count-words-in-defun"
-msgstr "count-words-in-defun"
+msgstr "tel-woorden-in-defun"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:651 emacs-lisp-intro.texi:14136
@@ -6329,7 +6329,7 @@ msgstr ""
 "marker (een speciaal object dat een bufferpositie vertegenwoordigt). Wat het "
 "doet is testen of de @code{+} getallen kreeg om op te tellen. Ook test of "
 "het argument iets is dat een marker genoemd wordt, wat een specifieke "
-"eigenschap van Emacs Lisp is. (In Emacs worden locaties in een buffer "
+"eigenschap van Emacs Lisp is. (In Emacs worden lokaties in een buffer "
 "geregistreerd als markers. Wanneer de mark is gezet met het @kbd{C-@@} of "
 "@kbd{C-@key{SPC}} commando, wordt zijn positie bewaard als een marker. De "
 "mark kan worden beschouwd als een getal--het aantal karakters van de lokatie "
@@ -6448,7 +6448,7 @@ msgstr ""
 "Wanneer er echter een @samp{%s} in de string tussen aanhalingstekens staat, "
 "toont de @code{message}-functie de @samp{%s} niet als zodanig, maar kijkt "
 "naar het argument dat op de string volgt. Het evalueert het tweede argument "
-"en toont de waarde op de locatie in de string waar de @samp{%s} staat."
+"en toont de waarde op de lokatie in de string waar de @samp{%s} staat."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2190
@@ -7193,7 +7193,7 @@ msgstr ""
 "Naast dat we ze voor evaluatie-oefeningen gebruiken, zijn de functies die in "
 "volgende secties behandeld worden op zichzelf belangrijk. Het bestuderen van "
 "deze functies verheldert het verschil tussen buffers en bestanden, hoe "
-"tussen buffer te schakelen, en hoe een locatie er binnen vast te stellen."
+"tussen buffer te schakelen, en hoe een lokatie er binnen vast te stellen."
 
 #. type: item
 #: emacs-lisp-intro.texi:2552 emacs-lisp-intro.texi:4575
@@ -7832,7 +7832,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:2833
 #, no-wrap
 msgid "Buffer Size and the Location of Point"
-msgstr "Buffergrootte en de locatie van point"
+msgstr "Buffergrootte en de lokatie van point"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2834
@@ -7850,13 +7850,13 @@ msgstr "Buffergrootte"
 #: emacs-lisp-intro.texi:2836
 #, no-wrap
 msgid "Point location"
-msgstr "Locatie van point"
+msgstr "Lokatie van point"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:2837
 #, no-wrap
 msgid "Location of point"
-msgstr "Locatie van point"
+msgstr "Lokatie van point"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:2843
@@ -7867,7 +7867,7 @@ msgid ""
 msgstr ""
 "Laten wij tenslotte naar enkele nogal eenvoudige functies kijken, "
 "@code{buffer-size}, @code{point}, @code{point-min} en @code{point-max}. Deze "
-"geven informatie over de grootte van een buffer en de locatie van point "
+"geven informatie over de grootte van een buffer en de lokatie van point "
 "daarin."
 
 #. type: Plain text
@@ -7945,7 +7945,7 @@ msgid ""
 "The value of point depends, of course, on its location within the buffer.  "
 "If you evaluate point in this spot, the number will be larger:"
 msgstr ""
-"De waarde van point hangt natuurlijk af van zijn locatie in het buffer. "
+"De waarde van point hangt natuurlijk af van zijn lokatie in het buffer. "
 "Wanneer je point op deze plek evalueert, is het getal groter:"
 
 #. type: Plain text
@@ -10896,7 +10896,7 @@ msgid ""
 "and disturbed by unexpected movement of point."
 msgstr ""
 "In Emacs Lisp programma's voor editing is de functie @code{save-excursion} "
-"heel gebruikelijk. Het bewaart de locatie van point, voert de body van de "
+"heel gebruikelijk. Het bewaart de lokatie van point, voert de body van de "
 "functie uit en herstelt point naar zijn vorige positie indien zijn lokatie "
 "is gewijzigd. Het primaire doel is te voorkomen dat de gebruiker verrast en "
 "verstoord wordt door onverwachte verplaatsing van point."
@@ -10974,7 +10974,7 @@ msgstr ""
 "herstelt de positie nadat de code in de body van de speciale vorm is "
 "geëvalueerd door de Lisp interpreter. Als point dus aan het begin van een "
 "stuk tekst staat en bepaalde code heeft point naar het eind van het buffer "
-"verplaatst, plaatst @code{save-excursion} point terug naar de locatie waar "
+"verplaatst, plaatst @code{save-excursion} point terug naar de lokatie waar "
 "het eerder was, nadat de expressies in de body van de functie zijn "
 "geëvalueerd."
 
@@ -11745,7 +11745,7 @@ msgstr "De source van een functie vinden"
 msgid ""
 "Also, @code{describe-function} will tell you the location of the function "
 "definition."
-msgstr "@code{describe-function} vertelt je ook de locatie van de functie."
+msgstr "@code{describe-function} vertelt je ook de lokatie van de functie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:4676
@@ -12274,7 +12274,7 @@ msgstr ""
 "staat en @code{(push-mark)} in de expressie @code{beginning-of-buffer} . "
 "Misschien wist wie de code schreef niet dat de argumenten van @code{push-"
 "mark} optioneel zijn en dat wanneer geen argument aan @code{push-mark} wordt "
-"doorgegeven, de functie automatisch standaard de locatie van de cursor "
+"doorgegeven, de functie automatisch standaard de lokatie van de cursor "
 "gebruikt. Of misschien was de expressie zo geschreven dat die parallel aan "
 "de structuur van de volgende regel is. In elk geval zorgt de regel dat Emacs "
 "de positie van point vaststelt en de mark daar zet."
@@ -15780,7 +15780,7 @@ msgid ""
 "function to move point."
 msgstr ""
 "De aanroep van @code{widen} wordt gevolgd door @code{save-excursion} die de "
-"locatie van de cursor (dus van point) bewaart, en herstelt die nadat de code "
+"lokatie van de cursor (dus van point) bewaart, en herstelt die nadat de code "
 "in de body van de @code{save-excursion} de functie @code{beginning-of-line} "
 "gebruikt om point te verplaatsen."
 
@@ -16014,7 +16014,7 @@ msgid ""
 "If you are reading this in Info in GNU Emacs, you can see this by evaluating "
 "the following:"
 msgstr ""
-"Wanneer je dit in Info in GNU Emacs leest kan je dit door het volgende te "
+"Wanneer je dit in Info in GNU Emacs leest kan je zien dit door het volgende te "
 "evalueren:"
 
 #. type: smallexample
@@ -16108,7 +16108,7 @@ msgid ""
 "and @code{cdr}, then write @code{first} and @code{rest} in their code."
 msgstr ""
 "Voor het werken met lijsten zouden de namen @code{first} en @code{rest} "
-"logischer zijn dan de namen @code{car} en @code{cdr}. Sommige programmers "
+"logischer zijn dan de namen @code{car} en @code{cdr}. Sommige programmeurs "
 "definieren inderdaad @code{first} en @code{rest} als aliassen voor "
 "@code{car} en @code{cdr} en gebruiken daarna @code{first} en @code{rest} in "
 "de rest van hun code."
@@ -16313,8 +16313,6 @@ msgstr ""
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7041
-#, fuzzy
-#| msgid "Like  @code{car} and @code{cdr}, @code{cons} is non-destructive."
 msgid "Like @code{car} and @code{cdr}, @code{cons} is non-destructive."
 msgstr "Net als @code{car} en @code{cdr}, is @code{cons} niet-destructief."
 
@@ -16960,15 +16958,16 @@ msgid ""
 "not need to move it.  Indeed, Emacs permits any amount of white space after "
 "the final parenthesis.)"
 msgstr ""
-"Wanneer je dit in Info binnen GNU Emacs leest kan je deze expressie op de "
-"gebruikelijke manier evalueren, door de cursor achter de expressie te "
-"plaatsen en @kbd{C-x C-e} te typen. (Ik doe dat meteen hier terwijl ik dit "
-"schrijft. Dat is een van de voordelen van een in je computer omgeving "
-"ingebouwde interpreter Overigen, wanneer is niets op de regel na het laatste "
-"haakje staat, zoals commentaar, kan point ook de volgende regel staan. Dus "
-"als point op de eerste kolom van de regel staat, hoef je die niet te "
-"verplaatsten. Emacs staat zelfs een willekeurige hoeveelheid witte ruimte "
-"achter het laaste haakje toe.)"
+"Wanneer je dit in Info binnen GNU Emacs leest kan je deze expressie "
+"op de gebruikelijke manier evalueren, door de cursor achter de "
+"expressie te plaatsen en @kbd{C-x C-e} te typen. (Ik doe dat meteen "
+"hier terwijl ik dit schrijf. Dat is een van de voordelen van een "
+"ingebouwde interpreter in je computer omgeving. Overigens, wanneer is "
+"niets op de regel na het laatste haakje staat, zoals commentaar, kan "
+"point ook de volgende regel staan. Dus als point op de eerste kolom "
+"van de regel staat, hoef je die niet te verplaatsten. Emacs staat "
+"zelfs een willekeurige hoeveelheid witte ruimte achter het laatste "
+"haakje toe.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7395
@@ -17054,8 +17053,8 @@ msgid ""
 "@code{hippopotamus}; it @emph{changed} the list."
 msgstr ""
 "We zien dus dat @code{setcar} geen nieuw element aan de lijst heeft "
-"toegevoegd, wat @code{cons} gedaan zou hebben, maar het verving "
-"@code{antiloop} met @code{nijlpaard}. Het @emph{wijzigde} de lijst."
+"toegevoegd, wat @code{cons} gedaan zou hebben, maar @code{antiloop} "
+"verving met @code{nijlpaard}. Het @emph{wijzigde} de lijst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:7444
@@ -17221,7 +17220,7 @@ msgid ""
 "GNU Emacs, it is stored in a list and you can bring it back with a "
 "@dfn{yank} command."
 msgstr ""
-"Steeds als je in GNU Emacs tekst uit een buffer snijdt op clipt met een "
+"Steeds als je in GNU Emacs tekst uit een buffer snijdt of clipt met een "
 "@dfn{kill} commando, wordt het bewaard in een lijst en kan je het terughalen "
 "met een @dfn{yank} commando."
 
@@ -17237,7 +17236,7 @@ msgid ""
 "``clip'' and all occurrences of ``killed'' with ``clipped''.)"
 msgstr ""
 "(Het gebruik van het woord ``kill'' in Emacs voor processen die @emph{niet} "
-"specifiek de waarden van de entiteiten vernietigen), is een ongelukkig "
+"specifiek de waarden van de entiteiten vernietigen, is een ongelukkig "
 "historisch ongeluk. Een veel beter word zou ``clip'' zijn, omdat dat is wat "
 "kill commando's doen. Zij clippen tekst uit het buffer en bergen dat in een "
 "opslagplaats op van waar het teruggebracht kan worden. Ik ben vaak in de "
@@ -17356,7 +17355,7 @@ msgid ""
 "calls a function that invokes a function that manipulates the kill ring.  "
 "Thus, before reaching the mountains, we climb the foothills."
 msgstr ""
-"De lijst die de stukken tekst bevat het de @dfn{killring}. Dit hoofdstuk "
+"De lijst die de stukken tekst bevat heet de @dfn{killring}. Dit hoofdstuk "
 "werkt naar een beschijving van de killring toe en hoe die gebruikt wordt "
 "door eerst te volgen hoe de functie @code{zap-to-char} werkt. Deze functie "
 "roept een functie aan die een functie start die de killring manipuleert. "
@@ -17625,7 +17624,7 @@ msgid ""
 msgstr ""
 "@code{char-table-p} functie zien we voor het eerst. Het stelt vast of het "
 "argument een karakter-tabel is. Wanneer dat het geval is, dan stelt die het "
-"karakter was aan @code{zap-to-char} wordt doorgegeven aan een van hen in. "
+"karakter dat aan @code{zap-to-char} wordt doorgegeven aan een van hen in. "
 "(Dit is belangrijk voor bepaalde karakters in niet-Europese talen. De "
 "functie @code{aref} extraheert een element uit een array. Het is een array-"
 "specifieke functie die we in dit document niet bespreken. @xref{Arrays, , "
@@ -17676,7 +17675,7 @@ msgid ""
 "character in the target.  Also, @code{search-forward} returns @code{t} for "
 "true.  (Moving point is therefore a side effect.)"
 msgstr ""
-"De functie @code{search-forward} wordt @code{zap-to-char} gebruikt het "
+"De functie @code{search-forward} wordt door @code{zap-to-char} gebruikt om het "
 "zapped-for-karakter te vinden. Wanneer het zoeken succesvol is, zet "
 "@code{search-forward} point onmiddellijk achter het laatste karakter in de "
 "doelstring. (In @code{zap-to-char} is de doelstring slechts één karakter "
@@ -17844,7 +17843,7 @@ msgid ""
 "that @code{kill-region} will know how far to kill to."
 msgstr ""
 "In @code{zap-to-char} moet de @code{progn} expressie twee dingen doen: zet "
-"point exact op de juiste positie en geef de locatie van point zodat "
+"point exact op de juiste positie en geef de lokatie van point zodat "
 "@code{kill-region} weet hoe ver het moet killen."
 
 #. type: Plain text
@@ -37314,6 +37313,10 @@ msgid ""
 "built into the internals of Emacs and is always with you; the second "
 "requires that you instrument a function before you can use it."
 msgstr ""
+"GNU Emacs heeft twee debuggers, @code{debug} en @code{edebug}. De "
+"eerste is ingebouwd in Emacs en is altijd bij je in de buurt. De "
+"tweede vereist dat je een functie instrumenteert voordat je het kunt "
+"gebruiken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17882
@@ -37322,6 +37325,9 @@ msgid ""
 "Programs, elisp, The GNU Emacs Lisp Reference Manual}.  In this chapter, I "
 "will walk through a short example of each."
 msgstr ""
+"Beide debuggers zijn uitgebreid beschreven in @ref{Debugging, , Debugging Lisp "
+"Programs, elisp, The GNU Emacs Lisp Reference Manual}.  In dit hoofdstuk loop "
+"ik een kort voorbeeld van beide door."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17900
@@ -37331,6 +37337,11 @@ msgid ""
 "@code{triangle} function discussed earlier.  @xref{Decrementing Example, , "
 "Example with Decrementing Counter}, for a discussion.)"
 msgstr ""
+"Stel dat je een functiedefinitie hebt geschreven die bedoeld is om "
+"de som van de getallen 1 tot een opgegeven getal terug te geven. "
+"(Dit is de eerder besproken @code{driehoek} functie. "
+"@xref{Decrementeel voorbeeld, , Voorbeeld met een aflopende teller}, "
+"voor een bespreking.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17903
@@ -37338,12 +37349,14 @@ msgid ""
 "However, your function definition has a bug.  You have mistyped @samp{1=} "
 "for @samp{1-}.  Here is the broken definition:"
 msgstr ""
+"Je functiedefinitie heeft echter een bug. Je hebt @samp{1-} verkeerd "
+"getypt als @samp{1=}. Hier is de kapotte definitie:"
 
 #. type: findex
 #: emacs-lisp-intro.texi:17904
 #, no-wrap
 msgid "triangle-bugged"
-msgstr ""
+msgstr "driehoek-met-bug"
 
 #. type: group
 #: emacs-lisp-intro.texi:17914
@@ -37357,6 +37370,13 @@ msgid ""
 "      (setq number (1= number)))      ; @r{Error here.}\n"
 "    total))\n"
 msgstr ""
+"(defun driehoek-met-bug (getal)\n"
+"  \"Geef som van getallen 1 t/m GETAL terug.\"\n"
+"  (let ((totaal 0))\n"
+"    (while (> getal 0)\n"
+"      (setq totaal (+ totaal getal))\n"
+"      (setq getal (1= getal)))      ; @r{Fout hier.}\n"
+"    totaal))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17920
@@ -37364,22 +37384,25 @@ msgid ""
 "If you are reading this in Info, you can evaluate this definition in the "
 "normal fashion.  You will see @code{triangle-bugged} appear in the echo area."
 msgstr ""
+"Wanneer je dit leest in Info kan je deze definitie op de "
+"gebruikelijke manier evalueren. Je ziet @code{driehoek-met-bug} in "
+"het echogebied verschijnen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17924
 msgid "Now evaluate the @code{triangle-bugged} function with an argument of 4:"
-msgstr ""
+msgstr "Evalueer nu de functie @code{driehoek-met-bug} met een argument van 4:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:17927
 #, no-wrap
 msgid "(triangle-bugged 4)\n"
-msgstr ""
+msgstr "(driehoek-met-bug 4)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17931
 msgid "This will create and enter a @file{*Backtrace*} buffer that says:"
-msgstr ""
+msgstr "Dit creëert en zet je in een @file{*Backtrace*} buffer met de tekst:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17944
@@ -37395,6 +37418,15 @@ msgid ""
 "    (setq number ...)) total)\n"
 "  triangle-bugged(4)\n"
 msgstr ""
+"---------- Buffer: *Backtrace* ----------\n"
+"Debugger entered--Lisp error: (void-function 1=)\n"
+"  (1= getal)\n"
+"  (setq getal (1= getal))\n"
+"  (while (> getal 0) (setq totaal (+ totaal getal))\n"
+"        (setq getal (1= getal)))\n"
+"  (let ((totaal 0)) (while (> getal 0) (setq totaal ...)\n"
+"     (setq getal ...)) totaal)\n"
+"  driehoek-met-bug(4)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17952
@@ -37407,6 +37439,16 @@ msgid ""
 "  command-execute(eval-expression)\n"
 "---------- Buffer: *Backtrace* ----------\n"
 msgstr ""
+"  eval((driehoek-met-bug 4) nil)\n"
+"  elisp--eval-last-sexp(nil)\n"
+"  #f(compiled-function () #<bytecode ...)()\n"
+"  handler-bind-1(#f(compiled-function () #<bytecode ...)\n"
+"    (error) eval-expression--debug)\n"
+"  eval-last-sexp(nil)\n"
+"  funcall-interactively(eval-last-sexp nil)\n"
+"  call-interactively(eval-last-sexp nil nil)\n"
+"  command-execute(eval-last-sexp)\n"
+"---------- Buffer: *Backtrace* ----------\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17959
@@ -37415,6 +37457,9 @@ msgid ""
 "lines.  As usual, you can quit the debugger by typing @kbd{q} in the "
 "@file{*Backtrace*} buffer.)"
 msgstr ""
+"(Ik heb dit voorbeeld iets anders geformatteerd. De debugger breekt "
+"de lange regels niet af. Zoals gebruikelijk kun je de debugger "
+"sluiten door @kbd{q} in het @file{*Backtrace*} buffer te typen.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17963
@@ -37423,6 +37468,9 @@ msgid ""
 "what you need to know to correct the definition.  The function @code{1=} is "
 "void."
 msgstr ""
+"Voor een bug zo simpel als deze vertelt in de praktijk de Lisp error "
+"regel je wat je moet weten om de definitie te verbeteren. De functie "
+"@code{1=} is void."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17966
@@ -37430,6 +37478,8 @@ msgid ""
 "However, suppose you are not quite certain what is going on? You can read "
 "the complete backtrace."
 msgstr ""
+"Stel echter dat je niet helemaal zeker bent wat er aan de hand is. "
+"Dan kan je de complete backtrace lezen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17970
@@ -37438,6 +37488,9 @@ msgid ""
 "@file{*Backtrace*} buffer.  You can also start the debugger manually as "
 "described below."
 msgstr ""
+"Emacs start automatisch de debugger die je in het @file{*Backtrace*} "
+"buffer zet. Je kunt de debugger ook handmatig starten zoals "
+"hieronder beschreven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17976
@@ -37448,17 +37501,22 @@ msgid ""
 "@code{triangle-bugged} expression.  Each line above tells you what the Lisp "
 "interpreter evaluated next."
 msgstr ""
+"Lees het @file{*Backtrace*} buffer van onder naar boven. Het vertelt "
+"je wat Emacs deed wat tot de fout leidde. Emacs riep interactief "
+"@kbd{C-x C-e} (@code{eval-last-sexp}), wat leidde tot de evaluatie "
+"van de @code{driehoek-met-bug}. Elke regel erboven zegt wat de Lisp "
+"interpreter daarna evalueerde."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17979
 msgid "The third line from the top of the buffer is"
-msgstr ""
+msgstr "De derde regel van de bovenkant van het buffer is"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:17982
 #, no-wrap
 msgid "(setq number (1= number))\n"
-msgstr ""
+msgstr "(setq getal (1= getal))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17988
@@ -37466,23 +37524,26 @@ msgid ""
 "Emacs tried to evaluate this expression; in order to do so, it tried to "
 "evaluate the inner expression shown on the second line from the top:"
 msgstr ""
+"Emacs probeerde deze expressie te evalueren. Om dat te doen, "
+"probeerde het de binnenste expressie te evalueren, die op de tweede "
+"regel van boven staat:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:17991
 #, no-wrap
 msgid "(1= number)\n"
-msgstr ""
+msgstr "(1= getal)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:17996
 msgid "This is where the error occurred; as the top line says:"
-msgstr ""
+msgstr "Dit is waar de fout optrad. Zoals de bovenste regel zegt:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:17999
 #, no-wrap
 msgid "Debugger entered--Lisp error: (void-function 1=)\n"
-msgstr ""
+msgstr "Debugger entered--Lisp error: (void-function 1=)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18004
@@ -37490,12 +37551,15 @@ msgid ""
 "You can correct the mistake, re-evaluate the function definition, and then "
 "run your test again."
 msgstr ""
+"Je kunt de vergissing verbeteren, de functiedefinitie opnieuw "
+"evalueren en je test opnieuw uitvoeren."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18011
 msgid ""
 "Emacs starts the debugger automatically when your function has an error."
 msgstr ""
+"Emacs start de debugger automatisch wanneer je functie een fout bevat."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18015
@@ -37504,6 +37568,9 @@ msgid ""
 "the advantage is that the debugger runs even if you do not have a bug in "
 "your code.  Sometimes your code will be free of bugs!"
 msgstr ""
+"Overigens kan je de debugger handmatig starten in alle versies van "
+"Emacs. Het voordeel is dat de debugger zelfs draait wanneer je geen "
+"bug in je code hebt. Soms is je code zonder bugs!"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18018
@@ -37511,28 +37578,30 @@ msgid ""
 "You can enter the debugger when you call the function by calling @code{debug-"
 "on-entry}."
 msgstr ""
+"Je kunt de debugger handmatig starten door de functie aan te roepen "
+"met @code{debug-on-entry}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18022
 msgid "Type:"
-msgstr ""
+msgstr "Typ:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:18025
 #, no-wrap
 msgid "M-x debug-on-entry @key{RET} triangle-bugged @key{RET}\n"
-msgstr ""
+msgstr "M-x debug-on-entry @key{RET} driehoek-met-bug @key{RET}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18030
 msgid "Now, evaluate the following:"
-msgstr ""
+msgstr "Evalueer nu het volgende:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:18033
 #, no-wrap
 msgid "(triangle-bugged 5)\n"
-msgstr ""
+msgstr "(driehoek-met-bug 5)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18039
@@ -37540,6 +37609,9 @@ msgid ""
 "All versions of Emacs will create a @file{*Backtrace*} buffer and tell you "
 "that it is beginning to evaluate the @code{triangle-bugged} function:"
 msgstr ""
+"Alle versies van Emacs maken een @file{*Backtrace*} buffer en "
+"vertellen je dat het begint met de evaluatie van de functie "
+"@code{driehoek-met-bug}:"
 
 #. type: group
 #: emacs-lisp-intro.texi:18046
@@ -37550,6 +37622,9 @@ msgid ""
 "* triangle-bugged(5)\n"
 "  eval((triangle-bugged 5) nil)\n"
 msgstr ""
+"Debugger entered--entering a function:\n"
+"* driehoek-met-bug(5)\n"
+"  eval((driehoek-met-bug 5) nil)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:18053 emacs-lisp-intro.texi:18107
@@ -37561,6 +37636,12 @@ msgid ""
 "  command-execute(eval-expression)\n"
 "---------- Buffer: *Backtrace* ----------\n"
 msgstr ""
+"  #f(compiled-function () #<bytecode ...>)()\n"
+"  handler-bind-1(#f(compiled-function () #<bytecode ...>) (error) eval-expression--debug)\n"
+"  eval-last-sexp(nil)\n"
+"  funcall-interactively(eval-last-sexp nil)\n"
+"  call-interactively(eval-last-sexp nil nil)\n"
+"  command-execute(eval-last-sexp)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18059
@@ -37568,6 +37649,8 @@ msgid ""
 "In the @file{*Backtrace*} buffer, type @kbd{d}.  Emacs will evaluate the "
 "first expression in @code{triangle-bugged}; the buffer will look like this:"
 msgstr ""
+"Typ @kbd{d} in het @file{*Backtrace*} buffer. Emacs evalueert de eerste "
+"expressie in de @code{driehoek-met-bug}. Het buffer ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:18068
@@ -37580,6 +37663,12 @@ msgid ""
 "* triangle-bugged(5)\n"
 "  eval((triangle-bugged 5))\n"
 msgstr ""
+"Debugger entered--entering a function:\n"
+"* apply(#f(lambda (getal) :dynbind \"Geef som van getallen 1 t/m GETAL terug.\"\n"
+"  (let ((totaal 0)) (while (> getal 0) (setq totaal ...)\n"
+"        (setq getal ...)) totaal)) (5))\n"
+"* driehoek-met-bug(5)\n"
+"  eval((driehoek-met-bug 5) nil)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:18076
@@ -37592,6 +37681,13 @@ msgid ""
 "  command-execute(eval-expression)\n"
 "---------- Buffer: *Backtrace* ----------\n"
 msgstr ""
+"elisp--eval-last-sexp(nil)\n"
+"  #f(compiled-function () #<bytecode ...>)()\n"
+"  handler-bind-1(#f(compiled-function () #<bytecode ...>) (error) eval-expression--debug)\n"
+"  eval-last-sexp(nil)\n"
+"  funcall-interactively(eval-last-sexp nil)\n"
+"  call-interactively(eval-last-sexp nil nil)\n"
+"  command-execute(eval-last-sexp)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18083
@@ -37599,11 +37695,13 @@ msgid ""
 "Now, type @kbd{d} again, eight times, slowly.  Each time you type @kbd{d}, "
 "Emacs will evaluate another expression in the function definition."
 msgstr ""
+"Typ nu opnieuw, langzaam acht keer @kbd{d}. Elke keer dat je @kbd{d} "
+"typt, evalueert Emacs een volgende expressie in de functiedefinitie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18086
 msgid "Eventually, the buffer will look like this:"
-msgstr ""
+msgstr "Uiteindelijk ziet het buffer zer zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:18094
@@ -37615,7 +37713,11 @@ msgid ""
 "* (while (> number 0) (setq total (+ total number))\n"
 "        (setq number (1= number)))\n"
 msgstr ""
-
+"Debugger entered--beginning evaluation of function call form:\n"
+"* (setq getal (1= getal))\n"
+"* (while (> getal 0) (setq totaal (+ totaal getal))\n"
+"        (setq getal (1= getal)))\n"
+  
 #. type: group
 #: emacs-lisp-intro.texi:18100
 #, no-wrap
@@ -37625,6 +37727,23 @@ msgid ""
 "* triangle-bugged(5)\n"
 "  eval((triangle-bugged 5) nil)\n"
 msgstr ""
+"* (let ((totaal 0)) (while (> getal 0) (setq totaal ...)\n"
+"         (setq getal ...)) totaal)\n"
+"* #f(lambda (getal) :dynbind \"Geef som van getallen 1 t/m GETAL terug.\"\n"
+"  (let ((totaal 0)) (while (> getal 0)\n"
+"     (setq totaal (+ totaal getal)) (setq getal ...)) totaal))(5)\n"
+"* apply(#f(lambda (getal) :dynbind \"Geef som van getallen 1 t/m GETAL terug.\"\n"
+"  (let ((totaal 0)) (while (> getal 0) (setq totaal ...)\n"
+"     (setq getal ...)) totaal)) 5)\n"
+"* driehoek-met-bug(5)\n"
+"  eval((driehoek-met-bug 5) nil)\n"
+"  elisp--eval-last-sexp(nil)\n"
+"  #f(compiled-function () #<bytecode ...>)()\n"
+"  handler-bind-1(#f(compiled-function () #<bytecode ...>) (error) eval-expression--debug)\n"
+"  eval-last-sexp(nil)\n"
+"  funcall-interactively(eval-last-sexp nil)\n"
+"  call-interactively(eval-last-sexp nil nil)\n"
+"  command-execute(eval-last-sexp)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18115
@@ -37632,6 +37751,9 @@ msgid ""
 "Finally, after you type @kbd{d} two more times, Emacs will reach the error, "
 "and the top two lines of the @file{*Backtrace*} buffer will look like this:"
 msgstr ""
+"Nadat je @kbd{d} nog twee keer getypt hebt, bereikt Emacs tenslotte "
+"de fout, en zien de bovenste twee regels van het @file{*Backtrace*} "
+"buffer er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:18123
@@ -37643,11 +37765,15 @@ msgid ""
 "@dots{}\n"
 "---------- Buffer: *Backtrace* ----------\n"
 msgstr ""
+"Debugger entered--entering a function:\n"
+"* eval-expression--debug((void-function 1=))\n"
+"* (1= getal)\n"
+"@dots{}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18127
 msgid "By typing @kbd{d}, you were able to step through the function."
-msgstr ""
+msgstr "Je kon met het typen van @kbd{d} door de functie stappen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18130
@@ -37655,12 +37781,14 @@ msgid ""
 "You can quit a @file{*Backtrace*} buffer by typing @kbd{q} in it; this quits "
 "the trace, but does not cancel @code{debug-on-entry}."
 msgstr ""
+"Je kunt @file{*Backtrace*} buffer afsluiten door @kbd{q} er in te "
+"typen. Dit stopt de trace, maar zet @code{debug-on-entry} niet uit."
 
 #. type: findex
 #: emacs-lisp-intro.texi:18131
 #, no-wrap
 msgid "cancel-debug-on-entry"
-msgstr ""
+msgstr "cancel-debug-on-entry"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18134
@@ -37668,23 +37796,26 @@ msgid ""
 "To cancel the effect of @code{debug-on-entry}, call @code{cancel-debug-on-"
 "entry} and the name of the function, like this:"
 msgstr ""
+"Om het effect van @code{debug-on-entry} te stoppen, roep je "
+"@code{cancel-debug-on-entry} aan en de naam van de functie, zoals "
+"dit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:18137
 #, no-wrap
 msgid "M-x cancel-debug-on-entry @key{RET} triangle-bugged @key{RET}\n"
-msgstr ""
+msgstr "M-x cancel-debug-on-entry @key{RET} driehoek-met-bug @key{RET}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18141
 msgid "(If you are reading this in Info, cancel @code{debug-on-entry} now.)"
-msgstr ""
+msgstr "(Wanneer je dit in Info leest, stop je @code{debug-on-entry} nu.)"
 
 #. type: section
 #: emacs-lisp-intro.texi:18143
 #, no-wrap
 msgid "@code{debug-on-quit} and @code{(debug)}"
-msgstr ""
+msgstr "@code{debug-on-quit} en @code{(debug)}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18147
@@ -37692,6 +37823,9 @@ msgid ""
 "In addition to setting @code{debug-on-error} or calling @code{debug-on-"
 "entry}, there are two other ways to start @code{debug}."
 msgstr ""
+"Naast het zetten van @code{debug-on-error} of het aanroepen van "
+"@code{debug-on-entry}, zijn er twee andere manieren om @code{debug} "
+"te starten."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18152
@@ -37700,12 +37834,15 @@ msgid ""
 "quit}) by setting the variable @code{debug-on-quit} to @code{t}.  This is "
 "useful for debugging infinite loops."
 msgstr ""
+"Je kunt steeds wanneer @kbd{C-g} (@code{keyboard-quit}) typt "
+"@code{debug} starten door de variabele @code{debug-on-quit} op "
+"@code{t} te zetten. Dit is zinvol om oneindige loops te debuggen."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:18154
 #, no-wrap
 msgid "@code{(debug)} in code"
-msgstr ""
+msgstr "@code{(debug)} in code"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18157
@@ -37713,6 +37850,8 @@ msgid ""
 "Or, you can insert a line that says @code{(debug)} into your code where you "
 "want the debugger to start, like this:"
 msgstr ""
+"Of je neemt een regel met de tekst @code{(debug)} op in je code waar "
+"je de debugger wilt starten, zoals dit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:18168
@@ -37727,6 +37866,14 @@ msgid ""
 "      (setq number (1= number)))      ; @r{Error here.}\n"
 "    total))\n"
 msgstr ""
+"(defun driehoek-met-bug (getal)\n"
+"  \"Geef som van getallen 1 t/m GETAL terug.\"\n"
+"  (let ((totaal 0))\n"
+"    (while (> getal 0)\n"
+"      (setq totaal (+ totaal getal))\n"
+"      (debug)                         ; @r{Start debugger.}\n"
+"      (setq getal (1= getal)))        ; @r{Fout hier.}\n"
+"    totaal))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18173
@@ -37734,18 +37881,20 @@ msgid ""
 "The @code{debug} function is described in detail in @ref{Debugger, , The "
 "Lisp Debugger, elisp, The GNU Emacs Lisp Reference Manual}."
 msgstr ""
+"De functie @code{debug} is gedetailleerd beschreven in @ref{Debugger, , The "
+"Lisp Debugger, elisp, The GNU Emacs Lisp Reference Manual}."
 
 #. type: section
 #: emacs-lisp-intro.texi:18175
 #, no-wrap
 msgid "The @code{edebug} Source Level Debugger"
-msgstr ""
+msgstr "De @code{edebug} Source Level Debugger"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:18176
 #, no-wrap
 msgid "Source level debugger"
-msgstr ""
+msgstr "Source level debugger"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18182
@@ -37754,6 +37903,9 @@ msgid ""
 "the code you are debugging, with an arrow at the left that shows which line "
 "you are currently executing."
 msgstr ""
+"Edebug is een source level debugger. Edebug toont gewoonlijk de bron "
+"van de code die je aan het debuggen bent met links een pijltje dat "
+"de regel aanwijst die je op dit moment uitvoert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18185
@@ -37761,6 +37913,9 @@ msgid ""
 "You can walk through the execution of a function, line by line, or run "
 "quickly until reaching a @dfn{breakpoint} where execution stops."
 msgstr ""
+"Je kunt regel voor regel door de uitvoering van de functie wandelen "
+"of snel er doorheen gaan tot het bereiken van een @dfn{breakpoint}, "
+"waar de uitvoering stopt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18188 emacs-lisp-intro.texi:18315
@@ -37768,6 +37923,8 @@ msgid ""
 "Edebug is described in @ref{Edebug, , , elisp, The GNU Emacs Lisp Reference "
 "Manual}."
 msgstr ""
+"Edebug is beschreven in @ref{Edebug, , , elisp, The GNU Emacs Lisp Reference "
+"Manual}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18193
@@ -37776,6 +37933,9 @@ msgid ""
 "@xref{Recursive triangle function, , Recursion in place of a counter}, for a "
 "review of it."
 msgstr ""
+"Hier is een functiedefinitie voor @code{driehoek-recursieve} met een "
+"bug. @xref{Recursieve driehoek functie, , Recursie in plaats van een "
+"teller}, voor een review er van."
 
 #. type: group
 #: emacs-lisp-intro.texi:18204
@@ -37790,6 +37950,14 @@ msgid ""
 "       (triangle-recursively-bugged\n"
 "        (1= number)))))               ; @r{Error here.}\n"
 msgstr ""
+"(defun driehoek-recursief-bugged (aantal)\n"
+"  \"Geef de som van de getallen 1 tot en met AANTAL terug.\n"
+"Met recursie.\"\n"
+"  (if (= aantal 1)\n"
+"      1\n"
+"    (+ aantal\n"
+"       (driehoek-recursief-bugged\n"
+"        (1= aantal)))))               ; @r{Fout hier}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18214
@@ -37800,6 +37968,12 @@ msgid ""
 "@kbd{C-M-x} (@code{eval-defun}).  (By default, the @code{eval-defun} command "
 "works only in Emacs Lisp mode or in Lisp Interaction mode.)"
 msgstr ""
+"Normaliter installeer je deze definitie door de cursor achter het "
+"haakje dat de functie afsluit te plaatsen en @kbd{C-x C-e} "
+"(@code{eval-last-sexp}) te typen, of anders de cursor in de "
+"definitie te plaatsten en @kbd{C-M-x} (@code{eval-defun}) te typen. "
+"(Standaard werkt het @code{eval-defun} commando alleen in Emacs Lisp "
+"mode of in Lisp Interaction mode.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18220
@@ -37808,12 +37982,16 @@ msgid ""
 "@dfn{instrument} the code using a different command.  You can do this by "
 "positioning your cursor within or just after the definition and typing"
 msgstr ""
+"Echter, om deze functiedefinitie voor Edebug voor te bereiden, moet "
+"je eerst de code @dfn{instrumenteren} met een ander commando. Je "
+"doet dit door de cursors in of direct achter de definitie te "
+"plaatsen en dan het volgende te typen:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:18223
 #, no-wrap
 msgid "M-x edebug-defun @key{RET}\n"
-msgstr ""
+msgstr "M-x edebug-defun @key{RET}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18228
@@ -37821,6 +37999,8 @@ msgid ""
 "This will cause Emacs to load Edebug automatically if it is not already "
 "loaded, and properly instrument the function."
 msgstr ""
+"Dit zorgt dat Emacs automatisch Edebug laadt, wanneer het nog niet "
+"is geladen en de functie correct instrumenteert."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18231
@@ -37828,12 +38008,15 @@ msgid ""
 "After instrumenting the function, place your cursor after the following "
 "expression and type @kbd{C-x C-e} (@code{eval-last-sexp}):"
 msgstr ""
+"Nadat het instrumenteren van de functie plaats je de cursor achter "
+"de volgende expressie en typ je @kbd{C-x C-e} "
+"(@code{eval-last-sexp}):"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:18234
 #, no-wrap
 msgid "(triangle-recursively-bugged 3)\n"
-msgstr ""
+msgstr "(driehoek-recursief-bugged 3)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18244
@@ -37845,12 +38028,19 @@ msgid ""
 "the following examples, we show the arrowhead with @samp{=>}; in a windowing "
 "system, you may see the arrowhead as a solid triangle in the window fringe.)"
 msgstr ""
+"Je springt terug naar de bron van @code{driehoek-recursief-bugged} "
+"met de cursor gepositioneerd aan begin van de @code{if} regel van de "
+"functie. Ook zie je een pijlpunt aan de linkerkant van de regel. De "
+"pijlpunt markeert de regel die de functie aan het uitvoeren is. (In "
+"de volgende voorbeelden tonen we de pijlpunt met @samp{=>}. In een "
+"windowing systeem kan de pijlpunt er als een gevulde driehoek in de "
+"window-kantlijn uitzien.)"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:18247
 #, no-wrap
 msgid "=>@point{}(if (= number 1)\n"
-msgstr ""
+msgstr "=>@point{}(if (= number 1)\n"
 
 #. type: iftex
 #: emacs-lisp-intro.texi:18253
@@ -37858,6 +38048,8 @@ msgid ""
 "In the example, the location of point is displayed with a star, "
 "@samp{@point{}} (in Info, it is displayed as @samp{-!-})."
 msgstr ""
+"In het voorbeeld is de lokatie van point getoond met een sterretje, "
+"@samp{@point{}} (in Info wordt het getoond als @samp{-!-}.)"
 
 #. type: ifnottex
 #: emacs-lisp-intro.texi:18257
@@ -37865,6 +38057,8 @@ msgid ""
 "In the example, the location of point is displayed as @samp{@point{}} (in a "
 "printed book, it is displayed with a five pointed star)."
 msgstr ""
+"In het voorbeeld is de lokatie van point getoond als @samp{@point{}} "
+"(in een gedrukt boek wordt het getoond met een vijfpuntige ster.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18261
@@ -37872,12 +38066,14 @@ msgid ""
 "If you now press @key{SPC}, point will move to the next expression to be "
 "executed; the line will look like this:"
 msgstr ""
+"Wanneer je nu @key{SPC} aanslaat, verplaatst point naar de volgende "
+"expressie om uit te voeren, de regel ziet er zo uit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:18264
 #, no-wrap
 msgid "=>(if @point{}(= number 1)\n"
-msgstr ""
+msgstr "=>(if @point{}(= number 1)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18271
@@ -37887,12 +38083,17 @@ msgid ""
 "value will be displayed in the echo area.  For example, after you move point "
 "past @code{number}, you will see the following:"
 msgstr ""
+"Terwijl je doorgaat met @key{SPC} aan te slaan verplaatst point van "
+"expressie naar expressie. Steeds als een functie een waarde "
+"teruggeeft, wordt die tegelijkertijd in het echogebied getoond. "
+"Nadat je point bijvoorbeeld voorbij @code{number} verplaatst hebt, "
+"zie je het volgende:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:18274
 #, no-wrap
 msgid "Result: 3 (#o3, #x3, ?\\C-c)\n"
-msgstr ""
+msgstr "Result: 3 (#o3, #x3, ?\\C-c)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18280
@@ -37901,6 +38102,10 @@ msgid ""
 "hexadecimal three, and @sc{ascii} Control-C (the third letter of the "
 "alphabet, in case you need to know this information)."
 msgstr ""
+"Dit betekent dat de waarde van @code{getal} 3 is, wat gelijk is aan "
+"octal drie, hexidicimaal drie en @sc{ascii} Control-C (de derde "
+"letter van het alfabet, voor het geval je deze informatie nodig "
+"hebt)."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18283
@@ -37908,12 +38113,14 @@ msgid ""
 "You can continue moving through the code until you reach the line with the "
 "error.  Before evaluation, that line looks like this:"
 msgstr ""
+"Je kunt door de code blijven gaan totdat je de regel met de fout "
+"bereikt. Voor de evaluatie ziet die regel er zo uit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:18286
 #, no-wrap
 msgid "=>        @point{}(1= number)))))               ; @r{Error here.}\n"
-msgstr ""
+msgstr "=>       @point{}(1= aantal)))))               ; @r{Fout hier}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18292
@@ -37921,22 +38128,24 @@ msgid ""
 "When you press @key{SPC} once again, you will produce an error message that "
 "says:"
 msgstr ""
+"Wanneer je nog een keer @key{SPC} aanslaat, produceer je een "
+"foutmelding met de tekst:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:18295
 #, no-wrap
 msgid "Symbol's function definition is void:@: 1=\n"
-msgstr ""
+msgstr "Symbol's function definition is void:@: 1=\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18299
 msgid "This is the bug."
-msgstr ""
+msgstr "Dit is de bug"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18301
 msgid "Press @kbd{q} to quit Edebug."
-msgstr ""
+msgstr "Druk op @kbd{q} om Edebug te stoppen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18306
@@ -37946,6 +38155,10 @@ msgid ""
 "your cursor after the definition's closing parenthesis and type @kbd{C-x C-"
 "e}."
 msgstr ""
+"Om de instrumentalisatie van een functiedefinitie te verwijderen, "
+"her-evalueer je die eenvoudig met een commando dat het niet "
+"instrumenteert. Bijvoorbeeld kan je de cursor na het haakje dat de "
+"functie afsluit plaatsen en @kbd{C-x C-e} te typen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18312
@@ -37956,6 +38169,11 @@ msgid ""
 "of various expressions; you can find out how many times a function is "
 "called, and more."
 msgstr ""
+"Edebug doet veel meer dan je door een functie te wandelen. Je kunt "
+"het zo instellen dat het zelf door een functie rent en alleen stopt "
+"bij een fout of bij gespecificeerde stoppunten. Je kunt het de "
+"veranderende waardes van verschillende expressies laten tonen, of "
+"ontdekken hoe vaak een functie wordt aangeroepen, en meer."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:18329
@@ -37967,6 +38185,13 @@ msgid ""
 "information on hooks, see @ref{Command Overview, , Command Loop Overview, "
 "elisp, The GNU Emacs Lisp Reference Manual}.)"
 msgstr ""
+"Installeer de @code{@value{TEL-WOORDEN}} functie en laat het de "
+"ingebouwde debugger ingaaan wanneer je het aanroept. Run het "
+"commando op een region die twee woorden bevat. Je moet @kbd{d} een "
+"opmerkelijk aantal keer aanslaan. Wordt op jouw systeem een hook "
+"aangeroepen wanneer het commando eindigt? (Voor informatie over "
+"hooks, zie @ref{Command Overview, , Command Loop Overview, elisp, "
+"The GNU Emacs Lisp Reference Manual}.))"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:18336
@@ -37976,6 +38201,11 @@ msgid ""
 "not need to have a bug, although you can introduce one if you wish.  If the "
 "function lacks a bug, the walk-through completes without problems."
 msgstr ""
+"Kopieer @code{@value{TEL-WOORDEN}} in het @file{*scratch*} buffer, "
+"instrumenteer de functie voor Edebug, en wandel door de uitvoering. "
+"De functie hoeft geen bug te hebben, maar je kunt er een "
+"introduceren als je dat wilt. Wanneer de functie geen bug heeft, "
+"eindigt de wandeling zonder problemen."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:18342
@@ -37985,6 +38215,11 @@ msgid ""
 "@kbd{@key{CTRL}-x} followed by an upper case @kbd{X}; use this prefix for "
 "commands made outside of the Edebug debugging buffer.)"
 msgstr ""
+"Typ @kbd{?} terwijl je Edebug draait om een lijst te zien van alle "
+"Edebug commando's. (De @code{global-edebug-prefix} is meestal "
+"@kbd{C-x X}, dus @kbd{@key{CTRL}-x} gevold door een hoofdletter "
+"@kbd{X}. Gebruik deze prefix voor commando's buiten het Edebug "
+"debugging buffer.)"
 
 #. type: itemize
 #: emacs-lisp-intro.texi:18347
@@ -37992,6 +38227,9 @@ msgid ""
 "In the Edebug debugging buffer, use the @kbd{p} (@code{edebug-bounce-point}) "
 "command to see where in the region the @code{@value{COUNT-WORDS}} is working."
 msgstr ""
+"Gebruik het @kbd{p} (@code{edebug-bounce-point}) commando in het "
+"Edebug debugging buffer om te zien in welke region de "
+"@code{@value{TEL-WOORDEN}} aan het werk is."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:18351
@@ -37999,6 +38237,9 @@ msgid ""
 "Move point to some spot further down the function and then type the @kbd{h} "
 "(@code{edebug-goto-here}) command to jump to that location."
 msgstr ""
+"Verplaats point naar een plaats verder in de functie en typ dan het "
+"@kbd{h} (@code{edebug-goto-here}) commando om naar die lokatie te "
+"springen."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:18356
@@ -38007,6 +38248,9 @@ msgid ""
 "through the function on its own; use an upper case @kbd{T} for @code{edebug-"
 "Trace-fast-mode}."
 msgstr ""
+"Gebruik het @kbd{t} (@code{edebug-trace-mode}) commando om te zorgen "
+"dat Edebug zelf door de functie wandelt. Gebruik een hoofdletter "
+"@kbd{T} voor @code{edebug-Trace-fast-mode}."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:18360
@@ -38014,6 +38258,8 @@ msgid ""
 "Set a breakpoint, then run Edebug in Trace mode until it reaches the "
 "stopping point."
 msgstr ""
+"Zet een breakpoint en draai Edubug in Trace mode tot het dit "
+"stoppunt bereikt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18369
@@ -38023,6 +38269,11 @@ msgid ""
 "@file{.emacs} files for yourself and your friends, and write simple "
 "customizations and extensions to Emacs."
 msgstr ""
+"Je hebt nu het einde van deze Introductie bereikt. Je hebt nu genoeg "
+"geleerd over het programmeren in Emacs Lisp om waardes te zetten, "
+"eenvoudige @file{.emacs} bestanden voor jezelf en je vrienden te "
+"schrijven en om eenvoudige aanpassingen en extensies op Emacs te "
+"schrijven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18372
@@ -38030,6 +38281,8 @@ msgid ""
 "This is a place to stop.  Or, if you wish, you can now go onward, and teach "
 "yourself."
 msgstr ""
+"Dit is een plaats op te stoppen. Of, als je dat wilt, kan je nu "
+"verder gaan en je zelf iets leren."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18376
@@ -38038,12 +38291,17 @@ msgid ""
 "some.  There are a great many more brackets and hinges that are easy to use "
 "that we have not touched."
 msgstr ""
+"Je hebt wat van de basisfuncties van programmeren geleerd. Maar "
+"slechts een paar. Er zijn nog veel meer elementen die makkelijk te "
+"gebruiken zijn die we niet geraakt hebben."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18379
 msgid ""
 "A path you can follow right now lies among the sources to GNU Emacs and in"
 msgstr ""
+"Het pad dat je nu kunt volgen ligt ondermeer in de broncode van GNU "
+"Emacs en in"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18390
@@ -38052,6 +38310,9 @@ msgid ""
 "across a function or expression that is unfamiliar, you need to figure out "
 "or find out what it does."
 msgstr ""
+"De Emacs Lisp broncode is een avontuur. Wanneer je de broncode leest "
+"en een onbekende functie of expressie tegenkomt moet je ontdekken "
+"wat die doet."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18397
@@ -38063,6 +38324,13 @@ msgid ""
 "Texinfo source file, so you can read it on your computer and as a typeset, "
 "printed book.)"
 msgstr ""
+"Ga naar de Reference Manual. Het is een grondige, complete en "
+"redelijk makkelijk te lezen beschrijving van Emacs Lisp. Het is niet "
+"alleen voor experts geschreven, maar voor mensen die weten wat jij "
+"weet. (De @cite{Reference Manual} zit bij de standaard GNU Emacs "
+"distributie. Net als deze introductie komt het als Texinfo "
+"bronbestand, zodat je het op je computer kunt lezen en als een "
+"opgemaakt gedrukt boek.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18401
@@ -38071,6 +38339,10 @@ msgid ""
 "documentation for all functions and variables, and @code{xref-find-"
 "definitions}, the program that takes you to sources."
 msgstr ""
+"Ga naar de andere ingebouwde hulp die onderdeel van GNU Emacs is: de "
+"ingebouwde documentatie voor alle functies en variabelen, en "
+"@code{xref-find-definitions}, het programma dat je naar de broncode "
+"brengt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18407
@@ -38081,6 +38353,12 @@ msgid ""
 "least look complicated at first sight.  The @code{open-line} function, for "
 "example, looks complicated."
 msgstr ""
+"Hier is een voorbeeld van hoe ik de broncode verken. Vanwege de naam "
+"is @file{simple.el} het bestand dat ik het eerste bekeek, een lange "
+"tijd geleden. Het blijkt dat sommige functies in @file{simple.el} "
+"erg gecompliceerd zijn of op zijn minst op het eerste gezicht er "
+"gecompliceerd uitzien. De functie @code{open-line} bijvoorbeeld ziet "
+"er gecompliceerd uit."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18415
@@ -38092,6 +38370,13 @@ msgid ""
 "the functions.  According to @code{count-words-in-defun}, the @code{split-"
 "line} function contains 102 words and symbols."
 msgstr ""
+"Je wilt misschien langzaam door deze functie wandelen, zoals we met "
+"de functie @code{forward-sentence} deden. ((@xref{forward-sentence, "
+"De functie @code{forward-sentence}}.) Of je wilt deze functie "
+"overslaan en naar een andere kijken, zoals @code{split-line}. Je "
+"hoeft niet alle functies te lezen. Volgens "
+"@code{tel-woorden-in-defun} bevat de functie @code{split-line} 102 "
+"woorden en symbolen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18419
@@ -38100,6 +38385,9 @@ msgid ""
 "studied: @code{skip-chars-forward}, @code{indent-to}, @code{current-column} "
 "and @code{insert-and-inherit}."
 msgstr ""
+"Hoewel die kort is, bevat @code{split-line} expressie die we nog "
+"niet bestudeerd hebben: @code{skip-chars-forward}, @code{indent-to}, "
+"@code{current-column} en @code{insert-and-inherit}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18424
@@ -38109,6 +38397,10 @@ msgid ""
 "(@code{describe-function}) and the name of the function.  This gives you the "
 "function documentation."
 msgstr ""
+"Beschouw de functie @code{skip-chars-forward}. In GNU Emacs ontdek "
+"je meer over @code{skip-chars-forward} door het typen van @kbd{C-h "
+"f} (@code{describe-function}) en de naam van de functie. Dit levert "
+"je de functiedocumentatie."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18430
@@ -38119,6 +38411,12 @@ msgid ""
 "those long, but decipherable functions.  You can look up @code{describe-"
 "function} using the @kbd{C-h f} command!"
 msgstr ""
+"Je kunt misschien raden wat gedaan wordt door een functie met een "
+"goede naam zoals @code{indent-to}, of je kunt het opzoeken. "
+"Overigens staat de functie @code{describe-function} zelf in "
+"@file{help.el}. Het is een van die lange, maar ontcijferbare "
+"functies. Je kunt de @code{describe-function} opzoeken met het "
+"@kbd{C-h f} commando!"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18437
@@ -38129,6 +38427,12 @@ msgid ""
 "situation is bound to @code{help-follow}, and be taken directly to the "
 "source, in the same way as @kbd{M-.} (@code{xref-find-definitions})."
 msgstr ""
+"In dit geval, omdat de code in Lisp is, bevat het @file{*Help*} "
+"buffer de naam van de library met de broncode van de functie. Je "
+"kunt point op de naam van de library zetten en dan op de @key{RET} "
+"toets drukken, die in deze situatie gebonden is aan "
+"@code{help-follow} en je direct naar de broncode brengt, op dezelfde "
+"manier als @kbd{M-.} (@code{xref-find-definitions})."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18441
@@ -38137,6 +38441,9 @@ msgid ""
 "@code{interactive} expression without using the standard character codes; "
 "and it shows how to create a temporary buffer."
 msgstr ""
+"De definitie van @code{describe-function} illustreert hoe de "
+"@code{interactive} aan te passen zonder de standaard karakter-codes "
+"te gebruiken en het laat zien hoe je een tijdelijke buffer maakt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18445
@@ -38145,6 +38452,10 @@ msgid ""
 "a built-in function.  @code{help-follow} takes you to its source as does "
 "@code{xref-find-definitions}, when properly set up.)"
 msgstr ""
+"(De functie @code{indent-to} is in C geschreven in plaats van Emacs "
+"Lisp, het is een ingebouwde functie. @code{help-follow} neemt je "
+"naar de broncode net als @code{xref-find-definitions}, wanneer "
+"correct opgezet.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18452
@@ -38155,11 +38466,17 @@ msgid ""
 "(@code{Info-index}) and the name of the function, or by looking up the "
 "function in the index to a printed copy of the manual."
 msgstr ""
+"Je kunt naar een de bron van een functie kijken met "
+"@code{xref-find-definitions} dat aan @kbd{M-.} gebonden is. "
+"Tenslottte kun je ontdekken wat de Reference Manual te zeggen heeft "
+"door de manual in Info te bezoeken en @kbd{i} (@code{Info-index}) en "
+"de naam van de functie te typen, of het op te zoeken in de index van een "
+"afgedrukt exemplaar van de manual."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18455
 msgid "Similarly, you can find out what is meant by @code{insert-and-inherit}."
-msgstr ""
+msgstr "Op dezelfde manier kan je uit vinden vat bedoeld wordt met @code{insert-and-inherit}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18465
@@ -38173,6 +38490,16 @@ msgid ""
 "about how Emacs is built.  (@xref{Building Emacs, , Building Emacs, elisp, "
 "The GNU Emacs Lisp Reference Manual}, for more about building.)"
 msgstr ""
+"Andere interessante bronbestanden zijn @file{paragraphs.el}, "
+"@file{loaddefs.el}, en @file{loadup.el}. Het bestand "
+"@file{paragraphs.el} bevat zowel korte makkelijk te begrijpen "
+"functies als ook langere. Het bestand @file{loaddefs.el} bevat veel "
+"standaard autoloads en veel keymaps. Ik heb het nooit in zijn geheel "
+"bekeken, alleen in delen. Het bestand @file{loadup.el} is het "
+"bestand dat veel standaard onderdelen van Emacs laadt, het vertelt "
+"je veel over hoe Emacs is gebouwd. (@xref{Building Emacs, , Building "
+"Emacs, elisp, The GNU Emacs Lisp Reference Manual}, voor meer over "
+"bouwen.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18473
@@ -38185,6 +38512,13 @@ msgid ""
 "programs that write programs.  These are topics for another, and different "
 "kind of book, a different kind of learning."
 msgstr ""
+"Zoals ik heb gezegd, je hebt sommmige basisdelen geleerd, echter, en "
+"erg belangrijk, hebben we amper belangrijke aspecten van "
+"programmeren geraakt. Ik heb niets gezegd over het sorteren van "
+"informatie, bevalve het gebruik van de standaard @code{sort} "
+"functie. Ik heb niets gezegd over hoe je programma's schrijft die "
+"programma's schrijven. Dit zijn onderwerpen voor een ander en ander "
+"soort boek, een andere manier van leren."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18477
@@ -38192,6 +38526,8 @@ msgid ""
 "What you have done is learn enough for much practical work with GNU Emacs.  "
 "What you have done is get started.  This is the end of a beginning."
 msgstr ""
+"Je hebt genoeg geleerd om veel practisch werk met GNU Emacs te doen. "
+"En wat je gedaan hebt, is beginnen. Dit is het einde van het begin."
 
 #. type: appendix
 #: emacs-lisp-intro.texi:18481

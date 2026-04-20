@@ -1,0 +1,469 @@
+;;; forgejo-pull.el --- Pull request list, detail, and AGit-Flow  -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026  Thanos Apollo
+
+;; Author: Thanos Apollo <public@thanosapollo.org>
+;; Keywords: extensions
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; Pull request list view, detail view, and AGit-Flow integration for
+;; submitting and fetching PRs via git push options.
+
+;;; Code:
+
+(require 'cl-lib)
+(require 'ewoc)
+(require 'url-parse)
+(require 'forgejo)
+(require 'forgejo-tl)
+(require 'forgejo-buffer)
+(require 'forgejo-utils)
+
+(declare-function forgejo-api-get "forgejo-api.el"
+                  (endpoint &optional params callback))
+(declare-function forgejo-api-get-all "forgejo-api.el"
+                  (endpoint &optional params callback))
+(declare-function forgejo-api-default-limit "forgejo-api.el" ())
+(declare-function forgejo-db-save-issues "forgejo-db.el"
+                  (host owner repo issues &optional is-pull))
+(declare-function forgejo-db-save-timeline "forgejo-db.el"
+                  (host owner repo number events))
+(declare-function forgejo-db-set-sync-time "forgejo-db.el"
+                  (host owner repo endpoint time))
+(declare-function forgejo-db-get-sync-time "forgejo-db.el"
+                  (host owner repo endpoint))
+(declare-function forgejo-db-get-issues "forgejo-db.el"
+                  (host owner repo &optional filters))
+(declare-function forgejo-db--row-to-issue-alist "forgejo-db.el" (row))
+(declare-function forgejo-db--row-to-timeline-alist "forgejo-db.el" (row))
+(declare-function forgejo-db-get-issue "forgejo-db.el"
+                  (host owner repo number))
+(declare-function forgejo-db-get-timeline "forgejo-db.el"
+                  (host owner repo number))
+(declare-function forgejo-db-update-issue-html "forgejo-db.el"
+                  (host owner repo number html))
+(declare-function forgejo-db-update-timeline-html "forgejo-db.el"
+                  (host owner repo issue-number event-id html))
+(declare-function forgejo-api-render-markdown-async "forgejo-api.el"
+                  (text context callback))
+(declare-function forgejo-repo-read "forgejo-repo.el" ())
+
+(defvar forgejo-host)
+(defvar forgejo-default-sort)
+(defvar forgejo-timeline-page-size)
+(defvar forgejo-repo--host)
+(defvar forgejo-repo--owner)
+(defvar forgejo-repo--name)
+
+;;; ---- PR list view ----
+
+(defvar-local forgejo-pull--filters nil
+  "Plist of current PR filter state.
+Keys: :state :milestone :labels :poster :page")
+
+(defvar-local forgejo-pull--total-count nil
+  "Total number of PRs matching current filters.")
+
+(defvar forgejo-pull-list-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "RET") #'forgejo-pull-view-at-point)
+    (define-key map (kbd "g") #'forgejo-pull-refresh)
+    (define-key map (kbd "s") #'forgejo-pull-filter-state)
+    (define-key map (kbd "/") #'forgejo-pull-filter-poster)
+    (define-key map (kbd "c") #'forgejo-pull-clear-filters)
+    (define-key map (kbd "n") #'forgejo-pull-next-page)
+    (define-key map (kbd "p") #'forgejo-pull-prev-page)
+    (define-key map (kbd "b") #'forgejo-pull-browse-at-point)
+    map)
+  "Keymap for `forgejo-pull-list-mode'.")
+
+
+
+(define-derived-mode forgejo-pull-list-mode tabulated-list-mode
+  "Forgejo PRs"
+  "Major mode for browsing Forgejo pull requests."
+  :group 'forgejo
+  (setq tabulated-list-padding 1
+        tabulated-list-format
+        (vector '("#" 5 t :right-align t)
+                '("State" 8 nil)
+                (list "Title" (forgejo-buffer--flex-width 58) t)
+                '("Labels" 15 nil)
+                '("Author" 12 t)
+                '("Updated" 12 t)))
+  (tabulated-list-init-header))
+
+(defun forgejo-pull--entries (pulls)
+  "Convert PULLS (list of API alists) to `tabulated-list-entries'."
+  (mapcar
+   (lambda (pr)
+     (let-alist pr
+       (list .number
+             (vector
+              (number-to-string .number)
+              (forgejo-buffer--format-state .state)
+              .title
+              (forgejo-buffer--format-labels .labels)
+              (or (forgejo-buffer--login .user) "")
+              (forgejo-buffer--relative-time .updated_at)))))
+   pulls))
+
+(defun forgejo-pull--build-params (filters)
+  "Build API query params from FILTERS plist for PR endpoint."
+  (let ((params (list (cons "sort" forgejo-default-sort)
+                      (cons "limit" (number-to-string
+                                     (forgejo-api-default-limit))))))
+    (when-let* ((state (plist-get filters :state)))
+      (push (cons "state" state) params))
+    (when-let* ((poster (plist-get filters :poster)))
+      (push (cons "poster" poster) params))
+    (when-let* ((page (plist-get filters :page)))
+      (push (cons "page" (number-to-string page)) params))
+    params))
+
+(defun forgejo-pull--fetch (owner repo filters callback)
+  "Fetch all PRs from API for OWNER/REPO with FILTERS, call CALLBACK."
+  (let ((endpoint (format "repos/%s/%s/pulls" owner repo))
+        (params (forgejo-pull--build-params filters)))
+    (forgejo-api-get-all endpoint params callback)))
+
+(defun forgejo-pull--render-from-db (buf-name host owner repo filters)
+  "Render cached PRs into BUF-NAME from the DB."
+  (let* ((db-filters (append (list :is-pull t) filters))
+         (rows (forgejo-db-get-issues host owner repo db-filters))
+         (alists (mapcar #'forgejo-db--row-to-issue-alist rows))
+         (entries (forgejo-pull--entries alists)))
+    (with-current-buffer (get-buffer-create buf-name)
+      (unless (derived-mode-p 'forgejo-pull-list-mode)
+        (forgejo-pull-list-mode))
+      (unless forgejo-repo--host
+        (setq forgejo-repo--host forgejo-host))
+      (setq forgejo-repo--owner owner
+            forgejo-repo--name repo
+            forgejo-pull--filters filters
+            tabulated-list-entries entries)
+      (forgejo-tl-print t)
+      (current-buffer))))
+
+(defun forgejo-pull--sync (host owner repo filters buf-name
+                                &optional _force)
+  "Fetch PRs from API and update DB, then re-render BUF-NAME."
+  (forgejo-pull--fetch
+   owner repo filters
+   (lambda (data headers)
+     (forgejo-db-save-issues host owner repo data t)
+     (forgejo-db-set-sync-time host owner repo "pulls"
+                               (format-time-string "%Y-%m-%dT%H:%M:%SZ"
+                                                   nil t))
+     (when (buffer-live-p (get-buffer buf-name))
+       (forgejo-pull--render-from-db buf-name host owner repo filters)
+       (when-let* ((total (plist-get headers :total-count)))
+         (with-current-buffer buf-name
+           (setq forgejo-pull--total-count total)))))))
+
+;;;###autoload
+(defun forgejo-pull-list (&optional owner repo)
+  "List pull requests for OWNER/REPO.
+Shows cached data immediately, then syncs from the API in the background."
+  (interactive)
+  (let* ((context (if (and owner repo)
+                      (list nil owner repo)
+                    (forgejo-repo-read)))
+         (host-url (or (nth 0 context) forgejo-host))
+         (owner (nth 1 context))
+         (repo (nth 2 context))
+         (buf-name (format "*forgejo-pulls: %s/%s*" owner repo))
+         (filters (list :state "open"))
+         (host (url-host (url-generic-parse-url host-url))))
+    (forgejo-with-host host-url
+      (switch-to-buffer
+       (forgejo-pull--render-from-db buf-name host owner repo filters))
+      (forgejo-pull--sync host owner repo filters buf-name))))
+
+(defun forgejo-pull-refresh ()
+  "Force a full re-fetch of the current PR list from the API."
+  (interactive)
+  (when (and forgejo-repo--owner forgejo-repo--name)
+    (let ((host (url-host (url-generic-parse-url
+                           (or forgejo-repo--host forgejo-host)))))
+      (forgejo-with-host forgejo-repo--host
+        (forgejo-pull--sync host forgejo-repo--owner forgejo-repo--name
+                            forgejo-pull--filters (buffer-name) t)))))
+
+(defun forgejo-pull--refilter ()
+  "Re-render from DB with current filters, then sync."
+  (let ((host (url-host (url-generic-parse-url
+                         (or forgejo-repo--host forgejo-host)))))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-pull--render-from-db (buffer-name) host
+                                    forgejo-repo--owner forgejo-repo--name
+                                    forgejo-pull--filters)
+      (forgejo-pull--sync host forgejo-repo--owner forgejo-repo--name
+                          forgejo-pull--filters (buffer-name)))))
+
+;;; Filter commands
+
+(defun forgejo-pull-filter-state ()
+  "Filter PRs by state."
+  (interactive)
+  (let ((state (completing-read "State: " '("open" "closed" "all") nil t)))
+    (setq forgejo-pull--filters
+          (plist-put forgejo-pull--filters :state
+                     (unless (string= state "all") state)))
+    (setq forgejo-pull--filters
+          (plist-put forgejo-pull--filters :page nil))
+    (forgejo-pull--refilter)))
+
+(defun forgejo-pull-filter-poster ()
+  "Filter PRs by author."
+  (interactive)
+  (let ((poster (read-string "Author: ")))
+    (setq forgejo-pull--filters
+          (plist-put forgejo-pull--filters :poster
+                     (unless (string-empty-p poster) poster)))
+    (setq forgejo-pull--filters
+          (plist-put forgejo-pull--filters :page nil))
+    (forgejo-pull--refilter)))
+
+(defun forgejo-pull-clear-filters ()
+  "Clear all filters and refresh."
+  (interactive)
+  (setq forgejo-pull--filters (list :state "open"))
+  (forgejo-pull--refilter))
+
+;;; Pagination
+
+(defun forgejo-pull-next-page ()
+  "Load the next page of PRs."
+  (interactive)
+  (let ((page (or (plist-get forgejo-pull--filters :page) 1)))
+    (setq forgejo-pull--filters
+          (plist-put forgejo-pull--filters :page (1+ page)))
+    (forgejo-pull--refilter)))
+
+(defun forgejo-pull-prev-page ()
+  "Load the previous page of PRs."
+  (interactive)
+  (let ((page (or (plist-get forgejo-pull--filters :page) 1)))
+    (when (> page 1)
+      (setq forgejo-pull--filters
+            (plist-put forgejo-pull--filters :page (1- page)))
+      (forgejo-pull--refilter))))
+
+;;; Browse
+
+(defun forgejo-pull-browse-at-point ()
+  "Open the PR at point in the browser."
+  (interactive)
+  (when-let* ((id (tabulated-list-get-id)))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-utils-browse-pull forgejo-repo--owner forgejo-repo--name id))))
+
+;;; ---- PR detail view ----
+
+(defvar-local forgejo-pull--ewoc nil
+  "EWOC instance for the current PR detail view.")
+
+(defvar-local forgejo-pull--data nil
+  "Full API response alist for the current PR.")
+
+(declare-function forgejo-pull-actions "forgejo-transient.el" ())
+
+(defvar forgejo-pull-view-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "q") #'quit-window)
+    (define-key map (kbd "g") #'forgejo-pull-view-refresh)
+    (define-key map (kbd "b") #'forgejo-pull-view-browse)
+    (define-key map (kbd "c") #'forgejo-pull-comment)
+    (define-key map (kbd "h") #'forgejo-pull-actions)
+    (define-key map (kbd "n") #'ewoc-goto-next)
+    (define-key map (kbd "p") #'ewoc-goto-prev)
+    map)
+  "Keymap for `forgejo-pull-view-mode'.")
+
+(define-derived-mode forgejo-pull-view-mode special-mode
+  "Forgejo PR"
+  "Major mode for viewing a single Forgejo pull request."
+  :group 'forgejo)
+
+(defun forgejo-pull--render-detail (buf-name owner repo pr-alist timeline-alists)
+  "Render PR detail into BUF-NAME from alist data."
+  (let ((nodes (forgejo-buffer--build-nodes pr-alist timeline-alists)))
+    (with-current-buffer (get-buffer-create buf-name)
+      (let ((inhibit-read-only t))
+        (erase-buffer))
+      (forgejo-pull-view-mode)
+      (unless forgejo-repo--host
+        (setq forgejo-repo--host forgejo-host))
+      (setq forgejo-repo--owner owner
+            forgejo-repo--name repo
+            forgejo-pull--data pr-alist)
+      (setq forgejo-pull--ewoc
+            (ewoc-create #'forgejo-buffer--pp nil nil t))
+      (dolist (node nodes)
+        (ewoc-enter-last forgejo-pull--ewoc node))
+      (goto-char (point-min))
+      (current-buffer))))
+
+(defun forgejo-pull--render-missing-html (host owner repo number
+                                               buf-name restore-line)
+  "Render markdown to HTML for PR entries missing body_html.
+After rendering, re-render BUF-NAME and restore RESTORE-LINE."
+  (let* ((context (format "%s/%s" owner repo))
+         (pr (forgejo-db-get-issue host owner repo number))
+         (tl-rows (forgejo-db-get-timeline host owner repo number))
+         (tl-alists (mapcar #'forgejo-db--row-to-timeline-alist tl-rows))
+         (pending 0)
+         (render-done
+          (lambda ()
+            (cl-decf pending)
+            (when (and (<= pending 0) (buffer-live-p (get-buffer buf-name)))
+              (let* ((fresh (forgejo-db-get-issue host owner repo number))
+                     (rows (forgejo-db-get-timeline host owner repo number))
+                     (tl (mapcar #'forgejo-db--row-to-timeline-alist rows)))
+                (forgejo-pull--render-detail buf-name owner repo fresh tl)
+                (when restore-line
+                  (with-current-buffer buf-name
+                    (goto-char (point-min))
+                    (forward-line (1- restore-line)))))))))
+    ;; PR body
+    (when (and pr
+               (not (alist-get 'body_html pr))
+               (alist-get 'body pr))
+      (cl-incf pending)
+      (forgejo-api-render-markdown-async
+       (alist-get 'body pr) context
+       (lambda (html)
+         (when html
+           (forgejo-db-update-issue-html host owner repo number html))
+         (funcall render-done))))
+    ;; Timeline comment bodies
+    (dolist (evt tl-alists)
+      (when (and (string= "comment" (or (alist-get 'type evt) ""))
+                 (not (alist-get 'body_html evt))
+                 (alist-get 'body evt))
+        (let ((evt-id (alist-get 'id evt)))
+          (cl-incf pending)
+          (forgejo-api-render-markdown-async
+           (alist-get 'body evt) context
+           (lambda (html)
+             (when html
+               (forgejo-db-update-timeline-html
+                host owner repo number evt-id html))
+             (funcall render-done))))))
+    ;; Nothing to render
+    (when (zerop pending)
+      (funcall render-done))))
+
+(defun forgejo-pull--sync-detail (host owner repo number buf-name
+                                      &optional restore-line)
+  "Sync PR NUMBER from API in background, re-render BUF-NAME if changed.
+When RESTORE-LINE is non-nil, go to that line after re-rendering."
+  (let ((pr-endpoint (format "repos/%s/%s/pulls/%d" owner repo number))
+        (tl-endpoint (format "repos/%s/%s/issues/%d/timeline"
+                             owner repo number)))
+    (forgejo-api-get
+     pr-endpoint nil
+     (lambda (pr-data _headers)
+       (forgejo-db-save-issues host owner repo (list pr-data) t)
+       (forgejo-api-get
+        tl-endpoint
+        (list (cons "limit" (number-to-string forgejo-timeline-page-size)))
+        (lambda (timeline _tl-headers)
+          (forgejo-db-save-timeline host owner repo number timeline)
+          ;; First render with whatever we have
+          (when (buffer-live-p (get-buffer buf-name))
+            (let* ((fresh-pr (forgejo-db-get-issue host owner repo number))
+                   (tl-rows (forgejo-db-get-timeline host owner repo number))
+                   (tl-alists (mapcar #'forgejo-db--row-to-timeline-alist
+                                      tl-rows)))
+              (forgejo-pull--render-detail buf-name owner repo
+                                          fresh-pr tl-alists)
+              (when restore-line
+                (with-current-buffer buf-name
+                  (goto-char (point-min))
+                  (forward-line (1- restore-line))))))
+          ;; Then render missing HTML and re-render
+          (forgejo-pull--render-missing-html
+           host owner repo number buf-name restore-line)))))))
+
+(defun forgejo-pull-view-at-point ()
+  "View the PR at point in the list."
+  (interactive)
+  (when-let* ((number (tabulated-list-get-id)))
+    (forgejo-pull-view forgejo-repo--owner forgejo-repo--name number)))
+
+;;;###autoload
+(defun forgejo-pull-view (owner repo number)
+  "View pull request NUMBER in OWNER/REPO.
+Shows cached data from DB instantly, syncs in background."
+  (interactive
+   (let ((context (forgejo-repo-read)))
+     (list (nth 1 context) (nth 2 context) (read-number "PR number: "))))
+  (let* ((host (url-host (url-generic-parse-url
+                          (or forgejo-repo--host forgejo-host))))
+         (buf-name (format "*forgejo-pr: %s/%s#%d*" owner repo number))
+         (pr-alist (forgejo-db-get-issue host owner repo number))
+         (tl-rows (forgejo-db-get-timeline host owner repo number))
+         (tl-alists (mapcar #'forgejo-db--row-to-timeline-alist tl-rows)))
+    (forgejo-with-host forgejo-repo--host
+      (if pr-alist
+          (switch-to-buffer
+           (forgejo-pull--render-detail buf-name owner repo
+                                        pr-alist tl-alists))
+        (with-current-buffer (get-buffer-create buf-name)
+          (let ((inhibit-read-only t))
+            (erase-buffer)
+            (insert "Loading..."))
+          (forgejo-pull-view-mode)
+          (setq forgejo-repo--host forgejo-host
+                forgejo-repo--owner owner
+                forgejo-repo--name repo)
+          (switch-to-buffer (current-buffer))))
+      (forgejo-pull--sync-detail host owner repo number buf-name))))
+
+(defun forgejo-pull-view-refresh ()
+  "Force sync the current PR detail view."
+  (interactive)
+  (when-let* ((data forgejo-pull--data)
+              (number (alist-get 'number data)))
+    (let ((host (url-host (url-generic-parse-url
+                           (or forgejo-repo--host forgejo-host))))
+          (line (line-number-at-pos)))
+      (forgejo-with-host forgejo-repo--host
+        (forgejo-pull--sync-detail host forgejo-repo--owner
+                                   forgejo-repo--name number
+                                   (buffer-name) line)))))
+
+(defun forgejo-pull-view-browse ()
+  "Open the current PR in the browser."
+  (interactive)
+  (when-let* ((data forgejo-pull--data)
+              (number (alist-get 'number data)))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-utils-browse-pull forgejo-repo--owner forgejo-repo--name number))))
+
+(defun forgejo-pull-comment ()
+  "Post a comment on the current PR."
+  (interactive)
+  (when-let* ((data forgejo-pull--data)
+              (number (alist-get 'number data)))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-utils-comment forgejo-repo--owner forgejo-repo--name number))))
+
+(provide 'forgejo-pull)
+;;; forgejo-pull.el ends here

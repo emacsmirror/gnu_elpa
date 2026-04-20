@@ -1,0 +1,477 @@
+;;; forgejo-buffer.el --- Shared display and rendering utilities  -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026  Thanos Apollo
+
+;; Author: Thanos Apollo <public@thanosapollo.org>
+;; Keywords: extensions
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; Shared display logic for issues and pull requests: faces, formatting
+;; helpers, EWOC pretty-printers, and shr-based HTML rendering.
+
+;;; Code:
+
+(require 'cl-lib)
+(require 'ewoc)
+(require 'shr)
+(require 'dom)
+(require 'diff-mode)
+(require 'forgejo)
+
+(defvar forgejo-repo--owner)
+(defvar forgejo-repo--name)
+(defvar forgejo-pull--data)
+(defvar forgejo-issue--data)
+
+;;; Faces
+
+(defface forgejo-open-face
+  '((t :inherit success))
+  "Face for open issue/PR state."
+  :group 'forgejo)
+
+(defface forgejo-closed-face
+  '((t :inherit shadow))
+  "Face for closed issue/PR state."
+  :group 'forgejo)
+
+(defface forgejo-label-face
+  '((t :weight bold))
+  "Base face for labels."
+  :group 'forgejo)
+
+(defface forgejo-comment-author-face
+  '((t :inherit font-lock-constant-face))
+  "Face for comment author names."
+  :group 'forgejo)
+
+(defface forgejo-event-face
+  '((t :inherit shadow :slant italic))
+  "Face for timeline events (close, label, assign, etc.)."
+  :group 'forgejo)
+
+(defface forgejo-separator-face
+  '((default :inherit org-hide)
+    (((background light)) :strike-through "gray70")
+    (t :strike-through "gray30"))
+  "Face for separator lines between comments."
+  :group 'forgejo)
+
+;;; Column width
+
+(defun forgejo-buffer--flex-width (fixed-total &optional min-width)
+  "Compute a flexible column width from the window width.
+FIXED-TOTAL is the sum of all fixed column widths plus padding.
+MIN-WIDTH is the floor (default 20)."
+  (max (or min-width 20)
+       (- (window-width) fixed-total)))
+
+;;; Formatting helpers
+
+(defun forgejo-buffer--format-state (state)
+  "Propertize STATE string with appropriate face."
+  (propertize state 'face
+              (if (string= state "open")
+                  'forgejo-open-face
+                'forgejo-closed-face)))
+
+(defun forgejo-buffer--format-labels (labels)
+  "Format LABELS alist into a propertized string."
+  (if (and labels (listp labels))
+      (mapconcat
+       (lambda (label)
+         (let ((name (alist-get 'name label))
+               (color (alist-get 'color label)))
+           (if color
+               (propertize name 'face
+                           (list :foreground
+                                 (concat "#" (replace-regexp-in-string
+                                              "^#" "" color))
+                                 :weight 'bold))
+             (propertize name 'face 'forgejo-label-face))))
+       labels ", ")
+    ""))
+
+(defun forgejo-buffer--relative-time (time-string)
+  "Convert TIME-STRING to a relative time description."
+  (if (or (null time-string) (string-empty-p time-string))
+      ""
+    (let* ((time (date-to-time time-string))
+           (diff (float-time (time-subtract nil time))))
+      (cond
+       ((< diff 60) "just now")
+       ((< diff 3600) (format "%dm ago" (floor (/ diff 60))))
+       ((< diff 86400) (format "%dh ago" (floor (/ diff 3600))))
+       ((< diff 604800) (format "%dd ago" (floor (/ diff 86400))))
+       ((< diff 2592000) (format "%dw ago" (floor (/ diff 604800))))
+       (t (format-time-string "%Y-%m-%d" time))))))
+
+(defun forgejo-buffer--login (user-alist)
+  "Extract login from USER-ALIST, handling :null safely."
+  (when (listp user-alist)
+    (alist-get 'login user-alist)))
+
+;;; Body rendering
+
+(defun forgejo-buffer--clean-body (body)
+  "Strip carriage returns from BODY text.
+Returns nil if BODY is :null, nil, or empty."
+  (when (and body (stringp body) (not (string-empty-p body)))
+    (replace-regexp-in-string "\r" "" body)))
+
+(defun forgejo-buffer--insert-html (html)
+  "Insert rendered HTML into the current buffer using shr.
+Falls back to plain text insertion if HTML parsing fails."
+  (when (and html (stringp html) (not (string-empty-p html)))
+    (condition-case nil
+        (let ((dom (with-temp-buffer
+                     (insert html)
+                     (libxml-parse-html-region (point-min) (point-max))))
+              (shr-use-fonts nil)
+              (shr-width (min (- (window-width) 4) 80)))
+          (shr-insert-document dom))
+      (error (insert html "\n")))))
+
+(defun forgejo-buffer--body-or-text (alist)
+  "Return body_html from ALIST if available, else cleaned body text."
+  (or (alist-get 'body_html alist)
+      (forgejo-buffer--clean-body (alist-get 'body alist))))
+
+;;; Separator
+
+(defun forgejo-buffer--insert-separator ()
+  "Insert a full-width strike-through separator line."
+  (insert "\n"
+          (propertize " " 'display '(space :width text)
+                      'face 'forgejo-separator-face)
+          "\n"))
+
+;;; EWOC pretty-printers
+
+(defun forgejo-buffer--pp (node-data)
+  "Pretty-print NODE-DATA for the detail EWOC.
+NODE-DATA is a plist with :type and type-specific keys."
+  (let ((type (plist-get node-data :type)))
+    (pcase type
+      ('header (forgejo-buffer--pp-header node-data))
+      ('comment (forgejo-buffer--pp-comment node-data))
+      ('event (forgejo-buffer--pp-event node-data)))))
+
+(defun forgejo-buffer--pp-header (data)
+  "Render the issue/PR header from DATA plist."
+  (let ((title (plist-get data :title))
+        (state (plist-get data :state))
+        (author (plist-get data :author))
+        (number (plist-get data :number))
+        (body-html (plist-get data :body-html))
+        (labels (plist-get data :labels))
+        (milestone (plist-get data :milestone))
+        (created (plist-get data :created-at))
+        (comments-count (plist-get data :comments-count)))
+    (insert (propertize (format "#%d " number) 'face 'bold)
+            (propertize title 'face 'bold)
+            "\n")
+    (insert (forgejo-buffer--format-state state)
+            "  "
+            (propertize author 'face 'forgejo-comment-author-face)
+            " opened " (forgejo-buffer--relative-time created)
+            (format "  [%d comments]" (or comments-count 0))
+            "\n")
+    (when (and labels (listp labels))
+      (insert "Labels: " (forgejo-buffer--format-labels labels) "\n"))
+    (when milestone
+      (insert "Milestone: " milestone "\n"))
+    (forgejo-buffer--insert-separator)
+    ;; Body displayed like a comment from the author
+    (when body-html
+      (insert (propertize author 'face 'forgejo-comment-author-face)
+              "\n\n")
+      (forgejo-buffer--insert-html body-html)
+      (forgejo-buffer--insert-separator))))
+
+(defun forgejo-buffer--pp-comment (data)
+  "Render a comment from DATA plist."
+  (let ((author (plist-get data :author))
+        (body-html (plist-get data :body-html))
+        (created (plist-get data :created-at)))
+    (insert (propertize author 'face 'forgejo-comment-author-face)
+            " commented " (forgejo-buffer--relative-time created)
+            "\n\n")
+    (forgejo-buffer--insert-html body-html)
+    (forgejo-buffer--insert-separator)))
+
+(defvar forgejo-buffer-ref-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "RET") #'forgejo-buffer-follow-ref)
+    (define-key map [mouse-1] #'forgejo-buffer-follow-ref)
+    map)
+  "Keymap for reference links in event lines.")
+
+(defun forgejo-buffer-follow-ref ()
+  "Follow the reference link at point."
+  (interactive)
+  (when-let* ((number (get-text-property (point) 'forgejo-ref-number)))
+    (declare-function forgejo-issue-view "forgejo-issue.el"
+                      (owner repo number))
+    (forgejo-issue-view forgejo-repo--owner forgejo-repo--name number)))
+
+(defvar forgejo-buffer-commit-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "RET") #'forgejo-buffer-view-commit-diff)
+    (define-key map [mouse-1] #'forgejo-buffer-view-commit-diff)
+    map)
+  "Keymap for commit links in event lines.")
+
+;;; Diff buffer
+
+(defvar-local forgejo-diff--owner nil "Owner of the repo for this diff.")
+(defvar-local forgejo-diff--repo nil "Repo name for this diff.")
+(defvar-local forgejo-diff--pr-number nil "PR number for this diff.")
+
+(defvar forgejo-buffer-diff-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map diff-mode-map)
+    (define-key map (kbd "q") #'quit-window)
+    (define-key map (kbd "c") #'forgejo-buffer-diff-comment)
+    map)
+  "Keymap for forgejo diff buffers.")
+
+(defun forgejo-buffer-view-commit-diff ()
+  "View the diff for the commit at point."
+  (interactive)
+  (when-let* ((sha (get-text-property (point) 'forgejo-commit-sha)))
+    (declare-function forgejo-token "forgejo.el" ())
+    (defvar forgejo-repo--host)
+    (forgejo-with-host forgejo-repo--host
+      (let* ((owner forgejo-repo--owner)
+             (repo forgejo-repo--name)
+             (pr-number (when-let* ((data (or (bound-and-true-p forgejo-pull--data)
+                                              (bound-and-true-p forgejo-issue--data))))
+                          (alist-get 'number data)))
+             (url (format "%s/api/v1/repos/%s/%s/git/commits/%s.diff"
+                          forgejo-host owner repo sha))
+             (url-request-method "GET")
+             (url-request-extra-headers
+              `(("Authorization" . ,(encode-coding-string
+                                     (concat "token " (forgejo-token)) 'ascii)))))
+      (url-retrieve
+       url
+       (lambda (_status)
+         (goto-char (point-min))
+         (re-search-forward "\r?\n\r?\n" nil t)
+         (let ((diff-text (buffer-substring-no-properties (point) (point-max)))
+               (buf-name (format "*forgejo-diff: %s*" (substring sha 0 8))))
+           (kill-buffer (current-buffer))
+           (with-current-buffer (get-buffer-create buf-name)
+             (let ((inhibit-read-only t))
+               (erase-buffer)
+               (insert diff-text))
+             (diff-mode)
+             (use-local-map forgejo-buffer-diff-map)
+             (setq buffer-read-only t
+                   forgejo-diff--owner owner
+                   forgejo-diff--repo repo
+                   forgejo-diff--pr-number pr-number)
+             (goto-char (point-min))
+             (switch-to-buffer (current-buffer)))))
+       nil t)))))
+
+(defun forgejo-buffer-diff-comment ()
+  "Post a review comment on the line at point in the diff."
+  (interactive)
+  (unless forgejo-diff--pr-number
+    (user-error "No PR associated with this diff"))
+  (let* ((source (diff-find-source-location))
+         (file (car (diff-hunk-file-names)))
+         (line (nth 0 source)))
+    (unless file
+      (user-error "Cannot determine file at point"))
+    (let ((body (read-string-from-buffer "Review comment" "")))
+      (when (and body (not (string-empty-p (string-trim body))))
+        (declare-function forgejo-api-post "forgejo-api.el"
+                          (endpoint &optional params json-body callback))
+        (forgejo-api-post
+         (format "repos/%s/%s/pulls/%d/reviews"
+                 forgejo-diff--owner forgejo-diff--repo
+                 forgejo-diff--pr-number)
+         nil
+         `((body . "")
+           (event . "comment")
+           (comments . [((path . ,file)
+                         (new_position . ,line)
+                         (body . ,body))]))
+         (lambda (_data _headers)
+           (message "Review comment posted on %s:%d" file line)))))))
+
+(defun forgejo-buffer--pp-event (data)
+  "Render a timeline event from DATA plist."
+  (let ((event-type (plist-get data :event-type))
+        (actor (plist-get data :actor))
+        (created (plist-get data :created-at))
+        (detail (plist-get data :detail))
+        (ref-number (plist-get data :ref-number))
+        (commits (plist-get data :commits)))
+    (insert (propertize (format "%s %s " actor event-type)
+                        'face 'forgejo-event-face))
+    (when detail
+      (if ref-number
+          (insert (propertize detail
+                              'face '(forgejo-event-face :underline t)
+                              'mouse-face 'highlight
+                              'forgejo-ref-number ref-number
+                              'keymap forgejo-buffer-ref-map
+                              'help-echo "RET: view this issue/PR"))
+        (insert (propertize detail 'face 'forgejo-event-face))))
+    (insert (propertize (format " %s\n"
+                                (forgejo-buffer--relative-time created))
+                        'face 'forgejo-event-face))
+    ;; Render commit links
+    (when commits
+      (dolist (sha commits)
+        (insert "  "
+                (propertize (substring sha 0 (min 8 (length sha)))
+                            'face '(forgejo-event-face :underline t)
+                            'mouse-face 'highlight
+                            'forgejo-commit-sha sha
+                            'keymap forgejo-buffer-commit-map
+                            'help-echo "RET: view diff")
+                "\n")))
+    (forgejo-buffer--insert-separator)))
+
+;;; EWOC node builder
+
+(defun forgejo-buffer--build-nodes (issue-data timeline)
+  "Build EWOC node plists from ISSUE-DATA and TIMELINE.
+Both should be alists with `body_html' pre-populated from the DB."
+  (let ((nodes nil))
+    ;; Header node
+    (let-alist issue-data
+      (push (list :type 'header
+                  :number .number
+                  :title .title
+                  :state .state
+                  :author (or (forgejo-buffer--login .user) "unknown")
+                  :body-html (forgejo-buffer--body-or-text issue-data)
+                  :labels (when (listp .labels) .labels)
+                  :milestone (when (listp .milestone)
+                               (alist-get 'title .milestone))
+                  :created-at .created_at
+                  :comments-count .comments)
+            nodes))
+    ;; Timeline nodes
+    (dolist (event timeline)
+      (let-alist event
+        (let ((actor (or (forgejo-buffer--login .user) "system")))
+          (pcase .type
+            ("comment"
+             (push (list :type 'comment
+                         :author actor
+                         :body-html (forgejo-buffer--body-or-text event)
+                         :created-at .created_at)
+                   nodes))
+            ((or "close" "reopen")
+             (push (list :type 'event
+                         :event-type .type
+                         :actor actor
+                         :created-at .created_at
+                         :detail nil)
+                   nodes))
+            ("label"
+             (push (list :type 'event
+                         :event-type "label"
+                         :actor actor
+                         :created-at .created_at
+                         :detail (when (listp .label)
+                                   (alist-get 'name .label)))
+                   nodes))
+            ("assignees"
+             (push (list :type 'event
+                         :event-type "assigned"
+                         :actor actor
+                         :created-at .created_at
+                         :detail (forgejo-buffer--login .assignee))
+                   nodes))
+            ("pull_push"
+             (let* ((body-str (alist-get 'body event))
+                    (push-data (when (and body-str (stringp body-str))
+                                 (condition-case nil
+                                     (json-parse-string body-str
+                                                        :object-type 'alist
+                                                        :array-type 'list)
+                                   (error nil))))
+                    (commit-ids (when push-data
+                                  (alist-get 'commit_ids push-data)))
+                    (force-p (when push-data
+                               (alist-get 'is_force_push push-data))))
+               (push (list :type 'event
+                           :event-type (if (eq force-p t) "force pushed"
+                                         "pushed")
+                           :actor actor
+                           :created-at .created_at
+                           :commits commit-ids
+                           :detail (format "%d commit%s"
+                                           (length commit-ids)
+                                           (if (= (length commit-ids) 1)
+                                               "" "s")))
+                     nodes)))
+            ("change_issue_ref"
+             (push (list :type 'event
+                         :event-type "changed ref"
+                         :actor actor
+                         :created-at .created_at
+                         :detail (format "%s -> %s"
+                                         (if (string-empty-p (or .old_ref ""))
+                                             "(none)" .old_ref)
+                                         (or .new_ref "?")))
+                   nodes))
+            ("change_title"
+             (push (list :type 'event
+                         :event-type "renamed"
+                         :actor actor
+                         :created-at .created_at
+                         :detail (format "\"%s\" -> \"%s\""
+                                         (or .old_title "?")
+                                         (or .new_title "?")))
+                   nodes))
+            ((or "pull_ref" "issue_ref" "commit_ref" "comment_ref")
+             (let* ((ref-issue .ref_issue)
+                    (ref-title (when (listp ref-issue)
+                                 (alist-get 'title ref-issue)))
+                    (ref-number (when (listp ref-issue)
+                                  (alist-get 'number ref-issue))))
+               (push (list :type 'event
+                           :event-type "referenced"
+                           :actor actor
+                           :created-at .created_at
+                           :ref-number ref-number
+                           :detail (if ref-number
+                                       (format "#%d %s" ref-number
+                                               (or ref-title ""))
+                                     nil))
+                     nodes)))
+            (_
+             (when .type
+               (push (list :type 'event
+                           :event-type .type
+                           :actor actor
+                           :created-at .created_at
+                           :detail nil)
+                     nodes)))))))
+    (nreverse nodes)))
+
+(provide 'forgejo-buffer)
+;;; forgejo-buffer.el ends here

@@ -3,4 +3,12 @@ research
 
 /gnosis-autoloads.el
 /gnosis-pkg.el
-.worktrees/
+.*
+!.gitignore
+!.elpaignore
+\#*
+
+*.md
+*.info
+*.texi
+refs/*

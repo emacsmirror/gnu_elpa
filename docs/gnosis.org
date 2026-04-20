@@ -172,6 +172,46 @@ Or with ~use-package~:
   :ensure t)
 #+end_src
 
+** Installing with GNU Guix
+
+Gnosis is available from the official Guix channel:
+
+#+begin_src sh
+guix install emacs-gnosis
+#+end_src
+
+For development, the repository includes a =guix.scm= that mirrors the
+upstream recipe but builds from the local checkout:
+
+#+begin_src sh
+# Development shell with all dependencies:
+guix shell -D -f guix.scm
+
+# One-shot install from the working tree:
+guix package -f guix.scm
+#+end_src
+
+To use gnosis from a Guix Home configuration, load the package
+definition and reference it from your services:
+
+#+begin_src scheme
+(use-modules (gnu home)
+             (gnu home services)
+             (gnu home services guix)
+             (gnu services)
+             (guix channels)
+             (guix gexp))
+
+(define emacs-gnosis-git
+  (load "/path/to/gnosis/guix.scm"))
+
+(home-environment
+ (packages (list emacs-gnosis-git)))
+#+end_src
+
+Re-run =guix home reconfigure= after pulling new commits and the
+package will be rebuilt from the updated checkout.
+
 ** Basic Configuration
 
 The minimal configuration requires only specifying where gnosis should
@@ -1308,9 +1348,6 @@ history.  After applying, the database is committed to Git.
 The =.gnosis= file is a plain SQLite database with four tables:
 =themata=, =thema_tag=, =extras=, and =gnosis_meta=.  Values use
 emacsql encoding (Lisp values serialized with =prin1-to-string=).
-
-See =docs/import-guide.org= for the full schema and instructions on
-creating import databases programmatically.
 
 ** Editing Themata (Org Format)
 

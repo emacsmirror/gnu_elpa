@@ -66,9 +66,9 @@ If ask nil, leave testing env"
 	  (setf gnosis-testing t)
 	  (gnosis-db-init)
 	  (message "Development env is ready for testing.")
-	  (and (y-or-n-p "Import test file? ") (gnosis-import-file gnosis-test-import-file)))
-      (setf gnosis-db (gnosis-sqlite-open (expand-file-name "gnosis.db" gnosis-dir)))
-      (setf gnosis-testing nil)
+	  (and (y-or-n-p "Import test file? ") (gnosis-import-db gnosis-test-import-file)))
+      (setf gnosis-db (gnosis-sqlite-open (expand-file-name "gnosis.db" gnosis-dir))
+	    gnosis-testing nil)
       (message "Exited development env."))))
 
 

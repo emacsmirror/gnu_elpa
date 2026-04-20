@@ -44,8 +44,9 @@
   :group 'forgejo)
 
 (defcustom forgejo-token nil
-  "Personal access token (fallback when auth-source is unavailable).
-Prefer storing tokens in ~/.authinfo.gpg instead."
+  "Personal access token.
+When `forgejo-token-use-auth-source' is non-nil, auth-source is
+tried first and this value is used as fallback."
   :type '(choice string (const nil))
   :group 'forgejo)
 

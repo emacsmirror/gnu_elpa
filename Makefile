@@ -1,0 +1,47 @@
+.POSIX:
+
+EMACS ?= emacs
+EMACS_CMD = $(EMACS) -Q --batch -L .
+
+SRCS = forgejo.el forgejo-api.el forgejo-db.el forgejo-utils.el \
+       forgejo-buffer.el forgejo-repo.el forgejo-issue.el forgejo-pull.el \
+       forgejo-vc.el forgejo-tl.el forgejo-transient.el
+
+TESTS = tests/forgejo-test-api.el tests/forgejo-test-db.el \
+        tests/forgejo-test-buffer.el tests/forgejo-test-issue.el \
+        tests/forgejo-test-pull.el tests/forgejo-test-vc.el
+
+.PHONY: all compile test lint clean dev load
+
+all: compile
+
+compile:
+	@for f in $(SRCS); do \
+	  echo "Compiling $$f..."; \
+	  $(EMACS_CMD) -l $$f -f batch-byte-compile $$f || exit 1; \
+	done
+
+test:
+	@for f in $(TESTS); do \
+	  echo "Testing $$f..."; \
+	  $(EMACS_CMD) -l ert -l $$f -f ert-run-tests-batch-and-exit || exit 1; \
+	done
+
+lint:
+	@echo "Running checkdoc..."
+	@for f in $(SRCS); do \
+	  $(EMACS_CMD) --eval "(checkdoc-file \"$$f\")" || exit 1; \
+	done
+
+dev: compile lint test
+
+load: clean
+	@emacsclient --eval "(add-to-list 'load-path \"$(CURDIR)\")" > /dev/null
+	@for f in $(SRCS); do \
+	  emacsclient --eval "(load-file \"$(CURDIR)/$$f\")" > /dev/null || \
+	    printf "\033[31mFAIL\033[0m $$f\n"; \
+	done
+	@printf "\033[32mLoaded all modules into Emacs\033[0m\n"
+
+clean:
+	rm -f *.elc

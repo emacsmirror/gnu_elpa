@@ -1,6 +1,6 @@
 ;;; dmsg.el --- Timestamped debug messages with backtrace support -*- lexical-binding: t -*-
 
-;; Copyright (C) 2026
+;; Copyright (C) 2026  Al Haji-Ali
 ;; Author: Al Haji-Ali <abdo.haji.ali@gmail.com>
 ;; URL: https://github.com/haji-ali/dmsg.el
 ;; Version: 1.0.0
@@ -21,7 +21,6 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;;
 ;; `dmsg' writes structured entries to a dedicated buffer and provides
 ;; `dmsg-mode' to interact with the buffer.
 ;;
@@ -39,11 +38,10 @@
 ;;   c       Clear entries without modifying buffer (toggle)
 ;;   e       Erase buffer (destructive)
 ;;   f       Filter entries by regexp
-;;   F       Clear regexp filter
 ;;   s       Snapshot visible entries to a .log file
 ;;   l1-l4   Set minimum display level (l1=debug l2=info l3=warn l4=error)
 ;;
-;; Usage:
+;;;; Usage:
 ;;   (require 'dmsg)
 ;;   (dmsg "value is %S" x)
 ;;   (dmsg 'warn "something odd: %=S" x)
@@ -51,22 +49,26 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'mule-util)
+
+
+(cl-defstruct (dmsg--level (:constructor dmsg--level-create (symbol label face)))
+  symbol label face)
 
 (defconst dmsg--levels
-  '((debug "DBG" dmsg-level-debug-face)
-    (info  "INF" dmsg-level-info-face)
-    (warn  "WRN" dmsg-level-warn-face)
-    (error "ERR" dmsg-level-error-face))
-  "Level definitions in increasing severity order.
-Each element: (SYMBOL LABEL FACE-SYMBOL).")
+  (list (dmsg--level-create 'debug "DBG" 'dmsg-level-debug-face)
+        (dmsg--level-create 'info  "INF" 'dmsg-level-info-face)
+        (dmsg--level-create 'warn  "WRN" 'dmsg-level-warn-face)
+        (dmsg--level-create 'error "ERR" 'dmsg-level-error-face))
+  "Level definitions in increasing severity order.")
 
 (defconst dmsg--level-order
-  (mapcar #'car dmsg--levels)
+  (mapcar #'dmsg--level-symbol dmsg--levels)
   "Level symbols ordered least-to-most severe, derived from `dmsg--levels'.")
 
 (defconst dmsg--header-re
   (concat "^\\* \\("
-          (mapconcat #'cadr dmsg--levels "\\|")
+          (mapconcat #'dmsg--level-label dmsg--levels "\\|")
           "\\) \\[\\([^]]+\\)\\]")
   "Regexp matching an entry header at column 0.
 Group 1: label (e.g. \"DBG\").  Group 2: timestamp string.
@@ -79,32 +81,35 @@ After `(match-end 0)' is an optional space then the first message line.")
 
 (defcustom dmsg-buffer-name "*DEBUG*Messages*"
   "Name of the buffer where debug messages are collected."
-  :type 'string :group 'dmsg)
+  :type 'string)
 
 (defcustom dmsg-backtrace-buffer-name "*DEBUG*Backtrace*"
   "Name of the buffer used to display detailed backtraces."
-  :type 'string :group 'dmsg)
+  :type 'string)
 
 (defcustom dmsg-min-level 'debug
   "Minimum severity level to display.
-Entries below this level are hidden by an overlay — never deleted.
-Changing this via `customize' or `dmsg-set-min-level' refreshes the buffer."
-  :type `(choice ,@(mapcar (lambda (e)
-                             `(const :tag ,(capitalize (symbol-name (car e)))
-                                     ,(car e)))
-                           dmsg--levels))
+Entries below this level are hidden by an overlay, never deleted.
+Changing this via `customize' or `dmsg-set-min-level' refreshes the
+buffer."
+  :type `(choice
+          ,@(mapcar (lambda (e)
+                      `(const :tag
+                              ,(capitalize (symbol-name
+                                            (dmsg--level-symbol e)))
+                              ,(dmsg--level-symbol e)))
+                    dmsg--levels))
   :set (lambda (sym val)
          (set-default sym val)
          (when-let* ((buf (and (boundp 'dmsg-buffer-name)
                                (get-buffer dmsg-buffer-name))))
            (with-current-buffer buf
              (when (derived-mode-p 'dmsg-mode)
-               (dmsg--refresh-visibility)))))
-  :group 'dmsg)
+               (dmsg--refresh-visibility))))))
 
 (defcustom dmsg-show-caller t
   "If non-nil, append a clickable caller tag to each entry header."
-  :type 'boolean :group 'dmsg)
+  :type 'boolean)
 
 (defcustom dmsg-max-entries nil
   "When non-nil, hide the oldest entries that exceed this count.
@@ -117,53 +122,49 @@ Changing this via `customize' refreshes the buffer."
                                (get-buffer dmsg-buffer-name))))
            (with-current-buffer buf
              (when (derived-mode-p 'dmsg-mode)
-               (dmsg--refresh-visibility)))))
-  :group 'dmsg)
+               (dmsg--refresh-visibility))))))
 
 (defcustom dmsg-message-continuation-indent "  "
   "String to indent message continuation lines."
-  :type 'string :group 'dmsg)
+  :type 'string)
 
 (defcustom dmsg-compact-skip-functions
   '("edebug.*" debug-after apply funcall (pred special-form-p))
   "Functions to omit from the compact backtrace chain.
 Each element: a symbol (eq match), a regexp string (name match),
 or a list (pred FN) where FN is called with the symbol."
-  :type '(repeat (choice symbol regexp)) :group 'dmsg)
+  :type '(repeat (choice symbol regexp)))
 
 (defcustom dmsg-detailed-arg-max-length 100
   "Maximum displayed characters per argument in the detailed backtrace."
-  :type 'integer :group 'dmsg)
+  :type 'natnum)
 
 (defface dmsg-timestamp-face
   '((t :foreground "gray50" :weight light))
-  "Timestamp."
-  :group 'dmsg)
+  "Timestamp.")
 (defface dmsg-caller-face
   '((t :foreground "medium sea green" :underline t))
-  "Caller tag."
-  :group 'dmsg)
+  "Caller tag.")
 (defface dmsg-compact-bt-face
-  '((t :foreground "gray55" :slant italic)) "Compact chain." :group 'dmsg)
+  '((t :foreground "gray55" :slant italic)) "Compact chain.")
 (defface dmsg-level-debug-face
-  '((t :foreground "gray60"))              "DEBUG." :group 'dmsg)
+  '((t :foreground "gray60"))              "DEBUG.")
 (defface dmsg-level-info-face
-  '((t :foreground "deep sky blue"))       "INFO."  :group 'dmsg)
+  '((t :foreground "deep sky blue"))       "INFO.")
 (defface dmsg-level-warn-face
-  '((t :foreground "orange" :weight bold)) "WARN."  :group 'dmsg)
+  '((t :foreground "orange" :weight bold)) "WARN.")
 (defface dmsg-level-error-face
-  '((t :foreground "tomato" :weight bold)) "ERROR." :group 'dmsg)
+  '((t :foreground "tomato" :weight bold)) "ERROR.")
 
 ;;;; Level data accessors
-(defsubst dmsg--level-label (lvl)
-  "Access LVL's label from `dmsg--levels'."
-  (cadr  (assq lvl dmsg--levels)))
-(defsubst dmsg--level-face  (lvl)
-  "Access LVL's face from `dmsg--levels'."
-  (caddr (assq lvl dmsg--levels)))
+
+(defsubst dmsg--level (sym)
+  "Return the `dmsg--level' struct for SYM, or nil."
+  (cl-find sym dmsg--levels :key #'dmsg--level-symbol))
+
 (defsubst dmsg--label->level (lbl)
-  "Find level symbol given label string LBL."
-  (car (cl-find lbl dmsg--levels :key #'cadr :test #'equal)))
+  "Return the `dmsg--level' struct for label string LBL, or nil."
+  (cl-find lbl dmsg--levels :key #'dmsg--level-label :test #'equal))
 
 ;;;; Buffer-local state
 
@@ -192,14 +193,13 @@ Built-in keys used internally: `regexp', `clear'.")
     (define-key m "c" #'dmsg-clear)
     (define-key m "e" #'dmsg-erase)
     (define-key m "f" #'dmsg-filter)
-    (define-key m "F" #'dmsg-filter-clear)
     (define-key m "s" #'dmsg-snapshot)
     ;; Level shortcuts: l1=debug l2=info l3=warn l4=error
     (cl-loop for lvl in dmsg--level-order
              for key from ?1
-             do (let ((l lvl))
-                  (define-key m (concat "l" (char-to-string key))
-                    (lambda () (interactive) (dmsg-set-min-level l)))))
+             do
+             (define-key m (concat "l" (char-to-string key))
+                         (lambda () (interactive) (dmsg-set-min-level lvl))))
     m)
   "Keymap for `dmsg-mode'.")
 
@@ -217,7 +217,7 @@ Built-in keys used internally: `regexp', `clear'.")
 (defvar dmsg--fn-keymap
   (let ((km (make-sparse-keymap)))
     (define-key km [mouse-1] #'dmsg-jump-to-def)
-    (define-key km (kbd "RET") #'dmsg-jump-to-def)
+    (define-key km (kbd "RET") (lambda () (interactive) (dmsg-jump-to-def)))
     km)
   "Keymap for dmsg function-jump labels.
 Reads the target symbol from the `dmsg-fn' text property at point.")
@@ -249,7 +249,7 @@ Runs on `change-major-mode-hook', covering the switch to `fundamental-mode'."
   (kill-local-variable 'header-line-format))
 
 (defun dmsg--make-ov (start end &rest props)
-  "Create an overlay START–END tagged `dmsg-ov t', with additional PROPS.
+  "Create an overlay START-END tagged `dmsg-ov t', with additional PROPS.
 The tag is required for `remove-overlays' calls in teardown and scan."
   (let ((ov (make-overlay start end)))
     (overlay-put ov 'dmsg-ov t)
@@ -263,9 +263,9 @@ The tag is required for `remove-overlays' calls in teardown and scan."
   (save-excursion
     (goto-char entry-pos)
     (forward-line 1)
-    (while (and (not (eobp)) (not (looking-at dmsg--header-re)))
-      (forward-line 1))
-    (point)))
+    (or (and (re-search-forward dmsg--header-re nil t)
+             (line-beginning-position))
+        (point-max))))
 
 (defun dmsg--bt-start (entry-pos)
   "Return start of the `backtrace-frame' block for the entry at ENTRY-POS.
@@ -273,44 +273,40 @@ Skips the header line and any message-continuation lines (leading space)."
   (save-excursion
     (goto-char entry-pos)
     (forward-line 1)
-    (while (and (not (eobp))
-                (not (looking-at dmsg--header-re))
-                (eq (char-after) ?\s))
-      (forward-line 1))
-    (point)))
+    (or (and (re-search-forward "^[^ \n]" nil t)
+             (line-beginning-position))
+        (point-max))))
 
 (defun dmsg--entry-at-point ()
   "Return buffer position of the entry header at or enclosing point, or nil."
   (save-excursion
-    (beginning-of-line)
-    (catch 'found
-      (while t
-        (cond
-         ((looking-at dmsg--header-re) (throw 'found (point)))
-         ((bobp)                        (throw 'found nil))
-         (t                             (forward-line -1)))))))
+    (end-of-line)
+    (when (re-search-backward dmsg--header-re nil t)
+      (point))))
 
 (defun dmsg--entry-message (entry-pos)
   "Return the full message string for the entry at ENTRY-POS.
 Newlines are restored: each continuation line contributes one joined part."
   (save-excursion
     (goto-char entry-pos)
-    (let (parts)
-      ;; First line: text following the header (after "[LVL] [TS]" + optional space)
+    (let (lines)
+      ;; First line: text following the header (after "[LVL] [TS]" + optional
+      ;; space)
       (when (looking-at dmsg--header-re)
         (let ((from (match-end 0)))
           (when (and (< from (line-end-position))
                      (eq (char-after from) ?\s))
             (cl-incf from))
-          (push (buffer-substring-no-properties from (line-end-position)) parts)))
+          (push (buffer-substring-no-properties from (line-end-position))
+                lines)))
       ;; Continuation lines: exactly one leading space
       (forward-line 1)
-      (while (and (not (eobp))
-                  (not (looking-at dmsg--header-re))
-                  (eq (char-after) ?\s))
-        (push (buffer-substring-no-properties (1+ (point)) (line-end-position)) parts)
+      (while (and (not (eobp)) (eq (char-after) ?\s))
+        (push (buffer-substring-no-properties
+               (1+ (point)) (line-end-position))
+              lines)
         (forward-line 1))
-      (mapconcat #'identity (nreverse parts) "\n"))))
+      (string-join (nreverse lines) "\n"))))
 
 (defun dmsg--scan-buffer ()
   "Scan all entries; set text properties and create display overlays.
@@ -318,11 +314,11 @@ Idempotent.  Does not modify buffer text."
   (dmsg--teardown)
   (save-excursion
     (goto-char (point-min))
-    (while (not (eobp))
-      (when (looking-at dmsg--header-re)
-        (cl-incf dmsg--entry-count)
-        (dmsg--apply-entry-display (point)))
-      (forward-line 1))))
+    (while (search-forward-regexp dmsg--header-re nil t)
+      (cl-incf dmsg--entry-count)
+      (beginning-of-line)
+      (dmsg--apply-entry-display (point))
+      (end-of-line))))
 
 (defun dmsg--apply-entry-display (entry-pos)
   "Apply faces, hide BT lines, and add caller tag for the entry at ENTRY-POS.
@@ -340,29 +336,56 @@ Never inserts, deletes, or modifies buffer text."
           ;; Hide anything before level
           (put-text-property entry-pos level-start 'invisible t)
           (put-text-property entry-pos (1+ hdr-end) 'dmsg-entry t)
-          (put-text-property entry-pos (1+ hdr-end) 'dmsg-level level)
-          (put-text-property entry-pos (1- ts-b)    'face (dmsg--level-face level))
+          (put-text-property entry-pos (1+ hdr-end) 'dmsg-level
+                             (dmsg--level-symbol level))
+          (put-text-property entry-pos (1- ts-b)
+                             'face (dmsg--level-face level))
           (put-text-property (1- ts-b)  (1+ ts-e)  'face 'dmsg-timestamp-face)
-          ;; Message continuation lines: replace leading space with indent string.
+          ;; Message continuation lines: replace leading space with indent
+          ;; string.
           (forward-line 1)
-          (while (and (not (eobp))
-                      (not (looking-at dmsg--header-re))
-                      (eq (char-after) ?\s))
+          (while (and (not (eobp)) (eq (char-after) ?\s))
             (put-text-property (point) (1+ (point))
                                'display dmsg-message-continuation-indent)
             (forward-line 1)))
-        ;; Backtrace block: walk to the next header (or eob).
-        ;; bt-end is simply (point) after the walk — do NOT use
-        ;; (line-end-position) here, which would refer to the next entry.
+        ;; Backtrace block: walk to the next header (or eob).  bt-end is
+        ;; simply (point) after the walk. Do NOT use (line-end-position) here,
+        ;; which would refer to the next entry.
         (let* ((bt-start (point))
-               (bt-end   (progn
-                           (while (and (not (eobp))
-                                       (not (looking-at dmsg--header-re)))
-                             (forward-line 1))
-                           (point)))
-               (chain    (dmsg--compact-chain bt-start bt-end)))
+               (bt-end   (or (when (re-search-forward "^\\*" nil t)
+                               (1- (point)))
+                             (point-max)))
+               (chain    (dmsg--compact-chain bt-start bt-end))
+               (chain-str (if chain
+                              (let* ((arrow (if (char-displayable-p ?←)
+                                                " ← " " < "))
+                                     (sep    (propertize arrow 'face
+                                                         'dmsg-compact-bt-face))
+                                     (indent "  "))
+                                (with-temp-buffer
+                                  (insert indent)
+                                  (cl-loop
+                                   for (fn . rest) on chain do
+                                   (let* ((name (symbol-name fn))
+                                          (item (dmsg--buttonify-fn
+                                                 ;; Copy string to avoid
+                                                 ;; modifying symbol-name
+                                                 fn (substring name))))
+                                     (when (and fill-column
+                                                (> (+ (current-column)
+                                                      (length sep)
+                                                      (length name))
+                                                   fill-column))
+                                       (insert "\n" indent indent))
+                                     (insert item)
+                                     (when rest
+                                       (insert sep))))
+                                  (insert "\n")
+                                  (buffer-string)))
+                            (propertize "  (no frames)\n" 'face
+                                        'dmsg-compact-bt-face))))
           (dmsg--make-ov bt-start bt-end
-                         'dmsg-bt   (dmsg--compact-chain-string chain)
+                         'dmsg-bt chain-str
                          'invisible t
                          'category  'dmsg-bt)
           ;; Caller tag: zero-width overlay appending a button after the
@@ -384,12 +407,8 @@ so `(car chain)' is the direct caller of `dmsg'."
   (let (fns)
     (save-excursion
       (goto-char bt-start)
-      (while (< (point) bt-end)
-        (let* ((line (buffer-substring-no-properties
-                      (point)
-                      (line-end-position)))
-               (fn (when (string-match "^(\\([^ )]+\\)" line)
-                     (intern-soft (match-string 1 line)))))
+      (while (re-search-forward "^(\\([^ )]+\\)" bt-end t)
+        (let ((fn (intern-soft (match-string 1))))
           (when (and fn (not
                          (cl-some (lambda (pat)
                                     (cond
@@ -400,36 +419,8 @@ so `(car chain)' is the direct caller of `dmsg'."
                                      (t
                                       (eq fn pat))))
                                   dmsg-compact-skip-functions)))
-            (push fn fns)))
-        (forward-line 1)))
-    (reverse fns)))
-
-(defun dmsg--compact-chain-string (chain)
-  "Return a display string for CHAIN (innermost-first list of symbols).
-Renders as `outer ← … ← inner'.  Each name carries `dmsg-fn' and
-`dmsg--fn-keymap' so the shared keymap can jump to its definition.
-Long chains are wrapped at `fill-column' when set."
-  (if (null chain)
-      (propertize "  (no frames)\n" 'face 'dmsg-compact-bt-face)
-    (let* ((sep (propertize " ← " 'face 'dmsg-compact-bt-face))
-           (indent "    ")             ; continuation indent after wrap
-           (col    2)                  ; current column (starts after "  ")
-           (parts  (list "  ")))
-      (cl-loop for (fn . rest) on (reverse chain) do
-               (let* ((name (symbol-name fn))
-                      (item (dmsg--buttonify-fn fn name)))
-                 ;; Wrap before this item if it would exceed the column limit.
-                 (when (and fill-column rest  ; never wrap after last
-                            (> (+ col (length sep) (length name))
-                               fill-column))
-                   (push (concat "\n" indent) parts)
-                   (setq col (length indent)))
-                 (push item parts)
-                 (cl-incf col (length name))
-                 (when rest
-                   (push sep parts)
-                   (cl-incf col (length " ← ")))))
-      (concat (apply #'concat parts) "\n"))))
+            (push fn fns)))))
+    (nreverse fns)))
 
 ;;;; Predicate-based filter system
 (defun dmsg--set-predicate (key pred-or-nil)
@@ -442,24 +433,23 @@ If PRED-OR-NIL is nil, remove KEY instead.  Triggers `dmsg--refresh-visibility'.
 
 (defun dmsg--entry-hidden-p (pos)
   "Return non-nil if the entry at POS already has a hide overlay."
-  (cl-some (lambda (ov) (eq (overlay-get ov 'category) 'dmsg-hide))
-           (overlays-at pos)))
+  (cl-loop for ov being overlays from pos to pos
+	   thereis (eq (overlay-get ov 'category) 'dmsg-hide)))
 
 (defun dmsg--should-hide-p (pos)
   "Return non-nil if the entry at POS should be hidden.
 Checks min-level and all active predicates; does NOT check max-entries."
   (let ((level (get-text-property pos 'dmsg-level)))
-    (or (not
-         (>= (cl-position level             dmsg--level-order)
-             (cl-position dmsg-min-level  dmsg--level-order)))
+    (or (not (memq level (memq dmsg-min-level dmsg--level-order)))
         (cl-some (lambda (kp) (funcall (cdr kp) pos))
                  dmsg--hide-predicates))))
 
 (defun dmsg--refresh-visibility ()
   "Recompute all hide overlays from scratch.
-Called when predicates or settings change — not on individual new entries.
-Uses `remove-overlays' to delete existing hide overlays (tagged
-`category dmsg-hide'), then rebuilds them by scanning the buffer."
+Called when predicates or settings change, not on individual new
+entries.  Uses `remove-overlays' to delete existing hide
+overlays (tagged `category dmsg-hide'), then rebuilds them by scanning
+the buffer."
   (remove-overlays (point-min) (point-max) 'category 'dmsg-hide)
   (setq dmsg--visible-count 0)
   (let ((n 0))
@@ -481,8 +471,8 @@ Uses `remove-overlays' to delete existing hide overlays (tagged
 
 (defun dmsg--on-new-entry (entry-pos)
   "Apply visibility to the newly appended entry at ENTRY-POS.
-Only this entry is examined — existing entries are unaffected.
-Also hides the oldest newly-excess entry when `dmsg-max-entries' is active."
+Only this entry is examined, existing entries are unaffected.  Also
+hides the oldest newly-excess entry when `dmsg-max-entries' is active."
   ;; Step 1: hide the new entry if it fails level or predicate checks.
   (if (dmsg--should-hide-p entry-pos)
       (dmsg--make-ov entry-pos (dmsg--entry-end entry-pos)
@@ -518,22 +508,20 @@ Decrements `dmsg--visible-count' when the entry was previously visible."
   "Set `header-line-format' from buffer-local counts and active conditions."
   (setq header-line-format
         (concat
-         (propertize " DMsg " 'face '(:weight bold))
-         (propertize (format "%d/%d" dmsg--visible-count dmsg--entry-count)
+         (propertize (format "[%d/%d]" dmsg--visible-count dmsg--entry-count)
                      'face 'dmsg-timestamp-face)
-         (when dmsg--filter-regexp
-           (propertize (format "  filter: %s" dmsg--filter-regexp)
-                       'face '(:foreground "orange")))
-         (when (assq 'clear dmsg--hide-predicates)
-           (propertize "  [cleared — press c to restore]"
-                       'face '(:foreground "gray50")))
-         (unless (eq dmsg-min-level 'debug)
-           (propertize (format "  min-level: %s" (dmsg--level-label dmsg-min-level))
-                       'face '(:foreground "gray50"))))))
+         (and dmsg--filter-regexp
+              (propertize (format "  filter: %s" dmsg--filter-regexp)))
+         (and (assq 'clear dmsg--hide-predicates)
+              (propertize "  [cleared. Press c to restore]"))
+         (and (not (eq dmsg-min-level 'debug))
+              (propertize (format "  min-level: %s"
+                                  (dmsg--level-label
+                                   (dmsg--level dmsg-min-level))))))))
 
 ;;;###autoload
 (defun dmsg-toggle-compact ()
-  "Toggle the compact fn←fn←fn chain for the entry at point.
+  "Toggle the compact fn <- fn <- fn chain for the entry at point.
 The chain is derived on-the-fly from the hidden backtrace lines.
 Press <tab> again to hide it."
   (interactive)
@@ -565,18 +553,17 @@ Press <tab> again to hide it."
            (msg-text  (dmsg--entry-message entry-pos))
            (bt-s      (dmsg--bt-start entry-pos))
            (bt-e      (dmsg--entry-end entry-pos))
-           (bt-text (string-trim (buffer-substring-no-properties bt-s bt-e)))
-           frames)
+           (bt-text (string-trim (buffer-substring-no-properties bt-s bt-e))))
       (with-current-buffer (get-buffer-create dmsg-backtrace-buffer-name)
         (let ((inhibit-read-only t))
           (erase-buffer)
-          (insert (propertize "Debug Backtrace\n" 'face '(:weight bold :height 1.2)))
           (insert (propertize (format "Timestamp : %s\n" timestamp)
                               'face 'dmsg-timestamp-face))
-          (insert (propertize (format "Level     : %s\n" (dmsg--level-label level))
+          (insert (propertize (format "Level     : %s\n"
+                                      (dmsg--level-label level))
                               'face (dmsg--level-face level)))
           (insert (format "Message   : %s\n" msg-text))
-          (insert (make-string fill-column ?─) "\n\n")
+          (insert (make-string fill-column ?-) "\n\n")
           (if (string-empty-p bt-text)
               (insert "(no frames captured)\n")
             (let ((bt-start (point)))
@@ -584,15 +571,10 @@ Press <tab> again to hide it."
               ;; Make every function name in the BT block a clickable button.
               (save-excursion
                 (goto-char bt-start)
-                (while (not (eobp))
-                  (when (looking-at "(\\([^ )]+\\)")
-                    (let ((start (match-beginning 1))
-                          (end (match-end 1)))
-                      (dmsg--buttonify-fn
-                       (intern-soft
-                        (buffer-substring-no-properties start end))
-                       nil start end)))
-                  (forward-line 1)))))
+                (while (re-search-forward "^(\\([^ )]+\\)" nil t)
+                  (dmsg--buttonify-fn
+                   (intern-soft (match-string 1))
+                   nil (match-beginning 1) (match-end 1))))))
           (goto-char (point-min)))
         (view-mode 1))
       (pop-to-buffer dmsg-backtrace-buffer-name
@@ -620,7 +602,7 @@ START/END buffer positions).  Returns OBJECT."
     object))
 
 (defmacro dmsg--imessage (&rest args)
-  "Call `message' with ARGS only when the enclosing function was called interactively."
+  "Call `message' with ARGS when the calling function was called interactively."
   `(when (called-interactively-p 'any)
      (message ,@args)))
 
@@ -634,11 +616,12 @@ Call again to restore.  Use `dmsg-erase' to truly delete content."
              (dmsg--imessage "dmsg: entries restored"))
     (dmsg--set-predicate 'clear (let ((cur-max (point-max)))
                                   (lambda (pos) (< pos cur-max))))
-    (dmsg--imessage "dmsg: all entries hidden — press c to restore, e to erase")))
+    (dmsg--imessage "dmsg: all entries hidden. Press c to restore, e to erase")))
 
 ;;;###autoload
 (defun dmsg-erase ()
-  "Erase all buffer content.  Destructive — use `dmsg-clear' to hide only."
+  "Erase all buffer content.
+Destructive, use `dmsg-clear' to hide only."
   (interactive)
   (when (or (not (called-interactively-p 'any))
             (y-or-n-p "Erase all dmsg entries? "))
@@ -662,35 +645,28 @@ Call again to restore.  Use `dmsg-erase' to truly delete content."
   (setq dmsg--filter-regexp regexp)
   (dmsg--set-predicate
    'regexp
-   (when regexp
-     (let ((re regexp))
-       (lambda (pos) (not (string-match-p re (dmsg--entry-message pos)))))))
+   (when-let* ((re regexp))
+     (lambda (pos) (not (string-match-p re (dmsg--entry-message pos))))))
   (if regexp
       (dmsg--imessage "dmsg filter: %s" regexp)
     (dmsg--imessage "dmsg filter cleared")))
 
 ;;;###autoload
-(defun dmsg-filter-clear ()
-  "Clear the active regexp filter."
-  (interactive)
-  (dmsg-filter nil))
-
-;;;###autoload
 (defun dmsg-set-min-level (level)
   "Set `dmsg-min-level' to LEVEL and refresh visibility.
-Interactively, prompts for the level with completion.
-Can also be invoked via `l1'–`l4' in `dmsg-mode'."
+Interactively, prompts for the level with completion.."
   (interactive
    (list (intern (completing-read
                   "Min level: "
-                  (mapcar (lambda (e) (symbol-name (car e))) dmsg--levels)
+                  (mapcar #'dmsg--level-symbol dmsg--levels)
                   nil t nil nil (symbol-name dmsg-min-level)))))
   (setq dmsg-min-level level)
   (dmsg--refresh-visibility)
-  (dmsg--imessage "dmsg: min-level → %s" (dmsg--level-label level)))
+  (dmsg--imessage "dmsg: min-level is %s" (dmsg--level-label
+                                           (dmsg--level level))))
 
 ;;;###autoload
-(defun dmsg-snapshot (file)
+(defun dmsg-snapshot (file &optional all)
   "Write currently visible entries to FILE."
   (interactive
    (list (let* ((default-name (format-time-string "dmsg-%Y%m%d-%H%M%S.log"))
@@ -701,34 +677,36 @@ Can also be invoked via `l1'–`l4' in `dmsg-mode'."
                        nil)))
            (if (file-directory-p path)
                (expand-file-name default-name path)
-             path))))
+             path))
+         current-prefix-arg))
   (unless (derived-mode-p 'dmsg-mode)
     (user-error "Not in a dmsg buffer"))
-  (let* ((count 0)
-         chunks)
+  (let (chunks)
     (save-excursion
       (goto-char (point-min))
       (while (not (eobp))
-        (when (get-text-property (point) 'dmsg-entry)
-          (let ((pos (point)))
-            (unless (dmsg--entry-hidden-p pos)
-              (cl-incf count)
-              (push (buffer-substring-no-properties pos (dmsg--entry-end pos))
-                    chunks))))
-        (forward-line 1)))
-    (with-temp-buffer
-      (dolist (chunk (nreverse chunks))
-        (insert chunk))
-      (write-region (point-min) (point-max) file nil 'silent))
-    (dmsg--imessage "dmsg: %d visible entr%s → %s"
-                    count (if (= count 1) "y" "ies") file)))
+        (if (get-text-property (point) 'dmsg-entry)
+            (let* ((pos (point))
+                   (end (dmsg--entry-end pos)))
+              (when (or all (not (dmsg--entry-hidden-p pos)))
+                (push (buffer-substring-no-properties pos end) chunks))
+              (goto-char end))
+          (goto-char (next-char-property-change (point))))))
+    (let ((count (length chunks)))
+      (with-temp-buffer
+        (dolist (chunk (nreverse chunks))
+          (insert chunk))
+        (write-region (point-min) (point-max) file nil 'silent))
+      (dmsg--imessage "dmsg: %d %sentries exported to %s"
+                      count (if all "" "visible ") file))))
 
 ;;;; Backtrace capture
 (defun dmsg--format-arg (arg)
   "Format ARG, truncating to `dmsg-detailed-arg-max-length' characters."
   (let ((s (format "%S" arg)))
-    (if (> (length s) dmsg-detailed-arg-max-length)
-        (concat (substring s 0 (1- dmsg-detailed-arg-max-length)) "…")
+    (if (length> s dmsg-detailed-arg-max-length)
+        (concat (substring s 0 (1- dmsg-detailed-arg-max-length))
+                (truncate-string-ellipsis))
       s)))
 
 (defun dmsg--capture-bt ()
@@ -748,7 +726,7 @@ are strictly outer to all dmsg machinery are returned."
                            (if args
                                (concat " " (mapconcat #'dmsg--format-arg args " "))
                              ""))
-                 (format "(%s ...)" func))
+                 (format "(%s %s)" func (truncate-string-ellipsis)))
                lines))))
     ;; innermost-first
     (nreverse lines)))
@@ -775,7 +753,7 @@ label support, and provides a convenient syntax for specifying the level."
         ;; Entry header
         ;; "[LVL] [TIMESTAMP] " + first message line
         (insert (format "* %s [%s] %s\n"
-                        (dmsg--level-label level)
+                        (dmsg--level-label (dmsg--level level))
                         timestamp
                         (car msg-lines)))
         ;; Continuation lines with leading space
@@ -796,7 +774,7 @@ label support, and provides a convenient syntax for specifying the level."
         (set-window-point win (point-max))))))
 
 (defun dmsg--format (fmt args args-labels)
-  "Format FMT like `format', with support for the `%=' labeled specifier.
+  "Format FMT like `format', with support for the `%=' labelled specifier.
 
 `%=SPEC' formats its argument as \"label=value\" where \"value\" is taken
 from ARGS and \"label\" taken from ARGS-LABELS.
@@ -816,7 +794,7 @@ All other specifiers behave exactly as in `format'."
           (when (>= i len)
             (error "Trailing `%%%%' in format string: %S" fmt))
           (if (= (aref fmt i) ?%)
-              ;; %% → %%%%
+              ;; %% -> %%%%
               (progn (push "%%%%" parts) (cl-incf i))
             ;; Real specifier.  Scan optional leading digits.
             (let ((d0 i))
@@ -866,8 +844,8 @@ level. The argument after that is the string format."
   "Insert a timestamped, levelled debug entry into `dmsg-buffer-name'.
 
 Syntax:
-\(dmsg LEVEL FMT [ARGS…])   — explicit level symbol first
-\(dmsg FMT [ARGS…])         — defaults to `debug' level
+\(dmsg LEVEL FMT [ARGS])   explicit level symbol first
+\(dmsg FMT [ARGS])         defaults to `debug' level
 
 In FMT, `%=X' (where X is a conversion character) formats the corresponding
 argument as \"label=value\", where the label is the unevaluated argument name."
@@ -875,25 +853,43 @@ argument as \"label=value\", where the label is the unevaluated argument name."
                    (list ,@(mapcar (apply-partially #'format "%S") args))))
 
 ;;;; dmsg Injection
-(defvar dmsg-on-message nil
+(defvar dmsg--on-message nil
   "When non-nil, intercept `message' calls and copy matching ones to dmsg.
-The value must be a regexp string.  Any call to `message' whose formatted
-output matches it is also logged via `dmsg' at debug level.")
+This variable is an internal and should not be set directly.  Instead,
+call `dmsg-on-message'.")
 
-(define-advice message
-    (:after (fmt &rest args) dmsg-on-message)
+(defun dmsg--message-advice (fmt &rest args)
   "Advice to reproduce messages on dmsg.
-`dmsg' is called whenever (format FMT ARGS) matches `dmsg-on-message'."
-  (when (and dmsg-on-message fmt)
-    (let ((pat dmsg-on-message)
-          ;; Prevent infinite loops
-          dmsg-on-message)
+`dmsg-write' is called whenever `dmsg--on-message' is non-nil (format
+FMT ARGS) matches `dmsg--on-message'."
+  (when (and dmsg--on-message fmt)
+    (let ((regex dmsg--on-message)
+          dmsg--on-message)  ;; Prevent potential infinite loops
       (let ((msg (apply 'format fmt args)))
-        (when (and msg (string-match-p pat msg))
+        (when (and msg (string-match-p regex msg))
           (dmsg-write 'debug msg))))))
 
+(defun dmsg-on-message (regex)
+  "Advise `message' to log matching output via `dmsg'.
+
+If REGEX is non-nil, any call to `message' whose formatted output
+matches REGEX is also logged using `dmsg' at debug level.
+
+Replaces any existing `dmsg' advice on `message'"
+  (interactive
+   (list (let ((s (read-regexp
+                   "Log `message' matching regexp (empty to disable): ")))
+           (unless (string-empty-p s) s))))
+  (advice-remove #'message 'dmsg)
+  (setq dmsg--on-message regex)
+  (when regex
+    (advice-add #'message
+                :after #'dmsg--message-advice
+                '((name . dmsg)
+                  (depth . -99)))))
+
 (defun dmsg-log-debugger (symb type &optional sig-args)
-  "Debugger function that logs errors via `dmsg' before re-signaling.
+  "Debugger function that logs errors via `dmsg' before re-signalling.
 SYMB is the name of the function being debugged (a string).
 TYPE is the debug event symbol (typically `error').
 SIG-ARGS is the error condition cons cell (ERROR-SYMBOL . DATA)."
@@ -923,9 +919,9 @@ or interactively with `dmsg-on-error'."
 (defun dmsg-on-error (symbol &optional action)
   "Add, remove, or toggle error-logging advice on SYMBOL.
 ACTION controls what happens:
-  t        — add the advice unconditionally
-  nil      — remove the advice unconditionally
-  `toggle' — flip the current state (default when called interactively)
+  t        add the advice unconditionally
+  nil      remove the advice unconditionally
+  `toggle' flip the current state (default when called interactively)
 
 When the advice is active, any error signalled by SYMBOL is logged via
 `dmsg' at ERROR level and then re-signalled normally, preserving existing
@@ -938,7 +934,7 @@ Returns t if the advice is now active, nil if it was removed."
   (let* ((active (advice-member-p 'dmsg--function-advice symbol))
          (add    (pcase action
                    ('toggle (not active))
-                   (`t      t)
+                   ('t      t)
                    (_       nil))))
     (if add
         (progn

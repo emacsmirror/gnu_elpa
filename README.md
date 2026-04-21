@@ -22,7 +22,7 @@ a custom `dmsg-mode` to interact with it.
 (dmsg 'warn "unexpected: %=s" x)   ; explicit level
 (dmsg 'error "failed: %s" msg)
 
-;; %=X — logs label=value automatically
+;; %=X logs label=value automatically
 (let ((state 'idle)
       (count 10))
   (dmsg "Status: %=S %=d" state count))
@@ -58,7 +58,6 @@ A new entry begins at each `[LVL]` line at column 0.
 | `c` | Hide all current entries without erasing (toggle) |
 | `e` | Erase buffer |
 | `f` | Filter: show only entries matching a regexp |
-| `F` | Clear filter |
 | `s` | Snapshot visible entries to a timestamped `.log` file |
 | `l1`-`l4` | Set minimum display level (1=debug 2=info 3=warn 4=error) |
 
@@ -74,7 +73,7 @@ a single shared keymap.
 
 `%=SPEC` expands to `label=value`.  The label is derived from the unevaluated
 argument form (symbol name, or `prin1` for complex expressions). All other
-format specifiers work as epxected.
+format specifiers work as expected.
 
 ```elisp
 (let ((buf "foo.el") (line 10))
@@ -87,7 +86,7 @@ format specifiers work as epxected.
 
 All filtering hides entries via overlays.
 
-- **`f` / `F`**  regexp filter on message text.
+- **`f`**  regexp filter on message text.
 - **`c`**  hide all current entries. Press `c` again to restore.
 - **`l 1` -- `l 4`**  set minimum shown level.
 - **`dmsg-max-entries`** hides oldest entries beyond this count (`nil` = unlimited).
@@ -107,8 +106,8 @@ not modified.
 
 ```elisp
 ;; Route matching message() calls into the dmsg buffer at debug level
-(setq dmsg-on-message "error\\|warning")
-(setq dmsg-on-message nil)  ; disable
+(dmsg-on-message "error\\|warning")
+(dmsg-on-message nil)  ; disable
 ```
 
 ## Log errors from a function

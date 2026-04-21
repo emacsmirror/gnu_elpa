@@ -96,6 +96,7 @@ Keys: :state :labels :milestone :assignee :query :page")
     (define-key map (kbd "C") #'forgejo-issue-clear-filters)
     (define-key map (kbd "n") #'forgejo-issue-next-page)
     (define-key map (kbd "p") #'forgejo-issue-prev-page)
+    (define-key map (kbd "x") #'forgejo-issue-toggle-state)
     (define-key map (kbd "b") #'forgejo-issue-browse-at-point)
     map)
   "Keymap for `forgejo-issue-list-mode'.")
@@ -122,12 +123,14 @@ Keys: :state :labels :milestone :assignee :query :page")
      (let-alist issue
        (list .number
              (vector
-              (number-to-string .number)
+              (propertize (number-to-string .number) 'face 'forgejo-number-face)
               (forgejo-buffer--format-state .state)
               .title
               (forgejo-buffer--format-labels .labels)
-              (or (forgejo-buffer--login .user) "")
+              (propertize (or (forgejo-buffer--login .user) "")
+                          'face 'forgejo-comment-author-face)
               (propertize (forgejo-buffer--relative-time .updated_at)
+                          'face 'shadow
                           'forgejo-timestamp (or .updated_at ""))))))
    issues))
 
@@ -412,6 +415,7 @@ Empty input clears all filters."
     (define-key map (kbd "g") #'forgejo-issue-view-refresh)
     (define-key map (kbd "b") #'forgejo-issue-view-browse)
     (define-key map (kbd "c") #'forgejo-issue-comment)
+    (define-key map (kbd "x") #'forgejo-issue-toggle-state)
     (define-key map (kbd "h") #'forgejo-issue-actions)
     (define-key map (kbd "n") #'ewoc-goto-next)
     (define-key map (kbd "p") #'ewoc-goto-prev)
@@ -597,6 +601,28 @@ Shows cached data from DB instantly, syncs in background."
   (interactive)
   (forgejo-with-host forgejo-repo--host
     (forgejo-utils-create-issue forgejo-repo--owner forgejo-repo--name)))
+
+(defun forgejo-issue-toggle-state ()
+  "Toggle the state of the issue at point or in the current view."
+  (interactive)
+  (let* ((number (or (and (bound-and-true-p forgejo-issue--data)
+                          (alist-get 'number forgejo-issue--data))
+                     (tabulated-list-get-id)))
+         (host (url-host (url-generic-parse-url
+                          (or forgejo-repo--host forgejo-host))))
+         (issue (forgejo-db-get-issue host forgejo-repo--owner
+                                      forgejo-repo--name number))
+         (state (alist-get 'state issue)))
+    (when (and number state)
+      (forgejo-with-host forgejo-repo--host
+        (forgejo-utils-toggle-state
+         forgejo-repo--owner forgejo-repo--name number state
+         (lambda ()
+           (cond
+            ((bound-and-true-p forgejo-issue--data)
+             (forgejo-issue-view-refresh))
+            ((derived-mode-p 'forgejo-issue-list-mode)
+             (forgejo-issue-refresh)))))))))
 
 (provide 'forgejo-issue)
 ;;; forgejo-issue.el ends here

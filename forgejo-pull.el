@@ -91,6 +91,7 @@ Keys: :state :milestone :labels :poster :page")
     (define-key map (kbd "c") #'forgejo-pull-clear-filters)
     (define-key map (kbd "n") #'forgejo-pull-next-page)
     (define-key map (kbd "p") #'forgejo-pull-prev-page)
+    (define-key map (kbd "x") #'forgejo-pull-toggle-state)
     (define-key map (kbd "b") #'forgejo-pull-browse-at-point)
     map)
   "Keymap for `forgejo-pull-list-mode'.")
@@ -119,12 +120,14 @@ Keys: :state :milestone :labels :poster :page")
      (let-alist pr
        (list .number
              (vector
-              (number-to-string .number)
+              (propertize (number-to-string .number) 'face 'forgejo-number-face)
               (forgejo-buffer--format-state .state)
               .title
               (forgejo-buffer--format-labels .labels)
-              (or (forgejo-buffer--login .user) "")
+              (propertize (or (forgejo-buffer--login .user) "")
+                          'face 'forgejo-comment-author-face)
               (propertize (forgejo-buffer--relative-time .updated_at)
+                          'face 'shadow
                           'forgejo-timestamp (or .updated_at ""))))))
    pulls))
 
@@ -342,6 +345,7 @@ Empty input clears all filters."
     (define-key map (kbd "l") #'forgejo-pull-view-log)
     (define-key map (kbd "=") #'forgejo-buffer-view-commit-diff)
     (define-key map (kbd "f") #'forgejo-pull-view-fetch)
+    (define-key map (kbd "x") #'forgejo-pull-toggle-state)
     (define-key map (kbd "h") #'forgejo-pull-actions)
     (define-key map (kbd "n") #'ewoc-goto-next)
     (define-key map (kbd "p") #'ewoc-goto-prev)
@@ -517,6 +521,28 @@ Shows cached data from DB instantly, syncs in background."
               (number (alist-get 'number data)))
     (forgejo-with-host forgejo-repo--host
       (forgejo-utils-comment forgejo-repo--owner forgejo-repo--name number))))
+
+(defun forgejo-pull-toggle-state ()
+  "Toggle the state of the PR at point or in the current view."
+  (interactive)
+  (let* ((number (or (and (bound-and-true-p forgejo-pull--data)
+                          (alist-get 'number forgejo-pull--data))
+                     (tabulated-list-get-id)))
+         (host (url-host (url-generic-parse-url
+                          (or forgejo-repo--host forgejo-host))))
+         (pr (forgejo-db-get-issue host forgejo-repo--owner
+                                   forgejo-repo--name number))
+         (state (alist-get 'state pr)))
+    (when (and number state)
+      (forgejo-with-host forgejo-repo--host
+        (forgejo-utils-toggle-state
+         forgejo-repo--owner forgejo-repo--name number state
+         (lambda ()
+           (cond
+            ((bound-and-true-p forgejo-pull--data)
+             (forgejo-pull-view-refresh))
+            ((derived-mode-p 'forgejo-pull-list-mode)
+             (forgejo-pull-refresh)))))))))
 
 (declare-function forgejo-vc-fetch "forgejo-vc.el" (n))
 (declare-function forgejo-vc--repo-from-remote "forgejo-vc.el" ())

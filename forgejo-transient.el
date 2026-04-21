@@ -98,27 +98,31 @@
 
 (declare-function forgejo-issue-view-browse "forgejo-issue.el" ())
 (declare-function forgejo-issue-comment "forgejo-issue.el" ())
+(declare-function forgejo-issue-toggle-state "forgejo-issue.el" ())
 
 ;;;###autoload (autoload 'forgejo-issue-actions "forgejo-transient" nil t)
 (transient-define-prefix forgejo-issue-actions ()
   "Actions for the current issue."
   [["Issue"
     ("c" "Comment" forgejo-issue-comment)
-    ("b" "Browse in browser" forgejo-issue-view-browse)]])
+    ("x" "Toggle open/close" forgejo-issue-toggle-state)
+    ("b" "Open in browser" forgejo-issue-view-browse)]])
 
 ;;; PR detail actions
 
 (declare-function forgejo-pull-view-browse "forgejo-pull.el" ())
 (declare-function forgejo-pull-comment "forgejo-pull.el" ())
+(declare-function forgejo-pull-toggle-state "forgejo-pull.el" ())
 
 ;;;###autoload (autoload 'forgejo-pull-actions "forgejo-transient" nil t)
 (transient-define-prefix forgejo-pull-actions ()
   "Actions for the current pull request."
   [["Pull Request"
     ("c" "Comment" forgejo-pull-comment)
+    ("x" "Toggle open/close" forgejo-pull-toggle-state)
     ("f" "Fetch branch" forgejo-pull-view-fetch)
     ("l" "Commit log" forgejo-pull-view-log)
-    ("b" "Browse in browser" forgejo-pull-view-browse)]])
+    ("b" "Open in browser" forgejo-pull-view-browse)]])
 
 (provide 'forgejo-transient)
 ;;; forgejo-transient.el ends here

@@ -56,6 +56,24 @@
   "Open pull request NUMBER of OWNER/REPO in the browser."
   (browse-url (forgejo-utils-pull-url owner repo number)))
 
+;;; State toggle
+
+(declare-function forgejo-api-patch "forgejo-api.el"
+                  (endpoint &optional json-body callback))
+
+(defun forgejo-utils-toggle-state (owner repo number current-state callback)
+  "Toggle issue/PR NUMBER in OWNER/REPO between open and closed.
+CURRENT-STATE is \"open\" or \"closed\".  CALLBACK is called on success."
+  (let* ((new-state (if (string= current-state "open") "closed" "open"))
+         (action (if (string= new-state "closed") "Close" "Reopen")))
+    (when (y-or-n-p (format "%s %s/%s#%d? " action owner repo number))
+      (forgejo-api-patch
+       (format "repos/%s/%s/issues/%d" owner repo number)
+       `((state . ,new-state))
+       (lambda (_data _headers)
+         (message "%sd %s/%s#%d" action owner repo number)
+         (when callback (funcall callback)))))))
+
 ;;; Comment
 
 (declare-function forgejo-api-post "forgejo-api.el"

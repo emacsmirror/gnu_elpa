@@ -1,0 +1,65 @@
+#+title: forgejo.el
+
+#+BEGIN_QUOTE
+Work in progress.
+#+END_QUOTE
+
+Emacs front-end for [[https://forgejo.org][Forgejo]] instances (Codeberg, self-hosted, etc.).
+
++ Browse, filter, and view issues and pull requests.
++ Submit PRs via AGit-Flow push options.
++ Caches API responses in a local SQLite database for fast re-display
+  and offline usage.
+
+Requires Emacs 29.1+ (native JSON, native SQLite).
+
+* Installation
+
+** use-package (Emacs 30+)
+
+#+begin_src emacs-lisp
+  (use-package forgejo-vc
+    :vc (:url "https://codeberg.org/thanosapollo/forgejo.el")
+    :custom
+    (forgejo-host "https://codeberg.org")
+    (forgejo-token "your-personal-access-token"))
+#+end_src
+
+Alternatively, store your token in =~/.authinfo.gpg= (recommended):
+
+#+begin_example
+machine codeberg.org login YOUR_USERNAME password YOUR_TOKEN
+#+end_example
+
+** Manual
+
+Clone the repository and add it to your =load-path=:
+
+#+begin_src emacs-lisp
+(add-to-list 'load-path "/path/to/forgejo")
+(require 'forgejo-vc)
+#+end_src
+
+** Guix
+
+#+begin_src sh
+guix package -f guix.scm
+#+end_src
+
+Or use a development shell:
+
+#+begin_src sh
+guix shell -D -f guix.scm
+#+end_src
+
+* Usage
+
+From any git repository with a Forgejo remote:
+
+- =C-x v f= opens the Forgejo transient menu
+- =C-x v f i= lists issues
+- =C-x v f p= lists pull requests
+
+Or invoke directly:
+
+- =M-x forgejo-issue-list=

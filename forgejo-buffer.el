@@ -80,6 +80,29 @@
                   'forgejo-open-face
                 'forgejo-closed-face)))
 
+(defun forgejo-buffer--readable-color (hex)
+  "Adjust HEX color for readability against the current background.
+Lightens dark colors on dark themes, darkens light colors on light themes."
+  (let* ((hex (replace-regexp-in-string "^#" "" hex))
+         (r (/ (string-to-number (substring hex 0 2) 16) 255.0))
+         (g (/ (string-to-number (substring hex 2 4) 16) 255.0))
+         (b (/ (string-to-number (substring hex 4 6) 16) 255.0))
+         (lum (+ (* 0.299 r) (* 0.587 g) (* 0.114 b)))
+         (dark-bg (eq (frame-parameter nil 'background-mode) 'dark)))
+    (if dark-bg
+        (if (< lum 0.4)
+            (format "#%02x%02x%02x"
+                    (min 255 (round (* (+ r 0.4) 255)))
+                    (min 255 (round (* (+ g 0.4) 255)))
+                    (min 255 (round (* (+ b 0.4) 255))))
+          (concat "#" hex))
+      (if (> lum 0.7)
+          (format "#%02x%02x%02x"
+                  (round (* r 0.6 255))
+                  (round (* g 0.6 255))
+                  (round (* b 0.6 255)))
+        (concat "#" hex)))))
+
 (defun forgejo-buffer--format-labels (labels)
   "Format LABELS alist into a propertized string."
   (if (and labels (listp labels))
@@ -90,8 +113,7 @@
            (if color
                (propertize name 'face
                            (list :foreground
-                                 (concat "#" (replace-regexp-in-string
-                                              "^#" "" color))
+                                 (forgejo-buffer--readable-color color)
                                  :weight 'bold))
              (propertize name 'face 'forgejo-label-face))))
        labels ", ")

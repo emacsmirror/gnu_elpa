@@ -33,13 +33,15 @@
 ;;; ---- Group 2: Label formatting ----
 
 (ert-deftest forgejo-test-buffer-format-labels ()
-  "Labels are joined with commas and propertized."
+  "Labels are joined with commas and propertized with readable colors."
   (let* ((labels '(((name . "bug") (color . "d73a4a"))
                    ((name . "help") (color . "0075ca"))))
          (result (forgejo-buffer--format-labels labels)))
     (should (string-match-p "bug" result))
     (should (string-match-p "help" result))
-    (should (string-match-p ", " result))))
+    (should (string-match-p ", " result))
+    (should (eq (plist-get (get-text-property 0 'face result) :weight) 'bold))
+    (should (plist-get (get-text-property 0 'face result) :foreground))))
 
 (ert-deftest forgejo-test-buffer-format-labels-empty ()
   "Empty labels return empty string."

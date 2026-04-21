@@ -162,6 +162,35 @@ managed automatically."
                       (funcall callback accum headers)))))))))
       (fetch-page))))
 
+(defun forgejo-api-get-paged (endpoint params page-callback
+                                      &optional done-callback)
+  "GET all pages from ENDPOINT, calling PAGE-CALLBACK after each.
+PAGE-CALLBACK receives (PAGE-DATA HEADERS PAGE-NUMBER).
+DONE-CALLBACK receives (ALL-DATA HEADERS) when all pages are fetched."
+  (let ((limit (or (cdr (assoc "limit" params)) "50"))
+        (accum nil)
+        (page 1))
+    (cl-labels
+        ((fetch-page ()
+           (let ((page-params (cons (cons "page" (number-to-string page))
+                                    params)))
+             (forgejo-api-get
+              endpoint page-params
+              (lambda (data headers)
+                (setq accum (append accum data))
+                (when page-callback
+                  (funcall page-callback data headers page))
+                (let ((total (plist-get headers :total-count)))
+                  (if (and total
+                           (< (length accum) total)
+                           (>= (length data) (string-to-number limit)))
+                      (progn
+                        (setq page (1+ page))
+                        (fetch-page))
+                    (when done-callback
+                      (funcall done-callback accum headers)))))))))
+      (fetch-page))))
+
 (defun forgejo-api-post (endpoint &optional params json-body callback)
   "POST to ENDPOINT with PARAMS and JSON-BODY, call CALLBACK."
   (forgejo-api--request "POST" endpoint params json-body callback))

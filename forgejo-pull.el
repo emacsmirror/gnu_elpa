@@ -37,6 +37,8 @@
                   (endpoint &optional params callback))
 (declare-function forgejo-api-get-all "forgejo-api.el"
                   (endpoint &optional params callback))
+(declare-function forgejo-api-get-paged "forgejo-api.el"
+                  (endpoint params page-callback &optional done-callback))
 (declare-function forgejo-api-default-limit "forgejo-api.el" ())
 (declare-function forgejo-db-save-issues "forgejo-db.el"
                   (host owner repo issues &optional is-pull))
@@ -83,14 +85,12 @@ Keys: :state :milestone :labels :poster :page")
 
 (defvar forgejo-pull-list-mode-map
   (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map tabulated-list-mode-map)
     (define-key map (kbd "RET") #'forgejo-pull-view-at-point)
+    (define-key map (kbd "S") #'forgejo-tl-sort)
     (define-key map (kbd "g") #'forgejo-pull-refresh)
     (define-key map (kbd "l") #'forgejo-pull-filter)
-    (define-key map (kbd "s") #'forgejo-pull-filter-state)
-    (define-key map (kbd "/") #'forgejo-pull-filter-poster)
-    (define-key map (kbd "c") #'forgejo-pull-clear-filters)
-    (define-key map (kbd "n") #'forgejo-pull-next-page)
-    (define-key map (kbd "p") #'forgejo-pull-prev-page)
+    (define-key map (kbd "C") #'forgejo-pull-clear-filters)
     (define-key map (kbd "x") #'forgejo-pull-toggle-state)
     (define-key map (kbd "b") #'forgejo-pull-browse-at-point)
     map)
@@ -172,21 +172,28 @@ Keys: :state :milestone :labels :poster :page")
                                 &optional force)
   "Fetch PRs from API and update DB, then re-render BUF-NAME.
 When FORCE is non-nil, mark missing PRs as closed."
-  (forgejo-pull--fetch
-   owner repo filters
-   (lambda (data headers)
-     (forgejo-db-save-issues host owner repo data t)
-     (when (and force (equal (plist-get filters :state) "open"))
-       (let ((numbers (mapcar (lambda (p) (alist-get 'number p)) data)))
-         (forgejo-db-close-missing host owner repo numbers t)))
-     (forgejo-db-set-sync-time host owner repo "pulls"
-                               (format-time-string "%Y-%m-%dT%H:%M:%SZ"
-                                                   nil t))
-     (when (buffer-live-p (get-buffer buf-name))
-       (forgejo-pull--render-from-db buf-name host owner repo filters)
-       (when-let* ((total (plist-get headers :total-count)))
-         (with-current-buffer buf-name
-           (setq forgejo-pull--total-count total)))))))
+  (let ((endpoint (format "repos/%s/%s/pulls" owner repo))
+        (params (forgejo-pull--build-params filters)))
+    (forgejo-api-get-paged
+     endpoint params
+     ;; Per-page: save and re-render
+     (lambda (page-data _headers _page-num)
+       (forgejo-db-save-issues host owner repo page-data t)
+       (when (buffer-live-p (get-buffer buf-name))
+         (forgejo-pull--render-from-db buf-name host owner repo filters)))
+     ;; Done: close missing, set sync time, final re-render
+     (lambda (all-data headers)
+       (when (and force (equal (plist-get filters :state) "open"))
+         (let ((numbers (mapcar (lambda (p) (alist-get 'number p)) all-data)))
+           (forgejo-db-close-missing host owner repo numbers t)))
+       (forgejo-db-set-sync-time host owner repo "pulls"
+                                 (format-time-string "%Y-%m-%dT%H:%M:%SZ"
+                                                     nil t))
+       (when (buffer-live-p (get-buffer buf-name))
+         (forgejo-pull--render-from-db buf-name host owner repo filters)
+         (when-let* ((total (plist-get headers :total-count)))
+           (with-current-buffer buf-name
+             (setq forgejo-pull--total-count total))))))))
 
 ;;;###autoload
 (defun forgejo-pull-list (&optional owner repo)

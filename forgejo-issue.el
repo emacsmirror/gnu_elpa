@@ -40,6 +40,8 @@
 (declare-function forgejo-api-default-limit "forgejo-api.el" ())
 (declare-function forgejo-db-save-issues "forgejo-db.el"
                   (host owner repo issues))
+(declare-function forgejo-db-close-missing "forgejo-db.el"
+                  (host owner repo numbers &optional is-pull))
 (declare-function forgejo-db-save-timeline "forgejo-db.el"
                   (host owner repo number events))
 (declare-function forgejo-db-save-labels "forgejo-db.el"
@@ -69,6 +71,7 @@
 (defvar forgejo-host)
 (defvar forgejo-default-sort)
 (defvar forgejo-timeline-page-size)
+(defvar forgejo-issue-default-filter)
 (defvar forgejo-repo--host)
 (defvar forgejo-repo--owner)
 (defvar forgejo-repo--name)
@@ -87,9 +90,8 @@ Keys: :state :labels :milestone :assignee :query :page")
     (define-key map (kbd "RET") #'forgejo-issue-view-at-point)
     (define-key map (kbd "c") #'forgejo-issue-create)
     (define-key map (kbd "g") #'forgejo-issue-refresh)
+    (define-key map (kbd "l") #'forgejo-issue-filter)
     (define-key map (kbd "s") #'forgejo-issue-filter-state)
-    (define-key map (kbd "l") #'forgejo-issue-filter-label)
-    (define-key map (kbd "m") #'forgejo-issue-filter-milestone)
     (define-key map (kbd "/") #'forgejo-issue-filter-search)
     (define-key map (kbd "C") #'forgejo-issue-clear-filters)
     (define-key map (kbd "n") #'forgejo-issue-next-page)
@@ -104,12 +106,13 @@ Keys: :state :labels :milestone :assignee :query :page")
   :group 'forgejo
   (setq tabulated-list-padding 1
         tabulated-list-format
-        (vector `("#" 5 t :right-align t)
+        (vector `("#" 5 forgejo--sort-by-number :right-align t)
                 `("State" 8 nil)
                 `("Title" ,(/ (window-width) 3) t)
                 `("Labels" ,(/ (window-width) 6) nil)
                 `("Author" ,(/ (window-width) 8) t)
-                `("Updated" ,(/ (window-width) 8) t)))
+                `("Updated" ,(/ (window-width) 8) forgejo--sort-by-updated))
+        tabulated-list-sort-key '("#" . t))
   (tabulated-list-init-header))
 
 (defun forgejo-issue--entries (issues)
@@ -124,7 +127,8 @@ Keys: :state :labels :milestone :assignee :query :page")
               .title
               (forgejo-buffer--format-labels .labels)
               (or (forgejo-buffer--login .user) "")
-              (forgejo-buffer--relative-time .updated_at)))))
+              (propertize (forgejo-buffer--relative-time .updated_at)
+                          'forgejo-timestamp (or .updated_at ""))))))
    issues))
 
 ;;; API interaction
@@ -142,7 +146,7 @@ Keys: :state :labels :milestone :assignee :query :page")
     (when-let* ((milestone (plist-get filters :milestone)))
       (push (cons "milestones" milestone) params))
     (when-let* ((assignee (plist-get filters :assignee)))
-      (push (cons "assigned_by" assignee) params))
+      (push (cons "created_by" assignee) params))
     (when-let* ((query (plist-get filters :query)))
       (push (cons "q" query) params))
     (when-let* ((page (plist-get filters :page)))
@@ -175,13 +179,15 @@ HOST, OWNER, REPO identify the repository.  FILTERS is the filter plist."
             forgejo-repo--name repo
             forgejo-issue--filters filters
             tabulated-list-format
-            (vector `("#" 5 t :right-align t)
+            (vector `("#" 5 forgejo--sort-by-number :right-align t)
                     `("State" 8 nil)
                     `("Title" ,(/ (window-width) 3) t)
                     `("Labels" ,(/ (window-width) 6) nil)
                     `("Author" ,(/ (window-width) 8) t)
-                    `("Updated" ,(/ (window-width) 8) t))
+                    `("Updated" ,(/ (window-width) 8) forgejo--sort-by-updated))
             tabulated-list-entries entries)
+      (unless tabulated-list-sort-key
+        (setq tabulated-list-sort-key '("#" . t)))
       (tabulated-list-init-header)
       (forgejo-tl-print t)
       (current-buffer))))
@@ -189,16 +195,25 @@ HOST, OWNER, REPO identify the repository.  FILTERS is the filter plist."
 (defun forgejo-issue--sync (host owner repo filters buf-name
                                  &optional force)
   "Fetch issues from API and update DB, then re-render BUF-NAME.
-When FORCE is nil, use incremental sync via the `since' parameter."
+When FORCE is nil, use incremental sync via the `since' parameter.
+When FORCE is non-nil, fetch all and mark missing issues as closed."
   (let* ((since (unless force
                   (forgejo-db-get-sync-time host owner repo "issues")))
          (api-filters (if since
                          (plist-put (copy-sequence filters) :since since)
                        filters)))
+    ;; Sync labels in background
+    (forgejo-api-get
+     (format "repos/%s/%s/labels" owner repo) nil
+     (lambda (data _headers)
+       (when data (forgejo-db-save-labels host owner repo data))))
     (forgejo-issue--fetch
      owner repo api-filters
      (lambda (data headers)
        (forgejo-db-save-issues host owner repo data)
+       (when (and force (equal (plist-get filters :state) "open"))
+         (let ((numbers (mapcar (lambda (i) (alist-get 'number i)) data)))
+           (forgejo-db-close-missing host owner repo numbers)))
        (forgejo-db-set-sync-time host owner repo "issues"
                                  (format-time-string "%Y-%m-%dT%H:%M:%SZ"
                                                      nil t))
@@ -222,7 +237,9 @@ Shows cached data immediately, then syncs from the API in the background."
          (owner (nth 1 context))
          (repo (nth 2 context))
          (buf-name (format "*forgejo-issues: %s/%s*" owner repo))
-         (filters (list :state "open"))
+         (default-query (forgejo--default-filter-for
+                         owner repo forgejo-issue-default-filter))
+         (filters (forgejo-utils-parse-filter default-query))
          (host (url-host (url-generic-parse-url host-url))))
     (forgejo-with-host host-url
       ;; Show cached data immediately
@@ -242,7 +259,8 @@ Shows cached data immediately, then syncs from the API in the background."
                              forgejo-issue--filters (buffer-name) t)))))
 
 (defun forgejo-issue--refilter ()
-  "Re-render from DB with current filters, then sync incrementally."
+  "Re-render from DB with current filters, then sync.
+Forces a full re-fetch to ensure the DB has data matching the filters."
   (let ((host (url-host (url-generic-parse-url
                          (or forgejo-repo--host forgejo-host)))))
     (forgejo-with-host forgejo-repo--host
@@ -250,9 +268,46 @@ Shows cached data immediately, then syncs from the API in the background."
                                      forgejo-repo--owner forgejo-repo--name
                                      forgejo-issue--filters)
       (forgejo-issue--sync host forgejo-repo--owner forgejo-repo--name
-                           forgejo-issue--filters (buffer-name)))))
+                           forgejo-issue--filters (buffer-name) t))))
 
 ;;; Filter commands
+
+(declare-function forgejo-db-get-milestones "forgejo-db.el"
+                  (host owner repo))
+(declare-function forgejo-db-get-authors "forgejo-db.el"
+                  (host owner repo))
+
+(defun forgejo-issue-filter ()
+  "Filter issues using a query string with prefix completion.
+Supported prefixes: state:, label:, milestone:, author:, search:.
+Bare words are treated as title search.
+Empty input clears all filters."
+  (interactive)
+  (let* ((host (url-host (url-generic-parse-url
+                          (or forgejo-repo--host forgejo-host))))
+         (labels (mapcar (lambda (row) (nth 4 row))
+                         (forgejo-db-get-labels host forgejo-repo--owner
+                                                forgejo-repo--name)))
+         (milestones (mapcar (lambda (row) (nth 3 row))
+                             (forgejo-db-get-milestones host forgejo-repo--owner
+                                                        forgejo-repo--name)))
+         (authors (forgejo-db-get-authors host forgejo-repo--owner
+                                          forgejo-repo--name))
+         (current (if forgejo-issue--filters
+                     (forgejo-utils-serialize-filter forgejo-issue--filters)
+                   (forgejo--default-filter-for
+                    forgejo-repo--owner forgejo-repo--name
+                    forgejo-issue-default-filter)))
+         (query (forgejo-utils-read-filter
+                 current
+                 `((state . ("open" "closed"))
+                   (label . ,labels)
+                   (milestone . ,milestones)
+                   (author . ,authors)
+                   (search . nil))))
+         (filters (forgejo-utils-parse-filter query)))
+    (setq forgejo-issue--filters filters)
+    (forgejo-issue--refilter)))
 
 (defun forgejo-issue-filter-state ()
   "Filter issues by state."
@@ -304,9 +359,13 @@ Shows cached data immediately, then syncs from the API in the background."
     (forgejo-issue--refilter)))
 
 (defun forgejo-issue-clear-filters ()
-  "Clear all filters and refresh."
+  "Reset filters to the default and refresh."
   (interactive)
-  (setq forgejo-issue--filters (list :state "open"))
+  (setq forgejo-issue--filters
+        (forgejo-utils-parse-filter
+         (forgejo--default-filter-for
+          forgejo-repo--owner forgejo-repo--name
+          forgejo-issue-default-filter)))
   (forgejo-issue--refilter))
 
 ;;; Pagination

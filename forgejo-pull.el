@@ -40,6 +40,8 @@
 (declare-function forgejo-api-default-limit "forgejo-api.el" ())
 (declare-function forgejo-db-save-issues "forgejo-db.el"
                   (host owner repo issues &optional is-pull))
+(declare-function forgejo-db-close-missing "forgejo-db.el"
+                  (host owner repo numbers &optional is-pull))
 (declare-function forgejo-db-save-timeline "forgejo-db.el"
                   (host owner repo number events))
 (declare-function forgejo-db-set-sync-time "forgejo-db.el"
@@ -65,6 +67,7 @@
 (defvar forgejo-host)
 (defvar forgejo-default-sort)
 (defvar forgejo-timeline-page-size)
+(defvar forgejo-pull-default-filter)
 (defvar forgejo-repo--host)
 (defvar forgejo-repo--owner)
 (defvar forgejo-repo--name)
@@ -82,6 +85,7 @@ Keys: :state :milestone :labels :poster :page")
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "RET") #'forgejo-pull-view-at-point)
     (define-key map (kbd "g") #'forgejo-pull-refresh)
+    (define-key map (kbd "l") #'forgejo-pull-filter)
     (define-key map (kbd "s") #'forgejo-pull-filter-state)
     (define-key map (kbd "/") #'forgejo-pull-filter-poster)
     (define-key map (kbd "c") #'forgejo-pull-clear-filters)
@@ -99,12 +103,13 @@ Keys: :state :milestone :labels :poster :page")
   :group 'forgejo
   (setq tabulated-list-padding 1
         tabulated-list-format
-        (vector '("#" 5 t :right-align t)
-                '("State" 8 nil)
-                (list "Title" (forgejo-buffer--flex-width 58) t)
-                '("Labels" 15 nil)
-                '("Author" 12 t)
-                '("Updated" 12 t)))
+        (vector `("#" 5 forgejo--sort-by-number :right-align t)
+                `("State" 8 nil)
+                `("Title" ,(/ (window-width) 3) t)
+                `("Labels" ,(/ (window-width) 6) nil)
+                `("Author" ,(/ (window-width) 8) t)
+                `("Updated" ,(/ (window-width) 8) forgejo--sort-by-updated))
+        tabulated-list-sort-key '("#" . t))
   (tabulated-list-init-header))
 
 (defun forgejo-pull--entries (pulls)
@@ -119,7 +124,8 @@ Keys: :state :milestone :labels :poster :page")
               .title
               (forgejo-buffer--format-labels .labels)
               (or (forgejo-buffer--login .user) "")
-              (forgejo-buffer--relative-time .updated_at)))))
+              (propertize (forgejo-buffer--relative-time .updated_at)
+                          'forgejo-timestamp (or .updated_at ""))))))
    pulls))
 
 (defun forgejo-pull--build-params (filters)
@@ -160,12 +166,16 @@ Keys: :state :milestone :labels :poster :page")
       (current-buffer))))
 
 (defun forgejo-pull--sync (host owner repo filters buf-name
-                                &optional _force)
-  "Fetch PRs from API and update DB, then re-render BUF-NAME."
+                                &optional force)
+  "Fetch PRs from API and update DB, then re-render BUF-NAME.
+When FORCE is non-nil, mark missing PRs as closed."
   (forgejo-pull--fetch
    owner repo filters
    (lambda (data headers)
      (forgejo-db-save-issues host owner repo data t)
+     (when (and force (equal (plist-get filters :state) "open"))
+       (let ((numbers (mapcar (lambda (p) (alist-get 'number p)) data)))
+         (forgejo-db-close-missing host owner repo numbers t)))
      (forgejo-db-set-sync-time host owner repo "pulls"
                                (format-time-string "%Y-%m-%dT%H:%M:%SZ"
                                                    nil t))
@@ -187,7 +197,9 @@ Shows cached data immediately, then syncs from the API in the background."
          (owner (nth 1 context))
          (repo (nth 2 context))
          (buf-name (format "*forgejo-pulls: %s/%s*" owner repo))
-         (filters (list :state "open"))
+         (default-query (forgejo--default-filter-for
+                         owner repo forgejo-pull-default-filter))
+         (filters (forgejo-utils-parse-filter default-query))
          (host (url-host (url-generic-parse-url host-url))))
     (forgejo-with-host host-url
       (switch-to-buffer
@@ -205,7 +217,8 @@ Shows cached data immediately, then syncs from the API in the background."
                             forgejo-pull--filters (buffer-name) t)))))
 
 (defun forgejo-pull--refilter ()
-  "Re-render from DB with current filters, then sync."
+  "Re-render from DB with current filters, then sync.
+Forces a full re-fetch to ensure the DB has data matching the filters."
   (let ((host (url-host (url-generic-parse-url
                          (or forgejo-repo--host forgejo-host)))))
     (forgejo-with-host forgejo-repo--host
@@ -213,9 +226,42 @@ Shows cached data immediately, then syncs from the API in the background."
                                     forgejo-repo--owner forgejo-repo--name
                                     forgejo-pull--filters)
       (forgejo-pull--sync host forgejo-repo--owner forgejo-repo--name
-                          forgejo-pull--filters (buffer-name)))))
+                          forgejo-pull--filters (buffer-name) t))))
 
 ;;; Filter commands
+
+(declare-function forgejo-db-get-labels "forgejo-db.el"
+                  (host owner repo))
+(declare-function forgejo-db-get-authors "forgejo-db.el"
+                  (host owner repo))
+
+(defun forgejo-pull-filter ()
+  "Filter PRs using a query string with prefix completion.
+Supported prefixes: state:, label:, poster:, search:.
+Bare words are treated as title search.
+Empty input clears all filters."
+  (interactive)
+  (let* ((host (url-host (url-generic-parse-url
+                          (or forgejo-repo--host forgejo-host))))
+         (labels (mapcar (lambda (row) (nth 4 row))
+                         (forgejo-db-get-labels host forgejo-repo--owner
+                                                forgejo-repo--name)))
+         (authors (forgejo-db-get-authors host forgejo-repo--owner
+                                          forgejo-repo--name))
+         (current (if forgejo-pull--filters
+                     (forgejo-utils-serialize-filter forgejo-pull--filters)
+                   (forgejo--default-filter-for
+                    forgejo-repo--owner forgejo-repo--name
+                    forgejo-pull-default-filter)))
+         (query (forgejo-utils-read-filter
+                 current
+                 `((state . ("open" "closed"))
+                   (label . ,labels)
+                   (poster . ,authors)
+                   (search . nil))))
+         (filters (forgejo-utils-parse-filter query)))
+    (setq forgejo-pull--filters filters)
+    (forgejo-pull--refilter)))
 
 (defun forgejo-pull-filter-state ()
   "Filter PRs by state."
@@ -240,9 +286,13 @@ Shows cached data immediately, then syncs from the API in the background."
     (forgejo-pull--refilter)))
 
 (defun forgejo-pull-clear-filters ()
-  "Clear all filters and refresh."
+  "Reset filters to the default and refresh."
   (interactive)
-  (setq forgejo-pull--filters (list :state "open"))
+  (setq forgejo-pull--filters
+        (forgejo-utils-parse-filter
+         (forgejo--default-filter-for
+          forgejo-repo--owner forgejo-repo--name
+          forgejo-pull-default-filter)))
   (forgejo-pull--refilter))
 
 ;;; Pagination
@@ -291,6 +341,7 @@ Shows cached data immediately, then syncs from the API in the background."
     (define-key map (kbd "c") #'forgejo-pull-comment)
     (define-key map (kbd "l") #'forgejo-pull-view-log)
     (define-key map (kbd "=") #'forgejo-buffer-view-commit-diff)
+    (define-key map (kbd "f") #'forgejo-pull-view-fetch)
     (define-key map (kbd "h") #'forgejo-pull-actions)
     (define-key map (kbd "n") #'ewoc-goto-next)
     (define-key map (kbd "p") #'ewoc-goto-prev)
@@ -466,6 +517,23 @@ Shows cached data from DB instantly, syncs in background."
               (number (alist-get 'number data)))
     (forgejo-with-host forgejo-repo--host
       (forgejo-utils-comment forgejo-repo--owner forgejo-repo--name number))))
+
+(declare-function forgejo-vc-fetch "forgejo-vc.el" (n))
+(declare-function forgejo-vc--repo-from-remote "forgejo-vc.el" ())
+
+(defun forgejo-pull-view-fetch ()
+  "Fetch and check out the current PR branch.
+Only works when `default-directory' is inside the same repository."
+  (interactive)
+  (when-let* ((data forgejo-pull--data)
+              (number (alist-get 'number data)))
+    (let ((remote (forgejo-vc--repo-from-remote)))
+      (if (and remote
+               (string= (nth 1 remote) forgejo-repo--owner)
+               (string= (nth 2 remote) forgejo-repo--name))
+          (forgejo-vc-fetch number)
+        (user-error "Not in %s/%s directory; cd there first"
+                    forgejo-repo--owner forgejo-repo--name)))))
 
 (defun forgejo-pull-view-log ()
   "Show commits for the current pull request."

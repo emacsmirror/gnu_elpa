@@ -30,6 +30,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'auth-source)
 (require 'url-parse)
 
@@ -75,6 +76,39 @@ Falls back to `forgejo-token' if auth-source returns nothing."
   "Directory for the local SQLite cache database."
   :type 'directory
   :group 'forgejo)
+
+(defcustom forgejo-issue-default-filter
+  '("state:open")
+  "Default filter query for issue lists.
+The first string element is the global default.  Cons cells
+of (\"owner/repo\" . \"query\") override for specific repos."
+  :type '(repeat (choice string (cons string string)))
+  :group 'forgejo)
+
+(defcustom forgejo-pull-default-filter
+  '("state:open")
+  "Default filter query for pull request lists.
+Same format as `forgejo-issue-default-filter'."
+  :type '(repeat (choice string (cons string string)))
+  :group 'forgejo)
+
+(defun forgejo--sort-by-number (a b)
+  "Compare entries A and B numerically by their ID."
+  (< (car a) (car b)))
+
+(defun forgejo--sort-by-updated (a b)
+  "Compare entries A and B by their updated timestamp."
+  (let ((ta (get-text-property 0 'forgejo-timestamp (aref (cadr a) 5)))
+        (tb (get-text-property 0 'forgejo-timestamp (aref (cadr b) 5))))
+    (string< (or ta "") (or tb ""))))
+
+(defun forgejo--default-filter-for (owner repo filters)
+  "Look up the default filter query for OWNER/REPO from FILTERS.
+FILTERS is a list like `forgejo-issue-default-filter'."
+  (let ((key (format "%s/%s" owner repo)))
+    (or (cdr (cl-assoc key filters :test #'string=))
+        (cl-find-if #'stringp filters)
+        "")))
 
 (defvar forgejo-db nil
   "SQLite database connection for the local cache.")

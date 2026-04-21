@@ -116,6 +116,8 @@
   "Actions for the current pull request."
   [["Pull Request"
     ("c" "Comment" forgejo-pull-comment)
+    ("f" "Fetch branch" forgejo-pull-view-fetch)
+    ("l" "Commit log" forgejo-pull-view-log)
     ("b" "Browse in browser" forgejo-pull-view-browse)]])
 
 (provide 'forgejo-transient)

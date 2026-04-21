@@ -36,11 +36,27 @@ lint:
 dev: compile lint test
 
 load: clean
-	@emacsclient --eval "(add-to-list 'load-path \"$(CURDIR)\")" > /dev/null
+	@emacsclient --eval "(progn \
+	  (add-to-list 'load-path \"$(CURDIR)\") \
+	  (dolist (sym '(forgejo-issue-list-mode-map forgejo-pull-list-mode-map \
+	               forgejo-pull-view-mode-map forgejo-issue-view-mode-map \
+	               forgejo-repo-search-mode-map forgejo-buffer-diff-map \
+	               forgejo-buffer-ref-map forgejo-buffer-commit-map)) \
+	    (when (boundp sym) (makunbound sym))))" > /dev/null
 	@for f in $(SRCS); do \
 	  emacsclient --eval "(load-file \"$(CURDIR)/$$f\")" > /dev/null || \
 	    printf "\033[31mFAIL\033[0m $$f\n"; \
 	done
+	@emacsclient --eval "(dolist (buf (buffer-list)) \
+	  (with-current-buffer buf \
+	    (cond ((derived-mode-p 'forgejo-issue-list-mode) \
+	           (use-local-map forgejo-issue-list-mode-map)) \
+	          ((derived-mode-p 'forgejo-pull-list-mode) \
+	           (use-local-map forgejo-pull-list-mode-map)) \
+	          ((derived-mode-p 'forgejo-pull-view-mode) \
+	           (use-local-map forgejo-pull-view-mode-map)) \
+	          ((derived-mode-p 'forgejo-issue-view-mode) \
+	           (use-local-map forgejo-issue-view-mode-map)))))" > /dev/null
 	@printf "\033[32mLoaded all modules into Emacs\033[0m\n"
 
 clean:

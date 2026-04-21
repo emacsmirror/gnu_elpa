@@ -39,6 +39,11 @@
 
 ;;; Faces
 
+(defface forgejo-number-face
+  '((t :inherit shadow))
+  "Face for issue/PR numbers."
+  :group 'forgejo)
+
 (defface forgejo-open-face
   '((t :inherit success))
   "Face for open issue/PR state."

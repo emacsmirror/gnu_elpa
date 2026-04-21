@@ -258,14 +258,15 @@ FILTERS is a plist with keys:
     (when-let* ((state (plist-get filters :state)))
       (setq where (append where (list "state = ?"))
             args (append args (list state))))
-    (when-let* ((label (plist-get filters :label)))
+    (when-let* ((label (or (plist-get filters :labels)
+                          (plist-get filters :label))))
       (setq where (append where (list "labels LIKE ?"))
             args (append args (list (format "%%%s%%" label)))))
     (when-let* ((milestone (plist-get filters :milestone)))
       (setq where (append where (list "milestone = ?"))
             args (append args (list milestone))))
     (when-let* ((assignee (plist-get filters :assignee)))
-      (setq where (append where (list "assignees LIKE ?"))
+      (setq where (append where (list "user LIKE ?"))
             args (append args (list (format "%%%s%%" assignee)))))
     (when-let* ((query (plist-get filters :query)))
       (setq where (append where (list "title LIKE ?"))
@@ -463,6 +464,29 @@ fields like label, assignee, old_title, new_title."
                      (list host owner repo number)))
               (row (car rows)))
     (forgejo-db--row-to-issue-alist row)))
+
+(defun forgejo-db-close-missing (host owner repo numbers &optional is-pull)
+  "Mark issues NOT in NUMBERS as closed for HOST/OWNER/REPO.
+When IS-PULL is non-nil, only affect pull requests."
+  (when numbers
+    (let ((placeholders (mapconcat (lambda (_) "?") numbers ","))
+          (pull-filter (if is-pull "AND is_pull = 1" "AND is_pull = 0")))
+      (forgejo-db--execute
+       (format "UPDATE issues SET state = 'closed'
+                WHERE host = ? AND owner = ? AND repo = ?
+                AND state = 'open' %s
+                AND number NOT IN (%s)"
+               pull-filter placeholders)
+       (append (list host owner repo) numbers)))))
+
+(defun forgejo-db-get-authors (host owner repo)
+  "Get distinct author logins for HOST/OWNER/REPO."
+  (mapcar #'car
+          (forgejo-db--select
+           "SELECT DISTINCT user FROM issues
+            WHERE host = ? AND owner = ? AND repo = ? AND user IS NOT NULL
+            ORDER BY user"
+           (list host owner repo))))
 
 ;;; Update body_html
 

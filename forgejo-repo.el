@@ -42,8 +42,6 @@
                   (&optional owner repo))
 (declare-function forgejo-buffer--relative-time "forgejo-buffer.el"
                   (time-string))
-(declare-function forgejo-buffer--flex-width "forgejo-buffer.el"
-                  (fixed-total &optional min-width))
 (declare-function forgejo-tl-print "forgejo-tl.el"
                   (&optional remember-pos))
 
@@ -154,13 +152,13 @@ Includes user repos and repos from previously viewed issues."
   :group 'forgejo
   (setq tabulated-list-padding 1
         tabulated-list-format
-        (vector '("Name" 20 t)
-                '("Owner" 15 t)
-                '("Stars" 5 t :right-align t)
-                '("Issues" 6 t :right-align t)
-                '("Lang" 10 t)
-                '("Updated" 12 t)
-                (list "Description" (forgejo-buffer--flex-width 75) nil)))
+        (vector `("Name" 20 t)
+                `("Owner" 15 t)
+                `("Stars" 5 t :right-align t)
+                `("Issues" 6 t :right-align t)
+                `("Lang" 10 t)
+                `("Updated" 12 t)
+                `("Description" ,(/ (window-width) 3) nil)))
   (tabulated-list-init-header))
 
 (defun forgejo-repo-search--entries (repos)

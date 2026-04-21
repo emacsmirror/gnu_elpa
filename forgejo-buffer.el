@@ -71,15 +71,6 @@
   "Face for separator lines between comments."
   :group 'forgejo)
 
-;;; Column width
-
-(defun forgejo-buffer--flex-width (fixed-total &optional min-width)
-  "Compute a flexible column width from the window width.
-FIXED-TOTAL is the sum of all fixed column widths plus padding.
-MIN-WIDTH is the floor (default 20)."
-  (max (or min-width 20)
-       (- (window-width) fixed-total)))
-
 ;;; Formatting helpers
 
 (defun forgejo-buffer--format-state (state)

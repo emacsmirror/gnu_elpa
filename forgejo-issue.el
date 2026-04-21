@@ -104,12 +104,12 @@ Keys: :state :labels :milestone :assignee :query :page")
   :group 'forgejo
   (setq tabulated-list-padding 1
         tabulated-list-format
-        (vector '("#" 5 t :right-align t)
-                '("State" 8 nil)
-                (list "Title" (forgejo-buffer--flex-width 63) t)
-                '("Labels" 20 nil)
-                '("Author" 12 t)
-                '("Updated" 12 t)))
+        (vector `("#" 5 t :right-align t)
+                `("State" 8 nil)
+                `("Title" ,(/ (window-width) 3) t)
+                `("Labels" ,(/ (window-width) 6) nil)
+                `("Author" ,(/ (window-width) 8) t)
+                `("Updated" ,(/ (window-width) 8) t)))
   (tabulated-list-init-header))
 
 (defun forgejo-issue--entries (issues)
@@ -174,7 +174,15 @@ HOST, OWNER, REPO identify the repository.  FILTERS is the filter plist."
       (setq forgejo-repo--owner owner
             forgejo-repo--name repo
             forgejo-issue--filters filters
+            tabulated-list-format
+            (vector `("#" 5 t :right-align t)
+                    `("State" 8 nil)
+                    `("Title" ,(/ (window-width) 3) t)
+                    `("Labels" ,(/ (window-width) 6) nil)
+                    `("Author" ,(/ (window-width) 8) t)
+                    `("Updated" ,(/ (window-width) 8) t))
             tabulated-list-entries entries)
+      (tabulated-list-init-header)
       (forgejo-tl-print t)
       (current-buffer))))
 

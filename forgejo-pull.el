@@ -289,6 +289,8 @@ Shows cached data immediately, then syncs from the API in the background."
     (define-key map (kbd "g") #'forgejo-pull-view-refresh)
     (define-key map (kbd "b") #'forgejo-pull-view-browse)
     (define-key map (kbd "c") #'forgejo-pull-comment)
+    (define-key map (kbd "l") #'forgejo-pull-view-log)
+    (define-key map (kbd "=") #'forgejo-buffer-view-commit-diff)
     (define-key map (kbd "h") #'forgejo-pull-actions)
     (define-key map (kbd "n") #'ewoc-goto-next)
     (define-key map (kbd "p") #'ewoc-goto-prev)
@@ -464,6 +466,63 @@ Shows cached data from DB instantly, syncs in background."
               (number (alist-get 'number data)))
     (forgejo-with-host forgejo-repo--host
       (forgejo-utils-comment forgejo-repo--owner forgejo-repo--name number))))
+
+(defun forgejo-pull-view-log ()
+  "Show commits for the current pull request."
+  (interactive)
+  (when-let* ((data forgejo-pull--data)
+              (number (alist-get 'number data))
+              (owner forgejo-repo--owner)
+              (repo forgejo-repo--name))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-api-get
+       (format "repos/%s/%s/pulls/%d/commits" owner repo number)
+       nil
+       (lambda (commits _headers)
+         (let ((buf-name (format "*forgejo-log: %s/%s#%d*" owner repo number)))
+           (with-current-buffer (get-buffer-create buf-name)
+             (let ((inhibit-read-only t))
+               (erase-buffer)
+               (insert (propertize
+                        (format "Commits for %s/%s#%d\n\n" owner repo number)
+                        'face 'bold))
+               (dolist (commit commits)
+                 (let* ((sha (alist-get 'sha commit))
+                        (msg (alist-get 'message
+                                        (alist-get 'commit commit)))
+                        (author (alist-get 'name
+                                           (alist-get 'author
+                                                      (alist-get 'commit commit))))
+                        (date (alist-get 'date
+                                         (alist-get 'author
+                                                    (alist-get 'commit commit))))
+                        (short-sha (substring sha 0 (min 8 (length sha))))
+                        (subject (car (split-string (or msg "") "\n"))))
+                   (insert (propertize short-sha
+                                       'face 'font-lock-constant-face
+                                       'forgejo-commit-sha sha
+                                       'keymap forgejo-buffer-commit-map
+                                       'mouse-face 'highlight
+                                       'help-echo "RET or = : view diff")
+                           " "
+                           (propertize (or author "") 'face 'shadow)
+                           " "
+                           (propertize (forgejo-buffer--relative-time date)
+                                       'face 'shadow)
+                           "\n  "
+                           subject
+                           "\n\n"))))
+             (special-mode)
+             (setq-local forgejo-repo--host forgejo-repo--host
+                         forgejo-repo--owner owner
+                         forgejo-repo--name repo)
+             (use-local-map (let ((map (make-sparse-keymap)))
+                              (set-keymap-parent map special-mode-map)
+                              (define-key map (kbd "=") #'forgejo-buffer-view-commit-diff)
+                              (define-key map (kbd "RET") #'forgejo-buffer-view-commit-diff)
+                              map))
+             (goto-char (point-min))
+             (switch-to-buffer (current-buffer)))))))))
 
 (provide 'forgejo-pull)
 ;;; forgejo-pull.el ends here

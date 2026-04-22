@@ -1,9 +1,9 @@
 ;;; dmsg.el --- Timestamped debug messages with backtrace support -*- lexical-binding: t -*-
 
-;; Copyright (C) 2026  Al Haji-Ali
+;; Copyright (C) 2026 Free Software Foundation, Inc.
 ;; Author: Al Haji-Ali <abdo.haji.ali@gmail.com>
 ;; URL: https://github.com/haji-ali/dmsg.el
-;; Version: 1.0.0
+;; Version: 0.2
 ;; Package-Requires: ((emacs "28.1"))
 ;; Keywords: maint, tools
 ;;

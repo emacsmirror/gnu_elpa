@@ -116,7 +116,8 @@ This is a list of symbols, each symbol represents an Emacs feature that
 Currently, the only recognized symbol is `file-local-variables'.  If
 this symbol is a member of this user option, then `trust-manager-mode'
 disables file-specified variable values and modes (file-local variables)
-in untrusted buffers."
+in untrusted buffers, and synchronizes `safe-local-variable-directories'
+with `trust-manager-trust-alist'."
   :type '(repeat
           (choice
            (const :tag "File-specified modes and variable values"

@@ -62,4 +62,4 @@ From any git repository with a Forgejo remote:
 
 Or invoke directly:
 
-- =M-x forgejo-issue-list=
+- =M-x forgejo=

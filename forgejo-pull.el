@@ -32,14 +32,7 @@
 (require 'forgejo-tl)
 (require 'forgejo-buffer)
 (require 'forgejo-utils)
-
-(declare-function forgejo-api-get "forgejo-api.el"
-                  (endpoint &optional params callback))
-(declare-function forgejo-api-get-all "forgejo-api.el"
-                  (endpoint &optional params callback))
-(declare-function forgejo-api-get-paged "forgejo-api.el"
-                  (endpoint params page-callback &optional done-callback))
-(declare-function forgejo-api-default-limit "forgejo-api.el" ())
+(require 'forgejo-api)
 (declare-function forgejo-db-save-issues "forgejo-db.el"
                   (host owner repo issues &optional is-pull))
 (declare-function forgejo-db-close-missing "forgejo-db.el"
@@ -65,6 +58,10 @@
 (declare-function forgejo-api-render-markdown-async "forgejo-api.el"
                   (text context callback))
 (declare-function forgejo-repo-read "forgejo-repo.el" ())
+(declare-function forgejo-db-get-labels "forgejo-db.el"
+                  (host owner repo))
+(declare-function forgejo-db-get-label-id "forgejo-db.el"
+                  (host owner repo name))
 
 (defvar forgejo-host)
 (defvar forgejo-default-sort)
@@ -350,9 +347,14 @@ Empty input clears all filters."
     (define-key map (kbd "b") #'forgejo-pull-view-browse)
     (define-key map (kbd "c") #'forgejo-pull-comment)
     (define-key map (kbd "l") #'forgejo-pull-view-log)
-    (define-key map (kbd "=") #'forgejo-buffer-view-commit-diff)
+    (define-key map (kbd "=") #'forgejo-pull-view-diff)
     (define-key map (kbd "f") #'forgejo-pull-view-fetch)
+    (define-key map (kbd "e") #'forgejo-pull-edit)
+    (define-key map (kbd "r") #'forgejo-pull-submit-review)
     (define-key map (kbd "x") #'forgejo-pull-toggle-state)
+    (define-key map (kbd "L") #'forgejo-pull-add-label)
+    (define-key map (kbd "A") #'forgejo-pull-add-assignee)
+    (define-key map (kbd "M") #'forgejo-pull-set-milestone)
     (define-key map (kbd "h") #'forgejo-pull-actions)
     (define-key map (kbd "n") #'ewoc-goto-next)
     (define-key map (kbd "p") #'ewoc-goto-prev)
@@ -380,6 +382,8 @@ Empty input clears all filters."
             (ewoc-create #'forgejo-buffer--pp nil nil t))
       (dolist (node nodes)
         (ewoc-enter-last forgejo-pull--ewoc node))
+      (setq header-line-format
+            (forgejo-buffer--header-line pr-alist))
       (goto-char (point-min))
       (current-buffer))))
 
@@ -544,15 +548,47 @@ Shows cached data from DB instantly, syncs in background."
       (forgejo-with-host forgejo-repo--host
         (forgejo-utils-toggle-state
          forgejo-repo--owner forgejo-repo--name number state
-         (lambda ()
-           (cond
-            ((bound-and-true-p forgejo-pull--data)
-             (forgejo-pull-view-refresh))
-            ((derived-mode-p 'forgejo-pull-list-mode)
-             (forgejo-pull-refresh)))))))))
+         (forgejo--post-action-callback))))))
 
+(declare-function forgejo-token "forgejo.el" ())
 (declare-function forgejo-vc-fetch "forgejo-vc.el" (n))
 (declare-function forgejo-vc--repo-from-remote "forgejo-vc.el" ())
+
+(defun forgejo-pull-view-diff ()
+  "Show the full diff for the current pull request."
+  (interactive)
+  (when-let* ((data forgejo-pull--data)
+              (number (alist-get 'number data))
+              (owner forgejo-repo--owner)
+              (repo forgejo-repo--name))
+    (forgejo-with-host forgejo-repo--host
+      (let* ((url (format "%s/api/v1/repos/%s/%s/pulls/%d.diff"
+                          forgejo-host owner repo number))
+             (url-request-method "GET")
+             (url-request-extra-headers
+              `(("Authorization" . ,(encode-coding-string
+                                     (concat "token " (forgejo-token)) 'ascii)))))
+        (url-retrieve
+         url
+         (lambda (_status)
+           (goto-char (point-min))
+           (re-search-forward "\r?\n\r?\n" nil t)
+           (let ((diff-text (buffer-substring-no-properties (point) (point-max)))
+                 (buf-name (format "*forgejo-diff: %s/%s#%d*" owner repo number)))
+             (kill-buffer (current-buffer))
+             (with-current-buffer (get-buffer-create buf-name)
+               (let ((inhibit-read-only t))
+                 (erase-buffer)
+                 (insert diff-text))
+               (diff-mode)
+               (use-local-map forgejo-buffer-diff-map)
+               (setq buffer-read-only t
+                     forgejo-diff--owner owner
+                     forgejo-diff--repo repo
+                     forgejo-diff--pr-number number)
+               (goto-char (point-min))
+               (switch-to-buffer (current-buffer)))))
+         nil t)))))
 
 (defun forgejo-pull-view-fetch ()
   "Fetch and check out the current PR branch.
@@ -624,6 +660,103 @@ Only works when `default-directory' is inside the same repository."
                               map))
              (goto-char (point-min))
              (switch-to-buffer (current-buffer)))))))))
+
+;;; Review
+
+(defun forgejo-pull-submit-review ()
+  "Submit a review on the current pull request."
+  (interactive)
+  (when-let* ((data forgejo-pull--data)
+              (number (alist-get 'number data)))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-utils-submit-review
+       forgejo-repo--owner forgejo-repo--name number
+       (forgejo--post-action-callback)))))
+
+;;; Edit
+
+(defun forgejo-pull-edit ()
+  "Edit the body or comment at point."
+  (interactive)
+  (when-let* ((node (forgejo-buffer--node-at-point forgejo-pull--ewoc))
+              (data forgejo-pull--data)
+              (number (alist-get 'number data)))
+    (forgejo-with-host forgejo-repo--host
+      (pcase (plist-get node :type)
+        ('header
+         (forgejo-utils-edit-body
+          forgejo-repo--owner forgejo-repo--name number
+          (plist-get node :body)
+          (forgejo--post-action-callback)))
+        ('comment
+         (forgejo-utils-edit-comment
+          forgejo-repo--owner forgejo-repo--name
+          (plist-get node :id) (plist-get node :body)
+          (forgejo--post-action-callback)))
+        (_ (user-error "No editable item at point"))))))
+
+;;; Metadata
+
+(defun forgejo-pull-add-label ()
+  "Add a label to the current pull request."
+  (interactive)
+  (when-let* ((data forgejo-pull--data)
+              (number (alist-get 'number data))
+              (host (url-host (url-generic-parse-url
+                               (or forgejo-repo--host forgejo-host)))))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-utils-add-label
+       forgejo-repo--owner forgejo-repo--name number host
+       (forgejo--post-action-callback)))))
+
+(defun forgejo-pull-remove-label ()
+  "Remove a label from the current pull request."
+  (interactive)
+  (when-let* ((data forgejo-pull--data)
+              (number (alist-get 'number data))
+              (labels (alist-get 'labels data))
+              (host (url-host (url-generic-parse-url
+                               (or forgejo-repo--host forgejo-host)))))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-utils-remove-label
+       forgejo-repo--owner forgejo-repo--name number labels host
+       (forgejo--post-action-callback)))))
+
+(defun forgejo-pull-add-assignee ()
+  "Add an assignee to the current pull request."
+  (interactive)
+  (when-let* ((data forgejo-pull--data)
+              (number (alist-get 'number data))
+              (host (url-host (url-generic-parse-url
+                               (or forgejo-repo--host forgejo-host)))))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-utils-add-assignee
+       forgejo-repo--owner forgejo-repo--name number
+       (alist-get 'assignees data) host
+       (forgejo--post-action-callback)))))
+
+(defun forgejo-pull-remove-assignee ()
+  "Remove an assignee from the current pull request."
+  (interactive)
+  (when-let* ((data forgejo-pull--data)
+              (number (alist-get 'number data))
+              (assignees (alist-get 'assignees data)))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-utils-remove-assignee
+       forgejo-repo--owner forgejo-repo--name number assignees
+       (forgejo--post-action-callback)))))
+
+(defun forgejo-pull-set-milestone ()
+  "Set or clear the milestone on the current pull request."
+  (interactive)
+  (when-let* ((data forgejo-pull--data)
+              (number (alist-get 'number data))
+              (host (url-host (url-generic-parse-url
+                               (or forgejo-repo--host forgejo-host)))))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-utils-set-milestone
+       forgejo-repo--owner forgejo-repo--name number host
+       (forgejo--post-action-callback)))))
 
 (provide 'forgejo-pull)
 ;;; forgejo-pull.el ends here

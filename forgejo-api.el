@@ -76,11 +76,12 @@ Returns a plist with :total-count and :link."
 
 (defun forgejo-api--parse-response (buffer)
   "Parse the JSON body from HTTP response BUFFER.
-Returns the parsed JSON as alists/lists."
+Returns the parsed JSON as alists/lists, or nil for empty bodies."
   (with-current-buffer buffer
     (goto-char (point-min))
     (re-search-forward "\r?\n\r?\n" nil t)
-    (json-parse-buffer :object-type 'alist :array-type 'list)))
+    (unless (= (point) (point-max))
+      (json-parse-buffer :object-type 'alist :array-type 'list))))
 
 (defun forgejo-api--response-status (buffer)
   "Return the HTTP status code from response BUFFER."
@@ -120,8 +121,12 @@ CALLBACK is called with two arguments: (RESPONSE-DATA HEADERS-PLIST).
          (unwind-protect
              (let ((http-status (forgejo-api--response-status (current-buffer))))
                (if (and http-status (>= http-status 400))
-                   (message "Forgejo API HTTP %d: %s %s"
-                            http-status method endpoint)
+                   (let* ((err-data (forgejo-api--parse-response (current-buffer)))
+                          (err-msg (when (listp err-data)
+                                     (alist-get 'message err-data))))
+                     (message "Forgejo API HTTP %d: %s %s%s"
+                              http-status method endpoint
+                              (if err-msg (concat " - " err-msg) "")))
                  (when callback
                    (let ((headers (forgejo-api--parse-headers (current-buffer)))
                          (data (forgejo-api--parse-response (current-buffer))))
@@ -199,9 +204,13 @@ DONE-CALLBACK receives (ALL-DATA HEADERS) when all pages are fetched."
   "PATCH ENDPOINT with JSON-BODY, call CALLBACK."
   (forgejo-api--request "PATCH" endpoint nil json-body callback))
 
-(defun forgejo-api-delete (endpoint &optional callback)
-  "DELETE ENDPOINT, call CALLBACK."
-  (forgejo-api--request "DELETE" endpoint nil nil callback))
+(defun forgejo-api-put (endpoint &optional json-body callback)
+  "PUT ENDPOINT with JSON-BODY, call CALLBACK."
+  (forgejo-api--request "PUT" endpoint nil json-body callback))
+
+(defun forgejo-api-delete (endpoint &optional json-body callback)
+  "DELETE ENDPOINT with optional JSON-BODY, call CALLBACK."
+  (forgejo-api--request "DELETE" endpoint nil json-body callback))
 
 ;;; Instance settings
 

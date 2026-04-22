@@ -77,6 +77,14 @@
 ;; indicator, it runs the hook `trust-manager-now-trusted-hook'.
 ;; By default, `trust-manager-mode' uses this hook to re-enable the
 ;; Emacs Lisp Flymake backend for on-the-fly diagnostics.
+;;
+;; `trust-manager-mode' can also extend Emacs's trust system to secure
+;; additional potentially risky features; the user option
+;; `trust-manager-secure-additional-features' says which features
+;; `trust-manager-mode' should hook into.  By default, this option is
+;; set to integrate trust into Emacs's file-local variables feature,
+;; such that file-specified modes and variable values are ignored in
+;; untrusted buffers.
 
 ;;; Code:
 
@@ -99,6 +107,23 @@ It's only meant for UI use where stale values are acceptable."
 The newly trusted buffer is current when functions on this hook run."
   :type 'hook
   :package-version '(trust-manager . "0.3.0"))
+
+(defcustom trust-manager-secure-additional-features '(file-local-variables)
+  "Additional Emacs features to limit to trusted buffers.
+This is a list of symbols, each symbol represents an Emacs feature that
+`trust-manager-mode' should hook into and disable in untrusted buffers.
+
+Currently, the only recognized symbol is `file-local-variables'.  If
+this symbol is a member of this user option, then `trust-manager-mode'
+disables file-specified variable values and modes (file-local variables)
+in untrusted buffers."
+  :type '(repeat
+          (choice
+           (const :tag "File-specified modes and variable values"
+                  file-local-variables)))
+  :risky t
+  ;; :package-version '(trust-manager . "0.4.0")
+  )
 
 (defun trust-manager--set-file-trust (file trust)
   "If TRUST is non-nil, trust FILE; otherwise untrust it."
@@ -411,6 +436,20 @@ With a numeric prefix argument N, untrust the N files following point."
   (trust-manager--set-file-trust root nil)
   (customize-save-variable 'trust-manager-trust-alist trust-manager-trust-alist))
 
+(defun trust-manager--normal-mode-wrapper
+    (fun &optional respect-e-l-v &rest _)
+  "Disable file-specified variables/modes in untrusted buffers.
+
+Call FUN (the original `normal-mode' function) with
+`enable-local-variables' set according to `trusted-content-p'.
+
+Argument RESPECT-E-L-V non-nil tells `normal-mode' to respect
+`enable-local-variables'; if the buffer is untrusted, unconditionally
+override RESPECT-E-L-V with non-nil."
+  (let* ((trust (trusted-content-p))
+         (enable-local-variables (and trust enable-local-variables)))
+    (funcall fun (or (not trust) respect-e-l-v))))
+
 (defun trust-manager--trust-scratch-buffer ()
   "Ensure the *scratch* buffer is trusted."
   (when-let* ((sb (get-buffer "*scratch*")))
@@ -461,6 +500,10 @@ project trust, but it does not mark any file or directory as untrusted."
         (add-hook 'dired-mode-hook #'trust-manager-dired-mode)
         (advice-add 'project-forget-project
                     :before #'trust-manager--forget-project)
+        (when (memq 'file-local-variables
+                    trust-manager-secure-additional-features)
+          (advice-add 'normal-mode
+                      :around #'trust-manager--normal-mode-wrapper))
         (or (null trust-manager-untrusted-indicator)
             (memq 'trust-manager--trust-indicator global-mode-string)
             (setq global-mode-string
@@ -469,6 +512,7 @@ project trust, but it does not mark any file or directory as untrusted."
     (remove-hook 'emacs-lisp-mode-hook #'trust-manager--set-up-for-elisp)
     (remove-hook 'dired-mode-hook #'trust-manager-dired-mode)
     (advice-remove 'project-forget-project #'trust-manager--forget-project)
+    (advice-remove 'normal-mode #'trust-manager--normal-mode-wrapper)
     (setq global-mode-string
           (delq 'trust-manager--trust-indicator global-mode-string))))
 

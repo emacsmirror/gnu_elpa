@@ -36,6 +36,8 @@
                   (&optional owner repo))
 (declare-function forgejo-repo-search--owner-repo-at-point "forgejo-repo.el" ())
 
+(declare-function forgejo-notification-list "forgejo-notification.el" ())
+
 (defvar forgejo-host)
 (defvar forgejo-repo--host)
 
@@ -47,7 +49,8 @@
   [["Navigate"
     ("s" "Search repos" forgejo-repo-search)
     ("i" "Issues" forgejo-issue-list)
-    ("p" "Pull requests" forgejo-pull-list)]
+    ("p" "Pull requests" forgejo-pull-list)
+    ("n" "Notifications" forgejo-notification-list)]
    ["Actions"
     ("b" "Browse repo" forgejo-browse-repo)
     ("q" "Quit" transient-quit-one)]])
@@ -97,32 +100,94 @@
 ;;; Issue detail actions
 
 (declare-function forgejo-issue-view-browse "forgejo-issue.el" ())
+(declare-function forgejo-issue-view-refresh "forgejo-issue.el" ())
 (declare-function forgejo-issue-comment "forgejo-issue.el" ())
 (declare-function forgejo-issue-toggle-state "forgejo-issue.el" ())
+(declare-function forgejo-issue-edit "forgejo-issue.el" ())
+(declare-function forgejo-issue-add-label "forgejo-issue.el" ())
+(declare-function forgejo-issue-remove-label "forgejo-issue.el" ())
+(declare-function forgejo-issue-add-assignee "forgejo-issue.el" ())
+(declare-function forgejo-issue-remove-assignee "forgejo-issue.el" ())
+(declare-function forgejo-issue-set-milestone "forgejo-issue.el" ())
+
+;;;###autoload (autoload 'forgejo-issue-add-metadata "forgejo-transient" nil t)
+(transient-define-prefix forgejo-issue-add-metadata ()
+  "Add metadata to the current issue."
+  [["Add"
+    ("l" "Label" forgejo-issue-add-label)
+    ("a" "Assignee" forgejo-issue-add-assignee)
+    ("m" "Milestone" forgejo-issue-set-milestone)]])
+
+;;;###autoload (autoload 'forgejo-issue-remove-metadata "forgejo-transient" nil t)
+(transient-define-prefix forgejo-issue-remove-metadata ()
+  "Remove metadata from the current issue."
+  [["Remove"
+    ("l" "Label" forgejo-issue-remove-label)
+    ("a" "Assignee" forgejo-issue-remove-assignee)]])
 
 ;;;###autoload (autoload 'forgejo-issue-actions "forgejo-transient" nil t)
 (transient-define-prefix forgejo-issue-actions ()
   "Actions for the current issue."
-  [["Issue"
+  [["Actions"
     ("c" "Comment" forgejo-issue-comment)
-    ("x" "Toggle open/close" forgejo-issue-toggle-state)
-    ("b" "Open in browser" forgejo-issue-view-browse)]])
+    ("e" "Edit at point" forgejo-issue-edit)
+    ("x" "Toggle open/close" forgejo-issue-toggle-state)]
+   ["Metadata"
+    ("a" "Add metadata" forgejo-issue-add-metadata)
+    ("r" "Remove metadata" forgejo-issue-remove-metadata)]
+   ["Navigate"
+    ("g" "Refresh" forgejo-issue-view-refresh)
+    ("b" "Open in browser" forgejo-issue-view-browse)
+    ("q" "Quit" quit-window)]])
 
 ;;; PR detail actions
 
 (declare-function forgejo-pull-view-browse "forgejo-pull.el" ())
+(declare-function forgejo-pull-view-refresh "forgejo-pull.el" ())
 (declare-function forgejo-pull-comment "forgejo-pull.el" ())
 (declare-function forgejo-pull-toggle-state "forgejo-pull.el" ())
+(declare-function forgejo-pull-edit "forgejo-pull.el" ())
+(declare-function forgejo-pull-submit-review "forgejo-pull.el" ())
+(declare-function forgejo-pull-view-diff "forgejo-pull.el" ())
+(declare-function forgejo-pull-add-label "forgejo-pull.el" ())
+(declare-function forgejo-pull-remove-label "forgejo-pull.el" ())
+(declare-function forgejo-pull-add-assignee "forgejo-pull.el" ())
+(declare-function forgejo-pull-remove-assignee "forgejo-pull.el" ())
+(declare-function forgejo-pull-set-milestone "forgejo-pull.el" ())
+
+;;;###autoload (autoload 'forgejo-pull-add-metadata "forgejo-transient" nil t)
+(transient-define-prefix forgejo-pull-add-metadata ()
+  "Add metadata to the current pull request."
+  [["Add"
+    ("l" "Label" forgejo-pull-add-label)
+    ("a" "Assignee" forgejo-pull-add-assignee)
+    ("m" "Milestone" forgejo-pull-set-milestone)]])
+
+;;;###autoload (autoload 'forgejo-pull-remove-metadata "forgejo-transient" nil t)
+(transient-define-prefix forgejo-pull-remove-metadata ()
+  "Remove metadata from the current pull request."
+  [["Remove"
+    ("l" "Label" forgejo-pull-remove-label)
+    ("a" "Assignee" forgejo-pull-remove-assignee)]])
 
 ;;;###autoload (autoload 'forgejo-pull-actions "forgejo-transient" nil t)
 (transient-define-prefix forgejo-pull-actions ()
   "Actions for the current pull request."
-  [["Pull Request"
+  [["Actions"
     ("c" "Comment" forgejo-pull-comment)
-    ("x" "Toggle open/close" forgejo-pull-toggle-state)
+    ("e" "Edit at point" forgejo-pull-edit)
+    ("R" "Submit review" forgejo-pull-submit-review)
+    ("x" "Toggle open/close" forgejo-pull-toggle-state)]
+   ["Metadata"
+    ("a" "Add metadata" forgejo-pull-add-metadata)
+    ("r" "Remove metadata" forgejo-pull-remove-metadata)]
+   ["Navigate"
+    ("=" "PR diff" forgejo-pull-view-diff)
     ("f" "Fetch branch" forgejo-pull-view-fetch)
     ("l" "Commit log" forgejo-pull-view-log)
-    ("b" "Open in browser" forgejo-pull-view-browse)]])
+    ("g" "Refresh" forgejo-pull-view-refresh)
+    ("b" "Open in browser" forgejo-pull-view-browse)
+    ("q" "Quit" quit-window)]])
 
 (provide 'forgejo-transient)
 ;;; forgejo-transient.el ends here

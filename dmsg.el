@@ -577,10 +577,7 @@ Press <tab> again to hide it."
                    nil (match-beginning 1) (match-end 1))))))
           (goto-char (point-min)))
         (view-mode 1))
-      (pop-to-buffer dmsg-backtrace-buffer-name
-                     '((display-buffer-below-selected
-                        display-buffer-at-bottom)
-                       (window-height . 0.35))))))
+      (pop-to-buffer dmsg-backtrace-buffer-name))))
 
 (defun dmsg--buttonify-fn (fn object &optional start end)
   "Make the text from START to END in OBJECT a function-jump button.

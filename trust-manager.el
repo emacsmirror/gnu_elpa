@@ -157,14 +157,22 @@ in untrusted buffers."
                    (sort (mapcar (pcase-lambda (`(,file . ,trust))
                                    (cons (expand-file-name file) trust))
                                  alist)))
-      (unless (and last-trusted-dir
-                   ;; Skip FILE if it's a descendant of a trusted dir,
-                   ;; and thus trusted too.
-                   (string-prefix-p last-trusted-dir (expand-file-name file)))
-        (and (string-suffix-p "/" file) trust
-             (setq last-trusted-dir
-                   (expand-file-name (file-name-as-directory file))))
-        (trust-manager--set-file-trust file trust)))))
+      (let ((is-dir (string-suffix-p "/" file)))
+        (when (and is-dir (memq 'file-local-variables
+                                trust-manager-secure-additional-features))
+          (if trust
+              (unless (member file safe-local-variable-directories)
+                (push file safe-local-variable-directories))
+            (setq safe-local-variable-directories
+                  (delete file safe-local-variable-directories))))
+        (unless (and last-trusted-dir
+                     ;; Skip FILE if it's a descendant of a trusted dir,
+                     ;; and thus trusted too.
+                     (string-prefix-p last-trusted-dir (expand-file-name file)))
+          (when (and trust is-dir)
+            (setq last-trusted-dir
+                  (expand-file-name (file-name-as-directory file))))
+          (trust-manager--set-file-trust file trust))))))
 
 (defcustom trust-manager-trust-alist nil
   "Alist mapping file/directory names to boolean trust values.

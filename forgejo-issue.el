@@ -32,14 +32,7 @@
 (require 'forgejo-tl)
 (require 'forgejo-buffer)
 (require 'forgejo-utils)
-
-(declare-function forgejo-api-get "forgejo-api.el"
-                  (endpoint &optional params callback))
-(declare-function forgejo-api-get-all "forgejo-api.el"
-                  (endpoint &optional params callback))
-(declare-function forgejo-api-get-paged "forgejo-api.el"
-                  (endpoint params page-callback &optional done-callback))
-(declare-function forgejo-api-default-limit "forgejo-api.el" ())
+(require 'forgejo-api)
 (declare-function forgejo-db-save-issues "forgejo-db.el"
                   (host owner repo issues))
 (declare-function forgejo-db-close-missing "forgejo-db.el"
@@ -69,6 +62,8 @@
 (declare-function forgejo-api-render-markdown-async "forgejo-api.el"
                   (text context callback))
 (declare-function forgejo-repo-read "forgejo-repo.el" ())
+(declare-function forgejo-db-get-label-id "forgejo-db.el"
+                  (host owner repo name))
 
 (defvar forgejo-host)
 (defvar forgejo-default-sort)
@@ -423,7 +418,11 @@ Empty input clears all filters."
     (define-key map (kbd "g") #'forgejo-issue-view-refresh)
     (define-key map (kbd "b") #'forgejo-issue-view-browse)
     (define-key map (kbd "c") #'forgejo-issue-comment)
+    (define-key map (kbd "e") #'forgejo-issue-edit)
     (define-key map (kbd "x") #'forgejo-issue-toggle-state)
+    (define-key map (kbd "L") #'forgejo-issue-add-label)
+    (define-key map (kbd "A") #'forgejo-issue-add-assignee)
+    (define-key map (kbd "M") #'forgejo-issue-set-milestone)
     (define-key map (kbd "h") #'forgejo-issue-actions)
     (define-key map (kbd "n") #'ewoc-goto-next)
     (define-key map (kbd "p") #'ewoc-goto-prev)
@@ -453,6 +452,8 @@ Empty input clears all filters."
             (ewoc-create #'forgejo-buffer--pp nil nil t))
       (dolist (node nodes)
         (ewoc-enter-last forgejo-issue--ewoc node))
+      (setq header-line-format
+            (forgejo-buffer--header-line issue-alist))
       (goto-char (point-min))
       (current-buffer))))
 
@@ -610,6 +611,15 @@ Shows cached data from DB instantly, syncs in background."
   (forgejo-with-host forgejo-repo--host
     (forgejo-utils-create-issue forgejo-repo--owner forgejo-repo--name)))
 
+(defun forgejo-issue-create-label ()
+  "Create a new label in the current repository."
+  (interactive)
+  (let ((host (url-host (url-generic-parse-url
+                         (or forgejo-repo--host forgejo-host)))))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-utils-create-label
+       forgejo-repo--owner forgejo-repo--name host nil))))
+
 (defun forgejo-issue-toggle-state ()
   "Toggle the state of the issue at point or in the current view."
   (interactive)
@@ -625,12 +635,92 @@ Shows cached data from DB instantly, syncs in background."
       (forgejo-with-host forgejo-repo--host
         (forgejo-utils-toggle-state
          forgejo-repo--owner forgejo-repo--name number state
-         (lambda ()
-           (cond
-            ((bound-and-true-p forgejo-issue--data)
-             (forgejo-issue-view-refresh))
-            ((derived-mode-p 'forgejo-issue-list-mode)
-             (forgejo-issue-refresh)))))))))
+         (forgejo--post-action-callback))))))
+
+;;; Edit
+
+(defun forgejo-issue-edit ()
+  "Edit the body or comment at point."
+  (interactive)
+  (when-let* ((node (forgejo-buffer--node-at-point forgejo-issue--ewoc))
+              (data forgejo-issue--data)
+              (number (alist-get 'number data)))
+    (forgejo-with-host forgejo-repo--host
+      (pcase (plist-get node :type)
+        ('header
+         (forgejo-utils-edit-body
+          forgejo-repo--owner forgejo-repo--name number
+          (plist-get node :body)
+          (forgejo--post-action-callback)))
+        ('comment
+         (forgejo-utils-edit-comment
+          forgejo-repo--owner forgejo-repo--name
+          (plist-get node :id) (plist-get node :body)
+          (forgejo--post-action-callback)))
+        (_ (user-error "No editable item at point"))))))
+
+;;; Metadata
+
+(defun forgejo-issue-add-label ()
+  "Add a label to the current issue."
+  (interactive)
+  (when-let* ((data forgejo-issue--data)
+              (number (alist-get 'number data))
+              (host (url-host (url-generic-parse-url
+                               (or forgejo-repo--host forgejo-host)))))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-utils-add-label
+       forgejo-repo--owner forgejo-repo--name number host
+       (forgejo--post-action-callback)))))
+
+(defun forgejo-issue-remove-label ()
+  "Remove a label from the current issue."
+  (interactive)
+  (when-let* ((data forgejo-issue--data)
+              (number (alist-get 'number data))
+              (labels (alist-get 'labels data))
+              (host (url-host (url-generic-parse-url
+                               (or forgejo-repo--host forgejo-host)))))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-utils-remove-label
+       forgejo-repo--owner forgejo-repo--name number labels host
+       (forgejo--post-action-callback)))))
+
+(defun forgejo-issue-add-assignee ()
+  "Add an assignee to the current issue."
+  (interactive)
+  (when-let* ((data forgejo-issue--data)
+              (number (alist-get 'number data))
+              (host (url-host (url-generic-parse-url
+                               (or forgejo-repo--host forgejo-host)))))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-utils-add-assignee
+       forgejo-repo--owner forgejo-repo--name number
+       (alist-get 'assignees data) host
+       (forgejo--post-action-callback)))))
+
+(defun forgejo-issue-remove-assignee ()
+  "Remove an assignee from the current issue."
+  (interactive)
+  (when-let* ((data forgejo-issue--data)
+              (number (alist-get 'number data))
+              (assignees (alist-get 'assignees data)))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-utils-remove-assignee
+       forgejo-repo--owner forgejo-repo--name number assignees
+       (forgejo--post-action-callback)))))
+
+(defun forgejo-issue-set-milestone ()
+  "Set or clear the milestone on the current issue."
+  (interactive)
+  (when-let* ((data forgejo-issue--data)
+              (number (alist-get 'number data))
+              (host (url-host (url-generic-parse-url
+                               (or forgejo-repo--host forgejo-host)))))
+    (forgejo-with-host forgejo-repo--host
+      (forgejo-utils-set-milestone
+       forgejo-repo--owner forgejo-repo--name number host
+       (forgejo--post-action-callback)))))
 
 (provide 'forgejo-issue)
 ;;; forgejo-issue.el ends here

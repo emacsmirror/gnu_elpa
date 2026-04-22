@@ -103,7 +103,19 @@
        repo TEXT NOT NULL,
        endpoint TEXT NOT NULL,
        last_synced TEXT,
-       PRIMARY KEY (host, owner, repo, endpoint))")
+       PRIMARY KEY (host, owner, repo, endpoint))"
+    "CREATE TABLE IF NOT EXISTS notifications (
+       id INTEGER NOT NULL,
+       host TEXT NOT NULL,
+       subject_type TEXT,
+       subject_title TEXT,
+       subject_url TEXT,
+       subject_state TEXT,
+       repo_owner TEXT,
+       repo_name TEXT,
+       status TEXT,
+       updated_at TEXT,
+       PRIMARY KEY (host, id))")
   "SQL statements to initialize the database schema.")
 
 ;;; Connection management
@@ -339,6 +351,12 @@ Stores body_html from API response when available."
     ORDER BY name"
    (list host owner repo)))
 
+(defun forgejo-db-get-label-id (host owner repo name)
+  "Return the label ID for NAME in HOST/OWNER/REPO, or nil."
+  (caar (forgejo-db--select
+         "SELECT id FROM labels WHERE host = ? AND owner = ? AND repo = ? AND name = ?"
+         (list host owner repo name))))
+
 ;;; Milestones
 
 (defun forgejo-db-save-milestones (host owner repo milestones)
@@ -360,6 +378,12 @@ Stores body_html from API response when available."
    "SELECT * FROM milestones WHERE host = ? AND owner = ? AND repo = ?
     ORDER BY title"
    (list host owner repo)))
+
+(defun forgejo-db-get-milestone-id (host owner repo title)
+  "Return the milestone ID for TITLE in HOST/OWNER/REPO, or nil."
+  (caar (forgejo-db--select
+         "SELECT id FROM milestones WHERE host = ? AND owner = ? AND repo = ? AND title = ?"
+         (list host owner repo title))))
 
 ;;; Repos
 
@@ -503,6 +527,66 @@ When IS-PULL is non-nil, only affect pull requests."
    "UPDATE timeline_events SET body_html = ?
     WHERE host = ? AND owner = ? AND repo = ? AND issue_number = ? AND id = ?"
    (list html host owner repo issue-number event-id)))
+
+;;; Notifications
+
+(defun forgejo-db-save-notifications (host notifications)
+  "Upsert NOTIFICATIONS (list of API alists) for HOST."
+  (let ((db (forgejo-db--ensure)))
+    (dolist (n notifications)
+      (let-alist n
+        (sqlite-execute
+         db
+         "INSERT OR REPLACE INTO notifications
+            (id, host, subject_type, subject_title, subject_url,
+             subject_state, repo_owner, repo_name, status, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+         (list .id host
+               (alist-get 'type .subject)
+               (alist-get 'title .subject)
+               (alist-get 'url .subject)
+               (alist-get 'state .subject)
+               (alist-get 'login (alist-get 'owner .repository))
+               (alist-get 'name .repository)
+               (if (eq .unread t) "unread" "read")
+               .updated_at))))))
+
+(defun forgejo-db-get-notifications (host &optional status)
+  "Get notifications for HOST, optionally filtered by STATUS."
+  (if status
+      (forgejo-db--select
+       "SELECT id, subject_type, subject_title, subject_url,
+               subject_state, repo_owner, repo_name, status, updated_at
+        FROM notifications WHERE host = ? AND status = ?
+        ORDER BY updated_at DESC"
+       (list host status))
+    (forgejo-db--select
+     "SELECT id, subject_type, subject_title, subject_url,
+             subject_state, repo_owner, repo_name, status, updated_at
+      FROM notifications WHERE host = ?
+      ORDER BY updated_at DESC"
+     (list host))))
+
+(defun forgejo-db-notification-unread-count (host)
+  "Return the count of unread notifications for HOST."
+  (or (caar (forgejo-db--select
+             "SELECT COUNT(*) FROM notifications
+              WHERE host = ? AND status = 'unread'"
+             (list host)))
+      0))
+
+(defun forgejo-db-mark-notification-read (host id)
+  "Mark notification ID as read for HOST."
+  (forgejo-db--execute
+   "UPDATE notifications SET status = 'read'
+    WHERE host = ? AND id = ?"
+   (list host id)))
+
+(defun forgejo-db-clear-notifications (host)
+  "Remove all notifications for HOST."
+  (forgejo-db--execute
+   "DELETE FROM notifications WHERE host = ?"
+   (list host)))
 
 (provide 'forgejo-db)
 ;;; forgejo-db.el ends here

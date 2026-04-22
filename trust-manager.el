@@ -6,7 +6,7 @@
 ;; Maintainer: Eshel Yaron <me@eshelyaron.com>
 ;; Keywords: security trust files
 ;; URL: https://git.sr.ht/~eshel/trust-manager
-;; Package-Version: 0.3.1
+;; Package-Version: 0.4.0
 ;; Package-Requires: ((emacs "30.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -123,8 +123,7 @@ with `trust-manager-trust-alist'."
            (const :tag "File-specified modes and variable values"
                   file-local-variables)))
   :risky t
-  ;; :package-version '(trust-manager . "0.4.0")
-  )
+  :package-version '(trust-manager . "0.4.0"))
 
 (defun trust-manager--set-file-trust (file trust)
   "If TRUST is non-nil, trust FILE; otherwise untrust it."

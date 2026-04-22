@@ -144,5 +144,69 @@
           (should (memq 'elisp-flymake-byte-compile (flymake-running-backends))))
       (trust-manager-mode -1))))
 
+(ert-deftest trust-manager-tests--file-local-vars-untrusted ()
+  (let* ((d (make-temp-file "trust-mgr-test" t))
+         (f (expand-file-name "foo.txt" d)))
+    (unwind-protect
+        (let* ((project-find-functions
+                `(,(lambda (_) (trust-manager-tests--project d))))
+               (trusted-content nil)
+               (trust-manager-trust-alist nil)
+               (user-init-file nil)
+               (trust-manager--trust-query-function (lambda (_) nil))
+               (trust-manager-secure-additional-features '(file-local-variables))
+               (enable-local-variables t)
+               (inhibit-message t))
+          (with-temp-file f
+            (insert "hello\n\nLocal Variables:\nfill-column: 999\nEnd:\n"))
+          (trust-manager-mode)
+          (let ((buf (find-file-noselect f)))
+            (unwind-protect
+                (with-current-buffer buf
+                  (should-not (trusted-content-p))
+                  (should-not (= fill-column 999)))
+              (kill-buffer buf))))
+      (trust-manager-mode -1)
+      (ignore-errors (delete-directory d t)))))
+
+(ert-deftest trust-manager-tests--file-local-vars-trusted ()
+  (let* ((d (make-temp-file "trust-mgr-test" t))
+         (f (expand-file-name "foo.txt" d)))
+    (unwind-protect
+        (let* ((project-find-functions
+                `(,(lambda (_) (trust-manager-tests--project d))))
+               (trusted-content (list (abbreviate-file-name
+                                       (file-name-as-directory d))))
+               (trust-manager-trust-alist nil)
+               (user-init-file nil)
+               (trust-manager-secure-additional-features '(file-local-variables))
+               (enable-local-variables t)
+               (inhibit-message t))
+          (with-temp-file f
+            (insert "hello\n\nLocal Variables:\nfill-column: 999\nEnd:\n"))
+          (trust-manager-mode)
+          (let ((buf (find-file-noselect f)))
+            (unwind-protect
+                (with-current-buffer buf
+                  (should (trusted-content-p))
+                  (should (= fill-column 999)))
+              (kill-buffer buf))))
+      (trust-manager-mode -1)
+      (ignore-errors (delete-directory d t)))))
+
+(ert-deftest trust-manager-tests--safe-local-variable-directories-trusted ()
+  (let* ((d (make-temp-file "trust-mgr-test" t))
+         (d/ (file-name-as-directory d)))
+    (unwind-protect
+        (let* ((trust-manager-trust-alist `((,d/ . t)))
+               (trust-manager-secure-additional-features '(file-local-variables))
+               (safe-local-variable-directories nil)
+               (user-init-file nil)
+               (inhibit-message t))
+          (trust-manager-mode)
+          (should (member (expand-file-name d/) safe-local-variable-directories)))
+      (trust-manager-mode -1)
+      (ignore-errors (delete-directory d t)))))
+
 (provide 'trust-manager-tests)
 ;;; trust-manager-tests.el ends here

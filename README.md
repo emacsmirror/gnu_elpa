@@ -26,7 +26,7 @@ a custom `dmsg-mode` to interact with it.
 (let ((state 'idle)
       (count 10))
   (dmsg "Status: %=S %=d" state count))
-;; [DBG] [2026-01-01 12:00:00.123] [eval] States: state=idle count=42
+;; DBG [2026-01-01 12:00:00.123] [eval] States: state=idle count=42
 
 ;; Switch to buffer
 (display-buffer dmsg-buffer-name)
@@ -45,7 +45,7 @@ Levels in increasing severity: `debug` `info` `warn` `error`.
 (fn-name ...)                         ;; unevaluated frame (hidden by mode)
 ```
 
-A new entry begins at each `[LVL]` line at column 0.
+A new entry begins at each `* LVL` line at column 0.
 
 
 

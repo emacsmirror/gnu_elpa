@@ -5,7 +5,7 @@ EMACS_CMD = $(EMACS) -Q --batch -L .
 
 SRCS = forgejo.el forgejo-api.el forgejo-db.el forgejo-utils.el \
        forgejo-buffer.el forgejo-repo.el forgejo-issue.el forgejo-pull.el \
-       forgejo-vc.el forgejo-tl.el forgejo-transient.el
+       forgejo-vc.el forgejo-tl.el forgejo-notification.el forgejo-transient.el
 
 TESTS = tests/forgejo-test-api.el tests/forgejo-test-db.el \
         tests/forgejo-test-buffer.el tests/forgejo-test-issue.el \
@@ -40,7 +40,8 @@ load: clean
 	  (add-to-list 'load-path \"$(CURDIR)\") \
 	  (dolist (sym '(forgejo-issue-list-mode-map forgejo-pull-list-mode-map \
 	               forgejo-pull-view-mode-map forgejo-issue-view-mode-map \
-	               forgejo-repo-search-mode-map forgejo-buffer-diff-map \
+	               forgejo-repo-search-mode-map forgejo-notification-list-mode-map \
+	               forgejo-buffer-diff-map \
 	               forgejo-buffer-ref-map forgejo-buffer-commit-map)) \
 	    (when (boundp sym) (makunbound sym))))" > /dev/null
 	@for f in $(SRCS); do \

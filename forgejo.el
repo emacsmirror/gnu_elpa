@@ -120,6 +120,43 @@ FILTERS is a list like `forgejo-issue-default-filter'."
 (defvar forgejo--api-max-items nil
   "Cached max_response_items from the instance's /settings/api.")
 
+;;; Post-action hook
+
+(defcustom forgejo-post-action-functions '(forgejo--refresh-current-view)
+  "Functions run after a successful mutation action.
+Called in the originating buffer's context.  Default refreshes
+the current view (issue detail, PR detail, or list)."
+  :type 'hook
+  :group 'forgejo)
+
+(declare-function forgejo-issue-view-refresh "forgejo-issue.el" ())
+(declare-function forgejo-issue-refresh "forgejo-issue.el" ())
+(declare-function forgejo-pull-view-refresh "forgejo-pull.el" ())
+(declare-function forgejo-pull-refresh "forgejo-pull.el" ())
+
+(defun forgejo--refresh-current-view ()
+  "Refresh the current Forgejo view buffer based on its major mode."
+  (cond
+   ((bound-and-true-p forgejo-issue--data)
+    (forgejo-issue-view-refresh))
+   ((bound-and-true-p forgejo-pull--data)
+    (forgejo-pull-view-refresh))
+   ((derived-mode-p 'forgejo-issue-list-mode)
+    (forgejo-issue-refresh))
+   ((derived-mode-p 'forgejo-pull-list-mode)
+    (forgejo-pull-refresh))))
+
+(defun forgejo--post-action-callback ()
+  "Return a callback that runs `forgejo-post-action-functions'.
+Captures the current buffer so the hook runs in the right context."
+  (let ((buf (current-buffer)))
+    (lambda ()
+      (when (buffer-live-p buf)
+        (with-current-buffer buf
+          (run-hooks 'forgejo-post-action-functions))))))
+
+;;; Host binding
+
 (defmacro forgejo-with-host (host &rest body)
   "Execute BODY with `forgejo-host' bound to HOST.
 If HOST is nil, `forgejo-host' retains its current value."

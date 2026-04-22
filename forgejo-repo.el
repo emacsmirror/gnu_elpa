@@ -30,10 +30,7 @@
 (require 'url-parse)
 (require 'forgejo)
 (require 'forgejo-utils)
-
-(declare-function forgejo-api-get "forgejo-api.el"
-                  (endpoint &optional params callback))
-(declare-function forgejo-api-default-limit "forgejo-api.el" ())
+(require 'forgejo-api)
 (declare-function forgejo-db-save-issues "forgejo-db.el"
                   (host owner repo issues))
 (declare-function forgejo-db--select "forgejo-db.el" (sql &rest args))

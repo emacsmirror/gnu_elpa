@@ -27,8 +27,7 @@
 (defvar forgejo-host)
 
 (require 'forgejo-api)
-
-(declare-function forgejo-token "forgejo.el" ())
+(require 'forgejo-db)
 
 ;;; URL builders
 
@@ -140,9 +139,6 @@ Fetches templates if available, lets user pick one, then compose."
 
 ;;; Label creation
 
-(declare-function forgejo-db-save-labels "forgejo-db.el"
-                  (host owner repo labels))
-
 (defun forgejo-utils-create-label (owner repo host callback)
   "Create a new label in OWNER/REPO.
 HOST is the hostname for DB cache update.  CALLBACK is called on success."
@@ -201,10 +197,6 @@ CALLBACK is called on success."
 
 ;;; Edit
 
-(declare-function forgejo-db--execute "forgejo-db.el" (sql &rest args))
-(declare-function forgejo-api-render-markdown-async "forgejo-api.el"
-                  (text context callback))
-
 (defun forgejo-utils-edit-body (owner repo number current-body callback)
   "Edit the body of issue/PR NUMBER in OWNER/REPO.
 CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
@@ -252,17 +244,6 @@ CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
             (when callback (funcall callback)))))))))
 
 ;;; Label/assignee/milestone management
-
-(declare-function forgejo-db-get-labels "forgejo-db.el"
-                  (host owner repo))
-(declare-function forgejo-db-get-label-id "forgejo-db.el"
-                  (host owner repo name))
-(declare-function forgejo-db-get-milestones "forgejo-db.el"
-                  (host owner repo))
-(declare-function forgejo-db-get-milestone-id "forgejo-db.el"
-                  (host owner repo title))
-(declare-function forgejo-db-get-authors "forgejo-db.el"
-                  (host owner repo))
 
 (defun forgejo-utils-add-label (owner repo number host callback)
   "Add a label to issue/PR NUMBER in OWNER/REPO.

@@ -34,6 +34,7 @@
 (require 'forgejo-utils)
 (require 'forgejo-api)
 (require 'forgejo-db)
+(require 'forgejo-review)
 
 (declare-function forgejo-repo-read "forgejo-repo.el" ())
 
@@ -315,11 +316,12 @@ Empty input clears all filters."
     (define-key map (kbd "g") #'forgejo-pull-view-refresh)
     (define-key map (kbd "b") #'forgejo-pull-view-browse)
     (define-key map (kbd "c") #'forgejo-pull-comment)
+    (define-key map (kbd "r") #'forgejo-pull-reply)
+    (define-key map (kbd "R") #'forgejo-review-submit)
     (define-key map (kbd "l") #'forgejo-pull-view-log)
     (define-key map (kbd "=") #'forgejo-pull-view-diff)
     (define-key map (kbd "f") #'forgejo-pull-view-fetch)
     (define-key map (kbd "e") #'forgejo-pull-edit)
-    (define-key map (kbd "r") #'forgejo-pull-submit-review)
     (define-key map (kbd "x") #'forgejo-pull-toggle-state)
     (define-key map (kbd "L") #'forgejo-pull-add-label)
     (define-key map (kbd "A") #'forgejo-pull-add-assignee)
@@ -368,15 +370,10 @@ After rendering, re-render BUF-NAME and restore RESTORE-LINE."
          (render-done
           (lambda ()
             (cl-decf pending)
-            (when (and (<= pending 0) (buffer-live-p (get-buffer buf-name)))
-              (let* ((fresh (forgejo-db-get-issue host owner repo number))
-                     (rows (forgejo-db-get-timeline host owner repo number))
-                     (tl (mapcar #'forgejo-db--row-to-timeline-alist rows)))
-                (forgejo-pull--render-detail buf-name owner repo fresh tl)
-                (when restore-line
-                  (with-current-buffer buf-name
-                    (goto-char (point-min))
-                    (forward-line (1- restore-line)))))))))
+            (when (<= pending 0)
+              (forgejo-buffer--re-render
+               buf-name host owner repo number
+               #'forgejo-pull--render-detail restore-line)))))
     ;; PR body
     (when (and pr
                (not (alist-get 'body_html pr))
@@ -423,20 +420,20 @@ When RESTORE-LINE is non-nil, go to that line after re-rendering."
         (lambda (timeline _tl-headers)
           (forgejo-db-save-timeline host owner repo number timeline)
           ;; First render with whatever we have
-          (when (buffer-live-p (get-buffer buf-name))
-            (let* ((fresh-pr (forgejo-db-get-issue host owner repo number))
-                   (tl-rows (forgejo-db-get-timeline host owner repo number))
-                   (tl-alists (mapcar #'forgejo-db--row-to-timeline-alist
-                                      tl-rows)))
-              (forgejo-pull--render-detail buf-name owner repo
-                                          fresh-pr tl-alists)
-              (when restore-line
-                (with-current-buffer buf-name
-                  (goto-char (point-min))
-                  (forward-line (1- restore-line))))))
-          ;; Then render missing HTML and re-render
-          (forgejo-pull--render-missing-html
-           host owner repo number buf-name restore-line)))))))
+          (forgejo-buffer--re-render
+           buf-name host owner repo number
+           #'forgejo-pull--render-detail restore-line)
+          ;; Fetch review comments, then render missing HTML
+          (let ((tl-alists (mapcar #'forgejo-db--row-to-timeline-alist
+                                   (forgejo-db-get-timeline host owner repo number))))
+            (forgejo-review-sync-comments
+             host owner repo number tl-alists
+             (lambda ()
+               (forgejo-buffer--re-render
+                buf-name host owner repo number
+                #'forgejo-pull--render-detail restore-line)
+               (forgejo-pull--render-missing-html
+                host owner repo number buf-name restore-line))))))))))
 
 (defun forgejo-pull-view-at-point ()
   "View the PR at point in the list."
@@ -498,9 +495,48 @@ Shows cached data from DB instantly, syncs in background."
   "Post a comment on the current PR."
   (interactive)
   (when-let* ((data forgejo-pull--data)
-              (number (alist-get 'number data)))
+              (number (alist-get 'number data))
+              (refresh (forgejo--post-action-callback)))
     (forgejo-with-host forgejo-repo--host
-      (forgejo-utils-comment forgejo-repo--owner forgejo-repo--name number))))
+      (forgejo-utils-post-comment
+       (format "repos/%s/%s/issues/%d/comments"
+               forgejo-repo--owner forgejo-repo--name number)
+       "Comment"
+       nil
+       (lambda (_data _headers)
+         (message "Comment posted on %s/%s#%d"
+                  forgejo-repo--owner forgejo-repo--name number)
+         (funcall refresh))))))
+
+(defun forgejo-pull-reply ()
+  "Reply to the comment or review at point."
+  (interactive)
+  (when-let* ((node (forgejo-buffer--node-at-point forgejo-pull--ewoc))
+              (data forgejo-pull--data)
+              (number (alist-get 'number data))
+              (refresh (forgejo--post-action-callback)))
+    (pcase (plist-get node :type)
+      ('review-link
+       ;; Open the thread buffer where reply is available
+       (forgejo-buffer--open-review-thread))
+      (_
+       ;; Regular issue comment reply
+       (let* ((author (plist-get node :author))
+              (body (plist-get node :body))
+              (quoted (when body
+                        (concat "> " (replace-regexp-in-string
+                                      "\n" "\n> " (string-trim body))
+                                "\n\n"))))
+         (forgejo-with-host forgejo-repo--host
+           (forgejo-utils-post-comment
+            (format "repos/%s/%s/issues/%d/comments"
+                    forgejo-repo--owner forgejo-repo--name number)
+            (format "Reply to %s" (or author ""))
+            quoted
+            (lambda (_data _headers)
+              (message "Reply posted on %s/%s#%d"
+                       forgejo-repo--owner forgejo-repo--name number)
+              (funcall refresh)))))))))
 
 (defun forgejo-pull-toggle-state ()
   "Toggle the state of the PR at point or in the current view."

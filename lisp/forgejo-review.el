@@ -65,14 +65,17 @@
               (path . ,(alist-get 'path c))
               (diff_hunk . ,(alist-get 'diff_hunk c))
               (position . ,(alist-get 'position c))
+              (original_position . ,(alist-get 'original_position c))
               (resolver . ,(alist-get 'resolver c))
               (review_id . ,review-id)))
           comments))
 
 (defun forgejo-review--summary (review-id timeline)
   "Build a list of thread summaries for REVIEW-ID from TIMELINE.
-Each thread is grouped by (path . diff_hunk).  Returns a list of
-plists (:count N :path PATH :position POS :diff-hunk HUNK :resolved BOOL),
+Each thread is grouped by (path, position, original_position) matching
+Forgejo's internal thread grouping.  Returns a list of plists
+\(:count N :path PATH :position POS :original-position OPOS
+  :diff-hunk HUNK :resolved BOOL),
 or nil if no comments."
   (let ((comments (cl-remove-if-not
                    (lambda (e)
@@ -82,7 +85,9 @@ or nil if no comments."
         (threads (make-hash-table :test 'equal)))
     (when comments
       (dolist (c comments)
-        (let ((key (cons (alist-get 'path c) (alist-get 'diff_hunk c))))
+        (let ((key (list (alist-get 'path c)
+                         (alist-get 'position c)
+                         (alist-get 'original_position c))))
           (puthash key (cons c (gethash key threads)) threads)))
       (let (result)
         (maphash
@@ -92,6 +97,7 @@ or nil if no comments."
              (push (list :count (length thread-comments)
                          :path (alist-get 'path first)
                          :position (alist-get 'position first)
+                         :original-position (alist-get 'original_position first)
                          :diff-hunk (alist-get 'diff_hunk first)
                          :resolved (and (listp resolver)
                                         (alist-get 'login resolver)))
@@ -102,9 +108,10 @@ or nil if no comments."
 ;;; DB queries
 
 (defun forgejo-review--comments-for-id (host owner repo number review-id
-                                       &optional path diff-hunk)
+                                       &optional path position original-position)
   "Return review_comment alists for REVIEW-ID from the DB.
-When PATH and DIFF-HUNK are non-nil, filter to that specific thread."
+When PATH is non-nil, filter to that specific thread using
+POSITION and ORIGINAL-POSITION for matching."
   (let ((rows (forgejo-db--select
                (format "SELECT %s FROM timeline_events
                         WHERE host = ? AND owner = ? AND repo = ?
@@ -116,9 +123,9 @@ When PATH and DIFF-HUNK are non-nil, filter to that specific thread."
      (lambda (a)
        (and (eql (alist-get 'review_id a) review-id)
             (or (null path)
-                (equal (alist-get 'path a) path))
-            (or (null diff-hunk)
-                (equal (alist-get 'diff_hunk a) diff-hunk))))
+                (and (equal (alist-get 'path a) path)
+                     (eql (alist-get 'position a) position)
+                     (eql (alist-get 'original_position a) original-position)))))
      (mapcar #'forgejo-db--row-to-timeline-alist rows))))
 
 ;;; API operations
@@ -177,9 +184,12 @@ CALLBACK is called on success."
 (declare-function forgejo-utils-post-comment "forgejo-utils.el"
                   (endpoint prompt &optional initial callback))
 
-(defun forgejo-review--reply (owner repo number review-id path position callback)
+(defun forgejo-review--reply (owner repo number review-id
+                             path position original-position callback)
   "Reply to review REVIEW-ID on PR NUMBER in OWNER/REPO.
-PATH and POSITION from the original comment for thread grouping.
+PATH, POSITION, and ORIGINAL-POSITION from the original comment
+for thread grouping.  Sends new_position when the comment is on
+the new side, old_position when on the old side.
 Prompts for the reply body.  CALLBACK is called on success."
   (let ((body (read-string-from-buffer "Reply" "")))
     (when (and body (not (string-empty-p (string-trim body))))
@@ -189,7 +199,9 @@ Prompts for the reply body.  CALLBACK is called on success."
        nil
        `((body . ,(string-trim body))
          (path . ,(or path ""))
-         (new_position . ,(or position 0)))
+         ,@(if (and position (> position 0))
+               `((new_position . ,position))
+             `((old_position . ,(or original-position 0)))))
        (lambda (data _headers)
          (let ((host (url-host (url-generic-parse-url forgejo-host))))
            (forgejo-db-save-timeline

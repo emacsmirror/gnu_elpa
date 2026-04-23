@@ -74,17 +74,18 @@ CURRENT-STATE is \"open\" or \"closed\".  CALLBACK is called on success."
 
 ;;; Comment
 
-(defun forgejo-utils-comment (owner repo number)
-  "Post a comment on issue/PR NUMBER in OWNER/REPO.
-Opens a buffer for composing the comment body."
-  (let ((body (read-string-from-buffer "Comment" "")))
+(defun forgejo-utils-post-comment (endpoint prompt &optional initial callback)
+  "Post a comment to ENDPOINT.
+PROMPT is the composition buffer title.  INITIAL is optional
+pre-filled text (e.g. quoted reply).  CALLBACK receives (DATA HEADERS)
+on success."
+  (let ((body (read-string-from-buffer prompt (or initial ""))))
     (when (and body (not (string-empty-p (string-trim body))))
       (forgejo-api-post
-       (format "repos/%s/%s/issues/%d/comments" owner repo number)
-       nil
-       `((body . ,body))
-       (lambda (_data _headers)
-         (message "Comment posted on %s/%s#%d" owner repo number))))))
+       endpoint nil
+       `((body . ,(string-trim body)))
+       (lambda (data headers)
+         (when callback (funcall callback data headers)))))))
 
 ;;; Issue creation
 
@@ -169,30 +170,6 @@ HOST is the hostname for DB cache update.  CALLBACK is called on success."
        ;; Cache the new label locally
        (forgejo-db-save-labels host owner repo (list data))
        (message "Created label %s in %s/%s" name owner repo)
-       (when callback (funcall callback))))))
-
-;;; PR review
-
-(defun forgejo-utils-submit-review (owner repo number callback)
-  "Submit a review on PR NUMBER in OWNER/REPO.
-Prompts for the review type and an optional body.
-CALLBACK is called on success."
-  (let* ((type (completing-read "Review type: "
-                                '("approve" "request_changes" "comment")
-                                nil t))
-         (event (pcase type
-                  ("approve" "APPROVED")
-                  ("request_changes" "REQUEST_CHANGES")
-                  ("comment" "COMMENT")))
-         (body (read-string-from-buffer "Review body" "")))
-    (forgejo-api-post
-     (format "repos/%s/%s/pulls/%d/reviews" owner repo number)
-     nil
-     `((event . ,event)
-       ,@(when (and body (not (string-empty-p (string-trim body))))
-           `((body . ,body))))
-     (lambda (_data _headers)
-       (message "Review submitted: %s on %s/%s#%d" type owner repo number)
        (when callback (funcall callback))))))
 
 ;;; Edit

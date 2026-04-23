@@ -8,9 +8,10 @@ SRCS = lisp/forgejo.el lisp/forgejo-api.el lisp/forgejo-db.el \
        lisp/forgejo-issue.el lisp/forgejo-pull.el lisp/forgejo-vc.el \
        lisp/forgejo-tl.el lisp/forgejo-notification.el lisp/forgejo-transient.el
 
-TESTS = tests/forgejo-test-api.el tests/forgejo-test-db.el \
-        tests/forgejo-test-buffer.el tests/forgejo-test-issue.el \
-        tests/forgejo-test-pull.el tests/forgejo-test-vc.el
+TESTS = tests/forgejo-test-load.el tests/forgejo-test-api.el \
+        tests/forgejo-test-db.el tests/forgejo-test-buffer.el \
+        tests/forgejo-test-issue.el tests/forgejo-test-pull.el \
+        tests/forgejo-test-vc.el
 
 .PHONY: all compile test lint clean dev load
 

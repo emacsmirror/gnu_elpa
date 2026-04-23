@@ -40,6 +40,12 @@
   :group 'external
   :prefix "forgejo-")
 
+(defcustom forgejo-compose-hook nil
+  "Hook run in composition buffers after setup.
+Use this to enable modes like `markdown-mode' or `flyspell-mode'."
+  :type 'hook
+  :group 'forgejo)
+
 (defcustom forgejo-host "https://codeberg.org"
   "URL of the Forgejo instance."
   :type 'string

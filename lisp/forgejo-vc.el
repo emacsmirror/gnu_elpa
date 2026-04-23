@@ -176,10 +176,19 @@ With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
 
 ;;;###autoload
 (defun forgejo-vc-fetch (n)
-  "Fetch pull request N and check out the pr-N branch."
+  "Fetch pull request N and check out the pr-N branch.
+Warns if manual merge is disabled for the repo."
   (interactive "nPR number: ")
   (let ((branch (format "pr-%d" n))
         (ref (format "refs/pull/%d/head" n)))
+    ;; Check manual merge setting
+    (when-let* ((context (forgejo-vc--repo-from-remote)))
+      (forgejo-settings-check-manual-merge
+       (nth 1 context) (nth 2 context)
+       (lambda (enabled)
+         (unless enabled
+           (message "Warning: Manual merge is disabled for %s/%s. Local merges won't be recognized by Forgejo."
+                    (nth 1 context) (nth 2 context))))))
     (vc-git-command nil 0 nil "fetch" "origin" (format "%s:%s" ref branch))
     (vc-git-command nil 0 nil "checkout" branch)
     (message "Checked out %s" branch)))

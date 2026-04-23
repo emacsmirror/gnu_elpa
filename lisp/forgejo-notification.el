@@ -67,6 +67,37 @@ notifications."
   :type 'hook
   :group 'forgejo)
 
+;;; Desktop notifications
+
+(require 'notifications)
+
+(defcustom forgejo-notification-icon "emacs"
+  "Icon for desktop notification pop-ups.
+The default \"emacs\" is resolved by the system icon theme."
+  :type 'string
+  :group 'forgejo)
+
+(defcustom forgejo-notification-app "Emacs Forgejo"
+  "Application name for desktop notifications."
+  :type 'string
+  :group 'forgejo)
+
+(defun forgejo-notification--desktop-notify (notifications)
+  "Show a desktop notification for new NOTIFICATIONS."
+  (let ((count (length notifications)))
+    (condition-case err
+        (notifications-notify
+         :title "Forgejo"
+         :body (format "%d new notification%s" count (if (= count 1) "" "s"))
+         :app-icon forgejo-notification-icon
+         :app-name forgejo-notification-app
+         :category "forgejo.notification")
+      (dbus-error
+       (message "forgejo-notification: D-Bus error: %s"
+                (error-message-string err))))))
+
+(add-hook 'forgejo-notification-hooks #'forgejo-notification--desktop-notify)
+
 ;;; Faces
 
 (defface forgejo-notification-face

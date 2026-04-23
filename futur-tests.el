@@ -54,8 +54,8 @@
 
   (let ((p (futur-let* ((x1 5)
                         (x2 <- (futur-failed '(scan-error "Oops"))))
-            :error-fun ((wrong-type-argument (_) 23)
-                        (scan-error (_err) 32))
+            :on-error ((wrong-type-argument (_) 23)
+                       (scan-error (_err) 32))
             (list (+ x1 x2) (error "Wow!")))))
     (should (equal (futur-blocking-wait-to-get-result p) 32)))
 

@@ -67,7 +67,7 @@
 ;;   waits for FUTUR to completes and then calls FUN (or ERROR-FUN) with the
 ;;   resulting value (or its error).  (ERROR-)FUN should itself return
 ;;   a future, tho if it doesn't it's automatically turned into a trivial one.
-;; - (futur-let* BINDINGS [:error-fun ERROR-FUN] BODY): Macro built on top
+;; - (futur-let* BINDINGS [:on-error HANDLER] BODY): Macro built on top
 ;;   of `futur-bind' which runs BINDINGS in sequence and then runs BODY.
 ;;   Each BINDING can be either a simple (PAT EXP) that is executed
 ;;   as in a `pcase-let*' or a (PAT <- FUTUR) in which case the rest is
@@ -173,6 +173,7 @@
 
 ;; Version 1.4:
 
+;; - `:error-fun' renamed to `on-error' in `futur-let*'.
 ;; - New function `futur-register-unwind-protect`.
 ;; - `futur-hacks-mode' now also makes `byte-compile-file' asynchronous.
 ;; - Bug fixes.
@@ -210,9 +211,6 @@
 ;;   a release.
 
 ;;; Code:
-
-;; TODO:
-;; - Handle exceptions.
 
 (require 'cl-lib)
 
@@ -645,17 +643,16 @@ BINDINGS can contain the usual (VAR EXP) bindings of `let*' but also
 the rest of the code is executed only once the future terminates,
 binding the result in VAR.  BODY is executed at the very end and should
 return a future.
-BODY can start with `:error-fun ERROR-FUN' in which case errors in
-the futures in BINDINGS will cause execution of ERROR-FUN instead of BODY.
-ERROR-FUN can be:
+BODY can start with `:on-error HANDLER' in which case errors in
+the futures in BINDINGS will cause execution of HANDLER instead of BODY.
+HANDLER can be:
 - A lambda-expression taking an error descriptor as argument,
 - A list of (CONDITION (VAR) BODY...) where BODY
   will be executed with VAR bound to the error descriptor if CONDITION
   is one of the error's condition names."
-  ;; FIXME: ERROR-FUN shouldn't be an expression.
   (declare (indent 1) (debug ((&rest (sexp . [&or ("<-" form) (form)])) body)))
   (cl-assert lexical-binding)
-  (let* ((error-fun (when (eq :error-fun (car body))
+  (let* ((error-fun (when (eq :on-error (car body))
                       (prog1 (cadr body)
                         (setq body (cddr body)))))
          (error-fun-form

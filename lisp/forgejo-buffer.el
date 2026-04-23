@@ -517,6 +517,209 @@ Prompts for review type: comment or request_changes."
 (declare-function forgejo-review--summary "forgejo-review.el"
                   (review-id timeline))
 
+;;; Event node builders (pure: event alist -> node plist or nil)
+
+(defun forgejo-buffer--node-comment (event actor)
+  "Build a comment node from EVENT with ACTOR."
+  (list :type 'comment
+        :id (alist-get 'id event)
+        :author actor
+        :body (alist-get 'body event)
+        :body-html (forgejo-buffer--body-or-text event)
+        :created-at (alist-get 'created_at event)
+        :updated-at (alist-get 'updated_at event)))
+
+(defun forgejo-buffer--node-state-change (event actor)
+  "Build a state change node (close/reopen) from EVENT with ACTOR."
+  (list :type 'event
+        :event-type (alist-get 'type event)
+        :actor actor
+        :created-at (alist-get 'created_at event)
+        :detail nil))
+
+(defun forgejo-buffer--node-label (event actor)
+  "Build a label event node from EVENT with ACTOR."
+  (let* ((removed (or (string-empty-p (or (alist-get 'body event) ""))
+                      (equal (alist-get 'body event) "0")))
+         (label (alist-get 'label event)))
+    (list :type 'event
+          :event-type (if removed "removed label" "added label")
+          :actor actor
+          :created-at (alist-get 'created_at event)
+          :detail (when (listp label) (alist-get 'name label))
+          :label-color (when (listp label) (alist-get 'color label)))))
+
+(defun forgejo-buffer--node-assignees (event actor)
+  "Build an assignee event node from EVENT with ACTOR."
+  (list :type 'event
+        :event-type (if (eq (alist-get 'removed_assignee event) t)
+                        "unassigned" "assigned")
+        :actor actor
+        :created-at (alist-get 'created_at event)
+        :detail (forgejo-buffer--login (alist-get 'assignee event))))
+
+(defun forgejo-buffer--node-pull-push (event actor)
+  "Build a push event node from EVENT with ACTOR."
+  (let* ((body-str (alist-get 'body event))
+         (push-data (when (and body-str (stringp body-str))
+                      (condition-case nil
+                          (json-parse-string body-str
+                                            :object-type 'alist
+                                            :array-type 'list)
+                        (error nil))))
+         (commit-ids (when push-data (alist-get 'commit_ids push-data)))
+         (force-p (when push-data (alist-get 'is_force_push push-data))))
+    (list :type 'event
+          :event-type (if (eq force-p t) "force pushed" "pushed")
+          :actor actor
+          :created-at (alist-get 'created_at event)
+          :commits commit-ids
+          :detail (format "%d commit%s"
+                          (length commit-ids)
+                          (if (= (length commit-ids) 1) "" "s")))))
+
+(defun forgejo-buffer--node-ref (event actor)
+  "Build a reference event node from EVENT with ACTOR."
+  (let* ((ref-issue (alist-get 'ref_issue event))
+         (ref-title (when (listp ref-issue) (alist-get 'title ref-issue)))
+         (ref-number (when (listp ref-issue) (alist-get 'number ref-issue))))
+    (list :type 'event
+          :event-type "referenced"
+          :actor actor
+          :created-at (alist-get 'created_at event)
+          :ref-number ref-number
+          :detail (when ref-number
+                    (format "#%d %s" ref-number (or ref-title ""))))))
+
+(defun forgejo-buffer--node-deadline (event actor)
+  "Build a deadline event node from EVENT with ACTOR."
+  (let ((type (alist-get 'type event)))
+    (list :type 'event
+          :event-type (pcase type
+                        ("added_deadline" "set deadline")
+                        ("modified_deadline" "changed deadline")
+                        ("removed_deadline" "removed deadline"))
+          :actor actor
+          :created-at (alist-get 'created_at event)
+          :deadline (unless (string= type "removed_deadline")
+                     (alist-get 'body event)))))
+
+(defun forgejo-buffer--node-review (event actor timeline)
+  "Build review node(s) from EVENT with ACTOR using TIMELINE for context.
+Returns a list of nodes (may be multiple for review with threads)."
+  (let* ((body (alist-get 'body event))
+         (review-id (alist-get 'review_id event))
+         (threads (forgejo-review--summary review-id timeline)))
+    (cond
+     (threads
+      (list (list :type 'review-link
+                  :review-id review-id
+                  :actor actor
+                  :created-at (alist-get 'created_at event)
+                  :threads threads
+                  :body-html (when (and body (not (string-empty-p body)))
+                               (forgejo-buffer--body-or-text event)))))
+     ((and body (not (string-empty-p body)))
+      (list (list :type 'comment
+                  :id (alist-get 'id event)
+                  :author actor
+                  :body body
+                  :body-html (forgejo-buffer--body-or-text event)
+                  :created-at (alist-get 'created_at event))))
+     (t
+      (list (list :type 'event
+                  :event-type "reviewed"
+                  :actor actor
+                  :created-at (alist-get 'created_at event)
+                  :detail nil))))))
+
+(defun forgejo-buffer--node-simple-event (event actor event-type)
+  "Build a simple event node from EVENT with ACTOR and EVENT-TYPE."
+  (list :type 'event
+        :event-type event-type
+        :actor actor
+        :created-at (alist-get 'created_at event)
+        :detail nil))
+
+(defun forgejo-buffer--node-dependency (event actor)
+  "Build a dependency event node from EVENT with ACTOR."
+  (let* ((dep (alist-get 'dependent_issue event))
+         (dep-number (when (listp dep) (alist-get 'number dep)))
+         (dep-title (when (listp dep) (alist-get 'title dep))))
+    (list :type 'event
+          :event-type (if (string= (alist-get 'type event) "add_dependency")
+                          "added dependency" "removed dependency")
+          :actor actor
+          :created-at (alist-get 'created_at event)
+          :ref-number dep-number
+          :detail (when dep-number
+                    (format "#%d %s" dep-number (or dep-title ""))))))
+
+(defun forgejo-buffer--node-metadata (event actor)
+  "Build a metadata change node (milestone, review_request, etc.) from EVENT."
+  (let ((type (alist-get 'type event)))
+    (pcase type
+      ("review_request"
+       (let ((target (let ((a (alist-get 'assignee event)))
+                       (when (listp a) (alist-get 'login a)))))
+         (list :type 'event
+               :event-type "requested review from"
+               :actor actor
+               :created-at (alist-get 'created_at event)
+               :detail target)))
+      ("milestone"
+       (let* ((ms (let ((m (alist-get 'milestone event)))
+                    (when (listp m) (alist-get 'title m))))
+              (removed (string-empty-p (or (alist-get 'body event) ""))))
+         (list :type 'event
+               :event-type (if removed "removed milestone" "set milestone")
+               :actor actor
+               :created-at (alist-get 'created_at event)
+               :detail ms)))
+      ("change_issue_ref"
+       (list :type 'event
+             :event-type "changed ref"
+             :actor actor
+             :created-at (alist-get 'created_at event)
+             :detail (format "%s -> %s"
+                             (if (string-empty-p (or (alist-get 'old_ref event) ""))
+                                 "(none)" (alist-get 'old_ref event))
+                             (or (alist-get 'new_ref event) "?"))))
+      ("change_title"
+       (list :type 'event
+             :event-type "renamed"
+             :actor actor
+             :created-at (alist-get 'created_at event)
+             :detail (format "\"%s\" -> \"%s\""
+                             (or (alist-get 'old_title event) "?")
+                             (or (alist-get 'new_title event) "?")))))))
+
+;;; Main node builder
+
+(defun forgejo-buffer--build-event-node (event actor timeline)
+  "Build a node plist for EVENT with ACTOR.  TIMELINE for review context.
+Returns a node plist, a list of nodes, or nil to skip."
+  (pcase (alist-get 'type event)
+    ("comment"     (forgejo-buffer--node-comment event actor))
+    ((or "close" "reopen") (forgejo-buffer--node-state-change event actor))
+    ("label"       (forgejo-buffer--node-label event actor))
+    ("assignees"   (forgejo-buffer--node-assignees event actor))
+    ("pull_push"   (forgejo-buffer--node-pull-push event actor))
+    ((or "pull_ref" "issue_ref" "commit_ref" "comment_ref")
+     (forgejo-buffer--node-ref event actor))
+    ((or "added_deadline" "modified_deadline" "removed_deadline")
+     (forgejo-buffer--node-deadline event actor))
+    ("review"      (forgejo-buffer--node-review event actor timeline))
+    ("review_comment" nil)
+    ((or "add_dependency" "remove_dependency")
+     (forgejo-buffer--node-dependency event actor))
+    ("merge_pull"  (forgejo-buffer--node-simple-event event actor "merged"))
+    ("delete_branch" (forgejo-buffer--node-simple-event event actor "deleted branch"))
+    ((or "review_request" "milestone" "change_issue_ref" "change_title")
+     (forgejo-buffer--node-metadata event actor))
+    (type (when type
+            (forgejo-buffer--node-simple-event event actor type)))))
+
 (defun forgejo-buffer--build-nodes (issue-data timeline)
   "Build EWOC node plists from ISSUE-DATA and TIMELINE.
 Both should be alists with `body_html' pre-populated from the DB."
@@ -540,207 +743,14 @@ Both should be alists with `body_html' pre-populated from the DB."
             nodes))
     ;; Timeline nodes
     (dolist (event timeline)
-      (let-alist event
-        (let ((actor (or (forgejo-buffer--login .user) "system")))
-          (pcase .type
-            ("comment"
-             (push (list :type 'comment
-                         :id .id
-                         :author actor
-                         :body (alist-get 'body event)
-                         :body-html (forgejo-buffer--body-or-text event)
-                         :created-at .created_at
-                         :updated-at .updated_at)
-                   nodes))
-            ((or "close" "reopen")
-             (push (list :type 'event
-                         :event-type .type
-                         :actor actor
-                         :created-at .created_at
-                         :detail nil)
-                   nodes))
-            ("label"
-             (let ((removed (or (string-empty-p (or (alist-get 'body event) ""))
-                                (equal (alist-get 'body event) "0"))))
-               (push (list :type 'event
-                           :event-type (if removed "removed label" "added label")
-                           :actor actor
-                           :created-at .created_at
-                           :detail (when (listp .label)
-                                     (alist-get 'name .label))
-                           :label-color (when (listp .label)
-                                          (alist-get 'color .label)))
-                     nodes)))
-            ("assignees"
-             (push (list :type 'event
-                         :event-type (if (eq .removed_assignee t)
-                                         "unassigned" "assigned")
-                         :actor actor
-                         :created-at .created_at
-                         :detail (forgejo-buffer--login .assignee))
-                   nodes))
-            ("pull_push"
-             (let* ((body-str (alist-get 'body event))
-                    (push-data (when (and body-str (stringp body-str))
-                                 (condition-case nil
-                                     (json-parse-string body-str
-                                                        :object-type 'alist
-                                                        :array-type 'list)
-                                   (error nil))))
-                    (commit-ids (when push-data
-                                  (alist-get 'commit_ids push-data)))
-                    (force-p (when push-data
-                               (alist-get 'is_force_push push-data))))
-               (push (list :type 'event
-                           :event-type (if (eq force-p t) "force pushed"
-                                         "pushed")
-                           :actor actor
-                           :created-at .created_at
-                           :commits commit-ids
-                           :detail (format "%d commit%s"
-                                           (length commit-ids)
-                                           (if (= (length commit-ids) 1)
-                                               "" "s")))
-                     nodes)))
-            ("change_issue_ref"
-             (push (list :type 'event
-                         :event-type "changed ref"
-                         :actor actor
-                         :created-at .created_at
-                         :detail (format "%s -> %s"
-                                         (if (string-empty-p (or .old_ref ""))
-                                             "(none)" .old_ref)
-                                         (or .new_ref "?")))
-                   nodes))
-            ("change_title"
-             (push (list :type 'event
-                         :event-type "renamed"
-                         :actor actor
-                         :created-at .created_at
-                         :detail (format "\"%s\" -> \"%s\""
-                                         (or .old_title "?")
-                                         (or .new_title "?")))
-                   nodes))
-            ((or "pull_ref" "issue_ref" "commit_ref" "comment_ref")
-             (let* ((ref-issue .ref_issue)
-                    (ref-title (when (listp ref-issue)
-                                 (alist-get 'title ref-issue)))
-                    (ref-number (when (listp ref-issue)
-                                  (alist-get 'number ref-issue))))
-               (push (list :type 'event
-                           :event-type "referenced"
-                           :actor actor
-                           :created-at .created_at
-                           :ref-number ref-number
-                           :detail (if ref-number
-                                       (format "#%d %s" ref-number
-                                               (or ref-title ""))
-                                     nil))
-                     nodes)))
-            ((or "added_deadline" "modified_deadline")
-             (push (list :type 'event
-                         :event-type (if (string= .type "added_deadline")
-                                         "set deadline" "changed deadline")
-                         :actor actor
-                         :created-at .created_at
-                         :deadline (alist-get 'body event))
-                   nodes))
-            ("removed_deadline"
-             (push (list :type 'event
-                         :event-type "removed deadline"
-                         :actor actor
-                         :created-at .created_at
-                         :detail nil)
-                   nodes))
-            ("review_request"
-             (let ((target (when (listp .assignee)
-                             (alist-get 'login .assignee))))
-               (push (list :type 'event
-                           :event-type "requested review from"
-                           :actor actor
-                           :created-at .created_at
-                           :detail target)
-                     nodes)))
-            ("milestone"
-             (let* ((ms (when (listp .milestone)
-                          (alist-get 'title .milestone)))
-                    (removed (string-empty-p (or (alist-get 'body event) ""))))
-               (push (list :type 'event
-                           :event-type (if removed "removed milestone"
-                                         "set milestone")
-                           :actor actor
-                           :created-at .created_at
-                           :detail ms)
-                     nodes)))
-            ("merge_pull"
-             (push (list :type 'event
-                         :event-type "merged"
-                         :actor actor
-                         :created-at .created_at
-                         :detail nil)
-                   nodes))
-            ("review"
-             (let* ((body (alist-get 'body event))
-                    (threads (forgejo-review--summary
-                              .review_id timeline)))
-               (cond
-                (threads
-                 ;; Review with inline comments: one node with all thread links
-                 (push (list :type 'review-link
-                             :review-id .review_id
-                             :actor actor
-                             :created-at .created_at
-                             :threads threads
-                             :body-html (when (and body (not (string-empty-p body)))
-                                          (forgejo-buffer--body-or-text event)))
-                       nodes))
-                ;; Review with body but no inline comments
-                ((and body (not (string-empty-p body)))
-                 (push (list :type 'comment
-                             :id .id
-                             :author actor
-                             :body body
-                             :body-html (forgejo-buffer--body-or-text event)
-                             :created-at .created_at)
-                       nodes))
-                ;; Empty review, no comments: one-liner
-                (t (push (list :type 'event
-                               :event-type "reviewed"
-                               :actor actor
-                               :created-at .created_at
-                               :detail nil)
-                         nodes)))))
-            ;; review_comment: rendered in dedicated thread buffer, skip here
-            ("review_comment" nil)
-            ((or "add_dependency" "remove_dependency")
-             (let* ((dep (when (listp .dependent_issue) .dependent_issue))
-                    (dep-number (alist-get 'number dep))
-                    (dep-title (alist-get 'title dep)))
-               (push (list :type 'event
-                           :event-type (if (string= .type "add_dependency")
-                                           "added dependency" "removed dependency")
-                           :actor actor
-                           :created-at .created_at
-                           :ref-number dep-number
-                           :detail (when dep-number
-                                     (format "#%d %s" dep-number
-                                             (or dep-title ""))))
-                     nodes)))
-            ("delete_branch"
-             (push (list :type 'event
-                         :event-type "deleted branch"
-                         :actor actor
-                         :created-at .created_at
-                         :detail nil)
-                   nodes))
-            (_
-             (when .type
-               (push (list :type 'event
-                           :event-type .type
-                           :actor actor
-                           :created-at .created_at
-                           :detail nil)
-                     nodes)))))))
+      (let* ((actor (or (forgejo-buffer--login (alist-get 'user event)) "system"))
+             (result (forgejo-buffer--build-event-node event actor timeline)))
+        (cond
+         ((and (listp result) (listp (car result)))
+          ;; List of nodes (e.g., review returns multiple)
+          (dolist (node result) (push node nodes)))
+         (result
+          (push result nodes)))))
     (nreverse nodes)))
 
 ;;; Issue/PR # completion

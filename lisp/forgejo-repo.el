@@ -157,13 +157,15 @@ Includes user repos and repos from previously viewed issues."
      (let-alist repo
        (list (cons (alist-get 'login .owner) .name)
              (vector
-              .name
-              (or (alist-get 'login .owner) "")
+              (propertize .name 'face 'font-lock-keyword-face)
+              (propertize (or (alist-get 'login .owner) "")
+                          'face 'forgejo-comment-author-face)
               (number-to-string (or .stars_count 0))
               (number-to-string (or .open_issues_count 0))
-              (or .language "")
-              (forgejo-buffer--relative-time .updated_at)
-              (or .description "")))))
+              (propertize (or .language "") 'face 'font-lock-type-face)
+              (propertize (forgejo-buffer--relative-time .updated_at)
+                          'face 'shadow)
+              (propertize (or .description "") 'face 'font-lock-doc-face)))))
    repos))
 
 ;;;###autoload
@@ -270,6 +272,14 @@ Includes user repos and repos from previously viewed issues."
            (setq tabulated-list-entries entries)
            (forgejo-tl-print)
            (goto-char (point-min))))))))
+
+;;; Repository creation
+
+;;;###autoload
+(defun forgejo-repo-create (name)
+  "Create a new repository named NAME on the current Forgejo instance."
+  (interactive "sRepository name: ")
+  (forgejo-utils-create-repo name))
 
 (provide 'forgejo-repo)
 ;;; forgejo-repo.el ends here

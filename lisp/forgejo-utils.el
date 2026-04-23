@@ -161,6 +161,17 @@ Fetches templates if available, lets user pick one, then compose."
        (lambda (_data _headers)
          (message "Issue created: %s/%s \"%s\"" owner repo title))))))
 
+;;; Repository creation
+
+(defun forgejo-utils-create-repo (name)
+  "Create a new public repository named NAME."
+  (forgejo-api-post
+   "user/repos"
+   nil
+   `((name . ,name))
+   (lambda (_data _headers)
+     (message "Repository created: %s" name))))
+
 ;;; Label creation
 
 (defun forgejo-utils-create-label (owner repo host callback)

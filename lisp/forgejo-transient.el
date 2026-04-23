@@ -35,6 +35,7 @@
 (declare-function forgejo-pull-list "forgejo-pull.el"
                   (&optional owner repo))
 (declare-function forgejo-repo-search--owner-repo-at-point "forgejo-repo.el" ())
+(declare-function forgejo-repo-create "forgejo-repo.el" (name))
 
 (declare-function forgejo-notification-list "forgejo-notification.el" ())
 
@@ -52,6 +53,7 @@
     ("p" "Pull requests" forgejo-pull-list)
     ("n" "Notifications" forgejo-notification-list)]
    ["Actions"
+    ("c" "Create repo" forgejo-repo-create)
     ("b" "Browse repo" forgejo-browse-repo)
     ("q" "Quit" transient-quit-one)]])
 

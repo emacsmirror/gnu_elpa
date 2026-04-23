@@ -21,7 +21,8 @@
 ;;; Commentary:
 
 ;; View and edit repository settings via transient menus.
-;; Currently supports: description, website, manual merge toggle.
+;; `forgejo-settings--data' is the source of truth, fetched from
+;; the API and updated in place after each change.
 
 ;;; Code:
 
@@ -29,20 +30,27 @@
 (require 'forgejo)
 (require 'forgejo-api)
 
-(defvar forgejo-repo--host)
-(defvar forgejo-repo--owner)
-(defvar forgejo-repo--name)
-
-;;; Data operations
+;;; Data (source of truth)
 
 (defvar forgejo-settings--data nil
-  "Cached repo settings alist for the current context.")
+  "Cached repo settings alist from the API.
+This is the source of truth for all settings operations.")
 
-(defvar forgejo-settings--owner nil
-  "Owner of the repo being configured.")
+(defun forgejo-settings--owner (&optional data)
+  "Extract owner from DATA or `forgejo-settings--data'."
+  (let ((d (or data forgejo-settings--data)))
+    (alist-get 'login (alist-get 'owner d))))
 
-(defvar forgejo-settings--repo nil
-  "Name of the repo being configured.")
+(defun forgejo-settings--repo (&optional data)
+  "Extract repo name from DATA or `forgejo-settings--data'."
+  (let ((d (or data forgejo-settings--data)))
+    (alist-get 'name d)))
+
+(defun forgejo-settings--get (field &optional data)
+  "Get FIELD from DATA or `forgejo-settings--data'."
+  (alist-get field (or data forgejo-settings--data)))
+
+;;; API operations
 
 (defun forgejo-settings--fetch (owner repo callback)
   "Fetch repo settings for OWNER/REPO, call CALLBACK with alist."
@@ -52,74 +60,83 @@
    (lambda (data _headers)
      (when callback (funcall callback data)))))
 
-(defun forgejo-settings--save (owner repo field value)
-  "Save a single FIELD with VALUE for OWNER/REPO."
-  (forgejo-api-patch
-   (format "repos/%s/%s" owner repo)
-   `((,field . ,value))
-   (lambda (_data _headers)
-     (message "Updated %s for %s/%s" field owner repo))))
-
-(defun forgejo-settings--get (field)
-  "Get FIELD from cached settings data."
-  (alist-get field forgejo-settings--data))
+(defun forgejo-settings--save (field value &optional owner repo)
+  "Save FIELD with VALUE for OWNER/REPO.
+OWNER and REPO default to values from `forgejo-settings--data'."
+  (let ((o (or owner (forgejo-settings--owner)))
+        (r (or repo (forgejo-settings--repo))))
+    (forgejo-api-patch
+     (format "repos/%s/%s" o r)
+     `((,field . ,value))
+     (lambda (_data _headers)
+       (message "Updated %s for %s/%s" field o r)))))
 
 ;;; Setting commands
 
 (defun forgejo-settings-set-description ()
   "Edit the repository description."
   (interactive)
-  (let* ((owner forgejo-settings--owner)
-         (repo forgejo-settings--repo)
-         (current (or (forgejo-settings--get 'description) "")))
+  (let ((current (or (forgejo-settings--get 'description) "")))
     (let ((new (read-string "Description: " current)))
       (unless (string= new current)
-        (forgejo-settings--save owner repo 'description new)
+        (forgejo-settings--save 'description new)
         (setf (alist-get 'description forgejo-settings--data) new)))))
 
 (defun forgejo-settings-set-website ()
   "Edit the repository website."
   (interactive)
-  (let* ((owner forgejo-settings--owner)
-         (repo forgejo-settings--repo)
-         (current (or (forgejo-settings--get 'website) "")))
+  (let ((current (or (forgejo-settings--get 'website) "")))
     (let ((new (read-string "Website: " current)))
       (unless (string= new current)
-        (forgejo-settings--save owner repo 'website new)
+        (forgejo-settings--save 'website new)
         (setf (alist-get 'website forgejo-settings--data) new)))))
 
 (defun forgejo-settings-toggle-manual-merge ()
   "Toggle the manual merge setting."
   (interactive)
-  (let* ((owner forgejo-settings--owner)
-         (repo forgejo-settings--repo)
-         (current (forgejo-settings--get 'allow_manual_merge))
+  (let* ((current (forgejo-settings--get 'allow_manual_merge))
          (new (not (eq current t))))
-    (forgejo-settings--save owner repo 'allow_manual_merge new)
+    (forgejo-settings--save 'allow_manual_merge new)
     (setf (alist-get 'allow_manual_merge forgejo-settings--data) new)
     (message "Manual merge %s" (if new "enabled" "disabled"))))
 
 ;;; Transient
 
 (defun forgejo-settings--description-desc ()
-  "Description for the description infix."
+  "Format description for transient display."
   (format "Description (%s)"
           (truncate-string-to-width
            (or (forgejo-settings--get 'description) "") 40 nil nil "...")))
 
 (defun forgejo-settings--website-desc ()
-  "Description for the website infix."
+  "Format website for transient display."
   (format "Website (%s)" (or (forgejo-settings--get 'website) "")))
 
 (defun forgejo-settings--manual-merge-desc ()
-  "Description for the manual merge infix."
+  "Format manual merge status for transient display."
   (format "Manual merge (%s)"
           (if (eq (forgejo-settings--get 'allow_manual_merge) t) "on" "off")))
 
+(transient-define-prefix forgejo-settings--transient ()
+  "Repository settings."
+  [:description
+   (lambda () (format "Settings: %s/%s"
+                      (forgejo-settings--owner)
+                      (forgejo-settings--repo)))
+   ("d" forgejo-settings-set-description
+    :description forgejo-settings--description-desc)
+   ("w" forgejo-settings-set-website
+    :description forgejo-settings--website-desc)
+   ("m" forgejo-settings-toggle-manual-merge
+    :description forgejo-settings--manual-merge-desc)])
+
+;;; Entry point
+
+(declare-function forgejo-vc--repo-from-remote "forgejo-vc.el" ())
+
 ;;;###autoload
 (defun forgejo-settings ()
-  "Open repository settings for the current repo context.
-Fetches current settings synchronously, then opens the transient."
+  "Open repository settings for the current repo context."
   (interactive)
   (let ((owner (or (bound-and-true-p forgejo-repo--owner)
                    (nth 1 (forgejo-vc--repo-from-remote))
@@ -133,24 +150,8 @@ Fetches current settings synchronously, then opens the transient."
       (forgejo-settings--fetch
        owner repo
        (lambda (data)
-         (setq forgejo-settings--data data
-               forgejo-settings--owner owner
-               forgejo-settings--repo repo)
+         (setq forgejo-settings--data data)
          (forgejo-settings--transient))))))
-
-(declare-function forgejo-vc--repo-from-remote "forgejo-vc.el" ())
-
-(transient-define-prefix forgejo-settings--transient ()
-  "Repository settings."
-  [:description
-   (lambda () (format "Settings: %s/%s"
-                      forgejo-settings--owner forgejo-settings--repo))
-   ("d" forgejo-settings-set-description
-    :description forgejo-settings--description-desc)
-   ("w" forgejo-settings-set-website
-    :description forgejo-settings--website-desc)
-   ("m" forgejo-settings-toggle-manual-merge
-    :description forgejo-settings--manual-merge-desc)])
 
 ;;; AGit-Flow check
 

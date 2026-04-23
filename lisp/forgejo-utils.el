@@ -89,7 +89,8 @@ Like `read-string-from-buffer' but with # completion for issue references."
                                 forgejo-repo--name repo)
                     (setq-local completion-at-point-functions
                                 (list #'forgejo-buffer--issue-capf
-                                      #'forgejo-buffer--mention-capf)))))
+                                      #'forgejo-buffer--mention-capf))
+                    (run-hooks 'forgejo-compose-hook))))
     (unwind-protect
         (progn
           (add-hook 'string-edit-mode-hook hook-fn)

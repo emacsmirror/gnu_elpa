@@ -101,14 +101,34 @@ Returns (HOST OWNER REPO REMOTE-NAME) or nil."
     (unless (string-empty-p result) result)))
 
 (defun forgejo-vc--remote-branches ()
-  "Return list of all remote branches as \"remote/branch\" strings."
-  (let ((output (string-trim
-                 (with-output-to-string
-                   (with-current-buffer standard-output
-                     (process-file "git" nil '(t nil) nil
-                                   "branch" "-r" "--format" "%(refname:short)"))))))
-    (when (not (string-empty-p output))
-      (split-string output "\n" t))))
+  "Return list of all remote branches as \"remote/branch\" strings.
+Uses local tracking branches first, falls back to `git ls-remote'."
+  (or (let ((output (string-trim
+                     (with-output-to-string
+                       (with-current-buffer standard-output
+                         (process-file "git" nil '(t nil) nil
+                                       "branch" "-r" "--format"
+                                       "%(refname:short)"))))))
+        (when (not (string-empty-p output))
+          (split-string output "\n" t)))
+      (forgejo-vc--ls-remote-branches)))
+
+(defun forgejo-vc--ls-remote-branches ()
+  "Fetch branches from all remotes via `git ls-remote'.
+Returns a list of \"remote/branch\" strings."
+  (let ((remotes (forgejo-vc--remotes))
+        (result nil))
+    (dolist (remote remotes)
+      (let ((output (string-trim
+                     (with-output-to-string
+                       (with-current-buffer standard-output
+                         (process-file "git" nil '(t nil) nil
+                                       "ls-remote" "--heads" remote))))))
+        (when (not (string-empty-p output))
+          (dolist (line (split-string output "\n" t))
+            (when (string-match "refs/heads/\\(.+\\)\\'" line)
+              (push (format "%s/%s" remote (match-string 1 line)) result))))))
+    (nreverse result)))
 
 (defun forgejo-vc--remote (branch)
   "Return the push remote for BRANCH, or \"origin\"."
@@ -143,6 +163,89 @@ Removes or replaces characters forbidden by git: spaces, ~, ^, :, ?, *, [, \\."
         "-o" (concat "description="
                      (forgejo-vc--encode-description description))))
 
+;;; AGit-Flow autofill (pure: git data -> defaults)
+
+(defun forgejo-vc--commit-count (upstream)
+  "Return the number of commits between UPSTREAM and HEAD.
+Returns 0 if UPSTREAM is not a valid ref."
+  (string-to-number
+   (string-trim
+    (with-output-to-string
+      (with-current-buffer standard-output
+        (process-file "git" nil '(t nil) nil
+                      "rev-list" "--count"
+                      (concat upstream "..HEAD")))))))
+
+(defun forgejo-vc--commit-subjects (upstream)
+  "Return list of commit subjects between UPSTREAM and HEAD, oldest first."
+  (let ((output (string-trim
+                 (with-output-to-string
+                   (with-current-buffer standard-output
+                     (process-file "git" nil '(t nil) nil
+                                   "log" "--format=%s"
+                                   (concat upstream "..HEAD")
+                                   "--reverse"))))))
+    (when (not (string-empty-p output))
+      (split-string output "\n" t))))
+
+(defun forgejo-vc--autofill-defaults (upstream branch)
+  "Return (TITLE . BODY) defaults based on commits since UPSTREAM.
+BRANCH is the current branch name, used as title for multi-commit PRs."
+  (let ((count (forgejo-vc--commit-count upstream)))
+    (cond
+     ((<= count 0)
+      (cons branch ""))
+     ((= count 1)
+      (let ((subject (string-trim
+                      (with-output-to-string
+                        (with-current-buffer standard-output
+                          (process-file "git" nil '(t nil) nil
+                                        "log" "-1" "--format=%s")))))
+            (body (string-trim
+                   (with-output-to-string
+                     (with-current-buffer standard-output
+                       (process-file "git" nil '(t nil) nil
+                                     "log" "-1" "--format=%b"))))))
+        (cons subject body)))
+     (t
+      (let ((subjects (forgejo-vc--commit-subjects upstream)))
+        (cons branch (mapconcat #'identity subjects "\n")))))))
+
+;;; PR template discovery
+
+(defun forgejo-vc--default-branch (remote)
+  "Return the default branch name for REMOTE, or nil."
+  (let ((result (string-trim
+                 (with-output-to-string
+                   (with-current-buffer standard-output
+                     (process-file "git" nil '(t nil) nil
+                                   "symbolic-ref"
+                                   (format "refs/remotes/%s/HEAD" remote)))))))
+    (when (and (not (string-empty-p result))
+               (string-match "\\`refs/remotes/[^/]+/\\(.+\\)\\'" result))
+      (match-string 1 result))))
+
+(defun forgejo-vc--find-pr-template (remote)
+  "Search for a PR template file in REMOTE's default branch.
+Checks .forgejo/, .gitea/, .github/ directories.
+Returns the template content as a string, or nil."
+  (when-let* ((default-br (forgejo-vc--default-branch remote))
+              (ref (format "%s/%s" remote default-br)))
+    (cl-some
+     (lambda (path)
+       (with-temp-buffer
+         (when (zerop (process-file "git" nil '(t nil) nil
+                                    "show" (format "%s:%s" ref path)))
+           (let ((content (buffer-string)))
+             (unless (string-empty-p (string-trim content))
+               content)))))
+     '(".forgejo/PULL_REQUEST_TEMPLATE.md"
+       ".forgejo/pull_request_template.md"
+       ".gitea/PULL_REQUEST_TEMPLATE.md"
+       ".gitea/pull_request_template.md"
+       ".github/PULL_REQUEST_TEMPLATE.md"
+       ".github/pull_request_template.md"))))
+
 ;;; AGit-Flow commands (side-effectful: execute git)
 
 (defun forgejo-vc--git-push (remote refspec push-options)
@@ -175,7 +278,7 @@ With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
                    (if default-target
                        (format "Target (default: %s): " default-target)
                      "Target (remote/branch): ")
-                   all-remote-branches nil t nil nil default-target))
+                   all-remote-branches nil nil nil nil default-target))
           (remote (if (string-match "\\`\\([^/]+\\)/\\(.+\\)\\'" choice)
                       (match-string 1 choice)
                     (forgejo-vc--remote branch)))
@@ -201,18 +304,25 @@ With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
          remote
          (forgejo-vc--refspec "HEAD" target topic)
          (list "-o" "force-push=true"))
-      (let* ((commit-subject (string-trim
-                              (shell-command-to-string
-                               "git log -1 --format=%s")))
-             (commit-body (string-trim
-                           (shell-command-to-string
-                            "git log -1 --format=%b")))
+      (let* ((upstream (format "%s/%s" remote target))
+             (branch (car (vc-git-branches)))
+             (defaults (forgejo-vc--autofill-defaults upstream branch))
+             (default-title (car defaults))
+             (default-body (cdr defaults))
+             (template (forgejo-vc--find-pr-template remote))
+             (use-template (and template
+                                (y-or-n-p "PR template found. Use it? ")))
+             (initial-body
+              (cond
+               ((and (not (string-empty-p default-body)) use-template)
+                (concat default-body "\n\n" template))
+               (use-template template)
+               ((not (string-empty-p default-body)) default-body)
+               (t nil)))
              (title-input (read-string
-                           (format "PR Title (default: %s): " commit-subject)))
-             (title (if (string-empty-p title-input) commit-subject title-input))
-             (desc (forgejo-utils-read-body "PR Description"
-                                            (unless (string-empty-p commit-body)
-                                              commit-body))))
+                           (format "PR Title (default: %s): " default-title)))
+             (title (if (string-empty-p title-input) default-title title-input))
+             (desc (forgejo-utils-read-body "PR Description" initial-body)))
         (forgejo-vc--git-push
          remote
          (forgejo-vc--refspec "HEAD" target topic)
@@ -293,7 +403,8 @@ Warns if manual merge is disabled for the repo."
     ("i" "Issues" forgejo-vc-issues)
     ("p" "Pull requests" forgejo-vc-pulls)]
    ["PR"
-    ("s" "Submit PR" forgejo-vc-submit)
+    ("s" forgejo-vc-submit
+     :description (lambda () (concat "Submit PR " (propertize "(C-u: force push)" 'face 'shadow))))
     ("f" "Fetch PR" forgejo-vc-fetch)
     ("u" "Update PR branch" forgejo-vc-update)]
    ["Actions"

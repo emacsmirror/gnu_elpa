@@ -385,6 +385,7 @@ Empty input clears all filters."
     (define-key map (kbd "g") #'forgejo-issue-view-refresh)
     (define-key map (kbd "b") #'forgejo-issue-view-browse)
     (define-key map (kbd "c") #'forgejo-issue-comment)
+    (define-key map (kbd "r") #'forgejo-issue-reply)
     (define-key map (kbd "e") #'forgejo-issue-edit)
     (define-key map (kbd "x") #'forgejo-issue-toggle-state)
     (define-key map (kbd "L") #'forgejo-issue-add-label)
@@ -436,15 +437,10 @@ After rendering, re-render BUF-NAME and restore RESTORE-LINE."
          (render-done
           (lambda ()
             (cl-decf pending)
-            (when (and (<= pending 0) (buffer-live-p (get-buffer buf-name)))
-              (let* ((fresh (forgejo-db-get-issue host owner repo number))
-                     (rows (forgejo-db-get-timeline host owner repo number))
-                     (tl (mapcar #'forgejo-db--row-to-timeline-alist rows)))
-                (forgejo-issue--render-detail buf-name owner repo fresh tl)
-                (when restore-line
-                  (with-current-buffer buf-name
-                    (goto-char (point-min))
-                    (forward-line (1- restore-line)))))))))
+            (when (<= pending 0)
+              (forgejo-buffer--re-render
+               buf-name host owner repo number
+               #'forgejo-issue--render-detail restore-line)))))
     ;; Issue body
     (when (and issue
                (not (alist-get 'body_html issue))
@@ -490,18 +486,10 @@ When RESTORE-LINE is non-nil, go to that line after re-rendering."
         (list (cons "limit" (number-to-string forgejo-timeline-page-size)))
         (lambda (timeline _tl-headers)
           (forgejo-db-save-timeline host owner repo number timeline)
-          ;; First render with whatever we have (may be raw text)
-          (when (buffer-live-p (get-buffer buf-name))
-            (let* ((fresh-issue (forgejo-db-get-issue host owner repo number))
-                   (tl-rows (forgejo-db-get-timeline host owner repo number))
-                   (tl-alists (mapcar #'forgejo-db--row-to-timeline-alist
-                                      tl-rows)))
-              (forgejo-issue--render-detail buf-name owner repo
-                                           fresh-issue tl-alists)
-              (when restore-line
-                (with-current-buffer buf-name
-                  (goto-char (point-min))
-                  (forward-line (1- restore-line))))))
+          ;; First render with whatever we have
+          (forgejo-buffer--re-render
+           buf-name host owner repo number
+           #'forgejo-issue--render-detail restore-line)
           ;; Then render missing HTML and re-render
           (forgejo-issue--render-missing-html
            host owner repo number buf-name restore-line)))))))
@@ -568,9 +556,42 @@ Shows cached data from DB instantly, syncs in background."
   "Post a comment on the current issue."
   (interactive)
   (when-let* ((data forgejo-issue--data)
-              (number (alist-get 'number data)))
+              (number (alist-get 'number data))
+              (refresh (forgejo--post-action-callback)))
     (forgejo-with-host forgejo-repo--host
-      (forgejo-utils-comment forgejo-repo--owner forgejo-repo--name number))))
+      (forgejo-utils-post-comment
+       (format "repos/%s/%s/issues/%d/comments"
+               forgejo-repo--owner forgejo-repo--name number)
+       "Comment"
+       nil
+       (lambda (_data _headers)
+         (message "Comment posted on %s/%s#%d"
+                  forgejo-repo--owner forgejo-repo--name number)
+         (funcall refresh))))))
+
+(defun forgejo-issue-reply ()
+  "Reply to the comment at point."
+  (interactive)
+  (when-let* ((node (forgejo-buffer--node-at-point forgejo-issue--ewoc))
+              (data forgejo-issue--data)
+              (number (alist-get 'number data))
+              (refresh (forgejo--post-action-callback)))
+    (let* ((author (plist-get node :author))
+           (body (plist-get node :body))
+           (quoted (when body
+                     (concat "> " (replace-regexp-in-string
+                                   "\n" "\n> " (string-trim body))
+                             "\n\n"))))
+      (forgejo-with-host forgejo-repo--host
+        (forgejo-utils-post-comment
+         (format "repos/%s/%s/issues/%d/comments"
+                 forgejo-repo--owner forgejo-repo--name number)
+         (format "Reply to %s" (or author ""))
+         quoted
+         (lambda (_data _headers)
+           (message "Reply posted on %s/%s#%d"
+                    forgejo-repo--owner forgejo-repo--name number)
+           (funcall refresh)))))))
 
 (defun forgejo-issue-create ()
   "Create a new issue in the current repository."

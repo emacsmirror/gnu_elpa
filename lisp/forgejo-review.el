@@ -37,6 +37,7 @@
 (require 'forgejo)
 (require 'forgejo-api)
 (require 'forgejo-db)
+(require 'forgejo-utils)
 
 (defvar forgejo-repo--host)
 (defvar forgejo-repo--owner)
@@ -170,7 +171,7 @@ CALLBACK is called on success."
          (event (pcase type
                   ("approve" "APPROVED")
                   ("comment" "COMMENT")))
-         (body (read-string-from-buffer "Review body" "")))
+         (body (forgejo-utils-read-body "Review body")))
     (forgejo-api-post
      (format "repos/%s/%s/pulls/%d/reviews" owner repo number)
      nil
@@ -191,7 +192,7 @@ PATH, POSITION, and ORIGINAL-POSITION from the original comment
 for thread grouping.  Sends new_position when the comment is on
 the new side, old_position when on the old side.
 Prompts for the reply body.  CALLBACK is called on success."
-  (let ((body (read-string-from-buffer "Reply" "")))
+  (let ((body (forgejo-utils-read-body "Reply")))
     (when (and body (not (string-empty-p (string-trim body))))
       (forgejo-api-post
        (format "repos/%s/%s/pulls/%d/reviews/%d/comments"

@@ -158,7 +158,7 @@ With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
          (forgejo-vc--refspec "HEAD" target topic)
          (list "-o" "force-push=true"))
       (let* ((title (read-string "PR Title: "))
-             (desc (read-string-from-buffer "PR Description" "")))
+             (desc (forgejo-utils-read-body "PR Description")))
         (forgejo-vc--git-push
          remote
          (forgejo-vc--refspec "HEAD" target topic)

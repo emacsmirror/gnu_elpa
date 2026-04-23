@@ -74,12 +74,33 @@ CURRENT-STATE is \"open\" or \"closed\".  CALLBACK is called on success."
 
 ;;; Comment
 
+(declare-function forgejo-buffer--issue-capf "forgejo-buffer.el" ())
+
+(defun forgejo-utils-read-body (prompt &optional initial)
+  "Read multi-line text with # issue/PR completion.
+Like `read-string-from-buffer' but with # completion for issue references."
+  (let* ((host (and (boundp 'forgejo-repo--host) forgejo-repo--host))
+         (owner (and (boundp 'forgejo-repo--owner) forgejo-repo--owner))
+         (repo (and (boundp 'forgejo-repo--name) forgejo-repo--name))
+         (hook-fn (lambda ()
+                    (setq-local forgejo-repo--host host
+                                forgejo-repo--owner owner
+                                forgejo-repo--name repo)
+                    (setq-local completion-at-point-functions
+                                (cons #'forgejo-buffer--issue-capf
+                                      completion-at-point-functions)))))
+    (unwind-protect
+        (progn
+          (add-hook 'string-edit-mode-hook hook-fn)
+          (read-string-from-buffer prompt (or initial "")))
+      (remove-hook 'string-edit-mode-hook hook-fn))))
+
 (defun forgejo-utils-post-comment (endpoint prompt &optional initial callback)
   "Post a comment to ENDPOINT.
 PROMPT is the composition buffer title.  INITIAL is optional
 pre-filled text (e.g. quoted reply).  CALLBACK receives (DATA HEADERS)
 on success."
-  (let ((body (read-string-from-buffer prompt (or initial ""))))
+  (let ((body (forgejo-utils-read-body prompt initial)))
     (when (and body (not (string-empty-p (string-trim body))))
       (forgejo-api-post
        endpoint nil
@@ -126,7 +147,7 @@ Fetches templates if available, lets user pick one, then compose."
                                     :key (lambda (tmpl) (alist-get 'name tmpl))
                                     :test #'string=))))))
          (title (read-string "Issue title: "))
-         (body (read-string-from-buffer "Issue body"
+         (body (forgejo-utils-read-body "Issue body"
                                         (or template-content ""))))
     (when (and title (not (string-empty-p (string-trim title))))
       (forgejo-api-post
@@ -177,7 +198,7 @@ HOST is the hostname for DB cache update.  CALLBACK is called on success."
 (defun forgejo-utils-edit-body (owner repo number current-body callback)
   "Edit the body of issue/PR NUMBER in OWNER/REPO.
 CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
-  (let ((body (read-string-from-buffer "Edit body" (or current-body "")))
+  (let ((body (forgejo-utils-read-body "Edit body" current-body))
         (host (url-host (url-generic-parse-url forgejo-host)))
         (context (format "%s/%s" owner repo)))
     (when (and body (not (string= body (or current-body ""))))
@@ -200,7 +221,7 @@ CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
 (defun forgejo-utils-edit-comment (owner repo comment-id current-body callback)
   "Edit comment COMMENT-ID in OWNER/REPO.
 CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
-  (let ((body (read-string-from-buffer "Edit comment" (or current-body "")))
+  (let ((body (forgejo-utils-read-body "Edit comment" current-body))
         (host (url-host (url-generic-parse-url forgejo-host)))
         (context (format "%s/%s" owner repo)))
     (when (and body (not (string= body (or current-body ""))))

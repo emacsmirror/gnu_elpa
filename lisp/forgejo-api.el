@@ -116,22 +116,23 @@ CALLBACK is called with two arguments: (RESPONSE-DATA HEADERS-PLIST).
     (url-retrieve
      url
      (lambda (status)
-       (if-let* ((err (plist-get status :error)))
-           (message "Forgejo API error: %S" err)
-         (unwind-protect
-             (let ((http-status (forgejo-api--response-status (current-buffer))))
-               (if (and http-status (>= http-status 400))
-                   (let* ((err-data (forgejo-api--parse-response (current-buffer)))
-                          (err-msg (when (listp err-data)
-                                     (alist-get 'message err-data))))
-                     (message "Forgejo API HTTP %d: %s %s%s"
-                              http-status method endpoint
-                              (if err-msg (concat " - " err-msg) "")))
-                 (when callback
-                   (let ((headers (forgejo-api--parse-headers (current-buffer)))
-                         (data (forgejo-api--parse-response (current-buffer))))
-                     (funcall callback data headers)))))
-           (kill-buffer (current-buffer)))))
+       (unwind-protect
+           (let ((http-status (forgejo-api--response-status (current-buffer))))
+             (cond
+              ((and http-status (>= http-status 400))
+               (let* ((err-data (forgejo-api--parse-response (current-buffer)))
+                      (err-msg (when (listp err-data)
+                                 (alist-get 'message err-data))))
+                 (message "Forgejo API HTTP %d: %s %s%s"
+                          http-status method endpoint
+                          (if err-msg (concat " - " err-msg) ""))))
+              ((plist-get status :error)
+               (message "Forgejo API error: %S" (plist-get status :error)))
+              (callback
+               (let ((headers (forgejo-api--parse-headers (current-buffer)))
+                     (data (forgejo-api--parse-response (current-buffer))))
+                 (funcall callback data headers)))))
+         (kill-buffer (current-buffer))))
      nil t)))
 
 ;;; Public wrappers

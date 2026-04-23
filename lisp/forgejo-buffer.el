@@ -789,6 +789,40 @@ Both should be alists with `body_html' pre-populated from the DB."
            (title (alist-get number titles)))
       (when title (concat " " title)))))
 
+;;; @mention completion
+
+(defvar-local forgejo-buffer--mention-candidates nil
+  "Cached completion candidates for @ mentions.")
+
+(defun forgejo-buffer--mention-capf ()
+  "Completion-at-point function for @user mentions."
+  (when-let* ((bounds (forgejo-buffer--mention-bounds)))
+    (list (car bounds) (cdr bounds)
+          (forgejo-buffer--mention-collection)
+          :exclusive 'no)))
+
+(defun forgejo-buffer--mention-bounds ()
+  "Return (START . END) for the @ mention at point, or nil."
+  (save-excursion
+    (let ((end (point)))
+      (when (re-search-backward "@" (line-beginning-position) t)
+        (cons (point) end)))))
+
+(defun forgejo-buffer--mention-collection ()
+  "Return completion candidates for @ mentions."
+  (or forgejo-buffer--mention-candidates
+      (setq forgejo-buffer--mention-candidates
+            (mapcar (lambda (login) (concat "@" login))
+                    (forgejo-buffer--mention-load-users)))))
+
+(defun forgejo-buffer--mention-load-users ()
+  "Load usernames from the DB for the current repo context."
+  (when-let* ((host (and (boundp 'forgejo-repo--host)
+                         (url-host (url-generic-parse-url forgejo-repo--host))))
+              (owner (and (boundp 'forgejo-repo--owner) forgejo-repo--owner))
+              (repo (and (boundp 'forgejo-repo--name) forgejo-repo--name)))
+    (forgejo-db-get-authors host owner repo)))
+
 ;;; Utilities for detail views
 
 (defun forgejo-buffer--node-at-point (ewoc)

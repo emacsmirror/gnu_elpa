@@ -75,6 +75,7 @@ CURRENT-STATE is \"open\" or \"closed\".  CALLBACK is called on success."
 ;;; Comment
 
 (declare-function forgejo-buffer--issue-capf "forgejo-buffer.el" ())
+(declare-function forgejo-buffer--mention-capf "forgejo-buffer.el" ())
 
 (defun forgejo-utils-read-body (prompt &optional initial)
   "Read multi-line text with # issue/PR completion.
@@ -87,8 +88,8 @@ Like `read-string-from-buffer' but with # completion for issue references."
                                 forgejo-repo--owner owner
                                 forgejo-repo--name repo)
                     (setq-local completion-at-point-functions
-                                (cons #'forgejo-buffer--issue-capf
-                                      completion-at-point-functions)))))
+                                (list #'forgejo-buffer--issue-capf
+                                      #'forgejo-buffer--mention-capf)))))
     (unwind-protect
         (progn
           (add-hook 'string-edit-mode-hook hook-fn)

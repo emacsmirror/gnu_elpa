@@ -102,6 +102,7 @@
 (declare-function forgejo-issue-view-browse "forgejo-issue.el" ())
 (declare-function forgejo-issue-view-refresh "forgejo-issue.el" ())
 (declare-function forgejo-issue-comment "forgejo-issue.el" ())
+(declare-function forgejo-issue-reply "forgejo-issue.el" ())
 (declare-function forgejo-issue-toggle-state "forgejo-issue.el" ())
 (declare-function forgejo-issue-edit "forgejo-issue.el" ())
 (declare-function forgejo-issue-add-label "forgejo-issue.el" ())
@@ -130,11 +131,12 @@
   "Actions for the current issue."
   [["Actions"
     ("c" "Comment" forgejo-issue-comment)
+    ("r" "Reply at point" forgejo-issue-reply)
     ("e" "Edit at point" forgejo-issue-edit)
     ("x" "Toggle open/close" forgejo-issue-toggle-state)]
    ["Metadata"
     ("a" "Add metadata" forgejo-issue-add-metadata)
-    ("r" "Remove metadata" forgejo-issue-remove-metadata)]
+    ("d" "Remove metadata" forgejo-issue-remove-metadata)]
    ["Navigate"
     ("g" "Refresh" forgejo-issue-view-refresh)
     ("b" "Open in browser" forgejo-issue-view-browse)
@@ -145,9 +147,10 @@
 (declare-function forgejo-pull-view-browse "forgejo-pull.el" ())
 (declare-function forgejo-pull-view-refresh "forgejo-pull.el" ())
 (declare-function forgejo-pull-comment "forgejo-pull.el" ())
+(declare-function forgejo-pull-reply "forgejo-pull.el" ())
 (declare-function forgejo-pull-toggle-state "forgejo-pull.el" ())
 (declare-function forgejo-pull-edit "forgejo-pull.el" ())
-(declare-function forgejo-pull-submit-review "forgejo-pull.el" ())
+(declare-function forgejo-review-submit "forgejo-review.el" ())
 (declare-function forgejo-pull-view-diff "forgejo-pull.el" ())
 (declare-function forgejo-pull-add-label "forgejo-pull.el" ())
 (declare-function forgejo-pull-remove-label "forgejo-pull.el" ())
@@ -175,12 +178,13 @@
   "Actions for the current pull request."
   [["Actions"
     ("c" "Comment" forgejo-pull-comment)
+    ("r" "Reply at point" forgejo-pull-reply)
     ("e" "Edit at point" forgejo-pull-edit)
-    ("R" "Submit review" forgejo-pull-submit-review)
+    ("R" "Submit review" forgejo-review-submit)
     ("x" "Toggle open/close" forgejo-pull-toggle-state)]
    ["Metadata"
     ("a" "Add metadata" forgejo-pull-add-metadata)
-    ("r" "Remove metadata" forgejo-pull-remove-metadata)]
+    ("d" "Remove metadata" forgejo-pull-remove-metadata)]
    ["Navigate"
     ("=" "PR diff" forgejo-pull-view-diff)
     ("f" "Fetch branch" forgejo-pull-view-fetch)

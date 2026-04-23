@@ -239,38 +239,19 @@ Falls back to plain text insertion if HTML parsing fails."
     map)
   "Keymap for the (edited) indicator.")
 
-(defun forgejo-buffer--edited-p (created updated)
-  "Return non-nil if CREATED and UPDATED timestamps differ."
-  (and created updated
-       (not (string= created updated))))
-
-(defun forgejo-buffer--insert-edited (created updated)
-  "Insert an (edited) indicator if CREATED differs from UPDATED."
-  (when (forgejo-buffer--edited-p created updated)
-    (insert " "
-            (propertize "(edited)"
-                        'face 'shadow
-                        'mouse-face 'highlight
-                        'keymap forgejo-buffer-edited-map
-                        'forgejo-edit-created created
-                        'forgejo-edit-updated updated
-                        'help-echo "RET: view edit history"))))
+(defun forgejo-buffer--insert-edited-indicator ()
+  "Insert a styled (edited) indicator at point."
+  (insert " "
+          (propertize "(edited)"
+                      'face 'shadow
+                      'mouse-face 'highlight
+                      'keymap forgejo-buffer-edited-map
+                      'help-echo "RET: view edit history")))
 
 (defun forgejo-buffer--show-edit-history ()
-  "Show edit timestamps for the item at point."
+  "Show edit history for the item at point."
   (interactive)
-  (let ((created (get-text-property (point) 'forgejo-edit-created))
-        (updated (get-text-property (point) 'forgejo-edit-updated)))
-    (when (and created updated)
-      (with-current-buffer (get-buffer-create "*forgejo-edit-history*")
-        (let ((inhibit-read-only t))
-          (erase-buffer)
-          (insert (propertize "Edit History\n\n" 'face 'bold)
-                  (propertize "Created: " 'face 'shadow) created "\n"
-                  (propertize "Updated: " 'face 'shadow) updated "\n"))
-        (special-mode)
-        (goto-char (point-min))
-        (pop-to-buffer (current-buffer))))))
+  (message "Edit history not yet implemented"))
 
 ;;; EWOC pretty-printers
 
@@ -295,7 +276,7 @@ NODE-DATA is a plist with :type and type-specific keys."
         (milestone (plist-get data :milestone))
         (assignees (plist-get data :assignees))
         (created (plist-get data :created-at))
-        (updated (plist-get data :updated-at))
+        (edited (plist-get data :edited))
         (comments-count (plist-get data :comments-count)))
     (insert (propertize (format "#%d " number) 'face 'bold)
             (propertize title 'face 'bold)
@@ -304,7 +285,8 @@ NODE-DATA is a plist with :type and type-specific keys."
             "  "
             (propertize author 'face 'forgejo-comment-author-face)
             " opened " (forgejo-buffer--relative-time created))
-    (forgejo-buffer--insert-edited created updated)
+    (when edited
+      (forgejo-buffer--insert-edited-indicator))
     (insert (format "  [%d comments]" (or comments-count 0))
             "\n")
     (when (and labels (listp labels))
@@ -332,7 +314,8 @@ NODE-DATA is a plist with :type and type-specific keys."
     (insert (propertize author 'face 'forgejo-comment-author-face)
             (propertize (concat " commented " (forgejo-buffer--relative-time created))
                         'face 'shadow))
-    (forgejo-buffer--insert-edited created updated)
+    (when (and created updated (not (string= created updated)))
+      (forgejo-buffer--insert-edited-indicator))
     (insert "\n\n")
     (forgejo-buffer--insert-html body-html)
     (forgejo-buffer--insert-separator)))
@@ -731,8 +714,12 @@ Returns a list of nodes (may be multiple for review with threads)."
   (let ((type (alist-get 'type event)))
     (pcase type
       ("review_request"
-       (let ((target (let ((a (alist-get 'assignee event)))
-                       (when (listp a) (alist-get 'login a)))))
+       (let ((target (or (let ((a (alist-get 'assignee event)))
+                           (when (and (listp a) (not (equal a "null")))
+                             (alist-get 'login a)))
+                         (let ((team (alist-get 'assignee_team event)))
+                           (when (and (listp team) (not (equal team "null")))
+                             (format "team/%s" (alist-get 'name team)))))))
          (list :type 'event
                :event-type "requested review from"
                :actor actor
@@ -810,7 +797,8 @@ Both should be alists with `body_html' pre-populated from the DB."
                   :assignees (when (listp .assignees) .assignees)
                   :created-at .created_at
                   :updated-at .updated_at
-                  :comments-count .comments)
+                  :comments-count .comments
+                  :edited (and .previous_body t))
             nodes))
     ;; Timeline nodes
     (dolist (event timeline)

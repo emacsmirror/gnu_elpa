@@ -431,7 +431,8 @@ Stores body_html from API response when available."
 
 (defconst forgejo-db--issue-columns
   "number, title, state, body, body_html, user, labels, milestone,
-   assignees, comments_count, created_at, updated_at, closed_at, is_pull"
+   assignees, comments_count, created_at, updated_at, closed_at, is_pull,
+   previous_body"
   "Column list for issue queries (deterministic order).")
 
 (defun forgejo-db--row-to-issue-alist (row)
@@ -439,7 +440,7 @@ Stores body_html from API response when available."
 ROW must come from a query using `forgejo-db--issue-columns':
   0=number 1=title 2=state 3=body 4=body_html 5=user 6=labels
   7=milestone 8=assignees 9=comments_count 10=created_at
-  11=updated_at 12=closed_at 13=is_pull"
+  11=updated_at 12=closed_at 13=is_pull 14=previous_body"
   (let ((labels (forgejo-db--decode-json (nth 6 row)))
         (assignees-raw (forgejo-db--decode-json (nth 8 row))))
     `((number . ,(nth 0 row))
@@ -456,7 +457,8 @@ ROW must come from a query using `forgejo-db--issue-columns':
       (created_at . ,(nth 10 row))
       (updated_at . ,(nth 11 row))
       (closed_at . ,(nth 12 row))
-      (pull_request . ,(when (= (or (nth 13 row) 0) 1) t)))))
+      (pull_request . ,(when (= (or (nth 13 row) 0) 1) t))
+      (previous_body . ,(nth 14 row)))))
 
 (defconst forgejo-db--timeline-columns
   "id, type, body, body_html, user, created_at, data"

@@ -41,23 +41,13 @@
 (require 'forgejo)
 (require 'forgejo-api)
 (require 'forgejo-tl)
+(require 'forgejo-db)
+(require 'forgejo-buffer)
 
-(declare-function forgejo-db-save-notifications "forgejo-db.el"
-                  (host notifications))
-(declare-function forgejo-db-get-notifications "forgejo-db.el"
-                  (host &optional status))
-(declare-function forgejo-db-notification-unread-count "forgejo-db.el"
-                  (host))
-(declare-function forgejo-db-mark-notification-read "forgejo-db.el"
-                  (host id))
-(declare-function forgejo-db-clear-notifications "forgejo-db.el"
-                  (host))
 (declare-function forgejo-issue-view "forgejo-issue.el"
                   (owner repo number))
 (declare-function forgejo-pull-view "forgejo-pull.el"
                   (owner repo number))
-(declare-function forgejo-buffer--relative-time "forgejo-buffer.el"
-                  (time-string))
 
 (defvar forgejo-host)
 (defvar forgejo-repo--host)

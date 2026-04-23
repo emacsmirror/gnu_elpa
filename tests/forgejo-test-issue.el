@@ -9,15 +9,15 @@
 (require 'ert)
 (require 'cl-lib)
 
-(load (expand-file-name "../forgejo.el"
+(load (expand-file-name "../lisp/forgejo.el"
        (file-name-directory (or load-file-name buffer-file-name))))
-(load (expand-file-name "../forgejo-tl.el"
+(load (expand-file-name "../lisp/forgejo-tl.el"
        (file-name-directory (or load-file-name buffer-file-name))))
-(load (expand-file-name "../forgejo-api.el"
+(load (expand-file-name "../lisp/forgejo-api.el"
        (file-name-directory (or load-file-name buffer-file-name))))
-(load (expand-file-name "../forgejo-buffer.el"
+(load (expand-file-name "../lisp/forgejo-buffer.el"
        (file-name-directory (or load-file-name buffer-file-name))))
-(load (expand-file-name "../forgejo-issue.el"
+(load (expand-file-name "../lisp/forgejo-issue.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
 ;;; ---- Group 1: Entry conversion ----

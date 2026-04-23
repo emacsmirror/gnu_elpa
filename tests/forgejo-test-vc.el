@@ -10,11 +10,11 @@
 (require 'ert)
 (require 'cl-lib)
 
-(load (expand-file-name "../forgejo.el"
+(load (expand-file-name "../lisp/forgejo.el"
        (file-name-directory (or load-file-name buffer-file-name))))
-(load (expand-file-name "../forgejo-utils.el"
+(load (expand-file-name "../lisp/forgejo-utils.el"
        (file-name-directory (or load-file-name buffer-file-name))))
-(load (expand-file-name "../forgejo-vc.el"
+(load (expand-file-name "../lisp/forgejo-vc.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
 ;;; ---- Group 1: Refspec building ----

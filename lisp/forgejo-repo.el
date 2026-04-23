@@ -31,16 +31,13 @@
 (require 'forgejo)
 (require 'forgejo-utils)
 (require 'forgejo-api)
-(declare-function forgejo-db-save-issues "forgejo-db.el"
-                  (host owner repo issues))
-(declare-function forgejo-db--select "forgejo-db.el" (sql &rest args))
-(declare-function forgejo-db--ensure "forgejo-db.el" ())
+(require 'forgejo-vc)
+(require 'forgejo-db)
+(require 'forgejo-buffer)
+(require 'forgejo-tl)
+
 (declare-function forgejo-issue-list "forgejo-issue.el"
                   (&optional owner repo))
-(declare-function forgejo-buffer--relative-time "forgejo-buffer.el"
-                  (time-string))
-(declare-function forgejo-tl-print "forgejo-tl.el"
-                  (&optional remember-pos))
 
 (defvar forgejo-host)
 
@@ -56,8 +53,6 @@
   "Buffer-local name of the current repository.")
 
 ;;; Repository detection
-
-(declare-function forgejo-vc--repo-from-remote "forgejo-vc.el" ())
 
 ;;; Interactive selection
 
@@ -84,9 +79,6 @@ URL or nil when entered manually."
               (match-string 1 input)
               (match-string 2 input))
       (user-error "Invalid format; expected owner/repo"))))
-
-(declare-function forgejo-db-get-user-repos "forgejo-db.el" (host))
-(declare-function forgejo-db-save-user-repos "forgejo-db.el" (host repos))
 
 (defvar forgejo-repo--user-repos-fetched nil
   "Non-nil if user repos have been fetched this session.")

@@ -1,15 +1,17 @@
 .POSIX:
 
 EMACS ?= emacs
-EMACS_CMD = $(EMACS) -Q --batch -L .
+EMACS_CMD = $(EMACS) -Q --batch -L lisp
 
-SRCS = forgejo.el forgejo-api.el forgejo-db.el forgejo-utils.el \
-       forgejo-buffer.el forgejo-repo.el forgejo-issue.el forgejo-pull.el \
-       forgejo-vc.el forgejo-tl.el forgejo-notification.el forgejo-transient.el
+SRCS = lisp/forgejo.el lisp/forgejo-api.el lisp/forgejo-db.el \
+       lisp/forgejo-utils.el lisp/forgejo-buffer.el lisp/forgejo-repo.el \
+       lisp/forgejo-issue.el lisp/forgejo-pull.el lisp/forgejo-vc.el \
+       lisp/forgejo-tl.el lisp/forgejo-notification.el lisp/forgejo-transient.el
 
-TESTS = tests/forgejo-test-api.el tests/forgejo-test-db.el \
-        tests/forgejo-test-buffer.el tests/forgejo-test-issue.el \
-        tests/forgejo-test-pull.el tests/forgejo-test-vc.el
+TESTS = tests/forgejo-test-load.el tests/forgejo-test-api.el \
+        tests/forgejo-test-db.el tests/forgejo-test-buffer.el \
+        tests/forgejo-test-issue.el tests/forgejo-test-pull.el \
+        tests/forgejo-test-vc.el
 
 .PHONY: all compile test lint clean dev load
 
@@ -37,7 +39,7 @@ dev: compile lint test
 
 load: clean
 	@emacsclient --eval "(progn \
-	  (add-to-list 'load-path \"$(CURDIR)\") \
+	  (add-to-list 'load-path \"$(CURDIR)/lisp\") \
 	  (dolist (sym '(forgejo-issue-list-mode-map forgejo-pull-list-mode-map \
 	               forgejo-pull-view-mode-map forgejo-issue-view-mode-map \
 	               forgejo-repo-search-mode-map forgejo-notification-list-mode-map \
@@ -61,4 +63,4 @@ load: clean
 	@printf "\033[32mLoaded all modules into Emacs\033[0m\n"
 
 clean:
-	rm -f *.elc
+	rm -f *.elc lisp/*.elc

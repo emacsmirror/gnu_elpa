@@ -19,7 +19,10 @@ Requires Emacs 29.1+ (native JSON, native SQLite).
 
 #+begin_src emacs-lisp
   (use-package forgejo-vc
-    :vc (:url "https://codeberg.org/thanosapollo/forgejo.el")
+    :vc (:url "https://codeberg.org/thanosapollo/forgejo.el"
+  	    :branch "master"
+              :rev :newest
+              :lisp-dir "lisp")
     :custom
     (forgejo-host "https://codeberg.org")
     (forgejo-token "your-personal-access-token"))
@@ -36,7 +39,7 @@ machine codeberg.org login YOUR_USERNAME password YOUR_TOKEN
 Clone the repository and add it to your =load-path=:
 
 #+begin_src emacs-lisp
-(add-to-list 'load-path "/path/to/forgejo")
+(add-to-list 'load-path "/path/to/emacs-forgejo/lisp")
 (require 'forgejo-vc)
 #+end_src
 

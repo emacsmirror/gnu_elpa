@@ -10,9 +10,9 @@
 (require 'ert)
 (require 'cl-lib)
 
-(load (expand-file-name "../forgejo.el"
+(load (expand-file-name "../lisp/forgejo.el"
        (file-name-directory (or load-file-name buffer-file-name))))
-(load (expand-file-name "../forgejo-db.el"
+(load (expand-file-name "../lisp/forgejo-db.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
 (defvar forgejo-test-db--temp-dir nil)

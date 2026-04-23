@@ -33,37 +33,9 @@
 (require 'forgejo-buffer)
 (require 'forgejo-utils)
 (require 'forgejo-api)
-(declare-function forgejo-db-save-issues "forgejo-db.el"
-                  (host owner repo issues))
-(declare-function forgejo-db-close-missing "forgejo-db.el"
-                  (host owner repo numbers &optional is-pull))
-(declare-function forgejo-db-save-timeline "forgejo-db.el"
-                  (host owner repo number events))
-(declare-function forgejo-db-save-labels "forgejo-db.el"
-                  (host owner repo labels))
-(declare-function forgejo-db-get-issues "forgejo-db.el"
-                  (host owner repo &optional filters))
-(declare-function forgejo-db-get-timeline "forgejo-db.el"
-                  (host owner repo number))
-(declare-function forgejo-db-get-labels "forgejo-db.el"
-                  (host owner repo))
-(declare-function forgejo-db-set-sync-time "forgejo-db.el"
-                  (host owner repo endpoint time))
-(declare-function forgejo-db-get-sync-time "forgejo-db.el"
-                  (host owner repo endpoint))
-(declare-function forgejo-db--row-to-issue-alist "forgejo-db.el" (row))
-(declare-function forgejo-db--row-to-timeline-alist "forgejo-db.el" (row))
-(declare-function forgejo-db-get-issue "forgejo-db.el"
-                  (host owner repo number))
-(declare-function forgejo-db-update-issue-html "forgejo-db.el"
-                  (host owner repo number html))
-(declare-function forgejo-db-update-timeline-html "forgejo-db.el"
-                  (host owner repo issue-number event-id html))
-(declare-function forgejo-api-render-markdown-async "forgejo-api.el"
-                  (text context callback))
+(require 'forgejo-db)
+
 (declare-function forgejo-repo-read "forgejo-repo.el" ())
-(declare-function forgejo-db-get-label-id "forgejo-db.el"
-                  (host owner repo name))
 
 (defvar forgejo-host)
 (defvar forgejo-default-sort)
@@ -277,11 +249,6 @@ Forces a full re-fetch to ensure the DB has data matching the filters."
                            forgejo-issue--filters (buffer-name) t))))
 
 ;;; Filter commands
-
-(declare-function forgejo-db-get-milestones "forgejo-db.el"
-                  (host owner repo))
-(declare-function forgejo-db-get-authors "forgejo-db.el"
-                  (host owner repo))
 
 (defun forgejo-issue-filter ()
   "Filter issues using a query string with prefix completion.

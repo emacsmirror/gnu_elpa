@@ -50,7 +50,8 @@
    :title-value-function identity
    :title-value-reverse-function identity
    :link denote-md-link-format
-   :link-in-context-regexp denote-md-link-in-context-regexp))
+   :link-retrieval-format "(denote:%VALUE%)"
+   :link-in-context-regexp denote-md-link-in-context-regexp
 
 ;;;; Convert links
 

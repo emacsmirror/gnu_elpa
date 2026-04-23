@@ -329,12 +329,17 @@ NODE-DATA is a plist with :type and type-specific keys."
   "Keymap for reference links in event lines.")
 
 (defun forgejo-buffer-follow-ref ()
-  "Follow the reference link at point."
+  "Follow the reference link at point.
+Uses the ref-repo text property for cross-repo references."
   (interactive)
   (when-let* ((number (get-text-property (point) 'forgejo-ref-number)))
     (declare-function forgejo-issue-view "forgejo-issue.el"
                       (owner repo number))
-    (forgejo-issue-view forgejo-repo--owner forgejo-repo--name number)))
+    (let* ((full-name (get-text-property (point) 'forgejo-ref-repo))
+           (parts (when full-name (split-string full-name "/")))
+           (owner (or (nth 0 parts) forgejo-repo--owner))
+           (repo (or (nth 1 parts) forgejo-repo--name)))
+      (forgejo-issue-view owner repo number))))
 
 (defvar forgejo-buffer-commit-map
   (let ((map (make-sparse-keymap)))
@@ -466,14 +471,15 @@ Prompts for review type: comment or request_changes."
         (deadline (plist-get data :deadline))
         (label-color (plist-get data :label-color))
         (ref-number (plist-get data :ref-number))
+        (ref-commit (plist-get data :ref-commit))
         (commits (plist-get data :commits)))
     ;; Actor in author face, verb in event face
     (insert (propertize actor 'face 'forgejo-comment-author-face)
             " "
             (propertize (concat event-type " ")
                         'face (pcase event-type
-                                ("close" 'forgejo-closed-face)
-                                ("reopen" 'forgejo-open-face)
+                                ("closed" 'forgejo-closed-face)
+                                ("reopened" 'forgejo-open-face)
                                 ("merged" 'success)
                                 (_ 'forgejo-event-face))))
     ;; Detail: deadline, label with color, ref with link, or plain
@@ -482,11 +488,19 @@ Prompts for review type: comment or request_changes."
       (insert (propertize deadline 'face '(bold underline))))
      ((and detail ref-number)
       (insert (propertize detail
-                          'face '(forgejo-event-face :underline t)
+                          'face 'link
                           'mouse-face 'highlight
                           'forgejo-ref-number ref-number
+                          'forgejo-ref-repo (plist-get data :ref-repo)
                           'keymap forgejo-buffer-ref-map
                           'help-echo "RET: view this issue/PR")))
+     ((and detail ref-commit)
+      (insert (propertize detail
+                          'face '(forgejo-event-face :underline t)
+                          'mouse-face 'highlight
+                          'forgejo-commit-sha ref-commit
+                          'keymap forgejo-buffer-commit-map
+                          'help-echo "RET: view diff")))
      ((and detail label-color)
       (insert (propertize detail
                           'face (list :foreground
@@ -532,7 +546,10 @@ Prompts for review type: comment or request_changes."
 (defun forgejo-buffer--node-state-change (event actor)
   "Build a state change node (close/reopen) from EVENT with ACTOR."
   (list :type 'event
-        :event-type (alist-get 'type event)
+        :event-type (pcase (alist-get 'type event)
+                      ("close" "closed")
+                      ("reopen" "reopened")
+                      (type type))
         :actor actor
         :created-at (alist-get 'created_at event)
         :detail nil))
@@ -582,14 +599,39 @@ Prompts for review type: comment or request_changes."
   "Build a reference event node from EVENT with ACTOR."
   (let* ((ref-issue (alist-get 'ref_issue event))
          (ref-title (when (listp ref-issue) (alist-get 'title ref-issue)))
-         (ref-number (when (listp ref-issue) (alist-get 'number ref-issue))))
-    (list :type 'event
-          :event-type "referenced"
-          :actor actor
-          :created-at (alist-get 'created_at event)
-          :ref-number ref-number
-          :detail (when ref-number
-                    (format "#%d %s" ref-number (or ref-title ""))))))
+         (ref-number (when (listp ref-issue) (alist-get 'number ref-issue)))
+         (ref-repo (when (listp ref-issue)
+                     (let ((repo (alist-get 'repository ref-issue)))
+                       (when (listp repo)
+                         (alist-get 'full_name repo)))))
+         (ref-sha (alist-get 'ref_commit_sha event)))
+    (cond
+     ;; Commit reference: SHA as clickable detail
+     ((and ref-sha (not (string-empty-p ref-sha)) (null ref-number))
+      (list :type 'event
+            :event-type "referenced this on"
+            :actor actor
+            :created-at (alist-get 'created_at event)
+            :ref-commit ref-sha
+            :detail (substring ref-sha 0 (min 8 (length ref-sha)))))
+     ;; Issue/PR reference: #N as clickable detail
+     (ref-number
+      (list :type 'event
+            :event-type "referenced this on"
+            :actor actor
+            :created-at (alist-get 'created_at event)
+            :ref-number ref-number
+            :ref-repo ref-repo
+            :detail (if ref-repo
+                        (format "%s#%d" ref-repo ref-number)
+                      (format "#%d" ref-number))))
+     ;; Fallback
+     (t
+      (list :type 'event
+            :event-type "referenced"
+            :actor actor
+            :created-at (alist-get 'created_at event)
+            :detail nil)))))
 
 (defun forgejo-buffer--node-deadline (event actor)
   "Build a deadline event node from EVENT with ACTOR."

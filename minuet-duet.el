@@ -62,6 +62,23 @@
   "Number of lines after point to include in the editable region."
   :type 'integer)
 
+(defcustom minuet-duet-non-editable-region-context-window 40000
+  "Maximum total characters of non-editable duet context.
+
+This limits how many characters from the non-editable regions before
+and after the editable region are sent to the LLM.  The editable region
+is not truncated by this option."
+  :type 'integer)
+
+(defcustom minuet-duet-non-editable-region-context-ratio 0.75
+  "Ratio of non-editable duet context kept before the editable region.
+
+When non-editable context exceeds
+`minuet-duet-non-editable-region-context-window', this ratio determines
+how much context to keep before vs after the editable region.  A larger
+ratio keeps more context before the editable region."
+  :type 'number)
+
 (defcustom minuet-duet-editable-region-start-marker "<editable_region>"
   "Marker indicating the start of the editable region."
   :type 'string)
@@ -404,6 +421,59 @@ TEMPLATE must be a plist with :template plus replacement keys."
 ;; Context builder
 ;;;;;
 
+(defun minuet-duet--truncate-non-editable-regions (region-start region-end)
+  "Return non-editable context around REGION-START and REGION-END.
+
+The return value is a cons cell (BEFORE . AFTER), where BEFORE is the
+non-editable region before REGION-START and AFTER is the non-editable
+region after REGION-END.  Only the non-editable regions are truncated;
+if truncation happens, the partial boundary line is removed from the
+truncated side."
+  (let* ((n-chars-before (- region-start (point-min)))
+         (n-chars-after (- (point-max) region-end))
+         (context-window
+          (max minuet-duet-non-editable-region-context-window 0))
+         (context-ratio
+          (min 1 (max minuet-duet-non-editable-region-context-ratio 0)))
+         (non-editable-before-start (point-min))
+         (non-editable-after-end (point-max))
+         (is-incomplete-before nil)
+         (is-incomplete-after nil))
+    (when (and (> context-window 0)
+               (> (+ n-chars-before n-chars-after) context-window))
+      (cond ((< n-chars-before (* context-ratio context-window))
+             ;; Before side fits inside its ratio budget; truncate only after.
+             (setq non-editable-after-end
+                   (+ region-end (- context-window n-chars-before))
+                   is-incomplete-after t))
+            ((< n-chars-after (* (- 1 context-ratio) context-window))
+             ;; After side fits inside its ratio budget; truncate only before.
+             (setq non-editable-before-start
+                   (- region-start (- context-window n-chars-after))
+                   is-incomplete-before t))
+            (t
+             ;; Both sides exceed their budgets; split the window by ratio.
+             (setq is-incomplete-before t
+                   is-incomplete-after t
+                   non-editable-after-end
+                   (+ region-end
+                      (floor (* context-window (- 1 context-ratio))))
+                   non-editable-before-start
+                   (- region-start
+                      (floor (* context-window context-ratio)))))))
+    (let ((non-editable-before
+           (buffer-substring-no-properties non-editable-before-start
+                                           region-start))
+          (non-editable-after
+           (buffer-substring-no-properties region-end non-editable-after-end)))
+      (when is-incomplete-before
+        (setq non-editable-before
+              (replace-regexp-in-string "\\`.*\n" "" non-editable-before)))
+      (when is-incomplete-after
+        (setq non-editable-after
+              (replace-regexp-in-string "\n.*\\'" "" non-editable-after)))
+      (cons non-editable-before non-editable-after))))
+
 (defun minuet-duet--build-context ()
   "Build duet context plist from the current buffer and point.
 Returns a plist with:
@@ -434,11 +504,13 @@ Returns a plist with:
                        (goto-char (point-min))
                        (forward-line (1- end-line))
                        (line-end-position)))
+         (non-editable-regions
+          (minuet-duet--truncate-non-editable-regions region-start region-end))
          ;; Four text segments
-         (non-editable-before (buffer-substring-no-properties (point-min) region-start))
+         (non-editable-before (car non-editable-regions))
          (editable-before-cursor (buffer-substring-no-properties region-start (point)))
          (editable-after-cursor (buffer-substring-no-properties (point) region-end))
-         (non-editable-after (buffer-substring-no-properties region-end (point-max)))
+         (non-editable-after (cdr non-editable-regions))
          ;; Original lines in editable region
          (editable-text (buffer-substring-no-properties region-start region-end))
          (original-lines (split-string editable-text "\n")))

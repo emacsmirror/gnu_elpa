@@ -23,6 +23,7 @@
   - [minuet-auto-suggestion-debounce-delay](#minuet-auto-suggestion-debounce-delay)
   - [minuet-auto-suggestion-throttle-delay](#minuet-auto-suggestion-throttle-delay)
 - [Duet (Next Edit Prediction)](#duet-next-edit-prediction)
+  - [Context Options](#context-options)
   - [TODO](#todo)
 - [Provider Options](#provider-options)
   - [OpenAI](#openai)
@@ -521,6 +522,18 @@ requests. Duet expects the model to return the complete rewritten editable
 region, including the cursor marker; if the response is truncated, the parser
 will reject it. Leave the limit unset when the provider allows that, or set it
 large enough to cover the full rewritten region.
+
+## Context Options
+
+`minuet-duet-non-editable-region-context-window` controls the maximum total
+characters kept from the non-editable regions before and after the editable
+region. The default is 40000. The editable region itself is not truncated by
+this option.
+
+`minuet-duet-non-editable-region-context-ratio` controls how much of that
+non-editable context window is kept before the editable region when truncation
+is needed. The default is 0.75, keeping more surrounding context before the
+edit.
 
 ## TODO
 

@@ -443,6 +443,61 @@ Use MESSAGE in the assertion failure."
       ;; Non-editable before should contain "line1"
       (should (string-match-p "line1" (plist-get ctx :non-editable-region-before))))))
 
+(ert-deftest minuet-duet-context-truncates-non-editable-both-sides ()
+  "Non-editable context uses the configured window and trims boundary lines."
+  (with-temp-buffer
+    (insert "before-1\nbefore-2\nbefore-3\nEDIT\nafter-1\nafter-2\nafter-3")
+    (goto-char (point-min))
+    (forward-line 3)
+    (forward-char 2)
+    (let* ((minuet-duet-editable-region-lines-before 0)
+           (minuet-duet-editable-region-lines-after 0)
+           (minuet-duet-non-editable-region-context-window 30)
+           (minuet-duet-non-editable-region-context-ratio 0.5)
+           (ctx (minuet-duet--build-context)))
+      (should (equal (plist-get ctx :non-editable-region-before)
+                     "before-3\n"))
+      (should (equal (plist-get ctx :editable-region-before-cursor) "ED"))
+      (should (equal (plist-get ctx :editable-region-after-cursor) "IT"))
+      (should (equal (plist-get ctx :non-editable-region-after)
+                     "\nafter-1")))))
+
+(ert-deftest minuet-duet-context-truncates-only-non-editable-before ()
+  "Before-side truncation leaves after context and editable region intact."
+  (with-temp-buffer
+    (insert "before-1\nbefore-2\nbefore-3\nEDIT\nz")
+    (goto-char (point-min))
+    (forward-line 3)
+    (forward-char 2)
+    (let* ((minuet-duet-editable-region-lines-before 0)
+           (minuet-duet-editable-region-lines-after 0)
+           (minuet-duet-non-editable-region-context-window 20)
+           (minuet-duet-non-editable-region-context-ratio 0.75)
+           (ctx (minuet-duet--build-context)))
+      (should (equal (plist-get ctx :non-editable-region-before)
+                     "before-3\n"))
+      (should (equal (plist-get ctx :editable-region-before-cursor) "ED"))
+      (should (equal (plist-get ctx :editable-region-after-cursor) "IT"))
+      (should (equal (plist-get ctx :non-editable-region-after) "\nz")))))
+
+(ert-deftest minuet-duet-context-truncates-only-non-editable-after ()
+  "After-side truncation leaves before context and editable region intact."
+  (with-temp-buffer
+    (insert "x\nEDIT\nafter-1\nafter-2\nafter-3")
+    (goto-char (point-min))
+    (forward-line 1)
+    (forward-char 2)
+    (let* ((minuet-duet-editable-region-lines-before 0)
+           (minuet-duet-editable-region-lines-after 0)
+           (minuet-duet-non-editable-region-context-window 20)
+           (minuet-duet-non-editable-region-context-ratio 0.75)
+           (ctx (minuet-duet--build-context)))
+      (should (equal (plist-get ctx :non-editable-region-before) "x\n"))
+      (should (equal (plist-get ctx :editable-region-before-cursor) "ED"))
+      (should (equal (plist-get ctx :editable-region-after-cursor) "IT"))
+      (should (equal (plist-get ctx :non-editable-region-after)
+                     "\nafter-1\nafter-2")))))
+
 ;;;;;
 ;; Integration tests: apply, dismiss, stale detection
 ;;;;;

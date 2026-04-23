@@ -513,6 +513,17 @@ When IS-PULL is non-nil, only affect pull requests."
             ORDER BY user"
            (list host owner repo))))
 
+;;; Issue/PR titles for completion
+
+(defun forgejo-db-get-issue-titles (host owner repo)
+  "Return alist of (NUMBER . TITLE) for all issues/PRs in HOST/OWNER/REPO."
+  (mapcar (lambda (row) (cons (nth 0 row) (nth 1 row)))
+          (forgejo-db--select
+           "SELECT number, title FROM issues
+            WHERE host = ? AND owner = ? AND repo = ?
+            ORDER BY number DESC"
+           (list host owner repo))))
+
 ;;; Update body_html
 
 (defun forgejo-db-update-issue-html (host owner repo number html)

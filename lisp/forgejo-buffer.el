@@ -166,9 +166,24 @@ Returns nil if BODY is :null, nil, or empty."
     (shr-ensure-newline)
     (put-text-property start (point) 'face 'forgejo-blockquote-face)))
 
+(defun forgejo-buffer--linkify-refs (start end)
+  "Add clickable properties to #N issue/PR references between START and END."
+  (save-excursion
+    (goto-char start)
+    (while (re-search-forward "#\\([0-9]+\\)" end t)
+      (unless (get-text-property (match-beginning 0) 'keymap)
+        (let ((number (string-to-number (match-string 1))))
+          (add-text-properties
+           (match-beginning 0) (match-end 0)
+           (list 'forgejo-ref-number number
+                 'keymap forgejo-buffer-ref-map
+                 'face 'link
+                 'mouse-face 'highlight
+                 'help-echo "RET: view this issue/PR")))))))
+
 (defun forgejo-buffer--insert-html (html)
   "Insert rendered HTML into the current buffer using shr.
-Applies `forgejo-blockquote-face' to quoted text.
+Applies `forgejo-blockquote-face' to quoted text and linkifies #N references.
 Falls back to plain text insertion if HTML parsing fails."
   (when (and html (stringp html) (not (string-empty-p html)))
     (condition-case nil
@@ -181,7 +196,8 @@ Falls back to plain text insertion if HTML parsing fails."
           (let ((shr-external-rendering-functions
                  (cons '(blockquote . forgejo-buffer--shr-blockquote)
                        shr-external-rendering-functions)))
-            (shr-insert-document dom)))
+            (shr-insert-document dom))
+          (forgejo-buffer--linkify-refs start (point)))
       (error (insert html "\n")))))
 
 (defun forgejo-buffer--body-or-text (alist)
@@ -424,7 +440,7 @@ Prompts for review type: comment or request_changes."
            (event (pcase type
                     ("comment" "COMMENT")
                     ("request_changes" "REQUEST_CHANGES")))
-           (body (read-string-from-buffer "Review comment" "")))
+           (body (forgejo-utils-read-body "Review comment")))
       (when (and body (not (string-empty-p (string-trim body))))
         (declare-function forgejo-api-post "forgejo-api.el"
                           (endpoint &optional params json-body callback))
@@ -726,6 +742,52 @@ Both should be alists with `body_html' pre-populated from the DB."
                            :detail nil)
                      nodes)))))))
     (nreverse nodes)))
+
+;;; Issue/PR # completion
+
+(defvar-local forgejo-buffer--capf-candidates nil
+  "Cached completion candidates for # references.")
+
+(defun forgejo-buffer--issue-capf ()
+  "Completion-at-point function for #N issue/PR references."
+  (when-let* ((bounds (forgejo-buffer--capf-bounds)))
+    (let ((start (car bounds))
+          (end (cdr bounds)))
+      (list start end
+            (forgejo-buffer--capf-collection)
+            :annotation-function #'forgejo-buffer--capf-annotate
+            :exclusive 'no))))
+
+(defun forgejo-buffer--capf-bounds ()
+  "Return (START . END) for the # reference at point, or nil."
+  (save-excursion
+    (let ((end (point)))
+      (when (re-search-backward "#" (line-beginning-position) t)
+        (cons (point) end)))))
+
+(defun forgejo-buffer--capf-collection ()
+  "Return completion candidates for # references."
+  (or forgejo-buffer--capf-candidates
+      (setq forgejo-buffer--capf-candidates
+            (mapcar (lambda (pair)
+                      (format "#%d" (car pair)))
+                    (forgejo-buffer--capf-load-candidates)))))
+
+(defun forgejo-buffer--capf-load-candidates ()
+  "Load issue/PR candidates from the DB for the current repo context."
+  (when-let* ((host (and (boundp 'forgejo-repo--host)
+                         (url-host (url-generic-parse-url forgejo-repo--host))))
+              (owner (and (boundp 'forgejo-repo--owner) forgejo-repo--owner))
+              (repo (and (boundp 'forgejo-repo--name) forgejo-repo--name)))
+    (forgejo-db-get-issue-titles host owner repo)))
+
+(defun forgejo-buffer--capf-annotate (candidate)
+  "Return the title annotation for CANDIDATE (#N)."
+  (when (string-match "#\\([0-9]+\\)" candidate)
+    (let* ((number (string-to-number (match-string 1 candidate)))
+           (titles (forgejo-buffer--capf-load-candidates))
+           (title (alist-get number titles)))
+      (when title (concat " " title)))))
 
 ;;; Utilities for detail views
 

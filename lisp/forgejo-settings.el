@@ -84,12 +84,18 @@ Fetches fresh settings from the API, then opens the transient."
          (forgejo-settings--show data))))))
 
 (defun forgejo-settings--show (data)
-  "Display settings transient for repo DATA."
+  "Display settings transient for repo DATA.
+Re-defines the transient prefix with current values captured in closures."
   (let ((owner (forgejo-settings--owner data))
         (repo (forgejo-settings--repo data))
         (desc (or (alist-get 'description data) ""))
         (website (or (alist-get 'website data) ""))
-        (manual (eq (alist-get 'allow_manual_merge data) t)))
+        (manual (eq (alist-get 'allow_manual_merge data) t))
+        (refresh (lambda (new-data)
+                   ;; Dismiss current transient, re-show with new data
+                   (when (bound-and-true-p transient--prefix)
+                     (transient-quit-one))
+                   (forgejo-settings--show new-data))))
     (transient-define-prefix forgejo-settings--current ()
       "Repository settings."
       [:description
@@ -101,25 +107,19 @@ Fetches fresh settings from the API, then opens the transient."
           (let ((new (read-string "Description: " desc)))
             (unless (string= new desc)
               (forgejo-settings--save
-               owner repo 'description new
-               (lambda (new-data)
-                 (forgejo-settings--show new-data)))))))
+               owner repo 'description new refresh)))))
        ("w" (lambda () (format "Website (%s)" website))
         (lambda ()
           (interactive)
           (let ((new (read-string "Website: " website)))
             (unless (string= new website)
               (forgejo-settings--save
-               owner repo 'website new
-               (lambda (new-data)
-                 (forgejo-settings--show new-data)))))))
+               owner repo 'website new refresh)))))
        ("m" (lambda () (format "Manual merge (%s)" (if manual "on" "off")))
         (lambda ()
           (interactive)
           (forgejo-settings--save
-           owner repo 'allow_manual_merge (not manual)
-           (lambda (new-data)
-             (forgejo-settings--show new-data)))))])
+           owner repo 'allow_manual_merge (not manual) refresh)))])
     (forgejo-settings--current)))
 
 ;;; AGit-Flow check

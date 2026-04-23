@@ -9,9 +9,9 @@
 (require 'ert)
 (require 'cl-lib)
 
-(load (expand-file-name "../forgejo.el"
+(load (expand-file-name "../lisp/forgejo.el"
        (file-name-directory (or load-file-name buffer-file-name))))
-(load (expand-file-name "../forgejo-api.el"
+(load (expand-file-name "../lisp/forgejo-api.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
 ;;; ---- Group 1: URL building ----

@@ -68,8 +68,8 @@ artifacts."
     (build-system emacs-build-system)
     (arguments
      (list
-      #:test-command
-      #~(list "make" "test")
+      #:lisp-directory "lisp"
+      #:test-command #~(list "make" "-C" ".." "test")
       #:emacs emacs-no-x
       #:phases
       #~(modify-phases %standard-phases

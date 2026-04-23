@@ -77,6 +77,11 @@
   "Face for separator lines between comments."
   :group 'forgejo)
 
+(defface forgejo-blockquote-face
+  '((t :inherit font-lock-doc-face :slant italic))
+  "Face for quoted text (blockquotes) in comments."
+  :group 'forgejo)
+
 ;;; Formatting helpers
 
 (defun forgejo-buffer--format-state (state)
@@ -152,8 +157,18 @@ Returns nil if BODY is :null, nil, or empty."
   (when (and body (stringp body) (not (string-empty-p body)))
     (replace-regexp-in-string "\r" "" body)))
 
+(defun forgejo-buffer--shr-blockquote (dom)
+  "Render a blockquote DOM node with `forgejo-blockquote-face'."
+  (let ((start (point))
+        (shr-indentation (+ shr-indentation 2)))
+    (shr-ensure-newline)
+    (shr-generic dom)
+    (shr-ensure-newline)
+    (put-text-property start (point) 'face 'forgejo-blockquote-face)))
+
 (defun forgejo-buffer--insert-html (html)
   "Insert rendered HTML into the current buffer using shr.
+Applies `forgejo-blockquote-face' to quoted text.
 Falls back to plain text insertion if HTML parsing fails."
   (when (and html (stringp html) (not (string-empty-p html)))
     (condition-case nil
@@ -161,8 +176,12 @@ Falls back to plain text insertion if HTML parsing fails."
                      (insert html)
                      (libxml-parse-html-region (point-min) (point-max))))
               (shr-use-fonts nil)
-              (shr-width (min (- (window-width) 4) 80)))
-          (shr-insert-document dom))
+              (shr-width (min (- (window-width) 4) 80))
+              (start (point)))
+          (let ((shr-external-rendering-functions
+                 (cons '(blockquote . forgejo-buffer--shr-blockquote)
+                       shr-external-rendering-functions)))
+            (shr-insert-document dom)))
       (error (insert html "\n")))))
 
 (defun forgejo-buffer--body-or-text (alist)
@@ -806,7 +825,8 @@ RENDER-FN is called with (BUF-NAME OWNER REPO ISSUE-ALIST TIMELINE-ALISTS)."
                             'mouse-face 'highlight
                             'forgejo-review-id review-id
                             'forgejo-review-path path
-                            'forgejo-review-diff-hunk (plist-get thread :diff-hunk)
+                            'forgejo-review-position (plist-get thread :position)
+                            'forgejo-review-opos (plist-get thread :original-position)
                             'keymap forgejo-buffer-review-map
                             'help-echo "RET: view review thread")
                 " "
@@ -821,9 +841,11 @@ RENDER-FN is called with (BUF-NAME OWNER REPO ISSUE-ALIST TIMELINE-ALISTS)."
 ;;; Review thread buffer
 
 (declare-function forgejo-review--comments-for-id "forgejo-review.el"
-                  (host owner repo number review-id &optional path diff-hunk))
+                  (host owner repo number review-id
+                   &optional path position original-position))
 (declare-function forgejo-review--reply "forgejo-review.el"
-                  (owner repo number review-id callback))
+                  (owner repo number review-id
+                   path position original-position callback))
 
 (defvar-local forgejo-review--thread-id nil
   "Review ID for the current review thread buffer.")
@@ -832,7 +854,9 @@ RENDER-FN is called with (BUF-NAME OWNER REPO ISSUE-ALIST TIMELINE-ALISTS)."
 (defvar-local forgejo-review--thread-path nil
   "File path for the current review thread.")
 (defvar-local forgejo-review--thread-position nil
-  "Diff position for the current review thread.")
+  "New-side diff position for the current review thread.")
+(defvar-local forgejo-review--thread-original-position nil
+  "Old-side diff position for the current review thread.")
 (defvar-local forgejo-review--thread-diff-hunk nil
   "Diff hunk text for the current review thread.")
 
@@ -889,14 +913,15 @@ RENDER-FN is called with (BUF-NAME OWNER REPO ISSUE-ALIST TIMELINE-ALISTS)."
               (owner forgejo-repo--owner)
               (repo forgejo-repo--name)
               (path forgejo-review--thread-path)
-              (diff-hunk forgejo-review--thread-diff-hunk)
+              (position forgejo-review--thread-position)
+              (opos forgejo-review--thread-original-position)
               (buf (buffer-name)))
     (forgejo-review--fetch-comments
      host owner repo number review-id
      (lambda ()
        (let ((comments (forgejo-review--comments-for-id
                         host owner repo number review-id
-                        path diff-hunk)))
+                        path position opos)))
          (forgejo-buffer--render-review-thread buf comments))))))
 
 (declare-function forgejo-review--fetch-comments "forgejo-review.el"
@@ -911,16 +936,16 @@ RENDER-FN is called with (BUF-NAME OWNER REPO ISSUE-ALIST TIMELINE-ALISTS)."
               (repo forgejo-repo--name)
               (host (url-host (url-generic-parse-url forgejo-repo--host)))
               (path forgejo-review--thread-path)
-              (diff-hunk forgejo-review--thread-diff-hunk)
               (position forgejo-review--thread-position)
+              (opos forgejo-review--thread-original-position)
               (buf (current-buffer)))
     (forgejo-with-host forgejo-repo--host
       (forgejo-review--reply
-       owner repo number review-id path position
+       owner repo number review-id path position opos
        (lambda ()
          (let ((comments (forgejo-review--comments-for-id
                           host owner repo number review-id
-                          path diff-hunk)))
+                          path position opos)))
            (forgejo-buffer--render-review-thread
             (buffer-name buf) comments)))))))
 
@@ -929,7 +954,6 @@ RENDER-FN is called with (BUF-NAME OWNER REPO ISSUE-ALIST TIMELINE-ALISTS)."
   (interactive)
   (when-let* ((review-id (get-text-property (point) 'forgejo-review-id))
               (path (get-text-property (point) 'forgejo-review-path))
-              (diff-hunk (get-text-property (point) 'forgejo-review-diff-hunk))
               (host (url-host (url-generic-parse-url
                                (or (bound-and-true-p forgejo-repo--host)
                                    forgejo-host))))
@@ -938,8 +962,10 @@ RENDER-FN is called with (BUF-NAME OWNER REPO ISSUE-ALIST TIMELINE-ALISTS)."
               (number (alist-get 'number
                                  (or (bound-and-true-p forgejo-pull--data)
                                      (bound-and-true-p forgejo-issue--data)))))
-    (let* ((comments (forgejo-review--comments-for-id
-                      host owner repo number review-id path diff-hunk))
+    (let* ((position (get-text-property (point) 'forgejo-review-position))
+           (opos (get-text-property (point) 'forgejo-review-opos))
+           (comments (forgejo-review--comments-for-id
+                      host owner repo number review-id path position opos))
            (buf-name (format "*forgejo-review: %s/%s#%d r%d %s*"
                              owner repo number review-id
                              (file-name-nondirectory (or path "?")))))
@@ -956,6 +982,8 @@ RENDER-FN is called with (BUF-NAME OWNER REPO ISSUE-ALIST TIMELINE-ALISTS)."
                     (alist-get 'path (car comments))
                     forgejo-review--thread-position
                     (alist-get 'position (car comments))
+                    forgejo-review--thread-original-position
+                    (alist-get 'original_position (car comments))
                     forgejo-review--thread-diff-hunk
                     (alist-get 'diff_hunk (car comments))))
             (pop-to-buffer buf))

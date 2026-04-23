@@ -400,7 +400,8 @@ Empty input clears all filters."
 (define-derived-mode forgejo-issue-view-mode special-mode
   "Forgejo Issue"
   "Major mode for viewing a single Forgejo issue."
-  :group 'forgejo)
+  :group 'forgejo
+  (setq-local browse-url-browser-function #'forgejo-buffer--browse-url))
 
 ;;; Detail view rendering
 

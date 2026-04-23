@@ -181,9 +181,25 @@ Returns nil if BODY is :null, nil, or empty."
                  'mouse-face 'highlight
                  'help-echo "RET: view this issue/PR")))))))
 
+(defun forgejo-buffer--parse-forgejo-url (url)
+  "Parse a Forgejo issue/PR URL into (OWNER REPO NUMBER), or nil."
+  (when (and url (string-match
+                  "/\\([^/]+\\)/\\([^/]+\\)/\\(?:issues\\|pulls\\)/\\([0-9]+\\)"
+                  url))
+    (list (match-string 1 url)
+          (match-string 2 url)
+          (string-to-number (match-string 3 url)))))
+
+(defun forgejo-buffer--browse-url (url &rest _args)
+  "Open URL in forgejo.el if it's a Forgejo issue/PR, else in browser."
+  (if-let* ((parsed (forgejo-buffer--parse-forgejo-url url)))
+      (forgejo-issue-view (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))
+    (browse-url-default-browser url)))
+
 (defun forgejo-buffer--insert-html (html)
   "Insert rendered HTML into the current buffer using shr.
 Applies `forgejo-blockquote-face' to quoted text and linkifies #N references.
+Forgejo issue/PR links open in forgejo.el instead of the browser.
 Falls back to plain text insertion if HTML parsing fails."
   (when (and html (stringp html) (not (string-empty-p html)))
     (condition-case nil

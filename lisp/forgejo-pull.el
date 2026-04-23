@@ -335,7 +335,8 @@ Empty input clears all filters."
 (define-derived-mode forgejo-pull-view-mode special-mode
   "Forgejo PR"
   "Major mode for viewing a single Forgejo pull request."
-  :group 'forgejo)
+  :group 'forgejo
+  (setq-local browse-url-browser-function #'forgejo-buffer--browse-url))
 
 (defun forgejo-pull--render-detail (buf-name owner repo pr-alist timeline-alists)
   "Render PR detail into BUF-NAME from alist data."

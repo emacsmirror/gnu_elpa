@@ -83,43 +83,51 @@ Fetches fresh settings from the API, then opens the transient."
        (lambda (data)
          (forgejo-settings--show data))))))
 
+(defun forgejo-settings--format-value (value)
+  "Format VALUE with a distinct face for transient display."
+  (propertize (format "%s" (or value ""))
+              'face 'forgejo-comment-author-face))
+
 (defun forgejo-settings--show (data)
   "Display settings transient for repo DATA.
-Re-defines the transient prefix with current values captured in closures."
+Re-defines the transient prefix with current values captured in closures.
+Updates values optimistically on user input, saves async in background."
   (let ((owner (forgejo-settings--owner data))
         (repo (forgejo-settings--repo data))
         (desc (or (alist-get 'description data) ""))
         (website (or (alist-get 'website data) ""))
-        (manual (eq (alist-get 'allow_manual_merge data) t))
-        (refresh (lambda (new-data)
-                   ;; Dismiss current transient, re-show with new data
-                   (when (bound-and-true-p transient--prefix)
-                     (transient-quit-one))
-                   (forgejo-settings--show new-data))))
+        (manual (eq (alist-get 'allow_manual_merge data) t)))
     (transient-define-prefix forgejo-settings--current ()
       "Repository settings."
       [:description
        (lambda () (format "Settings: %s/%s" owner repo))
-       ("d" (lambda () (format "Description (%s)"
-                               (truncate-string-to-width desc 40 nil nil "...")))
+       ("d" (lambda () (format "Description  %s"
+                               (forgejo-settings--format-value
+                                (truncate-string-to-width desc 40 nil nil "..."))))
         (lambda ()
           (interactive)
           (let ((new (read-string "Description: " desc)))
             (unless (string= new desc)
-              (forgejo-settings--save
-               owner repo 'description new refresh)))))
-       ("w" (lambda () (format "Website (%s)" website))
+              (setq desc new)
+              (forgejo-settings--save owner repo 'description new nil)
+              (transient-setup 'forgejo-settings--current)))))
+       ("w" (lambda () (format "Website  %s"
+                               (forgejo-settings--format-value website)))
         (lambda ()
           (interactive)
           (let ((new (read-string "Website: " website)))
             (unless (string= new website)
-              (forgejo-settings--save
-               owner repo 'website new refresh)))))
-       ("m" (lambda () (format "Manual merge (%s)" (if manual "on" "off")))
+              (setq website new)
+              (forgejo-settings--save owner repo 'website new nil)
+              (transient-setup 'forgejo-settings--current)))))
+       ("m" (lambda () (format "Manual merge  %s"
+                               (forgejo-settings--format-value
+                                (if manual "on" "off"))))
         (lambda ()
           (interactive)
-          (forgejo-settings--save
-           owner repo 'allow_manual_merge (not manual) refresh)))])
+          (setq manual (not manual))
+          (forgejo-settings--save owner repo 'allow_manual_merge manual nil)
+          (transient-setup 'forgejo-settings--current)))])
     (forgejo-settings--current)))
 
 ;;; AGit-Flow check

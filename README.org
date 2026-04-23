@@ -1,68 +1,96 @@
-#+title: forgejo.el
-
-#+BEGIN_QUOTE
-Work in progress.
-#+END_QUOTE
+#+title: emacs-forgejo
 
 Emacs front-end for [[https://forgejo.org][Forgejo]] instances (Codeberg, self-hosted, etc.).
 
-+ Browse, filter, and view issues and pull requests.
-+ Submit PRs via AGit-Flow push options.
-+ Caches API responses in a local SQLite database for fast re-display
-  and offline usage.
++ Browse, filter, and view issues and pull requests
++ Submit and merge PRs via [[https://forgejo.org/docs/latest/user/agit-support/][AGit-Flow]] push options
++ Full code review workflow with threaded comments
++ Desktop notifications with mode-line indicator
++ Label, assignee, and milestone management
++ =SQLite= cache for instant display and offline usage
++ =#= and =@= completion in composition buffers
++ Repository settings editor
 
+#+BEGIN_QUOTE
 Requires Emacs 29.1+ (native JSON, native SQLite).
+/Zero external dependencies./
+#+END_QUOTE
 
 * Installation
 
-** use-package (Emacs 30+)
+** use-package (Emacs 30+, recommended)
 
 #+begin_src emacs-lisp
   (use-package forgejo-vc
-    :vc (:url "https://codeberg.org/thanosapollo/forgejo.el"
-  	    :branch "master"
-              :rev :newest
-              :lisp-dir "lisp")
+    :vc (:url "https://codeberg.org/thanosapollo/emacs-forgejo"
+	    :branch "master"
+            :rev :newest
+            :lisp-dir "lisp")
     :custom
-    (forgejo-host "https://codeberg.org")
-    (forgejo-token "your-personal-access-token"))
+    (forgejo-host "https://codeberg.org"))
 #+end_src
 
-Alternatively, store your token in =~/.authinfo.gpg= (recommended):
+Store your token in =~/.authinfo.gpg=:
 
 #+begin_example
 machine codeberg.org login YOUR_USERNAME password YOUR_TOKEN
 #+end_example
 
-** Manual
-
-Clone the repository and add it to your =load-path=:
+Or set it directly (not recommended):
 
 #+begin_src emacs-lisp
-(add-to-list 'load-path "/path/to/emacs-forgejo/lisp")
-(require 'forgejo-vc)
+  (setq forgejo-token "your-personal-access-token")
+#+end_src
+
+** Manual
+
+#+begin_src emacs-lisp
+  (add-to-list 'load-path "/path/to/emacs-forgejo/lisp")
+  (require 'forgejo-vc)
 #+end_src
 
 ** Guix
 
 #+begin_src sh
-guix package -f guix.scm
-#+end_src
-
-Or use a development shell:
-
-#+begin_src sh
-guix shell -D -f guix.scm
+  guix package -f guix.scm
 #+end_src
 
 * Usage
 
-From any git repository with a Forgejo remote:
+From any git repository with a Forgejo remote, =C-x v f=
+(=forgejo-vc=) opens the Forgejo transient menu.  All available
+commands are listed there.
 
-- =C-x v f= opens the Forgejo transient menu
-- =C-x v f i= lists issues
-- =C-x v f p= lists pull requests
+=M-x forgejo= opens the top-level menu for repo search, issue/PR
+browsing, and notifications.
 
-Or invoke directly:
+=M-x forgejo-modeline-mode= enables the mode-line notification
+indicator with periodic polling.
 
-- =M-x forgejo=
+** Composition
+
+All composition buffers support =#= completion for issue/PR references
+and =@= completion for user mentions.  Use =forgejo-compose-hook= for
+custom setup:
+
+#+begin_src emacs-lisp
+  (add-hook 'forgejo-compose-hook #'flyspell-mode)
+  #+end_src
+
+
+* Screenshots
+
+#+caption: issue list
+[[https://thanosapollo.org/images/emacs-forgejo--issue-01.png]]
+
+#+caption: issue view
+[[https://thanosapollo.org/images/emacs-forgejo--issue.png]]
+
+#+caption: review comment
+[[https://thanosapollo.org/images/emacs-forgejo--review-comment.png]]
+
+#+caption: review log
+[[https://thanosapollo.org/images/emacs-forgejo--review-log.png]]
+
+#+caption: review thread
+[[https://thanosapollo.org/images/emacs-forgejo--review-thread.png]]

@@ -40,38 +40,55 @@
 
 ;;; Git detection (pure: git command -> data)
 
+(defun forgejo-vc--remotes ()
+  "Return list of git remote names."
+  (let ((output (string-trim
+                 (with-output-to-string
+                   (with-current-buffer standard-output
+                     (process-file "git" nil '(t nil) nil "remote"))))))
+    (when (not (string-empty-p output))
+      (split-string output "\n" t))))
+
+(defun forgejo-vc--remote-url (remote)
+  "Return the URL for git REMOTE, or nil."
+  (let ((url (string-trim
+              (with-output-to-string
+                (with-current-buffer standard-output
+                  (process-file "git" nil '(t nil) nil
+                                "remote" "get-url" remote))))))
+    (unless (string-empty-p url) url)))
+
+(defun forgejo-vc--parse-remote-url (remote-url)
+  "Parse REMOTE-URL into (HOST OWNER REPO), or nil."
+  (cond
+   ;; HTTPS: https://host/owner/repo[.git]
+   ((string-match
+     "\\`https?://\\([^/]+\\)/\\([^/]+\\)/\\(.+?\\)\\(?:\\.git\\)?\\'" remote-url)
+    (list (format "https://%s" (match-string 1 remote-url))
+          (match-string 2 remote-url)
+          (match-string 3 remote-url)))
+   ;; SSH with protocol: ssh://[user@]host[:port]/owner/repo[.git]
+   ((string-match
+     "\\`ssh://\\(?:[^@]+@\\)?\\([^/:]+\\)[:/]\\([^/]+\\)/\\(.+?\\)\\(?:\\.git\\)?\\'" remote-url)
+    (list (format "https://%s" (match-string 1 remote-url))
+          (match-string 2 remote-url)
+          (match-string 3 remote-url)))
+   ;; SCP-style: [user@]host:owner/repo[.git]
+   ((string-match
+     "\\`\\(?:[^@]+@\\)?\\([^:]+\\):\\([^/]+\\)/\\(.+?\\)\\(?:\\.git\\)?\\'" remote-url)
+    (list (format "https://%s" (match-string 1 remote-url))
+          (match-string 2 remote-url)
+          (match-string 3 remote-url)))))
+
 (defun forgejo-vc--repo-from-remote ()
-  "Detect host, owner, and repo from the current git remote.
-Returns (HOST OWNER REPO) where HOST is a full URL like
-\"https://codeberg.org\", or nil if detection fails."
-  (when-let* ((remote-url
-               (string-trim
-                (with-output-to-string
-                  (with-current-buffer standard-output
-                    (process-file "git" nil '(t nil) nil
-                                  "remote" "get-url" "origin")))))
-              ((not (string-empty-p remote-url))))
-    (let ((result
-           (cond
-            ;; HTTPS: https://host/owner/repo[.git]
-            ((string-match
-              "\\`https?://\\([^/]+\\)/\\([^/]+\\)/\\(.+?\\)\\(?:\\.git\\)?\\'" remote-url)
-             (list (format "https://%s" (match-string 1 remote-url))
-                   (match-string 2 remote-url)
-                   (match-string 3 remote-url)))
-            ;; SSH with protocol: ssh://[user@]host[:port]/owner/repo[.git]
-            ((string-match
-              "\\`ssh://\\(?:[^@]+@\\)?\\([^/:]+\\)[:/]\\([^/]+\\)/\\(.+?\\)\\(?:\\.git\\)?\\'" remote-url)
-             (list (format "https://%s" (match-string 1 remote-url))
-                   (match-string 2 remote-url)
-                   (match-string 3 remote-url)))
-            ;; SCP-style: [user@]host:owner/repo[.git]
-            ((string-match
-              "\\`\\(?:[^@]+@\\)?\\([^:]+\\):\\([^/]+\\)/\\(.+?\\)\\(?:\\.git\\)?\\'" remote-url)
-             (list (format "https://%s" (match-string 1 remote-url))
-                   (match-string 2 remote-url)
-                   (match-string 3 remote-url))))))
-      result)))
+  "Detect host, owner, repo, and remote name from any git remote.
+Tries all remotes and returns the first that parses as a forge URL.
+Returns (HOST OWNER REPO REMOTE-NAME) or nil."
+  (cl-some (lambda (remote)
+             (when-let* ((url (forgejo-vc--remote-url remote))
+                         (parsed (forgejo-vc--parse-remote-url url)))
+               (append parsed (list remote))))
+           (forgejo-vc--remotes)))
 
 (defun forgejo-vc--upstream-branch (branch)
   "Return the upstream remote/branch for BRANCH, or nil."
@@ -179,19 +196,21 @@ With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
   "Fetch pull request N and check out the pr-N branch.
 Warns if manual merge is disabled for the repo."
   (interactive "nPR number: ")
-  (let ((branch (format "pr-%d" n))
-        (ref (format "refs/pull/%d/head" n)))
+  (let* ((context (or (forgejo-vc--repo-from-remote)
+                      (user-error "No Forgejo remote found")))
+         (remote (nth 3 context))
+         (branch (format "pr-%d" n))
+         (ref (format "refs/pull/%d/head" n)))
     ;; Check manual merge setting
-    (when-let* ((context (forgejo-vc--repo-from-remote)))
-      (forgejo-settings-check-manual-merge
-       (nth 1 context) (nth 2 context)
-       (lambda (enabled)
-         (unless enabled
-           (message "Warning: Manual merge is disabled for %s/%s. Local merges won't be recognized by Forgejo."
-                    (nth 1 context) (nth 2 context))))))
-    (vc-git-command nil 0 nil "fetch" "origin" (format "%s:%s" ref branch))
+    (forgejo-settings-check-manual-merge
+     (nth 1 context) (nth 2 context)
+     (lambda (enabled)
+       (unless enabled
+         (message "Warning: Manual merge is disabled for %s/%s. Local merges won't be recognized by Forgejo."
+                  (nth 1 context) (nth 2 context)))))
+    (vc-git-command nil 0 nil "fetch" remote (format "%s:%s" ref branch))
     (vc-git-command nil 0 nil "checkout" branch)
-    (message "Checked out %s" branch)))
+    (message "Checked out %s from %s" branch remote)))
 
 ;;;###autoload
 (defun forgejo-vc-update ()
@@ -199,8 +218,11 @@ Warns if manual merge is disabled for the repo."
   (interactive)
   (let ((branch (car (vc-git-branches))))
     (if (string-match "\\`pr-\\([0-9]+\\)\\'" branch)
-        (let ((n (match-string 1 branch)))
-          (vc-git-command nil 0 nil "fetch" "origin"
+        (let* ((n (match-string 1 branch))
+               (context (forgejo-vc--repo-from-remote))
+               (remote (or (nth 3 context)
+                           (forgejo-vc--remote branch))))
+          (vc-git-command nil 0 nil "fetch" remote
                           (format "pull/%s/head" n))
           (vc-git-command nil 0 nil "reset" "--hard" "FETCH_HEAD")
           (message "Updated %s to latest PR head." branch))

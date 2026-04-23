@@ -64,41 +64,45 @@
 
 ;;; ---- Group 4: Remote detection ----
 
+(defun forgejo-test-vc--mock-process-file (url)
+  "Return a mock `process-file' that returns URL for get-url, \"origin\" for remote."
+  (lambda (_prog _infile _dest _display &rest args)
+    (cond
+     ((member "get-url" args) (insert url))
+     ((equal args '("remote")) (insert "origin")))
+    0))
+
 (ert-deftest forgejo-test-vc-repo-from-remote-https ()
-  "Parse HTTPS remote into (HOST OWNER REPO)."
+  "Parse HTTPS remote into (HOST OWNER REPO REMOTE)."
   (cl-letf (((symbol-function 'process-file)
-             (lambda (_prog _infile _dest _display &rest _args)
-               (insert "https://codeberg.org/thanos/forgejo.git")
-               0)))
+             (forgejo-test-vc--mock-process-file
+              "https://codeberg.org/thanos/forgejo.git")))
     (should (equal (forgejo-vc--repo-from-remote)
-                   '("https://codeberg.org" "thanos" "forgejo")))))
+                   '("https://codeberg.org" "thanos" "forgejo" "origin")))))
 
 (ert-deftest forgejo-test-vc-repo-from-remote-ssh ()
-  "Parse SSH remote into (HOST OWNER REPO)."
+  "Parse SSH remote into (HOST OWNER REPO REMOTE)."
   (cl-letf (((symbol-function 'process-file)
-             (lambda (_prog _infile _dest _display &rest _args)
-               (insert "ssh://git@codeberg.org/thanos/forgejo.git")
-               0)))
+             (forgejo-test-vc--mock-process-file
+              "ssh://git@codeberg.org/thanos/forgejo.git")))
     (should (equal (forgejo-vc--repo-from-remote)
-                   '("https://codeberg.org" "thanos" "forgejo")))))
+                   '("https://codeberg.org" "thanos" "forgejo" "origin")))))
 
 (ert-deftest forgejo-test-vc-repo-from-remote-scp ()
-  "Parse SCP-style remote into (HOST OWNER REPO)."
+  "Parse SCP-style remote into (HOST OWNER REPO REMOTE)."
   (cl-letf (((symbol-function 'process-file)
-             (lambda (_prog _infile _dest _display &rest _args)
-               (insert "git@codeberg.org:thanos/forgejo")
-               0)))
+             (forgejo-test-vc--mock-process-file
+              "git@codeberg.org:thanos/forgejo")))
     (should (equal (forgejo-vc--repo-from-remote)
-                   '("https://codeberg.org" "thanos" "forgejo")))))
+                   '("https://codeberg.org" "thanos" "forgejo" "origin")))))
 
 (ert-deftest forgejo-test-vc-repo-from-remote-selfhosted ()
   "Parse HTTPS remote from a self-hosted instance."
   (cl-letf (((symbol-function 'process-file)
-             (lambda (_prog _infile _dest _display &rest _args)
-               (insert "https://git.example.com/org/project.git")
-               0)))
+             (forgejo-test-vc--mock-process-file
+              "https://git.example.com/org/project.git")))
     (should (equal (forgejo-vc--repo-from-remote)
-                   '("https://git.example.com" "org" "project")))))
+                   '("https://git.example.com" "org" "project" "origin")))))
 
 (provide 'forgejo-test-vc)
 ;;; forgejo-test-vc.el ends here

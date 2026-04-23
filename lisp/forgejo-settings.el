@@ -35,8 +35,14 @@
 
 ;;; Data operations
 
-(defvar-local forgejo-settings--data nil
+(defvar forgejo-settings--data nil
   "Cached repo settings alist for the current context.")
+
+(defvar forgejo-settings--owner nil
+  "Owner of the repo being configured.")
+
+(defvar forgejo-settings--repo nil
+  "Name of the repo being configured.")
 
 (defun forgejo-settings--fetch (owner repo callback)
   "Fetch repo settings for OWNER/REPO, call CALLBACK with alist."
@@ -63,8 +69,8 @@
 (defun forgejo-settings-set-description ()
   "Edit the repository description."
   (interactive)
-  (let* ((owner forgejo-repo--owner)
-         (repo forgejo-repo--name)
+  (let* ((owner forgejo-settings--owner)
+         (repo forgejo-settings--repo)
          (current (or (forgejo-settings--get 'description) "")))
     (let ((new (read-string "Description: " current)))
       (unless (string= new current)
@@ -74,8 +80,8 @@
 (defun forgejo-settings-set-website ()
   "Edit the repository website."
   (interactive)
-  (let* ((owner forgejo-repo--owner)
-         (repo forgejo-repo--name)
+  (let* ((owner forgejo-settings--owner)
+         (repo forgejo-settings--repo)
          (current (or (forgejo-settings--get 'website) "")))
     (let ((new (read-string "Website: " current)))
       (unless (string= new current)
@@ -85,8 +91,8 @@
 (defun forgejo-settings-toggle-manual-merge ()
   "Toggle the manual merge setting."
   (interactive)
-  (let* ((owner forgejo-repo--owner)
-         (repo forgejo-repo--name)
+  (let* ((owner forgejo-settings--owner)
+         (repo forgejo-settings--repo)
          (current (forgejo-settings--get 'allow_manual_merge))
          (new (not (eq current t))))
     (forgejo-settings--save owner repo 'allow_manual_merge new)
@@ -127,10 +133,9 @@ Fetches current settings synchronously, then opens the transient."
       (forgejo-settings--fetch
        owner repo
        (lambda (data)
-         (setq forgejo-settings--data data)
-         (setq-local forgejo-repo--owner owner
-                     forgejo-repo--name repo
-                     forgejo-repo--host (or host forgejo-host))
+         (setq forgejo-settings--data data
+               forgejo-settings--owner owner
+               forgejo-settings--repo repo)
          (forgejo-settings--transient))))))
 
 (declare-function forgejo-vc--repo-from-remote "forgejo-vc.el" ())
@@ -139,7 +144,7 @@ Fetches current settings synchronously, then opens the transient."
   "Repository settings."
   [:description
    (lambda () (format "Settings: %s/%s"
-                      forgejo-repo--owner forgejo-repo--name))
+                      forgejo-settings--owner forgejo-settings--repo))
    ("d" forgejo-settings-set-description
     :description forgejo-settings--description-desc)
    ("w" forgejo-settings-set-website

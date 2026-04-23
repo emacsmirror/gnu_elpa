@@ -100,6 +100,16 @@ Returns (HOST OWNER REPO REMOTE-NAME) or nil."
                                    (concat branch "@{upstream}")))))))
     (unless (string-empty-p result) result)))
 
+(defun forgejo-vc--remote-branches ()
+  "Return list of all remote branches as \"remote/branch\" strings."
+  (let ((output (string-trim
+                 (with-output-to-string
+                   (with-current-buffer standard-output
+                     (process-file "git" nil '(t nil) nil
+                                   "branch" "-r" "--format" "%(refname:short)"))))))
+    (when (not (string-empty-p output))
+      (split-string output "\n" t))))
+
 (defun forgejo-vc--remote (branch)
   "Return the push remote for BRANCH, or \"origin\"."
   (let ((result (string-trim
@@ -159,16 +169,23 @@ TARGET is the remote branch to target.
 With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
   (interactive
    (let* ((branch (car (vc-git-branches)))
-          (remote (forgejo-vc--remote branch))
-          (upstream (forgejo-vc--upstream-branch branch)))
+          (all-remote-branches (forgejo-vc--remote-branches))
+          (default-target (forgejo-vc--upstream-branch branch))
+          (choice (completing-read
+                   (if default-target
+                       (format "Target (default: %s): " default-target)
+                     "Target (remote/branch): ")
+                   all-remote-branches nil t nil nil default-target))
+          (remote (if (string-match "\\`\\([^/]+\\)/\\(.+\\)\\'" choice)
+                      (match-string 1 choice)
+                    (forgejo-vc--remote branch)))
+          (target (if (string-match "\\`\\([^/]+\\)/\\(.+\\)\\'" choice)
+                      (match-string 2 choice)
+                    choice)))
      (list remote
            (let ((input (read-string (format "Topic (default: %s): " branch))))
              (if (string-empty-p input) branch input))
-           (if upstream
-               (let ((input (read-string
-                             (format "Target branch (default: %s): " upstream))))
-                 (if (string-empty-p input) upstream input))
-             (completing-read "Target branch: " (vc-git-branches) nil t))
+           target
            current-prefix-arg)))
   ;; Warn if manual merge is not enabled (AGit-Flow requires it)
   (when-let* ((context (forgejo-vc--repo-from-remote)))
@@ -184,8 +201,18 @@ With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
          remote
          (forgejo-vc--refspec "HEAD" target topic)
          (list "-o" "force-push=true"))
-      (let* ((title (read-string "PR Title: "))
-             (desc (forgejo-utils-read-body "PR Description")))
+      (let* ((commit-subject (string-trim
+                              (shell-command-to-string
+                               "git log -1 --format=%s")))
+             (commit-body (string-trim
+                           (shell-command-to-string
+                            "git log -1 --format=%b")))
+             (title-input (read-string
+                           (format "PR Title (default: %s): " commit-subject)))
+             (title (if (string-empty-p title-input) commit-subject title-input))
+             (desc (forgejo-utils-read-body "PR Description"
+                                            (unless (string-empty-p commit-body)
+                                              commit-body))))
         (forgejo-vc--git-push
          remote
          (forgejo-vc--refspec "HEAD" target topic)

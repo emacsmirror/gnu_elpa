@@ -37,6 +37,7 @@
 (declare-function forgejo-repo-search--owner-repo-at-point "forgejo-repo.el" ())
 
 (declare-function forgejo-notification-list "forgejo-notification.el" ())
+(declare-function forgejo-settings "forgejo-settings.el" ())
 
 (defvar forgejo-host)
 (defvar forgejo-repo--host)
@@ -52,6 +53,7 @@
     ("p" "Pull requests" forgejo-pull-list)
     ("n" "Notifications" forgejo-notification-list)]
    ["Actions"
+    ("S" "Settings" forgejo-settings)
     ("b" "Browse repo" forgejo-browse-repo)
     ("q" "Quit" transient-quit-one)]])
 

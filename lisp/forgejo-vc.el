@@ -31,6 +31,8 @@
 (require 'forgejo-utils)
 (require 'forgejo)
 
+(declare-function forgejo-settings-check-manual-merge "forgejo-settings.el"
+                  (owner repo callback))
 (declare-function forgejo-issue-list "forgejo-issue.el"
                   (&optional owner repo))
 (declare-function forgejo-pull-list "forgejo-pull.el"
@@ -151,6 +153,14 @@ With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
                  (if (string-empty-p input) upstream input))
              (completing-read "Target branch: " (vc-git-branches) nil t))
            current-prefix-arg)))
+  ;; Warn if manual merge is not enabled (AGit-Flow requires it)
+  (when-let* ((context (forgejo-vc--repo-from-remote)))
+    (forgejo-settings-check-manual-merge
+     (nth 1 context) (nth 2 context)
+     (lambda (enabled)
+       (unless enabled
+         (message "Warning: Manual merge is disabled for %s/%s. AGit-Flow PRs may not work as expected."
+                  (nth 1 context) (nth 2 context))))))
   (let ((target (replace-regexp-in-string "\\`.+/" "" target)))
     (if force-push-p
         (forgejo-vc--git-push
@@ -228,6 +238,7 @@ With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
     ("f" "Fetch PR" forgejo-vc-fetch)
     ("u" "Update PR branch" forgejo-vc-update)]
    ["Actions"
+    ("S" "Settings" forgejo-settings)
     ("b" "Browse repo" forgejo-vc-browse)]])
 
 ;;;###autoload

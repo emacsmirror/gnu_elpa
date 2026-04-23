@@ -51,7 +51,14 @@
    :title-value-reverse-function identity
    :link denote-md-link-format
    :link-retrieval-format "(denote:%VALUE%)"
-   :link-in-context-regexp denote-md-link-in-context-regexp))
+   :link-in-context-regexp denote-md-link-in-context-regexp)
+ ;; NOTE 2026-04-23: Right now a Markdown file with a level 1 heading
+ ;; will be treated as a `markdown-obsidian' file.  This is because of
+ ;; how we were adding this file type to the front of `denote-file-types'.
+ ;;
+ ;; TODO 2026-04-23: What we need to do eventually is be more smart
+ ;; about this.
+ :append)
 
 ;;;; Convert links
 

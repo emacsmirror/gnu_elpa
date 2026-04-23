@@ -128,10 +128,11 @@ CALLBACK is called with two arguments: (RESPONSE-DATA HEADERS-PLIST).
                           (if err-msg (concat " - " err-msg) ""))))
               ((plist-get status :error)
                (message "Forgejo API error: %S" (plist-get status :error)))
-              (callback
-               (let ((headers (forgejo-api--parse-headers (current-buffer)))
-                     (data (forgejo-api--parse-response (current-buffer))))
-                 (funcall callback data headers)))))
+              (t
+               (when callback
+                 (let ((headers (forgejo-api--parse-headers (current-buffer)))
+                       (data (forgejo-api--parse-response (current-buffer))))
+                   (funcall callback data headers))))))
          (kill-buffer (current-buffer))))
      nil t)))
 

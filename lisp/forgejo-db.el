@@ -298,9 +298,10 @@ FILTERS is a plist with keys:
 (defun forgejo-db-save-timeline (host owner repo number events)
   "Upsert timeline EVENTS for issue NUMBER in HOST/OWNER/REPO.
 Stores body_html from API response when available."
-  (forgejo-db--with-transaction
-    (let ((db (forgejo-db--ensure)))
-      (dolist (event events)
+  (when (and events (listp events))
+    (forgejo-db--with-transaction
+      (let ((db (forgejo-db--ensure)))
+        (dolist (event events)
         (let-alist event
           (sqlite-execute
            db
@@ -319,7 +320,7 @@ Stores body_html from API response when available."
                  (forgejo-db--nullable .body_html)
                  (alist-get 'login (forgejo-db--nullable .user))
                  (forgejo-db--nullable .created_at)
-                 (forgejo-db--encode-json event))))))))
+                 (forgejo-db--encode-json event)))))))))
 
 (defun forgejo-db-get-timeline (host owner repo number)
   "Get cached timeline events for issue NUMBER in HOST/OWNER/REPO."

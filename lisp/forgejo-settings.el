@@ -30,6 +30,7 @@
 (require 'forgejo)
 (require 'forgejo-api)
 (require 'forgejo-utils)
+(require 'forgejo-db)
 
 ;;; API operations
 
@@ -129,11 +130,38 @@ Updates values optimistically on user input, saves async in background."
           (setq manual (not manual))
           (forgejo-settings--save owner repo 'allow_manual_merge manual nil)
           (transient-setup 'forgejo-settings--current)))
-       ("l" "Create label"
+       ("l" "Labels" forgejo-settings--labels)]
+      [:hide always])
+    (transient-define-prefix forgejo-settings--labels ()
+      "Label management."
+      [:description
+       (lambda () (format "Labels: %s/%s" owner repo))
+       ("a" "Create label"
         (lambda ()
           (interactive)
           (let ((host (url-host (url-generic-parse-url forgejo-host))))
-            (forgejo-utils-create-label owner repo host nil))))])
+            (forgejo-utils-create-label owner repo host nil))))
+       ("d" "Delete label"
+        (lambda ()
+          (interactive)
+          (let* ((host (url-host (url-generic-parse-url forgejo-host)))
+                 (cached (forgejo-db-get-labels host owner repo))
+                 (names (mapcar (lambda (row) (nth 4 row)) cached))
+                 (name (completing-read "Delete label: " names nil t))
+                 (id (forgejo-db-get-label-id host owner repo name)))
+            (when (and id (y-or-n-p (format "Delete label %s? " name)))
+              (forgejo-api-delete
+               (format "repos/%s/%s/labels/%d" owner repo id)
+               nil
+               (lambda (_data _headers)
+                 ;; Remove from labels cache
+                 (forgejo-db--execute
+                  "DELETE FROM labels WHERE host = ? AND owner = ? AND repo = ? AND id = ?"
+                  (list host owner repo id))
+                 ;; Remove from cached issue label lists
+                 (forgejo-settings--remove-label-from-issues
+                  host owner repo name)
+                 (message "Deleted label %s from %s/%s" name owner repo)))))))])
     (forgejo-settings--current)))
 
 ;;; AGit-Flow check
@@ -145,6 +173,24 @@ Calls CALLBACK with t if enabled, nil if not."
    owner repo
    (lambda (data)
      (funcall callback (eq (alist-get 'allow_manual_merge data) t)))))
+
+(defun forgejo-settings--remove-label-from-issues (host owner repo label-name)
+  "Remove LABEL-NAME from all cached issues in HOST/OWNER/REPO."
+  (let ((rows (forgejo-db--select
+               "SELECT number, labels FROM issues
+                WHERE host = ? AND owner = ? AND repo = ? AND labels IS NOT NULL"
+               (list host owner repo))))
+    (dolist (row rows)
+      (let* ((number (nth 0 row))
+             (labels-json (nth 1 row))
+             (labels (when labels-json (forgejo-db--decode-json labels-json)))
+             (filtered (cl-remove-if
+                        (lambda (l) (equal (alist-get 'name l) label-name))
+                        labels)))
+        (unless (= (length labels) (length filtered))
+          (forgejo-db--execute
+           "UPDATE issues SET labels = ? WHERE host = ? AND owner = ? AND repo = ? AND number = ?"
+           (list (forgejo-db--encode-json filtered) host owner repo number)))))))
 
 (provide 'forgejo-settings)
 ;;; forgejo-settings.el ends here

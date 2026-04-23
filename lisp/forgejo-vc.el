@@ -232,8 +232,9 @@ Warns if manual merge is disabled for the repo."
 
 (defun forgejo-vc--require-repo ()
   "Return (HOST OWNER REPO) from git remote, or signal error."
-  (or (forgejo-vc--repo-from-remote)
-      (user-error "Not in a git repo with a Forgejo remote")))
+  (if-let* ((context (forgejo-vc--repo-from-remote)))
+      (list (nth 0 context) (nth 1 context) (nth 2 context))
+    (user-error "Not in a git repo with a Forgejo remote")))
 
 (defun forgejo-vc-issues ()
   "List issues for the current repository."

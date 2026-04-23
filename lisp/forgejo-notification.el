@@ -282,7 +282,10 @@ can extract the issue/PR number without re-querying the DB."
            (repo (nth 1 parts)))
       ;; Mark as read locally and on the server
       (forgejo-db-mark-notification-read forgejo-notification--host notif-id)
-      (forgejo-api-put (format "notifications/threads/%d" notif-id))
+      (forgejo-api-patch (format "notifications/threads/%d" notif-id))
+      (cl-decf forgejo-notification--unread-count)
+      (forgejo-notification--mode-line-update)
+      (forgejo-notification--render forgejo-notification--host)
       ;; Navigate
       (forgejo-with-host forgejo-repo--host
         (if (string= type "Pull")

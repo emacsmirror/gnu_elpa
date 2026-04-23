@@ -424,6 +424,7 @@ Empty input clears all filters."
       (setq header-line-format
             (forgejo-buffer--header-line issue-alist))
       (goto-char (point-min))
+      (set-buffer-modified-p nil)
       (current-buffer))))
 
 (defun forgejo-issue--render-missing-html (host owner repo number
@@ -550,8 +551,9 @@ Shows cached data from DB instantly, syncs in background."
   (interactive)
   (when-let* ((data forgejo-issue--data)
               (number (alist-get 'number data)))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-utils-browse-issue forgejo-repo--owner forgejo-repo--name number))))
+    (let ((browse-url-browser-function #'browse-url-default-browser))
+      (forgejo-with-host forgejo-repo--host
+        (forgejo-utils-browse-issue forgejo-repo--owner forgejo-repo--name number)))))
 
 (defun forgejo-issue-comment ()
   "Post a comment on the current issue."

@@ -357,6 +357,7 @@ Empty input clears all filters."
       (setq header-line-format
             (forgejo-buffer--header-line pr-alist))
       (goto-char (point-min))
+      (set-buffer-modified-p nil)
       (current-buffer))))
 
 (defun forgejo-pull--render-missing-html (host owner repo number
@@ -489,8 +490,9 @@ Shows cached data from DB instantly, syncs in background."
   (interactive)
   (when-let* ((data forgejo-pull--data)
               (number (alist-get 'number data)))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-utils-browse-pull forgejo-repo--owner forgejo-repo--name number))))
+    (let ((browse-url-browser-function #'browse-url-default-browser))
+      (forgejo-with-host forgejo-repo--host
+        (forgejo-utils-browse-pull forgejo-repo--owner forgejo-repo--name number)))))
 
 (defun forgejo-pull-comment ()
   "Post a comment on the current PR."

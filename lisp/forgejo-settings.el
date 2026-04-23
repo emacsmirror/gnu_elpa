@@ -29,6 +29,7 @@
 (require 'transient)
 (require 'forgejo)
 (require 'forgejo-api)
+(require 'forgejo-utils)
 
 ;;; API operations
 
@@ -127,7 +128,12 @@ Updates values optimistically on user input, saves async in background."
           (interactive)
           (setq manual (not manual))
           (forgejo-settings--save owner repo 'allow_manual_merge manual nil)
-          (transient-setup 'forgejo-settings--current)))])
+          (transient-setup 'forgejo-settings--current)))
+       ("l" "Create label"
+        (lambda ()
+          (interactive)
+          (let ((host (url-host (url-generic-parse-url forgejo-host))))
+            (forgejo-utils-create-label owner repo host nil))))])
     (forgejo-settings--current)))
 
 ;;; AGit-Flow check

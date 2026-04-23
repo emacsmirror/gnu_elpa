@@ -588,8 +588,8 @@ Shows cached data from DB instantly, syncs in background."
                  (insert diff-text))
                (diff-mode)
                (use-local-map forgejo-buffer-diff-map)
-               (setq buffer-read-only t
-                     forgejo-diff--owner owner
+	       (read-only-mode 1)
+               (setq forgejo-diff--owner owner
                      forgejo-diff--repo repo
                      forgejo-diff--pr-number number)
                (goto-char (point-min))

@@ -193,7 +193,7 @@ Returns nil if BODY is :null, nil, or empty."
 (defun forgejo-buffer--browse-url (url &rest _args)
   "Open URL in forgejo.el if it's a Forgejo issue/PR, else in browser."
   (if-let* ((parsed (forgejo-buffer--parse-forgejo-url url)))
-      (forgejo-issue-view (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))
+      (forgejo-buffer-view-item (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))
     (browse-url-default-browser url)))
 
 (defun forgejo-buffer--insert-html (html)
@@ -344,18 +344,31 @@ NODE-DATA is a plist with :type and type-specific keys."
     map)
   "Keymap for reference links in event lines.")
 
+(declare-function forgejo-issue-view "forgejo-issue.el"
+                  (owner repo number))
+(declare-function forgejo-pull-view "forgejo-pull.el"
+                  (owner repo number))
+
+(defun forgejo-buffer-view-item (owner repo number)
+  "View issue or PR NUMBER in OWNER/REPO.
+Checks the DB to determine if it's a PR, falls back to issue view."
+  (let ((cached (forgejo-db-get-issue
+                 (url-host (url-generic-parse-url forgejo-host))
+                 owner repo number)))
+    (if (and cached (alist-get 'pull_request cached))
+        (forgejo-pull-view owner repo number)
+      (forgejo-issue-view owner repo number))))
+
 (defun forgejo-buffer-follow-ref ()
   "Follow the reference link at point.
 Uses the ref-repo text property for cross-repo references."
   (interactive)
   (when-let* ((number (get-text-property (point) 'forgejo-ref-number)))
-    (declare-function forgejo-issue-view "forgejo-issue.el"
-                      (owner repo number))
     (let* ((full-name (get-text-property (point) 'forgejo-ref-repo))
            (parts (when full-name (split-string full-name "/")))
            (owner (or (nth 0 parts) forgejo-repo--owner))
            (repo (or (nth 1 parts) forgejo-repo--name)))
-      (forgejo-issue-view owner repo number))))
+      (forgejo-buffer-view-item owner repo number))))
 
 (defvar forgejo-buffer-commit-map
   (let ((map (make-sparse-keymap)))

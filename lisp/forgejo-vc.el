@@ -49,25 +49,27 @@ Returns (HOST OWNER REPO) where HOST is a full URL like
                     (process-file "git" nil '(t nil) nil
                                   "remote" "get-url" "origin")))))
               ((not (string-empty-p remote-url))))
-    (cond
-     ;; HTTPS: https://host/owner/repo.git
-     ((string-match
-       "\\`https?://\\([^/]+\\)/\\([^/]+\\)/\\([^/.]+\\)" remote-url)
-      (list (format "https://%s" (match-string 1 remote-url))
-            (match-string 2 remote-url)
-            (match-string 3 remote-url)))
-     ;; SSH with protocol: ssh://[user@]host[:port]/owner/repo.git
-     ((string-match
-       "\\`ssh://\\(?:[^@]+@\\)?\\([^/:]+\\)[:/]\\([^/]+\\)/\\([^/.]+\\)" remote-url)
-      (list (format "https://%s" (match-string 1 remote-url))
-            (match-string 2 remote-url)
-            (match-string 3 remote-url)))
-     ;; SCP-style: [user@]host:owner/repo.git
-     ((string-match
-       "\\`\\(?:[^@]+@\\)?\\([^:]+\\):\\([^/]+\\)/\\([^/.]+\\)" remote-url)
-      (list (format "https://%s" (match-string 1 remote-url))
-            (match-string 2 remote-url)
-            (match-string 3 remote-url))))))
+    (let ((result
+           (cond
+            ;; HTTPS: https://host/owner/repo[.git]
+            ((string-match
+              "\\`https?://\\([^/]+\\)/\\([^/]+\\)/\\(.+?\\)\\(?:\\.git\\)?\\'" remote-url)
+             (list (format "https://%s" (match-string 1 remote-url))
+                   (match-string 2 remote-url)
+                   (match-string 3 remote-url)))
+            ;; SSH with protocol: ssh://[user@]host[:port]/owner/repo[.git]
+            ((string-match
+              "\\`ssh://\\(?:[^@]+@\\)?\\([^/:]+\\)[:/]\\([^/]+\\)/\\(.+?\\)\\(?:\\.git\\)?\\'" remote-url)
+             (list (format "https://%s" (match-string 1 remote-url))
+                   (match-string 2 remote-url)
+                   (match-string 3 remote-url)))
+            ;; SCP-style: [user@]host:owner/repo[.git]
+            ((string-match
+              "\\`\\(?:[^@]+@\\)?\\([^:]+\\):\\([^/]+\\)/\\(.+?\\)\\(?:\\.git\\)?\\'" remote-url)
+             (list (format "https://%s" (match-string 1 remote-url))
+                   (match-string 2 remote-url)
+                   (match-string 3 remote-url))))))
+      result)))
 
 (defun forgejo-vc--upstream-branch (branch)
   "Return the upstream remote/branch for BRANCH, or nil."

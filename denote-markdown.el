@@ -41,10 +41,21 @@
 
 ;;;; Register a new file type
 
+(defun denote-get-file-type-markdown-obsidian (file)
+  "Return `markdown-obsidian' if FILE only has a # title.
+Also see `denote-get-file-type-markdown-yaml' and
+`denote-get-file-type-markdown-toml'."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (goto-char (point-min))
+    (when (looking-at "^# ")
+      'markdown-obsidian)))
+
 (add-to-list
  'denote-file-types
  '(markdown-obsidian
    :extension ".md"
+   :get-file-type-function denote-get-file-type-markdown-obsidian
    :front-matter "# %s\n\n"
    :title-key-regexp "^# "
    :title-value-function identity

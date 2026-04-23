@@ -133,8 +133,10 @@ and refreshes the list buffer if visible."
      '(("status-types" . "unread"))
      (lambda (data _headers)
        (let ((old-count forgejo-notification--unread-count))
-         (forgejo-db-save-notifications host data)
-         (setq forgejo-notification--unread-count (length data))
+         (when (listp data)
+           (forgejo-db-save-notifications host data))
+         (setq forgejo-notification--unread-count
+               (if (listp data) (length data) 0))
          (forgejo-notification--mode-line-update)
          (when (> forgejo-notification--unread-count old-count)
            (run-hook-with-args 'forgejo-notification-hooks data))
@@ -272,6 +274,19 @@ ROW: 0=id 1=subject_type 2=subject_title 3=subject_url
     (forgejo-tl-print)
     (goto-char (point-min))))
 
+(defun forgejo-notification--fetch-all (host)
+  "Fetch all notifications (unread+read) in pages and save to DB.
+Re-renders the list buffer after all pages are fetched."
+  (forgejo-api-get-paged
+   "notifications"
+   '(("status-types" . "unread,read")
+     ("limit" . "50"))
+   (lambda (page-data _headers _page)
+     (when (listp page-data)
+       (forgejo-db-save-notifications host page-data)))
+   (lambda (_all-data _headers)
+     (forgejo-notification--refresh-list-buffer host))))
+
 ;;;###autoload
 (defun forgejo-notification-list ()
   "Browse Forgejo notifications."
@@ -282,14 +297,16 @@ ROW: 0=id 1=subject_type 2=subject_title 3=subject_url
       (forgejo-notification-list-mode)
       (setq forgejo-notification--host host
             forgejo-repo--host forgejo-host)
+      ;; Render from cache immediately
       (forgejo-notification--render host)
       (switch-to-buffer buf))
-    (forgejo-notification--poll)))
+    ;; Fetch full history in background
+    (forgejo-notification--fetch-all host)))
 
 (defun forgejo-notification-list-refresh ()
   "Refresh the notification list."
   (interactive)
-  (forgejo-notification--poll))
+  (forgejo-notification--fetch-all forgejo-notification--host))
 
 ;;; Filtering
 

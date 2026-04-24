@@ -2,8 +2,8 @@
 
 ;; Copyright (C) 2022-2024  Free Software Foundation, Inc.
 
-;; Author: Protesilaos Stavrou <info@protesilaos.com>
-;; Maintainer: Protesilaos Stavrou <info@protesilaos.com>
+;; Author: Protesilaos <info@protesilaos.com>
+;; Maintainer: Protesilaos <info@protesilaos.com>
 ;; URL: https://github.com/protesilaos/agitate
 ;; Version: 0
 ;; Package-Requires: ((emacs "28.1"))
@@ -114,8 +114,8 @@ none exists, the one closest to it.  On second call, operate on
 the entire buffer.  And on the third time, remove all word-wise
 fontification."
   (interactive nil diff-mode)
-  (when-let (((derived-mode-p 'diff-mode))
-             (point (point)))
+  (when-let* (((derived-mode-p 'diff-mode))
+              (point (point)))
     (pcase agitate--refine-diff-state
       ('current
        (setq-local diff-refine 'font-lock)
@@ -337,7 +337,7 @@ user option `log-edit-keep-buffer'."
 (defun agitate--log-edit-informative-kill-buffer ()
   "Kill the vc-log buffer."
   ;; TODO 2022-10-19: More robust way to get this buffer?
-  (when-let ((buf (get-buffer "*vc-log*")))
+  (when-let* ((buf (get-buffer "*vc-log*")))
     (kill-buffer buf)))
 
 ;;;; Commands for log-view (listings of commits)
@@ -356,15 +356,15 @@ When the log-view is in the long format (detailed view where each
 revision spans several lines), the revision is the one pertinent
 to the text at point."
   (interactive)
-  (when-let ((revision (cadr (log-view-current-entry (point) t))))
+  (when-let* ((revision (cadr (log-view-current-entry (point) t))))
     (kill-new (format "%s" revision))
     (message "Copied: %s" revision)))
 
 (defun agitate--log-view-on-revision-p (&optional pos)
   "Return non-nil if optional POS is on a revision line.
 When POS is nil, use `point'."
-  (when-let ((point (or pos (point)))
-             ((not (log-view-inside-comment-p point))))
+  (when-let* ((point (or pos (point)))
+              ((not (log-view-inside-comment-p point))))
     (save-excursion
       (goto-char (line-beginning-position))
       (looking-at log-view-message-re))))
@@ -473,7 +473,7 @@ snapshot of the minibuffer prompt.  Then use the resulting buffer
 to browse through the available commits."
   (declare (interactive-only t))
   (interactive "P")
-  (when-let ((file (caadr (vc-deduce-fileset))))
+  (when-let* ((file (caadr (vc-deduce-fileset))))
     (let* ((f (when current-file file))
            (revision (agitate--vc-git-get-hash-from-string
                       (agitate--vc-git-commit-prompt
@@ -487,7 +487,7 @@ to browse through the available commits."
         (diff-mode)
         (setq-local revert-buffer-function
                     (lambda (_ignore-auto _noconfirm)
-                        (agitate--vc-git-show-revert buf "show" "--patch-with-stat" revision)))
+                      (agitate--vc-git-show-revert buf "show" "--patch-with-stat" revision)))
         (goto-char (point-min))))))
 
 (defun agitate--vc-git-tag-prompt ()
@@ -514,7 +514,7 @@ to browse through the available tags."
   (let* ((buf "*agitate-vc-git-show*")
          (inhibit-read-only t))
     (with-current-buffer (get-buffer-create buf)
-        (erase-buffer))
+      (erase-buffer))
     (vc-git--call buf "show" tag)
     (with-current-buffer (pop-to-buffer buf)
       (diff-mode)
@@ -526,7 +526,7 @@ to browse through the available tags."
 
 (defun agitate--vc-git-format-patch-single-commit ()
   "Help `agitate-vc-git-format-patch-single' with its COMMIT."
-  (if-let ((default-value (cadr (log-view-current-entry (point) t))))
+  (if-let* ((default-value (cadr (log-view-current-entry (point) t))))
       default-value
     (agitate--vc-git-get-hash-from-string (agitate--vc-git-commit-prompt))))
 
@@ -580,7 +580,7 @@ arguments."
 
 (defun agitate--vc-git-prompt-remote ()
   "Helper prompt for `agitate-git-push'."
-  (when-let ((remotes (process-lines vc-git-program "remote")))
+  (when-let* ((remotes (process-lines vc-git-program "remote")))
     (if (length> remotes 1)
         (completing-read "Select Git remote: " remotes nil t)
       (car remotes))))

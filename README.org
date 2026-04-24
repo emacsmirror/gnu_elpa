@@ -1,5 +1,5 @@
 #+title: agitate: Extras for diff-mode, vc-git, log-edit, log-view
-#+author: Protesilaos Stavrou
+#+author: Protesilaos
 #+email: info@protesilaos.com
 #+language: en
 #+options: ':t toc:nil author:t email:t num:t
@@ -13,13 +13,13 @@
 #+texinfo_dir_title: Agitate: (agitate)
 #+texinfo_dir_desc: Extras for diff-mode, vc-git, log-edit, log-view
 #+texinfo_header: @set MAINTAINERSITE @uref{https://protesilaos.com,maintainer webpage}
-#+texinfo_header: @set MAINTAINER Protesilaos Stavrou
+#+texinfo_header: @set MAINTAINER Protesilaos
 #+texinfo_header: @set MAINTAINEREMAIL @email{info@protesilaos.com}
 #+texinfo_header: @set MAINTAINERCONTACT @uref{mailto:info@protesilaos.com,contact the maintainer}
 
 #+texinfo: @insertcopying
 
-This manual, written by Protesilaos Stavrou, describes the customization
+This manual, written by Protesilaos, describes the customization
 options for the Emacs package called =agitate= (or =agitate.el=), and
 provides every other piece of information pertinent to it.
 

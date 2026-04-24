@@ -34,7 +34,8 @@
 Excludes generated files like autoloads and pkg descriptors."
   (cl-remove-if (lambda (f)
                   (let ((name (file-name-nondirectory f)))
-                    (or (string-match-p "-autoloads\\.el$" name)
+                    (or (string-prefix-p "." name)
+                        (string-match-p "-autoloads\\.el$" name)
                         (string-match-p "-pkg\\.el$" name))))
                 (directory-files forgejo-test-load--dir t "\\.el$")))
 

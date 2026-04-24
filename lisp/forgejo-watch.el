@@ -118,7 +118,8 @@ RULE is \"owner/repo\" or (\"owner/repo\" . \"filter-query\")."
          (forgejo-db-set-sync-time
           host owner repo "watch"
           (format-time-string "%Y-%m-%dT%H:%M:%SZ" nil t))
-         (run-hook-with-args 'forgejo-watch-hooks all-data))))))
+         (run-hook-with-args 'forgejo-watch-hooks all-data)
+         (forgejo-watch--refresh-list-buffer host))))))
 
 (defun forgejo-watch--refresh-list-buffer (host)
   "Re-render the notification list buffer for HOST if visible."

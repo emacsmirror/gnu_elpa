@@ -209,7 +209,7 @@
   [["Actions"
     ("RET" "View" forgejo-watch-view-at-point)
     ("r" "Mark read" forgejo-watch-mark-read-at-point)
-    ("A" "Mark all read" forgejo-watch-mark-all-read)
+    ("R" "Mark all read" forgejo-watch-mark-all-read)
     ("b" "Open in browser" forgejo-watch-browse-at-point)]
    ["Navigate"
     ("l" "Filter" forgejo-watch-filter)

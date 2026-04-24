@@ -167,6 +167,7 @@
 
 ;; Since version 1.4:
 
+;; - New type for "mines" used internally for synchronization.
 ;; - Emit warnings for unused (non-nil) return values.
 ;; - New debug var `futur-elisp--include-extra-debug-info'.
 ;; - `futur-client.el' is now called `futur-elisp.el'.
@@ -1004,12 +1005,22 @@ Return the resource if available and nil if it's not.")
     2)
   "Maximum number of concurrent subprocesses.")
 
-(defvar futur--concurrency-bound-active nil
-  "List of active process-futures.")
+(cl-defstruct (futur--concurrency-mine
+               (:include futur--mine)
+               (:constructor nil)
+               (:predicate nil)
+               (:constructor futur--concurrency-mine ()))
+  (count 0))
 
-(defvar futur--concurrency-bound-waiting (futur--queue)
-  "Queue of futures waiting to start
-Each element is of the form (FUTURE FUN . ARGS).")
+(defconst futur--concurrency-mine (futur--concurrency-mine))
+
+(cl-defmethod futur--mine-fetch ((mine futur--concurrency-mine) _arg)
+  (when (< (futur--concurrency-mine-count mine) futur-concurrency-bound)
+    (cl-incf (futur--concurrency-mine-count mine))
+    t))
+
+(cl-defmethod futur--mine-return ((mine futur--concurrency-mine) _rsc)
+  (cl-decf (futur--concurrency-mine-count mine)))
 
 (defun futur-concurrency-bound (func &rest args)
   "Call FUNC with ARGS while limiting the amount of concurrency.
@@ -1018,35 +1029,8 @@ The amount of concurrently active futures is determined by the variable
 `futur-concurrency-bound' and considers only those futures constructed
 via the function `futur-concurrency-bound'.
 FUNC is called in an empty dynamic context."
-  (if (< (length futur--concurrency-bound-active) futur-concurrency-bound)
-      (futur--concurrency-bound-start #'futur-funcall (cons func args))
-    (let ((new (futur--waiting 'waiting)))
-      (futur--queue-enqueue futur--concurrency-bound-waiting
-                            `(,new ,func . ,args))
-      new)))
-
-(defun futur--concurrency-bound-start (func args)
-  (let ((new (apply func args)))
-    (push new futur--concurrency-bound-active)
-    (futur-unwind-protect new
-      (futur--concurrency-bound-next new))))
-
-(defun futur--concurrency-bound-next (done)
-  (setq futur--concurrency-bound-active
-        (delq done futur--concurrency-bound-active))
-  (cl-block nil
-    (while (not (futur--queue-empty-p futur--concurrency-bound-waiting))
-      (pcase-let ((`(,fut . ,call)
-                   (futur--queue-dequeue futur--concurrency-bound-waiting)))
-        (pcase fut
-          ((futur--waiting)
-           (let ((new (futur--concurrency-bound-start (car call) (cdr call))))
-             (futur--register-callback
-              (lambda (err val) (futur--deliver fut err val)) new fut 'now-ok)
-             (cl-return))))))))
-
-(cl-defmethod futur-blocker-abort ((_ (eql 'waiting)) _error _futur)
-  nil)
+  (futur-with-resource (_ futur--concurrency-mine)
+    (apply func args)))
 
 ;;;; Processes
 

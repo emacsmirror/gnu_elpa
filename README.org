@@ -1,5 +1,5 @@
 #+title: cursory.el: Manage cursor styles using presets
-#+author: Protesilaos Stavrou
+#+author: Protesilaos
 #+email: info@protesilaos.com
 #+language: en
 #+options: ':t toc:nil author:t email:t num:t
@@ -16,13 +16,13 @@
 #+texinfo_dir_title: Cursory: (cursory)
 #+texinfo_dir_desc: Manage cursor styles using presets
 #+texinfo_header: @set MAINTAINERSITE @uref{https://protesilaos.com,maintainer webpage}
-#+texinfo_header: @set MAINTAINER Protesilaos Stavrou
+#+texinfo_header: @set MAINTAINER Protesilaos
 #+texinfo_header: @set MAINTAINEREMAIL @email{info@protesilaos.com}
 #+texinfo_header: @set MAINTAINERCONTACT @uref{mailto:info@protesilaos.com,contact the maintainer}
 
 #+texinfo: @insertcopying
 
-This manual, written by Protesilaos Stavrou, describes the customization
+This manual, written by Protesilaos, describes the customization
 options for =cursory= (or =cursory.el=), and provides every other piece
 of information pertinent to it.
 
@@ -377,7 +377,7 @@ I am happy to include more examples here, if users have any questions.
 
 Cursory is meant to be a collective effort.  Every bit of help matters.
 
-+ Author/maintainer :: Protesilaos Stavrou.
++ Author/maintainer :: Protesilaos.
 
 + Contributions to the code or manual :: Christopher League, Mehdi
   Khawari, Nicholas Vollmer, Philip Kaludercic, Stefan Monnier.

@@ -261,7 +261,7 @@ FILTERS is a plist with keys:
   :state      - \"open\", \"closed\", or nil for all
   :label      - label name substring to match
   :milestone  - milestone title to match
-  :assignee   - assignee login to match
+  :author     - author/poster login to match
   :query      - search string for title
   :is-pull    - when non-nil, filter to pull requests only
   :no-pulls   - when non-nil, exclude pull requests"
@@ -277,9 +277,9 @@ FILTERS is a plist with keys:
     (when-let* ((milestone (plist-get filters :milestone)))
       (setq where (append where (list "milestone = ?"))
             args (append args (list milestone))))
-    (when-let* ((assignee (plist-get filters :assignee)))
+    (when-let* ((author (plist-get filters :author)))
       (setq where (append where (list "user LIKE ?"))
-            args (append args (list (format "%%%s%%" assignee)))))
+            args (append args (list (format "%%%s%%" author)))))
     (when-let* ((query (plist-get filters :query)))
       (setq where (append where (list "title LIKE ?"))
             args (append args (list (format "%%%s%%" query)))))

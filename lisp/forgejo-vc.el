@@ -345,9 +345,20 @@ Warns if manual merge is disabled for the repo."
        (unless enabled
          (message "Warning: Manual merge is disabled for %s/%s. Local merges won't be recognized by Forgejo."
                   (nth 1 context) (nth 2 context)))))
-    (vc-git-command nil 0 nil "fetch" remote (format "%s:%s" ref branch))
-    (vc-git-command nil 0 nil "checkout" branch)
-    (message "Checked out %s from %s" branch remote)))
+    (message "Fetching PR #%d from %s..." n remote)
+    (let ((dir default-directory))
+      (make-process
+       :name (format "forgejo-fetch-pr-%d" n)
+       :command (list "git" "fetch" remote (format "%s:%s" ref branch))
+       :sentinel
+       (lambda (_proc event)
+         (cond
+          ((string-match-p "finished" event)
+           (let ((default-directory dir))
+             (vc-git-command nil 0 nil "checkout" branch))
+           (message "Checked out %s from %s" branch remote))
+          ((string-match-p "\\(?:exited\\|signal\\)" event)
+           (message "Failed to fetch PR #%d: %s" n (string-trim event)))))))))
 
 ;;;###autoload
 (defun forgejo-vc-update ()

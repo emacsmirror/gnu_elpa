@@ -167,7 +167,8 @@
 
 ;; Since version 1.4:
 
-;; - New type for "mines" used internally for synchronization.
+;; - New synchronization objects: full/empty cells and semaphores.
+;; - New type for "mines" used internally for synchronization objects.
 ;; - Emit warnings for unused (non-nil) return values.
 ;; - New debug var `futur-elisp--include-extra-debug-info'.
 ;; - `futur-client.el' is now called `futur-elisp.el'.
@@ -1031,6 +1032,60 @@ via the function `futur-concurrency-bound'.
 FUNC is called in an empty dynamic context."
   (futur-with-resource (_ futur--concurrency-mine)
     (apply func args)))
+
+;;;; Full/Empty cells.
+
+(cl-defstruct (futur-fe
+               (:include futur--mine)
+               (:conc-name futur-fe--)
+               (:constructor nil)
+               (:constructor futur-fe ()))
+  (contents nil))
+
+(cl-defmethod futur--mine-fetch ((fe futur-fe) arg)
+  (let* ((c (futur-fe--contents fe))
+         (res (xor arg c)))
+    (when res
+      (setf (futur-fe--contents fe) arg)
+      ;; Wake up threads, if applicable.  Delay it with `futur--funcall',
+      ;; because we may be within a `futur--queue-iter'!
+      (futur--funcall #'futur-mine-release fe)
+      res)))
+
+(cl-defmethod futur--mine-return ((_fe futur-fe) _rsc)
+  nil)
+
+(defun futur-fe-fill (fe val)
+  "Construct a futur which puts VAL into the full/empty cell FE.
+VAL can be any value except nil."
+  (cl-assert val)
+  (futur-mine-wait fe val))
+
+(defun futur-fe-empty (fe)
+  "Construct a futur which grabs the contents of the full/empty cell FE."
+  (futur-mine-wait fe nil))
+
+;;;; Semaphore
+
+(cl-defstruct (futur-sem
+               (:include futur--mine)
+               (:conc-name futur-sem--)
+               (:constructor nil)
+               (:constructor futur-sem (&optional val)))
+  (val 1))
+
+(cl-defmethod futur--mine-fetch ((sem futur-sem) arg)
+  (unless count (setq count 1))
+  (cl-assert (>= count 0))
+  (let ((v (futur-sem--val sem)))
+    (when (<= arg v)
+      (setf (futur-sem--val sem) (- v arg))
+      arg)))
+
+(cl-defmethod futur--mine-return ((sem futur-sem) rsc)
+  (unless count (setq count 1))
+  (cl-assert (>= count 0))
+  (cl-incf (futur-sem--val sem) rsc))
 
 ;;;; Processes
 

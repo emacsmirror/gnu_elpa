@@ -269,5 +269,36 @@
 (ert-deftest futur-elisp-sandbox-funcall ()
   (futur--tests-elisp-funcall #'futur-elisp-sandbox--funcall))
 
+(ert-deftest futur-fe ()
+  (let* ((fe (futur-fe))
+         (last-read nil)
+         (emptiers
+          (futur-let*
+              ((y1 <- (futur-fe-empty fe))
+               (_ (setq last-read y1))
+               (y2 <- (futur-fe-empty fe))
+               (_ (setq last-read y2))
+               (y3 <- (futur-fe-empty fe))
+               (_ (setq last-read y3)))
+            (list y1 y2 y3)))
+         (fillers
+          (futur-let*
+              ((x1 last-read)
+               (_ <- (futur-fe-fill fe 1))
+               (x2 last-read)
+               (_ <- (futur-fe-fill fe 2))
+               (x3 last-read)
+               (_ <- (futur-fe-fill fe 3))
+               (x4 last-read)
+               (_ <- (futur-fe-fill fe 3))
+               (x5 last-read))
+            (list x1 (not (memq x2 '(nil 1))) (not (memq x3 '(1 2)))
+                (not (memq x4 '(2 3)))
+                (not (eq x5 3))))))
+    (should (equal (futur-blocking-wait-to-get-result fillers)
+                   '(nil nil nil nil nil)))
+    (should (equal (futur-blocking-wait-to-get-result emptiers)
+                   '(1 2 3)))))
+
 (provide 'futur-tests)
 ;;; futur-tests.el ends here

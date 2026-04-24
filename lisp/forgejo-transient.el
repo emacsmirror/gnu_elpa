@@ -37,7 +37,13 @@
 (declare-function forgejo-repo-search--owner-repo-at-point "forgejo-repo.el" ())
 (declare-function forgejo-repo-create "forgejo-repo.el" (name))
 
-(declare-function forgejo-notification-list "forgejo-notification.el" ())
+(declare-function forgejo-watch-list "forgejo-watch.el" ())
+(declare-function forgejo-watch-view-at-point "forgejo-watch.el" ())
+(declare-function forgejo-watch-mark-read-at-point "forgejo-watch.el" ())
+(declare-function forgejo-watch-mark-all-read "forgejo-watch.el" ())
+(declare-function forgejo-watch-browse-at-point "forgejo-watch.el" ())
+(declare-function forgejo-watch-list-refresh "forgejo-watch.el" ())
+(declare-function forgejo-watch-filter "forgejo-watch.el" ())
 
 (defvar forgejo-host)
 (defvar forgejo-repo--host)
@@ -51,7 +57,7 @@
     ("s" "Search repos" forgejo-repo-search)
     ("i" "Issues" forgejo-issue-list)
     ("p" "Pull requests" forgejo-pull-list)
-    ("n" "Notifications" forgejo-notification-list)]
+    ("n" "Watch" forgejo-watch-list)]
    ["Actions"
     ("c" "Create repo" forgejo-repo-create)
     ("b" "Browse repo" forgejo-browse-repo)
@@ -193,6 +199,21 @@
     ("l" "Commit log" forgejo-pull-view-log)
     ("g" "Refresh" forgejo-pull-view-refresh)
     ("b" "Open in browser" forgejo-pull-view-browse)
+    ("q" "Quit" quit-window)]])
+
+;;; Watch actions
+
+;;;###autoload (autoload 'forgejo-watch-actions "forgejo-transient" nil t)
+(transient-define-prefix forgejo-watch-actions ()
+  "Actions for the watch list."
+  [["Actions"
+    ("RET" "View" forgejo-watch-view-at-point)
+    ("r" "Mark read" forgejo-watch-mark-read-at-point)
+    ("A" "Mark all read" forgejo-watch-mark-all-read)
+    ("b" "Open in browser" forgejo-watch-browse-at-point)]
+   ["Navigate"
+    ("l" "Filter" forgejo-watch-filter)
+    ("g" "Refresh" forgejo-watch-list-refresh)
     ("q" "Quit" quit-window)]])
 
 (provide 'forgejo-transient)

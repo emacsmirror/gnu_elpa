@@ -8,7 +8,7 @@ SRCS = lisp/forgejo.el lisp/forgejo-api.el lisp/forgejo-db.el \
        lisp/forgejo-buffer.el lisp/forgejo-repo.el \
        lisp/forgejo-issue.el lisp/forgejo-pull.el lisp/forgejo-vc.el \
        lisp/forgejo-tl.el lisp/forgejo-review.el lisp/forgejo-settings.el \
-       lisp/forgejo-notification.el lisp/forgejo-transient.el
+       lisp/forgejo-alert.el lisp/forgejo-watch.el lisp/forgejo-transient.el
 
 TESTS = tests/forgejo-test-load.el tests/forgejo-test-api.el \
         tests/forgejo-test-db.el tests/forgejo-test-buffer.el \
@@ -45,7 +45,7 @@ load: clean
 	  (add-to-list 'load-path \"$(CURDIR)/lisp\") \
 	  (dolist (sym '(forgejo-issue-list-mode-map forgejo-pull-list-mode-map \
 	               forgejo-pull-view-mode-map forgejo-issue-view-mode-map \
-	               forgejo-repo-search-mode-map forgejo-notification-list-mode-map \
+	               forgejo-repo-search-mode-map forgejo-watch-list-mode-map \
 	               forgejo-buffer-diff-map \
 	               forgejo-buffer-ref-map forgejo-buffer-commit-map)) \
 	    (when (boundp sym) (makunbound sym))))" > /dev/null

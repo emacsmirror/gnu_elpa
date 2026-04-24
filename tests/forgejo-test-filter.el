@@ -106,74 +106,7 @@
     (should (equal (plist-get parsed :state) (plist-get reparsed :state)))
     (should (equal (plist-get parsed :labels) (plist-get reparsed :labels)))))
 
-;;; ---- Group 4: Notification parse/serialize ----
-
-(ert-deftest forgejo-test-filter-parse-notification ()
-  "Parse notification filter with custom prefix map."
-  (let ((result (forgejo-filter-parse
-                 "status:unread type:Issue"
-                 forgejo-filter--notification-prefix-map)))
-    (should (equal (plist-get result :status) "unread"))
-    (should (equal (plist-get result :type) "Issue"))))
-
-(ert-deftest forgejo-test-filter-serialize-notification ()
-  "Serialize notification filter with custom key map."
-  (let ((result (forgejo-filter-serialize
-                 '(:status "unread" :type "Issue")
-                 forgejo-filter--notification-key-map)))
-    (should (string-match-p "status:unread" result))
-    (should (string-match-p "type:Issue" result))))
-
-(ert-deftest forgejo-test-filter-notification-round-trip ()
-  "Notification parse/serialize round-trip."
-  (let* ((parsed (forgejo-filter-parse
-                  "status:read repo:alice/proj"
-                  forgejo-filter--notification-prefix-map))
-         (serialized (forgejo-filter-serialize
-                      parsed forgejo-filter--notification-key-map))
-         (reparsed (forgejo-filter-parse
-                    serialized
-                    forgejo-filter--notification-prefix-map)))
-    (should (equal (plist-get parsed :status)
-                   (plist-get reparsed :status)))
-    (should (equal (plist-get parsed :repo)
-                   (plist-get reparsed :repo)))))
-
-;;; ---- Group 5: Notification match predicate ----
-
-(ert-deftest forgejo-test-filter-match-notification-all ()
-  "Nil filters match everything."
-  (let ((row '(1 "Issue" "title" "url" "open" "alice" "proj" "unread" "2024-01-01")))
-    (should (forgejo-filter--match-notification row nil))))
-
-(ert-deftest forgejo-test-filter-match-notification-status ()
-  "Match by status."
-  (let ((row '(1 "Issue" "title" "url" "open" "alice" "proj" "unread" "2024-01-01")))
-    (should (forgejo-filter--match-notification row '(:status "unread")))
-    (should-not (forgejo-filter--match-notification row '(:status "read")))))
-
-(ert-deftest forgejo-test-filter-match-notification-type ()
-  "Match by type (case-insensitive)."
-  (let ((row '(1 "Issue" "title" "url" "open" "alice" "proj" "unread" "2024-01-01")))
-    (should (forgejo-filter--match-notification row '(:type "issue")))
-    (should (forgejo-filter--match-notification row '(:type "Issue")))
-    (should-not (forgejo-filter--match-notification row '(:type "Pull")))))
-
-(ert-deftest forgejo-test-filter-match-notification-repo ()
-  "Match by repo."
-  (let ((row '(1 "Issue" "title" "url" "open" "alice" "proj" "unread" "2024-01-01")))
-    (should (forgejo-filter--match-notification row '(:repo "alice/proj")))
-    (should-not (forgejo-filter--match-notification row '(:repo "bob/other")))))
-
-(ert-deftest forgejo-test-filter-match-notification-combined ()
-  "Match requires all filters to pass."
-  (let ((row '(1 "Issue" "title" "url" "open" "alice" "proj" "unread" "2024-01-01")))
-    (should (forgejo-filter--match-notification
-             row '(:status "unread" :type "Issue")))
-    (should-not (forgejo-filter--match-notification
-                 row '(:status "read" :type "Issue")))))
-
-;;; ---- Group 6: List entries ----
+;;; ---- Group 4: List entries ----
 
 (ert-deftest forgejo-test-filter-list-entries ()
   "Convert API alists to tabulated-list entries."

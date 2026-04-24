@@ -37,17 +37,17 @@
     (:author . "author"))
   "Key map for serializing issue and PR filter plists.")
 
-(defconst forgejo-filter--notification-prefix-map
-  '(("status" . :status)
-    ("type" . :type)
-    ("repo" . :repo))
-  "Prefix map for parsing notification filter queries.")
+(defconst forgejo-filter--watch-prefix-map
+  (append forgejo-filter--prefix-map
+          '(("read" . :read)
+            ("type" . :type)))
+  "Prefix map for parsing watch filter queries.")
 
-(defconst forgejo-filter--notification-key-map
-  '((:status . "status")
-    (:type . "type")
-    (:repo . "repo"))
-  "Key map for serializing notification filter plists.")
+(defconst forgejo-filter--watch-key-map
+  (append forgejo-filter--key-map
+          '((:read . "read")
+            (:type . "type")))
+  "Key map for serializing watch filter plists.")
 
 ;;; ---- Parse / serialize ----
 
@@ -124,12 +124,13 @@ free-text prefixes.  Returns the query string."
 The :page key is handled separately (needs number-to-string).")
 
 (defun forgejo-filter-build-params (type filters)
-  "Build API query params from FILTERS for TYPE (\"issues\" or \"pulls\").
+  "Build API query params from FILTERS for the issues endpoint.
+TYPE is \"issues\", \"pulls\", or nil (both).
 Returns an alist of (PARAM . VALUE) pairs."
-  (let ((params (list (cons "type" type)
-                      (cons "sort" forgejo-default-sort)
+  (let ((params (list (cons "sort" forgejo-default-sort)
                       (cons "limit" (number-to-string
                                      (forgejo-api-default-limit))))))
+    (when type (push (cons "type" type) params))
     (cl-loop for (key . param) in forgejo-filter--api-param-map
              for val = (plist-get filters key)
              when val do (push (cons param val) params))
@@ -138,6 +139,29 @@ Returns an alist of (PARAM . VALUE) pairs."
     params))
 
 ;;; ---- DB query pipelines ----
+
+(defun forgejo-filter-query-watch (host rules filters)
+  "Return issue/PR alists matching watch RULES with FILTERS.
+RULES is `forgejo-watch-rules'.  FILTERS is an
+additional filter plist (e.g. (:read \"no\")).  Returns alists
+enriched with `watch-owner' and `watch-repo' keys."
+  (let (result)
+    (dolist (rule rules)
+      (let* ((repo-key (if (stringp rule) rule (car rule)))
+             (query (if (stringp rule) nil (cdr rule)))
+             (parts (split-string repo-key "/"))
+             (owner (nth 0 parts))
+             (repo (nth 1 parts))
+             (rule-filters (forgejo-filter-parse query))
+             (merged (append rule-filters filters))
+             (rows (forgejo-db-get-issues host owner repo merged))
+             (alists (mapcar #'forgejo-db--row-to-issue-alist rows)))
+        (dolist (alist alists)
+          (push (append `((watch-owner . ,owner)
+                          (watch-repo . ,repo))
+                        alist)
+                result))))
+    (nreverse result)))
 
 (defun forgejo-filter-query-issues (host owner repo filters)
   "Return issue alists for HOST/OWNER/REPO matching FILTERS.
@@ -153,28 +177,6 @@ Result is a list of API-shaped alists."
     (mapcar #'forgejo-db--row-to-issue-alist
             (forgejo-db-get-issues host owner repo db-filters))))
 
-(defun forgejo-filter--match-notification (row filters)
-  "Return non-nil if notification ROW matches FILTERS plist.
-ROW layout: 0=id 1=subject_type 2=subject_title 3=subject_url
-            4=subject_state 5=repo_owner 6=repo_name 7=status 8=updated_at."
-  (and (or (null (plist-get filters :status))
-           (string= (or (nth 7 row) "") (plist-get filters :status)))
-       (or (null (plist-get filters :type))
-           (string= (downcase (or (nth 1 row) ""))
-                    (downcase (plist-get filters :type))))
-       (or (null (plist-get filters :repo))
-           (string= (format "%s/%s" (nth 5 row) (nth 6 row))
-                    (plist-get filters :repo)))))
-
-(defun forgejo-filter-query-notifications (host &optional filters)
-  "Return notification rows for HOST matching FILTERS.
-When FILTERS is nil, returns all notifications."
-  (let ((rows (forgejo-db-get-notifications host)))
-    (if filters
-        (cl-remove-if-not
-         (lambda (row) (forgejo-filter--match-notification row filters))
-         rows)
-      rows)))
 
 ;;; ---- Tabulated-list format ----
 
@@ -183,7 +185,7 @@ When FILTERS is nil, returns all notifications."
 
 (defconst forgejo-filter-list-columns
   `(("#"       5    forgejo--sort-by-number :right-align t)
-    ("State"   8    nil)
+    ("State"   6    nil)
     ("Title"   ,(/ 1.0 3) t)
     ("Labels"  ,(/ 1.0 6) nil)
     ("Author"  ,(/ 1.0 8) t)
@@ -192,11 +194,13 @@ When FILTERS is nil, returns all notifications."
 Each element is (NAME WIDTH-OR-FLOAT SORT . PROPS).")
 
 (defconst forgejo-filter-notification-columns
-  `(("Repo"    ,(/ 1.0 5) t)
-    ("Type"    8    nil)
+  `(("Type"    5    nil)
+    ("Ref"     ,(/ 1.0 10) t)
+    ("State"   6    nil)
     ("Title"   ,(/ 1.0 3) t)
-    ("Status"  8    nil)
-    ("Updated" ,(/ 1.0 8) t))
+    ("Labels"  ,(/ 1.0 6) nil)
+    ("Author"  ,(/ 1.0 8) t)
+    ("Updated" ,(/ 1.0 8) forgejo--sort-by-updated))
   "Column spec for notification list views.")
 
 (defun forgejo-filter-list-format (columns)
@@ -239,6 +243,33 @@ Each entry is (NUMBER . [# STATE TITLE LABELS AUTHOR UPDATED])."
                           'forgejo-timestamp (or .updated_at ""))))))
    items))
 
+(defun forgejo-filter-notification-entries (items)
+  "Convert ITEMS (watch query alists) to `tabulated-list-entries'.
+Each entry is (NUMBER . [TYPE REF STATE TITLE LABELS AUTHOR UPDATED]).
+Items must have `watch-owner' and `watch-repo' keys."
+  (mapcar
+   (lambda (item)
+     (let-alist item
+       (let ((type (if .pull_request "PR" "Issue"))
+             (short-ref (format "%s#%d" (or .watch-repo "") (or .number 0)))
+             (full-ref (format "%s/%s#%d"
+                               (or .watch-owner "") (or .watch-repo "")
+                               (or .number 0))))
+         (list full-ref
+               (vector
+                (propertize type 'face (if .pull_request 'success 'warning))
+                (propertize short-ref 'face 'forgejo-number-face
+                            'forgejo-full-ref full-ref)
+                (forgejo-buffer--format-state .state)
+                .title
+                (forgejo-buffer--format-labels .labels)
+                (propertize (or (forgejo-buffer--login .user) "")
+                            'face 'forgejo-comment-author-face)
+                (propertize (forgejo-buffer--relative-time .updated_at)
+                            'face 'shadow
+                            'forgejo-timestamp (or .updated_at "")))))))
+   items))
+
 ;;; ---- Refresh ----
 
 (defvar forgejo-host)
@@ -275,16 +306,6 @@ REPO FILTERS) for immediate DB render.  SYNC-FN is called as
       (author . ,authors)
       (search . nil))))
 
-(defun forgejo-filter-completions-for-notifications (host)
-  "Return completions-alist for notification filter on HOST."
-  (let* ((rows (forgejo-db-get-notifications host))
-         (repos (delete-dups
-                 (mapcar (lambda (row)
-                           (format "%s/%s" (nth 5 row) (nth 6 row)))
-                         rows))))
-    `((status . ("unread" "read"))
-      (type . ("Issue" "Pull"))
-      (repo . ,repos))))
 
 (provide 'forgejo-filter)
 ;;; forgejo-filter.el ends here

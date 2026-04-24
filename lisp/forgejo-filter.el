@@ -9,6 +9,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'url-parse)
 (require 'forgejo-db)
 
 (defvar crm-separator)

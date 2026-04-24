@@ -196,7 +196,7 @@ Shows cached data immediately, then syncs from the API in the background."
 
 (defun forgejo-pull-filter ()
   "Filter PRs using a query string with prefix completion.
-Supported prefixes: state:, label:, poster:, search:.
+Supported prefixes: state:, label:, author:, search:.
 Bare words are treated as title search.
 Empty input clears all filters."
   (interactive)

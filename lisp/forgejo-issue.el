@@ -85,12 +85,6 @@ Keys: :state :labels :milestone :author :query :page")
   "Build API query params from FILTERS plist."
   (forgejo-filter-build-params "issues" filters))
 
-(defun forgejo-issue--fetch (owner repo filters callback)
-  "Fetch all issues from API for OWNER/REPO with FILTERS, call CALLBACK."
-  (let ((endpoint (format "repos/%s/%s/issues" owner repo))
-        (params (forgejo-issue--build-params filters)))
-    (forgejo-api-get-all endpoint params callback)))
-
 ;;; Cache-first rendering
 
 (defun forgejo-issue--render-from-db (buf-name host owner repo filters)

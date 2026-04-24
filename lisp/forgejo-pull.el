@@ -85,12 +85,6 @@ Keys: :state :milestone :labels :author :page")
   "Build API query params from FILTERS plist for PR sync."
   (forgejo-filter-build-params "pulls" filters))
 
-(defun forgejo-pull--fetch (owner repo filters callback)
-  "Fetch all PRs from API for OWNER/REPO with FILTERS, call CALLBACK."
-  (let ((endpoint (format "repos/%s/%s/issues" owner repo))
-        (params (forgejo-pull--build-params filters)))
-    (forgejo-api-get-all endpoint params callback)))
-
 (defun forgejo-pull--render-from-db (buf-name host owner repo filters)
   "Render cached PRs into BUF-NAME from the DB.
 Does not write `forgejo-pull--filters'; callers own filter state."
@@ -640,18 +634,6 @@ Only works when `default-directory' is inside the same repository."
                               map))
              (goto-char (point-min))
              (switch-to-buffer (current-buffer)))))))))
-
-;;; Review
-
-(defun forgejo-pull-submit-review ()
-  "Submit a review on the current pull request."
-  (interactive)
-  (when-let* ((data forgejo-pull--data)
-              (number (alist-get 'number data)))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-utils-submit-review
-       forgejo-repo--owner forgejo-repo--name number
-       (forgejo--post-action-callback)))))
 
 ;;; Edit
 

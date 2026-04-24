@@ -20,19 +20,15 @@
 
 ;;; Commentary:
 
-;; Notification polling, activity tracking, and mode-line indicator
-;; for Forgejo instances.  Follows the hook-based architecture of
-;; jabber.el (jabber-activity.el / jabber-modeline.el) adapted from
-;; event-driven XMPP to timer-polled REST.
+;; Notification polling and display for Forgejo instances.
 ;;
-;; Currently polls the Forgejo notification API and caches results in
-;; the local DB.  The hook system and DB table are designed to also
-;; support future local watch rules (custom per-repo/label filters
-;; that generate notifications from the sync process).
+;; Polls the Forgejo notification API and caches results in the local
+;; DB.  The hook system is designed to also support future local watch
+;; rules (custom per-repo/label filters that generate notifications
+;; from the sync process).
 ;;
-;; Enable `forgejo-modeline-mode' to start polling and display the
-;; unread count in the mode line.  Use `forgejo-notification-list'
-;; to browse notifications in a tabulated-list buffer.
+;; Enable `forgejo-notification-mode' to start polling.
+;; Use `forgejo-notification-list' to browse notifications.
 
 ;;; Code:
 
@@ -100,48 +96,26 @@ The default \"emacs\" is resolved by the system icon theme."
 
 (add-hook 'forgejo-notification-hooks #'forgejo-notification--desktop-notify)
 
-;;; Faces
-
-(defface forgejo-notification-face
-  '((t :inherit warning))
-  "Face for the mode-line notification indicator."
-  :group 'forgejo)
-
 ;;; State
 
 (defvar forgejo-notification--timer nil
   "Timer for periodic notification polling.")
 
-(defvar forgejo-notification--unread-count 0
-  "Cached count of unread notifications.")
-
-(defvar forgejo-notification-mode-string ""
-  "Mode-line string showing unread notification count.")
-
-(defvar forgejo-notification--eval-form
-  '(:eval forgejo-notification-mode-string)
-  "Form added to `global-mode-string' for the mode-line indicator.")
-
 ;;; Polling
 
 (defun forgejo-notification--poll ()
-  "Fetch unread notifications and update state.
-Saves to DB, updates mode-line, runs hooks on new notifications,
-and refreshes the list buffer if visible."
+  "Fetch unread notifications, save to DB, and run hooks on new ones."
   (let ((host (url-host (url-generic-parse-url forgejo-host))))
     (forgejo-api-get
      "notifications"
      '(("status-types" . "unread"))
      (lambda (data _headers)
-       (let ((old-count forgejo-notification--unread-count))
-         (when (listp data)
-           (forgejo-db-save-notifications host data))
-         (setq forgejo-notification--unread-count
-               (if (listp data) (length data) 0))
-         (forgejo-notification--mode-line-update)
-         (when (> forgejo-notification--unread-count old-count)
-           (run-hook-with-args 'forgejo-notification-hooks data))
-         (forgejo-notification--refresh-list-buffer host))))))
+       (when (listp data)
+         (let ((old-count (forgejo-db-notification-unread-count host)))
+           (forgejo-db-save-notifications host data)
+           (when (> (length data) old-count)
+             (run-hook-with-args 'forgejo-notification-hooks data))))
+       (forgejo-notification--refresh-list-buffer host)))))
 
 (defun forgejo-notification--refresh-list-buffer (host)
   "Re-render the notification list buffer for HOST if visible."
@@ -150,30 +124,18 @@ and refreshes the list buffer if visible."
       (with-current-buffer buf
         (forgejo-notification--render host)))))
 
-;;; Mode-line
-
-(defun forgejo-notification--mode-line-update ()
-  "Update the mode-line notification string."
-  (setq forgejo-notification-mode-string
-        (if (> forgejo-notification--unread-count 0)
-            (propertize (format " [F:%d]" forgejo-notification--unread-count)
-                        'face 'forgejo-notification-face)
-          ""))
-  (force-mode-line-update 'all))
-
 ;;; Global minor mode
 
 ;;;###autoload
-(define-minor-mode forgejo-modeline-mode
-  "Toggle Forgejo notification indicator in the mode line.
-Polls the Forgejo API periodically for unread notifications."
+(define-minor-mode forgejo-notification-mode
+  "Toggle Forgejo notification polling.
+Polls the Forgejo API periodically for unread notifications
+and runs `forgejo-notification-hooks' when new ones arrive."
   :global t
   :lighter nil
   :group 'forgejo
-  (if forgejo-modeline-mode
+  (if forgejo-notification-mode
       (progn
-        (unless (member forgejo-notification--eval-form global-mode-string)
-          (push forgejo-notification--eval-form global-mode-string))
         (setq forgejo-notification--timer
               (run-with-timer 0 forgejo-notification-poll-interval
                               #'forgejo-notification--poll))
@@ -181,16 +143,11 @@ Polls the Forgejo API periodically for unread notifications."
     (forgejo-notification--cleanup)))
 
 (defun forgejo-notification--cleanup ()
-  "Cancel the polling timer and clear mode-line state."
+  "Cancel the polling timer."
   (when forgejo-notification--timer
     (cancel-timer forgejo-notification--timer)
     (setq forgejo-notification--timer nil))
-  (setq forgejo-notification--unread-count 0
-        forgejo-notification-mode-string "")
-  (setq global-mode-string
-        (delete forgejo-notification--eval-form global-mode-string))
-  (remove-hook 'kill-emacs-hook #'forgejo-notification--cleanup)
-  (force-mode-line-update 'all))
+  (remove-hook 'kill-emacs-hook #'forgejo-notification--cleanup))
 
 ;;; Notification list buffer
 
@@ -326,8 +283,6 @@ Re-renders the list buffer after all pages are fetched."
       ;; Mark as read locally and on the server
       (forgejo-db-mark-notification-read forgejo-notification--host notif-id)
       (forgejo-api-patch (format "notifications/threads/%d" notif-id))
-      (cl-decf forgejo-notification--unread-count)
-      (forgejo-notification--mode-line-update)
       (forgejo-notification--render forgejo-notification--host)
       ;; Navigate
       (forgejo-with-host forgejo-repo--host
@@ -358,8 +313,6 @@ Re-renders the list buffer after all pages are fetched."
        nil
        (lambda (_data _headers)
          (forgejo-db-clear-notifications host)
-         (setq forgejo-notification--unread-count 0)
-         (forgejo-notification--mode-line-update)
          (message "All notifications marked as read")
          (forgejo-notification--refresh-list-buffer host))))))
 

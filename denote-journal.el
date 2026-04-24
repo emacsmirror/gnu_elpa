@@ -2,8 +2,8 @@
 
 ;; Copyright (C) 2023-2026  Free Software Foundation, Inc.
 
-;; Author: Protesilaos Stavrou <info@protesilaos.com>
-;; Maintainer: Protesilaos Stavrou <info@protesilaos.com>
+;; Author: Protesilaos <info@protesilaos.com>
+;; Maintainer: Protesilaos <info@protesilaos.com>
 ;; URL: https://github.com/protesilaos/denote-journal
 ;; Version: 0.2.2
 ;; Package-Requires: ((emacs "28.1") (denote "4.0.0"))

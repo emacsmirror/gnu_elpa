@@ -392,7 +392,7 @@ const processedData = transformData(rawData, {
   "Config options for Minuet OpenAI compatible provider.")
 
 (defvar minuet-openai-fim-compatible-options
-  '(:model "deepseek-chat"
+  '(:model "deepseek-v4-flash"
     :end-point "https://api.deepseek.com/beta/completions"
     :api-key "DEEPSEEK_API_KEY"
     :name "Deepseek"

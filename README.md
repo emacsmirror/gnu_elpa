@@ -298,11 +298,10 @@ completion request.
 # Selecting a Provider or Model
 
 The `gemini-2.0-flash` and `codestral` models offer high-quality output with
-free and fast processing. For optimal quality, though with significantly slower
-generation speed, consider using the `deepseek-chat` model, which is compatible
-with both `openai-fim-compatible` and `openai-compatible` providers. For local
-LLM inference, you can deploy either `qwen-2.5-coder` or `deepseek-coder-v2`
-through Ollama using the `openai-fim-compatible` provider.
+free and fast processing. The `deepseek-v4-flash` model, used with the
+`openai_fim_compatible` provider, is an alternative for low-cost APIs and fast
+inference. For local LLM inference, you can deploy either `qwen-2.5-coder` or
+`deepseek-coder-v2` through Ollama using the `openai-fim-compatible` provider.
 
 Note: as of January 27, 2025, the high server demand from deepseek may
 significantly slow down the default provider used by Minuet
@@ -828,7 +827,7 @@ The following config is the default.
 
 ```lisp
 (defvar minuet-openai-fim-compatible-options
-    '(:model "deepseek-chat"
+    '(:model "deepseek-v4-flash"
       :end-point "https://api.deepseek.com/beta/completions"
       :api-key "DEEPSEEK_API_KEY"
       :name "Deepseek"

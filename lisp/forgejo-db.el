@@ -57,6 +57,7 @@
        updated_at TEXT,
        closed_at TEXT,
        is_pull INTEGER DEFAULT 0,
+       read INTEGER DEFAULT 0,
        PRIMARY KEY (host, owner, repo, number))"
     "CREATE TABLE IF NOT EXISTS timeline_events (
        id INTEGER NOT NULL,
@@ -104,18 +105,7 @@
        endpoint TEXT NOT NULL,
        last_synced TEXT,
        PRIMARY KEY (host, owner, repo, endpoint))"
-    "CREATE TABLE IF NOT EXISTS notifications (
-       id INTEGER NOT NULL,
-       host TEXT NOT NULL,
-       subject_type TEXT,
-       subject_title TEXT,
-       subject_url TEXT,
-       subject_state TEXT,
-       repo_owner TEXT,
-       repo_name TEXT,
-       status TEXT,
-       updated_at TEXT,
-       PRIMARY KEY (host, id))")
+)
   "SQL statements to initialize the database schema.")
 
 ;;; Connection management
@@ -123,7 +113,9 @@
 (defconst forgejo-db--migrations
   '("ALTER TABLE issues ADD COLUMN body_html TEXT"
     "ALTER TABLE issues ADD COLUMN previous_body TEXT"
-    "ALTER TABLE timeline_events ADD COLUMN body_html TEXT")
+    "ALTER TABLE timeline_events ADD COLUMN body_html TEXT"
+    "ALTER TABLE issues ADD COLUMN read INTEGER DEFAULT 0"
+    "DROP TABLE IF EXISTS notifications")
   "Migration statements for existing databases.
 Each is run inside condition-case so duplicates are ignored.")
 
@@ -235,15 +227,15 @@ whether a `pull_request' field is present in the data."
            "INSERT INTO issues
               (id, host, owner, repo, number, title, state, body, body_html,
                user, labels, milestone, assignees, comments_count,
-               created_at, updated_at, closed_at, is_pull)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               created_at, updated_at, closed_at, is_pull, read)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
             ON CONFLICT(host, owner, repo, number) DO UPDATE SET
               title=excluded.title, state=excluded.state, body=excluded.body,
               body_html=COALESCE(excluded.body_html, issues.body_html),
               user=excluded.user, labels=excluded.labels, milestone=excluded.milestone,
               assignees=excluded.assignees, comments_count=excluded.comments_count,
               updated_at=excluded.updated_at, closed_at=excluded.closed_at,
-              is_pull=excluded.is_pull"
+              is_pull=excluded.is_pull, read=0"
            (list .id host owner repo .number .title .state body body-html
                  (alist-get 'login .user)
                  (forgejo-db--encode-json (when (listp labels) labels))
@@ -263,6 +255,7 @@ FILTERS is a plist with keys:
   :milestone  - milestone title to match
   :author     - author/poster login to match
   :query      - search string for title
+  :read       - \"yes\" or \"no\" for read/unread status
   :is-pull    - when non-nil, filter to pull requests only
   :no-pulls   - when non-nil, exclude pull requests"
   (let ((where (list "host = ?" "owner = ?" "repo = ?"))
@@ -283,6 +276,13 @@ FILTERS is a plist with keys:
     (when-let* ((query (plist-get filters :query)))
       (setq where (append where (list "title LIKE ?"))
             args (append args (list (format "%%%s%%" query)))))
+    (when-let* ((read-val (plist-get filters :read)))
+      (setq where (append where (list "read = ?"))
+            args (append args (list (if (equal read-val "yes") 1 0)))))
+    (when-let* ((type (plist-get filters :type)))
+      (setq where (append where (list (if (equal type "pr")
+                                          "is_pull = 1"
+                                        "is_pull = 0")))))
     (when (plist-get filters :is-pull)
       (setq where (append where (list "is_pull = 1"))))
     (when (plist-get filters :no-pulls)
@@ -432,7 +432,7 @@ Stores body_html from API response when available."
 (defconst forgejo-db--issue-columns
   "number, title, state, body, body_html, user, labels, milestone,
    assignees, comments_count, created_at, updated_at, closed_at, is_pull,
-   previous_body"
+   previous_body, read"
   "Column list for issue queries (deterministic order).")
 
 (defun forgejo-db--row-to-issue-alist (row)
@@ -440,7 +440,7 @@ Stores body_html from API response when available."
 ROW must come from a query using `forgejo-db--issue-columns':
   0=number 1=title 2=state 3=body 4=body_html 5=user 6=labels
   7=milestone 8=assignees 9=comments_count 10=created_at
-  11=updated_at 12=closed_at 13=is_pull 14=previous_body"
+  11=updated_at 12=closed_at 13=is_pull 14=previous_body 15=read"
   (let ((labels (forgejo-db--decode-json (nth 6 row)))
         (assignees-raw (forgejo-db--decode-json (nth 8 row))))
     `((number . ,(nth 0 row))
@@ -458,7 +458,8 @@ ROW must come from a query using `forgejo-db--issue-columns':
       (updated_at . ,(nth 11 row))
       (closed_at . ,(nth 12 row))
       (pull_request . ,(when (= (or (nth 13 row) 0) 1) t))
-      (previous_body . ,(nth 14 row)))))
+      (previous_body . ,(nth 14 row))
+      (read . ,(or (nth 15 row) 0)))))
 
 (defconst forgejo-db--timeline-columns
   "id, type, body, body_html, user, created_at, data"
@@ -491,6 +492,13 @@ fields like label, assignee, old_title, new_title."
                      (list host owner repo number)))
               (row (car rows)))
     (forgejo-db--row-to-issue-alist row)))
+
+(defun forgejo-db-mark-read (host owner repo number)
+  "Mark issue/PR NUMBER as read for HOST/OWNER/REPO."
+  (forgejo-db--execute
+   "UPDATE issues SET read = 1
+    WHERE host = ? AND owner = ? AND repo = ? AND number = ?"
+   (list host owner repo number)))
 
 (defun forgejo-db-close-missing (host owner repo numbers &optional is-pull)
   "Mark issues NOT in NUMBERS as closed for HOST/OWNER/REPO.
@@ -541,66 +549,6 @@ When IS-PULL is non-nil, only affect pull requests."
    "UPDATE timeline_events SET body_html = ?
     WHERE host = ? AND owner = ? AND repo = ? AND issue_number = ? AND id = ?"
    (list html host owner repo issue-number event-id)))
-
-;;; Notifications
-
-(defun forgejo-db-save-notifications (host notifications)
-  "Upsert NOTIFICATIONS (list of API alists) for HOST."
-  (let ((db (forgejo-db--ensure)))
-    (dolist (n notifications)
-      (let-alist n
-        (sqlite-execute
-         db
-         "INSERT OR REPLACE INTO notifications
-            (id, host, subject_type, subject_title, subject_url,
-             subject_state, repo_owner, repo_name, status, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-         (list .id host
-               (alist-get 'type .subject)
-               (alist-get 'title .subject)
-               (alist-get 'url .subject)
-               (alist-get 'state .subject)
-               (alist-get 'login (alist-get 'owner .repository))
-               (alist-get 'name .repository)
-               (if (eq .unread t) "unread" "read")
-               .updated_at))))))
-
-(defun forgejo-db-get-notifications (host &optional status)
-  "Get notifications for HOST, optionally filtered by STATUS."
-  (if status
-      (forgejo-db--select
-       "SELECT id, subject_type, subject_title, subject_url,
-               subject_state, repo_owner, repo_name, status, updated_at
-        FROM notifications WHERE host = ? AND status = ?
-        ORDER BY updated_at DESC"
-       (list host status))
-    (forgejo-db--select
-     "SELECT id, subject_type, subject_title, subject_url,
-             subject_state, repo_owner, repo_name, status, updated_at
-      FROM notifications WHERE host = ?
-      ORDER BY updated_at DESC"
-     (list host))))
-
-(defun forgejo-db-notification-unread-count (host)
-  "Return the count of unread notifications for HOST."
-  (or (caar (forgejo-db--select
-             "SELECT COUNT(*) FROM notifications
-              WHERE host = ? AND status = 'unread'"
-             (list host)))
-      0))
-
-(defun forgejo-db-mark-notification-read (host id)
-  "Mark notification ID as read for HOST."
-  (forgejo-db--execute
-   "UPDATE notifications SET status = 'read'
-    WHERE host = ? AND id = ?"
-   (list host id)))
-
-(defun forgejo-db-clear-notifications (host)
-  "Remove all notifications for HOST."
-  (forgejo-db--execute
-   "DELETE FROM notifications WHERE host = ?"
-   (list host)))
 
 (provide 'forgejo-db)
 ;;; forgejo-db.el ends here

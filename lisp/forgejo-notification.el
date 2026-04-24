@@ -42,6 +42,7 @@
 (require 'forgejo-api)
 (require 'forgejo-tl)
 (require 'forgejo-db)
+(require 'forgejo-filter)
 (require 'forgejo-utils)
 (require 'forgejo-buffer)
 
@@ -247,30 +248,11 @@ can extract the issue/PR number without re-querying the DB."
             (forgejo-buffer--relative-time (nth 8 row)))))
    rows))
 
-(defun forgejo-notification--match-filters (row filters)
-  "Return non-nil if notification ROW matches FILTERS plist.
-ROW: 0=id 1=subject_type 2=subject_title 3=subject_url
-     4=subject_state 5=repo_owner 6=repo_name 7=status 8=updated_at."
-  (and (or (null (plist-get filters :status))
-           (string= (or (nth 7 row) "") (plist-get filters :status)))
-       (or (null (plist-get filters :type))
-           (string= (downcase (or (nth 1 row) ""))
-                    (downcase (plist-get filters :type))))
-       (or (null (plist-get filters :repo))
-           (string= (format "%s/%s" (nth 5 row) (nth 6 row))
-                    (plist-get filters :repo)))))
-
 (defun forgejo-notification--render (host)
   "Render notifications from DB for HOST into the current buffer."
-  (let* ((rows (forgejo-db-get-notifications host))
-         (filtered (if forgejo-notification--filters
-                       (cl-remove-if-not
-                        (lambda (row)
-                          (forgejo-notification--match-filters
-                           row forgejo-notification--filters))
-                        rows)
-                     rows)))
-    (setq tabulated-list-entries (forgejo-notification--entries filtered))
+  (let* ((rows (forgejo-filter-query-notifications
+                host forgejo-notification--filters)))
+    (setq tabulated-list-entries (forgejo-notification--entries rows))
     (forgejo-tl-print)
     (goto-char (point-min))))
 
@@ -310,42 +292,19 @@ Re-renders the list buffer after all pages are fetched."
 
 ;;; Filtering
 
-(defun forgejo-notification--repo-names ()
-  "Return distinct repo names from cached notifications."
-  (let ((rows (forgejo-db-get-notifications forgejo-notification--host)))
-    (delete-dups
-     (mapcar (lambda (row) (format "%s/%s" (nth 5 row) (nth 6 row)))
-             rows))))
-
 (defun forgejo-notification-filter ()
   "Filter the notification list."
   (interactive)
-  (let* ((repos (forgejo-notification--repo-names))
-         (query (forgejo-utils-read-filter
-                 (forgejo-utils-serialize-filter forgejo-notification--filters)
-                 `((status . ("unread" "read"))
-                   (type . ("Issue" "Pull"))
-                   (repo . ,repos))))
-         (filters (forgejo-notification--parse-filter query)))
+  (let* ((completions (forgejo-filter-completions-for-notifications
+                       forgejo-notification--host))
+         (current (forgejo-filter-serialize
+                   forgejo-notification--filters
+                   forgejo-filter--notification-key-map))
+         (query (forgejo-filter-read current completions))
+         (filters (forgejo-filter-parse
+                   query forgejo-filter--notification-prefix-map)))
     (setq forgejo-notification--filters filters)
     (forgejo-notification--render forgejo-notification--host)))
-
-(defun forgejo-notification--parse-filter (query-string)
-  "Parse QUERY-STRING into a notification filter plist.
-Recognized prefixes: status, type, repo."
-  (let ((tokens (split-string (or query-string "") " " t))
-        (result nil)
-        (prefix-map '(("status" . :status)
-                      ("type" . :type)
-                      ("repo" . :repo))))
-    (dolist (token tokens)
-      (when (string-match "\\`\\([^:]+\\):\\(.*\\)\\'" token)
-        (let* ((prefix (match-string 1 token))
-               (value (match-string 2 token))
-               (key (cdr (assoc prefix prefix-map))))
-          (when (and key (not (string-empty-p value)))
-            (setq result (plist-put result key value))))))
-    result))
 
 (defun forgejo-notification-clear-filters ()
   "Clear all notification filters."

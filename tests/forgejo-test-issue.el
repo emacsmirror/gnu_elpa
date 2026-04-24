@@ -17,6 +17,8 @@
        (file-name-directory (or load-file-name buffer-file-name))))
 (load (expand-file-name "../lisp/forgejo-buffer.el"
        (file-name-directory (or load-file-name buffer-file-name))))
+(load (expand-file-name "../lisp/forgejo-filter.el"
+       (file-name-directory (or load-file-name buffer-file-name))))
 (load (expand-file-name "../lisp/forgejo-issue.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
@@ -30,7 +32,7 @@
                     (labels . (((name . "bug") (color . "ff0000"))))
                     (user . ((login . "alice")))
                     (updated_at . "2020-06-15T10:00:00Z"))))
-         (entries (forgejo-issue--entries issues)))
+         (entries (forgejo-filter-list-entries issues)))
     (should (= (length entries) 1))
     (let ((entry (car entries)))
       (should (= (car entry) 42))

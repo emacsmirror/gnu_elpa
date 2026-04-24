@@ -31,6 +31,7 @@
 (require 'forgejo)
 (require 'forgejo-tl)
 (require 'forgejo-buffer)
+(require 'forgejo-filter)
 (require 'forgejo-utils)
 (require 'forgejo-api)
 (require 'forgejo-db)
@@ -50,7 +51,7 @@
 
 (defvar-local forgejo-pull--filters nil
   "Plist of current PR filter state.
-Keys: :state :milestone :labels :poster :page")
+Keys: :state :milestone :labels :author :page")
 
 (defvar-local forgejo-pull--total-count nil
   "Total number of PRs matching current filters.")
@@ -85,24 +86,6 @@ Keys: :state :milestone :labels :poster :page")
         tabulated-list-sort-key '("#" . t))
   (tabulated-list-init-header))
 
-(defun forgejo-pull--entries (pulls)
-  "Convert PULLS (list of API alists) to `tabulated-list-entries'."
-  (mapcar
-   (lambda (pr)
-     (let-alist pr
-       (list .number
-             (vector
-              (propertize (number-to-string .number) 'face 'forgejo-number-face)
-              (forgejo-buffer--format-state .state)
-              .title
-              (forgejo-buffer--format-labels .labels)
-              (propertize (or (forgejo-buffer--login .user) "")
-                          'face 'forgejo-comment-author-face)
-              (propertize (forgejo-buffer--relative-time .updated_at)
-                          'face 'shadow
-                          'forgejo-timestamp (or .updated_at ""))))))
-   pulls))
-
 (defun forgejo-pull--build-params (filters)
   "Build API query params from FILTERS plist for PR endpoint."
   (let ((params (list (cons "sort" forgejo-default-sort)
@@ -110,8 +93,8 @@ Keys: :state :milestone :labels :poster :page")
                                      (forgejo-api-default-limit))))))
     (when-let* ((state (plist-get filters :state)))
       (push (cons "state" state) params))
-    (when-let* ((poster (plist-get filters :poster)))
-      (push (cons "poster" poster) params))
+    (when-let* ((author (plist-get filters :author)))
+      (push (cons "poster" author) params))
     (when-let* ((page (plist-get filters :page)))
       (push (cons "page" (number-to-string page)) params))
     params))
@@ -123,11 +106,10 @@ Keys: :state :milestone :labels :poster :page")
     (forgejo-api-get-all endpoint params callback)))
 
 (defun forgejo-pull--render-from-db (buf-name host owner repo filters)
-  "Render cached PRs into BUF-NAME from the DB."
-  (let* ((db-filters (append (list :is-pull t) filters))
-         (rows (forgejo-db-get-issues host owner repo db-filters))
-         (alists (mapcar #'forgejo-db--row-to-issue-alist rows))
-         (entries (forgejo-pull--entries alists)))
+  "Render cached PRs into BUF-NAME from the DB.
+Does not write `forgejo-pull--filters'; callers own filter state."
+  (let ((entries (forgejo-filter-list-entries
+                  (forgejo-filter-query-pulls host owner repo filters))))
     (with-current-buffer (get-buffer-create buf-name)
       (unless (derived-mode-p 'forgejo-pull-list-mode)
         (forgejo-pull-list-mode))
@@ -135,7 +117,6 @@ Keys: :state :milestone :labels :poster :page")
         (setq forgejo-repo--host forgejo-host))
       (setq forgejo-repo--owner owner
             forgejo-repo--name repo
-            forgejo-pull--filters filters
             tabulated-list-entries entries)
       (forgejo-tl-print t)
       (current-buffer))))
@@ -148,11 +129,13 @@ When FORCE is non-nil, mark missing PRs as closed."
         (params (forgejo-pull--build-params filters)))
     (forgejo-api-get-paged
      endpoint params
-     ;; Per-page: save and re-render
+     ;; Per-page: save and re-render with current buffer-local filters
      (lambda (page-data _headers _page-num)
        (forgejo-db-save-issues host owner repo page-data t)
        (when (buffer-live-p (get-buffer buf-name))
-         (forgejo-pull--render-from-db buf-name host owner repo filters)))
+         (with-current-buffer buf-name
+           (forgejo-pull--render-from-db
+            buf-name host owner repo forgejo-pull--filters))))
      ;; Done: close missing, set sync time, final re-render
      (lambda (all-data headers)
        (when (and force (equal (plist-get filters :state) "open"))
@@ -162,9 +145,10 @@ When FORCE is non-nil, mark missing PRs as closed."
                                  (format-time-string "%Y-%m-%dT%H:%M:%SZ"
                                                      nil t))
        (when (buffer-live-p (get-buffer buf-name))
-         (forgejo-pull--render-from-db buf-name host owner repo filters)
-         (when-let* ((total (plist-get headers :total-count)))
-           (with-current-buffer buf-name
+         (with-current-buffer buf-name
+           (forgejo-pull--render-from-db
+            buf-name host owner repo forgejo-pull--filters)
+           (when-let* ((total (plist-get headers :total-count)))
              (setq forgejo-pull--total-count total))))))))
 
 ;;;###autoload
@@ -181,34 +165,32 @@ Shows cached data immediately, then syncs from the API in the background."
          (buf-name (format "*forgejo-pulls: %s/%s*" owner repo))
          (default-query (forgejo--default-filter-for
                          owner repo forgejo-pull-default-filter))
-         (filters (forgejo-utils-parse-filter default-query))
+         (filters (forgejo-filter-parse default-query))
          (host (url-host (url-generic-parse-url host-url))))
     (forgejo-with-host host-url
       (switch-to-buffer
        (forgejo-pull--render-from-db buf-name host owner repo filters))
+      (with-current-buffer buf-name
+        (setq forgejo-pull--filters filters))
       (forgejo-pull--sync host owner repo filters buf-name))))
 
 (defun forgejo-pull-refresh ()
   "Force a full re-fetch of the current PR list from the API."
   (interactive)
   (when (and forgejo-repo--owner forgejo-repo--name)
-    (let ((host (url-host (url-generic-parse-url
-                           (or forgejo-repo--host forgejo-host)))))
-      (forgejo-with-host forgejo-repo--host
-        (forgejo-pull--sync host forgejo-repo--owner forgejo-repo--name
-                            forgejo-pull--filters (buffer-name) t)))))
+    (forgejo-filter-refresh (buffer-name) forgejo-repo--host
+                            forgejo-repo--owner forgejo-repo--name
+                            forgejo-pull--filters
+                            #'forgejo-pull--render-from-db
+                            #'forgejo-pull--sync)))
 
 (defun forgejo-pull--refilter ()
-  "Re-render from DB with current filters, then sync.
-Forces a full re-fetch to ensure the DB has data matching the filters."
-  (let ((host (url-host (url-generic-parse-url
-                         (or forgejo-repo--host forgejo-host)))))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-pull--render-from-db (buffer-name) host
-                                    forgejo-repo--owner forgejo-repo--name
-                                    forgejo-pull--filters)
-      (forgejo-pull--sync host forgejo-repo--owner forgejo-repo--name
-                          forgejo-pull--filters (buffer-name) t))))
+  "Re-render from DB with current filters, then sync."
+  (forgejo-filter-refresh (buffer-name) forgejo-repo--host
+                          forgejo-repo--owner forgejo-repo--name
+                          forgejo-pull--filters
+                          #'forgejo-pull--render-from-db
+                          #'forgejo-pull--sync))
 
 ;;; Filter commands
 
@@ -220,23 +202,15 @@ Empty input clears all filters."
   (interactive)
   (let* ((host (url-host (url-generic-parse-url
                           (or forgejo-repo--host forgejo-host))))
-         (labels (mapcar (lambda (row) (nth 4 row))
-                         (forgejo-db-get-labels host forgejo-repo--owner
-                                                forgejo-repo--name)))
-         (authors (forgejo-db-get-authors host forgejo-repo--owner
-                                          forgejo-repo--name))
+         (completions (forgejo-filter-completions
+                       host forgejo-repo--owner forgejo-repo--name))
          (current (if forgejo-pull--filters
-                     (forgejo-utils-serialize-filter forgejo-pull--filters)
+                     (forgejo-filter-serialize forgejo-pull--filters)
                    (forgejo--default-filter-for
                     forgejo-repo--owner forgejo-repo--name
                     forgejo-pull-default-filter)))
-         (query (forgejo-utils-read-filter
-                 current
-                 `((state . ("open" "closed"))
-                   (label . ,labels)
-                   (poster . ,authors)
-                   (search . nil))))
-         (filters (forgejo-utils-parse-filter query)))
+         (query (forgejo-filter-read current completions))
+         (filters (forgejo-filter-parse query)))
     (setq forgejo-pull--filters filters)
     (forgejo-pull--refilter)))
 
@@ -251,13 +225,13 @@ Empty input clears all filters."
           (plist-put forgejo-pull--filters :page nil))
     (forgejo-pull--refilter)))
 
-(defun forgejo-pull-filter-poster ()
+(defun forgejo-pull-filter-author ()
   "Filter PRs by author."
   (interactive)
-  (let ((poster (read-string "Author: ")))
+  (let ((author (read-string "Author: ")))
     (setq forgejo-pull--filters
-          (plist-put forgejo-pull--filters :poster
-                     (unless (string-empty-p poster) poster)))
+          (plist-put forgejo-pull--filters :author
+                     (unless (string-empty-p author) author)))
     (setq forgejo-pull--filters
           (plist-put forgejo-pull--filters :page nil))
     (forgejo-pull--refilter)))
@@ -266,7 +240,7 @@ Empty input clears all filters."
   "Reset filters to the default and refresh."
   (interactive)
   (setq forgejo-pull--filters
-        (forgejo-utils-parse-filter
+        (forgejo-filter-parse
          (forgejo--default-filter-for
           forgejo-repo--owner forgejo-repo--name
           forgejo-pull-default-filter)))

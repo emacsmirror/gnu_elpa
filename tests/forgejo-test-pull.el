@@ -17,6 +17,8 @@
        (file-name-directory (or load-file-name buffer-file-name))))
 (load (expand-file-name "../lisp/forgejo-buffer.el"
        (file-name-directory (or load-file-name buffer-file-name))))
+(load (expand-file-name "../lisp/forgejo-filter.el"
+       (file-name-directory (or load-file-name buffer-file-name))))
 (load (expand-file-name "../lisp/forgejo-pull.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
@@ -30,7 +32,7 @@
                    (labels . (((name . "enhancement") (color . "00ff00"))))
                    (user . ((login . "dev")))
                    (updated_at . "2020-03-10T08:00:00Z"))))
-         (entries (forgejo-pull--entries pulls)))
+         (entries (forgejo-filter-list-entries pulls)))
     (should (= (length entries) 1))
     (let ((entry (car entries)))
       (should (= (car entry) 10))
@@ -55,7 +57,7 @@
   (let ((forgejo-default-sort "recentupdate")
         (forgejo--api-default-limit 30))
     (let ((params (forgejo-pull--build-params
-                   '(:state "closed" :poster "alice" :page 3))))
+                   '(:state "closed" :author "alice" :page 3))))
       (should (string= (cdr (assoc "state" params)) "closed"))
       (should (string= (cdr (assoc "poster" params)) "alice"))
       (should (string= (cdr (assoc "page" params)) "3")))))

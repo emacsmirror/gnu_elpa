@@ -44,22 +44,22 @@
 ;;; ---- Group 2: Build params ----
 
 (ert-deftest forgejo-test-pull-build-params-default ()
-  "Default PR params include sort and limit."
+  "Default PR params include type=pulls, sort, and limit."
   (let ((forgejo-default-sort "recentupdate")
         (forgejo--api-default-limit 30))
     (let ((params (forgejo-pull--build-params nil)))
       (should (assoc "sort" params))
       (should (assoc "limit" params))
-      (should-not (assoc "type" params)))))
+      (should (string= (cdr (assoc "type" params)) "pulls")))))
 
 (ert-deftest forgejo-test-pull-build-params-with-filters ()
-  "Filters are included in PR params."
+  "Filters are included in PR params via issues endpoint."
   (let ((forgejo-default-sort "recentupdate")
         (forgejo--api-default-limit 30))
     (let ((params (forgejo-pull--build-params
                    '(:state "closed" :author "alice" :page 3))))
       (should (string= (cdr (assoc "state" params)) "closed"))
-      (should (string= (cdr (assoc "poster" params)) "alice"))
+      (should (string= (cdr (assoc "created_by" params)) "alice"))
       (should (string= (cdr (assoc "page" params)) "3")))))
 
 (provide 'forgejo-test-pull)

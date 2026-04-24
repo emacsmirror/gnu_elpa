@@ -76,32 +76,18 @@ Keys: :state :milestone :labels :author :page")
   "Major mode for browsing Forgejo pull requests."
   :group 'forgejo
   (setq tabulated-list-padding 1
-        tabulated-list-format
-        (vector `("#" 5 forgejo--sort-by-number :right-align t)
-                `("State" 8 nil)
-                `("Title" ,(/ (window-width) 3) t)
-                `("Labels" ,(/ (window-width) 6) nil)
-                `("Author" ,(/ (window-width) 8) t)
-                `("Updated" ,(/ (window-width) 8) forgejo--sort-by-updated))
+        tabulated-list-format (forgejo-filter-list-format
+                               forgejo-filter-list-columns)
         tabulated-list-sort-key '("#" . t))
   (tabulated-list-init-header))
 
 (defun forgejo-pull--build-params (filters)
-  "Build API query params from FILTERS plist for PR endpoint."
-  (let ((params (list (cons "sort" forgejo-default-sort)
-                      (cons "limit" (number-to-string
-                                     (forgejo-api-default-limit))))))
-    (when-let* ((state (plist-get filters :state)))
-      (push (cons "state" state) params))
-    (when-let* ((author (plist-get filters :author)))
-      (push (cons "poster" author) params))
-    (when-let* ((page (plist-get filters :page)))
-      (push (cons "page" (number-to-string page)) params))
-    params))
+  "Build API query params from FILTERS plist for PR sync."
+  (forgejo-filter-build-params "pulls" filters))
 
 (defun forgejo-pull--fetch (owner repo filters callback)
   "Fetch all PRs from API for OWNER/REPO with FILTERS, call CALLBACK."
-  (let ((endpoint (format "repos/%s/%s/pulls" owner repo))
+  (let ((endpoint (format "repos/%s/%s/issues" owner repo))
         (params (forgejo-pull--build-params filters)))
     (forgejo-api-get-all endpoint params callback)))
 
@@ -117,22 +103,34 @@ Does not write `forgejo-pull--filters'; callers own filter state."
         (setq forgejo-repo--host forgejo-host))
       (setq forgejo-repo--owner owner
             forgejo-repo--name repo
+            tabulated-list-format (forgejo-filter-list-format
+                                   forgejo-filter-list-columns)
             tabulated-list-entries entries)
+      (unless tabulated-list-sort-key
+        (setq tabulated-list-sort-key '("#" . t)))
+      (tabulated-list-init-header)
       (forgejo-tl-print t)
       (current-buffer))))
 
 (defun forgejo-pull--sync (host owner repo filters buf-name
                                 &optional force)
   "Fetch PRs from API and update DB, then re-render BUF-NAME.
-When FORCE is non-nil, mark missing PRs as closed."
-  (let ((endpoint (format "repos/%s/%s/pulls" owner repo))
-        (params (forgejo-pull--build-params filters)))
+Uses the issues endpoint with type=pulls for incremental sync.
+When FORCE is nil, use `since' for incremental sync.
+When FORCE is non-nil, fetch all and mark missing PRs as closed."
+  (let* ((since (unless force
+                  (forgejo-db-get-sync-time host owner repo "pulls")))
+         (api-filters (if since
+                         (plist-put (copy-sequence filters) :since since)
+                       filters))
+         (endpoint (format "repos/%s/%s/issues" owner repo))
+         (params (forgejo-pull--build-params api-filters)))
     (forgejo-api-get-paged
      endpoint params
-     ;; Per-page: save and re-render with current buffer-local filters
-     (lambda (page-data _headers _page-num)
-       (forgejo-db-save-issues host owner repo page-data t)
-       (when (buffer-live-p (get-buffer buf-name))
+     ;; Per-page: save to DB, re-render only on first page
+     (lambda (page-data _headers page-num)
+       (forgejo-db-save-issues host owner repo page-data)
+       (when (and (= page-num 1) (buffer-live-p (get-buffer buf-name)))
          (with-current-buffer buf-name
            (forgejo-pull--render-from-db
             buf-name host owner repo forgejo-pull--filters))))

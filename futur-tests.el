@@ -191,17 +191,25 @@
         (delete-file tmpfile)))))
 
 (ert-deftest futur-process-bounded ()
-  (let ((run
-         (lambda (times concurrency)
-           (let* ((futures ())
-                  (timescale 1)
-                  (start (float-time))
-                  (futur-concurrency-bound concurrency))
-             (dotimes (_ times)
-               (push (futur-concurrency-bound #'futur-timeout (* timescale 0.1))
-                     futures))
-             (futur-blocking-wait-to-get-result (apply #'futur-list futures))
-             (/ (- (float-time) start) timescale)))))
+  (let* ((old-concurrency futur-concurrency-bound)
+         (run
+          (lambda (times concurrency)
+            (unwind-protect
+                (let* ((futures ())
+                       (timescale 1)
+                       (start (float-time)))
+                  ;; Don't just let-bind `futur-concurrency-bound'
+                  ;; because we need to affect all the threads.
+                  (setq futur-concurrency-bound concurrency)
+                  (dotimes (_ times)
+                    (push (futur-concurrency-bound
+                           #'futur-timeout (* timescale 0.1))
+                          futures))
+                  (futur-blocking-wait-to-get-result
+                   (apply #'futur-list futures))
+                  (/ (- (float-time) start) timescale))
+              (setq futur-concurrency-bound old-concurrency)))))
+    (should (<= 1.0 (funcall run 10 1) 1.2))
     (should (<= 0.5 (funcall run 10 2) 0.7))
     (should (<= 0.3 (funcall run 10 4) 0.5))))
 

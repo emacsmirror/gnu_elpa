@@ -74,13 +74,8 @@ Keys: :state :labels :milestone :author :query :page")
   "Major mode for browsing Forgejo issues."
   :group 'forgejo
   (setq tabulated-list-padding 1
-        tabulated-list-format
-        (vector `("#" 5 forgejo--sort-by-number :right-align t)
-                `("State" 8 nil)
-                `("Title" ,(/ (window-width) 3) t)
-                `("Labels" ,(/ (window-width) 6) nil)
-                `("Author" ,(/ (window-width) 8) t)
-                `("Updated" ,(/ (window-width) 8) forgejo--sort-by-updated))
+        tabulated-list-format (forgejo-filter-list-format
+                               forgejo-filter-list-columns)
         tabulated-list-sort-key '("#" . t))
   (tabulated-list-init-header))
 
@@ -88,25 +83,7 @@ Keys: :state :labels :milestone :author :query :page")
 
 (defun forgejo-issue--build-params (filters)
   "Build API query params from FILTERS plist."
-  (let ((params (list (cons "type" "issues")
-                      (cons "sort" forgejo-default-sort)
-                      (cons "limit" (number-to-string
-                                     (forgejo-api-default-limit))))))
-    (when-let* ((state (plist-get filters :state)))
-      (push (cons "state" state) params))
-    (when-let* ((labels (plist-get filters :labels)))
-      (push (cons "labels" labels) params))
-    (when-let* ((milestone (plist-get filters :milestone)))
-      (push (cons "milestones" milestone) params))
-    (when-let* ((author (plist-get filters :author)))
-      (push (cons "created_by" author) params))
-    (when-let* ((query (plist-get filters :query)))
-      (push (cons "q" query) params))
-    (when-let* ((page (plist-get filters :page)))
-      (push (cons "page" (number-to-string page)) params))
-    (when-let* ((since (plist-get filters :since)))
-      (push (cons "since" since) params))
-    params))
+  (forgejo-filter-build-params "issues" filters))
 
 (defun forgejo-issue--fetch (owner repo filters callback)
   "Fetch all issues from API for OWNER/REPO with FILTERS, call CALLBACK."
@@ -129,13 +106,8 @@ Does not write `forgejo-issue--filters'; callers own filter state."
         (setq forgejo-repo--host forgejo-host))
       (setq forgejo-repo--owner owner
             forgejo-repo--name repo
-            tabulated-list-format
-            (vector `("#" 5 forgejo--sort-by-number :right-align t)
-                    `("State" 8 nil)
-                    `("Title" ,(/ (window-width) 3) t)
-                    `("Labels" ,(/ (window-width) 6) nil)
-                    `("Author" ,(/ (window-width) 8) t)
-                    `("Updated" ,(/ (window-width) 8) forgejo--sort-by-updated))
+            tabulated-list-format (forgejo-filter-list-format
+                                   forgejo-filter-list-columns)
             tabulated-list-entries entries)
       (unless tabulated-list-sort-key
         (setq tabulated-list-sort-key '("#" . t)))
@@ -163,10 +135,10 @@ When FORCE is non-nil, fetch all and mark missing issues as closed."
           (params (forgejo-issue--build-params api-filters)))
       (forgejo-api-get-paged
        endpoint params
-       ;; Per-page: save and re-render with current buffer-local filters
-       (lambda (page-data _headers _page-num)
+       ;; Per-page: save to DB, re-render only on first page
+       (lambda (page-data _headers page-num)
          (forgejo-db-save-issues host owner repo page-data)
-         (when (buffer-live-p (get-buffer buf-name))
+         (when (and (= page-num 1) (buffer-live-p (get-buffer buf-name)))
            (with-current-buffer buf-name
              (forgejo-issue--render-from-db
               buf-name host owner repo forgejo-issue--filters))))

@@ -217,12 +217,8 @@ Polls the Forgejo API periodically for unread notifications."
   "Major mode for browsing Forgejo notifications."
   :group 'forgejo
   (setq tabulated-list-padding 1
-        tabulated-list-format
-        (vector '("Repo" 25 t)
-                '("Type" 8 nil)
-                '("Title" 50 t)
-                '("Status" 8 nil)
-                '("Updated" 12 t)))
+        tabulated-list-format (forgejo-filter-list-format
+                               forgejo-filter-notification-columns))
   (tabulated-list-init-header))
 
 (defun forgejo-notification--subject-number (url)

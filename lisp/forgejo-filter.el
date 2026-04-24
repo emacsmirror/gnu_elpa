@@ -108,6 +108,35 @@ free-text prefixes.  Returns the query string."
                       "Filter: " candidates nil nil initial)))
     (mapconcat #'identity selections " ")))
 
+;;; ---- API param building ----
+
+(defvar forgejo-default-sort)
+(declare-function forgejo-api-default-limit "forgejo-api.el" ())
+
+(defconst forgejo-filter--api-param-map
+  '((:state     . "state")
+    (:labels    . "labels")
+    (:milestone . "milestones")
+    (:author    . "created_by")
+    (:query     . "q")
+    (:since     . "since"))
+  "Map from filter plist keys to Forgejo API query parameter names.
+The :page key is handled separately (needs number-to-string).")
+
+(defun forgejo-filter-build-params (type filters)
+  "Build API query params from FILTERS for TYPE (\"issues\" or \"pulls\").
+Returns an alist of (PARAM . VALUE) pairs."
+  (let ((params (list (cons "type" type)
+                      (cons "sort" forgejo-default-sort)
+                      (cons "limit" (number-to-string
+                                     (forgejo-api-default-limit))))))
+    (cl-loop for (key . param) in forgejo-filter--api-param-map
+             for val = (plist-get filters key)
+             when val do (push (cons param val) params))
+    (when-let* ((page (plist-get filters :page)))
+      (push (cons "page" (number-to-string page)) params))
+    params))
+
 ;;; ---- DB query pipelines ----
 
 (defun forgejo-filter-query-issues (host owner repo filters)
@@ -146,6 +175,47 @@ When FILTERS is nil, returns all notifications."
          (lambda (row) (forgejo-filter--match-notification row filters))
          rows)
       rows)))
+
+;;; ---- Tabulated-list format ----
+
+(declare-function forgejo--sort-by-number "forgejo.el" (a b))
+(declare-function forgejo--sort-by-updated "forgejo.el" (a b))
+
+(defconst forgejo-filter-list-columns
+  `(("#"       5    forgejo--sort-by-number :right-align t)
+    ("State"   8    nil)
+    ("Title"   ,(/ 1.0 3) t)
+    ("Labels"  ,(/ 1.0 6) nil)
+    ("Author"  ,(/ 1.0 8) t)
+    ("Updated" ,(/ 1.0 8) forgejo--sort-by-updated))
+  "Default column spec for issue and PR list views.
+Each element is (NAME WIDTH-OR-FLOAT SORT . PROPS).")
+
+(defconst forgejo-filter-notification-columns
+  `(("Repo"    ,(/ 1.0 5) t)
+    ("Type"    8    nil)
+    ("Title"   ,(/ 1.0 3) t)
+    ("Status"  8    nil)
+    ("Updated" ,(/ 1.0 8) t))
+  "Column spec for notification list views.")
+
+(defun forgejo-filter-list-format (columns)
+  "Build a `tabulated-list-format' vector from COLUMNS.
+Each element of COLUMNS is (NAME WIDTH-OR-RATIO SORT . PROPS).
+When WIDTH-OR-FLOAT is an integer, it is used as a fixed width.
+When it is a float (e.g. 0.333), it is multiplied by `window-width'."
+  (let ((w (window-width)))
+    (apply #'vector
+           (mapcar (lambda (col)
+                     (let* ((name (car col))
+                            (width-spec (nth 1 col))
+                            (sort (nth 2 col))
+                            (props (nthcdr 3 col))
+                            (width (if (floatp width-spec)
+                                       (truncate (* w width-spec))
+                                     width-spec)))
+                       (append (list name width sort) props)))
+                   columns))))
 
 ;;; ---- Tabulated-list entries ----
 

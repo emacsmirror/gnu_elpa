@@ -178,12 +178,25 @@ free-text prefixes.  Returns the query string."
 
 ;;; Comment
 
+(defvar forgejo-compose-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c C-c") nil)
+    map)
+  "Keymap for `forgejo-compose-mode'.
+Unbinds C-c C-c so `string-edit-minor-mode' handles it.")
+
+(define-derived-mode forgejo-compose-mode gfm-mode "Forgejo Compose"
+  "Major mode for composing Forgejo comments.
+Inherits `gfm-mode' for markdown highlighting."
+  :group 'forgejo)
+
 (defun forgejo-utils-read-body (prompt &optional initial)
-  "Read multi-line text with # issue/PR completion.
-Like `read-string-from-buffer' but with # completion for issue references."
+  "Read multi-line text with markdown highlighting and # completion.
+PROMPT is used in the header line.  Buffer has no read-only regions."
   (let* ((host (and (boundp 'forgejo-repo--host) forgejo-repo--host))
          (owner (and (boundp 'forgejo-repo--owner) forgejo-repo--owner))
          (repo (and (boundp 'forgejo-repo--name) forgejo-repo--name))
+         (result (or initial ""))
          (hook-fn (lambda ()
                     (setq-local forgejo-repo--host host
                                 forgejo-repo--owner owner
@@ -191,12 +204,25 @@ Like `read-string-from-buffer' but with # completion for issue references."
                     (setq-local completion-at-point-functions
                                 (list #'forgejo-utils-issue-capf
                                       #'forgejo-utils-mention-capf))
+                    (setq-local header-line-format
+                                (substitute-command-keys
+                                 (format "%s  \\<string-edit-minor-mode-map>\\[string-edit-done] to submit, \\[string-edit-abort] to cancel"
+                                         prompt)))
                     (run-hooks 'forgejo-compose-hook))))
+    (add-hook 'forgejo-compose-mode-hook hook-fn)
     (unwind-protect
         (progn
-          (add-hook 'string-edit-mode-hook hook-fn)
-          (read-string-from-buffer prompt (or initial "")))
-      (remove-hook 'string-edit-mode-hook hook-fn))))
+          (string-edit nil (or initial "")
+                       (lambda (edited)
+                         (setq result edited)
+                         (exit-recursive-edit))
+                       :abort-callback (lambda ()
+                                         (setq result nil)
+                                         (exit-recursive-edit))
+                       :major-mode-sym #'forgejo-compose-mode)
+          (recursive-edit))
+      (remove-hook 'forgejo-compose-mode-hook hook-fn))
+    result))
 
 (defun forgejo-utils-post-comment (host-url endpoint prompt &optional initial
                                    callback)

@@ -73,10 +73,87 @@ CALLBACK is called on success."
          (message "%sd %s/%s#%d" action owner repo number)
          (when callback (funcall callback)))))))
 
-;;; Comment
+;;; Issue/PR # completion
 
-(declare-function forgejo-buffer--issue-capf "forgejo-buffer.el" ())
-(declare-function forgejo-buffer--mention-capf "forgejo-buffer.el" ())
+(defvar-local forgejo-utils--capf-candidates nil
+  "Cached completion candidates for # references.")
+
+(defun forgejo-utils-issue-capf ()
+  "Completion-at-point function for #N issue/PR references."
+  (when-let* ((bounds (forgejo-utils--capf-bounds)))
+    (let ((start (car bounds))
+          (end (cdr bounds)))
+      (list start end
+            (forgejo-utils--capf-collection)
+            :annotation-function #'forgejo-utils--capf-annotate
+            :exclusive 'no))))
+
+(defun forgejo-utils--capf-bounds ()
+  "Return (START . END) for the # reference at point, or nil."
+  (save-excursion
+    (let ((end (point)))
+      (when (re-search-backward "#" (line-beginning-position) t)
+        (cons (point) end)))))
+
+(defun forgejo-utils--capf-collection ()
+  "Return completion candidates for # references."
+  (or forgejo-utils--capf-candidates
+      (setq forgejo-utils--capf-candidates
+            (mapcar (lambda (pair)
+                      (format "#%d" (car pair)))
+                    (forgejo-utils--capf-load-candidates)))))
+
+(defun forgejo-utils--capf-load-candidates ()
+  "Load issue/PR candidates from the DB for the current repo context."
+  (when-let* ((host (and (boundp 'forgejo-repo--host)
+                         (url-host (url-generic-parse-url forgejo-repo--host))))
+              (owner (and (boundp 'forgejo-repo--owner) forgejo-repo--owner))
+              (repo (and (boundp 'forgejo-repo--name) forgejo-repo--name)))
+    (forgejo-db-get-issue-titles host owner repo)))
+
+(defun forgejo-utils--capf-annotate (candidate)
+  "Return the title annotation for CANDIDATE (#N)."
+  (when (string-match "#\\([0-9]+\\)" candidate)
+    (let* ((number (string-to-number (match-string 1 candidate)))
+           (titles (forgejo-utils--capf-load-candidates))
+           (title (alist-get number titles)))
+      (when title (concat " " title)))))
+
+;;; @mention completion
+
+(defvar-local forgejo-utils--mention-candidates nil
+  "Cached completion candidates for @ mentions.")
+
+(defun forgejo-utils-mention-capf ()
+  "Completion-at-point function for @user mentions."
+  (when-let* ((bounds (forgejo-utils--mention-bounds)))
+    (list (car bounds) (cdr bounds)
+          (forgejo-utils--mention-collection)
+          :exclusive 'no)))
+
+(defun forgejo-utils--mention-bounds ()
+  "Return (START . END) for the @ mention at point, or nil."
+  (save-excursion
+    (let ((end (point)))
+      (when (re-search-backward "@" (line-beginning-position) t)
+        (cons (point) end)))))
+
+(defun forgejo-utils--mention-collection ()
+  "Return completion candidates for @ mentions."
+  (or forgejo-utils--mention-candidates
+      (setq forgejo-utils--mention-candidates
+            (mapcar (lambda (login) (concat "@" login))
+                    (forgejo-utils--mention-load-users)))))
+
+(defun forgejo-utils--mention-load-users ()
+  "Load usernames from the DB for the current repo context."
+  (when-let* ((host (and (boundp 'forgejo-repo--host)
+                         (url-host (url-generic-parse-url forgejo-repo--host))))
+              (owner (and (boundp 'forgejo-repo--owner) forgejo-repo--owner))
+              (repo (and (boundp 'forgejo-repo--name) forgejo-repo--name)))
+    (forgejo-db-get-authors host owner repo)))
+
+;;; Comment
 
 (defun forgejo-utils-read-body (prompt &optional initial)
   "Read multi-line text with # issue/PR completion.
@@ -89,8 +166,8 @@ Like `read-string-from-buffer' but with # completion for issue references."
                                 forgejo-repo--owner owner
                                 forgejo-repo--name repo)
                     (setq-local completion-at-point-functions
-                                (list #'forgejo-buffer--issue-capf
-                                      #'forgejo-buffer--mention-capf))
+                                (list #'forgejo-utils-issue-capf
+                                      #'forgejo-utils-mention-capf))
                     (run-hooks 'forgejo-compose-hook))))
     (unwind-protect
         (progn

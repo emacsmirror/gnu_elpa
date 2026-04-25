@@ -31,7 +31,6 @@
 (require 'dom)
 (require 'diff-mode)
 (require 'forgejo)
-(require 'forgejo-db)
 
 (defvar forgejo-repo--host)
 (defvar forgejo-repo--owner)
@@ -193,7 +192,7 @@ Returns nil if BODY is :null, nil, or empty."
 (defun forgejo-buffer--browse-url (url &rest _args)
   "Open URL in forgejo.el if it's a Forgejo issue/PR, else in browser."
   (if-let* ((parsed (forgejo-buffer--parse-forgejo-url url)))
-      (forgejo-buffer-view-item (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))
+      (forgejo-view-item (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))
     (browse-url-default-browser url)))
 
 (defun forgejo-buffer--insert-html (html)
@@ -327,20 +326,8 @@ NODE-DATA is a plist with :type and type-specific keys."
     map)
   "Keymap for reference links in event lines.")
 
-(declare-function forgejo-issue-view "forgejo-issue.el"
+(declare-function forgejo-view-item "forgejo-view.el"
                   (owner repo number))
-(declare-function forgejo-pull-view "forgejo-pull.el"
-                  (owner repo number))
-
-(defun forgejo-buffer-view-item (owner repo number)
-  "View issue or PR NUMBER in OWNER/REPO.
-Checks the DB to determine if it's a PR, falls back to issue view."
-  (let ((cached (forgejo-db-get-issue
-                 (url-host (url-generic-parse-url forgejo-repo--host))
-                 owner repo number)))
-    (if (and cached (alist-get 'pull_request cached))
-        (forgejo-pull-view owner repo number)
-      (forgejo-issue-view owner repo number))))
 
 (defun forgejo-buffer-follow-ref ()
   "Follow the reference link at point.
@@ -351,7 +338,7 @@ Uses the ref-repo text property for cross-repo references."
            (parts (when full-name (split-string full-name "/")))
            (owner (or (nth 0 parts) forgejo-repo--owner))
            (repo (or (nth 1 parts) forgejo-repo--name)))
-      (forgejo-buffer-view-item owner repo number))))
+      (forgejo-view-item owner repo number))))
 
 (defvar forgejo-buffer-commit-map
   (let ((map (make-sparse-keymap)))
@@ -812,86 +799,6 @@ Both should be alists with `body_html' pre-populated from the DB."
           (push result nodes)))))
     (nreverse nodes)))
 
-;;; Issue/PR # completion
-
-(defvar-local forgejo-buffer--capf-candidates nil
-  "Cached completion candidates for # references.")
-
-(defun forgejo-buffer--issue-capf ()
-  "Completion-at-point function for #N issue/PR references."
-  (when-let* ((bounds (forgejo-buffer--capf-bounds)))
-    (let ((start (car bounds))
-          (end (cdr bounds)))
-      (list start end
-            (forgejo-buffer--capf-collection)
-            :annotation-function #'forgejo-buffer--capf-annotate
-            :exclusive 'no))))
-
-(defun forgejo-buffer--capf-bounds ()
-  "Return (START . END) for the # reference at point, or nil."
-  (save-excursion
-    (let ((end (point)))
-      (when (re-search-backward "#" (line-beginning-position) t)
-        (cons (point) end)))))
-
-(defun forgejo-buffer--capf-collection ()
-  "Return completion candidates for # references."
-  (or forgejo-buffer--capf-candidates
-      (setq forgejo-buffer--capf-candidates
-            (mapcar (lambda (pair)
-                      (format "#%d" (car pair)))
-                    (forgejo-buffer--capf-load-candidates)))))
-
-(defun forgejo-buffer--capf-load-candidates ()
-  "Load issue/PR candidates from the DB for the current repo context."
-  (when-let* ((host (and (boundp 'forgejo-repo--host)
-                         (url-host (url-generic-parse-url forgejo-repo--host))))
-              (owner (and (boundp 'forgejo-repo--owner) forgejo-repo--owner))
-              (repo (and (boundp 'forgejo-repo--name) forgejo-repo--name)))
-    (forgejo-db-get-issue-titles host owner repo)))
-
-(defun forgejo-buffer--capf-annotate (candidate)
-  "Return the title annotation for CANDIDATE (#N)."
-  (when (string-match "#\\([0-9]+\\)" candidate)
-    (let* ((number (string-to-number (match-string 1 candidate)))
-           (titles (forgejo-buffer--capf-load-candidates))
-           (title (alist-get number titles)))
-      (when title (concat " " title)))))
-
-;;; @mention completion
-
-(defvar-local forgejo-buffer--mention-candidates nil
-  "Cached completion candidates for @ mentions.")
-
-(defun forgejo-buffer--mention-capf ()
-  "Completion-at-point function for @user mentions."
-  (when-let* ((bounds (forgejo-buffer--mention-bounds)))
-    (list (car bounds) (cdr bounds)
-          (forgejo-buffer--mention-collection)
-          :exclusive 'no)))
-
-(defun forgejo-buffer--mention-bounds ()
-  "Return (START . END) for the @ mention at point, or nil."
-  (save-excursion
-    (let ((end (point)))
-      (when (re-search-backward "@" (line-beginning-position) t)
-        (cons (point) end)))))
-
-(defun forgejo-buffer--mention-collection ()
-  "Return completion candidates for @ mentions."
-  (or forgejo-buffer--mention-candidates
-      (setq forgejo-buffer--mention-candidates
-            (mapcar (lambda (login) (concat "@" login))
-                    (forgejo-buffer--mention-load-users)))))
-
-(defun forgejo-buffer--mention-load-users ()
-  "Load usernames from the DB for the current repo context."
-  (when-let* ((host (and (boundp 'forgejo-repo--host)
-                         (url-host (url-generic-parse-url forgejo-repo--host))))
-              (owner (and (boundp 'forgejo-repo--owner) forgejo-repo--owner))
-              (repo (and (boundp 'forgejo-repo--name) forgejo-repo--name)))
-    (forgejo-db-get-authors host owner repo)))
-
 ;;; Utilities for detail views
 
 (defun forgejo-buffer--node-at-point (ewoc)
@@ -920,24 +827,6 @@ Both should be alists with `body_html' pre-populated from the DB."
                 (concat "  " labels))
               (when (and assignees (not (string-empty-p assignees)))
                 (concat "  " (propertize assignees 'face 'shadow)))))))
-
-;;; Re-render helper
-
-(defun forgejo-buffer--re-render (buf-name host owner repo number
-                                  render-fn &optional restore-line)
-  "Re-render detail buffer BUF-NAME from fresh DB data.
-RENDER-FN is called with (BUF-NAME HOST-URL OWNER REPO ISSUE-ALIST
-TIMELINE-ALISTS)."
-  (when (buffer-live-p (get-buffer buf-name))
-    (let* ((host-url (forgejo--host-url-for-hostname host))
-           (issue (forgejo-db-get-issue host owner repo number))
-           (tl-rows (forgejo-db-get-timeline host owner repo number))
-           (tl-alists (mapcar #'forgejo-db--row-to-timeline-alist tl-rows)))
-      (funcall render-fn buf-name host-url owner repo issue tl-alists)
-      (when restore-line
-        (with-current-buffer buf-name
-          (goto-char (point-min))
-          (forward-line (1- restore-line)))))))
 
 ;;; Diff hunk rendering
 

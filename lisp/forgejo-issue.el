@@ -345,8 +345,8 @@ When RESTORE-LINE is non-nil, go to that line after re-rendering."
         (lambda (timeline _tl-headers)
           (forgejo-db-save-timeline host owner repo number timeline)
           ;; First render with whatever we have
-          (forgejo-buffer--re-render
-           buf-name host owner repo number
+          (forgejo-view--re-render
+           buf-name host-url host owner repo number
            #'forgejo-issue--render-detail restore-line)
           ;; Then render missing HTML and re-render
           (forgejo-view--render-missing-html

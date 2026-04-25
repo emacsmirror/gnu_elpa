@@ -310,8 +310,8 @@ When RESTORE-LINE is non-nil, go to that line after re-rendering."
         (lambda (timeline _tl-headers)
           (forgejo-db-save-timeline host owner repo number timeline)
           ;; First render with whatever we have
-          (forgejo-buffer--re-render
-           buf-name host owner repo number
+          (forgejo-view--re-render
+           buf-name host-url host owner repo number
            #'forgejo-pull--render-detail restore-line)
           ;; Fetch review comments, then render missing HTML
           (let ((tl-alists (mapcar #'forgejo-db--row-to-timeline-alist
@@ -319,8 +319,8 @@ When RESTORE-LINE is non-nil, go to that line after re-rendering."
             (forgejo-review-sync-comments
              host-url host owner repo number tl-alists
              (lambda ()
-               (forgejo-buffer--re-render
-                buf-name host owner repo number
+               (forgejo-view--re-render
+                buf-name host-url host owner repo number
                 #'forgejo-pull--render-detail restore-line)
                (forgejo-view--render-missing-html
                 host-url host owner repo number buf-name restore-line

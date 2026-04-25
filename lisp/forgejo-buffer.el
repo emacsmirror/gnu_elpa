@@ -21,7 +21,7 @@
 ;;; Commentary:
 
 ;; Shared display logic for issues and pull requests: faces, formatting
-;; helpers, EWOC pretty-printers, and shr-based HTML rendering.
+;; helpers, EWOC pretty-printers, and markdown rendering.
 
 ;;; Code:
 
@@ -30,6 +30,10 @@
 (require 'diff-mode)
 (require 'markdown-mode)
 (require 'forgejo)
+
+(declare-function forgejo-token "forgejo.el" (host-url))
+(declare-function forgejo-api-post "forgejo-api.el"
+                  (host endpoint &optional params json-body callback))
 
 (defvar forgejo-repo--host)
 (defvar forgejo-repo--owner)
@@ -225,7 +229,7 @@ Much faster than fontifying each body in a separate buffer."
         (split-string (buffer-substring (+ (point-min) 1) (point-max))
                       sep)))))
 
-(defun forgejo-buffer--insert-body (body &optional _body-html)
+(defun forgejo-buffer--insert-body (body)
   "Insert BODY into the current buffer.
 BODY should already be fontified (via `forgejo-buffer--fontify-bodies')
 or a plain string."
@@ -378,7 +382,6 @@ Uses the ref-repo text property for cross-repo references."
   "View the diff for the commit at point."
   (interactive)
   (when-let* ((sha (get-text-property (point) 'forgejo-commit-sha)))
-    (declare-function forgejo-token "forgejo.el" (host-url))
     (let* ((host-url forgejo-repo--host)
            (owner forgejo-repo--owner)
            (repo forgejo-repo--name)
@@ -458,8 +461,6 @@ Prompts for review type: comment or request_changes."
                     ("request_changes" "REQUEST_CHANGES")))
            (body (forgejo-utils-read-body "Review comment")))
       (when (and body (not (string-empty-p (string-trim body))))
-        (declare-function forgejo-api-post "forgejo-api.el"
-                          (host endpoint &optional params json-body callback))
         (forgejo-api-post
          forgejo-repo--host
          (format "repos/%s/%s/pulls/%d/reviews"
@@ -551,7 +552,6 @@ Prompts for review type: comment or request_changes."
         :id (alist-get 'id event)
         :author actor
         :body (alist-get 'body event)
-        :body-html (alist-get 'body event)
         :created-at (alist-get 'created_at event)
         :updated-at (alist-get 'updated_at event)))
 
@@ -610,7 +610,6 @@ Prompts for review type: comment or request_changes."
 (defun forgejo-buffer--node-ref (event actor)
   "Build a reference event node from EVENT with ACTOR."
   (let* ((ref-issue (alist-get 'ref_issue event))
-         (ref-title (when (listp ref-issue) (alist-get 'title ref-issue)))
          (ref-number (when (listp ref-issue) (alist-get 'number ref-issue)))
          (ref-repo (when (listp ref-issue)
                      (let ((repo (alist-get 'repository ref-issue)))
@@ -671,14 +670,13 @@ Returns a list of nodes (may be multiple for review with threads)."
                   :actor actor
                   :created-at (alist-get 'created_at event)
                   :threads threads
-                  :body-html (when (and body (not (string-empty-p body)))
-                               (alist-get 'body event)))))
+                  :body (when (and body (not (string-empty-p body)))
+                          body))))
      ((and body (not (string-empty-p body)))
       (list (list :type 'comment
                   :id (alist-get 'id event)
                   :author actor
                   :body body
-                  :body-html (alist-get 'body event)
                   :created-at (alist-get 'created_at event))))
      (t
       (list (list :type 'event

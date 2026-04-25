@@ -35,7 +35,6 @@
 
 (declare-function forgejo-token "forgejo.el" (host-url))
 (defvar forgejo--api-default-limit)
-(defvar forgejo--api-max-items)
 
 ;;; URL building
 
@@ -221,16 +220,13 @@ DONE-CALLBACK receives (ALL-DATA HEADERS) when all pages are fetched."
 
 (defun forgejo-api-get-settings (host &optional callback)
   "Fetch API settings from HOST.
-Caches `default_paging_num' and `max_response_items' in
-`forgejo--api-default-limit' and `forgejo--api-max-items'.
+Caches `default_paging_num' in `forgejo--api-default-limit'.
 Calls CALLBACK with the settings alist when done."
   (forgejo-api-get
    host "settings/api" nil
    (lambda (data _headers)
      (setq forgejo--api-default-limit
            (alist-get 'default_paging_num data))
-     (setq forgejo--api-max-items
-           (alist-get 'max_response_items data))
      (when callback
        (funcall callback data)))))
 

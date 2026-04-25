@@ -136,8 +136,6 @@ FILTERS is a list like `forgejo-issue-default-filter'."
 (defvar forgejo--api-default-limit nil
   "Cached default_paging_num from the instance's /settings/api.")
 
-(defvar forgejo--api-max-items nil
-  "Cached max_response_items from the instance's /settings/api.")
 
 ;;; Post-action hook
 

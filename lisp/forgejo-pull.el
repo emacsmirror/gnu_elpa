@@ -257,6 +257,7 @@ Shows cached data immediately, then syncs from the API in the background."
 (defvar forgejo-pull-view-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "q") #'quit-window)
+    (define-key map (kbd "RET") #'forgejo-buffer-follow-link)
     (define-key map (kbd "g") #'forgejo-view-refresh)
     (define-key map (kbd "b") #'forgejo-view-browse)
     (define-key map (kbd "c") #'forgejo-view-comment)
@@ -309,11 +310,11 @@ When RESTORE-LINE is non-nil, go to that line after re-rendering."
         (list (cons "limit" (number-to-string forgejo-timeline-page-size)))
         (lambda (timeline _tl-headers)
           (forgejo-db-save-timeline host owner repo number timeline)
-          ;; First render with whatever we have
+          ;; Render with whatever we have
           (forgejo-view--re-render
            buf-name host-url host owner repo number
            #'forgejo-pull--render-detail restore-line)
-          ;; Fetch review comments, then render missing HTML
+          ;; Fetch review comments, then re-render
           (let ((tl-alists (mapcar #'forgejo-db--row-to-timeline-alist
                                    (forgejo-db-get-timeline host owner repo number))))
             (forgejo-review-sync-comments
@@ -321,10 +322,7 @@ When RESTORE-LINE is non-nil, go to that line after re-rendering."
              (lambda ()
                (forgejo-view--re-render
                 buf-name host-url host owner repo number
-                #'forgejo-pull--render-detail restore-line)
-               (forgejo-view--render-missing-html
-                host-url host owner repo number buf-name restore-line
-                #'forgejo-pull--render-detail))))))))))
+                #'forgejo-pull--render-detail restore-line))))))))))
 
 (defun forgejo-pull-view-at-point ()
   "View the PR at point in the list."

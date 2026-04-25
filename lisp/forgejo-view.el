@@ -155,56 +155,6 @@ Restores point to RESTORE-LINE if given."
           (goto-char (point-min))
           (forward-line (1- restore-line)))))))
 
-;;; Markdown rendering for missing HTML
-
-(defun forgejo-view--render-missing-html (host-url host owner repo number
-                                          buf-name restore-line
-                                          render-detail-fn)
-  "Render markdown to HTML for entries missing body_html.
-HOST-URL is the instance.  HOST is the hostname.
-After rendering, re-render BUF-NAME via RENDER-DETAIL-FN and
-restore RESTORE-LINE."
-  (let* ((context (format "%s/%s" owner repo))
-         (item (forgejo-db-get-issue host owner repo number))
-         (tl-rows (forgejo-db-get-timeline host owner repo number))
-         (tl-alists (mapcar #'forgejo-db--row-to-timeline-alist tl-rows))
-         (pending 0)
-         (render-done
-          (lambda ()
-            (cl-decf pending)
-            (when (<= pending 0)
-              (forgejo-view--re-render
-               buf-name host-url host owner repo number
-               render-detail-fn restore-line)))))
-    ;; Item body
-    (when (and item
-               (not (alist-get 'body_html item))
-               (alist-get 'body item))
-      (cl-incf pending)
-      (forgejo-api-render-markdown-async
-       host-url (alist-get 'body item) context
-       (lambda (html)
-         (when html
-           (forgejo-db-update-issue-html host owner repo number html))
-         (funcall render-done))))
-    ;; Timeline comment bodies
-    (dolist (evt tl-alists)
-      (when (and (string= "comment" (or (alist-get 'type evt) ""))
-                 (not (alist-get 'body_html evt))
-                 (alist-get 'body evt))
-        (let ((evt-id (alist-get 'id evt)))
-          (cl-incf pending)
-          (forgejo-api-render-markdown-async
-           host-url (alist-get 'body evt) context
-           (lambda (html)
-             (when html
-               (forgejo-db-update-timeline-html
-                host owner repo number evt-id html))
-             (funcall render-done))))))
-    ;; Nothing to render
-    (when (zerop pending)
-      (funcall render-done))))
-
 ;;; Action commands
 
 (defun forgejo-view-toggle-state ()

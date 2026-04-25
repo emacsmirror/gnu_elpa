@@ -6,7 +6,7 @@
 ;; Keywords: extensions
 ;; URL: https://codeberg.org/thanosapollo/emacs-forgejo
 ;; Version: 0.0.1
-;; Package-Requires: ((emacs "29.1"))
+;; Package-Requires: ((emacs "29.1") (markdown-mode "2.6"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -45,6 +45,7 @@
 Use this to enable modes like `markdown-mode' or `flyspell-mode'."
   :type 'hook
   :group 'forgejo)
+
 
 (defcustom forgejo-hosts '(("https://codeberg.org"))
   "List of known Forgejo instances.

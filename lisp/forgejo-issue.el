@@ -294,6 +294,7 @@ Empty input clears all filters."
 (defvar forgejo-issue-view-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "q") #'quit-window)
+    (define-key map (kbd "RET") #'forgejo-buffer-follow-link)
     (define-key map (kbd "g") #'forgejo-view-refresh)
     (define-key map (kbd "b") #'forgejo-view-browse)
     (define-key map (kbd "c") #'forgejo-view-comment)
@@ -344,14 +345,9 @@ When RESTORE-LINE is non-nil, go to that line after re-rendering."
         (list (cons "limit" (number-to-string forgejo-timeline-page-size)))
         (lambda (timeline _tl-headers)
           (forgejo-db-save-timeline host owner repo number timeline)
-          ;; First render with whatever we have
           (forgejo-view--re-render
            buf-name host-url host owner repo number
-           #'forgejo-issue--render-detail restore-line)
-          ;; Then render missing HTML and re-render
-          (forgejo-view--render-missing-html
-           host-url host owner repo number buf-name restore-line
-           #'forgejo-issue--render-detail)))))))
+           #'forgejo-issue--render-detail restore-line)))))))
 
 ;;; Detail view entry
 

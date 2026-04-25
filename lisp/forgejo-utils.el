@@ -294,46 +294,38 @@ HOST is the hostname for DB cache update.  CALLBACK is called on success."
   "Edit the body of issue/PR NUMBER in OWNER/REPO on HOST-URL.
 CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
   (let ((body (forgejo-utils-read-body "Edit body" current-body))
-        (host (url-host (url-generic-parse-url host-url)))
-        (context (format "%s/%s" owner repo)))
+        (host (url-host (url-generic-parse-url host-url))))
     (when (and body (not (string= body (or current-body ""))))
       (forgejo-api-patch
        host-url
        (format "repos/%s/%s/issues/%d" owner repo number)
        `((body . ,body))
        (lambda (_data _headers)
-         (forgejo-api-render-markdown-async
-          host-url body context
-          (lambda (html)
-            (forgejo-db--execute
-             "UPDATE issues SET body = ?, body_html = ?
-              WHERE host = ? AND owner = ? AND repo = ? AND number = ?"
-             (list body (or html "") host owner repo number))
-            (message "Updated body of %s/%s#%d" owner repo number)
-            (when callback (funcall callback)))))))))
+         (forgejo-db--execute
+          "UPDATE issues SET body = ?
+           WHERE host = ? AND owner = ? AND repo = ? AND number = ?"
+          (list body host owner repo number))
+         (message "Updated body of %s/%s#%d" owner repo number)
+         (when callback (funcall callback)))))))
 
 (defun forgejo-utils-edit-comment (host-url owner repo comment-id current-body
                                    callback)
   "Edit comment COMMENT-ID in OWNER/REPO on HOST-URL.
 CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
   (let ((body (forgejo-utils-read-body "Edit comment" current-body))
-        (host (url-host (url-generic-parse-url host-url)))
-        (context (format "%s/%s" owner repo)))
+        (host (url-host (url-generic-parse-url host-url))))
     (when (and body (not (string= body (or current-body ""))))
       (forgejo-api-patch
        host-url
        (format "repos/%s/%s/issues/comments/%d" owner repo comment-id)
        `((body . ,body))
        (lambda (_data _headers)
-         (forgejo-api-render-markdown-async
-          host-url body context
-          (lambda (html)
-            (forgejo-db--execute
-             "UPDATE timeline_events SET body = ?, body_html = ?
-              WHERE host = ? AND owner = ? AND repo = ? AND id = ?"
-             (list body (or html "") host owner repo comment-id))
-            (message "Updated comment %d in %s/%s" comment-id owner repo)
-            (when callback (funcall callback)))))))))
+         (forgejo-db--execute
+          "UPDATE timeline_events SET body = ?
+           WHERE host = ? AND owner = ? AND repo = ? AND id = ?"
+          (list body host owner repo comment-id))
+         (message "Updated comment %d in %s/%s" comment-id owner repo)
+         (when callback (funcall callback)))))))
 
 ;;; Label/assignee/milestone management
 

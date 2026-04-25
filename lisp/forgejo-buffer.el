@@ -27,9 +27,8 @@
 
 (require 'cl-lib)
 (require 'ewoc)
-(require 'shr)
-(require 'dom)
 (require 'diff-mode)
+(require 'markdown-mode)
 (require 'forgejo)
 
 (defvar forgejo-repo--host)
@@ -156,29 +155,23 @@ Returns nil if BODY is :null, nil, or empty."
   (when (and body (stringp body) (not (string-empty-p body)))
     (replace-regexp-in-string "\r" "" body)))
 
-(defun forgejo-buffer--shr-blockquote (dom)
-  "Render a blockquote DOM node with `forgejo-blockquote-face'."
-  (let ((start (point))
-        (shr-indentation (+ shr-indentation 2)))
-    (shr-ensure-newline)
-    (shr-generic dom)
-    (shr-ensure-newline)
-    (put-text-property start (point) 'face 'forgejo-blockquote-face)))
-
 (defun forgejo-buffer--linkify-refs (start end)
-  "Add clickable properties to #N issue/PR references between START and END."
+  "Mark bare #N issue/PR references between START and END as clickable.
+Skips positions already handled by shr or markdown link rendering.
+Sets `forgejo-ref-number' for `forgejo-buffer-follow-link' to use."
   (save-excursion
     (goto-char start)
-    (while (re-search-forward "#\\([0-9]+\\)" end t)
-      (unless (get-text-property (match-beginning 0) 'keymap)
-        (let ((number (string-to-number (match-string 1))))
-          (add-text-properties
-           (match-beginning 0) (match-end 0)
-           (list 'forgejo-ref-number number
-                 'keymap forgejo-buffer-ref-map
-                 'face 'link
-                 'mouse-face 'highlight
-                 'help-echo "RET: view this issue/PR")))))))
+    (while (re-search-forward
+            "\\(?:\\([A-Za-z0-9._-]+/[A-Za-z0-9._-]+\\)\\)?#\\([0-9]+\\)" end t)
+      (unless (or (get-text-property (match-beginning 0) 'forgejo-ref-number)
+                  (get-text-property (match-beginning 0) 'keymap))
+        (add-text-properties
+         (match-beginning 0) (match-end 0)
+         (list 'forgejo-ref-number (string-to-number (match-string 2))
+               'forgejo-ref-repo (match-string 1)
+               'face 'link
+               'mouse-face 'highlight
+               'help-echo "RET: view this issue/PR"))))))
 
 (defun forgejo-buffer--parse-forgejo-url (url)
   "Parse a Forgejo issue/PR URL into (OWNER REPO NUMBER), or nil."
@@ -195,30 +188,43 @@ Returns nil if BODY is :null, nil, or empty."
       (forgejo-view-item (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))
     (browse-url-default-browser url)))
 
-(defun forgejo-buffer--insert-html (html)
-  "Insert rendered HTML into the current buffer using shr.
-Applies `forgejo-blockquote-face' to quoted text and linkifies #N references.
-Forgejo issue/PR links open in forgejo.el instead of the browser.
-Falls back to plain text insertion if HTML parsing fails."
-  (when (and html (stringp html) (not (string-empty-p html)))
-    (condition-case nil
-        (let ((dom (with-temp-buffer
-                     (insert html)
-                     (libxml-parse-html-region (point-min) (point-max))))
-              (shr-use-fonts nil)
-              (shr-width (min (- (window-width) 4) 80))
-              (start (point)))
-          (let ((shr-external-rendering-functions
-                 (cons '(blockquote . forgejo-buffer--shr-blockquote)
-                       shr-external-rendering-functions)))
-            (shr-insert-document dom))
-          (forgejo-buffer--linkify-refs start (point)))
-      (error (insert html "\n")))))
+;;; URL following
 
-(defun forgejo-buffer--body-or-text (alist)
-  "Return body_html from ALIST if available, else cleaned body text."
-  (or (alist-get 'body_html alist)
-      (forgejo-buffer--clean-body (alist-get 'body alist))))
+(defun forgejo-buffer--url-at-point ()
+  "Return the URL at point via `markdown-link-url'."
+  (markdown-link-url))
+
+(defun forgejo-buffer-follow-link ()
+  "Follow the link at point.
+Handles #N issue/PR refs and markdown URLs."
+  (interactive)
+  (cond
+   ((get-text-property (point) 'forgejo-ref-number)
+    (forgejo-buffer-follow-ref))
+   ((forgejo-buffer--url-at-point)
+    (forgejo-buffer--browse-url (forgejo-buffer--url-at-point)))
+   (t (user-error "No link at point"))))
+
+;;; Body rendering
+
+(defun forgejo-buffer--fontify-markdown (text)
+  "Return TEXT fontified with `gfm-view-mode' in a temp buffer.
+Uses the view mode so markdown link URLs are hidden.
+Prepends a blank line to prevent YAML front-matter misparsing."
+  (with-temp-buffer
+    (insert "\n" text)
+    (gfm-view-mode)
+    (font-lock-ensure)
+    (buffer-substring (+ (point-min) 1) (point-max))))
+
+(defun forgejo-buffer--insert-body (body &optional _body-html)
+  "Insert BODY text fontified with `gfm-mode'."
+  (when (and body (stringp body) (not (string-empty-p body)))
+    (let ((start (point)))
+      (insert (forgejo-buffer--fontify-markdown
+               (forgejo-buffer--clean-body body))
+              "\n")
+      (forgejo-buffer--linkify-refs start (point)))))
 
 ;;; Separator
 
@@ -270,7 +276,7 @@ NODE-DATA is a plist with :type and type-specific keys."
         (state (plist-get data :state))
         (author (plist-get data :author))
         (number (plist-get data :number))
-        (body-html (plist-get data :body-html))
+        (body (plist-get data :body))
         (labels (plist-get data :labels))
         (milestone (plist-get data :milestone))
         (assignees (plist-get data :assignees))
@@ -297,17 +303,16 @@ NODE-DATA is a plist with :type and type-specific keys."
               (mapconcat (lambda (a) (alist-get 'login a)) assignees ", ")
               "\n"))
     (forgejo-buffer--insert-separator)
-    ;; Body displayed like a comment from the author
-    (when body-html
+    (when body
       (insert (propertize author 'face 'forgejo-comment-author-face)
               "\n\n")
-      (forgejo-buffer--insert-html body-html)
+      (forgejo-buffer--insert-body body)
       (forgejo-buffer--insert-separator))))
 
 (defun forgejo-buffer--pp-comment (data)
   "Render a comment from DATA plist."
   (let ((author (plist-get data :author))
-        (body-html (plist-get data :body-html))
+        (body (plist-get data :body))
         (created (plist-get data :created-at))
         (updated (plist-get data :updated-at)))
     (insert (propertize author 'face 'forgejo-comment-author-face)
@@ -316,7 +321,7 @@ NODE-DATA is a plist with :type and type-specific keys."
     (when (and created updated (not (string= created updated)))
       (forgejo-buffer--insert-edited-indicator))
     (insert "\n\n")
-    (forgejo-buffer--insert-html body-html)
+    (forgejo-buffer--insert-body body)
     (forgejo-buffer--insert-separator)))
 
 (defvar forgejo-buffer-ref-map
@@ -538,7 +543,7 @@ Prompts for review type: comment or request_changes."
         :id (alist-get 'id event)
         :author actor
         :body (alist-get 'body event)
-        :body-html (forgejo-buffer--body-or-text event)
+        :body-html (alist-get 'body event)
         :created-at (alist-get 'created_at event)
         :updated-at (alist-get 'updated_at event)))
 
@@ -659,13 +664,13 @@ Returns a list of nodes (may be multiple for review with threads)."
                   :created-at (alist-get 'created_at event)
                   :threads threads
                   :body-html (when (and body (not (string-empty-p body)))
-                               (forgejo-buffer--body-or-text event)))))
+                               (alist-get 'body event)))))
      ((and body (not (string-empty-p body)))
       (list (list :type 'comment
                   :id (alist-get 'id event)
                   :author actor
                   :body body
-                  :body-html (forgejo-buffer--body-or-text event)
+                  :body-html (alist-get 'body event)
                   :created-at (alist-get 'created_at event))))
      (t
       (list (list :type 'event
@@ -777,7 +782,7 @@ Both should be alists with `body_html' pre-populated from the DB."
                   :state .state
                   :author (or (forgejo-buffer--login .user) "unknown")
                   :body .body
-                  :body-html (forgejo-buffer--body-or-text issue-data)
+                  :body-html (alist-get 'body issue-data)
                   :labels (when (listp .labels) .labels)
                   :milestone (when (listp .milestone)
                                (alist-get 'title .milestone))
@@ -863,7 +868,7 @@ Both should be alists with `body_html' pre-populated from the DB."
         (created (plist-get data :created-at))
         (threads (plist-get data :threads))
         (review-id (plist-get data :review-id))
-        (body-html (plist-get data :body-html)))
+        (body (plist-get data :body)))
     (insert (propertize actor 'face 'forgejo-comment-author-face)
             (propertize (concat " reviewed " (forgejo-buffer--relative-time created))
                         'face 'shadow)
@@ -890,8 +895,8 @@ Both should be alists with `body_html' pre-populated from the DB."
                     (propertize "(resolved)" 'face 'success)
                   (propertize "(unresolved)" 'face 'warning))
                 "\n")))
-    (when body-html
-      (forgejo-buffer--insert-html body-html))
+    (when body
+      (forgejo-buffer--insert-body body))
     (forgejo-buffer--insert-separator)))
 
 ;;; Review thread buffer
@@ -945,7 +950,7 @@ Both should be alists with `body_html' pre-populated from the DB."
       ;; Comments
       (dolist (c comments)
         (let ((author (or (alist-get 'login (alist-get 'user c)) "unknown"))
-              (body (or (alist-get 'body_html c) (alist-get 'body c)))
+              (body (alist-get 'body c))
               (created (alist-get 'created_at c)))
           (insert "\n"
                   (propertize author 'face 'forgejo-comment-author-face)
@@ -953,7 +958,7 @@ Both should be alists with `body_html' pre-populated from the DB."
                                       (forgejo-buffer--relative-time created))
                               'face 'shadow)
                   "\n")
-          (forgejo-buffer--insert-html body)
+          (forgejo-buffer--insert-body body)
           (forgejo-buffer--insert-separator))))
     (use-local-map forgejo-review-thread-mode-map)
     (setq buffer-read-only t)

@@ -338,6 +338,25 @@ HOST is the hostname for DB cache update.  CALLBACK is called on success."
 
 ;;; Edit
 
+(defun forgejo-utils-edit-title (host-url owner repo number current-title
+                                 callback)
+  "Edit the title of issue/PR NUMBER in OWNER/REPO on HOST-URL.
+CURRENT-TITLE is pre-filled.  CALLBACK is called on success."
+  (let ((title (read-string "Title: " current-title)))
+    (when (and title (not (string= title (or current-title ""))))
+      (forgejo-api-patch
+       host-url
+       (format "repos/%s/%s/issues/%d" owner repo number)
+       `((title . ,title))
+       (lambda (_data _headers)
+         (let ((host (url-host (url-generic-parse-url host-url))))
+           (forgejo-db--execute
+            "UPDATE issues SET title = ?
+             WHERE host = ? AND owner = ? AND repo = ? AND number = ?"
+            (list title host owner repo number)))
+         (message "Updated title of %s/%s#%d" owner repo number)
+         (when callback (funcall callback)))))))
+
 (defun forgejo-utils-edit-body (host-url owner repo number current-body
                                 callback)
   "Edit the body of issue/PR NUMBER in OWNER/REPO on HOST-URL.

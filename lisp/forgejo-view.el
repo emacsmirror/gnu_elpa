@@ -210,17 +210,23 @@ Restores point to RESTORE-LINE if given."
        (funcall refresh)))))
 
 (defun forgejo-view-edit ()
-  "Edit the body or comment at point."
+  "Edit the item at point.
+On the header, prompts for title or body.  On a comment, edits the body."
   (interactive)
   (when-let* ((node (forgejo-view--node-at-point))
               (data forgejo-view--data)
               (number (alist-get 'number data)))
     (pcase (plist-get node :type)
       ('header
-       (forgejo-utils-edit-body
-        forgejo-repo--host forgejo-repo--owner forgejo-repo--name number
-        (plist-get node :body)
-        (forgejo--post-action-callback)))
+       (pcase (car (read-multiple-choice "Edit" '((?t "title") (?b "body"))))
+         (?t (forgejo-utils-edit-title
+              forgejo-repo--host forgejo-repo--owner forgejo-repo--name number
+              (plist-get node :title)
+              (forgejo--post-action-callback)))
+         (?b (forgejo-utils-edit-body
+              forgejo-repo--host forgejo-repo--owner forgejo-repo--name number
+              (plist-get node :body)
+              (forgejo--post-action-callback)))))
       ('comment
        (forgejo-utils-edit-comment
         forgejo-repo--host forgejo-repo--owner forgejo-repo--name

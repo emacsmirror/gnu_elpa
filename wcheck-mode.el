@@ -1786,83 +1786,72 @@ MARKED-TEXT must be a vector such as the one returned by
 
 (defun wcheck--choose-action-popup (actions event)
   "Create a pop-up menu to choose an action.
-ACTIONS is a list of strings. EVENT is the mouse event that
-originated this sequence of function calls. Return user's
-choice (a string) or nil."
+ACTIONS is a list from `wcheck--clean-actions'. EVENT is the mouse event
+that originated this sequence of function calls. Return user's choice (a
+string) or nil."
   (let ((menu (list "Choose"
                     (cons "" (if actions
-                                 (mapcar (lambda (item)
-                                           (cons (wcheck--clean-string
-                                                  (car item))
-                                                 (cdr item)))
-                                         actions)
+                                 actions
                                (list "[No actions]"))))))
     (x-popup-menu event menu)))
 
 
 (defun wcheck--choose-action-minibuffer (actions)
   "Create a text menu to choose a substitute action.
-ACTIONS is a list of strings. Return user's choice (a string)
-or nil."
+ACTIONS is a list from `wcheck--clean-actions'. Return user's choice (a
+string) or nil."
   (if actions
-      (let ((chars (append (number-sequence ?1 ?9) (list ?0)
-                           (number-sequence ?a ?z)))
-            alist)
+      (let* ((chars (append (number-sequence ?1 ?9) (list ?0)
+                            (number-sequence ?a ?z)))
+             (chars-actions nil)
 
-        (with-temp-buffer
-          (setq mode-line-format nil
-                cursor-type nil
-                truncate-lines t)
+             (suggestions
+              (with-temp-buffer
+                (while (and actions chars)
+                  (let ((action (pop actions))
+                        (char (pop chars)))
+                    (push (cons char (cdr action)) chars-actions)
 
-          (let (sug string)
-            (while (and actions chars)
-              (setq sug (car actions)
-                    actions (cdr actions)
-                    string (concat (propertize (format "%c)" (car chars))
-                                               'face 'bold)
-                                   " " (wcheck--clean-string (car sug)) "  ")
-                    alist (cons (cons (car chars) (cdr sug)) alist)
-                    chars (cdr chars))
-              (insert string)
-              (when (and actions chars
-                         (> (+ (- (point) (line-beginning-position))
-                               (length (concat "x) " (caar actions))))
-                            (window-width)))
+                    (insert (propertize (format "%c)" char)
+                                        'face 'bold)
+                            " "
+                            (wcheck--clean-string (car action))
+                            "  ")
+
+                    (when (and actions chars
+                               (> (+ (- (point) (line-beginning-position))
+                                     (length (concat "x) " (caar actions))))
+                                  (window-width (minibuffer-window))))
+                      (delete-char -2)
+                      (newline 1))))
+
                 (delete-char -2)
-                (newline 1))))
+                (newline 1)
 
-          (delete-char -2)
-          (goto-char (point-min))
-          (setq buffer-read-only t)
+                (buffer-substring (point-min) (point-max))))
 
-          (let* ((window (split-window
-                          nil
-                          (- 0
-                             (min (count-lines (point-min) (point-max))
-                                  (- (window-body-height) 2))
-                             1)
-                          'below))
-                 (prompt
-                  (apply #'propertize
-                         (let ((last (caar alist)))
-                           (format "Number %s(%s):"
-                                   (if (memq last (number-sequence ?a ?z))
-                                       "or letter "
-                                     "")
-                                   (cond ((= last ?1) "1")
-                                         ((memq last (number-sequence ?2 ?9))
-                                          (format "1-%c" last))
-                                         ((= last ?0) "1-9,0")
-                                         ((= last ?a) "1-9,0,a")
-                                         ((memq last (number-sequence ?b ?z))
-                                          (format "1-9,0,a-%c" last))
-                                         (t ""))))
-                         minibuffer-prompt-properties)))
-            (set-window-buffer window (current-buffer))
-            (set-window-dedicated-p window t)
-            ;; Return the choice or nil.
-            (cond ((cdr (assq (read-key prompt) alist)))
-                  (t (message "Abort") nil)))))
+             (prompt
+              (apply #'propertize
+                     (let ((last (caar chars-actions)))
+                       (format "Number %s(%s):"
+                               (if (memq last (number-sequence ?a ?z))
+                                   "or letter "
+                                 "")
+                               (cond ((= last ?1) "1")
+                                     ((memq last (number-sequence ?2 ?9))
+                                      (format "1-%c" last))
+                                     ((= last ?0) "1-9,0")
+                                     ((= last ?a) "1-9,0,a")
+                                     ((memq last (number-sequence ?b ?z))
+                                      (format "1-9,0,a-%c" last))
+                                     (t ""))))
+                     minibuffer-prompt-properties)))
+
+        ;; Return the choice or nil.
+        (cond ((cdr (assq (read-key (concat suggestions prompt))
+                          chars-actions)))
+              (t (message "Abort") nil)))
+
     (message "No actions")
     nil))
 

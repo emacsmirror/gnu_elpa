@@ -610,5 +610,108 @@
     (should (keymap-popup--stay-open-p descs "g"))
     (should (keymap-popup--stay-open-p descs "v"))))
 
+;;; Parent inheritance tests
+
+(ert-deftest keymap-popup-test-parent-keymap-bindings ()
+  (eval '(define-described-keymap keymap-popup--test-parent
+           :group "Common"
+           "g" ("Refresh" ignore)
+           "q" ("Quit" quit-window))
+        t)
+  (eval '(define-described-keymap keymap-popup--test-child
+           :parent keymap-popup--test-parent
+           :group "Child"
+           "c" ("Comment" ignore))
+        t)
+  ;; Child has its own binding
+  (should (eq (keymap-lookup keymap-popup--test-child "c") #'ignore))
+  ;; Child inherits parent binding
+  (should (eq (keymap-lookup keymap-popup--test-child "g") #'ignore)))
+
+(ert-deftest keymap-popup-test-parent-descriptions-merged ()
+  "Popup shows descriptions from both child and parent."
+  (eval '(define-described-keymap keymap-popup--test-parent2
+           :group "Common"
+           "g" ("Refresh" ignore))
+        t)
+  (eval '(define-described-keymap keymap-popup--test-child2
+           :parent keymap-popup--test-parent2
+           :group "Child"
+           "c" ("Comment" ignore))
+        t)
+  (let ((buf (keymap-popup--prepare-buffer 'keymap-popup--test-child2)))
+    (unwind-protect
+        (with-current-buffer buf
+          (should (string-match-p "Comment" (buffer-string)))
+          (should (string-match-p "Refresh" (buffer-string)))
+          (should (string-match-p "Child" (buffer-string)))
+          (should (string-match-p "Common" (buffer-string))))
+      (kill-buffer buf))))
+
+(ert-deftest keymap-popup-test-collect-descriptions-chain ()
+  (eval '(define-described-keymap keymap-popup--test-grandparent
+           :group "GP"
+           "g" ("Go" ignore))
+        t)
+  (eval '(define-described-keymap keymap-popup--test-mid
+           :parent keymap-popup--test-grandparent
+           :group "Mid"
+           "m" ("Mid cmd" ignore))
+        t)
+  (eval '(define-described-keymap keymap-popup--test-leaf
+           :parent keymap-popup--test-mid
+           :group "Leaf"
+           "l" ("Leaf cmd" ignore))
+        t)
+  (let ((all (keymap-popup--collect-descriptions 'keymap-popup--test-leaf)))
+    ;; Should have rows from leaf + mid + grandparent
+    (should (>= (length all) 3))))
+
+;;; Inapt tests
+
+(ert-deftest keymap-popup-test-inapt-rendered-with-face ()
+  (let* ((rows (list (list (list :name nil
+                                 :entries (list (list :key "m" :description "Merge"
+                                                      :type 'suffix :command 'ignore
+                                                      :inapt-if (lambda () t)))))))
+         (output (keymap-popup--render nil rows)))
+    (should (string-match-p "Merge" output))
+    (let ((pos (string-match "Merge" output)))
+      (should (eq (get-text-property pos 'face output) 'keymap-popup-inapt)))))
+
+(ert-deftest keymap-popup-test-inapt-not-when-predicate-nil ()
+  (let* ((rows (list (list (list :name nil
+                                 :entries (list (list :key "m" :description "Merge"
+                                                      :type 'suffix :command 'ignore
+                                                      :inapt-if (lambda () nil)))))))
+         (output (keymap-popup--render nil rows)))
+    (let ((pos (string-match "Merge" output)))
+      (should-not (eq (get-text-property pos 'face output) 'keymap-popup-inapt)))))
+
+(ert-deftest keymap-popup-test-inapt-p ()
+  (let ((descs (list (list (list :name nil
+                                 :entries (list (list :key "m" :type 'suffix :command 'ignore
+                                                      :inapt-if (lambda () t))
+                                                (list :key "c" :type 'suffix
+                                                      :command 'ignore)))))))
+    (should (keymap-popup--inapt-p descs "m"))
+    (should-not (keymap-popup--inapt-p descs "c"))))
+
+(ert-deftest keymap-popup-test-inapt-via-macro ()
+  "Inapt entries work through the macro."
+  (eval '(define-described-keymap keymap-popup--test-inapt-map
+           "m" ("Merge" ignore :inapt-if (lambda () t))
+           "c" ("Comment" ignore))
+        t)
+  (let ((buf (keymap-popup--prepare-buffer 'keymap-popup--test-inapt-map)))
+    (unwind-protect
+        (with-current-buffer buf
+          (let* ((content (buffer-string))
+                 (pos (string-match "Merge" content)))
+            (should pos)
+            (should (eq (get-text-property pos 'face content) 'keymap-popup-inapt))
+            (should (string-match-p "Comment" content))))
+      (kill-buffer buf))))
+
 (provide 'keymap-popup-tests)
 ;;; keymap-popup-tests.el ends here

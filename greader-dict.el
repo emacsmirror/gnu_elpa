@@ -991,31 +991,38 @@ asked."
 
 (defvar greader-reading-mode)
 (defun greader-dict--update ()
-  (when greader-dict-filters-mode
-    (setq greader-dict--current-reading-buffer (or
-						greader--current-buffer
-						(current-buffer)))
-    (unless greader-reading-mode
-      (let ((dict-mode-state greader-dict-mode))
-	(greader-dict-mode 1)
-	(greader-dict-read-from-dict-file t)
-	(unless dict-mode-state
-	  (greader-dict-mode -1)))))
-  (when greader-dict-mode
-    (setq greader-dict--current-reading-buffer (or
-						greader--current-buffer
-						(current-buffer)))
-    (unless greader-dict--saved-flag
-      (greader-dict-write-file))
-    ;; I decided to keep the following code for historical reasons and
-    ;; memento.
-    ;;   Indeed it is superfluous as it is, because "buffer-locality", so
-    ;; the following conditional is not necessary.
-    (unless greader-reading-mode
-      (clrhash
-       (buffer-local-value 'greader-dictionary
-			   greader-dict--current-reading-buffer))
-      (greader-dict-read-from-dict-file t))))
+  ;; When reading is active in another buffer, this buffer's
+  ;; dict/filters hooks must not touch the reading buffer's
+  ;; dictionary.  Only save unsaved changes, then bail out.
+  (if (and greader--current-buffer
+	   (not (eq greader--current-buffer (current-buffer))))
+      (unless greader-dict--saved-flag
+	(greader-dict-write-file))
+    (when greader-dict-filters-mode
+      (setq greader-dict--current-reading-buffer (or
+						  greader--current-buffer
+						  (current-buffer)))
+      (unless greader-reading-mode
+	(let ((dict-mode-state greader-dict-mode))
+	  (greader-dict-mode 1)
+	  (greader-dict-read-from-dict-file t)
+	  (unless dict-mode-state
+	    (greader-dict-mode -1)))))
+    (when greader-dict-mode
+      (setq greader-dict--current-reading-buffer (or
+						  greader--current-buffer
+						  (current-buffer)))
+      (unless greader-dict--saved-flag
+	(greader-dict-write-file))
+      ;; I decided to keep the following code for historical reasons and
+      ;; memento.
+      ;;   Indeed it is superfluous as it is, because "buffer-locality", so
+      ;; the following conditional is not necessary.
+      (unless greader-reading-mode
+	(clrhash
+	 (buffer-local-value 'greader-dictionary
+			     greader-dict--current-reading-buffer))
+	(greader-dict-read-from-dict-file t)))))
 
 ;; Questa funzione è solo di utilità e potrebbe essere rimossa o
 ;; modificata in qualsiasi momento.

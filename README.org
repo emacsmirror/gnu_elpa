@@ -1,0 +1,82 @@
+#+title: keymap-popup.el
+
+One macro replaces both your mode keymap and transient menu.
+
+No EIEIO, no transient dependency, single file.
+
+#+BEGIN_QUOTE
+Vendor it into your project.
+
+Requires Emacs 29.1+.
+#+END_QUOTE
+
+** Example
+
+#+begin_src emacs-lisp
+(define-described-keymap my-mode-map
+  :group "Actions"
+  "c" ("Comment" my-comment)
+  "r" ("Reply" my-reply)
+  :group "Options"
+  "V" ("Verbose" :switch my-verbose-var)
+  "n" ("Limit" :option my-limit-var :reader read-number :prompt "Limit: ")
+  :row
+  :group "Navigate"
+  "g" ("Refresh" my-refresh)
+  "q" ("Quit" quit-window))
+#+end_src
+
+This gives you a real =defvar-keymap= you can use directly with =use-local-map=.  Press =h= to see the popup.
+
+Infixes stay open and re-render when toggled.  Suffixes close the popup and dispatch.  =q= dismisses.
+
+** Switches and options
+
+Switches are buffer-local booleans.  Options are buffer-local values set via a reader function.  Your commands read them directly:
+
+#+begin_src emacs-lisp
+(defun my-list ()
+  (interactive)
+  (my-fetch :verbose my-verbose-var
+            :limit my-limit-var))
+#+end_src
+
+** Conditional entries
+
+#+begin_src emacs-lisp
+"s" ("Secret" my-secret-cmd :if (lambda () my-verbose-var))
+#+end_src
+
+Hidden from the popup when the predicate returns nil.  The keybinding still exists.
+
+** Dynamic descriptions
+
+#+begin_src emacs-lisp
+"s" ((lambda () (format "Submit (%s)" branch)) my-submit)
+#+end_src
+
+** Layout
+
+- =:group= starts a new column.
+- =:row= starts a new line of columns.
+
+Columns align across rows.
+
+** Extending from outside
+
+#+begin_src emacs-lisp
+(keymap-popup-add-entry 'my-mode-map "z" "New action" #'my-action "Actions")
+(keymap-popup-remove-entry 'my-mode-map "z")
+#+end_src
+
+** Options
+
+Docstring is optional.  Popup key defaults to =h=, change it with =:popup-key=:
+
+#+begin_src emacs-lisp
+(define-described-keymap my-map
+  "My commands."
+  :popup-key "?"
+  :group "Actions"
+  "c" ("Comment" my-comment))
+#+end_src

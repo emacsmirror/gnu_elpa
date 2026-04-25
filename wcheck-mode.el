@@ -1805,29 +1805,33 @@ string) or nil."
                             (number-sequence ?a ?z)))
              (chars-actions nil)
 
-             (suggestions
+             (choices
               (with-temp-buffer
-                (while (and actions chars)
-                  (let ((action (pop actions))
-                        (char (pop chars)))
+                (let ((action nil)
+                      (char nil)
+                      (choice nil))
+                  (while (and actions chars)
+                    (setq action (pop actions)
+                          char (pop chars)
+                          choice (concat
+                                  (propertize (format "[%c]" char)
+                                              'face 'font-lock-comment-face)
+                                  " "
+                                  (car action)))
+
                     (push (cons char (cdr action)) chars-actions)
+                    (let ((line-pos (- (point) (line-beginning-position))))
+                      (when (and (> line-pos 0)
+                                 (>= (+ line-pos 2 (length choice)) ; 2 spaces
+                                     (window-width (minibuffer-window))))
+                        (newline 1)))
 
-                    (insert (propertize (format "%c)" char)
-                                        'face 'bold)
-                            " "
-                            (wcheck--clean-string (car action))
-                            "  ")
+                    (when (> (point) (line-beginning-position))
+                      (insert "  "))
+                    (insert choice)))
 
-                    (when (and actions chars
-                               (> (+ (- (point) (line-beginning-position))
-                                     (length (concat "x) " (caar actions))))
-                                  (window-width (minibuffer-window))))
-                      (delete-char -2)
-                      (newline 1))))
-
-                (delete-char -2)
                 (newline 1)
-
+                (add-text-properties (point-min) (point-max) '(read-only t))
                 (buffer-substring (point-min) (point-max))))
 
              (prompt
@@ -1848,9 +1852,12 @@ string) or nil."
                      minibuffer-prompt-properties)))
 
         ;; Return the choice or nil.
-        (cond ((cdr (assq (read-key (concat suggestions prompt))
-                          chars-actions)))
-              (t (message "Abort") nil)))
+        (let ((choice (cdr (assq (read-key (concat choices prompt))
+                                 chars-actions))))
+          (if choice
+              choice
+            (message "Abort")
+            nil)))
 
     (message "No actions")
     nil))

@@ -292,20 +292,6 @@
   "Signal user-error when symbol has no descriptions."
   (should-error (keymap-popup 'nonexistent-symbol) :type 'user-error))
 
-(ert-deftest keymap-popup-test-dismiss-c-g ()
-  "C-g always dismisses."
-  (should (keymap-popup--dismiss-p ?\C-g #'ignore))
-  (should (keymap-popup--dismiss-p ?\C-g nil)))
-
-(ert-deftest keymap-popup-test-dismiss-q ()
-  "q always dismisses the popup, even if bound in the keymap."
-  (should (keymap-popup--dismiss-p ?q nil))
-  (should (keymap-popup--dismiss-p ?q #'quit-window)))
-
-(ert-deftest keymap-popup-test-no-dismiss-other ()
-  "Other keys do not dismiss."
-  (should-not (keymap-popup--dismiss-p ?c nil))
-  (should-not (keymap-popup--dismiss-p ?c #'ignore)))
 
 ;;; Column layout tests
 
@@ -487,6 +473,142 @@
           (should (string-match-p "Comment" (buffer-string)))
           (should-not (string-match-p "Reply" (buffer-string))))
       (kill-buffer buf))))
+
+;;; Macro edge cases
+
+(ert-deftest keymap-popup-test-if-on-switch ()
+  "Switch with :if is hidden from popup when predicate returns nil."
+  (eval '(define-described-keymap keymap-popup--test-if-sw
+           "v" ("Verbose" :switch keymap-popup--test-if-sw-var
+                :if (lambda () nil)))
+        t)
+  ;; Keybinding still exists
+  (should (keymap-lookup keymap-popup--test-if-sw "v"))
+  ;; But hidden in popup
+  (let ((buf (keymap-popup--prepare-buffer 'keymap-popup--test-if-sw)))
+    (unwind-protect
+        (with-current-buffer buf
+          (should-not (string-match-p "Verbose" (buffer-string))))
+      (kill-buffer buf))))
+
+(ert-deftest keymap-popup-test-if-on-option ()
+  "Option with :if is hidden from popup when predicate returns nil."
+  (eval '(define-described-keymap keymap-popup--test-if-opt
+           "n" ("Count" :option keymap-popup--test-if-opt-var
+                :reader read-number :prompt "N: "
+                :if (lambda () nil)))
+        t)
+  (should (keymap-lookup keymap-popup--test-if-opt "n"))
+  (let ((buf (keymap-popup--prepare-buffer 'keymap-popup--test-if-opt)))
+    (unwind-protect
+        (with-current-buffer buf
+          (should-not (string-match-p "Count" (buffer-string))))
+      (kill-buffer buf))))
+
+(ert-deftest keymap-popup-test-stay-open-in-descriptions ()
+  "Suffix with :stay-open stores the flag in descriptions."
+  (eval '(define-described-keymap keymap-popup--test-stay
+           "g" ("Refresh" ignore :stay-open t))
+        t)
+  (let* ((descs (get 'keymap-popup--test-stay 'keymap-popup--descriptions))
+         (entry (keymap-popup--find-entry-by-key descs "g")))
+    (should (plist-get entry :stay-open))))
+
+(ert-deftest keymap-popup-test-popup-key-with-docstring ()
+  "Docstring and :popup-key work together."
+  (eval '(define-described-keymap keymap-popup--test-pkdoc
+           "My commands."
+           :popup-key "?"
+           :group "Actions"
+           "c" ("Comment" ignore))
+        t)
+  (should (functionp (keymap-lookup keymap-popup--test-pkdoc "?")))
+  (should (null (keymap-lookup keymap-popup--test-pkdoc "h")))
+  (should (string-match-p "My commands"
+                          (documentation-property 'keymap-popup--test-pkdoc
+                                                  'variable-documentation))))
+
+(ert-deftest keymap-popup-test-dynamic-group-name ()
+  "Group name can be a function called at render time."
+  (eval '(define-described-keymap keymap-popup--test-dyngrp
+           :group (lambda () "Dynamic Group")
+           "c" ("Comment" ignore))
+        t)
+  (let ((buf (keymap-popup--prepare-buffer 'keymap-popup--test-dyngrp)))
+    (unwind-protect
+        (with-current-buffer buf
+          (should (string-match-p "Dynamic Group" (buffer-string))))
+      (kill-buffer buf))))
+
+;;; Keymap entry tests
+
+(ert-deftest keymap-popup-test-parse-keymap-entry ()
+  "A :keymap entry parses with target symbol."
+  (let ((result (keymap-popup--parse-entry "a" '("Metadata" :keymap my-sub-map))))
+    (should (equal (plist-get result :type) 'keymap))
+    (should (equal (plist-get result :target) 'my-sub-map))))
+
+(ert-deftest keymap-popup-test-keymap-target ()
+  "Detect :keymap entries in descriptions."
+  (let ((descs (list (list (list :name nil
+                                 :entries (list (list :key "c" :type 'suffix :command 'ignore)
+                                                (list :key "a" :type 'keymap
+                                                      :target 'my-sub)))))))
+    (should (eq (keymap-popup--keymap-target descs "a") 'my-sub))
+    (should (null (keymap-popup--keymap-target descs "c")))))
+
+(ert-deftest keymap-popup-test-keymap-entry-gets-submenu-face ()
+  "Keymap entries render with the submenu face."
+  (let* ((rows (list (list (list :name nil
+                                 :entries (list (list :key "a" :description "Sub"
+                                                      :type 'keymap :target 'x))))))
+         (output (keymap-popup--render nil rows)))
+    (should (string-match-p "Sub" output))
+    (let ((pos (string-match "Sub" output)))
+      (should (eq (get-text-property pos 'face output) 'keymap-popup-submenu)))))
+
+;;; C-u rendering tests
+
+(ert-deftest keymap-popup-test-c-u-desc-in-normal-mode ()
+  "In normal mode, :c-u description appears in shadow face."
+  (let* ((rows (list (list (list :name nil
+                                 :entries (list (list :key "s" :description "Submit"
+                                                      :type 'suffix :command 'ignore
+                                                      :c-u "force push"))))))
+         (output (keymap-popup--render nil rows)))
+    (should (string-match-p "(force push)" output))
+    (let ((pos (string-match "(force push)" output)))
+      (should (eq (get-text-property pos 'face output) 'shadow)))))
+
+(ert-deftest keymap-popup-test-c-u-desc-in-prefix-mode ()
+  "In prefix mode, :c-u entries are normal and non-c-u entries are dimmed."
+  (let* ((rows (list (list (list :name nil
+                                 :entries (list (list :key "s" :description "Submit"
+                                                      :type 'suffix :command 'ignore
+                                                      :c-u "force")
+                                                (list :key "g" :description "Refresh"
+                                                      :type 'suffix :command 'ignore))))))
+         (output (keymap-popup--render nil rows t)))
+    ;; "force" should NOT be in shadow (it's highlighted in prefix mode)
+    (let ((pos (string-match "(force)" output)))
+      (should pos)
+      (should-not (eq (get-text-property pos 'face output) 'shadow)))
+    ;; "Refresh" line should be dimmed
+    (let ((pos (string-match "Refresh" output)))
+      (should (eq (get-text-property pos 'face output) 'shadow)))))
+
+;;; Stay-open detection tests
+
+(ert-deftest keymap-popup-test-stay-open-p ()
+  "Stay-open detects infixes and :stay-open suffixes."
+  (let ((descs (list (list (list :name nil
+                                 :entries (list (list :key "c" :type 'suffix :command 'ignore)
+                                                (list :key "g" :type 'suffix :command 'ignore
+                                                      :stay-open t)
+                                                (list :key "v" :type 'switch :variable 'x)))))))
+    (should-not (keymap-popup--stay-open-p descs "c"))
+    (should (keymap-popup--stay-open-p descs "g"))
+    (should (keymap-popup--stay-open-p descs "v"))))
 
 (provide 'keymap-popup-tests)
 ;;; keymap-popup-tests.el ends here

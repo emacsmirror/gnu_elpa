@@ -311,10 +311,14 @@ Reads the full ref from the `forgejo-full-ref' text property."
   "Open the issue or PR at point in the browser."
   (interactive)
   (when-let* ((entry (tabulated-list-get-entry))
+              (type (aref entry 0))
               (ref (aref entry 1))
               (parsed (forgejo-watch--parse-ref ref)))
-    (forgejo-utils-browse-issue forgejo-watch--host-url
-                                (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))))
+    (let ((browse-fn (if (string= type "PR")
+                         #'forgejo-utils-browse-pull
+                       #'forgejo-utils-browse-issue)))
+      (funcall browse-fn forgejo-watch--host-url
+               (nth 0 parsed) (nth 1 parsed) (nth 2 parsed)))))
 
 (provide 'forgejo-watch)
 ;;; forgejo-watch.el ends here

@@ -26,6 +26,9 @@
 
 (require 'forgejo-api)
 (require 'forgejo-db)
+(require 'markdown-mode)
+
+(declare-function forgejo-token "forgejo.el" (host-url))
 
 ;;; URL builders
 
@@ -229,14 +232,22 @@ PROMPT is used in the header line.  Buffer has no read-only regions."
   "Post a comment to ENDPOINT on HOST-URL.
 PROMPT is the composition buffer title.  INITIAL is optional
 pre-filled text (e.g. quoted reply).  CALLBACK receives (DATA HEADERS)
-on success."
+on success.  Returns nil if the user aborts."
   (let ((body (forgejo-utils-read-body prompt initial)))
-    (when (and body (not (string-empty-p (string-trim body))))
-      (forgejo-api-post
-       host-url endpoint nil
-       `((body . ,(string-trim body)))
-       (lambda (data headers)
-         (when callback (funcall callback data headers)))))))
+    (cond
+     ((null body) (message "Aborted"))
+     ((string-empty-p (string-trim body))
+      (when (y-or-n-p "Submit empty comment? ")
+        (forgejo-api-post
+         host-url endpoint nil
+         `((body . ""))
+         (lambda (data headers)
+           (when callback (funcall callback data headers))))))
+     (t (forgejo-api-post
+         host-url endpoint nil
+         `((body . ,(string-trim body)))
+         (lambda (data headers)
+           (when callback (funcall callback data headers))))))))
 
 ;;; Issue creation
 
@@ -278,18 +289,26 @@ Fetches templates if available, lets user pick one, then compose."
                                     :key (lambda (tmpl) (alist-get 'name tmpl))
                                     :test #'string=))))))
          (title (read-string "Issue title: "))
-         (body (forgejo-utils-read-body "Issue body"
-                                        (or template-content ""))))
-    (when (and title (not (string-empty-p (string-trim title))))
-      (forgejo-api-post
-       host-url
-       (format "repos/%s/%s/issues" owner repo)
-       nil
-       `((title . ,title)
-         ,@(when (and body (not (string-empty-p (string-trim body))))
-             `((body . ,body))))
-       (lambda (_data _headers)
-         (message "Issue created: %s/%s \"%s\"" owner repo title))))))
+         (body (when (not (string-empty-p (string-trim title)))
+                 (forgejo-utils-read-body "Issue body"
+                                          (or template-content "")))))
+    (cond
+     ((string-empty-p (string-trim title))
+      (user-error "Title cannot be empty"))
+     ((null body)
+      (message "Aborted"))
+     (t
+      (when (or (not (string-empty-p (string-trim body)))
+                (y-or-n-p "Submit issue without body? "))
+        (forgejo-api-post
+         host-url
+         (format "repos/%s/%s/issues" owner repo)
+         nil
+         `((title . ,title)
+           ,@(when (and body (not (string-empty-p (string-trim body))))
+               `((body . ,body))))
+         (lambda (_data _headers)
+           (message "Issue created: %s/%s \"%s\"" owner repo title))))))))
 
 ;;; Repository creation
 

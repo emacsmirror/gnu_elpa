@@ -46,7 +46,7 @@
 (defvar forgejo-repo--owner)
 (defvar forgejo-repo--name)
 
-;;; ---- PR list view ----
+;;; PR list view
 
 (defvar-local forgejo-pull--filters nil
   "Plist of current PR filter state.
@@ -254,7 +254,7 @@ Shows cached data immediately, then syncs from the API in the background."
     (forgejo-utils-browse-pull forgejo-repo--host
                                forgejo-repo--owner forgejo-repo--name id)))
 
-;;; ---- PR detail view ----
+;;; PR detail view
 
 (declare-function forgejo-pull-actions "forgejo-transient.el" ())
 

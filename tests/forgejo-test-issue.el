@@ -24,7 +24,7 @@
 (load (expand-file-name "../lisp/forgejo-issue.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
-;;; ---- Group 1: Entry conversion ----
+;;; Group 1: Entry conversion
 
 (ert-deftest forgejo-test-issue-entries ()
   "Convert API issues to tabulated-list entries."
@@ -43,7 +43,7 @@
         (should (string= (aref cols 2) "Test issue"))
         (should (string-match-p "alice" (aref cols 4)))))))
 
-;;; ---- Group 2: Build params ----
+;;; Group 2: Build params
 
 (ert-deftest forgejo-test-issue-build-params-default ()
   "Default params include type=issues and sort."

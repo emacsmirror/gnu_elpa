@@ -21,7 +21,7 @@
 (load (expand-file-name "../lisp/forgejo-filter.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
-;;; ---- Group 1: Parse ----
+;;; Group 1: Parse
 
 (ert-deftest forgejo-test-filter-parse-state ()
   "Parse state prefix."
@@ -70,7 +70,7 @@
   (let ((result (forgejo-filter-parse "author:alice")))
     (should (equal (plist-get result :author) "alice"))))
 
-;;; ---- Group 2: Serialize ----
+;;; Group 2: Serialize
 
 (ert-deftest forgejo-test-filter-serialize-state ()
   "Serialize state filter."
@@ -95,7 +95,7 @@
   "Serialize nil returns empty string."
   (should (string= (forgejo-filter-serialize nil) "")))
 
-;;; ---- Group 3: Round-trip ----
+;;; Group 3: Round-trip
 
 (ert-deftest forgejo-test-filter-round-trip ()
   "Parse then serialize produces equivalent query."
@@ -106,7 +106,7 @@
     (should (equal (plist-get parsed :state) (plist-get reparsed :state)))
     (should (equal (plist-get parsed :labels) (plist-get reparsed :labels)))))
 
-;;; ---- Group 4: List entries ----
+;;; Group 4: List entries
 
 (ert-deftest forgejo-test-filter-list-entries ()
   "Convert API alists to tabulated-list entries."

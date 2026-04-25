@@ -24,7 +24,7 @@
 (load (expand-file-name "../lisp/forgejo-pull.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
-;;; ---- Group 1: PR entry formatting ----
+;;; Group 1: PR entry formatting
 
 (ert-deftest forgejo-test-pull-entries ()
   "Convert API PR alists to tabulated-list entries."
@@ -43,7 +43,7 @@
         (should (string= (aref cols 2) "Add feature X"))
         (should (string-match-p "dev" (aref cols 4)))))))
 
-;;; ---- Group 2: Build params ----
+;;; Group 2: Build params
 
 (ert-deftest forgejo-test-pull-build-params-default ()
   "Default PR params include type=pulls, sort, and limit."

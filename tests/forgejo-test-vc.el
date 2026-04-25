@@ -17,7 +17,7 @@
 (load (expand-file-name "../lisp/forgejo-vc.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
-;;; ---- Group 1: Refspec building ----
+;;; Group 1: Refspec building
 
 (ert-deftest forgejo-test-vc-refspec ()
   "Build a correct AGit-Flow refspec."
@@ -29,7 +29,7 @@
   (should (string= (forgejo-vc--refspec "HEAD" "develop" "feature/auth")
                    "HEAD:refs/for/develop/feature/auth")))
 
-;;; ---- Group 2: Description encoding ----
+;;; Group 2: Description encoding
 
 (ert-deftest forgejo-test-vc-encode-description ()
   "Base64-encode description with {base64} prefix."
@@ -51,7 +51,7 @@
                    'utf-8)))
     (should (string= decoded text))))
 
-;;; ---- Group 3: Push options ----
+;;; Group 3: Push options
 
 (ert-deftest forgejo-test-vc-push-options ()
   "Push options include title and encoded description."
@@ -62,7 +62,7 @@
     (should (string= (nth 2 opts) "-o"))
     (should (string-prefix-p "description={base64}" (nth 3 opts)))))
 
-;;; ---- Group 4: Remote detection ----
+;;; Group 4: Remote detection
 
 (defun forgejo-test-vc--mock-process-file (url)
   "Return a mock `process-file' that returns URL for get-url, \"origin\" for remote."

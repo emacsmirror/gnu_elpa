@@ -14,7 +14,7 @@
 (load (expand-file-name "../lisp/forgejo-api.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
-;;; ---- Group 1: URL building ----
+;;; Group 1: URL building
 
 (ert-deftest forgejo-test-api-url-no-params ()
   "Build URL without query parameters."
@@ -35,7 +35,7 @@
                            (forgejo-api--url "https://codeberg.org"
                                               "user/repos"))))
 
-;;; ---- Group 2: Header parsing ----
+;;; Group 2: Header parsing
 
 (ert-deftest forgejo-test-api-parse-headers ()
   "Parse X-Total-Count and Link headers from HTTP response."
@@ -61,7 +61,7 @@
       (should (null (plist-get headers :total-count)))
       (should (null (plist-get headers :link))))))
 
-;;; ---- Group 3: Response parsing ----
+;;; Group 3: Response parsing
 
 (ert-deftest forgejo-test-api-parse-response-object ()
   "Parse a JSON object response into an alist."
@@ -86,7 +86,7 @@
       (should (= (alist-get 'id (nth 0 data)) 1))
       (should (= (alist-get 'id (nth 1 data)) 2)))))
 
-;;; ---- Group 4: HTTP status detection ----
+;;; Group 4: HTTP status detection
 
 (ert-deftest forgejo-test-api-response-status ()
   "Extract HTTP status code from response."
@@ -100,7 +100,7 @@
     (insert "HTTP/1.1 200 OK\r\n\r\n{}")
     (should (= (forgejo-api--response-status (current-buffer)) 200))))
 
-;;; ---- Group 5: Auth ----
+;;; Group 5: Auth
 
 (ert-deftest forgejo-test-api-token-from-variable ()
   "Token falls back to `forgejo-token' when auth-source is disabled."
@@ -116,7 +116,7 @@
         (forgejo-token nil))
     (should-error (forgejo-token "https://codeberg.org") :type 'user-error)))
 
-;;; ---- Group 6: Default limit ----
+;;; Group 6: Default limit
 
 (ert-deftest forgejo-test-api-default-limit-cached ()
   "Return cached limit when available."

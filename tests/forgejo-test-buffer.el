@@ -17,7 +17,7 @@
 (load (expand-file-name "../lisp/forgejo-buffer.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
-;;; ---- Group 1: State formatting ----
+;;; Group 1: State formatting
 
 (ert-deftest forgejo-test-buffer-format-state-open ()
   "Open state uses the open face."
@@ -30,7 +30,7 @@
   (let ((result (forgejo-buffer--format-state "closed")))
     (should (eq (get-text-property 0 'face result) 'forgejo-closed-face))))
 
-;;; ---- Group 2: Label formatting ----
+;;; Group 2: Label formatting
 
 (ert-deftest forgejo-test-buffer-format-labels ()
   "Labels are joined with commas and propertized with readable colors."
@@ -48,7 +48,7 @@
   (should (string= (forgejo-buffer--format-labels nil) ""))
   (should (string= (forgejo-buffer--format-labels '()) "")))
 
-;;; ---- Group 3: Relative time ----
+;;; Group 3: Relative time
 
 (ert-deftest forgejo-test-buffer-relative-time-nil ()
   "Nil or empty time returns empty string."
@@ -60,7 +60,7 @@
   (let ((result (forgejo-buffer--relative-time "2020-01-01T00:00:00Z")))
     (should (string-match-p "2020-01-01" result))))
 
-;;; ---- Group 4: Login extraction ----
+;;; Group 4: Login extraction
 
 (ert-deftest forgejo-test-buffer-login ()
   "Extract login from user alist."
@@ -68,7 +68,7 @@
   (should (null (forgejo-buffer--login :null)))
   (should (null (forgejo-buffer--login nil))))
 
-;;; ---- Group 5: EWOC node building ----
+;;; Group 5: EWOC node building
 
 (ert-deftest forgejo-test-buffer-build-nodes ()
   "Build EWOC nodes from issue data and timeline."
@@ -97,7 +97,7 @@
     (should (= (length nodes) 1))
     (should (eq (plist-get (car nodes) :type) 'header))))
 
-;;; ---- Group 6: Clean body ----
+;;; Group 6: Clean body
 
 (ert-deftest forgejo-test-buffer-clean-body ()
   "Strip carriage returns, handle nil and :null."

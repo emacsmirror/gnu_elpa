@@ -17,7 +17,7 @@
 (declare-function forgejo-buffer--relative-time "forgejo-buffer.el" (time-string))
 (declare-function forgejo-buffer--login "forgejo-buffer.el" (user-alist))
 
-;;; ---- Prefix / key maps ----
+;;; Prefix / key maps
 
 (defconst forgejo-filter--prefix-map
   '(("state" . :state)
@@ -46,7 +46,7 @@
             (:type . "type")))
   "Key map for serializing watch filter plists.")
 
-;;; ---- Parse / serialize ----
+;;; Parse / serialize
 
 (defun forgejo-filter-parse (query-string &optional prefix-map)
   "Parse QUERY-STRING into a filter plist.
@@ -84,7 +84,7 @@ The :query value, if present, is appended as bare words."
       (push query parts))
     (mapconcat #'identity (nreverse parts) " ")))
 
-;;; ---- API param building ----
+;;; API param building
 
 (defconst forgejo-filter--api-param-map
   '((:state     . "state")
@@ -111,7 +111,7 @@ Returns an alist of (PARAM . VALUE) pairs."
       (push (cons "page" (number-to-string page)) params))
     params))
 
-;;; ---- DB query pipelines ----
+;;; DB query pipelines
 
 (defun forgejo-filter-query-watch (host rules filters)
   "Return issue/PR alists matching watch RULES with FILTERS.
@@ -150,7 +150,7 @@ Result is a list of API-shaped alists."
     (mapcar #'forgejo-db--row-to-issue-alist
             (forgejo-db-get-issues host owner repo db-filters))))
 
-;;; ---- Column specs ----
+;;; Column specs
 
 (declare-function forgejo--sort-by-number "forgejo.el" (a b))
 (declare-function forgejo--sort-by-updated "forgejo.el" (a b))
@@ -175,7 +175,7 @@ Each element is (NAME WIDTH-OR-FLOAT SORT . PROPS).")
     ("Updated" ,(/ 1.0 8) forgejo--sort-by-updated))
   "Column spec for notification list views.")
 
-;;; ---- Tabulated-list entries ----
+;;; Tabulated-list entries
 
 (defun forgejo-filter-list-entries (items)
   "Convert ITEMS (list of API alists) to `tabulated-list-entries'.
@@ -224,7 +224,7 @@ Items must have `watch-owner' and `watch-repo' keys."
                             'forgejo-timestamp (or .updated_at "")))))))
    items))
 
-;;; ---- Completion candidates ----
+;;; Completion candidates
 
 (defun forgejo-filter-completions (host owner repo)
   "Return completions-alist for issue/PR filter in HOST/OWNER/REPO."

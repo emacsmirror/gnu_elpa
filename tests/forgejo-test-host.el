@@ -13,7 +13,7 @@
 (load (expand-file-name "../lisp/forgejo.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
-;;; ---- Group 1: Host validation ----
+;;; Group 1: Host validation
 
 (ert-deftest forgejo-test-host-validate-known ()
   "Known host passes validation."
@@ -28,7 +28,7 @@
     (should-error (forgejo--validate-host "https://unknown.example.com")
                   :type 'user-error)))
 
-;;; ---- Group 2: Token resolution ----
+;;; Group 2: Token resolution
 
 (ert-deftest forgejo-test-host-token-inline ()
   "Inline token from forgejo-hosts is returned."
@@ -76,7 +76,7 @@
     (should-error (forgejo-token "https://evil.example.com")
                   :type 'user-error)))
 
-;;; ---- Group 3: Host selection ----
+;;; Group 3: Host selection
 
 (ert-deftest forgejo-test-host-from-list-single ()
   "Single configured host is returned without prompting."
@@ -90,7 +90,7 @@
     (should-error (forgejo--host-from-hosts-list)
                   :type 'user-error)))
 
-;;; ---- Group 4: Host URL lookup ----
+;;; Group 4: Host URL lookup
 
 (ert-deftest forgejo-test-host-url-for-hostname ()
   "Look up full URL from hostname."

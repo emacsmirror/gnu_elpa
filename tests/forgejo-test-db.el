@@ -53,7 +53,7 @@
     (dolist (pair overrides base)
       (setf (alist-get (car pair) base) (cdr pair)))))
 
-;;; ---- Group 1: Schema ----
+;;; Group 1: Schema
 
 (ert-deftest forgejo-test-db-schema-creation ()
   "Database schema creates without error."
@@ -73,7 +73,7 @@
         (should (sqlitep forgejo-db)))
     (forgejo-test-db--teardown)))
 
-;;; ---- Group 2: Issues ----
+;;; Group 2: Issues
 
 (ert-deftest forgejo-test-db-save-and-get-issue ()
   "Save an issue and retrieve it."
@@ -155,7 +155,7 @@
           (should (= (length issues) 1))))
     (forgejo-test-db--teardown)))
 
-;;; ---- Group 3: Timeline ----
+;;; Group 3: Timeline
 
 (ert-deftest forgejo-test-db-save-and-get-timeline ()
   "Save timeline events and retrieve them."
@@ -175,7 +175,7 @@
           (should (string= (alist-get 'type alist) "comment"))))
     (forgejo-test-db--teardown)))
 
-;;; ---- Group 4: Labels ----
+;;; Group 4: Labels
 
 (ert-deftest forgejo-test-db-save-and-get-labels ()
   "Save labels and retrieve them."
@@ -192,7 +192,7 @@
           (should (string= (nth 4 (car rows)) "bug"))))
     (forgejo-test-db--teardown)))
 
-;;; ---- Group 5: Milestones ----
+;;; Group 5: Milestones
 
 (ert-deftest forgejo-test-db-save-and-get-milestones ()
   "Save milestones and retrieve them."
@@ -207,7 +207,7 @@
           (should (= (length rows) 2))))
     (forgejo-test-db--teardown)))
 
-;;; ---- Group 6: Sync state ----
+;;; Group 6: Sync state
 
 (ert-deftest forgejo-test-db-sync-state ()
   "Set and get sync timestamps."
@@ -237,7 +237,7 @@
                           "2026-04-20T00:00:00Z")))
     (forgejo-test-db--teardown)))
 
-;;; ---- Group 7: JSON helpers ----
+;;; Group 7: JSON helpers
 
 (ert-deftest forgejo-test-db-json-roundtrip ()
   "JSON encode/decode roundtrips correctly."
@@ -254,7 +254,7 @@
   (should (null (forgejo-db--decode-json "null")))
   (should (null (forgejo-db--decode-json nil))))
 
-;;; ---- Group 8: :null handling (real API data shape) ----
+;;; Group 8: :null handling (real API data shape)
 
 (ert-deftest forgejo-test-db-nullable ()
   "Convert :null and :false to nil."
@@ -335,7 +335,7 @@
           (should (= (length rows) 2))))
     (forgejo-test-db--teardown)))
 
-;;; ---- Group 9: Row-to-alist conversion ----
+;;; Group 9: Row-to-alist conversion
 
 (ert-deftest forgejo-test-db-row-to-issue-alist ()
   "Convert a DB row back to an API-shaped alist."
@@ -394,7 +394,7 @@
           (should (null (alist-get 'pull_request alist)))))
     (forgejo-test-db--teardown)))
 
-;;; ---- Group 10: Host lookup ----
+;;; Group 10: Host lookup
 
 (ert-deftest forgejo-test-db-get-hosts-for-repo ()
   "Return distinct hosts that have cached data for a repo."

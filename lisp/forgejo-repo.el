@@ -122,7 +122,7 @@ When no buffer-local host is set, aggregates across all hosts."
         (error nil))))
   (setq forgejo-repo--user-repos-fetched t))
 
-;;; ---- Repository search view ----
+;;; Repository search view
 
 (defvar-local forgejo-repo-search--query nil
   "Current search query string.")

@@ -45,7 +45,7 @@
 (defvar forgejo-repo--owner)
 (defvar forgejo-repo--name)
 
-;;; ---- Issue list view ----
+;;; Issue list view
 
 (defvar-local forgejo-issue--filters nil
   "Plist of current filter state.
@@ -291,7 +291,7 @@ Empty input clears all filters."
     (forgejo-utils-browse-issue forgejo-repo--host
                                 forgejo-repo--owner forgejo-repo--name id)))
 
-;;; ---- Issue detail view (EWOC) ----
+;;; Issue detail view (EWOC)
 
 (declare-function forgejo-issue-actions "forgejo-transient.el" ())
 

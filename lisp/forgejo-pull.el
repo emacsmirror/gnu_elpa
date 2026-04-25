@@ -73,14 +73,16 @@ Keys: :state :milestone :labels :author :page")
   "Major mode for browsing Forgejo pull requests."
   :group 'forgejo
   (setq tabulated-list-padding 1
-        tabulated-list-format (forgejo-filter-list-format
+        tabulated-list-format (forgejo-view--list-format
                                forgejo-filter-list-columns)
         tabulated-list-sort-key '("#" . t))
   (tabulated-list-init-header))
 
 (defun forgejo-pull--build-params (filters)
   "Build API query params from FILTERS plist for PR sync."
-  (forgejo-filter-build-params "pulls" filters))
+  (forgejo-filter-build-params "pulls" filters
+                               forgejo-default-sort
+                               (forgejo-api-default-limit)))
 
 (defun forgejo-pull--render-from-db (buf-name host-url host owner repo filters)
   "Render cached PRs into BUF-NAME from the DB.
@@ -158,19 +160,21 @@ Shows cached data immediately, then syncs from the API in the background."
   "Force a full re-fetch of the current PR list from the API."
   (interactive)
   (when (and forgejo-repo--owner forgejo-repo--name)
-    (forgejo-filter-refresh (buffer-name) forgejo-repo--host
-                            forgejo-repo--owner forgejo-repo--name
-                            forgejo-pull--filters
-                            #'forgejo-pull--render-from-db
-                            #'forgejo-pull--sync)))
+    (forgejo-pull--refilter)))
 
 (defun forgejo-pull--refilter ()
   "Re-render from DB with current filters, then sync."
-  (forgejo-filter-refresh (buffer-name) forgejo-repo--host
-                          forgejo-repo--owner forgejo-repo--name
-                          forgejo-pull--filters
-                          #'forgejo-pull--render-from-db
-                          #'forgejo-pull--sync))
+  (let* ((host-url forgejo-repo--host)
+         (host (url-host (url-generic-parse-url host-url)))
+         (buf (buffer-name))
+         (line (line-number-at-pos)))
+    (forgejo-pull--render-from-db buf host-url host
+                                  forgejo-repo--owner forgejo-repo--name
+                                  forgejo-pull--filters)
+    (forgejo-pull--sync host-url host forgejo-repo--owner forgejo-repo--name
+                        forgejo-pull--filters buf t)
+    (goto-char (point-min))
+    (forward-line (1- line))))
 
 ;;; Filter commands
 
@@ -185,7 +189,7 @@ Shows cached data immediately, then syncs from the API in the background."
                    (forgejo--default-filter-for
                     forgejo-repo--owner forgejo-repo--name
                     forgejo-pull-default-filter)))
-         (query (forgejo-filter-read current completions))
+         (query (forgejo-utils-read-filter current completions))
          (filters (forgejo-filter-parse query)))
     (setq forgejo-pull--filters filters)
     (forgejo-pull--refilter)))

@@ -81,6 +81,25 @@ Checks the DB to determine if it's a PR, falls back to issue view."
         (forgejo-pull-view owner repo number)
       (forgejo-issue-view owner repo number))))
 
+;;; List-view format
+
+(defun forgejo-view--list-format (columns)
+  "Build a `tabulated-list-format' vector from COLUMNS.
+Each element of COLUMNS is (NAME WIDTH-OR-RATIO SORT . PROPS).
+Float widths are multiplied by `window-width'."
+  (let ((w (window-width)))
+    (apply #'vector
+           (mapcar (lambda (col)
+                     (let* ((name (car col))
+                            (width-spec (nth 1 col))
+                            (sort (nth 2 col))
+                            (props (nthcdr 3 col))
+                            (width (if (floatp width-spec)
+                                       (truncate (* w width-spec))
+                                     width-spec)))
+                       (append (list name width sort) props)))
+                   columns))))
+
 ;;; List-view rendering
 
 (defun forgejo-view--render-from-db (buf-name host-url host owner repo
@@ -98,7 +117,7 @@ LIST-MODE is the major mode symbol for the list buffer."
       (setq forgejo-repo--host host-url
             forgejo-repo--owner owner
             forgejo-repo--name repo
-            tabulated-list-format (forgejo-filter-list-format
+            tabulated-list-format (forgejo-view--list-format
                                    forgejo-filter-list-columns)
             tabulated-list-entries entries)
       (unless tabulated-list-sort-key

@@ -48,6 +48,9 @@
                   (owner repo number))
 
 (defvar forgejo-repo--host)
+(defvar forgejo-default-sort)
+(declare-function forgejo-view--list-format "forgejo-view.el" (columns))
+(declare-function forgejo-api-default-limit "forgejo-api.el" ())
 
 ;;; Customization
 
@@ -108,7 +111,9 @@ RULE is \"owner/repo\" or (\"owner/repo\" . \"filter-query\")."
                          (plist-put (copy-sequence filters) :since since)
                        filters))
          (endpoint (format "repos/%s/%s/issues" owner repo))
-         (params (forgejo-filter-build-params nil api-filters)))
+         (params (forgejo-filter-build-params nil api-filters
+                                               forgejo-default-sort
+                                               (forgejo-api-default-limit))))
     (forgejo-api-get-paged
      host-url endpoint params
      (lambda (page-data _headers _page-num)
@@ -186,7 +191,7 @@ and runs `forgejo-watch-hooks' when new ones arrive."
   "Major mode for browsing Forgejo watch items."
   :group 'forgejo
   (setq tabulated-list-padding 1
-        tabulated-list-format (forgejo-filter-list-format
+        tabulated-list-format (forgejo-view--list-format
                                forgejo-filter-notification-columns))
   (tabulated-list-init-header))
 
@@ -196,7 +201,7 @@ and runs `forgejo-watch-hooks' when new ones arrive."
                  host forgejo-watch-rules
                  forgejo-watch--filters))
          (entries (forgejo-filter-notification-entries items)))
-    (setq tabulated-list-format (forgejo-filter-list-format
+    (setq tabulated-list-format (forgejo-view--list-format
                                  forgejo-filter-notification-columns)
           tabulated-list-entries entries)
     (tabulated-list-init-header)
@@ -241,7 +246,7 @@ Shows unread items from `forgejo-watch-rules'."
                         (author . nil)
                         (label . nil)
                         (search . nil)))
-         (query (forgejo-filter-read current completions))
+         (query (forgejo-utils-read-filter current completions))
          (filters (forgejo-filter-parse
                    query forgejo-filter--watch-prefix-map)))
     (setq forgejo-watch--filters filters)

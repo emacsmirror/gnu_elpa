@@ -3,16 +3,13 @@
 ;;; Commentary:
 
 ;; Pure data layer for filter operations.  Provides parsing, serialization,
-;; DB query pipelines, and tabulated-list entry formatting.  No buffer-local
-;; state mutation -- callers own their filter variables.
+;; DB query pipelines, and tabulated-list entry formatting.  No buffer
+;; mutation, no interactive prompts, no global variable reads.
 
 ;;; Code:
 
 (require 'cl-lib)
-(require 'url-parse)
 (require 'forgejo-db)
-
-(defvar crm-separator)
 
 ;; Buffer formatting helpers (loaded at runtime by consumer modules).
 (declare-function forgejo-buffer--format-state "forgejo-buffer.el" (state))
@@ -87,31 +84,7 @@ The :query value, if present, is appended as bare words."
       (push query parts))
     (mapconcat #'identity (nreverse parts) " ")))
 
-;;; ---- Minibuffer prompt ----
-
-(defun forgejo-filter-read (default-query completions-alist)
-  "Read a filter query string with prefix-aware completion.
-DEFAULT-QUERY is the initial input.  COMPLETIONS-ALIST is an alist
-of (PREFIX . VALUES) where VALUES is a list of strings or nil for
-free-text prefixes.  Returns the query string."
-  (let* ((candidates
-          (cl-loop for (prefix . values) in completions-alist
-                   if values
-                   append (mapcar (lambda (v)
-                                    (concat (symbol-name prefix) ":" v))
-                                  values)
-                   else collect (concat (symbol-name prefix) ":")))
-         (crm-separator ",")
-         (initial (replace-regexp-in-string " " ","
-                                            (or default-query "")))
-         (selections (completing-read-multiple
-                      "Filter: " candidates nil nil initial)))
-    (mapconcat #'identity selections " ")))
-
 ;;; ---- API param building ----
-
-(defvar forgejo-default-sort)
-(declare-function forgejo-api-default-limit "forgejo-api.el" ())
 
 (defconst forgejo-filter--api-param-map
   '((:state     . "state")
@@ -123,13 +96,13 @@ free-text prefixes.  Returns the query string."
   "Map from filter plist keys to Forgejo API query parameter names.
 The :page key is handled separately (needs number-to-string).")
 
-(defun forgejo-filter-build-params (type filters)
+(defun forgejo-filter-build-params (type filters sort limit)
   "Build API query params from FILTERS for the issues endpoint.
 TYPE is \"issues\", \"pulls\", or nil (both).
+SORT is the sort order string.  LIMIT is the page size integer.
 Returns an alist of (PARAM . VALUE) pairs."
-  (let ((params (list (cons "sort" forgejo-default-sort)
-                      (cons "limit" (number-to-string
-                                     (forgejo-api-default-limit))))))
+  (let ((params (list (cons "sort" sort)
+                      (cons "limit" (number-to-string limit)))))
     (when type (push (cons "type" type) params))
     (cl-loop for (key . param) in forgejo-filter--api-param-map
              for val = (plist-get filters key)
@@ -177,8 +150,7 @@ Result is a list of API-shaped alists."
     (mapcar #'forgejo-db--row-to-issue-alist
             (forgejo-db-get-issues host owner repo db-filters))))
 
-
-;;; ---- Tabulated-list format ----
+;;; ---- Column specs ----
 
 (declare-function forgejo--sort-by-number "forgejo.el" (a b))
 (declare-function forgejo--sort-by-updated "forgejo.el" (a b))
@@ -202,24 +174,6 @@ Each element is (NAME WIDTH-OR-FLOAT SORT . PROPS).")
     ("Author"  ,(/ 1.0 8) t)
     ("Updated" ,(/ 1.0 8) forgejo--sort-by-updated))
   "Column spec for notification list views.")
-
-(defun forgejo-filter-list-format (columns)
-  "Build a `tabulated-list-format' vector from COLUMNS.
-Each element of COLUMNS is (NAME WIDTH-OR-RATIO SORT . PROPS).
-When WIDTH-OR-FLOAT is an integer, it is used as a fixed width.
-When it is a float (e.g. 0.333), it is multiplied by `window-width'."
-  (let ((w (window-width)))
-    (apply #'vector
-           (mapcar (lambda (col)
-                     (let* ((name (car col))
-                            (width-spec (nth 1 col))
-                            (sort (nth 2 col))
-                            (props (nthcdr 3 col))
-                            (width (if (floatp width-spec)
-                                       (truncate (* w width-spec))
-                                     width-spec)))
-                       (append (list name width sort) props)))
-                   columns))))
 
 ;;; ---- Tabulated-list entries ----
 
@@ -270,24 +224,6 @@ Items must have `watch-owner' and `watch-repo' keys."
                             'forgejo-timestamp (or .updated_at "")))))))
    items))
 
-;;; ---- Refresh ----
-
-(defun forgejo-filter-refresh (buf-name host-url owner repo
-                               filters render-fn sync-fn)
-  "Re-render and sync a list buffer, preserving point.
-BUF-NAME is the target buffer.  HOST-URL is the full Forgejo URL.
-OWNER and REPO identify the repository.  FILTERS is the current
-filter plist.  RENDER-FN is called as (RENDER-FN BUF HOST-URL HOST
-OWNER REPO FILTERS) for immediate DB render.  SYNC-FN is called as
-\(SYNC-FN HOST-URL HOST OWNER REPO FILTERS BUF-NAME FORCE) for async sync."
-  (let* ((host (url-host (url-generic-parse-url host-url)))
-         (line (line-number-at-pos)))
-    (funcall render-fn buf-name host-url host owner repo filters)
-    (funcall sync-fn host-url host owner repo filters buf-name t)
-    (with-current-buffer buf-name
-      (goto-char (point-min))
-      (forward-line (1- line)))))
-
 ;;; ---- Completion candidates ----
 
 (defun forgejo-filter-completions (host owner repo)
@@ -302,7 +238,6 @@ OWNER REPO FILTERS) for immediate DB render.  SYNC-FN is called as
       (milestone . ,milestones)
       (author . ,authors)
       (search . nil))))
-
 
 (provide 'forgejo-filter)
 ;;; forgejo-filter.el ends here

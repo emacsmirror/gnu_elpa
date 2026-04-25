@@ -73,7 +73,7 @@ Keys: :state :labels :milestone :author :query :page")
   "Major mode for browsing Forgejo issues."
   :group 'forgejo
   (setq tabulated-list-padding 1
-        tabulated-list-format (forgejo-filter-list-format
+        tabulated-list-format (forgejo-view--list-format
                                forgejo-filter-list-columns)
         tabulated-list-sort-key '("#" . t))
   (tabulated-list-init-header))
@@ -82,7 +82,9 @@ Keys: :state :labels :milestone :author :query :page")
 
 (defun forgejo-issue--build-params (filters)
   "Build API query params from FILTERS plist."
-  (forgejo-filter-build-params "issues" filters))
+  (forgejo-filter-build-params "issues" filters
+                               forgejo-default-sort
+                               (forgejo-api-default-limit)))
 
 ;;; Cache-first rendering
 
@@ -166,19 +168,21 @@ Shows cached data immediately, then syncs from the API in the background."
   "Force a full re-fetch of the current issue list from the API."
   (interactive)
   (when (and forgejo-repo--owner forgejo-repo--name)
-    (forgejo-filter-refresh (buffer-name) forgejo-repo--host
-                            forgejo-repo--owner forgejo-repo--name
-                            forgejo-issue--filters
-                            #'forgejo-issue--render-from-db
-                            #'forgejo-issue--sync)))
+    (forgejo-issue--refilter)))
 
 (defun forgejo-issue--refilter ()
   "Re-render from DB with current filters, then sync."
-  (forgejo-filter-refresh (buffer-name) forgejo-repo--host
-                          forgejo-repo--owner forgejo-repo--name
-                          forgejo-issue--filters
-                          #'forgejo-issue--render-from-db
-                          #'forgejo-issue--sync))
+  (let* ((host-url forgejo-repo--host)
+         (host (url-host (url-generic-parse-url host-url)))
+         (buf (buffer-name))
+         (line (line-number-at-pos)))
+    (forgejo-issue--render-from-db buf host-url host
+                                   forgejo-repo--owner forgejo-repo--name
+                                   forgejo-issue--filters)
+    (forgejo-issue--sync host-url host forgejo-repo--owner forgejo-repo--name
+                         forgejo-issue--filters buf t)
+    (goto-char (point-min))
+    (forward-line (1- line))))
 
 ;;; Filter commands
 
@@ -196,7 +200,7 @@ Empty input clears all filters."
                    (forgejo--default-filter-for
                     forgejo-repo--owner forgejo-repo--name
                     forgejo-issue-default-filter)))
-         (query (forgejo-filter-read current completions))
+         (query (forgejo-utils-read-filter current completions))
          (filters (forgejo-filter-parse query)))
     (setq forgejo-issue--filters filters)
     (forgejo-issue--refilter)))

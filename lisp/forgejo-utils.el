@@ -73,6 +73,29 @@ CALLBACK is called on success."
          (message "%sd %s/%s#%d" action owner repo number)
          (when callback (funcall callback)))))))
 
+;;; Filter prompt
+
+(defvar crm-separator)
+
+(defun forgejo-utils-read-filter (default-query completions-alist)
+  "Read a filter query string with prefix-aware completion.
+DEFAULT-QUERY is the initial input.  COMPLETIONS-ALIST is an alist
+of (PREFIX . VALUES) where VALUES is a list of strings or nil for
+free-text prefixes.  Returns the query string."
+  (let* ((candidates
+          (cl-loop for (prefix . values) in completions-alist
+                   if values
+                   append (mapcar (lambda (v)
+                                    (concat (symbol-name prefix) ":" v))
+                                  values)
+                   else collect (concat (symbol-name prefix) ":")))
+         (crm-separator ",")
+         (initial (replace-regexp-in-string " " ","
+                                            (or default-query "")))
+         (selections (completing-read-multiple
+                      "Filter: " candidates nil nil initial)))
+    (mapconcat #'identity selections " ")))
+
 ;;; Issue/PR # completion
 
 (defvar-local forgejo-utils--capf-candidates nil

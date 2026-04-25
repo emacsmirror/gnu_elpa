@@ -48,14 +48,13 @@
   "Include every file in the checkout except VCS metadata and build
 artifacts."
   (let ((name (basename file)))
-    (not (or (string-contains file "/.git/")
-             (string=? name ".git")
+    (not (or (string-prefix? "." name)
+             (string-contains file "/refs/")
              (string-suffix? ".elc" file)
              (string-suffix? "~" file)
              (string-suffix? ".tar" file)
              (string-suffix? ".tar.gz" file)
-             (string-suffix? ".db" file)
-             (string-contains file "/.worktrees/")))))
+             (string-suffix? ".db" file)))))
 
 (define-public emacs-forgejo-git
   (package
@@ -80,7 +79,7 @@ artifacts."
               (mkdir-p (string-append
                         (getenv "HOME")
                         "/.emacs.d")))))))
-    (propagated-inputs (list emacs-transient))
+    (propagated-inputs (list emacs-markdown-mode emacs-transient))
     (home-page "https://thanosapollo.org/projects/forgejo/")
     (synopsis "Emacs front-end for Forgejo instances")
     (description

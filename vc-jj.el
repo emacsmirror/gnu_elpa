@@ -447,12 +447,17 @@ its conflict state."
           lines)
     table))
 
-(defun vc-jj--parse-diff-types-file-table (lines)
+(defun vc-jj--parse-diff-types-file-table (lines &optional extra-table)
   "Return a hash table of changed files with their diff types.
 The returned table maps FILE to TYPES, where FILE is a changed file and
 TYPES is a two-character string indicating the before and after types of
 that file.  See `vc-jj--deduce-state-from-diff-types' for which VC
 states can be deduced from this two-character string.
+
+If EXTRA-TABLE is provided, it is a hash table mapping FILE to a plist
+containing extra information that this function will populate.  This
+extra information may be displayed in the *vc-dir* buffer (see
+`vc-jj-dir-status-files' and `vc-jj-dir-printer').
 
 LINES is a list of strings, where each string is a line of the output of
 \"jj diff --types\", which shows a list of all changed files, with each
@@ -472,7 +477,13 @@ and after types of the file."
                     (setq before (file-name-concat before subdir-file)
                           after (file-name-concat after subdir-file)))
                   (puthash before "F-" table) ; Removed state
-                  (puthash after "-F" table)) ; Added state
+                  (puthash after "-F" table) ; Added state
+                  (when extra-table
+                    ;; Populate EXTRA-TABLE with rename information
+                    (puthash before (list :rename-state 'removed :rename-other-filename after)
+                             extra-table)
+                    (puthash after (list :rename-state 'added :rename-other-filename before)
+                             extra-table)))
               (puthash (substring line 3) (substring line 0 2) table)))
           lines)
     table))
@@ -591,8 +602,12 @@ new files."
   "Call UPDATE-FUNCTION on a computed list of entries for ROOT-OR-SUBDIR.
 Compute a list of file entries for ROOT-OR-SUBDIR whose elements are of
 the form (FILE STATE EXTRA), where FILE is an absolute path or one
-relative to ROOT-OR-SUBDIR and STATE is a VC state symbol.  Return the
-result of calling UPDATE-FUNCTION with that list as an argument.
+relative to ROOT-OR-SUBDIR, STATE is a VC state symbol, and EXTRA is a
+plist containing information that may be used later by
+`vc-jj-dir-printer', which see.
+
+Return the result of calling UPDATE-FUNCTION with that list as an
+argument.
 
 FILES is either nil or a list of files relative to ROOT-OR-SUBDIR.  If
 FILES is nil, return the state of all files that don't have the
@@ -612,9 +627,11 @@ of `vc-jj-state'."
       ;; lists, which are expensive compared to hash table operations
       (let* ((root (vc-jj-root root-or-subdir))
              (default-directory root)
+             (extras-table (make-hash-table :test #'equal))
              (file-diff-types-table
               (vc-jj--parse-diff-types-file-table
-               (vc-jj--process-lines root-or-subdir "diff" "--types")))
+               (vc-jj--process-lines root-or-subdir "diff" "--types")
+               extras-table))
              (file-conflict-table
               (vc-jj--parse-conflict-aware-file-table
                (vc-jj--process-lines root-or-subdir "file" "list"
@@ -661,8 +678,12 @@ of `vc-jj-state'."
                                (file-relative-name root-rel-file root-or-subdir))
                               (state (vc-jj--deduce-state root-rel-file
                                                           file-diff-types-table
-                                                          file-conflict-table)))
-                          (list display-path state)))
+                                                          file-conflict-table))
+                              ;; EXTRAS-TABLE is keyed by
+                              ;; repository-relative file names (which
+                              ;; ROOT-REL-FILE is)
+                              (extra (gethash root-rel-file extras-table)))
+                          (list display-path state extra)))
                       files-to-report)))
         (funcall update-function result nil))
     ;; FIXME 2026-03-24(Kris B): Is there a cleaner way to deal with
@@ -766,6 +787,80 @@ parents.map(|c| concat(
          "\n")))))
 
 ;;;; dir-printer
+
+(autoload 'vc-dir-fileinfo->directory "vc-dir")
+(autoload 'vc-dir-fileinfo->display-state "vc-dir")
+(autoload 'vc-dir-fileinfo->state "vc-dir")
+(autoload 'vc-dir-fileinfo->extra "vc-dir")
+(autoload 'vc-dir-fileinfo->name "vc-dir")
+(autoload 'vc-dir-fileinfo->marked "vc-dir")
+(defvar vc-dir-status-mouse-map)
+(defvar vc-dir-filename-mouse-map)
+
+(defun vc-jj-dir-printer (fileentry)
+  "Insert a file entry in the current buffer.
+Like `vc-default-dir-printer' but also shows information for renamed
+files.  Used by `vc-dir-mode' to insert file entries into the *vc-dir*
+buffer.
+
+FILEENTRY contains information about a given repository file."
+  ;; Modified from `vc-default-dir-printer' then modify it, similar to
+  ;; `vc-git-dir-printer'
+  (let* ((isdir (vc-dir-fileinfo->directory fileentry))
+         (display-state (cond (isdir "")
+                              ((vc-dir-fileinfo->display-state fileentry))
+                              ((vc-dir-fileinfo->state fileentry))))
+         (filename (vc-dir-fileinfo->name fileentry))
+         (extra (vc-dir-fileinfo->extra fileentry))
+         (rename-info (when extra
+                        (cons (plist-get extra :rename-state)
+                              (plist-get extra :rename-other-filename)))))
+    (insert
+     (propertize (format "%c" (if (vc-dir-fileinfo->marked fileentry) ?* ?\s))
+                 'face 'vc-dir-mark-indicator)
+     "   "
+     (propertize (format "%-20s" display-state)
+                 'face (cond
+                        ((eq display-state 'up-to-date) 'vc-dir-status-up-to-date)
+                        ((member display-state
+                                 '(missing conflict needs-update unlocked-changes
+                                           "committing"))
+                         'vc-dir-status-warning)
+                        ((eq display-state 'ignored) 'vc-dir-status-ignored)
+                        (t 'vc-dir-status-edited))
+                 'mouse-face 'highlight
+                 'keymap vc-dir-status-mouse-map)
+     " "
+     (propertize (format "%s" filename)
+                 'face
+                 (if isdir 'vc-dir-directory 'vc-dir-file)
+                 'help-echo
+                 (if isdir
+                     "Directory\nVC operations can be applied to it\nmouse-3: Pop-up menu"
+                   "File\nmouse-3: Pop-up menu")
+                 'mouse-face 'highlight
+                 'keymap vc-dir-filename-mouse-map)
+     (if rename-info
+         (propertize
+          (let ((state (car rename-info))
+                (other-filename (cdr rename-info)))
+            ;; For the post-rename file entry, should produce output
+            ;; like:
+            ;;
+            ;;   (renamed from BEFORE-FILE-NAME)
+            ;;
+            ;; For the pre-rename file entry, should produce output
+            ;; like:
+            ;;
+            ;; (renamed to AFTER-FILE-NAME)
+            (concat "   ("
+                    (if (eq state 'added)
+                        "renamed from "
+                      "renamed to ")
+                    (format "%s" other-filename)
+                    ")"))
+          'face 'font-lock-comment-face)
+       ""))))
 
 ;;;; status-fileinfo-extra
 

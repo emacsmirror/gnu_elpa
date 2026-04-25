@@ -281,6 +281,47 @@ state should be ignored."
                  ("unconflicted.txt" removed)
                  ("ignored.txt" ignored)))))))
 
+(ert-deftest vc-jj-test-state-renamed ()
+  "Test reported state for files and subdirectories before and after a rename.
+When a file is renamed, its old file path should have a VC state of
+\"removed\".  The new path should have a VC state of \"added\".
+
+When a directory is renamed, the files contained within it are reported
+along the same lines."
+  ;; Rename file
+  (vc-jj-test--with-repo repo
+    (write-region "" nil "before rename.txt")
+    (shell-command "jj new")
+    (rename-file "before rename.txt" "after rename.txt")
+
+    (should (eq (vc-jj-state "before rename.txt") 'removed))
+    (should (eq (vc-jj-state "after rename.txt") 'added))
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo nil
+                                     #'vc-jj-test--dir-status-files-update-function)
+             '(("before rename.txt" removed)
+               ("after rename.txt" added)))))
+
+  ;; Rename subdirectory
+  (vc-jj-test--with-repo repo
+    (make-directory "dir before rename/subdir" t)
+    (write-region "" nil "dir before rename/subdir/file1.txt")
+    (write-region "" nil "dir before rename/subdir/file2.txt")
+    (shell-command "jj new")
+    (shell-command "mv 'dir before rename' 'dir after rename'")
+
+    (should (eq (vc-jj-state "dir before rename/subdir/file1.txt") 'removed))
+    (should (eq (vc-jj-state "dir before rename/subdir/file2.txt") 'removed))
+    (should (eq (vc-jj-state "dir after rename/subdir/file1.txt") 'added))
+    (should (eq (vc-jj-state "dir after rename/subdir/file2.txt") 'added))
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo nil
+                                     #'vc-jj-test--dir-status-files-update-function)
+             '(("dir before rename/subdir/file1.txt" removed)
+               ("dir before rename/subdir/file2.txt" removed)
+               ("dir after rename/subdir/file1.txt" added)
+               ("dir after rename/subdir/file2.txt" added))))))
+
 (ert-deftest vc-jj-test-state-funky-filename ()
   "Test compatibility with unusual characters in file names.
 Test the presence of apostrophes, double quotes, and the equal sign in

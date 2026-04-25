@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en" xml:lang="en">
+<head>
+<title>Contributing to ELPA</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="shortcut icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="//code.cdn.mozilla.net/fonts/fira.css">
+<link rel="stylesheet" type="text/css" href="layout.css">
+<meta name="viewport" content="initial-scale=1.0,maximum-scale=1.0,width=device-width" />
+</head>
+
+<body>
+<div class="wrapper">
+<header>
+<div class="container">
+<img src="images/elpa.png" alt="ELPA"/>
+<a href="index.html"><h1>Contributing to ELPA</h1></a>
+</div>
+</header>
+
+<main class="container">
+
+<p>
+This page explains the process of how to contribute a package to GNU
+or NonGNU <abbr title="Emacs Lisp Package Archive">ELPA</abbr>.
+</p>
+
+<h2 id="preliminaries">Preliminaries</h2>
+
+<p>
+<a href="https://elpa.gnu.org/">GNU ELPA</a> and
+<a href="https://elpa.nongnu.org">NonGNU ELPA</a> are the default,
+official package archives for GNU Emacs.  The difference between the
+two archives is that for packages on GNU ELPA, all contributors to the
+package are required to sign
+the <a href="https://www.gnu.org/licenses/why-assign.html">FSF
+copyright assignment</a>.  For that reason, packages on GNU ELPA are
+regarded to be <q>part of Emacs</q>, and are in a position that they
+could be included in Emacs at some point.
+</p>
+
+<p>
+Packages have to be published under
+a <a href="https://www.gnu.org/licenses/license-list.html#GPLCompatibleLicenses">GPL
+compatible license</a>,
+ideally <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPLv3+</a>,
+just like Emacs itself.
+</p>
+
+<p>
+Beyond this, there are no substantial differences between the two
+package archives.  <strong>If possible, we always prefer if packages are
+submitted to GNU ELPA.</strong>
+</p>
+
+<h2 id="conditions">Conditions</h2>
+
+<p>
+While we are in principle open to all kinds of packages, there are
+some hard and soft criteria to consider.
+</p>
+
+<p>
+<strong>The main criterion is that your package has to be fully
+functional on a system using only free software.</strong>  This
+doesn&apos;t mean that you are not allowed to have support for
+nonfree systems, but that the core functionality of your package may
+not depend on <em>non-essential</em> proprietary components.
+</p>
+
+<p>
+As a positive example, consider the built-in
+library <code>browse-url</code>, used to open a URL in a browser
+outside of Emacs.  While the package does have support for nonfree
+operating systems and browsers, users on a fully free system are
+neither disadvantaged nor encouraged to use nonfree browsers.
+</p>
+
+<p>
+<strong>Almost all packages should be able to satisfy this.</strong>
+The exceptions include packages that are explicitly created to interact
+with proprietary programs, for which there is no free software
+substitute.
+</p>
+
+<p>
+Note that for <em>very</em> well known proprietary programs,
+exceptions can be made (for
+instance <a href="https://elpa.gnu.org/packages/matlab-mode.html">matlab-mode</a>).
+Also keep in mind
+that <a href="https://www.gnu.org/philosophy/network-services-arent-free-or-nonfree.html">network
+services aren't free or nonfree</a>, which means that we won&apos;t
+reject a package because the server source code is not published under
+a free license (for
+instance <a href="https://elpa.gnu.org/packages/excorporate.html">excorporate</a>).
+That being said, we are not interested in adding
+<q><a href="https://www.gnu.org/philosophy/who-does-that-server-really-serve.html">Service
+as a Software Substitute</a></q>-type packages.  In any case, this is
+decided on a case-by-case basis, so please reach out early on if you
+have concerns.
+</p>
+
+<p>
+The other hard criterion for packages submitted to GNU ELPA
+specifically is that all significant past and
+present <a href="https://www.gnu.org/prep/standards/html_node/Contributions.html">contributors
+have signed the FSF copyright assignment</a>.  If you or one of your
+contributors have not done so, you can send an email
+to <a href="https://lists.gnu.org/mailman/listinfo/emacs-devel"><code>emacs-devel@gnu.org</code></a>
+or directly to the Emacs maintainers, to request a copyright form.
+</p>
+
+<p>
+For the ELPA build server to be able to handle your package, it has to
+follow
+the <a href="https://www.gnu.org/software/emacs/manual/html_node/elisp/Packaging.html">packaging
+conventions</a>, which include the specification of a version number,
+all dependencies, and an author/maintainer with an email address.
+</p>
+
+<p>
+<strong>If your package satisfies these requirements, there is no
+objection, in principle, to adding the package to the
+archive.</strong>  Nevertheless, the following <em>soft</em> criteria
+can influence whether submitting a package makes sense:
+</p>
+
+<dl>
+
+<dt>Is the code quality acceptable?</dt>
+<dd>
+As Emacs is easily introspectable, packages frequently serve an
+educational purpose.  Many users gather their first real-world
+experience with Emacs Lisp by reading and modifying the packages they
+use.  For that reason it is important that the code quality can serve
+as an example.  If you are concerned about this, do not worry, other
+contributors and maintainers are more than glad to help!  Reading
+the <q><a href="https://www.gnu.org/software/emacs/manual/html_node/elisp/Tips.html">Tips
+and Conventions</a></q> chapter of the Elisp manual might also help.
+</dd>
+
+<dt id="check-package">Is a new package the right approach?</dt>
+<dd>
+If you are extending the functionality of an existing package, have
+you contacted the maintainer of said package to hear if they think
+your contribution would be worth upstreaming?  Perhaps adding the
+feature directly to Emacs can simplify the implementation?
+</dd>
+
+<dt id="check-significant">Does the package constitute a significant contribution?</dt>
+<dd>
+If your package only defines a single, small function of a few lines,
+it might not be worth the effort to package.  Keep in mind that every
+package constitutes a security risk if the maintainer&apos;s access to
+the repository gets compromised.
+</dd>
+
+<dt id="check-dependency">Are the dependencies necessary?</dt>
+<dd>
+If possible, it is nice if packages can avoid dependencies they can
+get by without.  Just as before, dependencies are a latent security
+risk (that are especially attractive targets of supply chain
+compromises).  They also make it more difficult for users who cannot
+access ELPA directly, as they have to download packages by hand, and
+install them using <code>package-install-file</code>.  Furthermore,
+superficial extensions that only provide convenience for the
+maintainer introduce fragmentation that makes it more difficult for
+otherwise experienced Lisp hackers to read and modify your code.
+Package for GNU ELPA should avoid depending on packages from NonGNU
+ELPA, to avoid unnecessary difficulties if the package were to be
+added to Emacs itself.
+</dd>
+
+<dt id="check-citizen">Is the package a good citizen?</dt>
+<dd>
+It is nice to try to respect user preferences by implementing existing
+interfaces and trying to avoid surprises in general.  For instance,
+just installing the package shouldn&apos;t modify the global state
+beyond loading definitions and some basic initialization (e.g. a major
+mode might want to add an entry to <code>auto-mode-alist</code>), but
+a theme or a global minor mode <em>should not</em> enable itself right
+away!
+</dd>
+
+<dt id="check-description">Do you provide a good description?</dt>
+<dd>
+Users can find out about a package before installing it using <kbd>C-h
+P</kbd> (<code>describe-package</code>).  Next to package metadata,
+this includes a description of the package.  You can provide a
+<em>succinct</em> description of the package via a <code>README</code>
+file or the <code>;;; Commentary:</code> section of your main Lisp
+file.  This description should provide a standalone explanation of
+what utility the package provides and what the entry points of the
+package are (major modes, minor modes, commands, user options, etc.).
+You do not have to explain how to install the package, as the package
+manager takes care of that.
+</dd>
+
+<dt id="check-responsibility">Are you interested in maintaining the package long term?</dt>
+<dd>
+If you are not certain about whether you want to take on the
+responsibility for taking care of a package, be it because your
+interest in Emacs is not that deep or because you do not have the
+day-to-day time to respond to issues and patches, you might want to
+think twice about submitting a package.  Alternatively, you could try
+to find people willing to help you out with maintenance, or again look
+to contribute your changes to an existing project, that possibly has
+more than one maintainer.
+</dd>
+
+<dt id="check-name">Do you have a good package name?</dt>
+<dd>
+Ideally, your package name should give the user a rough idea of what
+functionality your package provides: Is it a major or minor mode (ends
+with <q><code>-mode</code></q>) or does it extend some other well
+known package (begins with the same prefix)?  At the same time a good
+name finds a balance between being too generic and being quirky.  The
+first risks framing the package as authoritative and difficult to find
+on the WWW using search engines, while the latter can be confusing,
+difficult to pronounce or alienating (remember that not everyone
+shares the same sense of humor or cultural references).
+</dd>
+
+</dl>
+
+<p>
+If these soft criteria aren&apos;t satisfied, then this is <strong>not
+a reason to reject a package</strong>.  We understand if the package
+maintainer hasn&apos;t had the time to address these yet/has strong
+reasons to decide otherwise, as long as our preferences are
+acknowledged.  If you have any questions, don&apos;t hesitate to reach
+out
+to <a href="https://lists.gnu.org/mailman/listinfo/emacs-devel"><code>emacs-devel@gnu.org</code></a>
+or any of the <a href="#elpa-maintainers">maintainers</a> mentioned
+below.
+</p>
+
+<h2 id="submission">Submission</h2>
+
+<p>
+<strong>To submit a package to GNU or NonGNU ELPA, all you have to do
+is to send an email to
+the <a href="https://lists.gnu.org/mailman/listinfo/emacs-devel"><code>emacs-devel@gnu.org</code></a>
+mailing list.</strong>  Your message should include a brief
+description of the package, a link to a
+public <a href="https://git-scm.com/">Git repository</a> that you plan
+to use and an indication if you prefer to add your package to GNU ELPA
+or NonGNU ELPA.  If you do not have a Git repository yet, please
+consider
+an <a href="https://www.gnu.org/software/repo-criteria.en.html">ethical
+Git forge</a>.  If you are submitting the package to GNU ELPA, please
+mention if all contributors have signed the FSF copyright assignment.
+If you have any specific comments on the criteria mentioned above,
+feel free to mention them.
+</p>
+
+<p>
+To avoid the delay of your email address having to be approved by an
+administrator, please sign up for the mailing list before you send
+your first message to the mailing list.  You can
+disable <a href="https://www.gnu.org/software/mailman/mailman-member/node20.html">mail
+delivery</a>, if you do not wish to follow the discussions on the
+mailing list.  During this process, as with any exchange on official
+GNU communication channels, please keep
+the <a href="https://www.gnu.org/philosophy/kind-communication.en.html">GNU
+Kind Communications Guidelines</a> and
+general <a href="https://www.rfc-editor.org/rfc/rfc1855">netiquette</a>
+in mind.
+</p>
+
+<p>
+Furthermore, <em>if</em> any of the following applies to your package,
+please mention it in your message:
+</p>
+
+<ul>
+<li>Are the Lisp files in some other directory than the root
+directory of the repository?</li>
+<li>Should we track some other branch than the default branch?</li>
+<li>Do you have a separate file you use as a changelog?</li>
+<li>Does your package provide a TeXinfo manual?  The ELPA build can
+both compile <code>.texi</code> files
+and <a href="https://orgmode.org/manual/Texinfo-Export.html"><code>.org</code></a>
+files for you, so there is no need to track a <code>.info</code> file in
+your repository.</li>
+<li>Is it necessary to execute any special shell commands or Makefile
+rules while building the package?</li>
+<li>Is the <q>main Lisp file</q> of your project named something else
+than after the name of your package (for a package <code>FOO</code> is
+there a file <code><var>FOO</var>.el</code>)?</li>
+<li>Do you have any special preferences how we should generate the
+package description for <kbd>C-h P</kbd>
+(<code>describe-package</code>) and the website?  By default we check
+if there is a <code>README.org</code> file (including a new other
+formats, but <em>excluding</em> Markdown).  If none is found, or
+if explicitly requested, we will use the contents of the <code>;;;
+Commentary:</code> section.</li>
+</ul>
+
+<p>
+If you are interested in the technical details, you can find out more
+about how the ELPA build server works in
+the <a href="https://cgit.git.savannah.gnu.org/cgit/elpa/gnu.git">GNU
+ELPA repository</a>.  The <q>package specification</q> format
+described in the <code>README</code> file is a more general version of
+the package specifications used by
+<a href="https://www.gnu.org/software/emacs/manual/html_node/emacs/Fetching-Package-Sources.html"><code>package-vc</code></a>.
+</p>
+
+<p>
+Volunteers on the mailing list will take care of your request from
+this point on.  In principle, everyone reading along might have
+suggestions or comments that you should take seriously, as they are
+offering their time to help you and your users.
+</p>
+
+<p>
+As soon as all matters are settled, someone with access to the ELPA
+repositories can add your package to the archive.  From this point on
+please refrain from force-pushing changes that change your Git
+history, as the ELPA build server will regularly mirror the default
+branch of your repository, and merge conflicts have to be resolved
+manually.  If this is an issue for you, please contact
+the <a href="#elpa-maintainers">ELPA maintainers</a>.
+</p>
+
+<h2 id="distribution">Distribution</h2>
+
+<p>
+Upon addition, the ELPA build server will determine the last release
+by determining the last commit that bumped the <code>Version</code>
+pseudo-header in the main file:
+</p>
+
+<pre>;; Author: J. R. Hacker &lt;jrh@example.com&gt;
+;; Author: Alyssa P. Hacker &lt;alyssa@example.com&gt;
+<mark>;; Version: 1.3</mark>
+;; Package-Requires: ((flange "1.0"))
+;; Keywords: multimedia, hypermedia
+;; URL: https://example.com/superfrobnicate.git</pre>
+
+<p>
+<strong>ELPA regularly synchronizes the repository state, and will release new
+version of the package whenever a new commit is detected that modifies
+the same <code>Version</code> header.</strong>  An exception here are
+pre-release versions, such as <code>1.5-pre</code>
+or <code>5beta1</code>, which suppress the server from building a new
+tarball.  You can look up the list of non-numeric version identifiers
+in the variable <code>version-regexp-alist</code>.
+</p>
+
+<p>
+Also note the <code>Maintainer</code> pseudo-header in the example
+above: Please use a functioning email address here, so that both the
+ELPA maintainers and your users can contact you.
+</p>
+
+<p>
+The ELPA build server checks for the existence of
+a <code>.elpaignore</code> file in the root directory of your
+repository, that you can use to specify
+to <a href="https://www.gnu.org/software/tar/manual/html_node/exclude.html#index-exclude_002dfrom">exclude</a>
+files you think shouldn&apos;t be distributed in the release tarball
+(build scripts, assets, etc.).
+</p>
+
+<p>
+All packages on GNU ELPA and NonGNU ELPA get a homepage
+on <a href="https://elpa.gnu.org/packages/">elpa.gnu.org</a>
+and <a href="https://elpa.nongnu.org/nongnu/">elpa.nongnu.org</a>
+respectively.  That homepage includes the package description, a list
+of recent tarball releases, and &mdash; if configured &mdash; a
+preview of the changelog and a HTML rendered manual.
+The <q><a href="https://elpa.gnu.org/devel/">GNU ELPA-devel</a></q>
+(or <a href="https://elpa.nongnu.org/nongnu-devel/">NonGNU
+ELPA-devel</a>) archives re-build on each commit.  You can use these
+to preview how the ELPA build server will process your package before
+releasing a package, without having to set up the build server locally
+on your machine.
+</p>
+
+<hr>
+
+<p>
+The ELPA maintainers are looking forward to your contributions, and
+are happy to hear from you if you have any questions regarding ELPA or
+this website:
+</p>
+
+<ul id="elpa-maintainers">
+<li>Stefan Monnier <code>&lt;monnier [at] iro.umontreal.ca&gt;</code></li>
+<li>Philip Kaludercic <code>&lt;philipk [at] posteo.net&gt;</code></li>
+</ul>
+
+</main>
+
+<footer>
+<div class="container">
+<p>Copyright 2021-2026 <a href="https://fsf.org">Free Software Foundation</a>, Inc.</p>
+<p>Design provided by <a href="https://nicolas.petton.fr">Nicolas Petton</a></p>
+<p>
+This website is licensed under the
+<a href="https://creativecommons.org/licenses/by-nd/4.0/">CC BY-ND 4.0</a>
+International License.
+</p>
+</div>
+</footer>
+
+</body>
+</html>
+
+<!-- Local Variables: -->
+<!-- sgml-basic-offset: 0 -->
+<!-- End: -->

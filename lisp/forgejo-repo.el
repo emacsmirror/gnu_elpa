@@ -39,8 +39,6 @@
 (declare-function forgejo-issue-list "forgejo-issue.el"
                   (&optional owner repo))
 
-(defvar forgejo-host)
-
 ;;; Buffer-local state
 
 (defvar-local forgejo-repo--host nil
@@ -52,15 +50,12 @@
 (defvar-local forgejo-repo--name nil
   "Buffer-local name of the current repository.")
 
-;;; Repository detection
-
 ;;; Interactive selection
 
 (defun forgejo-repo-read ()
   "Prompt for OWNER/REPO with completion from cached repos.
 Triggers async fetch of user repos on first call.
-Returns (HOST OWNER REPO) where HOST is the detected instance
-URL or nil when entered manually."
+Returns (HOST OWNER REPO) where HOST is the resolved instance URL."
   (unless forgejo-repo--user-repos-fetched
     (forgejo-repo--fetch-user-repos))
   (let* ((cached (forgejo-repo--cached-names))
@@ -73,11 +68,13 @@ URL or nil when entered manually."
                    "Repository (owner/repo): ")
                  cached nil nil nil nil default)))
     (if (string-match "\\`\\([^/]+\\)/\\([^/]+\\)\\'" input)
-        (list (and git-context
-                   (string= input default)
-                   (nth 0 git-context))
-              (match-string 1 input)
-              (match-string 2 input))
+        (let* ((owner (match-string 1 input))
+               (repo (match-string 2 input))
+               (host (cond
+                      ((and git-context (string= input default))
+                       (nth 0 git-context))
+                      (t (forgejo--resolve-host-for-repo owner repo)))))
+          (list host owner repo))
       (user-error "Invalid format; expected owner/repo"))))
 
 (defvar forgejo-repo--user-repos-fetched nil
@@ -85,32 +82,45 @@ URL or nil when entered manually."
 
 (defun forgejo-repo--cached-names ()
   "Return a list of \"owner/repo\" strings from the cache.
-Includes user repos and repos from previously viewed issues."
-  (let ((host (url-host (url-generic-parse-url
-                         (or forgejo-repo--host forgejo-host)))))
-    (condition-case nil
+Includes user repos and repos from previously viewed issues.
+When no buffer-local host is set, aggregates across all hosts."
+  (condition-case nil
+      (if forgejo-repo--host
+          (forgejo-repo--cached-names-for-host
+           (url-host (url-generic-parse-url forgejo-repo--host)))
         (delete-dups
-         (append
-          (forgejo-db-get-user-repos host)
-          (mapcar (lambda (row)
-                    (format "%s/%s" (nth 0 row) (nth 1 row)))
-                  (forgejo-db--select
-                   "SELECT DISTINCT owner, repo FROM issues WHERE host = ?"
-                   (list host)))))
-      (error nil))))
+         (cl-mapcan
+          (lambda (entry)
+            (forgejo-repo--cached-names-for-host
+             (url-host (url-generic-parse-url (car entry)))))
+          forgejo-hosts)))
+    (error nil)))
+
+(defun forgejo-repo--cached-names-for-host (host)
+  "Return \"owner/repo\" strings from the cache for HOST."
+  (delete-dups
+   (append
+    (forgejo-db-get-user-repos host)
+    (mapcar (lambda (row) (format "%s/%s" (nth 0 row) (nth 1 row)))
+            (forgejo-db--select
+             "SELECT DISTINCT owner, repo FROM issues WHERE host = ?"
+             (list host))))))
 
 ;;; Fetch user repos
 
 (defun forgejo-repo--fetch-user-repos ()
-  "Fetch repositories for the authenticated user and cache them."
-  (let ((host (url-host (url-generic-parse-url
-                         (or forgejo-repo--host forgejo-host)))))
-    (forgejo-api-get
-     "user/repos"
-     '(("limit" . "50") ("sort" . "updated"))
-     (lambda (data _headers)
-       (forgejo-db-save-user-repos host data)
-       (setq forgejo-repo--user-repos-fetched t)))))
+  "Fetch repositories for the authenticated user on all configured hosts."
+  (dolist (entry forgejo-hosts)
+    (let* ((host-url (car entry))
+           (host (url-host (url-generic-parse-url host-url))))
+      (condition-case nil
+          (forgejo-api-get
+           host-url "user/repos"
+           '(("limit" . "50") ("sort" . "updated"))
+           (lambda (data _headers)
+             (forgejo-db-save-user-repos host data)))
+        (error nil))))
+  (setq forgejo-repo--user-repos-fetched t))
 
 ;;; ---- Repository search view ----
 
@@ -133,7 +143,6 @@ Includes user repos and repos from previously viewed issues."
     (define-key map (kbd "p") #'forgejo-repo-search-prev-page)
     map)
   "Keymap for `forgejo-repo-search-mode'.")
-
 
 (define-derived-mode forgejo-repo-search-mode tabulated-list-mode
   "Forgejo Repos"
@@ -172,9 +181,10 @@ Includes user repos and repos from previously viewed issues."
 (defun forgejo-repo-search (query)
   "Search Forgejo repositories matching QUERY."
   (interactive "sSearch repos: ")
-  (let ((buf-name (format "*forgejo-repos: %s*" query)))
+  (let* ((host-url (forgejo--resolve-host))
+         (buf-name (format "*forgejo-repos: %s*" query)))
     (forgejo-api-get
-     "repos/search"
+     host-url "repos/search"
      (list (cons "q" query)
            (cons "sort" "updated")
            (cons "order" "desc")
@@ -186,7 +196,7 @@ Includes user repos and repos from previously viewed issues."
               (entries (forgejo-repo-search--entries repos)))
          (with-current-buffer (get-buffer-create buf-name)
            (forgejo-repo-search-mode)
-           (setq forgejo-repo--host forgejo-host
+           (setq forgejo-repo--host host-url
                  forgejo-repo-search--query query
                  forgejo-repo-search--page 1
                  tabulated-list-entries entries)
@@ -198,8 +208,7 @@ Includes user repos and repos from previously viewed issues."
   "Refresh the current repo search."
   (interactive)
   (when forgejo-repo-search--query
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-repo-search forgejo-repo-search--query))))
+    (forgejo-repo-search forgejo-repo-search--query)))
 
 (defun forgejo-repo-search--owner-repo-at-point ()
   "Return (OWNER . REPO) for the entry at point."
@@ -210,8 +219,7 @@ Includes user repos and repos from previously viewed issues."
   "List issues for the repo at point."
   (interactive)
   (when-let* ((pair (forgejo-repo-search--owner-repo-at-point)))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-issue-list (car pair) (cdr pair)))))
+    (forgejo-issue-list (car pair) (cdr pair))))
 
 (defun forgejo-repo-search-pulls-at-point ()
   "List pull requests for the repo at point."
@@ -219,59 +227,55 @@ Includes user repos and repos from previously viewed issues."
   (when-let* ((pair (forgejo-repo-search--owner-repo-at-point)))
     (declare-function forgejo-pull-list "forgejo-pull.el"
                       (&optional owner repo))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-pull-list (car pair) (cdr pair)))))
+    (forgejo-pull-list (car pair) (cdr pair))))
 
 (defun forgejo-repo-search-browse-at-point ()
   "Open the repo at point in the browser."
   (interactive)
   (when-let* ((pair (forgejo-repo-search--owner-repo-at-point)))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-utils-browse-repo (car pair) (cdr pair)))))
+    (forgejo-utils-browse-repo forgejo-repo--host (car pair) (cdr pair))))
 
 (defun forgejo-repo-search-next-page ()
   "Load the next page of search results."
   (interactive)
   (let ((page (or forgejo-repo-search--page 1)))
     (setq forgejo-repo-search--page (1+ page))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-api-get
-       "repos/search"
-       (list (cons "q" forgejo-repo-search--query)
-             (cons "sort" "updated")
-             (cons "order" "desc")
-             (cons "page" (number-to-string forgejo-repo-search--page))
-             (cons "limit" (number-to-string (forgejo-api-default-limit))))
-       (lambda (data _headers)
-         (let* ((repos (if (and (listp data) (alist-get 'data data))
-                           (alist-get 'data data)
-                         data))
-                (entries (forgejo-repo-search--entries repos)))
-           (setq tabulated-list-entries entries)
-           (forgejo-tl-print)
-           (goto-char (point-min))))))))
+    (forgejo-api-get
+     forgejo-repo--host "repos/search"
+     (list (cons "q" forgejo-repo-search--query)
+           (cons "sort" "updated")
+           (cons "order" "desc")
+           (cons "page" (number-to-string forgejo-repo-search--page))
+           (cons "limit" (number-to-string (forgejo-api-default-limit))))
+     (lambda (data _headers)
+       (let* ((repos (if (and (listp data) (alist-get 'data data))
+                         (alist-get 'data data)
+                       data))
+              (entries (forgejo-repo-search--entries repos)))
+         (setq tabulated-list-entries entries)
+         (forgejo-tl-print)
+         (goto-char (point-min)))))))
 
 (defun forgejo-repo-search-prev-page ()
   "Load the previous page of search results."
   (interactive)
   (when (and forgejo-repo-search--page (> forgejo-repo-search--page 1))
     (setq forgejo-repo-search--page (1- forgejo-repo-search--page))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-api-get
-       "repos/search"
-       (list (cons "q" forgejo-repo-search--query)
-             (cons "sort" "updated")
-             (cons "order" "desc")
-             (cons "page" (number-to-string forgejo-repo-search--page))
-             (cons "limit" (number-to-string (forgejo-api-default-limit))))
-       (lambda (data _headers)
-         (let* ((repos (if (and (listp data) (alist-get 'data data))
-                           (alist-get 'data data)
-                         data))
-                (entries (forgejo-repo-search--entries repos)))
-           (setq tabulated-list-entries entries)
-           (forgejo-tl-print)
-           (goto-char (point-min))))))))
+    (forgejo-api-get
+     forgejo-repo--host "repos/search"
+     (list (cons "q" forgejo-repo-search--query)
+           (cons "sort" "updated")
+           (cons "order" "desc")
+           (cons "page" (number-to-string forgejo-repo-search--page))
+           (cons "limit" (number-to-string (forgejo-api-default-limit))))
+     (lambda (data _headers)
+       (let* ((repos (if (and (listp data) (alist-get 'data data))
+                         (alist-get 'data data)
+                       data))
+              (entries (forgejo-repo-search--entries repos)))
+         (setq tabulated-list-entries entries)
+         (forgejo-tl-print)
+         (goto-char (point-min)))))))
 
 ;;; Repository creation
 
@@ -279,7 +283,8 @@ Includes user repos and repos from previously viewed issues."
 (defun forgejo-repo-create (name)
   "Create a new repository named NAME on the current Forgejo instance."
   (interactive "sRepository name: ")
-  (forgejo-utils-create-repo name))
+  (let ((host-url (forgejo--resolve-host)))
+    (forgejo-utils-create-repo host-url name)))
 
 (provide 'forgejo-repo)
 ;;; forgejo-repo.el ends here

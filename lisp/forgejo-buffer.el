@@ -33,10 +33,10 @@
 (require 'forgejo)
 (require 'forgejo-db)
 
+(defvar forgejo-repo--host)
 (defvar forgejo-repo--owner)
 (defvar forgejo-repo--name)
-(defvar forgejo-pull--data)
-(defvar forgejo-issue--data)
+(defvar forgejo-view--data)
 
 ;;; Faces
 
@@ -336,7 +336,7 @@ NODE-DATA is a plist with :type and type-specific keys."
   "View issue or PR NUMBER in OWNER/REPO.
 Checks the DB to determine if it's a PR, falls back to issue view."
   (let ((cached (forgejo-db-get-issue
-                 (url-host (url-generic-parse-url forgejo-host))
+                 (url-host (url-generic-parse-url forgejo-repo--host))
                  owner repo number)))
     (if (and cached (alist-get 'pull_request cached))
         (forgejo-pull-view owner repo number)
@@ -378,20 +378,19 @@ Uses the ref-repo text property for cross-repo references."
   "View the diff for the commit at point."
   (interactive)
   (when-let* ((sha (get-text-property (point) 'forgejo-commit-sha)))
-    (declare-function forgejo-token "forgejo.el" ())
-    (defvar forgejo-repo--host)
-    (forgejo-with-host forgejo-repo--host
-      (let* ((owner forgejo-repo--owner)
-             (repo forgejo-repo--name)
-             (pr-number (when-let* ((data (or (bound-and-true-p forgejo-pull--data)
-                                              (bound-and-true-p forgejo-issue--data))))
-                          (alist-get 'number data)))
-             (url (format "%s/api/v1/repos/%s/%s/git/commits/%s.diff"
-                          forgejo-host owner repo sha))
-             (url-request-method "GET")
-             (url-request-extra-headers
-              `(("Authorization" . ,(encode-coding-string
-                                     (concat "token " (forgejo-token)) 'ascii)))))
+    (declare-function forgejo-token "forgejo.el" (host-url))
+    (let* ((host-url forgejo-repo--host)
+           (owner forgejo-repo--owner)
+           (repo forgejo-repo--name)
+           (pr-number (when-let* ((data (bound-and-true-p forgejo-view--data)))
+                        (alist-get 'number data)))
+           (url (format "%s/api/v1/repos/%s/%s/git/commits/%s.diff"
+                        host-url owner repo sha))
+           (url-request-method "GET")
+           (url-request-extra-headers
+            `(("Authorization" . ,(encode-coding-string
+                                   (concat "token " (forgejo-token host-url))
+                                   'ascii)))))
       (url-retrieve
        url
        (lambda (_status)
@@ -412,7 +411,7 @@ Uses the ref-repo text property for cross-repo references."
                    forgejo-diff--pr-number pr-number)
              (goto-char (point-min))
              (switch-to-buffer (current-buffer)))))
-       nil t)))))
+       nil t))))
 
 ;; TODO: Implement pending review flow -- accumulate line comments
 ;; during diff review, then submit them all together with a verdict.
@@ -460,8 +459,9 @@ Prompts for review type: comment or request_changes."
            (body (forgejo-utils-read-body "Review comment")))
       (when (and body (not (string-empty-p (string-trim body))))
         (declare-function forgejo-api-post "forgejo-api.el"
-                          (endpoint &optional params json-body callback))
+                          (host endpoint &optional params json-body callback))
         (forgejo-api-post
+         forgejo-repo--host
          (format "repos/%s/%s/pulls/%d/reviews"
                  forgejo-diff--owner forgejo-diff--repo
                  forgejo-diff--pr-number)
@@ -926,12 +926,14 @@ Both should be alists with `body_html' pre-populated from the DB."
 (defun forgejo-buffer--re-render (buf-name host owner repo number
                                   render-fn &optional restore-line)
   "Re-render detail buffer BUF-NAME from fresh DB data.
-RENDER-FN is called with (BUF-NAME OWNER REPO ISSUE-ALIST TIMELINE-ALISTS)."
+RENDER-FN is called with (BUF-NAME HOST-URL OWNER REPO ISSUE-ALIST
+TIMELINE-ALISTS)."
   (when (buffer-live-p (get-buffer buf-name))
-    (let* ((issue (forgejo-db-get-issue host owner repo number))
+    (let* ((host-url (forgejo--host-url-for-hostname host))
+           (issue (forgejo-db-get-issue host owner repo number))
            (tl-rows (forgejo-db-get-timeline host owner repo number))
            (tl-alists (mapcar #'forgejo-db--row-to-timeline-alist tl-rows)))
-      (funcall render-fn buf-name owner repo issue tl-alists)
+      (funcall render-fn buf-name host-url owner repo issue tl-alists)
       (when restore-line
         (with-current-buffer buf-name
           (goto-char (point-min))
@@ -1009,7 +1011,7 @@ RENDER-FN is called with (BUF-NAME OWNER REPO ISSUE-ALIST TIMELINE-ALISTS)."
                   (host owner repo number review-id
                    &optional path position original-position))
 (declare-function forgejo-review--reply "forgejo-review.el"
-                  (owner repo number review-id
+                  (host-url owner repo number review-id
                    path position original-position callback))
 
 (defvar-local forgejo-review--thread-id nil
@@ -1082,7 +1084,7 @@ RENDER-FN is called with (BUF-NAME OWNER REPO ISSUE-ALIST TIMELINE-ALISTS)."
               (opos forgejo-review--thread-original-position)
               (buf (buffer-name)))
     (forgejo-review--fetch-comments
-     host owner repo number review-id
+     forgejo-repo--host host owner repo number review-id
      (lambda ()
        (let ((comments (forgejo-review--comments-for-id
                         host owner repo number review-id
@@ -1090,7 +1092,7 @@ RENDER-FN is called with (BUF-NAME OWNER REPO ISSUE-ALIST TIMELINE-ALISTS)."
          (forgejo-buffer--render-review-thread buf comments))))))
 
 (declare-function forgejo-review--fetch-comments "forgejo-review.el"
-                  (host owner repo number review-id &optional callback))
+                  (host-url host owner repo number review-id &optional callback))
 
 (defun forgejo-buffer--review-thread-reply ()
   "Reply to the current review thread."
@@ -1104,29 +1106,26 @@ RENDER-FN is called with (BUF-NAME OWNER REPO ISSUE-ALIST TIMELINE-ALISTS)."
               (position forgejo-review--thread-position)
               (opos forgejo-review--thread-original-position)
               (buf (current-buffer)))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-review--reply
-       owner repo number review-id path position opos
-       (lambda ()
-         (let ((comments (forgejo-review--comments-for-id
-                          host owner repo number review-id
-                          path position opos)))
-           (forgejo-buffer--render-review-thread
-            (buffer-name buf) comments)))))))
+    (forgejo-review--reply
+     forgejo-repo--host owner repo number review-id path position opos
+     (lambda ()
+       (let ((comments (forgejo-review--comments-for-id
+                        host owner repo number review-id
+                        path position opos)))
+         (forgejo-buffer--render-review-thread
+          (buffer-name buf) comments))))))
 
 (defun forgejo-buffer--open-review-thread ()
   "Open the review thread for the review link at point."
   (interactive)
   (when-let* ((review-id (get-text-property (point) 'forgejo-review-id))
               (path (get-text-property (point) 'forgejo-review-path))
-              (host (url-host (url-generic-parse-url
-                               (or (bound-and-true-p forgejo-repo--host)
-                                   forgejo-host))))
-              (owner (bound-and-true-p forgejo-repo--owner))
-              (repo (bound-and-true-p forgejo-repo--name))
+              (host-url forgejo-repo--host)
+              (host (url-host (url-generic-parse-url host-url)))
+              (owner forgejo-repo--owner)
+              (repo forgejo-repo--name)
               (number (alist-get 'number
-                                 (or (bound-and-true-p forgejo-pull--data)
-                                     (bound-and-true-p forgejo-issue--data)))))
+                                 (bound-and-true-p forgejo-view--data))))
     (let* ((position (get-text-property (point) 'forgejo-review-position))
            (opos (get-text-property (point) 'forgejo-review-opos))
            (comments (forgejo-review--comments-for-id
@@ -1137,8 +1136,7 @@ RENDER-FN is called with (BUF-NAME OWNER REPO ISSUE-ALIST TIMELINE-ALISTS)."
       (if comments
           (let ((buf (forgejo-buffer--render-review-thread buf-name comments)))
             (with-current-buffer buf
-              (setq forgejo-repo--host (or (bound-and-true-p forgejo-repo--host)
-                                           forgejo-host)
+              (setq forgejo-repo--host host-url
                     forgejo-repo--owner owner
                     forgejo-repo--name repo
                     forgejo-review--thread-id review-id

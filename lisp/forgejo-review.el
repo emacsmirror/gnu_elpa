@@ -23,12 +23,6 @@
 ;; Review data operations: sync review comments from the API, query
 ;; them from the DB, submit reviews.  Display logic lives in
 ;; forgejo-buffer.el.
-;;
-;; TODO: Implement pending review flow -- accumulate line comments
-;; during diff review, then submit them all together with a verdict.
-;; Forgejo supports this via PENDING reviews: create with event
-;; "PENDING", add comments via POST /reviews/{id}/comments, then
-;; submit with POST /reviews/{id}/submit.
 
 ;;; Code:
 
@@ -42,7 +36,7 @@
 (defvar forgejo-repo--host)
 (defvar forgejo-repo--owner)
 (defvar forgejo-repo--name)
-(defvar forgejo-pull--data)
+(defvar forgejo-view--data)
 
 ;;; Pure helpers
 
@@ -131,11 +125,12 @@ POSITION and ORIGINAL-POSITION for matching."
 
 ;;; API operations
 
-(defun forgejo-review--fetch-comments (host owner repo number
+(defun forgejo-review--fetch-comments (host-url host owner repo number
                                        review-id &optional callback)
-  "Fetch comments for REVIEW-ID and save to DB.
-Calls CALLBACK when done."
+  "Fetch comments for REVIEW-ID from HOST-URL and save to DB.
+HOST is the hostname.  Calls CALLBACK when done."
   (forgejo-api-get
+   host-url
    (format "repos/%s/%s/pulls/%d/reviews/%d/comments"
            owner repo number review-id)
    nil
@@ -145,9 +140,10 @@ Calls CALLBACK when done."
                                 comments review-id))
      (when callback (funcall callback)))))
 
-(defun forgejo-review-sync-comments (host owner repo number
+(defun forgejo-review-sync-comments (host-url host owner repo number
                                      timeline-alists callback)
   "Fetch review comments for all reviews in TIMELINE-ALISTS.
+HOST-URL is the instance.  HOST is the hostname.
 Calls CALLBACK when all are done."
   (let* ((ids (forgejo-review--ids-from-timeline timeline-alists))
          (remaining (length ids)))
@@ -155,14 +151,14 @@ Calls CALLBACK when all are done."
         (when callback (funcall callback))
       (dolist (id ids)
         (forgejo-review--fetch-comments
-         host owner repo number id
+         host-url host owner repo number id
          (lambda ()
            (setq remaining (1- remaining))
            (when (zerop remaining)
              (when callback (funcall callback)))))))))
 
-(defun forgejo-review--submit (owner repo number callback)
-  "Submit a review on PR NUMBER in OWNER/REPO.
+(defun forgejo-review--submit (host-url owner repo number callback)
+  "Submit a review on PR NUMBER in OWNER/REPO on HOST-URL.
 Prompts for the review type and an optional body.
 CALLBACK is called on success."
   (let* ((type (completing-read "Review type: "
@@ -173,6 +169,7 @@ CALLBACK is called on success."
                   ("comment" "COMMENT")))
          (body (forgejo-utils-read-body "Review body")))
     (forgejo-api-post
+     host-url
      (format "repos/%s/%s/pulls/%d/reviews" owner repo number)
      nil
      `((event . ,event)
@@ -182,19 +179,17 @@ CALLBACK is called on success."
        (message "Review submitted: %s on %s/%s#%d" type owner repo number)
        (when callback (funcall callback))))))
 
-(declare-function forgejo-utils-post-comment "forgejo-utils.el"
-                  (endpoint prompt &optional initial callback))
-
-(defun forgejo-review--reply (owner repo number review-id
+(defun forgejo-review--reply (host-url owner repo number review-id
                              path position original-position callback)
-  "Reply to review REVIEW-ID on PR NUMBER in OWNER/REPO.
+  "Reply to review REVIEW-ID on PR NUMBER in OWNER/REPO on HOST-URL.
 PATH, POSITION, and ORIGINAL-POSITION from the original comment
-for thread grouping.  Sends new_position when the comment is on
-the new side, old_position when on the old side.
-Prompts for the reply body.  CALLBACK is called on success."
-  (let ((body (forgejo-utils-read-body "Reply")))
+for thread grouping.  Prompts for the reply body.
+CALLBACK is called on success."
+  (let ((body (forgejo-utils-read-body "Reply"))
+        (host (url-host (url-generic-parse-url host-url))))
     (when (and body (not (string-empty-p (string-trim body))))
       (forgejo-api-post
+       host-url
        (format "repos/%s/%s/pulls/%d/reviews/%d/comments"
                owner repo number review-id)
        nil
@@ -204,10 +199,9 @@ Prompts for the reply body.  CALLBACK is called on success."
                `((new_position . ,position))
              `((old_position . ,(or original-position 0)))))
        (lambda (data _headers)
-         (let ((host (url-host (url-generic-parse-url forgejo-host))))
-           (forgejo-db-save-timeline
-            host owner repo number
-            (forgejo-review--comments-to-events (list data) review-id)))
+         (forgejo-db-save-timeline
+          host owner repo number
+          (forgejo-review--comments-to-events (list data) review-id))
          (message "Reply posted on %s/%s#%d review %d"
                   owner repo number review-id)
          (when callback (funcall callback)))))))
@@ -217,12 +211,11 @@ Prompts for the reply body.  CALLBACK is called on success."
 (defun forgejo-review-submit ()
   "Submit a review on the current pull request."
   (interactive)
-  (when-let* ((data forgejo-pull--data)
+  (when-let* ((data forgejo-view--data)
               (number (alist-get 'number data)))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-review--submit
-       forgejo-repo--owner forgejo-repo--name number
-       (forgejo--post-action-callback)))))
+    (forgejo-review--submit
+     forgejo-repo--host forgejo-repo--owner forgejo-repo--name number
+     (forgejo--post-action-callback))))
 
 (provide 'forgejo-review)
 ;;; forgejo-review.el ends here

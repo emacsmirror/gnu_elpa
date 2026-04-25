@@ -32,7 +32,7 @@
 (require 'forgejo)
 
 (declare-function forgejo-settings-check-manual-merge "forgejo-settings.el"
-                  (owner repo callback))
+                  (host-url owner repo callback))
 (declare-function forgejo-issue-list "forgejo-issue.el"
                   (&optional owner repo))
 (declare-function forgejo-pull-list "forgejo-pull.el"
@@ -293,7 +293,7 @@ With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
   ;; Warn if manual merge is not enabled (AGit-Flow requires it)
   (when-let* ((context (forgejo-vc--repo-from-remote)))
     (forgejo-settings-check-manual-merge
-     (nth 1 context) (nth 2 context)
+     (nth 0 context) (nth 1 context) (nth 2 context)
      (lambda (enabled)
        (unless enabled
          (message "Warning: Manual merge is disabled for %s/%s. AGit-Flow PRs may not work as expected."
@@ -340,7 +340,7 @@ Warns if manual merge is disabled for the repo."
          (ref (format "refs/pull/%d/head" n)))
     ;; Check manual merge setting
     (forgejo-settings-check-manual-merge
-     (nth 1 context) (nth 2 context)
+     (nth 0 context) (nth 1 context) (nth 2 context)
      (lambda (enabled)
        (unless enabled
          (message "Warning: Manual merge is disabled for %s/%s. Local merges won't be recognized by Forgejo."
@@ -387,23 +387,20 @@ Warns if manual merge is disabled for the repo."
 (defun forgejo-vc-issues ()
   "List issues for the current repository."
   (interactive)
-  (cl-destructuring-bind (host owner repo) (forgejo-vc--require-repo)
-    (forgejo-with-host host
-      (forgejo-issue-list owner repo))))
+  (cl-destructuring-bind (_host owner repo) (forgejo-vc--require-repo)
+    (forgejo-issue-list owner repo)))
 
 (defun forgejo-vc-pulls ()
   "List pull requests for the current repository."
   (interactive)
-  (cl-destructuring-bind (host owner repo) (forgejo-vc--require-repo)
-    (forgejo-with-host host
-      (forgejo-pull-list owner repo))))
+  (cl-destructuring-bind (_host owner repo) (forgejo-vc--require-repo)
+    (forgejo-pull-list owner repo)))
 
 (defun forgejo-vc-browse ()
   "Open the current repository in the browser."
   (interactive)
   (cl-destructuring-bind (host owner repo) (forgejo-vc--require-repo)
-    (forgejo-with-host host
-      (forgejo-utils-browse-repo owner repo))))
+    (forgejo-utils-browse-repo host owner repo)))
 
 ;;; Transient + keymap
 

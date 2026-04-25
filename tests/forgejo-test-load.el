@@ -62,9 +62,9 @@ Excludes generated files like autoloads and pkg descriptors."
   "Each module's require chain should resolve without error.
 Tests that loading a single module pulls in all its dependencies."
   (let ((modules '("forgejo" "forgejo-api" "forgejo-db" "forgejo-utils"
-                    "forgejo-buffer" "forgejo-tl" "forgejo-repo"
-                    "forgejo-issue" "forgejo-pull" "forgejo-vc"
-                    "forgejo-watch" "forgejo-transient")))
+                    "forgejo-buffer" "forgejo-view" "forgejo-tl"
+                    "forgejo-repo" "forgejo-issue" "forgejo-pull"
+                    "forgejo-vc" "forgejo-watch" "forgejo-transient")))
     (dolist (mod modules)
       (let ((load-path (cons forgejo-test-load--dir load-path)))
         ;; Unload all forgejo features to test in isolation

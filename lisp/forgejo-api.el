@@ -23,9 +23,9 @@
 ;; Async HTTP layer for the Forgejo REST API (v1).
 ;;
 ;; All network requests go through `forgejo-api--request'.  Public
-;; wrappers (`forgejo-api-get', `forgejo-api-post', etc.) accept an
-;; endpoint, optional parameters, and a callback that receives the
-;; parsed JSON response.
+;; wrappers (`forgejo-api-get', `forgejo-api-post', etc.) accept a
+;; host URL, endpoint, optional parameters, and a callback that
+;; receives the parsed JSON response.
 
 ;;; Code:
 
@@ -33,18 +33,18 @@
 (require 'json)
 (require 'cl-lib)
 
-(declare-function forgejo-token "forgejo.el" ())
-(defvar forgejo-host)
+(declare-function forgejo-token "forgejo.el" (host-url))
 (defvar forgejo--api-default-limit)
 (defvar forgejo--api-max-items)
 
 ;;; URL building
 
-(defun forgejo-api--url (endpoint &optional params)
-  "Build a full API URL for ENDPOINT with optional query PARAMS.
+(defun forgejo-api--url (host endpoint &optional params)
+  "Build a full API URL for HOST and ENDPOINT with optional query PARAMS.
+HOST is the base URL (e.g. \"https://codeberg.org\").
 ENDPOINT should not have a leading slash.
 PARAMS is an alist of (KEY . VALUE) pairs for the query string."
-  (let ((base (format "%s/api/v1/%s" forgejo-host endpoint)))
+  (let ((base (format "%s/api/v1/%s" host endpoint)))
     (if params
         (concat base "?"
                 (mapconcat (lambda (pair)
@@ -92,9 +92,11 @@ Returns the parsed JSON as alists/lists, or nil for empty bodies."
 
 ;;; Core request
 
-(defun forgejo-api--request (method endpoint &optional params json-body callback)
+(defun forgejo-api--request (host method endpoint &optional params
+                             json-body callback)
   "Make an async HTTP request to the Forgejo API.
 
+HOST is the instance base URL (e.g. \"https://codeberg.org\").
 METHOD is the HTTP method string (\"GET\", \"POST\", etc.).
 ENDPOINT is the API path (without /api/v1/ prefix).
 PARAMS is an alist of query parameters.
@@ -105,14 +107,15 @@ CALLBACK is called with two arguments: (RESPONSE-DATA HEADERS-PLIST).
   (let ((url-request-method method)
         (url-request-extra-headers
          `(("Authorization" . ,(encode-coding-string
-                                (concat "token " (forgejo-token)) 'ascii))
+                                (concat "token " (forgejo-token host))
+                                'ascii))
            ("Accept" . "application/json")
            ,@(when json-body
                '(("Content-Type" . "application/json")))))
         (url-request-data
          (when json-body
            (encode-coding-string (json-encode json-body) 'utf-8)))
-        (url (forgejo-api--url endpoint params)))
+        (url (forgejo-api--url host endpoint params)))
     (url-retrieve
      url
      (lambda (status)
@@ -138,12 +141,12 @@ CALLBACK is called with two arguments: (RESPONSE-DATA HEADERS-PLIST).
 
 ;;; Public wrappers
 
-(defun forgejo-api-get (endpoint &optional params callback)
-  "GET ENDPOINT with query PARAMS, call CALLBACK with (data headers)."
-  (forgejo-api--request "GET" endpoint params nil callback))
+(defun forgejo-api-get (host endpoint &optional params callback)
+  "GET ENDPOINT on HOST with query PARAMS, call CALLBACK with (data headers)."
+  (forgejo-api--request host "GET" endpoint params nil callback))
 
-(defun forgejo-api-get-all (endpoint &optional params callback)
-  "GET all pages from ENDPOINT, call CALLBACK with (all-data headers).
+(defun forgejo-api-get-all (host endpoint &optional params callback)
+  "GET all pages from ENDPOINT on HOST, call CALLBACK with (all-data headers).
 Fetches pages sequentially until all results are collected.
 PARAMS should include a \"limit\" entry.  The \"page\" param is
 managed automatically."
@@ -155,7 +158,7 @@ managed automatically."
            (let ((page-params (cons (cons "page" (number-to-string page))
                                     params)))
              (forgejo-api-get
-              endpoint page-params
+              host endpoint page-params
               (lambda (data headers)
                 (setq accum (append accum data))
                 (let ((total (plist-get headers :total-count)))
@@ -169,9 +172,9 @@ managed automatically."
                       (funcall callback accum headers)))))))))
       (fetch-page))))
 
-(defun forgejo-api-get-paged (endpoint params page-callback
-                                      &optional done-callback)
-  "GET all pages from ENDPOINT, calling PAGE-CALLBACK after each.
+(defun forgejo-api-get-paged (host endpoint params page-callback
+                                   &optional done-callback)
+  "GET all pages from ENDPOINT on HOST, calling PAGE-CALLBACK after each.
 PAGE-CALLBACK receives (PAGE-DATA HEADERS PAGE-NUMBER).
 DONE-CALLBACK receives (ALL-DATA HEADERS) when all pages are fetched."
   (let ((limit (or (cdr (assoc "limit" params)) "50"))
@@ -182,7 +185,7 @@ DONE-CALLBACK receives (ALL-DATA HEADERS) when all pages are fetched."
            (let ((page-params (cons (cons "page" (number-to-string page))
                                     params)))
              (forgejo-api-get
-              endpoint page-params
+              host endpoint page-params
               (lambda (data headers)
                 (setq accum (append accum data))
                 (when page-callback
@@ -198,31 +201,31 @@ DONE-CALLBACK receives (ALL-DATA HEADERS) when all pages are fetched."
                       (funcall done-callback accum headers)))))))))
       (fetch-page))))
 
-(defun forgejo-api-post (endpoint &optional params json-body callback)
-  "POST to ENDPOINT with PARAMS and JSON-BODY, call CALLBACK."
-  (forgejo-api--request "POST" endpoint params json-body callback))
+(defun forgejo-api-post (host endpoint &optional params json-body callback)
+  "POST to ENDPOINT on HOST with PARAMS and JSON-BODY, call CALLBACK."
+  (forgejo-api--request host "POST" endpoint params json-body callback))
 
-(defun forgejo-api-patch (endpoint &optional json-body callback)
-  "PATCH ENDPOINT with JSON-BODY, call CALLBACK."
-  (forgejo-api--request "PATCH" endpoint nil json-body callback))
+(defun forgejo-api-patch (host endpoint &optional json-body callback)
+  "PATCH ENDPOINT on HOST with JSON-BODY, call CALLBACK."
+  (forgejo-api--request host "PATCH" endpoint nil json-body callback))
 
-(defun forgejo-api-put (endpoint &optional json-body callback)
-  "PUT ENDPOINT with JSON-BODY, call CALLBACK."
-  (forgejo-api--request "PUT" endpoint nil json-body callback))
+(defun forgejo-api-put (host endpoint &optional json-body callback)
+  "PUT ENDPOINT on HOST with JSON-BODY, call CALLBACK."
+  (forgejo-api--request host "PUT" endpoint nil json-body callback))
 
-(defun forgejo-api-delete (endpoint &optional json-body callback)
-  "DELETE ENDPOINT with optional JSON-BODY, call CALLBACK."
-  (forgejo-api--request "DELETE" endpoint nil json-body callback))
+(defun forgejo-api-delete (host endpoint &optional json-body callback)
+  "DELETE ENDPOINT on HOST with optional JSON-BODY, call CALLBACK."
+  (forgejo-api--request host "DELETE" endpoint nil json-body callback))
 
 ;;; Instance settings
 
-(defun forgejo-api-get-settings (&optional callback)
-  "Fetch API settings from the Forgejo instance.
+(defun forgejo-api-get-settings (host &optional callback)
+  "Fetch API settings from HOST.
 Caches `default_paging_num' and `max_response_items' in
 `forgejo--api-default-limit' and `forgejo--api-max-items'.
 Calls CALLBACK with the settings alist when done."
   (forgejo-api-get
-   "settings/api" nil
+   host "settings/api" nil
    (lambda (data _headers)
      (setq forgejo--api-default-limit
            (alist-get 'default_paging_num data))
@@ -237,14 +240,15 @@ Calls CALLBACK with the settings alist when done."
 
 ;;; Markdown rendering
 
-(defun forgejo-api-render-markdown (text &optional context)
-  "Render markdown TEXT to HTML via the Forgejo API.
+(defun forgejo-api-render-markdown (host text &optional context)
+  "Render markdown TEXT to HTML via the Forgejo API on HOST.
 CONTEXT is an optional \"owner/repo\" string for resolving
 references.  Returns the HTML string synchronously."
   (let ((url-request-method "POST")
         (url-request-extra-headers
          `(("Authorization" . ,(encode-coding-string
-                                (concat "token " (forgejo-token)) 'ascii))
+                                (concat "token " (forgejo-token host))
+                                'ascii))
            ("Content-Type" . "application/json")))
         (url-request-data
          (encode-coding-string
@@ -254,7 +258,7 @@ references.  Returns the HTML string synchronously."
           'utf-8)))
     (with-current-buffer
         (url-retrieve-synchronously
-         (format "%s/api/v1/markdown" forgejo-host) t)
+         (format "%s/api/v1/markdown" host) t)
       (goto-char (point-min))
       (re-search-forward "\r?\n\r?\n" nil t)
       (let ((html (decode-coding-string
@@ -263,14 +267,15 @@ references.  Returns the HTML string synchronously."
         (kill-buffer (current-buffer))
         html))))
 
-(defun forgejo-api-render-markdown-async (text context callback)
-  "Render markdown TEXT to HTML asynchronously.
+(defun forgejo-api-render-markdown-async (host text context callback)
+  "Render markdown TEXT to HTML asynchronously on HOST.
 CONTEXT is \"owner/repo\" for resolving references.
 CALLBACK is called with (HTML) on success, nil on failure."
   (let ((url-request-method "POST")
         (url-request-extra-headers
          `(("Authorization" . ,(encode-coding-string
-                                (concat "token " (forgejo-token)) 'ascii))
+                                (concat "token " (forgejo-token host))
+                                'ascii))
            ("Content-Type" . "application/json")))
         (url-request-data
          (encode-coding-string
@@ -279,7 +284,7 @@ CALLBACK is called with (HTML) on success, nil on failure."
                          (Text . ,text)))
           'utf-8)))
     (url-retrieve
-     (format "%s/api/v1/markdown" forgejo-host)
+     (format "%s/api/v1/markdown" host)
      (lambda (status)
        (if (plist-get status :error)
            (progn (kill-buffer (current-buffer))

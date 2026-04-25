@@ -394,5 +394,36 @@
           (should (null (alist-get 'pull_request alist)))))
     (forgejo-test-db--teardown)))
 
+;;; ---- Group 10: Host lookup ----
+
+(ert-deftest forgejo-test-db-get-hosts-for-repo ()
+  "Return distinct hosts that have cached data for a repo."
+  (forgejo-test-db--setup)
+  (unwind-protect
+      (let ((issue-a (list (cons 'id 1) (cons 'number 1)
+                           (cons 'title "A") (cons 'state "open")
+                           (cons 'user (list (cons 'login "alice")))
+                           (cons 'updated_at "2026-01-01T00:00:00Z")))
+            (issue-b (list (cons 'id 2) (cons 'number 2)
+                           (cons 'title "B") (cons 'state "open")
+                           (cons 'user (list (cons 'login "bob")))
+                           (cons 'updated_at "2026-01-02T00:00:00Z"))))
+        (forgejo-db-save-issues "codeberg.org" "owner" "repo" (list issue-a))
+        (forgejo-db-save-issues "git.myorg.com" "owner" "repo" (list issue-b))
+        (let ((hosts (forgejo-db-get-hosts-for-repo "owner" "repo")))
+          (should (= (length hosts) 2))
+          (should (member "codeberg.org" hosts))
+          (should (member "git.myorg.com" hosts)))
+        ;; Different repo returns only its host
+        (forgejo-db-save-issues "codeberg.org" "other" "project"
+                                (list (list (cons 'id 3) (cons 'number 1)
+                                            (cons 'title "C") (cons 'state "open")
+                                            (cons 'user (list (cons 'login "x")))
+                                            (cons 'updated_at "2026-01-03T00:00:00Z"))))
+        (let ((hosts (forgejo-db-get-hosts-for-repo "other" "project")))
+          (should (= (length hosts) 1))
+          (should (string= (car hosts) "codeberg.org"))))
+    (forgejo-test-db--teardown)))
+
 (provide 'forgejo-test-db)
 ;;; forgejo-test-db.el ends here

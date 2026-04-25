@@ -46,20 +46,32 @@ Use this to enable modes like `markdown-mode' or `flyspell-mode'."
   :type 'hook
   :group 'forgejo)
 
-(defcustom forgejo-host "https://codeberg.org"
-  "URL of the Forgejo instance."
-  :type 'string
+(defcustom forgejo-hosts '(("https://codeberg.org"))
+  "List of known Forgejo instances.
+Each entry is (URL) or (URL TOKEN).  When TOKEN is omitted,
+auth-source is used for that host.
+
+Only hosts in this list are accepted; a git remote pointing to an
+unknown host will signal an error.
+
+Example:
+  \\='((\"https://codeberg.org\")
+    (\"https://git.myorg.com\" \"tok_abc123\"))"
+  :type '(repeat
+          (choice (list (string :tag "Host URL"))
+                  (list (string :tag "Host URL")
+                        (string :tag "API token"))))
   :group 'forgejo)
 
 (defcustom forgejo-token nil
   "Personal access token.
-When `forgejo-token-use-auth-source' is non-nil, auth-source is
-tried first and this value is used as fallback."
+Used as fallback when no token is found via `forgejo-hosts' or
+auth-source."
   :type '(choice string (const nil))
   :group 'forgejo)
 
 (defcustom forgejo-token-use-auth-source t
-  "When non-nil, look up the token via `auth-source' first.
+  "When non-nil, look up the token via `auth-source'.
 Falls back to `forgejo-token' if auth-source returns nothing."
   :type 'boolean
   :group 'forgejo)
@@ -135,18 +147,15 @@ the current view (issue detail, PR detail, or list)."
   :type 'hook
   :group 'forgejo)
 
-(declare-function forgejo-issue-view-refresh "forgejo-issue.el" ())
+(declare-function forgejo-view-refresh "forgejo-view.el" ())
 (declare-function forgejo-issue-refresh "forgejo-issue.el" ())
-(declare-function forgejo-pull-view-refresh "forgejo-pull.el" ())
 (declare-function forgejo-pull-refresh "forgejo-pull.el" ())
 
 (defun forgejo--refresh-current-view ()
   "Refresh the current Forgejo view buffer based on its major mode."
   (cond
-   ((bound-and-true-p forgejo-issue--data)
-    (forgejo-issue-view-refresh))
-   ((bound-and-true-p forgejo-pull--data)
-    (forgejo-pull-view-refresh))
+   ((bound-and-true-p forgejo-view--data)
+    (forgejo-view-refresh))
    ((derived-mode-p 'forgejo-issue-list-mode)
     (forgejo-issue-refresh))
    ((derived-mode-p 'forgejo-pull-list-mode)
@@ -161,33 +170,108 @@ Captures the current buffer so the hook runs in the right context."
         (with-current-buffer buf
           (run-hooks 'forgejo-post-action-functions))))))
 
-;;; Host binding
+;;; Host resolution
 
-(defmacro forgejo-with-host (host &rest body)
-  "Execute BODY with `forgejo-host' bound to HOST.
-If HOST is nil, `forgejo-host' retains its current value."
-  (declare (indent 1))
-  `(let ((forgejo-host (or ,host forgejo-host)))
-     ,@body))
+(declare-function forgejo-vc--repo-from-remote "forgejo-vc.el" ())
+(declare-function forgejo-db-get-hosts-for-repo "forgejo-db.el"
+                  (owner repo))
 
-(defun forgejo--auth-source-token ()
-  "Look up the Forgejo token via `auth-source'.
-Searches by host derived from `forgejo-host'."
-  (when-let* ((host (url-host (url-generic-parse-url forgejo-host)))
+(defun forgejo--resolve-host ()
+  "Determine the Forgejo host URL from context.
+Resolution order:
+1. Buffer-local `forgejo-repo--host' (if bound and non-nil)
+2. Git remote detection matched against `forgejo-hosts'
+3. Sole entry in `forgejo-hosts'
+4. Prompt user to pick from `forgejo-hosts'"
+  (or (and (boundp 'forgejo-repo--host) forgejo-repo--host)
+      (forgejo--host-from-remote)
+      (forgejo--host-from-hosts-list)))
+
+(defun forgejo--host-from-remote ()
+  "Try to detect host from git remotes, match against `forgejo-hosts'.
+Returns a URL string or nil."
+  (when-let* ((context (ignore-errors (forgejo-vc--repo-from-remote)))
+              (remote-url (nth 0 context))
+              (remote-host (url-host (url-generic-parse-url remote-url))))
+    (when-let* ((entry (cl-find remote-host forgejo-hosts
+                                :key (lambda (e)
+                                       (url-host
+                                        (url-generic-parse-url (car e))))
+                                :test #'string=)))
+      (car entry))))
+
+(defun forgejo--host-from-hosts-list ()
+  "Pick host from `forgejo-hosts'.
+If exactly one entry, use it.  Otherwise prompt."
+  (unless forgejo-hosts
+    (user-error "No Forgejo instances configured; set `forgejo-hosts'"))
+  (if (= (length forgejo-hosts) 1)
+      (caar forgejo-hosts)
+    (completing-read "Forgejo instance: "
+                     (mapcar #'car forgejo-hosts) nil t)))
+
+(defun forgejo--resolve-host-for-repo (owner repo)
+  "Resolve the host URL for OWNER/REPO.
+Checks DB first, then falls back to `forgejo--resolve-host'."
+  (let ((db-hosts (ignore-errors
+                    (forgejo-db-get-hosts-for-repo owner repo))))
+    (cond
+     ((= (length db-hosts) 1)
+      (forgejo--host-url-for-hostname (car db-hosts)))
+     ((> (length db-hosts) 1)
+      (let ((urls (mapcar #'forgejo--host-url-for-hostname db-hosts)))
+        (completing-read (format "Host for %s/%s: " owner repo)
+                         urls nil t)))
+     (t (forgejo--resolve-host)))))
+
+(defun forgejo--host-url-for-hostname (hostname)
+  "Look up full URL for HOSTNAME from `forgejo-hosts'.
+Falls back to \"https://HOSTNAME\" if not found."
+  (or (car (cl-find hostname forgejo-hosts
+                    :key (lambda (e)
+                           (url-host (url-generic-parse-url (car e))))
+                    :test #'string=))
+      (format "https://%s" hostname)))
+
+;;; Token resolution
+
+(defun forgejo--hosts-token (host-url)
+  "Look up inline token for HOST-URL in `forgejo-hosts'."
+  (cadr (cl-find (url-host (url-generic-parse-url host-url))
+                 forgejo-hosts
+                 :key (lambda (e) (url-host (url-generic-parse-url (car e))))
+                 :test #'string=)))
+
+(defun forgejo--auth-source-token (host-url)
+  "Look up the Forgejo token via `auth-source' for HOST-URL."
+  (when-let* ((host (url-host (url-generic-parse-url host-url)))
               (found (car (auth-source-search :host host :max 1)))
               (secret (plist-get found :secret)))
     (if (functionp secret)
         (funcall secret)
       secret)))
 
-(defun forgejo-token ()
-  "Return the Forgejo API token.
-Tries auth-source first when `forgejo-token-use-auth-source' is
-non-nil, then falls back to the `forgejo-token' variable."
-  (or (and forgejo-token-use-auth-source
-           (forgejo--auth-source-token))
+(defun forgejo--validate-host (host-url)
+  "Signal an error if HOST-URL is not in `forgejo-hosts'."
+  (unless (cl-find (url-host (url-generic-parse-url host-url))
+                   forgejo-hosts
+                   :key (lambda (e)
+                          (url-host (url-generic-parse-url (car e))))
+                   :test #'string=)
+    (user-error "Host %s not configured in `forgejo-hosts'"
+                (url-host (url-generic-parse-url host-url)))))
+
+(defun forgejo-token (host-url)
+  "Return the API token for HOST-URL.
+Resolution order: inline token from `forgejo-hosts', auth-source,
+`forgejo-token' variable."
+  (forgejo--validate-host host-url)
+  (or (forgejo--hosts-token host-url)
+      (and forgejo-token-use-auth-source
+           (forgejo--auth-source-token host-url))
       forgejo-token
-      (user-error "No Forgejo token configured; set `forgejo-token' or add one to auth-source")))
+      (user-error "No token for host %s; add to `forgejo-hosts' or auth-source"
+                  (url-host (url-generic-parse-url host-url)))))
 
 (provide 'forgejo)
 ;;; forgejo.el ends here

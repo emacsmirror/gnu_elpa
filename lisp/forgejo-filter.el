@@ -272,21 +272,18 @@ Items must have `watch-owner' and `watch-repo' keys."
 
 ;;; ---- Refresh ----
 
-(defvar forgejo-host)
-
 (defun forgejo-filter-refresh (buf-name host-url owner repo
                                filters render-fn sync-fn)
   "Re-render and sync a list buffer, preserving point.
 BUF-NAME is the target buffer.  HOST-URL is the full Forgejo URL.
 OWNER and REPO identify the repository.  FILTERS is the current
-filter plist.  RENDER-FN is called as (RENDER-FN BUF HOST OWNER
-REPO FILTERS) for immediate DB render.  SYNC-FN is called as
-\(SYNC-FN HOST OWNER REPO FILTERS BUF-NAME FORCE) for async sync."
-  (let* ((forgejo-host (or host-url forgejo-host))
-         (host (url-host (url-generic-parse-url forgejo-host)))
+filter plist.  RENDER-FN is called as (RENDER-FN BUF HOST-URL HOST
+OWNER REPO FILTERS) for immediate DB render.  SYNC-FN is called as
+\(SYNC-FN HOST-URL HOST OWNER REPO FILTERS BUF-NAME FORCE) for async sync."
+  (let* ((host (url-host (url-generic-parse-url host-url)))
          (line (line-number-at-pos)))
-    (funcall render-fn buf-name host owner repo filters)
-    (funcall sync-fn host owner repo filters buf-name t)
+    (funcall render-fn buf-name host-url host owner repo filters)
+    (funcall sync-fn host-url host owner repo filters buf-name t)
     (with-current-buffer buf-name
       (goto-char (point-min))
       (forward-line (1- line)))))

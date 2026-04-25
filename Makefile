@@ -5,14 +5,14 @@ EMACS_CMD = $(EMACS) -Q --batch -L lisp
 
 SRCS = lisp/forgejo.el lisp/forgejo-api.el lisp/forgejo-db.el \
        lisp/forgejo-filter.el lisp/forgejo-utils.el \
-       lisp/forgejo-buffer.el lisp/forgejo-repo.el \
+       lisp/forgejo-buffer.el lisp/forgejo-view.el lisp/forgejo-repo.el \
        lisp/forgejo-issue.el lisp/forgejo-pull.el lisp/forgejo-vc.el \
        lisp/forgejo-tl.el lisp/forgejo-review.el lisp/forgejo-settings.el \
        lisp/forgejo-alert.el lisp/forgejo-watch.el lisp/forgejo-transient.el
 
 TESTS = tests/forgejo-test-load.el tests/forgejo-test-api.el \
-        tests/forgejo-test-db.el tests/forgejo-test-buffer.el \
-        tests/forgejo-test-filter.el \
+        tests/forgejo-test-db.el tests/forgejo-test-host.el \
+        tests/forgejo-test-buffer.el tests/forgejo-test-filter.el \
         tests/forgejo-test-issue.el tests/forgejo-test-pull.el \
         tests/forgejo-test-vc.el
 

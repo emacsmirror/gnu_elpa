@@ -24,48 +24,49 @@
 
 ;;; Code:
 
-(defvar forgejo-host)
-
 (require 'forgejo-api)
 (require 'forgejo-db)
 
 ;;; URL builders
 
-(defun forgejo-utils-repo-url (owner repo)
-  "Return the web URL for OWNER/REPO."
-  (format "%s/%s/%s" forgejo-host owner repo))
+(defun forgejo-utils-repo-url (host-url owner repo)
+  "Return the web URL for OWNER/REPO on HOST-URL."
+  (format "%s/%s/%s" host-url owner repo))
 
-(defun forgejo-utils-issue-url (owner repo number)
-  "Return the web URL for issue NUMBER in OWNER/REPO."
-  (format "%s/%s/%s/issues/%d" forgejo-host owner repo number))
+(defun forgejo-utils-issue-url (host-url owner repo number)
+  "Return the web URL for issue NUMBER in OWNER/REPO on HOST-URL."
+  (format "%s/%s/%s/issues/%d" host-url owner repo number))
 
-(defun forgejo-utils-pull-url (owner repo number)
-  "Return the web URL for pull request NUMBER in OWNER/REPO."
-  (format "%s/%s/%s/pulls/%d" forgejo-host owner repo number))
+(defun forgejo-utils-pull-url (host-url owner repo number)
+  "Return the web URL for pull request NUMBER in OWNER/REPO on HOST-URL."
+  (format "%s/%s/%s/pulls/%d" host-url owner repo number))
 
 ;;; Browse helpers
 
-(defun forgejo-utils-browse-repo (owner repo)
-  "Open OWNER/REPO in the browser."
-  (browse-url (forgejo-utils-repo-url owner repo)))
+(defun forgejo-utils-browse-repo (host-url owner repo)
+  "Open OWNER/REPO on HOST-URL in the browser."
+  (browse-url (forgejo-utils-repo-url host-url owner repo)))
 
-(defun forgejo-utils-browse-issue (owner repo number)
-  "Open issue NUMBER of OWNER/REPO in the browser."
-  (browse-url (forgejo-utils-issue-url owner repo number)))
+(defun forgejo-utils-browse-issue (host-url owner repo number)
+  "Open issue NUMBER of OWNER/REPO on HOST-URL in the browser."
+  (browse-url (forgejo-utils-issue-url host-url owner repo number)))
 
-(defun forgejo-utils-browse-pull (owner repo number)
-  "Open pull request NUMBER of OWNER/REPO in the browser."
-  (browse-url (forgejo-utils-pull-url owner repo number)))
+(defun forgejo-utils-browse-pull (host-url owner repo number)
+  "Open pull request NUMBER of OWNER/REPO on HOST-URL in the browser."
+  (browse-url (forgejo-utils-pull-url host-url owner repo number)))
 
 ;;; State toggle
 
-(defun forgejo-utils-toggle-state (owner repo number current-state callback)
+(defun forgejo-utils-toggle-state (host-url owner repo number current-state
+                                   callback)
   "Toggle issue/PR NUMBER in OWNER/REPO between open and closed.
-CURRENT-STATE is \"open\" or \"closed\".  CALLBACK is called on success."
+HOST-URL is the instance.  CURRENT-STATE is \"open\" or \"closed\".
+CALLBACK is called on success."
   (let* ((new-state (if (string= current-state "open") "closed" "open"))
          (action (if (string= new-state "closed") "Close" "Reopen")))
     (when (y-or-n-p (format "%s %s/%s#%d? " action owner repo number))
       (forgejo-api-patch
+       host-url
        (format "repos/%s/%s/issues/%d" owner repo number)
        `((state . ,new-state))
        (lambda (_data _headers)
@@ -97,34 +98,36 @@ Like `read-string-from-buffer' but with # completion for issue references."
           (read-string-from-buffer prompt (or initial "")))
       (remove-hook 'string-edit-mode-hook hook-fn))))
 
-(defun forgejo-utils-post-comment (endpoint prompt &optional initial callback)
-  "Post a comment to ENDPOINT.
+(defun forgejo-utils-post-comment (host-url endpoint prompt &optional initial
+                                   callback)
+  "Post a comment to ENDPOINT on HOST-URL.
 PROMPT is the composition buffer title.  INITIAL is optional
 pre-filled text (e.g. quoted reply).  CALLBACK receives (DATA HEADERS)
 on success."
   (let ((body (forgejo-utils-read-body prompt initial)))
     (when (and body (not (string-empty-p (string-trim body))))
       (forgejo-api-post
-       endpoint nil
+       host-url endpoint nil
        `((body . ,(string-trim body)))
        (lambda (data headers)
          (when callback (funcall callback data headers)))))))
 
 ;;; Issue creation
 
-(defun forgejo-utils-get-issue-templates (owner repo)
-  "Fetch issue templates for OWNER/REPO synchronously.
+(defun forgejo-utils-get-issue-templates (host-url owner repo)
+  "Fetch issue templates for OWNER/REPO on HOST-URL synchronously.
 Returns a list of alists with `name' and `content' keys, or nil."
   (let ((url-request-method "GET")
         (url-request-extra-headers
          `(("Authorization" . ,(encode-coding-string
-                                (concat "token " (forgejo-token)) 'ascii))
+                                (concat "token " (forgejo-token host-url))
+                                'ascii))
            ("Accept" . "application/json"))))
     (condition-case nil
         (with-current-buffer
             (url-retrieve-synchronously
              (format "%s/api/v1/repos/%s/%s/issue_templates"
-                     forgejo-host owner repo)
+                     host-url owner repo)
              t)
           (goto-char (point-min))
           (re-search-forward "\r?\n\r?\n" nil t)
@@ -134,10 +137,10 @@ Returns a list of alists with `name' and `content' keys, or nil."
             (when (listp data) data)))
       (error nil))))
 
-(defun forgejo-utils-create-issue (owner repo)
-  "Create a new issue in OWNER/REPO.
+(defun forgejo-utils-create-issue (host-url owner repo)
+  "Create a new issue in OWNER/REPO on HOST-URL.
 Fetches templates if available, lets user pick one, then compose."
-  (let* ((templates (forgejo-utils-get-issue-templates owner repo))
+  (let* ((templates (forgejo-utils-get-issue-templates host-url owner repo))
          (template-content
           (when templates
             (let* ((names (mapcar (lambda (tmpl) (alist-get 'name tmpl)) templates))
@@ -153,6 +156,7 @@ Fetches templates if available, lets user pick one, then compose."
                                         (or template-content ""))))
     (when (and title (not (string-empty-p (string-trim title))))
       (forgejo-api-post
+       host-url
        (format "repos/%s/%s/issues" owner repo)
        nil
        `((title . ,title)
@@ -163,19 +167,18 @@ Fetches templates if available, lets user pick one, then compose."
 
 ;;; Repository creation
 
-(defun forgejo-utils-create-repo (name)
-  "Create a new public repository named NAME."
+(defun forgejo-utils-create-repo (host-url name)
+  "Create a new public repository named NAME on HOST-URL."
   (forgejo-api-post
-   "user/repos"
-   nil
+   host-url "user/repos" nil
    `((name . ,name))
    (lambda (_data _headers)
      (message "Repository created: %s" name))))
 
 ;;; Label creation
 
-(defun forgejo-utils-create-label (owner repo host callback)
-  "Create a new label in OWNER/REPO.
+(defun forgejo-utils-create-label (host-url owner repo host callback)
+  "Create a new label in OWNER/REPO on HOST-URL.
 HOST is the hostname for DB cache update.  CALLBACK is called on success."
   (let* ((name (read-string "Label name: "))
          (color (read-color "Label color: "))
@@ -194,6 +197,7 @@ HOST is the hostname for DB cache update.  CALLBACK is called on success."
     (when (string-prefix-p "#" color)
       (setq color (substring color 1)))
     (forgejo-api-post
+     host-url
      (format "repos/%s/%s/labels" owner repo)
      nil
      `((name . ,name)
@@ -208,21 +212,21 @@ HOST is the hostname for DB cache update.  CALLBACK is called on success."
 
 ;;; Edit
 
-(defun forgejo-utils-edit-body (owner repo number current-body callback)
-  "Edit the body of issue/PR NUMBER in OWNER/REPO.
+(defun forgejo-utils-edit-body (host-url owner repo number current-body
+                                callback)
+  "Edit the body of issue/PR NUMBER in OWNER/REPO on HOST-URL.
 CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
   (let ((body (forgejo-utils-read-body "Edit body" current-body))
-        (host (url-host (url-generic-parse-url forgejo-host)))
+        (host (url-host (url-generic-parse-url host-url)))
         (context (format "%s/%s" owner repo)))
     (when (and body (not (string= body (or current-body ""))))
       (forgejo-api-patch
+       host-url
        (format "repos/%s/%s/issues/%d" owner repo number)
        `((body . ,body))
        (lambda (_data _headers)
-         ;; PATCH response does not include body_html, so render
-         ;; the markdown via the API before saving to the DB.
          (forgejo-api-render-markdown-async
-          body context
+          host-url body context
           (lambda (html)
             (forgejo-db--execute
              "UPDATE issues SET body = ?, body_html = ?
@@ -231,21 +235,21 @@ CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
             (message "Updated body of %s/%s#%d" owner repo number)
             (when callback (funcall callback)))))))))
 
-(defun forgejo-utils-edit-comment (owner repo comment-id current-body callback)
-  "Edit comment COMMENT-ID in OWNER/REPO.
+(defun forgejo-utils-edit-comment (host-url owner repo comment-id current-body
+                                   callback)
+  "Edit comment COMMENT-ID in OWNER/REPO on HOST-URL.
 CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
   (let ((body (forgejo-utils-read-body "Edit comment" current-body))
-        (host (url-host (url-generic-parse-url forgejo-host)))
+        (host (url-host (url-generic-parse-url host-url)))
         (context (format "%s/%s" owner repo)))
     (when (and body (not (string= body (or current-body ""))))
       (forgejo-api-patch
+       host-url
        (format "repos/%s/%s/issues/comments/%d" owner repo comment-id)
        `((body . ,body))
        (lambda (_data _headers)
-         ;; PATCH response does not include body_html, so render
-         ;; the markdown via the API before saving to the DB.
          (forgejo-api-render-markdown-async
-          body context
+          host-url body context
           (lambda (html)
             (forgejo-db--execute
              "UPDATE timeline_events SET body = ?, body_html = ?
@@ -256,8 +260,8 @@ CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
 
 ;;; Label/assignee/milestone management
 
-(defun forgejo-utils-add-label (owner repo number host callback)
-  "Add a label to issue/PR NUMBER in OWNER/REPO.
+(defun forgejo-utils-add-label (host-url owner repo number host callback)
+  "Add a label to issue/PR NUMBER in OWNER/REPO on HOST-URL.
 HOST is the hostname for DB lookups.  If the entered label does not
 exist, offers to create it first.  CALLBACK is called on success."
   (let* ((cached (forgejo-db-get-labels host owner repo))
@@ -265,22 +269,25 @@ exist, offers to create it first.  CALLBACK is called on success."
          (name (completing-read "Add label: " names nil nil))
          (id (forgejo-db-get-label-id host owner repo name)))
     (if id
-        (forgejo-utils--apply-label owner repo number name id callback)
+        (forgejo-utils--apply-label host-url owner repo number name id callback)
       ;; Label doesn't exist, offer to create it
       (if (y-or-n-p (format "Label %S doesn't exist. Create it? " name))
           (forgejo-utils-create-label
-           owner repo host
+           host-url owner repo host
            (lambda ()
              (let ((new-id (forgejo-db-get-label-id host owner repo name)))
                (if new-id
-                   (forgejo-utils--apply-label owner repo number name new-id callback)
-                 (user-error "Failed to resolve label %S after creation" name)))))
+                   (forgejo-utils--apply-label host-url owner repo number
+                                              name new-id callback)
+                 (user-error "Failed to resolve label %S after creation"
+                             name)))))
         (user-error "Label %S not found" name)))))
 
-(defun forgejo-utils--apply-label (owner repo number name id callback)
-  "Add label NAME (with ID) to issue/PR NUMBER in OWNER/REPO.
+(defun forgejo-utils--apply-label (host-url owner repo number name id callback)
+  "Add label NAME (with ID) to issue/PR NUMBER in OWNER/REPO on HOST-URL.
 CALLBACK is called on success."
   (forgejo-api-post
+   host-url
    (format "repos/%s/%s/issues/%d/labels" owner repo number)
    nil
    `((labels . ,(vector id)))
@@ -288,8 +295,9 @@ CALLBACK is called on success."
      (message "Added label %s to %s/%s#%d" name owner repo number)
      (when callback (funcall callback)))))
 
-(defun forgejo-utils-remove-label (owner repo number current-labels host callback)
-  "Remove a label from issue/PR NUMBER in OWNER/REPO.
+(defun forgejo-utils-remove-label (host-url owner repo number current-labels
+                                   host callback)
+  "Remove a label from issue/PR NUMBER in OWNER/REPO on HOST-URL.
 CURRENT-LABELS is the list of label alists on the issue.
 HOST is the hostname for DB lookups.  CALLBACK is called on success."
   (let* ((names (mapcar (lambda (l) (alist-get 'name l)) current-labels))
@@ -298,14 +306,16 @@ HOST is the hostname for DB lookups.  CALLBACK is called on success."
     (unless id
       (user-error "Label %S not found in cache" name))
     (forgejo-api-delete
+     host-url
      (format "repos/%s/%s/issues/%d/labels/%d" owner repo number id)
      nil
      (lambda (_data _headers)
        (message "Removed label %s from %s/%s#%d" name owner repo number)
        (when callback (funcall callback))))))
 
-(defun forgejo-utils-add-assignee (owner repo number current-assignees host callback)
-  "Add an assignee to issue/PR NUMBER in OWNER/REPO.
+(defun forgejo-utils-add-assignee (host-url owner repo number current-assignees
+                                   host callback)
+  "Add an assignee to issue/PR NUMBER in OWNER/REPO on HOST-URL.
 CURRENT-ASSIGNEES is the list of current assignee alists.
 HOST is the hostname for DB lookups.  CALLBACK is called on success."
   (let* ((authors (forgejo-db-get-authors host owner repo))
@@ -315,28 +325,32 @@ HOST is the hostname for DB lookups.  CALLBACK is called on success."
     (when (string-empty-p login)
       (user-error "No assignee specified"))
     (forgejo-api-patch
+     host-url
      (format "repos/%s/%s/issues/%d" owner repo number)
      `((assignees . ,new-list))
      (lambda (_data _headers)
        (message "Assigned %s to %s/%s#%d" login owner repo number)
        (when callback (funcall callback))))))
 
-(defun forgejo-utils-remove-assignee (owner repo number current-assignees callback)
-  "Remove an assignee from issue/PR NUMBER in OWNER/REPO.
+(defun forgejo-utils-remove-assignee (host-url owner repo number
+                                      current-assignees callback)
+  "Remove an assignee from issue/PR NUMBER in OWNER/REPO on HOST-URL.
 CURRENT-ASSIGNEES is the list of assignee alists.  CALLBACK on success."
   (let* ((logins (mapcar (lambda (a) (alist-get 'login a)) current-assignees))
          (login (completing-read "Remove assignee: " logins nil t))
          (new-list (remove login logins)))
     (forgejo-api-patch
+     host-url
      (format "repos/%s/%s/issues/%d" owner repo number)
      `((assignees . ,(or (vconcat new-list) [])))
      (lambda (_data _headers)
        (message "Unassigned %s from %s/%s#%d" login owner repo number)
        (when callback (funcall callback))))))
 
-(defun forgejo-utils-set-milestone (owner repo number host callback)
+(defun forgejo-utils-set-milestone (host-url owner repo number host callback)
   "Set or clear the milestone on issue/PR NUMBER in OWNER/REPO.
-HOST is the hostname for DB lookups.  CALLBACK is called on success."
+HOST-URL is the instance.  HOST is the hostname for DB lookups.
+CALLBACK is called on success."
   (let* ((cached (forgejo-db-get-milestones host owner repo))
          (titles (mapcar (lambda (row) (nth 4 row)) cached))
          (title (completing-read "Milestone (empty to clear): " titles nil nil))
@@ -344,6 +358,7 @@ HOST is the hostname for DB lookups.  CALLBACK is called on success."
                (or (forgejo-db-get-milestone-id host owner repo title)
                    (user-error "Milestone %S not found in cache" title)))))
     (forgejo-api-patch
+     host-url
      (format "repos/%s/%s/issues/%d" owner repo number)
      `((milestone . ,id))
      (lambda (_data _headers)

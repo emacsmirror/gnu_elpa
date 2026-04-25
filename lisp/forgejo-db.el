@@ -550,5 +550,14 @@ When IS-PULL is non-nil, only affect pull requests."
     WHERE host = ? AND owner = ? AND repo = ? AND issue_number = ? AND id = ?"
    (list html host owner repo issue-number event-id)))
 
+;;; Host lookup
+
+(defun forgejo-db-get-hosts-for-repo (owner repo)
+  "Return distinct host strings that have data for OWNER/REPO."
+  (mapcar #'car
+          (forgejo-db--select
+           "SELECT DISTINCT host FROM issues WHERE owner = ? AND repo = ?"
+           (list owner repo))))
+
 (provide 'forgejo-db)
 ;;; forgejo-db.el ends here

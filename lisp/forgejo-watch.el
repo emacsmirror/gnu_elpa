@@ -47,7 +47,6 @@
 (declare-function forgejo-pull-view "forgejo-pull.el"
                   (owner repo number))
 
-(defvar forgejo-host)
 (defvar forgejo-repo--host)
 
 ;;; Customization
@@ -82,19 +81,21 @@ Each function receives one argument: the list of new issue/PR alists."
 ;;; Polling
 
 (defun forgejo-watch--poll ()
-  "Poll watch rules for new items."
-  (let ((host (url-host (url-generic-parse-url forgejo-host))))
-    (forgejo-watch--poll-rules host)))
+  "Poll watch rules for new items on all configured hosts."
+  (dolist (entry forgejo-hosts)
+    (let* ((host-url (car entry))
+           (host (url-host (url-generic-parse-url host-url))))
+      (forgejo-watch--poll-rules host-url host))))
 
 ;;; Watch rules
 
-(defun forgejo-watch--poll-rules (host)
-  "Poll each watch rule in `forgejo-watch-rules' for HOST."
+(defun forgejo-watch--poll-rules (host-url host)
+  "Poll each watch rule in `forgejo-watch-rules' for HOST-URL/HOST."
   (dolist (rule forgejo-watch-rules)
-    (forgejo-watch--poll-rule host rule)))
+    (forgejo-watch--poll-rule host-url host rule)))
 
-(defun forgejo-watch--poll-rule (host rule)
-  "Poll a single watch RULE for HOST.
+(defun forgejo-watch--poll-rule (host-url host rule)
+  "Poll a single watch RULE for HOST-URL/HOST.
 RULE is \"owner/repo\" or (\"owner/repo\" . \"filter-query\")."
   (let* ((repo-key (if (stringp rule) rule (car rule)))
          (query (if (stringp rule) nil (cdr rule)))
@@ -109,7 +110,7 @@ RULE is \"owner/repo\" or (\"owner/repo\" . \"filter-query\")."
          (endpoint (format "repos/%s/%s/issues" owner repo))
          (params (forgejo-filter-build-params nil api-filters)))
     (forgejo-api-get-paged
-     endpoint params
+     host-url endpoint params
      (lambda (page-data _headers _page-num)
        (when page-data
          (forgejo-db-save-issues host owner repo page-data)))
@@ -158,6 +159,9 @@ and runs `forgejo-watch-hooks' when new ones arrive."
 (defvar-local forgejo-watch--host nil
   "Hostname for the current notification list buffer.")
 
+(defvar-local forgejo-watch--host-url nil
+  "Full URL for the current notification list buffer.")
+
 (defvar-local forgejo-watch--filters nil
   "Current filter plist for the notification list.")
 
@@ -203,12 +207,14 @@ and runs `forgejo-watch-hooks' when new ones arrive."
   "Browse watched items.
 Shows unread items from `forgejo-watch-rules'."
   (interactive)
-  (let* ((host (url-host (url-generic-parse-url forgejo-host)))
+  (let* ((host-url (forgejo--resolve-host))
+         (host (url-host (url-generic-parse-url host-url)))
          (buf (get-buffer-create "*forgejo-watch*")))
     (with-current-buffer buf
       (forgejo-watch-list-mode)
       (setq forgejo-watch--host host
-            forgejo-repo--host forgejo-host
+            forgejo-watch--host-url host-url
+            forgejo-repo--host host-url
             forgejo-watch--filters '(:read "no"))
       (forgejo-watch--render host)
       (switch-to-buffer buf))))
@@ -216,9 +222,9 @@ Shows unread items from `forgejo-watch-rules'."
 (defun forgejo-watch-list-refresh ()
   "Fetch updates for watch rules, then re-render."
   (interactive)
-  (let ((host forgejo-watch--host))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-watch--poll-rules host))
+  (let ((host forgejo-watch--host)
+        (host-url forgejo-watch--host-url))
+    (forgejo-watch--poll-rules host-url host)
     (forgejo-watch--render host)))
 
 ;;; Filtering
@@ -270,10 +276,9 @@ Reads the full ref from the `forgejo-full-ref' text property."
           (number (nth 2 parsed)))
       (forgejo-db-mark-read forgejo-watch--host owner repo number)
       (forgejo-watch--render forgejo-watch--host)
-      (forgejo-with-host forgejo-repo--host
-        (if (string= type "PR")
-            (forgejo-pull-view owner repo number)
-          (forgejo-issue-view owner repo number))))))
+      (if (string= type "PR")
+          (forgejo-pull-view owner repo number)
+        (forgejo-issue-view owner repo number)))))
 
 (defun forgejo-watch-mark-read-at-point ()
   "Mark the notification at point as read."
@@ -303,7 +308,8 @@ Reads the full ref from the `forgejo-full-ref' text property."
   (when-let* ((entry (tabulated-list-get-entry))
               (ref (aref entry 1))
               (parsed (forgejo-watch--parse-ref ref)))
-    (forgejo-utils-browse-issue (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))))
+    (forgejo-utils-browse-issue forgejo-watch--host-url
+                                (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))))
 
 (provide 'forgejo-watch)
 ;;; forgejo-watch.el ends here

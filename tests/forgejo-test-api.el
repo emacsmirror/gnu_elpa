@@ -18,22 +18,22 @@
 
 (ert-deftest forgejo-test-api-url-no-params ()
   "Build URL without query parameters."
-  (let ((forgejo-host "https://codeberg.org"))
-    (should (string= (forgejo-api--url "repos/owner/repo/issues")
-                     "https://codeberg.org/api/v1/repos/owner/repo/issues"))))
+  (should (string= (forgejo-api--url "https://codeberg.org"
+                                      "repos/owner/repo/issues")
+                   "https://codeberg.org/api/v1/repos/owner/repo/issues")))
 
 (ert-deftest forgejo-test-api-url-with-params ()
   "Build URL with query parameters."
-  (let ((forgejo-host "https://codeberg.org"))
-    (should (string= (forgejo-api--url "repos/owner/repo/issues"
-                                       '(("state" . "open") ("limit" . "30")))
-                     "https://codeberg.org/api/v1/repos/owner/repo/issues?state=open&limit=30"))))
+  (should (string= (forgejo-api--url "https://codeberg.org"
+                                      "repos/owner/repo/issues"
+                                      '(("state" . "open") ("limit" . "30")))
+                   "https://codeberg.org/api/v1/repos/owner/repo/issues?state=open&limit=30")))
 
 (ert-deftest forgejo-test-api-url-trailing-slash ()
   "Host with trailing slash should not produce double slashes."
-  (let ((forgejo-host "https://codeberg.org"))
-    (should (string-prefix-p "https://codeberg.org/api/v1/"
-                             (forgejo-api--url "user/repos")))))
+  (should (string-prefix-p "https://codeberg.org/api/v1/"
+                           (forgejo-api--url "https://codeberg.org"
+                                              "user/repos"))))
 
 ;;; ---- Group 2: Header parsing ----
 
@@ -104,15 +104,17 @@
 
 (ert-deftest forgejo-test-api-token-from-variable ()
   "Token falls back to `forgejo-token' when auth-source is disabled."
-  (let ((forgejo-token-use-auth-source nil)
+  (let ((forgejo-hosts '(("https://codeberg.org")))
+        (forgejo-token-use-auth-source nil)
         (forgejo-token "test-token-123"))
-    (should (string= (forgejo-token) "test-token-123"))))
+    (should (string= (forgejo-token "https://codeberg.org") "test-token-123"))))
 
 (ert-deftest forgejo-test-api-token-missing ()
   "Signal error when no token is available."
-  (let ((forgejo-token-use-auth-source nil)
+  (let ((forgejo-hosts '(("https://codeberg.org")))
+        (forgejo-token-use-auth-source nil)
         (forgejo-token nil))
-    (should-error (forgejo-token) :type 'user-error)))
+    (should-error (forgejo-token "https://codeberg.org") :type 'user-error)))
 
 ;;; ---- Group 6: Default limit ----
 

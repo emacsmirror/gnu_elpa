@@ -26,10 +26,10 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require 'ewoc)
 (require 'url-parse)
 (require 'forgejo)
 (require 'forgejo-tl)
+(require 'forgejo-view)
 (require 'forgejo-buffer)
 (require 'forgejo-filter)
 (require 'forgejo-utils)
@@ -38,7 +38,6 @@
 
 (declare-function forgejo-repo-read "forgejo-repo.el" ())
 
-(defvar forgejo-host)
 (defvar forgejo-default-sort)
 (defvar forgejo-timeline-page-size)
 (defvar forgejo-issue-default-filter)
@@ -64,7 +63,7 @@ Keys: :state :labels :milestone :author :query :page")
     (define-key map (kbd "g") #'forgejo-issue-refresh)
     (define-key map (kbd "l") #'forgejo-issue-filter)
     (define-key map (kbd "C") #'forgejo-issue-clear-filters)
-    (define-key map (kbd "x") #'forgejo-issue-toggle-state)
+    (define-key map (kbd "x") #'forgejo-view-toggle-state)
     (define-key map (kbd "b") #'forgejo-issue-browse-at-point)
     map)
   "Keymap for `forgejo-issue-list-mode'.")
@@ -87,31 +86,17 @@ Keys: :state :labels :milestone :author :query :page")
 
 ;;; Cache-first rendering
 
-(defun forgejo-issue--render-from-db (buf-name host owner repo filters)
+(defun forgejo-issue--render-from-db (buf-name host-url host owner repo filters)
   "Render cached issues into BUF-NAME from the DB.
-HOST, OWNER, REPO identify the repository.  FILTERS is the filter plist.
-Does not write `forgejo-issue--filters'; callers own filter state."
-  (let ((entries (forgejo-filter-list-entries
-                  (forgejo-filter-query-issues host owner repo filters))))
-    (with-current-buffer (get-buffer-create buf-name)
-      (unless (derived-mode-p 'forgejo-issue-list-mode)
-        (forgejo-issue-list-mode))
-      (unless forgejo-repo--host
-        (setq forgejo-repo--host forgejo-host))
-      (setq forgejo-repo--owner owner
-            forgejo-repo--name repo
-            tabulated-list-format (forgejo-filter-list-format
-                                   forgejo-filter-list-columns)
-            tabulated-list-entries entries)
-      (unless tabulated-list-sort-key
-        (setq tabulated-list-sort-key '("#" . t)))
-      (tabulated-list-init-header)
-      (forgejo-tl-print t)
-      (current-buffer))))
+HOST-URL is the full instance URL.  HOST is the hostname."
+  (forgejo-view--render-from-db buf-name host-url host owner repo filters
+                                #'forgejo-filter-query-issues
+                                'forgejo-issue-list-mode))
 
-(defun forgejo-issue--sync (host owner repo filters buf-name
+(defun forgejo-issue--sync (host-url host owner repo filters buf-name
                                  &optional force)
   "Fetch issues from API and update DB, then re-render BUF-NAME.
+HOST-URL is the instance.  HOST is the hostname.
 When FORCE is nil, use incremental sync via the `since' parameter.
 When FORCE is non-nil, fetch all and mark missing issues as closed."
   (let* ((since (unless force
@@ -121,21 +106,21 @@ When FORCE is non-nil, fetch all and mark missing issues as closed."
                        filters)))
     ;; Sync labels in background
     (forgejo-api-get
-     (format "repos/%s/%s/labels" owner repo) nil
+     host-url (format "repos/%s/%s/labels" owner repo) nil
      (lambda (data _headers)
        (when data (forgejo-db-save-labels host owner repo data))))
     ;; Fetch issues page by page, re-rendering after each
     (let ((endpoint (format "repos/%s/%s/issues" owner repo))
           (params (forgejo-issue--build-params api-filters)))
       (forgejo-api-get-paged
-       endpoint params
+       host-url endpoint params
        ;; Per-page: save to DB, re-render only on first page
        (lambda (page-data _headers page-num)
          (forgejo-db-save-issues host owner repo page-data)
          (when (and (= page-num 1) (buffer-live-p (get-buffer buf-name)))
            (with-current-buffer buf-name
              (forgejo-issue--render-from-db
-              buf-name host owner repo forgejo-issue--filters))))
+              buf-name host-url host owner repo forgejo-issue--filters))))
        ;; Done: close missing, set sync time, final re-render
        (lambda (all-data headers)
          (when (and force (equal (plist-get filters :state) "open"))
@@ -147,7 +132,7 @@ When FORCE is non-nil, fetch all and mark missing issues as closed."
          (when (buffer-live-p (get-buffer buf-name))
            (with-current-buffer buf-name
              (forgejo-issue--render-from-db
-              buf-name host owner repo forgejo-issue--filters)
+              buf-name host-url host owner repo forgejo-issue--filters)
              (when-let* ((total (plist-get headers :total-count)))
                (setq forgejo-issue--total-count total)))))))))
 
@@ -161,7 +146,7 @@ Shows cached data immediately, then syncs from the API in the background."
   (let* ((context (if (and owner repo)
                       (list nil owner repo)
                     (forgejo-repo-read)))
-         (host-url (or (nth 0 context) forgejo-host))
+         (host-url (or (nth 0 context) (forgejo--resolve-host)))
          (owner (nth 1 context))
          (repo (nth 2 context))
          (buf-name (format "*forgejo-issues: %s/%s*" owner repo))
@@ -169,14 +154,13 @@ Shows cached data immediately, then syncs from the API in the background."
                          owner repo forgejo-issue-default-filter))
          (filters (forgejo-filter-parse default-query))
          (host (url-host (url-generic-parse-url host-url))))
-    (forgejo-with-host host-url
-      ;; Show cached data immediately
-      (switch-to-buffer
-       (forgejo-issue--render-from-db buf-name host owner repo filters))
-      (with-current-buffer buf-name
-        (setq forgejo-issue--filters filters))
-      ;; Sync in background
-      (forgejo-issue--sync host owner repo filters buf-name))))
+    ;; Show cached data immediately
+    (switch-to-buffer
+     (forgejo-issue--render-from-db buf-name host-url host owner repo filters))
+    (with-current-buffer buf-name
+      (setq forgejo-issue--filters filters))
+    ;; Sync in background
+    (forgejo-issue--sync host-url host owner repo filters buf-name)))
 
 (defun forgejo-issue-refresh ()
   "Force a full re-fetch of the current issue list from the API."
@@ -204,8 +188,7 @@ Supported prefixes: state:, label:, milestone:, author:, search:.
 Bare words are treated as title search.
 Empty input clears all filters."
   (interactive)
-  (let* ((host (url-host (url-generic-parse-url
-                          (or forgejo-repo--host forgejo-host))))
+  (let* ((host (url-host (url-generic-parse-url forgejo-repo--host)))
          (completions (forgejo-filter-completions
                        host forgejo-repo--owner forgejo-repo--name))
          (current (if forgejo-issue--filters
@@ -232,8 +215,7 @@ Empty input clears all filters."
 (defun forgejo-issue-filter-label ()
   "Filter issues by label."
   (interactive)
-  (let* ((host (url-host (url-generic-parse-url
-                          (or forgejo-repo--host forgejo-host))))
+  (let* ((host (url-host (url-generic-parse-url forgejo-repo--host)))
          (cached (forgejo-db-get-labels host forgejo-repo--owner
                                         forgejo-repo--name))
          (names (mapcar (lambda (row) (nth 4 row)) cached))
@@ -302,31 +284,25 @@ Empty input clears all filters."
   "Open the issue at point in the browser."
   (interactive)
   (when-let* ((id (tabulated-list-get-id)))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-utils-browse-issue forgejo-repo--owner forgejo-repo--name id))))
+    (forgejo-utils-browse-issue forgejo-repo--host
+                                forgejo-repo--owner forgejo-repo--name id)))
 
 ;;; ---- Issue detail view (EWOC) ----
-
-(defvar-local forgejo-issue--ewoc nil
-  "EWOC instance for the current issue detail view.")
-
-(defvar-local forgejo-issue--data nil
-  "Full API response alist for the current issue.")
 
 (declare-function forgejo-issue-actions "forgejo-transient.el" ())
 
 (defvar forgejo-issue-view-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "q") #'quit-window)
-    (define-key map (kbd "g") #'forgejo-issue-view-refresh)
-    (define-key map (kbd "b") #'forgejo-issue-view-browse)
-    (define-key map (kbd "c") #'forgejo-issue-comment)
+    (define-key map (kbd "g") #'forgejo-view-refresh)
+    (define-key map (kbd "b") #'forgejo-view-browse)
+    (define-key map (kbd "c") #'forgejo-view-comment)
     (define-key map (kbd "r") #'forgejo-issue-reply)
-    (define-key map (kbd "e") #'forgejo-issue-edit)
-    (define-key map (kbd "x") #'forgejo-issue-toggle-state)
-    (define-key map (kbd "L") #'forgejo-issue-add-label)
-    (define-key map (kbd "A") #'forgejo-issue-add-assignee)
-    (define-key map (kbd "M") #'forgejo-issue-set-milestone)
+    (define-key map (kbd "e") #'forgejo-view-edit)
+    (define-key map (kbd "x") #'forgejo-view-toggle-state)
+    (define-key map (kbd "L") #'forgejo-view-add-label)
+    (define-key map (kbd "A") #'forgejo-view-add-assignee)
+    (define-key map (kbd "M") #'forgejo-view-set-milestone)
     (define-key map (kbd "h") #'forgejo-issue-actions)
     (define-key map (kbd "n") #'ewoc-goto-next)
     (define-key map (kbd "p") #'ewoc-goto-prev)
@@ -341,86 +317,30 @@ Empty input clears all filters."
 
 ;;; Detail view rendering
 
-(defun forgejo-issue--render-detail (buf-name owner repo issue-alist timeline-alists)
-  "Render issue detail into BUF-NAME from alist data."
-  (let ((nodes (forgejo-buffer--build-nodes issue-alist timeline-alists)))
-    (with-current-buffer (get-buffer-create buf-name)
-      (let ((inhibit-read-only t))
-        (erase-buffer))
-      (forgejo-issue-view-mode)
-      (unless forgejo-repo--host
-        (setq forgejo-repo--host forgejo-host))
-      (setq forgejo-repo--owner owner
-            forgejo-repo--name repo
-            forgejo-issue--data issue-alist)
-      (setq forgejo-issue--ewoc
-            (ewoc-create #'forgejo-buffer--pp nil nil t))
-      (dolist (node nodes)
-        (ewoc-enter-last forgejo-issue--ewoc node))
-      (setq header-line-format
-            (forgejo-buffer--header-line issue-alist))
-      (goto-char (point-min))
-      (set-buffer-modified-p nil)
-      (current-buffer))))
-
-(defun forgejo-issue--render-missing-html (host owner repo number
-                                                buf-name restore-line)
-  "Render markdown to HTML for entries missing body_html.
-After rendering, re-render BUF-NAME and restore RESTORE-LINE."
-  (let* ((context (format "%s/%s" owner repo))
-         (issue (forgejo-db-get-issue host owner repo number))
-         (tl-rows (forgejo-db-get-timeline host owner repo number))
-         (tl-alists (mapcar #'forgejo-db--row-to-timeline-alist tl-rows))
-         (pending 0)
-         (render-done
-          (lambda ()
-            (cl-decf pending)
-            (when (<= pending 0)
-              (forgejo-buffer--re-render
-               buf-name host owner repo number
-               #'forgejo-issue--render-detail restore-line)))))
-    ;; Issue body
-    (when (and issue
-               (not (alist-get 'body_html issue))
-               (alist-get 'body issue))
-      (cl-incf pending)
-      (forgejo-api-render-markdown-async
-       (alist-get 'body issue) context
-       (lambda (html)
-         (when html
-           (forgejo-db-update-issue-html host owner repo number html))
-         (funcall render-done))))
-    ;; Timeline comment bodies
-    (dolist (evt tl-alists)
-      (when (and (string= "comment" (or (alist-get 'type evt) ""))
-                 (not (alist-get 'body_html evt))
-                 (alist-get 'body evt))
-        (let ((evt-id (alist-get 'id evt)))
-          (cl-incf pending)
-          (forgejo-api-render-markdown-async
-           (alist-get 'body evt) context
-           (lambda (html)
-             (when html
-               (forgejo-db-update-timeline-html
-                host owner repo number evt-id html))
-             (funcall render-done))))))
-    ;; Nothing to render: just re-render now
-    (when (zerop pending)
-      (funcall render-done))))
+(defun forgejo-issue--render-detail (buf-name host-url owner repo issue-alist
+                                     timeline-alists)
+  "Render issue detail into BUF-NAME from alist data.
+HOST-URL is the instance URL."
+  (forgejo-view--render-detail buf-name host-url owner repo issue-alist
+                               timeline-alists
+                               #'forgejo-issue-view-mode
+                               #'forgejo-issue--sync-detail
+                               #'forgejo-utils-browse-issue))
 
 (defun forgejo-issue--sync-detail (host owner repo number buf-name
                                         &optional restore-line)
   "Sync issue NUMBER from API in background, re-render BUF-NAME if changed.
 When RESTORE-LINE is non-nil, go to that line after re-rendering."
-  (let ((endpoint (format "repos/%s/%s/issues/%d" owner repo number))
+  (let ((host-url (forgejo--host-url-for-hostname host))
+        (endpoint (format "repos/%s/%s/issues/%d" owner repo number))
         (tl-endpoint (format "repos/%s/%s/issues/%d/timeline"
                              owner repo number)))
     (forgejo-api-get
-     endpoint nil
+     host-url endpoint nil
      (lambda (issue-data _headers)
        (forgejo-db-save-issues host owner repo (list issue-data))
        (forgejo-api-get
-        tl-endpoint
+        host-url tl-endpoint
         (list (cons "limit" (number-to-string forgejo-timeline-page-size)))
         (lambda (timeline _tl-headers)
           (forgejo-db-save-timeline host owner repo number timeline)
@@ -429,8 +349,9 @@ When RESTORE-LINE is non-nil, go to that line after re-rendering."
            buf-name host owner repo number
            #'forgejo-issue--render-detail restore-line)
           ;; Then render missing HTML and re-render
-          (forgejo-issue--render-missing-html
-           host owner repo number buf-name restore-line)))))))
+          (forgejo-view--render-missing-html
+           host-url host owner repo number buf-name restore-line
+           #'forgejo-issue--render-detail)))))))
 
 ;;; Detail view entry
 
@@ -447,72 +368,34 @@ Shows cached data from DB instantly, syncs in background."
   (interactive
    (let ((context (forgejo-repo-read)))
      (list (nth 1 context) (nth 2 context) (read-number "Issue number: "))))
-  (let* ((host (url-host (url-generic-parse-url
-                          (or forgejo-repo--host forgejo-host))))
+  (let* ((host-url (or forgejo-repo--host (forgejo--resolve-host)))
+         (host (url-host (url-generic-parse-url host-url)))
          (buf-name (format "*forgejo-issue: %s/%s#%d*" owner repo number))
          (issue-alist (forgejo-db-get-issue host owner repo number))
          (tl-rows (forgejo-db-get-timeline host owner repo number))
          (tl-alists (mapcar #'forgejo-db--row-to-timeline-alist tl-rows)))
-    (forgejo-with-host forgejo-repo--host
-      (if issue-alist
-          (switch-to-buffer
-           (forgejo-issue--render-detail buf-name owner repo
-                                         issue-alist tl-alists))
-        (with-current-buffer (get-buffer-create buf-name)
-          (let ((inhibit-read-only t))
-            (erase-buffer)
-            (insert "Loading..."))
-          (forgejo-issue-view-mode)
-          (setq forgejo-repo--host forgejo-host
-                forgejo-repo--owner owner
-                forgejo-repo--name repo)
-          (switch-to-buffer (current-buffer))))
-      (forgejo-issue--sync-detail host owner repo number buf-name))))
+    (if issue-alist
+        (switch-to-buffer
+         (forgejo-issue--render-detail buf-name host-url owner repo
+                                       issue-alist tl-alists))
+      (with-current-buffer (get-buffer-create buf-name)
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (insert "Loading..."))
+        (forgejo-issue-view-mode)
+        (setq forgejo-repo--host host-url
+              forgejo-repo--owner owner
+              forgejo-repo--name repo)
+        (switch-to-buffer (current-buffer))))
+    (forgejo-issue--sync-detail host owner repo number buf-name)))
 
-(defun forgejo-issue-view-refresh ()
-  "Force sync the current issue detail view."
-  (interactive)
-  (when-let* ((data forgejo-issue--data)
-              (number (alist-get 'number data)))
-    (let ((host (url-host (url-generic-parse-url
-                           (or forgejo-repo--host forgejo-host))))
-          (line (line-number-at-pos)))
-      (forgejo-with-host forgejo-repo--host
-        (forgejo-issue--sync-detail host forgejo-repo--owner
-                                    forgejo-repo--name number
-                                    (buffer-name) line)))))
-
-(defun forgejo-issue-view-browse ()
-  "Open the current issue in the browser."
-  (interactive)
-  (when-let* ((data forgejo-issue--data)
-              (number (alist-get 'number data)))
-    (let ((browse-url-browser-function #'browse-url-default-browser))
-      (forgejo-with-host forgejo-repo--host
-        (forgejo-utils-browse-issue forgejo-repo--owner forgejo-repo--name number)))))
-
-(defun forgejo-issue-comment ()
-  "Post a comment on the current issue."
-  (interactive)
-  (when-let* ((data forgejo-issue--data)
-              (number (alist-get 'number data))
-              (refresh (forgejo--post-action-callback)))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-utils-post-comment
-       (format "repos/%s/%s/issues/%d/comments"
-               forgejo-repo--owner forgejo-repo--name number)
-       "Comment"
-       nil
-       (lambda (_data _headers)
-         (message "Comment posted on %s/%s#%d"
-                  forgejo-repo--owner forgejo-repo--name number)
-         (funcall refresh))))))
+;;; Issue-specific commands
 
 (defun forgejo-issue-reply ()
   "Reply to the comment at point."
   (interactive)
-  (when-let* ((node (forgejo-buffer--node-at-point forgejo-issue--ewoc))
-              (data forgejo-issue--data)
+  (when-let* ((node (forgejo-view--node-at-point))
+              (data forgejo-view--data)
               (number (alist-get 'number data))
               (refresh (forgejo--post-action-callback)))
     (let* ((author (plist-get node :author))
@@ -521,133 +404,29 @@ Shows cached data from DB instantly, syncs in background."
                      (concat "> " (replace-regexp-in-string
                                    "\n" "\n> " (string-trim body))
                              "\n\n"))))
-      (forgejo-with-host forgejo-repo--host
-        (forgejo-utils-post-comment
-         (format "repos/%s/%s/issues/%d/comments"
-                 forgejo-repo--owner forgejo-repo--name number)
-         (format "Reply to %s" (or author ""))
-         quoted
-         (lambda (_data _headers)
-           (message "Reply posted on %s/%s#%d"
-                    forgejo-repo--owner forgejo-repo--name number)
-           (funcall refresh)))))))
+      (forgejo-utils-post-comment
+       forgejo-repo--host
+       (format "repos/%s/%s/issues/%d/comments"
+               forgejo-repo--owner forgejo-repo--name number)
+       (format "Reply to %s" (or author ""))
+       quoted
+       (lambda (_data _headers)
+         (message "Reply posted on %s/%s#%d"
+                  forgejo-repo--owner forgejo-repo--name number)
+         (funcall refresh))))))
 
 (defun forgejo-issue-create ()
   "Create a new issue in the current repository."
   (interactive)
-  (forgejo-with-host forgejo-repo--host
-    (forgejo-utils-create-issue forgejo-repo--owner forgejo-repo--name)))
+  (forgejo-utils-create-issue forgejo-repo--host
+                              forgejo-repo--owner forgejo-repo--name))
 
 (defun forgejo-issue-create-label ()
   "Create a new label in the current repository."
   (interactive)
-  (let ((host (url-host (url-generic-parse-url
-                         (or forgejo-repo--host forgejo-host)))))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-utils-create-label
-       forgejo-repo--owner forgejo-repo--name host nil))))
-
-(defun forgejo-issue-toggle-state ()
-  "Toggle the state of the issue at point or in the current view."
-  (interactive)
-  (let* ((number (or (and (bound-and-true-p forgejo-issue--data)
-                          (alist-get 'number forgejo-issue--data))
-                     (tabulated-list-get-id)))
-         (host (url-host (url-generic-parse-url
-                          (or forgejo-repo--host forgejo-host))))
-         (issue (forgejo-db-get-issue host forgejo-repo--owner
-                                      forgejo-repo--name number))
-         (state (alist-get 'state issue)))
-    (when (and number state)
-      (forgejo-with-host forgejo-repo--host
-        (forgejo-utils-toggle-state
-         forgejo-repo--owner forgejo-repo--name number state
-         (forgejo--post-action-callback))))))
-
-;;; Edit
-
-(defun forgejo-issue-edit ()
-  "Edit the body or comment at point."
-  (interactive)
-  (when-let* ((node (forgejo-buffer--node-at-point forgejo-issue--ewoc))
-              (data forgejo-issue--data)
-              (number (alist-get 'number data)))
-    (forgejo-with-host forgejo-repo--host
-      (pcase (plist-get node :type)
-        ('header
-         (forgejo-utils-edit-body
-          forgejo-repo--owner forgejo-repo--name number
-          (plist-get node :body)
-          (forgejo--post-action-callback)))
-        ('comment
-         (forgejo-utils-edit-comment
-          forgejo-repo--owner forgejo-repo--name
-          (plist-get node :id) (plist-get node :body)
-          (forgejo--post-action-callback)))
-        (_ (user-error "No editable item at point"))))))
-
-;;; Metadata
-
-(defun forgejo-issue-add-label ()
-  "Add a label to the current issue."
-  (interactive)
-  (when-let* ((data forgejo-issue--data)
-              (number (alist-get 'number data))
-              (host (url-host (url-generic-parse-url
-                               (or forgejo-repo--host forgejo-host)))))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-utils-add-label
-       forgejo-repo--owner forgejo-repo--name number host
-       (forgejo--post-action-callback)))))
-
-(defun forgejo-issue-remove-label ()
-  "Remove a label from the current issue."
-  (interactive)
-  (when-let* ((data forgejo-issue--data)
-              (number (alist-get 'number data))
-              (labels (alist-get 'labels data))
-              (host (url-host (url-generic-parse-url
-                               (or forgejo-repo--host forgejo-host)))))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-utils-remove-label
-       forgejo-repo--owner forgejo-repo--name number labels host
-       (forgejo--post-action-callback)))))
-
-(defun forgejo-issue-add-assignee ()
-  "Add an assignee to the current issue."
-  (interactive)
-  (when-let* ((data forgejo-issue--data)
-              (number (alist-get 'number data))
-              (host (url-host (url-generic-parse-url
-                               (or forgejo-repo--host forgejo-host)))))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-utils-add-assignee
-       forgejo-repo--owner forgejo-repo--name number
-       (alist-get 'assignees data) host
-       (forgejo--post-action-callback)))))
-
-(defun forgejo-issue-remove-assignee ()
-  "Remove an assignee from the current issue."
-  (interactive)
-  (when-let* ((data forgejo-issue--data)
-              (number (alist-get 'number data))
-              (assignees (alist-get 'assignees data)))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-utils-remove-assignee
-       forgejo-repo--owner forgejo-repo--name number assignees
-       (forgejo--post-action-callback)))))
-
-(defun forgejo-issue-set-milestone ()
-  "Set or clear the milestone on the current issue."
-  (interactive)
-  (when-let* ((data forgejo-issue--data)
-              (number (alist-get 'number data))
-              (host (url-host (url-generic-parse-url
-                               (or forgejo-repo--host forgejo-host)))))
-    (forgejo-with-host forgejo-repo--host
-      (forgejo-utils-set-milestone
-       forgejo-repo--owner forgejo-repo--name number host
-       (forgejo--post-action-callback)))))
+  (let ((host (url-host (url-generic-parse-url forgejo-repo--host))))
+    (forgejo-utils-create-label
+     forgejo-repo--host forgejo-repo--owner forgejo-repo--name host nil)))
 
 (provide 'forgejo-issue)
 ;;; forgejo-issue.el ends here

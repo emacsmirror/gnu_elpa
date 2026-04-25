@@ -19,6 +19,8 @@
        (file-name-directory (or load-file-name buffer-file-name))))
 (load (expand-file-name "../lisp/forgejo-filter.el"
        (file-name-directory (or load-file-name buffer-file-name))))
+(load (expand-file-name "../lisp/forgejo-view.el"
+       (file-name-directory (or load-file-name buffer-file-name))))
 (load (expand-file-name "../lisp/forgejo-pull.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 

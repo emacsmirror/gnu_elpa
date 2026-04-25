@@ -46,7 +46,6 @@
        title TEXT NOT NULL,
        state TEXT NOT NULL,
        body TEXT,
-       body_html TEXT,
        previous_body TEXT,
        user TEXT,
        labels TEXT,
@@ -67,7 +66,6 @@
        issue_number INTEGER NOT NULL,
        type TEXT,
        body TEXT,
-       body_html TEXT,
        user TEXT,
        created_at TEXT,
        data TEXT,
@@ -110,30 +108,33 @@
 
 ;;; Connection management
 
-(defconst forgejo-db--migrations
-  '("ALTER TABLE issues ADD COLUMN body_html TEXT"
-    "ALTER TABLE issues ADD COLUMN previous_body TEXT"
-    "ALTER TABLE timeline_events ADD COLUMN body_html TEXT"
-    "ALTER TABLE issues ADD COLUMN read INTEGER DEFAULT 0"
-    "DROP TABLE IF EXISTS notifications")
-  "Migration statements for existing databases.
-Each is run inside condition-case so duplicates are ignored.")
-
 (defun forgejo-db--ensure ()
   "Open or create the SQLite database, run schema if needed.
-Returns the database connection."
+Detects stale schema and rebuilds the database if necessary."
   (unless (and forgejo-db (sqlitep forgejo-db))
-    (let ((dir (file-name-as-directory forgejo-db-dir)))
+    (let* ((dir (file-name-as-directory forgejo-db-dir))
+           (db-file (expand-file-name "forgejo.db" dir)))
       (unless (file-directory-p dir)
         (make-directory dir t))
-      (setq forgejo-db (sqlite-open (expand-file-name "forgejo.db" dir)))
+      (setq forgejo-db (sqlite-open db-file))
+      ;; Detect stale schema and rebuild
+      (when (forgejo-db--stale-schema-p)
+        (sqlite-close forgejo-db)
+        (delete-file db-file)
+        (setq forgejo-db (sqlite-open db-file))
+        (message "forgejo.el: Rebuilt database (schema changed)"))
       (dolist (stmt forgejo-db--schema)
-        (sqlite-execute forgejo-db stmt))
-      (dolist (stmt forgejo-db--migrations)
-        (condition-case nil
-            (sqlite-execute forgejo-db stmt)
-          (error nil)))))
+        (sqlite-execute forgejo-db stmt))))
   forgejo-db)
+
+(defun forgejo-db--stale-schema-p ()
+  "Return non-nil if the DB has columns that no longer exist in the schema."
+  (condition-case nil
+      (let ((cols (mapcar #'cadr
+                          (sqlite-select forgejo-db
+                                        "PRAGMA table_info(issues)"))))
+        (and cols (member "body_html" cols)))
+    (error nil)))
 
 (defun forgejo-db--close ()
   "Close the database connection."
@@ -203,8 +204,7 @@ Returns nil if no change or no existing row."
 
 (defun forgejo-db-save-issues (host owner repo issues &optional is-pull)
   "Upsert ISSUES (list of API alists) for HOST/OWNER/REPO.
-Tracks body edits in previous_body.  Stores body_html from the API response
-when available; otherwise preserves existing body_html.
+Tracks body edits in previous_body.
 When IS-PULL is non-nil, mark all entries as pull requests regardless of
 whether a `pull_request' field is present in the data."
   (forgejo-db--with-transaction
@@ -212,7 +212,6 @@ whether a `pull_request' field is present in the data."
     (dolist (issue issues)
       (let-alist issue
         (let ((body (forgejo-db--nullable .body))
-              (body-html (forgejo-db--nullable .body_html))
               (labels (forgejo-db--nullable .labels))
               (milestone (forgejo-db--nullable .milestone))
               (assignees (forgejo-db--nullable .assignees))
@@ -221,22 +220,20 @@ whether a `pull_request' field is present in the data."
           ;; Track edits before overwriting
           (when body
             (forgejo-db--track-edit db host owner repo .number body))
-          ;; Upsert: update body_html only when API provides it
           (sqlite-execute
            db
            "INSERT INTO issues
-              (id, host, owner, repo, number, title, state, body, body_html,
+              (id, host, owner, repo, number, title, state, body,
                user, labels, milestone, assignees, comments_count,
                created_at, updated_at, closed_at, is_pull, read)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
             ON CONFLICT(host, owner, repo, number) DO UPDATE SET
               title=excluded.title, state=excluded.state, body=excluded.body,
-              body_html=COALESCE(excluded.body_html, issues.body_html),
               user=excluded.user, labels=excluded.labels, milestone=excluded.milestone,
               assignees=excluded.assignees, comments_count=excluded.comments_count,
               updated_at=excluded.updated_at, closed_at=excluded.closed_at,
               is_pull=excluded.is_pull, read=0"
-           (list .id host owner repo .number .title .state body body-html
+           (list .id host owner repo .number .title .state body
                  (alist-get 'login .user)
                  (forgejo-db--encode-json (when (listp labels) labels))
                  (when (listp milestone) (alist-get 'title milestone))
@@ -296,8 +293,7 @@ FILTERS is a plist with keys:
 ;;; Timeline events
 
 (defun forgejo-db-save-timeline (host owner repo number events)
-  "Upsert timeline EVENTS for issue NUMBER in HOST/OWNER/REPO.
-Stores body_html from API response when available."
+  "Upsert timeline EVENTS for issue NUMBER in HOST/OWNER/REPO."
   (when (and events (listp events))
     (forgejo-db--with-transaction
       (let ((db (forgejo-db--ensure)))
@@ -306,18 +302,16 @@ Stores body_html from API response when available."
           (sqlite-execute
            db
            "INSERT INTO timeline_events
-              (id, host, owner, repo, issue_number, type, body, body_html,
+              (id, host, owner, repo, issue_number, type, body,
                user, created_at, data)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(host, owner, repo, issue_number, id) DO UPDATE SET
               type=excluded.type, body=excluded.body,
-              body_html=COALESCE(excluded.body_html, timeline_events.body_html),
               user=excluded.user, created_at=excluded.created_at,
               data=excluded.data"
            (list .id host owner repo number
                  (forgejo-db--nullable .type)
                  (forgejo-db--nullable .body)
-                 (forgejo-db--nullable .body_html)
                  (alist-get 'login (forgejo-db--nullable .user))
                  (forgejo-db--nullable .created_at)
                  (forgejo-db--encode-json event)))))))))
@@ -430,7 +424,7 @@ Stores body_html from API response when available."
 ;;; Row-to-alist conversion (explicit column queries)
 
 (defconst forgejo-db--issue-columns
-  "number, title, state, body, body_html, user, labels, milestone,
+  "number, title, state, body, user, labels, milestone,
    assignees, comments_count, created_at, updated_at, closed_at, is_pull,
    previous_body, read"
   "Column list for issue queries (deterministic order).")
@@ -438,46 +432,44 @@ Stores body_html from API response when available."
 (defun forgejo-db--row-to-issue-alist (row)
   "Convert an issue ROW to an API-shaped alist.
 ROW must come from a query using `forgejo-db--issue-columns':
-  0=number 1=title 2=state 3=body 4=body_html 5=user 6=labels
-  7=milestone 8=assignees 9=comments_count 10=created_at
-  11=updated_at 12=closed_at 13=is_pull 14=previous_body 15=read"
-  (let ((labels (forgejo-db--decode-json (nth 6 row)))
-        (assignees-raw (forgejo-db--decode-json (nth 8 row))))
+  0=number 1=title 2=state 3=body 4=user 5=labels
+  6=milestone 7=assignees 8=comments_count 9=created_at
+  10=updated_at 11=closed_at 12=is_pull 13=previous_body 14=read"
+  (let ((labels (forgejo-db--decode-json (nth 5 row)))
+        (assignees-raw (forgejo-db--decode-json (nth 7 row))))
     `((number . ,(nth 0 row))
       (title . ,(nth 1 row))
       (state . ,(nth 2 row))
       (body . ,(nth 3 row))
-      (body_html . ,(nth 4 row))
-      (user . ((login . ,(nth 5 row))))
+      (user . ((login . ,(nth 4 row))))
       (labels . ,labels)
-      (milestone . ,(when (nth 7 row) `((title . ,(nth 7 row)))))
+      (milestone . ,(when (nth 6 row) `((title . ,(nth 6 row)))))
       (assignees . ,(mapcar (lambda (login) `((login . ,login)))
                             (if (listp assignees-raw) assignees-raw nil)))
-      (comments . ,(nth 9 row))
-      (created_at . ,(nth 10 row))
-      (updated_at . ,(nth 11 row))
-      (closed_at . ,(nth 12 row))
-      (pull_request . ,(when (= (or (nth 13 row) 0) 1) t))
-      (previous_body . ,(nth 14 row))
-      (read . ,(or (nth 15 row) 0)))))
+      (comments . ,(nth 8 row))
+      (created_at . ,(nth 9 row))
+      (updated_at . ,(nth 10 row))
+      (closed_at . ,(nth 11 row))
+      (pull_request . ,(when (= (or (nth 12 row) 0) 1) t))
+      (previous_body . ,(nth 13 row))
+      (read . ,(or (nth 14 row) 0)))))
 
 (defconst forgejo-db--timeline-columns
-  "id, type, body, body_html, user, created_at, data"
+  "id, type, body, user, created_at, data"
   "Column list for timeline queries (deterministic order).")
 
 (defun forgejo-db--row-to-timeline-alist (row)
   "Convert a timeline ROW to an alist.
 ROW must come from a query using `forgejo-db--timeline-columns':
-  0=id 1=type 2=body 3=body_html 4=user 5=created_at 6=data
+  0=id 1=type 2=body 3=user 4=created_at 5=data
 The `data' JSON blob is merged into the result to provide event-specific
 fields like label, assignee, old_title, new_title."
   (let* ((base `((id . ,(nth 0 row))
                  (type . ,(nth 1 row))
                  (body . ,(nth 2 row))
-                 (body_html . ,(nth 3 row))
-                 (user . ((login . ,(nth 4 row))))
-                 (created_at . ,(nth 5 row))))
-         (data-json (nth 6 row))
+                 (user . ((login . ,(nth 3 row))))
+                 (created_at . ,(nth 4 row))))
+         (data-json (nth 5 row))
          (data (when data-json (forgejo-db--decode-json data-json))))
     (if data
         (append base data)
@@ -533,22 +525,6 @@ When IS-PULL is non-nil, only affect pull requests."
             WHERE host = ? AND owner = ? AND repo = ?
             ORDER BY number DESC"
            (list host owner repo))))
-
-;;; Update body_html
-
-(defun forgejo-db-update-issue-html (host owner repo number html)
-  "Set body_html for issue NUMBER."
-  (forgejo-db--execute
-   "UPDATE issues SET body_html = ?
-    WHERE host = ? AND owner = ? AND repo = ? AND number = ?"
-   (list html host owner repo number)))
-
-(defun forgejo-db-update-timeline-html (host owner repo issue-number event-id html)
-  "Set body_html for timeline event EVENT-ID."
-  (forgejo-db--execute
-   "UPDATE timeline_events SET body_html = ?
-    WHERE host = ? AND owner = ? AND repo = ? AND issue_number = ? AND id = ?"
-   (list html host owner repo issue-number event-id)))
 
 ;;; Host lookup
 

@@ -772,7 +772,7 @@ Returns a node plist, a list of nodes, or nil to skip."
 
 (defun forgejo-buffer--build-nodes (issue-data timeline)
   "Build EWOC node plists from ISSUE-DATA and TIMELINE.
-Both should be alists with `body_html' pre-populated from the DB."
+Both should be alists from the DB."
   (let ((nodes nil))
     ;; Header node
     (let-alist issue-data

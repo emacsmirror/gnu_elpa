@@ -31,8 +31,6 @@
 (require 'forgejo-utils)
 (require 'forgejo)
 
-(declare-function forgejo-settings-check-manual-merge "forgejo-settings.el"
-                  (host-url owner repo callback))
 (declare-function forgejo-issue-list "forgejo-issue.el"
                   (&optional owner repo))
 (declare-function forgejo-pull-list "forgejo-pull.el"
@@ -290,14 +288,6 @@ With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
              (if (string-empty-p input) branch input))
            target
            current-prefix-arg)))
-  ;; Warn if manual merge is not enabled (AGit-Flow requires it)
-  (when-let* ((context (forgejo-vc--repo-from-remote)))
-    (forgejo-settings-check-manual-merge
-     (nth 0 context) (nth 1 context) (nth 2 context)
-     (lambda (enabled)
-       (unless enabled
-         (message "Warning: Manual merge is disabled for %s/%s. AGit-Flow PRs may not work as expected."
-                  (nth 1 context) (nth 2 context))))))
   (let ((target (replace-regexp-in-string "\\`.+/" "" target)))
     (if force-push-p
         (forgejo-vc--git-push
@@ -338,13 +328,6 @@ Warns if manual merge is disabled for the repo."
          (remote (nth 3 context))
          (branch (format "pr-%d" n))
          (ref (format "refs/pull/%d/head" n)))
-    ;; Check manual merge setting
-    (forgejo-settings-check-manual-merge
-     (nth 0 context) (nth 1 context) (nth 2 context)
-     (lambda (enabled)
-       (unless enabled
-         (message "Warning: Manual merge is disabled for %s/%s. Local merges won't be recognized by Forgejo."
-                  (nth 1 context) (nth 2 context)))))
     (message "Fetching PR #%d from %s..." n remote)
     (let ((dir default-directory))
       (make-process

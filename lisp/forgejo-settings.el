@@ -96,7 +96,6 @@ Fetches fresh settings from the API, then opens the transient."
         (repo (forgejo-settings--repo data))
         (desc (or (alist-get 'description data) ""))
         (website (or (alist-get 'website data) ""))
-        (manual (eq (alist-get 'allow_manual_merge data) t))
         (host (url-host (url-generic-parse-url host-url))))
     (transient-define-prefix forgejo-settings--current ()
       "Repository settings."
@@ -109,27 +108,22 @@ Fetches fresh settings from the API, then opens the transient."
           (interactive)
           (let ((new (read-string "Description: " desc)))
             (unless (string= new desc)
-              (setq desc new)
-              (forgejo-settings--save host-url owner repo 'description new nil)
-              (transient-setup 'forgejo-settings--current)))))
+              (forgejo-settings--save
+               host-url owner repo 'description new
+               (lambda (_updated)
+                 (setq desc new)
+                 (transient-setup 'forgejo-settings--current)))))))
        ("w" (lambda () (format "Website  %s"
                                (forgejo-settings--format-value website)))
         (lambda ()
           (interactive)
           (let ((new (read-string "Website: " website)))
             (unless (string= new website)
-              (setq website new)
-              (forgejo-settings--save host-url owner repo 'website new nil)
-              (transient-setup 'forgejo-settings--current)))))
-       ("m" (lambda () (format "Manual merge  %s"
-                               (forgejo-settings--format-value
-                                (if manual "on" "off"))))
-        (lambda ()
-          (interactive)
-          (setq manual (not manual))
-          (forgejo-settings--save host-url owner repo 'allow_manual_merge
-                                  manual nil)
-          (transient-setup 'forgejo-settings--current)))
+              (forgejo-settings--save
+               host-url owner repo 'website new
+               (lambda (_updated)
+                 (setq website new)
+                 (transient-setup 'forgejo-settings--current)))))))
        ("l" "Labels" forgejo-settings--labels)]
       [:hide always])
     (transient-define-prefix forgejo-settings--labels ()
@@ -140,6 +134,31 @@ Fetches fresh settings from the API, then opens the transient."
         (lambda ()
           (interactive)
           (forgejo-utils-create-label host-url owner repo host nil)))
+       ("c" "Change color"
+        (lambda ()
+          (interactive)
+          (let* ((cached (forgejo-db-get-labels host owner repo))
+                 (names (mapcar (lambda (row) (nth 4 row)) cached))
+                 (name (completing-read "Label: " names nil t))
+                 (id (forgejo-db-get-label-id host owner repo name))
+                 (color (read-color "New color: ")))
+            (when id
+              (unless (string-match-p "\\`#?[0-9a-fA-F]+\\'" color)
+                (let ((rgb (color-values color)))
+                  (unless rgb (user-error "Unknown color: %s" color))
+                  (setq color (format "%02x%02x%02x"
+                                      (/ (nth 0 rgb) 256)
+                                      (/ (nth 1 rgb) 256)
+                                      (/ (nth 2 rgb) 256)))))
+              (when (string-prefix-p "#" color)
+                (setq color (substring color 1)))
+              (forgejo-api-patch
+               host-url
+               (format "repos/%s/%s/labels/%d" owner repo id)
+               `((color . ,color))
+               (lambda (data _headers)
+                 (forgejo-db-save-labels host owner repo (list data))
+                 (message "Updated color of %s to #%s" name color)))))))
        ("d" "Delete label"
         (lambda ()
           (interactive)
@@ -160,16 +179,6 @@ Fetches fresh settings from the API, then opens the transient."
                   host owner repo name)
                  (message "Deleted label %s from %s/%s" name owner repo)))))))])
     (forgejo-settings--current)))
-
-;;; AGit-Flow check
-
-(defun forgejo-settings-check-manual-merge (host-url owner repo callback)
-  "Check if manual merge is enabled for OWNER/REPO on HOST-URL.
-Calls CALLBACK with t if enabled, nil if not."
-  (forgejo-settings--fetch
-   host-url owner repo
-   (lambda (data)
-     (funcall callback (eq (alist-get 'allow_manual_merge data) t)))))
 
 (defun forgejo-settings--remove-label-from-issues (host owner repo label-name)
   "Remove LABEL-NAME from all cached issues in HOST/OWNER/REPO."

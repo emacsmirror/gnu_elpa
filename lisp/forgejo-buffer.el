@@ -207,23 +207,31 @@ Handles #N issue/PR refs and markdown URLs."
 
 ;;; Body rendering
 
-(defun forgejo-buffer--fontify-markdown (text)
-  "Return TEXT fontified with `gfm-view-mode' in a temp buffer.
-Uses the view mode so markdown link URLs are hidden.
-Prepends a blank line to prevent YAML front-matter misparsing."
-  (with-temp-buffer
-    (insert "\n" text)
-    (gfm-view-mode)
-    (font-lock-ensure)
-    (buffer-substring (+ (point-min) 1) (point-max))))
+(defconst forgejo-buffer--body-separator "\n\0\n"
+  "Separator used to join bodies for batch fontification.
+Uses a null byte that won't appear in markdown text.")
+
+(defun forgejo-buffer--fontify-bodies (bodies)
+  "Fontify all BODIES in a single `gfm-view-mode' temp buffer.
+Returns a list of fontified strings in the same order.
+Much faster than fontifying each body in a separate buffer."
+  (if (null bodies)
+      nil
+    (let ((sep forgejo-buffer--body-separator))
+      (with-temp-buffer
+        (insert "\n" (mapconcat #'identity bodies sep))
+        (gfm-view-mode)
+        (font-lock-ensure)
+        (split-string (buffer-substring (+ (point-min) 1) (point-max))
+                      sep)))))
 
 (defun forgejo-buffer--insert-body (body &optional _body-html)
-  "Insert BODY text fontified with `gfm-mode'."
+  "Insert BODY into the current buffer.
+BODY should already be fontified (via `forgejo-buffer--fontify-bodies')
+or a plain string."
   (when (and body (stringp body) (not (string-empty-p body)))
     (let ((start (point)))
-      (insert (forgejo-buffer--fontify-markdown
-               (forgejo-buffer--clean-body body))
-              "\n")
+      (insert body "\n")
       (forgejo-buffer--linkify-refs start (point)))))
 
 ;;; Separator
@@ -772,7 +780,8 @@ Returns a node plist, a list of nodes, or nil to skip."
 
 (defun forgejo-buffer--build-nodes (issue-data timeline)
   "Build EWOC node plists from ISSUE-DATA and TIMELINE.
-Both should be alists from the DB."
+Both should be alists from the DB.  Bodies are batch-fontified
+in a single `gfm-view-mode' pass for performance."
   (let ((nodes nil))
     ;; Header node
     (let-alist issue-data
@@ -782,7 +791,6 @@ Both should be alists from the DB."
                   :state .state
                   :author (or (forgejo-buffer--login .user) "unknown")
                   :body .body
-                  :body-html (alist-get 'body issue-data)
                   :labels (when (listp .labels) .labels)
                   :milestone (when (listp .milestone)
                                (alist-get 'title .milestone))
@@ -798,11 +806,32 @@ Both should be alists from the DB."
              (result (forgejo-buffer--build-event-node event actor timeline)))
         (cond
          ((and (listp result) (listp (car result)))
-          ;; List of nodes (e.g., review returns multiple)
           (dolist (node result) (push node nodes)))
          (result
           (push result nodes)))))
-    (nreverse nodes)))
+    (setq nodes (nreverse nodes))
+    ;; Batch-fontify all bodies in one pass
+    (forgejo-buffer--fontify-node-bodies nodes)
+    nodes))
+
+(defun forgejo-buffer--fontify-node-bodies (nodes)
+  "Batch-fontify :body in all NODES that have one.
+Replaces raw markdown with fontified text in place."
+  (let (indices bodies)
+    ;; Collect bodies and their positions
+    (cl-loop for node in nodes
+             for i from 0
+             for body = (forgejo-buffer--clean-body (plist-get node :body))
+             when body do
+             (push i indices)
+             (push body bodies))
+    (when bodies
+      (setq bodies (nreverse bodies))
+      (setq indices (nreverse indices))
+      (let ((fontified (forgejo-buffer--fontify-bodies bodies)))
+        (cl-loop for idx in indices
+                 for text in fontified
+                 do (plist-put (nth idx nodes) :body text))))))
 
 ;;; Utilities for detail views
 
@@ -947,19 +976,28 @@ Both should be alists from the DB."
         (insert "\n")
         ;; Diff hunk
         (forgejo-buffer--insert-diff-hunk hunk))
-      ;; Comments
-      (dolist (c comments)
-        (let ((author (or (alist-get 'login (alist-get 'user c)) "unknown"))
-              (body (alist-get 'body c))
-              (created (alist-get 'created_at c)))
-          (insert "\n"
-                  (propertize author 'face 'forgejo-comment-author-face)
-                  (propertize (concat " commented "
-                                      (forgejo-buffer--relative-time created))
-                              'face 'shadow)
-                  "\n")
-          (forgejo-buffer--insert-body body)
-          (forgejo-buffer--insert-separator))))
+      ;; Batch-fontify comment bodies
+      (let* ((raw-bodies (mapcar (lambda (c)
+                                   (forgejo-buffer--clean-body
+                                    (alist-get 'body c)))
+                                 comments))
+             (fontified (forgejo-buffer--fontify-bodies
+                         (cl-remove-if #'null raw-bodies)))
+             (font-idx 0))
+        (dolist (c comments)
+          (let ((author (or (alist-get 'login (alist-get 'user c)) "unknown"))
+                (has-body (nth (cl-position c comments) raw-bodies))
+                (created (alist-get 'created_at c)))
+            (insert "\n"
+                    (propertize author 'face 'forgejo-comment-author-face)
+                    (propertize (concat " commented "
+                                        (forgejo-buffer--relative-time created))
+                                'face 'shadow)
+                    "\n")
+            (when has-body
+              (forgejo-buffer--insert-body (nth font-idx fontified))
+              (setq font-idx (1+ font-idx)))
+            (forgejo-buffer--insert-separator)))))
     (use-local-map forgejo-review-thread-mode-map)
     (setq buffer-read-only t)
     (goto-char (point-min))

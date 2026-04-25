@@ -302,5 +302,39 @@ Restores point to RESTORE-LINE if given."
       (funcall browse-fn forgejo-repo--host forgejo-repo--owner
                forgejo-repo--name number))))
 
+;;; Delete
+
+(defun forgejo-view-delete-at-point ()
+  "Delete the item at point.
+On a comment, deletes the comment.  On the header, deletes the issue/PR."
+  (interactive)
+  (when-let* ((node (forgejo-view--node-at-point))
+              (type (plist-get node :type)))
+    (pcase type
+      ('comment
+       (forgejo-view--delete
+        (format "repos/%s/%s/issues/comments/%d"
+                forgejo-repo--owner forgejo-repo--name (plist-get node :id))
+        (format "comment %d" (plist-get node :id))
+        (forgejo--post-action-callback)))
+      ('header
+       (forgejo-view--delete
+        (format "repos/%s/%s/issues/%d"
+                forgejo-repo--owner forgejo-repo--name
+                (alist-get 'number forgejo-view--data))
+        (format "%s/%s#%d" forgejo-repo--owner forgejo-repo--name
+                (alist-get 'number forgejo-view--data))
+        (lambda () (quit-window 'kill))))
+      (_ (user-error "No deletable item at point")))))
+
+(defun forgejo-view--delete (endpoint description callback)
+  "Delete ENDPOINT after confirming with DESCRIPTION.  Call CALLBACK on success."
+  (when (y-or-n-p (format "Delete %s? " description))
+    (forgejo-api-delete
+     forgejo-repo--host endpoint nil
+     (lambda (_data _headers)
+       (message "Deleted %s" description)
+       (when callback (funcall callback))))))
+
 (provide 'forgejo-view)
 ;;; forgejo-view.el ends here

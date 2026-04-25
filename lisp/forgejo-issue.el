@@ -308,6 +308,7 @@ Empty input clears all filters."
     (define-key map (kbd "L") #'forgejo-view-add-label)
     (define-key map (kbd "A") #'forgejo-view-add-assignee)
     (define-key map (kbd "M") #'forgejo-view-set-milestone)
+    (define-key map (kbd "D") #'forgejo-view-delete-at-point)
     (define-key map (kbd "h") #'forgejo-issue-actions)
     (define-key map (kbd "n") #'ewoc-goto-next)
     (define-key map (kbd "p") #'ewoc-goto-prev)

@@ -115,6 +115,7 @@
 (declare-function forgejo-view-add-assignee "forgejo-view.el" ())
 (declare-function forgejo-view-remove-assignee "forgejo-view.el" ())
 (declare-function forgejo-view-set-milestone "forgejo-view.el" ())
+(declare-function forgejo-view-delete-at-point "forgejo-view.el" ())
 
 ;;; Issue detail actions
 
@@ -142,7 +143,8 @@
     ("c" "Comment" forgejo-view-comment)
     ("r" "Reply at point" forgejo-issue-reply)
     ("e" "Edit at point" forgejo-view-edit)
-    ("x" "Toggle open/close" forgejo-view-toggle-state)]
+    ("x" "Toggle open/close" forgejo-view-toggle-state)
+    ("D" "Delete at point" forgejo-view-delete-at-point)]
    ["Metadata"
     ("a" "Add metadata" forgejo-issue-add-metadata)
     ("d" "Remove metadata" forgejo-issue-remove-metadata)]
@@ -180,7 +182,8 @@
     ("r" "Reply at point" forgejo-pull-reply)
     ("e" "Edit at point" forgejo-view-edit)
     ("R" "Submit review" forgejo-review-submit)
-    ("x" "Toggle open/close" forgejo-view-toggle-state)]
+    ("x" "Toggle open/close" forgejo-view-toggle-state)
+    ("D" "Delete at point" forgejo-view-delete-at-point)]
    ["Metadata"
     ("a" "Add metadata" forgejo-pull-add-metadata)
     ("d" "Remove metadata" forgejo-pull-remove-metadata)]

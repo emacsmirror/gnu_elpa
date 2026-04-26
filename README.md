@@ -785,18 +785,22 @@ request timeout from outputing too many tokens.
 ```lisp
 (minuet-set-optional-options minuet-openai-compatible-options :max_tokens 256)
 (minuet-set-optional-options minuet-openai-compatible-options :top_p 0.9)
+```
 
-;; Optionally configure the reasoning effort if you are using a thinking model.
-(minuet-set-optional-options
-  minuet-openai-compatible-options
-  :reasoning
-  '(:effort "minimal")) ; or "none", depending on the model.
+**Disabling thinking for reasoning models:**
+| Provider             | Configuration                                                              |
+| -------------------- | -------------------------------------------------------------------------- |
+| **OpenRouter**       | `reasoning = { effort = 'none' }` (or `'minimal'`, depending on the model) |
+| **DeepSeek API**     | `thinking = { type = 'disabled' }`                                         |
+| **Various Provider** | `reasoning_effort = 'none'`                                                |
 
-;; Alternatively, disable reasoning entirely if the model supports it.
-(minuet-set-optional-options
-  minuet-openai-compatible-options
-  :reasoning
-  '(:enabled :false))
+```lisp
+(minuet-set-optional-options minuet-openai-compatible-options :reasoning '(:effort none))
+;; or "minimal", depending on the model (OpenRouter)
+(minuet-set-optional-options minuet-openai-compatible-options :reasoning_effort "none")
+;; or "minimal", depending on the model (various providers)```
+(minuet-set-optional-options minuet-openai-compatible-options :thinking '(:type "disabled"))
+;; DeepSeek API
 ```
 
 </details>

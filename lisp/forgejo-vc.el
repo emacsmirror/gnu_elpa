@@ -30,6 +30,7 @@
 (require 'vc-git)
 (require 'keymap-popup)
 (require 'forgejo-utils)
+(require 'forgejo-settings)
 (require 'forgejo)
 
 (declare-function forgejo-issue-list "forgejo-issue.el"

@@ -190,28 +190,30 @@ Returns 0 if UPSTREAM is not a valid ref."
     (when (not (string-empty-p output))
       (split-string output "\n" t))))
 
-(defun forgejo-vc--autofill-defaults (upstream branch)
-  "Return (TITLE . BODY) defaults based on commits since UPSTREAM.
-BRANCH is the current branch name, used as title for multi-commit PRs."
+(defun forgejo-vc--head-subject ()
+  "Return the subject line of HEAD."
+  (string-trim
+   (with-output-to-string
+     (with-current-buffer standard-output
+       (process-file "git" nil '(t nil) nil "log" "-1" "--format=%s")))))
+
+(defun forgejo-vc--head-body ()
+  "Return the body (everything after the subject) of HEAD."
+  (string-trim
+   (with-output-to-string
+     (with-current-buffer standard-output
+       (process-file "git" nil '(t nil) nil "log" "-1" "--format=%b")))))
+
+(defun forgejo-vc--autofill-defaults (upstream)
+  "Return (TITLE . BODY) defaults based on commits since UPSTREAM."
   (let ((count (forgejo-vc--commit-count upstream)))
     (cond
-     ((<= count 0)
-      (cons branch ""))
-     ((= count 1)
-      (let ((subject (string-trim
-                      (with-output-to-string
-                        (with-current-buffer standard-output
-                          (process-file "git" nil '(t nil) nil
-                                        "log" "-1" "--format=%s")))))
-            (body (string-trim
-                   (with-output-to-string
-                     (with-current-buffer standard-output
-                       (process-file "git" nil '(t nil) nil
-                                     "log" "-1" "--format=%b"))))))
-        (cons subject body)))
+     ((<= count 1)
+      (cons (forgejo-vc--head-subject) (forgejo-vc--head-body)))
      (t
       (let ((subjects (forgejo-vc--commit-subjects upstream)))
-        (cons branch (mapconcat #'identity subjects "\n")))))))
+        (cons (car subjects)
+              (mapconcat #'identity subjects "\n")))))))
 
 ;;; PR template discovery
 
@@ -299,8 +301,7 @@ With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
          (forgejo-vc--refspec "HEAD" target topic)
          (list "-o" "force-push=true"))
       (let* ((upstream (format "%s/%s" remote target))
-             (branch (car (vc-git-branches)))
-             (defaults (forgejo-vc--autofill-defaults upstream branch))
+             (defaults (forgejo-vc--autofill-defaults upstream))
              (default-title (car defaults))
              (default-body (cdr defaults))
              (template (forgejo-vc--find-pr-template remote))
@@ -313,10 +314,12 @@ With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
                (use-template template)
                ((not (string-empty-p default-body)) default-body)
                (t nil)))
-             (title-input (read-string
-                           (format "PR Title (default: %s): " default-title)))
-             (title (if (string-empty-p title-input) default-title title-input))
+             (title (read-string "PR Title: " default-title))
+             (_ (when (string-empty-p title)
+                  (user-error "PR title cannot be empty")))
              (desc (forgejo-utils-read-body "PR Description" initial-body)))
+        (unless desc
+          (user-error "PR submission cancelled"))
         (forgejo-vc--git-push
          remote
          (forgejo-vc--refspec "HEAD" target topic)

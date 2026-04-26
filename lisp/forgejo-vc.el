@@ -459,16 +459,24 @@ and mark it as manually merged after a successful push."
 
 ;;; Popup keymap
 
+(defun forgejo-vc--no-remote-p ()
+  "Return non-nil when not in a repo with a Forgejo remote."
+  (not (forgejo-vc--repo-from-remote)))
+
 (keymap-popup-define forgejo-vc-map
   "Forgejo operations for the current repository."
   :group "View"
   "i" ("Issues" forgejo-vc-issues)
   "p" ("Pull requests" forgejo-vc-pulls)
   :group "PR"
-  "s" ("Submit PR" forgejo-vc-submit :c-u "force push")
-  "f" ("Fetch PR" forgejo-vc-fetch)
-  "u" ("Update PR branch" forgejo-vc-update)
-  "P" ("Push" forgejo-vc-push :c-u "mark PR merged")
+  "s" ("Submit PR" forgejo-vc-submit :c-u "force push"
+       :inapt-if (lambda () (forgejo-vc--no-remote-p)))
+  "f" ("Fetch PR" forgejo-vc-fetch
+       :inapt-if (lambda () (forgejo-vc--no-remote-p)))
+  "u" ("Update PR branch" forgejo-vc-update
+       :inapt-if (lambda () (forgejo-vc--no-remote-p)))
+  "P" ("Push" forgejo-vc-push :c-u "mark PR merged"
+       :inapt-if (lambda () (forgejo-vc--no-remote-p)))
   :group "Actions"
   "S" ("Settings" forgejo-settings)
   "b" ("Browse repo" forgejo-vc-browse))

@@ -40,6 +40,53 @@
 (declare-function forgejo-api-post "forgejo-api.el"
                   (host endpoint &optional params json-body callback))
 
+;;; Repo counts (async, cached per-directory)
+
+(defvar forgejo-vc--counts (make-hash-table :test 'equal)
+  "Cache of (ISSUE-COUNT . PR-COUNT) keyed by \"owner/repo\".")
+
+(defvar-local forgejo-vc--repo-key nil
+  "Cached \"owner/repo\" key for the current buffer.")
+
+(defun forgejo-vc--ensure-repo-key ()
+  "Set `forgejo-vc--repo-key' from git remote if not already cached."
+  (or forgejo-vc--repo-key
+      (when-let* ((context (forgejo-vc--repo-from-remote)))
+        (setq forgejo-vc--repo-key
+              (format "%s/%s" (nth 1 context) (nth 2 context))))))
+
+(defun forgejo-vc--issue-count ()
+  "Return cached open issue count for the current repo, or nil."
+  (car (gethash (forgejo-vc--ensure-repo-key) forgejo-vc--counts)))
+
+(defun forgejo-vc--pr-count ()
+  "Return cached open PR count for the current repo, or nil."
+  (cdr (gethash (forgejo-vc--ensure-repo-key) forgejo-vc--counts)))
+
+(defun forgejo-vc--fetch-counts ()
+  "Fetch open issue/PR counts for the current repo asynchronously."
+  (when-let* ((context (forgejo-vc--repo-from-remote))
+              (host (nth 0 context))
+              (owner (nth 1 context))
+              (repo (nth 2 context))
+              (key (format "%s/%s" owner repo)))
+    (forgejo-api-get
+     host (format "repos/%s/%s/issues" owner repo)
+     '(("state" . "open") ("type" . "issues") ("limit" . "1"))
+     (lambda (_data headers)
+       (let ((existing (gethash key forgejo-vc--counts)))
+         (puthash key
+                  (cons (plist-get headers :total-count) (cdr existing))
+                  forgejo-vc--counts))))
+    (forgejo-api-get
+     host (format "repos/%s/%s/issues" owner repo)
+     '(("state" . "open") ("type" . "pulls") ("limit" . "1"))
+     (lambda (_data headers)
+       (let ((existing (gethash key forgejo-vc--counts)))
+         (puthash key
+                  (cons (car existing) (plist-get headers :total-count))
+                  forgejo-vc--counts))))))
+
 ;;; Git detection (pure: git command -> data)
 
 (defun forgejo-vc--remotes ()
@@ -466,8 +513,18 @@ and mark it as manually merged after a successful push."
 (keymap-popup-define forgejo-vc-map
   "Forgejo operations for the current repository."
   :group "View"
-  "i" ("Issues" forgejo-vc-issues)
-  "p" ("Pull requests" forgejo-vc-pulls)
+  "i" ((lambda ()
+         (if-let* ((n (forgejo-vc--issue-count)))
+             (format "Issues (%s)" (propertize (number-to-string n)
+                                               'face 'warning))
+           "Issues"))
+       forgejo-vc-issues)
+  "p" ((lambda ()
+         (if-let* ((n (forgejo-vc--pr-count)))
+             (format "Pull requests (%s)" (propertize (number-to-string n)
+                                                      'face 'forgejo-open-face))
+           "Pull requests"))
+       forgejo-vc-pulls)
   :group "PR"
   "s" ("Submit PR" forgejo-vc-submit :c-u "force push"
        :inapt-if (lambda () (forgejo-vc--no-remote-p)))
@@ -485,6 +542,7 @@ and mark it as manually merged after a successful push."
 (defun forgejo-vc ()
   "Forgejo operations for the current repository."
   (interactive)
+  (forgejo-vc--fetch-counts)
   (keymap-popup 'forgejo-vc-map))
 
 ;;;###autoload

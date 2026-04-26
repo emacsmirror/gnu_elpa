@@ -304,7 +304,7 @@ Empty input clears all filters."
   "Forgejo Issue"
   "Major mode for viewing a single Forgejo issue."
   :group 'forgejo
-  (setq-local browse-url-browser-function #'forgejo-buffer--browse-url))
+  (setq-local browse-url-browser-function #'forgejo-view-browse-url))
 
 ;;; Detail view rendering
 

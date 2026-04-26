@@ -20,23 +20,29 @@
 
 ;;; Commentary:
 
-;; Review data operations: sync review comments from the API, query
-;; them from the DB, submit reviews.  Display logic lives in
-;; forgejo-buffer.el.
+;; Review operations: sync review comments from the API, query them
+;; from the DB, submit reviews, render thread buffers, and handle
+;; diff commenting.
 
 ;;; Code:
 
 (require 'cl-lib)
+(require 'diff-mode)
 (require 'url-parse)
+(require 'keymap-popup)
 (require 'forgejo)
 (require 'forgejo-api)
 (require 'forgejo-db)
+(require 'forgejo-buffer)
 (require 'forgejo-utils)
 
 (defvar forgejo-repo--host)
 (defvar forgejo-repo--owner)
 (defvar forgejo-repo--name)
 (defvar forgejo-view--data)
+(defvar forgejo-diff--owner)
+(defvar forgejo-diff--repo)
+(defvar forgejo-diff--pr-number)
 
 ;;; Pure helpers
 
@@ -205,6 +211,201 @@ CALLBACK is called on success."
          (message "Reply posted on %s/%s#%d review %d"
                   owner repo number review-id)
          (when callback (funcall callback)))))))
+
+;;; Diff review
+
+(defun forgejo-review--diff-new-line-number ()
+  "Return the new-file line number for the diff line at point.
+Parses the @@ hunk header and counts context/added lines."
+  (save-excursion
+    (let ((target (line-beginning-position)))
+      (diff-beginning-of-hunk t)
+      (when (looking-at "@@ -[0-9]+\\(?:,[0-9]+\\)? \\+\\([0-9]+\\)\\(?:,[0-9]+\\)? @@")
+        (let ((new-start (string-to-number (match-string 1)))
+              (new-count 0))
+          (forward-line 1)
+          (while (< (point) target)
+            (unless (eq (char-after) ?-)
+              (setq new-count (1+ new-count)))
+            (forward-line 1))
+          (+ new-start new-count))))))
+
+(defun forgejo-review-diff-comment ()
+  "Post a review comment on the line at point in the diff.
+Prompts for review type: comment or request_changes."
+  (interactive)
+  (unless forgejo-diff--pr-number
+    (user-error "No PR associated with this diff"))
+  (let* ((file-raw (car (diff-hunk-file-names)))
+         (file (when file-raw
+                 (replace-regexp-in-string
+                  "\\`[ab]/" ""
+                  (substring-no-properties file-raw))))
+         (line (forgejo-review--diff-new-line-number)))
+    (unless file
+      (user-error "Cannot determine file at point"))
+    (let* ((type (completing-read "Review type: "
+                                  '("comment" "request_changes") nil t))
+           (event (pcase type
+                    ("comment" "COMMENT")
+                    ("request_changes" "REQUEST_CHANGES")))
+           (body (forgejo-utils-read-body "Review comment")))
+      (when (and body (not (string-empty-p (string-trim body))))
+        (forgejo-api-post
+         forgejo-repo--host
+         (format "repos/%s/%s/pulls/%d/reviews"
+                 forgejo-diff--owner forgejo-diff--repo
+                 forgejo-diff--pr-number)
+         nil
+         `((body . ,(if (string= event "REQUEST_CHANGES") body ""))
+           (event . ,event)
+           (comments . [((path . ,file)
+                         (new_position . ,line)
+                         (body . ,body))]))
+         (lambda (_data _headers)
+           (message "Review %s posted on %s:%d" type file line)))))))
+
+;;; Review thread buffer
+
+(defvar-local forgejo-review--thread-id nil
+  "Review ID for the current review thread buffer.")
+(defvar-local forgejo-review--thread-number nil
+  "Issue/PR number for the current review thread buffer.")
+(defvar-local forgejo-review--thread-path nil
+  "File path for the current review thread.")
+(defvar-local forgejo-review--thread-position nil
+  "New-side diff position for the current review thread.")
+(defvar-local forgejo-review--thread-original-position nil
+  "Old-side diff position for the current review thread.")
+(defvar-local forgejo-review--thread-diff-hunk nil
+  "Diff hunk text for the current review thread.")
+
+(keymap-popup-define forgejo-review-thread-map
+  "Forgejo review thread."
+  :parent special-mode-map
+  "q" ("Quit" quit-window)
+  "c" ("Reply" forgejo-review-thread-reply)
+  "g" ("Refresh" forgejo-review-thread-refresh))
+
+(defun forgejo-review--render-thread (buf-name comments)
+  "Render review thread COMMENTS into BUF-NAME."
+  (with-current-buffer (get-buffer-create buf-name)
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (when-let* ((first (car comments))
+                  (path (alist-get 'path first))
+                  (hunk (alist-get 'diff_hunk first)))
+        (insert (propertize (or path "unknown file") 'face 'diff-file-header))
+        (let ((resolver (alist-get 'resolver first)))
+          (when (and (listp resolver) (alist-get 'login resolver))
+            (insert "  " (propertize
+                          (format "(resolved by %s)" (alist-get 'login resolver))
+                          'face 'success))))
+        (insert "\n")
+        (forgejo-buffer--insert-diff-hunk hunk))
+      (let* ((raw-bodies (mapcar (lambda (c)
+                                   (forgejo-buffer--clean-body
+                                    (alist-get 'body c)))
+                                 comments))
+             (fontified (forgejo-buffer--fontify-bodies
+                         (cl-remove-if #'null raw-bodies)))
+             (font-idx 0))
+        (dolist (c comments)
+          (let ((author (or (alist-get 'login (alist-get 'user c)) "unknown"))
+                (has-body (nth (cl-position c comments) raw-bodies))
+                (created (alist-get 'created_at c)))
+            (insert "\n"
+                    (propertize author 'face 'forgejo-comment-author-face)
+                    (propertize (concat " commented "
+                                        (forgejo-buffer--relative-time created))
+                                'face 'shadow)
+                    "\n")
+            (when has-body
+              (forgejo-buffer--insert-body (nth font-idx fontified))
+              (setq font-idx (1+ font-idx)))
+            (forgejo-buffer--insert-separator)))))
+    (use-local-map forgejo-review-thread-map)
+    (setq buffer-read-only t)
+    (goto-char (point-min))
+    (current-buffer)))
+
+(defun forgejo-review-thread-refresh ()
+  "Refresh the current review thread buffer."
+  (interactive)
+  (when-let* ((review-id forgejo-review--thread-id)
+              (number forgejo-review--thread-number)
+              (host (url-host (url-generic-parse-url forgejo-repo--host)))
+              (owner forgejo-repo--owner)
+              (repo forgejo-repo--name)
+              (path forgejo-review--thread-path)
+              (position forgejo-review--thread-position)
+              (opos forgejo-review--thread-original-position)
+              (buf (buffer-name)))
+    (forgejo-review--fetch-comments
+     forgejo-repo--host host owner repo number review-id
+     (lambda ()
+       (let ((comments (forgejo-review--comments-for-id
+                        host owner repo number review-id
+                        path position opos)))
+         (forgejo-review--render-thread buf comments))))))
+
+(defun forgejo-review-thread-reply ()
+  "Reply to the current review thread."
+  (interactive)
+  (when-let* ((review-id forgejo-review--thread-id)
+              (number forgejo-review--thread-number)
+              (owner forgejo-repo--owner)
+              (repo forgejo-repo--name)
+              (host (url-host (url-generic-parse-url forgejo-repo--host)))
+              (path forgejo-review--thread-path)
+              (position forgejo-review--thread-position)
+              (opos forgejo-review--thread-original-position)
+              (buf (current-buffer)))
+    (forgejo-review--reply
+     forgejo-repo--host owner repo number review-id path position opos
+     (lambda ()
+       (let ((comments (forgejo-review--comments-for-id
+                        host owner repo number review-id
+                        path position opos)))
+         (forgejo-review--render-thread
+          (buffer-name buf) comments))))))
+
+(defun forgejo-review-open-thread ()
+  "Open the review thread for the review link at point."
+  (interactive)
+  (when-let* ((review-id (get-text-property (point) 'forgejo-review-id))
+              (path (get-text-property (point) 'forgejo-review-path))
+              (host-url forgejo-repo--host)
+              (host (url-host (url-generic-parse-url host-url)))
+              (owner forgejo-repo--owner)
+              (repo forgejo-repo--name)
+              (number (alist-get 'number
+                                 (bound-and-true-p forgejo-view--data))))
+    (let* ((position (get-text-property (point) 'forgejo-review-position))
+           (opos (get-text-property (point) 'forgejo-review-opos))
+           (comments (forgejo-review--comments-for-id
+                      host owner repo number review-id path position opos))
+           (buf-name (format "*forgejo-review: %s/%s#%d r%d %s*"
+                             owner repo number review-id
+                             (file-name-nondirectory (or path "?")))))
+      (if comments
+          (let ((buf (forgejo-review--render-thread buf-name comments)))
+            (with-current-buffer buf
+              (setq forgejo-repo--host host-url
+                    forgejo-repo--owner owner
+                    forgejo-repo--name repo
+                    forgejo-review--thread-id review-id
+                    forgejo-review--thread-number number
+                    forgejo-review--thread-path
+                    (alist-get 'path (car comments))
+                    forgejo-review--thread-position
+                    (alist-get 'position (car comments))
+                    forgejo-review--thread-original-position
+                    (alist-get 'original_position (car comments))
+                    forgejo-review--thread-diff-hunk
+                    (alist-get 'diff_hunk (car comments))))
+            (pop-to-buffer buf))
+        (message "No review comments found for review %d" review-id)))))
 
 ;;; Interactive commands
 

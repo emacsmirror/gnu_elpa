@@ -272,7 +272,7 @@ Shows cached data immediately, then syncs from the API in the background."
   "Forgejo PR"
   "Major mode for viewing a single Forgejo pull request."
   :group 'forgejo
-  (setq-local browse-url-browser-function #'forgejo-buffer--browse-url))
+  (setq-local browse-url-browser-function #'forgejo-view-browse-url))
 
 (defun forgejo-pull--render-detail (buf-name host-url owner repo pr-alist
                                     timeline-alists)
@@ -360,7 +360,7 @@ Shows cached data from DB instantly, syncs in background."
               (refresh (forgejo--post-action-callback)))
     (pcase (plist-get node :type)
       ('review-link
-       (forgejo-buffer--open-review-thread))
+       (forgejo-review-open-thread))
       (_
        (let* ((author (plist-get node :author))
               (body (plist-get node :body))
@@ -411,7 +411,7 @@ Shows cached data from DB instantly, syncs in background."
                (erase-buffer)
                (insert diff-text))
              (diff-mode)
-             (use-local-map forgejo-buffer-diff-map)
+             (use-local-map forgejo-view-diff-map)
 	     (read-only-mode 1)
              (setq forgejo-diff--owner owner
                    forgejo-diff--repo repo
@@ -469,7 +469,7 @@ Only works when `default-directory' is inside the same repository."
                  (insert (propertize short-sha
                                      'face 'font-lock-constant-face
                                      'forgejo-commit-sha sha
-                                     'keymap forgejo-buffer-commit-map
+                                     'keymap forgejo-view-action-map
                                      'mouse-face 'highlight
                                      'help-echo "RET or = : view diff")
                          " "
@@ -486,8 +486,8 @@ Only works when `default-directory' is inside the same repository."
                        forgejo-repo--name repo)
            (use-local-map (let ((map (make-sparse-keymap)))
                             (set-keymap-parent map special-mode-map)
-                            (define-key map (kbd "=") #'forgejo-buffer-view-commit-diff)
-                            (define-key map (kbd "RET") #'forgejo-buffer-view-commit-diff)
+                            (define-key map (kbd "=") #'forgejo-view-commit-diff)
+                            (define-key map (kbd "RET") #'forgejo-view-commit-diff)
                             map))
            (goto-char (point-min))
            (switch-to-buffer (current-buffer))))))))

@@ -27,7 +27,9 @@
 
 ;;; Code:
 
+(require 'browse-url)
 (require 'cl-lib)
+(require 'diff-mode)
 (require 'ewoc)
 (require 'url-parse)
 (require 'keymap-popup)
@@ -38,6 +40,8 @@
 (require 'forgejo-utils)
 (require 'forgejo-api)
 (require 'forgejo-db)
+
+(declare-function forgejo-token "forgejo.el" (host-url))
 
 (defvar forgejo-repo--host)
 (defvar forgejo-repo--owner)
@@ -59,6 +63,129 @@ Called with (HOST OWNER REPO NUMBER BUF-NAME &optional RESTORE-LINE).")
   "Function to open the current item in the browser.
 Called with (HOST-URL OWNER REPO NUMBER).")
 
+;;; Text-property action map
+
+(defvar forgejo-view-action-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "RET") #'forgejo-view-activate-at-point)
+    (define-key map [mouse-1] #'forgejo-view-activate-at-point)
+    map)
+  "Keymap for interactive text elements in detail views.
+Dispatches based on text properties at point.")
+
+(defun forgejo-view-activate-at-point ()
+  "Activate the interactive element at point.
+Dispatches to the appropriate handler based on text properties."
+  (interactive)
+  (cond
+   ((get-text-property (point) 'forgejo-ref-number)
+    (forgejo-view-follow-ref))
+   ((get-text-property (point) 'forgejo-commit-sha)
+    (forgejo-view-commit-diff))
+   ((get-text-property (point) 'forgejo-review-id)
+    (forgejo-view-open-review-thread))
+   (t (message "Edit history not yet implemented"))))
+
+;;; Text-property commands
+
+(defun forgejo-view-follow-ref ()
+  "Follow the reference link at point.
+Uses the ref-repo text property for cross-repo references."
+  (interactive)
+  (when-let* ((number (get-text-property (point) 'forgejo-ref-number)))
+    (let* ((full-name (get-text-property (point) 'forgejo-ref-repo))
+           (parts (when full-name (split-string full-name "/")))
+           (owner (or (nth 0 parts) forgejo-repo--owner))
+           (repo (or (nth 1 parts) forgejo-repo--name)))
+      (forgejo-view-item owner repo number))))
+
+(defvar-local forgejo-diff--owner nil "Owner of the repo for this diff.")
+(defvar-local forgejo-diff--repo nil "Repo name for this diff.")
+(defvar-local forgejo-diff--pr-number nil "PR number for this diff.")
+
+(declare-function forgejo-review-diff-comment "forgejo-review.el" ())
+
+(defvar forgejo-view-diff-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map diff-mode-map)
+    (define-key map (kbd "q") #'quit-window)
+    (define-key map (kbd "c") #'forgejo-review-diff-comment)
+    map)
+  "Keymap for forgejo diff buffers.")
+
+(defun forgejo-view-commit-diff ()
+  "View the diff for the commit at point."
+  (interactive)
+  (when-let* ((sha (get-text-property (point) 'forgejo-commit-sha)))
+    (let* ((host-url forgejo-repo--host)
+           (owner forgejo-repo--owner)
+           (repo forgejo-repo--name)
+           (pr-number (when-let* ((data (bound-and-true-p forgejo-view--data)))
+                        (alist-get 'number data)))
+           (url (format "%s/api/v1/repos/%s/%s/git/commits/%s.diff"
+                        host-url owner repo sha))
+           (url-request-method "GET")
+           (url-request-extra-headers
+            `(("Authorization" . ,(encode-coding-string
+                                   (concat "token " (forgejo-token host-url))
+                                   'ascii)))))
+      (url-retrieve
+       url
+       (lambda (_status)
+         (goto-char (point-min))
+         (re-search-forward "\r?\n\r?\n" nil t)
+         (let ((diff-text (buffer-substring-no-properties (point) (point-max)))
+               (buf-name (format "*forgejo-diff: %s*" (substring sha 0 8))))
+           (kill-buffer (current-buffer))
+           (with-current-buffer (get-buffer-create buf-name)
+             (let ((inhibit-read-only t))
+               (erase-buffer)
+               (insert diff-text))
+             (diff-mode)
+             (use-local-map forgejo-view-diff-map)
+             (setq buffer-read-only t
+                   forgejo-diff--owner owner
+                   forgejo-diff--repo repo
+                   forgejo-diff--pr-number pr-number)
+             (goto-char (point-min))
+             (switch-to-buffer (current-buffer)))))
+       nil t))))
+
+;;; URL routing
+
+(defun forgejo-view--parse-forgejo-url (url)
+  "Parse a Forgejo issue/PR URL into (OWNER REPO NUMBER), or nil."
+  (when (and url (string-match
+                  "/\\([^/]+\\)/\\([^/]+\\)/\\(?:issues\\|pulls\\)/\\([0-9]+\\)"
+                  url))
+    (list (match-string 1 url)
+          (match-string 2 url)
+          (string-to-number (match-string 3 url)))))
+
+(defun forgejo-view-browse-url (url &rest _args)
+  "Open URL in forgejo.el if it's a Forgejo issue/PR, else in browser."
+  (if-let* ((parsed (forgejo-view--parse-forgejo-url url)))
+      (forgejo-view-item (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))
+    (browse-url-default-browser url)))
+
+(defun forgejo-view-follow-link ()
+  "Follow the link at point.
+Handles #N issue/PR refs and markdown URLs."
+  (interactive)
+  (cond
+   ((get-text-property (point) 'forgejo-ref-number)
+    (forgejo-view-follow-ref))
+   ((forgejo-buffer--url-at-point)
+    (forgejo-view-browse-url (forgejo-buffer--url-at-point)))
+   (t (user-error "No link at point"))))
+
+(declare-function forgejo-review-open-thread "forgejo-review.el" ())
+
+(defun forgejo-view-open-review-thread ()
+  "Open the review thread for the review link at point."
+  (interactive)
+  (forgejo-review-open-thread))
+
 ;;; Shared view keymap
 
 (keymap-popup-define forgejo-view-mode-map
@@ -74,7 +201,7 @@ Called with (HOST-URL OWNER REPO NUMBER).")
   "A" ("Add assignee" forgejo-view-add-assignee)
   "M" ("Set milestone" forgejo-view-set-milestone)
   :group "Navigate"
-  "RET" ("Follow link" forgejo-buffer-follow-link)
+  "RET" ("Follow link" forgejo-view-follow-link)
   "g" ("Refresh" forgejo-view-refresh)
   "b" ("Open in browser" forgejo-view-browse)
   "n" ("Next" ewoc-goto-next)
@@ -162,6 +289,7 @@ SYNC-FN and BROWSE-FN are stored as buffer-locals for action commands."
       (let ((inhibit-read-only t))
         (erase-buffer))
       (funcall view-mode-fn)
+      (forgejo-buffer-setup forgejo-view-action-map)
       (setq forgejo-repo--host host-url
             forgejo-repo--owner owner
             forgejo-repo--name repo
